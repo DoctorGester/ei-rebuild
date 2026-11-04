@@ -46,7 +46,7 @@ constexpr float kPointOne = 0.1f;
 constexpr float kPointTwo = 0.2f;
 constexpr float kPointThree = 0.3f;
 constexpr float kPointSix = 0.6f;
-constexpr float kFive = 5.0f;
+constexpr std::uint32_t kRollSides = 5;           // a weapon hit rolls one of five faces
 constexpr float kTen = 10.0f;
 constexpr float kDistanceScale = 10.0f;
 constexpr float kFifteen = 15.0f;
@@ -69,7 +69,6 @@ constexpr float kSizeScale20 = kPointTwo;                           // 0.2
 constexpr float kWorldFactorScale = kPercent;                       // 0.01
 constexpr float kMode0Factor2 = 0.5f;
 constexpr float kMode1Factor2 = 0.75f;
-constexpr float kMode0Factor3 = 1.0f;
 constexpr float kIdleMode0Factor0 = 0.4f;
 constexpr float kIdleMode1Factor0 = kPointTwo;                      // 0.2
 constexpr float kIdleMode3Scale = 2.0f;
@@ -142,24 +141,21 @@ bool UnitServer::AttacksFromRange() {
 
 void UnitServer::GetDamageByType(DamageWords* out) {
     Unit* self = unit;
-    ItemWeapon* weapon;
-    if (self->player && self->activeWeapon < 4 &&
-        self->weapons[self->activeWeapon] &&
-        (weapon = self->weapons[self->activeWeapon]->AsWeapon()) != nullptr) {
-        float total = weapon->damageSpread + weapon->damage;
-        float scale = ScaleDamageByEffects(self, total);   // (not read)
-        float weights[7];
-        weapon->GetDamageTypes(weights);
-        for (int i = 0; i < 7; ++i) {
-            float value = scale * weights[i];
-            out->words[1 + i] = static_cast<std::uint16_t>(lib::RoundEven(value));
-        }
-        return;
-    }
+    ItemWeapon* weapon = nullptr;
+    if (self->player && self->activeWeapon < 4 && self->weapons[self->activeWeapon])
+        weapon = self->weapons[self->activeWeapon]->AsWeapon();
+    // A player's weapon in hand gives the damage and its type weights; else the statistics do.
+    float weaponWeights[7];
+    const float* weights = stats.damageWeights;
     float total = stats.damageSpread + stats.damage;
+    if (weapon) {
+        total = weapon->damageSpread + weapon->damage;
+        weapon->GetDamageTypes(weaponWeights);
+        weights = weaponWeights;
+    }
     float scale = ScaleDamageByEffects(self, total);
     for (int i = 0; i < 7; ++i) {
-        float value = scale * stats.damageWeights[i];
+        float value = scale * weights[i];
         out->words[1 + i] = static_cast<std::uint16_t>(lib::RoundEven(value));
     }
 }
@@ -415,11 +411,8 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
         out->weaponValue = weapon->actionValue;
-        int sides = static_cast<int>(kFive);
-        int face = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(sides));
-        int value = face + face + 2;
-        float roll = static_cast<float>(value) - (kFive + 1.0f);
-        out->attackRoll = roll;
+        int face = static_cast<int>(g_random.Next() % kRollSides);
+        out->attackRoll = static_cast<float>(2 * face - 4);   // -4 .. 4 in steps of 2
         out->amount = weapon->RollDamage();   // stored as a float, as the original
     } else {
         std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
@@ -450,10 +443,9 @@ void UnitServer::TakeHit(DamageInfo* hit, Unit* attacker, Unit* source) {
     WorldServer* world = ServerWorld();
     int dead = unit->IsDead();
     bool hadPlayer = unit->player != nullptr;
-    // |attackRoll| below FLT_MAX: not resolved yet.
-    float roll = std::bit_cast<float>(std::bit_cast<std::uint32_t>(hit->attackRoll) & 0x7FFFFFFFu);
     const float rolled = hit->attackRoll;   // logged as rolled, before ResolveHit marks it resolved
-    if (roll < kHitMark) ResolveHit(hit, attacker);
+    // |attackRoll| below FLT_MAX: not resolved yet.
+    if (AbsBits(rolled) < kHitMark) ResolveHit(hit, attacker);
     if (!dead) {
         world->AddToUpdateMap(unit);
         if (attacker) {
@@ -548,11 +540,9 @@ void UnitServer::UpdateMoveFactors() {
     moveFactors[2] = 1.0f;
     moveFactors[1] = 1.0f;
     float sum = scaled + (1.0f - factor);
-    moveFactors[3] = sum;
     moveFactors[3] = world->weatherFactor * sum;
     if (unit->moveMode == MoveMode::Lie) {
         moveFactors[2] = kMode0Factor2;
-        moveFactors[3] = kMode0Factor3 * moveFactors[3];
     } else if (unit->moveMode == MoveMode::Crawl) {
         moveFactors[2] = kMode1Factor2;
     }
@@ -617,7 +607,7 @@ namespace {
 constexpr int kCallClaim = 0x1E;        // the kind of the AI memory's call for a claim
 
 
-// The weapon's condition (Item +0x20, a float) rounded to nearest is above 0.
+// The weapon's condition rounded to nearest is above 0.
 bool Usable(const Item* weapon) { return weapon && lib::RoundEven(weapon->condition) > 0; }
 } // namespace
 

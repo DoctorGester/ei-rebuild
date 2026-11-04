@@ -84,7 +84,7 @@ def read_plan(r, name):
         r.i32('hitLocation')
         r.f32('rangeSq')
         r.u8('isCast')
-        r.u8('notSkill')
+        r.u8('notSkill')   # OrderPlan::calledShot: the goldens keep the old name
         r.i32('castKind')
         r.vec('direction')   # SV7b2: the controller starts zeroed, so unset is 0
 

@@ -93,14 +93,16 @@ closes files from GetFile (reference counts only grow).
 - Kept: LoadSpell reads flags through its stream argument's slot; Build leaves the target flags alone when the prototype
   kind is neither 'u' nor 't', so they accumulate until Reset; a modifier whose code is not found becomes code 0, which
   sorts first and empties the modifier list; the container's AddModifier reports a null record as "Invalid rune".
-- The spell manager's sequence map is never filled (its only caller passes -1). `Light`: range sqrt(FLT_MAX);
+- `CreateSpellObject` is only called with -1 (a packed id with a low half other than 0 is a FatalError: there are no
+  spell sequences). `Spell` takes its numbers as the `SpellValues` base (CopyTo assigns it). `Light`: range sqrt(FLT_MAX);
   `LightFactory` makes lights 0x2E / 0x31.
 
 ## Spell effects
 
 `SpellEffect` (world.h calls it `Projectile`) is one cast spell and embeds its Spell. The world server ticks `Update`;
-the state: 0 casting (`Start`, a switch on the prototype), 1 missile in flight (`UpdateMissile`), 2 lasting
-(`UpdateLasting`), else it ends (footprint cleared, the three effect objects dropped). The three counted effect objects
+the state: 0 casting (`Start`, a switch on the prototype whose `Start*` functions set the state themselves: the
+missile, the lasting one through `EnterLasting` or `kStateEnded`; the charm leaves it at 0 and so starts again every
+tick), 1 missile in flight (`UpdateMissile`), 2 lasting (`UpdateLasting`), else it ends (footprint cleared, the three effect objects dropped). The three counted effect objects
 (visual, sound, light) are also in the world's timed objects; replacing one removes and releases the old.
 
 Spell types: 0 / 0x28 fire arrow, 1 / 0x29 lightning, 2 acid ray, 3 fireball, 4 light strike, 5 acid column, 6 fire
@@ -116,8 +118,8 @@ Lights: the prototype's fields 23-27 are its light (`lightColor`, `lightRange`, 
 `lightRange / max(lightRiseDivisor, 1)` a tick, the impact lights 1.5 times faster and further.
 
 Hits: HitUnit skips units the spell may not affect (only checked with a caster) and calls the controller's TakeHit;
-HitUnitsInRadius (fireball) and HitUnitsAlong (fire wall, every 4th tick) hit units IsSpellTarget accepts (size class
-set, or the prototype's value below 0.5); the wall only those within 0.5 of the vertical plane along its direction.
+HitUnitsInRadius (fireball) and HitUnitsAlong (fire wall, every 4th tick) hit units that area spells hit (size class
+set, or the prototype's height below 0.5); the wall only those within 0.5 of the vertical plane along its direction.
 
 Kept: lightning builds its light at the target's position without checking the target; healing and charm read the
 target's class without a null check; arrow and acid ray impacts read the target after the hit unchecked; charm with a

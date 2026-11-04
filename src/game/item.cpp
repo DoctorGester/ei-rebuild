@@ -104,7 +104,7 @@ bool Item::IsSameAs(Item* other) {
     const Spell* otherSpell = other->spell;
     if (currentSpell == nullptr || otherSpell == nullptr) return currentSpell == otherSpell;
     if (currentSpell->prototypeId != otherSpell->prototypeId) return false;
-    return std::memcmp(currentSpell->modifiers, otherSpell->modifiers, sizeof(currentSpell->modifiers)) == 0;
+    return currentSpell->modifiers == otherSpell->modifiers;
 }
 
 bool Item::CopyTo(Item* target, SpellManager* spells) {

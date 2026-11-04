@@ -34,7 +34,7 @@ namespace {
 
 constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // Unit flags, cleared every update
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
-constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
+constexpr std::uint32_t kBoredChance = 1001;          // one in 1001
 
 // --- Helpers --------------------------------------------------------------------------------------
 
@@ -101,29 +101,22 @@ bool UnitServer::RunTick() {
             unit->MarkChanged(NetField::Vitals);
             unit->MarkChanged(NetField::Stats);
         }
-        // Every (speedClass + 1) updates the unit's step noise (it returns 0: no record).
-        if ((static_cast<std::uint32_t>(g_serverWorld.tick) & static_cast<std::uint32_t>(speedClass)) == 0) {
-            AIEventPresence*& presence = aiPresence;
-            if (presence) {
-                presence->x = unit->localPosition.x;
-                presence->y = unit->localPosition.y;
-            }
-            presence = g_serverWorld.aiMap.events.StepNoise(unit->localPosition, this);
-        }
+        // Every (speedClass + 1) updates the unit's step noise.
+        if ((static_cast<std::uint32_t>(g_serverWorld.tick) & static_cast<std::uint32_t>(speedClass)) == 0)
+            g_serverWorld.aiMap.events.StepNoise(unit->localPosition, this);
         TickItemSpells();
         if (unit->player != nullptr) {
             // A party unit: its perception memory, and now and then a bored remark.
             unit->exposure = brain.memory.MeasureExposure(this);
             unit->MarkChanged(NetField::Exposure);
-            int& bored = boredTicks;
-            ++bored;
-            if (bored > kBoredTicks && BoredRemarkDue(g_serverWorld.tick, static_cast<std::uint32_t>(unit->id))) {
+            ++boredTicks;
+            if (boredTicks > kBoredTicks && BoredRemarkDue(g_serverWorld.tick, static_cast<std::uint32_t>(unit->id))) {
                 Player* player = unit->player;
                 if (!player || player->Server()->danger != PlayerServer::PartyDanger::Safe) {
-                    bored = 0;
+                    boredTicks = 0;
                 } else {
                     PlayerMessage(player->Server(), unit, AckKind::Bored);
-                    bored = 400;
+                    boredTicks = 400;
                 }
             }
         }
@@ -149,16 +142,14 @@ bool UnitServer::RunTick() {
     // over, the death is reported and the orders are dropped.
     WorldServer* world = ServerWorld();
     if (self->localPosition.z > 0.0f) {
-        float& sinking = sinkSpeed;
-        sinking += kSinkAcceleration;
-        self->localPosition.z -= sinking;
+        sinkSpeed += kSinkAcceleration;
+        self->localPosition.z -= sinkSpeed;
         float z = unit->localPosition.z;
         unit->localPosition.z = MaxKeepB(0.0f, z);    // a NaN z is kept
         unit->MarkChanged(NetField::Placement);
     }
-    std::uint8_t& reported = deathReported;
-    if (reported == 0 && queue.steps.empty()) {
-        reported = 1;
+    if (deathReported == 0 && queue.steps.empty()) {
+        deathReported = 1;
         world->TellPartiesGone(unit);
         Player* player = unit->player;
         unit->SetPlayer(nullptr);
@@ -333,7 +324,7 @@ void UnitServer::ClearStanding() { SetStandingFlag(this, 0); }
 void UnitServer::StandStill() {
     motion.Clear();
     int now = OwningWorld()->tick;
-    // The unit's forward direction (its rotation's Y axis, inlined), reversed.
+    // The unit's forward direction (its rotation's Y axis), reversed.
     Vector3 direction = -(unit->localRotation).AxisY();
     if (motion.Start(unit->localPosition, direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
@@ -407,7 +398,12 @@ void UnitServer::TickAction() {
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
             auto* objects = g_serverWorld.timedObjectManager;
             auto* particle = objects->CreateObjectAs<EffectParticle>(ClassId::EffectParticle, -1);
-            static constexpr int kEffects[8] = {static_cast<int>(ParticleType::CastingFire), static_cast<int>(ParticleType::CastingElectricity), static_cast<int>(ParticleType::CastingAcid), static_cast<int>(ParticleType::CastingIllusion), static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment), static_cast<int>(ParticleType::CastingHealing), static_cast<int>(ParticleType::CastingDomination)};
+            // The casting particle of each SpellSchool.
+            static constexpr int kEffects[8] = {
+                static_cast<int>(ParticleType::CastingFire),       static_cast<int>(ParticleType::CastingElectricity),
+                static_cast<int>(ParticleType::CastingAcid),       static_cast<int>(ParticleType::CastingIllusion),
+                static_cast<int>(ParticleType::CastingDivination), static_cast<int>(ParticleType::CastingEnchantment),
+                static_cast<int>(ParticleType::CastingHealing),    static_cast<int>(ParticleType::CastingDomination)};
             int kind = static_cast<int>(plan.castKind);
             particle->type = (kind >= 0 && kind <= 7) ? kEffects[kind] : static_cast<int>(ParticleType::Casting);
             particle->size = 1.0f;
@@ -443,7 +439,6 @@ bool UnitServer::ActionInReach() {
     if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::UseItem) return true;
     if (kind != UnitOrderKind::Attack && kind != UnitOrderKind::Use && kind != UnitOrderKind::CastOn) return false;
     MapObject* target = action.target;
-    if (cast && (unit->flags & MapObjectFlag::NoCasting)) return false;
     if (!target) {
         if (!cast) return false;
         Spell* spell = SpellOfSource(action.source);
@@ -521,6 +516,4 @@ void UnitServer::RefreshItemSpells() {
     for (ArmourSpell& entry : armourSpells)
         if (entry.worn == 0) entry.item.Reset();
     std::erase_if(armourSpells, [](const ArmourSpell& entry) { return entry.worn == 0; });
-    held.spells.clear();
-    items.clear();
 }

@@ -1,6 +1,6 @@
 // The spell manager and the spell containers: the manager's own code and the container's lifetime
-// (CreateSpellObject, the factory, Create / Destroy, the sequences it keeps, spell.h's SpellSequence), the spell
-// constructor, and spells from text. See docs/notes/items_spells.md.
+// (CreateSpellObject, the factory, Create / Destroy), the spell constructor, and spells from text. See
+// docs/notes/items_spells.md.
 #include "spell.h"
 
 #include "console.h"
@@ -13,6 +13,7 @@
 #include "lib/float_select.h"
 #include "lib/str.h"
 
+#include <algorithm>
 #include <cstring>
 #include <iterator>
 #include <memory>
@@ -35,34 +36,17 @@ std::vector<std::string> ListRecordNames(const itemdb::CodeIndexedTable<Record>&
 
 } // namespace
 
-SpellSequence::~SpellSequence() {
-    for (auto& [low, container] : containers) {
-        if (!container) break;
-        container->Release();
-    }
-}
-
 Spell* SpellManager::CreateSpellObject(int newId) {
     auto* spell = CreateObjectAs<Spell>(SpellObjectType::Spell, -1);
     if (newId == -1) return spell;
     const auto packed = static_cast<std::uint32_t>(newId);
-    const std::uint32_t low = packed & 0xFFFF;
     spell->prototypeId = packed;
-    if (low == 0) {
+    if ((packed & 0xFFFF) == 0) {
         spell->InitFromPrototype(itemdb::SpellAt(packed >> 16));
         return spell;
     }
-    const std::uint32_t key = packed & 0xFFFF0000;
-    if (key > maxSequenceKey) maxSequenceKey = key;
-    SpellSequence* sequence = sequences[key];
-    if (!sequence) {
-        game::FatalError(kNoSequenceMessage);
-        return spell;
-    }
-    if (low > sequence->maxLow) sequence->maxLow = low;
-    // A new entry has no container: the spell keeps only its id.
-    SpellContainer* container = sequence->containers[low];
-    if (container) container->spell.CopyTo(spell);
+    // The low half would name a spell sequence, which nothing in the game ever fills.
+    game::FatalError(kNoSequenceMessage);
     return spell;
 }
 
@@ -73,30 +57,6 @@ EngineObject* SpellManager::NewObject(int objectType) {
     default: break;
     }
     return nullptr;
-}
-
-void SpellManager::Destroy() {
-    for (auto& [key, sequence] : sequences) {
-        if (!sequence) break;
-        delete sequence;
-    }
-    sequences.clear();
-    maxSequenceKey = 0;
-    ResourceManager::Destroy();
-}
-
-SpellManager::SpellManager() {
-    maxSequenceKey = 0;
-}
-
-SpellManager::~SpellManager() {
-    for (auto& [key, sequence] : sequences) {
-        if (!sequence) break;
-        delete sequence;
-    }
-    sequences.clear();
-    maxSequenceKey = 0;
-    ResourceManager::Destroy();
 }
 
 const char* SpellManager::ClassName() { return kSpellManagerClassName; }
@@ -195,30 +155,10 @@ bool SpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier)
 
 void SpellContainer::Build() {
     Spell* currentSpell = &spell;
-    const itemdb::SpellRecord* proto = prototype;
-    currentSpell->speed = proto->speed;
-    currentSpell->range = proto->range;
-    if (proto->targetKind == 'u') {
-        currentSpell->targetFlags = lib::Bits(SpellTargetFlag::AtUnits);
-    } else if (proto->targetKind == 't') {
-        currentSpell->targetFlags = lib::Bits(SpellTargetFlag::AtPoint);
-    }
-    currentSpell->targetCount = proto->targetCount;
-    currentSpell->manaCost = proto->mana;
-    currentSpell->complexity = proto->complexity;
-    currentSpell->price = proto->price;
-    currentSpell->castTime = proto->castTime;
-    currentSpell->effectPower = 0x10;
-
     itemdb::SpellTable& spells = g_spellDatabase.spells;
-    int index = spells.IndexOf(spells.FindByCode(proto->code));
-    proto = prototype;
-    currentSpell->prototypeIndex = static_cast<std::uint8_t>(index);
-    currentSpell->damage = proto->damage;
-    currentSpell->radius = proto->area;
-    currentSpell->duration = proto->duration;
-    currentSpell->skillNeeded = static_cast<std::uint32_t>(proto->skill);
+    int index = spells.IndexOf(spells.FindByCode(prototype->code));
     currentSpell->prototypeId = static_cast<std::uint32_t>(index & 0xFF) << 16;
+    currentSpell->InitFromPrototype(prototype);
 
     if (!codes.empty()) codes.clear();
 
@@ -285,22 +225,10 @@ void SpellContainer::Build() {
     float base = prototype->mana;
     currentSpell->manaCost = MaxKeepB(base, currentSpell->manaCost);
 
-    // std::sort of the codes (signed chars). Any correct sort gives the same bytes.
-    if (!codes.empty()) {
-        char* const first = codes.data();
-        char* const last = first + codes.size();
-        for (char* i = first + 1; i != last; ++i) {
-            char value = *i;
-            char* j = i;
-            while (j != first && value < j[-1]) {
-                *j = j[-1];
-                --j;
-            }
-            *j = value;
-        }
-    }
+    // The codes sorted as signed chars.
+    std::sort(codes.begin(), codes.end());
 
-    std::memset(currentSpell->modifiers, 0, sizeof(currentSpell->modifiers));
+    currentSpell->modifiers = {};
     for (int i = 0; i < 8; ++i) {
         char c = codes[i];
         if (c == 0) break;

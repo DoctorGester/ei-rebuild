@@ -275,12 +275,11 @@ void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector
     }
 }
 
-AIEventPresence* AIViewer::StepNoise(const Vector3& position, UnitServer* source) {
+void AIViewer::StepNoise(const Vector3& position, UnitServer* source) {
     const AITerrainType* ground = g_serverWorld.aiMap.MaterialRecordAt(position);
     float loudness = source->moveFactors[0] * source->stats.conspicuity[3].current;
     loudness *= ground->noise;
     Noise(source, loudness, AIBrain::kCallDelay, source->unit->localPosition);
-    return nullptr;
 }
 
 // --- The perception memory's queries: the visible units, the exposure to hostile units, corpses seen,

@@ -22,13 +22,13 @@ inline constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
 struct UnitAction : AIOrder {
-    int param = 0;              // by kind: a skill's spot (6), a wait's time, an emote's animation,
+    int param = 0;              // by kind: a use's spot (Use), a wait's time, an emote's animation,
                                 // the studied item's id
     std::uint8_t modifier = 0;  // run (move orders) or a called shot (attacks)
 
 // The target is referenced.
     UnitAction* Assign(const UnitAction* from);
-// Kind 9, the target released, pointIsUseSpot, param and modifier cleared.
+// Kind None, the target released, pointIsUseSpot, param and modifier cleared.
     void Reset();
     void Retarget(MapObject* object) {
         if (object == target) return;
@@ -63,7 +63,6 @@ struct AnimationSteps {
     // The last step becomes the open-ended emote `emote` (its variant; duration -1); a blank step is appended
     // first when the list is empty or its last step already carries an emote.
     void AddEmote(int emote);
-    void SetStepFlags(int value);
     // The sum of the durations; -1 when one is negative (open-ended).
     int Duration() const;
     // Compares the count, then each step but its padding byte.
@@ -90,9 +89,9 @@ struct OrderPlan {
     float rangeSq = kNoPlanRange;   // squared distance the target may move away
     std::uint8_t isCast = 0;
     int hitLocation = 1;        // the body location the attack aims at
-    std::uint8_t notSkill = 0;  // order source != 6
-    SpellSchool castKind = SpellSchool::None;   // for a cast: Lightning (spell kind 0x28), Fire (0x29) or the
-                                                // spell prototype's school
+    std::uint8_t calledShot = 0;   // the attack aims at one body part (the order's source is not kAttackAllParts)
+    SpellSchool castKind = SpellSchool::None;   // for a cast: Lightning for SpellType::RickMagic, Fire for
+                                                // CurseMagic, else the spell prototype's school
     Vector3 direction{};        // from the unit to the target
 
     // The plan of nothing: every field to its start value but the direction, which stays (it is saved).
@@ -111,7 +110,7 @@ bool SpellHasLineOfSight(WorldServer* world, Spell* spell, Unit* caster, const V
 struct MoveModeState {
     MoveMode mode;              // never Run: that is stored as Walk with `wasMode3`
     // Set while the unit attacks (SyncMoveModes) and by the AI's suspicion, aggression and fear modes (cleared
-    // when they end): mode 2 then takes the guarded walk / cast animations (not a hero's own walk), the unit
+    // when they end): Walk then takes the guarded walk / cast animations (not a hero's own walk), the unit
     // cannot be backstabbed and does not fall asleep (moveMode2's, read by the hit code and the world update).
     std::uint8_t onGuard;
     std::uint8_t wasMode3;
@@ -133,13 +132,6 @@ struct AttackParams {
     float attackSpread;         // random range of the attack roll
     int attack;                 // attack skill (truncated)
     int defence;                // defence skill (truncated; 0 for ranged weapons)
-};
-
-// A record of the unit's presence with the AI events. AIViewer::StepNoise, which would fill it, always returns
-// 0, so none is ever written; the layout is speculative (the fields the controller's update would write).
-struct AIEventPresence {
-    float x;                    // where the unit was when the record was last refreshed
-    float y;
 };
 
 // An entry of the armour spell list: the item (a counted reference), its countdown and whether it is still
@@ -195,41 +187,41 @@ public:
     // The active weapon's reach, else the natural reach.
     float AttackRange();
     bool HasRangedWeapon();
-    // A ranged weapon, or (without a weapon) a natural weapon other than 0x10 with a reach above 1.
+    // A ranged weapon, or (without a weapon) a natural weapon other than SpellsOnly with a reach above 1.
     bool AttacksFromRange();
     // out[1..7]: the weapon's (party units) or the natural attack's damage, scaled, times each weight.
     void GetDamageByType(DamageWords* out);
     // out[0] = 0x7FFF, out[1 + the spell's damage type] = its truncated damage, the rest 0.
     void GetSpellDamage(std::uint32_t source, DamageWords* out);
-    // The quick item of `source` (high bit ignored) if it carries a spell (class 0x13, category 5 or 8).
+    // The quick item of `source` (kQuickItemSource ignored) if it carries a spell (a wand or a potion).
     Item* SpellCarrier(std::uint32_t source);
-    // `source` is a quick item of category 8 (a potion: the AI brain does not take it for a cast).
+    // `source` is a potion (a quick item of QuickItemCategory::Potion: the AI brain does not take it for a cast).
     bool IsPotionSource(std::uint32_t source);
     // A spell slot's spell, or a carrier item's.
     Spell* SpellOfSource(std::uint32_t source);
-    // Does the current order count as fighting (for the battle music): an attack (kind 3), or a cast (4, 5) of a
-    // spell of type 0-8 or 0x1A from a spell slot or a spell carrier (quick item category 5 or 8). Rebirth's
-    // FixPlaingBattleMusicFromAntimagic drops 0x1A (antimagic).
+    // Does the current order count as fighting (for the battle music): an attack, or a cast of a spell of type
+    // FireArrow to AcidFog from a spell slot or a spell carrier. Rebirth's FixPlaingBattleMusicFromAntimagic leaves
+    // out Antimagic.
     bool IsFighting();
-    // A carrier with enough charge (category 5), or a spell the party unit has the mana for.
+    // A carrier with enough charge (a wand), or a spell the party unit has the mana for.
     bool CanCast(const AIOrder* order);
     // The current or the queued order is of `kind`.
     bool HasOrder(UnitOrderKind kind) const { return action.kind == kind || action2.kind == kind; }
-    // The point of the first move order (action, then action2). 0/1.
+    // The point of the first move order (action, then action2); none without one.
     std::optional<Vector3> GetMovePoint();
     float ActionDistance(const AIOrder* order);
-    // True only for a melee order (kind 3 without a ranged weapon, or 6) on a living unit of size class 0
+    // True only for a melee order (an Attack without a ranged weapon, or a Use) on a living unit of size class 0
     // whose prototype height plus its z is kMeleeReachHeight or more.
     bool TooHighToReach(const AIOrder* order);
-    // 1 << the weapon type (natural weapon types 7 and above: 0).
+    // The animation bit of the weapon type (natural weapon types from kAnimatedWeaponTypes: 0).
     std::uint32_t WeaponTypeMask();
-    // Animation bits of a movement mode: 0 0x30000, 1 0x20000, 2 0x10000 (only with
-    // `onGuard` or for units other than heroes), 4 0x8000, else 0.
+    // Animation bits of a movement mode: Lie, Crawl, Walk (only with `onGuard` or for units other than heroes) and
+    // Stop have theirs; else 0.
     std::uint32_t MoveModeMask(const MoveModeState* mode);
     // log(experience / considerModifier) / log(considerLogBase), rounded.
     int Level() override;
-    // Sets the unit's flags bit 0x10000000 when it has an effect of type 0x20 and a natural weapon other than
-    // 0x10, else clears it.
+    // Sets MapObjectFlag::NoCasting when the unit has the Feeblemind effect and a natural weapon other than
+    // SpellsOnly, else clears it.
     void EffectsChanged() override;
     void GetAttackParams(AttackParams* out) override;
     // Random spread + attack, minus a distance penalty, plus a speed ratio unless `backstab`; at least 0.
@@ -247,7 +239,7 @@ public:
     void MoveFactorsChanged() override;
     // Part 4 changed; the server companion's hit points and mana set to their maxima.
     void SetStats(const UnitStats* stats);
-    // Remark `code` (below 0x2A, or 0x30) to the unit's player (message 0x0B); nothing without a player.
+    // The remark `kind` (a shoutable one) to the unit's player; nothing without a player.
     void Shout(AckKind kind);
     // The three size classes from the unit's load and size (times the model's factor; heroes capped at 1.89).
     void UpdateSizeClasses() override;
@@ -257,15 +249,15 @@ public:
 
     // --- The end of an action, missiles, item spells, death, healing, skills.
     // When the current order's animation reaches its moment: an attack delivers pendingHit, a cast finishes, a
-    // skill or use is applied, a quick item of category 2 is used up; all but attacks then clear the order.
+    // skill or use is applied, a Consumable quick item is used up; all but attacks then clear the order.
     void FinishAction(int location);
-    // A missile (world object 0x5B carrying the hit) for a bow or crossbow, else the target's TakeHit
+    // A missile (an EffectArrowFigure carrying the hit) for a bow or crossbow, else the target's TakeHit
     // directly; then the weapon's spell, and noise when the hit was not a backstab.
     void DeliverAttack(MapObject* target, DamageInfo* hit);
-    // Casts the active weapon's spell (flag 0x10000) at `target` when its charge covers the cost.
+    // Casts the active weapon's spell (SpellTargetFlag::ItemTriggered) at `target` when its charge covers the cost.
     void TriggerWeaponSpell(MapObject* target);
-    // The spells of the armour pieces that trigger on being hit (`onHit`; spell prototype 0x18 triggers when
-    // not hit) and have the charge for it.
+    // The spells of the armour pieces that trigger on being hit (`onHit`; SpellType::Healing triggers when not
+    // hit) and have the charge for it.
     void TriggerItemSpells(char onHit);
     // Also updates the party's copy of the item.
     void UseItemCharge(Item* item, float cost);
@@ -273,20 +265,20 @@ public:
     bool Heal(float amount) override;
     // Reacts to damage. Not dead: the armour spells, diplomacy, the AI memory, hostility claims and the hit
     // direction. Dead: remarks, witnesses, the death state, "Unit 12 damaged to death", the death animation,
-    // the AI notification and the party's reaction. Units of types outside 0x32..0x36 only get flags bit 1.
+    // the AI notification and the party's reaction. Objects outside Hero to Building only get MapObjectFlag::Removed.
     void OnDamaged(Unit* attacker, int hitKind);
     // The allied witnesses that see `victim` add `murderer` to their visible list and turn hostile to it.
     void WitnessMurder(const HeldUnits* witnesses, Unit* victim, Unit* murderer);
-    // When the unit's flags have 0x80000: clears it, adds its hostile mask to claimedHostile and swaps
+    // When the unit has MapObjectFlag::RelationsChanged: clears it, adds its hostile mask to claimedHostile and swaps
     // hostility claims with the allied units nearby.
     void PropagateHostility();
-    // Where `attacker` stands relative to the unit: 0x800000 in front, 0x400000 behind, 0xC00000 / 0x1000000
-    // to the sides; 0 without an attacker or with a non-zero `hitKind`.
+    // Where `attacker` stands relative to the unit: Front, Back, MinusX or PlusX; None without an attacker or with a
+    // non-zero `hitKind`.
     BlowSide HitDirection(Unit* attacker, int hitKind);
     // A UnitOrderKind::Use: UseSource::SearchBody loots the body; else science (UseSource::Use) and stealing.
     void UseSkill(MapObject* target);
-    // Drops the queued order unless it is of kind 7 or 8 or there is no current order; the queued order ends
-    // up of kind 0 (sic).
+    // Drops the queued order unless it is an Animation or an Emote or there is no current order; the queued order
+    // ends up of kind Idle (sic).
     void Idle();
     // The current order is over: reset, and Idle() unless another is queued.
     void EndCurrentOrder() {
@@ -299,43 +291,41 @@ public:
     // A carrier pays from its charge (not enough: nothing is cast), a party unit from its mana; noise unless
     // the spell's castType is 1.
     void FinishCast();
-    // Order setters: each replaces the queued order (action2). Kind 2 (turn) towards `direction`; param =
-    // `time`.
+    // Order setters: each replaces the queued order (action2). A Turn towards `direction`; param = `time`.
     void OrderTurn(const Vector3& direction, std::uint32_t time);
-    // Kind 1 (move) to `point`: source = `walk` != 0, modifier = `run`. A party unit with a real point (z not
-    // -1313) gets param 1 while the world is not paused, else plans the move at once (PlanMove).
+    // A Move to `point`: source = `walk` != 0, modifier = `run`. A party unit with a real point (z not -1313)
+    // gets param 1 while the world is not paused, else plans the move at once (PlanMove).
     void OrderMove(const Vector3& point, int run, int walk);
-    // Kind 3 at body part `location` (6, all, unless the target's part kind is 3); modifier = `calledShot`.
-    // Dropped when the target is out of reach (message 0x0C) or the planner refuses.
+    // An Attack at body part `location` (kAttackAllParts, unless the target's part kind is 3); modifier =
+    // `calledShot`. Dropped when the target is out of reach (AckKind::OutOfReach) or the planner refuses.
     void OrderAttack(MapObject* target, int location, int calledShot, AckKind planArg);
-    // Kind 4 (cast at a point). A potion (quick item of category 8) is cast at once. A party unit needs the
-    // spell's skill for a spell of its own; message 0x13 if not, or while flags has 0x10000000.
+    // A CastAt a point. A potion is cast at once. A party unit needs the spell's skill for a spell of its own;
+    // AckKind::SpellTooComplex if not, or while the unit has MapObjectFlag::NoCasting.
     void OrderCastAt(std::uint32_t source, const Vector3& point, int run);
     void OrderCast(std::uint32_t source, MapObject* target, int run);
-    // Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
+    // Unless the current order is a Stop: the queued order becomes a Stop.
     void StopQueued();
 
-    // Would the unit fit its cell in movement mode `mode` (3 counts as 2)? True at once for moveMode's mode;
+    // Would the unit fit its cell in movement mode `mode` (Run counts as Walk)? True at once for moveMode's mode;
     // else the unit's mode becomes `mode` for the test (off the sector map) and is put back.
     bool FitsMoveMode(MoveMode mode);
-    // The unit's wanted movement style (0 lie, 1 crawl, 2 walk, 3 run). When it fits, a party unit hears
-    // message 9, unless running and out of breath. Other than walking and running the current order's run flag
-    // is cleared.
+    // The unit's wanted movement style. When it fits, a party unit hears AckKind::ChangePosition, unless running
+    // and out of breath. Other than walking and running the current order's run flag is cleared.
     void SetMoveStyle(MoveMode style);
     void SetWantedWeapon(int slot);
-    // A skill or use order (kind 6) on `target`: stealing (source 1; a living other object), taming (2; a
-    // living unit of another player, not a hero), use (0, spot = `spot`; any object) and searching a body
-    // (UseSource::SearchBody; a dead object other than the unit). Dropped when the planner (shouting 6 / 5 / 5 / 4) refuses.
+    // A Use order on `target`: stealing (UseSource::Steal; a living other object), taming (Tame; a living unit of
+    // another player, not a hero), use (Use, spot = `spot`; any object) and searching a body (SearchBody; a dead
+    // object other than the unit). Dropped when the planner (shouting Steal / UseObject / UseObject / Loot) refuses.
     void OrderSteal(MapObject* target, int run);
     void OrderTame(MapObject* target, int run);
     void OrderUse(MapObject* target, int spot, int run);
     void OrderSearchBody(MapObject* target, int run);
-    // Is `target` (a body to search) taken: with flags bit 0x20000000, when the world does not share it with
+    // Is `target` (a body to search) taken: with MapObjectFlag::Shared, when the world does not share it with
     // this unit's id; else when a living unit of the brain's nearby list is searching it (UnitOrderKind::Use,
     // UseSource::SearchBody) while Acting or with its flag set.
     bool TargetBusy(MapObject* target);
-    // `name` from the figure's animation database as the queued order: kind 8 for keys with bit 31, else 7;
-    // param = the entry's index dword.
+    // `name` from the figure's animation database as the queued order: an Emote for keys with bit 31, else an
+    // Animation; param = the entry's index dword.
     void PlayAnimation(const char* name);
     // Drops everything: Stopped, the effect object, the plan and both orders; the unit stands still.
     void StopAction();
@@ -362,13 +352,13 @@ public:
     // The claims dropped (claimedHostile) and the calls heard with a hostility mask.
     void HostileMaskChanged() override;
     void CopyStats(UnitStats* out);
-    // RefreshVitals(false) after (only UnitServer's vtable has it), whose 1 it returns.
+    // The stats gain `amount` experience, then RefreshVitals(false).
     void AddExperience(float amount);
 
-    // Kind 9 and cleared, then kind 0 (Idle and FinishAction).
+    // Kind None and cleared, then kind Idle (Idle and FinishAction).
     void DropQueuedOrder();
 
-    // What a cast (kinds 4, 5) or an order on a unit must see: false for an order to a use spot (pointIsUseSpot), a missing
+    // What a cast (CastAt, CastOn) or an order on a unit must see: false for an order to a use spot (pointIsUseSpot), a missing
     // spell, a spell whose prototype lacks needsSight, or (other kinds) a target that is not a unit.
     bool FindSightTarget(const AIOrder* order, struct SightTarget* out);
     // Can the unit carry out `order` at `time` with its target at `point`: in range for AI units, no living
@@ -377,10 +367,9 @@ public:
     // Builds the animation (which draws random numbers), then looks for the first moment at which the target
     // is in reach, the unit can turn to it in time, and CanActFrom holds; fills `plan` then.
     bool PlanAction(const AIOrder* order, struct OrderPlan* plan);
-    // With the target unit's flags bit 0x8000000 set meanwhile.
+    // With the target unit's MapObjectFlag::Planned set meanwhile.
     bool CanPlanAction(const AIOrder* order);
-    // False for an attack without a ranged weapon, or a skill, on a living unit of size class 0 that is too
-    // high to reach (its prototype's height plus its z at 1.5 or above); else CanPlanAction.
+    // False for a melee order (TooHighToReach) on a unit that is too high to reach; else CanPlanAction.
     bool CanReachAndPlan(const AIOrder* order);
     bool CanReachAndPlanFrom(const AIOrder* order, const Vector3& point);
 
@@ -389,9 +378,9 @@ public:
     // The entry's values divided by the unit's speed factor for it, truncated; 0 without the entry.
     int AnimationDuration(std::uint32_t index);
     int AnimationMoment(std::uint32_t index);
-    // The step that changes the movement mode `from` into `to` (only heroes, or a change involving mode 4).
+    // The step that changes the movement mode `from` into `to` (only heroes, or a change involving Stop).
     bool BuildTransition(struct AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to);
-    // For kind 3 `source` is the attack key from BuildAttackSteps. Skills are framed by stepping out of and
+    // For an Attack `source` is the attack key from BuildAttackSteps. Uses are framed by stepping out of and
     // back into the movement mode; *duration = the ticks until the action happens.
     void BuildOrderSteps(struct AnimationSteps* steps, int* duration, UnitOrderKind kind, std::uint32_t source);
     // Draws a random number for heroes.
@@ -404,11 +393,11 @@ public:
     // (ContinueAction for actions; a finished move or animation lets the queue on).
     void UpdateOrders();
     bool StartQueuedOrder();
-    // Kind 1: plans a path with the units near the goal lifted off the sector map; done orders let the next
-    // one start.
+    // The Move order: plans a path with the units near the goal lifted off the sector map; done orders let the
+    // next one start.
     bool StartMove();
-    // Continues an action order while its target is valid and seen, else ends it (party messages 0x0B / 0x0E /
-    // 0x12).
+    // Continues an action order while its target is valid and seen, else ends it (party messages NoWayToAttack /
+    // NoPath / NoTarget).
     void ContinueAction();
     // When the action can start, rolls an attack's hit and starts it, else closes in (ApproachTarget) or
     // drops the order.
@@ -422,8 +411,8 @@ public:
     // --- The update and the animation queue.
     // Once per world update. A living unit runs its regeneration, AI, item spells, orders, state and animation;
     // a dead one sinks to the ground and, once its death animation is over, reports its death and drops its
-    // orders. States: 0 idle, 1 moving, 2 / 4 a hit reaction, 3 the rest of an action's animation then 6, 5
-    // TickAction.
+    // orders. By state: Idle and Moving move along the path, Turning and Emote react to a hit, Animating waits for
+    // the rest of an action's animation and then stops, Acting runs TickAction.
     void UpdateState();
     // Moves the queue on to the world's time and shows its current step on the unit; frozen or reacting units
     // keep their times shifted.
@@ -436,7 +425,7 @@ public:
     void StartQueueIfUnset();
     // Removes the effect object from the world and releases it.
     void DropEffectObject();
-    // Other than 5 (acting) the size class is updated and the effect object dropped; 5 sets actingCheckTime to
+    // Other than Acting the size class is updated and the effect object dropped; Acting sets actingCheckTime to
     // 10 updates from now.
     void SetState(UnitState newState);
     // Clears the standing flag, re-registering the unit on the sector map.
@@ -448,15 +437,15 @@ public:
     // The reaction to a hit from hitDirection (BuildDeathAnimation without dying), saving the queue in
     // savedQueue, unless the unit is idle or the reaction would delay the next attack.
     void PlayHitReaction();
-    // Aborted (or not started, or with an open-ended animation) the state becomes 6, else 3 with what is left
-    // of a three-step plan played; the plan is reset and the unit stands still.
+    // Aborted (or not started, or with an open-ended animation) the state becomes Stopped, else Animating with
+    // what is left of a three-step plan played; the plan is reset and the unit stands still.
     void EndOrder(char abort);
-    // State 5: starts the planned action at its time and finishes it at the end (FinishAction).
+    // State Acting: starts the planned action at its time and finishes it at the end (FinishAction).
     void TickAction();
     // Casting allowed, the target (or a spell's point) not dead and within the plan's range at its end time.
     bool ActionInReach();
-    // Each armour spell casts on the unit when its countdown runs out and the item's charge covers it (type
-    // 0x18: one a tick, when hurt).
+    // Each armour spell casts on the unit when its countdown runs out and the item's charge covers it (Healing:
+    // one a tick, when hurt).
     void TickItemSpells();
 
     // False while an attack turns (Turning) and `ticks` from now would pass nextAttackTime.
@@ -466,7 +455,7 @@ public:
     void PlayAnimationOrder(const AnimationSteps& steps);
     void PlayEmoteOrder(const AnimationSteps& steps);
     // The idle animation for the weapon and movement key, rebuilt when the key changed (the emote 0xFE for a hero
-    // walking, else the idle entry of the key | 0x80580000, if any).
+    // walking, else the idle entry of the key | kAnimationSpecialIdleKey, if any).
     AnimationSteps* IdleAnimation();
     // Unless idle, moving or turning: the idle animation, rebuilt when needed, plays.
     void PlayIdle();
@@ -475,14 +464,14 @@ public:
     void BuildMoveSteps(AnimationSteps* steps, char once);
     // For a hero the start once, then the loop.
     AnimationSteps* NextAnimation();
-    // State 5: the steps get `stepFlags` in byte 2; the motion turns to the plan's direction or follows its
-    // target (until its end when `follow`).
-    void StartAction(char follow, char stepFlags);
-    // moveMode's mode 3 (wasMode3) while moveMode2 asks for it: taken on a cheap cell when not out of breath
+    // State Acting: the steps get `missed` (1 when the attack's hit misses) as their flags; the motion turns to the
+    // plan's direction or follows its target (until its end when `follow`).
+    void StartAction(char follow, char missed);
+    // moveMode's run (wasMode3) while moveMode2 asks for it: taken on a cheap cell when not out of breath
     // (and, without a player's permission, with stamina); dropped after 5 updates otherwise; out of breath
     // drops moveMode2's too (remark).
     void UpdateSneak();
-    // moveMode2 becomes moveMode unless the unit no longer fits its cell (message 0x0D); a transition animation
+    // moveMode2 becomes moveMode unless the unit no longer fits its cell (AckKind::CantChangePosition); a transition animation
     // plays (not while attacking). True when the mode changed.
     bool ChangeMoveMode();
     // FindPath within `range`: no path stands the unit still (Stopped, stoodBlocked from the path's failed
@@ -492,7 +481,7 @@ public:
     // outside the player's group; the party members that move (with `moving`) or follow this unit. Only for a
     // player's units with sessionKind 1.
     std::vector<Unit*> LiftNearby(const Vector3& point, char moving);
-    // Messages 0x0E / 0x01 to a party unit's player, unless the brain's mode is 6.
+    // AckKind::NoPath / Move to a party unit's player, unless the brain is following.
     void ReportPath(AIPath* path, char partial);
     // Every field back to its start value (Create, ClearState, Destroy: the manager reuses its objects).
     void ResetController();
@@ -511,7 +500,7 @@ public:
     void RefreshItemSpells();
 
     // --- The way to an order's target.
-    // For a use order on a target (kind 6, source 0): the reachable spot the target offers (for the unit's
+    // For a use order on a target (Use, UseSource::Use): the reachable spot the target offers (for the unit's
     // size) whose path is cheapest becomes the order's point (pointIsUseSpot set), its path into `motionOrder` (if
     // given); false when no spot can be reached.
     bool FindUseSpot(UnitAction* order, PathOrder* motionOrder);
@@ -519,7 +508,7 @@ public:
     // target is in reach (and seen, when the order needs a line of sight); 0 for other kinds.
     float TimeUntilAction(const AIOrder* order, PathOrder* motionOrder);
     // The use spot, the path (target lifted off the sector map) and whether the unit can act from its end,
-    // with the player's path message; the unit shouts `shout` when it can, 0x0B / 0x0E when not. Units without
+    // with the player's path message; the unit shouts `shout` when it can, NoWayToAttack / NoPath when not. Units without
     // a player plan only use orders.
     bool PlanOrderRoute(UnitAction* order, AckKind shout);
     // A party unit's move: the units in the way lifted (LiftNearby), a runner planning as walking where it can,
@@ -565,7 +554,7 @@ public:
     UnitState state = UnitState::Stopped;
     MoveModeState moveMode{MoveMode::Walk, 0, 0};
     MoveModeState moveMode2{MoveMode::Walk, 0, 0};
-    int sneakWait = 0;              // updates mode 3 was kept without a cheap cell (UpdateSneak)
+    int sneakWait = 0;              // updates run was kept without a cheap cell (UpdateSneak)
     Ref<EngineObject> effectObject;   // removed from the world on death
     int actingCheckTime = -1;       // world tick + 10 when acting starts (StartAction), -1 reset
     int nextAttackTime = 0;         // world tick of the next attack
@@ -578,7 +567,7 @@ public:
     UnitAction action2;
     std::uint8_t followsLeader = 0; // the chase follows `followedLeader`'s target (combat_tick.cpp)
     Ref<Unit> followedLeader;      // the party unit whose attack this one joins
-    UnitStats stats;                // its flags get bit 0x10 on a hit
+    UnitStats stats;                // its flags get UnitStatsFlag::Struck on a hit
     DamageWords protection{};       // [0] the defence value, [1..7] the body's protection
                                     // per damage type (UnitStats::PackBodyProtection)
     float sinkSpeed = 0.0f;         // a dead unit's body sinks this much a tick (accelerating)
@@ -587,7 +576,6 @@ public:
     int ownSide = -1;               // the unit's own side while tamed (TryTame)
     int tamerSide = -1;             // the tamer's side (TryTame)
     int speedClass = 15;
-    AIEventPresence* aiPresence = nullptr;   // StepNoise's result, always 0
     std::vector<ArmourSpell> armourSpells;   // periodic spells of the worn items
     int boredTicks = 0;             // a party unit's updates since its last order (a bored remark past a
                                     // limit); cleared when an order starts and by the move style /

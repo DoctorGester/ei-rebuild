@@ -320,7 +320,6 @@ void UnitServer::UseSkill(MapObject* target) {
     }
     console::EndLine(kCombatLog << name << " his_skill = " << mine << " target_skill = " << theirs);
 
-    skill = action.Skill();
     if (skill != UseSource::Use && theirs >= mine) {
         DiplomacyOf(world)->OnAttack(unit, other);
         return;

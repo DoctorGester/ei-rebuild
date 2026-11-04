@@ -3,12 +3,10 @@
 #include "core_streams.h"
 #include "map_object.h"
 #include "unit.h"
-#include "lib/bytes.h"
 #include "lib/text_case.h"
 
 #include <cfloat>
 #include <cstdint>
-#include <cstring>
 
 using namespace itemdb;
 
@@ -22,7 +20,7 @@ constexpr const char* kOrcMale = "unorma";
 constexpr const char* kOrcFemale = "unorfe";
 constexpr const char* kMoli = "unmoli";
 
-// `a` regards `b`'s side as hostile. The shift count is taken mod 32, like SHL.
+// `unit` regards `other`'s side as hostile. The shift count is taken mod 32.
 bool Regards(const Unit* unit, const Unit* other) {
     return (unit->relationsA & ((1u << (other->side & 31)) & unit->relationsB)) != 0;
 }
@@ -38,7 +36,7 @@ void Spell::Create() {
     price = 0;
     castTime = 0;
     skillNeeded = 1;
-    std::memset(modifiers, 0, sizeof(modifiers));
+    modifiers = {};
 }
 
 void Spell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
@@ -60,7 +58,7 @@ void Spell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     damage = prototype->damage;
     radius = prototype->area;
     duration = prototype->duration;
-    std::memset(modifiers, 0, sizeof(modifiers));
+    modifiers = {};
 }
 
 itemdb::SpellRecord* Spell::GetPrototype() {
@@ -81,9 +79,9 @@ bool Spell::HasCastFlagModifier() {
         // Modifier index = entry - 1, sign-extended then compared unsigned; one out of range is skipped.
         SpellModifierRecord* modifier = SpellModifierAt(static_cast<std::uint32_t>(entry - 1));
         if (!modifier) continue;
-        int code;
-        lib::LoadBytes(code, modifier->code);
-        if (code == 0x6369 || code == 0x7469) return true;   // "ic", "it"
+        // "ic" or "it", then 0 0.
+        const char* code = modifier->code;
+        if (code[0] == 'i' && (code[1] == 'c' || code[1] == 't') && code[2] == 0 && code[3] == 0) return true;
     }
     return false;
 }
@@ -115,7 +113,6 @@ bool Spell::IsOffensive() {
         return false;
     }
 }
-// Site #0 of FixSpellSelfCasting; site #1 is in BattleScreen::SelectUnit.
 
 bool Spell::CanAffect(const Unit* caster, MapObject* target) const {
     std::uint32_t restricted = targetFlags & kSpellTargetRestrictions;
@@ -138,27 +135,22 @@ bool Spell::CanAffect(const Unit* caster, MapObject* target) const {
     return true;
 }
 
-char* SpellCodeByName(std::string_view name) {
+const char* SpellCodeByName(std::string_view name) {
     const SpellTable& spells = g_spellDatabase.spells;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(spells.Count()); ++i) {
         const SpellRecord* spell = spells.At(i);
         if (text::CompareIgnoringCase(spell->name, name) == 0) {
-            // The code string's pointer.
-            const char* code = spells.At(i)->code.c_str();
-            return const_cast<char*>(code);
+            return spell->code.c_str();
         }
     }
     return nullptr;
 }
 
-char* SpellModifierCodeByName(std::string_view name) {
+const char* SpellModifierCodeByName(std::string_view name) {
     SpellModifierTable& modifiers = g_spellDatabase.modifiers;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(modifiers.Count()); ++i) {
         const SpellModifierRecord* modifier = modifiers.At(i);
-        if (text::CompareIgnoringCase(modifier->name, name) == 0) {
-            // Out of range gives address 4 (null record + 4).
-            return modifiers.At(i)->code;
-        }
+        if (text::CompareIgnoringCase(modifier->name, name) == 0) return modifier->code;
     }
     return nullptr;
 }
@@ -183,23 +175,7 @@ void Spell::SetEffect(const MapEffect& record) {
     radius = record.strength;
 }
 
-Spell::Spell() {
-    prototypeIndex = 0;
-    effectPower = 0;
-    duration = 0;
-    damage = 0;
-    radius = 0;
-    speed = 0;
-    range = 0;
-    targetCount = 0;
-    targetFlags = 0;
-    manaCost = 0;
-    complexity = 0;
-    price = 0;
-    castTime = 0;
-    skillNeeded = 1;
-    std::memset(modifiers, 0, sizeof(modifiers));
-}
+Spell::Spell() = default;
 
 Spell::~Spell() { Spell::Destroy(); }
 
@@ -215,14 +191,13 @@ int MapEffect::Tick() {
 
 void Spell::Destroy() {
     ClearState();
-    std::memset(modifiers, 0, sizeof(modifiers));
+    modifiers = {};
 }
 
 void Spell::CopyTo(Spell* target) {
     target->Destroy();
-    std::memcpy(&target->prototypeIndex, &prototypeIndex, 0x54 - 0x1C);
-    std::memset(target->modifiers, 0, sizeof(target->modifiers));
-    for (int i = 0; i < 8; ++i) {
+    static_cast<SpellValues&>(*target) = *this;
+    for (std::size_t i = 0; i < modifiers.size(); ++i) {
         if (modifiers[i] == 0) break;
         target->modifiers[i] = modifiers[i];
     }
@@ -257,7 +232,7 @@ void MapEffect::Save(ByteStream* stream) const {
 }
 
 void Spell::Load(ByteStream* stream) {
-    std::memset(modifiers, 0, sizeof(modifiers));
+    modifiers = {};
     MapEffect record = EffectRecord();
     record.Load(stream);
     SetEffect(record);
@@ -269,7 +244,7 @@ void Spell::Load(ByteStream* stream) {
     stream->ReadValue(complexity);
     stream->ReadValue(price);
     stream->ReadValue(castTime);
-    stream->Read(modifiers, sizeof(modifiers));
+    stream->Read(modifiers.data(), static_cast<std::uint32_t>(modifiers.size()));
     std::uint32_t stateFlags = 0;
     stream->ReadValue(stateFlags);
     flags = stateFlags;
@@ -286,7 +261,7 @@ void Spell::Save(ByteStream* stream) {
     stream->WriteValue(complexity);
     stream->WriteValue(price);
     stream->WriteValue(castTime);
-    stream->Write(modifiers, sizeof(modifiers));
+    stream->Write(modifiers.data(), static_cast<std::uint32_t>(modifiers.size()));
     stream->WriteValue(flags);
     stream->WriteValue(skillNeeded);
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 // Structures of the order planning code (combat_sight.cpp, combat_tick.cpp): the animation lists
-// the planner builds and the plan of an order. Names provisional.
+// the planner builds and the plan of an order.
 
 #include "combat.h"
 
@@ -10,7 +10,7 @@
 
 // AnimationStep, AnimationSteps and OrderPlan are declared in combat.h (UnitServer holds a plan).
 
-// Where an order must be seen from (0x18 bytes).
+// Where an order must be seen from.
 struct SightTarget {
     Vector3 point;              // the point to see (a target unit's is filled in later)
     float minDistanceSq;        // closer than this needs no line of sight
