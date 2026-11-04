@@ -99,7 +99,7 @@ void GlobalMap::MouseMove(int, Point point) {
     }
     SelectZone(index, isLink);
     if (index == -1 || (!isLink && zones[index].state == 0)) {
-        surfaces[0]->Hide(false);
+        surfaces[0]->Hide();
         SceneMesh(MarkerCount() + kTipBack)->visible = false;
         SceneMesh(MarkerCount() + kTipFrame)->visible = false;
         shownName.clear();

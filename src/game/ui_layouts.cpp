@@ -513,13 +513,13 @@ void CreditsScreen::CreateScreen() {
         Rect area = {10, 0x96, 0x316, 0x1C2};
         textSurface = new UiScrollingSurface(currentUi, &area);
         AddSurface(textSurface);
-        textSurface->Hide(false);
+        textSurface->Hide();
     }
     {
         Rect area = {10, 0x6E, 0x316, 0x8C};
         headerSurface = AddSurface(new UiSurface(currentUi, &area, SurfaceBlend::Keyed));
         headerSurface->PaintWith([this](UiSurface& out) { PaintHeader(out); });
-        headerSurface->Hide(false);
+        headerSurface->Hide();
     }
     if (fromGame) GameSetServerPaused(0);
     savedDisplay = static_cast<int>(g_sceneRenderer.fogColour);

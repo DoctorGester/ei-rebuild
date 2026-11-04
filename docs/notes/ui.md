@@ -634,8 +634,8 @@ which SaveGame writes to the new save's shot.sav, so the file's bytes are the or
 ## Surface blit
 
 A window surface's draw (UiSurface::Blit; called by UiWindow's surface pass and the interface's draw for the backdrop and
-the frame rate surface): when the surface is shown, its frame picture and its draws are drawn into the frame at its
-rectangle (or, for a surface its window paints, what the window's paint draws), clipped to it and the screen; a keyed
+the frame rate surface): when the surface is shown, its frame picture and what its window's paint draws are drawn into the
+frame at its rectangle, clipped to it and the screen; a keyed
 surface (SurfaceBlend::Keyed) leaves out what is in its background colour.
 Every surface is opaque or keyed; the original's stretch bit was never set. See ui-native.md section 3.
 
@@ -644,7 +644,8 @@ Every surface is opaque or keyed; the original's stretch bit was never set. See 
 The window surface's constructors and destructor (UiSurface): one taking (interface, layout left, top, right, bottom, blend,
 scale flag) and one taking (interface, layout rectangle, blend; always scaled). Both scale the rectangle to the screen
 (where WideScreen sits) and set the shown flag; an empty rectangle ends the game ("Can't create DDSurface", as the
-original's holder did). A new surface is black (a whole fill of 0, which a surface keyed on black leaves out).
+original's holder did). A new surface draws nothing until it has a frame picture or a paint (the original's was black:
+every opaque surface's paint fills its background).
 
 ## Surface pixel work
 

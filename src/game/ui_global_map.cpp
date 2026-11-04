@@ -272,7 +272,7 @@ void GlobalMap::CreateScreen() {
         UiSurface* info = new UiSurface(ui, 400, 20, 780, 300, SurfaceBlend::Keyed, true);
         AddSurface(info);
         info->PaintWith([this](UiSurface& out) { PaintTip(out); });
-        info->Hide(false);
+        info->Hide();
     }
     {
         UiMesh* shade = AddBlankSprite();

@@ -87,7 +87,7 @@ int HighestFileNumber(std::string_view pattern) {
 } // namespace
 
 void MpHeroScreen::CloseRenameEdit() {
-    surfaces[3]->Hide(false);
+    surfaces[3]->Hide();
     renameEdit->SetEnabled(false);
     renameEdit->SetFocused(false);
 }

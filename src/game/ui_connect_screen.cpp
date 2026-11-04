@@ -130,7 +130,7 @@ void MpConnectScreen::Update() {
     if (asking) {
         surfaces[kSurfaceConnecting]->Show();
     } else {
-        surfaces[kSurfaceConnecting]->Hide(false);
+        surfaces[kSurfaceConnecting]->Hide();
         if (joining) {
             joining = false;
             std::string key = RefusalKey(client->refusal);

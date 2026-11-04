@@ -160,7 +160,7 @@ void BriefingScreen::CreateScreen() {
     AddChild(text);
 
     SetMeshesVisible(this, 0);
-    for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide(false);
+    for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide();
     for (int i = 0; i < std::ssize(children); ++i) children[i]->SetEnabled(false);
     state = kWalking;
     exitPending = true;
@@ -221,7 +221,7 @@ void BriefingScreen::Update() {
     while (markPhase >= 1.0f) markPhase = markPhase - 1.0f;
     UiContainer::Update();
     SetMeshesVisible(this, 0);
-    for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide(false);
+    for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide();
     children[kTopicBarChild]->SetEnabled(false);
     children[kTextChild]->SetEnabled(false);
 

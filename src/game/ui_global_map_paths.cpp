@@ -220,20 +220,15 @@ void GlobalMap::SelectZone(int index, bool isLink) {
 
 // --- the refresh ---------------------------------------------------------------------------------
 
-// Scene objects 0..2 (arrow, base, island) and everything after the zone markers (quests, links,
-// layers and the rest) shown or hidden.
-void GlobalMap::ShowAllButZones(bool visible) {
-    for (int i = 0; i < 3; ++i) SceneMesh(i)->visible = visible;
-    for (int i = lib::Count(zones) + 3; i < lib::Count(sceneObjects); ++i) SceneMesh(i)->visible = visible;
-}
-
 // What the original's pick picture step left behind (the click now finds the zone by its marker's faces, ZoneAt):
-// the tip hidden, the title shown, everything but the zone markers shown (the glow layer and a hidden camp button
+// the tip hidden, the title shown, scene objects 0..2 (arrow, base, island) and everything after the zone markers
+// (quests, links, layers and the rest) shown (the glow layer and a hidden camp button
 // too, as there), the tip's two sprites hidden, nothing selected.
 void GlobalMap::RefreshSelection() {
-    surfaces[0]->Hide(false);
+    surfaces[0]->Hide();
     surfaces[1]->Show();
-    ShowAllButZones(true);
+    for (int i = 0; i < 3; ++i) SceneMesh(i)->visible = true;
+    for (int i = lib::Count(zones) + 3; i < lib::Count(sceneObjects); ++i) SceneMesh(i)->visible = true;
     SceneMesh(MarkerCount() + 6)->visible = false;
     SceneMesh(MarkerCount() + 7)->visible = false;
     SelectZone(-1, false);
