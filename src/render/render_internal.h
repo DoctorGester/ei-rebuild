@@ -164,6 +164,7 @@ struct MeshBatch {
     float uOffset = 0.0f, vOffset = 0.0f;   // added to a cached mesh's texture coordinates (MeshDraw::moveUv)
     int lighting = -1;        // index into Frame::meshLights: lit on the GPU, else the vertex colours
     bool occluded = false;    // a world mesh lit on the GPU: it takes the ambient occlusion (DrawOcclusion)
+    float weather[2] = {};    // a unit's own wetness and snow (PrepareUnitWeather)
 };
 
 // The image is read at the blit.
@@ -516,6 +517,8 @@ void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
 int CachedVertexCount(const CachedMesh& mesh);
+// The position (model space) of the kept mesh's corner its index `k` names.
+Vector3 CachedCorner(const CachedMesh& mesh, int k);
 // The box of a mesh's positions in model space (low xyz, high xyz); false without positions. CachedMeshBox:
 // the kept mesh's, taken again only when its positions changed (`mesh` is the draw KeepMesh kept it from).
 bool PositionBox(const MeshDraw& mesh, float box[6]);
@@ -557,7 +560,10 @@ void BindCloudMap(int slot);
 // frame: the wetness, the puddles and the snow cover moved on towards the frame's weather by the world's time.
 // SurfaceUniforms: the terrain's TerrainFsParams::weather and ::rain. MeshWeatherUniforms: a world mesh's
 // MeshFsParams::weather, ::weatherSun and ::weatherSunColour. SurfaceState: the three for the harness.
+// PrepareUnitWeather, after PrepareSurfaces: each unit drawn gets its own wetness and snow (MeshBatch::weather),
+// following the weather out of shelter and drying under a roof (the casters straight above it).
 void PrepareSurfaces(const ShadowFrame& shadow);
+void PrepareUnitWeather(Frame& frame);
 void SurfaceUniforms(float weather[4], float rain[4]);
 void MeshWeatherUniforms(float weather[4], float sun[4], float sunColour[4]);
 void SurfaceState(float* wet, float* puddles, float* snow);

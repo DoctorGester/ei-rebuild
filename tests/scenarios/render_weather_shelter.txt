@@ -1,0 +1,66 @@
+# R17c3: a unit's own wetness under a roof (docs/notes/renderer.md section 13, item 11b, "Units"). The town bz1g by day:
+# a minute of rain soaks the hero in the open (as wet as the ground: unitweather, no roof over him); then he walks into
+# the gateway of the town's gate, under its roof, and dries there while the ground stays wet (unitweather: covered,
+# drier than before; weathercheck: the ground as wet). The camera zoomed in; frames only (goldens hold none).
+render checkall
+resolution 1440x1080
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+waitwindow 15 battle
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @FixWorldTime(12)
+console @SetWeather("clear")
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+waitpresent 10
+move 400 20
+wheel 400 300 600
+frames 3
+wheel 400 300 600
+frames 10
+move 400 20
+wait 3000
+frames 5
+freeze
+unitweather leader 0 0.05 0 0 0 0
+capture shelter_dry
+unfreeze
+
+# A minute of rain in the open: the hero as wet as the ground.
+console @SetWeather("rain")
+wait 60000
+frames 5
+freeze
+weathercheck 0.55 1 0 0
+unitweather leader 0.5 1 0 0 0 0
+capture shelter_open
+unfreeze
+
+# Into the gateway, under the gate's roof (5.5 units ahead of where he arrived); half a minute there, the ground as
+# wet. The roof hides him from the camera, so he is shown when he steps back out: drier than in the first frame.
+console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),0.5),Sub(GSGetVar(0,"hy"),5.5))
+waitfor 20 IsLess(GetY(GetLeader()),Sub(GSGetVar(0,"hy"),5))
+wait 30000
+frames 5
+freeze
+weathercheck 0.9 1 0 0
+unitweather leader 0 0.7 0 0 0.6 1
+capture shelter_roofed
+unfreeze
+console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy"))
+waitfor 20 IsGreater(GetY(GetLeader()),Sub(GSGetVar(0,"hy"),1))
+frames 3
+freeze
+weathercheck 0.9 1 0 0
+unitweather leader 0 0.8 0 0 0 0
+capture shelter_out
+unfreeze
+report
+quit

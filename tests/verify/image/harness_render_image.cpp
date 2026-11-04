@@ -3,6 +3,7 @@
 #include "image_side.h"
 
 #include "../harness_capture.h"
+#include "../harness_digest.h"
 
 #include "platform/log.h"
 #include "system/harness_system.h"
@@ -13,6 +14,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -329,6 +331,33 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         Log("harness: %s", text);
         frames->push_back(text);
         if (info.wetness < least || info.wetness > most || info.snowCover < leastSnow || info.snowCover > mostSnow)
+            failures->push_back(text);
+    } else if (verb == "unitweather") {
+        // unitweather leader|#<id>|<name> <least wet> <most wet> [<least snow> <most snow> [<least shelter> <most shelter>]]
+        char unit[64] = "";
+        float least = 0.0f, most = 0.0f, leastSnow = 0.0f, mostSnow = 1.0f, leastShelter = 0.0f, mostShelter = 1.0f;
+        if (std::sscanf(argument.c_str(), "%63s %f %f %f %f %f %f", unit, &least, &most, &leastSnow, &mostSnow,
+                        &leastShelter, &mostShelter) < 3) {
+            failures->push_back("unitweather needs the unit, the least and the most wetness");
+            return true;
+        }
+        const int id = std::strcmp(unit, "leader") == 0 ? digest::LocalLeader()
+                       : unit[0] == '#'                ? std::atoi(unit + 1)
+                                                       : TextKey(unit);
+        const render::UnitWeather w = render::UnitWeatherState(ClientObject(id));
+        char text[300];
+        std::snprintf(text, sizeof(text),
+                      "unitweather %s: %s at (%.1f, %.1f, %.1f), wetness %.3f (%.3f .. %.3f), snow %.3f (%.3f .. %.3f), "
+                      "shelter %.2f (%.2f .. %.2f)",
+                      unit, w.known ? "drawn" : "not drawn", static_cast<double>(w.at.x), static_cast<double>(w.at.y),
+                      static_cast<double>(w.at.z), static_cast<double>(w.wet), static_cast<double>(least),
+                      static_cast<double>(most), static_cast<double>(w.snow), static_cast<double>(leastSnow),
+                      static_cast<double>(mostSnow), static_cast<double>(w.shelter), static_cast<double>(leastShelter),
+                      static_cast<double>(mostShelter));
+        Log("harness: %s", text);
+        frames->push_back(text);
+        if (!w.known || w.wet < least || w.wet > most || w.snow < leastSnow || w.snow > mostSnow ||
+            w.shelter < leastShelter || w.shelter > mostShelter)
             failures->push_back(text);
     } else if (verb == "occlusion") {
         if (argument == "on") render::SetOcclusion(render::OcclusionMode::On);

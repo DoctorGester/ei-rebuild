@@ -1012,10 +1012,27 @@ option). Client side only: driven by the weather the world's light hands over (`
   texture's light and +-0.04 by the noise. Wet: down to 0.6, and a sheen: the sky the normal reflects (upward reflections only, so on the same tops; the
   ambient light's colour plus 0.1, (r.z)^3 x (0.3 + Schlick's term) x 0.35) and the sun's highlight (Blinn-Phong 30,
   0.4, as hidden by the map and the clouds). A unit drawn without the GPU's lighting (none known) keeps the face path,
-  only darker. Shelter: the units follow the world's state; neither the sun map (along the sun, not straight up) nor the
-  screen's occlusion tells a roof over a unit, so a unit under one is as wet as one in the open (the caves have no
-  weather: `HandOverClouds`, and a zone change starts the state again). A per-unit state (a unit out of shelter starting
-  dry) would need such a test first.
+  only darker.
+- **Each unit's own weather** (render_weather.cpp, `PrepareUnitWeather`, after PrepareSurfaces; R17c3): the wetness
+  and snow a unit's figure parts take (`MeshBatch::weather`) are kept per unit (the object its meshes are handed over
+  with, `BeginCaster`). Out of shelter they follow the rain / snow falling now with the ground's rise (200 / 800 ticks),
+  so a unit in the open is exactly as wet as the ground while it rains; a unit dries and loses its snow by itself,
+  faster than the ground (900 / 1800 ticks: about 50 s and 100 s), and under a roof the weather falling on it is
+  scaled by its exposure (1 less its shelter). A unit first met (or not met for over 64 ticks, or after a zone's
+  landscape was loaded) starts from the ground's state times its exposure. Client-side only: no random, nothing the
+  game simulates reads it.
+- **The roof test**: a ray straight up on the CPU against the triangles of the frame's other drawn objects (the world's
+  model meshes after the ground with a caster object that is not a unit; not the added light), the meshes' boxes
+  placed in the landscape's space first (`UnderCamera`), then the ray taken into a mesh's model space and tested
+  against its triangles (the kept mesh's corners, `CachedCorner`, or the frame's stream) only where it lies under the
+  box. Five rays per unit from its box (the middle and four points a quarter of its width and depth out, at 3/4 of its
+  height); the shelter is the share that meets a triangle. Chosen over a top-down depth map: the data is on the CPU
+  already, the answer is needed there (a state that changes over time, a number for the harness), and a map would need
+  a new pass and a read back a few frames late. Trees' canopies count as roofs (their cards with their cut-out holes:
+  a unit under a big tree stays drier); the casters the game does not draw this frame do not (a roof over a drawn unit
+  is in view). Cost: a few hundred box tests per unit, the five rays tested together against the triangles of the
+  meshes over it; measured 0.005-0.014 ms a frame on average (render_weather, render_weather_units, the shelter scenario;
+  1-5 units, 7-44 roof meshes), within shadowMs.
 - Cost of the units' path (R17c2, the same machine and settings, zone1 a minute into rain with the hero and four
   creatures beside him, frozen; the units' path and the face path alternated every 150 frames by a probe, 1200 frames
   each view; the kit and the captures in build/r17c2 of the main checkout): R17c's view 2.64-2.66 ms either way, zoomed in on the units
@@ -1025,7 +1042,12 @@ option). Client side only: driven by the weather the world's light hands over (`
   moment drawn twice); `render_weather_units` (3840x2009) close up on the hero with a wolf, a goblin, a boar and a
   skeleton (spawned, skinned, blocked) on zone1 dry and after a minute of rain, and on gz11k before and after two
   minutes of snow. `weathercheck <least wet> <most wet> [<least snow> <most snow>]` reads ShadowInfo's `wetness`,
-  `puddles` and `snowCover`.
+  `puddles` and `snowCover`. `render_weather_shelter` (bz1g by day, 1440x1080): a minute of rain soaks the hero in the
+  open (as wet as the ground), he walks into the gateway of the town's gate (under its roof: shelter 1) and dries for
+  half a minute while the ground stays wet (1.0 to about 0.5), then steps out drier than he went in (the roof hides him
+  from the camera inside); `unitweather leader|#id|<name> <least wet> <most wet> [<least snow> <most snow> [<least
+  shelter> <most shelter>]]` reads `render::UnitWeatherState` (and logs where the unit stood); the frames of R17c3 in
+  build/r17c3 of its worktree.
 - Cost (R17c, RTX 4070 Ti SUPER, Direct3D 12, 3840x2009 msaa 8 anisotropy 16, zone1 a minute into rain, a frozen
   frame; the uniforms zeroed and set again in turn, 150 frames each): the frame's GPU time 2.59 .. 2.61 ms with the
   weather and 2.59 .. 2.63 ms without, at the start and at the shore; no difference above the noise.

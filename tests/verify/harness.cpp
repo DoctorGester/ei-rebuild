@@ -359,6 +359,9 @@
 //   weathercheck <least> <most> [<least snow> <most snow>]
 //                             require the last frame's ground to be between <least> and <most> wet and its
 //                             snow cover in that range (render::ShadowState, R17c)
+//   unitweather <unit> <least wet> <most wet> [<least snow> <most snow> [<least shelter> <most shelter>]]
+//                             require the unit ("leader", #id or a name) drawn lately with its own wetness, snow and share
+//                             under a roof in those ranges (render::UnitWeatherState, R17c3)
 //   shadowview on|off         with the shadow map, the receivers show only the sun the map and the clouds hide
 //                             (white lit, black fully shadowed; render::SetShadowView, R25), from the next frame
 //   decals on|off             the ground prints (blood, footprints, scorch marks) drawn (the default) or left
@@ -2094,7 +2097,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "decals" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "occlusion" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "decals" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "unitweather" || verb == "occlusion" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.
