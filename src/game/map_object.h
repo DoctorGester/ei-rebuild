@@ -19,7 +19,6 @@
 
 class MapObjectServer;
 class MapObjectClientSpecific;
-class MapObjectCompanion;
 struct DeltaState;
 enum class SpellType : int;   // spell.h
 
@@ -101,6 +100,34 @@ struct DamageInfo;
 struct UnitVitals;
 struct UnitStats;
 struct LockKey;
+
+class MapObject;
+
+// A map object's companion (MapObjectServer / MapObjectClientSpecific derive from it).
+class MapObjectCompanion : public EngineObject {
+public:
+    ~MapObjectCompanion() override;
+    void Create() override;    // no map object
+    void Destroy() override;  // no map object
+    bool RunTick() override { return false; }
+
+    // The object's effect list changed (`first`: it arrived with the object). The server's is empty.
+    virtual void EffectsChanged(bool) {}
+    // A hit of `damage` with the hit-kind bits `kind` (UnitStatsFlag Backstab, Head, Electrical). Server: empty;
+    // client: for a living MapObjectFlag::InParty object, a message with the object's id.
+    virtual void Hit(int, int) {}
+    // Whether the object is dead (server: hit points rounded to 16 bits <= 0; client: the unit's hit points
+    // <= 0).
+    virtual bool IsDead() = 0;
+    virtual bool IsOverkilled() = 0;
+    // The client's sets the object's light mode; the server's is empty.
+    virtual void SetLightMode(int) {}
+    // This half as the server's or the client's: null on the other side.
+    virtual MapObjectServer* ServerSide() { return nullptr; }
+    virtual MapObjectClientSpecific* ClientSide() { return nullptr; }
+
+    MapObject* owner = nullptr;    // the map object (MapObject::SetCompanion sets it)
+};
 
 // The virtuals' names and their evidence: docs/notes/map_objects.md ("Virtual slot names").
 class MapObject : public Object3D {
@@ -234,7 +261,11 @@ public:
     Object3D* AsObject3D() { return this; }
 
 
-    MapObjectCompanion* companion; // MapObjectServer / MapObjectClientSpecific
+    // `companion` (or null) replaces the companion: the old one is detached and released, the new one points back
+    // here and gains a reference.
+    void SetCompanion(MapObjectCompanion* companion);
+
+    Ref<MapObjectCompanion> companion; // MapObjectServer / MapObjectClientSpecific
     // The companion as the server's MapObjectServer (on the server; defined in unit.h).
     MapObjectServer* ServerCompanion() const;
     // The server companion's vitals (defined in unit.h).
@@ -258,35 +289,3 @@ public:
 protected:
     MapObject();
 };
-
-// A map object's companion (MapObjectServer / MapObjectClientSpecific derive from it).
-class MapObjectCompanion : public EngineObject {
-public:
-    MapObjectCompanion() {
-        owner = nullptr;
-    }
-    ~MapObjectCompanion() override;
-    void Create() override;    // no map object
-    void Destroy() override;  // no map object
-    bool RunTick() override { return false; }
-
-    // The object's effect list changed (`first`: it arrived with the object). The server's is empty.
-    virtual void EffectsChanged(bool) {}
-    // A hit of `damage` with the hit-kind bits `kind` (UnitStatsFlag Backstab, Head, Electrical). Server: empty;
-    // client: for a living MapObjectFlag::InParty object, a message with the object's id.
-    virtual void Hit(int, int) {}
-    // Whether the object is dead (server: hit points rounded to 16 bits <= 0; client: the unit's hit points
-    // <= 0).
-    virtual bool IsDead() = 0;
-    virtual bool IsOverkilled() = 0;
-    // The client's sets the object's light mode; the server's is empty.
-    virtual void SetLightMode(int) {}
-    // This half as the server's or the client's: null on the other side.
-    virtual MapObjectServer* ServerSide() { return nullptr; }
-    virtual MapObjectClientSpecific* ClientSide() { return nullptr; }
-
-    MapObject* owner;              // the map object (MapObject::AttachObject sets it)
-};
-
-
-

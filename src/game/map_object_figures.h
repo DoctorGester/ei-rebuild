@@ -443,14 +443,17 @@ public:
     ~Object3D() override;
     // type as the map object factory's type.
     MapObjectType MapType() const { return static_cast<MapObjectType>(type); }
-    void Create() override { Create3D(); }
-    void Destroy() override { Destroy3D(); }
+    // Back to an empty object: no half, flags, figure or bounds.
+    void Create() override;
+    // The figure, the effect sources, the animation state, the parts and the side half let go.
+    void Destroy() override;
     void ClearState() override { RemoveAllEffectSources(); }
     // worldRotation = parent * localRotation.
     void CombineRotation(const Quaternion& parent) override;
     // Whether the object may play the animation entry (FigureAnimation); any here, Unit overrides it.
     virtual bool AcceptsAnimation(const FigureAnimation* animation);
-    // AttachSpecific. MapObject and units override it.
+    // A side half (SideObjectType::Object3D) becomes the attached one (SetHalf); other objects (and null) are
+    // ignored. MapObject and units override it.
     virtual void AttachObject(EngineObject* object);
     // Whether the object is invisible: false here; map objects override it.
     virtual bool InvisibleSlot();
@@ -534,26 +537,18 @@ public:
     // The box (FigureMesh::bounds) of part `index`.
     FootprintPart* PartBox(int index);
 
-    // Create (named apart so it is no override): back to an empty object, the figure released.
-    void Create3D();
-    // Destroy: the figure, the effect sources, the animation state, the parts and the side half let go (the
-    // parts lose a reference without a release).
-    void Destroy3D();
     // Adds `source` (a particle source; it calls this from its Attach, attached to this object already) to the
     // effect sources unless it is there: referenced. (The game calls Attach(this) back, which then does nothing.)
     void AddEffectSource(ParticleSource* source);
     // Takes `source` out of the effect sources, detaches it and releases it. Nothing when not there.
     void RemoveEffectSource(ParticleSource* source);
 
-    // A side half (SideObjectType::Object3D) replaces the attached one as SetSpecific does; other objects (and null) are
-    // ignored.
-    void AttachSpecific(EngineObject* half);
     // The release-effects virtual: every effect source is taken out of the list, detached and released.
     void RemoveAllEffectSources();
 
-    // `half` (of any type, or null) replaces the attached half: the old one is detached and released, the new
-    // one points back here and gains a reference.
-    void SetSpecific(Object3DSpecific* half);
+    // `half` (or null) replaces the attached half: the old one is detached and released, the new one points back
+    // here and gains a reference.
+    void SetHalf(Object3DSpecific* half);
     // Every part's flags gains / loses the bits of `mask`.
     void SetPartFlags(std::uint32_t mask);
     void ClearPartFlags(std::uint32_t mask);
@@ -574,18 +569,18 @@ public:
     Object3DClientSpecific* ClientSpecific() const;
 
     Matrix4 worldMatrix;            // object -> world: the rotation, the position as column 3
-    Object3DSpecific* attached;    // the side half: AttachSpecific accepts (SideObjectType::Object3D)
-    FigureAnimationState* animation;   // the figure's animation state
+    Ref<Object3DSpecific> attached;    // the side half (SetHalf)
+    Ref<FigureAnimationState> animation;   // the figure's animation state (SetAnimationState)
     AnimationDatabase* animations;  // loaded on first use
     std::string name;               // the figure's name
     std::vector<HeldRef<ParticleSource>> effectSources;   // the particle sources attached to the object
     Vector3 scale;
-    // the figure's parts, each holding a reference (released by RemovePart and Destroy3D)
+    // the figure's parts, each holding a reference (released by RemovePart and Destroy)
     std::vector<HeldRef<FigureMesh>> parts;
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     Ref<LinkMesh> figure;
-    Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
+    Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create)
     Rect dirtyRect;              // the screen area the last DrawCollectDirty covered
     std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes
     ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre

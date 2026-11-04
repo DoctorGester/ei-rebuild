@@ -246,7 +246,7 @@ void SSCCmd::CalcFloat(Script* script, ScriptVars* vars, float* result) {
     case ScriptFunction::IsAlive:
     case ScriptFunction::IsDead: {
         MapObject* o = objectArgs[0]->object;
-        MapObjectCompanion* stats = o ? o->companion : nullptr;
+        MapObjectCompanion* stats = o ? o->companion.Get() : nullptr;
         *result = 0.0f;
         if (!stats) return;
         int state = stats->IsDead();

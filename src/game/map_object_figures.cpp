@@ -134,8 +134,6 @@ Object3D::Object3D() {
     localRotation.SetIdentity();
     worldRotation.SetIdentity();
     ClearBounds();
-    attached = nullptr;
-    animation = nullptr;
     scale = {};
     defaultScale = kDefaultFigureScale;
     // The original leaves the view position as the heap held it, and the draw sorts read it for an object listed
@@ -144,12 +142,7 @@ Object3D::Object3D() {
     worldPosition = {};
 }
 
-// The name is destroyed after the body, then EngineObject's part.
-Object3D::~Object3D() {
-    Destroy3D();
-    figure.Reset();
-    lib::FreeStorage(parts);
-}
+Object3D::~Object3D() { Object3D::Destroy(); }
 
 // --- Create / Destroy and the effect sources ------------------------------------------------------
 
@@ -158,10 +151,10 @@ namespace {
 constexpr Quaternion kIdentityOrientation = /*007AF1C0*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 } // namespace
 
-void Object3D::Create3D() {
+void Object3D::Create() {
     localPosition = {};
     localRotation = kIdentityOrientation;
-    SetSpecific(nullptr);
+    SetHalf(nullptr);
     flags = 0;
     animations = nullptr;
     scale = {};
@@ -171,20 +164,13 @@ void Object3D::Create3D() {
     std::vector<FootprintPart>().swap(partBoxes);
 }
 
-void Object3D::Destroy3D() {
+void Object3D::Destroy() {
     figure.Reset();
     RemoveAllEffectSources();
-    if (animation) {
-        animation->DetachMeshes();
-        if (animation) {
-            animation->owner = nullptr;
-            animation->Release();
-        }
-        animation = nullptr;
-    }
+    if (animation) animation->DetachMeshes();
+    SetAnimationState(nullptr);
     parts.clear();   // each part's reference released (the client half's part groups hold their own)
-    if (attached) attached->Release();
-    attached = nullptr;
+    attached.Reset();   // the half keeps its back pointer (its own Destroy clears it)
     animations = nullptr;
     flags = 0;
 }
@@ -208,17 +194,6 @@ void Object3D::RemoveEffectSource(ParticleSource* source) {
 // The same body as the base's.
 void Object3D::CombineRotation(const Quaternion& parent) { TransformObject::CombineRotation(parent); }
 
-void Object3D::AttachSpecific(EngineObject* half) {
-    if (!half || SideTypeOf(half) != SideObjectType::Object3D) return;
-    if (attached) {
-        attached->object = nullptr;
-        attached->Release();
-    }
-    attached = static_cast<Object3DSpecific*>(half);   // the 3D object's side half
-    attached->object = this;
-    attached->AddRef();
-}
-
 void Object3D::RemoveAllEffectSources() {
     while (!effectSources.empty()) RemoveEffectSource(effectSources.front());
 }
@@ -236,7 +211,7 @@ int Object3D::DrawFigureShadow(SceneRenderer* context) { return attached ? attac
 
 bool Object3D::AcceptsAnimation(const FigureAnimation*) { return true; }
 void Object3D::AttachObject(EngineObject* object) {
-    AttachSpecific(object);
+    if (object && SideTypeOf(object) == SideObjectType::Object3D) SetHalf(static_cast<Object3DSpecific*>(object));
 }
 bool Object3D::InvisibleSlot() { return false; }
 void Object3D::AdvanceTime(float) {}
@@ -245,48 +220,34 @@ void Object3D::AdvanceTime(float) {}
 
 namespace {
 constexpr float kFirstFrame = 0.0f;
-
-FigureMesh* PartAt(const Object3D* object, int index) { return object->parts[index]; }
 } // namespace
 
-void Object3D::SetSpecific(Object3DSpecific* half) {
-    if (attached) {
-        attached->object = nullptr;
-        attached->Release();
-    }
-    attached = half;
-    if (half) {
-        half->object = this;
-        attached->AddRef();
-    }
+void Object3D::SetHalf(Object3DSpecific* half) {
+    if (attached) attached->object = nullptr;
+    attached.Assign(half);
+    if (half) half->object = this;
 }
 
 void Object3D::SetPartFlags(std::uint32_t mask) {
-    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags |= mask;
+    for (FigureMesh* part : parts) part->flags |= mask;
 }
 
 void Object3D::ClearPartFlags(std::uint32_t mask) {
-    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags &= ~mask;
+    for (FigureMesh* part : parts) part->flags &= ~mask;
 }
 
 void Object3D::SetPartsFlatColour(std::uint32_t value) {
-    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatColour = value;
+    for (FigureMesh* part : parts) part->flatColour = value;
 }
 
 void Object3D::SetPartsFlatSpecular(std::uint32_t value) {
-    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatSpecular = value;
+    for (FigureMesh* part : parts) part->flatSpecular = value;
 }
 
 void Object3D::SetAnimationState(FigureAnimationState* state) {
-    if (animation) {
-        animation->owner = nullptr;
-        animation->Release();
-    }
-    animation = state;
-    if (state) {
-        state->AddRef();
-        animation->owner = this;
-    }
+    if (animation) animation->owner = nullptr;
+    animation.Assign(state);
+    if (state) state->owner = this;
 }
 
 void Object3D::PlayAnimation(FigureAnimation* figureAnimation) {
