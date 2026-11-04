@@ -72,4 +72,8 @@ int LocalLeader(unsigned* money = nullptr);
 std::string Summary();
 void Flush();
 
+// The report's failure when a record was due and digest.txt could not be created (a run would otherwise pass
+// with no digest), "" without.
+std::string Failure();
+
 } // namespace ei::verify::digest
