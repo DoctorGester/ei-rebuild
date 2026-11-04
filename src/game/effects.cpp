@@ -62,8 +62,7 @@ void ParticleSource::Stop() {
 // velocity.y (drift.z = max(drift.z + velocity.z, velocity.y)); dropped once below z = 0.
 int ParticleSource::UpdateFalling(Particle* p) {
     if (p->pos.z < 0.0f) return 0;
-    float terminal;
-    terminal = p->velocity.y;
+    float terminal = p->velocity.y;
     p->pos += p->drift;
     p->size = p->velocity.x * p->size;
     float fall = p->velocity.z + p->drift.z;
@@ -141,11 +140,10 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     p->velocity *= 0.5f;
     p->pos.x = origin.x + p->velocity.x;
     p->pos.y = origin.y + p->velocity.y;
-    float h = height;
     r = g_clientRandom.Next();
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
-    p->pos.z = WordToFloat(r) * h * kRandomScale + origin.z;
+    p->pos.z = WordToFloat(r) * height * kRandomScale + origin.z;
     p->drift.z = height;
     return 1;
 }
@@ -189,8 +187,7 @@ int ParticleSource::UpdateOrbit(Particle* p) {
     if (--p->life == 0) return 0;
     p->frame = (p->frame + 1) % frameCount;
     const ParticleElement* e = elements.data();
-    float scale;
-    scale = e[0].sphere.radius;
+    float scale = e[0].sphere.radius;
     float c = e[1].sphereTilt.tiltCos;
     float s = e[1].sphereTilt.tiltSin;
     float x = p->velocity.x;
@@ -206,14 +203,12 @@ int ParticleSource::UpdateOrbit(Particle* p) {
         float t = -(Dot(p->velocity, n) / d);
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
-        Vector3 along;
-        along = t * n;
+        Vector3 along = t * n;
         offset = p->velocity - along;
     } else {
         offset = p->velocity;
     }
     const Vector3& center = elements[0].pos;
-    p->size = 1.0f;
     p->pos = offset + (origin + center);
     switch (ParticleTypeOf(type)) {
     case ParticleType::SphereFire:

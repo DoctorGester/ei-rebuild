@@ -208,8 +208,7 @@ void ParticleSource::Attach(MapObject* object) {
 
 void ParticleSource::StopAndClear() {
     ReleaseAllParticles();
-    flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
-    Attach(nullptr);
+    Stop();
 }
 
 // --- Particle draw -----------------------------------------------------------------------------------
@@ -249,21 +248,13 @@ Vector3 ParticleSource::WorldPosition() {
 int ParticleManager::DrawAll(SceneRenderer* renderer) {
     ++refCount;
     std::vector<ParticleDepth>& order = g_drawOrder;
-    lib::FreeStorage(order);
+    order.clear();
     Vector3 axis = CameraRotation().AxisZ();
 
     // The manager's objects are its sources.
-    auto sourceOf = [](EngineObject* object) { return static_cast<ParticleSource*>(object); };
-    auto node = objectList.begin();
-    ParticleSource* source = node != objectList.end() ? sourceOf(*node) : nullptr;
-    while (source) {
-        ++node;
-        Vector3 p = source->WorldPosition();
-        ParticleDepth entry;
-        entry.source = source;
-        entry.depth = Dot(axis, p);
-        lib::SetAtGrow(order, lib::Count(order), entry);
-        source = node != objectList.end() ? sourceOf(*node) : nullptr;
+    for (auto node = objectList.begin(); node != objectList.end() && *node; ++node) {
+        auto* source = static_cast<ParticleSource*>(*node);
+        order.push_back({Dot(axis, source->WorldPosition()), source});
     }
 
     // Far (greater depth) first; false for NaN.
@@ -275,13 +266,11 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
         ParticleSource* s = order[i].source;
         if (s->flags & ParticleSourceFlag::NotDrawn) continue;
         if (AttachedToHiddenUnit(s)) continue;
-        int blend;
-        blend = std::bit_cast<std::int32_t>(s->additiveBlend);
+        const int blend = std::bit_cast<std::int32_t>(s->additiveBlend);
         if (blend == 1 && !additive) {
             renderer->SetBlend(render::Blend::SourceAlpha, render::Blend::One);
             additive = true;
         }
-        blend = std::bit_cast<std::int32_t>(s->additiveBlend);
         if (blend == 0 && additive) {
             renderer->SetBlend(render::Blend::SourceAlpha, render::Blend::InvSourceAlpha);
             additive = false;
@@ -348,33 +337,22 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
     if (!renderer->BindLoadedTexture(0, texture)) return 0;
 
     ParticleSprite* sprite = g_sprites.data();
-    auto cursor = particles.begin();
-    if (cursor != particles.end()) {
-        float u = EI_ONE - t;
-        SpritePoint* vertex = g_vertices.data();
-        do {
-            const Particle* p = *cursor++;
-            vertex->position = u * p->prevPos + t * p->pos;
-            vertex->size = u * p->prevSize + t * p->size;
-            std::uint32_t now = p->color;
-            std::uint32_t before = p->prevColor;
-            std::uint32_t argb = static_cast<std::uint32_t>(MixChannel(now, before, 16, t, u));
-            argb |= static_cast<std::uint32_t>(MixChannel(now, before, 24, t, u)) << 8;
-            argb <<= 8;
-            argb |= static_cast<std::uint32_t>(MixChannel(now, before, 8, t, u));
-            argb <<= 8;
-            argb |= static_cast<std::uint32_t>(MixChannel(now, before, 0, t, u));
-            sprite->color = argb;
-            // A frame past the grid (a link spark is emitted on a frame up to frameCount, one past the last): the
-            // original read the heap after the frames there, here the first frame.
-            sprite->frame = frames.data() + (p->prevFrame < std::ssize(frames) ? p->prevFrame : 0);
-            ++sprite;
-            ++vertex;
-        } while (cursor != particles.end());
+    SpritePoint* vertex = g_vertices.data();
+    float u = EI_ONE - t;
+    for (const Particle* p : particles) {
+        vertex->position = u * p->prevPos + t * p->pos;
+        vertex->size = u * p->prevSize + t * p->size;
+        auto channel = [&](int shift) {
+            return static_cast<std::uint32_t>(MixChannel(p->color, p->prevColor, shift, t, u));
+        };
+        sprite->color = channel(24) << 24 | channel(16) << 16 | channel(8) << 8 | channel(0);
+        // A frame past the grid (a link spark is emitted on a frame up to frameCount, one past the last): the
+        // original read the heap after the frames there, here the first frame.
+        sprite->frame = frames.data() + (p->prevFrame < std::ssize(frames) ? p->prevFrame : 0);
+        ++sprite;
+        ++vertex;
     }
-    int blend;
-    blend = std::bit_cast<std::int32_t>(additiveBlend);
-    return renderer->DrawSprites(blend != 0, &g_vertices, &g_sprites);
+    return renderer->DrawSprites(std::bit_cast<std::int32_t>(additiveBlend) != 0, &g_vertices, &g_sprites);
 }
 
 // --- Particle tick -----------------------------------------------------------------------------------
@@ -387,7 +365,6 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
 namespace {
 
 // Constants the original reads from memory at run time.
-#define EI_ZERO 0.0f   // the z of the up axis the side is crossed with
 #define EI_ONE 1.0f
 #define EI_HALF 0.5f
 #define EI_STILL 0.001f   // below this the source is not moving
@@ -426,110 +403,107 @@ void RestorePrevious(Particle* p) {
     p->color = p->prevColor;
 }
 
-// The tick's steps, as helpers on the source.
-struct TickSteps {
-    ParticleSource* s;
+// The tick's steps.
 
-    // Motion since the last tick, from the attachment point plus the local position (or the
-    // position alone); the emission point moves there.
-    void Follow() {
-        if (s->attachedTo) {
-            Vector3 at = s->AttachmentPoint(s->attachedTo) + s->localPosition;
-            s->motion = at - s->origin;
-            s->origin = at;
+// Motion since the last tick, from the attachment point plus the local position (or the
+// position alone); the emission point moves there.
+void Follow(ParticleSource& s) {
+    if (s.attachedTo) {
+        Vector3 at = s.AttachmentPoint(s.attachedTo) + s.localPosition;
+        s.motion = at - s.origin;
+        s.origin = at;
+    } else {
+        s.motion = s.localPosition - s.origin;
+        s.origin = s.localPosition;
+    }
+}
+
+// side = normalize(motion x (0, 0, 1)) (another perpendicular when that is degenerate),
+// up = normalize(motion x side); both zero when the source barely moved.
+void BuildBasis(ParticleSource& s) {
+    const Vector3& m = s.motion;
+    float distance = Length(m);
+    s.distance = distance;
+    if (distance <= EI_STILL) {
+        s.side = {};
+        s.up = {};
+        return;
+    }
+    // (0 - m.x, not -m.x: the same value, but +0 for m.x = 0.)
+    s.side = {m.y, 0.0f - m.x, 0.0f};
+    float length = Length(s.side);
+    if (length < EI_DEGENERATE) {
+        s.side = {m.y - m.z, -m.x, m.x};
+        length = Length(s.side);
+    }
+    Normalize(s.side, length);
+    s.up = Cross(m, s.side);
+    Normalize(s.up, Length(s.up));
+}
+
+void RunElements(ParticleSource& s) {
+    for (int i = 0; i < std::ssize(s.elements); ++i)
+        (s.*s.elementFn)(s.elements.data() + i);
+}
+
+// Updates every particle. A particle the previous tick rejected is erased and returned to the
+// pool first, but (as in the original) is still updated and counted in the bounds. The erase comes
+// before the update: UpdateGlow reads the particle count.
+void UpdateParticles(ParticleSource& s) {
+    ParticleManager* pool = s.Manager();
+    auto node = s.particles.begin();
+    while (node != s.particles.end()) {
+        Particle* p = *node;
+        if (p->dead) {
+            node = s.particles.erase(node);
+            pool->ReleaseParticle(p);
         } else {
-            s->motion = s->localPosition - s->origin;
-            s->origin = s->localPosition;
+            ++node;
         }
-    }
-
-    // side = normalize(motion x (0, 0, 1)) (another perpendicular when that is degenerate),
-    // up = normalize(motion x side); both zero when the source barely moved.
-    void BuildBasis() {
-        const Vector3& m = s->motion;
-        float distance = Length(m);
-        s->distance = distance;
-        if (distance <= EI_STILL) {
-            s->side = {};
-            s->up = {};
-            return;
+        SavePrevious(p);
+        if (!(s.*s.updateFn)(p)) {
+            p->dead = 1;
+            RestorePrevious(p);
         }
-        float zero = EI_ZERO;
-        s->side = {m.y - zero, zero - m.x, 0.0f};
-        float length = Length(s->side);
-        if (length < EI_DEGENERATE) {
-            s->side = {m.y - m.z, -m.x, m.x};
-            length = Length(s->side);
+        GrowBounds(s.boundsMin, s.boundsMax, p->pos);
+    }
+}
+
+// One emission attempt: a particle from the pool, kept when the emit callback accepts it.
+void EmitOne(ParticleSource& s, int index) {
+    ParticleManager* pool = s.Manager();
+    Particle* p = pool->AcquireParticle();
+    if (!p) return;
+    if ((s.*s.emitFn)(p, index)) s.AddParticle(p);
+    else pool->ReleaseParticle(p);
+}
+
+// max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a
+// source above 50% that emitted nothing gets one particle anyway.
+void Emit(ParticleSource& s) {
+    if (!(s.flags & ParticleSourceFlag::Emitting)) return;
+    if ((s.flags & ParticleSourceFlag::AttachedOnly) && !s.attachedTo) return;
+    int tries = std::lround(s.distance / s.emitSpacing);
+    if (tries <= s.emitCount) tries = s.emitCount;
+    int emitted = 0;
+    if (tries > 0) {
+        for (int i = 0; i < tries; ++i) {
+            if (std::ssize(s.particles) >= s.maxParticles) break;
+            std::uint32_t roll = g_clientRandom.Next();
+            if (static_cast<int>(roll % 100) < s.emitChance) EmitOne(s, emitted++);
         }
-        Normalize(s->side, length);
-        s->up = Cross(m, s->side);
-        Normalize(s->up, Length(s->up));
+        if (emitted != 0) return;
     }
+    if (s.emitChance > 50 && tries > 0 && std::ssize(s.particles) < s.maxParticles) EmitOne(s, 0);
+}
 
-    void RunElements() {
-        for (int i = 0; i < std::ssize(s->elements); ++i)
-            (s->*s->elementFn)(s->elements.data() + i);
-    }
-
-    // Updates every particle. A particle the previous tick rejected is erased and returned to the
-    // pool first, but (as in the original) is still updated and counted in the bounds. The erase comes
-    // before the update: UpdateGlow reads the particle count.
-    void UpdateParticles() {
-        ParticleManager* pool = s->Manager();
-        auto node = s->particles.begin();
-        while (node != s->particles.end()) {
-            Particle* p = *node;
-            if (p->dead) {
-                node = s->particles.erase(node);
-                pool->ReleaseParticle(p);
-            } else {
-                ++node;
-            }
-            SavePrevious(p);
-            if (!(s->*s->updateFn)(p)) {
-                p->dead = 1;
-                RestorePrevious(p);
-            }
-            GrowBounds(s->boundsMin, s->boundsMax, p->pos);
-        }
-    }
-
-    // One emission attempt: a particle from the pool, kept when the emit callback accepts it.
-    void EmitOne(int index) {
-        ParticleManager* pool = s->Manager();
-        Particle* p = pool->AcquireParticle();
-        if (!p) return;
-        if ((s->*s->emitFn)(p, index)) s->AddParticle(p);
-        else pool->ReleaseParticle(p);
-    }
-
-    // max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a
-    // source above 50% that emitted nothing gets one particle anyway.
-    void Emit() {
-        int tries = std::lround(s->distance / s->emitSpacing);
-        if (tries <= s->emitCount) tries = s->emitCount;
-        if (!(s->flags & ParticleSourceFlag::Emitting)) return;
-        if ((s->flags & ParticleSourceFlag::AttachedOnly) && !s->attachedTo) return;
-        int emitted = 0;
-        if (tries > 0) {
-            for (int i = 0; i < tries; ++i) {
-                if (std::ssize(s->particles) >= s->maxParticles) break;
-                std::uint32_t roll = g_clientRandom.Next();
-                if (static_cast<int>(roll % 100) < s->emitChance) EmitOne(emitted++);
-            }
-            if (emitted != 0) return;
-        }
-        if (s->emitChance > 50 && tries > 0 && std::ssize(s->particles) < s->maxParticles) EmitOne(0);
-    }
-
-    // Centre and half extents of the bounds.
-    void FinishBounds() {
-        s->clip.center = (s->boundsMax + s->boundsMin) * EI_HALF;
-        s->clip.boxMin = s->boundsMin - s->clip.center;
-        s->clip.boxMax = s->boundsMax - s->clip.center;
-        s->clip.flags |= 2;
-    }
-};
+// Centre and half extents of the bounds.
+void FinishBounds(ParticleSource& s) {
+    s.clip.center = (s.boundsMax + s.boundsMin) * EI_HALF;
+    s.clip.boxMin = s.boundsMin - s.clip.center;
+    s.clip.boxMax = s.boundsMax - s.clip.center;
+    s.clip.flags |= 2;
+}
 
 } // namespace
 
@@ -565,13 +539,12 @@ bool ParticleSource::RunTick() {
     boundsMax = {kNear, kNear, kNear};
     if (attachedTo && (attachedTo->flags & MapObjectFlag::Removed)) Attach(nullptr);
 
-    TickSteps steps{this};
-    steps.Follow();
-    steps.BuildBasis();
-    steps.RunElements();
-    steps.UpdateParticles();
-    steps.Emit();
-    steps.FinishBounds();
+    Follow(*this);
+    BuildBasis(*this);
+    RunElements(*this);
+    UpdateParticles(*this);
+    Emit(*this);
+    FinishBounds(*this);
 
     if (!attachedTo) {
         if (flags & ParticleSourceFlag::KeepAlive) return true;
