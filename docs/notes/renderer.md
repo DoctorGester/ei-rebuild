@@ -17,7 +17,7 @@ windows' quads and glyph runs, the renderer's rectangles (rubber band, fades), t
 (particles and sprites, the vision fog's quads, ribbons and lightning, flying hit points), the weather and the movies
 (also the players outside the frame). The escape menu's and the save game's screen copies come from its frame. The
 device is made on a thread of its own, with the pipelines every game draws with (section 15c, "Pipelines made ahead"),
-as soon as SDL's video is up (`render::PrepareDevice`, in GameMain right after the window class is registered) and taken
+as soon as SDL's video is up (`render::PrepareDevice`, in `app::StartVideo`, main()'s step before GameMain) and taken
 at the renderer's first use.
 
 ### Shader authoring: HLSL and SDL_shadercross
@@ -965,8 +965,11 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   `MakePipeline`) over a few scenarios and list what shows up. The log line "gpu: N of M pipelines made ahead in X ms
   (the start waited Y ms for them)" says what it cost: on this machine's warm driver cache 5-10 ms for the 28 of a run
   (the same as making them at first use), several hundred under four games at once or after a driver or shader change.
-  Y is mostly the device itself: GameMain reaches the renderer's start within about 50 ms of registering the window
-  class, so little of the device's ~300 ms is hidden (starting SDL's video before GameMain would hide more).
+  Y is mostly the device itself (R43d2): `app::StartVideo` (main(): the one-instance check, SDL's video, `PrepareDevice`)
+  runs before GameMain, and GameMain does the work that needs no device (sound, the databases, the map list) before
+  `CreateRenderer`, but that is all of 30-40 ms on a quiet machine; the start still waits about 260 ms of the device's
+  ~290 (Direct3D 12 on this machine). Hiding more needs more device-free work in front of the first use, or a faster
+  `CreateDevice`.
 - **Handles** are plain values: `Texture` (with its size, levels, samples and format), `Buffer`, `Sampler`, `Pipeline`,
   `Ticket`. `Release` empties a handle. A texture or buffer released while recorded commands use it lives until they
   are done (SDL's). A handle released and then bound is not: a file that replaces a buffer or texture binds the new

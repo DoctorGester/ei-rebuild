@@ -54,6 +54,9 @@ int main(int argc, char** argv) {
     if (!settingsFile.empty()) settings::Pin(settingsFile.c_str(), nullptr, false);
     std::string arguments = platform::ArgumentsAfterSeparator(argc, argv);
     ei::Log("ei-rebuild started in %s, arguments '%s'", folder.c_str(), arguments.c_str());
+    // The one-instance check, SDL's video and the renderer's device (~290 ms on a thread of its own): GameMain's
+    // start-up runs beside it.
+    app::StartVideo();
     ei::rebirth_profile::Load(folder);
     return app::GameMain(arguments.data());
 }
