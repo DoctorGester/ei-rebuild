@@ -36,7 +36,6 @@
 #include "lib/crt.h"
 #include "platform/platform.h"
 
-#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -179,15 +178,10 @@ void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
         int objectId = ReadAs<int>(stream);
         if (objectId == -1) return;
         MapObject* object = objectManager->FindMapObject(objectId);
-        if (stream->version >= kVersionMapObjectName) {
-            std::string name;
-            name = stream->ReadString();
-            object->TakePrototype(name);
-        }
+        if (stream->version >= kVersionMapObjectName) object->TakePrototype(stream->ReadString());
         object->WriteFullState();
         object->Load(stream);
         int changed = ReadAs<int>(stream);
-        if (!object) continue;   // (the object was already used above)
 
         object->AddRef();
         object->MarkChanged(NetField::None);
@@ -210,26 +204,19 @@ void WorldServer::LoadSavedMapObjects(ByteStream* stream) {
             if (model) std::memcpy(unit->actionSpeeds, model->actionSpeeds, 24);
         }
 
-        // Every part is marked changed when any change was saved (the part's bit 1 << i is tested itself, never
-        // `changed & bit`).
-        int parts = static_cast<int>(std::ssize(object->netState.fields));
-        for (int i = 0; i < parts; ++i)
-            if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(static_cast<NetField>(i));
+        // Every part is marked changed when any change was saved (not just the parts whose bit is set).
+        if (changed != 0) {
+            const int parts = static_cast<int>(std::ssize(object->netState.fields));
+            for (int i = 0; i < parts; ++i) object->MarkChanged(static_cast<NetField>(i));
+        }
 
+        // A unit whose controller does not ask for updates stays out of the update map.
         Unit* unit = UnitOrNull(object);
-        if (unit && !unit->ServerController()->brain.alwaysUpdated)
-            continue;   // a unit whose controller does not ask for updates
-        AddToUpdateMap(object);
+        if (!unit || unit->ServerController()->brain.alwaysUpdated) AddToUpdateMap(object);
     }
 }
 
 int WorldServer::LoadSave(ByteStream* stream, const char* map) {
-    MemoryStream savedGraph;   // the AI graph state as the zone files have it
-    MemoryStream graph;        // ... with the save's differences applied
-    std::string newMobName;
-    std::string newMapName;
-    std::string newZoneName;
-
     gameState = GameState::None;
     scriptsActive = 0;
     if (PlayerList()) {
@@ -244,9 +231,9 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     loaded = 0;
     aiMap.refreshUnits = false;
 
-    newMobName = stream->ReadString();
-    newMapName = stream->ReadString();
-    newZoneName = stream->ReadString();
+    const std::string newMobName = stream->ReadString();
+    std::string newMapName = stream->ReadString();
+    const std::string newZoneName = stream->ReadString();
     if (map) newMapName = map;
     zoneName = newZoneName;
     SelectLoadingMovie(newZoneName);
@@ -257,14 +244,14 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
             player->dirty = kPlayerDirtyAll;
     }
 
-    stream->Read(windDirection, 12);
+    stream->Read(windDirection, sizeof(windDirection));
     stream->ReadValue(windStrength);
     stream->ReadValue(nightLevel);
     for (WorldAlarm& alarm : alarms) stream->ReadValue(alarm);
     stream->ReadValue(tick);
     stream->ReadValue(weather);
     stream->ReadValue(weatherStrength);
-    float time = ReadAs<float>(stream);
+    const float time = ReadAs<float>(stream);
     float speed;
     if (stream->version >= kVersionTimeSpeedFloat) {
         stream->ReadValue(speed);
@@ -274,125 +261,115 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     }
     stream->ReadValue(zoneMode);
 
-    int result;
-    if (!ReadAIGraph(newMapName, newMobName, &savedGraph)) {
-        result = 0;
-    } else {
-        graph.ApplyDiff(&savedGraph, stream);
-        ShowLoadProgress(kProgressZone);
-        if (!LoadMap(newMapName, newMobName, &graph, 1)) {
-            result = game::FatalError(game::CantLoadSaveMapText());
-        } else {
-            // The map objects' identities: id, type and prototype id.
-            for (;;) {
-                int objectId = ReadAs<int>(stream);
-                if (objectId == -1) break;
-                int objectType = ReadAs<int>(stream);
-                std::uint32_t value18 = ReadAs<std::uint32_t>(stream);
-                EngineObject* object = objectManager->CreateObject(objectType, objectId);
-                object->prototypeId = value18;
-            }
-            timedObjectManager->Load(stream);
-            spellManager->Load(stream);
-            itemManager->Load(stream);
-            ShowLoadProgress(kProgressManagers);
-            LoadSavedMapObjects(stream);
-            timedObjectManager->LoadObjects(stream);
-            spellManager->LoadObjects(stream);
-            itemManager->LoadObjects(stream);
-            ShowLoadProgress(kProgressObjects);
+    // The AI graph state as the zone files have it, then with the save's differences applied.
+    MemoryStream savedGraph;
+    if (!ReadAIGraph(newMapName, newMobName, &savedGraph)) return 0;
+    MemoryStream graph;
+    graph.ApplyDiff(&savedGraph, stream);
+    ShowLoadProgress(kProgressZone);
+    if (!LoadMap(newMapName, newMobName, &graph, 1)) return game::FatalError(game::CantLoadSaveMapText());
 
-            // Timed objects (spells, effects) by id.
-            for (;;) {
-                int objectId = ReadAs<int>(stream);
-                if (objectId == -1) break;
-                auto* object = timedObjectManager->FindObjectAs<Effect>(objectId);
-                object->AddRef();
-                object->MarkChanged();
-                timedObjects.Set(static_cast<unsigned>(object->id), object);
-            }
+    // The map objects' identities: id, type and prototype id.
+    for (;;) {
+        int objectId = ReadAs<int>(stream);
+        if (objectId == -1) break;
+        int objectType = ReadAs<int>(stream);
+        EngineObject* object = objectManager->CreateObject(objectType, objectId);
+        object->prototypeId = ReadAs<std::uint32_t>(stream);
+    }
+    timedObjectManager->Load(stream);
+    spellManager->Load(stream);
+    itemManager->Load(stream);
+    ShowLoadProgress(kProgressManagers);
+    LoadSavedMapObjects(stream);
+    timedObjectManager->LoadObjects(stream);
+    spellManager->LoadObjects(stream);
+    itemManager->LoadObjects(stream);
+    ShowLoadProgress(kProgressObjects);
 
-            // Missiles: a byte 1 before each one, 0 at the end. They find the world through the global server while
-            // they load.
-            g_loadingProjectileWorld = this;
-            for (;;) {
-                std::uint8_t more = ReadAs<std::uint8_t>(stream);
-                if (!more) break;
-                auto* missile = new SpellEffect();
-                missile->Load(stream);
-                projectiles.emplace_back(missile);
-            }
+    // Timed objects (spells, effects) by id.
+    for (;;) {
+        int objectId = ReadAs<int>(stream);
+        if (objectId == -1) break;
+        auto* object = timedObjectManager->FindObjectAs<Effect>(objectId);
+        object->AddRef();
+        object->MarkChanged();
+        timedObjects.Set(static_cast<unsigned>(object->id), object);
+    }
 
-            aiMap.events.Load(stream);
-            MainScript()->LoadState(stream);
-            diplomacy.ReadFrom(stream);
-            stream->ReadValue(climate);
-            stream->ReadValue(cave);
-            if (stream->version >= kVersionCountdowns)    // the countdowns are a tween array
-                countdowns.LoadEntries(stream);
+    // Missiles: a byte 1 before each one, 0 at the end. They find the world through the global server while
+    // they load.
+    g_loadingProjectileWorld = this;
+    while (ReadAs<std::uint8_t>(stream)) {
+        auto* missile = new SpellEffect();
+        missile->Load(stream);
+        projectiles.emplace_back(missile);
+    }
 
-            // Counted references to items (added at the head of the list).
-            for (;;) {
-                int objectId = ReadAs<int>(stream);
-                if (objectId < 0) break;
-                EngineObject* item = itemManager->FindObject(objectId);
-                if (!item) continue;
-                item->AddRef();
-                counted.insert(counted.begin(), item);
-            }
+    aiMap.events.Load(stream);
+    MainScript()->LoadState(stream);
+    diplomacy.ReadFrom(stream);
+    stream->ReadValue(climate);
+    stream->ReadValue(cave);
+    if (stream->version >= kVersionCountdowns)    // the countdowns are a tween array
+        countdowns.LoadEntries(stream);
 
-            if (PlayerList()) LoadPlayers(this, stream);
-            stream->ReadValue(paused);
+    // Counted references to items (added at the head of the list).
+    for (;;) {
+        int objectId = ReadAs<int>(stream);
+        if (objectId < 0) break;
+        EngineObject* item = itemManager->FindObject(objectId);
+        if (!item) continue;
+        item->AddRef();
+        counted.insert(counted.begin(), item);
+    }
 
-            // The item manager's object records.
-            if (stream->version >= kVersionPlayerLists) {
-                for (;;) {
-                    int objectId = -1;
-                    stream->ReadValue(objectId);
-                    if (objectId == -1) break;
-                    std::uint32_t value = ReadAs<std::uint32_t>(stream);
-                    Item* object = FindItem(ItemFactory(), objectId);
-                    if (!object) continue;
-                    auto* record = new ItemLink();
-                    record->value = value;
-                    object->serverLink.Assign(record);
-                }
-            }
+    if (PlayerList()) LoadPlayers(this, stream);
+    stream->ReadValue(paused);
 
-            ShowLoadProgress(kProgressDone);
-            zoneName = newZoneName;
-            SetTimeSpeed(speed);
-            SetTime(time);
-            loaded = 1;
-            aiMap.EndRefresh();
-            aiMap.refreshUnits = true;
-
-            RelocateStrandedUnits(this);
-
-            if (stream->version >= kVersionMobFiles) {
-                int count = ReadAs<int>(stream);
-                for (int i = 0; i < count; ++i) {
-                    mobFiles.push_back(stream->ReadString());
-                }
-            } else {
-                mobFiles.clear();
-            }
-
-            if (stream->version >= kVersionSharedObjects) {
-                std::vector<SharedObject>& shared = sharedObjects;
-                int count = ReadAs<int>(stream);
-                for (int i = 0; i < count; ++i) shared.emplace_back();
-                for (SharedObject& entry : shared) entry.Load(stream);
-            }
-
-            objectManager->ReleaseUnused();
-            timedObjectManager->ReleaseUnused();
-            spellManager->ReleaseUnused();
-            itemManager->ReleaseUnused();
-            result = 1;
+    // The item manager's object records.
+    if (stream->version >= kVersionPlayerLists) {
+        for (;;) {
+            int objectId = -1;
+            stream->ReadValue(objectId);
+            if (objectId == -1) break;
+            std::uint32_t value = ReadAs<std::uint32_t>(stream);
+            Item* object = FindItem(ItemFactory(), objectId);
+            if (!object) continue;
+            auto* record = new ItemLink();
+            record->value = value;
+            object->serverLink.Assign(record);
         }
     }
-    return result;
+
+    ShowLoadProgress(kProgressDone);
+    zoneName = newZoneName;
+    SetTimeSpeed(speed);
+    SetTime(time);
+    loaded = 1;
+    aiMap.EndRefresh();
+    aiMap.refreshUnits = true;
+
+    RelocateStrandedUnits(this);
+
+    if (stream->version >= kVersionMobFiles) {
+        int count = ReadAs<int>(stream);
+        for (int i = 0; i < count; ++i) mobFiles.push_back(stream->ReadString());
+    } else {
+        mobFiles.clear();
+    }
+
+    if (stream->version >= kVersionSharedObjects) {
+        const int count = ReadAs<int>(stream);
+        for (int i = 0; i < count; ++i) sharedObjects.emplace_back();
+        for (SharedObject& entry : sharedObjects) entry.Load(stream);
+    }
+
+    objectManager->ReleaseUnused();
+    timedObjectManager->ReleaseUnused();
+    spellManager->ReleaseUnused();
+    itemManager->ReleaseUnused();
+    return 1;
 }
 
 void WorldServer::SaveWorld(ByteStream* stream) {
@@ -410,16 +387,13 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     stream->WriteString(mobName);
     stream->WriteString(mapName);
     stream->WriteString(zoneName);
-    stream->Write(windDirection, 12);
+    stream->Write(windDirection, sizeof(windDirection));
     stream->WriteValue(windStrength);
     stream->WriteValue(nightLevel);
     for (WorldAlarm& alarm : alarms) stream->WriteValue(alarm);
     stream->WriteValue(tick);
     stream->WriteValue(weather);
-    std::uint32_t e8;
-    e8 = std::bit_cast<std::uint32_t>(weatherStrength);
-    stream->WriteValue(e8);
-    // Stored by the callee as floats; written on as their bytes.
+    stream->WriteValue(weatherStrength);
     const Clock clock = GetTime();
     stream->WriteValue(clock.hours);
     stream->WriteValue(clock.speed);
