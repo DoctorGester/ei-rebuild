@@ -110,13 +110,6 @@ public:
     void OnChunk() override {}
     // The world object with the record's id.
     virtual void* WorldObject();
-    virtual void Nothing(int) {}
-    // Removes the world object (here: Apply).
-    virtual void Remove();
-    // Empty. Makes or updates the world object.
-    virtual void Apply() {}
-    // Refreshes the world object (here: Apply).
-    virtual void Refresh();
     virtual ~Spec();
 
 
@@ -138,11 +131,6 @@ public:
     ~ObjectSpec() override;
 
     void OnChunk() override;                                 // the chunk just read, by its id
-    void Remove() override;                                  // removes the world object, then Apply
-    // Makes the world object, or updates it from the record (position, rotation, scale,
-    // visibility) while it is out of the editor's lists.
-    void Apply() override;
-    void Refresh() override;
 
     // The world object an object record makes is a map object (a unit for a unit record).
     MapObject* MadeMapObject() const;
@@ -169,7 +157,6 @@ public:
     ~FlameSpec() override;
 
     void OnChunk() override;
-    void Apply() override;          // the world object is always made again
 
     float volume;                // (0.7)
     Vector3 offset;
@@ -234,7 +221,6 @@ public:
     ~ParticleSpec() override;
 
     void OnChunk() override;
-    void Apply() override;          // makes the source (when it has a type) or updates its effect
 
     std::int32_t type;           // (0: none made)
     float scale;
@@ -247,7 +233,6 @@ public:
     ~LightSpec() override;
 
     void OnChunk() override;
-    void Apply() override;          // makes the light or updates its effect (colour, radius, position)
 
     Vector3 colour;              // (1, 1, 1)
     std::uint8_t shadows;
@@ -261,8 +246,6 @@ public:
     ~SoundSpec() override;
 
     void OnChunk() override;
-    // Makes the sound (when it has sounds); otherwise moves the world object and makes its effect again.
-    void Apply() override;
 
     std::vector<std::string> sounds;   // (none made without any)
     std::int32_t volume;         // (10; chunk CC04) the sound's volume
@@ -280,7 +263,6 @@ public:
     ~UnitSpec() override;
 
     void OnChunk() override;        // the chunk just read, by its id
-    void Apply() override;          // makes the unit, or moves, turns and rescales it
 
     std::int32_t behaviours;     // records read so far
     Behaviour behaviour[5];

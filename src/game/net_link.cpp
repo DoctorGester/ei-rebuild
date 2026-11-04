@@ -34,8 +34,6 @@ unsigned BufferFill(GameBuffer* buffer) {
 
 FileStream::FileStream() = default;
 
-FileStream::FileStream(const FileStream&) : FileStream() {}
-
 FileStream::~FileStream() = default;
 
 std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
@@ -52,17 +50,14 @@ void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(posit
 std::uint32_t FileStream::Size() { return file.Size(); }
 std::uint32_t FileStream::Position() { return file.Position(); }
 
-long FileStream::Restart() {
+void FileStream::Clear() {
     ok = 1;
-    return file.Seek(0L, platform::SeekFrom::Begin);
+    file.Seek(0L, platform::SeekFrom::Begin);
 }
-void FileStream::Clear() { Restart(); }
 
 // NetLink
 
 NetLink::NetLink() = default;
-
-NetLink::NetLink(const NetLink&) : RefObject() {}
 
 NetLink::~NetLink() {}
 
@@ -75,17 +70,6 @@ bool NetLink::Receive(MemoryStream*) { return true; }
 // LoopbackLink
 
 LoopbackLink::LoopbackLink() = default;
-
-// The game's queue copy is kept: each copy is a new stream of the source's size whose Read takes the source's
-// buffer, so the new stream's fresh bytes (zeros here) are read into the source (both then hold them).
-LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
-    for (const MemoryStream& source : other.queue) {
-        MemoryStream& copy = queue.emplace_back();
-        copy.SetSize(source.size);
-        copy.Read(const_cast<std::uint8_t*>(source.data.data()), copy.size);
-    }
-    peer.Assign(other.peer);
-}
 
 // The first goes to the player's pending link; null for a null player. Without memory for the
 // second the original crashes; so does this. (The original rereads the pending link for the peers:
@@ -101,17 +85,6 @@ LoopbackLink* LoopbackLink::CreatePair(WorldHandle* player) {
 }
 
 LoopbackLink::~LoopbackLink() { peer.Reset(); }
-
-// Torn down (the queue cleared rather than destroyed) and built again in place (the reference count
-// kept): no peer, an empty queue.
-void LoopbackLink::OnShutdown() {
-    peer.Reset();
-    std::destroy_at(&queue);
-    new (this) LoopbackLink();
-}
-
-// Null when the allocation fails.
-LoopbackLink* LoopbackLink::Clone() { return net::NewCounted<LoopbackLink>(*this); }
 
 bool LoopbackLink::Connected() { return IsLive(peer); }
 
@@ -151,14 +124,6 @@ void LoopbackLink::Disconnect() {
 // FramedLink
 
 FramedLink::FramedLink() {}
-
-// The original reads the copy's new buffer (never written) into the source's inbox instead of the other way
-// round: the copy's bytes are whatever the allocation held (zeros here) and the source's are overwritten with them. Kept.
-FramedLink::FramedLink(const FramedLink& other) : NetLink(other) {
-    inbox.SetSize(other.inbox.size);
-    ByteStream* stream = &inbox;
-    stream->Read(const_cast<std::uint8_t*>(other.inbox.data.data()), inbox.size);
-}
 
 FramedLink::~FramedLink() {}
 
@@ -249,10 +214,6 @@ bool FramedLink::Receive(MemoryStream* stream) {
 
 DriverLink::DriverLink() {}
 
-DriverLink::DriverLink(const DriverLink& other) : FramedLink(other) {
-    player.Assign(other.player);
-}
-
 // The inbox's unread bytes, with the player's incoming reliable bytes after them, written back over
 // the start of that stream (when there were any and the player is alive); then the player let go.
 void DriverLink::Disconnect() {
@@ -272,15 +233,6 @@ void DriverLink::Disconnect() {
 DriverLink::~DriverLink() {
     DriverLink::Disconnect();
 }
-
-// Destroyed (disconnecting) and built again in place with the constructor's code: the
-// reference count and +9 kept, no player, an empty inbox, a closed file.
-void DriverLink::OnShutdown() {
-    net::Rebuild(this);
-}
-
-// Null when the allocation fails.
-DriverLink* DriverLink::Clone() { return net::NewCounted<DriverLink>(*this); }
 
 bool DriverLink::Connected() { return IsLive(player.Get()); }
 

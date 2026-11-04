@@ -27,20 +27,16 @@ namespace netlink {
 class FileStream : public ByteStream {
 public:
     FileStream();
-    // A fresh stream; `other` is not read.
-    FileStream(const FileStream& other);
     ~FileStream() override;
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // a short read clears ok
     void Write(const void* buffer, std::uint32_t size) override;
     void Seek(std::uint32_t position) override;                        // SeekFrom
     std::uint32_t Size() override;
     std::uint32_t Position() override;
-    void Clear() override;                                             // Restart
+    void Clear() override;                                             // ok again, back to the start
 
     // Seeks from the start; returns the file's position.
     long SeekFrom(long position);
-    // ok again, back to the start; returns the seek's result.
-    long Restart();
 
     // The direction byte, then the file's Open; ok tells whether it opened.
     bool Open(std::string_view path, platform::FileMode mode, std::uint8_t newReading) {
@@ -68,18 +64,13 @@ public:
 
 protected:
     NetLink();
-    NetLink(const NetLink& source);
 };
 
 class LoopbackLink final : public NetLink {
 public:
     LoopbackLink();
-    // A copy of every queued stream and the same peer (counted).
-    LoopbackLink(const LoopbackLink& other);
     ~LoopbackLink() override;
 
-    void OnShutdown() override;                  // torn down and built again in place
-    LoopbackLink* Clone() override;
     bool Connected() override;                  // the peer is there, not detached
     bool Alive() override;
     bool HasIncoming() override;
@@ -115,20 +106,14 @@ public:
 
 protected:
     FramedLink();
-    // An inbox of the source's size.
-    FramedLink(const FramedLink& other);
 };
 
 // The per-player driver: a framed link over a network connection's reliable streams.
 class DriverLink final : public FramedLink {
 public:
     DriverLink();
-    // The same player (counted).
-    DriverLink(const DriverLink& other);
     ~DriverLink() override;
 
-    void OnShutdown() override;                  // destroyed and built again in place
-    DriverLink* Clone() override;
     bool Connected() override;                  // the player is there, not detached
     bool Alive() override { return true; }
     void Pump() override;                       // the incoming reliable bytes to the inbox

@@ -271,6 +271,7 @@ void Clairvoyance(SpellEffect* e) {
 
 // Possession: the caster's player sees the target, its controller's two lists and its id;
 // the target is flagged (0x2000000) and the units around it wake.
+// Unreached in the shipped game: CastSpell refuses possession, only a saved projectile of that type gets here.
 void Possession(SpellEffect* e) {
     if (!IsUnit(e->caster)) {
         e->state = 3;
@@ -307,6 +308,7 @@ void VisionFog(SpellEffect* e) {
 
 // Link: the link lasts while both units are free; it ends with a sound (and a complaint from the
 // caster when a unit got busy).
+// Unreached in the shipped game: CastSpell refuses the link, only a saved projectile of that type gets here.
 void Link(SpellEffect* e) {
     bool free = e->target && e->caster && e->target->IsLargeUnit() == 0 &&
                 e->caster->IsLargeUnit() == 0 && e->target->IsDead() == 0 &&

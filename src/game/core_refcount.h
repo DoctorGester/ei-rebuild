@@ -46,8 +46,9 @@ public:
     RefObject() = default;
     ~RefObject() override = default;
 
-    virtual void OnShutdown() = 0;           // the object is still shared and about to lose its owner
-    virtual RefObject* Clone() = 0;        // the copy handed out when a kCopyOnShare object is shared
+    virtual void OnShutdown() {}             // the object is still shared and about to lose its owner
+    // The copy handed out when a kCopyOnShare object is shared; fatal for a class that is never shared twice.
+    virtual RefObject* Clone();
 
     // Calls OnShutdown with an extra reference held, so it cannot destroy itself meanwhile.
     void Shutdown();

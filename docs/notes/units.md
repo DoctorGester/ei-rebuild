@@ -123,6 +123,11 @@ units within radius + 0.5 leave the sector map around the move, the end tick is 
 cannot stay go to a free cell and are resynced. `CollectUseSpots` (from FindUseSpot). `levers.txt` switches zone1's gate
 "VGate" (id 1889, the only lever on zone1) and saves / loads it.
 
+## Unreached in the shipped game
+
+`TrapObject` (class id 0x55, trap_object.h) stays: the factory makes one for map object kind `Trap`, but no mob record
+kind does.
+
 ## Magic traps
 
 Class 0x3B (flags 0x80000 armed: a new trap is armed until a script disarms it; 0x40 kind). `UpdateTrap`: server only;

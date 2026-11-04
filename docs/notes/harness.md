@@ -311,7 +311,8 @@ routine: run it when wanted.
   entered again: SharedObject::Load), `unit_hit_turning` (a blow while the hero turns: HitWhileTurning),
   `unit_ai_healer` (bz2g's healing mercenary renumbered by make_trap_mob.py: only a unit whose id is no text key gets
   spell options, and no zone has one with a heal or protection, so IsNearPath runs on no shipped data). No caller at
-  all: TrapObject (no record kind makes one) and mapspec::UnitSpec::Apply (H43j).
+  all: TrapObject (no record kind makes one; kept, units.md "Unreached in the shipped game"). The map specs' Apply,
+  Remove and Refresh had no caller and are gone (H43j).
 
 ## What a run leaves alone
 

@@ -86,7 +86,7 @@ void UnitServer::FinishAction(int location) {
     case UnitOrderKind::Use:
         UseSkill(action.target);
         break;
-    case UnitOrderKind::UseItem: {
+    case UnitOrderKind::UseItem: {   // unreached in the shipped game: nothing sets the use-item order
         std::uint32_t slot = action.source;
         auto* item = unit->GetQuickItem(slot);
         if (item && item->GetCategory() == QuickItemCategory::Consumable) {

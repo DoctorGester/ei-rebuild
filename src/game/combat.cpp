@@ -638,6 +638,7 @@ void UnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 
 // --- OrderPlan ----------------------------------------------------------------------------------
 
+// Unreached in the shipped game: only the use-item order plans with it, and nothing sets that order.
 void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     targetId = -1;
     startTime = start;

@@ -123,7 +123,6 @@ std::int32_t BufferLength(GameBuffer* buffer) {
 
 Query::Query() { std::memset(&address, 0, sizeof(address)); }
 Query::~Query() {}
-Query::Query(const Query& from) : address(from.address), reply(from.reply) {}
 
 // ---- Client: sending ------------------------------------------------------------------------------
 
@@ -490,8 +489,6 @@ void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
     cursor->p += 4;
     SendInfo(from, echo);
 }
-
-bool ServerBase::Admit(const NetAddress*, std::uint8_t**, std::uint8_t*) { return true; }
 
 // An update from a peer that is not connected yet but was told to join
 // becomes a connection (with the id and rate of its join), then counts.

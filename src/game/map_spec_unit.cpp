@@ -148,25 +148,6 @@ UnitSpec::~UnitSpec() = default;
 
 Unit* ObjectSpec::MadeUnit() const { return static_cast<Unit*>(object); }
 
-void UnitSpec::Apply() {
-    if (!object) {
-        g_serverWorld.CreateObject(this);
-        return;
-    }
-    Unit* unit = MadeUnit();
-    g_serverWorld.aiMap.sectorMap.Move(unit, position);
-    g_serverWorld.aiMap.TurnObject(unit, &rotation);
-    unit->localRotation = rotation;
-    unit->SetFigureScale(scale);
-    unit->baseScale = scale;
-    unit->ApplyBaseScale();
-    std::uint32_t& flags = unit->flags;
-    if (!visible) flags |= 8;
-    else flags &= ~8u;
-    unit->ServerController()->ResyncWithUnit();
-    unit->MarkChanged(1);
-}
-
 // A behaviour record chunk fills the next record (not bounded, as in the original); an alarm level
 // left unset (4) becomes 0.
 void UnitSpec::OnChunk() {

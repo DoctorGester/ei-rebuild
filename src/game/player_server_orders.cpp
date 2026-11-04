@@ -56,6 +56,7 @@ static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && size
 
 } // namespace
 
+// Unreached in the shipped game: our client never sends message 0x01 (kept for a peer that does).
 int PlayerServer::OnLeave() {
     Leave();
     return 1;
@@ -149,6 +150,7 @@ int PlayerServer::OnMoveStyle() {
     return 1;
 }
 
+// Unreached in the shipped game: our client never sends message 0x38 (kept for a peer that does).
 int PlayerServer::OnUnitLookup() {
     int values[2];
     g_receivedMessages.ReadValue(values[0]);

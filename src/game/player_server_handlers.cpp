@@ -319,6 +319,7 @@ void PlayerServer::LeaveAndFlush() {
     Flush();
 }
 
+// Unreached in the shipped game: our client never sends message 0x02 (kept for a peer that does).
 int PlayerServer::OnRefreshParty() {
     player->ForgetKnownObjects();
     SendParty();
@@ -353,6 +354,7 @@ int PlayerServer::OnLeaveToZone() {
     return 1;
 }
 
+// Unreached in the shipped game: our client never sends message 0x07 (kept for a peer that does).
 int PlayerServer::OnBriefingDone() {
     std::string name = g_receivedMessages.ReadString();
     g_serverWorld.CompleteBriefing(player->playerId, name);

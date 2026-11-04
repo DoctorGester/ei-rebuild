@@ -896,7 +896,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::GSSetVarMax:     // GSSetVarMax(player, name, value)
         case ScriptFunction::GSDelVar: {   // GSDelVar(player, name)
             bool setMax = function == ScriptFunction::GSSetVarMax;
-            if (IsMultiplayerClient() && ServerActive()) {
+            if (IsMultiplayerClient() && ServerActive()) {   // GSDelVar's branch is unreached in the shipped game
                 GSVarMultiplayer(cmd, setMax);
                 break;
             }
