@@ -103,10 +103,11 @@ struct TerrainFsParams {
     float2 occlusionScale;
     float2 occlusionTexel;
     // The water's reflections (render_water.cpp): the camera's clip matrix (the landscape's space to the frame's), the
-    // sky image's, the dome (its centre in the landscape's space, its radius across and its height above the centre),
-    // the frame's depth to clip w (w = sceneDepthScale / (depth - sceneDepthOffset)), whether the frame was copied
-    // before the water (0: the water reflects the sky alone) and its size in pixels.
+    // last frame's (its copy's), the sky image's, the dome (its centre in the landscape's space, its radius across and
+    // its height above the centre), the depth's map to clip w (w = sceneDepthScale / (depth - sceneDepthOffset)),
+    // whether the rays are marched (0: the water reflects the sky alone) and the half-size images' size in pixels.
     row_major float4x4 view;
+    row_major float4x4 sceneView;
     row_major float4x4 skyView;
     float3 dome;
     float domeRadius;
@@ -124,13 +125,12 @@ SamplerState smp : FS_SAMPLER(0);
 Texture2D<float4> ripples : FS_TEXTURE(4);   // render_water.cpp: rg the slopes, b the foam's pattern
 SamplerState rippleSmp : FS_SAMPLER(4);
 // The water's reflections (render_water.cpp): the sky dome drawn mirrored in the water's plane (bilinear, clamped),
-// and the frame as it stood before the water's first draw: its colour (bilinear, clamped) and depth (read with Load).
+// and the last frame's world view at half size (bilinear, clamped); the rays are marched through this frame's depth
+// before the water, the ambient occlusion's (occlusion_depth, read with Load).
 Texture2D<float4> sky_image : FS_TEXTURE(9);
 SamplerState sky_smp : FS_SAMPLER(9);
 Texture2D<float4> scene_colour : FS_TEXTURE(10);
 SamplerState scene_smp : FS_SAMPLER(10);
-Texture2D<float> scene_depth : FS_TEXTURE(11);
-SamplerState scene_depth_smp : FS_SAMPLER(11);   // unused: the depth is read with Load
 
 // The weather on the ground and the water (render_weather.cpp; docs/notes/renderer.md section 13, item 11b): wet ground
 // darker and glossy, puddles in low flat ground, snow on ground turned up, the rain's rings and splashes on the
@@ -276,18 +276,19 @@ float3 reflected_sky(float3 p, float3 r) {
     return sky_image.SampleLevel(sky_smp, uv, 0.0).rgb;
 }
 
-// The screen-space reflection: the ray from `p` along `r` marched through the frame as it stood before the water (its
-// depth), kMarchSteps steps over kMarchLength landscape units from a start moved per pixel, then refined by halving;
-// it hits where it passes behind what the frame shows by less than kThickness (clip w, landscape units). Returns the
-// frame's colour there (rgb) and how much of it to take (a): less towards the frame's edges and the ray's end, 0 for
-// no hit.
+// The screen-space reflection: the ray from `p` along `r` marched through the frame's depth before the water (the
+// ambient occlusion's: the ground and the models), kMarchSteps steps over kMarchLength landscape units from a start
+// moved per pixel, then refined by halving; it hits where it passes behind that depth by less than kThickness (clip w,
+// landscape units). Returns the colour there (rgb), the hit point looked up in the last frame's world view through
+// that frame's camera, and how much of it to take (a): less towards either frame's edges and the ray's end, 0 for no
+// hit.
 static const int kMarchSteps = 10;
 static const int kRefineSteps = 3;
 static const float kMarchLength = 12.0;
 static const float kThickness = 2.0;
 float scene_w(float2 uv) {
     int2 at = clamp(int2(uv * fs.sceneSize), 0, int2(fs.sceneSize) - 1);
-    return fs.sceneDepthScale / (scene_depth.Load(int3(at, 0)) - fs.sceneDepthOffset);
+    return fs.sceneDepthScale / (occlusion_depth.Load(int3(at, 0)) - fs.sceneDepthOffset);
 }
 float2 clip_uv(float4 q) { return q.xy / q.w * float2(0.5, -0.5) + 0.5; }
 float4 screen_reflection(float3 p, float3 r, float2 pixel) {
@@ -318,9 +319,11 @@ float4 screen_reflection(float3 p, float3 r, float2 pixel) {
         else before = t;
     }
     float2 uv = clip_uv(lerp(a, b, at));
-    float2 edge = min(uv, 1.0 - uv);
+    float4 seen = project(fs.sceneView, p + r * (kMarchLength * end * at));
+    float2 last = seen.w > 1e-4 ? clip_uv(seen) : -1.0;
+    float2 edge = min(min(uv, 1.0 - uv), min(last, 1.0 - last));
     float weight = saturate(min(edge.x, edge.y) * 12.0) * (1.0 - smoothstep(0.6, 1.0, at * end));
-    return float4(scene_colour.SampleLevel(scene_smp, uv, 0.0).rgb, weight);
+    return float4(scene_colour.SampleLevel(scene_smp, last, 0.0).rgb, weight);
 }
 
 // The lit ground `c` with the wet ground's sheen of the sun, and in a puddle the sky and the sun reflected by its

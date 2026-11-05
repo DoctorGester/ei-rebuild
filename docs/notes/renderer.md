@@ -606,9 +606,11 @@ with its own level.
   unchanged (a 3D draw's edges run through pixel centres: multisampled, every sprite would get half-covered border pixels).
   Between runs (render_smooth.cpp): after a world run the frame target's depth is set from the resolved depth copy;
   before a world run that follows other draws the frame target's colour and depth go into every sample (a pass of its
-  own). The frame target is what every reader takes, always resolved. A pass also ends before the water's first draw
-  (render.cpp's FirstWater), which copies the frame as it stands for the water's reflections (render_water.cpp's
-  CopyFrameForWater); with msaa that is one more resolve of the world's target (about 0.25-0.3 ms at 3840x2009, msaa 8).
+  own). The frame target is what every reader takes, always resolved. The water's reflections copy the frame where a
+  world view with water ends (render.cpp's WaterCopyPoint, render_water.cpp's CopyFrameForWater): with msaa the
+  world's own resolve, without it a pass ending there. A copy before the water's first draw would split the world's
+  multisampled pass and resolve it once more (R17a1 did: about 0.2-0.25 ms at 3840x2009, msaa 8; SDL_GPU reads a
+  multisampled target only through a resolve).
 - **The depth copy.** A multisampled depth is never read back: SDL_GPU samples no multisampled texture and resolves
   only colour. So a multisampled pass has a second colour attachment, R32F (`kDepthCopyFormat`), and every pipeline
   made for more than one sample has it (`AddDepthCopy`): written (red only, no blending) when the pipeline writes the
@@ -1612,7 +1614,8 @@ and uploaded again is what the game says changed:
 Section 13, item 11a: once a frame after the shadow maps the world's depth at half the frame's size (the ground and the
 models that write the depth), the occlusion found in it (occlusion.hlsl) and blurred (occlusion_blur.hlsl); the ground
 and the world's meshes lit on the GPU take it off their ambient light (shaders/ambient_occlusion.hlsli). The ground's own
-occlusion from the height field is render_terrain.cpp's.
+occlusion from the height field is render_terrain.cpp's. The water's reflected rays are marched through the same depth
+(render_water.cpp, R17a3), so with the occlusion off the water reflects the sky alone.
 
 ### render_point_shadows.cpp: point-light shadows
 
@@ -1665,12 +1668,26 @@ The reflections (R17a1), read by shaders/terrain.hlsl's `reflected_sky` and `scr
   give the dome's centre, radius across and height. The shader meets the reflected ray with the dome (an ellipsoid)
   and looks the hit up in the image through its matrix, so water at any level reads it right: the plane only keeps the
   dome in view. About 0.02 ms.
-- **The frame copy** (CopyFrameForWater, shaders/scene_copy.hlsl): before the water's first draw the frame as it stands
-  (the frame target's colour, and its depth or after a multisampled pass the resolved depth copy) at half size: per 2 x 2
-  pixels the mean colour and the nearest depth (a thin object stays in it). The water's rays are marched through it.
+- **The rays' depth and colour** (R17a3): the rays are marched through this frame's depth before the water, the ambient
+  occlusion's half-size depth (render_occlusion.cpp: the ground and the models that write the depth, no water; drawn
+  before the frame's first pass, terrain.hlsl's `occlusion_depth`), and take the colour where they hit from the last
+  frame's world view: CopyFrameForWater (shaders/scene_copy.hlsl) copies the frame target's colour at half size (per
+  2 x 2 pixels the mean) where a world view with water ends, after its resolve, and keeps that frame's water clip
+  matrix; the hit point is looked up through it (`sceneView`), so the camera's motion moves nothing; what moved in the
+  frame shows where it was one frame before. Used only when the copy is the last frame's at this frame's size and the
+  occlusion was drawn (else the sky alone: the first frame of water, `occlusion off`).
+  Why: SDL_GPU samples no multisampled texture, so a copy of the frame before the water (R17a1's) needs the world's pass
+  split there and resolved once more, about 0.2-0.25 ms at 3840x2009, msaa 8 (the colour's resolve about 0.1, the depth
+  copy's 0.12; the split itself 0.03). The copy at the world's end reuses its resolve, and the depth before the water
+  was already there. Not the world's depth at its end: the water writes it and its waves rise up to 0.3 units, so a ray at
+  a grazing angle would pass behind the next crest and hit the water itself. The last frame's colour holds the water, the
+  effects and the rain drawn after it: a ray hits only above the water, where they differ only at its edges and under
+  an effect. The frames of render_water, render_water_looks and five low views (pitch 12-15 degrees, msaa 8) against
+  R17a1's: a mean difference under 0.11 a channel, 0.4% of the pixels by more than 8 at most (the swamp's low view),
+  the rest under 0.05%.
 - **BindWaterReflections**: every terrain batch's part of TerrainFsParams (the camera's clip matrix, the sky image's,
-  the dome, the depth's map to clip w: render_occlusion.cpp's DepthMap, whether this frame was copied) and the three
-  images at terrain slots 9..11 (a white image where one is missing). The fields sit in TerrainFsParams because a stage
+  the dome, the depth's map to clip w: render_occlusion.cpp's DepthMap, the copied frame's clip matrix, whether the
+  rays are marched) and the two images at terrain slots 9 and 10 (a white image where one is missing). The fields sit in TerrainFsParams because a stage
   has at most four uniform blocks (section 15b).
 
 Why this way (measured at 3840x2009, msaa 8): the water lies at several levels (sea, lake, river, swamps), so drawing the
@@ -1768,9 +1785,14 @@ The depth is per vertex (one unit apart), so the foam's band follows the triangl
 msaa 8, frame GPU time on a quiet machine by the fence probe of section 13 item 1, frozen frames of render_water's
 scenes; the water's part: frames with its draws against frames without them, medians), before R17a1 / after:
 the shore 1.06 / 1.35 ms, the sea 1.18 / 1.33, the lake 0.09 / 0.40, the river 0.10 / 0.48, the river at night
-0.24 / 0.44, the lake at night 0.18 / 0.45. Of the 0.15-0.38 ms added, the extra resolve before the copy is about
-0.25-0.3 (so it dominates where the water is small), the march 0.1-0.2 on a screen of water, the sky image 0.02, the
-shadow map on the water little. R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
+0.24 / 0.44, the lake at night 0.18 / 0.45. Of the 0.15-0.38 ms added, the resolve for the copy before the water was
+about 0.2-0.3 (gone with R17a3), the march 0.1-0.2 on a screen of water, the sky image 0.02, the shadow map on the
+water little. R17a3, the views render_water's steps reach at 3840x2009 (three rounds alternated, medians; the kit: build/R17a3 in
+the main checkout, a probe patch script whose EI_R17A3=s skips the water's draws (its render.cpp variants were written
+against R17a1's copy), the scenarios r17a3_time and r17a3_low, the runner and the tables), the water's part with R17a1's copy / without the rays (`sceneOn` 0) /
+R17a3's: the shore 0.61 / 0.29 / 0.32 ms, the sea 0.60 / 0.26 / 0.30, the lake 1.23 / 1.17 / 1.18, the river
+0.45 / 0.16 / 0.20, the river at night 0.47 / 0.20 / 0.20, the lake at night 1.24 / 1.21 / 1.27. Those lake views hold
+far more water than R17a1's: about 1.2 ms of the water's own drawing (R17a4). R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
 plain water shading. Check: scenario `render_water`
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
 and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and

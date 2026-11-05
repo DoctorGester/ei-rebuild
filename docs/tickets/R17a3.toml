@@ -6,3 +6,5 @@ model = "opus"
 depends = ["R17a1"]
 note = "R17a1 (2026-11-05) copies the frame at half size before the water's first draw for the reflected-ray trace; SDL_GPU cannot sample a multisampled texture, so that copy needs one extra msaa resolve, about 0.25-0.3 ms at 3840x2009 msaa 8 whenever water is on screen (lake 0.09 -> 0.40 ms, river 0.10 -> 0.48). Remove it: e.g. take the copy from a resolve the frame already does, trace in a pass after the world's resolve, or draw the water after it; measure with R17a's fence-probe kit (remove the probe after). Goldens the same; R17a1's frame checks unchanged; captures only if the look changes."
 order = 1189
+status = "running"
+started = "2026-11-05"
