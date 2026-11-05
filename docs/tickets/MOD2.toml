@@ -6,5 +6,6 @@ model = "opus"
 depends = ["MOD1"]
 note = "After MOD1: start a new game with Mod = LostInAstral and play its campaign path (zones 11-14 in its Maps, its database.res / texts.res / speech, its scripts). Fix whatever the expansion uses that the base game never did (script functions, database records, texture class 16 is already handled: terrain_sector.cpp, models.md). Compare with Rebirth's engine/game.exe + addon.dll behaviour where it matters (read-only: never write the install). Harness scenarios on its zones (recorded or scripted), goldens of our own. List anything that cannot match with a reason."
 order = 1197
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
