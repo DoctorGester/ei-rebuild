@@ -436,6 +436,34 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(len(xs), 2)
         self.assertGreaterEqual(xs[1][0], xs[0][1] - 0.01)
 
+    def test_folder_stays_with_the_batch_until_its_submitter_is_done(self):
+        # H54: a rerun by name of a scenario of a suite emptied the run folder between the suite's last game and its
+        # --golden comparison. A later batch's run waits for the folder while the earlier batch's work.py test lives.
+        fake = Fake(default=0.1)
+        a = self.submit(['x'], submitter=os.getpid())      # alive: still comparing when its batch has finished
+        b = self.submit(['x'])
+        s = self.sched(fake, count=4)
+        end = time.time() + 5
+        while self.batch(a)['state'] != 'finished' and time.time() < end:
+            s.tick()
+            time.sleep(0.02)
+        self.assertEqual(self.batch(a)['state'], 'finished')
+        for _ in range(15):
+            s.tick()
+            time.sleep(0.02)
+        self.assertEqual(self.runs(b)['x']['state'], 'queued')
+        self.db.execute('UPDATE batch SET submitter = NULL WHERE id = ?', (a,))     # its comparison is done
+        self.drive(s)
+        self.assertEqual(self.runs(b)['x']['state'], 'finished')
+
+    def test_batches_with_crossed_folders_do_not_wait_for_each_other(self):
+        fake = Fake(default=0.1)
+        a = self.submit(['x', 'y'])
+        b = self.submit(['y', 'x'])
+        self.drive(self.sched(fake, count=4))
+        states = {r['state'] for batch in (a, b) for r in self.runs(batch).values()}
+        self.assertEqual(states, {'finished'})
+
     def test_install_check(self):
         """H47a: the batch's installs are listed when its first game starts and again before the summary; the run whose
         game window holds a write into the install fails, the other passes."""

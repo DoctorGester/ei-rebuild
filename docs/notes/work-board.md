@@ -50,6 +50,11 @@ build/live/scheduler.lock, leaves after 120 s with nothing queued; log in build/
   submitting checkout (its verify build, or EI_BUILD_DIR) and writes the batch and its runs in one transaction.
 - Order: batches by id; within one, expected time descending, alone runs last. A batch takes every free slot; later
   batches backfill. An alone run gathers every slot and runs by itself. A retry's game is granted before anything new.
+- A run folder (`<build>/runs/<scenario>-<install>`) belongs to the earlier batch that has a run in it until that batch's
+  `work.py test` has ended (its `--golden` comparison reads the folders after the last game): a later batch's run in the
+  same folder waits (`reserved_folders`; only earlier batches block, so batches cannot wait on each other). Before
+  H54 a rerun by name of a suite's scenario emptied the folder under the suite's comparison, which then counted the
+  passing run as differing (no digest.txt, no saves).
 - Each batch's games get the scheduler's environment plus the batch's EI_* variables.
 - Expected times: the median of the last 5 timings for (scenario, install, scenario commit), else (scenario,
   install), else the build's run_times.json.
