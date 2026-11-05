@@ -247,21 +247,21 @@ void CampPages::ShowPage(int newPage) {
         AddLine(titleLabels, pageTitles[page], Rect{0, 10, 200, 30});
     }
 
-    // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
+    // The action buttons only where a hero can be chosen.
     if (page == 0 && (!itemConstructor || noConstructor)) {
-        sceneObjects[0]->visible = false;
-        sceneObjects[1]->visible = false;
-        regions[0]->SetTip(0);
-        regions[1]->SetTip(0);
+        actionIcon->visible = false;
+        secondActionIcon->visible = false;
+        actionButton->SetTip(0);
+        secondActionButton->SetTip(0);
     } else {
-        sceneObjects[0]->visible = true;
-        sceneObjects[1]->visible = true;
-        regions[0]->SetTip(0x4EE8);
-        regions[1]->SetTip(0x4EE9);
+        actionIcon->visible = true;
+        secondActionIcon->visible = true;
+        actionButton->SetTip(0x4EE8);
+        secondActionButton->SetTip(0x4EE9);
     }
-    // The page buttons (scene objects 2-9) half bright, the current one full.
-    for (int i = 2; i < 10; ++i) SetShade(sceneObjects[i], 0.5f);
-    SetShade(sceneObjects[page + 2], 1.0f);
+    // The page buttons half bright, the current one full.
+    for (UiMesh* icon : pageIcons) SetShade(icon, 0.5f);
+    SetShade(pageIcons[page], 1.0f);
     ui->OpenHelp(false);
 }
 
@@ -521,8 +521,8 @@ void CampPages::UpdateAction() {
     line = std::format("{} {}", text, amount);
     AddLine(actionLabels, line, Rect{0, 10, 200, 30});
 
-    SetShade(sceneObjects[0], actionEnabled ? 1.0f : 0.5f);
-    SetShade(sceneObjects[1], actionShown ? 1.0f : 0.5f);
+    SetShade(actionIcon, actionEnabled ? 1.0f : 0.5f);
+    SetShade(secondActionIcon, actionShown ? 1.0f : 0.5f);
 }
 
 void CampPages::DrawSprites(SceneRenderer* pass) {
@@ -530,15 +530,15 @@ void CampPages::DrawSprites(SceneRenderer* pass) {
     hoveredItem = nullptr;
     int topic = 0;
     // The page buttons' help topics.
-    switch (RegionAt(cursor)) {
-    case 4: topic = 0x69; break;
-    case 5: topic = 0x6A; break;
-    case 6: if (spellConstructor) topic = 0x65; break;
-    case 7: if (spellConstructor && !noConstructor) topic = 0x67; break;
-    case 8: if (itemConstructor) topic = 100; break;
-    case 9: if (itemConstructor && !noConstructor) topic = 0x66; break;
-    case 10: if (itemConstructor) topic = 0x68; break;
-    case 11: topic = 0x6B; break;
+    switch (RegionIndex(pageButtons, RegionUnder(cursor))) {
+    case 0: topic = 0x69; break;
+    case 1: topic = 0x6A; break;
+    case 2: if (spellConstructor) topic = 0x65; break;
+    case 3: if (spellConstructor && !noConstructor) topic = 0x67; break;
+    case 4: if (itemConstructor) topic = 100; break;
+    case 5: if (itemConstructor && !noConstructor) topic = 0x66; break;
+    case 6: if (itemConstructor) topic = 0x68; break;
+    case 7: topic = 0x6B; break;
     default: break;
     }
     // Panel by panel until an item is found or a topic is set.

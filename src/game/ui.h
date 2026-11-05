@@ -1746,6 +1746,11 @@ public:
     int shown = 0;                   // entries shown at once
     UiScrollbar* scroll = nullptr;
     std::vector<UiWindow*> covered;  // the owner's children not drawn while open (under the list)
+    UiMesh* rowArrow = nullptr;      // the row's arrow; the open list's shade, marks and frame
+    UiMesh* listShade = nullptr;
+    UiMesh* chosenMark = nullptr;
+    UiMesh* activeMark = nullptr;
+    UiMesh* listFrame = nullptr;
 
 private:
     void PaintRow(UiSurface& surface) const;

@@ -331,7 +331,7 @@ public:
     void PreviousHero() override;
     // The unit's own name, else the text of "pers <record name>".
     void ShowHero();
-    // Regions 0 / 1 the deals, 2 / 3 turn the hero on the equipment page, 4-11 show page region - 4.
+    // The deal buttons, the turn areas (the hero, on the equipment page) and the page buttons.
     void LeftDown(Point point) override;
     void LeftUp(Point point) override;
     // Esc shows page 7 (leaves); on a network client Backspace and Enter go to the chat line.
@@ -355,7 +355,16 @@ public:
 
     int page = 0;
     bool fromHeroScreen = false;     // opened from the multiplayer hero screen (closes with a pending value)
-    int curtains = -1;               // the curtains' first sprite (screen_layout::AddCurtains)
+    screen_layout::Curtains curtains;    // over the screen's margins
+    static constexpr int kPages = 8;
+    UiRegion* actionButton = nullptr;    // the page's deal and its undo (on page 0 the hero arrows)
+    UiRegion* secondActionButton = nullptr;
+    UiRegion* turnLeftArea = nullptr;    // the hero preview's turn areas
+    UiRegion* turnRightArea = nullptr;
+    UiRegion* pageButtons[kPages] = {};
+    UiMesh* actionIcon = nullptr;
+    UiMesh* secondActionIcon = nullptr;
+    UiMesh* pageIcons[kPages] = {};
     bool spellConstructor = false;   // the spell constructor's pages are offered
     bool itemConstructor = false;    // the item constructor's pages are offered
     ClassTemplate* constructor = nullptr;    // the constructor's class template ("constr.current"), or null

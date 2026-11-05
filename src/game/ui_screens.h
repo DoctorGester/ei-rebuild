@@ -9,6 +9,7 @@
 #include "net_classes.h"
 
 #include "resource.h"
+#include "screen_layout.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -264,9 +265,9 @@ public:
     // docs/notes/ui.md, "MpHeroScreen::AddNewHero".
     void AddNewHero();
     // The screen laid out for `mode` (9 list, 10 new hero, 11 statistics): see docs/notes/ui.md, "MpHeroScreen::SetMode".
-    // Rebirth's WideScreen shows the curtains (sprites 19 and 20) in modes 10 and 11 and hides them in 9.
+    // Rebirth's WideScreen shows the curtains in modes 10 and 11 and hides them in 9.
     void SetMode(int mode);
-    // The screen's Create (reproduces Rebirth's WideScreen: the two curtains over the margins, sprites 19 and 20): see
+    // The screen's Create (reproduces Rebirth's WideScreen: the two curtains over the margins, after its sprites): see
     // docs/notes/ui.md, "MpHeroScreen::CreateScreen".
     void CreateScreen() override;
     // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
@@ -314,6 +315,7 @@ public:
     UiRegion* renameButton = nullptr;
     UiRegion* deleteButton = nullptr;
     UiRegion* inventoryButton = nullptr;
+    screen_layout::Curtains curtains;      // over the screen's margins, after the screen's sprites
     // The sprites SetMode shows and places by mode.
     UiMesh* selectionFrame = nullptr;      // on the selected hero or voice
     UiMesh* quarters[4] = {};              // the frame around the figure

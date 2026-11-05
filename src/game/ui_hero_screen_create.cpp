@@ -301,8 +301,8 @@ void MpHeroScreen::CreateScreen() {
     DrawHeroList();
     heroIndex = heroes->entries.size() == 0 ? -1 : 0;
     SetMode(kModeList);
-    // Rebirth's WideScreen: the curtains, hidden (sprites 19, 20).
-    screen_layout::AddCurtains(this, 0);
+    // Rebirth's WideScreen: the curtains, hidden.
+    curtains = screen_layout::AddCurtains(this, 0);
 }
 
-void MpHeroScreen::LayoutChanged() { screen_layout::PlaceCurtains(this, screen_layout::kHeroCurtains); }
+void MpHeroScreen::LayoutChanged() { screen_layout::PlaceCurtains(curtains); }

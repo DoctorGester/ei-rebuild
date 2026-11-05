@@ -56,7 +56,12 @@ polygon (from 3 vertices) tested with integer cross products; tooltip states 0 i
 4 shown (0 and 4 stay, 1 -> 0 or 2, 2 -> 4, 3 -> 0). A hovered tooltip goes back to idle (its timer 0) as soon as the
 mouse is outside its region: the original's kept counting there and showed for one frame at the mouse, over whatever
 region the mouse was on, when the count reached the delay (scenario `ui_tooltip_switch`). `UiRegion::SetTip` formats "tip %d" up to '#'; a missing text shows
-the key. `SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` with each step stored as float.
+the key. A window keeps the regions and sprites it uses again in named members (`okButton`, `rows[n]`, `exitMarkers`)
+and compares the region under the mouse with them (`RegionUnder`; a slot list's index `RegionIndex(list, region)`); a
+window that clears or trims its regions or sprites resets or rebuilds those members with them (the help page, the
+briefing's topic rows, the objectives' exits and places). The creation order still decides the hit test (the first
+region holding the point), the drawing order and the harness's `region <n>` steps, so the scenario notes keep region
+numbers. The camp's and the hero screen's curtains are a `screen_layout::Curtains` pair. `SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` with each step stored as float.
 
 `CreateScreen` (`ui_create_screen.cpp`) builds screens 1, 2, 3 and 7 inline. `PushWindow` sets the backdrops, the server
 flag (kept for the first window), five render states, runs the window's Create and pumps messages. `UiModel::Draw` animates

@@ -39,12 +39,6 @@ const char* PageHelpTopic(int page) {
     }
 }
 
-constexpr int kRegionAction = 0;
-constexpr int kRegionSecondAction = 1;
-constexpr int kRegionTurnLeft = 2;
-constexpr int kRegionTurnRight = 3;
-constexpr int kRegionFirstPage = 4;
-constexpr int kRegionLastPage = 11;
 constexpr int kEquipmentPage = 0;
 constexpr int kLeavePage = 7;
 constexpr std::uint32_t kAnswerYes = BoxResult(MessageQuestion::First, MessageAnswer::Ok);
@@ -53,28 +47,22 @@ constexpr std::uint32_t kAnswerYes = BoxResult(MessageQuestion::First, MessageAn
 
 void CampPages::LeftDown(Point point) {
     UiContainer::LeftDown(point);
-    int region = RegionAt(point);
-    switch (region) {
-    case kRegionAction:
+    UiRegion* region = RegionUnder(point);
+    const int pageButton = RegionIndex(pageButtons, region);
+    if (region == actionButton) {
         UpdateAction();
         if (actionEnabled) DoAction();
-        break;
-    case kRegionSecondAction:
+    } else if (region == secondActionButton) {
         UpdateAction();
         if (actionShown) UndoAction();
-        break;
-    case kRegionTurnLeft:
-    case kRegionTurnRight:
+    } else if (region == turnLeftArea || region == turnRightArea) {
         if (page == kEquipmentPage) {
             ui->PlayInterfaceSound(kMoveSound);
-            turning = region == kRegionTurnLeft ? 1 : 2;
+            turning = region == turnLeftArea ? 1 : 2;
             CaptureMouse();
         }
-        break;
-    default:
-        if (region >= kRegionFirstPage && region <= kRegionLastPage && page != region - kRegionFirstPage)
-            ShowPage(region - kRegionFirstPage);
-        break;
+    } else if (pageButton >= 0 && page != pageButton) {
+        ShowPage(pageButton);
     }
 }
 
