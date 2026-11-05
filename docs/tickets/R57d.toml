@@ -7,5 +7,6 @@ depends = ["R57c"]
 files = ["src/game/world_save.cpp src/game/world_map.cpp"]
 note = "Found in R57c (renderer.md 11c, 'The cloud cover after a load'). WorldServer::LoadSave reads the saved weather and weatherStrength, then its LoadMap sets both to 0, so every load (a slot, a revisited zone, a multiplayer zone) comes back clear: the zone's first weather message stops the client's rain layer at once, the cloud cover heads for a clear sky and the ground dries; rain only returns when UpdateWeather rolls it. The R57c ticket assumed the layer fades in again; it does not, so there is no layer fade to keep. Keeping the saved weather (LoadMap's reset only for a fresh zone) is a game-state change: UpdateWeather's rolls (101 vs 31) and the digests of every scenario that loads move. Ask the user before doing it; if yes, re-record the moved goldens and drop the note's 'clear after a load' facts."
 order = 1226
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
