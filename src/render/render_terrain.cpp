@@ -682,13 +682,15 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     CountPipeline(pipeline);
     g.Bind();
     gpu::TextureBinding texture{TextureView(batch.texture), AnisotropicSampler(batch.state.stages[0], kMostAnisotropy)};
-    float mode = batch.water ? 1.0f : 0.0f;
+    // terrain.hlsl's mode: the ground, the water or the level map.
+    constexpr int kGround = 0, kWater = 1, kLevels = 2;
+    int mode = batch.water ? kWater : kGround;
     if (g_levelMode != TerrainLevelMode::Off && !batch.water) {
         gpu::Texture levels = LevelView(texture.texture);
         if (levels) {
             texture.texture = levels;
             if (g_levelMode == TerrainLevelMode::PointMips) texture.sampler = LinearSampler();
-            mode = 2.0f;
+            mode = kLevels;
         }
     }
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
@@ -701,7 +703,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     BindRoofMap(program::kSamplerRoofMap);
     CountBindings(texture.texture);
     // The ground receives the objects' shadows; the water does not (the ground under it does). Both take the clouds'.
-    const bool clouded = mode < 1.5f && !f.shadow.lights.empty();
+    const bool clouded = mode != kLevels && !f.shadow.lights.empty();
     const bool receives = clouded && !batch.water;
     const ShadowParams& shadow = ShadowUniforms(f, receives, clouded);
     TerrainVsParams vs{};
@@ -709,16 +711,15 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     vs.light = clouded ? f.shadow.lights[0] : vs.matrix;
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
-    vs.normalOffset[0] = ShadowNormalOffset(shadow);
+    vs.normalOffset = ShadowNormalOffset(f, receives);
     TerrainFsParams fs{};
     UnpackColour(f.fogColour, fs.fog);
-    fs.flags[0] = mode;
-    fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
+    fs.mode = mode;
+    fs.fogOn = f.fogEnabled ? 1 : 0;
     RippleOffsets(fs.ripples, fs.slowRipples);
-    SurfaceUniforms(fs.weather, fs.rain);
-    OcclusionUniforms(batch.occluded && mode < 1.5f, fs.occlusion, fs.occlusionMap);
-    SceneLightParams light;
-    LightUniforms(&light);
+    SurfaceUniforms(&fs);
+    OcclusionUniforms(batch.occluded && mode != kLevels, fs.occlusion, fs.occlusionMap);
+    const SceneLightParams light = SceneLightUniforms();
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainVsParams, vs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainFsParams, fs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);

@@ -65,11 +65,17 @@ Rules (SDL_GPU's, or the generator's):
   sits under `EI_VERTEX` / `EI_FRAGMENT`, and the generator fails on a resource in the other stage's space.
 - **Inputs and outputs.** Each varying is `[[vk::location(n)]] ... : TEXCOORDn`: the location for SPIR-V, the
   semantic for DXIL.
-- **Blocks.** `ConstantBuffer<T>`, whose members are `float4`, `int4` or arrays of them, and `row_major float4x4`. The
-  matrix's register k is the Matrix4's row k, as `m[k]` reads it; a Matrix4 is uploaded as it is in memory. An
-  unsigned value goes in an `int` (`asuint` reads it back). No variable index into a component of a block's vector:
-  copy the vector into a local first.
-- **Names.** A block's type is its HLSL struct's name (`MeshVsParams`), its members named as there.
+- **Blocks.** `ConstantBuffer<T>`, whose members are `float`, `int` or `uint` with 1 to 4 components, arrays of the
+  4-component ones, and `row_major float4x4`. They are laid out as HLSL packs a constant buffer (a member that would
+  cross a 16-byte register starts the next one; a matrix and each array element start one); the generator checks the
+  SPIR-V's offsets against that packing and writes the C++ struct to match (a float3 is `float[3]`, a `paddingN`
+  member where a register's rest is skipped, each offset asserted; `alignas` drew MSVC's C4324). The matrix's register k is the Matrix4's row k,
+  as `m[k]` reads it; a Matrix4 is uploaded as it is in memory. An unsigned value goes in an `int` (`asuint` reads it
+  back). No variable index into a component of a block's vector: copy the vector into a local first.
+- **Names.** A block's type is its HLSL struct's name (`MeshVsParams`), its members named as there. Each value has its
+  own member (`int on`, `float strength`, not the components of one float4), a switch or a count is an `int`, a map's
+  slot -1 for none. The C++ fills a block just before it pushes it and never reads one back: what the CPU keeps
+  (the scene's lights, a figure part's, the shadow map's offsets) lives in plain structs.
 - **Shared parts.** `rect_vs.hlsli` and `fullscreen.hlsli` are the two vertex stages most programs share. The
   receivers' `shadow_receiver.hlsli`, `point_shadow.hlsli` and `scene_lighting.hlsli` take their slots from the
   including program's `SHADOW_*_SLOT` / `POINT_*_SLOT` / `SCENE_BLOCK_SLOT`.
@@ -857,11 +863,11 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   colours (the same sun direction and normal): at noon, and all day where the table's sun is white (every zone's from
   7 to 17), a print looks as in the game; at night it is as dark against its ground as by day, at dawn it takes the
   ground's tint, under a lamp at night the lamp's light. Its light (`GroundDecalLight`, in the mesh
-  shader's MeshLightParams with `on` y 1, as SDL_GPU's four uniform slots per stage are taken): the scene's sun,
+  shader's MeshLightParams with `groundPrint` 1, as SDL_GPU's four uniform slots per stage are taken): the scene's sun,
   ambient and the 8 point lights nearest its box that reach it, with their point shadows, and the map's light
   (`mapSun`); its positions are the landscape's (identity landscape rows), its map lookup lifted along the
   landscape's up (no vertex normals). The specular lights (spell, missile and quest lights: `pointSpecular`, from the
-  scene's `pointColour` w) count in the shade as on the ground (lit = max(other, spec)) and their light is added
+  scene's `pointSpecular`) count in the shade as on the ground (lit = max(other, spec)) and their light is added
   again after the print's colour (rgb x shade + spec, at most 1), as the ground adds it after its texture (R52c:
   before, a print under such a light was darker than its ground by that light times its alpha). No weather on prints. The selection marker stays unshaded (the old game drew it
   after the shadows; it is a mark of the interface). Check: render_shadows_decals (shadowcheck: every print samples

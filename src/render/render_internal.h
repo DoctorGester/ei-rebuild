@@ -257,17 +257,32 @@ struct Command {
     int index = 0;            // into terrainBatches / meshBatches / blitBatches / clears / fills / uiBatches / pictureBatches
 };
 
-// The scene's light as kept by render::SceneLighting, for the terrain shader (shaders/scene_lighting.hlsli), with
-// the frame's point shadows and the shadow map's light direction.
+// The scene's light as render::SceneLighting keeps it: the sun (the direction its light travels, unit), its colours
+// and the point lights nearest the camera. Until the first hand-over: a sun from above, half ambient.
+struct KeptLight {
+    Vector3 at;
+    float inverseRangeSquared = 0.0f;
+    float colour[3] = {};
+    bool specular = false;
+    bool shadows = false;   // casts point shadows (ScenePointLight::shadows: not an object's own light)
+};
+struct KeptScene {
+    Vector3 sun{0.0f, 0.0f, -1.0f};
+    float sunColour[3] = {1.0f, 1.0f, 1.0f};
+    float ambientColour[3] = {0.5f, 0.5f, 0.5f};
+    float daySunColour[3] = {1.0f, 1.0f, 1.0f};   // SceneLights::daySunColour, dayAmbientColour
+    float dayAmbientColour[3] = {0.5f, 0.5f, 0.5f};
+    Vector3 camera;
+    double clientTicks = 0.0;   // the client's time it was handed over with (SceneLights::clientTicks)
+    int count = 0;
+    KeptLight lights[kMostSceneLights];
+};
+const KeptScene& KeptSceneLight();
+// The terrain shader's (shaders/scene_lighting.hlsli): the kept light with the frame's point shadows and the shadow
+// map's light direction.
 static_assert(std::size(SceneLightParams{}.pointAt) == kMostSceneLights);
-void LightUniforms(SceneLightParams* params);
-// The kept point lights (`counts[0]` of them in pointAt / pointColour). SceneLightIndex: the kept light at
-// `position` exactly (the same Light's), -1 none.
-const SceneLightParams& KeptSceneLight();
-// The client's time the scene's light was handed over with (SceneLights::clientTicks).
-double KeptClientTicks();
-// The kept light `k` casts point shadows (ScenePointLight::shadows: not an object's own light).
-bool SceneLightCastsShadows(int k);
+SceneLightParams SceneLightUniforms();
+// The kept light at `position` exactly (the same Light's), -1 none.
 int SceneLightIndex(const Vector3& position);
 // The shadow map's light for the sun `sun`: at least 20 degrees above the horizon, unit. False without a
 // direction. Receivers lit on the GPU weigh the map's darkening by their facing to it.
@@ -278,13 +293,32 @@ bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
 bool InvertMatrix(const Matrix4& m, Matrix4* inverse);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
-// A figure part lit on the GPU (shaders/mesh.hlsl's MeshLightParams): the sun and lights in the part's model
-// space, their colours times the material's diffuse colour and the coefficient; the kMostMeshLights nearest the
-// part's origin. A light's pointColour w: the scene's light (SceneLightIndex) + 1, 0 none; drawn: its point shadow
-// + 1, 0 none.
+// A mesh lit on the GPU (shaders/mesh.hlsl's MeshLightParams). FigureLight: a figure part's, the sun and lights in
+// the part's model space, their colours times the material's diffuse colour and the coefficient; the
+// kMostMeshLights nearest the part's origin. GroundDecalLight (below): a ground print's. Each light
+// names its kept scene light (SceneLightIndex, -1 none), whose point shadow it takes at the draw
+// (MeshLightUniforms).
 constexpr int kMostMeshLights = 8;
 static_assert(std::size(MeshLightParams{}.pointAt) == kMostMeshLights);
-void MeshLightUniforms(const MeshLighting& lighting, MeshLightParams* params);
+struct MeshLight {
+    bool groundPrint = false;
+    Vector3 sun;   // towards the sun
+    float sunColour[3] = {};
+    float ambientColour[3] = {};
+    float emissiveColour[3] = {};
+    Vector3 mapSun;   // a ground print's: the direction the shadow map's light travels, and the daylight colours
+    float daySunColour[3] = {};
+    float dayAmbientColour[3] = {};
+    int count = 0;
+    struct Point {
+        Vector3 at;
+        float inverseRangeSquared = 0.0f;
+        float colour[3] = {};
+        int sceneLight = -1;
+        bool specular = false;   // a ground print's: added after its colour
+    } points[kMostMeshLights];
+};
+MeshLight FigureLight(const MeshLighting& lighting);
 // Harness build: the ground prints drawn (SetGroundDecals).
 bool GroundDecalsDrawn();
 
@@ -296,6 +330,7 @@ static_assert(std::size(PointShadowParams{}.lights) == kMostPointShadows);
 struct PointShadowFrame {
     std::vector<Matrix4> models;   // MeshBatch::landscape: model space to the landscape's
     int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
+    int mapped = 0;                          // the lights with a map
     PointShadowParams params{};
 };
 
@@ -314,7 +349,8 @@ struct ShadowFrame {
     bool clouds = false;      // the cloud shadows are shown this frame (`lights` made for them too)
     std::vector<Matrix4> lights;   // each receiving mesh's model space to the map's clip space; [0]: the terrain's
     ShadowParams params{};
-    ShadowParams cloudParams{};    // the clouds alone (on[0] 0): for the water, and when no map is drawn
+    ShadowParams cloudParams{};    // the clouds alone (`on` 0): for the water, and when no map is drawn
+    float normalOffset = 0.0f;     // ShadowNormalOffset's with the map
     PointShadowFrame point;
 };
 
@@ -335,7 +371,7 @@ struct Frame {
     std::vector<Vertex> meshVertices;
     std::vector<std::uint32_t> meshIndices;
     std::vector<MeshBatch> meshBatches;
-    std::vector<MeshLightParams> meshLights;   // MeshBatch::lighting
+    std::vector<MeshLight> meshLights;   // MeshBatch::lighting
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<FillBatch> fills;
@@ -393,7 +429,7 @@ static_assert(gpu_shaders::blit::kBlockRectParams == 0 && gpu_shaders::ui_pictur
               gpu_shaders::ui_quad::kBlockRectParams == 0 &&
               gpu_shaders::texture_compose::kBlockRectParams == 0 && gpu_shaders::texture_mip::kBlockRectParams == 0);
 inline void ApplyRect(const Rect& r, int width, int height) {
-    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height)}};
     StoreRect(r, vs.rect);
     gpu::PushUniforms(gpu::Stage::Vertex, 0, vs);
 }
@@ -710,14 +746,14 @@ void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* 
 void BindCloudMap(int slot);
 // The weather on the surfaces (render_weather.cpp; section 13, item 11b). PrepareSurfaces, from PrepareShadows once a
 // frame: the wetness, the puddles and the snow cover moved on towards the frame's weather by the world's time.
-// SurfaceUniforms: the terrain's TerrainFsParams::weather and ::rain. MeshWeatherUniforms: a world mesh's
-// MeshFsParams::weather, ::weatherSun and ::weatherSunColour. SurfaceState: the three for the harness.
+// SurfaceUniforms: the terrain's weather in its TerrainFsParams. MeshWeatherUniforms: a world mesh's in its
+// MeshFsParams (wet, snow, weatherSun, weatherSunColour). SurfaceState: the three for the harness.
 // PrepareUnitWeather, after PrepareSurfaces: each unit drawn gets its own wetness and snow (MeshBatch::weather),
 // following the weather out of shelter and drying under a roof (the casters straight above it).
 void PrepareSurfaces(const ShadowFrame& shadow);
 void PrepareUnitWeather(Frame& frame);
-void SurfaceUniforms(float weather[4], float rain[4]);
-void MeshWeatherUniforms(float weather[4], float sun[4], float sunColour[4]);
+void SurfaceUniforms(TerrainFsParams* fs);
+void MeshWeatherUniforms(MeshFsParams* fs);
 void SurfaceState(float* wet, float* puddles, float* snow);
 // The roofs over the ground and the world's meshes (render_weather.cpp, shaders/roof.hlsli): while there is weather on
 // the surfaces, PrepareRoofs (after PrepareUnitWeather) fits a top-down depth map of the frame's roofs (the drawn
@@ -735,10 +771,9 @@ bool VisibleGround(Frame& frame, Box* box);
 class CasterDraws;
 int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip);
 // How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
-// in world units (0 without the map).
-inline float ShadowNormalOffset(const ShadowParams& shadow) {
-    if (!(shadow.on[0] > 0.5f && shadow.soft[3] > 0.0f)) return 0.0f;
-    return shadow.scale[0] * 2.0f / shadow.soft[3] * 1.5f;
+// in world units (0 without the map: not `receives` in ShadowUniforms, or none drawn).
+inline float ShadowNormalOffset(const Frame& frame, bool receives) {
+    return receives && frame.shadow.on ? frame.shadow.normalOffset : 0.0f;
 }
 // The clip matrix of the frame's first ground batch and the camera in the landscape's space; false without
 // ground drawn.
@@ -802,10 +837,12 @@ void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
 void BindPointShadows(int slot);
 int PointShadowSlot(const Frame& frame, int sceneLight);
-// A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade, `on` y 1): the scene's sun, ambient light and
-// the kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, each
-// light's pointColour w its point shadow + 1 (0 none), the shadow map's light and the daylight colours.
-void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* params);
+// A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade): the scene's sun, ambient light and the
+// kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, the
+// shadow map's light and the daylight colours. MeshLightUniforms: a mesh's light as the shader takes it, each light
+// with its point shadow (-1 none).
+MeshLight GroundDecalLight(const float box[6]);
+MeshLightParams MeshLightUniforms(const Frame& frame, const MeshLight& light);
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
 const Object3D* CurrentCaster();
 bool CurrentCasterFigure();

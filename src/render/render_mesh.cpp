@@ -338,82 +338,81 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     MeshVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     if (batch.distanceFog && batch.fogScale > 0.0f) {
-        vs.distanceFog[0] = 1.0f;
-        vs.distanceFog[1] = batch.fogNear;
-        vs.distanceFog[2] = batch.fogScale / 255.0f;
+        vs.distanceFog = 1;
+        vs.fogStart = batch.fogNear;
+        vs.fogScale = batch.fogScale / 255.0f;
     }
-    vs.distanceFog[3] = batch.unclipped ? 1.0f : 0.0f;
+    vs.unclipped = batch.unclipped ? 1 : 0;
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
-    vs.shift[2] = batch.zScale;
+    vs.depthScale = batch.zScale;
     vs.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
     vs.uvOffset[0] = batch.uOffset;
     vs.uvOffset[1] = batch.vOffset;
     MeshFsParams fs{};
     const ShadowParams& shadow = ShadowUniforms(f, batch.light >= 0, batch.light >= 0);
-    vs.normalOffset[0] = ShadowNormalOffset(shadow);
-    MeshLightParams lighting{};   // unlit: on[0] 0
+    vs.normalOffset = ShadowNormalOffset(f, batch.light >= 0);
+    MeshLightParams lighting{};   // unlit
     if (batch.lighting >= 0) {
-        lighting = f.meshLights[static_cast<std::size_t>(batch.lighting)];
-        // Its lights' scene light becomes their point shadow, taken with the landscape's rows.
-        for (int k = 0; k < kMostMeshLights; ++k) {
-            float& w = lighting.pointColour[k][3];
-            w = static_cast<float>(PointShadowSlot(f, static_cast<int>(w) - 1) + 1);
-        }
+        // Its lights take their point shadows with the landscape's rows.
+        lighting = MeshLightUniforms(f, f.meshLights[static_cast<std::size_t>(batch.lighting)]);
         if (batch.landscape >= 0) {
             const Matrix4& m = f.shadow.point.models[static_cast<std::size_t>(batch.landscape)];
             std::memcpy(vs.landscape, m.m, sizeof(vs.landscape));
-            fs.pointOn[0] = 1.0f;
-            fs.pointOn[1] = batch.figure ? 1.0f : 0.0f;
+            fs.pointShadows = 1;
+            fs.pointUnit = batch.figure ? 1 : 0;
             std::memcpy(fs.pointFront, batch.pointFront, sizeof(fs.pointFront));
         }
     }
     if (batch.decal) {   // a ground print: lit as the ground (its positions the landscape's), its normal up
-        GroundDecalLight(f, batch.box, &lighting);
+        lighting = MeshLightUniforms(f, GroundDecalLight(batch.box));
         for (int k = 0; k < 3; ++k) vs.landscape[k][k] = 1.0f;
-        vs.normalOffset[1] = 1.0f;
-        fs.pointOn[0] = 1.0f;
+        vs.normalUp = 1;
+        fs.pointShadows = 1;
     }
     if (batch.figure && batch.front <= 1.0f) {   // a unit's: no shadow of its own to keep off
-        fs.shadowFigure[0] = 1.0f;
-        fs.shadowFigure[1] = batch.front;
-        vs.normalOffset[0] = 0.0f;
+        fs.unitShadow = 1;
+        fs.unitFront = batch.front;
+        vs.normalOffset = 0.0f;
     }
     OcclusionUniforms(batch.occluded, fs.occlusion, fs.occlusionMap);
+    // The weather's kinds in mesh.hlsl.
+    constexpr int kUnitWeather = 1;
+    constexpr int kFigureWeather = 2;
     if (batch.light >= 0 && !batch.decal) {   // a world mesh
-        MeshWeatherUniforms(fs.weather, fs.weatherSun, fs.weatherSunColour);
+        MeshWeatherUniforms(&fs);
         if (batch.figure) {   // a unit's own
-            fs.weather[0] = batch.weather[0];
-            fs.weather[1] = batch.weather[1];
+            fs.wet = batch.weather[0];
+            fs.snow = batch.weather[1];
+            fs.weatherKind = kUnitWeather;
         }
-        fs.weather[2] = batch.figure ? 1.0f : 0.0f;
     } else if (batch.interfaceUnit) {   // an interface figure of a world unit: its weather, no map's space
-        fs.weather[0] = batch.weather[0];
-        fs.weather[1] = batch.weather[1];
-        fs.weather[2] = 2.0f;
+        fs.wet = batch.weather[0];
+        fs.snow = batch.weather[1];
+        fs.weatherKind = kFigureWeather;
     }
     UnpackColour(s.fogColour, fs.fogColour);
+    fs.fog = s.fog ? 1 : 0;
     UnpackColour(s.textureFactor, fs.factor);
     fs.factor[3] = ((s.textureFactor >> 24) & 0xFF) / 255.0f;
     // The shader takes render_state.h's values as they are.
     const StageCombiner& c0 = s.stages[0].combiner;
     const StageCombiner& c1 = s.stages[1].combiner;
-    fs.colourOps[0] = static_cast<int>(c0.colourOp);
-    fs.colourOps[1] = c0.colourArg1;
-    fs.colourOps[2] = c0.colourArg2;
-    fs.colourOps[3] = static_cast<int>(c0.colourOp != TextureOp::Disable ? c1.colourOp : TextureOp::Disable);
-    fs.colourOps1[0] = c1.colourArg1;
-    fs.colourOps1[1] = c1.colourArg2;
-    fs.alphaOps[0] = static_cast<int>(c0.alphaOp);
-    fs.alphaOps[1] = c0.alphaArg1;
-    fs.alphaOps[2] = c0.alphaArg2;
-    fs.alphaOps[3] = static_cast<int>(c1.alphaOp);
-    fs.alphaOps1[0] = c1.alphaArg1;
-    fs.alphaOps1[1] = c1.alphaArg2;
-    fs.switches[0] = s.specular ? 1 : 0;
-    fs.switches[1] = s.fog ? 1 : 0;
-    fs.switches[2] = s.alphaTest ? static_cast<int>(s.alphaFunc) : 0;
-    fs.switches[3] = s.alphaReference;
+    fs.colourStage0[0] = static_cast<int>(c0.colourOp);
+    fs.colourStage0[1] = c0.colourArg1;
+    fs.colourStage0[2] = c0.colourArg2;
+    fs.colourStage1[0] = static_cast<int>(c0.colourOp != TextureOp::Disable ? c1.colourOp : TextureOp::Disable);
+    fs.colourStage1[1] = c1.colourArg1;
+    fs.colourStage1[2] = c1.colourArg2;
+    fs.alphaStage0[0] = static_cast<int>(c0.alphaOp);
+    fs.alphaStage0[1] = c0.alphaArg1;
+    fs.alphaStage0[2] = c0.alphaArg2;
+    fs.alphaStage1[0] = static_cast<int>(c1.alphaOp);
+    fs.alphaStage1[1] = c1.alphaArg1;
+    fs.alphaStage1[2] = c1.alphaArg2;
+    fs.specular = s.specular ? 1 : 0;
+    fs.alphaFunc = s.alphaTest ? static_cast<int>(s.alphaFunc) : 0;
+    fs.alphaReference = s.alphaReference;
     if (s.patch.texture) {
         for (int k = 0; k < 4; ++k) {
             fs.patchTo[k] = s.patch.to[k];
@@ -464,9 +463,7 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
     // normals are read (the other mesh draws' callers may pass anything there).
     if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
-        MeshLightParams params;
-        MeshLightUniforms(*lighting, &params);
-        f.meshLights.push_back(params);
+        f.meshLights.push_back(FigureLight(*lighting));
         g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
     } else if (!g_pending.interfaceUnit) {
         g_pending.mesh.normals = nullptr;   // an interface figure with weather keeps them (its snow settles by them)

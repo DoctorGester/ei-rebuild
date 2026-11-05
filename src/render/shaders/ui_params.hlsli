@@ -3,11 +3,12 @@
 #include "rect_vs.hlsli"
 #ifdef EI_FRAGMENT
 struct UiParams {
-    float4 colour;   // unused
-    int4 source;     // ui_copy: left, top, width, height in the frame; ui_picture: z, w the picture's size
-    int4 dest;       // ui_copy: the target's width, height; ui_picture: the destination's left, top
-    float4 scale;    // ui_picture: source texels per destination pixel (x, y)
-    int4 key;        // ui_picture: w greyed
+    int2 sourceAt;     // ui_copy: the rectangle's left, top in the frame
+    int2 sourceSize;   // ui_copy: its width, height; ui_picture: the picture's
+    int2 targetSize;   // ui_copy: the target's
+    int2 destAt;       // ui_picture: the destination's left, top
+    float2 scale;      // ui_picture: source texels per destination pixel
+    int grey;          // ui_picture
 };
 ConstantBuffer<UiParams> ui : FS_BLOCK(0);
 

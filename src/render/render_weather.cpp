@@ -339,10 +339,10 @@ void RoofUniforms(const Matrix4& light, ShadowParams* p) {
     p->roofScale[0] = 1.0f / m.extent;
     p->roofScale[1] = -1.0f / m.extent;
     p->roofScale[2] = -1.0f / m.range;
-    p->roofScale[3] = kRoofSoft / m.extent;
-    p->roof[0] = 1.0f;
-    p->roof[1] = kRoofTolerance / m.range;
-    p->roof[2] = kRoofOffset;
+    p->roofStep = kRoofSoft / m.extent;
+    p->roofOn = 1;
+    p->roofOpenDepth = kRoofTolerance / m.range;
+    p->roofNormalOffset = kRoofOffset;
 }
 
 // The roofs straight down into the roof map (depth only; cut out by their texture's alpha as in the sun map).
@@ -389,26 +389,25 @@ void BindRoofMap(int slot) {
 
 const Object3D* CurrentInterfaceUnit() { return g_interfaceUnit; }
 
-void SurfaceUniforms(float weather[4], float rain[4]) {
+void SurfaceUniforms(TerrainFsParams* fs) {
     const Surfaces& s = g_surfaces;
-    weather[0] = s.wet;
-    weather[1] = s.puddles;
-    weather[2] = s.snow;
-    weather[3] = s.rain;
-    const double ticks = KeptClientTicks();
-    rain[0] = static_cast<float>(ticks - std::floor(ticks / kRingWrap) * kRingWrap);
-    rain[1] = rain[2] = rain[3] = 0.0f;
+    fs->wet = s.wet;
+    fs->puddles = s.puddles;
+    fs->snow = s.snow;
+    fs->rain = s.rain;
+    const double ticks = KeptSceneLight().clientTicks;
+    fs->rainClock = static_cast<float>(ticks - std::floor(ticks / kRingWrap) * kRingWrap);
 }
 
-void MeshWeatherUniforms(float weather[4], float sun[4], float sunColour[4]) {
+void MeshWeatherUniforms(MeshFsParams* fs) {
     const Surfaces& s = g_surfaces;
-    weather[0] = s.wet;
-    weather[1] = s.snow;
-    const SceneLightParams& light = KeptSceneLight();
-    for (int k = 0; k < 3; ++k) {
-        sun[k] = -light.sun[k];
-        sunColour[k] = light.sunColour[k];
-    }
+    fs->wet = s.wet;
+    fs->snow = s.snow;
+    const KeptScene& light = KeptSceneLight();
+    fs->weatherSun[0] = -light.sun.x;
+    fs->weatherSun[1] = -light.sun.y;
+    fs->weatherSun[2] = -light.sun.z;
+    for (int k = 0; k < 3; ++k) fs->weatherSunColour[k] = light.sunColour[k];
 }
 
 void SurfaceState(float* wet, float* puddles, float* snow) {

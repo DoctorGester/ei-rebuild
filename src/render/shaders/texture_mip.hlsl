@@ -4,12 +4,13 @@
 #include "rect_vs.hlsli"
 #ifdef EI_FRAGMENT
 struct TextureMipParams {
-    float4 level;   // x: the level read; y, z: the target's width and height
+    float level;   // read
+    float2 targetSize;
 };
 ConstantBuffer<TextureMipParams> params : FS_BLOCK(0);
 Texture2D<float4> tex0 : FS_TEXTURE(0);
 SamplerState smp : FS_SAMPLER(0);
 float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
-    return tex0.SampleLevel(smp, pos.xy / params.level.yz, params.level.x);
+    return tex0.SampleLevel(smp, pos.xy / params.targetSize, params.level);
 }
 #endif

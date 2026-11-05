@@ -293,8 +293,8 @@ void RecordFrame(const World& w, const Targets& t, const g::Texture& swap, int f
     const g::TextureBinding tex[1] = {{t.colour, w.nearest}};
     g::BindTextures(g::Stage::Fragment, sh::blit::kSamplerTex, tex);
     const sh::RectParams rect{{0, 0, static_cast<float>(swap.width), static_cast<float>(swap.height)},
-                              {static_cast<float>(swap.width), static_cast<float>(swap.height), 0, 0}};
-    const sh::BlitParams blit{{0, 0, 1, 1}, {0, 0, static_cast<float>(swap.width), static_cast<float>(swap.height)}};
+                              {static_cast<float>(swap.width), static_cast<float>(swap.height)}};
+    const sh::BlitParams blit{{0, 0}, {1, 1}, {0, 0}, {static_cast<float>(swap.width), static_cast<float>(swap.height)}};
     g::PushUniforms(g::Stage::Vertex, sh::blit::kBlockRectParams, rect);
     g::PushUniforms(g::Stage::Fragment, sh::blit::kBlockBlitParams, blit);
     g::Draw(0, 6);

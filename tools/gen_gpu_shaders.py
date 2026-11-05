@@ -17,9 +17,11 @@ import sys
 # SDL_GPU's register spaces: (texture and sampler set, uniform block set) per stage.
 SETS = {'vertex': (0, 1), 'fragment': (2, 3)}
 ENTRIES = {'vertex': 'vs_main', 'fragment': 'ps_main'}
-# Block member types: (C++ type, its extent, bytes).
-MEMBERS = {'vec4': ('float', '[4]', 16), 'ivec4': ('int', '[4]', 16), 'uvec4': ('std::uint32_t', '[4]', 16),
-           'mat4': ('Matrix4', '', 64)}
+# Block member types: (C++ scalar, components). A matrix is a Matrix4, the rest a scalar or an array of them.
+MEMBERS = {'float': ('float', 1), 'vec2': ('float', 2), 'vec3': ('float', 3), 'vec4': ('float', 4),
+           'int': ('int', 1), 'ivec2': ('int', 2), 'ivec3': ('int', 3), 'ivec4': ('int', 4),
+           'uint': ('std::uint32_t', 1), 'uvec2': ('std::uint32_t', 2), 'uvec3': ('std::uint32_t', 3),
+           'uvec4': ('std::uint32_t', 4), 'mat4': ('Matrix4', 16)}
 # Vertex inputs and fragment outputs: SPIR-V type to (components, scalar).
 SCALARS = {'float': 'Float', 'vec': 'Float', 'int': 'Int', 'ivec': 'Int', 'uint': 'Uint', 'uvec': 'Uint'}
 TEXTURES = ('texture2D', 'utexture2D', 'itexture2D', 'texture2DMS')
@@ -86,6 +88,10 @@ def vertex_inputs(program, text):
 
 
 def block_struct(program, stage, j, ubo):
+    """A block's members as HLSL packs a constant buffer (DXIL's layout; the SPIR-V's offsets must agree): a member
+    follows the one before unless it would cross a 16-byte register, then it starts the next; a matrix and an array
+    start a register, and an array's elements one each (so arrays are of 16-byte members only). Each member is
+    (name, C++ type, extent, offset, end)."""
     name = ubo['name']
     if not name.startswith('type.ConstantBuffer.'):
         fail(f'{program} {stage}: block {name} is not a ConstantBuffer<T>')
@@ -94,23 +100,30 @@ def block_struct(program, stage, j, ubo):
     members, at = [], 0
     for m in j['types'][ubo['type']]['members']:
         if m['type'] not in MEMBERS:
-            fail(f'{program}: {name}.{m["name"]} is {m["type"]}: members are float4, int4, uint4 or row_major float4x4')
+            fail(f'{program}: {name}.{m["name"]} is {m["type"]}: members are float, int or uint (1 to 4 components) '
+                 'or row_major float4x4')
             continue
         if m['type'] == 'mat4' and (m.get('row_major') or m.get('matrix_stride') != 16):
             fail(f'{program}: {name}.{m["name"]} must be row_major float4x4 (a register a Matrix4 row)')
-        ctype, extent, size = MEMBERS[m['type']]
-        count = 1
+        ctype, components = MEMBERS[m['type']]
+        size = components * 4
         array = m.get('array', [])
         if len(array) > 1:
             fail(f'{program}: {name}.{m["name"]}: one array dimension at most')
-        if array:
-            count = array[0]
-            if m.get('array_stride', size) != size:
-                fail(f'{program}: {name}.{m["name"]}: array stride {m.get("array_stride")}, not {size}')
-        if m['offset'] != at:
-            fail(f'{program}: {name}.{m["name"]} at {m["offset"]}, not {at} (no padding: 16-byte members)')
-        members.append((m['name'], ctype, (f'[{count}]' if array else '') + extent, m['type'], count if array else 0))
-        at += size * count
+        if array and size % 16:
+            fail(f'{program}: {name}.{m["name"]}: an array of {m["type"]} (arrays are of 16-byte members)')
+        if array and m.get('array_stride', size) != size:
+            fail(f'{program}: {name}.{m["name"]}: array stride {m.get("array_stride")}, not {size}')
+        count = array[0] if array else 1
+        offset = at
+        if array or ctype == 'Matrix4' or at // 16 != (at + size - 1) // 16:
+            offset = (at + 15) // 16 * 16
+        if m['offset'] != offset:
+            fail(f'{program}: {name}.{m["name"]} at {m["offset"]}, HLSL\'s packing puts it at {offset}')
+        extent = '' if ctype == 'Matrix4' else (f'[{count}]' if array else '') + (f'[{components}]' if components > 1
+                                                                                  else '')
+        at = offset + size * count
+        members.append((m['name'], ctype, extent, offset, at))
     if ubo['block_size'] != at:
         fail(f'{program}: {name} is {ubo["block_size"]} bytes, its members {at}')
     return name, tuple(members), at
@@ -251,12 +264,28 @@ def main():
          '    int inputCount;', '    const Value* outputs;', '    int outputCount;', '};', '',
          f'inline constexpr int kProgramCount = {len(programs)};',
          'extern const Program kPrograms[kProgramCount];', '',
-         '// The uniform blocks as the C++ fills them: 16-byte members (float4, int4) and Matrix4s, without padding.']
+         '// The uniform blocks as the C++ fills them, laid out as HLSL packs them (a float3 a float[3], a Matrix4 a',
+         '// row_major float4x4): `paddingN` fills the rest of a register where the next member starts a new one, and',
+         '// the last; each is pushed whole (sizeof).']
+
+    def padding(at, to, index):
+        words = (to - at) // 4
+        return f'    std::uint32_t padding{index}' + (f'[{words}]' if words > 1 else '') + ';'
+
     for name, (members, size, _) in sorted(structs.items()):
         h.append(f'struct {name} {{')
-        for member, ctype, extent, _, _ in members:
+        pads, at = 0, 0
+        for member, ctype, extent, offset, member_end in members:
+            if offset != at:
+                h.append(padding(at, offset, pads))
+                pads += 1
             h.append(f'    {ctype} {member}{extent};')
-        h += ['};', f'static_assert(sizeof({name}) == {size});']
+            at = member_end
+        end = (size + 15) // 16 * 16
+        if size != end:
+            h.append(padding(size, end, pads))
+        h += ['};', f'static_assert(sizeof({name}) == {end});']
+        h += [f'static_assert(offsetof({name}, {member}) == {offset});' for member, _, _, offset, _ in members]
     h += ['', '// Each program\'s index in kPrograms and its slots: a block\'s (SDL_PushGPU{Vertex,Fragment}UniformData), a',
           '// texture\'s with its sampler (SDL_BindGPU{Vertex,Fragment}Samplers) and a vertex input\'s location.']
     for index, p in enumerate(programs):

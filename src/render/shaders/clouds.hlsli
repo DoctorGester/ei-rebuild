@@ -7,8 +7,8 @@
 #ifdef EI_FRAGMENT
 struct CloudParams {
     int4 words[3];   // the frame: layer k's a, b, c are words 3k .. 3k + 2
-    int4 blend;      // the blend: x the weight of `to` out of 256
     int4 ramp[64];   // the blend: the alpha (0..255) of grey level g in ramp[g / 4][g % 4]
+    int blend;       // the blend: the weight of `to` out of 256
 };
 ConstantBuffer<CloudParams> clouds : FS_BLOCK(0);
 #endif

@@ -149,14 +149,14 @@ void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* 
     const double ax = (ox - g_drift.a[0]) / kTileA, ay = (oy - g_drift.a[1]) / kTileA;
     const double bx = (kTurnCos * (ox - g_drift.b[0]) - kTurnSin * (oy - g_drift.b[1])) / kTileB;
     const double by = (kTurnSin * (ox - g_drift.b[0]) + kTurnCos * (oy - g_drift.b[1])) / kTileB;
-    params->clouds[0] = static_cast<float>(half / kTileA);
-    params->clouds[1] = static_cast<float>(half / kTileB);
-    params->clouds[2] = CoverThreshold(g_drift.cover);
-    params->clouds[3] = light;
-    params->cloudShift[0] = static_cast<float>(ax - std::floor(ax));
-    params->cloudShift[1] = static_cast<float>(ay - std::floor(ay));
-    params->cloudShift[2] = static_cast<float>(bx - std::floor(bx));
-    params->cloudShift[3] = static_cast<float>(by - std::floor(by));
+    params->cloudScaleA = static_cast<float>(half / kTileA);
+    params->cloudScaleB = static_cast<float>(half / kTileB);
+    params->cloudThreshold = CoverThreshold(g_drift.cover);
+    params->cloudLight = light;
+    params->cloudShiftA[0] = static_cast<float>(ax - std::floor(ax));
+    params->cloudShiftA[1] = static_cast<float>(ay - std::floor(ay));
+    params->cloudShiftB[0] = static_cast<float>(bx - std::floor(bx));
+    params->cloudShiftB[1] = static_cast<float>(by - std::floor(by));
 }
 
 void BindCloudMap(int slot) {

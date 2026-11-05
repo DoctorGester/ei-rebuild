@@ -165,12 +165,12 @@ static void RunCopies() {
             BindTexture(frame);
             ApplyRect(Rect{0, 0, copy.width, copy.height}, copy.width, copy.height);
             UiParams fs{};
-            fs.source[0] = r.left;
-            fs.source[1] = r.top;
-            fs.source[2] = r.Width();
-            fs.source[3] = r.Height();
-            fs.dest[0] = copy.width;
-            fs.dest[1] = copy.height;
+            fs.sourceAt[0] = r.left;
+            fs.sourceAt[1] = r.top;
+            fs.sourceSize[0] = r.Width();
+            fs.sourceSize[1] = r.Height();
+            fs.targetSize[0] = copy.width;
+            fs.targetSize[1] = copy.height;
             ApplyFs(fs);
             gpu::Draw(0, 6);
         }
@@ -359,7 +359,7 @@ void DrawUiBatch(const UiBatch& batch, int width, int height) {
     const gpu::BufferBinding vertices{g_vertices.Buffer(), static_cast<std::uint32_t>(g_offset)};
     gpu::BindVertexBuffers(0, {&vertices, 1});
     BindTexture(atlas);
-    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height)}};
     gpu::PushUniforms(gpu::Stage::Vertex, 0, vs);
     gpu::SetScissor(batch.scissor.Intersection(Rect{0, 0, width, height}));
     gpu::Draw(batch.first, batch.count);
@@ -375,13 +375,13 @@ void DrawPictureBatch(const PictureBatch& batch, int width, int height) {
     BindTexture(batch.texture);
     ApplyRect(batch.destination, width, height);
     UiParams fs{};
-    fs.source[2] = batch.width;
-    fs.source[3] = batch.height;
-    fs.dest[0] = batch.destination.left;
-    fs.dest[1] = batch.destination.top;
+    fs.sourceSize[0] = batch.width;
+    fs.sourceSize[1] = batch.height;
+    fs.destAt[0] = batch.destination.left;
+    fs.destAt[1] = batch.destination.top;
     fs.scale[0] = static_cast<float>(batch.width) / static_cast<float>(dw);
     fs.scale[1] = static_cast<float>(batch.height) / static_cast<float>(dh);
-    fs.key[3] = batch.grey ? 1 : 0;
+    fs.grey = batch.grey ? 1 : 0;
     ApplyFs(fs);
     gpu::Draw(0, 6);
 }
