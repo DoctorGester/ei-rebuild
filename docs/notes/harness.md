@@ -442,3 +442,25 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small. Anything else
   is added only for a measured reason.
 
+
+## The macOS CI job
+
+`.github/workflows/suites-macos.yml` ("macOS", H62; by hand only, with a `scenarios` input) is a smoke run on GitHub's
+macos-latest runner (Apple silicon VM, 3 cores, 7 GB; whether it has a Metal device is what the first run answers). One
+job, never Release, nothing published or uploaded:
+- **Build**: the harness build as macos.md describes (`cmake -DEI_HARNESS=ON`, RelWithDebInfo, arm64, Ninja; pip's cmake
+  3.31.6 and ninja, DXC from the LunarG Vulkan SDK under release.yml's cache keys, the shader toolchain's build folder
+  cached, ccache under `.ccache` keyed by the commit). No ctest (its checks are built without the harness; release.yml's
+  macos job runs them).
+- **Data**: the stub set fetched and unpacked as in the Linux and Windows jobs (same variable `EI_STUB_DATA_REPO`, secrets
+  `EI_STUB_DATA_TOKEN` / `EI_STUB_DATA_KEY`), vanilla only.
+- **Gate**: `boot` alone first. When it does not pass (no Metal device, or it cannot draw) the step prints the `gpu:`
+  lines, the run's launch.txt and ei-rebuild.log, and the job stops: that is the answer then.
+- **Smoke**: `SMOKE_LIST` (boot, smoke, settings_defaults, ui_main_menu, ui_screens, ui_hud, ui_saveload, rec_save_load,
+  save_flight, world_load, zone_gz3g, render_scene, render_present, render_water, render_shadows, render_stats, units,
+  items; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
+  goldens block, the GPU device line and each run's `TIMING: median frame` (harness_report.txt). Goldens that differ on
+  Metal are listed, not excused: no check is widened for it.
+- **Folder rule**: PL19a's, with `EI_GAME_ROOT` unset: the harness-build app (no `EI_HARNESS`, so a player's start) copied
+  into the data folder, then elsewhere with `game_folder.txt` naming the data; each must log `ei-rebuild started in`
+  the data folder. The picker is not reached.

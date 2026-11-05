@@ -49,6 +49,9 @@ Not run yet (2026-11-04): the job as a whole. Its weakest guesses are the Vulkan
 command line, ctest's GPU checks on the runner's virtual Metal device, and a universal Release build at 13.3 (the
 Mac builds so far were the user's arm64 RelWithDebInfo at the SDK's own target).
 
+`.github/workflows/suites-macos.yml` (by hand, H62) builds the harness on the same runner type and plays a short smoke list
+on the stub data (harness.md, "The macOS CI job"); not run yet.
+
 ## Run
 
 For normal play, from the repository:
