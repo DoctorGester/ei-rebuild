@@ -66,7 +66,7 @@ public:
     // Draws the object (`dirty` receives the screen rectangle the parts flagged 0x40 covered, or null): its
     // state and animation updated, the lights within their range + 10 collected, and every part of the two
     // part sets within sqrt(1e9) drawn with those lights. A figure whose parts are all static (part flags 0x10)
-    // becomes static (object flags 0x400, flags bit 8). Returns 1, or a fatal error's result.
+    // becomes static (object flags 0x400, flags bit 8). Returns 1.
     int DrawParts(SceneRenderer* context, Rect* dirty) override;
 
     // The pulse of an invisible or stunned unit: the clock moves on by `frames`, its phase fmod(clock, 30)
@@ -80,7 +80,7 @@ public:
     // The wounds texture and its material are taken off and released.
     void HideWounds();
     // Shows the wounds texture `name` (kind 6): 0 without a first part set. The texture is found or made on
-    // first use (none: FatalError) and reloaded unless its .mmp extra block is nonempty and equal; a failed
+    // first use (none: the game ends) and reloaded unless its .mmp extra block is nonempty and equal; a failed
     // load drops the texture and the material and returns 0. Without a material a new one (blended 5 / 6, the
     // helper's preset 4) gets the first part set's texture, then the wounds texture. Returns 1.
     int ShowWounds(const char* name);

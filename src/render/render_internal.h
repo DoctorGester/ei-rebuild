@@ -476,7 +476,7 @@ std::optional<Size> GameTargetSize();
 // The device is started: the device and the pipelines made at the first use (a failure ends the game: Fatal).
 void Start();
 // The renderer cannot go on (no device, no swap chain): the reason is logged and shown in the game's error box, and
-// the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not. There is no other way to draw: no fallback.
+// the game ends (exit -1). There is no other way to draw: no fallback.
 [[noreturn]] EI_PRINTF_FORMAT(1, 2) void Fatal(const char* format, ...);
 
 // `r` as a shader's float4: left, top, right, bottom.

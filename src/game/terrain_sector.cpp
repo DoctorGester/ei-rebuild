@@ -308,17 +308,14 @@ bool SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const c
     const std::uint8_t* file = static_cast<const std::uint8_t*>(archive->GetFile(name, &size));
     data = file;
 
-    auto fail = [&](const char* text) {
-        game::FatalError(text + std::string(name));
-        return false;
-    };
-    if (!file) return fail("Unable to locate resource: ");
-    if (size < kSectorHeaderBytes) return fail("Wrong format resource: ");
+    const std::string wrongFormat = "Wrong format resource: " + name;
+    if (!file) game::FatalExit("Unable to locate resource: " + name);
+    if (size < kSectorHeaderBytes) game::FatalExit(wrongFormat);
 
     std::uint32_t magic = lib::Load<std::uint32_t>(file);
     std::uint8_t flags = file[4];
     data = file + kSectorHeaderBytes;
-    if (magic != kSectorMagic) return fail("Wrong format resource: ");
+    if (magic != kSectorMagic) game::FatalExit(wrongFormat);
 
     hasWaterTiles = (flags & (kFlagWater | kFlagWaterTiles)) != 0;
     hasWater = (flags & kFlagWater) != 0;
@@ -326,7 +323,7 @@ bool SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const c
     const int tileLayers = hasWaterTiles ? 2 : 1;
     const int waterTileBytes = hasWater ? kTileLayerBytes : 0;
     const std::uint32_t expected = kSectorHeaderBytes + layers * kLayerBytes + tileLayers * kTileLayerBytes + waterTileBytes;
-    if (size != expected) return fail("Wrong format resource: ");
+    if (size != expected) game::FatalExit(wrongFormat);
 
     // Water material per tile.
     if (hasWater) {

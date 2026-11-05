@@ -320,7 +320,6 @@ int Texture::LoadBmp(TextureDevice* device, const char* path) {
 namespace {
 
 const char* const kCantFindLayer = "Can't find texture \"%s\" for layer composition.\n";
-const char* const kWrongLayerSize = "Texture \"%s\" dimentions are incorrect.\n";
 
 // The composed textures by name, lower case (the original's files, whose names Windows compares without case).
 std::map<std::string, ComposedTexture> g_composed;
@@ -356,7 +355,10 @@ int TextureManager::FindLayers(const std::vector<std::string>& names, int width,
         const bool fits =
             file.header.width == static_cast<std::uint32_t>(width) && file.header.height == static_cast<std::uint32_t>(width);
         CloseFile(file.data);
-        if (!fits) return game::FatalError(kWrongLayerSize, name);
+        if (!fits) {   // left out, as a missing layer is
+            game::Warning("Texture \"%s\" for layer composition is not %dx%d: left out", name, width, width);
+            continue;
+        }
         found->push_back(name);
         ++count;
     }

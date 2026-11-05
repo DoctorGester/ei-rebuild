@@ -95,8 +95,7 @@ struct AckDatabase {
     // "acks.db" of `folder` + "database.res": the three tables, each read through an archive of its own and
     // filed under its records' names; then every record's map from the ack kind to its speech list is filled
     // (units: kinds 0..0x15, 0x1C..0x24, 0x27, 0x28 and the named speeches as 0x2A, with 0x16..0x1B entered as
-    // null; models: 0x2E..0x32; extras: 0x2C, 0x2D). 1; FatalError's result when the archive (reported as
-    // "databases.res") or the file cannot be opened.
+    // null; models: 0x2E..0x32; extras: 0x2C, 0x2D). 1; an archive or file that cannot be opened ends the game.
     int Load(const std::string& folder);
 
     AckTable<UnitAcks> units;

@@ -179,10 +179,7 @@ ClassId ItemConstructor::GetClassId() { return ClassId::ItemConstructor; }
 Item* ItemConstructor::BuildItem(BaseManager* objectManager, ItemKind kind, ItemRecordHead* record,
                                    MaterialRecordHead* materialRecord, Spell* itemSpell, int itemCount) {
     SetManager(objectManager);
-    if (!BeginCreateItem(kind)) {
-        SetManager(nullptr);
-        return nullptr;
-    }
+    BeginCreateItem(kind);
     prototype = record;
     material = materialRecord;
     spell = itemSpell;
@@ -198,15 +195,14 @@ void ItemConstructor::SetManager(BaseManager* newManager) {
     if (newManager) newManager->AddRef();
 }
 
-bool ItemConstructor::BeginCreateItem(ItemKind kind) {
+void ItemConstructor::BeginCreateItem(ItemKind kind) {
     Item* newItem = manager->CreateObjectAs<Item>(kind, kNoObjectId);
-    if (!newItem) return game::FatalError(kCantCreateItem);
+    if (!newItem) game::FatalExit("%s", kCantCreateItem);
     item.Assign(newItem);
     material = nullptr;
     prototype = nullptr;
     count = 1;
     flags |= MapObjectFlag::Constructing;
-    return true;
 }
 
 Item* ItemConstructor::EndCreateItem() {
@@ -283,7 +279,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
     if (!prototype) prototype = g_itemDatabase.questItems.Named(prototypeName);
     if (!prototype) prototype = g_itemDatabase.loot.Named(prototypeName);
     if (!prototype) {
-        // An unknown prototype gives no item and no fatal error (Rebirth's addon.log line, in ours).
+        // An unknown prototype gives no item (Rebirth's addon.log line, in ours).
         ei::Log("GiveItem: can't find prototype %s", text.c_str());
         return nullptr;
     }

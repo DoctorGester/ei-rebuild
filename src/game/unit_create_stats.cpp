@@ -343,10 +343,7 @@ int MapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, s
 void BuildNpcStats(UnitStats* stats, const std::string& name) {
     const UnitPrototypeRecord* prototype = FindPrototype(name);
     const UnitNpcRecord* npc = FindNpc(name);
-    if (!prototype) {
-        game::FatalError("Can't find prototype \"%s\" for new HERO.\n", name);
-        return;
-    }
+    if (!prototype) game::FatalExit("Can't find prototype \"%s\" for new HERO.\n", name);
     const UnitModelRecord* model = ModelOf(prototype);
     if (!npc) game::DebugLog("Can't find NPC prototype \"%s\" for new HERO.\n", name);
     stats->Reset();

@@ -34,8 +34,7 @@ MmpFormat BmpFormatFor(int type) {
 } // namespace
 
 // The list the old device offered. Rebirth's battle screen texture (battle00, 1536x1536) and footprints are DXT5:
-// without it no format is found, LoadTexture fails (Rebirth's DisableExitOnCrashReport goes on), the battle screen
-// misses a texture and its sprites bind garbage.
+// without it no format is found and the battle screen misses its texture.
 bool IsTextureFormat(MmpFormat id) {
     if (id == MmpFormat::R5G6B5 || id == MmpFormat::A1R5G5B5 || id == MmpFormat::A4R4G4B4 || id == MmpFormat::A8R8G8B8) return true;
     const auto code = static_cast<std::uint32_t>(id);
@@ -64,6 +63,17 @@ MmpFormat MmpHeader::HeldFormat() const {
     return MmpFormat::None;
 }
 
+namespace {
+
+// A texture whose file holds a format the renderer cannot take: a warning, and the texture stays unloaded as a
+// missing one does (1).
+int NoTextureFormat(Texture* texture) {
+    game::Warning("CTextureManager::LoadTexture: no texture format for texture \"%s\": not loaded", texture->GetName());
+    return 1;
+}
+
+} // namespace
+
 int TextureManager::LoadTexture(Texture* texture) {
     if (!texture) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't load texture to NULL pointer.\n");
@@ -86,9 +96,10 @@ int TextureManager::LoadTexture(Texture* texture) {
     path = std::string(texture->GetName()) + ".mmp";
     if (const MmpFile file(GetFile(path, nullptr)); file.data) {
         texture->format = file.header.HeldFormat();
-        if (texture->format == MmpFormat::None)
-            return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
-                                    texture->GetName());
+        if (texture->format == MmpFormat::None) {
+            CloseFile(file.data);
+            return NoTextureFormat(texture);
+        }
         unsigned mip = mipLevel;
         if (mip >= file.header.mipCount) mip = file.header.mipCount - 1;
         result = texture->CreateFromMmp(device, file, mip);
@@ -103,9 +114,7 @@ int TextureManager::LoadTexture(Texture* texture) {
         return 1;
     }
     texture->format = composed->header.HeldFormat();
-    if (texture->format == MmpFormat::None)
-        return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
-                                texture->GetName());
+    if (texture->format == MmpFormat::None) return NoTextureFormat(texture);
     texture->CreateComposed(device, *composed, mipLevel);
     return 1;
 }

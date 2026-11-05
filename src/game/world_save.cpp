@@ -260,7 +260,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     MemoryStream graph;
     graph.ApplyDiff(&savedGraph, stream);
     ShowLoadProgress(kProgressZone);
-    if (!LoadMap(newMapName, newMobName, &graph, 1)) return game::FatalError("%s", "CWorldServer::LoadSave()\n Can't load map.\n");
+    if (!LoadMap(newMapName, newMobName, &graph, 1)) game::FatalExit("%s", "CWorldServer::LoadSave()\n Can't load map.\n");
 
     // The map objects' identities: id, type and prototype id.
     for (;;) {
@@ -507,14 +507,14 @@ int WorldServer::NewZone(std::string_view map, std::string_view mob, std::option
     if (MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
     MemoryStream graph;
     if (!ReadAIGraph(map, mob, &graph))
-        return game::FatalError(kCantLoadGraph);
+        game::FatalExit(kCantLoadGraph);
     mobFiles.clear();
     aiMap.BeginRefresh();
     loaded = 0;
     std::memset(alarms, 0, sizeof(alarms));
     aiMap.refreshUnits = false;
     if (!LoadMap(map, mob, &graph, 0))
-        return game::FatalError(kCantLoadMap);
+        game::FatalExit(kCantLoadMap);
     ShowLoadProgress(kProgressObjects);
     loaded = 1;
     aiMap.EndRefresh();

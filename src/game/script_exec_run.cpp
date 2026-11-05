@@ -16,7 +16,7 @@
 
 namespace {
 
-// FatalError formats of ScriptBindCall ("Wrong number of script %s float / string / object / group
+// The fatal error formats of ScriptBindCall ("Wrong number of script %s float / string / object / group
 // parameters").
 const char* const kWrongFloatCount = "Wrong number of script %s float parameters";
 const char* const kWrongStringCount = "Wrong number of script %s string parameters";
@@ -86,22 +86,11 @@ void UpdateParticleSources(Script* script) {
 // ---- Script instances ---------------------------------------------------------------------------
 
 void ScriptDefinition::BindCall(const ScriptCall* call) {
-    if (call->floatArgs.size() != vars.floats.values.size()) {
-        game::FatalError(kWrongFloatCount, name);
-        return;
-    }
-    if (call->stringArgs.size() != vars.strings.values.size()) {
-        game::FatalError(kWrongStringCount, name);
-        return;
-    }
-    if (call->objectArgs.size() != vars.objects.values.size()) {
-        game::FatalError(kWrongObjectCount, name);
-        return;
-    }
-    if (call->groupArgs.size() != vars.groups.values.size()) {
-        game::FatalError(kWrongGroupCount, name);
-        return;
-    }
+    // The parser checked the call against the script's parameters (LoadFunction with its signature).
+    if (call->floatArgs.size() != vars.floats.values.size()) game::FatalExit(kWrongFloatCount, name);
+    if (call->stringArgs.size() != vars.strings.values.size()) game::FatalExit(kWrongStringCount, name);
+    if (call->objectArgs.size() != vars.objects.values.size()) game::FatalExit(kWrongObjectCount, name);
+    if (call->groupArgs.size() != vars.groups.values.size()) game::FatalExit(kWrongGroupCount, name);
     for (std::size_t i = 0; i < call->floatArgs.size(); ++i) vars.floats.values[i] = call->floatArgs[i];
     for (std::size_t i = 0; i < call->stringArgs.size(); ++i) vars.strings.values[i] = call->stringArgs[i];
     for (std::size_t i = 0; i < call->objectArgs.size(); ++i) vars.objects.values[i] = *call->objectArgs[i];

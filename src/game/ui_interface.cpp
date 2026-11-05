@@ -62,28 +62,24 @@ constexpr const char* kFontFace = "Times New Roman";
 constexpr int kMeasureSize = 750;
 constexpr int kFontShares[3] = {104, 112, 144};
 
-// A font of `size` tenths of a point, kept in `font`; false (and the fatal error) when it has no size.
-bool MakeFont(UiFont& font, int size) {
+// A font of `size` tenths of a point, kept in `font`; one without a size ends the game.
+void MakeFont(UiFont& font, int size) {
     font = PointFont(size, kFontFace);
-    if (font) return true;
-    game::FatalError("CInterface3D::Create.\n Cannot create font.\n");
-    return false;
+    if (!font) game::FatalExit("CInterface3D::Create.\n Cannot create font.\n");
 }
 
 // The keyboard's language when the option's (a Windows language id) has no layout: English.
 constexpr std::uint32_t kEnglish = 0x409;
 
-// The three fonts sized to the screen's width and the layout's font scale; false (and the fatal error) when one has
-// no size.
-bool MakeFonts(UiFont (&fonts)[3], int width) {
+// The three fonts sized to the screen's width and the layout's font scale.
+void MakeFonts(UiFont (&fonts)[3], int width) {
     // The scale: what a 75-point font is high here, in pixels / 100.
-    if (!MakeFont(fonts[0], kMeasureSize)) return false;
+    MakeFont(fonts[0], kMeasureSize);
     const float scale = fonts[0].pixels * screen_layout::FontScale();    // 0.01
     for (int i = 0; i < 3; ++i) {
         float size = (width * kFontShares[i]) / scale * 0.00125f;    // 1 / 800
-        if (!MakeFont(fonts[i], static_cast<int>(size))) return false;
+        MakeFont(fonts[i], static_cast<int>(size));
     }
-    return true;
 }
 
 } // namespace
@@ -92,7 +88,7 @@ void Interface3D::Create(TextureDevice* device) {
     renderer = device;
     width = device->screen.right;
     height = device->screen.bottom;
-    if (!MakeFonts(fonts, width)) return;
+    MakeFonts(fonts, width);
 
     platform::ActivateKeyboardLayout(kEnglish, kEnglish);
     keybind::LoadKeyBindings();

@@ -23,20 +23,19 @@
 namespace {
 
 // The holder takes the picture's size and the screen's pixel size (the original filled memory of that size with the
-// picture; the cursor builds its mask from the file's pixels instead). 1 when done; otherwise the result of the fatal
-// error report (nonzero when the player goes on).
-int LoadPicture(Surface* holder, const MmpFile& file) {
-    if (!file.data) return game::FatalError("Can't load picture from NULL pointer.\n");
+// picture; the cursor builds its mask from the file's pixels instead). A missing picture, one of another format than
+// A8R8G8B8 or one without pixels ends the game.
+void LoadPicture(Surface* holder, const MmpFile& file) {
+    if (!file.data) game::FatalExit("Can't load picture from NULL pointer.\n");
     const MmpHeader* picture = &file.header;
-    if (picture->format != MmpFormat::A8R8G8B8) return game::FatalError("Can't load picture from non-8888 format.\n");
+    if (picture->format != MmpFormat::A8R8G8B8) game::FatalExit("Can't load picture from non-8888 format.\n");
     const int width = static_cast<int>(picture->width), height = static_cast<int>(picture->height);
     if (width <= 0 || height <= 0)
-        return game::FatalError("Can't create surface to load picture %d:%d:%d.\n", picture->width, picture->height,
-                                picture->bitsPerPixel);
+        game::FatalExit("Can't create surface to load picture %d:%d:%d.\n", picture->width, picture->height,
+                        picture->bitsPerPixel);
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = ScreenFormat().bitsPerPixel;
-    return 1;
 }
 
 // One channel mask: the shift of its lowest set bit and the length of the run of set bits from there (a zero mask: 0
@@ -134,7 +133,7 @@ Surface::Surface(TextureDevice* deviceIn) : device(deviceIn) {}
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp).
 Surface::Surface(TextureDevice* deviceIn, const MmpFile& picture) : device(deviceIn) {
-    if (!LoadPicture(this, picture)) throw std::runtime_error("Can't load picture to surface.\n");
+    LoadPicture(this, picture);
     render::PictureFromMmp(this, picture);
 }
 

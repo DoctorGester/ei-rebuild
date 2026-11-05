@@ -72,7 +72,7 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
 - `CanTrack` answers true for the same side, the same player, or an object in a list, so UpdateAttack gives up only on a
   unit of another side and player that is not listed.
 - Guard's Execute counts failed searches near its point; after 100 it also searches around the unit, on every tick until
-  one succeeds (only success resets the count). Patrol with no points calls FatalError "Unit %i has no patrol points,
+  one succeeds (only success resets the count). Patrol with no points logs a warning "Unit %i has no patrol points,
   adding one at its position" and adds a point at the unit (the original's text said "switching to guard"). Suspection's Execute computes the "near the
   point" distance only while a move is under way; its level drops by 5 per tick near the point, by 50 in combat.
 - AppendPoint rounds 2x to nearest, so its point is (n + 0.5) / 2, 0..0.5 above the asked one, not its half-cell's

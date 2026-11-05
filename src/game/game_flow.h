@@ -91,7 +91,7 @@ struct GameFlow {
     void RequestPartyZone6(const char* zone, Party* party);
     // Starts `zone`: the current zone is torn down; mode None takes the mode from the zone record's kind
     // (0 Battle, 1 Edge, 2 Base), "endofgame" is EndOfGame, MainMenu loads the main menu zone (also when the
-    // zone is unknown, after FatalError and closing the network sessions); otherwise the party enters
+    // zone is unknown, after a warning and closing the network sessions); otherwise the party enters
     // the zone and the clock follows its "gtime". The mode becomes the campaign mode (the server world's
     // zoneMode). Rebirth's AllowScriptsInMainMenu sets the server's scriptsActive in the menu.
     void StartZone(std::string_view zone, ZoneMode mode);

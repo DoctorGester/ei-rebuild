@@ -279,15 +279,15 @@ public:
     // Sets SRCBLEND, then DESTBLEND.
     void SetBlend(render::Blend source, render::Blend dest);
     // Binds `texture` (a texture object, or null) to stage `stage`.
-    int SetTexture(int stage, Texture* texture);
+    void SetTexture(int stage, Texture* texture);
     // Draws `figure` (a FigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
-    int DrawFigureLit(FigureMesh* figure, const std::vector<Light*>& lights, Material* material, int alpha, Rect* screen, Texture* textureA,
-                      Texture* textureB);
+    void DrawFigureLit(FigureMesh* figure, const std::vector<Light*>& lights, Material* material, int alpha, Rect* screen, Texture* textureA,
+                       Texture* textureB);
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
     // is passed on.
-    int DrawFigure(FigureMesh* figure, Material* material, int alpha, Rect* screen);
+    void DrawFigure(FigureMesh* figure, Material* material, int alpha, Rect* screen);
     void DrawLineList(LineBatch* lines);
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
@@ -312,7 +312,7 @@ public:
     bool RestoreSurfaces();
 
     // Makes sure `texture` is loaded and binds it to `stage`.
-    int BindLoadedTexture(int stage, Texture* texture);
+    void BindLoadedTexture(int stage, Texture* texture);
     // The fog (and clear) colour from r, g, b in 0..1 (each rounded to the nearest integer), stored and set
     // through SetFogColourState.
     void SetFogColour(float r, float g, float b);
@@ -451,7 +451,7 @@ public:
 
     // A new mesh from .lnk file `name` (from the figure set, else the archives' "<name>.lnk"): a count, then
     // per part its name and a second, unused name (an empty name keeps the previous one). Cached (one
-    // reference). No link file: FatalError's result (0) is returned and the new mesh leaked.
+    // reference). No link file ends the game.
     LinkMesh* LoadLinkFile(std::string_view name, Morph morph);
     // A new mesh `name` with the parts `parts`, loaded as LoadLinkFile does (a part missing from the figure
     // set is skipped); cached.
@@ -525,8 +525,8 @@ inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return seco
 // hash_map by name (filled by the load, never read).
 struct PrintsDatabase {
     // "prints.db" of `folder` + "database.res" (Rebirth-patched): the three tables, each read through an
-    // archive of its own and filed under its records' names. 1; FatalError's result when the archive
-    // (reported as "databases.res") or the file cannot be opened.
+    // archive of its own and filed under its records' names. 1; an archive or file that cannot be opened ends the
+    // game.
     int Load(const std::string& folder);
 
     std::vector<PrintRecord> blood;

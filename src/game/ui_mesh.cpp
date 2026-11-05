@@ -326,8 +326,6 @@ constexpr Quaternion kIdentityOrientation = /*007C7CD8*/ {1.0f, 0.0f, 0.0f, 0.0f
 constexpr float kSpriteDepth = 10.0f;
 constexpr std::uint32_t kOpaqueBlack = 0xFF000000;
 constexpr const char* kClassName = "CI3DFigure";
-constexpr const char* kSetTextureFailed = "CI3DFigure::Draw.\n SetTexture failed.\n";
-constexpr const char* kDrawFailed = "CI3DFigure::Draw.\n CFigure::Draw failed.\n";
 
 // One component of the tint as a colour byte: the product stored as a float, then rounded to the nearest
 // integer.
@@ -407,17 +405,14 @@ std::optional<float> UiMesh::DepthAt(const Matrix4& camera, Point at) const {
     return nearest;
 }
 
-// Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds the placement from the
-// orientation and position, pushes it on the view and world stacks, then the scale matrix on both (the view
-// stack's push inlined), draws the sprite as a figure in its tint (the renderer's colour put back after) with
-// its material, and drops both pushes from both stacks.
+// Nothing unless visible. Binds the texture to stage 0, builds the placement from the orientation and position,
+// pushes it on the view and world stacks, then the scale matrix on both (the view stack's push inlined), draws the
+// sprite as a figure in its tint (the renderer's colour put back after) with its material, and drops both pushes
+// from both stacks.
 void UiMesh::Draw(SceneRenderer* renderer) {
     if (!visible) return;
     TransformPipeline* pipeline = renderer->pipeline;
-    if (!renderer->SetTexture(0, texture)) {
-        game::FatalError(kSetTextureFailed);
-        return;
-    }
+    renderer->SetTexture(0, texture);
 
     worldMatrix = PlacementMatrix();
     const Matrix4 placement = worldMatrix;
@@ -432,13 +427,9 @@ void UiMesh::Draw(SceneRenderer* renderer) {
     const std::uint32_t blue = ColourByte(tint[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
     render::SetInterfaceDraw(true);   // the new renderer streams interface sprites
-    const int drawn = renderer->DrawFigure(this, material, 0xFF, nullptr);
+    renderer->DrawFigure(this, material, 0xFF, nullptr);
     render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
-    if (!drawn) {
-        game::FatalError(kDrawFailed);
-        return;
-    }
 
     MatrixStack& view = pipeline->stacks[TransformPipeline::kClipStack];
     MatrixStack& world = pipeline->stacks[TransformPipeline::kWorldStack];

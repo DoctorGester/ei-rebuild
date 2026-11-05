@@ -31,8 +31,8 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
     An item or spell without its records comes from a save, a party file or a player of another items.idb or
     spells.sdb. So `GetType`, `GetTypeGroup`, both `GetPrototype`s (the item's null only for scrolls), the modifier
     readers and the texts read the records unchecked.
-    - Our own data ends the game (`RequireEveryRecord`: `game::FatalExit`, the error box and exit, also with
-      Rebirth's DisableExitOnCrashReport): the world save (after the identity records, before the map objects load,
+    - Our own data ends the game (`RequireEveryRecord`: `game::FatalExit`, the error box and exit): the world save
+      (after the identity records, before the map objects load,
       since a unit's load reads its weapon's type; again after the objects' own data), a saved spell effect's
       spell, the party files, the save's party records and trader stocks, the players' parties in a save.
     - A peer's data is refused where the loader can undo it: the world server drops a player whose party
@@ -134,8 +134,8 @@ closes files from GetFile (reference counts only grow).
 - Kept: LoadSpell reads flags through its stream argument's slot; Build leaves the target flags alone when the prototype
   kind is neither 'u' nor 't', so they accumulate until Reset; a modifier whose code is not found becomes code 0, which
   sorts first and empties the modifier list; the container's AddModifier reports a null record as "Invalid rune".
-- `CreateSpellObject` is only called with -1 (a packed id with a low half other than 0 is a FatalError: there are no
-  spell sequences). `Spell` takes its numbers as the `SpellValues` base (CopyTo assigns it). `Light`: range sqrt(FLT_MAX);
+- `CreateSpellObject` takes no id (the original's only caller passed -1; a packed id with a low half other than 0
+  ended the game: there are no spell sequences). `Spell` takes its numbers as the `SpellValues` base (CopyTo assigns it). `Light`: range sqrt(FLT_MAX);
   `LightFactory` makes lights 0x2E / 0x31.
 
 ## Spell effects
@@ -202,7 +202,7 @@ and 64 for others) are drawn from layer textures on the GPU (`render::ComposeTex
 keeps what each one is made of under its name, case-insensitive (`ComposedTexture`: the header the original's cache
 file had, the request's layer bytes as its extra block, the layer textures). An unchanged request is reused; when the
 name has none and differs from the fallback name, the fallback's is tried; no layer textures forgets it; a missing layer
-is skipped (logged), one of another size is FatalError's result. `Texture::CreateComposed` hands the layers' file pixels
+is skipped (logged), one of another size too (a warning in the log). `Texture::CreateComposed` hands the layers' file pixels
 to the renderer, which decodes them (32-bit premultiplied, "PNT3" run-length packed), draws them over transparent black
 and makes the levels below with a box filter, 8 bits a channel. `ForgetComposedTextures` (map load, texture manager
 create / destroy, shutdown) drops them all.

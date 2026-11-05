@@ -267,8 +267,8 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::KillScript:
-            if (!killFlag) {
-                game::FatalError(kKillScriptNotAllowed);
+            if (!killFlag) {   // the WorldScript's: the call is left out
+                game::Warning("%s", kKillScriptNotAllowed);
                 break;
             }
             *killFlag = true;

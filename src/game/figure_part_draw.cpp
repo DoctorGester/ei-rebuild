@@ -253,19 +253,19 @@ void DrawThroughFigure(Part& part) {
 
 // `lights` the light objects, `material` the drawing context (flags, light vector), `alpha` the low byte for
 // the speculars, `rect` (optional) receives the screen rectangle, the textures (their surfaces) select the
-// two-texture draw. Returns 1.
-int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>& lights,
-                              Material* material, int alpha, Rect* rect, Texture* textureA, Texture* textureB) {
+// two-texture draw.
+void FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>& lights,
+                               Material* material, int alpha, Rect* rect, Texture* textureA, Texture* textureB) {
     FigureMesh* currentMesh = mesh;
     currentMesh->flags &= ~FigureMeshFlag::Drawn;
-    if (mesh->flags & FigureMeshFlag::Hidden) return 1;
+    if (mesh->flags & FigureMeshFlag::Hidden) return;
     // Only the scene's parts reach here (the owner is an Object3D: map_object_draw, also for the interface's previews); the other meshes draw plain.
     TransformObject* ownerObject = mesh->object;
     Part part{this, device, &lights, material, alpha, rect, textureA, textureB,
               ownerObject ? static_cast<Object3D*>(ownerObject)->figure.Get() : nullptr, DrawFlag{}};
 
     const TransformPipeline::ClipResult visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
-    if (visibility == TransformPipeline::ClipResult::Outside) return 1;
+    if (visibility == TransformPipeline::ClipResult::Outside) return;
     AnimateSheet(this);
 
     std::uint32_t meshFlags = part.node->mesh->flags;
@@ -285,7 +285,6 @@ int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>& 
         DrawThroughDevice(part);
     }
     DrawBounds(&g_sceneRenderer);
-    return 1;
 }
 
 // --- Figure part bounds ------------------------------------------------------------------------------
@@ -323,13 +322,13 @@ void FigureMeshDrawer::DrawBounds(SceneRenderer* renderer) {
 // docs/notes/models.md ("Figure parts").
 
 // The material is not read; `alpha` goes to the device draw, `rect` (optional) receives the screen rectangle
-// (empty when off screen). Returns 1.
-int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect) {
-    if (mesh->flags & FigureMeshFlag::Hidden) return 1;
+// (empty when off screen).
+void FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect) {
+    if (mesh->flags & FigureMeshFlag::Hidden) return;
     DrawFlag drawFlags = {};
     mesh->flags &= ~FigureMeshFlag::Drawn;
     const TransformPipeline::ClipResult visibility = device->pipeline->ClipTest(&mesh->box.bounds);
-    if (visibility == TransformPipeline::ClipResult::Outside) return 1;
+    if (visibility == TransformPipeline::ClipResult::Outside) return;
     AnimateSheet(this);
 
     std::uint32_t meshFlags = mesh->flags;
@@ -356,7 +355,6 @@ int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Rec
     }
     if (drawn) mesh->flags |= FigureMeshFlag::Drawn;
     DrawBounds(&g_sceneRenderer);
-    return 1;
 }
 
 // --- Figure drawer -----------------------------------------------------------------------------------

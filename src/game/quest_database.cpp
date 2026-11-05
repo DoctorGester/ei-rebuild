@@ -127,10 +127,10 @@ constexpr int kBriefingsChunk = 2;
 int QuestDatabase::Load(const std::string& folder) {
     std::string base = folder;
     MappedResource resource;
-    if (!dbfile::OpenDatabase(resource, base)) return dbfile::ReportNoDatabase(base);
+    dbfile::OpenDatabase(resource, base);
     std::uint32_t size;
     void* data = resource.GetFile("quests.qdb", &size);
-    if (!data) return game::FatalError("Can't open quests database\n");
+    if (!data) game::FatalExit("Can't open quests database\n");
 
     MemoryStream stream;
     stream.Fill(data, size);

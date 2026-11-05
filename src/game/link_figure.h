@@ -26,9 +26,9 @@
 struct FigureMeshDrawer : EngineObject {
     FigureMesh* mesh = nullptr;   // the mesh it draws
 
-    int DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect);
-    int DrawLit(TextureDevice* device, const std::vector<Light*>& lights, Material* material, int alpha, Rect* rect,
-                Texture* textureA, Texture* textureB);
+    void DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect);
+    void DrawLit(TextureDevice* device, const std::vector<Light*>& lights, Material* material, int alpha, Rect* rect,
+                 Texture* textureA, Texture* textureB);
     void DrawBounds(SceneRenderer* renderer);
 
     FigureMeshDrawer();

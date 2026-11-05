@@ -69,7 +69,7 @@ struct NpcPrototypeTable {
     std::unordered_map<std::string, UnitNpcRecord*> byName;
 };
 
-// The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
+// The statistics of an NPC of prototype `name` (the game ends without one; a debug message without its NPC
 // record), then recomputed around a refill of the slots.
 void BuildNpcStats(UnitStats* stats, const std::string& name);
 

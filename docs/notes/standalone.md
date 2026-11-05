@@ -280,7 +280,7 @@ writes the registry.
   |---|---|
   | paths, video, sound, shadows, terrain, camera, game, network, statistics | the game's options (options.cpp's tables; value names are the original's registry value names) |
   | renderer | Msaa, Anisotropy, VSync, PerfOverlay |
-  | patches | DisableExitOnCrashReport (rebirth.md, "Settings"); any other line is ignored (one log line) |
+  | patches | nothing now: every line is ignored, named in one log line (rebirth.md, "Settings") |
   | autoexec | Rebirth's Console AutoExec lines, one value each |
 
   **Values:**
@@ -550,17 +550,15 @@ from there, started from anywhere, with no launcher, no DLL of ours and no file 
   - **Written when missing:** `ei_settings.ini`.
   - **Written as output:** `ei-rebuild.log` beside the exe (EI_OUT_DIR under the harness), and the saves.
   - **Not read:** `third_party_notices.txt` is the licences, shipped beside the exe.
-- **The Rebirth install** (src/game/rebirth_profile.cpp). Every Rebirth patch is the code's own; the game folder only
-  decides the one flag left: where `starter\addon.dll` or `EI_Plugin.asi` is, DisableExitOnCrashReport on; else off.
-  Then ei_settings.ini's `[patches]` DisableExitOnCrashReport applies, then a scenario's `plugin` line. Harness runs
-  take the install folder's value as a player's exe does. EI_Plugin.ini is not read: the player count and the pause
-  mode are the host's choices on the create-server screen (rebirth.md, "EI_Plugin.asi").
+- **The Rebirth install** (src/game/rebirth_profile.cpp). Every Rebirth patch is the code's own; the game folder
+  decides nothing: every patch is always on, a fatal error ends the game on every install, and EI_Plugin.ini
+  is not read (the player count and the pause mode are the host's choices on the create-server screen; rebirth.md,
+  "EI_Plugin.asi"). ei_settings.ini's `[network]` SecondMaster, then a scenario's `plugin` line, set the second master.
 - **The exe's own imports** (kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`). A wrapper DLL of the same name in a game folder (dgVoodoo, a dsound wrapper) is not
   taken. ASan's build leaves the flag out.
 - **Checks:** `dropin_profile` (both installs; in the Rebirth smoke set) is a run like any other: its `folderprofile`
-  step (harness_folder_profile.h) checks the working directory, the data folder, EI_Plugin.ini's players and pause
-  and DisableExitOnCrashReport. Every run starts the exe with EI_GAME_ROOT;
+  step (harness_folder_profile.h) checks the working directory and the data folder. Every run starts the exe with EI_GAME_ROOT;
   main.cpp's fallback to the exe's own folder (no EI_GAME_ROOT) has no run.
 
 ### The x64 build

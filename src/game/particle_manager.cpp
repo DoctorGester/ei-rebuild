@@ -319,8 +319,7 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 } // namespace
 
 // Off screen (the renderer's clip test on the bounds says outside) only counts the hidden ticks. Otherwise the
-// arrays are reserved for 4096 particles, sized to this source's, filled, and drawn; 0 when the texture cannot be
-// bound.
+// arrays are reserved for 4096 particles, sized to this source's, filled, and drawn.
 int ParticleSource::Draw(SceneRenderer* renderer) {
     if (particles.empty()) return 1;
     if (renderer->pipeline->ClipTest(&clip) == TransformPipeline::ClipResult::Outside) {
@@ -333,7 +332,7 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
     g_vertices.resize(kReserve);
     g_sprites.resize(particles.size());
     g_vertices.resize(particles.size());
-    if (!renderer->BindLoadedTexture(0, texture)) return 0;
+    renderer->BindLoadedTexture(0, texture);
 
     ParticleSprite* sprite = g_sprites.data();
     SpritePoint* vertex = g_vertices.data();

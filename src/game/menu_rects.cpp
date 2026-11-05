@@ -9,7 +9,7 @@
 #include <vector>
 
 // The main menu's and the escape menu's button rectangles from "menus.reg" (each entry
-// four integers; a missing or malformed one is a fatal error). See docs/notes/world.md.
+// four integers; a missing or malformed one ends the game). See docs/notes/world.md.
 
 Rect g_menuRects[kMenuRects] = /*007C8048*/ {};
 
@@ -43,17 +43,13 @@ int FigureManager::LoadMenuRects(Rect* rects) {
     // The manager's GetFile: the resource file's data.
     void* file = GetFile("menus.reg", nullptr);
     if (!file || !reg.Attach(file)) {
-        return game::FatalError("%s", file ? "Can't open \"menus.reg\" as .reg with the main/esc menu rects\n" : "Can't open file \"menus.reg\" with the main/esc menu rects\n");
+        game::FatalExit("%s", file ? "Can't open \"menus.reg\" as .reg with the main/esc menu rects\n" : "Can't open file \"menus.reg\" with the main/esc menu rects\n");
     }
     std::vector<std::int32_t> values;
     for (const MenuRect& entry : kRects) {
         values.clear();
         reg.GetIntArray(entry.section, entry.name, &values);
-        if (std::ssize(values) != 4) {
-            int result = game::FatalError("%s", entry.error);
-            lib::FreeStorage(values);
-            return result;
-        }
+        if (std::ssize(values) != 4) game::FatalExit("%s", entry.error);
         rects[entry.index] = {values[0], values[1], values[2], values[3]};
     }
     lib::FreeStorage(values);

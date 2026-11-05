@@ -9,7 +9,6 @@
 #include "asset_text.h"
 #include "platform/log.h"
 
-#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
@@ -173,10 +172,7 @@ void StartFirstMap() {
     }
     const std::string map = g_commandLineMap.empty() ? std::string(options::kDefaultMapName) : g_commandLineMap;
     WorldServer* world = &g_serverWorld;
-    if (!world->NewZone(map, g_commandLineMob, std::nullopt)) {
-        game::FatalError("Can't load map \"%s\".\n", map);
-        return;
-    }
+    if (!world->NewZone(map, g_commandLineMob, std::nullopt)) game::FatalExit("Can't load map \"%s\".\n", map);
     world->SetGameState(GameState::Playing);
     WorldClient* client = &g_clientWorld;
     client->SetPlayer(g_serverWorld.worldHandle.Get());
@@ -187,10 +183,10 @@ void StartFirstMap() {
     if (script->LoadFile(g_dataFolder + "Scripts\\" + g_commandLineScript)) return;
     ScriptErrorInfo error;
     script->GetError(&error);
-    game::FatalError("%s, line %i", error.text, error.line);
+    game::FatalExit("%s, line %i", error.text, error.line);
 }
 
-// ---- FatalError ---------------------------------------------------------------------
+// ---- Fatal errors and warnings --------------------------------------------------------
 
 void ShowMessageBox(const char* text) {
     platform::CursorShape cursor = platform::CurrentCursor();
@@ -205,23 +201,6 @@ void ShowLibraryMessageBox(const char* text) {
 
 } // namespace app
 
-// Formats the error (1 KB), shows it in a message box and exits the game (exit(-1)). Rebirth's
-// DisableExitOnCrashReport replaces the message box with a line in addon.log (not reproduced) and removes the exit,
-// so the game carries on. Returns 0.
-int game::FatalError(const char* format, ...) {
-    char text[0x400];
-    va_list args;
-    va_start(args, format);
-    std::vsnprintf(text, sizeof(text), format, args);
-    va_end(args);
-    if (!ei::rebirth::DisableExitOnCrashReport()) {
-        app::ShowMessageBox(text);
-        std::exit(-1);
-    }
-    return 0;
-}
-
-// Logs the error, shows it in the error box and exits (exit(-1)) whatever the Rebirth flags.
 void game::FatalExit(const char* format, ...) {
     char text[0x400];
     va_list args;
@@ -231,4 +210,13 @@ void game::FatalExit(const char* format, ...) {
     ei::Log("fatal: %s", text);
     app::ShowMessageBox(text);
     std::exit(-1);
+}
+
+void game::Warning(const char* format, ...) {
+    char text[0x400];
+    va_list args;
+    va_start(args, format);
+    std::vsnprintf(text, sizeof(text), format, args);
+    va_end(args);
+    ei::Log("warning: %s", text);
 }

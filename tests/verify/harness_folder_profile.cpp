@@ -3,7 +3,6 @@
 
 #include "harness_starter.h"
 #include "image/image_side.h"
-#include "lib/rebirth.h"
 #include "lib/text_case.h"
 #include "platform/log.h"
 #include "platform/platform.h"
@@ -35,13 +34,8 @@ std::string Step() {
         return std::string("folderprofile: the game's data folder ") + (data ? data : "(none)") +
                " is not the game folder";
 
-    // DisableExitOnCrashReport on the Rebirth install only.
-    const bool rebirthInstall = starter::RebirthData();
-    if (rebirth::DisableExitOnCrashReport() != rebirthInstall)
-        return std::string("folderprofile: DisableExitOnCrashReport ") + (rebirthInstall ? "off" : "on") + " on the " +
-               (rebirthInstall ? "Rebirth" : "vanilla") + " install";
-    Log("harness: folderprofile: the %s install, DisableExitOnCrashReport %s, the game folder %s",
-        rebirthInstall ? "Rebirth" : "vanilla", rebirthInstall ? "on" : "off", folder.c_str());
+    Log("harness: folderprofile: the %s install, the game folder %s", starter::RebirthData() ? "Rebirth" : "vanilla",
+        folder.c_str());
     return {};
 }
 

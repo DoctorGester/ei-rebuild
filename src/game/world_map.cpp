@@ -88,8 +88,7 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
 
     if (keepsState || loadedFresh) {
         mobName = mob;
-        int loadedCount = LoadMapObjects(mob, loadedFresh == 0);
-        if (!loadedCount) return loadedCount;
+        LoadMapObjects(mob, loadedFresh == 0);
         if (!loadedFresh) {
             MainScript()->Reset();
             diplomacy.Reset();

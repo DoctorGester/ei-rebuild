@@ -199,9 +199,9 @@ void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord**
     }
 }
 
-int SceneRenderer::BindLoadedTexture(int stage, Texture* texture) {
+void SceneRenderer::BindLoadedTexture(int stage, Texture* texture) {
     EnsureTextureLoaded(texture);
-    return SetTexture(stage, texture);
+    SetTexture(stage, texture);
 }
 
 // With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).

@@ -419,23 +419,15 @@ EngineObject* LightningManager::NewObject(int /*type*/) { return new Lightning()
 // The lightning noise table's load (the lightning manager's Create calls it). Main thread. See docs/notes/objects.md.
 
 // Opens <text folder>gfx.res and reads lightning.dat into the noise table, row by row through a memory stream
-// (a short file leaves the rest zero-filled, as the stream's Read does). Returns 0 when the archive does not
-// open (no message), the fatal error's result when the file is missing, else 1.
+// (a short file leaves the rest zero-filled, as the stream's Read does). Returns 1; a missing archive or file ends
+// the game.
 int LoadLightningNoise() {
     MappedResource resource;
     MemoryStream local;
-    bool opened;
-    {
-        std::string folder = g_textFolder;
-        std::string path = folder + "gfx.res";
-        // Through the vtable.
-        opened = resource.OpenResource(path);
-    }
-    if (!opened) return 0;
-
+    resource.OpenResource(g_textFolder + "gfx.res");
     std::uint32_t size;
     void* data = resource.GetFile("lightning.dat", &size);
-    if (!data) return game::FatalError("Unable to open file gfx.res\\lightning.dat");
+    if (!data) game::FatalExit("Unable to open file gfx.res\\lightning.dat");
 
     local.Fill(data, size);
     ByteStream* stream = &local;
@@ -478,7 +470,7 @@ float RandomOffset() {
 // used (the frame comes from the position and the world's counter).
 void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float size) {
     EnsureTextureLoaded(glowTexture);
-    if (!device->SetTexture(0, glowTexture)) return;
+    device->SetTexture(0, glowTexture);
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
     float frames[15][4];
@@ -512,11 +504,11 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     device->DrawSprites(0, g_glowPoints, &g_sprites);
 }
 
-// 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
+// 1 (also when the bolt is not visible).
 int Lightning::Draw(SceneRenderer* device) {
     EnsureTextureLoaded(texture);
     SceneRenderer* renderer = device;
-    if (!renderer->SetTexture(0, texture)) return 0;
+    renderer->SetTexture(0, texture);
     const TransformPipeline::ClipResult visibility = renderer->pipeline->ClipTest(&bounds);
     if (visibility == TransformPipeline::ClipResult::Outside) return 1;
     const float zero = 0.0f;

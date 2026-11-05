@@ -34,13 +34,14 @@ Player::~Player() {
     if (link != nullptr) link->Release();
 }
 
-// The message dispatchers' fatal error: `format` ("... prevID=%x
-// curID=%x") with the previous and the current message type (their low bytes; the callers set
-// only DL) raises FatalError (patched by Rebirth: through its address); its result.
+// The message dispatchers' error: a packet the peer sent that cannot be read. `format` ("... prevID=%x curID=%x")
+// with the previous and the current message type (their low bytes) as a warning; 0, so the receiving side ends the
+// connection (the client's world disconnects its session, the server drops the player).
 int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
-    std::string text;
-    text = str::Format(format, previous & 0xFF, type & 0xFF);
-    return game::FatalError(text);
+    std::string text = str::Format(format, previous & 0xFF, type & 0xFF);
+    if (!text.empty() && text.back() == '\n') text.pop_back();
+    game::Warning("%s: the connection ends", text);
+    return 0;
 }
 
 const char* Player::ClassName() { return "CPlayer"; }

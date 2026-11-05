@@ -70,8 +70,10 @@ class MappedResource : public ResourceBase {
 public:
     // Rebirth's ResOverride forgets the archive, then CloseResource.
     ~MappedResource() override;
+    // True when the archive is open. A missing or broken archive ends the game (game::FatalExit); the mapped reader
+    // (MMIOResource) returns false for a missing one.
     virtual bool OpenResource(const std::string& path);
-    virtual bool OpenFromMemory(const void* image);
+    virtual void OpenFromMemory(const void* image);
     virtual void CloseResource();
     virtual void* GetFile(std::string_view name, std::uint32_t* size);
     // GetFile without Rebirth's ResOverride (in the standalone image GetFile goes through
@@ -87,8 +89,8 @@ public:
     // The names ListFiles fills in, without Rebirth's ResOverride (see GetFilePlain).
     std::vector<std::string> ListFilesPlain(const char* pattern) const;
     // The header checked and the entry table (packed 22-byte records) copied from the archive image at `base`,
-    // the names pointed at in the image; false when it is not an archive. Both readers' OpenFromMemory.
-    bool ReadImage(char* base);
+    // the names pointed at in the image; one that is not an archive ends the game. Both readers' OpenFromMemory.
+    void ReadImage(char* base);
 
     platform::File archive;           // the archive's file
     char* image = nullptr;              // archive image when opened with OpenFromMemory
@@ -102,7 +104,7 @@ public:
 class MMIOResource : public MappedResource {
 public:
     bool OpenResource(const std::string& path) override;
-    bool OpenFromMemory(const void* image) override;
+    void OpenFromMemory(const void* image) override;
     void CloseResource() override;
     void* GetFile(std::string_view name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;                              // (nothing to free)

@@ -97,7 +97,7 @@ bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction i
         // the same name, or are parsed as a nested function call.
         if (*signature == 0) return Error(this, token.line, ScriptParseError::TooManyParameters, "Too much parameters");
         const ScriptType type = ScriptTypeOfLetter(*signature);
-        if (type == ScriptType::None) game::FatalError("wrong type char in CScript::LoadFunction");
+        if (type == ScriptType::None) game::FatalExit("wrong type char in CScript::LoadFunction");
         const int argIndex = nextArg[lib::Index(type)]++;
         local.type = type;
         global.type = type;

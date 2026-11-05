@@ -142,7 +142,7 @@ void GuardMode::Save(ByteStream* stream) {
 
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (!points.empty()) return kPriorityIdle;
-    game::FatalError("Unit %i has no patrol points, adding one at its position", brain->owner->unit->id);
+    game::Warning("Unit %i has no patrol points, adding one at its position", brain->owner->unit->id);
     AppendPoint(brain->owner->unit->localPosition);
     return kPriorityNone;
 }

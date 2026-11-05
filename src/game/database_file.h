@@ -14,14 +14,10 @@
 
 namespace dbfile {
 
-// The loads that take only a folder (quests, prints, acks) open `folder` + "database.res"; false
-// when it cannot be opened.
-inline bool OpenDatabase(MappedResource& resource, const std::string& folder) {
-    return resource.OpenResource(folder + "database.res");
-}
-// Their report of a failed open. The game names "databases.res" here.
-inline int ReportNoDatabase(const std::string& folder) {
-    return game::FatalError("Can't open database file \"%s\"\n", (folder + "databases.res"));
+// The loads that take only a folder (quests, prints, acks) open `folder` + "database.res" (a missing one ends the
+// game).
+inline void OpenDatabase(MappedResource& resource, const std::string& folder) {
+    resource.OpenResource(folder + "database.res");
 }
 
 // One table's pass over the stream: an archive of its own opened for loading, `read(archive)` reads the table's

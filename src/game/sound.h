@@ -326,7 +326,7 @@ struct MusicSystem : EngineObject {
     ~MusicSystem() override;
 
     // music.reg: Common\Credits and Common\MainMenu, then per other section an open land theme (CalmOpen)
-    // and a dungeon theme (CalmDungeon). FatalError when the file cannot be opened.
+    // and a dungeon theme (CalmDungeon). A file that cannot be opened ends the game.
     void Create() override;
     void Destroy() override { ResetThemes(); }
     bool RunTick() override {

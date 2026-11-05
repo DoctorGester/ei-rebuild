@@ -317,17 +317,16 @@ bool SetWeather(Call* call) {
     return true;
 }
 
-// AddMobEx(file, [keep ids]): loads a .mob file's objects with the loading movie off meanwhile.
-// addon pushes its byte flag as a 4-byte value whose upper bytes are left over on its stack; here it is
-// 0 or 1.
+// AddMobEx(file, [keep ids]): loads a .mob file's objects with the loading movie off meanwhile (a file that cannot be
+// read ends the game, as AddMob's). addon pushes its byte flag as a 4-byte value whose upper bytes are left over on
+// its stack; here it is 0 or 1.
 bool AddMobEx(Call* call) {
     ScriptArgs args(call->cmd);
     std::string file = args.Text();
     bool keepIds = args.FloatCount() != 0 && Equals(1.0f, args.Float());
     g_loadingMovieOff = 1;
-    int loaded = g_serverWorld.LoadMapObjects(file, keepIds ? 1 : 0);
+    g_serverWorld.LoadMapObjects(file, keepIds ? 1 : 0);
     g_loadingMovieOff = 0;
-    if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", file.c_str());
     return true;
 }
 

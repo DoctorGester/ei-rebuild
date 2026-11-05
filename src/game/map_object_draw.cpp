@@ -106,9 +106,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k].get();
         if (!set) continue;
-        if (!context->SetTexture(0, set->texture)) {
-            return game::FatalError("CObject3DClientSpecific::Draw.\n SetTexture failed.\n");
-        }
+        context->SetTexture(0, set->texture);
         // The first set takes the wounds material as stage 0's texture.
         WoundsMaterial* wounds = woundsMaterial;
         g_sceneRenderer.device->SetMaterial(k == 0 ? wounds : nullptr);
@@ -124,11 +122,8 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
                 pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
                 if (pushed) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
                 TextureParts* current = partSets[k].get();
-                int drawn = context->DrawFigureLit(part, list, current->groups[g]->material, static_cast<int>(lit),
-                                                   dirty ? &partRect : nullptr, nullptr, nullptr);
-                if (!drawn) {
-                    return game::FatalError("CObject3DClientSpecific::Draw.\n CFigure::Draw failed.\n");
-                }
+                context->DrawFigureLit(part, list, current->groups[g]->material, static_cast<int>(lit),
+                                       dirty ? &partRect : nullptr, nullptr, nullptr);
                 anyDrawn = anyDrawn || lib::Has(part->flags, FigureMeshFlag::Drawn);
                 if (dirty && !partRect.IsEmpty() && (part->flags & FigureMeshFlag::Drawn)) {
                     drawnRect = drawnRect.Union(partRect);

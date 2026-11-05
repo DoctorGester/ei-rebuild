@@ -76,8 +76,8 @@ public:
     void SetWaveStrength(float strength);
     void SetWaves(const Vector3& direction, float strength);
     // The ambient sound set is "Dungeon" when `dungeon`, else "Ingos" / "Suslanger" by `zone`, else "Gipat".
-    // False when the archive does not open or a texture does not load, and after ClearMap and FatalError for a
-    // missing or malformed map file.
+    // False when the archive does not open or a page texture does not load; a missing or malformed map file ends the
+    // game.
     bool LoadMap(std::string_view path, std::string_view zone, bool dungeon);
     // No map: sizes -1, the ambient loops stopped.
     void ClearMap();

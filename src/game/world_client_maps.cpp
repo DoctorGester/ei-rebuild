@@ -850,7 +850,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     if (zone) allod = zone->allod;
     str::MakeLower(allod);
     if (!currentTerrain->LoadMap(map, allod, newCave == kCave))
-        return game::FatalError("Can't load terrain or map file \"%s\".\n", map);
+        game::FatalExit("Can't load terrain or map file \"%s\".\n", map);
 
     FitGrid(objectGrid, currentTerrain);
     FitGrid(secondGrid, currentTerrain);

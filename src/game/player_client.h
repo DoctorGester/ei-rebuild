@@ -86,7 +86,7 @@ public:
     bool SendToServer();
     // Runs every message of in (from its start) through the handlers by type. 1 at the end of the stream or
     // once a handler made the session leave (LeaveAfterTick: the packet's other messages are dropped); a read past
-    // the end, a type without a handler or a refusing handler ends in the fatal error (its result returned).
+    // the end, a type without a handler or a refusing handler: a warning and 0 (the session disconnects).
     int DispatchMessages();
     // The session leaves the server after this client world tick (WorldClient::RunTick disconnects the player;
     // the interface shows `reason` in its disconnect box). A handler whose data this game cannot take (a loader
@@ -96,7 +96,7 @@ public:
     // the received stream, whose pending bits are stored first; its read position stays.
     void AppendReceived(MemoryStream* source);
 
-    // The message handlers; each returns true unless noted (false: refused, the dispatcher's fatal error).
+    // The message handlers; each returns true unless noted (false: refused, the dispatcher's error).
     // Message 0x81. A variable (name, value bits) set in the party's table (read first, the value dropped); a
     // quest variable ("q.", longer than 2) goes to the quest log and the client world too.
     bool OnSetVariable();
@@ -166,7 +166,7 @@ public:
     // Message 0x01. The player disconnects (Player::Disconnect).
     bool OnDisconnect();
     // Message 0x11. The server's reason for dropping the player (a text): the session leaves with it
-    // (LeaveAfterTick; the original had no handler, and the dispatcher's fatal error ended the game).
+    // (LeaveAfterTick; the original had no handler, and the dispatcher's error ended the game).
     bool OnError();
     // Message 0x04. A point and two dwords (heading, mode): the client world centres on the point; in the
     // party's zone "gz20g" the camera takes distance 23 and a 30-degree pitch (SetDistancePitch), elsewhere

@@ -673,8 +673,8 @@ public:
     // events back on the free list.
     void Reset();
 
-    // Loads the map archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0 when the archive cannot be opened;
-    // any other failure is a fatal error, whose result is returned.
+    // Loads the map archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0 when the archive holds no map;
+    // a missing archive or any other failure ends the game.
     int Load(const char* path);
     // Load's first part: the archive's .mp file gives the height scale and the climb tables, tileDesc.reg in
     // aiinfo.res the terrain types; the cell grids are sized for the map (64 x 64 cells per sector) and every

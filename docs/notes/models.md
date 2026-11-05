@@ -95,8 +95,8 @@ Code: `terrain_sector.h/.cpp` (`terrain::SectorData`; the sector file's format a
 terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`, `terrain_ambience.cpp`.
 - **The map file** `<map>.MP` (`Terrain::LoadMap`): 0x26 bytes of header (magic CE4AF672, height range, sectors x / y,
   pages, page size, texture count, tile size, material count (16 bits), animated texture count), the materials (0x2C
-  bytes each), a class per texture, (texture, frames) word pairs; the size must be exactly that. Missing: FatalError
-  "Unable to open file \"path\""; short or mismatched: "Wrong file format: path". Width / height = sectors x 32; tiles
+  bytes each), a class per texture, (texture, frames) word pairs; the size must be exactly that. Missing: the game ends
+  (`game::FatalExit`) with "Unable to open file \"path\""; short or mismatched: "Wrong file format: path". Width / height = sectors x 32; tiles
   per row = page / tile; a material's absorption is 1 / (1 - opacity), its colour the file's light factor x colour
   capped at 1. Sixteen extra textures of class 15 follow the map's for the extra pages. The ambient sound set is
   "Dungeon", or "Ingos" / "Suslanger" by zone, else "Gipat"; the one-shot count per sound class is how many of

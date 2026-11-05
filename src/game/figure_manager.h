@@ -55,8 +55,8 @@ public:
     FigureModel* FindModel(std::string_view name);
     // Sets the animation found by name in model `modelName` on `figure`; false when it cannot.
     bool SetFigureAnimation(FigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
-    // The menus' button rectangles from "menus.reg" into `rects`; 1, or FatalError's result when the file or an
-    // entry cannot be read.
+    // The menus' button rectangles from "menus.reg" into `rects`; 1 (a file or an entry that cannot be read ends
+    // the game).
     int LoadMenuRects(Rect* rects);
 
     // (The interface's model manager too.) A figure object, loaded from "<name>.fig" when named (released and null

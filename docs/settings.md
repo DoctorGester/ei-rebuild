@@ -131,12 +131,6 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 | `Anisotropy` | `16` | 1 .. 16 | Sharper textures on surfaces seen at a slant, such as the ground into the distance. 1 is off. The options screen's anisotropic filtering row sets it (1, 2, 4, 8 or 16). |
 | `PerfOverlay` | `false` | true / false | Shows frames per second, frame and graphics card times and draw counts over the game. The options screen's performance overlay row sets it. |
 
-## [patches]
-
-| Name | Default | Values | What it does |
-|---|---|---|---|
-| `DisableExitOnCrashReport` | `(install)` | true / false | After a fatal error the game goes on instead of showing it and quitting. On in a Rebirth install. |
-
 ## [autoexec]
 
 | Name | Default | Values | What it does |

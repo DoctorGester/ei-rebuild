@@ -58,7 +58,7 @@ bool RejectsMatch(const char* keyword, char next);
 void SignatureStep(ScriptCall* cmd, const char** signature, int tokenId);
 
 // ScriptCall::CalcString (which the patched CalcParameters calls for a string argument):
-// prepares the arguments, then Rebirth's string function or the game's fatal error.
+// prepares the arguments, then Rebirth's string function (none: the game ends).
 void CalcString(ScriptCall* cmd, Script* script, ScriptVars* vars, std::string* result);
 
 } // namespace scriptaddon

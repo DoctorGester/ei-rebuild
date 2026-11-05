@@ -70,8 +70,7 @@ struct QuestDatabase {
 
     // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res": the quests
     // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
-    // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the file cannot
-    // be opened.
+    // records' names. 1; an archive or file that cannot be opened ends the game.
     int Load(const std::string& folder);
     // The quests of a registry file in memory (`image`) filed into the database; false when it is not a
     // registry.

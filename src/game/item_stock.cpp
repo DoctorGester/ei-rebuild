@@ -159,7 +159,7 @@ constexpr int kScrollTries = 10;
 } // namespace
 
 
-// A failed build (BeginCreateItem false, EndCreateItem null) is left out (the original used the null item). The
+// A failed build (EndCreateItem null) is left out (the original used the null item). The
 // item is created before its material is drawn (BuildItem would create it after), so a cancelled item still uses
 // up an object id.
 template <class Record>
@@ -181,10 +181,7 @@ void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, in
     for (Record* prototype : taken) {
         if (prototype->family == itemdb::kWandFamily) continue;
         ctor->SetManager(manager);
-        if (!ctor->BeginCreateItem(prototype->Kind())) {
-            ctor->SetManager(nullptr);
-            continue;
-        }
+        ctor->BeginCreateItem(prototype->Kind());
         ctor->prototype = prototype;
         bool needsMaterial = prototype->HasMaterial();
         candidates.clear();

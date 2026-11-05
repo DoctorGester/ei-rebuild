@@ -21,7 +21,7 @@ namespace {
 
 // Through their game addresses (defined elsewhere; their verify wrappers stay in the path, and Rebirth's patches
 // still run): the prototype table's name lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown
-// names); the item manager's item by name (item_manager.cpp); FatalError (app.cpp); Unit's EquipArmour /
+// names); the item manager's item by name (item_manager.cpp); Unit's EquipArmour /
 // AddWeapon / AddSpell (unit_items.cpp, unit.cpp). The item manager's spell by name (with the world's manager
 // context) is not defined here.
 
@@ -34,10 +34,10 @@ bool Named(const std::string& name) {
            static_cast<int>(name.size()) != 0;
 }
 
-// The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
+// The weapon named `name`; a warning when it cannot be made (null is returned then).
 Item* MakeWeapon(ItemManager* items, const std::string& name, const std::string& prototype) {
     Item* weapon = items->CreateItem(name);
-    if (!weapon) game::FatalError("Can't create weapon \"%s\" for unit \"%s\".\n", name, prototype);
+    if (!weapon) game::Warning("Can't create weapon \"%s\" for unit \"%s\"", name, prototype);
     return weapon;
 }
 } // namespace
@@ -46,8 +46,8 @@ int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name)
     SpellManager* spellOwner = context->GetSpellManager();   // passed on to the spell factory
     ItemManager* items = context->ItemFactory();
     auto* prototype = g_unitDatabase.prototypes.FindByName(name);
-    if (!prototype) {
-        game::FatalError("Can't find prototype \"%s\".\n", name);
+    if (!prototype) {   // a map's unit of a prototype the units database lacks (Lost in Astral's gz8g, gz17g)
+        game::Warning("Can't find prototype \"%s\" for unit %d: no starting equipment", name, unit->id);
         return 0;
     }
     if (unit->MapType() == MapObjectType::Hero) {
@@ -55,7 +55,7 @@ int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name)
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             Item* armour = items->CreateItem(prototype->armourNames.begin()[i]);
             if (armour) unit->EquipArmour(armour);
-            else game::FatalError("Can't create armor \"%s\" for unit \"%s\".\n", prototype->armourNames.begin()[i], name);
+            else game::Warning("Can't create armor \"%s\" for unit \"%s\"", prototype->armourNames.begin()[i], name);
         }
         if (Named(prototype->weaponName)) {
             int slot = unit->AddWeapon(MakeWeapon(items, prototype->weaponName, name));
@@ -67,7 +67,7 @@ int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name)
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         Item* spell = items->CreateSpellItem(prototype->spellNames.begin()[i], spellOwner);
         if (spell) unit->AddSpell(spell);
-        else game::FatalError("Can't create spell \"%s\" for unit \"%s\".\n", prototype->spellNames.begin()[i], name);
+        else game::Warning("Can't create spell \"%s\" for unit \"%s\"", prototype->spellNames.begin()[i], name);
     }
     return 1;
 }
