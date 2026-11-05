@@ -193,7 +193,7 @@ void WorldServer::UseItemUp(Unit* unit, Item* item) {
         if (ItemLink* link = item->serverLink.Get()) {
             Party* party = unit->player->GetParty();
             if (party->Find(unit->id)) {
-                Item* source = FindItem(party->ItemFactory(), link->value);
+                Item* source = party->ItemFactory()->FindObjectAs<Item>(link->value);
                 if (source) --source->count;
             }
         }

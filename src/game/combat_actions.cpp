@@ -161,7 +161,7 @@ void UnitServer::UseItemCharge(Item* item, float cost) {
     const ItemLink* link = item->serverLink.Get();
     if (!player || !link) return;
     ResourceManager* items = player->GetParty()->ItemFactory();
-    Item* copy = FindItem(items, link->value);
+    Item* copy = items->FindObjectAs<Item>(link->value);
     if (!copy) return;
     copy->charge = item->charge;
     player->ItemUsed(copy);
@@ -329,7 +329,7 @@ void UnitServer::UseSkill(MapObject* target) {
     case UseSource::Use: {
         if (!target) return;
         auto* items = world->ItemFactory();
-        Item* studied = FindItem(items, action.param);
+        Item* studied = items->FindObjectAs<Item>(action.param);
         LockKey record = {1, 0, 0};
         if (studied && studied->GetUse().mask != 0) record = studied->GetUse();
         record.level += lib::RoundEven(mine);

@@ -319,7 +319,7 @@ void ForwardingStrip::LeftDown(Point point) {
 
 // --- Heroes' skills ---------------------------------------------------------------------------
 
-int HeroSchoolSkill(UnitStats* stats, int school) {
+int HeroSchoolSkill(UnitStats* stats, SpellSchool school) {
     return std::lround(stats->SpellSchoolSkill(school));
 }
 
@@ -332,7 +332,7 @@ int HeroManaUnits(UnitStats* stats) {
 bool HeroCanUseSpell(UnitStats* stats, Spell* spell) {
     bool ok = true;
     int required = static_cast<int>(spell->skillNeeded);
-    if (HeroSchoolSkill(stats, static_cast<int>(spell->GetPrototype()->school)) < required) ok = false;
+    if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
     float cost = spell->manaCost;
     int units = HeroManaUnits(stats);
     if (units < static_cast<int>(cost)) ok = false;
@@ -341,7 +341,7 @@ bool HeroCanUseSpell(UnitStats* stats, Spell* spell) {
 
 // --- CampPages -------------------------------------------------------------------------------
 
-PartySkill CampPages::BestPartySkill(int school) {
+PartySkill CampPages::BestPartySkill(SpellSchool school) {
     PartySkill best;
     for (int i = 0; i < std::ssize(LocalPlayerData()->members); ++i) {
         UnitStats* stats = &LocalPlayerData()->members[i].stats;
@@ -417,11 +417,11 @@ void MpHeroScreen::ClampVoiceSelection() {
 float MpHeroScreen::Weight() {
     PartyUnitRecord* hero = HeroRecord();
     float weight = 0.0f;
-    if (weapon) weight = weapon->Weight();
-    if (quickItem) weight += quickItem->Weight();
-    if (spellContainer) weight += spellContainer->Weight();
+    if (weapon) weight = weapon->weight;
+    if (quickItem) weight += quickItem->weight;
+    if (spellContainer) weight += spellContainer->weight;
     for (Item* armour : hero->armor)
-        if (armour) weight += armour->Weight();
+        if (armour) weight += armour->weight;
 
     return weight;
 }

@@ -33,7 +33,7 @@ ClassTemplate::~ClassTemplate() {
     spells.Destroy();
 }
 
-void ClassTemplate::SetLevels(const float* base, const float* scroll) {
+void ClassTemplate::SetLevels(const float (&base)[kSchoolCount], const float (&scroll)[kSchoolCount]) {
     allowed.SetLevels(base, scroll);
     magic.SetLevels(base, scroll);
 }
@@ -44,15 +44,15 @@ void ClassTemplateGenerateItems(ClassTemplate* t) {
     t->ItemsParty()->Clear(true, false);
     ItemStock& stock = t->allowed;
     stock.classIndex = t->type - 1;
-    stock.CopyMagic(&t->magic);
+    stock.CopyMagic(t->magic);
     stock.ResetMaterialUnits();
-    stock.GenerateWeapons(40, 50, &list);
-    stock.GenerateArmors(40, 50, &list);
-    stock.GenerateQuickItems(40, 50, &list);
-    stock.GenerateWeaponInstructions(1, 3, &list);
-    stock.GenerateArmorInstructions(1, 3, &list);
-    stock.GenerateQuickItemInstructions(1, 3, &list);
-    stock.GenerateMaterials(20, 50, &list);
+    stock.GenerateWeapons(40, 50, list);
+    stock.GenerateArmors(40, 50, list);
+    stock.GenerateQuickItems(40, 50, list);
+    stock.GenerateWeaponInstructions(1, 3, list);
+    stock.GenerateArmorInstructions(1, 3, list);
+    stock.GenerateQuickItemInstructions(1, 3, list);
+    stock.GenerateMaterials(20, 50, list);
     HandOver(list, t->ItemsParty());
 }
 
@@ -62,8 +62,8 @@ void ClassTemplateGenerateMagic(ClassTemplate* t) {
     t->SpellsParty()->Clear(true, false);
     ItemStock& stock = t->magic;
     stock.classIndex = t->type - 1;
-    stock.GenerateScrolls(&list);
-    stock.GenerateSpellInstructions(1, 3, &list);
-    stock.GenerateModifierInstructions(20, 50, &list);
+    stock.GenerateScrolls(list);
+    stock.GenerateSpellInstructions(1, 3, list);
+    stock.GenerateModifierInstructions(20, 50, list);
     HandOver(list, t->SpellsParty());
 }

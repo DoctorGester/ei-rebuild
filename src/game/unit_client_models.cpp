@@ -320,7 +320,10 @@ ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
             names.worn.push_back(text);
         }
     }
-    for (const auto& id : weaponIds) AppendWeaponModelParts(id, &names.worn);
+    for (const auto& id : weaponIds) {
+        std::vector<std::string> parts = WeaponModelParts(PrototypeIndex(id));
+        names.worn.insert(names.worn.end(), parts.begin(), parts.end());
+    }
 
     // Every plain part of the three rows, up to each row's first empty name.
     for (int row = 0; row < 3; ++row) {

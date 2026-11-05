@@ -312,7 +312,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
         if (IsSpell(item)) {
             if (std::ssize(spellResults->items) > 0) return false;
             const itemdb::SpellRecord* record = SpellRecordOf(item);
-            PartySkill best = BestPartySkill(static_cast<int>(record->school));
+            PartySkill best = BestPartySkill(record->school);
             if (best.mana < static_cast<int>(record->mana)) return false;
             return best.skill >= record->skill;
         }
@@ -320,14 +320,14 @@ bool CampPages::CanEquip(Item* item, int mode) {
         int modifiers = 0, skillSum = 0;
         float manaSum = 0.0f;
         bool hasSpell = false;
-        int school = 0;
+        SpellSchool school = SpellSchool::Fire;
         for (Item* slot : spellResults->items) {
             if (IsSpellContainer(slot)) return false;
             if (IsSpell(slot)) {
                 hasSpell = true;
                 const itemdb::SpellRecord* record = SpellRecordOf(slot);
                 skillSum += record->skill;
-                school = static_cast<int>(record->school);
+                school = record->school;
                 manaSum += record->mana;
                 // The modifier must suit the spell (the spell's flag byte for the modifier's kind).
                 std::uint32_t kind = ModifierRecordOf(item)->kind;
@@ -619,7 +619,7 @@ bool CampPages::CanMakeSpell() {
     if (container) container->AttachSpell(made);
     spellMade.Assign(container);
     if (!container) return false;
-    PartySkill best = BestPartySkill(static_cast<int>(spell->school));
+    PartySkill best = BestPartySkill(spell->school);
     if (best.mana < static_cast<int>(made->manaCost)) return false;
     return best.skill >= static_cast<int>(made->skillNeeded);
 }

@@ -86,7 +86,8 @@ float UnitStats::AttributeWithItems(int index, Unit* unit) {
     }
 }
 
-float UnitStats::SpellSchoolSkill(int school) {
+float UnitStats::SpellSchoolSkill(SpellSchool spellSchool) {
+    int school = static_cast<int>(spellSchool);
     if (school == 4) school = 3;
     else if (school == 6 || school == 7) school = 5;
     float base = 0.0f;

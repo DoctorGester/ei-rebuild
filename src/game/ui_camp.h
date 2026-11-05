@@ -273,7 +273,7 @@ public:
     Unit* HeroUnit(int index) override { return heroes[index]; }
     // Over the party's heroes, the best skill in spell school `school` (rounded to nearest) and the most
     // mana units (maximum mana / period, truncated).
-    PartySkill BestPartySkill(int school) override;
+    PartySkill BestPartySkill(SpellSchool school) override;
     // Rebirth-patched: BuildPages, then with WideScreen the two curtains over the screen's margins.
     void CreateScreen() override;
     // The curtains over the margins of the window's new shape.

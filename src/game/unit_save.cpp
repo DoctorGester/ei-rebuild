@@ -37,7 +37,7 @@ Item* ReadItem(Unit* unit, ByteStream* stream) {
     BaseManager* manager = unit->GetManagerContext()->ItemFactory();
     const int id = stream->ReadId();
     if (id == kNoObjectId) return nullptr;
-    Item* item = FindItem(manager, id);
+    Item* item = manager->FindObjectAs<Item>(id);
     if (item) item->AddRef();
     return item;
 }

@@ -146,7 +146,7 @@ public:
     virtual void TakeItem(Item*, int) {}
     virtual bool CanEquip(Item* item, int mode);
     virtual void TopicClicked(int) {}
-    virtual PartySkill BestPartySkill(int school);
+    virtual PartySkill BestPartySkill(SpellSchool school);
     virtual void RefreshWeapons() {}
     virtual void RefreshStats() {}
     virtual void NextHero() {}

@@ -10,9 +10,8 @@
 #include "lib/str.h"
 
 #include <cstdint>
-#include <cstdio>
-#include <cstring>
 #include <iterator>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -56,42 +55,8 @@ constexpr PartName kCrossbow[] = {
     {"arrows", false, ""},
 };
 
-struct PartSpan {
-    const PartName* parts = nullptr;
-    int count = 0;
-};
-
-template <int N> constexpr PartSpan List(const PartName (&parts)[N]) { return {parts, N}; }
-
 // By WeaponType; other types have no parts.
-constexpr PartSpan kPartsByType[] = {List(kSword), List(kAxe),  List(kDagger),  List(kPike),
-                                     List(kClub),  List(kBow),  List(kCrossbow)};
-
-// Calls add(name) for each part of the weapon prototype `record` (not null), in the game's order.
-template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
-    char number[8];
-    std::snprintf(number, sizeof(number), "%.2d", head->number);
-    std::uint32_t type = static_cast<std::uint32_t>(head->type);
-    if (type >= std::size(kPartsByType)) return;
-    const PartSpan& list = kPartsByType[type];
-    for (int i = 0; i < list.count; ++i) {
-        const PartName& part = list.parts[i];
-        if (!part.numbered) {
-            add(part.prefix);
-            continue;
-        }
-        char name[64];
-        char* end = name;
-        const char* pieces[] = {part.prefix, number, part.suffix};
-        for (const char* piece : pieces) {
-            std::size_t n = std::strlen(piece);
-            std::memcpy(end, piece, n);
-            end += n;
-        }
-        *end = '\0';
-        add(name);
-    }
-}
+const std::span<const PartName> kPartsByType[] = {kSword, kAxe, kDagger, kPike, kClub, kBow, kCrossbow};
 
 } // namespace
 
@@ -229,15 +194,11 @@ std::vector<std::string> WeaponModelParts(std::uint32_t index) {
     std::vector<std::string> parts;
     const WeaponRecord* record = WeaponAt(index);
     if (!record) return parts;
-    ForEachPart(record, [&parts](const char* name) { parts.push_back(name); });
+    std::uint32_t type = static_cast<std::uint32_t>(record->type);
+    if (type >= std::size(kPartsByType)) return parts;
+    const std::string number = str::Format("%.2d", record->number);
+    for (const PartName& part : kPartsByType[type]) {
+        parts.push_back(part.numbered ? part.prefix + number + part.suffix : part.prefix);
+    }
     return parts;
-}
-
-void AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out) {
-    const WeaponRecord* record = WeaponAt(PrototypeIndex(packedId));
-    if (!record) return;
-    ForEachPart(record, [out](const char* name) {
-        std::string s(name);
-        out->push_back(s);
-    });
 }

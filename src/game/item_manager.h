@@ -51,7 +51,7 @@ public:
     void SetManager(BaseManager* manager);
 
     // Creates the item through the manager (with `kind`, no id asked for): counted, records cleared, count 1,
-    // MapObjectFlag::Constructing set. False after a fatal error the game carries on from (Rebirth's DisableExitOnCrashReport).
+    // MapObjectFlag::Constructing set. False after a fatal error the game carries on from.
     bool BeginCreateItem(ItemKind kind);
 
     // Builds the item. On failure releases it and returns null; otherwise hands it over
@@ -61,7 +61,9 @@ public:
     // Releases the item; records and spell cleared.
     void Cancel();
 
-    BaseManager* manager = nullptr;    // the item manager; counted but never released
+    // The item manager. Counted by hand (SetManager adds a reference, Destroy and SetManager forget it) rather than
+    // held in a Ref: the constructor never releases it, and ForgetReference drops the count without deleting.
+    BaseManager* manager = nullptr;
     itemdb::MaterialRecordHead* material = nullptr;
     itemdb::ItemRecordHead* prototype = nullptr;
     Ref<Item> item;
@@ -98,8 +100,7 @@ struct ItemManager : ResourceManager {
     // scroll; otherwise the prototype is looked up in the weapon, armor, quick, quest and loot tables (none:
     // FatalError, null) and built with the material, the bracket part as a spell (or, for prototypes named
     // "material", as the count); a loot item standing for a record gets the table index of the second name
-    // part as index. A failed build reports FatalError and the game crashes; Rebirth's
-    // FixCreateItem returns null in both cases without FatalError.
+    // part as index. An unknown prototype or a failed build gives null, without a FatalError.
     Item* CreateItem(std::string_view name);
 
     // A scroll ("spell container", kind ItemKind::Scroll) holding the spell that `spells` builds from `spellText`;

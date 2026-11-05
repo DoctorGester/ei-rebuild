@@ -26,7 +26,7 @@ EngineObject* ReadObject(ByteStream* stream, const BaseManager* manager) {
 }
 Item* ReadItem(ByteStream* stream, const BaseManager* items) {
     const int id = stream->ReadId();
-    return id == kNoObjectId ? nullptr : FindItem(items, id);
+    return id == kNoObjectId ? nullptr : items->FindObjectAs<Item>(id);
 }
 Unit* ReadUnit(ByteStream* stream, const BaseManager* objects) {
     const int id = stream->ReadId();

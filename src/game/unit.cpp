@@ -27,8 +27,6 @@ constexpr float kIdleScale = 0.2f;
 constexpr float kOverkill = -5.0f;
 
 
-float ItemWeight(const Item* item) { return item->Weight(); }
-
 float SpellCost(const Spell* spell) { return spell->manaCost; }
 
 // The party of the unit's player.
@@ -229,16 +227,16 @@ Spell* Unit::GetSpellObject(std::uint32_t slot) {
 float Unit::TotalItemWeight() {
     float total = 0.0f;
     for (Item* item : weapons) {
-        if (item) total += ItemWeight(item);
+        if (item) total += item->weight;
     }
     for (Item* item : quickItems) {
-        if (item) total += ItemWeight(item);
+        if (item) total += item->weight;
     }
     for (Item* item : spells) {
-        if (item) total += ItemWeight(item);
+        if (item) total += item->weight;
     }
     for (Item* item : armor) {
-        if (item) total += ItemWeight(item);
+        if (item) total += item->weight;
     }
     return total;
 }

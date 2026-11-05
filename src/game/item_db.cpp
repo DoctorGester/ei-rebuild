@@ -156,14 +156,19 @@ void RecordTable<Record>::Load(ByteStream* source, int chunk) {
 template void SpellTable::Load(ByteStream*, int);
 template void SpellModifierTable::Load(ByteStream*, int);
 
-int ItemDatabase::Load(const std::string& folder, const std::string& archive) {
+bool ItemDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
     MappedResource resource;
-    if (!resource.OpenResource(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path);
+    if (!resource.OpenResource(path)) {
+        game::FatalError("Can't open database file \"%s\"\n", path);
+        return false;
+    }
     std::uint32_t size;
     void* data = resource.GetFile("items.idb", &size);
-    if (!data) return game::FatalError("Can't open items database\n");
+    if (!data) {
+        game::FatalError("Can't open items database\n");
+        return false;
+    }
 
     MemoryStream stream;
     stream.Fill(data, size);
@@ -176,7 +181,7 @@ int ItemDatabase::Load(const std::string& folder, const std::string& archive) {
 
     resource.CloseFile(data);
     resource.CloseResource();
-    return 1;
+    return true;
 }
 
 } // namespace itemdb

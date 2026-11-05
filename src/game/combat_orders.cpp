@@ -34,7 +34,7 @@ bool MayCast(UnitServer* self, std::uint32_t source) {
     Spell* spell = self->SpellOfSource(source);
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->skillNeeded);
-        float skill = self->stats.SpellSchoolSkill(static_cast<int>(spell->GetPrototype()->school));
+        float skill = self->stats.SpellSchoolSkill(spell->GetPrototype()->school);
         if (lib::RoundEven(skill) < needed) return false;
     }
     return !(self->unit->flags & MapObjectFlag::NoCasting);

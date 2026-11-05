@@ -331,7 +331,7 @@ void CampPages::BuildPages() {
             highest[school] = -1e20f;
             for (int i = 0; i < std::ssize(LocalPlayerData()->members); ++i) {
                 auto* memberStats = &LocalPlayerData()->members[i].stats;
-                float skill = memberStats->SpellSchoolSkill(school);
+                float skill = memberStats->SpellSchoolSkill(static_cast<SpellSchool>(school));
                 if (skill < lowest[school]) lowest[school] = skill;
                 if (highest[school] < skill) highest[school] = skill;
             }
