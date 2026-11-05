@@ -143,15 +143,13 @@ void BriefingScreen::CreateScreen() {
     AddBlankSprite()->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 
     // Surface 0 the topic rows, 1 a person's label.
-    AddSurface(new UiSurface(ui, Rect{200, 430, 600, 570}, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(ui, Rect{200, 430, 600, 570}, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, topicLabels); });
-    AddSurface(new UiSurface(ui, Rect{0, 0, 250, 30}, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(ui, Rect{0, 0, 250, 30}, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, personLabel); });
 
-    topicBar = new UiScrollbar(ui, Rect{584, 440, 594, 560}, 3.0f, 0, 1.0f);
-    AddChild(topicBar);
-    text = new UiScrollText(ui, "", Rect{165, 426, 635, 570}, 10.0f);
-    AddChild(text);
+    topicBar = AddChild(std::make_unique<UiScrollbar>(ui, Rect{584, 440, 594, 560}, 3.0f, 0, 1.0f));
+    text = AddChild(std::make_unique<UiScrollText>(ui, "", Rect{165, 426, 635, 570}, 10.0f));
 
     SetMeshesVisible(this, 0);
     for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide();
@@ -174,7 +172,7 @@ void BriefingScreen::CreateScreen() {
     g_serverWorld.SetWeather(0, 0.0f);
 
     // The view's input.
-    AddInput(new CameraInput(ui));
+    AddInput(std::make_unique<CameraInput>(ui));
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null), the alternate limits, no target.
@@ -191,8 +189,7 @@ void BriefingScreen::CreateScreen() {
     speaking = nullptr;
 
     if (IsMultiplayerClient()) {
-        chat = new ChatWindow(ui, this);
-        AddChild(chat);
+        chat = AddChild(std::make_unique<ChatWindow>(ui, this));
         PlayersChanged(1);
     } else {
         chat = nullptr;

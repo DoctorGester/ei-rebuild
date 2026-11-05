@@ -28,8 +28,8 @@ constexpr float kTurnAngle = ei::kRadiansPerDegree * 225.0f;
 // --- ViewScreen -------------------------------------------------------------
 
 void ViewScreen::CreateScreen() {
-    AddInput(new UnitPickInput(ui));
-    AddInput(new CameraInput(ui));
+    AddInput(std::make_unique<UnitPickInput>(ui));
+    AddInput(std::make_unique<CameraInput>(ui));
 
     Camera* camera = &g_camera;
     camera->flags &= ~Camera::kFree;

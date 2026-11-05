@@ -1,7 +1,7 @@
 // A scrolling text's tokeniser (UiScrollText::Tokenize): the message log and the objectives window's quest
 // log hand it each text they add; and the placing of the laid out lines' words (PlaceWords) that its paint draws;
-// also the rest of the class (constructor, destructor body, texts, layout, drawing), the scroll bar's maximum and
-// the tokens' destructor bodies. See ui.h and docs/notes/items_spells.md.
+// also the rest of the class (constructor, texts, layout, drawing) and the scroll bar's maximum. See ui.h and
+// docs/notes/items_spells.md.
 #include "ui.h"
 
 #include "lib/containers.h"
@@ -11,18 +11,11 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <optional>
 
 namespace {
-constexpr int kFormatType = 1, kWordType = 2;
-constexpr std::uint32_t kConstructedColour = 0x1C8DC;     // the format token constructor's colour
 constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
-
-void Append(std::vector<UiTextToken*>& tokens, UiTextToken* token) {
-    int index = lib::Count(tokens);
-    tokens.resize(index + 1);
-    tokens[index] = token;
-}
 
 bool IsFormat(const char* token) {
     return token[0] == '\n' || (token[0] == kEscape && (token[1] == 'C' || token[1] == 'F'));
@@ -79,7 +72,7 @@ void UiScrollText::Tokenize(const std::string& text) {
     if (text.empty()) return;
     do {
         if (pos == -1) break;
-        UiFormatToken* format = nullptr;
+        std::optional<TextToken> format;
         bool word = false;
         pos = NextToken(text, pos, &token);
         // A run of format tokens shares one format token; the token after it is a word.
@@ -90,13 +83,7 @@ void UiScrollText::Tokenize(const std::string& text) {
                 word = true;
                 break;
             }
-            if (!format) {
-                format = new UiFormatToken(font);
-                // (A null token is written through, as in the original.)
-                format->font = font;
-                format->colour = colour;
-                format->newline = false;
-            }
+            if (!format) format = TextToken{.kind = TokenKind::Format, .font = font, .colour = colour};
             if (t[0] == '\n') {
                 format->newline = true;
             } else if (t[1] == 'C') {
@@ -110,14 +97,8 @@ void UiScrollText::Tokenize(const std::string& text) {
             }
             pos = NextToken(text, pos, &token);
         }
-        if (format) Append(tokens, format);
-        if (word) {
-            auto* w = new UiWordToken();
-            Size size = ui->TextExtent(token, font);
-            w->width = size.w;
-            w->text = token;
-            Append(tokens, w);
-        }
+        if (format) tokens.push_back(std::move(*format));
+        if (word) tokens.push_back(TextToken{.text = token, .width = ui->TextExtent(token, font).w});
     } while (pos < static_cast<int>(text.size()));
 }
 
@@ -131,11 +112,11 @@ void UiScrollText::PlaceWords(int scroll) {
     // The first line reaching `scroll`, and how far above the surface its top lies.
     int above = 0;
     int line = 0;
-    while (line < lineCount && above < scroll) above += lines[line++]->height;
+    while (line < lineCount && above < scroll) above += lines[line++].height;
     --line;
     if (line < 0) line = 0;
     int offset = 0;
-    if (scroll != 0) offset = above - lines[line]->height - scroll;
+    if (scroll != 0) offset = above - lines[line].height - scroll;
 
     // The fonts' heights (the extent of the sample text in fonts 0-2).
     int heights[kMeasuredFonts];
@@ -148,13 +129,12 @@ void UiScrollText::PlaceWords(int scroll) {
     // itself and token 0 are not looked at), else font 1 in the default colour.
     std::uint32_t colour = kUiTextColour;
     int font = kDefaultFont;
-    int first = lines[line]->firstToken;
-    if (tokens[first]->type != kFormatType) {
+    int first = lines[line].firstToken;
+    if (tokens[first].kind != TokenKind::Format) {
         for (int k = first; k > 0; --k) {
-            if (tokens[k]->type == kFormatType) {
-                auto* format = tokens[k]->AsFormat();
-                colour = format->colour;
-                font = format->font;
+            if (tokens[k].kind == TokenKind::Format) {
+                colour = tokens[k].colour;
+                font = tokens[k].font;
                 break;
             }
         }
@@ -164,16 +144,16 @@ void UiScrollText::PlaceWords(int scroll) {
     row.top = offset;
     int drawn = 0;
     do {
-        const UiTextLine* record = lines[line];
-        row.bottom = row.top + record->height;
-        int begin = record->firstToken;
-        int end = line == lib::Count(lines) - 1 ? lib::Count(tokens) : lines[line + 1]->firstToken;
+        const UiTextLine& record = lines[line];
+        row.bottom = row.top + record.height;
+        int begin = record.firstToken;
+        int end = line == lib::Count(lines) - 1 ? lib::Count(tokens) : lines[line + 1].firstToken;
 
         int wordsWidth = 0;
         int words = 0;
         for (int t = begin; t < end; ++t) {
-            if (tokens[t]->type == kWordType) {
-                wordsWidth += tokens[t]->AsWord()->width;
+            if (tokens[t].kind == TokenKind::Word) {
+                wordsWidth += tokens[t].width;
                 ++words;
             }
         }
@@ -186,8 +166,8 @@ void UiScrollText::PlaceWords(int scroll) {
         // original reads its other stack memory there.)
         const int normalGap = heights[font] / 3;
         int gap = normalGap;
-        const UiTextToken* last = tokens[end - 1];
-        if (align != kAlignLeft && !(last->type == kFormatType && last->AsFormat()->newline) && words >= 2 &&
+        const TextToken& last = tokens[end - 1];
+        if (align != kAlignLeft && !(last.kind == TokenKind::Format && last.newline) && words >= 2 &&
             end != std::ssize(tokens)) {
             const int stretched = (textRect.Width() - wordsWidth) / (words - 1);
             if (stretched <= kMaxStretch * normalGap) gap = stretched;
@@ -195,18 +175,16 @@ void UiScrollText::PlaceWords(int scroll) {
 
         Rect word = row;
         for (int t = begin; t < end; ++t) {
-            UiTextToken* token = tokens[t];
-            if (token->type == kFormatType) {
-                auto* format = token->AsFormat();
-                colour = format->colour;
-                font = format->font;
-            } else if (token->type == kWordType) {
-                auto* w = token->AsWord();
-                shownWords.push_back({w->text, word, font, colour});
-                word.left += w->width + gap;
+            const TextToken& token = tokens[t];
+            if (token.kind == TokenKind::Format) {
+                colour = token.colour;
+                font = token.font;
+            } else {
+                shownWords.push_back({token.text, word, font, colour});
+                word.left += token.width + gap;
             }
         }
-        int height = lines[line]->height;
+        int height = lines[line].height;
         row.top += height;
         drawn += height;
         ++line;
@@ -223,24 +201,17 @@ void UiScrollText::PaintWords(UiSurface& surface) const {
 
 // --- Construction, texts, layout ----------------------------------------------------------
 
-// The scroll bar's tables with its own drawing and layout.
-UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect rect, float depth)
-    : UiScrollbar(ownerUi, rect, depth, 0, kScrollSpeed) {
-    AddSurface(new UiSurface(ui, &rect, SurfaceBlend::Keyed))->PaintWith([this](UiSurface& out) { PaintWords(out); });
-    UiScrollbar::SetRect(&rect);
-    PlaceText(rect);
-    DeleteTokens();
-    tokens.clear();
+UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect area, float depth)
+    : UiWindow(ownerUi), bar(ownerUi, area, depth, 0, kScrollSpeed) {
+    rect = area;
+    AddSurface(std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed))
+        ->PaintWith([this](UiSurface& out) { PaintWords(out); });
+    bar.SetRect(&area);
+    PlaceText(area);
     Tokenize(std::string(text));
     Layout();
-    SetPosition(0);
-    UiScrollbar::SetPosition(0);
+    bar.SetPosition(0);
     align = kJustified;
-}
-
-void UiScrollText::DeleteTokens() {
-    for (int i = 0; i < std::ssize(tokens); ++i)
-        if (UiTextToken* token = tokens[i]) delete token;
 }
 
 void UiScrollText::PlaceText(const Rect& area) {
@@ -250,44 +221,39 @@ void UiScrollText::PlaceText(const Rect& area) {
     Layout();
 }
 
-UiScrollText::~UiScrollText() {
-    DeleteTokens();
-    tokens.clear();
-    for (int i = 0; i < std::ssize(lines); ++i) delete lines[i];
-    lines.clear();
-}
-
 void UiScrollText::AddText(std::string_view text) {
-    SetPosition(maxPosition);
-    moved = true;
-    const int scrollPosition = TakePosition();
-    int before = maxPosition;
+    bar.SetPosition(bar.maxPosition);
+    bar.moved = true;
+    const int scrollPosition = bar.TakePosition();
+    int before = bar.maxPosition;
     Tokenize(std::string(text));
     Layout();
-    SetPosition(maxPosition - before + scrollPosition);
+    bar.SetPosition(bar.maxPosition - before + scrollPosition);
 }
 
 void UiScrollText::SetText(std::string_view text) {
     Clear();
     Tokenize(std::string(text));
     Layout();
-    SetPosition(0);
+    bar.SetPosition(0);
 }
 
 void UiScrollText::SetRect(const Rect* newRect) {
-    UiScrollbar::SetRect(newRect);
+    rect = *newRect;
+    bar.SetRect(newRect);
     PlaceText(*newRect);
 }
 
+void UiScrollText::Update() { bar.Update(); }
+
+void UiScrollText::OnEvent(UiEvent& event) { bar.OnEvent(event); }
+
 void UiScrollText::DrawSprites(SceneRenderer* pass) {
-    if (TakeMoved()) PlaceWords(Position());
-    DrawBase(pass);
+    if (bar.TakeMoved()) PlaceWords(bar.Position());
+    bar.DrawSprites(pass);
 }
 
-void UiScrollText::Clear() {
-    DeleteTokens();
-    tokens.clear();
-}
+void UiScrollText::Clear() { tokens.clear(); }
 
 void UiScrollText::Layout() {
     int total = 0;
@@ -298,45 +264,29 @@ void UiScrollText::Layout() {
         std::string sample = FontSampleText();
         heights[f] = ui->TextExtent(sample, f).h;
     }
-    for (int i = 0; i < std::ssize(lines); ++i) delete lines[i];
     lines.clear();
 
     for (int t = 0; t < std::ssize(tokens); ++t) {
-        // (The original does not check the allocation.)
-        auto* line = new UiTextLine;
-        int height = heights[font];
-        line->firstToken = t;
-        line->height = height;
-        lines.push_back(line);
+        const int height = heights[font];
+        const int firstToken = t;
+        lines.push_back({height, firstToken});
         int x = 0;
         for (; t < std::ssize(tokens) && x < width; ++t) {
-            UiTextToken* token = tokens[t];
-            if (token->type == kFormatType) {
-                auto* format = token->AsFormat();
-                if (format->newline) {
-                    font = format->font;
+            const TextToken& token = tokens[t];
+            if (token.kind == TokenKind::Format) {
+                if (token.newline) {
+                    font = token.font;
                     break;
                 }
-            } else if (token->type == kWordType) {
-                x += token->AsWord()->width + height / 3;
+            } else {
+                x += token.width + height / 3;
                 if (x >= width) {
-                    if (line->firstToken != t) --t;    // the word starts the next line
+                    if (firstToken != t) --t;    // the word starts the next line
                     break;
                 }
             }
         }
         total += height;
     }
-    SetMaximum(textRect.top - textRect.bottom + total);
+    bar.SetMaximum(textRect.top - textRect.bottom + total);
 }
-
-
-// --- The tokens' destructors ---------------------------------------------------------------------
-
-UiFormatToken::UiFormatToken(int newFont) : UiTextToken(kFormatType), newline(false), font(newFont), colour(kConstructedColour) {}
-
-UiTextToken::~UiTextToken() {}
-
-UiFormatToken::~UiFormatToken() {}
-
-UiWordToken::~UiWordToken() {}

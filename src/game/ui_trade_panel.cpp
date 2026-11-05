@@ -205,7 +205,7 @@ void TradePanel::DrawLists() {
 
 void TradePanel::Build() {
     rect = Rect{200, 100, 600, 500};
-    AddSurface(new UiSurface(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
 
     auto region = [this](const Rect& area) {

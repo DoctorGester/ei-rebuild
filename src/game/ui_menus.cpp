@@ -108,7 +108,7 @@ void SaveLoadWindow::DrawSprites(SceneRenderer* pass) {
     }
     surfaces[0]->Hide();
     float e = Ease(slide);
-    UiModel* model = models[0];
+    UiModel* model = models[0].get();
     if (!model) return;
     float y = isSave ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, y, 4.8f);
@@ -230,7 +230,7 @@ void OptionsWindow::DrawSprites(SceneRenderer* pass) {
     }
     surfaces[0]->Hide();
     float e = Ease(slide);
-    UiModel* model = models[0];
+    UiModel* model = models[0].get();
     if (!model) return;
     float y = (480.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, y, 4.8f);

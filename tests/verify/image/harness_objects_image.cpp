@@ -308,7 +308,7 @@ const Object3D* ClientObject(int id) {
 
 int RegionCount(void* window) { return static_cast<int>(std::ssize(static_cast<UiWindow*>(window)->regions)); }
 bool Region(void* window, int index, RegionInfo* region) {
-    const UiRegion* found = static_cast<UiWindow*>(window)->regions[index];
+    const UiRegion* found = static_cast<UiWindow*>(window)->regions[index].get();
     if (!found) return false;
     region->left = found->bounds.left;
     region->top = found->bounds.top;
@@ -333,7 +333,8 @@ namespace {
 UiDropList* FindDropList(UiWindow* window) {
     auto* container = dynamic_cast<UiContainer*>(window);
     if (!container) return nullptr;
-    for (UiWindow* child : container->children) {
+    for (const auto& owned : container->children) {
+        UiWindow* child = owned.get();
         if (auto* list = dynamic_cast<UiDropList*>(child)) return list;
         if (UiDropList* inner = FindDropList(child)) return inner;
     }

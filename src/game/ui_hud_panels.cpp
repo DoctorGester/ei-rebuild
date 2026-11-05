@@ -250,11 +250,11 @@ void HudTopPanel::ShowPage() {
     UiScrollText* log = owner->messageLog;
     if (page == 0) {
         log->SetText(pageTexts[0]);
-        log->SetPosition(log->maxPosition);
-        log->moved = true;
+        log->bar.SetPosition(log->bar.maxPosition);
+        log->bar.moved = true;
     } else {
         log->SetText(pageTexts[1]);
-        log->SetPosition(0);
+        log->bar.SetPosition(0);
     }
 }
 
@@ -302,7 +302,7 @@ void HudTopPanel::ShowItems() {
     if (page == 1) {
         UiScrollText* log = owner->messageLog;
         log->SetText(text);
-        log->SetPosition(0);
+        log->bar.SetPosition(0);
     }
     merged.clear();
 }
@@ -319,8 +319,8 @@ void HudTopPanel::Layout() {
     Rect area{190, 25 - offset, 610, 89 - offset};
     owner->messageLog->SetRect(&area);
     // Every region but the sling button moves with the panel.
-    for (UiRegion* region : regions) {
-        if (region == slingButton) continue;
+    for (const auto& region : regions) {
+        if (region.get() == slingButton) continue;
         region->offsetX = 0;
         region->offsetY = -offset;
     }

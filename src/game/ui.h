@@ -333,55 +333,6 @@ public:
 
 extern Interface3D g_interface;
 
-class UiRegion;
-struct UiTooltip;
-
-// A clickable area of a window, created by UiWindow::AddRegion: a rectangle, optionally narrowed to a
-// convex polygon, and an optional tooltip.
-class UiRegion {
-public:
-    bool HitTest(Point point) const;
-    bool HasActiveTip() const;
-    // Also enables the region.
-    void SetRect(int left, int top, int right, int bottom);
-    void SetRect(const Rect& area);
-    // Adds a polygon vertex, growing the bounds; three vertices enable the region.
-    void AddPoint(int x, int y);
-    void OnMouseMove(Point point);
-    // Enabled when its rectangle is set.
-    explicit UiRegion(Interface3D* ownerUi)
-        : ui(ownerUi), rectOnly(false), enabled(false), offsetX(0), offsetY(0), tip(nullptr) {}
-    ~UiRegion();
-    UiRegion(const UiRegion&) = delete;
-    UiRegion& operator=(const UiRegion&) = delete;
-    void SetTipText(std::string_view text);
-    // Replaces the tooltip by one with the text "tip <id>" (up to a '#'; the key itself when there is no
-    // such text) showing command `command`'s key (0: none); id 0 gives an empty tooltip.
-    void SetTip(int textId, int command = 0);
-    void SetTipString(std::string_view text, int command = 0);
-
-    Interface3D* ui = nullptr;
-    std::vector<Point> points;    // polygon vertices
-    Rect bounds;
-    bool rectOnly = false;
-    bool enabled = false;
-    int offsetX = 0;                 // subtracted from tested points
-    int offsetY = 0;
-    UiTooltip* tip = nullptr;
-};
-
-// The place of `region` in `list` (a window's regions, a panel's array of buttons): a list's slot; -1 when the
-// region is null or not there.
-template <typename List>
-int RegionIndex(const List& list, const UiRegion* region) {
-    int index = 0;
-    for (const UiRegion* entry : list) {
-        if (region && entry == region) return index;
-        ++index;
-    }
-    return -1;
-}
-
 enum class SkillAnimation : int;   // map_object_figures.h
 
 // The pale blue the interface draws its texts, rows and numbers in.
@@ -408,8 +359,7 @@ public:
     UiSurface(Interface3D* ui, const Rect& rect, SurfaceBlend blend, bool scale);
     // Over the layout rectangle `rect` (always scaled).
     UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend);
-    // Not virtual (a window's surface list destroys a scrolling surface as a plain one).
-    ~UiSurface();
+    virtual ~UiSurface();
     UiSurface(const UiSurface&) = delete;
     UiSurface& operator=(const UiSurface&) = delete;
     // Every surface placed again after the screen's size changed from `before` (app::SetResolution): its rectangle
@@ -483,7 +433,86 @@ private:
 };
 
 // A keyed surface over `area` (layout coordinates, scaled to the screen): what most windows draw on.
-inline UiSurface* NewSurface(Interface3D* ui, const Rect& area) { return new UiSurface(ui, area, SurfaceBlend::Keyed, true); }
+inline std::unique_ptr<UiSurface> NewSurface(Interface3D* ui, const Rect& area) {
+    return std::make_unique<UiSurface>(ui, area, SurfaceBlend::Keyed, true);
+}
+
+class UiRegion;
+
+// The tooltip of a region (UiRegion::tip); its surface is made while it is shown.
+struct UiTooltip {
+    // The showing: the region sets Hovered (mouse inside) or Disappearing (left); OnMouseMove does the rest.
+    enum class State { Idle, Hovered, Appearing, Disappearing, Shown };
+
+    UiTooltip(UiRegion* region, std::string_view text, int command);
+    // Empty: nothing. The size is not measured again.
+    void SetText(std::string_view text);
+    // The surface's paint: the background, the frame, the first line in the title colour, followed by
+    // "  ( <key> )" with keyName, then the others.
+    void PaintLines(UiSurface& out) const;
+    // Rebirth-patched (WideScreen). One step of the showing, mouse in layout coordinates;
+    // Hovered waits for the delay (setting 20; 0: never shown), then makes the surface at the mouse, painted from
+    // then on (Appearing), or goes back to Idle when the mouse has left the region; Appearing becomes Shown;
+    // Disappearing waits while the timer is positive, then drops the surface (Idle).
+    void OnMouseMove(Point point);
+    // While shown: the surface into the frame.
+    void Draw();
+    bool Shown() const { return state != State::Idle && state != State::Hovered; }
+
+    std::vector<std::string> lines; // the text's lines (none for an empty text)
+    int lineHeight = 0;              // the last line's height: the rows' step
+    int keyWidth = 0;                // the first line with the key name, + 12
+    int extra = 0;                   // a command whose key is shown
+    const char* keyName = nullptr;   // that key's name, or null
+    UiRegion* region = nullptr;     // the region it belongs to
+    int width = 0;                   // widest line + 12 (a text only)
+    int height = 0;                  // the lines' heights + 8
+    float timer = 0.0f;              // seconds in the current state
+    State state = State::Idle;
+    std::unique_ptr<UiSurface> surface;   // made when it appears, dropped when it has disappeared
+};
+
+// A clickable area of a window, created by UiWindow::AddRegion: a rectangle, optionally narrowed to a
+// convex polygon, and an optional tooltip.
+class UiRegion {
+public:
+    bool HitTest(Point point) const;
+    bool HasActiveTip() const;
+    // Also enables the region.
+    void SetRect(int left, int top, int right, int bottom);
+    void SetRect(const Rect& area);
+    // Adds a polygon vertex, growing the bounds; three vertices enable the region.
+    void AddPoint(int x, int y);
+    void OnMouseMove(Point point);
+    // Enabled when its rectangle is set.
+    explicit UiRegion(Interface3D* ownerUi) : ui(ownerUi) {}
+    void SetTipText(std::string_view text);
+    // Replaces the tooltip by one with the text "tip <id>" (up to a '#'; the key itself when there is no
+    // such text) showing command `command`'s key (0: none); id 0 gives an empty tooltip.
+    void SetTip(int textId, int command = 0);
+    void SetTipString(std::string_view text, int command = 0);
+
+    Interface3D* ui = nullptr;
+    std::vector<Point> points;    // polygon vertices
+    Rect bounds;
+    bool rectOnly = false;
+    bool enabled = false;
+    int offsetX = 0;                 // subtracted from tested points
+    int offsetY = 0;
+    std::unique_ptr<UiTooltip> tip;
+};
+
+// The place of `region` in `list` (a window's regions, a panel's array of buttons): a list's slot; -1 when the
+// region is null or not there.
+template <typename List>
+int RegionIndex(const List& list, const UiRegion* region) {
+    int index = 0;
+    for (const auto& entry : list) {
+        if (region && std::to_address(entry) == region) return index;
+        ++index;
+    }
+    return -1;
+}
 
 // A text a window shows on a painted surface, kept as the window's state where it drew it before: DrawTextIn's
 // arguments (layout units, one of the interface's fonts, with the shadow) or, with maxLines, DrawWrappedText's
@@ -545,6 +574,7 @@ public:
 class UiWindow : public TransformObject {
 public:
     explicit UiWindow(Interface3D* ui);
+    // The counted objects released; the mouse let go when the window had taken it.
     ~UiWindow() override;
 
     // The class name is "Sorry, no other way." and the id 0x45.
@@ -585,7 +615,13 @@ public:
     UiMesh* ReplaceSceneObject(UiMesh* object, std::string_view name);
     void ClearSceneObjects();
 
-    UiSurface* AddSurface(UiSurface* surface);
+    // Kept in the surfaces; returns it.
+    template <typename T>
+    T* AddSurface(std::unique_ptr<T> surface) {
+        T* added = surface.get();
+        surfaces.push_back(std::move(surface));
+        return added;
+    }
     void ClearSurfaces();
 
     UiRegion* AddRegion();
@@ -639,42 +675,9 @@ public:
     Material* whiteMaterial = nullptr;
     std::vector<Texture*> objects;             // the referenced textures
     std::vector<UiMesh*> sceneObjects;
-    std::vector<UiSurface*> surfaces;
-    std::vector<UiRegion*> regions;
-    std::vector<UiModel*> models;
-};
-
-// The tooltip attached to a region; its surface is made while it is shown.
-struct UiTooltip : UiWindow {
-    // The showing: the region sets Hovered (mouse inside) or Disappearing (left); OnMouseMove does the rest.
-    enum class State { Idle, Hovered, Appearing, Disappearing, Shown };
-
-    UiTooltip(Interface3D* ui, UiRegion* region, std::string_view text, int command);
-    ~UiTooltip() override;
-    // Empty: nothing. The size is not measured again.
-    void SetText(std::string_view text);
-    // The surface's paint: the background, the frame, the first line in the title colour, followed by
-    // "  ( <key> )" with keyName, then the others.
-    void PaintLines(UiSurface& surface) const;
-    // Rebirth-patched (WideScreen). One step of the showing, mouse in layout coordinates;
-    // Hovered waits for the delay (setting 20; 0: never shown), then makes the surface at the mouse, painted from
-    // then on (Appearing), or goes back to Idle when the mouse has left the region; Appearing becomes Shown;
-    // Disappearing waits while the timer is positive, then drops the surface (Idle).
-    void OnMouseMove(Point point);
-    void DrawSprites(SceneRenderer* pass) override;
-    void DrawSurfaces() override;
-    bool Shown() const { return state != State::Idle && state != State::Hovered; }
-
-    std::vector<std::string> lines; // the text's lines (none for an empty text)
-    int lineHeight = 0;              // the last line's height: the rows' step
-    int keyWidth = 0;                // the first line with the key name, + 12
-    int extra = 0;                   // a command whose key is shown
-    const char* keyName = nullptr;   // that key's name, or null
-    UiRegion* region = nullptr;     // the region it belongs to
-    int width = 0;                   // widest line + 12 (a text only)
-    int height = 0;                  // the lines' heights + 8
-    float timer = 0.0f;              // seconds in the current state
-    State state = State::Idle;
+    std::vector<std::unique_ptr<UiSurface>> surfaces;
+    std::vector<std::unique_ptr<UiRegion>> regions;
+    std::vector<std::unique_ptr<UiModel>> models;
 };
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel, hero
@@ -1291,7 +1294,6 @@ public:
 class UiContainer : public UiWindow {
 public:
     explicit UiContainer(Interface3D* ui) : UiWindow(ui) {}
-    ~UiContainer() override;
 
     // Only while the interface draws: the window's own draw, then every enabled child's.
     void DrawSprites(SceneRenderer* pass) override;
@@ -1334,12 +1336,17 @@ public:
     static float FrameTime();
     // The last frame's whole milliseconds (the ticks the held buttons' repeats count).
     static int FrameTicks();
-    // Null is ignored.
-    void AddChild(UiWindow* child);
-    void AddInput(UiInput* input);
+    // Kept in the children; returns it.
+    template <typename T>
+    T* AddChild(std::unique_ptr<T> child) {
+        T* added = child.get();
+        children.push_back(std::move(child));
+        return added;
+    }
+    void AddInput(std::unique_ptr<UiInput> input) { inputs.push_back(std::move(input)); }
 
-    std::vector<UiWindow*> children;
-    std::vector<UiInput*> inputs;         // extra inputs
+    std::vector<std::unique_ptr<UiWindow>> children;
+    std::vector<std::unique_ptr<UiInput>> inputs;   // extra inputs
     // A child that takes every input event while it is set, wherever the mouse is (an open drop-down list).
     UiWindow* popup = nullptr;
 };
@@ -1516,7 +1523,7 @@ public:
     int portraitMode = 0;            // 1, 2: the next portrait click picks a player for a server command (4, 5)
 };
 
-// A scroll bar (the battle screen's message log derives from it).
+// A scroll bar (a scrolling text has one).
 class UiScrollbar : public UiWindow {
 public:
     int Position() const { return position; }
@@ -1580,34 +1587,13 @@ public:
     void SetRect(const Rect* rect) override;
 };
 
-// The pieces of a scrolling text: a format change (type 1) or a word (type 2).
-struct UiFormatToken;
-struct UiWordToken;
-struct UiTextToken {
-    explicit UiTextToken(int newType) : type(newType) {}
-    virtual ~UiTextToken();
-    // The token as the class its type makes, null for the other one.
-    virtual UiFormatToken* AsFormat() { return nullptr; }
-    virtual const UiFormatToken* AsFormat() const { return nullptr; }
-    virtual UiWordToken* AsWord() { return nullptr; }
-
-    int type = 0;                    // 1 format, 2 word
-};
-struct UiFormatToken : UiTextToken {
-    explicit UiFormatToken(int font);
-    ~UiFormatToken() override;
-    UiFormatToken* AsFormat() override { return this; }
-    const UiFormatToken* AsFormat() const override { return this; }
-
+// A piece of a scrolling text: a format change (newline, font, colour) or a word (text, width).
+enum class TokenKind : std::uint8_t { Format, Word };
+struct TextToken {
+    TokenKind kind = TokenKind::Word;
     bool newline = false;            // a newline token, or a font change after the first token
     int font = 0;                    // interface font
     std::uint32_t colour = 0;
-};
-struct UiWordToken : UiTextToken {
-    UiWordToken() : UiTextToken(2), width(0) {}
-    ~UiWordToken() override;
-    UiWordToken* AsWord() override { return this; }
-
     std::string text;
     int width = 0;                   // its width in the token's font
 };
@@ -1617,19 +1603,22 @@ struct UiTextLine {
     int firstToken = 0;              // index in the token array
 };
 
-// A scroll bar showing tokenised text: the battle screen's message log and the objectives window's quest
-// log.
-class UiScrollText : public UiScrollbar {
+// Tokenised text with a scroll bar at its right edge: the battle screen's message log and the objectives window's
+// quest log.
+class UiScrollText : public UiWindow {
 public:
-    // 20 lines per second, justified (align 2).
+    // The bar scrolls 20 lines per second; justified (align 2).
     UiScrollText(Interface3D* ui, const char* text, Rect rect, float depth);
-    ~UiScrollText() override;
     // Scrolled to the end first, then kept that far from the end.
     void AddText(std::string_view text);
     // Scrolls to the top.
     void SetText(std::string_view text);
-    void SetRect(const Rect* rect) override;
-    // Places the words again when the position moved.
+    // The text and its bar over `rect`.
+    void SetRect(const Rect* rect);
+    // The bar's: its held arrows scroll, its input.
+    void Update() override;
+    void OnEvent(UiEvent& event) override;
+    // Places the words again when the bar's position moved; the bar's sprites.
     void DrawSprites(SceneRenderer* pass) override;
     // The lines stay until the next layout.
     void Clear();
@@ -1648,9 +1637,10 @@ public:
     // The surface's paint: shownWords.
     void PaintWords(UiSurface& surface) const;
 
+    UiScrollbar bar;                 // its position is the pixels scrolled
     Rect textRect;                   // the text's rectangle (surface coordinates)
-    std::vector<UiTextToken*> tokens;
-    std::vector<UiTextLine*> lines; // the laid out lines
+    std::vector<TextToken> tokens;
+    std::vector<UiTextLine> lines;  // the laid out lines
     int align = 0;                   // 1: left aligned (else justified)
     // A word as PlaceWords placed it: its rectangle (surface layout units), font and colour.
     struct ShownWord {
@@ -1664,7 +1654,6 @@ public:
 private:
     // The tail of SetRect (the text 14 pixels narrower for the bar).
     void PlaceText(const Rect& rect);
-    void DeleteTokens();
 };
 
 

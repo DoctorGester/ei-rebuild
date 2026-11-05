@@ -313,8 +313,8 @@ void BriefingScreen::NextPhrase(bool skip) {
     if (skip && last) {
         // Skipped to the end: the whole text at once, scrolled to its end; everyone listens.
         text->SetText(dialogueText);
-        text->SetPosition(text->maxPosition);
-        text->moved = true;
+        text->bar.SetPosition(text->bar.maxPosition);
+        text->bar.moved = true;
         for (const BriefingSpeaker& p : speakers) {
             SetBlink(p.unit, 0);
             PlaySpeakerAnimation(p.unit, false, false);

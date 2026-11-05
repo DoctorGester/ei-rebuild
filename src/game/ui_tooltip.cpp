@@ -1,5 +1,5 @@
-// A region's tooltip (UiTooltip): its constructor, which splits the text into lines and measures them, the
-// destructor body, SetText and the painting of the lines; and its showing (Rebirth-patched: its WideScreen is
+// A region's tooltip (UiTooltip): its constructor, which splits the text into lines and measures them, SetText
+// and the painting of the lines; and its showing (Rebirth-patched: its WideScreen is
 // reproduced behind the flag). See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 #include "options.h"
@@ -38,10 +38,8 @@ constexpr Point kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
 } // namespace
 
-// The virtuals: drawn and redrawn only while shown.
-UiTooltip::UiTooltip(Interface3D* ownerUi, UiRegion* newRegion, std::string_view text, int command) : UiWindow(ownerUi) {
-    timer = 0.0f;
-    region = newRegion;
+UiTooltip::UiTooltip(UiRegion* newRegion, std::string_view text, int command) : region(newRegion) {
+    Interface3D* ui = region->ui;
     // An empty text leaves the measurements and the two arguments unwritten.
     if (text.empty()) return;
     lines = text::Split(text, kLineSeparator);
@@ -72,17 +70,15 @@ UiTooltip::UiTooltip(Interface3D* ownerUi, UiRegion* newRegion, std::string_view
     height += kPaddingY;
 }
 
-UiTooltip::~UiTooltip() = default;
-
 void UiTooltip::SetText(std::string_view text) {
     if (text.empty()) return;
     lines = text::Split(text, kLineSeparator);
 }
 
-void UiTooltip::PaintLines(UiSurface& surface) const {
-    surface.Fill(kBackground);
+void UiTooltip::PaintLines(UiSurface& out) const {
+    out.Fill(kBackground);
     Rect whole{0, 0, 0, 0};   // empty: the whole surface
-    surface.FrameRect(&whole, kTitleColour);
+    out.FrameRect(&whole, kTitleColour);
     int right = width > keyWidth ? width : keyWidth;
     int step = lineHeight;
     Rect row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
@@ -90,9 +86,9 @@ void UiTooltip::PaintLines(UiSurface& surface) const {
         std::uint32_t colour = i > 0 ? kUiTextColour : kTitleColour;
         if (i == 0 && keyName) {
             std::string text = lines[0] + KeyOpen() + keyName + KeyClose();
-            surface.DrawTextIn(text, row, TextStyle{kFont, colour, render::text::kLeft, false});
+            out.DrawTextIn(text, row, TextStyle{kFont, colour, render::text::kLeft, false});
         } else {
-            surface.DrawTextIn(lines[i], row, TextStyle{kFont, colour, render::text::kLeft, false});
+            out.DrawTextIn(lines[i], row, TextStyle{kFont, colour, render::text::kLeft, false});
         }
         row.Offset(0, step);
     }
@@ -118,6 +114,7 @@ void UiTooltip::OnMouseMove(Point point) {
             return;
         }
         // Shown: the first line is measured again with the key of the tooltip's command.
+        Interface3D* ui = region->ui;
         keyWidth = 0;
         if (extra) {
             keyName = FindCommandByKey(extra);
@@ -143,8 +140,7 @@ void UiTooltip::OnMouseMove(Point point) {
             area.Offset(0, -(area.bottom - point.y));
             if (area.top < 0) area.Offset(0, -area.top);
         }
-        UiSurface* surface = new UiSurface(ui, &area, SurfaceBlend::Keyed);
-        AddSurface(surface);
+        surface = std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed);
         surface->PaintWith([this](UiSurface& out) { PaintLines(out); });
         return;
     }
@@ -162,8 +158,7 @@ void UiTooltip::OnMouseMove(Point point) {
             timer -= UiContainer::FrameTime();
         } else {
             state = State::Idle;
-            ClearSceneObjects();
-            ClearSurfaces();
+            surface.reset();
         }
         return;
     default:
@@ -171,11 +166,6 @@ void UiTooltip::OnMouseMove(Point point) {
     }
 }
 
-void UiTooltip::DrawSprites(SceneRenderer* pass) {
-    if (!Shown()) return;
-    DrawBase(pass);
-}
-
-void UiTooltip::DrawSurfaces() {
-    if (Shown()) UiWindow::DrawSurfaces();
+void UiTooltip::Draw() {
+    if (Shown() && surface && surface->Shown()) surface->Blit();
 }

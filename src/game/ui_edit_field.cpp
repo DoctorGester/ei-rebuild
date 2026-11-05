@@ -110,8 +110,7 @@ UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
     caretColour = 0xFF;
     ClearSurfaces();
     area = rect;
-    UiSurface* surface = new UiSurface(ui, &area, SurfaceBlend::Keyed);
-    AddSurface(surface);
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed));
     surface->PaintWith([this](UiSurface& out) { PaintContents(out); });
     ClampCaret();
     focused = true;

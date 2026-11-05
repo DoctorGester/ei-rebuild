@@ -69,15 +69,14 @@ UiDropList::UiDropList(Interface3D* ui, UiContainer* newOwner, Rect newRow) : Ui
                            0x28, 0x80, 0x50, 0xB0);
     for (UiMesh* sprite : {listShade, chosenMark, activeMark, listFrame}) sprite->visible = false;
 
-    UiSurface* surface = AddSurface(new UiSurface(ui, Rect{0, 0, 800, kLayoutHeight}, SurfaceBlend::Keyed, true));
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, Rect{0, 0, 800, kLayoutHeight}, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) {
         PaintRow(out);
         if (open) PaintList(out);
     });
 
-    scroll = new UiScrollbar(ui, row, kBarDepth, 0, 1.0f);
+    scroll = AddChild(std::make_unique<UiScrollbar>(ui, row, kBarDepth, 0, 1.0f));
     scroll->SetEnabled(false);
-    AddChild(scroll);
 }
 
 void UiDropList::AddText(std::string_view text) { texts.emplace_back(text); }
@@ -129,7 +128,8 @@ void UiDropList::Open() {
 
     // The owner's children under the list are left out while it is open.
     covered.clear();
-    for (UiWindow* child : owner->children) {
+    for (const auto& owned : owner->children) {
+        UiWindow* child = owned.get();
         if (child == this || !child->enabled || child->rect.Intersection(frame).IsEmpty()) continue;
         child->SetEnabled(false);
         covered.push_back(child);

@@ -63,7 +63,7 @@ void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels, UiRegio
         depth *= 0.5f;   // * 0.5
         v = 0x9C - v;
     }
-    window->AddSurface(new UiSurface(window->ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
+    window->AddSurface(std::make_unique<UiSurface>(window->ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
         ->PaintWith([labels](UiSurface& out) { PaintLabels(out, *labels); });
 }
 
@@ -349,7 +349,7 @@ void HeroStatsPanel::Build() {
     rect = Rect{0, 100, 200, 400};
     previousButton = AddRect(this, Rect{0, 0x7D, 0x1E, 0x91});
     nextButton = AddRect(this, Rect{0xAA, 0x7D, 200, 0x91});
-    AddSurface(new UiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     nextArrow = AddBlankSprite();
     nextArrow->SetRectangle(5.0f, kSpriteScale, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
@@ -455,7 +455,7 @@ void SpellMakerPage::BuildSpellMaker(Party* party) {
     costLines[0] = AddRect(this, Rect{200, 450, 400, 470});
     costLines[1] = AddRect(this, Rect{200, 470, 400, 490});
     AddMakerPictures(this);
-    AddSurface(new UiSurface(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;

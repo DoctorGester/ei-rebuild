@@ -19,8 +19,7 @@ constexpr int kFont = 1;
 // current value's text.
 UiSpin::UiSpin(Interface3D* ui, Rect newRect, const char* text) : UiWindow(ui) {
     rect = newRect;
-    UiSurface* surface = new UiSurface(ui, &newRect, SurfaceBlend::Keyed);
-    AddSurface(surface);
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, &newRect, SurfaceBlend::Keyed));
     surface->PaintWith([this](UiSurface& out) {
         Rect area = layout;
         area.Offset(-layout.left, -layout.top);
