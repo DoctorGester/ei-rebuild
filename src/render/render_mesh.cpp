@@ -25,9 +25,9 @@ struct Pending {
     bool distanceFog = false;
     float fogNear = 0.0f;
     float fogScale = 0.0f;
-    const void* caster = nullptr;   // render::BeginCaster's object
+    const Object3D* caster = nullptr;   // render::BeginCaster's object
     bool figure = false;            // ... a unit's
-    const void* interfaceUnit = nullptr;   // render::BeginInterfaceUnit's unit, if any
+    const Object3D* interfaceUnit = nullptr;   // render::BeginInterfaceUnit's unit, if any
     bool boxed = false;             // its positions' box in model space taken (a caster's: MeshPass)
     float box[6] = {};
     CachedMesh* cached = nullptr;   // kept on the GPU, else built into the frame's stream

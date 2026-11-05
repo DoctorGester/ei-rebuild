@@ -193,6 +193,12 @@ renderer_sprites, renderer_strip, link_mesh_draw, particle_draw through `SetBlen
 draws); the original's reads around a draw (saved and put back) are reads of the members. `SceneRenderer::CreateRenderer`
 resets it to a new Direct3D 7 device's state (the members' initialisers) before the game's own settings. Each pass copies
 it (`ReadPassState`, render_mesh.cpp; the fog once a frame, `ReadFog`).
+The copy (`PassState`, render_internal.h) keeps the same enums: `ToGpu` (render_mesh.cpp, render_textures.cpp) turns
+them into gpu.h's blend factors, comparisons, wraps and filters, and only the mesh uniforms take their numbers as ints.
+`AddsLight` is an additive pass (blended, destination factor One): it neither casts nor receives shadows. The renderer's
+keys are typed: textures by their `Surface` holder, kept meshes by `FigureMesh` and `LinkMesh`, casters and units by
+`Object3D`; `MeshChanged` (figure meshes, link figures and colour arrays) and the movies keep `const void*` keys.
+Vertex layouts take their offsets from the vertex structs (`offsetof`; `ColourPair` for the kept colour stream).
 
 Not kept, because nothing in the renderer reads them: shade mode, dithering, z bias, antialiasing, perspective
 correction, fog vertex mode, extents, clipping, lighting, ambient, fill mode, the texture coordinate index and transform
@@ -1505,13 +1511,12 @@ once with the filter off and once on, and reads a frame target back:
 
 ## The renderer's source files
 
-Every file is one \
-amespace render\ block (\ender::text\, \ender::perf\, \ender::ui\, \ender::gpu\ in theirs); what a file
-alone uses is \static\, what the files share is declared in render_internal.h. PrepareShadows lists the world's ground and
-models once a frame (\Frame::worldGround\, \Frame::worldMeshes\: the batches after the first ground batch that have a
+Every file is one `namespace render` block (`render::text`, `render::perf`, `render::ui`, `render::gpu` in theirs);
+what a file alone uses is `static`, what the files share is declared in render_internal.h. PrepareShadows lists the
+world's ground and models once a frame (`Frame::worldGround`, `Frame::worldMeshes`: the batches after the first ground batch that have a
 model, additive and repeated passes flagged); the sun's and the point lights' shadows, the ambient occlusion and the roofs
-walk those lists, not the commands. Rate-limited log lines go through \LogFirst\; what the frame's commands still draw is
-released with \ReleaseAfterPresent\. gpu.cpp keeps pipelines and samplers by description; the renderer asks it for them at
+walk those lists, not the commands. Rate-limited log lines go through `LogFirst`; what the frame's commands still draw is
+released with `ReleaseAfterPresent`. gpu.cpp keeps pipelines and samplers by description; the renderer asks it for them at
 each draw.
 
 ### render_cursor.cpp: the cursor

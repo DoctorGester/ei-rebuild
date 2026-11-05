@@ -16,6 +16,7 @@
 
 class FigureMesh;
 class LinkMesh;
+class Object3D;
 struct MmpFile;
 struct Surface;
 class SceneRenderer;
@@ -98,7 +99,7 @@ struct UnitWeather {
     float wet = 0.0f, snow = 0.0f, shelter = 0.0f;
     Vector3 at{};
 };
-UnitWeather UnitWeatherState(const void* object);
+UnitWeather UnitWeatherState(const Object3D* object);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights), the camera and the client's time (the water's ripples move by it). The terrain
@@ -136,15 +137,15 @@ void ShadowTerrainSector(const terrain::SectorData* sector);
 // The meshes handed over between BeginCaster and EndCaster belong to `object`; CastsShadow (from its shadow
 // draw) lets them cast this frame, at least 0.5 strong. A `figure`'s meshes take only the shadows others
 // cast, on every face; other objects' meshes are shadowed on the faces turned to the sun.
-void BeginCaster(const void* object, bool figure);
+void BeginCaster(const Object3D* object, bool figure);
 void EndCaster();
 // The meshes handed over between BeginInterfaceUnit and EndInterfaceUnit are an interface figure of the world unit
 // `object` (the one BeginCaster was given for it; the HUD unit panel's): drawn in the interface, they take that
 // unit's own weather (renderer.md 11b, Units), as the unit out in the rain. Figures not drawn so (the camp's and the
 // hero screen's previews) stay dry.
-void BeginInterfaceUnit(const void* object);
+void BeginInterfaceUnit(const Object3D* object);
 void EndInterfaceUnit();
-void CastsShadow(const void* object, float strength);
+void CastsShadow(const Object3D* object, float strength);
 // Casters the game does not draw this frame (or parts it left out) whose shadow can reach the visible ground
 // cast through ShadowCasterMesh, read by the world's draw from the objects' parts. ShadowCasterArea: whether
 // this frame gets a map, and the ground rectangle (landscape's space) a caster's centre must stand in: the
@@ -162,7 +163,7 @@ struct ShadowCasterSphere {
 };
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere);
 bool CasterPartDrawn(const FigureMesh* part);
-float CasterStrength(const void* object);
+float CasterStrength(const Object3D* object);
 struct ShadowMesh {
     const VertexPacket* positions = nullptr;  // as MeshDraw's
     int positionCount = 0;
@@ -183,7 +184,7 @@ struct ShadowMesh {
     bool moved = false;
     bool unit = false;  // a unit's part: no roof over the weather (render_weather.cpp's roof map)
 };
-void ShadowCasterMesh(const void* object, const ShadowMesh& mesh);
+void ShadowCasterMesh(const Object3D* object, const ShadowMesh& mesh);
 // The walk's time counts as the shadow map's CPU time.
 void BeginShadowWalk();
 void EndShadowWalk();

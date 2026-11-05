@@ -190,7 +190,7 @@ struct MeshBatch {
     bool flat = false;        // the flat geometry (decals, markers), no corners
     bool decal = false;       // flat: a ground print (MeshDraw::groundDecal), shaded as the ground under it; `box` its
                               // positions' box in the landscape's space
-    const void* caster = nullptr;   // render::BeginCaster's object, if any
+    const Object3D* caster = nullptr;   // render::BeginCaster's object, if any
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map
 // A unit's mesh: its corners' box in model space (low xyz, high xyz), and the nearest map depth of its
 // object's boxes (PrepareShadows; above 1: none).
@@ -208,7 +208,7 @@ struct MeshBatch {
     int lighting = -1;        // index into Frame::meshLights: lit on the GPU, else the vertex colours
     bool occluded = false;    // a world mesh lit on the GPU: it takes the ambient occlusion (DrawOcclusion)
     float weather[2] = {};    // a unit's own wetness and snow (PrepareUnitWeather)
-    const void* interfaceUnit = nullptr;   // an interface figure of that world unit (BeginInterfaceUnit): its weather
+    const Object3D* interfaceUnit = nullptr;   // an interface figure of that world unit (BeginInterfaceUnit): its weather
 };
 
 // The image is read at the blit.
@@ -305,7 +305,7 @@ constexpr float kLeastStrength = 0.5f;
 struct ShadowFrame {
     bool haveSun = false;
     Vector3 sun{};
-    std::unordered_map<const void*, float> casters;   // object -> strength (render::CastsShadow; the last wins)
+    std::unordered_map<const Object3D*, float> casters;   // object -> strength (render::CastsShadow; the last wins)
     bool prepared = false;
     bool on = false;          // the map is made this frame: receivers sample it
     bool haveClouds = false;  // render::CloudShadows handed over
@@ -723,10 +723,10 @@ int PointShadowSlot(const Frame& frame, int sceneLight);
 // light's pointColour w its point shadow + 1 (0 none), the shadow map's light and the daylight colours.
 void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* params);
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
-const void* CurrentCaster();
+const Object3D* CurrentCaster();
 bool CurrentCasterFigure();
 // The world unit an interface figure being handed over shows (render::BeginInterfaceUnit), or null.
-const void* CurrentInterfaceUnit();
+const Object3D* CurrentInterfaceUnit();
 void NoteCasterPart(const FigureMesh* part);
 void ShadowFrameDone();
 
