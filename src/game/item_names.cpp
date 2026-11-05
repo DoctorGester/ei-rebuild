@@ -26,9 +26,10 @@ int Number(const ItemRecordHead* record) { return record ? record->number : -1; 
 // "unhuma" + the item's model name.
 std::string HumanFigureName(Item* item) { return "unhuma" + item->ModelName(); }
 
-// The weapon or armour picture name "initwe<code><number>weapon" / "initar<code><number>armor" (no null check on
-// the record).
+// The weapon or armour picture name "initwe<code><number>weapon" / "initar<code><number>armor"; empty without
+// the record.
 std::string WeaponOrArmorPicture(bool weapon, const ItemRecordHead* record) {
+    if (!record) return {};
     if (weapon) return str::Format("initwe%s%dweapon", TypeCode(kWeaponCodes, record->type), record->number);
     return str::Format("initar%s%darmor", TypeCode(kArmorCodes, record->type), record->number);
 }
@@ -137,7 +138,8 @@ std::string ItemQuest::FigureName() { return str::Format("quitem%04d", Number(Ge
 std::string ItemQuest::PictureName() { return str::Format("initqu%ditem", Number(GetPrototype())); }
 
 std::string ItemScroll::FigureName() {
-    return str::Format("spell%04d", SpellAt(PrototypeIndex(spell->prototypeId))->icon);
+    const SpellRecord* record = spell ? SpellAt(PrototypeIndex(spell->prototypeId)) : nullptr;
+    return record ? str::Format("spell%04d", record->icon) : std::string();
 }
 
 std::string ItemScroll::PictureName() { return "initqi1item"; }
@@ -152,11 +154,18 @@ std::string ItemLoot::FigureName() {
     case LootRecordType::Armor: {
         bool weapon = recordType == LootRecordType::Weapon;
         const ItemRecordHead* record = WeaponOrArmorAt(weapon, index);
+        if (!record) return {};
         return str::Format("%s_%.2d.%d", TypeCode(weapon ? kWeaponCodes : kArmorCodes, record->type), record->number,
                            record->variant);
     }
-    case LootRecordType::Quick: return str::Format("qitem%04d", QuickItemAt(index)->number);
-    case LootRecordType::Spell: return str::Format("prototype%04d", SpellAt(index)->icon);
+    case LootRecordType::Quick: {
+        const QuickItemRecord* record = QuickItemAt(index);
+        return record ? str::Format("qitem%04d", record->number) : std::string();
+    }
+    case LootRecordType::Spell: {
+        const SpellRecord* record = SpellAt(index);
+        return record ? str::Format("prototype%04d", record->icon) : std::string();
+    }
     case LootRecordType::Modifier: return str::Format("modifier%04d", index);
     default: return {};
     }
@@ -171,7 +180,10 @@ std::string ItemLoot::PictureName() {
         bool weapon = recordType == LootRecordType::Weapon;
         return WeaponOrArmorPicture(weapon, WeaponOrArmorAt(weapon, index));
     }
-    case LootRecordType::Quick: return str::Format("initqi%ditem", QuickItemAt(index)->number);
+    case LootRecordType::Quick: {
+        const QuickItemRecord* record = QuickItemAt(index);
+        return record ? str::Format("initqi%ditem", record->number) : std::string();
+    }
     case LootRecordType::Spell:
     case LootRecordType::Modifier: return "initqi1item";
     default: return {};

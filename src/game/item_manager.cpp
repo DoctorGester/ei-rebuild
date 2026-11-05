@@ -27,8 +27,7 @@ const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 
 // --- The temporary database record ---------------------------------------------------------------
 // FillItem creates a record of the item's kind, fills only the fields the item's InitFromRecord reads, and
-// destroys it again. The prototype and material records are read without a null check where the game reads them
-// without one (a missing record faults there).
+// destroys it again. It makes no item without a prototype (the original faulted reading it).
 
 // The temporary record for an item of `kind`; null for other kinds.
 std::unique_ptr<ItemRecordHead> NewRecord(ItemKind kind) {
@@ -115,7 +114,7 @@ std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHe
         return IndexIn(g_itemDatabase.loot, prototype);
     }
     default:
-        return 0;   // not reached: the record of an unknown kind is null and faulted above
+        return 0;   // not reached: FillItem makes no item of an unknown kind
     }
 }
 
@@ -239,9 +238,9 @@ void ItemConstructor::Cancel() {
 
 bool ItemConstructor::FillItem() {
     ItemKind kind = item->Kind();
-    if (NeedsMaterial(kind) && !material) return false;
-
     std::unique_ptr<ItemRecordHead> record = NewRecord(kind);
+    if (!prototype || !record || (NeedsMaterial(kind) && !material)) return false;
+
     FillCommon(record.get(), prototype, material);
     std::uint32_t index = FillKind(kind, record.get(), prototype, material);
 
@@ -276,7 +275,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
         text = str::Left(text, bracket);
         str::TrimRight(text);
     }
-    std::vector<std::string> parts;      // the name split at '.'
+    std::vector<std::string> parts;      // the name split at '.': at least one piece, empty for an empty name
     parts = text::Split(text, '.');
     for (std::string& part : parts) str::MakeLower(part);
 

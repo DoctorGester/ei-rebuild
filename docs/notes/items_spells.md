@@ -21,9 +21,11 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 - Eight tables of fixed-size records (materials, weapons, armors, quick items and spell containers, quest items, loot
   items, spells, spell modifiers), each an `itemdb::NamedRecordTable<Record>` (a vector plus a name index) or a
   `CodeIndexedTable` (spells and modifiers by code). `At` checks `index < (end - begin) / stride` (signed division,
-  unsigned compare), else null; callers then read fields of the null record, so an index out of range faults (kept:
-  `Field<T>()`). `IndexOf` is the byte offset over the record size, signed, also for a null record. `Named` files a
-  null record under an unknown name.
+  unsigned compare), else null. The original's callers read fields of the null record and faulted; the items area
+  tests it: the packed-id weapon stats give 0 (type NoWeapon, damage type 6), the names are empty, a loot's price -1,
+  and FillItem makes no item without a prototype. Callers elsewhere (item texts, UI, unit skins) and the
+  `ItemWeapon` / `ItemArmor::GetType` still read the record untested (C154a). `IndexOf` is the byte offset over
+  the record size, signed, also for a null record. `Named` files a null record under an unknown name.
 - Loading (startup and each switch of the resource database): "items.idb" (materials, weapons, armors, quick items,
   quest items, loot) and "spells.sdb" (spells, modifiers, three recipe lists) from database.res, each table through a
   ChunkArchive over the file's memory stream; each record filed in the index (a material under its key, an item
@@ -210,7 +212,7 @@ p/5 or q > p/5, else trunc(110 - |(q - p/7) / (p/7 - p/5)| x 100)%; instruction 
 FillSpellMaps keeps one entry per modifier kind letter a, d, e, m, r, t (replacing a held one unless at least as strong;
 less or unordered replaces) and f / i under both letters; GenerateSpells keeps the level reached in a register (the stored
 level is not updated); LoadLists reuses its count and three material ints for every section (a failed read keeps the
-previous value). Kept: an item whose build fails is dereferenced; the by-name lookups insert a null entry for every
+previous value). An item whose build fails is left out (the original used the null item). Kept: the by-name lookups insert a null entry for every
 unknown name; a material entry with an unknown material is loaded with a null record. SaveLists writes a spell's code as
 its first 4 bytes (the original added a stack byte after a 4-letter code).
 

@@ -1,0 +1,6 @@
+id = "C154a"
+title = "Rule-9: item record reads outside the items area (texts, UI, unit skins) and the item type getters"
+group = "cleanup"
+depends = ["C154"]
+note = "C154 made the items area test out-of-range records (stats 0, names empty, no item without a prototype). Still read untested: TextManager::GetItemTexts and RecordKeys (text_manager.cpp:46-64, 106-149: WeaponAt/ArmorAt/QuickItemAt/LootAt/QuestItemAt/MaterialAt/SpellAt/SpellModifierAt ->name/code/key), unit_skins.cpp:211, 220, 231 (ArmorAt/WeaponAt ->type), ui_camp_deals.cpp:99-101 (AddSpell/AddModifier of a null record), ui_camp_input.cpp:149 (MaterialAt(j) over the count), ui_item_info.cpp:354 (MaterialAt ->key) and the locals at 459, 493-495, 550, 588, 674, ui_panel_draws.cpp:153-163, ui_screens.cpp:149-169. ItemWeapon::GetType / ItemArmor::GetType (item.cpp) dereference their prototype and their results index unit tables (unit_items.cpp:35 armor[type], unit_armour_layers, hoover_loot): decide where an item whose prototype is out of range (a save from another database) is refused, probably at item load, so the getters can rely on it. Goldens the same (no data has such records)."
+order = 1159

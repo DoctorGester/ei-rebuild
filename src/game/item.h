@@ -269,7 +269,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    // "spell<the carried spell's prototype icon>" (no null checks).
+    // "spell<the carried spell's prototype icon>"; empty without the spell or its record.
     std::string FigureName() override;
     // "initqi1item".
     std::string PictureName() override;
@@ -306,8 +306,8 @@ public:
     std::uint32_t index = 0;    // record index
 };
 
-// Weapon stats from a packed id. Each faults if the prototype index is out of range; an out-of-range
-// material reads the multiplier from address 0 likewise.
+// Weapon stats from a packed id. An out-of-range prototype or material gives 0 (the type NoWeapon, the damage
+// type 6); the original faulted.
 WeaponType WeaponTypeOf(std::uint32_t packedId);
 float WeaponMinDamage(std::uint32_t packedId);
 float WeaponMaxDamage(std::uint32_t packedId);
