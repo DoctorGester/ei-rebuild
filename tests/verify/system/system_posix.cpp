@@ -19,6 +19,7 @@
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <netinet/in.h>
+#include <objc/runtime.h>
 #include <os/os_sync_wait_on_address.h>
 #include <sys/proc_info.h>
 #include <sys/sysctl.h>
@@ -656,6 +657,29 @@ void WindowReport(FILE*) {}
 bool ShowWithoutActivating(void*, bool) { return false; }
 
 std::string WindowClass(void*) { return {}; }
+
+#if defined(__APPLE__)
+namespace {
+// CGRect's layout (four CGFloat, i.e. double), without CoreGraphics' headers: their MacTypes.h declares a global Point,
+// Rect and Size, as src/lib/rect.h does.
+struct Frame {
+    double x, y, width, height;
+};
+// NSWindow's constrainFrameRect:toScreen:, which AppKit asks when a window is ordered in or framed: the frame as given.
+Frame FrameAsGiven(id, SEL, Frame frame, id) { return frame; }
+} // namespace
+
+// The window's class (SDL's NSWindow subclass, or the one key-value observing made of it) answers
+// constrainFrameRect:toScreen: with the frame unchanged, so AppKit neither shortens it nor moves it on the screen.
+void KeepClientSize(void* window) {
+    if (!window) return;
+    class_replaceMethod(object_getClass(static_cast<id>(window)), sel_registerName("constrainFrameRect:toScreen:"),
+                        reinterpret_cast<IMP>(reinterpret_cast<void (*)()>(&FrameAsGiven)),
+                        "{CGRect={CGPoint=dd}{CGSize=dd}}@:{CGRect={CGPoint=dd}{CGSize=dd}}@");
+}
+#else
+void KeepClientSize(void*) {}
+#endif
 
 } // namespace ei::verify::sys
 

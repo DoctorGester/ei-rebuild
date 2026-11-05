@@ -713,6 +713,8 @@ void WindowReport(FILE* f) {
         std::fprintf(f, "\nWINDOW: in sight: %s\n", g_firstSeen.c_str());
 }
 
+void KeepClientSize(void*) {}
+
 bool ShowWithoutActivating(void* window, bool minimised) {
     ShowWindow(static_cast<HWND>(window), minimised ? SW_SHOWMINNOACTIVE : SW_SHOWNOACTIVATE);
     return true;

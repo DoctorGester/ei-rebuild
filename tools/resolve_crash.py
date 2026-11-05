@@ -319,13 +319,23 @@ def find_crash(lines):
                 or 'standalone: no code at' in l), default=None)
 
 
+def is_pe(path):
+    """Whether path is a file that starts as a PE image does (the stub data's game.exe is empty)."""
+    try:
+        with open(path, 'rb') as f:
+            head = f.read(64)
+    except OSError:
+        return False
+    return len(head) == 64 and head[:2] == b'MZ'
+
+
 def guess_game_exe(logdir, root=ROOT):
     """The install's game.exe for a run folder named <scenario>-<install> (tools/exe_path.py; vanilla's when it is not a
-    Rebirth run), or None."""
+    Rebirth run), or None (also when it is no PE image)."""
     import exe_path
     vanilla, rebirth = exe_path.install_exes(root)
     for p in (rebirth, vanilla) if os.path.basename(os.path.normpath(logdir)).endswith('-rebirth') else (vanilla,):
-        if os.path.exists(p):
+        if is_pe(p):
             return p
     return None
 

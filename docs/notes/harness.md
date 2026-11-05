@@ -447,20 +447,39 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
 (linux.md, "The CI job"), on SDL_GPU's Direct3D 12 driver with WARP, the software adapter.
 - **Builds**: `build-release` and `build-verify` in parallel, each `build.cmd` of its name (the runner's Visual Studio,
   found by vswhere and given as EI_VSROOT; no sccache: EI_COMPILER_CACHE=0; the shader toolchain's build folder cached),
-  with the warnings and build checks included. The verify job uploads `build/verify/ei-rebuild.exe`; a failed build
-  check with the exe linked is a warning, so the suites still run.
-- **Suites**: eight jobs (input `shards`), each its share of the sorted scenarios, image suite then Rebirth's, one game
-  at a time, `--golden`; the stub set fetched and unpacked as in the Linux job (same variable and secrets). Inputs:
-  `scenarios` (a few names: also give `shards` 1), `suites` (full, image, builds).
+  with the warnings and build checks included. The verify job uploads `build/verify/ei-rebuild.exe` and its `.map` (so
+  run_all names a crashed run's stack; the stub data's game.exe is empty, which resolve_crash.py leaves out); a failed
+  build check with the exe linked is a warning, so the suites still run.
+- **Suites**: eight jobs (input `shards`), each its share of the sorted scenarios, image suite then Rebirth's,
+  `--golden`; the stub set fetched and unpacked as in the Linux job (same variable and secrets). Inputs: `scenarios` (a
+  few names: also give `shards` 1; the names given run even when skipped), `suites` (full, image, builds), `jobs`
+  (games at once in a job, default 1: two at once, run 42039247533, made each run 1.86 times as long, 149 runs that
+  passed both ways taking 10601 s against 5690 s, so 7% more runs per hour, and 30 runs that pass one at a time went
+  past a limit or failed, among them every recording part that prepares a save) and `retries` (run_all's, default 0: in run 42016421240, with run_all's default
+  of 1, the reruns of runs that had timed out took a third of each job's time, 1220 of 3678 s in one, and three of the
+  eight jobs were cut at their 120 minutes). After each suite a folded group in
+  the step's log holds `tools/ci_details.py`'s lines for every run that did not pass or differs (as the macOS job's
+  "Differences in detail" below): the job keeps no run folders.
 - **WARP**: SDL's D3D12 driver takes the high-performance adapter (`EnumAdapterByGpuPreference`), which on the GPU-less
   runner is the Basic Render Driver, i.e. WARP. SDL has no switch for it, so third_party/SDL/README.txt lists ours:
   the hint (so the environment variable) `EI_GPU_D3D12_WARP=1` picks `IDXGIFactory4::EnumWarpAdapter` in the driver's
   support check and in the device. The workflow sets it everywhere; on a desktop with a GPU it runs the same path
   locally (`gpu: direct3d12 device (Microsoft Basic Render Driver)` in the run's log tells it took effect; `work.py test`
   carries every EI_* variable to the games).
-- **Skipped**: `WINDOWS_SKIP`: the scenarios that say `resolution desktop` (the five ui_widescreen ones and the net pair /
-  zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small. Anything else
-  is added only for a measured reason.
+- **Skipped**: `WINDOWS_SKIP`: the scenarios that say `resolution desktop` (the five ui_widescreen ones and the net pair
+  / zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small; and the 36 that ran
+  past a real-time limit on WARP at scale 3, one game at a time (run 42016421240, four of them in 41998203418): their
+  `timeout` or a frames step's ("N frames still to go after 48 s": WARP draws a heavy frame in up to 3 s on 4 vCPUs),
+  after which the scenario goes on early and its digest differs. They are the drawn-frame, weather, camera and
+  shadow-view ones, every two-game net_pair one that ran, the recordings app_record and rec_menu_newgame, and others
+  that draw many frames (the workflow lists them). A scenario that passes on one install and times out on the other
+  (levers_key, render_shadows_shimmer, render_unit_skin and zone_gz15h_tornado on Rebirth's) is skipped on both.
+  Anything else is added only for a measured reason. Left in on purpose: ui_base_dialogue and ui_gallery_base, which
+  crashed in SDL's D3D12 driver (D3D12_PushVertexUniformData) in the base's dialogue, ui_gallery_base after WARP had
+  suspended the device (`gpu: ... The GPU device instance has been suspended` on every texture made after it; H62f);
+  Rebirth's render_shadows_decals, whose prints are blank in the Rebirth stub set (linux.md, "The stub data"). Of the
+  rest, 182 of 220 runs passed in that run (the slowest: render_weather_shelter 438 s, net_pair_kick 185 to 303 s,
+  net_host_death 258 s, camera_drawn 202 s; most take 10 to 120 s).
 
 
 ## The macOS CI job
@@ -481,12 +500,14 @@ job, never Release, nothing published or uploaded:
   items; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
   goldens block, the GPU device line and each run's `TIMING: median frame` (harness_report.txt). Goldens that differ on
   Metal are listed, not excused: no check is widened for it.
-- **Differences in detail** (always runs): for each differing scenario (run folder `runs/<name>-standalone`), `golden.py
-  compare --records 3 --fields 30` (the first differing digest records with their world update, frame and tick, and the
-  fields); the log lines on the game window's client area (made, shown, set, with the size asked for and the display's
-  usable area), the present mode ("render: presenting ... asked for mode N, got M"), the device, focus and the cursor
-  confinement; then the log from 15 frames before the first differing record's frame to 2 after it, between the
-  frame-stamped lines (each step, each replayed input event, each pause and resume); and its median frame. The harness
+- **Differences in detail** (always runs; `tools/ci_details.py`): for each scenario that did not pass or differs (run
+  folder `runs/<name>-standalone`), the report's failures, `golden.py compare --records 3 --fields 30` (the first
+  differing digest records with their world update, frame and tick, and the fields); the log lines on the game window's
+  client area (made, shown, set, with the size asked for and the display's usable area; `windowsize`; the resolution),
+  the present mode ("render: presenting ... asked for mode N, got M"), the device, focus and the cursor confinement;
+  then the log from 15 frames before the first differing record's frame to 2 after it, between the frame-stamped lines
+  (each step, each replayed input event, each pause and resume; a failed run: its last 20), a crash's stack by function
+  names, and its median frame. The harness
   drops every system event, so a focus or occlusion event cannot pause a game there; a `world paused 1` in a digest is the
   game's own pause (the menu). Metal has no Mailbox, so the harness's present mode falls back to Immediate (it fell back
   to Vsync before H62a: every frame 16.7 ms).

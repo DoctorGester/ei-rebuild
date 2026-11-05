@@ -155,9 +155,14 @@ EI_BUILD_DIR=$PWD/build/macos-verify EI_GAME_VANILLA=~/workspace/ei \
     python3.14 tools/run_all.py --vanilla-only --golden --jobs 6        # or scenario names
 ```
 
-No virtual display: every game opens its window on the desktop. Against the goldens (2026-11-04, M4 Pro, macOS 15.3,
-the vanilla install at ~/workspace/ei, a 3456x2234 display): 155 runs in 71 s at 6 at once, 144 the same, 6 without a
-golden, and these five differ:
+No virtual display: every game opens its window on the desktop. AppKit fits a titled resizable window taller than the
+screen into it when the window is shown (`constrainFrameRect:toScreen:`; setting the size again after the show did not
+hold (run 42012600644)): the CI runner's 1024x768 display made the 960x720 client 960x645 and every recorded click,
+the minimap's and the mouse moves landed elsewhere (rec_save_load, render_water, render_stats; H62c). The harness's
+window class answers that method with the frame unchanged (sys::KeepClientSize, system_posix.cpp), so the client is
+the size asked for, past the screen's bottom where it must be; the log's "client area ... shown" line says which.
+Against the goldens (2026-11-04, M4 Pro, macOS 15.3, the vanilla install at ~/workspace/ei, a 3456x2234 display): 155
+runs in 71 s at 6 at once, 144 the same, 6 without a golden, and these five differ:
 - ui_widescreen_dialogue, ui_widescreen_hud and render_present_fullscreen take the display's size (`resolution
   desktop`, full screen); the goldens are a 3840x2160 desktop's, as on Linux (linux.md, "The harness").
 - net_pair_master: the peer lists the server one poll sooner, as on Linux.
