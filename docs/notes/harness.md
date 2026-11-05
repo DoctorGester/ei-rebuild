@@ -481,8 +481,9 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   (levers_key, render_shadows_shimmer, render_unit_skin and zone_gz15h_tornado on Rebirth's) is skipped on both.
   Anything else is added only for a measured reason. Left in on purpose: ui_base_dialogue and ui_gallery_base, which
   crashed in SDL's D3D12 driver (D3D12_PushVertexUniformData) in the base's dialogue, ui_gallery_base after WARP had
-  suspended the device (`gpu: ... The GPU device instance has been suspended` on every texture made after it; H62f);
-  Rebirth's render_shadows_decals, whose prints are blank in the Rebirth stub set (linux.md, "The stub data"). Of the
+  suspended the device (`gpu: ... The GPU device instance has been suspended` on every texture made after it; H62f).
+  Rebirth's render_shadows_decals failed on blank ground prints in the Rebirth stub set (H62e repacked it, linux.md,
+  "The stub data"; not yet seen in a CI run). Of the
   rest, 182 of 220 runs passed in that run (the slowest: render_weather_shelter 438 s, net_pair_kick 185 to 303 s,
   net_host_death 258 s, camera_drawn 202 s; most take 10 to 120 s).
 
