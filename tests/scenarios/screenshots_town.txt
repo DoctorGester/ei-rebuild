@@ -1,0 +1,37 @@
+# D7: README screenshots of the town bz1g: by day with the sun's shadows (docs/screenshots/rebirth_town_shadows.png,
+# Rebirth's data) and at night with its torches (night_town.png, the GOG data).
+# Not in the suites (run_all leaves screenshots_* out): run it by name, one game per work.py call (docs/notes/harness.md,
+# "Screenshots"), and look at the frame before it replaces the PNG. Frames only, no golden.
+resolution 3840x2160
+widescreen 1
+msaa 8
+anisotropy 16
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+console @GodMode(0,1)
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+climate 0
+console @FixWorldTime(14)
+wait 3000
+move 400 20
+camera 62 52 160 24 40
+frames 5
+freeze
+capture town_day
+unfreeze
+console @FixWorldTime(23)
+wait 4000
+camera 59.25 54.25 135 24 45
+frames 5
+freeze
+capture town_night
+unfreeze
+report
+quit

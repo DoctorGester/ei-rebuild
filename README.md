@@ -16,12 +16,19 @@ files with goldens that were the same as the original game's runs when the harne
 
 ## Screenshots
 
+Taken at 3840x2160 with 8x MSAA and 16x anisotropic filtering by the harness's `screenshots_*` scenarios, shown at
+1920x1080.
+
 | | |
 |---|---|
-| ![A Rebirth town in widescreen with sun shadows](docs/screenshots/rebirth_town_shadows.png) | ![The widescreen HUD at 3840x2160 on the GOG data](docs/screenshots/widescreen_hud.png) |
-| Rebirth data: a town at 3840x2160 with the new renderer's sun shadows | GOG data: the widescreen HUD at 3840x2160 |
+| ![A Rebirth town by day with sun shadows](docs/screenshots/rebirth_town_shadows.png) | ![The widescreen HUD on the GOG data](docs/screenshots/widescreen_hud.png) |
+| Rebirth data: the town by day with the new renderer's sun shadows | GOG data: the widescreen HUD, the unit panel's info page open |
 | ![Snowfall in a Rebirth forest](docs/screenshots/rebirth_snow.png) | ![A town at night lit by a torch](docs/screenshots/night_town.png) |
-| Rebirth data: snowfall | GOG data: a town at night with torch light |
+| Rebirth data: snowfall, with the trees' shadows on the snow | GOG data: the town at night with torch light |
+| ![The sea at sunset](docs/screenshots/water_sunset.png) | ![A fight with spells](docs/screenshots/battle_spells.png) |
+| GOG data: the sea at sunset, the sky and the low sun reflected in the waves | Rebirth data: a fight with a fire wall, fireballs and lightning |
+| ![Lost in Astral](docs/screenshots/lost_in_astral.png) | ![The main menu's list of mods](docs/screenshots/mod_list.png) |
+| Rebirth data: the Lost in Astral mod at sunset | Rebirth data: the main menu's list of mods |
 
 ![The main menu at night in the rain](docs/screenshots/main_menu_rain.png)
 

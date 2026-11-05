@@ -1,0 +1,37 @@
+# D7: README screenshot of snowfall on the snow map gz11k (docs/screenshots/rebirth_snow.png, Rebirth's data).
+# Not in the suites (run_all leaves screenshots_* out): run it by name, one game per work.py call (docs/notes/harness.md,
+# "Screenshots"), and look at the frame before it replaces the PNG. Frames only, no golden.
+resolution 3840x2160
+widescreen 1
+msaa 8
+anisotropy 16
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+console @GodMode(0,1)
+zone gz11k 0
+waitzone 20 gz11k
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @FixWorldTime(11)
+console @SetWeather("snow")
+wait 15000
+# The game stops its weather at random (WorldServer::UpdateWeather): asked for again.
+console @SetWeather("snow")
+# Both side panels slid out (the map's sling button, the unit panel's: ui_widescreen_hud.txt).
+click 793 15
+frames 3
+click 7 15
+frames 3
+move 400 20
+wait 5000
+camera 490 336 60 20 38
+frames 5
+freeze
+capture snow
+unfreeze
+report
+quit

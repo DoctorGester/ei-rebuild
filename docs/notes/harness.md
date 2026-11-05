@@ -38,6 +38,18 @@ The scheduler that `work.py test` feeds is the main checkout's code: it plays a 
 branch that changes how run_all starts a game is checked with its own `python tools\run_all.py` (machine slots still
 apply), not through the scheduler, until it is merged.
 
+**Screenshots** (D7): the README's and the release notes' pictures (`docs/screenshots`) come from the
+`tests/scenarios/screenshots_*.txt` scenarios, which no suite plays (run_all's `SCREENSHOT_PREFIX`; the CI workflows
+leave them out too) and which have no goldens: 3840x2160, `widescreen 1`, `msaa 8`, `anisotropy 16`, the side panels
+slid out where the HUD is not the subject (`click 793 15`, `click 7 15`), the camera placed by `camera`. Run them one
+game per `work.py test` call (`work.py test <ID> --vanilla-only screenshots_town`, then the next; the scheduler
+ignores `--jobs` and starts a batch's runs at once): a dozen 4K games with 8 samples at once hung the GPU
+(DXGI_ERROR_DEVICE_HUNG, "the shadow map's pass could not begin", or a crash after it) in most of them; one at a time
+they pass. Each frame is then halved to 1920x1080 (Catmull-Rom) and written as a PNG, its channels rounded to 7, 6 or
+5 bits where 8 make a file over about 1.5 MB (the game's textures hide the steps; D7's PNGs took 5 to 7), and looked at
+before it is kept. Lower camera pitches over the sea show the water plane's far edge (screenshots_water keeps 32
+degrees). Text is smoothed in harness runs as in play, so the captures show the game's text as players see it.
+
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]` before the game starts
 (`tools/prepare_scenario.py`): the game sees those files under its `saves\` (e.g. `magic_traps.txt` and
 `tools/make_trap_mob.py`).

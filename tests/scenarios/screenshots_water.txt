@@ -1,0 +1,32 @@
+# D7: release-notes screenshot of the sea at sunset on zone1's west beach, the sky and the low sun reflected in the
+# waves (docs/screenshots/water_sunset.png, the GOG data). Lower pitches showed the water plane's far edge.
+# Not in the suites (run_all leaves screenshots_* out): run it by name, one game per work.py call (docs/notes/harness.md,
+# "Screenshots"), and look at the frame before it replaces the PNG. Frames only, no golden.
+resolution 3840x2160
+widescreen 1
+msaa 8
+anisotropy 16
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+console @GodMode(0,1)
+climate 0
+console @FixWorldTime(19)
+wait 3000
+# Both side panels slid out (the map's sling button, the unit panel's: ui_widescreen_hud.txt).
+click 793 15
+frames 3
+click 7 15
+frames 3
+move 400 20
+camera 34 86 30 28 32
+frames 5
+freeze
+capture water
+unfreeze
+report
+quit

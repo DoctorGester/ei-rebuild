@@ -59,9 +59,8 @@ void WriteFailed(std::string_view path, std::intptr_t handle, unsigned count, un
 
 // ---- Other programs ----------------------------------------------------------------------------------------------
 
-// Whether the run keeps apart from the desktop it shares with other programs: its text unsmoothed whatever the
-// desktop's setting (FontSmoothing false) and no other copy of the game counted (BringOtherInstanceForward false). A
-// harness run is (its games run side by side, on any machine).
+// Whether the run keeps apart from the desktop it shares with other programs: no other copy of the game counted
+// (BringOtherInstanceForward false). A harness run is (its games run side by side, on any machine).
 bool IsolatedRun();
 
 } // namespace platform

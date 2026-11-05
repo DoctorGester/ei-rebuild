@@ -210,7 +210,7 @@ jobs:
           export EI_BUILD_DIR="$(cygpath -w "$PWD/build/verify")" EI_GAME_VANILLA="$DATA_WIN\\vanilla" EI_GAME_REBIRTH="$DATA_WIN\\rebirth"
           names="$SCENARIOS"
           if [ -z "$names" ]; then
-            names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -vxF -f <(tr ' ' '\n' <<< "$WINDOWS_SKIP"))
+            names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -v '^screenshots_' | grep -vxF -f <(tr ' ' '\n' <<< "$WINDOWS_SKIP"))
           fi
           names=$(tr ' ' '\n' <<< "$names" | grep . | sort | awk -v n="$SHARDS" -v s="$SHARD" '(NR - 1) % n == s' | tr '\n' ' ')
           echo "shard $SHARD of $SHARDS: $names"

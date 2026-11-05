@@ -3847,7 +3847,7 @@ struct Harness {
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
 
         image::ObserveConsoleLines(&OnConsoleLine);
-        g_answering = true;   // the overlay, the font smoothing, the other game window (platform/game_answers.cpp)
+        g_answering = true;   // the overlay, the other game window (platform/game_answers.cpp)
         if (g_deterministic) {
             clock::InstallVirtual(&TickLength());
             image::SetWaitForVsync(false);   // frames need not wait for the display

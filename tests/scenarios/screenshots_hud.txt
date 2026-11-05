@@ -1,0 +1,30 @@
+# D7: README screenshot of the widescreen HUD at 3840x2160 on zone1, the unit panel's info page open (its texts
+# smoothed; docs/screenshots/widescreen_hud.png, the GOG data).
+# Not in the suites (run_all leaves screenshots_* out): run it by name, one game per work.py call (docs/notes/harness.md,
+# "Screenshots"), and look at the frame before it replaces the PNG. Frames only, no golden.
+resolution 3840x2160
+widescreen 1
+msaa 8
+anisotropy 16
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitwindow 15 battle
+console @GodMode(0,1)
+climate 0
+console @FixWorldTime(10)
+wait 3000
+# The unit panel's info page (its third body part button, layout -124, 175).
+click 7 175
+frames 5
+move 400 20
+wait 1000
+frames 5
+freeze
+capture hud
+unfreeze
+report
+quit

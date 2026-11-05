@@ -3,8 +3,9 @@
 usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
                                [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--dzn | --lavapipe]
        python tools/run_all.py --widescreen [scenario names...]
-  scenario names   e.g. combat items (default: every tests/scenarios/*.txt; on Linux less those its driver cannot
-                   match, LINUX_LEFT_OUT)
+  scenario names   e.g. combat items (default: every tests/scenarios/*.txt but the screenshots_* ones, which take
+                   the README's pictures and run by name only; on Linux less those its driver cannot match,
+                   LINUX_LEFT_OUT)
   default          the image, build\\verify\\ei-rebuild.exe (the game and the harness linked in), started by this
                    tool (launch()) on an install's data: EI_GAME_ROOT names the install, each run takes the
                    install folder's own EI_Plugin values as a player's exe does. Installs: "standalone" the vanilla data (vanilla goldens), "standalone-rebirth" Rebirth's
@@ -1126,13 +1127,19 @@ def has_golden(name, install, root=ROOT):
     return os.path.exists(os.path.join(root, 'tests', 'golden', name, install, 'golden.json'))
 
 
+# The scenarios that take the README's and the release notes' screenshots (docs/screenshots): by name only, never in
+# a suite (no goldens; 4K frames with msaa 8).
+SCREENSHOT_PREFIX = 'screenshots_'
+
+
 def plan(args, root=ROOT, left_out=()):
     """The runs args ask for: (scenario, install) pairs in the summary's order. install is standalone (the vanilla
     data) or standalone-rebirth; the run folder is <scenario>-<install>. Also used by tools/work_sched.py
     (`work.py test`), so a batch holds the runs run_all would make. left_out: scenarios that no names given means
     leaving out (linux_left_out())."""
     names = args.scenarios or sorted(n for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt'))
-                                     if (n := os.path.splitext(os.path.basename(p))[0]) not in left_out)
+                                     if (n := os.path.splitext(os.path.basename(p))[0]) not in left_out
+                                     and not n.startswith(SCREENSHOT_PREFIX))
     if args.widescreen and args.vanilla_only:
         sys.exit("--widescreen compares the image on the Rebirth install with addon's recorded frames: not with "
                  '--vanilla-only')

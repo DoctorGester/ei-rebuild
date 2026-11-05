@@ -1,16 +1,12 @@
-// The platform's machine on Linux and macOS (platform.h, "The machine"): text smoothing (the desktop smooths), the
-// primary display's size (SDL's) and the environment.
+// The platform's machine on Linux and macOS (platform.h, "The machine"): the primary display's size (SDL's) and the
+// environment.
 #include "platform/platform.h"
-
-#include "platform/seams.h"
 
 #include <SDL3/SDL.h>
 #include <cmath>
 #include <cstdlib>
 
 namespace platform {
-
-bool FontSmoothing() { return !IsolatedRun(); }
 
 std::optional<Size> PrimaryDesktopSize() {
     SDL_InitSubSystem(SDL_INIT_VIDEO);

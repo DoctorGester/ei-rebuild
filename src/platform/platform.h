@@ -81,8 +81,6 @@ std::string ArgumentsAfterSeparator(int argc, char** argv);
 
 // ==== The machine ====================================================================================================
 
-// Whether the desktop smooths the edges of text; true when it cannot tell.
-bool FontSmoothing();
 // The size in pixels of the primary monitor's current mode (whatever the process's DPI awareness); none when it cannot
 // tell.
 std::optional<Size> PrimaryDesktopSize();

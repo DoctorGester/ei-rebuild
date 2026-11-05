@@ -1,0 +1,5 @@
+id = "D7a"
+title = "Access violation after the GPU device is removed"
+group = "renderer"
+note = "D7 (2026-11-05): with a dozen 3840x2160 msaa-8 harness games at once the GPU hung (DXGI_ERROR_DEVICE_HUNG 0x887A0006). Most games stopped cleanly ('Can't draw the frame: the shadow map's pass could not begin' / 'The renderer cannot draw the frame'), but several crashed instead with C0000005 at ei-rebuild+3BBBED (address 8, verify build of D7's branch; stacks in that branch's build/verify/runs/screenshots_*-attempt1/ei-rebuild.log, e.g. screenshots_menu-standalone-attempt1). R41 keeps no device-loss recovery, so the fix is only that every path after a failed submission ends in the same clean fatal message, not a null dereference. Reproduce: the D7 probe (resolution 3840x2160, widescreen 1, msaa 8, waitmenu, frames 300) as about a dozen copies in one work.py test batch."
+order = 1220
