@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_switch",
+  "install": "vanilla",
+  "recorded": "2026-11-05",
+  "commit": "c7d69cc26",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MOD3a: a switch of mods in the main menu and back, then a new game; its plain twin starts the same new game without a switch (the two dumps equal)",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}
