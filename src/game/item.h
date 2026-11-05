@@ -64,23 +64,25 @@ public:
     // `target`, when of the same kind, gets (after its Destroy) this item's packed id, condition..magicLevel,
     // a copy of the spell (Spell::Clone with `spells`) and count 1. 0 for another kind.
     virtual bool CopyTo(Item* target, SpellManager* spells);
+    // The base price: `price`; the loot item's depends on what it stands for (ItemLoot::GetPrice).
     virtual float GetPrice() { return price; }
     // "" for a plain item.
     virtual std::string ModelName();
     virtual std::string FigureName();
     virtual std::string PictureName();
-    // The key the item works as on a lock (AcceptsKey, a lever's or a trap's ApplyScience): zeros; the quest
-    // item's has its id.
-    virtual LockKey GetUse();
-    // The item as the class it is: null from every class but that one (scrolls are quick items).
-    virtual ItemWeapon* AsWeapon() { return nullptr; }
-    virtual const ItemWeapon* AsWeapon() const { return nullptr; }
-    virtual ItemArmor* AsArmor() { return nullptr; }
-    virtual const ItemArmor* AsArmor() const { return nullptr; }
-    virtual ItemLoot* AsLoot() { return nullptr; }
-    virtual const ItemLoot* AsLoot() const { return nullptr; }
-    virtual ItemQuick* AsQuick() { return nullptr; }
-    virtual ItemQuest* AsQuest() { return nullptr; }
+    // The key the item works as on a lock (AcceptsKey, a lever's or a trap's ApplyScience): (8, the id, 0) for a
+    // quest item, zeros for the others.
+    LockKey GetUse();
+    // The item as the class its Kind() says (the item manager makes each kind's class): null for another kind
+    // (scrolls are quick items). Defined below the classes.
+    ItemWeapon* AsWeapon();
+    const ItemWeapon* AsWeapon() const;
+    ItemArmor* AsArmor();
+    const ItemArmor* AsArmor() const;
+    ItemLoot* AsLoot();
+    const ItemLoot* AsLoot() const;
+    ItemQuick* AsQuick();
+    ItemQuest* AsQuest();
     // The word in the place of a quest item's id, read from every class: the quest searches over a unit's
     // carried items (Player::HasLoot, the script's RemoveQuestItem) compare it without a class test, as in the
     // original (an original bug kept: docs/notes/items_spells.md).
@@ -152,8 +154,6 @@ class ItemWeapon : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
-    ItemWeapon* AsWeapon() override { return this; }
-    const ItemWeapon* AsWeapon() const override { return this; }
     std::uint32_t QuestWord() const override { return actionValue; }
 
     // The weapon type from the prototype (faults if the index is out of range).
@@ -190,8 +190,6 @@ class ItemArmor : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
-    ItemArmor* AsArmor() override { return this; }
-    const ItemArmor* AsArmor() const override { return this; }
     std::uint32_t QuestWord() const override { return std::bit_cast<std::uint32_t>(absorb[0][0]); }
 
     // The armor type from the prototype (faults if the index is out of range).
@@ -223,7 +221,6 @@ class ItemQuick : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
-    ItemQuick* AsQuick() override { return this; }
     std::uint32_t QuestWord() const override { return actionValue; }
 
     // "qitem<number>.<material name>" when the prototype's materialClass is not "none" ("uq" for a material
@@ -245,7 +242,6 @@ class ItemQuest : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
-    ItemQuest* AsQuest() override { return this; }
     std::uint32_t QuestWord() const override { return questItemId; }
 
     std::string FigureName() override;    // "quitem<number>"
@@ -255,8 +251,6 @@ public:
     bool IsSameAs(Item* other) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    // (8, the id, 0); the other classes return zeros.
-    LockKey GetUse() override;
 
     // the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
     // player's quest items, the zone's wanted list.
@@ -279,13 +273,7 @@ class ItemLoot : public Item {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
-    ItemLoot* AsLoot() override { return this; }
-    const ItemLoot* AsLoot() const override { return this; }
     std::uint32_t QuestWord() const override { return static_cast<std::uint32_t>(kind); }
-
-    // The base price. Depends on what the loot stands for (kind): itself (price), a material, or a record
-    // of another database (recordType).
-    float GetPrice() override;
 
     // By kind: a record's name ("<type>_<number>.<variant>" for weapons and armors, "qitem", "prototype"
     // (spells, by icon), "modifier" + number), "material<index>", or "litem<number>" for the loot itself.
@@ -293,6 +281,9 @@ public:
     // "initwe..." / "initar..." / "initqi..." for records, "initqi1item" for spells and modifiers,
     // "initlimt<index>item" for materials, "initlitr<number>item" for the loot itself.
     std::string PictureName() override;
+    // The base price. Depends on what the loot stands for (kind): itself (price), a material, or a record
+    // of another database (recordType).
+    float GetPrice() override;
     bool CopyTo(Item* target, SpellManager* spells) override;
     // The base's, then kind, recordType and index.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
@@ -305,6 +296,24 @@ public:
     LootRecordType recordType = {};  // for LootKind::Record
     std::uint32_t index = 0;    // record index
 };
+
+inline ItemWeapon* Item::AsWeapon() { return Kind() == ItemKind::Weapon ? static_cast<ItemWeapon*>(this) : nullptr; }
+inline const ItemWeapon* Item::AsWeapon() const {
+    return Kind() == ItemKind::Weapon ? static_cast<const ItemWeapon*>(this) : nullptr;
+}
+inline ItemArmor* Item::AsArmor() { return Kind() == ItemKind::Armor ? static_cast<ItemArmor*>(this) : nullptr; }
+inline const ItemArmor* Item::AsArmor() const {
+    return Kind() == ItemKind::Armor ? static_cast<const ItemArmor*>(this) : nullptr;
+}
+inline ItemLoot* Item::AsLoot() { return Kind() == ItemKind::Loot ? static_cast<ItemLoot*>(this) : nullptr; }
+inline const ItemLoot* Item::AsLoot() const {
+    return Kind() == ItemKind::Loot ? static_cast<const ItemLoot*>(this) : nullptr;
+}
+inline ItemQuick* Item::AsQuick() {
+    ItemKind kind = Kind();
+    return kind == ItemKind::Quick || kind == ItemKind::Scroll ? static_cast<ItemQuick*>(this) : nullptr;
+}
+inline ItemQuest* Item::AsQuest() { return Kind() == ItemKind::Quest ? static_cast<ItemQuest*>(this) : nullptr; }
 
 // Weapon stats from a packed id. Each faults if the prototype index is out of range; an out-of-range
 // material reads the multiplier from address 0 likewise.

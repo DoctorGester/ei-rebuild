@@ -167,8 +167,10 @@ void Item::AttachSpell(Spell* newSpell) {
     if (spell) price = spell->price + price;
 }
 
-// No key (the quest item's has its id).
-LockKey Item::GetUse() { return LockKey{0, 0, 0}; }
+LockKey Item::GetUse() {
+    if (const ItemQuest* quest = AsQuest()) return LockKey{8, quest->questItemId, 0};
+    return LockKey{0, 0, 0};
+}
 
 // --- ItemLink -----------------------------------------------------------------------------------
 
@@ -358,8 +360,6 @@ void ItemQuest::Save(ByteStream* stream) {
     Item::Save(stream);
     stream->WriteValue(questItemId);
 }
-
-LockKey ItemQuest::GetUse() { return LockKey{8, questItemId, 0}; }
 
 // --- ItemLoot -----------------------------------------------------------------------------------
 
