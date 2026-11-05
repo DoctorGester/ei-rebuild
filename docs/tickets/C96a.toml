@@ -4,6 +4,6 @@ group = "cleanup"
 model = "opus"
 depends = ["C96"]
 note = "C96's rest (style review round 2, item U7). C96 did the HUD panels, the options window, the scroll bar / slider and the multiplayer hero screen: UiWindow::HitRegion / PressRegion / PressedRegion return UiRegion*, RegionUnder(point) gives the region (null for none), RegionIndex(list, region) a slot list's index; a window keeps the regions and sprites it uses again in named members and compares with them (docs/notes/ui.md, section 7). Left, by window family: camp (ui_camp*.cpp, CampPages and its pages), save/load (SaveLoadWindow), escape menu, main menu and the difficulty box, message box, connection screen (its kRegion* constants), chat window, help window and page, global map, objectives (RefreshQuests trims to 21 sprites / 9 regions), exchange, briefing, the item panels (item strips, hero panels, trade, equip, stats), the spin and drop list controls, screen_layout's curtain indices (kHeroCurtains, PlaceCurtains by first index). Switch / comparisons on RegionAt numbers become names; the header comments listing what region n is go (keep the scenario notes' region numbers: the harness's region steps count regions). Creation order unchanged. Style only: goldens the same, float operation order untouched, no new forwarders. May split by family."
-order = 1166
+order = 1168
 status = "review"
 started = "2026-11-05"
