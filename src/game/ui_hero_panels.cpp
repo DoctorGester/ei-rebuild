@@ -10,6 +10,7 @@
 #include "party.h"
 #include "text_manager.h"
 #include "ui.h"
+#include "ui_mesh.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
 #include "unit.h"

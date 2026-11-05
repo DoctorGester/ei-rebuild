@@ -2,6 +2,8 @@
 // the click and double click (the input virtuals), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
+#include "ui_saveload.h"
+#include "ui_objectives.h"
 
 #include "camera.h"
 #include "combat.h"

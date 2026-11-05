@@ -2,6 +2,7 @@
 // top or bottom edge, the forwarding strip's draw and its two text surfaces' paints. See ui_screens.h
 // (UiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui.h"
+#include "ui_mesh.h"
 
 #include "ui_camp.h"
 #include "ui_item_info.h"

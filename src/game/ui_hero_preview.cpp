@@ -1,6 +1,7 @@
 // The hero preview of the camp and the multiplayer hero screen.
 // See ui.h (UiWindow::DrawHeroPreview) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui.h"
+#include "ui_scrollbar.h"
 
 #include "game_singletons.h"
 #include "map_object_shadow.h"

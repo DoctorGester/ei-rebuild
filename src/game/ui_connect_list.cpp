@@ -5,6 +5,8 @@
 // with an ellipsis, the selected server's name wrapped). See ui_screens.h and docs/notes/ui.md, section 5.
 #include "asset_text.h"
 #include "ui.h"
+#include "ui_scrollbar.h"
+#include "ui_mesh.h"
 #include "ui_screens.h"
 
 #include "net_classes.h"

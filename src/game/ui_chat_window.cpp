@@ -6,6 +6,7 @@
 #include "net_messages.h"
 #include "plugin_fixes.h"
 #include "ui.h"
+#include "ui_mesh.h"
 #include "ui_briefing.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"

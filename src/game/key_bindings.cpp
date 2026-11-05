@@ -12,6 +12,8 @@
 #include "lib/text_case.h"
 #include "text_split.h"
 #include "ui.h"
+#include "ui_options.h"
+#include "key_bindings.h"
 #include "game_singletons.h"
 
 #include <cstdint>

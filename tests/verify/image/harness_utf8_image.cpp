@@ -10,6 +10,7 @@
 #include "game/asset_text.h"
 #include "platform/harness_platform.h"
 #include "game/ui.h"
+#include "game/ui_chat_overlay.h"
 #include "platform/seams.h"
 #include "platform/platform.h"
 #include "lib/str.h"

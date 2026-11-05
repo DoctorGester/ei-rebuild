@@ -4,6 +4,7 @@
 #include "core_refcount.h"
 #include "texture.h"
 #include "ui_item_info.h"
+#include "ui_mesh.h"
 #include "plugin_fixes.h"
 
 #include "surface.h"

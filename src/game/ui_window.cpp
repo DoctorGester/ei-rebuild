@@ -5,6 +5,7 @@
 #include "material.h"
 #include "texture.h"
 #include "ui.h"
+#include "ui_mesh.h"
 #include "screen_layout.h"
 
 #include "lib/containers.h"

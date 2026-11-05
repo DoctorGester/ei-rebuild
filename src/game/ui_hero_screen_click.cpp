@@ -10,6 +10,8 @@
 #include "map_object_figures.h"
 #include "party.h"
 #include "ui.h"
+#include "ui_scrollbar.h"
+#include "ui_message_box.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
 #include "unit.h"

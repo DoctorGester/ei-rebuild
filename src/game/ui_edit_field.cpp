@@ -1,22 +1,21 @@
 // The message box's edit field: its key handler, constructor and character
-// handler, and its paint (Rebirth's WideScreen). See ui.h (UiEditField) and
-// docs/notes/items_spells.md
+// handler, and its paint (Rebirth's WideScreen). See ui_edit_field.h (UiEditField) and
+// docs/notes/ui.md, section 8.
+#include "ui_edit_field.h"
+#include "asset_text.h"
 #include "ui.h"
 #include "ui_screens.h"
-
-#include "asset_text.h"
-
-#include <cstdint>
-#include <string>
 #include "lib/containers.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
+#include "render/text_format.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <new>
-#include "render/text_format.h"
+#include <string>
 
 namespace {
 constexpr std::uint32_t kClassDigit = 1;
@@ -34,7 +33,6 @@ std::uint32_t CharClass(int key) {
     if (c == '.' || c == ':') return kClassSeparator;
     return kClassOther;
 }
-
 } // namespace
 
 void UiEditField::OnEvent(UiEvent& event) {
@@ -191,3 +189,5 @@ void UiEditField::PaintContents(UiSurface& surface) const {
         surface.Line(top, bottom, 1, caretColour);
     }
 }
+
+UiEditField::~UiEditField() {}

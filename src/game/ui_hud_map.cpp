@@ -2,6 +2,9 @@
 // rebuilds one mesh (its markers sprite) with a marker per party member and visible unit, per
 // marked object, per zone exit and, in multiplayer, per other player. See docs/notes/ui.md.
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_hud.h"
+#include "ui_battle.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"

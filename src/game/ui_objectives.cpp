@@ -1,42 +1,45 @@
-// The objectives window (ObjectivesWindow): its Create, the zone page and the selected quest's description
-// and places. TAB in a zone opens it for the current zone; opened with `listZones` it lists the zones of the
-// zone's allod in which the player has quests and shows one of them. See docs/notes/ui.md.
+// The objectives window (ObjectivesWindow, ui_objectives.h): its Create, the zone page, the selected quest's description
+// and places, its clicks and keys and the quest places. TAB in a zone opens it for the current zone; opened with
+// `listZones` it lists the zones of the zone's allod in which the player has quests and shows one of them. See
+// docs/notes/ui.md, section 8.
+#include "ui_objectives.h"
 #include "console.h"
+#include "game_flow.h"
 #include "game_singletons.h"
-#include "text_manager.h"
-#include "lib/vecmath.h"
 #include "object_tables.h"
+#include "player_client.h"
 #include "quest_records.h"
-#include "render/render_state.h"
+#include "text_manager.h"
 #include "text_split.h"
 #include "ui.h"
+#include "lib/maths.h"
 #include "ui_float.h"
+#include "ui_mesh.h"
+#include "ui_scroll_text.h"
+#include "ui_scrollbar.h"
 #include "world.h"
-#include "player_client.h"
-
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/rect.h"
 #include "lib/intro_sort.h"
+#include "lib/rect.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "lib/vecmath.h"
+#include "render/render_state.h"
 
 #include <bit>
 #include <concepts>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <memory>
 #include <new>
 #include <string>
 #include <vector>
-#include <format>
 
 namespace {
-
-// --- Game data ----------------------------------------------------------------------------------
-
 // The quest the window last selected: the next window over the same zone selects it again.
 std::string g_lastQuest;
 
@@ -52,7 +55,6 @@ void SortQuests(std::string* first, std::string* last) {
         return !quest || (other && static_cast<unsigned>(quest->order) > static_cast<unsigned>(other->order));
     });
 }
-
 
 void Turn(UiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
@@ -74,7 +76,6 @@ void RemoveMarkers(UiWindow* window, std::vector<UiMesh*>* markers, std::vector<
     areas->clear();
 }
 
-
 // Layout constants (zone picture centre and size on the right half of the window).
 constexpr float kPictureCentreX = 580.0f;
 constexpr float kPictureCentreY = 190.0f;
@@ -94,6 +95,21 @@ QuestRecord* FindQuestRecord(std::string_view name) { return g_questDatabase.que
 const char* const kGlobalMapTopic = "quest_global_map";
 const char* const kMissionTopic = "quest_mission";
 
+constexpr const char* kOkSound = "buttons\\tutorial\\ok.wav";
+constexpr const char* kSelectSound = "buttons\\objectives\\select.wav";
+constexpr const char* kEnterSound = "buttons\\objectives\\enter.wav";
+constexpr const char* kMapText = "map.txt";
+constexpr const char* kQuestHeader = "#quest %s";
+
+constexpr int kActionObjectives = 4;   // "obj" in the key table
+
+constexpr float kNearestScale = 1.2f;
+constexpr float kOtherExitU = -0.125f;   // 0xBE000000
+// The blink: (cos(rate x t) x amplitude + base) x 255 (2.5, 0.3, 0.5;
+// 5.0, 0.4, 0.6; 255).
+constexpr float kSlowRate = 2.5f, kSlowAmplitude = 0.3f, kSlowBase = 0.5f;
+constexpr float kFastRate = 5.0f, kFastAmplitude = 0.4f, kFastBase = 0.6f;
+constexpr float kAlphaScale = 255.0f;
 } // namespace
 
 // --- The zone page ----------------------------------------------------------------------
@@ -535,6 +551,7 @@ void ObjectivesWindow::CreateScreen() {
     }
     ui->OpenHelp(false);
 }
+
 void ObjectivesWindow::DrawQuestList() {
     TextManager* texts = g_clientWorld.texts.get();
     std::string title;
@@ -595,3 +612,192 @@ void ObjectivesWindow::Setup(std::string_view zone, std::map<int, float>* newExi
 }
 
 const char* ObjectivesWindow::HelpTopic() { return twoButtons ? kGlobalMapTopic : kMissionTopic; }
+
+void ObjectivesWindow::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void ObjectivesWindow::LeftDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    UiRegion* region = RegionUnder(event.at);
+    std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
+    if (region == okButton) {
+        ui->PlayInterfaceSound(kOkSound);
+        if (!twoButtons) {
+            ui->SetPendingValue(0);
+        } else if (nearestExit >= 0) {
+            const ObjectiveExit& exit = exits[nearestExit];
+            int index = exit.exit;
+            g_serverWorld.PassTime(exit.distance);
+            RequestZone(shownZone, index);
+        }
+        return;
+    }
+    if (region == cancelButton) {
+        if (twoButtons) {
+            ui->PlayInterfaceSound(kMessageBoxCancelSound);
+            ui->SetPendingValue(0);
+        }
+        return;
+    }
+    if (region == previousZoneButton) {
+        if (!listZones || zoneCount <= 1) return;
+        if (--zoneIndex < 0) zoneIndex = static_cast<int>(zoneCount) - 1;
+        ShowZone(zones[zoneIndex]);
+        return;
+    }
+    if (region == nextZoneButton) {
+        if (!listZones || zoneCount <= 1) return;
+        if (static_cast<std::uint32_t>(++zoneIndex) >= zoneCount) zoneIndex = 0;
+        ShowZone(zones[zoneIndex]);
+        return;
+    }
+    if (const int shownRow = RegionIndex(rows, region); shownRow >= 0) {
+        int row = firstRow + shownRow;
+        if (row >= 0 && row < static_cast<int>(quests.size())) {
+            ui->PlayInterfaceSound(kSelectSound);
+            selectedQuest = row;
+            DrawQuestList();
+            ShowQuest();
+        }
+        return;
+    }
+    const int exit = RegionIndex(exitAreas, region);
+    if (exit < 0) return;
+    if (twoButtons && exits[exit].flag) {
+        ui->PlayInterfaceSound(kEnterSound);
+        SelectExit(exit);
+        return;
+    }
+    ui->PlayInterfaceSound(kMessageBoxCancelSound);
+}
+
+void ObjectivesWindow::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    int step = 0;
+    switch (event.key) {
+    case platform::Key::Return:
+        ui->PlayInterfaceSound(kOkSound);
+        if (!twoButtons) {
+            ui->SetPendingValue(0);
+        } else if (nearestExit >= 0) {
+            const ObjectiveExit& exit = exits[nearestExit];
+            int index = exit.exit;
+            g_serverWorld.PassTime(exit.distance);
+            RequestZone(shownZone, index);
+        }
+        event.handled = true;
+        break;
+    case platform::Key::Escape:
+        ui->PlayInterfaceSound(!twoButtons ? kOkSound : kMessageBoxCancelSound);
+        ui->SetPendingValue(0);
+        event.handled = true;
+        break;
+    case platform::Key::PageUp: step = -5; break;
+    case platform::Key::PageDown: step = 5; break;
+    case platform::Key::Up: step = -1; break;
+    case platform::Key::Down: step = 1; break;
+    default: break;
+    }
+    if (step != 0) {
+        ui->PlayInterfaceSound(kSelectSound);
+        selectedQuest += step;
+        RefreshQuests();
+        event.handled = true;
+    }
+    if (!event.handled && g_keyActions[event.scan] == kActionObjectives && !twoButtons) {
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
+        ui->SetPendingValue(0);
+    }
+}
+
+void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
+    std::vector<Vector2>& places = questPlaces;
+    places.clear();
+    if (IsMultiplayerClient()) {
+        // (The index's operator[] adds a null entry for a new name.)
+        QuestRecord* record = g_questDatabase.questsByName[std::string(name)];
+        if (record == nullptr) return;
+        for (std::uint32_t i = 1; i < record->places.size(); i += 2)
+            places.push_back(Vector2{record->places[i - 1], record->places[i]});
+        return;
+    }
+    std::string header;
+    std::vector<std::string> words;
+    TextManager* texts = g_clientWorld.texts.get();
+    texts->Open(kMapText);
+    header = str::Format(kQuestHeader, std::string(name));
+    if (texts->FindLine(header)) {
+        texts->NextLine();
+        texts->NextLine();
+        words = texts->Split(true);   // none at the end
+        if (words.size() > 1) {
+            for (std::size_t i = 1; i < words.size(); i += 2) {
+                Vector2 place;
+                place.x = str::ToFloat(words[i - 1]);
+                place.y = str::ToFloat(words[i]);
+                places.push_back(place);
+            }
+        }
+    }
+    texts->Close();
+}
+
+// --- Quest list handlers --------------------------------------------------------
+
+void ObjectivesWindow::SelectExit(int index) {
+    nearestExit = index;
+    for (int i = 0; i < std::ssize(exits); ++i) {
+        UiMesh* marker = exitMarkers[i];
+        if (i == index) {
+            marker->SetScale(markerScale * kNearestScale);
+            marker->textureOffsetU = 0.0f;
+            blinkTime = 0.0f;
+        } else {
+            marker->SetScale(markerScale);
+            marker->textureOffsetU = exits[i].flag ? 0.0f : kOtherExitU;
+        }
+    }
+    bottomShade->visible = false;
+    bottomFrame->visible = false;
+}
+
+void ObjectivesWindow::RefreshQuests() {
+    const auto& currentQuests = quests;
+    if (static_cast<int>(currentQuests.size()) == 0) return;
+    if (selectedQuest < 0) selectedQuest = 0;
+    if (selectedQuest >= static_cast<int>(currentQuests.size())) selectedQuest = static_cast<int>(currentQuests.size()) - 1;
+    const int row = selectedQuest;
+    if (firstRow + kVisibleRows <= row) firstRow = row - (kVisibleRows - 1);
+    if (row < firstRow) firstRow = row;
+    bar->SetPosition(firstRow);
+    firstRow = bar->TakePosition();
+    DrawQuestList();
+    ShowQuest();
+}
+
+void ObjectivesWindow::Update() {
+    UiContainer::Update();
+    if (bar->TakeMoved()) {
+        firstRow = bar->Position();
+        DrawQuestList();
+    }
+    blinkTime += FrameTime();
+    const std::uint32_t slow =
+        static_cast<std::uint32_t>((lib::Cos(blinkTime * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
+    const std::uint32_t fast =
+        static_cast<std::uint32_t>((lib::Cos(blinkTime * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
+    for (UiMesh* place : placeMarkers) {
+        place->flags |= FigureMeshFlag::Flat;
+        place->flatColour = fast << 24 | 0xFF0000u;
+    }
+    for (int i = 0; i < std::ssize(exitMarkers); ++i) {
+        UiMesh* marker = exitMarkers[i];
+        marker->flags |= FigureMeshFlag::Flat;
+        marker->flatColour = i == nearestExit ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
+    }
+}

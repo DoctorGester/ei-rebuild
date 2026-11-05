@@ -1,6 +1,7 @@
 // The message box's and the difficulty question's input handlers (MessageWindow / DifficultyBox,
-// ui.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
+// ui_message_box.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "ui_screens.h"
+#include "ui_message_box.h"
 #include "asset_text.h"
 #include "app.h"
 

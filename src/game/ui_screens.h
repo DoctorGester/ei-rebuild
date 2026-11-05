@@ -6,6 +6,7 @@
 
 #include "bink_video.h"
 #include "ui_item_info.h"
+#include "ui_message_box.h"
 #include "net_classes.h"
 
 #include "resource.h"
@@ -16,6 +17,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+class UiScrollbar;
+class UiSlider;
 
 class HeroEquipPanel;
 class HeroQuickStrip;

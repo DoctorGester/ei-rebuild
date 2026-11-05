@@ -31,7 +31,7 @@ address,size,name,file
 00783E38,4,g_localRate,src/game/net_session.cpp
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
 007857B0,6336,g_keyNames,src/game/key_bindings.cpp
-00787070,960,kActionDefinitions,src/game/ui.h
+00787070,960,kActionDefinitions,src/game/ui_options.cpp
 00787C8C,48,kBranchFrequencies,src/game/lightning.cpp
 0078A5DC,56,kBlastAlpha,src/game/particle_blasts.cpp
 0078A61C,68,kAcidSpread,src/game/particle_blasts.cpp
@@ -100,7 +100,7 @@ address,size,name,file
 00793AD8,4,g_connectTextColour,src/game/ui_screens.h
 00793BD4,28,kNames,src/game/ui_camp.h
 00793BF0,32,kNames,src/game/ui_camp.h
-007947A8,52,kNames,src/game/ui_layouts.cpp
+007947A8,52,kNames,src/game/ui_options.cpp
 00794E3C,4,g_nextRecordObjectId,src/game/player_server_handlers.cpp
 0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
 0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
@@ -179,13 +179,13 @@ address,size,name,file
 007C7FB0,4,kEscMenuTilt,src/game/ui_layouts.cpp
 007C8020,4,kGlobalMapFullTurn,src/game/ui_camp.h
 007C811C,4,g_nextLightningTick,src/game/ui_main_menu.cpp
-007C8140,4,kHudFullTurn,src/game/ui.h
-007C8144,4,kHudQuarterTurn,src/game/ui.h
-007C8150,16,kHudRestRotation,src/game/ui.h
+007C8140,4,kHudFullTurn,src/game/ui_hud.h
+007C8144,4,kHudQuarterTurn,src/game/ui_hud.h
+007C8150,16,kHudRestRotation,src/game/ui_hud.h
 007C8170,4,kExitTurn,src/game/ui_objectives.cpp
-007C81A0,4,kOptionsTilt,src/game/ui_layouts.cpp
-007C81C8,4,kSaveLoadTilt,src/game/ui_layouts.cpp
-007C8210,4,kQuarterTurn,src/game/ui_options.cpp
+007C81A0,4,kOptionsTilt,src/game/ui_options.cpp
+007C81C8,4,kSaveLoadTilt,src/game/ui_saveload.cpp
+007C8210,4,kQuarterTurn,src/game/ui_scrollbar.cpp
 007C8258,8,kCursorOffset,src/game/ui_tooltip.cpp
 007C8388,16,kFixedViewRotation,src/game/player_client_handlers.cpp
 007C84EC,4,g_loadingProjectileWorld,src/game/world.h

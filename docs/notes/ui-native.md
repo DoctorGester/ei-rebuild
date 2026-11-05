@@ -249,7 +249,7 @@ Both changed from the original on the user's playtest; layout and state are othe
   / font token stopped one gap short of the right edge; ours divides by the words less one. A wrapped line whose gaps would
   pass `kMaxStretch` (3) normal gaps stays left aligned (a cap of 2 left half the ordinary lines ragged). Lines still break
   where the original's did.
-- **The help page's text block** (`HelpWindow::ShowPage`, ui_help_page.cpp). The texts still wrap to the original's width
+- **The help page's text block** (`HelpWindow::ShowPage`, ui_help_window.cpp). The texts still wrap to the original's width
   (same line breaks, same page height); the block (its widest line, a text beside a picture counted from the picture's
   place) is centred in the page, the pictures moved with it. `Interface3D::WrapText` (ui_text.cpp) is `DrawWrappedText`'s
   wrap, which the page measures with.

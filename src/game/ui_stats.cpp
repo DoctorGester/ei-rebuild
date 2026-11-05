@@ -1,10 +1,12 @@
 // The statistics panel's -/+ buttons on the new hero's page and its hero
 // arrows. See docs/notes/ui.md, section 5.
-#include "ui.h"
-
-#include "game_singletons.h"
-#include "text_manager.h"
 #include "ui_camp.h"
+#include "game_singletons.h"
+#include "item.h"
+#include "item_db.h"
+#include "text_manager.h"
+#include "ui.h"
+#include "ui_item_info.h"
 #include "unit.h"
 #include "world.h"
 #include "lib/float_select.h"
@@ -14,7 +16,6 @@
 #include <string>
 
 namespace {
-
 const char* const kPerkSound = "buttons\\camp\\perk.wav";
 const char* const kHeroSound = "buttons\\camp\\hero.wav";
 
@@ -34,6 +35,41 @@ void SetAttribute(float& base, float& current, float value) {
     current = value;
 }
 
+const char* const kPerkPrefix = "perk ";
+const char* const kValueFormat = "%d";
+const char* const kRangeFormat = "%d/%d";
+const char* const kPartPrefix = "hl_";
+const char* const kPartIndent = "     ";
+const char* const kArmourFormat = "%.1f";
+
+constexpr int kDamageTypes = 7;
+constexpr int kShownTypes = 6;               // the seventh is summed but not compared
+constexpr int kLayers = 3;
+
+constexpr const char* kPointsLeft = "lmp_points_left";
+constexpr const char* kHeight = "lmp_pers_tall";
+constexpr const char* kSkull = "hl_skull";
+constexpr const char* kArms = "hl_arms";
+constexpr const char* kTorso = "hl_torso";
+constexpr const char* kLegs = "hl_legs";
+constexpr const char* kAttack = "attack";
+constexpr const char* kDefence = "defense";
+constexpr const char* kDamage = "camp_damage";
+constexpr const char* kMagicSkills = "magic_skills";
+
+// The body parts' armour slots (ItemHoverInfo::part).
+constexpr int kPartSkull = 0;
+constexpr int kPartTorso = 1;
+constexpr int kPartArms = 2;
+constexpr int kPartLegs = 4;
+
+// The statistics column's rows on page 0 (HeroStatsPanel::rows).
+constexpr int kSkullRow = 0, kArmsRow = 1, kTorsoRow = 2, kLegsRow = 3, kAttackRow = 4, kDefenceRow = 5, kDamageRow = 6,
+              kEncumbranceRow = 7, kMagicRow = 8;
+
+// The hero arrows' tooltips (texts "tip_20300" / "tip_20301").
+constexpr int kTipPreviousHero = 0x4F4C;
+constexpr int kTipNextHero = 0x4F4D;
 } // namespace
 
 bool HeroStatsPanel::StepPoint(int button) {
@@ -144,21 +180,6 @@ void HeroStatsPanel::LeftUp(UiEvent&) {
 // The statistics panel's row painters: a labelled value and a body part's armour. See docs/notes/ui.md,
 // section 5.
 
-namespace {
-
-const char* const kPerkPrefix = "perk ";
-const char* const kValueFormat = "%d";
-const char* const kRangeFormat = "%d/%d";
-const char* const kPartPrefix = "hl_";
-const char* const kPartIndent = "     ";
-const char* const kArmourFormat = "%.1f";
-
-constexpr int kDamageTypes = 7;
-constexpr int kShownTypes = 6;               // the seventh is summed but not compared
-constexpr int kLayers = 3;
-
-} // namespace
-
 // --- A labelled value ----------------------------------------------------------------------------
 
 void HeroStatsPanel::DrawRow(const Rect& area, std::string_view label, int value, int maximum) {
@@ -199,4 +220,72 @@ void HeroStatsPanel::DrawPart(const Rect& area, std::string_view name, int part)
     label = kPartIndent + label;
     labels.push_back({label, area, {0, kUiTextColour, render::text::kLeft}});
     labels.push_back({str::Format(kArmourFormat, PartArmour(part)), area, {0, kUiTextColour, render::text::kRight}});
+}
+
+// --- the statistics column -----------------------------------------------------------------------
+
+ItemHoverInfo HeroStatsPanel::HoverInfo(Point at) {
+    PartyUnitRecord* hero = owner->HeroRecord();
+    ItemHoverInfo info;
+    info.stats = &hero->stats;
+    const int row = RegionIndex(rows, RegionUnder(at));
+    if (((page == 1 || page == 11) && row >= 0) || (page == 10 && row >= 0 && row < kHeightRow)) {
+        info.kind = HoverKind::Attribute;
+        info.index = row;
+        info.text = AttributeNames()[row];
+    }
+    if (page == 10 && (row == kPointsLeftRow || row == kHeightRow)) {
+        info.kind = HoverKind::Text;
+        info.text = row == kPointsLeftRow ? kPointsLeft : kHeight;
+    }
+    if (page != 0) return info;
+    auto armour = [&info](int part, const char* text) {
+        info.kind = HoverKind::Armour;
+        info.part = part;
+        info.text = text;
+    };
+    switch (row) {
+    case kSkullRow: armour(kPartSkull, kSkull); break;
+    case kArmsRow: armour(kPartArms, kArms); break;
+    case kTorsoRow: armour(kPartTorso, kTorso); break;
+    case kLegsRow: armour(kPartLegs, kLegs); break;
+    case kAttackRow:
+    case kDefenceRow:
+        if (hero->weaponIndex < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
+            info.kind = HoverKind::Weapon;
+            info.weapon = hero->weapons[hero->weaponIndex]->AsWeapon();
+            info.text = row == kAttackRow ? kAttack : kDefence;
+        }
+        break;
+    case kDamageRow:
+        info.kind = HoverKind::Text;
+        info.text = kDamage;
+        break;
+    case kEncumbranceRow:
+        info.kind = HoverKind::Attribute;
+        info.index = 7;
+        info.text = AttributeNames()[7];
+        break;
+    case kMagicRow:
+        info.kind = HoverKind::Magic;
+        info.text = kMagicSkills;
+        break;
+    default:
+        break;
+    }
+    return info;
+}
+
+// --- the column's hero ---------------------------------------------------------------------------
+
+void HeroStatsPanel::SetHero(int newHeroIndex, std::optional<std::string_view> newTitle) {
+    bool party = std::ssize(LocalPlayerData()->members) > 1;
+    nextArrow->visible = party;
+    previousArrow->visible = party;
+    previousButton->SetTip(party ? kTipPreviousHero : 0);
+    nextButton->SetTip(party ? kTipNextHero : 0);
+    heroIndex = newHeroIndex;
+    if (newTitle) title = std::string(*newTitle);
+    points = static_cast<int>(owner->HeroRecord()->height * 100.0f);
+    DrawStats();
 }

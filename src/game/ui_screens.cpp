@@ -6,6 +6,8 @@
 #include "options.h"
 #include "map_object_figures.h"
 #include "ui.h"
+#include "ui_scrollbar.h"
+#include "ui_message_box.h"
 #include "ui_screens.h"
 #include "ui_camp.h"
 #include "net_classes.h"
@@ -355,50 +357,6 @@ bool HeroCanUseSpell(UnitStats* stats, Spell* spell) {
     int units = HeroManaUnits(stats);
     if (units < static_cast<int>(cost)) ok = false;
     return ok;
-}
-
-// --- CampPages -------------------------------------------------------------------------------
-
-PartySkill CampPages::BestPartySkill(SpellSchool school) {
-    PartySkill best;
-    for (int i = 0; i < std::ssize(LocalPlayerData()->members); ++i) {
-        UnitStats* stats = &LocalPlayerData()->members[i].stats;
-        best.skill = (std::max)(best.skill, HeroSchoolSkill(stats, school));
-        best.mana = (std::max)(best.mana, HeroManaUnits(stats));
-    }
-    return best;
-}
-
-void CampPages::TopicClicked(int newPage) {
-    switch (newPage) {
-    case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9: case 10: case 16:
-        itemStrip->SelectTab(2);
-        break;
-    case 13:
-        itemStrip->SelectTab(2);
-        partStrip->SelectTab(5);
-        break;
-    case 14:
-        itemStrip->SelectTab(0);
-        partStrip->CycleTab(0, 4);
-        break;
-    case 15:
-        itemStrip->SelectTab(0);
-        partStrip->SelectTab(4);
-        break;
-    case 19:
-        itemStrip->SelectTab(2);
-        spellStrip->SelectTab(5);
-        break;
-    case 20:
-        itemStrip->SelectTab(1);
-        spellStrip->CycleTab(0, 3);
-        break;
-    case 21:
-        itemStrip->SelectTab(1);
-        spellStrip->CycleTab(3, 2);
-        break;
-    }
 }
 
 // --- MpHeroScreen ----------------------------------------------------------------------------

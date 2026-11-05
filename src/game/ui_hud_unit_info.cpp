@@ -13,6 +13,8 @@
 #include "text_manager.h"
 #include "texture.h"
 #include "ui.h"
+#include "ui_hud.h"
+#include "ui_battle.h"
 #include "ui_item_info.h"
 #include "screen_layout.h"
 #include "unit.h"

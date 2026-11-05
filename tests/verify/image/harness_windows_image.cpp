@@ -8,6 +8,12 @@
 #include "game/ui_item_info.h"
 #include "game/ui_screens.h"
 #include "game/ui_view_screen.h"
+#include "game/ui_battle.h"
+#include "game/ui_saveload.h"
+#include "game/ui_options.h"
+#include "game/ui_objectives.h"
+#include "game/ui_message_box.h"
+#include "game/ui_help_window.h"
 
 #include <cstring>
 #include <string>

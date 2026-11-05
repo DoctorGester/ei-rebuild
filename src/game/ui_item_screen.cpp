@@ -13,6 +13,7 @@
 #include "party.h"
 #include "texture.h"
 #include "ui.h"
+#include "ui_mesh.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"

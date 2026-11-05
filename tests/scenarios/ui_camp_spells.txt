@@ -1,4 +1,4 @@
-# H43h: the camp's spell trade page (ui_camp_deals.cpp's StockSpells and the spell halves of DoAction / UndoAction;
+# H43h: the camp's spell trade page (ui_camp.cpp's StockSpells and the spell halves of DoAction / UndoAction;
 # ui_camp_deals is the item trade page's). The camp opens with trader class 3 (class 1 has no spell page); page 2 (region 6) is the spell
 # constructor's trade page. A spell container (class 0x3008) from the strip goes onto its sell list (campputon), the
 # first action button (region 0) stocks it into the template's spells (the container's spell) and returns the lists;

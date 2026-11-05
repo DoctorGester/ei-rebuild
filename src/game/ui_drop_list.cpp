@@ -1,6 +1,9 @@
-// The drop-down list (UiDropList, ui.h; ours, the options' resolution row): its row, the open list, its keys and
+// The drop-down list (UiDropList, ui_drop_list.h; ours, the options' resolution row): its row, the open list, its keys and
 // mouse. See docs/notes/ui-native.md, "The drop-down list".
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_scrollbar.h"
+#include "ui_drop_list.h"
 
 #include "texture.h"
 #include "lib/rect.h"

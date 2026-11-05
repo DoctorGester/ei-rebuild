@@ -1,6 +1,8 @@
 // The global map's input (right-button drag, mouse, keys), its close and message-result slots
 // (GlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_saveload.h"
 #include "ui_camp.h"
 
 #include "camera_trace.h"

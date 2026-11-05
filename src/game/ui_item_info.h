@@ -10,6 +10,7 @@
 #include "core_refcount.h"
 #include "party.h"
 #include "ui.h"
+#include "ui_mesh.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -123,6 +124,31 @@ enum class PriceKind : int {
 class Party;
 class ItemScreen;
 // The item screens' icon window.
+// The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel, hero
+// equipment, quick strip, trade and repair grids, constructor pages and item strips, built on the blank
+// panel. They share the left-button handler; ItemAt gives the item or help topic under the
+// mouse.
+class UiItemPanel : public UiWindow {
+public:
+    UiItemPanel(Interface3D* ui, ItemScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
+    // The camp's and the hero screen's panels also keep their owner as that screen (camp, heroScreen).
+    UiItemPanel(Interface3D* ui, CampPages* newCamp);
+    UiItemPanel(Interface3D* ui, MpHeroScreen* newHeroScreen);
+    // The item under the screen point (x, y), or null; a panel may set a help topic instead. The panels
+    // without items of their own (description panel, statistics column, trade panel): nothing, `topic` 0.
+    virtual Item* ItemAt(Point point, int* topic);
+
+    void OnEvent(UiEvent& event) override;
+    // The item under (x, y) goes to the owner with mode; without one, a help topic the panel named goes to
+    // the camp's help handler (nothing on the other screens). The event is not marked used.
+    void LeftDown(UiEvent& event);
+
+    int mode = 0;                    // the action mode handed to the owner (ItemCell::mode)
+    ItemScreen* owner = nullptr;
+    CampPages* camp = nullptr;            // the owner when it is the camp, else null
+    MpHeroScreen* heroScreen = nullptr;   // the owner when it is the multiplayer hero screen, else null
+};
+
 class ItemIconWindow final : public UiWindow {
 public:
     explicit ItemIconWindow(Interface3D* ui) : UiWindow(ui) {}

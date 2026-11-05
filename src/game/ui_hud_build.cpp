@@ -2,9 +2,12 @@
 // functions that add a slot's sprite and the weapon bar's highlight. Rebirth patches all nine for its
 // WideScreen layout, reproduced for every window (screen_layout.h): the weapon bar and the action column at
 // the screen's left edge, the quick items and the spell column at its right (the panel offset while some of
-// them run, layout constants moved by EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and
+// them run, layout constants moved by EdgeShift). See ui_hud.h, docs/notes/ui.md ("Battle screen") and
 // docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_hud.h"
+#include "ui_battle.h"
 
 #include "text_manager.h"
 #include "screen_layout.h"

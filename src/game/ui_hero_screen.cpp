@@ -2,6 +2,8 @@
 // and the trade panel's experience figures it shows.
 // See docs/notes/ui.md, section 5.
 #include "ui.h"
+#include "ui_scrollbar.h"
+#include "ui_mesh.h"
 
 #include "core_maths.h"
 #include "game_singletons.h"

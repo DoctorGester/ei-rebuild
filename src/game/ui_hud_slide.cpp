@@ -1,7 +1,9 @@
 // The battle HUD's two sliding side panels, the map (HudMap) and the unit panel (HudUnitPanel): their layouts at the
 // current slide offset, their per-frame updates and their setups. Rebirth patches all of them for its WideScreen layout,
-// reproduced for every window (screen_layout.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
+// reproduced for every window (screen_layout.h). See ui_hud.h and docs/notes/ui.md, "Battle HUD sliding panels".
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_hud.h"
 
 #include "text_manager.h"
 #include "map_object.h"

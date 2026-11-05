@@ -138,7 +138,7 @@ enum class FigureMeshFlag : std::uint32_t {
 template <> inline constexpr bool lib::kBitFlags<FigureMeshFlag> = true;
 
 // The figure meshes ("CFigure"): the parts of an object's figure (Object3D::parts), owning all their arrays. The figure
-// manager's types 0x41 (a loose part) and 0x42 (an attached part) are plain FigureMeshes; 0x43 UiMesh (ui.h) and
+// manager's types 0x41 (a loose part) and 0x42 (an attached part) are plain FigureMeshes; 0x43 UiMesh (ui_mesh.h) and
 // 0x44 SkyObject (sky_object.h) derive from it.
 class FigureMesh : public TransformObject {
 public:

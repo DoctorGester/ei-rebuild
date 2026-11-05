@@ -4,6 +4,9 @@
 // (on to the console, the chat line or the top window). See ui.h and
 // docs/notes/ui.md ("Container input dispatch").
 #include "ui.h"
+#include "ui_chat_overlay.h"
+#include "ui_battle.h"
+#include "ui_message_box.h"
 
 #include "app.h"
 #include "console.h"

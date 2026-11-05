@@ -1,6 +1,7 @@
-// Layout builders of the windows opened from the Esc menu (their Create virtual): the regions, sprites, surfaces,
-// scroll bar and 3D model each window is made of. Rebirth patches the sprite placement and UiRegion::SetRect for its
-// widescreen layout. See docs/notes/ui.md.
+// Layout builders (the Create virtuals) of the escape menu, the main menu, the message box, the difficulty question and
+// the credits: the regions, sprites, surfaces and 3D model each window is made of. Rebirth patches the sprite placement
+// and UiRegion::SetRect for its widescreen layout. The save / load and options windows' are in ui_saveload.cpp and
+// ui_options.cpp. See docs/notes/ui.md.
 #include "app.h"
 #include "asset_text.h"
 #include "options.h"
@@ -9,6 +10,13 @@
 #include "text_helpers.h"
 #include "map_object_figures.h"
 #include "ui.h"
+#include "ui_menu_pieces.h"
+#include "ui_mesh.h"
+#include "ui_scrollbar.h"
+#include "ui_edit_field.h"
+#include "ui_saveload.h"
+#include "ui_options.h"
+#include "ui_message_box.h"
 
 #include "console.h"
 #include "text_manager.h"
@@ -41,46 +49,9 @@
 
 namespace {
 
-UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
-    UiRegion* region = window->AddRegion();
-    region->SetRect(left, top, right, bottom);
-    return region;
-}
-
-void Frame(UiWindow* window, float depth, float left, float top, float right, float bottom) {
-    window->AddBlankSprite()->SetFrame(depth, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-}
-
-void Shade(UiWindow* window, float depth, float left, float top, float right, float bottom) {
-    UiMesh* sprite = window->AddBlankSprite();
-    sprite->SetRectangle(depth, 100.0f, left, top, right, bottom, 0, 0, kUiTextureSize, kUiTextureSize);
-    sprite->texture = nullptr;
-    sprite->flags |= FigureMeshFlag::Flat;
-    sprite->flatColour = 0xA0000000;
-}
-
 // The window's 3D model: the stone menu (`escMenu00`) turned about x.
 // The menu models' tilts about x (static initialisers: pi * 0.5).
 constexpr float kEscMenuTilt = /*007C7FB0*/ 1.5707964f;
-constexpr float kOptionsTilt = /*007C81A0*/ 1.5707964f;
-constexpr float kSaveLoadTilt = /*007C81C8*/ 1.5707964f;
-
-UiModel* AddMenuModel(UiWindow* window, float angle) {
-    UiModel* model = window->AddModel();
-    model->Load("unmoco1", "escMenu00", "escMenu00labels");
-    Vector3 axis = {1.0f, 0.0f, 0.0f};
-    Quaternion turn = Quaternion::AxisAngle(axis, angle);
-    model->object->localRotation = turn;
-    return model;
-}
-
-const char* OptionGroupName(int index) {
-    static constexpr const char* kNames[13] = /*007947A8*/ {"video",  "sound",  "sens",   "game",    "select",
-                                                            "actions", "camera", "items",  "spells",  "cshots",
-                                                            "windows", "debug1", "debug2"};
-    return kNames[index];
-}
-
 
 struct TitlesTokenizer : TextTokenizer {
     // The current word, or "" past the last one (the original assigned null to a string, which keeps "").
@@ -88,135 +59,6 @@ struct TitlesTokenizer : TextTokenizer {
 };
 
 } // namespace
-
-// --- Save/load window -------------------------------------------------------------
-
-void SaveLoadWindow::CreateScreen() {
-    rect = Rect{0, 0, 800, 600};
-    LoadTexture("saveload", TextureKind::Interface);
-
-    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
-    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
-    okButton = AddRect(this, 163, 526, 237, 574);
-    okButton->SetTip(isSave ? 0xEAC4 : 0xEAC5);
-    cancelButton = AddRect(this, 563, 526, 637, 574);
-    cancelButton->SetTip(0xEAC7);
-    deleteButton = AddRect(this, 363, 526, 437, 574);
-    deleteButton->SetTip(0xEAC6);
-
-    // The picture of the selected save (ShowPicture gives it its texture and texels).
-    pictureSprite = AddBlankSprite();
-    pictureSprite->SetRectangle(kDialogDepth, kSpriteScale, kPictureRect, 0, 0x100, 0x100, 0);
-    pictureSprite->texture = nullptr;
-    marker = AddBlankSprite();
-    marker->SetRectangle(kDialogDepth, kSpriteScale, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-    marker->texture = nullptr;
-    marker->flatColour = 0xC8A06800;
-    marker->flags |= FigureMeshFlag::Flat;
-    Frame(this, 2.0f, 95.0f, 95.0f, 395.0f, 505.0f);     // the list
-    Frame(this, 2.0f, 405.0f, 95.0f, 705.0f, 325.0f);    // the picture
-    Frame(this, 2.0f, 405.0f, 335.0f, 705.0f, 505.0f);   // the description
-    Shade(this, 5.0f, 100.0f, 100.0f, 390.0f, 500.0f);
-    Shade(this, 5.0f, 410.0f, 100.0f, 700.0f, 320.0f);
-    Shade(this, 5.0f, 410.0f, 340.0f, 700.0f, 500.0f);
-
-    for (int row = 0, top = 108; row < kVisibleRows; ++row, top += 24) rows[row] = AddRect(this, 108, top, 370, top + 24);
-
-    UiSurface* list = AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}));
-    list->PaintWith([this](UiSurface& out) { PaintList(out); });
-    scrollbar = AddChild(std::make_unique<UiScrollbar>(ui, Rect{108, 108, 384, 492}, 3.0f, 0, 1.0f));
-
-    UiModel* model = AddMenuModel(this, kSaveLoadTilt);
-    model->SetScreenPosition(400.0f, 700.0f, 4.8f);
-    model->ShowAllParts(0);
-    if (isSave) {
-        model->ShowPart("save", 1);
-        model->ShowPart("savelabel", 1);
-    } else {
-        model->ShowPart("load", 1);
-        model->ShowPart("loadlabel", 1);
-    }
-
-    dialog = nullptr;
-    picture = nullptr;
-    if (sliding) slide = 0.0f;
-    FillEntries();
-    if (isSave) {
-        // Saving: the first save is selected and its title offered as the name.
-        selected = 0;
-        if (EntryCount() != 0) {
-            nameTyped = false;
-            name = entries.front().title;
-            cursor = lib::Count(name);
-        }
-    } else {
-        selected = EntryCount() != 0 ? 0 : -1;
-    }
-    RefreshListVanilla();
-    ShowPicture();
-    if (!sliding) ui->OpenHelp(false);
-}
-
-// --- Options window ------------------------------------------------------------------
-
-void OptionsWindow::CreateScreen() {
-    rect = Rect{0, 0, 800, 600};
-    LoadTexture("saveload", TextureKind::Interface);
-    CreateTexture(0x100, 0x100, TextureKind::Blank565);
-
-    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
-    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    okButton = AddRect(this, 213, 526, 287, 574);
-    okButton->SetTip(0x111D4);
-    cancelButton = AddRect(this, 513, 526, 587, 574);
-    cancelButton->SetTip(0x111D5);
-    highlight = AddBlankSprite();
-    highlight->SetRectangle(kDialogDepth, kSpriteScale, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-    highlight->texture = nullptr;
-    highlight->flatColour = 0xC8A06800;
-    highlight->flags |= FigureMeshFlag::Flat;
-
-    // The option groups, each with its button sprite, tooltip and title.
-    std::string text;
-    for (int k = 0, top = 156; k < kGroups; ++k, top += 24) {
-        groupButtons[k] = AddRect(this, 100, top, 250, top + 24);
-        groupIcons[k] = AddBlankSprite();
-        groupIcons[k]->SetRectangle(kDialogDepth, kSpriteScale, 110.0f, static_cast<float>(top + 2), 240.0f,
-                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
-        text = std::format("tip option_group_{}", OptionGroupName(k));
-        if (g_clientWorld.texts->Open(text) != 0) text = g_clientWorld.texts->ReadToHash();
-        groupButtons[k]->SetTipString(text);
-        {
-            std::string prefix("option_group_");
-            std::string key = prefix + OptionGroupName(k);
-            text = g_clientWorld.texts->GetString(key);
-        }
-        groupNames.push_back(text);
-    }
-
-    Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
-    Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
-    for (int row = 0, top = 156; row < kRows; ++row, top += 24) rowAreas[row] = AddRect(this, 250, top, 520, top + 24);
-    UiSurface* surface = AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}));
-    surface->PaintWith([this](UiSurface& out) { PaintRows(out); });
-
-    UiModel* model = AddMenuModel(this, kOptionsTilt);
-    model->SetScreenPosition(400.0f, 700.0f, 4.8f);
-    model->ShowAllParts(0);
-    model->ShowPart("options", 1);
-    model->ShowPart("optionslabel", 1);
-
-    if (sliding) slide = 0.0f;
-    waitingForKey = false;
-    pressedKey = nullptr;
-    BuildSettings();
-    LoadSettings();
-    BuildBindings();
-    shadowsChanged = false;
-    ShowGroup(0);
-    if (!sliding) ui->OpenHelp(false);
-}
 
 // --- Esc menu ------------------------------------------------------------------------
 
