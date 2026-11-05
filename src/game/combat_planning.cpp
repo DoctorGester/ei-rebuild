@@ -105,11 +105,9 @@ float UnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder) 
     SightTarget sight;
     bool canSee = FindSightTarget(order, &sight);
     Vector3 previous = {0.0f, 0.0f, -1000.0f};
-    Vector3 aim = {0.0f, 0.0f, -1000.0f};
     float distance = ActionDistance(order);
     float reachSq = distance * distance;
-    if (!order->target) aim = order->point;
-    else aim = order->target->AimPoint();
+    Vector3 aim = order->AimPoint();
     float t = 0.0f;
     for (;;) {
         float time = static_cast<float>(pathOrder->startTime) + t;
@@ -149,9 +147,7 @@ bool UnitServer::PlanOrderRoute(UnitAction* order, AckKind shout) {
     if (order->kind != UnitOrderKind::Use && !player) return true;
     float best = kNoPathLimit;
     LocalMotionOrder route;
-    Vector3 point;
-    if (!order->target) point = order->point;
-    else point = order->target->AimPoint();
+    Vector3 point = order->AimPoint();
     bool ok;
     if (!FindUseSpot(order, &route)) {
         PathMessage(unit, &route, point, 3, 1, kNoPathLimit);

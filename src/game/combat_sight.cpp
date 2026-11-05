@@ -231,7 +231,7 @@ bool UnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     Unit* targetUnit = nullptr;
     int castDelay = 0;
 
-    Vector3 aim = order->target ? order->target->AimPoint() : order->point;
+    Vector3 aim = order->AimPoint();
     Vector3 delta = aim - origin;
     float distanceSq = DistanceSquaredXY(origin, aim);
 

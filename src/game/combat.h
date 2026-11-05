@@ -19,6 +19,30 @@ constexpr float kMeleeReachHeight = 1.5f;
 // An order's source with this bit is a quick item slot (the low bits), else a spell slot.
 inline constexpr std::uint32_t kQuickItemSource = 0x80000000u;
 
+// An order as the controller's order checks take it.
+struct AIOrder {
+    // UnitOrderKind::None: the object released and cleared, the flag cleared.
+    void Clear();
+    // Clear, then an attack on `object` (referenced) at every body part (kAttackAllParts).
+    void MakeAttack(MapObject* object);
+    // Clear, then a cast of `spell` on `object` (referenced).
+    void MakeCast(int spell, MapObject* object);
+    // Clear, then a use of `object` with `what`.
+    void MakeUse(MapObject* object, UseSource what);
+    // `source` read as a use order's skill (kind Use).
+    UseSource Skill() const { return static_cast<UseSource>(source); }
+    // Where the order aims: the object's AimPoint, or `point` without an object.
+    Vector3 AimPoint() const;
+
+    UnitOrderKind kind = UnitOrderKind::None;
+    std::uint32_t source = 0;       // the body part of an attack (kAttackAllParts), the spell of a cast, the UseSource of a use
+    Ref<MapObject> target;
+    Vector3 point{};                // target point
+    // `point` is a use spot of the target that FindUseSpot picked: the unit walks to it and acts from there
+    // (no sight or range checks against the target; reach 0.2).
+    bool pointIsUseSpot = false;
+};
+
 // An order of the unit: an AIOrder and two more fields. The order checks (CanReachAndPlan and the planning
 // under it) take the AIOrder part only: the AI builds just that on the stack.
 struct UnitAction : AIOrder {

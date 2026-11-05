@@ -184,7 +184,7 @@ class Chain(Fixture):
         # resolve() reads the dll and exe from files; with none beside, the words are named but not judged
         # (the throw rule still applies)
         text = rc.named_stack(d, build=self.root, game_exe=os.path.join(self.root, 'none.exe'), root=self.root)
-        self.assertTrue(text.endswith('CxxThrowException'), text)
+        self.assertRegex(text, r'(^| )_?CxxThrowException$', text)
         self.assertIn('CFile::Write', text)
         self.assertEqual(rc.named_stack(d, build=self.root, game_exe=os.path.join(self.root, 'none.exe'), root=self.root,
                                         max_frames=2).count(' -> '), 2)
@@ -227,7 +227,7 @@ class RealRun(unittest.TestCase):
         self.assertTrue(writes, text)
         self.assertIn('QuickSave', names, text)
         self.assertLess(names.index('QuickSave'), writes[-1], text)
-        self.assertIn('CxxThrowException', names[writes[-1]:], text)
+        self.assertTrue({'CxxThrowException', '_CxxThrowException'} & set(names[writes[-1]:]), text)
         self.assertNotIn('__lseeki64', text)          # the stale words after the game's first function
 
 
