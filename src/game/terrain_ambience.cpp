@@ -17,48 +17,45 @@
 
 #include <cmath>
 #include <cstdint>
-#include <cstdio>
 #include <format>
 #include <string>
 
 namespace terrain {
 namespace {
 
-// A sound class (indexed by the sectors' texture classes), in the layout of game.exe's table. Its one-shots are
-// counted per map (Terrain::ambientVariants).
+// A sound class (indexed by the sectors' texture classes). Its one-shots are counted per map
+// (Terrain::ambientVariants).
 struct AmbientSoundClass {
     const char* name = nullptr;  // the folder ("Grass", "water", ...)
-    int unused_04 = 0;      // the original's per-map one-shot count
     float weight = 0.0f;    // per texture of the class in a sector
-    int unused_0C = 0;      // the class whose vote it adds to: -1 (its own) in every entry
     float panLimit = 0.0f;
     int chance = 0;         // percent per frame for a one-shot
 };
 constexpr int kClasses = Terrain::kSoundClasses;
-constexpr AmbientSoundClass kAmbientSounds[kClasses] = /*007969D0*/ {
-    {"Grass", -1, 1.0f, -1, 30.0f, 6},
-    {"Ground", -1, 1.0f, -1, 30.0f, 6},
-    {"Stone", -1, 1.0f, -1, 30.0f, 6},
-    {"sand", -1, 1.0f, -1, 30.0f, 6},
-    {"rock", -1, 1.5f, -1, 100.0f, 4},
-    {"field", -1, 1.0f, -1, 30.0f, 6},
-    {"water", -1, 3.0f, -1, 100.0f, 6},
-    {"road", -1, 3.0f, -1, 30.0f, 6},
-    {"", 0, 0.0f, -1, 100.0f, 0},
-    {"snow", -1, 1.0f, -1, 30.0f, 6},
-    {"Ice", -1, 3.0f, -1, 30.0f, 6},
-    {"DryGrass", -1, 1.0f, -1, 30.0f, 6},
-    {"SnowBall", -1, 1.0f, -1, 30.0f, 6},
-    {"lava", -1, 3.0f, -1, 100.0f, 0},
-    {"swamp", -1, 3.0f, -1, 100.0f, 7},
-    {"rock", -1, 1.5f, -1, 100.0f, 4},
+constexpr AmbientSoundClass kAmbientSounds[kClasses] = {
+    {"Grass", 1.0f, 30.0f, 6},
+    {"Ground", 1.0f, 30.0f, 6},
+    {"Stone", 1.0f, 30.0f, 6},
+    {"sand", 1.0f, 30.0f, 6},
+    {"rock", 1.5f, 100.0f, 4},
+    {"field", 1.0f, 30.0f, 6},
+    {"water", 3.0f, 100.0f, 6},
+    {"road", 3.0f, 30.0f, 6},
+    {"", 0.0f, 100.0f, 0},
+    {"snow", 1.0f, 30.0f, 6},
+    {"Ice", 3.0f, 30.0f, 6},
+    {"DryGrass", 1.0f, 30.0f, 6},
+    {"SnowBall", 1.0f, 30.0f, 6},
+    {"lava", 3.0f, 100.0f, 0},
+    {"swamp", 3.0f, 100.0f, 7},
+    {"rock", 1.5f, 100.0f, 4},
 };
 
 // One of the 3x3 sectors around the listener.
 struct Cell {
     int soundClass = 0;     // -1 where the sector is missing
     float weight = 0.0f;    // 100 at the listener .. 0 at the radius
-    float x = 0.0f, y = 0.0f, z = 0.0f;  // the sector's centre; z the higher of ground and water
+    Vector3 centre;         // the sector's centre; z the higher of ground and water
     Vector3 offset;         // from the listener
 };
 
@@ -69,7 +66,6 @@ struct ClassVotes {
     float weightSum = 0.0f;  // sum of the cells' squared weights
     int volume = 0;
     int pan = 0;
-    int count = 0;
     int sound = 0;
 };
 
@@ -77,12 +73,16 @@ constexpr float kRadiusCells = 48.0f;
 constexpr float kSpotCells = 16.0f;         // a one-shot lands within +-16 cells of its sector's offset
 constexpr float kMinWeight = 0.001f;
 constexpr float kPercent = 100.0f;
-constexpr float kTwoToMinus32 = 2.3283064e-10f;
 constexpr int kMaxVolume = 100;
-
 
 // The sector containing `v` (v rounded to nearest, then / 32 towards zero).
 int SectorOf(float v) { return std::lround(v) / kSectorCells; }
+
+void StopLoop(Terrain::AmbientLoop& loop) {
+    g_clientWorld.sounds->StopSound(loop.sound);
+    loop.sound = kNoSound;
+    loop.soundClass = -1;
+}
 
 // By weight, highest first (an unordered pair sorts "after").
 int ByWeight(const ClassVotes& a, const ClassVotes& b) {
@@ -129,11 +129,9 @@ void PlayOneShot(SoundManager* sounds, const Cell (&cells)[3][3], int soundClass
     const std::string name = std::format("ambient\\{}\\{}\\{}\\{}.wav", set, sound.name, time,
                                          variant % static_cast<std::uint32_t>(variants) + 1);
     Vector3 position = listener + pick->offset;
-    float spot = kSpotCells;
-    float spotLow = -spot;
-    position.x = (spot - spotLow) * g_clientRandom.Next() * kTwoToMinus32 + spotLow + position.x;
-    position.y = (spot - spotLow) * g_clientRandom.Next() * kTwoToMinus32 + spotLow + position.y;
-    sounds->Play3D(name, 1, position, spot + spot, kRadiusCells, false);
+    position.x = g_clientRandom.Range(-kSpotCells, kSpotCells) + position.x;
+    position.y = g_clientRandom.Range(-kSpotCells, kSpotCells) + position.y;
+    sounds->Play3D(name, 1, position, kSpotCells + kSpotCells, kRadiusCells, false);
 }
 
 } // namespace
@@ -148,11 +146,7 @@ void Terrain::PlayAmbience() {
 
     // Each sector votes for the class with the most weighted textures (the first of equals).
     ClassVotes votes[kClasses];
-    for (int i = 0; i < kClasses; ++i) {
-        votes[i].soundClass = i;
-        votes[i].weightSum = 0.0f;
-        votes[i].count = 0;
-    }
+    for (int i = 0; i < kClasses; ++i) votes[i].soundClass = i;
     Cell cells[3][3];   // [column][row]
     for (int row = 0; row < 3; ++row) {
         int sy = centreY + row - 1;
@@ -165,13 +159,12 @@ void Terrain::PlayAmbience() {
                 cell.weight = 0.0f;
                 continue;
             }
-            cell.x = (sx + 0.5f) * kSectorCells;
-            cell.y = (sy + 0.5f) * kSectorCells;
-            float ground = HeightAt(cell.x, cell.y, Layer::Ground);
-            float water = HeightAt(cell.x, cell.y, Layer::Water);
-            cell.z = MaxKeepB(water, ground);
-            cell.offset = {cell.x - listener.x, cell.y - listener.y,
-                           cell.z - listener.z};
+            cell.centre.x = (sx + 0.5f) * kSectorCells;
+            cell.centre.y = (sy + 0.5f) * kSectorCells;
+            float ground = HeightAt(cell.centre.x, cell.centre.y, Layer::Ground);
+            float water = HeightAt(cell.centre.x, cell.centre.y, Layer::Water);
+            cell.centre.z = MaxKeepB(water, ground);
+            cell.offset = cell.centre - listener;
             float weights[kClasses];
             for (int i = 0; i < kClasses; ++i) weights[i] = sector->classCounts[i] * kAmbientSounds[i].weight;
             float best = -1.0f;
@@ -187,7 +180,6 @@ void Terrain::PlayAmbience() {
             ClassVotes& vote = votes[cell.soundClass];
             vote.weightSum = cell.weight * cell.weight + vote.weightSum;
             vote.offset = cell.offset;
-            ++vote.count;
         }
     }
     libcrt::Qsort(votes, kClasses, ByWeight);
@@ -199,12 +191,7 @@ void Terrain::PlayAmbience() {
             for (int column = 0; column < 3; ++column) {
                 const Cell& cell = cells[column][row];
                 if (cell.soundClass != vote.soundClass) continue;
-                float dx = cell.weight * cell.offset.x;
-                float dy = cell.weight * cell.offset.y;
-                float dz = cell.weight * cell.offset.z;
-                vote.offset.x = dx + vote.offset.x;
-                vote.offset.y = dy + vote.offset.y;
-                vote.offset.z = dz + vote.offset.z;
+                vote.offset = cell.weight * cell.offset + vote.offset;
             }
         }
         vote.volume = std::lround(std::sqrt(vote.weightSum));
@@ -233,10 +220,7 @@ void Terrain::PlayAmbience() {
         }
     }
     for (AmbientLoop& loop : ambientLoops) {
-        if (loop.soundClass < 0) continue;
-        sounds->StopSound(loop.sound);
-        loop.sound = kNoSound;
-        loop.soundClass = -1;
+        if (loop.soundClass >= 0) StopLoop(loop);
     }
     for (int i = 0; i < heard; ++i) ambientLoops[i] = {votes[i].sound, votes[i].soundClass};
 }
@@ -247,11 +231,7 @@ void Terrain::StopAmbience() {
 }
 
 void Terrain::StopAmbientLoops() {
-    for (AmbientLoop& loop : ambientLoops) {
-        g_clientWorld.sounds->StopSound(loop.sound);
-        loop.sound = kNoSound;
-        loop.soundClass = -1;
-    }
+    for (AmbientLoop& loop : ambientLoops) StopLoop(loop);
 }
 
 void Terrain::CountAmbientVariants() {
@@ -259,9 +239,8 @@ void Terrain::CountAmbientVariants() {
         int& variants = ambientVariants[i];
         variants = 0;
         for (;;) {
-            char name[260];
-            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\day\\%i.wav", ambientSet.c_str(), kAmbientSounds[i].name,
-                          variants + 1);
+            const std::string name =
+                std::format("ambient\\{}\\{}\\day\\{}.wav", ambientSet, kAmbientSounds[i].name, variants + 1);
             if (!g_clientWorld.sounds->HasWaveFile(name)) break;
             ++variants;
         }

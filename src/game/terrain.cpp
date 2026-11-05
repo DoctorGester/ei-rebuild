@@ -17,6 +17,7 @@
 #include "lib/vecmath.h"
 #include "render/render.h"
 
+#include <algorithm>
 #include <climits>
 #include <cmath>
 #include <cstdint>
@@ -146,11 +147,7 @@ int Terrain::SurfaceClass(float x, float y) {
 
 // --- Class name and id ------------------------------------------------------------------------------
 
-namespace {
-constexpr const char* kTerrainClassName = "CTerrain";
-} // namespace
-
-const char* terrain::Terrain::ClassName() { return kTerrainClassName; }
+const char* terrain::Terrain::ClassName() { return "CTerrain"; }
 ClassId terrain::Terrain::GetClassId() { return ClassId::Terrain; }
 
 // --- Shadow ------------------------------------------------------------------------------------------
@@ -193,7 +190,7 @@ namespace {
 
 constexpr float kMargin = 1.0f;   // one cell around the quad
 
-// A cell bound: (v -/+ the margin) / cell size, stored as a float first and rounded to nearest.
+// A cell bound: the coordinate rounded to nearest.
 int CellBound(float v) { return std::lround(v); }
 
 Vector3 Corner(const VertexPacket& quad, int corner) { return {quad.x()[corner], quad.y()[corner], quad.z()[corner]}; }
@@ -217,25 +214,23 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad)
         float fourthX = u.x + v.x - origin.x;
         float fourthY = u.y + v.y - origin.y;
         int bound = CellBound(MinKeepA(MinKeepA(MinKeepA(fourthX, u.x), v.x), origin.x) - kMargin);
-        if (x0 >= bound) x0 = bound;
+        x0 = std::min(x0, bound);
         bound = CellBound(MinKeepA(MinKeepA(MinKeepA(fourthY, u.y), v.y), origin.y) - kMargin);
-        if (y0 >= bound) y0 = bound;
+        y0 = std::min(y0, bound);
         bound = CellBound(MaxKeepB(origin.x, MaxKeepB(v.x, MaxKeepB(u.x, fourthX))) + kMargin);
-        if (x1 <= bound) x1 = bound;
+        x1 = std::max(x1, bound);
         bound = CellBound(MaxKeepB(origin.y, MaxKeepB(v.y, MaxKeepB(u.y, fourthY))) + kMargin);
-        if (y1 <= bound) y1 = bound;
-        if (x0 < 0) x0 = 0;
-        if (y0 < 0) y0 = 0;
-        int last = static_cast<int>(width - 1.0f);
-        if (last < x1) x1 = last;
-        last = static_cast<int>(height - 1.0f);
-        if (last < y1) y1 = last;
+        y1 = std::max(y1, bound);
+        x0 = std::max(x0, 0);
+        y0 = std::max(y0, 0);
+        x1 = std::min(x1, static_cast<int>(width - 1.0f));
+        y1 = std::min(y1, static_cast<int>(height - 1.0f));
         previous = lowest;
         if (y0 > y1) break;
         for (int y = y0; y <= y1; ++y) {
             for (int x = x0; x <= x1; ++x) lowest = MinKeepA(VertexAt(x, y, Layer::Ground)->z, lowest);
         }
-        if (!(lowest < previous)) break;   // it no longer drops (Lower never raises it); a NaN ends it too
+        if (!(lowest < previous)) break;   // it no longer drops a NaN ends it too
     }
     builder->Reserve(((x1 - x0 + 1) * (y1 - y0 + 1) + (y1 - y0 + x1 - x0 + 1) * 5) * 4);
     for (int y = y0; y < y1; ++y) {
@@ -317,7 +312,6 @@ void Terrain::DrawPass(SceneRenderer* renderer, int firstPage, int lastPage) {
     pipeline->PushMatrixProduct(matrix, TransformPipeline::kClipStack);
     pipeline->PushMatrixProduct(matrix, kProjectStack);
     DrawPages(renderer, firstPage, lastPage);
-    pipeline = renderer->pipeline;
     pipeline->PopMatrix(TransformPipeline::kClipStack);
     pipeline->PopMatrix(kProjectStack);
 }

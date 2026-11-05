@@ -107,7 +107,7 @@ public:
     float SurfaceHeight(float x, float y);
 
     // Every sector of the map is visible (the passes clip-test each one). The game took a square of sectors around
-    // the camera, 100 units each way; Rebirth's LandscapeDrawRadius widened it to the whole map.
+    // the camera, 100 units each way; Rebirth's LandscapeDrawRadius (always on) widened it to the whole map.
     void ShowAllSectors();
 
     // The ambient sounds, the waves, then the animation of each drawn visible sector. Returns true.
