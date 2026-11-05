@@ -9,6 +9,7 @@
 #include "item_db.h"
 #include "lock_key.h"
 
+#include <array>
 #include <bit>
 #include <cstdint>
 #include <string>
@@ -45,9 +46,6 @@ class ItemLoot;
 // Base of every item. The six item classes override its virtuals (each calls Item's first).
 class Item : public EngineObject {
 public:
-    Item();
-    ~Item() override;
-
     void Create() override;
     void Destroy() override;
     // The recharge: charge moves towards chargeMax by chargeRate * chargeMax. 0 when already full.
@@ -114,30 +112,26 @@ public:
     Ref<ItemTurn> turn;
     // the condition and its maximum (both from the prototype's; -1.0 until then): at 0 or below (rounded) the
     // item is broken.
-    float condition = 0.0f;
-    float conditionMax = 0.0f;
-    float charge = 0.0f;
-    float chargeMax = 0.0f;       // the prototype's charge
-    float chargeRate = 0.0f;      // 0.001 by default
-    float weight = 0.0f;          // the prototype's weight
-    float price = 0.0f;           // includes the attached spell's price
-    float unreadValue = 0.0f;     // the prototype's unreadValue; only saved, loaded and compared by IsSameAs
+    float condition = -1.0f;
+    float conditionMax = -1.0f;
+    float charge = -1.0f;
+    float chargeMax = -1.0f;      // the prototype's charge
+    float chargeRate = -1.0f;     // 0.001 once InitFromRecord ran
+    float weight = -1.0f;         // the prototype's weight
+    float price = -1.0f;          // includes the attached spell's price
+    float unreadValue = -1.0f;    // the prototype's unreadValue; only saved, loaded and compared by IsSameAs
     // the level of spell the item can hold (the prototype's magicLevel plus the material's; MagicCapacityOf).
     std::uint32_t magicLevel = 0;
     Ref<Spell> spell;            // the spell carried by the item (scrolls, wands)
-    std::uint32_t count = 0;      // the stack's count
+    std::uint32_t count = 1;      // the stack's count
 };
 
-// The record an item's link (Item::link) points at as the world server makes it: a counted value holding
+// The record an item's serverLink points at as the world server makes it: a counted value holding
 // the dword the world's save keeps per item. When the server builds a unit's items from its party record it
 // holds the id of the record's item.
 class ItemLink final : public RefObject {
 public:
-    // No references, no flags.
-    ItemLink();
-    // Built again in place (the count and the value stay): nothing changes. Returns 0.
-    void OnShutdown() override;
-    // A new link with this one's value and no references; null without memory.
+    // A new link with this one's value and no references.
     ItemLink* Clone() override;
 
     std::uint32_t value = 0;
@@ -146,8 +140,6 @@ public:
 // An item's turning state in the item views: made by the item draw and the moves.
 class ItemTurn final : public RefObject {
 public:
-    ItemTurn() = default;
-    void OnShutdown() override;
     ItemTurn* Clone() override;
 
     float angle = 0.0f;      // radians, wrapped at 2 pi
@@ -158,7 +150,6 @@ public:
 
 class ItemWeapon : public Item {
 public:
-    ItemWeapon();
     const char* ClassName() override;
     ClassId GetClassId() override;
     ItemWeapon* AsWeapon() override { return this; }
@@ -170,7 +161,7 @@ public:
     bool IsRanged() { return ::IsRanged(GetType()); }
 
     // The prototype's damage type weights; zeros without a prototype.
-    void GetDamageTypes(float (&out)[kDamageTypeCount]);
+    std::array<float, kDamageTypeCount> DamageTypes();
 
     // damage + a random fraction of damageSpread (the global ISAAC generator).
     float RollDamage();
@@ -189,10 +180,10 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    std::uint32_t actionValue = 0;      // 0 after construction; UnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it
-    float damage = 0.0f;
-    float damageSpread = 0.0f;
-    float reach = 0.0f;     // prototype reach: the wielder's reach
+    std::uint32_t actionValue = 0;      // UnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it
+    float damage = -1.0f;
+    float damageSpread = -1.0f;
+    float reach = -1.0f;    // prototype reach: the wielder's reach
 };
 
 class ItemArmor : public Item {
@@ -224,7 +215,7 @@ public:
 
     // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
     // first covered slot, [1] for the others.
-    float absorb[2][kDamageTypeCount] = {};
+    std::array<std::array<float, kDamageTypeCount>, 2> absorb{};
     std::uint32_t layerMask[2] = {};
 };
 

@@ -32,6 +32,7 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstddef>
@@ -145,13 +146,13 @@ void UnitServer::GetDamageByType(DamageWords* out) {
     if (self->player && self->activeWeapon < 4 && self->weapons[self->activeWeapon])
         weapon = self->weapons[self->activeWeapon]->AsWeapon();
     // A player's weapon in hand gives the damage and its type weights; else the statistics do.
-    float weaponWeights[7];
+    std::array<float, kDamageTypeCount> weaponWeights{};
     const float* weights = stats.damageWeights;
     float total = stats.damageSpread + stats.damage;
     if (weapon) {
         total = weapon->damageSpread + weapon->damage;
-        weapon->GetDamageTypes(weaponWeights);
-        weights = weaponWeights;
+        weaponWeights = weapon->DamageTypes();
+        weights = weaponWeights.data();
     }
     float scale = ScaleDamageByEffects(self, total);
     for (int i = 0; i < 7; ++i) {
@@ -409,7 +410,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
     if (keyed && self->activeWeapon < 4 && self->weapons[self->activeWeapon])
         weapon = self->weapons[self->activeWeapon]->AsWeapon();
     if (weapon) {
-        weapon->GetDamageTypes(out->typeWeights);
+        std::ranges::copy(weapon->DamageTypes(), out->typeWeights);
         out->weaponValue = weapon->actionValue;
         int face = static_cast<int>(g_random.Next() % kRollSides);
         out->attackRoll = static_cast<float>(2 * face - 4);   // -4 .. 4 in steps of 2

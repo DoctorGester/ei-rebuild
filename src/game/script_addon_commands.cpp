@@ -256,7 +256,7 @@ bool GiveUnitArmor(Call* call) {
         // Four blocks of seven values (A, C, B, D in memory order) and their weights.
         float blocks[4][7] = {};
         const float weights[4] = {0.05f, 0.3f, 0.3f, 0.3f};
-        auto addInto = [&](int block, const float* from) {
+        auto addInto = [&](int block, const std::array<float, kDamageTypeCount>& from) {
             for (int c = 0; c < 7; ++c) blocks[block][c] = from[c] + blocks[block][c];
         };
         for (int slot = 0; slot < 7; ++slot) {
