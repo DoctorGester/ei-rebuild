@@ -5,5 +5,5 @@ model = "opus"
 depends = ["C132"]
 note = "Split from C132 (style review round 4, app.md A12; world.md A10). game_strings.h: 126 functions that only return a literal (111 used in one file: inline the literal; 15 used in 2-11 files, e.g. CancelSoundText, OkSoundText, SelectSoundText, NoneText, ZoneSuffix1Text: a meaning-named constexpr in the area's header that owns the sound or name), questwords::ListKey, the error-text namespaces, and game::kEmptyText (62 uses in 43 files: str::Compare(x, kEmptyText) == 0 -> x.empty(), assignments -> clear(), fallbacks -> \"\" or an empty string_view). Then delete the header. Touches about 80 files: run when the board is quiet. Style only: goldens the same, no new forwarders."
 order = 1141
-status = "running"
+status = "review"
 started = "2026-11-05"
