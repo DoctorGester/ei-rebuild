@@ -58,8 +58,11 @@ in the key table (`config\keyboard.ini`, `key_bindings.cpp`); a zone has no inve
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 
 `Interface3D` (`g_interface`) keeps the active windows in a vector; the top one receives input. A `UiWindow` holds five
-arrays: referenced engine objects, scene objects, surfaces, regions and models. `UiRegion` is a rectangle or a convex
-polygon (from 3 vertices) tested with integer cross products; tooltip states 0 idle, 1 hovered, 2 appearing, 3 disappearing,
+arrays: referenced engine objects and scene objects (counted: released in ~UiWindow), and the surfaces, regions and
+models it owns (`unique_ptr`; `AddSurface` takes the owner and returns the surface); a container owns its children and
+extra inputs the same way (`AddChild`). A window destroyed while it holds the mouse lets it go. `UiRegion` is a
+rectangle or a convex polygon (from 3 vertices) tested with integer cross products; a region owns its tooltip
+(`UiTooltip`, a plain struct holding its surface while it shows); tooltip states 0 idle, 1 hovered, 2 appearing, 3 disappearing,
 4 shown (0 and 4 stay, 1 -> 0 or 2, 2 -> 4, 3 -> 0). A hovered tooltip goes back to idle (its timer 0) as soon as the
 mouse is outside its region: the original's kept counting there and showed for one frame at the mouse, over whatever
 region the mouse was on, when the count reached the delay (scenario `ui_tooltip_switch`). `UiRegion::SetTip` formats "tip %d" up to '#'; a missing text shows
@@ -386,8 +389,10 @@ F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF 
   2(1-s)^2`, then `(a - 700) * e + 700` stored once as float; `Update` adds `FrameTime() / 0.5` and compares the unrounded sum
   with 1; `UiScrollbar::Update` adds `FrameTime() * speed * 16` (negated for "up") to a float accumulator (NaN loops forever
   in both).
-- `UiScrollText` (the battle message log and the quest log) tokenises every text added into format tokens (runs of "\n",
-  BEL 'C' r g b, BEL 'F' digit) and word tokens (a string and its width).
+- `UiScrollText` (the battle message log, the quest log, the briefing's text) is a window with a `UiScrollbar` `bar`
+  (its position the pixels scrolled; the window passes it its input and update and draws its sprites); it tokenises
+  every text added into `TextToken` values: format tokens (runs of "\n", BEL 'C' r g b, BEL 'F' digit) and word
+  tokens (a string and its width).
 - **Options data**: rows are {OptionBinding*, OptionSetting*}; 27 option definitions (id, name, kind, maximum, group, row;
   0-20 the original's, 21 our resolution row, a drop-down list: renderer.md, "Resolution changes"; 22-26 our graphics
   rows in the display group's free rows 8 and 10-13, kind 3 a spin control over a list of choices: renderer.md, "The

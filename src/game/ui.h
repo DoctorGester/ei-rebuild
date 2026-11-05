@@ -574,6 +574,7 @@ public:
 class UiWindow : public TransformObject {
 public:
     explicit UiWindow(Interface3D* ui);
+    // The counted objects released; the mouse let go when the window had taken it.
     ~UiWindow() override;
 
     // The class name is "Sorry, no other way." and the id 0x45.
@@ -1522,7 +1523,7 @@ public:
     int portraitMode = 0;            // 1, 2: the next portrait click picks a player for a server command (4, 5)
 };
 
-// A scroll bar (the battle screen's message log derives from it).
+// A scroll bar (a scrolling text has one).
 class UiScrollbar : public UiWindow {
 public:
     int Position() const { return position; }
@@ -1602,18 +1603,22 @@ struct UiTextLine {
     int firstToken = 0;              // index in the token array
 };
 
-// A scroll bar showing tokenised text: the battle screen's message log and the objectives window's quest
-// log.
-class UiScrollText : public UiScrollbar {
+// Tokenised text with a scroll bar at its right edge: the battle screen's message log and the objectives window's
+// quest log.
+class UiScrollText : public UiWindow {
 public:
-    // 20 lines per second, justified (align 2).
+    // The bar scrolls 20 lines per second; justified (align 2).
     UiScrollText(Interface3D* ui, const char* text, Rect rect, float depth);
     // Scrolled to the end first, then kept that far from the end.
     void AddText(std::string_view text);
     // Scrolls to the top.
     void SetText(std::string_view text);
-    void SetRect(const Rect* rect) override;
-    // Places the words again when the position moved.
+    // The text and its bar over `rect`.
+    void SetRect(const Rect* rect);
+    // The bar's: its held arrows scroll, its input.
+    void Update() override;
+    void OnEvent(UiEvent& event) override;
+    // Places the words again when the bar's position moved; the bar's sprites.
     void DrawSprites(SceneRenderer* pass) override;
     // The lines stay until the next layout.
     void Clear();
@@ -1632,6 +1637,7 @@ public:
     // The surface's paint: shownWords.
     void PaintWords(UiSurface& surface) const;
 
+    UiScrollbar bar;                 // its position is the pixels scrolled
     Rect textRect;                   // the text's rectangle (surface coordinates)
     std::vector<TextToken> tokens;
     std::vector<UiTextLine> lines;  // the laid out lines

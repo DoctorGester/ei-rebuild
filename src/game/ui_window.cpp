@@ -327,4 +327,5 @@ UiWindow::~UiWindow() {
     }
     ReleaseAndClear(sceneObjects);
     ReleaseAndClear(objects);
+    if (ui->mouseCapture == this) ui->mouseCapture = nullptr;
 }

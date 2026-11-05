@@ -201,16 +201,16 @@ void UiScrollText::PaintWords(UiSurface& surface) const {
 
 // --- Construction, texts, layout ----------------------------------------------------------
 
-// The scroll bar's tables with its own drawing and layout.
-UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect rect, float depth)
-    : UiScrollbar(ownerUi, rect, depth, 0, kScrollSpeed) {
-    AddSurface(std::make_unique<UiSurface>(ui, &rect, SurfaceBlend::Keyed))->PaintWith([this](UiSurface& out) { PaintWords(out); });
-    UiScrollbar::SetRect(&rect);
-    PlaceText(rect);
+UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect area, float depth)
+    : UiWindow(ownerUi), bar(ownerUi, area, depth, 0, kScrollSpeed) {
+    rect = area;
+    AddSurface(std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed))
+        ->PaintWith([this](UiSurface& out) { PaintWords(out); });
+    bar.SetRect(&area);
+    PlaceText(area);
     Tokenize(std::string(text));
     Layout();
-    SetPosition(0);
-    UiScrollbar::SetPosition(0);
+    bar.SetPosition(0);
     align = kJustified;
 }
 
@@ -222,30 +222,35 @@ void UiScrollText::PlaceText(const Rect& area) {
 }
 
 void UiScrollText::AddText(std::string_view text) {
-    SetPosition(maxPosition);
-    moved = true;
-    const int scrollPosition = TakePosition();
-    int before = maxPosition;
+    bar.SetPosition(bar.maxPosition);
+    bar.moved = true;
+    const int scrollPosition = bar.TakePosition();
+    int before = bar.maxPosition;
     Tokenize(std::string(text));
     Layout();
-    SetPosition(maxPosition - before + scrollPosition);
+    bar.SetPosition(bar.maxPosition - before + scrollPosition);
 }
 
 void UiScrollText::SetText(std::string_view text) {
     Clear();
     Tokenize(std::string(text));
     Layout();
-    SetPosition(0);
+    bar.SetPosition(0);
 }
 
 void UiScrollText::SetRect(const Rect* newRect) {
-    UiScrollbar::SetRect(newRect);
+    rect = *newRect;
+    bar.SetRect(newRect);
     PlaceText(*newRect);
 }
 
+void UiScrollText::Update() { bar.Update(); }
+
+void UiScrollText::OnEvent(UiEvent& event) { bar.OnEvent(event); }
+
 void UiScrollText::DrawSprites(SceneRenderer* pass) {
-    if (TakeMoved()) PlaceWords(Position());
-    DrawBase(pass);
+    if (bar.TakeMoved()) PlaceWords(bar.Position());
+    bar.DrawSprites(pass);
 }
 
 void UiScrollText::Clear() { tokens.clear(); }
@@ -283,5 +288,5 @@ void UiScrollText::Layout() {
         }
         total += height;
     }
-    SetMaximum(textRect.top - textRect.bottom + total);
+    bar.SetMaximum(textRect.top - textRect.bottom + total);
 }

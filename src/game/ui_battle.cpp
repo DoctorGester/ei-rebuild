@@ -185,11 +185,8 @@ void BattleScreen::LayoutChanged() {
     const std::string pageTexts[2] = {topPanel->pageTexts[0], topPanel->pageTexts[1]};
     const PendingAction mode = pendingAction;
     const int slot = pendingSlot, item = pendingItem;
-    for (const auto& child : children) {
-        child->Deactivate();
-        if (ui->mouseCapture == child.get()) ui->mouseCapture = nullptr;
-    }
-    children.clear();
+    for (const auto& child : children) child->Deactivate();
+    children.clear();   // a child (or its part) that took the mouse lets it go (~UiWindow)
     BuildPanels(mapZoom);
     topPanel->pageTexts[0] = pageTexts[0];
     topPanel->pageTexts[1] = pageTexts[1];
