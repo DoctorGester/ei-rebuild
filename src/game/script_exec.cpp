@@ -880,7 +880,7 @@ bool ScriptRun::Execute(Script* script) {
             if (IsMultiplayerClient() && IsLive(net::g_gameServer)) {
                 args.Float();   // the player is not used
                 std::string name = args.Text();
-                net::g_gameServer->SetVariable(&name, args.Float());
+                net::g_gameServer->SetVariable(name, args.Float());
                 break;
             }
             Player* player = args.FindPlayer();
@@ -895,8 +895,8 @@ bool ScriptRun::Execute(Script* script) {
             if (IsMultiplayerClient() && IsLive(net::g_gameServer)) {   // GSDelVar's branch is unreached in the shipped game
                 args.Float();   // the player is not used
                 std::string name = args.Text();
-                if (setMax) net::g_gameServer->RaiseVariable(&name, args.Float());
-                else net::g_gameServer->RemoveVariable(&name);
+                if (setMax) net::g_gameServer->RaiseVariable(name, args.Float());
+                else net::g_gameServer->RemoveVariable(name);
                 break;
             }
             Player* player = args.FindPlayer();
@@ -979,7 +979,7 @@ bool ScriptRun::Execute(Script* script) {
             if (!player) break;
             std::vector<Item*> items;
             player->GetParty()->money += lib::Truncate(args.Float());
-            player->GiveItems(&items, 0);
+            player->GiveItems(items, 0);
             break;
         }
         case ScriptFunction::GiveQuestItem:     // GiveQuestItem(player, item)
@@ -990,7 +990,7 @@ bool ScriptRun::Execute(Script* script) {
             Item* item = g_serverWorld.CreateItemNamed(args.Text());
             if (item) {
                 items.push_back(item);
-                player->GiveItems(&items, 0);
+                player->GiveItems(items, 0);
             }
             break;
         }
@@ -1010,7 +1010,7 @@ bool ScriptRun::Execute(Script* script) {
             if (IsMultiplayerClient()) {
                 args.Float();   // the player is not used
                 const std::string map = args.Text();
-                if (IsLive(net::g_gameServer) && net::g_gameServer->FinishMap(&map)) {
+                if (IsLive(net::g_gameServer) && net::g_gameServer->FinishMap(map)) {
                     QuestRecord* quest = g_questDatabase.FindQuest(map);
                     if (quest) g_serverWorld.AwardExperience(nullptr, quest->exp);
                 }

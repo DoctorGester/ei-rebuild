@@ -355,7 +355,7 @@ bool PlayerClient::OnItemsReceived() {
         if (Item* item = manager->FindObjectAs<Item>(static_cast<unsigned>(objectId))) items.insert(items.begin(), item);
     }
     if (complete) {
-        player->GiveItems(&items, flag);
+        player->GiveItems(items, flag);
         g_interface.OnItemsPicked(items, money - before, flag != 0);
     }
     items.clear();

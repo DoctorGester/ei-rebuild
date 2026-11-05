@@ -226,10 +226,7 @@ void SaveLoadWindow::SaveGame() {
 
     // info.sav: the new save's entry (the first) with the title being given.
     FileStream info;
-    {
-        std::string path = folder + "info.sav";
-        info.Open(path, platform::FileMode::Create);
-    }
+    info.Open(folder + "info.sav", platform::FileMode::Create);
     if (nameTyped)
         entries.data()->title = name;
     else if (selected == 0)
@@ -251,10 +248,7 @@ void SaveLoadWindow::SaveGame() {
     // shot.sav: the game's picture.
     if (dialog) {
         platform::File shot;
-        {
-            std::string path = folder + "shot.sav";
-            shot.Open(path, platform::FileMode::Create);
-        }
+        shot.Open(folder + "shot.sav", platform::FileMode::Create);
         shot.Write(newPicture.data(), static_cast<unsigned>(newPicture.size()));
         shot.Close();
     }
@@ -830,11 +824,8 @@ void SaveLoadWindow::Char(UiEvent& event) {
         auto& currentName = name;
         if (!g_interface.ctrlDown && text::CharacterCount(currentName) < kMaxNameLength) {
             std::string tail = str::Mid(currentName, cursor);
-            std::string typed;
-            {
-                std::string head = str::Left(currentName, cursor);
-                typed = text::Typed(head, event.character) + tail;   // the character's UTF-8 bytes
-            }
+            // The character's UTF-8 bytes between the text before the cursor and the tail.
+            std::string typed = text::Typed(str::Left(currentName, cursor), event.character) + tail;
             if (g_interface.TextExtent(typed, 1).w < kMaxNameWidth) {
                 currentName = typed;
                 cursor += text::TypedLength(event.character);

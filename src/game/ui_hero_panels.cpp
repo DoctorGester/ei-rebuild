@@ -38,7 +38,7 @@ constexpr std::uint32_t kGrey = 0x828282;
 // and a frame per cell, a region per
 // cell (into `cells`), then the surface, painted from `labels`. Texels alternate between 0x1C and 0x80 across and
 // down; each row's pictures lie twice as deep as their frames, and half as deep as the row above.
-void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels, UiRegion* (&cells)[16]) {
+void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>& labels, UiRegion* (&cells)[16]) {
     int cell = 0;
     int u = 0x1C;
     float depth = 32.0f;
@@ -66,7 +66,7 @@ void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels, UiRegio
         v = 0x9C - v;
     }
     window->AddSurface(std::make_unique<UiSurface>(200, 100, 600, 500, SurfaceBlend::Keyed, true))
-        ->PaintWith([labels](UiSurface& out) { PaintLabels(out, *labels); });
+        ->PaintWith([&labels](UiSurface& out) { PaintLabels(out, labels); });
 }
 
 constexpr int kGridCellsPerList = 8;
@@ -387,7 +387,7 @@ void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldI
     sellKind = spells ? PriceKind::SpellSell : PriceKind::ItemSell;
     exchange = isExchange;
     for (const char* name : {"trade1", "trade2", "trade3", "trade4"}) LoadTexture(name, TextureKind::Interface);
-    BuildCellGrid(this, &labels, cells);
+    BuildCellGrid(this, labels, cells);
 }
 
 // --- The item under the mouse ---------------------------------------------------------------
@@ -420,7 +420,7 @@ void RepairGrid::Build(std::vector<Item*>* damaged) {
     mode = 8;
     items = damaged;
     for (const char* name : {"repair1", "repair2", "repair3", "repair4"}) LoadTexture(name, TextureKind::Interface);
-    BuildCellGrid(this, &labels, cells);
+    BuildCellGrid(this, labels, cells);
 }
 
 // --- The quick strip's Build -------------------------------------------------------------

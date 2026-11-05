@@ -178,8 +178,8 @@ namespace {
 constexpr int kExitParticles = static_cast<int>(ParticleType::ZoneExit);   // "ZoneExit" (particle_world.cpp EmitZoneExit)
 constexpr int kExitWarmUpTicks = 20;
 constexpr float kOneHalf = 0.5f;
-const char* DotText() { return "."; }
-const char* QuestPrefixText() { return "q."; }
+constexpr const char* kDotText = ".";
+constexpr const char* kQuestPrefixText = "q.";
 
 void SessionDisconnect(Player* session) { session->Disconnect(); }
 
@@ -212,12 +212,12 @@ void WorldClient::CreateExitMarkers() {
     UpdateExitMarkers();
 }
 
-bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit) {
+bool WorldClient::PartyInExit(const std::vector<PartyUnitRecord*>& records, int exit, std::vector<PartyUnitRecord*>* inExit) {
     bool result = 1;
     int living = 0;
     inExit->clear();
-    for (int i = 0; i < std::ssize(*records); ++i) {
-        PartyUnitRecord* record = (*records)[i];
+    for (int i = 0; i < std::ssize(records); ++i) {
+        PartyUnitRecord* record = records[i];
         Unit* found =
             FindUnit(static_cast<int>(record->unitId));
         if (!found || found->IsDead() != 0) continue;
@@ -241,7 +241,7 @@ void WorldClient::SummonBird() {
 }
 
 void WorldClient::OnQuestVariable(std::string_view variable, float value) {
-    const char* dot = DotText();
+    const char* dot = kDotText;
     std::string name(variable);
     const int length = lib::Count(name);
     const int second = str::Find(name, dot, str::Find(name, dot) + 1);
@@ -254,9 +254,9 @@ void WorldClient::OnQuestVariable(std::string_view variable, float value) {
 }
 
 std::string WorldClient::ObjectVariableName(std::string_view name) {
-    std::string variable = QuestPrefixText();
+    std::string variable = kQuestPrefixText;
     variable += LocalPlayerZone();
-    variable += DotText();
+    variable += kDotText;
     variable += name;
     return variable;
 }

@@ -260,11 +260,7 @@ void HudWeaponBar::SetUnit(Unit* newUnit) {
     for (unsigned slot = 0; slot < 4; ++slot) {
         ItemWeapon* weapon = unit->GetWeapon(slot);
         if (!weapon) continue;
-        {
-            std::string image = weapon->FigureName();
-            std::string model = weapon->PictureName();
-            AddWeapon(model, image);
-        }
+        AddWeapon(weapon->PictureName(), weapon->FigureName());
         tip = g_clientWorld.texts->GetItemTexts(weapon).name;
         tip += "\n";
 
@@ -552,12 +548,7 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
     for (unsigned slot = 0; slot < 4; ++slot) {
         Item* item = unit->GetQuickItem(slot);
         if (!item) continue;
-        UiMesh* sprite;
-        {
-            std::string image = item->FigureName();
-            std::string model = item->PictureName();
-            sprite = AddItem(model, image);
-        }
+        UiMesh* sprite = AddItem(item->PictureName(), item->FigureName());
         finish(item, true, sprite);
         regions[slot]->SetTipString(ItemTip(slot), static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot), sprite);
@@ -577,12 +568,7 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
         ++node;
         if (!item || item->Kind() != ItemKind::Quest)
             continue;
-        UiMesh* sprite;
-        {
-            std::string image = item->FigureName();
-            std::string model = item->PictureName();
-            sprite = AddItem(model, image);
-        }
+        UiMesh* sprite = AddItem(item->PictureName(), item->FigureName());
         finish(item, false, sprite);
         // The same string serves as the second and third texts.
         tip = g_clientWorld.texts->GetItemTexts(item).name;
@@ -688,11 +674,7 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
     for (unsigned i = 0; i < 8; ++i) {
         Item* spell = unit->GetSpell(i);
         if (!spell) continue;
-        {
-            std::string image = spell->FigureName();
-            std::string model = spell->PictureName();
-            AddSpell(model, image);
-        }
+        AddSpell(spell->PictureName(), spell->FigureName());
         tip = g_clientWorld.texts->GetItemTexts(spell).name;
 
         // The spell's numbers below its name: one line per label of the panel's table.

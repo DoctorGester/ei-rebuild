@@ -351,7 +351,7 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
         ++sprite;
         ++vertex;
     }
-    return renderer->DrawSprites(additiveBlend, &g_vertices, &g_sprites);
+    return renderer->DrawSprites(additiveBlend, g_vertices, &g_sprites);
 }
 
 // --- Particle tick -----------------------------------------------------------------------------------

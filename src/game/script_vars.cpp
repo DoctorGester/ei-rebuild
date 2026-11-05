@@ -100,8 +100,8 @@ void ScriptVars::RemoveDeletedObjects() {
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
 // An unknown type is accepted and adds no letter.
-bool ScriptDefinition::AddParameter(const std::string* parameterName, ScriptType type) {
-    const std::string& text = *parameterName;
+bool ScriptDefinition::AddParameter(const std::string& parameterName, ScriptType type) {
+    const std::string& text = parameterName;
     bool added;
     switch (type) {
     case ScriptType::Float: added = AddVariable(vars.floats, text); break;

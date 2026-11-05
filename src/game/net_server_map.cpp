@@ -16,6 +16,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace net {
@@ -29,6 +30,13 @@ bool Is(const std::string& s, const char* t) {
     return s.size() == length && std::memcmp(s.data(), t, length) == 0;
 }
 
+// A map message carrying a zone's name.
+ZoneMessage* NewZoneMessage(std::string text) {
+    auto* message = new ZoneMessage();
+    message->text = std::move(text);
+    return message;
+}
+
 } // namespace
 
 // Empties queuedMaps and variables, queues a map message (name + suffix) on the first, replaces map by a fresh
@@ -36,39 +44,30 @@ bool Is(const std::string& s, const char* t) {
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names
 // (FindOrAddVariable) and for two paths built from the map name (SetVariable), and queues the host's item
 // awards (without the final award).
-void ServerSession::SetMap(const std::string* newName) {
+void ServerSession::SetMap(const std::string& newName) {
     queuedMaps.clear();
     variables.clear();
 
-    {
-        std::string messageName = *newName + kZoneLeaveSuffix;
-        auto* message = new ZoneMessage();
-        message->text = messageName;
-        queuedMaps.emplace_back(message);
-    }
+    queuedMaps.emplace_back(NewZoneMessage(newName + kZoneLeaveSuffix));
 
     auto* mapMessage = new MapMessage();
     ShareAssignOwned(map, mapMessage);
     MapMessage* current = map.Get();
-    if (newName != &current->text) current->text = *newName;
-    if (newName != &mapName) mapName = *newName;
+    current->text = newName;
+    mapName = newName;
 
     GameFlow* world = &g_gameFlow;
-    world->RegisterQuests(newName->data());
-    world->SetNetworkZone(newName->data());
+    world->RegisterQuests(newName.data());
+    world->SetNetworkZone(newName.data());
     Announce(g_interface.MessageText(5, SessionMapName().c_str()), nullptr);
 
-    QuestBriefingRecord* entry;
-    {
-        std::string registryName = *newName + kZoneEnterSuffix;
-        entry = g_questDatabase.briefings.index[registryName];
-    }
+    QuestBriefingRecord* entry = g_questDatabase.briefings.index[newName + kZoneEnterSuffix];
     if (!entry) return;
 
     const std::vector<std::string>& quests = entry->lists[2];   // the quests given
     for (const auto& it : quests) {
         std::string resourceName(it);
-        auto* record = FindOrAddVariable(&resourceName)->Get();
+        auto* record = FindOrAddVariable(resourceName)->Get();
         record->value = 1.0f;
         record->serial = g_variableSerial;
         ++g_variableSerial;
@@ -78,18 +77,18 @@ void ServerSession::SetMap(const std::string* newName) {
     // "<prefix><name>.<name>" and the same with the path suffix; the temporaries freed in reverse.
     {
         std::string prefix("q.");
-        std::string a = prefix + *newName;
+        std::string a = prefix + newName;
         std::string b = a + ".";
-        std::string path = b + *newName;
-        SetVariable(&path, 1.0f);
+        std::string path = b + newName;
+        SetVariable(path, 1.0f);
     }
     {
         std::string prefix("q.");
-        std::string a = prefix + *newName;
+        std::string a = prefix + newName;
         std::string b = a + ".";
-        std::string c = b + *newName;
+        std::string c = b + newName;
         std::string path = c + ".1";
-        SetVariable(&path, 1.0f);
+        SetVariable(path, 1.0f);
     }
 
     AwardHost(entry, false);
@@ -99,32 +98,23 @@ void ServerSession::SetMap(const std::string* newName) {
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();
     for (auto& zone : PickZones(kind, mapName.data())) {
-        {
-            std::string key = zone + kZoneEnterSuffix;
-            auto* message = new ZoneMessage();
-            message->text = key;
-            queuedMaps.emplace_back(message);
-        }
+        queuedMaps.emplace_back(NewZoneMessage(zone + kZoneEnterSuffix));
         LoadZoneQuests(zone.data());
     }
 }
 
 // When the held map message names `name`: drops it, empties the queued messages
 // And queues a map message "name" + "_3". Returns whether it did.
-bool ServerSession::FinishMap(const std::string* mapFile) {
+bool ServerSession::FinishMap(const std::string& mapFile) {
     auto* holder = &map;
     MapMessage* newMap = holder->Get();
     if (!IsLive(newMap)) return false;
-    const std::string* held = &newMap->text;
-    if (!(*held == *mapFile)) return false;
+    if (newMap->text != mapFile) return false;
 
     DestroyOwned(*holder);
     queuedMaps.clear();
 
-    std::string messageName = *mapFile + kZoneCompleteSuffix;
-    auto* message = new ZoneMessage();
-    message->text = messageName;
-    queuedMaps.emplace_back(message);
+    queuedMaps.emplace_back(NewZoneMessage(mapFile + kZoneCompleteSuffix));
     return true;
 }
 
@@ -137,15 +127,15 @@ bool ServerSession::FinishMap(const std::string* mapFile) {
 // listed already: a file message (chunk count, size, name) with a chunk message (the file, its index, up to
 // 64 bytes) per 64 bytes. The vector is first filled with one shared chunk (a copy per element when shared,
 // as SharedRef copies are), whose elements are then filled in turn.
-void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
+void ServerSession::ShareFile(const std::string& fileName, GameBuffer* data) {
     for (auto node = files.begin(); node != files.end(); ++node)
-        if (node->Get()->name == *fileName) return;
+        if (node->Get()->name == fileName) return;
 
     auto* file = new FileMessage();
 
     std::int32_t size = data->Size();
     std::int32_t chunkCount = (size + kChunkSize - 1) / kChunkSize;
-    if (fileName != &file->name) file->name = *fileName;
+    file->name = fileName;
     file->size = size;
     file->chunkCount = static_cast<std::uint16_t>(chunkCount);
 
@@ -203,22 +193,22 @@ void ServerSession::OnCommand(Connection* from, CommandMessage* message) {
         const std::size_t cut = text->size() - 2;
         std::string suffix = text->substr(cut);
         std::string zone = text->substr(0, text->size() - 2);
-        if (Is(suffix, kZoneEnterSuffix)) SetMap(&zone);
+        if (Is(suffix, kZoneEnterSuffix)) SetMap(zone);
         if (Is(suffix, kZoneLeaveSuffix)) LeaveZone();
-        if (Is(suffix, kZoneCompleteSuffix)) CompleteZone(&zone);
+        if (Is(suffix, kZoneCompleteSuffix)) CompleteZone(zone);
         return;
     }
     case CommandKind::KickByName:
         if (!IsHostConnection(from)) return;
         for (;;) {
-            Connection* connection = FindGuestConnection(text);
+            Connection* connection = FindGuestConnection(*text);
             if (!IsLive(connection)) return;
             Kick(connection);
         }
     case CommandKind::BanByName:
         if (!IsHostConnection(from)) return;
         for (;;) {
-            Connection* connection = FindGuestConnection(text);
+            Connection* connection = FindGuestConnection(*text);
             if (!IsLive(connection)) return;
             Ban(connection);
         }

@@ -358,7 +358,7 @@ float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
         if (IsMultiplayerClient() && IsLive(net::g_gameServer)) {
             args.Float();   // the player is not used
             std::string key = args.Text();
-            return static_cast<float>(net::g_gameServer->GetVariable(&key));
+            return static_cast<float>(net::g_gameServer->GetVariable(key));
         }
         Player* player = args.FindPlayer();
         if (player) result = player->GetParty()->variables.Get(args.Text());

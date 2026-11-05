@@ -26,9 +26,9 @@ constexpr std::uint32_t kBackground = 0x1C2B;
 constexpr std::uint32_t kTitleColour = 0x31B3FF;   // also the frame
 
 // The exe's texts: "w" (an empty line's height is measured on it), "  ( " and " )" around the key.
-const char* EmptyLineSample() { return "w"; }
-const char* KeyOpen() { return "  ( "; }
-const char* KeyClose() { return " )"; }
+constexpr const char* kEmptyLineSample = "w";
+constexpr const char* kKeyOpen = "  ( ";
+constexpr const char* kKeyClose = " )";
 
 constexpr int kLayoutHeight = 600;
 // The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time (0.0 in the
@@ -48,7 +48,7 @@ UiTooltip::UiTooltip(UiRegion* newRegion, std::string_view text, int command) : 
         Size size;
         int textWidth;
         if (lines[i].empty() && i < static_cast<int>(lines.size()) - 1) {
-            size = g_interface.TextExtent(std::string(EmptyLineSample()), kFont);
+            size = g_interface.TextExtent(std::string(kEmptyLineSample), kFont);
             textWidth = 0;
         } else {
             size = g_interface.TextExtent(lines[i], kFont);
@@ -79,7 +79,7 @@ void UiTooltip::PaintLines(UiSurface& out) const {
     for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
         std::uint32_t colour = i > 0 ? kUiTextColour : kTitleColour;
         if (i == 0 && keyName) {
-            std::string text = lines[0] + KeyOpen() + keyName + KeyClose();
+            std::string text = lines[0] + kKeyOpen + keyName + kKeyClose;
             out.DrawTextIn(text, row, TextStyle{kFont, colour, render::text::Format::Left, false});
         } else {
             out.DrawTextIn(lines[i], row, TextStyle{kFont, colour, render::text::Format::Left, false});
@@ -112,7 +112,7 @@ void UiTooltip::OnMouseMove(Point point) {
         if (extra) {
             keyName = FindCommandByKey(extra);
             if (keyName) {
-                keyWidth = g_interface.TextExtent(lines[0] + KeyOpen() + keyName + KeyClose(), kFont).w + kPaddingX;
+                keyWidth = g_interface.TextExtent(lines[0] + kKeyOpen + keyName + kKeyClose, kFont).w + kPaddingX;
             }
         }
         state = State::Appearing;

@@ -451,8 +451,8 @@ void AddDefine(std::vector<ScriptDefine>* defines, const ScriptDefine* define) {
     defines->insert(before, *define);
 }
 
-void ApplyDefines(std::string* line, const std::vector<ScriptDefine>* defines) {
-    for (const ScriptDefine& define : *defines) {
+void ApplyDefines(std::string* line, const std::vector<ScriptDefine>& defines) {
+    for (const ScriptDefine& define : defines) {
         // Replaces from the start again after each replacement (a value containing its own name
         // never ends; kept).
         for (;;) {

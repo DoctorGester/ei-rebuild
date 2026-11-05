@@ -18,17 +18,14 @@
 namespace {
 
 // The sound system is handed the game's own string pointers.
-const char* ExitMovie() { return "Movies\\Exit.bik"; }
+constexpr const char* kExitMovie = "Movies\\Exit.bik";
 
 // The callers' buffer for the edit field's text: every box with one is the connection screen's (its address and
 // password boxes, MpConnectScreen::boxText).
 constexpr std::size_t kEditTextSize = 0x80;
 
 void PlayExitMovieAndQuit() {
-    {
-        std::string path = g_dataFolder + ExitMovie();
-        PlayMovie(path, false, true, true);
-    }
+    PlayMovie(g_dataFolder + kExitMovie, false, true, true);
     platform::PostQuit(0);
 }
 

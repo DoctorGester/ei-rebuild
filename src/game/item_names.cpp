@@ -62,6 +62,8 @@ const std::span<const PartName> kPartsByType[] = {kSword, kAxe, kDagger, kPike, 
 
 // --- Item ---------------------------------------------------------------------------------------
 
+constexpr const char* kScrollPicture = "initqi1item";
+
 // A plain item has no names.
 std::string Item::ModelName() { return {}; }
 std::string Item::FigureName() { return {}; }
@@ -106,7 +108,7 @@ std::string ItemScroll::FigureName() {
     return spell ? str::Format("spell%04d", spell->GetPrototype()->icon) : std::string();
 }
 
-std::string ItemScroll::PictureName() { return "initqi1item"; }
+std::string ItemScroll::PictureName() { return kScrollPicture; }
 
 // --- Loot ----------------------------------------------------------------------------------------
 

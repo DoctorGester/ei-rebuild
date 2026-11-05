@@ -283,8 +283,8 @@ void Possession(SpellEffect* e) {
         UnitServer* server = ControllerOf(UnitOrNull(target));
         ScriptGroup* group = &player->Server()->possessedGroup;
         group->Insert(target);
-        group->InsertAll(&server->brain.memory.visible);
-        group->InsertAll(&server->brain.memory.seenCorpses);
+        group->InsertAll(server->brain.memory.visible);
+        group->InsertAll(server->brain.memory.seenCorpses);
         player->Server()->possessedId = target->id;
         target->flags |= MapObjectFlag::SeeAll;
         float sight = server->moveFactors[MoveFactor::Sight] * server->stats.perception[Sense::Sight].current;

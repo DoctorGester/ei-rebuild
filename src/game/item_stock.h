@@ -87,12 +87,12 @@ struct ItemStock {
     // Up to a random count in [minCount, maxCount] of the prototypes (all of them when there are not more;
     // otherwise the vector is shuffled in place and its first ones taken), each built as an item into `out`:
     // wands are skipped; a prototype with a material class gets a material of that class with enough units
-    // left (a quality-weighted draw, else a random one; none at all cancels the item); with `spellRecipes`
-    // (weapons and armours) the item gets a random spell half the time when the material allows magic; potions
+    // left (a quality-weighted draw, else a random one; none at all cancels the item); with `withSpells`
+    // (weapons and armours; the caller has filled the spell maps) the item gets a random spell half the time when the material allows magic; potions
     // come in stacks of 20..49.
     template <class Record>
     void GenerateItems(std::vector<Record*>* prototypes, int minCount, int maxCount, std::vector<Item*>& out,
-                       const std::vector<itemdb::SpellListRecord>* spellRecipes);
+                       bool withSpells);
 
     // A random count in [minCount, maxCount] of the material entries (the
     // vector shuffled in place when there are more), each as a "material" item (kind ItemKind::Loot) of a

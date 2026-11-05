@@ -269,8 +269,7 @@ namespace {
 // The messages registry's file name.
 constexpr const char* kMessagesFileName = /*0073F918*/ "SMessBase.reg";
 // FatalError texts.
-const char* CantCreateText() { return "CWorldServer::Create.\n Can't create base world.\n"; }
-const char* CantOpenText() { return "CWorldServer::Create.\n Can't opent message base resource.\n"; }
+constexpr const char* kCantOpenText = "CWorldServer::Create.\n Can't opent message base resource.\n";
 
 constexpr float kWindStrength = 0.4f;
 
@@ -282,7 +281,7 @@ void WorldServer::Create() {
     std::string folder = g_textFolder;
     bool opened = messages.Open(folder + kMessagesFileName);
     if (!opened) {
-        game::FatalError("%s", CantOpenText());
+        game::FatalError("%s", kCantOpenText);
         return;
     }
 

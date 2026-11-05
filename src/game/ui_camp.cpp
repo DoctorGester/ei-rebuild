@@ -885,7 +885,7 @@ void CampPages::CloseScreen() {
         record.unitId += kRecordBias;
         records.push_back(&record);
     }
-    g_clientWorld.RemoveUnitsOf(&records);
+    g_clientWorld.RemoveUnitsOf(records);
     for (PartyUnitRecord& record : player->members) record.unitId -= kRecordBias;
 
     lib::FreeStorage(heroes);
@@ -1374,7 +1374,7 @@ void CampPages::BuildPages() {
         record.unitId += kRecordBias;
         if (PrototypeObjectClass(record.prototype) == MapObjectType::Hero) records.push_back(&record);
     }
-    g_clientWorld.CreatePartyUnits(&records, 1);
+    g_clientWorld.CreatePartyUnits(records, 1);
 
     heroes.assign(count, nullptr);
     for (int i = 0; i < count; ++i) {

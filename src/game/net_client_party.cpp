@@ -196,7 +196,7 @@ void ClientSession::ApplyAwards() {
             std::vector<Item*> none;
             // Truncated as _ftol does: through 64 bits, so a NaN or a value beyond the int range gives 0.
             localPlayer->GetParty()->money += static_cast<int>(static_cast<std::int64_t>(award->value));
-            localPlayer->GiveItems(&none, 0);
+            localPlayer->GiveItems(none, 0);
             break;
         }
         case AwardKind::Item: {
@@ -204,7 +204,7 @@ void ClientSession::ApplyAwards() {
             Item* item = localPlayer->GetParty()->ItemFactory()->CreateItem(name);
             if (item) item->AddRef();
             items.push_back(item);
-            localPlayer->GiveItems(&items, 0);
+            localPlayer->GiveItems(items, 0);
             ReleaseAndClear(items);
             break;
         }

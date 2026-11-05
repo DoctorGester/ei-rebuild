@@ -27,7 +27,7 @@ struct FigureMeshDrawer : EngineObject {
     FigureMesh* mesh = nullptr;   // the mesh it draws
 
     int DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect);
-    int DrawLit(TextureDevice* device, const std::vector<Light*>* lights, Material* material, int alpha, Rect* rect,
+    int DrawLit(TextureDevice* device, const std::vector<Light*>& lights, Material* material, int alpha, Rect* rect,
                 Texture* textureA, Texture* textureB);
     void DrawBounds(SceneRenderer* renderer);
 
@@ -105,7 +105,7 @@ public:
     // was drawn. `u`, `v` are members of the mesh.
     bool FlatColours(std::string_view name, std::uint32_t colour, std::uint32_t specular,
                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
-    bool LightPart(std::string_view name, const std::vector<Light*>* lights, Material* material, int alpha,
+    bool LightPart(std::string_view name, const std::vector<Light*>& lights, Material* material, int alpha,
                    std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
     bool DrawPartMoved(std::string_view name, DrawFlag flags, std::vector<std::uint32_t>* colours,
                       std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,

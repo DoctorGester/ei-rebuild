@@ -353,7 +353,7 @@ public:
 
     // Up to 8 modifiers, through the context's spell constructor. Returns the new spell, or a fatal error's
     // result.
-    Spell* CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>* modifiers);
+    Spell* CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>& modifiers);
 
     // Text such as "healing{e2;e2}": the trimmed text before '{' is the prototype name, the ';'-separated
     // names inside the braces are modifiers (empty ones skipped). An unknown name is added to the name map

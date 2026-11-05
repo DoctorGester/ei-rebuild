@@ -74,14 +74,14 @@ void UnitPickInput::LeftDown(UiEvent& event) {
             auto* member = g_clientWorld.FindUnit(id);
             if (!member) continue;
             std::vector<Unit*> order{member};
-            world->LocalView()->SendWalk(&order, ground, 0);
+            world->LocalView()->SendWalk(order, ground, 0);
         }
     } else if (unit) {
         for (std::uint32_t id : picked) {
             auto* member = g_clientWorld.FindUnit(id);
             if (!member) continue;
             std::vector<Unit*> order{member};
-            world->LocalView()->SendAttack(&order, unit, kAttackHow, 0);
+            world->LocalView()->SendAttack(order, unit, kAttackHow, 0);
         }
     }
 }

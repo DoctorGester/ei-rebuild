@@ -39,10 +39,10 @@ public:
     // The local view's orders, queued for the server (out), each a type byte and a payload.
     // Units go as their ids (-1 for a null entry).
     // 0x30 walk / 0x3A go to: the units, `run`, the point.
-    void SendWalk(const std::vector<Unit*>* units, const Vector3& to, int run);
-    void SendGoTo(const std::vector<Unit*>* units, const Vector3& to, int run);
+    void SendWalk(const std::vector<Unit*>& units, const Vector3& to, int run);
+    void SendGoTo(const std::vector<Unit*>& units, const Vector3& to, int run);
     // 0x31 attack: the units, `ctrl`, `how`, the target's id.
-    void SendAttack(const std::vector<Unit*>* units, EngineObject* target, int how, int ctrl);
+    void SendAttack(const std::vector<Unit*>& units, EngineObject* target, int how, int ctrl);
     // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at `point`, with the low byte of `ctrl`.
     void SendCastOnUnit(int slot, Unit* caster, EngineObject* target, int ctrl);
     void SendCastAtPoint(int slot, Unit* caster, const Vector3& point, int ctrl);
@@ -64,7 +64,7 @@ public:
     // (PlayerServer::OnUseOrder).
     void SendUseOrder(Unit* unit, EngineObject* target, int kind, int value, int flag);
     // 0x36 for `units` on a dead `target`: `flag`, kind UseSource::SearchBody, value -1.
-    void SendUseDead(const std::vector<Unit*>* units, EngineObject* target, int flag);
+    void SendUseDead(const std::vector<Unit*>& units, EngineObject* target, int flag);
     // 0x50: the player's party saved without its variables (Party::SaveParty, which draws an ISAAC key) as
     // a sized block.
     void SendPartyUpdate();

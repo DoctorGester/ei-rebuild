@@ -395,7 +395,7 @@ bool UnitClientSpecific::ComposeSkin(int detailed, std::string* target) {
         request.layers.resize(bytes);
         std::memcpy(request.layers.data(), layers.data(), static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, request, unitKey, prototypeKey, texture);
-        result = textureManager->Compose(target, &request, &unitKey, &prototypeKey, 3, MmpFormat::A1R5G5B5) != 0;
+        result = textureManager->Compose(target, &request, unitKey, prototypeKey, 3, MmpFormat::A1R5G5B5) != 0;
         lib::FreeStorage(request.layers);
     }
     return result;
@@ -664,7 +664,7 @@ int UnitClientSpecific::ComposeWoundsTexture() {
                 request.textures.push_back(name);
             }
             name = str::Format(kWoundCacheName, unit->id);
-            result = g_clientWorld.textureManager->Compose(&out, &request, &name, &name, kMipCount, MmpFormat::A4R4G4B4);
+            result = g_clientWorld.textureManager->Compose(&out, &request, name, name, kMipCount, MmpFormat::A4R4G4B4);
         }
     }
     return result;

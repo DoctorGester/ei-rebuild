@@ -426,7 +426,7 @@ int EnterZone(Party* records) {
             g_serverWorld.MainScript()->ResetZone();   // the scripts reset for a zone without its own
         }
     }
-    g_serverWorld.SetZoneExits(&zoneRecord->exits);
+    g_serverWorld.SetZoneExits(zoneRecord->exits);
     return result;
 }
 
@@ -459,7 +459,7 @@ int StartNetworkZone(const std::string& zone) {
     // The zone's exits, all leading to "MPGame1".
     std::vector<ZoneExit> exits = zoneRecord->exits;
     for (ZoneExit& exit : exits) exit.target = kNetworkExitTarget;
-    g_serverWorld.SetZoneExits(&exits);
+    g_serverWorld.SetZoneExits(exits);
     g_serverWorld.SetClimate(zoneRecord->climate);
     g_serverWorld.SetCave(zoneRecord->cave);
     g_serverWorld.zoneMode = ZoneMode::Battle;
@@ -1073,7 +1073,7 @@ int GameFlow::LoadGame(const std::string& slot) {
         if (!opened) return 0;
         LoadMission(&file);
         file.Close();
-        g_serverWorld.SetZoneExits(&zoneRecord->exits);
+        g_serverWorld.SetZoneExits(zoneRecord->exits);
     }
     console::EndLine(console::g_consoleOut << kLoadedText << slot);
     return 1;

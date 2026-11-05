@@ -88,7 +88,7 @@ void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord
         Item* item = world->CreateItemNamed(name);
         if (item) items.push_back(item);
     }
-    if (!items.empty()) player->GiveItems(&items, 0);
+    if (!items.empty()) player->GiveItems(items, 0);
 
     for (const std::string& name : record->lists[QuestBriefingRecord::ListKind::RemoveItems]) {
         Item* item = world->CreateItemNamed(name);

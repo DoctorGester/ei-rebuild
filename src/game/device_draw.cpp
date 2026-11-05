@@ -198,11 +198,11 @@ bool InDepth(const Vector4& p) { return p.z >= 0.0f && p.w - p.z >= 0.0f; }
 // them (x right and y down from the top left corner, the viewport the screen's size). Past a corner of the screen
 // this is larger than the original's rectangle (the bounds of the clipped triangles), and across one edge it can be
 // wider along that edge: an accepted difference (renderer.md section 3).
-void TextureDevice::BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace) {
+void TextureDevice::BoundsOfProjected(const std::vector<Vector4>& positions, bool clipSpace) {
     const float width = static_cast<float>(screen.Width());
     const float height = static_cast<float>(screen.Height());
     ScreenBounds bounds;
-    for (const Vector4& p : *positions) {
+    for (const Vector4& p : positions) {
         if (!clipSpace) {
             bounds.Include(p.x, p.y);
         } else if (InDepth(p) && p.w > 0.0f) {

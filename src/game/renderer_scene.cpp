@@ -47,7 +47,7 @@ constexpr float kColourScale = 255.0f;
 float g_ambientColour[3] = {};
 
 // "Final loading data to NULL texture!" and a newline.
-const char* NullTextureText() { return "Final loading data to NULL texture!\n"; }
+constexpr const char* kNullTextureText = "Final loading data to NULL texture!\n";
 
 } // namespace
 
@@ -113,7 +113,7 @@ int SceneRenderer::DrawFigure(FigureMesh* mesh, Material* material, int alpha, R
     return mesh->drawer->DrawPlain(device, material, alpha, screen);
 }
 
-int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<Light*>* lights, Material* material, int alpha, Rect* screen,
+int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<Light*>& lights, Material* material, int alpha, Rect* screen,
                                   Texture* textureA, Texture* textureB) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
     return mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);
@@ -125,7 +125,7 @@ bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }
 // --- Texture holders -----------------------------------------------------------------------------
 
 int EnsureTextureLoaded(Texture* texture) {
-    if (!texture) return game::FatalError("%s", NullTextureText());
+    if (!texture) return game::FatalError("%s", kNullTextureText);
     if (texture->flags & TextureFlag::Loaded) return 1;
     return g_clientWorld.textureManager->LoadTexture(texture);
 }

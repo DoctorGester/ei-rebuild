@@ -146,10 +146,7 @@ void MainMenu::LeftDown(UiEvent& event) {
         break;
     }
     case kExit: {
-        {
-            std::string path = g_dataFolder + "Movies\\Exit.bik";
-            PlayMovie(path, false, true, true);
-        }
+        PlayMovie(g_dataFolder + "Movies\\Exit.bik", false, true, true);
         platform::PostQuit(0);
         break;
     }

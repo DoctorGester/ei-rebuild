@@ -357,7 +357,7 @@ public:
 
     // Replaces the zone exits with copies of `source`'s records that lead somewhere (target not "");
     // an exit without an entrance must lead to "none".
-    void SetZoneExits(const std::vector<ZoneExit>* source);
+    void SetZoneExits(const std::vector<ZoneExit>& source);
     // Script AddUnitToServer: creates a unit of prototype `prototype` named `name`, with id `id` (the name's text
     // key), at `position`.
     void AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3& position);
@@ -400,7 +400,7 @@ public:
     int RunCommandScript(const std::string& text, bool run, ScriptErrorInfo* error);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a
     // multiplayer game (else -1), `value`, and references to the objects of `objects`.
-    void AddSharedObject(int id, std::uint32_t value, const std::vector<Item*>* objects);
+    void AddSharedObject(int id, std::uint32_t value, const std::vector<Item*>& objects);
     // Before a save: every living unit refills its controller's slots and runs the controller's matching
     // virtual with 0.
     void PrepareSave();
@@ -855,7 +855,7 @@ public:
     // Whether the party can leave through `exit`: every living unit of `records` (unit id in the
     // record) stands in an exit (FindExitAt) and that exit is `exit`. Those that do are listed in
     // `inExit` (emptied first). 0 when no unit lives.
-    bool PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit);
+    bool PartyInExit(const std::vector<PartyUnitRecord*>& records, int exit, std::vector<PartyUnitRecord*>* inExit);
     // Makes the bird when there is none, resets it and has it follow the unit of the local party's first
     // record.
     void SummonBird();
@@ -960,7 +960,7 @@ public:
     // The target zone of exit `index` (the original copies the exit out of the array and returns the
     // copy's text, which shares the element's buffer).
     const char* ExitTarget(int index);
-    void RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records);
+    void RemoveUnitsOf(const std::vector<PartyUnitRecord*>& records);
     void SendPause(int value);
     // The camera looks at the point (x, y) at its own focus height, with its view applied and kept above
     // the objects.
@@ -969,7 +969,7 @@ public:
     // Creates the party's heroes from their records: the figure from the part names (the hair "hr.%.2d" by the
     // prototype's number), items, player; each unit is filed with AddObject. Armour of type 0 is put on only with
     // `allArmour`. Stops at the first unit that cannot be created or given a figure.
-    void CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour);
+    void CreatePartyUnits(const std::vector<PartyUnitRecord*>& party, char allArmour);
     // Every object of the sector grid's cells around `point` whose (x, y) lies within radius +
     // hypot(rangeX, rangeY) of the point (the cells' range truncated and clamped to the terrain). The
     // original's z difference is the point's z minus itself (0, kept).

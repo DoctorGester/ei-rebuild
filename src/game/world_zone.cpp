@@ -48,9 +48,9 @@ constexpr const char* kProgres5 = "progres5.bik";
 
 // ---- Zone exits -------------------------------------------------------------------------------
 
-void WorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
+void WorldServer::SetZoneExits(const std::vector<ZoneExit>& source) {
     exits = {};
-    for (const ZoneExit& from : *source) {
+    for (const ZoneExit& from : source) {
         if (from.target.empty()) continue;   // leads nowhere
         if (from.entrance < 0 && str::Compare(from.target, kNoExit) != 0)
             game::FatalError("%s", "Wrong entrance number in zone exits data");

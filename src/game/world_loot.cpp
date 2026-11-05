@@ -48,7 +48,7 @@ bool WorldServer::Loot(Unit* unit, Player* player) {
         // The entry's references go with the items (the original frees the node without releasing them).
         for (HeldRef<Item>& item : node->objects) items.push_back(item.Take());
         player->GetParty()->money += static_cast<int>(node->money);
-        player->GiveItems(&items, 0);
+        player->GiveItems(items, 0);
         list.erase(node);
         abandon();
         return true;
@@ -67,13 +67,13 @@ bool WorldServer::Loot(Unit* unit, Player* player) {
                 quest.push_back(item);
                 return true;
             });
-            if (!quest.empty()) first->GiveItems(&quest, 0);
+            if (!quest.empty()) first->GiveItems(quest, 0);
             for (Item* item : quest)
                 item->Release();
         }
     }
     player->GetParty()->money += gold;
-    player->GiveItems(&items, 0);
+    player->GiveItems(items, 0);
     for (Item* item : items)
         item->Release();
     bool found = !items.empty() || gold > 0;

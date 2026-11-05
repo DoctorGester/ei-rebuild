@@ -14,7 +14,7 @@
 
 namespace {
 
-const char* PersonPattern() { return "pers *"; }
+constexpr const char* kPersonPattern = "pers *";
 constexpr int kPersonPrefixLength = 5;                                               // "pers "
 
 } // namespace
@@ -22,14 +22,9 @@ constexpr int kPersonPrefixLength = 5;                                          
 void LoadPersonTexts(std::map<int, std::string>* map) {
     TextManager* texts = g_clientWorld.texts.get();
     std::string line;
-    for (const std::string& textKey : texts->ListKeys(PersonPattern())) {
+    for (const std::string& textKey : texts->ListKeys(kPersonPattern)) {
         if (!texts->TextManager::Open(textKey)) continue;
         line = texts->ReadLine(true);
-        int key;
-        {
-            std::string name = str::Mid(textKey, kPersonPrefixLength);
-            key = TextKeyFromName(name);
-        }
-        (*map)[key] = line;
+        (*map)[TextKeyFromName(str::Mid(textKey, kPersonPrefixLength))] = line;
     }
 }

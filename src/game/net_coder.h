@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // A byte buffer: GrowingBuffer and BufferView (a fixed view over memory owned elsewhere). `cur` is where the next
@@ -60,7 +61,7 @@ public:
     // Reads one into `s`: false with readPastEnd set when it is longer than `maxLength` (> 0). The bytes are read
     // in place (Reserve first when they run past `end`).
     bool ReadString(std::string* s, int maxLength);
-    void WriteString(const std::string* s);
+    void WriteString(std::string_view s);
 
     // The position of `at` from the start.
     std::int32_t PositionOf(const std::uint8_t* at) const { return static_cast<std::int32_t>(at - begin); }

@@ -305,7 +305,7 @@ void BriefingScreen::LeaveIfExitOpen() {
     std::vector<PartyUnitRecord*> second{};
     records.resize(1);
     records[0] = localParty->members.data();
-    if (g_clientWorld.PartyInExit(&records, exit, &second)) {
+    if (g_clientWorld.PartyInExit(records, exit, &second)) {
         app::g_interfaceHasScreen = 0;
         g_gameFlow.LeaveThroughExit(exit);
     }

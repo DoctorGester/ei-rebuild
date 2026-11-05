@@ -16,7 +16,7 @@ namespace {
 
 
 constexpr int kFogTextureKind = static_cast<int>(TextureKind::Effects);
-const char* FogTextureName() { return "VisionFog"; }
+constexpr const char* kFogTextureName = "VisionFog";
 
 // The fog texture's 4 x 4 tiles (FogTiles, effects.h): filled here, read by the fog's draw.
 constexpr int kFogTiles = 16;
@@ -31,7 +31,7 @@ EngineObject* ClientArrayManager::NewObject(int) { return new VisibilityFog(); }
 
 // The texture, the tile table, then the manager's own Create.
 void ClientArrayManager::Create() {
-    LoadNamedTexture(texture, kFogTextureKind, FogTextureName());
+    LoadNamedTexture(texture, kFogTextureKind, kFogTextureName);
     FogTile* tiles = g_fogTiles;
     for (int i = 0; i < kFogTiles; ++i) {
         FogTile& tile = tiles[i];

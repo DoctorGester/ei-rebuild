@@ -37,8 +37,8 @@ constexpr float kFar = 1e30f;
 constexpr int kWeatherTextureKind = static_cast<int>(TextureKind::Effects);
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
-const char* WeatherTextureName() { return "RainSnow"; }
-const char* RainSoundName() { return "nature\\rain\\circle.wav"; }
+constexpr const char* kWeatherTextureName = "RainSnow";
+constexpr const char* kRainSoundName = "nature\\rain\\circle.wav";
 
 } // namespace
 
@@ -90,12 +90,12 @@ void RainSnow::Clear() {
 }
 
 void RainSnow::Start(int newMode, float duration) {
-    LoadNamedTexture(texture, kWeatherTextureKind, WeatherTextureName());
+    LoadNamedTexture(texture, kWeatherTextureKind, kWeatherTextureName);
     if (sound && newMode) {
         g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
-    if (newMode == 1) sound = g_clientWorld.sounds->Play2D(RainSoundName(), kRainPriority, 0, 0, {.loop = true});
+    if (newMode == 1) sound = g_clientWorld.sounds->Play2D(kRainSoundName, kRainPriority, 0, 0, {.loop = true});
     targetMode = newMode;
     if (mode == 0) mode = newMode;
     fadeDuration = duration;
@@ -263,7 +263,7 @@ int VisibilityFog::Draw(SceneRenderer* renderer) {
         ++point;
         ++sprite;
     }
-    return renderer->DrawSprites(0, &g_points, &g_sprites);
+    return renderer->DrawSprites(0, g_points, &g_sprites);
 }
 
 // ---- Rain and snow ----------------------------------------------------------------------------------------

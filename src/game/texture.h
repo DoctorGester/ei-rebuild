@@ -77,7 +77,7 @@ public:
     void DrawIndexed();
     // Draw flag 1's rectangle: the bounds of the projected `positions` (screen positions, or with `clipSpace` the
     // clip-space ones inside the depth range, mapped to the screen) clamped to the screen.
-    void BoundsOfProjected(const std::vector<Vector4>* positions, bool clipSpace);
+    void BoundsOfProjected(const std::vector<Vector4>& positions, bool clipSpace);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices, int indexCount);
     // The holder the renderer draws the stage with.
     void BindSurface(int stage, Surface* holder);
@@ -327,11 +327,11 @@ public:
     void FreeCache();
     // Each layer a `width` x `width` .mmp from the archives, its name into `found`; a missing one is skipped,
     // one of another size is a fatal error (its result returned). Returns the layers found.
-    int FindLayers(const std::vector<std::string>* names, int width, std::vector<std::string>* found);
+    int FindLayers(const std::vector<std::string>& names, int width, std::vector<std::string>* found);
     // The composed texture `name` (`fallback` when `name` has none) made of the request's layers, the name used
     // into `out`: 1 when it was made of them already or is now, 0 when there is nothing to draw.
-    int Compose(std::string* out, const SkinRequest* request, const std::string* name,
-                const std::string* fallback, unsigned mipCount, MmpFormat format);
+    int Compose(std::string* out, const SkinRequest* request, const std::string& name,
+                const std::string& fallback, unsigned mipCount, MmpFormat format);
     // The composed texture `name` (any case), or null.
     const ComposedTexture* FindComposed(std::string_view name);
 

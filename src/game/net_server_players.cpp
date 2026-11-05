@@ -90,11 +90,11 @@ void ServerSession::SetPassword(const char* text) {
 
 // The connection of the first player whose name starts with `name` (case-insensitive)
 // and whose connection is not also the host's; null without one.
-Connection* ServerSession::FindGuestConnection(const std::string* guestName) {
-    const std::size_t length = guestName->size();
+Connection* ServerSession::FindGuestConnection(const std::string& guestName) {
+    const std::size_t length = guestName.size();
     for (auto& node : players) {
         PlayerMessage* player = node.Get();
-        if (text::CompareIgnoringCase(player->name.data(), guestName->data(), length) != 0) continue;
+        if (text::CompareIgnoringCase(player->name.data(), guestName.data(), length) != 0) continue;
         const auto& currentBindings = bindings;
         auto first = currentBindings.begin();
         for (auto binding = first; binding != currentBindings.end(); ++binding) {
@@ -329,26 +329,25 @@ void ServerSession::AnnounceText(int textKind, const char* text, RefObject* play
 
 // The search the original inlines in each function: the first variable whose name has the same bytes as
 // `name`.
-std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindVariable(const std::string* variableName) {
+std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindVariable(const std::string& variableName) {
     auto node = variables.begin();
     for (; node != variables.end(); ++node)
-        if (node->Get()->name == *variableName) break;
+        if (node->Get()->name == variableName) break;
     return node;
 }
 
-std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindOrAddVariable(const std::string* variableName) {
+std::vector<SharedRef<VariableMessage>>::iterator ServerSession::FindOrAddVariable(const std::string& variableName) {
     auto node = FindVariable(variableName);
     if (node != variables.end()) return node;
 
     auto first = variables.emplace(variables.begin(), new VariableMessage());
 
-    std::string* to = &first->Get()->name;
-    if (variableName != to) *to = *variableName;
+    first->Get()->name = variableName;
     return first;
 }
 
 // Sets the variable; a zero value removes it instead. A set bumps the version and takes the next serial.
-void ServerSession::SetVariable(const std::string* newName, float value) {
+void ServerSession::SetVariable(const std::string& newName, float value) {
     if (value != 0.0f) {
         VariableMessage* variable = FindOrAddVariable(newName)->Get();
         variable->value = value;
@@ -363,7 +362,7 @@ void ServerSession::SetVariable(const std::string* newName, float value) {
 
 // Raises the variable to `value` (the larger of the two; `value` when either is NaN),
 // made when missing; a result of zero (or NaN) removes it.
-void ServerSession::RaiseVariable(const std::string* variableName, float value) {
+void ServerSession::RaiseVariable(const std::string& variableName, float value) {
     auto found = FindOrAddVariable(variableName);
     VariableMessage* variable = found->Get();
     float current = variable->value;
@@ -378,13 +377,13 @@ void ServerSession::RaiseVariable(const std::string* variableName, float value) 
 }
 
 // Removes the variable when it exists. Unreached in the shipped game: only GSDelVar in a network game calls it.
-void ServerSession::RemoveVariable(const std::string* variableName) {
+void ServerSession::RemoveVariable(const std::string& variableName) {
     auto node = FindVariable(variableName);
     if (node != variables.end()) variables.erase(node);
 }
 
 // The variable's value, 0 when missing.
-double ServerSession::GetVariable(const std::string* variableName) {
+double ServerSession::GetVariable(const std::string& variableName) {
     auto node = FindVariable(variableName);
     if (node != variables.end()) return node->Get()->value;
     return 0.0f;

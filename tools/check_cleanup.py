@@ -673,9 +673,9 @@ PATTERNS = {
         r'|\b1(?:\.0f?)?\s*/\s*255(?:\.0f?)?\b|\b0\.003921569f?\b'
         r'|\bbool\s+\w+\s*\(\s*\)\s*(?:const\s*)?\{[^{}]{0,200}?g_gameServer[^{}]{0,200}?\}'),
     # A function whose whole body is `return "text";` (a table of names as code): a constant or a lookup. A virtual that
-    # answers its class's name is the one place it reads as the shortest form.
+    # answers its class's name is the one place it reads as the shortest form: `ClassName()` is not counted.
     'function returning only a string literal': re.compile(
-        r'\)\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?\{\s*return\s+"[^"\n]*"\s*;\s*\}'),
+        r'(?<!ClassName\()\)\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?\{\s*return\s+"[^"\n]*"\s*;\s*\}'),
     # A scope block around a temporary (count_temporary_blocks above).
     'scope block around a temporary': count_temporary_blocks,
     # A buffer read or written by hand: memcpy of N bytes then the cursor moved on (`p += N`). The stream and buffer
@@ -732,9 +732,10 @@ PATTERNS = {
     # An empty namespace left behind by deleted code.
     'empty namespace': re.compile(r'\bnamespace\s*\w*\s*\{\s*\}'),
     # An input by pointer where a reference or a view does it (round 4 Z10): `const std::string*`, `const std::vector<T>*`. A
-    # non-const `std::vector<T>*` may be the caller's buffer and is not counted.
+    # non-const `std::vector<T>*` may be the caller's buffer and is not counted. A local declared in an `if (` / `for (`
+    # head (`if (const std::string* old = Find(...); old && ...)`, a lookup that may find nothing) is not a parameter.
     'const string or vector pointer parameter': re.compile(
-        r'[(,]\s*const\s+std::(?:string|vector<[^<>()]*(?:<[^<>]*>)?[^<>()]*>)\s*\*\s*\w*\s*(?=[,)=])'),
+        r'(?:,|(?<!\bif )(?<!\bif)(?<!\bfor )(?<!\bfor)\()\s*const\s+std::(?:string|vector<[^<>()]*(?:<[^<>]*>)?[^<>()]*>)\s*\*\s*\w*\s*(?=[,)=])'),
 }
 # Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked

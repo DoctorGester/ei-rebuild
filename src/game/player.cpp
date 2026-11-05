@@ -158,9 +158,9 @@ bool Player::IsLeader(const EngineObject* unit) {
     return static_cast<std::uint32_t>(unit->id) == members[0].unitId;
 }
 
-void Player::GiveItems(const std::vector<Item*>* given, int flag) {
+void Player::GiveItems(const std::vector<Item*>& given, int flag) {
     connection->ItemsGiven(given, flag);
-    for (Item* item : *given) {
+    for (Item* item : given) {
         item->AddRef();
         items.push_back(item);
     }

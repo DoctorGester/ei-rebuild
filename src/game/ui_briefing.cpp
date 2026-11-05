@@ -240,12 +240,7 @@ std::string BriefingScreen::TopicTitle(std::string_view topicKey) {
     std::string title;
     std::string key(topicKey);
     str::MakeLower(key);
-    bool isConstructor;
-    {
-        std::string start = str::Left(key, kConstructorPrefixLength);
-        isConstructor = str::Compare(start, kConstructorTopic) == 0;
-    }
-    if (isConstructor) key = kConstructorTopic;
+    if (str::Compare(str::Left(key, kConstructorPrefixLength), kConstructorTopic) == 0) key = kConstructorTopic;
     TextManager* texts = g_clientWorld.texts.get();
     std::string section = kBriefingSection;
     section += key;

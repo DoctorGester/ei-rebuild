@@ -16,7 +16,7 @@ using SpareMap = BaseManager::SpareMap;
 
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;
-const char* OutOfIdsMessage() { return "CBaseManager::RegisterInstant.\n Can't find first free key.\n"; }
+constexpr const char* kOutOfIdsMessage = "CBaseManager::RegisterInstant.\n Can't find first free key.\n";
 
 // --- Helpers ------------------------------------------------------------------------------------
 
@@ -69,7 +69,7 @@ int NextFreeId(BaseManager* m) {
             }
         }
     }
-    if (id == -1) game::FatalError("%s", OutOfIdsMessage());
+    if (id == -1) game::FatalError("%s", kOutOfIdsMessage);
     return id;
 }
 
