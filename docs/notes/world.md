@@ -59,6 +59,16 @@ minimum) * k + c via the sector map) and the timed objects whose reach covers th
 Object sets (`world_object_sets.cpp`) are sorted by id (address_order.h); `DiffObjectSets` gives new objects a reference
 and releases gone ones (added / kept / removed).
 
+**The view range** (`world_sync.cpp`): 100 units in the ground plane around the player's `lastPosition`, the camera
+position the client sends every update (message 0x40), or the deploy point a zone start sends with the camera placement.
+The main menu sees its whole zone (`SeesWholeZone`: every map and timed object, wherever the camera is): its camera is the
+client's own path (`MainMenu.cam`), started by the menu screen that the server's game state message opens, so the
+server learns it an update after that message. At start-up the client's first camera (the launch position 30, 30)
+covers the menu's objects; after a game it was still over the game's map, the menu's dynamic objects (the signpost,
+the troll, the fire) came an update after the menu was shown, and at 120 frames a second its first eight frames had the
+map and its lights without them (R61; scenario `render_menu_return`). The menu's static objects come with the zone
+(`SendFreshObjects`) whatever the range.
+
 ## Zone loading, saving, loading, game flow
 
 - **State machine** (`GameFlow`, game_flow.h: state, request target, request party, multiplayer zone, zone switch started):

@@ -2,20 +2,22 @@
   "scenario": "render_load_first_frame",
   "install": "vanilla",
   "recorded": "2026-11-05",
-  "commit": "fd79c6714",
+  "commit": "94e6edda8",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
+  "reason": "R61: the main menu sees its whole zone, so after leaving a game the menu's dynamic objects (the signpost unmoco2, the troll) reach the client with the menu's game state, an update earlier than before; their client state at the menu differs, outcomes the same",
   "source": "image",
   "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 26 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
+    "digest: 2 of 26 records differ, first at record 14 (world update 300, tick 142, frame 115, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 14 (world update 300, tick 142, frame 115, zone -): 2 fields",
+    "    cunit2 (80 unmoco2 \"\") #unit: 38A55698 in the old golden, F1A9761E in the new run",
+    "    cunit187 (80 unmoog1 \"\") #place: 1E340535 in the old golden, FE159320 in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 12 differ",
-    "    #unit: 1 client unit, 1 record, from 0; hash only (no numbers kept)"
+    "  client units: 3 of 12 differ",
+    "    #place: 2 client units, 2 records, from 14; hash only (no numbers kept)",
+    "    #unit: 1 client unit, 2 records, from 14; hash only (no numbers kept)"
   ]
 }

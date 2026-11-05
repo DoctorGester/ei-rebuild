@@ -1,0 +1,13 @@
+{
+  "scenario": "render_menu_return",
+  "install": "rebirth",
+  "recorded": "2026-11-05",
+  "commit": "94e6edda8",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "R61: new scenario render_menu_return",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}
