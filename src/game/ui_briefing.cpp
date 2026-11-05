@@ -130,7 +130,8 @@ void BriefingScreen::UnitJoined(Unit* unit) {
 
 void BriefingScreen::UnitLeft(Unit* unit) {
     if (unit == leader) leader = nullptr;
-    const auto member = std::find_if(party.begin(), party.end(), [unit](const Unit* other) { return other->id == unit->id; });
+    const auto member =
+        std::find_if(party.begin(), party.end(), [unit](const Unit* other) { return other->id == unit->id; });
     if (member != party.end()) party.erase(member);
 }
 

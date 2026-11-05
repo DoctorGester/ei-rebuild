@@ -75,7 +75,8 @@ ItemUnder HeroEquipPanel::ItemAt(Point point) {
     if (!region) return {};
     PartyUnitRecord* hero = owner->HeroRecord();
     if (const int cell = RegionIndex(cells, region); cell >= 0) {
-        if (cell < kWeaponSlots) return {cell < std::ssize(hero->weapons) ? hero->weapons[cell] : nullptr, kTopicWeapon};
+        if (cell < kWeaponSlots)
+            return {cell < std::ssize(hero->weapons) ? hero->weapons[cell] : nullptr, kTopicWeapon};
         const int fromEnd = kCells - 1 - cell;
         return {fromEnd < std::ssize(hero->quickItems) ? hero->quickItems[fromEnd] : nullptr, kTopicQuickItem};
     }

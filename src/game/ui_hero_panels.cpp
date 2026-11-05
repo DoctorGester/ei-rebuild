@@ -513,7 +513,8 @@ ItemUnder SpellMakerPage::ItemAt(Point point) {
     if (!region) return {};
     if (region == containerSlot) return {NthSlot(slots, 0, IsSpellContainer), kTopicSpellContainer};
     if (region == spellSlot) return {NthSlot(slots, 0, IsSpell), kTopicSpell};
-    if (const int cell = RegionIndex(gridCells, region); cell >= 0) return {NthSlot(slots, cell, IsModifier), kTopicModifier};
+    if (const int cell = RegionIndex(gridCells, region); cell >= 0)
+        return {NthSlot(slots, cell, IsModifier), kTopicModifier};
     if (region == costLines[0]) return {nullptr, kTopicSkillLine};
     if (region == costLines[1]) return {nullptr, kTopicManaLine};
     return {};
@@ -526,6 +527,7 @@ ItemUnder ConstructorPage::ItemAt(Point point) {
     if (region == blueprintSlot) return {NthSlot(slots, 0, IsBuildable), kTopicBuildable};
     if (region == partSlot) return {NthSlot(slots, 0, IsPart), kTopicPart};
     if (region == containerSlot) return {NthSlot(slots, 0, IsSpellContainer), kTopicItemContainer};
-    if (const int cell = RegionIndex(gridCells, region); cell >= 0) return {NthSlot(slots, cell, IsMaterial), kTopicMaterial};
+    if (const int cell = RegionIndex(gridCells, region); cell >= 0)
+        return {NthSlot(slots, cell, IsMaterial), kTopicMaterial};
     return {};
 }
