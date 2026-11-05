@@ -42,8 +42,8 @@ void Solid(const Rect& r, int width, int height, float red, float green, float b
     const float rect[4] = {static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
                            static_cast<float>(r.bottom)};
     std::memcpy(p.rect, rect, sizeof(rect));
-    p.target[0] = static_cast<float>(width);
-    p.target[1] = static_cast<float>(height);
+    p.targetSize[0] = static_cast<float>(width);
+    p.targetSize[1] = static_cast<float>(height);
     p.colour[0] = red;
     p.colour[1] = green;
     p.colour[2] = blue;
