@@ -4,7 +4,6 @@
 #include "angles.h"
 #include "console.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "text_manager.h"
 #include "object_tables.h"
 #include "world.h"
@@ -71,9 +70,9 @@ void Loader::AddMap() {
         allod.maps.push_back(map);
         break;
     }
-    if (Is(Word(3), game::mapwords::Game())) Map().kind = 0;
-    else if (Is(Word(3), game::mapwords::Brief())) Map().kind = 2;
-    else if (Is(Word(3), game::mapwords::Edge())) Map().kind = 1;
+    if (Is(Word(3), "game")) Map().kind = 0;
+    else if (Is(Word(3), "brief")) Map().kind = 2;
+    else if (Is(Word(3), "edge")) Map().kind = 1;
     Map().climate = 1;   // the weather
     Map().cave = 0;   // no cave
     Map().restricted = false;
@@ -95,16 +94,16 @@ void Loader::AddExit() {
 
 // A line of the current map. Returns false if the word is no map directive.
 bool Loader::MapLine(const char* word) {
-    if (Is(word, game::mapwords::Res())) {
+    if (Is(word, "#res")) {
         Split();
         if (Count() > 1) {
             Map().map = words[0];
             Map().mob = words[1];
         }
-    } else if (Is(word, game::mapwords::Camera())) {
+    } else if (Is(word, "#camera")) {
         Split();
         if (Count() > 0) Map().camera = words[0];
-    } else if (Is(word, game::mapwords::Maps())) {
+    } else if (Is(word, "#maps")) {
         Split();
         if (Count() > 1) {
             Map().sizeX = std::atoi(Word(0));
@@ -115,20 +114,20 @@ bool Loader::MapLine(const char* word) {
             Map().picture = words[0];
             Map().picture2 = words[1];
         }
-    } else if (Is(word, game::mapwords::Figure())) {
+    } else if (Is(word, "#figure")) {
         Split();
         if (Count() > 0) Map().figure = words[0];
-    } else if (Is(word, game::mapwords::Weather())) {
+    } else if (Is(word, "#weather")) {
         Split();
         if (Count() > 0) {
-            if (Is(Word(0), game::NoneText())) Map().climate = 0;
-            else if (Is(Word(0), game::mapwords::Snow())) Map().climate = 2;
-            else if (Is(Word(0), game::mapwords::Tornado())) Map().climate = 3;
+            if (Is(Word(0), "none")) Map().climate = 0;
+            else if (Is(Word(0), "snow")) Map().climate = 2;
+            else if (Is(Word(0), "tornado")) Map().climate = 3;
             else Map().climate = 1;
         }
-    } else if (Is(word, game::mapwords::Cage())) {
+    } else if (Is(word, "#cage")) {
         Map().cage = true;
-    } else if (Is(word, game::mapwords::Restrict())) {
+    } else if (Is(word, "#restrict")) {
         Split();
         if (Count() > 2) {
             Map().restricted = true;
@@ -136,10 +135,10 @@ bool Loader::MapLine(const char* word) {
             Map().restrictY = std::strtof(Word(1), nullptr);
             Map().restrictRadius = std::strtof(Word(2), nullptr);
         }
-    } else if (Is(word, game::mapwords::Sky())) {
+    } else if (Is(word, "#sky")) {
         Split();
-        if (Count() > 0) Map().cave = Is(Word(0), game::mapwords::Cave()) ? 1 : 0;
-    } else if (Is(word, game::mapwords::Exit())) {
+        if (Count() > 0) Map().cave = Is(Word(0), "cave") ? 1 : 0;
+    } else if (Is(word, "#exit")) {
         AddExit();
     } else {
         return false;
@@ -149,8 +148,8 @@ bool Loader::MapLine(const char* word) {
 
 // A line of the current exit.
 void Loader::ExitLine(const char* word) {
-    bool deploy = Is(word, game::mapwords::Deploy());
-    if (deploy || Is(word, game::mapwords::Remove())) {
+    bool deploy = Is(word, "#deploy");
+    if (deploy || Is(word, "#remove")) {
         // "#deploy" sets both quadruples, "#remove" only the second.
         Split();
         if (Count() > 3) {
@@ -167,26 +166,26 @@ void Loader::ExitLine(const char* word) {
             Exit().angle = 0.0f;
         }
         if (Count() > 4) StoreRadians(&Exit().angle, Word(4));
-    } else if (Is(word, game::mapwords::PassTime())) {
+    } else if (Is(word, "#passtime")) {
         Split();
         if (Count() > 0) Exit().passTime = std::strtof(Word(0), nullptr);
-    } else if (Is(word, game::mapwords::View())) {
+    } else if (Is(word, "#view")) {
         Split();
-        words.push_back(game::mapwords::Zero());
+        words.push_back("0");
         StoreRadians(&Exit().view, Word(0));
-    } else if (Is(word, game::mapwords::DeployAngle())) {
+    } else if (Is(word, "#deployangle")) {
         Exit().hasDeployAngle = 1;
         Split();
-        words.push_back(game::mapwords::Zero());
+        words.push_back("0");
         StoreRadians(&Exit().deployAngle, Word(0));
     }
 }
 
 void Loader::Line() {
     Split();
-    if (Is(Word(0), game::mapwords::Allod()) && Count() > 1) {
+    if (Is(Word(0), "#allod") && Count() > 1) {
         AddAllod();
-    } else if (Is(Word(0), game::mapwords::Zone()) && Count() > 3) {
+    } else if (Is(Word(0), "#zone") && Count() > 3) {
         AddMap();
     } else if (map >= 0) {
         if (!MapLine(Word(0)) && exit >= 0) ExitLine(Word(0));

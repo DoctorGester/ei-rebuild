@@ -9,7 +9,6 @@
 #include "ui_screens.h"
 #include "ui_camp.h"
 #include "net_classes.h"
-#include "game_strings.h"
 
 #include "core_maths.h"
 #include "item.h"
@@ -79,7 +78,7 @@ bool IsBuildable(const Item* item) {
     if (type != ItemKind::Quick) return false;
     prototype = object->GetPrototype();
     return prototype &&
-           text::CompareIgnoringCase(prototype->materialClass, game::NoneText()) != 0;
+           text::CompareIgnoringCase(prototype->materialClass, "none") != 0;
 }
 
 // --- UiItemStrip -----------------------------------------------------------------------------
@@ -451,7 +450,7 @@ void MpHeroScreen::TakeItem(Item* item, int takeMode) {
             equipped = false;
             break;
         }
-        if (equipped) ui->PlayInterfaceSound(game::OkSoundText());
+        if (equipped) ui->PlayInterfaceSound(kMessageBoxOkSound);
     }
     RefreshStats();
 }

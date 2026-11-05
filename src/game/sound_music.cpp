@@ -5,7 +5,6 @@
 // (Create).
 #include "console.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "random.h"
 #include "registry.h"
 #include "sound.h"
@@ -176,14 +175,14 @@ MusicSystem::MusicSystem() {
 void MusicSystem::ResetThemes() {
     state = MusicState::Off;
     themes.clear();
-    jingle = game::NoneText();
+    jingle = "none";
     mainMenu = jingle;
     credits = mainMenu;
     jinglePlaying = false;
     calmDue = 0;
     inCombat = false;
     holding = false;
-    combatTrack = game::NoneText();
+    combatTrack = "none";
 }
 
 // The strings go after the body (jingle, combatTrack, mainMenu, credits: the game's order, before its theme

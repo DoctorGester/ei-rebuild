@@ -2,7 +2,6 @@
 
 #include "core_streams.h"
 #include "core_transform.h"
-#include "game_strings.h"
 #include "map_object_figures.h"
 #include "net_delta.h"
 #include "save_versions.h"
@@ -309,7 +308,7 @@ void MapObject::Create() {
     changeStamp = -1;
     effects = {};
     updateCountdown = kInitialCountdown;
-    name2 = game::kEmptyText;
+    name2.clear();
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
 }
 

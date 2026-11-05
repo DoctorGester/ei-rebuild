@@ -9,7 +9,6 @@
 #include "core_maths.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "game_strings.h"
 #include "item.h"
 #include "item_manager.h"
 #include "lever.h"
@@ -388,8 +387,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         else
             object = created(std::type_identity<MapObject>{});
         if (spec->shadow) object->flags |= MapObjectFlag::Synchronised;
-        if (str::Compare(spec->model,
-                            game::kEmptyText) != 0)
+        if (!spec->model.empty())
             object->flags |= MapObjectFlag::Synchronised;
         if (!allowed(object)) return refuse(object);
         int objectId = object->id;

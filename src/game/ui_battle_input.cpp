@@ -7,7 +7,6 @@
 #include "base_manager.h"
 #include "camera.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "item.h"
 #include "lib/vecmath.h"
 #include "object_tables.h"
@@ -521,7 +520,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
             if (!exit) return;
             std::string name = g_clientWorld.ExitTarget(*exit);
             if (text::CompareIgnoringCase(name,
-                                game::NoneText()) != 0) {
+                                "none") != 0) {
                 name = std::string("z.") + name;
                 float value = LocalPlayerVariable(name);
                 const float one = 1.0f;

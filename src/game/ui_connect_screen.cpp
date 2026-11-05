@@ -8,7 +8,6 @@
 #include "asset_text.h"
 #include "ui.h"
 #include "ui_screens.h"
-#include "game_strings.h"
 
 #include "chunk_archive.h"
 #include "core_transform.h"
@@ -43,13 +42,11 @@ namespace {
 
 constexpr float kMenuTilt = /*007C7F40*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-constexpr const char* kSelectSound = "buttons\\save\\select.wav";
 constexpr const char* kMessageSuffix = "_msg";
 constexpr const char* kWrongProtocolKey = "lmp_wrong_protocol";
 constexpr const char* kWrongProtocolTextKey = "lmp_wrong_protocol_msg";
 constexpr const char* kNewGameText = "??";    // the new game entry's name and description
 constexpr const char* kDefaultGameName = "?";
-constexpr const char* kEmptyText = "";
 constexpr const char* kAddressBookFile = "config\\addrbook.ini";
 const char* RefusalKey(net::RefusalReason refusal) {
     switch (refusal) {
@@ -190,7 +187,7 @@ void MpConnectScreen::LeftDown(Point point) {
         Connect();
         break;
     case kRegionBack:
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         SaveAddressBook();
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
@@ -238,7 +235,7 @@ void MpConnectScreen::LeftDown(Point point) {
         } else if (region >= kRegionRowFirst) {
             unsigned row = static_cast<unsigned>(scrollTop + region - kRegionRowFirst);
             if (row < entries.size()) {
-                ui->PlayInterfaceSound(kSelectSound);
+                ui->PlayInterfaceSound(kSaveSelectSound);
                 selected = static_cast<int>(row);
                 selectedAddress = entries[row].address;
                 DrawListVanilla();
@@ -271,7 +268,7 @@ void MpConnectScreen::KeyDown(platform::Key key, int scan, bool repeat) {
         handled = true;
         return;
     case platform::Key::Escape:
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
         handled = true;
@@ -282,7 +279,7 @@ void MpConnectScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     case platform::Key::PageDown: step = kRows; break;
     default: return;
     }
-    ui->PlayInterfaceSound(kSelectSound);
+    ui->PlayInterfaceSound(kSaveSelectSound);
     selected += step;
     SelectAndScroll();
     handled = true;
@@ -301,7 +298,7 @@ void MpConnectScreen::SelectAndScroll() {
 }
 
 void MpConnectScreen::Connect() {
-    ui->PlayInterfaceSound(game::OkSoundText());
+    ui->PlayInterfaceSound(kMessageBoxOkSound);
     int row = selected;
     if (row == 0) {
         const int players = playersSlider->TakePosition() + 1;
@@ -322,7 +319,7 @@ void MpConnectScreen::Connect() {
         boxText[0] = '\0';
         OpenBox(ui, texts[kTextPassword], boxText, kBoxJoinPassword, MessageButtons::OkCancelEdit);
     }
-    g_gameFlow.JoinServer(&entries[selected].address, kEmptyText);
+    g_gameFlow.JoinServer(&entries[selected].address, "");
     net::g_gameClient->gameType = entries[selected].gameType;
 }
 
@@ -344,7 +341,7 @@ void MpConnectScreen::EditAddress() {
 }
 
 void MpConnectScreen::MasterRequest() {
-    CopyText(boxText, kEmptyText);
+    CopyText(boxText, "");
     net::NetAddress master{};
     // EI_Plugin's NewMaster: with a second master set, the master is tried first.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) && net::second_master::Configured())

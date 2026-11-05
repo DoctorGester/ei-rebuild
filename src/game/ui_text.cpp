@@ -3,7 +3,6 @@
 
 #include "asset_text.h"
 #include "console.h"
-#include "game_strings.h"
 #include "screen_layout.h"
 #include "platform/log.h"
 #include "lib/rect.h"
@@ -17,7 +16,7 @@
 std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWidth, int font) const {
     std::string ch, word, line;
     std::string source(text);
-    source += game::NewLineText();
+    source += "\n";
     std::vector<std::string> lines;
     // Words collect characters up to a space or newline; a word that would make the line wider
     // than the width starts a new line (a newline then also ends the word's line).
@@ -37,10 +36,10 @@ std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWid
         } else if (c == ' ') {
             if (TextExtent(line + word, font).w > maxWidth) {
                 lines.push_back(line);
-                line = word + game::SpaceText();
+                line = word + " ";
             } else {
                 line += word;
-                line += game::SpaceText();
+                line += " ";
             }
             word.clear();
         } else {

@@ -5,7 +5,6 @@
 
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_messages.h"
@@ -42,7 +41,7 @@ void ServerSession::SetMap(const std::string* newName) {
     variables.clear();
 
     {
-        std::string messageName = *newName + game::ZoneSuffix2Text();
+        std::string messageName = *newName + kZoneLeaveSuffix;
         auto* message = new ZoneMessage();
         message->text = messageName;
         queuedMaps.emplace_back(message);
@@ -61,7 +60,7 @@ void ServerSession::SetMap(const std::string* newName) {
 
     QuestBriefingRecord* entry;
     {
-        std::string registryName = *newName + game::ZoneSuffix1Text();
+        std::string registryName = *newName + kZoneEnterSuffix;
         entry = g_questDatabase.briefings.index[registryName];
     }
     if (!entry) return;
@@ -89,7 +88,7 @@ void ServerSession::SetMap(const std::string* newName) {
         std::string a = prefix + *newName;
         std::string b = a + ".";
         std::string c = b + *newName;
-        std::string path = c + game::PathSuffixText();
+        std::string path = c + ".1";
         SetVariable(&path, 1.0f);
     }
 
@@ -101,7 +100,7 @@ void ServerSession::QueueMapList() {
     UnloadQuestTexts();
     for (auto& zone : PickZones(kind, mapName.data())) {
         {
-            std::string key = zone + game::ZoneSuffix1Text();
+            std::string key = zone + kZoneEnterSuffix;
             auto* message = new ZoneMessage();
             message->text = key;
             queuedMaps.emplace_back(message);
@@ -122,7 +121,7 @@ bool ServerSession::FinishMap(const std::string* mapFile) {
     DestroyOwned(*holder);
     queuedMaps.clear();
 
-    std::string messageName = *mapFile + game::ZoneSuffix3Text();
+    std::string messageName = *mapFile + kZoneCompleteSuffix;
     auto* message = new ZoneMessage();
     message->text = messageName;
     queuedMaps.emplace_back(message);
@@ -207,9 +206,9 @@ void ServerSession::OnCommand(Connection* from, CommandMessage* message) {
         const std::size_t cut = text->size() - 2;
         std::string suffix = text->substr(cut);
         std::string zone = text->substr(0, text->size() - 2);
-        if (Is(suffix, game::ZoneSuffix1Text())) SetMap(&zone);
-        if (Is(suffix, game::ZoneSuffix2Text())) LeaveZone();
-        if (Is(suffix, game::ZoneSuffix3Text())) CompleteZone(&zone);
+        if (Is(suffix, kZoneEnterSuffix)) SetMap(&zone);
+        if (Is(suffix, kZoneLeaveSuffix)) LeaveZone();
+        if (Is(suffix, kZoneCompleteSuffix)) CompleteZone(&zone);
         return;
     }
     case CommandKind::KickByName:

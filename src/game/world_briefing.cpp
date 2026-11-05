@@ -4,7 +4,6 @@
 #include "console.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "text_manager.h"
 #include "mod_folders.h"
 #include "net_classes.h"
@@ -33,13 +32,6 @@
 #include <vector>
 
 namespace {
-
-
-
-bool IsEmpty(const std::string& s) {
-    return str::Compare(s,
-                           game::kEmptyText) == 0;
-}
 
 
 constexpr const char* kQuestFileSuffix = ".mq";
@@ -71,15 +63,15 @@ std::string MapFilePath(const std::string& file) {
 
 std::string BriefingSpeakerName(const std::string& briefing) {
     TextManager* texts = g_clientWorld.texts.get();
-    bool missing = texts->TextManager::Open(game::briefingwords::BriefingSection() + briefing) == 0;
+    bool missing = texts->TextManager::Open("briefing " + briefing) == 0;
     if (missing) return std::string();
     // The first "#show" line whose second word is not "Hero" names the speaker.
     std::vector<std::string> words;
-    while (texts->FindLine(game::briefingwords::ShowTag())) {
+    while (texts->FindLine("#show")) {
         words = texts->Split(true);
         if (words.size() >= 2 &&
             text::CompareIgnoringCase(words[1],
-                            game::briefingwords::Hero()) != 0) {
+                            "Hero") != 0) {
             return words[1];
         }
     }
@@ -88,11 +80,11 @@ std::string BriefingSpeakerName(const std::string& briefing) {
 
 std::string BriefingVariable(const std::string& briefing) {
     std::string speaker = BriefingSpeakerName(briefing);
-    if (!IsEmpty(speaker)) {
-        std::string prefix = game::briefingwords::VariablePrefix();
+    if (!speaker.empty()) {
+        std::string prefix = "b.";
         return prefix + speaker + "." + briefing;
     }
-    std::string prefix = game::briefingwords::ElderPrefix();
+    std::string prefix = "b.elder.";
     return prefix + briefing;
 }
 
@@ -178,11 +170,11 @@ void GameFlow::RegisterQuests(const std::string& folder) {
     for (std::string* s = folders.data(); s != folders.data() + folders.size(); ++s)
         if (*s == folder) return;
     // (The registry is binary, read as it is: TextManager::OpenData.)
-    bool registered = texts->OpenData(folder + game::briefingwords::QuestRegistry()) != 0;
+    bool registered = texts->OpenData(folder + "\\quest.reg") != 0;
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
     g_questDatabase.LoadRegistry(texts->cursor);    // (its result is not read)
-    g_mapDatabase.Load((folder + game::briefingwords::MapList()).c_str());
+    g_mapDatabase.Load((folder + "\\map.txt").c_str());
     std::string name(folder);
     folders.push_back(name);
 }
@@ -200,7 +192,7 @@ std::string SessionMapName() {
     if (!peer) return std::string();
     name = peer->text.data();
     TextManager* texts = g_clientWorld.texts.get();
-    int found = texts->TextManager::Open(game::briefingwords::QuestSection() + name);
+    int found = texts->TextManager::Open("quest " + name);
     if (found) name = texts->ReadLine(true);
     return name;
 }

@@ -6,7 +6,6 @@
 #include "base_manager.h"
 #include "core_transform.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_spec.h"
@@ -53,7 +52,7 @@ ObjectSpec::ObjectSpec() {
     std::string none("none");
     kind = SpecKind::Object;
     parentId = 0;
-    model = game::kEmptyText;
+    model.clear();
     texture = none;
     primaryTexture = none;
     player = -1;

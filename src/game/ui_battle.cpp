@@ -7,7 +7,6 @@
 #include "core_streams.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "item.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -181,7 +180,7 @@ void BattleScreen::BuildPanels(float mapZoom) {
     movePanel->Build();
 
     // The message log.
-    messageLog = new UiScrollText(ui, game::kEmptyText, Rect{0xBE, 0x19, 0x262, 0x59}, 3.0f);
+    messageLog = new UiScrollText(ui, "", Rect{0xBE, 0x19, 0x262, 0x59}, 3.0f);
     AddChild(messageLog);
     messageLog->align = 1;
 
@@ -289,7 +288,7 @@ void BattleScreen::ItemsPicked(const std::vector<Item*>& items, int money, bool 
 void BattleScreen::UnitLeft(Unit* unit) {
     if (IsMultiplayerClient()) {
         topPanel->pageTexts[0].clear();
-        if (topPanel->page == 0) messageLog->SetText(game::kEmptyText);
+        if (topPanel->page == 0) messageLog->SetText("");
         return;
     }
     auto& currentParty = party;
@@ -333,7 +332,7 @@ void BattleScreen::MarkPortrait(int index) {
 void BattleScreen::UnitJoined(Unit* unit) {
     if (IsMultiplayerClient()) {
         topPanel->pageTexts[0].clear();
-        if (topPanel->page == 0) messageLog->SetText(game::kEmptyText);
+        if (topPanel->page == 0) messageLog->SetText("");
         return;
     }
     Party* player = LocalPlayerData();

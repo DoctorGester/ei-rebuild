@@ -1,7 +1,6 @@
 // The menus' button rectangles (figure_manager.h): read from "menus.reg" through the figure manager.
 #include "figure_manager.h"
 
-#include "game_strings.h"
 #include "registry.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
@@ -42,9 +41,9 @@ constexpr MenuRect kRects[] = {
 int FigureManager::LoadMenuRects(Rect* rects) {
     FileRegistry reg;
     // The manager's GetFile: the resource file's data.
-    void* file = GetFile(game::menutexts::MenusReg(), nullptr);
+    void* file = GetFile("menus.reg", nullptr);
     if (!file || !reg.Attach(file)) {
-        return game::FatalError("%s", file ? game::menutexts::CantParse() : game::menutexts::CantOpen());
+        return game::FatalError("%s", file ? "Can't open \"menus.reg\" as .reg with the main/esc menu rects\n" : "Can't open file \"menus.reg\" with the main/esc menu rects\n");
     }
     std::vector<std::int32_t> values;
     for (const MenuRect& entry : kRects) {

@@ -5,7 +5,6 @@
 #include "console.h"
 #include "core_maths.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "ini_file.h"
 #include "material.h"
 #include "model.h"
@@ -110,7 +109,7 @@ void WorldClient::LoadSky() {
     auto* object = figures->CreateObjectAs<SkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
     if (!object) return;
     object->name = SkyPartName();
-    object->directory = game::kEmptyText;
+    object->directory.clear();
     char* data = static_cast<char*>(figures->GetFile(SkyFigureFile(), nullptr));
     if (!data) {
         object->AddRef();

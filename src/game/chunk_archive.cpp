@@ -4,7 +4,6 @@
 
 #include "class_templates.h"
 #include "core_refcount.h"
-#include "game_strings.h"
 #include "hash_tables_400.h"
 #include "party_records.h"
 
@@ -192,7 +191,7 @@ void ChunkArchive::StringField(int id, std::string* s) {
     }
     ChunkArchive::Ref child;
     if (FindField(this, id, &child)) s->assign(TextAt(dataStream.data.data() + child.offset));
-    else s->assign(game::kEmptyText);
+    else s->clear();
 }
 
 // A memory stream as chunk `id` holding its size (field 1) and its bytes (field 2); loading clears the stream and

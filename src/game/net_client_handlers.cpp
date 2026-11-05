@@ -4,7 +4,6 @@
 #include "core_streams.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "net_messages.h"
 #include "party.h"
 #include "ui.h"
@@ -214,11 +213,8 @@ void ClientSession::OnFile(FileMessage* message) {
 void ClientSession::OnFileChunk(FileChunkMessage* message) {
     Append(chunks, message);
     auto* file = message->file.Get();
-    const char* none = game::kEmptyText;
-    const std::size_t noneLength = std::strlen(none);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::MQClient)) return;
-    if (file->name.size() == noneLength && std::memcmp(file->name.data(), none, noneLength) == 0)
-        return;
+    if (file->name.empty()) return;
 
     std::vector<FileChunkMessage*> fileChunks;
     int count = 0;

@@ -4,7 +4,6 @@
 
 #include "core_refcount.h"
 #include "game_flow.h"
-#include "game_strings.h"
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_connection.h"
@@ -128,7 +127,7 @@ void ServerSession::Describe(Ref<ServerEntry>* out) {
     entry->name = name;
     entry->kind = kind;
     std::string* description = &entry->description;
-    description->assign(game::kEmptyText);
+    description->clear();
 
     RefObject* newMap = map.Get();
     if (IsLive(newMap)) description->assign(SessionMapName());    // overwrite, then cut or append
@@ -192,8 +191,7 @@ void ServerSession::AnnounceToMaster() {
     info.hasPassword = password[0] != 0;
     info.masterKey = masterKey;
     info.kind = static_cast<std::uint8_t>(kind);
-    const char* empty = game::kEmptyText;
-    description.assign(empty);
+    description.clear();
     RefObject* newMap = map.Get();
     if (IsLive(newMap)) description.assign(SessionMapName());
     info.players = static_cast<std::uint8_t>(ClientCount());
@@ -298,7 +296,7 @@ void ServerSession::Tick(double dt) {
     if (announceTimer < 0.0f) {    // run out
         announceTimer = 20.0f;
         const char* host = MasterHost();
-        if (std::strcmp(host, game::kEmptyText) != 0) AnnounceToMaster();
+        if (host[0] != '\0') AnnounceToMaster();
     }
 }
 

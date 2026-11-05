@@ -4,7 +4,6 @@
 // input side's handled flag for the keys they use, and ignore keys while the window slides in.
 #include "asset_text.h"
 #include "ui.h"
-#include "game_strings.h"
 #include "ui_screens.h"
 
 #include "console.h"
@@ -41,9 +40,9 @@ const UiKeyName* KeyNamesEnd() { return g_keyNames + kUiKeyNameCount; }
 
 bool SaveLoadWindow::IsReservedSave(int index) {
     const std::string& folder = entries[index].folder;
-    if (text::CompareIgnoringCase(folder, game::menukeytexts::QuickSave()) == 0) return true;
-    if (text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
-    return text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveB()) == 0;
+    if (text::CompareIgnoringCase(folder, "saveq") == 0) return true;
+    if (text::CompareIgnoringCase(folder, "savea") == 0) return true;
+    return text::CompareIgnoringCase(folder, "saveb") == 0;
 }
 
 void SaveLoadWindow::ShowSelection() {
@@ -70,7 +69,7 @@ void SaveLoadWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         handled = true;
         break;
     case platform::Key::Escape:
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(kCloseSaveLoad);
         handled = true;
         break;
@@ -81,7 +80,7 @@ void SaveLoadWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     default: break;
     }
     if (step != 0) {
-        ui->PlayInterfaceSound(game::SelectSoundText());
+        ui->PlayInterfaceSound(kSaveSelectSound);
         selected += step;
         ShowSelection();
         handled = true;
@@ -200,7 +199,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
             }
         }
         if (!pressed) {
-            ui->PlayInterfaceSound(game::CancelSoundText());
+            ui->PlayInterfaceSound(kMessageBoxCancelSound);
             return;
         }
         waitingForKey = false;
@@ -209,7 +208,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
             RefreshRows();
             return;
         }
-        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
         int code = keyOfScan[pressed->scan];
         OptionBinding* other = nullptr;
         for (OptionBinding& b : bindings) {
@@ -220,10 +219,10 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         }
         if (other && other != binding) {
             // Already bound to another action: ask (the box's result goes to MessageResult).
-            MessageWindow* box = new MessageWindow(ui, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), MessageQuestion::First, MessageButtons::OkCancel);
+            MessageWindow* box = new MessageWindow(ui, "key_already_mapped", "key_already_mapped_msg", MessageQuestion::First, MessageButtons::OkCancel);
             std::string format;
             std::string message;
-            format = g_clientWorld.texts->GetString(game::menukeytexts::KeyMappedText());
+            format = g_clientWorld.texts->GetString("key_already_mapped_msg");
             message = str::Format(format, pressed->name, other->name);
             // The box's text (a null box is written through, like the original).
             box->text = message.c_str();
@@ -250,19 +249,19 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
             const int value = row.setting->spin->TakeValue();
             rows[selectedRow].setting->spin->SetValue(value + 1);
         }
-        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
         RefreshRows();
         handled = true;
         return;
     }
     case platform::Key::Escape:
         RestoreSettings();
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(kCloseOptions);
         break;
     case platform::Key::PageUp:
     case platform::Key::PageDown:
-        ui->PlayInterfaceSound(game::SelectSoundText());
+        ui->PlayInterfaceSound(kSaveSelectSound);
         ShowGroup(key == platform::Key::PageUp ? group - 1 : group + 1);
         break;
     case platform::Key::Left:
@@ -272,12 +271,12 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         if (!setting) return;
         if (setting->list) {
             setting->list->Step(key == platform::Key::Left ? -1 : 1);
-            ui->PlayInterfaceSound(game::OkSoundText());
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
             return;
         }
         if (setting->spin) {
             setting->spin->Step(key == platform::Key::Left ? -1 : 1);
-            ui->PlayInterfaceSound(game::OkSoundText());
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
             return;
         }
         if (!setting->bar) return;
@@ -286,7 +285,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         return;
     }
     case platform::Key::Up:
-        ui->PlayInterfaceSound(game::SelectSoundText());
+        ui->PlayInterfaceSound(kSaveSelectSound);
         for (int i = selectedRow - 1; i >= 0; --i) {
             if (rows[i].binding || rows[i].setting) {
                 selectedRow = i;
@@ -296,7 +295,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         }
         break;
     case platform::Key::Down:
-        ui->PlayInterfaceSound(game::SelectSoundText());
+        ui->PlayInterfaceSound(kSaveSelectSound);
         for (int i = selectedRow + 1; i < kOptionRows; ++i) {
             if (rows[i].binding || rows[i].setting) {
                 selectedRow = i;

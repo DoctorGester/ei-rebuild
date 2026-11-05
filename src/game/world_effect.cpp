@@ -178,7 +178,7 @@ void EffectSoundSeq::Reset() {
     sound = -1;
     volume = 0.0f;
     radius = 0.0f;
-    name = game::kEmptyText;
+    name.clear();
     names.clear();
     noFade = 0;
 }

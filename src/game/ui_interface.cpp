@@ -7,7 +7,6 @@
 #include "core_streams.h"
 #include "dib.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "options.h"
 #include "save_versions.h"
 #include "text_manager.h"
@@ -136,7 +135,7 @@ void Interface3D::Create(TextureDevice* device) {
     pollTop = false;
 
     // The help topics seen: "topic count" lines.
-    if (std::string bytes; platform::ReadWholeFile(g_dataFolder + game::TutorialIniText(), &bytes)) {
+    if (std::string bytes; platform::ReadWholeFile(g_dataFolder + "config\\tutorial.ini", &bytes)) {
         std::vector<std::string> words;
         for (const std::string& line : str::Lines(bytes)) {
             words = text::SplitWords(line, ' ');
@@ -242,8 +241,8 @@ void Interface3D::Shutdown() {
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 
-    if (platform::File file; file.Open(g_dataFolder + game::TutorialIniText(), platform::FileMode::Create)) {
-        for (const auto& [topic, page] : helpTopics) file.WriteLine(str::Format(game::TutorialLineFormat(), topic, page));
+    if (platform::File file; file.Open(g_dataFolder + "config\\tutorial.ini", platform::FileMode::Create)) {
+        for (const auto& [topic, page] : helpTopics) file.WriteLine(str::Format("%s %d", topic, page));
     }
 
     DeleteSurface(fpsSurface);

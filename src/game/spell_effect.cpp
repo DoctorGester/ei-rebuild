@@ -5,7 +5,6 @@
 #include "base_manager.h"
 #include "combat.h"
 #include "core_streams.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "sector_map.h"
 #include "spell.h"
@@ -354,7 +353,7 @@ void StartLightWall(SpellEffect* e, const Vector3& from) {
     float radius = e->HeldSpell()->radius;
     float range = Prototype(e)->lightRange;
     PrototypeLight(e, centre, radius + range, kZeroVector);
-    e->CreateSoundSequence(centre, kZeroVector, game::kEmptyText, "magic\\Lightwall\\circle.wav", -1);
+    e->CreateSoundSequence(centre, kZeroVector, "", "magic\\Lightwall\\circle.wav", -1);
 }
 
 // AcidFog: the poison cloud at the target point.
@@ -390,7 +389,7 @@ void StartFirework(SpellEffect* e) {
     float size = Power(e);
     e->CreateParticle(1, ParticleType::Geyser, centre, size, 1.0f, kZeroVector, nullptr);
     PrototypeLight(e, centre, Prototype(e)->lightRange, kZeroVector);
-    e->CreateSoundSequence(centre, kZeroVector, game::kEmptyText, "magic\\Firework\\%i.wav", 5);
+    e->CreateSoundSequence(centre, kZeroVector, "", "magic\\Firework\\%i.wav", 5);
     e->position = centre;
     EnterLasting(e);
 }

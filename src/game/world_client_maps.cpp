@@ -11,7 +11,6 @@
 #include "figure_manager.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "ground_print.h"
 #include "hash_tables_400.h"
 #include "item.h"
@@ -430,7 +429,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         unit->PlayAnimation(nullptr);
         unit->RestartPose();
         const std::string& skin = record->skinTexture;
-        figure->SetSkins(game::NoneText(), (skin == game::NoneText() ? std::nullopt : std::optional<std::string_view>(skin)));
+        figure->SetSkins("none", (skin == "none" ? std::nullopt : std::optional<std::string_view>(skin)));
         unit->WriteFullState();
         unit->SetStats(&record->stats);
         unit->SetFigureScale({record->scaleX, record->scaleY, record->height});

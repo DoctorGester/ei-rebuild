@@ -17,8 +17,6 @@
 #include "world.h"
 
 namespace {
-constexpr const char* kSoundSelect = "buttons\\save\\select.wav";
-
 // Pending values a window hands the interface when it closes (Interface3D::SetPendingValue):
 // the low word 1 closes the top window, the high word is the result its parent receives.
 constexpr std::uint32_t kCloseSaveLoad = 0x100001;
@@ -75,7 +73,7 @@ void SaveLoadWindow::LeftDown(Point point) {
         Confirm();
         break;
     case 1:
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(kCloseSaveLoad);
         break;
     case 2:
@@ -85,7 +83,7 @@ void SaveLoadWindow::LeftDown(Point point) {
         if (region >= 3) {
             unsigned index = static_cast<unsigned>(firstVisible + region - 3);
             if (index < static_cast<unsigned>(EntryCount())) {
-                ui->PlayInterfaceSound(kSoundSelect);
+                ui->PlayInterfaceSound(kSaveSelectSound);
                 if (static_cast<int>(index) != selected) {
                     selected = static_cast<int>(index);
                     TakeSelectedTitle();
@@ -185,23 +183,23 @@ void OptionsWindow::LeftDown(Point point) {
         const char* sound;
         if (region == 0) {
             Apply();
-            sound = game::OkSoundText();
+            sound = kMessageBoxOkSound;
         } else {
             RestoreSettings();
-            sound = game::CancelSoundText();
+            sound = kMessageBoxCancelSound;
         }
         ui->PlayInterfaceSound(sound);
         ui->SetPendingValue(kCloseOptions);
     } else {
         if (region >= 2 && region < 13) {
-            ui->PlayInterfaceSound(kSoundSelect);
+            ui->PlayInterfaceSound(kSaveSelectSound);
             waitingForKey = false;
             ShowGroup(region - 2);
         }
         if (region >= 13) {
             OptionRow& row = RegionRow(region);
             if (row.binding || row.setting) {
-                ui->PlayInterfaceSound(kSoundSelect);
+                ui->PlayInterfaceSound(kSaveSelectSound);
                 selectedRow = region - 13;
                 waitingForKey = false;
                 RefreshRows();
@@ -221,17 +219,17 @@ void OptionsWindow::LeftDouble(Point point) {
     if (region >= 13) {
         OptionRow& row = RegionRow(region);
         if (row.binding) {
-            ui->PlayInterfaceSound(kSoundSelect);
+            ui->PlayInterfaceSound(kSaveSelectSound);
             selectedRow = region - 13;
             waitingForKey = true;
             RefreshRows();
         } else if (row.setting && row.setting->list) {
-            ui->PlayInterfaceSound(game::OkSoundText());
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
             row.setting->list->Open();
         } else if (row.setting && row.setting->spin) {
             const int value = row.setting->spin->TakeValue();
             RegionRow(region).setting->spin->SetValue(value + 1);
-            ui->PlayInterfaceSound(game::OkSoundText());
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
             RefreshRows();
         }
     }

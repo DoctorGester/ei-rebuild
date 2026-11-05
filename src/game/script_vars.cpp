@@ -2,7 +2,6 @@
 // ScriptCall helpers that bind and save call trees. See script.h and docs/notes/script.md.
 #include "script.h"
 #include "map_object.h"
-#include "game_strings.h"
 #include "core_streams.h"
 #include "lib/crt.h"
 
@@ -54,7 +53,7 @@ void ScriptVars::AppendFrom(const ScriptVars& other) {
 
 void ScriptVars::ResetValues() {
     for (float& value : floats.values) value = 0.0f;
-    for (std::string& value : strings.values) value = game::kEmptyText;
+    for (std::string& value : strings.values) value.clear();
     for (ScriptObjectRef& value : objects.values) value.object = nullptr;
     for (ScriptGroup& group : groups.values) group.Clear();
 }

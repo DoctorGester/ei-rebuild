@@ -2,7 +2,6 @@
 // mouse. See docs/notes/ui-native.md, "The drop-down list".
 #include "ui.h"
 
-#include "game_strings.h"
 #include "texture.h"
 #include "lib/rect.h"
 #include "platform/platform.h"
@@ -181,7 +180,7 @@ void UiDropList::SetActive(int index) {
 }
 
 void UiDropList::Choose(int index) {
-    ui->PlayInterfaceSound(game::OkSoundText());
+    ui->PlayInterfaceSound(kMessageBoxOkSound);
     SetValue(index);
     Close();
 }
@@ -229,7 +228,7 @@ void UiDropList::Deactivate() {
 void UiDropList::LeftDown(Point point) {
     handled = true;
     if (!open) {
-        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
         Open();
         return;
     }
@@ -268,7 +267,7 @@ void UiDropList::KeyDown(platform::Key key, int, bool) {
     case platform::Key::End: SetActive(static_cast<int>(std::ssize(texts)) - 1); break;
     case platform::Key::Return: Choose(active); break;
     case platform::Key::Escape:
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         Close();
         break;
     default: break;

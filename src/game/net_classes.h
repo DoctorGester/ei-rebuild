@@ -24,6 +24,12 @@ namespace console { class Stream; }
 
 namespace net {
 
+// The suffixes of a zone's messages (ServerSession's queued maps) and of its briefing keys in the quest
+// database: the zone entered, left, completed.
+inline constexpr const char* kZoneEnterSuffix = "_1";
+inline constexpr const char* kZoneLeaveSuffix = "_2";
+inline constexpr const char* kZoneCompleteSuffix = "_3";
+
 class Connection;
 class Message;
 class BindingMessage;

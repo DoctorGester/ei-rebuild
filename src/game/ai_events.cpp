@@ -7,7 +7,6 @@
 #include "combat.h"
 #include "console.h"
 #include "core_streams.h"
-#include "game_strings.h"
 #include "object_diplomacy.h"
 #include "resource.h"
 #include "world.h"

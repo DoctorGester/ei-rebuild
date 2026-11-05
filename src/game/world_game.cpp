@@ -8,7 +8,6 @@
 #include "core_streams.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "item_db.h"
 #include "save_file.h"
 #include "saved_parties.h"
@@ -399,8 +398,7 @@ int EnterZone(Party* records) {
         variables->Remove(kMovieVariable);
     }
 
-    if (str::Compare(zoneRecord->map,
-                        game::kEmptyText) != 0) {
+    if (!zoneRecord->map.empty()) {
         const char* mapOverride = nullptr;
         if (text::CompareIgnoringCase(zone,
                             kFrozenZone) == 0) {

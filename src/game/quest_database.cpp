@@ -6,7 +6,6 @@
 #include "console.h"
 
 #include "database_file.h"
-#include "game_strings.h"
 #include "quest_records.h"
 #include "registry.h"
 #include "script.h"
@@ -24,15 +23,19 @@
 
 namespace {
 
+// The keys of a briefing's six string lists (QuestBriefingRecord::lists, in order).
+constexpr const char* kBriefingListKeys[6] = {"give items",      "remove items",    "give quests",
+                                              "complete quests", "available zones", "complete zones"};
+
 // The "quest" section into the quest record.
 void ReadQuest(FileRegistry& reg, QuestRecord* quest, std::vector<std::string>& places) {
     quest->unreadField = 0;
-    quest->name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::kEmptyText));
-    quest->exp = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Exp(), 0));
-    quest->money = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Money(), 0));
-    quest->zone = reg.GetInt(game::questwords::Quest(), game::questwords::ZoneIndex(), 0);
-    quest->order = reg.GetInt(game::questwords::Quest(), game::questwords::Order(), 0);
-    reg.GetStringArray(game::questwords::Quest(), game::questwords::QuestPlaces(), &places);
+    quest->name = reg.GetString("quest", "name", std::string());
+    quest->exp = static_cast<float>(reg.GetFloat("quest", "exp", 0));
+    quest->money = static_cast<float>(reg.GetFloat("quest", "money", 0));
+    quest->zone = reg.GetInt("quest", "zone index", 0);
+    quest->order = reg.GetInt("quest", "order", 0);
+    reg.GetStringArray("quest", "questplaces", &places);
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
     for (std::string& place : places) {
         std::vector<std::string> parts;
@@ -48,10 +51,10 @@ void ReadQuest(FileRegistry& reg, QuestRecord* quest, std::vector<std::string>& 
 
 // A briefing's name, exp, money and six string lists from `section`.
 void ReadBriefing(FileRegistry& reg, QuestBriefingRecord* briefing, const char* section) {
-    briefing->name = reg.GetString(section, game::questwords::Name(), std::string(game::kEmptyText));
-    briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));
-    briefing->money = static_cast<float>(reg.GetFloat(section, game::questwords::Money(), 0));
-    for (int i = 0; i < 6; ++i) ReadStringList(&reg, section, game::questwords::ListKey(i), &briefing->lists[i]);
+    briefing->name = reg.GetString(section, "name", std::string());
+    briefing->exp = static_cast<float>(reg.GetFloat(section, "exp", 0));
+    briefing->money = static_cast<float>(reg.GetFloat(section, "money", 0));
+    for (int i = 0; i < 6; ++i) ReadStringList(&reg, section, kBriefingListKeys[i], &briefing->lists[i]);
 }
 
 } // namespace
@@ -66,8 +69,8 @@ bool QuestDatabase::LoadRegistry(const void* image) {
     AddQuest(quest);
 
     QuestBriefingRecord briefing{};
-    for (const char* section : {game::questwords::BriefingReceive(), game::questwords::BriefingReject(),
-                                game::questwords::BriefingComplete()}) {
+    for (const char* section : {"briefing receive", "briefing reject",
+                                "briefing complete"}) {
         ReadBriefing(reg, &briefing, section);
         briefings.Add(&briefing);
     }

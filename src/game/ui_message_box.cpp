@@ -49,10 +49,10 @@ void MessageWindow::LeftDown(Point point) {
             PlayExitMovieAndQuit();
             return;
         }
-        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
         if (buttons == MessageButtons::OkCancelEdit) CopyEditText();
     } else if (region == 1) {
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
     } else if (region < 0) {
         return;
     }
@@ -67,11 +67,11 @@ void MessageWindow::KeyDown(platform::Key key, int scan, bool repeat) {
             PlayExitMovieAndQuit();
         } else {
             if (buttons == MessageButtons::OkCancelEdit) CopyEditText();
-            ui->PlayInterfaceSound(game::OkSoundText());
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
             ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
         }
     } else if (key == platform::Key::Escape) {
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
         return;
@@ -85,11 +85,11 @@ void DifficultyBox::LeftDown(Point point) {
     switch (RegionAt(point)) {
     case 0:
         options::g_options.difficulty = easy;
-        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
         break;
     case 1:
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
         break;
     case 2:
@@ -112,10 +112,10 @@ void DifficultyBox::KeyDown(platform::Key key, int scan, bool repeat) {
     if (handled) return;
     if (key == platform::Key::Return) {
         options::g_options.difficulty = easy;
-        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
     } else if (key == platform::Key::Escape) {
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
         return;

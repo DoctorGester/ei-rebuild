@@ -7,7 +7,6 @@
 // every voice taken, a speech's Play2D answers -1, which keeps a unit's talking flag (unit_client_effects). Both are
 // basic operations on floats and small integers in the original's order, rounded to integers by lib::RoundEven
 // (docs/notes/sound.md, "Floating point"). The pans, the axis and the fader only reach the output.
-#include "game_strings.h"
 #include "mod_folders.h"
 #include "platform/platform.h"
 #include "random.h"

@@ -4,7 +4,6 @@
 #include "engine_object.h"   // EngineObject
 #include "figure_mesh.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object_animation.h"
 #include "map_object_figures.h"
 #include "mod_folders.h"
@@ -45,7 +44,7 @@ UiMesh* FigureManager::NewBlankFigure() { return CreateObjectAs<UiMesh>(FigureOb
 UiMesh* FigureManager::NewFigure(std::string_view name) {
     auto* figure = NewBlankFigure();
     figure->name = name;
-    figure->directory = game::kEmptyText;
+    figure->directory.clear();
     const std::string path = std::string(name) + ".fig";
     void* data = GetFile(path, nullptr);
     if (!data) {
@@ -61,7 +60,7 @@ UiMesh* FigureManager::NewFigure(std::string_view name) {
 
 int FigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
-    const std::string path = bone->modelName + bone->GetName() + animation + game::AstExtensionText();
+    const std::string path = bone->modelName + bone->GetName() + animation + ".ast";
     void* data = GetFile(path, nullptr);
     if (!data) return 0;
     auto* cursor = static_cast<std::uint8_t*>(data);

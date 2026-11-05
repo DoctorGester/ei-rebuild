@@ -2,7 +2,6 @@
 // side (lines, history depth, placement) is in console_window.cpp. See docs/notes/ui.md
 // ("Console window").
 #include "console.h"
-#include "game_strings.h"
 #include "ui.h"
 #include "asset_text.h"
 
@@ -41,7 +40,7 @@ int Clamp(int value, int high) {
 
 // Width in pixels of the prompt and the first `count` characters of the input in `font`.
 int PromptWidth(const UiFont& font, const std::string& input, int count) {
-    return TextExtent(font, std::string(game::consoletexts::Prompt()) + str::Left(input, count)).w;
+    return TextExtent(font, std::string("> ") + str::Left(input, count)).w;
 }
 
 constexpr int kHistoryDepth = 30;
@@ -203,7 +202,7 @@ void ConsoleWindow::OnChar(int key, int) {
         caret = 0;
         anchor = 0;
         ClampCaret();
-        AddText((game::consoletexts::Prompt() + commands[0] + game::NewLineText()));
+        AddText(("> " + commands[0] + "\n"));
         Execute(commands[0]);
         return;
     }
@@ -281,11 +280,11 @@ void ConsoleWindow::PaintLines(UiSurface& out) const {
     }
     if (scroll > 0) {
         Rect area{width - Px(0x12), height - Px(0x2E), width - Px(8), height - inputHeight};
-        out.DrawTextPixels(font, game::consoletexts::More(), area, kDrawMark, kLineText, false);
+        out.DrawTextPixels(font, "+", area, kDrawMark, kLineText, false);
     }
     if (scroll < lineCount - visibleLines) {
         Rect area{width - Px(0x12), Px(8), width - Px(8), Px(0x17)};
-        out.DrawTextPixels(font, game::consoletexts::More(), area, kDrawMark, kLineText, false);
+        out.DrawTextPixels(font, "+", area, kDrawMark, kLineText, false);
     }
 }
 
@@ -307,7 +306,7 @@ void ConsoleWindow::PaintInput(UiSurface& out) const {
         if (low < high) FillArea(out, low + margin, top, high - low, Px(0xF), kSelection);
     }
     Rect area{margin, top, width - margin, height - Px(3)};
-    out.DrawTextPixels(font, std::string(game::consoletexts::Prompt()) + input, area, kDrawLine, kInputText, false);
+    out.DrawTextPixels(font, std::string("> ") + input, area, kDrawLine, kInputText, false);
     if (caretX < right) out.Line({caretX + margin, top}, {caretX + margin, height - margin}, std::max(Px(2), 1), kInputText);
 }
 

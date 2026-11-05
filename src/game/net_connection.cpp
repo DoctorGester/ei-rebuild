@@ -4,7 +4,6 @@
 #include "console.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "game_strings.h"
 #include "net_coder.h"
 
 #include "lib/containers.h"
@@ -218,7 +217,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
             return true;
         }
         if (found->second.version >= version) {
-            LogLine(game::nettexts::SkipRemove());
+            LogLine("SKIP remove, newer version of object is already here");
             return true;
         }
         if (Message* object = found->second.object.Get()) {
@@ -232,7 +231,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 
     if (found != records.end() && found->second.version >= version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
-        LogLine(game::nettexts::SkipUpdate());
+        LogLine("SKIP update, newer version of object is already here");
         SharedRef<Message> scratch(CreateMessage(ref.type));
         scratch->Read(this, cursor);
         return true;
@@ -368,7 +367,7 @@ void Connection::ReadAcks(BufferCursor* cursor) {
 bool Connection::Accept(std::uint32_t sequence) {
     std::uint32_t newest = lastReceived;
     if (sequence + 0x20 < newest) {
-        if (console::Stream* log = g_netLog) console::EndLine(*log << game::nettexts::TooOld() << newest - sequence);
+        if (console::Stream* log = g_netLog) console::EndLine(*log << "SKIP too old update, dif=" << newest - sequence);
         return false;
     }
     if (!(newest > sequence)) newest = sequence;
@@ -378,7 +377,7 @@ bool Connection::Accept(std::uint32_t sequence) {
             if (g_netLog) {
                 std::string peer = address.ToString();
                 const char* text = peer.data();
-                console::EndLine(*g_netLog << game::nettexts::Duplicate() << text);
+                console::EndLine(*g_netLog << "DUPLICATE update received from " << text);
             }
             return false;
         }

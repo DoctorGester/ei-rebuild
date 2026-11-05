@@ -4,7 +4,6 @@
 #include "app.h"
 #include "console.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "global_map_clouds.h"
 #include "text_manager.h"
 #include "lib/maths.h"

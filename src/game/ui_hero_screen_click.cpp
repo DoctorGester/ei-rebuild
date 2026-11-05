@@ -4,7 +4,6 @@
 #include "console.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "item.h"
 #include "saved_parties.h"
 #include "text_manager.h"
@@ -47,7 +46,7 @@ Item* FirstOf(const std::vector<Item*>& list) { return !list.empty() ? list[0] :
 void BackToMainMenu(Interface3D* ui) {
     std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
     g_interface.ShowStatusText(text);
-    ui->PlayInterfaceSound(game::CancelSoundText());
+    ui->PlayInterfaceSound(kMessageBoxCancelSound);
     g_gameFlow.EndSession();
     ui->SetPendingValue(0);
 }
@@ -92,8 +91,8 @@ void MpHeroScreen::CloseRenameEdit() {
 }
 
 void MpHeroScreen::BackToNewHero() {
-    ui->PlayInterfaceSound(game::CancelSoundText());
-    statsPanel->SetHero(0, game::kEmptyText);
+    ui->PlayInterfaceSound(kMessageBoxCancelSound);
+    statsPanel->SetHero(0, "");
     labels[0].clear();
     tradePanel->Settle(false, false);
     SetMode(kModeNewHero);
@@ -150,7 +149,7 @@ void MpHeroScreen::KeyDown(platform::Key key, int scan, bool repeat) {
         } else if (mode == kModeStats) {
             BackToNewHero();
         } else if (mode == kModeNewHero) {
-            currentUi->PlayInterfaceSound(game::CancelSoundText());
+            currentUi->PlayInterfaceSound(kMessageBoxCancelSound);
             SetMode(kModeList);
         }
         handled = true;
@@ -175,11 +174,11 @@ void MpHeroScreen::KeyDown(platform::Key key, int scan, bool repeat) {
         return;
     }
     if (mode == kModeList) {
-        currentUi->PlayInterfaceSound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(kSaveSelectSound);
         heroIndex += heroStep;
         ClampHeroSelection();
     } else if (mode == kModeNewHero) {
-        currentUi->PlayInterfaceSound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(kSaveSelectSound);
         voiceIndex += voiceStep;
         ClampVoiceSelection();
         PlayVoice();
@@ -196,7 +195,7 @@ void MpHeroScreen::LeftDown(Point point) {
     Interface3D* currentUi = ui;
     int region = RegionAt(point);
     auto rotate = [&](int direction) {
-        currentUi->PlayInterfaceSound(game::RotateSoundText());
+        currentUi->PlayInterfaceSound("buttons\\camp\\move.wav");
         rotating = direction;
         CaptureMouse();
     };
@@ -205,7 +204,7 @@ void MpHeroScreen::LeftDown(Point point) {
         // The new hero.
         switch (region) {
         case 0:
-            currentUi->PlayInterfaceSound(game::CancelSoundText());
+            currentUi->PlayInterfaceSound(kMessageBoxCancelSound);
             SetMode(kModeList);
             return;
         case 1:
@@ -219,7 +218,7 @@ void MpHeroScreen::LeftDown(Point point) {
             return;
         case 4: {
             // Back to the defaults: the attributes 25, the speed factor 0.7.
-            currentUi->PlayInterfaceSound(game::CancelSoundText());
+            currentUi->PlayInterfaceSound(kMessageBoxCancelSound);
             ChooseFigure(defaults[0]);
             PartyUnitRecord* hero = HeroRecord();
             auto* stats = &hero->stats;
@@ -230,8 +229,8 @@ void MpHeroScreen::LeftDown(Point point) {
             stats->intelligenceBase = 25.0f;
             stats->intelligence = 25.0f;
             hero->height = 0.7f;
-            nameEdit->SetText(game::kEmptyText);
-            statsPanel->SetHero(0, game::kEmptyText);
+            nameEdit->SetText("");
+            statsPanel->SetHero(0, "");
             RefreshStats();
             return;
         }
@@ -244,7 +243,7 @@ void MpHeroScreen::LeftDown(Point point) {
         if (index < 0) return;
         std::vector<MpVoiceEntry>& currentVoices = *voices;
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(currentVoices.end() - currentVoices.begin())) return;
-        currentUi->PlayInterfaceSound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(kSaveSelectSound);
         voiceIndex = index;
         const std::string& file = currentVoices.begin()[index].file;
         HeroRecord()->secondPrototype = file;
@@ -261,7 +260,7 @@ void MpHeroScreen::LeftDown(Point point) {
             AddNewHero();
         } else if (region == 4) {
             // Take the equipment back.
-            currentUi->PlayInterfaceSound(game::CancelSoundText());
+            currentUi->PlayInterfaceSound(kMessageBoxCancelSound);
             tradePanel->Settle(false, false);
             ShowFirstEquipment();
         }
@@ -287,21 +286,21 @@ void MpHeroScreen::LeftDown(Point point) {
         return;
     case 5:
         // A new hero.
-        currentUi->PlayInterfaceSound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(kSaveSelectSound);
         ChooseFigure(defaults[0]);
-        statsPanel->SetHero(0, game::kEmptyText);
+        statsPanel->SetHero(0, "");
         labels[0].clear();
         turn = 0.0f;
         SetMode(kModeNewHero);
-        nameEdit->SetText(game::kEmptyText);
+        nameEdit->SetText("");
         return;
     case 6:
-        currentUi->PlayInterfaceSound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(kSaveSelectSound);
         Rename();
         return;
     case 7: {
         // Delete: asks first ("lmp_deletepers").
-        currentUi->PlayInterfaceSound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(kSaveSelectSound);
         if (!IsHero(heroIndex)) return;
         auto* box = new MessageWindow(currentUi, "lmp_deletepers", "lmp_deletepers_msg", MessageQuestion::First, MessageButtons::OkCancel);
         currentUi->PushWindow(box, WindowBackdrop::FirstWindow);
@@ -309,7 +308,7 @@ void MpHeroScreen::LeftDown(Point point) {
     }
     case 8: {
         // The hero's inventory: the camp screen.
-        currentUi->PlayInterfaceSound(game::SelectSoundText());
+        currentUi->PlayInterfaceSound(kSaveSelectSound);
         if (!IsHero(heroIndex)) return;
         ui->PushWindow(new CampPages(ui, true), WindowBackdrop::None);
         return;
@@ -320,7 +319,7 @@ void MpHeroScreen::LeftDown(Point point) {
     if (region < 9 || region >= 19) return;
     int index = heroTop + region - 9;
     if (!IsHero(index)) return;
-    currentUi->PlayInterfaceSound(game::SelectSoundText());
+    currentUi->PlayInterfaceSound(kSaveSelectSound);
     ShowHero(index);
 }
 
@@ -333,7 +332,7 @@ void MpHeroScreen::Rename() {
     std::string name = MpHeroName(heroIndex);
     int bar = str::Find(name, kRenameBar);
     if (bar < 0) {
-        renameEdit->SetText(game::kEmptyText);
+        renameEdit->SetText("");
     } else {
         std::string typed = str::Mid(name, bar + 1);
         str::TrimLeft(typed);
@@ -386,7 +385,7 @@ void MpHeroScreen::PlayVoice() {
 
 void MpHeroScreen::Continue() {
     Interface3D* currentUi = ui;
-    currentUi->PlayInterfaceSound(game::OkSoundText());
+    currentUi->PlayInterfaceSound(kMessageBoxOkSound);
     if (IsHero(heroIndex)) {
         g_savedParties.SaveAll();
         currentUi->PushWindow(new MpConnectScreen(currentUi), WindowBackdrop::FirstWindow);
@@ -421,10 +420,10 @@ void MpHeroScreen::CreateHero() {
     float sum = stats->intelligenceBase + stats->dexterityBase + stats->strengthBase;
     float points = kAttributePoints;
     if (sum != points || static_cast<int>(name.size()) == 0) {
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         return;
     }
-    ui->PlayInterfaceSound(game::OkSoundText());
+    ui->PlayInterfaceSound(kMessageBoxOkSound);
     ShowFirstEquipment();
     hero->scriptName = name;
     statsPanel->SetHero(0, name);
@@ -491,7 +490,7 @@ void MpHeroScreen::MessageResult(std::uint32_t result) {
 // --- The new hero added to the list --------------------------------------------------
 
 void MpHeroScreen::AddNewHero() {
-    ui->PlayInterfaceSound(game::OkSoundText());
+    ui->PlayInterfaceSound(kMessageBoxOkSound);
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = lib::Count(hero->weapons) - 1; i >= 0; --i)

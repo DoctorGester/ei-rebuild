@@ -5,7 +5,6 @@
 
 #include "core_maths.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object_figures.h"
 #include "party.h"
 #include "random.h"
@@ -220,7 +219,7 @@ void MpHeroScreen::MakePreview(bool allArmour) {
     auto* player = LocalPlayerData();
     if (player->members.empty()) {
         player->Clear(true, false);
-        player->AddMember(kHeroName, kHumanHero, game::kEmptyText);
+        player->AddMember(kHeroName, kHumanHero, "");
     }
     const std::vector<PartyUnitRecord*> records{player->members.data()};
     g_clientWorld.CreatePartyUnits(&records, allArmour);
