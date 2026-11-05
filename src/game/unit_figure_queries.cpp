@@ -17,12 +17,8 @@ namespace {
 constexpr std::uint8_t kMovesOnWater = 2;       // UnitParams::movementKind
 
 // Animation keys (docs/notes/combat.md): the low 15 bits are variant bits, the rest the kind;
-// 0x38000 are the movement bits (0x30000 mode 0, 0x20000 mode 1, 0x10000 mode 2, 0x8000 mode 4).
+// kAnimationMoveMask are the movement bits (AnimationMoveBits).
 constexpr std::uint32_t kKindBits = 0xFFFF8000;
-constexpr std::uint32_t kMoveBits = 0x38000;
-constexpr std::uint32_t kMove1Bit = 0x20000;
-constexpr std::uint32_t kMove2Bit = 0x10000;
-constexpr std::uint32_t kMove4Bit = 0x8000;
 constexpr std::uint32_t kEntryIndex = 0xFF;
 
 const char* const kNoAnimationEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
@@ -42,9 +38,9 @@ FigureAnimation* Unit::FindAnimation(std::uint32_t key, bool anyOfKind, Animatio
     if (FigureAnimation* entry = RandomAnimation(key, random)) return entry;
     std::uint32_t kind = key & kKindBits;
     if (FigureAnimation* entry = RandomAnimation(kind, random)) return entry;
-    if ((kind & kMoveBits) == kMove4Bit) {
-        if (FigureAnimation* entry = RandomAnimation(kind & ~kMoveBits, random)) return entry;
-        if (FigureAnimation* entry = RandomAnimation((kind & ~(kMove1Bit | kMove4Bit)) | kMove2Bit, random)) return entry;
+    if ((kind & kAnimationMoveMask) == AnimationKeyOf(AnimationMoveBits::Stop)) {
+        if (FigureAnimation* entry = RandomAnimation(kind & ~kAnimationMoveMask, random)) return entry;
+        if (FigureAnimation* entry = RandomAnimation((kind & ~(AnimationKeyOf(AnimationMoveBits::Crawl) | AnimationKeyOf(AnimationMoveBits::Stop))) | AnimationKeyOf(AnimationMoveBits::Walk), random)) return entry;
     }
     if (!anyOfKind) return nullptr;
     return RandomAnimationOfKind(kind, random);

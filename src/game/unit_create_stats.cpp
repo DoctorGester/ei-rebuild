@@ -35,10 +35,10 @@ constexpr float kRate15 = 15.0f;
 constexpr float kDefaultStat = 50.0f;
 constexpr float kDefaultModeSpeed = 0.13333334f;
 constexpr float kDefaultSpeed = 0.2f;
-constexpr float kOne = 1.0f;
-constexpr float kHundred = 100.0f;
-constexpr float kThousand = 1000.0f;
-constexpr float kTen = 10.0f;
+constexpr float kDefaultRateBase = 1.0f;
+constexpr float kDefaultFullLevel = 100.0f;   // protection, perception, conspicuity and a slot's capacity at their start
+constexpr float kDefaultVitalPool = 1000.0f;   // hit points and mana of a unit without stats
+constexpr float kDefaultRegen = 10.0f;
 constexpr int kSlotWorking = 3;
 
 
@@ -223,15 +223,15 @@ UnitNpcRecord* NpcPrototypeTable::FindByName(std::string_view name) {
 
 void MapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     if (!stats) {
-        vitals->hitPoints = kThousand;
-        vitals->maxHitPoints = kThousand;
-        vitals->hitPointRegen = kTen;
-        vitals->mana = kThousand;
-        vitals->maxMana = kThousand;
-        vitals->manaRegen = kTen;
+        vitals->hitPoints = kDefaultVitalPool;
+        vitals->maxHitPoints = kDefaultVitalPool;
+        vitals->hitPointRegen = kDefaultRegen;
+        vitals->mana = kDefaultVitalPool;
+        vitals->maxMana = kDefaultVitalPool;
+        vitals->manaRegen = kDefaultRegen;
         for (UnitStatPair& protection : vitals->protection) {
-            protection.current = kHundred;
-            protection.base = kHundred;
+            protection.current = kDefaultFullLevel;
+            protection.base = kDefaultFullLevel;
         }
         return;
     }
@@ -242,21 +242,21 @@ void MapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     for (float& modeSpeed : stats->modeSpeeds) modeSpeed = kDefaultModeSpeed;
     stats->spentExperience = 0.0f;
     stats->speedBase = kDefaultSpeed;
-    stats->rateBase = kOne;
+    stats->rateBase = kDefaultRateBase;
     stats->capacity = 0.0f;
     stats->movementKind = 0;
     for (int i = 0; i < 6; ++i) {
-        stats->perception[i].base = kHundred;
-        stats->perception[i].current = kHundred;
-        stats->conspicuity[i].base = kHundred;
-        stats->conspicuity[i].current = kHundred;
+        stats->perception[i].base = kDefaultFullLevel;
+        stats->perception[i].current = kDefaultFullLevel;
+        stats->conspicuity[i].base = kDefaultFullLevel;
+        stats->conspicuity[i].current = kDefaultFullLevel;
     }
     for (UnitStatSlot& slot : stats->slots) {
         slot.type = 1;
         slot.vitalMask = 0;
         slot.kind = kSlotWorking;
-        slot.current = kHundred;
-        slot.maximum = kHundred;
+        slot.current = kDefaultFullLevel;
+        slot.maximum = kDefaultFullLevel;
         for (UnitStatLayer& layer : slot.layers) {
             layer.layerMask = 0;
             layer.state = 0;

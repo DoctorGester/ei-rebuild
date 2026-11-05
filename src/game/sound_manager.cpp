@@ -37,7 +37,7 @@ namespace {
 
 constexpr float kHeightFull = 30.0f;     // 2D height-faded sounds are full below
 constexpr float kHeightSilent = 70.0f;   // ... and silent above
-constexpr float kHundred = 100.0f;
+constexpr float kPercentScale = 100.0f;
 constexpr float kOutputScale = 0.0127f;   // 0..100 times 0..100 to the output's 0..127
 constexpr float kLevelMax = 127.0f;
 constexpr float kPercent = 0.01f;
@@ -251,7 +251,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
     float dist = std::sqrt(dist2);
     int level = kFullVolume;
     if (!(dist < slot->params.nearDistance))
-        level = kFullVolume - lib::RoundEven((dist - slot->params.nearDistance) / (slot->params.farDistance - slot->params.nearDistance) * kHundred);
+        level = kFullVolume - lib::RoundEven((dist - slot->params.nearDistance) / (slot->params.farDistance - slot->params.nearDistance) * kPercentScale);
     slot->params.volume = FlatVolume(level, true, slot->params.speech);
 
     float ahead = AbsBits(Dot2D(d, XY(listenerAxis)));
@@ -261,7 +261,7 @@ void SoundManager::UpdatePositional(SoundSlot* slot) {
     }
     float angle = lib::Acos(ahead / dist);
     if (angle > kHalfPi) angle = kPi - angle;
-    int pan = lib::RoundEven(kHundred / kHalfPi * angle);
+    int pan = lib::RoundEven(kPercentScale / kHalfPi * angle);
     slot->params.pan = pan;
     if (d.y * listenerAxis.x > d.x * listenerAxis.y) slot->params.pan = -pan;
 }

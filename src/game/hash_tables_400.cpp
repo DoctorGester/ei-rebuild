@@ -1,8 +1,0 @@
-// Hash tables of one-dword keys and values: BaseManager's id tables (SetAt / Lookup / RemoveKey over
-// a hashtable that also keeps the highest key), the chunk archive's class registry and the session's type
-// registry. See docs/notes/core.md.
-#include "hash_tables_400.h"
-
-namespace hash400 {
-
-} // namespace hash400

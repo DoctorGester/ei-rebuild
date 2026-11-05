@@ -17,7 +17,7 @@ original's x87 rounding any more, and one set of goldens holds on Windows and Li
 
 ## Maths functions (src/lib/maths.h)
 
-The game code calls `lib::Sin`, `Cos`, `Asin`, `Acos`, `Atan2`, `Exp`, `Log`, `Log10`, `Pow` and `Hypot`, never the
+The game code calls `lib::Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan2`, `Exp`, `Log`, `Log10`, `Pow` and `Hypot`, never the
 system's float functions: those are not correctly rounded and each system rounds its own way, so the same game left
 Windows' goldens on Linux at its first turning animal (H47c: the main menu's unanwibo, `rot.w` an ulp apart at world
 update 5). Measured over every float (2026-11-03, MSVC 14.43's static UCRT and glibc 2.39), the float function against
@@ -27,7 +27,7 @@ float agree on both for every float (the same hash of all results) (sin, cos, ta
 pow; so each lib:: function is the double function on the float, rounded once. `Hypot` calls no library: two floats'
 squares are exact in double, the sum and the square root are IEEE's (glibc's `(float)hypot(double)` differed once in
 2^28 samples). tools/check_cleanup.py counts `std::sin` and the rest per file ("system maths function"); outside the
-game state they stay (the renderer's shadow camera, the sound and movie decoders, the scripts' doubles in
+game state they stay (the movie decoder's double `pow`, the scripts' functions in
 script_addon_math.cpp). The doubles of the scripts (`CrtSin` / `CrtCos` / `CrtPow`) are the systems' and not
 checked across them.
 

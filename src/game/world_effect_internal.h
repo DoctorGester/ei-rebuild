@@ -28,6 +28,31 @@ inline bool IsMoving(const Vector3& v) {
     return !(v.x == 0.0f && v.y == 0.0f && v.z == 0.0f);
 }
 
+// The tail of a sound effect's delta: volume, radius, velocity and the no-fade flag, then the position read first
+// is taken and the effect starts (0 when the snapshot is not consumed).
+template <class Sound>
+int UnpackSoundTail(Sound& sound, DeltaReader& field, const Vector3& position, int update) {
+    sound.volume = field.ReadFloat16();
+    sound.radius = field.ReadFloat16();
+    sound.velocity = field.ReadFloat16x3();
+    field.ReadDelta(&sound.noFade, 1);
+    sound.moving = IsMoving(sound.velocity);
+    if (!field.SnapshotConsumed()) return 0;
+    sound.localPosition = position;
+    sound.Start(update);
+    return 1;
+}
+
+// What every Reset does to the base part first: position, field streams, start tick, velocity, moving flag and stamp.
+inline void ClearBase(Effect* e) {
+    e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
+    e->state.Empty();
+    e->velocity = Vector3{0.0f, 0.0f, 0.0f};
+    e->startTick = 0;
+    e->moving = 0;
+    e->changeStamp = -1;
+}
+
 // `min(value, 1.0)` the way the scorch code selects it: the value when it compares below 1.0 or
 // is NaN, else 1.0.
 inline float BelowOneOrOne(const float& value) {

@@ -36,12 +36,6 @@ namespace {
 
 constexpr const char* kQuestFileSuffix = ".mq";
 
-// Whether a game server runs (bit 31 of its count word marks one shut down).
-bool ServerRuns() {
-    const net::ServerSession* server = net::g_gameServer;
-    return IsLive(server);
-}
-
 // The game server lists the file at `path` under `name` for its clients: the whole file (none of it when it does not
 // open) in a buffer.
 void ShareQuestFile(const std::string& path, const std::string& name) {
@@ -130,7 +124,7 @@ bool LoadZoneQuests(std::string_view zone) {
     modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
     if (!platform::PathExists(MapsFolder() + file)) return false;
     std::string path = MapFilePath(file);
-    if (ServerRuns()) ShareQuestFile(path, file);
+    if (IsLive(net::g_gameServer)) ShareQuestFile(path, file);
     // A file already loaded is not loaded again.
     std::vector<std::string>& files = g_questFiles;
     if (std::find(files.begin(), files.end(), path) == files.end()) {
@@ -153,14 +147,6 @@ void GameFlow::OnVariableChanged(const net::VariableMessage* record) {
 }
 
 // ---- Quest registration, the session's map name ---------------------------------------------------
-
-// A second block: it uses g_questFolders (defined above).
-namespace {
-
-
-
-
-} // namespace
 
 void GameFlow::RegisterQuests(const std::string& folder) {
     TextManager* texts = g_clientWorld.texts.get();

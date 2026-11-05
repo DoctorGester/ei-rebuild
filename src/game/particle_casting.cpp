@@ -117,7 +117,7 @@ int EmitCasting(ParticleSource& s, Particle& p, int) {
     inward = reach * (ParticleTypeOf(s.type) == ParticleType::CastingDivination ? 0.03846154f : 0.07692308f);   // 1/26, 1/13
     swell = state->cast.growth;
     p.pos = away * direction + s.origin;
-    p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_8 + 0.6f) * state->cast.size * away;
+    p.size = (g_clientRandom.Below(0.8f) + 0.6f) * state->cast.size * away;
     return 1;
 }
 
@@ -133,7 +133,7 @@ int UpdateCasting(ParticleSource& s, Particle& p) {
     if (state->cast.alpha == 0) return 0;
     if (p.state) {
         p.pos = s.origin;
-        p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_3 + 0.85f) * s.elements[0].cast.radius * 0.3f;
+        p.size = (g_clientRandom.Below(0.3f) + 0.85f) * s.elements[0].cast.radius * 0.3f;
         p.color = (static_cast<std::uint32_t>(s.elements[0].cast.alpha) << 24) | 0xFFFFFF;
         return 1;
     }
@@ -251,7 +251,7 @@ int EmitOrbit(ParticleSource& s, Particle& p, int index) {
                                                                                  : 1.5f;
         big = g_clientRandom.Range(0.0f, 1.0f) + base;
     } else {
-        big = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f;
+        big = g_clientRandom.Below(0.6f) + 0.7f;
     }
     sizeFactor = big;
 
@@ -690,14 +690,14 @@ int EmitCastSwirl(ParticleSource& s, Particle& p, int) {
     p.life = 28;
     p.frameTimer = 1;
     p.state = j;
-    rise = (WordToFloat(g_clientRandom.Next()) * kWordTo0_35 + 0.85f) * e->orbiter.scale * 0.03f;
+    rise = (g_clientRandom.Below(0.35f) + 0.85f) * e->orbiter.scale * 0.03f;
     riseGrowth = 1.03f;
     ahead = RandomInBox(s.spreadMin, s.spreadMax);
     const Vector3& previous = e->orbiter.previous;
     p.pos = previous + ahead;
     float u = 1.0f - t;
     ahead += t * previous + u * e->pos;
-    p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_8 + 0.6f) * s.size * 0.2f;
+    p.size = (g_clientRandom.Below(0.8f) + 0.6f) * s.size * 0.2f;
     return 1;
 }
 
@@ -712,7 +712,7 @@ int UpdateCastSwirl(ParticleSource& s, Particle& p) {
     if (state < 0) {
         const ParticleElement& e = s.elements[-(state + 1)];
         p.pos = e.pos;
-        p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.size * 0.4f;
+        p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.4f;
         if ((s.flags & ParticleSourceFlag::Emitting) && s.attachedTo) return 1;
         int life = p.life;
         if (life < 0) return 0;
@@ -784,8 +784,8 @@ int EmitColumn(ParticleSource& s, Particle& p, int) {
     p.frame = 1;
     p.life = 13;
     p.frameTimer = 1;
-    rise = (WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f) * s.elements[0].column.height * 0.1f;
-    float ring = WordToFloat(g_clientRandom.Next()) * kWordTo0_2 + 0.9f;
+    rise = (g_clientRandom.Below(0.6f) + 0.7f) * s.elements[0].column.height * 0.1f;
+    float ring = g_clientRandom.Below(0.2f) + 0.9f;
     float angle = g_clientRandom.Range(0.0f, 6.28318f);
     offset.x = lib::Sin(angle) * ring;
     offset.y = lib::Cos(angle) * ring;
@@ -793,7 +793,7 @@ int EmitColumn(ParticleSource& s, Particle& p, int) {
     offset.z = z;
     offset.z = z + s.elements[0].column.foot;
     p.pos = s.origin + offset;
-    p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_8 + 0.6f) * s.size * 0.25f;
+    p.size = (g_clientRandom.Below(0.8f) + 0.6f) * s.size * 0.25f;
     return 1;
 }
 

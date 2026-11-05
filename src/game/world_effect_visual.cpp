@@ -34,15 +34,6 @@ namespace {
 
 
 
-void ClearBase(Effect* e) {
-    e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
-    e->state.Empty();
-    e->velocity = Vector3{0.0f, 0.0f, 0.0f};
-    e->startTick = 0;
-    e->moving = 0;
-    e->changeStamp = -1;
-}
-
 // The light's range fields: range, range^2 and 1 / range^2.
 void SetLightRange(Light* light, float range) {
     light->range = range;
@@ -82,7 +73,7 @@ bool IsOneShotType(int type) {
 }
 
 // The scorch mark's angle: a random word to [0, 6.3).
-float RandomAngle(std::uint32_t random) { return static_cast<float>(random) * (6.3f * 0x1p-32f); }
+float RandomAngle(std::uint32_t random) { return ScaleWord(random, 6.3f); }
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
 // sqrt(x*x + y*y) + half + 0.3.
@@ -96,7 +87,7 @@ void WallScorchShape(const Vector3& direction, const float* half, float* angleAn
 
 
 void EffectPointLight::Reset() {
-    ClearBase(this);
+    Effect::Reset();
     if (light != nullptr) {
         g_clientWorld.terrain->RemoveLight(light);
         light.Reset();
@@ -183,11 +174,9 @@ void EffectPointLight::Save(ByteStream* stream) {
     stream->WriteValue(lightFlags);
 }
 
-float EffectPointLight::LightRadius() { return 100.0f + range; }
-
 
 void EffectParticle::Reset() {
-    ClearBase(this);
+    Effect::Reset();
     if (source != nullptr) {
         source->Stop();
         source.Reset();
@@ -473,7 +462,7 @@ void EffectWall::Save(ByteStream* stream) {
 
 
 void EffectLightning::Reset() {
-    ClearBase(this);
+    Effect::Reset();
     width = 1.0f;
     from = Vector3{0.0f, 0.0f, 0.0f};
     toObject = -1;

@@ -127,12 +127,7 @@ constexpr char kNewLine[] = {'\n', '\0'};
 // --- Clock -----------------------------------------------------------------------------------------------------------
 
 void HudClock::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: HitRegion(event); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { PressRegion(event); }, [&] { LeftUp(event); }, [&] { HitRegion(event); });
 }
 
 void HudClock::LeftUp(UiEvent& event) {
@@ -296,12 +291,7 @@ void HudClock::Setup(bool newFast) {
 // --- Movement panel --------------------------------------------------------------------------------------------------
 
 void HudMovePanel::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: HitRegion(event); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { PressRegion(event); }, [&] { LeftUp(event); }, [&] { HitRegion(event); });
 }
 
 void HudMovePanel::LeftUp(UiEvent& event) {
@@ -439,20 +429,13 @@ void HudMovePanel::ToggleFlag() {
 // --- Top panel -------------------------------------------------------------------------------------------------------
 
 void HudTopPanel::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: HitRegion(event); break;
-    case UiEventKind::Wheel: HitRegion(event); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { PressRegion(event); }, [&] { LeftUp(event); }, [&] { HitRegion(event); }, [&] { HitRegion(event); });
 }
 
 void HudTopPanel::LeftUp(UiEvent& event) {
     const UiRegion* region = PressedRegion(event);
-    if (region == slingButton) {
-        slide.Toggle();
-    } else if (const int newPage = RegionIndex(pageButtons, region); newPage >= 0) {
+    if (ToggleSling(region, slingButton, slide)) return;
+    if (const int newPage = RegionIndex(pageButtons, region); newPage >= 0) {
         page = newPage;
         ShowPage();
         g_interface.PlayInterfaceSound(kSoundClick);

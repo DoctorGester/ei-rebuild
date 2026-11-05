@@ -174,13 +174,10 @@ void ServerSession::ShareFile(const std::string* fileName, GameBuffer* data) {
 
 // Whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(const Connection* connection) {
-    for (auto& node : bindings) {
-        auto* binding = node.Get();
-        if (binding->connection.Get() != connection) continue;
-        auto* player = binding->player.Get();
-        if (IsLive(player) && player->host) return true;
-    }
-    return false;
+    auto* binding = BindingOf(connection);
+    if (!binding) return false;
+    auto* player = binding->player.Get();
+    return IsLive(player) && player->host;
 }
 
 // Commands from `from`; each needs the host's connection (IsHostConnection):

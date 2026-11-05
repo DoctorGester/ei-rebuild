@@ -66,11 +66,8 @@ Object* CachedObject(ItemObjectCache<Object>* cache, std::string_view name, Obje
     return object;
 }
 
-// A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 in that order, stored as
-// float.
-float RandomPhase(std::uint32_t random) {
-    return random * kFullTurn * 2.3283064e-10f;
-}
+// A new turning state with a random glow phase: a random word to [0, 2 pi).
+float RandomPhase(std::uint32_t random) { return ScaleWord(random, kFullTurn); }
 
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the school's
 // colour (kSchoolGlow) into 0xFFrrggbb.

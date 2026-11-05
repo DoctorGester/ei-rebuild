@@ -628,7 +628,6 @@ void SectorGrid::Resize(int newWidth, int newHeight) {
 
 void WorldClient::Create() {
     World::Create();
-    texturePath = g_dataFolder + "textures\\";
     LoadLights("LightsGipat.ini");
     sounds = std::make_unique<SoundManager>();
     texts = std::make_unique<TextManager>();

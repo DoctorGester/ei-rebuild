@@ -16,7 +16,7 @@
 
 namespace {
 
-constexpr float kFarAway = 1e38f;
+constexpr float kSpellSearchStart = 1e38f;
 
 // Whether the spell type turns the target against the caster.
 bool IsHostileType(SpellType type) {
@@ -91,7 +91,7 @@ void WorldServer::CastSpell(Spell* spell, Unit* caster, const Vector3& from, Map
         if (units.empty()) break;
         Unit* best = nullptr;
         std::ptrdiff_t bestIndex = 0;
-        float bestDistance = kFarAway;
+        float bestDistance = kSpellSearchStart;
         for (std::ptrdiff_t i = 0; i < std::ssize(units);) {
             Unit* unit = units[i];
             if (unit->IsDead()) {

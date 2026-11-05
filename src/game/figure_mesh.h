@@ -109,13 +109,10 @@ class Object3D;
 class FigureMesh;
 
 struct FigureMeshDrawer;
-// The flags an animated mesh's drawer gets on top of its own (figure_part_draw*.cpp).
 // The packets of `source` (`packets` of them) with the per-vertex `offsets` added (a vertex beyond the offsets keeps
 // its position), in one work array that the next call reuses.
 const VertexPacket* MovedPositions(const VertexPacket* source, int packets,
                                   const std::vector<Vector3>& offsets);
-
-inline constexpr std::uint32_t kAnimatedDrawerFlags = /*00790C0C*/ 0x200;
 
 // The material a figure part is drawn with (the draw's fourth argument) is a Material: MaterialFlag::KeepSpecular
 // keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular

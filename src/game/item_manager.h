@@ -85,7 +85,6 @@ struct ItemManager : ResourceManager {
     ~ItemManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    const char* GetFolderName() override;    // "items"
 
     // The item factory: a new constructed item for kind ItemKind::Weapon weapon, ItemKind::Armor armour, ItemKind::Quick quick, ItemKind::Loot
     // loot, ItemKind::Scroll scroll, ItemKind::Quest quest, its type set to the kind; null for another kind or without memory.

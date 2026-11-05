@@ -45,6 +45,7 @@
 #include "world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
@@ -205,11 +206,6 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
 constexpr const char* kUnitTextPrefix = "unit ";
 
 int Distance(int a, int b) { return a < b ? b - a : a - b; }
-
-// fcomp with 0.0 and: true for zero (either sign).
-bool IsZero(float value) {
-    return value == 0.0f;
-}
 
 // HudPortraitSlot::wobbleKind.
 constexpr int kWobbleNod = 1;

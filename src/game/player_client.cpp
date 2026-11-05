@@ -92,7 +92,6 @@ constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 bool MarkersShown() { return options::g_options.drawPath != 0; }
 
 constexpr std::uint32_t kHeaderFlagHidden = 8;
-constexpr std::uint32_t kFlagCow = 0x10000000;
 constexpr int kWeaponPike = 5;
 constexpr int kWispParticles = static_cast<int>(ParticleType::Stun);
 constexpr float kWispSize = 0.05f;
@@ -520,7 +519,7 @@ bool PlayerClient::OnNewObject() {
         unit->SetSecondPrototypeIndex(prototypeValue);
     }
     if (header.flags & kHeaderFlagHidden) created->flags |= kHeaderFlagHidden;
-    if (Same(model, "unmoco1") || Same(model, "unmoco2")) created->flags |= kFlagCow;
+    if (Same(model, "unmoco1") || Same(model, "unmoco2")) created->flags |= MapObjectFlag::NoCasting;   // a cow
     if (created->MapType() == MapObjectType::Hero && (Same(model, "unhuma") || Same(model, "unhufe"))) {
         // The head part takes the prototype's hair, or goes without one.
         for (std::size_t i = 0; i < parts.size(); ++i) {

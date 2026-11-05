@@ -26,7 +26,6 @@
 
 namespace {
 
-constexpr const char* kFolderName = "map objects";
 constexpr const char* kClassName = "CMapObjectManager";
 constexpr const char* kNoDatabaseText = "Can't find animation database file for \"%s\".\n";
 
@@ -46,7 +45,6 @@ MapObjectManager::MapObjectManager() {}
 
 MapObjectManager::~MapObjectManager() {}
 
-const char* MapObjectManager::GetFolderName() { return kFolderName; }
 const char* MapObjectManager::ClassName() { return kClassName; }
 ClassId MapObjectManager::GetClassId() { return ClassId::MapObjectManager; }
 

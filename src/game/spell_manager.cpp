@@ -24,7 +24,6 @@
 namespace {
 
 constexpr const char* kSpellManagerClassName = "CSpellManager";
-constexpr const char* kSpellManagerFolder = "spells";
 
 template <typename Record>
 std::vector<std::string> ListRecordNames(const itemdb::RecordTable<Record>& table) {
@@ -48,7 +47,6 @@ EngineObject* SpellManager::NewObject(int objectType) {
 
 const char* SpellManager::ClassName() { return kSpellManagerClassName; }
 ClassId SpellManager::GetClassId() { return ClassId::SpellManager; }
-const char* SpellManager::GetFolderName() { return kSpellManagerFolder; }
 
 std::vector<std::string> SpellManager::ListSpellNames() { return ListRecordNames(g_spellDatabase.spells); }
 std::vector<std::string> SpellManager::ListModifierNames() { return ListRecordNames(g_spellDatabase.modifiers); }

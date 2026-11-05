@@ -474,7 +474,6 @@ src/game/figure_part_bounds.cpp
 src/game/figure_part_draw.cpp
 src/game/figure_part_draw_plain.cpp
 src/game/figure_rasterise.cpp
-src/game/hash_tables_400.cpp
 src/game/hash_tables_400.h
 src/game/map_database.cpp
 src/game/map_object.cpp
@@ -1080,7 +1079,6 @@ src/game/ground_decal.cpp
 src/game/ground_decal.h
 src/game/ground_print.cpp
 src/game/ground_print.h
-src/game/hash_tables_400.cpp
 src/game/hash_tables_400.h
 src/game/hoover_loot.cpp
 src/game/ini_file.cpp

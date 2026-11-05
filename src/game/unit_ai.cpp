@@ -366,8 +366,6 @@ constexpr float kEyeHeight = 1.4f;                  // looks are tested from thi
 constexpr float kWanderScale = 15.0f;
 constexpr float kDefaultWander = 40.0f;
 constexpr float kMinWaitFraction = 0.25f;
-// A random word to an angle in [0, 6.3).
-constexpr float kAngleScale = 6.3f * 0x1p-32f;
 constexpr const char kHumanPrefix[] = "unhu";
 
 constexpr float kMaxSlope = 0.3f;
@@ -409,7 +407,7 @@ std::vector<AILook> AIBrain::PlanLooks(const Vector3& point, const Vector3& dire
         int tries = 5;
         float dx, dy, wait;
         for (;;) {
-            float angle = static_cast<float>(g_random.Next()) * kAngleScale;
+            float angle = g_random.Below(6.3f);
             wait = g_random.Range(minWait, wander);
             float sine = lib::Sin(angle);
             dx = lib::Cos(angle) + direction.x;

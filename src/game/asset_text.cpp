@@ -58,7 +58,7 @@ constexpr char16_t kUpperHalf1252[128] = {
     0x00F0, 0x00F1, 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x00F7, 0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FF,
 };
 static_assert(kAssetCodePage == 1250 || kAssetCodePage == 1251 || kAssetCodePage == 1252,
-              "EI_ASSET_CODEPAGE: 1250, 1251 or 1252 (asset_text.cpp has their tables)");
+              "kAssetCodePage: 1250, 1251 or 1252 (asset_text.cpp has their tables)");
 constexpr const char16_t* kUpperHalf =
     kAssetCodePage == 1250 ? kUpperHalf1250 : kAssetCodePage == 1251 ? kUpperHalf1251 : kUpperHalf1252;
 

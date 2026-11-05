@@ -35,12 +35,10 @@ constexpr const char* kGoodbyeTopic = "goodbye";
 constexpr const char* kConstructorTopic = "constr";
 constexpr const char* kBriefingSection = "briefing ";
 constexpr const char* kShowLine = "#show";
-constexpr const char* kTopicPrefix = "b.";
 
 constexpr int kStateWalking = 0;
 constexpr int kEventEnds = 0;
 constexpr int kEventLeaves = 2;
-constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;    // "constr"
 constexpr int kConstructorNumber = 7;    // where the constructor's number starts
 constexpr int kCampScreen = 5;
@@ -191,17 +189,8 @@ void BriefingScreen::FinishDialogue() {
         Unit* unit = speaker.unit;
         PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
         if (server) server->SendUnitControl(kEventLeaves, unit->id);
-        UnitClientSpecific* model = unit->ClientController();
-        model->blinks = 0;
-        model->BlinkOpen(true);
-        auto* serverUnit = g_serverWorld.FindUnit(unit->id);
-        if (!serverUnit) continue;
-        serverUnit->ShowHelmet(true);
-        g_serverWorld.SetUnitHeight(unit->id, 0.0f);
-        auto* controller = serverUnit->ServerController();
-        controller->actionDone = nullptr;
-        controller->StopAction();
-        // (The unit is then looked up among the party's first members; the result is not used.)
+        StopTalking(unit);
+        ReleaseSpeaker(unit);
     }
     speakers.clear();
     speaking = nullptr;
@@ -216,10 +205,8 @@ void BriefingScreen::FinishDialogue() {
         MovePerson(person, personHome, personHomeDirection, false, false, false);
     }
 
-    NamedFloatTable variables;
-    PlayerZeroVariables(kTopicPrefix, &variables);
     std::vector<std::string> parts;
-    for (auto& node : variables) {
+    for (auto& node : PlayerZeroVariables(kTopicPrefix)) {
         parts = text::Split(node.first, '.');
         if (parts.size() != kTopicNameParts || text::CompareIgnoringCase(topic, parts[2]) != 0) continue;
         g_serverWorld.CompleteBriefing(0, node.first);

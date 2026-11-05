@@ -28,11 +28,10 @@ float AsFloat(std::uint32_t bits) {
 template <std::floating_point T> float AsFloat(T) = delete;
 
 
-// The turn direction factors (-1, 0, 1). Read through volatile so the compiler cannot fold 0 * x to 0 (the
-// multiplication keeps NaN and -0).
-const volatile float kMinusOne = -1.0f;
-const volatile float kZero = 0.0f;
-const volatile float kOne = 1.0f;
+// The direction of a turn: -1, 0 or 1. The product with it keeps NaN and -0 (the compiler does not fold 0 * x).
+float TurnSign(float turn) {
+    return turn < 0.0f ? -1.0f : (turn > 0.0f ? 1.0f : 0.0f);
+}
 
 constexpr float kHalfCellScale = 2.0f;      // 1 / (half a cell)
 constexpr float kSpeedUnit = 0.001953125f;  // 1/512
@@ -63,7 +62,7 @@ float TurnAngle(const UnitMotion* m, float elapsed, bool* final) {
         return m->startAngle + m->turn;
     }
     *final = false;
-    float sign = m->turn < 0.0f ? kMinusOne : (m->turn > 0.0f ? kOne : kZero);
+    float sign = TurnSign(m->turn);
     return sign * elapsed * m->turnRate + m->startAngle;
 }
 
@@ -303,7 +302,7 @@ MotionSample UnitMotion::SamplePath(float time, Vector2 start) {
             if (ratio < time) {
                 angle = startAngle + turn;
             } else {
-                float sign = turn < 0.0f ? kMinusOne : (turn > 0.0f ? kOne : kZero);
+                float sign = TurnSign(turn);
                 angle = sign * turnRate * time + startAngle;
             }
             FaceAngle(angle, &sample);

@@ -193,7 +193,6 @@ void AnimateSheet(FigureMeshDrawer* drawer) {
     if (!IsAnimatedSheet(drawer->mesh->meshType)) return;
     float time;
     TickTime(&time);
-    drawer->flags |= kAnimatedDrawerFlags;
     drawer->Animate(time);
 }
 

@@ -1,6 +1,7 @@
 // EffectSoundSeq's Start and Unpack: the sound sequence handed to the sound manager with a
 // chooser that picks the next name. See world_effect.h and docs/notes/effects.md.
 #include "world_effect.h"
+#include "world_effect_internal.h"
 
 #include "console.h"
 #include "random.h"
@@ -75,13 +76,5 @@ int EffectSoundSeq::Unpack(int update, DeltaReader& field) {
     std::vector<std::string>& others = names;
     others.resize(static_cast<std::size_t>(count));
     for (std::string& other : others) other = field.ReadString();
-    volume = field.ReadFloat16();
-    radius = field.ReadFloat16();
-    velocity = field.ReadFloat16x3();
-    field.ReadDelta(&noFade, 1);
-    moving = velocity.x == 0.0f && velocity.y == 0.0f && velocity.z == 0.0f ? 0 : 1;
-    if (!field.SnapshotConsumed()) return 0;
-    localPosition = position;
-    Start(update);
-    return 1;
+    return effect::UnpackSoundTail(*this, field, position, update);
 }

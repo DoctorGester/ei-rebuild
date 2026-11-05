@@ -16,12 +16,6 @@
 
 #include <vector>
 
-namespace {
-
-
-
-} // namespace
-
 bool WorldServer::Loot(Unit* unit, Player* player) {
     std::vector<Item*> items;
     std::vector<Item*> second;

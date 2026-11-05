@@ -248,7 +248,6 @@ void TextureManager::TrimCache() {
 namespace {
 
 constexpr const char* kClassName = "CTextureManager";
-constexpr const char* kFolder = "textures";
 
 // The flag CreateObject gives a new texture of `type` (TextureKind).
 TextureFlag CreateFlag(int type) {
@@ -322,7 +321,6 @@ EngineObject* TextureManager::CreateObject(int newType, int newId) {
 
 const char* TextureManager::ClassName() { return kClassName; }
 ClassId TextureManager::GetClassId() { return ClassId::TextureManager; }
-const char* TextureManager::GetFolderName() { return kFolder; }
 
 // --- The cache of released textures ------------------------------------------------------------------
 
@@ -332,10 +330,6 @@ const char* TextureManager::GetFolderName() { return kFolder; }
 // the terrain decals). A cached texture's DirectDraw
 // priority was lowered to 0 and raised to 100 when it is taken back; no holder has a DirectDraw surface,
 // so that is left out. See docs/notes/renderer.md (section 7).
-
-namespace {
-
-} // namespace
 
 // Returns 0 (the result is the priority call's, or a list node, on the cache path;
 // EngineObject::Release, its caller, returns it but no caller reads it).

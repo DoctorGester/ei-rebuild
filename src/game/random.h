@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lib/scales.h"
+
 #include <cstdint>
 
 // The game's random number generator: Bob Jenkins' ISAAC (RANDSIZL = 8), the reference
@@ -20,8 +22,10 @@ public:
     // Generates the next 256 results (reference isaac()).
     void Refill();
 
-    // Next() * (max - min) * 2^-32 + min, rounded as the original rounds it (random.cpp).
+    // Next() * (max - min) * 2^-32 + min, rounded as the original rounds it (RangeOfWord).
     float Range(float min, float max);
+    // Next() * limit * 2^-32: a draw in [0, limit) (ScaleWord).
+    float Below(float limit);
 
     // Once (while seeded is 0): seeds results (Seed), then the reference randinit(ctx, TRUE) and the first Refill.
     void Init();
@@ -43,8 +47,15 @@ private:
     void MixSeed();
 };
 
-// A random word as a float (the callers scale it by 2^-32 to a fraction).
+// A random word as a float.
 inline float WordToFloat(std::uint32_t word) { return static_cast<float>(word); }
+
+// A random word scaled to [0, limit): limit * word * 2^-32 with one rounding after the product (the scale is a power
+// of two, so the same value as `word * (limit * 2^-32)`).
+inline float ScaleWord(std::uint32_t word, float limit) { return (limit * WordToFloat(word)) * lib::kWordScale; }
+
+// ScaleWord to [min, max) from `min`: what Range gives for the word.
+inline float RangeOfWord(std::uint32_t word, float min, float max) { return ScaleWord(word, max - min) + min; }
 
 // The game's generator (random.cpp).
 extern IsaacRandom g_random;

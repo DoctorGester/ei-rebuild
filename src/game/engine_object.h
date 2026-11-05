@@ -117,7 +117,6 @@ public:
     virtual void ClearState();
     virtual bool RunTick();
     virtual const char* GetName();                     // "noname"
-    virtual const char* GetDescription();              // "nodesc"
     virtual void Load(ByteStream* stream);
     virtual void Save(ByteStream* stream);
     virtual const char* ClassName() = 0;

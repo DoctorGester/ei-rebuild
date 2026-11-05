@@ -295,13 +295,7 @@ void BriefingScreen::NextPhrase(bool skip) {
                 continue;
             }
             if (animation > 0) {
-                if (auto* serverUnit = g_serverWorld.FindUnit(unit->id)) {
-                    auto* controller = serverUnit->ServerController();
-                    controller->StopAction();
-                    controller->actionDone = SpeakerAnimationDone;
-                    if (FigureAnimation* played = unit->AsObject3D()->FindSkillAnimation(static_cast<SkillAnimation>(animation)))
-                        controller->PlayAnimation(played->name);
-                }
+                StartSpeakerAnimation(unit, static_cast<SkillAnimation>(animation));
             } else {
                 PlaySpeakerAnimation(unit, true, false);
             }

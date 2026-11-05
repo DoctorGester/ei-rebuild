@@ -304,15 +304,16 @@ void ServerSession::Tick(double dt) {
 // False for a dead connection, binding or player.
 bool ServerSession::IsConnecting(const Connection* connection) {
     if (!IsLive(connection)) return false;
-    for (auto& node : bindings) {
-        auto* binding = node.Get();
-        if (binding->connection.Get() != connection) continue;
-        if (!IsLive(binding)) return false;
-        auto* player = binding->player.Get();
-        if (!IsLive(player)) return false;
-        return player->state == PlayerStatus::Connecting;
-    }
-    return false;
+    auto* binding = BindingOf(connection);
+    if (!binding || !IsLive(binding)) return false;
+    auto* player = binding->player.Get();
+    return IsLive(player) && player->state == PlayerStatus::Connecting;
+}
+
+BindingMessage* ServerSession::BindingOf(const Connection* connection) {
+    for (auto& node : bindings)
+        if (node->connection.Get() == connection) return node.Get();
+    return nullptr;
 }
 
 // --- List --------------------------------------------------------------------------------------------

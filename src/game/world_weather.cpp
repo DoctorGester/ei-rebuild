@@ -20,13 +20,13 @@ namespace {
 // Ticks left before the weather may change again.
 int g_weatherDelay = /*007C2DFC*/ {};
 
-constexpr float kMapScale = 512.0f * 0x1p-32f;        // a random word to map coordinates (0..512)
-constexpr float kOffsetScale = 140.0f * 0x1p-32f;     // a random word to 0..140
+constexpr float kMapSize = 512.0f;                    // a random word to map coordinates (0..512)
+constexpr float kOffsetRange = 140.0f;                // a random word to 0..140
 constexpr float kOffsetCentre = 70.0f;
 constexpr float kMinDistance2 = 900.0f;
-constexpr float kBoltScale = 508.0f * 0x1p-32f;
-constexpr float kBoltSpread = 4.0f * 0x1p-32f;
-constexpr float kFive = 5.0f;
+constexpr float kBoltRange = 508.0f;
+constexpr float kBoltSpread = 4.0f;
+constexpr float kBoltGroundDepth = 5.0f;
 constexpr float kBoltHeight = 40.0f;
 
 constexpr int kStormy = 3;                  // climate: storms with lightning strikes
@@ -38,10 +38,7 @@ constexpr float kDayFactorRain = 0.9f;
 constexpr float kDayFactorDry = 1.0f;
 
 
-// A random word times `scale`.
-float RandomTimes(float scale) { return static_cast<float>(g_random.Next()) * scale; }
-
-float UniformOnMap() { return RandomTimes(kMapScale); }
+float UniformOnMap() { return g_random.Below(kMapSize); }
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
@@ -52,8 +49,8 @@ void TryLightningStrike(WorldServer* world) {
     if (kind != 3 && kind != 1) return;
     if (aiMap->InWaterAt(ground)) return;
 
-    float dx = RandomTimes(kOffsetScale) - kOffsetCentre;
-    float dy = RandomTimes(kOffsetScale) - kOffsetCentre;
+    float dx = g_random.Below(kOffsetRange) - kOffsetCentre;
+    float dy = g_random.Below(kOffsetRange) - kOffsetCentre;
     if (LengthSquared2D(dy, dx) <= kMinDistance2) return;   // random: never NaN
 
     Vector3 sky = {ground.x + dx, ground.y + dy, ground.z};
@@ -95,11 +92,11 @@ void UpdateRain(WorldServer* world) {
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.
 void ShowRainBolt(WorldServer* world) {
     world->lastRainBoltTick = static_cast<std::uint32_t>(world->tick);
-    float x = RandomTimes(kBoltScale) + 2.0f;
-    float y = RandomTimes(kBoltScale) + 2.0f;
-    float z = world->RawSurfaceHeightAt(x, y) - kFive;
-    float fromX = RandomTimes(kBoltSpread) + x - 2.0f;
-    float fromY = RandomTimes(kBoltSpread) + y - 2.0f;
+    float x = g_random.Below(kBoltRange) + 2.0f;
+    float y = g_random.Below(kBoltRange) + 2.0f;
+    float z = world->RawSurfaceHeightAt(x, y) - kBoltGroundDepth;
+    float fromX = g_random.Below(kBoltSpread) + x - 2.0f;
+    float fromY = g_random.Below(kBoltSpread) + y - 2.0f;
     float fromZ = z + kBoltHeight;
     Vector3 to{x, y, z};
     Vector3 from{fromX, fromY, fromZ};

@@ -22,7 +22,7 @@
 namespace {
 constexpr float kTenth = 0.1f;
 constexpr float kThreeQuarters = 0.75f;
-constexpr float kHalf = 0.5f;
+constexpr float kStandingHeight = 0.5f;
 
 PlayerServer* PlayerMessages(const Player* player) { return player->Server(); }
 
@@ -122,7 +122,7 @@ void Unit::Reset() {
     heightOffset = 0.0f;
     sizeClass = 3;
     unitRadius = kThreeQuarters;
-    standingHeight = kHalf;
+    standingHeight = kStandingHeight;
     relationsA = 0;
     relationsB = 0xFFFFFFFFu;
     side = 0;

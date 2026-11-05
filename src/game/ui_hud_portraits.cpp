@@ -54,10 +54,6 @@ constexpr float kMode1PictureTime = 4.0f;     // face mode 1
 constexpr float kLowMana = 0.25f;
 constexpr float kThin = 0.2f;
 constexpr float kFat = 0.8f;
-// The scales the original multiplies random words with (about 2^-32, -0.3 * 2^-32 and 2^-31).
-constexpr float kRandomScale32 = 2.3283064e-10f;
-constexpr float kRandomDelayScale = -6.9849196e-11f;
-constexpr float kRandomScale31 = 4.656613e-10f;
 constexpr float kWobbleRate = 0.33333334f;    // wobbles per second
 constexpr float kTwelfth = 0.083333336f;
 constexpr float kWobbleSpan = 0.2f;
@@ -80,7 +76,7 @@ void SetBar(UiMesh* object, float fraction, std::uint32_t v0, std::uint32_t v1) 
 }
 
 float RandomTilt(std::uint32_t r) {
-    return (r * kRandomScale31 - 1.0f) * kHudQuarterTurn * kTwelfth;
+    return (ScaleWord(r, 2.0f) - 1.0f) * kHudQuarterTurn * kTwelfth;
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -113,12 +109,7 @@ HudPortraits::HudPortraits(BattleScreen* newOwner) : owner(newOwner) {
 // The portraits read the portrait mode of the battle screen they belong to (the game reads the interface's active
 // screen: the battle screen while they get input).
 void HudPortraits::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: MouseMove(event); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { LeftDown(event); }, [&] { LeftUp(event); }, [&] { MouseMove(event); });
 }
 
 void HudPortraits::LeftDown(UiEvent& event) {
@@ -175,7 +166,7 @@ void HudPortraits::MouseMove(UiEvent& event) {
 }
 
 void HudPortraits::Wobble(int index, int kind) {
-    slots[index].wobbleTime = g_clientRandom.Next() * kRandomDelayScale;
+    slots[index].wobbleTime = g_clientRandom.Below(-0.3f);
     slots[index].wobbleKind = kind;
 }
 
@@ -270,15 +261,15 @@ void HudPortraits::Update() {
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind == 0 && dt > 0.0f) {
             std::uint32_t roll = g_clientRandom.Next();
-            if (dt * kWobbleRate > roll * kRandomScale32) {
-                slot.wobbleTime = g_clientRandom.Next() * kRandomDelayScale;
+            if (dt * kWobbleRate > ScaleWord(roll, 1.0f)) {
+                slot.wobbleTime = g_clientRandom.Below(-0.3f);
                 slot.wobbleKind = 3;
                 std::uint32_t r1 = g_clientRandom.Next();
                 std::uint32_t r2 = g_clientRandom.Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget = q2 * q1;
-                slot.wobbleSpeed = g_clientRandom.Next() * kRandomScale31 + 1.0f;
+                slot.wobbleSpeed = g_clientRandom.Below(2.0f) + 1.0f;
             }
         }
         if (slot.wobbleKind != 0) {

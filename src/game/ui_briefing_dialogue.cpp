@@ -54,7 +54,7 @@ constexpr int kThirdPlace = 2;
 
 constexpr float kSixth = 0.166666672f;
 constexpr float kTwelfth = 0.0833333358f;
-constexpr float kQuarter = 0.25f;
+constexpr float kSideViewFraction = 0.25f;   // the side views turn a quarter of pi
 constexpr float kSunk = -100.0f;
 
 // A speaker who is not in the picture is moved below the ground.
@@ -104,13 +104,7 @@ void BriefingScreen::PlaySpeakerAnimation(Unit* unit, bool talking, bool thirdPe
     } else {
         number = human ? kHumanListen[g_clientRandom.Next() & 3] : kListen;
     }
-    auto* serverUnit = g_serverWorld.FindUnit(unit->id);
-    if (!serverUnit) return;
-    auto* controller = serverUnit->ServerController();
-    controller->StopAction();
-    controller->actionDone = SpeakerAnimationDone;
-    if (FigureAnimation* animation = unit->AsObject3D()->FindSkillAnimation(number))
-        controller->PlayAnimation(animation->name);
+    StartSpeakerAnimation(unit, number);
 }
 
 // SpeakerAnimationDone, the speakers' controllers' actionDone. When
@@ -202,11 +196,11 @@ void BriefingScreen::ViewPreset(int preset) {
         break;
     case 6:
         Sink(person);
-        if (leader) view(leader, kPi * -kQuarter, 3.5f, 3.0f);
+        if (leader) view(leader, kPi * -kSideViewFraction, 3.5f, 3.0f);
         break;
     case 7:
         Sink(leader);
-        if (person) view(person, kPi * kQuarter, 3.5f, 3.0f);
+        if (person) view(person, kPi * kSideViewFraction, 3.5f, 3.0f);
         break;
     case 8:
         if (third) view(third, kPi * kTwelfth, 3.5f, 3.0f);
@@ -252,17 +246,8 @@ void BriefingScreen::HideSpeaker(std::string_view name, bool immediately, bool r
     if (entry != speakers.end()) {
         PlayerServer* server = g_serverWorld.GetPlayer(0)->Server();
         if (server) server->SendUnitControl(kEventLeaves, speaker->id);
-        UnitClientSpecific* model = speaker->ClientController();
-        model->blinks = 0;
-        model->BlinkOpen(true);
-        if (auto* serverUnit = g_serverWorld.FindUnit(speaker->id)) {
-            serverUnit->ShowHelmet(true);
-            g_serverWorld.SetUnitHeight(speaker->id, 0.0f);
-            auto* controller = serverUnit->ServerController();
-            controller->actionDone = nullptr;
-            controller->StopAction();
-            // (The person is then looked up among the party's first members; the result is not used.)
-        }
+        StopTalking(speaker);
+        ReleaseSpeaker(speaker);
         speakers.erase(entry);
     }
     if (speaker == third) {

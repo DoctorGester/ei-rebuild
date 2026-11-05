@@ -32,7 +32,6 @@
 void UpdateMotion(UnitServer*);
 namespace {
 
-constexpr std::uint32_t kFlagSeen8000 = 0x8000;       // Unit flags, cleared every update
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
 constexpr std::uint32_t kBoredChance = 1001;          // one in 1001
 
@@ -123,7 +122,6 @@ bool UnitServer::RunTick() {
         }
         voice.Step(this);
         brain.Think();
-        unit->flags &= ~kFlagSeen8000;
         PropagateHostility();
         if ((unit->flags & MapObjectFlag::Frozen) == 0 && keepHitDirection == 0 &&
             (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning ||

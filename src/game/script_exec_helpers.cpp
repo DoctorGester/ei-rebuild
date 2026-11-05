@@ -8,6 +8,7 @@
 #include "script_parse.h"
 #include "world.h"
 #include "world_effect.h"
+#include "lib/scales.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "platform/platform.h"
@@ -58,13 +59,9 @@ void Script::DeleteArea(int id) {
 
 void Script::CreatePointLight(ScriptArgs args) {
     const int id = lib::RoundEven(args.Float());
-    const float x = args.Float();
-    const float y = args.Float();
-    const float z = args.Float();
+    const Vector3 position = args.Point();
     const float radius = args.Float();
-    const float red = args.Float() * kScriptColourScale;
-    const float green = args.Float() * kScriptColourScale;
-    const float blue = args.Float() * kScriptColourScale;
+    const Vector3 colour = args.Colour();
     // The light with this id is replaced, else the first free slot is used (one with the id after
     // a free slot is not found).
     int i = 0;
@@ -81,8 +78,8 @@ void Script::CreatePointLight(ScriptArgs args) {
     slot->removeWhenDone = 0;
     slot->object = ScriptEffect<EffectPointLight>(g_serverWorld.timedObjectManager->CreateObjectAs<EffectPointLight>(0x4B, -1));
     EffectPointLight* object = slot->object.get();
-    object->color = {red, green, blue};
-    object->localPosition = {x, y, z};
+    object->color = colour;
+    object->localPosition = position;
     object->range = radius;
     g_serverWorld.AddTimedObject(object);
     slot->step = {};
@@ -91,9 +88,7 @@ void Script::CreatePointLight(ScriptArgs args) {
 
 void Script::MovePointLight(ScriptArgs args) {
     const int id = lib::RoundEven(args.Float());
-    const float x = args.Float();
-    const float y = args.Float();
-    const float z = args.Float();
+    const Vector3 position = args.Point();
     const int steps = lib::RoundEven(args.Float());
     const int removeWhenDone = lib::RoundEven(args.Float());
     int i = 0;
@@ -106,7 +101,7 @@ void Script::MovePointLight(ScriptArgs args) {
     light->moving = 1;
     light->removeWhenDone = removeWhenDone;
     light->steps = steps;
-    LightStep(light, {x, y, z}, light->object->localPosition);
+    LightStep(light, position, light->object->localPosition);
 }
 
 void Script::DeletePointLight(ScriptArgs args) {

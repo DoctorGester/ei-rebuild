@@ -25,7 +25,7 @@ constexpr float kHitPointEffect = 0.005f;
 constexpr float kDamageEffect = 0.003f;
 constexpr float kTwelve = 12.0f;
 constexpr float kPointTwo = 0.2f;
-constexpr float kTen = 10.0f;
+constexpr float kRateBaseOffset = 10.0f;
 constexpr float kRevived = 0.001f;
 constexpr float kMinHeal = 0.001f;
 constexpr float kNoCapacity = 1000000.0f;
@@ -290,7 +290,7 @@ float UnitStats::ManaCurve() {
 }
 
 float UnitStats::RateValue() {
-    float base = dexterity * kPointTwo + kTen;
+    float base = dexterity * kPointTwo + kRateBaseOffset;
     float level = LevelValueOf(this, kSkillRate);
     float arms = ArmsFactor();
     return (level * kPercentB + 1.0f) * arms * base;
@@ -411,7 +411,7 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     speed = speedBase * loadFactor;
     float arms = ArmsFactor();
     armsFactor = arms;
-    rateBase = keyed ? dexterity * kPointTwo + kTen : kUnkeyedRateBase;
+    rateBase = keyed ? dexterity * kPointTwo + kRateBaseOffset : kUnkeyedRateBase;
     float value = (LevelValueOf(this, kSkillRate) * kPercentB + 1.0f) * arms * rateBase;
     rate = value;
     float hasted = value + hasteDelta;

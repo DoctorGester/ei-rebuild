@@ -23,8 +23,8 @@ namespace {
 constexpr int kTornadoParticles = static_cast<int>(ParticleType::Tornado);
 constexpr float kSoundNear = 10.0f;
 constexpr float kSoundFar = 40.0f;
-// The speed per tick: a random word * 0.4 / 2^32 * 0.12 + 0.096.
-constexpr float kRandomScale = 0.4f * 0x1p-32f;
+// The speed per tick: a random word to [0, 0.4) * 0.12 + 0.096.
+constexpr float kRandomRange = 0.4f;
 constexpr float kSpeedRange = 0.12f;
 constexpr float kSpeedMin = 0.096f;
 constexpr int kStopEmittingTicks = 110;        // the source stops emitting from here on
@@ -65,7 +65,7 @@ void EffectTornado::Reset() {
 }
 
 void EffectTornado::Launch(const Vector3& from, const Vector3& to) {
-    float speed = (static_cast<float>(g_random.Next()) * kRandomScale) * kSpeedRange + kSpeedMin;
+    float speed = g_random.Below(kRandomRange) * kSpeedRange + kSpeedMin;
     Vector3 way{to.x - from.x, to.y - from.y, to.z - from.z};
     framesLeft = 0;
     float length = std::sqrt(LengthSquared(way));

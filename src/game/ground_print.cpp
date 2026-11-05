@@ -34,7 +34,7 @@ namespace {
 constexpr int kTextureKind = static_cast<int>(TextureKind::Effects);                  // the texture manager's kind of the prints' textures
 constexpr int kMaxSpreadTicks = 0x2D;
 constexpr int kNameCapacity = 0x100;             // Load's name buffer
-constexpr float kQuarter = 0.25f;
+constexpr float kAtlasTileSize = 0.25f;   // a tile of the 4x4 texture atlas, in texture units
 constexpr float kEighth = 0.125f;
 constexpr float kSixteenth = 0.0625f;
 constexpr float kAlphaRange = 255.0f;
@@ -256,9 +256,9 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     lit = g_clientWorld.terrain->EdgeFade(point);
     int index = static_cast<int>(tile & 0xFFFF);
     int high = static_cast<int>(tile >> 16);
-    uvOffset.x = (index & 1) * kQuarter + (high & 1) * 0.5f;
-    uvScale = {kQuarter, kQuarter};
-    uvOffset.y = (index >> 1) * kQuarter + (high >> 1) * 0.5f;
+    uvOffset.x = (index & 1) * kAtlasTileSize + (high & 1) * 0.5f;
+    uvScale = {kAtlasTileSize, kAtlasTileSize};
+    uvOffset.y = (index >> 1) * kAtlasTileSize + (high >> 1) * 0.5f;
     uvAngle = RandomQuarter() * kHalfPi;
     int steps = std::lround(kTwoPi * kAngleMilli);
     angle = ClientRandBelow(steps) * kMilli;

@@ -17,7 +17,6 @@
 
 namespace {
 
-constexpr float kOne = 1.0f;   // 1.0f, the w row of every vertex packet
 
 template <typename T>
 T Read(const char** cursor) {
@@ -53,7 +52,7 @@ float MorphComponent(const float* block, int k, Morph morph) {
 }
 
 void SetW(VertexPacket& packet) {
-    for (int k = 3; k >= 0; --k) packet.block[3][k] = kOne;
+    for (int k = 3; k >= 0; --k) packet.block[3][k] = 1.0f;
 }
 
 // One vertex packet from its FIG8 record at *cursor (3 blocks of 8 versions; moved

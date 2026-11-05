@@ -29,7 +29,7 @@ constexpr float kNearPoint = 0.09f;
 constexpr float kBlendGoal = 0.999f;     // the chase point: this much of the goal ...
 constexpr float kBlendSelf = 0.001f;     // ... and this much of the unit's own place
 constexpr float kCloseEnoughSq = 0.001f;
-constexpr float kFive = 5.0f;
+constexpr float kChasePatience = 5.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kArrived = 0.02f;
 constexpr float kMinClosing = 0.1f;   // the slowest closing speed
@@ -581,11 +581,11 @@ void UnitServer::ApproachTarget() {
         float close = (distance + 1.0f) * kPointOne;
         if (close * close > DistanceSquaredXY(goal, motion.goal)) {
             // Still heading close enough to it: only the patience (the path goal's z) changes.
-            motion.goal.z = unit->ScaledValue(distance) + kFive;
+            motion.goal.z = unit->ScaledValue(distance) + kChasePatience;
             return;
         }
     }
-    float patience = unit->ScaledValue(distance) + kFive;
+    float patience = unit->ScaledValue(distance) + kChasePatience;
     if (DistanceSquaredXY(unit->localPosition, goal) <= kPointOne) return;
     AIMap* aiMap = &g_serverWorld.aiMap;
     std::uint8_t savedFlag = aiMap->refreshUnits;

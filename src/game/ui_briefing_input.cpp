@@ -59,7 +59,6 @@ constexpr int kLabelOffsetX = 0x7D;
 constexpr int kLabelOffsetY = 0x14;
 
 constexpr const char* kNoZone = "none";
-constexpr const char* kZoneVariablePrefix = "z.";
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
@@ -182,10 +181,7 @@ void BriefingScreen::MouseMove(UiEvent& event) {
     if (text::CompareIgnoringCase(zone,
                         kNoZone) == 0)
         return;
-    std::string variable = kZoneVariablePrefix;
-    variable += zone;
-    float visited = PlayerZeroVariable(variable);
-    if (visited != 1.0f) g_cursor.SetShape(CursorShape::Move);
+    if (!ZoneVisited(zone)) g_cursor.SetShape(CursorShape::Move);
 }
 
 void BriefingScreen::LeftDouble(UiEvent& event) {
@@ -269,9 +265,7 @@ void OpenObjectives() {
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     if (!zone) return;
     std::vector<std::string> parts;
-    NamedFloatTable quests;
-    PlayerZeroVariables(kQuestPrefix, &quests);
-    for (auto& node : quests) {
+    for (auto& node : PlayerZeroVariables(kQuestPrefix)) {
         parts = text::Split(node.first, '.');
         if (parts.size() != kQuestNameParts || node.second != 1.0f) continue;
         MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);

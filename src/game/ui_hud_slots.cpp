@@ -159,12 +159,7 @@ HudWeaponBar::HudWeaponBar(BattleScreen* newOwner) : owner(newOwner) {
 }
 
 void HudWeaponBar::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event, count); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: HitRegion(event, count); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { PressRegion(event, count); }, [&] { LeftUp(event); }, [&] { HitRegion(event, count); });
 }
 
 void HudWeaponBar::LeftUp(UiEvent& event) {
@@ -333,12 +328,7 @@ HudQuickItems::HudQuickItems(BattleScreen* newOwner) : owner(newOwner) {
 void HudQuickItems::DrawSprites(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
 
 void HudQuickItems::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: MouseMove(event); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { LeftDown(event); }, [&] { LeftUp(event); }, [&] { MouseMove(event); });
 }
 
 void HudQuickItems::LeftDown(UiEvent& event) {
@@ -625,12 +615,7 @@ HudSpellColumn::HudSpellColumn(BattleScreen* newOwner) : owner(newOwner) {
 void HudSpellColumn::DrawSprites(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
 
 void HudSpellColumn::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event, count); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: HitRegion(event, count); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { PressRegion(event, count); }, [&] { LeftUp(event); }, [&] { HitRegion(event, count); });
 }
 
 void HudSpellColumn::LeftUp(UiEvent& event) {
@@ -790,12 +775,7 @@ HudActionColumn::HudActionColumn(BattleScreen* newOwner) : owner(newOwner) {
 void HudActionColumn::DrawSprites(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
 
 void HudActionColumn::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event, count); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: HitRegion(event, count); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { PressRegion(event, count); }, [&] { LeftUp(event); }, [&] { HitRegion(event, count); });
 }
 
 void HudActionColumn::LeftUp(UiEvent& event) {

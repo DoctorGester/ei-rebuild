@@ -38,7 +38,7 @@
 namespace {
 constexpr float kMinAmount = 0.0001f;
 constexpr int kNoArmourSlot = 7;
-constexpr std::uint32_t kNoMaterial = 0xFFFF;
+constexpr std::uint32_t kNoFootprintMaterial = 0xFFFF;
 constexpr std::uint8_t kNoSoundKind = 7;
 constexpr std::uint16_t kFirstPrototypeWeapon = 0x10; // UnitParams: kinds below, prototypes from here
 constexpr int kSoundPriority = 1000;
@@ -122,7 +122,7 @@ const itemdb::MaterialRecordHead* ArmourMaterial(const UnitClientSpecific* self,
         int slot = row[column];
         if (slot == kNoArmourSlot) continue;
         std::uint32_t material = self->armourIds[slot] & 0xFFFF;
-        if (material == kNoMaterial) continue;
+        if (material == kNoFootprintMaterial) continue;
         const auto* record = itemdb::MaterialAt(material);
         if (record) return record;
     }
@@ -523,14 +523,14 @@ bool Important(AckKind kind) {
     }
 }
 
+} // namespace
+
 void SetTalking(int unitId, bool talking) {
     EngineObject* serverUnit = g_serverWorld.FindUnit(unitId);
     if (!serverUnit) return;
     if (talking) serverUnit->flags |= MapObjectFlag::Blocked;
     else serverUnit->flags &= ~MapObjectFlag::Blocked;
 }
-
-} // namespace
 
 bool SpeechFilter::Replaced(const ClientSpeech* queued) const {
     return Replaces(kind, queued->kind);

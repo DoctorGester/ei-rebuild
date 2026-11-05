@@ -30,7 +30,7 @@
 namespace {
 
 constexpr std::uint32_t kBoundsValid = 1 | 2;           // Object3D::boundsFlags
-constexpr float kNearSquared = 1e9f;                    // parts farther from the object are not drawn
+constexpr float kPartRangeSquared = 1e9f;                    // parts farther from the object are not drawn
 constexpr float kLeastStrength = 0.5f;                  // as the map: units fading in cast from half
 constexpr int kSectorShift = 4;                         // 16-unit sectors
 constexpr std::uint32_t kHeightScanEvery = 32;          // frames between scans of the highest object
@@ -56,9 +56,9 @@ Matrix4 Placement(const Quaternion& rotation, const Vector3& position) {
 
 // The object's extra scale (Object3DClientSpecific::figureScale) as Draw applies it: only when not 1, 1, 1.
 bool Scaled(const Vector3& s) {
-    constexpr std::uint32_t kOne = 0x3F800000;
-    return !(std::bit_cast<std::uint32_t>(s.x) == kOne && std::bit_cast<std::uint32_t>(s.y) == kOne &&
-             std::bit_cast<std::uint32_t>(s.z) == kOne);
+    constexpr std::uint32_t kUnitScaleBits = 0x3F800000;
+    return !(std::bit_cast<std::uint32_t>(s.x) == kUnitScaleBits && std::bit_cast<std::uint32_t>(s.y) == kUnitScaleBits &&
+             std::bit_cast<std::uint32_t>(s.z) == kUnitScaleBits);
 }
 
 float LargestScale(const Vector3& s) {
@@ -126,7 +126,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
             for (int p = 0; p < std::ssize(group->parts); ++p) {
                 FigureMesh* part = group->parts[p];
                 if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
-                if (LengthSquared(part->localPosition) > kNearSquared) continue;
+                if (LengthSquared(part->localPosition) > kPartRangeSquared) continue;
                 if (render::CasterPartDrawn(part)) continue;
                 render::ShadowMesh mesh{};
                 const VertexPacket* positions = nullptr;

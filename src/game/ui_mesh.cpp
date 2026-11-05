@@ -319,7 +319,6 @@ void UiMesh::SetScale(float scale) {
 namespace {
 
 constexpr float kColourScale = 255.0f;
-constexpr float kOne = 1.0f;
 
 // The identity orientation (w 1, x y z 0): a sprite's first orientation, and what the draw hands DrawFigure
 // as its second argument (not read on that path).
@@ -365,7 +364,7 @@ Matrix4 UiMesh::PlacementMatrix() const {
     placement.m[12] = 0.0f;
     placement.m[13] = 0.0f;
     placement.m[14] = 0.0f;
-    placement.m[15] = kOne;
+    placement.m[15] = 1.0f;
     return placement;
 }
 

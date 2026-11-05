@@ -18,7 +18,6 @@ namespace {
 
 constexpr const char* kMaterialClassName = "CMaterial";
 constexpr const char* kManagerClassName = "CMaterialManager";
-constexpr const char* kManagerFolder = "materials";
 // The kinds Create enters, in its order, and their files.
 constexpr MaterialKindFile kMaterialKindFiles[8] = /*00743BF8*/ {
     {0x11, "leather.mat"}, {0x12, "wood.mat"}, {0x13, "metal.mat"}, {0x14, "cloth.mat"},
@@ -114,7 +113,6 @@ int MaterialManager::FillMaterial(Material* material, unsigned key) {
 
 const char* MaterialManager::ClassName() { return kManagerClassName; }
 ClassId MaterialManager::GetClassId() { return ClassId::MaterialManager; }
-const char* MaterialManager::GetFolderName() { return kManagerFolder; }
 
 std::uint32_t Material::GpuLitColour() const {
     const float alpha = colors.diffuse.w * 255.0f;

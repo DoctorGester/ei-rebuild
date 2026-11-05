@@ -1,9 +1,9 @@
 #pragma once
 
-// Text in UTF-8: every string inside the game is UTF-8. Text in the asset code page (EI_ASSET_CODEPAGE, 1251 by
-// default) is converted where it crosses into the game: the assets where they are read, the saves and the network
-// both ways (they stay in the asset code page, as the original's, so saves and vanilla peers read the same bytes).
-// A colour escape ("\007C" and three raw colour bytes, built by the game) is kept as it is both ways. See
+// Text in UTF-8: every string inside the game is UTF-8. Text in the asset code page (kAssetCodePage, 1251) is
+// converted where it crosses into the game: the assets where they are read, the saves and the network both ways
+// (they stay in the asset code page, as the original's, so saves and vanilla peers read the same bytes). A colour
+// escape ("\007C" and three raw colour bytes, built by the game) is kept as it is both ways. See
 // docs/notes/standalone.md section 4.
 
 #include <cstddef>
@@ -11,13 +11,10 @@
 
 #include <string_view>
 
-#ifndef EI_ASSET_CODEPAGE
-#define EI_ASSET_CODEPAGE 1251
-#endif
-
 namespace text {
 
-inline constexpr unsigned kAssetCodePage = EI_ASSET_CODEPAGE;
+// The code page of the assets', the saves' and the network's text: 1250, 1251 or 1252 (asset_text.cpp has their tables).
+inline constexpr unsigned kAssetCodePage = 1251;
 
 // `bytes`, text in the asset code page, as UTF-8.
 std::string FromAssetText(std::string_view bytes);

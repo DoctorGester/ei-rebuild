@@ -211,6 +211,8 @@ public:
 
     // Split between the targets when there are several.
     void GetDamage(DamageInfo* out);
+    // The spell's damage to the target when it is a unit.
+    void HitTarget();
 
     // When the spell may affect `unit` (no caster, or Spell::CanAffect). The attacker is the caster unless
     // flags bit 0 is set.
@@ -341,7 +343,6 @@ public:
     ~SpellManager() override = default;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    const char* GetFolderName() override;    // "spells"
 
     SpellContainer* NewContainer();
 

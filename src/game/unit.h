@@ -156,9 +156,7 @@ public:
     virtual int FiguresLoaded();
     // Plays the unit's animationEntry / secondEntry from frame `time` (client).
     virtual void RestartAnimation(float) {}
-    virtual void Unused15() {}                   // empty everywhere
     virtual PathOrder* Path() = 0;
-    virtual void Unused17() = 0;                 // empty everywhere
     virtual void PlayerChanged(void*) {}
     virtual void RefreshVitals(bool withHitPoints);
     // Either unit may be null.

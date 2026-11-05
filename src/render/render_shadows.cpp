@@ -578,12 +578,12 @@ gpu::Sampler ShadowCompareSampler() {
 const gpu::Texture& NoShadowTexture() { return g_dummy; }
 
 std::optional<Vector3> MapLightDirection(const Vector3& sun) {
-    const float horizontal = std::hypot(sun.x, sun.y);
+    const float horizontal = lib::Hypot(sun.x, sun.y);
     float down = std::fabs(sun.z);
     if (horizontal + down <= 1e-9f) return std::nullopt;
-    const float least = horizontal * std::tan(kLeastElevation);
+    const float least = horizontal * lib::Tan(kLeastElevation);
     if (down < least) down = least;
-    const float length = std::hypot(horizontal, down);
+    const float length = lib::Hypot(horizontal, down);
     return Vector3{sun.x / length, sun.y / length, -down / length};
 }
 

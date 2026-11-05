@@ -432,9 +432,6 @@ void UnitDatabase::CountSoundFiles(SoundManager* sounds) {
 // unit_stats.cpp, with the skill and school prices. Plain C++ float
 // maths (rule 7).
 
-namespace {
-} // namespace
-
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;
     attack = static_cast<int>(attack * g_logicSettings.attack[options::g_options.difficulty]);

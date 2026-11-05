@@ -294,7 +294,6 @@ public:
     ~TextureManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    const char* GetFolderName() override;    // "textures"
     // Rebirth-patched. Also deletes the composed textures and adds the archives "textures.res", "redress.res"
     // and "menus.res"; 1 only when every one opened.
     void Create() override;

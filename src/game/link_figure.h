@@ -22,8 +22,7 @@
 // The drawer of a figure mesh (FigureMesh::drawer). It is an engine object of class 0x36,
 // "CFigureClientSpecific": the client-specific manager's factory makes one
 // for type 0x45 and FigureManager::CreateObject gives it to every new figure. A real virtual
-// class. flags gets the bits
-// of the animated-mesh flag word when the mesh is animated.
+// class.
 struct FigureMeshDrawer : EngineObject {
     FigureMesh* mesh = nullptr;   // the mesh it draws
 

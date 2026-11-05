@@ -193,7 +193,7 @@ int ReadTerrainTypes(AIMap& map) {
 // of a few dozen cells per map were one unit off). Written as the exact fraction.
 constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
 
-constexpr float kQuarter = 0.25f;
+constexpr float kOuterCornerWeight = 0.25f;   // the weight of each of the two other corners beside a cell's corner
 
 // The heights in float maths, value by value.
 
@@ -226,10 +226,10 @@ SquareHeights LandHeights(SectorVertices layer, int vertex, float maxZ) {
     const float below = VertexHeight(layer[vertex + kVertexRow], maxZ);
     const float opposite = VertexHeight(layer[vertex + kVertexRow + 1], maxZ);
     const float first = VertexHeight(layer[vertex], maxZ);
-    const float sides = (below + next) * kQuarter;
+    const float sides = (below + next) * kOuterCornerWeight;
     SquareHeights heights;
     heights.cell[0] = first * 0.5f + sides;
-    const float diagonal = (first + opposite) * kQuarter;
+    const float diagonal = (first + opposite) * kOuterCornerWeight;
     heights.cell[1] = next * 0.5f + diagonal;
     heights.cell[2] = below * 0.5f + diagonal;
     heights.cell[3] = opposite * 0.5f + sides;
@@ -244,9 +244,9 @@ SquareHeights WaterDepths(SectorVertices layer, int vertex, float maxZ, const Sq
     const float below = VertexHeight(layer[vertex + kVertexRow], maxZ);
     const float opposite = VertexHeight(layer[vertex + kVertexRow + 1], maxZ);
     const float first = VertexHeight(layer[vertex], maxZ);
-    const float sides = (below + next) * kQuarter;
+    const float sides = (below + next) * kOuterCornerWeight;
     const float surface0 = first * 0.5f + sides;
-    const float diagonal = (first + opposite) * kQuarter;
+    const float diagonal = (first + opposite) * kOuterCornerWeight;
     const float surface1 = next * 0.5f + diagonal;
     const float surface2 = below * 0.5f + diagonal;
     const float surface3 = opposite * 0.5f + sides;

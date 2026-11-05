@@ -40,8 +40,6 @@ float g_noiseUp[400] = /*0079C838*/ {};
 
 constexpr float kBranchFrequencies[12] = /*00787C8C*/ {2.0f, 3.0f, 2.5f, 1.8f, 0.3f, 0.8f, 1.2f, 1.3f, 3.0f, 5.1f, 2.1f, 1.76f};
 
-constexpr float kNoiseScale = 4.656613e-10f;   // about 2 / 2^32
-constexpr float kRandomScale = 2.3283064e-10f;  // about 1 / 2^32
 // The bolt's side is across it and this axis (nearly straight up, so no bolt runs along it).
 constexpr Vector3 kSideAxis = {0.013f, -0.0666f, 1.0f};
 constexpr float kOffsetFactor = 0.05f;
@@ -53,7 +51,7 @@ void RandomizeKey(NoiseKey& key, float amplitude, bool amplitudeFirst) {
     float sum = 0.0f;
     for (int i = 0; i < 2; ++i) {
         key.index[i] = g_clientRandom.Next() & 0xF;
-        float v = WordToFloat(g_clientRandom.Next()) * kNoiseScale - 1.0f;
+        float v = g_clientRandom.Below(2.0f) - 1.0f;
         key.weight[i] = v;
         sum = v * v + sum;
     }
@@ -277,9 +275,7 @@ void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
             std::uint32_t r1 = g_clientRandom.Next();
             std::uint32_t r2 = g_clientRandom.Next();
             std::uint32_t r3 = g_clientRandom.Next();
-            Vector3 offset = {(reach - low) * WordToFloat(r3) * kRandomScale + low,
-                              (reach - low) * WordToFloat(r2) * kRandomScale + low,
-                              (reach - low) * WordToFloat(r1) * kRandomScale + low};
+            Vector3 offset = {RangeOfWord(r3, low, reach), RangeOfWord(r2, low, reach), RangeOfWord(r1, low, reach)};
             branches[i].Init(offset + from, offset + to);
         }
     }
@@ -374,22 +370,21 @@ void Lightning::Start(const Vector3& from, const Vector3& to, float newPower, bo
             Vector3 origin = along * from + rest * to;
             branches[i].Init(origin, to);
             FreshKeys(branches[i], time, newAmplitude);
-            branches[i].width = (g_clientRandom.Next() * 1.8626452e-10f + 0.7f) * strength * 0.5f;
+            branches[i].width = (g_clientRandom.Below(0.8f) + 0.7f) * strength * 0.5f;
         }
     } else {
         main.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
             float reach = std::sqrt(LengthSquared(from - to)) * 0.05f;
             float low = -reach;
-            const float scale = 2.3283064e-10f;
-            float offsetY = (reach - low) * g_clientRandom.Next() * scale + low;
-            float offsetX = (reach - low) * g_clientRandom.Next() * scale + low;
-            float offsetZ = (reach - low) * g_clientRandom.Next() * scale + low;
+            float offsetY = g_clientRandom.Range(low, reach);
+            float offsetX = g_clientRandom.Range(low, reach);
+            float offsetZ = g_clientRandom.Range(low, reach);
             float newAmplitude = KeyAmplitude(power);
             Vector3 offset = {offsetX, offsetY, offsetZ};
             branches[i].Init(offset + from, offset + to);
             FreshKeys(branches[i], time, newAmplitude);
-            branches[i].width = g_clientRandom.Next() * 1.8626452e-10f * 3.5f + 2.45f;   // 2.45 .. 3.25
+            branches[i].width = g_clientRandom.Below(0.8f) * 3.5f + 2.45f;   // 2.45 .. 3.25
         }
     }
 

@@ -238,7 +238,7 @@ constexpr std::int32_t kBlastAlpha[14] = /*0078A5DC*/ {255, 255, 207, 175, 128, 
 void BlastFlameTiming(ParticleSource& s, Particle& p) {
     float& flameSize = p.aux.x;
     float& framePosition = p.aux.y;
-    float jitter = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f;
+    float jitter = g_clientRandom.Below(0.4f) + 0.8f;
     flameSize = s.elements[0].fragment.radius * s.size * jitter * 0.6f;
     framePosition = static_cast<float>(p.frame);
 }
@@ -263,7 +263,7 @@ void SetupFireBlast(ParticleSource& s) {
         float length = std::sqrt(lengthSquared);
         Vector3 v = {x, y, z};
         Vector3 direction = v / length;
-        float speed = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f;
+        float speed = g_clientRandom.Below(0.4f) + 0.8f;
         const Vector3 velocity = direction * speed;
         auto& fragment = s.elements[i].fragment;
         fragment.velocity = velocity * 0.8f;
@@ -671,7 +671,7 @@ int EmitMushroom(ParticleSource& s, Particle& p, int) {
         e->mushroom.capHeight = 0.0f;
         e->mushroom.stem = s.origin;
     }
-    float spread = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.elements[0].mushroom.spread;
+    float spread = (g_clientRandom.Below(0.4f) + 0.8f) * s.elements[0].mushroom.spread;
     Vector3 d = {g_clientRandom.Range(-1.0f, 1.0f), g_clientRandom.Range(-1.0f, 1.0f), g_clientRandom.Range(0.1f, 1.0f)};
     d = 1.0f / std::sqrt(LengthSquared(d)) * d;
     d.z += 0.12f;

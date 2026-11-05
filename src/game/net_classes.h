@@ -476,6 +476,8 @@ public:
     void Ban(Connection* connection);
     void ReportDeparture(Connection* connection, int text);
     bool IsHostConnection(const Connection* connection);
+    // The first binding of `connection`, null without one.
+    BindingMessage* BindingOf(const Connection* connection);
     // Whether the player bound to `connection` is Connecting.
     bool IsConnecting(const Connection* connection);
 

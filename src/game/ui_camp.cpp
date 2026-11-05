@@ -625,7 +625,7 @@ void CampPages::UpdateAction() {
     // otherwise the constructor makes what the slots allow.
     auto construct = [&](Ref<Item>& made, Party* slots, PriceKind slotKind, PriceKind recordKind, PriceKind apartKind,
                          bool (*isFinished)(const Item*), bool (*isMaterial)(const Item*),
-                         bool (CampPages::*canMake)(), const char* apartText, const char* makeText, int topic) {
+                         auto canMake, const char* apartText, const char* makeText, int topic) {
         made.Reset();
         deconstructing = false;
         bool described = false;
@@ -647,7 +647,7 @@ void CampPages::UpdateAction() {
                     break;
                 }
                 if (isMaterial(item)) {
-                    actionEnabled = (this->*canMake)();
+                    actionEnabled = canMake();
                     helpPanel->Describe(made);
                     described = made.Get() != nullptr;
                     if (actionEnabled) action = makeText;
@@ -683,14 +683,14 @@ void CampPages::UpdateAction() {
         tradeWith(spellParts[1], PriceKind::SpellBuy, spellParts[2], PriceKind::SpellSell, "camp_spell_trade");
         break;
     case 3:
-        construct(spellMade, spellResults, PriceKind::SpellMake, PriceKind::SpellBuy, PriceKind::SpellApart, &IsSpellContainer, &IsSpell, &CampPages::CanMakeSpell,
+        construct(spellMade, spellResults, PriceKind::SpellMake, PriceKind::SpellBuy, PriceKind::SpellApart, &IsSpellContainer, &IsSpell, [this] { return CanMakeSpell(); },
                   "camp_spell_deconstr", "camp_spell_constr", 0x67);
         break;
     case 4:
         tradeWith(itemParts[1], PriceKind::ItemBuy, itemParts[2], PriceKind::ItemSell, "camp_item_trade");
         break;
     case 5:
-        construct(itemMade, itemResults, PriceKind::ItemMake, PriceKind::ItemBuy, PriceKind::ItemApart, &IsBuildable, &IsPart, &CampPages::CanMakeItem,
+        construct(itemMade, itemResults, PriceKind::ItemMake, PriceKind::ItemBuy, PriceKind::ItemApart, &IsBuildable, &IsPart, [this] { return CanMakeItem(); },
                   "camp_item_deconstr", "camp_item_constr", 0x66);
         break;
     case 6:

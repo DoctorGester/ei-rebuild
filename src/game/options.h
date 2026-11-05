@@ -3,6 +3,8 @@
 // The game options object (a global), its loader from the settings file (settings.h; called once by WinMain) and
 // the matching writer. See docs/notes/app.md, "Options".
 
+#include "lib/scales.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -34,10 +36,11 @@ struct LightOptions {
 };
 
 // What the settings used to hold and no longer do: the values the game always runs with.
-inline constexpr float kOver255 = 1.0f / 255.0f;   // (0x3B808081)
 inline constexpr float kObjectsLightingCoeff = 2.0f;   // the sun's and the lights' strength on units, buildings and trees
-inline constexpr LightOptions kHeroLight = {216.0f * kOver255, 216.0f * kOver255, 116.0f * kOver255, 5.0f};
-inline constexpr LightOptions kQuestLight = {120.0f * kOver255, 72.0f * kOver255, 120.0f * kOver255, 5.0f};
+inline constexpr LightOptions kHeroLight = {216.0f * lib::kByteScale, 216.0f * lib::kByteScale,
+                                            116.0f * lib::kByteScale, 5.0f};
+inline constexpr LightOptions kQuestLight = {120.0f * lib::kByteScale, 72.0f * lib::kByteScale,
+                                             120.0f * lib::kByteScale, 5.0f};
 inline constexpr float kFogNightStartDistance = 50.0f;
 inline constexpr float kFogDayStartDistance = 90.0f;
 inline constexpr int kLightingPeriod = 10000;        // ms before a stationary model in view is kept loaded again

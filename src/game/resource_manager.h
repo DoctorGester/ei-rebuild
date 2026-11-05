@@ -20,16 +20,10 @@ public:
     // Deletes (closing) every archive, then BaseManager::Destroy.
     void Destroy() override;
     bool AddArchive(const std::string& path) override;
-    bool RemoveArchive(const std::string& path) override;
-    bool RemoveAllArchives() override;
     void* GetFile(std::string_view name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;
     bool HasFile(std::string_view name) override;
     void FreeAllFiles() override;
-
-    // The manager's folder name ("textures", "spells", ...; the item,
-    // figure and material managers' too).
-    virtual const char* GetFolderName() = 0;
 
     // FigureManager's AddArchive virtual with memory-mapped archives.
     bool AddMmioArchive(const std::string& path);

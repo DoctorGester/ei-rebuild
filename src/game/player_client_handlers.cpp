@@ -29,8 +29,6 @@
 namespace {
 
 constexpr int kGameStateBetweenZones = 3;
-constexpr std::uint32_t kUnitFlagHidden = 0x10;
-constexpr std::uint32_t kUnitFlagLit = 0x100;
 constexpr float kSpecialZoneDistance = 23.0f;
 
 // The zone whose camera placement keeps a fixed view ("gz20g").
@@ -181,10 +179,10 @@ bool PlayerClient::OnUnitControl() {
         return true;
     case 1:
     case 2: {
-        if (!unit || (unit->flags & kUnitFlagHidden)) return true;
-        const bool lit = (unit->flags & kUnitFlagLit) != 0;
+        if (!unit || (unit->flags & MapObjectFlag::Selected)) return true;
+        const bool lit = (unit->flags & MapObjectFlag::BoxMarked) != 0;
         if (lit == (kind == 1)) return true;
-        unit->flags ^= kUnitFlagLit;
+        unit->flags ^= MapObjectFlag::BoxMarked;
         unit->AsObject3D()->attached->SetLit(kind == 1);
         return true;
     }
