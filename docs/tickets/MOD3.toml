@@ -6,3 +6,5 @@ model = "opus"
 depends = ["MOD1"]
 note = "User 2026-11-05: changing the mod from the menu without a restart would be great, unsure how hard with our global state. Step 1 (read-only survey, report first): what the game loads once at start and keeps (managers and databases in globals, the resource archives held open, texts, the interface's loaded menus, sounds, fonts, the renderer's texture caches, registry values) and what a return to the main menu already reloads. Then pick: (a) a full in-process teardown and re-init of the game's subsystems (the same path as start, run again: find every global that must reset, add a check that start-up twice gives the same state), or (b) a clean self-restart (the exe relaunches itself with the new mod and the window kept or reopened fast) if (a) is too wide. Report the inventory and the recommendation before the big change."
 order = 1198
+status = "running"
+started = "2026-11-05"
