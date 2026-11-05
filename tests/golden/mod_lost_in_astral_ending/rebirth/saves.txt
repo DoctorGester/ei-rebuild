@@ -1,0 +1,8 @@
+LostInAstral/current/cz4j.sav 57206ca7ac94f31d
+LostInAstral/current/gz1g.sav f801ee7ff9fae20f
+LostInAstral/current/gz36j.sav 2ff762733e7d661f
+LostInAstral/savea/cz4j.sav 57206ca7ac94f31d
+LostInAstral/savea/gz1g.sav f801ee7ff9fae20f
+LostInAstral/savea/info.sav c390f1c02bb6c1c9
+LostInAstral/savea/mission.sav 996c53e9257be736
+LostInAstral/savea/scenario.sav b6a446f2c437d739

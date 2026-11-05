@@ -2,12 +2,27 @@
   "scenario": "mod_lost_in_astral_jigran",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "48ac7942a",
+  "commit": "91a1238f4",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "New scenarios: every Lost in Astral campaign zone entered (MOD2).",
+  "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
   "source": "image",
-  "saves": "21 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "21 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 17 of 18 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: party and items, script; max unit move 5.25 (obj44397031, record 5)",
+    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
+    "    random (random) isaac.count: 69 in the old golden, 71 in the new run (d 2)",
+    "  outcomes: CHANGED party and items, script; same: zone, deaths, spawns, money, quest variables, game result",
+    "    party and items: player0 objects: 9 in the old golden, 12 in the new run, from record 4 (+3 more)",
+    "    script: script #part differs (hashes only), from record 4 (+1 more)",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 16 records, from 1; max |d| 227 at random isaac.count, record 16: 13 -> 240",
+    "  units: 881 of 947 differ",
+    "    pos: 78 units, 12 records, from 2; moved 5.25 at obj44397031 80 unhufe \"\", record 5",
+    "    #ai: 120 units, 14 records, from 2; hash only (no numbers kept)",
+    "    #unit: 822 units, 16 records, from 2; hash only (no numbers kept)",
+    "... 86 more lines"
+  ]
 }

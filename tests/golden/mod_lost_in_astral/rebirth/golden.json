@@ -2,12 +2,26 @@
   "scenario": "mod_lost_in_astral",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "e8e0b7f94",
+  "commit": "91a1238f4",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD1: new scenario mod_lost_in_astral (Lost in Astral's main menu and new game)",
+  "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 1 of 2 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes the same; no unit position differs",
+    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
+    "    random (random) isaac.count: 69 in the old golden, 71 in the new run (d 2)",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 1 record, from 1; max |d| 2 at random isaac.count, record 1: 69 -> 71",
+    "save LostInAstral/savea/mission.sav: 1 fields in 1 records differ: player 1",
+    "  player: 1 fields in 1 records; first player0.party moneyKey: 0x6CF42854 in the old golden, 0xB3741663 in the new run",
+    "save LostInAstral/savea/scenario.sav: 137 fields in 19 records differ: template 130, partyManager 5, record 2",
+    "  template: 130 fields in 15 records; first template.class1 flag0D: 0 in the old golden, 1 in the new run (d 1)",
+    "  partyManager: 5 fields in 2 records; first partyManager template4: 5 in the old golden, (none) in the new run; largest numeric d 1 at partyManager record0: 6 -> 5",
+    "  record: 2 fields in 2 records; first record0 identity: 6 in the old golden, 5 in the new run (d 1)"
+  ]
 }

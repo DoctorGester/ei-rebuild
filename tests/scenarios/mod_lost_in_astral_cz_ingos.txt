@@ -2,7 +2,8 @@
 # "Lost in Astral played (MOD2)"), from the story's own state: the party Gipat (the hero Hero3 and the mercenary
 # merc2g, member "merc2"). Each base's briefing is read to the end (talk) and the base leaves for the zone its script
 # names (gz21k three times, bz21k, then cz4k for cz1j and cz1j for gz31j); the briefing's variable is checked there.
-# The digest is recorded at the first base and the last two arrivals. On the vanilla data only the menu runs.
+# One digest record, on arrival in bz21k (a small zone; the others are checked by their variables). On the vanilla
+# data only the menu runs.
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu
@@ -24,7 +25,6 @@ rebirth zone cz0k 0
 rebirth waitzone 25 cz0k
 rebirth check IsAlive(GetObjectByName("merc2"))
 rebirth waitdialogue 30 3
-rebirth digest
 rebirth talk 40
 rebirth waitzone 40 gz21k
 rebirth check IsEqual(GSGetVar(0,"b.merc2.brief_200"),2)
@@ -61,6 +61,5 @@ rebirth talk 40
 rebirth waitzone 40 gz31j
 rebirth check IsEqual(GSGetVar(0,"b.Baron.brief_300"),2)
 rebirth check IsAlive(GetObjectByName("merc2"))
-rebirth digest
 report
 quit

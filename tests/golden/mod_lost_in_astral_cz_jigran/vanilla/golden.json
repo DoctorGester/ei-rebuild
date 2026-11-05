@@ -1,0 +1,12 @@
+{
+  "scenario": "mod_lost_in_astral_cz_jigran",
+  "install": "vanilla",
+  "recorded": "2026-11-05",
+  "commit": "91a1238f4",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MOD2a: new Lost in Astral scenarios (cut-scene bases, later quests, ending, shops); on the vanilla data only the menu runs.",
+  "source": "image"
+}

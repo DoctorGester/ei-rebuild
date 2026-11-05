@@ -105,7 +105,7 @@ each question, so a plugin's change is on exactly while the chosen mod names it.
   Checked by `mod_lost_in_astral_shops` (the camp of classes 1 and 5, a quick save, its load, the camp again, a
   second quick save: the saves golden holds the four templates and the stock made after the load) and by every
   Lost in Astral scenario's autosave (four templates).
-- IronMod's `fixfslpatei.plg`: not read yet.
+- IronMod's `fixfslpatei.plg`: not read yet (MOD1b).
 
 ## Checks
 
@@ -288,8 +288,8 @@ What the expansion's data asks of the game that the base game's never did, and h
   back to 0) but the hero stops about 2 units short (gz12g) or does not move (gz14g), where gz13g's and bz1r's open;
   the scenarios switch them by `SwitchLeverState` (MOD2b).
 - The ending (`mod_lost_in_astral_ending`): gz36j (zonefinal.mob) from cz4j, its four levers of q22j, the last enemy
-  (object 666666, which the zone heals until the step q22j.5 is done) killed, and `LeaveToZone(0, "EndofGame", ...)`: the
-  campaign's end mode, the credits screen ("titles").
+  (object 666666, which the zone heals until the step q22j.5 is done) killed, and `LeaveToZone(0, "EndofGame", ...)`:
+  the campaign's end mode, the credits screen ("titles").
 - Leftovers of the game's map.txt in the mod's, which no exit or script reaches: gz17g names the game's zone17.mob, one
   of whose units carries `necrolabkey00`, an item the mod's database lacks (Rebirth's FixCreateItem gives no item, now
   logged as Rebirth's addon.log did, `GiveItem: can't find prototype ...`; the unit record adds no carried item for

@@ -1,0 +1,14 @@
+LostInAstral/current/bz21k.sav bc754853f1c9ef1b
+LostInAstral/current/cz0k.sav f099496a82abe2e0
+LostInAstral/current/cz1j.sav ce2b3d069bdf484e
+LostInAstral/current/cz1k.sav 511c0870dde22468
+LostInAstral/current/cz2k.sav e2613e16c5eadac2
+LostInAstral/current/cz3k.sav 4f05ae012ad7b95a
+LostInAstral/current/cz4k.sav f81aa1a4c00e35f8
+LostInAstral/current/gz1g.sav bc5c79d48025f30c
+LostInAstral/current/gz21k.sav 28c3d1a336afe565
+LostInAstral/savea/cz1j.sav ce2b3d069bdf484e
+LostInAstral/savea/gz1g.sav bc5c79d48025f30c
+LostInAstral/savea/info.sav 9bb33cdeec53e404
+LostInAstral/savea/mission.sav 5b3b33771e12b32b
+LostInAstral/savea/scenario.sav 89638c35af054093
