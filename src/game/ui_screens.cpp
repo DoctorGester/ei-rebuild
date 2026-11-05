@@ -18,12 +18,12 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/rounding.h"
 #include "game_singletons.h"
 #include "platform/platform.h"
 
 #include <algorithm>
 #include <bit>
-#include <cmath>
 #include <string>
 
 namespace {
@@ -320,7 +320,7 @@ void ForwardingStrip::LeftDown(Point point) {
 // --- Heroes' skills ---------------------------------------------------------------------------
 
 int HeroSchoolSkill(UnitStats* stats, SpellSchool school) {
-    return std::lround(stats->SpellSchoolSkill(school));
+    return lib::RoundEven(stats->SpellSchoolSkill(school));
 }
 
 int HeroManaUnits(UnitStats* stats) {

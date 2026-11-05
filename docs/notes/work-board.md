@@ -64,6 +64,9 @@ build/live/scheduler.lock, leaves after 120 s with nothing queued; log in build/
   most, never cached for life (a cached harness key once served an old harness's runs).
 - A batch whose submitter is gone is cancelled; a new scheduler requeues runs a dead one left running. `--golden`,
   `--widescreen` and `--record` comparisons run in the submitting process after the batch.
+- "Submitter alive" is the pid and a process creation time no later than the batch's submitted time: Windows reuses
+  pids, and a later `work.py test` given a finished batch's pid once held that batch's run folders against its own run
+  forever (R52c1).
 
 ## Server
 

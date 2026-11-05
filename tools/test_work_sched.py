@@ -456,6 +456,20 @@ class SchedTest(unittest.TestCase):
         self.drive(s)
         self.assertEqual(self.runs(b)['x']['state'], 'finished')
 
+    def test_reused_submitter_pid_lets_the_folder_go(self):
+        # R52c1: batch #7938's work.py test ended and Windows gave its pid to the next work.py test of the same
+        # scenario, whose batch then waited on its own run folder forever. A process created after the batch was
+        # submitted is not its submitter.
+        before = '2000-01-01T00:00:00+00:00'
+        self.assertTrue(work_sched.pid_alive(os.getpid(), work.now()))
+        self.assertFalse(work_sched.pid_alive(os.getpid(), before))
+        fake = Fake(default=0.1)
+        a = self.submit(['x'], submitter=os.getpid())
+        self.db.execute('UPDATE batch SET submitted = ? WHERE id = ?', (before, a))   # this process came later
+        b = self.submit(['x'])
+        self.drive(self.sched(fake, count=4))
+        self.assertEqual(self.runs(b)['x']['state'], 'finished')
+
     def test_batches_with_crossed_folders_do_not_wait_for_each_other(self):
         fake = Fake(default=0.1)
         a = self.submit(['x', 'y'])
