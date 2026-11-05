@@ -68,8 +68,9 @@ static bool ClaimGameWindow() {
         g_presentMode = gpu::SetPresentMode(g_wantedMode);
         static const char* const kModes[] = {"waiting for the vertical blank", "no vertical blank wait (tearing allowed)",
                                              "no vertical blank wait (mailbox)"};
-        ei::Log("render: presenting on the game window through the %s swap chain, %s", gpu::DriverName(),
-                kModes[static_cast<int>(g_presentMode)]);
+        ei::Log("render: presenting on the game window through the %s swap chain, %s (asked for mode %d, got %d)",
+                gpu::DriverName(), kModes[static_cast<int>(g_presentMode)], static_cast<int>(g_wantedMode),
+                static_cast<int>(g_presentMode));
     }
     return true;
 }
