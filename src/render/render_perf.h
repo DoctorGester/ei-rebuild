@@ -34,7 +34,8 @@ void EndDraws();
 // The draws made so far in the frame, every pass's (render.cpp, from FrameStats; tools/perf_check has its own).
 std::uint64_t FrameDrawCount();
 
-// The renderer's CPU time: the end of the frame's draws up to the present (Submit) and the shadow map (Shadow).
+// The renderer's CPU time: the end of the frame's draws up to the present (Submit) and the shadow maps (Shadow: their
+// fitting and passes in Submit, and the world draw's walk of the casters outside the view before it).
 enum class Cpu : int { Submit, Shadow, Count };
 // `ms` of `part`'s time in this frame (a render::Timer's). Nothing when off.
 void AddCpu(Cpu part, double ms);

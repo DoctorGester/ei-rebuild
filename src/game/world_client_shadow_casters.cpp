@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -83,8 +84,8 @@ float TopOf(const Object3D* object, const Vector3& scale) {
 }
 
 // Part `name`'s element ranges in the figure's arrays (LinkMesh::ranges); null when there is none.
-const LinkPartRanges* RangesOf(const LinkMesh* figure, const char* name) {
-    auto node = figure->ranges.find(std::string(name));
+const LinkPartRanges* RangesOf(const LinkMesh* figure, std::string_view name) {
+    auto node = figure->ranges.find(name);
     return node == figure->ranges.end() ? nullptr : &node->second;
 }
 
