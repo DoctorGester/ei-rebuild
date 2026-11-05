@@ -239,22 +239,19 @@ void WorldServer::EnsureZone(std::string_view map, std::string_view mob) {
 
 // --- Files -------------------------------------------------------------------------------------------
 
-// The maps folder and its files (MapsFolder, MapPath, MapFileExists, WriteMapFile), with Rebirth's Maps in
-// the standalone image (mod_folders.h). See world_map_files.h and docs/notes/world.md.
+// The maps folder and its files (MapsFolder, MapPath, MapFileExists), with Rebirth's Maps when a mod is played
+// (mod_folders.h). See world_map_files.h and docs/notes/world.md.
 
 namespace {
 
 constexpr const char* kMapsFolderName = "maps\\";
 
-// Rebirth's Maps (modfolders::SelectMaps): addon names the file before each maps-folder use.
-bool ModMaps() { return ei::rebirth::Enabled(ei::rebirth::Patch::Maps); }
-
 } // namespace
 
 std::string MapsFolder() {
-    // Rebirth's Maps: the folder the last site selected.
-    std::string folder(ModMaps() ? modfolders::MapsRoot(g_dataFolder) : g_dataFolder);
-    return folder + kMapsFolderName;
+    // Rebirth's Maps (modfolders::SelectMaps names the file before each maps-folder use): the folder the last site
+    // selected.
+    return modfolders::MapsRoot(g_dataFolder) + kMapsFolderName;
 }
 
 std::string MapPath(std::string_view name) {
@@ -270,10 +267,3 @@ bool MapFileExists(const char* name) {
     return platform::PathExists(MapsFolder() + name);
 }
 
-void WriteMapFile(const char* name, GameBuffer* buffer) {
-    FileStream file;
-    modfolders::SelectMaps(name, modfolders::MapsSite::WriteFile);
-    file.Open(MapsFolder() + name, platform::FileMode::Create);
-    file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->Size()));
-    file.Close();
-}

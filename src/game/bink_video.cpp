@@ -22,18 +22,15 @@
 #include "options.h"
 #include "world.h"
 
-
 // Set while a .mob file loads (WorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
 std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
 
 namespace {
 
-// A movie opened with its sound when the sound option is on; with Rebirth's MoviesPatch the mod's Movies\ copy
-// when there is one.
+// A movie opened with its sound when the sound option is on; the mod's Movies\ copy when there is one (Rebirth's
+// MoviesPatch).
 video::Movie* OpenMovie(const char* name) {
-    const bool sound = options::g_options.audio != 0;
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::MoviesPatch)) return video::Open(modfolders::MovieFile(name).c_str(), sound);
-    return video::Open(name, sound);
+    return video::Open(modfolders::MovieFile(name).c_str(), options::g_options.audio != 0);
 }
 
 // The loading screen's movie: where it is drawn on the screen and the movie (null until it is opened).

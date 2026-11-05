@@ -10,7 +10,6 @@
 #include "net_coder.h"
 #include "lib/crt.h"
 
-#include "lib/rebirth.h"
 #include "../platform/log.h"
 #include "platform/platform.h"
 

@@ -768,7 +768,7 @@ class SchedTest(unittest.TestCase):
     def test_standalone(self):
         """--standalone (the default since S21): every scenario, install "standalone", the image on the vanilla
         install's data, no game.exe (S18k1), always our renderer (never the display mode); "standalone-rebirth" on
-        Rebirth's data, its flags the folder's profile (no EI_REBIRTH of run_all's)."""
+        Rebirth's data."""
         seen = []
 
         def fake_launch(scenario, out, data, build, env=None):
@@ -789,7 +789,7 @@ class SchedTest(unittest.TestCase):
             with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
                 run_all.parse_args([gone, '1'] if gone == '--verified-candidates' else [gone])
         # --rebirth without names: the smoke set, config/rebirth_scenarios.csv's marks and any scenario with a step for
-        # one install (or rebirthflags, addonpath, widescreen)
+        # one install (or plugin, widescreen)
         os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
         with open(os.path.join(self.tmp, 'config', 'rebirth_scenarios.csv'), 'w') as f:
             f.write('scenario,rebirth,why\nwide,1,test\n')
@@ -819,7 +819,6 @@ class SchedTest(unittest.TestCase):
         self.assertNotIn('EI_RENDER', seen[0][1])
         self.assertEqual(notes, ['ei-rebuild: the game returned 0'])
         self.assertEqual(seen[1][0], 'rebirth')
-        self.assertNotIn('EI_REBIRTH', seen[1][1])
         self.assertEqual(run_all.GOLDEN_INSTALL['standalone-rebirth'], 'rebirth')
 
     def test_install_dirs(self):

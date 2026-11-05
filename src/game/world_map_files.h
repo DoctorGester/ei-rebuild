@@ -5,9 +5,6 @@
 #include <string>
 #include <string_view>
 
-
-class GameBuffer;
-
 // The maps folder: the game's data folder + "maps\".
 std::string MapsFolder();
 // The full path of the map file `name`: `name` as it is
@@ -15,7 +12,3 @@ std::string MapsFolder();
 std::string MapPath(std::string_view name);
 // Whether the maps folder has a file (or folder) `name`.
 bool MapFileExists(const char* name);
-// Called by the client's file chunk handler. Writes what `buffer` holds (from its start to the highest
-// position written, which the cursor may raise first) to the file `name` of the maps folder, created or cut
-// to length. A file that does not open is written to all the same (the file's own error handling).
-void WriteMapFile(const char* name, GameBuffer* buffer);

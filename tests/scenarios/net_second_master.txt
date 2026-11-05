@@ -6,7 +6,7 @@
 # itself to 28124 (0041AA10) with the copy to 28123 (0xDEADBEEF, the players' names). Nothing listens there
 # in a suite run (the packets go nowhere); build\S19c\listener.py stands in for both masters to check them.
 timeout 120
-rebirthflags EiPluginNewMaster SecondMaster=127.0.0.1:28123
+plugin SecondMaster=127.0.0.1:28123
 reject Script error
 waitmenu
 masterhost 127.0.0.1:28124

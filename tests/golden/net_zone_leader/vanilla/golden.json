@@ -1,12 +1,27 @@
 {
   "scenario": "net_zone_leader",
   "install": "vanilla",
-  "recorded": "2026-11-04",
-  "commit": "fa7cc20b6",
+  "recorded": "2026-11-05",
+  "commit": "c4a4ce818",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "new scenarios net_zone_vars (z6q3's GSSetVarMax) and net_zone_leader (z7q3's GetLeader), first goldens (H43g2)",
-  "source": "image"
+  "reason": "C162: EI_Plugin's Briefings always on: a network client also queues the briefing completion script (checked: with it off the runs match the old goldens)",
+  "source": "image",
+  "change": [
+    "digest: 35 of 93 records differ, first at record 43 (world update 880, tick 562, frame 175, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
+    "  first difference at record 43 (world update 880, tick 562, frame 175, zone bz1mpg): 2 fields",
+    "    script (script) #files: 982697DF in the old golden, 012FC665 in the new run",
+    "    script (script) #run: E567FB3F in the old golden, 6E6E9815 in the new run",
+    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
+    "    script: script #files differs (hashes only), from record 43 (+72 more)",
+    "  script: 1 of 1 differ",
+    "    files: 1 script, 35 records, from 43; hash only (no numbers kept)",
+    "    run: 1 script, 35 records, from 43; hash only (no numbers kept)",
+    "    inst: 1 script, 1 record, from 77; hash only (no numbers kept)",
+    "    instances: 1 script, 1 record, from 77; hash only (no numbers kept)",
+    "    ... 1 more (other kinds of field)",
+    "... 2 more lines"
+  ]
 }

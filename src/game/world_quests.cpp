@@ -27,8 +27,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include "lib/rebirth.h"
-
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -373,10 +371,10 @@ void WorldServer::CompleteBriefing(int playerId, std::string_view name) {
     if (IsMultiplayerClient()) {
         std::vector<std::string> parts = text::Split(name, '.');
         if (parts.size() == 3) g_gameFlow.RequestBriefing(parts[2]);
-        // EI_Plugin's Briefings (the array's destruction moved to the end): the client queues the
+        // EI_Plugin's Briefings (always on; the array's destruction moved to the end): the client queues the
         // completion script as well. The plugin formats it with the caller's EBX as the name; the client's
         // only caller holds the name there.
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
+        QueueBriefingScript(playerId, name);
         return;
     }
     std::vector<std::string> parts = text::Split(name, '.');

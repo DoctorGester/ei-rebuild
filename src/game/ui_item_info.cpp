@@ -14,7 +14,6 @@
 #include "unit_db.h"
 
 #include "lib/maths.h"
-#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include "platform/platform.h"
@@ -103,7 +102,7 @@ public:
     // The lists of 7 damage values: "<label> <threshold>" and, when some kinds lie below it,
     // "<infoitem_24> <those kinds>".
     void DamageLines(const float* values, int label) {
-        const DamageLists lists = ItemDamageLists(values, false);
+        const DamageLists lists = ItemDamageLists(values);
         Joined(label, lists.threshold);
         if (!lists.below.empty()) Joined(24, lists.below);
     }
@@ -285,16 +284,12 @@ void WeaponLines(Writer& w, const ItemHoverInfo& info) {
 
 std::uint32_t ItemCacheTime() { return platform::FrameClock(); }
 
-DamageLists ItemDamageLists(const float* values, bool integer) {
+DamageLists ItemDamageLists(const float* values) {
     TextManager* texts = g_clientWorld.texts.get();
     DamageLists lists;
     std::string key, text;
     float threshold = values[6];
-    // EI_Plugin's Fixes: the jump over the integer format is always taken.
-    if (integer && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes))
-        lists.threshold = std::format("{}", static_cast<int>(threshold));
-    else
-        lists.threshold = str::Format("%.1f", threshold);
+    lists.threshold = str::Format("%.1f", threshold);
     for (int i = 0; i < 6; ++i) {
         std::string* list;
         if (values[i] > threshold)

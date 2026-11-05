@@ -20,7 +20,6 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
-#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/str.h"
@@ -513,8 +512,7 @@ bool NeedsReload(bool composed, Texture* texture, const std::string& name, bool 
 
 void UnitClientSpecific::RefreshEquipment() {
     std::string name;
-    // EI_Plugin's Fixes: the test for a hero is gone, every unit is refreshed.
-    if (unit->MapType() != MapObjectType::Hero && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) return;
+    // Every unit is refreshed, not only a hero (EI_Plugin's Fixes, always on).
     auto* half = unit->AsObject3D()->ClientSpecific();
     Texture* detailed = SkinTexture(half->partSets[0].get());
     if (NeedsReload(ComposeSkin(1, &name), detailed, name, false)) Reload(detailed, name);

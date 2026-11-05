@@ -51,8 +51,10 @@ compare function pointers for identity.
    generators").
 7. **Iteration order is behaviour** where it feeds game logic or a save: `lib::HashMap` / `lib::IntroSort` keep the
    original's orders; don't swap a container without checking who walks it.
-8. **Rebirth's changes** are our code's own (`docs/notes/rebirth.md`); the few left behind flags are
-   `ei::rebirth::Enabled(Patch::<name>)` (`src/lib/rebirth.h`). With a flag off the code behaves as the original.
+8. **Rebirth's changes** are our code's own (`docs/notes/rebirth.md`), with no flag: a GOG and a Rebirth install run
+   the same code. The mod-folder patches apply whenever a mod is played (`modfolders::Active`); EI_Plugin's player
+   count and pause mode are values (`src/lib/rebirth.h`), 0 the original's; DisableExitOnCrashReport is the one flag
+   left (on in a Rebirth install).
 9. **Fix the original's bugs** where they are found: crashes, undefined behaviour (null or out-of-range access, NaN
    loops, unchecked divisions, uninitialised fields, addresses used as values), leaks and bookkeeping nobody sees. A
    fix that moves a golden re-records it and names the reason. A bug that shapes gameplay (balance, AI, movement,
@@ -106,8 +108,8 @@ writer and the reviewer.
   code does. A format's own ids (a chunk id, a field id) stay where the format is described. Checked:
   `comments.py check` counts "addon addresses" (8 hex digits from 10 to 1F with a letter) in comments, shaders
   included.
-- **Rebirth's patch is named.** A comment that says "Rebirth-patched" names the flag (`Patch::CameraPatch`) or says
-  "always on" (a fix that has no flag, rule 8). Checked: "unnamed Rebirth patches" per comment line.
+- **Rebirth's patch is named.** A comment that says "Rebirth-patched" names the patch (CameraPatch) or says
+  "always on" (rule 8). Checked: "unnamed Rebirth patches" per comment line.
 - **In-memory structs are typed.** Members have their real types (an enum, a `Ref<T>`, a `Vector3`), not the bytes they
   were read from. A byte layout (fixed-width members, padding, `static_assert` on the size) belongs to the structs
   that cross the process: a file, a save, a packet, a GPU buffer; and says so.

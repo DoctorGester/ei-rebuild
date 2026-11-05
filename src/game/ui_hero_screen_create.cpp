@@ -20,7 +20,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "lib/rebirth.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -210,19 +209,11 @@ void MpHeroScreen::CreateScreen() {
             figure = g_unitDatabase.models.FindByName(key);
         }
         figureModel = figure->figureName;
-        auto isModel = [&figureModel](const char* name) {
-            return text::CompareIgnoringCase(figureModel,
-                                   name) == 0;
-        };
-        bool isMale = isModel("unhuma");
-        bool isFemale = !isMale && isModel("unhufe");
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) {
-            // EI_Plugin's fixes: the two name comparisons become one test of
-            // the two characters at +4 of the model's name (the word 0x6566, "fe"); a model that
-            // has them is a woman's, every other one a man's.
-            isFemale = ModelNameIsFemale(figureModel);
-            isMale = !isFemale;
-        }
+        // EI_Plugin's fixes (always on): one test of the two characters at +4 of the model's name (the word 0x6566,
+        // "fe") instead of the comparisons with "unhuma" and "unhufe"; a model that has them is a woman's, every
+        // other one a man's.
+        const bool isFemale = ModelNameIsFemale(figureModel);
+        const bool isMale = !isFemale;
         if (isMale) {
             label = std::format("{} {}", male, static_cast<int>(maleVoices.size()) + 1);
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);

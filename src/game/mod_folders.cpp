@@ -28,8 +28,6 @@
 namespace modfolders {
 namespace {
 
-using ei::rebirth::Patch;
-
 constexpr std::size_t kPathBytes = 260;   // addon's path buffers (MAX_PATH)
 
 // addon guards its archive tables with one critical section (100BD5F8), held while it calls the
@@ -147,8 +145,7 @@ ModState& State() {
     Lock lock;
     if (ModState* state = g_state.load(std::memory_order_acquire)) return *state;
     auto* state = new ModState;
-    state->path = WithSlash(!platform::ModFolder().empty() ? platform::ModFolder()
-                                                            : settings::GetString(settings::kRebirth, "AddonPath", ""));
+    state->path = WithSlash(platform::ModFolder());
     state->streamFolder = state->path + "Stream\\";
     g_state.store(state, std::memory_order_release);
     return *state;
@@ -228,8 +225,10 @@ bool g_mapsInMod = false;   // 100BB9D0: the game's folder until a site finds a 
 
 } // namespace
 
-// The mod the game plays ([game] Mod, platform::SwitchMod), else Rebirth's AddonPath.
+// The mod the game plays ([game] Mod, platform::SwitchMod).
 const std::string& ModPath() { return State().path; }
+
+bool Active() { return !ModPath().empty(); }
 
 void Reset() {
     Lock lock;
@@ -313,7 +312,7 @@ const std::vector<std::string>& FigureArchives() { return Config().figures; }
 
 std::vector<std::string> FigureArchivePaths(const std::string& folder) {
     std::vector<std::string> paths;
-    if (ei::rebirth::Enabled(Patch::ResOverride)) paths = FigureArchives();
+    if (Active()) paths = FigureArchives();
     paths.push_back(folder + "figures.res");
     paths.push_back(folder + "menus.res");
     return paths;
@@ -322,7 +321,7 @@ const std::vector<std::string>& TextureArchives() { return Config().textures; }
 
 
 void SelectMaps(std::string_view name, MapsSite site) {
-    if (!ei::rebirth::Enabled(Patch::Maps)) return;
+    if (!Active()) return;
     Lock lock;
     const MapsListing& maps = Maps();
     if (site == MapsSite::ZoneTable) {

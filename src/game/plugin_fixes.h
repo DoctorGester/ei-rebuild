@@ -1,20 +1,16 @@
 #pragma once
 
-// EI_Plugin.asi's Fixes feature in the player faces (docs/notes/rebirth.md). With Patch::EiPluginFixes
-// the sex of a face is decided by one character of the figure's model name, and a player whose unit
-// prototype is unknown gets the first prototype that is not a creature of the game's own races.
+// EI_Plugin.asi's Fixes feature in the player faces (docs/notes/rebirth.md; always on): the sex of a face is decided
+// by one character of the figure's model name, and a player whose unit prototype is unknown gets the first prototype
+// that is not a creature of the game's own races.
 #include "unit_create.h"
 #include "unit_db.h"
-
-#include "lib/rebirth.h"
 
 #include <cctype>
 #include <cstddef>
 #include <initializer_list>
 
 namespace pluginfixes {
-
-inline bool Enabled() { return ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes); }
 
 // The plugin's replacement of the "unhuma" / "unhufe" comparisons (cmp byte [name+4], 0x66): a
 // model whose fifth character is 'f' is a woman's, every other one a man's.

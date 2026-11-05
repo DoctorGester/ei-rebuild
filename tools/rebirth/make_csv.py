@@ -4,7 +4,7 @@ it lies in), the tables below (summaries, statuses) and, for the sites site_inst
 function column.
 
 usage: python tools/rebirth/make_csv.py
-(docs/notes/rebirth.md, "Flags in the rebuild").
+(docs/notes/rebirth.md, "Settings").
 """
 import csv, os, re
 
@@ -411,15 +411,14 @@ for patch, a, n, var, summ in PLUGIN:
 GROUP = {'bugfix': 'bug fix', 'widescreen': 'widescreen/rendering', 'rendering': 'widescreen/rendering',
          'scripting': 'scripting/console', 'console': 'scripting/console', 'multiplayer': 'multiplayer',
          'resources': 'resources/paths', 'infrastructure': 'infrastructure', 'content': 'infrastructure'}
-# The standalone's kind of each patch (SV9): a flag when src/lib/rebirth_patches.inc names it; a patch no longer in
-# it (C68: always the rebuilt code's, dropped or implemented nowhere) keeps the CSV's.
+# The standalone's kind of each patch (SV9, C68, C162): always the rebuilt code's, with a mod played (mod), a setting
+# (EI_Plugin's values), a flag (DisableExitOnCrashReport), dropped or implemented nowhere (none); the CSV keeps each
+# patch's.
 FORMER = {r['patch']: r['standalone'] for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'),
                                                                      encoding='utf-8'))}
-KINDS = dict.fromkeys(re.findall(r'EI_REBIRTH_PATCH\((\w+)\)',
-                        open(os.path.join(ROOT, 'src', 'lib', 'rebirth_patches.inc'), encoding='utf-8').read()))
 for r in rows:
     r['category'] = GROUP[r['category']]
-    r['standalone'] = 'flag' if r['patch'] in KINDS else FORMER.get(r['patch'], 'none')
+    r['standalone'] = FORMER.get(r['patch'], 'none')
 with open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'), 'w', newline='', encoding='utf-8') as f:
     w = csv.DictWriter(f, fieldnames=['patch', 'source', 'site', 'size', 'function', 'category', 'single_player',
                                       'original', 'summary', 'standalone', 'status', 'variant'], lineterminator='\n')

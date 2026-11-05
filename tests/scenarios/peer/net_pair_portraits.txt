@@ -1,5 +1,5 @@
 # The peer of net_pair_portraits: joins the host's game, enters the zone after the host and captures its battle screen.
-rebirthflags EiPluginNPlayers NPlayers=8
+plugin NPlayers=8
 rebirth resolution desktop
 timeout 180
 reject Script error

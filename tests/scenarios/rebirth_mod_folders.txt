@@ -1,8 +1,6 @@
 # Rebirth's mod-folder patches (S19b; src/game/mod_folders.h, docs/notes/rebirth.md "Resources and paths")
-# with a mod of our own: tools/make_test_mod.py writes it into the run's harness_saves\s19b_mod, and
-# "addonpath" answers the starter's Settings\AddonPath with that folder. On the Rebirth install addon.dll
-# applies it (hooked runs) and the image's resource layer does (standalone-rebirth); the vanilla install has
-# no mod loader, so its runs find none of the mod's files.
+# with a mod of our own: tools/make_test_mod.py writes it into the run's harness_saves\s19b_mod, which "mod" makes
+# the settings' Mod. The patches apply whenever a mod is played, on either install.
 # - ResOverride: config.reg [RES] puts Res\s19b_gfx.res before the game's gfx.res. "modfile" opens gfx.res as
 #   the game names it and reads through GetFile: s19b.txt (23 bytes) comes from the mod's archive, "t\s19b.txt"
 #   too (addon's retry without "t\"), lightning.dat still from the game's gfx.res.
@@ -11,12 +9,11 @@
 # - CameraPatch: PlayCamera("s19b.cam") plays the mod's Camera\s19b.cam (a copy of camera\bz3g.cam).
 #   The path ends at its first step (as camera.txt's bz3g.cam does), so the check comes right after PlayCamera.
 # prepare: make_test_mod.py
-addonpath s19b_mod
+mod harness_saves\s19b_mod
 reject Script error
 waitmenu
-rebirth modfile gfx.res s19b.txt 23
-rebirth modfile gfx.res t\s19b.txt 23
-vanilla modfile gfx.res s19b.txt 0
+modfile gfx.res s19b.txt 23
+modfile gfx.res t\s19b.txt 23
 modfile gfx.res lightning.dat 51200
 
 console thingamabob
@@ -25,12 +22,12 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 console @GodMode(0,1)
 
-rebirth console @AddMob("traps.mob")
-rebirth waitfor 10 IsEqual(GetObjectID(GetObject(30004)),30004)
-rebirth check IsEqual(GetObjectID(GetObject(30007)),30007)
+console @AddMob("traps.mob")
+waitfor 10 IsEqual(GetObjectID(GetObject(30004)),30004)
+check IsEqual(GetObjectID(GetObject(30007)),30007)
 
-rebirth console @PlayCamera("s19b.cam")
-rebirth check IsCameraPlaying()
-rebirth waitfor 20 Not(IsCameraPlaying())
+console @PlayCamera("s19b.cam")
+check IsCameraPlaying()
+waitfor 20 Not(IsCameraPlaying())
 report
 quit

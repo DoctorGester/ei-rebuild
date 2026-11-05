@@ -14,7 +14,6 @@
 #include "unit_db.h"
 
 #include "lib/maths.h"
-#include "lib/rebirth.h"
 #include "lib/vecmath.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -308,13 +307,9 @@ HeroFaceNames FaceNames(const char* prototype) {
         std::string key(unit->modelName);
         figure = g_unitDatabase.models.FindByName(key);
     }
-    std::string sex;
     const std::string& figureModel = figure->figureName;
-    const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
-    if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : figureModel == "unhuma")
-        sex = "m";
-    else if (fixes || figureModel == "unhufe")
-        sex = "f";
+    // EI_Plugin's Fixes (always on): the model's fifth character.
+    const std::string sex = pluginfixes::ModelIsFemale(figureModel) ? "f" : "m";
     return {std::format("infa{}me{}face", figureModel, unit->hair + 1), std::format("face{}{:02}", sex, unit->skin)};
 }
 

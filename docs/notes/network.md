@@ -47,8 +47,8 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
 - **Kick / ban**: console `kick` / `ban` without a name opens the host's player pick (a face click sends KickBySerial / BanBySerial
   with the serial); with a name, KickByName / BanByName (guests whose name starts with it). A banned address's join is refused.
 - **Shared files**: the server shares each queued zone's .mq (a File message, 64-byte FileChunk messages); a client
-  that lacks one answers with a FileRequest; vanilla writes the file into Maps, Rebirth's MQClient keeps the chunks
-  only.
+  that lacks one answers with a FileRequest and keeps the chunks without writing the file (Rebirth's MQClient, always
+  on; the original wrote it into Maps).
 - **A lost client**: the server drops it after the session timeout (60 s; text 4 to both); its own game shows the
   lost server box and returns to the main menu.
 - The console's "@" commands do nothing in a network game (the harness's `hit` step acts on the world instead).

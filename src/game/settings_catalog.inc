@@ -4,7 +4,8 @@
 // tools/gen_settings_doc.py, which writes docs/settings.md and checks the rows against the settings the code reads.
 //
 // EI_SETTING(section, name, default, values, description): "<n>" in a name stands for a number, "<name>" for any
-// name; "(profile)" as a default: the game folder's Rebirth profile decides.
+// name; "(install)" as a default: the game folder decides (a Rebirth install's EI_Plugin.ini or Rebirth's own
+// setting, else the original's).
 
 // [paths]
 EI_SETTING(kPaths, "Work path", ".\\", "a folder",
@@ -210,7 +211,10 @@ EI_SETTING(kGame, "Mod", "", "a folder",
 // [network]
 EI_SETTING(kNetwork, "Master Server Name", "a3master.nival.com", "host[:port]",
            "The server the multiplayer screen asks for games and hosted games announce to (port 28004 unless "
-           "given). Not written back with EiPluginNewMaster.")
+           "given). The game reads it but never writes it back.")
+EI_SETTING(kNetwork, "SecondMaster", "", "host[:port]",
+           "A second master server the multiplayer screen also asks for games and hosted games announce to as well "
+           "(Rebirth's EI_Plugin; port 28004 unless given). Empty: none.")
 
 
 // [renderer]
@@ -227,47 +231,16 @@ EI_SETTING(kRenderer, "PerfOverlay", "false", "true / false",
            "Shows frames per second, frame and graphics card times and draw counts over the game. The options "
            "screen's performance overlay row sets it.")
 
-// [patches]
-EI_SETTING(kPatches, "DisableExitOnCrashReport", "(profile)", "true / false",
-           "After a fatal error the game writes it to its log and goes on, instead of showing it and quitting.")
-EI_SETTING(kPatches, "MQClient", "(profile)", "true / false",
-           "Multiplayer: files a server sends are received but not saved on this computer.")
-EI_SETTING(kPatches, "Maps", "(profile)", "true / false",
-           "Maps are looked for in the mod's folder ([rebirth] AddonPath) before the game's.")
-EI_SETTING(kPatches, "ResOverride", "(profile)", "true / false",
-           "Resource archives and files are looked for in the mod's folder before the game's.")
-EI_SETTING(kPatches, "MoviesPatch", "(profile)", "true / false",
-           "Movies are looked for in the mod's folder before the game's.")
-EI_SETTING(kPatches, "CameraPatch", "(profile)", "true / false",
-           "Cut-scene camera paths are looked for in the mod's folder before the game's.")
-EI_SETTING(kPatches, "StreamPatch", "(profile)", "true / false",
-           "Music streams are looked for in the mod's folder before the game's.")
-EI_SETTING(kPatches, "EiPluginNPlayers", "(profile)", "true / false",
-           "Multiplayer games for up to NPlayers players: the lobby's player slider and the portraits column "
-           "follow it.")
-EI_SETTING(kPatches, "EiPluginPause", "(profile)", "true / false",
-           "Multiplayer pausing follows Pause: who may pause, and whether pausing and resuming are announced.")
-EI_SETTING(kPatches, "EiPluginNewMaster", "(profile)", "true / false",
-           "Master server fixes: answers from any address are taken, a link that closes early is kept and the "
-           "server name is not saved; with SecondMaster a second server is asked too.")
-EI_SETTING(kPatches, "EiPluginBriefings", "(profile)", "true / false",
-           "Multiplayer: a client also runs the script that follows a finished briefing.")
-EI_SETTING(kPatches, "EiPluginFixes", "(profile)", "true / false",
-           "Multiplayer interface fixes: a face's sex from its model name, every unit's skin refreshed, damage "
-           "shown with one decimal.")
-EI_SETTING(kPatches, "NPlayers", "7", "a number",
-           "With EiPluginNPlayers: the most players a multiplayer game can hold (the portraits show up to 7).")
-EI_SETTING(kPatches, "Pause", "1", "1, 2 or 3",
-           "With EiPluginPause: 1 the game's leader pauses, pausing and resuming announced; 2 any player pauses; "
-           "3 the leader pauses, nothing announced.")
-EI_SETTING(kPatches, "SecondMaster", "", "host[:port]",
-           "With EiPluginNewMaster: a second master server the multiplayer screen also asks for games. Empty: "
-           "none.")
-
-// [rebirth]
-EI_SETTING(kRebirth, "AddonPath", "", "a folder",
-           "The mod's folder, which the mod folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, "
-           "StreamPatch) look in first, when [game] Mod names none. Empty: no mod.")
+// [patches]: EI_Plugin's two values and Rebirth's one flag left (its other patches are always on; the section's other
+// lines are ignored).
+EI_SETTING(kPatches, "DisableExitOnCrashReport", "(install)", "true / false",
+           "After a fatal error the game goes on instead of showing it and quitting. On in a Rebirth install.")
+EI_SETTING(kPatches, "NPlayers", "(install)", "0, or 7 or more",
+           "Multiplayer games for up to this many players: the lobby's player slider, the portraits column and "
+           "the chat window follow it. 0: the original's six.")
+EI_SETTING(kPatches, "Pause", "(install)", "0, 1, 2 or 3",
+           "Multiplayer pausing: 0 the original's; 1 the game's leader pauses, pausing and resuming announced; "
+           "2 any player pauses; 3 the leader pauses, nothing announced.")
 
 // [autoexec]
 EI_SETTING(kAutoExec, "<name>", "", "a console line",

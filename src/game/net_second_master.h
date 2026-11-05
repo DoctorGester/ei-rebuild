@@ -1,5 +1,5 @@
-// EI_Plugin's NewMaster: the second master server (the plugin's is hat.gipath.org:28004; ours is the setting
-// ei::rebirth::PluginSecondMaster(), empty by default).
+// EI_Plugin's NewMaster: the second master server (the plugin's is hat.gipath.org:28004; ours is the settings file's
+// [network] SecondMaster, ei::rebirth::PluginSecondMaster(), empty by default).
 // More: docs/notes/network.md, "Sessions and messages".
 #pragma once
 

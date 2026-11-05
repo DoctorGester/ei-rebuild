@@ -86,29 +86,24 @@ BANNED_GAME = re.compile(
     r"CStrings?|RemoveAll|AddHead|RemoveHead|RemoveTail|InsertAt)\b|\bMFC\b")
 
 # An address in addon.dll or EI_Plugin.asi (image base 10000000), "addon's 10025C9D": 8 hex digits from 10 to 1F with at
-# least one letter (a digit-only run is a number). Comments name the patch (Patch::<name> or "always on"), never where
+# least one letter (a digit-only run is a number). Comments name the patch (its name or "always on"), never where
 # its code sat (style round 2).
 ADDON_ADDRESS_RX = re.compile(r'\b(?=\d*[A-F])1[0-9A-F]{7}\b')
 # "Rebirth-patched" says that Rebirth changed the original's code but not what the rebuild does about it: the same
-# line has to name the flag (a rebirth_patches.inc name, Patch::<name>) or say "always on".
+# line has to name the patch (config/rebirth_patches.csv's names) or say "always on".
 REBIRTH_PATCHED_RX = re.compile(r'Rebirth-patched')
 
 
 def rebirth_patch_names():
-    names = set()
-    with open(os.path.join(ROOT, 'src', 'lib', 'rebirth_patches.inc'), encoding='utf-8') as f:
-        for line in f:
-            m = re.match(r'EI_REBIRTH_PATCH\((\w+)\)', line)
-            if m:
-                names.add(m.group(1))
-    return names
+    with open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'), encoding='utf-8') as f:
+        return {row['patch'] for row in csv.DictReader(f)}
 
 
 # "never read", "nothing reads it", "not read": the member, parameter or branch it describes goes with the comment. A field
 # that a saved file or a packet carries and the code does not use keeps its place (it is read from the file), under an
 # `unread...` name.
 NEVER_READ_RX = re.compile(r'\bnever read\b|\bnothing (?:ever )?reads\b|\bnobody reads\b|\bno one reads\b|\bnot read\b')
-PATCH_NAMED_RX =re.compile(r'\bPatch::\w+|\balways on\b|\b(?:' + '|'.join(sorted(rebirth_patch_names(), key=len, reverse=True))
+PATCH_NAMED_RX =re.compile(r'\balways on\b|\b(?:' + '|'.join(sorted(rebirth_patch_names(), key=len, reverse=True))
                             + r')\b')
 
 HISTORY_RX =re.compile(r'(?i)\b(?:shim|forwarder|ported|rewritten|the hook era|was a |used to |no longer|'
@@ -461,7 +456,7 @@ def cmd_check(update):
                       + ('; `python tools/comments.py banned` lists them' if k == 'banned words'
                          else '; a comment left by deleted code: delete it with the code' if k == 'orphan comments'
                          else '; say what the code does, not where addon.dll kept it' if k == 'addon addresses'
-                         else '; name the flag (Patch::<name>) or say "always on"' if k == 'unnamed Rebirth patches'
+                         else '; name the patch or say "always on"' if k == 'unnamed Rebirth patches'
                          else '; delete what the comment says is never read, with the comment' if k == 'never-read comments'
                          else '; `list` shows them'))
     totals = {k: sum(c[k] for c in now.values()) for k in count('')}

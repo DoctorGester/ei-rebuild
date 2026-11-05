@@ -1,13 +1,26 @@
 {
   "scenario": "net_host_death",
   "install": "vanilla",
-  "recorded": "2026-11-04",
-  "commit": "219355b31",
+  "recorded": "2026-11-05",
+  "commit": "c4a4ce818",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "New H43c1/H43e1 gap scenarios: a hosted hero's death with the zone saved and loaded, a blow while turning, a healing guard.",
+  "reason": "C162: EI_Plugin's Briefings always on: a network client also queues the briefing completion script (checked: with it off the runs match the old goldens)",
   "source": "image",
-  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 17 of 141 records differ, first at record 42 (world update 860, tick 542, frame 171, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
+    "  first difference at record 42 (world update 860, tick 542, frame 171, zone bz1mpg): 2 fields",
+    "    script (script) #files: 982697DF in the old golden, 012FC665 in the new run",
+    "    script (script) #run: D828235F in the old golden, 53214075 in the new run",
+    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
+    "    script: script #files differs (hashes only), from record 42 (+33 more)",
+    "  script: 1 of 1 differ",
+    "    files: 1 script, 17 records, from 42; hash only (no numbers kept)",
+    "    run: 1 script, 17 records, from 42; hash only (no numbers kept)",
+    "  units: 1 of 217 differ",
+    "    #unit: 1 unit, 1 record, from 54; hash only (no numbers kept)"
+  ]
 }

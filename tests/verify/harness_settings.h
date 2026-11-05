@@ -8,9 +8,9 @@
 // the registry: the snapshot is the source of the run's settings file below.
 //
 // The program keeps its settings in a file of its own format (game/settings.h): harness runs get their
-// own, <run folder>\ei_settings.ini, pinned at start and written at the settings' first use (once the start-up has
-// set the Rebirth flags) from the snapshot: the option tree game.exe reads on the run's install (the original's, or
-// Rebirth's on its data: starter::RebirthInstall), each key as its section (General Settings as [video] and
+// own, <run folder>\ei_settings.ini, pinned at start and written at the settings' first use from the snapshot: the
+// option tree game.exe reads on the run's install (the original's, or Rebirth's on its data: starter::RebirthData),
+// each key as its section (General Settings as [video] and
 // [sound]), and Rebirth's switches (EI_Starter\Settings as [rebirth]), with the starter lines' answers in place (any
 // key with that value name); read only, and a read of a value the file lacks fails the run (unless the snapshot
 // marks it absent). The game path's redirect (src/main.cpp) changes its reads as it

@@ -2,7 +2,7 @@
 # are 20 wide at a pitch of 20 with the face models at depth 9.1875 (AddPortrait's six extra sites; HudPortraits::AddPortrait),
 # the host screen's slider runs to 7 and the chat window starts at 0. A pair as net_pair_zone (without its exchange):
 # the peer, a network client, captures its battle screen in the zone, the host its own.
-rebirthflags EiPluginNPlayers NPlayers=8
+plugin NPlayers=8
 rebirth resolution desktop
 timeout 180
 peer net_pair_portraits

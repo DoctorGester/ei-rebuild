@@ -11,11 +11,11 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/platform/path_layers.h`, `.cpp` | the layered path map (`PathLayers`, `PathLayer`), `FullGamePath`, `PathBelow`; the mod (`platform::SwitchMod`, `ModFolder`, `CurrentMod`) |
 | `src/platform/seams.cpp` | the game's `SystemPath` / `SystemSearches`: the mod's map, the path itself without a mod |
 | `src/platform/files.cpp` | `FolderEntries`: each layer's search (the backends' `SearchFolder`) merged |
-| `src/main.cpp` | reads `[game] Mod` after the Rebirth profile, calls `app::UseMod` (app_main.cpp: the folder in full, `platform::SwitchMod`, the log) |
+| `src/main.cpp` | reads `[game] Mod` after EI_Plugin's values, calls `app::UseMod` (app_main.cpp: the folder in full, `platform::SwitchMod`, the log) |
 | `src/game/app_main.cpp` | `StartGame` / `StopGame` (the game's half of the start and the stop), `app::RequestModSwitch` and the switch (`TakeModSwitch`) |
 | `src/game/mod_list.h`, `.cpp` | the main menu's list of mods: `Scan` (starter\Mods\*\config.reg), `IndexOf`, `SettingOf` |
 | `src/game/ui_main_menu.cpp` | `MainMenu::AddModList` (the list's drop-down control) and the pick's `RequestModSwitch` (in `Update`) |
-| `src/game/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"): `ModPath()` is the Mod folder, else `[rebirth] AddonPath`; `Reset` at a switch |
+| `src/game/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"), whenever a mod is played: `ModPath()` is the Mod folder, `Active()` whether there is one; `Reset` at a switch |
 | `src/game/mod_plugins.h`, `.cpp` | the mods' plugins carried as code ("The mods' plugins"): `modplugins::FourShopClasses` |
 | `tests/verify/harness.cpp` | `Layers` / `MapPath` / `MapSearches`: the run's overlay as the map's top layer |
 | `tests/unit/path_layers.cpp` | the unit check (ei_unit_check, the POSIX port check) |
@@ -27,7 +27,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 
 `ei_settings.ini`, `[game] Mod = starter\Mods\LostInAstral`: the mod's folder relative to the exe's folder (the game
 folder for a dropped-in exe; on macOS the app's MacOS folder, so give it in full there), or in full. Read at the start,
-after the Rebirth profile (the settings' first use writes the profile's defaults); a switch of mods writes it. A folder that is not there
+after EI_Plugin's values (the settings' first use writes the defaults); a switch of mods writes it. A folder that is not there
 is logged ("mod: no folder ...") and the game runs without a mod. The log names the mod and its saves' folder.
 
 ## The layered path map
@@ -84,7 +84,8 @@ The game's registry format (src/game/registry.h). Sections in Rebirth's mods:
 - `[MOD]`: Title, Author, Version, Date_DMY, URL, AuthorEmail, GameSaves, Single, Multi, ForceShowTutorial: the
   starter's list (the menu's list, MOD3).
 - `[RES]`: archive name = the mod's archive(s) (string or array), `-` to drop the game's; read by ResOverride
-  (mod_folders.cpp) from `ModPath()`, which is the Mod folder.
+  (mod_folders.cpp) from `ModPath()`, which is the Mod folder. Rebirth's starter's own `AddonPath` (its registry) is not
+  read.
 - `[CONFIG]`: file name = the mod's file (Lost in Astral: `ai.reg = config\ai.reg`, `movie.ini = config\movie.ini`,
   `music.reg = res\music.reg`, the lights `.ini` files, keyboard.ini, addrbook.ini, tutorial.ini; IronMod:
   `ai.reg`). In every shipped mod each value is where the game folder has the file of that name (`config\`, the
@@ -215,9 +216,10 @@ GameMain's game half is two functions that the program's start, its exit and a s
   renderer keeps no pointer into a world: the sun's release after the lights were gone crashed), both worlds' `Destroy`.
   The exit then sets the gamma back, destroys the renderer and saves the options.
 
-A switch, between the two: `modfolders::Reset` (the mod's archives closed, its folder, `[RES]` lists and Maps\ listing
-read again at their next use, the maps folder the game's), `app::UseMod` (`platform::SwitchMod`: the old `Mod` is never
-deleted, other threads may still map a path through it), the settings' `Mod` written, the loop's clock as at the start.
+A switch, between the two: `app::UseMod` (`platform::SwitchMod`: the old `Mod` is never deleted, other threads may
+still map a path through it), then `modfolders::Reset` (the mod's archives closed, its folder, `[RES]` lists and Maps\
+listing read again at their next use, the maps folder the game's; after the switch, so a thread that asked the layer in
+between, the music stream, does not keep the old mod), the settings' `Mod` written, the loop's clock as at the start.
 The renderer, the window, the audio device (a new `SoundManager` closes and opens the output) and the settings stay.
 
 ### The loading screen (MOD3c)
@@ -247,7 +249,7 @@ unseeded, so `World::Create` seeds them (and the CRT's rand) as at the program's
 ### What start-up still does once
 
 `main` (main.cpp): the game folder, the settings, `StartVideo` (the one-instance check, SDL's video, the renderer's device
-and pipelines on a thread), the Rebirth profile. `GameMain`: the static initialisers' work (net and code tables, the
+and pipelines on a thread), EI_Plugin's values. `GameMain`: the static initialisers' work (net and code tables, the
 weather noise: computed, no files), the command line, `g_startFolder`, the options and the screen layout, then
 `StartGame` with the display. The AutoExec lines (the settings and 2utoexec.cfg in the root) are read at each new game;
 no mod changes them.
@@ -266,7 +268,7 @@ back. Reload: made again from the new mod's files. The list to check when a swit
 | The game's draw glue (renderer_scene/sprites/strip/lines, device_draw, figure_part_draw, world_client_draw/lights/shadow_casters/view, effects_weather, particle_manager, lightning's sprites, drawn_motion, camera, camera_trace) | ~50 | keep | per-frame scratch and the drawn view; the scene renderer's sun and the device's bindings let go by `StopGame` |
 | Audio device (audio.cpp) | 15 | keep | a new `SoundManager` closes and opens the output again |
 | App and loop (app_main, app_frame, main_loop.h, bink_video, `g_camera`, screen_layout, ui_cursor.h sizes) | ~27 | keep | the camera `Init` again and attached to the new client world; the loop's clock reset |
-| Settings, options, Rebirth profile and flags, console, crt, random generators | ~19 | keep | `g_random` / `g_clientRandom` unseeded by `StartGame`, seeded again by `World::Create` |
+| Settings, options, EI_Plugin's values, console, crt, random generators | ~19 | keep | `g_random` / `g_clientRandom` unseeded by `StartGame`, seeded again by `World::Create` |
 | `g_logicSettings` (config\ai.reg) | 1 | reload | `Load` starts from the defaults |
 | Databases (database_globals, unit_db, lever_table) and `g_mapDatabase` | 9 | reload | `LoadDatabases` empties each; `LoadAll` empties the map list |
 | Mod-folder layer (`g_mapsInMod` and mod_folders.cpp's state) | 1 + 2 | reload | `modfolders::Reset` |

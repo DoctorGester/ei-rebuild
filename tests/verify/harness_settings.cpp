@@ -232,7 +232,7 @@ constexpr const char* kSoundValues[] = {"audio", "audiostreaming", "audiosfx", "
 // The section of the value `name` (lower case) of the key `path` (lower case), or null when the file has none.
 const char* SectionOf(const std::string& path, const std::string& name) {
     if (path == kRebirthSwitches) return "rebirth";
-    const char* tree = starter::RebirthInstall() ? kRebirthTree : kOriginalTree;
+    const char* tree = starter::RebirthData() ? kRebirthTree : kOriginalTree;
     if (path.compare(0, std::strlen(tree), tree) != 0) return nullptr;
     const std::string key = path.substr(std::strlen(tree));
     for (const auto& s : kSections) {
@@ -300,8 +300,7 @@ void AddProbeSection(std::vector<image::SettingsLine>& lines) {
 }
 
 // The run's settings file: the snapshot's values (SectionOf), each value the scenario's starter lines answer (any
-// key) in place of the snapshot's. Written at the first use of the settings, when the start-up has set the Rebirth
-// flags RebirthInstall follows.
+// key) in place of the snapshot's. Written at the first use of the settings.
 void WriteSettingsFile(const char* file) {
     std::vector<image::SettingsLine> lines;
     lines.push_back({"", "", "The run's settings: config/harness/registry.reg's and the scenario's (harness_settings.h)."});
@@ -338,7 +337,7 @@ void WriteSettingsFile(const char* file) {
     }
     std::fclose(f);
     Log("harness: settings written to %s (the registry snapshot's %s tree and the starter lines; %s)", file,
-        starter::RebirthInstall() ? "Rebirth's" : "the original's",
+        starter::RebirthData() ? "Rebirth's" : "the original's",
         g_mode == Mode::ReadOnly ? "read only" : "writable: the exit save rewrites it");
 }
 
@@ -397,7 +396,7 @@ bool PinnedFile(const char* relative, char (&out)[260]) {
     if (!relative || (text::CompareIgnoringCase(relative, "config\\keyboard.ini") != 0 &&
                       text::CompareIgnoringCase(relative, "config\\addrbook.ini") != 0))
         return false;
-    const char* install = starter::RebirthInstall() ? "rebirth" : "vanilla";
+    const char* install = starter::RebirthData() ? "rebirth" : "vanilla";
     if (std::snprintf(out, sizeof(out), "%s\\%s\\%s", Folder().c_str(), install, relative + 7) >= static_cast<int>(sizeof(out)))
         return false;
     static std::atomic<int> logged = 0;

@@ -334,8 +334,8 @@ What needed no system at all is standard C++, each checked equal to the call it 
   or hexadecimal, the last filling the rest, whitespace ending the text, inet_addr's overflow rules), equal to Winsock
   on 6 million strings (a scratch sweep; tests/unit/ipv4.cpp keeps the edge cases); `ToNetwork` / `FromNetwork` are
   htons / ntohs.
-- **Rebirth's flags** (lib/rebirth.cpp): plain data and specs; EI_REBIRTH with `getenv_s`. The
-  settings file's [patches] is read by the start-up through settings.h (C66a), no reader of its own.
+- **EI_Plugin's values** (lib/rebirth.cpp): plain data and the harness's specs. The settings file's [patches] and
+  [network] SecondMaster are read by the start-up through settings.h, no reader of its own.
 - The world's wincurs\Df0000.cur cursor (LoadCursorFromFileA) was loaded and never used: gone.
 
 ## Rectangles

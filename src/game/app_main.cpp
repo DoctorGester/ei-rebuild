@@ -36,7 +36,6 @@
 
 #include "main_loop.h"
 #include "lib/maths.h"
-#include "lib/rebirth.h"
 #include "render/render.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -511,8 +510,10 @@ void TakeModSwitch() {
     // the worlds are gone), and each long part of the start steps it again (StartGame), from the new mod's Movies folder.
     LoadingStep(0);
     StopGame();
-    modfolders::Reset();
+    // The mod-folder layer forgets the old mod after the switch: a thread that asks it in between (the music stream)
+    // reads the old mod again, which the reset then drops.
     UseMod(g_gameFolder, mod);
+    modfolders::Reset();
     settings::SetString(settings::kGame, "Mod", mod);
     settings::Save();
     g_clock = LoopClock{};

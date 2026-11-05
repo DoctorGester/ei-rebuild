@@ -219,7 +219,7 @@ always does the close instead of whichever real message came first.
 - **Settings** (tests/verify/harness_settings.h): no run reads the user's settings. Each run gets its own
   `<run folder>\ei_settings.ini`, written at the settings' first use from the committed snapshot
   `config/harness/registry.reg` (the option tree on the run's install, Rebirth's switches as [rebirth]), with the
-  scenario's starter lines (harness_starter.h: resolution, widescreen, fullscreen, music, addonpath) in place; read only,
+  scenario's starter lines (harness_starter.h: resolution, widescreen, fullscreen, music, mod) in place; read only,
   and a value the file lacks fails the run (`"name"=-` marks one read but absent on purpose). config\keyboard.ini and
   config\addrbook.ini are read from `config/harness/<vanilla|rebirth>/` unless the run's overlay has its own. Why: the
   user's own play once set the music volume to 0, and 13 goldens differed in random draw counts. To change a setting for

@@ -1,29 +1,18 @@
-// Flags for Rebirth's patches (rebirth.h).
+// The values Rebirth's patches leave to the player (rebirth.h).
 #include "lib/rebirth.h"
 
 #include "lib/text_case.h"
-#include "platform/platform.h"
 
 #include <cstdlib>
-#include <cstring>
 #include <string>
 
 namespace ei::rebirth {
 
-namespace detail {
-bool g_enabled[kPatchCount];   // zero-initialised: every patch off until Reset
-}
-
 namespace {
-const char* const kNames[] = {
-#define EI_REBIRTH_PATCH(name) #name,
-#include "rebirth_patches.inc"
-#undef EI_REBIRTH_PATCH
-};
-static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);
 
-int g_pluginNPlayers = 7;
-int g_pluginPause = 1;
+int g_pluginNPlayers = 0;
+int g_pluginPause = 0;
+bool g_disableExitOnCrashReport = false;
 
 // Function statics: the harness queues its specs before this file's static constructors may have run.
 std::string& SecondMaster() {
@@ -35,14 +24,7 @@ std::string& Queued() {
     return specs;
 }
 
-void SetAll(bool on) {
-    for (bool& e : detail::g_enabled) e = on;
-}
-
-void SetDefaults() { SetAll(false); }
 } // namespace
-
-void Set(Patch p, bool on) { detail::g_enabled[static_cast<int>(p)] = on; }
 
 int PluginNPlayers() { return g_pluginNPlayers; }
 void SetPluginNPlayers(int players) { g_pluginNPlayers = players; }
@@ -50,20 +32,11 @@ void SetPluginNPlayers(int players) { g_pluginNPlayers = players; }
 int PluginPause() { return g_pluginPause; }
 void SetPluginPause(int mode) { g_pluginPause = mode; }
 
+bool DisableExitOnCrashReport() { return g_disableExitOnCrashReport; }
+void SetDisableExitOnCrashReport(bool on) { g_disableExitOnCrashReport = on; }
+
 const std::string& PluginSecondMaster() { return SecondMaster(); }
 void SetPluginSecondMaster(std::string_view address) { SecondMaster() = address; }
-
-const char* Name(Patch p) { return kNames[static_cast<int>(p)]; }
-
-bool FromName(const char* name, Patch* out) {
-    for (int i = 0; i < kPatchCount; ++i) {
-        if (text::CompareIgnoringCase(kNames[i], name) == 0) {
-            *out = static_cast<Patch>(i);
-            return true;
-        }
-    }
-    return false;
-}
 
 bool ApplySpec(const char* spec) {
     bool ok = true;
@@ -71,32 +44,18 @@ bool ApplySpec(const char* spec) {
     while (*p) {
         while (*p == ',' || *p == ' ' || *p == ';' || *p == '\t') ++p;
         if (!*p) break;
-        char token[96];
-        std::size_t n = 0;
-        while (*p && *p != ',' && *p != ' ' && *p != ';' && *p != '\t') {
-            if (n + 1 < sizeof(token)) token[n++] = *p;
-            ++p;
-        }
-        token[n] = 0;
-        if (text::CompareIgnoringCase(token, "SecondMaster=", 13) == 0) {
-            SetPluginSecondMaster(token + 13);
-            continue;
-        }
-        if (text::CompareIgnoringCase(token, "NPlayers=", 9) == 0) {
-            SetPluginNPlayers(std::atoi(token + 9));
-            continue;
-        }
-        bool on = true;
-        if (char* eq = std::strchr(token, '=')) {
-            on = eq[1] != '0';
-            *eq = 0;
-        }
-        Patch patch;
-        if (text::CompareIgnoringCase(token, "all") == 0) SetAll(on);
-        else if (text::CompareIgnoringCase(token, "none") == 0) SetAll(!on);
-        else if (text::CompareIgnoringCase(token, "defaults") == 0) SetDefaults();
-        else if (FromName(token, &patch)) Set(patch, on);
-        else ok = false;
+        std::string token;
+        while (*p && *p != ',' && *p != ' ' && *p != ';' && *p != '\t') token += *p++;
+        if (text::CompareIgnoringCase(token.c_str(), "SecondMaster=", 13) == 0)
+            SetPluginSecondMaster(token.c_str() + 13);
+        else if (text::CompareIgnoringCase(token.c_str(), "NPlayers=", 9) == 0)
+            SetPluginNPlayers(std::atoi(token.c_str() + 9));
+        else if (text::CompareIgnoringCase(token.c_str(), "Pause=", 6) == 0)
+            SetPluginPause(std::atoi(token.c_str() + 6));
+        else if (text::CompareIgnoringCase(token.c_str(), "DisableExitOnCrashReport=", 25) == 0)
+            SetDisableExitOnCrashReport(std::atoi(token.c_str() + 25) != 0);
+        else
+            ok = false;
     }
     return ok;
 }
@@ -106,18 +65,13 @@ void QueueSpec(const char* spec) {
     Queued() += ';';
 }
 
-void Reset(const char* profile) {
-    SetDefaults();
-    g_pluginNPlayers = 7;
-    g_pluginPause = 1;
+void Reset() {
+    g_pluginNPlayers = 0;
+    g_pluginPause = 0;
+    g_disableExitOnCrashReport = false;
     SecondMaster().clear();
-    if (profile) ApplySpec(profile);
 }
 
-void ApplyOverrides() {
-    const std::string environment = platform::EnvironmentVariable("EI_REBIRTH");
-    if (!environment.empty()) ApplySpec(environment.c_str());
-    ApplySpec(Queued().c_str());
-}
+void ApplyQueued() { ApplySpec(Queued().c_str()); }
 
 } // namespace ei::rebirth

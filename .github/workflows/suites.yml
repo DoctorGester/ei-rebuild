@@ -41,10 +41,6 @@ on:
         description: "diff: both builds' runs at this window size (EI_RESOLUTION, WxH; a scenario's own resolution line wins)"
         required: false
         default: ""
-      flags:
-        description: "diff: Rebirth flags for this ref's runs only (EI_REBIRTH, e.g. defaults,AddNewScriptCommands)"
-        required: false
-        default: ""
       records:
         description: "diff: how many differing digest records to print per run"
         required: false
@@ -228,7 +224,6 @@ jobs:
       BASE: ${{ inputs.diff_base }}
       SCENARIOS: ${{ inputs.scenarios }}
       RESOLUTION: ${{ inputs.resolution }}
-      FLAGS: ${{ inputs.flags }}
       RECORDS: ${{ inputs.records || '1' }}
       SKIP: ${{ inputs.skip || '0' }}
     steps:
@@ -255,8 +250,7 @@ jobs:
       - name: Play both
         run: |
           [ -z "$RESOLUTION" ] || export EI_RESOLUTION=$RESOLUTION
-          (if [ -n "$FLAGS" ]; then export EI_REBIRTH=$FLAGS; fi
-           python tools/work.py test CI --golden $SCENARIOS > diff_head.txt 2>&1) || true
+          python tools/work.py test CI --golden $SCENARIOS > diff_head.txt 2>&1 || true
           (cd build/base && python tools/work.py test CI --golden $SCENARIOS > ../../diff_base.txt 2>&1) || true
           for f in diff_base.txt diff_head.txt; do echo "== $f"; sed -n '/^not passed:/,/^$/p; /^[0-9]* runs in/p' $f; done
           # the runs whose time differs by 3 s or more (run_all's table: scenario, install, result, time)

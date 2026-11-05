@@ -10,7 +10,8 @@ Windows Registry Editor Version 5.00
 ; registry"). A value or key a run reads that is not here fails the run; "name"=- and [-key] mark ones that are
 ; read but absent on purpose (the game takes its default). Work path is replaced by the run's game
 ; folder (EI_GAME_ROOT, src/main.cpp); a scenario's resolution / widescreen / fullscreen / fpscursor /
-; addonpath lines and CtfMon (always 0) are answered before this file (harness_starter.h).
+; mod lines and CtfMon (always 0) are answered before this file (harness_starter.h). EI_Starter's AddonPath is
+; Rebirth's own (its starter's mod); the game reads [game] Mod only.
 
 [HKEY_CURRENT_USER\Software\Nival Interactive]
 
@@ -121,6 +122,7 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Network Settings]
 "Master Server Name"="a3master.nival.com"
+"SecondMaster"=-
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Path Settings]
 "Work path"="F:\\games\\EvilIslands\\"
@@ -257,6 +259,7 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Network Settings]
 "Master Server Name"="a3master.nival.com"
+"SecondMaster"=-
 
 [HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Path Settings]
 "WORK PATH"="F:\\games\\Evil Islands (Rebirth)\\"

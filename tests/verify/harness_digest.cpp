@@ -231,7 +231,7 @@ bool OpenDigest() {
     std::setvbuf(g_file, nullptr, _IOFBF, 1 << 20);
     const std::string hooks = platform::EnvironmentVariable("EI_NO_HOOKS");
     std::fprintf(g_file, "# ei state digest 2; groups %s; hooks %s; install %s; every %u world updates\n", NewGroups().c_str(),
-                 hooks[0] == '1' ? "off" : "on", starter::RebirthInstall() ? "rebirth" : "vanilla", g_period);
+                 hooks[0] == '1' ? "off" : "on", starter::RebirthData() ? "rebirth" : "vanilla", g_period);
     return true;
 }
 

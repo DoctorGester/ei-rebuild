@@ -17,7 +17,6 @@
 #include "ui_cursor.h"
 #include "screen_layout.h"
 #include "world.h"
-#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "platform/platform.h"

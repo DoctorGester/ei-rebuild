@@ -143,7 +143,7 @@ void WorldServer::SetWeather(int newWeather, float strength) {
 void World::SetPaused(std::uint8_t value) { paused = value; }
 
 void World::SetServerPaused(std::uint8_t value) {
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) && ei::rebirth::PluginPause() == 3) return;
+    if (ei::rebirth::PluginPause() == 3) return;
     SetPaused(value);
 }
 

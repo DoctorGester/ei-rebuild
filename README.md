@@ -102,8 +102,9 @@ folder or choose the folder when it asks (the zip's README.txt).
 
 Copy `build\release\ei-rebuild.exe` (or the exe from the GitHub release) into the game's folder, a GOG or Rebirth
 install, and start it there. It writes `ei_settings.ini` beside itself with the defaults (borderless full screen at the
-desktop's size, every graphics setting at its best) and picks the Rebirth flags from the folder (Rebirth's profile
-where Rebirth's plugin is, else the bug fixes and widescreen; a patch named in the file's `[patches]` overrides that).
+desktop's size, every graphics setting at its best). Rebirth's fixes and additions are always on, so a GOG and a
+Rebirth install run the same code; only the folder's data differs (in a Rebirth install the exe also takes
+`EI_Plugin.ini`'s player count and pause mode, and goes on after a fatal error as Rebirth does).
 It writes into that folder (settings, saves, `ei-rebuild.log`), so use a copy of the install if you want the original
 kept as it is. The registry is never read.
 

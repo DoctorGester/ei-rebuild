@@ -4,7 +4,7 @@
 // A scenario that uses one of the steps below has every path the game's file calls map (the harness's MapPath: reads,
 // listings and asks whether a file exists) noted, once each; the steps then ask where the game looked.
 //
-// Steps (<where> is "mod": below the run's mod folder, the harness step "mod"'s or "addonpath"'s; or "game": below the game folder
+// Steps (<where> is "mod": below the run's mod folder, the harness step "mod"'s; or "game": below the game folder
 // or its copy in the run's overlay; <path> is relative to that folder):
 //   read <where> <path> yes|no           require that the game has (yes) or has not (no) touched that file so far
 //   wrote <where> <path> yes|no          the same for a file the game wrote (the path of a write in the run's overlay)
@@ -19,7 +19,7 @@ namespace ei::verify::modtrace {
 void Enable();
 bool Enabled();
 
-// Where the folders are: the mod's (empty without an "addonpath"), the game folder, the run's overlay (harness_saves).
+// Where the folders are: the mod's (empty without a "mod" line), the game folder, the run's overlay (harness_saves).
 void SetRoots(const std::string& mod, const std::string& game, const std::string& overlay);
 
 // The game opened, listed or asked about `mapped`, or wrote it (any thread).

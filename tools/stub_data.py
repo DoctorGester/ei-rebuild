@@ -23,7 +23,7 @@ usage: python tools/stub_data.py build <install> <out folder> [--force]
           archive's layout untouched. Everything else is copied as it is: maps, models, skeletons and animations,
           databases, scripts, texts, registry files, fonts, camera paths, the Rebirth mods' files. Left out:
           LEFT_OUT below (the install's saves\: a run reads its own folder's; what the game never opens; logs). The
-          programs (.exe, .dll, .asi) are empty files: no run starts them, the Rebirth profile only looks whether
+          programs (.exe, .dll, .asi) are empty files: no run starts them, the start-up only looks whether
           starter\addon.dll or EI_Plugin.asi is there (src/game/rebirth_profile.cpp).
   pack    one .tar.zst of the stub folders (each under its folder's name; pack_options), for the private repository
   reads   the install files the runs in <runs folder> read (their harness_reads.txt: EI_READTRACE=1), relative to the

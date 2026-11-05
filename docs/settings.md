@@ -8,8 +8,8 @@ written). Each `[section]` holds `name = value` lines; a line starting with `;` 
 comment. When the file is missing or empty the game writes the defaults, each line with its description above
 it; it never adds comments to a file that exists. A value the file lacks takes the default below.
 
-Defaults: the value a new file holds, else the one the game takes when the line is absent. `(profile)`: the
-game folder's profile decides (Rebirth's patches in a Rebirth install, none in a plain one).
+Defaults: the value a new file holds, else the one the game takes when the line is absent. `(install)`: the
+game folder decides (a Rebirth install's EI_Plugin.ini or Rebirth's own setting, else the original's).
 
 The original game's settings this build does not read (a file that holds them keeps the lines; the game
 ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, Dithering, PerspectiveCorrection, ShowParticles, FPSIndependentCursor, AutomaticQuantization, MovieCapturingFPS, DrawingTarget, VideoColorDepthInBits, Specular, TextureQuality, Mipmapping, Filtering, Contrast, [shadows] ShadowQuality, HeroShadow, UnitShadow, BuildingShadow, FloraShadow, OtherShadow, LightingFreq, FloraSpecialLight, [terrain] EnableDynamicLights, ShadowingFreq, EnableWaterWaves, EnableSelfShadowing, EnableFootprints, EnableBloodprints, EnableFireprints, EnableBloodprintsRelight, LightingFreq, [game] Joystick, UseSWCursors, CornerSize, CD1 Label, CD3 Label, Font CharSet, DrawVisibleOnly, Keyboard Layout, ObjectsLightingCoeff, Hero Light R/G/B/Radius, Quest Light R/G/B/Radius, DefaultWindForce, DefaultTimeScale, DefaultMapName, DefaultStreamingSound, FogNightStartDistance, FogDayStartDistance, [statistics] CreateOutputInfo, NumberOfFrames.
@@ -119,7 +119,8 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `Master Server Name` | `a3master.nival.com` | host[:port] | The server the multiplayer screen asks for games and hosted games announce to (port 28004 unless given). Not written back with EiPluginNewMaster. |
+| `Master Server Name` | `a3master.nival.com` | host[:port] | The server the multiplayer screen asks for games and hosted games announce to (port 28004 unless given). The game reads it but never writes it back. |
+| `SecondMaster` |  | host[:port] | A second master server the multiplayer screen also asks for games and hosted games announce to as well (Rebirth's EI_Plugin; port 28004 unless given). Empty: none. |
 
 ## [renderer]
 
@@ -134,27 +135,9 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `DisableExitOnCrashReport` | `(profile)` | true / false | After a fatal error the game writes it to its log and goes on, instead of showing it and quitting. |
-| `MQClient` | `(profile)` | true / false | Multiplayer: files a server sends are received but not saved on this computer. |
-| `Maps` | `(profile)` | true / false | Maps are looked for in the mod's folder ([rebirth] AddonPath) before the game's. |
-| `ResOverride` | `(profile)` | true / false | Resource archives and files are looked for in the mod's folder before the game's. |
-| `MoviesPatch` | `(profile)` | true / false | Movies are looked for in the mod's folder before the game's. |
-| `CameraPatch` | `(profile)` | true / false | Cut-scene camera paths are looked for in the mod's folder before the game's. |
-| `StreamPatch` | `(profile)` | true / false | Music streams are looked for in the mod's folder before the game's. |
-| `EiPluginNPlayers` | `(profile)` | true / false | Multiplayer games for up to NPlayers players: the lobby's player slider and the portraits column follow it. |
-| `EiPluginPause` | `(profile)` | true / false | Multiplayer pausing follows Pause: who may pause, and whether pausing and resuming are announced. |
-| `EiPluginNewMaster` | `(profile)` | true / false | Master server fixes: answers from any address are taken, a link that closes early is kept and the server name is not saved; with SecondMaster a second server is asked too. |
-| `EiPluginBriefings` | `(profile)` | true / false | Multiplayer: a client also runs the script that follows a finished briefing. |
-| `EiPluginFixes` | `(profile)` | true / false | Multiplayer interface fixes: a face's sex from its model name, every unit's skin refreshed, damage shown with one decimal. |
-| `NPlayers` | `7` | a number | With EiPluginNPlayers: the most players a multiplayer game can hold (the portraits show up to 7). |
-| `Pause` | `1` | 1, 2 or 3 | With EiPluginPause: 1 the game's leader pauses, pausing and resuming announced; 2 any player pauses; 3 the leader pauses, nothing announced. |
-| `SecondMaster` |  | host[:port] | With EiPluginNewMaster: a second master server the multiplayer screen also asks for games. Empty: none. |
-
-## [rebirth]
-
-| Name | Default | Values | What it does |
-|---|---|---|---|
-| `AddonPath` |  | a folder | The mod's folder, which the mod folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch) look in first, when [game] Mod names none. Empty: no mod. |
+| `DisableExitOnCrashReport` | `(install)` | true / false | After a fatal error the game goes on instead of showing it and quitting. On in a Rebirth install. |
+| `NPlayers` | `(install)` | 0, or 7 or more | Multiplayer games for up to this many players: the lobby's player slider, the portraits column and the chat window follow it. 0: the original's six. |
+| `Pause` | `(install)` | 0, 1, 2 or 3 | Multiplayer pausing: 0 the original's; 1 the game's leader pauses, pausing and resuming announced; 2 any player pauses; 3 the leader pauses, nothing announced. |
 
 ## [autoexec]
 

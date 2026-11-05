@@ -6,7 +6,6 @@
 #include "net_coder.h"
 #include "platform/platform.h"
 
-#include "lib/rebirth.h"
 #include "lib/ipv4.h"
 #include "../platform/log.h"
 
@@ -216,12 +215,10 @@ MasterLink::State MasterLinkTick(MasterLink* self) {
             return self->state;
         }
         if (n == 0) {
-            // EI_Plugin's NewMaster: a link closed before anything arrived (nothing received) is left as it is.
+            // EI_Plugin's NewMaster (always on): a link closed before anything arrived (nothing received) is left as
+            // it is.
             GameBuffer* received = &self->in;
-            if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) &&
-                received->PositionOf(received->high) ==
-                    0)
-                return self->state;
+            if (received->PositionOf(received->high) == 0) return self->state;
             close(MasterLink::State::Done);
             return self->state;
         }
