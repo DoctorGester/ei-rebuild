@@ -27,7 +27,7 @@ enum class PathUse : std::uint8_t {
 
 // Every file and folder call of platform.h (src/platform/files.cpp and each system's backend) asks for its path here,
 // then NativePath: the path the system is asked for when the game names `path` for `use`. The game's builds: `path`
-// itself, or with a mod (platform.h, UseMod) its layer's map (path_layers.h): the mod's file when it has one, its saves
+// itself, or with a mod (platform.h, SwitchMod) its layer's map (path_layers.h): the mod's file when it has one, its saves
 // in a folder of their own. The harness's builds map it onto the run's overlay instead (tests/verify/harness.cpp,
 // MapPath), the same map with the overlay as its top layer: the saves to the run's folder, a write of an install file
 // to the overlay (with Update its contents copied there first), a read to the overlay's copy when there is one; an

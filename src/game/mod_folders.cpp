@@ -17,8 +17,10 @@
 #include <new>
 #include <string>
 
+#include <atomic>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <span>
 
@@ -122,9 +124,41 @@ ResConfig ReadResConfig() {
     return config;
 }
 
+// The mod's Maps\ as addon lists it at start (1001B092): files of the top folder by name, files of
+// subfolders as "<sub>\<name>"; whether the top folder has a ".mq" file (case-sensitive).
+struct MapsListing {
+    std::vector<std::string> names;
+    bool hasQuestList = false;
+};
+
+// What the layer reads of the mod at its first use, kept until the mod changes (Reset): the folder (ModPath), its
+// Stream\ (StreamFolder), its [Res] lists (Config) and its Maps\ listing (Maps). Reset leaves the old one alive: a
+// caller may hold a reference into it.
+struct ModState {
+    std::string path;
+    std::string streamFolder;
+    std::optional<ResConfig> config;
+    std::optional<MapsListing> maps;
+};
+std::atomic<ModState*> g_state = nullptr;
+
+ModState& State() {
+    if (ModState* state = g_state.load(std::memory_order_acquire)) return *state;
+    Lock lock;
+    if (ModState* state = g_state.load(std::memory_order_acquire)) return *state;
+    auto* state = new ModState;
+    state->path = WithSlash(!platform::ModFolder().empty() ? platform::ModFolder()
+                                                            : settings::GetString(settings::kRebirth, "AddonPath", ""));
+    state->streamFolder = state->path + "Stream\\";
+    g_state.store(state, std::memory_order_release);
+    return *state;
+}
+
 const ResConfig& Config() {
-    static const ResConfig config = ReadResConfig();
-    return config;
+    Lock lock;
+    ModState& state = State();
+    if (!state.config) state.config = ReadResConfig();
+    return *state.config;
 }
 
 // The open archives addon tracks (100BD598 / 100BD5B8 / 100BD5A8 / 100BD5D8).
@@ -158,13 +192,6 @@ void* FindFile(MappedResource* res, std::string_view name, std::uint32_t* size) 
 }
 
 
-// The mod's Maps\ as addon lists it at start (1001B092): files of the top folder by name, files of
-// subfolders as "<sub>\<name>"; whether the top folder has a ".mq" file (case-sensitive).
-struct MapsListing {
-    std::vector<std::string> names;
-    bool hasQuestList = false;
-};
-
 void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list) {
     const std::string pattern = mod + "\\Maps" + sub + "\\*.*";
     for (const platform::FolderEntry& found : platform::FolderEntries(pattern)) {
@@ -184,27 +211,37 @@ void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list)
 }
 
 const MapsListing& Maps() {
-    static const MapsListing list = [] {
-        MapsListing l;
-        std::string mod = ModPath();
-        if (mod.empty()) return l;
-        mod.pop_back();
-        ListMaps(mod, "", l);
-        return l;
-    }();
-    return list;
+    Lock lock;
+    ModState& state = State();
+    if (!state.maps) {
+        state.maps.emplace();
+        std::string mod = state.path;
+        if (!mod.empty()) {
+            mod.pop_back();
+            ListMaps(mod, "", *state.maps);
+        }
+    }
+    return *state.maps;
 }
 
 bool g_mapsInMod = false;   // 100BB9D0: the game's folder until a site finds a mod file
 
 } // namespace
 
-// The mod the game plays ([game] Mod, platform::UseMod), else Rebirth's AddonPath.
-const std::string& ModPath() {
-    static const std::string path = WithSlash(!platform::ModFolder().empty()
-                                                  ? platform::ModFolder()
-                                                  : settings::GetString(settings::kRebirth, "AddonPath", ""));
-    return path;
+// The mod the game plays ([game] Mod, platform::SwitchMod), else Rebirth's AddonPath.
+const std::string& ModPath() { return State().path; }
+
+void Reset() {
+    Lock lock;
+    ResTables& tables = Tables();
+    for (auto& [key, archives] : tables.modArchives)
+        for (MappedResource* archive : archives) delete archive;
+    tables.modArchives.clear();
+    tables.overridden.clear();
+    tables.ignored.clear();
+    tables.loaded = false;
+    g_state.store(nullptr, std::memory_order_release);
+    g_mapsInMod = false;
 }
 
 
@@ -302,10 +339,7 @@ void SelectMaps(std::string_view name, MapsSite site) {
     }
 }
 
-const std::string& MapsRoot(const std::string& dataFolder) {
-    static const std::string* modRoot = new std::string(ModPath());
-    return g_mapsInMod ? *modRoot : dataFolder;
-}
+const std::string& MapsRoot(const std::string& dataFolder) { return g_mapsInMod ? ModPath() : dataFolder; }
 
 // ---- Camera, Stream, Movies -----------------------------------------------------------------------
 
@@ -323,10 +357,7 @@ bool StreamInMod(std::string_view name) {
     return platform::IsFile(ModPath() + "Stream\\" + std::string(name));
 }
 
-const std::string& StreamFolder() {
-    static const std::string* folder = new std::string((ModPath() + "Stream\\"));
-    return *folder;
-}
+const std::string& StreamFolder() { return State().streamFolder; }
 
 std::string MovieFile(const char* name) {
     // 1001BB61: the mod's folder, "Movies" and the name from its last '\'.

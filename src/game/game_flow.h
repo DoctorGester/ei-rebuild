@@ -105,6 +105,10 @@ struct GameFlow {
     // When the name differs from the last one ("database.res" at first) the databases are switched and
     // the difficulty is saved and cleared (network) or taken back from it.
     void UseResources(bool network);
+    // Each start of the game (app_main.cpp, StartGame), which reads the databases from "database.res" and the map
+    // database again: the zone table, the quest folders and the quest text files forgotten, the resources
+    // "database.res".
+    void Restart();
     // Loads the game saved in saves\<slot>\ (not in multiplayer, or kind 3): "exec autoexec.cfg",
     // saves\current emptied, scenario.sav read back (the party; by version the input, scripts and
     // globals), the visited zones of the current map copied back (the others marked not visited), then
@@ -133,6 +137,7 @@ struct GameFlow {
     Party requestParty;
     std::string multiplayerZone;          // the multiplayer zone (SwitchMultiplayerZone)
     char zoneSwitchStarted = 0;           // set by SwitchMultiplayerZone, cleared by the game's start
+    bool networkResources = false;        // the databases in use are "databaseLMP.res" (UseResources)
 };
 
 extern GameFlow g_gameFlow;
@@ -143,6 +148,8 @@ void RequestZone(std::string_view zone, int entrance);
 // the list emptied.
 void UnloadQuestTexts();
 extern std::vector<std::string> g_questFiles;
+// The quest folders registered (GameFlow::RegisterQuests).
+extern std::vector<std::string> g_questFolders;
 
 // Loads the quest texts of `zone`: false without the briefing texts or when the maps folder has no
 // "<zone>.mq". A running game server first lists the file's bytes under "<zone>.mq" for its clients

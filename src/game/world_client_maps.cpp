@@ -548,10 +548,19 @@ void WorldClient::Destroy() {
     rainSnow.Destroy();
     platforms.Destroy();
     platforms.list.clear();
-    SectorGrid& grid = objectGrid;
-    for (int x = 0; x < static_cast<int>(grid.width); ++x)
-        for (int y = 0; y < static_cast<int>(grid.height); ++y)
-            grid.rows[y][x].clear();
+    // Both grids, the dynamic objects, the frame's entries and the exits emptied as well: a switch of mods makes the
+    // world again (Create), which starts from none.
+    for (SectorGrid* grid : {&objectGrid, &secondGrid})
+        for (int x = 0; x < static_cast<int>(grid->width); ++x)
+            for (int y = 0; y < static_cast<int>(grid->height); ++y)
+                grid->rows[y][x].clear();
+    dynamicObjects.clear();
+    dynamicNodes.clear();
+    dynamicMaxId = 0;
+    screenEntries.clear();
+    hits.clear();
+    hitCursor = nullptr;
+    exits.clear();
     selectedIds.clear();
     heroes.clear();
     for (MapObject* object : objects)

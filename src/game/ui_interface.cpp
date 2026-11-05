@@ -206,7 +206,9 @@ void Interface3D::Shutdown() {
     }
     keybind::SaveKeyBindings();
     for (UiFont& font : fonts) font = UiFont{};
-    delete fade;    // (the pointer is not cleared)
+    delete fade;
+    fade = nullptr;
+    helpTopics.clear();
 }
 
 console::ConsoleWindow::~ConsoleWindow() {

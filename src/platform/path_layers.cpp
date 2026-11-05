@@ -1,4 +1,4 @@
-// The layered path map (path_layers.h; docs/notes/mods.md) and the mod the game plays (platform.h, UseMod).
+// The layered path map (path_layers.h; docs/notes/mods.md) and the mod the game plays (platform.h, SwitchMod).
 #include "platform/path_layers.h"
 
 #include "lib/text_case.h"
@@ -200,11 +200,15 @@ std::vector<FolderSearch> PathLayers::Searches(std::string_view pattern) const {
 
 const Mod* CurrentMod() { return g_mod.load(std::memory_order_acquire); }
 
-bool UseMod(std::string_view gameFolder, std::string_view modFolder) {
+bool SwitchMod(std::string_view gameFolder, std::string_view modFolder) {
+    // The mod played so far is never deleted: other threads may still map a path through it.
     const std::string game = FullGamePath(gameFolder);
     const std::string folder = FullGamePath(modFolder);
-    if (game.empty() || folder.empty() || !IsFolderPath(folder) || CurrentMod()) return false;
-    auto* mod = new Mod;   // for the program's life: other threads may hold it
+    if (game.empty() || folder.empty() || !IsFolderPath(folder)) {
+        g_mod.store(nullptr, std::memory_order_release);
+        return modFolder.empty();
+    }
+    auto* mod = new Mod;
     mod->folder = folder;
     mod->name = folder.substr(folder.find_last_of('\\') + 1);
     // The mod's folders' files, not its root's (config.reg, its readme, Rebirth's plugin) and no archive.

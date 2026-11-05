@@ -933,12 +933,9 @@ void SwitchResourceDatabases(const std::string& name) {
 }
 
 void GameFlow::UseResources(bool network) {
-    static std::string lastResources = kResourcesSingle;   // the resources in use
-    std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
-    if (str::Compare(wanted, lastResources) == 0)
-        return;
-    lastResources = wanted;
-    SwitchResourceDatabases(wanted);
+    if (network == networkResources) return;
+    networkResources = network;
+    SwitchResourceDatabases(network ? kResourcesNetwork : kResourcesSingle);
     if (network) {
         int value = options::g_options.difficulty;
         options::g_options.difficulty = 0;
@@ -1218,6 +1215,13 @@ void SavedParties::Reload() {
             }
         }
     }
+}
+
+void GameFlow::Restart() {
+    g_zoneTable.clear();
+    g_questFolders.clear();
+    g_questFiles.clear();
+    networkResources = false;
 }
 
 void GameFlow::BuildZoneTable() {

@@ -23,6 +23,9 @@ namespace modfolders {
 // The mod's folder with a trailing '\': the settings' [game] Mod (platform::ModFolder), else [rebirth] AddonPath; empty
 // without one.
 const std::string& ModPath();
+// The mod changes (a switch of mods, after the game's stop): the mod's archives closed, and what the layer read of the
+// mod (its folder, [Res] lists, Maps\ listing, the maps folder chosen) read again at the next use.
+void Reset();
 
 // OpenResource's entry (+8), before the archive opens: the first call loads the mod's
 // archives; then `res` is recorded as opened from `path` (an archive the mod overrides or ignores).

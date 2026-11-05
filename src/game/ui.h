@@ -324,8 +324,9 @@ public:
 
     // Clears the modifier and button flags and deactivates the top window.
     void ResetInput();
-    // The main loop's exit: closes every window, writes the help topics to config\tutorial.ini, saves the
-    // key bindings and frees what Create made (the queued window and the fade pointers are not cleared).
+    // The game's stop (its exit, a switch of mods): closes every window, writes the help topics to
+    // config\tutorial.ini and forgets them, saves the key bindings and frees what Create made (the queued window's
+    // pointer is not cleared).
     void Shutdown();
 
     // Writes what LoadState reads, with an empty obsolete list (count 0).

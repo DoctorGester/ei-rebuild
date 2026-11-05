@@ -81,7 +81,8 @@ struct MapDatabase {
     AllodRecord* FindAllod(std::string_view name);
     // Adds the allods and maps of a map.txt-style text file. Returns false if the file is not found.
     bool Load(const char* fileName);
-    // Loads "map.txt", then "map-LMP.txt"; returns the second Load's result (WinMain does not read it).
+    // The lists emptied, then "map.txt" and "map-LMP.txt" loaded; returns the second Load's result (WinMain does not
+    // read it).
     bool LoadAll();
 
     std::vector<AllodRecord> allods;

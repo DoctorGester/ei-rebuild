@@ -13,17 +13,21 @@
 #include "item_db.h"
 #include "lever.h"
 #include "logic_settings.h"
+#include "mod_folders.h"
 #include "model.h"
+#include "net_classes.h"
 #include "net_coder.h"
 #include "net_session.h"
 #include "object_tables.h"
 #include "options.h"
 #include "party_records.h"
 #include "quest_records.h"
+#include "random.h"
 #include "sound.h"
 #include "texture.h"
 #include "ui.h"
 #include "ui_cursor.h"
+#include "ui_screens.h"
 #include "screen_layout.h"
 #include "settings.h"
 #include "unit_db.h"
@@ -41,8 +45,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "../platform/log.h"
@@ -181,20 +188,59 @@ void OpenSound() {
     g_clientWorld.sounds->panDirect = options->reverseStereo != 0;
 }
 
+// `database` emptied, then loaded: a start after a switch of mods reads the new mod's.
+template <class Database, class... Arguments>
+void LoadFresh(Database& database, const Arguments&... arguments) {
+    database = Database();
+    database.Load(arguments...);
+}
+
 void LoadDatabases() {
     const std::string archive = "database.res";
     GameOptions* options = &options::g_options;
-    g_skillDatabase.Load(options->resourcesPath, archive);
-    g_questDatabase.Load(options->resourcesPath);
-    g_unitDatabase.Load(options->resourcesPath, archive);
-    g_spellDatabase.Load(options->resourcesPath, archive);
-    g_itemDatabase.Load(options->resourcesPath, archive);
-    g_leverTable.Load(options->resourcesPath);
-    g_ackDatabase.Load(options->resourcesPath);
-    g_printsDatabase.Load(options->resourcesPath);
+    LoadFresh(g_skillDatabase, options->resourcesPath, archive);
+    LoadFresh(g_questDatabase, options->resourcesPath);
+    LoadFresh(g_unitDatabase, options->resourcesPath, archive);
+    LoadFresh(g_spellDatabase, options->resourcesPath, archive);
+    LoadFresh(g_itemDatabase, options->resourcesPath, archive);
+    LoadFresh(g_leverTable, options->resourcesPath);
+    LoadFresh(g_ackDatabase, options->resourcesPath);
+    LoadFresh(g_printsDatabase, options->resourcesPath);
+}
+
+// The game's half of the start, which the program's start and a switch of mods both run (docs/notes/mods.md,
+// "Switching mods"): the logic settings (config\ai.reg, a mod's file), both worlds, the camera, the folders, the
+// sound, the databases and the map list; then the sun (the renderer's default light), the world's graphics, the
+// cursors, the interface and the first map. `openDisplay` (the program's start: the window, the renderer and the start
+// movies) runs between the two; false from it ends the start.
+bool StartGame(const std::function<bool()>& openDisplay) {
+    GameOptions* options = &options::g_options;
+    g_gameFlow.Restart();
+    g_logicSettings.Load(g_startFolder + "config\\ai.reg");
+    // The generators (and the CRT's rand) seeded again by World::Create, as at the program's start.
+    g_random.seeded = 0;
+    g_clientRandom.seeded = 0;
+    g_clientWorld.Create();
+    g_serverWorld.Create();
+    // The field of view: pi * 2 / 7 (51.4 degrees).
+    g_camera.Init(options, options->nearClipDistance, options->farClipDistance, kPi * 2.0f / 7.0f);
+    g_clientWorld.camera = &g_camera;
+    CreateFolders();
+    if (options->audio) OpenSound();
+    LoadDatabases();
+    g_mapDatabase.LoadAll();
+    if (openDisplay && !openDisplay()) return false;
+    g_sceneRenderer.AddDefaultLight();
+    g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
+    SetUpCursors(0);
+    g_interface.Create(g_sceneRenderer.device);
+    StartFirstMap();
+    return true;
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------
+
+void TakeModSwitch();   // a switch of mods asked for (RequestModSwitch), made between two passes
 
 // The loop's clock (milliseconds): the time of the last pass (read at the first), the time not yet run by the server
 // and by the client, and the client's speed.
@@ -349,6 +395,7 @@ void DrawFrame() {
 // One pass of the loop while no message waits. Returns whether the interface takes the input
 // messages from now on: not while the renderer is inactive.
 bool RunPass() {
+    TakeModSwitch();
     g_sceneRenderer.running = g_active != 0;
     TakeResolutionChange();
     UpdateCursorConfinement();
@@ -410,18 +457,91 @@ void EmptyWorlds() {
     g_clientWorld.Destroy();
 }
 
-void ShutDown() {
+// The game's half of the stop, which the exit and a switch of mods both run: the interface, the cursors, the composed
+// textures and both worlds (every manager and its archives, the sound and the music). The renderer, the window, the
+// audio device and the settings stay, holding nothing of the worlds: the sun light, the textures bound to the stages
+// and the material let go first.
+void StopGame() {
     ForgetComposedTextures();
     g_interface.Shutdown();
     g_cursor.Shutdown();
-    g_sceneRenderer.SetGamma(0.0f, 0.0f);
-    g_sceneRenderer.DestroyRenderer();
-    options::g_options.Save();
+    g_sceneRenderer.SetSun(nullptr);
+    if (TextureDevice* device = g_sceneRenderer.device) {
+        for (Surface*& stage : device->stageSurfaces) stage = nullptr;
+        device->SetMaterial(nullptr);
+    }
     g_clientWorld.camera = nullptr;
     EmptyWorlds();
 }
 
+void ShutDown() {
+    StopGame();
+    g_sceneRenderer.SetGamma(0.0f, 0.0f);
+    g_sceneRenderer.DestroyRenderer();
+    options::g_options.Save();
+}
+
+// ---- A switch of mods ------------------------------------------------------------------------------
+
+std::string g_gameFolder;                  // the game folder (UseMod at the start)
+std::optional<std::string> g_modRequest;   // the settings' Mod a switch asked for, taken at the loop's next pass
+
+// In the main menu (its window on top, no request pending) with no network session.
+bool ModSwitchAllowed() {
+    return g_serverWorld.zoneMode == ZoneMode::MainMenu && g_gameFlow.state == 0 &&
+           dynamic_cast<MainMenu*>(g_interface.GetActiveWindow()) != nullptr && !IsLive(net::g_gameClient) &&
+           !IsLive(net::g_gameServer);
+}
+
+void TakeModSwitch() {
+    if (!g_modRequest) return;
+    const std::string mod = *std::exchange(g_modRequest, std::nullopt);
+    if (!ModSwitchAllowed()) {
+        ei::Log("mod: the switch to \"%s\" refused: not in the main menu, or a network session", mod.c_str());
+        return;
+    }
+    ei::Log("mod: switching to \"%s\"", mod.c_str());
+    StopGame();
+    modfolders::Reset();
+    UseMod(g_gameFolder, mod);
+    settings::SetString(settings::kGame, "Mod", mod);
+    g_clock = LoopClock{};
+    StartGame({});
+}
+
 } // namespace
+
+void UseMod(const std::string& gameFolder, const std::string& setting) {
+    g_gameFolder = gameFolder;
+    if (setting.empty()) {
+        platform::SwitchMod(gameFolder, "");
+        return;
+    }
+    std::string folder = setting;
+    const bool full = setting[0] == '\\' || setting[0] == '/' || (setting.size() >= 2 && setting[1] == ':');
+    if (!full) {
+        const std::string program = platform::ProgramPath();
+        folder = program.substr(0, program.find_last_of("\\/") + 1) + setting;
+    }
+    if (platform::SwitchMod(gameFolder, folder)) {
+        const std::string played = platform::ModFolder();
+        ei::Log("mod: %s (its saves in saves\\%s)", played.c_str(), played.substr(played.find_last_of('\\') + 1).c_str());
+    } else {
+        ei::Log("mod: no folder %s; the game without a mod", folder.c_str());
+    }
+}
+
+bool RequestModSwitch(const std::string& setting) {
+    if (!ModSwitchAllowed()) {
+        ei::Log("mod: a switch to \"%s\" asked for outside the main menu, or in a network session: refused",
+                setting.c_str());
+        return false;
+    }
+    g_modRequest = setting;
+    return true;
+}
+
+bool ModSwitchPending() { return g_modRequest.has_value(); }
 
 char g_windowTitle[256] = /*0079BB24*/ {""};
 platform::NativeWindow g_mainWindow = /*0079BC28*/ {};
@@ -456,43 +576,35 @@ int GameMain(char* commandLine) {
 
     GameOptions* options = &options::g_options;
     g_startFolder = platform::CurrentFolder() + '\\';
-    g_logicSettings.Load(g_startFolder + "config\\ai.reg");
     options->Load();
     // The layout comes from the configured resolution, which is the frame's size: the window made later may get a
     // smaller client area (a work area too small for it), and the renderer scales the frame into it.
     screen_layout::Configure(options->resolutionX, options->resolutionY);
     std::atexit(EmptyWorlds);
-    g_clientWorld.Create();
-    g_serverWorld.Create();
-    // The field of view: pi * 2 / 7 (51.4 degrees).
-    g_camera.Init(options, options->nearClipDistance, options->farClipDistance, kPi * 2.0f / 7.0f);
-    g_clientWorld.camera = &g_camera;
-    if (!CheckDiskSpace()) return kExitDeclined;
-    CreateFolders();
 
-    g_mainWindow = platform::CreateGameWindow(g_windowTitle, options->resolutionX, options->resolutionY,
-                                              options->fullScreen != 0);
-    if (!g_mainWindow) return 0;
-    platform::ShowGameWindow(g_mainWindow);
-    platform::SetModalLoopStep(StepMusic);
-    platform::SetCursor(nullptr);
-
-    // What needs no device is done first: the renderer's start (CreateRenderer) takes the device from its thread, which
-    // has most of its ~260 ms still to go.
-    if (options->audio) OpenSound();
-    LoadDatabases();
-    g_mapDatabase.LoadAll();
-    g_sceneRenderer.CreateRenderer(g_mainWindow, options);
-    g_sceneRenderer.SetGamma(options->brightness, options->gamma);
-
-    PlayMovies("Start", true);
-    // The loading screen's first frame stays up while the world's graphics, the cursors and the interface are made.
-    ShowLoadingMovie(0);
-    CloseLoadingMovie();
-    g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
-    SetUpCursors(0);
-    g_interface.Create(g_sceneRenderer.device);
-    StartFirstMap();
+    // What needs no device is done first (StartGame's files): the renderer's start (CreateRenderer) takes the device
+    // from its thread, which has most of its ~260 ms still to go.
+    int declined = 0;
+    const bool started = StartGame([&declined, options] {
+        if (!CheckDiskSpace()) {
+            declined = kExitDeclined;
+            return false;
+        }
+        g_mainWindow = platform::CreateGameWindow(g_windowTitle, options->resolutionX, options->resolutionY,
+                                                  options->fullScreen != 0);
+        if (!g_mainWindow) return false;
+        platform::ShowGameWindow(g_mainWindow);
+        platform::SetModalLoopStep(StepMusic);
+        platform::SetCursor(nullptr);
+        g_sceneRenderer.CreateRenderer(g_mainWindow, options);
+        g_sceneRenderer.SetGamma(options->brightness, options->gamma);
+        PlayMovies("Start", true);
+        // The loading screen's first frame stays up while the world's graphics, the cursors and the interface are made.
+        ShowLoadingMovie(0);
+        CloseLoadingMovie();
+        return true;
+    });
+    if (!started) return declined;
 
     const int result = RunMainLoop();
     ShutDown();

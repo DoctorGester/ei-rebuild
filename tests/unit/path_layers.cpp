@@ -68,9 +68,9 @@ int RunPathLayersChecks() {
     std::uint32_t code = 0;
     platform::SetCurrentFolder(g, &code);
     Expect("the current folder's path", platform::FullGamePath(".\\maps\\zone1.mob"), g + "\\maps\\zone1.mob");
-    if (!platform::UseMod(g, m)) {
+    if (!platform::SwitchMod(g, m)) {
         ++failures;
-        std::printf("ei_unit_check: path layers: UseMod refused %s\n", m.c_str());
+        std::printf("ei_unit_check: path layers: SwitchMod refused %s\n", m.c_str());
     } else {
         Expect("the mod's folder", platform::ModFolder(), m);
         Expect("the mod's file", platform::SystemPath(".\\config\\ai.reg", platform::PathUse::Read), m + "\\config\\ai.reg");
@@ -100,6 +100,17 @@ int RunPathLayersChecks() {
         for (const platform::FolderEntry& entry : platform::FolderEntries(".\\*.*"))
             if (!entry.IsDots()) names += entry.name + " ";
         Expect("the root's search", names, "Config Maps readme.txt Res saves starter ");
+        // A switch to the game's own files, then back to the mod.
+        Expect("a switch to no mod", platform::SwitchMod(g, "") ? "yes" : "no", "yes");
+        Expect("no mod's folder", platform::ModFolder(), "");
+        Expect("the game's file again", platform::SystemPath(".\\config\\ai.reg", platform::PathUse::Read),
+               ".\\config\\ai.reg");
+        Expect("a missing mod refused", platform::SwitchMod(g, g + "\\starter\\Mods\\None") ? "yes" : "no", "no");
+        Expect("no mod after a refusal", platform::ModFolder(), "");
+        Expect("a switch back", platform::SwitchMod(g, m) ? "yes" : "no", "yes");
+        Expect("the mod's file again", platform::SystemPath(".\\config\\ai.reg", platform::PathUse::Read),
+               m + "\\config\\ai.reg");
+        platform::SwitchMod(g, "");
     }
     platform::SetCurrentFolder(before, &code);
     fs::remove_all(root, error);

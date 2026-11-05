@@ -96,5 +96,16 @@ void UpdateCursorConfinement();
 void StartVideo();
 // WinMain: the application's start-up, main loop and shutdown.
 int GameMain(char* commandLine);
+// The mod the game plays (docs/notes/mods.md): `setting` is the settings' [game] Mod, the mod's folder relative to the
+// exe's folder or in full, empty for none (platform::SwitchMod over `gameFolder`); the mod, or its folder missing, is
+// logged. main's, before GameMain, and each switch of mods.
+void UseMod(const std::string& gameFolder, const std::string& setting);
+// A switch of mods (docs/notes/mods.md, "Switching mods"), `setting` as UseMod's: at the main loop's next pass the game
+// stops (StopGame), the mod changes, the settings' Mod takes `setting` and the game starts again (StartGame) in its
+// main menu; the renderer, the window and the audio device stay. Only in the main menu (its window on top) with no
+// network session: false and nothing asked otherwise.
+bool RequestModSwitch(const std::string& setting);
+// Whether a switch asked for is still to be made.
+bool ModSwitchPending();
 
 } // namespace app
