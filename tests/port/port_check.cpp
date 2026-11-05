@@ -58,6 +58,21 @@ int main() {
     const std::string tooLong(128, 'x');
     Check(lib::FormatLocalTime(0, tooLong.c_str()).empty(), "reject oversized saved timestamp text");
     Check(lib::LocalDateTime(86400 * 365).year == 1971, "local date of a time");
+    {
+        // The settings file's folder: the program's own, or (macOS, where that is inside the app) the per-user one.
+        const std::string folder = platform::DefaultSettingsFolder();
+        Check(!folder.empty() && (folder.back() == '/' || folder.back() == '\\'),
+              "the settings folder ends with a separator");
+#if defined(__APPLE__)
+        Check(folder.find(".app/") == std::string::npos && folder.find("ei-rebuild") != std::string::npos,
+              "the settings folder is outside the app");
+#else
+        const std::string program = platform::ProgramPath();
+        Check(program.compare(0, folder.size(), folder) == 0 &&
+                  program.find_first_of("/\\", folder.size()) == std::string::npos,
+              "the settings folder is the program's own");
+#endif
+    }
     namespace fs = std::filesystem;
     const fs::path old = fs::current_path();
     std::string temp = (fs::temp_directory_path() / "ei-port-XXXXXX").string();

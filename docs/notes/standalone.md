@@ -244,7 +244,8 @@ writes the registry.
   `src/game/settings_catalog.inc` (section, name, default, values, description; `settings::Describe`). The defaults
   file carries each line's description as the comment above it; a file that already exists gains no comments. The
   build check fails when the doc is stale, or when a setting the code reads has no row (or a row nothing reads).
-- **Where:** the first place that holds a file: next to the exe, then `%LOCALAPPDATA%\EvilIslands\ei_settings.ini`.
+- **Where:** the first place that holds a file: `platform::DefaultSettingsFolder()` (next to the exe; on macOS
+  `~/Library/Application Support/ei-rebuild`, since the exe is inside the app), then `%LOCALAPPDATA%\EvilIslands\ei_settings.ini`.
   - **Neither exists:** the defaults are written to the first place that takes them: next to the exe, else the per-user
     one. So an exe in a folder the user cannot write keeps its options per user.
   - **Nowhere writable:** the session runs on the defaults in memory.

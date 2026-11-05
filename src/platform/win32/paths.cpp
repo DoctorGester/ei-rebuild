@@ -61,6 +61,11 @@ std::string DefaultGameFolder() { return ProgramFolder(); }
 
 std::string DefaultOutputFolder() { return ProgramFolder(); }
 
+std::string DefaultSettingsFolder() {
+    const std::string folder = ProgramFolder();
+    return folder.empty() ? folder : folder + "\\";
+}
+
 bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
     if (SetCurrentDirectoryW(text::Wide(path).c_str())) return true;
     *error = GetLastError();

@@ -71,6 +71,10 @@ std::string DefaultGameFolder();
 // The folder for the log and a run's other output when nothing names one (log.h's EI_OUT_DIR): the program's own
 // folder; on macOS ~/Library/Logs/ei-rebuild.
 std::string DefaultOutputFolder();
+// The folder that holds ei_settings.ini when nothing pins the file (settings.cpp), with a trailing separator: the
+// program's own folder; on macOS, where that is inside the app, ~/Library/Application Support/ei-rebuild (beside
+// game_folder.txt). Empty when the program has no folder.
+std::string DefaultSettingsFolder();
 // What follows the argument "--" on the program's command line: on Windows the command line's own text, as typed;
 // elsewhere the arguments (main's) joined by spaces. Empty without one.
 std::string ArgumentsAfterSeparator(int argc, char** argv);
