@@ -920,7 +920,12 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   flags, a multiplayer spectator's hidden units, CastsShadow's tests). Each part is placed as
   Object3DClientSpecific::DrawParts places it; a part the game drew this frame is left out (`render::CasterPartDrawn`). Cut out
   by alpha as the on-screen meshes with the same texture were, else at alpha 0.5. A part's corners are kept on the GPU in
-  the pool (`KeepCasterMesh`) and read again only when the game says the part moved or was rebuilt.
+  the pool (`KeepCasterMesh`) and read again only when the game says the part moved or was rebuilt. Per frame a part
+  costs its selection, its placement (object x part matrix) and the light x model product of its instance. CPU at
+  3840 x 2160 (harness build, its mesh checks included; the shadow map's CPU ms with them / without them, R24): the town
+  bz1g 0.23 / 0.14 (the walk 0.05, 120 parts handed over), with the camera moved until the gate leaves the screen
+  0.35-0.5 / 0.25-0.4 (the walk 0.07-0.10, 170-180 parts, 9k corners); R20 measured +0.4 and +1.0 when the corners were
+  copied each frame.
 - **Faces turned away from the sun** have no sun light to lose (the GPU lights them by N.L), so a receiver darkens by its
   own facing with a normal-offset bias. Check: render_shadows_mound (the user's save in tests/saves/shadow_mound).
 - **Steady soft edges.** Per-cell reads of the range image made cell-sized squares and straight cuts in a penumbra that
@@ -1360,8 +1365,8 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   ```
   `FPS` and the frame time (between presents, so vsync's wait counts) with the worst frame; `GPU` the whole frame's GPU
   time (one submission's work, the present's pass with it; the worst too: section 15c, "The frame's GPU time"). `CPU
-  SUBMIT` the main thread's time in EndFrame's draws up to the present, and of it `SHADOW` the shadow map's fitting and
-  pass; `DRAWS` the frame's draws by pass (`perf::Pass`: the sun's map with its range passes, the point lights' faces,
+  SUBMIT` the main thread's time in EndFrame's draws up to the present; `SHADOW` the shadow maps' fitting and passes
+  (part of SUBMIT) and the world draw's walk of the casters outside the view (before it); `DRAWS` the frame's draws by pass (`perf::Pass`: the sun's map with its range passes, the point lights' faces,
   the world view, the interface). `GPU -` until a frame's time comes back.
 - **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.hlsl`): `BeginDraws` at the first DrawPending begins the frame
   in UI, `Enter(pass)` marks each change of pass for the draw counts, `EndDraws` after DrawToWindow; `FrameDone` at the
