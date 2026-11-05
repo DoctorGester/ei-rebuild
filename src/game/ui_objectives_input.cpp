@@ -41,9 +41,17 @@ constexpr float kAlphaScale = 255.0f;
 
 } // namespace
 
-void ObjectivesWindow::LeftDown(Point point) {
-    UiContainer::LeftDown(point);
-    UiRegion* region = RegionUnder(point);
+void ObjectivesWindow::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void ObjectivesWindow::LeftDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    UiRegion* region = RegionUnder(event.at);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
     if (region == okButton) {
         ui->PlayInterfaceSound(kOkSound);
@@ -96,10 +104,10 @@ void ObjectivesWindow::LeftDown(Point point) {
     ui->PlayInterfaceSound(kMessageBoxCancelSound);
 }
 
-void ObjectivesWindow::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
+void ObjectivesWindow::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
     int step = 0;
-    switch (key) {
+    switch (event.key) {
     case platform::Key::Return:
         ui->PlayInterfaceSound(kOkSound);
         if (!twoButtons) {
@@ -110,12 +118,12 @@ void ObjectivesWindow::KeyDown(platform::Key key, int scan, bool repeat) {
             g_serverWorld.PassTime(exit.distance);
             RequestZone(shownZone, index);
         }
-        handled = true;
+        event.handled = true;
         break;
     case platform::Key::Escape:
         ui->PlayInterfaceSound(!twoButtons ? kOkSound : kMessageBoxCancelSound);
         ui->SetPendingValue(0);
-        handled = true;
+        event.handled = true;
         break;
     case platform::Key::PageUp: step = -5; break;
     case platform::Key::PageDown: step = 5; break;
@@ -127,9 +135,9 @@ void ObjectivesWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         ui->PlayInterfaceSound(kSelectSound);
         selectedQuest += step;
         RefreshQuests();
-        handled = true;
+        event.handled = true;
     }
-    if (!handled && g_keyActions[scan] == kActionObjectives && !twoButtons) {
+    if (!event.handled && g_keyActions[event.scan] == kActionObjectives && !twoButtons) {
         ui->PlayInterfaceSound(kMessageBoxOkSound);
         ui->SetPendingValue(0);
     }

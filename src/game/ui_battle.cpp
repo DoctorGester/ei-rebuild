@@ -1,5 +1,5 @@
 // The battle screen (BattleScreen): its creation, saved state and party events, and its every-frame update. See
-// docs/notes/ui.md ("Battle screen"). The input side: ui_battle_input.cpp.
+// docs/notes/ui.md ("Battle screen"). The input: ui_battle_input.cpp.
 #include "app.h"
 #include "camera.h"
 
@@ -100,10 +100,6 @@ void BattleScreen::CreateScreen() {
         }
     }
 
-    // The screen's own input handler.
-    UiInputSide* input = new UiInertInput(ui);
-    AddInput(input);
-
     CreateTexture(0x100, 0x100, TextureKind::Blank1555);
     CreateTexture(0x100, 0x100, TextureKind::Blank1555);
     LoadTexture("battle00", TextureKind::Interface);
@@ -201,7 +197,7 @@ void BattleScreen::LayoutChanged() {
     const PendingAction mode = pendingAction;
     const int slot = pendingSlot, item = pendingItem;
     for (UiWindow* child : children) {
-        child->Input()->Deactivate();
+        child->Deactivate();
         if (ui->mouseCapture == child) ui->mouseCapture = nullptr;
         delete child;
     }
@@ -228,7 +224,8 @@ void BattleScreen::DrawSprites(SceneRenderer* pass) {
         pass->DrawRectangle(selectionBox.left, selectionBox.top, selectionBox.right,
                                                             selectionBox.bottom, 0x40, 1);
     }
-    Input()->MouseMove(g_cursor.position);
+    UiEvent move{.kind = UiEventKind::MouseMove, .at = g_cursor.position};
+    OnEvent(move);
     // The depth buffer is cleared before the panels draw.
     ClearUiDepth(1.0f);
     // "nogui" shows or hides the panels (Rebirth's AddNewConsoleCommands).
@@ -675,18 +672,31 @@ bool BattleScreen::PartyIds::Equals(const BattleScreen::PartyIds& other) const {
 
 // --- the battle screen's left button release -----------------------------------------------------
 
-void BattleScreen::LeftUp(Point point) {
+void BattleScreen::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::LeftDouble: LeftDouble(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    case UiEventKind::KeyUp: KeyUp(event); break;
+    case UiEventKind::Wheel: Wheel(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void BattleScreen::LeftUp(UiEvent& event) {
     if (portraitMode != 0) return;
     if (!viewPressed) {
-        UiContainer::LeftUp(point);
+        UiContainer::OnEvent(event);
         return;
     }
     viewPressed = false;
     WorldClient* world = &g_clientWorld;
     if (!boxSelecting || IsMultiplayerClient()) {
-        Unit* unit = world->UnitAt(point);
+        Unit* unit = world->UnitAt(event.at);
         if (unit && !(unit->flags & MapObjectFlag::InParty)) unit = nullptr;
-        SelectUnit(unit, point);
+        SelectUnit(unit, event.at);
         return;
     }
 

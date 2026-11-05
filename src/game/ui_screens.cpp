@@ -272,8 +272,18 @@ void UiItemStrip::SettleScroll() {
     ui->mouseCapture = nullptr;
 }
 
-void UiItemStrip::LeftDown(Point point) {
-    UiRegion* region = RegionUnder(point);
+void UiItemStrip::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::Wheel: Wheel(event); break;
+    default: UiItemPanel::OnEvent(event); break;
+    }
+}
+
+void UiItemStrip::LeftDown(UiEvent& event) {
+    UiRegion* region = RegionUnder(event.at);
     const int scrollButton = RegionIndex(scrollButtons, region);
     if (scrollButton >= 0) {
         if (!ui->shiftDown) {
@@ -292,29 +302,36 @@ void UiItemStrip::LeftDown(Point point) {
         ui->PlayInterfaceSound(kSoundCampMode);
         SetTab(tabButton);
     }
-    if (region) handled = true;
+    if (region) event.handled = true;
 }
 
-void UiItemStrip::LeftUp(Point) {
+void UiItemStrip::LeftUp(UiEvent&) {
     if (scrollDirection != 0) SettleScroll();
 }
 
-void UiItemStrip::MouseMove(Point point) {
+void UiItemStrip::MouseMove(UiEvent& event) {
     // Leaving the held arrow stops scrolling.
-    if (scrollDirection != 0 && RegionUnder(point) != scrollButtons[scrollDirection - 1]) SettleScroll();
+    if (scrollDirection != 0 && RegionUnder(event.at) != scrollButtons[scrollDirection - 1]) SettleScroll();
 }
 
-void UiItemStrip::Wheel(float notches, Point point) {
-    if (RegionUnder(point) == itemArea) {
-        pending = static_cast<int>(notches) + pending;   // whole notches, towards 0
+void UiItemStrip::Wheel(UiEvent& event) {
+    if (RegionUnder(event.at) == itemArea) {
+        pending = static_cast<int>(event.delta) + pending;   // whole notches, towards 0
         ui->PlayInterfaceSound(kSoundCampScroll);
     }
 }
 
-void ForwardingStrip::LeftDown(Point point) {
-    UiItemStrip::LeftDown(point);
+void ForwardingStrip::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    default: UiItemStrip::OnEvent(event); break;
+    }
+}
+
+void ForwardingStrip::LeftDown(UiEvent& event) {
+    UiItemStrip::LeftDown(event);
     int cursor = 0;   // the cursor for the mode, not used here
-    Item* item = ItemAt(point, &cursor);
+    Item* item = ItemAt(event.at, &cursor);
     if (item) owner->TakeItem(item, mode);
 }
 
@@ -462,8 +479,8 @@ bool MpHeroScreen::CanEquip(Item* item, int) {
 
 PartyUnitRecord* MpHeroScreen::HeroRecord() { return LocalPlayerData()->members.data(); }
 
-void MpHeroScreen::LeftUp(Point point) {
-    UiContainer::LeftUp(point);
+void MpHeroScreen::LeftUp(UiEvent& event) {
+    UiContainer::OnEvent(event);
     // Releasing a rotate arrow.
     ReleaseMouse();
     rotating = 0;
@@ -471,9 +488,9 @@ void MpHeroScreen::LeftUp(Point point) {
 
 // --- EscMenu ---------------------------------------------------------------------------------
 
-void EscMenu::MouseMove(Point point) {
+void EscMenu::MouseMove(UiEvent& event) {
     UiModel* model = models[0];
-    const int stone = RegionIndex(stones, RegionUnder(point));
+    const int stone = RegionIndex(stones, RegionUnder(event.at));
     // Hovering a stone plays its animation (save and load only in single player).
     switch (stone) {
     case kSave:
@@ -508,15 +525,15 @@ void EscMenu::MouseMove(Point point) {
         hovered = -1;
         break;
     }
-    UiContainer::MouseMove(point);
+    UiContainer::OnEvent(event);
 }
 
-void EscMenu::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
-    if (key == platform::Key::Escape) {
+void EscMenu::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.key == platform::Key::Escape) {
         ui->PlayInterfaceSound(kSoundMenuOk);
         ui->SetPendingValue(0);
-        handled = true;
+        event.handled = true;
     }
 }
 
@@ -538,29 +555,36 @@ void CreditsScreen::Close() {
     else g_gameFlow.CloseSessions();
 }
 
-void CreditsScreen::LeftDown(Point) { Close(); }
+void CreditsScreen::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: Close(); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
 
-void CreditsScreen::KeyDown(platform::Key key, int, bool) {
+void CreditsScreen::KeyDown(UiEvent& event) {
+    const platform::Key key = event.key;
     if (key == platform::Key::Return || key == platform::Key::Escape || key == platform::Key::Space) Close();
 }
 
 // --- ExchangeScreen --------------------------------------------------------------------------
 
-void ExchangeScreen::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
-    if (handled) return;
-    switch (key) {
+void ExchangeScreen::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
+    switch (event.key) {
     case platform::Key::Backspace:
         ui->ChatKeyBackspace();
-        handled = true;
+        event.handled = true;
         break;
     case platform::Key::Return:
         ui->ChatKeyEnter();
-        handled = true;
+        event.handled = true;
         break;
     case platform::Key::Escape:
         net::g_gameClient->DropParty();
-        handled = true;
+        event.handled = true;
         break;
     }
 }

@@ -15,7 +15,7 @@ constexpr int kFont = 1;
 
 } // namespace
 
-// The window's virtuals; the input side's click and a left double click that does nothing. Its surface paints the
+// The window's virtuals; its click and a left double click that does nothing. Its surface paints the
 // current value's text.
 UiSpin::UiSpin(Interface3D* ui, Rect newRect, const char* text) : UiWindow(ui) {
     rect = newRect;
@@ -57,7 +57,15 @@ void UiSpin::Step(int by) {
 
 // --- A click steps the value ------------------------------------------------------------------------
 
-void UiSpin::LeftDown(Point) {
+void UiSpin::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftDouble: break;   // a double click does nothing
+    default: break;
+    }
+}
+
+void UiSpin::LeftDown(UiEvent&) {
     ui->PlayInterfaceSound(kMessageBoxOkSound);
     SetValue(value + 1);
 }

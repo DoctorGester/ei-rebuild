@@ -10,23 +10,23 @@
 #include <cstddef>
 #include <cstdint>
 
-// The picked units' input side (one of screen 7's extra inputs). The other virtuals are the base
-// input side's.
-struct UnitPickInput final : UiInputSide {
-    using UiInputSide::UiInputSide;
+// The picked units' input (one of screen 7's extra inputs).
+struct UnitPickInput final : UiInput {
+    using UiInput::UiInput;
 
+    void OnEvent(UiEvent& event) override;
     // Without Ctrl: a unit under the point is added to the
     // list (its id) and controlled; else each listed unit still in the client world
     // walks to the ground point under it. With Ctrl and a unit under the point: each listed unit
     // attacks it (how 6). The event is not marked used.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // The list emptied (storage freed), the world's selection cleared.
-    void RightDown(Point point) override;
+    void RightDown(UiEvent& event);
     // Ctrl (platform::Key::Control) shows cursor 1; Space toggles the server
     // flag.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // Ctrl released: cursor 0.
-    void KeyUp(platform::Key key, int scan) override;
+    void KeyUp(UiEvent& event);
 
     std::vector<std::uint32_t> picked;             // ids of the picked units
 };
@@ -36,7 +36,7 @@ struct UnitPickInput final : UiInputSide {
 class ViewScreen : public UiContainer {
 public:
     explicit ViewScreen(Interface3D* ui) : UiContainer(ui) {}
-    // The screen's Create. Three extra inputs: an inert one, UnitPickInput, the battle camera's keys; the camera
+    // The screen's Create. Two extra inputs: UnitPickInput, the battle camera's keys; the camera
     // no longer free, its focus at (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
     void CreateScreen() override;
     // The client glue's per-frame step.

@@ -78,9 +78,17 @@ void ExchangeScreen::Update() {
 
 // --- the left button -------------------------------------------------------------------------------
 
-void ExchangeScreen::LeftDown(Point point) {
-    UiContainer::LeftDown(point);
-    UiRegion* region = RegionUnder(point);
+void ExchangeScreen::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: ItemScreen::OnEvent(event); break;
+    }
+}
+
+void ExchangeScreen::LeftDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    UiRegion* region = RegionUnder(event.at);
     if (region == acceptButton) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && !offer->accepted && ownOffer->money <= LocalPlayerData()->money) {

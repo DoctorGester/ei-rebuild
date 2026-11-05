@@ -213,10 +213,18 @@ void ChatOverlay::PaintTyped(UiSurface& surface) const {
 
 // --- the chat line's keys -------------------------------------------------------------------------
 
-void ChatOverlay::KeyDown(platform::Key key, int, bool) {
+void ChatOverlay::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    case UiEventKind::Char: Char(event); break;
+    default: break;
+    }
+}
+
+void ChatOverlay::KeyDown(UiEvent& event) {
     if (!chatOpen) return;
-    handled = true;
-    switch (key) {
+    event.handled = true;
+    switch (event.key) {
     case platform::Key::Backspace: {   // by character, as Delete and the caret's steps
         if (caret <= 0) break;
         const int previous = text::PreviousCharacter(typed, caret);
@@ -253,24 +261,25 @@ void ChatOverlay::KeyDown(platform::Key key, int, bool) {
     ShowTyped();
 }
 
-void ChatOverlay::Char(int key, int) {
+void ChatOverlay::Char(UiEvent& event) {
     if (!chatOpen) return;
-    if (key == '\b' || key == '\t' || key == '\r' || key == '\x1B') return;
-    std::string line = text::Typed(str::Left(typed, caret), key) + str::Mid(typed, caret);
+    const int character = event.character;
+    if (character == '\b' || character == '\t' || character == '\r' || character == '\x1B') return;
+    std::string line = text::Typed(str::Left(typed, caret), character) + str::Mid(typed, caret);
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one.
     if (!ui->ctrlDown && text::CharacterCount(typed) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
         ui->TextExtent(line, kTypedFont).w < kMaxTypedWidth) {
         typed = line;
-        caret += text::TypedLength(key);
+        caret += text::TypedLength(character);
     }
     ShowTyped();
 }
 
 // --- the constructor -----------------------------------------------------------------------------
 
-// Its own redraw and update; the input side's keys and characters.
+// Its own redraw and update; its keys and characters.
 ChatOverlay::ChatOverlay(Interface3D* ownerUi) : UiWindow(ownerUi) {
     UiSurface* newTyped = new UiSurface(ui, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true);
     AddSurface(newTyped);

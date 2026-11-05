@@ -46,7 +46,7 @@ constexpr std::uint32_t kWhite = 0xFFFFFF;
 
 // --- the constructor -----------------------------------------------------------------------------
 
-// Its own update; the input side's click and mouse move.
+// Its own update; its click and mouse move.
 ChatWindow::ChatWindow(Interface3D* ownerUi, BriefingScreen* screen) : UiWindow(ownerUi), briefing(screen) {
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
@@ -205,12 +205,20 @@ void ChatWindow::PaintStatus(UiSurface& surface) const {
     }
 }
 
-// --- the input side's left button and mouse move -------------------------------------------------
+// --- the left button and mouse move --------------------------------------------------------------
 
-void ChatWindow::LeftDown(Point point) {
-    const int index = RegionIndex(regions, RegionUnder(point));
+void ChatWindow::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    default: break;
+    }
+}
+
+void ChatWindow::LeftDown(UiEvent& event) {
+    const int index = RegionIndex(regions, RegionUnder(event.at));
     if (index < 0 || static_cast<unsigned>(index) >= players.size()) return;
-    handled = true;
+    event.handled = true;
     // The game reads the active screen: the briefing, whose child this is, while the chat gets input.
     int pick = briefing->chatActive;
     if (pick != 0) {
@@ -236,8 +244,8 @@ void ChatWindow::LeftDown(Point point) {
     client->StartParty(player);
 }
 
-void ChatWindow::MouseMove(Point point) {
-    const int index = RegionIndex(regions, RegionUnder(point));
+void ChatWindow::MouseMove(UiEvent& event) {
+    const int index = RegionIndex(regions, RegionUnder(event.at));
     int pick = briefing->chatActive;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players.size()) g_cursor.SetShape(CursorShape::Default);
 }

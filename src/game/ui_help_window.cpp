@@ -1,5 +1,5 @@
 // The help / message window (HelpWindow, ui.h): its Build, Close, the pulse (Update)
-// and the input side's button and key handlers.
+// and its button and key handlers.
 // The page itself is built by ShowPage (Rebirth-patched; its vanilla body is in ui_help_page.cpp). See
 // docs/notes/ui.md.
 #include "ui.h"
@@ -108,9 +108,17 @@ void HelpWindow::Finish() {
     ui->SetPendingValue(0);
 }
 
-void HelpWindow::LeftDown(Point point) {
-    UiContainer::LeftDown(point);
-    UiRegion* region = RegionUnder(point);
+void HelpWindow::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void HelpWindow::LeftDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    UiRegion* region = RegionUnder(event.at);
     if (!region) return;
     if (region == previousButton) {
         if (page > 0) {
@@ -129,16 +137,17 @@ void HelpWindow::LeftDown(Point point) {
     }
 }
 
-void HelpWindow::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
-    if (key == platform::Key::Return && page < static_cast<int>(lines.size()) - 1) {
+void HelpWindow::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.key == platform::Key::Return && page < static_cast<int>(lines.size()) - 1) {
         ui->PlayInterfaceSound(kNextSound);
         ++page;
         ShowPage();
-        handled = true;
+        event.handled = true;
         return;
     }
-    if (key != platform::Key::Return && key != platform::Key::Escape && g_keyActions[scan] != kHelpAction) return;
+    const platform::Key key = event.key;
+    if (key != platform::Key::Return && key != platform::Key::Escape && g_keyActions[event.scan] != kHelpAction) return;
     Finish();
-    handled = true;
+    event.handled = true;
 }

@@ -57,9 +57,9 @@ void SaveLoadWindow::TakeSelectedTitle() {
     cursor = lib::Count(name);
 }
 
-void SaveLoadWindow::LeftDown(Point point) {
+void SaveLoadWindow::LeftDown(UiEvent& event) {
     if (sliding) return;
-    UiRegion* region = RegionUnder(point);
+    UiRegion* region = RegionUnder(event.at);
     const int row = RegionIndex(rows, region);
     if (region == okButton) {
         Confirm();
@@ -80,12 +80,12 @@ void SaveLoadWindow::LeftDown(Point point) {
             ShowPicture();
         }
     }
-    UiContainer::LeftDown(point);
+    UiContainer::OnEvent(event);
 }
 
-void SaveLoadWindow::LeftDouble(Point point) {
+void SaveLoadWindow::LeftDouble(UiEvent& event) {
     if (sliding) return;
-    const int row = RegionIndex(rows, RegionUnder(point));
+    const int row = RegionIndex(rows, RegionUnder(event.at));
     if (row >= 0) {
         unsigned index = static_cast<unsigned>(firstVisible + row);
         if (index < static_cast<unsigned>(EntryCount())) {
@@ -96,7 +96,7 @@ void SaveLoadWindow::LeftDouble(Point point) {
             Confirm();
         }
     }
-    UiContainer::LeftDouble(point);
+    UiContainer::OnEvent(event);
 }
 
 void SaveLoadWindow::DrawSprites(SceneRenderer* pass) {
@@ -158,13 +158,13 @@ void OptionsWindow::RestoreSettings() {
     g_sceneRenderer.SetGamma(options::g_options.brightness, options::g_options.gamma);
 }
 
-void OptionsWindow::LeftDown(Point point) {
+void OptionsWindow::LeftDown(UiEvent& event) {
     if (sliding) return;
     if (popup) {
-        UiContainer::LeftDown(point);
+        UiContainer::OnEvent(event);
         return;
     }
-    const UiRegion* region = RegionUnder(point);
+    const UiRegion* region = RegionUnder(event.at);
     if (region == okButton || region == cancelButton) {
         const char* sound;
         if (region == okButton) {
@@ -192,16 +192,16 @@ void OptionsWindow::LeftDown(Point point) {
             }
         }
     }
-    UiContainer::LeftDown(point);
+    UiContainer::OnEvent(event);
 }
 
-void OptionsWindow::LeftDouble(Point point) {
+void OptionsWindow::LeftDouble(UiEvent& event) {
     if (sliding) return;
     if (popup) {
-        UiContainer::LeftDouble(point);
+        UiContainer::OnEvent(event);
         return;
     }
-    if (const int rowIndex = RegionIndex(rowAreas, RegionUnder(point)); rowIndex >= 0) {
+    if (const int rowIndex = RegionIndex(rowAreas, RegionUnder(event.at)); rowIndex >= 0) {
         const OptionRow& row = rows[rowIndex];
         if (row.binding) {
             ui->PlayInterfaceSound(kSaveSelectSound);
@@ -218,7 +218,7 @@ void OptionsWindow::LeftDouble(Point point) {
             RefreshRows();
         }
     }
-    UiContainer::LeftDouble(point);
+    UiContainer::OnEvent(event);
 }
 
 void OptionsWindow::DrawSprites(SceneRenderer* pass) {
@@ -334,30 +334,41 @@ void UiScrollbar::Update() {
     if (steps != 0) SetPosition(position + steps);
 }
 
-void UiScrollbar::LeftDown(Point point) {
+void UiScrollbar::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::Wheel: Wheel(event); break;
+    default: break;
+    }
+}
+
+void UiScrollbar::LeftDown(UiEvent& event) {
     // The arrows' region from the screen point (the original tested the point scaled twice: no arrow took a click at
     // any size but 800x600).
-    const UiRegion* region = RegionUnder(point);
-    ui->ScalePointFromScreen(&point);
-    if (thumb.Contains(point)) {
+    const UiRegion* region = RegionUnder(event.at);
+    Point at = event.at;
+    ui->ScalePointFromScreen(&at);
+    if (thumb.Contains(at)) {
         CaptureMouse();
         state = 1;
-        grabX = point.x - (thumb.left + thumb.right) / 2;
-        grabY = point.y - (thumb.top + thumb.bottom) / 2;
-        handled = true;
+        grabX = at.x - (thumb.left + thumb.right) / 2;
+        grabY = at.y - (thumb.top + thumb.bottom) / 2;
+        event.handled = true;
         return;
     }
     if (region != upButton && region != downButton) return;
     CaptureMouse();
     state = region == upButton ? 2 : 3;
     accumulated = 0.0f;
-    handled = true;
+    event.handled = true;
 }
 
-void UiScrollbar::LeftUp(Point) {
+void UiScrollbar::LeftUp(UiEvent& event) {
     state = 0;
     ui->mouseCapture = nullptr;
     accumulated = 0.0f;
-    handled = true;
+    event.handled = true;
 }
 

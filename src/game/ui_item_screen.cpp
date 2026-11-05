@@ -190,10 +190,17 @@ UiMesh* ItemModel(std::string_view name) {
 // strip, the trade and repair grids, both constructor pages and the blank panel). See docs/notes/ui.md,
 // section 5.
 
-void UiItemPanel::LeftDown(Point point) {
+void UiItemPanel::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    default: break;
+    }
+}
+
+void UiItemPanel::LeftDown(UiEvent& event) {
     // The address of the x argument is the topic out-parameter, like the original.
-    int topic = point.x;
-    if (Item* item = ItemAt(point, &topic)) {
+    int topic = event.at.x;
+    if (Item* item = ItemAt(event.at, &topic)) {
         owner->TakeItem(item, mode);
         return;
     }

@@ -92,8 +92,6 @@ void MainMenu::AddVersionLine() {
 void MainMenu::CreateScreen() {
     ui->ResetSavedState();
     g_gameFlow.UseResources(false);
-    UiInputSide* inert = new UiInertInput(ui);
-    AddInput(inert);
     hovered = -1;
     rect = Rect{0, 0, 800, 600};
     AddVersionLine();
@@ -176,9 +174,9 @@ void MainMenu::MessageResult(std::uint32_t result) {
 
 // --- The mouse move and the keys -------------------------------------------
 
-void MainMenu::MouseMove(Point point) {
+void MainMenu::MouseMove(UiEvent& event) {
     if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject)) {
-        const int button = RegionIndex(buttons, RegionUnder(point));
+        const int button = RegionIndex(buttons, RegionUnder(event.at));
         if (button != hovered) {
             FigureAnimation* animation;
             if (button >= 0)
@@ -190,11 +188,11 @@ void MainMenu::MouseMove(Point point) {
         }
         hovered = button;
     }
-    UiContainer::MouseMove(point);
+    UiContainer::OnEvent(event);
 }
 
-void MainMenu::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
-    if (key != platform::Key::Escape) return;
+void MainMenu::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.key != platform::Key::Escape) return;
     ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }

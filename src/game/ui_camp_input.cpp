@@ -1,4 +1,4 @@
-// The camp's input side (buttons, keys), its message-result and help-topic slots (CampPages,
+// The camp's input (buttons, keys), its message-result and help-topic slots (CampPages,
 // ui_camp.h). See docs/notes/ui.md, section 5.
 #include "party.h"
 
@@ -45,9 +45,18 @@ constexpr std::uint32_t kAnswerYes = BoxResult(MessageQuestion::First, MessageAn
 
 } // namespace
 
-void CampPages::LeftDown(Point point) {
-    UiContainer::LeftDown(point);
-    UiRegion* region = RegionUnder(point);
+void CampPages::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: ItemScreen::OnEvent(event); break;
+    }
+}
+
+void CampPages::LeftDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    UiRegion* region = RegionUnder(event.at);
     const int pageButton = RegionIndex(pageButtons, region);
     if (region == actionButton) {
         UpdateAction();
@@ -66,27 +75,27 @@ void CampPages::LeftDown(Point point) {
     }
 }
 
-void CampPages::LeftUp(Point point) {
-    UiContainer::LeftUp(point);
+void CampPages::LeftUp(UiEvent& event) {
+    UiContainer::OnEvent(event);
     ReleaseMouse();
     turning = 0;
 }
 
-void CampPages::KeyDown(platform::Key key, int scan, bool repeat) {
-    if (key == platform::Key::Escape) {
+void CampPages::KeyDown(UiEvent& event) {
+    if (event.key == platform::Key::Escape) {
         ShowPage(kLeavePage);
-        handled = true;
+        event.handled = true;
         return;
     }
-    if ((key == platform::Key::Backspace || key == platform::Key::Return) && IsMultiplayerClient()) {
-        if (key == platform::Key::Backspace)
+    if ((event.key == platform::Key::Backspace || event.key == platform::Key::Return) && IsMultiplayerClient()) {
+        if (event.key == platform::Key::Backspace)
             ui->ChatKeyBackspace();
         else
             ui->ChatKeyEnter();
-        handled = true;
+        event.handled = true;
         return;
     }
-    UiContainer::KeyDown(key, scan, repeat);
+    UiContainer::OnEvent(event);
 }
 
 void CampPages::MessageResult(std::uint32_t result) {

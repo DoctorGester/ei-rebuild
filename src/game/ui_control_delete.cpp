@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-// --- The controls' destructors (with their deleting destructors and the input sides' copies) --
+// --- The controls' destructors ---------------------------------------------------------------
 
 UiScrollbar::~UiScrollbar() {}
 

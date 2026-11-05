@@ -102,18 +102,15 @@ void OnMouse(Interface3D* input, const platform::Event& event, Point at) {
     const bool twice = event.clicks % 2 == 0;
     const bool left = event.button == MouseButton::Left;
     switch (event.type) {
-    case EventType::MouseMove: input->OnMouseMove(at); break;
+    case EventType::MouseMove: input->OnMouse({.kind = UiEventKind::MouseMove, .at = at}); break;
     case EventType::MouseDown:
-        if (left && twice) input->OnLeftDouble(at);
-        else if (left) input->OnLeftDown(at);
-        else if (twice) input->OnRightDouble(at);
-        else input->OnRightDown(at);
+        if (left) input->OnMouse({.kind = twice ? UiEventKind::LeftDouble : UiEventKind::LeftDown, .at = at});
+        else input->OnMouse({.kind = twice ? UiEventKind::RightDouble : UiEventKind::RightDown, .at = at});
         break;
     case EventType::MouseUp:
-        if (left) input->OnLeftUp(at);
-        else input->OnRightUp(at);
+        input->OnMouse({.kind = left ? UiEventKind::LeftUp : UiEventKind::RightUp, .at = at});
         break;
-    case EventType::Wheel: input->OnWheel(event.wheel, at); break;
+    case EventType::Wheel: input->OnMouse({.kind = UiEventKind::Wheel, .at = at, .delta = event.wheel}); break;
     default: break;
     }
 }

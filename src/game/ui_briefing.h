@@ -69,11 +69,12 @@ public:
     void Update() override;
     // The surface's paint: statusRows under the faces.
     void PaintStatus(UiSurface& surface) const;
+    void OnEvent(UiEvent& event) override;
     // With the briefing's player pick 1 / 2 the player's serial goes to the server as command 4 / 5 and
     // the pick ends; otherwise, unless it is our own player, our offer to it is dropped when it is its partner,
     // else one is started.
-    void LeftDown(Point point) override;
-    void MouseMove(Point point) override;
+    void LeftDown(UiEvent& event);
+    void MouseMove(UiEvent& event);
 
     BriefingScreen* briefing = nullptr;  // the screen whose chat this is (its child; its chatActive is the pick mode)
     int listed = 0;
@@ -127,19 +128,20 @@ public:
     // Not when exit's zone is "none" or visited ("z.<zone>" not 1).
     void LeaveIfExitOpen();
 
+    void OnEvent(UiEvent& event) override;
     // With the chat window active it gets the event; otherwise by state: 0 an idle person under the cursor
     // (controller command 0 or 0xB and next command 9) opens its topics, else the leader walks to the picked
     // ground point (not when noWalk); 1 a topic row starts that topic; 3 the next phrase; 4 the rewards are
     // taken.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // A person who is not one of the moving ones, or with the dialogue running, is handled as a click; on the
     // ground the leader runs there.
-    void LeftDouble(Point point) override;
+    void LeftDouble(UiEvent& event);
     // See docs/notes/ui.md, "Behaviour moved out of header comments".
-    void MouseMove(Point point) override;
+    void MouseMove(UiEvent& event);
     // With the chat window active only Esc, which gives the input back. See docs/notes/ui.md, "Behaviour moved
     // out of header comments".
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
 
     // None leaves state 0; otherwise the leader stops (unless noWalk), "goodbye" is appended, state 1.
     void OpenTopics(EngineObject* person);

@@ -99,8 +99,16 @@ void HeroStatsPanel::Update() {
 
 // --- The left button (input click) -----------------------------------------------------------------
 
-void HeroStatsPanel::LeftDown(Point point) {
-    const UiRegion* region = RegionUnder(point);
+void HeroStatsPanel::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    default: UiItemPanel::OnEvent(event); break;
+    }
+}
+
+void HeroStatsPanel::LeftDown(UiEvent& event) {
+    const UiRegion* region = RegionUnder(event.at);
     if (page == kNewHeroPage) {
         const int row = RegionIndex(rows, region);
         const int button = row >= kFirstButtonRow && row < kFirstButtonRow + kPointButtons ? row - kFirstButtonRow : -1;
@@ -125,7 +133,7 @@ void HeroStatsPanel::LeftDown(Point point) {
     }
 }
 
-void HeroStatsPanel::LeftUp(Point) {
+void HeroStatsPanel::LeftUp(UiEvent&) {
     ui->mouseCapture = nullptr;
     heldButton = -1;
     holdTicks = 0;

@@ -1,4 +1,4 @@
-// The global map's input side (right-button drag, mouse, keys), its close and message-result slots
+// The global map's input (right-button drag, mouse, keys), its close and message-result slots
 // (GlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_camp.h"
@@ -46,8 +46,20 @@ void GlobalMap::Deactivate() {
     platform::SetCursorPosition(home);
 }
 
-void GlobalMap::RightDown(Point point) {
-    dragStart = point;
+void GlobalMap::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::RightDown: RightDown(event); break;
+    case UiEventKind::RightUp: Deactivate(); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void GlobalMap::RightDown(UiEvent& event) {
+    dragStart = event.at;
     dragging = true;
     turning = 0;
     ui->ScalePointFromScreen(&dragStart);
@@ -55,7 +67,7 @@ void GlobalMap::RightDown(Point point) {
     g_cursor.SetHeld(1);
 }
 
-void GlobalMap::MouseMove(Point point) {
+void GlobalMap::MouseMove(UiEvent& event) {
     if (dragging) {
         Point drag = g_cursor.motion;
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
@@ -75,14 +87,14 @@ void GlobalMap::MouseMove(Point point) {
     }
     bool isLink = false;
     int index = -1;
-    UiRegion* region = RegionUnder(point);
+    UiRegion* region = RegionUnder(event.at);
     if (turning == 0) {
         if (const int link = RegionIndex(linkAreas, region); link >= 0) {
             index = link;
             isLink = true;
         }
         if (!region) {
-            index = ZoneAt(point);
+            index = ZoneAt(event.at);
             if (gipat && index >= 0 && zones[index].link >= 0) {
                 isLink = true;
                 index = zones[index].link;
@@ -136,14 +148,14 @@ void GlobalMap::PaintTitle(UiSurface& surface) const {
     surface.DrawTextIn(clock, line2, TextStyle{2, kUiTextColour, render::text::kCenter | render::text::kVCenter | render::text::kSingleLine});
 }
 
-void GlobalMap::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
-    if (key == platform::Key::Escape) {
+void GlobalMap::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.key == platform::Key::Escape) {
         ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
-        handled = true;
+        event.handled = true;
     }
-    if (handled) return;
-    int action = g_keyActions[scan];
+    if (event.handled) return;
+    int action = g_keyActions[event.scan];
     if (action == kActionQuickSave)
         ::QuickSave(kQuickSaveSlot, false);
     else if (action == kActionQuickLoad)
@@ -154,10 +166,11 @@ void GlobalMap::MessageResult(std::uint32_t) {
     turning = 0;
     dragging = false;
     selectPending = true;
-    Input()->MouseMove(g_cursor.position);
+    UiEvent move{.kind = UiEventKind::MouseMove, .at = g_cursor.position};
+    OnEvent(move);
 }
 
-void GlobalMap::LeftUp(Point) {
+void GlobalMap::LeftUp(UiEvent&) {
     if (turning != 0) selectPending = true;
     turning = 0;
 }

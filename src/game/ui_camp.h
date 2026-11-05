@@ -97,25 +97,25 @@ public:
     void FindPaths(MapRecord* from);
     // The ways from the local player's zone to `target`, the earlier results dropped.
     void SearchWays(const std::string& target);
+    void OnEvent(UiEvent& event) override;
     // The right button drags the map round; letting it go ends the drag as a deactivation does.
-    void RightDown(Point point) override;
-    void RightUp(Point) override { Deactivate(); }
+    void RightDown(UiEvent& event);
     // The drag ends, the cursor goes back to where it began; the selection is refreshed.
     void Deactivate() override;
     // Rebirth-patched (WideScreen: the drag scaled without the margins).
     // Dragging turns the map by dx / 300 layout units; otherwise the zone or link under the mouse is
     // selected. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
-    void MouseMove(Point point) override;
+    void MouseMove(UiEvent& event);
     // Nothing while dragging; a zone also opens the objectives window. Details: docs/notes/ui.md, "Behaviour moved out of
     // header comments".
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // Esc opens the escape menu; an unused key whose action is '5' quick-saves ("saveq"), '6' quick-loads.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // A window above closed.
     void MessageResult(std::uint32_t result) override;
     const char* HelpTopic() override { return noCamp ? "global_map_nocamp" : "global_map"; }
     // Ends a turn by a turn button.
-    void LeftUp(Point point) override;
+    void LeftUp(UiEvent& event);
     // The surfaces' paints: the zone tip; the allod's title and the clock.
     void PaintTip(UiSurface& surface) const;
     void PaintTitle(UiSurface& surface) const;
@@ -241,11 +241,12 @@ public:
     int PurchaseCost();
     // The scroll arrows show only where the list can scroll.
     void ClampScroll();
+    void OnEvent(UiEvent& event) override;
     // The arrows scroll; a row buys what the experience covers (a school or science row is then held), the
     // record marked bought.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // Releases the mouse unconditionally and ends a hold.
-    void LeftUp(Point point) override;
+    void LeftUp(UiEvent& event);
     // From 250 ms of a hold on (750 ms after the press), every frame buys the row's next level again (the
     // record is not marked bought) until it cannot. The hold time is not reset after a purchase.
     void Update() override;
@@ -346,11 +347,12 @@ public:
     void PreviousHero() override;
     // The unit's own name, else the text of "pers <record name>".
     void ShowHero();
+    void OnEvent(UiEvent& event) override;
     // The deal buttons, the turn areas (the hero, on the equipment page) and the page buttons.
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;
+    void LeftDown(UiEvent& event);
+    void LeftUp(UiEvent& event);
     // Esc shows page 7 (leaves); on a network client Backspace and Enter go to the chat line.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     const char* HelpTopic() override;
     // By page: 0 repairs the hero's weapons and armour, 1 settles the trade (the money is left alone), 2 / 4
     // a constructor buys its third list, 3 / 5 the made spell / item (or the parts while deconstructing),
@@ -436,14 +438,15 @@ public:
     // `title` may be null; the hero arrows show only for a party of more than one; points = the hero's
     // height * 100 (truncated).
     void SetHero(int heroIndex, std::optional<std::string_view> title);
+    void OnEvent(UiEvent& event) override;
     // On page 10 a -/+ button steps a point and is held; elsewhere the hero buttons show the owner's previous
     // / next hero.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // A held -/+ button repeats every frame from 750 ms after the press until it can step no more; the owner
     // is refreshed on every attempt.
     void Update() override;
     // Lets the mouse go unconditionally and ends the hold.
-    void LeftUp(Point point) override;
+    void LeftUp(UiEvent& event);
     // -/+ buttons 0-2 take a point from strength, dexterity, intelligence (above 15), 3 the height down
     // (points >= 1), 4-6 give one (below 35, while the three add up to under 75), 7 the height up
     // (points <= 99; height = points * 0.01); other numbers nothing. True when it changed something.
@@ -489,9 +492,10 @@ public:
     void ShowWeapon(Item* weapon);
     // The place in the hero's quick item list, or -1.
     void ShowQuickItem(Item* item);
+    void OnEvent(UiEvent& event) override;
     // On the camp's body: a right click on a filled weapon slot (of the first four) shows that weapon. The
     // event is not marked used.
-    void RightDown(Point point) override;
+    void RightDown(UiEvent& event);
     // Cells 0-3 the weapons (topic 2), 4-7 the quick items from the right (3), a body slot the armour worn
     // at that body part (topic the part + 4).
     Item* ItemAt(Point point, int* topic) override;

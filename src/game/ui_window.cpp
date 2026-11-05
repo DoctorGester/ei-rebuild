@@ -135,26 +135,27 @@ bool UiWindow::ContainsPoint(Point point) const {
     return rect.Contains(point);
 }
 
-UiRegion* UiWindow::HitRegion(Point point, int count) {
+UiRegion* UiWindow::HitRegion(UiEvent& event, int count) {
+    Point point = event.at;
     ui->ScalePointFromScreen(&point);
     for (int i = 0; i < std::ssize(regions) && i < count; ++i) {
         if (regions[i]->HitTest(point)) {
-            handled = true;
+            event.handled = true;
             return regions[i];
         }
     }
     return nullptr;
 }
 
-UiRegion* UiWindow::PressRegion(Point point, int count) {
-    UiRegion* region = HitRegion(point, count);
+UiRegion* UiWindow::PressRegion(UiEvent& event, int count) {
+    UiRegion* region = HitRegion(event, count);
     if (region) CaptureMouse();
     return region;
 }
 
-UiRegion* UiWindow::PressedRegion(Point point, int count) {
+UiRegion* UiWindow::PressedRegion(UiEvent& event, int count) {
     if (!ReleaseMouse()) return nullptr;
-    return HitRegion(point, count);
+    return HitRegion(event, count);
 }
 
 void UiWindow::DrawTips() {
@@ -342,7 +343,7 @@ UiMesh* UiWindow::AddSceneObject(UiMesh* object) {
 
 // --- The constructor ---------------------------------------------------------------------------------
 
-UiWindow::UiWindow(Interface3D* ui) : UiInputSide(ui) {
+UiWindow::UiWindow(Interface3D* ownerUi) : ui(ownerUi) {
     localRotation = kIdentityRotation;
     worldRotation.SetIdentity();
     localPosition = Vector3{0.0f, 0.0f, 0.0f};

@@ -1,4 +1,4 @@
-// The battle camera's input side: key release, right-button turning, deactivation and the wheel
+// The battle camera's input (CameraInput): key release, right-button turning, deactivation and the wheel
 // (CameraInput, ui_camera_keys.h; the key press is in ui_camera_input.cpp). See docs/notes/ui.md,
 // section 3.
 #include "ui_camera_keys.h"
@@ -51,27 +51,39 @@ CursorShape EdgeCursor(unsigned edges) {
 
 } // namespace
 
-void CameraInput::KeyUp(platform::Key, int scan) {
-    switch (g_keyActions[scan]) {
+void CameraInput::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::RightDown: case UiEventKind::RightDouble: RightDown(event); break;
+    case UiEventKind::RightUp: RightUp(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    case UiEventKind::KeyUp: KeyUp(event); break;
+    case UiEventKind::Wheel: Wheel(event); break;
+    default: break;
+    }
+}
+
+void CameraInput::KeyUp(UiEvent& event) {
+    switch (g_keyActions[event.scan]) {
     case 5:
     case 6:
         x = 0.0f;
-        handled = true;
+        event.handled = true;
         break;
     case 7:
     case 8:
         y = 0.0f;
-        handled = true;
+        event.handled = true;
         break;
     case 9:
     case 10:
         z = 0.0f;
-        handled = true;
+        event.handled = true;
         break;
     default:
         break;
     }
-    if (!handled) return;
+    if (!event.handled) return;
     Camera* camera = &g_camera;
     if (!ModifierHeld(ui)) {
         float left = -x;
@@ -90,16 +102,16 @@ void CameraInput::KeyUp(platform::Key, int scan) {
     camera->SetTiltRate(KeyboardSpeed(options::g_options.cameraPitch) * x);
 }
 
-void CameraInput::RightDown(Point at) {
-    pressScreen = at;
-    pressLayout = at;
+void CameraInput::RightDown(UiEvent& event) {
+    pressScreen = event.at;
+    pressLayout = event.at;
     turning = true;
     ui->ScalePointFromScreen(&pressLayout);
     g_cursor.SetHeld(1);
-    handled = true;
+    event.handled = true;
 }
 
-void CameraInput::RightUp(Point) {
+void CameraInput::RightUp(UiEvent& event) {
     turning = false;
     Camera* camera = &g_camera;
     camera->SetTurnRate(0.0f);
@@ -109,13 +121,13 @@ void CameraInput::RightUp(Point) {
     const Point position = g_cursor.position;
     g_cursor.SetHeld(0);
     platform::SetCursorPosition(position);
-    handled = true;
+    event.handled = true;
 }
 
-void CameraInput::MouseMove(Point at) {
+void CameraInput::MouseMove(UiEvent& event) {
     Camera* camera = &g_camera;
     if (turning) {
-        Point point = at;
+        Point point = event.at;
         // The mouse's speed as a 60 Hz frame's motion, so that the turn and tilt rates go with the speed at any
         // frame rate (they went with each frame's motion, and so with the frame's length).
         const Point taken = g_cursor.TakeDrag();
@@ -146,7 +158,7 @@ void CameraInput::MouseMove(Point at) {
         }
         camera_trace::Drag(taken, dragX, dragY);
         g_cursor.SetShape(CursorShape::Camera);
-        handled = true;
+        event.handled = true;
         pressLayout = point;
         return;
     }
@@ -157,17 +169,17 @@ void CameraInput::MouseMove(Point at) {
         const Rect picture = ui->PictureRect();
         unsigned edges = 0;
         Vector3 direction{0.0f, 0.0f, 0.0f};
-        if (at.x < picture.left + margin) {
+        if (event.at.x < picture.left + margin) {
             direction.x = -1.0f;
             edges = kLeft;
-        } else if (at.x >= picture.right - margin) {
+        } else if (event.at.x >= picture.right - margin) {
             direction.x = 1.0f;
             edges = kRight;
         }
-        if (at.y < picture.top + margin) {
+        if (event.at.y < picture.top + margin) {
             direction.y = -1.0f;
             edges |= kTop;
-        } else if (at.y >= picture.bottom - margin) {
+        } else if (event.at.y >= picture.bottom - margin) {
             direction.y = 1.0f;
             edges |= kBottom;
         }
@@ -182,9 +194,9 @@ void CameraInput::MouseMove(Point at) {
         }
         g_cursor.SetShape(EdgeCursor(edges));
         camera->Pan(direction);
-        if (edges) handled = true;
+        if (edges) event.handled = true;
     }
-    pressLayout = at;
+    pressLayout = event.at;
 }
 
 void CameraInput::Deactivate() {
@@ -196,28 +208,27 @@ void CameraInput::Deactivate() {
     g_camera.StopMotion();
 }
 
-void CameraInput::Wheel(float notches, Point) {
-    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * (notches * kWheelUnits) * kWheelStep);
+void CameraInput::Wheel(UiEvent& event) {
+    g_camera.ZoomBy(MouseSpeed(options::g_options.cameraZoom) * (event.delta * kWheelUnits) * kWheelStep);
 }
 
 // --- Ui camera keys ----------------------------------------------------------------------------------
 
-// The battle camera's key input (an input side, constructed; its key
-// press is here). See docs/notes/ui.md, section 3.
+// The battle camera's key press. See docs/notes/ui.md, section 3.
 // Keys are mapped to characters through the scan-code: characters 5-10 set a
 // direction (+0x20 x, +0x24 y, +0x28 z to +-1) and 13-16 restore camera views 0-3 (saved with Ctrl
 // or Alt held: interface +0x7C / +0x7E). While a direction is held, the camera pans (or with
 // a modifier turns and tilts) at the option speeds.
 
-void CameraInput::KeyDown(platform::Key, int scan, bool) {
-    int character = g_keyActions[scan];
+void CameraInput::KeyDown(UiEvent& event) {
+    int character = g_keyActions[event.scan];
     switch (character) {
-    case 5: x = 1.0f; handled = true; break;
-    case 6: x = -1.0f; handled = true; break;
-    case 7: y = -1.0f; handled = true; break;
-    case 8: y = 1.0f; handled = true; break;
-    case 9: z = -1.0f; handled = true; break;
-    case 10: z = 1.0f; handled = true; break;
+    case 5: x = 1.0f; event.handled = true; break;
+    case 6: x = -1.0f; event.handled = true; break;
+    case 7: y = -1.0f; event.handled = true; break;
+    case 8: y = 1.0f; event.handled = true; break;
+    case 9: z = -1.0f; event.handled = true; break;
+    case 10: z = 1.0f; event.handled = true; break;
     case 13:
     case 14:
     case 15:
@@ -227,13 +238,13 @@ void CameraInput::KeyDown(platform::Key, int scan, bool) {
             g_camera.SaveView(slot);
         else
             g_camera.RestoreView(slot);
-        handled = true;
+        event.handled = true;
         return;
     }
     default:
         break;
     }
-    if (!handled) return;
+    if (!event.handled) return;
     Vector3 direction = {0.0f, 0.0f, 0.0f};
     if (!ModifierHeld(ui)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.

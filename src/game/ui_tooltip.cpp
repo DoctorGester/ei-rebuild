@@ -38,7 +38,7 @@ constexpr Point kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 
 } // namespace
 
-// The virtuals: drawn and redrawn only while shown; the input side's defaults.
+// The virtuals: drawn and redrawn only while shown.
 UiTooltip::UiTooltip(Interface3D* ownerUi, UiRegion* newRegion, std::string_view text, int command) : UiWindow(ownerUi) {
     timer = 0.0f;
     region = newRegion;

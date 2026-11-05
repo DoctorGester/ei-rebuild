@@ -1,5 +1,5 @@
 // Interface screen 7 (ui_view_screen.h): its Create, draw and close slots and the picked units'
-// input side. See docs/notes/ui.md, section 4.
+// input. See docs/notes/ui.md, section 4.
 #include "ui_camera_keys.h"
 #include "ui_view_screen.h"
 
@@ -28,8 +28,6 @@ constexpr float kTurnAngle = ei::kRadiansPerDegree * 225.0f;
 // --- ViewScreen -------------------------------------------------------------
 
 void ViewScreen::CreateScreen() {
-    UiInputSide* inert = new UiInertInput(ui);
-    AddInput(inert);
     AddInput(new UnitPickInput(ui));
     AddInput(new CameraInput(ui));
 
@@ -50,9 +48,19 @@ void ViewScreen::CloseScreen() { g_camera.flags |= Camera::kFree; }
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
-void UnitPickInput::LeftDown(Point point) {
+void UnitPickInput::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::RightDown: case UiEventKind::RightDouble: RightDown(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    case UiEventKind::KeyUp: KeyUp(event); break;
+    default: break;
+    }
+}
+
+void UnitPickInput::LeftDown(UiEvent& event) {
     WorldClient* world = &g_clientWorld;
-    Unit* unit = world->UnitAt(point, HitTest::Parts);
+    Unit* unit = world->UnitAt(event.at, HitTest::Parts);
     if (!ui->ctrlDown) {
         if (unit) {
             int n = lib::Count(picked);
@@ -61,7 +69,7 @@ void UnitPickInput::LeftDown(Point point) {
             world->Select(unit);
             return;
         }
-        Vector3 ground = world->PickGround(point.x, point.y);
+        Vector3 ground = world->PickGround(event.at.x, event.at.y);
         for (int i = 0; i < std::ssize(picked); ++i) {
             auto* member = g_clientWorld.FindUnit(picked[i]);
             if (!member) continue;
@@ -78,19 +86,19 @@ void UnitPickInput::LeftDown(Point point) {
     }
 }
 
-void UnitPickInput::RightDown(Point) {
+void UnitPickInput::RightDown(UiEvent&) {
     lib::FreeStorage(picked);
     g_clientWorld.Deselect();
 }
 
-void UnitPickInput::KeyDown(platform::Key key, int, bool) {
-    if (key == platform::Key::Control) {
+void UnitPickInput::KeyDown(UiEvent& event) {
+    if (event.key == platform::Key::Control) {
         g_cursor.SetShape(CursorShape::Attack);
-    } else if (key == platform::Key::Space) {
+    } else if (event.key == platform::Key::Space) {
         g_serverWorld.SetServerPaused(g_serverWorld.paused == 0);
     }
 }
 
-void UnitPickInput::KeyUp(platform::Key key, int) {
-    if (key == platform::Key::Control) g_cursor.SetShape(CursorShape::Default);
+void UnitPickInput::KeyUp(UiEvent& event) {
+    if (event.key == platform::Key::Control) g_cursor.SetShape(CursorShape::Default);
 }

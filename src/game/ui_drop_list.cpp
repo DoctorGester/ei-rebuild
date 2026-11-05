@@ -227,42 +227,53 @@ void UiDropList::Deactivate() {
     Close();
 }
 
-void UiDropList::LeftDown(Point point) {
-    handled = true;
+void UiDropList::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    case UiEventKind::Wheel: Wheel(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+// Every press is used: the scroll bar's when it takes it.
+void UiDropList::LeftDown(UiEvent& event) {
     if (!open) {
+        event.handled = true;
         ui->PlayInterfaceSound(kMessageBoxOkSound);
         Open();
         return;
     }
     if (scroll->enabled) {
-        scroll->handled = false;
-        scroll->LeftDown(point);
-        if (scroll->handled) return;
+        scroll->OnEvent(event);
+        if (event.handled) return;
     }
-    if (const int index = EntryAt(point); index >= 0) {
+    event.handled = true;
+    if (const int index = EntryAt(event.at); index >= 0) {
         Choose(index);
         return;
     }
-    Point at = point;
+    Point at = event.at;
     ui->ScalePointFromScreen(&at);
     if (!frame.Contains(at)) Close();
 }
 
-void UiDropList::MouseMove(Point point) {
+void UiDropList::MouseMove(UiEvent& event) {
     if (!open) return;
-    if (const int index = EntryAt(point); index >= 0 && index != active) {
+    if (const int index = EntryAt(event.at); index >= 0 && index != active) {
         active = index;
         PlaceMarks();
     }
 }
 
-void UiDropList::Wheel(float notches, Point point) {
-    if (open && scroll->enabled) scroll->Wheel(notches, point);
+void UiDropList::Wheel(UiEvent& event) {
+    if (open && scroll->enabled) scroll->OnEvent(event);
 }
 
-void UiDropList::KeyDown(platform::Key key, int, bool) {
+void UiDropList::KeyDown(UiEvent& event) {
     if (!open) return;
-    switch (key) {
+    switch (event.key) {
     case platform::Key::Up: SetActive(active - 1); break;
     case platform::Key::Down: SetActive(active + 1); break;
     case platform::Key::Home: SetActive(0); break;

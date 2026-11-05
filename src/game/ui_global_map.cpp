@@ -342,7 +342,8 @@ void GlobalMap::CreateScreen() {
 void GlobalMap::Update() {
     UiContainer::Update();
     if (dragging && turning == 0) {
-        Input()->MouseMove(platform::CursorPosition().value_or(Point{}));
+        UiEvent move{.kind = UiEventKind::MouseMove, .at = platform::CursorPosition().value_or(Point{})};
+        OnEvent(move);
     }
     MapBuilder builder(this);
     if (turning != 0 || dragging) {

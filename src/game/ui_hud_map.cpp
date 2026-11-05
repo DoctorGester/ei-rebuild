@@ -497,9 +497,9 @@ void HudMap::UpdateView() {
 
 // --- The zoom factor ----------------------------------------------------------------------------------
 
-void HudMap::Wheel(float notches, Point point) {
-    if (HitRegion(point) != slingButton) return;
-    float newZoom = WheelZoomFactor(notches) * zoom;
+void HudMap::Wheel(UiEvent& event) {
+    if (HitRegion(event) != slingButton) return;
+    float newZoom = WheelZoomFactor(event.delta) * zoom;
     zoom = newZoom;
     if (newZoom > zoomMax) zoom = zoomMax;
     zoom = MaxKeepB(zoom, 1.0f);

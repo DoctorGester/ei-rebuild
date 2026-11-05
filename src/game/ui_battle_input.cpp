@@ -1,4 +1,4 @@
-// The battle screen's input side (BattleScreen): the close, double click, key release and wheel, the key-down
+// The battle screen's input (BattleScreen): the close, double click, key release and wheel, the key-down
 // handler, the mouse, the mouse-over and the party commands they issue. See ui.h, ui_camp.h and docs/notes/ui.md
 // ("Battle screen").
 #include "ui.h"
@@ -52,44 +52,43 @@ void BattleScreen::Deactivate() {
 
 // --- a double click on the battle screen ---------------------------------------------------------
 
-void BattleScreen::LeftDouble(Point point) {
+void BattleScreen::LeftDouble(UiEvent& event) {
     if (portraitMode != 0) return;
     if (!viewPressed) {
-        UiContainer::LeftDouble(point);
-        if (handled) return;
+        UiContainer::OnEvent(event);
+        if (event.handled) return;
     }
     viewPressed = true;
-    press = point;
+    press = event.at;
     boxSelecting = false;
 }
 
 // --- a key released on the battle screen ---------------------------------------------------------
 
-void BattleScreen::KeyUp(platform::Key key, int scan) {
+void BattleScreen::KeyUp(UiEvent& event) {
     if (portraitMode != 0) return;
-    UiContainer::KeyUp(key, scan);
-    int action = g_keyActions[scan] - kFirstOrderKeyAction;
+    UiContainer::OnEvent(event);
+    int action = g_keyActions[event.scan] - kFirstOrderKeyAction;
     if (action >= 0 && action < 6) orderKeys[kOrderKeyOfAction[action]] = 0;
 }
 
 // --- the wheel on the battle screen --------------------------------------------------------------
 
-void BattleScreen::Wheel(float notches, Point point) {
+void BattleScreen::Wheel(UiEvent& event) {
     if (portraitMode != 0) return;
     UiWindow* const panels[4] = {map, unitPanel, messageLog, topPanel};
     for (UiWindow* panel : panels) {
-        panel->handled = false;
-        panel->Input()->Wheel(notches, point);
-        if (panel->handled) return;
+        panel->OnEvent(event);
+        if (event.handled) return;
     }
     for (UiWindow* panel : panels) panel->SetEnabled(false);
-    UiContainer::Wheel(notches, point);
+    UiContainer::OnEvent(event);
     for (UiWindow* panel : panels) panel->SetEnabled(true);
 }
 
 // --- Key down ----------------------------------------------------------------------------------------
 
-// The battle screen's key-down handler (input side): the chat line's keys on a
+// The battle screen's key-down handler: the chat line's keys on a
 // network client, the panels' own keys, Esc (the pending action dropped, else the escape menu) and
 // the key actions of the key table (g_keyActions): pause and game speed, the objectives window, the
 // camera, the order keys, movement modes, the action, spell, weapon and quick item buttons, the
@@ -158,45 +157,45 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
 
 } // namespace
 
-void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
+void BattleScreen::KeyDown(UiEvent& event) {
     if (portraitMode != 0) {
-        if (key == platform::Key::Escape) portraitMode = 0;
+        if (event.key == platform::Key::Escape) portraitMode = 0;
         return;
     }
-    if (key == platform::Key::Return) {
+    if (event.key == platform::Key::Return) {
         if (IsMultiplayerClient()) {
             ui->ChatKeyEnter();
-            handled = true;
+            event.handled = true;
             return;
         }
-    } else if (key == platform::Key::Backspace) {
+    } else if (event.key == platform::Key::Backspace) {
         if (IsMultiplayerClient()) {
             ui->ChatKeyBackspace();
-            handled = true;
+            event.handled = true;
             return;
         }
     }
-    UiContainer::KeyDown(key, scan, repeat);
-    if (handled) return;
-    if (repeat) return;
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
+    if (event.repeat) return;
 
-    if (key == platform::Key::Escape) {
+    if (event.key == platform::Key::Escape) {
         if (pendingAction != kPendingNone) {
             // The pending action is dropped with every panel's highlight.
             SetPendingAction(kPendingNone, -1, -1);
             return;
         }
         ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
-        handled = true;
+        event.handled = true;
         return;
     }
 
-    const int action = g_keyActions[scan];
+    const int action = g_keyActions[event.scan];
     Camera* camera = &g_camera;
     switch (action) {
     case kActionPause: {
         clock->TogglePause();
-        handled = true;
+        event.handled = true;
         return;
     }
     case kActionNormalSpeed:
@@ -207,7 +206,7 @@ void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     }
     case kActionObjectives:
         clock->OpenObjectives();
-        handled = true;
+        event.handled = true;
         return;
     case kActionCameraToUnit:
         // The camera follows the first selected member, or nobody.
@@ -235,12 +234,12 @@ void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     case kActionMoveMode + 2:
     case kActionMoveMode + 3: {
         movePanel->SetMode(action - kActionMoveMode);
-        handled = true;
+        event.handled = true;
         return;
     }
     case kActionMoveFlag:
         movePanel->ToggleFlag();
-        handled = true;
+        event.handled = true;
         return;
     case kActionFollow:
         actionColumn->Select(kFollowButton);
@@ -325,7 +324,7 @@ void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
         return;
     case kActionMessage:
         ui->ShowMessage(true);
-        handled = true;
+        event.handled = true;
         return;
     default:
         return;
@@ -345,43 +344,43 @@ int Distance(int a, int b) { return a < b ? b - a : a - b; }
 
 // --- the mouse moved over the battle screen ------------------------------------------------------
 
-void BattleScreen::MouseMove(Point point) {
+void BattleScreen::MouseMove(UiEvent& event) {
     if (portraitMode != 0) {
         g_cursor.SetShape(CursorShape::Cancel);
-        if (portraits) portraits->Input()->MouseMove(point);
+        if (portraits) portraits->OnEvent(event);
         return;
     }
     g_cursor.SetShape(CursorShape::Default);
     if (viewPressed && options::g_options.cameraFrameSelectionArea > 0 && !IsMultiplayerClient()) {
         int threshold = options::g_options.cameraFrameSelectionArea;
-        if (Distance(point.x, press.x) > threshold || Distance(point.y, press.y) > threshold) boxSelecting = true;
+        if (Distance(event.at.x, press.x) > threshold || Distance(event.at.y, press.y) > threshold) boxSelecting = true;
         if (boxSelecting) {
             HudUnitPanel* panel = unitPanel;
             if (panel->hoverUnit) panel->hoverUnit = nullptr;
-            selectionBox = Rect::FromCorners(Min(point, press), Max(point, press));
+            selectionBox = Rect::FromCorners(Min(event.at, press), Max(event.at, press));
             return;
         }
     } else {
-        UiContainer::MouseMove(point);
-        if (handled) return;
+        UiContainer::OnEvent(event);
+        if (event.handled) return;
     }
-    Unit* unit = g_clientWorld.UnitAt(point);
-    HoverUnit(unit, point);
+    Unit* unit = g_clientWorld.UnitAt(event.at);
+    HoverUnit(unit, event.at);
 }
 
 // --- the left button went down on the battle screen ----------------------------------------------
 
-void BattleScreen::LeftDown(Point point) {
+void BattleScreen::LeftDown(UiEvent& event) {
     if (portraitMode != 0) {
-        if (portraits) portraits->Input()->LeftDown(point);
+        if (portraits) portraits->OnEvent(event);
         return;
     }
     if (!viewPressed) {
-        UiContainer::LeftDown(point);
-        if (handled) return;
+        UiContainer::OnEvent(event);
+        if (event.handled) return;
     }
     viewPressed = true;
-    press = point;
+    press = event.at;
     boxSelecting = false;
 }
 

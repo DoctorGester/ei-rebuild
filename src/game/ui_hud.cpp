@@ -82,13 +82,18 @@ bool IsZero(float value) {
 
 // --- Weapon bar --------------------------------------------------------------------------------
 
-void HudWeaponBar::LeftDown(Point point) { PressRegion(point, count); }
-
-void HudWeaponBar::LeftUp(Point point) {
-    if (const int slot = RegionIndex(regions, PressedRegion(point, count)); slot >= 0) Choose(slot);
+void HudWeaponBar::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event, count); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: HitRegion(event, count); break;
+    default: break;
+    }
 }
 
-void HudWeaponBar::MouseMove(Point point) { HitRegion(point, count); }
+void HudWeaponBar::LeftUp(UiEvent& event) {
+    if (const int slot = RegionIndex(regions, PressedRegion(event, count)); slot >= 0) Choose(slot);
+}
 
 void HudWeaponBar::Choose(int slot) {
     const int previous = selected;
@@ -130,14 +135,23 @@ void HudActionColumn::DrawSprites(SceneRenderer* pass) { DrawWithSpecular(this, 
 
 // --- Quick items -------------------------------------------------------------------------------
 
-void HudQuickItems::LeftDown(Point point) {
-    if (RegionItem(RegionIndex(regions, RegionUnder(point))) < 0) return;
-    handled = true;
+void HudQuickItems::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    default: break;
+    }
+}
+
+void HudQuickItems::LeftDown(UiEvent& event) {
+    if (RegionItem(RegionIndex(regions, RegionUnder(event.at))) < 0) return;
+    event.handled = true;
     CaptureMouse();
 }
 
-void HudQuickItems::MouseMove(Point point) {
-    if (RegionItem(RegionIndex(regions, RegionUnder(point))) >= 0) handled = true;
+void HudQuickItems::MouseMove(UiEvent& event) {
+    if (RegionItem(RegionIndex(regions, RegionUnder(event.at))) >= 0) event.handled = true;
 }
 
 void HudQuickItems::Update() {
@@ -151,10 +165,17 @@ void HudQuickItems::Update() {
 
 // --- Spell column ------------------------------------------------------------------------------
 
-void HudSpellColumn::LeftDown(Point point) { PressRegion(point, count); }
+void HudSpellColumn::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event, count); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: HitRegion(event, count); break;
+    default: break;
+    }
+}
 
-void HudSpellColumn::LeftUp(Point point) {
-    const int index = RegionIndex(regions, PressedRegion(point, count));
+void HudSpellColumn::LeftUp(UiEvent& event) {
+    const int index = RegionIndex(regions, PressedRegion(event, count));
     if (index < 0) return;
     if (ui->doubleClick)
         ClickAlternate(index);
@@ -162,32 +183,44 @@ void HudSpellColumn::LeftUp(Point point) {
         Click(index);
 }
 
-void HudSpellColumn::MouseMove(Point point) { HitRegion(point, count); }
-
 // --- Action column -----------------------------------------------------------------------------
 
-void HudActionColumn::LeftDown(Point point) { PressRegion(point, count); }
-
-void HudActionColumn::LeftUp(Point point) {
-    if (const int index = RegionIndex(regions, PressedRegion(point, count)); index >= 0) Select(index);
+void HudActionColumn::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event, count); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: HitRegion(event, count); break;
+    default: break;
+    }
 }
 
-void HudActionColumn::MouseMove(Point point) { HitRegion(point, count); }
+void HudActionColumn::LeftUp(UiEvent& event) {
+    if (const int index = RegionIndex(regions, PressedRegion(event, count)); index >= 0) Select(index);
+}
 
 // --- Portraits ---------------------------------------------------------------------------------
 
 // The portraits read the portrait mode of the battle screen they belong to (the game reads the interface's active
 // screen: the battle screen while they get input).
 
-void HudPortraits::LeftDown(Point point) {
+void HudPortraits::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    default: break;
+    }
+}
+
+void HudPortraits::LeftDown(UiEvent& event) {
     const int mode = owner->portraitMode;
     if (mode == 0) {
         // Any portrait region takes the event; only a party member's takes the mouse.
-        if (const int region = RegionIndex(regions, HitRegion(point)); region >= 0 && region < std::ssize(owner->party))
+        if (const int region = RegionIndex(regions, HitRegion(event)); region >= 0 && region < std::ssize(owner->party))
             CaptureMouse();
         return;
     }
-    const int region = RegionIndex(regions, RegionUnder(point));
+    const int region = RegionIndex(regions, RegionUnder(event.at));
     if (region < 0 || region >= count) return;
     // Picking a player for a server command: the player id of the slot, or of the session
     // player whose unit is the portrait's unit.
@@ -215,27 +248,37 @@ void HudPortraits::LeftDown(Point point) {
     owner->portraitMode = 0;
 }
 
-void HudPortraits::LeftUp(Point point) {
+void HudPortraits::LeftUp(UiEvent& event) {
     if (owner->portraitMode != 0) return;
-    const int region = RegionIndex(regions, PressedRegion(point));
+    const int region = RegionIndex(regions, PressedRegion(event));
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
     if (region >= 0 && region < std::ssize(owner->party)) owner->SelectUnit(owner->party[region], {});
 }
 
-void HudPortraits::MouseMove(Point point) {
+void HudPortraits::MouseMove(UiEvent& event) {
     if (owner->portraitMode == 0) {
-        const int region = RegionIndex(regions, HitRegion(point));
+        const int region = RegionIndex(regions, HitRegion(event));
         if (region >= 0 && region < std::ssize(owner->party)) owner->HoverUnit(owner->party[region], {});
         return;
     }
-    const int region = RegionIndex(regions, RegionUnder(point));
+    const int region = RegionIndex(regions, RegionUnder(event.at));
     if (region >= 0 && region < count) g_cursor.SetShape(CursorShape::Default);
 }
 
 // --- Map ---------------------------------------------------------------------------------------
 
-void HudMap::LeftDown(Point point) {
-    const UiRegion* region = PressRegion(point);
+void HudMap::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: HitRegion(event); break;
+    case UiEventKind::Wheel: Wheel(event); break;
+    default: break;
+    }
+}
+
+void HudMap::LeftDown(UiEvent& event) {
+    const UiRegion* region = PressRegion(event);
     if (region != viewButtons[0] && region != viewButtons[1]) return;
     ui->PlayInterfaceSound(kSoundClick);
     view = region == viewButtons[0] ? 1 : 2;
@@ -246,7 +289,7 @@ void HudMap::ShowView() {
     for (int i = 0; i < 2; ++i) SetTint(viewIcons[i], view == i + 1 ? kTintOn : kTintOff);
 }
 
-void HudMap::LeftUp(Point point) {
+void HudMap::LeftUp(UiEvent& event) {
     if (!ReleaseMouse()) return;
     if (view != 0) {
         // A view button was held: the zoom stops and both buttons go dim (the event is not marked used).
@@ -254,15 +297,16 @@ void HudMap::LeftUp(Point point) {
         ShowView();
         return;
     }
-    const UiRegion* region = HitRegion(point);
+    const UiRegion* region = HitRegion(event);
     if (region == slingButton) {
         slide.Toggle(ui);
     } else if (region == roundMap || region == mapSquare) {
         // The world point under the click.
-        ui->ScalePointFromScreen(&point);
+        Point at = event.at;
+        ui->ScalePointFromScreen(&at);
         // WideScreen: the centre moved right by the shift.
-        float right = static_cast<float>(point.x - (kMapCentreX + screen_layout::EdgeShift())) / halfSide;
-        float down = static_cast<float>(point.y - kMapCentreY) / halfSide;
+        float right = static_cast<float>(at.x - (kMapCentreX + screen_layout::EdgeShift())) / halfSide;
+        float down = static_cast<float>(at.y - kMapCentreY) / halfSide;
         if (region == roundMap) {
             right /= zoom;
             down /= zoom;
@@ -281,8 +325,6 @@ void HudMap::LeftUp(Point point) {
     }
 }
 
-void HudMap::MouseMove(Point point) { HitRegion(point); }
-
 void HudMap::FaceNorth() {
     ui->PlayInterfaceSound(kSoundClick);
     g_camera.SetHeading(0.0f);
@@ -291,10 +333,18 @@ void HudMap::FaceNorth() {
 
 // --- Unit panel --------------------------------------------------------------------------------
 
-void HudUnitPanel::LeftDown(Point point) { PressRegion(point); }
+void HudUnitPanel::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: HitRegion(event); break;
+    case UiEventKind::Wheel: HitRegion(event); break;
+    default: break;
+    }
+}
 
-void HudUnitPanel::LeftUp(Point point) {
-    const UiRegion* region = PressedRegion(point);
+void HudUnitPanel::LeftUp(UiEvent& event) {
+    const UiRegion* region = PressedRegion(event);
     if (region == slingButton) {
         slide.Toggle(ui);
         return;
@@ -306,16 +356,19 @@ void HudUnitPanel::LeftUp(Point point) {
     }
 }
 
-void HudUnitPanel::MouseMove(Point point) { HitRegion(point); }
-
-void HudUnitPanel::Wheel(float, Point point) { HitRegion(point); }
-
 // --- Clock -------------------------------------------------------------------------------------
 
-void HudClock::LeftDown(Point point) { PressRegion(point); }
+void HudClock::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: HitRegion(event); break;
+    default: break;
+    }
+}
 
-void HudClock::LeftUp(Point point) {
-    const UiRegion* region = PressedRegion(point);
+void HudClock::LeftUp(UiEvent& event) {
+    const UiRegion* region = PressedRegion(event);
     if (region == pauseButton) {
         TogglePause();
     } else if (region == normalButton || region == fastButton) {
@@ -327,8 +380,6 @@ void HudClock::LeftUp(Point point) {
         OpenObjectives();
     }
 }
-
-void HudClock::MouseMove(Point point) { HitRegion(point); }
 
 void HudClock::TogglePause() {
     ui->PlayInterfaceSound(kSoundClock);
@@ -353,10 +404,17 @@ void HudClock::OpenObjectives() {
 
 // --- Movement panel ----------------------------------------------------------------------------
 
-void HudMovePanel::LeftDown(Point point) { PressRegion(point); }
+void HudMovePanel::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: HitRegion(event); break;
+    default: break;
+    }
+}
 
-void HudMovePanel::LeftUp(Point point) {
-    const UiRegion* region = PressedRegion(point);
+void HudMovePanel::LeftUp(UiEvent& event) {
+    const UiRegion* region = PressedRegion(event);
     if (region == flagButton)
         ToggleFlag();
     else if (const int moveMode = RegionIndex(modeButtons, region); moveMode >= 0)
@@ -374,8 +432,6 @@ void HudMovePanel::SetMode(int newMode) {
     }
     ShowMode(newMode);
 }
-
-void HudMovePanel::MouseMove(Point point) { HitRegion(point); }
 
 void HudMovePanel::ShowMode(int newMode) {
     screen_layout::EnterLeftPanel();    // addon's handler; another at the end
@@ -426,10 +482,18 @@ void HudMovePanel::Update() {
 
 // --- Top panel ---------------------------------------------------------------------------------
 
-void HudTopPanel::LeftDown(Point point) { PressRegion(point); }
+void HudTopPanel::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: HitRegion(event); break;
+    case UiEventKind::Wheel: HitRegion(event); break;
+    default: break;
+    }
+}
 
-void HudTopPanel::LeftUp(Point point) {
-    const UiRegion* region = PressedRegion(point);
+void HudTopPanel::LeftUp(UiEvent& event) {
+    const UiRegion* region = PressedRegion(event);
     if (region == slingButton) {
         slide.Toggle(ui);
     } else if (const int newPage = RegionIndex(pageButtons, region); newPage >= 0) {
@@ -438,10 +502,6 @@ void HudTopPanel::LeftUp(Point point) {
         ui->PlayInterfaceSound(kSoundClick);
     }
 }
-
-void HudTopPanel::MouseMove(Point point) { HitRegion(point); }
-
-void HudTopPanel::Wheel(float, Point point) { HitRegion(point); }
 
 // --- BattleScreen::SelectUnit --------------------------------------------------------
 
@@ -608,12 +668,12 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
 
 // --- The quick item panel's button release -------------------------------------------
 
-void HudQuickItems::LeftUp(Point point) {
+void HudQuickItems::LeftUp(UiEvent& event) {
     if (!ReleaseMouse()) return;
-    const int slot = RegionIndex(regions, RegionUnder(point));
+    const int slot = RegionIndex(regions, RegionUnder(event.at));
     const int entry = RegionItem(slot);
     if (entry < 0) return;
-    handled = true;
+    event.handled = true;
     if (slot < 4 && entries[entry].own) {
         if (ui->doubleClick)
             UseNow(slot);
