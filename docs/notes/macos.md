@@ -89,12 +89,18 @@ before `StartWindowSystem` starts it again with the game's hints. A quarantined 
 read-only copy), where nothing is beside it: the picker then, once, so beside-the-app works only after `xattr -dr`.
 
 The log and a run's other output go to `~/Library/Logs/ei-rebuild` (`platform::DefaultOutputFolder`; the Console app
-lists it) unless `EI_OUT_DIR` names a folder. The settings are still `ei_settings.ini` beside the executable, inside
-the bundle, or `~/Library/Application Support/EvilIslands/ei_settings.ini` when the bundle cannot be written
-(settings.cpp; a translocated app). Windows and Linux keep the program's own folder for both the game and the log.
+lists it) unless `EI_OUT_DIR` names a folder. The settings are `ei_settings.ini` in `~/Library/Application Support/ei-rebuild`,
+beside `game_folder.txt` (`platform::DefaultSettingsFolder`, which settings.cpp asks for its first place), not inside
+the bundle: the app can be replaced or run translocated without losing them or changing the signed bundle, and the
+folder is always writable. One file serves every game folder (its `Work path` is relative). A file from an earlier
+build at `~/Library/Application Support/EvilIslands/ei_settings.ini` (settings.cpp's per-user place) is still read when
+the new folder has none. `EI_SETTINGS_PATH` names another file as before. Windows and Linux keep the program's own
+folder for the game, the log and the settings (the Linux build checks `DefaultSettingsFolder`'s Linux branch and
+`PrefFolder`, which the macOS branch shares with `UserDataFolder`; port_check asserts the macOS branch's folder).
 
 Not checked on a Mac yet (written without one, 2026-11-05; compiled only by the Release workflow's macOS job): the
-picker's look and its answer, the remembered file, the log's folder, and SDL's video quit and started again.
+picker's look and its answer, the remembered file, the log's and the settings' folders, and SDL's video quit and
+started again.
 
 ## What differs on macOS
 

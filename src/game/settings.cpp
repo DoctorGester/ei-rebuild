@@ -36,11 +36,7 @@ struct Locked {
     std::lock_guard<std::mutex> guard{g_lock};
 };
 
-std::string FileNextToExe() {
-    std::string path = platform::ProgramPath();
-    path.resize(path.find_last_of("\\/") + 1);
-    return path + kFileName;
-}
+std::string FileInSettingsFolder() { return platform::DefaultSettingsFolder() + kFileName; }
 
 // %LOCALAPPDATA%\EvilIslands\ei_settings.ini (empty without LOCALAPPDATA).
 std::string FileForUser() {
@@ -105,7 +101,7 @@ void Load(Store& s) {
     std::vector<std::string> places;
     if (s.pinned) places.push_back(s.file);
     else {
-        places.push_back(FileNextToExe());
+        places.push_back(FileInSettingsFolder());
         if (std::string user = FileForUser(); !user.empty()) places.push_back(std::move(user));
     }
     for (std::size_t i = 0; i < places.size(); ++i) {

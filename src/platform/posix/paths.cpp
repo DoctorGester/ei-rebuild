@@ -25,6 +25,16 @@ namespace fs = std::filesystem;
 
 namespace {
 
+// SDL's per-user folder of the application `app` ("" for the folder of all; made when missing), in the game's form with
+// a trailing separator; empty when there is none.
+std::string PrefFolder(const char* app) {
+    char* path = SDL_GetPrefPath("", app);
+    if (!path) return {};
+    const std::string result = posix::GamePath(path) + "\\";
+    SDL_free(path);
+    return result;
+}
+
 #if defined(__APPLE__)
 
 // Whether `folder` holds the game's data: its Res/database.res, each name matched with Windows' case rules as the game
@@ -139,11 +149,18 @@ std::string DefaultGameFolder() {
 
 std::string DefaultOutputFolder() { return EnvironmentVariable("HOME") + "/Library/Logs/ei-rebuild"; }
 
+std::string DefaultSettingsFolder() { return PrefFolder("ei-rebuild"); }
+
 #else
 
 std::string DefaultGameFolder() { return ProgramFolder(); }
 
 std::string DefaultOutputFolder() { return ProgramFolder(); }
+
+std::string DefaultSettingsFolder() {
+    const std::string folder = ProgramFolder();
+    return folder.empty() ? folder : folder + "/";
+}
 
 #endif
 
@@ -160,13 +177,7 @@ std::string ArgumentsAfterSeparator(int argc, char** argv) {
 
 std::string CurrentFolder() { return posix::GamePath(fs::current_path()); }
 
-std::string UserDataFolder() {
-    char* path = SDL_GetPrefPath("", "");
-    if (!path) return {};
-    const std::string result = posix::GamePath(path) + "\\";
-    SDL_free(path);
-    return result;
-}
+std::string UserDataFolder() { return PrefFolder(""); }
 
 bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
     if (chdir(NativePath(path).c_str()) == 0) return true;

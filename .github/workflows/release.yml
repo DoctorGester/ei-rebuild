@@ -290,9 +290,8 @@ jobs:
           names the folder instead.
 
           The game writes its saves into the game folder, so use a copy of the install if you want the original
-          kept as it is. The settings are ei_settings.ini inside the app, in ei-rebuild.app/Contents/MacOS, or in
-          ~/Library/Application Support/EvilIslands when the app cannot be written to (EI_SETTINGS_PATH names
-          another file). The log is ~/Library/Logs/ei-rebuild/ei-rebuild.log (EI_OUT_DIR names another folder).
+          kept as it is. The settings are ~/Library/Application Support/ei-rebuild/ei_settings.ini, outside the app
+          (EI_SETTINGS_PATH names another file). The log is ~/Library/Logs/ei-rebuild/ei-rebuild.log (EI_OUT_DIR names another folder).
 
           third_party_notices.txt holds the licences of the code and fonts built in.
           EOF

@@ -1,6 +1,6 @@
 #pragma once
 
-// The standalone's settings: ei_settings.ini next to the exe (or %LOCALAPPDATA%\EvilIslands\ei_settings.ini when the
+// The standalone's settings: ei_settings.ini next to the exe (on macOS in ~/Library/Application Support/ei-rebuild; or %LOCALAPPDATA%\EvilIslands\ei_settings.ini when the
 // exe's folder has none and cannot be written; docs/notes/standalone.md, "Settings file"). The options (options.cpp),
 // the renderer's switches, Rebirth's patches, switches and console lines are read and written here through typed
 // accessors; nothing reads or writes the registry.
