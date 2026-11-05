@@ -8,3 +8,4 @@ note = "User 2026-11-05: changing the mod from the menu without a restart would 
 order = 1198
 status = "queued"
 started = "2026-11-05"
+done = "2026-11-05"
