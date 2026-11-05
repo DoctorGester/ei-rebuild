@@ -21,8 +21,7 @@ constexpr float kOne = 1.0f;   // 1.0f, the w row of every vertex packet
 
 template <typename T>
 T Read(const char** cursor) {
-    T value;
-    std::memcpy(&value, *cursor, sizeof(T));
+    const T value = lib::Load<T>(*cursor);
     *cursor += sizeof(T);
     return value;
 }
@@ -30,6 +29,7 @@ T Read(const char** cursor) {
 // The `count` elements of T the file data holds at `at`, copied out (the records lie at any alignment).
 template <typename T>
 std::vector<T> FileArray(const char* at, int count) {
+    static_assert(lib::kFormatValue<T>, "plain bytes without padding, one size in every build");
     std::vector<T> out(static_cast<std::size_t>(count));
     if (count != 0) std::memcpy(out.data(), at, out.size() * sizeof(T));
     return out;

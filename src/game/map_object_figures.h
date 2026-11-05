@@ -206,6 +206,15 @@ struct FigureAnimationRecord {
 static_assert(offsetof(FigureAnimationRecord, arrowFrom) == 0x28);
 static_assert(offsetof(FigureAnimationRecord, soundFrame) == 0x44);
 static_assert(sizeof(FigureAnimationRecord) == 0x58);
+constexpr bool NoPadding(const FigureAnimationRecord*) {
+    return lib::FieldsFill<&FigureAnimationRecord::name, &FigureAnimationRecord::index,
+                           &FigureAnimationRecord::unused_11, &FigureAnimationRecord::key,
+                           &FigureAnimationRecord::flags, &FigureAnimationRecord::chance,
+                           &FigureAnimationRecord::frameCount, &FigureAnimationRecord::stride,
+                           &FigureAnimationRecord::arrowFrom, &FigureAnimationRecord::arrowTo,
+                           &FigureAnimationRecord::stepFrames, &FigureAnimationRecord::moment,
+                           &FigureAnimationRecord::soundFrame, &FigureAnimationRecord::sounds>();
+}
 
 struct AnimationDatabase;
 

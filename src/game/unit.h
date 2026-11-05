@@ -585,6 +585,7 @@ struct UnitStatPair {
     float current = 0.0f;
 };
 static_assert(offsetof(UnitStatPair, current) == 4);
+constexpr bool NoPadding(const UnitStatPair*) { return lib::FieldsFill<&UnitStatPair::base, &UnitStatPair::current>(); }
 
 // The hit points, mana and protection of a unit as the server keeps them (party records keep one too).
 struct UnitVitals {
@@ -606,6 +607,11 @@ struct UnitVitals {
     float manaRegen = 0.0f;
     UnitStatPair protection[7];     // per damage type (current: what a hit loses to it)
 };
+constexpr bool NoPadding(const UnitVitals*) {
+    return lib::FieldsFill<&UnitVitals::builtFlags, &UnitVitals::regenTicks, &UnitVitals::hitPoints,
+                           &UnitVitals::maxHitPoints, &UnitVitals::hitPointRegen, &UnitVitals::mana,
+                           &UnitVitals::maxMana, &UnitVitals::manaRegen, &UnitVitals::protection>();
+}
 
 // The slots of UnitStats::perception (what a unit senses) and UnitStats::conspicuity (what others sense of it). A
 // seer's perception multiplies the seen unit's conspicuity in the same slot.

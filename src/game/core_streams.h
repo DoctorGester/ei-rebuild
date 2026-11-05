@@ -36,7 +36,7 @@ public:
     // byte in an int) stays a Read / Write with its size written out.
     template <class T>
     void ReadValue(T& value) {
-        static_assert(lib::kFormatValue<T>, "a stream value is plain bytes of one size in every build");
+        static_assert(lib::kFormatValue<T>, "a stream value: plain bytes without padding, one size in every build");
         Read(&value, sizeof(T));
     }
     // A flag saved as one byte (0 / 1); any other byte reads as set. A short read keeps the flag.
@@ -47,7 +47,7 @@ public:
     }
     template <class T>
     void WriteValue(const T& value) {
-        static_assert(lib::kFormatValue<T>, "a stream value is plain bytes of one size in every build");
+        static_assert(lib::kFormatValue<T>, "a stream value: plain bytes without padding, one size in every build");
         Write(&value, sizeof(T));
     }
     // One value read as a T (zero when a stream that keeps the variable on a short read has nothing).

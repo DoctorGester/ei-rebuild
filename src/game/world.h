@@ -208,10 +208,15 @@ public:
 // One of the five alarms InvokeAlarm raises (the script's IsAlarm / AlarmTime / AlarmPosX / AlarmPosY).
 struct WorldAlarm {
     std::uint8_t active = 0;
+    std::uint8_t unused[3] = {};          // saved: the alarm is written whole
     int time = 0;                         // tick it was raised
     float x = 0.0f, y = 0.0f;
 };
 static_assert(sizeof(WorldAlarm) == 16);   // saved as its 16 bytes
+constexpr bool NoPadding(const WorldAlarm*) {
+    return lib::FieldsFill<&WorldAlarm::active, &WorldAlarm::unused, &WorldAlarm::time, &WorldAlarm::x,
+                           &WorldAlarm::y>();
+}
 
 // The world the missiles find while they load.
 inline WorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};

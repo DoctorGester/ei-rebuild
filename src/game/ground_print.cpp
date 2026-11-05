@@ -47,15 +47,6 @@ constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi / 180.
 constexpr float kPerDegree = 0.0055555557f;
 
-template <typename T>
-void Read(ByteStream* stream, T* value) {
-    stream->Read(value, sizeof(T));
-}
-template <typename T>
-void Write(ByteStream* stream, T value) {
-    stream->WriteValue(value);
-}
-
 int RandomQuarter() { return ClientRandBelow(4); }
 
 // The prints.db entry for the ground at (x, y), or null.

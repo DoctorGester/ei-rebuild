@@ -188,6 +188,11 @@ struct DamageInfo {
     std::uint8_t calledShot = 0;
     std::uint8_t unused_39[3] = {};
 };
+constexpr bool NoPadding(const DamageInfo*) {
+    return lib::FieldsFill<&DamageInfo::typeWeights, &DamageInfo::weaponValue, &DamageInfo::attackRoll,
+                           &DamageInfo::amount, &DamageInfo::multiplier, &DamageInfo::location, &DamageInfo::hitKind,
+                           &DamageInfo::backstabFactor, &DamageInfo::calledShot, &DamageInfo::unused_39>();
+}
 
 // A spell being applied (created by WorldServer::CastSpell): the world server's missiles. It embeds the
 // Spell it applies; the spell's duration is also the number of targets the damage is split between, and the

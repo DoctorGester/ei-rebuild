@@ -34,6 +34,9 @@ struct AbsorbRow {
     std::uint32_t flags = 0;
 };
 static_assert(sizeof(AbsorbRow) == 0x24);
+constexpr bool NoPadding(const AbsorbRow*) {
+    return lib::FieldsFill<&AbsorbRow::factor, &AbsorbRow::absorb, &AbsorbRow::flags>();
+}
 
 void AbsorbRowField(ChunkArchive* ar, int id, float& factor, std::array<float, kDamageTypeCount>& absorb,
                     std::uint32_t& flags) {

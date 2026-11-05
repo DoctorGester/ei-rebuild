@@ -238,6 +238,10 @@ struct ScriptAreaPart {
     float y2 = 0.0f;
 };
 static_assert(sizeof(ScriptAreaPart) == 0x14);   // saved as its 20 bytes
+constexpr bool NoPadding(const ScriptAreaPart*) {
+    return lib::FieldsFill<&ScriptAreaPart::isRect, &ScriptAreaPart::unused_01, &ScriptAreaPart::x, &ScriptAreaPart::y,
+                           &ScriptAreaPart::x2OrRadiusSquared, &ScriptAreaPart::y2>();
+}
 
 // An area of IsInArea.
 struct ScriptArea {

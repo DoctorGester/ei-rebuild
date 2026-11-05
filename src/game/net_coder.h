@@ -3,6 +3,8 @@
 // The byte buffers, the bit cursors over them and the LZ coder that compresses save games, multiplayer map
 // transfers and network messages. See docs/notes/network.md, "Compression".
 
+#include "lib/bytes.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -46,10 +48,12 @@ public:
     void Read(void* to, std::uint32_t size);
     template <typename T>
     void Put(const T& value) {
+        static_assert(lib::kFormatValue<T>, "a message value: plain bytes without padding, one size in every build");
         Write(&value, sizeof(T));
     }
     template <typename T>
     void Get(T& value) {
+        static_assert(lib::kFormatValue<T>, "a message value: plain bytes without padding, one size in every build");
         Read(&value, sizeof(T));
     }
     // Length-prefixed strings: the length * 2 in one byte, or length * 2 + 1 in four bytes from 0x80 on.
@@ -143,10 +147,12 @@ struct BufferCursor {
     void ReadBytes(void* to, std::uint32_t size);
     template <typename T>
     void Put(const T& value) {
+        static_assert(lib::kFormatValue<T>, "a message value: plain bytes without padding, one size in every build");
         WriteBytes(&value, sizeof(T));
     }
     template <typename T>
     void Take(T& value) {
+        static_assert(lib::kFormatValue<T>, "a message value: plain bytes without padding, one size in every build");
         ReadBytes(&value, sizeof(T));
     }
     // A zero-terminated text, in the asset code page on the wire (asset_text.h) as vanilla peers send it.

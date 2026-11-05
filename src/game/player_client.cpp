@@ -141,7 +141,7 @@ bool PlayerClient::RunTick() {
         const Vector3* anchor = g_clientWorld.camera->Anchor();
         Vector2 point = XY(*anchor);   // sent as two floats
         WriteType(&out, ClientMessage::LastPosition);
-        out.Write(&point, sizeof(point));
+        out.WriteValue(point);
         return SendToServer();
     }
     default:

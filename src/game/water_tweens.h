@@ -2,6 +2,8 @@
 
 // The world's water level changes (World::countdowns; model_db.cpp).
 
+#include "lib/bytes.h"
+
 #include <vector>
 
 class ByteStream;
@@ -16,6 +18,9 @@ struct TweenEntry {
     float step = 0.0f;
 };
 static_assert(sizeof(TweenEntry) == 16);   // saved as its 16 bytes
+constexpr bool NoPadding(const TweenEntry*) {
+    return lib::FieldsFill<&TweenEntry::key, &TweenEntry::steps, &TweenEntry::value, &TweenEntry::step>();
+}
 
 // The world's water level changes, in the order they were first set.
 struct WaterTweens {
