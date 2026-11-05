@@ -1,13 +1,16 @@
 {
   "scenario": "rebirth_mod_maps",
   "install": "vanilla",
-  "recorded": "2026-11-04",
-  "commit": "a50e35c24",
+  "recorded": "2026-11-05",
+  "commit": "c4a4ce818",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "S19d: mod-folder scenarios (stream, movies, archives, maps sites, zone table), first goldens",
+  "reason": "C162: the mod-folder patches apply whenever a mod is played, on both installs; the S19 mods are chosen by 'mod harness_saves\\...' and their saves go to harness_saves\\<mod>",
   "source": "image",
-  "saves": "5 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "5 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "saves: the old golden has current/gz1g.sav, savea/gz1g.sav, savea/info.sav, savea/mission.sav, savea/scenario.sav, the new run s19d_mod/current/gz1g.sav, s19d_mod/savea/gz1g.sav, s19d_mod/savea/info.sav, s19d_mod/savea/mission.sav, s19d_mod/savea/scenario.sav"
+  ]
 }

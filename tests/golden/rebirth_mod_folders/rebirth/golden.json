@@ -1,17 +1,16 @@
 {
   "scenario": "rebirth_mod_folders",
   "install": "rebirth",
-  "recorded": "2026-11-03",
-  "commit": "ce241d21a",
+  "recorded": "2026-11-05",
+  "commit": "c4a4ce818",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry",
+  "reason": "C162: AddonPath folded into the mod step: the mod's saves go to harness_saves\\<mod> (contents the same)",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
-    "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
+    "saves: the old golden has savea/info.sav, savea/mission.sav, savea/scenario.sav, the new run s19b_mod/savea/info.sav, s19b_mod/savea/mission.sav, s19b_mod/savea/scenario.sav"
   ]
 }

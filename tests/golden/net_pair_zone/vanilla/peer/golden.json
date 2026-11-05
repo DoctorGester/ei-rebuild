@@ -1,28 +1,13 @@
 {
   "scenario": "net_pair_zone",
   "install": "vanilla",
-  "recorded": "2026-11-03",
-  "commit": "0999ae8c4",
+  "recorded": "2026-11-05",
+  "commit": "c4a4ce818",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
+  "reason": "C162: EI_Plugin's Briefings always on: a network client also queues the briefing completion script (checked: with it off the runs match the old goldens)",
   "side": "peer",
-  "source": "image",
-  "change": [
-    "digest: 105 of 203 records differ, first at record 78 (world update 1580, tick 1137, frame 315, zone bz1mpg); outcomes the same; no unit position differs",
-    "  first difference at record 78 (world update 1580, tick 1137, frame 315, zone bz1mpg): 2 fields",
-    "    obj399469 (80 unanhopi \"\") #unit: 02FF2E5D in the old golden, AA6FA62A in the new run",
-    "    cunit399469 (80 unanhopi \"\") #place: 40ED571C in the old golden, 31CD9F7C in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 2 of 26 differ",
-    "    #unit: 2 units, 6 records, from 78; hash only (no numbers kept)",
-    "  client units: 9 of 25 differ",
-    "    #place: 8 client units, 34 records, from 78; hash only (no numbers kept)",
-    "    #unit: 8 client units, 32 records, from 171; hash only (no numbers kept)",
-    "    only in the old golden: 3 (cunit4767 80 unanhoha \"\", cunit4768 80 unanhoha \"\", cunit4895 80 unanwibo \"\"), from record 174",
-    "    only in the new run: 1 (cunit4895 80 unanwibo \"\"), from record 200",
-    "... 6 more lines"
-  ]
+  "source": "image"
 }

@@ -2,12 +2,12 @@
   "scenario": "net_pair_database",
   "install": "vanilla",
   "recorded": "2026-11-05",
-  "commit": "94c6f28e5",
+  "commit": "c4a4ce818",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C154c: new pair, a client leaves a server with another item database",
+  "reason": "C162: EI_Plugin's Briefings always on: a network client also queues the briefing completion script (checked: with it off the runs match the old goldens)",
   "side": "peer",
   "source": "image"
 }
