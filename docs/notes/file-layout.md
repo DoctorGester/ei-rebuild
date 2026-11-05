@@ -201,6 +201,26 @@ sizes` on 2026-11-05 ("other references": comments, notes, tools, tests, config;
 | C168h | Moves: script, net, ui (145 files, 9 folds) | 602, 1,275 | Sonnet |
 | C168i | Later: only the misplaced classes (user 2026-11-05): MapObjectManager out of unit_create.h, Player out of player_messages.h, the spell records out of item_db.h, CreditsScreen gathered into one file. The subject splits of ui_camp.h, ui_screens.h and effects.h are dropped (cosmetic) | ~10 files | Opus |
 
+How a move batch runs (the tool is C168a's; `python tools/test_layout.py` tests it on a tree of its own):
+1. `python tools/layout.py check` (0 problems), then `python tools/layout.py apply C168x --dry-run`: the moves, the
+   folds and what the rewrite would change. It refuses while the map does not match src/game or a file of the batch
+   is not made yet (its split batch, C168b or C168c, first).
+2. `python tools/layout.py apply C168x`: `git mv` of each move; each fold's text in place of its owner's include of it
+   (the owner uses it) or after the owner's text, a header's `#pragma once` dropped, the folded file `git rm`ed; then
+   the rewrite.
+3. By hand: each fold tidied (one include list, one anonymous namespace, the file comment), the batch's old stems
+   grepped in docs and comments, `layout.py listing`, the builds.
+
+The rewrite (`layout.py rewrite`, also run by `apply`) changes, for every file whose line says it moved (OLD gone, NEW
+there): a game include not rooted at src (bare, `../`) to `game/...`; `src/game/OLD` and `game/OLD` to the path now in
+src, tests, tools, docs, config, CMakeLists.txt and .github (not the tickets, the goldens or the plan itself); a
+renamed or folded file's bare name in prose to its new path (not a name a file outside src/game has too: bink_video.*
+is printed and left to a reading); the rows of config/cleanup_baseline.csv and config/comment_baseline.csv (a fold's
+summed into its owner's); a CMake command's repeated src/game source. A kept name stays bare, it is still unique.
+The tools that name game files ask the map where they are now (`layout.now`, `layout.game_paths`): check_cleanup.py's
+exemption lists and its families (by the flat name), gen_settings_doc.py, named_data.py; coverage.py gives a folder's
+files its area.
+
 Order and running work:
 - C168a first: every later batch uses its tool, and its rooted includes are what lets a moved file include a flat
   one. C168b then C168c (C168c takes prints.db's records next to the load C168b moved).
