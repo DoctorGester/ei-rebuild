@@ -6,5 +6,6 @@ model = "opus"
 files = ["src/game/weather_particles.cpp", "src/game/weather_field.cpp"]
 note = "User 2026-11-05 after R59: flakes no longer look like snowflakes (R59 drew 12-corner vertex-colour discs over the white texture; the old draw used the weather texture's snow row, 4 frames at kSnowTop 0.5..0.74). Snow costs 120->80 fps: 26000 particles, Place + RawSurfaceHeightAt + 25 vertices each, every frame on the CPU. Keep R59's field (no stretch, no jumps, fades). Measure before/after frame time at 1080p and 4K, one game at a time. Done 2026-11-05: flakes are the RainSnow texture's four snow-row pictures on spinning screen-sized quads (4.5..16 1080p px half side), 16000 flakes; bins (8x8x4 layers x4 fall speeds) culled by the view's planes, anchors pre-culled, per-frame wrap bases, whole-unit ground height cache. Weather build time (renderstats, render_weather_cost, gz11k): snow 4.8-5.0 ms -> 0.22 ms at 1080p and 4K, rain 2.9 -> 0.26 ms; main thread clear 1.5-1.7 ms, snow R59 8.0 -> 1.9 ms at 1080p."
 order = 1241
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
