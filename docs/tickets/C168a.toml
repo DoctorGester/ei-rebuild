@@ -1,0 +1,10 @@
+id = "C168a"
+title = "File layout: the mover (layout.py apply / rewrite), build and tool plumbing, every game include rooted at src"
+group = "cleanup"
+size = 2
+model = "opus"
+depends = ["C168"]
+files = ["tools/layout.py", "tools/layout_map.txt", "CMakeLists.txt", "tools/coverage.py", "tools/check_cleanup.py", "src/game"]
+note = "Plan: docs/notes/file-layout.md (The batches). tools/layout.py apply <batch> (git mv, include and reference rewrite by tools/layout_map.txt, CMake lists) and rewrite (idempotent, for a branch that merged a batch); CMake's game glob for src/game/*/*.cpp beside src/game/*.cpp; coverage.py areas by folder; check_cleanup.py path lists by the map and its family = folder + first word; every game include rooted at src (#include \"game/unit.h\"), no move yet (~3,470 include lines). All goldens the same."
+order = 1229
+status = "later"

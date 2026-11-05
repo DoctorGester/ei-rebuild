@@ -1,0 +1,9 @@
+id = "C168i"
+title = "File layout, optional: the large mixed headers by subject (ui_camp.h, ui_screens.h, effects.h, unit_create.h, player_messages.h, item_db.h)"
+group = "cleanup"
+size = 2
+model = "opus"
+depends = ["C168h"]
+note = "Plan: docs/notes/file-layout.md (C168i). ui/camp.h to global map / camp pages / hero panels; ui/screens.h by screen; effects/effects.h to particles / weather / fog; MapObjectManager out of units/create.h; Player out of players/messages.h; the spell records out of items/db.h; CreditsScreen gathered from three files; ui/panel_draws.cpp into its panels. The user decides whether and when."
+order = 1237
+status = "later"
