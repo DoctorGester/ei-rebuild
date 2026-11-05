@@ -446,8 +446,9 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
 (linux.md, "The CI job"), on SDL_GPU's Direct3D 12 driver with WARP, the software adapter.
 - **Builds**: `build-release` and `build-verify` in parallel, each `build.cmd` of its name (the runner's Visual Studio,
   found by vswhere and given as EI_VSROOT; no sccache: EI_COMPILER_CACHE=0; the shader toolchain's build folder cached),
-  with the warnings and build checks included. The verify job uploads `build/verify/ei-rebuild.exe`; a failed build
-  check with the exe linked is a warning, so the suites still run.
+  with the warnings and build checks included. The verify job uploads `build/verify/ei-rebuild.exe` and its `.map` (so
+  run_all names a crashed run's stack; the stub data's game.exe is empty, which resolve_crash.py leaves out); a failed
+  build check with the exe linked is a warning, so the suites still run.
 - **Suites**: eight jobs (input `shards`), each its share of the sorted scenarios, image suite then Rebirth's, one game
   at a time, `--golden`; the stub set fetched and unpacked as in the Linux job (same variable and secrets). Inputs:
   `scenarios` (a few names: also give `shards` 1), `suites` (full, image, builds).

@@ -4,8 +4,8 @@
 #
 # build-release / build-verify (parallel): build.cmd release and build.cmd verify, as on a desktop: the MSVC of the
 # runner's Visual Studio (EI_VSROOT from vswhere), warnings and the build checks included (build.cmd runs them; they
-# draw on WARP here). build-verify uploads the harness exe (build/verify/ei-rebuild.exe: code only, no game data) for
-# the suites jobs. A failed build check on verify is a warning when the exe was built, so the suites still run.
+# draw on WARP here). build-verify uploads the harness exe and its map (build/verify/ei-rebuild.exe and .map: code
+# only, no game data) for the suites jobs; the map names a crashed run's stack (tools/resolve_crash.py). A failed build check on verify is a warning when the exe was built, so the suites still run.
 #
 # suites: the suites-linux.yml job's way: the stub game data (H41) fetched from the private repository with the
 # read-only token, both suites, the scenarios dealt round the SHARDS jobs, one game at a time each. EI_GPU_D3D12_WARP=1
@@ -13,7 +13,7 @@
 # only adapter anyway, and the variable makes a local run on a GPU machine use the same path.
 #
 # The suites need the repository variable EI_STUB_DATA_REPO and the secrets EI_STUB_DATA_TOKEN / EI_STUB_DATA_KEY, as
-# suites-linux.yml does. The data never leaves the runner (temp folder, nothing uploaded but the exe).
+# suites-linux.yml does. The data never leaves the runner (temp folder, nothing uploaded but the exe and its map).
 name: Windows
 
 on:
@@ -112,7 +112,9 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: harness-exe
-          path: build/verify/ei-rebuild.exe
+          path: |
+            build/verify/ei-rebuild.exe
+            build/verify/ei-rebuild.map
           retention-days: 3
           if-no-files-found: error
 
