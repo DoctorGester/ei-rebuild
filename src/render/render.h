@@ -162,7 +162,7 @@ struct ShadowMesh {
     bool unit = false;  // a unit's part: no roof over the weather (render_weather.cpp's roof map)
 };
 void ShadowCasterMesh(const Object3D* object, const ShadowMesh& mesh);
-// The walk's time counts as the shadow map's CPU time.
+// The walk's time counts as the shadow map's CPU time (FrameStats and the performance overlay).
 void BeginShadowWalk();
 void EndShadowWalk();
 // The rain and snow particles (RainSnow::DrawParticles) drawn: true unless the harness left them out

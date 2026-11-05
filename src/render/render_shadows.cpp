@@ -500,7 +500,7 @@ static bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     return true;
 }
 
-static Timer g_walkTimer;   // the walk's (BeginShadowWalk)
+static Timer g_walkTimer, g_walkCpu;   // the walk's (BeginShadowWalk): its FrameStats time, the overlay's
 
 // A caster outside the view into `draws` through `light` (the landscape's space to a map's clip space), cut out as the
 // meshes drawn with its texture are (g_cuts); false when its mesh is not on the GPU.
@@ -687,7 +687,6 @@ float CasterStrength(const Object3D* object) {
 
 void ShadowCasterMesh(const Object3D* object, const ShadowMesh& m) {
     if (!g_outsideOn || m.indexCount < 3 || g_outside.size() >= kMostOutside) return;
-    Timer timer(FrameStats::ShadowMs);
     const CachedMesh* kept = KeepCasterMesh(m);
     if (!kept) return;
     OutsideCaster e{};
@@ -704,9 +703,13 @@ void ShadowCasterMesh(const Object3D* object, const ShadowMesh& m) {
 
 void BeginShadowWalk() {
     g_walkTimer.Begin(FrameStats::ShadowMs);
+    g_walkCpu.Begin();
 }
 
-void EndShadowWalk() { g_walkTimer.End(); }
+void EndShadowWalk() {
+    g_walkTimer.End();
+    perf::AddCpu(perf::Cpu::Shadow, g_walkCpu.End());
+}
 
 void SetOffscreenCasters(OffscreenCasters mode) {
     const bool on = mode != OffscreenCasters::View, walked = mode == OffscreenCasters::Walked;
@@ -993,15 +996,18 @@ static void AddDrawnCasters(const Frame& f, std::unordered_set<const Object3D*>&
 }
 
 // The casters outside the view (ShadowCasterMesh) into g_casterDraws through the map's light matrix; their objects
-// into `counted`.
+// into `counted` (an object's meshes come in a row).
 static void AddOutsideCasters(const Fit& fit, std::unordered_set<const Object3D*>& counted) {
     std::unordered_set<const Object3D*> outside;
+    const Object3D* last = nullptr;
     int corners = 0;
     for (const OutsideCaster& e : g_outside) {
         if (!AddOutsideCaster(g_casterDraws, e, fit.light)) continue;
         ++g_stats.counts[FrameStats::ShadowDraws];
         ++g_info.outsideDraws;
         corners += CachedVertexCount(*e.mesh);
+        if (e.object == last) continue;
+        last = e.object;
         outside.insert(e.object);
         counted.insert(e.object);
     }
