@@ -1,0 +1,9 @@
+id = "MOD9"
+title = "Lost in Astral, third map (caves with an elevator): the party gets stuck around the elevator; pathing there is wonky"
+group = "mods"
+size = 2
+model = "opus"
+note = "User 2026-11-06 playing LiA on Rebirth: on the third campaign map (caves, elevator) got completely stuck; pathing around the elevator very wonky; remembers a similar problem in the original. Saves copied to build/lia_stuck/save1 (last, 00:54) and saveq (main's tree). Find the cause; fix it generally without breaking other maps (if it is original behaviour, say so and propose a fix the user can approve)."
+order = 1246
+status = "running"
+started = "2026-11-06"

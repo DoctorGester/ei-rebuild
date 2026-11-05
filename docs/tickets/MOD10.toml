@@ -1,0 +1,9 @@
+id = "MOD10"
+title = "Lost in Astral, second and third maps: characters stop playing the pick-up animation when looting corpses"
+group = "mods"
+size = 1
+model = "sonnet"
+note = "User 2026-11-06 playing LiA on Rebirth: on the second and third maps the characters no longer play the pick-up animation when taking loot from corpses (first map fine). Saves in build/lia_stuck (main's tree). Find why (animation set of the mod's figures, the take-from-corpse path, distance) and whether vanilla/original does the same."
+order = 1247
+status = "running"
+started = "2026-11-06"
