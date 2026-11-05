@@ -1,28 +1,17 @@
 {
   "scenario": "zone_gz15h_tornado",
   "install": "vanilla",
-  "recorded": "2026-11-03",
-  "commit": "0999ae8c4",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "5 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 138 of 140 records differ, first at record 2 (world update 60, tick 60, frame 11, zone gz15h); outcomes the same; unit place differs (hash only: no numbers)",
-    "  first difference at record 2 (world update 60, tick 60, frame 11, zone gz15h): 12 fields",
-    "    obj338780 (80 unanwihy \"\") #unit: 642A2D5D in the old golden, CCBAA52A in the new run",
-    "    obj338781 (80 unanwihy \"\") #unit: 56FCF495 in the old golden, FE6C7CE2 in the new run",
-    "    obj338783 (80 unmosp \"\") #unit: E176E1E1 in the old golden, 2FBF95F6 in the new run",
-    "    ... 9 more",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 14 of 125 differ",
-    "    #unit: 14 units, 138 records, from 2; hash only (no numbers kept)",
-    "    #ai: 13 units, 111 records, from 29; hash only (no numbers kept)",
-    "    #place: 12 units, 111 records, from 29; hash only (no numbers kept)",
-    "  random: 1 of 1 differ",
-    "... 10 more lines"
-  ],
-  "saves": "5 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

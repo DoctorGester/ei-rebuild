@@ -2,27 +2,16 @@
   "scenario": "mod_lost_in_astral_start",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "91a1238f4",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 65: the old golden '0', the new run '1'",
-    "digest: 93 of 94 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: zone, deaths, spawns, quest variables, party and items, script; max unit move 367 (obj1000011214, record 89)",
-    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
-    "    random (random) isaac.count: 69 in the old golden, 71 in the new run (d 2)",
-    "  outcomes: CHANGED zone, deaths, spawns, quest variables, party and items, script; same: money, game result",
-    "    zone: record 89: gz1g in the old golden, bz1h in the new run",
-    "    deaths: obj1664528 dead: 1 in the old golden, 0 in the new run, from record 60 (+28 more)",
-    "    spawns: obj150 (82 nafltr59) only in the old golden, from record 89 (+3868 more)",
-    "    quest variables: 10 variables differ (amerc_2, b.bz1h.brief_2, b.merc2.n11_2, b.merc2.n1_2, gtime, q.gz1g.q1r, ...); first from record 72: player0 q.gz1g.q1r.3: 1.0 in the old golden, 2.0 in the new run",
-    "    party and items: player0 objects: 20 in the old golden, 19 in the new run, from record 21 (+51 more)",
-    "    script: script #inst differs (hashes only), from record 72 (+21 more)",
-    "  random: 1 of 1 differ",
-    "... 48 more lines"
-  ],
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save LostInAstral/savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

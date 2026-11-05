@@ -18,4 +18,4 @@ LostInAstral/savea/gz26k.sav d2005bef342bab42
 LostInAstral/savea/info.sav 85fd8d64a3ceab47
 LostInAstral/savea/mission.sav d268006c4abfc794
 LostInAstral/savea/scenario.sav 03f2c1e853b7a387
-LostInAstral/savea/visuals.sav 32173831325bd5f2
+LostInAstral/savea/visuals.sav abd3f2ddfddfb409

@@ -2,27 +2,16 @@
   "scenario": "mod_lost_in_astral_gipat",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "91a1238f4",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "45 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 38 of 39 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: quest variables, party and items, script; max unit move 8.63 (obj4560, record 31)",
-    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
-    "    random (random) isaac.count: 69 in the old golden, 71 in the new run (d 2)",
-    "  outcomes: CHANGED quest variables, party and items, script; same: zone, deaths, spawns, money, game result",
-    "    quest variables: 3 variables differ (rchest1, rchest2, rchest3); first from record 2: player0 rchest1: 21.1337624 in the old golden, 23.700058 in the new run",
-    "    party and items: player0 objects: 48 in the old golden, 47 in the new run, from record 10 (+1 more)",
-    "    script: script #instances differs (hashes only), from record 2 (+15 more)",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 38 records, from 1; max |d| 235 at random isaac.count, record 31: 12 -> 247",
-    "    crt: 1 generator, 32 records, from 7; e.g. random crt.rand: 0x9BF46C1F in the old golden, 0x1A3D81A5 in the new run",
-    "  players: 1 of 1 differ",
-    "    var: 1 player, 32 records, from 2; max |d| 20.1 at player0 var.rchest2, record 14: 1.69315302 -> 21.8178654",
-    "... 122 more lines"
-  ],
-  "saves": "45 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save LostInAstral/savea/visuals.sav: 29 fields in 2 records differ: visuals 29",
+    "  visuals: 29 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

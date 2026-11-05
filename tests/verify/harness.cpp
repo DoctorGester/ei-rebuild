@@ -326,6 +326,10 @@
 //                             kept), as soon as it reaches the client: a unit made by AddUnitToServer has none
 //                             and draws untextured, as in the original. Client only; fails at the report when
 //                             the unit never came
+//   groundprints [<least blood> <most blood> <least footprints> <most footprints> [<least scorch> <most scorch>]]
+//                             logs the client world's ground prints (blood, footprints and how many of them are
+//                             shown, scorch marks, their life left together); with ranges, requires the counts in
+//                             them (a load gives back the save's, R57a)
 //   unitskins <unit> <first> <second>
 //                             the client's unit <unit> must have been given the texture names <first> and
 //                             <second> (what a map placement or a party record names; party_join_skin)
@@ -1893,6 +1897,26 @@ std::string SkinStep(const std::string& argument) {
     return "";
 }
 
+// groundprints [ranges]: the client world's ground prints logged, and their counts in the ranges given.
+std::string GroundPrintsStep(const std::string& argument) {
+    const image::GroundPrintCounts counts = image::CountGroundPrints();
+    Log("harness: groundprints: blood %d, footprints %d (%d shown), scorch %d, life left %d", counts.blood,
+        counts.footprints, counts.shownFootprints, counts.scorch, counts.lifeLeft);
+    int range[6] = {0, 0, 0, 0, 0, 0};
+    const int read = std::sscanf(argument.c_str(), "%d %d %d %d %d %d", &range[0], &range[1], &range[2], &range[3],
+                                 &range[4], &range[5]);
+    if (read <= 0) return "";
+    if (read != 4 && read != 6) return "groundprints needs the least and the most blood and footprints [and scorch]";
+    const int have[3] = {counts.blood, counts.footprints, counts.scorch};
+    const char* names[3] = {"blood", "footprints", "scorch"};
+    for (int i = 0; i < read / 2; ++i) {
+        if (have[i] < range[2 * i] || have[i] > range[2 * i + 1])
+            return std::string("groundprints: ") + names[i] + " " + std::to_string(have[i]) + ", wanted " +
+                   std::to_string(range[2 * i]) + " .. " + std::to_string(range[2 * i + 1]);
+    }
+    return "";
+}
+
 // unitskins <unit> <first> <second>: the texture names the client's unit holds.
 std::string UnitSkinsStep(const std::string& argument) {
     char unit[64] = "", first[64] = "", second[64] = "";
@@ -2817,7 +2841,9 @@ void RunSteps() {
             // The frames of a recorded scenario's "at" lines count from here (a part that begins with a load).
             record::Origin();
             g_cutQueued = false;
-            image::ReseedRandom();   // a save holds no generator: the recording and its replay both begin from a fresh one
+            // A save holds no game generator, and the client's kept one has drawn in the frames since the load: the
+            // recording and its replay both begin from fresh ones.
+            image::ReseedRandom();
         } else if (s.verb == "newgame") {
             // What the main menu's new-game button does after the intro movie (00632940).
             HarnessInterfaceHasScreen() = 0;
@@ -3264,8 +3290,9 @@ void RunSteps() {
         } else if (s.verb == "blink") {
             std::string error = BlinkStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
-        } else if (s.verb == "skin" || s.verb == "unitcolour" || s.verb == "unitskins") {
-            std::string error = s.verb == "skin"         ? SkinStep(s.argument)
+        } else if (s.verb == "skin" || s.verb == "unitcolour" || s.verb == "unitskins" || s.verb == "groundprints") {
+            std::string error = s.verb == "skin"           ? SkinStep(s.argument)
+                                : s.verb == "groundprints" ? GroundPrintsStep(s.argument)
                                 : s.verb == "unitskins" ? UnitSkinsStep(s.argument)
                                                         : UnitColourStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);

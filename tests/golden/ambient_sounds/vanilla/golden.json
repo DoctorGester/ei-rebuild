@@ -1,13 +1,19 @@
 {
   "scenario": "ambient_sounds",
   "install": "vanilla",
-  "recorded": "2026-11-04",
-  "commit": "4082bf394",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H43c/H43d: new scenarios zone_return, save_flight, script_file, gvar_hosted, ambient_sounds",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save save1/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run",
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

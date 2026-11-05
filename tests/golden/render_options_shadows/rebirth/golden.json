@@ -1,28 +1,17 @@
 {
   "scenario": "render_options_shadows",
   "install": "rebirth",
-  "recorded": "2026-11-04",
-  "commit": "13def2600",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 9 of 19 records differ, first at record 9 (world update 200, tick 100, frame 42, zone gz1g); outcomes CHANGED: quest variables (deaths unknown: hash only); max unit move 1.72 (obj1890, record 11); the digests have different numbers of records",
-    "  digest: the records no longer line up at record 9: the old golden world update 200 tick 100, the new run world update 200 tick 105",
-    "  digest: the old golden has more records; the other ends before its record 19 (world update 400, frame 85, tick 145, zone gz1g)",
-    "  first difference at record 9 (world update 200, tick 100, frame 42, zone gz1g): 31 fields",
-    "    world (world) tick: 100 in the old golden, 105 in the new run (d 5)",
-    "    world (world) paused: 1 in the old golden, 0 in the new run (d 1)",
-    "    random (random) isaac.count: 162 in the old golden, 136 in the new run (d 26)",
-    "    ... 28 more",
-    "  outcomes: CHANGED quest variables (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, party and items, game result, script",
-    "    quest variables: 1 variables differ (gtime); first from record 11: player0 gtime: 6.01666689 in the old golden, 6.08777809 in the new run",
-    "  world: 1 of 1 differ",
-    "    paused: 1 world, 9 records, from 9; max |d| 1 at world paused, record 9: 1 -> 0",
-    "... 25 more lines"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

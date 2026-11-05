@@ -2,27 +2,16 @@
   "scenario": "unit_ai_corpse",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "6c7081606",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 128: the old golden 'Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=7.45 destHL=Body', the new run 'Unit 1000011214 was attacked by 1804 skill=3.40282e+038 damage=12.27 destHL=Head!'",
-    "digest: 12 of 50 records differ, first at record 38 (world update 780, tick 780, frame 155, zone gz1g); outcomes CHANGED: deaths, quest variables, script; max unit move 1.28 (obj1935, record 49)",
-    "  first difference at record 38 (world update 780, tick 780, frame 155, zone gz1g): 1 fields",
-    "    random (random) isaac.count: 69 in the old golden, 78 in the new run (d 9)",
-    "  outcomes: CHANGED deaths, quest variables, script; same: zone, spawns, money, party and items, game result",
-    "    deaths: obj1804 dead: 0 in the old golden, 1 in the new run, from record 42 (+10 more)",
-    "    quest variables: 1 variables differ (ZT6); first from record 44: player0 ZT6: (none) in the old golden, 1.0 in the new run",
-    "    script: script #instances differs (hashes only), from record 42 (+21 more)",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 12 records, from 38; max |d| 245 at random isaac.count, record 40: 247 -> 2",
-    "    crt: 1 generator, 9 records, from 40; e.g. random crt.rand: 0xEF40CD33 in the old golden, 0xD16E1886 in the new run",
-    "  units: 6 of 56 differ",
-    "... 19 more lines"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

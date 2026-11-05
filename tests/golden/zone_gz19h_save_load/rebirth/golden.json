@@ -1,13 +1,19 @@
 {
   "scenario": "zone_gz19h_save_load",
   "install": "rebirth",
-  "recorded": "2026-11-04",
-  "commit": "c727d4405",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "New scenario (PF4): save and load on the Portal zone gz19h.",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save savea/visuals.sav: 29 fields in 2 records differ: visuals 29",
+    "  visuals: 29 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run",
+    "save saveq/visuals.sav: 162 fields in 2 records differ: visuals 162",
+    "  visuals: 162 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

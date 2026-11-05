@@ -2,12 +2,16 @@
   "scenario": "mod_lost_in_astral_cz_ingos",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "91a1238f4",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
-  "saves": "15 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "15 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "save LostInAstral/savea/visuals.sav: 238 fields in 2 records differ: visuals 238",
+    "  visuals: 238 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

@@ -12,4 +12,4 @@ LostInAstral/savea/gz1g.sav bc5c79d48025f30c
 LostInAstral/savea/info.sav 9bb33cdeec53e404
 LostInAstral/savea/mission.sav 5b3b33771e12b32b
 LostInAstral/savea/scenario.sav 89638c35af054093
-LostInAstral/savea/visuals.sav 28e039d885f173e8
+LostInAstral/savea/visuals.sav ceecd439a17266bc

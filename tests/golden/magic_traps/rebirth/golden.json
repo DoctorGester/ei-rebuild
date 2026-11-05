@@ -1,28 +1,19 @@
 {
   "scenario": "magic_traps",
   "install": "rebirth",
-  "recorded": "2026-11-04",
-  "commit": "13def2600",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 4 of 8 records differ, first at record 4 (world update 100, tick 100, frame 19, zone gz1g); outcomes the same; max unit move 0.0608 (obj1890, record 6)",
-    "  first difference at record 4 (world update 100, tick 100, frame 19, zone gz1g): 6 fields",
-    "    random (random) isaac.count: 129 in the old golden, 115 in the new run (d 14)",
-    "    obj1890 (80 unanwibo \"\") pos.x: 54.1419411 in the old golden, 54.1379967 in the new run (d 0.00394)",
-    "    obj1890 (80 unanwibo \"\") pos.y: 98.0031662 in the old golden, 98.063797 in the new run (d 0.0606)",
-    "    ... 3 more",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 4 records, from 4; max |d| 14 at random isaac.count, record 4: 129 -> 115",
-    "  units: 2 of 54 differ",
-    "    pos: 1 unit, 4 records, from 4; moved 0.0608 at obj1890 80 unanwibo \"\", record 4",
-    "    #ai: 1 unit, 3 records, from 4; hash only (no numbers kept)",
-    "... 16 more lines"
-  ],
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save save1/visuals.sav: 86 fields in 2 records differ: visuals 86",
+    "  visuals: 86 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run",
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

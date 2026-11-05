@@ -2,27 +2,16 @@
   "scenario": "unit_ai_cast",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "6c7081606",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 4 of 37 records differ, first at record 33 (world update 680, tick 680, frame 135, zone gz1g); outcomes CHANGED: party and items; max unit move 5.86 (obj1934, record 36)",
-    "  first difference at record 33 (world update 680, tick 680, frame 135, zone gz1g): 1 fields",
-    "    random (random) isaac.count: 138 in the old golden, 139 in the new run (d 1)",
-    "  outcomes: CHANGED party and items; same: zone, deaths, spawns, money, quest variables, game result, script",
-    "    party and items: player0 objects: 6 in the old golden, 7 in the new run, from record 35 (+1 more)",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 4 records, from 33; max |d| 35 at random isaac.count, record 34: 82 -> 117",
-    "  units: 5 of 53 differ",
-    "    pos: 1 unit, 3 records, from 34; moved 5.86 at obj1934 80 unmoto \"\", record 36",
-    "    #ai: 5 units, 3 records, from 34; hash only (no numbers kept)",
-    "    #unit: 1 unit, 3 records, from 34; hash only (no numbers kept)",
-    "  client units: 1 of 14 differ",
-    "... 9 more lines"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

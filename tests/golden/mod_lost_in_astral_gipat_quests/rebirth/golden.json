@@ -2,27 +2,16 @@
   "scenario": "mod_lost_in_astral_gipat_quests",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "efb250793",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD2b: gz12g's key levers (4523-4525) and gz14g's (1712, 57) are opened from the quick panel's key instead of SwitchLeverState: the hero walks to each lever's use spot and the lever takes the key, so the zone's part from the first lever on plays differently (the quest steps the same).",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "7 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 26: the old golden '1', the new run '0'",
-    "digest: 1 of 5 records differ, first at record 4 (world update 250, tick 250, frame 50, zone gz12g); outcomes CHANGED: quest variables, party and items (deaths unknown: hash only); max unit move 108 (obj1000011214, record 4)",
-    "  digest: the records no longer line up at record 4: the old golden world update 250 tick 250, the new run world update 900 tick 900",
-    "  first difference at record 4 (world update 250, tick 250, frame 50; the new run: frame 180, zone gz12g): 182 fields",
-    "    world (world) tick: 250 in the old golden, 900 in the new run (d 650)",
-    "    world (world) updates: 250 in the old golden, 900 in the new run (d 650)",
-    "    world (world) updateMap: 33 in the old golden, 25 in the new run (d 8)",
-    "    ... 179 more",
-    "  outcomes: CHANGED quest variables, party and items (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, game result, script",
-    "    quest variables: 1 variables differ (gtime); first from record 4: player0 gtime: 6.17111158 in the old golden, 6.95333481 in the new run",
-    "    party and items: player0 objects: 20 in the old golden, 9 in the new run, from record 4",
-    "  world: 1 of 1 differ",
-    "... 30 more lines"
-  ],
-  "saves": "7 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save LostInAstral/savea/visuals.sav: 29 fields in 2 records differ: visuals 29",
+    "  visuals: 29 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

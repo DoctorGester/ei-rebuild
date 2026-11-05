@@ -1,25 +1,17 @@
 {
   "scenario": "unit_ai_heal",
   "install": "vanilla",
-  "recorded": "2026-11-03",
-  "commit": "0999ae8c4",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 32 of 37 records differ, first at record 3 (world update 80, tick 80, frame 15, zone gz1g); outcomes the same; max unit move 0.939 (obj1940, record 36)",
-    "  first difference at record 3 (world update 80, tick 80, frame 15, zone gz1g): 1 fields",
-    "    obj1804 (80 unanwiwo \"\") #unit: 8AFA2C32 in the old golden, 226AA445 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 5 of 52 differ",
-    "    #unit: 2 units, 29 records, from 3; hash only (no numbers kept)",
-    "    pos: 2 units, 3 records, from 34; moved 0.939 at obj1940 80 unanwiwo \"\", record 36",
-    "    #ai: 4 units, 3 records, from 34; hash only (no numbers kept)",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 4 records, from 33; max |d| 232 at random isaac.count, record 34: 244 -> 12"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }
