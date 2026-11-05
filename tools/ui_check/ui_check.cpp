@@ -278,7 +278,8 @@ void CheckPicture() {
     bool same = read && read->width == pw && read->height == ph;
     for (std::size_t i = 0; same && i < picture.size(); ++i) {
         const std::uint8_t* rgba = &read->rgba[i * 4];
-        same = (static_cast<std::uint32_t>(rgba[0]) << 16 | static_cast<std::uint32_t>(rgba[1]) << 8 | rgba[2]) == picture[i];
+        same = (static_cast<std::uint32_t>(rgba[0]) << 16 | static_cast<std::uint32_t>(rgba[1]) << 8 | rgba[2]) ==
+               picture[i];
     }
     Check(same, "the picture read back");
     EndFrame();

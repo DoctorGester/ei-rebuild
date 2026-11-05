@@ -154,7 +154,7 @@ inline void CasterAlpha(const PassState& s, float* alpha) {
 // The render state the game set for the pass about to be drawn (render_state.h). `device`'s bound surfaces
 // become the stages' textures; null: no textures.
 PassState ReadPassState(const TextureDevice* device);
-void ApplyPassState(gpu::PipelineDesc& p, const PassState& s);
+void ApplyPassState(gpu::PipelineDesc& desc, const PassState& state);
 
 // A terrain page kept on the GPU and one quarter of it drawn in a frame.
 struct CachedPage;
@@ -747,7 +747,7 @@ void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, int anisotropy);
 // The buffers a mesh batch draws from (the frame's stream, or the kept meshes' pool) and its first index;
 // false when it has none. MeshLayout `positionsOnly`: position and texture coordinates alone (the casters).
 bool BindMeshBatch(const MeshBatch& batch, Geometry& g, int* firstIndex);
-void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly);
+void MeshLayout(gpu::PipelineDesc& desc, bool cached, bool positionsOnly);
 
 // Appends the triangles of `indices` (three a triangle) over `cornerCount` corners to `out`, each index plus `base`; a
 // triangle with a corner out of range is left out.

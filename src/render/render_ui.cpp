@@ -315,7 +315,8 @@ std::optional<Picture> ReadPicture(const void* key) {
     std::optional<Picture> picture;
     if (ReadBack(p->image, Rect{0, 0, p->width, p->height}, &ticket, &texels)) {
         const std::size_t row = static_cast<std::size_t>(p->width) * 4;
-        picture.emplace(Picture{p->width, p->height, std::vector<std::uint8_t>(row * static_cast<std::size_t>(p->height))});
+        picture.emplace(
+            Picture{p->width, p->height, std::vector<std::uint8_t>(row * static_cast<std::size_t>(p->height))});
         for (int y = 0; y < p->height; ++y)
             std::memcpy(picture->rgba.data() + row * static_cast<std::size_t>(y), texels.Row(y), row);
     }

@@ -151,7 +151,8 @@ static bool UploadText() {
     if (g_text.pixels.empty()) return false;
     if (g_image.width != g_text.width || g_image.height != g_text.height) {
         gpu::Release(g_image);
-        g_image = gpu::MakeTexture({g_text.width, g_text.height, 1, 1, gpu::Format::R8, gpu::kSampled, "ei-perf-overlay"});
+        g_image =
+            gpu::MakeTexture({g_text.width, g_text.height, 1, 1, gpu::Format::R8, gpu::kSampled, "ei-perf-overlay"});
         if (!g_image) return false;
         g_textChanged = true;
     }
@@ -330,7 +331,8 @@ TextImage Rasterise(const std::vector<std::string>& lines) {
             for (int y = 0; y < kGlyphHeight; ++y)
                 for (int x = 0; x < kGlyphWidth; ++x)
                     if (g->rows[y][x] == '#')
-                        image.pixels[static_cast<std::size_t>(y0 + y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(x0 + x)] = value;
+                        image.pixels[static_cast<std::size_t>(y0 + y) * static_cast<std::size_t>(w) +
+                                     static_cast<std::size_t>(x0 + x)] = value;
         }
     }
     return image;

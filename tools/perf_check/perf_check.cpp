@@ -96,7 +96,9 @@ void CheckText() {
               h == 2 * perf::kBorder + perf::kCellHeight + perf::kGlyphHeight,
           "the image's size");
     // '1': its top row "..#..", its bottom row ".###." (a digit: kValue); 'A' of the second line a label.
-    auto at = [&](int x, int y) { return image.pixels[static_cast<std::size_t>(y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(x)]; };
+    auto at = [&](int x, int y) {
+        return image.pixels[static_cast<std::size_t>(y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(x)];
+    };
     const int b = perf::kBorder;
     Check(at(b + 2, b) == perf::kValue && at(b + 1, b) == 0 && at(b + 1, b + 6) == perf::kValue && at(b, b + 6) == 0,
           "the pixels of '1'");
@@ -166,7 +168,8 @@ void CheckDraw(int width, int height) {
             int tx = (x - x0) / scale, ty = (y - y0) / scale;
             bool inside = x >= x0 && y >= y0 && tx < tw && ty < th;
             if (inside) {
-                std::uint8_t v = text.pixels[static_cast<std::size_t>(ty) * static_cast<std::size_t>(tw) + static_cast<std::size_t>(tx)];
+                std::uint8_t v = text.pixels[static_cast<std::size_t>(ty) * static_cast<std::size_t>(tw) +
+                                             static_cast<std::size_t>(tx)];
                 for (int c = 0; c < 3; ++c) want[c] = v ? v : (kClear[c] * 4 + 5) / 10;
                 if (v) ++textPixels;
             }
