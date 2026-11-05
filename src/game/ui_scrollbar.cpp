@@ -39,9 +39,6 @@ UiScrollbar::UiScrollbar(Rect rect, float newDepth, int maximum, float newSpeed)
     maxPosition = maximum;
     speed = newSpeed;
     depth = newDepth;
-    moved = true;
-    state = 0;
-    position = -1;
     LoadTexture("Scrollbar", TextureKind::Interface);
     trackSprite = AddBlankSprite();
     thumbSprite = AddBlankSprite();
@@ -52,7 +49,6 @@ UiScrollbar::UiScrollbar(Rect rect, float newDepth, int maximum, float newSpeed)
     trackArea = AddRegion();
     SetRect(rect);
     UiScrollbar::SetPosition(0);
-    accumulated = 0.0f;
 }
 
 void UiScrollbar::SetPosition(int newPosition) {

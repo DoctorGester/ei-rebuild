@@ -362,7 +362,7 @@ struct LocalSearch {
     Point origin;                       // map cell of window cell (0, 0)
     int currentCost = 0;                // cost of the node being expanded
     PassCostContext costs = {};
-    int sizeClass = 0;
+    int sizeClass = -1;
     bool backward = false;              // searching from the target (prices steps reversed)
     std::uint8_t level = 0;             // standing level
 };

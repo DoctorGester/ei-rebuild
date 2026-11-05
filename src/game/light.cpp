@@ -90,10 +90,6 @@ ClassId Light::GetClassId() { return ClassId::Light; }
 
 // --- LightFactory -------------------------------------------------------------------------------
 
-LightFactory::LightFactory() {
-    held = nullptr;
-}
-
 LightFactory::~LightFactory() {
     if (held) held->Release();
 }

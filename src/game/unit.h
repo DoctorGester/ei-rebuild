@@ -73,6 +73,14 @@ struct UnitParamsSlot {
 };
 static_assert(sizeof(UnitParamsSlot) == 0x1C);
 
+// Unit::fightAtWill of a unit that attacks on its own.
+inline constexpr int kFightAtWill = 1;
+// A unit's radius and standing height after Reset.
+inline constexpr float kDefaultUnitRadius = 0.75f;
+inline constexpr float kDefaultStandingHeight = 0.5f;
+// UnitParams::lastHitSource after Reset.
+inline constexpr std::int16_t kResetParams20 = 7;
+
 // The unit's parameter block: UnitStats rounded to bytes and shorts, what the client and the saved games see.
 struct UnitParams {
     float Period();
@@ -98,7 +106,7 @@ struct UnitParams {
     std::uint8_t damage = 0;        // (truncated)
     std::uint8_t damageSpread = 0;  // (truncated)
     std::uint8_t naturalWeapon = 0;
-    std::int16_t lastHitSource = 0;     // what last damaged the unit (7 after Reset)
+    std::int16_t lastHitSource = kResetParams20;  // what last damaged the unit (7 after Reset)
     // UnitStats::perception[i].current ([0] night sight range, [1] its day percentage)
     std::uint8_t perception[6] = {};
     std::uint8_t conspicuity[6] = {};  // UnitStats::conspicuity[i].current
@@ -143,9 +151,6 @@ class UnitClientSpecific;
 // names".
 class UnitController : public EngineObject {
 public:
-    UnitController() {
-        unit = nullptr;
-    }
     // This controller as the server's or the client's: null on the other side.
     virtual UnitServer* ServerSide() { return nullptr; }
     virtual UnitClientSpecific* ClientSide() { return nullptr; }
@@ -482,38 +487,38 @@ public:
     MapObject* AsMapObject() { return this; }
 
     std::string scriptName;        // network field 9
-    int secondPrototype = 0;          // a second prototype index (-1 none)
+    int secondPrototype = -1;         // a second prototype index (-1 none)
     // `controller` (or null) replaces the side half: the old one is detached and released, the new one points
     // back here and gains a reference.
     void SetController(UnitController* controller);
     Ref<UnitController> controller;    // the side half (the script code calls it the perception object)
     std::uint32_t relationsA = 0;   // \ a unit regards side s as hostile when both have
-    std::uint32_t relationsB = 0;   // / bit s set
+    std::uint32_t relationsB = 0xFFFFFFFFu;  // / bit s set
     Player* player = nullptr;
     int side = 0;
     // The animation entries (FigureAnimation::index) the unit shows: -1 none; the second -2 for the special idle. The
     // client's RestartAnimation plays them.
-    std::int8_t animationEntry = 0;
-    std::int8_t secondEntry = 0;
+    std::int8_t animationEntry = -1;
+    std::int8_t secondEntry = -1;
     std::int8_t actionSound = 0;    // a hero's action sound (UnitClientSpecific's sounds)
     int animationStart = 0;         // the world tick the animation started at (+1 per paused tick)
     int motionMode = 0;             // 0 plays, 1 paused (the start moves on), 2 scaled
     int pathTimeShift = 0;          // 1: the client shifts its motion path's time each update
-    MoveMode moveMode = {};
-    MoveMode moveMode2 = {};
-    std::uint32_t activeWeapon = 0;  // slot of the weapon in use
-    int pendingWeapon = 0;          // the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
+    MoveMode moveMode = MoveMode::Walk;
+    MoveMode moveMode2 = MoveMode::Walk;
+    std::uint32_t activeWeapon = 0xFFFFFFFFu;  // slot of the weapon in use
+    int pendingWeapon = -1;         // the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
     int dead = 0;
     std::uint32_t obstacle = 0;         // the unit blocks others on the sector map
     UnitMotion motion;
     float heightOffset = 0.0f;      // height above the water surface (PlaceOnGround)
-    int sizeClass = 0;              // selects the 4-bit passability field in each AI map cell
-    float unitRadius = 0.0f;        // 0.75 after Reset
-    float standingHeight = 0.0f;    // deeper water or higher ground than (2 - height) * 16 blocks it
+    int sizeClass = 3;              // selects the 4-bit passability field in each AI map cell
+    float unitRadius = kDefaultUnitRadius;  // 0.75 after Reset
+    float standingHeight = kDefaultStandingHeight;  // deeper water or higher ground than (2 - height) * 16 blocks it
     // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 moves on the water surface), the
     // mode and base speeds and the six body slots (the unit panel's parts are their kind / current / maximum).
     UnitParams params;
-    int fightAtWill = 0;                // kFightAtWill: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
+    int fightAtWill = kFightAtWill;     // kFightAtWill: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
     std::uint32_t altPassCosts = 0;     // set: path searches use the AI map's alternative cost table
     Item* weapons[4] = {};
     Item* quickItems[4] = {};
@@ -532,9 +537,6 @@ enum class ExposureKind : int {
     Unused = 3,    // never written: stays 3
     Near = 4,
 };
-
-// Unit::fightAtWill of a unit that attacks on its own.
-inline constexpr int kFightAtWill = 1;
 
 inline Unit* UnitOrNull(EngineObject* object) {
     return object && object->GetClassId() == ClassId::Unit ? static_cast<Unit*>(object) : nullptr;
@@ -805,7 +807,7 @@ struct UnitStats {
     float damageSpread = 0.0f;
     float attackCategory = 0.0f;    // the natural attack's category (UnitPrototypeRecord::attackCategory)
     float damageWeights[7] = {};    // the natural attack's, per damage type
-    WeaponType naturalWeapon = {};  // weapon type of the natural attack (SpellsOnly: none)
+    WeaponType naturalWeapon = WeaponType::NoWeapon;  // weapon type of the natural attack (SpellsOnly: none)
     // What the unit senses (the AI's sight and hearing), by Sense.
     lib::EnumArray<UnitStatPair, Sense, 6> perception;
     // What others sense of it, multiplied with their perception, by Sense.
@@ -989,6 +991,7 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const Vector3& positi
 // / IsOverkilled.
 class MapObjectClientSpecific : public MapObjectCompanion {
 public:
+    // Defined in map_object_companion.cpp: the members' destructors need Light complete.
     MapObjectClientSpecific();
     ~MapObjectClientSpecific() override;
     const char* ClassName() override;

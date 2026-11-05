@@ -152,6 +152,8 @@ struct WaveRecord {
     std::int32_t uses = 0;      // voices playing it
 };
 
+constexpr int kFullVolume = 100;   // the volumes' top
+
 struct SoundManager : EngineObject {
     SoundManager();
     ~SoundManager() override;
@@ -205,8 +207,8 @@ struct SoundManager : EngineObject {
     bool reverbOn = false;
     bool panDirect = false;                 // false: pans are mirrored
     float reverb[3] = {};                   // room type / level / reflect time
-    std::int32_t effectsVolume = 100;       // 0..100
-    std::int32_t speechVolume = 100;        // 0..100
+    std::int32_t effectsVolume = kFullVolume;  // 0..100
+    std::int32_t speechVolume = kFullVolume;  // 0..100
     std::int32_t randomStart = 0;           // ms
 
     void SetReverb(float room, float level, float time);

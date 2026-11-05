@@ -45,7 +45,6 @@ bool StaysInside(MagicTrap* trap, MapObject* unit) {
 constexpr float kFar = 1e30f;                        // a squared distance
 
 constexpr MapObjectFlag kTrapFlags = MapObjectFlag::Armed | MapObjectFlag::NotDrawn;
-constexpr std::uint32_t kDefaultPeriod = 10;
 // The fields saved after the points: period, countdown, single target, sides.
 void* TailFields(MagicTrap* trap, int i) {
     void* fields[] = {&trap->period, &trap->countdown, &trap->singleTarget, &trap->sides};
@@ -142,15 +141,11 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
 
 MagicTrap::MagicTrap() {
     MapObject::Create();
-    sides = 0xFFFFFFFFu;
     flags |= kTrapFlags;
     SetSpell(this, nullptr);
     area.clear();
     points.clear();
     inside.clear();
-    countdown = 0;
-    singleTarget = 0;
-    period = static_cast<int>(kDefaultPeriod);
 }
 
 MagicTrap::~MagicTrap() {

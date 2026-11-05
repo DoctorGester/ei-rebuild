@@ -104,7 +104,7 @@ struct ConnectionState {
     std::uint32_t sequenceHigh = 0x10000;    // the upper bits of the received sequences
     std::vector<std::int32_t> received;    // sequences received recently
     std::uint32_t id = 0;               // the connection id (sent with a leave packet)
-    float roundTrip = 0.0f;             // average round trip (seconds)
+    float roundTrip = kMaxRoundTrip;    // average round trip (seconds)
     // The average of its square. The original's started as whatever the memory held, so the first loss timeouts
     // were the memory's.
     float roundTripSquare = 0.0f;

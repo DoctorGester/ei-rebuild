@@ -17,8 +17,6 @@ namespace net {
 ClientBase::ClientBase() {
     host = NetAddress{};
     alwaysAsk = NetAddress{};
-    joinState = JoinState::NotJoined;
-    joinId = 0;
     socket.Open(-1);
 }
 

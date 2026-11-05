@@ -41,7 +41,7 @@ public:
 
     BattleScreen* owner = nullptr;
     int count = 0;                   // slots in use
-    int selected = 0;
+    int selected = -1;
     Unit* unit = nullptr;
     std::vector<std::string> labels;    // the tooltip's labels
 };
@@ -92,7 +92,7 @@ public:
 
     BattleScreen* owner = nullptr;
     int shownCount = 0;              // sprites added (the shown entries)
-    int selected = 0;
+    int selected = -1;
     Unit* unit = nullptr;
     std::vector<Entry> entries;
     int regionItem[8] = {};          // per slot (region) its entry, or -1
@@ -124,7 +124,7 @@ public:
 
     BattleScreen* owner = nullptr;
     int count = 0;                   // sprites added
-    int selected = 0;
+    int selected = -1;
     Unit* unit = nullptr;
     std::vector<std::string> labels;    // the tooltip's labels
 };
@@ -149,7 +149,7 @@ public:
 
     BattleScreen* owner = nullptr;
     int count = 0;                   // buttons added
-    int selected = 0;
+    int selected = -1;
     Unit* unit = nullptr;
     std::vector<std::uint32_t> actions;            // the buttons' actions (0 science, -1 follow)
     std::vector<std::string> labels;    // the tooltip's labels

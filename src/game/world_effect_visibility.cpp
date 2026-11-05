@@ -13,8 +13,6 @@
 
 EffectShowVisibility::EffectShowVisibility() {
     grid.cells.Resize(1, 1);
-    observerId = -1;
-    seerId = -1;
 }
 
 // The destructor body resets twice (inline, then the virtual); the grid frees itself.

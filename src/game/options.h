@@ -64,57 +64,57 @@ public:
 
     std::string workPath;           // Work path
     std::string resourcesPath;      // Resources path
-    int resolutionX = 0;             // VideoResolution
-    int resolutionY = 0;
-    int fullScreen = 0;              // FullScreen
+    int resolutionX = 800;           // VideoResolution
+    int resolutionY = 600;
+    int fullScreen = 1;              // FullScreen
     int video = 0;
-    int audio = 0;
-    int audioStreaming = 0;
-    int audioSfx = 0;
-    int audioSpeech = 0;
+    int audio = 1;
+    int audioStreaming = 100;
+    int audioSfx = 100;
+    int audioSpeech = 100;
     float brightness = 0.0f;
     float gamma = 0.0f;
     int reverseStereo = 0;           // "Reverse Stereo"
-    int shadows = 0;                 // Shadows: every shadow on or off
-    float borderFogDistance = 0.0f;
-    float cameraFlipX = 0.0f;        // CameraFlipXAxis: -1 or 1
-    float cameraFlipY = 0.0f;
-    float cameraMinHeight = 0.0f;
-    float cameraMaxHeight = 0.0f;
-    float cameraDefaultHeight = 0.0f;
+    int shadows = 1;                 // Shadows: every shadow on or off
+    float borderFogDistance = 16.0f;   // the installed game's value (the original constructor had 32, which fogs the menu map over)
+    float cameraFlipX = 1.0f;        // CameraFlipXAxis: -1 or 1
+    float cameraFlipY = 1.0f;
+    float cameraMinHeight = 4.0f;
+    float cameraMaxHeight = 100.0f;
+    float cameraDefaultHeight = 30.0f;
     float cameraDefaultXDeploy = 0.0f;
     float cameraDefaultYDeploy = 0.0f;
-    float cameraMinDistance = 0.0f;  // CameraMinDistanceToCarrier
-    float cameraMaxDistance = 0.0f;
-    float cameraMinLimitDistance = 0.0f;  // CameraMinLimitDistanceToCarrier
-    float cameraMaxLimitDistance = 0.0f;
-    float cameraDefaultDistance = 0.0f;  // CameraDefaultDistanceToCarrier
-    float briefingMinDistance = 0.0f;  // CameraBriefingMinDistanceToCarrier
-    float briefingMaxDistance = 0.0f;
-    float briefingMinLimitDistance = 0.0f;
-    float briefingMaxLimitDistance = 0.0f;
-    float briefingMinPitch = 0.0f;   // CameraBriefingMinPitch
-    float briefingMaxPitch = 0.0f;
-    int cameraBorderScrollArea = 0;
-    int cameraFrameSelectionArea = 0;  // CameraFrameSelectionSensetiveArea
-    float cameraTerrainArea = 0.0f;  // CameraTerrainSensetiveArea
+    float cameraMinDistance = 4.0f;  // CameraMinDistanceToCarrier
+    float cameraMaxDistance = 100.0f;
+    float cameraMinLimitDistance = 3.0f;  // CameraMinLimitDistanceToCarrier
+    float cameraMaxLimitDistance = 80.0f;
+    float cameraDefaultDistance = 30.0f;  // CameraDefaultDistanceToCarrier
+    float briefingMinDistance = 4.0f;  // CameraBriefingMinDistanceToCarrier
+    float briefingMaxDistance = 100.0f;
+    float briefingMinLimitDistance = 3.0f;
+    float briefingMaxLimitDistance = 80.0f;
+    float briefingMinPitch = 30.0f;  // CameraBriefingMinPitch
+    float briefingMaxPitch = 60.0f;
+    int cameraBorderScrollArea = 5;
+    int cameraFrameSelectionArea = 20;  // CameraFrameSelectionSensetiveArea
+    float cameraTerrainArea = 10.0f;  // CameraTerrainSensetiveArea
     CameraMotionOptions cameraScroll;
     CameraMotionOptions cameraRotate;
     CameraMotionOptions cameraPitch;
     CameraMotionOptions cameraZoom;
     CameraShortcutOptions cameraShortcuts[4];
-    float cameraDefaultMinPitch = 0.0f;
-    float cameraDefaultMaxPitch = 0.0f;
-    float nearClipDistance = 0.0f;
-    float farClipDistance = 0.0f;    // FarClipDistance
+    float cameraDefaultMinPitch = 20.0f;
+    float cameraDefaultMaxPitch = 80.0f;
+    float nearClipDistance = 2.0f;
+    float farClipDistance = 100.0f;  // FarClipDistance
     int selectionType = 0;
-    int drawVisibleOnly = 0;         // not a setting: 1 draws only the units the party sees (the spectator switch turns it off)
-    int drawPath = 0;
-    int drawFlyingHp = 0;            // DrawFlyingHP
-    int showTutorial = 0;
-    int autosave = 0;
-    float toolTipTime = 0.0f;        // "ToolTip Time"
-    int switchFilters = 0;
+    int drawVisibleOnly = 1;         // not a setting: 1 draws only the units the party sees (the spectator switch turns it off)
+    int drawPath = 1;
+    int drawFlyingHp = 1;            // DrawFlyingHP
+    int showTutorial = 1;
+    int autosave = 1;
+    float toolTipTime = 0.5f;        // "ToolTip Time"
+    int switchFilters = 1;
     int difficulty = 0;              // "Difficulty Level"
     int difficultyStored = 0;        // the same value: the one that is written back
     std::string masterServerName;   // "Master Server Name"

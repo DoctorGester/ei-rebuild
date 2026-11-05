@@ -177,9 +177,6 @@ bool MapObject::IsStunned() { return lib::Has(flags, MapObjectFlag::Stunned); }
 
 MapObject::MapObject() {
     packedVitals.Reset();
-    sectorCellX = -1;
-    sectorCellY = -1;
-    animationSpeed = 1.0f;
 }
 
 MapObject::~MapObject() = default;

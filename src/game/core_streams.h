@@ -17,9 +17,12 @@
 
 // The engine's abstract byte stream. The save game, the network messages and the chunk archives are memory
 // streams behind it.
+// The format version of a new stream.
+constexpr std::int32_t kDefaultVersion = 2000000000;
+
 class ByteStream {
 public:
-    ByteStream();
+    ByteStream() = default;
     ByteStream(const ByteStream&) = delete;
     ByteStream& operator=(const ByteStream&) = delete;
     virtual ~ByteStream() {}
@@ -114,7 +117,7 @@ public:
     }
 
     bool ok = true;                 // cleared when a read runs past the end
-    int version = 0;                // format version (the save game's); 2000000000 when constructed
+    int version = kDefaultVersion;  // format version (the save game's); 2000000000 when constructed
 };
 
 // A growable memory stream that can also pack bits. The bit writer assembles bits in bits and stores the

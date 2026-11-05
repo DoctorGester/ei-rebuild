@@ -145,7 +145,7 @@ public:
     Player* player = nullptr;  // the owner (set by Player::SetConnection)
 
 protected:
-    PlayerConnection();
+    PlayerConnection() = default;
 };
 
 // A player's server side (made by the server's specific manager).
@@ -455,7 +455,7 @@ public:
 
     netlink::NetLink* link = nullptr;           // the connection to the player's client, null: none
     PlayerConnection* connection = nullptr;    // PlayerServer / PlayerClient (counted)
-    int playerId = 0;                           // player number (0 = the local player)
+    int playerId = -1;                          // player number (0 = the local player)
     MapObjectMap knownObjects;                  // map objects sent to the client
     int maxObjectId = 0;                        // highest id put in knownObjects
     UnitMap units;                              // the player's units by id (counted)
@@ -469,7 +469,7 @@ public:
     std::uint32_t lastScreen = 0;               // the session kind before the last game-state message (5: the camp)
     std::uint8_t godMode = 0;                   // the script's GodMode(player, on); the combat code tests it
     int logTraffic = 0;                         // logs the size of every flush
-    int lastTick = 0;                           // -1 after Create; the world tick last saved or restored for the player
+    int lastTick = -1;                          // -1 after Create; the world tick last saved or restored for the player
     std::vector<std::uint32_t> recharging;     // ids of items recharging (saved with the world from version 0x55)
     std::uint32_t dirty = 0;                    // PlayerDirty bits
 };

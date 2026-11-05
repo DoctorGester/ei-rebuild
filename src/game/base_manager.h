@@ -81,7 +81,7 @@ public:
 
 protected:
     // Empty tables (the objects and spares sized 100), no context, ids up to 2000000000.
-    BaseManager();
+    BaseManager() = default;
 
 public:
     ObjectMap objects;              // registered objects by id
@@ -95,10 +95,10 @@ public:
     std::unordered_map<int, int> spareCounts;      // type -> number of spares
     int maxSpareCountType = 0;      // highest key of spareCounts
     int idLow = 0;                  // automatic ids come from [idLow, idHigh)
-    int idHigh = 0;                 // 2000000000
-    int reservedA = 0;              // -1 when constructed, 0 after Create; nothing reads it
-    int reservedB = 0;              // -1 when constructed, 300 after Create; nothing reads it
-    int lastId = 0;                 // id most recently registered (-1 when constructed)
+    int idHigh = 2000000000;        // 2000000000
+    int reservedA = -1;             // -1 when constructed, 0 after Create; nothing reads it
+    int reservedB = -1;             // -1 when constructed, 300 after Create; nothing reads it
+    int lastId = -1;                // id most recently registered (-1 when constructed)
     ManagerContext* context = nullptr;  // set by Init / SetContext (the world for its managers, a party for its own)
 };
 

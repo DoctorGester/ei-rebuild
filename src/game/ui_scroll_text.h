@@ -23,6 +23,10 @@ struct UiTextLine {
     int firstToken = 0;              // index in the token array
 };
 
+// The text's alignment: left aligned, or justified over the width.
+constexpr int kAlignLeft = 1;
+constexpr int kJustified = 2;
+
 // Tokenised text with a scroll bar at its right edge: the battle screen's message log and the objectives window's
 // quest log.
 class UiScrollText : public UiWindow {
@@ -61,7 +65,7 @@ public:
     Rect textRect;                   // the text's rectangle (surface coordinates)
     std::vector<TextToken> tokens;
     std::vector<UiTextLine> lines;  // the laid out lines
-    int align = 0;                   // 1: left aligned (else justified)
+    int align = kJustified;          // 1: left aligned (else justified)
     // A word as PlaceWords placed it: its rectangle (surface layout units), font and colour.
     struct ShownWord {
         std::string text;

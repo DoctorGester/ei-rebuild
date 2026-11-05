@@ -88,7 +88,6 @@ void Sky::ApplyLight(const Vector3& direction, SkyColour ambient, SkyColour ligh
 }
 
 Sky::Sky() {
-    turns = 1;
     LoadNamedTexture(texture, kSkyTextureKind, kSkyTextureName);
 }
 

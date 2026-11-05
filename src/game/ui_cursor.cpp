@@ -43,8 +43,6 @@ void BuildMask(const MmpFile& picture, std::uint8_t* mask) {
 } // namespace
 
 CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
-    holder = nullptr;
-    frame = 0;
     TextureManager* manager = g_clientWorld.textureManager.get();
     const MmpFile picture = manager->GetFileData(name);
     // (A throw passes the exception on; that ends the game.)

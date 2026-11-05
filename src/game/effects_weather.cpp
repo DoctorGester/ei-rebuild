@@ -105,7 +105,6 @@ void RainSnow::Start(int newMode, float duration) {
 RainSnow::RainSnow() {
 
     world = nullptr;
-    sound = 0;
     Clear();
 }
 

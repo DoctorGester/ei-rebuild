@@ -150,10 +150,7 @@ HudWeaponBar::HudWeaponBar(BattleScreen* newOwner) : owner(newOwner) {
     rect = {80 + originX, 520, 240 + originX, 600};
     for (int x = 80 + originX; x < 240; x += kStep) AddRegion()->SetRect(x, 520, x + kStep, 600);
     ClearSceneObjects();
-    selected = -1;
-    count = 0;
     for (int i = 0; i < 4; ++i) regions[i]->SetTip(0);
-    unit = nullptr;
     const int ids[] = {15, 20, 10, 5};
     labels = Labels(ids);
 }
@@ -313,14 +310,11 @@ HudQuickItems::HudQuickItems(BattleScreen* newOwner) : owner(newOwner) {
     for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x + originX, 550, x + 50 + originX, 600);
     for (int x = 670; x > 470; x -= 50) AddRegion()->SetRect(x + originX, 500, x + 50 + originX, 550);
     ClearSceneObjects();
-    shownCount = 0;
-    selected = -1;
     for (int i = 0; i < 8; ++i) {
         regions[i]->SetTip(0);
         regionItem[i] = -1;
     }
     entries.clear();
-    unit = nullptr;
     const int ids[] = {7, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
     labels = Labels(ids);
 }
@@ -605,9 +599,6 @@ HudSpellColumn::HudSpellColumn(BattleScreen* newOwner) : owner(newOwner) {
     rect = {760 + originX, 190, 800 + originX, 510};
     ClearSceneObjects();
     ClearRegions();
-    count = 0;
-    selected = -1;
-    unit = nullptr;
     const int ids[] = {7, 18, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
     labels = Labels(ids);
 }
@@ -764,10 +755,7 @@ HudActionColumn::HudActionColumn(BattleScreen* newOwner) : owner(newOwner) {
     for (int y = 470; y > 230; y -= kStep) AddRegion()->SetRect(originX, y, 40 + originX, y + kStep);
     ClearSceneObjects();
     actions.clear();
-    count = 0;
-    selected = -1;
     for (int i = 0; i < 6; ++i) regions[i]->SetTip(0);
-    unit = nullptr;
     std::string text = g_clientWorld.texts->GetString("infoitem_16");
     labels.push_back(text);
 }

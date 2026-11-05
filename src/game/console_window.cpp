@@ -98,23 +98,11 @@ namespace console {
 
 namespace {
 constexpr Rect kInitialRect = {0, 0, 800, 150};
-constexpr int kHistory = 0x100;
-constexpr int kNoCommand = -1;
 } // namespace
 
 ConsoleWindow::ConsoleWindow() {
-    surface = nullptr;
-    commandIndex = kNoCommand;
-    caret = 0;
-    anchor = 0;
-    scroll = 0;
-    shown = false;
-    ctrl = false;
-    shift = false;
-    scale = 1.0f;
     Rect area = kInitialRect;
     SetRect(area);
-    history = kHistory;
     DropOldLines(kHistory);
     ClampScroll();
 }

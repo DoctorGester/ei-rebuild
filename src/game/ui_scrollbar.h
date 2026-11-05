@@ -33,14 +33,14 @@ public:
     void SetMaximum(int maximum);
     int maxPosition = 0;
     float speed = 0.0f;              // lines per second while an arrow is held (/16)
-    int position = 0;
+    int position = -1;
     // Layout coordinates (the options slider: left + 26 .. right - 26 over the bottom 10 pixels).
     Rect track;
     Rect thumb;                      // layout coordinates
     int grabX = 0;                   // mouse offset from the thumb centre while dragging
     int grabY = 0;
     float depth = 0.0f;              // the sprites' depth
-    bool moved = false;
+    bool moved = true;
     int state = 0;                   // 0 idle, 1 dragging the thumb, 2 up, 3 down
     float accumulated = 0.0f;        // scrolled amount not yet applied
 

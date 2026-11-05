@@ -102,7 +102,6 @@ void SexOf(const std::string& figure, std::string& sex) {
 
 HudPortraits::HudPortraits(BattleScreen* newOwner) : owner(newOwner) {
     rect = Rect{250, 440, 550, 600};
-    count = 0;
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
 }
 

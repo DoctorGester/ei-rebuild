@@ -23,8 +23,7 @@ constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sam
 } // namespace
 
 ConnectionState::ConnectionState(std::uint32_t newId)
-    : sendSequence(static_cast<std::uint16_t>(platform::CoarseClock())), id(newId),
-      roundTrip(kMaxRoundTrip) {}
+    : sendSequence(static_cast<std::uint16_t>(platform::CoarseClock())), id(newId) {}
 
 void Connection::OnShutdown() { ConnectionState::operator=(ConnectionState(0)); }
 

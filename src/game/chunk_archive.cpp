@@ -249,10 +249,6 @@ RefCounted* ChunkArchive::ObjectRef(int id) {
 
 // ---- An archive on the stack ----------------------------------------------------------------------
 
-ChunkArchive::ChunkArchive() {
-    version = 1;
-}
-
 ChunkArchive::~ChunkArchive() {
 }
 

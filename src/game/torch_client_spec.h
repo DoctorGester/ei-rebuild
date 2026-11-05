@@ -13,6 +13,7 @@
 // sound.
 
 #include "server_specific_manager.h"   // TorchObjectSpec
+#include "sound.h"                     // kNoSound
 
 #include <cstddef>
 #include <cstdint>
@@ -22,6 +23,7 @@ class ParticleSource;
 
 class TorchObjectClientSpec : public TorchObjectSpec {
 public:
+    // Defined in torch_object.cpp: the members' destructors need Light and ParticleSource complete.
     TorchObjectClientSpec();
     ~TorchObjectClientSpec() override;
 
@@ -65,5 +67,5 @@ public:
 
     Ref<Light> light;
     ParticleSource* particles = nullptr;  // counted
-    int sound = 0;                  // the looping sound's handle, kNoSound when none
+    int sound = kNoSound;           // the looping sound's handle, kNoSound when none
 };

@@ -35,13 +35,8 @@ ServerBase::ServerBase() {
 ServerSession::ServerSession(std::uint32_t newKind) {
     masterAddress = NetAddress{};
     magic = kSessionMagic;
-    nextLine = 0;
     kind = newKind;
-    maxPlayers = 8;
     QueueMapList();
-    announceTimer = 0.0f;
-    announced = 0;
-    masterToken = 0;
     std::memset(password, 0, sizeof(password));
 }
 

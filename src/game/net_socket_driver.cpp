@@ -162,22 +162,20 @@ bool SocketDriver::Receive(NetAddress* from, GrowingBuffer* buffer) {
 
 // ---- The master server link ----------------------------------------------------------------------
 
-MasterLink::MasterLink(const NetAddress* address) {
+MasterLink::MasterLink(const NetAddress* address) { Connect(*address); }
+
+void MasterLink::Connect(const NetAddress& address) {
     socket = sockets::Open(sockets::Kind::Tcp);
-    if (socket == kNoSocket) {
-        state = State::Closed;
-        return;
-    }
+    if (socket == kNoSocket) return;
     sockets::Address any{};
     any.family = sockets::kIpv4;
     if (!sockets::Bind(socket, any)) {
         if (socket != kNoSocket) sockets::Close(socket);
         socket = kNoSocket;
-        state = State::Closed;
         return;
     }
     sockets::SetNonBlocking(socket, true);
-    sockets::Connect(socket, *address);
+    sockets::Connect(socket, address);
     state = State::Connecting;
 }
 
@@ -192,7 +190,7 @@ MasterLink::~MasterLink() {
 // socket not ready asks with the set that select emptied, which always fails: an error never closes the link
 // there. Returns the state.
 MasterLink::State MasterLinkTick(MasterLink* self) {
-    sockets::SocketGroup set(self->socket);
+    sockets::SocketGroup set = sockets::SocketGroup::Of(self->socket);
     auto close = [self](MasterLink::State state) {
         if (self->socket != kNoSocket) sockets::Close(self->socket);
         self->socket = kNoSocket;

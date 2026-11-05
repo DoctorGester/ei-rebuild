@@ -77,10 +77,10 @@ public:
     char name[0x100] = {};     // sound file
     float volume = 0.0f;
     float radius = 0.0f;
-    int looping = 0;           // 0: the effect ends after its first tick
+    int looping = 1;           // 0: the effect ends after its first tick
     std::uint8_t noFade = 0;   // plays with flag 1000
-    int sound = 0;             // handle in the sound system, -1: none
-    std::uint8_t fresh = 0;    // set by Reset, cleared by the first tick
+    int sound = -1;            // handle in the sound system, -1: none
+    std::uint8_t fresh = 1;    // set by Reset, cleared by the first tick
 };
 
 // A sequence of sounds picked at random (class id 99).
@@ -104,7 +104,7 @@ public:
     float volume = 0.0f;
     float radius = 0.0f;
     std::uint8_t noFade = 0;
-    int sound = 0;             // sequence handle, -1: none
+    int sound = -1;            // sequence handle, -1: none
 };
 
 // A looping ambient sound (class id 0x49).
@@ -127,7 +127,7 @@ public:
     float radius = 0.0f;
     int minInterval = 0;       // ms between plays (the sound emitter's minInterval)
     int maxInterval = 0;       // ms, the upper bound
-    int sound = 0;             // handle, -1: none
+    int sound = -1;            // handle, -1: none
 };
 
 // A point light (class id 0x4B).
@@ -175,13 +175,13 @@ public:
 
     Vector3 worldPosition;     // Position's result when attached
     int type = 0;              // particle type 0x2000..
-    float size = 0.0f;
-    float alpha = 0.0f;        // copied to the source
-    float typeParam = 0.0f;     // copied to the source
-    int attachedTo = 0;        // object id, -1: none
+    float size = 1.0f;
+    float alpha = 1.0f;        // copied to the source
+    float typeParam = 1.0f;     // copied to the source
+    int attachedTo = -1;       // object id, -1: none
     Vector3 target;            // moves towards it
     Ref<ParticleSource> source;    // reference counted
-    int unitId = 0;            // a unit whose position is used when unpacking, -1: none
+    int unitId = -1;           // a unit whose position is used when unpacking, -1: none
 };
 
 // A particle wall (class id 0x5A; fire wall).
@@ -206,7 +206,6 @@ class EffectLightning final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
-    EffectLightning();
     ~EffectLightning() override;
     void Reset() override;
     void UpdateEnds();                            // end points from the objects
@@ -222,10 +221,10 @@ public:
 
     Vector3 from;
     Vector3 to;
-    float width = 0.0f;
+    float width = 1.0f;
     Ref<Lightning> bolt;      // the drawn bolt
-    int toObject = 0;          // its position (+1 in z) becomes to
-    int fromObject = 0;        // a unit: its point becomes from (server only)
+    int toObject = -1;         // its position (+1 in z) becomes to
+    int fromObject = -1;       // a unit: its point becomes from (server only)
     std::uint8_t flag = 0;
 };
 
@@ -246,7 +245,7 @@ public:
     virtual void MoveParts() = 0;
 
     int arrived = 0;
-    int targetId = 0;          // world object id, -1: none
+    int targetId = -1;         // world object id, -1: none
     std::uint8_t fromCaster = 0;  // the client starts the missile at the caster's effect point
 };
 
@@ -275,8 +274,8 @@ public:
     Vector3 lightColor;
     float lightRange = 0.0f;
     int particleType = 0;
-    float particleSize = 0.0f;
-    int casterId = 0;              // unit, -1: none
+    float particleSize = 1.0f;
+    int casterId = -1;             // unit, -1: none
 };
 
 // A bow or crossbow shot (class id 0x5B, "EffectArrowFigure"; made by UnitServer::DeliverAttack with the
@@ -299,7 +298,7 @@ public:
     void Save(ByteStream* stream) override;
 
     Ref<MapObject> figure;    // client only: the figure object (a stuff object, class 0x38, counted), null: none
-    int casterId = 0;          // the shooter, -1: none
+    int casterId = -1;         // the shooter, -1: none
     DamageInfo hit;            // delivered on arrival (multiplier 1 after Reset)
 };
 
@@ -321,8 +320,8 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    int observerId = 0;        // unit (the second unit of the sight computation)
-    int seerId = 0;            // unit whose sight is shown; the effect follows it
+    int observerId = -1;       // unit (the second unit of the sight computation)
+    int seerId = -1;           // unit whose sight is shown; the effect follows it
     Ref<VisibilityFog> fog;   // client only, null: none
     FogGrid grid;
 };
@@ -356,7 +355,7 @@ public:
 
     Ref<MapObject> bird;      // the figure object (a stuff object, class 0x38, counted), null: none
     Ref<ParticleSource> source;    // null: none
-    int followedId = 0;        // world object id, -1: none
+    int followedId = -1;       // world object id, -1: none
     float lastTime = 0.0f;     // Update's last `now`
     float timer = 0.0f;        // frames left in the state
     float angle = 0.0f;        // circling: the angle at time 0 (radians)
@@ -386,7 +385,7 @@ public:
     void Save(ByteStream* stream) override;
 
     Ref<ParticleSource> source;    // client only, null: none
-    int sound = 0;             // client: the looping sound's handle, -1: none
+    int sound = -1;            // client: the looping sound's handle, -1: none
     int framesLeft = 0;        // ticks still to move
     int launchTick = 0;        // the world's tick at Launch (Start catches the source up, at most 30)
 };

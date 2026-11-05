@@ -143,13 +143,13 @@ public:
     void OnChunk() override {}
     virtual ~Spec();
 
-    std::int32_t id = 0;         // the object's id (-1)
+    std::int32_t id = -1;        // the object's id (-1)
     Vector3 position;
     Quaternion rotation;         // (1, 0, 0, 0)
     std::string name;
     std::string comment;
-    std::int32_t spareId = 0;    // (-1) only set and copied (ObjectSpec::Assign)
-    SpecKind kind = {};
+    std::int32_t spareId = -1;   // (-1) only set and copied (ObjectSpec::Assign)
+    SpecKind kind = SpecKind::Base;
 };
 
 // An object record (chunk B001).
@@ -165,10 +165,10 @@ public:
     std::int32_t parentId = 0;
     std::string texture;
     std::string primaryTexture;
-    std::int32_t player = 0;     // (-1); the type name formats it
+    std::int32_t player = -1;    // (-1); the type name formats it
     Vector3 scale;               // (0.5 each; read y, x, z)
     std::uint8_t shadow = 0;
-    std::uint8_t visible = 0;
+    std::uint8_t visible = 1;
     std::uint8_t side = 0;       // the owner's player number (chunk B011; Unit::SetSide, the traps' hostile players)
     std::string parentIname;
     std::string skinTexture;    // (chunk B008) the texture swapped onto the figure ("none": none)
@@ -183,7 +183,7 @@ public:
 
     void OnChunk() override;
 
-    float volume = 0.0f;         // (0.7)
+    float volume = 0.7f;         // (0.7)
     Vector3 offset;
     std::string sound;          // ("nature\fire\small.wav")
 };
@@ -237,7 +237,7 @@ public:
     void OnChunk() override;
 
     std::int32_t type = 0;       // (0: none made)
-    float scale = 0.0f;
+    float scale = 1.0f;
 };
 
 // A light (chunk AA01).
@@ -249,8 +249,8 @@ public:
     void OnChunk() override;
 
     Vector3 colour;              // (1, 1, 1)
-    std::uint8_t shadows = 0;
-    float radius = 0.0f;
+    std::uint8_t shadows = 1;
+    float radius = 10.0f;
 };
 
 // A sound (chunk CC01).
@@ -262,10 +262,10 @@ public:
     void OnChunk() override;
 
     std::vector<std::string> sounds;   // (none made without any)
-    std::int32_t volume = 0;     // (10; chunk CC04) the sound's volume
-    std::int32_t radius = 0;     // (15; chunk CC0B) the sound's radius
-    std::int32_t minInterval = 0;  // (1500; chunk CC06) an ambient sound's shortest pause
-    std::int32_t maxInterval = 0;  // (3000; chunk CC07) and longest
+    std::int32_t volume = 10;    // (10; chunk CC04) the sound's volume
+    std::int32_t radius = 15;    // (15; chunk CC0B) the sound's radius
+    std::int32_t minInterval = 1500;  // (1500; chunk CC06) an ambient sound's shortest pause
+    std::int32_t maxInterval = 3000;  // (3000; chunk CC07) and longest
     std::uint8_t ambient = 0;    // (chunk CC0D) set: an ambient sound (class 0x49), else a plain one (0x48)
     std::uint8_t unreadChunk = 0;  // chunk CC0E; only read and written with the record
 };

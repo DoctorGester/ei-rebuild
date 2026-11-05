@@ -112,7 +112,7 @@ def _opens_function_body(head):
     return not re.search(r'\w$', head) or bool(_FN_QUALIFIER.search(head))
 
 
-def _class_statements(text, lo, hi):
+def _class_statements(text, lo, hi, keep=False):
     """The class body's statements that end in ';' (a function body ends its statement; nested types and brace
     initialisers stay inside the one they belong to)."""
     out, buf, i = [], '', lo
@@ -123,7 +123,7 @@ def _class_statements(text, lo, hi):
             if _opens_function_body(buf):
                 buf = ''
             else:
-                buf += '{}'
+                buf += text[i:j + 1] if keep else '{}'
             i = j + 1
             continue
         if c == ';':
@@ -428,7 +428,9 @@ def count_empty_virtuals_called(text, rel):
 
 # Constructors and Reset against the default initialisers (round 1b I1, T1; extends the field check above): a field
 # that has `= value` or `{value}` in its class and is assigned another value (or the same, in a constructor) in the
-# constructor's body or initialiser list, or another value in Reset(): two start states for one field.
+# constructor's body or initialiser list, or another value in Reset(): two start states for one field. Only a constant
+# is a start value (_constant): what a constructor computes from its parameters, a call or another member (a pointer it
+# fills with a built object, a size read from a file, a state its branches decide) is not one the initialiser could hold.
 _INITIALISED = re.compile(r'^(?:[\w:<>,\s*&]*?[\s*&])?(\w+)\s*(?:\[[^\]]*\]\s*)?(?:=\s*([^;=][^;]*)|\{([^;{}]*)\})$')
 _FUNCTION_HEAD = re.compile(r'\b(?:(\w+)::)?(\w+)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)\s*(?:const\s*)?(?:noexcept\s*)?(:[^{;]*?)?\{')
 _ASSIGN = re.compile(r'(?:^|(?<=[;{}]))\s*(?:this->)?(\w+)\s*=\s*([^;=][^;]*);')
@@ -445,7 +447,7 @@ def _initialisers():
                 if m.group(1) == 'union' or not m.group(2):
                     continue
                 start = m.end() - 1
-                for statement in _class_statements(code, start + 1, _closing_brace(code, start)):
+                for statement in _class_statements(code, start + 1, _closing_brace(code, start), keep=True):
                     body = ' '.join(statement.split())
                     if _FIELD_SKIP.match(body) or re.search(r'\(.*[={]', body.split('=')[0]) and '(' in body.split('=')[0]:
                         continue
@@ -455,8 +457,25 @@ def _initialisers():
     return _class_inits
 
 
+def _bare(value):
+    """A brace-initialised value without its braces: `first{10000, 10000}` and `first = {10000, 10000}` are one value."""
+    return value[1:-1] if isinstance(value, str) and value.startswith('{') and value.endswith('}') else value
+
+
+def _constant(expression):
+    """A constant expression: literals, k* constants, true / false / nullptr, enumerators (`State::Closed`), casts of these.
+    A value that calls something or reads a parameter, a local or a member is computed: no default initialiser can hold it."""
+    t = re.sub(r'static_cast<[^<>]*>', '', expression)
+    t = re.sub(r'"[^"]*"', '', t)
+    if re.search(r'[A-Za-z_]\w*\s*\(', t):
+        return False
+    return all(re.fullmatch(r'k[A-Z]\w*|true|false|nullptr|(?:\w+::)+(?:[A-Z]|k[A-Z])\w*', name)
+               for name in re.findall(r'(?<![\w.])[A-Za-z_]\w*(?:::\w+)*', t))
+
+
 def count_double_start_states(text, inits=None):
     inits = _initialisers() if inits is None else inits
+    text = re.sub(r'"(?:\\.|[^"\\\n])*"', '""', text)    # as the initialisers' tree: a Reset's string equals its default's
     classes = [(m.group(2), m.end() - 1) for m in _FIELD_CLASS.finditer(text) if m.group(2)]
     n = 0
     for m in _FUNCTION_HEAD.finditer(text):
@@ -468,16 +487,13 @@ def count_double_start_states(text, inits=None):
         if owner not in inits or not (constructor or name == 'Reset'):
             continue
         fields = inits[owner]
-        parameters = set(re.findall(r'(\w+)\s*(?:=[^,]*)?(?:,|$)', m.group(3)))     # a value from a parameter is not a start state
         if constructor and m.group(4):
             n += sum(1 for f, v in re.findall(r'[:,]\s*(\w+)\s*[({]([^(){}]*)[)}]', m.group(4))
-                     if f in fields and not parameters & set(re.findall(r'\w+', v)))
+                     if f in fields and _constant(v))
         body = text[m.end():_closing_brace(text, m.end() - 1)]
         for a in _ASSIGN.finditer(body):
-            if fields.get(a.group(1)) == 'nullptr' and '(' in a.group(2):
-                continue                                 # a null pointer the constructor fills with a built object (C96)
-            if a.group(1) in fields and not parameters & set(re.findall(r'\w+', a.group(2))) and (
-                    constructor or _value(a.group(2)) != fields[a.group(1)]):
+            if a.group(1) in fields and _constant(a.group(2)) and (
+                    constructor or _bare(_value(a.group(2))) != _bare(fields[a.group(1)])):
                 n += 1
     return n
 

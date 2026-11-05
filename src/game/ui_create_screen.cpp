@@ -178,7 +178,6 @@ MessageWindow::MessageWindow(std::string_view titleKey, const char* textKey, Mes
     if (buttons == MessageButtons::OkCancelEdit) {
         editText = const_cast<char*>(textKey);    // the caller's buffer: OK copies the answer into it
     } else {
-        editText = nullptr;
         line = texts->GetString(textKey);
         text = line;
     }

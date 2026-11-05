@@ -235,7 +235,6 @@ void Interface3D::OnStringEvent(std::string_view event) {
 
 namespace {
 constexpr int kInterfacePriority = 1000;
-constexpr int kFullVolume = 100;
 constexpr int kLayoutWidth = 800;
 // The frame rate's surface: (730, 10)-(800, 28).
 constexpr int kFpsLeft = 730, kFpsTop = 10, kFpsRight = 800, kFpsBottom = 28;

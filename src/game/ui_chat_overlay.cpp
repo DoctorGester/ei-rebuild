@@ -285,8 +285,6 @@ void ChatOverlay::Char(UiEvent& event) {
 ChatOverlay::ChatOverlay() {
     UiSurface* newTyped = AddSurface(std::make_unique<UiSurface>(kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true));
     newTyped->PaintWith([this](UiSurface& out) { PaintTyped(out); });
-    chatOpen = false;
-    caret = 0;
     ShowTyped();
 }
 

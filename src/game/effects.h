@@ -470,23 +470,23 @@ public:
     float distance = 0.0f;          // length of motion
     int emitChance = 0;             // percent per try
     int emitCount = 0;              // tries per tick
-    float emitSpacing = 0.0f;
+    float emitSpacing = 1000.0f;
     int maxParticles = 0;
-    int frameCount = 0;
-    int frameColumns = 0;           // columns of the texture's frame grid
-    int frameDelay = 0;             // ticks per texture frame
+    int frameCount = 1;
+    int frameColumns = 1;           // columns of the texture's frame grid
+    int frameDelay = 10000;         // ticks per texture frame
     int hiddenTicks = 0;            // draws skipped off screen in a row (IdlesOffScreen)
-    int lifetime = 0;
+    int lifetime = -1;
     Vector3 spreadMin;
     Vector3 spreadMax;
-    float size = 0.0f;
+    float size = 1.0f;
     float height = 0.0f;
     float growth = 0.0f;
-    float alpha = 0.0f;
-    float typeParam = 0.0f;         // per type: rate, count or size (1.0 after Reset)
+    float alpha = 1.0f;
+    float typeParam = 1.0f;         // per type: rate, count or size (1.0 after Reset)
     float turnCos = 0.0f;           // \ cos / sin of the emitter's turn (a zone exit's
     float turnSin = 0.0f;           // / angle)
-    float baseSize = 0.0f;
+    float baseSize = 1.0f;
     int emitState = 0;              // per type: the emitted count or a one-shot flag
     Vector3 extent;
     AttachPoint attachPoint = AttachPoint::EffectPoint;

@@ -198,10 +198,7 @@ Vector3 AtTorch(const MapObject* torch, const float* offset) {
 
 } // namespace
 
-TorchObjectClientSpec::TorchObjectClientSpec() {
-    particles = nullptr;
-    sound = kNoSound;
-}
+TorchObjectClientSpec::TorchObjectClientSpec() = default;
 
 TorchObjectClientSpec::~TorchObjectClientSpec() {
     HideEffects();

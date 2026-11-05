@@ -77,8 +77,8 @@ public:
     Vector2 uvScale;
     float uvAngle = 0.0f;           // the texture's turn about its tile's centre
     float angle = 0.0f;             // the quad's turn
-    std::uint8_t lit = 0;           // the terrain's point test; the specular alpha
-    float alpha = 0.0f;
+    std::uint8_t lit = 0xFF;        // the terrain's point test; the specular alpha
+    float alpha = 1.0f;
     float alphaScale = 0.0f;
     int lifetime = 0;
     std::vector<VertexPacket> positions;      // the ground geometry (blocks of four)

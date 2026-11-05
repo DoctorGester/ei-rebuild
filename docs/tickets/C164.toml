@@ -5,5 +5,5 @@ size = 3
 model = "sonnet"
 note = "check_cleanup 'field with two start values (initialiser, constructor or Reset)': 291. Each field gets one start value: the default member initialiser, with constructors and Reset assigning only what differs (a Reset that restores the defaults becomes '*this = T{}' or assigns from a default object where the type allows). Scripted batches by area; ratchet lowered as it falls; say why for any left. Goldens the same; verify+release 0 warnings; WSL warning compile."
 order = 1206
-status = "running"
+status = "review"
 started = "2026-11-05"

@@ -37,11 +37,8 @@ void FileRead(Chunk& c, void* data, unsigned size) { c.File()->Read(data, size);
 Spec::Spec() : Chunk(nullptr) {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     std::string none("none");
-    id = -1;
-    spareId = -1;
     position = {0.0f, 0.0f, 0.0f};
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-    kind = SpecKind::Base;
     name = none;
     comment = none;
 }
@@ -51,15 +48,10 @@ Spec::~Spec() = default;
 ObjectSpec::ObjectSpec() {
     std::string none("none");
     kind = SpecKind::Object;
-    parentId = 0;
     model.clear();
     texture = none;
     primaryTexture = none;
-    player = -1;
     scale = {0.5f, 0.5f, 0.5f};
-    shadow = 0;
-    visible = 1;
-    side = 0;
     parentIname = none;
     skinTexture = none;
 }
@@ -97,7 +89,6 @@ void ObjectSpec::OnChunk() {
 FlameSpec::FlameSpec() {
     offset = {0.0f, 0.0f, 0.0f};
     kind = SpecKind::Flame;
-    volume = 0.7f;
     sound = "nature\\fire\\small.wav";
 }
 
@@ -217,9 +208,7 @@ LightSpec::~LightSpec() = default;
 // ---- Particle sources ------------------------------------------------------------------
 
 ParticleSpec::ParticleSpec() {
-    type = 0;
     kind = SpecKind::Particle;
-    scale = 1.0f;
 }
 
 void ParticleSpec::OnChunk() {
@@ -237,9 +226,7 @@ void ParticleSpec::OnChunk() {
 
 LightSpec::LightSpec() {
     colour = {1.0f, 1.0f, 1.0f};
-    shadows = 1;
     kind = SpecKind::Light;
-    radius = 10.0f;
 }
 
 void LightSpec::OnChunk() {
@@ -258,11 +245,6 @@ void LightSpec::OnChunk() {
 
 SoundSpec::SoundSpec() {
     kind = SpecKind::Sound;
-    volume = 10;
-    radius = 15;
-    minInterval = 1500;
-    maxInterval = 3000;
-    ambient = 0;
 }
 
 SoundSpec::~SoundSpec() = default;

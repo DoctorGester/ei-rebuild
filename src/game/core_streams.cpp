@@ -16,8 +16,6 @@
 
 namespace {
 
-constexpr std::int32_t kDefaultVersion = 2000000000;
-
 // ReadStream refuses longer streams.
 constexpr std::uint32_t kMaxStreamLength = 100000;
 
@@ -38,10 +36,6 @@ void CodeStream(MemoryStream* self, CoderState* coder, MemoryStream* out, bool c
 }
 
 } // namespace
-
-ByteStream::ByteStream() {
-    version = kDefaultVersion;
-}
 
 void (*g_memoryStreamWriteObserver)(MemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;
 

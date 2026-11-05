@@ -138,7 +138,6 @@ UnitSpec::UnitSpec() {
     record.applyStats = 0;
     kind = SpecKind::Unit;
     prototype = "none";
-    behaviours = 0;
     behaviour[0].enabled = 1;
     std::memset(&record.stats, 0, sizeof(record.stats));
 }
