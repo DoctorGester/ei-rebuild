@@ -5,5 +5,6 @@ model = "opus"
 depends = ["C102"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item P4. Name reused particle slots with local references at the top of each callback (float& angle = p->velocity.x); real source fields for the tint colour (held in lifetime/frameDelay now), the ray count and the glow kind (alpha tested as bits); drop ParticleElement's offset padding and the raw word[]/value[] writes, views only as named fields. World's windDirection (uint8_t[12]) and windStrength float bits typed too if small, else note it. Save and packet layouts unaffected (check). Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1033
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
