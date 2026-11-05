@@ -749,39 +749,58 @@ All in `src/game`:
   hands the points to the line strip draw). Users: the figure parts' debug bounds and the world client's line lists; no
   scenario turns either on.
 
-**Weather** (R59; the game's own draw was replaced). The particles are a field (`weather_field.h`) without state: a box
-of 80 x 80 x 40 units that repeats over the world, 20000 raindrops or 26000 snowflakes in it, each one's point, fall
-(rain 0.5 units a tick, snow 0.1, each its own share), size and shade from a hash of its index. Its place at a frame is
-that point carried by the wind so far (`RainSnow::carry`, summed from the world's time between frames, so a change of
-wind changes the speed, never the place) and by its fall over the world's time (tick + tickFraction: it moves every
-frame, not every tick), taken to the copy of the box around the field's centre: 10 units beyond the camera's focus along
-the view, its floor 8 under the focus. A particle leaving the box on one side comes back on the other, so its alpha
-fades to nothing over the outer fifth of the box's half side (a circle around the centre) and the outer 15% of its half
-height, and near the eye (rain from 0.8 to 3 units, snow 0.8 to 3); `density` / 64 shows that share of them, each fading
-over 5% of it. A snowflake also drifts on its own: a sine on each horizontal axis, 0.15 to 0.5 units, 4 to 12 seconds a
-turn. Nothing jumps or vanishes while it shows: the unit check `weather_field.cpp` (tests/unit) follows the particles
-over 600 frames of a third of a tick with the view panning and the wind changing, none moves further than its speed
-takes it nor its alpha by more than 0.2 in a frame.
+**Weather** (R59, R59a; the game's own draw was replaced). The particles are a field (`weather_field.h`) without
+state: a box of 80 x 80 x 40 units that repeats over the world, 20000 raindrops or 16000 snowflakes in it, each one's
+point, fall group, size, shade (and a flake's drift, spin and picture) from a hash of its index, worked out once into a
+table. Its anchor at a frame is that point carried by the wind so far (`RainSnow::carry`, summed from the world's time
+between frames, so a change of wind changes the speed, never the place) and by its fall over the world's time (tick +
+tickFraction: it moves every frame, not every tick), taken to the copy of the box around the field's centre: 10 units
+beyond the camera's focus along the view, its floor 8 under the focus. Each particle falls at one of four speeds (rain
+0.85 to 1.15 of 0.5 units a tick, snow 0.6 to 1.4 of 0.1). A particle leaving the box on one side comes back on the
+other, so its alpha fades to nothing over the outer fifth of the box's half side (a circle around the centre, whole at
+0.98 of it) and the outer 15% of its half height, and near the eye (from 0.8 to 3 units); `density` / 64 shows that
+share of them, each fading over 5% of it. A snowflake also drifts about its anchor: a sine on each horizontal axis, 0.15
+to 0.5 units, 4 to 12 seconds a turn (at most 0.65 units away, `kMostDrift`), and spins once a turn of its x drift.
+Nothing jumps or vanishes while it shows: the unit check `weather_field.cpp` (tests/unit) follows the particles over 600
+frames of a third of a tick with the view panning and the wind changing, none moves further than its speed takes it
+nor its alpha by more than 0.2 in a frame; and every particle that shows lies in its bin's boxes.
+
+What a frame costs (R59a): the table is ordered by bins (8 x 8 columns, 4 layers, the 4 fall speeds), so a bin's
+particles stay together in a 10 x 10 x 10 box (and the drift); `weather::Field` works out per frame what all particles
+share (each axis's wrap, each fall group's height), so an anchor is a few sums. The draw tests each bin's boxes against
+the view's seven planes (the screen's edges with a tenth's margin, the depth range, the nearest distance: Ahead and
+Inside as planes in the world), then each particle's anchor (with the drift or the streak's reach as a radius), and
+only then places it; the ground under it comes from `RainSnow::ground`, the terrain's heights at whole units in a
+128 x 128 table that wraps over the world, kept across frames (emptied when the terrain changes), blended between the
+four around the point. The snow on gz11k at 1920x1080 (`render_weather_cost`: `renderstats` gives the weather's own
+time and vertices, `FrameStats` WeatherMs / WeatherVertices): of 16000 flakes the bins in view hold about 5700, 1300
+are on the screen, 700 above the ground are drawn; 0.22 ms a frame. Before R59a it placed all 26000 and looked up the
+ground under each (Terrain::SurfaceHeight: two HeightAt, each four SectorAt / VertexAt) and built 25 vertices a flake:
+about 4 ms a frame (the user's 120 fps fell to 80).
 
 The draw (`weather_particles.cpp`) projects each particle that shows with the clip stack's top and builds it on the
 screen, so its shape in pixels is the same at any aspect: a raindrop is a streak from where it was 1.6 ticks ago to
 where it is (the motion blur of its fall and the wind: aligned with its motion on the screen, longer the faster it
-crosses the view), alpha 0.45 at the head and 0.1 at the tail, bluish; a snowflake a soft disc (a middle, a ring of 12
-corners at 0.55 of the radius nearly as opaque, a clear rim), 0.035 to 0.07 units in radius, fading out over its last
-0.5 units above the terrain's ground or water as it lands (the depth test cut landing flakes in half); a drop whose
-streak is all under it is not drawn. Both are vertex colours on
-the white texture, clear at the edges, at least 1.2 (the streak's half width) or 2 (the flake's radius) 1080p pixels, thinner
-ones fainter by their share of that (so far ones fade instead of flickering), at most 5 and 10. Their colour is the
-scene's light (`frameAmbient` + 0.6 x `frameSun`, at least 0.12). Drawn as pre-transformed triangles in batches of up
-to 65535 vertices, clockwise on the screen (the effects pass culls the other way: R59's first draw showed nothing),
-fogged by `FogVertices`, with the effects pass's alpha blend and depth test. The old draw's faults (R59, the user's
-report at 16:9): its snowflakes were triangles offset in clip units, 1.75 times too wide at 21:9; its rain cycled every
-200 ticks per cell and wrapped within a band around the camera's height, so drops jumped while seen and when the camera
-climbed; its snow was cut off at 30 units under the camera and swayed by tables read by the place modulo 50 (a jump at
-each wrap); its 40-unit grid around the camera's upwind point left the sides of a wide view empty. Checked for the look
-by `render_weather` and `render_weather_particles` (rain on zone1, snow on gz11k at 1440x1080, 1920x1080 and 2520x1080:
-frozen frames against the same without the particles, bursts of four 16 ms frames, a night frame and 3840x2160; rain
-about 2.5% of the frame, snow about 1.2%); the goldens do not see it (client-only).
+crosses the view), alpha 0.45 at the head and 0.1 at the tail, bluish, vertex colours over the white texture, clear at
+the edges, at least 1.2 and at most 5 1080p pixels in half width; a drop whose streak is all under the ground is not
+drawn. A snowflake is a square of one of the "RainSnow" texture's four flake pictures (its snow row: frames a quarter
+of the width wide from v 0.5, kept half a texel inside; vanilla 128 x 128 DXT3, Rebirth 256 x 256 DXT5, the same
+layout), turned by its spin, 1.7 times its radius (0.035 to 0.07 units; the pictures fill about 0.6 of their squares)
+in half side, at least 4.5 and at most 16 1080p pixels; it fades out over its last 0.5 units above the terrain's ground
+or water as it lands (the depth test cut landing flakes in half). Thinner or smaller ones than the least are fainter by
+their share of it (so far ones fade instead of flickering). Their colour is the scene's light (`frameAmbient` + 0.6 x
+`frameSun`, at least 0.12). `RainSnow::Draw` binds the white texture for rain and the "RainSnow" texture for snow (taken
+at the first snow drawn). Drawn as pre-transformed triangles in batches of up to 65535 vertices, clockwise on the screen
+(the effects pass culls the other way: R59's first draw showed nothing), fogged by `FogVertices`, with the effects
+pass's alpha blend and depth test. The old draw's faults (R59, the user's report at 16:9): its snowflakes were triangles
+offset in clip units, 1.75 times too wide at 21:9, and cut the pictures' sides off; its rain cycled every 200 ticks per
+cell and wrapped within a band around the camera's height, so drops jumped while seen and when the camera climbed; its
+snow was cut off at 30 units under the camera and swayed by tables read by the place modulo 50 (a jump at each wrap);
+its 40-unit grid around the camera's upwind point left the sides of a wide view empty. R59 drew the flakes as soft
+discs, which the user found did not look like snowflakes (R59a). Checked for the look by `render_weather` and
+`render_weather_particles` (rain on zone1, snow on gz11k at 1440x1080, 1920x1080 and 2520x1080: frozen frames against
+the same without the particles, bursts of four 16 ms frames, close up at 21:9 and 16:9, a night frame and 3840x2160;
+rain about 2.5% of the frame, snow about 0.9%); the goldens do not see it (client-only).
 
 The game's weather comes and goes by itself: WorldServer::UpdateWeather (every 64 ticks) stops rain or snow with a
 chance of 1 in 31 and starts it with 1 in 101, so a minute after `SetWeather("rain")` the rain has often stopped. A

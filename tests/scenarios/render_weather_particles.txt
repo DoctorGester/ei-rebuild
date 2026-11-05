@@ -4,7 +4,8 @@
 # four frames 16 ms apart (frametime 16: a real frame's step, about a third of a world update) to look at how the
 # particles move from frame to frame. Frames only (goldens hold none); the captures to compare before and after a
 # change: rain_4x3, rain_16x9, rain_21x9, snow_4x3, snow_16x9, snow_21x9 and their bursts (*_burst_1 .. 4), each kind
-# at night (rain_night, snow_night: the particles in the scene's light) and at 3840x2160 (rain_4k, snow_4k).
+# at night (rain_night, snow_night: the particles in the scene's light) and at 3840x2160 (rain_4k, snow_4k), and the
+# snow close up (snow_close_21x9, snow_close_16x9).
 render checkall
 resolution 1440x1080
 fullscreen 0
@@ -131,7 +132,20 @@ frametime 16
 capture snow_21x9_burst 4
 frametime 0
 
+# Close up (the camera 8 units from the focus, a steeper look): the flakes near the eye at their largest.
+camera 490 336 60 8 30
+frames 5
+freeze
+capture snow_close_21x9
+unfreeze
 windowsize 1920 1080
+waitpresent 10
+frames 5
+freeze
+capture snow_close_16x9
+unfreeze
+camera 490 336 60 20 38
+
 console @FixWorldTime(23)
 waitpresent 10
 frames 5

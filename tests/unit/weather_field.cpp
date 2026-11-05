@@ -1,8 +1,8 @@
-// weather::Place (src/game/weather_field.h): the rain's and the snow's particles move smoothly while they show. Over
+// weather::Field::Place (src/game/weather_field.h): the rain's and the snow's particles move smoothly while they show. Over
 // 600 steps of a third of a tick (60 frames a second for ten seconds of the game), with the view's centre panning and
 // the wind changing on the way, no particle (every seventh is followed) that shows in two frames in a row moves
 // further between them than its speed takes it, and none appears or vanishes at once (its alpha changes by little in
-// a frame).
+// a frame). Field::BinBounds: every particle that shows lies in its bin's boxes.
 #include "../../src/game/weather_field.h"
 
 #include <cmath>
@@ -23,7 +23,7 @@ void Expect(bool ok, const char* what, int index, double time, float got, float 
 }
 
 void CheckKind(weather::Kind kind, const char* name) {
-    const int count = weather::Count(kind);
+    const int count = weather::Field(kind, weather::FieldView{}).Count();
     constexpr double kStep = 0.3;
     constexpr int kSteps = 600;
     constexpr int kEvery = 7;
@@ -42,8 +42,9 @@ void CheckKind(weather::Kind kind, const char* name) {
         // The camera pans 0.2 units a frame along x and climbs a little; the box's centre goes with it.
         view.eye = {100.0f + 0.2f * step, 50.0f, 20.0f + 0.002f * step};
         view.centre = {view.eye.x + 15.0f, view.eye.y + 5.0f, view.eye.z - 10.0f};
+        const weather::Field field(kind, view);
         for (int i = 0; i < count; i += kEvery) {
-            const weather::Particle p = weather::Place(kind, i, view);
+            const weather::Particle p = field.Place(i);
             weather::Particle& before = last[static_cast<std::size_t>(i)];
             if (step > 0) {
                 const float alphaStep = std::fabs(p.alpha - before.alpha);
@@ -66,10 +67,34 @@ void CheckKind(weather::Kind kind, const char* name) {
         ++failures;
         std::printf("ei_unit_check: weather field: %s: only %.2f of the particles show\n", name, share);
     }
+    // Every particle that shows lies in one of its bin's boxes (the draw passes over the bins whose boxes are out of
+    // view), now and some hours of the game later.
+    for (const double later : {0.0, 54321.7}) {
+        weather::FieldView at = view;
+        at.time += later;
+        at.carry = weather::Carry(view.carry, view.wind, later);
+        const weather::Field field(kind, at);
+        for (int bin = 0; bin < weather::kBins; ++bin) {
+            weather::Bounds boxes[8];
+            const int boxCount = field.BinBounds(bin, 0.0f, boxes);
+            const weather::BinRange range = field.Bin(bin);
+            for (int i = range.first; i < range.end; ++i) {
+                const weather::Particle p = field.Place(i);
+                if (p.alpha <= 0.0f) continue;
+                bool inside = false;
+                for (int b = 0; b < boxCount && !inside; ++b)
+                    inside = p.position.x >= boxes[b].low.x && p.position.x <= boxes[b].high.x &&
+                             p.position.y >= boxes[b].low.y && p.position.y <= boxes[b].high.y &&
+                             p.position.z >= boxes[b].low.z && p.position.z <= boxes[b].high.z;
+                Expect(inside, "outside its bin", i, at.time, 0.0f, 0.0f);
+            }
+        }
+    }
     // The density's fade: none at 0, all at 1.
     view.density = 0.0f;
     int atNone = 0;
-    for (int i = 0; i < count; ++i) atNone += weather::Place(kind, i, view).alpha > 0.0f;
+    const weather::Field none(kind, view);
+    for (int i = 0; i < count; ++i) atNone += none.Place(i).alpha > 0.0f;
     ++checks;
     if (atNone != 0) {
         ++failures;

@@ -64,8 +64,8 @@ KEPT = (
     ('ruins00.mmp', 'render_smooth: the same, the ruins themselves'),
     ('tree02.mmp', "render_smooth: the tree in view (Rebirth's is 2048 x 2048 DXT5, 5.4 MB; with the ruins alone Rebirth's "
                    'anisotropy check reaches 0.47% against at least 0.5%, with the tree alone msaa 2 0.13% against 0.2%)'),
-    ('rainsnow.mmp', "the Shower and Falling particles' texture (particle_create.cpp); the rain and snow are drawn "
-                     'without a texture'),
+    ('rainsnow.mmp', "the Shower and Falling particles' texture (particle_create.cpp) and the snowflakes' pictures "
+                     '(weather_particles.cpp; render_weather_particles: blank ones leave the snow clear)'),
     ('footprints*.mmp', "render_shadows_decals: the ground prints' textures (ground_print.cpp); blank ones are clear"),
     ('bloodprints.mmp', 'render_shadows_decals: the same, the blood splats'),
     ('fireprints.mmp', 'render_shadows_decals: the same, the scorch marks'),

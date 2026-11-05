@@ -1,0 +1,69 @@
+# R59a: what the snow and the rain cost a frame (docs/notes/renderer.md section 12, "Weather"). The snow map gz11k
+# with the camera held: "renderstats" logs the weather's own build time and vertices (its draws' hand-over left out)
+# and the main thread's CPU and wall time per frame (no vsync wait) in clear weather, in snow, in snow with its
+# particles built but not drawn (weatherparticles off) and in rain at 1920x1080, and clear and snow at 3840x2160.
+# Numbers only (no check): compare a run before and after a change, on a quiet machine. The server's weather comes and
+# goes by itself (renderer.md, "Weather"), so each measure follows its own request closely.
+resolution 1920x1080
+fullscreen 0
+reject Script error
+timeout 60
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+zone gz11k 0
+waitzone 20 gz11k
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @FixWorldTime(12)
+move 400 20
+camera 490 336 60 20 38
+
+console @SetWeather("clear")
+wait 3000
+frames 30
+renderstats -
+frames 240
+renderstats clear_1080
+console @SetWeather("snow")
+wait 3000
+frames 30
+renderstats -
+frames 240
+renderstats snow_1080
+weatherparticles off
+frames 30
+renderstats -
+frames 240
+renderstats snow_nodraw_1080
+weatherparticles on
+console @SetWeather("rain")
+wait 3000
+frames 30
+renderstats -
+frames 240
+renderstats rain_1080
+
+windowsize 3840 2160
+waitpresent 10
+console @SetWeather("clear")
+wait 3000
+frames 30
+renderstats -
+frames 120
+renderstats clear_4k
+console @SetWeather("snow")
+wait 3000
+frames 30
+renderstats -
+frames 120
+renderstats snow_4k
+weatherparticles off
+frames 30
+renderstats -
+frames 120
+renderstats snow_nodraw_4k
+weatherparticles on
+report
+quit
