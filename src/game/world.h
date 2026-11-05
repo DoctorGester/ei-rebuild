@@ -150,7 +150,6 @@ public:
     // The client's managers; null in the base.
     virtual MaterialManager* GetMaterialManager() { return nullptr; }
     virtual TextureManager* GetTextureManager() { return nullptr; }
-    virtual BaseManager* ClientLightManager() { return nullptr; }
     virtual ParticleManager* ClientParticleManager() { return nullptr; }
     virtual MapObject* ObjectWithId(int id);
     // `object` moves to `position` (the client's sector map).
@@ -816,7 +815,6 @@ public:
     float SurfaceHeightAt(float x, float y) override;
     MaterialManager* GetMaterialManager() override;
     TextureManager* GetTextureManager() override;
-    BaseManager* ClientLightManager() override;
     ParticleManager* ClientParticleManager() override;
     void MoveObject(MapObject* object, const float* position) override;
 

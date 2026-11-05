@@ -383,7 +383,6 @@ ClassId WorldClient::GetClassId() { return ClassId::WorldClient; }
 const char* WorldClient::TexturePath() { return texturePath.c_str(); }
 MaterialManager* WorldClient::GetMaterialManager() { return materialManager.get(); }
 TextureManager* WorldClient::GetTextureManager() { return textureManager.get(); }
-BaseManager* WorldClient::ClientLightManager() { return lightFactory.get(); }
 ParticleManager* WorldClient::ClientParticleManager() { return particleManager.get(); }
 
 void WorldClient::MoveObject(MapObject* object, const float* position) {
