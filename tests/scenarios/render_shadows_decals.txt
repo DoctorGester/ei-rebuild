@@ -101,5 +101,28 @@ capture lamp_bare
 decals on
 unfreeze
 printlight lamp lamp_bare 0.95 1.2
+
+# Under a spell's light (R52c): spell, missile and quest lights are specular, which the ground adds again after its
+# texture (terrain.hlsl: t x max(other, spec) + spec); a print takes the same added light over its colour, so it is
+# not darker than its ground by that light times its alpha. The lamp goes; a wolf by the hero dies (its blood), then
+# lightning strikes a second wolf next to it and leaves a light at its eyes for 7 updates. printlight: 1.06 (the
+# blood under the light without the added light: 1.03).
+console @DeletePointLight(7)
+console @AddUnitToServer("S1","WolfTutor","S1",Add(GSGetVar(0,"hx"),2),Add(GSGetVar(0,"hy"),1),0)
+waitfor 10 IsAlive(GetObjectByName("S1"))
+console @InflictDamage(GetObjectByName("S1"),100000)
+wait 3000
+console @RemoveUnitFromServer(GetObjectByName("S1"))
+console @AddUnitToServer("S2","WolfTutor","S2",Add(GSGetVar(0,"hx"),3),Add(GSGetVar(0,"hy"),1),0)
+waitfor 10 IsAlive(GetObjectByName("S2"))
+console @CastSpellUnit("lightning{e2;e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("S2"))
+wait 150
+freeze
+capture spell
+decals off
+capture spell_bare
+decals on
+unfreeze
+printlight spell spell_bare 1.04 1.2
 report
 quit

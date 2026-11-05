@@ -850,11 +850,14 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   shader's MeshLightParams with `on` y 1, as SDL_GPU's four uniform slots per stage are taken): the scene's sun,
   ambient and the 8 point lights nearest its box that reach it, with their point shadows, and the map's light
   (`mapSun`); its positions are the landscape's (identity landscape rows), its map lookup lifted along the
-  landscape's up (no vertex normals). No weather on prints. The selection marker stays unshaded (the old game drew it
+  landscape's up (no vertex normals). The specular lights (spell, missile and quest lights: `pointSpecular`, from the
+  scene's `pointColour` w) count in the shade as on the ground (lit = max(other, spec)) and their light is added
+  again after the print's colour (rgb x shade + spec, at most 1), as the ground adds it after its texture (R52c:
+  before, a print under such a light was darker than its ground by that light times its alpha). No weather on prints. The selection marker stays unshaded (the old game drew it
   after the shadows; it is a mark of the interface). Check: render_shadows_decals (shadowcheck: every print samples
   the map; with `shadowview on` the frame with the prints matches it without them, `decals off`, while the frames
-  differ; then at night under a point light; `printlight`: the prints' brightness over the ground's under them, by
-  day and at night).
+  differ; then at night under a point light and under a lightning spell's light; `printlight`: the prints'
+  brightness over the ground's under them, by day, at night and under each light).
 - **Soft edges** (PCSS, contact-hardening; the user wanted the old decals' softness). After the casters two small passes
   make the map's depth range per 16 x 16-texel cell (`shaders/shadow_reduce.hlsl`: nearest and farthest texel;
   `shadow_dilate.hlsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
@@ -1506,7 +1509,11 @@ once with the filter off and once on, and reads a frame target back:
 ## The renderer's source files
 
 Every file is one \
-amespace render\ block (\ender::text\, \ender::perf\, \ender::ui\, \ender::gpu\ in theirs); what a file
+amespace render\ block (\
+ender::text\, \
+ender::perf\, \
+ender::ui\, \
+ender::gpu\ in theirs); what a file
 alone uses is \static\, what the files share is declared in render_internal.h. PrepareShadows lists the world's ground and
 models once a frame (\Frame::worldGround\, \Frame::worldMeshes\: the batches after the first ground batch that have a
 model, additive and repeated passes flagged); the sun's and the point lights' shadows, the ambient occlusion and the roofs
@@ -1717,7 +1724,9 @@ A ground print's light, per channel (section 13, item 10, "Ground prints"): the 
 the normal `n` as ground_light works it on dry ground (`m` and `mp` 0, `loss` 0, `occlusion` 1), once with `hidden`
 and the point shadows and once without, the first over the larger of the second and the same ground's light in the
 daylight colours (`daySunColour`, `dayAmbient`; the sun's direction of now), at most 1 (1 where that is black). The
-lights are MeshLightParams' (GroundDecalLight): the scene's in the landscape's space.
+lights are MeshLightParams' (GroundDecalLight): the scene's in the landscape's space. The specular ones (`pointSpecular`)
+also go apart into `spec` (the largest per channel, darkened by the map's shade), which the print adds after its colour
+as the ground adds it after its texture; the reference (`full`) takes every light without the shadows.
 
 ### shaders/scene_lighting.hlsli: ground_light
 

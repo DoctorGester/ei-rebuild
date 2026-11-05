@@ -116,6 +116,7 @@ struct MeshLightParams {
     float4 mapSun;           // a ground print's: xyz the direction the shadow map's light travels (unit)
     float4 daySunColour;     // a ground print's: rgb the daylight sun (render::SceneLights::daySunColour)
     float4 dayAmbient;       // ... and ambient colour
+    float4 pointSpecular[2];   // a ground print's: per light (4 a vector) 1 specular (added after the colour)
 };
 ConstantBuffer<MeshLightParams> lighting : FS_BLOCK(2);
 Texture2D<float4> tex0 : FS_TEXTURE(0);
@@ -160,8 +161,9 @@ float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, f
 // same ground's light in the daylight colours or without the shadows, whichever is more. The print is blended over
 // that ground; its own colour is its colour in daylight (by day the game's), so it darkens with the ground at night
 // and in the shadows and takes the dawn's tint. `p`: the point (the landscape's space), `n`: the ground's normal,
-// `hidden`: the share of the sun the map and the clouds hide.
-float3 ground_shade(float3 p, float3 n, float hidden, float2 turn) {
+// `hidden`: the share of the sun the map and the clouds hide. `spec`: the specular lights' part, which the ground adds
+// again after its texture (ground_light), for the print to add after its colour.
+float3 ground_shade(float3 p, float3 n, float hidden, float2 turn, out float3 spec) {
     float3 ambient = lighting.ambient.rgb;
     float facing = dot(lighting.sun.xyz, n);
     float3 sunlit = max(facing > 0.0 ? min(1.0, facing * lighting.sunColour.rgb) : 0.0, ambient);
@@ -169,6 +171,7 @@ float3 ground_shade(float3 p, float3 n, float hidden, float2 turn) {
     float shade = 1.0 - hidden * shadow.on.y * saturate(-dot(lighting.mapSun.xyz, n) * 6.0);
     float3 lit = min(lerp(sunlit, min(1.0, ambient), hidden), sunlit * shade);
     float3 open = sunlit;
+    spec = 0.0;
     int count = (int)lighting.on.z;
     for (int k = 0; k < count; ++k) {
         float4 at = lighting.pointAt[k], colour = lighting.pointColour[k];
@@ -179,11 +182,13 @@ float3 ground_shade(float3 p, float3 n, float hidden, float2 turn) {
         float c = dot(n, d * rsqrt(max(distance2, 1e-12)));
         float3 v = (c <= 0.0 ? c + 1.0 : 1.0) * falloff * colour.rgb;
         float seen = colour.w > 0.5 ? point_seen((int)colour.w - 1, p, n, kNoPointFront, turn) : 1.0;
-        lit = max(lit, min(1.0, v * seen) * shade);
+        float4 specular = lighting.pointSpecular[k >> 2];
+        if (specular[k & 3] > 0.5) spec = max(spec, min(1.0, v * seen) * shade);
+        else lit = max(lit, min(1.0, v * seen) * shade);
         open = max(open, min(1.0, v));
     }
     float3 full = max(open, daylight);
-    return lerp(1.0, saturate(min(1.0, lit) / max(full, 1e-3)), step(1e-3, full));
+    return lerp(1.0, saturate(min(1.0, max(lit, spec)) / max(full, 1e-3)), step(1e-3, full));
 }
 float4 arg(int a, float4 current, float4 diffuse, float4 texel, float4 spec) {
     int sel = a & 15;
@@ -376,7 +381,9 @@ float4 Shade(VsOut i) {
     }
     if (groundPrint) {
         float3 up = face.z < 0.0 ? -face : face;   // the ground's, turned up
-        rgb *= ground_shade(i.land, up, hidden, pixel_turn(i.pos.xy));
+        float3 spec;
+        float3 shade = ground_shade(i.land, up, hidden, pixel_turn(i.pos.xy), spec);
+        rgb = saturate(rgb * shade + spec);
     } else {
         rgb *= 1.0 - hidden * shadow.on.y;
     }
