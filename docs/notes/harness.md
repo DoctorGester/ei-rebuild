@@ -24,7 +24,7 @@ so main's `--rebirth-only --golden` after each merge compares every Rebirth gold
 stale unseen after golden-moving merges (H51a found 66 of 102 behind C84b, H47c, C81 and C84d). A scenario gets a
 Rebirth golden only to be checked on Rebirth's data after every merge; 102 runs take about a minute on 16 slots. The
 Linux runner (linux.md) plays only the marked and stepped part (`rebirth_scenarios(goldens=False)`). The installs' folders are `EI_GAME_VANILLA` and `EI_GAME_REBIRTH` (default
-`F:\games\EvilIslands`, `F:\games\Evil Islands (Rebirth)`; run_all.install_dir, also play.cmd's and the tools that read
+`F:\games\EvilIslands`, `F:\games\Evil Islands (Rebirth)`; run_all.install_dir, also the tools that read
 game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two, so a suite on the stub data
 (linux.md, "The stub data") goes through the scheduler too. `EI_BUILD_DIR` points run_all at another verify build.
 
@@ -181,7 +181,7 @@ the original's slow saves on this zone are not reproduced.
 
 Real play becomes a scenario with a golden (`tests/verify/harness_record.h`, `tools/recorded.py`).
 
-**To record a session by hand:** `play.cmd record <name>` (Rebirth's data: `play.cmd record <name> rebirth`; the
+**To record a session by hand:** `harness.cmd record <name>` (Rebirth's data: `harness.cmd record <name> rebirth`; the
 suites play every scenario on the vanilla data). It builds the verify build and starts it on
 `tests/scenarios/record/live.txt` in a 960x720 window that is shown and takes the keyboard and mouse, from the main
 menu on (no sound; no movies: below). Play; close the window, or Exit from the main menu, to end it. The session
@@ -397,7 +397,7 @@ through it.
 - **Trigger**: by hand only (Actions > Suites > Run workflow, or the API) with `ref` and `suites` = `full` | `quick`
   (both build verify and release; quick plays the image suite, full also the Rebirth suite). Pushes stopped starting it
   on 2026-11-04: the runner is not always up and pushed runs queued for days. Debug and asan are built only by the coordinator's
-  routine (every few merges; asan with a suite run on it), play only by play.cmd. Never on pull_request. Pushes get the Linux suites (suites-linux.yml) instead.
+  routine (every few merges; asan with a suite run on it). Never on pull_request. Pushes get the Linux suites (suites-linux.yml) instead.
 - **Reading results**: the run's summary page has each suite's goldens block; a failing build prints its last 40 log
   lines in the step log. From a session: `gh run list --workflow suites.yml`, `gh run view <id> --log-failed`, or the REST
   API (`/repos/DoctorGester/ei-rebuild/actions/runs/<id>/jobs`, then `/actions/jobs/<id>/logs`). To wait for a run, poll

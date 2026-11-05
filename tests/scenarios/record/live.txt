@@ -1,4 +1,4 @@
-# The start of a session recorded by hand (python tools\recorded.py play <name>, play.cmd record <name>;
+# The start of a session recorded by hand (python tools\recorded.py play <name>, harness.cmd record <name>;
 # docs/notes/harness.md, "Recorded play"): the player's own keyboard and mouse in a window shown and activated, each
 # frame a 60th of a second of game time held to the wall clock, from the main menu on. Close the window (or quit from
 # the menu) to end it; at most 10 minutes. The recording is the run folder's recorded.txt.

@@ -9,6 +9,5 @@ out/
 *.exp
 __pycache__/
 .DS_Store
-docs/ghidra_functions_initial.txt
 run/
 .claude/

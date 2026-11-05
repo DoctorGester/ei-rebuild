@@ -1,2 +1,1 @@
-*.vec binary
 config/harness/** -text

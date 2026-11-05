@@ -1,10 +1,9 @@
 @echo off
 rem Builds the standalone image (ei-rebuild.exe) and the tools for 64-bit Windows (x64) with the VS 2022 Build Tools.
-rem usage: build.cmd [release|verify|debug|play|asan|coverage]
+rem usage: build.cmd [release|verify|debug|asan|coverage]
 rem   release  the product: the standalone image
 rem   verify   the harness build: the same image plus the harness (tests/verify), for run_all / work.py test
 rem   debug    the release build unoptimised
-rem   play     the release build into build\play, apart from the builds the suites use (play.cmd)
 rem   asan     the verify build with AddressSanitizer, into build\asan (runs: set EI_BUILD_DIR to it;
 rem            docs/notes/harness.md, "AddressSanitizer")
 rem   coverage the verify build's ei-rebuild.exe with source coverage, into build\coverage, without the build checks

@@ -10,8 +10,8 @@ The code still names some of game.exe's data by the original's addresses: commen
 "Named data (C18)", the seam's arguments in "Own data (S18)". A few tools read game.exe to make or check them; the
 build reads no game.exe.
 
-**Finding game.exe.** Every tool that reads game.exe goes through `tools/exe_path.py`. That covers exe_strings,
-rdata_literals, retired_vtables without `--check`, find_vtables and named_data `--emit`. The lookup order:
+**Finding game.exe.** Every tool that reads game.exe goes through `tools/exe_path.py`. That covers
+retired_vtables without `--check` and named_data `--emit`. The lookup order:
 1. `--exe` (or `EI_EXE`);
 2. `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the
    main checkout's).
@@ -19,10 +19,7 @@ If nothing is found, it gives one error naming the paths it looked in. Vanilla's
 one .text byte (file offset 0x56BB6) and nothing else, so the data the tools read is the same.
 
 **Strings are literals.** A string the original passed by address is a literal with the same bytes. The literals were
-read from both exes by `tools/exe_strings.py`, not typed by hand. Its options:
-- `--wrap X` takes `X(0x...)`;
-- `--before RE` gives a parameter position;
-- `--skip` leaves addresses alone.
+read from both exes by a generator (C11) that is gone, not typed by hand.
 
 The original's empty string (0079B298) has no name here: its readers copy or compare the text (none compares the
 pointer), so a reader tests `empty()`, a writer calls `clear()` and a fallback passes `""`. A pointer-sized cell
@@ -70,7 +67,7 @@ The image holds nothing of game.exe's sections. Every value the code reads is on
   - a constant whose every use does.
 
   `--list <section>` shows the raw uses.
-- **.rdata constants as literals** (`tools/rdata_literals.py`). A float, double or integer cell that no code writes is
+- **.rdata constants as literals** (made by a generator that is gone, S18e). A float, double or integer cell that no code writes is
   the value in the source, tagged with its address. The type is the spelling:
 
   | Form | Means |
@@ -167,18 +164,17 @@ Three kinds of object keep the game's exit order instead:
 
 Every class of ours with virtual functions is a real C++ class, and its vtable is the compiler's.
 
-**config/vtables.csv** (made by tools/find_vtables.py) lists game.exe's 608 tables. Each row gives the address, slot
+**config/vtables.csv** (made once from game.exe by a finder that is gone) lists game.exe's 608 tables. Each row gives the address, slot
 count, RTTI name, kind, slot 0, class, file and a note. Every row is retired: the class and its declaring file are
 named (`-` for a table no class of ours has).
 
 **`tools/retired_vtables.py --check`** (a build check) checks the rows against the sources. named_data.py checks that
-nothing names an address inside a retired table. `python tools/find_vtables.py` rewrites the csv when it runs; restore
-it with git.
+nothing names an address inside a retired table.
 
 - **Not vtables:** some dwords only look like tables. These are strings whose dword falls in .text ("%ld" 0074676C,
   "dde" 0074718C, "a/p" 007474B8, "OCP" / "ACP" 00747E2C / 30, "ime" 00746E60) and the EH unwind entries (kind `eh`).
   Never retire them.
-- **Tails:** find_vtables.py splits a table at every address the code holds as an operand, so some rows are the tail
+- **Tails:** The csv splits a table at every address the code holds as an operand, so some rows are the tail
   of the row before.
   - **Why:** the split happens at a devirtualised slot call (`call [0073BD98]` is MemoryStream's slot 2, so
     0073BD90's 8 slots are listed as 2 + 6), or at a byte match inside an instruction.

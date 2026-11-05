@@ -315,7 +315,7 @@ endforeach()
 list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
 file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)
 set_source_files_properties(src/game/rebirth_profile.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
-# The product's notices (third_party_notices.txt beside the executables; play.cmd copies it): the licences of the
+# The product's notices (third_party_notices.txt beside the executables): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)
 foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_libs/README.txt dr_libs/LICENSE stb/README.txt)

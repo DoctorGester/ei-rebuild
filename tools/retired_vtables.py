@@ -1,5 +1,5 @@
 """game.exe's retired vtables (C19; docs/notes/standalone.md, "Compiler-made vtables"): config/vtables.csv
-(tools/find_vtables.py) lists game.exe's vtables, and every row is retired: its class's vtable is the compiler's now,
+lists game.exe's vtables, and every row is retired: its class's vtable is the compiler's now,
 or only game.exe's own code stored it (file '-'). Nothing installs them and the image holds their bytes zero;
 tools/named_data.py --check proves nothing names or points into them.
 
@@ -31,7 +31,7 @@ def retired_vtables():
 
 def stored_vtable(img, v):
     """Whether game.exe's code stores `v` as an immediate (mov r/m32, imm32: C7 /0 with any addressing) or loads it
-    into a register (mov r32, imm32: B8+r, then stored from there): a vtable's start. find_vtables.py splits a vtable at every address the code holds, so config/vtables.csv also has tails of
+    into a register (mov r32, imm32: B8+r, then stored from there): a vtable's start. the csv splits a vtable at every address the code holds, so config/vtables.csv also has tails of
     longer tables, split off at a devirtualised slot call (call [slot]) or a coincidental byte match; those are slots
     of the table before them, never installed."""
     text = bytes(img[CODE[0] - BASE:CODE[1] - BASE])

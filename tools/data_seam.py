@@ -22,7 +22,7 @@ import argparse, collections, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOPS = ('src', 'tests')
 
-# game.exe 1.06's data sections (tools/pe.py): .rdata 0073B000 (its first 0x820 bytes the import
+# game.exe 1.06's data sections: .rdata 0073B000 (its first 0x820 bytes the import
 # address table), .data 00783000 with its zero-filled tail from 0079C000, .rsrc 007CD000; SizeOfImage
 # ends at 007D7000. "data" and "bss" are split at 0079BF70 (the key bindings' action table, 0x200 bytes, the object
 # that runs across the file's 0079C000), as S18b moved "bss" alone.
