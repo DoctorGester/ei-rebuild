@@ -1,18 +1,20 @@
 // WinMain: the application's start-up, its main loop and its shutdown. See docs/notes/app.md, "WinMain".
-#include "bink_video.h"
-#include "engine_object.h"
-#include "app.h"
+#include "../platform/log.h"
 #include "acks_db.h"
-#include "asset_text.h"
 #include "app.h"
+#include "asset_text.h"
+#include "bink_video.h"
 #include "camera.h"
 #include "class_templates.h"
 #include "console.h"
 #include "drawn_motion.h"
+#include "engine_object.h"
 #include "game_flow.h"
+#include "game_singletons.h"
 #include "item_db.h"
 #include "lever.h"
 #include "logic_settings.h"
+#include "main_loop.h"
 #include "mod_folders.h"
 #include "model.h"
 #include "net_classes.h"
@@ -21,44 +23,39 @@
 #include "object_tables.h"
 #include "options.h"
 #include "party_records.h"
+#include "platform/platform.h"
 #include "quest_records.h"
 #include "random.h"
+#include "render/render.h"
+#include "screen_layout.h"
+#include "settings.h"
 #include "sound.h"
+#include "text_split.h"
 #include "texture.h"
 #include "ui.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
-#include "screen_layout.h"
-#include "settings.h"
 #include "unit_db.h"
-#include "weather_noise.h"
 #include "world.h"
 
-#include "main_loop.h"
-#include "lib/maths.h"
-#include "render/render.h"
 #include "lib/crt.h"
-#include "platform/platform.h"
+#include "lib/maths.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
-#include "text_split.h"
+#include "lib/vecmath.h"
+
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
-#include "lib/str.h"
-#include "lib/vecmath.h"
-#include "../platform/log.h"
-#include "game_singletons.h"
-
-#include <cmath>
-#include <cstdlib>
-
-#include <cstdio>
 
 using options::GameOptions;
 
@@ -591,7 +588,6 @@ int GameMain(char* commandLine) {
     InitGameServerPointer();
     InitGameClientPointer();
     InitCodeTables();
-    BuildWeatherNoise();
 
     ReadCommandLine(commandLine);
 

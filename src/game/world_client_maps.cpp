@@ -15,8 +15,6 @@
 #include "hash_tables_400.h"
 #include "item.h"
 #include "item_manager.h"
-#include "options.h"
-#include "text_manager.h"
 #include "lightning.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -25,6 +23,8 @@
 #include "mod_folders.h"
 #include "model.h"
 #include "object_tables.h"
+#include "options.h"
+#include "platform/platform.h"
 #include "player_client.h"
 #include "player_manager.h"
 #include "player_messages.h"
@@ -32,6 +32,7 @@
 #include "sound.h"
 #include "spell.h"
 #include "terrain.h"
+#include "text_manager.h"
 #include "texture.h"
 #include "ui_flying_hit_points.h"
 #include "unit.h"
@@ -51,8 +52,6 @@
 #include "lib/rect.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
-#include "platform/platform.h"
-
 
 #include <algorithm>
 #include <cmath>
@@ -679,7 +678,6 @@ void WorldClient::Create() {
     music = std::make_unique<MusicSystem>();
     music->Create();
 
-    rainSnow.PrepareBuffers();
     rainSnow.world = this;
     platforms.Create();
 

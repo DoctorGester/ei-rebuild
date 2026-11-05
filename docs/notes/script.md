@@ -190,8 +190,8 @@ can reach command 8 (`KillScript() VTriger#0#n( this )`).
 - Party manager (party_manager.h): parties by id, entries, records, class templates; Save / Load through ChunkArchive.
   `BeginRedeploy` spreads the variables, zone and flags to every record; `EndRedeploy` clears the party when no record
   matches. Trader stock: class templates generate items and magic per level.
-- Rain / snow (`RainSnow`): Clear (rain loop stopped, texture released, density 64), Start(mode, duration) (texture
-  "RainSnow" kind 6; rain plays the loop "nature\rain\circle.wav" at priority 1000; the fade starts at the world's tick).
+- Rain / snow (`RainSnow`): Clear (rain loop stopped, density 64), Start(mode, duration) (rain plays the loop
+  "nature\rain\circle.wav" at priority 1000; the fade starts at the world's tick).
 - Sky: haze is recomputed only when the vertex count changes (0 for vertex z < 1, else sqrt(-normal z)); diffuse =
   ambient * 255 (alpha 0xFF; 0 for hazeless vertices, which get no specular); specular = haze * 255 alpha and light *
   max(0, n . dir)^2 * 150, all truncated.

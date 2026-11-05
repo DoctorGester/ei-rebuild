@@ -1,315 +1,231 @@
-// The rain and snow draws of the world's rain / snow layer (effects_weather.cpp calls the one of the mode): both walk the 81 x 81
-// cells (half a unit apart) around the point the wind carries a particle to the camera from; a cell's place and the
-// world's time give its particle's cycle and fall, `density` of 64 cycles show one. See docs/notes/renderer.md, section 12.
-// Each vertex is written whole every frame: white, its fog (the specular's alpha) full until the distance fog lowers it
-// (the vertex array is resized every frame, and a resize zero-fills: colours left to what it held come out
-// transparent). Kept as the game has it: the packets' w is never written; the rain's height uses the snow's rise (kSnowRise; both are 40); a height that is not a number would
-// loop forever in the rain's wrap.
-#include "ai_motion.h"
+// The rain's and the snow's draw (the world's rain / snow layer; effects_weather.cpp calls it in the effects pass):
+// the field of weather_field.h placed around the view, each particle it shows projected with the pipeline's clip
+// stack and built on the screen, so that it has the same shape in pixels at any window's aspect. A raindrop is a
+// streak from where it was a moment ago to where it is (its motion over kStreakTicks, as a camera's shutter sees
+// it), a snowflake a soft round dot; both are fans of vertex colours over the white texture, opaque along the middle
+// and clear at the rim, at least a pixel or so wide at any resolution (thinner ones fainter instead). Their colour is
+// the scene's light. Drawn as pre-transformed triangles with the effects pass's alpha blend, depth tested.
+// docs/notes/renderer.md, section 12, "Weather".
 #include "camera.h"
 #include "clip.h"
-#include "core_maths.h"
 #include "effects.h"
-#include "figure_mesh.h"
-#include "link_figure.h"
 #include "model.h"
 #include "render/render.h"
 #include "texture.h"
-#include "weather_noise.h"
+#include "weather_field.h"
 #include "world.h"
 
 #include "lib/containers.h"
-#include "lib/crt.h"
-#include "lib/float_select.h"
+#include "lib/maths.h"
+#include "lib/scales.h"
 
-#include <bit>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
 
 namespace {
 
-constexpr int kGridCells = 81;              // the cells along each side (the offsets array)
-constexpr int kMaxPackets = 0x8000;         // room for the corners while they are built
-constexpr int kDensitySteps = 0x3F;         // a cycle's low six bits against `density`
-constexpr int kSeedCount = 32;
+// The field's box: ahead of the camera's focus along the view (most of what is seen lies beyond it), its floor
+// kBelowFocus under the focus (ground lower than that is far below the view).
+constexpr float kAhead = 10.0f;
+constexpr float kBelowFocus = 8.0f;
+// A world frame later than this many ticks after the last one starts the wind's carry afresh (a load, a long pause).
+constexpr double kCarryGap = 100.0;
 
-constexpr float kRainSink = 0.5f;                                   // added to the wind's fall
-constexpr float kSnowSink = 0.1f;
-constexpr float kRainCycle = 200.0f;                                // ticks
-constexpr float kSnowCycle = 1000.0f;
-constexpr float kCellsPerUnit = 2.0f;
-constexpr float kJitterScale = 0.0078125f;                          // (1 / 128)
-constexpr float kJitterHeight = 10.0f;
-constexpr float kDropLength = 1.0f;
-constexpr float kDropHalfWidth = 0.033f;
-constexpr float kNearDepth = 4.0f;                                  // a drop nearer is not drawn
-constexpr float kFrameWidth = 0.25f;                                // a frame of the texture
-constexpr float kFrameMiddle = 0.125f;
-constexpr float kRainTop = 0.75f, kRainBottom = 1.0f;               // the rain's rows of the texture
-constexpr float kSnowTop = 0.5f;                                    // the snow's
-constexpr float kSnowBottom = 0.74f;
-constexpr float kFlakeWidth = 0.2f;
-constexpr float kFlakeAbove = 0.3f;
-constexpr float kFlakeBelow = 0.7f;
-constexpr float kSwayShift = 1000.0f;
-constexpr float kSwayPeriod = 50.0f;
-constexpr int kSwayCells = 0x7C;
+// A particle whose alpha is below this is not drawn.
+constexpr float kLeastAlpha = lib::kByteScale;
+// The nearest a particle is drawn at (clip w, about the distance along the view).
+constexpr float kNearestW = 0.3f;
+// How far past the screen's edges (a share of the half size) a particle's point may lie and still be drawn.
+constexpr float kEdgeMargin = 1.1f;
 
-// Set by static initialisers.
-constexpr float kCellSize = /*007AEDA8*/ 0.5f;
-constexpr float kRainRise = /*007AEDA4*/ 40.0f;     // half a rain cycle's fall less 10: 0.5 * 200 * 0.5 - 10
-constexpr float kSnowRise = /*007AEDA0*/ 40.0f;     // the same for snow: 0.1 * 1000 * 0.5 - 10
-constexpr float kHalfHeight = /*007AED9C*/ 30.0f;   // the band around the camera: 40 / 2 + 10
-constexpr float kFlakeHeight = /*007AED98*/ 0.2f;   // a copy of kFlakeWidth
+// Rain: the streak's length in ticks of the drop's motion, its alpha at the head and the tail, its colour in the
+// scene's light, the least and the most half width in 1080p pixels (clear at the edges, it shows about that wide).
+constexpr float kStreakTicks = 1.6f;
+constexpr float kRainAlpha = 0.45f;
+constexpr float kTailAlpha = 0.1f;
+constexpr float kRainRed = 0.78f, kRainGreen = 0.84f, kRainBlue = 0.95f;
+constexpr float kLeastStreakWidth = 1.2f;
+constexpr float kMostStreakWidth = 5.0f;
+// Snow: the flake's alpha at its middle, the least radius and the most in 1080p pixels.
+constexpr float kSnowAlpha = 0.95f;
+constexpr float kLeastFlakeRadius = 1.6f;
+constexpr float kMostFlakeRadius = 10.0f;
+// The flake's shape: an inner ring of kFlakeRim corners at kFlakeCore of the radius, nearly as opaque as the middle
+// (kCoreAlpha), and the clear rim: a disc with a soft edge.
+constexpr int kFlakeRim = 12;
+constexpr float kFlakeCore = 0.55f;
+constexpr float kCoreAlpha = 0.85f;
 
-// A number per (column squared + row) & 31, mixed into a cell's.
-constexpr std::uint32_t kRainSeeds[kSeedCount] = /*0078DEA4*/ {
-    0x11, 0x2B, 0x1C8, 0x3AE, 0x20, 0xEA, 0x361, 0x5F, 0x141, 0x2F, 0x38D, 0x11C, 0x21F, 0x18C, 0xC1, 0x78,
-    0x62, 0x310, 0x279, 0xA, 0x103, 0x4D, 0x76, 0x42, 0x399, 0x351, 0x164, 0x50, 0x1DB, 0xEB, 0xD5, 0x33A,
-};
-constexpr std::uint32_t kSnowSeeds[kSeedCount] = /*0078DF24*/ {
-    0x1529, 0x927, 0x8698, 0x328E, 0x2280, 0x2FCA, 0xB329, 0x20CB, 0xB109, 0x228F, 0x182C1, 0xD7F4, 0x12AFF, 0xB154,
-    0x2FA1, 0x17F48, 0x1A8E, 0x137A8, 0x2D71, 0x164E, 0xD3F3, 0xD95, 0x13126, 0x4F2, 0x17E1D, 0x13C35, 0x8BCA, 0x224C,
-    0x1328B, 0x11A2B, 0x85A5, 0x16A9A,
-};
+// The scene's light on a particle: the ambient light and part of the sun's.
+constexpr float kSunShare = 0.6f;
+// The least light (a night's particles are still seen a little).
+constexpr float kLeastLight = 0.12f;
 
+// A batch's vertices at most (16-bit indices).
+constexpr int kMostVertices = 0xFFFF;
 
-// The table's value at `at`, whose whole part is `cell`: 0 outside the table (as the game's helper, which the
-// draw has inline).
-float Sway(const WeatherNoiseCurve& curve, int cell, float at) {
-    if (cell < 0 || cell >= kSwayCells) return 0.0f;
-    const WeatherNoiseSegment& segment = curve.segments[cell];
-    MotionCubic cubic{segment.value, segment.slope, segment.quadratic, segment.cubic};
-    return cubic.Value(at - cell);
+std::uint32_t Colour(float alpha, float r, float g, float b) {
+    auto byte = [](float v) { return static_cast<std::uint32_t>(std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f)); };
+    return byte(alpha) << 24 | byte(r) << 16 | byte(g) << 8 | byte(b);
 }
 
-// What both draws start from.
-struct ParticleFrame {
-    Vector3 wind;   // the layer's, falling `sink` faster
-    float time = 0.0f;  // the world's tick and its fraction
-    int baseX = 0;  // the grid's middle cell
-    int baseY = 0;
-    float low = 0.0f;  // the heights particles are kept between: the camera's -/+ HalfHeight, not below 0
-    float high = 0.0f;
+// The pipeline's projection of world points to the screen.
+struct Projector {
+    const TransformPipeline& pipeline;
+    const Matrix4& clip;
+
+    // Whether a clip position is far enough from the eye.
+    static bool Ahead(const Vector4& clipped) { return clipped.w > kNearestW; }
+    // Whether it is on the screen (with the margin) and in the depth range.
+    static bool Inside(const Vector4& clipped) {
+        const float reach = clipped.w * kEdgeMargin;
+        return clipped.x >= -reach && clipped.x <= reach && clipped.y >= -reach && clipped.y <= reach &&
+               clipped.z >= 0.0f && clipped.z <= clipped.w;
+    }
+    Vector4 Clip(const Vector3& point) const { return ToClip(clip, point); }
+    Vector4 Screen(const Vector4& clipped) const { return pipeline.ToScreen(clipped); }
 };
 
-ParticleFrame Begin(RainSnow& layer, float sink, float rise) {
-    ParticleFrame frame;
-    frame.wind = layer.wind;
-    frame.wind.z = layer.wind.z - sink;
-    const WorldClient* world = layer.world;
-    frame.time = world->tick + world->tickFraction;
-    const Vector3 eye = camera::FrameView().position;
-    // The time a particle takes from `rise` above the camera, and where it starts from then.
-    const float time = (eye.z - rise) / frame.wind.z;
-    frame.baseX = std::lround((eye.x - frame.wind.x * time) * kCellsPerUnit);
-    frame.baseY = std::lround((eye.y - frame.wind.y * time) * kCellsPerUnit);
-    layer.particleCount = 0;
-    layer.positions.resize(kMaxPackets);
-    const float below = eye.z - kHalfHeight;
-    frame.low = MaxKeepB(0.0f, below);
-    frame.high = kHalfHeight + eye.z;
-    return frame;
-}
+// The flake's rim: the corners' directions.
+constexpr float kRimCos[kFlakeRim] = {1.0f,  0.8660254f,  0.5f,  0.0f, -0.5f, -0.8660254f,
+                                      -1.0f, -0.8660254f, -0.5f, 0.0f, 0.5f,  0.8660254f};
+constexpr float kRimSin[kFlakeRim] = {0.0f, 0.5f,  0.8660254f,  1.0f,  0.8660254f,  0.5f,
+                                      0.0f, -0.5f, -0.8660254f, -1.0f, -0.8660254f, -0.5f};
 
-// The cycle's shift of a particle: -128 .. 127.
-int Jitter(int cycle, int factor) {
-    return static_cast<int>((static_cast<std::uint32_t>(cycle) * static_cast<std::uint32_t>(factor)) & 0xFF) - 128;
-}
-constexpr int kJitterX = -59, kJitterY = 67, kJitterZ = -127;
-
-void Put(RainSnow& layer, float x, float y, float z) {
-    const int index = layer.particleCount++;
-    VertexPacket& packet = layer.positions[index >> 2];
-    packet.block[0][index & 3] = x;
-    packet.block[1][index & 3] = y;
-    packet.block[2][index & 3] = z;
-}
-
-// The corners built so far projected with the top of the pipeline's stack 2, an outcode each.
-void Project(RainSnow& layer, SceneRenderer* renderer) {
-    layer.positions.resize((layer.particleCount + 3) >> 2);
-    layer.projected.resize(std::ssize(layer.positions) * 4);
-    layer.outcodes.resize(std::ssize(layer.positions) * 4);
-    const TransformPipeline* pipeline = renderer->pipeline;
-    pipeline->ProjectClipped(*pipeline->Top(TransformPipeline::kClipStack), layer.positions.data(),
-                             layer.projected.data(), layer.outcodes.data(), lib::Count(layer.positions));
-}
-
-// A corner at its projected place, white and not fogged.
-void SetCorner(TLVertex& vertex, const Vector4& projected) {
-    std::memcpy(&vertex, &projected, sizeof(projected));
-    vertex.color = 0xFFFFFFFFu;
-    vertex.specular = 0xFF000000u;
-}
-
-// The texture frame's coordinates on a particle's three vertices.
-void SetFrame(TLVertex* triangle, std::uint8_t frame, float top, float bottom) {
-    const float left = frame * kFrameWidth;
-    triangle[0].u = left;
-    triangle[0].v = top;
-    triangle[1].u = left + kFrameWidth;
-    triangle[1].v = top;
-    triangle[2].u = left + kFrameMiddle;
-    triangle[2].v = bottom;
-}
-
-// The vertices kept (three per particle on screen) and taken to the screen.
-int Finish(RainSnow& layer, SceneRenderer* renderer, int used) {
-    layer.vertices.resize(used);
-    if (used != 0) renderer->pipeline->ToScreen(layer.vertices.data(), lib::Count(layer.vertices));
-    return used;
+TLVertex Corner(float x, float y, const Vector4& screen, std::uint32_t colour) {
+    TLVertex v;
+    v.x = x;
+    v.y = y;
+    v.z = screen.z;
+    v.rhw = screen.w;
+    v.color = colour;
+    v.specular = 0xFF000000u;   // not fogged until FogVertices lowers it
+    return v;
 }
 
 } // namespace
 
-int RainSnow::BuildRain(SceneRenderer* renderer) {
-    const ParticleFrame frame = Begin(*this, kRainSink, kRainRise);
-    // The drop's tail: its length against the wind.
-    const float length = Length(frame.wind);
-    const float tailX = -(frame.wind.x / length * kDropLength);
-    const float tailY = -(frame.wind.y / length * kDropLength);
+void RainSnow::Flush(SceneRenderer* renderer) {
+    if (vertices.empty()) return;
+    if (render::WeatherParticlesDrawn())
+        renderer->device->DrawTlTriangles(vertices.data(), lib::Count(vertices), indices.data(), lib::Count(indices));
+    vertices.clear();
+    indices.clear();
+}
 
-    int drops = 0;
-    for (int i = 0; i < kGridCells; ++i) {
-        const int a = offsets[i];
-        const int row = frame.baseY + a;
-        for (int j = 0; j < kGridCells; ++j) {
-            const int b = offsets[j];
-            const int col = frame.baseX + b;
-            const std::uint32_t column = static_cast<std::uint32_t>(col), line = static_cast<std::uint32_t>(row);
-            const std::uint32_t seed =
-                (kRainSeeds[(column * column + line) & (kSeedCount - 1)] + column * 172u + line * 13u) & 0xFFFF;
-            const float phase = static_cast<int>(seed) + frame.time;
-            const int cycle = std::lround(phase / kRainCycle);
-            if ((cycle & kDensitySteps) >= density) continue;
-            const float fall = phase - cycle * kRainCycle;
-            // The height, wrapped into the band around the camera.
-            float z = fall * frame.wind.z + kSnowRise;
-            if (z > frame.high) {
-                const float band = kHalfHeight + kHalfHeight;
-                do z -= band;
-                while (z > frame.high);
-            }
-            if (z < frame.low) {
-                const float band = kHalfHeight + kHalfHeight;
-                do z += band;
-                while (z < frame.low);   // ends on a NaN (the game's did not)
-            }
-            const float cell = kCellSize;
-            const float x = col * cell + fall * frame.wind.x +
-                                       Jitter(cycle, kJitterX) * cell * kJitterScale;
-            const float y = row * cell + fall * frame.wind.y +
-                                       Jitter(cycle, kJitterY) * cell * kJitterScale;
-            const float bottom = Jitter(cycle, kJitterZ) * kJitterHeight * kJitterScale + z;
-            frames[drops] = static_cast<std::uint8_t>(cycle & 3);
+void RainSnow::DrawParticles(SceneRenderer* renderer, weather::Kind kind) {
+    const WorldClient* client = world;
+    const double time = client->tick + static_cast<double>(client->tickFraction);
+    if (carrying && time >= carriedTo && time - carriedTo <= kCarryGap)
+        carry = weather::Carry(carry, wind, time - carriedTo);
+    carrying = true;
+    carriedTo = time;
 
-            // The drop's base lies across the direction the cell is seen in, more or less.
-            if (std::abs(b) > std::abs(a)) {
-                const float side = b < 0 ? -kDropHalfWidth : kDropHalfWidth;
-                Put(*this, x, y + side, bottom);
-                Put(*this, x, y - side, bottom);
+    const camera::ViewPose& pose = camera::FrameView();
+    weather::FieldView view;
+    view.time = time;
+    view.eye = pose.position;
+    view.carry = carry;
+    view.wind = wind;
+    view.density = density / 64.0f;
+    Vector3 ahead = {pose.focus.x - pose.position.x, pose.focus.y - pose.position.y, 0.0f};
+    const float aheadLength = Length(ahead);
+    ahead = aheadLength > 1e-3f ? ahead * (kAhead / aheadLength) : Vector3{};
+    view.centre = {pose.focus.x + ahead.x, pose.focus.y + ahead.y,
+                   pose.focus.z - kBelowFocus + 0.5f * weather::kBoxHeight};
+
+    const TransformPipeline& pipeline = *renderer->pipeline;
+    const Projector projector{pipeline, *pipeline.Top(TransformPipeline::kClipStack)};
+    // The pixels a unit across the view covers at clip w 1, from a unit step sideways at the focus.
+    float pixelsPerUnit = 0.0f;
+    {
+        const Vector3 along = pose.focus - pose.position;
+        const Vector3 side =
+            Length(along) > 1e-3f ? Normalised(Vector3{-along.y, along.x, 0.0f}) : Vector3{1.0f, 0.0f, 0.0f};
+        const Vector4 a = projector.Clip(pose.focus), b = projector.Clip(pose.focus + side);
+        if (Projector::Ahead(a) && Projector::Ahead(b)) {
+            const Vector4 sa = projector.Screen(a), sb = projector.Screen(b);
+            pixelsPerUnit = lib::Hypot(sb.x - sa.x, sb.y - sa.y) * a.w;
+        }
+    }
+    const float pixel = pipeline.halfHeight / 540.0f;   // a 1080p pixel
+
+    const LightColour& ambient = client->frameAmbient;
+    const LightColour& sun = client->frameSun;
+    auto light = [&](float a, float s) { return std::clamp(a + kSunShare * s, kLeastLight, 1.0f); };
+    const float lightR = light(ambient.r, sun.r), lightG = light(ambient.g, sun.g), lightB = light(ambient.b, sun.b);
+
+    vertices.clear();
+    indices.clear();
+    const int count = weather::Count(kind);
+    const int perParticle = kind == weather::Kind::Rain ? 6 : 2 * kFlakeRim + 1;
+    for (int i = 0; i < count; ++i) {
+        const weather::Particle p = weather::Place(kind, i, view);
+        if (p.alpha < kLeastAlpha) continue;
+        if (lib::Count(vertices) + perParticle > kMostVertices) Flush(renderer);
+        const auto base = static_cast<std::uint16_t>(vertices.size());
+        if (kind == weather::Kind::Rain) {
+            const Vector3 tail = p.position - p.velocity * kStreakTicks;
+            const Vector4 headClip = projector.Clip(p.position), tailClip = projector.Clip(tail);
+            if (!Projector::Ahead(headClip) || !Projector::Ahead(tailClip)) continue;
+            if (!Projector::Inside(headClip) && !Projector::Inside(tailClip)) continue;
+            const Vector4 head = projector.Screen(headClip), from = projector.Screen(tailClip);
+            float dx = head.x - from.x, dy = head.y - from.y;
+            const float length = lib::Hypot(dx, dy);
+            if (length > 1e-3f) {
+                dx /= length;
+                dy /= length;
             } else {
-                const float side = a > 0 ? -kDropHalfWidth : kDropHalfWidth;
-                Put(*this, x + side, y, bottom);
-                Put(*this, x - side, y, bottom);
+                dx = 0.0f;
+                dy = 1.0f;
             }
-            Put(*this, x + tailX, y + tailY, bottom + kDropLength);
-            ++drops;
+            const float width = p.size * pixelsPerUnit / headClip.w;
+            const float least = kLeastStreakWidth * pixel;
+            const float half = std::min(std::max(width, least), kMostStreakWidth * pixel);
+            const float alpha = p.alpha * kRainAlpha * std::min(1.0f, width / least);
+            if (alpha < kLeastAlpha) continue;
+            const float r = lightR * kRainRed * p.shade, g = lightG * kRainGreen * p.shade,
+                        b = lightB * kRainBlue * p.shade;
+            const std::uint32_t clear = Colour(0.0f, r, g, b);
+            const float nx = -dy * half, ny = dx * half;
+            vertices.push_back(Corner(from.x + nx, from.y + ny, from, clear));
+            vertices.push_back(Corner(from.x, from.y, from, Colour(alpha * kTailAlpha, r, g, b)));
+            vertices.push_back(Corner(from.x - nx, from.y - ny, from, clear));
+            vertices.push_back(Corner(head.x + nx, head.y + ny, head, clear));
+            vertices.push_back(Corner(head.x, head.y, head, Colour(alpha, r, g, b)));
+            vertices.push_back(Corner(head.x - nx, head.y - ny, head, clear));
+            // Clockwise on the screen (the effects pass culls the other way).
+            for (const int corner : {0, 4, 1, 0, 3, 4, 1, 5, 2, 1, 4, 5})
+                indices.push_back(static_cast<std::uint16_t>(base + corner));
+        } else {
+            const Vector4 clipped = projector.Clip(p.position);
+            if (!Projector::Ahead(clipped) || !Projector::Inside(clipped)) continue;
+            const Vector4 centre = projector.Screen(clipped);
+            const float radius = p.size * pixelsPerUnit / clipped.w;
+            const float least = kLeastFlakeRadius * pixel;
+            const float drawn = std::min(std::max(radius, least), kMostFlakeRadius * pixel);
+            const float cover = std::min(1.0f, radius / least);
+            const float alpha = p.alpha * kSnowAlpha * cover * cover;
+            if (alpha < kLeastAlpha) continue;
+            const float r = lightR * p.shade, g = lightG * p.shade, b = lightB * p.shade;
+            vertices.push_back(Corner(centre.x, centre.y, centre, Colour(alpha, r, g, b)));
+            const std::uint32_t core = Colour(alpha * kCoreAlpha, r, g, b), clear = Colour(0.0f, r, g, b);
+            const float inner = drawn * kFlakeCore;
+            for (int k = 0; k < kFlakeRim; ++k)
+                vertices.push_back(Corner(centre.x + inner * kRimCos[k], centre.y + inner * kRimSin[k], centre, core));
+            for (int k = 0; k < kFlakeRim; ++k)
+                vertices.push_back(Corner(centre.x + drawn * kRimCos[k], centre.y + drawn * kRimSin[k], centre, clear));
+            // The middle's fan, then the band from the inner ring to the rim, clockwise as the rain's.
+            for (int k = 0; k < kFlakeRim; ++k) {
+                const int next = (k + 1) % kFlakeRim;
+                const auto in = [&](int corner) { return static_cast<std::uint16_t>(base + 1 + corner); };
+                const auto out = [&](int corner) { return static_cast<std::uint16_t>(base + 1 + kFlakeRim + corner); };
+                for (const std::uint16_t index :
+                     {base, in(next), in(k), in(k), in(next), out(next), in(k), out(next), out(k)})
+                    indices.push_back(index);
+            }
         }
     }
-    Project(*this, renderer);
-
-    vertices.resize(particleCount);
-    const std::uint8_t* frameOf = frames.data();
-    int used = 0;
-    for (int first = 0; first < particleCount; first += 3, ++frameOf) {
-        const std::uint8_t* codes = outcodes.data() + first;
-        if (codes[0] != 0 || codes[1] != 0 || codes[2] != 0) continue;
-        const Vector4* corners = projected.data() + first;
-        if (corners[0].z < kNearDepth) continue;
-        TLVertex* triangle = vertices.data() + used;
-        for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], corners[corner]);
-        SetFrame(triangle, *frameOf, kRainTop, kRainBottom);
-        used += 3;
-    }
-    return Finish(*this, renderer, used);
-}
-
-int RainSnow::BuildSnow(SceneRenderer* renderer) {
-    const ParticleFrame frame = Begin(*this, kSnowSink, kSnowRise);
-
-    int flakes = 0;
-    for (int i = 0; i < kGridCells; ++i) {
-        const int row = frame.baseY + offsets[i];
-        for (int j = 0; j < kGridCells; ++j) {
-            const int col = offsets[j] + frame.baseX;
-            const std::uint32_t column = static_cast<std::uint32_t>(col), line = static_cast<std::uint32_t>(row);
-            const std::uint32_t seed =
-                (kSnowSeeds[(column * column + line) & (kSeedCount - 1)] - column * 30064u + line * 17843u) & 0xFFFF;
-            const float phase = static_cast<int>(seed) + frame.time;
-            const int cycle = std::lround(phase / kSnowCycle);
-            if ((cycle & kDensitySteps) >= density) continue;
-            const float fall = phase - cycle * kSnowCycle;
-            float z = fall * frame.wind.z + kSnowRise;
-            if (z < frame.low) continue;
-            if (z > frame.high) continue;
-            const float cell = kCellSize;
-            float x = col * cell + fall * frame.wind.x +
-                                 Jitter(cycle, kJitterX) * cell * kJitterScale;
-            float y = row * cell + fall * frame.wind.y +
-                                 Jitter(cycle, kJitterY) * cell * kJitterScale;
-            z = Jitter(cycle, kJitterZ) * kJitterHeight * kJitterScale + z;
-
-            // The sway: by the height on all three axes, and by the place along x and y.
-            const int level = static_cast<int>(z);
-            const float swayX = Sway(g_swayXByHeight, level, z);
-            const float placeX = std::fmod(x + kSwayShift, kSwayPeriod);
-            x = swayX + Sway(g_swayXByPlace, static_cast<int>(placeX), placeX) + x;
-            const float swayY = Sway(g_swayYByHeight, level, z);
-            const float placeY = std::fmod(y + kSwayShift, kSwayPeriod);
-            y = swayY + Sway(g_swayYByPlace, static_cast<int>(placeY), placeY) + y;
-            Put(*this, x, y, Sway(g_swayZByHeight, level, z) + z);
-            frames[flakes] = static_cast<std::uint8_t>(cycle & 3);
-            ++flakes;
-        }
-    }
-    Project(*this, renderer);
-
-    vertices.resize(particleCount * 3);
-    const std::uint8_t* frameOf = frames.data();
-    int used = 0;
-    for (int flake = 0; flake < particleCount; ++flake, ++frameOf) {
-        if (outcodes[flake] != 0) continue;
-        TLVertex* triangle = vertices.data() + used;
-        for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], projected[flake]);
-        // A triangle around the point, in the projection's units.
-        triangle[0].x -= kFlakeWidth * 0.5f;
-        triangle[1].x += kFlakeWidth * 0.5f;
-        triangle[0].y -= kFlakeHeight * kFlakeAbove;
-        triangle[1].y -= kFlakeHeight * kFlakeAbove;
-        triangle[2].y += kFlakeHeight * kFlakeBelow;
-        SetFrame(triangle, *frameOf, kSnowTop, kSnowBottom);
-        used += 3;
-    }
-    return Finish(*this, renderer, used);
-}
-
-void RainSnow::DrawParticles(SceneRenderer* renderer, int vertexCount) {
-    if (!render::WeatherParticlesDrawn()) return;
-    renderer->device->DrawTlTriangles(vertices.data(), lib::Count(vertices), indices.data(), vertexCount);
-}
-
-int RainSnow::DrawRain(SceneRenderer* renderer) {
-    const int vertexCount = BuildRain(renderer);
-    if (vertexCount != 0) DrawParticles(renderer, vertexCount);
-    return 1;
-}
-
-int RainSnow::DrawSnow(SceneRenderer* renderer) {
-    const int vertexCount = BuildSnow(renderer);
-    if (vertexCount != 0) DrawParticles(renderer, vertexCount);
-    return 1;
+    Flush(renderer);
 }
