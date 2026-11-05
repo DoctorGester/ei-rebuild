@@ -90,7 +90,7 @@ constexpr int kModelUnknown = -2;
 
 // The frame's working lists, kept across frames for their room.
 static std::vector<Candidate> g_candidates;
-static std::unordered_map<const void*, int> g_objectIndex;   // object -> g_objects
+static std::unordered_map<const Object3D*, int> g_objectIndex;   // object -> g_objects
 static std::vector<FrameObject> g_objects;
 static std::vector<int> g_modelOf;   // per frame matrix its PointShadowFrame::models (-1 none), kModelUnknown: not yet
 static std::vector<Caster> g_casters;
@@ -360,9 +360,9 @@ void PreparePointShadows(Frame& f) {
         g_objectIndex.emplace(object, static_cast<int>(g_objects.size()));
         g_objects.push_back(FrameObject{strength});
     }
-    const void* lastObject = nullptr;
+    const Object3D* lastObject = nullptr;
     int lastObjectIndex = -1;
-    auto objectOf = [&](const void* object) {
+    auto objectOf = [&](const Object3D* object) {
         if (object == lastObject) return lastObjectIndex;
         auto [it, added] = g_objectIndex.try_emplace(object, static_cast<int>(g_objects.size()));
         if (added) g_objects.push_back(FrameObject{kNoStrength});

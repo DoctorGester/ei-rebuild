@@ -44,8 +44,8 @@ static gpu::PipelineDesc QuadDesc(int samples) {
     p.bufferCount = 1;
     p.buffers[0].stride = sizeof(UiVertex);
     p.attributeCount = 2;
-    p.attributes[0] = {gpu_shaders::ui_quad::kAttrPosition, 0, gpu::VertexFormat::Float4, 0};
-    p.attributes[1] = {gpu_shaders::ui_quad::kAttrColour, 0, gpu::VertexFormat::UByte4Norm, 4 * sizeof(float)};
+    p.attributes[0] = {gpu_shaders::ui_quad::kAttrPosition, 0, gpu::VertexFormat::Float4, offsetof(UiVertex, x)};
+    p.attributes[1] = {gpu_shaders::ui_quad::kAttrColour, 0, gpu::VertexFormat::UByte4Norm, offsetof(UiVertex, colour)};
     p.depth = kDepthFormat;
     p.colour = kColourFormat;
     p.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;

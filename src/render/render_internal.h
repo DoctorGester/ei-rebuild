@@ -5,6 +5,7 @@
 #include "platform/log.h"
 #include "render.h"
 #include "render/gpu.h"
+#include "render_state.h"
 
 #include "lib/vecmath.h"
 
@@ -12,6 +13,7 @@
 #include "shaders/gpu_shaders.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -79,13 +81,13 @@ struct Vertex {
 };
 static_assert(sizeof(Vertex) == 40);
 
-// One texture stage of a pass (render_state.h's values as numbers).
+// One texture stage of a pass (render_state.h's values). A stage the pass leaves off keeps these.
 struct StageState {
-    std::uint8_t colourOp = 1, colourArg1 = 2, colourArg2 = 1;   // D3DTOP_DISABLE, TEXTURE, CURRENT
-    std::uint8_t alphaOp = 1, alphaArg1 = 2, alphaArg2 = 1;
-    std::uint8_t magFilter = 2, minFilter = 2, mipFilter = 1;     // D3DTFG / D3DTFN / D3DTFP
-    std::uint8_t addressU = 1, addressV = 1;                      // D3DTADDRESS_WRAP
-    gpu::Texture texture;                                         // the bound surface, read at the pass
+    StageCombiner combiner = {TextureOp::Disable, kArgTexture, kArgCurrent, TextureOp::Disable, kArgTexture, kArgCurrent};
+    Filter magFilter = Filter::Linear, minFilter = Filter::Linear;
+    MipFilter mipFilter = MipFilter::None;
+    Address addressU = Address::Wrap, addressV = Address::Wrap;
+    gpu::Texture texture;   // the bound surface, read at the pass
     bool hasTexture = false;
 };
 
@@ -98,18 +100,19 @@ struct StagePatch {
     float map[4] = {};
     float inside[4] = {};   // u0, v0, u1, v1
 };
-StagePatch PatchOf(const void* holder);
+StagePatch PatchOf(const Surface* holder);
 
 // The render state of one pass of a mesh draw. Blend, depth and culling make the pipeline; the rest
 // goes to the shader.
 struct PassState {
     bool blend = false;
-    std::uint8_t sourceBlend = 2, destBlend = 1;   // D3DBLEND
+    Blend sourceBlend = Blend::One, destBlend = Blend::Zero;
     bool depthTest = true, depthWrite = true;
-    std::uint8_t depthFunc = 4;                    // D3DCMP_LESSEQUAL
-    std::uint8_t cull = 1;                         // D3DCULL: 1 none, 2 clockwise, 3 counter-clockwise
+    Compare depthFunc = Compare::LessEqual;
+    Cull cull = Cull::None;
     bool alphaTest = false;
-    std::uint8_t alphaFunc = 8, alphaReference = 0;
+    Compare alphaFunc = Compare::Always;
+    std::uint8_t alphaReference = 0;
     bool specular = false;
     bool fog = false;
     std::uint32_t fogColour = 0;                   // D3DCOLOR
@@ -118,12 +121,15 @@ struct PassState {
     StagePatch patch;
 
     std::uint32_t PipelineKey() const {
-        return (blend ? 1u : 0u) | (static_cast<std::uint32_t>(sourceBlend & 15) << 1) |
-               (static_cast<std::uint32_t>(destBlend & 15) << 5) | (depthTest ? 1u << 9 : 0u) |
-               (depthWrite ? 1u << 10 : 0u) | (static_cast<std::uint32_t>(depthFunc & 15) << 11) |
-               (static_cast<std::uint32_t>(cull & 3) << 15);
+        auto bits = [](auto value, std::uint32_t mask) { return static_cast<std::uint32_t>(value) & mask; };
+        return (blend ? 1u : 0u) | (bits(sourceBlend, 15) << 1) | (bits(destBlend, 15) << 5) | (depthTest ? 1u << 9 : 0u) |
+               (depthWrite ? 1u << 10 : 0u) | (bits(depthFunc, 15) << 11) | (bits(cull, 3) << 15);
     }
 };
+
+// The pass adds its light to the frame (blended, the destination's factor one): an effect that neither casts a
+// shadow nor receives one.
+inline bool AddsLight(const PassState& s) { return s.blend && s.destBlend == Blend::One; }
 
 // A box in the landscape's space: empty (low above high) until points are added.
 struct Box {
@@ -184,7 +190,7 @@ struct MeshBatch {
     bool flat = false;        // the flat geometry (decals, markers), no corners
     bool decal = false;       // flat: a ground print (MeshDraw::groundDecal), shaded as the ground under it; `box` its
                               // positions' box in the landscape's space
-    const void* caster = nullptr;   // render::BeginCaster's object, if any
+    const Object3D* caster = nullptr;   // render::BeginCaster's object, if any
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map
 // A unit's mesh: its corners' box in model space (low xyz, high xyz), and the nearest map depth of its
 // object's boxes (PrepareShadows; above 1: none).
@@ -202,7 +208,7 @@ struct MeshBatch {
     int lighting = -1;        // index into Frame::meshLights: lit on the GPU, else the vertex colours
     bool occluded = false;    // a world mesh lit on the GPU: it takes the ambient occlusion (DrawOcclusion)
     float weather[2] = {};    // a unit's own wetness and snow (PrepareUnitWeather)
-    const void* interfaceUnit = nullptr;   // an interface figure of that world unit (BeginInterfaceUnit): its weather
+    const Object3D* interfaceUnit = nullptr;   // an interface figure of that world unit (BeginInterfaceUnit): its weather
 };
 
 // The image is read at the blit.
@@ -299,7 +305,7 @@ constexpr float kLeastStrength = 0.5f;
 struct ShadowFrame {
     bool haveSun = false;
     Vector3 sun{};
-    std::unordered_map<const void*, float> casters;   // object -> strength (render::CastsShadow; the last wins)
+    std::unordered_map<const Object3D*, float> casters;   // object -> strength (render::CastsShadow; the last wins)
     bool prepared = false;
     bool on = false;          // the map is made this frame: receivers sample it
     bool haveClouds = false;  // render::CloudShadows handed over
@@ -477,10 +483,12 @@ struct PoolPlace {
 };
 
 // Vertices and indices kept on the GPU across frames (terrain pages, meshes): a geometry stream, a colour
-// stream (kColourPairBytes a vertex) and absolute 32-bit indices, in buffers written in place, only the changed
+// stream (a ColourPair a vertex) and absolute 32-bit indices, in buffers written in place, only the changed
 // ranges. Items are placed one after the other; when one does not fit, the pool starts again (Restart) with the
 // items still needed, larger when they need more than half.
-constexpr std::size_t kColourPairBytes = 2 * sizeof(std::uint32_t);
+struct ColourPair {
+    std::uint32_t colour = 0, specular = 0;   // D3DCOLOR
+};
 class GpuPool {
 public:
     GpuPool(std::size_t newGeometryStride, std::uint32_t newLeastVertices, std::uint32_t newLeastIndices, const char* newLabel)
@@ -566,7 +574,13 @@ void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly);
 // to date as kept for render::SetMeshSource's figure mesh, or null: it goes into the frame's stream (no source,
 // no corners, the cache off, or the mesh already drawn this frame with other data). MeshCacheFrameDone drops
 // meshes not drawn for a long time.
-constexpr std::size_t kCachedVertexBytes = 32;   // a kept corner's geometry: position, texture coordinates, normal
+// A kept corner's geometry (its colours in the pool's colour stream).
+struct MeshVertex {
+    Vector3 position;
+    float u = 0.0f, v = 0.0f;
+    Vector3 normal;   // CornerNormal
+};
+static_assert(sizeof(MeshVertex) == 32);
 void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
@@ -587,7 +601,7 @@ std::uint32_t CachedMeshVersion(const CachedMesh& mesh);
 void UploadCachedMeshes(const Frame& frame);
 bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex);
 void MeshCacheFrameDone();
-const void* MeshSourceOwner();
+const FigureMesh* MeshSourceOwner();
 const MeshLighting* MeshSourceLighting();
 // The model-space normal of the corners with colour index `index`, zero without normals or words.
 Vector3 CornerNormal(const MeshDraw& mesh, int index);
@@ -709,11 +723,11 @@ int PointShadowSlot(const Frame& frame, int sceneLight);
 // light's pointColour w its point shadow + 1 (0 none), the shadow map's light and the daylight colours.
 void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* params);
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
-const void* CurrentCaster();
+const Object3D* CurrentCaster();
 bool CurrentCasterFigure();
 // The world unit an interface figure being handed over shows (render::BeginInterfaceUnit), or null.
-const void* CurrentInterfaceUnit();
-void NoteCasterPart(const void* part);
+const Object3D* CurrentInterfaceUnit();
+void NoteCasterPart(const FigureMesh* part);
 void ShadowFrameDone();
 
 // The screen's ambient occlusion (docs/notes/renderer.md section 13, item 11). DrawOcclusion, once a frame after the
@@ -734,7 +748,7 @@ void DrawFill(const FillBatch& fill, int width, int height);
 // At the frame's present: the frame's cursor (render::Cursor) shown, or none (render_cursor.cpp).
 void ShowFrameCursor();
 // The holder is gone: the cursor shapes made from its picture let go.
-void ForgetCursor(const void* holder);
+void ForgetCursor(const Surface* holder);
 
 // The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
 // timer inside another's scope takes its time out of the outer one's field.
@@ -781,17 +795,17 @@ void RunCanvasesNow();
 // A Texture or a texture's holder (Surface) as a texture with its mip levels: what was decoded or drawn for it; white
 // when there is none. Valid until the next Present.
 const gpu::Texture& TextureView(const ::Texture* texture);
-const gpu::Texture& SurfaceView(const void* holder);
+const gpu::Texture& SurfaceView(const Surface* holder);
 // render::TextureFromMmp: kept until the holder goes.
-bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, unsigned levels);
-void ForgetHolder(const void* holder);
+bool TextureFromMmpData(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels);
+void ForgetHolder(const Surface* holder);
 // render::PictureFromMmp: level 0 as RGBA8, kept until the holder goes.
 struct Picture {
     int width = 0, height = 0;
     std::vector<std::uint8_t> rgba;
 };
-bool PictureFromMmpData(const void* holder, const MmpFile& file);
-const Picture* PictureOf(const void* holder);
+bool PictureFromMmpData(const Surface* holder, const MmpFile& file);
+const Picture* PictureOf(const Surface* holder);
 gpu::Sampler LinearSampler();
 // A 1x1 white texture.
 const gpu::Texture& WhiteView();
@@ -835,7 +849,7 @@ void DrawComposed(const ComposeShape& shape, const gpu::Texture& image, const Co
 bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height, std::vector<std::uint8_t>* rgba);
 #endif
 // render::ComposeTexture's and BlankTexture's entry for `holder` (render_textures.cpp): `shape` made with `steps`.
-bool StoreComposed(const void* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
+bool StoreComposed(const Surface* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
 gpu::Sampler StageSampler(const StageState& stage);
 // Linear filters asked for: anisotropic at `level` (2..kMostAnisotropy) with linear mips; point filters as the
 // stage says. Always for the terrain pages (at kMostAnisotropy, whatever the render quality), at the render

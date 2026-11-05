@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+class Object3D;
 
 namespace ei::verify::image {
 
@@ -130,7 +131,7 @@ bool SetObjectSkins(int id, const char* first, const char* second);
 // secondSkinName). False when the client world has no such object.
 bool ObjectSkins(int id, std::string* first, std::string* second);
 // The client world's object `id` (the MapObject its meshes are drawn with, render::BeginCaster's), else null.
-const void* ClientObject(int id);
+const Object3D* ClientObject(int id);
 // The window's regions (null ones too) and region `index`'s rectangle, hit offset and enabled flag; false for none.
 struct RegionInfo {
     int left = 0, top = 0, right = 0, bottom = 0;

@@ -650,9 +650,9 @@ static Pipeline BuildPipeline(SDL_GPUDevice* device, ShaderPrograms& shaders, co
     ci.primitive_type = desc.primitive == Primitive::Lines ? SDL_GPU_PRIMITIVETYPE_LINELIST
                                                            : SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
     ci.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
-    ci.rasterizer_state.cull_mode = desc.cull == Cull::Back    ? SDL_GPU_CULLMODE_BACK
-                                    : desc.cull == Cull::Front ? SDL_GPU_CULLMODE_FRONT
-                                                               : SDL_GPU_CULLMODE_NONE;
+    ci.rasterizer_state.cull_mode = desc.cull == CullFace::Back    ? SDL_GPU_CULLMODE_BACK
+                                    : desc.cull == CullFace::Front ? SDL_GPU_CULLMODE_FRONT
+                                                                   : SDL_GPU_CULLMODE_NONE;
     ci.rasterizer_state.front_face =
         desc.front == Winding::Clockwise ? SDL_GPU_FRONTFACE_CLOCKWISE : SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
     ci.rasterizer_state.enable_depth_clip = true;

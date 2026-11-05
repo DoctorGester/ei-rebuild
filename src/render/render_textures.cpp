@@ -23,7 +23,7 @@ struct Texture {
     int levels = 0;               // .mmp: the levels uploaded
 };
 
-static std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures (the only copy)
+static std::unordered_map<const Surface*, Texture> g_textures;   // by surface holder: textures (the only copy)
 // Replaced during the frame: released at Present (the frame's recorded commands, drawn at its end, hold them).
 static Texture g_white;
 static int g_failures = 0;
@@ -80,14 +80,14 @@ static int LevelCount(int width, int height) {
 }
 
 struct Patch {
-    const void* source = nullptr;
+    const Surface* source = nullptr;
     int to[4] = {};
     int from[4] = {};
 };
-static std::unordered_map<const void*, Patch> g_patches;
+static std::unordered_map<const Surface*, Patch> g_patches;
 static int g_patchFailures = 0;
 
-static bool HolderSize(const void* holder, int* width, int* height) {
+static bool HolderSize(const Surface* holder, int* width, int* height) {
     auto decoded = g_textures.find(holder);
     if (decoded == g_textures.end() || decoded->second.width <= 0) return false;
     *width = decoded->second.width;
@@ -193,11 +193,11 @@ static bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, unsigned mip
 
 static int g_mmpFailures = 0;
 
-static std::unordered_map<const void*, Picture> g_pictures;
+static std::unordered_map<const Surface*, Picture> g_pictures;
 
 // `step` (its rectangle `to` relative to the texture, clipped to it) drawn into the texture BlankTexture made for
 // `holder`.
-static void DrawStep(const void* holder, ComposeStep step) {
+static void DrawStep(const Surface* holder, ComposeStep step) {
     auto found = holder ? g_textures.find(holder) : g_textures.end();
     if (found == g_textures.end() || !found->second.composed) {
         LogFirst(g_failures, 10, "render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
@@ -217,15 +217,17 @@ static void DrawStep(const void* holder, ComposeStep step) {
     DrawComposed(t.shape, t.image, &step, 1);
 }
 
-static gpu::Wrap Wrap(std::uint8_t address) {
+static gpu::Wrap ToGpu(Address address) {
     switch (address) {
-    case 2: return gpu::Wrap::Mirror;
-    case 3: return gpu::Wrap::Clamp;
+    case Address::Mirror: return gpu::Wrap::Mirror;
+    case Address::Clamp: return gpu::Wrap::Clamp;
     default: return gpu::Wrap::Repeat;
     }
 }
 
-const gpu::Texture& SurfaceView(const void* holder) {
+static gpu::Filter ToGpu(Filter filter) { return filter == Filter::Point ? gpu::Filter::Nearest : gpu::Filter::Linear; }
+
+const gpu::Texture& SurfaceView(const Surface* holder) {
     StatsTimer timer(&FrameStats::textureMs);
     auto decoded = holder ? g_textures.find(holder) : g_textures.end();
     if (decoded == g_textures.end() || !decoded->second.image) return White().image;
@@ -233,7 +235,7 @@ const gpu::Texture& SurfaceView(const void* holder) {
 }
 
 // The entry of `holder` from an .mmp file's levels (of the file's `format`): the texture until the holder goes.
-bool StoreMmp(const void* holder, MmpLevels read, std::uint32_t format) {
+bool StoreMmp(const Surface* holder, MmpLevels read, std::uint32_t format) {
     if (!holder) return false;
     Texture& t = g_textures[holder];
     Retire(t);
@@ -249,7 +251,7 @@ bool StoreMmp(const void* holder, MmpLevels read, std::uint32_t format) {
 
 const gpu::Texture& WhiteView() { return White().image; }
 
-bool StoreComposed(const void* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count) {
+bool StoreComposed(const Surface* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count) {
     if (!holder) return false;
     Texture& t = g_textures[holder];
     Retire(t);
@@ -261,7 +263,7 @@ bool StoreComposed(const void* holder, const ComposeShape& shape, const ComposeS
     return static_cast<bool>(t.image);
 }
 
-StagePatch PatchOf(const void* holder) {
+StagePatch PatchOf(const Surface* holder) {
     StagePatch p;
     if (g_patches.empty() || !holder) return p;
     auto it = g_patches.find(holder);
@@ -291,7 +293,7 @@ StagePatch PatchOf(const void* holder) {
     return p;
 }
 
-bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, unsigned levels) {
+bool TextureFromMmpData(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels) {
     if (!holder || !file.data) return false;
     const MmpHeader& h = file.header;
     const std::uint8_t* base = file.Body();
@@ -308,7 +310,7 @@ bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, u
     return StoreMmp(holder, std::move(read), h.format);
 }
 
-bool PictureFromMmpData(const void* holder, const MmpFile& file) {
+bool PictureFromMmpData(const Surface* holder, const MmpFile& file) {
     g_pictures.erase(holder);
     const MmpHeader& h = file.header;
     if (h.width == 0 || h.height == 0 || h.width > 4096 || h.height > 4096) return false;
@@ -324,7 +326,7 @@ bool PictureFromMmpData(const void* holder, const MmpFile& file) {
     return true;
 }
 
-const Picture* PictureOf(const void* holder) {
+const Picture* PictureOf(const Surface* holder) {
     auto it = g_pictures.find(holder);
     return it == g_pictures.end() ? nullptr : &it->second;
 }
@@ -343,18 +345,18 @@ gpu::Sampler LinearSampler() {
 // The stages' samplers by their filters and addresses (gpu.h keeps them by description).
 gpu::Sampler StageSampler(const StageState& s) {
     gpu::SamplerDesc d;
-    d.mag = s.magFilter == 1 ? gpu::Filter::Nearest : gpu::Filter::Linear;   // D3DTFG_POINT
-    d.min = s.minFilter == 1 ? gpu::Filter::Nearest : gpu::Filter::Linear;   // D3DTFN_POINT
-    d.mip = s.mipFilter == 3 ? gpu::Filter::Linear : gpu::Filter::Nearest;
-    if (s.mipFilter <= 1) d.maxLod = 0.0f;   // D3DTFP_NONE: level 0 only
-    d.u = Wrap(s.addressU);
-    d.v = Wrap(s.addressV);
+    d.mag = ToGpu(s.magFilter);
+    d.min = ToGpu(s.minFilter);
+    d.mip = s.mipFilter == MipFilter::Linear ? gpu::Filter::Linear : gpu::Filter::Nearest;
+    if (s.mipFilter == MipFilter::None) d.maxLod = 0.0f;   // level 0 only
+    d.u = ToGpu(s.addressU);
+    d.v = ToGpu(s.addressV);
     return gpu::MakeSampler(d);
 }
 
 gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     // Point sampling asked for (the options' Filtering 0): as the stage says.
-    if (s.minFilter == 1 || s.magFilter == 1) return StageSampler(s);
+    if (s.minFilter == Filter::Point || s.magFilter == Filter::Point) return StageSampler(s);
     // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose texture
     // coordinates change direction and scale from tile to tile (D3DTFP_POINT's level steps showed as seams;
     // renderer.md section 11). The render quality's anisotropy samples the world's models so too.
@@ -363,27 +365,27 @@ gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     d.mag = gpu::Filter::Linear;
     d.mip = gpu::Filter::Linear;
     d.anisotropy = static_cast<int>(level);
-    if (s.mipFilter <= 1) d.maxLod = 0.0f;   // D3DTFP_NONE (the options' Mipmapping 0): level 0 only
-    d.u = Wrap(s.addressU);
-    d.v = Wrap(s.addressV);
+    if (s.mipFilter == MipFilter::None) d.maxLod = 0.0f;   // the options' Mipmapping 0: level 0 only
+    d.u = ToGpu(s.addressU);
+    d.v = ToGpu(s.addressV);
     return gpu::MakeSampler(d);
 }
 
-void ForgetHolder(const void* holder) {
+void ForgetHolder(const Surface* holder) {
     auto it = g_textures.find(holder);
     if (it == g_textures.end()) return;
     Retire(it->second);
     g_textures.erase(it);
 }
 
-bool TextureFromMmp(const void* holder, const MmpFile& file, unsigned mip, unsigned levels) {
+bool TextureFromMmp(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels) {
     if (!holder || !file.data) return false;
     Start();
     StatsTimer timer(&FrameStats::textureMs);
     return TextureFromMmpData(holder, file, mip, levels);
 }
 
-bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count) {
+bool ComposeTexture(const Surface* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count) {
     if (!holder || size <= 0 || size > 4096) return false;
     Start();
     StatsTimer timer(&FrameStats::textureMs);
@@ -410,7 +412,7 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     return StoreComposed(holder, shape, steps.data(), steps.size());
 }
 
-bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, bool mipmapped) {
+bool BlankTexture(const Surface* holder, int width, int height, BlankAlpha alpha, bool mipmapped) {
     if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
     Start();
     StatsTimer timer(&FrameStats::textureMs);
@@ -422,7 +424,7 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
     return StoreComposed(holder, shape, nullptr, 0);
 }
 
-void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
+void DrawIntoTexture(const Surface* holder, const TextureImage* image, int x, int y, int width, int height) {
     Start();
     StatsTimer timer(&FrameStats::textureMs);
     ComposeImage decoded;
@@ -436,7 +438,7 @@ void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y
     DrawStep(holder, step);
 }
 
-void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
+void DrawClouds(const Surface* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
     Start();
     StatsTimer timer(&FrameStats::textureMs);
     CloudsDraw clouds;
@@ -451,7 +453,7 @@ void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to
     DrawStep(holder, step);
 }
 
-void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {
+void TexturePatch(const Surface* target, const int to[4], const Surface* source, const int from[4]) {
     if (!target || !source) return;
     Start();
     int tw = 0, th = 0, sw = 0, sh = 0;
@@ -470,7 +472,7 @@ void TexturePatch(const void* target, const int to[4], const void* source, const
     }
 }
 
-void HolderGone(const void* holder) {
+void HolderGone(const Surface* holder) {
     g_patches.erase(holder);
     for (auto it = g_patches.begin(); it != g_patches.end();)
         it = it->second.source == holder ? g_patches.erase(it) : std::next(it);
@@ -480,7 +482,7 @@ void HolderGone(const void* holder) {
     ForgetCursor(holder);
 }
 
-void PictureFromMmp(const void* holder, const MmpFile& file) {
+void PictureFromMmp(const Surface* holder, const MmpFile& file) {
     if (!holder || !file.data) return;
     PictureFromMmpData(holder, file);
 }

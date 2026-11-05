@@ -10,13 +10,6 @@
 namespace render {
 
 // A corner's geometry; its colours (colour, specular) are a stream of their own.
-struct MeshVertex {
-    Vector3 position;
-    float u = 0.0f, v = 0.0f;
-    Vector3 normal;   // CornerNormal
-};
-static_assert(sizeof(MeshVertex) == kCachedVertexBytes);
-
 struct MeshChanges {
     std::uint32_t positions = 0, colours = 0, rebuilt = 0;
 };
@@ -30,7 +23,7 @@ static MeshChanges ChangesOf(const void* object) {
 
 // What a kept mesh was built from: when an array or count differs, it is built again.
 struct MeshFrom {
-    const void* shared = nullptr;
+    const LinkMesh* shared = nullptr;
     const VertexPacket* positions = nullptr;   // null for moved positions (a work array all moved meshes share)
     int positionCount = 0;
     const std::uint32_t* colours = nullptr;
@@ -89,8 +82,8 @@ struct CachedMesh {
     float box[6] = {};
 };
 
-static std::unordered_map<const void*, CachedMesh> g_meshes;
-static std::unordered_map<const void*, CachedMesh> g_casterMeshes;   // KeepCasterMesh's, by part (no colours)
+static std::unordered_map<const FigureMesh*, CachedMesh> g_meshes;
+static std::unordered_map<const FigureMesh*, CachedMesh> g_casterMeshes;   // KeepCasterMesh's, by part (no colours)
 static std::uint32_t g_lastVersion = 0;                              // the last CachedMesh::version given
 static std::vector<CachedMesh*> g_pending;
 static GpuPool g_pool(sizeof(MeshVertex), 1u << 16, 3u << 16, "ei-mesh");
@@ -256,7 +249,8 @@ static void Check(const MeshDraw& m, CachedMesh& e) {
                     std::memcmp(g_fresh.vertices.data(), e.vertices.data(), e.vertices.size() * sizeof(MeshVertex)) != 0;
     if (++g_stale <= 20) {
         ei::Log("render: a mesh kept on the GPU was stale (%s): figure mesh %p, link figure %p, %d corners%s",
-                geometry ? "positions" : "colours", g_source.owner, g_source.shared, m.cornerCount,
+                geometry ? "positions" : "colours", static_cast<const void*>(g_source.owner),
+                static_cast<const void*>(g_source.shared), m.cornerCount,
                 g_source.moved ? ", moved positions" : "");
         for (std::size_t i = 0; i < e.vertices.size() && i < g_fresh.vertices.size(); ++i) {
             const MeshVertex& a = e.vertices[i];
@@ -290,7 +284,7 @@ static void CheckBox(const MeshDraw& m, CachedMesh& e) {
     float fresh[6];
     if (!e.boxKept || !PositionBox(m, fresh) || std::memcmp(fresh, e.box, sizeof(fresh)) == 0) return;
     LogFirst(g_stale, 20, "render: a kept mesh's box was stale: figure mesh %p, low %g %g %g, now %g %g %g",
-             g_source.owner, e.box[0], e.box[1], e.box[2], fresh[0], fresh[1], fresh[2]);
+             static_cast<const void*>(g_source.owner), e.box[0], e.box[1], e.box[2], fresh[0], fresh[1], fresh[2]);
     e.boxKept = false;
 }
 
@@ -302,7 +296,8 @@ static void Check(const ShadowMesh& m, CachedMesh& e) {
         std::memcmp(g_fresh.vertices.data(), e.vertices.data(), e.vertices.size() * sizeof(MeshVertex)) == 0)
         return;
     LogFirst(g_stale, 20, "render: a caster kept on the GPU was stale: figure mesh %p, link figure %p, %d corners%s",
-             m.owner, m.shared, m.cornerCount, m.moved ? ", moved positions" : "");
+             static_cast<const void*>(m.owner), static_cast<const void*>(m.shared), m.cornerCount,
+             m.moved ? ", moved positions" : "");
     e.vertices.swap(g_fresh.vertices);
     e.indices.swap(g_fresh.indices);
     e.dirty = true;
@@ -363,7 +358,7 @@ static void Write(CachedMesh& e) {
         if (e.colourTo > e.colourFrom) {
             g_pool.WriteColours(e.place, e.colourFrom, e.colourTo - e.colourFrom,
                                 &e.colours[2 * static_cast<std::size_t>(e.colourFrom)]);
-            stats.meshVertexBytes += (e.colourTo - e.colourFrom) * kColourPairBytes;
+            stats.meshVertexBytes += (e.colourTo - e.colourFrom) * sizeof(ColourPair);
         }
     }
     e.dirty = false;
@@ -496,7 +491,7 @@ void NoteMeshDraw(const MeshDraw& m) {
     if (it != g_meshes.end()) it->second.relightNext = true;
 }
 
-const void* MeshSourceOwner() { return g_haveSource ? g_source.owner : nullptr; }
+const FigureMesh* MeshSourceOwner() { return g_haveSource ? g_source.owner : nullptr; }
 
 const MeshLighting* MeshSourceLighting() { return g_haveSource ? g_source.lighting : nullptr; }
 

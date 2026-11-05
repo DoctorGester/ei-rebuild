@@ -71,8 +71,8 @@ struct UnitSurface {
     float wet = 0.0f, snow = 0.0f, shelter = 0.0f;
     Vector3 at{};   // the middle of its box's foot (the harness's)
 };
-static std::unordered_map<const void*, UnitSurface> g_units;
-static const void* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
+static std::unordered_map<const Object3D*, UnitSurface> g_units;
+static const Object3D* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
 
 // A mesh that can roof a unit this frame: an object's (not a unit's) mesh drawn in the world, its model matrix into
 // the landscape's space and its box there; the matrix is inverted when a point first lies under the box.
@@ -87,7 +87,7 @@ struct Roof {
 
 // The frame's lists, kept for their room.
 static std::vector<Roof> g_roofs;
-static std::unordered_map<const void*, Box> g_unitBoxes;
+static std::unordered_map<const Object3D*, Box> g_unitBoxes;
 // The frame's roof map (PrepareRoofs): its area and depth range, the landscape's space to its clip space.
 struct RoofFit {
     bool on = false;
@@ -387,7 +387,7 @@ void BindRoofMap(int slot) {
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }
 
-const void* CurrentInterfaceUnit() { return g_interfaceUnit; }
+const Object3D* CurrentInterfaceUnit() { return g_interfaceUnit; }
 
 void SurfaceUniforms(float weather[4], float rain[4]) {
     const Surfaces& s = g_surfaces;
@@ -417,7 +417,7 @@ void SurfaceState(float* wet, float* puddles, float* snow) {
     *snow = g_surfaces.snow;
 }
 
-void BeginInterfaceUnit(const void* object) { g_interfaceUnit = object; }
+void BeginInterfaceUnit(const Object3D* object) { g_interfaceUnit = object; }
 void EndInterfaceUnit() { g_interfaceUnit = nullptr; }
 
 void SetRoofShelter(bool on) {
@@ -436,7 +436,7 @@ void LandscapeLoaded() {
     g_units.clear();
 }
 
-UnitWeather UnitWeatherState(const void* object) {
+UnitWeather UnitWeatherState(const Object3D* object) {
     UnitWeather out;
     auto it = g_units.find(object);
     if (it == g_units.end()) return out;

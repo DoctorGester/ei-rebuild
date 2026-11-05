@@ -197,19 +197,19 @@ struct VertexBuffer {
     bool operator==(const VertexBuffer&) const = default;
 };
 enum class Primitive : std::uint8_t { Triangles, Lines };
-enum class Cull : std::uint8_t { None, Front, Back };
+enum class CullFace : std::uint8_t { None, Front, Back };
 enum class Winding : std::uint8_t { CounterClockwise, Clockwise };   // the front faces', on screen
 enum class BlendFactor : std::uint8_t {
     Zero, One, SourceColour, OneMinusSourceColour, DestColour, OneMinusDestColour, SourceAlpha, OneMinusSourceAlpha,
     DestAlpha, OneMinusDestAlpha, SourceAlphaSaturate,
 };
 enum class BlendOp : std::uint8_t { Add, Subtract, ReverseSubtract, Min, Max };
-struct Blend {
+struct BlendState {
     bool on = false;
     BlendFactor sourceColour = BlendFactor::One, destColour = BlendFactor::Zero;
     BlendFactor sourceAlpha = BlendFactor::One, destAlpha = BlendFactor::Zero;
     BlendOp colourOp = BlendOp::Add, alphaOp = BlendOp::Add;
-    bool operator==(const Blend&) const = default;
+    bool operator==(const BlendState&) const = default;
 };
 enum ColourMask : std::uint8_t { kWriteRed = 1, kWriteGreen = 2, kWriteBlue = 4, kWriteAlpha = 8, kWriteAll = 15 };
 
@@ -224,11 +224,11 @@ struct PipelineDesc {
     int attributeCount = 0;
     VertexAttribute attributes[kMostVertexAttributes] = {};
     Primitive primitive = Primitive::Triangles;
-    Cull cull = Cull::None;
+    CullFace cull = CullFace::None;
     Winding front = Winding::CounterClockwise;
     Format colour = Format::Rgba8;   // None: depth only
     std::uint8_t colourMask = kWriteAll;
-    Blend blend = {};
+    BlendState blend = {};
     Format second = Format::None;    // a second colour target (PassDesc::second), never blended
     std::uint8_t secondMask = kWriteAll;
     Format depth = Format::None;     // None: without a depth buffer

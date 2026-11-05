@@ -121,7 +121,7 @@ static bool Invert(const M4& a, M4* out) {
 
 // --- The game's hand-over ---------------------------------------------------------------------------
 
-static const void* g_caster = nullptr;   // BeginCaster .. EndCaster
+static const Object3D* g_caster = nullptr;   // BeginCaster .. EndCaster
 static bool g_casterFigure = false;      // ... a unit's draw
 static ShadowInfo g_info, g_lastInfo;
 
@@ -135,13 +135,13 @@ struct OutsideCaster {
     float uOffset = 0.0f, vOffset = 0.0f;
     gpu::Texture texture;
     bool hasTexture = false;
-    const void* object = nullptr;
+    const Object3D* object = nullptr;
     bool unit = false;
 };
 static std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
 constexpr std::size_t kMostOutside = 100'000;
-std::unordered_set<const void*> g_drawnParts;   // NoteCasterPart, this frame
+std::unordered_set<const FigureMesh*> g_drawnParts;   // NoteCasterPart, this frame
 static bool g_outsideOn = true;                 // SetOffscreenCasters: not View
 static bool g_walkedOnly = false;               // SetOffscreenCasters: Walked
 static bool g_shadowView = false;               // SetShadowView
@@ -214,8 +214,8 @@ static gpu::PipelineDesc TerrainCasterDesc() {
     p.bufferCount = 1;
     p.buffers[0].stride = sizeof(TerrainCasterVertex);
     p.attributeCount = 2;
-    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
-    p.attributes[1] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 12};
+    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, offsetof(TerrainCasterVertex, position)};
+    p.attributes[1] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, offsetof(TerrainCasterVertex, normal)};
     DepthOnly(p);
     return p;
 }
@@ -514,7 +514,7 @@ static bool AddOutsideCaster(CasterDraws& draws, const OutsideCaster& e, const M
 // its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
 // none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.
 static void FigureFronts(Frame& f) {
-    std::unordered_map<const void*, float> fronts;
+    std::unordered_map<const Object3D*, float> fronts;
     for (const MeshBatch& b : f.meshBatches) {
         if (!b.figure || b.light < 0 || !b.caster) continue;
         const float* row = f.shadow.lights[static_cast<std::size_t>(b.light)].m + 8;   // the map's depth
@@ -627,7 +627,7 @@ void ShadowSun(const Vector3& direction) {
     s.sun = direction;
 }
 
-void BeginCaster(const void* object, bool figure) {
+void BeginCaster(const Object3D* object, bool figure) {
     g_caster = object;
     g_casterFigure = figure;
 }
@@ -636,7 +636,7 @@ void EndCaster() {
     g_casterFigure = false;
 }
 
-void CastsShadow(const void* object, float strength) {
+void CastsShadow(const Object3D* object, float strength) {
     if (!object) return;
     g_frame.shadow.casters[object] = strength;
 }
@@ -665,15 +665,15 @@ bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
     return true;
 }
 
-bool CasterPartDrawn(const void* part) { return part && g_drawnParts.count(part) != 0; }
+bool CasterPartDrawn(const FigureMesh* part) { return part && g_drawnParts.count(part) != 0; }
 
-float CasterStrength(const void* object) {
+float CasterStrength(const Object3D* object) {
     const auto& casters = g_frame.shadow.casters;
     auto it = casters.find(object);
     return it == casters.end() ? -1.0f : it->second;
 }
 
-void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
+void ShadowCasterMesh(const Object3D* object, const ShadowMesh& m) {
     if (!g_outsideOn || m.indexCount < 3 || g_outside.size() >= kMostOutside) return;
     StatsTimer timer(&FrameStats::shadowMs);
     const CachedMesh* kept = KeepCasterMesh(m);
@@ -730,10 +730,10 @@ void SetShadowShift(int texels) {
 
 ShadowInfo ShadowState() { return g_lastInfo; }
 
-const void* CurrentCaster() { return g_caster; }
+const Object3D* CurrentCaster() { return g_caster; }
 bool CurrentCasterFigure() { return g_caster && g_casterFigure; }
 
-void NoteCasterPart(const void* part) {
+void NoteCasterPart(const FigureMesh* part) {
     if (part && !g_walkedOnly) g_drawnParts.insert(part);
 }
 
@@ -823,7 +823,7 @@ static void ListWorld(Frame& f) {
             if (f.worldGround.empty() || c.kind != Command::Mesh) continue;
             const MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
             if (!b.model || (b.flat && !b.decal)) continue;
-            WorldMesh m{c.index, b.state.blend && b.state.destBlend == 2, false};
+            WorldMesh m{c.index, AddsLight(b.state), false};
             if (!m.additive) {
                 m.repeat = b.cached == lastMesh && b.firstIndex == lastFirst;
                 lastMesh = b.cached;
@@ -958,7 +958,7 @@ void DrawShadowMap(Frame& f) {
         } else {
             // The casters' geometry and instances are written before the pass (no writes inside one).
             UploadTerrainCasters();
-            std::unordered_map<const void*, bool> counted;
+            std::unordered_map<const Object3D*, bool> counted;
             g_casterDraws.Clear();
             const CachedMesh* lastMesh = nullptr;
             int lastFirst = -1;
@@ -988,7 +988,7 @@ void DrawShadowMap(Frame& f) {
                 counted[batch.caster] = true;
             }
             if (!g_outside.empty()) {
-                std::unordered_map<const void*, bool> outside;
+                std::unordered_map<const Object3D*, bool> outside;
                 int corners = 0;
                 for (const OutsideCaster& e : g_outside) {
                     if (!AddOutsideCaster(g_casterDraws, e, g_fit.light)) continue;
@@ -1026,7 +1026,7 @@ void DrawShadowMap(Frame& f) {
             RangePass(g_dilatePipeline, g_range, g_cells, &around, "ei-shadow-range");
             g_info.casters = static_cast<int>(counted.size());
             // The objects the game shadows that cast nothing: not drawn at all, or drawn but lost here.
-            std::unordered_map<const void*, bool> handedOver;
+            std::unordered_map<const Object3D*, bool> handedOver;
             for (const MeshBatch& batch : f.meshBatches)
                 if (batch.caster && batch.indexCount > 0) handedOver[batch.caster] = true;
             for (const auto& c : casters) {

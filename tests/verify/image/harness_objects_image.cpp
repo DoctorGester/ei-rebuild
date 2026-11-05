@@ -300,7 +300,7 @@ bool ObjectSkins(int id, std::string* first, std::string* second) {
     return false;
 }
 
-const void* ClientObject(int id) {
+const Object3D* ClientObject(int id) {
     for (MapObject* object : g_clientWorld.objects)
         if (object && object->id == id) return object;
     return nullptr;
