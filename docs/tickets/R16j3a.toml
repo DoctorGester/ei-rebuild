@@ -3,3 +3,5 @@ title = "render_shadows_decals on the Rebirth data: the spell print's printlight
 group = "renderer"
 note = "Found in R16j3 (2026-11-05): run on the Rebirth install by name (it is not in config/rebirth_scenarios.csv, so the suites never run it there), render_shadows_decals fails only at 'printlight spell spell_bare 1.04 1.2': 0.622% of the pixels, rgb 41 34 52 over 28 43 52, ratio 1.031; vanilla gives 1.063 (R52c's 'after'). 1.03 was R52c's 'before' value on vanilla, so the Rebirth spell light's print may miss the specular add (R52c: MeshLightParams::pointSpecular, ground_shade's spec), or Rebirth's lightning light/colour simply makes a smaller ratio. Find which: compare spell vs spell_bare crops on both installs, check the spell light's specular flag on Rebirth; then either fix it or give the step a Rebirth floor with the reason, and decide whether render_shadows_decals joins the Rebirth set. Deterministic (two runs, same numbers)."
 order = 1187
+status = "running"
+started = "2026-11-05"
