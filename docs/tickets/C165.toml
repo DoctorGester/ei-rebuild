@@ -6,5 +6,6 @@ model = "sonnet"
 depends = ["C164"]
 note = "check_cleanup counts: 102 'const string or vector pointer parameter' (take const std::string& / std::string_view / std::span instead of const std::string* or const std::vector<T>*; nullable ones say why), 74 'function returning only a string literal' (a constant or a lookup table; a virtual answering its class's name may stay: say so in the check), 29 'scope block around a temporary' (drop the braces or give the part a function). Ratchets to 0 or a reason. Goldens the same; verify+release 0 warnings; WSL warning compile. Done 2026-11-05: 102 -> 0 pointer params, 74 -> 0 literal functions (ClassName() virtuals exempt in the check), 29 -> 6 scope blocks (app_main.cpp x4, ui_main_menu.cpp x2: MOD3b files, left)."
 order = 1207
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
