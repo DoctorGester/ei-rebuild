@@ -28,11 +28,12 @@ std::optional<Size> PrimaryDesktopSize() {
 }
 
 std::string EnvironmentVariable(const char* name) {
-    const DWORD size = GetEnvironmentVariableA(name, nullptr, 0);
+    const std::wstring wideName = text::Wide(name);
+    const DWORD size = GetEnvironmentVariableW(wideName.c_str(), nullptr, 0);
     if (size == 0) return {};
-    std::string value(size, '\0');
-    value.resize(GetEnvironmentVariableA(name, value.data(), size));
-    return value;
+    std::wstring value(size, L'\0');
+    value.resize(GetEnvironmentVariableW(wideName.c_str(), value.data(), size));
+    return text::Narrow(value);
 }
 
 } // namespace platform

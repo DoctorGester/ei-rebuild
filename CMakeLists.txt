@@ -371,8 +371,8 @@ if(WIN32)
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
                    tests/unit/audio_mix.cpp tests/unit/display_sizes.cpp tests/unit/bounded_text.cpp
-                   tests/unit/tagged_stream.cpp tests/unit/game_buffer.cpp src/game/game_buffer.cpp
-                   src/game/game_buffer_strings.cpp src/game/net_coder.cpp
+                   tests/unit/tagged_stream.cpp tests/unit/game_buffer.cpp tests/unit/platform_text.cpp
+                   src/game/game_buffer.cpp src/game/game_buffer_strings.cpp src/game/net_coder.cpp
                    src/audio/audio.cpp src/game/settings_document.cpp src/game/core_streams.cpp src/game/ini_file.cpp
                    src/game/save_picture.cpp src/lib/qoi.cpp src/game/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
