@@ -411,6 +411,8 @@ void ConfineCursor(NativeWindow, bool confined) {
 
 // ---- Events ------------------------------------------------------------------------------------------------------
 
+void SetModalLoopStep(void (*)()) {}
+
 bool EventWaits() {
     if (!hp::BeforeEvents()) return false;
     hp::Pump();

@@ -48,6 +48,9 @@ void DispatchInput(const platform::Event& event);
 // Takes every waiting event and passes it to HandleWindowEvent (input dropped); a quit request stays for the main
 // loop.
 void PumpMessages();
+// The music stream's steps due by now (SoundManager::FollowClock on the frame clock), from the passes that hold the
+// main loop longer than a stream half plays: the loading screen's steps and the system's modal loops.
+void StepMusic();
 // Without a .mob on the command line opens the main menu; otherwise loads the map into the
 // world server and runs the command line's script file.
 void StartFirstMap();

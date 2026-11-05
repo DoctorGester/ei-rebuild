@@ -290,5 +290,3 @@ Checked by tools/test_install_watch.py.
 
 - unit_create parted once in crt.rand only (watch).
 - A read-before-write detector for never-written heap bytes.
-- Scenarios with fights and streamed music keep the music's real-time exposure (section 6); a virtual-time stream thread
-  would remove it.
