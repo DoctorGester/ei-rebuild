@@ -3,7 +3,7 @@ title = "Lost in Astral: every enemy on the first map shows as very dangerous; f
 group = "harness"
 size = 1
 model = "sonnet"
-note = "User 2026-11-06 playing LiA: 'skeleton of a child' (8 HP) and all enemies on the first map show 'very dangerous' and trigger the big-attack ack. Level gap = monster prototype level - leader level, leader level = round(ln(exp/200)/ln(1.61)) (ui_hud_side.cpp ~1316, ui_battle.cpp:1336, UnitServer::Level). Suspect the mod's hero starts with little experience (negative level). Investigate only; fix only if our code differs from the original."
+note = "Found: LiA hero npc record experience=1 -> level -11; zonezero Rat/Scrab/Skeleton/Toad level 1 -> gap 12 (consider_more12, ack >5). Vanilla: exp 271, level 1. Code reads the same fields as the original; mod data. Note in mods.md. No src change."
 order = 1245
-status = "running"
+status = "review"
 started = "2026-11-06"
