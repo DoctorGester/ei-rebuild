@@ -5,3 +5,5 @@ size = 3
 model = "opus"
 note = "User 2026-11-05: some scenes look wrong right after being loaded; maybe the shadows start a frame late after a save load or after a return to the main menu. My first look (scratch scenario: newgame, F5, F8, capture x6, settle): the harness's captures after a load land on frames 44, 47, 50... (one every ~3 frames), so the first frames after the load (41-43) were never captured, and the captured ones differ from the settled frame only by ±22 (animation). Needs: a way to capture consecutive frames (a capture burst, or capture at a given frame count), then frames 1..N after F8, after load from the Load window, after a zone change, and after Esc menu > main menu > new game / load, each against the settled frame with the clocks frozen; find which state (shadow maps, point shadows' faces, terrain cache, occlusion, light ramp) starts a frame late and draw it on the first frame. A scenario that checks the first frame after a load against a later frozen one. Goldens the same apart from frames the fix changes."
 order = 1183
+status = "running"
+started = "2026-11-05"
