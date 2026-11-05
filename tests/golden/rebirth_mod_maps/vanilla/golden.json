@@ -2,15 +2,16 @@
   "scenario": "rebirth_mod_maps",
   "install": "vanilla",
   "recorded": "2026-11-05",
-  "commit": "c4a4ce818",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C162: the mod-folder patches apply whenever a mod is played, on both installs; the S19 mods are chosen by 'mod harness_saves\\...' and their saves go to harness_saves\\<mod>",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "saves: the old golden has current/gz1g.sav, savea/gz1g.sav, savea/info.sav, savea/mission.sav, savea/scenario.sav, the new run s19d_mod/current/gz1g.sav, s19d_mod/savea/gz1g.sav, s19d_mod/savea/info.sav, s19d_mod/savea/mission.sav, s19d_mod/savea/scenario.sav"
-  ],
-  "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save s19d_mod/savea/visuals.sav: 124 fields in 2 records differ: visuals 124",
+    "  visuals: 124 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

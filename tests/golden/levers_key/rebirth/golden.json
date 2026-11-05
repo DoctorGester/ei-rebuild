@@ -2,27 +2,16 @@
   "scenario": "levers_key",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "6c7081606",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 37 of 39 records differ, first at record 2 (world update 60, tick 60, frame 11, zone gz1g); outcomes the same (deaths unknown: hash only); max unit move 10.2 (obj1944, record 38)",
-    "  first difference at record 2 (world update 60, tick 60, frame 11, zone gz1g): 2 fields",
-    "    random (random) isaac.count: 47 in the old golden, 56 in the new run (d 9)",
-    "    obj1936 (80 unmoto \"\") #ai: 9FC3AD44 in the old golden, 42DB9BC6 in the new run",
-    "  outcomes: none changed (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, quest variables, party and items, game result, script",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 37 records, from 2; max |d| 229 at random isaac.count, record 3: 236 -> 7",
-    "    crt: 1 generator, 20 records, from 19; e.g. random crt.rand: 0x6C9B4EB1 in the old golden, 0xE74EB6B0 in the new run",
-    "  units: 14 of 53 differ",
-    "    #ai: 14 units, 30 records, from 2; hash only (no numbers kept)",
-    "    pos: 8 units, 27 records, from 12; moved 10.2 at obj1944 80 unmoba2 \"\", record 38",
-    "    #unit: 8 units, 27 records, from 12; hash only (no numbers kept)",
-    "... 3 more lines"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

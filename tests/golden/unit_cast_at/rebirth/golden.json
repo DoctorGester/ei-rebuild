@@ -2,23 +2,16 @@
   "scenario": "unit_cast_at",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "6c7081606",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 7 records differ, first at record 6 (world update 140, tick 140, frame 27, zone gz1g); outcomes the same; no unit position differs",
-    "  first difference at record 6 (world update 140, tick 140, frame 27, zone gz1g): 2 fields",
-    "    random (random) isaac.count: 145 in the old golden, 148 in the new run (d 3)",
-    "    obj1936 (80 unmoto \"\") #ai: 9D9505C7 in the old golden, F3191E86 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 1 record, from 6; max |d| 3 at random isaac.count, record 6: 145 -> 148",
-    "  units: 1 of 53 differ",
-    "    #ai: 1 unit, 1 record, from 6; hash only (no numbers kept)"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

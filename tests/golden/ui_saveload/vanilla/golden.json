@@ -1,21 +1,19 @@
 {
   "scenario": "ui_saveload",
   "install": "vanilla",
-  "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 17 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    cunit148 (80 unanwiwo \"\") #place: 226A830E in the old golden, 93682B97 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 9 differ",
-    "    #place: 1 client unit, 1 record, from 0; hash only (no numbers kept)"
-  ],
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save save1/visuals.sav: 86 fields in 2 records differ: visuals 86",
+    "  visuals: 86 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run",
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

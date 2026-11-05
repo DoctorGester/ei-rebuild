@@ -1,17 +1,19 @@
 {
   "scenario": "frames_basic",
   "install": "vanilla",
-  "recorded": "2026-11-03",
-  "commit": "0999ae8c4",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/mission.sav: differs (decoded e2f6e00968d6aa9c in the old golden, 57030474e5df17d9 in the new run; the store has no copy of e2f6e00968d6aa9c)",
-    "save saveb/mission.sav: differs (decoded 0c3027a3b90b97c8 in the old golden, 6b7ec6cd479f16f2 in the new run; the store has no copy of 0c3027a3b90b97c8)"
-  ],
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run",
+    "save saveb/visuals.sav: 86 fields in 2 records differ: visuals 86",
+    "  visuals: 86 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }

@@ -1,16 +1,17 @@
 {
   "scenario": "camera",
   "install": "vanilla",
-  "recorded": "2026-11-04",
-  "commit": "52e38d30e",
+  "recorded": "2026-11-05",
+  "commit": "eb5178845",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C143a: the console no longer prints a released system key's number and rebuilt WM_KEYUP data (the original's debug line); nothing else changed",
+  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
   "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "console: differs from line 26: the old golden '121:-1069285375', the new run '0'"
-  ],
-  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
+    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+  ]
 }
