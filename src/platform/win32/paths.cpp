@@ -29,16 +29,16 @@ std::string CurrentFolder() {
 }
 
 std::string ArgumentsAfterSeparator(int, char**) {
-    const char* p = ::GetCommandLineA();
+    const wchar_t* p = ::GetCommandLineW();
     while (*p) {
-        while (*p == ' ' || *p == '\t') ++p;
-        const char* token = p;
+        while (*p == L' ' || *p == L'\t') ++p;
+        const wchar_t* token = p;
         bool quoted = false;
-        for (; *p && (quoted || (*p != ' ' && *p != '\t')); ++p)
-            if (*p == '"') quoted = !quoted;
-        if (p - token == 2 && token[0] == '-' && token[1] == '-') {
-            while (*p == ' ' || *p == '\t') ++p;
-            return p;
+        for (; *p && (quoted || (*p != L' ' && *p != L'\t')); ++p)
+            if (*p == L'"') quoted = !quoted;
+        if (p - token == 2 && token[0] == L'-' && token[1] == L'-') {
+            while (*p == L' ' || *p == L'\t') ++p;
+            return text::Narrow(p);
         }
     }
     return {};

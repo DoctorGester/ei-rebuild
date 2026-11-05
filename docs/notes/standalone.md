@@ -476,6 +476,11 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 - **The .ini files** are read by the game's own parser (`IniFile`, ini_file.h) through `platform::ReadWholeFile`, their
   text taken from the asset code page into UTF-8.
 - **ANSI still:** OutputDebugString.
+- **The environment and the command line** are read wide too (`platform::EnvironmentVariable`, the arguments after
+  `--`), so a Cyrillic `EI_GAME_ROOT` or install folder arrives as UTF-8. The narrow calls turned it into question
+  marks (U6). The check: tests/unit/platform_text.cpp (a variable and the current folder), and a run folder with a
+  Cyrillic path: a folder under build/ with junctions to the install's data folders and copies of its small files, set
+  as `EI_GAME_VANILLA` for `work.py test`; no write goes under the real install.
 - **Save names:** saves are folders `saves\save<n>` with the title inside info.sav, so a title never reaches a file
   name. Cyrillic file names are checked by utf8_typing's `utf8files` step (tests/verify/harness_utf8.h).
 
@@ -514,6 +519,9 @@ bytes compared and copied whole. Display text was fixed.
   `StrMid` count characters, and the new game's name is cut to 10 characters.
 - **Word wrap:** the chat overlay's `AddLine` takes a character as its whole sequence. The other wrappers break only at
   ASCII spaces and newlines.
+  `DrawWrappedText` (WrapText) keeps the original's look: a word wider than the box stays whole on a line of its own
+  (U6). The only text of a player's making that goes through it is a server's name in the connect list's details (cut at
+  90 bytes, about 45 letters, which ends inside the panel), so no overflow shows and no breaking inside a word was added.
 - **Check:** utf8_typing's `utf8text` (compares, case, classes, the name filter) and `chatwrap`.
 
 ### Saves, network and the harness
