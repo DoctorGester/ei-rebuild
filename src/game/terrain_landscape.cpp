@@ -47,12 +47,10 @@ constexpr float kSineStep = 1.0f / 256;
 constexpr float kWaveStepTurn = 0.500250161f;
 constexpr int kRipples = 40;
 
-// The position and rotation Create gives the landscape, and the waves' scales.
-constexpr Vector3 kZeroPosition = /*007C8988*/ {0.0f, 0.0f, 0.0f};
-constexpr Quaternion kIdentityRotation = /*007C8978*/ {1.0f, 0.0f, 0.0f, 0.0f};
-constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
-constexpr float kWaveDirectionScale = /*007C896C*/ 0.44879898f;   // pi / 7
-constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
+// The waves' scales.
+constexpr float kWaveHeightScale = 0.3f;
+constexpr float kWaveDirectionScale = 0.44879898f;   // pi / 7
+constexpr float kWaveSpeedScale = -0.14959967f;      // that * -1/3
 
 constexpr int kPageTexture = static_cast<int>(TextureKind::TerrainPage);     // texture kind of the terrain pages
 
@@ -68,7 +66,7 @@ constexpr float kMarginPixels = 8.0f;
 constexpr float kByteScale = 255.0f;
 
 // The map file's extension.
-constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
+constexpr const char* kMapDataExtension = ".MP";
 
 // The tile at (column, row) of a page with tiles `size` wide and `margin` pixels inside their edges, turned
 // `rotation` quarter turns; with `wholePage` the v run covers the page's whole height (the extra pages hold
@@ -236,8 +234,8 @@ void Terrain::Create() {
     BuildVertexTiles();
     BuildWavePhases();
     for (int i = 0; i < 512; ++i) sine[i] = lib::Sin(static_cast<float>(i) * kPi * kSineStep);
-    localPosition = kZeroPosition;
-    localRotation = kIdentityRotation;
+    localPosition = {0.0f, 0.0f, 0.0f};
+    localRotation = {1.0f, 0.0f, 0.0f, 0.0f};
 }
 
 void Terrain::Destroy() {
@@ -404,15 +402,13 @@ void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
         TerrainMaterial& material = materials[i];
         material.kind = source.kind;
         material.waveColour = source.colour;
-        material.opacity = source.opacity;
         material.absorption = 1.0f / (1.0f - source.opacity);
         // Truncated through 64 bits (a NaN opacity from the file gives 0, as the game CRT's _ftol).
-        material.opacityByte = static_cast<std::uint8_t>(static_cast<std::int64_t>(material.opacity * kByteScale));
+        material.opacityByte = static_cast<std::uint8_t>(static_cast<std::int64_t>(source.opacity * kByteScale));
         material.colour.x = MinKeepA(1.0f, source.light * material.waveColour.x);
         material.colour.y = MinKeepA(1.0f, source.light * material.waveColour.y);
         material.colour.z = MinKeepA(1.0f, source.light * material.waveColour.z);
         material.priority = source.priority;
-        material.warpSpeed = source.warpSpeed;
         material.level = 0.0f;
     }
 

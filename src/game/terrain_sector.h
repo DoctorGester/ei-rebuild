@@ -3,8 +3,8 @@
 // Terrain sectors: the 32x32-cell blocks of the landscape, loaded on demand from the map's resource archive
 // (<zone>XXXYYY.sec) and turned into per-vertex records and per-texture tile lists. A sector has 33x33
 // vertices per layer (ground, and water when the sector has water) and 16x16 tiles of 2x2 cells. The tiles
-// are grouped into four 8x8-tile quarters; each quarter keeps, per texture page, a byte array of tile edge
-// flags and a list of tile entries (3x3 vertices each).
+// are grouped into four 8x8-tile quarters; each quarter keeps, per texture page, a list of tile entries
+// (3x3 vertices each).
 
 #include "model.h"   // ClipBounds
 #include "terrain.h"
@@ -57,8 +57,7 @@ constexpr std::uint16_t kTileTextureMask = 0x3FFF;
 constexpr int kTileRotationShift = 14;
 constexpr std::uint16_t kNoTile = 0xFFFF;
 
-#pragma pack(push, 1)
-// Per-vertex record (packed).
+// Per-vertex record.
 struct SectorVertex {
     std::uint32_t specular = 0;         // edge fade << 24; on the water the wave crests' R G B (Animate)
     Vector3 position;                   // water layer: the vertex position
@@ -69,7 +68,6 @@ struct SectorVertex {
     Vector3 materialColour;             // the water material's colour
     std::uint8_t materialByte = 0;      // the water material's opacityByte, 0xFF none
 };
-#pragma pack(pop)
 
 // A tile entry vertex: the record it uses and its texture coordinates.
 struct TileVertex {
@@ -96,10 +94,6 @@ constexpr int kCrossing = 1;
 constexpr int kCulled = 2;
 
 struct SectorPosition : Vector3 {};
-
-// Light lost under water per squared depth and absorption (1 / 15): the GPU lighting's dimming of the ground
-// under water (render_terrain.cpp).
-inline constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;
 
 // A colour word: alpha in the top byte, then red, green, blue (each value shifted into place, not masked).
 constexpr std::uint32_t PackArgb(std::uint32_t a, std::uint32_t r, std::uint32_t g, std::uint32_t b) {
@@ -138,7 +132,7 @@ struct SectorData {
     // The owner's texture pages of one tile layer.
     int LayerPages() const { return owner->LayerPages(); }
 
-    // Vertex positions and water tiles. Returns 1, or FatalError's result for a missing or malformed file.
+    // Vertex positions and water tiles. Returns FatalError's result for a missing or malformed file, else 1.
     int Load(MappedResource* archive, int sx, int sy, const char* prefix, Terrain* owner);
 
     // Builds the vertex records, tile lists (the animated tiles' start frames drawn from g_clientRandom),
@@ -178,12 +172,10 @@ struct TerrainMaterial {
     static constexpr int kKeepsGroundXY = 4;   // the kind of water whose vertices keep the ground's x, y
     int kind = 0;
     Vector3 waveColour;                 // specular of the wave crests (Animate)
-    float opacity = 0.0f;               // as the map file has it
     float absorption = 0.0f;            // light lost per squared depth under water (lighting): 1 / (1 - opacity)
     std::uint8_t opacityByte = 0;       // opacity * 255
     Vector3 colour;                     // waveColour * the file's light factor, each capped at 1
     float priority = 0.0f;              // lowest wins where water materials meet; also scales the waves
-    float warpSpeed = 0.0f;             // from the map file; nothing reads it
     float level = 0.0f;                 // water level offset
 };
 

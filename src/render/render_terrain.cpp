@@ -46,6 +46,8 @@ struct SectorChanges {
     std::uint32_t rebuilt = 0, moved = 0, waterMoved = 0;
 };
 constexpr int kWaterRecords = terrain::kSectorVertices;
+// Light lost under water per squared depth and absorption (1 / 15): the dimming of the ground under water.
+constexpr float kWaterFalloff = 0.06666667f;
 static std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
 // --- Pages kept on the GPU ----------------------------------------------------------------------
@@ -123,7 +125,7 @@ static PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e
             const terrain::Terrain* owner = s->owner;
             if (owner && water->waterMaterial < std::ssize(owner->materials)) {
                 const terrain::TerrainMaterial& m = owner->materials[water->waterMaterial];
-                v.loss = terrain::kWaterFalloff * m.absorption * record.depth * record.depth;
+                v.loss = kWaterFalloff * m.absorption * record.depth * record.depth;
                 v.shore = WaterKind(m) != 1.0f ? 1.0f : 0.0f;
             }
         }

@@ -8,12 +8,13 @@
 #include "terrain.h"
 
 #include "lib/bytes.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 
 #include <algorithm>
 #include <cstdint>
-#include <cstdio>
+#include <format>
 #include <string>
 #include <vector>
 
@@ -21,7 +22,7 @@ namespace terrain {
 namespace {
 
 // The sector files' extension.
-constexpr const char* kSectorExtension = /*00744164*/ ".SEC";
+constexpr const char* kSectorExtension = ".SEC";
 
 constexpr float kOffsetScale = 1.0f / 126;     // vertex displacement per unit
 constexpr float kHeightUnit = 1.0f / 65534;
@@ -53,7 +54,7 @@ PageSlot SlotOf(int texture, int perPage, int pages) {
 int QuarterOf(int column, int row) { return column / (kSectorTiles / 2) + row / (kSectorTiles / 2) * 2; }
 
 // The animation speed of a texture class.
-constexpr int kAnimationSpeeds[kTextureClasses] = /*00796960*/ {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
+constexpr int kAnimationSpeeds[kTextureClasses] = {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
                                                    1000, 1000, 1000, 1000, 1000, 1000, 5,    9};
 
 int ClassOf(const Terrain* owner, int texture) {
@@ -243,8 +244,7 @@ int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const ch
     sx = sectorX;
     sy = sectorY;
 
-    char name[0x100];
-    std::snprintf(name, sizeof(name), "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
+    const std::string name = std::format("{}{:03}{:03}{}", prefix, sectorX, sectorY, kSectorExtension);
     std::uint32_t size = 0;
     const std::uint8_t* file = static_cast<const std::uint8_t*>(archive->GetFile(name, &size));
     data = file;
@@ -349,8 +349,7 @@ void SectorData::Build() {
         for (int i = 0; i < kSectorVertices; ++i) {
             unsigned id = records[kSectorVertices + i].waterMaterial;
             if (id == SectorVertex::kNoWaterMaterial) continue;
-            if (std::find(waterMaterials.begin(), waterMaterials.end(), id) == waterMaterials.end())
-                waterMaterials.push_back(static_cast<std::uint8_t>(id));
+            if (!lib::Contains(waterMaterials, id)) waterMaterials.push_back(static_cast<std::uint8_t>(id));
         }
         const std::span<float> levels = owner->SectorWaterLevels(sx, sy);
         for (std::uint8_t id : waterMaterials) levels[id] = owner->materials[id].level;
