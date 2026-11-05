@@ -1,0 +1,41 @@
+# IronMod's fixfslpatei.plg (MOD1b; docs/notes/mods.md, "The mods' plugins"): with Rebirth's IronMod
+# (starter\Mods\IronMod, whose config.reg names the plugin under [DEV] Plugin) the cheat word answers "NoCheating", the
+# console's script lines no longer know GiveMoney and seventeen other commands (a script error), the key bindings come
+# from config\kbdinput.ini (here the overlay's copy, written by the prepare tool with F5 quicksave and F8 quickload) and
+# the quick save and the quick load do nothing (the log says so; no saveq folder). The zones' own scripts keep the
+# commands: zone2.mob calls InflictDamage, GiveQuestItem and RemoveUnitFromServer and loads without a script error. The
+# vanilla data has no such folder: the game plays without a mod, the cheat word answers "Activated!", GiveMoney runs
+# and F5 / F8 save and load.
+# prepare: make_keyboard_ini.py kbdinput.ini
+mod starter\Mods\IronMod
+reject Script error: zone
+waitmenu
+console thingamabob
+rebirth expect NoCheating
+vanilla expect Activated!
+newgame
+waitfor 20 IsGreater(HP(GetLeader()),0)
+waitline 20 Saved savea
+waitwindow 15 battle
+console @GiveMoney(0,100)
+rebirth expect Script error
+vanilla reject Script error
+
+key f5
+frames 20
+rebirth expectlog mod: no quick save (IronMod's fixfslpatei.plg)
+vanilla waitline 20 Saved saveq
+key f8
+frames 20
+rebirth expectlog mod: no quick load (IronMod's fixfslpatei.plg)
+vanilla waitline 30 Loaded saveq
+waitfor 15 IsGreater(HP(GetLeader()),0)
+
+zone gz2g 0
+waitzone 30 gz2g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+rebirth read game Config\kbdinput.ini yes
+rebirth wrote game IronMod\saveq\info.sav no
+vanilla wrote game saveq\info.sav yes
+report
+quit

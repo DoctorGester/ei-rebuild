@@ -1,4 +1,4 @@
-// The key bindings file (the base path + the name): loaded at start and saved on the interface's shutdown.
+// The key bindings file (the base path + config\keyboard.ini, IronMod's config\kbdinput.ini): loaded at start and saved on the interface's shutdown.
 // Each line is "<key> <action>". The tables are the ones FindCommandByKey and the options window use: the
 // action of each scan code (0x200 signed bytes, g_keyActions), the keys (0x48-byte entries at Scan code, the
 // file's name, Windows' display text) and the actions (0x10-byte entries at Id, name, options group and row;
@@ -15,6 +15,7 @@
 #include "ui_options.h"
 #include "key_bindings.h"
 #include "game_singletons.h"
+#include "mod_plugin_ironmod.h"
 
 #include <cstdint>
 #include <memory>
@@ -70,7 +71,7 @@ void LoadKeyBindings() {
     std::vector<std::string> words;
     std::string bytes;
     std::memset(g_keyActions, 0, 0x200);
-    if (!platform::ReadWholeFile(g_dataFolder + "config\\keyboard.ini", &bytes)) return;
+    if (!platform::ReadWholeFile(g_dataFolder + modplugins::KeyBindingsFile(), &bytes)) return;
     for (const std::string& line : str::Lines(bytes)) {
         words = text::SplitWords(line, ' ');
         if (words.size() <= 1) continue;
@@ -94,7 +95,7 @@ void LoadKeyBindings() {
 // key name, action name.
 void SaveKeyBindings() {
     platform::File file;
-    if (!file.Open(g_dataFolder + "config\\keyboard.ini", platform::FileMode::Create)) return;
+    if (!file.Open(g_dataFolder + modplugins::KeyBindingsFile(), platform::FileMode::Create)) return;
     for (int scan = 0; scan < 0x200; ++scan) {
         signed char id = g_keyActions[scan];
         if (!id) continue;

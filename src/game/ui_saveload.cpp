@@ -12,6 +12,7 @@
 #include "core_streams.h"
 #include "game_flow.h"
 #include "game_singletons.h"
+#include "mod_plugin_ironmod.h"
 #include "model.h"
 #include "net_link.h"
 #include "object_tables.h"
@@ -33,6 +34,7 @@
 #include "lib/rect.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "platform/log.h"
 #include "platform/platform.h"
 #include "render/render.h"
 #include "render/text_format.h"
@@ -333,6 +335,10 @@ void SaveLoadWindow::FillEntries() {
 
 void QuickSave(const char* slot, bool stepFrame) {
     if (IsMultiplayerClient()) return;
+    if (SameFolder(slot, kQuickFolder) && modplugins::QuickSavesOff()) {
+        ei::Log("mod: no quick save (IronMod's fixfslpatei.plg)");
+        return;
+    }
     double space = platform::FreeDiskSpace(DataFolderText());
     // 0 means unknown: no check.
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
@@ -375,6 +381,10 @@ void QuickSave(const char* slot, bool stepFrame) {
 
 void QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
+    if (SameFolder(slot, kQuickFolder) && modplugins::QuickSavesOff()) {
+        ei::Log("mod: no quick load (IronMod's fixfslpatei.plg)");
+        return;
+    }
     std::string folder = SlotFolder(slot);
     if (!platform::PathExists(folder)) return;
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);

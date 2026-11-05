@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_ironmod",
+  "install": "vanilla",
+  "recorded": "2026-11-05",
+  "commit": "314ee02d3",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MOD1b: new scenario mod_ironmod (IronMod's fixfslpatei.plg as code; on the vanilla data the game without a mod)",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+}
