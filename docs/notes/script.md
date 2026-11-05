@@ -59,7 +59,9 @@ keyword id: `WorldScript(` commands `)` (at most one per file; run at the end wh
 params `)(` body `)` (a definition not declared before; after `DeclareScript` it is `Script name(` body `)`, once),
 `DeclareScript name(` params `)` ("Duplicate script" if it exists), `GlobalVars(` declarations `)`, anything else
 "Unexpected '%s'". 5. On success the loaded flag is set and the file counter incremented; a failed load does not count
-the file but definitions and globals added before the error stay.
+the file but definitions and globals added before the error stay. A zone's mission script that fails
+(`WorldServer::LoadZoneScripts`) says so on the console, `Script error: <zone>.mob line <n>: <error>` (ours; the
+original said nothing; Lost in Astral's bz23k, mods.md).
 
 Names declared in a file are qualified with the file counter: `QualifyName` gives `!<count>!name` once a file has been
 loaded; lookups try the plain name then the qualified one; `FindScript` also retries without each leading `!n!`, so a

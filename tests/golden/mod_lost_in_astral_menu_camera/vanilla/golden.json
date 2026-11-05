@@ -1,0 +1,12 @@
+{
+  "scenario": "mod_lost_in_astral_menu_camera",
+  "install": "vanilla",
+  "recorded": "2026-11-05",
+  "commit": "1828dccbf",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenario: the main menu with Lost in Astral at 16 ms frames; the drawn view must hold a camera placed by a rotation not of unit length still.",
+  "source": "image"
+}

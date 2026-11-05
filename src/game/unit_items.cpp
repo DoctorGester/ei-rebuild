@@ -74,6 +74,7 @@ void Unit::ReleaseAllItems() {
 }
 
 void Unit::AddCarried(Item* item) {
+    if (!item) return;
     item->AddRef();
     carried.push_back(item);
     MarkChanged(NetField::Equipment);

@@ -1,0 +1,12 @@
+{
+  "scenario": "mod_lost_in_astral_start",
+  "install": "vanilla",
+  "recorded": "2026-11-05",
+  "commit": "48ac7942a",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenarios: Lost in Astral's opening played to bz1h and every campaign zone entered (MOD2).",
+  "source": "image"
+}

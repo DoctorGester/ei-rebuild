@@ -1,0 +1,25 @@
+# The main menu's camera with Lost in Astral (MOD2; docs/notes/renderer.md section 14, "The drawn view"): the mod's
+# Camera\mainmenu.cam places the camera with a rotation that is not of unit length (its first key's, 1.16 long). The
+# camera stands still, and the frames between its ticks must draw it standing still: the drawn view took the last
+# tick's turn back with the conjugate, which for such a rotation is a scale (1.35), and on a screen's frame time the
+# menu zoomed in and out on every frame. At 16 ms frames (a 60 Hz screen on the virtual clock) consecutive frames
+# and frames a second apart differ only in what moves in the menu's world (fires, creatures, plants in the wind:
+# 0.2-0.3% of the pixels a frame apart, 1-2% a second apart; the zoom moved 50-85%). On the vanilla data the game's
+# own mainmenu.cam (unit rotations) holds the same.
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+frametime 16
+frames 20
+capture menu 6
+frames 60
+capture later 2
+diffcapture menu_1 menu_2 0 0.02
+diffcapture menu_2 menu_3 0 0.02
+diffcapture menu_3 menu_4 0 0.02
+diffcapture menu_4 menu_5 0 0.02
+diffcapture menu_5 menu_6 0 0.02
+diffcapture menu_1 later_1 0 0.05
+diffcapture later_1 later_2 0 0.02
+report
+quit
