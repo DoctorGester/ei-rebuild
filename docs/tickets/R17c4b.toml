@@ -1,0 +1,7 @@
+id = "R17c4b"
+title = "Swamps: greener water, shores not black, shore artifacts"
+group = "renderer"
+model = "opus"
+depends = ["R17c4a"]
+note = "User 2026-11-05 after playing Rebirth: the swamps are in the right direction but a bit too dark (the original was more green); swamp shores are definitely too dark, going mostly towards black; and there are sometimes weird artifacts that look related to shores. The user's saves from that session are copied (read-only source F:\games\Evil Islands (Rebirth)\SAVES) to build/r17c4b_saves/save5 and save6 of the main checkout (save6 newest; shot.sav is the save's picture). Find where the saves are, reproduce the views in a scenario (load the save, camera steps from R17c4), compare against the original look (vanilla/Rebirth game.exe captures or the R17c pre-upgrade frames if the original can't be run) and fix colour, shore darkening and the artifacts. Before/after captures on the captures page."
+order = 1143

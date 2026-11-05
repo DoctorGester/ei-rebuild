@@ -4,5 +4,5 @@ group = "cleanup"
 model = "sonnet"
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items R1, R3, R4, R5, R12. R1: one namespace render block per file, static for file-local helpers, drop detail and the 16 using namespace detail (do first: touches every file). R3: build the world-model list (batches after the first ground batch, flat/additive skipped, repeat passes flagged) once in PrepareShadows; CasterAlpha(); casters as an unordered_map; one kLeastStrength. R4: NearestClampSampler, ReleaseAfterPresent, UnpackColour, struct Box {low, high}, LogFirst(count, most, ...) replacing the 3-5 copies and the 16 rate-limited log counters. R5: render_terrain.cpp:472 dead colour half, PresentWindow always true, GammaRamp/GammaRampTable duplicate, the Ramp alias, unused params, exit-time loggers. R12: delete the pipeline/sampler front caches over gpu.cpp's own unless a profile shows they matter (measure on the R17c profile scene). Also the clever expressions: ++(cond ? a : b), comma operators, assignment in conditions, return Problem() from void. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1017
-status = "running"
+status = "queued"
 started = "2026-11-05"
