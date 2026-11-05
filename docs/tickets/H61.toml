@@ -5,5 +5,5 @@ size = 2
 model = "sonnet"
 note = "User 2026-11-05: yes. windows-latest (4 vCPU, 16 GB, no GPU): build release + harness, check out the private stub repo as suites-linux.yml does, run both suites sharded with the SDL_GPU D3D12 backend on WARP (find how SDL picks WARP; add a harness switch if needed). Measure per-scenario time against the Linux lavapipe job; skip list like LINUX_SKIP only for measured timeouts. One workflow_dispatch run to prove it, then on push."
 order = 1179
-status = "running"
+status = "review"
 started = "2026-11-05"
