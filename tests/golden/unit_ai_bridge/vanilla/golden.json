@@ -2,16 +2,16 @@
   "scenario": "unit_ai_bridge",
   "install": "vanilla",
   "recorded": "2026-11-05",
-  "commit": "eb5178845",
+  "commit": "d5b3c20ae",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
+  "reason": "R57c: visuals.sav gains the Zone section (the client's tick and the zone's map when taken), and a zone left keeps its side file saves\\current\\<zone>.visuals.sav (copied into a slot with the zone files); no digest or console moves (client-side picture only)",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
-    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+    "save savea/visuals.sav: 2 fields in 1 records differ: visuals 2",
+    "  visuals: 2 fields in 1 records; first visuals.zone tick: (none) in the old golden, 31 in the new run"
   ]
 }

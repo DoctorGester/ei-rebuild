@@ -1031,7 +1031,11 @@ public:
     std::vector<BloodPrint> bloodPrints;
     std::vector<Footprint> footprints;
     std::vector<GroundPrint> scorchMarks;
-    // What a load read beside the save (GameFlow::LoadGame, client_visuals.h): the next LoadZone restores it.
+    // The zone LoadZone loaded: its map database name (the local player's zone then) and its map as the server
+    // named it.
+    std::string shownZone;
+    std::string shownMap;
+    // The picture kept for the zone LoadZone loads (its side file in saves\current, client_visuals.h), restored there.
     ClientVisuals keptVisuals;
     Ref<ClientHandle> handle;       // the client's player source
     std::unique_ptr<SoundManager> sounds;   // the client controller's hit sounds too

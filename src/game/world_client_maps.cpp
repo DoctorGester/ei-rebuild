@@ -51,6 +51,7 @@
 #include "lib/rect.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
+#include "platform/platform.h"
 
 
 #include <algorithm>
@@ -814,6 +815,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     // The block: the tick, the map and .mob names, the exits, the cave flag, the unit looks.
     block->ReadValue(tick);
     map = block->ReadString();
+    shownMap = map;
     mob = block->ReadString();
     exits.resize(block->ReadCount());
     for (ZoneExit& exit : exits) exit.Read(block);
@@ -848,6 +850,14 @@ int WorldClient::LoadZone(ByteStream* block) {
     std::string& allod = zoneName;
     allod = "gipat";
     if (zone) allod = zone->allod;
+    // The zone's picture as it was kept (a zone left before, a save's load: client_visuals.h), used once.
+    shownZone = zone ? zone->name : std::string();
+    keptVisuals = ClientVisuals();
+    if (!shownZone.empty()) {
+        const std::string keptFile = ZoneVisualsPath(shownZone);
+        keptVisuals = ClientVisuals::Read(keptFile);
+        platform::RemoveFile(keptFile);
+    }
     str::MakeLower(allod);
     if (!currentTerrain->LoadMap(map, allod, newCave == kCave))
         game::FatalExit("Can't load terrain or map file \"%s\".\n", map);

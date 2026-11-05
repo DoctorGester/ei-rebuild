@@ -1,6 +1,8 @@
 current/gz1g.sav eb2325521c5e5957
+current/gz1g.visuals.sav 112f87df41f28685
 savea/gz1g.sav eb2325521c5e5957
+savea/gz1g.visuals.sav 112f87df41f28685
 savea/info.sav 2f43b0bb5bd744bb
 savea/mission.sav 514f5e5ab2fcb96e
 savea/scenario.sav 8c4350397e432ba7
-savea/visuals.sav b0d2d21c340f3041
+savea/visuals.sav 4b87ad1ddfa11902

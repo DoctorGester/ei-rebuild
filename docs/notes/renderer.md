@@ -1127,11 +1127,12 @@ option). Client side only: driven by the weather the world's light hands over (`
   once (R53). Only a zone's landscape loaded (`render::LandscapeLoaded`, from Terrain::LoadMap; a save's load goes
   through it too) starts again: for the first 32 ticks after it the state is the settled weather as it is (the weather
   message comes a tick or more after the zone's; a zone entered or loaded in snow is covered at once, in rain wet), then
-  it follows; after a save's load with its side file (11c) the surfaces hold the kept state over those 32 ticks
-  instead. The world's time goes on over a zone change (8 ticks), so without the landscape's call the ground of
-  gz11k stayed as wet as zone1's. The client's rain layer itself restarts from density 0 after a load (Clear) and fades
-  in over the message's 20 / 40 ticks (one or two seconds): nothing of it needs saving (the world saves `weather` and
-  `weatherStrength` and sends them with the zone). The rain falling now (the layer's density, none in snow) drives the
+  it follows; after a load with a side file (11c: a save's, or a zone's left before) the surfaces hold the kept state
+  over those 32 ticks instead. The world's time goes on over a zone change (8 ticks), so without the landscape's call
+  the ground of gz11k stayed as wet as zone1's. Every load (a save's, a revisited zone's, a multiplayer zone's) comes
+  back with the weather cleared: WorldServer::LoadSave reads the saved `weather` and `weatherStrength`, then its
+  LoadMap sets both to 0, so the zone's first weather message stops the client's rain layer at once and the rain
+  only comes back when UpdateWeather rolls it. The rain falling now (the layer's density, none in snow) drives the
   rings and splashes.
 - **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
   ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover (0.15 either side of it), broken by the
@@ -1244,21 +1245,22 @@ option). Client side only: driven by the weather the world's light hands over (`
   weather and 2.59 .. 2.63 ms without, at the start and at the shore; no difference above the noise.
 
 **11c. What a save keeps of the picture** (src/game/client_visuals.{h,cpp}, `render::WeatherToKeep` / `RestoreWeather`
-/ `UnitWeatherToKeep` / `RestoreUnitWeather`, render/kept_weather.h; R57). The user (2026-11-05): a loaded save shows
-the weather and the marks it was saved with, through a side file beside the save; the original's files stay as they
-are, and a save without the side file starts from the defaults.
+/ `UnitWeatherToKeep` / `RestoreUnitWeather`, render/kept_weather.h; R57, R57c). The user (2026-11-05): a loaded save
+shows the weather and the marks it was saved with, through a side file beside the save; the original's files stay as
+they are, and a save without the side file starts from the defaults. The same goes for a zone left and entered again,
+and each multiplayer client writes its own.
 - **What the original's save keeps** (mission.sav, WorldServer::SaveWorld): the world's tick, which the client takes
   with the zone (WorldClient::LoadZone), so every clock on the client's time goes on after a load: the day's light and
   the sun, the sky dome's turn, the rain rings' clock and the water's ripples (`clientTicks`), the animations. The
-  weather (`weather`, `weatherStrength`: sent with the zone, so the settled weather comes back), the wind, the night
-  level, the clock and its speed, the last rain bolt's tick; the water levels a script is still changing (the
-  countdowns); the scripts' FX sources, particles, point lights and lightning; the timed effects and the missiles in
-  flight, which the client then shows again.
+  weather (`weather`, `weatherStrength`, though every load clears it after reading it: LoadSave's LoadMap; item 13,
+  "State"), the wind, the night level, the clock and its speed, the last rain bolt's tick; the water levels a script
+  is still changing (the countdowns); the scripts' FX sources, particles, point lights and lightning; the timed effects
+  and the missiles in flight, which the client then shows again.
 - **What a load loses** (without the side file):
   - The ground prints: blood, footprints and scorch marks. `GroundPrint::Save` / `Load` (and Footprint's and
     BloodPrint's) exist from the original with no caller; WorldClient::LoadZone clears the three vectors. Kept (Prints).
-  - The client's rain or snow layer: it restarts from density 0 and fades in over the weather message's 20 / 40 ticks
-    (`RainSnow::Clear`, then `Start`), with its sound.
+  - The client's rain or snow layer: the zone's first weather message after the load says clear (the load cleared
+    the world's weather), and the layer stops at once (a duration of 0). Not kept: the game's weather is clear.
   - The landscape's wave phase (`terrain::Terrain::wavePhase`, the water vertices' waves, SectorData::AnimateWaves):
     back to 2 pi at every map load; the tiles' animation frame (`Terrain::frame`) back to 1.
   - The client generator (`g_clientRandom`, R34a): seeded once per process (World::Create), so the client's draws
@@ -1268,8 +1270,17 @@ are, and a save without the side file starts from the defaults.
     save loaded in rain was soaked at once, one loaded in snow covered at once); the clouds' drift (a new process starts
     at 0) and their cover (from the target of the rain falling at the first frame, which after a load is none: 0.4).
   - Transient and not kept: the particles of effects in flight start again, the bird, the flying hit points.
-- **The side file**: saves\<slot>\visuals.sav, written by GameFlow::SaveGame after scenario.sav (every save: the slots,
-  the quick save, the autosave) and read by GameFlow::LoadGame into `WorldClient::keptVisuals`. SaveFileWrite's frame
+- **The side files**: saves\<slot>\visuals.sav, written by GameFlow::SaveGame after scenario.sav (every save: the
+  slots, the quick save, the autosave), and saves\current\<zone>.visuals.sav beside the zone's own <zone>.sav,
+  written by GameFlow::ProcessRequest when the local client leaves a zone of a kind the game keeps (0 and 2) through a
+  zone change (state 4: the server's zone change message, single player and multiplayer alike; LeaveZone writes the
+  zone's file right after on a server). Each process writes its own into its own saves folder, so a multiplayer client
+  (which runs no server for the zone and never saves a slot) keeps its own, and the host's slot save copies only the
+  host's. CopyVisitedZones copies <zone>.visuals.sav with each <zone>.sav (into a slot and back); a zone's file goes
+  with ClearSaveFolder (a new game, a load, the host's SetNetworkZone). GameFlow::LoadGame copies the slot's
+  visuals.sav into its zone's place in saves\current; WorldClient::LoadZone reads saves\current\<zone>.visuals.sav
+  of the zone it loads (its map database record's name, the local player's zone) into `keptVisuals` and removes it:
+  one path for a save's load and a revisit, each file used once. SaveFileWrite's frame
   (magic 0x157, the save version 0x74, checksum, compressed), then sections: a u32 kind, a u32 version and a u32 size,
   then the section's bytes; kind 0 ends the list. A load takes a section only at the version it knows (and only when
   its values are numbers and its size is right) and skips any other, so a section whose contents change takes the next
@@ -1284,12 +1295,22 @@ are, and a save without the side file starts from the defaults.
     A list that runs past the section, or a print whose place or sizes are not numbers or whose life or lifetime is
     not above 0, drops all three lists. The alpha is not saved: Load sets it from the life left, as Tick does.
   - Generator (5; R57b): `g_clientRandom` whole: seeded, count, results and memory (256 u32 each), aa, bb, cc (2068
-    bytes). Only when seeded; skipped when its size is wrong or its count above 256.
+    bytes). Only when seeded; skipped when its size is wrong or its count above 256. A slot's file only: the
+    generator goes on through the zones of a session, so a zone's file leaves it out.
+  - Zone (6; R57c): the client world's tick when the picture was taken (i32) and the zone's map as the server named
+    it (zero-terminated). Every file has it; a file without it (R57's) is taken as it is.
 - **What depends on the frames drawn**: the generator's state at a save (its draws follow frames, the camera and what
   was drawn: idle picks, particles, sounds) and the footprints' places (a unit's animation's steps). Both are
   deterministic on the harness's virtual clock and are the same draws the client units' digests (cunit) already
   follow, so the Linux CI's llvmpipe runs compare them as they compare those; a run cut by its real-time limit
   differs in both.
+- **Whose picture**: the restore takes the file only when its map is the loaded zone's and it was taken no later than
+  8 ticks after the zone's tick (`kTickSlack`: a slot's picture is taken a tick or two after the tick its mission.sav
+  keeps), so a file left from another time or map gives the defaults. The ticks the zone ran since (the loaded tick
+  less the kept one: a revisit's catch-up, RestoreZone's, about 8 ticks for a quick one; the time a multiplayer client
+  spent away while the host's zone ran on) age the prints: each is ticked as the client world does, and those that
+  run out on the way are dropped. The weather is not moved on by them: the zone's weather over that time is not the
+  client's to know (and a load clears it), and the kept state follows the zone's own after the 32 ticks' hold anyway.
 - **The restore**: the end of WorldClient::LoadZone (after the landscape's LandscapeLoaded) restores the surfaces and
   the clouds (`RestoreWeather`: the surfaces hold the kept state while they would settle, 32 ticks; the clouds go on
   from the kept drift and cover), the wave phase, the prints (made again into the lists the load emptied; their
@@ -1298,12 +1319,21 @@ are, and a save without the side file starts from the defaults.
   (WorldClient::UpdateLighting, `ClientVisuals::RestoreUnits`): each kept unit present among the client's objects takes
   its kept wetness and snow (`RestoreUnitWeather`), and holds it while the ground holds. Everything kept is used once,
   so a later zone change starts from the defaults.
-- **Left**: the cloud cover dips after a load (0.74 to 0.70 in render_weather_save) while the client's rain layer fades
-  in again, as its density drives the cover's target. Not kept yet: the visited zones' saves\current\<zone>.sav and
-  the multiplayer clients (R57c). The harness's `origin` step (a recorded part that begins at a load) still seeds both
+- **The cloud cover after a load**: it goes on from the kept cover towards a clear sky's (0.74 to 0.70 at the
+  first frames in render_weather_save), because the load cleared the world's weather (LoadMap, above), not because a
+  rain layer fades in again: the layer stops at the zone's first weather message. Keeping the saved weather across a
+  load would change the game's state (UpdateWeather's rolls, the digests): R57d asks the user.
+- **Left**: a multiplayer client's file that outlives its session (a crash, a host that picks the same map later) is
+  only rejected by its map and tick; the host empties its saves\current at every new map (SetNetworkZone), a client
+  does not. The harness's `origin` step (a recorded part that begins at a load) still seeds both
   generators again after the load: the client's has drawn in the frames between the load and the origin, which the
   recording and its replay need not draw alike (harness.md, "Parts").
-- **Checks**: render_weather_save (zone1 by day: 15 s of rain, F5, 20 s of drying, F8): `weathercheck` and `unitweather`
+- **Checks**: zone_visuals (zone1 in rain: blood and footprints, then out to bz1g and back: the prints come back aged,
+  the ground, the hero and the cover as left; zone_return's goldens hold the zone side files); net_host_death (a host
+  alone: z3q2 left to the base and loaded again from saves\current, its log's "client visuals: z3q2 ... restored");
+  net_pair_zone_visuals (the peer walks in the host's z3q2, goes back to its own base and in again: its footprints back
+  from its own side file, over 80 against about 20 without, while the host stayed);
+  render_weather_save (zone1 by day: 15 s of rain, F5, 20 s of drying, F8): `weathercheck` and `unitweather`
   read the ground and the hero exactly as saved (0.759 both; from the settled rain they would be 1) and `cloudcheck`
   the cover near the saved one. ground_prints: `groundprints` counts the blood and footprints at the save and the
   same after its load (none without the side file). Every golden with saves holds its visuals.sav decoded (tools/savefile.py's

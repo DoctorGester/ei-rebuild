@@ -145,8 +145,9 @@ int ZoneRecordCount() { return static_cast<int>(g_mapDatabase.maps.size()); }
 void ScriptsReset(MemoryStream* scripts) { scripts->Resize(0); }
 
 // Copies <zone>.sav of every visited zone that has to be kept (the current map's zones and bz7g) from
-// folder `from` into folder `to` (saving: saves\current into the slot; loading: back); a zone whose file
-// could not be copied, and every other zone, is marked not visited ("zs.<zone>" = 0).
+// folder `from` into folder `to` (saving: saves\current into the slot; loading: back), with the client's side file
+// <zone>.visuals.sav when there is one (client_visuals.h); a zone whose file could not be copied, and every other
+// zone, is marked not visited ("zs.<zone>" = 0).
 void CopyVisitedZones(const std::string& from, const std::string& to, const std::string& currentMap,
                       NamedFloatTable* variables) {
     for (int i = 0; i < ZoneRecordCount(); ++i) {
@@ -158,7 +159,11 @@ void CopyVisitedZones(const std::string& from, const std::string& to, const std:
             if (keep) {
                 std::string fromFile = from + record->name + kSaveExtension;
                 std::string toFile = to + record->name + kSaveExtension;
-                if (platform::CopyFileOver(fromFile.c_str(), toFile.c_str())) continue;
+                if (platform::CopyFileOver(fromFile.c_str(), toFile.c_str())) {
+                    const std::string visuals = ZoneVisualsName(record->name);
+                    platform::CopyFileOver(from + visuals, to + visuals);
+                    continue;
+                }
             }
         }
         variables->Set(variable, 0.0f);
@@ -951,6 +956,18 @@ void GameFlow::UseResources(bool network) {
 
 void GameFlow::ProcessRequest() {
     if (state == 0) return;
+    // A zone the local client leaves for another keeps its picture beside the zone's file when the zone is of a kind
+    // the game keeps (kinds 0 and 2: LeaveZone below on a server, the host's on a multiplayer client), each client its
+    // own; the client generator goes on through the zones, so the zone's file has none (client_visuals.h).
+    if (state == kStateZone) {
+        const MapRecord* shown = g_mapDatabase.FindMap(g_clientWorld.shownZone);
+        if (shown && (shown->kind == 0 || shown->kind == 2) && g_clientWorld.terrain) {
+            ClientVisuals kept = ClientVisuals::Take(g_clientWorld);
+            kept.generator.reset();
+            platform::CreateFolder(str::Format(kCurrentFolder, DataFolderText()));   // a multiplayer client's first
+            kept.Write(ZoneVisualsPath(shown->name));
+        }
+    }
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (g_serverWorld.gameState == GameState::Playing && IsSinglePlayerMode(g_serverWorld.zoneMode) && state == kStateZone) {
         Party records;
@@ -1062,8 +1079,9 @@ int GameFlow::LoadGame(const std::string& slot) {
     g_partyManager.records.BeginRedeploy(&records);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh; the client's picture comes back
-    // from visuals.sav when the zone's landscape is loaded.
-    g_clientWorld.keptVisuals = ClientVisuals::Read(slotFolder + kVisualsFile);
+    // from visuals.sav, put in the zone's side file's place, when the zone's landscape is loaded.
+    const std::string zoneVisuals = ZoneVisualsPath(records.zone);
+    if (!platform::CopyFileOver(slotFolder + kVisualsFile, zoneVisuals)) platform::RemoveFile(zoneVisuals);
     MapRecord* zoneRecord = g_mapDatabase.FindMap(records.zone);
     int kind = zoneRecord->kind;
     if (kind != 0 && kind != 2) {
