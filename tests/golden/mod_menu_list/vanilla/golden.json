@@ -2,11 +2,19 @@
   "scenario": "mod_menu_list",
   "install": "vanilla",
   "recorded": "2026-11-05",
-  "commit": "1230ade49",
+  "commit": "fd79c6714",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD3b: the main menu's mod list; the vanilla data has no starter Mods, the run only reaches the menu",
-  "source": "image"
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
+  "source": "image",
+  "change": [
+    "digest: 3 of 3 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  client units: 1 of 4 differ",
+    "    #unit: 1 client unit, 3 records, from 0; hash only (no numbers kept)"
+  ]
 }

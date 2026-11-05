@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 4A511AEC n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 9E7DB87B n 68
 + world world
 world tick 20
 world updates 20
@@ -588,7 +588,7 @@ client units 4
 client synchronised 5
 + cunit2 80 unmoco2 ""
 cunit2 #place 40E7E427
-cunit2 #unit CA7CD47D
+cunit2 #unit 0370F4FB
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place 0B14C5BC
@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash A238C477 n 69
+@ 1 update 40 frame 7 tick 20 zone - hash 9D6DCC8B n 69
 world updates 40
 world paused 1
 client tick 21
@@ -620,10 +620,10 @@ cunit187 #place B7CE4832
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 0C1CB055
 cunit1000011214 #vitals 68D49C6E
-@ 2 update 60 frame 11 tick 20 zone - hash 9D3D8FA1 n 69
+@ 2 update 60 frame 11 tick 20 zone - hash A268875D n 69
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash 597BDF4D n 69
+@ 3 update 80 frame 15 tick 20 zone - hash 662ED7B1 n 69
 world updates 80
 client ticksRun 77
 @ 4 update 100 frame 19 tick 30 zone - hash E5A6092D n 68
@@ -652,7 +652,6 @@ client ticksRun 97
 client objects 51
 client units 4
 client synchronised 5
-cunit2 #unit 0370F4FB
 cunit129 #place 2A88CED8
 cunit148 #place 707C10BE
 cunit148 #unit 68281170

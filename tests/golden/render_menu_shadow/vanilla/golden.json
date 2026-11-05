@@ -1,0 +1,12 @@
+{
+  "scenario": "render_menu_shadow",
+  "install": "vanilla",
+  "recorded": "2026-11-05",
+  "commit": "fd79c6714",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
+  "source": "image"
+}
