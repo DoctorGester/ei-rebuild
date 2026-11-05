@@ -575,7 +575,9 @@ Every Windows build is x64 (release, verify, debug, asan, play; vcvars64).
 - **Formats:** formats read or written as bytes are 32-bit (core.md, "Values read and written as bytes"). A
   container's size meets the game's int counts through `lib::Count` (lib/containers.h), not `std::ssize`.
 - **Running it from a folder of its own:** use a folder made like the game folder.
-  - **Folders:** each is a junction to the install's, except `saves` and `cache`, which are real.
+  - **Folders:** each is a junction to the install's, except `saves`, `cache` and `Config`, which are real (`Config`
+    a copy: the game rewrites Config\keyboard.ini and tutorial.ini at every exit, so a junction writes into the
+    install; PL22, 2026-11-05).
   - **Files:** each is a copy, except game.exe.
   - **Settings:** ei_settings.ini's Work path must be `.\`. An absolute path sends saves\current into
     the install.
