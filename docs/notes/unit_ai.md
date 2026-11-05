@@ -79,7 +79,10 @@ recommendation per entry). Crashes, undefined behaviour and invisible bookkeepin
 - FindEnemiesNear asks the visible unit's IsHostileTo(self) where the others ask the unit's; ForceSee forces when at or
   beyond either of the observer's ranges, or when the object attacks the unit. See skips a dead hostile unit unless the
   unit sees all.
-- A target removed mid-attack leaves the brain at action 3 with its target cleared; UpdateCombat (finding nobody)
+- AIViewer::Refresh (every 8-11 ticks) sets the unit's flag 0x80000, which on a unit is `MapObjectFlag::RelationsChanged`:
+  the same tick's `PropagateHostility` then swaps hostility claims with the allies in the nearby list, relations changed
+  or not. Kept as the original has it (not asked whether it meant to).
+- A target removed mid-attack leaves the brain at AIAction::Attack with its target cleared; UpdateCombat (finding nobody)
   leaves it so (`unit_ai_attack_removed`).
 
 Facts behind fixed entries: Player mode's UpdateCombat carries out its choice like the enemy modes (ApplyAttack: a
@@ -102,7 +105,7 @@ Then noticedLevel / 6 when it is above 50 and the mode is in charge or the notic
 ## AIBrain::ApplyBehaviour
 
 The modes of behaviour `record`: the list emptied, the call radius (the default one becomes [Logic] CallForHelpRadius)
-and alert mode taken; type 1 guards the record's point, 5 the point of world alarm `slot`, 3 a sentry there, 2 patrols
+and alert mode taken; type Guard guards the record's point, GuardAlarm the point of world alarm `slot`, 3 a sentry there, 2 patrols
 (each patrol's start on its half-cell's middle, its waypoints as looks from there; without `loop` the points are walked
 back too), 4 the party's Player mode. Except for types 0 and 4 the reaction (`alarm`) adds Aggression (0) or Revenge (1)
 with Suspection, CorpseWatcher and Fear(0); 2 CorpseWatcher and Fear(0); 3 CorpseWatcher and Fear(1). Then the alarm

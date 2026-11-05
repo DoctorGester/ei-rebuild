@@ -262,7 +262,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         case ScriptFunction::SleepUntilIdle: {   // SleepUntilIdle(unit): while the brain has an action
             Unit* unit = args.Object().AsUnit();
-            if (unit && unit->ServerController()->brain.action != 0) cont = 0;
+            if (unit && unit->ServerController()->brain.action != AIAction::None) cont = 0;
             break;
         }
         case ScriptFunction::CallScript: {   // a declared script: start an instance with the call's arguments

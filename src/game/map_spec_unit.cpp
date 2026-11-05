@@ -98,22 +98,22 @@ void BehaviourChunk::OnChunk() {
     Behaviour* b = target;
     switch (c.id) {
     case 0xBBBC0001:
-        if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 0) b->alarm = 0;
+        if (c.ReadByte() != 0 && b->alarm > Reaction::Fight) b->alarm = Reaction::Fight;
         break;
     case 0xBBBC0002: b->loop = c.ReadByte(); break;
-    case 0xBBBC0003: b->type = c.ReadInt(); break;
+    case 0xBBBC0003: b->type = static_cast<BehaviourType>(c.ReadInt()); break;
     case 0xBBBC0004: b->guardRadius = c.ReadFloat(); break;
     case 0xBBBC0005: b->guard = c.ReadVector3(); break;
     case 0xBBBC0006: b->alarmKind = c.ReadByte(); break;
     case 0xBBBC0007: b->enabled = c.ReadByte(); break;
     case 0xBBBC0008:
-        if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 1) b->alarm = 1;
+        if (c.ReadByte() != 0 && b->alarm > Reaction::Revenge) b->alarm = Reaction::Revenge;
         break;
     case 0xBBBC0009:
-        if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 2) b->alarm = 2;
+        if (c.ReadByte() != 0 && b->alarm > Reaction::Watch) b->alarm = Reaction::Watch;
         break;
     case 0xBBBC000A: b->unreadChunk = c.ReadFloat(); break;
-    case 0xBBBC000B: b->alertMode = c.ReadByte(); break;
+    case 0xBBBC000B: b->alertMode = static_cast<AlertMode>(c.ReadByte()); break;
     case 0xBBBC000C: {
         b->callRadius = c.ReadFloat();
         break;
@@ -122,7 +122,7 @@ void BehaviourChunk::OnChunk() {
         if (c.ReadByte() != 0) b->flags |= BehaviourFlag::AlwaysUpdated;
         else b->flags &= ~BehaviourFlag::AlwaysUpdated;
         break;
-    case 0xBBBC000E: b->alarm = c.ReadByte(); break;
+    case 0xBBBC000E: b->alarm = static_cast<Reaction>(c.ReadByte()); break;
     case 0xBBBD0000: {
         PatrolChunk child(this);
         Behaviour* behaviour = target;
@@ -165,9 +165,9 @@ void UnitSpec::OnChunk() {
         Behaviour* b = &behaviour[index];
         reader.target = b;
         b->flags = 0;
-        b->alarm = 4;
+        b->alarm = Reaction::Unset;
         reader.ForEachChild();
-        if (b->alarm == 4) b->alarm = 0;
+        if (b->alarm == Reaction::Unset) b->alarm = Reaction::Fight;
         break;
     }
     default: ObjectSpec::OnChunk(); break;
@@ -216,11 +216,11 @@ void Behaviour::Read(ByteStream* stream) {
         StreamRead(stream, &alarm, 4);
         return;
     }
-    alarm = 2;
-    if (flags & BehaviourFlag::OldFight) alarm = 0;
-    else if (flags & BehaviourFlag::OldRevenge) alarm = 1;
-    else if (flags & BehaviourFlag::OldWatch) alarm = 2;
-    else if (flags & BehaviourFlag::OldWatchFearful) alarm = 3;
+    alarm = Reaction::Watch;
+    if (flags & BehaviourFlag::OldFight) alarm = Reaction::Fight;
+    else if (flags & BehaviourFlag::OldRevenge) alarm = Reaction::Revenge;
+    else if (flags & BehaviourFlag::OldWatch) alarm = Reaction::Watch;
+    else if (flags & BehaviourFlag::OldWatchFearful) alarm = Reaction::WatchFearful;
 }
 
 // The record to a stream (the same fields).

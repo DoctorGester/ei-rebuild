@@ -513,7 +513,7 @@ public:
     // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 moves on the water surface), the
     // mode and base speeds and the six body slots (the unit panel's parts are their kind / current / maximum).
     UnitParams params;
-    int fightAtWill = 0;                // 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
+    int fightAtWill = 0;                // kFightAtWill: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
     std::uint32_t altPassCosts = 0;     // set: path searches use the AI map's alternative cost table
     Item* weapons[4] = {};
     Item* quickItems[4] = {};
@@ -523,6 +523,9 @@ public:
     float actionSpeeds[6] = {};     // per action kind (ActionSpeed; from the model record)
     std::array<float, 5> exposure = {};         // any at most 2 (or NaN) asks for a party refresh
 };
+
+// Unit::fightAtWill of a unit that attacks on its own.
+inline constexpr int kFightAtWill = 1;
 
 inline Unit* UnitOrNull(EngineObject* object) {
     return object && object->GetClassId() == ClassId::Unit ? static_cast<Unit*>(object) : nullptr;

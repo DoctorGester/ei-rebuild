@@ -38,7 +38,7 @@ constexpr float kFarRange = 80.0f;
 constexpr float kStandRadius = 5.0f;
 constexpr float kArrivedSq = 0.2f;
 constexpr float kCloseSq = 25.0f;
-constexpr float kWalking = 1.0f;            // PlayerMode::point.z while it walks there in state 2
+constexpr float kWalking = 1.0f;            // PlayerMode::point.z while it walks there in PlayerState::MoveTo
 
 void MaybeRemark(AIBrain* brain, AIRemark what) {
     if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(what);
@@ -110,7 +110,7 @@ void GuardMode::Set(const Vector3& p, float newRadius, float newWander) {
 
 void GuardMode::Execute(AIBrain* brain) {
     AIMode::Execute(brain);
-    if (brain->action != AIBrain::kActionNone) return;
+    if (brain->action != AIAction::None) return;
     SetPositions(brain, point, kNearRange + radius, kFarRange + radius);
 
     AIMoveOrder order;
@@ -155,7 +155,7 @@ int PatrolMode::Evaluate(AIBrain* brain) {
 
 void PatrolMode::Execute(AIBrain* brain) {
     AIMode::Execute(brain);
-    if (points.empty() || brain->action != AIBrain::kActionNone) return;
+    if (points.empty() || brain->action != AIAction::None) return;
     if (++current >= std::ssize(points)) current = 0;
     const PatrolPoint& next = points[current];
     AIMoveOrder order;
@@ -197,7 +197,7 @@ void PatrolMode::Save(ByteStream* stream) {
 
 void SentryMode::Execute(AIBrain* brain) {
     AIMode::Execute(brain);
-    if (brain->action != AIBrain::kActionNone) return;
+    if (brain->action != AIAction::None) return;
     AIMoveOrder order;
     order.point = point;
     bool farLook = g_random.Next() % 11 == 0;
@@ -215,7 +215,7 @@ void SentryMode::Save(ByteStream* stream) { stream->WriteValue(point); }
 // --- Follow --------------------------------------------------------------------------------------
 
 void FollowMode::Execute(AIBrain* brain) {
-    if (brain->action != AIBrain::kActionNone || !leader) return;
+    if (brain->action != AIAction::None || !leader) return;
     brain->Follow(leader);
 }
 
@@ -242,7 +242,7 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
 }
 
 void SuspectionMode::Execute(AIBrain* brain) {
-    if (brain->action != AIBrain::kActionNone) {
+    if (brain->action != AIAction::None) {
         // A new move only when the distance is greater.
         if (DistanceSquaredXY(point, brain->move.point) <= kArrivedSq) {
             const Vector3& at = brain->owner->unit->localPosition;
@@ -252,7 +252,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
         }
     }
     AIMoveOrder order;
-    if (brain->action == AIBrain::kActionNone) {
+    if (brain->action == AIAction::None) {
         if (brain->owner->orderStopped) level -= 50;
         std::optional<Vector3> stand = brain->FindStandPoint(point, kStandRadius);
         if (!stand) {
@@ -416,35 +416,35 @@ void FearMode::Save(ByteStream* stream) {
 void PlayerMode::Execute(AIBrain* brain) {
     Unit* unit = brain->owner->unit;
     bool danger = PartyInDanger(unit);
-    if (brain->seen && unit->fightAtWill != 1) brain->owner->Shout(AckKind::AttackedInDefence);
+    if (brain->seen && unit->fightAtWill != kFightAtWill) brain->owner->Shout(AckKind::AttackedInDefence);
 
     switch (state) {
-    case kStateFollow: {
-        if (!leader && brain->action == AIBrain::kActionFollow) brain->StopAction();
-        int action = brain->action;
-        if (action == AIBrain::kActionAttack && !target) {
+    case PlayerState::Follow: {
+        if (!leader && brain->action == AIAction::Follow) brain->StopAction();
+        AIAction action = brain->action;
+        if (action == AIAction::Attack && !target) {
             UpdateCombat(brain);
             return;
         }
-        if (action != AIBrain::kActionNone && (!leader || action != AIBrain::kActionFollow)) return;
+        if (action != AIAction::None && (!leader || action != AIAction::Follow)) return;
         if (!leader) {
             UpdateCombat(brain);
             return;
         }
         if (!danger) brain->Follow(leader);
-        // While the leader itself carries out a command (its Player mode in state 1), only follow.
+        // While the leader itself carries out a command (its Player mode in PlayerState::Command), only follow.
         PlayerMode* leaderMode = leader->ServerController()->brain.FindModeOf<PlayerMode>();
-        if (leaderMode && leaderMode->state == kStateCommand) return;
+        if (leaderMode && leaderMode->state == PlayerState::Command) return;
         UpdateCombat(brain);
         return;
     }
-    case kStateCommand:
-        if (brain->action != AIBrain::kActionNone) return;
+    case PlayerState::Command:
+        if (brain->action != AIAction::None) return;
         break;
-    case kStateMoveTo: {
+    case PlayerState::MoveTo: {
         if (point.z == kWalking) {
-            if (brain->action == AIBrain::kActionNone) {
-                state = kStateFollow;
+            if (brain->action == AIAction::None) {
+                state = PlayerState::Follow;
                 brain->StopAction();
             } else if (!danger && !StaysWithParty(brain, true)) {
                 brain->owner->Shout(AckKind::WaitForFollowers);
@@ -456,25 +456,25 @@ void PlayerMode::Execute(AIBrain* brain) {
             Vector3 to{point.x, point.y, kUnsetCoordinate};
             brain->Walk(to, 0);
         }
-        if (state == kStateMoveTo) UpdateCombat(brain);
+        if (state == PlayerState::MoveTo) UpdateCombat(brain);
         return;
     }
     default:
         break;
     }
-    state = kStateFollow;
+    state = PlayerState::Follow;
     brain->StopAction();
 }
 
 void PlayerMode::CommandWalk(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset) {
-    state = kStateCommand;
+    state = PlayerState::Command;
     PrepareWalk(this, brain, to, run, offset);
-    brain->action = AIBrain::kActionWalk;
+    brain->action = AIAction::Walk;
     brain->owner->OrderMove(point, runs, inGroup);
 }
 
 void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset) {
-    state = kStateMoveTo;
+    state = PlayerState::MoveTo;
     PrepareWalk(this, brain, to, run, offset);
     if (!PartyInDanger(brain->owner->unit) && !StaysWithParty(brain, true)) {
         point.z = 0.0f;
@@ -482,35 +482,35 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3& to, bool inGroup, bo
         return;
     }
     point.z = kWalking;
-    brain->action = AIBrain::kActionWalk;
+    brain->action = AIAction::Walk;
     brain->owner->OrderMove(point, runs, inGroup);
 }
 
 void PlayerMode::CommandAttack(AIBrain* brain, MapObject* object, int how, int calledShot) {
     Unit* self = brain->owner->unit;
     if (object == self) return;
-    state = kStateFollow;
+    state = PlayerState::Follow;
     target.Assign(object);
     // A unit without a player does not attack a unit it cannot keep track of.
     Unit* unit = UnitOrNull(object);
     if (!self->player && unit && !brain->memory.CanTrack(self, unit)) return;
-    brain->action = AIBrain::kActionAttack;
+    brain->action = AIAction::Attack;
     brain->target.Assign(object);
     brain->owner->OrderAttack(brain->target, how, calledShot, AckKind::Attack);
 }
 
 void PlayerMode::CommandUse(AIBrain* brain, MapObject* object, UseSource kind, int spot, bool run) {
-    state = kStateFollow;
+    state = PlayerState::Follow;
     brain->UseOn(object, kind, spot, run);
 }
 
 void PlayerMode::CommandCast(AIBrain* brain, int spell, MapObject* object) {
-    state = kStateFollow;
+    state = PlayerState::Follow;
     brain->CastOn(spell, object, runs);
 }
 
 void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3& at) {
-    state = kStateFollow;
+    state = PlayerState::Follow;
     brain->CastAt(spell, at, runs);
 }
 
@@ -530,8 +530,8 @@ void PlayerMode::SetLeader(AIBrain* brain, Unit* newLeader) {
         }
         unit = next;
     }
-    if (brain->action == AIBrain::kActionWalk) {
-        state = kStateFollow;
+    if (brain->action == AIAction::Walk) {
+        state = PlayerState::Follow;
         brain->StopAction();
     }
     leader.Assign(newLeader);
@@ -546,7 +546,7 @@ void PlayerMode::Detach() {
     leader.Reset();
     target.Reset();
     point = Vector3{0.0f, 0.0f, 0.0f};
-    state = kStateFollow;
+    state = PlayerState::Follow;
     runs = false;
 }
 
@@ -749,20 +749,20 @@ void FearMode::Execute(AIBrain* brain) {
         AIPath path;
         float way = Distance(dest, here);
         if (g_serverWorld.aiMap.FindPath(brain->owner->unit, dest, &path, PathRange(way), kMinDistance)) {
-            brain->action = AIBrain::kActionWalk;
+            brain->action = AIAction::Walk;
             brain->owner->OrderMove(dest, 0, 0);
         }
         spread += spread;
     }
 
-    if (brain->action == AIBrain::kActionNone) {
+    if (brain->action == AIAction::None) {
         // Fight back when there is something worth it (helping allies too).
         UnitList candidates;
         Vector3 at = brain->owner->unit->localPosition;
         AITargetChoice best = brain->Choose(&candidates, at, true, true);
         brain->ApplyAttack(&best);
 
-        if (brain->action == AIBrain::kActionNone) {
+        if (brain->action == AIAction::None) {
             // Stand still and look away from the danger.
             order.point = brain->owner->unit->localPosition;
             Vector3 v = from - here;
@@ -782,7 +782,6 @@ void FearMode::Execute(AIBrain* brain) {
 // targets, the party itself and whether the unit's followers keep up.
 
 namespace {
-constexpr int kStandby = 1;                                     // Unit::fightAtWill: may fight
 constexpr float kReachScale = 1.1f;
 constexpr float kMovingSlack = 2.0f;
 constexpr float kStandingSlack = 1.4f;
@@ -796,7 +795,7 @@ bool PartyInDanger(const Unit* unit) {
 
 void PlayerMode::UpdateCombat(AIBrain* brain) {
     Unit* unit = brain->owner->unit;
-    if (unit->fightAtWill != kStandby) return;
+    if (unit->fightAtWill != kFightAtWill) return;
 
     // The commanded target first, when it can be reached from here.
     if (target && !target->IsDead()) {
@@ -808,7 +807,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
 
     float radius;
-    if (state == kStateMoveTo) {
+    if (state == PlayerState::MoveTo) {
         radius = g_logicSettings.swarmRadius;
     } else {
         point = Vector3{0.0f, 0.0f, 0.0f};
@@ -838,8 +837,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 if (other == unit) continue;
                 AIBrain* theirs = &other->ServerController()->brain;
                 auto* mode = theirs->FindModeOf<PlayerMode>();
-                if (!mode || theirs->action == AIBrain::kActionAttack || theirs->action == AIBrain::kActionCast) continue;
-                mode->state = kStateFollow;
+                if (!mode || theirs->action == AIAction::Attack || theirs->action == AIAction::Cast) continue;
+                mode->state = PlayerState::Follow;
                 theirs->StopAction();
             }
         }
@@ -855,7 +854,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
         if (other == unit || other->player != unit->player) continue;
         AIBrain* theirs = &other->ServerController()->brain;
         Unit* foe = UnitOrNull(theirs->target.Get());
-        if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack) continue;
+        if (!foe || foe->player == unit->player || theirs->action != AIAction::Attack) continue;
         if (lib::Contains(*targets, foe)) continue;
         targets->push_back(foe);
     }

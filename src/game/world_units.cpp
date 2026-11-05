@@ -152,7 +152,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         auto* record = (*records)[i];
         message->prototype = record->prototype;
         message->texture = record->figureName;
-        message->behaviour[0].type = 4;
+        message->behaviour[0].type = mapspec::BehaviourType::Party;
         message->behaviour[0].enabled = 1;
         message->behaviour[0].flags = 0;
         message->kind = SpecKind::Unit;

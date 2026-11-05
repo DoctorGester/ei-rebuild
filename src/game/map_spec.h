@@ -53,7 +53,7 @@ struct LeverSetup {
 };
 
 // The bits of mapspec::Behaviour::flags. Before format 0x53 (kVersionUnitAlarm) the reaction (Behaviour::alarm) was
-// a bit each; the first set one counts, none is 2 (the reactions: unit_ai.cpp's Reaction).
+// a bit each; the first set one counts, none is 2 (mapspec::Reaction).
 enum class BehaviourFlag : std::uint32_t {
     OldFight = 0x1,             // reaction 0
     OldRevenge = 0x2,           // 1
@@ -80,11 +80,39 @@ struct Patrol {
     std::vector<Waypoint> waypoints;
 };
 
+// What a behaviour record makes the unit do (Behaviour::type; AIBrain::ApplyBehaviour). Any other value adds no mode
+// of its own.
+enum class BehaviourType : std::int32_t {
+    None = 0,
+    Guard = 1,
+    Patrol = 2,
+    Sentry = 3,
+    Party = 4,
+    GuardAlarm = 5,     // guards the world alarm point of its slot
+};
+
+// How a unit with a behaviour reacts to what it senses (Behaviour::alarm): the modes ApplyBehaviour adds.
+enum class Reaction : std::int32_t {
+    Fight = 0,
+    Revenge = 1,        // aggression only against the enemy a script set (UMRevenge)
+    Watch = 2,
+    WatchFearful = 3,
+    Unset = 4,          // while a record is read: no chunk set it
+};
+
+// When a unit counts as alerted (Behaviour::alertMode, AIBrain::alertMode; the alarm countdown runs only while it
+// is). The numbers are the saved values.
+enum class AlertMode : std::int32_t {
+    OnSight = 0,        // a living hostile unit in sight
+    OnSeen = 1,         // AIBrain::SetSeen: a hit, a call, a script
+    OnSightOrMode = 2,  // in sight, or an alert mode (suspection, aggression, corpse watching, fear) takes charge
+};
+
 // A unit's behaviour (alarm) record; the brain applies one.
 struct Behaviour {
     void Read(ByteStream* stream);
     void Write(ByteStream* stream) const;
-    std::int32_t type = 3;       // 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
+    BehaviourType type = BehaviourType::Sentry;
     std::vector<Patrol> patrols;
     Vector3 guard{};             // the unit's position when saved
     std::uint32_t loop = 1;      // a patrol loops; 0: its points are walked back too
@@ -95,9 +123,9 @@ struct Behaviour {
     std::uint32_t enabled = 0;   // (1 for the first record) HearAlarm applies a record other than the
                                  // first only when set
     float callRadius = 10.0f;
-    std::uint32_t alertMode = 0;
+    AlertMode alertMode = AlertMode::OnSight;
     std::uint32_t alarmDelay = 75;   // the alarm countdown (at least 1)
-    std::uint32_t alarm = 0;     // the reaction modes 0..3 (4 while reading: unset)
+    Reaction alarm = Reaction::Fight;
 };
 
 // Which record a Spec is. QuickEffect is an object record no zone file holds: the effect object a quick item makes

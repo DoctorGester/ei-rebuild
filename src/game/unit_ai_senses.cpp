@@ -35,7 +35,6 @@ constexpr float kNonPlayerReach = 1.05f;        // units without a player keep s
 constexpr float kEyeHeightFactor = 1.8f;
 constexpr float kSightCellsFactor = 2.0f;
 constexpr float kSectorScale = 0.03125f;
-constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
 // "Unit <self> <text> <other>" (no line end).
 console::Stream& LogPair(Unit* self, const char* text, EngineObject* other) {
@@ -61,7 +60,10 @@ void AIViewer::Prepare(Unit* self) {
 
 void AIViewer::Refresh(Unit* self, AIMemory* memory) {
     if (--memory->nearbyCountdown > 0) return;
-    self->flags |= kFlagNearbyListed;
+    // Every refresh of the nearby list sets this bit, which is also the "relations changed" bit: the same tick's
+    // UnitServer::PropagateHostility (after Think) then clears it and swaps hostility claims with the allies in the
+    // list, whether or not any relation changed.
+    self->flags |= MapObjectFlag::RelationsChanged;
     memory->nearbyCountdown = (libcrt::Rand() & 3) + 8;
     const Point block = eyeCell / 32;
     UnitServer* control = self->ServerController();
@@ -250,7 +252,7 @@ void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector
         const float distance = Distance(at, other->localPosition);
         if (hearing * loudness <= distance) continue;
         std::string text;
-        if (console::g_filterMask & 1) {
+        if (console::g_filterMask & console::kLogAi) {
             const float between = Distance(other->localPosition, unit->localPosition);
             text = str::Format(kHeardFormat, other->id, unit->id, between);
         }
@@ -331,7 +333,7 @@ void AIMemory::ForceSee(Unit* self, Unit* object) {
     UnitServer* ours = self->ServerController();
     float distance = std::sqrt(LengthSquared(self->localPosition - other->localPosition));
     AIBrain* theirBrain = &theirs->brain;
-    bool attacksUs = (theirBrain->action == AIBrain::kActionAttack || theirBrain->action == AIBrain::kActionCast) &&
+    bool attacksUs = (theirBrain->action == AIAction::Attack || theirBrain->action == AIAction::Cast) &&
                      theirBrain->target == self;
     if (!attacksUs) {
         float sight = SightRange(ours, theirs);
