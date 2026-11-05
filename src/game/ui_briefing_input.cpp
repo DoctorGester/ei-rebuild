@@ -106,7 +106,7 @@ void BriefingScreen::LeftDown(UiEvent& event) {
         Unit* object = g_clientWorld.UnitAt(event.at, HitTest::Parts);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
-                ui->PlayInterfaceSound(kClickSound);
+                g_interface.PlayInterfaceSound(kClickSound);
                 OpenTopics(object);
             }
             return;
@@ -117,7 +117,7 @@ void BriefingScreen::LeftDown(UiEvent& event) {
     case 1: {
         const int row = RegionIndex(topicRows, RegionUnder(event.at));
         if (row < 0 || row + topicTop >= std::ssize(topics)) return;
-        ui->PlayInterfaceSound(kClickSound);
+        g_interface.PlayInterfaceSound(kClickSound);
         topic = topics[row + topicTop];
         ClearRegions();
         std::ranges::fill(topicRows, nullptr);
@@ -125,11 +125,11 @@ void BriefingScreen::LeftDown(UiEvent& event) {
         return;
     }
     case 3:
-        ui->PlayInterfaceSound(kClickSound);
+        g_interface.PlayInterfaceSound(kClickSound);
         NextPhrase(false);
         return;
     case 4:
-        ui->PlayInterfaceSound(kClickSound);
+        g_interface.PlayInterfaceSound(kClickSound);
         FinishDialogue();
         return;
     default:
@@ -158,7 +158,7 @@ void BriefingScreen::MouseMove(UiEvent& event) {
     } else if (state == 4) {
         g_cursor.SetShape(CursorShape::Default);
     }
-    if (ui->rightDown || state != 0) return;
+    if (g_interface.rightDown || state != 0) return;
 
     Unit* object = g_clientWorld.UnitAt(event.at, HitTest::Parts);
     if (IsPerson(object)) {
@@ -265,7 +265,7 @@ constexpr int kQuestNameParts = 3;               // "q", zone, quest
 
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
 // active.
-void OpenObjectives(Interface3D* ui) {
+void OpenObjectives() {
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     if (!zone) return;
     std::vector<std::string> parts;
@@ -277,9 +277,9 @@ void OpenObjectives(Interface3D* ui) {
         MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
-        auto window = std::make_unique<ObjectivesWindow>(ui);
+        auto window = std::make_unique<ObjectivesWindow>();
         window->Setup(LocalPlayerZone(), nullptr, false, true);
-        ui->PushWindow(std::move(window), WindowBackdrop::FirstWindow);
+        g_interface.PushWindow(std::move(window), WindowBackdrop::FirstWindow);
         break;
     }
 }
@@ -295,31 +295,31 @@ void BriefingScreen::KeyDown(UiEvent& event) {
     switch (event.key) {
     case platform::Key::Backspace:
         if (IsMultiplayerClient()) {
-            ui->ChatKeyBackspace();
+            g_interface.ChatKeyBackspace();
             event.handled = true;
             return;
         }
         break;
     case platform::Key::Return:
         if (IsMultiplayerClient()) {
-            ui->ChatKeyEnter();
+            g_interface.ChatKeyEnter();
         } else if (state == 3) {
-            ui->PlayInterfaceSound(kClickSound);
+            g_interface.PlayInterfaceSound(kClickSound);
             while (state == 3) NextPhrase(true);
         } else if (state == 4) {
-            ui->PlayInterfaceSound(kClickSound);
+            g_interface.PlayInterfaceSound(kClickSound);
             FinishDialogue();
         }
         event.handled = true;
         return;
     case platform::Key::Escape:
         if (state == 0) {
-            ui->PushWindow(std::make_unique<EscMenu>(ui), WindowBackdrop::FirstWindow);
+            g_interface.PushWindow(std::make_unique<EscMenu>(), WindowBackdrop::FirstWindow);
         } else if (state == 3) {
-            ui->PlayInterfaceSound(kClickSound);
+            g_interface.PlayInterfaceSound(kClickSound);
             while (state == 3) NextPhrase(true);
         } else if (state == 4) {
-            ui->PlayInterfaceSound(kClickSound);
+            g_interface.PlayInterfaceSound(kClickSound);
             FinishDialogue();
         } else if (state == 2) {
             StartDialogue(true, false);
@@ -330,10 +330,10 @@ void BriefingScreen::KeyDown(UiEvent& event) {
         return;
     case platform::Key::Space:
         if (state == 3) {
-            ui->PlayInterfaceSound(kClickSound);
+            g_interface.PlayInterfaceSound(kClickSound);
             NextPhrase(false);
         } else if (state == 4) {
-            ui->PlayInterfaceSound(kClickSound);
+            g_interface.PlayInterfaceSound(kClickSound);
             FinishDialogue();
         } else if (state == 2) {
             StartDialogue(true, false);
@@ -346,7 +346,7 @@ void BriefingScreen::KeyDown(UiEvent& event) {
     if (state != 0) return;
     switch (g_keyActions[event.scan]) {
     case kActionObjectives:
-        OpenObjectives(ui);
+        OpenObjectives();
         break;
     case kActionLeader:
         if (leader) g_camera.SetTarget(leader);

@@ -150,7 +150,7 @@ void HudClock::LeftUp(UiEvent& event) {
 }
 
 void HudClock::TogglePause() {
-    ui->PlayInterfaceSound(kSoundClock);
+    g_interface.PlayInterfaceSound(kSoundClock);
     const bool paused = g_clientWorld.paused;
     g_clientWorld.SendPause(paused ? 0 : 1);
 }
@@ -158,20 +158,20 @@ void HudClock::TogglePause() {
 void HudClock::SetSpeed(bool newFast) {
     fast = newFast;
     app::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
-    ui->fastGame = newFast;
-    ui->PlayInterfaceSound(kSoundClock);
+    g_interface.fastGame = newFast;
+    g_interface.PlayInterfaceSound(kSoundClock);
 }
 
 void HudClock::OpenObjectives() {
     highlight = false;
-    ui->PlayInterfaceSound(kSoundClick);
-    auto window = std::make_unique<ObjectivesWindow>(ui);
+    g_interface.PlayInterfaceSound(kSoundClick);
+    auto window = std::make_unique<ObjectivesWindow>();
     window->Setup(LocalPlayerZone(), nullptr, false, false);
-    ui->PushWindow(std::move(window), WindowBackdrop::FirstWindow);
+    g_interface.PushWindow(std::move(window), WindowBackdrop::FirstWindow);
 }
 
 void HudClock::Update() {
-    ui->fastGame = fast;
+    g_interface.fastGame = fast;
 
     // The blink phase runs from 0 to 1 once a second.
     float blinkAt = UiContainer::FrameTime() + blink;
@@ -288,7 +288,7 @@ void HudClock::Setup(bool newFast) {
     fast = newFast;
     blink = 0.0f;
     app::g_updatePeriod = newFast ? kFastPeriod : kNormalPeriod;
-    ui->fastGame = fast;
+    g_interface.fastGame = fast;
     highlight = false;
     dial = 0.0f;
 }
@@ -316,7 +316,7 @@ void HudMovePanel::SetMode(int newMode) {
     PlayerClient* view = g_clientWorld.LocalView();
     if (!view) return;
     if (newMode >= 0 && newMode < 4) {
-        ui->PlayInterfaceSound(kSoundClick);
+        g_interface.PlayInterfaceSound(kSoundClick);
         for (Unit* unit : owner->party) {
             if (unit->flags & MapObjectFlag::Selected) view->SetMoveMode(unit, newMode);
         }
@@ -417,7 +417,7 @@ void HudMovePanel::Build() {
 }
 
 void HudMovePanel::ToggleFlag() {
-    ui->PlayInterfaceSound(kSoundClick);
+    g_interface.PlayInterfaceSound(kSoundClick);
     // The selected party units' common flag: -1 none selected, -2 mixed.
     int common = -1;
     for (Unit* unit : owner->party) {
@@ -451,11 +451,11 @@ void HudTopPanel::OnEvent(UiEvent& event) {
 void HudTopPanel::LeftUp(UiEvent& event) {
     const UiRegion* region = PressedRegion(event);
     if (region == slingButton) {
-        slide.Toggle(ui);
+        slide.Toggle();
     } else if (const int newPage = RegionIndex(pageButtons, region); newPage >= 0) {
         page = newPage;
         ShowPage();
-        ui->PlayInterfaceSound(kSoundClick);
+        g_interface.PlayInterfaceSound(kSoundClick);
     }
 }
 
@@ -473,8 +473,8 @@ void HudTopPanel::Update() {
         }
         slingArrow->Place(kSlingX, y, kSpriteDepth);
     }
-    ui->hudPanelsIn[1] = slide.direction > 0.0f ? 1 : 0;             // the panel is (coming) in
-    ui->hudTopPage = page;
+    g_interface.hudPanelsIn[1] = slide.direction > 0.0f ? 1 : 0;             // the panel is (coming) in
+    g_interface.hudTopPage = page;
 }
 
 void HudTopPanel::Setup(int newPage, bool shown) {

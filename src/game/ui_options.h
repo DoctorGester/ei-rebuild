@@ -93,7 +93,7 @@ public:
     static constexpr int kGroups = 11;
     static constexpr int kRows = 14;
 
-    OptionsWindow(Interface3D* ui, bool newSliding) : UiContainer(ui), sliding(newSliding) {}
+    OptionsWindow(bool newSliding) : sliding(newSliding) {}
     void DrawSprites(SceneRenderer* pass) override;                      // slides in
     void DrawSurfaces() override;                            // not while sliding
     void CloseScreen() override {}

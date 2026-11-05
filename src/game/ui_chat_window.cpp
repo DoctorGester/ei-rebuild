@@ -50,11 +50,11 @@ constexpr std::uint32_t kWhite = 0xFFFFFF;
 // Its own update; its click and mouse move.
 ChatWindow::~ChatWindow() = default;
 
-ChatWindow::ChatWindow(Interface3D* ownerUi, BriefingScreen* screen) : UiWindow(ownerUi), briefing(screen) {
+ChatWindow::ChatWindow(BriefingScreen* screen) : briefing(screen) {
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect = Rect{left, 0, 800, 0xA0};
-    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true));
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) { PaintStatus(out); });
     portraits = 0;
     std::string text;
@@ -233,7 +233,7 @@ void ChatWindow::LeftDown(UiEvent& event) {
         briefing->chatActive = 0;
         return;
     }
-    ui->PlayInterfaceSound(kOnOffSound);
+    g_interface.PlayInterfaceSound(kOnOffSound);
     net::ClientSession* client = net::g_gameClient;
     net::PlayerMessage* player = players[index];
     // The binding is not checked for null here.

@@ -112,14 +112,14 @@ void ChatOverlay::AddLine(const char* text) {
             wordFormatted += ch;
             mark = true;
         } else {
-            if (ui->TextExtent(line + word + ch, kLineFont).w > kLineWidth) {
+            if (g_interface.TextExtent(line + word + ch, kLineFont).w > kLineWidth) {
                 if (line.size() != 0) {
                     plain.push_back(line);
                     formatted.push_back(lineFormatted);
                 }
                 line.clear();
                 lineFormatted.clear();
-                if (ui->TextExtent(word + ch, kLineFont).w > kLineWidth) {
+                if (g_interface.TextExtent(word + ch, kLineFont).w > kLineWidth) {
                     if (word.size() != 0) {
                         plain.push_back(word);
                         formatted.push_back(wordFormatted);
@@ -148,8 +148,8 @@ void ChatOverlay::AddLine(const char* text) {
         ChatLine& added = lines.emplace_back();
         added.name = plain[i];
         added.time = now;
-        const int width = ui->TextExtent(plain[i], kLineFont).w + kLineSurfacePad;
-        added.surface = std::make_unique<UiSurface>(ui, 0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
+        const int width = g_interface.TextExtent(plain[i], kLineFont).w + kLineSurfacePad;
+        added.surface = std::make_unique<UiSurface>(0, 0, width, kLineSurfaceHeight, SurfaceBlend::Keyed, true);
         // The pieces are measured here; a line does not change, so its paint keeps them.
         const std::string& codes = formatted[i];
         std::vector<ChatPiece> pieces;
@@ -161,7 +161,7 @@ void ChatOverlay::AddLine(const char* text) {
             piece = str::Mid(codes, start, at - start);
             pieces.push_back({piece, x, colour});
             drawn += piece;
-            x = ui->TextExtent(drawn, kLineFont).w;
+            x = g_interface.TextExtent(drawn, kLineFont).w;
             colour = MarkColour(codes[at + 1]);
             start = at + 2;
         }
@@ -202,7 +202,7 @@ void ChatOverlay::PaintTyped(UiSurface& surface) const {
     surface.Clear();
     Rect area{0, 0, kTypedTextRight, kTypedTextBottom};
     surface.DrawTextIn(typed, area, TextStyle{kTypedFont, kTypedColour, render::text::kNoPrefix});
-    int width = ui->TextExtent(str::Left(typed, caret), kTypedFont).w;
+    int width = g_interface.TextExtent(str::Left(typed, caret), kTypedFont).w;
     if (width < kMaxTypedWidth) {
         Point top{width, 0};
         Point bottom{width, kCaretBottom};
@@ -271,8 +271,8 @@ void ChatOverlay::Char(UiEvent& event) {
     // The line also stays within kMaxTyped bytes (what 200 one-byte characters took).
     // That is what the sent SayMessage fits in: a client's update carries 220 bytes, and a message larger
     // than that would never be counted in one.
-    if (!ui->ctrlDown && text::CharacterCount(typed) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
-        ui->TextExtent(line, kTypedFont).w < kMaxTypedWidth) {
+    if (!g_interface.ctrlDown && text::CharacterCount(typed) < kMaxTyped && static_cast<int>(line.size()) <= kMaxTyped &&
+        g_interface.TextExtent(line, kTypedFont).w < kMaxTypedWidth) {
         typed = line;
         caret += text::TypedLength(character);
     }
@@ -282,8 +282,8 @@ void ChatOverlay::Char(UiEvent& event) {
 // --- the constructor -----------------------------------------------------------------------------
 
 // Its own redraw and update; its keys and characters.
-ChatOverlay::ChatOverlay(Interface3D* ownerUi) : UiWindow(ownerUi) {
-    UiSurface* newTyped = AddSurface(std::make_unique<UiSurface>(ui, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true));
+ChatOverlay::ChatOverlay() {
+    UiSurface* newTyped = AddSurface(std::make_unique<UiSurface>(kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true));
     newTyped->PaintWith([this](UiSurface& out) { PaintTyped(out); });
     chatOpen = false;
     caret = 0;

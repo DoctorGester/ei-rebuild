@@ -140,8 +140,8 @@ public:
     // fractional position, the window's sprites, eight item cells through the owner (its two text surfaces paint
     // themselves: UiItemStrip::PaintCounts, PaintPrices).
     void DrawSprites(SceneRenderer* pass) override;
-    // The item under the screen point, or null; sets the cursor for the strip's action mode.
-    Item* ItemAt(Point point, int* cursor) override;
+    // On the item cells: the item under the screen point, or null, with the help topic of the strip's action mode.
+    ItemUnder ItemAt(Point point) override;
     // Rebuilds the visible list from the source list for the current filter and tab (tab 5 of filter 0 shows everything).
     void RebuildList() override;
     void OnEvent(UiEvent& event) override;
@@ -159,8 +159,6 @@ public:
     // The end faces dimmed where it can scroll on, the background and cells placed by the current tab's fraction, the
     // highlight frame on selected when in view, the window's sprites, then each visible name's hero face through the owner.
     void DrawSprites(SceneRenderer* pass) override;
-    // No item: null, `topic` not written.
-    Item* ItemAt(Point point, int* topic) override;
     // Count_ = the number of names.
     void RebuildList() override;
     void OnEvent(UiEvent& event) override;
@@ -200,9 +198,6 @@ public:
     // The rows of the hero list and of the voices.
     static constexpr int kHeroRows = 10;
     static constexpr int kVoiceRows = 11;
-
-    // Built inline by the main menu's Multiplayer click.
-    explicit MpHeroScreen(Interface3D* ui) : ItemScreen(ui) {}
     // The heroes saved, the player's records handed to the client world, the preview cleared and the description panel emptied.
     void CloseScreen() override;
     // The curtains over the margins of the window's new shape.
@@ -478,7 +473,7 @@ class MasterRequestBox : public MessageWindow {
 public:
     // The box (one cancel button), the link connecting to `address`, the
     // bar (a plain sprite, colour 0xFFA06800), and `extra` written to the link's outgoing buffer.
-    MasterRequestBox(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question,
+    MasterRequestBox(std::string_view titleKey, const char* textKey, MessageQuestion question,
                       const net::NetAddress* address, std::uint32_t extra);
     // The bar's right edge at 225 + 355 * the received share; the link steps: done (3) hands the reply to the
     // client's server list; the box closes (0x40002) when the link is done or, stepping again, closed (up to
@@ -493,7 +488,6 @@ public:
 // Opened by Esc during a game: five stones over the stone menu model.
 class EscMenu : public UiContainer {
 public:
-    explicit EscMenu(Interface3D* ui) : UiContainer(ui) {}
     void OnEvent(UiEvent& event) override;
     void MouseMove(UiEvent& event);
     void KeyDown(UiEvent& event);
@@ -525,7 +519,7 @@ class UiScrollingSurface : public UiSurface {
 public:
     // A surface of format 5 over the layout rectangle (keyed on white); no text, the offsets and the speed 0
     // (startTime is left as it was).
-    UiScrollingSurface(Interface3D* ui, const Rect* rect);
+    UiScrollingSurface(const Rect* rect);
     ~UiScrollingSurface() override;   // out of line: the laid out text's type is complete there
     // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
     bool Load(MappedResource* archive, const char* name);
@@ -553,7 +547,7 @@ public:
 
 class CreditsScreen : public UiContainer {
 public:
-    CreditsScreen(Interface3D* ui, bool fromGame, const char* name);
+    CreditsScreen(bool fromGame, const char* name);
     void OnEvent(UiEvent& event) override;
     void KeyDown(UiEvent& event);
     // Ends the titles: back to where they were opened from.
@@ -596,7 +590,6 @@ public:
 // manager's object 2; the world behind it runs the "MainMenu.cam" camera path with rain at night.
 class MainMenu : public UiContainer {
 public:
-    explicit MainMenu(Interface3D* ui) : UiContainer(ui) {}
     void DrawSprites(SceneRenderer* pass) override;
     // The map edge fade put back, the sounds and the ambience stopped.
     void CloseScreen() override;
@@ -640,7 +633,6 @@ public:
 class TradeGrid;
 class ExchangeScreen : public ItemScreen {
 public:
-    explicit ExchangeScreen(Interface3D* ui);
     // The description panel describes nothing and the scratch party is deleted.
     void CloseScreen() override;
     // The exchange went through: the local party's items are released, every item of `partyC`, then of

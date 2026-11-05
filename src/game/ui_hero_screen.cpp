@@ -92,10 +92,10 @@ void MpHeroScreen::DrawExperience() {
 void MpHeroScreen::DrawSprites(SceneRenderer* pass) {
     if (mode == kModeStats) DrawExperience();
     const Point cursor = g_cursor.position;
-    hoveredItem = nullptr;
-    int topic = 0;
-    hoveredItem = weaponPanel->ItemAt(cursor, &topic);
-    if (!hoveredItem && topic == 0) hoveredItem = spellPanel->ItemAt(cursor, &topic);
+    ItemUnder under = weaponPanel->ItemAt(cursor);
+    if (!under.item && under.topic == 0) under = spellPanel->ItemAt(cursor);
+    hoveredItem = under.item;
+    const int topic = under.topic;
 
     if (hoveredItem) {
         if (descPanel) descPanel->Describe(hoveredItem);

@@ -35,7 +35,6 @@ struct UnitPickInput final : UiInput {
 // close are the container's.
 class ViewScreen : public UiContainer {
 public:
-    explicit ViewScreen(Interface3D* ui) : UiContainer(ui) {}
     // The screen's Create. Two extra inputs: UnitPickInput, the battle camera's keys; the camera
     // no longer free, its focus at (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
     void CreateScreen() override;

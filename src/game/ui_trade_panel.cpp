@@ -233,7 +233,7 @@ void TradePanel::DrawLists() {
 
 void TradePanel::Build() {
     rect = Rect{200, 100, 600, 500};
-    AddSurface(std::make_unique<UiSurface>(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(200, 100, 600, 500, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
 
     auto region = [this](const Rect& area) {
@@ -418,7 +418,7 @@ void TradePanel::LeftDown(UiEvent& event) {
         if (region == perkScroll[1]) { ++perkTop; ClampScroll(); return; }
         if (region == learnableScroll[0]) { --learnableTop; ClampScroll(); return; }
         if (region == learnableScroll[1]) { ++learnableTop; ClampScroll(); return; }
-        ui->PlayInterfaceSound(kPerkSound);
+        g_interface.PlayInterfaceSound(kPerkSound);
     }
     UnitStats* stats = &owner->HeroRecord()->stats;
     TradeStatsRecord& record = records[recordIndex];
@@ -464,7 +464,7 @@ void TradePanel::LeftDown(UiEvent& event) {
 // --- The left button released (input release) -----------------------------------------------------------
 
 void TradePanel::LeftUp(UiEvent&) {
-    ui->mouseCapture = nullptr;
+    g_interface.mouseCapture = nullptr;
     heldRow = nullptr;
     holdTicks = 0;
 }
@@ -493,7 +493,7 @@ void TradePanel::Update() {
         BuildLists();
         return;
     }
-    ui->mouseCapture = nullptr;
+    g_interface.mouseCapture = nullptr;
     heldRow = nullptr;
 }
 
@@ -509,7 +509,7 @@ void TradePanel::Update() {
 
 void TradeGrid::DrawSprites(SceneRenderer* pass) {
     Rect grid = screen_layout::ToScreen(Rect{200, 100, 600, 500});
-    Rect screen{0, 0, ui->width, ui->height};
+    Rect screen{0, 0, g_interface.width, g_interface.height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
     DrawBase(pass);

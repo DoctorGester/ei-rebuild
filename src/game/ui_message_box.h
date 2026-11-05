@@ -44,7 +44,7 @@ inline constexpr std::uint32_t kGameOverQuit = BoxResult(MessageQuestion::Second
 class MessageWindow : public UiContainer {
 public:
     // A missing text gives its key. The text is centred and word-wrapped.
-    MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question, MessageButtons buttons);
+    MessageWindow(std::string_view titleKey, const char* textKey, MessageQuestion question, MessageButtons buttons);
     void CreateScreen() override;
     void OnEvent(UiEvent& event) override;
     // OK: for the exit question the exit movie and the game quits; otherwise the edit field's text into editText.
@@ -73,7 +73,7 @@ public:
 // options::g_options.difficulty on OK.
 class DifficultyBox : public MessageWindow {
 public:
-    explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", "", MessageQuestion::Second, MessageButtons::OkCancel) {}
+    DifficultyBox() : MessageWindow("option_difficulty", "", MessageQuestion::Second, MessageButtons::OkCancel) {}
     void OnEvent(UiEvent& event) override;
     // No container handler. OK (easy to options::g_options.difficulty), cancel, or a check box checked.
     void LeftDown(UiEvent& event);

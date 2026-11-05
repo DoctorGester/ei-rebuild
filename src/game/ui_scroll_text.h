@@ -28,7 +28,7 @@ struct UiTextLine {
 class UiScrollText : public UiWindow {
 public:
     // The bar scrolls 20 lines per second; justified (align 2).
-    UiScrollText(Interface3D* ui, const char* text, Rect rect, float depth);
+    UiScrollText(const char* text, Rect rect, float depth);
     // Scrolled to the end first, then kept that far from the end.
     void AddText(std::string_view text);
     // Scrolls to the top.

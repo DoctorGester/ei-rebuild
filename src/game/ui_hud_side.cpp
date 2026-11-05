@@ -453,8 +453,8 @@ void PanelSlide::Step() {
     if (t == 1.0f || t == 0.0f) moving = false;
 }
 
-void PanelSlide::Toggle(Interface3D* ui) {
-    ui->PlayInterfaceSound(kSoundSling);
+void PanelSlide::Toggle() {
+    g_interface.PlayInterfaceSound(kSoundSling);
     direction = -direction;
     moving = true;
 }
@@ -485,7 +485,7 @@ void HudMap::OnEvent(UiEvent& event) {
 void HudMap::LeftDown(UiEvent& event) {
     const UiRegion* region = PressRegion(event);
     if (region != viewButtons[0] && region != viewButtons[1]) return;
-    ui->PlayInterfaceSound(kSoundClick);
+    g_interface.PlayInterfaceSound(kSoundClick);
     view = region == viewButtons[0] ? 1 : 2;
     ShowView();
 }
@@ -504,7 +504,7 @@ void HudMap::LeftUp(UiEvent& event) {
     }
     const UiRegion* region = HitRegion(event);
     if (region == slingButton) {
-        slide.Toggle(ui);
+        slide.Toggle();
     } else if (region == roundMap || region == mapSquare) {
         // The world point under the click.
         Point at = screen_layout::FromScreen(event.at);
@@ -529,7 +529,7 @@ void HudMap::LeftUp(UiEvent& event) {
 }
 
 void HudMap::FaceNorth() {
-    ui->PlayInterfaceSound(kSoundClick);
+    g_interface.PlayInterfaceSound(kSoundClick);
     g_camera.SetHeading(0.0f);
     northTime = 0.5f;
 }
@@ -826,7 +826,7 @@ void HudMap::Update() {
         else
             PlaceSling(slingArrow, -kHudQuarterTurn, 850.0f + originX);
     }
-    ui->hudPanelsIn[2] = slide.direction > 0.0f ? 1 : 0;
+    g_interface.hudPanelsIn[2] = slide.direction > 0.0f ? 1 : 0;
 
     if (northTime > 0.0f) northTime = northTime - UiContainer::FrameTime();
     SetTint(northIcon, northTime > 0.0f ? 1.0f : 0.5f);
@@ -931,7 +931,7 @@ void HudMap::Setup(float newZoom, bool slid) {
     northIcon = AddBlankSprite();
     northIcon->SetRectangle(10.0f, 80.0f, 780.0f + originX, 70.0f, 800.0f + originX, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
-    UiSurface* dot = AddSurface(std::make_unique<UiSurface>(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true));
+    UiSurface* dot = AddSurface(std::make_unique<UiSurface>(700, 80, 705, 85, SurfaceBlend::Keyed, true));
     dot->PaintWith([](UiSurface& out) { out.Dot({0, 0}, 0xFFFFFF); });
 
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
@@ -962,11 +962,11 @@ void HudUnitPanel::OnEvent(UiEvent& event) {
 void HudUnitPanel::LeftUp(UiEvent& event) {
     const UiRegion* region = PressedRegion(event);
     if (region == slingButton) {
-        slide.Toggle(ui);
+        slide.Toggle();
         return;
     }
     if (const int part = RegionIndex(partButtons, region); part >= 0) {
-        ui->PlayInterfaceSound(kSoundClick);
+        g_interface.PlayInterfaceSound(kSoundClick);
         bodyPart = part;
         ShowBodyPart();
     }
@@ -1151,8 +1151,8 @@ void HudUnitPanel::Update() {
             PlaceSling(slingArrow, -kHudQuarterTurn, 87.0f + originX);
     }
     if (hoverUnit && hoverUnit->IsDead() != 0) hoverUnit = nullptr;
-    ui->hudPanelsIn[0] = slide.direction > 0.0f ? 1 : 0;
-    ui->hudBodyPart = bodyPart;
+    g_interface.hudPanelsIn[0] = slide.direction > 0.0f ? 1 : 0;
+    g_interface.hudBodyPart = bodyPart;
 }
 
 void HudUnitPanel::Setup(int newBodyPart, bool slid) {
@@ -1239,7 +1239,7 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
         effectSprites[i]->texture = objects[1];
     }
 
-    UiSurface* panel = AddSurface(std::make_unique<UiSurface>(ui, 20, 0, 180, 220, SurfaceBlend::Keyed, true));
+    UiSurface* panel = AddSurface(std::make_unique<UiSurface>(20, 0, 180, 220, SurfaceBlend::Keyed, true));
     panel->PaintWith([this](UiSurface& out) { PaintTexts(out); });
 
     bodyPart = newBodyPart;

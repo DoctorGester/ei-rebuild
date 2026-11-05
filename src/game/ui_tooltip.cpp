@@ -39,7 +39,6 @@ constexpr Point kCursorOffset = /*007C8258*/ {24, 24};   // a static initialiser
 } // namespace
 
 UiTooltip::UiTooltip(UiRegion* newRegion, std::string_view text, int command) : region(newRegion) {
-    Interface3D* ui = region->ui;
     // An empty text leaves the measurements and the two arguments unwritten.
     if (text.empty()) return;
     lines = text::Split(text, kLineSeparator);
@@ -54,10 +53,10 @@ UiTooltip::UiTooltip(UiRegion* newRegion, std::string_view text, int command) : 
         Size size;
         int textWidth;
         if (lines[i].empty() && i < static_cast<int>(lines.size()) - 1) {
-            size = ui->TextExtent(std::string(EmptyLineSample()), kFont);
+            size = g_interface.TextExtent(std::string(EmptyLineSample()), kFont);
             textWidth = 0;
         } else {
-            size = ui->TextExtent(lines[i], kFont);
+            size = g_interface.TextExtent(lines[i], kFont);
             textWidth = size.w;
         }
         if (textWidth > width) width = textWidth;
@@ -114,12 +113,11 @@ void UiTooltip::OnMouseMove(Point point) {
             return;
         }
         // Shown: the first line is measured again with the key of the tooltip's command.
-        Interface3D* ui = region->ui;
         keyWidth = 0;
         if (extra) {
             keyName = FindCommandByKey(extra);
             if (keyName) {
-                keyWidth = ui->TextExtent(lines[0] + KeyOpen() + keyName + KeyClose(), kFont).w + kPaddingX;
+                keyWidth = g_interface.TextExtent(lines[0] + KeyOpen() + keyName + KeyClose(), kFont).w + kPaddingX;
             }
         }
         state = State::Appearing;
@@ -140,7 +138,7 @@ void UiTooltip::OnMouseMove(Point point) {
             area.Offset(0, -(area.bottom - point.y));
             if (area.top < 0) area.Offset(0, -area.top);
         }
-        surface = std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed);
+        surface = std::make_unique<UiSurface>(&area, SurfaceBlend::Keyed);
         surface->PaintWith([this](UiSurface& out) { PaintLines(out); });
         return;
     }

@@ -18,7 +18,7 @@ public:
     void PaintContents(UiSurface& surface) const;
     // Every character class, font 1, at most 50 characters; focused. caret, editing and changed are left
     // as they are.
-    UiEditField(Interface3D* ui, Rect rect);
+    UiEditField(Rect rect);
     ~UiEditField() override;
     // While focused and without Ctrl, a character of an allowed class: the first one starts editing from an
     // empty text; inserted while shorter than maxLength and narrower than area.

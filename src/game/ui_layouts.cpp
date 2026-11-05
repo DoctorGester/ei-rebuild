@@ -78,7 +78,7 @@ void EscMenu::CreateScreen() {
         stones[stone]->SetRect(rects[stone]);
     }
     models[0]->Play(SkillAnimation::Briefing02);
-    ui->PlayInterfaceSound("buttons\\menu\\shift.wav");
+    g_interface.PlayInterfaceSound("buttons\\menu\\shift.wav");
 }
 
 // --- Esc menu clicks -------------------------------------------------------------------
@@ -95,28 +95,28 @@ void EscMenu::OnEvent(UiEvent& event) {
 void EscMenu::LeftDown(UiEvent& event) {
     const int stone = RegionIndex(stones, RegionUnder(event.at));
     if (stone >= 0) {
-        ui->PlayInterfaceSound("buttons\\menu\\ok.wav");
+        g_interface.PlayInterfaceSound("buttons\\menu\\ok.wav");
         event.handled = true;
     }
     std::unique_ptr<UiContainer> opened;
     switch (stone) {
     case kSave:
     case kLoad:
-        if (!IsMultiplayerClient()) opened = std::make_unique<SaveLoadWindow>(ui, stone == kSave, true);
+        if (!IsMultiplayerClient()) opened = std::make_unique<SaveLoadWindow>(stone == kSave, true);
         break;
     case kResume:
-        ui->SetPendingValue(0);
+        g_interface.SetPendingValue(0);
         break;
     case kQuit:
-        opened = std::make_unique<MessageWindow>(ui, "quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
+        opened = std::make_unique<MessageWindow>("quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
         break;
     case kOptions:
-        opened = std::make_unique<OptionsWindow>(ui, true);
+        opened = std::make_unique<OptionsWindow>(true);
         break;
     default:
         break;
     }
-    if (opened) ui->PushWindow(std::move(opened), WindowBackdrop::FirstWindow);
+    if (opened) g_interface.PushWindow(std::move(opened), WindowBackdrop::FirstWindow);
     UiContainer::OnEvent(event);
 }
 
@@ -136,13 +136,13 @@ void MainMenu::LeftDown(UiEvent& event) {
     switch (RegionIndex(buttons, RegionUnder(event.at))) {
     case kNewGame: {
         // A new game: the difficulty question (a message box with its own vtables).
-        ui->PlayInterfaceSound(okSound);
-        ui->PushWindow(std::make_unique<DifficultyBox>(ui), WindowBackdrop::FirstWindow);
+        g_interface.PlayInterfaceSound(okSound);
+        g_interface.PushWindow(std::make_unique<DifficultyBox>(), WindowBackdrop::FirstWindow);
         break;
     }
     case kLoad: {
-        ui->PlayInterfaceSound(okSound);
-        ui->PushWindow(std::make_unique<SaveLoadWindow>(ui, false, false), WindowBackdrop::FirstWindow);
+        g_interface.PlayInterfaceSound(okSound);
+        g_interface.PushWindow(std::make_unique<SaveLoadWindow>(false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kExit: {
@@ -154,17 +154,17 @@ void MainMenu::LeftDown(UiEvent& event) {
         break;
     }
     case kOptions: {
-        ui->PlayInterfaceSound(okSound);
-        ui->PushWindow(std::make_unique<OptionsWindow>(ui, false), WindowBackdrop::FirstWindow);
+        g_interface.PlayInterfaceSound(okSound);
+        g_interface.PushWindow(std::make_unique<OptionsWindow>(false), WindowBackdrop::FirstWindow);
         break;
     }
     case kTitles: {
         // The titles (opened over a cleared menu, not as a dialog).
         g_clientWorld.sounds->StopAll(false);
         g_clientWorld.terrain->StopAmbience();
-        ui->PlayInterfaceSound(okSound);
+        g_interface.PlayInterfaceSound(okSound);
         ClearSurfaces();
-        ui->PushWindow(std::make_unique<CreditsScreen>(ui, true, "Titles"), WindowBackdrop::None);
+        g_interface.PushWindow(std::make_unique<CreditsScreen>(true, "Titles"), WindowBackdrop::None);
         break;
     }
     case kMultiplayer: {
@@ -174,8 +174,8 @@ void MainMenu::LeftDown(UiEvent& event) {
         std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
         g_serverWorld.SetServerPaused(1);
-        ui->PlayInterfaceSound(okSound);
-        ui->PushWindow(std::make_unique<MpHeroScreen>(ui), WindowBackdrop::FirstWindow);
+        g_interface.PlayInterfaceSound(okSound);
+        g_interface.PushWindow(std::make_unique<MpHeroScreen>(), WindowBackdrop::FirstWindow);
         break;
     }
     default:
@@ -188,7 +188,7 @@ void MainMenu::LeftDown(UiEvent& event) {
 
 void MessageWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    UiSurface* surface = AddSurface(NewSurface(ui, Rect{200, 50, 600, 500}));
+    UiSurface* surface = AddSurface(NewSurface(Rect{200, 50, 600, 500}));
     surface->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
     int font = question != MessageQuestion::Exit ? 2 : 1;
@@ -199,12 +199,12 @@ void MessageWindow::CreateScreen() {
     int textHeight = surface->DrawTextIn(text, area, TextStyle{font, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
     // An edit field takes one line of the font (the extent of "A").
     const bool editing = buttons == MessageButtons::OkCancelEdit;
-    if (editing) textHeight = ui->TextExtent("A", font).h;
+    if (editing) textHeight = g_interface.TextExtent("A", font).h;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     labels.push_back({title, Rect{15, top - 35, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
     if (editing) {
-        edit = AddChild(std::make_unique<UiEditField>(ui, Rect{215, top + titleHeight + 30, 585, height + top + 30}));
+        edit = AddChild(std::make_unique<UiEditField>(Rect{215, top + titleHeight + 30, 585, height + top + 30}));
         edit->SetLook(15, 0, font, 0x32, kUiTextColour, 0x31B3FF);
         edit->SetText(editText);
     } else {
@@ -243,7 +243,7 @@ void MessageWindow::CreateScreen() {
 
 void DifficultyBox::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    UiSurface* surface = AddSurface(NewSurface(ui, Rect{200, 100, 600, 500}));
+    UiSurface* surface = AddSurface(NewSurface(Rect{200, 100, 600, 500}));
     surface->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
@@ -267,8 +267,8 @@ void DifficultyBox::CreateScreen() {
     std::string hard;
     newEasy = g_clientWorld.texts->GetString("difficulty_easy");
     hard = g_clientWorld.texts->GetString("difficulty_hard");
-    Size easySize = ui->TextExtent(newEasy, 2);
-    Size hardSize = ui->TextExtent(hard, 2);
+    Size easySize = g_interface.TextExtent(newEasy, 2);
+    Size hardSize = g_interface.TextExtent(hard, 2);
     int half = ((easySize.w + hardSize.w) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
     labels.push_back({newEasy, Rect{0xE6 - half, row - 100, 385, 450}, {2, kUiTextColour}});
@@ -355,12 +355,12 @@ void CreditsScreen::CreateScreen() {
     // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
     {
         Rect area = {10, 0x96, 0x316, 0x1C2};
-        textSurface = AddSurface(std::make_unique<UiScrollingSurface>(ui, &area));
+        textSurface = AddSurface(std::make_unique<UiScrollingSurface>(&area));
         textSurface->Hide();
     }
     {
         Rect area = {10, 0x6E, 0x316, 0x8C};
-        headerSurface = AddSurface(std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed));
+        headerSurface = AddSurface(std::make_unique<UiSurface>(&area, SurfaceBlend::Keyed));
         headerSurface->PaintWith([this](UiSurface& out) { PaintHeader(out); });
         headerSurface->Hide();
     }

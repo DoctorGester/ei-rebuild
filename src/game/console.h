@@ -15,7 +15,6 @@
 #include <string_view>
 #include <vector>
 
-class Interface3D;
 class UiContainer;
 class UiSurface;
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }
@@ -113,7 +112,7 @@ inline bool g_cheatEnabled = /*007C7B64*/ {};
 class ConsoleWindow {
 public:
     // Made by Interface3D::Create: a 9-point "Courier New" font, the rectangle (0, 0)-(800, 150), a 256-line history.
-    explicit ConsoleWindow(Interface3D* screen);
+    ConsoleWindow();
     // The surface and the font deleted; called by the interface's shutdown.
     ~ConsoleWindow();
     ConsoleWindow(const ConsoleWindow&) = delete;
@@ -139,7 +138,6 @@ public:
     // Keeps the last `count` lines.
     void DropOldLines(int count);
 
-    Interface3D* screen = nullptr;  // the 3D interface (its width and height in pixels)
     UiSurface* surface = nullptr;   // while shown
     UiFont font;                     // the console's text
     std::vector<std::string> commands;    // commands entered (input history), the newest first

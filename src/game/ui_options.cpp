@@ -369,25 +369,25 @@ void OptionsWindow::BuildSettings() {
 
         int top = definition->row * 24;
         if (definition->kind == kSliderKind) {
-            auto* slider = AddChild(std::make_unique<UiSlider>(ui, Rect{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f));
+            auto* slider = AddChild(std::make_unique<UiSlider>(Rect{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f));
             setting.bar = slider;
             Rect area = {530, top + 163, 680, top + 173};
             slider->SetRect(area);
         } else if (definition->kind == kSpinKind) {
             std::string text = g_clientWorld.texts->GetString(kTextOptionOff);
             if (i == kOptionDifficulty) text = g_clientWorld.texts->GetString(kTextDifficultyHard);
-            setting.spin = AddChild(std::make_unique<UiSpin>(ui, Rect{530, top + 160, 690, top + 176}, text.c_str()));
+            setting.spin = AddChild(std::make_unique<UiSpin>(Rect{530, top + 160, 690, top + 176}, text.c_str()));
             text = g_clientWorld.texts->GetString(kTextOptionOn);
             if (i == kOptionDifficulty) text = g_clientWorld.texts->GetString(kTextDifficultyEasy);
             setting.spin->AddText(text);
         } else if (definition->kind == kResolutionKind) {
             resolutions = platform::DisplaySizes(g_sceneRenderer.device->window);
             platform::AddSize(resolutions, ScreenSize());
-            setting.list = AddChild(std::make_unique<UiDropList>(ui, this, Rect{530, top + 160, 690, top + 176}));
+            setting.list = AddChild(std::make_unique<UiDropList>(this, Rect{530, top + 160, 690, top + 176}));
             for (const Size size : resolutions) setting.list->AddText(str::Format("%d x %d", size.w, size.h));
         } else if (definition->kind == kChoiceKind) {
             const std::span<const Choice> choices = ChoicesOf(i);
-            setting.spin = AddChild(std::make_unique<UiSpin>(ui, Rect{530, top + 160, 690, top + 176}, ShownName("", choices[0].text).c_str()));
+            setting.spin = AddChild(std::make_unique<UiSpin>(Rect{530, top + 160, 690, top + 176}, ShownName("", choices[0].text).c_str()));
             for (const Choice& choice : choices.subspan(1)) setting.spin->AddText(ShownName("", choice.text));
         }
     }
@@ -584,7 +584,7 @@ void OptionsWindow::CreateScreen() {
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
     for (int row = 0, top = 156; row < kRows; ++row, top += 24) rowAreas[row] = AddRect(this, 250, top, 520, top + 24);
-    UiSurface* surface = AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}));
+    UiSurface* surface = AddSurface(NewSurface(Rect{100, 100, 700, 500}));
     surface->PaintWith([this](UiSurface& out) { PaintRows(out); });
 
     UiModel* model = AddMenuModel(this, kOptionsTilt);
@@ -601,7 +601,7 @@ void OptionsWindow::CreateScreen() {
     BuildBindings();
     shadowsChanged = false;
     ShowGroup(0);
-    if (!sliding) ui->OpenHelp(false);
+    if (!sliding) g_interface.OpenHelp(false);
 }
 
 // --- Options window ----------------------------------------------------------------------------
@@ -631,18 +631,18 @@ void OptionsWindow::LeftDown(UiEvent& event) {
             RestoreSettings();
             sound = kMessageBoxCancelSound;
         }
-        ui->PlayInterfaceSound(sound);
-        ui->SetPendingValue(kCloseOptions);
+        g_interface.PlayInterfaceSound(sound);
+        g_interface.SetPendingValue(kCloseOptions);
     } else {
         if (const int groupIndex = RegionIndex(groupButtons, region); groupIndex >= 0) {
-            ui->PlayInterfaceSound(kSaveSelectSound);
+            g_interface.PlayInterfaceSound(kSaveSelectSound);
             waitingForKey = false;
             ShowGroup(groupIndex);
         }
         if (const int rowIndex = RegionIndex(rowAreas, region); rowIndex >= 0) {
             const OptionRow& row = rows[rowIndex];
             if (row.binding || row.setting) {
-                ui->PlayInterfaceSound(kSaveSelectSound);
+                g_interface.PlayInterfaceSound(kSaveSelectSound);
                 selectedRow = rowIndex;
                 waitingForKey = false;
                 RefreshRows();
@@ -661,17 +661,17 @@ void OptionsWindow::LeftDouble(UiEvent& event) {
     if (const int rowIndex = RegionIndex(rowAreas, RegionUnder(event.at)); rowIndex >= 0) {
         const OptionRow& row = rows[rowIndex];
         if (row.binding) {
-            ui->PlayInterfaceSound(kSaveSelectSound);
+            g_interface.PlayInterfaceSound(kSaveSelectSound);
             selectedRow = rowIndex;
             waitingForKey = true;
             RefreshRows();
         } else if (row.setting && row.setting->list) {
-            ui->PlayInterfaceSound(kMessageBoxOkSound);
+            g_interface.PlayInterfaceSound(kMessageBoxOkSound);
             row.setting->list->Open();
         } else if (row.setting && row.setting->spin) {
             const int value = row.setting->spin->TakeValue();
             row.setting->spin->SetValue(value + 1);
-            ui->PlayInterfaceSound(kMessageBoxOkSound);
+            g_interface.PlayInterfaceSound(kMessageBoxOkSound);
             RefreshRows();
         }
     }
@@ -717,7 +717,7 @@ void OptionsWindow::Update() {
         slide = slideAt;
         if (slideAt > 1.0f) {
             sliding = false;
-            ui->OpenHelp(false);
+            g_interface.OpenHelp(false);
         }
     }
     for (int i = 0; i < kOptionCount; ++i) {
@@ -781,7 +781,7 @@ void OptionsWindow::KeyDown(UiEvent& event) {
             }
         }
         if (!pressed) {
-            ui->PlayInterfaceSound(kMessageBoxCancelSound);
+            g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
             return;
         }
         waitingForKey = false;
@@ -790,7 +790,7 @@ void OptionsWindow::KeyDown(UiEvent& event) {
             RefreshRows();
             return;
         }
-        ui->PlayInterfaceSound(kMessageBoxOkSound);
+        g_interface.PlayInterfaceSound(kMessageBoxOkSound);
         int code = keyOfScan[pressed->scan];
         OptionBinding* other = nullptr;
         for (OptionBinding& b : bindings) {
@@ -801,13 +801,13 @@ void OptionsWindow::KeyDown(UiEvent& event) {
         }
         if (other && other != binding) {
             // Already bound to another action: ask (the box's result goes to MessageResult).
-            auto box = std::make_unique<MessageWindow>(ui, "key_already_mapped", "key_already_mapped_msg", MessageQuestion::First, MessageButtons::OkCancel);
+            auto box = std::make_unique<MessageWindow>("key_already_mapped", "key_already_mapped_msg", MessageQuestion::First, MessageButtons::OkCancel);
             std::string format;
             std::string message;
             format = g_clientWorld.texts->GetString("key_already_mapped_msg");
             message = str::Format(format, pressed->name, other->name);
             box->text = message.c_str();
-            ui->PushWindow(std::move(box), WindowBackdrop::FirstWindow);
+            g_interface.PushWindow(std::move(box), WindowBackdrop::FirstWindow);
             return;
         }
         CommitBinding();
@@ -830,19 +830,19 @@ void OptionsWindow::KeyDown(UiEvent& event) {
             const int value = row.setting->spin->TakeValue();
             rows[selectedRow].setting->spin->SetValue(value + 1);
         }
-        ui->PlayInterfaceSound(kMessageBoxOkSound);
+        g_interface.PlayInterfaceSound(kMessageBoxOkSound);
         RefreshRows();
         event.handled = true;
         return;
     }
     case platform::Key::Escape:
         RestoreSettings();
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
-        ui->SetPendingValue(kCloseOptions);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.SetPendingValue(kCloseOptions);
         break;
     case platform::Key::PageUp:
     case platform::Key::PageDown:
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         ShowGroup(event.key == platform::Key::PageUp ? group - 1 : group + 1);
         break;
     case platform::Key::Left:
@@ -852,12 +852,12 @@ void OptionsWindow::KeyDown(UiEvent& event) {
         if (!setting) return;
         if (setting->list) {
             setting->list->Step(event.key == platform::Key::Left ? -1 : 1);
-            ui->PlayInterfaceSound(kMessageBoxOkSound);
+            g_interface.PlayInterfaceSound(kMessageBoxOkSound);
             return;
         }
         if (setting->spin) {
             setting->spin->Step(event.key == platform::Key::Left ? -1 : 1);
-            ui->PlayInterfaceSound(kMessageBoxOkSound);
+            g_interface.PlayInterfaceSound(kMessageBoxOkSound);
             return;
         }
         if (!setting->bar) return;
@@ -866,7 +866,7 @@ void OptionsWindow::KeyDown(UiEvent& event) {
         return;
     }
     case platform::Key::Up:
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         for (int i = selectedRow - 1; i >= 0; --i) {
             if (rows[i].binding || rows[i].setting) {
                 selectedRow = i;
@@ -876,7 +876,7 @@ void OptionsWindow::KeyDown(UiEvent& event) {
         }
         break;
     case platform::Key::Down:
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         for (int i = selectedRow + 1; i < kRows; ++i) {
             if (rows[i].binding || rows[i].setting) {
                 selectedRow = i;

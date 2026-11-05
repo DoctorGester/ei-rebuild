@@ -8,8 +8,8 @@
 // "tutorial <text>" holds the title key and a "#screen" line per page, and "tutor <key>" each key's text.
 class HelpWindow : public UiContainer {
 public:
-    HelpWindow(Interface3D* ui, bool newMessage, const std::string& newText, int newPage)
-        : UiContainer(ui), message(newMessage), text(newText), page(newPage) {}
+    HelpWindow(bool newMessage, const std::string& newText, int newPage)
+        : message(newMessage), text(newText), page(newPage) {}
     void DrawSprites(SceneRenderer* pass) override;
     // The pulsing frames, pictures, surfaces, regions and sprites dropped.
     void CloseScreen() override;

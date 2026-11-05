@@ -91,12 +91,12 @@ constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";
 // side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the pending
 // action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at a unit, else
 // UseAtPoint at the target's position, with `quick`.
-bool UseAtOnce(BattleScreen* screen, Interface3D* ui, Unit* unit, Spell* spell, bool quick) {
+bool UseAtOnce(BattleScreen* screen, Unit* unit, Spell* spell, bool quick) {
     Unit* target = unit;
     if (spell->IsOffensive()) {
         target = g_clientWorld.NearestVisibleUnit(unit);
         if (!target) {
-            ui->PlayInterfaceSound(kSoundNoMagic);
+            g_interface.PlayInterfaceSound(kSoundNoMagic);
             screen->SetPendingAction(kPendingNone, -1, -1);
             return false;
         }
@@ -143,7 +143,7 @@ void ClearButtons(UiWindow* column, int count, int* selected) {
 
 // --- Weapon bar ------------------------------------------------------------------------------------------------------
 
-HudWeaponBar::HudWeaponBar(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
+HudWeaponBar::HudWeaponBar(BattleScreen* newOwner) : owner(newOwner) {
     // WideScreen: the rectangle and the first region from the window's origin; the regions still run up to
     // x 240, so the bar has more of them (no tips beyond the fourth).
     originX = -screen_layout::EdgeShift();
@@ -177,7 +177,7 @@ void HudWeaponBar::Choose(int slot) {
     if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(slot, true);
     selected = slot;
-    ui->PlayInterfaceSound(kSoundWeapon);
+    g_interface.PlayInterfaceSound(kSoundWeapon);
     // No check for a missing local view here (like the original).
     if (unit) g_clientWorld.LocalView()->SetWeapon(unit, slot);
 }
@@ -311,7 +311,7 @@ void HudWeaponBar::SetUnit(Unit* newUnit) {
 
 // --- Quick items -----------------------------------------------------------------------------------------------------
 
-HudQuickItems::HudQuickItems(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
+HudQuickItems::HudQuickItems(BattleScreen* newOwner) : owner(newOwner) {
     originX = screen_layout::EdgeShift();
     rect = {520 + originX, 500, 720 + originX, 600};
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
@@ -367,13 +367,13 @@ void HudQuickItems::LeftUp(UiEvent& event) {
     if (entry < 0) return;
     event.handled = true;
     if (slot < 4 && entries[entry].own) {
-        if (ui->doubleClick)
+        if (g_interface.doubleClick)
             UseNow(slot);
         else
             Pick(slot);
         return;
     }
-    ui->PlayInterfaceSound(kSoundClick);
+    g_interface.PlayInterfaceSound(kSoundClick);
     if (selected != slot) {
         // One of the player's items (top row): used on an object, with the item's key in the screen's
         // itemUseKey and its id in pendingItem.
@@ -410,7 +410,7 @@ void HudQuickItems::Pick(int slot) {
         owner->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    ui->PlayInterfaceSound(kSoundClick);
+    g_interface.PlayInterfaceSound(kSoundClick);
     if (selected == slot) {
         owner->SetPendingAction(kPendingNone, -1, -1);
         return;
@@ -430,8 +430,8 @@ void HudQuickItems::UseNow(int slot) {
     owner->SetPendingAction(kPendingQuickOnUnit, slot, -1);
     QuickItemCategory category = item->GetCategory();
     if ((category == QuickItemCategory::Wand || category == QuickItemCategory::Potion) && item->spell)
-        if (!UseAtOnce(owner, ui, unit, item->spell, true)) return;
-    ui->PlayInterfaceSound(kSoundClick);
+        if (!UseAtOnce(owner, unit, item->spell, true)) return;
+    g_interface.PlayInterfaceSound(kSoundClick);
     owner->SetPendingAction(kPendingNone, -1, -1);
 }
 
@@ -610,7 +610,7 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
 
 // --- Spell column ----------------------------------------------------------------------------------------------------
 
-HudSpellColumn::HudSpellColumn(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
+HudSpellColumn::HudSpellColumn(BattleScreen* newOwner) : owner(newOwner) {
     originX = screen_layout::EdgeShift();
     rect = {760 + originX, 190, 800 + originX, 510};
     ClearSceneObjects();
@@ -636,7 +636,7 @@ void HudSpellColumn::OnEvent(UiEvent& event) {
 void HudSpellColumn::LeftUp(UiEvent& event) {
     const int index = RegionIndex(regions, PressedRegion(event, count));
     if (index < 0) return;
-    if (ui->doubleClick)
+    if (g_interface.doubleClick)
         ClickAlternate(index);
     else
         Click(index);
@@ -671,13 +671,13 @@ void HudSpellColumn::Click(int index) {
     if (index < 0 || index >= count) return;
     int previous = selected;
     if (previous == index) {
-        ui->PlayInterfaceSound(kSoundClick);
+        g_interface.PlayInterfaceSound(kSoundClick);
         owner->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
     if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(index, true);
-    ui->PlayInterfaceSound(kSoundClick);
+    g_interface.PlayInterfaceSound(kSoundClick);
     Item* item = unit->GetSpell(index);
     if (!item) return;
     Spell* spell = item->spell;
@@ -690,8 +690,8 @@ void HudSpellColumn::ClickAlternate(int index) {
     owner->SetPendingAction(kPendingSpellOnUnit, index, -1);
     Item* item = unit->GetSpell(index);
     if (item && item->spell)
-        if (!UseAtOnce(owner, ui, unit, item->spell, false)) return;
-    ui->PlayInterfaceSound(kSoundClick);
+        if (!UseAtOnce(owner, unit, item->spell, false)) return;
+    g_interface.PlayInterfaceSound(kSoundClick);
     owner->SetPendingAction(kPendingNone, -1, -1);
 }
 
@@ -773,7 +773,7 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
 
 // --- Action column ---------------------------------------------------------------------------------------------------
 
-HudActionColumn::HudActionColumn(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
+HudActionColumn::HudActionColumn(BattleScreen* newOwner) : owner(newOwner) {
     originX = -screen_layout::EdgeShift();
     rect = {originX, 250, 40 + originX, 510};
     for (int y = 470; y > 230; y -= kStep) AddRegion()->SetRect(originX, y, 40 + originX, y + kStep);
@@ -825,13 +825,13 @@ void HudActionColumn::Select(int index) {
     if (index < 0 || index >= count) return;
     int previous = selected;
     if (previous == index) {
-        ui->PlayInterfaceSound(kSoundClick);
+        g_interface.PlayInterfaceSound(kSoundClick);
         owner->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
     if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(index, true);
-    ui->PlayInterfaceSound(kSoundClick);
+    g_interface.PlayInterfaceSound(kSoundClick);
     int action = static_cast<int>(actions[index]);
     owner->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
 }

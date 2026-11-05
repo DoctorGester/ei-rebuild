@@ -58,7 +58,7 @@ void Flat(UiMesh* sprite, float depth, const Rect& area, std::uint32_t colour) {
 
 } // namespace
 
-UiDropList::UiDropList(Interface3D* ui, UiContainer* newOwner, Rect newRow) : UiContainer(ui), owner(newOwner), row(newRow) {
+UiDropList::UiDropList(UiContainer* newOwner, Rect newRow) : owner(newOwner), row(newRow) {
     rect = row;
     LoadTexture("Scrollbar", TextureKind::Interface);
     LoadTexture("saveload", TextureKind::Interface);
@@ -73,13 +73,13 @@ UiDropList::UiDropList(Interface3D* ui, UiContainer* newOwner, Rect newRow) : Ui
                            0x28, 0x80, 0x50, 0xB0);
     for (UiMesh* sprite : {listShade, chosenMark, activeMark, listFrame}) sprite->visible = false;
 
-    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, Rect{0, 0, 800, kLayoutHeight}, SurfaceBlend::Keyed, true));
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(Rect{0, 0, 800, kLayoutHeight}, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) {
         PaintRow(out);
         if (open) PaintList(out);
     });
 
-    scroll = AddChild(std::make_unique<UiScrollbar>(ui, row, kBarDepth, 0, 1.0f));
+    scroll = AddChild(std::make_unique<UiScrollbar>(row, kBarDepth, 0, 1.0f));
     scroll->SetEnabled(false);
 }
 
@@ -187,7 +187,7 @@ void UiDropList::SetActive(int index) {
 }
 
 void UiDropList::Choose(int index) {
-    ui->PlayInterfaceSound(kMessageBoxOkSound);
+    g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     SetValue(index);
     Close();
 }
@@ -245,7 +245,7 @@ void UiDropList::OnEvent(UiEvent& event) {
 void UiDropList::LeftDown(UiEvent& event) {
     if (!open) {
         event.handled = true;
-        ui->PlayInterfaceSound(kMessageBoxOkSound);
+        g_interface.PlayInterfaceSound(kMessageBoxOkSound);
         Open();
         return;
     }
@@ -283,7 +283,7 @@ void UiDropList::KeyDown(UiEvent& event) {
     case platform::Key::End: SetActive(static_cast<int>(std::ssize(texts)) - 1); break;
     case platform::Key::Return: Choose(active); break;
     case platform::Key::Escape:
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
         Close();
         break;
     default: break;

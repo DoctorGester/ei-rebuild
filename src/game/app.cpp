@@ -79,38 +79,38 @@ void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
 // Alt+F4 and Alt+Tab never get here: the backend makes Alt+F4 the close request, the system's switcher takes Alt+Tab
 // and the backend reports the focus it took.
-void OnKey(Interface3D* input, const platform::Event& event) {
-    if (event.type == EventType::KeyDown) input->OnKeyDown(event.key, event.scan, event.repeat);
-    else input->OnKeyUp(event.key, event.scan);
+void OnKey(const platform::Event& event) {
+    if (event.type == EventType::KeyDown) g_interface.OnKeyDown(event.key, event.scan, event.repeat);
+    else g_interface.OnKeyUp(event.key, event.scan);
 }
 
 // Each character of the text to the interface, with the scan code of the key that typed it (the interface drops the
 // console key's).
-void OnText(Interface3D* input, const platform::Event& event) {
+void OnText(const platform::Event& event) {
     const std::string& text = event.text;
     for (std::size_t at = 0; at < text.size();) {
         unsigned character = 0;
         at += static_cast<std::size_t>(text::DecodeUtf8(text.data() + at, text.size() - at, &character));
         if (character == 0xFFFFFFFFu) continue;
-        input->OnChar(static_cast<int>(character), event.scan);
+        g_interface.OnChar(static_cast<int>(character), event.scan);
         Handled();
     }
 }
 
-void OnMouse(Interface3D* input, const platform::Event& event, Point at) {
+void OnMouse(const platform::Event& event, Point at) {
     // Every second press of a quick series is a double click.
     const bool twice = event.clicks % 2 == 0;
     const bool left = event.button == MouseButton::Left;
     switch (event.type) {
-    case EventType::MouseMove: input->OnMouse({.kind = UiEventKind::MouseMove, .at = at}); break;
+    case EventType::MouseMove: g_interface.OnMouse({.kind = UiEventKind::MouseMove, .at = at}); break;
     case EventType::MouseDown:
-        if (left) input->OnMouse({.kind = twice ? UiEventKind::LeftDouble : UiEventKind::LeftDown, .at = at});
-        else input->OnMouse({.kind = twice ? UiEventKind::RightDouble : UiEventKind::RightDown, .at = at});
+        if (left) g_interface.OnMouse({.kind = twice ? UiEventKind::LeftDouble : UiEventKind::LeftDown, .at = at});
+        else g_interface.OnMouse({.kind = twice ? UiEventKind::RightDouble : UiEventKind::RightDown, .at = at});
         break;
     case EventType::MouseUp:
-        input->OnMouse({.kind = left ? UiEventKind::LeftUp : UiEventKind::RightUp, .at = at});
+        g_interface.OnMouse({.kind = left ? UiEventKind::LeftUp : UiEventKind::RightUp, .at = at});
         break;
-    case EventType::Wheel: input->OnMouse({.kind = UiEventKind::Wheel, .at = at, .delta = event.wheel}); break;
+    case EventType::Wheel: g_interface.OnMouse({.kind = UiEventKind::Wheel, .at = at, .delta = event.wheel}); break;
     default: break;
     }
 }
@@ -134,13 +134,12 @@ void DispatchInput(const platform::Event& received) {
     // The mouse's coordinates as the frame's (present_window.h).
     platform::Event event = received;
     const bool onFrame = present_window::MouseToGame(&event);
-    Interface3D* input = &g_interface;
-    input->CloseAllPending();
+    g_interface.CloseAllPending();
     // A press outside the picture (the bars of a window of another shape, the letterbox bars) is not passed on; the
     // release still is, and moves arrive on the picture's nearest pixel.
     const Point at{event.x, event.y};
     if (event.type == EventType::MouseDown) {
-        const Rect picture = input->PictureRect();
+        const Rect picture = g_interface.PictureRect();
         if (!onFrame || at.x < picture.left || at.x >= picture.right || at.y < picture.top || at.y >= picture.bottom) {
             ei::Log("input: a press outside the picture ignored (at %d, %d of the window)", received.x, received.y);
             Handled();
@@ -149,9 +148,9 @@ void DispatchInput(const platform::Event& received) {
     }
     switch (event.type) {
     case EventType::KeyDown:
-    case EventType::KeyUp: OnKey(input, event); break;
-    case EventType::Text: OnText(input, event); return;
-    default: OnMouse(input, event, at); break;
+    case EventType::KeyUp: OnKey(event); break;
+    case EventType::Text: OnText(event); return;
+    default: OnMouse(event, at); break;
     }
     Handled();
 }

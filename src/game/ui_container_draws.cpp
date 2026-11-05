@@ -37,7 +37,7 @@ void ScreenDraw(UiContainer* self, SceneRenderer* pass, bool mouseMove) {
 } // namespace
 
 void UiContainer::DrawSprites(SceneRenderer* pass) {
-    if (!ui->drawing) return;
+    if (!g_interface.drawing) return;
     render::g_renderState.stages[0].combiner = kAlphaPassStage;
     DrawBase(pass);
     // By index: a child's draw may change the list.

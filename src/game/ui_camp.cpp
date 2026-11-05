@@ -432,9 +432,9 @@ void CampPages::ShowPage(int newPage) {
         ReturnAll(LocalPlayerData(), itemExtra);
         TakeResults(this, spellResults, spellParts[0], spellStrip);
         TakeResults(this, itemResults, itemParts[0], partStrip);
-        ui->PlayInterfaceSound("buttons\\globalmap\\transit.wav");
+        g_interface.PlayInterfaceSound("buttons\\globalmap\\transit.wav");
         if (fromHeroScreen) {
-            ui->SetPendingValue(0);
+            g_interface.SetPendingValue(0);
             return;
         }
         g_interface.closeAll = 1;
@@ -448,7 +448,7 @@ void CampPages::ShowPage(int newPage) {
     if (!offered) {
         ShowPage(page);    // the page is not offered: show the current one again
     } else {
-        if (page != newPage) ui->PlayInterfaceSound("buttons\\camp\\slot.wav");
+        if (page != newPage) g_interface.PlayInterfaceSound("buttons\\camp\\slot.wav");
         page = newPage;
         statsPanel->ShowStats(newPage);
         trade->SelectHero(hero);
@@ -471,7 +471,7 @@ void CampPages::ShowPage(int newPage) {
     // The page buttons half bright, the current one full.
     for (UiMesh* icon : pageIcons) SetShade(icon, 0.5f);
     SetShade(pageIcons[page], 1.0f);
-    ui->OpenHelp(false);
+    g_interface.OpenHelp(false);
 }
 
 int CampPages::Price(Item* item, PriceKind kind) {
@@ -752,7 +752,10 @@ void CampPages::DrawSprites(SceneRenderer* pass) {
     }
     // Panel by panel until an item is found or a topic is set.
     auto probe = [&](UiItemPanel* panel) {
-        if (!hoveredItem && topic == 0) hoveredItem = panel->ItemAt(cursor, &topic);
+        if (hoveredItem || topic != 0) return;
+        const ItemUnder under = panel->ItemAt(cursor);
+        hoveredItem = under.item;
+        topic = under.topic;
     };
     probe(equipment);
     probe(equipment2);
@@ -896,13 +899,13 @@ void CampPages::CloseScreen() {
         list->Destroy();
         delete list;
     }
-    ui->camp = nullptr;
+    g_interface.camp = nullptr;
 }
 
 // --- taking an item off the hero -----------------------------------------------------------------
 
 Item* CampPages::TakeOff(Item* item) {
-    ui->PlayInterfaceSound(kPutOffSound);
+    g_interface.PlayInterfaceSound(kPutOffSound);
     ItemKind kind = item->Kind();
     if (kind < ItemKind::Weapon || (kind > ItemKind::Quick && kind != ItemKind::Scroll)) return nullptr;
     PartyUnitRecord* heroRecord = HeroRecord();
@@ -951,7 +954,7 @@ Item* CampPages::TakeOff(Item* item) {
 // --- putting an item on the hero -----------------------------------------------------------------
 
 void CampPages::PutOn(Item* item) {
-    ui->PlayInterfaceSound(kPutOnSound);
+    g_interface.PlayInterfaceSound(kPutOnSound);
     PartyUnitRecord* heroRecord = HeroRecord();
     switch (item->Kind()) {
     case ItemKind::Weapon:
@@ -1009,7 +1012,7 @@ void CampPages::PutOnFromStrip(Item* item) {
         MoveItem(item, itemParts[2], LocalPlayerData(), 8, true, false);
         break;
     case 5:
-        if (IsMaterial(item) && ui->shiftDown) {
+        if (IsMaterial(item) && g_interface.shiftDown) {
             // With Shift the whole stack, one at a time while the slots accept it.
             for (int n = Count(item); n > 0; --n) {
                 if (!CanEquip(item, 1)) break;
@@ -1025,12 +1028,12 @@ void CampPages::PutOnFromStrip(Item* item) {
     default:
         return;
     }
-    ui->PlayInterfaceSound(kPutOnSound);
+    g_interface.PlayInterfaceSound(kPutOnSound);
 }
 
 void CampPages::TakeItem(Item* item, int mode) {
     if (!CanEquip(item, mode)) {
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
         return;
     }
     // Back to the player's items and the item strip (from `list`).
@@ -1056,13 +1059,13 @@ void CampPages::TakeItem(Item* item, int mode) {
             MoveItem(item, spellParts[1], spellParts[0], 8, true, false);
         else if (page == 3)
             MoveItem(item, spellResults, spellParts[0], 0, false, true);
-        ui->PlayInterfaceSound(kPutOnSound);
+        g_interface.PlayInterfaceSound(kPutOnSound);
         return;
     case 3:
         if (page == 4) {
             MoveItem(item, itemParts[1], itemParts[0], 8, true, false);
         } else if (page == 5) {
-            if (IsMaterial(item) && ui->shiftDown) {
+            if (IsMaterial(item) && g_interface.shiftDown) {
                 for (int n = Count(item); n > 0; --n) {
                     if (!CanEquip(item, 3)) break;
                     MoveItem(item, itemResults, itemParts[0], 0, false, true);
@@ -1071,7 +1074,7 @@ void CampPages::TakeItem(Item* item, int mode) {
                 MoveItem(item, itemResults, itemParts[0], 0, false, true);
             }
         }
-        ui->PlayInterfaceSound(kPutOnSound);
+        g_interface.PlayInterfaceSound(kPutOnSound);
         return;
     case 4:
         // Out of the spell constructor's sold or bought list.
@@ -1105,7 +1108,7 @@ void CampPages::TakeItem(Item* item, int mode) {
         } else if (IsMaterial(item)) {
             back(item, itemParts[0], itemResults, partStrip);
             // With Shift every other kind-one item goes too.
-            if (ui->shiftDown) {
+            if (g_interface.shiftDown) {
                 for (int i = 0; i < std::ssize(itemResults->items); ++i) {
                     if (!IsMaterial(itemResults->items[i])) continue;
                     back(itemResults->items[i], itemParts[0], itemResults, partStrip);
@@ -1128,7 +1131,7 @@ void CampPages::TakeItem(Item* item, int mode) {
     default:
         return;
     }
-    ui->PlayInterfaceSound(kPutOffSound);
+    g_interface.PlayInterfaceSound(kPutOffSound);
 }
 
 // --- the hero's unit after a change --------------------------------------------------------------
@@ -1198,7 +1201,7 @@ void CampPages::ShowHero() {
 }
 
 void CampPages::CreateScreen() {
-    ui->camp = this;
+    g_interface.camp = this;
     BuildPages();
     curtains = screen_layout::AddCurtains(this, 1);
 }
@@ -1282,8 +1285,8 @@ void CampPages::BuildPages() {
     pageIcons[7]->tint[2] = 0.5f;
 
     CreateBase();
-    AddSurface(NewSurface(ui, Rect{0, 400, 200, 500}))->PaintWith([this](UiSurface& out) { PaintLabels(out, actionLabels); });
-    AddSurface(NewSurface(ui, Rect{600, 400, 800, 430}))->PaintWith([this](UiSurface& out) { PaintLabels(out, titleLabels); });
+    AddSurface(NewSurface(Rect{0, 400, 200, 500}))->PaintWith([this](UiSurface& out) { PaintLabels(out, actionLabels); });
+    AddSurface(NewSurface(Rect{600, 400, 800, 430}))->PaintWith([this](UiSurface& out) { PaintLabels(out, titleLabels); });
 
     // The constructors' lists (the first of each is the class template's).
     spellParts[1] = NewItemList();
@@ -1295,68 +1298,68 @@ void CampPages::BuildPages() {
     itemExtra = NewItemList();
 
     // The description panel on the right.
-    descPanel = AddChild(std::make_unique<ItemInfoPanel>(ui, this));
+    descPanel = AddChild(std::make_unique<ItemInfoPanel>(this));
     descPanel->Build(600, 100);
 
     // The hero's statistics.
-    statsPanel = AddChild(std::make_unique<HeroStatsPanel>(ui, this));
+    statsPanel = AddChild(std::make_unique<HeroStatsPanel>(this));
     statsPanel->AddObject(objects[0]);
     statsPanel->Build();
 
     // The help panel on the left.
-    helpPanel = AddChild(std::make_unique<ItemInfoPanel>(ui, this));
+    helpPanel = AddChild(std::make_unique<ItemInfoPanel>(this));
     helpPanel->Build(0, 100);
 
     // The party's items.
-    itemStrip = AddChild(std::make_unique<ForwardingStrip>(ui, this));
+    itemStrip = AddChild(std::make_unique<ForwardingStrip>(this));
     itemStrip->Setup(&LocalPlayerData()->items, false);
     itemStrip->mode = kActionEquip;
     itemStrip->SetFilter(kFilterItems);
 
     // The hero's equipment (with the body) and quick items.
-    equipment = AddChild(std::make_unique<HeroEquipPanel>(ui, this));
+    equipment = AddChild(std::make_unique<HeroEquipPanel>(this));
     equipment->AddObject(objects[2]);
     equipment->Build(true);
 
-    equipment2 = AddChild(std::make_unique<HeroQuickStrip>(ui, this));
+    equipment2 = AddChild(std::make_unique<HeroQuickStrip>(this));
     equipment2->AddObject(objects[2]);
     equipment2->Build(true);
 
     // The skills for experience.
-    trade = AddChild(std::make_unique<TradePanel>(ui, this));
+    trade = AddChild(std::make_unique<TradePanel>(this));
     trade->AddObject(objects[0]);
     trade->Build();
 
     if (spellConstructor) {
-        spellStrip = AddChild(std::make_unique<ForwardingStrip>(ui, this));
+        spellStrip = AddChild(std::make_unique<ForwardingStrip>(this));
         spellStrip->Setup(&spellParts[0]->items, true);
         spellStrip->mode = kActionSpellParts;
         spellStrip->SetFilter(kFilterSpells);
         spellStrip->priceKind = PriceKind::SpellBuy;
 
-        spellConstructor1 = AddChild(std::make_unique<TradeGrid>(ui, this));
+        spellConstructor1 = AddChild(std::make_unique<TradeGrid>(this));
         spellConstructor1->Build(&spellParts[1]->items, &spellParts[2]->items, true, false);
         spellConstructor1->mode = kModeSpellTrade;
 
-        spellConstructor2 = AddChild(std::make_unique<SpellMakerPage>(ui, this));
+        spellConstructor2 = AddChild(std::make_unique<SpellMakerPage>(this));
         spellConstructor2->BuildSpellMaker(spellResults);
     }
 
     if (itemConstructor) {
-        partStrip = AddChild(std::make_unique<ForwardingStrip>(ui, this));
+        partStrip = AddChild(std::make_unique<ForwardingStrip>(this));
         partStrip->Setup(&itemParts[0]->items, true);
         partStrip->mode = kActionItemParts;
         partStrip->SetFilter(kFilterArmour);
         partStrip->priceKind = PriceKind::ItemBuy;
 
-        itemConstructor1 = AddChild(std::make_unique<TradeGrid>(ui, this));
+        itemConstructor1 = AddChild(std::make_unique<TradeGrid>(this));
         itemConstructor1->Build(&itemParts[1]->items, &itemParts[2]->items, false, false);
         itemConstructor1->mode = kModeItemTrade;
 
-        itemConstructor2 = AddChild(std::make_unique<ConstructorPage>(ui, this));
+        itemConstructor2 = AddChild(std::make_unique<ConstructorPage>(this));
         itemConstructor2->BuildItemMaker(itemResults);
 
-        itemConstructor3 = AddChild(std::make_unique<RepairGrid>(ui, this));
+        itemConstructor3 = AddChild(std::make_unique<RepairGrid>(this));
         itemConstructor3->Build(&itemExtra->items);
     }
 
@@ -1498,7 +1501,7 @@ void CampPages::DeconstructItem() {
 // --- the first action button ---------------------------------------------------------------------
 
 void CampPages::DoAction() {
-    ui->PlayInterfaceSound(kBuySound);
+    g_interface.PlayInterfaceSound(kBuySound);
     switch (page) {
     case kEquipment:
         if (itemConstructor && !noConstructor) {
@@ -1548,7 +1551,7 @@ void CampPages::DoAction() {
 // --- the second action button --------------------------------------------------------------------
 
 void CampPages::UndoAction() {
-    ui->PlayInterfaceSound(kMessageBoxCancelSound);
+    g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
     switch (page) {
     case kTrade:
         trade->Settle(false, false);
@@ -1596,7 +1599,7 @@ void CampPages::LeftDown(UiEvent& event) {
         if (actionShown) UndoAction();
     } else if (region == turnLeftArea || region == turnRightArea) {
         if (page == kEquipmentPage) {
-            ui->PlayInterfaceSound(kMoveSound);
+            g_interface.PlayInterfaceSound(kMoveSound);
             turning = region == turnLeftArea ? 1 : 2;
             CaptureMouse();
         }
@@ -1619,9 +1622,9 @@ void CampPages::KeyDown(UiEvent& event) {
     }
     if ((event.key == platform::Key::Backspace || event.key == platform::Key::Return) && IsMultiplayerClient()) {
         if (event.key == platform::Key::Backspace)
-            ui->ChatKeyBackspace();
+            g_interface.ChatKeyBackspace();
         else
-            ui->ChatKeyEnter();
+            g_interface.ChatKeyEnter();
         event.handled = true;
         return;
     }

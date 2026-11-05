@@ -33,8 +33,8 @@ void QuickLoad(const char* slot);
 // The save/load window (opened from the Esc menu).
 class SaveLoadWindow : public UiContainer {
 public:
-    SaveLoadWindow(Interface3D* ui, bool newIsSave, bool newSliding)
-        : UiContainer(ui), isSave(newIsSave), sliding(newSliding) {}
+    SaveLoadWindow(bool newIsSave, bool newSliding)
+        : isSave(newIsSave), sliding(newSliding) {}
     void DrawSprites(SceneRenderer* pass) override;                      // slides in
     void Update() override;
     // The new save's picture released.

@@ -50,7 +50,7 @@ std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWid
 }
 
 int UiSurface::DrawWrappedText(std::string_view text, const Rect& area, int maxLines, const TextStyle& style) {
-    const std::vector<std::string> lines = ui->WrapText(text, area.Width(), style.font);
+    const std::vector<std::string> lines = g_interface.WrapText(text, area.Width(), style.font);
     Rect at = area;
     int boxHeight = area.Height();
     const int count = static_cast<int>(lines.size());

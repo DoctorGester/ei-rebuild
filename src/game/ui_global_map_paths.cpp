@@ -99,12 +99,12 @@ void GlobalMap::LeftDown(UiEvent& event) {
     UiRegion* region = RegionUnder(event.at);
     if (region == turnLeftButton || region == turnRightButton) {
         turning = region == turnLeftButton ? -1 : 1;
-        ui->PlayInterfaceSound(kMoveSound);
+        g_interface.PlayInterfaceSound(kMoveSound);
         return;
     }
     if (region == campButton) {
         if (noCamp) return;
-        ui->PlayInterfaceSound(kTransitSound);
+        g_interface.PlayInterfaceSound(kTransitSound);
         g_serverWorld.SetConstructionVariable(0.0f);
         g_interface.closeAll = 1;
         g_clientWorld.LocalView()->RequestGameState(kCampScreen);
@@ -112,19 +112,19 @@ void GlobalMap::LeftDown(UiEvent& event) {
     }
     int link = RegionIndex(linkAreas, region);
     if (link >= 0) {
-        ui->PlayInterfaceSound(kOkSound);
+        g_interface.PlayInterfaceSound(kOkSound);
     } else {
         const int index = ZoneAt(event.at);
         if (index < 0 || zones[index].state == 0) return;
-        ui->PlayInterfaceSound(kOkSound);
+        g_interface.PlayInterfaceSound(kOkSound);
         GlobalMapZone& zone = zones[index];
         link = zone.link;
         if (!gipat || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
             SearchWays(zone.name);
-            auto window = std::make_unique<ObjectivesWindow>(ui);
+            auto window = std::make_unique<ObjectivesWindow>();
             window->Setup(target, &arrivals, true, false);
-            ui->PushWindow(std::move(window), WindowBackdrop::FirstWindow);
+            g_interface.PushWindow(std::move(window), WindowBackdrop::FirstWindow);
             return;
         }
     }

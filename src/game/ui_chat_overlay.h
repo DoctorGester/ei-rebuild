@@ -19,7 +19,7 @@ static_assert(std::is_nothrow_move_constructible_v<ChatLine>);
 class ChatOverlay : public UiWindow {
 public:
     // Rebirth-patched.
-    explicit ChatOverlay(Interface3D* ui);
+    ChatOverlay();
     // Lines narrower than 780 pixels, "^<digit>" switching the colour (bits 0 / 1 / 2
     // blue / green / red; a missing digit is 7); at most 12 lines remain.
     void AddLine(const char* text);

@@ -59,7 +59,7 @@ constexpr int kOfferLimit = 8;
 void ExchangeScreen::CloseScreen() {
     descPanel->Describe(nullptr);
     delete scratch;    // the deleting destructor
-    ui->exchange = nullptr;
+    g_interface.exchange = nullptr;
 }
 
 // --- the update ----------------------------------------------------------------------------------
@@ -95,19 +95,19 @@ void ExchangeScreen::LeftDown(UiEvent& event) {
     if (region == acceptButton) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && !offer->accepted && ownOffer->money <= LocalPlayerData()->money) {
-            ui->PlayInterfaceSound(kBuySound);
+            g_interface.PlayInterfaceSound(kBuySound);
             net::g_gameClient->RecordTrade(LocalPlayerData());
             return;
         }
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
     } else if (region == takeBackButton) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted) {
-            ui->PlayInterfaceSound(kMessageBoxCancelSound);
+            g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
             net::g_gameClient->CommitParty();
         }
     } else if (region == leaveButton) {
-        ui->PlayInterfaceSound(kTransitSound);
+        g_interface.PlayInterfaceSound(kTransitSound);
         net::g_gameClient->DropParty();
     }
 }
@@ -127,7 +127,7 @@ void ExchangeScreen::ExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
 // --- Create --------------------------------------------------------------------------------------
 
 void ExchangeScreen::CreateScreen() {
-    ui->exchange = this;
+    g_interface.exchange = this;
     LoadTexture("campinfo", TextureKind::Interface);
     acceptButton = AddRegion();
     acceptButton->SetRect(12, 450, 52, 490);
@@ -163,43 +163,42 @@ void ExchangeScreen::CreateScreen() {
     ownOffer->Clear(true, false);
 
     // The description panel (its item list and text arrays constructed in place).
-    descPanel = AddChild(std::make_unique<ItemInfoPanel>(ui, this));
+    descPanel = AddChild(std::make_unique<ItemInfoPanel>(this));
     descPanel->Build(600, 100);
 
     // The local party's items (the strip that hands clicks to this screen).
-    strip = AddChild(std::make_unique<ForwardingStrip>(ui, this));
+    strip = AddChild(std::make_unique<ForwardingStrip>(this));
     strip->Setup(&LocalPlayerData()->items, false);
     strip->mode = kStripActionTake;
     strip->SetFilter(0);
 
     // The players.
-    figures = AddChild(std::make_unique<FigureStrip>(ui, this));
+    figures = AddChild(std::make_unique<FigureStrip>(this));
     figures->SetupFigures(&names, true, true);
 
     // Both offers.
-    grid = AddChild(std::make_unique<TradeGrid>(ui, this));
+    grid = AddChild(std::make_unique<TradeGrid>(this));
     grid->Build(&partnerOffer->items, &ownOffer->items, false, true);
     grid->mode = kGridMode;
 
     // The money offered.
-    moneyField = AddChild(std::make_unique<UiEditField>(ui, Rect{0, 0x15E, 200, 0x16E}));
+    moneyField = AddChild(std::make_unique<UiEditField>(Rect{0, 0x15E, 200, 0x16E}));
     moneyField->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     moneyField->SetText("");
 
     const int tops[4] = {0x19A, 0x136, 0xD2, 0x6E}, bottoms[4] = {0x1C2, 0x15E, 0x10E, 0xAA};
     for (int i = 0; i < 4; ++i)
-        AddSurface(NewSurface(ui, Rect{0, tops[i], 200, bottoms[i]}))->PaintWith([this, i](UiSurface& out) { PaintLabels(out, labels[i]); });
+        AddSurface(NewSurface(Rect{0, tops[i], 200, bottoms[i]}))->PaintWith([this, i](UiSurface& out) { PaintLabels(out, labels[i]); });
 }
 
 // --- Draw ----------------------------------------------------------------------------------------
 
 void ExchangeScreen::DrawSprites(SceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
-    hoveredItem = nullptr;
-    int topic = 0;
-    hoveredItem = strip->ItemAt(g_cursor.position, &topic);
-    if (!hoveredItem && !topic)
-        hoveredItem = grid->ItemAt(g_cursor.position, &topic);
+    ItemUnder under = strip->ItemAt(g_cursor.position);
+    if (!under.item && !under.topic) under = grid->ItemAt(g_cursor.position);
+    hoveredItem = under.item;
+    const int topic = under.topic;
     if (hoveredItem) {
         if (descPanel) descPanel->Describe(hoveredItem);
     } else if (topic) {
@@ -259,7 +258,7 @@ void ExchangeScreen::DrawSprites(SceneRenderer* pass) {
 // (The original first asks CanEquip, which always accepts here.)
 void ExchangeScreen::TakeItem(Item* item, int mode) {
     if (mode == kStripActionTake) {
-        ui->PlayInterfaceSound(kPutOnSound);
+        g_interface.PlayInterfaceSound(kPutOnSound);
         MoveItem(item, ownOffer, LocalPlayerData(), kOfferLimit, true, false);
         net::g_gameClient->PublishParty();
         return;
@@ -268,7 +267,7 @@ void ExchangeScreen::TakeItem(Item* item, int mode) {
     const std::vector<Item*>& offered = ownOffer->items;
     for (const Item* entry : offered) {
         if (entry != item) continue;
-        ui->PlayInterfaceSound(kPutOffSound);
+        g_interface.PlayInterfaceSound(kPutOffSound);
         Item* held = MoveItem(item, LocalPlayerData(), ownOffer, 0, true, false);
         strip->ScrollToItem(held);
         net::g_gameClient->PublishParty();

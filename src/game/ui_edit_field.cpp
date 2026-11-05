@@ -100,7 +100,7 @@ void UiEditField::KeyDown(UiEvent& event) {
 }
 
 // The window's slots; its keys and characters.
-UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
+UiEditField::UiEditField(Rect rect) {
     charClasses = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
     centred = 0;
     font = 1;
@@ -109,7 +109,7 @@ UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
     caretColour = 0xFF;
     ClearSurfaces();
     area = rect;
-    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed));
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(&area, SurfaceBlend::Keyed));
     surface->PaintWith([this](UiSurface& out) { PaintContents(out); });
     ClampCaret();
     focused = true;
@@ -119,7 +119,7 @@ void UiEditField::Char(UiEvent& event) {
     if (!focused) return;
     const int character = event.character;
     if (character == '\b' || character == '\t' || character == '\r' || character == '\x1B') return;
-    if (ui->ctrlDown) return;
+    if (g_interface.ctrlDown) return;
     if ((charClasses & CharClass(character)) == 0) return;
     auto& currentText = text;
     // The first character of a field starts from an empty text.
@@ -132,7 +132,7 @@ void UiEditField::Char(UiEvent& event) {
     std::string tail = str::Mid(currentText, caret);
     std::string head = str::Left(currentText, caret);
     std::string typed = text::Typed(head, character) + tail;
-    if (text::CharacterCount(currentText) < maxLength && ui->TextExtent(typed, font).w < area.Width()) {
+    if (text::CharacterCount(currentText) < maxLength && g_interface.TextExtent(typed, font).w < area.Width()) {
         currentText = typed;
         changed = true;
         caret += text::TypedLength(character);
@@ -179,8 +179,8 @@ void UiEditField::PaintContents(UiSurface& surface) const {
     surface.DrawTextIn(currentText, box, TextStyle{font, colour, centred ? render::text::kNoPrefix | render::text::kCenter : render::text::kNoPrefix});
     // The caret stands after the first caret characters; a centred text starts half its width left
     // of the middle.
-    int caretX = ui->TextExtent(str::Left(currentText, caret), font).w;
-    if (centred) caretX += width / 2 - ui->TextExtent(currentText, font).w / 2;
+    int caretX = g_interface.TextExtent(str::Left(currentText, caret), font).w;
+    if (centred) caretX += width / 2 - g_interface.TextExtent(currentText, font).w / 2;
     if (caretX >= 0 && caretX < width) {
         Point top{caretX, 0};
         Point bottom{caretX, height};

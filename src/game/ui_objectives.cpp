@@ -124,7 +124,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     // target zone, "none" when it leads nowhere).
     MapRecord* map = g_mapDatabase.FindMap(shownZone);
     if (!map) {
-        ui->SetPendingValue(0);
+        g_interface.SetPendingValue(0);
         return;
     }
 
@@ -250,7 +250,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
             SortQuests(found.data(), found.data() + found.size());
             for (auto& s : found) {
                 currentQuests.push_back(s);
-                const std::string& current = !listZones ? g_lastQuest : ui->savedText;
+                const std::string& current = !listZones ? g_lastQuest : g_interface.savedText;
                 if (text::CompareIgnoringCase(current, s) == 0) selectedQuest = static_cast<int>(currentQuests.size()) - 1;
             }
             g_lastQuest = currentQuests[selectedQuest];
@@ -411,14 +411,14 @@ void ObjectivesWindow::CreateScreen() {
     }
 
     // The text column.
-    questText = AddChild(std::make_unique<UiScrollText>(ui, "", Rect{60, 190, 384, 510}, 10.0f));
-    bar = AddChild(std::make_unique<UiScrollbar>(ui, Rect{60, 30, 384, 150}, 3.0f, 0, 1.0f));
+    questText = AddChild(std::make_unique<UiScrollText>("", Rect{60, 190, 384, 510}, 10.0f));
+    bar = AddChild(std::make_unique<UiScrollbar>(Rect{60, 30, 384, 150}, 3.0f, 0, 1.0f));
 
     LoadTexture("saveload", TextureKind::Interface);
     LoadTexture("cross", TextureKind::Interface);
-    AddSurface(NewSurface(ui, Rect{50, 20, 390, 160}))->PaintWith([this](UiSurface& out) { PaintQuestList(out); });
-    AddSurface(NewSurface(ui, Rect{410, 380, 750, 520}))->PaintWith([this](UiSurface& out) { PaintZone(out); });
-    AddSurface(NewSurface(ui, Rect{280, 540, 520, 580}));
+    AddSurface(NewSurface(Rect{50, 20, 390, 160}))->PaintWith([this](UiSurface& out) { PaintQuestList(out); });
+    AddSurface(NewSurface(Rect{410, 380, 750, 520}))->PaintWith([this](UiSurface& out) { PaintZone(out); });
+    AddSurface(NewSurface(Rect{280, 540, 520, 580}));
 
     okIcon = AddBlankSprite();
     if (twoButtons)
@@ -497,7 +497,7 @@ void ObjectivesWindow::CreateScreen() {
     } else {
         MapRecord* allodZone = g_mapDatabase.FindMap(zoneName);
         if (!allodZone) {
-            ui->SetPendingValue(0);
+            g_interface.SetPendingValue(0);
             return;
         }
         // The zones of this allod in which the player holds quests ("q.<zone>.<quest>" = 1), and
@@ -506,7 +506,7 @@ void ObjectivesWindow::CreateScreen() {
         std::vector<std::string> parts;
         NamedFloatTable table;
         g_clientWorld.LocalView()->player->GetParty()->variables.CopyPrefixed("q.", &table);
-        const std::string& interfaceQuest = ui->savedText;
+        const std::string& interfaceQuest = g_interface.savedText;
         for (auto node = table.begin(); node != table.end(); ++node) {
             parts = text::Split(node->first, '.');
             if (parts.size() != 3) continue;
@@ -532,7 +532,7 @@ void ObjectivesWindow::CreateScreen() {
         }
         if (zones.empty() && !current.empty()) zones.push_back(current);
         if (zones.empty()) {
-            ui->SetPendingValue(0);
+            g_interface.SetPendingValue(0);
             return;
         }
         zoneIndex = 0;
@@ -549,7 +549,7 @@ void ObjectivesWindow::CreateScreen() {
         }
         ShowZone(zones[zoneIndex]);
     }
-    ui->OpenHelp(false);
+    g_interface.OpenHelp(false);
 }
 
 void ObjectivesWindow::DrawQuestList() {
@@ -626,9 +626,9 @@ void ObjectivesWindow::LeftDown(UiEvent& event) {
     UiRegion* region = RegionUnder(event.at);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
     if (region == okButton) {
-        ui->PlayInterfaceSound(kOkSound);
+        g_interface.PlayInterfaceSound(kOkSound);
         if (!twoButtons) {
-            ui->SetPendingValue(0);
+            g_interface.SetPendingValue(0);
         } else if (nearestExit >= 0) {
             const ObjectiveExit& exit = exits[nearestExit];
             int index = exit.exit;
@@ -639,8 +639,8 @@ void ObjectivesWindow::LeftDown(UiEvent& event) {
     }
     if (region == cancelButton) {
         if (twoButtons) {
-            ui->PlayInterfaceSound(kMessageBoxCancelSound);
-            ui->SetPendingValue(0);
+            g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
+            g_interface.SetPendingValue(0);
         }
         return;
     }
@@ -659,7 +659,7 @@ void ObjectivesWindow::LeftDown(UiEvent& event) {
     if (const int shownRow = RegionIndex(rows, region); shownRow >= 0) {
         int row = firstRow + shownRow;
         if (row >= 0 && row < static_cast<int>(quests.size())) {
-            ui->PlayInterfaceSound(kSelectSound);
+            g_interface.PlayInterfaceSound(kSelectSound);
             selectedQuest = row;
             DrawQuestList();
             ShowQuest();
@@ -669,11 +669,11 @@ void ObjectivesWindow::LeftDown(UiEvent& event) {
     const int exit = RegionIndex(exitAreas, region);
     if (exit < 0) return;
     if (twoButtons && exits[exit].flag) {
-        ui->PlayInterfaceSound(kEnterSound);
+        g_interface.PlayInterfaceSound(kEnterSound);
         SelectExit(exit);
         return;
     }
-    ui->PlayInterfaceSound(kMessageBoxCancelSound);
+    g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
 }
 
 void ObjectivesWindow::KeyDown(UiEvent& event) {
@@ -681,9 +681,9 @@ void ObjectivesWindow::KeyDown(UiEvent& event) {
     int step = 0;
     switch (event.key) {
     case platform::Key::Return:
-        ui->PlayInterfaceSound(kOkSound);
+        g_interface.PlayInterfaceSound(kOkSound);
         if (!twoButtons) {
-            ui->SetPendingValue(0);
+            g_interface.SetPendingValue(0);
         } else if (nearestExit >= 0) {
             const ObjectiveExit& exit = exits[nearestExit];
             int index = exit.exit;
@@ -693,8 +693,8 @@ void ObjectivesWindow::KeyDown(UiEvent& event) {
         event.handled = true;
         break;
     case platform::Key::Escape:
-        ui->PlayInterfaceSound(!twoButtons ? kOkSound : kMessageBoxCancelSound);
-        ui->SetPendingValue(0);
+        g_interface.PlayInterfaceSound(!twoButtons ? kOkSound : kMessageBoxCancelSound);
+        g_interface.SetPendingValue(0);
         event.handled = true;
         break;
     case platform::Key::PageUp: step = -5; break;
@@ -704,14 +704,14 @@ void ObjectivesWindow::KeyDown(UiEvent& event) {
     default: break;
     }
     if (step != 0) {
-        ui->PlayInterfaceSound(kSelectSound);
+        g_interface.PlayInterfaceSound(kSelectSound);
         selectedQuest += step;
         RefreshQuests();
         event.handled = true;
     }
     if (!event.handled && g_keyActions[event.scan] == kActionObjectives && !twoButtons) {
-        ui->PlayInterfaceSound(kMessageBoxOkSound);
-        ui->SetPendingValue(0);
+        g_interface.PlayInterfaceSound(kMessageBoxOkSound);
+        g_interface.SetPendingValue(0);
     }
 }
 

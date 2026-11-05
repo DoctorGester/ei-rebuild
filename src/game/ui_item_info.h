@@ -123,20 +123,28 @@ enum class PriceKind : int {
 
 class Party;
 class ItemScreen;
-// The item screens' icon window.
+
+// What an item panel has under a point (UiItemPanel::ItemAt): the item, or null, and the help topic of the place
+// (0: none).
+struct ItemUnder {
+    Item* item = nullptr;
+    int topic = 0;
+};
+
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel, hero
 // equipment, quick strip, trade and repair grids, constructor pages and item strips, built on the blank
-// panel. They share the left-button handler; ItemAt gives the item or help topic under the
+// panel. They share the left-button handler; ItemAt gives the item and help topic under the
 // mouse.
 class UiItemPanel : public UiWindow {
 public:
-    UiItemPanel(Interface3D* ui, ItemScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
+    UiItemPanel(ItemScreen* newOwner) : owner(newOwner) {}
     // The camp's and the hero screen's panels also keep their owner as that screen (camp, heroScreen).
-    UiItemPanel(Interface3D* ui, CampPages* newCamp);
-    UiItemPanel(Interface3D* ui, MpHeroScreen* newHeroScreen);
-    // The item under the screen point (x, y), or null; a panel may set a help topic instead. The panels
-    // without items of their own (description panel, statistics column, trade panel): nothing, `topic` 0.
-    virtual Item* ItemAt(Point point, int* topic);
+    UiItemPanel(CampPages* newCamp);
+    UiItemPanel(MpHeroScreen* newHeroScreen);
+    // What lies under the screen point: the item, or null, and the help topic of its place ("camphelp <topic>"; 0
+    // for none). The panels without items of their own (description panel, statistics column, trade panel, the
+    // figure strips): nothing.
+    virtual ItemUnder ItemAt(Point point);
 
     void OnEvent(UiEvent& event) override;
     // The item under (x, y) goes to the owner with mode; without one, a help topic the panel named goes to
@@ -149,9 +157,9 @@ public:
     MpHeroScreen* heroScreen = nullptr;   // the owner when it is the multiplayer hero screen, else null
 };
 
+// The item screens' icon window.
 class ItemIconWindow final : public UiWindow {
 public:
-    explicit ItemIconWindow(Interface3D* ui) : UiWindow(ui) {}
     // The frame sprites: a strip of 8 cells over the layout's middle, the column edges and corners of four
     // 200-wide columns, and six bars.
     void Build() override;
@@ -206,7 +214,7 @@ public:
     ItemTextureCache textures;
 
 protected:
-    explicit ItemScreen(Interface3D* ui) : UiContainer(ui) {}
+    ItemScreen() {}
 };
 
 // What a statistic under the mouse is (DescribeStats). The order matters: up to Perk the title and

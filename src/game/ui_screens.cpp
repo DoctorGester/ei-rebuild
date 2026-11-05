@@ -35,6 +35,12 @@ const char* const kSoundCampMode = "buttons\\camp\\mode.wav";
 const char* const kSoundMenuStone = "buttons\\menu\\stone.wav";
 const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
 
+// The forwarding strips' help topics by action mode: the camp's equip strip and the exchange's (mode 1), the spell
+// parts' (2), the item parts' (3).
+constexpr int kTopicEquipStrip = 0x16;
+constexpr int kTopicSpellPartsStrip = 0x18;
+constexpr int kTopicItemPartsStrip = 0x17;
+
 // The tab keys select the strips' tabs (the "switch_filters" option).
 bool TabKeysEnabled() { return options::g_options.switchFilters != 0; }
 
@@ -241,19 +247,20 @@ void UiItemStrip::ScrollToItem(Item* item) {
     velocity = 0.0f;
 }
 
-Item* ForwardingStrip::ItemAt(Point point, int* cursor) {
-    if (!enabled) return nullptr;
-    if (RegionUnder(point) != itemArea) return nullptr;
+ItemUnder ForwardingStrip::ItemAt(Point point) {
+    if (!enabled) return {};
+    if (RegionUnder(point) != itemArea) return {};
+    ItemUnder under;
     switch (mode) {
-    case 1: *cursor = 0x16; break;
-    case 2: *cursor = 0x18; break;
-    case 3: *cursor = 0x17; break;
+    case 1: under.topic = kTopicEquipStrip; break;
+    case 2: under.topic = kTopicSpellPartsStrip; break;
+    case 3: under.topic = kTopicItemPartsStrip; break;
     }
     point = screen_layout::FromScreen(point);
-    int index = SlotAt(point.x);
+    const int index = SlotAt(point.x);
     RebuildList();
-    if (index < 0 || index >= std::ssize(list)) return nullptr;
-    return list[index];
+    if (index >= 0 && index < std::ssize(list)) under.item = list[index];
+    return under;
 }
 
 void UiItemStrip::SettleScroll() {
@@ -271,7 +278,7 @@ void UiItemStrip::SettleScroll() {
     }
     scrollDirection = 0;
     scrollTicks = 0;
-    ui->mouseCapture = nullptr;
+    g_interface.mouseCapture = nullptr;
 }
 
 void UiItemStrip::OnEvent(UiEvent& event) {
@@ -288,8 +295,8 @@ void UiItemStrip::LeftDown(UiEvent& event) {
     UiRegion* region = RegionUnder(event.at);
     const int scrollButton = RegionIndex(scrollButtons, region);
     if (scrollButton >= 0) {
-        if (!ui->shiftDown) {
-            ui->PlayInterfaceSound(kSoundCampScroll);
+        if (!g_interface.shiftDown) {
+            g_interface.PlayInterfaceSound(kSoundCampScroll);
             CaptureMouse();
             scrollDirection = scrollButton + 1;
         } else {
@@ -301,7 +308,7 @@ void UiItemStrip::LeftDown(UiEvent& event) {
     }
     const int tabButton = RegionIndex(tabButtons, region);
     if (tabsEnabled && tabButton >= 0) {
-        ui->PlayInterfaceSound(kSoundCampMode);
+        g_interface.PlayInterfaceSound(kSoundCampMode);
         SetTab(tabButton);
     }
     if (region) event.handled = true;
@@ -319,7 +326,7 @@ void UiItemStrip::MouseMove(UiEvent& event) {
 void UiItemStrip::Wheel(UiEvent& event) {
     if (RegionUnder(event.at) == itemArea) {
         pending = static_cast<int>(event.delta) + pending;   // whole notches, towards 0
-        ui->PlayInterfaceSound(kSoundCampScroll);
+        g_interface.PlayInterfaceSound(kSoundCampScroll);
     }
 }
 
@@ -332,9 +339,7 @@ void ForwardingStrip::OnEvent(UiEvent& event) {
 
 void ForwardingStrip::LeftDown(UiEvent& event) {
     UiItemStrip::LeftDown(event);
-    int cursor = 0;   // the cursor for the mode, not used here
-    Item* item = ItemAt(event.at, &cursor);
-    if (item) owner->TakeItem(item, mode);
+    if (Item* item = ItemAt(event.at).item) owner->TakeItem(item, mode);
 }
 
 // --- Heroes' skills ---------------------------------------------------------------------------
@@ -423,7 +428,7 @@ void MpHeroScreen::TakeItem(Item* item, int takeMode) {
             equipped = false;
             break;
         }
-        if (equipped) ui->PlayInterfaceSound(kMessageBoxOkSound);
+        if (equipped) g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     }
     RefreshStats();
 }
@@ -453,14 +458,14 @@ void EscMenu::MouseMove(UiEvent& event) {
     switch (stone) {
     case kSave:
         if (hovered != kSave && !IsMultiplayerClient()) {
-            ui->PlayInterfaceSound(kSoundMenuStone);
+            g_interface.PlayInterfaceSound(kSoundMenuStone);
             model->Play(SkillAnimation::Briefing03);
         }
         hovered = kSave;
         break;
     case kLoad:
         if (hovered != kLoad && !IsMultiplayerClient()) {
-            ui->PlayInterfaceSound(kSoundMenuStone);
+            g_interface.PlayInterfaceSound(kSoundMenuStone);
             model->Play(SkillAnimation::Briefing04);
         }
         hovered = kLoad;
@@ -472,7 +477,7 @@ void EscMenu::MouseMove(UiEvent& event) {
                                                            SkillAnimation::Briefing06, SkillAnimation::Briefing07,
                                                            SkillAnimation::Briefing05};
         if (hovered != stone) {
-            ui->PlayInterfaceSound(kSoundMenuStone);
+            g_interface.PlayInterfaceSound(kSoundMenuStone);
             model->Play(kAnimation[stone]);
         }
         hovered = stone;
@@ -489,8 +494,8 @@ void EscMenu::MouseMove(UiEvent& event) {
 void EscMenu::KeyDown(UiEvent& event) {
     UiContainer::OnEvent(event);
     if (event.key == platform::Key::Escape) {
-        ui->PlayInterfaceSound(kSoundMenuOk);
-        ui->SetPendingValue(0);
+        g_interface.PlayInterfaceSound(kSoundMenuOk);
+        g_interface.SetPendingValue(0);
         event.handled = true;
     }
 }
@@ -498,9 +503,9 @@ void EscMenu::KeyDown(UiEvent& event) {
 void EscMenu::MessageResult(std::uint32_t result) {
     // The quit box's yes; 0x100001/0x100002/0x110001 close the menu.
     if (result > 0x100002) {
-        if (result == 0x110001) ui->SetPendingValue(0);
+        if (result == 0x110001) g_interface.SetPendingValue(0);
     } else if (result >= 0x100001) {
-        ui->SetPendingValue(0);
+        g_interface.SetPendingValue(0);
     } else if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) {
         g_gameFlow.CloseSessions();
     }
@@ -509,7 +514,7 @@ void EscMenu::MessageResult(std::uint32_t result) {
 // --- CreditsScreen ---------------------------------------------------------------------------
 
 void CreditsScreen::Close() {
-    if (fromGame) ui->SetPendingValue(0xCCCCCCCC);
+    if (fromGame) g_interface.SetPendingValue(0xCCCCCCCC);
     else g_gameFlow.CloseSessions();
 }
 
@@ -533,11 +538,11 @@ void ExchangeScreen::KeyDown(UiEvent& event) {
     if (event.handled) return;
     switch (event.key) {
     case platform::Key::Backspace:
-        ui->ChatKeyBackspace();
+        g_interface.ChatKeyBackspace();
         event.handled = true;
         break;
     case platform::Key::Return:
-        ui->ChatKeyEnter();
+        g_interface.ChatKeyEnter();
         event.handled = true;
         break;
     case platform::Key::Escape:

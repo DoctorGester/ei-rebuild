@@ -341,7 +341,7 @@ void ItemInfoPanel::DescribeItem() {
         DescribeQuickItem();
         return;
     }
-    if ((ui->ctrlDown && item->spell) || kind == ItemKind::Scroll) {
+    if ((g_interface.ctrlDown && item->spell) || kind == ItemKind::Scroll) {
         DescribeCarriedSpell();
         return;
     }
@@ -851,7 +851,7 @@ void ItemInfoPanel::KeyUp(UiEvent& event) {
 void ItemInfoPanel::Build(int atX, int atY) {
     x = atX;
     y = atY;
-    AddSurface(std::make_unique<UiSurface>(ui, Rect::Sized({x, y}, {200, 300}), SurfaceBlend::Keyed, true))->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
+    AddSurface(std::make_unique<UiSurface>(Rect::Sized({x, y}, {200, 300}), SurfaceBlend::Keyed, true))->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     TextManager* texts = g_clientWorld.texts.get();
     std::string text, key;
     for (int i = 0; i < 45; ++i) {

@@ -28,7 +28,7 @@ public:
     void DrawSprites(SceneRenderer* pass) override;
     // Rebirth-patched (WideScreen: the bar at the screen's left edge, from 80 - shift with
     // more regions up to x 240).
-    HudWeaponBar(Interface3D* ui, BattleScreen* owner);
+    HudWeaponBar(BattleScreen* owner);
     // Weapon `slot` (its button or key), unless it is the one shown or not in use: highlighted, the weapon
     // sound, and the unit's weapon set.
     void Choose(int slot);
@@ -75,7 +75,7 @@ public:
     int RegionItem(int slot) const { return slot < 0 ? -1 : regionItem[slot]; }
 
     // Rebirth-patched (WideScreen: the panel at the screen's right edge).
-    HudQuickItems(Interface3D* ui, BattleScreen* owner);
+    HudQuickItems(BattleScreen* owner);
     // The next sprite (at most eight, else null): `image` copied into the panel's texture, the model `model`
     // turned over (a plain rectangle without one).
     UiMesh* AddItem(std::string_view model, std::string_view image);
@@ -116,7 +116,7 @@ public:
     // selected = -1.
     void ClearHighlights();
     // Rebirth-patched (WideScreen: the column at the screen's right edge).
-    HudSpellColumn(Interface3D* ui, BattleScreen* owner);
+    HudSpellColumn(BattleScreen* owner);
     // The next button at the bottom, the ones so far moved up a step; selected = its index.
     void AddSpell(std::string_view model, std::string_view image);
     // A sprite (Rebirth-patched) and a tooltip per spell slot that holds one.
@@ -141,7 +141,7 @@ public:
     void Highlight(int index, bool on);
     void ClearHighlights();
     // Rebirth-patched (WideScreen: the column at the screen's left edge).
-    HudActionColumn(Interface3D* ui, BattleScreen* owner);
+    HudActionColumn(BattleScreen* owner);
     // The next button, above the ones so far; selected = its index.
     void AddAction(std::string_view model, std::string_view image, int action);
     // With `extra` first a "skill0011" button; with a unit the science button.
@@ -205,7 +205,7 @@ public:
     // Portrait `index` starts wobble `kind` (1 nod, 2 shake) after a short random delay.
     void Wobble(int index, int kind);
 
-    HudPortraits(Interface3D* ui, BattleScreen* owner);
+    HudPortraits(BattleScreen* owner);
 
     BattleScreen* owner = nullptr;
     int count = 0;
@@ -221,7 +221,7 @@ struct PanelSlide {
     // The panel's offset in pixels: `travel` eased (2 t^2 up to half way, 1 - 2 (1 - t)^2 after), truncated.
     int Offset() const;
     // The sling button (or the map's key): the sling sound, then the slide turned round and started.
-    void Toggle(Interface3D* ui);
+    void Toggle();
 
     float t = 0.0f;                  // 0..1: how far the panel has slid
     float direction = 0.0f;          // +1 / -1
@@ -232,7 +232,7 @@ struct PanelSlide {
 // Map (615..800 x 0..165).
 class HudMap : public UiWindow {
 public:
-    HudMap(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
+    HudMap(BattleScreen* newOwner) : owner(newOwner) {}
     void OnEvent(UiEvent& event) override;
     void LeftDown(UiEvent& event);   // the view buttons
     // Rebirth-patched (WideScreen: the map's centre at 700 + shift). A held view button is
@@ -300,7 +300,7 @@ public:
 // Unit panel (0..185 x 0..225).
 class HudUnitPanel : public UiWindow {
 public:
-    HudUnitPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
+    HudUnitPanel(BattleScreen* newOwner) : owner(newOwner) {}
     // The unit the panel shows: the hover unit, else the selected one, while the panel is not slid away and the
     // unit's model is attached; else null.
     Unit* PanelUnit() const;
@@ -374,7 +374,6 @@ public:
 // Game clock (720..800 x 520..600).
 class HudClock : public UiWindow {
 public:
-    explicit HudClock(Interface3D* ui) : UiWindow(ui) {}
     void OnEvent(UiEvent& event) override;
     // Rebirth's MPSpeedControl behind its flag. The pause button toggles the pause; the normal and fast
     // buttons set the speed (not on a network client: update period 55 / 27 ms); the objectives button opens
@@ -416,7 +415,7 @@ public:
 // movement mode 0-3.
 class HudMovePanel : public UiWindow {
 public:
-    HudMovePanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
+    HudMovePanel(BattleScreen* newOwner) : owner(newOwner) {}
     void OnEvent(UiEvent& event) override;
     void LeftUp(UiEvent& event);
     // Every frame: the selected units' common mode and flag.
@@ -447,7 +446,7 @@ public:
 // Top panel (180..620 x 0..100).
 class HudTopPanel : public UiWindow {
 public:
-    HudTopPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
+    HudTopPanel(BattleScreen* newOwner) : owner(newOwner) {}
     void OnEvent(UiEvent& event) override;
     void LeftUp(UiEvent& event);
     // Page `page` into the message log (page 0 scrolled to the end).

@@ -12,9 +12,9 @@ constexpr int kFont = 1;
 
 // The window's virtuals; its click and a left double click that does nothing. Its surface paints the
 // current value's text.
-UiSpin::UiSpin(Interface3D* ui, Rect newRect, const char* text) : UiWindow(ui) {
+UiSpin::UiSpin(Rect newRect, const char* text) {
     rect = newRect;
-    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, &newRect, SurfaceBlend::Keyed));
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(&newRect, SurfaceBlend::Keyed));
     surface->PaintWith([this](UiSurface& out) {
         Rect area = layout;
         area.Offset(-layout.left, -layout.top);
@@ -60,7 +60,7 @@ void UiSpin::OnEvent(UiEvent& event) {
 }
 
 void UiSpin::LeftDown(UiEvent&) {
-    ui->PlayInterfaceSound(kMessageBoxOkSound);
+    g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     SetValue(value + 1);
 }
 

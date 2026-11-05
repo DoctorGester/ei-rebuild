@@ -358,10 +358,10 @@ enum class SurfaceBlend : bool { Opaque, Keyed };
 class UiSurface {
 public:
     // A surface of the layout rectangle drawn with `blend`, scaled to the screen with `scale`: shown.
-    UiSurface(Interface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale);
-    UiSurface(Interface3D* ui, const Rect& rect, SurfaceBlend blend, bool scale);
+    UiSurface(int left, int top, int right, int bottom, SurfaceBlend blend, bool scale);
+    UiSurface(const Rect& rect, SurfaceBlend blend, bool scale);
     // Over the layout rectangle `rect` (always scaled).
-    UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend);
+    UiSurface(const Rect* rect, SurfaceBlend blend);
     virtual ~UiSurface();
     UiSurface(const UiSurface&) = delete;
     UiSurface& operator=(const UiSurface&) = delete;
@@ -411,7 +411,6 @@ public:
     // RelayoutAll's step for this surface.
     void Relayout(const screen_layout::Layout& before);
 
-    Interface3D* ui = nullptr;
     SurfaceBlend blend = {};
     bool shown = true;               // set by Show, cleared by Hide
     int width = 0;
@@ -436,8 +435,8 @@ private:
 };
 
 // A keyed surface over `area` (layout coordinates, scaled to the screen): what most windows draw on.
-inline std::unique_ptr<UiSurface> NewSurface(Interface3D* ui, const Rect& area) {
-    return std::make_unique<UiSurface>(ui, area, SurfaceBlend::Keyed, true);
+inline std::unique_ptr<UiSurface> NewSurface(const Rect& area) {
+    return std::make_unique<UiSurface>(area, SurfaceBlend::Keyed, true);
 }
 
 class UiRegion;
@@ -487,15 +486,12 @@ public:
     // Adds a polygon vertex, growing the bounds; three vertices enable the region.
     void AddPoint(int x, int y);
     void OnMouseMove(Point point);
-    // Enabled when its rectangle is set.
-    explicit UiRegion(Interface3D* ownerUi) : ui(ownerUi) {}
     void SetTipText(std::string_view text);
     // Replaces the tooltip by one with the text "tip <id>" (up to a '#'; the key itself when there is no
     // such text) showing command `command`'s key (0: none); id 0 gives an empty tooltip.
     void SetTip(int textId, int command = 0);
     void SetTipString(std::string_view text, int command = 0);
 
-    Interface3D* ui = nullptr;
     std::vector<Point> points;    // polygon vertices
     Rect bounds;
     bool rectOnly = false;
@@ -562,7 +558,6 @@ inline constexpr float kWheelUnits = 120.0f;
 // picking, UnitPickInput). The container offers each event to its extra inputs before its children.
 class UiInput {
 public:
-    explicit UiInput(Interface3D* ownerUi) : ui(ownerUi) {}
     virtual ~UiInput() = default;
     virtual void OnEvent(UiEvent& event) = 0;
     // The input loses the screen (the window under it deactivated): held buttons and modes let go.
@@ -570,13 +565,12 @@ public:
     // Whether it pans the camera at the screen's edges (CameraInput with the border scroll area above 0).
     virtual bool PansAtEdges() const { return false; }
 
-    Interface3D* ui = nullptr;
 };
 
 // Base of the interface windows.
 class UiWindow : public TransformObject {
 public:
-    explicit UiWindow(Interface3D* ui);
+    UiWindow();
     // The counted objects released; the mouse let go when the window had taken it.
     ~UiWindow() override;
 
@@ -635,11 +629,11 @@ public:
     UiModel* AddModel();
 
     // Takes the mouse for the next button-up (what every button-down handler does).
-    void CaptureMouse() { ui->mouseCapture = this; }
+    void CaptureMouse() { g_interface.mouseCapture = this; }
     // Button-up handlers act only when they took the mouse; they release it first.
     bool ReleaseMouse() {
-        if (ui->mouseCapture != this) return false;
-        ui->mouseCapture = nullptr;
+        if (g_interface.mouseCapture != this) return false;
+        g_interface.mouseCapture = nullptr;
         return true;
     }
     // A button's mouse handling (like ImGui's ButtonBehavior) over the window's first `count` regions:
@@ -671,7 +665,6 @@ public:
     UiMesh* AddBlankSprite();
     UiMesh* AddSceneObject(UiMesh* object);   // AddSprite's shared end: listed, black material, texture 0
 
-    Interface3D* ui = nullptr;
     Rect rect = {};                           // layout coordinates
     // The layout x the window's own coordinates start at: its code gives its regions and sprites x + originX. The
     // battle HUD's edge panels sit at -EdgeShift() (the left edge) or +EdgeShift() (the right edge), every other
@@ -699,8 +692,6 @@ void ClearUiDepth(float z, const Rect* rects = nullptr, int count = 0);
 // docs/notes/ui.md, "Container input dispatch".
 class UiContainer : public UiWindow {
 public:
-    explicit UiContainer(Interface3D* ui) : UiWindow(ui) {}
-
     // Only while the interface draws: the window's own draw, then every enabled child's.
     void DrawSprites(SceneRenderer* pass) override;
     // Only while the interface draws: the window's own, then every enabled child's.

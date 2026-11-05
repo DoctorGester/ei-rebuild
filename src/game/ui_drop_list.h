@@ -15,7 +15,7 @@
 class UiDropList : public UiContainer {
 public:
     // `row` in layout coordinates.
-    UiDropList(Interface3D* ui, UiContainer* owner, Rect row);
+    UiDropList(UiContainer* owner, Rect row);
     void AddText(std::string_view text);
     // Whether it changed since the last call (the flag cleared).
     bool TakeChanged();

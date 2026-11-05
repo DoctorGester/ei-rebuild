@@ -28,8 +28,8 @@ constexpr float kTurnAngle = ei::kRadiansPerDegree * 225.0f;
 // --- ViewScreen -------------------------------------------------------------
 
 void ViewScreen::CreateScreen() {
-    AddInput(std::make_unique<UnitPickInput>(ui));
-    AddInput(std::make_unique<CameraInput>(ui));
+    AddInput(std::make_unique<UnitPickInput>());
+    AddInput(std::make_unique<CameraInput>());
 
     Camera* camera = &g_camera;
     camera->flags &= ~Camera::kFree;
@@ -61,7 +61,7 @@ void UnitPickInput::OnEvent(UiEvent& event) {
 void UnitPickInput::LeftDown(UiEvent& event) {
     WorldClient* world = &g_clientWorld;
     Unit* unit = world->UnitAt(event.at, HitTest::Parts);
-    if (!ui->ctrlDown) {
+    if (!g_interface.ctrlDown) {
         if (unit) {
             int n = lib::Count(picked);
             picked.resize(n + 1);

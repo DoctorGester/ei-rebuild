@@ -101,7 +101,7 @@ void HeroQuickStrip::DrawSprites(SceneRenderer* pass) {
 
 void RepairGrid::DrawSprites(SceneRenderer* pass) {
     Rect grid = screen_layout::ToScreen(Rect{200, 100, 600, 500});
-    Rect screen{0, 0, ui->width, ui->height};
+    Rect screen{0, 0, g_interface.width, g_interface.height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
 

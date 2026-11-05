@@ -27,8 +27,8 @@ constexpr std::uint32_t kWhite = 0xFFFFFF;
 // The DPI twips and points are measured at: the interface's font scale (Interface3D::Create sizes its fonts by the
 // window's width over FontScale, 0.01 on a 4:3 window), 96 at 800 pixels wide. Text and layout then grow with the
 // window and ignore the system's DPI.
-int TitlesDpi(const UiSurface* surface) {
-    const float scale = static_cast<float>(surface->ui->width) / kDesignWidth * (0.01f / screen_layout::FontScale());
+int TitlesDpi() {
+    const float scale = static_cast<float>(g_interface.width) / kDesignWidth * (0.01f / screen_layout::FontScale());
     return static_cast<int>(scale * kDesignDpi + 0.5f);
 }
 
@@ -48,12 +48,12 @@ int MulDiv(int a, int b, int divisor) {
     return static_cast<int>(result);
 }
 
-int PixelsToTwips(const UiSurface* surface, int pixels) { return MulDiv(pixels, kTwipsPerInch, TitlesDpi(surface)); }
+int PixelsToTwips(int pixels) { return MulDiv(pixels, kTwipsPerInch, TitlesDpi()); }
 
-int HeightInTwips(const UiScrollingSurface* surface) { return PixelsToTwips(surface, surface->rect.Height()); }
+int HeightInTwips(const UiScrollingSurface* surface) { return PixelsToTwips(surface->rect.Height()); }
 } // namespace
 
-UiScrollingSurface::UiScrollingSurface(Interface3D* ui, const Rect* rect) : UiSurface(ui, rect, SurfaceBlend::Keyed) {
+UiScrollingSurface::UiScrollingSurface(const Rect* rect) : UiSurface(rect, SurfaceBlend::Keyed) {
     background = kWhite;
 }
 
@@ -68,8 +68,8 @@ bool UiScrollingSurface::Load(MappedResource* archive, const char* name) {
 }
 
 void UiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
-    const int dpi = TitlesDpi(this);
-    const int rectWidth = render::text::TwipsToPixels(PixelsToTwips(this, rect.Width()), dpi);
+    const int dpi = TitlesDpi();
+    const int rectWidth = render::text::TwipsToPixels(PixelsToTwips(rect.Width()), dpi);
     // Drawn without smoothing, as RichEdit drew with the titles' font smoothing off.
     text = std::make_unique<render::text::RichLayout>(render::text::LayoutRichText(
         render::text::ReadRtf(std::string_view(static_cast<const char*>(data), size)), rectWidth, dpi, false));
@@ -79,7 +79,7 @@ void UiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
 
 void UiScrollingSurface::FindEnd() {
     if (!text) return;
-    const int dpi = TitlesDpi(this);
+    const int dpi = TitlesDpi();
     const int top = render::text::TwipsToPixels(-offset, dpi);
     const int textHeight = HeightInTwips(this);
     if (endOffset > 0) {
@@ -100,9 +100,9 @@ void UiScrollingSurface::Blit() {
         FindEnd();
     }
     if (!shown || !text) return;
-    const Rect clip = Rect{0, 0, ui->width, ui->height}.Intersection(rect);
+    const Rect clip = Rect{0, 0, g_interface.width, g_interface.height}.Intersection(rect);
     if (clip.IsEmpty()) return;
-    const int dpi = TitlesDpi(this);
+    const int dpi = TitlesDpi();
     const int top = render::text::TwipsToPixels(-offset, dpi);
     for (const render::text::RichDraw& draw :
          render::text::RichDraws(*text, render::text::TwipsToPixels(-offsetX, dpi), top, Rect{0, 0, width, height}))

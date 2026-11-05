@@ -66,7 +66,7 @@ void CreditsScreen::DrawSprites(SceneRenderer* pass) {
 // Centred over the whole surface with its shadow, without smoothing: the original switched the system's font
 // smoothing off for the titles.
 void CreditsScreen::PaintHeader(UiSurface& surface) const {
-    const UiFont& font = ui->fonts[kHeaderFont];
+    const UiFont& font = g_interface.fonts[kHeaderFont];
     const Rect whole = {0, 0, surface.rect.Width(), surface.rect.Height()};
     surface.DrawTextPixels(UiFont{font.face, font.pixels, true}, header, whole, render::text::kCenter, kHeaderColour, true);
 }

@@ -65,7 +65,7 @@ void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels, UiRegio
         depth *= 0.5f;   // * 0.5
         v = 0x9C - v;
     }
-    window->AddSurface(std::make_unique<UiSurface>(window->ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
+    window->AddSurface(std::make_unique<UiSurface>(200, 100, 600, 500, SurfaceBlend::Keyed, true))
         ->PaintWith([labels](UiSurface& out) { PaintLabels(out, *labels); });
 }
 
@@ -351,7 +351,7 @@ void HeroStatsPanel::Build() {
     rect = Rect{0, 100, 200, 400};
     previousButton = AddRect(this, Rect{0, 0x7D, 0x1E, 0x91});
     nextButton = AddRect(this, Rect{0xAA, 0x7D, 200, 0x91});
-    AddSurface(std::make_unique<UiSurface>(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(0, 100, 200, 400, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     nextArrow = AddBlankSprite();
     nextArrow->SetRectangle(5.0f, kSpriteScale, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
@@ -392,29 +392,25 @@ void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldI
 
 // --- The item under the mouse ---------------------------------------------------------------
 
-Item* TradeGrid::ItemAt(Point point, int* topic) {
-    *topic = 0;
-    if (!enabled) return nullptr;
+ItemUnder TradeGrid::ItemAt(Point point) {
+    if (!enabled) return {};
     const int cell = RegionIndex(cells, RegionUnder(point));
-    if (cell >= 0 && cell < kGridCellsPerList) {
-        *topic = exchange ? kTopicExchangeBuy : buyKind == PriceKind::ItemBuy ? kTopicItemBuy : kTopicSpellBuy;
-        if (cell < std::ssize(*bought)) return (*bought)[cell];
-        return nullptr;
+    if (cell < 0) return {};
+    if (cell < kGridCellsPerList) {
+        const int topic = exchange ? kTopicExchangeBuy : buyKind == PriceKind::ItemBuy ? kTopicItemBuy : kTopicSpellBuy;
+        return {cell < std::ssize(*bought) ? (*bought)[cell] : nullptr, topic};
     }
-    if (cell < kGridCellsPerList) return nullptr;
     // The sold list's topic also follows buyKind.
-    *topic = exchange ? kTopicExchangeSell : buyKind == PriceKind::ItemBuy ? kTopicItemSell : kTopicSpellSell;
-    if (cell - kGridCellsPerList < std::ssize(*sold)) return (*sold)[cell - kGridCellsPerList];
-    return nullptr;
+    const int topic = exchange ? kTopicExchangeSell : buyKind == PriceKind::ItemBuy ? kTopicItemSell : kTopicSpellSell;
+    const int index = cell - kGridCellsPerList;
+    return {index < std::ssize(*sold) ? (*sold)[index] : nullptr, topic};
 }
 
-Item* RepairGrid::ItemAt(Point point, int* topic) {
-    *topic = 0;
-    if (!enabled) return nullptr;
+ItemUnder RepairGrid::ItemAt(Point point) {
+    if (!enabled) return {};
     const int cell = RegionIndex(cells, RegionUnder(point));
-    if (cell < 0) return nullptr;
-    *topic = kTopicRepair;
-    return cell < std::ssize(*items) ? (*items)[cell] : nullptr;
+    if (cell < 0) return {};
+    return {cell < std::ssize(*items) ? (*items)[cell] : nullptr, kTopicRepair};
 }
 
 // --- The repair grid's Build ---------------------------------------------------------------
@@ -457,7 +453,7 @@ void SpellMakerPage::BuildSpellMaker(Party* party) {
     costLines[0] = AddRect(this, Rect{200, 450, 400, 470});
     costLines[1] = AddRect(this, Rect{200, 470, 400, 490});
     AddMakerPictures(this);
-    AddSurface(std::make_unique<UiSurface>(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(200, 450, 400, 490, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
@@ -486,7 +482,6 @@ void ConstructorPage::BuildItemMaker(Party* party) {
 namespace {
 
 // Help topics.
-constexpr int kTopicNone = 0;
 constexpr int kTopicSpellContainer = 0x13;
 constexpr int kTopicSpell = 0x14;
 constexpr int kTopicModifier = 0x15;
@@ -512,48 +507,27 @@ Item* NthSlot(Party* slots, int nth, Predicate matches) {
 
 } // namespace
 
-Item* SpellMakerPage::ItemAt(Point point, int* topic) {
-    *topic = kTopicNone;
-    if (!enabled) return nullptr;
+ItemUnder SpellMakerPage::ItemAt(Point point) {
+    if (!enabled) return {};
     const UiRegion* region = RegionUnder(point);
-    if (!region) return nullptr;
-    if (region == containerSlot) {
-        *topic = kTopicSpellContainer;
-        return NthSlot(slots, 0, IsSpellContainer);
-    }
-    if (region == spellSlot) {
-        *topic = kTopicSpell;
-        return NthSlot(slots, 0, IsSpell);
-    }
-    if (const int cell = RegionIndex(gridCells, region); cell >= 0) {
-        *topic = kTopicModifier;
-        if (Item* item = NthSlot(slots, cell, IsModifier)) return item;
-    }
-    if (region == costLines[0]) *topic = kTopicSkillLine;
-    else if (region == costLines[1]) *topic = kTopicManaLine;
-    return nullptr;
+    if (!region) return {};
+    if (region == containerSlot) return {NthSlot(slots, 0, IsSpellContainer), kTopicSpellContainer};
+    if (region == spellSlot) return {NthSlot(slots, 0, IsSpell), kTopicSpell};
+    if (const int cell = RegionIndex(gridCells, region); cell >= 0)
+        return {NthSlot(slots, cell, IsModifier), kTopicModifier};
+    if (region == costLines[0]) return {nullptr, kTopicSkillLine};
+    if (region == costLines[1]) return {nullptr, kTopicManaLine};
+    return {};
 }
 
-Item* ConstructorPage::ItemAt(Point point, int* topic) {
-    *topic = kTopicNone;
-    if (!enabled) return nullptr;
+ItemUnder ConstructorPage::ItemAt(Point point) {
+    if (!enabled) return {};
     const UiRegion* region = RegionUnder(point);
-    if (!region) return nullptr;
-    if (region == blueprintSlot) {
-        *topic = kTopicBuildable;
-        return NthSlot(slots, 0, IsBuildable);
-    }
-    if (region == partSlot) {
-        *topic = kTopicPart;
-        return NthSlot(slots, 0, IsPart);
-    }
-    if (region == containerSlot) {
-        *topic = kTopicItemContainer;
-        return NthSlot(slots, 0, IsSpellContainer);
-    }
-    if (const int cell = RegionIndex(gridCells, region); cell >= 0) {
-        *topic = kTopicMaterial;
-        return NthSlot(slots, cell, IsMaterial);
-    }
-    return nullptr;
+    if (!region) return {};
+    if (region == blueprintSlot) return {NthSlot(slots, 0, IsBuildable), kTopicBuildable};
+    if (region == partSlot) return {NthSlot(slots, 0, IsPart), kTopicPart};
+    if (region == containerSlot) return {NthSlot(slots, 0, IsSpellContainer), kTopicItemContainer};
+    if (const int cell = RegionIndex(gridCells, region); cell >= 0)
+        return {NthSlot(slots, cell, IsMaterial), kTopicMaterial};
+    return {};
 }

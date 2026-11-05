@@ -22,7 +22,7 @@ float MouseSpeed(const options::CameraMotionOptions& motion) { return motion.pow
 // The wheel's zoom steps per unit, kWheelUnits a notch (read from the exe, rule 9).
 constexpr float kWheelStep = -0.008333334f;
 
-bool ModifierHeld(const Interface3D* ui) { return ui->ctrlDown || ui->altDown; }
+bool ModifierHeld() { return g_interface.ctrlDown || g_interface.altDown; }
 
 // Layout units to a part of the screen and the rates' scales
 constexpr float kPerWidth = 0.0025f;
@@ -85,7 +85,7 @@ void CameraInput::KeyUp(UiEvent& event) {
     }
     if (!event.handled) return;
     Camera* camera = &g_camera;
-    if (!ModifierHeld(ui)) {
+    if (!ModifierHeld()) {
         float left = -x;
         float speed = KeyboardSpeed(options::g_options.cameraScroll);
         Vector3 direction = {y * speed, left * speed, 0.0f};
@@ -135,7 +135,7 @@ void CameraInput::MouseMove(UiEvent& event) {
         const float dragY = static_cast<float>(taken.y) * screen_layout::kLayoutPerCount;
         float across = dragX * kPerWidth;
         float along = dragY * kPerHeight;
-        if (!ModifierHeld(ui)) {
+        if (!ModifierHeld()) {
             // The turn and tilt speeds times the mouse direction factors.
             const float turnSpeed = MouseSpeed(options::g_options.cameraRotate) * options::g_options.cameraFlipX;
             camera->SetTurnRate(turnSpeed * across * 10.0f);
@@ -164,7 +164,7 @@ void CameraInput::MouseMove(UiEvent& event) {
     int margin = static_cast<const volatile int&>(options::g_options.cameraBorderScrollArea);
     if (margin > 0) {
         // The edges of the picture: the screen's, or the letterbox bars' inner ones.
-        const Rect picture = ui->PictureRect();
+        const Rect picture = g_interface.PictureRect();
         unsigned edges = 0;
         Vector3 direction{0.0f, 0.0f, 0.0f};
         if (event.at.x < picture.left + margin) {
@@ -181,7 +181,7 @@ void CameraInput::MouseMove(UiEvent& event) {
             direction.y = 1.0f;
             edges |= kBottom;
         }
-        if (!ModifierHeld(ui)) {
+        if (!ModifierHeld()) {
             // The keys' pan goes on (KeyUp sets the same).
             float left = -x;
             float speed = KeyboardSpeed(options::g_options.cameraScroll);
@@ -232,7 +232,7 @@ void CameraInput::KeyDown(UiEvent& event) {
     case 15:
     case 16: {
         unsigned slot = static_cast<unsigned>(character - 13);
-        if (ModifierHeld(ui))
+        if (ModifierHeld())
             g_camera.SaveView(slot);
         else
             g_camera.RestoreView(slot);
@@ -244,7 +244,7 @@ void CameraInput::KeyDown(UiEvent& event) {
     }
     if (!event.handled) return;
     Vector3 direction = {0.0f, 0.0f, 0.0f};
-    if (!ModifierHeld(ui)) {
+    if (!ModifierHeld()) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
         float left = -x;
         float speed = KeyboardSpeed(options::g_options.cameraScroll);
