@@ -1,0 +1,70 @@
+# C154c: a client leaves a server whose item database it lacks a record of (a pair of games, harness_pair.h). This
+# game hosts as net_pair_party does, with a network item database of one quest item more: tools/make_extra_item_db.py
+# writes harness_saves\Res\databaselmp.res, which the harness's overlay reads in place of the install's. The peer
+# (peer/net_pair_database.txt) joins with the install's database. Both go into the game zone as in net_pair_leave
+# (the sheriff's second topic picks the map; the bases are each game's own). Then this game's server gives the peer's
+# player (id 1) the extra item ("giveitem", as a script's GiveItem): the item's state goes to the peer
+# (NewItemsAndSpells), whose client has no record for it (HasEveryRecord). The peer empties its client world's items
+# and spells and leaves after the tick (PlayerClient::LeaveAfterTick); its disconnect box shows the reason and its
+# Enter goes back to the main menu, with no fatal error. This game's server drops the peer and plays on.
+# A clickground lands where the clicked pixel's ray meets the ground (the vanilla runs play in a 4:3 window, the
+# Rebirth runs at the desktop's size; net_pair_leave).
+# prepare: make_extra_item_db.py
+rebirth resolution desktop
+timeout 180
+peer net_pair_database
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+peerwait 90 joined
+frames 20
+
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 1
+talk 30
+
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 20
+peersignal entered
+peerwait 120 peerin
+frames 20
+giveitem 1 c154cnuggets
+peerwait 60 left
+frames 40
+waitwindow 10 battle
+report
+quit

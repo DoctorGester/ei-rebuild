@@ -40,6 +40,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <utility>
 #include <vector>
 
 // ---- Heights -------------------------------------------------------------------------------------
@@ -365,6 +366,13 @@ bool WorldClient::RunTick() {
         RunEffects(scorchMarks);
     }
     if (tick % 32 == 0) GetTextureManager()->TrimCache();
+    // A handler that could not take the server's data asked the session to leave (PlayerClient::LeaveAfterTick):
+    // the player disconnects now, and the next pass's idle check hands the flow back (RunPass: the multiplayer
+    // client's disconnect box with the reason, else the main menu).
+    if (PlayerClient* local = LocalView(); local && !local->leaveReason.empty()) {
+        g_interface.disconnectReason = std::exchange(local->leaveReason, std::string());
+        session->Disconnect();
+    }
     return true;
 }
 

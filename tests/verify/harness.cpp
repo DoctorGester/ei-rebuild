@@ -54,6 +54,9 @@
 //                             attacker gives the hit a side (HitDirection) and the game's own rules decide what it
 //                             does, also in a network game where "@" commands do nothing. A unit is "leader" (the
 //                             local player's first party member), "#<id>" or a script name (as GetObjectByName)
+//   giveitem <player> <item>  the server world's player <player> (its id: 0 the host's own) is given a new item
+//                             <item> (a database name, as the item manager's CreateItem takes it), as a script's
+//                             GiveItem(player, item) does, also in a network game (net_pair_database)
 //   frames <n>                let the game run <n> frames of its main loop (after the input posted
 //                             so far has been handled): for what follows a posted key or mouse
 //                             step on the next frames, whatever the frame rate
@@ -2787,6 +2790,14 @@ void RunSteps() {
                 Log("harness: hit %s (%d) by %s (%d), %g damage%s%s", target, targetId, attacker, attackerId, amount,
                     error.empty() ? "" : ": ", error.c_str());
             }
+            if (!error.empty()) g_failures.push_back(error);
+        } else if (s.verb == "giveitem") {
+            int player = -1;
+            char item[96] = {};
+            const std::string error = std::sscanf(s.argument.c_str(), "%d %95s", &player, item) != 2
+                                          ? "giveitem needs <player> <item>"
+                                          : image::GiveItem(player, item);
+            Log("harness: giveitem %s%s%s", s.argument.c_str(), error.empty() ? "" : ": ", error.c_str());
             if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "console") {
             ConsoleExecute(s.argument.c_str());

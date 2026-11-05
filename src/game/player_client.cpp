@@ -40,11 +40,17 @@
 #include <cstring>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace {
 
 constexpr int kLoginVersion = 100;
+
+// The reason a client leaves when the server's items or spells name records this game's databases lack.
+constexpr const char* kOtherDatabaseText =
+    "The server's items or spells are not in this game's item and spell databases: the server uses another "
+    "items.idb or spells.sdb.";
 
 // The login request (message 0). The bytes after the two texts are zero (the original sent whatever its buffers
 // held).
@@ -174,6 +180,7 @@ int PlayerClient::DispatchMessages() {
     std::uint8_t previous = 0xFF;
     for (;;) {
         if (!in.ok) return PlayerMessageError("Pkt read error prevID=%x curID=%x\n", previous, messageType);
+        if (!leaveReason.empty()) return 1;
         previous = messageType;
         if (in.Read(&messageType, 1) == 0) return 1;
         bool handled;
@@ -284,14 +291,14 @@ bool PlayerClient::OnZone() {
 bool PlayerClient::OnItemsAndSpells() {
     MemoryStream block;
     if (in.ReadStream(&block) == 0) return false;
-    g_clientWorld.LoadItemsAndSpells(&block);
+    if (!g_clientWorld.LoadItemsAndSpells(&block)) return LeaveAfterTick(kOtherDatabaseText);
     return true;
 }
 
 bool PlayerClient::OnNewItemsAndSpells() {
     MemoryStream block;
     if (in.ReadStream(&block) == 0) return false;
-    g_clientWorld.LoadNewItemsAndSpells(&block);
+    if (!g_clientWorld.LoadNewItemsAndSpells(&block)) return LeaveAfterTick(kOtherDatabaseText);
     return true;
 }
 
@@ -365,7 +372,7 @@ bool PlayerClient::OnParty() {
         block.MemoryStream::Seek(0);
         if (in.ok) {
             party->LoadParty(&block, true);
-            RequireEveryRecord(party);
+            if (!KeepParty(party)) return true;
             std::vector<std::uint32_t>& recharging = player->recharging;
             recharging.clear();
             ObjectListIteratorOf<Item> walk;
@@ -391,8 +398,21 @@ bool PlayerClient::OnPartyUpdate() {
     block.MemoryStream::Seek(0);
     if (in.ok) {
         player->GetParty()->LoadParty(&block, false);
-        RequireEveryRecord(player->GetParty());
+        KeepParty(player->GetParty());
     }
+    return true;
+}
+
+bool PlayerClient::KeepParty(Party* party) {
+    if (HasEveryRecord(party)) return true;
+    party->Clear(false, false);
+    LeaveAfterTick(kOtherDatabaseText);
+    return false;
+}
+
+bool PlayerClient::LeaveAfterTick(std::string reason) {
+    if (leaveReason.empty()) leaveReason = std::move(reason);
+    console::EndLine(console::g_netLogOut << "client: leaving the server: " << leaveReason);
     return true;
 }
 

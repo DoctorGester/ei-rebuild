@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 class PlayerClient final : public PlayerConnection {
@@ -83,10 +84,14 @@ public:
     // Compresses the queued requests and sends them on the link; the queue is emptied unless there is no
     // link. 1 without a link, 0 when it is not connected, else the send's result.
     bool SendToServer();
-    // Runs every message of in (from its start) through the handlers by type. 1 at the end of the stream;
-    // a read past the end, a type without a handler or a refusing handler ends in the fatal error (its
-    // result returned).
+    // Runs every message of in (from its start) through the handlers by type. 1 at the end of the stream or
+    // once a handler made the session leave (LeaveAfterTick: the packet's other messages are dropped); a read past
+    // the end, a type without a handler or a refusing handler ends in the fatal error (its result returned).
     int DispatchMessages();
+    // The session leaves the server after this client world tick (WorldClient::RunTick disconnects the player;
+    // the interface shows `reason` in its disconnect box). A handler whose data this game cannot take (a loader
+    // refused it) calls it and returns true. The first reason is kept. Returns true.
+    bool LeaveAfterTick(std::string reason);
     // The client world's frame, with the local server's stream. Appends the bytes of `source` (rewound) to
     // the received stream, whose pending bits are stored first; its read position stays.
     void AppendReceived(MemoryStream* source);
@@ -104,7 +109,8 @@ public:
     // Message 0x02. The zone: the player cleared, then the client world loads the block read from the
     // stream (Rebirth-patched). False when the block cannot be read.
     bool OnZone();
-    // Messages 0x03 / 0x05. A block for the client world's two readers; false when it cannot be read.
+    // Messages 0x03 / 0x05. A block for the client world's two readers; false when it cannot be read. A block
+    // naming items or spells this game's databases lack (the reader refused it) makes the session leave.
     bool OnItemsAndSpells();
     bool OnNewItemsAndSpells();
     // Message 0x0A. The player drops an item (id); the quest log is refreshed with an empty list.
@@ -122,10 +128,15 @@ public:
     // Message 0x80. The party: a sized block loaded into the player's party (with variables; a multiplayer
     // client keeps its own); the player's recharge list gets every item whose charge is below its maximum;
     // the client world applies the variables, "party received on client" is logged and the game flow's
-    // ReturnLocalParty runs.
+    // ReturnLocalParty runs. A party naming items or spells this game's databases lack is emptied instead and
+    // the session leaves (KeepParty).
     bool OnParty();
-    // Message 0x83. A sized block loaded into the party without its variables.
+    // Message 0x83. A sized block loaded into the party without its variables; one this game cannot take as for
+    // OnParty.
     bool OnPartyUpdate();
+    // The party loaded from the server: true when its items and spells name records of this game's databases
+    // (HasEveryRecord); else it is emptied (Party::Clear, variables kept) and the session leaves (LeaveAfterTick).
+    bool KeepParty(Party* party);
     // Message 0x0E. A path shown as markers: kind (0..3), a flag, x, y, a unit id and a value. Except for
     // kind 3 a scratch unit (class 0x32) reads the path through a delta field and, with markers on, a
     // particle source 0x2039 (colour by kind, typeParam the value) runs one tick on it; with markers on, a
@@ -154,8 +165,8 @@ public:
     bool OnLoginAccepted();
     // Message 0x01. The player disconnects (Player::Disconnect).
     bool OnDisconnect();
-    // Message 0x11. The server's reason for dropping the player (a text): the fatal error shows it, then the
-    // handler refuses, as a message without a handler did (the original had none).
+    // Message 0x11. The server's reason for dropping the player (a text): the session leaves with it
+    // (LeaveAfterTick; the original had no handler, and the dispatcher's fatal error ended the game).
     bool OnError();
     // Message 0x04. A point and two dwords (heading, mode): the client world centres on the point; in the
     // party's zone "gz20g" the camera takes distance 23 and a 30-degree pitch (SetDistancePitch), elsewhere
@@ -234,5 +245,7 @@ public:
     std::vector<int> partyUnitIds;
     // The ids of the other players' units the map shows (message 0x60).
     std::vector<int> otherUnitIds;
+    // Why the session leaves after this tick (LeaveAfterTick); empty while it stays.
+    std::string leaveReason;
 };
 

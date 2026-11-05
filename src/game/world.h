@@ -917,12 +917,15 @@ public:
     // The reverse, used by the teardown: every item and spell released, each manager emptied.
     void ReleaseItemsAndSpells();
     // The items and spells replaced: all released, then (a block with data) the managers loaded and referenced again.
-    // Returns 1. Both block loaders end the game when an item or spell of the server names a record this game's
-    // databases lack (RequireEveryRecord): a client has no way yet to leave the server's zone from here.
-    int LoadItemsAndSpells(ByteStream* block);
-    // The block read from its start: the spells and then the items it lists (LoadManagerObjects). 0 when
-    // the block fails.
-    int LoadNewItemsAndSpells(ByteStream* block);
+    // Then KeepItemsAndSpells' result.
+    bool LoadItemsAndSpells(ByteStream* block);
+    // The block read from its start: the spells and then the items it lists (LoadManagerObjects; a failed read
+    // ends it). Then KeepItemsAndSpells' result.
+    bool LoadNewItemsAndSpells(ByteStream* block);
+    // Both block loaders' test: true when every item and spell names records of this game's databases
+    // (HasEveryRecord); else the managers are emptied (ReleaseItemsAndSpells; a server with another items.idb or
+    // spells.sdb) and the handler makes the session leave (PlayerClient::LeaveAfterTick).
+    bool KeepItemsAndSpells();
     // Takes the object `id` out of the maps (platform faces, dynamic lists, heroes, its grid cell and objects); the
     // object is released.
     void RemoveObject(int id);

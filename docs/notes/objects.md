@@ -80,10 +80,18 @@ the items.
   0x3A go to, 0x3B fight at will, 0x40 the camera anchor, 0x50 party update (SaveParty draws an ISAAC key). Orders
   are refused for a unit flagged 0x800000 (blocked) or dead. A new party or party update naming items or spells the
   server's databases lack gets message 0x11 with the reason and state 3 too (the player is dropped; ours, not the
-  original's); our client's 0x11 handler shows the text in the fatal error and refuses (the original had none).
+  original's); our client leaves the server with the text (the original had no handler: the fatal error).
 - **Dispatch**: each side runs a received packet's messages through a switch on the type byte (`PlayerServer::Receive`
   over its own stream `in`, `PlayerClient::DispatchMessages`); a type without a case or a handler returning false is
   the fatal error.
+- **Leaving the server** (ours): a client handler that cannot take the server's data (message 0x11; an item or spell
+  block or a party naming records this game's databases lack, `items_spells.md`) calls
+  `PlayerClient::LeaveAfterTick(reason)` and returns true; the dispatch drops the packet's other messages. At the end
+  of `WorldClient::RunTick` the player disconnects (`Player::Disconnect`) and the reason goes to
+  `Interface3D::disconnectReason`; the next pass's idle check (`RunPass`: `IsLocalPlayerIdle`) recreates a
+  multiplayer client's session, the interface shows the disconnect box with the reason as its text, and its OK goes
+  to the main menu (`kLeaveGame`), as for a lost connection; a local game goes to the menu (`CloseSessions`). The
+  loaders empty what they refused first, so no item or spell without its records stays readable meanwhile.
 - **Client handlers** of note: 0x04 places the camera (`SetDistancePitch` with 23 m and 30 degrees in zone gz20g, else
   RestoreView 6 or 7); 0x0C reads (id, float) pairs until id -1 (an unknown id leaves its float to be read as the next
   id, kept); 0x19 by kind: control a unit, set / clear its flag 0x100, clear the selection; 0x60 old party ids lose

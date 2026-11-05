@@ -126,8 +126,8 @@ reads the same.
 
 - `Interface3D::Update`: a pending value pops the top window (Deactivate, CloseScreen, delete); 0x990001 sets close-all
   and leaves the game; then close-all pops every window, the mouse position is copied, a
-  network client that lost the server gets the "disconnect" box (0x990000), else the top window's Update runs, last the
-  root's. `ScreenFade::Draw`: alpha step `ms * rate + alpha` stored as float, clamped at 255, below 0 the fade ends.
+  network client that lost the server gets the "disconnect" box (0x990000; its text is `disconnectReason` when the
+  client left on its own, objects.md "Leaving the server"), else the top window's Update runs, last the root's. `ScreenFade::Draw`: alpha step `ms * rate + alpha` stored as float, clamped at 255, below 0 the fade ends.
   `Shutdown` writes `config\tutorial.ini` from `helpTopics`.
 - The interface's root window is the `ChatOverlay`. `UiItemPanel` is the base of the description panel, hero equipment,
   quick strip, trade / repair grids, constructor pages and the blank panel.

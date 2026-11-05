@@ -182,7 +182,8 @@ StepKind Classify(const std::string& verb) {
         "reject", "report", "groundview", "hudstate", "minimap", "consoleline", "recordcut", "recordpart", "origin"};
     static const std::set<std::string> kKept = {
         "newgame", "load", "console", "zone", "screen", "speed", "frametime", "focus", "windowsize", "chat", "campputon",
-        "freeze", "unfreeze", "digest", "dump", "quit", "shadows", "masterhost", "hit"};
+        "freeze", "unfreeze", "digest", "dump", "quit", "shadows", "masterhost", "hit",
+        "giveitem"};
     if (kInput.count(verb)) return StepKind::Input;
     if (kSkip.count(verb)) return StepKind::Skip;
     if (kKept.count(verb)) return StepKind::Kept;

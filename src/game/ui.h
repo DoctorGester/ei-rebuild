@@ -306,6 +306,9 @@ public:
     bool pollTop = false;
     std::deque<std::string> messages;   // queued message texts (ShowMessage takes the first)
     bool disconnected = false;
+    // Why the client left the server (PlayerClient::LeaveAfterTick): the disconnect box's text instead of
+    // "disconnect_msg"; empty for a lost connection. GameFlow::DropSessions clears it.
+    std::string disconnectReason;
     // The state saved with a game (LoadState), cleared by ResetSavedState. The HUD panels keep theirs
     // here every frame.
     std::uint8_t hudPanelsIn[3] = {};    // [0] the unit panel, [1] the top panel, [2] the map
