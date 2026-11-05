@@ -145,7 +145,8 @@ fixed, and frames present without waiting for vsync. The fixed date, 2001-03-26 
 (the process's `TZ` is set to `EET-2`, so the log's times of day are in it too): the main menu's time of day and a
 save's time (info.sav) are then the same on a machine in any zone. A scenario that repeats takes the same course on every run (a
 golden is recorded only from runs that agree). The harness's waits count virtual time, each with a real-time safety
-limit. A `realtime` line puts a scenario on the real clock; `EI_HARNESS_CLOCK` (or `run_all.py --clock`) overrides:
+limit (times `EI_TIME_SCALE`, default 1: a factor for slow runners, also on a frames step's and the scenario's limits; linux.md,
+"The CI job"). A `realtime` line puts a scenario on the real clock; `EI_HARNESS_CLOCK` (or `run_all.py --clock`) overrides:
 `virtual` or `real`, plus `clocktrace` (every clock read and wait by function, caller and thread, in `ei-rebuild.log`)
 and `randtrace` (every random draw with its frame and caller, in `randtrace.txt`; `tools/randtrace.py` finds where two
 runs part). The heap moves its blocks in every run, so a golden never follows heap addresses. The trace tools

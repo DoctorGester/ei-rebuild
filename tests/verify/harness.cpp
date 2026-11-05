@@ -600,10 +600,21 @@ bool g_replayLate = false;
 // A recording's cut is queued (InjectCut) until its origin step.
 bool g_cutQueued = false;
 
+// EI_TIME_SCALE (default 1, never below 1): the factor on the harness's real-time limits (a frames step's, the whole
+// scenario's) for a runner slower than a desktop (CI's software rendering, docs/notes/linux.md). The world's clock and
+// the waits' own lengths are not scaled; run_all.py reads the same variable for the limit it reports.
+double TimeScale() {
+    static const double scale = [] {
+        const double value = std::atof(platform::EnvironmentVariable("EI_TIME_SCALE").c_str());
+        return value >= 1.0 ? value : 1.0;
+    }();
+    return scale;
+}
+
 // When a wait ends: after `ms` on the harness's clock (virtual time in deterministic mode), or at a
 // real-time safety limit, so that a game which stops drawing frames (the virtual clock stands
-// still) still fails the wait instead of the whole run's time limit: four times the wait plus 10 s
-// (a busy machine draws slowly, and the virtual clock is then slower than real time).
+// still) still fails the wait instead of the whole run's time limit: four times the wait plus 10 s, times
+// TimeScale() (a busy machine draws slowly, and the virtual clock is then slower than real time).
 struct Deadline {
     std::uint32_t start = 0, at = 0;           // harness clock
     std::uint32_t realStart = 0, realAt = 0;   // the system's tick count
@@ -611,7 +622,7 @@ struct Deadline {
         start = clock::Now();
         at = start + ms;
         realStart = sys::TickCount();
-        realAt = realStart + (clock::Virtual() ? 4 * ms + 10000 : ms);
+        realAt = realStart + (clock::Virtual() ? static_cast<std::uint32_t>(TimeScale() * (4.0 * ms + 10000)) : ms);
     }
     bool Passed() const {
         return static_cast<std::int32_t>(clock::Now() - at) >= 0 || static_cast<std::int32_t>(sys::TickCount() - realAt) >= 0;
@@ -687,7 +698,7 @@ Deadline g_waitForDeadline;
 unsigned g_frames = 0;
 bool g_waitingFrames = false;
 unsigned g_waitFramesUntil = 0;
-Deadline g_waitFramesDeadline;   // real time only: 10 s plus 100 ms a frame
+Deadline g_waitFramesDeadline;   // real time only: 10 s plus 100 ms a frame, times TimeScale()
 // A pending "waitpresent" (R9c): the game window's presents when it started, its deadline, whether it
 // waits for a gamma ramp check too, and the ramp checks a previous one has seen.
 bool g_waitingPresent = false;
@@ -2671,7 +2682,8 @@ void RunSteps() {
             g_waitingFrames = true;
             g_waitFramesUntil = g_frames + std::strtoul(s.argument.c_str(), nullptr, 10);
             g_waitFramesDeadline.Set(0);
-            g_waitFramesDeadline.realAt = g_waitFramesDeadline.realStart + 10000 + 100 * (g_waitFramesUntil - g_frames);
+            g_waitFramesDeadline.realAt = g_waitFramesDeadline.realStart +
+                static_cast<std::uint32_t>(TimeScale() * (10000 + 100 * (g_waitFramesUntil - g_frames)));
             return;
         } else if (s.verb == "waitwindow" || s.verb == "waitmenu") {
             unsigned long seconds = 30;
@@ -3330,7 +3342,8 @@ void RunSteps() {
 // finished within its time limit (60 s from game start unless it says "timeout <seconds>") fails:
 // the report is written with the failure and the game is closed. Keep scenarios well inside it.
 constexpr std::uint32_t kDefaultTimeLimitMs = 60000;
-std::uint32_t g_budget = kDefaultTimeLimitMs;
+std::uint32_t g_budget = kDefaultTimeLimitMs;   // before TimeScale()
+std::uint32_t Budget() { return static_cast<std::uint32_t>(g_budget * TimeScale()); }
 
 // A timed-out run: where the main thread is (sys::LogMainThreadStack, ei-rebuild.log). The stack dump runs on a thread
 // of its own and the watchdog waits 2 s for it: suspending the main thread and reading its context waits until the
@@ -3355,12 +3368,12 @@ void Watchdog() {
             Log("harness: the game did not exit 5 s after quit; terminating it");
             sys::Terminate(0);
         }
-        if (sys::TickCount() - start >= g_budget) {
+        if (sys::TickCount() - start >= Budget()) {
             Log("harness: scenario timed out after %u s (step %u of %u); terminating the game",
                 (sys::TickCount() - start) / 1000, unsigned(g_next), unsigned(g_steps.size()));
             char what[160];
             std::snprintf(what, sizeof(what), "scenario exceeded its %u s time limit at step %u of %u",
-                          g_budget / 1000, unsigned(g_next), unsigned(g_steps.size()));
+                          Budget() / 1000, unsigned(g_next), unsigned(g_steps.size()));
             g_failures.push_back(what);
             LogMainThreadStackBounded();
             // Write the report from another thread and end the game whether or not that finishes:

@@ -256,8 +256,20 @@ IN_GAME_TIMEOUT = 'scenario exceeded its'
 EXPECT_PREFIX = '# expect:'
 
 
-def scenario_limit(scenario):
-    """The scenario's time limit in seconds: its last "timeout <seconds>" line, default 60 (harness.cpp)."""
+def time_scale(environ=None):
+    """EI_TIME_SCALE (default 1): the factor on the harness's real-time limits, for runners slower than a desktop (CI's
+    llvmpipe; docs/notes/linux.md, "The CI job"). The game reads the same variable (harness.cpp, TimeScale); the world's
+    clock is not scaled. environ: the game's environment (default: this process's)."""
+    with contextlib.suppress(ValueError):
+        scale = float((os.environ if environ is None else environ).get('EI_TIME_SCALE') or 1)
+        if scale >= 1:
+            return scale
+    return 1.0
+
+
+def scenario_limit(scenario, environ=None):
+    """The scenario's time limit in seconds: its last "timeout <seconds>" line, default 60 (harness.cpp), times
+    EI_TIME_SCALE (whole seconds)."""
     limit = 60
     with contextlib.suppress(OSError):
         with open(scenario, encoding='utf-8', errors='replace') as f:
@@ -265,7 +277,7 @@ def scenario_limit(scenario):
                 m = re.match(r'\s*timeout\s+(\d+)', text)
                 if m:
                     limit = int(m.group(1))
-    return limit
+    return int(limit * time_scale(environ))
 
 
 def expected_result(scenario):
@@ -398,9 +410,9 @@ BREAKPOINT_CODES = (0x80000003, -5)   # an INT3: the Windows exception code, SIG
 class Game:
     """One game of a run: the scenario's own, or a pair's peer (label 'peer: ')."""
 
-    def __init__(self, scenario, out, label=''):
+    def __init__(self, scenario, out, label='', environ=None):
         self.scenario, self.out, self.label = scenario, out, label
-        self.limit = scenario_limit(scenario)
+        self.limit = scenario_limit(scenario, environ)
         self.report = os.path.join(out, 'harness_report.txt')
         self.quit = os.path.join(out, 'harness_quit')   # the harness writes it when its scenario quits, after the report
         self.proc = None
@@ -413,12 +425,12 @@ def launch(scenario, out, data, build, env=None, command=None):
     (code, text): code 0 passed, 1 failed, 2 no report or not started, TIMEOUT_EXIT or UNKILLABLE_EXIT; text what the
     scenario's game printed and launch()'s own lines."""
     said = []
-    games = [Game(scenario, out)]
+    games = [Game(scenario, out, environ=env)]
     peer = peer_scenario(scenario)
     if peer:
         if not os.path.exists(peer):
             return 2, f"the peer's scenario {peer} not found\n"
-        games.append(Game(peer, os.path.join(out, 'peer'), 'peer: '))
+        games.append(Game(peer, os.path.join(out, 'peer'), 'peer: ', env))
     environ = os.environ if env is None else env
     game_root = install_dir(data, environ)
     base = dict(environ, EI_GAME_ROOT=game_root,
@@ -740,7 +752,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if code in (TIMEOUT_EXIT, UNKILLABLE_EXIT) or any(f.startswith(IN_GAME_TIMEOUT) for f in failures):
         result = 'TIMEOUT'
         if not failures:
-            failures = [f'scenario exceeded its {scenario_limit(scenario)} s time limit; run_all ended the game'
+            failures = [f'scenario exceeded its {scenario_limit(scenario, environ)} s time limit; run_all ended the game'
                         + ('' if code != UNKILLABLE_EXIT else ' (it did not die: a thread is stuck in the kernel)')]
         if code == UNKILLABLE_EXIT:
             failures.append('the game process is still alive after it was ended')
