@@ -675,7 +675,6 @@ void WorldClient::Create() {
     GridToFour(secondGrid);
     GridToFour(objectGrid);
     ticksRun = 0;
-    lightLevelsCountdown = 0;
 }
 
 void WorldClient::ReferenceItemsAndSpells() {

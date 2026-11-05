@@ -1,11 +1,11 @@
 #pragma once
 
 // Ground prints: footprints, blood and scorch marks lying on the ground. The client world keeps them by value
-// in three vectors (blood, footprints, scorch marks), ticks them (a print whose life reaches 0 is erased),
-// draws them (Draw) and saves / loads them. A print is a textured quad around its point, rotated by `angle`,
-// its texture tile picked by the uv offset and scale and turned by `uvAngle`; Draw lays it on the ground
-// once (the decal projector) and draws it with an alpha that fades over the print's life. See
-// docs/notes/models.md.
+// in three vectors (blood, footprints, scorch marks), ticks them (a print whose life reaches 0 is erased) and
+// draws them (Draw); Save / Load have no caller (the save file holds no prints). A print is a textured quad
+// around its point, rotated by `angle`, its texture tile picked by the uv offset and scale and turned by
+// `uvAngle`; Draw lays it on the ground once (the decal projector) and draws it with an alpha that fades over
+// the print's life. See docs/notes/models.md.
 
 #include "ground_decal.h"   // DecalBuilder
 
@@ -45,23 +45,22 @@ public:
     // the geometry is made again (built cleared).
     virtual void Load(ByteStream* stream);
     // Writes the position, half sizes, growth, life (2 bytes), texture name (with its terminator), uv offset
-    // and scale, both angles, lit (1 byte), alpha scale, lifetime and colour.
+    // and scale, both angles, lit (1 byte), alpha scale and lifetime.
     virtual void Save(ByteStream* stream);
 
     // Draws the print when visible: the first time, lays the quad on the ground (z from the client world's
     // ground and platforms; the projector clips it to the terrain and the platforms under it) and turns its
-    // texture coordinates; then the flat draw in DayColour with the colour's alpha from alpha and the lit flag as
+    // texture coordinates; then the flat draw in DayColour with the alpha from alpha and the lit flag as
     // the specular alpha (the renderer lights it as the ground under it). Returns 1 when not visible, else the
     // draw's result.
     int Draw();
-    // The print's colour in the client world's daylight colours (WorldClient::DaylightColours), rgb: its colour
-    // (white).
+    // The print's colour in the client world's daylight colours (WorldClient::DaylightColours), rgb: white.
     virtual std::uint32_t DayColour() const;
 
 protected:
     // The members the three constructors share before their own parts: everything cleared, the
-    // texture name empty, `visible`, life and alpha scale, lifetime and colour set.
-    GroundPrint(std::uint8_t visible, int life, float alphaScale, int lifetime, std::uint32_t colour);
+    // texture name empty, `visible`, life and alpha scale and lifetime set.
+    GroundPrint(std::uint8_t visible, int life, float alphaScale, int lifetime);
     // The texture `name`, looked up in the texture manager or made and loaded (kind 6).
     void SetTexture(const char* name);
 
@@ -81,7 +80,6 @@ public:
     std::uint8_t lit = 0;           // the terrain's point test; the specular alpha
     float alpha = 0.0f;
     float alphaScale = 0.0f;
-    std::uint32_t colour = 0;       // its alpha byte is set from alpha every draw; saved (drawn: DayColour)
     int lifetime = 0;
     std::vector<VertexPacket> positions;      // the ground geometry (blocks of four)
     std::vector<TexCoord> texCoords;     // one per vertex
@@ -110,13 +108,12 @@ public:
     // tile >> 16 is the kind footprints take from it. A random quarter turn and a random start
     // angle (ClientRand() twice).
     BloodPrint(float x, float y, float halfSize, float fullSize, float alphaScale, int life, int lifetime,
-               std::uint32_t tile, std::uint32_t colour, std::uint8_t fresh);
+               std::uint32_t tile, std::uint8_t fresh);
 
     // While spreading (spreadTicks counts down) the geometry is made again every
     // tick, after that the growth stops; the angle turns by spin; then GroundPrint's tick.
     int Tick() override;
-    // The grey the client world's re-lighting (Segment) gives it in the daylight sun; its colour (the sun's at
-    // its making, then that grey by the light of the moment) is only saved.
+    // The grey of the daylight sun's luminance.
     std::uint32_t DayColour() const override;
     void Load(ByteStream* stream) override;   // GroundPrint's, then spin, spread, kind, fresh
     void Save(ByteStream* stream) override;

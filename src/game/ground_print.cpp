@@ -62,7 +62,7 @@ std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(std::lrou
 
 // ---- GroundPrint --------------------------------------------------------------------------------
 
-GroundPrint::GroundPrint(std::uint8_t newVisible, int newLife, float newAlphaScale, int newLifetime, std::uint32_t newColour) {
+GroundPrint::GroundPrint(std::uint8_t newVisible, int newLife, float newAlphaScale, int newLifetime) {
     built = false;
     visible = newVisible;
     growth = 0.0f;
@@ -72,7 +72,6 @@ GroundPrint::GroundPrint(std::uint8_t newVisible, int newLife, float newAlphaSca
     lit = 0xFF;
     alpha = 1.0f;
     alphaScale = newAlphaScale;
-    colour = newColour;
     lifetime = newLifetime;
 }
 
@@ -87,7 +86,7 @@ void GroundPrint::SetTexture(const char* name) {
 
 GroundPrint::GroundPrint(float x, float y, float newHalfWidth, float newHalfLength, float newAngle, float alphaScale, int life,
                          int lifetime)
-    : GroundPrint(1, life, alphaScale, lifetime, 0xFFFFFFFFu) {
+    : GroundPrint(1, life, alphaScale, lifetime) {
     position = {x, y};
     halfWidth = newHalfWidth;
     halfLength = newHalfLength;
@@ -129,7 +128,6 @@ void GroundPrint::Load(ByteStream* stream) {
     stream->ReadValue(lit);
     stream->ReadValue(alphaScale);
     stream->ReadValue(lifetime);
-    stream->ReadValue(colour);
     built = false;
 }
 
@@ -147,7 +145,6 @@ void GroundPrint::Save(ByteStream* stream) {
     stream->WriteValue(lit);
     stream->WriteValue(alphaScale);
     stream->WriteValue(lifetime);
-    stream->WriteValue(colour);
 }
 
 int GroundPrint::Draw() {
@@ -197,7 +194,6 @@ int GroundPrint::Draw() {
         built = true;
     }
     std::uint32_t fadeAlpha = static_cast<std::uint32_t>(std::lround(alpha * kAlphaRange));
-    colour = (colour & 0xFFFFFFu) | fadeAlpha << 24;
     TextureDevice* device = g_sceneRenderer.device;
     device->BindNamedTexture(0, &texture);
     return device->DrawFlatBlocks(positions.data(), texCoords.data(), lib::Count(positions), indices.data(),
@@ -205,13 +201,13 @@ int GroundPrint::Draw() {
                                   static_cast<std::uint32_t>(lit) << 24, true);
 }
 
-std::uint32_t GroundPrint::DayColour() const { return colour & 0xFFFFFFu; }
+std::uint32_t GroundPrint::DayColour() const { return 0xFFFFFFu; }
 
 // ---- Footprint ----------------------------------------------------------------------------------
 
 Footprint::Footprint(float x, float y, float newHalfWidth, float newHalfLength, float newAngle, float alphaScale, int life,
                      int lifetime, std::uint32_t tile, float newScale, int visible, int newKind)
-    : GroundPrint(static_cast<std::uint8_t>(visible), life, alphaScale, lifetime, 0xFFFFFFFFu) {
+    : GroundPrint(static_cast<std::uint8_t>(visible), life, alphaScale, lifetime) {
     kind = newKind;
     scale = newScale;
     position = {x, y};
@@ -251,8 +247,8 @@ void Footprint::Save(ByteStream* stream) {
 // ---- BloodPrint ---------------------------------------------------------------------------------
 
 BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float alphaScale, int life, int lifetime,
-                       std::uint32_t tile, std::uint32_t colour, std::uint8_t newFresh)
-    : GroundPrint(1, life, alphaScale, lifetime, colour) {
+                       std::uint32_t tile, std::uint8_t newFresh)
+    : GroundPrint(1, life, alphaScale, lifetime) {
     position = {x, y};
     halfWidth = halfSize;
     halfLength = halfSize;
@@ -316,8 +312,7 @@ void WorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSize
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, rainSnow.mode != 0);
     if (look.alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
-    std::uint32_t colour = ((Channel(frameSun.r) | 0x100) << 8 | Channel(frameSun.g)) << 8 | Channel(frameSun.b);
-    bloodPrints.emplace_back(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile, colour,
+    bloodPrints.emplace_back(x, y, halfSize, fullSize, look.alpha, look.life, look.lifetime, tile,
                               static_cast<std::uint8_t>(fresh));
 }
 
