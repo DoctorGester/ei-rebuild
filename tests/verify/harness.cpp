@@ -248,6 +248,15 @@
 //   capture <name>            write the frame presented after the next two to frames\<name>.bmp in
 //                             the output folder (the render target before the software cursor and
 //                             the flip; harness_capture.cpp); fails after 10 s without a frame
+//   capture <name> <count> [freeze] [after <text> | on <window>]
+//                             a burst: the next <count> presented frames, one after another, to
+//                             frames\<name>_1.bmp .. _<count>.bmp; with "after", from the first frame
+//                             presented after the console prints a line holding <text> (a load's
+//                             "Loaded <slot>": its first frames); with "on", from the first frame
+//                             presented with <window> on top (waitwindow's names; a return to the main
+//                             menu); with "freeze", the clocks frozen (as "freeze") once the first is
+//                             written, so the later ones differ from it only by what is drawn late;
+//                             fails after 30 s without them all
 //   freeze, unfreeze          hold the game's clocks (timeGetTime, GetTickCount) and the camera for
 //                             captures: no world, client or camera updates, no clock-driven
 //                             animation, while the frames keep being drawn. Do not "check"/"waitfor"
@@ -772,12 +781,22 @@ bool g_capturing = false;
 std::string g_captureName;
 std::uint32_t g_captureDeadline = 0;
 std::vector<std::string> g_capturedFrames;
+// What starts a burst (capture <name> <count> after <text> | on <window>): the console text, and whether it came; the
+// window.
+std::string g_captureAfter;
+bool g_captureAfterSeen = false;
+std::string g_captureOn;
+bool CaptureStarts() {
+    if (!g_captureOn.empty()) return WindowKind(TopWindow()) == g_captureOn;
+    return g_captureAfterSeen;
+}
 
 void OnConsoleLine(const char* text) {
     if (text && *text) {
         std::string line(text);
         while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
         Log("console: %s", line.c_str());
+        if (!g_captureAfter.empty() && line.find(g_captureAfter) != std::string::npos) g_captureAfterSeen = true;
         for (const std::string& r : g_rejected)
             if (line.find(r) != std::string::npos) g_failures.push_back("rejected output: " + line);
         g_console.push_back(std::move(line));
@@ -2303,11 +2322,13 @@ void RunSteps() {
         const char* detail = "";
         capture::State state = capture::Poll(&detail);
         if (state == capture::State::Pending && sys::TickCount() < g_captureDeadline) return;
+        g_captureAfter.clear();
+        g_captureOn.clear();
         if (state == capture::State::Done) {
             Log("harness: capture %s: %s", g_captureName.c_str(), detail);
             g_capturedFrames.push_back(g_captureName + ": " + detail);
         } else {
-            std::string why = state == capture::State::Pending ? "no frame presented within 10 s" : detail;
+            std::string why = state == capture::State::Pending ? "not every frame presented in time" : detail;
             Log("harness: capture %s failed: %s", g_captureName.c_str(), why.c_str());
             g_failures.push_back("capture " + g_captureName + ": " + why);
         }
@@ -3103,19 +3124,48 @@ void RunSteps() {
             if (found != wantFound)
                 g_failures.push_back(std::string(wantFound ? "expected" : "unexpected") + " new ei-rebuild.log line '" + wanted + "'");
         } else if (s.verb == "capture") {
+            // <name> [<count> [freeze] [after <text> | on <window>]]
+            const std::size_t space = s.argument.find(' ');
+            const std::string name = s.argument.substr(0, space);
+            const std::string rest = space == std::string::npos ? std::string() : s.argument.substr(space + 1);
+            int count = 0;
+            int used = 0;
+            std::string after, on;
+            bool freeze = false;
+            if (!rest.empty()) {
+                if (std::sscanf(rest.c_str(), "%d%n", &count, &used) < 1 || count < 1 || count > 200) count = -1;
+                std::string options = count > 0 ? rest.substr(used) : std::string();
+                while (!options.empty() && options.front() == ' ') options.erase(0, 1);
+                if (options.compare(0, 6, "freeze") == 0) {
+                    freeze = true;
+                    options.erase(0, 6);
+                    while (!options.empty() && options.front() == ' ') options.erase(0, 1);
+                }
+                if (options.compare(0, 6, "after ") == 0) after = options.substr(6);
+                else if (options.compare(0, 3, "on ") == 0) on = options.substr(3);
+                else if (!options.empty()) count = -1;
+            }
             // The name becomes a file name: letters, digits, '_', '-' and '.' only.
-            bool valid = !s.argument.empty() && s.argument.size() < 64;
-            for (char c : s.argument)
+            bool valid = !name.empty() && name.size() < 56 && count >= 0;
+            for (char c : name)
                 valid = valid && (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.');
             if (!valid) {
-                g_failures.push_back("capture: bad frame name '" + s.argument + "'");
+                g_failures.push_back("capture: bad step '" + s.argument + "'");
                 continue;
             }
-            // Two frames go by first, so that what changed before (a freeze, the mouse) is drawn.
-            capture::Request(s.argument.c_str(), 2);
+            if (count > 0) {
+                g_captureAfter = after;
+                g_captureAfterSeen = false;
+                g_captureOn = on;
+                capture::RequestBurst(name.c_str(), count, after.empty() && on.empty() ? nullptr : &CaptureStarts,
+                                      freeze);
+            } else {
+                // Two frames go by first, so that what changed before (a freeze, the mouse) is drawn.
+                capture::Request(name.c_str(), 2);
+            }
             g_capturing = true;
-            g_captureName = s.argument;
-            g_captureDeadline = sys::TickCount() + 10000;
+            g_captureName = name;
+            g_captureDeadline = sys::TickCount() + (count > 0 ? 30000 : 10000);
             return;
         } else if (s.verb == "samecapture") {
             char a[64] = "", b[64] = "";
@@ -3687,6 +3737,7 @@ bool LoadScenario(const char* path) {
         const Step& last = g_steps.back();
         if (last.verb == "freeze" || ((last.verb == "vanilla" || last.verb == "rebirth") && last.argument == "freeze"))
             g_freezeUsed = true;
+        if (last.verb == "capture" && last.argument.find(" freeze") != std::string::npos) g_freezeUsed = true;
         if (camera_trace::UsedBy(last.verb)) g_cameraTraceUsed = true;
         {
             // "read", "wrote" and "waitread" (also after "vanilla" / "rebirth"): the reads are noted from the start.

@@ -104,7 +104,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   until it is loaded. Starting a zone from the main menu crashes the game, so scenarios start with `newgame` and change
   zones from zone1 (`zone_gz2g_traps.txt`; the zone list in ui.md).
 - `speed <ms>` sets the real time per world update (game default 55); on the virtual clock it speeds nothing up.
-- `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder; `freeze` / `unfreeze`
+- `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder; `capture <name> <count>
+  [freeze] [after <text> | on <window>]` a burst of consecutive frames (renderer.md, "Frame capture"); `freeze` / `unfreeze`
   hold the game's clocks and camera around captures; `samecapture <a> <b>` requires two captures to match,
   `diffcapture <a> <b> <least> <most>` that they differ in that share of the pixels; `printlight <with> <without>
   <least> <most>` bounds the brightness of what one capture draws over the other (the ground prints, `decals off`)

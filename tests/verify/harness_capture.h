@@ -17,6 +17,12 @@ bool Install();
 // <output folder>\frames\<name>.bmp (24-bit, bottom-up, lossless).
 void Request(const char* name, int skip);
 
+// Asks for `count` presented frames, one after another, to be written to frames\<name>_1.bmp .. _<count>.bmp: from the
+// next present, or with `start` from the first present at which it says true (a load's first frames); `freeze`: the
+// game's clocks frozen (clock::Freeze) once the first is written, so the frames after it differ only by what is drawn
+// late.
+void RequestBurst(const char* name, int count, bool (*start)(), bool freeze);
+
 enum class State { Idle, Pending, Done, Failed };
 // The state of the last request; `detail` gets the file written or the reason it failed.
 State Poll(const char** detail);

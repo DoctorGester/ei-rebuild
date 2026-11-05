@@ -5,6 +5,8 @@
 // presented the frame by then, and the capture is its frame (image::ReadFrame).
 #include "harness_capture.h"
 
+#include "harness_clock.h"
+
 #include "lib/bytes.h"
 #include "platform/log.h"
 #include "system/harness_system.h"
@@ -50,6 +52,14 @@ State g_state = State::Idle;
 int g_skip = 0;
 std::string g_name;
 std::string g_detail;
+// A burst: the frames still to write (each <name>_<n>, n from 1), the next n, and what starts it (null: the next
+// present).
+int g_left = 0;
+int g_next = 0;
+bool g_burst = false;
+bool (*g_start)() = nullptr;
+bool g_freezeAtFirst = false;
+unsigned g_firstFrame = 0;
 
 // One colour channel of a surface format: its mask, the position of its lowest bit and its width.
 struct Channel {
@@ -118,7 +128,8 @@ void Capture() {
     image::EndFrame();
     Image frame;
     sys::MakeFolder(ei::OutputPath("frames"));
-    const std::string file = FramePath(g_name.c_str());
+    const std::string name = g_burst ? g_name + "_" + std::to_string(g_next) : g_name;
+    const std::string file = FramePath(name.c_str());
     const char* path = file.c_str();
     if (!image::ReadFrame(&frame.width, &frame.height, &frame.bgr)) {
         g_state = State::Failed;
@@ -130,9 +141,20 @@ void Capture() {
         g_detail = std::string("cannot write ") + path;
         return;
     }
-    char text[sys::kMaxPath + 96];
-    std::snprintf(text, sizeof(text), "%s (%dx%d, the new renderer's frame, frame %u)", path, frame.width, frame.height,
-                  g_frames);
+    if (g_next == 1) {
+        g_firstFrame = g_frames;
+        if (g_freezeAtFirst) clock::Freeze(true);
+    }
+    ++g_next;
+    if (--g_left > 0) return;
+    char text[sys::kMaxPath + 160];
+    if (g_burst)
+        std::snprintf(text, sizeof(text), "%s\\%s_1 .. _%d (%dx%d, the new renderer's frames %u .. %u%s)",
+                      ei::OutputPath("frames").c_str(), g_name.c_str(), g_next - 1, frame.width, frame.height,
+                      g_firstFrame, g_frames, g_freezeAtFirst ? ", the clocks frozen from the first" : "");
+    else
+        std::snprintf(text, sizeof(text), "%s (%dx%d, the new renderer's frame, frame %u)", path, frame.width,
+                      frame.height, g_frames);
     g_detail = text;
     g_state = State::Done;
 }
@@ -140,6 +162,10 @@ void Capture() {
 // The frame step before the cursor and the present: a capture when one is due.
 void CaptureBeforePresent() {
     g_frames = g_frames + 1;
+    if (g_state == State::Pending && g_start) {
+        if (!g_start()) return;
+        g_start = nullptr;
+    }
     if (g_state == State::Pending) {
         if (g_skip > 0) --g_skip;
         else Capture();
@@ -156,9 +182,22 @@ bool Install() {
 void Request(const char* name, int skip) {
     g_name = name;
     g_skip = skip;
+    g_left = 1;
+    g_next = 1;
+    g_burst = false;
+    g_start = nullptr;
+    g_freezeAtFirst = false;
     g_detail.clear();
     g_state = Install() ? State::Pending : State::Failed;
     if (g_state == State::Failed) g_detail = "the present point could not be hooked";
+}
+
+void RequestBurst(const char* name, int count, bool (*start)(), bool freeze) {
+    Request(name, 0);
+    g_left = count;
+    g_burst = true;
+    g_start = start;
+    g_freezeAtFirst = freeze;
 }
 
 State Poll(const char** detail) {
