@@ -514,6 +514,7 @@
 #include "harness_utf8.h"
 
 #include "platform/log.h"
+#include "platform/path_layers.h"
 #include "platform/seams.h"
 #include "platform/platform.h"
 #include "game/main_loop.h"
@@ -864,7 +865,8 @@ void* GameWindow();
 
 // Saves. The game keeps them under <game root>saves\ and rewrites saves\current\ whenever it
 // starts or loads a game, so a harness run would overwrite the player's own progress. In harness
-// runs every path whose directory is "saves" goes to harness_saves\ in the run folder instead.
+// runs the game folder's saves\ is harness_saves\ in the run folder instead (with a mod, harness_saves\<mod>\: the
+// run's path map, MapPath below).
 
 char g_savesDir[kPath];
 // Whether the harness answers the game's file and desktop calls (its platform backend's game calls,
@@ -872,24 +874,10 @@ char g_savesDir[kPath];
 // the harness gets the system's answers.
 bool g_answering = false;
 
-// Returns `path` with everything up to its "\saves" directory replaced by g_savesDir, or `path`
-// itself when it has no such directory. `buffer` holds the rewritten path.
-const char* SavesPath(const char* path, char (&buffer)[kPath]) {
-    if (!path) return path;
-    // config\tutorial.ini (which tutorial windows were shown) is rewritten on every exit; harness
-    // runs keep theirs in harness_saves too.
-    std::size_t length = std::strlen(path);
-    if (length >= 20 && text::CompareIgnoringCase(path + length - 20, "\\config\\tutorial.ini") == 0) {
-        if (std::snprintf(buffer, kPath, "%s\\tutorial.ini", g_savesDir) >= kPath) return path;
-        return buffer;
-    }
-    for (const char* p = path; (p = std::strchr(p, '\\')) != nullptr; ++p) {
-        if (text::CompareIgnoringCase(p, "\\saves", 6) == 0 && (p[6] == '\\' || p[6] == '/' || p[6] == '\0')) {
-            if (std::snprintf(buffer, kPath, "%s%s", g_savesDir, p + 6) >= kPath) return path;
-            return buffer;
-        }
-    }
-    return path;
+// config\tutorial.ini (which tutorial windows were shown) is rewritten on every exit; harness runs keep theirs in
+// harness_saves\tutorial.ini.
+bool TutorialFile(const std::string& path) {
+    return path.size() >= 20 && text::CompareIgnoringCase(path.c_str() + path.size() - 20, "\\config\\tutorial.ini") == 0;
 }
 
 // The rest of the install (textures\ with the composed-skin cache, config\keyboard.ini,
@@ -897,7 +885,8 @@ const char* SavesPath(const char* path, char (&buffer)[kPath]) {
 // under the game's root goes to harness_saves\<relative path> (a file the write keeps the contents
 // of is copied there first), and a read takes that copy when there is one, else the install's file.
 // Nothing under the install is ever modified. Deleting or moving an install file only affects the
-// overlay copy (a move of an install file becomes a copy).
+// overlay copy (a move of an install file becomes a copy). The overlay is the top layer of the run's path map
+// (src/platform/path_layers.h; Layers below).
 char g_rootDirs[2][kPath];   // the game folder (starter::GameFolder) and the settings' one
 
 bool UnderRoot(const char* full, const char* root, const char** relative) {
@@ -910,51 +899,6 @@ bool UnderRoot(const char* full, const char* root, const char** relative) {
     if (full[n] == '\0') return false;
     *relative = full + n;
     return true;
-}
-
-// The overlay path of `path`, or null when `path` is not under the game's root.
-const char* ShadowOf(const char* path, char (&buffer)[kPath]) {
-    if (!path || !*path) return nullptr;
-    // The game folder, may be empty.
-    const char* folder = image::DataFolder();
-    if (folder && *folder && !g_rootDirs[1][0]) sys::CopyText(g_rootDirs[1], sys::FullPath(folder).c_str());
-    const std::string fullPath = sys::FullPath(path);
-    if (fullPath.empty() || fullPath.size() >= kPath) return nullptr;
-    const char* full = fullPath.c_str();
-    std::size_t saves = std::strlen(g_savesDir);
-    if (text::CompareIgnoringCase(full, g_savesDir, saves) == 0) return nullptr;   // already ours
-    for (const char* root : g_rootDirs) {
-        const char* relative = nullptr;
-        if (!UnderRoot(full, root, &relative)) continue;
-        if (std::snprintf(buffer, kPath, "%s\\%s", g_savesDir, relative) >= kPath) return nullptr;
-        return buffer;
-    }
-    return nullptr;
-}
-
-// Whether `path` is the game's root folder itself (when the game empties mp\ it deletes every entry
-// FindFirstFile lists, "mp\.." too).
-bool IsGameRoot(const char* path) {
-    std::string full = sys::FullPath(path);
-    if (full.empty() || full.size() >= kPath) return false;
-    while (full.size() > 3 && full.back() == '\\') full.pop_back();
-    for (const char* root : g_rootDirs) {
-        std::size_t length = std::strlen(root);
-        while (length > 3 && root[length - 1] == '\\') --length;
-        if (length && length == full.size() && text::CompareIgnoringCase(full.c_str(), root, length) == 0) return true;
-    }
-    return false;
-}
-
-void MakeParentDirs(const char* file) {
-    char dir[kPath];
-    sys::CopyText(dir, file);
-    for (char* p = dir + std::strlen(g_savesDir) + 1; *p; ++p) {
-        if (*p != '\\') continue;
-        *p = '\0';
-        sys::MakeFolder(dir);
-        *p = '\\';
-    }
 }
 
 void LogInstallWrite(const char* path, const char* shadow) {
@@ -1007,29 +951,6 @@ bool OverlayOnly(const char* relative) {
     return text::CompareIgnoringCase(relative, "mp", 2) == 0 && (relative[2] == '\\' || relative[2] == '/' || relative[2] == '\0');
 }
 
-// For a read: the overlay copy when it exists, else `path` (saves always redirect); a hidden file
-// without an overlay copy reads as the missing overlay path.
-const char* ReadPath(const char* path, char (&buffer)[kPath]) {
-    if (!g_answering) return path;
-    const char* saves = SavesPath(path, buffer);
-    if (saves != path) return saves;
-    const char* shadow = ShadowOf(path, buffer);
-    if (shadow && OverlayOnly(shadow + std::strlen(g_savesDir) + 1)) return shadow;
-    if (shadow && sys::Exists(shadow)) return shadow;
-    if (shadow && g_hiddenCount && Hidden(shadow + std::strlen(g_savesDir) + 1)) {
-        static int logged = 0;
-        if (logged++ < 20) Log("harness: hidden file read as missing: %s", path);
-        return shadow;
-    }
-    // The user's key bindings and the like: the committed copy (harness_settings.h).
-    char pinned[kPath];
-    if (shadow && settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned)) {
-        sys::CopyText(buffer, pinned);
-        return buffer;
-    }
-    return path;
-}
-
 // Whether a write that keeps its file's contents gets the install's copy first: not a log (a run's log
 // starts empty in the overlay; addon.dll appends to starter\addon.log, which grows with the user's play) and
 // not a file over 16 MB.
@@ -1042,30 +963,61 @@ bool CopiedForWrite(const char* original) {
     return false;
 }
 
-// For a write: the overlay path (its directories created; with `keep` an install file not yet in
-// the overlay is copied first).
-const char* WritePath(const char* path, char (&buffer)[kPath], bool keep) {
-    if (!g_answering) return path;
-    const char* saves = SavesPath(path, buffer);
-    if (saves != path) return saves;
-    const char* shadow = ShadowOf(path, buffer);
-    if (!shadow && path && IsGameRoot(path)) {
-        // The root's own write (a delete of "mp\.."): the overlay's root, a folder like the install's.
-        LogInstallWrite(path, g_savesDir);
-        return g_savesDir;
-    }
-    if (!shadow) return path;
-    MakeParentDirs(shadow);
-    char pinned[kPath];
-    const char* original = settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned) ? pinned : path;
-    if (keep && !OverlayOnly(shadow + std::strlen(g_savesDir) + 1) && !sys::Exists(shadow) && sys::Exists(original) &&
-        CopiedForWrite(original))
-        sys::CopyNewFile(original, shadow);
-    LogInstallWrite(path, shadow);
-    return shadow;
+// The run's path map (src/platform/path_layers.h) over the game folder (and the settings' data folder): the overlay
+// on top (a read takes its copy when there is one; mp\ and the "hidefile" files read from it alone, missing until the
+// game writes them; every write goes there, a file the write keeps copied there first unless CopiedForWrite says
+// no), the user's key bindings and address book below it (the committed copies, harness_settings.h), the mod's layer
+// under those (the settings' Mod, platform::UseMod); the saves in harness_saves\ (with a mod in harness_saves\<mod>\).
+platform::PathLayers MakeLayers(const platform::Mod* mod) {
+    platform::PathLayers map;
+    for (const char* root : g_rootDirs)
+        if (*root) map.bases.push_back(platform::FullGamePath(root));
+    platform::PathLayer overlay;
+    overlay.folder = platform::FullGamePath(g_savesDir);
+    overlay.owns = [](std::string_view relative) {
+        const std::string name(relative);
+        if (OverlayOnly(name.c_str())) return true;
+        if (!g_hiddenCount || !Hidden(name.c_str())) return false;
+        static std::atomic<int> logged = 0;
+        if (logged++ < 20) Log("harness: hidden file read as missing: %s", name.c_str());
+        return true;
+    };
+    platform::PathLayer pinned;
+    pinned.place = [](std::string_view relative) {
+        char file[kPath];
+        return settings::PinnedFile(std::string(relative).c_str(), file) ? std::string(file) : std::string();
+    };
+    map.layers = {overlay, pinned};
+    if (mod) map.layers.push_back(mod->layer);
+    map.writesToTop = true;
+    map.copiesUp = [](std::string_view relative, const std::string& from) {
+        return !OverlayOnly(std::string(relative).c_str()) && CopiedForWrite(from.c_str());
+    };
+    map.saves = overlay.folder + (mod ? "\\" + mod->name : std::string());
+    return map;
 }
 
-// No run writes into an install (WB17). The game's writes of install files go to the overlay (WritePath), so what is
+// The map for the run's state: the settings' data folder known (it may differ from the game folder) and the mod.
+// Each is made once and kept for the run (the game's threads hold them).
+const platform::PathLayers& Layers() {
+    const char* folder = image::DataFolder();
+    if (folder && *folder && !g_rootDirs[1][0]) sys::CopyText(g_rootDirs[1], sys::FullPath(folder).c_str());
+    const platform::Mod* mod = platform::CurrentMod();
+    const int kind = (g_rootDirs[1][0] ? 1 : 0) + (mod ? 2 : 0);
+    static std::atomic<const platform::PathLayers*> maps[4];
+    static std::mutex lock;
+    const platform::PathLayers* map = maps[kind].load(std::memory_order_acquire);
+    if (!map) {
+        std::lock_guard<std::mutex> hold(lock);
+        map = maps[kind].load(std::memory_order_acquire);
+        if (!map) {
+            map = new platform::PathLayers(MakeLayers(mod));
+            maps[kind].store(map, std::memory_order_release);
+        }
+    }
+    return *map;
+}
+// No run writes into an install (WB17). The game's writes of install files go to the overlay (MapPath), so what is
 // left under an install root (the game folder; EI_INSTALL_ROOTS: run_all's installs, the other one among them) is
 // refused (MapPath gives an empty path, so the call fails as on a missing file) and fails the run: "install: write
 // refused: <path>". The harness answers the game's own file calls only (they all take their paths from MapPath); what
@@ -3824,7 +3776,8 @@ struct Harness {
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's small
         // window otherwise: harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
-        modtrace::SetRoots(starter::AddonPath(), starter::GameFolder(), g_savesDir);
+        modtrace::SetRoots(starter::ModPath().empty() ? starter::AddonPath() : starter::ModPath(), starter::GameFolder(),
+                           g_savesDir);
         settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
@@ -3928,22 +3881,24 @@ bool PlayedMovie(const std::string& path) {
     return !loading || text::CompareIgnoringCase(path.c_str() + (slash == std::string::npos ? 0 : slash + 1), loading) != 0;
 }
 
-// The game's paths mapped onto the run's overlay (ReadPath / WritePath above): config\movie.ini (the startup movies:
+// The game's paths mapped onto the run's overlay (Layers above): config\movie.ini (the startup movies:
 // "Start" lists 1C.bik and Nival.bik) is missing, so nothing plays, and in recorded play the movies the game plays
 // (PlayedMovie); a write still in an install is refused. The saves trace sees every write (EI_SAVETRACE).
 std::string MapPath(std::string_view path, platform::PathUse use) {
     const std::string name(path);
-    char b[kPath];
+    const std::string tutorial = std::string(g_savesDir) + "\\tutorial.ini";
     if (use == platform::PathUse::Read) {
         if (name.size() >= 9 && text::CompareIgnoringCase(name.c_str() + name.size() - 9, "movie.ini") == 0) return {};
         if (PlayedMovie(name)) return {};
-        std::string mapped = ReadPath(name.c_str(), b);
+        std::string mapped = TutorialFile(name) ? tutorial : Layers().Map(name, use);
         if (g_readTrace) TraceRead(mapped);
         modtrace::NoteRead(mapped);
         return mapped;
     }
     savetrace::OnFileWrite(name.c_str());   // harness_savetrace.h
-    const std::string mapped = WritePath(name.c_str(), b, use == platform::PathUse::Update);
+    platform::PathLayers::Placed placed = platform::PathLayers::Placed::Kept;
+    const std::string mapped = TutorialFile(name) ? tutorial : Layers().Map(name, use, &placed);
+    if (placed == platform::PathLayers::Placed::Layer) LogInstallWrite(name.c_str(), mapped.c_str());
     modtrace::NoteWrite(mapped);
     if (InInstall(mapped)) {
         RefuseInstallWrite(name, mapped);
@@ -3952,6 +3907,15 @@ std::string MapPath(std::string_view path, platform::PathUse use) {
     return mapped;
 }
 
+// A folder search's layers (the overlay's folder, the mod's, the game folder's), each traced as a read.
+std::vector<platform::FolderSearch> MapSearches(std::string_view pattern) {
+    std::vector<platform::FolderSearch> searches = Layers().Searches(pattern);
+    for (const platform::FolderSearch& search : searches) {
+        if (g_readTrace) TraceRead(search.pattern);
+        modtrace::NoteRead(search.pattern);
+    }
+    return searches;
+}
 } // namespace harnessplatform
 
 } // namespace ei::verify

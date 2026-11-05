@@ -199,9 +199,11 @@ bool g_mapsInMod = false;   // 100BB9D0: the game's folder until a site finds a 
 
 } // namespace
 
+// The mod the game plays ([game] Mod, platform::UseMod), else Rebirth's AddonPath.
 const std::string& ModPath() {
-    static const std::string path =
-        WithSlash(settings::GetString(settings::kRebirth, "AddonPath", ""));
+    static const std::string path = WithSlash(!platform::ModFolder().empty()
+                                                  ? platform::ModFolder()
+                                                  : settings::GetString(settings::kRebirth, "AddonPath", ""));
     return path;
 }
 

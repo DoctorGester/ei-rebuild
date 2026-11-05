@@ -22,7 +22,8 @@ systems.
 | `src/platform/sdl/sdl_input.cpp` | SDL's keyboard and mouse events as the platform's (`sdl_input::Translator`): the game's backend and the harness's recording of real play (harness.md, "Recorded play") take the same translation |
 | `tests/verify/platform/` | the harness's platform backend: harness_platform.cpp (the window, events, clocks, cursor, mouse and clipboard on SDL, in place of platform_sdl.cpp), game_answers.cpp (the seams, in place of seams.cpp) and game_sockets.cpp (the sockets area, in place of the system's sockets.cpp) |
 | `src/platform/files.cpp` | the folder calls (create, remove, rename, copy, exists, free space) on std::filesystem, every system, each path through `seams.h` |
-| `src/platform/seams.h`, `seams.cpp` | the questions the backends ask that a harness run answers itself (below, "The harness's answers"): `SystemPath(path, use)`, the file write watch (`WriteFailsAsFull`, `WriteFailed`), `IsolatedRun()`; seams.cpp is the game's answers (the path itself, no watch, not isolated); also each backend's `NativePath` |
+| `src/platform/seams.h`, `seams.cpp` | the questions the backends ask that a harness run answers itself (below, "The harness's answers"): `SystemPath(path, use)`, `SystemSearches(pattern)`, the file write watch (`WriteFailsAsFull`, `WriteFailed`), `IsolatedRun()`; seams.cpp is the game's answers (the path itself or the mod's map, no watch, not isolated); also each backend's `NativePath` |
+| `src/platform/path_layers.h`, `.cpp` | the layered path map the game's mod and the harness's overlay share (mods.md), the mod (`UseMod`); each backend's one-folder `SearchFolder` |
 | `src/platform/win32/*.cpp` | the Windows remainder, one file per area, in every build: text.cpp (UTF-8 to the wide calls, `text::Wide` / `Narrow`), paths.cpp, machine.cpp, files.cpp (whole files, folder searches, File, MappedFile), other_game.cpp (the one-instance check), keyboard.cpp (key names, layouts, sdl_keys' layout answers), sockets.cpp |
 | `src/platform/posix/*.cpp` | the remainder on Linux and macOS, the same areas: paths.cpp, machine.cpp, files.cpp (files, mappings and folder searches with Windows' case rules), other_game.cpp (the one-instance lock), keyboard.cpp (key names and layout answers from SDL's keymap), sockets.cpp |
 | `src/platform/win32/platform_win32.h`, `src/platform/posix/platform_posix.h` | each backend's own declarations for its files: Windows' `text::Wide` / `Narrow` (the harness's Windows parts use them too); POSIX's `posix::GamePath` |
@@ -126,20 +127,26 @@ shared before too, and no sharing violation (PL11s removed it).
 `platform::SystemPath(path, use)` and then the backend's `NativePath`. `PathUse` says what the call does with it:
 `Read` (opens, maps, searches, exists, free space), `Write` (creates, truncates, removes, a rename's target) or
 `Update` (a change of a file that is there: WriteExisting, a rename's source). The game's builds link
-seams.cpp's (the path itself); the harness's builds link game_answers.cpp's (harness.cpp's MapPath), which maps the
-path into the run's overlay:
+seams.cpp's (the path itself, or with a mod the mod's layered map: mods.md); the harness's builds link
+game_answers.cpp's (harness.cpp's MapPath), which maps the path into the run's overlay, the same map
+(src/platform/path_layers.h) with the overlay as its top layer:
 
-- `Read`: ReadPath (the run's copy of a save or install file when it has one, else the file itself); config\movie.ini
+- `Read`: the top layer that has the file (the run's copy of a save or install file when it has one, else the file itself); config\movie.ini
   maps to "" (missing: no startup movies).
-- `Write` / `Update`: WritePath (the overlay's copy; `Update` copies the install's file there first, so a rename moves
+- `Write` / `Update`: the top layer (the overlay's copy; `Update` copies the install's file there first, so a rename moves
   the copy, never the install's file); the save trace sees the write.
 
+A folder search asks `SystemSearches(pattern)` instead: the searches of every layer that has the folder, top first,
+which FolderEntries (files.cpp) merges, a name an upper layer has hiding the same name below (mods.md, "The layered
+path map"); without layers one search, the system's own order.
+
 The overlay used to answer eight calls itself (CreateFolder, RemoveFile, RenameFile, CopyFileOver, RemoveFolder,
-FileExists, the open and the folder search); now it answers one question, where a path is. The seam is plain C++
+FileExists, the open and the folder search); now it answers two questions, where a path is and which folders a
+search reads. The seam is plain C++
 (std::string_view in, std::string out), so a harness on Linux (H47) maps paths with the same function. Rebirth's
 look-ups (IsFile, FolderEntries) and the settings file (ReadWholeFile / WriteWholeFile next to the exe or in the
 user's data folder) pass the seam too, though addon.dll's and the settings' calls never reached the harness's answers
-before: their paths are outside the saves and the install's overlaid files, so ReadPath and WritePath leave them as
+before: their paths are outside the saves and the install's overlaid files, so the map leaves them as
 they are. Nothing of the harness sits below the seam: a write still under an install after the mapping is refused
 there (standalone-verification.md, "No run writes into an install").
 

@@ -26,6 +26,8 @@ int g_fullScreen = -1;      // 0 / 1, -1: the snapshot's
 int g_music = -1;           // AudioStreaming (the streamed music's volume), -1: the snapshot's
 std::string g_addonFolder;  // "addonpath": the mod's folder under harness_saves, empty: the snapshot's
 char g_addonPath[sys::kMaxPath]; // its full path (Install)
+std::string g_modFolder;    // "mod": the settings' Mod, relative to the game folder or in full; empty: none
+char g_modPath[sys::kMaxPath];   // its full path (Install)
 
 // Rebirth's starter switch CtfMon (Settings\CtfMon, read by addon.dll) is always off in a harness run (S3e).
 // On, addon closes the text input service's window (class CicLoaderWndClass: ctfmon) when it applies its
@@ -91,6 +93,12 @@ bool Answer(const char* name, unsigned long* type, const unsigned char** data, u
         *size = 4;
         return true;
     }
+    if (g_modPath[0] && text::CompareIgnoringCase(name, "Mod") == 0) {
+        *type = kString;
+        *data = reinterpret_cast<const unsigned char*>(g_modPath);
+        *size = static_cast<unsigned long>(std::strlen(g_modPath) + 1);
+        return true;
+    }
     if (g_addonPath[0] && text::CompareIgnoringCase(name, "AddonPath") == 0) {
         *type = kString;
         *data = reinterpret_cast<const unsigned char*>(g_addonPath);
@@ -129,11 +137,21 @@ bool ParseStep(const std::string& verb, const std::string& argument) {
         g_addonFolder = argument;
         return true;
     }
+    if (verb == "mod") {
+        g_modFolder = argument;
+        return true;
+    }
     return false;
 }
 
 void Install(const char* savesDir) {
     if (!g_addonFolder.empty()) std::snprintf(g_addonPath, sizeof(g_addonPath), "%s\\%s", savesDir, g_addonFolder.c_str());
+    if (!g_modFolder.empty()) {
+        const bool full = g_modFolder[0] == '\\' || g_modFolder[0] == '/' || (g_modFolder.size() >= 2 && g_modFolder[1] == ':');
+        const std::string path = full ? g_modFolder : GameFolder() + "\\" + g_modFolder;
+        sys::CopyText(g_modPath, sys::FullPath(path).c_str());
+        Log("harness: the settings' Mod: %s", g_modPath);
+    }
     const std::string resolution = platform::EnvironmentVariable("EI_RESOLUTION");
     if (!g_resolution[0] && !resolution.empty()) {
         if (!SetResolution(resolution.c_str())) Log("harness: EI_RESOLUTION %s: not WxH or desktop", resolution.c_str());
@@ -157,6 +175,7 @@ void Install(const char* savesDir) {
     }
 }
 std::string AddonPath() { return g_addonPath; }
+std::string ModPath() { return g_modPath; }
 
 // Whether `got` is what a step expects: "<n>" that many bytes (or names), "!<n>" anything else, "+" anything but 0.
 bool Expected(long got, const std::string& expected) {

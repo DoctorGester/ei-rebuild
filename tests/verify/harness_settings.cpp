@@ -310,14 +310,16 @@ void WriteSettingsFile(const char* file) {
         for (const auto& [lowerName, value] : key.values) {
             const char* section = SectionOf(lower, lowerName);
             if (!section) continue;
-            if (value.absent) {
+            unsigned long type, size, dword;
+            const unsigned char* data;
+            const bool answered = starter::Answer(value.name.c_str(), &type, &data, &size, &dword);
+            // A value absent on purpose stays absent unless a starter line answers it (the "mod" line's Mod).
+            if (value.absent && !answered) {
                 g_absent.insert(std::string(section) + "\\" + lowerName);
                 continue;
             }
-            unsigned long type, size, dword;
-            const unsigned char* data;
             std::string bytes(value.data.begin(), value.data.end());
-            if (starter::Answer(value.name.c_str(), &type, &data, &size, &dword)) {
+            if (answered) {
                 bytes.assign(reinterpret_cast<const char*>(data), size);
             } else {
                 type = value.type;

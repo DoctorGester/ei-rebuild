@@ -29,6 +29,7 @@ int RunMathsChecks();
 int RunSavePictureChecks();
 int RunAudioMixChecks();
 int RunDisplaySizesChecks();
+int RunPathLayersChecks();
 
 namespace {
 void Check(bool ok, const char* message) {
@@ -177,5 +178,7 @@ int main() {
     fs::current_path(old);
     // This tree is freshly made by this process and contains no links or game data.
     fs::remove_all(temp);
+    // Last: it sets the program's mod.
+    Check(RunPathLayersChecks() == 0, "the mod's path map");
     std::puts("Native platform and ARM maths checks passed");
 }

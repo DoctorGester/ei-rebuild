@@ -4,6 +4,7 @@
 #include "harness_platform.h"
 
 #include "harness_crash.h"
+#include "platform/path_layers.h"
 #include "system/harness_system.h"
 
 #include <string>
@@ -15,10 +16,20 @@ namespace platform {
 
 // The one seam of the overlay: every file and folder call of the game asks for its path here. A read takes the
 // overlay's copy when there is one; a write goes to the overlay (its folders made), Update copying the install's file
-// there first, so an install file renamed is copied, never moved away (harness.cpp's MapPath).
+// there first, so an install file renamed is copied, never moved away (harness.cpp's MapPath). Without the harness:
+// the game's own answer (seams.cpp), its mod's map.
 std::string SystemPath(std::string_view path, PathUse use) {
-    if (!hp::Answering()) return std::string(path);
-    return hp::MapPath(path, use);
+    if (hp::Answering()) return hp::MapPath(path, use);
+    const Mod* mod = CurrentMod();
+    return mod ? mod->map.Map(path, use) : std::string(path);
+}
+
+// A folder search: the overlay's folder, the mod's and the game folder's (harness.cpp's MapSearches).
+std::vector<FolderSearch> SystemSearches(std::string_view pattern) {
+    if (hp::Answering()) return hp::MapSearches(pattern);
+    const Mod* mod = CurrentMod();
+    if (!mod) return {{std::string(pattern), {}}};
+    return mod->map.Searches(pattern);
 }
 
 // The game's file writes, watched (harness_crash.h): each failure is logged and the first real one fails the run;

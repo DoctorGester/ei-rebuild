@@ -95,6 +95,7 @@ Windows Registry Editor Version 5.00
 "CD3 Label"="EICD3"
 "Font CharSet"="english"
 "Difficulty Level"=dword:00000000
+"Mod"=-
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\General Settings]
 "VideoResolution"="3840x2160"
@@ -225,6 +226,7 @@ Windows Registry Editor Version 5.00
 "DRAWFLYINGHP"=dword:00000001
 "DRAWPATH"=dword:00000001
 "Difficulty Level"=dword:00000000
+"Mod"=-
 "Font CharSet"="english"
 "SELECTIONTYPE"=dword:00000001
 "SwitchFilters"=dword:00000001
