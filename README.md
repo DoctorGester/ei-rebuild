@@ -47,6 +47,8 @@ The main menu at night in the rain (GOG data).
   anisotropic filtering, vsync and the performance overlay, applied at once and saved to `ei_settings.ini`.
 - **The cursor stays inside the window** while the camera pans at the window's edges (battle, village and
   briefing screens), and is free in the menus.
+- **Mods:** Rebirth's mods in `starter\Mods`, Lost in Astral among them, play from our exe. Pick one
+  from the main menu's list and the game switches to it in place, with no restart; each mod keeps its own saves.
 - **The Rebirth edition's fixes built in**, including its bug fixes and options, on both the GOG and Rebirth data.
 - **A new interface layer** drawn by the renderer, with sharp text at any size.
 - **New sound and video code:** sound plays through SDL3 with our own mixer, caves get their reverb back, and the game's
@@ -113,6 +115,15 @@ game follow `--`).
 
 To record a session of your own play as a scenario: `harness.cmd record <name> [vanilla|rebirth]` (builds the test
 build and plays it with your input recorded; `docs/notes/harness.md`, "Recorded play").
+
+### Mods
+
+On a Rebirth install the main menu has a mod list at its bottom left: "No mod" and every folder in `starter\Mods`
+with a `config.reg`, titled by the mod's own name. Picking one switches the game to it at once and stores the choice in
+`ei_settings.ini` (`[game] Mod = starter\Mods\LostInAstral`, the mod's folder relative to the exe, or a full path;
+empty for no mod). A mod's files stand over the game's (its archives are combined with the game's), and its saves go
+to `saves\<mod>\`, apart from the plain game's. Lost in Astral starts and plays; its cut-scenes and later zones are
+still being checked. How it works: `docs/notes/mods.md`.
 
 ## Test
 
