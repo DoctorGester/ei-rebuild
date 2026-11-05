@@ -784,6 +784,12 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp, left_out=('wide',)), [('boot', 'standalone')])
         self.assertEqual(run_all.plan(run_all.parse_args(['wide']), root=self.tmp, left_out=('wide',)), [('wide', 'standalone')])
         self.assertEqual(run_all.plan(run_all.parse_args(['--all-rebirth']), root=self.tmp), both)
+        # The screenshot scenarios (D7) run by name only
+        self.scenario('screenshots_town', 'waitmenu\nquit\n')
+        self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp), vanilla)
+        self.assertEqual(run_all.plan(run_all.parse_args(['screenshots_town']), root=self.tmp),
+                         [('screenshots_town', 'standalone')])
+        os.remove(os.path.join(self.tmp, 'tests', 'scenarios', 'screenshots_town.txt'))
         for gone in ('--hooked', '--native', '--dgvoodoo', '--verified-candidates',     # S21c
                      '--no-hooks', '--fresh', '--record'):                              # H40
             with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):

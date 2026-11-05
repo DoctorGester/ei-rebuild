@@ -1,0 +1,26 @@
+# D7: README screenshots of the main menu: at night in the rain (docs/screenshots/main_menu_rain.png, the GOG data)
+# and with its list of mods open (mod_list.png, Rebirth's data, which has starter\Mods).
+# Not in the suites (run_all leaves screenshots_* out): run it by name, one game per work.py call (docs/notes/harness.md,
+# "Screenshots"), and look at the frame before it replaces the PNG. Frames only, no golden.
+resolution 3840x2160
+widescreen 1
+msaa 8
+anisotropy 16
+timeout 60
+reject Script error
+waitmenu
+console thingamabob
+console @FixWorldTime(1)
+console @SetWeather("rain")
+wait 8000
+frames 5
+freeze
+capture menu_rain
+unfreeze
+rebirth droplist open
+rebirth frames 3
+rebirth freeze
+rebirth capture menu_mods
+rebirth unfreeze
+report
+quit

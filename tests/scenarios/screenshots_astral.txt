@@ -1,0 +1,29 @@
+# D7: release-notes screenshot of Lost in Astral (Rebirth's mod) at its start in gz1g at sunset, the mod's hero by
+# his campfire (docs/screenshots/lost_in_astral.png, Rebirth's data; the vanilla data has no starter\Mods: only the
+# menu runs).
+# Not in the suites (run_all leaves screenshots_* out): run it by name, one game per work.py call (docs/notes/harness.md,
+# "Screenshots"), and look at the frame before it replaces the PNG. Frames only, no golden.
+mod starter\Mods\LostInAstral
+resolution 3840x2160
+widescreen 1
+msaa 8
+anisotropy 16
+timeout 60
+reject Script error
+waitmenu
+rebirth console thingamabob
+rebirth newgame
+rebirth waitfor 20 IsGreater(HP(GetLeader()),0)
+rebirth waitline 20 Saved savea
+rebirth console @GodMode(0,1)
+rebirth waitwindow 15 battle
+rebirth console @FixWorldTime(19)
+rebirth wait 3000
+rebirth move 400 20
+rebirth camera 17.5 94.5 135 22 40
+rebirth frames 5
+rebirth freeze
+rebirth capture astral
+rebirth unfreeze
+report
+quit
