@@ -106,7 +106,9 @@ void SetOcclusion(OcclusionMode mode) {
 
 OcclusionInfo OcclusionState() {
     OcclusionInfo info = g_lastInfo;
-    GroundOcclusionCounts(&info.groundSectors, &info.groundMade);
+    const GroundOcclusionCount ground = GroundOcclusionCounts();
+    info.groundSectors = ground.sectors;
+    info.groundMade = ground.made;
     return info;
 }
 
@@ -122,8 +124,9 @@ void DrawOcclusion(Frame& f) {
     if (g_mode == OcclusionMode::Off || f.worldRanges.empty()) return;
     const std::optional<WorldView> view = WorldCamera(f);
     const std::optional<Size> frameSize = FrameSize();
-    Matrix4 fromClip;
-    if (!view || !InvertMatrix(view->clip, &fromClip) || !frameSize) return;
+    const std::optional<Matrix4> invertedClip = view ? InvertMatrix(view->clip) : std::nullopt;
+    if (!invertedClip || !frameSize) return;
+    const Matrix4& fromClip = *invertedClip;
     const Matrix4& camera = view->clip;
     const Vector3& eye = view->eye;
     const int width = frameSize->w, height = frameSize->h;

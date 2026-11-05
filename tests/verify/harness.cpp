@@ -1458,8 +1458,7 @@ Rect GameClient() {
     return Rect{0, 0, 0, 0};
 }
 Point ToWindow(int x, int y) {
-    image::FrameToWindow(&x, &y);
-    return Point{x, y};
+    return image::FrameToWindow({x, y});
 }
 
 // "cursormark" / "cursorcheck": the presents' system cursor (R40).
@@ -1520,10 +1519,11 @@ std::string GammaShapeCheck(const harnessplatform::ShownCursor& shown) {
 std::string WriteCursorFrame(const char* name, const image::CursorState& game) {
     harnessplatform::ShownCursor cursor;
     const std::optional<Size> placed = image::FramePlaced();
-    int fw = 0, fh = 0;
-    std::vector<std::uint8_t> bgr;
-    if (!harnessplatform::CursorShown(&cursor) || !placed || !image::ReadFrame(&fw, &fh, &bgr) || fw <= 0 || fh <= 0)
+    std::optional<image::FrameImage> frame = image::ReadFrame();
+    if (!harnessplatform::CursorShown(&cursor) || !placed || !frame || frame->width <= 0 || frame->height <= 0)
         return "cursorcheck: no frame or cursor to write";
+    const int fw = frame->width, fh = frame->height;
+    std::vector<std::uint8_t>& bgr = frame->bgr;
     const int pw = placed->w, ph = placed->h;
     const int left = game.x - game.hotX, top = game.y - game.hotY;
     for (int y = (std::max)(0, top); y < fh; ++y) {

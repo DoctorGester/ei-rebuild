@@ -59,9 +59,9 @@ void SceneLighting(const SceneLights& lights) {
 
 // The direction the shadow map's light travels: the frame's sun as the map takes it, else the scene's.
 static Vector3 MapSun(const ShadowFrame& shadow) {
-    Vector3 travel = g_scene.sun;
-    if (shadow.haveSun) MapLightDirection(shadow.sun, &travel);
-    return travel;
+    if (shadow.haveSun)
+        if (const std::optional<Vector3> travel = MapLightDirection(shadow.sun)) return *travel;
+    return g_scene.sun;
 }
 
 SceneLightParams SceneLightUniforms(const Frame& f) {

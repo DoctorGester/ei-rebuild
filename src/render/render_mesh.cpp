@@ -319,19 +319,19 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     int first = 0;
     if (batch.indexCount <= 0 || (batch.decal && !GroundDecalsDrawn()) || !BindMeshBatch(batch, geometry, &first))
         return;
-    const PassState& s = batch.state;
-    gpu::Pipeline pipeline = Pipeline(s, batch.lines, batch.cached != nullptr);
+    const PassState& state = batch.state;
+    gpu::Pipeline pipeline = Pipeline(state, batch.lines, batch.cached != nullptr);
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
     geometry.Bind();
     gpu::TextureBinding textures[3];
     for (int t = 0; t < 2; ++t) {
-        const StageState& st = s.stages[t];
+        const StageState& st = state.stages[t];
         textures[t].texture = st.texture ? st.texture : SurfaceView(nullptr);
         textures[t].sampler = anisotropy > 1 ? AnisotropicSampler(st, static_cast<std::uint32_t>(anisotropy)) : StageSampler(st);
     }
-    textures[2] = {s.patch.texture ? s.patch.texture : SurfaceView(nullptr), textures[0].sampler};   // sampled as stage 0
+    textures[2] = {state.patch.texture ? state.patch.texture : SurfaceView(nullptr), textures[0].sampler};   // sampled as stage 0
     static_assert(program::kSamplerTex0 == 0 && program::kSamplerTex1 == 1 && program::kSamplerTex2 == 2);
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
     BindShadowMap(f, program::kSamplerShadowMap);
@@ -396,13 +396,13 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
         fs.snow = batch.weather[1];
         fs.weatherKind = kFigureWeather;
     }
-    UnpackColour(s.fogColour, fs.fogColour);
-    fs.fog = s.fog ? 1 : 0;
-    UnpackColour(s.textureFactor, fs.factor);
-    fs.factor[3] = ((s.textureFactor >> 24) & 0xFF) / 255.0f;
+    UnpackColour(state.fogColour, fs.fogColour);
+    fs.fog = state.fog ? 1 : 0;
+    UnpackColour(state.textureFactor, fs.factor);
+    fs.factor[3] = ((state.textureFactor >> 24) & 0xFF) / 255.0f;
     // The shader takes render_state.h's values as they are.
-    const StageCombiner& c0 = s.stages[0].combiner;
-    const StageCombiner& c1 = s.stages[1].combiner;
+    const StageCombiner& c0 = state.stages[0].combiner;
+    const StageCombiner& c1 = state.stages[1].combiner;
     fs.colourStage0[0] = static_cast<int>(c0.colourOp);
     fs.colourStage0[1] = c0.colourArg1;
     fs.colourStage0[2] = c0.colourArg2;
@@ -415,17 +415,17 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     fs.alphaStage1[0] = static_cast<int>(c1.alphaOp);
     fs.alphaStage1[1] = c1.alphaArg1;
     fs.alphaStage1[2] = c1.alphaArg2;
-    fs.specular = s.specular ? 1 : 0;
-    fs.alphaFunc = s.alphaTest ? static_cast<int>(s.alphaFunc) : 0;
-    fs.alphaReference = s.alphaReference;
-    if (s.patch.texture) {
+    fs.specular = state.specular ? 1 : 0;
+    fs.alphaFunc = state.alphaTest ? static_cast<int>(state.alphaFunc) : 0;
+    fs.alphaReference = state.alphaReference;
+    if (state.patch.texture) {
         for (int k = 0; k < 4; ++k) {
-            fs.patchTo[k] = s.patch.to[k];
-            fs.patchInside[k] = s.patch.inside[k];
+            fs.patchTo[k] = state.patch.to[k];
+            fs.patchInside[k] = state.patch.inside[k];
         }
         for (int k = 0; k < 2; ++k) {
-            fs.patchScale[k] = s.patch.map[k];
-            fs.patchOffset[k] = s.patch.map[2 + k];
+            fs.patchScale[k] = state.patch.map[k];
+            fs.patchOffset[k] = state.patch.map[2 + k];
         }
     }
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockMeshVsParams, vs);

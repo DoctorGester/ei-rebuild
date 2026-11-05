@@ -441,9 +441,9 @@ static const Fit& FitMap(Frame& f) {
     const bool haveEye = CameraEye(fromClip, &eye);
 
     // The sun's direction, at least kLeastElevation above the horizon, travelling down.
-    Vector3 travel;
-    if (!MapLightDirection(shadow.sun, &travel)) return g_fit;
-    const Vector3 d = travel;
+    const std::optional<Vector3> travel = MapLightDirection(shadow.sun);
+    if (!travel) return g_fit;
+    const Vector3 d = *travel;
     // The map's axes: the landscape's x and y where a point meets a level plane along the light (d.z is below
     // -sin(kLeastElevation)), z along the light. A point at the plane's height keeps its place on the map
     // wherever the sun stands, so the map's texels stay on the ground while the sun turns.
@@ -577,15 +577,14 @@ gpu::Sampler ShadowCompareSampler() {
 
 const gpu::Texture& NoShadowTexture() { return g_dummy; }
 
-bool MapLightDirection(const Vector3& sun, Vector3* travel) {
+std::optional<Vector3> MapLightDirection(const Vector3& sun) {
     const float horizontal = std::hypot(sun.x, sun.y);
     float down = std::fabs(sun.z);
-    if (horizontal + down <= 1e-9f) return false;
+    if (horizontal + down <= 1e-9f) return std::nullopt;
     const float least = horizontal * std::tan(kLeastElevation);
     if (down < least) down = least;
     const float length = std::hypot(horizontal, down);
-    *travel = Vector3{sun.x / length, sun.y / length, -down / length};
-    return true;
+    return Vector3{sun.x / length, sun.y / length, -down / length};
 }
 
 bool CameraInverse::Invert(const Matrix4& clip) {
@@ -611,18 +610,16 @@ int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip) {
     return added;
 }
 
-bool VisibleGround(Frame& f, Box* box) {
+std::optional<Box> VisibleGround(Frame& f) {
     const Fit& fit = FitMap(f);
-    if (!fit.ok) return false;
-    *box = fit.ground;
-    return true;
+    if (!fit.ok) return std::nullopt;
+    return fit.ground;
 }
 
-bool InvertMatrix(const Matrix4& m, Matrix4* inverse) {
+std::optional<Matrix4> InvertMatrix(const Matrix4& m) {
     M4 r;
-    if (!Invert(FromMatrix(m), &r)) return false;
-    *inverse = ToMatrix(r);
-    return true;
+    if (!Invert(FromMatrix(m), &r)) return std::nullopt;
+    return ToMatrix(r);
 }
 
 Matrix4 Product(const Matrix4& a, const Matrix4& b) {
@@ -932,7 +929,10 @@ void PrepareShadows(Frame& f) {
     PrepareSurfaces(sh);
     PrepareUnitWeather(f);
     PrepareRoofs(f);
-    SurfaceState(&g_info.wetness, &g_info.puddles, &g_info.snowCover);
+    const SurfaceLevels surfaces = SurfaceState();
+    g_info.wetness = surfaces.wet;
+    g_info.puddles = surfaces.puddles;
+    g_info.snowCover = surfaces.snow;
     for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
     const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
     if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;

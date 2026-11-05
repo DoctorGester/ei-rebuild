@@ -782,9 +782,8 @@ int DrawTerrainDepth(const Frame& f, gpu::Pipeline pipeline) {
     return draws;
 }
 
-void GroundOcclusionCounts(int* sectors, int* made) {
-    *sectors = static_cast<int>(g_occlusion.size());
-    *made = static_cast<int>(g_occlusionVersion);
+GroundOcclusionCount GroundOcclusionCounts() {
+    return {static_cast<int>(g_occlusion.size()), static_cast<int>(g_occlusionVersion)};
 }
 
 std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece) {

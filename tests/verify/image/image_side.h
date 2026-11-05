@@ -201,12 +201,18 @@ WindowPresents WindowPresentCounts();
 std::optional<Size> FrameInWindow();
 // The frame's size in the window (render::FrameInWindow's placed rectangle).
 std::optional<Size> FramePlaced();
-void FrameToWindow(int* x, int* y);
-void WindowToFrame(int* x, int* y);
+Point FrameToWindow(Point p);
+Point WindowToFrame(Point p);
 void ConfigureRenderer(const char* spec);
 void SetWaitForVsync(bool on);
 void EndFrame();
-bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
+// The last frame as 24-bit BGR pixels, top-down rows of width * 3 bytes (render::ReadFrame); none without a frame.
+struct FrameImage {
+    int width = 0;
+    int height = 0;
+    std::vector<std::uint8_t> bgr;
+};
+std::optional<FrameImage> ReadFrame();
 // The renderer's steps (terrainlevels .. renderstats; harness.cpp, IsRenderStep): false for another verb.
 bool RenderStep(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,
                 std::vector<std::string>* frames);

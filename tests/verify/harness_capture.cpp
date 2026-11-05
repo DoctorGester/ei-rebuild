@@ -88,11 +88,7 @@ std::uint8_t Expand(std::uint32_t pixel, const Channel& c) {
     return static_cast<std::uint8_t>(out);
 }
 
-struct Image {
-    int width = 0;
-    int height = 0;
-    std::vector<std::uint8_t> bgr;   // top-down rows of width * 3 bytes
-};
+using Image = image::FrameImage;
 
 // A 24-bit bottom-up BMP.
 bool WriteBmp(const char* path, const Image& image) {
@@ -126,17 +122,17 @@ std::string FramePath(const char* name) { return ei::OutputPath("frames") + "\\"
 void Capture() {
     // The new renderer presents by itself: its frame is the capture.
     image::EndFrame();
-    Image frame;
     sys::MakeFolder(ei::OutputPath("frames"));
     const std::string name = g_burst ? g_name + "_" + std::to_string(g_next) : g_name;
     const std::string file = FramePath(name.c_str());
     const char* path = file.c_str();
-    if (!image::ReadFrame(&frame.width, &frame.height, &frame.bgr)) {
+    const std::optional<Image> frame = image::ReadFrame();
+    if (!frame) {
         g_state = State::Failed;
         g_detail = "the new renderer has no frame";
         return;
     }
-    if (!WriteBmp(path, frame)) {
+    if (!WriteBmp(path, *frame)) {
         g_state = State::Failed;
         g_detail = std::string("cannot write ") + path;
         return;
@@ -150,11 +146,11 @@ void Capture() {
     char text[sys::kMaxPath + 160];
     if (g_burst)
         std::snprintf(text, sizeof(text), "%s\\%s_1 .. _%d (%dx%d, the new renderer's frames %u .. %u%s)",
-                      ei::OutputPath("frames").c_str(), g_name.c_str(), g_next - 1, frame.width, frame.height,
+                      ei::OutputPath("frames").c_str(), g_name.c_str(), g_next - 1, frame->width, frame->height,
                       g_firstFrame, g_frames, g_freezeAtFirst ? ", the clocks frozen from the first" : "");
     else
-        std::snprintf(text, sizeof(text), "%s (%dx%d, the new renderer's frame, frame %u)", path, frame.width,
-                      frame.height, g_frames);
+        std::snprintf(text, sizeof(text), "%s (%dx%d, the new renderer's frame, frame %u)", path, frame->width,
+                      frame->height, g_frames);
     g_detail = text;
     g_state = State::Done;
 }

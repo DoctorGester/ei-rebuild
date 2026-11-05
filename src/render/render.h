@@ -408,7 +408,7 @@ struct FramePlacement {
 std::optional<FramePlacement> FrameInWindow();
 // Client-area point to frame pixel (outside the frame: beyond its edges) and back (the centre of the frame
 // pixel's window pixels).
-void WindowToFrame(int* x, int* y);
-void FrameToWindow(int* x, int* y);
+Point WindowToFrame(Point p);
+Point FrameToWindow(Point p);
 
 } // namespace render
