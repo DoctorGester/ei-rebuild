@@ -43,6 +43,10 @@ def details(runs, name, install):
     differs = any("DIFFERS" in line for line in compared)
     if not failed and not differs and any(line == "RESULT: PASS" for line in report):
         return []
+    # A scenario that says how it ends ("# expect: TIMEOUT", the watchdog ones) is judged by run_all.
+    scenario = read_lines(os.path.join(os.path.dirname(TOOLS), "tests", "scenarios", name + ".txt"))
+    if not differs and any(line.startswith("# expect:") for line in scenario):
+        return []
     out = ["== " + name + " (" + install + ")" + (": not passed" if failed or not report else "") +
            (": differs from its golden" if differs else "")]
     out += failed[:20]
