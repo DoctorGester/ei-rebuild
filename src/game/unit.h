@@ -544,8 +544,6 @@ inline Unit* UnitOrNull(EngineObject* object) {
 // a unit without a class test.
 inline Unit* UnitWithId(const BaseManager* objects, unsigned id) { return objects->FindObjectAs<Unit>(id); }
 
-constexpr std::uint32_t kInSectorMap = 0x8000;    // EngineObject::flags
-
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {
 UnitPrototypeRecord* PrototypeRecord(std::uint32_t index);

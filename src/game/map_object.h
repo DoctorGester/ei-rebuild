@@ -73,6 +73,8 @@ enum class MapObjectFlag : std::uint32_t {
     NoEdgeFade = 0x800,         // client: drawn at full light, not darkened by the terrain's edge fade (the
                                 // interface's figures)
     Detached = 0x1000,          // its parts are passed to the figure manager
+    InSectorMap = 0x8000,       // placed in the sector map (set when it is placed or moves; a unit's update clears it; the
+                                // word is saved)
     Invisible = 0x10000,        // HideObject
     Synchronised = 0x20000,     // IsSynchronised
     Stunned = 0x40000,          // IsStunned

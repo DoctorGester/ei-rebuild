@@ -122,6 +122,7 @@ bool UnitServer::RunTick() {
         }
         voice.Step(this);
         brain.Think();
+        unit->flags &= ~MapObjectFlag::InSectorMap;
         PropagateHostility();
         if ((unit->flags & MapObjectFlag::Frozen) == 0 && keepHitDirection == 0 &&
             (state == UnitState::Idle || state == UnitState::Moving || state == UnitState::Turning ||
