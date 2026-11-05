@@ -69,6 +69,7 @@ KEPT_VANILLA = (
     ('bloodprints.mmp', 'render_shadows_decals: the same, the blood splats'),
     ('fireprints.mmp', 'render_shadows_decals: the same, the scorch marks'),
     ('zone200[0-7].mmp', "render_shadows_decals: gz2g's ground, zone2's pages (printlight compares the prints' brightness with the ground's under them: black ground gives ratios of 1.4 to 2.3)"),
+    ('zone100[0-2].mmp', "render_water: zone1's ground pages (the shore's sand and the sea bed; the water layer draws the same pages)"),
     ('unhumaskin_00.mmp', "render_weather_panel: the hero Zak's skin and gear layers in the HUD panel (the wet figure is darker than the dry one: a black figure shows no difference)"),
     ('unhumaskin_07.mmp', 'render_weather_panel: the same'),
     ('unhumabt_00.le.0.mmp', 'render_weather_panel: the same'),
