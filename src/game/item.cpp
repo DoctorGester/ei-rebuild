@@ -367,19 +367,32 @@ const char* ItemLoot::ClassName() { return "CItemLoot"; }
 
 ClassId ItemLoot::GetClassId() { return ClassId::ItemLoot; }
 
+namespace {
+
+// A record's price; -1 without the record, as for a kind without a price.
+template <typename Record>
+float PriceOf(const Record* record) {
+    return record ? record->price : -1.0f;
+}
+
+} // namespace
+
 float ItemLoot::GetPrice() {
     switch (kind) {
     case LootKind::Self: return price;
-    case LootKind::Material: return MaterialAt(index)->unitPrice;
+    case LootKind::Material: {
+        const MaterialRecordHead* material = MaterialAt(index);
+        return material ? material->unitPrice : -1.0f;
+    }
     case LootKind::Record: break;
     default: return -1.0f;
     }
     switch (recordType) {
-    case LootRecordType::Weapon: return WeaponAt(index)->price;
-    case LootRecordType::Armor: return ArmorAt(index)->price;
-    case LootRecordType::Quick: return QuickItemAt(index)->price;
-    case LootRecordType::Spell: return SpellAt(index)->price;
-    case LootRecordType::Modifier: return SpellModifierAt(index)->price;
+    case LootRecordType::Weapon: return PriceOf(WeaponAt(index));
+    case LootRecordType::Armor: return PriceOf(ArmorAt(index));
+    case LootRecordType::Quick: return PriceOf(QuickItemAt(index));
+    case LootRecordType::Spell: return PriceOf(SpellAt(index));
+    case LootRecordType::Modifier: return PriceOf(SpellModifierAt(index));
     default: return -1.0f;
     }
 }
@@ -425,38 +438,45 @@ void ItemLoot::Save(ByteStream* stream) {
 // --- Weapon and armour stats by packed id / index ------------------------------------------------
 
 WeaponType WeaponTypeOf(std::uint32_t packedId) {
-    return static_cast<WeaponType>(WeaponOf(packedId)->type);
+    const WeaponRecord* weapon = WeaponOf(packedId);
+    return weapon ? static_cast<WeaponType>(weapon->type) : WeaponType::NoWeapon;
 }
 
 float WeaponMinDamage(std::uint32_t packedId) {
-    WeaponRecord* weapon = WeaponOf(packedId);
-    return weapon->damage * MaterialOf(packedId)->damageFactor;
+    const WeaponRecord* weapon = WeaponOf(packedId);
+    const MaterialRecordHead* material = MaterialOf(packedId);
+    return weapon && material ? weapon->damage * material->damageFactor : 0.0f;
 }
 
 float WeaponMaxDamage(std::uint32_t packedId) {
-    WeaponRecord* weapon = WeaponOf(packedId);
-    return (weapon->damageSpread + weapon->damage) * MaterialOf(packedId)->damageFactor;
+    const WeaponRecord* weapon = WeaponOf(packedId);
+    const MaterialRecordHead* material = MaterialOf(packedId);
+    return weapon && material ? (weapon->damageSpread + weapon->damage) * material->damageFactor : 0.0f;
 }
 
 float WeaponWeight(std::uint32_t packedId) {
-    WeaponRecord* weapon = WeaponOf(packedId);
-    return weapon->weight * MaterialOf(packedId)->weightFactor;
+    const WeaponRecord* weapon = WeaponOf(packedId);
+    const MaterialRecordHead* material = MaterialOf(packedId);
+    return weapon && material ? weapon->weight * material->weightFactor : 0.0f;
 }
 
 int WeaponDamageType(std::uint32_t packedId) {
-    WeaponRecord* weapon = WeaponOf(packedId);
-    for (int i = 0; i < kDamageTypeCount; ++i) {
-        if (weapon->damageTypes[i] != 0.0f) return i;
+    if (const WeaponRecord* weapon = WeaponOf(packedId)) {
+        for (int i = 0; i < kDamageTypeCount; ++i) {
+            if (weapon->damageTypes[i] != 0.0f) return i;
+        }
     }
     return kDamageTypeCount - 1;
 }
 
 float WeaponAttackBonus(std::uint32_t packedId) {
-    return WeaponOf(packedId)->attackBonus;
+    const WeaponRecord* weapon = WeaponOf(packedId);
+    return weapon ? weapon->attackBonus : 0.0f;
 }
 
 float WeaponDefenceBonus(std::uint32_t packedId) {
-    return WeaponOf(packedId)->defenceBonus;
+    const WeaponRecord* weapon = WeaponOf(packedId);
+    return weapon ? weapon->defenceBonus : 0.0f;
 }
 
 int ArmorLayer(std::uint32_t index) {

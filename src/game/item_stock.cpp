@@ -167,8 +167,9 @@ constexpr int kScrollTries = 10;
 } // namespace
 
 
-// Original bug kept: a failed build (EndCreateItem null) is dereferenced. The item is created before its
-// material is drawn (BuildItem would create it after), so a cancelled item still uses up an object id.
+// A failed build (BeginCreateItem false, EndCreateItem null) is left out (the original used the null item). The
+// item is created before its material is drawn (BuildItem would create it after), so a cancelled item still uses
+// up an object id.
 template <class Record>
 void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, int maxCount, std::vector<Item*>* out,
                               const std::vector<itemdb::SpellListRecord>* spellRecipes) {
@@ -189,7 +190,10 @@ void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, in
     for (Record* prototype : taken) {
         if (prototype->family == "wand") continue;
         ctor->SetManager(manager);
-        ctor->BeginCreateItem(prototype->Kind());
+        if (!ctor->BeginCreateItem(prototype->Kind())) {
+            ctor->SetManager(nullptr);
+            continue;
+        }
         ctor->prototype = prototype;
         bool needsMaterial = text::CompareIgnoringCase(prototype->materialClass.c_str(), "none") != 0;
         candidates.clear();
@@ -220,6 +224,7 @@ void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, in
         }
         Item* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
+        if (!item) continue;
         item->AddRef();
         if (item->Kind() == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Potion)
             item->count = static_cast<std::uint32_t>(libcrt::RandBelow(30) + 20);
@@ -421,7 +426,7 @@ void ItemStock::CopyMagic(const ItemStock* other) {
     modifiers = other->modifiers;
 }
 
-// Original bug kept: a failed build (null item) is dereferenced.
+// A failed build (no "spell container" record) is left out (the original used the null item).
 void ItemStock::GenerateScrolls(std::vector<Item*>* out) {
     ItemConstructor* ctor = party->GetItemConstructor();
     ItemManager* manager = party->ItemFactory();
@@ -435,6 +440,7 @@ void ItemStock::GenerateScrolls(std::vector<Item*>* out) {
     itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named("spell container");
     for (Spell* spell : list) {
         Item* item = ctor->BuildItem(manager, ItemKind::Scroll, prototype, nullptr, spell);
+        if (!item) continue;
         item->AddRef();
         out->push_back(item);
     }

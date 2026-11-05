@@ -1,9 +1,9 @@
 #pragma once
 
 // The item and spell databases (items.idb and spells.sdb of the resource archive; item_db.cpp, spell_db.cpp):
-// records in tables held in globals, indexed by name or code. A lookup by index gives null out of range; many
-// callers then read a field of the record without checking for null, so an index out of range faults, as in the
-// game.
+// records in tables held in globals, indexed by name or code. A lookup by index gives null out of range: the items
+// area then gives an empty name, a zero stat or no item (the game faulted); some callers elsewhere still read
+// the record without the test.
 
 #include "lib/vecmath.h"
 

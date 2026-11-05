@@ -84,10 +84,9 @@ float Terrain::HeightAt(float x, float y, Layer layer) {
         const Vector3* v01 = VertexAt(ix0, iy1, layer);
         const Vector3* v11 = VertexAt(ix1, iy1, layer);
         if (!v00 || !v11) return 0.0f;
-        if (!v10) {
-            if (v01) return PlaneHeight(*v00, *v11, x, y, *v01);
-            continue;   // the same cell again: the iteration limit below is not reached, so this never ends
-        }
+        // Only the diagonal's ends (the original retried the same cell forever): its midpoint.
+        if (!v10 && !v01) return (v00->z + v11->z) * 0.5f;
+        if (!v10) return PlaneHeight(*v00, *v11, x, y, *v01);
         if (!v01) return PlaneHeight(*v00, *v10, x, y, *v11);
 
         // Both triangles of the cell must be counter-clockwise, else take the diagonal's midpoint.
@@ -136,12 +135,13 @@ int Terrain::SurfaceClass(float x, float y) {
     SectorData* sector = SectorAt(ix / kSectorCells, iy / kSectorCells, SectorStage::Built, true);
     int tile = (iy % kSectorCells) / 2 * kSectorTiles + (ix % kSectorCells) / 2;
     if (!sector) return kOutsideClass;
+    int texture = sector->tileTextures[tile];
     if (sector->hasWater && sector->waterTiles[tile] != -1) {
         float water = HeightAt(x, y, Layer::Water);
         const float ground = HeightAt(x, y, Layer::Ground);
-        if (ground < water) return textureClass[sector->tileTextures[tile + kLayerTiles]];
+        if (ground < water) texture = sector->tileTextures[tile + kLayerTiles];
     }
-    return textureClass[sector->tileTextures[tile]];
+    return texture < 0 ? kOutsideClass : textureClass[texture];   // a tile without a texture: as outside
 }
 
 } // namespace terrain

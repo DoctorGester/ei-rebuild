@@ -332,13 +332,13 @@ bool Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon
     if (!archive.OpenResource(name)) return false;
     std::vector<std::string> files;
     archive.ListFiles(&files, "*.mp");
-    // (An archive without a map file is not tested for either.)
-    const std::string& first = files[0];
-    mapName = str::Left(first, str::Find(first, '.'));
-
-    // The messages are passed to FatalError as its format string.
+    // An archive without a map file fails as a missing map file (the original read past the empty list).
     std::uint32_t size = 0;
-    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile((mapName + kMapDataExtension), &size));
+    const std::uint8_t* file = nullptr;
+    if (!files.empty()) {
+        mapName = str::Left(files[0], str::Find(files[0], '.'));
+        file = static_cast<const std::uint8_t*>(archive.GetFile(mapName + kMapDataExtension, &size));
+    }
     if (!file) {
         ClearMap();
         game::FatalError("Unable to open file \"" + name + "\"");
