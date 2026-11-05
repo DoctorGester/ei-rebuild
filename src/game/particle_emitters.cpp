@@ -17,7 +17,7 @@
 
 namespace {
 
-// --- LightningBlast (0x2030) ----------------------------------------------------------------------
+// --- LightningBlast ----------------------------------------------------------------------------------
 
 constexpr float kTwoPi = 6.28318f;
 
@@ -118,7 +118,7 @@ int EmitSpark(ParticleSource* s, Particle* p) {
     return 1;
 }
 
-// --- Modifier1-12 (0x201B-0x2026) ---------------------------------------------------------------
+// --- Modifier1-12 ------------------------------------------------------------------------------------
 
 // By point 0's fade step; entry 10 (0): the last emitting tick, past the 10 (the original's zero tail).
 constexpr std::int32_t kFadeAlpha[11] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15, 0};
@@ -255,7 +255,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
     float jx = g_clientRandom.Range(-0.04f, 0.04f);
     scatter = {jx, jy, jz};
     p->pos = elements[pick].ring.start;
-    p->size = 0.06f;   // 0.06
+    p->size = 0.06f;
     return 1;
 }
 
@@ -289,7 +289,7 @@ int ParticleSource::EmitZoneExit(Particle* p, int) {
     return 1;
 }
 
-// 0x2039: on its first update (life -10) the particle's lifetime is set from its
+// ShapeChange: on its first update (life -10) the particle's lifetime is set from its
 // position in the emission (order * 8 / particle count + 7); the alpha follows kGlowAlpha.
 int ParticleSource::UpdateGlow(Particle* p) {
     const int& order = p->frameTimer;
@@ -300,7 +300,7 @@ int ParticleSource::UpdateGlow(Particle* p) {
     return 1;
 }
 
-// 0x203A/0x203B: dust moving along the ground, never below the plane the source measured (element 0),
+// GroundDust1 / 2: dust moving along the ground, never below the plane the source measured (element 0),
 // growing and slowing down.
 int ParticleSource::UpdateGroundDust(Particle* p) {
     float& dustSize = p->aux.x;
@@ -319,7 +319,7 @@ int ParticleSource::UpdateGroundDust(Particle* p) {
     return 1;
 }
 
-// 0x203A/0x203B: on the element's first tick, the ground plane under the source (the normal's z replaced by
+// GroundDust1 / 2: on the element's first tick, the ground plane under the source (the normal's z replaced by
 // its reciprocal when non-zero); after the second the source stops emitting.
 void ParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {

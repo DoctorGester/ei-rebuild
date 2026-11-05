@@ -5,4 +5,5 @@ model = "sonnet"
 depends = ["C101"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item P7. Enum names instead of hex type ids in comments (four are wrong: effects.h:449, :537, callbacks:2770, :3161); offset and size narration, 'Names are provisional', restated literals and case labels repeated as comments go; enum class AttachPoint; one kBagBalls; inline the NoCarrier* literal functions with the original's text; IsZero/Same and the isZero lambdas become == 0.0f; BagColours/BagAlpha constexpr arrays; g_bagSizes filled once; one-call wrappers (CameraRotation, SceneLightColor, FigurePartPosition, GroundHeight; BindLoadedTexture moved to the renderer); switch on enum cases, not type - FirstKind; moveMode == 3 and the renderer codes named. comments.py samecode for the comment-only parts. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1035
-status = "queued"
+status = "running"
+started = "2026-11-05"

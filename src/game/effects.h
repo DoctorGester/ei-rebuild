@@ -5,7 +5,7 @@
 // constructor stores (emit one particle, update one particle: 0 kills it, update
 // one element of the source's own array).
 // - RainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
-// - VisibilityFog ("VisibilityFog", class id 0x5F): a hash_map of fog cells, one per visible map square; each
+// - VisibilityFog ("VisibilityFog"): a hash_map of fog cells, one per visible map square; each
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
 
 #include "base_manager.h"
@@ -343,8 +343,8 @@ public:
     Particle* AcquireParticle();                    // from the pool, else new
     void ReleaseParticle(Particle* p);              // back to the pool's tail
     int DrawAll(SceneRenderer* renderer);
-    // CreateObject(type, -1), referenced and held under its id; with quietStart set, types 0x2001 / 0x2003 /
-    // 0x2004 start without emitting.
+    // CreateObject(type, -1), referenced and held under its id; with quietStart set, CampFire, Fire and Smoke start
+    // without emitting.
     ParticleSource* CreateSource(int type);
     // Every source's tick (with `paused` only the ones with ParticleSourceFlag::TicksWhilePaused); a held source whose tick returned 0 is
     // released and leaves `held`. Returns 0.
@@ -377,7 +377,7 @@ enum class ParticleSourceFlag : std::uint32_t {
     KeepAlive = 0x4,        // a detached source stays while it has it (else while it has particles)
     TicksWhilePaused = 0x8, // ticked while the game is paused
     OnPart = 0x10,          // sits on a unit's part chosen by attachPoint (else on the top of the object's bounds)
-    IdlesOffScreen = 0x20,  // the tick idles once the draws were skipped off screen past 0x38 times
+    IdlesOffScreen = 0x20,  // the tick idles once the draws were skipped off screen more than 56 times
     NotDrawn = 0x40,        // the draw skips it; nothing sets it
 };
 template <> inline constexpr bool lib::kBitFlags<ParticleSourceFlag> = true;
@@ -417,108 +417,108 @@ public:
     using ElementCallback = void (ParticleSource::*)(ParticleElement* e);
 
     // --- per-particle callbacks, return 0 to drop ---
-    int UpdateFalling(Particle* p);                 // types 0x2034-0x2037
-    int UpdateCloud(Particle* p);                   // PoisonFog and similar
-    int UpdateSmoke(Particle* p);                   // CampFire, Fire, Smoke, 0x2010
+    int UpdateFalling(Particle* p);                 // Falling1-4
+    int UpdateCloud(Particle* p);                   // PoisonFog, PoisonCloud
+    int UpdateSmoke(Particle* p);                   // CampFire, Fire, Smoke, Tendril
     int EmitSmoke(Particle* p, int index);
     int UpdateDebris(Particle* p);                  // Nuke
-    int UpdateOrbit(Particle* p);                   // Antimagic, spheres, 0x2014
+    int UpdateOrbit(Particle* p);                   // the protection spheres, Antimagic
 
     int EmitLightning(Particle* p, int index);      // LightningBlast
     int EmitModifier(Particle* p, int index);       // Modifier1-12
     int EmitZoneExit(Particle* p, int index);
     int EmitFeebleMind(Particle* p, int index);
     int EmitFeetCloud(Particle* p, int index);      // FeetCloud1/2
-    int UpdateGlow(Particle* p);                    // 0x2039
-    int UpdateGroundDust(Particle* p);              // 0x203A, 0x203B
+    int UpdateGlow(Particle* p);                    // ShapeChange
+    int UpdateGroundDust(Particle* p);              // GroundDust1 / 2
     int UpdatePortal(Particle* p);
     int UpdateSparks(Particle* p);
-    void TickGroundPlane(ParticleElement* e);       // 0x203A, 0x203B
+    void TickGroundPlane(ParticleElement* e);       // GroundDust1 / 2
     void TickPortal(ParticleElement* e);
     void TickStartTrans(ParticleElement* e);
 
     // The emission point in the world (attachment point plus the local position).
     Vector3 WorldPosition();
 
-    int EmitCasting(Particle* p, int index);        // 0x2027-0x202A
+    int EmitCasting(Particle* p, int index);        // CastingFire ... CastingDivination
     int UpdateCasting(Particle* p);
     void TickCasting(ParticleElement* e);
-    int EmitOrbit(Particle* p, int index);          // 0x2015-0x2017, 0x201A
-    int EmitCastRing(Particle* p, int index);       // Casting, 0x200B
+    int EmitOrbit(Particle* p, int index);          // the protection spheres, Antimagic
+    int EmitCastRing(Particle* p, int index);       // Casting
     int UpdateCastRing(Particle* p);
     void TickCastRing(ParticleElement* e);
-    int EmitHealing(Particle* p, int index);        // Healing, 0x2006
+    int EmitHealing(Particle* p, int index);        // Healing
     int UpdateHealing(Particle* p);
     void TickHealing(ParticleElement* e);
-    int EmitCastSwirl(Particle* p, int index);      // 0x202B-0x202E
+    int EmitCastSwirl(Particle* p, int index);      // CastingIllusion ... CastingHealing
     int UpdateCastSwirl(Particle* p);
     void TickCastSwirl(ParticleElement* e);
-    int EmitLink(Particle* p, int index);           // Link, 0x2014
+    int EmitLink(Particle* p, int index);           // Link
     int UpdateLink(Particle* p);
     void TickLink(ParticleElement* e);
-    int EmitBlast(Particle* p, int index);          // FireBlast, 0x2002
+    int EmitBlast(Particle* p, int index);          // FireBlast
     int UpdateBlast(Particle* p);
     void TickBlast(ParticleElement* e);
-    int EmitPoisonFog(Particle* p, int index);      // PoisonFog, 0x2007 / 0x2008
-    int EmitGeyser(Particle* p, int index);         // Geyser, 0x2009
+    int EmitPoisonFog(Particle* p, int index);      // PoisonFog, PoisonCloud
+    int EmitGeyser(Particle* p, int index);         // Geyser
     int UpdateGeyser(Particle* p);
     void TickGeyser(ParticleElement* e);
-    int EmitShower(Particle* p, int index);         // 0x200F, 0x2031-0x2033
+    int EmitShower(Particle* p, int index);         // Shower1-4
     int UpdateShower(Particle* p);
     void TickShower(ParticleElement* e);
-    int EmitBag(Particle* p, int index);            // Bag, 0x203C
+    int EmitBag(Particle* p, int index);            // Bag
     int UpdateBag(Particle* p);
     void TickBag(ParticleElement* e);
-    int EmitColumn(Particle* p, int index);         // 0x202F
+    int EmitColumn(Particle* p, int index);         // TeleportRing
     int UpdateColumn(Particle* p);
     void TickColumn(ParticleElement* e);
     int EmitMushroom(Particle* p, int index);       // Mushroom, Transform
     int UpdateMushroom(Particle* p);
-    int EmitStench(Particle* p, int index);         // BlueGas, 0x2013
+    int EmitStench(Particle* p, int index);         // BlueGas
     int UpdateStench(Particle* p);
     int EmitTornado(Particle* p, int index);        // Tornado, CurseHolder
     int UpdateTornado(Particle* p);
     void TickTornado(ParticleElement* e);
-    int EmitPortalStar(Particle* p, int index);     // PortalStar, 0x203D
+    int EmitPortalStar(Particle* p, int index);     // PortalStar
     int UpdatePortalStar(Particle* p);
-    int EmitCylinder(Particle* p, int index);       // Cylinder1/2, 0x203F / 0x2040
+    int EmitCylinder(Particle* p, int index);       // Cylinder1 / 2
     int UpdateCylinder(Particle* p);
     void TickCylinder(ParticleElement* e);
-    int EmitFireBall(Particle* p, int index);       // FireBall, 0x2000
+    int EmitFireBall(Particle* p, int index);       // FireBall
     int UpdateFireBall(Particle* p);
-    int EmitArrowSmoke(Particle* p, int index);     // FireArrow 0x2011, 0x204E
+    int EmitArrowSmoke(Particle* p, int index);     // FireArrow, RikArrowSmoke
     int UpdateArrowSmoke(Particle* p);
-    int EmitBanshee(Particle* p, int index);        // Banshee, 0x200D
+    int EmitBanshee(Particle* p, int index);        // Banshee
     int UpdateBanshee(Particle* p);
     void TickBanshee(ParticleElement* e);
-    int EmitPortal(Particle* p, int index);         // Portal, 0x203E
-    int EmitAcidRay(Particle* p, int index);        // AcidRay, 0x2012
+    int EmitPortal(Particle* p, int index);         // Portal
+    int EmitAcidRay(Particle* p, int index);        // AcidRay
     int UpdateAcidRay(Particle* p);
-    int EmitSparks(Particle* p, int index);         // Sparks, 0x2043
-    int EmitClayRing(Particle* p, int index);       // ClayRing, 0x2018
+    int EmitSparks(Particle* p, int index);         // Sparks
+    int EmitClayRing(Particle* p, int index);       // ClayRing
     int UpdateClayRing(Particle* p);
     void TickClayRing(ParticleElement* e);
-    int EmitFalling(Particle* p, int index);        // 0x2034-0x2037
+    int EmitFalling(Particle* p, int index);        // Falling1-4
     void TickFalling(ParticleElement* e);
-    int EmitVulkan(Particle* p, int index);         // VulcanSmoke, 0x2005
+    int EmitVulkan(Particle* p, int index);         // VulcanSmoke
     int UpdateVulkan(Particle* p);
     int EmitFireStar(Particle* p, int index);       // FireStar, AcidStar
     int UpdateFireStar(Particle* p);
     int EmitRegeneration(Particle* p, int index);
     int UpdateRegeneration(Particle* p);
-    int EmitVisionStar(Particle* p, int index);     // VisionStar1-3
+    int EmitVisionStar(Particle* p, int index);     // VisionStar1-4
     int UpdateVisionStar(Particle* p);
     int UpdateZoneExit(Particle* p);
-    int UpdateFeebleMind(Particle* p);              // FeebleMind, 0x2049
-    int UpdateFeetCloud(Particle* p);               // FeetCloud, 0x2047
+    int UpdateFeebleMind(Particle* p);              // FeebleMind
+    int UpdateFeetCloud(Particle* p);               // FeetCloud1 / 2
     void TickFeetCloud(ParticleElement* e);
-    int EmitSilence(Particle* p, int index);        // Silence, 0x2048
+    int EmitSilence(Particle* p, int index);        // Silence
     int UpdateSilence(Particle* p);
     int UpdateModifier(Particle* p);
     void TickModifier(ParticleElement* e);
-    int UpdateLightning(Particle* p);               // LightningBlast, 0x2030
+    int UpdateLightning(Particle* p);               // LightningBlast
     void TickLightning(ParticleElement* e);
-    int EmitTeleport(Particle* p, int index);       // Teleport, 0x2019
+    int EmitTeleport(Particle* p, int index);       // Teleport
     int UpdateTeleport(Particle* p);
     void TickTeleport(ParticleElement* e);
     int EmitCurseStars(Particle* p, int index);
@@ -527,10 +527,10 @@ public:
     int UpdateStartTrans(Particle* p);
     int EmitNuke(Particle* p, int index);
     int EmitTendril(Particle* p, int index);
-    int EmitGroundDust(Particle* p, int index);     // 0x203A, 0x203B
-    int EmitGlow(Particle* p, int index);           // ShapeChange, 0x2039
+    int EmitGroundDust(Particle* p, int index);     // GroundDust1 / 2
+    int EmitGlow(Particle* p, int index);           // ShapeChange
     void TickGlow(ParticleElement* e);
-    int EmitStun(Particle* p, int index);           // Stun, 0x204D
+    int EmitStun(Particle* p, int index);           // Stun
     int UpdateStun(Particle* p);
 
     // Offset (0, 0, the bounds centre's z) and radius of the object followed (its bounds recomputed); (0, 0, 0)
@@ -543,7 +543,7 @@ public:
 
     // --- per-element callbacks ---
     void TickNuke(ParticleElement* e);
-    void TickTendril(ParticleElement* e);           // 0x2010
+    void TickTendril(ParticleElement* e);           // Tendril
     void TickMushroom(ParticleElement* e);          // Mushroom, Transform
     void TickNone(ParticleElement* e);              // does nothing; ten more callbacks are as empty
 
@@ -551,7 +551,7 @@ public:
     void ScaleSize(float factor);
     void StopEmitting();                            // Emitting off, KeepAlive on
     void StartEmitting();                           // Emitting and KeepAlive on
-    void Stop();                                    // bits 0 and 2 off, detach
+    void Stop();                                    // Emitting and KeepAlive off, detach
 
     // Follow `object` (a map object, or null to let go): the old object
     // drops the source (its point is folded into the local position), the new one adds it, and
@@ -568,8 +568,7 @@ public:
     void StopAndClear();
     void ReleaseAllParticles();
 
-    // EngineObject's flags: the ParticleSourceFlag bits; type 0x2000.. (the effect names in the type name
-    // table).
+    // EngineObject's flags hold the ParticleSourceFlag bits, its type a ParticleType.
     MapObject* attachedTo = nullptr;  // the object followed, null: none
     Vector3 origin;                 // world emission point
     Vector3 motion;                 // movement since the last tick
@@ -583,7 +582,7 @@ public:
     int frameCount = 0;
     int frameColumns = 0;           // columns of the texture's frame grid
     int frameDelay = 0;             // ticks per texture frame
-    int hiddenTicks = 0;            // draws skipped off screen (the tick idles past 0x38 with IdlesOffScreen)
+    int hiddenTicks = 0;            // draws skipped off screen (the tick idles past 56 with IdlesOffScreen)
     int lifetime = 0;
     Vector3 spreadMin;
     Vector3 spreadMax;
@@ -607,8 +606,8 @@ public:
     std::vector<ParticleElement> elements;   // per type
     Vector3 boundsMin;              // over the particles, rebuilt every tick
     Vector3 boundsMax;
-    // the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
-    // boundsMax less the centre) relative to the centre; the radius is not written.
+    // The bounds the renderer clips by: BoundsFlag::Box set by the tick, the box (boundsMin and boundsMax less the
+    // centre) relative to the centre; the radius is not written.
     ClipBounds clip = {};
     std::vector<Particle*> particles;
     std::vector<SourceFrame> frames;

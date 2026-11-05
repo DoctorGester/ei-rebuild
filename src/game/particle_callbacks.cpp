@@ -19,13 +19,13 @@
 #include <cmath>
 #include <cstring>
 
-// --- Casting effects (0x2027-0x202A): sparks rising around the caster -----------------------------
+// --- CastingFire ... CastingDivination: sparks rising around the caster -----------------------------
 
 namespace {
 
 const char* NoCarrierCasting() { return "Particle effect CastingElemental without carrier\n"; }
 constexpr std::int32_t kCastAlphaByCountdown[7] = /*0078A964*/ {0, 32, 64, 112, 160, 208, 255};
-constexpr std::int32_t kCastAlphaByLifeWide[14] = /*0078A980*/ {0, 32, 64, 112, 160, 208, 255, 255, 224, 192, 128, 64, 32, 16};   // 0x202A
+constexpr std::int32_t kCastAlphaByLifeWide[14] = /*0078A980*/ {0, 32, 64, 112, 160, 208, 255, 255, 224, 192, 128, 64, 32, 16};   // CastingDivination
 constexpr std::int32_t kCastAlphaByLife[14] = /*0078A9BC*/ {0, 255, 255, 255, 255, 255, 255, 255, 224, 192, 128, 64, 32, 16};
 
 // A random point of the cube [-1, 1)^3, drawn x, y, z.
@@ -541,7 +541,7 @@ bool Same(float a, float b) {
 
 } // namespace
 
-// Casting (0x2027-0x202A). The first call sets the effect up (0x202A then emits its
+// CastingFire ... CastingDivination. The first call sets the effect up (CastingDivination then emits its
 // marker particle at the source); after that each particle starts on a random direction (pulled
 // towards a random swirl), at the effect's radius around the source.
 int ParticleSource::EmitCasting(Particle* p, int) {
@@ -596,9 +596,9 @@ int ParticleSource::EmitCasting(Particle* p, int) {
     return 1;
 }
 
-// Casting particles: none once the effect's alpha is 0. The 0x202A marker stays at the
+// Casting particles: none once the effect's alpha is 0. The CastingDivination marker stays at the
 // source with a random size; the others fade by their life (capped by the effect's alpha), run
-// their frames backwards (0x2027: every fourth tick held) and spiral in towards the source.
+// their frames backwards (CastingFire: every fourth tick held) and spiral in towards the source.
 int ParticleSource::UpdateCasting(Particle* p) {
     const Vector3& direction = p->velocity;
     float& away = p->aux.x;
@@ -655,7 +655,7 @@ void ParticleSource::TickCasting(ParticleElement* e) {
     kicked(velocity.z, position.z);
 }
 
-// --- Protection spheres (0x2015-0x2017) and AntiMagic (0x201A) -----------------------------------
+// --- Protection spheres (SphereAcid, SphereElectricity, SphereFire) and Antimagic ---------------------
 
 // Spheres: a particle on the sphere around the carrier (a random direction at 0.65 of
 // the radius), flattened against the carrier's motion when it moves; one in eleven is larger. The
@@ -710,11 +710,11 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     return 1;
 }
 
-// --- Casting (0x200B) and Healing (0x2006): rings of flames rising around the caster -------------
+// --- Casting and Healing: rings of flames rising around the caster ----------------------------------
 // emitState counts the flames emitted after the set-up (one per ring). The two types share the shapes;
 // they differ in the ring count, timings, sizes and the spark pattern.
 
-// Casting (0x200B): the first call places three rings (needs a carrier); then one flame
+// Casting: the first call places three rings (needs a carrier); then one flame
 // per ring; then, while ring 0 is young, sparks scattered around ring 0's circle (72 per tick),
 // else sparks around a random ring's centre.
 int ParticleSource::EmitCastRing(Particle* p, int) {
@@ -813,7 +813,7 @@ void ParticleSource::TickCastRing(ParticleElement* e) {
     if (t >= 9) TurnRing(e);
 }
 
-// Healing (0x2006): the first call places 6 * size + 2 rings (needs a carrier); then
+// Healing: the first call places 6 * size + 2 rings (needs a carrier); then
 // one flame per ring; then sparks around a random ring's centre.
 int ParticleSource::EmitHealing(Particle* p, int) {
     if (elements.empty()) {
@@ -880,7 +880,7 @@ void ParticleSource::TickHealing(ParticleElement* e) {
     TurnRing(e);
 }
 
-// --- CastingIllusion, Domination, Enchantment, Healing (0x202B-0x202E): orbiting lights ---------
+// --- CastingIllusion, CastingDomination, CastingEnchantment, CastingHealing: orbiting lights ---------
 // One element per orbiter (lifetime of them, added one per emission).
 
 // Until all orbiters exist each emission adds one (needs a carrier); then sparks start at a random point
@@ -959,7 +959,7 @@ void ParticleSource::TickCastSwirl(ParticleElement* e) {
     e->pos = origin + relative;
 }
 
-// --- Link (0x2014): a beam of sparks from the source along its extent --------------------------
+// --- Link: a beam of sparks from the source along its extent ---------------------------------------
 
 // Link: a spark at the source with a random offset across the beam (from the spread
 // box), a twist rate from its distance to the axis and a random speed along the beam (fast and
@@ -1047,7 +1047,7 @@ void ParticleSource::TickLink(ParticleElement* e) {
     e->ticks = cap < 0 ? 0 : cap;
 }
 
-// --- FireBlast (0x2002): fifteen fragments flying out, flames and smoke at the centre ------------
+// --- FireBlast: fifteen fragments flying out, flames and smoke at the centre ------------------------
 
 // FireBlast: a random kind per particle (state = a draw % 29 - 14). The first particle
 // after the fragments' first tick is the core flash. Negative kinds are flames inside the blast
@@ -1160,7 +1160,7 @@ void ParticleSource::TickBlast(ParticleElement* e) {
     velocity.z -= 0.03f;
 }
 
-// --- PoisonFog (0x2007, 0x2008): a disc of cloud puffs laid on the ground ------------------------
+// --- PoisonFog and PoisonCloud: a disc of cloud puffs laid on the ground -----------------------------
 
 // PoisonFog: emits nothing itself. When the source has no particles it lays one puff
 // per grid cell (jittered by a quarter cell) inside the disc of radius `size` around its position,
@@ -1204,7 +1204,7 @@ int ParticleSource::EmitPoisonFog(Particle*, int) {
     return 0;
 }
 
-// --- Geyser (0x2009): three vents that erupt in turn -----------------------------------------------
+// --- Geyser: three vents that erupt in turn ------------------------------------------------------------
 
 // Geyser: the first particle marks the source. Then a drop from a random vent: while
 // the vent erupts it flies along the vent's direction (jittered by up to 20 / 10 degrees) with the
@@ -1295,7 +1295,7 @@ void ParticleSource::TickGeyser(ParticleElement* e) {
     e->vent.power = power;
 }
 
-// --- Shower (0x200F, 0x2031-0x2033): sparks thrown out in a few random directions ---------------
+// --- Shower1-4: sparks thrown out in a few random directions ---------------------------------------
 
 // Shower: the first call chooses the directions. A spark leaves the source along a
 // random direction (jittered by +-0.03, scaled to the source's size and 1/6 of it per tick, one in
@@ -1346,7 +1346,7 @@ void ParticleSource::TickShower(ParticleElement* e) {
     }
 }
 
-// --- Bag (0x203C): eighty coloured balls bouncing around the carrier ----------------------------------
+// --- Bag: eighty coloured balls bouncing around the carrier -------------------------------------------
 // A ball's ticks run down to its next throw (-13: no carrier, the ball is gone).
 
 // Bag: the first 80 particles are the balls (state = their index; the first one fills the size table: 0.93 to
@@ -1447,9 +1447,9 @@ void ParticleSource::TickBag(ParticleElement* e) {
     e->ball.step = velocity;
 }
 
-// --- 0x202F: sparks rising in a ring around the carrier ------------------------------------------
+// --- TeleportRing: sparks rising in a ring around the carrier ----------------------------------------
 
-// 0x202F: a spark on a ring of random radius around the carrier (0.9-1.1 of the ring),
+// TeleportRing: a spark on a ring of random radius around the carrier (0.9-1.1 of the ring),
 // at a random height of the spread box above the ring's foot, rising faster and faster.
 int ParticleSource::EmitColumn(Particle* p, int) {
     Vector3& offset = p->velocity;  // from the source
@@ -1472,7 +1472,7 @@ int ParticleSource::EmitColumn(Particle* p, int) {
     return 1;
 }
 
-// 0x202F sparks: fade by life, step a frame, follow the source at their offset, shrink
+// TeleportRing sparks: fade by life, step a frame, follow the source at their offset, shrink
 // to 0.97 per tick and rise (the rise growing by 5% per tick).
 int ParticleSource::UpdateColumn(Particle* p) {
     Vector3& offset = p->velocity;
@@ -1491,7 +1491,7 @@ int ParticleSource::UpdateColumn(Particle* p) {
 
 void ParticleSource::TickColumn(ParticleElement* e) { ++e->ticks; }
 
-// --- Mushroom and Transform (0x200E, 0x2052): the cloud of the mushroom ---------------------------
+// --- Mushroom and Transform: the cloud of the mushroom -------------------------------------------------
 
 // Mushroom: a puff from the source in a random upward direction (a fixed spread of 0,
 // as ln 1 = 0), sized and framed by the cloud's age.
@@ -1559,7 +1559,7 @@ int ParticleSource::UpdateMushroom(Particle* p) {
     return 1;
 }
 
-// --- BlueGas (Stench, 0x2013): gas swirling up around the carrier -------------------------------
+// --- BlueGas (the Stench texture): gas swirling up around the carrier ---------------------------------
 
 // BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff starts at a random
 // point of the disc around the carrier's figure, turning about the axis faster the nearer it is, and rising.
@@ -1631,7 +1631,7 @@ int ParticleSource::UpdateStench(Particle* p) {
     return 1;
 }
 
-// --- Tornado (0x200A) and CurseHolder (0x2050): a funnel of rings ---------------------------------
+// --- Tornado and CurseHolder: a funnel of rings ------------------------------------------------------
 // The rings run bottom to top.
 
 // Tornado: a particle at a random height of the funnel (around the ring centres there),
@@ -1771,7 +1771,7 @@ void ParticleSource::TickTornado(ParticleElement* e) {
     }
 }
 
-// --- PortalStar (0x203D): one flickering star ------------------------------------------------------
+// --- PortalStar: one flickering star -----------------------------------------------------------------
 
 int ParticleSource::EmitPortalStar(Particle* p, int) {
     p->color = 0xFFFFFF;
@@ -1791,7 +1791,7 @@ int ParticleSource::UpdatePortalStar(Particle* p) {
     return 1;
 }
 
-// --- Cylinder1 / Cylinder2 (0x203F, 0x2040): two stars circling the carrier --------------------
+// --- Cylinder1 / Cylinder2: two stars circling the carrier -------------------------------------------
 // A star's ticks count down and index kCylinderAlpha.
 
 // Cylinder: the first particles are the stars (state = their index; the first one
@@ -1827,7 +1827,7 @@ int ParticleSource::EmitCylinder(Particle* p, int) {
     float u = g_clientRandom.Range(-1.0f, 0.0f);
     relative = u * step + e.pos;
     spiral = step;
-    p->size = 0.1f;     // 0.1
+    p->size = 0.1f;
     p->pos = relative + origin;
     return 1;
 }
@@ -1842,7 +1842,7 @@ int ParticleSource::UpdateCylinder(Particle* p) {
         if (!(flags & ParticleSourceFlag::Emitting)) return 0;
         const ParticleElement& e = elements[state];
         p->color = (static_cast<std::uint32_t>(kCylinderAlpha[e.ticks]) << 24) | 0xFFFFFF;
-        p->size = 0.3f;     // 0.3
+        p->size = 0.3f;
         p->pos = origin + e.pos;
         return 1;
     }
@@ -1894,7 +1894,7 @@ void ParticleSource::TickCylinder(ParticleElement* e) {
     rotation[1] = b;
 }
 
-// --- FireBall (0x2000) and the arrow smokes (FireArrow 0x2011, 0x204E): trails of a moving source
+// --- FireBall and the arrow smokes (FireArrow, RikArrowSmoke): trails of a moving source
 // A trail particle starts somewhere along the source's motion of the last tick and gets a velocity
 // across the motion (the spread box along the source's side and up axes); the first particle of the
 // fireball / arrow is its head (state 1 / 2).
@@ -2015,7 +2015,7 @@ int ParticleSource::UpdateArrowSmoke(Particle* p) {
     return 1;
 }
 
-// --- Banshee (0x200D): a ring that widens around the source ---------------------------------------
+// --- Banshee: a ring that widens around the source ---------------------------------------------------
 
 // Banshee: the first call only sets the ring up (from the carrier's figure; 72 sparks per tick after it). A
 // spark on the ring, at a random angle, between the ring and its eased inner edge.
@@ -2073,7 +2073,7 @@ void ParticleSource::TickBanshee(ParticleElement* e) {
     radius = (radius - target) * 0.5f + target;
 }
 
-// --- Portal (0x203E) emission; its update and element tick are in particle_emitters.cpp ------------
+// --- Portal emission; its update and element tick are in particle_emitters.cpp -----------------------
 
 // Portal: the first particle is the glow above the portal (state 1). The others start
 // at a random point of the disc (denser near the edge), spin round it (four in eleven or so the
@@ -2126,7 +2126,7 @@ int ParticleSource::EmitPortal(Particle* p, int) {
     return 1;
 }
 
-// --- AcidRay (0x2012) ---------------------------------------------------------------------------
+// --- AcidRay -----------------------------------------------------------------------------------------
 
 // AcidRay: a drop at a random point of the last step (when moving), flying sideways by
 // the spread box along the side and up axes (or standing).
@@ -2172,7 +2172,7 @@ int ParticleSource::UpdateAcidRay(Particle* p) {
     return 1;
 }
 
-// --- Sparks (0x2043) emission; the update is UpdateSparks (particle_emitters.cpp) ----------------
+// --- Sparks emission; the update is UpdateSparks (particle_emitters.cpp) -----------------------------
 
 // Sparks: the first particle marks the source (state 1); after it the source stops
 // emitting and each further one is a spark flying in a random direction (a random point of the
@@ -2203,7 +2203,7 @@ int ParticleSource::EmitSparks(Particle* p, int) {
     return 1;
 }
 
-// --- ClayRing (0x2018): ten points running out from the source along the ground ---------------
+// --- ClayRing: ten points running out from the source along the ground -------------------------------
 
 // ClayRing: in the first tick (countdown 13) one marker per point; then clods between a
 // random point's previous and current position, flying off at random.
@@ -2217,7 +2217,7 @@ int ParticleSource::EmitClayRing(Particle* p, int index) {
     if (elements[0].ticks == 13 && index < std::ssize(elements)) {
         base = {};
         p->pos = elements[index].pos;
-        p->size = 0.2f;     // 0.2
+        p->size = 0.2f;
         p->frame = 0;
         p->state = index;
         return 1;
@@ -2236,7 +2236,7 @@ int ParticleSource::EmitClayRing(Particle* p, int index) {
     scatter.y = sx;
     scatter.z = sz;
     std::memcpy(&p->pos, &previous, sizeof(Vector3));
-    p->size = 0.1f;     // 0.1
+    p->size = 0.1f;
     return 1;
 }
 
@@ -2249,7 +2249,7 @@ int ParticleSource::UpdateClayRing(Particle* p) {
     if (p->frame == 0) {
         p->color = (static_cast<std::uint32_t>(ByLife(kClayAlpha, elements[0].ticks, kClayBefore)) << 24) | 0xFFFFFF;
         p->pos = elements[p->state].pos;
-        p->size = 0.2f;     // 0.2
+        p->size = 0.2f;
         return 1;
     }
     if (--p->frameTimer == 0) {
@@ -2291,7 +2291,7 @@ void ParticleSource::TickClayRing(ParticleElement* e) {
     if (isZero(previous.x) && isZero(previous.y)) e->clay.previous = e->pos;
 }
 
-// --- Falling (0x2034-0x2037): leaves or flakes drifting down from the carrier -------------------
+// --- Falling1-4: leaves or flakes drifting down from the carrier --------------------------------------
 
 // Falling: a leaf at the source blown by a random gust (a random reach up to the gust's, a random direction
 // around it (the original's spread is ftol(10 degrees) = 0)), falling and spinning at random rates.
@@ -2338,7 +2338,7 @@ void ParticleSource::TickFalling(ParticleElement* e) {
     ++e->wind.age;
 }
 
-// --- VulcanSmoke (0x2005): lava drops and smoke from a vent ---------------------------------------
+// --- VulcanSmoke: lava drops and smoke from a vent ---------------------------------------------------
 
 // VulcanSmoke: three in five are drops (state 8: 8 ticks per frame) thrown up at a random height in a random
 // direction; the others smoke (state 4) at a random point of the vent, rising by the source's height.
@@ -2400,7 +2400,7 @@ int ParticleSource::UpdateVulkan(Particle* p) {
     return 1;
 }
 
-// --- FireStar / AcidStar (0x2042-ish), Regeneration, VisionStar and ZoneExit ----------------------
+// --- FireStar / AcidStar, Regeneration, VisionStar1-4 and ZoneExit ------------------------------------
 
 // FireStar: a single flash at the source (the source stops emitting at once) with the source's lifetime as its
 // frame.
@@ -2496,7 +2496,7 @@ int ParticleSource::EmitVisionStar(Particle* p, int) {
 }
 
 // VisionStar: the particles follow the source; with lifetime 1 their offsets turn by
-// 0.07 radians per tick (and they flicker less). VisionStar3 (0x204C) sits 0.7 higher. The size
+// 0.07 radians per tick (and they flicker less). VisionStar4 sits 0.7 higher. The size
 // eases (0.95) towards a random flicker of the source's size; once the source stops emitting (or
 // loses its carrier) the source's size is zeroed and the particles fade, dropped below 0.03.
 int ParticleSource::UpdateVisionStar(Particle* p) {
@@ -2504,10 +2504,10 @@ int ParticleSource::UpdateVisionStar(Particle* p) {
     float oldSize = p->size;
     p->color = 0xFFFFFFFF;
     p->pos = origin;
-    float flicker = 0.3f;     // 0.3
+    float flicker = 0.3f;
     if (lifetime == 1) {
         float c = lib::Cos(0.07f);
-        flicker = 0.17f;     // 0.17
+        flicker = 0.17f;
         float s = lib::Sin(0.07f);
         float turnedY = offset.y * c - offset.x * s;
         float turnedX = c * offset.x + offset.y * s;
@@ -2540,7 +2540,7 @@ int ParticleSource::UpdateZoneExit(Particle* p) {
     return 1;
 }
 
-// --- FeebleMind (0x2049) update ----------------------------------------------------------------
+// --- FeebleMind update -------------------------------------------------------------------------------
 
 // FeebleMind: alpha by the life left (dropped past 0); the particle circles: its offset is taken off, turned by 0.07
 // radians and grown by 1.1, then put back with a rise of 0.05. The size grows by 1.04 per tick, the frame cycles
@@ -2569,7 +2569,7 @@ int ParticleSource::UpdateFeebleMind(Particle* p) {
     return 1;
 }
 
-// --- FeetCloud (0x2047): puffs at the carrier's feet; the emission is EmitFeetCloud --------------
+// --- FeetCloud1 / 2: puffs at the carrier's feet; the emission is EmitFeetCloud ----------------------
 
 // FeetCloud puffs: alpha by the life left (capped at 8 once the source stops emitting or loses its carrier;
 // dropped past 0), the source's tint as the colour. The puff's offset grows by its spread (slowing by 0.9) and the
@@ -2621,7 +2621,7 @@ void ParticleSource::TickFeetCloud(ParticleElement* e) {
     e->foot.countdown = 0;
 }
 
-// --- Silence (0x2048) ----------------------------------------------------------------------------
+// --- Silence -----------------------------------------------------------------------------------------
 
 // Silence: the first two particles are orbs at the source (state 1) circling in step (the second starts at pi).
 // Further ones are wisps (state 0) somewhere along a random orb's last step, thrown out in a random direction
@@ -2705,7 +2705,7 @@ int ParticleSource::UpdateSilence(Particle* p) {
     return 1;
 }
 
-// --- Modifier1-12 (0x201B-0x2026): update and element tick -------------------------------------------
+// --- Modifier1-12: update and element tick -----------------------------------------------------------
 
 // Modifier: the first twelve frames are the marker riding its element (state), its size
 // shrinking (negative source size) or growing, alpha by the element's tick. Later frames are
@@ -2762,7 +2762,7 @@ void ParticleSource::TickModifier(ParticleElement* e) {
     e->ring.offset *= size >= 0.0f ? 0.71428573f : 1.4f;    // 1 / 1.4, 1.4
 }
 
-// --- LightningBlast (0x2030): update and element tick ------------------------------------------------
+// --- LightningBlast: update and element tick ---------------------------------------------------------
 
 // LightningBlast: bolts (state n) ride element n-1; a flash (state set, flashes) shows once (and makes the source
 // emit 50 per tick), then goes. Sparks (state 0): alpha by the life left (the table shifted by 22, a quirk kept),
@@ -2817,7 +2817,7 @@ void ParticleSource::TickLightning(ParticleElement* e) {
     if (tick >= 10) flags &= ~ParticleSourceFlag::Emitting;
 }
 
-// --- Teleport (0x2019) -----------------------------------------------------------------------------
+// --- Teleport ----------------------------------------------------------------------------------------
 
 // Teleport: a spark at a random point of a disc of the source's size (denser near the
 // edge), a little below the source and lifted by its first z step. With a positive size it is
@@ -2897,7 +2897,7 @@ void ParticleSource::TickTeleport(ParticleElement* e) {
     if (++e->ticks > 35) flags &= ~ParticleSourceFlag::Emitting;
 }
 
-// --- CurseStars (0x2050) and StartTrans (0x2051) -------------------------------------------------
+// --- CurseStars and StartTrans -----------------------------------------------------------------------
 
 // CurseStars: a star at a random point of the ball of the source's size around the
 // source, drifting outwards (a tenth of the size per tick), for 20 ticks.
@@ -3040,7 +3040,7 @@ int ParticleSource::EmitTendril(Particle* p, int index) {
     return 1;
 }
 
-// --- Ground dust (0x203A / 0x203B) emission ------------------------------------------------------
+// --- GroundDust1 / 2 emission ------------------------------------------------------------------------
 
 // Ground dust: the first 128 particles of a tick run out on a circle (index * 0.049
 // radians, step 0.1); the others along the four diagonals (by 32, step index * 1/310). All at the
@@ -3070,7 +3070,7 @@ int ParticleSource::EmitGroundDust(Particle* p, int index) {
     return 1;
 }
 
-// --- ShapeChange glow (0x2039) emission and element tick; the update is UpdateGlow ---------------
+// --- ShapeChange glow emission and element tick; the update is UpdateGlow ----------------------------
 
 // ShapeChange: on the first call one element: the last point (-1, -1, -1) and the colour by the alpha field (0
 // grey, 1 green, 2 orange). Then one glow per point of the carrying unit (up to typeParam points, offset by
@@ -3098,7 +3098,7 @@ int ParticleSource::EmitGlow(Particle* p, int index) {
     float ground = g_clientWorld.RawSurfaceHeightAt(point.x, point.y);
     float top = g_clientWorld.platforms.SurfaceHeight(under, ground);
     p->pos.y = point.y;
-    p->size = 0.07f;     // 0.07
+    p->size = 0.07f;
     p->pos.x = point.x;
     p->frame = 15;
     p->life = -10;
@@ -3112,7 +3112,7 @@ void ParticleSource::TickGlow(ParticleElement*) {
     flags &= ~ParticleSourceFlag::Emitting;
 }
 
-// --- Stun (0x204D) -------------------------------------------------------------------------------
+// --- Stun --------------------------------------------------------------------------------------------
 
 // Stun: a star at a random point of the ball of 0.8 times the carrier figure's radius around the source, for
 // 20 ticks, with a random size factor in velocity.x. A unit carrier in state 3 gets four stars a tick living 5
