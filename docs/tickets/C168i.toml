@@ -1,9 +1,9 @@
 id = "C168i"
-title = "File layout, optional: the large mixed headers by subject (ui_camp.h, ui_screens.h, effects.h, unit_create.h, player_messages.h, item_db.h)"
+title = "File layout: classes out of the wrong headers (MapObjectManager, Player, the spell records, CreditsScreen)"
 group = "cleanup"
 size = 2
 model = "opus"
 depends = ["C168h"]
-note = "Plan: docs/notes/file-layout.md (C168i). ui/camp.h to global map / camp pages / hero panels; ui/screens.h by screen; effects/effects.h to particles / weather / fog; MapObjectManager out of units/create.h; Player out of players/messages.h; the spell records out of items/db.h; CreditsScreen gathered from three files; ui/panel_draws.cpp into its panels. The user decides whether and when."
+note = "User 2026-11-05: only the misplaced classes (MapObjectManager out of unit_create.h, Player out of player_messages.h, the spell records out of item_db.h, CreditsScreen gathered into one file); the subject splits of ui_camp.h / ui_screens.h / effects.h are dropped (cosmetic). Original plan: Plan: docs/notes/file-layout.md (C168i). ui/camp.h to global map / camp pages / hero panels; ui/screens.h by screen; effects/effects.h to particles / weather / fog; MapObjectManager out of units/create.h; Player out of players/messages.h; the spell records out of items/db.h; CreditsScreen gathered from three files; ui/panel_draws.cpp into its panels. The user decides whether and when."
 order = 1237
 status = "later"
