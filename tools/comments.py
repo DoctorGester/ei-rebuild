@@ -75,7 +75,12 @@ BANNED_COMMON = re.compile(
     # Hook-era and decompiler narration (style round 3): where the code once ran, what the registers held, the renderer
     # that is simply the renderer now.
     r"|\b[Ii]nstalls? in the vanilla launch|\bcalled through (?:its|their) address\b|\bverify wrappers?\b"
-    r"|\b[Ss]calar deleting destructors?\b|\bE(?:AX|BX|CX|DX|SI|DI|BP|SP)\b|\bSHR by CL\b|\b[Tt]he new renderer\b")
+    r"|\b[Ss]calar deleting destructors?\b|\bE(?:AX|BX|CX|DX|SI|DI|BP|SP)\b|\bSHR by CL\b|\b[Tt]he new renderer\b"
+    # Style round 4: the renderer is not "new", what the compiler inlined is not narrated, a name is not "provisional", a
+    # layout is not given in bytes, the old device and its path are gone, the original executable is not a source, and an x87
+    # store is not described (SSE rounds every float operation).
+    r"|\bnew renderer\b|\binline[sd]\b|\bprovisional\b|\b0x[0-9A-Fa-f]+ bytes\b|\bDirect(?:3D|Draw)\b|\bold path\b"
+    r"|\bgame\.exe\b|\bthrough (?:its|their) address\b|\bstored (?:as|to|in) a float\b")
 BANNED_GAME = re.compile(
     r"\b(?:CList|CPtrList|CObList|CTypedPtrList|CArrays?|CByteArray|CWordArray|CDWordArray|CObArray|CPtrArray|"
     r"CStrings?|RemoveAll|AddHead|RemoveHead|RemoveTail|InsertAt)\b|\bMFC\b")
@@ -99,7 +104,11 @@ def rebirth_patch_names():
     return names
 
 
-PATCH_NAMED_RX = re.compile(r'\bPatch::\w+|\balways on\b|\b(?:' + '|'.join(sorted(rebirth_patch_names(), key=len, reverse=True))
+# "never read", "nothing reads it", "not read": the member, parameter or branch it describes goes with the comment. A field
+# that a saved file or a packet carries and the code does not use keeps its place (it is read from the file), under an
+# `unread...` name.
+NEVER_READ_RX = re.compile(r'\bnever read\b|\bnothing (?:ever )?reads\b|\bnobody reads\b|\bno one reads\b|\bnot read\b')
+PATCH_NAMED_RX =re.compile(r'\bPatch::\w+|\balways on\b|\b(?:' + '|'.join(sorted(rebirth_patch_names(), key=len, reverse=True))
                             + r')\b')
 
 HISTORY_RX =re.compile(r'(?i)\b(?:shim|forwarder|ported|rewritten|the hook era|was a |used to |no longer|'
@@ -250,14 +259,22 @@ def unnamed_rebirth_patches(body):
     return int(bool(REBIRTH_PATCHED_RX.search(body)) and not PATCH_NAMED_RX.search(body))
 
 
+def never_read(body, code):
+    """1 when the comment says that something is never read: a field to delete with its comment (style round 4, Z4).
+    A comment on the line of an `unread...` member is not counted: those are the fields of a file format that the code
+    reads and does not use (docs/rewrite-guide.md keeps them under the name `unread...`)."""
+    return int(bool(NEVER_READ_RX.search(body)) and not re.search(r'\bunread\w*', code))
+
+
 def count(text, path=None):
     c = {'comment lines': 0, 'addresses': 0, 'ticket ids': 0, 'original / game.exe': 0, 'history words': 0,
-         'banned words': 0, 'orphan comments': 0, 'addon addresses': 0, 'unnamed Rebirth patches': 0}
+         'banned words': 0, 'orphan comments': 0, 'addon addresses': 0, 'unnamed Rebirth patches': 0, 'never-read comments': 0}
     if GENERATED.search(text[:600]):
         return c
     c['orphan comments'] = len(orphan_blocks(text))
     for s, e in line_comments(text):
         body = text[s:e]
+        c['never-read comments'] += never_read(body, text[text.rfind('\n', 0, s) + 1:s])
         c['comment lines'] += 1
         c['addresses'] += len(ADDR_RX.findall(body))
         c['ticket ids'] += len(TICKET_RX.findall(body))
@@ -409,22 +426,26 @@ def cmd_samecode(rev):
     return 1 if bad else 0
 
 
-RATCHET = ['addresses', 'ticket ids', 'banned words', 'orphan comments', 'addon addresses', 'unnamed Rebirth patches']
+RATCHET = ['addresses', 'ticket ids', 'banned words', 'orphan comments', 'addon addresses', 'unnamed Rebirth patches',
+           'never-read comments']
 
 
 def cmd_check(update):
     now = {rel(p): count(read(p), rel(p)) for p in sources([])}
     if update:
-        base = {}
+        base, header = {}, []
         if os.path.exists(BASELINE):
-            base = {r['file']: r for r in csv.DictReader(open(BASELINE, newline=''))}
+            reader = csv.DictReader(open(BASELINE, newline=''))
+            header = reader.fieldnames or []
+            base = {r['file']: r for r in reader}
+        seeded = [k for k in RATCHET if k not in header]     # a column the baseline has none of yet starts at today's count
         with open(BASELINE, 'w', newline='') as f:
             w = csv.writer(f, lineterminator='\n')
             w.writerow(['file'] + RATCHET)
             for r in sorted(now):
-                row = [min(now[r][k], int(base[r].get(k) or 0)) if r in base else now[r][k] for k in RATCHET]
+                row = [now[r][k] if k in seeded or r not in base else min(now[r][k], int(base[r].get(k) or 0)) for k in RATCHET]
                 if base and r not in base:
-                    row = [0 for _ in RATCHET]
+                    row = [now[r][k] if k in seeded else 0 for k in RATCHET]
                 if any(row):
                     w.writerow([r] + row)
         print(f'wrote {rel(BASELINE)}')
@@ -441,6 +462,7 @@ def cmd_check(update):
                          else '; a comment left by deleted code: delete it with the code' if k == 'orphan comments'
                          else '; say what the code does, not where addon.dll kept it' if k == 'addon addresses'
                          else '; name the flag (Patch::<name>) or say "always on"' if k == 'unnamed Rebirth patches'
+                         else '; delete what the comment says is never read, with the comment' if k == 'never-read comments'
                          else '; `list` shows them'))
     totals = {k: sum(c[k] for c in now.values()) for k in count('')}
     print('comment counts: ' + ', '.join(f'{v:,} {k}' for k, v in totals.items()) + f'; {problems} problem(s)')

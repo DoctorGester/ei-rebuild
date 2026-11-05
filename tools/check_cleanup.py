@@ -238,8 +238,242 @@ def count_temporary_blocks(text):
                if text[:m.start()].rstrip()[-1:] in (';', '{', '}') and 'return' not in m.group(0))
 
 
+# ---- Style round 4 and round 1b (docs/rewrite-guide.md, "Style rules"): counters that read the whole tree. A counter
+# with `wants_path` also receives the file's path; the tree is read once (comments and string contents left out).
+_code_tree = None
+
+
+def _tree():
+    global _code_tree
+    if _code_tree is None:
+        _code_tree = {}
+        for path in sorted(glob.glob(os.path.join(ROOT, 'src', '**', '*.*'), recursive=True)):
+            if path.endswith(('.cpp', '.h', '.inc')):
+                with open(path, encoding='utf-8', errors='replace') as f:
+                    text = re.sub(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])\'', '""', strip_comments(f.read()))
+                _code_tree[os.path.relpath(path, ROOT).replace(os.sep, '/')] = text
+    return _code_tree
+
+
+def wants_path(function):
+    function.wants_path = True
+    return function
+
+
+def _value(text):
+    """A constant's value: a number when it is a literal (suffixes dropped, hex and decimal alike), else its text."""
+    t = re.sub(r'\s+', '', text)
+    u = re.sub(r'(?<=[0-9A-Fa-f.])[fFuUlL]+$', '', t) if not t.lower().startswith('0x') else re.sub(r'[uUlL]+$', '', t)
+    for convert in (lambda v: float(int(v, 0)), float, float.fromhex):
+        try:
+            return convert(u)
+        except ValueError:
+            pass
+    return t
+
+
+# A k* constant defined at namespace scope (column 0) in two files with different values (rule Z3): kNoNaturalWeapon was
+# 0x10, 7 and 8, kNoRange 1e38 and 1e10. A shared code lives once, in its owner's header.
+_K_DEFINITION = re.compile(r'^(?:static\s+|inline\s+)*(?:constexpr|const)\s+(?:[\w:<>]+\s+)+?(k[A-Z]\w*)\s*'
+                           r'(?:=\s*([^;]+?)|\{([^;{}]*)\})\s*;', re.M)
+_constants = None
+# Narrowed to the names of sentinels and codes (kNone, kNoRange, kFar, kKind*, kMode*, kFlag*, kMask*): a plain tuning
+# number (kLineHeight, kMargin, kThreshold) is meant to differ from file to file.
+_CODE_NAME = re.compile(r'k(?:No|None|Invalid|Unset|Any|Far|Near|Kind|Mode|State|Type|Flag|Mask|Bit)(?![a-z])')
+
+
+@wants_path
+def count_conflicting_constants(text, rel):
+    global _constants
+    if _constants is None:
+        _constants = collections.defaultdict(dict)       # name -> {file: value}
+        for path, code in _tree().items():
+            for m in _K_DEFINITION.finditer(code):
+                _constants[m.group(1)].setdefault(path, _value(m.group(2) if m.group(2) is not None else m.group(3)))
+    return sum(1 for name, where in _constants.items()
+               if _CODE_NAME.match(name) and rel in where and any(path != rel and value != where[rel] for path, value in where.items()))
+
+
+# Virtuals (rule: a virtual needs two real overrides; round 1b I3, round 4 Z4). Indexed once: every `Name(...)` in the
+# tree is a call, a declaration or a definition (by what comes before it), and a definition has a body or none.
+_VIRTUAL = re.compile(r'\bvirtual\s+[\w:<>\s*&,]+?\b([A-Za-z]\w*)\s*\([^;{}]*?\)\s*(?:const\s*)?(?:noexcept\s*)?'
+                      r'(?:override\s*|final\s*)*(\{\s*return\s+(?:false|nullptr|0|NULL)\s*;\s*\}|\{\s*\}|\{|;|=\s*0\s*;)')
+_NAME_HEAD = re.compile(r'(?<![\w~])((?:\w+(?:<[^<>;]*>)?::)*)([A-Za-z_]\w*)\s*\(')
+_NAME_TAIL = re.compile(r'\s*(const\b\s*)?(?:noexcept\s*)?((?:override|final)\b\s*)*(\{\s*\}|\{)?')
+_NOT_A_TYPE = {'return', 'else', 'case', 'do', 'throw', 'co_return', 'new', 'delete', 'and', 'or', 'not', 'co_yield', 'co_await'}
+_virtual_index = None
+
+
+def _closing_paren(text, i):
+    depth = 0
+    for j in range(i, len(text)):
+        if text[j] == '(':
+            depth += 1
+        elif text[j] == ')':
+            depth -= 1
+            if depth == 0:
+                return j
+    return len(text) - 1
+
+
+def _index_virtuals(tree):
+    """name -> {'declared': files, 'default': bodies, 'overrides': n, 'definitions': n, 'empty': n, 'calls': n} of every
+    virtual declared in `tree` (path -> code)."""
+    info = {}
+    for path, code in tree.items():
+        for m in _VIRTUAL.finditer(code):
+            v = info.setdefault(m.group(1), {'declared': [], 'default': [], 'overrides': 0, 'definitions': 0, 'empty': 0,
+                                             'calls': 0})
+            v['declared'].append(path)
+            v['default'].append(m.group(2))
+    for path, code in tree.items():
+        for m in _NAME_HEAD.finditer(code):
+            v = info.get(m.group(2))
+            if v is None:
+                continue
+            before = code[max(0, m.start() - 80):m.start()].rstrip()
+            word = re.search(r'(\w+)$', before)
+            declaration = (word and word.group(1) not in _NOT_A_TYPE) or (
+                before[-1:] in ('>', '*', '&', '~') and not before.endswith(('->', '&&')))
+            tail = _NAME_TAIL.match(code, _closing_paren(code, m.end() - 1) + 1)
+            if tail.group(2):
+                v['overrides'] += 1
+            if tail.group(3):
+                v['definitions'] += 1
+                v['empty'] += tail.group(3) != '{'
+            if before.endswith(('.', '->')) or not declaration and not tail.group(3):
+                v['calls'] += 1
+    return info
+
+
+def _virtuals():
+    global _virtual_index
+    if _virtual_index is None:
+        _virtual_index = _index_virtuals(_tree())
+    return _virtual_index
+
+
+# A virtual that nothing calls, and an empty virtual that is still called (round 4 Z4; `Unused14` through
+# `NotifyCompanion`). The declaring file (the first) holds the count.
+@wants_path
+def count_virtuals_never_called(text, rel):
+    return sum(1 for v in _virtuals().values() if v['calls'] == 0 and rel == v['declared'][0])
+
+
+@wants_path
+def count_empty_virtuals_called(text, rel):
+    return sum(1 for v in _virtuals().values()
+               if v['calls'] and v['definitions'] and v['empty'] == v['definitions'] and rel == v['declared'][0])
+
+
+# A member that reaches its own object through the global (round 4 Z9): `WorldServer::Loot` reading g_serverWorld. Inside
+# a member the object is `this`; a free function that needs a world takes it.
+_GLOBAL_OF = re.compile(r'\bextern\s+(\w+)\s+(g_\w+)\s*;')
+_MEMBER_HEAD = re.compile(r'\b(\w+)::~?\w+\s*\([^;{}]*?\)\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?(?::[^{;]*?)?\{')
+_singletons = None
+
+
+def _singleton_globals():
+    global _singletons
+    if _singletons is None:
+        _singletons = collections.defaultdict(set)       # class name -> its globals
+        for code in _tree().values():
+            for m in _GLOBAL_OF.finditer(code):
+                _singletons[m.group(1)].add(m.group(2))
+    return _singletons
+
+
+def count_members_through_global(text, singletons=None):
+    singletons = _singleton_globals() if singletons is None else singletons
+    n = 0
+    for m in _MEMBER_HEAD.finditer(text):
+        if m.group(1) in singletons:
+            body = text[m.end():_closing_brace(text, m.end() - 1)]
+            n += sum(len(re.findall(r'\b' + g + r'\b', body)) for g in singletons[m.group(1)])
+    return n
+
+
+# A member body written out again in a sibling file (round 4 Z2): three significant lines in a row that appear again in
+# a file of the same family (the same directory, the same first two words of the name: spell_effect*.cpp), in the same
+# or another place. Counted per copied run, in the later place. Lines that are only braces, `break;`, `return;` and the
+# like, and windows shorter than 90 characters, are not significant.
+_TRIVIAL = re.compile(r'^(?:[{}]+|\}\s*else\s*\{?|else\s*\{?|break;|continue;|return;|return (?:true|false|0|1|nullptr);|default:|'
+                      r'#.*|using .*|public:|private:|protected:|case [\w:]+:|\)?;|\};?)$')
+_families = None
+
+
+def _family(rel):
+    stem = os.path.splitext(os.path.basename(rel))[0]
+    return os.path.dirname(rel) + '/' + '_'.join(stem.split('_')[:2])
+
+
+def _copied_runs(tree):
+    """path -> the number of runs of lines in that .cpp file that an earlier file of its family has too."""
+    windows = collections.defaultdict(set)               # (family, three lines) -> the files that have them
+    runs = collections.Counter()
+    for path in sorted(p for p in tree if p.endswith('.cpp')):     # a header's lists of overrides repeat by design
+        lines = [(i, ' '.join(l.split())) for i, l in enumerate(tree[path].split('\n'))]
+        lines = [(i, l) for i, l in lines if l and not _TRIVIAL.match(l)]
+        seen = set()
+        for k in range(len(lines) - 2):
+            key = ' | '.join(l for _, l in lines[k:k + 3])
+            if len(key) < 90:
+                continue
+            spot = (_family(path), key)
+            if windows[spot] - {path}:
+                seen.add(k)
+            windows[spot].add(path)
+        runs[path] = sum(1 for k in seen if k - 1 not in seen)          # a run of copied windows is one copy
+    return runs
+
+
+@wants_path
+def count_copied_member_bodies(text, rel):
+    global _families
+    if _families is None:
+        _families = _copied_runs(_tree())
+    return _families[rel]
+
+
+# The platform layer's contract and the game do not speak Windows (round 4 Z11): Win32 type and message names outside
+# the Windows backend (src/platform/win32), in code. Comments may name them.
+_WINDOWS_NAME = re.compile(r'\b(?:HWND|HINSTANCE|HMODULE|HANDLE|WM_[A-Z0-9_]+|GetTickCount\w*|TranslateMessage|DispatchMessage[AW]?|'
+                           r'LPARAM|WPARAM|LRESULT|WNDPROC|WinMain|VK_[A-Z0-9_]+)\b|#\s*include\s*<windows\.h>')
+
+# A printf-like function (`const char* format, ...` or a va_list) with no format annotation on any declaration: the
+# compiler cannot check its arguments (`%lu` with a `uint32_t` got in that way; round 4 Z11).
+_PRINTF_LIKE = re.compile(r'\b(\w+)\s*\([^()]*const\s+char\s*\*\s*\w*\s*,\s*(?:\.\.\.|va_list\b)[^()]*\)')
+_printf_state = None
+
+
+@wants_path
+def count_unannotated_printf(text, rel):
+    global _printf_state
+    if _printf_state is None:
+        _printf_state = {}
+        for path, code in _tree().items():
+            for m in _PRINTF_LIKE.finditer(code):
+                head = code[max(0, m.start() - 160):m.start()]
+                declaration = head[head.rfind(';') + 1:] + m.group(0) + re.split(r'[;{]', code[m.end():m.end() + 80])[0]
+                annotated = bool(re.search(r'EI_PRINTF_FORMAT|SDL_PRINTF_VARARG_FUNC|gnu::format|__attribute__', declaration))
+                state = _printf_state.setdefault(m.group(1), [path, False])
+                state[1] = state[1] or annotated
+    return sum(1 for path, annotated in _printf_state.values() if path == rel and not annotated)
+
+
+# A header's function that only returns a number (round 4 Z8: world_data.h was the exe's .rdata as 33 functions): a
+# constant in its owner's header. A virtual (its base answers a default) and `override` are not counted.
+_NUMBER_FUNCTION = re.compile(r'^[^\n;{}()]*\b\w+\s*\(\s*\)\s*(?:const\s*)?(?:noexcept\s*)?\{\s*return\s+-?(?:0x[0-9A-Fa-f]+|\d[\d.]*(?:e-?\d+)?)'
+                              r'[fFuUlL]*\s*;\s*\}', re.M)
+
+
+@wants_path
+def count_number_functions_in_headers(text, rel):
+    return sum(1 for m in _NUMBER_FUNCTION.finditer(text) if rel.endswith('.h') and not re.search(r'\b(?:virtual|override)\b', m.group(0)))
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASELINE = os.path.join(ROOT, 'config', 'cleanup_baseline.csv')
+BASELINE =os.path.join(ROOT, 'config', 'cleanup_baseline.csv')
 PATTERNS = {
     # Also a file's own offset helper (a Get<T>(base, offset) once read Spell at the original's offsets after Spell
     # had become a normal class): a typed call with a hex offset, `Get<float>(spell, 0x40)`, and a byte pointer plus
@@ -319,6 +553,36 @@ PATTERNS = {
     # A pointer to a member function, `bool (Connection::*)(Message*)`: handlers and callbacks are virtuals, a switch
     # or a std::function.
     'pointer to member function': re.compile(r'\(\s*[A-Za-z_][\w:]*::\*\s*\w*\s*\)\s*\('),
+    # Style round 4 and round 1b (docs/rewrite-guide.md, "Style rules"):
+    # A k* constant at namespace scope defined in two files with different values (count_conflicting_constants above).
+    'constant defined twice with another value': count_conflicting_constants,
+    # Virtuals nobody calls, and empty virtuals that are still called (count_virtuals_never_called above).
+    'virtual never called': count_virtuals_never_called,
+    'empty virtual still called': count_empty_virtuals_called,
+    # Maths helpers take and return values (round 4 Z5): a helper over the address of a constant, ConstPtr<>(2.0f), a
+    # kFloatConstant reference, or `const float* a, ..., float* out` parameters.
+    'float helper over addresses (ConstPtr, out pointer)': re.compile(
+        r'\bConstPtr\b|\bkFloatConstant\b|\(\s*(?:const\s+float\s*\*\s*\w+\s*,\s*)+(?:\w+\s*,\s*)*float\s*\*\s*\w+\s*\)'),
+    # x87 store residue on an x64-only build (round 4 Z6): `volatile float`, and a float copied into a local only to be
+    # copied back, `float stored = x; x = stored;`. On SSE every float operation already rounds to float.
+    'x87 store residue (volatile float, store and reload)': re.compile(
+        r'\bvolatile\s+(?:float|double)\b|\bfloat\s+(\w+)\s*=\s*([\w.\[\]>-]+)\s*;\s*\2\s*=\s*\1\s*;'),
+    # A function that returns only a number, in a header (count_number_functions_in_headers above).
+    'function returning only a number (header)': count_number_functions_in_headers,
+    # A member that reaches its own object through the global (count_members_through_global above).
+    'member through its own global': count_members_through_global,
+    # A member body written out again in a family file (count_copied_member_bodies above).
+    'member body copied in a family file': count_copied_member_bodies,
+    # Windows names in code outside the Windows backend (_WINDOWS_NAME above).
+    'Windows name outside the Windows backend': _WINDOWS_NAME,
+    # A printf-like function with no format annotation (count_unannotated_printf above).
+    'printf-like function without format annotation': count_unannotated_printf,
+    # An empty namespace left behind by deleted code.
+    'empty namespace': re.compile(r'\bnamespace\s*\w*\s*\{\s*\}'),
+    # An input by pointer where a reference or a view does it (round 4 Z10): `const std::string*`, `const std::vector<T>*`. A
+    # non-const `std::vector<T>*` may be the caller's buffer and is not counted.
+    'const string or vector pointer parameter': re.compile(
+        r'[(,]\s*const\s+std::(?:string|vector<[^<>()]*(?:<[^<>]*>)?[^<>()]*>)\s*\*\s*\w*\s*(?=[,)=])'),
 }
 # Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
@@ -333,7 +597,8 @@ EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set stru
           'copied small helper (IsZero, 1/255, server running)': 'src/lib/', 'own integer reader': 'src/lib/',
           # The streams and buffers own their cursors; src/lib's readers are the shared ones.
           'cursor moved by hand after memcpy': ('src/lib/', 'src/game/core_streams.cpp', 'src/game/game_buffer',
-                                                'src/game/net_coder.cpp')}
+                                                'src/game/net_coder.cpp'),
+          'Windows name outside the Windows backend': 'src/platform/win32/'}
 
 
 def strip_comments(text):
@@ -355,7 +620,7 @@ def counts():
                 row[name] = 0
                 continue
             if callable(rx):
-                row[name] = rx(text)
+                row[name] = rx(text, rel) if getattr(rx, 'wants_path', False) else rx(text)
                 continue
             for m in rx.finditer(text):
                 if name == 'per-file vector/map/set struct' and m.group(0).split()[-1] in NOT_CONTAINERS:

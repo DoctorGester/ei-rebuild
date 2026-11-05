@@ -154,8 +154,69 @@ From round 3 (networking, scripts, saves, sound; 2026-11-04):
   virtual, not a table of member-function pointers (the exe links with `/OPT:ICF`: two functions can share an
   address). Checked: "pointer to member function" (also the round-2 rule on callbacks).
 
+From round 4 (world, objects, combat, app and platform; 2026-11-04):
+- **A member body lives once.** When a class is split across files, three lines in a row that match a member's body
+  are the member's call, not a second copy: the body stays in the virtual or method itself, and a sibling file calls it
+  (`UnitAction::Reset` and `PlaySteps` were copied eight times). Checked: "member body copied in a family file" (three
+  significant lines of at least 90 characters that an earlier `.cpp` of the same family also has; a family is the
+  directory and the first two words of the file name; headers and repeats inside one file are not counted).
+- **One name per code, one code per name.** A sentinel or code constant (`kNone`, `kNoRange`, `kFar`, `kKind*`,
+  `kMode*`, `kFlag*`, `kMask*`) is defined once, in the owner's header, as an enum where it is a kind; the same name
+  with another value in a second file is a bug waiting (`kNoNaturalWeapon` was 0x10, 7 and 8). Checked: "constant
+  defined twice with another value" (column-0 `k...` definitions; narrowed to those names, since a plain tuning number
+  such as `kLineHeight` or `kMargin` is meant to differ from file to file).
+- **A flag constant never renames an owner's bit.** A local `kFlagX = 0x80000` beside an enum that gives the bit a name
+  (`MapObjectFlag::RelationsChanged`, the AI's `kFlagNearbyListed`) is the same bit under two names; use the enumerator.
+  Checked: "flag bit under a second name" (a `k...Flag/Bit/Mask` constant of one bit of 0x100 or more in a file other
+  than the one that defines an enumerator of that bit in an enum named `...Flag(s)` or `...Bit(s)`).
+- **A comment that says "never read" is a deletion** in the same change: the member, parameter or branch goes with it
+  (gameplay code stays; technical dead code goes). A field that a saved file or a packet carries and the code does not
+  use keeps its place under an `unread...` name (`unreadText`, `unreadFields`); the comment on its line is not
+  counted. Checked: `comments.py` "never-read comments" ("never read", "nothing reads", "nobody reads", "not read").
+- **No virtual without a caller, no empty virtual that is still called.** A virtual that nothing calls is a deletion,
+  and so is a call to a virtual that nothing implements (`Unused14` through `NotifyCompanion`). Checked: "virtual never
+  called" and "empty virtual still called" (a name-based index of the tree: a call is `.Name(`, `->Name(` or `Name(`
+  after something that is not a type; two classes that share a name count together).
+- **A downcast virtual has two overrides, or it is a test of the kind.** `virtual X* AsFoo() { return nullptr; }` or
+  `virtual bool IsFoo() const { return false; }` with one override in the tree becomes a non-virtual member that tests
+  the kind field and casts (UI tokens first, then the items' `AsWeapon`). Checked: "downcast virtual with one
+  override" (a pointer that answers `nullptr`, or an `Is...`/`Has...` that answers `false`; a virtual that answers 0
+  for a count or a stage is a policy hook and not counted).
+- **Helpers take and return values.** No helper over the address of a constant (`ConstPtr(2.0f)`, a `kFloatConstant`
+  reference taken only for its address) and no `const float* a, const float* b, float* out` signature; a float field
+  or parameter is a `float`, never its bits. Inlining an `inline` helper is exact by construction. Checked: "float
+  helper over addresses (ConstPtr, out pointer)".
+- **No x87 store residue** on an x64-only build: no `volatile float`, no `float stored = x; x = stored;`, no comment
+  that a value is "stored as a float". Every SSE float operation already rounds to float, so deleting the residue is
+  exact. Checked: "x87 store residue (volatile float, store and reload)" and the `comments.py` ban on "stored as/to/in
+  a float".
+- **A data header holds data.** A function whose body is `return 12.5f;` or `return "text";` is a constant in its owner's
+  header (`world_data.h` held 33). A header shaped like the exe's `.rdata` (the same constants for AI, interface and
+  world in one file included by 42) is split by user. Checked: "function returning only a number (header)" (virtuals
+  and overrides are not counted) beside the string-literal column of round 3.
+- **A member uses `this`.** Inside a member the object is `this`, never its own global (`WorldServer` members calling
+  `g_serverWorld.Loot`); a free function that needs a world takes it. Checked: "member through its own global" (a
+  `Class::Member` body that names a global declared `extern Class g_...;`).
+- **Inputs are references or views.** `const std::string&` or `std::string_view`, `const std::vector<T>&`; a pointer
+  that is never null is a reference, and a helper that builds a string only to pass its address takes the text.
+  Checked: "const string or vector pointer parameter" (a non-const `std::vector<T>*` may be the caller's buffer and is
+  not counted).
+- **The platform contract names concepts.** `platform.h` and the game speak in UTF-8, fixed-width integers, our enums
+  and structs; Windows encodings (`WM_KEYUP`'s `lParam`, wheel steps of 120, `HWND`, `GetTickCount`) stay at the reader
+  of a format that stores them and in `src/platform/win32`. Every printf-like function carries
+  `EI_PRINTF_FORMAT(format index, first argument)`, so `%lu` with a `uint32_t` does not compile clean. Checked:
+  "Windows name outside the Windows backend" (the Win32 type, message and clock names, `<windows.h>`, in code) and
+  "printf-like function without format annotation" (a function with `const char* format, ...` or a `va_list` that no
+  declaration annotates).
+- **No empty namespace** left by deleted code. Checked: "empty namespace".
+- **Comments** (`comments.py` banned words, round 4): "new renderer" (it is the renderer), "inlined", "provisional"
+  (a name is final or it is renamed), a layout in bytes ("the first 0x20 bytes of PathOrder"), "Direct3D" and
+  "DirectDraw" (the old device), "old path", "game.exe" and "through its address".
+
 The ratchet columns are listed by `python tools/check_cleanup.py` (counts) and `python tools/comments.py check`. A
-column's pattern is narrow on purpose: it finds the plain cases; the rule is wider than the count.
+column's pattern is narrow on purpose: it finds the plain cases; the rule is wider than the count. The columns that
+read the whole tree (constants, virtuals, start states, copied bodies, printf annotations) are tested in
+`tools/test_style_checks.py` on small trees.
 
 ## Names and files
 
