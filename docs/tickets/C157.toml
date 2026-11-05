@@ -1,0 +1,7 @@
+id = "C157"
+title = "Terrain: a light hidden with no map loaded stays drawn; DrawPages reads past a short page list"
+group = "cleanup"
+model = "sonnet"
+note = "Found by C152 (2026-11-05). (1) A light hidden while no map is loaded stays in Terrain::lights, because RemoveLight returns early, and is drawn on the next map. (2) DrawPages indexes pageTextures[page % LayerPages()] with no bounds check; when an extra page L00 / L01 is missing, the vector is shorter than LayerPages(). Fix both in one uniform path (remove from the table whether or not a map is loaded; page list always LayerPages() long with a fallback texture, or the index checked), goldens the same, gpu_check passes."
+order = 1159
+status = "queued"
