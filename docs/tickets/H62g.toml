@@ -1,0 +1,8 @@
+id = "H62g"
+title = "Windows CI: Microsoft's current WARP (NuGet Microsoft.Direct3D.WARP) next to the harness exe"
+group = "harness"
+size = 1
+model = "opus"
+depends = ["H62d"]
+note = "Needs the user's OK first: it downloads Microsoft's package (nuget.org, Microsoft.Direct3D.WARP 1.0.21: build/native/bin/x64/d3d10warp.dll) in the suites job and puts d3d10warp.dll next to build/verify/ei-rebuild.exe, which D3D12 then loads instead of the runner's in-box WARP (H62d's agent was refused running it locally as external code). Why: H62d measured the frame as WARP's work (the main thread waits for the swap chain texture for all but a few ms; a base frame about 1.8 CPU-s, render_weather_shelter about 3) and WARP at a median 2.4 times lavapipe's run time on the same runner class. The package's changelog lists what the in-box WARP lacks: 1.0.14 AVX/AVX2/FMA codegen, 1.0.16 wave size 8 on AVX2 (16 on AVX512), 1.0.17 less thread-pool lock contention, 1.0.20 no device removal on free-threaded DDI failures (maybe H62f's loss), 1.0.21 real jumps for statically uniform control flow (our shaders branch on uniforms everywhere). The device line names the driver version (gpu: direct3d12 device (Microsoft Basic Render Driver; driver X)), so a run shows which WARP drew. Measure one full run (time per scenario against run of H62d) and set EI_TIME_SCALE / WINDOWS_SKIP from it. No render flag: the same frames, a faster rasterizer."
+order = 1225

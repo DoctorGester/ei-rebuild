@@ -2593,6 +2593,9 @@ extern SDL_DECLSPEC SDL_PropertiesID SDLCALL SDL_GetGPUDeviceProperties(SDL_GPUD
 #define SDL_PROP_GPU_DEVICE_DRIVER_NAME_STRING        "SDL.gpu.device.driver_name"
 #define SDL_PROP_GPU_DEVICE_DRIVER_VERSION_STRING     "SDL.gpu.device.driver_version"
 #define SDL_PROP_GPU_DEVICE_DRIVER_INFO_STRING        "SDL.gpu.device.driver_info"
+/* EI: set by the Direct3D 12 driver when a call found the device removed, hung or reset: that error's text with the
+   removal's reason (third_party/SDL/README.txt). */
+#define EI_PROP_GPU_DEVICE_LOST_STRING                "EI.gpu.device.lost"
 
 
 /* State Creation */

@@ -6,5 +6,5 @@ size = 2
 depends = ["H62c"]
 note = "Runs 42016421240 and 42039247533 (WARP on windows-latest): ui_base_dialogue crashed both times (C0000005, named stack D3D12_PushVertexUniformData from the game's draw), ui_gallery_base once, both in bz1g's dialogue screens after 'click 400 300' steps; ui_gallery_base's log has 'gpu: texture ei-composed-texture ...: Failed to create texture!! ... The GPU device instance has been suspended' for every texture made just before the crash. Locally on WARP (EI_GPU_D3D12_WARP=1) both pass. Find why WARP removes the device there (log GetDeviceRemovedReason in gpu.cpp when a call fails; memory on the 16 GB runner, a long GPU job at ~1.2 s per frame?) and make the renderer stop cleanly instead of crashing in SDL (R41: no device-loss recovery, but no crash either). tools/ci_details.py prints the named stack and the gpu lines."
 order = 1212
-status = "running"
+status = "review"
 started = "2026-11-05"

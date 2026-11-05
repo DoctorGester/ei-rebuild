@@ -17,6 +17,9 @@ static const float kPointNormalOffset = 1.5;   // the receiver's point moved alo
 static const float kPointDepthBias = 1.0;      // texels
 static const float kNoPointFront = 1e29;       // MeshBatch::pointFront's none (kNoFront)
 
+// A light's map row (slot, -1 none) as an index into the four rows' arrays: 0 for none.
+int point_index(int slot) { return clamp(slot, 0, 3); }
+
 // How much of the light with map `slot` reaches the landscape point `p`: 1 all .. 0 none. `n`: the unit normal the
 // point is moved along before the lookup (a texel's size at its distance times kPointNormalOffset; zero: not moved).
 // `front`: a unit's nearest distance to the light (the sun map's unit rule: the unit compares from there, so only what
@@ -25,6 +28,11 @@ static const float kNoPointFront = 1e29;       // MeshBatch::pointFront's none (
 // cube by, as render_point_shadows.cpp's kCubeFaces (x across, y up, the axis forward); `turn` turns the filter's
 // disc per pixel.
 float point_seen(int slot, float3 p, float3 n, float front, float2 turn) {
+    // A light without a map (slot -1) is still worked out by a lane that does not use the answer (ground_shade's ?:
+    // evaluates both sides; a lane its caller's branch masks off runs on a software device): kept inside the arrays.
+    // WARP read index -1 as the block's 4096th vector, past SDL's 32 KB uniform buffer, and removed its device on the
+    // access violation.
+    slot = point_index(slot);
     float4 at = pointShadow.lights[slot];
     float texels = pointShadow.texels;
     float3 v = p - at.xyz;

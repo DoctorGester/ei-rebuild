@@ -16,8 +16,12 @@ Local changes from that release:
   adapter (IDXGIFactory4::EnumWarpAdapter) instead of the high-performance one, in the driver's support check and in
   the device. SDL has no such switch; the Windows CI job (no GPU) and local checks of that path set it
   (docs/notes/harness.md, "The Windows CI job").
-- src/gpu/d3d12/SDL_gpu_d3d12.c: a uniform buffer that could not be taken (D3D12_INTERNAL_AcquireUniformBufferFromPool
+- src/gpu/d3d12/SDL_gpu_d3d12.c and include/SDL3/SDL_gpu.h: a lost device (a call answered DXGI_ERROR_DEVICE_REMOVED,
+  _HUNG, _RESET or DRIVER_INTERNAL_ERROR) is kept as the device property EI_PROP_GPU_DEVICE_LOST_STRING
+  ("EI.gpu.device.lost": the first such error's text with GetDeviceRemovedReason's), a failed Present is reported
+  through the same error path, and a uniform buffer that could not be taken (D3D12_INTERNAL_AcquireUniformBufferFromPool
   returns NULL when a removed device refuses its mapping) no longer crashes: D3D12_INTERNAL_PushUniformData drops the
   push and the graphics and compute binds skip the slot, until the submission fails and the renderer ends the game
-  (docs/notes/renderer.md, "No device-loss recovery"; scenarios render_device_lost_*). Upstream dereferenced it (a
-  read of address 8 after D7's GPU hang).
+  (docs/notes/renderer.md, "No device-loss recovery"; scenarios render_device_lost_*). Upstream dereferenced it: a read
+  of address 8 after D7's GPU hang, and in D3D12_PushVertexUniformData after WARP removed its device on the Windows CI
+  runner (H62f). The renderer reads the property (render::gpu::DeviceLost) for the fatal message's reason.

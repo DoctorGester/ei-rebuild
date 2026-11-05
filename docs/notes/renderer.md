@@ -403,17 +403,22 @@ stand-in for any of them:
 
 A lost device ends the game. SDL_GPU reports no loss of its own: a lost device shows as the next call SDL refuses
 (a submission, whose present fails first on Direct3D 12; a pass, a mapping, the swap chain's texture), which ends the
-game at once with one message (section 1, "When the renderer fails"). Nothing goes on after a refused call: D7's GPU
-hang (DXGI_ERROR_DEVICE_HUNG, a dozen 4K msaa-8 harness games at once) crashed several games when a refused submission
+game at once with one message (section 1, "When the renderer fails"). On Direct3D 12 the vendored SDL also keeps the
+first error that found the device removed, hung or reset as the device property EI_PROP_GPU_DEVICE_LOST_STRING
+(third_party/SDL/README.txt); `gpu::DeviceLost` reads it at each submission and swap chain texture, logs "gpu: the
+device was lost: <SDL's error with GetDeviceRemovedReason's text>" once, and a device found lost there is a refused
+call too, the message naming that reason. Nothing goes on after a refused call: D7's GPU hang
+(DXGI_ERROR_DEVICE_HUNG, a dozen 4K msaa-8 harness games at once) crashed several games when a refused submission
 was only logged and the next frame's first uniform push met SDL's Direct3D 12 driver without a uniform buffer (its
-mapping refused; a null read at offset 8 in D3D12_INTERNAL_PushUniformData). A device lost while a frame is recorded
-has SDL's driver drop the pushes and binds of a uniform buffer it could not take (a local change,
-third_party/SDL/README.txt) until the submission fails. The harness's `losedevice <point>` step removes the device
-for real (ID3D12Device5::RemoveDevice, tests/verify/system/system_win32.cpp; Direct3D 12 keeps one device per adapter,
-so D3D12CreateDevice on SDL's adapter gives SDL's) just before the renderer's next call at one point
-(`gpu::LoseDeviceAt`: a new command buffer, a pass, a uniform push, the swap chain's texture, a submission, a write, a
-download's wait); render_device_lost_<point> check each ends on the message (`expectcrash`). Never reproduce a loss by
-hanging the real GPU: overloading it has crashed the machine's Windows. Why no recovery (user): a device is
+mapping refused; a null read at offset 8 in D3D12_INTERNAL_PushUniformData; WARP on the Windows CI runner crashed the
+same way, H62f). A device lost while a frame is recorded has SDL's driver drop the pushes and binds of a uniform buffer
+it could not take (a local change, third_party/SDL/README.txt) until the submission fails. The harness's
+`losedevice <point>` step removes the device for real (ID3D12Device5::RemoveDevice, tests/verify/system/system_win32.cpp;
+Direct3D 12 keeps one device per adapter, so D3D12CreateDevice on SDL's adapter gives SDL's) just before the renderer's
+next call at one point (`gpu::LoseDeviceAt`: a new command buffer, a pass, a uniform push, the swap chain's texture, a
+submission, a write, a download's wait); render_device_lost_<point> check each ends on the message (`expectcrash`).
+Never reproduce a loss by hanging the real GPU: overloading it has crashed the machine's Windows. Vulkan's loss shows
+only as a refused call. Why no recovery (user): a device is
 lost only on a driver update or reset, a TDR or a GPU switch, rare for a player and a restart away. Making everything again needed every module to drop and remake its resources, each decoded
 texture to keep its file's bytes, composed textures their recipes, and runtime
 backends would need it twice. Dropping the kept file bytes took the process from about 130 MB to about 119 MB private

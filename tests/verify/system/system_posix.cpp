@@ -46,6 +46,7 @@
 #include <chrono>
 #include <cinttypes>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <exception>
 #include <filesystem>
@@ -285,6 +286,28 @@ bool ProcessTimes(double* kernelMs, double* userMs, double* sinceStartMs) {
     }
 #endif
     return true;
+}
+
+bool ProcessMemory(double* nowMb, double* peakMb, double* availableMb) {
+#if defined(__APPLE__)
+    (void)nowMb, (void)peakMb, (void)availableMb;
+    return false;
+#else
+    // kB lines of /proc/self/status (VmRSS, VmHWM) and /proc/meminfo (MemAvailable).
+    auto field = [](const char* path, const char* name) {
+        std::ifstream file(path);
+        std::string line;
+        const std::size_t length = std::strlen(name);
+        while (std::getline(file, line))
+            if (line.compare(0, length, name) == 0 && line.size() > length && line[length] == ':')
+                return std::strtod(line.c_str() + length + 1, nullptr) / 1024.0;
+        return -1.0;
+    };
+    *nowMb = field("/proc/self/status", "VmRSS");
+    *peakMb = field("/proc/self/status", "VmHWM");
+    *availableMb = field("/proc/meminfo", "MemAvailable");
+    return *nowMb >= 0 && *peakMb >= 0 && *availableMb >= 0;
+#endif
 }
 
 // ==== Code addresses and stacks ======================================================================================

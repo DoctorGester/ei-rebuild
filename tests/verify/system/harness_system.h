@@ -101,6 +101,9 @@ void RememberMainThread();
 bool MainThreadCpu(double* ms, std::uint64_t* cycles);
 // The process's kernel and user CPU time and the wall time since it started (ms).
 bool ProcessTimes(double* kernelMs, double* userMs, double* sinceStartMs);
+// The process's memory (MB): Windows its commit charge now and at its peak, Linux its resident set and peak; and the
+// system's available physical memory. False when unknown (macOS).
+bool ProcessMemory(double* nowMb, double* peakMb, double* availableMb);
 
 // ---- Code addresses and stacks ----
 

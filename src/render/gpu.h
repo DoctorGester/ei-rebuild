@@ -358,7 +358,7 @@ PresentMode SetPresentMode(PresentMode mode);
 Format SwapchainFormat();
 // The window's texture for this frame, at the window's size (waits while too many frames are in flight). True with
 // `target` empty when there is nothing to draw into (the window minimised or hidden); false (Error()) without a claimed
-// window or inside a pass. SDL refusing it is a failure (SetFailureHandler).
+// window or inside a pass. SDL refusing it, or a device already lost, is a failure (SetFailureHandler).
 bool AcquireSwapchain(Texture* target);
 // The frame's commands sent to the GPU, the swap chain's texture presented if one was taken. False without a device;
 // SDL refusing them (also only their present) is a failure (SetFailureHandler).
@@ -366,6 +366,20 @@ bool Submit();
 std::uint64_t SubmitCount();
 // The submissions whose fences are still kept: each is let go at a later Submit once it has finished.
 std::size_t SubmissionsHeld();
+
+// Whether a call found the device lost (removed, hung or reset: the vendored SDL's D3D12 driver sets
+// EI_PROP_GPU_DEVICE_LOST_STRING), logged once with SDL's error. Asked at each submission and swap chain texture.
+bool DeviceLost();
+
+// Where the main thread waited on the GPU since the start: for a swap chain texture (a frame in flight to finish), in
+// the submissions, for downloads; and the pipelines made after the start (not ahead) with their shaders.
+struct WaitTimes {
+    std::uint64_t swapchains = 0, submissions = 0, downloadWaits = 0;
+    double acquireMs = 0.0, submitMs = 0.0, downloadWaitMs = 0.0;
+    int pipelinesMade = 0;
+    double pipelineMs = 0.0;
+};
+WaitTimes Waits();
 
 // The whole frame's GPU time from the submissions' fences (there are no timestamp queries): from a submission (or the
 // end of the one before, if later) to the end of its work, found by a thread polling the fences every 0.2 ms while it

@@ -135,6 +135,12 @@ Which of src/'s functions and lines the suites reach: `python tools/coverage.py 
 From the report's `TIMING:` lines (tests/verify/harness_timing.h: per frame the main thread's wall time and CPU in the
 server's updates, the digest, the client's ticks, the steps, a pair's wait, the window checks and the rest; start-up to
 the first frame; frames of 200 ms or more) and EI_PROFILE samples (`tools/profile_report.py`).
+- `TIMING: gpu:` (gpu.h's `Waits`): per swap chain texture the main thread's wait for it (a frame in flight still on the
+  GPU: the frame is the GPU's) and its time in the submissions; the download waits (captures, frame checks); the
+  pipelines made after the start; the process's memory (Windows: commit charge and its peak) and the system's available
+  memory. With a software device (WARP, lavapipe) the process's CPU above the main thread's is the device's work: on
+  WARP a frame of the base bz1g took about 1.8 CPU-seconds and one of render_weather_shelter about 3, all but a few ms
+  of it the wait for the swap chain texture (H62d).
 - The suite's wall is net_pair_quest's (it starts first; the other runs fill the free slots). Median run 6-7 s; start-up
   about a second.
 - A slot is for a game on the GPU: run_all gives it back when the game has ended and takes it again before a retry's game
