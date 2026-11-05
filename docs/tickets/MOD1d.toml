@@ -3,4 +3,4 @@ title = "IronMod's 18 hidden script commands: console only or everywhere (user d
 group = "mods"
 depends = ["MOD1b"]
 note = "MOD1b carries IronMod's renamed keyword-table names as hidden only from the console's script lines (@ # $, execs). In Rebirth they are unknown to every parse, so 57 of the game's .mob files (zone2.mob from line 71) stop loading their scripts at the first call. Ask the user whether to keep the console-only reading (now) or match Rebirth (drop the ConsoleScript condition in modplugins::HidesKeyword); mods.md 'IronMod's fixfslpatei.plg'."
-order = 1212
+order = 1218
