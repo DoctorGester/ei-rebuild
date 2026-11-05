@@ -202,15 +202,12 @@ struct QuarterRange {
 
 // A sector's ground layer as a caster: its 33 x 33 vertices with normals from their neighbours, kept while
 // the sector holds the same vertices (the same array, place and builds).
-struct SectorCaster {
+struct SectorCaster : KeptRanges {
     const void* positions = nullptr;
     int sx = -1, sy = -1;
     std::uint32_t rebuilt = 0;
     std::vector<TerrainCasterVertex> vertices;
     ShadowCasterSphere sphere{};
-    PoolPlace place;
-    bool dirty = true;
-    std::uint32_t seen = 0;
     bool cast = false;
 };
 static std::unordered_map<const SectorData*, SectorCaster> g_sectorCasters;
@@ -372,7 +369,7 @@ static const SectorOcclusion& GroundOcclusion(const SectorData* s) {
 }
 
 // A sector page as built and as placed in the pool.
-struct CachedPage {
+struct CachedPage : KeptRanges {
     PageSource source;
     std::vector<PageVertex> vertices;
     std::vector<std::uint32_t> colours;
@@ -383,13 +380,6 @@ struct CachedPage {
     bool animatedTiles = false;
     QuarterRange quarters[4];
     std::vector<TerrainGroup> groups;      // the quarters' vertices in runs of kGroupVertices, with their boxes
-    PoolPlace place;
-    bool geometryDirty = true;
-    std::uint32_t vertexFrom = 0, vertexTo = 0;      // vertices whose positions or texture coordinates to upload
-    std::uint32_t colourFrom = 0, colourTo = 0;      // vertices whose colours to upload
-    bool pending = false;
-    std::uint32_t lastUsed = 0;
-    std::uint32_t mark = 0;                          // Restart's
 };
 
 // The quarters' vertices in runs with their boxes, after they were built or moved: a run is a few tiles in a row
@@ -475,16 +465,6 @@ static bool SameGeometry(const CachedPage& a, const CachedPage& b) {
            std::memcmp(a.indices.data(), b.indices.data(), a.indices.size() * sizeof(std::uint32_t)) == 0;
 }
 
-static void MarkVertex(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
-    if (to <= from) {
-        from = i;
-        to = i + 1;
-    } else {
-        if (i < from) from = i;
-        if (i + 1 > to) to = i + 1;
-    }
-}
-
 // Reads the colours of vertices [from, to) of `p` from the sector's records; the changed ones are
 // marked for upload. True when any changed.
 static bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, std::uint32_t to) {
@@ -496,7 +476,7 @@ static bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, 
         std::uint32_t* kept = &p.colours[2 * static_cast<std::size_t>(i)];
         if (kept[1] == record.specular) continue;
         kept[1] = record.specular;
-        MarkVertex(i, p.colourFrom, p.colourTo);
+        p.MarkColour(i);
         changed = true;
     }
     return changed;
@@ -512,7 +492,7 @@ static bool ReadVertices(const SectorData* s, CachedPage& p, const float* occlus
         PageVertex now = MakeVertex(s, p.records[i], *p.entries[i], occlusion);
         if (std::memcmp(&kept, &now, sizeof(PageVertex)) == 0) continue;
         kept = now;
-        MarkVertex(i, p.vertexFrom, p.vertexTo);
+        p.MarkVertex(i);
         changed = true;
     }
     if (changed) MakeGroups(p);
@@ -642,67 +622,6 @@ static void ForPieceRuns(const Frame& f, const TerrainBatch& batch, Draw draw) {
     if (count > 0) draw(first, count);
 }
 
-// --- The pool -------------------------------------------------------------------------------------------
-
-static bool Place(CachedPage& p) {
-    bool anew = false;
-    if (!g_pool.Place(p.place, static_cast<std::uint32_t>(p.vertices.size()), static_cast<std::uint32_t>(p.indices.size()),
-                      &anew))
-        return false;
-    if (anew) p.geometryDirty = true;
-    return true;
-}
-
-// The pool starts again with the pages of frame `f` (and the pending ones): they are placed again
-// from its start. It is made larger when they need more than half of it.
-static void Restart(const Frame& f) {
-    static std::uint32_t stamp = 0;
-    ++stamp;
-    std::uint64_t vertices = 0, indices = 0;
-    std::vector<CachedPage*> pages;
-    auto take = [&](CachedPage* p) {
-        if (p->mark == stamp) return;
-        p->mark = stamp;
-        vertices += p->vertices.size();
-        indices += p->indices.size();
-        pages.push_back(p);
-    };
-    for (const TerrainPiece& piece : f.terrainPieces) take(piece.page);
-    for (CachedPage* p : g_pending) take(p);
-    g_pool.Restart(vertices, indices);
-    for (CachedPage* p : pages) {
-        if (!p->pending) {
-            p->pending = true;
-            g_pending.push_back(p);
-        }
-    }
-}
-
-static void Write(CachedPage& p) {
-    FrameStats& stats = g_stats;
-    if (p.geometryDirty) {
-        auto count = static_cast<std::uint32_t>(p.vertices.size());
-        g_pool.WriteGeometry(p.place, 0, count, p.vertices.data());
-        g_pool.WriteColours(p.place, 0, count, p.colours.data());
-        g_pool.WriteIndices(p.place, p.indices.data(), p.indices.size());
-        stats.counts[FrameStats::TerrainVertexBytes] += p.vertices.size() * (sizeof(PageVertex) + sizeof(ColourPair));
-        stats.counts[FrameStats::TerrainIndexBytes] += p.indices.size() * sizeof(std::uint32_t);
-    } else {
-        if (p.vertexTo > p.vertexFrom) {
-            g_pool.WriteGeometry(p.place, p.vertexFrom, p.vertexTo - p.vertexFrom, &p.vertices[p.vertexFrom]);
-            stats.counts[FrameStats::TerrainVertexBytes] += (p.vertexTo - p.vertexFrom) * sizeof(PageVertex);
-        }
-        if (p.colourTo > p.colourFrom) {
-            g_pool.WriteColours(p.place, p.colourFrom, p.colourTo - p.colourFrom,
-                                &p.colours[2 * static_cast<std::size_t>(p.colourFrom)]);
-            stats.counts[FrameStats::TerrainVertexBytes] += (p.colourTo - p.colourFrom) * sizeof(ColourPair);
-        }
-    }
-    p.geometryDirty = false;
-    p.vertexFrom = p.vertexTo = 0;
-    p.colourFrom = p.colourTo = 0;
-}
-
 static CachedPage g_scratch;
 static bool BuildAgain(const SectorData* s, int page, CachedPage& p, const float* occlusion) {
     BuildPage(s, page, g_scratch, occlusion);
@@ -745,22 +664,10 @@ void UploadTerrain(const Frame& f) {
             if (!batch.water) LevelView(TextureView(batch.texture));
     if (g_pending.empty()) return;
     Timer timer(FrameStats::TerrainMs);
-    bool placed = true;
-    for (CachedPage* p : g_pending) {
-        if (!Place(*p)) {
-            placed = false;
-            break;
-        }
-    }
-    if (!placed) {
-        Restart(f);
-        for (CachedPage* p : g_pending) Place(*p);   // fits: the pool holds twice the frame's pages
-    }
-    for (CachedPage* p : g_pending) {
-        if (g_pool.Placed(p->place)) Write(*p);
-        p->pending = false;
-    }
-    g_pending.clear();
+    auto framePages = [&](auto add) {
+        for (const TerrainPiece& piece : f.terrainPieces) add(*piece.page);
+    };
+    UploadKept(g_pool, g_pending, framePages, FrameStats::TerrainVertexBytes, FrameStats::TerrainIndexBytes);
 }
 
 void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
@@ -883,16 +790,12 @@ void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group,
 }
 
 void TerrainFrameDone() {
-    std::uint32_t now = FrameNumber();
+    const std::uint32_t now = FrameNumber();
     if (now % 64 != 0) return;
-    for (auto it = g_pages.begin(); it != g_pages.end();) {
-        if (!it->second.pending && now - it->second.lastUsed > kPageLife) it = g_pages.erase(it);
-        else ++it;
-    }
-    for (auto it = g_occlusion.begin(); it != g_occlusion.end();) {
-        if (now - it->second.seen > kPageLife) it = g_occlusion.erase(it);
-        else ++it;
-    }
+    std::erase_if(g_pages, [now](const auto& entry) {
+        return !entry.second.pending && now - entry.second.lastUsed > kPageLife;
+    });
+    std::erase_if(g_occlusion, [now](const auto& entry) { return now - entry.second.seen > kPageLife; });
 }
 
 void TerrainLevels(TerrainLevelMode mode) {
@@ -989,15 +892,14 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     }
     p.source = source;
     if (upload) {
-        p.geometryDirty = true;
+        p.WriteAll();
         p.colours.resize(2 * p.vertices.size());
         for (std::size_t i = 0; i < p.vertices.size(); ++i) {
             p.colours[2 * i] = ColourWord(s, p.records[i]);
             p.colours[2 * i + 1] = s->records[p.records[i]].specular;
         }
-        p.colourFrom = p.colourTo = 0;
     }
-    if (!g_pool.Placed(p.place)) p.geometryDirty = true;
+    if (!g_pool.Placed(p.place)) p.dirty = true;
 
     bool relit = false;
     std::size_t firstPiece = f.terrainPieces.size();
@@ -1008,10 +910,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
         f.terrainPieces.push_back(TerrainPiece{&p, q});
     }
     p.lastUsed = FrameNumber();
-    if ((p.geometryDirty || p.vertexTo > p.vertexFrom || p.colourTo > p.colourFrom) && !p.pending) {
-        p.pending = true;
-        g_pending.push_back(&p);
-    }
+    if (p.HasWrites()) AddPending(g_pending, p);
     auto count = static_cast<int>(f.terrainPieces.size() - firstPiece);
     if (count <= 0) return;
     ++g_stats.terrainReuse[made ? FrameStats::New : moved ? FrameStats::Moved : relit ? FrameStats::Relit : FrameStats::Same];
@@ -1043,8 +942,8 @@ void ShadowTerrainSector(const SectorData* s) {
     std::uint32_t rebuilt = 0;
     if (auto it = g_changes.find(s); it != g_changes.end()) rebuilt = it->second.rebuilt;
     SectorCaster& c = g_sectorCasters[s];
-    if (c.seen == FrameNumber() && !c.vertices.empty()) return;
-    c.seen = FrameNumber();
+    if (c.lastUsed == FrameNumber() && !c.vertices.empty()) return;
+    c.lastUsed = FrameNumber();
     c.cast = false;
     if (c.positions != s->vertices.data() || c.sx != s->sx || c.sy != s->sy || c.rebuilt != rebuilt || c.vertices.empty()) {
         BuildCaster(s, c);
@@ -1067,19 +966,16 @@ void UploadTerrainCasters() {
     const auto indices = static_cast<std::uint32_t>(g_gridIndices.size());
     bool placed = true;
     for (SectorCaster* c : g_frameCasters) {
-        bool anew = false;
-        if (!g_casterPool.Place(c->place, vertices, indices, &anew)) {
+        if (!g_casterPool.Place(*c, vertices, indices)) {
             placed = false;
             break;
         }
-        if (anew) c->dirty = true;
     }
     if (!placed) {   // the pool starts again with this frame's sectors
         g_casterPool.Restart(static_cast<std::uint64_t>(vertices) * g_frameCasters.size(),
                              static_cast<std::uint64_t>(indices) * g_frameCasters.size());
         for (SectorCaster* c : g_frameCasters) {
-            bool anew = false;
-            g_casterPool.Place(c->place, vertices, indices, &anew);
+            g_casterPool.Place(*c, vertices, indices);
             c->dirty = true;
         }
     }
@@ -1111,12 +1007,9 @@ int DrawTerrainCasters(gpu::Pipeline pipeline) {
 
 void TerrainCastersDone() {
     g_frameCasters.clear();
-    std::uint32_t now = FrameNumber();
+    const std::uint32_t now = FrameNumber();
     if (now % 64 != 0) return;
-    for (auto it = g_sectorCasters.begin(); it != g_sectorCasters.end();) {
-        if (now - it->second.seen > kPageLife) it = g_sectorCasters.erase(it);
-        else ++it;
-    }
+    std::erase_if(g_sectorCasters, [now](const auto& entry) { return now - entry.second.lastUsed > kPageLife; });
 }
 
 } // namespace render

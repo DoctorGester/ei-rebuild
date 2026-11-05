@@ -5,5 +5,5 @@ model = "opus"
 depends = ["C87"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item R7. render_terrain.cpp's CachedPage and render_mesh_cache.cpp's CachedMesh share a KeptRanges struct (place, dirty, pending, vertex/colour ranges, lastUsed, mark); UploadKept/WriteKept next to GpuPool in render_buffers.cpp; eviction with std::erase_if; no function-local static stamp; shared PacketVertex() and AppendTriangles() for the SoA lane read (4 copies) and the bad-corner triangle drop (3 copies). The cache validation checks keep working. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1020
-status = "running"
+status = "review"
 started = "2026-11-05"

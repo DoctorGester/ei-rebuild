@@ -81,12 +81,8 @@ static bool Build(Frame& f, Pending& p) {
             f.meshVertices.resize(base);
             return false;
         }
-        const VertexPacket& packet = m.positions[position / 4];
-        int lane = position % 4;
         Vertex v{};
-        v.position.x = packet.x()[lane];
-        v.position.y = packet.y()[lane];
-        v.position.z = packet.z()[lane];
+        v.position = PacketVertex(m.positions, position);
         v.colour = m.colours[c.normal];
         v.specular = m.speculars[c.normal];
         v.normal = CornerNormal(m, c.normal);
@@ -99,12 +95,17 @@ static bool Build(Frame& f, Pending& p) {
         f.meshVertices.push_back(v);
     }
     p.firstIndex = static_cast<int>(f.meshIndices.size());
-    for (int k = 0; k + 2 < m.indexCount; k += 3) {
-        if (m.indices[k] >= m.cornerCount || m.indices[k + 1] >= m.cornerCount || m.indices[k + 2] >= m.cornerCount) continue;
-        for (int j = 0; j < 3; ++j) f.meshIndices.push_back(base + m.indices[k + j]);
-    }
+    AppendTriangles(m.indices, m.indexCount, m.cornerCount, base, f.meshIndices);
     p.indexCount = static_cast<int>(f.meshIndices.size()) - p.firstIndex;
     return true;
+}
+
+void AppendTriangles(const std::uint16_t* indices, int indexCount, int cornerCount, std::uint32_t base,
+                     std::vector<std::uint32_t>& out) {
+    for (int k = 0; k + 2 < indexCount; k += 3) {
+        if (indices[k] >= cornerCount || indices[k + 1] >= cornerCount || indices[k + 2] >= cornerCount) continue;
+        for (int j = 0; j < 3; ++j) out.push_back(base + indices[k + j]);
+    }
 }
 
 // --- GPU side ------------------------------------------------------------------------------------------------
@@ -653,10 +654,7 @@ void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int c
             f.meshIndices.push_back(base + static_cast<std::uint32_t>(i + 1));
         }
     } else {
-        for (int k = 0; k + 2 < indexCount; k += 3) {
-            if (indices[k] >= count || indices[k + 1] >= count || indices[k + 2] >= count) continue;
-            for (int j = 0; j < 3; ++j) f.meshIndices.push_back(base + indices[k + j]);
-        }
+        AppendTriangles(indices, indexCount, count, base, f.meshIndices);
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;
     if (drawn > 0) {

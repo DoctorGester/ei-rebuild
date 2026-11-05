@@ -3,6 +3,7 @@
 // The records a mesh draw reads (MeshDraw, ShadowMesh). The game's meshes hold them as their files do (.fig, .lnk).
 
 #include "lib/bytes.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 
@@ -28,6 +29,14 @@ struct VertexPacket {
 struct NormalPacket {
     float block[4][4] = {};
 };
+
+// Vertex `i` of a mesh's packets (positions or normals): lane i % 4 of packet i / 4.
+template <class Packet>
+Vector3 PacketVertex(const Packet* packets, int i) {
+    const Packet& packet = packets[i / 4];
+    const int lane = i % 4;
+    return Vector3{packet.block[0][lane], packet.block[1][lane], packet.block[2][lane]};
+}
 
 // A texture coordinate (u, v).
 struct TexCoord {

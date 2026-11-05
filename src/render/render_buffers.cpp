@@ -6,6 +6,7 @@
 #include "render_internal.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 
 namespace render {
@@ -96,18 +97,18 @@ void GpuPool::Buffer::Write(std::size_t offset, const void* data, std::size_t by
 
 void GpuPool::Buffer::Drop() { gpu::Release(buffer); }
 
-bool GpuPool::Place(PoolPlace& p, std::uint32_t vertexCount, std::uint32_t indexCount, bool* anew) {
-    *anew = false;
+bool GpuPool::Place(KeptRanges& k, std::size_t vertexCount, std::size_t indexCount) {
+    PoolPlace& p = k.place;
     if (p.generation == generation && p.vertexRoom >= vertexCount && p.indexRoom >= indexCount) return true;
     if (usedVertices + vertexCount > vertexCapacity || usedIndices + indexCount > indexCapacity) return false;
     p.firstVertex = usedVertices;
-    p.vertexRoom = vertexCount;
+    p.vertexRoom = static_cast<std::uint32_t>(vertexCount);
     p.firstIndex = usedIndices;
-    p.indexRoom = indexCount;
+    p.indexRoom = static_cast<std::uint32_t>(indexCount);
     p.generation = generation;
-    usedVertices += vertexCount;
-    usedIndices += indexCount;
-    *anew = true;
+    usedVertices += p.vertexRoom;
+    usedIndices += p.indexRoom;
+    k.dirty = true;
     return true;
 }
 
@@ -138,14 +139,40 @@ void GpuPool::WriteGeometry(const PoolPlace& p, std::uint32_t first, std::uint32
     geometry.Write((p.firstVertex + first) * geometryStride, data, count * geometryStride);
 }
 
-void GpuPool::WriteColours(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const std::uint32_t* pairs) const {
-    colours.Write((p.firstVertex + first) * sizeof(ColourPair), pairs, count * sizeof(ColourPair));
-}
-
 void GpuPool::WriteIndices(const PoolPlace& p, const std::uint32_t* relative, std::size_t count) {
     absolute.resize(count);
     for (std::size_t i = 0; i < count; ++i) absolute[i] = relative[i] + p.firstVertex;
     indices.Write(p.firstIndex * sizeof(std::uint32_t), absolute.data(), count * sizeof(std::uint32_t));
+}
+
+void GpuPool::WriteKept(KeptRanges& k, const void* vertices, std::size_t vertexCount,
+                        std::span<const std::uint32_t> pairs, std::span<const std::uint32_t> relative,
+                        FrameStats::Count vertexBytes, FrameStats::Count indexBytes) {
+    const PoolPlace& p = k.place;
+    std::uint64_t& written = g_stats.counts[vertexBytes];
+    if (k.dirty) {
+        geometry.Write(p.firstVertex * geometryStride, vertices, vertexCount * geometryStride);
+        colours.Write(p.firstVertex * sizeof(ColourPair), pairs.data(), pairs.size_bytes());
+        WriteIndices(p, relative.data(), relative.size());
+        written += vertexCount * geometryStride + pairs.size_bytes();
+        g_stats.counts[indexBytes] += relative.size_bytes();
+    } else {
+        if (k.vertexTo > k.vertexFrom) {
+            const std::size_t bytes = (k.vertexTo - k.vertexFrom) * geometryStride;
+            geometry.Write((p.firstVertex + k.vertexFrom) * geometryStride,
+                           static_cast<const std::byte*>(vertices) + k.vertexFrom * geometryStride, bytes);
+            written += bytes;
+        }
+        if (k.colourTo > k.colourFrom) {
+            const std::size_t bytes = (k.colourTo - k.colourFrom) * sizeof(ColourPair);
+            colours.Write((p.firstVertex + k.colourFrom) * sizeof(ColourPair), &pairs[2 * std::size_t{k.colourFrom}],
+                          bytes);
+            written += bytes;
+        }
+    }
+    k.dirty = false;
+    k.vertexFrom = k.vertexTo = 0;
+    k.colourFrom = k.colourTo = 0;
 }
 
 void GpuPool::Bind(Geometry& g) const {
