@@ -26,6 +26,10 @@ check (`app.md`).
   no `rand()`), drawn by every effect whose result only reaches the picture or the sound (`ClientRand()` where they drew
   `rand()`; the client's idle animation picks through `AnimationRandom::Client`; the server's keep `rand()`). Client
   draws never move game state, so a renderer or interface change cannot change a golden through the generators.
+  The server-side effect objects keep `g_random` where the world's tick decides the draws (weather's strikes, rain
+  and the rain bolts' positions, a tornado's launch speed); what the client does with an effect it unpacks (sound
+  sequence choosers, the scorch mark's angle of a FireBlast / LightningBlast particle, the bird's perch) and the main
+  menu's bolt choices (`ShowBolt`'s `picks`) draw `g_clientRandom` (R34b).
 
 ## Reference counting
 

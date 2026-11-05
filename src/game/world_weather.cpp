@@ -103,7 +103,7 @@ void ShowRainBolt(WorldServer* world) {
     float fromZ = z + kBoltHeight;
     Vector3 to{x, y, z};
     Vector3 from{fromX, fromY, fromZ};
-    ShowBolt(from, to);
+    ShowBolt(from, to, g_random);
 }
 
 Script& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command queue (adds a line)
@@ -129,21 +129,21 @@ void WorldServer::UpdateWeather() {
 
 // ---- ShowBolt ---------------------------------------------------------------------------------
 
-void ShowBolt(Vector3 from, Vector3 to) {
+void ShowBolt(Vector3 from, Vector3 to, IsaacRandom& picks) {
     std::string prefix;   // stays empty
     std::string text;
     const Vector3 middle = (to + from) * 0.5f;
     double fx = from.x, fy = from.y, fz = from.z;
     double tx = to.x, ty = to.y, tz = to.z;
-    if ((g_random.Next() & 3) == 0) {
+    if ((picks.Next() & 3) == 0) {
         // Thunder only: one of four sounds at `from`.
-        unsigned sound = (g_random.Next() & 3) + 1;
+        unsigned sound = (picks.Next() & 3) + 1;
         text = str::Format("WorldScript(CreateFX( %f,%f,%f,60,150,\"nature\\thunder\\%i.wav\" ) )", fx, fy, fz, sound);
         std::string line = prefix + text;
         ScriptQueue().Load(&line, 1);
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
-        unsigned sound = g_random.Next() % 3 + 1;
+        unsigned sound = picks.Next() % 3 + 1;
         text = str::Format("WorldScript(CreatePointLight(1,%f,%f,%f,80,255,255,255 ) "
                            "CreateFX( %f,%f,%f,60,150,\"nature\\lightning\\%i.wav\" ) "
                            "CreateLightning(1,%f,%f,%f,%f,%f,%f,-7)Sleep(1) DeleteLightning(1) Sleep(1)"

@@ -134,7 +134,7 @@ void MainMenu::Update() {
                 float fromY = RandomScaled(1.3969839e-08f);
                 float toX = RandomScaled(9.313226e-10f) + fromX - 2.0f;
                 float toY = RandomScaled(9.313226e-10f) + fromY - 2.0f;
-                ShowBolt(Vector3{fromX, fromY, 17.0f}, Vector3{toX, toY, 1.0f});
+                ShowBolt(Vector3{fromX, fromY, 17.0f}, Vector3{toX, toY, 1.0f}, g_clientRandom);
             }
         }
     }

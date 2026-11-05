@@ -79,7 +79,8 @@ fog (`VisibilityFog::Reveal`). Script casts have no caster, so only `spells_hero
 
 The first name (when not empty) and the others go to `SoundManager::AddSequence` with a chooser for their count (ten
 pickers); an update moves the sequence through SetSoundPosition with the sequence id. The chooser gets the number of
-sounds started so far (`SoundSequence::PlayNext`).
+sounds started so far (`SoundSequence::PlayNext`). The choosers draw `g_clientRandom`: PlayNext runs when a voice ends
+(the device's clock) or Play3D finds the listener out of range, so the number of draws follows playback and the camera.
 
 ## Moshka
 
@@ -88,7 +89,9 @@ sounds started so far (`SoundSequence::PlayNext`).
 perch height and a state (0 perched 200 frames, 1 circling within 5 of the leader for 100, 2 flying to the perch for 150,
 then Reset). Update (from the draw pass with the animation time) steps at most 5 frames, keeps the bird 0.5 above the
 surface (platforms too), moves it at sqrt(sqrt(distance)) * 0.03 + 0.3 per frame and advances its animation. FindPerch
-draws ISAAC angles until the AI map's line of sight is above 0.5. No scenario makes one.
+draws `g_clientRandom` angles until the AI map's line of sight is above 0.5 (Update runs once per drawn frame as well as per tick,
+so the frame at which the timer runs out decides where the bird is and how many tries it takes). Reached by
+`GSSetVar(0,"q.gz1g.q0g",2)`.
 
 ## Tornado
 

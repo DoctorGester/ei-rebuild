@@ -1,28 +1,17 @@
 {
   "scenario": "net_pair_quest",
   "install": "rebirth",
-  "recorded": "2026-11-04",
-  "commit": "e72156590",
+  "recorded": "2026-11-05",
+  "commit": "6c7081606",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H53: net_pair_quest / leave / kick play with fewer frames (walkto, waitdialogue / talk, waitaward served, peer signals instead of fixed waits): the same course on a shorter timeline",
+  "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
   "side": "peer",
   "source": "image",
   "change": [
-    "digest: 1 of 520 records differ, first at record 519 (world update 10400, tick 9997, frame 2079, zone bz1mpg); outcomes the same; no unit position differs; the digests have different numbers of records",
-    "  digest: the old golden has more records; the other ends before its record 520 (world update 10420, frame 2083, tick 10017, zone bz1mpg)",
-    "  first difference at record 519 (world update 10400, tick 9997, frame 2079, zone bz1mpg): 5 fields",
-    "    obj1000011214 (80 unhuma \"peer\") hp: 47.5613632 in the old golden, 53.498642 in the new run (d 5.94)",
-    "    obj1000011214 (80 unhuma \"peer\") mana: 47.5613632 in the old golden, 52.9112282 in the new run (d 5.35)",
-    "    obj1000011214 (80 unhuma \"peer\") #unit: A978F1EA in the old golden, F735F345 in the new run",
-    "    ... 2 more",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 1 of 27 differ",
-    "    hp: 1 unit, 1 record, from 519; max |d| 5.94 at obj1000011214 hp, record 519: 47.5613632 -> 53.498642",
-    "    mana: 1 unit, 1 record, from 519; max |d| 5.35 at obj1000011214 mana, record 519: 47.5613632 -> 52.9112282",
-    "    #unit: 1 unit, 1 record, from 519; hash only (no numbers kept)",
-    "... 2 more lines"
+    "digest: digest: the old golden has more records; the other ends before its record 516 (world update 10340, frame 2067, tick 9937, zone bz1mpg)",
+    "  digest: the old golden has more records; the other ends before its record 516 (world update 10340, frame 2067, tick 9937, zone bz1mpg)"
   ]
 }
