@@ -54,38 +54,11 @@ static gpu::Texture MakeMovieImage(int w, int h) {
     return gpu::MakeTexture({w, h, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-movie-frame"});
 }
 
-#if defined(EI_RENDER_VALIDATION)
-static long g_uploadChecks = 0, g_uploadMismatches = 0;
-static long g_uploads = 0;   // movie uploads so far (the read-back is sampled: ReadBackDue)
-
-// The movie image just uploaded read back from the GPU and compared with the pixels written (what the shaders then
-// draw are exactly these texels), sampled.
-static void CheckUpload(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
-    if (!ReadBackDue(g_uploads++)) return;
-    gpu::Ticket copy = gpu::Download(image, 0, Rect{0, 0, w, h});
-    gpu::Texels texels;
-    if (gpu::Wait(copy) && gpu::Read(copy, &texels)) {
-        bool same = true;
-        for (int y = 0; y < h && same; ++y)
-            same = std::memcmp(texels.Row(y), rgba + static_cast<std::size_t>(y) * w * 4,
-                               static_cast<std::size_t>(w) * 4) == 0;
-        ++g_uploadChecks;
-        if (!same)
-            LogFirst(g_uploadMismatches, 10,
-                     "render: MISMATCH: movie image %dx%d read back from the GPU differs from the pixels written", w,
-                     h);
-    }
-    gpu::Release(copy);
-    if (g_uploadChecks % 20 == 1)
-        ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads, g_uploadMismatches);
-}
-#endif
-
 static void UpdateMovieImage(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
     CountUpload(FrameStats::Movie, static_cast<std::size_t>(w) * h * 4);
     gpu::Write(image, 0, {0, 0, w, h}, rgba, static_cast<std::size_t>(w) * 4, gpu::Contents::Discard);
 #if defined(EI_RENDER_VALIDATION)
-    CheckUpload(image, rgba, w, h);
+    CheckMovieUpload(image, rgba, w, h);
 #endif
 }
 

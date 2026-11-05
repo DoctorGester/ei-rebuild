@@ -96,8 +96,12 @@ struct TerrainFsParams {
     float snow;
     float rain;
     float rainClock;
-    float4 occlusion;      // ambient_occlusion's `on`
-    float4 occlusionMap;   // ... and `map`
+    int occlusionOn;       // ambient_occlusion's arguments
+    int occlusionView;     // the harness's occlusion view (SetOcclusion's View)
+    float occlusionDepthOffset;
+    float occlusionDepthScale;
+    float2 occlusionScale;
+    float2 occlusionTexel;
 };
 static const int kWater = 1;
 static const int kLevels = 2;
@@ -371,8 +375,9 @@ float4 Shade(VsOut i) {
         a = seen;
     } else {
         i.loss = max(i.loss, 0.0);   // past the triangle's edge (above) it can fall below 0
-        float occlusion = i.occlusion * ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
-        if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
+        float occlusion = i.occlusion * ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusionOn, fs.occlusionDepthOffset,
+                                                                fs.occlusionDepthScale, fs.occlusionScale, fs.occlusionTexel);
+        if (fs.occlusionView != 0) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
         float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.strength, pointShadow.count > 0,
                                   pixel_turn(i.pos.xy), occlusion, spec);
         GroundWeather g = ground_weather(i, n, open);

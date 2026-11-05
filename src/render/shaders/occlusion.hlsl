@@ -8,11 +8,17 @@
 #ifdef EI_FRAGMENT
 struct OcclusionParams {
     row_major float4x4 fromClip;   // the camera's clip space (x, y, depth, 1) to the landscape's
-    float4 size;                   // xy: the texels, zw: their inverse
-    float4 eye;                    // xyz: the camera (the landscape's space)
-    float4 reach;                  // x: the radius (world units), y: 1 / its square, z: texels per world unit at a
-                                   // depth of 1, w: the widest radius in texels
-    float4 depthMap;               // a depth z at the clip w = y / (z - x); z: the strength, w: the angle's bias
+    float2 size;                   // the texels
+    float2 texel;                  // their inverse size
+    float3 eye;                    // the camera (the landscape's space)
+    float radius;                  // the radius (world units)
+    float inverseRadiusSquared;
+    float texelsPerUnit;           // texels per world unit at a depth of 1
+    float widestRadius;            // in texels
+    float depthOffset;             // a depth z at the clip w = depthScale / (z - depthOffset)
+    float depthScale;
+    float strength;                // the most it darkens
+    float angleBias;
 };
 ConstantBuffer<OcclusionParams> params : FS_BLOCK(0);
 Texture2D<float> depth : FS_TEXTURE(0);
@@ -24,14 +30,14 @@ static const int kSteps = 4;
 static const float kPattern[16] = {0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5};
 
 float3 point_at(int2 texel, float z) {
-    float2 ndc = (float2(texel) + 0.5) * params.size.zw * float2(2.0, -2.0) + float2(-1.0, 1.0);
+    float2 ndc = (float2(texel) + 0.5) * params.texel * float2(2.0, -2.0) + float2(-1.0, 1.0);
     float4 p = float4(ndc, z, 1.0);
     float4 q = float4(dot(params.fromClip[0], p), dot(params.fromClip[1], p), dot(params.fromClip[2], p),
                       dot(params.fromClip[3], p));
     return q.xyz / q.w;
 }
 
-float depth_at(int2 texel) { return depth.Load(int3(clamp(texel, int2(0, 0), int2(params.size.xy) - 1), 0)); }
+float depth_at(int2 texel) { return depth.Load(int3(clamp(texel, int2(0, 0), int2(params.size) - 1), 0)); }
 
 float ps_main(float4 pos : SV_Position) : SV_Target0 {
     int2 c = int2(pos.xy);
@@ -47,9 +53,9 @@ float ps_main(float4 pos : SV_Position) : SV_Target0 {
     float len = length(n);
     if (len < 1e-12) return 1.0;
     n /= len;
-    if (dot(n, params.eye.xyz - p) < 0.0) n = -n;
-    float w = params.depthMap.y / (z - params.depthMap.x);
-    float radius = min(params.reach.x * params.reach.z / w, params.reach.w);
+    if (dot(n, params.eye - p) < 0.0) n = -n;
+    float w = params.depthScale / (z - params.depthOffset);
+    float radius = min(params.radius * params.texelsPerUnit / w, params.widestRadius);
     if (radius < 1.0) return 1.0;   // the radius under a texel: nothing to find
     int k = (c.x & 3) + (c.y & 3) * 4;
     float turn = (kPattern[k] + 0.5) / 16.0;
@@ -62,17 +68,17 @@ float ps_main(float4 pos : SV_Position) : SV_Target0 {
         [unroll] for (int s = 0; s < kSteps; ++s) {
             float2 at = pos.xy + dir * max(1.0, radius * (s + shift) / kSteps);
             int2 t = int2(floor(at));
-            if (any(t < 0) || any(t >= int2(params.size.xy))) break;
+            if (any(t < 0) || any(t >= int2(params.size))) break;
             float zs = depth.Load(int3(t, 0));
             if (zs >= 1.0) continue;
             float3 h = point_at(t, zs) - p;
             float h2 = dot(h, h);
             if (h2 < 1e-8) continue;
-            float rise = dot(h, n) * rsqrt(h2) - params.depthMap.w;
-            horizon = max(horizon, saturate(rise) * saturate(1.0 - h2 * params.reach.y));
+            float rise = dot(h, n) * rsqrt(h2) - params.angleBias;
+            horizon = max(horizon, saturate(rise) * saturate(1.0 - h2 * params.inverseRadiusSquared));
         }
         hidden += horizon;
     }
-    return saturate(1.0 - params.depthMap.z * hidden / kDirections);
+    return saturate(1.0 - params.strength * hidden / kDirections);
 }
 #endif

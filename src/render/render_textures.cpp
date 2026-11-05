@@ -486,72 +486,13 @@ void PictureFromMmp(const Surface* holder, const MmpFile& file) {
     PictureFromMmpData(holder, file);
 }
 
-// The next level of an RGBA8 level as a 2x2 box filter (sizes halved, at least 1; `*width`, `*height` updated).
-static std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
-    int w = *width, h = *height;
-    int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
-    std::vector<std::uint8_t> dst(static_cast<std::size_t>(nw) * nh * 4);
-    for (int y = 0; y < nh; ++y) {
-        for (int x = 0; x < nw; ++x) {
-            int x0 = x * 2, y0 = y * 2, x1 = x0 + 1 < w ? x0 + 1 : x0, y1 = y0 + 1 < h ? y0 + 1 : y0;
-            for (int c = 0; c < 4; ++c) {
-                int sum = src[(static_cast<std::size_t>(y0) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y0) * w + x1) * 4 + c] +
-                          src[(static_cast<std::size_t>(y1) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y1) * w + x1) * 4 + c];
-                dst[(static_cast<std::size_t>(y) * nw + x) * 4 + c] = static_cast<std::uint8_t>((sum + 2) / 4);
-            }
-        }
-    }
-    *width = nw;
-    *height = nh;
-    return dst;
-}
-
-MmpLevelCheck CheckMmpLevels() {
-    MmpLevelCheck c;
+std::vector<HeldMmp> HeldMmpTextures() {
+    std::vector<HeldMmp> held;
     for (const auto& entry : g_textures) {
         const Texture& t = entry.second;
-        if (t.composed || !t.image) continue;
-        // The levels as the GPU reads them, down to 4 x 4 (DXT levels under 4 x 4 are only partly in the file).
-        const int width = t.width, height = t.height;
-        std::vector<std::vector<std::uint8_t>> levels;
-        int w = width, hh = height;
-        bool all = true;
-        for (int l = 0; l < t.levels && w >= 4 && hh >= 4 && all; ++l) {
-            levels.emplace_back();
-            all = ReadImageLevel(t.image, l, w, hh, &levels.back());
-            w = w > 1 ? w / 2 : 1;
-            hh = hh > 1 ? hh / 2 : 1;
-        }
-        if (!all || levels.empty()) continue;
-        ++c.textures;
-        // Each level and level 0 box-filtered down to 4 x 4 (or less): the file's own filtering of
-        // a level (1-bit alpha kept 0 or 1, sharpened colours) changes its texels, not those averages.
-        auto summary = [](std::vector<std::uint8_t> level, int w, int hh) {
-            while (w > 4 || hh > 4) level = HalveLevel(level, &w, &hh);
-            return level;
-        };
-        const std::vector<std::uint8_t> reference = summary(levels[0], width, height);
-        w = width;
-        hh = height;
-        for (std::size_t l = 1; l < levels.size(); ++l) {
-            w = w > 1 ? w / 2 : 1;
-            hh = hh > 1 ? hh / 2 : 1;
-            const std::vector<std::uint8_t> mine = summary(levels[l], w, hh);
-            std::uint32_t sum = 0;
-            for (std::size_t i = 0; i < reference.size(); ++i)
-                sum += static_cast<std::uint32_t>(reference[i] > mine[i] ? reference[i] - mine[i] : mine[i] - reference[i]);
-            double difference = static_cast<double>(sum) / static_cast<double>(reference.size());
-            ++c.levels;
-            if (difference > c.worst) {
-                c.worst = difference;
-                c.worstWidth = width;
-                c.worstHeight = height;
-                c.worstLevel = static_cast<int>(l);
-                c.worstFormat = t.mmpFormat;
-            }
-        }
+        if (!t.composed && t.image) held.push_back({t.image, t.width, t.height, t.levels, t.mmpFormat});
     }
-    return c;
+    return held;
 }
 
 }   // namespace render

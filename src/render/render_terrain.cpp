@@ -716,7 +716,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     fs.fogOn = f.fogEnabled ? 1 : 0;
     RippleOffsets(fs.ripples, fs.slowRipples);
     SurfaceUniforms(&fs);
-    OcclusionUniforms(batch.occluded && mode != kLevels, fs.occlusion, fs.occlusionMap);
+    OcclusionUniforms(batch.occluded && mode != kLevels, fs);
     const SceneLightParams light = SceneLightUniforms(f);
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainVsParams, vs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainFsParams, fs);

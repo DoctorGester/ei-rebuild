@@ -98,15 +98,20 @@ struct MeshFsParams {
     int alphaFunc;         // the alpha test's (0 off)
     int alphaReference;
     float4 patchTo;        // stage 0's patch (render::TexturePatch): its rectangle (u0, v0, u1, v1), zero: none
-    float4 patchMap;       // the patch texture's coordinates: uv * xy + zw
+    float2 patchScale;     // the patch texture's coordinates: uv * patchScale + patchOffset
+    float2 patchOffset;
     float4 patchInside;    // ... kept inside its rectangle (u0, v0, u1, v1)
     int unitShadow;        // a unit's mesh: the map's shadows from unitFront, its object's nearest depth in the map
     float unitFront;       // (MeshBatch::front)
     int pointShadows;      // the point shadows taken (the landscape rows set)
     int pointUnit;         // ... by a unit's mesh, from pointFront
     float4 pointFront;     // per map: a unit's nearest distance to the light (MeshBatch::pointFront)
-    float4 occlusion;      // ambient_occlusion's `on` (a world mesh lit here)
-    float4 occlusionMap;   // ... and `map`
+    int occlusionOn;       // ambient_occlusion's arguments (a world mesh lit here)
+    int occlusionView;     // the harness's occlusion view (SetOcclusion's View)
+    float occlusionDepthOffset;
+    float occlusionDepthScale;
+    float2 occlusionScale;
+    float2 occlusionTexel;
     // A world mesh's weather (render_weather.cpp; 0 elsewhere): the wetness, the snow cover, its kind (a mesh, a
     // unit's or an interface figure's) and towards the sun (the landscape's space) and its colour.
     float wet;
@@ -371,13 +376,14 @@ float4 Shade(VsOut i) {
                                i.shadow.xy);
     if (!unit && !groundPrint && hidden > 0.0) hidden *= shadow_facing(i.shadow.xyz, dsx, dsy);
     float4 diffuse = i.col;
-    float occlusion = ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
+    float occlusion = ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusionOn, fs.occlusionDepthOffset,
+                                        fs.occlusionDepthScale, fs.occlusionScale, fs.occlusionTexel);
     if (lighting.lit != 0) diffuse.rgb = figure_light(i.model, i.normal, i.land, face, pixel_turn(i.pos.xy), occlusion);
     float4 current = diffuse;
     float4 t0 = tex0.Sample(smp0, i.uv);
     // Stage 0's patch: inside its rectangle the texels come from the patch texture (a unit's face).
     float2 w = i.uv - floor(i.uv);
-    float4 tp = tex2.Sample(smp2, clamp(w * fs.patchMap.xy + fs.patchMap.zw, fs.patchInside.xy, fs.patchInside.zw));
+    float4 tp = tex2.Sample(smp2, clamp(w * fs.patchScale + fs.patchOffset, fs.patchInside.xy, fs.patchInside.zw));
     if (all(w >= fs.patchTo.xy) && all(w < fs.patchTo.zw)) t0 = tp;
     if (fs.colourStage0.x > 1) {
         current = stage(fs.colourStage0, fs.alphaStage0, current, diffuse, t0, i.spec);
@@ -387,7 +393,7 @@ float4 Shade(VsOut i) {
         }
     }
     if (fs.alphaFunc != 0 && !passes(fs.alphaFunc, current.a, fs.alphaReference)) discard;
-    if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, current.a);   // the harness's occlusion view
+    if (fs.occlusionView != 0) return float4(occlusion.xxx, current.a);   // the harness's occlusion view
     float3 rgb = current.rgb;
     if (fs.specular != 0) rgb = saturate(rgb + i.spec.rgb);
     if (shadow.shadowView != 0) return float4((1.0 - hidden).xxx, current.a);   // the harness's shadowview

@@ -375,7 +375,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
         fs.unitFront = batch.front;
         vs.normalOffset = 0.0f;
     }
-    OcclusionUniforms(batch.occluded, fs.occlusion, fs.occlusionMap);
+    OcclusionUniforms(batch.occluded, fs);
     // The weather's kinds in mesh.hlsl.
     constexpr int kUnitWeather = 1;
     constexpr int kFigureWeather = 2;
@@ -416,8 +416,11 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     if (s.patch.texture) {
         for (int k = 0; k < 4; ++k) {
             fs.patchTo[k] = s.patch.to[k];
-            fs.patchMap[k] = s.patch.map[k];
             fs.patchInside[k] = s.patch.inside[k];
+        }
+        for (int k = 0; k < 2; ++k) {
+            fs.patchScale[k] = s.patch.map[k];
+            fs.patchOffset[k] = s.patch.map[2 + k];
         }
     }
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockMeshVsParams, vs);
