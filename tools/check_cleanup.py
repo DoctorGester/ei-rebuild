@@ -415,9 +415,16 @@ def count_single_override_downcasts(text, rel):
 
 # A virtual that nothing calls, and an empty virtual that is still called (round 4 Z4; `Unused14` through
 # `NotifyCompanion`). The declaring file (the first) holds the count.
+# Unreached gameplay code that stays (user, "keep gameplay code"; C161, C166): the overkill test (MapObject::IsOverkilled,
+# hit points below -5 times the maximum) and the weapon model removal (Unit::RemoveWeaponModel, the counterpart of
+# WeaponAdded) have both overrides written and no caller; they are kept to be called when that gameplay is switched on.
+UNREACHED_GAMEPLAY_VIRTUALS = {'IsOverkilled', 'RemoveWeaponModel'}
+
+
 @wants_path
 def count_virtuals_never_called(text, rel):
-    return sum(1 for v in _virtuals().values() if v['calls'] == 0 and rel == v['declared'][0])
+    return sum(1 for name, v in _virtuals().items()
+               if v['calls'] == 0 and rel == v['declared'][0] and name not in UNREACHED_GAMEPLAY_VIRTUALS)
 
 
 @wants_path
@@ -644,9 +651,9 @@ PATTERNS = {
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
     # The system's own sin, cos, pow ... round differently on each system; game code calls src/lib/maths.h's
-    # (docs/notes/float-maths.md, "Maths functions"). Left at 4 (C161): script_addon_math.cpp's Sin / Cos / Pow (Rebirth's
-    # script functions answer the CRT's own results; lib:: would move a script's value by an ulp) and bink_audio.cpp's
-    # double pow (the decoder is checked bit for bit against the oracle).
+    # (docs/notes/float-maths.md, "Maths functions"). Two files keep it, by EXEMPT below (C161, C166):
+    # script_addon_math.cpp's Sin / Cos / Pow (Rebirth's script functions answer the CRT's own results; lib:: would move
+    # a script's value by an ulp) and bink_audio.cpp's double pow (the decoder is checked bit for bit against the oracle).
     'system maths function': re.compile(
         r'\bstd::(?:sin|cos|tan|asin|acos|atan|atan2|exp|exp2|expm1|log|log2|log10|log1p|pow|hypot|cbrt|sinh|cosh|tanh)'
         r'\s*\('),
@@ -702,9 +709,8 @@ PATTERNS = {
     'field with two start values (initialiser, constructor or Reset)': count_double_start_states,
     # A k* constant at namespace scope defined in two files with different values (count_conflicting_constants above).
     'constant defined twice with another value': count_conflicting_constants,
-    # Virtuals nobody calls, and empty virtuals that are still called (count_virtuals_never_called above). Left at 2
-    # (C161), unreached gameplay code that stays (user, "keep gameplay code"): MapObject::IsOverkilled and
-    # Unit::RemoveWeaponModel.
+    # Virtuals nobody calls, and empty virtuals that are still called (count_virtuals_never_called above; the two
+    # unreached gameplay virtuals it leaves out are named there).
     'virtual never called': count_virtuals_never_called,
     'empty virtual still called': count_empty_virtuals_called,
     # Maths helpers take and return values (round 4 Z5): a helper over the address of a constant, ConstPtr<>(2.0f), a
@@ -746,7 +752,7 @@ PATTERNS = {
 NOT_CONTAINERS = {'FootprintCellSet', 'EffectIdMap', 'MapObjectIdMap', 'UnitSet', 'RegionMap', 'PlatformSet'}
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
           'hand-written vector maths': ('src/lib/vecmath.h', 'src/lib/maths.h'),   # maths.h: Hypot's doubles
-          'system maths function': 'src/lib/maths.h',
+          'system maths function': ('src/lib/maths.h', 'src/game/script_addon_math.cpp', 'src/video/bink_audio.cpp'),
           'copied small helper (IsZero, 1/255, server running)': 'src/lib/', 'own integer reader': 'src/lib/',
           # The streams and buffers own their cursors; src/lib's readers are the shared ones.
           'cursor moved by hand after memcpy': ('src/lib/', 'src/game/core_streams.cpp', 'src/game/game_buffer',

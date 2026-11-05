@@ -36,9 +36,13 @@ static void Keep(std::deque<Sample<N>>& samples, const Sample<N>& s) {
     while (!samples.empty() && s.when - samples.front().when > second) samples.pop_front();
 }
 
-// The frames: their interval since the last present, the CPU times, each pass's draws (FrameDraws + pass).
-enum FrameValue { Interval, SubmitMs, ShadowCpuMs, FrameDraws, FrameValues = FrameDraws + kPasses };
-static std::deque<Sample<FrameValues>> g_frames;
+// The frames: their interval since the last present, the CPU times, each pass's draws (kFrameDraws + pass).
+constexpr int kInterval = 0;
+constexpr int kSubmitMs = 1;
+constexpr int kShadowCpuMs = 2;
+constexpr int kFrameDraws = 3;
+constexpr int kFrameValues = kFrameDraws + kPasses;
+static std::deque<Sample<kFrameValues>> g_frames;
 static long long g_lastPresent = 0;
 static double g_cpu[static_cast<int>(Cpu::Count)] = {};   // this frame's
 static double g_draws[kPasses] = {};                      // this frame's
@@ -213,12 +217,12 @@ void FrameDone() {
     if (!g_on) return;
     long long now = Ticks();
     if (g_lastPresent) {
-        Sample<FrameValues> s;
+        Sample<kFrameValues> s;
         s.when = now;
-        s.values[Interval] = static_cast<double>(now - g_lastPresent) * kMsPerTick;
-        s.values[SubmitMs] = g_cpu[static_cast<int>(Cpu::Submit)];
-        s.values[ShadowCpuMs] = g_cpu[static_cast<int>(Cpu::Shadow)];
-        for (int p = 0; p < kPasses; ++p) s.values[FrameDraws + p] = g_draws[p];
+        s.values[kInterval] = static_cast<double>(now - g_lastPresent) * kMsPerTick;
+        s.values[kSubmitMs] = g_cpu[static_cast<int>(Cpu::Submit)];
+        s.values[kShadowCpuMs] = g_cpu[static_cast<int>(Cpu::Shadow)];
+        for (int p = 0; p < kPasses; ++p) s.values[kFrameDraws + p] = g_draws[p];
         Keep(g_frames, s);
     }
     g_lastPresent = now;
@@ -269,17 +273,17 @@ void Release() {
 Numbers Current() {
     Numbers n;
     if (!g_frames.empty()) {
-        double sum[FrameValues] = {};
+        double sum[kFrameValues] = {};
         for (const auto& s : g_frames) {
-            for (int k = 0; k < FrameValues; ++k) sum[k] += s.values[k];
-            n.worstFrameMs = std::max(n.worstFrameMs, s.values[Interval]);
+            for (int k = 0; k < kFrameValues; ++k) sum[k] += s.values[k];
+            n.worstFrameMs = std::max(n.worstFrameMs, s.values[kInterval]);
         }
         float count = static_cast<float>(static_cast<int>(g_frames.size()));
-        n.frameMs = sum[Interval] / count;
+        n.frameMs = sum[kInterval] / count;
         n.fps = n.frameMs > 0.0 ? 1000.0 / n.frameMs : 0.0;
-        n.submitMs = sum[SubmitMs] / count;
-        n.shadowCpuMs = sum[ShadowCpuMs] / count;
-        for (int p = 0; p < kPasses; ++p) n.draws[p] = sum[FrameDraws + p] / count;
+        n.submitMs = sum[kSubmitMs] / count;
+        n.shadowCpuMs = sum[kShadowCpuMs] / count;
+        for (int p = 0; p < kPasses; ++p) n.draws[p] = sum[kFrameDraws + p] / count;
     }
     if (!g_gpu.empty()) {
         double sum = 0.0;

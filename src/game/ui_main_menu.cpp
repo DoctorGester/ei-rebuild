@@ -175,16 +175,10 @@ void MainMenu::MessageResult(std::uint32_t result) {
     g_gameFlow.UseResources(false);
     g_serverWorld.SetServerPaused(0);
     if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) {
-        {
-            std::string path = g_dataFolder + kExitMovie;
-            PlayMovie(path, false, true, true);
-        }
+        PlayMovie(g_dataFolder + kExitMovie, false, true, true);
         platform::PostQuit(0);
     } else if (result == BoxResult(MessageQuestion::Second, MessageAnswer::Ok)) {
-        {
-            std::string path = g_dataFolder + kIntroMovie;
-            PlayMovie(path, true, true, true);
-        }
+        PlayMovie(g_dataFolder + kIntroMovie, true, true, true);
         app::g_interfaceHasScreen = 0;
         g_gameFlow.RequestState3();
     } else if (result == 0xCCCCCCCC) {

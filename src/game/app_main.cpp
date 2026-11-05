@@ -115,10 +115,7 @@ void ReadCommandLine(const char* commandLine) {
     WorldClient* client = &g_clientWorld;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
-            {
-                std::string folder = Tail(arguments[i], 11);
-                g_movieFolder = folder;
-            }
+            g_movieFolder = Tail(arguments[i], 11);
             if (g_movieFolder.back() != '\\') g_movieFolder += '\\';
             continue;
         }
@@ -168,21 +165,11 @@ void OpenSound() {
     std::string textFolder = g_textFolder;
     std::string dataFolder = g_dataFolder;
     g_clientWorld.sounds->Open(true, 44100);
-    {
-        std::string registry = textFolder + "streamsn.reg";
-        std::string folder = dataFolder + "stream\\";
-        g_clientWorld.sounds->SetPath(folder, registry);
-    }
-    {
-        std::string effects = textFolder + "sfx.res";
-        SoundManager* sound = g_clientWorld.sounds.get();
-        sound->ClearWaveSources();
-        sound->AddWaveSource(effects);
-    }
-    {
-        std::string speech = dataFolder + "res\\speech.res";
-        g_clientWorld.sounds->AddWaveSource(speech);
-    }
+    SoundManager* sound = g_clientWorld.sounds.get();
+    sound->SetPath(dataFolder + "stream\\", textFolder + "streamsn.reg");
+    sound->ClearWaveSources();
+    sound->AddWaveSource(textFolder + "sfx.res");
+    sound->AddWaveSource(dataFolder + "res\\speech.res");
     g_clientWorld.sounds->SetEffectsVolume(options->audioSfx);
     g_clientWorld.sounds->SetSpeechVolume(options->audioSpeech);
     g_clientWorld.sounds->SetMusicVolume(options->audioStreaming);

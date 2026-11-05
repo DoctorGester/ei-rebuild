@@ -5,3 +5,5 @@ size = 1
 model = "sonnet"
 note = "After C165: 6 scope blocks around a temporary (app_main.cpp, ui_main_menu.cpp, left for MOD3b), 4 system maths functions, 1 enum never used as a type, 2 virtuals never called. To 0 or a stated reason in the checker. Goldens the same; verify+release 0 warnings; WSL warning compile."
 order = 1211
+status = "review"
+started = "2026-11-05"
