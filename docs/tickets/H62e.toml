@@ -4,5 +4,6 @@ group = "harness"
 depends = ["H62c"]
 note = "Windows CI runs 42016421240 and 42039247533: render_shadows_decals passes on the vanilla stub set but fails on Rebirth's (diffcapture decals bare 0.0000%, printlight no pixel differs): C159 kept the prints, zone2's ground pages and the hero's skin layers only in the vanilla stub set (KEPT_VANILLA, linux.md 'The stub data'). Keep them in the Rebirth set too (about 23 MB) or leave the scenario out of the Rebirth CI runs by measured reason; the Linux job runs the same Rebirth set."
 order = 1213
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"

@@ -5,5 +5,6 @@ size = 1
 model = "sonnet"
 note = "User 2026-11-05: the README screenshots look low quality (MSAA off, unsmoothed text); is text smoothing needed as an option? (1) Text smoothing: ui_font.cpp follows platform::FontSmoothing() (the desktop's SPI_GETFONTSMOOTHING on Windows; false in an isolated harness run). Make it always on in the game (drop the desktop query and the machine.cpp functions if nothing else uses them); harness runs too if their captures stay deterministic, else keep isolated runs unsmoothed and say why. (2) Retake docs/screenshots/*.png (the five README shots: Rebirth town with sun shadows, widescreen HUD, Rebirth snow, night town with torch, main menu in rain) through harness scenarios at 3840x2160 with 'msaa 8' and 'anisotropy 16' and smoothed text, downscaled to a sensible PNG size (about 1920 wide, under ~1.5 MB each); add 3-4 more for the 1.0 release notes (Lost in Astral on Rebirth, the mod list in the main menu, water reflections, a battle with effects), mixing GOG and Rebirth data (screenshots are allowed in the public repo; never game files). Update README's table/captions. The scenarios that take them can live under tests/scenarios/screenshots_* (not in the suites). Goldens the same unless (1) changes frames that a samecapture compares (say which)."
 order = 1219
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
