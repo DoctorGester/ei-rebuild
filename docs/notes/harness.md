@@ -75,7 +75,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window (coordinates in the
   800x600 interface layout); Esc and mouse clicks reach the interface. `clickregion/rclickregion/dblclickregion/
   moveregion <n>` do the same at the centre of region `<n>` of the window on top (region numbers as the screen's code
-  uses them; ui.md). `hold <mods>` / `release <mods>` press and release Ctrl / Shift / Alt (`ctrl shift alt`), and the
+  uses them; ui.md); they post the events only and leave the harness's cursor (what the game polls each frame: the
+  tooltips, the hover) where the last plain mouse step put it, so a hover check moves with `move` (`ui_tooltip_switch`). `hold <mods>` / `release <mods>` press and release Ctrl / Shift / Alt (`ctrl shift alt`), and the
   same words after a key or mouse step's arguments (`click 400 560 shift`, `key 1 ctrl`) hold them around that step
   (`ui_modifier_keys.txt`). `clickunit <name> [l|r|move|dbl] [mods]` clicks the unit with that script name where the
   game's own picking finds it this frame (`dbl` sends only a double click's second half); `clickunit #<id>` picks a map

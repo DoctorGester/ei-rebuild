@@ -619,8 +619,8 @@ struct UiTooltip : UiWindow {
     void PaintLines(UiSurface& surface) const;
     // Rebirth-patched (WideScreen). One step of the showing, mouse in layout coordinates;
     // Hovered waits for the delay (setting 20; 0: never shown), then makes the surface at the mouse, painted from
-    // then on (Appearing); Appearing becomes Shown; Disappearing waits while the timer is positive, then drops the
-    // surface (Idle).
+    // then on (Appearing), or goes back to Idle when the mouse has left the region; Appearing becomes Shown;
+    // Disappearing waits while the timer is positive, then drops the surface (Idle).
     void OnMouseMove(Point point);
     void Draw(SceneRenderer* pass) override;
     void Redraw() override;
