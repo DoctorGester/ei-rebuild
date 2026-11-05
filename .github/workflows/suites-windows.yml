@@ -147,7 +147,7 @@ jobs:
       # Microsoft's WARP (NuGet; H62g): version and the package's checksums.
       WARP_VERSION: "1.0.21"
       WARP_SHA512: "lSVCC7GxvoyjCE4YmoxaSjAIB/rXsfSuCSiZSbHLgsJvN+7IQ5hTcpyZWU3TWF1onaZqE50EEJ3Tsh78XAKLEA=="
-      WARP_SHA256: ""
+      WARP_SHA256: "ea44b77eb30eec14427193e20f40cdb2e4c31ed11ab39cb880538fdf4bac2681"
       # Linux's factor (3: suites-linux.yml; linux.md, "The CI job") times WARP's pace against lavapipe's on the same
       # runner class: the 166 runs that passed on both, one game at a time, took a median 2.4 times as long here (run
       # 42016421240 against Linux's 42040984380; docs/notes/harness.md, "The Windows CI job").
