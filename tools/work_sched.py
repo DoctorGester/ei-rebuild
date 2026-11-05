@@ -55,10 +55,15 @@ if _kernel32:
     _kernel32.OpenProcess.restype = ctypes.c_void_p
     _kernel32.OpenProcess.argtypes = (ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong)
     _kernel32.GetExitCodeProcess.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong))
+    _kernel32.GetProcessTimes.argtypes = (ctypes.c_void_p,) + (ctypes.POINTER(ctypes.c_ulonglong),) * 4
     _kernel32.CloseHandle.argtypes = (ctypes.c_void_p,)
 
 
-def pid_alive(pid):
+def pid_alive(pid, since=None):
+    """True while process pid runs. since (an ISO time, a batch's submitted): the process must have been created by
+    then, else it is a later process that Windows gave the same id (R52c1: a finished batch's reused submitter pid held
+    its run folders, and the next batch of the same scenario waited on them forever). The stamp has whole seconds, so a
+    process created up to a second after it still counts. Elsewhere only the id is checked."""
     if not pid:
         return False
     if not _kernel32:
@@ -72,7 +77,15 @@ def pid_alive(pid):
         return ctypes.get_last_error() == 5           # access denied: it exists
     try:
         code = ctypes.c_ulong()
-        return bool(_kernel32.GetExitCodeProcess(h, ctypes.byref(code))) and code.value == 259   # STILL_ACTIVE
+        if not (_kernel32.GetExitCodeProcess(h, ctypes.byref(code)) and code.value == 259):   # STILL_ACTIVE
+            return False
+        if since is None:
+            return True
+        created, unused = ctypes.c_ulonglong(), [ctypes.c_ulonglong() for _ in range(3)]
+        if not _kernel32.GetProcessTimes(h, ctypes.byref(created), *(ctypes.byref(u) for u in unused)):
+            return True                                # no times: the id is all there is
+        created_epoch = (created.value - 116444736000000000) / 1e7   # FILETIME: 100 ns steps since 1601
+        return created_epoch <= datetime.datetime.fromisoformat(since).timestamp() + 1
     finally:
         _kernel32.CloseHandle(h)
 
@@ -331,8 +344,8 @@ class Scheduler:
         return self.stale and not self.games and not self.finishing
 
     def check_submitters(self):
-        for b in self.db.execute("SELECT id, submitter FROM batch WHERE state IN ('queued', 'running')").fetchall():
-            if b['submitter'] and not pid_alive(b['submitter']):
+        for b in self.db.execute("SELECT id, submitter, submitted FROM batch WHERE state IN ('queued', 'running')").fetchall():
+            if b['submitter'] and not pid_alive(b['submitter'], b['submitted']):
                 cancel(self.db, b['id'])
                 self.log(f'batch #{b["id"]}: its work.py test (pid {b["submitter"]}) is gone; queued runs cancelled')
 
@@ -450,7 +463,8 @@ class Scheduler:
 
     def reserved_folders(self):
         """{run folder: the lowest id of the batches that still need what its last game wrote}: the folders of the runs
-        of every batch not finished, and of a finished batch while its work.py test is still alive (its --golden
+        of every batch not finished, and of a finished batch while its work.py test is still alive (pid_alive with the
+        batch's submitted time: a reused id is not its process; its --golden
         comparison and summary read the run folders after the last game, H54: a rerun by name of a scenario of a
         suite in the same build emptied the folder under the suite's comparison, which then counted a passing run as
         differing). A batch starts no run in a folder an earlier batch holds; waiting only on earlier batches
@@ -458,12 +472,12 @@ class Scheduler:
         newest = self.db.execute('SELECT max(id) FROM batch').fetchone()[0] or 0
         alive = {}
         held = {}
-        for r in self.db.execute("SELECT run.folder, batch.id, batch.state, batch.submitter FROM run JOIN batch ON batch.id = run.batch "
+        for r in self.db.execute("SELECT run.folder, batch.id, batch.state, batch.submitter, batch.submitted FROM run JOIN batch ON batch.id = run.batch "
                                  "WHERE run.state != 'cancelled' AND (batch.state IN ('queued', 'running') "
                                  "OR (batch.state = 'finished' AND batch.id > ?))", (newest - FINISHED_BATCHES_KEPT,)):
             if r['state'] == 'finished':
                 if r['id'] not in alive:
-                    alive[r['id']] = pid_alive(r['submitter'])
+                    alive[r['id']] = pid_alive(r['submitter'], r['submitted'])
                 if not alive[r['id']]:
                     continue
             held[r['folder']] = min(r['id'], held.get(r['folder'], r['id']))
