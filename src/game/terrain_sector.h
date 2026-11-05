@@ -109,7 +109,7 @@ struct SectorData {
     SectorBox box{};
     TransformPipeline::ClipResult clipMode = TransformPipeline::ClipResult::Outside;   // the box's clip test verdict
     SectorBox quarters[4]{};
-    TransformPipeline::ClipResult quarterMode[4] = {};   // the quarters' (kClipInside until tested)
+    TransformPipeline::ClipResult quarterMode[4] = {};   // the quarters' (ClipResult::Inside until tested)
     float minZ = 0.0f;
     float maxZ = 0.0f;
     std::vector<std::uint8_t> waterMaterials;

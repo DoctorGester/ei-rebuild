@@ -78,8 +78,8 @@ int WeaponTypeOf(ItemWeapon* weapon) { return static_cast<int>(weapon->GetType()
 // (regions 0-3).
 std::string HudStateOf(void* window, const std::string& argument) {
     auto* battle = static_cast<BattleScreen*>(window);
-    Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", window, battle->pendingAction,
-        battle->pendingSlot, battle->pendingItem, static_cast<int>(std::ssize(battle->party)));
+    Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", window,
+        static_cast<int>(battle->pendingAction), battle->pendingSlot, battle->pendingItem, static_cast<int>(std::ssize(battle->party)));
     for (int i = 0; i < std::ssize(battle->party) && i < 8; ++i) {
         Unit* member = battle->party[i];
         if (!member) continue;

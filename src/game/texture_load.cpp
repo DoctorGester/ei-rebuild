@@ -106,7 +106,7 @@ Surface* DecodedHolder(TextureDevice* device, const Texture* texture, const MmpF
     if (!render::TextureFromMmp(holder, file, mip, levels) && !g_undecodedLogged) {
         g_undecodedLogged = true;
         ei::Log("cpuwindows: an .mmp texture the new renderer does not decode (format %08X) shows nothing",
-                file.header.format);
+                static_cast<unsigned>(file.header.format));
     }
     return holder;
 }
