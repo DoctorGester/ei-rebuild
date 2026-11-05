@@ -122,8 +122,8 @@ On a Rebirth install the main menu has a mod list at its bottom left: "No mod" a
 with a `config.reg`, titled by the mod's own name. Picking one switches the game to it at once and stores the choice in
 `ei_settings.ini` (`[game] Mod = starter\Mods\LostInAstral`, the mod's folder relative to the exe, or a full path;
 empty for no mod). A mod's files stand over the game's (its archives are combined with the game's), and its saves go
-to `saves\<mod>\`, apart from the plain game's. Lost in Astral starts and plays; its cut-scenes and later zones are
-still being checked. How it works: `docs/notes/mods.md`.
+to `saves\<mod>\`, apart from the plain game's. Lost in Astral plays through to its ending (its cut-scene bases, later quests and
+credits are scenarios). How it works: `docs/notes/mods.md`.
 
 ## Test
 
