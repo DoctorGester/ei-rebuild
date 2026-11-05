@@ -66,6 +66,110 @@ class RoundThreePatternTest(unittest.TestCase):
         self.assertEqual(check_cleanup.count_unused_enums('enum class ClassId : std::uint8_t { A, B };'), 0)
 
 
+class RoundFourPatternTest(unittest.TestCase):
+    def test_random_word_scaled_by_hand(self):
+        name = 'random word scaled by hand (Range copy)'
+        self.assertEqual(pattern_count(name, 'x = Next() * 0x1p-32f + low; y = r * 2.3283064e-10f; z = w * kTwoToMinus32;'), 3)
+        self.assertEqual(pattern_count(name, 'x = g_random.Range(low, high); float tiny = 1e-10f; auto a = 0x1p-3f;'), 0)
+
+    def test_float_helper_over_addresses(self):
+        name = 'float helper over addresses (ConstPtr, out pointer)'
+        self.assertEqual(pattern_count(name, 'void HeightPlus(const float* base, const float* add, float* out);'), 1)
+        self.assertEqual(pattern_count(name, 'auto p = ConstPtr(2.0f); x = kFloatConstant<1>;'), 2)
+        self.assertEqual(pattern_count(name, 'float Lerp(float a, float b, float t); void Copy(const float* src, int n);'), 0)
+
+    def test_x87_store_residue(self):
+        name = 'x87 store residue (volatile float, store and reload)'
+        self.assertEqual(pattern_count(name, 'volatile float zero = 0.0f;'), 1)
+        self.assertEqual(pattern_count(name, 'float stored = x; x = stored;'), 1)
+        self.assertEqual(pattern_count(name, 'float copy = x; y = copy;'), 0)
+
+    def test_pointer_parameters_and_namespaces(self):
+        name = 'const string or vector pointer parameter'
+        self.assertEqual(pattern_count(name, 'void Load(const std::string* path, int mode); void Add(int a, const std::vector<int>* list);'), 2)
+        self.assertEqual(pattern_count(name, 'void Fill(std::vector<int>* out); void Name(const std::string& path);'), 0)
+        self.assertEqual(pattern_count('empty namespace', 'namespace { }\nnamespace a {\n}\nnamespace { int x; }'), 2)
+
+    def test_windows_names(self):
+        count = lambda code: len(check_cleanup._WINDOWS_NAME.findall(code))
+        self.assertEqual(count('HWND window; case WM_KEYUP: GetTickCount(); #include <windows.h>'), 4)
+        self.assertEqual(count('int DispatchMessages(); void TranslateKey(); std::uint32_t TickCount();'), 0)
+
+    def test_number_function_in_header(self):
+        count = lambda code, rel: check_cleanup.count_number_functions_in_headers(code, rel)
+        self.assertEqual(count('float MaxReach() { return 12.5f; }\nint Count() const { return 3; }\n', 'src/game/x.h'), 2)
+        self.assertEqual(count('virtual int Stage() { return 0; }\nint Kind() const override { return 3; }\n', 'src/game/x.h'), 0)
+        self.assertEqual(count('float MaxReach() { return 12.5f; }\n', 'src/game/x.cpp'), 0)
+
+    def test_printf_like_function(self):
+        rx = check_cleanup._PRINTF_LIKE
+        self.assertEqual([m.group(1) for m in rx.finditer('int Error(Script* s, const char* format, ...);')], ['Error'])
+        self.assertEqual([m.group(1) for m in rx.finditer('void FormatV(const char* fmt, va_list args);')], ['FormatV'])
+        self.assertEqual(len(rx.findall('void Say(const std::string& text); void Many(int n, ...);')), 0)
+
+    def test_conflicting_constants(self):
+        saved = check_cleanup._constants
+        try:
+            code = 'constexpr int kNoWeapon = 0x10;\nstatic constexpr float kNoRange{1e38f};\n  constexpr int kNoLocal = 4;\nconstexpr float kMargin = 2.0f;\n'
+            found = {m.group(1): check_cleanup._value(m.group(2) if m.group(2) is not None else m.group(3))
+                     for m in check_cleanup._K_DEFINITION.finditer(code)}
+            self.assertEqual(found, {'kNoWeapon': 16.0, 'kNoRange': 1e38, 'kMargin': 2.0})   # column 0 only
+            check_cleanup._constants = {'kNoWeapon': {'a.cpp': 16.0, 'b.cpp': 7.0}, 'kMargin': {'a.cpp': 2.0, 'b.cpp': 1.0},
+                                        'kNoRange': {'a.cpp': 1e38, 'b.cpp': 1e38}}
+            self.assertEqual(check_cleanup.count_conflicting_constants('', 'a.cpp'), 1)    # kMargin is a tuning number
+            self.assertEqual(check_cleanup.count_conflicting_constants('', 'c.cpp'), 0)
+            self.assertEqual(check_cleanup._value('0x10u'), check_cleanup._value('16'))
+            self.assertEqual(check_cleanup._value('1.0f'), check_cleanup._value('1'))
+        finally:
+            check_cleanup._constants = saved
+
+    def test_renamed_flag_bit(self):
+        saved = check_cleanup._flag_owners
+        try:
+            check_cleanup._flag_owners = {0x80000: {'src/game/map_object.h'}}
+            code = 'constexpr std::uint32_t kFlagNearbyListed = 0x80000;\nconstexpr int kFlagSmall = 0x10;\n'
+            self.assertEqual(check_cleanup.count_renamed_flag_bits(code, 'src/game/unit_ai.cpp'), 1)
+            self.assertEqual(check_cleanup.count_renamed_flag_bits(code, 'src/game/map_object.h'), 0)   # the owner's own file
+        finally:
+            check_cleanup._flag_owners = saved
+
+    def test_virtual_index(self):
+        tree = {'a.h': 'struct B { virtual B* AsKid() { return nullptr; } virtual void Unused() {} virtual void Idle() {}\n'
+                       '  virtual bool IsLonely() { return false; } virtual int Never() = 0; };\n'
+                       'struct K : B { K* AsKid() override; bool IsLonely() override { return true; } };\n',
+                'a.cpp': 'K* K::AsKid() { return this; }\nvoid Run(B* b) { b->Unused(); if (b->AsKid()) Idle(); }\n'}
+        index = check_cleanup._index_virtuals(tree)
+        self.assertEqual((index['AsKid']['overrides'], index['AsKid']['calls']), (1, 1))
+        self.assertEqual((index['Unused']['empty'], index['Unused']['definitions'], index['Unused']['calls']), (1, 1, 1))
+        self.assertEqual(index['Idle']['calls'], 1)             # a call from a member, no object in front
+        self.assertEqual((index['IsLonely']['overrides'], index['IsLonely']['calls']), (1, 0))
+        self.assertEqual(index['Never']['calls'], 0)
+
+    def test_two_start_states(self):
+        inits = {'Zz': {'count': 0.0, 'scale': 1.0, 'owner': 'nullptr'}}
+        code = ('struct Zz { int count = 0; float scale = 1.0f; Zz* owner = nullptr; Zz(Zz* from) : owner(from) { count = 5; }\n'
+                '  void Reset() { scale = 1.0f; count = 2; } };\n')
+        self.assertEqual(check_cleanup.count_double_start_states(code, inits), 2)     # count in Zz() and in Reset()
+        outside = 'Zz::Zz() : count(7) { scale = 3.0f; }\nvoid Zz::Reset() { scale = 1.0f; }\n'
+        self.assertEqual(check_cleanup.count_double_start_states(outside, inits), 2)
+
+    def test_member_through_its_global(self):
+        singletons = {'WorldServer': {'g_serverWorld'}}
+        code = 'void WorldServer::Loot() { g_serverWorld.items.Add(); auto x = g_clientWorld.terrain; }\nvoid Free() { g_serverWorld.Loot(); }\n'
+        self.assertEqual(check_cleanup.count_members_through_global(code, singletons), 1)
+
+    def test_copied_member_bodies(self):
+        body = ('    unit->action.target = nullptr;\n    unit->action.timer = kStandTime * speed;\n'
+                '    unit->PlaySteps(kStandSteps, speed, false);\n')
+        tree = {'src/game/spell_effect.cpp': 'void A() {\n' + body + '}\n',
+                'src/game/spell_effect_update.cpp': 'void B() {\n    int x = 1;\n' + body + '}\nvoid C() {\n' + body + '}\n',
+                'src/game/spell_other.cpp': 'void D() {\n' + body + '}\n',
+                'src/game/spell_effect.h': 'void E() {\n' + body + '}\n'}
+        runs = check_cleanup._copied_runs(tree)
+        self.assertEqual((runs['src/game/spell_effect.cpp'], runs['src/game/spell_effect_update.cpp']), (0, 2))
+        self.assertEqual(runs['src/game/spell_other.cpp'], 0)      # another family
+
+
 class CommentTest(unittest.TestCase):
     def test_banned_round_three(self):
         banned = lambda text: comments.count(text, 'src/game/x.cpp')['banned words']
@@ -73,6 +177,21 @@ class CommentTest(unittest.TestCase):
                        'the scalar deleting destructor', 'the result in EAX', 'SHR by CL', 'the new renderer draws'):
             self.assertEqual(banned(f'// {phrase}\n'), 1, phrase)
         self.assertEqual(banned('// the renderer draws; EAXAMPLE is no register\n'), 0)
+
+    def test_banned_round_four(self):
+        banned = lambda text: comments.count(text, 'src/game/x.cpp')['banned words']
+        for phrase in ('hands the frame to the new renderer', 'the loop is inlined', 'the helper inlines RemoveAt', 'Names provisional',
+                       'the first 0x20 bytes of the record', 'the Direct3D device draws', 'the old path projects', 'as game.exe does',
+                       'patched, so it is called through its address', 'the sum is stored as a float'):
+            self.assertEqual(banned(f'// {phrase}\n'), 1, phrase)
+        self.assertEqual(banned('// The renderer draws; inline functions are fine; 0x20 is a size.\n'), 0)
+
+    def test_never_read(self):
+        count = lambda text: comments.count(text)['never-read comments']
+        self.assertEqual(count('int zeroed = 0;   // set by each pass, never read\n'), 1)
+        self.assertEqual(count('// nothing reads it, so it goes\n'), 1)
+        self.assertEqual(count('std::uint32_t unreadValue = 0;   // saved, never read\n'), 0)    # a format record's field
+        self.assertEqual(count('// Reads the header, then the rest.\n'), 0)
 
     def test_addon_address(self):
         count = lambda text: comments.count(text)['addon addresses']

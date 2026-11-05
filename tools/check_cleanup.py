@@ -238,8 +238,339 @@ def count_temporary_blocks(text):
                if text[:m.start()].rstrip()[-1:] in (';', '{', '}') and 'return' not in m.group(0))
 
 
+# ---- Style round 4 and round 1b (docs/rewrite-guide.md, "Style rules"): counters that read the whole tree. A counter
+# with `wants_path` also receives the file's path; the tree is read once (comments and string contents left out).
+_code_tree = None
+
+
+def _tree():
+    global _code_tree
+    if _code_tree is None:
+        _code_tree = {}
+        for path in sorted(glob.glob(os.path.join(ROOT, 'src', '**', '*.*'), recursive=True)):
+            if path.endswith(('.cpp', '.h', '.inc')):
+                with open(path, encoding='utf-8', errors='replace') as f:
+                    text = re.sub(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])\'', '""', strip_comments(f.read()))
+                _code_tree[os.path.relpath(path, ROOT).replace(os.sep, '/')] = text
+    return _code_tree
+
+
+def wants_path(function):
+    function.wants_path = True
+    return function
+
+
+def _value(text):
+    """A constant's value: a number when it is a literal (suffixes dropped, hex and decimal alike), else its text."""
+    t = re.sub(r'\s+', '', text)
+    u = re.sub(r'(?<=[0-9A-Fa-f.])[fFuUlL]+$', '', t) if not t.lower().startswith('0x') else re.sub(r'[uUlL]+$', '', t)
+    for convert in (lambda v: float(int(v, 0)), float, float.fromhex):
+        try:
+            return convert(u)
+        except ValueError:
+            pass
+    return t
+
+
+# A k* constant defined at namespace scope (column 0) in two files with different values (rule Z3): kNoNaturalWeapon was
+# 0x10, 7 and 8, kNoRange 1e38 and 1e10. A shared code lives once, in its owner's header.
+_K_DEFINITION = re.compile(r'^(?:static\s+|inline\s+)*(?:constexpr|const)\s+(?:[\w:<>]+\s+)+?(k[A-Z]\w*)\s*'
+                           r'(?:=\s*([^;]+?)|\{([^;{}]*)\})\s*;', re.M)
+_constants = None
+# Narrowed to the names of sentinels and codes (kNone, kNoRange, kFar, kKind*, kMode*, kFlag*, kMask*): a plain tuning
+# number (kLineHeight, kMargin, kThreshold) is meant to differ from file to file.
+_CODE_NAME = re.compile(r'k(?:No|None|Invalid|Unset|Any|Far|Near|Kind|Mode|State|Type|Flag|Mask|Bit)(?![a-z])')
+
+
+@wants_path
+def count_conflicting_constants(text, rel):
+    global _constants
+    if _constants is None:
+        _constants = collections.defaultdict(dict)       # name -> {file: value}
+        for path, code in _tree().items():
+            for m in _K_DEFINITION.finditer(code):
+                _constants[m.group(1)].setdefault(path, _value(m.group(2) if m.group(2) is not None else m.group(3)))
+    return sum(1 for name, where in _constants.items()
+               if _CODE_NAME.match(name) and rel in where and any(path != rel and value != where[rel] for path, value in where.items()))
+
+
+# A flag constant that gives an owner enum's bit another name (round 1b: the AI's kFlagNearbyListed = 0x80000 was
+# MapObjectFlag::RelationsChanged): a k...Flag/Bit/Mask constant with one bit of 0x100 or more, in a file other than the
+# one that defines an enumerator of an enum named ...Flag(s)/Bit(s) with that bit.
+_FLAG_ENUM = re.compile(r'\benum\s+(?:class\s+|struct\s+)?(\w*(?:Flags?|Bits?))\s*(?::\s*[\w:\s]+?)?\s*\{([^{}]*)\}')
+_FLAG_ITEM = re.compile(r'\s*(\w+)\s*=\s*(0x[0-9A-Fa-f]+|1u?\s*<<\s*\d+)\s*$')
+_FLAG_CONSTANT = re.compile(r'\bconstexpr\s+[\w:\s]+?\bk\w*(?:Flag|Bit|Mask)\w*\s*=\s*(0x[0-9A-Fa-f]+u?|1u?\s*<<\s*\d+)\s*;')
+_flag_owners = None
+
+
+def _bit(text):
+    t = text.strip().rstrip('uU')
+    m = re.match(r'1[uU]?\s*<<\s*(\d+)$', t)
+    value = (1 << int(m.group(1))) if m else int(t, 16)
+    return value if value >= 0x100 and value & (value - 1) == 0 else None
+
+
+@wants_path
+def count_renamed_flag_bits(text, rel):
+    global _flag_owners
+    if _flag_owners is None:
+        _flag_owners = collections.defaultdict(set)      # bit -> files with an enumerator of that bit
+        for path, code in _tree().items():
+            for m in _FLAG_ENUM.finditer(code):
+                for item in m.group(2).split(','):
+                    e = _FLAG_ITEM.match(item)
+                    if e and _bit(e.group(2)):
+                        _flag_owners[_bit(e.group(2))].add(path)
+    return sum(1 for m in _FLAG_CONSTANT.finditer(text)
+               if _bit(m.group(1)) in _flag_owners and rel not in _flag_owners[_bit(m.group(1))])
+
+
+# Virtuals (rule: a virtual needs two real overrides; round 1b I3, round 4 Z4). Indexed once: every `Name(...)` in the
+# tree is a call, a declaration or a definition (by what comes before it), and a definition has a body or none.
+_VIRTUAL = re.compile(r'\bvirtual\s+[\w:<>\s*&,]+?\b([A-Za-z]\w*)\s*\([^;{}]*?\)\s*(?:const\s*)?(?:noexcept\s*)?'
+                      r'(?:override\s*|final\s*)*(\{\s*return\s+(?:false|nullptr|0|NULL)\s*;\s*\}|\{\s*\}|\{|;|=\s*0\s*;)')
+_NAME_HEAD = re.compile(r'(?<![\w~])((?:\w+(?:<[^<>;]*>)?::)*)([A-Za-z_]\w*)\s*\(')
+_NAME_TAIL = re.compile(r'\s*(const\b\s*)?(?:noexcept\s*)?((?:override|final)\b\s*)*(\{\s*\}|\{)?')
+_NOT_A_TYPE = {'return', 'else', 'case', 'do', 'throw', 'co_return', 'new', 'delete', 'and', 'or', 'not', 'co_yield', 'co_await'}
+_virtual_index = None
+
+
+def _closing_paren(text, i):
+    depth = 0
+    for j in range(i, len(text)):
+        if text[j] == '(':
+            depth += 1
+        elif text[j] == ')':
+            depth -= 1
+            if depth == 0:
+                return j
+    return len(text) - 1
+
+
+def _index_virtuals(tree):
+    """name -> {'declared': files, 'default': bodies, 'overrides': n, 'definitions': n, 'empty': n, 'calls': n} of every
+    virtual declared in `tree` (path -> code)."""
+    info = {}
+    for path, code in tree.items():
+        for m in _VIRTUAL.finditer(code):
+            v = info.setdefault(m.group(1), {'declared': [], 'default': [], 'overrides': 0, 'definitions': 0, 'empty': 0,
+                                             'calls': 0})
+            v['declared'].append(path)
+            v['default'].append(m.group(2))
+    for path, code in tree.items():
+        for m in _NAME_HEAD.finditer(code):
+            v = info.get(m.group(2))
+            if v is None:
+                continue
+            before = code[max(0, m.start() - 80):m.start()].rstrip()
+            word = re.search(r'(\w+)$', before)
+            declaration = (word and word.group(1) not in _NOT_A_TYPE) or (
+                before[-1:] in ('>', '*', '&', '~') and not before.endswith(('->', '&&')))
+            tail = _NAME_TAIL.match(code, _closing_paren(code, m.end() - 1) + 1)
+            if tail.group(2):
+                v['overrides'] += 1
+            if tail.group(3):
+                v['definitions'] += 1
+                v['empty'] += tail.group(3) != '{'
+            if before.endswith(('.', '->')) or not declaration and not tail.group(3):
+                v['calls'] += 1
+    return info
+
+
+def _virtuals():
+    global _virtual_index
+    if _virtual_index is None:
+        _virtual_index = _index_virtuals(_tree())
+    return _virtual_index
+
+
+# A downcast virtual with one override (round 1b I3): `virtual X* AsFoo() { return nullptr; }` or `virtual bool IsFoo()
+# const { return false; }` in a base, one `override` in the tree. The kind field says it already: a non-virtual member
+# tests the kind (UI tokens first, now items' AsWeapon ...).
+@wants_path
+def count_single_override_downcasts(text, rel):
+    # Narrowed to the cast shapes: a pointer that answers nullptr, or an Is.../Has... that answers false (a virtual that
+    # answers 0 for a count or a stage is a policy hook, not a cast).
+    return sum(1 for name, v in _virtuals().items()
+               if v['overrides'] == 1 and rel == v['declared'][0]
+               and any(re.search(r'nullptr|NULL', d) or (re.match(r'(?:Is|Has)[A-Z]', name) and 'false' in d) for d in v['default']))
+
+
+# A virtual that nothing calls, and an empty virtual that is still called (round 4 Z4; `Unused14` through
+# `NotifyCompanion`). The declaring file (the first) holds the count.
+@wants_path
+def count_virtuals_never_called(text, rel):
+    return sum(1 for v in _virtuals().values() if v['calls'] == 0 and rel == v['declared'][0])
+
+
+@wants_path
+def count_empty_virtuals_called(text, rel):
+    return sum(1 for v in _virtuals().values()
+               if v['calls'] and v['definitions'] and v['empty'] == v['definitions'] and rel == v['declared'][0])
+
+
+# Constructors and Reset against the default initialisers (round 1b I1, T1; extends the field check above): a field
+# that has `= value` or `{value}` in its class and is assigned another value (or the same, in a constructor) in the
+# constructor's body or initialiser list, or another value in Reset(): two start states for one field.
+_INITIALISED = re.compile(r'^(?:[\w:<>,\s*&]*?[\s*&])?(\w+)\s*(?:\[[^\]]*\]\s*)?(?:=\s*([^;=][^;]*)|\{([^;{}]*)\})$')
+_FUNCTION_HEAD = re.compile(r'\b(?:(\w+)::)?(\w+)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)\s*(?:const\s*)?(?:noexcept\s*)?(:[^{;]*?)?\{')
+_ASSIGN = re.compile(r'(?:^|(?<=[;{}]))\s*(?:this->)?(\w+)\s*=\s*([^;=][^;]*);')
+_class_inits = None
+
+
+def _initialisers():
+    global _class_inits
+    if _class_inits is None:
+        _class_inits = collections.defaultdict(dict)     # class name -> {field: value}
+        for path, code in _tree().items():
+            code = _DIRECTIVE.sub('', code)
+            for m in _FIELD_CLASS.finditer(code):
+                if m.group(1) == 'union' or not m.group(2):
+                    continue
+                start = m.end() - 1
+                for statement in _class_statements(code, start + 1, _closing_brace(code, start)):
+                    body = ' '.join(statement.split())
+                    if _FIELD_SKIP.match(body) or re.search(r'\(.*[={]', body.split('=')[0]) and '(' in body.split('=')[0]:
+                        continue
+                    f = _INITIALISED.match(body)
+                    if f and '(' not in body.split('=')[0].split('{')[0]:
+                        _class_inits[m.group(2)][f.group(1)] = _value(f.group(2) if f.group(2) is not None else f.group(3))
+    return _class_inits
+
+
+def count_double_start_states(text, inits=None):
+    inits = _initialisers() if inits is None else inits
+    classes = [(m.group(2), m.end() - 1) for m in _FIELD_CLASS.finditer(text) if m.group(2)]
+    n = 0
+    for m in _FUNCTION_HEAD.finditer(text):
+        owner, name = m.group(1), m.group(2)
+        if owner is None:                                # inside a class body: the nearest class before it
+            enclosing = [c for c, at in classes if at < m.start() and _closing_brace(text, at) > m.start()]
+            owner = enclosing[-1] if enclosing else None
+        constructor = owner is not None and name == owner
+        if owner not in inits or not (constructor or name == 'Reset'):
+            continue
+        fields = inits[owner]
+        parameters = set(re.findall(r'(\w+)\s*(?:=[^,]*)?(?:,|$)', m.group(3)))     # a value from a parameter is not a start state
+        if constructor and m.group(4):
+            n += sum(1 for f, v in re.findall(r'[:,]\s*(\w+)\s*[({]([^(){}]*)[)}]', m.group(4))
+                     if f in fields and not parameters & set(re.findall(r'\w+', v)))
+        body = text[m.end():_closing_brace(text, m.end() - 1)]
+        for a in _ASSIGN.finditer(body):
+            if a.group(1) in fields and not parameters & set(re.findall(r'\w+', a.group(2))) and (
+                    constructor or _value(a.group(2)) != fields[a.group(1)]):
+                n += 1
+    return n
+
+
+# A member that reaches its own object through the global (round 4 Z9): `WorldServer::Loot` reading g_serverWorld. Inside
+# a member the object is `this`; a free function that needs a world takes it.
+_GLOBAL_OF = re.compile(r'\bextern\s+(\w+)\s+(g_\w+)\s*;')
+_MEMBER_HEAD = re.compile(r'\b(\w+)::~?\w+\s*\([^;{}]*?\)\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?(?::[^{;]*?)?\{')
+_singletons = None
+
+
+def _singleton_globals():
+    global _singletons
+    if _singletons is None:
+        _singletons = collections.defaultdict(set)       # class name -> its globals
+        for code in _tree().values():
+            for m in _GLOBAL_OF.finditer(code):
+                _singletons[m.group(1)].add(m.group(2))
+    return _singletons
+
+
+def count_members_through_global(text, singletons=None):
+    singletons = _singleton_globals() if singletons is None else singletons
+    n = 0
+    for m in _MEMBER_HEAD.finditer(text):
+        if m.group(1) in singletons:
+            body = text[m.end():_closing_brace(text, m.end() - 1)]
+            n += sum(len(re.findall(r'\b' + g + r'\b', body)) for g in singletons[m.group(1)])
+    return n
+
+
+# A member body written out again in a sibling file (round 4 Z2): three significant lines in a row that appear again in
+# a file of the same family (the same directory, the same first two words of the name: spell_effect*.cpp), in the same
+# or another place. Counted per copied run, in the later place. Lines that are only braces, `break;`, `return;` and the
+# like, and windows shorter than 90 characters, are not significant.
+_TRIVIAL = re.compile(r'^(?:[{}]+|\}\s*else\s*\{?|else\s*\{?|break;|continue;|return;|return (?:true|false|0|1|nullptr);|default:|'
+                      r'#.*|using .*|public:|private:|protected:|case [\w:]+:|\)?;|\};?)$')
+_families = None
+
+
+def _family(rel):
+    stem = os.path.splitext(os.path.basename(rel))[0]
+    return os.path.dirname(rel) + '/' + '_'.join(stem.split('_')[:2])
+
+
+def _copied_runs(tree):
+    """path -> the number of runs of lines in that .cpp file that an earlier file of its family has too."""
+    windows = collections.defaultdict(set)               # (family, three lines) -> the files that have them
+    runs = collections.Counter()
+    for path in sorted(p for p in tree if p.endswith('.cpp')):     # a header's lists of overrides repeat by design
+        lines = [(i, ' '.join(l.split())) for i, l in enumerate(tree[path].split('\n'))]
+        lines = [(i, l) for i, l in lines if l and not _TRIVIAL.match(l)]
+        seen = set()
+        for k in range(len(lines) - 2):
+            key = ' | '.join(l for _, l in lines[k:k + 3])
+            if len(key) < 90:
+                continue
+            spot = (_family(path), key)
+            if windows[spot] - {path}:
+                seen.add(k)
+            windows[spot].add(path)
+        runs[path] = sum(1 for k in seen if k - 1 not in seen)          # a run of copied windows is one copy
+    return runs
+
+
+@wants_path
+def count_copied_member_bodies(text, rel):
+    global _families
+    if _families is None:
+        _families = _copied_runs(_tree())
+    return _families[rel]
+
+
+# The platform layer's contract and the game do not speak Windows (round 4 Z11): Win32 type and message names outside
+# the Windows backend (src/platform/win32), in code. Comments may name them.
+_WINDOWS_NAME = re.compile(r'\b(?:HWND|HINSTANCE|HMODULE|HANDLE|WM_[A-Z0-9_]+|GetTickCount\w*|TranslateMessage|DispatchMessage[AW]?|'
+                           r'LPARAM|WPARAM|LRESULT|WNDPROC|WinMain|VK_[A-Z0-9_]+)\b|#\s*include\s*<windows\.h>')
+
+# A printf-like function (`const char* format, ...` or a va_list) with no format annotation on any declaration: the
+# compiler cannot check its arguments (`%lu` with a `uint32_t` got in that way; round 4 Z11).
+_PRINTF_LIKE = re.compile(r'\b(\w+)\s*\([^()]*const\s+char\s*\*\s*\w*\s*,\s*(?:\.\.\.|va_list\b)[^()]*\)')
+_printf_state = None
+
+
+@wants_path
+def count_unannotated_printf(text, rel):
+    global _printf_state
+    if _printf_state is None:
+        _printf_state = {}
+        for path, code in _tree().items():
+            for m in _PRINTF_LIKE.finditer(code):
+                head = code[max(0, m.start() - 160):m.start()]
+                declaration = head[head.rfind(';') + 1:] + m.group(0) + re.split(r'[;{]', code[m.end():m.end() + 80])[0]
+                annotated = bool(re.search(r'EI_PRINTF_FORMAT|SDL_PRINTF_VARARG_FUNC|gnu::format|__attribute__', declaration))
+                state = _printf_state.setdefault(m.group(1), [path, False])
+                state[1] = state[1] or annotated
+    return sum(1 for path, annotated in _printf_state.values() if path == rel and not annotated)
+
+
+# A header's function that only returns a number (round 4 Z8: world_data.h was the exe's .rdata as 33 functions): a
+# constant in its owner's header. A virtual (its base answers a default) and `override` are not counted.
+_NUMBER_FUNCTION = re.compile(r'^[^\n;{}()]*\b\w+\s*\(\s*\)\s*(?:const\s*)?(?:noexcept\s*)?\{\s*return\s+-?(?:0x[0-9A-Fa-f]+|\d[\d.]*(?:e-?\d+)?)'
+                              r'[fFuUlL]*\s*;\s*\}', re.M)
+
+
+@wants_path
+def count_number_functions_in_headers(text, rel):
+    return sum(1 for m in _NUMBER_FUNCTION.finditer(text) if rel.endswith('.h') and not re.search(r'\b(?:virtual|override)\b', m.group(0)))
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASELINE = os.path.join(ROOT, 'config', 'cleanup_baseline.csv')
+BASELINE =os.path.join(ROOT, 'config', 'cleanup_baseline.csv')
 PATTERNS = {
     # Also a file's own offset helper (a Get<T>(base, offset) once read Spell at the original's offsets after Spell
     # had become a normal class): a typed call with a hex offset, `Get<float>(spell, 0x40)`, and a byte pointer plus
@@ -319,6 +650,51 @@ PATTERNS = {
     # A pointer to a member function, `bool (Connection::*)(Message*)`: handlers and callbacks are virtuals, a switch
     # or a std::function.
     'pointer to member function': re.compile(r'\(\s*[A-Za-z_][\w:]*::\*\s*\w*\s*\)\s*\('),
+    # Style round 4 and round 1b (docs/rewrite-guide.md, "Style rules"):
+    # A random word scaled by hand, `Next() * 0x1p-32f + low` or `* 2.3283064e-10f`: IsaacRandom::Range (or a member beside it)
+    # does it, and a re-spelled copy drifts (7 in the unit AI, 19 in the particles). The scale as 0x1p-30 ... 0x1p-32, as
+    # a 2^-32 / 2^-31 / 2^-30 decimal (`[1-9].dddddde-10`) or as kTwoToMinus32.
+    'random word scaled by hand (Range copy)': re.compile(
+        r'\b0x1p-3[0-2]f?\b|\b[1-9]\.\d{6,}e-10f?\b|\bkTwoToMinus32\w*'),
+    # A flag constant under a second name for an owner enum's bit (count_renamed_flag_bits above).
+    'flag bit under a second name': count_renamed_flag_bits,
+    # A downcast virtual with one override (count_single_override_downcasts above).
+    'downcast virtual with one override': count_single_override_downcasts,
+    # A field with a default initialiser that a constructor or Reset gives another start value (count_double_start_states).
+    'field with two start values (initialiser, constructor or Reset)': count_double_start_states,
+    # A k* constant at namespace scope defined in two files with different values (count_conflicting_constants above).
+    'constant defined twice with another value': count_conflicting_constants,
+    # Virtuals nobody calls, and empty virtuals that are still called (count_virtuals_never_called above).
+    'virtual never called': count_virtuals_never_called,
+    'empty virtual still called': count_empty_virtuals_called,
+    # Maths helpers take and return values (round 4 Z5): a helper over the address of a constant, ConstPtr<>(2.0f), a
+    # kFloatConstant reference, or `const float* a, ..., float* out` parameters.
+    'float helper over addresses (ConstPtr, out pointer)': re.compile(
+        r'\bConstPtr\b|\bkFloatConstant\b|\(\s*(?:const\s+float\s*\*\s*\w+\s*,\s*)+(?:\w+\s*,\s*)*float\s*\*\s*\w+\s*\)'),
+    # x87 store residue on an x64-only build (round 4 Z6): `volatile float`, and a float copied into a local only to be
+    # copied back, `float stored = x; x = stored;`. On SSE every float operation already rounds to float.
+    'x87 store residue (volatile float, store and reload)': re.compile(
+        r'\bvolatile\s+(?:float|double)\b|\bfloat\s+(\w+)\s*=\s*([\w.\[\]>-]+)\s*;\s*\2\s*=\s*\1\s*;'),
+    # A function that returns only a number, in a header (count_number_functions_in_headers above).
+    'function returning only a number (header)': count_number_functions_in_headers,
+    # A member that reaches its own object through the global (count_members_through_global above).
+    'member through its own global': count_members_through_global,
+    # A member body written out again in a family file (count_copied_member_bodies above).
+    'member body copied in a family file': count_copied_member_bodies,
+    # Windows names in code outside the Windows backend (_WINDOWS_NAME above).
+    'Windows name outside the Windows backend': _WINDOWS_NAME,
+    # A printf-like function with no format annotation (count_unannotated_printf above).
+    'printf-like function without format annotation': count_unannotated_printf,
+    # std::lround outside the client-only files (CLIENT_ONLY_ROUNDING below): it rounds halves away from zero, the original's
+    # FISTP to even (lib::RoundEven) or its _ftol truncates (docs/notes/float-maths.md, "Conversions and copies"). Client-only
+    # values (a colour byte, a volume, a window size) may use it; a value that gates an order or reaches game state may not.
+    'std::lround in game-affecting code': re.compile(r'\bstd::lround\s*\('),
+    # An empty namespace left behind by deleted code.
+    'empty namespace': re.compile(r'\bnamespace\s*\w*\s*\{\s*\}'),
+    # An input by pointer where a reference or a view does it (round 4 Z10): `const std::string*`, `const std::vector<T>*`. A
+    # non-const `std::vector<T>*` may be the caller's buffer and is not counted.
+    'const string or vector pointer parameter': re.compile(
+        r'[(,]\s*const\s+std::(?:string|vector<[^<>()]*(?:<[^<>]*>)?[^<>()]*>)\s*\*\s*\w*\s*(?=[,)=])'),
 }
 # Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
@@ -333,7 +709,18 @@ EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set stru
           'copied small helper (IsZero, 1/255, server running)': 'src/lib/', 'own integer reader': 'src/lib/',
           # The streams and buffers own their cursors; src/lib's readers are the shared ones.
           'cursor moved by hand after memcpy': ('src/lib/', 'src/game/core_streams.cpp', 'src/game/game_buffer',
-                                                'src/game/net_coder.cpp')}
+                                                'src/game/net_coder.cpp'),
+          # The generator itself and its tests of the scale.
+          'random word scaled by hand (Range copy)': ('src/lib/', 'src/game/random.cpp'),
+          'Windows name outside the Windows backend': 'src/platform/win32/'}
+# Files whose rounded values only the picture, the sound or the window see (2026-11-05, every site read): the effects,
+# particles, lightning, weather and terrain drawing, the ground prints, the renderer, the platform layer's sizes and
+# scales, and the interface's layout and displays (cursor scale, colour bytes, the ping and vision numbers shown).
+CLIENT_ONLY_ROUNDING = ('src/platform/', 'src/render/', 'src/lib/', 'src/game/effects', 'src/game/lightning',
+                        'src/game/particle', 'src/game/weather_particles', 'src/game/terrain', 'src/game/ground_print',
+                        'src/game/renderer_scene', 'src/game/console_window', 'src/game/ui_cursor', 'src/game/ui_mesh',
+                        'src/game/ui_connect_screen', 'src/game/ui_hud_unit_info')
+EXEMPT['std::lround in game-affecting code'] = CLIENT_ONLY_ROUNDING
 
 
 def strip_comments(text):
@@ -355,7 +742,7 @@ def counts():
                 row[name] = 0
                 continue
             if callable(rx):
-                row[name] = rx(text)
+                row[name] = rx(text, rel) if getattr(rx, 'wants_path', False) else rx(text)
                 continue
             for m in rx.finditer(text):
                 if name == 'per-file vector/map/set struct' and m.group(0).split()[-1] in NOT_CONTAINERS:
