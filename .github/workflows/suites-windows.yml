@@ -40,6 +40,11 @@ on:
         description: "Reruns of a failed scenario (run_all --retries; on WARP a rerun repeats a timeout)"
         required: false
         default: "0"
+      warp:
+        description: "Microsoft's WARP from NuGet next to the exe (false: the runner's in-box WARP, for a comparison on the same commit)"
+        type: choice
+        options: ["true", "false"]
+        default: "true"
       time_scale:
         description: "EI_TIME_SCALE: the scenarios' real-time limits times this (WARP runs 2.4 times as long as lavapipe)"
         required: false
@@ -172,11 +177,13 @@ jobs:
           name: harness-exe
           path: build/verify
       - name: WARP package cache
+        if: inputs.warp != 'false'
         uses: actions/cache@v5
         with:
           path: warp-cache
           key: warp-nuget-${{ env.WARP_VERSION }}-${{ env.WARP_SHA512 }}
       - name: Microsoft WARP (NuGet)
+        if: inputs.warp != 'false'
         run: |
           # Microsoft's current WARP next to the harness exe: D3D12 loads d3d10warp.dll from the exe's folder instead of
           # the runner's in-box one (H62g). Pinned by version and checksums (nuget.org lists the package's SHA512; the
