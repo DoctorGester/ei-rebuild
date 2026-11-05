@@ -681,6 +681,11 @@ void KeepClientSize(void* window) {
 void KeepClientSize(void*) {}
 #endif
 
+bool RemoveGraphicsDevice(const std::string&, std::string* error) {
+    *error = "a device is removed only on Direct3D 12";
+    return false;
+}
+
 } // namespace ei::verify::sys
 
 // ==== Windows-only tools ============================================================================================

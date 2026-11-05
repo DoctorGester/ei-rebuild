@@ -59,6 +59,13 @@ const char* DriverName();   // SDL's: "direct3d12", "vulkan"
 const char* DeviceName();   // the adapter's
 // Misused calls so far (each logged): a write inside a pass, a draw without a pipeline, a bad description, ...
 int Problems();
+// A call SDL refuses on the frame's commands (a command buffer, a copy or render pass, a mapping, the swap chain's
+// texture, a submission, a fence's wait) means a lost device (docs/notes/renderer.md, "No device-loss recovery"): the
+// call does not return. The reason is logged, then given to `handler` (the renderer's ends the game with it in the
+// error box), and the program exits with -1. Misuse (Problems) and a texture, buffer or pipeline that cannot be made
+// (an empty handle) are not failures.
+using FailureHandler = void (*)(const char* reason);
+void SetFailureHandler(FailureHandler handler);
 
 // ---- Formats, textures and samplers -------------------------------------------------------------------------------
 
@@ -170,7 +177,8 @@ Ticket Download(const Texture& texture, int level, const Rect& region);
 // Done without waiting: its commands were submitted and the GPU finished them.
 bool Done(Ticket ticket);
 // Waits until it is done; submits the commands recorded so far first when they hold it (presenting the swap chain's
-// texture if one was taken). False when it cannot finish (logged).
+// texture if one was taken). False for a ticket that is not there (released); a refused wait is a failure
+// (SetFailureHandler).
 bool Wait(Ticket ticket);
 struct Texels {
     const std::uint8_t* data = nullptr;
@@ -284,7 +292,8 @@ struct PassDesc {
     DepthTarget depth;
     const char* label = nullptr;
 };
-// The viewport and scissor are the whole target until set. False (logged) when the pass cannot begin.
+// The viewport and scissor are the whole target until set. False (logged) for a pass without a device or targets; one
+// SDL refuses is a failure (SetFailureHandler).
 bool BeginPass(const PassDesc& pass);
 void EndPass();
 bool InPass();
@@ -348,10 +357,11 @@ bool PresentModeSupported(PresentMode mode);
 PresentMode SetPresentMode(PresentMode mode);
 Format SwapchainFormat();
 // The window's texture for this frame, at the window's size (waits while too many frames are in flight). True with
-// `target` empty when there is nothing to draw into (the window minimised or hidden); false (Error()) on a failure.
+// `target` empty when there is nothing to draw into (the window minimised or hidden); false (Error()) without a claimed
+// window or inside a pass. SDL refusing it is a failure (SetFailureHandler).
 bool AcquireSwapchain(Texture* target);
-// The frame's commands sent to the GPU, the swap chain's texture presented if one was taken. False (logged) when
-// SDL refused them.
+// The frame's commands sent to the GPU, the swap chain's texture presented if one was taken. False without a device;
+// SDL refusing them (also only their present) is a failure (SetFailureHandler).
 bool Submit();
 std::uint64_t SubmitCount();
 // The submissions whose fences are still kept: each is let go at a later Submit once it has finished.
@@ -363,5 +373,15 @@ std::size_t SubmissionsHeld();
 void SetFrameTiming(bool on);
 // The latest submission finished since the last call: its milliseconds. False when none has.
 bool FrameGpuTime(double* milliseconds);
+
+// ---- Device loss (the harness's "losedevice" step) ----------------------------------------------------------------
+
+// The calls before which the device can be removed: a new command buffer taken (a frame's first command), BeginPass,
+// PushUniforms (inside a pass), AcquireSwapchain, Submit, a Write, a download's Wait.
+enum class LossPoint : std::uint8_t { Commands, Pass, Uniforms, Acquire, Submit, Write, Wait };
+// `lose` called once, just before the next call at `point`: the harness's removes the device for real, as a hang (TDR)
+// or a driver's reset does (sys::RemoveGraphicsDevice), so every SDL call after it meets a lost device.
+// The harness build only; false (Error()) in the product.
+bool LoseDeviceAt(LossPoint point, void (*lose)());
 
 } // namespace render::gpu

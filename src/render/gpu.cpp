@@ -46,6 +46,46 @@ static void Problem(const char* format, ...) {
     ei::Log("gpu: %s", text);
 }
 
+static FailureHandler g_failureHandler = nullptr;
+
+void SetFailureHandler(FailureHandler handler) { g_failureHandler = handler; }
+
+// SDL refused `what` (a pass's: `name` too) on the frame's commands: a lost device (gpu.h, SetFailureHandler).
+[[noreturn]] static void Failed(const char* what, const char* name = "") {
+    const char* why = SDL_GetError();
+    char text[512];
+    std::snprintf(text, sizeof(text), "the GPU refused %s%s%s%s%s", what, *name ? " " : "", name, *why ? ": " : "", why);
+    ei::Log("gpu: failed: %s", text);
+    if (g_failureHandler) g_failureHandler(text);
+    std::exit(-1);
+}
+
+// The harness's device loss (LoseDeviceAt): the call that removes the device before the next call at its point.
+#if defined(EI_RENDER_VALIDATION)
+static LossPoint g_lossPoint = LossPoint::Commands;
+static void (*g_loseDevice)() = nullptr;
+
+static void MeetLoss(LossPoint point) {
+    if (!g_loseDevice || point != g_lossPoint) return;
+    void (*lose)() = g_loseDevice;
+    g_loseDevice = nullptr;
+    lose();
+}
+
+bool LoseDeviceAt(LossPoint point, void (*lose)()) {
+    g_lossPoint = point;
+    g_loseDevice = lose;
+    return true;
+}
+#else
+static void MeetLoss(LossPoint) {}
+
+bool LoseDeviceAt(LossPoint, void (*)()) {
+    g_error = "the device is lost only in the harness build";
+    return false;
+}
+#endif
+
 static double NowMs() {
     return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
@@ -210,7 +250,7 @@ static SDL_GPUSamplerAddressMode ToSdl(Wrap w) {
 // list is read and changed under g_fenceLock (the fences are released only by the main thread).
 struct Submission {
     std::uint64_t serial = 0;
-    SDL_GPUFence* fence = nullptr;  // null: SDL refused it, nothing to wait for
+    SDL_GPUFence* fence = nullptr;
     double submitted = 0.0;  // NowMs()
     bool done = false;
     double gpuMs = -1.0;   // the frame timer's, when it saw it finish
@@ -237,7 +277,7 @@ static void MarkDone(Submission& s, bool timed) {
 // Done submissions at the front dropped, their fences released. Under g_fenceLock.
 static void DropDone() {
     while (!g_submissions.empty() && g_submissions.front().done) {
-        if (g_submissions.front().fence) SDL_ReleaseGPUFence(g_device, g_submissions.front().fence);
+        SDL_ReleaseGPUFence(g_device, g_submissions.front().fence);
         g_doneBefore = g_submissions.front().serial + 1;
         g_submissions.pop_front();
     }
@@ -288,8 +328,9 @@ static bool g_swapchainTaken = false;   // AcquireSwapchain was asked this comma
 
 static SDL_GPUCommandBuffer* Commands() {
     if (!g_commands && g_device) {
+        MeetLoss(LossPoint::Commands);
         g_commands = SDL_AcquireGPUCommandBuffer(g_device);
-        if (!g_commands) Problem("no command buffer: %s", SDL_GetError());
+        if (!g_commands) Failed("a command buffer");
     }
     return g_commands;
 }
@@ -344,15 +385,8 @@ static void Flush() {
         SDL_UnmapGPUTransferBuffer(g_device, g_ring.buffer);
         g_ring.mapped = nullptr;
     }
-    SDL_GPUCommandBuffer* commands = Commands();
-    SDL_GPUCopyPass* pass = commands ? SDL_BeginGPUCopyPass(commands) : nullptr;
-    if (!pass) {
-        Problem("no copy pass: %s", SDL_GetError());
-        for (const CopyOp& op : g_copies)
-            if (op.releaseTransfer) SDL_ReleaseGPUTransferBuffer(g_device, op.transfer);
-        g_copies.clear();
-        return;
-    }
+    SDL_GPUCopyPass* pass = SDL_BeginGPUCopyPass(Commands());   // every caller has a device
+    if (!pass) Failed("a copy pass");
     for (const CopyOp& op : g_copies) {
         switch (op.kind) {
         case CopyOp::Kind::UploadBuffer: {
@@ -427,11 +461,7 @@ static std::uint8_t* Place(std::uint32_t bytes, std::uint32_t alignment, CopyOp*
         op->offset = 0;
         op->releaseTransfer = true;   // released once its copy is recorded; unmapped by PlaceDone
         auto* p = static_cast<std::uint8_t*>(SDL_MapGPUTransferBuffer(g_device, op->transfer, false));
-        if (!p) {
-            Problem("a transfer buffer could not be mapped: %s", SDL_GetError());
-            SDL_ReleaseGPUTransferBuffer(g_device, op->transfer);
-            op->transfer = nullptr;
-        }
+        if (!p) Failed("a transfer buffer's mapping");
         return p;
     }
     if (!g_ring.buffer) {
@@ -451,10 +481,7 @@ static std::uint8_t* Place(std::uint32_t bytes, std::uint32_t alignment, CopyOp*
     }
     if (!g_ring.mapped) {
         g_ring.mapped = static_cast<std::uint8_t*>(SDL_MapGPUTransferBuffer(g_device, g_ring.buffer, cycle));
-        if (!g_ring.mapped) {
-            Problem("the upload ring could not be mapped: %s", SDL_GetError());
-            return nullptr;
-        }
+        if (!g_ring.mapped) Failed("the upload ring's mapping");
         g_ring.cycleNext = false;
     }
     op->transfer = g_ring.buffer;
@@ -476,6 +503,7 @@ static bool WriteAllowed(const char* what) {
         Problem("%s inside a pass", what);
         return false;
     }
+    MeetLoss(LossPoint::Write);
     if (g_uploaded >= kSubmitAfterBytes && !g_swapchainTaken) Submit();
     return true;
 }
@@ -881,7 +909,7 @@ void Stop() {
     {
         std::lock_guard<std::mutex> lock(g_fenceLock);
         for (Submission& s : g_submissions)
-            if (s.fence) SDL_ReleaseGPUFence(g_device, s.fence);
+            SDL_ReleaseGPUFence(g_device, s.fence);
         g_submissions.clear();
     }
     g_doneBefore = g_serial;
@@ -1151,6 +1179,7 @@ bool Wait(Ticket ticket) {
     auto it = g_downloads.find(ticket.id);
     if (it == g_downloads.end()) return false;
     const std::uint64_t serial = it->second.serial;
+    MeetLoss(LossPoint::Wait);
     if (serial >= g_serial && !Submit()) return false;
     if (SubmissionDone(serial)) return true;
     SDL_GPUFence* fence = nullptr;
@@ -1159,12 +1188,11 @@ bool Wait(Ticket ticket) {
         for (const Submission& s : g_submissions)
             if (s.serial == serial) fence = s.fence;
     }
-    // Outside the lock: the frame timer goes on polling; only this thread releases fences.
-    if (!fence || !SDL_WaitForGPUFences(g_device, true, &fence, 1)) {
-        Problem("a download's wait failed: %s", SDL_GetError());
-        return false;
-    }
-    return SubmissionDone(serial);
+    // Outside the lock: the frame timer goes on polling; only this thread releases fences. A removed device's wait
+    // returns at once with the fence never signalled.
+    if (!fence || !SDL_WaitForGPUFences(g_device, true, &fence, 1) || !SubmissionDone(serial))
+        Failed("a download's wait");
+    return true;
 }
 
 bool Read(Ticket ticket, Texels* texels) {
@@ -1173,10 +1201,7 @@ bool Read(Ticket ticket, Texels* texels) {
     DownloadEntry& d = it->second;
     if (!d.mapped) {
         d.texels.data = static_cast<const std::uint8_t*>(SDL_MapGPUTransferBuffer(g_device, d.buffer, false));
-        if (!d.texels.data) {
-            Problem("a download could not be mapped: %s", SDL_GetError());
-            return false;
-        }
+        if (!d.texels.data) Failed("a download's mapping");
         d.mapped = true;
     }
     *texels = d.texels;
@@ -1238,6 +1263,7 @@ bool BeginPass(const PassDesc& pass) {
         Problem("a pass with a second colour target but no first");
         return false;
     }
+    MeetLoss(LossPoint::Pass);
     Flush();
     SDL_GPUCommandBuffer* commands = Commands();
     if (!commands) return false;
@@ -1277,10 +1303,7 @@ bool BeginPass(const PassDesc& pass) {
     if (g_debug && pass.label) SDL_InsertGPUDebugLabel(commands, pass.label);
     g_pass = SDL_BeginGPURenderPass(commands, colourCount ? colours : nullptr, static_cast<Uint32>(colourCount),
                                     d.texture ? &depth : nullptr);
-    if (!g_pass) {
-        Problem("pass %s: %s", pass.label ? pass.label : "", SDL_GetError());
-        return false;
-    }
+    if (!g_pass) Failed("the pass", pass.label ? pass.label : "");
     g_bound.Reset();
     return true;
 }
@@ -1429,6 +1452,7 @@ void PushUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes) 
     }
     ++g_counts.pushes;
     g_counts.pushedBytes += bytes;
+    MeetLoss(LossPoint::Uniforms);
     last.assign(static_cast<const std::uint8_t*>(data), static_cast<const std::uint8_t*>(data) + bytes);
     g_bound.pushed[s][slot] = true;
     if (stage == Stage::Vertex) SDL_PushGPUVertexUniformData(g_commands, static_cast<Uint32>(slot), data, bytes);
@@ -1525,14 +1549,12 @@ bool AcquireSwapchain(Texture* target) {
         *target = g_swapchainTexture;
         return true;
     }
+    MeetLoss(LossPoint::Acquire);
     SDL_GPUCommandBuffer* commands = Commands();
     if (!commands) return false;
     SDL_GPUTexture* texture = nullptr;
     Uint32 w = 0, h = 0;
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(commands, g_window, &texture, &w, &h)) {
-        g_error = std::string("the swap chain's texture: ") + SDL_GetError();
-        return false;
-    }
+    if (!SDL_WaitAndAcquireGPUSwapchainTexture(commands, g_window, &texture, &w, &h)) Failed("the swap chain's texture");
     g_swapchainTaken = true;
     if (texture) {
         g_swapchainTexture.texture = texture;
@@ -1549,6 +1571,7 @@ bool AcquireSwapchain(Texture* target) {
 
 bool Submit() {
     if (!g_device) return false;
+    MeetLoss(LossPoint::Submit);
     if (g_pass) {
         Problem("a submission inside a pass");
         EndPass();
@@ -1565,6 +1588,8 @@ bool Submit() {
     g_swapchainTexture = Texture{};
     const double submitted = NowMs();
     SDL_GPUFence* fence = SDL_SubmitGPUCommandBufferAndAcquireFence(commands);
+    // No fence also when only the present failed (seen with a hung GPU).
+    if (!fence) Failed("a submission");
     const std::uint64_t serial = g_serial++;
     g_uploaded = 0;
     g_ring.used = 0;
@@ -1574,14 +1599,13 @@ bool Submit() {
         g_ring.buffer = nullptr;
     }
     g_ring.cycles = 0;
-    if (!fence) Problem("a submission failed: %s", SDL_GetError());
     std::lock_guard<std::mutex> lock(g_fenceLock);
-    g_submissions.push_back({serial, fence, submitted, fence == nullptr});
+    g_submissions.push_back({serial, fence, submitted});
     // Without the frame timer nothing else asks the older fences, so every submission's fence was kept: thousands a
     // minute, until Dozen on WSL (D3D12 fences) refused new ones. The timer's own marks keep their times.
     if (!g_timing.load()) MarkFinished(false);
     DropDone();
-    return fence != nullptr;
+    return true;
 }
 
 std::uint64_t SubmitCount() { return g_serial - 1; }

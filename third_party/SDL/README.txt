@@ -16,3 +16,8 @@ Local changes from that release:
   adapter (IDXGIFactory4::EnumWarpAdapter) instead of the high-performance one, in the driver's support check and in
   the device. SDL has no such switch; the Windows CI job (no GPU) and local checks of that path set it
   (docs/notes/harness.md, "The Windows CI job").
+- src/gpu/d3d12/SDL_gpu_d3d12.c: a uniform buffer that could not be taken (D3D12_INTERNAL_AcquireUniformBufferFromPool
+  returns NULL when a removed device refuses its mapping) no longer crashes: D3D12_INTERNAL_PushUniformData drops the
+  push and the graphics and compute binds skip the slot, until the submission fails and the renderer ends the game
+  (docs/notes/renderer.md, "No device-loss recovery"; scenarios render_device_lost_*). Upstream dereferenced it (a
+  read of address 8 after D7's GPU hang).

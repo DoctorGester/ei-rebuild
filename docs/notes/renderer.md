@@ -101,10 +101,14 @@ error box (`app::ShowMessageBox`; the harness ends the run on it) and exits with
   device: "no Direct3D 12 or Vulkan device (...)");
 - a pipeline or texture the start makes: "Can't start the renderer: the terrain pipeline / the mesh pipeline / the
   blit pipeline / the white texture / the water's ripple map could not be made.";
-- a pass that cannot begin: "The renderer cannot draw the frame." (the shadow map's and the point shadows' passes name
-  themselves);
-- no swap chain, or a swap chain texture SDL refuses (render_window.cpp): "The renderer cannot present on the game
-  window: <gpu::Error()>." A lost device ends the game here ("No device-loss recovery", section 9).
+- a call SDL refuses on the frame's commands (a command buffer, a copy or render pass, a mapping, the swap chain's
+  texture, a submission or only its present, a download's wait): "The renderer cannot draw the frame: the GPU refused
+  <what>: <SDL's reason>." gpu.cpp's `Failed` logs it ("gpu: failed: ...") and calls the handler the renderer set
+  (`gpu::SetFailureHandler`) at once, before any other SDL call: a lost device ends the game here ("No device-loss
+  recovery", section 9);
+- a pass without targets (one that could not be made): "The renderer cannot draw the frame." (the shadow map's and
+  the point shadows' passes name themselves);
+- no swap chain (render_window.cpp): "The renderer cannot present on the game window: <gpu::Error()>."
 
 A draw the renderer does not take is lost, not drawn another way: `render::MeshPass`, `TlDraw` and `ScreenDraw` return
 nothing, and render_mesh.cpp's `Refuse` logs each reason the first time ("render: <reason>; the draw is lost": a mesh or
@@ -397,8 +401,19 @@ stand-in for any of them:
 
 ### No device-loss recovery
 
-A lost device ends the game. SDL_GPU reports no loss of its own: a lost device shows as a swap chain texture SDL
-refuses (render_window.cpp), a fatal error (section 1, "When the renderer fails"). Why no recovery (user): a device is
+A lost device ends the game. SDL_GPU reports no loss of its own: a lost device shows as the next call SDL refuses
+(a submission, whose present fails first on Direct3D 12; a pass, a mapping, the swap chain's texture), which ends the
+game at once with one message (section 1, "When the renderer fails"). Nothing goes on after a refused call: D7's GPU
+hang (DXGI_ERROR_DEVICE_HUNG, a dozen 4K msaa-8 harness games at once) crashed several games when a refused submission
+was only logged and the next frame's first uniform push met SDL's Direct3D 12 driver without a uniform buffer (its
+mapping refused; a null read at offset 8 in D3D12_INTERNAL_PushUniformData). A device lost while a frame is recorded
+has SDL's driver drop the pushes and binds of a uniform buffer it could not take (a local change,
+third_party/SDL/README.txt) until the submission fails. The harness's `losedevice <point>` step removes the device
+for real (ID3D12Device5::RemoveDevice, tests/verify/system/system_win32.cpp; Direct3D 12 keeps one device per adapter,
+so D3D12CreateDevice on SDL's adapter gives SDL's) just before the renderer's next call at one point
+(`gpu::LoseDeviceAt`: a new command buffer, a pass, a uniform push, the swap chain's texture, a submission, a write, a
+download's wait); render_device_lost_<point> check each ends on the message (`expectcrash`). Never reproduce a loss by
+hanging the real GPU: overloading it has crashed the machine's Windows. Why no recovery (user): a device is
 lost only on a driver update or reset, a TDR or a GPU switch, rare for a player and a restart away. Making everything again needed every module to drop and remake its resources, each decoded
 texture to keep its file's bytes, composed textures their recipes, and runtime
 backends would need it twice. Dropping the kept file bytes took the process from about 130 MB to about 119 MB private
@@ -1570,7 +1585,9 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   (`SubmissionsHeld` counts the kept ones). Before (H50) only the timer or a download's wait asked, so outside the
   overlay every fence was kept: thousands a minute, which lavapipe and Windows' Direct3D 12 took, but Dozen on WSL
   turned down after a few seconds of several games (`vkCreateFence` VK_ERROR_OUT_OF_DEVICE_MEMORY, then an abort).
-- `Problems()` counts misused calls (each logged "gpu: ..."); the check holds it at its deliberate misuses.
+- `Problems()` counts misused calls (each logged "gpu: ..."); the check holds it at its deliberate misuses. A call
+  SDL refuses is not misuse but a lost device: `Failed` logs it, calls `SetFailureHandler`'s handler and exits
+  (section 1, "When the renderer fails").
 
 **Cost** (`ei_gpu_check --bench [--driver NAME] [--frames N]`, tools/gpu_check/gpu_bench.cpp; the numbers below are
 the RTX 4070 Ti SUPER on Windows 10, two runs of 3 x 500 frames, a quiet machine; the spike's tables are in

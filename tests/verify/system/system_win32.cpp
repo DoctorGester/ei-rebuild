@@ -10,6 +10,8 @@
 #include <iphlpapi.h>
 #include <psapi.h>
 #include <tlhelp32.h>
+#include <d3d12.h>   // RemoveGraphicsDevice
+#include <dxgi1_4.h>
 
 #include "harness_system.h"
 
@@ -32,6 +34,8 @@
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
 
 namespace ei::verify::sys {
 
@@ -724,6 +728,34 @@ std::string WindowClass(void* window) {
     char name[256] = "";
     GetClassNameA(static_cast<HWND>(window), name, sizeof(name));
     return name;
+}
+
+// ==== The graphics device ============================================================================================
+
+// Direct3D 12 keeps one device per adapter in a process: D3D12CreateDevice on the adapter SDL took gives SDL's own.
+bool RemoveGraphicsDevice(const std::string& adapter, std::string* error) {
+    IDXGIFactory1* factory = nullptr;
+    if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), reinterpret_cast<void**>(&factory)))) {
+        *error = "no DXGI factory";
+        return false;
+    }
+    bool removed = false;
+    IDXGIAdapter1* a = nullptr;
+    for (UINT i = 0; !removed && factory->EnumAdapters1(i, &a) != DXGI_ERROR_NOT_FOUND; ++i) {
+        DXGI_ADAPTER_DESC1 desc{};
+        ID3D12Device5* device = nullptr;
+        if (SUCCEEDED(a->GetDesc1(&desc)) && text::Narrow(desc.Description) == adapter &&
+            SUCCEEDED(D3D12CreateDevice(a, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device5),
+                                        reinterpret_cast<void**>(&device)))) {
+            device->RemoveDevice();
+            device->Release();
+            removed = true;
+        }
+        a->Release();
+    }
+    factory->Release();
+    if (!removed) *error = "no Direct3D 12 device on an adapter named '" + adapter + "'";
+    return removed;
 }
 
 } // namespace ei::verify::sys

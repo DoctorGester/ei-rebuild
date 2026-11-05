@@ -193,4 +193,11 @@ std::string WindowClass(void* window);
 // `window` is the NSWindow, H62c). Nothing to do elsewhere: Windows and X11 without a window manager never fit it.
 void KeepClientSize(void* window);
 
+// ---- The graphics device (the "losedevice" step) ----
+
+// The renderer's Direct3D 12 device, on the adapter named `adapter` (gpu::DeviceName), removed as a hang (TDR) or a
+// driver's reset removes it (ID3D12Device5::RemoveDevice). False with `error` saying why when there is none (and on
+// every other system).
+bool RemoveGraphicsDevice(const std::string& adapter, std::string* error);
+
 } // namespace ei::verify::sys
