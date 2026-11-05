@@ -16,3 +16,10 @@ Local changes from that release:
   adapter (IDXGIFactory4::EnumWarpAdapter) instead of the high-performance one, in the driver's support check and in
   the device. SDL has no such switch; the Windows CI job (no GPU) and local checks of that path set it
   (docs/notes/harness.md, "The Windows CI job").
+- src/gpu/d3d12/SDL_gpu_d3d12.c and include/SDL3/SDL_gpu.h: a lost device (a call answered DXGI_ERROR_DEVICE_REMOVED,
+  _HUNG, _RESET or DRIVER_INTERNAL_ERROR) is kept as the device property EI_PROP_GPU_DEVICE_LOST_STRING
+  ("EI.gpu.device.lost": the first such error's text with GetDeviceRemovedReason's), a failed Present is reported
+  through the same error path, and the uniform buffers a lost device cannot map are left out instead of being dereferenced as null
+  (D3D12_INTERNAL_PushUniformData, the draws' uniform binds): WARP on the Windows CI runner removed its device in the
+  base's dialogues and SDL then crashed in D3D12_PushVertexUniformData (H62f). The renderer reads the property
+  (render::gpu::DeviceLost) and ends the game with its fatal error (docs/notes/renderer.md, "No device-loss recovery").

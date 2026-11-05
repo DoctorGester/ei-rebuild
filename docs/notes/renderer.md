@@ -399,7 +399,14 @@ stand-in for any of them:
 ### No device-loss recovery
 
 A lost device ends the game. SDL_GPU reports no loss of its own: a lost device shows as a swap chain texture SDL
-refuses (render_window.cpp), a fatal error (section 1, "When the renderer fails"). Why no recovery (user): a device is
+refuses (render_window.cpp), a fatal error (section 1, "When the renderer fails"). On Direct3D 12 the vendored SDL
+keeps the first error that found the device removed, hung or reset as the device property
+EI_PROP_GPU_DEVICE_LOST_STRING (third_party/SDL/README.txt); `gpu::DeviceLost` reads it at each submission and swap
+chain texture, logs "gpu: the device was lost: <SDL's error with GetDeviceRemovedReason's text>" once, and
+`AcquireSwapchain` then fails, so the next present ends the game with "The renderer cannot present on the game window:
+the GPU device was lost: ...". Between the loss and that present the frame's calls go on: textures and buffers fail
+(logged), and SDL leaves out the uniform data it can no longer map (it dereferenced the null buffer before: WARP on the
+Windows CI runner, H62f). Vulkan's loss still shows only at the swap chain. Why no recovery (user): a device is
 lost only on a driver update or reset, a TDR or a GPU switch, rare for a player and a restart away. Making everything again needed every module to drop and remake its resources, each decoded
 texture to keep its file's bytes, composed textures their recipes, and runtime
 backends would need it twice. Dropping the kept file bytes took the process from about 130 MB to about 119 MB private

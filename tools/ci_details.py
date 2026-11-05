@@ -6,9 +6,10 @@ workflows, docs/notes/harness.md): the jobs keep no run folders, so this is all 
 For each scenario's run folder (<runs>/<name>-standalone, or -standalone-rebirth): the report's FAILED lines; when it
 differs, golden.py compare's first differing records (with their world update, frame and tick) and the fields; the log
 lines on the game window (client area made, shown, set; windowsize; the resolution), the present mode, the device,
-focus and the cursor confinement; the frame-stamped log lines (steps, replayed input events, pauses) from 15 frames
-before the first differing record to 2 after it (a failed run: the last 20); a crash's stack by function names; and
-the median frame. Runs that passed and are the same as their golden print nothing.
+focus, the cursor confinement, a lost device and a fatal renderer error; the frame-stamped log lines (steps, replayed
+input events, pauses) from 15 frames before the first differing record to 2 after it (a failed run: the last 20); a
+crash's stack by function names; and the TIMING lines on the median frame, the waits on the GPU and the memory (H62d).
+Runs that passed and are the same as their golden print nothing.
 """
 import argparse
 import os
@@ -17,8 +18,8 @@ import subprocess
 import sys
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
-ABOUT = re.compile(r"client area|windowsize|Resolution: |render: presenting|gpu: .*device|cursor confinement|focus|"
-                   r"activat|minimi|occlu", re.I)
+ABOUT = re.compile(r"client area|windowsize|Resolution: |render: presenting|render: fatal|gpu: .*device|"
+                   r"cursor confinement|focus|activat|minimi|occlu", re.I)
 STAMP = re.compile(r"harness: frame (\d+):")
 FIRST = re.compile(r"first difference at record \d+ \(world update \d+, (?:tick \d+, )?frame (\d+)")
 
@@ -75,7 +76,7 @@ def details(runs, name, install):
         if stack != ["no crash logged"]:
             out.append("-- the crash (tools/resolve_crash.py)")
             out += stack[:40]
-    out += [line for line in report if line.startswith("TIMING: median frame")]
+    out += [line for line in report if line.startswith(("TIMING: median frame", "TIMING: gpu"))]
     return out
 
 

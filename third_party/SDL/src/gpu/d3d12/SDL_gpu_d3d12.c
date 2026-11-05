@@ -1269,6 +1269,11 @@ static void D3D12_INTERNAL_SetError(
     char wszMsgBuff[MAX_ERROR_LEN + 1];
     DWORD dwChars; // Number of chars returned.
 
+    // EI: a lost device is kept as the device property EI_PROP_GPU_DEVICE_LOST_STRING (the first error that said so),
+    // which the renderer reads to stop (third_party/SDL/README.txt).
+    const bool lost = res == DXGI_ERROR_DEVICE_REMOVED || res == DXGI_ERROR_DEVICE_HUNG ||
+                      res == DXGI_ERROR_DEVICE_RESET || res == DXGI_ERROR_DRIVER_INTERNAL_ERROR;
+
     if (res == DXGI_ERROR_DEVICE_REMOVED) {
         if (renderer->device) {
             res = ID3D12Device_GetDeviceRemovedReason(renderer->device);
@@ -1291,6 +1296,9 @@ static void D3D12_INTERNAL_SetError(
             SDL_LogError(SDL_LOG_CATEGORY_GPU, "%s! Error Code: " HRESULT_FMT, msg, res);
         }
         SDL_SetError("%s! Error Code: " HRESULT_FMT, msg, res);
+        if (lost && renderer->props && !SDL_HasProperty(renderer->props, EI_PROP_GPU_DEVICE_LOST_STRING)) {
+            SDL_SetStringProperty(renderer->props, EI_PROP_GPU_DEVICE_LOST_STRING, SDL_GetError());
+        }
         return;
     }
 
@@ -1313,6 +1321,9 @@ static void D3D12_INTERNAL_SetError(
         SDL_LogError(SDL_LOG_CATEGORY_GPU, "%s! Error Code: %s " HRESULT_FMT, msg, wszMsgBuff, res);
     }
     SDL_SetError("%s! Error Code: %s " HRESULT_FMT, msg, wszMsgBuff, res);
+    if (lost && renderer->props && !SDL_HasProperty(renderer->props, EI_PROP_GPU_DEVICE_LOST_STRING)) {
+        SDL_SetStringProperty(renderer->props, EI_PROP_GPU_DEVICE_LOST_STRING, SDL_GetError());
+    }
 }
 
 // Release / Cleanup
@@ -4701,6 +4712,11 @@ static void D3D12_INTERNAL_PushUniformData(
         return;
     }
 
+    // EI: no buffer (the device lost: the pool's Map failed) drops the data instead of crashing.
+    if (uniformBuffer == NULL) {
+        return;
+    }
+
     blockSize =
         D3D12_INTERNAL_Align(
             length,
@@ -4715,6 +4731,9 @@ static void D3D12_INTERNAL_PushUniformData(
         uniformBuffer->buffer->mapPointer = NULL;
 
         uniformBuffer = D3D12_INTERNAL_AcquireUniformBufferFromPool(commandBuffer);
+        if (uniformBuffer == NULL) {
+            return;
+        }
 
         uniformBuffer->drawOffset = 0;
         uniformBuffer->writeOffset = 0;
@@ -5191,7 +5210,7 @@ static void D3D12_INTERNAL_BindGraphicsResources(
 
     for (Uint32 i = 0; i < MAX_UNIFORM_BUFFERS_PER_STAGE; i += 1) {
         if (commandBuffer->needVertexUniformBufferBind[i]) {
-            if (graphicsPipeline->header.num_vertex_uniform_buffers > i) {
+            if (graphicsPipeline->header.num_vertex_uniform_buffers > i && commandBuffer->vertexUniformBuffers[i] != NULL) { // EI: NULL after a lost device
                 ID3D12GraphicsCommandList_SetGraphicsRootConstantBufferView(
                     commandBuffer->graphicsCommandList,
                     graphicsPipeline->rootSignature->vertexUniformBufferRootIndex[i],
@@ -5282,7 +5301,7 @@ static void D3D12_INTERNAL_BindGraphicsResources(
 
     for (Uint32 i = 0; i < MAX_UNIFORM_BUFFERS_PER_STAGE; i += 1) {
         if (commandBuffer->needFragmentUniformBufferBind[i]) {
-            if (graphicsPipeline->header.num_fragment_uniform_buffers > i) {
+            if (graphicsPipeline->header.num_fragment_uniform_buffers > i && commandBuffer->fragmentUniformBuffers[i] != NULL) { // EI: NULL after a lost device
                 ID3D12GraphicsCommandList_SetGraphicsRootConstantBufferView(
                     commandBuffer->graphicsCommandList,
                     graphicsPipeline->rootSignature->fragmentUniformBufferRootIndex[i],
@@ -8126,6 +8145,7 @@ static bool D3D12_INTERNAL_Submit(
             syncInterval,
             presentFlags);
         if (FAILED(res)) {
+            D3D12_INTERNAL_SetError(renderer, "Failed to present", res); // EI: a lost device recorded here too
             result = false;
         }
 

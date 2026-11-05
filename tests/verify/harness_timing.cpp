@@ -4,6 +4,7 @@
 #include "harness_clock.h"
 #include "system/harness_system.h"
 #include "../../src/platform/log.h"
+#include "../../src/render/gpu.h"
 
 #include <algorithm>
 #include <chrono>
@@ -143,6 +144,21 @@ void Report(FILE* f) {
                     "CPU: main thread %.1f s, process %.1f s user + %.1f s kernel\n",
                  Median(g_periodMs), Median(g_restMs), g_longFrames, kLongFrameMs, Ms(g_longWall) / 1000.0,
                  mainCpuMs / 1000.0, processUserMs / 1000.0, processKernelMs / 1000.0);
+    // Where the main thread waited on the GPU (H62d: on a software device the frame is the device's work, the process's
+    // CPU above the main thread's) and the memory (H62f: WARP lost its device on the CI runner).
+    const render::gpu::WaitTimes waits = render::gpu::Waits();
+    const double perFrame = waits.swapchains ? 1.0 / static_cast<double>(waits.swapchains) : 0.0;
+    std::fprintf(f, "TIMING: gpu: %llu swap chain textures, per one %.2f ms waiting for it (a frame in flight) and "
+                    "%.2f ms in the %llu submissions; %llu download waits %.1f s; %d pipelines made after the start "
+                    "in %.1f s",
+                 static_cast<unsigned long long>(waits.swapchains), waits.acquireMs * perFrame,
+                 waits.submitMs * perFrame, static_cast<unsigned long long>(waits.submissions),
+                 static_cast<unsigned long long>(waits.downloadWaits), waits.downloadWaitMs / 1000.0,
+                 waits.pipelinesMade, waits.pipelineMs / 1000.0);
+    double memoryMb = 0, peakMb = 0, availableMb = 0;
+    if (sys::ProcessMemory(&memoryMb, &peakMb, &availableMb))
+        std::fprintf(f, "; memory %.0f MB (peak %.0f MB), the system's available %.0f MB", memoryMb, peakMb, availableMb);
+    std::fprintf(f, "\n");
 }
 
 } // namespace ei::verify::timing

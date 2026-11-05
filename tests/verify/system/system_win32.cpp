@@ -187,6 +187,21 @@ bool ProcessTimes(double* kernelMs, double* userMs, double* sinceStartMs) {
     return true;
 }
 
+bool ProcessMemory(double* nowMb, double* peakMb, double* availableMb) {
+    PROCESS_MEMORY_COUNTERS_EX counters{};
+    MEMORYSTATUSEX status{};
+    status.dwLength = sizeof(status);
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&counters),
+                              sizeof(counters)) ||
+        !GlobalMemoryStatusEx(&status))
+        return false;
+    constexpr double kMb = 1024.0 * 1024.0;
+    *nowMb = static_cast<double>(counters.PrivateUsage) / kMb;
+    *peakMb = static_cast<double>(counters.PeakPagefileUsage) / kMb;
+    *availableMb = static_cast<double>(status.ullAvailPhys) / kMb;
+    return true;
+}
+
 // ==== Code addresses and stacks ======================================================================================
 
 Image SelfImage() {

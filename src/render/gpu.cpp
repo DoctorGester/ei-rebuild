@@ -223,6 +223,9 @@ static double g_lastFinished = 0.0;      // the frame timer's: when the last sub
 static double g_latestGpuMs = -1.0;      // its time, not yet taken by FrameGpuTime
 static std::thread g_timer;
 static std::atomic<bool> g_timing{false};
+static WaitTimes g_waits;           // the main thread's (Waits)
+static bool g_lost = false;         // DeviceLost's answer, kept once it is yes
+static std::string g_lostReason;
 
 // Under g_fenceLock.
 static void MarkDone(Submission& s, bool timed) {
@@ -859,8 +862,10 @@ bool Start(const DeviceOptions& options) {
     g_debug = options.debug;
     g_driverName = SDL_GetGPUDeviceDriver(g_device);
     g_wholeBlocks = g_driverName == "direct3d12";
-    g_deviceName = SDL_GetStringProperty(SDL_GetGPUDeviceProperties(g_device), SDL_PROP_GPU_DEVICE_NAME_STRING, "?");
-    ei::Log("gpu: %s device (%s)", g_driverName.c_str(), g_deviceName.c_str());
+    const SDL_PropertiesID props = SDL_GetGPUDeviceProperties(g_device);
+    g_deviceName = SDL_GetStringProperty(props, SDL_PROP_GPU_DEVICE_NAME_STRING, "?");
+    ei::Log("gpu: %s device (%s; driver %s)", g_driverName.c_str(), g_deviceName.c_str(),
+            SDL_GetStringProperty(props, SDL_PROP_GPU_DEVICE_DRIVER_VERSION_STRING, "?"));
     return true;
 }
 
@@ -904,6 +909,9 @@ void Stop() {
     ReleaseWindow();
     SDL_DestroyGPUDevice(g_device);
     g_device = nullptr;
+    g_lost = false;
+    g_lostReason.clear();
+    g_waits = WaitTimes{};
     g_bound.Reset();
     g_uploaded = 0;
     if (g_videoStarted) {
@@ -1160,7 +1168,11 @@ bool Wait(Ticket ticket) {
             if (s.serial == serial) fence = s.fence;
     }
     // Outside the lock: the frame timer goes on polling; only this thread releases fences.
-    if (!fence || !SDL_WaitForGPUFences(g_device, true, &fence, 1)) {
+    const double waitStart = NowMs();
+    const bool waited = fence && SDL_WaitForGPUFences(g_device, true, &fence, 1);
+    ++g_waits.downloadWaits;
+    g_waits.downloadWaitMs += NowMs() - waitStart;
+    if (!waited) {
         Problem("a download's wait failed: %s", SDL_GetError());
         return false;
     }
@@ -1205,7 +1217,10 @@ Pipeline MakePipeline(const PipelineDesc& desc, const char* label) {
     auto it = g_pipelines.find(desc);
     if (it != g_pipelines.end()) return it->second;
     if (g_failedPipelines.contains(desc)) return {};
+    const double start = NowMs();
     const Pipeline p = BuildPipeline(g_device, g_shaders, desc, label, false);
+    ++g_waits.pipelinesMade;
+    g_waits.pipelineMs += NowMs() - start;
     if (p) g_pipelines.emplace(desc, p);
     else g_failedPipelines.insert(desc);
     return p;
@@ -1525,11 +1540,19 @@ bool AcquireSwapchain(Texture* target) {
         *target = g_swapchainTexture;
         return true;
     }
+    if (DeviceLost()) {
+        g_error = "the GPU device was lost: " + g_lostReason;
+        return false;
+    }
     SDL_GPUCommandBuffer* commands = Commands();
     if (!commands) return false;
     SDL_GPUTexture* texture = nullptr;
     Uint32 w = 0, h = 0;
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(commands, g_window, &texture, &w, &h)) {
+    const double waitStart = NowMs();
+    const bool acquired = SDL_WaitAndAcquireGPUSwapchainTexture(commands, g_window, &texture, &w, &h);
+    ++g_waits.swapchains;
+    g_waits.acquireMs += NowMs() - waitStart;
+    if (!acquired) {
         g_error = std::string("the swap chain's texture: ") + SDL_GetError();
         return false;
     }
@@ -1565,6 +1588,8 @@ bool Submit() {
     g_swapchainTexture = Texture{};
     const double submitted = NowMs();
     SDL_GPUFence* fence = SDL_SubmitGPUCommandBufferAndAcquireFence(commands);
+    ++g_waits.submissions;
+    g_waits.submitMs += NowMs() - submitted;
     const std::uint64_t serial = g_serial++;
     g_uploaded = 0;
     g_ring.used = 0;
@@ -1575,6 +1600,7 @@ bool Submit() {
     }
     g_ring.cycles = 0;
     if (!fence) Problem("a submission failed: %s", SDL_GetError());
+    DeviceLost();
     std::lock_guard<std::mutex> lock(g_fenceLock);
     g_submissions.push_back({serial, fence, submitted, fence == nullptr});
     // Without the frame timer nothing else asks the older fences, so every submission's fence was kept: thousands a
@@ -1585,6 +1611,18 @@ bool Submit() {
 }
 
 std::uint64_t SubmitCount() { return g_serial - 1; }
+
+WaitTimes Waits() { return g_waits; }
+
+bool DeviceLost() {
+    if (g_lost || !g_device) return g_lost;
+    const char* reason = SDL_GetStringProperty(SDL_GetGPUDeviceProperties(g_device), EI_PROP_GPU_DEVICE_LOST_STRING, nullptr);
+    if (!reason) return false;
+    g_lost = true;
+    g_lostReason = reason;
+    ei::Log("gpu: the device was lost: %s", reason);
+    return true;
+}
 
 std::size_t SubmissionsHeld() {
     std::lock_guard<std::mutex> lock(g_fenceLock);
