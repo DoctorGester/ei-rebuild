@@ -15,7 +15,7 @@
 
 class Chunk {
 public:
-    explicit Chunk(Chunk* newParent) : id(0), consumed(0), size(0), parent(newParent) {}
+    explicit Chunk(Chunk* newParent) : parent(newParent) {}
     ~Chunk();
 
     // Called by ForEachChild for each child header read; the readers read the chunk's value by its id.

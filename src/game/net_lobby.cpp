@@ -27,7 +27,6 @@ namespace {
 
 
 constexpr float kNever = 1e38f;      // a listed server's timeout: never checked again
-constexpr float kNoPingSeconds = 9.999f;
 constexpr float kFirstRetry = 0.1f;
 
 
@@ -73,10 +72,6 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 
 ServerEntryBase::ServerEntryBase() {
     std::memset(&address, 0, sizeof(address));
-    timeout = 0.0f;
-    ping = kNoPingSeconds;
-    foreign = 0;
-    state = State::Local;
 }
 
 std::vector<Query>::iterator ClientQueries::Find(const NetAddress* address) {

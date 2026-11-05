@@ -167,11 +167,11 @@ int main() {
     Address from{};
     Check(ReceiveFrom(receiver, bytes, 8, &from) == -1 && LastError() == Error::WouldBlock, "nonblocking empty socket");
     Check(SendTo(sender, "packet", 6, address) == 6, "send UDP");
-    SocketGroup ready(receiver);
+    SocketGroup ready = SocketGroup::Of(receiver);
     Check(Select(&ready, nullptr, nullptr, 1000000) == 1 && ready.count == 1, "select UDP");
     Check(ReceiveFrom(receiver, bytes, 8, &from) == 6 && from.family == kIpv4 && from.ip == address.ip,
           "receive address uses game wire layout");
-    ready = SocketGroup(receiver);
+    ready = SocketGroup::Of(receiver);
     Check(Select(&ready, nullptr, nullptr, 1000) == 0 && ready.count == 0, "select clears nonready sockets");
     Close(receiver);
     Close(sender);

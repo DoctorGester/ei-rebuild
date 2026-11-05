@@ -600,10 +600,6 @@ void PlayerClient::ResetState() {
 
 // --- Constructor and destructor ------------------------------------------------------------
 
-PlayerConnection::PlayerConnection() {
-    player = nullptr;
-}
-
 PlayerConnection::~PlayerConnection() { player = nullptr; }
 
 PlayerClient::PlayerClient() {

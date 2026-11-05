@@ -56,7 +56,6 @@ ChatWindow::ChatWindow(BriefingScreen* screen) : briefing(screen) {
     rect = Rect{left, 0, 800, 0xA0};
     UiSurface* surface = AddSurface(std::make_unique<UiSurface>(left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) { PaintStatus(out); });
-    portraits = 0;
     std::string text;
     for (const char* key : kTextKeys) {
         text = g_clientWorld.texts->GetString(key);

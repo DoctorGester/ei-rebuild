@@ -47,7 +47,6 @@ DamageInfo TornadoHit() {
 } // namespace
 
 EffectTornado::EffectTornado() {
-    sound = -1;
     Reset();   // inline
 }
 

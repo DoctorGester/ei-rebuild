@@ -143,7 +143,6 @@ World::~World() {
 }
 
 ParticleManager::ParticleManager() {
-    maxHeldId = 0;
     ParticleManagerClearQuietStart(this);
 }
 

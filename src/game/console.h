@@ -109,6 +109,9 @@ inline LogCategory g_filterMask = /*007C7B68*/ {};
 // Set by the cheat word; unlocks the second command map and the script lines.
 inline bool g_cheatEnabled = /*007C7B64*/ {};
 
+constexpr int kHistory = 0x100;   // lines kept
+constexpr int kNoCommand = -1;    // no command is shown by up / down
+
 // The console window (the interface manager keeps it). Lines are kept as text;
 // the surface is painted from them each frame.
 class ConsoleWindow {
@@ -143,7 +146,7 @@ public:
     UiSurface* surface = nullptr;   // while shown
     UiFont font;                     // the console's text
     std::vector<std::string> commands;    // commands entered (input history), the newest first
-    int commandIndex = 0;            // the one shown by up/down (-1 or size: none)
+    int commandIndex = kNoCommand;   // the one shown by up/down (-1 or size: none)
     std::string input;               // the line being typed
     int caret = 0;                   // caret position (bytes, at a character's start: U4)
     int anchor = 0;                  // other end of the selection (== caret: none)
@@ -152,9 +155,9 @@ public:
     Rect rect;                       // the window in 800x600 coordinates (after clamping)
     Rect screenRect;                 // the window in pixels
     Rect requestedRect;              // the window as last asked for (800x600 coordinates, before clamping)
-    float scale = 0.0f;              // screen pixels per layout pixel
+    float scale = 1.0f;              // screen pixels per layout pixel
     std::vector<std::string> lines;
-    int history = 0;                 // lines kept
+    int history = kHistory;          // lines kept
     int visibleLines = 0;
     int scroll = 0;                  // lines scrolled back (0 = at the end)
     bool ctrl = false;               // Ctrl held (set by key down 0x11)

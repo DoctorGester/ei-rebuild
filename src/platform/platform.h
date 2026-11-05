@@ -529,8 +529,13 @@ struct SocketGroup {
     int count = 0;
     Socket sockets[kCapacity];
 
-    SocketGroup() = default;
-    explicit SocketGroup(Socket socket) : count(1) { sockets[0] = socket; }
+    // A group of the one socket.
+    static SocketGroup Of(Socket socket) {
+        SocketGroup group;
+        group.count = 1;
+        group.sockets[0] = socket;
+        return group;
+    }
 };
 
 // Waits at most `microseconds` for a socket of `read` to have data (or its peer to close), of `write` to take

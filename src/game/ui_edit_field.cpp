@@ -19,10 +19,6 @@
 #include <string>
 
 namespace {
-constexpr std::uint32_t kClassDigit = 1;
-constexpr std::uint32_t kClassLetter = 2;      // letters and the space
-constexpr std::uint32_t kClassOther = 4;
-constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
 
 // The class of typed character `key` that charClasses admits or not. A character past ASCII is a code point: a
 // letter when Windows calls it one.
@@ -101,18 +97,11 @@ void UiEditField::KeyDown(UiEvent& event) {
 
 // The window's slots; its keys and characters.
 UiEditField::UiEditField(Rect rect) {
-    charClasses = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
-    centred = 0;
-    font = 1;
-    maxLength = 50;
-    colour = 0xFFFFFF;
-    caretColour = 0xFF;
     ClearSurfaces();
     area = rect;
     UiSurface* surface = AddSurface(std::make_unique<UiSurface>(&area, SurfaceBlend::Keyed));
     surface->PaintWith([this](UiSurface& out) { PaintContents(out); });
     ClampCaret();
-    focused = true;
 }
 
 void UiEditField::Char(UiEvent& event) {

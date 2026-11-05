@@ -21,7 +21,6 @@ UiSpin::UiSpin(Rect newRect, const char* text) {
         out.DrawTextIn(texts[value], area, TextStyle{kFont, kUiTextColour});
     });
     texts.push_back(text ? text : "");
-    changed = false;
     layout = newRect;
     SetValue(0);
 }

@@ -277,13 +277,13 @@ public:
     // World updates until the object's effects are next looked at (5 after Create; the server world's update map
     // sets it).
     int updateCountdown = 0;
-    float animationSpeed = 0.0f;    // the animation's speed factor (Unit::animationSpeed; 1 after Create)
+    float animationSpeed = 1.0f;    // the animation's speed factor (Unit::animationSpeed; 1 after Create)
     UnitVitalsPacked packedVitals;  // hit points, maximum, mana, maximum
     std::vector<MapEffect> effects; // (SetEffectCount is its SetSize)
     std::string name2;
     Vector3 baseScale;
-    int sectorCellX = 0;
-    int sectorCellY = 0;
+    int sectorCellX = -1;
+    int sectorCellY = -1;
     int changeStamp = 0;            // the world's change counter when last changed
     DeltaState netState;            // the network state; its mask is the parts changed since the last send (bit
                                     // per part: MarkChanged)

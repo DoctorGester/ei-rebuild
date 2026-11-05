@@ -151,7 +151,7 @@ public:
     static constexpr int kAmbientLoops = 3;
     static constexpr int kSoundClasses = 16;
 
-    LandscapeFlag landscapeFlags = {};
+    LandscapeFlag landscapeFlags = LandscapeFlag::None;
     std::vector<HeldRef<Texture>> pageTextures;
     std::string mapName = "none";
     bool mapLoaded = false;         // nothing is drawn or lit while false

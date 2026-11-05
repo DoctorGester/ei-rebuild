@@ -63,14 +63,8 @@ std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(std::lrou
 // ---- GroundPrint --------------------------------------------------------------------------------
 
 GroundPrint::GroundPrint(std::uint8_t newVisible, int newLife, float newAlphaScale, int newLifetime) {
-    built = false;
     visible = newVisible;
-    growth = 0.0f;
     life = static_cast<std::int16_t>(newLife);
-    uvAngle = 0.0f;
-    angle = 0.0f;
-    lit = 0xFF;
-    alpha = 1.0f;
     alphaScale = newAlphaScale;
     lifetime = newLifetime;
 }
@@ -99,7 +93,6 @@ GroundPrint::GroundPrint(float x, float y, float newHalfWidth, float newHalfLeng
     angle = newAngle;
     uvAngle = quarter * kHalfPi;
     SetTexture("fireprints");
-    growth = 0.0f;
 }
 
 int GroundPrint::Tick() {

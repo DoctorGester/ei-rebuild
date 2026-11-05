@@ -87,19 +87,6 @@ void ForgetPosition(BaseManager* m, int id) {
 
 // --- Construction and destruction ---------------------------------------------------------------
 
-BaseManager::BaseManager() {
-    maxId = 0;
-    maxPositionId = 0;
-    maxSpareType = 0;
-    maxSpareCountType = 0;
-    idLow = 0;
-    context = nullptr;
-    idHigh = 2000000000;
-    reservedA = -1;
-    reservedB = -1;
-    lastId = -1;
-}
-
 BaseManager::~BaseManager() {
     BaseManager::Destroy();
     objectList.clear();

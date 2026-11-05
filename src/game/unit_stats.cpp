@@ -220,7 +220,6 @@ namespace {
 constexpr float kByteMax = 255.0f;
 constexpr float kSpeedScale = 25.5f;
 constexpr int kResetSlotType = 4;
-constexpr std::int16_t kResetParams20 = 7;
 
 // Rounded to the nearest integer after a store to float.
 int RoundStored(float value) { return lib::RoundEven(value); }

@@ -367,7 +367,6 @@ public:
 
 class SpellConstructor : public EngineObject {
 public:
-    SpellConstructor();
     ~SpellConstructor() override;
 
     // Releases the container and forgets the manager. Returns 1.
@@ -456,7 +455,6 @@ public:
 // lights).
 class LightFactory : public BaseManager {
 public:
-    LightFactory();
     ~LightFactory() override;
     const char* ClassName() override;
     ClassId GetClassId() override;

@@ -78,7 +78,6 @@ struct AttackParams;
 
 class UnitClientSpecific : public UnitController {
 public:
-    UnitClientSpecific();
     ~UnitClientSpecific() override;
     UnitClientSpecific* ClientSide() override { return this; }
 
@@ -258,7 +257,7 @@ public:
     std::uint8_t weaponHidden = 0;  // ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden = 0;   // the bow's arrow part is flagged hidden
     std::uint8_t snapHeading = 0;   // the next path placement turns the unit to the path at once
-    float fadeIn = 0.0f;            // 1 when fully shown; the drawn parts take it as alpha
+    float fadeIn = 1.0f;            // 1 when fully shown; the drawn parts take it as alpha
     int flashCountdown = 0;         // the drawn parts get their colours back at 0
     int footprint = 0;              // the last footprint, -1 none
     int footprintRepeats = 0;       // further steps that may reuse it

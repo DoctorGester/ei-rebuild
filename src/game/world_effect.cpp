@@ -298,8 +298,6 @@ Effect::Effect() {
     localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     velocity = Vector3{0.0f, 0.0f, 0.0f};
-    startTick = 0;
-    moving = 0;
 }
 
 Effect::~Effect() = default;
@@ -334,21 +332,18 @@ const char* EffectTornado::ClassName() { return "CEffectTornado"; }
 ClassId EffectTornado::GetClassId() { return ClassId::EffectTornado; }
 
 EffectSound::EffectSound() {
-    sound = -1;
     Reset();
 }
 
 EffectSound::~EffectSound() { Reset(); }
 
 EffectSoundSeq::EffectSoundSeq() {
-    sound = -1;
     Reset();
 }
 
 EffectSoundSeq::~EffectSoundSeq() { Reset(); }
 
 EffectAmbientSound::EffectAmbientSound() {
-    sound = -1;
     Reset();
 }
 
@@ -373,12 +368,6 @@ EffectParticle::~EffectParticle() { Reset(); }
 EffectWall::EffectWall() { Reset(); }
 
 EffectWall::~EffectWall() { Reset(); }
-
-// No Reset: only the width and the flag.
-EffectLightning::EffectLightning() {
-    width = 0.0f;
-    flag = 0;
-}
 
 EffectLightning::~EffectLightning() { Reset(); }
 

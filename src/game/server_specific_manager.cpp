@@ -41,7 +41,6 @@ EngineObject* ServerSpecificManager::NewObject(int objectType) {
 }
 
 TorchObjectSpec::TorchObjectSpec() {
-    torch = nullptr;
     CreateSpec();
 }
 

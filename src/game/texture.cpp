@@ -191,15 +191,7 @@ void Texture::Destroy() {
     flags = 0;
 }
 
-Texture::Texture() {
-    name.clear();
-    DropSurface(this);
-    height = 0;
-    width = 0;
-    uploadResult = 0;
-    format = MmpFormat::None;
-    extra.clear();
-}
+Texture::Texture() = default;
 
 // The name goes after the body (its destructor), then EngineObject's.
 Texture::~Texture() {
@@ -260,13 +252,6 @@ TextureFlag CreateFlag(int type) {
 }
 
 } // namespace
-
-TextureManager::TextureManager() {
-    device = nullptr;
-    cachedBytes = 0;
-    mipLevel = 0;
-    limitTo512 = 0;
-}
 
 // The part Destroy and the destructor share: the cache, the composed textures and the device.
 static void ReleaseTextures(TextureManager* manager) {

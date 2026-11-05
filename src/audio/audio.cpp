@@ -416,12 +416,11 @@ struct DeviceHealth {
 // g_mix, the time the game thread waits for it and holds it counted when tracing.
 class MixHold {
 public:
-    MixHold() : lock(g_mix, std::defer_lock) {
-        if (!g_trace || std::this_thread::get_id() != g_mainThread) {
+    MixHold() : lock(g_mix, std::defer_lock), timed(g_trace && std::this_thread::get_id() == g_mainThread) {
+        if (!timed) {
             lock.lock();
             return;
         }
-        timed = true;
         start = Clock::now();
         if (lock.try_lock()) return;
         lock.lock();

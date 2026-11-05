@@ -290,7 +290,6 @@ void ForgetComposedTextures();
 class TextureManager : public ResourceManager {
 public:
 
-    TextureManager();
     ~TextureManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;

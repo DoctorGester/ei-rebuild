@@ -18,28 +18,12 @@
 #include <vector>
 
 Player::Player() {
-    link = nullptr;
-    maxObjectId = 0;
-    maxUnitId = 0;
-    maxTimedId = 0;
-    partyId = 0;
-    connection = nullptr;
-    logTraffic = 0;
     GetParty()->Create();
     recharging.clear();
     Clear();
     GetParty()->Destroy();
     GetParty()->Create();
-    dirty = 0;
-    playerId = -1;
-    godMode = 0;
-    if (link != nullptr) link->Disconnect();
-    // (The original lets RefPtr::Assign(null) release the link, which is null here.)
-    link = nullptr;
     SetConnection(nullptr);
-    lastTick = -1;
-    sessionKind = 0;
-    lastScreen = 0;
 }
 
 Player::~Player() {

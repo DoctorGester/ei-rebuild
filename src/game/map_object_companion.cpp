@@ -126,10 +126,7 @@ MapObjectServer::~MapObjectServer() {
     owner = nullptr;
 }
 
-MapObjectClientSpecific::MapObjectClientSpecific() {
-    lightStateA = 0;
-    lightStateB = 0;
-}
+MapObjectClientSpecific::MapObjectClientSpecific() = default;
 
 MapObjectClientSpecific::~MapObjectClientSpecific() { MapObjectClientSpecific::Destroy(); }
 

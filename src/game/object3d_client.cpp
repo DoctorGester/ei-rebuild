@@ -43,10 +43,8 @@ bool IsPrimaryKind(int kind) { return std::ranges::find(kPrimaryKinds, kind) != 
 } // namespace
 
 Object3DClientSpecific::Object3DClientSpecific() {
-    shadowMade = false;
     std::memset(&sphere, 0, sizeof(sphere));
     ClearWoundsMaterial();
-    pulseClock = 0.0f;
 }
 
 void Object3DClientSpecific::Create() {

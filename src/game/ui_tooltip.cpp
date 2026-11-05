@@ -42,12 +42,7 @@ UiTooltip::UiTooltip(UiRegion* newRegion, std::string_view text, int command) : 
     // An empty text leaves the measurements and the two arguments unwritten.
     if (text.empty()) return;
     lines = text::Split(text, kLineSeparator);
-    width = 0;
-    height = 0;
-    lineHeight = 0;
     extra = command;
-    keyName = nullptr;
-    keyWidth = 0;
     for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
         // An empty line (but the last) is as high as the sample and has no width.
         Size size;

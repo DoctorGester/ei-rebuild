@@ -243,10 +243,6 @@ Spell* SpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std
     return spell;
 }
 
-SpellConstructor::SpellConstructor() {
-    manager = nullptr;
-}
-
 SpellConstructor::~SpellConstructor() { SpellConstructor::Destroy(); }
 
 const char* SpellConstructor::ClassName() { return "CSpellConstructor"; }

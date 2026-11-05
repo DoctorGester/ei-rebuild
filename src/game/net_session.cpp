@@ -96,11 +96,7 @@ void Pump() {
 
 // The network session base class.
 
-SessionBase::SessionBase() {
-    time = 0.0;
-    frame = 1;
-    magic = 0;
-}
+SessionBase::SessionBase() = default;
 
 std::uint32_t SessionBase::ClientCount() const { return static_cast<std::uint32_t>(clients.size()); }
 

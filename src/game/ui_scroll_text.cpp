@@ -22,13 +22,11 @@ bool IsFormat(const char* token) {
     return token[0] == '\n' || (token[0] == kEscape && (token[1] == 'C' || token[1] == 'F'));
 }
 
-constexpr int kAlignLeft = 1;
 const char* FontSampleText() { return "W"; }   // measured for each font's height
 constexpr int kMeasuredFonts = 3;
 
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
 constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
-constexpr int kJustified = 2;
 constexpr int kMaxStretch = 3;               // a justified line's gaps at most this many normal gaps
 // The layout measures fonts 0-2; a format token may name any digit. The original reads its other
 // stack memory (font 3: its return address) for the others; here they are 0.
@@ -212,7 +210,6 @@ UiScrollText::UiScrollText(const char* text, Rect area, float depth)
     Tokenize(std::string(text));
     Layout();
     bar.SetPosition(0);
-    align = kJustified;
 }
 
 void UiScrollText::PlaceText(const Rect& area) {

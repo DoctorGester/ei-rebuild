@@ -466,10 +466,6 @@ UnitClientSpecific::~UnitClientSpecific() {
     motion.steps.clear();
 }
 
-UnitClientSpecific::UnitClientSpecific() {
-    fadeIn = 1.0f;
-}
-
 // --- Worn armour ------------------------------------------------------------------------------------
 
 // The game's function reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not

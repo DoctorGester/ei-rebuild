@@ -413,11 +413,7 @@ ServerEntryBase::~ServerEntryBase() {}
 
 ServerEntry::ServerEntry() {
     AssignEmptyText(name);
-    kind = kNoKind;
     AssignEmptyText(description);
-    players = 0;
-    maxPlayers = 0;
-    password = 0;
 }
 ServerEntry::ServerEntry(const ServerEntry& other)
     : ServerEntryBase(other), name(other.name), kind(other.kind), description(other.description),

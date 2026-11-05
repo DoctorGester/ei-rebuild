@@ -21,8 +21,6 @@
 
 namespace {
 constexpr float kTenth = 0.1f;
-constexpr float kThreeQuarters = 0.75f;
-constexpr float kStandingHeight = 0.5f;
 
 PlayerServer* PlayerMessages(const Player* player) { return player->Server(); }
 
@@ -112,7 +110,6 @@ Unit::Unit() {
     m->Clear();
     m->speedScale = kTenth;
     m->baseTurnRate = kTenth;
-    player = nullptr;
     Reset();
 }
 
@@ -121,8 +118,8 @@ void Unit::Reset() {
     secondPrototype = -1;
     heightOffset = 0.0f;
     sizeClass = 3;
-    unitRadius = kThreeQuarters;
-    standingHeight = kStandingHeight;
+    unitRadius = kDefaultUnitRadius;
+    standingHeight = kDefaultStandingHeight;
     relationsA = 0;
     relationsB = 0xFFFFFFFFu;
     side = 0;

@@ -44,7 +44,6 @@ constexpr float kPercent = 0.01f;
 constexpr float kEmitterMargin = 0.001f;
 constexpr float kEmitterMaxScale = 255.0f;
 
-constexpr int kFullVolume = 100;   // the volumes' top
 constexpr int kMaxLevel = 0x7F;    // the output's volume top
 
 // The step of every fade of the music (1/96 per stream step).

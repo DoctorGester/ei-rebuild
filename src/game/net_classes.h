@@ -121,6 +121,9 @@ public:
 
     enum class State : std::int32_t { Closed = 0, Connecting = 1, Receiving = 2, Done = 3, Sending = 4 };
 
+    // The constructor's work: opens the socket and starts connecting; the state stays Closed when that fails.
+    void Connect(const NetAddress& address);
+
     GrowingBuffer out;           // what is sent once connected
     GrowingBuffer in;
     platform::net::Socket socket;   // (kNoSocket: none)
@@ -207,6 +210,8 @@ Message* CreateMessage(std::uint8_t type);
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
+constexpr float kNoPingSeconds = 9.999f;   // a listed server's ping while unknown
+
 class ServerEntryBase : public RefObject {
 public:
     ~ServerEntryBase() override;
@@ -221,7 +226,7 @@ public:
 
     NetAddress address;
     float timeout = 0.0f;    // seconds until the entry is checked again (1e38: never)
-    float ping = 0.0f;       // seconds; a constant when unknown
+    float ping = kNoPingSeconds;  // seconds; a constant when unknown
     std::uint8_t foreign = 0;  // the reply's echoed word differs from the magic
     State state = State::Local;
 
@@ -242,7 +247,7 @@ public:
 
     std::string name;
     static constexpr std::uint32_t kNoKind = 4;
-    std::uint32_t kind = 0;       // the game kind (kNoKind: none)
+    std::uint32_t kind = kNoKind;  // the game kind (kNoKind: none)
     std::string description;         // the current map's title
     std::uint8_t players = 0;
     std::uint8_t maxPlayers = 0;
@@ -335,7 +340,7 @@ inline void PushReplicated(std::vector<Replicated>* v, Message* object, std::uin
 // The datagrams of a session by PacketKind.
 class SessionBase : public RefCounted {
 public:
-    // The count and the flags are the creator's.
+    // Defined in net_session.cpp: the members' destructors need the connection's definition.
     SessionBase();
     ~SessionBase() override;
     virtual void RemoveClient(std::list<SharedRef<Connection>>::iterator node);                     // end() is ignored
@@ -370,7 +375,7 @@ public:
     std::uint32_t ClientCount() const;
 
     std::uint32_t magic = 0;            // 0; the game server and client set kSessionMagic
-    std::uint32_t frame = 0;            // 1; Tick counts its calls
+    std::uint32_t frame = 1;            // 1; Tick counts its calls
     double time = 0.0;                  // 0; Tick adds the elapsed time
     // The connections. A list: OnUpdate keeps its connection's node while the update's handlers may remove
     // others (a kick, ServerOnCommand).
@@ -518,7 +523,7 @@ public:
     std::vector<NetAddress> banned;
     std::string name;
     std::string mapName;
-    std::uint32_t maxPlayers = 0;       // 8; set by the creator
+    std::uint32_t maxPlayers = 8;       // 8; set by the creator
     std::uint32_t kind = 0;             // the constructor's argument: the game kind
     char password[0x14] = {};           // the join password (empty: none)
     std::uint32_t masterKey = 0;        // set by the creator (StartServer); announced, and the master

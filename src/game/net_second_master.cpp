@@ -107,7 +107,7 @@ bool Reachable(const NetAddress& master) {
     bool reached = false;
     const Clock::time_point start = Clock::now();
     for (;;) {
-        sockets::SocketGroup set(s);
+        sockets::SocketGroup set = sockets::SocketGroup::Of(s);
         if (sockets::Select(nullptr, &set, nullptr, kProbeStepUs) == 1) {
             reached = true;
             break;

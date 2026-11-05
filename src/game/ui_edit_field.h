@@ -4,6 +4,12 @@
 
 #include "ui.h"
 
+// The classes of typed characters a field admits (UiEditField::charClasses).
+constexpr std::uint32_t kClassDigit = 1;
+constexpr std::uint32_t kClassLetter = 2;      // letters and the space
+constexpr std::uint32_t kClassOther = 4;
+constexpr std::uint32_t kClassSeparator = 8;   // '.' and ':'
+
 // The message box's edit field.
 class UiEditField : public UiWindow {
 public:
@@ -29,15 +35,15 @@ public:
     void SetFocused(bool focused);
 
     Rect area;                       // the surface's layout rectangle
-    std::uint32_t charClasses = 0;   // classes Char takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
+    std::uint32_t charClasses = kClassDigit | kClassLetter | kClassOther | kClassSeparator;  // classes Char takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
     std::uint8_t centred = 0;        // SetLook's mode
-    int font = 0;                    // interface font
-    int maxLength = 0;
-    std::uint32_t colour = 0;             // the text's colour
-    std::uint32_t caretColour = 0;        // SetLook's last argument (0xFF from the constructor)
+    int font = 1;                    // interface font
+    int maxLength = 50;
+    std::uint32_t colour = 0xFFFFFF;      // the text's colour
+    std::uint32_t caretColour = 0xFF;     // SetLook's last argument (0xFF from the constructor)
     std::string text;
     int caret = 0;                   // caret position in text (bytes, at a character's start: U4)
     bool editing = false;            // an edit key was pressed (the first one sets it)
-    bool focused = false;            // keys are taken only while set
+    bool focused = true;             // keys are taken only while set
     bool changed = false;
 };

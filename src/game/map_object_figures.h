@@ -249,9 +249,6 @@ class Object3DSpecific;
 class Object3DClientSpecific;
 class Object3DSpecific : public EngineObject {
 public:
-    Object3DSpecific() {
-        object = nullptr;
-    }
     // This half as the client's: null on the server.
     virtual Object3DClientSpecific* ClientSide() { return nullptr; }
     ~Object3DSpecific() override;
@@ -424,7 +421,7 @@ public:
     float morphS = 0.0f;            // the figure's morph coefficients (Rescale; bones copy them)
     float morphT = 0.0f;
     float morphU = 0.0f;
-    bool changed = false;           // set when the frame, the animation or the bones changed
+    bool changed = true;            // set when the frame, the animation or the bones changed
 
     // A switch from one animation to another blends the pose last placed into the new one's over a short time
     // (client side only: what plays and its frame stay the game's). The blend runs from `placedAt`, when the
