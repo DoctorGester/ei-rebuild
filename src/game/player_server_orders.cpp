@@ -14,8 +14,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "lib/rebirth.h"
-
 #include <bit>
 #include <cstring>
 
@@ -25,7 +23,8 @@ constexpr int kTextPause = 0xC;                       // the session's announcem
 
 
 // The last digit of "reserved_02", the key of the pause announcement's text (Interface3D::MessageText,
-// message 12). EI_Plugin's Pause writes it: '2' for a pause, '3' ("reserved_03") for a resume.
+// message 12): '2' for a pause, '3' ("reserved_03") for a resume (EI_Plugin's Pause). Only the host's own game reads
+// it: a joined game shows its "reserved_02" for both.
 void SetPauseTextDigit(std::uint8_t pause) { g_pauseMessageKey[10] = static_cast<char>('3' - pause); }
 
 bool Able(Unit* unit) { return unit && !(unit->flags & MapObjectFlag::Blocked) && !unit->IsDead(); }
@@ -84,21 +83,21 @@ bool PlayerServer::OnPause() {
     std::uint8_t pause = 0;
     in.ReadValue(pause);
     net::ServerSession* server = net::g_gameServer;
-    // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump to bytes
-    // which write the text key's digit and go on to announce resumes too; 2 also replaces the leader
-    // test by the pausing player's own leader; 3 skips the announcement.
-    const int mode = ei::rebirth::PluginPause();
-    const bool announceResume = mode == 1 || mode == 2;
+    // The host's pause mode (net::PauseMode; the original's without a game server). A hosted game's pause comes
+    // from the leader only, unless any player may; resumes go through the same test when they are announced. Off
+    // announces nothing (and SetServerPaused does nothing).
+    const net::PauseMode mode = IsLive(server) ? server->pauseMode : net::PauseMode::Original;
+    const bool announceResume = mode == net::PauseMode::Announced || mode == net::PauseMode::AnyPlayer;
     if (IsMultiplayerClient() && IsLive(server) && (pause || announceResume)) {
-        if (announceResume) SetPauseTextDigit(pause);
+        SetPauseTextDigit(pause);
         int leader = server->LeaderId();
         const int own = static_cast<int>(player->GetParty()->members[0].unitId);
-        if (mode == 2)
+        if (mode == net::PauseMode::AnyPlayer)
             leader = own;
         else if (own != leader)
             return true;
         net::PlayerMessage* record = server->FindPlayer(leader);
-        if (IsLive(record) && mode != 3)
+        if (IsLive(record) && mode != net::PauseMode::Off)
             server->AnnounceText(kTextPause, record->name.data(), nullptr);
     }
     player->ServerWorld()->SetServerPaused(pause != 0 ? 1 : 0);

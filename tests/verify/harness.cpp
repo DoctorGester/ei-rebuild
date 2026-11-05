@@ -221,6 +221,8 @@
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
 //   checktick <ms>            require the world update period to be <ms> now (the speed keys' effect)
+//   checklimit <n>            require the client session's player limit (ClientSession::PlayerLimit) to be <n>
+//   checkpaused 0|1           require the server world's pause flag to be off / on (the host's pause mode)
 //   waitfor <seconds> <expression>
 //                             evaluate the expression every 250 ms until it is nonzero; fail if
 //                             that takes longer than <seconds>
@@ -241,10 +243,9 @@
 //   layout <mouse step> <x> <y> ...  the mouse step (click, move, ...) at layout point (x, y) of the 800x600
 //                             interface, placed in the window's centred 4:3 part (the other mouse steps spread
 //                             their points over the whole window): the same place at any resolution
-//   plugin <spec>             EI_Plugin's values for this run (src/lib/rebirth.h), over the install's and the
-//                             settings file's: "NPlayers=<n>", "Pause=<n>", "SecondMaster=<host[:port]>"
-//                             (NewMaster's second master server), "DisableExitOnCrashReport=0|1". Read before
-//                             the game starts.
+//   plugin <spec>             Rebirth's values for this run (src/lib/rebirth.h), over the install's and the
+//                             settings file's: "SecondMaster=<host[:port]>" (NewMaster's second master server),
+//                             "DisableExitOnCrashReport=0|1". Read before the game starts.
 //   resolution <W>x<H>|desktop, widescreen 0|1
 //                             answer the game's VideoResolution and the starter's WideScreen setting
 //                             for this run (game.exe's and addon.dll's registry reads; read before
@@ -3045,6 +3046,20 @@ void RunSteps() {
             if (TickLength() != want)
                 g_failures.push_back("checktick: the update period is " + std::to_string(TickLength()) + " ms, not " +
                                      std::to_string(want));
+        } else if (s.verb == "checklimit") {
+            const int want = std::atoi(s.argument.c_str());
+            const int limit = image::SessionPlayerLimit();
+            Log("harness: checklimit: the session's player limit is %d (wanted %d)", limit, want);
+            if (limit != want)
+                g_failures.push_back("checklimit: the session's player limit is " + std::to_string(limit) + ", not " +
+                                     std::to_string(want));
+        } else if (s.verb == "checkpaused") {
+            const bool want = std::atoi(s.argument.c_str()) != 0;
+            Log("harness: checkpaused: the server world is %s (wanted %s)", image::ServerPaused() ? "paused" : "running",
+                want ? "paused" : "running");
+            if (image::ServerPaused() != want)
+                g_failures.push_back(std::string("checkpaused: the server world is ") +
+                                     (image::ServerPaused() ? "paused" : "running"));
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
             if (g_heldTickLength) TickLength() = g_heldTickLength;

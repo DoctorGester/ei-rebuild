@@ -14,4 +14,9 @@ int ServerAwards() {
     return server ? static_cast<int>(server->awards.size()) : -1;
 }
 
+int SessionPlayerLimit() {
+    const net::ClientSession* client = net::g_gameClient.Get();
+    return client ? client->PlayerLimit() : -1;
+}
+
 } // namespace ei::verify::image

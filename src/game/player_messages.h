@@ -282,8 +282,8 @@ public:
     // 0x10 cleared, GameStateSent.
     bool OnGameStateRequest();
     // Message 0x10: a pause byte. A multiplayer client that is also the attached game server, asking to
-    // pause: only the session leader (its id the party's first record's unit) may, and its name is announced
-    // (text 0xC); then the world's SetPaused(pause != 0).
+    // pause: by the host's pause mode (net::PauseMode), only the session leader (its id the party's first record's
+    // unit) may, and its name is announced (text 0xC); then the world's SetPaused(pause != 0).
     bool OnPause();
     // Messages 0x33 / 0x32: {spell, unit id, target id / point, flag byte}: an able unit with a Player mode
     // casts at the object / point (CommandCast / CommandCastAt).

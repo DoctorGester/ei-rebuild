@@ -54,6 +54,8 @@ void* ClientUnit(unsigned id, std::uint32_t** flags, std::uint32_t** rotation);
 std::vector<std::string> NetState();
 // The awards the game server keeps queued (each for 60 s: ServerSession::QueueAward), -1 without a server.
 int ServerAwards();
+// The client session's player limit (ClientSession::PlayerLimit), -1 without a client.
+int SessionPlayerLimit();
 
 // ---- the game's global objects (harness_objects.h; image/harness_objects_image.cpp)
 
@@ -82,6 +84,7 @@ bool ScreenFade(bool* running, float* alpha);   // false without one
 int CampaignMode();                             // the server world's session kind
 void* ClientWorldObject();                      // the client world
 bool ClientPaused();                            // the client world's pause
+bool ServerPaused();                            // the server world's pause
 void* SceneDevice();                            // the scene renderer's device, null before it is made
 
 // ---- the steps' calls of the game (harness.cpp; image/harness_objects_image.cpp)

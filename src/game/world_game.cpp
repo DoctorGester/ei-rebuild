@@ -740,8 +740,8 @@ void GameFlow::SwitchMultiplayerZone() {
     zoneSwitchStarted = 1;
 }
 
-void GameFlow::StartServer(const char* name, int maxPlayers, int gameType, const char* password, bool unlisted,
-                           int masterKey) {
+void GameFlow::StartServer(const char* name, int maxPlayers, net::PauseMode pauseMode, int gameType,
+                           const char* password, bool unlisted, int masterKey) {
     BuildZoneTable();
     net::g_netLog = &console::g_netLogOut;
     net::g_gameServer.Assign(new net::ServerSession(gameType));
@@ -754,6 +754,8 @@ void GameFlow::StartServer(const char* name, int maxPlayers, int gameType, const
     const char* shown = name && *name ? name : kServerName;
     net::g_gameServer->name.assign(shown);
     net::g_gameServer->maxPlayers = maxPlayers;
+    net::g_gameServer->pauseMode = pauseMode;
+    net::g_gameClient->maxPlayers = maxPlayers;
     if (password && *password) net::g_gameServer->SetPassword(password);
     net::g_gameServer->SetPublic(!unlisted);
     net::g_gameClient->gameType = gameType;

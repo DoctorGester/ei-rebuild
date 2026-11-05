@@ -46,8 +46,7 @@ read as `const char* const*` holds the address of the text, not the text: read t
   game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
 - **Suite.** `run_all` / `work.py test` run two installs:
   - `standalone`: the vanilla data;
-  - `standalone-rebirth`: the Rebirth data (the same code; the folder's EI_Plugin.ini gives the player count and the
-    pause mode).
+  - `standalone-rebirth`: the Rebirth data (the same code; DisableExitOnCrashReport on).
 
   run_all starts the exe with EI_GAME_ROOT the install whose data a run plays (EI_GAME_VANILLA, EI_GAME_REBIRTH).
 
@@ -281,7 +280,7 @@ writes the registry.
   |---|---|
   | paths, video, sound, shadows, terrain, camera, game, network, statistics | the game's options (options.cpp's tables; value names are the original's registry value names) |
   | renderer | Msaa, Anisotropy, VSync, PerfOverlay |
-  | patches | EI_Plugin's NPlayers and Pause, DisableExitOnCrashReport (rebirth.md, "Settings"); any other line is ignored (one log line) |
+  | patches | DisableExitOnCrashReport (rebirth.md, "Settings"); any other line is ignored (one log line) |
   | autoexec | Rebirth's Console AutoExec lines, one value each |
 
   **Values:**
@@ -552,10 +551,10 @@ from there, started from anywhere, with no launcher, no DLL of ours and no file 
   - **Written as output:** `ei-rebuild.log` beside the exe (EI_OUT_DIR under the harness), and the saves.
   - **Not read:** `third_party_notices.txt` is the licences, shipped beside the exe.
 - **The Rebirth install** (src/game/rebirth_profile.cpp). Every Rebirth patch is the code's own; the game folder only
-  decides EI_Plugin's values and the one flag left: where `starter\addon.dll` or `EI_Plugin.asi` is, EI_Plugin.ini's
-  `[CONFIG] NPlayers` / `Pause` and DisableExitOnCrashReport on; else none (0, the original's, off). Then
-  ei_settings.ini's `[patches]` NPlayers / Pause / DisableExitOnCrashReport apply, then a scenario's `plugin` line. Harness runs take the install folder's values as a player's exe does, so the Rebirth goldens read the
-  install's EI_Plugin.ini (players 7, pause 1: the defaults).
+  decides the one flag left: where `starter\addon.dll` or `EI_Plugin.asi` is, DisableExitOnCrashReport on; else off.
+  Then ei_settings.ini's `[patches]` DisableExitOnCrashReport applies, then a scenario's `plugin` line. Harness runs
+  take the install folder's value as a player's exe does. EI_Plugin.ini is not read: the player count and the pause
+  mode are the host's choices on the create-server screen (rebirth.md, "EI_Plugin.asi").
 - **The exe's own imports** (kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`). A wrapper DLL of the same name in a game folder (dgVoodoo, a dsound wrapper) is not
   taken. ASan's build leaves the flag out.

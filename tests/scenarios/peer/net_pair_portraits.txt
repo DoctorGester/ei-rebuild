@@ -1,5 +1,5 @@
-# The peer of net_pair_portraits: joins the host's game, enters the zone after the host and captures its battle screen.
-plugin NPlayers=8
+# The peer of net_pair_portraits: joins the host's game (its player limit 8 from the lobby's answer), enters the zone
+# after the host, captures its battle screen, then pauses and resumes the host's world (the host's mode: any player).
 rebirth resolution desktop
 timeout 180
 reject Script error
@@ -32,6 +32,7 @@ clickregion 15
 frames 5
 clickregion 0
 waitwindow 40 briefing
+checklimit 8
 peersignal joined
 frames 40
 
@@ -45,6 +46,13 @@ frames 20
 capture portraits_peer
 frames 5
 peersignal peerin
+key space
+frames 10
+peersignal paused
+peerwait 60 checked
+key space
+frames 10
+peersignal resumed
 peerwait 120 done
 frames 2
 report

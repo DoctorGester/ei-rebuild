@@ -112,8 +112,12 @@ struct ScreenFade {
     bool letterbox = false;          // the bars are shown
 };
 
-// The key of the multiplayer message 12's text (Interface3D::MessageText), "reserved_02": EI_Plugin's Pause
-// writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (player_server_orders.cpp).
+// Whether the game's texts are Russian (the video options group's title holds letters beyond ASCII): the texts the
+// rebuild adds to the interface are shown in Russian, else in English (ui_options.cpp).
+bool GameTextsInRussian();
+
+// The key of the multiplayer message 12's text (Interface3D::MessageText), "reserved_02": the host's pause handler
+// writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (EI_Plugin's Pause; player_server_orders.cpp).
 extern char g_pauseMessageKey[12];
 
 // What a window pushed over the screen below keeps of it.

@@ -580,8 +580,11 @@ The screen over 800 x 600: the "saveload" and "scrollbar" textures, the stone me
 parts "but03" and "button03_multiplayer") at (400, 350, 8) turned about x by pi / 2 * 1.2; the regions with tips 0x9E98,
 0x9E99, 0x9EA2 and 0x9EA3 on the first four; sprites 0 / 1 the two buttons, 2 the selection bar (plain 0xC8A06800), 3 the
 sort arrow (the scroll bar's texture, hidden), 4 / 5 the unlisted and password switches, 6-9 the game type tabs (their names
-"lmp_allod_name_%d" into allodNames, the first selected), 10 / 11 two bars, three frames and three dark backgrounds; fifteen
-row regions; surface 0 (100, 100)-(700, 500); the scroll bar, the player slider (position 5, maxPlayers 6) and the name edit
+"lmp_allod_name_%d" into allodNames, the first selected), 10 / 11 two bars, three frames and three dark backgrounds (the
+details' frame and background reach y 425 / 420, the master and address buttons' start at 429 / 434: 10 and 4 lower than the
+original's, for the pause row); fifteen row regions, then region 29 the pause mode (440, 396)-(690, 418), the mode the
+original's; surface 0 (100, 100)-(700, 500); the scroll bar, the player slider (to `net::kMostPlayers` - 1 = 13, the
+original's 5; position 5, maxPlayers 6) and the name edit
 (the first hero's name to its '|', at most 10 characters, trimmed; not focused) as children; the 22 "lmp_connection_%d"
 texts; the client started; the queries read from config\addrbook.ini (a chunk archive, chunk 1; an extra word of 0 becomes a
 random one xor the tick count) and given to the client when the file opens; nothing selected, the list rebuilt and drawn,
@@ -593,13 +596,16 @@ ui_connect_list.cpp (WideScreen, and Rebirth's ExtendedServerName behind its fla
 frame (`PaintList`); `DrawListVanilla` sets the controls, sprites and tips and leaves g_connectTextColour as the drawing
 did (the titles are drawn in the colour from before the call: `titleColour`). With row 0
 (the new game) selected its controls show: the player slider and the name edit enabled (and editing), sprites 4 and 5 and
-their regions' tips (0x9EA4 / 0x9EA5, set once: newGameTips); otherwise they are off and the tips empty. Texts 10 and 11 by
+their regions' tips (0x9EA4 / 0x9EA5, set once: newGameTips; the pause region's tip is ours); otherwise they are off and
+the tips empty. Texts 10 and 11 by
 the two buttons, the column titles (texts 12-15), the sort arrow (sprite 3: turned for an odd key, at its column while a key
 is set) and a line under the titles in the text colour; 15 rows from scrollTop in the colour of the entry's state
 (g_connectTextColour: 1 0x31B3FF, 2 0x31E3EE, else 0xA7D7E4): the new game row "<text 7> <the name typed>", the others name,
 players "n/m", the game type's allod name ("?" for 4) and the ping; the selection frame (sprite 2) on the selected row. Then
 the selected entry's details at the right in 0xA7D7E4: for the new game the game type tabs (sprites 6-9) with their names,
-texts 0, 2 (with maxPlayers), 3, 16 and 17; for a server its name, players, game type, the map's title wrapped over up to
+texts 0, 2 (with maxPlayers), 3, 16 and 17, then the pause mode's row (ours, surface (340, 296): "Pause: as the original" /
+"the leader, announced" / "any player" / "off", in Russian where the game's texts are, `GameTextsInRussian`; a click on
+region 29 with the new game selected steps to the next mode, passed to StartServer as `net::PauseMode`); for a server its name, players, game type, the map's title wrapped over up to
 three lines, address, ping and, with a password, text 21.
 
 ## ExchangeScreen::CreateScreen

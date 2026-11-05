@@ -1,8 +1,7 @@
-# The game folder's start-up, as a player's exe has it (S23a): the exe takes EI_Plugin's values from the files of its
-# game folder (EI_GAME_ROOT here; the run's settings file names none; src/game/rebirth_profile.cpp). The
+# The game folder's start-up, as a player's exe has it (S23a): the exe takes DisableExitOnCrashReport from the files of
+# its game folder (EI_GAME_ROOT here; the run's settings file names none; src/game/rebirth_profile.cpp). The
 # "folderprofile" step (tests/verify/harness_folder_profile.h) checks the start-up: on the Rebirth install
-# EI_Plugin.ini's players and pause mode, on the vanilla install none. In the Rebirth smoke set
-# (config/rebirth_scenarios.csv).
+# DisableExitOnCrashReport on, on the vanilla install off. In the Rebirth smoke set (config/rebirth_scenarios.csv).
 timeout 40
 reject Script error
 waitmenu
