@@ -442,7 +442,7 @@ void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, c
         if (!record->weapons.empty()) controller->ShowWeapon(0);
         for (int j = 0; j < std::ssize(record->armor); ++j) {
             Item* armour = record->armor[j];
-            if (allArmour || armour->AsArmor()->GetType() != 0) unit->EquipArmour(armour);
+            if (allArmour || armour->AsArmor()->GetType() != ArmorType::Helmet) unit->EquipArmour(armour);
         }
         for (int j = 0; j < std::ssize(record->quickItems); ++j)
             unit->AddQuickItem(record->quickItems[j]);

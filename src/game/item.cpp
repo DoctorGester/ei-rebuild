@@ -253,8 +253,8 @@ const char* ItemArmor::ClassName() { return "CItemArmor"; }
 
 ClassId ItemArmor::GetClassId() { return ClassId::ItemArmor; }
 
-int ItemArmor::GetType() {
-    return ArmorAt(PrototypeIndex(prototypeId))->type;
+ArmorType ItemArmor::GetType() {
+    return static_cast<ArmorType>(ArmorAt(PrototypeIndex(prototypeId))->type);
 }
 
 void ItemArmor::InitFromRecord(const ItemRecordHead* record) {

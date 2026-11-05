@@ -27,7 +27,7 @@ constexpr int kArmourSlots = 7;         // Unit::armor
 // For each armour type, the three body slots it covers (kNoSlot: none).
 constexpr int kArmourCoverage[7][3] = /*0073E048*/ {{0, 7, 7}, {1, 2, 3}, {7, 4, 5}, {1, 2, 3}, {7, 4, 5}, {7, 4, 5}, {7, 2, 3}};
 
-int CoveredSlot(int type, int which) { return kArmourCoverage[type][which]; }
+int CoveredSlot(ArmorType type, int which) { return kArmourCoverage[static_cast<int>(type)][which]; }
 
 } // namespace
 

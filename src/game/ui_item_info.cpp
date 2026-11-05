@@ -23,7 +23,6 @@
 #include <cstring>
 #include <new>
 #include <string>
-#include "lib/text_case.h"
 
 #include <concepts>
 #include <vector>
@@ -364,7 +363,7 @@ void ItemInfoPanel::DescribeItem() {
     bool materialLine;
     if (kind == ItemKind::Quick) {
         const itemdb::ItemRecordHead* prototype = item->GetPrototype();
-        materialLine = !prototype || text::CompareIgnoringCase(prototype->materialClass, "none") != 0;
+        materialLine = !prototype || prototype->HasMaterial();
     } else {
         materialLine = kind != ItemKind::Loot && kind != ItemKind::Quest;
     }

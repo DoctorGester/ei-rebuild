@@ -77,7 +77,7 @@ int Hoover::CollectLoot(World* world, Unit* cunit, std::vector<Item*>* drops, st
             ItemArmor* armour = cunit->WornItem(slot);
             if (!armour) continue;
             Append(drops, armour);
-            cunit->UnequipArmour(armour->GetType());
+            cunit->UnequipArmour(static_cast<int>(armour->GetType()));
         }
         for (int slot = 0; slot < 4; ++slot) {
             ItemWeapon* weapon = cunit->GetWeapon(slot);

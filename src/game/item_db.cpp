@@ -9,6 +9,7 @@
 #include "unit_db.h"   // InlineStrings
 
 #include "lib/crt.h"
+#include "lib/text_case.h"
 
 #include <algorithm>
 #include <array>
@@ -65,6 +66,8 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
     ar->Field(12, &armourFlags);
     ar->Field(13, &classMask);
 }
+
+bool ItemRecordHead::HasMaterial() const { return text::CompareIgnoringCase(materialClass, kNoMaterialClass) != 0; }
 
 void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->StringField(0, &name);

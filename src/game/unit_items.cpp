@@ -32,8 +32,9 @@ ItemArmor* Unit::EquipArmour(Item* item) {
     if (!item) return nullptr;
     if (lib::RoundEven(item->condition) <= 0) return nullptr;    // broken
     ItemArmor* piece = item->AsArmor();
-    ItemArmor* previous = armor[piece->GetType()];
-    armor[piece->GetType()] = piece;
+    int slot = static_cast<int>(piece->GetType());
+    ItemArmor* previous = armor[slot];
+    armor[slot] = piece;
     piece->AddRef();
     controller->ArmourPutOn(piece->prototypeId);
     if (previous) previous->Release();

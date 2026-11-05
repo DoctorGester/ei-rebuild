@@ -6,6 +6,7 @@
 #include "console.h"
 #include "item.h"
 #include "manager_context.h"
+#include "map_object.h"   // MapObjectFlag
 #include "spell.h"
 #include "text_split.h"
 
@@ -20,8 +21,6 @@
 using namespace itemdb;
 
 namespace {
-
-constexpr std::uint32_t kFlagConstructing = 8;
 
 const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 
@@ -206,7 +205,7 @@ bool ItemConstructor::BeginCreateItem(ItemKind kind) {
     material = nullptr;
     prototype = nullptr;
     count = 1;
-    flags |= kFlagConstructing;
+    flags |= MapObjectFlag::Constructing;
     return true;
 }
 
@@ -215,7 +214,7 @@ Item* ItemConstructor::EndCreateItem() {
         item.Reset();
         return nullptr;
     }
-    flags &= ~kFlagConstructing;
+    flags &= ~MapObjectFlag::Constructing;
     Item* newItem = item.Take();
     newItem->ForgetReference();
     spell = nullptr;

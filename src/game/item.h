@@ -32,9 +32,6 @@ constexpr std::uint32_t kNoIndex = 0xFFFF;
 // an index out of range.
 itemdb::ItemRecordHead* PrototypeAt(ItemKind kind, std::uint32_t index);
 
-// Armour types 0-2 are worn on the upper body.
-inline bool IsUpperBodyArmor(int type) { return type == 0 || type == 1 || type == 2; }
-
 class ItemLink;
 class ItemTurn;
 class ItemWeapon;
@@ -193,7 +190,7 @@ public:
     std::uint32_t QuestWord() const override { return std::bit_cast<std::uint32_t>(absorb[0][0]); }
 
     // The armor type from the prototype (faults if the index is out of range).
-    int GetType();
+    ArmorType GetType();
 
     // The unit's armour layer group the piece adds to (UnitStatLayer): 2 for upper body armour, else 1.
     int GetTypeGroup() { return IsUpperBodyArmor(GetType()) ? 2 : 1; }
@@ -223,8 +220,8 @@ public:
     ClassId GetClassId() override;
     std::uint32_t QuestWord() const override { return actionValue; }
 
-    // "qitem<number>.<material name>" when the prototype's materialClass is not "none" ("uq" for a material
-    // out of range), else "qitem<number>" (-1 without a prototype).
+    // "qitem<number>.<material name>" when the prototype has a material ("uq" for a material out of range), else
+    // "qitem<number>" (-1 without a prototype).
     std::string FigureName() override;
     std::string PictureName() override;
     bool CopyTo(Item* target, SpellManager* spells) override;

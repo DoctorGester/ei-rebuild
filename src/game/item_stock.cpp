@@ -14,7 +14,6 @@
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
-#include "lib/text_case.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -187,11 +186,11 @@ void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, in
 
     std::vector<StockMaterial*> candidates;
     for (Record* prototype : taken) {
-        if (prototype->family == "wand") continue;
+        if (prototype->family == itemdb::kWandFamily) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(prototype->Kind());
         ctor->prototype = prototype;
-        bool needsMaterial = text::CompareIgnoringCase(prototype->materialClass.c_str(), "none") != 0;
+        bool needsMaterial = prototype->HasMaterial();
         candidates.clear();
         if (needsMaterial) {
             for (StockMaterial& e : materials) {
@@ -274,7 +273,7 @@ void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::vecto
 
 void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateInstructions(this, "instruction quick item",
-                         ItemIndices(quickItems, g_itemDatabase.quickItems, "scroll"), minCount, maxCount,
+                         ItemIndices(quickItems, g_itemDatabase.quickItems, itemdb::kScrollFamily), minCount, maxCount,
                          out);
 }
 
@@ -326,7 +325,7 @@ std::vector<HeldRef<Spell>> ItemStock::GenerateSpells(const float* levels, unsig
             int count = 0;
             itemdb::SpellRecord* prototype = g_spellDatabase.spells.Named(recipe->spell);
             int level = prototype->skill;
-            int budget = lib::RoundEven(levels[prototype->school]);
+            int budget = lib::RoundEven(levels[static_cast<int>(prototype->school)]);
             float cost = prototype->mana;
             for (const std::string& name : recipe->required) {
                 itemdb::SpellModifierRecord* m = modifierMap[name];

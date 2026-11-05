@@ -47,6 +47,24 @@ enum class WeaponType : int {
     NoWeapon = 8,
     SpellsOnly = 0x10,
 };
+// The armour types (ArmorRecord::type, ItemArmor::GetType; the unit's armour slot of the piece), by the item codes
+// "hl", "pl", "lg", "sh", "pt", "bt", "gl". The first three are the pieces with models (the figure's helmet, body
+// and trousers rows, layer group 2); the other four go under them (layer group 1) and have no model parts. The
+// names of 3 and 4 are read from their codes and the body slots they cover (body and arms; legs).
+enum class ArmorType : int {
+    Helmet = 0,
+    BodyArmor = 1,
+    Leggings = 2,
+    Shirt = 3,
+    Pants = 4,
+    Boots = 5,
+    Gloves = 6,
+};
+// The pieces with models (the text keys' "upper" armour).
+constexpr bool IsUpperBodyArmor(ArmorType type) {
+    return type == ArmorType::Helmet || type == ArmorType::BodyArmor || type == ArmorType::Leggings;
+}
+
 // A weapon type that shoots (no defence bonus, no backstab).
 constexpr bool IsRanged(WeaponType type) { return type == WeaponType::Bow || type == WeaponType::Crossbow; }
 // The natural weapon types below this one have an animation bit (AnimationWeaponBit).
@@ -104,7 +122,7 @@ struct SpellRecord {
     std::string unreadText;             // archive field 2; nothing reads it
     float price = 0.0f;                 // a loot item's price when it stands for the spell (ItemLoot::GetPrice)
     int castType = 0;                   // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
-    int school = 0;
+    SpellSchool school = SpellSchool::Fire;
     float mana = 0.0f;
     // fields 6-14: what Spell::InitFromPrototype / SpellContainer::Build copy into the spell, and the item
     // info shows.
@@ -177,10 +195,13 @@ public:
 
     void SerializeHead(ChunkArchive* ar);
 
+    // materialClass is not kNoMaterialClass (any case).
+    bool HasMaterial() const;
+
     std::string name;                   // the name the tables file the record under
-    std::string family;                 // the item's family ("wand", "scroll"; what the trader stock skips by)
-    int type = 0;                       // weapon / armour class
-    // the class of material it is made of ("none": a potion, without a material).
+    std::string family;                 // the item's family (kWandFamily, kScrollFamily; what the trader stock skips by)
+    int type = 0;                       // WeaponType / ArmorType
+    // the class of material it is made of (kNoMaterialClass: a potion, without a material).
     std::string materialClass;
     std::uint32_t unreadHeadField = 0;  // archive field 4 (4 bytes); nothing reads it
     int number = 0;                     // the number in the item's text keys and names ("item%04d")
@@ -211,6 +232,11 @@ protected:
 // ("material.<key>", its count in brackets).
 inline constexpr const char* kSpellContainer = "spell container";
 inline constexpr const char* kMaterialType = "material";
+// The material class of a prototype without a material (ItemRecordHead::HasMaterial).
+inline constexpr const char* kNoMaterialClass = "none";
+// The item families the trader stock skips: wands among its quick items, scrolls among its quick item instructions.
+inline constexpr const char* kWandFamily = "wand";
+inline constexpr const char* kScrollFamily = "scroll";
 
 // A record (or null) as the kind's record it is (WeaponRecord, ArmorRecord, QuickItemRecord,
 // QuestItemRecord, LootItemRecord): the item's class id or the table it came from says which.

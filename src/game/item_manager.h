@@ -50,12 +50,12 @@ public:
     // Counts a reference to `manager`, dropping the previous one's (no release).
     void SetManager(BaseManager* manager);
 
-    // Creates the item through the manager (with `kind`, no id asked for): counted, records cleared, count 1, flag 8
-    // set. False after a fatal error the game carries on from (Rebirth's DisableExitOnCrashReport).
+    // Creates the item through the manager (with `kind`, no id asked for): counted, records cleared, count 1,
+    // MapObjectFlag::Constructing set. False after a fatal error the game carries on from (Rebirth's DisableExitOnCrashReport).
     bool BeginCreateItem(ItemKind kind);
 
     // Builds the item. On failure releases it and returns null; otherwise hands it over
-    // (its count dropped without release, flag 8 cleared) and returns it.
+    // (its count dropped without release, MapObjectFlag::Constructing cleared) and returns it.
     Item* EndCreateItem();
 
     // Releases the item; records and spell cleared.

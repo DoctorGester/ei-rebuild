@@ -81,7 +81,7 @@ Item* HeroEquipPanel::ItemAt(Point point, int* topic) {
     *topic = region - 4;
     for (int i = 0; i < std::ssize(hero->armor); ++i) {
         ItemArmor* armour = hero->armor[i]->AsArmor();
-        if (armour->GetType() == region - kFirstBodySlot) return armour;
+        if (static_cast<int>(armour->GetType()) == region - kFirstBodySlot) return armour;
     }
     return nullptr;
 }

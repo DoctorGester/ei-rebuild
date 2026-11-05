@@ -312,7 +312,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
         if (IsSpell(item)) {
             if (std::ssize(spellResults->items) > 0) return false;
             const itemdb::SpellRecord* record = SpellRecordOf(item);
-            PartySkill best = BestPartySkill(record->school);
+            PartySkill best = BestPartySkill(static_cast<int>(record->school));
             if (best.mana < static_cast<int>(record->mana)) return false;
             return best.skill >= record->skill;
         }
@@ -327,7 +327,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
                 hasSpell = true;
                 const itemdb::SpellRecord* record = SpellRecordOf(slot);
                 skillSum += record->skill;
-                school = record->school;
+                school = static_cast<int>(record->school);
                 manaSum += record->mana;
                 // The modifier must suit the spell (the spell's flag byte for the modifier's kind).
                 std::uint32_t kind = ModifierRecordOf(item)->kind;
@@ -619,7 +619,7 @@ bool CampPages::CanMakeSpell() {
     if (container) container->AttachSpell(made);
     spellMade.Assign(container);
     if (!container) return false;
-    PartySkill best = BestPartySkill(spell->school);
+    PartySkill best = BestPartySkill(static_cast<int>(spell->school));
     if (best.mana < static_cast<int>(made->manaCost)) return false;
     return best.skill >= static_cast<int>(made->skillNeeded);
 }
@@ -717,8 +717,7 @@ Item* CampPages::TakeOff(Item* item) {
     }
     case ItemKind::Armor: {
         if (heroes[hero]) {
-            int armorType = item->AsArmor()->GetType();
-            heroes[hero]->UnequipArmour(armorType);
+            heroes[hero]->UnequipArmour(static_cast<int>(item->AsArmor()->GetType()));
             heroes[hero]->controller->ShowWeapon(heroRecord->weaponIndex);
             heroes[hero]->controller->RefreshModel();
             heroes[hero]->controller->RefreshEquipment();
@@ -754,7 +753,7 @@ void CampPages::PutOn(Item* item) {
         break;
     case ItemKind::Armor: {
         // Each piece on the same body part comes off first.
-        int armorType = item->AsArmor()->GetType();
+        ArmorType armorType = item->AsArmor()->GetType();
         for (int i = 0; i < std::ssize(heroRecord->armor); ++i) {
             if (heroRecord->armor[i]->AsArmor()->GetType() == armorType)
                 TakeOff(heroRecord->armor[i]);

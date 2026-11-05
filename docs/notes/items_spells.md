@@ -40,6 +40,10 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
   category, so `Item::GetCategory` of an armour read them; ours leaves the category 0. No category test can tell: the
   callers compare with 2, 5 and 8, and no install's or mod's items.idb (192-215 rows, factors 0.63 and up) has a
   factor with those bits.
+- Armour types (`ArmorType`, the codes "hl", "pl", "lg", "sh", "pt", "bt", "gl"; also the unit's armour slot):
+  Helmet, BodyArmor and Leggings have models (the figure's helmet, body and trousers rows), layer group 2 and the
+  "upper" text keys (`IsUpperBodyArmor`); Shirt, Pants, Boots and Gloves go under them (group 1, no model parts).
+  Shirt and Pants are read from their codes and covered body slots (body and arms; legs), not from a game text.
 - Naming: 0x3007 is the loot item ("litem", ItemLoot) and 0x3009 the quest item ("questitem", ItemQuest).
 - Weapon stats: min damage = weapon damage x material damage, max = (spread + damage) x material damage, attack =
   weapon attack x material attack, damage type = the first non-zero weight (6 if none).
