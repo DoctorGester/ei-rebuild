@@ -256,7 +256,7 @@ void PrepareSurfaces(const ShadowFrame& shadow) {
 }
 
 void PrepareUnitWeather(Frame& f) {
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
     const Surfaces& s = g_surfaces;
     CollectUnitsAndRoofs(f);
     // Each unit's wetness and snow follow the settled weather on it (none under a roof), on the ground's time, which
@@ -300,7 +300,7 @@ void PrepareRoofs(Frame& f) {
     Box ground;
     if (!VisibleGround(f, &ground)) return;
     const Vector3 &low = ground.low, &high = ground.high;
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
     float extent = std::max(high.x - low.x, high.y - low.y) + 2.0f * kRoofMargin;
     extent = std::ceil(extent / kRoofStep) * kRoofStep;
     const float texel = extent / kRoofMapSize;
@@ -348,7 +348,7 @@ void RoofUniforms(const Matrix4& light, ShadowParams* p) {
 // The roofs straight down into the roof map (depth only; cut out by their texture's alpha as in the sun map).
 void DrawRoofMap() {
     if (!g_roofFit.on) return;
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
     if (!g_roofTexture) g_roofTexture = MakeShadowDepth(kRoofMapSize, kRoofMapSize, "ei-roof-map");
     if (!g_roofTexture) {
         g_roofFit.on = false;
@@ -375,10 +375,10 @@ void DrawRoofMap() {
     pass.depth = {g_roofTexture, 0, gpu::Load::Clear, 1.0f, true};
     pass.label = "ei-roof-map";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the roof map's pass could not begin (%s).", gpu::Error());
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     if (draw) g_roofDraws.Draw(0, g_roofDraws.Count());
     gpu::EndPass();
-    g_stats.shadowDraws += g_roofDraws.Count();
+    g_stats.counts[FrameStats::ShadowDraws] += g_roofDraws.Count();
     g_roofInfo.roofs = static_cast<int>(g_roofDraws.Count());
 }
 
@@ -421,12 +421,8 @@ void BeginInterfaceUnit(const Object3D* object) { g_interfaceUnit = object; }
 void EndInterfaceUnit() { g_interfaceUnit = nullptr; }
 
 void SetRoofShelter(bool on) {
-#if defined(EI_RENDER_VALIDATION)
     if (on != g_roofShelter) ei::Log("render: the roofs' shelter from the weather %s", on ? "on" : "off");
     g_roofShelter = on;
-#else
-    (void)on;
-#endif
 }
 
 RoofInfo RoofState() { return g_roofInfo; }

@@ -4,6 +4,7 @@
 
 #include "platform/log.h"
 #include "render.h"
+#include "render_checks.h"
 #include "render/gpu.h"
 #include "render_state.h"
 
@@ -750,24 +751,40 @@ void ShowFrameCursor();
 // The holder is gone: the cursor shapes made from its picture let go.
 void ForgetCursor(const Surface* holder);
 
-// The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
-// timer inside another's scope takes its time out of the outer one's field.
+// The harness build's renderer (EI_RENDER_VALIDATION): its checks and FrameStats' times.
+#if defined(EI_RENDER_VALIDATION)
+constexpr bool kRenderValidation = true;
+#else
+constexpr bool kRenderValidation = false;
+#endif
+// The counts of the frame being built (summed at Present).
 extern FrameStats g_stats;
-// The renderer's own timings (StatsTimer, the perf overlay, the texture counts): the steady clock's ticks, nanoseconds
+// The renderer's own timings (Timer, the perf overlay, the texture counts): the steady clock's ticks, nanoseconds
 // (render_perf.cpp: <chrono> would cost every includer a megabyte of header).
 long long Ticks();
 inline constexpr double kMsPerTick = 1e-6;
-class StatsTimer {
+// A span of the renderer's CPU time, from Begin to End, or a scope's when made with a kind. End gives its
+// milliseconds (0 when it was not running). With a kind the harness build adds them to that FrameStats time (in the
+// product such a timer never runs); a timer begun with a kind while another such runs takes its time out of that
+// one's, so each counts its own work only (timers with a kind end in the reverse order of their Begin). Without a kind
+// it runs in every build (the perf overlay's CPU parts).
+class Timer {
 public:
-    explicit StatsTimer(double FrameStats::* field);
-    ~StatsTimer();
-    StatsTimer(const StatsTimer&) = delete;
-    StatsTimer& operator=(const StatsTimer&) = delete;
+    Timer() = default;
+    explicit Timer(FrameStats::Time kind) { Begin(kind); }
+    ~Timer() { End(); }
+    Timer(const Timer&) = delete;
+    Timer& operator=(const Timer&) = delete;
+    // Nothing when running.
+    void Begin();
+    void Begin(FrameStats::Time kind);
+    double End();
+    bool Running() const { return start != 0; }
 
 private:
-    double FrameStats::* field = nullptr;
+    int kind = -1;    // the FrameStats::Time, -1 none
+    int outer = -1;   // the kind of the timer running when this one began, -1 none
     long long start = 0;
-    StatsTimer* outer = nullptr;
 };
 // CountPipeline: a change when it differs from the last one applied in the frame; CountBindings: a texture change
 // when the first texture bound differs from the last.
@@ -775,6 +792,9 @@ void CountPipeline(gpu::Pipeline pipeline);
 void CountBindings(const gpu::Texture& first);
 void CountDraw(std::size_t uniformBytes);
 void CountUpload(FrameStats::Upload kind, std::size_t bytes);
+// At the present (render_checks.cpp): the frame's counts and times, with its `matrices` and size, added to the sums
+// TakeFrameStats gives; the next frame's start from zero.
+void AddFrameStats(std::size_t matrices, int width, int height);
 // Against the last frame's vertices for the same key (a terrain page: sector and page; a mesh: its positions,
 // page 0).
 void CountReuse(bool terrain, const void* key, int page, const Vertex* vertices, std::size_t count);
@@ -843,11 +863,9 @@ struct ComposeShape {
 gpu::Texture MakeComposed(const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
 // More steps drawn into a texture MakeComposed made for `shape` (of first level 0; its levels made again).
 void DrawComposed(const ComposeShape& shape, const gpu::Texture& image, const ComposeStep* steps, std::size_t count);
-#if defined(EI_RENDER_VALIDATION)
 // Level `level` (`width` x `height`) of a texture as RGBA8 rows from the top, as the GPU reads it (drawn texel for
 // texel into a target and read back): render::CheckMmpLevels's levels. No pass in progress.
 bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height, std::vector<std::uint8_t>* rgba);
-#endif
 // render::ComposeTexture's and BlankTexture's entry for `holder` (render_textures.cpp): `shape` made with `steps`.
 bool StoreComposed(const Surface* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
 gpu::Sampler StageSampler(const StageState& stage);

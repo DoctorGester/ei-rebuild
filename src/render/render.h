@@ -5,7 +5,7 @@
 // device, a pass or a submission refused, nothing to present into), the game ends with the reason in the game's
 // error box (renderer.md, "When the renderer fails"). See docs/notes/renderer.md.
 // EI_RENDER (or the harness step "render <spec>") is a comma-separated list of the harness build's words: "checkall"
-// (the harness's own "removable" never reaches it).
+// (the harness's own "removable" never reaches it). The harness's switches and read-backs: render_checks.h.
 
 #include "lib/rect.h"
 #include "lib/vecmath.h"
@@ -51,20 +51,6 @@ bool QualitySettingsSupported();
 // The world view's draws (WorldClient::Render) come between BeginWorld and EndWorld.
 void BeginWorld();
 void EndWorld();
-// The render quality's state in the last presented frame: the levels asked for and what was drawn.
-struct SmoothInfo {
-    int msaa = 1, anisotropy = 1;
-    int deviceSamples = 1, targetSamples = 1;
-    int multisampledPasses = 0;
-    int copiesInto = 0, depthCopiesBack = 0;
-    int anisotropicModels = 0, plainModels = 0;
-};
-SmoothInfo SmoothState();
-// Harness build only ("smoothorder"): the smooth passes in an order the game never draws. Before: an empty
-// pass on the frame target first. Split: the world view's first run ends at its middle command and an
-// empty pass on the frame target follows.
-enum class SmoothOrder : std::uint8_t { Game, Before, Split };
-void SetSmoothOrder(SmoothOrder order);
 
 // The performance overlay (render_perf.h). Switched by the settings file; the harness build has none.
 bool PerfOverlaySupported();
@@ -91,15 +77,6 @@ void CloudShadows(const CloudWeather& weather);
 // from the settled weather of the next hand-overs, so the ground of a zone does not stay wet or snowy from the one
 // before (the world's time goes on) and a zone entered or loaded in snow is covered at once.
 void LandscapeLoaded();
-// Harness build: a unit's own weather (11b, Units) as the last frame left it: `known` when the unit (the object its
-// meshes were handed over with, BeginCaster) was drawn lately; its wetness and snow (0 .. 1) and the share of its
-// top covered by a roof (0 .. 1), and where it stood (the middle of its box's foot, the landscape's space).
-struct UnitWeather {
-    bool known = false;
-    float wet = 0.0f, snow = 0.0f, shelter = 0.0f;
-    Vector3 at{};
-};
-UnitWeather UnitWeatherState(const Object3D* object);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights), the camera and the client's time (the water's ripples move by it). The terrain
@@ -152,8 +129,7 @@ void CastsShadow(const Object3D* object, float strength);
 // visible ground's box swept back towards the sun as far as a caster no higher than `highestTop` reaches,
 // widened by `widest` (the largest radius). ShadowCasterReaches is exact up to the bounds. CasterPartDrawn:
 // `part` (MeshSource::owner) was drawn this frame as a caster's mesh. CasterStrength: -1 when CastsShadow was
-// not called for `object` this frame. SetOffscreenCasters (harness "shadowcasters view|all|walked"): View,
-// only what the game draws casts; Walked, every caster comes from the walk.
+// not called for `object` this frame (render_checks.h's SetOffscreenCasters: which casters cast).
 struct ShadowCasterRect {
     float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
 };
@@ -188,116 +164,9 @@ void ShadowCasterMesh(const Object3D* object, const ShadowMesh& mesh);
 // The walk's time counts as the shadow map's CPU time.
 void BeginShadowWalk();
 void EndShadowWalk();
-enum class OffscreenCasters { View, All, Walked };
-void SetOffscreenCasters(OffscreenCasters mode);
-// Harness build shadow checks. SetShadowView ("shadowview on|off"): the receivers show only how much sun the
-// map and the clouds hide. SetShadowShift ("shadowshift <texels>"): the map's origin moved by whole texels (half as many
-// along), to show a filter that depends on the range cells.
-void SetShadowView(bool on);
-void SetShadowShift(int texels);
-// Harness build: the ground prints (MeshDraw::groundDecal) drawn (the default) or left out ("decals on|off").
-void SetGroundDecals(bool on);
-// Harness build: the rain and snow particles (RainSnow::DrawParticles) drawn (the default) or left out ("weatherparticles
-// on|off"), to measure what share of a frame they cover.
-void SetWeatherParticles(bool on);
+// The rain and snow particles (RainSnow::DrawParticles) drawn: true unless the harness left them out
+// (render_checks.h's SetWeatherParticles).
 bool WeatherParticlesDrawn();
-// Harness build: the interface figure of a world unit (BeginInterfaceUnit) with its unit's weather (the default) or
-// dry ("panelweather on|off"), for a frozen capture of the HUD unit panel both ways.
-void SetInterfaceUnitWeather(bool on);
-// Harness build: the ground and the world's meshes under a roof kept dry (the roof map, the default) or weathered as in
-// the open ("roofs on|off"), for a frozen capture both ways.
-void SetRoofShelter(bool on);
-// The roof map of the last prepared frame (render_weather.cpp): made (only while there is weather on the surfaces),
-// its texels a side, the units it spans and the roof meshes drawn into it.
-struct RoofInfo {
-    bool made = false;
-    int size = 0;
-    float extent = 0.0f;
-    int roofs = 0;
-};
-RoofInfo RoofState();
-// Harness build: the ambient occlusion on (the default), off, or shown alone by its receivers (white none, black
-// all; "occlusion on|off|view"). OcclusionState: the last presented frame's, with the ground's sectors whose
-// occlusion is kept and how often one was worked out since the start.
-enum class OcclusionMode { On, Off, View };
-void SetOcclusion(OcclusionMode mode);
-struct OcclusionInfo {
-    bool made = false;
-    int width = 0, height = 0;   // the half-size depth's
-    int meshDraws = 0, terrainDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
-    int groundSectors = 0, groundMade = 0;
-};
-OcclusionInfo OcclusionState();
-// The last presented frame's shadow map. Of the objects whose shadow the game draws: `offScreen` cast
-// nothing and handed over no mesh, `lost` handed over meshes of which none went into the map (none should);
-// `outside*`: casters through ShadowCasterMesh.
-struct ShadowInfo {
-    bool made = false;
-    int size = 0;
-    float extent = 0.0f;
-    int casters = 0, casterDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
-    int offScreen = 0, lost = 0;
-    int outsideCasters = 0, outsideDraws = 0, outsideCorners = 0;
-    int terrainCasters = 0;   // the ground's sectors drawn into the map
-    int groundDecals = 0, receivingDecals = 0;   // the ground prints handed over, and those sampling the map
-    // The cloud shadows: how much of the sun a full cloud hid (0: none) and the share of the ground under clouds.
-    float cloudLight = 0.0f, cloudCover = 0.0f;
-    // The weather on the surfaces (0 .. 1): how wet the ground is, the puddles' share and the snow's cover.
-    float wetness = 0.0f, puddles = 0.0f, snowCover = 0.0f;
-};
-ShadowInfo ShadowState();
-
-// What the renderer did for the presented frames (renderer.md section 13), summed over `frames`.
-// TakeFrameStats returns the sums since its last call (the harness's "renderstats"). The CPU times and the
-// reuse counts are the harness build's only.
-struct FrameStats {
-    enum Upload { Mmp, Movie, Small, UploadKinds };
-    std::uint32_t frames = 0;
-    int width = 0, height = 0;   // the last frame's size
-// Hand-over: meshes are BeginMesh with corners built; stateReads are the passes' reads of the render state (ReadPassState).
-    std::uint64_t terrainPages = 0, terrainBatches = 0, meshes = 0, meshPasses = 0, transformedDraws = 0;
-    std::uint64_t blits = 0, depthClears = 0, stateReads = 0, matrices = 0;
-// Of the meshes: the flat geometry (object shadows, ground prints, selection markers, light decals).
-    std::uint64_t flatMeshes = 0, flatVertexBytes = 0;
-// Vertices against the last frame's of the same terrain page or mesh: all the same, only colours changed,
-// positions or texture coordinates changed, none last frame; shared: equal to another mesh of the same frame
-// (instancing candidates).
-    enum Reuse { Same, Relit, Moved, New, ReuseKinds };
-    std::uint64_t terrainReuse[ReuseKinds] = {}, meshReuse[ReuseKinds] = {}, sharedMeshes = 0;
-    std::uint64_t terrainVertexBytes = 0, terrainIndexBytes = 0, meshVertexBytes = 0, meshIndexBytes = 0;
-    std::uint64_t uniformBytes = 0;
-    std::uint64_t passes = 0, draws = 0, pipelineApplies = 0, pipelineChanges = 0, bindings = 0, textureChanges = 0;
-// Images made (or updated in place) per kind.
-    std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {};
-// CPU times (ms). statsMs (these counts' own hashing and checks) and terrainMs (the terrain pages'
-// hand-over and uploads) are left out of the others.
-    double terrainMs = 0.0;
-    double handOverMs = 0.0, textureMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
-// The game device's mesh draws (device_mesh.cpp's DrawMesh, the BeginDeviceMeshTime timer), the hand-over in them left out.
-    double deviceMeshMs = 0.0;
-// ProjectDecal for ground prints; the device's flat draws (hand-over left out);
-// RenderShadow.
-    double decalPrintMs = 0.0, flatMs = 0.0, shadowBuildMs = 0.0;
-    std::uint64_t decalPrints = 0, decalVertices = 0;
-    std::uint64_t flatDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
-// The shadow map's draws and CPU time (left out of the times around it).
-    std::uint64_t shadowDraws = 0;
-    double shadowMs = 0.0;
-// Meshes handed over with per-vertex offsets (an animation's morph).
-    std::uint64_t morphMeshes = 0, morphCorners = 0;
-};
-FrameStats TakeFrameStats();
-
-// Harness build: timers into FrameStats (deviceMeshMs, the decal / flat / shadow build times).
-void BeginDeviceMeshTime();
-void EndDeviceMeshTime();
-void BeginDecalTime();
-void EndDecalTime(int vertices);
-void BeginFlatDrawTime(int vertices);
-void EndFlatDrawTime();
-void BeginShadowBuildTime();
-void EndShadowBuildTime();
-
 // The holder is destroyed: what the renderer kept for it forgotten.
 void HolderGone(const Surface* holder);
 // A holder loaded from an 8888 .mmp picture (the software cursor's images): the renderer keeps the
@@ -449,16 +318,6 @@ struct FrameCursor {
     Point heldAt;                        // turns the camera
 };
 void Cursor(const FrameCursor& cursor);
-// The presents by what they did with the cursor, and the shape shown (its size and hot spot in window pixels).
-struct CursorInfo {
-    std::uint32_t presentsShown = 0, presentsHeld = 0, presentsHidden = 0;
-    std::uint32_t made = 0, failures = 0;   // shapes made, shapes the system could not make
-    std::uint32_t shapeChanges = 0;         // another shape (or none) shown ...
-    std::uint32_t frameChanges = 0;         // ... of them, another frame of the same picture
-    bool shown = false;
-    int width = 0, height = 0, hotX = 0, hotY = 0;
-};
-CursorInfo CursorState();
 
 // The game clears the depth buffer mid-frame (before the interface's panels and 3D previews); `rects`
 // null: all of it.
@@ -471,16 +330,6 @@ void TerrainPage(const terrain::SectorData* sector, const SceneRenderer* rendere
 // texture coordinates (animated tiles); WaterMoved, only the water layer's positions.
 enum class TerrainChange { Rebuilt, Moved, WaterMoved };
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
-// Harness build only ("terraincache"): pages kept on the GPU (on, the default) or built every frame (off,
-// for frame comparisons). Every 16th frame the kept pages are checked against a fresh build; `stale` counts
-// a change TerrainChanged was not told of.
-void SetTerrainCache(bool on);
-struct TerrainCacheInfo {
-    bool on = true;
-    std::size_t pages = 0;
-    std::uint64_t checks = 0, stale = 0;
-};
-TerrainCacheInfo TerrainCacheState();
 
 // A figure part lit on the GPU as 3DfpFPU's LightMesh lit its words (renderer.md section 13). Lights
 // and sun are taken into the part's model space.
@@ -523,14 +372,6 @@ void MeshChanged(const void* object, MeshChange change);
 // Mesh draws between SetInterfaceDraw(true) and (false) (UiMesh::Draw) are built every frame: the interface
 // rewrites its sprites' corners in place in many places.
 void SetInterfaceDraw(bool on);
-// Harness build only ("meshcache"): as SetTerrainCache, for figure meshes.
-void SetMeshCache(bool on);
-struct MeshCacheInfo {
-    bool on = true;
-    std::size_t meshes = 0;
-    std::uint64_t checks = 0, stale = 0;
-};
-MeshCacheInfo MeshCacheState();
 
 // Draws what was handed over since the last present and presents it. Once per frame; captures call it
 // before reading.
@@ -547,31 +388,6 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue);
 // The ramp the present applies: 256 RGBA8 entries (the harness checks the cursor's shapes against it).
 const std::uint8_t* GammaRampTable();
-// Frames presented on the game window; the verify build's checks of the presented frame against the gamma
-// ramp (after each SetGammaRamp, at a grid of points, when the frame shows one to one).
-struct WindowPresentInfo {
-    std::uint32_t presents = 0;
-    int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
-    bool rampCheckPending = false;
-    bool rampIdentity = true;
-};
-WindowPresentInfo WindowPresents();
-// Harness build only ("terrainlevels"): what the ground pages draw. Levels: the texture level the page's
-// sampler reads at each pixel (red = level * 32, mips blended as the sampler blends them; green 0x5A and blue
-// 0xA5 mark the pixel). PointMips: the same through the old sampler (bilinear, point mips: the level steps
-// along the tiles' edges that showed as seams). Off: the pages' colours.
-enum class TerrainLevelMode { Off, Levels, PointMips };
-void TerrainLevels(TerrainLevelMode mode);
-// Harness build only ("mmplevels"): how far the held .mmp textures' levels lie from their level 0, both
-// box-filtered to 4 x 4: the mean absolute difference per channel (0..255), the largest over all levels.
-// Levels decoded from the wrong bytes (bright green strips over the trees) lie far off.
-struct MmpLevelCheck {
-    int textures = 0, levels = 0;
-    double worst = 0.0;
-    int worstWidth = 0, worstHeight = 0, worstLevel = 0;   // that texture's first level's size, the level
-    std::uint32_t worstFormat = 0;                         // its .mmp format id
-};
-MmpLevelCheck CheckMmpLevels();
 // Where the frame shows in the window's client area (aspect kept, centred). False when the renderer does
 // not present itself.
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);

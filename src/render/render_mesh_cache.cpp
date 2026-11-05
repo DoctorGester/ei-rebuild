@@ -90,9 +90,9 @@ static GpuPool g_pool(sizeof(MeshVertex), 1u << 16, 3u << 16, "ei-mesh");
 // A mesh not drawn for this many frames is dropped (its pool room comes back at the next Restart).
 constexpr std::uint32_t kMeshLife = 600;
 
-#if defined(EI_RENDER_VALIDATION)
-static bool g_cacheOn = true;
+static bool g_cacheOn = true;   // SetMeshCache
 static std::uint64_t g_checks = 0, g_stale = 0;
+#if defined(EI_RENDER_VALIDATION)
 // Every this many frames each kept mesh drawn is compared with a fresh build.
 constexpr std::uint32_t kCheckEvery = 16;
 static CachedMesh g_fresh;   // the fresh build
@@ -348,17 +348,17 @@ static void Write(CachedMesh& e) {
         g_pool.WriteGeometry(e.place, 0, count, e.vertices.data());
         if (!e.colours.empty()) g_pool.WriteColours(e.place, 0, count, e.colours.data());   // a caster has none
         g_pool.WriteIndices(e.place, e.indices.data(), e.indices.size());
-        stats.meshVertexBytes += e.vertices.size() * sizeof(MeshVertex) + e.colours.size() * sizeof(std::uint32_t);
-        stats.meshIndexBytes += e.indices.size() * sizeof(std::uint32_t);
+        stats.counts[FrameStats::MeshVertexBytes] += e.vertices.size() * sizeof(MeshVertex) + e.colours.size() * sizeof(std::uint32_t);
+        stats.counts[FrameStats::MeshIndexBytes] += e.indices.size() * sizeof(std::uint32_t);
     } else {
         if (e.vertexTo > e.vertexFrom) {
             g_pool.WriteGeometry(e.place, e.vertexFrom, e.vertexTo - e.vertexFrom, &e.vertices[e.vertexFrom]);
-            stats.meshVertexBytes += (e.vertexTo - e.vertexFrom) * sizeof(MeshVertex);
+            stats.counts[FrameStats::MeshVertexBytes] += (e.vertexTo - e.vertexFrom) * sizeof(MeshVertex);
         }
         if (e.colourTo > e.colourFrom) {
             g_pool.WriteColours(e.place, e.colourFrom, e.colourTo - e.colourFrom,
                                 &e.colours[2 * static_cast<std::size_t>(e.colourFrom)]);
-            stats.meshVertexBytes += (e.colourTo - e.colourFrom) * sizeof(ColourPair);
+            stats.counts[FrameStats::MeshVertexBytes] += (e.colourTo - e.colourFrom) * sizeof(ColourPair);
         }
     }
     e.dirty = false;
@@ -368,13 +368,11 @@ static void Write(CachedMesh& e) {
 
 CachedMesh* KeepMesh(const MeshDraw& m) {
     if (g_haveSource && g_source.moved) {
-        ++g_stats.morphMeshes;
-        g_stats.morphCorners += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
+        ++g_stats.counts[FrameStats::MorphMeshes];
+        g_stats.counts[FrameStats::MorphCorners] += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
     }
     if (!g_haveSource || !g_source.owner || !m.corners || g_interface) return nullptr;
-#if defined(EI_RENDER_VALIDATION)
     if (!g_cacheOn) return nullptr;
-#endif
     MeshFrom now = FromOf(m);
     auto [found, made] = g_meshes.try_emplace(g_source.owner);
     CachedMesh& e = found->second;
@@ -433,9 +431,7 @@ CachedMesh* KeepCasterMesh(const ShadowMesh& m) {
     const bool usable = e.valid && !e.indices.empty();
     if (!made && e.lastUsed == FrameNumber()) return usable ? &e : nullptr;   // read once a frame
     bool build = made || !e.valid || !e.from.SameArrays(now);
-#if defined(EI_RENDER_VALIDATION)
     build = build || !g_cacheOn;   // off: built every frame
-#endif
     if (build) {
         e.valid = Build(m, e);
         e.version = ++g_lastVersion;
@@ -572,7 +568,6 @@ void MeshChanged(const void* object, MeshChange change) {
 
 void SetInterfaceDraw(bool on) { g_interface = on; }
 
-#if defined(EI_RENDER_VALIDATION)
 void SetMeshCache(bool on) {
     if (on != g_cacheOn) ei::Log("render: figure meshes %s", on ? "kept on the GPU" : "built and uploaded every frame");
     // What changed while off was not read: every kept mesh is built again at its next draw.
@@ -590,6 +585,5 @@ MeshCacheInfo MeshCacheState() {
     info.stale = g_stale;
     return info;
 }
-#endif
 
 } // namespace render

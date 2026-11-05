@@ -36,18 +36,8 @@ std::uint64_t FrameDrawCount();
 
 // The renderer's CPU time: the end of the frame's draws up to the present (Submit) and the shadow map (Shadow).
 enum class Cpu : int { Submit, Shadow, Count };
-class CpuTimer {
-public:
-    explicit CpuTimer(Cpu part);
-    ~CpuTimer();
-    void Stop();
-    CpuTimer(const CpuTimer&) = delete;
-    CpuTimer& operator=(const CpuTimer&) = delete;
-
-private:
-    Cpu part = {};
-    long long start = 0;
-};
+// `ms` of `part`'s time in this frame (a render::Timer's). Nothing when off.
+void AddCpu(Cpu part, double ms);
 
 // The frame presented (render::Present): its interval since the last one, its CPU times and draws, and the GPU time
 // of the latest frame the GPU finished (gpu::FrameGpuTime, timed while the overlay is on).

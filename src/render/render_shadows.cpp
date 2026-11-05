@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -259,7 +258,7 @@ static void RangePass(gpu::Pipeline pipeline, const gpu::Texture& target, const 
     pass.colour.load = gpu::Load::DontCare;
     pass.label = label;
     if (!gpu::BeginPass(pass)) return;
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     gpu::ApplyPipeline(pipeline);
     const gpu::TextureBinding b{source, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, 0, {&b, 1});
@@ -472,7 +471,7 @@ static const Fit& FitMap(Frame& f) {
 }
 
 static bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
     const Fit& fit = FitMap(g_frame);
     if (!fit.ok) return false;
     // A caster's shadow falls on the visible ground below it along the light: the caster stands
@@ -489,7 +488,7 @@ static bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     return true;
 }
 
-static std::optional<StatsTimer> g_walkTimer;
+static Timer g_walkTimer;   // the walk's (BeginShadowWalk)
 
 // A caster outside the view into `draws` through `light` (the landscape's space to a map's clip space), cut out as the
 // meshes drawn with its texture are (g_cuts); false when its mesh is not on the GPU.
@@ -675,7 +674,7 @@ float CasterStrength(const Object3D* object) {
 
 void ShadowCasterMesh(const Object3D* object, const ShadowMesh& m) {
     if (!g_outsideOn || m.indexCount < 3 || g_outside.size() >= kMostOutside) return;
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
     const CachedMesh* kept = KeepCasterMesh(m);
     if (!kept) return;
     OutsideCaster e{};
@@ -691,13 +690,12 @@ void ShadowCasterMesh(const Object3D* object, const ShadowMesh& m) {
 }
 
 void BeginShadowWalk() {
-    if (!g_walkTimer) g_walkTimer.emplace(&FrameStats::shadowMs);
+    g_walkTimer.Begin(FrameStats::ShadowMs);
 }
 
-void EndShadowWalk() { g_walkTimer.reset(); }
+void EndShadowWalk() { g_walkTimer.End(); }
 
 void SetOffscreenCasters(OffscreenCasters mode) {
-#if defined(EI_RENDER_VALIDATION)
     const bool on = mode != OffscreenCasters::View, walked = mode == OffscreenCasters::Walked;
     if (on != g_outsideOn || walked != g_walkedOnly)
         ei::Log("render: object shadows: %s", walked ? "every caster from the walk, none from the game's draws"
@@ -705,27 +703,16 @@ void SetOffscreenCasters(OffscreenCasters mode) {
                                                      : "only the objects drawn cast");
     g_outsideOn = on;
     g_walkedOnly = walked;
-#else
-    (void)mode;
-#endif
 }
 
 void SetShadowView(bool on) {
-#if defined(EI_RENDER_VALIDATION)
     if (on != g_shadowView) ei::Log("render: shadow map: %s", on ? "the shadow alone" : "the frame as drawn");
     g_shadowView = on;
-#else
-    (void)on;
-#endif
 }
 
 void SetShadowShift(int texels) {
-#if defined(EI_RENDER_VALIDATION)
     if (texels != g_shadowShift) ei::Log("render: shadow map: origin moved by %d, %d texels", texels, texels / 2);
     g_shadowShift = texels;
-#else
-    (void)texels;
-#endif
 }
 
 ShadowInfo ShadowState() { return g_lastInfo; }
@@ -852,7 +839,7 @@ void PrepareShadows(Frame& f) {
     for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
     const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
     if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
     if (!FitMap(f).ok) return;
     // Along the light from the nearest caster that reaches the map (the ground's near side without one).
     Fit& fit = g_fit;
@@ -946,7 +933,7 @@ void PrepareShadows(Frame& f) {
 void DrawShadowMap(Frame& f) {
     EnsureDummy();
     if (f.shadow.on) {
-        StatsTimer timer(&FrameStats::shadowMs);
+        Timer timer(FrameStats::ShadowMs);
         const auto& casters = f.shadow.casters;
         if (!g_map) g_map = MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map");
         if (!g_cells) g_cells = MakeRange(kRangeSize, "ei-shadow-cells");
@@ -983,7 +970,7 @@ void DrawShadowMap(Frame& f) {
                 if (g_walkedOnly) continue;   // the walk hands this caster over instead
                 g_casterDraws.Add(b, batch.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr),
                                   StageSampler(st), first, batch.indexCount, instance);
-                ++g_stats.shadowDraws;
+                ++g_stats.counts[FrameStats::ShadowDraws];
                 ++g_info.casterDraws;
                 counted[batch.caster] = true;
             }
@@ -992,7 +979,7 @@ void DrawShadowMap(Frame& f) {
                 int corners = 0;
                 for (const OutsideCaster& e : g_outside) {
                     if (!AddOutsideCaster(g_casterDraws, e, g_fit.light)) continue;
-                    ++g_stats.shadowDraws;
+                    ++g_stats.counts[FrameStats::ShadowDraws];
                     ++g_info.outsideDraws;
                     corners += CachedVertexCount(*e.mesh);
                     outside[e.object] = true;
@@ -1007,7 +994,7 @@ void DrawShadowMap(Frame& f) {
             pass.depth = {g_map, 0, gpu::Load::Clear, 1.0f, true};
             pass.label = "ei-shadow-map";
             if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the shadow map's pass could not begin (%s).", gpu::Error());
-            ++g_stats.passes;
+            ++g_stats.counts[FrameStats::Passes];
             if (drawCasters) g_casterDraws.Draw(0, g_casterDraws.Count());
             if (TerrainCasterCount() != 0) {
                 namespace program = gpu_shaders::shadow_terrain;
@@ -1017,7 +1004,7 @@ void DrawShadowMap(Frame& f) {
                 gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockShadowTerrainVsParams, vs);
                 gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowTerrainFsParams, fs);
                 int draws = DrawTerrainCasters(g_terrainCasterPipeline);
-                g_stats.shadowDraws += static_cast<std::uint64_t>(draws);
+                g_stats.counts[FrameStats::ShadowDraws] += static_cast<std::uint64_t>(draws);
                 g_info.terrainCasters = draws;
             }
             gpu::EndPass();

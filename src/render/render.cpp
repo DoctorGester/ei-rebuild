@@ -21,10 +21,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <new>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace render {
 
@@ -230,103 +227,6 @@ void Start() {
     g_started = true;
 }
 
-#if defined(EI_RENDER_VALIDATION)
-// The timer of the device mesh draw running (at most one), made in place so no static destructor comes with it.
-alignas(StatsTimer) static unsigned char g_deviceMeshTimer[sizeof(StatsTimer)];
-static bool g_deviceMeshTiming = false;
-#endif
-
-#if defined(EI_RENDER_VALIDATION)
-struct GameTimer {
-    alignas(StatsTimer) unsigned char storage[sizeof(StatsTimer)];
-    bool running = false;
-    void Begin(double FrameStats::* field) {
-        if (running) return;
-        new (storage) StatsTimer(field);
-        running = true;
-    }
-    bool End() {
-        if (!running) return false;
-        std::launder(reinterpret_cast<StatsTimer*>(storage))->~StatsTimer();
-        running = false;
-        return true;
-    }
-};
-static GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
-#endif
-
-static FrameStats g_statsSum;                  // the presented frames since the last TakeFrameStats
-static const void* g_lastPipeline = nullptr;   // applied last in this frame
-static const void* g_lastTexture = nullptr;
-#if defined(EI_RENDER_VALIDATION)
-static StatsTimer* g_innerTimer = nullptr;
-// CountReuse: per key the hashes of the vertices' geometry (positions, texture coordinates) and
-// colours, this frame's and the last; this frame's mesh geometry hashes.
-struct VertexHashes {
-    std::uint64_t geometry = 0, colours = 0;
-};
-static std::unordered_map<std::uint64_t, VertexHashes> g_hashes, g_lastHashes;
-static std::unordered_set<std::uint64_t> g_frameGeometry;
-
-static std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
-    const auto* p = static_cast<const std::uint8_t*>(data);
-    for (std::size_t i = 0; i + 4 <= bytes; i += 4) {
-        std::uint32_t word;
-        std::memcpy(&word, p + i, 4);
-        h = (h ^ word) * 0x100000001B3ull;
-    }
-    return h;
-}
-#endif
-
-static void AddFrameStats() {
-    g_stats.matrices = g_frame.matrices.size();
-    if (g_width > 0) {
-        g_statsSum.width = g_width;
-        g_statsSum.height = g_height;
-    }
-    FrameStats& s = g_statsSum;
-    const FrameStats& f = g_stats;
-    s.frames += 1;
-    for (auto field : {&FrameStats::terrainPages, &FrameStats::terrainBatches, &FrameStats::meshes, &FrameStats::meshPasses,
-                       &FrameStats::transformedDraws, &FrameStats::blits, &FrameStats::depthClears, &FrameStats::stateReads,
-                       &FrameStats::flatMeshes, &FrameStats::flatVertexBytes, &FrameStats::matrices, &FrameStats::terrainVertexBytes, &FrameStats::terrainIndexBytes,
-                       &FrameStats::meshVertexBytes, &FrameStats::meshIndexBytes, &FrameStats::uniformBytes, &FrameStats::passes,
-                       &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
-                       &FrameStats::textureChanges, &FrameStats::morphMeshes,
-                       &FrameStats::morphCorners, &FrameStats::decalPrints,
-                       &FrameStats::decalVertices, &FrameStats::flatDraws,
-                       &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds})
-        s.*field += f.*field;
-    for (int k = 0; k < FrameStats::UploadKinds; ++k) {
-        s.uploads[k] += f.uploads[k];
-        s.uploadBytes[k] += f.uploadBytes[k];
-    }
-    for (int k = 0; k < FrameStats::ReuseKinds; ++k) {
-        s.terrainReuse[k] += f.terrainReuse[k];
-        s.meshReuse[k] += f.meshReuse[k];
-    }
-    s.sharedMeshes += f.sharedMeshes;
-    s.handOverMs += f.handOverMs;
-    s.terrainMs += f.terrainMs;
-    s.textureMs += f.textureMs;
-    s.endFrameMs += f.endFrameMs;
-    s.statsMs += f.statsMs;
-    s.deviceMeshMs += f.deviceMeshMs;
-    for (auto field : {&FrameStats::decalPrintMs, &FrameStats::flatMs,
-                       &FrameStats::shadowBuildMs})
-        s.*field += f.*field;
-    s.shadowDraws += f.shadowDraws;
-    s.shadowMs += f.shadowMs;
-    g_stats = FrameStats{};
-    g_lastPipeline = g_lastTexture = nullptr;
-#if defined(EI_RENDER_VALIDATION)
-    g_lastHashes.swap(g_hashes);
-    g_hashes.clear();
-    g_frameGeometry.clear();
-#endif
-}
-
 static std::size_t g_drawnCommands = 0;   // commands of this frame already drawn into the target
 static int g_passes = 0;                  // passes drawn this frame
 static int g_passSamples = 1;             // the sample count of the pass being drawn (PassSampleCount)
@@ -338,9 +238,7 @@ static Holder g_holder = Holder::None;
 
 static SmoothInfo g_counts, g_lastCounts;
 
-#if defined(EI_RENDER_VALIDATION)
 static SmoothOrder g_smoothOrder = SmoothOrder::Game;
-#endif
 
 static bool InWorld(std::size_t k) {
     for (const Frame::Range& r : g_frame.worldRanges)
@@ -362,7 +260,7 @@ static void BeginFramePass() {
     pass.depth.clear = 1.0f;
     pass.label = "ei-frame";
     if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     g_passSamples = 1;
     if (afterWorld) {
         CopyDepthFromResolved(g_resolvedDepth);
@@ -386,7 +284,7 @@ static void BeginMultisampledPass() {
         copy.depth.load = gpu::Load::DontCare;
         copy.label = "ei-frame-into-multisampled";
         if (!gpu::BeginPass(copy)) Fatal("The renderer cannot draw the frame.");
-        ++g_stats.passes;
+        ++g_stats.counts[FrameStats::Passes];
         g_passSamples = g_targetSamples;
         CopyIntoMultisampled(g_colour, g_depth);
         gpu::EndPass();
@@ -406,13 +304,12 @@ static void BeginMultisampledPass() {
     pass.depth.clear = 1.0f;
     pass.label = "ei-frame-multisampled";
     if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     g_passSamples = g_targetSamples;
     g_holder = Holder::Multisampled;
     ++g_counts.multisampledPasses;
 }
 
-#if defined(EI_RENDER_VALIDATION)
 // An empty pass on the frame target (render::SetSmoothOrder's orders): the frame's first clears it;
 // after a world run it takes the depth back from sample 0.
 static void EmptyFramePass() {
@@ -420,7 +317,6 @@ static void EmptyFramePass() {
     gpu::EndPass();
     ++g_passes;
 }
-#endif
 
 // The performance overlay's pass of command `k` (render_perf.h).
 static perf::Pass OverlayPass(const Command& c, std::size_t k) {
@@ -481,10 +377,12 @@ static bool DrawPending() {
     // The sun's shadow map and the ambient occlusion, once a frame before its first pass.
     if (!g_frame.shadow.prepared) {
         {
-            perf::CpuTimer shadowTime(perf::Cpu::Shadow);
+            Timer shadowTime;
+            shadowTime.Begin();
             perf::Enter(perf::Pass::Sun);
             PrepareShadows(g_frame);
             DrawShadowMap(g_frame);
+            perf::AddCpu(perf::Cpu::Shadow, shadowTime.End());
         }
         perf::Enter(perf::Pass::Other);
         DrawOcclusion(g_frame);
@@ -496,7 +394,6 @@ static bool DrawPending() {
     std::size_t k = g_drawnCommands, end = g_frame.commands.size();
     bool multisampling = g_targetSamples > 1;
     std::size_t split = SIZE_MAX;   // the first world run ends here (SmoothOrder::Split)
-#if defined(EI_RENDER_VALIDATION)
     if (multisampling && g_smoothOrder == SmoothOrder::Before && g_holder == Holder::None && k < end && InWorld(k))
         EmptyFramePass();
     if (multisampling && g_smoothOrder == SmoothOrder::Split && !g_frame.worldRanges.empty()) {
@@ -504,7 +401,6 @@ static bool DrawPending() {
         std::size_t last = r.end < end ? r.end : end;
         if (last > r.first + 1) split = r.first + (last - r.first) / 2;
     }
-#endif
     do {
         bool world = multisampling && k < end && InWorld(k);
         std::size_t stop = k;
@@ -519,9 +415,7 @@ static bool DrawPending() {
         gpu::EndPass();
         g_passSamples = 1;
         ++g_passes;
-#if defined(EI_RENDER_VALIDATION)
         if (world && stop == split) EmptyFramePass();
-#endif
         k = stop;
     } while (k < end);
     g_drawnCommands = end;
@@ -620,62 +514,6 @@ void PrepareDevice(int msaa) {
     });
 }
 
-void BeginDeviceMeshTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_deviceMeshTiming) return;
-    new (g_deviceMeshTimer) StatsTimer(&FrameStats::deviceMeshMs);
-    g_deviceMeshTiming = true;
-#endif
-}
-void EndDeviceMeshTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (!g_deviceMeshTiming) return;
-    std::launder(reinterpret_cast<StatsTimer*>(g_deviceMeshTimer))->~StatsTimer();
-    g_deviceMeshTiming = false;
-#endif
-}
-void BeginDecalTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_decalTimer.running) return;
-    ++g_stats.decalPrints;
-    g_decalTimer.Begin(&FrameStats::decalPrintMs);
-#endif
-}
-void EndDecalTime(int vertices) {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_decalTimer.End()) g_stats.decalVertices += static_cast<std::uint64_t>(vertices);
-#else
-    (void)vertices;
-#endif
-}
-void BeginFlatDrawTime(int vertices) {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_flatDrawTimer.running) return;
-    ++g_stats.flatDraws;
-    g_stats.flatDrawVertices += static_cast<std::uint64_t>(vertices);
-    g_flatDrawTimer.Begin(&FrameStats::flatMs);
-#else
-    (void)vertices;
-#endif
-}
-void EndFlatDrawTime() {
-#if defined(EI_RENDER_VALIDATION)
-    g_flatDrawTimer.End();
-#endif
-}
-void BeginShadowBuildTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_shadowBuildTimer.running) return;
-    ++g_stats.shadowBuilds;
-    g_shadowBuildTimer.Begin(&FrameStats::shadowBuildMs);
-#endif
-}
-void EndShadowBuildTime() {
-#if defined(EI_RENDER_VALIDATION)
-    g_shadowBuildTimer.End();
-#endif
-}
-
 void StartPresenting() { Start(); }
 
 void SetMsaa(int samples) {
@@ -714,7 +552,7 @@ void EndWorld() {
 }
 
 void ClearDepth(float z, const Rect* rects, int count) {
-    g_stats.depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
+    g_stats.counts[FrameStats::DepthClears] += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
     if (!rects) {
         g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
         g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
@@ -724,80 +562,6 @@ void ClearDepth(float z, const Rect* rects, int count) {
         g_frame.clears.push_back(ClearBatch{z, rects[i]});
         g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
     }
-}
-
-// --- Frame statistics ----------------------------------------------------------------------------
-
-FrameStats g_stats;   // the frame being built
-
-StatsTimer::StatsTimer(double FrameStats::* newField) : field(newField), start(0), outer(nullptr) {
-#if defined(EI_RENDER_VALIDATION)
-    start = Ticks();
-    outer = g_innerTimer;
-    g_innerTimer = this;
-#endif
-}
-
-StatsTimer::~StatsTimer() {
-#if defined(EI_RENDER_VALIDATION)
-    double ms = static_cast<double>(Ticks() - start) * kMsPerTick;
-    g_stats.*field += ms;
-    if (outer) g_stats.*(outer->field) -= ms;      // the outer timer counts its own work only
-    g_innerTimer = outer;
-#endif
-}
-
-void CountPipeline(gpu::Pipeline pipeline) {
-    ++g_stats.pipelineApplies;
-    if (pipeline.pipeline != g_lastPipeline) ++g_stats.pipelineChanges;
-    g_lastPipeline = pipeline.pipeline;
-}
-
-void CountBindings(const gpu::Texture& first) {
-    ++g_stats.bindings;
-    if (first.texture != g_lastTexture) ++g_stats.textureChanges;
-    g_lastTexture = first.texture;
-}
-
-void CountDraw(std::size_t uniformBytes) {
-    ++g_stats.draws;
-    g_stats.uniformBytes += uniformBytes;
-}
-
-void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key, [[maybe_unused]] int page,
-                [[maybe_unused]] const Vertex* vertices, [[maybe_unused]] std::size_t count) {
-#if defined(EI_RENDER_VALIDATION)
-    StatsTimer timer(&FrameStats::statsMs);
-    VertexHashes h{0xCBF29CE484222325ull, 0xCBF29CE484222325ull};
-    for (std::size_t i = 0; i < count; ++i) {
-        const Vertex& v = vertices[i];
-        h.geometry = Fnv(h.geometry, &v.position, sizeof(v.position));
-        h.geometry = Fnv(h.geometry, &v.u, 2 * sizeof(float));
-        h.colours = Fnv(h.colours, &v.colour, 2 * sizeof(std::uint32_t));
-    }
-    std::uint64_t id = (static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(key)) << 8) ^
-                       static_cast<std::uint64_t>(page) ^ (terrain ? 1ull << 63 : 0);
-    auto last = g_lastHashes.find(id);
-    FrameStats::Reuse r = last == g_lastHashes.end()            ? FrameStats::New
-                          : last->second.geometry != h.geometry ? FrameStats::Moved
-                          : last->second.colours != h.colours   ? FrameStats::Relit
-                                                                : FrameStats::Same;
-    auto& reuse = terrain ? g_stats.terrainReuse : g_stats.meshReuse;
-    ++reuse[r];
-    g_hashes[id] = h;
-    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.sharedMeshes;
-#endif
-}
-
-void CountUpload(FrameStats::Upload kind, std::size_t bytes) {
-    ++g_stats.uploads[kind];
-    g_stats.uploadBytes[kind] += bytes;
-}
-
-FrameStats TakeFrameStats() {
-    FrameStats s = g_statsSum;
-    g_statsSum = FrameStats{};
-    return s;
 }
 
 void SplitFrame() {
@@ -810,21 +574,23 @@ void RunCanvasesNow() {
     RunCanvasCommands();
 }
 
-std::uint64_t perf::FrameDrawCount() { return g_stats.draws + g_stats.shadowDraws; }
-
 void EndFrame() {
     if (g_frameDrawn) return;
     Start();
     g_frameDrawn = true;
-    StatsTimer timer(&FrameStats::endFrameMs);
-    perf::CpuTimer submitTime(perf::Cpu::Submit);
+    Timer timer(FrameStats::EndFrameMs);
+    Timer submitTime;
+    submitTime.Begin();
     // Onto the game window through the swap chain.
-    if (!DrawPending()) return;
+    if (!DrawPending()) {
+        perf::AddCpu(perf::Cpu::Submit, submitTime.End());
+        return;
+    }
     perf::Enter(perf::Pass::Present);
     bool toWindow = DrawToWindow();
     perf::EndDraws();
     gpu::Submit();
-    submitTime.Stop();
+    perf::AddCpu(perf::Cpu::Submit, submitTime.End());
     ++g_commits;
     if (toWindow) PresentWindow();
     g_haveFrame = true;
@@ -834,7 +600,7 @@ void Present() {
     EndFrame();
     ShowFrameCursor();
     perf::FrameDone();
-    AddFrameStats();
+    AddFrameStats(g_frame.matrices.size(), g_width, g_height);
     g_drawnCommands = 0;
     g_passes = 0;
     g_frame.matrices.clear();
@@ -880,14 +646,12 @@ void Present() {
 
 int PassSampleCount() { return g_passSamples; }
 
-#if defined(EI_RENDER_VALIDATION)
 void SetSmoothOrder(SmoothOrder order) {
     static const char* const kNames[] = {"as the game draws", "an empty pass on the frame target before the world",
                                          "the world split in two at its middle command"};
     if (order != g_smoothOrder) ei::Log("render: the multisampled passes: %s", kNames[static_cast<int>(order)]);
     g_smoothOrder = order;
 }
-#endif
 
 SmoothInfo SmoothState() {
     SmoothInfo info = g_lastCounts;
