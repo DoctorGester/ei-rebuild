@@ -156,9 +156,10 @@ kinds below, the same on every install. An old `[patches] DisableExitOnCrashRepo
   | script_exec | KillScript from the WorldScript | the call is left out |
   | app_frame | a movie frame file that cannot be written | recording stops |
 
-  Real data reaches one: Lost in Astral's gz17g (a leftover map.txt zone no exit leads to) has units of prototypes the
-  mod's database lacks ("SpiderF15"; `mod_lost_in_astral_unknown_prototype`). No other warning shows in the Rebirth set's
-  or the mod scenarios' logs.
+  Real data reaches one: units of prototypes Lost in Astral's database lacks, in its gz8g (the game's "zone8 ..."
+  units: "zone8 Ogre", "zone8 Orc Fighter1 M", ...) and gz17g (a leftover map.txt zone no exit leads to: "SpiderF15",
+  "HyenaF6", ...); `mod_lost_in_astral_gipat` enters both, `mod_lost_in_astral_unknown_prototype` checks the warning.
+  No other warning shows in the logs of the Rebirth set's 138 runs.
 - **Network errors** end the connection, not the game: a message the player's state does not expect
   (`PlayerMessageError`, 8 calls: a warning, the handler returns 0 and the session closes) and a client's failed
   connection or unreadable packet (`CWorldClient::RunTick`, the original's Segment: a warning and SessionDisconnect).

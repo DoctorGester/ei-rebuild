@@ -46,7 +46,7 @@ int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name)
     SpellManager* spellOwner = context->GetSpellManager();   // passed on to the spell factory
     ItemManager* items = context->ItemFactory();
     auto* prototype = g_unitDatabase.prototypes.FindByName(name);
-    if (!prototype) {   // a map's unit of a prototype the units database lacks (Lost in Astral's gz17g)
+    if (!prototype) {   // a map's unit of a prototype the units database lacks (Lost in Astral's gz8g, gz17g)
         game::Warning("Can't find prototype \"%s\" for unit %d: no starting equipment", name, unit->id);
         return 0;
     }

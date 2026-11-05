@@ -186,7 +186,7 @@ planner's "say nothing".
 "none" or empty; the slot it lands in becomes the active weapon) and the second weapon; every unit gets each spell. A
 piece that cannot be made gets a warning in the log (a weapon is added even then: AddWeapon(null) returns 0, so the
 active weapon becomes 0). Without the prototype (a map's unit of a prototype the database lacks: Lost in Astral's
-gz17g) a warning and 0, the unit bare; else 1.
+gz8g and gz17g) a warning and 0, the unit bare; else 1.
 
 ## CUnitClientModels per-tick update
 

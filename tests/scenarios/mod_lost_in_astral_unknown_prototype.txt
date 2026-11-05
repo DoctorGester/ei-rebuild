@@ -1,7 +1,8 @@
 # A recoverable data error real data reaches (C167): Lost in Astral's gz17g, a leftover zone of its map.txt that no
-# exit or script leads to, has units of prototypes the mod's units database lacks ("SpiderF15"). Each such unit is made
-# without its starting equipment and one warning goes to ei-rebuild.log; the zone plays on (the hero kept alive by
-# GodMode for half a second of its scripts). docs/notes/rebirth.md, "Fatal errors".
+# exit or script leads to, has units of prototypes the mod's units database lacks ("SpiderF15"; its gz8g has others,
+# mod_lost_in_astral_gipat). Each such unit is made without its starting equipment and one warning goes to
+# ei-rebuild.log; the zone plays on (the hero kept alive by GodMode for half a second of its scripts).
+# docs/notes/rebirth.md, "Fatal errors".
 # On the vanilla data (no starter\Mods) only the menu runs: every later step is Rebirth's.
 mod starter\Mods\LostInAstral
 waitmenu
