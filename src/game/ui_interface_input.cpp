@@ -259,7 +259,7 @@ void Interface3D::ConsoleAddText(std::string_view text) {
     if (console) console->AddText(text);
 }
 
-void Interface3D::SetConsoleRect(const Rect* rect) {
+void Interface3D::SetConsoleRect(const Rect& rect) {
     if (console) console->SetRect(rect);
 }
 

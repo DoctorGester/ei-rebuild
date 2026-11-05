@@ -13,6 +13,7 @@
 
 #include "lib/crt.h"
 #include "lib/rect.h"
+#include "screen_layout.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -152,8 +153,8 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
     Point from{8, row.bottom - 2};
     Point to{layout.lineRight, row.bottom - 2};
     // WideScreen: without the margin.
-    ui->ScalePointToScreenNoMargin(&from);
-    ui->ScalePointToScreenNoMargin(&to);
+    from = screen_layout::ToScreenNoMargin(from);
+    to = screen_layout::ToScreenNoMargin(to);
     surface.Line(from, to, 1, colour);
     Down(&row, 27);
 

@@ -213,9 +213,9 @@ void Cursor::Start() {
 }
 
 void Cursor::Shutdown() {
-    for (int i = 0; i < std::ssize(images); ++i) {
-        ReleaseHolder(images[i]->holder);
-        delete images[i];
+    for (CursorImage* entry : images) {
+        ReleaseHolder(entry->holder);
+        delete entry;
     }
     images.clear();
     TextureDevice* currentDevice = device;

@@ -256,7 +256,7 @@ void MpHeroScreen::ShowHero(int index) {
     auto* hero = HeroRecord();
     auto* unit = g_clientWorld.FindUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
-    for (int i = 0; i < std::ssize(hero->weapons); ++i) unit->AddWeapon(hero->weapons[i]);
+    for (Item* item : hero->weapons) unit->AddWeapon(item);
     unit->SendEquipment();
     unit->controller->ShowWeapon(hero->weaponIndex);
     unit->controller->RefreshModel();
@@ -320,10 +320,10 @@ void MpHeroScreen::SetMode(int newMode) {
     voiceScroll->SetEnabled(false);
     iconWindow->SetEnabled(false);
     for (UiMesh* sprite : sceneObjects) sprite->visible = false;
-    for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide();
+    for (const auto& surface : surfaces) surface->Hide();
     for (UiRegion* row : listRows) RemoveRegion(row);
     listRows.clear();
-    for (int i = 0; i < std::ssize(regions); ++i) regions[i]->SetTip(0);
+    for (const auto& region : regions) region->SetTip(0);
 
     if (newMode == kModeList) {
         menu->ShowPart("but03", 1);

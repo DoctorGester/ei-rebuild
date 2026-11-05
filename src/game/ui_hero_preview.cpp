@@ -18,6 +18,7 @@
 #include "platform/platform.h"
 #include "render/render.h"
 #include "render/render_state.h"
+#include "screen_layout.h"
 
 #include <cstdint>
 #include <cstring>
@@ -44,8 +45,8 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, floa
     Rect rects[6];
     if (wide) {
         for (int i = 0; i < 6; ++i) {
-            Rect r{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]};
-            ui->ScaleRectToScreen(&r);
+            Rect r = screen_layout::ToScreen(
+                Rect{kWideClearLeft[i], kWideClearTop[i], kWideClearRight[i], kWideClearBottom[i]});
             rects[i] = r;
         }
         ClearUiDepth(1.0f, rects, 6);
@@ -55,7 +56,7 @@ void UiWindow::DrawHeroPreview(SceneRenderer* pass, Unit* hero, float turn, floa
             r = {410, 100, 700, 500};
         else
             r = {200, 100, 600, 500};
-        ui->ScaleRectToScreen(&r);
+        r = screen_layout::ToScreen(r);
         rects[0] = r;
         ClearUiDepth(1.0f, rects, 1);
     }

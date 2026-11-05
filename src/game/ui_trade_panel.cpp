@@ -19,6 +19,7 @@
 #include "lib/rect.h"
 #include "lib/str.h"
 #include "render/render.h"
+#include "screen_layout.h"
 
 #include <cstdint>
 #include <format>
@@ -507,8 +508,7 @@ void TradePanel::Update() {
 // docs/notes/renderer.md.
 
 void TradeGrid::DrawSprites(SceneRenderer* pass) {
-    Rect grid{200, 100, 600, 500};
-    ui->ScaleRectToScreen(&grid);
+    Rect grid = screen_layout::ToScreen(Rect{200, 100, 600, 500});
     Rect screen{0, 0, ui->width, ui->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);

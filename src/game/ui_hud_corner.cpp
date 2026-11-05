@@ -351,10 +351,7 @@ void HudMovePanel::Update() {
     // The common value over the selected units: -1 none selected, -2 mixed.
     int newMode = -1;
     int newFlag = -1;
-    int count = lib::Count(owner->party);
-    Unit** units = owner->party.data();
-    for (int i = 0; i < count; ++i) {
-        Unit* unit = units[i];
+    for (Unit* unit : owner->party) {
         if (!(unit->flags & MapObjectFlag::Selected)) continue;
         if (newMode == -1)
             newMode = static_cast<int>(unit->moveMode2);
@@ -425,8 +422,7 @@ void HudMovePanel::ToggleFlag() {
     ui->PlayInterfaceSound(kSoundClick);
     // The selected party units' common flag: -1 none selected, -2 mixed.
     int common = -1;
-    for (int i = 0; i < std::ssize(owner->party); ++i) {
-        Unit* unit = owner->party[i];
+    for (Unit* unit : owner->party) {
         if (!(unit->flags & MapObjectFlag::Selected)) continue;
         if (common == -1)
             common = unit->fightAtWill;
@@ -434,8 +430,7 @@ void HudMovePanel::ToggleFlag() {
             common = -2;
     }
     int value = !owner->party.empty() && common == 1 ? 0 : 1;
-    for (int i = 0; i < std::ssize(owner->party); ++i) {
-        Unit* unit = owner->party[i];
+    for (Unit* unit : owner->party) {
         if (unit->flags & MapObjectFlag::Selected) g_clientWorld.LocalView()->SetUnitFightAtWill(unit, value);
     }
     flag = value;
@@ -645,7 +640,7 @@ void HudTopPanel::Layout() {
     pageIcons[1]->Place(230.0f, 10.0f - slideOffset, 10.0f);
     frame->Place(400.0f, 47.5f - slideOffset, 18.0f);
     Rect area{190, 25 - offset, 610, 89 - offset};
-    owner->messageLog->SetRect(&area);
+    owner->messageLog->SetRect(area);
     // Every region but the sling button moves with the panel.
     for (const auto& region : regions) {
         if (region.get() == slingButton) continue;

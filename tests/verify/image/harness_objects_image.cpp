@@ -44,6 +44,7 @@
 #include "game/sound.h"
 #include "game/world_map_files.h"
 #include "lib/crt.h"
+#include "game/screen_layout.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -325,8 +326,7 @@ bool Region(void* window, int index, RegionInfo* region) {
     return true;
 }
 void ScaleToScreen(int* x, int* y) {
-    Point point{*x, *y};
-    g_interface.ScalePointToScreen(&point);
+    Point point = screen_layout::ToScreen(Point{*x, *y});
     *x = point.x;
     *y = point.y;
 }

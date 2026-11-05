@@ -118,7 +118,7 @@ public:
     ~ConsoleWindow();
     ConsoleWindow(const ConsoleWindow&) = delete;
     ConsoleWindow& operator=(const ConsoleWindow&) = delete;
-    void SetRect(const Rect* rect);   // 800x600 coordinates
+    void SetRect(const Rect& rect);   // 800x600 coordinates
     void OnResize();                  // the rectangle, font and metrics again for the new screen size
     int Px(int layoutPixels) const;   // a size of the 800x600 layout in screen pixels (text and strips scale with the window)
     void SetScale();                  // scale and font from the screen layout

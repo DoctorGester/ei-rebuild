@@ -56,9 +56,9 @@ void SetVertex(UiMesh* mesh, int index, int position, int uv) {
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(UiMesh* mesh) {
     float half = kHalfTexel;
-    for (int i = 0; i < std::ssize(mesh->texCoords); ++i) {
-        mesh->texCoords[i].u += half;
-        mesh->texCoords[i].v -= half;
+    for (auto& coord : mesh->texCoords) {
+        coord.u += half;
+        coord.v -= half;
     }
     mesh->RefreshBuffers();
 }

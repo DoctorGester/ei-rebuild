@@ -135,18 +135,6 @@ enum class Backdrop {
 // The interface manager.
 class Interface3D {
 public:
-    // Layout (800x600) to screen and back, in the window's 4:3 part (screen_layout.h).
-    void ScaleRectToScreen(Rect* rect) const;
-    void ScalePointToScreen(Point* point) const;
-    void ScaleRectFromScreen(Rect* rect) const;
-    void ScalePointFromScreen(Point* point) const;
-
-    // The same for sizes and offsets, without the 4:3 part's margins: the text surfaces' draw and text height, edit
-    // field, connection list, save / load list, chat line, tooltip, the drags.
-    void ScaleRectToScreenNoMargin(Rect* rect) const;
-    void ScalePointToScreenNoMargin(Point* point) const;
-    void ScalePointFromScreenNoMargin(Point* point) const;
-
     // Once per frame: pending closes, the queued window, the mouse, the top window and the root.
     void Update();
 
@@ -202,7 +190,7 @@ public:
     std::vector<std::string> WrapText(std::string_view text, int width, int font) const;
     // When there is a console window.
     void ConsoleAddText(std::string_view text);
-    void SetConsoleRect(const Rect* rect);
+    void SetConsoleRect(const Rect& rect);
     void SetConsoleHistory(int lines);
     // The console's "fps": a surface for the frame rate at (730, 10)-(800, 28) unless there is one; off
     // frees it.
@@ -407,7 +395,7 @@ public:
 
     // A one-pixel frame of `colour` around `rect` (layout coordinates; empty: the whole
     // surface).
-    void FrameRect(const Rect* rect, std::uint32_t colour);
+    void FrameRect(const Rect& rect, std::uint32_t colour);
     // The whole surface; Clear fills with background.
     void Fill(std::uint32_t colour);
     void Clear();

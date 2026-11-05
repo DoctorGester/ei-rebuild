@@ -78,7 +78,7 @@ void UiTooltip::SetText(std::string_view text) {
 void UiTooltip::PaintLines(UiSurface& out) const {
     out.Fill(kBackground);
     Rect whole{0, 0, 0, 0};   // empty: the whole surface
-    out.FrameRect(&whole, kTitleColour);
+    out.FrameRect(whole, kTitleColour);
     int right = width > keyWidth ? width : keyWidth;
     int step = lineHeight;
     Rect row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
@@ -127,7 +127,7 @@ void UiTooltip::OnMouseMove(Point point) {
         Rect area{0, 0, width > keyWidth ? width : keyWidth, height};
         Point offset = kCursorOffset;
         // WideScreen: without the margin; the layout's right edge 800 + extra (addon's operands).
-        ui->ScalePointFromScreenNoMargin(&offset);
+        offset = screen_layout::FromScreenNoMargin(offset);
         const int layoutRight = screen_layout::LayoutRight();
         area.Offset(offset);
         area.Offset(point);

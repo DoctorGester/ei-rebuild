@@ -266,8 +266,8 @@ void ExchangeScreen::TakeItem(Item* item, int mode) {
     }
     if (mode != kGridMode) return;
     const std::vector<Item*>& offered = ownOffer->items;
-    for (int i = 0; i < std::ssize(offered); ++i) {
-        if (offered[i] != item) continue;
+    for (const Item* entry : offered) {
+        if (entry != item) continue;
         ui->PlayInterfaceSound(kPutOffSound);
         Item* held = MoveItem(item, LocalPlayerData(), ownOffer, 0, true, false);
         strip->ScrollToItem(held);

@@ -34,7 +34,7 @@ public:
     // Scrolls to the top.
     void SetText(std::string_view text);
     // The text and its bar over `rect`.
-    void SetRect(const Rect* rect);
+    void SetRect(const Rect& rect);
     // The bar's: its held arrows scroll, its input.
     void Update() override;
     void OnEvent(UiEvent& event) override;

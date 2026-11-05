@@ -9,9 +9,14 @@ each frame, text, the glyph atlas) is ui-native.md.
 
 ## 1. Conventions shared by every screen
 
-**Layout.** Layouts are authored for 800x600; the scale helpers convert with `x * width / 800`, `y * height / 600` (32-bit
-wrapping products, truncating division). The WideScreen layout (rebirth.md, "WideScreen"; `screen_layout.h`) keeps the
+**Layout.** Layouts are authored for 800x600; `screen_layout::ToScreen` / `FromScreen` (a point or a rectangle,
+returned by value; the `NoMargin` forms for sizes and offsets) convert with `x * width / 800`, `y * height / 600`
+(64-bit products, truncating division). The WideScreen layout (rebirth.md, "WideScreen"; `screen_layout.h`) keeps the
 800x600 middle and moves the edge panels by `EdgeShift`.
+
+**Loops.** Loops over a window's lists are range-for. An index loop that reads the size again each pass stays where the
+body can add to or remove from the list (a child's draw, a constructor that builds into the slots, `TakeOff`); its
+comment says so ("By index: ...").
 
 **Screen classes.** Each screen is a `UiWindow` subclass. Every input event reaches a window through one virtual,
 `OnEvent(UiEvent&)`: its kind (LeftDown, LeftUp, MouseMove, RightDown / RightUp, LeftDouble / RightDouble, KeyDown,
@@ -621,7 +626,7 @@ that hands none over (the movie players and the loading screens hide the image) 
 ## Camera mouse turn
 
 With the right button held (CameraInput::MouseMove, turning) the cursor's drag sets the camera's turn and tilt target
-rates: the drag in layout units (ScalePointFromScreenNoMargin, integer: it truncates) times the speed options, turn
+rates: the drag in layout units (screen_layout::FromScreenNoMargin, integer: it truncates) times the speed options, turn
 `speed * dx / 400 * 10`, tilt `speed * dy / 300 * 500`. Camera::SetTurnRate / SetTiltRate jump the rate up to a larger
 target; a smaller one (0 too) is approached in the camera's updates at response 1/3 a camera second (55 ms), and each
 update turns by dt * rate. The interface's mouse-move events reach the camera input as well as the frame's own call

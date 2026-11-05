@@ -430,10 +430,8 @@ struct Panel {
 // Whether `unit` is not in the group (the battle screen's party).
 bool OutsideGroup(HudUnitPanel* self, Unit* unit) {
     BattleScreen* group = self->owner;
-    int count = lib::Count(group->party);
-    Unit** units = group->party.data();
-    for (int i = 0; i < count; ++i) {
-        if (units[i] == unit) return false;
+    for (const Unit* member : group->party) {
+        if (member == unit) return false;
     }
     return true;
 }
@@ -513,8 +511,7 @@ void HudMap::LeftUp(UiEvent& event) {
         slide.Toggle(ui);
     } else if (region == roundMap || region == mapSquare) {
         // The world point under the click.
-        Point at = event.at;
-        ui->ScalePointFromScreen(&at);
+        Point at = screen_layout::FromScreen(event.at);
         // WideScreen: the centre moved right by the shift.
         float right = static_cast<float>(at.x - (kMapCentreX + screen_layout::EdgeShift())) / halfSide;
         float down = static_cast<float>(at.y - kMapCentreY) / halfSide;
@@ -577,8 +574,8 @@ void HudMap::BuildMarkers() {
         PutArrow(out.Block(), unit, x, y);
         std::int16_t picture = UnitFrame(unit);
         BattleScreen* currentOwner = owner;
-        for (int k = 0; k < std::ssize(currentOwner->party); ++k) {
-            if (currentOwner->party[k] == unit) {
+        for (const Unit* member : currentOwner->party) {
+            if (member == unit) {
                 picture = kFrameParty;
                 break;
             }
@@ -1435,13 +1432,10 @@ void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
         if (drawn) {
             // The screen around the panel's model area (right of it, its sling strip, below it):
             // the depth buffer goes to 0 there, so the model is drawn inside the panel only.
-            Rect right = {180 - offset, 0, 400 - offset, 220};
-            Rect strip = {0, 0, 20 - offset, 220};
-            Rect below = {0, 220, 400 - offset, 300};
             // WideScreen: without the margin.
-            ui->ScaleRectToScreenNoMargin(&right);
-            ui->ScaleRectToScreenNoMargin(&strip);
-            ui->ScaleRectToScreenNoMargin(&below);
+            const Rect right = screen_layout::ToScreenNoMargin(Rect{180 - offset, 0, 400 - offset, 220});
+            const Rect strip = screen_layout::ToScreenNoMargin(Rect{0, 0, 20 - offset, 220});
+            const Rect below = screen_layout::ToScreenNoMargin(Rect{0, 220, 400 - offset, 300});
             Rect rects[3] = {right, below, strip};
             ClearUiDepth(0.0f, rects, 3);
 

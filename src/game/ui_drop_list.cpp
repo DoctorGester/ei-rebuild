@@ -8,6 +8,7 @@
 #include "texture.h"
 #include "lib/rect.h"
 #include "platform/platform.h"
+#include "screen_layout.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -117,7 +118,7 @@ void UiDropList::Open() {
 
     const Rect entries = frame.Inset(kBorder);
     const bool bar = count > shown;
-    scroll->SetRect(&entries);
+    scroll->SetRect(entries);
     scroll->SetMaximum(count - shown);
     scroll->SetEnabled(bar);
     const Rect mark{entries.left, 0, entries.right - (bar ? kBarWidth : 0), kEntryHeight};   // placed by PlaceMarks
@@ -167,7 +168,7 @@ Rect UiDropList::EntryRect(int index) const {
 }
 
 int UiDropList::EntryAt(Point point) const {
-    ui->ScalePointFromScreen(&point);
+    point = screen_layout::FromScreen(point);
     for (int i = FirstShown(); i < FirstShown() + shown; ++i)
         if (EntryRect(i).Contains(point)) return i;
     return -1;
@@ -257,8 +258,7 @@ void UiDropList::LeftDown(UiEvent& event) {
         Choose(index);
         return;
     }
-    Point at = event.at;
-    ui->ScalePointFromScreen(&at);
+    Point at = screen_layout::FromScreen(event.at);
     if (!frame.Contains(at)) Close();
 }
 

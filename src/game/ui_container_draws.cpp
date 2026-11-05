@@ -13,6 +13,7 @@
 
 #include "render/render.h"
 #include "render/render_state.h"
+#include "screen_layout.h"
 
 #include <cstdint>
 
@@ -87,14 +88,12 @@ void HeroEquipPanel::DrawSprites(SceneRenderer* pass) {
     const int* centreY = kBodySlotY;
     Rect slots[7];
     for (int i = 0; i < 7; ++i) {
-        Rect r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};
-        ui->ScaleRectToScreen(&r);
+        Rect r = screen_layout::ToScreen(Rect{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35});
         slots[i] = r;
     }
     ClearUiDepth(0.0f);
     ClearUiDepth(1.0f, slots, 7);
-    for (int i = 0; i < std::ssize(hero->armor); ++i) {
-        Item* item = hero->armor[i];
+    for (Item* item : hero->armor) {
         int armorType = static_cast<int>(item->AsArmor()->GetType());
         ItemCell cell{item, static_cast<float>(centreX[armorType]), static_cast<float>(centreY[armorType]), 6.0f, 100.0f,
                       mode};

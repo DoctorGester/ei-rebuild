@@ -104,9 +104,8 @@ void CameraInput::KeyUp(UiEvent& event) {
 
 void CameraInput::RightDown(UiEvent& event) {
     pressScreen = event.at;
-    pressLayout = event.at;
+    pressLayout = screen_layout::FromScreen(event.at);
     turning = true;
-    ui->ScalePointFromScreen(&pressLayout);
     g_cursor.SetHeld(1);
     event.handled = true;
 }
@@ -127,11 +126,10 @@ void CameraInput::RightUp(UiEvent& event) {
 void CameraInput::MouseMove(UiEvent& event) {
     Camera* camera = &g_camera;
     if (turning) {
-        Point point = event.at;
         // The mouse's speed as a 60 Hz frame's motion, so that the turn and tilt rates go with the speed at any
         // frame rate (they went with each frame's motion, and so with the frame's length).
         const Point taken = g_cursor.TakeDrag();
-        ui->ScalePointFromScreen(&point);
+        Point point = screen_layout::FromScreen(event.at);
         // The drag in layout units, kept as a fraction: a slow drag of a count or two still moves the camera.
         const float dragX = static_cast<float>(taken.x) * screen_layout::kLayoutPerCount;
         const float dragY = static_cast<float>(taken.y) * screen_layout::kLayoutPerCount;

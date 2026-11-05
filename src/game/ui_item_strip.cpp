@@ -9,6 +9,7 @@
 #include "ui_screens.h"
 #include "lib/float_select.h"
 #include "lib/str.h"
+#include "screen_layout.h"
 
 #include <bit>
 #include <cmath>
@@ -358,8 +359,7 @@ void FigureStrip::OnEvent(UiEvent& event) {
 void FigureStrip::LeftDown(UiEvent& event) {
     UiItemStrip::LeftDown(event);
     if (RegionUnder(event.at) != itemArea) return;
-    Point at = event.at;
-    ui->ScalePointFromScreen(&at);
+    Point at = screen_layout::FromScreen(event.at);
     int index = SlotAt(at.x);
     if (index < 0 || index >= count) return;
     ui->PlayInterfaceSound(kOnOffSound);

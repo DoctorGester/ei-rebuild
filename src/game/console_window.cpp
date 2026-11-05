@@ -37,14 +37,13 @@ void ConsoleWindow::SetScale() {
 // The rectangle in pixels, clamped to at least 76x69 layout pixels (scaled) and at most the screen; the number of lines
 // that fit below the 24-pixel margin, less one; the clamped rectangle back in 800x600 coordinates. A shown window gets
 // a new surface. The requested rectangle is kept, so a resolution change places it again (OnResize).
-void ConsoleWindow::SetRect(const Rect* newRect) {
+void ConsoleWindow::SetRect(const Rect& newRect) {
     int screenWidth = screen->width;
     int screenHeight = screen->height;
-    requestedRect = *newRect;
+    requestedRect = newRect;
     SetScale();
-    screenRect = *newRect;
-    // The 3D interface scales 800x600 to pixels (Rebirth patches it, so it is called through its address).
-    screen->ScaleRectToScreen(&screenRect);
+    // The 3D interface's 800x600 layout to pixels.
+    screenRect = screen_layout::ToScreen(newRect);
     width = screenRect.Width();
     height = screenRect.Height();
     if (width < Px(kMinWidth)) width = Px(kMinWidth);
@@ -56,15 +55,14 @@ void ConsoleWindow::SetRect(const Rect* newRect) {
             Px(kLineHeight), visibleLines);
     screenRect.right = screenRect.left + width;
     screenRect.bottom = screenRect.top + height;
-    rect = screenRect;
-    screen->ScaleRectFromScreen(&rect);
+    rect = screen_layout::FromScreen(screenRect);
     if (shown) {
         Show(false);
         Show(true);
     }
 }
 
-void ConsoleWindow::OnResize() { SetRect(&requestedRect); }
+void ConsoleWindow::OnResize() { SetRect(requestedRect); }
 
 void ConsoleWindow::SetHistory(int newLines) {
     history = newLines;
@@ -116,7 +114,7 @@ ConsoleWindow::ConsoleWindow(Interface3D* newScreen) {
     shift = false;
     scale = 1.0f;
     Rect area = kInitialRect;
-    SetRect(&area);
+    SetRect(area);
     history = kHistory;
     DropOldLines(kHistory);
     ClampScroll();

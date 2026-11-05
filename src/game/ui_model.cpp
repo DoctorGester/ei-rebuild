@@ -61,8 +61,8 @@ void UiModel::ShowPart(const char* name, int show) {
 
 // Every part shown or hidden; null entries skipped.
 void UiModel::ShowAllParts(int show) {
-    for (int i = 0; i < std::ssize(object->parts); ++i)
-        if (FigureMesh* part = object->parts[i]) ShowFigurePart(part, show);
+    for (FigureMesh* part : object->parts)
+        if (part) ShowFigurePart(part, show);
 }
 
 // Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface clock,

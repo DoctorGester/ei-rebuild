@@ -38,15 +38,6 @@
 // The scaling is the window's layout (screen_layout.h): the original's x * width / 800, y * height / 600 on a 4:3
 // window (where the 4:3 part is the window), Rebirth's WideScreen on a wider one.
 
-void Interface3D::ScaleRectToScreen(Rect* rect) const { screen_layout::RectToScreen(rect, true); }
-void Interface3D::ScalePointToScreen(Point* point) const { screen_layout::PointToScreen(point, true); }
-void Interface3D::ScaleRectFromScreen(Rect* rect) const { screen_layout::RectFromScreen(rect, true); }
-void Interface3D::ScalePointFromScreen(Point* point) const { screen_layout::PointFromScreen(point, true); }
-
-void Interface3D::ScaleRectToScreenNoMargin(Rect* rect) const { screen_layout::RectToScreen(rect, false); }
-void Interface3D::ScalePointToScreenNoMargin(Point* point) const { screen_layout::PointToScreen(point, false); }
-void Interface3D::ScalePointFromScreenNoMargin(Point* point) const { screen_layout::PointFromScreen(point, false); }
-
 UiContainer* Interface3D::GetActiveWindow() const {
     return stack.empty() ? nullptr : stack.back().get();
 }

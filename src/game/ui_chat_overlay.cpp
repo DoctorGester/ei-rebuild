@@ -14,6 +14,7 @@
 #include "platform/platform.h"
 #include "lib/str.h"
 #include "render/text_format.h"
+#include "screen_layout.h"
 
 #include <algorithm>
 #include <cstring>
@@ -206,8 +207,8 @@ void ChatOverlay::PaintTyped(UiSurface& surface) const {
         Point top{width, 0};
         Point bottom{width, kCaretBottom};
         // WideScreen: without the margin.
-        ui->ScalePointToScreenNoMargin(&top);
-        ui->ScalePointToScreenNoMargin(&bottom);
+        top = screen_layout::ToScreenNoMargin(top);
+        bottom = screen_layout::ToScreenNoMargin(bottom);
         surface.Line(top, bottom, 1, kTypedColour);
     }
 }
