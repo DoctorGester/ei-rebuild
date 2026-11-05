@@ -1034,11 +1034,10 @@ public:
     std::unique_ptr<Sky> skyDome;                 // the sky (LoadSky)
     std::unique_ptr<EffectMoshka> bird;           // the bird following the party (SummonBird)
     std::unique_ptr<FlyingHitPoints> numbers;     // the damage numbers (SetUpGraphics)
-    // Segment ticks the ground prints and colours the blood prints by the light.
+    // Segment ticks the ground prints.
     std::vector<BloodPrint> bloodPrints;
     std::vector<Footprint> footprints;
     std::vector<GroundPrint> scorchMarks;
-    int lightLevelsCountdown = 0;         // time left before the blood prints are lit again (Segment); 0 after Setup
     Ref<ClientHandle> handle;       // the client's player source
     std::unique_ptr<SoundManager> sounds;   // the client controller's hit sounds too
     std::unique_ptr<TextManager> texts;     // the text resources
