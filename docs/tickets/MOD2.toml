@@ -1,0 +1,8 @@
+id = "MOD2"
+title = "Lost in Astral plays: its campaign start to end on our exe"
+group = "mods"
+size = 3
+model = "opus"
+depends = ["MOD1"]
+note = "After MOD1: start a new game with Mod = LostInAstral and play its campaign path (zones 11-14 in its Maps, its database.res / texts.res / speech, its scripts). Fix whatever the expansion uses that the base game never did (script functions, database records, texture class 16 is already handled: terrain_sector.cpp, models.md). Compare with Rebirth's engine/game.exe + addon.dll behaviour where it matters (read-only: never write the install). Harness scenarios on its zones (recorded or scripted), goldens of our own. List anything that cannot match with a reason."
+order = 1197

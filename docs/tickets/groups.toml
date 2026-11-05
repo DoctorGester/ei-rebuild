@@ -81,3 +81,9 @@ note = "Finished 2026-10-14: every hookable game function is rewritten (99.97% o
 key = "docs"
 name = "Docs"
 note = ""
+
+[[group]]
+key = "mods"
+name = "Mods"
+doc = "docs/notes/mods.md"
+note = "User 2026-11-05: play Rebirth's mods (Lost in Astral in starter/Mods) from our exe: a file overlay on the platform layer's one path gate, chosen from the menu, ideally without a restart."
