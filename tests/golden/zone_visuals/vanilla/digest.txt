@@ -9423,7 +9423,7 @@ cunit999742 #unit 12E8DB1D
 cunit1000002436 #place A644D3AB
 cunit1000059184 #place 76B3F718
 cunit1001577495 #place 5594CDCC
-@ 22 update 460 frame 91 tick 449 zone gz1g hash 365075D1 n 792
+@ 22 update 460 frame 91 tick 449 zone gz1g hash 5BF564F2 n 791
 world tick 449
 world updates 460
 world timeBase 6.53222275
@@ -9431,7 +9431,10 @@ world secondsPerTick 0.0
 world wind.x -0.728199959
 world wind.y -0.685364664
 world windStrength 0x3E4CCCCD
+world weatherFactor 0x3F666666
+world weather 1
 world exits 2
+world lastRainBoltTick 434
 world sessionKind 1
 world objects 780
 world mapObjects 57
@@ -9445,21 +9448,19 @@ world hostile4 0x00000001
 world hostile6 0x00000001
 world hostile7 0x00000001
 world hostile8 0x00000001
-random isaac.count 16
-random isaac.a 0x667BCD0B
-random isaac.b 0x097EDDC0
-random isaac.c 0x0000000C
-random isaac.results 0x8D4963B7
-random isaac.memory 0x4D58F9DF
+random isaac.count 228
+random isaac.a 0x176BB8BE
+random isaac.b 0xB9AF1E24
+random isaac.c 0x0000000D
+random isaac.results 0x9C3570DA
+random isaac.memory 0xB87F5CFC
 random crt.rand 0x40967F92
 player0 sessionKind 1
 player0 lastTick 436
-player0 objects 10
+player0 objects 9
 player0 entrance 1
 player0 var.gtime 6.53222275
 player0 var.FirstComing 1.0
-player0 var.ZT15 1.0
-player0 var.ZT15A 1.0
 player0 var.ZT16 1.0
 player0 var.ZT16A 1.0
 player0 var.b.elder.s1 1.0
@@ -9908,20 +9909,20 @@ obj663 mana 19.0
 obj663 pos.x 154.75
 obj663 pos.y 108.25
 obj663 pos.z 0.0
-obj663 #ai 7152FABA
+obj663 #ai FD427ABE
 obj663 #place 27081D79
-obj663 #unit 4FC0BDF7
+obj663 #unit B12BA061
 obj663 #vitals D6DEFB0A
 + obj666 80 unmogo ""
 obj666 dead 0
 obj666 hp 20.0
 obj666 mana 10.0
-obj666 pos.x 142.318619
-obj666 pos.y 121.130867
+obj666 pos.x 139.694809
+obj666 pos.y 126.786346
 obj666 pos.z 0.200000003
-obj666 #ai F1C46C05
-obj666 #place F965BE2C
-obj666 #unit C198357E
+obj666 #ai D192B2B7
+obj666 #place 54D81B5F
+obj666 #unit 9F700EA8
 obj666 #vitals 4B122DC5
 + obj668 80 unmogo ""
 obj668 dead 0
@@ -9932,7 +9933,7 @@ obj668 pos.y 152.857147
 obj668 pos.z 0.0
 obj668 #ai 80E96731
 obj668 #place B4C39772
-obj668 #unit 4B5CDC39
+obj668 #unit 01F9E455
 obj668 #vitals 4C7FE9DC
 + obj669 80 unmogo ""
 obj669 dead 0
@@ -9943,7 +9944,7 @@ obj669 pos.y 156.468903
 obj669 pos.z 0.0
 obj669 #ai 80E96731
 obj669 #place DFEBF115
-obj669 #unit D22F230E
+obj669 #unit 4D67CE0F
 obj669 #vitals 4C7FE9DC
 + obj670 80 unmogo ""
 obj670 dead 0
@@ -9954,7 +9955,7 @@ obj670 pos.y 151.421005
 obj670 pos.z 0.0
 obj670 #ai 80E96731
 obj670 #place 0670CF7C
-obj670 #unit 50C51801
+obj670 #unit 42DAF61D
 obj670 #vitals 4C7FE9DC
 + obj699 80 unhuma ""
 obj699 dead 0
@@ -9965,7 +9966,7 @@ obj699 pos.y 139.561661
 obj699 pos.z 0.0
 obj699 #ai 67139E71
 obj699 #place 5672484C
-obj699 #unit A8846682
+obj699 #unit 746261FA
 obj699 #vitals A243F4AF
 + obj702 80 unhufe ""
 obj702 dead 0
@@ -9976,7 +9977,7 @@ obj702 pos.y 138.088669
 obj702 pos.z 0.0
 obj702 #ai 67139E71
 obj702 #place C4B3B06A
-obj702 #unit DF0B941B
+obj702 #unit 1C5438EB
 obj702 #vitals A243F4AF
 obj708 pos.x 196.293808
 obj708 pos.y 143.815811
@@ -12753,12 +12754,12 @@ obj1764 # 849BD008
 obj1766 dead 0
 obj1766 hp 20.0
 obj1766 mana 10.0
-obj1766 pos.x 144.144409
-obj1766 pos.y 132.395782
+obj1766 pos.x 144.355011
+obj1766 pos.y 127.216484
 obj1766 pos.z 0.200000003
-obj1766 #ai ECDFAA2B
-obj1766 #place 1A34B837
-obj1766 #unit 02D19B1B
+obj1766 #ai 5F3351B9
+obj1766 #place A9CF13A1
+obj1766 #unit 7F9FD134
 obj1766 #vitals 4B122DC5
 + obj1769 82 naflbu6
 obj1769 hp 1000.0
@@ -12923,7 +12924,7 @@ obj1804 pos.y 115.75
 obj1804 pos.z 0.0
 obj1804 #ai 71FA5398
 obj1804 #place F6FB6B2C
-obj1804 #unit 09CEDFEF
+obj1804 #unit 2DD8DD96
 obj1804 #vitals FBE05ECC
 + obj1825 84 stst19
 obj1825 hp 1000.0
@@ -13193,7 +13194,7 @@ obj1884 pos.y 139.042999
 obj1884 pos.z 0.0
 obj1884 #ai 67139E71
 obj1884 #place CF4B7068
-obj1884 #unit A8846682
+obj1884 #unit 746261FA
 obj1884 #vitals A243F4AF
 + obj1889 93 stga1
 obj1889 hp 0.0
@@ -13211,7 +13212,7 @@ obj1890 pos.y 95.25
 obj1890 pos.z 0.0
 obj1890 #ai 9D0D00C1
 obj1890 #place 6050B144
-obj1890 #unit CE76CA28
+obj1890 #unit 4F8CED70
 obj1890 #vitals D576B866
 + obj1892 83 nast16
 obj1892 hp 1000.0
@@ -13255,9 +13256,9 @@ obj1898 mana 19.0
 obj1898 pos.x 132.75
 obj1898 pos.y 89.75
 obj1898 pos.z 0.0
-obj1898 #ai 7E846FF7
+obj1898 #ai 9B21B8A9
 obj1898 #place 4842D2DC
-obj1898 #unit C3E97D2D
+obj1898 #unit 77ABF4E2
 obj1898 #vitals D6DEFB0A
 + obj1900 80 unmoog1 ""
 obj1900 dead 0
@@ -13266,9 +13267,9 @@ obj1900 mana 19.0
 obj1900 pos.x 158.25
 obj1900 pos.y 85.25
 obj1900 pos.z 0.0
-obj1900 #ai E7C3EE61
+obj1900 #ai 2F71AFF2
 obj1900 #place 96031A03
-obj1900 #unit B6BF5266
+obj1900 #unit F04347B8
 obj1900 #vitals D6DEFB0A
 + obj1901 80 unmogo ""
 obj1901 dead 0
@@ -13277,9 +13278,9 @@ obj1901 mana 10.0
 obj1901 pos.x 173.75
 obj1901 pos.y 108.25
 obj1901 pos.z 0.0
-obj1901 #ai A0A404B8
+obj1901 #ai 2CEAE963
 obj1901 #place 6752256B
-obj1901 #unit 6F3367FE
+obj1901 #unit FDFD7709
 obj1901 #vitals 4B122DC5
 + obj1902 83 nast5
 obj1902 hp 1000.0
@@ -13358,9 +13359,9 @@ obj1913 mana 10.0
 obj1913 pos.x 174.75
 obj1913 pos.y 107.75
 obj1913 pos.z 0.0
-obj1913 #ai 93D6A273
+obj1913 #ai F07ECF85
 obj1913 #place 6F57E79C
-obj1913 #unit 13400C73
+obj1913 #unit 3A02DCBD
 obj1913 #vitals 4B122DC5
 + obj1915 80 unanwibo ""
 obj1915 dead 0
@@ -13371,7 +13372,7 @@ obj1915 pos.y 76.9162292
 obj1915 pos.z 0.0
 obj1915 #ai 07BFFC82
 obj1915 #place EA58FABA
-obj1915 #unit 2B3D9B04
+obj1915 #unit D368CF80
 obj1915 #vitals 4C7FE9DC
 + obj1916 80 unanwibo ""
 obj1916 dead 0
@@ -13382,7 +13383,7 @@ obj1916 pos.y 61.3598785
 obj1916 pos.z 0.0
 obj1916 #ai 07BFFC82
 obj1916 #place 38124D84
-obj1916 #unit A79AE468
+obj1916 #unit 3E03A673
 obj1916 #vitals 4C7FE9DC
 + obj1918 80 unanwibo ""
 obj1918 dead 0
@@ -13393,7 +13394,7 @@ obj1918 pos.y 58.7212791
 obj1918 pos.z 0.0
 obj1918 #ai 07BFFC82
 obj1918 #place C69639EF
-obj1918 #unit B7DA3E38
+obj1918 #unit 0B2E9450
 obj1918 #vitals 4C7FE9DC
 + obj1919 80 unanwibo ""
 obj1919 dead 0
@@ -13404,7 +13405,7 @@ obj1919 pos.y 43.3786011
 obj1919 pos.z 0.0
 obj1919 #ai 07BFFC82
 obj1919 #place F816017B
-obj1919 #unit 77C8FE09
+obj1919 #unit 295F1373
 obj1919 #vitals 4C7FE9DC
 + obj1920 80 unanwibo ""
 obj1920 dead 0
@@ -13415,7 +13416,7 @@ obj1920 pos.y 48.8987923
 obj1920 pos.z 0.0
 obj1920 #ai 07BFFC82
 obj1920 #place 5C267F7C
-obj1920 #unit B7DA3E38
+obj1920 #unit 0B2E9450
 obj1920 #vitals 4C7FE9DC
 + obj1921 80 unmoto ""
 obj1921 dead 0
@@ -13426,7 +13427,7 @@ obj1921 pos.y 66.7298965
 obj1921 pos.z 0.0
 obj1921 #ai 07BFFC82
 obj1921 #place 22A41D15
-obj1921 #unit D67969B2
+obj1921 #unit 4FE02BA9
 obj1921 #vitals 5B449740
 + obj1922 80 unmoto ""
 obj1922 dead 0
@@ -13437,7 +13438,7 @@ obj1922 pos.y 50.6992149
 obj1922 pos.z 0.0
 obj1922 #ai 07BFFC82
 obj1922 #place 0D00D856
-obj1922 #unit DD1A5987
+obj1922 #unit D31E9F07
 obj1922 #vitals 5B449740
 + obj1923 80 unmoto ""
 obj1923 dead 0
@@ -13448,7 +13449,7 @@ obj1923 pos.y 37.0033417
 obj1923 pos.z 0.0
 obj1923 #ai 07BFFC82
 obj1923 #place 457733EE
-obj1923 #unit D8342DD1
+obj1923 #unit AD367A48
 obj1923 #vitals 5B449740
 + obj1925 80 unmoto ""
 obj1925 dead 0
@@ -13459,7 +13460,7 @@ obj1925 pos.y 29.9655895
 obj1925 pos.z 0.0
 obj1925 #ai 07BFFC82
 obj1925 #place 13639749
-obj1925 #unit A82080B7
+obj1925 #unit FC5BC198
 obj1925 #vitals 5B449740
 + obj1926 80 unmoto ""
 obj1926 dead 0
@@ -13470,7 +13471,7 @@ obj1926 pos.y 38.1530342
 obj1926 pos.z 0.0
 obj1926 #ai 07BFFC82
 obj1926 #place A0ACDD34
-obj1926 #unit 943BBCD1
+obj1926 #unit 88DC005D
 obj1926 #vitals 5B449740
 + obj1927 80 unmoto ""
 obj1927 dead 0
@@ -13481,7 +13482,7 @@ obj1927 pos.y 23.4141884
 obj1927 pos.z 0.0
 obj1927 #ai 07BFFC82
 obj1927 #place DC6119F2
-obj1927 #unit 72C73784
+obj1927 #unit DACFA8EA
 obj1927 #vitals 5B449740
 + obj1928 80 unmoto ""
 obj1928 dead 0
@@ -13492,7 +13493,7 @@ obj1928 pos.y 14.3936701
 obj1928 pos.z 0.0
 obj1928 #ai 07BFFC82
 obj1928 #place 69D37ED7
-obj1928 #unit 41FDFCBB
+obj1928 #unit 0B58C4D7
 obj1928 #vitals 5B449740
 + obj1930 80 unmoto ""
 obj1930 dead 0
@@ -13503,7 +13504,7 @@ obj1930 pos.y 43.5665283
 obj1930 pos.z 0.0
 obj1930 #ai 07BFFC82
 obj1930 #place F4312B55
-obj1930 #unit 02D39AE2
+obj1930 #unit 8BA2133A
 obj1930 #vitals 5B449740
 + obj1932 80 unmoto ""
 obj1932 dead 0
@@ -13514,7 +13515,7 @@ obj1932 pos.y 62.4745293
 obj1932 pos.z 0.0
 obj1932 #ai 07BFFC82
 obj1932 #place 57536C29
-obj1932 #unit 243DD186
+obj1932 #unit FBC03CAE
 obj1932 #vitals 5B449740
 + obj1933 80 unmoto ""
 obj1933 dead 0
@@ -13525,7 +13526,7 @@ obj1933 pos.y 78.9596024
 obj1933 pos.z 0.0
 obj1933 #ai 07BFFC82
 obj1933 #place D560DAF4
-obj1933 #unit D8342DD1
+obj1933 #unit AD367A48
 obj1933 #vitals 5B449740
 + obj1934 80 unmoto ""
 obj1934 dead 0
@@ -13536,7 +13537,7 @@ obj1934 pos.y 109.004395
 obj1934 pos.z 0.0
 obj1934 #ai 07BFFC82
 obj1934 #place 8DFA2BB0
-obj1934 #unit BC229D8B
+obj1934 #unit F098EAED
 obj1934 #vitals 5B449740
 + obj1935 80 unmoto ""
 obj1935 dead 0
@@ -13547,7 +13548,7 @@ obj1935 pos.y 108.332924
 obj1935 pos.z 0.0
 obj1935 #ai 07BFFC82
 obj1935 #place FDC01757
-obj1935 #unit 9ACCD6EF
+obj1935 #unit 80FAC579
 obj1935 #vitals 5B449740
 + obj1936 80 unmoto ""
 obj1936 dead 0
@@ -13558,7 +13559,7 @@ obj1936 pos.y 126.364632
 obj1936 pos.z 0.0
 obj1936 #ai 16BD054B
 obj1936 #place A45DDA0C
-obj1936 #unit CF79DC64
+obj1936 #unit A21BC42C
 obj1936 #vitals 5B449740
 + obj1937 80 unmoto ""
 obj1937 dead 0
@@ -13569,7 +13570,7 @@ obj1937 pos.y 143.487564
 obj1937 pos.z 0.0
 obj1937 #ai B51DA411
 obj1937 #place DD2A91A7
-obj1937 #unit ADBAE41B
+obj1937 #unit 3869E412
 obj1937 #vitals 559F1F72
 + obj1938 80 unanwiwo ""
 obj1938 dead 0
@@ -13580,7 +13581,7 @@ obj1938 pos.y 57.1083755
 obj1938 pos.z 0.0
 obj1938 #ai 07BFFC82
 obj1938 #place 2182B534
-obj1938 #unit 49E03ED2
+obj1938 #unit 1777D3A8
 obj1938 #vitals 4C7FE9DC
 + obj1940 80 unanwiwo ""
 obj1940 dead 0
@@ -13591,84 +13592,84 @@ obj1940 pos.y 75.5447693
 obj1940 pos.z 0.0
 obj1940 #ai 07BFFC82
 obj1940 #place EC0E64E3
-obj1940 #unit 6501F6B9
+obj1940 #unit BC2DB48B
 obj1940 #vitals 4C7FE9DC
 + obj1943 80 unmogo ""
 obj1943 dead 0
 obj1943 hp 20.0
 obj1943 mana 10.0
-obj1943 pos.x 131.180252
-obj1943 pos.y 139.960663
+obj1943 pos.x 128.286102
+obj1943 pos.y 137.433624
 obj1943 pos.z 0.0
-obj1943 #ai 79F92B68
-obj1943 #place 8A9C9B0A
-obj1943 #unit A5C70122
+obj1943 #ai ED926290
+obj1943 #place 9EC3F9AE
+obj1943 #unit 83A2768F
 obj1943 #vitals 4B122DC5
 + obj1944 80 unmoba2 ""
 obj1944 dead 0
 obj1944 hp 31.0
 obj1944 mana 12.0
-obj1944 pos.x 174.482742
-obj1944 pos.y 45.6570702
+obj1944 pos.x 168.302414
+obj1944 pos.y 47.7528954
 obj1944 pos.z 0.0
-obj1944 #ai BB393EF5
-obj1944 #place 63A0907F
-obj1944 #unit 4699C4BE
+obj1944 #ai C26032EC
+obj1944 #place 5B616FC5
+obj1944 #unit C580BF6A
 obj1944 #vitals 93D5328A
 + obj1945 80 unmoba2 ""
 obj1945 dead 0
 obj1945 hp 31.0
 obj1945 mana 12.0
-obj1945 pos.x 152.89386
-obj1945 pos.y 45.3308563
+obj1945 pos.x 155.109467
+obj1945 pos.y 52.9289093
 obj1945 pos.z 0.0
-obj1945 #ai 3073368C
-obj1945 #place 378D4473
-obj1945 #unit 06FD8596
+obj1945 #ai 909239B6
+obj1945 #place 63AD6516
+obj1945 #unit 9E4320F1
 obj1945 #vitals 93D5328A
 + obj1947 80 unanhopi ""
 obj1947 dead 0
 obj1947 hp 20.0
 obj1947 mana 5.0
-obj1947 pos.x 192.878586
-obj1947 pos.y 80.4065781
+obj1947 pos.x 190.591614
+obj1947 pos.y 75.7312164
 obj1947 pos.z 0.0
-obj1947 #ai D70AEA6F
-obj1947 #place 3AB8D996
-obj1947 #unit 4D809305
+obj1947 #ai 89250D73
+obj1947 #place B16D6AE9
+obj1947 #unit 6D181AA4
 obj1947 #vitals 84D4EFC3
 + obj1948 80 unanhopi ""
 obj1948 dead 0
 obj1948 hp 20.0
 obj1948 mana 5.0
-obj1948 pos.x 203.707291
-obj1948 pos.y 68.395607
+obj1948 pos.x 205.346024
+obj1948 pos.y 71.2119217
 obj1948 pos.z 0.0
-obj1948 #ai 9037FA0F
-obj1948 #place 8E70245C
-obj1948 #unit C27D685E
+obj1948 #ai 03E00159
+obj1948 #place C47C687C
+obj1948 #unit 1A1F2A32
 obj1948 #vitals 84D4EFC3
 + obj1949 80 unanhopi ""
 obj1949 dead 0
 obj1949 hp 20.0
 obj1949 mana 5.0
-obj1949 pos.x 211.105713
-obj1949 pos.y 81.0998993
+obj1949 pos.x 213.796417
+obj1949 pos.y 82.6027069
 obj1949 pos.z 0.0
-obj1949 #ai 725ED93D
-obj1949 #place F46CC936
-obj1949 #unit F486EAB5
+obj1949 #ai ED0E4439
+obj1949 #place 9DBE4BCE
+obj1949 #unit 2C820451
 obj1949 #vitals 84D4EFC3
 + obj1950 80 unanhopi ""
 obj1950 dead 0
 obj1950 hp 20.0
 obj1950 mana 5.0
-obj1950 pos.x 221.13446
-obj1950 pos.y 73.4502335
+obj1950 pos.x 222.072784
+obj1950 pos.y 74.6360245
 obj1950 pos.z 0.0
-obj1950 #ai C937F371
-obj1950 #place 232DB23B
-obj1950 #unit F2091414
+obj1950 #ai 85577853
+obj1950 #place 6D6616D3
+obj1950 #unit D71FE9F2
 obj1950 #vitals 84D4EFC3
 + obj1952 80 unanwibo ""
 obj1952 dead 0
@@ -13679,7 +13680,7 @@ obj1952 pos.y 39.4796753
 obj1952 pos.z 0.0
 obj1952 #ai 07BFFC82
 obj1952 #place 12233CC1
-obj1952 #unit F1DA2C37
+obj1952 #unit F5FCA6F2
 obj1952 #vitals 4C7FE9DC
 + obj1953 80 unanwibo ""
 obj1953 dead 0
@@ -13690,7 +13691,7 @@ obj1953 pos.y 31.2873268
 obj1953 pos.z 0.0
 obj1953 #ai 07BFFC82
 obj1953 #place 7562FB6E
-obj1953 #unit 2E13EF52
+obj1953 #unit AD402ACF
 obj1953 #vitals 4C7FE9DC
 + obj1954 80 unanwiwo ""
 obj1954 dead 0
@@ -13701,18 +13702,18 @@ obj1954 pos.y 68.6888123
 obj1954 pos.z 0.0
 obj1954 #ai 07BFFC82
 obj1954 #place 42D3DFA9
-obj1954 #unit 15155BDF
+obj1954 #unit ED400F5B
 obj1954 #vitals 4C7FE9DC
 + obj1955 80 unanwiwo ""
 obj1955 dead 0
 obj1955 hp 20.0
 obj1955 mana 10.0
-obj1955 pos.x 132.867004
-obj1955 pos.y 77.2247925
+obj1955 pos.x 134.494995
+obj1955 pos.y 76.4950027
 obj1955 pos.z 0.0
-obj1955 #ai 7B80C132
-obj1955 #place EE68F96E
-obj1955 #unit 65E806AD
+obj1955 #ai BEF70832
+obj1955 #place EA5C3E0B
+obj1955 #unit 9BB7DA65
 obj1955 #vitals 4B122DC5
 + obj1958 84 stst151
 obj1958 hp 1000.0
@@ -14125,9 +14126,9 @@ obj2008 # AA7FB2DE
 obj1000011214 hp 39.7898941
 obj1000011214 pos.x 187.0
 obj1000011214 pos.y 104.5
-obj1000011214 #ai EE305B25
+obj1000011214 #ai 7B647FFA
 obj1000011214 #place 2A5FA26E
-obj1000011214 #unit 714939C0
+obj1000011214 #unit 1ACC79E2
 obj1000011214 #vitals 3A53597B
 - obj1000054752
 - obj1000059184
@@ -14145,7 +14146,7 @@ obj1195532174 pos.y 140.25
 obj1195532174 pos.z 0.0
 obj1195532174 #ai 30618F2F
 obj1195532174 #place 29F3C8B3
-obj1195532174 #unit 8C2AC4DF
+obj1195532174 #unit 34A76596
 obj1195532174 #vitals ED91BFD0
 + obj1195532175 80 unanwiwo "PrintWolf2"
 obj1195532175 dead 1
@@ -14156,7 +14157,7 @@ obj1195532175 pos.y 138.75
 obj1195532175 pos.z 0.0
 obj1195532175 #ai 30618F2F
 obj1195532175 #place A47E07B3
-obj1195532175 #unit 18EC6295
+obj1195532175 #unit 4BB6219E
 obj1195532175 #vitals ED91BFD0
 - timed56299
 - timed128022
@@ -14179,28 +14180,24 @@ aievents height 25
 script #files 7628F6F3
 script #ggroup 393FB575
 script #gobject 3656F9F8
-script #inst BCA61DF6
-script #instances EEA9BE91
+script #inst EC3A7094
+script #instances 00A7DFBD
 script #runs F80920E1
 script #run -
 client tick 449
 client ticksRun 12
 client tickFraction 1.69090915
-client objects 734
-client units 4
-client synchronised 9
+client objects 733
+client units 3
+client synchronised 8
 + cunit1901 80 unmogo ""
 cunit1901 #place 1298C69D
 cunit1901 #unit 5A71E0C8
 cunit1901 #vitals F464C324
 + cunit1913 80 unmogo ""
 cunit1913 #place 1466B06F
-cunit1913 #unit B78752FE
+cunit1913 #unit D5E27A8B
 cunit1913 #vitals F464C324
-+ cunit1947 80 unanhopi ""
-cunit1947 #place AFE848E4
-cunit1947 #unit 47D6DC4C
-cunit1947 #vitals ED40ECA3
 - cunit182595
 - cunit183332
 - cunit196568

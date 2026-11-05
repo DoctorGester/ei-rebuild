@@ -8376,11 +8376,10 @@ client ticksRun 532
 @ 28 update 580 frame 115 tick 407 zone gz1g hash EAE7B551 n 854
 world updates 580
 client ticksRun 552
-@ 29 update 600 frame 119 tick 427 zone gz1g hash 0431BB29 n 855
+@ 29 update 600 frame 119 tick 427 zone gz1g hash 82108243 n 855
 world tick 427
 world updates 600
 world paused 0
-world weatherStrength 0.0
 world objects 815
 world mapObjects 56
 world updateMap 15
