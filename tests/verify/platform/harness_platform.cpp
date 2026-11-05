@@ -223,7 +223,7 @@ void WaitForClientSize(int width, int height) {
     }
 }
 
-// The client area a windowed harness game asked for last (PlaceClient, ResizeClient), which ShowGameWindow keeps.
+// The client area a windowed harness game asked for last (PlaceClient, ResizeClient), which LogClientSize names.
 int g_askedWidth = 0, g_askedHeight = 0;
 
 void LogClientSize(const char* when) {
@@ -236,8 +236,9 @@ void LogClientSize(const char* when) {
 }
 
 // Unlike platform_sdl.cpp's, the client area is the size asked for even where it and the borders do not fit in
-// `display`'s usable bounds (a CI runner's 1024x768 screen): a run's frame and the window's points are then the same
-// on every machine, so recorded clicks and the minimap's land where they did when the goldens were recorded (H62b).
+// `display`'s usable bounds (a CI runner's 1024x768 screen; on macOS sys::KeepClientSize stops AppKit fitting it
+// there): a run's frame and the window's points are then the same on every machine, so recorded clicks and the
+// minimap's land where they did when the goldens were recorded (H62b, H62c).
 // Centred there when it fits, else at their top left (the title bar on the screen), past their right and bottom.
 void PlaceClient(SDL_DisplayID display, int width, int height) {
     g_askedWidth = width;
@@ -340,6 +341,8 @@ NativeWindow CreateGameWindow(const char* title, int width, int height, bool ful
     hp::g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!hp::g_window) return nullptr;
+    ei::verify::sys::KeepClientSize(
+        SDL_GetPointerProperty(SDL_GetWindowProperties(hp::g_window), SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr));
     if (!fullScreen) {
         hp::PlaceClient(SDL_GetPrimaryDisplay(), width, height);
         hp::LogClientSize("made");
@@ -359,12 +362,6 @@ void ShowGameWindow(NativeWindow window) {
     if (!w) return;
     SDL_ShowWindow(w);
     if (hp::g_live) SDL_RaiseWindow(w);
-    // AppKit may fit a resizable titled window taller than the screen into it when the window is ordered in
-    // (constrainFrameRect:toScreen:): the client area asked for is then set again.
-    int width = 0, height = 0;
-    if (!(SDL_GetWindowFlags(w) & SDL_WINDOW_BORDERLESS) && hp::g_askedWidth > 0 &&
-        SDL_GetWindowSizeInPixels(w, &width, &height) && (width != hp::g_askedWidth || height != hp::g_askedHeight))
-        hp::ResizeClient(hp::g_askedWidth, hp::g_askedHeight);
     hp::LogClientSize("shown");
 }
 

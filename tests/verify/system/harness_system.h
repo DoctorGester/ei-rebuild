@@ -188,5 +188,9 @@ void WindowReport(FILE* f);
 bool ShowWithoutActivating(void* window, bool minimised);
 // The window's class as the system names it; "" where windows have none.
 std::string WindowClass(void* window);
+// The client area keeps the size the harness sets even where the window does not fit on the screen (macOS: AppKit
+// fits a titled window into the screen when it is shown, which made a 1024x768 CI runner's 960x720 client 960x645;
+// `window` is the NSWindow, H62c). Nothing to do elsewhere: Windows and X11 without a window manager never fit it.
+void KeepClientSize(void* window);
 
 } // namespace ei::verify::sys
