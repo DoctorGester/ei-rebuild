@@ -2,12 +2,27 @@
   "scenario": "mod_lost_in_astral_suslanger",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "48ac7942a",
+  "commit": "91a1238f4",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "New scenarios: every Lost in Astral campaign zone entered (MOD2).",
+  "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
   "source": "image",
-  "saves": "25 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "25 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "digest: 27 of 28 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: quest variables, script; max unit move 6.09 (obj2120519, record 26)",
+    "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
+    "    random (random) isaac.count: 69 in the old golden, 71 in the new run (d 2)",
+    "  outcomes: CHANGED quest variables, script; same: zone, deaths, spawns, money, party and items, game result",
+    "    quest variables: 1 variables differ (randsah); first from record 14: player0 randsah: 1.67062891 in the old golden, 8.23603916 in the new run",
+    "    script: script #fx differs (hashes only), from record 2 (+5 more)",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 27 records, from 1; max |d| 221 at random isaac.count, record 23: 3 -> 224",
+    "  world: 1 of 1 differ",
+    "    timedObjects: 1 world, 2 records, from 2; max |d| 1 at world timedObjects, record 2: 198 -> 197",
+    "    updateMap: 1 world, 2 records, from 23; max |d| 1 at world updateMap, record 23: 34 -> 33",
+    "  units: 1296 of 1391 differ",
+    "... 77 more lines"
+  ]
 }

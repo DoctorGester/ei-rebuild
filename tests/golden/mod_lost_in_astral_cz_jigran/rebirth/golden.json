@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_lost_in_astral_cz_jigran",
+  "install": "rebirth",
+  "recorded": "2026-11-05",
+  "commit": "91a1238f4",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
+  "source": "image",
+  "saves": "7 decoded saves (tools/savefile.py), the same in 2 runs"
+}

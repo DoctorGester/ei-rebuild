@@ -1,0 +1,8 @@
+id = "MOD2b"
+title = "Lost in Astral: key levers in gz12g and gz14g that do not open from the quick panel's key"
+group = "mods"
+size = 2
+model = "opus"
+depends = ["MOD2a"]
+note = "MOD2a: in gz12g (levers 4523, 4524, 4525, q27g) and gz14g (1712, 57, q28g) the quest key picked from the quick panel and clicked on the lever is taken as an order (the panel's mode 6 back to 0), but the hero stops about 2 units short of the lever (gz12g) or does not move at all (gz14g), so the lever never opens; gz13g's key levers (1321-1323) and bz1r's portal open the same way. Find whether it is our bug (the use reach, FindUseSpot, PlanOrderRoute in combat_planning.cpp / combat.cpp, the lever's use spot against the terrain or a blocking object) or the original's (check Rebirth's game.exe on the same zone). mod_lost_in_astral_gipat_quests and _gipat_necropolis switch those levers by SwitchLeverState; replace that with the panel clicks once they work (the gz13g part shows the steps: click 400 560, click 725 525, clickunit #id move, clickunit #id)."
+order = 1209

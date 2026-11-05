@@ -6,5 +6,5 @@ model = "opus"
 depends = ["MOD2"]
 note = "MOD2 entered every zone of Lost in Astral and played its opening (mod_lost_in_astral_start: gz1g, bz1r's briefing, the levers, the portal to bz1h). The cut-scene bases cz1h, cz2h, cz0k..cz4k, cz1j..cz4j move story people (merc2 and others, who join on the way: bz1h's dialogues) and open their briefings only with them in the party: entered by 'zone' without them, the briefing window stays empty and the zone cannot be left. Play them from the story's state: either a scripted path that recruits the people (bz1h's n1_2 dialogue, CreateParty / AddUnitToParty as cz3j does) or saves recorded on the way (tests/saves, our own runs). Then the key moments of the later zones (gz11g..gz14g's Necropolis quests, gz36j's end and LeaveToZone EndofGame). MOD2's scratch tools (not committed, described in its report): a .mob script chunk decoder, a check of the scripts' calls against the keyword table, a .res lister, scenario generators. Also open: the mod's fixshops.plg (a game.exe patch DLL, not loaded): find what it changes in the shops."
 order = 1201
-status = "running"
+status = "review"
 started = "2026-11-05"

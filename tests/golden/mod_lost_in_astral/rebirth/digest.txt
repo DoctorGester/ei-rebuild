@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 1C6D7317 n 828
+@ 1 update 40 frame 7 tick 40 zone gz1g hash BAC2A27F n 828
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -1788,7 +1788,7 @@ world hostile3 0x00000001
 world hostile4 0x00000001
 world hostile6 0x0000003F
 world hostile8 0x00000001
-random isaac.count 69
+random isaac.count 71
 random isaac.a 0xE413B414
 random isaac.b 0xE17CADAA
 random isaac.c 0x00000002

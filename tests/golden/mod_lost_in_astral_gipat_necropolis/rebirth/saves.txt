@@ -1,0 +1,6 @@
+LostInAstral/current/gz13g.sav 1a83dbbbe77471cf
+LostInAstral/current/gz1g.sav 2ec264f693f80119
+LostInAstral/savea/gz13g.sav 1a83dbbbe77471cf
+LostInAstral/savea/info.sav ead652b9eedbe542
+LostInAstral/savea/mission.sav 2ed4c6af53919a42
+LostInAstral/savea/scenario.sav d3725f1170f40887
