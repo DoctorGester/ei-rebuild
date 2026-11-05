@@ -1,0 +1,9 @@
+id = "R60"
+title = "Lost in Astral new game: the first frames (the start's autosave) are lit differently from the frames after"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-11-05 (two frames of a recording, Lost in Astral's start by the campfire at sunset): the new game's first frame is the autosave ('Запись игры...'), and its lighting differs from the frames right after (the campfire's glow, the ground's light). Find what differs between the save frame and the next (time of day set by the mod's script, lights not yet registered, the sun map or relight countdown, the frame drawn before the zone's lighting settles); fix so the first frame already has the zone's settled lighting (one uniform path), with a scenario comparing the save frame with a frame a second later."
+order = 1240
+status = "running"
+started = "2026-11-05"
