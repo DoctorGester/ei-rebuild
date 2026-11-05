@@ -4,5 +4,5 @@ group = "cleanup"
 depends = ["C99"]
 note = "C99 split ui.h into one header per window family and merged the Options, SaveLoad, Help, Objectives, Camp and Battle sources, but left the HUD panel sources (ui_hud.cpp, ui_hud_build/frame/map/panels/pick/portraits/slide/unit_info.cpp, ui_spell_column.cpp; ui_hud.h holds all ten panel classes and PanelSlide). HudUnitPanel's methods are still in five files. The panels share file-local helpers (kSoundClick, DrawWithSpecular, SetTint, the slot builders IconPlace/IconAt/SetOffsets/MakePlain, the clock arcs), and four names mean different things in different files (kColourOn 0xFF282828 vs 0xFF404040, SetTint(bits) vs SetTint(float) twice, kMapCentreX int vs float), so one source per panel needs renames and a small shared helper header, not only moves. Plan: sources by shared helpers: slots (weapon bar, quick items, spell column, action column), corner (clock, movement panel, top panel), side (map, unit panel, PanelSlide), portraits; rename the clashing constants to say what they are; keep floats and operation order. Same checks as C99 (goldens the same, Linux compile). Tool used by C99: scratchpad c99_merge.py moves definitions between files by owner class."
 order = 1177
-status = "running"
+status = "review"
 started = "2026-11-05"

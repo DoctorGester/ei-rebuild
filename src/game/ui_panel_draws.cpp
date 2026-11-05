@@ -19,6 +19,7 @@
 #include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/str.h"
+#include "screen_layout.h"
 
 #include <cmath>
 #include <format>
@@ -58,8 +59,7 @@ void DrawSprite(UiMesh* sprite, SceneRenderer* pass, float x, float y) {
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
 // model, then the screen to 1 again.
 void DrawInSlot(ConstructorPage* page, SceneRenderer* pass, const ItemCell& cell, Rect slot) {
-    Interface3D* ui = page->ui;
-    ui->ScaleRectToScreen(&slot);
+    slot = screen_layout::ToScreen(slot);
     ClearUiDepth(0.0f);
     ClearUiDepth(1.0f, &slot, 1);
     page->owner->DrawItem(pass, cell);
@@ -100,8 +100,7 @@ void HeroQuickStrip::DrawSprites(SceneRenderer* pass) {
 // --- The repair grid ------------------------------------------------------------------
 
 void RepairGrid::DrawSprites(SceneRenderer* pass) {
-    Rect grid{200, 100, 600, 500};
-    ui->ScaleRectToScreen(&grid);
+    Rect grid = screen_layout::ToScreen(Rect{200, 100, 600, 500});
     Rect screen{0, 0, ui->width, ui->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
@@ -139,8 +138,7 @@ void SpellMakerPage::DrawSprites(SceneRenderer* pass) {
     bool hasSpell = false;
     int row = 0;
     int column = 0;
-    for (int i = 0; i < std::ssize(newSlots); ++i) {
-        Item* item = newSlots[i];
+    for (Item* item : newSlots) {
         ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode};
         if (IsSpellContainer(item)) {
             cell.x = 250.0f;
@@ -210,8 +208,7 @@ void ConstructorPage::DrawSprites(SceneRenderer* pass) {
     int materials = 0;
     int row = 0;
     int column = 0;
-    for (int i = 0; i < std::ssize(newSlots); ++i) {
-        Item* item = newSlots[i];
+    for (Item* item : newSlots) {
         ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode};
         if (IsBuildable(item)) {
             cell.x = 250.0f;

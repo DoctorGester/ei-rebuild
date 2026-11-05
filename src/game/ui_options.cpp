@@ -372,7 +372,7 @@ void OptionsWindow::BuildSettings() {
             auto* slider = AddChild(std::make_unique<UiSlider>(ui, Rect{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f));
             setting.bar = slider;
             Rect area = {530, top + 163, 680, top + 173};
-            slider->SetRect(&area);
+            slider->SetRect(area);
         } else if (definition->kind == kSpinKind) {
             std::string text = g_clientWorld.texts->GetString(kTextOptionOff);
             if (i == kOptionDifficulty) text = g_clientWorld.texts->GetString(kTextDifficultyHard);

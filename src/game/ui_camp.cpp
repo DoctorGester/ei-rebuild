@@ -122,7 +122,7 @@ constexpr std::uint32_t kRecordBias = 100000000;
 void RebuildArmourLayers(PartyUnitRecord* hero) {
     UnitStats* stats = &hero->stats;
     stats->ClearOuterLayers();
-    for (int i = 0; i < std::ssize(hero->armor); ++i) stats->AddArmourLayer(hero->armor[i]->AsArmor());
+    for (Item* worn : hero->armor) stats->AddArmourLayer(worn->AsArmor());
 }
 
 // Whether `list` holds `item`.
@@ -797,8 +797,7 @@ bool CampPages::CanMakeSpell() {
     itemdb::SpellModifierRecord* modifiers[32];
     int modifierCount = 0;
     if (std::ssize(spellResults->items) <= 0) return false;
-    for (int i = 0; i < std::ssize(spellResults->items); ++i) {
-        Item* item = spellResults->items[i];
+    for (Item* item : spellResults->items) {
         if (IsSpell(item))
             spell = SpellRecordOf(item);
         else if (IsModifier(item) && modifierCount < 32)
@@ -964,6 +963,7 @@ void CampPages::PutOn(Item* item) {
     case ItemKind::Armor: {
         // Each piece on the same body part comes off first.
         ArmorType armorType = item->AsArmor()->GetType();
+        // By index: TakeOff removes the piece from the list (the one after it is skipped, as in the original).
         for (int i = 0; i < std::ssize(heroRecord->armor); ++i) {
             if (heroRecord->armor[i]->AsArmor()->GetType() == armorType)
                 TakeOff(heroRecord->armor[i]);
@@ -1113,9 +1113,9 @@ void CampPages::TakeItem(Item* item, int mode) {
                 }
             }
             // Then the first spell container left goes as well.
-            for (int i = 0; i < std::ssize(itemResults->items); ++i) {
-                if (!IsSpellContainer(itemResults->items[i])) continue;
-                back(itemResults->items[i], itemParts[0], itemResults, partStrip);
+            for (Item* result : itemResults->items) {
+                if (!IsSpellContainer(result)) continue;
+                back(result, itemParts[0], itemResults, partStrip);
                 break;
             }
         } else {
@@ -1138,8 +1138,8 @@ void CampPages::RefreshWeapons() {
     Unit* unit = heroes[hero];
     unit->controller->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
-    for (int i = 0; i < std::ssize(heroRecord->weapons); ++i)
-        unit->AddWeapon(heroRecord->weapons[i]);
+    for (Item* weapon : heroRecord->weapons)
+        unit->AddWeapon(weapon);
     unit->SendEquipment();
     unit->controller->ShowWeapon(heroRecord->weaponIndex);
     unit->controller->RefreshModel();
@@ -1395,8 +1395,8 @@ void CampPages::BuildPages() {
         // The armour the record wears.
         auto* heroStats = &record->stats;
         heroStats->ClearOuterLayers();
-        for (int piece = 0; piece < std::ssize(record->armor); ++piece)
-            heroStats->AddArmourLayer(record->armor[piece]->AsArmor());
+        for (Item* worn : record->armor)
+            heroStats->AddArmourLayer(worn->AsArmor());
     }
     for (int i = 0; i < count; ++i) player->members[i].unitId -= kRecordBias;
 
@@ -1433,8 +1433,8 @@ void CampPages::BuildPages() {
         for (int school = 0; school < kSchoolCount; ++school) {
             lowest[school] = 1e20f;
             highest[school] = -1e20f;
-            for (int i = 0; i < std::ssize(LocalPlayerData()->members); ++i) {
-                auto* memberStats = &LocalPlayerData()->members[i].stats;
+            for (auto& member : LocalPlayerData()->members) {
+                auto* memberStats = &member.stats;
                 float skill = memberStats->SpellSchoolSkill(static_cast<SpellSchool>(school));
                 if (skill < lowest[school]) lowest[school] = skill;
                 if (highest[school] < skill) highest[school] = skill;
@@ -1503,8 +1503,8 @@ void CampPages::DoAction() {
     case kEquipment:
         if (itemConstructor && !noConstructor) {
             PartyUnitRecord* heroRecord = HeroRecord();
-            for (int i = 0; i < std::ssize(heroRecord->weapons); ++i) heroRecord->weapons[i]->Repair();
-            for (int i = 0; i < std::ssize(heroRecord->armor); ++i) heroRecord->armor[i]->Repair();
+            for (Item* weapon : heroRecord->weapons) weapon->Repair();
+            for (Item* worn : heroRecord->armor) worn->Repair();
         }
         break;
     case kTrade:
@@ -1709,8 +1709,8 @@ PartyUnitRecord* CampPages::HeroRecord() {
 
 PartySkill CampPages::BestPartySkill(SpellSchool school) {
     PartySkill best;
-    for (int i = 0; i < std::ssize(LocalPlayerData()->members); ++i) {
-        UnitStats* stats = &LocalPlayerData()->members[i].stats;
+    for (auto& member : LocalPlayerData()->members) {
+        UnitStats* stats = &member.stats;
         best.skill = (std::max)(best.skill, HeroSchoolSkill(stats, school));
         best.mana = (std::max)(best.mana, HeroManaUnits(stats));
     }

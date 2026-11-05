@@ -45,7 +45,7 @@ UiSurface::UiSurface(Interface3D* ui, int left, int top, int right, int bottom, 
 UiSurface::UiSurface(Interface3D* ownerUi, const Rect& area, SurfaceBlend newBlend, bool scale)
     : ui(ownerUi), blend(newBlend), rect(area), layoutRect(area), scaled(scale) {
     g_surfaces.push_back(this);
-    if (scale) ui->ScaleRectToScreen(&rect);
+    if (scale) rect = screen_layout::ToScreen(rect);
     width = rect.Width();
     height = rect.Height();
     if (width <= 0 || height <= 0) ThrowSurfaceNotMade(width, height);
@@ -56,8 +56,7 @@ UiSurface::UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend)
 
 void UiSurface::MoveTo(Point at) {
     if (scaled) layoutRect.Offset(at - layoutRect.TopLeft());
-    Point point = at;
-    ui->ScalePointToScreen(&point);
+    Point point = screen_layout::ToScreen(at);
     rect.Offset(point - rect.TopLeft());
 }
 
@@ -65,8 +64,7 @@ void UiSurface::MoveTo(Point at) {
 // backdrop) the whole new screen. Its paint draws at the new size from the next frame.
 void UiSurface::Relayout(const screen_layout::Layout& before) {
     if (scaled) {
-        rect = layoutRect;
-        ui->ScaleRectToScreen(&rect);
+        rect = screen_layout::ToScreen(layoutRect);
     } else if (rect == Rect{0, 0, before.width, before.height}) {
         const screen_layout::Layout& now = screen_layout::Get();
         rect = Rect{0, 0, now.width, now.height};
@@ -89,12 +87,11 @@ void UiSurface::Hide() { shown = false; }
 // Whether a fill of `colour` leaves the surface's pixels out (keyed on that colour).
 bool UiSurface::Transparent(std::uint32_t colour) const { return blend == SurfaceBlend::Keyed && colour == background; }
 
-void UiSurface::FrameRect(const Rect* area, std::uint32_t colour) {
+void UiSurface::FrameRect(const Rect& area, std::uint32_t colour) {
     if (!painting || Transparent(colour)) return;
     Rect r{0, 0, width, height};
-    if (!area->IsEmpty()) {
-        r = *area;
-        ui->ScaleRectToScreenNoMargin(&r);   // the surface's own pixels: no window margin
+    if (!area.IsEmpty()) {
+        r = screen_layout::ToScreenNoMargin(area);   // the surface's own pixels: no window margin
     }
     for (const Rect& side : render::ui::FrameRects(r.Offsetted(rect.TopLeft()))) render::ui::Solid(side, colour, paintClip);
 }
@@ -124,16 +121,14 @@ void UiSurface::Dot(Point at, std::uint32_t colour) { FillRect(Rect::Sized(at, {
 int UiSurface::DrawTextIn(std::string_view text, const Rect& area, const TextStyle& style) {
     Rect frame{0, 0, rect.Width(), rect.Height()};
     if (!area.IsEmpty()) {
-        frame = area;
         // WideScreen (addon replaces the interface argument by 0): without the margin.
-        ui->ScaleRectToScreenNoMargin(&frame);
+        frame = screen_layout::ToScreenNoMargin(area);
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
     }
     // The original scales a point whose x is an unwritten local; only y is used.
-    Point extent{0, DrawTextFrame(ui->fonts[style.font], text, frame, style.format, style.colour, style.shadow)};
-    ui->ScalePointFromScreenNoMargin(&extent);
-    return extent.y;
+    const int textHeight = DrawTextFrame(ui->fonts[style.font], text, frame, style.format, style.colour, style.shadow);
+    return screen_layout::FromScreenNoMargin(Point{0, textHeight}).y;
 }
 
 int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const Rect& area, std::uint32_t format, std::uint32_t colour,

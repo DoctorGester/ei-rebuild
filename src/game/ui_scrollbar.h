@@ -28,7 +28,7 @@ public:
     virtual void SetPosition(int position);
     // The track is the right 10 pixels less 26 at either end. The position is set again (one below first,
     // so it counts as a change). The slider has its own (UiSlider::SetRect).
-    void SetRect(const Rect* rect);
+    void SetRect(const Rect& rect);
     // Negative: 0. The sprites show only for a maximum above 0; the position is set again as SetRect does.
     void SetMaximum(int maximum);
     int maxPosition = 0;
@@ -66,5 +66,5 @@ public:
     // The scroll bar's drag along x.
     void MouseMove(UiEvent& event);
     // Along the bottom 10 pixels, the sprites turned a quarter; the position set again as the scroll bar's does.
-    void SetRect(const Rect* rect);
+    void SetRect(const Rect& rect);
 };

@@ -123,8 +123,8 @@ void SpeakerAnimationDone(Unit* serverUnit) {
     if (!unit) return;
     BriefingScreen* screen = g_interface.OnTop(g_interface.briefing);
     if (!screen) return;
-    for (std::size_t i = 0; i < screen->speakers.size(); ++i)
-        if (screen->speakers[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
+    for (const BriefingSpeaker& speaker : screen->speakers)
+        if (speaker.unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
 
 void BriefingScreen::ViewSpeaker(Unit* unit, float angle, float distance, float height) {

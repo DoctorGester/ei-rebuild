@@ -36,6 +36,7 @@
 #include "platform/platform.h"
 #include "render/render.h"
 #include "render/text_format.h"
+#include "screen_layout.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -51,17 +52,16 @@ constexpr unsigned kInfoVersion = 3;
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 
 // The window's picture rectangle on this screen, in pixels: the size a save's picture is kept at and shown at.
-Size ShownSize(const Interface3D* ui) {
-    Rect shown = SaveLoadWindow::kPictureRect;
-    ui->ScaleRectToScreen(&shown);
+Size ShownSize() {
+    Rect shown = screen_layout::ToScreen(SaveLoadWindow::kPictureRect);
     return shown.Extent();
 }
 
 // The shot.sav bytes of the screen `surface` copied: the old picture from the whole copy, the trailer's shrunk to the
 // window's picture rectangle.
-std::vector<std::uint8_t> ShotOf(const UiSurface& surface, const Interface3D* ui) {
+std::vector<std::uint8_t> ShotOf(const UiSurface& surface) {
     const save_picture::Picture screen = surface.ReadPicture();
-    const Size size = ShownSize(ui);
+    const Size size = ShownSize();
     return save_picture::ShotFile(screen, save_picture::Shrink(screen, size.w, size.h));
 }
 
@@ -175,7 +175,7 @@ void SaveLoadWindow::ShowPicture() {
     std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), entry->folder);
     std::string bytes;
     if (!platform::ReadWholeFile(folder + "shot.sav", &bytes)) return;
-    const Size size = ShownSize(ui);
+    const Size size = ShownSize();
     const auto* data = reinterpret_cast<const std::uint8_t*>(bytes.data());
     Texture* made = PictureTexture(save_picture::Fit(save_picture::ReadShot(data, bytes.size()), size.w, size.h));
     if (!made) return;
@@ -320,7 +320,7 @@ void SaveLoadWindow::FillEntries() {
         if (dialog) dialog->Release();
         dialog = nullptr;
         if (ui->screenCopy) {
-            newPicture = ShotOf(*ui->screenCopy, ui);
+            newPicture = ShotOf(*ui->screenCopy);
             dialog = PictureTexture(save_picture::ReadShot(newPicture.data(), newPicture.size()));
         }
     }
@@ -371,7 +371,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     info.Close();
 
     // shot.sav: the copied screen.
-    const std::vector<std::uint8_t> bytes = ShotOf(surface, &g_interface);
+    const std::vector<std::uint8_t> bytes = ShotOf(surface);
     platform::File shot;
     shot.Open(folder + "shot.sav", platform::FileMode::Create);
     shot.Write(bytes.data(), static_cast<unsigned>(bytes.size()));
@@ -483,8 +483,8 @@ void SaveLoadWindow::PaintList(UiSurface& surface) const {
                     Point top{titleRect.left + width, titleRect.top};
                     Point bottom{titleRect.left + width, titleRect.bottom - 3};
                     // WideScreen (XOR ECX,ECX in the original): without the margin.
-                    ui->ScalePointToScreenNoMargin(&top);
-                    ui->ScalePointToScreenNoMargin(&bottom);
+                    top = screen_layout::ToScreenNoMargin(top);
+                    bottom = screen_layout::ToScreenNoMargin(bottom);
                     surface.Line(top, bottom, 1, kCaretColour);
                 }
             }

@@ -502,9 +502,9 @@ template <typename Predicate>
 Item* NthSlot(Party* slots, int nth, Predicate matches) {
     const auto& items = slots->items;
     int found = 0;
-    for (int i = 0; i < std::ssize(items); ++i) {
-        if (!matches(items[i])) continue;
-        if (found == nth) return items[i];
+    for (Item* item : items) {
+        if (!matches(item)) continue;
+        if (found == nth) return item;
         ++found;
     }
     return nullptr;

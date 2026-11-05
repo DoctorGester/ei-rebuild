@@ -62,10 +62,9 @@ void GlobalMap::OnEvent(UiEvent& event) {
 }
 
 void GlobalMap::RightDown(UiEvent& event) {
-    dragStart = event.at;
+    dragStart = screen_layout::FromScreen(event.at);
     dragging = true;
     turning = 0;
-    ui->ScalePointFromScreen(&dragStart);
     dragAngle = angle;
     g_cursor.SetHeld(1);
 }

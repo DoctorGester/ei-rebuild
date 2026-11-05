@@ -188,7 +188,8 @@ scaled layout to screen with the margin added and screen to layout with it taken
 sprites' Place; the builders put the battle screen's panels at the screen's edges. The rebuild does all of it in
 `screen_layout.{h,cpp}` for every window shape (the module overview below):
 - Places scaled without the margin (addon's ECX 0): the text surfaces' draw, the edit field, the save / load list, the
-  chat line, the tooltip (right edge at `800 + extra`, `LayoutRight`), the connect list; `Interface3D::Scale*NoMargin`.
+  chat line, the tooltip (right edge at `800 + extra`, `LayoutRight`), the connect list; `screen_layout::ToScreenNoMargin`
+  / `FromScreenNoMargin`.
 - Text extent: pixels to layout units `w * 800 / width43`, `h * 600 / height` (`TextExtentToLayout`). The shape
   builders move x by the panel offset (SetRectangle / SetFrame add it twice to the left + right sum, as addon).
 - Battle screen panels (the map, the unit panel, the weapon bar, the quick items, the spell and action columns, the

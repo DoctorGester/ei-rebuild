@@ -1,8 +1,8 @@
-// The battle HUD's party portraits, per frame (HudPortraits::Update): each portrait's
-// health and mana bars, the red flash after a hit, the face picture (normal, hit, low mana) and
-// model (by the unit's build), the face model's easing towards its rest orientation with an
-// occasional random nod, shake or turn, and the marker under the selected unit's portrait.
-// See docs/notes/ui.md.
+// The battle HUD's party portraits (HudPortraits, ui_hud.h): their mouse handlers (selecting a unit, or picking a
+// player for a kick or ban), the portraits built for the party and the players, and per frame each portrait's health
+// and mana bars, the red flash after a hit, the face picture (normal, hit, low mana) and model (by the unit's build),
+// the face model's easing towards its rest orientation with an occasional random nod, shake or turn, and the marker
+// under the selected unit's portrait. See docs/notes/ui.md, section 7.
 #include "ui_hud.h"
 #include "camera.h"
 #include "game_singletons.h"
@@ -10,9 +10,12 @@
 #include "net_messages.h"
 #include "plugin_fixes.h"
 #include "random.h"
+#include "screen_layout.h"
 #include "ui.h"
 #include "ui_battle.h"
+#include "ui_cursor.h"
 #include "ui_float.h"
+#include "ui_hud_pieces.h"
 #include "ui_mesh.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -28,14 +31,14 @@
 #include <cmath>
 #include <concepts>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <format>
 #include <iterator>
+#include <list>
 #include <string>
 
 namespace {
-bool GamePaused() { return g_clientWorld.paused != 0; }
-
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;
 constexpr float kBarStart = 9.0f;
@@ -98,6 +101,78 @@ void SexOf(const std::string& figure, std::string& sex) {
         sex = "f";
 }
 } // namespace
+
+// --- Portraits -------------------------------------------------------------------------------------------------------
+
+HudPortraits::HudPortraits(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
+    rect = Rect{250, 440, 550, 600};
+    count = 0;
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
+}
+
+// The portraits read the portrait mode of the battle screen they belong to (the game reads the interface's active
+// screen: the battle screen while they get input).
+void HudPortraits::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    default: break;
+    }
+}
+
+void HudPortraits::LeftDown(UiEvent& event) {
+    const int mode = owner->portraitMode;
+    if (mode == 0) {
+        // Any portrait region takes the event; only a party member's takes the mouse.
+        if (const int region = RegionIndex(regions, HitRegion(event)); region >= 0 && region < std::ssize(owner->party))
+            CaptureMouse();
+        return;
+    }
+    const int region = RegionIndex(regions, RegionUnder(event.at));
+    if (region < 0 || region >= count) return;
+    // Picking a player for a server command: the player id of the slot, or of the session
+    // player whose unit is the portrait's unit.
+    int playerId = -1;
+    if (slots[region].hasPlayer) {
+        playerId = slots[region].playerId;
+    } else {
+        int unitId = owner->party[region]->id;
+        // The session's player records: id the player's unit, serial its id.
+        for (auto node = net::g_gameClient->players.begin(); node != net::g_gameClient->players.end(); ++node) {
+            auto* player = node->Get();
+            if (player->id == unitId) {
+                playerId = player->serial;
+                break;
+            }
+        }
+    }
+    char text[128];
+    std::snprintf(text, sizeof(text), "%d", playerId);
+    // ClientSession::SendCommand: kick / ban by serial.
+    if (mode == 1)
+        net::g_gameClient->SendCommand(net::CommandKind::KickBySerial, text);
+    else if (mode == 2)
+        net::g_gameClient->SendCommand(net::CommandKind::BanBySerial, text);
+    owner->portraitMode = 0;
+}
+
+void HudPortraits::LeftUp(UiEvent& event) {
+    if (owner->portraitMode != 0) return;
+    const int region = RegionIndex(regions, PressedRegion(event));
+    // Rebirth's FixSpellSelfCasting patches SelectUnit.
+    if (region >= 0 && region < std::ssize(owner->party)) owner->SelectUnit(owner->party[region], {});
+}
+
+void HudPortraits::MouseMove(UiEvent& event) {
+    if (owner->portraitMode == 0) {
+        const int region = RegionIndex(regions, HitRegion(event));
+        if (region >= 0 && region < std::ssize(owner->party)) owner->HoverUnit(owner->party[region], {});
+        return;
+    }
+    const int region = RegionIndex(regions, RegionUnder(event.at));
+    if (region >= 0 && region < count) g_cursor.SetShape(CursorShape::Default);
+}
 
 void HudPortraits::Wobble(int index, int kind) {
     slots[index].wobbleTime = g_clientRandom.Next() * kRandomDelayScale;
@@ -259,13 +334,6 @@ void HudPortraits::Update() {
         }
     }
 }
-
-// --- Ui hud portrait setup ---------------------------------------------------------------------------
-
-// The battle HUD's party portraits, built when the party changes: HudPortraits::Rebuild
-// drops the old sprites and regions and adds one portrait per party unit (and, in a multiplayer
-// client, per player without a live unit) through AddPortrait; ShowFace copies
-// a face picture into the portrait's quarter of a face texture. See ui_hud.h and docs/notes/ui.md, section 7.
 
 void HudPortraits::ShowFace(int index, int state) {
     int u;
@@ -458,12 +526,4 @@ void HudPortraits::Rebuild(bool wide) {
         slots[count - 1].playerId = player->serial;
         regions[count - 1]->SetTipString(player->name.data());
     }
-}
-
-// --- The portraits panel ------------------------------------------------------------------------------
-
-HudPortraits::HudPortraits(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
-    rect = Rect{250, 440, 550, 600};
-    count = 0;
-    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
 }

@@ -721,7 +721,7 @@ EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set stru
 CLIENT_ONLY_ROUNDING = ('src/platform/', 'src/render/', 'src/lib/', 'src/game/effects', 'src/game/lightning',
                         'src/game/particle', 'src/game/weather_particles', 'src/game/terrain', 'src/game/ground_print',
                         'src/game/renderer_scene', 'src/game/console_window', 'src/game/ui_cursor', 'src/game/ui_mesh',
-                        'src/game/ui_connect_screen', 'src/game/ui_hud_unit_info')
+                        'src/game/ui_connect_screen', 'src/game/ui_hud_side')
 EXEMPT['std::lround in game-affecting code'] = CLIENT_ONLY_ROUNDING
 
 

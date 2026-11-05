@@ -8,6 +8,7 @@
 #include "lib/rect.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
+#include "screen_layout.h"
 
 #include <cstdint>
 #include <initializer_list>
@@ -49,7 +50,7 @@ UiScrollbar::UiScrollbar(Interface3D* ui, Rect rect, float newDepth, int maximum
     upButton = AddRegion();
     downButton = AddRegion();
     trackArea = AddRegion();
-    SetRect(&rect);
+    SetRect(rect);
     UiScrollbar::SetPosition(0);
     accumulated = 0.0f;
 }
@@ -71,8 +72,8 @@ void UiScrollbar::SetPosition(int newPosition) {
     thumb = {track.left, centre - 14, track.left + 10, centre + 14};
 }
 
-void UiScrollbar::SetRect(const Rect* newRect) {
-    rect = *newRect;
+void UiScrollbar::SetRect(const Rect& newRect) {
+    rect = newRect;
     const Rect bar = rect.RightStrip(10);   // the arrows at both ends, the track between them
     track = bar.Inset(0, 26);
 
@@ -96,8 +97,7 @@ void UiScrollbar::SetRect(const Rect* newRect) {
 
 void UiScrollbar::MouseMove(UiEvent& event) {
     if (state == kDragging) {
-        Point at = event.at;
-        ui->ScalePointFromScreen(&at);
+        Point at = screen_layout::FromScreen(event.at);
         int along = at.y - grabY;
         SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / track.Height()));
     }
@@ -135,8 +135,7 @@ void UiSlider::OnEvent(UiEvent& event) {
 
 void UiSlider::MouseMove(UiEvent& event) {
     if (state == kDragging) {
-        Point at = event.at;
-        ui->ScalePointFromScreen(&at);
+        Point at = screen_layout::FromScreen(event.at);
         int along = at.x - grabX;
         SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / track.Width()));
     }
@@ -210,8 +209,7 @@ void UiScrollbar::LeftDown(UiEvent& event) {
     // The arrows' region from the screen point (the original tested the point scaled twice: no arrow took a click at
     // any size but 800x600).
     const UiRegion* region = RegionUnder(event.at);
-    Point at = event.at;
-    ui->ScalePointFromScreen(&at);
+    Point at = screen_layout::FromScreen(event.at);
     if (thumb.Contains(at)) {
         CaptureMouse();
         state = 1;
@@ -236,30 +234,30 @@ void UiScrollbar::LeftUp(UiEvent& event) {
 
 // --- The slider's layout -------------------------------------------------------------------
 
-void UiSlider::SetRect(const Rect* newRect) {
-    rect = *newRect;
-    const Rect bar = newRect->BottomStrip(10);   // the arrows at both ends, the track between them
+void UiSlider::SetRect(const Rect& newRect) {
+    rect = newRect;
+    const Rect bar = newRect.BottomStrip(10);   // the arrows at both ends, the track between them
     track = bar.Inset(26, 0);
 
-    trackSprite->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,
+    trackSprite->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect.Width() - 8), 8, 4, 0x20,
                               0xFC);
-    trackSprite->Place((newRect->right + newRect->left) * 0.5f, static_cast<float>(newRect->bottom - 5), depth);
+    trackSprite->Place((newRect.right + newRect.left) * 0.5f, static_cast<float>(newRect.bottom - 5), depth);
     TurnQuarter(trackSprite);
 
     thumbSprite->SetRectangle(depth - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
     TurnQuarter(thumbSprite);
 
     upArrow->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
-    upArrow->Place(static_cast<float>(newRect->right - 6), static_cast<float>(newRect->bottom - 5), depth);
+    upArrow->Place(static_cast<float>(newRect.right - 6), static_cast<float>(newRect.bottom - 5), depth);
     TurnQuarter(upArrow);
 
     downArrow->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
-    downArrow->Place(static_cast<float>(newRect->left + 6), static_cast<float>(newRect->bottom - 5), depth);
+    downArrow->Place(static_cast<float>(newRect.left + 6), static_cast<float>(newRect.bottom - 5), depth);
     TurnQuarter(downArrow);
 
     upButton->SetRect(bar.LeftStrip(12));
     downButton->SetRect(bar.RightStrip(12));
-    trackArea->SetRect(newRect->Inset(0, 0, 0, 10));
+    trackArea->SetRect(newRect.Inset(0, 0, 0, 10));
 
     // The position set again (one below first, so the change virtual sees a change).
     int currentPosition = position;

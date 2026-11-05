@@ -118,12 +118,9 @@ src/game/ui_help_window.cpp,0,0,1,0,0,1,0
 src/game/ui_help_window.h,0,0,0,0,0,1,0
 src/game/ui_hero_screen_click.cpp,0,0,0,0,0,0,1
 src/game/ui_hud.h,0,0,0,0,0,17,0
-src/game/ui_hud_build.cpp,0,0,0,0,3,0,0
-src/game/ui_hud_frame.cpp,0,0,0,0,3,0,0
-src/game/ui_hud_map.cpp,0,0,1,0,0,0,0
-src/game/ui_hud_panels.cpp,0,0,0,0,0,1,0
-src/game/ui_hud_slide.cpp,0,0,0,0,4,0,0
-src/game/ui_hud_unit_info.cpp,0,0,2,0,1,0,1
+src/game/ui_hud_corner.cpp,0,0,0,0,3,1,0
+src/game/ui_hud_side.cpp,0,0,1,0,5,0,1
+src/game/ui_hud_slots.cpp,0,0,0,0,3,0,0
 src/game/ui_interface_input.cpp,0,0,0,0,0,1,0
 src/game/ui_item_info.cpp,0,0,1,0,0,0,0
 src/game/ui_main_menu.cpp,0,0,1,0,0,0,0

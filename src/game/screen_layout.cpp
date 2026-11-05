@@ -86,31 +86,33 @@ void LeavePanel() { SetPanelOffset(0); }
 
 // Layout to screen: x by the 4:3 part's width plus its left margin (with `margin`), y by its height plus its top
 // margin (addon's code for x).
-void PointToScreen(Point* point, bool margin) {
+namespace {
+
+Point PointToScreen(Point point, bool margin) {
     const Layout& l = Get();
-    point->x = MulDiv64(l.width43, point->x, kLayoutWidth) + (margin ? l.margin : 0);
-    point->y = MulDiv64(l.height43, point->y, kLayoutHeight) + (margin ? l.marginY : 0);
+    return {MulDiv64(l.width43, point.x, kLayoutWidth) + (margin ? l.margin : 0),
+            MulDiv64(l.height43, point.y, kLayoutHeight) + (margin ? l.marginY : 0)};
 }
 
-void RectToScreen(Rect* rect, bool margin) {
-    Point topLeft = rect->TopLeft(), bottomRight = rect->BottomRight();
-    PointToScreen(&topLeft, margin);
-    PointToScreen(&bottomRight, margin);
-    *rect = Rect::FromCorners(topLeft, bottomRight);
-}
-
-// Screen to layout.
-void PointFromScreen(Point* point, bool margin) {
+Point PointFromScreen(Point point, bool margin) {
     const Layout& l = Get();
-    point->x = MulDiv64(point->x - (margin ? l.margin : 0), kLayoutWidth, l.width43);
-    point->y = MulDiv64(point->y - (margin ? l.marginY : 0), kLayoutHeight, l.height43);
+    return {MulDiv64(point.x - (margin ? l.margin : 0), kLayoutWidth, l.width43),
+            MulDiv64(point.y - (margin ? l.marginY : 0), kLayoutHeight, l.height43)};
 }
 
-void RectFromScreen(Rect* rect, bool margin) {
-    Point topLeft = rect->TopLeft(), bottomRight = rect->BottomRight();
-    PointFromScreen(&topLeft, margin);
-    PointFromScreen(&bottomRight, margin);
-    *rect = Rect::FromCorners(topLeft, bottomRight);
+} // namespace
+
+Point ToScreen(Point point) { return PointToScreen(point, true); }
+Point ToScreenNoMargin(Point point) { return PointToScreen(point, false); }
+Point FromScreen(Point point) { return PointFromScreen(point, true); }
+Point FromScreenNoMargin(Point point) { return PointFromScreen(point, false); }
+
+Rect ToScreen(const Rect& rect) { return Rect::FromCorners(ToScreen(rect.TopLeft()), ToScreen(rect.BottomRight())); }
+Rect ToScreenNoMargin(const Rect& rect) {
+    return Rect::FromCorners(ToScreenNoMargin(rect.TopLeft()), ToScreenNoMargin(rect.BottomRight()));
+}
+Rect FromScreen(const Rect& rect) {
+    return Rect::FromCorners(FromScreen(rect.TopLeft()), FromScreen(rect.BottomRight()));
 }
 
 Size TextExtentToLayout(Size pixels) {

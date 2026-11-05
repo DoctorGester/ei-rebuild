@@ -23,6 +23,7 @@
 #include "lib/rounding.h"
 #include "game_singletons.h"
 #include "platform/platform.h"
+#include "screen_layout.h"
 
 #include <algorithm>
 #include <bit>
@@ -248,7 +249,7 @@ Item* ForwardingStrip::ItemAt(Point point, int* cursor) {
     case 2: *cursor = 0x18; break;
     case 3: *cursor = 0x17; break;
     }
-    ui->ScalePointFromScreen(&point);
+    point = screen_layout::FromScreen(point);
     int index = SlotAt(point.x);
     RebuildList();
     if (index < 0 || index >= std::ssize(list)) return nullptr;

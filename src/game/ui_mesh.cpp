@@ -56,9 +56,9 @@ void SetVertex(UiMesh* mesh, int index, int position, int uv) {
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(UiMesh* mesh) {
     float half = kHalfTexel;
-    for (int i = 0; i < std::ssize(mesh->texCoords); ++i) {
-        mesh->texCoords[i].u += half;
-        mesh->texCoords[i].v -= half;
+    for (auto& coord : mesh->texCoords) {
+        coord.u += half;
+        coord.v -= half;
     }
     mesh->RefreshBuffers();
 }
@@ -305,6 +305,12 @@ void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius,
 void UiMesh::ResetColours() { ResetVertexColours(this); }
 
 void UiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix.m[5] = std::bit_cast<float>(bits); }
+
+void UiMesh::SetScale(float scale) {
+    ScaleX() = scale;
+    ScaleY() = scale;
+    ScaleZ() = scale;
+}
 
 // --- Draw --------------------------------------------------------------------------------------------
 

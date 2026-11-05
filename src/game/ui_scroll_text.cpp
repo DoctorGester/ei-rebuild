@@ -207,7 +207,7 @@ UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect area, fl
     rect = area;
     AddSurface(std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed))
         ->PaintWith([this](UiSurface& out) { PaintWords(out); });
-    bar.SetRect(&area);
+    bar.SetRect(area);
     PlaceText(area);
     Tokenize(std::string(text));
     Layout();
@@ -239,10 +239,10 @@ void UiScrollText::SetText(std::string_view text) {
     bar.SetPosition(0);
 }
 
-void UiScrollText::SetRect(const Rect* newRect) {
-    rect = *newRect;
+void UiScrollText::SetRect(const Rect& newRect) {
+    rect = newRect;
     bar.SetRect(newRect);
-    PlaceText(*newRect);
+    PlaceText(newRect);
 }
 
 void UiScrollText::Update() { bar.Update(); }

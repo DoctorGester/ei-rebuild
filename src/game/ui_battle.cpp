@@ -224,11 +224,6 @@ constexpr int kWobbleNod = 1;
 constexpr int kWobbleShake = 2;
 } // namespace
 
-// The panels Create builds inline (they have no constructors of their own).
-HudUnitPanel::HudUnitPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-
-HudMap::HudMap(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-
 void BattleScreen::CreateScreen() {
     ui->battle = this;
     float mapZoom = 1.0f;
@@ -243,7 +238,7 @@ void BattleScreen::CreateScreen() {
         MemoryStream* stream = &g_saveStream;
         stream->Seek(0);
         heroes.resize(stream->ReadCount());
-        for (int i = 0; i < std::ssize(heroes); ++i) stream->ReadValue(heroes[i]);
+        for (std::uint32_t& heroId : heroes) stream->ReadValue(heroId);
         stream->ReadValue(mapZoom);
         std::uint8_t serverFlag;
         stream->ReadValue(serverFlag);
@@ -438,11 +433,10 @@ void BattleScreen::SaveState() {
     auto& currentParty = party;
     // The ids go through an array first; the bytes written are the same.
     int count = 0;
-    for (int i = 0; i < std::ssize(currentParty); ++i)
-        if (currentParty[i]->flags & MapObjectFlag::Selected) ++count;
+    for (const Unit* member : currentParty)
+        if (member->flags & MapObjectFlag::Selected) ++count;
     stream->WriteValue(count);
-    for (int i = 0; i < std::ssize(currentParty); ++i) {
-        auto* unit = currentParty[i];
+    for (auto* unit : currentParty) {
         if (unit->flags & MapObjectFlag::Selected) stream->WriteId(unit);
     }
     stream->WriteValue(map->zoom);
@@ -588,8 +582,8 @@ void BattleScreen::Update() {
         std::vector<PartyUnitRecord*> records = {};
         std::vector<PartyUnitRecord*> second = {};
         Party* data = LocalPlayerData();
-        for (int i = 0; i < std::ssize(data->members); ++i)
-            records.push_back(&data->members[i]);
+        for (auto& member : data->members)
+            records.push_back(&member);
         if (g_clientWorld.PartyInExit(&records, pendingExit, &second)) {
             ui->PushWindow(std::make_unique<MessageWindow>(ui, "leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
             exitPending = false;
@@ -932,9 +926,9 @@ void BattleScreen::KeyDown(UiEvent& event) {
         return;
     case kActionCameraToUnit:
         // The camera follows the first selected member, or nobody.
-        for (int i = 0; i < std::ssize(party); ++i) {
-            if (party[i]->flags & MapObjectFlag::Selected) {
-                camera->SetTarget(party[i]);
+        for (Unit* member : party) {
+            if (member->flags & MapObjectFlag::Selected) {
+                camera->SetTarget(member);
                 return;
             }
         }
@@ -1305,8 +1299,8 @@ void BattleScreen::ToggleMember(int index) {
     if (ui->shiftDown) {
         chosen[index] = chosen[index] == 0 ? 1u : 0u;
     } else {
-        for (int i = 0; i < std::ssize(chosen); ++i)
-            if (chosen[i] != 0) chosen[i] = 0;
+        for (auto& flag : chosen)
+            if (flag != 0) flag = 0;
         chosen[index] = 1;
     }
     g_clientWorld.Deselect();
@@ -1613,8 +1607,8 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
         MapObject* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (unit) {
-            for (int i = 0; i < std::ssize(party); ++i)
-                if (unit == party[i]) return;
+            for (const Unit* member : party)
+                if (unit == member) return;
             order(first, unit, 1, -1);
         } else {
             if (target->IsUsable() == 0) return;
@@ -1633,8 +1627,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
 
 void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     int selected = 0;
-    for (int i = 0; i < std::ssize(party); ++i) {
-        Unit* member = party[i];
+    for (Unit* member : party) {
         if (member && (member->flags & MapObjectFlag::Selected)) ++selected;
     }
 

@@ -20,6 +20,7 @@
 #include "lib/containers.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
+#include "screen_layout.h"
 
 #include <algorithm>
 #include <bit>
@@ -170,8 +171,7 @@ void BriefingScreen::MouseMove(UiEvent& event) {
         if (node == personTexts.end()) return;
         UiSurface* label = surfaces[1].get();
         personLabel = {{node->second, Rect{0, 0, 0, 0}, {kFont, kUiTextColour, render::text::kCenter}}};
-        Point at = event.at;
-        ui->ScalePointFromScreen(&at);
+        Point at = screen_layout::FromScreen(event.at);
         label->MoveTo(at - Point{kLabelOffsetX, kLabelOffsetY});
         label->Show();
         return;

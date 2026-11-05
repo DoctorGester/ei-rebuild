@@ -60,13 +60,17 @@ void EnterLeftPanel();
 void EnterRightPanel();
 void LeavePanel();
 
-// Layout to screen pixels and back: x by the 4:3 part's width, y by its height. `margin`: the 4:3 part's place in
-// the window (its left and top margins) added / taken off; without it for sizes and offsets (the text surfaces' draw,
-// the drags, the tooltip's cursor offset: Interface3D's *NoMargin scalings).
-void RectToScreen(Rect* rect, bool margin);
-void PointToScreen(Point* point, bool margin);
-void RectFromScreen(Rect* rect, bool margin);
-void PointFromScreen(Point* point, bool margin);
+// Layout (800x600) to screen pixels and back: x by the 4:3 part's width, y by its height, and the 4:3 part's place in
+// the window (its left and top margins) added / taken off. A rectangle's corners go each on its own.
+Point ToScreen(Point point);
+Rect ToScreen(const Rect& rect);
+Point FromScreen(Point point);
+Rect FromScreen(const Rect& rect);
+// The same without the margins, for sizes and offsets: the text surfaces' draw and text height, the edit field, the
+// connection list, the save / load list, the chat line, the tooltip's cursor offset, the drags.
+Point ToScreenNoMargin(Point point);
+Rect ToScreenNoMargin(const Rect& rect);
+Point FromScreenNoMargin(Point point);
 
 // The layout units one mouse count turns, tilts or pans by: the same at every window size (positions scale to the
 // window, the response to the mouse's motion does not). The 800-unit layout across a 4:3 part of 2880

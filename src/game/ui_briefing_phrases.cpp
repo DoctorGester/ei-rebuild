@@ -254,8 +254,8 @@ void BriefingScreen::NextPhrase(bool skip) {
     if (!skip || last) {
         if (leader) g_serverWorld.SetUnitHeight(leader->id, 0.0f);
         if (person) g_serverWorld.SetUnitHeight(person->id, 0.0f);
-        for (std::size_t i = 0; i < speakers.size(); ++i) {
-            if (text::CompareIgnoringCase(speakers[i].name, named()) != 0) continue;
+        for (const BriefingSpeaker& entry : speakers) {
+            if (text::CompareIgnoringCase(entry.name, named()) != 0) continue;
             if (view) {
                 Unit* target;
                 switch (preset) {
@@ -270,7 +270,7 @@ void BriefingScreen::NextPhrase(bool skip) {
             } else {
                 int chosen = preset;
                 if (chosen < 1) {
-                    Unit* unit = speakers[i].unit;
+                    Unit* unit = entry.unit;
                     if (firstPhrase)
                         chosen = kViewBoth;
                     else if (unit == leader)
@@ -287,9 +287,9 @@ void BriefingScreen::NextPhrase(bool skip) {
 
     // The speaker talks, the others listen.
     if (!skip && spoke) {
-        for (std::size_t i = 0; i < speakers.size(); ++i) {
-            Unit* unit = speakers[i].unit;
-            if (text::CompareIgnoringCase(speakers[i].name, named()) != 0) {
+        for (const BriefingSpeaker& entry : speakers) {
+            Unit* unit = entry.unit;
+            if (text::CompareIgnoringCase(entry.name, named()) != 0) {
                 PlaySpeakerAnimation(unit, false, false);
                 SetBlink(unit, 0);
                 continue;

@@ -139,7 +139,7 @@ struct RegionInfo {
 };
 int RegionCount(void* window);
 bool Region(void* window, int index, RegionInfo* region);
-void ScaleToScreen(int* x, int* y);             // Interface3D::ScalePointToScreen
+void ScaleToScreen(int* x, int* y);             // screen_layout::ToScreen
 void InterfaceSize(int* width, int* height);
 // The "droplist" steps: the first drop-down list (UiDropList) among `window`'s children, at any depth: open, the
 // chosen entry and its text, the entry count, the first shown, how many are shown, the active entry and the row

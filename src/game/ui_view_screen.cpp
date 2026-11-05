@@ -70,15 +70,15 @@ void UnitPickInput::LeftDown(UiEvent& event) {
             return;
         }
         Vector3 ground = world->PickGround(event.at.x, event.at.y);
-        for (int i = 0; i < std::ssize(picked); ++i) {
-            auto* member = g_clientWorld.FindUnit(picked[i]);
+        for (std::uint32_t id : picked) {
+            auto* member = g_clientWorld.FindUnit(id);
             if (!member) continue;
             std::vector<Unit*> order{member};
             world->LocalView()->SendWalk(&order, ground, 0);
         }
     } else if (unit) {
-        for (int i = 0; i < std::ssize(picked); ++i) {
-            auto* member = g_clientWorld.FindUnit(picked[i]);
+        for (std::uint32_t id : picked) {
+            auto* member = g_clientWorld.FindUnit(id);
             if (!member) continue;
             std::vector<Unit*> order{member};
             world->LocalView()->SendAttack(&order, unit, kAttackHow, 0);

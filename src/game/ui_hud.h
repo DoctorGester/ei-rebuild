@@ -233,7 +233,7 @@ struct PanelSlide {
 // Map (615..800 x 0..165).
 class HudMap : public UiWindow {
 public:
-    HudMap(Interface3D* ui, BattleScreen* owner);
+    HudMap(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
     void OnEvent(UiEvent& event) override;
     void LeftDown(UiEvent& event);   // the view buttons
     // Rebirth-patched (WideScreen: the map's centre at 700 + shift). A held view button is
@@ -301,7 +301,7 @@ public:
 // Unit panel (0..185 x 0..225).
 class HudUnitPanel : public UiWindow {
 public:
-    HudUnitPanel(Interface3D* ui, BattleScreen* owner);
+    HudUnitPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
     // The unit the panel shows: the hover unit, else the selected one, while the panel is not slid away and the
     // unit's model is attached; else null.
     Unit* PanelUnit() const;
@@ -331,7 +331,7 @@ public:
     // is forgotten.
     void Update() override;
     // Rebirth-patched (WideScreen: the panel at the screen's left edge, its rectangle moved with it; addon's own
-    // rectangle and "no slide" are not kept, ui_hud_slide.cpp). `slid` starts the panel at the far end of its slide.
+    // rectangle and "no slide" are not kept, ui_hud_side.cpp). `slid` starts the panel at the far end of its slide.
     void Setup(int bodyPart, bool slid);
     // Rebirth-patched (WideScreen). The hover unit, else the selected one, while the panel
     // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel and

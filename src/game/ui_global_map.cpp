@@ -177,8 +177,8 @@ void GlobalMap::CreateScreen() {
     NamedFloatTable vars;   // the local player's variables by name prefix
 
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
-    for (int i = 0; i < std::ssize(allod->maps); ++i) {
-        MapRecord* zone = &g_mapDatabase.maps[allod->maps[i]];
+    for (int mapIndex : allod->maps) {
+        MapRecord* zone = &g_mapDatabase.maps[mapIndex];
         if (zone->kind != 0 || zone->figure.empty()) continue;
         variable = std::format("z.{}", zone->name);
         GlobalMapZone& entry = zones.emplace_back();
@@ -218,8 +218,8 @@ void GlobalMap::CreateScreen() {
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
     for (int i = 0; i < std::ssize(zones); ++i) {
         MapRecord* zone = g_mapDatabase.FindMap(zones[i].name);
-        for (int e = 0; e < std::ssize(zone->exits); ++e) {
-            MapRecord* way = g_mapDatabase.FindMap(zone->exits[e].target);
+        for (const ZoneExit& zoneExit : zone->exits) {
+            MapRecord* way = g_mapDatabase.FindMap(zoneExit.target);
             if (!way) continue;
             variable = std::format("z.{}", way->name);
             if (way->kind != 2) continue;

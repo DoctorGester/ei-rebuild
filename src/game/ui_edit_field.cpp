@@ -10,6 +10,7 @@
 #include "lib/text_case.h"
 #include "platform/platform.h"
 #include "render/text_format.h"
+#include "screen_layout.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -184,8 +185,8 @@ void UiEditField::PaintContents(UiSurface& surface) const {
         Point top{caretX, 0};
         Point bottom{caretX, height};
         // WideScreen: without the margin.
-        ui->ScalePointToScreenNoMargin(&top);
-        ui->ScalePointToScreenNoMargin(&bottom);
+        top = screen_layout::ToScreenNoMargin(top);
+        bottom = screen_layout::ToScreenNoMargin(bottom);
         surface.Line(top, bottom, 1, caretColour);
     }
 }

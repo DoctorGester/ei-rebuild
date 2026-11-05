@@ -188,7 +188,7 @@ void ConsolePos(const CommandArgs& args) {
         for (const ConsolePosition& position : kPositions) {
             if (!ArgIs(args, 0, position.name) && !ArgIs(args, 0, position.letter)) continue;
             Rect rect = position.rect;
-            g_interface.SetConsoleRect(&rect);
+            g_interface.SetConsoleRect(rect);
             return;
         }
     }

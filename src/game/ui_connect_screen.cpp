@@ -518,7 +518,7 @@ void MpConnectScreen::CreateScreen() {
         const int right = kExtendedFieldRight;
         playersSlider = AddChild(std::make_unique<UiSlider>(ui, Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f));
         Rect area{450, 196, right, 206};
-        playersSlider->SetRect(&area);
+        playersSlider->SetRect(area);
         playersSlider->SetPosition(position);
         maxPlayers = 6;
     }

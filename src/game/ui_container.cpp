@@ -17,8 +17,7 @@ void UiContainer::Update() {
 void UiContainer::DrawSurfaces() {
     if (!ui->drawing) return;
     UiWindow::DrawSurfaces();
-    for (int i = 0; i < std::ssize(children); ++i) {
-        UiWindow* child = children[i].get();
+    for (const auto& child : children) {
         if (child->enabled) child->DrawSurfaces();
     }
 }
@@ -26,8 +25,7 @@ void UiContainer::DrawSurfaces() {
 void UiContainer::DrawTips() {
     if (!ui->drawing) return;
     UiWindow::DrawTips();
-    for (int i = 0; i < std::ssize(children); ++i) {
-        UiWindow* child = children[i].get();
+    for (const auto& child : children) {
         if (child->enabled) child->DrawTips();
     }
 }

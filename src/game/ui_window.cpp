@@ -116,7 +116,7 @@ void UiRegion::OnMouseMove(Point point) {
 // --- UiWindow -------------------------------------------------------------------------------
 
 UiRegion* UiWindow::RegionUnder(Point point) const {
-    ui->ScalePointFromScreen(&point);
+    point = screen_layout::FromScreen(point);
     for (const auto& region : regions) {
         if (region->HitTest(point)) return region.get();
     }
@@ -124,13 +124,12 @@ UiRegion* UiWindow::RegionUnder(Point point) const {
 }
 
 bool UiWindow::ContainsPoint(Point point) const {
-    ui->ScalePointFromScreen(&point);
+    point = screen_layout::FromScreen(point);
     return rect.Contains(point);
 }
 
 UiRegion* UiWindow::HitRegion(UiEvent& event, int count) {
-    Point point = event.at;
-    ui->ScalePointFromScreen(&point);
+    Point point = screen_layout::FromScreen(event.at);
     for (int i = 0; i < std::ssize(regions) && i < count; ++i) {
         if (regions[i]->HitTest(point)) {
             event.handled = true;
@@ -152,8 +151,7 @@ UiRegion* UiWindow::PressedRegion(UiEvent& event, int count) {
 }
 
 void UiWindow::DrawTips() {
-    Point mouse = ui->mouse;
-    ui->ScalePointFromScreen(&mouse);
+    Point mouse = screen_layout::FromScreen(ui->mouse);
     for (const auto& region : regions) {
         if (!region->tip) continue;
         region->OnMouseMove(mouse);
@@ -162,9 +160,9 @@ void UiWindow::DrawTips() {
 }
 
 void UiWindow::DrawBase(SceneRenderer* pass) {
-    for (int i = 0; i < std::ssize(sceneObjects); ++i)
-        sceneObjects[i]->Draw(pass);
-    for (int i = 0; i < std::ssize(models); ++i) models[i]->Draw(pass);
+    for (UiMesh* sprite : sceneObjects)
+        sprite->Draw(pass);
+    for (const auto& model : models) model->Draw(pass);
 }
 
 void UiWindow::DrawSurfaces() {
@@ -210,12 +208,12 @@ bool UiWindow::RemoveSceneObject(EngineObject* object) {
 }
 
 void UiWindow::ClearSceneObjects() {
-    for (int i = 0; i < std::ssize(sceneObjects); ++i) sceneObjects[i]->Release();
+    for (UiMesh* sprite : sceneObjects) sprite->Release();
     sceneObjects.clear();
 }
 
 void UiWindow::ClearObjects() {
-    for (int i = 0; i < std::ssize(objects); ++i) objects[i]->Release();
+    for (auto* object : objects) object->Release();
     objects.clear();
 }
 
