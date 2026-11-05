@@ -1134,6 +1134,12 @@ constexpr int kSmoothSamples = 8;   // the most the render quality asks for
 constexpr gpu::Format kDepthCopyFormat = gpu::Format::R32Float;
 // A pipeline made for more than one sample: that target added, written when `p` writes the depth.
 void AddDepthCopy(gpu::PipelineDesc& p);
+// The multisampled passes of a frame where no draw takes the depth copy have no such target (render.cpp's
+// DepthCopyRead). PassDepthCopy: the pass being drawn has it. DropDepthCopy: `p` (made with AddDepthCopy) for a pass
+// without it. MakePassPipeline: `desc`'s pipeline for the pass being drawn.
+bool PassDepthCopy();
+void DropDepthCopy(gpu::PipelineDesc& p);
+gpu::Pipeline MakePassPipeline(gpu::PipelineDesc desc, const char* label);
 
 // The pipelines every game makes, listed for gpu::PrepareInBackground (render.cpp's ListPipelines), which makes them on
 // the device's thread before the first frame. Each is the description the file's draws make (the same function builds
@@ -1151,7 +1157,7 @@ gpu::PipelineDesc PointShadowClearDesc();
 // False (logged) when the copies could not be made: the world is then drawn without multisampling.
 bool PrepareSmoothCopies(int samples);
 // Inside a pass on the multisampled target: the frame target's colour and depth copied into every sample (and the
-// depth into the depth copy's).
+// depth into the depth copy's, when the pass has it).
 void CopyIntoMultisampled(const gpu::Texture& colour, const gpu::Texture& depth);
 // Inside a pass on the frame target: its depth set from the resolved depth copy; the colour comes from the
 // multisampled pass's resolve.

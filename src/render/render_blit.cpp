@@ -29,7 +29,7 @@ static gpu::PipelineDesc PassDesc(PipelineKind kind, int samples) {
 }
 
 static gpu::Pipeline PassPipeline(PipelineKind kind) {
-    return gpu::MakePipeline(PassDesc(kind, PassSampleCount()),
+    return MakePassPipeline(PassDesc(kind, PassSampleCount()),
                              kind == PipelineKind::Blit ? "ei-image-blit" : kind == PipelineKind::ClearDepth ? "ei-clear-depth" : "ei-fill");
 }
 

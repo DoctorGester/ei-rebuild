@@ -566,7 +566,7 @@ static gpu::Pipeline Pipeline(const PassState& state, [[maybe_unused]] bool wate
 #if defined(EI_RENDER_VALIDATION)
     const int known = gpu::PipelineCount();
 #endif
-    gpu::Pipeline pipeline = gpu::MakePipeline(TerrainDesc(state, samples), "ei-terrain");
+    gpu::Pipeline pipeline = MakePassPipeline(TerrainDesc(state, samples), "ei-terrain");
     if (!pipeline)
         LogFirst(g_pipelineFailures, 10,
                  "render: a terrain pipeline could not be created (state key %08X; see the gpu messages above)",

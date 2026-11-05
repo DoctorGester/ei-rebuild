@@ -352,7 +352,7 @@ void UiFrameDone() {
 void DrawUiBatch(const UiBatch& batch, int width, int height) {
     if (batch.count == 0 || g_offset < 0) return;
     const gpu::Texture atlas = AtlasImage(batch.atlas);
-    const gpu::Pipeline pipeline = gpu::MakePipeline(QuadDesc(PassSampleCount()), "ei-ui-quads");
+    const gpu::Pipeline pipeline = MakePassPipeline(QuadDesc(PassSampleCount()), "ei-ui-quads");
     if (!atlas || !pipeline) return;
     gpu::ApplyPipeline(pipeline);
     const gpu::BufferBinding vertices{g_vertices.Buffer(), static_cast<std::uint32_t>(g_offset)};
@@ -368,7 +368,7 @@ void DrawUiBatch(const UiBatch& batch, int width, int height) {
 void DrawPictureBatch(const PictureBatch& batch, int width, int height) {
     const int dw = batch.destination.Width(), dh = batch.destination.Height();
     if (!batch.texture || dw <= 0 || dh <= 0) return;
-    const gpu::Pipeline pipeline = gpu::MakePipeline(PictureDesc(PassSampleCount()), "ei-ui-picture");
+    const gpu::Pipeline pipeline = MakePassPipeline(PictureDesc(PassSampleCount()), "ei-ui-picture");
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     BindTexture(batch.texture);

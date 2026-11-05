@@ -81,7 +81,8 @@ Rules (SDL_GPU's, or the generator's):
   including program's `SHADOW_*_SLOT` / `POINT_*_SLOT` / `SCENE_BLOCK_SLOT`.
 - **The depth copy.** The programs that write the depth (`mesh`, `terrain`, `solid`, `into_multisampled`) also
   output it at `SV_Target1` (`depth_copy.hlsli`: the fragment's `SV_Position.z`). Only a
-  multisampled pass's pipelines have that target (the smooth option); with one target it is dropped. The check's
+  multisampled pass's pipelines have that target (the smooth option, and only in frames where a draw takes the copy:
+  section 11); with one target it is dropped. The check's
   `kDraws` marks those draws `depthCopy`, and a second output must be one float.
 
 A new program is its `.hlsl` file, which the build finds by itself, and a line in the check's `kDraws`.
@@ -634,7 +635,9 @@ with its own level.
   requires the levels drawn and the frames to differ in 0.2% .. 20% of the pixels; the quick save's picture matches the
   smooth frame; the lower levels each against `plain`. The game never reaches the copy into every sample (its world view
   is a frame's first draw), so the harness build's `smoothorder before|split|check` draws the frozen frame's passes in
-  other orders and requires the copies counted.
+  other orders and requires the copies counted. The battle frame in the game's order and in `before` is drawn without
+  the depth copy and without `depth_from_resolved` (`smoothorder check` requires it); `split` reads the copy back after
+  the world's first half, so every multisampled pass writes it.
 - **Edge pixels shaded wrongly** (`smoothedges <plain> <smooth> <tolerance> <most> [<rectangle>]`): a multisampled
   pixel mixes what its neighbours show at their centres, so it lies within the range of its 3 x 3 neighbourhood in the
   same frozen moment drawn without multisampling; the step counts the pixels outside it by more than the tolerance.
