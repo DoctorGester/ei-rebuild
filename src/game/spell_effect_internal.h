@@ -3,14 +3,14 @@
 // Shared by the spell effects' start and update: helpers, the original's maths repeated inline, and small
 // accessors. See docs/notes/items_spells.md.
 
-#include "ai_map.h"
-#include "combat.h"
-#include "console.h"
-#include "map_object.h"
-#include "spell.h"
-#include "unit.h"
-#include "world.h"
-#include "world_effect.h"
+#include "game/ai_map.h"
+#include "game/combat.h"
+#include "game/console.h"
+#include "game/map_object.h"
+#include "game/spell.h"
+#include "game/unit.h"
+#include "game/world.h"
+#include "game/world_effect.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"

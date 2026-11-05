@@ -1,9 +1,9 @@
 // The console window's text and placement. See docs/notes/console.md.
-#include "console.h"
+#include "game/console.h"
 
-#include "screen_layout.h"
-#include "text_split.h"
-#include "ui.h"
+#include "game/screen_layout.h"
+#include "game/text_split.h"
+#include "game/ui.h"
 
 #include "platform/log.h"
 

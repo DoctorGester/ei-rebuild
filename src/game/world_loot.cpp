@@ -1,18 +1,18 @@
 // WorldServer::Loot: a player takes what a dead body or a container holds. See
 // world.h and docs/notes/world.md.
-#include "unit.h"
-#include "world.h"
+#include "game/unit.h"
+#include "game/world.h"
 
-#include "map_object.h"
-#include "object.h"
-#include "player_messages.h"
-#include "party.h"
+#include "game/map_object.h"
+#include "game/object.h"
+#include "game/player_messages.h"
+#include "game/party.h"
 
-#include "effects.h"
+#include "game/effects.h"
 #include <cstdint>
 
-#include "game_singletons.h"
-#include "player_manager.h"
+#include "game/game_singletons.h"
+#include "game/player_manager.h"
 
 #include <vector>
 

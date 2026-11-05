@@ -1,17 +1,17 @@
 // WinMain's frame step (the interface drawn and the frame presented, a screenshot per frame while recording a movie).
 // See docs/notes/app.md.
-#include "app.h"
+#include "game/app.h"
 
-#include "bink_video.h"
-#include "dib.h"
-#include "game_singletons.h"
-#include "ini_file.h"
-#include "lever.h"
-#include "model.h"
-#include "texture.h"   // TextureDevice, Surface
-#include "ui.h"
-#include "ui_cursor.h"
-#include "main_loop.h"
+#include "game/bink_video.h"
+#include "game/dib.h"
+#include "game/game_singletons.h"
+#include "game/ini_file.h"
+#include "game/lever.h"
+#include "game/model.h"
+#include "game/texture.h"   // TextureDevice, Surface
+#include "game/ui.h"
+#include "game/ui_cursor.h"
+#include "game/main_loop.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 #include "render/render.h"

@@ -1,12 +1,12 @@
 // Chunked files. See chunk_stream.h.
 // Every file operation asks for the file again through File(), as the game does.
-#include "chunk_stream.h"
+#include "game/chunk_stream.h"
 
-#include "asset_text.h"
-#include "console.h"
+#include "game/asset_text.h"
+#include "game/console.h"
 
 #include "platform/platform.h"
-#include "mob_script_decoder.h"
+#include "game/mob_script_decoder.h"
 #include "lib/str.h"
 
 #include <bit>

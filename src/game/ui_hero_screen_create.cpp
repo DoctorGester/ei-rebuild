@@ -2,23 +2,23 @@
 // screen's margins (screen_layout::AddCurtains), which this does after the original's body; EI_Plugin.asi
 // patches it too (EiPluginFixes, reproduced: the figures' sex test). See ui_screens.h and docs/notes/ui.md,
 // section 5. Scenarios ui_hero_screen, ui_hero_stats and ui_hero_delete open the screen.
-#include "game_flow.h"
-#include "party.h"
-#include "saved_parties.h"
-#include "ui.h"
-#include "ui_mesh.h"
-#include "ui_scrollbar.h"
-#include "ui_edit_field.h"
-#include "ui_screens.h"
+#include "game/game_flow.h"
+#include "game/party.h"
+#include "game/saved_parties.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/ui_scrollbar.h"
+#include "game/ui_edit_field.h"
+#include "game/ui_screens.h"
 
-#include "core_transform.h"
-#include "text_manager.h"
-#include "ui_camp.h"
-#include "ui_item_info.h"
-#include "screen_layout.h"
-#include "unit_create.h"
-#include "unit_db.h"
-#include "world.h"
+#include "game/core_transform.h"
+#include "game/text_manager.h"
+#include "game/ui_camp.h"
+#include "game/ui_item_info.h"
+#include "game/screen_layout.h"
+#include "game/unit_create.h"
+#include "game/unit_db.h"
+#include "game/world.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -27,7 +27,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 #include <cstddef>
 #include <new>

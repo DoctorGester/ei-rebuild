@@ -1,7 +1,7 @@
 // The texts of the byte buffer and its cursor: GameBuffer's length-prefixed strings and BufferCursor's
 // zero-terminated ones. The formats are in net_coder.h; the other members are game_buffer.cpp and net_coder.cpp.
-#include "net_coder.h"
-#include "asset_text.h"
+#include "game/net_coder.h"
+#include "game/asset_text.h"
 
 #include "lib/str.h"
 

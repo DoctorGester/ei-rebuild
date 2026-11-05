@@ -1,19 +1,19 @@
 // The torch map object: lifetime, update, save / load, its spec and the
 // network state. See torch.h and docs/notes/units.md.
-#include "core_streams.h"
+#include "game/core_streams.h"
 
-#include "core_maths.h"
-#include "effects.h"   // ParticleSource, ParticleManager
-#include "game_singletons.h"
-#include "map_object.h"   // MapObject::position
-#include "net_delta.h"
-#include "server_specific_manager.h"
-#include "sound.h"        // SoundManager
-#include "spell.h"        // Light, LightFactory
-#include "terrain.h"
-#include "torch.h"
-#include "torch_client_spec.h"
-#include "world.h"
+#include "game/core_maths.h"
+#include "game/effects.h"   // ParticleSource, ParticleManager
+#include "game/game_singletons.h"
+#include "game/map_object.h"   // MapObject::position
+#include "game/net_delta.h"
+#include "game/server_specific_manager.h"
+#include "game/sound.h"        // SoundManager
+#include "game/spell.h"        // Light, LightFactory
+#include "game/terrain.h"
+#include "game/torch.h"
+#include "game/torch_client_spec.h"
+#include "game/world.h"
 
 #include <bit>
 #include <cstdint>

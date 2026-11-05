@@ -3,41 +3,41 @@
 // The world's paths are taken from the command line globals; every manager is made and attached
 // to the world (ThisWorld with the world, or the base); a helper goes into a
 // counted pointer (worldHandle); then the ISAAC generator is seeded and countdowns set up.
-#include "item_manager.h"
+#include "game/item_manager.h"
 
-#include "ai_map.h"
-#include "base_manager.h"
-#include "core_refcount.h"
-#include "core_streams.h"
-#include "effects.h"
-#include "figure_manager.h"
-#include "game_singletons.h"
-#include "ground_print.h"
-#include "item.h"
-#include "lightning.h"
-#include "material.h"
-#include "model.h"   // TweenArray (countdowns)
-#include "net_link.h"   // netlink::NetLink: the world handle's pending link
-#include "object.h"     // Hoover
-#include "object_diplomacy.h"
-#include "options.h"
-#include "player_manager.h"
-#include "random.h"
-#include "registry.h"
-#include "resource_manager.h"
-#include "script.h"
-#include "sector_map.h"
-#include "sky_object.h"
-#include "sound.h"
-#include "spell.h"
-#include "terrain.h"
-#include "text_manager.h"
-#include "texture.h"       // Texture: the fog texture (ClientArrayManager)
-#include "ui_flying_hit_points.h"
-#include "unit.h"
-#include "unit_create.h"
-#include "world.h"
-#include "world_effect.h"
+#include "game/ai_map.h"
+#include "game/base_manager.h"
+#include "game/core_refcount.h"
+#include "game/core_streams.h"
+#include "game/effects.h"
+#include "game/figure_manager.h"
+#include "game/game_singletons.h"
+#include "game/ground_print.h"
+#include "game/item.h"
+#include "game/lightning.h"
+#include "game/material.h"
+#include "game/model.h"   // TweenArray (countdowns)
+#include "game/net_link.h"   // netlink::NetLink: the world handle's pending link
+#include "game/object.h"     // Hoover
+#include "game/object_diplomacy.h"
+#include "game/options.h"
+#include "game/player_manager.h"
+#include "game/random.h"
+#include "game/registry.h"
+#include "game/resource_manager.h"
+#include "game/script.h"
+#include "game/sector_map.h"
+#include "game/sky_object.h"
+#include "game/sound.h"
+#include "game/spell.h"
+#include "game/terrain.h"
+#include "game/text_manager.h"
+#include "game/texture.h"       // Texture: the fog texture (ClientArrayManager)
+#include "game/ui_flying_hit_points.h"
+#include "game/unit.h"
+#include "game/unit_create.h"
+#include "game/world.h"
+#include "game/world_effect.h"
 
 #include <cstdint>
 #include <cstring>

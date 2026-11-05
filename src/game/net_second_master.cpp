@@ -1,11 +1,11 @@
 // EI_Plugin's NewMaster: the second master server (net_second_master.h). Its state is the second master's
 // socket address (the address is -1 until known) and its "a.b.c.d:port" text. The sockets are the platform's.
 // Its times are the real clock's, not the game's.
-#include "net_second_master.h"
+#include "game/net_second_master.h"
 
-#include "net_classes.h"
-#include "net_coder.h"
-#include "net_messages.h"
+#include "game/net_classes.h"
+#include "game/net_coder.h"
+#include "game/net_messages.h"
 
 #include "lib/rebirth.h"
 #include "lib/ipv4.h"

@@ -1,6 +1,6 @@
 // The options object's constructor.
 // More: docs/notes/app.md, "Options".
-#include "options.h"
+#include "game/options.h"
 
 #include <cstdint>
 

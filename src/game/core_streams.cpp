@@ -1,8 +1,8 @@
 // The byte streams (core_streams.h): the base class's string, tagged-block, sized-block, header and difference
 // coding, and the memory stream's reads, writes, sizes and bit helpers.
-#include "core_streams.h"
+#include "game/core_streams.h"
 
-#include "asset_text.h"
+#include "game/asset_text.h"
 #include "lib/caller.h"
 #include "lib/containers.h"
 

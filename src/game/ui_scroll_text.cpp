@@ -2,8 +2,8 @@
 // log hand it each text they add; and the placing of the laid out lines' words (PlaceWords) that its paint draws;
 // also the rest of the class (constructor, texts, layout, drawing) and the scroll bar's maximum. See ui_scroll_text.h and
 // docs/notes/ui.md, section 8.
-#include "ui.h"
-#include "ui_scroll_text.h"
+#include "game/ui.h"
+#include "game/ui_scroll_text.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

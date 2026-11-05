@@ -5,7 +5,7 @@
 // there, with Ctrl a click on a unit attacks it; the right button forgets them. See
 // docs/notes/ui.md, section 4.
 
-#include "ui.h"
+#include "game/ui.h"
 
 #include <cstddef>
 #include <cstdint>

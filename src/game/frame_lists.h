@@ -3,7 +3,7 @@
 // The client's per-frame object lists: what the view collects (world_client_view.cpp) and the draw walks
 // (world_client_draw.cpp).
 
-#include "ref.h"
+#include "game/ref.h"
 
 #include <vector>
 

@@ -1,11 +1,11 @@
 // The renderer's ribbon draw with its helpers (indexed draw of TL vertices, one ribbon cross section, the
 // direction at a point).
 // More: docs/notes/models.md, "Renderer".
-#include "clip.h"
-#include "model.h"
+#include "game/clip.h"
+#include "game/model.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "texture.h"
+#include "game/texture.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

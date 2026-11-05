@@ -1,14 +1,14 @@
 // Combat, third part: whether an order can be carried out from where the unit stands (reach, units
 // in the way, line of sight) and the planner that finds the moment it can. See combat.h,
 // combat_plan.h and docs/notes/combat.md ("Order lifecycle").
-#include "ai_map.h"
-#include "combat.h"
-#include "combat_plan.h"
-#include "item.h"
-#include "spell.h"
-#include "unit.h"
-#include "unit_ai.h"
-#include "world.h"
+#include "game/ai_map.h"
+#include "game/combat.h"
+#include "game/combat_plan.h"
+#include "game/item.h"
+#include "game/spell.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world.h"
 
 #include "lib/bytes.h"
 #include "lib/float_select.h"

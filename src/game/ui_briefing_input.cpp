@@ -1,26 +1,26 @@
 // The briefing / base screen's mouse input and its topic list (BriefingScreen, ui_briefing.h):
 // the click and double click (the input virtuals), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
-#include "ui.h"
-#include "ui_saveload.h"
-#include "ui_objectives.h"
+#include "game/ui.h"
+#include "game/ui_saveload.h"
+#include "game/ui_objectives.h"
 
-#include "camera.h"
-#include "combat.h"
-#include "game_singletons.h"
-#include "map_object.h"
+#include "game/camera.h"
+#include "game/combat.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
 #include "lib/vecmath.h"
-#include "text_manager.h"
-#include "text_split.h"
-#include "ui_briefing.h"
-#include "ui_cursor.h"
-#include "unit.h"
-#include "unit_ai.h"
-#include "world.h"
+#include "game/text_manager.h"
+#include "game/text_split.h"
+#include "game/ui_briefing.h"
+#include "game/ui_cursor.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world.h"
 #include "lib/containers.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 
 #include <algorithm>
 #include <bit>

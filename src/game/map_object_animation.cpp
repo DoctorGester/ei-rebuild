@@ -1,12 +1,12 @@
 // Animation tracks of figure parts: a part's position, rotation and morphed vertices at a time between two
 // key frames. See docs/notes/map_objects.md ("Animation tracks").
-#include "map_object_animation.h"
+#include "game/map_object_animation.h"
 
-#include "base_manager.h"
-#include "figure_manager.h"
-#include "map_object_figures.h"
+#include "game/base_manager.h"
+#include "game/figure_manager.h"
+#include "game/map_object_figures.h"
 #include "lib/vecmath.h"
-#include "world.h"
+#include "game/world.h"
 #include "lib/bytes.h"
 #include "lib/rounding.h"
 #include "platform/platform.h"

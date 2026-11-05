@@ -2,17 +2,17 @@
 // its centre: the point is turned the other way first. Comparisons keep the game's NaN cases:
 // a NaN angle takes the axis-aligned path, a NaN turned x is outside, the other tests let NaN in.
 // Also the exit's stream form and the stream's string reader.
-#include "world.h"
+#include "game/world.h"
 
-#include "core_maths.h"
-#include "core_streams.h"
+#include "game/core_maths.h"
+#include "game/core_streams.h"
 
 #include <cstdint>
 #include <cstring>
 #include <string>
 
 #include "lib/maths.h"
-#include "save_versions.h"
+#include "game/save_versions.h"
 
 #include <memory>
 

@@ -1,17 +1,17 @@
 // Unit acknowledgements from acks.db: which speech a unit says for an ack kind.
 // The database's loading is in model_db.cpp and the vector serialisers in model_db.cpp;
 // the records' Serialize functions are at the end.
-#include "acks_db.h"
+#include "game/acks_db.h"
 
-#include "chunk_archive.h"
-#include "game_singletons.h"
-#include "map_object_figures.h"
-#include "object_tables.h"
-#include "sound.h"
-#include "unit.h"
-#include "unit_db.h"
-#include "world.h"
-#include "random.h"
+#include "game/chunk_archive.h"
+#include "game/game_singletons.h"
+#include "game/map_object_figures.h"
+#include "game/object_tables.h"
+#include "game/sound.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
+#include "game/world.h"
+#include "game/random.h"
 
 #include <cstring>
 

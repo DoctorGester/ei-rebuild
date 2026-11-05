@@ -1,11 +1,11 @@
 // A unit's motion: the order header of AIPath and the trajectory the unit follows. The trajectory is rebuilt
 // when a path is advanced (Build) and sampled every tick by the unit's movement (Sample).
-#include "ai_motion.h"
+#include "game/ai_motion.h"
 
-#include "ai_map.h"
-#include "core_streams.h"
-#include "map_object.h"
-#include "world.h"
+#include "game/ai_map.h"
+#include "game/core_streams.h"
+#include "game/map_object.h"
+#include "game/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

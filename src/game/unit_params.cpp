@@ -1,12 +1,12 @@
 // The weapon skill bonus on a unit's packed parameters. See unit.h (UnitParams) and
 // docs/notes/units.md ("Statistics in play").
-#include "item_db.h"
+#include "game/item_db.h"
 
-#include "logic_settings.h"
-#include "options.h"
-#include "ui.h"
-#include "unit.h"
-#include "unit_db.h"
+#include "game/logic_settings.h"
+#include "game/options.h"
+#include "game/ui.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
 
 #include <cstdint>
 

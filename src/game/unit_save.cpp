@@ -1,17 +1,17 @@
 // Unit's Load and Save slots. See unit.h and docs/notes/units.md ("Creation, databases, save").
-#include "base_manager.h"
-#include "item_manager.h"
-#include "unit.h"
+#include "game/base_manager.h"
+#include "game/item_manager.h"
+#include "game/unit.h"
 
-#include "ai_motion.h"
-#include "core_streams.h"
-#include "player_messages.h"
-#include "unit_create.h"
-#include "unit_db.h"
-#include "world.h"
+#include "game/ai_motion.h"
+#include "game/core_streams.h"
+#include "game/player_messages.h"
+#include "game/unit_create.h"
+#include "game/unit_db.h"
+#include "game/world.h"
 
 #include "lib/crt.h"
-#include "save_versions.h"
+#include "game/save_versions.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

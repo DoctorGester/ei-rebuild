@@ -1,11 +1,11 @@
 // The global lever table that levers look up (loaded from WinMain by the Rebirth-patched loader): the records
 // and their index by name. See docs/notes/app.md.
-#include "lever.h"
+#include "game/lever.h"
 
-#include "chunk_archive.h"
-#include "resource.h"
-#include "core_streams.h"
-#include "database_file.h"
+#include "game/chunk_archive.h"
+#include "game/resource.h"
+#include "game/core_streams.h"
+#include "game/database_file.h"
 #include "lib/crt.h"
 
 #include <cstdint>

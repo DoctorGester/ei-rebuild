@@ -1,21 +1,21 @@
 // The draw of one figure part: the mesh is clip-tested, advanced when animated, its colours filled (flat meshes)
 // or lit once, then drawn through the device or through the owner's figure. See docs/notes/models.md ("Figure
 // parts").
-#include "figure_mesh.h"
+#include "game/figure_mesh.h"
 
-#include "engine_object.h"
-#include "manager_context.h"
-#include "game_singletons.h"
-#include "link_figure.h"
-#include "map_object_figures.h"
-#include "material.h"
-#include "model.h"
-#include "options.h"
-#include "renderer_lines.h"   // LineBatch
-#include "spell.h"
-#include "texture.h"
-#include "world.h"
-#include "drawn_motion.h"
+#include "game/engine_object.h"
+#include "game/manager_context.h"
+#include "game/game_singletons.h"
+#include "game/link_figure.h"
+#include "game/map_object_figures.h"
+#include "game/material.h"
+#include "game/model.h"
+#include "game/options.h"
+#include "game/renderer_lines.h"   // LineBatch
+#include "game/spell.h"
+#include "game/texture.h"
+#include "game/world.h"
+#include "game/drawn_motion.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
 #include "lib/text_case.h"

@@ -1,9 +1,9 @@
 // The material (Material) and the material manager (MaterialManager): material.h. See
 // docs/notes/items_spells.md ("Materials").
-#include "material.h"
+#include "game/material.h"
 
-#include "game_singletons.h"
-#include "mod_folders.h"
+#include "game/game_singletons.h"
+#include "game/mod_folders.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"

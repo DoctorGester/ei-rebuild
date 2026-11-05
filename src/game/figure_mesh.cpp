@@ -1,14 +1,14 @@
 // Figure mesh loaders: the FIG mesh data of a figure part, and the figure loader's bounding volume morphed by the
 // figure's three morph coefficients. See docs/notes/world.md ("Figure meshes").
-#include "figure_mesh.h"
+#include "game/figure_mesh.h"
 
-#include "core_maths.h"
-#include "core_transform.h"
-#include "figure_manager.h"
-#include "item.h"
-#include "link_figure.h"
-#include "manager_context.h"
-#include "model.h"
+#include "game/core_maths.h"
+#include "game/core_transform.h"
+#include "game/figure_manager.h"
+#include "game/item.h"
+#include "game/link_figure.h"
+#include "game/manager_context.h"
+#include "game/model.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"

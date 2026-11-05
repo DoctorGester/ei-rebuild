@@ -1,9 +1,9 @@
 // The console window's surface, paint and key input. The text
 // side (lines, history depth, placement) is in console_window.cpp. See docs/notes/ui.md
 // ("Console window").
-#include "console.h"
-#include "ui.h"
-#include "asset_text.h"
+#include "game/console.h"
+#include "game/ui.h"
+#include "game/asset_text.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

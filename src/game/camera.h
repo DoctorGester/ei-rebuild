@@ -3,12 +3,12 @@
 // The camera (Camera, class id 0x43), the settings record it reads, its saved views, shakes and recorded
 // paths, and the engine globals and containers its code uses.
 
-#include "angles.h"
-#include "core_streams.h"
-#include "core_transform.h"
-#include "game_singletons.h"
+#include "game/angles.h"
+#include "game/core_streams.h"
+#include "game/core_transform.h"
+#include "game/game_singletons.h"
 #include "lib/vecmath.h"
-#include "options.h"
+#include "game/options.h"
 
 
 #include <cstddef>

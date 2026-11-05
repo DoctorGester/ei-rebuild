@@ -1,16 +1,16 @@
 // The landscape object's own members (Terrain, terrain.h): the sector cache, the map loader, the waves'
 // setup and the tile texture coordinates. Sector loading and building are in terrain_sector.cpp, height
 // queries in terrain.cpp.
-#include "console.h"
-#include "game_singletons.h"
-#include "map_file.h"
-#include "random.h"
-#include "sound.h"
-#include "spell.h"
-#include "terrain.h"
-#include "terrain_sector.h"
-#include "texture.h"
-#include "world.h"
+#include "game/console.h"
+#include "game/game_singletons.h"
+#include "game/map_file.h"
+#include "game/random.h"
+#include "game/sound.h"
+#include "game/spell.h"
+#include "game/terrain.h"
+#include "game/terrain_sector.h"
+#include "game/texture.h"
+#include "game/world.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"

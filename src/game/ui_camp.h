@@ -2,7 +2,7 @@
 
 // The global map, the camp's pages and the hero panels (docs/notes/ui.md, "Camp, global map, hero screens").
 
-#include "ui_screens.h"
+#include "game/ui_screens.h"
 
 #include "lib/crt.h"
 #include "lib/vecmath.h"

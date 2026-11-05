@@ -1,12 +1,12 @@
 // Rebirth's script functions about units, objects and players. A unit's data is its server-side controller.
-#include "combat.h"
-#include "game_singletons.h"
-#include "map_object.h"
-#include "random.h"
-#include "script_addon_handlers.h"
-#include "unit.h"
-#include "unit_db.h"
-#include "world.h"
+#include "game/combat.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
+#include "game/random.h"
+#include "game/script_addon_handlers.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
+#include "game/world.h"
 
 #include "lib/rounding.h"
 

@@ -2,8 +2,8 @@
 
 // The drop-down list (the options' resolution row).
 
-#include "ui.h"
-#include "ui_scrollbar.h"
+#include "game/ui.h"
+#include "game/ui_scrollbar.h"
 
 // A drop-down list (ours; the options' resolution row): the row shows the chosen text; a click (or Open) opens the
 // list of every text below the row, or above it when only that side has room, with the chosen one marked, the active

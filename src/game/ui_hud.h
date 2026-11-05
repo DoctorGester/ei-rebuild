@@ -5,7 +5,7 @@
 // row of panel windows and forwards mouse events to the panel whose rectangle holds the point. Coordinates are the
 // 800x600 layout (Rebirth moves some panels).
 
-#include "ui.h"
+#include "game/ui.h"
 
 class HudQuickItems;
 class HudSpellColumn;

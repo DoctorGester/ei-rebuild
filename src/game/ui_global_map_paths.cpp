@@ -3,23 +3,23 @@
 // shortest summed "#passtime". The click (Rebirth-patched) empties the results, sets
 // the target and calls it with the local player's zone. See docs/notes/ui.md ("Camp, global map,
 // hero screens").
-#include "ui_camp.h"
+#include "game/ui_camp.h"
 
-#include "console.h"
-#include "game_flow.h"
-#include "game_singletons.h"
-#include "model.h"
-#include "object_tables.h"
-#include "text_manager.h"
-#include "ui.h"
-#include "ui_mesh.h"
-#include "ui_objectives.h"
+#include "game/console.h"
+#include "game/game_flow.h"
+#include "game/game_singletons.h"
+#include "game/model.h"
+#include "game/object_tables.h"
+#include "game/text_manager.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/ui_objectives.h"
 
 #include <algorithm>
 #include <memory>
-#include "ui_screens.h"
-#include "world.h"
-#include "player_client.h"
+#include "game/ui_screens.h"
+#include "game/world.h"
+#include "game/player_client.h"
 #include "lib/containers.h"
 #include "lib/str.h"
 

@@ -1,15 +1,15 @@
 // Drawing a 3D object on the client (Object3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
-#include "drawn_motion.h"
-#include "engine_object.h"
-#include "map_object.h"
-#include "map_object_figures.h"
-#include "map_object_shadow.h"
-#include "object.h"
-#include "spell.h"                // Light, TheLightFactory
-#include "terrain.h"
-#include "texture.h"              // RenderDeviceObject
-#include "world.h"                // WorldClient
+#include "game/drawn_motion.h"
+#include "game/engine_object.h"
+#include "game/map_object.h"
+#include "game/map_object_figures.h"
+#include "game/map_object_shadow.h"
+#include "game/object.h"
+#include "game/spell.h"                // Light, TheLightFactory
+#include "game/terrain.h"
+#include "game/texture.h"              // RenderDeviceObject
+#include "game/world.h"                // WorldClient
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -20,7 +20,7 @@
 
 #include <bit>
 #include <cstring>
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 namespace {
 constexpr float kLightMargin = 10.0f;

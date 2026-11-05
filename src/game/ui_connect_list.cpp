@@ -3,17 +3,17 @@
 // twice and both are reproduced: WideScreen for every window (the line under the titles scaled without the
 // margin) and ExtendedServerName behind its flag (wider columns, the servers' names and the new game's row drawn shortened
 // with an ellipsis, the selected server's name wrapped). See ui_screens.h and docs/notes/ui.md, section 5.
-#include "asset_text.h"
-#include "ui.h"
-#include "ui_scrollbar.h"
-#include "ui_mesh.h"
-#include "ui_screens.h"
+#include "game/asset_text.h"
+#include "game/ui.h"
+#include "game/ui_scrollbar.h"
+#include "game/ui_mesh.h"
+#include "game/ui_screens.h"
 
-#include "net_classes.h"
+#include "game/net_classes.h"
 
 #include "lib/crt.h"
 #include "lib/rect.h"
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

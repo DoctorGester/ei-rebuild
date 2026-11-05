@@ -5,7 +5,7 @@
 // both classes override them); the others answer from the world and are null for a party. Names and evidence:
 // docs/notes/map_objects.md ("Virtual slot names").
 
-#include "engine_object.h"
+#include "game/engine_object.h"
 
 class BaseManager;
 class FigureManager;

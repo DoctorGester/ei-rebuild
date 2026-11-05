@@ -1,20 +1,20 @@
 // The 3D object base under MapObject (Object3D): loading the figure's parts, rescaling them and their bounding
 // box; its lifetime, Create / Destroy, effect sources, attached half and small virtuals; the random animations
 // of its figure and SetUpAnimatedFigure. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
-#include "map_object_figures.h"
+#include "game/map_object_figures.h"
 
-#include "ai_map.h"   // FootprintPart
-#include "core_maths.h"
-#include "core_transform.h"
-#include "effects.h"
-#include "figure_manager.h"
-#include "figure_mesh.h"
-#include "link_figure.h"   // LinkHeaderMap: the figure's pieces
-#include "map_object.h"
-#include "map_object_shadow.h"   // WoundsMaterial: the client half's
-#include "model.h"               // RenderPreset: the wounds material's
-#include "random.h"
-#include "world.h"   // World: the figure manager and cache
+#include "game/ai_map.h"   // FootprintPart
+#include "game/core_maths.h"
+#include "game/core_transform.h"
+#include "game/effects.h"
+#include "game/figure_manager.h"
+#include "game/figure_mesh.h"
+#include "game/link_figure.h"   // LinkHeaderMap: the figure's pieces
+#include "game/map_object.h"
+#include "game/map_object_shadow.h"   // WoundsMaterial: the client half's
+#include "game/model.h"               // RenderPreset: the wounds material's
+#include "game/random.h"
+#include "game/world.h"   // World: the figure manager and cache
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

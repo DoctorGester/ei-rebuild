@@ -3,8 +3,8 @@
 // Making items: the item constructor (the world and every party own one) and the item manager, the item factory.
 // The items themselves are item.h.
 
-#include "item.h"
-#include "resource_manager.h"
+#include "game/item.h"
+#include "game/resource_manager.h"
 
 #include <cstdint>
 #include <optional>

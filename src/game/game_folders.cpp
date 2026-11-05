@@ -1,5 +1,5 @@
 // The game's folders: plain globals.
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 #include <string>
 

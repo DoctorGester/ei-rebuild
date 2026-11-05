@@ -4,10 +4,10 @@
 // getters of units and figures. Names are provisional. See docs/notes/objects.md for the class map.
 // (EngineObject: engine_object.h; the object list iterator: base_manager.h; MemoryStream: core_streams.h.)
 
-#include "ai_map.h"
-#include "base_manager.h"
-#include "core_transform.h"
-#include "engine_object.h"
+#include "game/ai_map.h"
+#include "game/base_manager.h"
+#include "game/core_transform.h"
+#include "game/engine_object.h"
 
 #include <cstddef>
 #include <cstdint>

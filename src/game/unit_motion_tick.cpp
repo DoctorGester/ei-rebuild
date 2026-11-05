@@ -3,19 +3,19 @@
 // animation, then moves the unit to the sampled position on the sector map; a blocked step either waits
 // (the blocker is a party member leading, or the unit already waits for it), yields to a slower unit, or
 // replans the path. See docs/notes/combat.md ("Movement tick") and docs/notes/ai.md ("How a unit moves").
-#include "ai_map.h"
-#include "ai_motion.h"
-#include "combat.h"
-#include "combat_plan.h"
-#include "core_maths.h"
-#include "game_singletons.h"
-#include "map_object.h"
-#include "map_object_figures.h"
-#include "player_messages.h"
-#include "sector_map.h"
-#include "unit.h"
-#include "unit_ai.h"
-#include "world.h"
+#include "game/ai_map.h"
+#include "game/ai_motion.h"
+#include "game/combat.h"
+#include "game/combat_plan.h"
+#include "game/core_maths.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
+#include "game/map_object_figures.h"
+#include "game/player_messages.h"
+#include "game/sector_map.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world.h"
 
 #include "lib/vecmath.h"
 

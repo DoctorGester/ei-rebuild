@@ -3,9 +3,9 @@
 // What the battle HUD's panel sources (ui_hud_*.cpp) share: the click sound, the sling arrow's sprite, the sprites'
 // tint and whether the game is paused.
 
-#include "ui_mesh.h"
-#include "game_singletons.h"
-#include "world.h"
+#include "game/ui_mesh.h"
+#include "game/game_singletons.h"
+#include "game/world.h"
 
 inline constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 inline constexpr const char* kArrowSprite = "in25arrow";

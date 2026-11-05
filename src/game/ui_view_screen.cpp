@@ -1,16 +1,16 @@
 // Interface screen 7 (ui_view_screen.h): its Create, draw and close slots and the picked units'
 // input. See docs/notes/ui.md, section 4.
-#include "ui_camera_keys.h"
-#include "ui_view_screen.h"
+#include "game/ui_camera_keys.h"
+#include "game/ui_view_screen.h"
 
-#include "camera.h"
+#include "game/camera.h"
 #include "lib/vecmath.h"
-#include "player_client.h"
-#include "ui_cursor.h"
-#include "world.h"
+#include "game/player_client.h"
+#include "game/ui_cursor.h"
+#include "game/world.h"
 
 #include <cstdint>
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 #include "lib/containers.h"
 #include "platform/platform.h"
 

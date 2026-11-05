@@ -1,22 +1,22 @@
 // The flying hit points (ui_flying_hit_points.h): the list and its drawing. docs/notes/ui.md, section 3.
-#include "ui_flying_hit_points.h"
+#include "game/ui_flying_hit_points.h"
 
 #include <algorithm>
 
-#include "game_singletons.h"
-#include "options.h"
-#include "world.h"
+#include "game/game_singletons.h"
+#include "game/options.h"
+#include "game/world.h"
 
-#include "clip.h"
-#include "core_maths.h"
-#include "engine_object.h"
-#include "link_figure.h"
-#include "map_object_figures.h"
-#include "model.h"
-#include "screen_layout.h"
-#include "texture.h"
-#include "ui.h"
-#include "unit.h"
+#include "game/clip.h"
+#include "game/core_maths.h"
+#include "game/engine_object.h"
+#include "game/link_figure.h"
+#include "game/map_object_figures.h"
+#include "game/model.h"
+#include "game/screen_layout.h"
+#include "game/texture.h"
+#include "game/ui.h"
+#include "game/unit.h"
 
 #include "lib/containers.h"
 #include "platform/platform.h"

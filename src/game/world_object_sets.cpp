@@ -4,11 +4,11 @@
 // the sent set then becomes the new one. The arrays are the game's aligned pointer arrays ({data, size,
 // capacity, growBy}) and their two SetSize variants. See docs/notes/world.md. The game orders the sets by
 // address; this one by object id (address_order.h).
-#include "address_order.h"
-#include "core_streams.h"
-#include "engine_object.h"
-#include "map_object.h"
-#include "world_effect.h"
+#include "game/address_order.h"
+#include "game/core_streams.h"
+#include "game/engine_object.h"
+#include "game/map_object.h"
+#include "game/world_effect.h"
 #include "lib/containers.h"
 
 #include <algorithm>

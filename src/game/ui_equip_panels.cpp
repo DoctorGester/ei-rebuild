@@ -1,10 +1,10 @@
 // The hero panels' small methods: the equipment panel's shown weapon / quick item,
 // its right button and item lookup; the quick strip's selection
 // and item lookup. See docs/notes/ui.md, section 5.
-#include "ui_camp.h"
-#include "ui_screens.h"
-#include "item.h"
-#include "unit.h"
+#include "game/ui_camp.h"
+#include "game/ui_screens.h"
+#include "game/item.h"
+#include "game/unit.h"
 
 #include <algorithm>
 #include <cstdint>

@@ -1,5 +1,5 @@
 // Delta replication of object state. See net_delta.h.
-#include "net_delta.h"
+#include "game/net_delta.h"
 
 #include "lib/bytes.h"
 #include "lib/rounding.h"

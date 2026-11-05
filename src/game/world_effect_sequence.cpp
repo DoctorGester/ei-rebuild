@@ -1,14 +1,14 @@
 // EffectSoundSeq's Start and Unpack: the sound sequence handed to the sound manager with a
 // chooser that picks the next name. See world_effect.h and docs/notes/effects.md.
-#include "world_effect.h"
-#include "world_effect_internal.h"
+#include "game/world_effect.h"
+#include "game/world_effect_internal.h"
 
-#include "console.h"
-#include "random.h"
-#include "sound.h"
+#include "game/console.h"
+#include "game/random.h"
+#include "game/sound.h"
 
-#include "game_singletons.h"
-#include "world.h"
+#include "game/game_singletons.h"
+#include "game/world.h"
 #include "lib/str.h"
 
 #include <cstring>

@@ -2,10 +2,10 @@
 
 // The options window: its settings, the key actions table and its rows.
 
-#include "ui.h"
-#include "ui_drop_list.h"
-#include "ui_scrollbar.h"
-#include "ui_spin.h"
+#include "game/ui.h"
+#include "game/ui_drop_list.h"
+#include "game/ui_scrollbar.h"
+#include "game/ui_spin.h"
 
 #include "lib/enum_array.h"
 

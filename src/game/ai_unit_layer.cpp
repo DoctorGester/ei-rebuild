@@ -1,6 +1,6 @@
 // The unit occupancy layers of the AI map: stamped and lifted every time a
 // unit moves (AIMap::MarkFootprint through SectorMap::Move).
-#include "ai_unit_layer.h"
+#include "game/ai_unit_layer.h"
 
 
 #include <algorithm>

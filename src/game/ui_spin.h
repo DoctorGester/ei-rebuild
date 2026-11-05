@@ -2,7 +2,7 @@
 
 // The options window's spin control.
 
-#include "ui.h"
+#include "game/ui.h"
 
 // A spin control of the options window: a window stepping through its texts (the on / off settings).
 class UiSpin : public UiWindow {

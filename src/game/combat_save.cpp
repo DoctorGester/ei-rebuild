@@ -1,20 +1,20 @@
 // UnitServer's Load and Save virtuals. See combat.h and docs/notes/combat.md ("Order lifecycle").
-#include "ai_alarm.h"
-#include "ai_map.h"
-#include "base_manager.h"
-#include "combat.h"
-#include "item_manager.h"
+#include "game/ai_alarm.h"
+#include "game/ai_map.h"
+#include "game/base_manager.h"
+#include "game/combat.h"
+#include "game/item_manager.h"
 
-#include "map_object.h"
-#include "object.h"
-#include "unit.h"
-#include "unit_ai.h"
-#include "world.h"
+#include "game/map_object.h"
+#include "game/object.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world.h"
 
 #include <cstdint>
 #include <cstring>
-#include "game_singletons.h"
-#include "save_versions.h"
+#include "game/game_singletons.h"
+#include "game/save_versions.h"
 
 namespace {
 constexpr int kSavedConstant = 2;             // written between actingCheckTime and searchingTarget, read back and dropped

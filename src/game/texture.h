@@ -1,11 +1,11 @@
 #pragma once
 
-#include "engine_object.h"
+#include "game/engine_object.h"
 #include "render/mesh_records.h"
 #include "render/render_state.h"
-#include "renderer_base.h"
-#include "resource_manager.h"
-#include "surface.h"
+#include "game/renderer_base.h"
+#include "game/resource_manager.h"
+#include "game/surface.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

@@ -3,11 +3,11 @@
 // Helpers shared by world_effect.cpp and world_effect_visual.cpp: the code the effects call, the
 // replicated-field operations.
 
-#include "world_effect.h"
-#include "map_object.h"
-#include "world.h"
-#include "net_delta.h"
-#include "game_singletons.h"
+#include "game/world_effect.h"
+#include "game/map_object.h"
+#include "game/world.h"
+#include "game/net_delta.h"
+#include "game/game_singletons.h"
 
 #include "lib/float_select.h"
 

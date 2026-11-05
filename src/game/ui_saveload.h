@@ -2,8 +2,8 @@
 
 // The save / load window and the quick saves.
 
-#include "ui.h"
-#include "ui_scrollbar.h"
+#include "game/ui.h"
+#include "game/ui_scrollbar.h"
 
 // A saved game in the save/load list; the fields after the folder come from the save's info.sav.
 struct SaveEntry {

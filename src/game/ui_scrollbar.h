@@ -2,7 +2,7 @@
 
 // The scroll bar and the options window's slider.
 
-#include "ui.h"
+#include "game/ui.h"
 
 // A scroll bar (a scrolling text has one).
 class UiScrollbar : public UiWindow {

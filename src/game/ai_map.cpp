@@ -1,8 +1,8 @@
-#include "ai_map.h"
+#include "game/ai_map.h"
 
-#include "core_maths.h"
-#include "map_object.h"
-#include "sector_map.h"
+#include "game/core_maths.h"
+#include "game/map_object.h"
+#include "game/sector_map.h"
 
 #include "lib/containers.h"
 #include "lib/rounding.h"

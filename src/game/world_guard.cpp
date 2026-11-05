@@ -1,14 +1,14 @@
 // The player data guard: while the game window is not active the players' gold, party records and unit
 // statistics are XORed with a random key, and XORed back when it is. See world.h and docs/notes/world.md.
-#include "world.h"
+#include "game/world.h"
 
-#include "combat.h"
-#include "party.h"
-#include "random.h"
-#include "saved_parties.h"
-#include "ui_screens.h"   // MpHeroRecord (the party outside a game)
-#include "unit.h"
-#include "player_manager.h"
+#include "game/combat.h"
+#include "game/party.h"
+#include "game/random.h"
+#include "game/saved_parties.h"
+#include "game/ui_screens.h"   // MpHeroRecord (the party outside a game)
+#include "game/unit.h"
+#include "game/player_manager.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 

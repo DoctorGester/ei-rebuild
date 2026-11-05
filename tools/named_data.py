@@ -51,6 +51,7 @@ import argparse, collections, csv, os, re, struct, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exe_path  # noqa: E402
 import srcscan  # noqa: E402
+import layout as game_layout  # noqa: E402  (src/game's files wherever they are now)
 
 ROOT = srcscan.ROOT
 CSV = os.path.join(ROOT, 'config', 'named_data.csv')
@@ -257,7 +258,8 @@ def enum_numbers():
     """Names an initialiser writes for a number, from script.h: `ScriptFunction::Name` (the enum class's values) and
     `Lex(ScriptLexeme::Name)` (ScriptKeyword's punctuation entries: a ScriptLexeme value) -> the number's text."""
     if not _ENUM_NUMBERS:
-        text = srcscan.blank_comments(open(os.path.join(ROOT, 'src', 'game', 'script.h'), encoding='utf-8').read())
+        script_h = os.path.join(game_layout.GAME, *game_layout.now('script.h').split('/'))
+        text = srcscan.blank_comments(open(script_h, encoding='utf-8').read())
         body = re.search(r'enum class ScriptFunction\b[^{;]*\{(.*?)\};', text, re.S).group(1)
         for name, value in re.findall(r'(\w+)\s*=\s*(-?\w+)', body):
             _ENUM_NUMBERS['ScriptFunction::' + name] = value

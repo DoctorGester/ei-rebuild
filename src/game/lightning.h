@@ -5,10 +5,10 @@
 // every segment is a polyline displaced sideways by a smooth random noise. Names are provisional. See
 // docs/notes/objects.md.
 
-#include "base_manager.h"
-#include "engine_object.h"
+#include "game/base_manager.h"
+#include "game/engine_object.h"
 #include "lib/vecmath.h"
-#include "model.h"   // ClipBounds
+#include "game/model.h"   // ClipBounds
 
 #include "lib/containers.h"
 

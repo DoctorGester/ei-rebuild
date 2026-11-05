@@ -2,10 +2,10 @@
 // under each selected unit, drawn by the world's draw pass in single-player mode. Its six
 // corners lie 0.3 above the given point, in the plane of the unit's x and y axes; the device's
 // flat geometry draw projects them with the scene's matrices. See docs/notes/renderer.md.
-#include "figure_mesh.h"   // VertexPacket
+#include "game/figure_mesh.h"   // VertexPacket
 
-#include "model.h"         // SceneRenderer
-#include "texture.h"       // TextureDevice
+#include "game/model.h"         // SceneRenderer
+#include "game/texture.h"       // TextureDevice
 #include "lib/scales.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"

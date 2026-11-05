@@ -1,8 +1,8 @@
 // The mods' game patches carried as code (mod_plugins.h).
-#include "mod_plugins.h"
+#include "game/mod_plugins.h"
 
-#include "mod_folders.h"
-#include "registry.h"
+#include "game/mod_folders.h"
+#include "game/registry.h"
 #include "lib/text_case.h"
 
 #include <string>

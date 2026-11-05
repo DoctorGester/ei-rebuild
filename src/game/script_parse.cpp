@@ -1,9 +1,9 @@
 // Script loader, part 1: tokens, the lexer (Script::Tokenize), keyword lookup, #define handling
 // and name helpers. The parser proper is in script_parse_load.cpp. See script.h and
 // docs/notes/script.md ("Loader and parser").
-#include "script.h"
-#include "script_parse.h"
-#include "script_addon.h"
+#include "game/script.h"
+#include "game/script_parse.h"
+#include "game/script_addon.h"
 
 #include "lib/str.h"
 #include "lib/text_case.h"

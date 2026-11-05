@@ -1,13 +1,13 @@
 // Terrain sectors: loading, building, water levels and projection. See terrain_sector.h for the layout and
 // the file format.
-#include "terrain_sector.h"
+#include "game/terrain_sector.h"
 
-#include "game_singletons.h"
-#include "model.h"
-#include "random.h"
+#include "game/game_singletons.h"
+#include "game/model.h"
+#include "game/random.h"
 #include "render/render.h"
-#include "terrain.h"
-#include "world.h"
+#include "game/terrain.h"
+#include "game/world.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

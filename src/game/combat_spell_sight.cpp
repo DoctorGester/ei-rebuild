@@ -1,10 +1,10 @@
 // The spell line-of-sight test the world's spell casting asks per target.
-#include "combat.h"
+#include "game/combat.h"
 
-#include "ai_map.h"
-#include "core_maths.h"
-#include "item_db.h"
-#include "world.h"
+#include "game/ai_map.h"
+#include "game/core_maths.h"
+#include "game/item_db.h"
+#include "game/world.h"
 
 
 #include <bit>

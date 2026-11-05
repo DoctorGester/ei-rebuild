@@ -1,25 +1,25 @@
 // Draw virtuals of the camp's and the hero screen's panels: the quick strip, the repair grid, the
 // constructors' spell maker and item maker. See docs/notes/ui.md, section 5. The trade grid's is in
 // ui_trade_panel.cpp.
-#include "ui.h"
-#include "ui_mesh.h"
-#include "texture.h"
-#include "ui_camp.h"
-#include "ui_item_info.h"
-#include "item.h"
-#include "item_db.h"
-#include "party.h"
-#include "unit.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/texture.h"
+#include "game/ui_camp.h"
+#include "game/ui_item_info.h"
+#include "game/item.h"
+#include "game/item_db.h"
+#include "game/party.h"
+#include "game/unit.h"
 
 #include <cstdint>
 #include <string>
 #include "render/render.h"
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/str.h"
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 
 #include <cmath>
 #include <format>

@@ -1,8 +1,8 @@
-#include "spell.h"
+#include "game/spell.h"
 
-#include "core_streams.h"
-#include "map_object.h"
-#include "unit.h"
+#include "game/core_streams.h"
+#include "game/map_object.h"
+#include "game/unit.h"
 #include "lib/crt.h"
 #include "lib/text_case.h"
 

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <new>
 
-#include "ref.h"
+#include "game/ref.h"
 
 // EngineObject::id of an object no manager registered; the saves' and messages' "no object".
 inline constexpr int kNoObjectId = -1;

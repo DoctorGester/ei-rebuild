@@ -1,10 +1,10 @@
 // The 3D library side of figure loading and drawing: bounding-volume clip
 // test, transform matrices, triangle index buffers and the link-file loader's archive list.
-#include "model.h"
+#include "game/model.h"
 
-#include "clip.h"   // ClipOutcode, ClipCodeOf
-#include "core_maths.h"
-#include "resource.h"
+#include "game/clip.h"   // ClipOutcode, ClipCodeOf
+#include "game/core_maths.h"
+#include "game/resource.h"
 
 #include "lib/crt.h"
 #include "lib/maths.h"

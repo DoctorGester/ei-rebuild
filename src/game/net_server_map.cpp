@@ -1,15 +1,15 @@
 // The game server's map change. A literal transcription: the helpers it calls are game
 // code outside this file (or STLport strings) and are reached through their original addresses.
 // See net_classes.h and docs/notes/network.md.
-#include "core_refcount.h"
+#include "game/core_refcount.h"
 
-#include "game_flow.h"
-#include "game_singletons.h"
-#include "net_coder.h"
-#include "net_connection.h"
-#include "net_messages.h"
-#include "quest_records.h"
-#include "ui.h"
+#include "game/game_flow.h"
+#include "game/game_singletons.h"
+#include "game/net_coder.h"
+#include "game/net_connection.h"
+#include "game/net_messages.h"
+#include "game/quest_records.h"
+#include "game/ui.h"
 #include "lib/crt.h"
 
 #include <cstdlib>

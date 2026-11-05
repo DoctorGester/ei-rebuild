@@ -8,7 +8,7 @@
 // description). Item keys are the record's name, spaces replaced by '_' and upper-cased, after a prefix that
 // depends on the item kind.
 
-#include "engine_object.h"
+#include "game/engine_object.h"
 
 #include <cstdint>
 #include <optional>

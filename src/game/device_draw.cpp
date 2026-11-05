@@ -3,17 +3,17 @@
 // brings its blend, a preset (its stages' states, model.h) and texture stages: the stages are set and drawn
 // once. A second form draws twice: with a first surface, then blended (source alpha, inverse source
 // alpha) with a second one. See docs/notes/models.md ("Material draw").
-#include "device_material.h"
+#include "game/device_material.h"
 
-#include "app.h"
-#include "device_buffers.h"
-#include "engine_object.h"
-#include "game_singletons.h"
-#include "ground_print.h"       // NamedTexture
-#include "model.h"   // RenderPreset
-#include "present_window.h"
-#include "texture.h"
-#include "world.h"
+#include "game/app.h"
+#include "game/device_buffers.h"
+#include "game/engine_object.h"
+#include "game/game_singletons.h"
+#include "game/ground_print.h"       // NamedTexture
+#include "game/model.h"   // RenderPreset
+#include "game/present_window.h"
+#include "game/texture.h"
+#include "game/world.h"
 #include "lib/rect.h"
 #include "lib/rounding.h"
 #include "render/render.h"

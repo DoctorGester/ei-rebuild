@@ -1,7 +1,7 @@
 #pragma once
 
-#include "base_manager.h"
-#include "resource.h"
+#include "game/base_manager.h"
+#include "game/resource.h"
 
 #include <cstddef>
 #include <vector>

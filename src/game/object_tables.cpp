@@ -1,6 +1,6 @@
-#include "object_tables.h"
+#include "game/object_tables.h"
 
-#include "core_streams.h"
+#include "game/core_streams.h"
 
 #include <cstddef>
 #include <cstdint>

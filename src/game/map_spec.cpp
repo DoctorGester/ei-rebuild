@@ -1,18 +1,18 @@
 // The zone file's object records: the base record, objects, flames, magic traps and levers
 // (map_spec.h), and the quaternion rotation the editor uses. Plain float maths
 // (rule 7). See docs/notes/objects.md, "Zone files and unit records".
-#include "ai_map.h"
+#include "game/ai_map.h"
 
-#include "base_manager.h"
-#include "core_transform.h"
-#include "game_singletons.h"
-#include "map_object.h"
-#include "map_object_figures.h"
-#include "map_spec.h"
-#include "sector_map.h"
-#include "terrain.h"
-#include "world.h"
-#include "world_effect.h"
+#include "game/base_manager.h"
+#include "game/core_transform.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
+#include "game/map_object_figures.h"
+#include "game/map_spec.h"
+#include "game/sector_map.h"
+#include "game/terrain.h"
+#include "game/world.h"
+#include "game/world_effect.h"
 #include "lib/crt.h"
 
 #include <cstring>

@@ -1,10 +1,10 @@
 // Unit queries on the figure: animation entries for a key, the body's extent, the height of the ground under
 // a point and the point effects start from. See unit.h and docs/notes/units.md ("Creation, databases, save").
-#include "ai_map.h"
-#include "map_object_figures.h"
-#include "unit.h"
-#include "unit_client_models.h"
-#include "world.h"
+#include "game/ai_map.h"
+#include "game/map_object_figures.h"
+#include "game/unit.h"
+#include "game/unit_client_models.h"
+#include "game/world.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

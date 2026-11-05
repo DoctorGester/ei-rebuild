@@ -1,14 +1,14 @@
 // Item construction: ItemConstructor and the item manager (its factory and its ways of making items).
 // BuildItem has the manager create the empty item object (BeginCreateItem), then EndCreateItem fills it from a
 // temporary database record: the prototype's values combined with the material's. See item_manager.h.
-#include "item_manager.h"
+#include "game/item_manager.h"
 
-#include "console.h"
-#include "item.h"
-#include "manager_context.h"
-#include "map_object.h"   // MapObjectFlag
-#include "spell.h"
-#include "text_split.h"
+#include "game/console.h"
+#include "game/item.h"
+#include "game/manager_context.h"
+#include "game/map_object.h"   // MapObjectFlag
+#include "game/spell.h"
+#include "game/text_split.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

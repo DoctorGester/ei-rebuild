@@ -2,14 +2,14 @@
 // item changes (UnitStats::Recompute), regeneration every world update (UnitVitals::Regenerate),
 // the body slots' healing, the experience curves and experience gain. See unit.h and
 // docs/notes/units.md ("Statistics in play").
-#include "map_object.h"
-#include "spell.h"
-#include "unit.h"
+#include "game/map_object.h"
+#include "game/spell.h"
+#include "game/unit.h"
 
-#include "object_tables.h"
-#include "unit_db.h"
+#include "game/object_tables.h"
+#include "game/unit_db.h"
 
-#include "logic_settings.h"
+#include "game/logic_settings.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
 #include "lib/float_select.h"

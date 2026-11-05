@@ -2,9 +2,9 @@
 
 // The engine's byte streams (ByteStream, MemoryStream). See docs/notes/core.md.
 
-#include "core_refcount.h"
-#include "engine_object.h"
-#include "net_coder.h"
+#include "game/core_refcount.h"
+#include "game/engine_object.h"
+#include "game/net_coder.h"
 
 #include "lib/bytes.h"
 #include "platform/platform.h"

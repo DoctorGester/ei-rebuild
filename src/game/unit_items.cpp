@@ -1,12 +1,12 @@
 // A unit's own items (units outside the party keep them in Unit; party units' items live in the
 // player's records, unit.h): armour, the carried items array, releasing everything, and sending
 // the equipment to the controller. See unit.h and docs/notes/units.md.
-#include "unit.h"
+#include "game/unit.h"
 
-#include "item.h"
-#include "random.h"
-#include "unit_create.h"
-#include "unit_db.h"
+#include "game/item.h"
+#include "game/random.h"
+#include "game/unit_create.h"
+#include "game/unit_db.h"
 #include "lib/crt.h"
 #include "lib/rounding.h"
 

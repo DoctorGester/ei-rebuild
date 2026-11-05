@@ -5,15 +5,15 @@
 // screen's panels to the screen's edges), reproduced here. Rebirth-patched callees: the surface's text, the sprites'
 // Place, SetRectangle and SetFrame, the regions' SetRect. See docs/notes/ui.md, section 8, and docs/notes/renderer.md
 // ("Pass state").
-#include "ui_help_window.h"
-#include "game_singletons.h"
-#include "object_tables.h"      // FindCommandByKey
-#include "screen_layout.h"
-#include "text_manager.h"
-#include "ui.h"
-#include "ui_mesh.h"
-#include "ui_screens.h"
-#include "world.h"
+#include "game/ui_help_window.h"
+#include "game/game_singletons.h"
+#include "game/object_tables.h"      // FindCommandByKey
+#include "game/screen_layout.h"
+#include "game/text_manager.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/ui_screens.h"
+#include "game/world.h"
 #include "lib/maths.h"
 #include "lib/rect.h"
 #include "lib/str.h"

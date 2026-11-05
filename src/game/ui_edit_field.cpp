@@ -1,16 +1,16 @@
 // The message box's edit field: its key handler, constructor and character
 // handler, and its paint (Rebirth's WideScreen). See ui_edit_field.h (UiEditField) and
 // docs/notes/ui.md, section 8.
-#include "ui_edit_field.h"
-#include "asset_text.h"
-#include "ui.h"
-#include "ui_screens.h"
+#include "game/ui_edit_field.h"
+#include "game/asset_text.h"
+#include "game/ui.h"
+#include "game/ui_screens.h"
 #include "lib/containers.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
 #include "render/text_format.h"
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -1,17 +1,17 @@
 // The class templates a new game builds and the item and spell lists each template gets from the databases.
 // See docs/notes/world.md ("Party records and class templates"). The build makes five templates or, with
 // `fourClasses`, four.
-#include "class_templates.h"
+#include "game/class_templates.h"
 
-#include "console.h"
-#include "core_refcount.h"
-#include "item.h"
-#include "item_db.h"
-#include "item_manager.h"
-#include "item_stock.h"
-#include "party.h"
-#include "party_manager.h"
-#include "spell.h"
+#include "game/console.h"
+#include "game/core_refcount.h"
+#include "game/item.h"
+#include "game/item_db.h"
+#include "game/item_manager.h"
+#include "game/item_stock.h"
+#include "game/party.h"
+#include "game/party_manager.h"
+#include "game/spell.h"
 
 #include "lib/crt.h"
 

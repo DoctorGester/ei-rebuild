@@ -1,18 +1,18 @@
 // WorldServer: the party arriving in a zone (Redeploy) and the quest items it brings back. See world.h and
 // docs/notes/world.md.
-#include "item_manager.h"
-#include "script.h"
-#include "world.h"
+#include "game/item_manager.h"
+#include "game/script.h"
+#include "game/world.h"
 
-#include "chunk_stream.h"
-#include "core_maths.h"
-#include "item.h"
-#include "item_db.h"
-#include "map_object.h"
-#include "object_tables.h"
-#include "party.h"
-#include "player_messages.h"
-#include "unit.h"
+#include "game/chunk_stream.h"
+#include "game/core_maths.h"
+#include "game/item.h"
+#include "game/item_db.h"
+#include "game/map_object.h"
+#include "game/object_tables.h"
+#include "game/party.h"
+#include "game/player_messages.h"
+#include "game/unit.h"
 
 #include "lib/crt.h"
 #include "lib/containers.h"
@@ -24,7 +24,7 @@
 #include "lib/text_case.h"
 
 #include <vector>
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 namespace {
 

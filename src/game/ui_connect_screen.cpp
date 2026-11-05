@@ -2,27 +2,27 @@
 // address list's vector members. See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only. Its Create
 // reproduces addon's ExtendedServerName sites, as the list draw (ui_connect_list.cpp) does its patches; EI_Plugin's
 // NPlayers and Pause are the new game's player slider and pause mode.
-#include "game_flow.h"
-#include "net_classes.h"
-#include "options.h"
-#include "asset_text.h"
-#include "ui.h"
-#include "ui_mesh.h"
-#include "ui_scrollbar.h"
-#include "ui_edit_field.h"
-#include "ui_message_box.h"
-#include "ui_screens.h"
+#include "game/game_flow.h"
+#include "game/net_classes.h"
+#include "game/options.h"
+#include "game/asset_text.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/ui_scrollbar.h"
+#include "game/ui_edit_field.h"
+#include "game/ui_message_box.h"
+#include "game/ui_screens.h"
 
-#include "chunk_archive.h"
-#include "core_transform.h"
-#include "net_coder.h"
-#include "net_link.h"
-#include "net_second_master.h"
-#include "party.h"
-#include "random.h"
-#include "unit.h"
-#include "world.h"
-#include "text_manager.h"
+#include "game/chunk_archive.h"
+#include "game/core_transform.h"
+#include "game/net_coder.h"
+#include "game/net_link.h"
+#include "game/net_second_master.h"
+#include "game/party.h"
+#include "game/random.h"
+#include "game/unit.h"
+#include "game/world.h"
+#include "game/text_manager.h"
 
 #include "lib/crt.h"
 #include "platform/platform.h"
@@ -33,7 +33,7 @@
 #include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 #include <memory>
 #include <new>

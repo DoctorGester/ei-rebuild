@@ -2,8 +2,8 @@
 // (after every object removal), and the zone reset when the party enters a zone (instances and runs
 // dropped, effects removed, globals zeroed, the WorldScript blocks started again). See script.h and
 // docs/notes/script.md.
-#include "script.h"
-#include "world_effect.h"
+#include "game/script.h"
+#include "game/world_effect.h"
 
 // Called after every removal of a world object: the runs', the instances' and the global
 // variables drop deleted objects (object variables released, group members removed), then the

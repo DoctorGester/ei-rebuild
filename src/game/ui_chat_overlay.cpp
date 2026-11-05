@@ -1,19 +1,19 @@
 // The in-game chat overlay: its constructor, per-frame update and redraw, the lines' and the typed line's
 // paints, the chat line's opening and its keys. docs/notes/ui.md, section 3.
-#include "asset_text.h"
-#include "console.h"
-#include "net_classes.h"
-#include "net_messages.h"
-#include "ui.h"
-#include "ui_chat_overlay.h"
-#include "ui_screens.h"
-#include "world.h"
+#include "game/asset_text.h"
+#include "game/console.h"
+#include "game/net_classes.h"
+#include "game/net_messages.h"
+#include "game/ui.h"
+#include "game/ui_chat_overlay.h"
+#include "game/ui_screens.h"
+#include "game/world.h"
 
 #include "lib/containers.h"
 #include "platform/platform.h"
 #include "lib/str.h"
 #include "render/text_format.h"
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 
 #include <algorithm>
 #include <cstring>

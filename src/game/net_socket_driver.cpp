@@ -2,12 +2,12 @@
 // addresses), address parsing and formatting, and the TCP link to the master server (0x40 bytes:
 // an outgoing and an incoming growing buffer, the socket, a state), on the platform's sockets. See
 // docs/notes/network.md.
-#include "net_classes.h"
-#include "net_coder.h"
+#include "game/net_classes.h"
+#include "game/net_coder.h"
 #include "platform/platform.h"
 
 #include "lib/ipv4.h"
-#include "../platform/log.h"
+#include "platform/log.h"
 
 #include <cstdint>
 #include <cstdio>

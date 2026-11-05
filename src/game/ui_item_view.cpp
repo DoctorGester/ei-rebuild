@@ -1,17 +1,17 @@
 // The item screens' model view and the description panel's drawing. See
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
-#include "app.h"
-#include "core_refcount.h"
-#include "texture.h"
-#include "ui_item_info.h"
-#include "ui_mesh.h"
-#include "plugin_fixes.h"
+#include "game/app.h"
+#include "game/core_refcount.h"
+#include "game/texture.h"
+#include "game/ui_item_info.h"
+#include "game/ui_mesh.h"
+#include "game/plugin_fixes.h"
 
-#include "surface.h"
-#include "item.h"
-#include "random.h"
-#include "spell.h"
-#include "unit_db.h"
+#include "game/surface.h"
+#include "game/item.h"
+#include "game/random.h"
+#include "game/spell.h"
+#include "game/unit_db.h"
 
 #include "lib/maths.h"
 #include "lib/vecmath.h"
@@ -22,8 +22,8 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "game_singletons.h"
-#include "world.h"
+#include "game/game_singletons.h"
+#include "game/world.h"
 
 #include <cmath>
 #include <bit>

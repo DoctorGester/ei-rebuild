@@ -1,9 +1,9 @@
 // The interface layout for any window shape (Rebirth's WideScreen folded in for every aspect ratio): the window's
 // 4:3 part, the layout widths and the scaling. See screen_layout.h.
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 
-#include "ui.h"
-#include "ui_mesh.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
 
 #include "platform/log.h"
 #include "lib/rect.h"

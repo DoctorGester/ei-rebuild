@@ -4,7 +4,7 @@
 // (script_addon.cpp). A handler returns true when the call is done, false to let the game's own code for the id run
 // (only Random does that, for one argument).
 
-#include "script_addon.h"
+#include "game/script_addon.h"
 #include "lib/printf_args.h"
 
 class UnitServer;

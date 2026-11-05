@@ -1,6 +1,6 @@
 // The save pictures (src/game/save_picture.h) and their QOI codec (src/lib/qoi.h): round trips, the shot.sav layout
 // the original reads, files without or with a broken trailer.
-#include "../../src/game/save_picture.h"
+#include "game/save_picture.h"
 #include "../../src/lib/qoi.h"
 
 #include <cstdint>

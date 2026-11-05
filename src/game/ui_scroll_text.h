@@ -2,8 +2,8 @@
 
 // The scrolling text: tokens, laid out lines and the window with its scroll bar.
 
-#include "ui.h"
-#include "ui_scrollbar.h"
+#include "game/ui.h"
+#include "game/ui_scrollbar.h"
 
 // A piece of a scrolling text: a format change (newline, font, colour) or a word (text, width).
 enum class TokenKind : std::uint8_t { Format, Word };

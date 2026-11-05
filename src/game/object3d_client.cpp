@@ -1,20 +1,20 @@
 // The halves of a 3D object: the client half (Object3DClientSpecific, class id 0x37: its lifetime, the part sets, the
 // skin textures, the materials' lit state, the shadow state, the pulses, the wounds material), the base half's empty
 // slots and the server half (Object3DServer, class id 0x38). Layouts: map_object_shadow.h, map_object_figures.h.
-#include "game_singletons.h"
-#include "map_object_shadow.h"
+#include "game/game_singletons.h"
+#include "game/map_object_shadow.h"
 
-#include "core_refcount.h"
-#include "figure_mesh.h"   // VertexPacket
-#include "link_figure.h"   // FigureMeshDrawer
-#include "ground_print.h"   // NamedTexture
-#include "map_object_figures.h"
-#include "material.h"
-#include "model.h"
-#include "object.h"
-#include "options.h"
-#include "texture.h"
-#include "world.h"
+#include "game/core_refcount.h"
+#include "game/figure_mesh.h"   // VertexPacket
+#include "game/link_figure.h"   // FigureMeshDrawer
+#include "game/ground_print.h"   // NamedTexture
+#include "game/map_object_figures.h"
+#include "game/material.h"
+#include "game/model.h"
+#include "game/object.h"
+#include "game/options.h"
+#include "game/texture.h"
+#include "game/world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"

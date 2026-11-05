@@ -1,21 +1,21 @@
 // The global map's input (right-button drag, mouse, keys), its close and message-result slots
 // (GlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
-#include "ui.h"
-#include "ui_mesh.h"
-#include "ui_saveload.h"
-#include "ui_camp.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/ui_saveload.h"
+#include "game/ui_camp.h"
 
-#include "camera_trace.h"
-#include "console.h"
-#include "core_streams.h"
-#include "global_map_clouds.h"
-#include "ui_cursor.h"
-#include "ui_screens.h"
-#include "screen_layout.h"
+#include "game/camera_trace.h"
+#include "game/console.h"
+#include "game/core_streams.h"
+#include "game/global_map_clouds.h"
+#include "game/ui_cursor.h"
+#include "game/ui_screens.h"
+#include "game/screen_layout.h"
 
 #include "platform/platform.h"
 #include "lib/vecmath.h"
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 #include "lib/str.h"
 
 #include <cmath>

@@ -5,12 +5,12 @@
 // See docs/notes/script.md ("Leftovers") and docs/notes/world.md ("Party records and
 // class templates").
 
-#include "class_templates.h"
-#include "party_records.h"
+#include "game/class_templates.h"
+#include "game/party_records.h"
 
 #include <string>
 #include "lib/hash_map.h"
-#include "core_streams.h"
+#include "game/core_streams.h"
 
 #include <cstddef>
 #include <cstdint>

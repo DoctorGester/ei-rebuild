@@ -1,12 +1,12 @@
 // The save files (scenario.sav, mission.sav, saves\current\<zone>.sav): the writer puts a memory stream into a
 // file stream under a header, LZ-compressed (and checked by decompressing it again); the reader reads one back.
 // See net_coder.h for the coder and docs/notes/world.md.
-#include "save_file.h"
+#include "game/save_file.h"
 
-#include "core_streams.h"
-#include "net_coder.h"
-#include "object.h"
-#include "save_versions.h"
+#include "game/core_streams.h"
+#include "game/net_coder.h"
+#include "game/object.h"
+#include "game/save_versions.h"
 #include "lib/bytes.h"
 
 #include <cstring>

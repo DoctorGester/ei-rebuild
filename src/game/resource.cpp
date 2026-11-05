@@ -1,8 +1,8 @@
-#include "bink_video.h"
-#include "core_streams.h"
-#include "resource.h"
-#include "resource_stream.h"
-#include "mod_folders.h"
+#include "game/bink_video.h"
+#include "game/core_streams.h"
+#include "game/resource.h"
+#include "game/resource_stream.h"
+#include "game/mod_folders.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"

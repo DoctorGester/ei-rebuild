@@ -1,14 +1,14 @@
 // A region's tooltip (UiRegion, ui.h): made from a text id ("tip <id>" in the texts) or a string, and its text
 // changed. Every screen and HUD panel builder gives its regions tooltips. See
 // docs/notes/ui.md ("Interface manager and window base").
-#include "ui.h"
+#include "game/ui.h"
 
-#include "text_manager.h"
+#include "game/text_manager.h"
 
 #include "lib/crt.h"
 #include <string>
-#include "game_singletons.h"
-#include "world.h"
+#include "game/game_singletons.h"
+#include "game/world.h"
 #include "lib/str.h"
 
 

@@ -1,17 +1,17 @@
 // A new unit's starting equipment from its prototype (the world adds zone units with it after
 // ApplyPrototype). See unit_create.h (MapObjectManager) and docs/notes/units.md ("Creation helpers").
-#include "item.h"
-#include "item_manager.h"
-#include "unit_create.h"
+#include "game/item.h"
+#include "game/item_manager.h"
+#include "game/unit_create.h"
 
-#include "engine_object.h"
-#include "unit.h"
-#include "unit_db.h"
+#include "game/engine_object.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"
 
-#include "world.h"
+#include "game/world.h"
 
 #include <cstdint>
 #include <string>

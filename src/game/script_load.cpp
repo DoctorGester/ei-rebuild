@@ -2,12 +2,12 @@
 // the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
 // arrays, the four kinds of variables, script instances and runs. The mirror image of script_save.cpp; see
 // docs/notes/script.md. Every piece is read through the stream's Read in the save's order and in its pieces.
-#include "base_manager.h"
-#include "core_streams.h"
-#include "script.h"
-#include "world_effect.h"
+#include "game/base_manager.h"
+#include "game/core_streams.h"
+#include "game/script.h"
+#include "game/world_effect.h"
 
-#include "save_versions.h"
+#include "game/save_versions.h"
 
 #include "lib/rounding.h"
 

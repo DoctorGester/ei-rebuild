@@ -1,15 +1,15 @@
 // The rendering resolution changed while the game runs (app.h's SetResolution): a window resized by the player or
 // the system, or a resolution chosen in the options. docs/notes/renderer.md, "Resolution changes".
-#include "app.h"
+#include "game/app.h"
 
-#include "game_singletons.h"
-#include "model.h"
-#include "options.h"
-#include "present_window.h"
-#include "screen_layout.h"
-#include "texture.h"
-#include "ui.h"
-#include "ui_cursor.h"
+#include "game/game_singletons.h"
+#include "game/model.h"
+#include "game/options.h"
+#include "game/present_window.h"
+#include "game/screen_layout.h"
+#include "game/texture.h"
+#include "game/ui.h"
+#include "game/ui_cursor.h"
 
 #include "platform/log.h"
 

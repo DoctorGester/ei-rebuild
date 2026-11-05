@@ -7,7 +7,7 @@
 // its class id and the key its record is stored under), 1 the data of the archive's root chunk, 2 the object
 // records. See docs/notes/core.md.
 
-#include "core_streams.h"
+#include "game/core_streams.h"
 
 #include "lib/hash_map.h"
 

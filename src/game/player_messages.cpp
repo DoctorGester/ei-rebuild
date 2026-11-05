@@ -1,20 +1,20 @@
 // PlayerServer's message writers and the party record lookup. See player_messages.h and
 // docs/notes/objects.md.
 
-#include "player_messages.h"
+#include "game/player_messages.h"
 
-#include "ai_map.h"
-#include "base_manager.h"
-#include "game_singletons.h"
-#include "item.h"
-#include "item_manager.h"
-#include "object_tables.h"
-#include "party.h"
-#include "random.h"
-#include "script.h"
-#include "unit.h"
-#include "world.h"
-#include "world_effect.h"
+#include "game/ai_map.h"
+#include "game/base_manager.h"
+#include "game/game_singletons.h"
+#include "game/item.h"
+#include "game/item_manager.h"
+#include "game/object_tables.h"
+#include "game/party.h"
+#include "game/random.h"
+#include "game/script.h"
+#include "game/unit.h"
+#include "game/world.h"
+#include "game/world_effect.h"
 
 #include "lib/bytes.h"
 

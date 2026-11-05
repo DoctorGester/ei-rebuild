@@ -1,9 +1,9 @@
 // The world's player manager.
-#include "player_manager.h"
+#include "game/player_manager.h"
 
-#include "game_singletons.h"
-#include "player_messages.h"
-#include "world.h"
+#include "game/game_singletons.h"
+#include "game/player_messages.h"
+#include "game/world.h"
 
 
 #include <new>

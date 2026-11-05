@@ -43,7 +43,8 @@ EXE = os.path.join(BUILD, 'ei-rebuild.exe')
 MAGIC = b'EICOV1\0\0'
 
 # The areas of the report, gameplay first (the ticket's order: units, combat, spells, AI, scripts, network, saves).
-# A src/game file goes to the first area whose pattern matches its name; the other folders are areas of their own.
+# A file in a src/game folder goes to its folder's area (GAME_FOLDER_AREAS; docs/notes/file-layout.md); a file still
+# flat in src/game to the first area whose pattern matches its name; the other folders of src are areas of their own.
 GAME_AREAS = [
     ('saves', r'.*save.*|persistent_globals|chunk_.*'),
     ('AI', r'unit_ai.*|ai_.*'),
@@ -64,6 +65,12 @@ GAME_AREAS = [
                      r'weather_.*|torch.*|global_map_clouds|clip|projection|dib|render_helper'),
     ('game core', r'.*'),
 ]
+GAME_FOLDER_AREAS = {'saves': 'saves', 'ai': 'AI', 'units': 'units', 'combat': 'combat', 'spells': 'spells and items',
+                     'items': 'spells and items', 'script': 'scripts', 'net': 'network', 'world': 'world',
+                     'players': 'world', 'map': 'world', 'objects': 'world', 'ui': 'interface', 'app': 'app',
+                     'console': 'app', 'mods': 'app', 'sound': 'sound and video', 'effects': 'game drawing',
+                     'terrain': 'game drawing', 'models': 'game drawing', 'scene': 'game drawing',
+                     'core': 'game core', 'data': 'game core'}
 FOLDER_AREAS = {'render': 'renderer', 'platform': 'platform', 'lib': 'lib', 'audio': 'sound and video',
                 'video': 'sound and video'}
 AREA_ORDER = [a for a, _ in GAME_AREAS[:8]] + ['interface', 'app', 'game drawing', 'sound and video', 'game core',
@@ -77,6 +84,8 @@ def area_of(rel):
         return 'app'
     if parts[1] != 'game':
         return FOLDER_AREAS.get(parts[1], 'game core')
+    if len(parts) > 3:   # src/game/units/unit.cpp
+        return GAME_FOLDER_AREAS.get(parts[2], 'game core')
     name = os.path.splitext(parts[-1])[0]
     for area, pattern in GAME_AREAS:
         if re.fullmatch(pattern, name):

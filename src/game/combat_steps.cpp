@@ -1,12 +1,12 @@
 // Combat, fourth part: the animation steps of an order (which animation of the unit plays, for how long, and
 // when the action happens). See combat.h, combat_plan.h and docs/notes/combat.md ("Order lifecycle").
-#include "combat.h"
-#include "combat_plan.h"
-#include "item.h"
-#include "map_object_figures.h"
+#include "game/combat.h"
+#include "game/combat_plan.h"
+#include "game/item.h"
+#include "game/map_object_figures.h"
 #include "lib/vecmath.h"
-#include "random.h"
-#include "unit.h"
+#include "game/random.h"
+#include "game/unit.h"
 
 #include "lib/float_select.h"
 #include "platform/log.h"

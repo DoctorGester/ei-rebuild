@@ -1,22 +1,22 @@
 // The item screens' common setup (the camp, the multiplayer hero screen and the exchange window):
 // the caches' trimming, the base Create and the icon window's
 // frame. See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
-#include "app.h"
+#include "game/app.h"
 
-#include "core_streams.h"
-#include "engine_object.h"
-#include "figure_manager.h"
-#include "figure_mesh.h"
-#include "game_singletons.h"
-#include "item.h"
-#include "model.h"
-#include "party.h"
-#include "texture.h"
-#include "ui.h"
-#include "ui_mesh.h"
-#include "ui_camp.h"
-#include "ui_item_info.h"
-#include "ui_screens.h"
+#include "game/core_streams.h"
+#include "game/engine_object.h"
+#include "game/figure_manager.h"
+#include "game/figure_mesh.h"
+#include "game/game_singletons.h"
+#include "game/item.h"
+#include "game/model.h"
+#include "game/party.h"
+#include "game/texture.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/ui_camp.h"
+#include "game/ui_item_info.h"
+#include "game/ui_screens.h"
 
 #include <cstdint>
 #include <cstring>

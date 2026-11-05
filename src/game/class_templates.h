@@ -4,9 +4,9 @@
 // items, spells and modifiers that class may use (the records' class masks). Built at new game into
 // PartyManager::templates.
 
-#include "core_refcount.h"
-#include "item_stock.h"
-#include "party.h"
+#include "game/core_refcount.h"
+#include "game/item_stock.h"
+#include "game/party.h"
 
 struct PartyManager;
 

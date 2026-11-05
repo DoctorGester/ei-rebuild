@@ -3,9 +3,9 @@
 // copied into a shared 16x16 shape (a function-local static reference-counted object; recreated when missing or
 // detached). The patch owns its nodes by the key ((y + 0x800) << 16) + x; the point's cell is
 // truncated from position * 1 / (cell size * 0.5). See ai_map.h and docs/notes/ai.md.
-#include "ai_map.h"
-#include "ai_unit_layer.h"
-#include "core_refcount.h"
+#include "game/ai_map.h"
+#include "game/ai_unit_layer.h"
+#include "game/core_refcount.h"
 
 #include "lib/crt.h"
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine_object.h"
+#include "game/engine_object.h"
 #include "lib/vecmath.h"
 
 #include <cstddef>

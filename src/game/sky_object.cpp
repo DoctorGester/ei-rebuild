@@ -1,9 +1,9 @@
 // SkyObject and Sky's lighting. See sky_object.h.
-#include "sky_object.h"
+#include "game/sky_object.h"
 
 #include "render/render.h"   // MeshChanged
-#include "texture.h"
-#include "world.h"
+#include "game/texture.h"
+#include "game/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

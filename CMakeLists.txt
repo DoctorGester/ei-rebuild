@@ -118,8 +118,10 @@ endif()
 # The game code, with its sound (src/audio: our mixer on SDL3's audio device, the dr_wav / dr_mp3 decoders;
 # docs/notes/sound.md) and its movies (src/video: our Bink 1 decoder): an object library, every object linked in (the
 # static objects' initialisers too) ahead of the renderer and the platform it calls. No archive of them: with the
-# debug information inside each object it was 1.1 GB, rewritten on every change.
-file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp src/audio/*.cpp src/video/*.cpp)
+# debug information inside each object it was 1.1 GB, rewritten on every change. src/game's files are in its folders
+# (src/game/units/unit.cpp) and, until the last move batch, flat (docs/notes/file-layout.md).
+file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/game/*/*.cpp src/lib/*.cpp src/audio/*.cpp
+     src/video/*.cpp)
 add_library(ei_game OBJECT ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE src third_party)
 target_link_libraries(ei_game PUBLIC ei_render ei_platform PRIVATE SDL3::SDL3-static)

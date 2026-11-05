@@ -7,15 +7,15 @@
 // (its snow row), turned by the flake's spin. Both at least a pixel or so wide at any resolution (thinner ones fainter
 // instead), their colour the scene's light. Drawn as pre-transformed triangles with the effects pass's alpha blend,
 // depth tested. docs/notes/renderer.md, section 12, "Weather".
-#include "camera.h"
-#include "clip.h"
-#include "effects.h"
-#include "model.h"
+#include "game/camera.h"
+#include "game/clip.h"
+#include "game/effects.h"
+#include "game/model.h"
 #include "render/render.h"
 #include "render/render_checks.h"
-#include "texture.h"
-#include "weather_field.h"
-#include "world.h"
+#include "game/texture.h"
+#include "game/weather_field.h"
+#include "game/world.h"
 
 #include "lib/containers.h"
 #include "lib/maths.h"

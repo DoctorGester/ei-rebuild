@@ -1,8 +1,8 @@
 // The per-cell occluder words (AIMap::occluders, ai_map.h's namespace occluder): adding and removing one footprint
 // cell's occluder. A cell with more than one chains 8-byte records (SectorOccluder, sector_map.h) of its 32x32
 // sector. See docs/notes/ai.md.
-#include "ai_map.h"
-#include "sector_map.h"
+#include "game/ai_map.h"
+#include "game/sector_map.h"
 
 #include "lib/crt.h"
 

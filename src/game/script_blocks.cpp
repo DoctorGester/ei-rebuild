@@ -1,10 +1,10 @@
 // Small allocation helpers of the script runtime: the parser's new command blocks and WorldScript
 // block, the area lookups and the temporary object references of the
 // evaluator. See script.h and docs/notes/script.md.
-#include "script.h"
-#include "map_object.h"
+#include "game/script.h"
+#include "game/map_object.h"
 
-#include "world_effect.h"
+#include "game/world_effect.h"
 
 #include <cstdint>
 

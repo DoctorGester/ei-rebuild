@@ -1,14 +1,14 @@
 // The landscape (terrain.h): height queries, edge fade, ground decal triangles, draw passes and the per-frame update.
-#include "terrain.h"
+#include "game/terrain.h"
 
-#include "camera.h"
-#include "figure_mesh.h"   // VertexPacket
-#include "ground_decal.h"
-#include "model.h"
-#include "options.h"
-#include "spell.h"
-#include "terrain_sector.h"
-#include "world.h"
+#include "game/camera.h"
+#include "game/figure_mesh.h"   // VertexPacket
+#include "game/ground_decal.h"
+#include "game/model.h"
+#include "game/options.h"
+#include "game/spell.h"
+#include "game/terrain_sector.h"
+#include "game/world.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"

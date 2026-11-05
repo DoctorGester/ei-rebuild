@@ -3,9 +3,9 @@
 // A connection of a network session to one peer (created by SessionBase::AddClient) and the object replication it
 // runs.
 // More: docs/notes/network.md, "Replication".
-#include "core_refcount.h"
-#include "net_classes.h"
-#include "net_coder.h"
+#include "game/core_refcount.h"
+#include "game/net_classes.h"
+#include "game/net_coder.h"
 
 #include <array>
 #include <cstddef>

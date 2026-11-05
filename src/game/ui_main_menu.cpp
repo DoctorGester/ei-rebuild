@@ -1,34 +1,34 @@
 // The main menu (MainMenu, ui_screens.h): its Create, version line, per-frame update, close, message
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
-#include "app.h"
-#include "game_flow.h"
-#include "mod_list.h"
-#include "options.h"
-#include "sound.h"
-#include "ui.h"
-#include "ui_message_box.h"
-#include "ui_screens.h"
+#include "game/app.h"
+#include "game/game_flow.h"
+#include "game/mod_list.h"
+#include "game/options.h"
+#include "game/sound.h"
+#include "game/ui.h"
+#include "game/ui_message_box.h"
+#include "game/ui_screens.h"
 
-#include "base_manager.h"
-#include "core_maths.h"
-#include "text_manager.h"
-#include "map_object_figures.h"
-#include "random.h"
-#include "unit_create.h"
-#include "world.h"
+#include "game/base_manager.h"
+#include "game/core_maths.h"
+#include "game/text_manager.h"
+#include "game/map_object_figures.h"
+#include "game/random.h"
+#include "game/unit_create.h"
+#include "game/world.h"
 
 #include "lib/rect.h"
 #include "platform/platform.h"
 #include <cstdint>
 #include <memory>
 #include <string>
-#include "camera.h"
-#include "terrain.h"
-#include "bink_video.h"
-#include "game_singletons.h"
-#include "model.h"
-#include "figure_manager.h"
+#include "game/camera.h"
+#include "game/terrain.h"
+#include "game/bink_video.h"
+#include "game/game_singletons.h"
+#include "game/model.h"
+#include "game/figure_manager.h"
 
 
 namespace {

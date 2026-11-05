@@ -6,8 +6,8 @@
 // are grouped into four 8x8-tile quarters; each quarter keeps, per texture page, a list of tile entries
 // (3x3 vertices each).
 
-#include "model.h"   // ClipBounds
-#include "terrain.h"
+#include "game/model.h"   // ClipBounds
+#include "game/terrain.h"
 
 #include "lib/vecmath.h"
 

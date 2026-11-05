@@ -7,12 +7,12 @@
 // - VisibilityFog ("VisibilityFog"): a hash_map of fog cells, one per visible map square; each
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
 
-#include "base_manager.h"
-#include "clip.h"   // TLVertex
-#include "core_streams.h"
-#include "core_transform.h"
-#include "model.h"   // ClipBounds
-#include "search_grid.h"
+#include "game/base_manager.h"
+#include "game/clip.h"   // TLVertex
+#include "game/core_streams.h"
+#include "game/core_transform.h"
+#include "game/model.h"   // ClipBounds
+#include "game/search_grid.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

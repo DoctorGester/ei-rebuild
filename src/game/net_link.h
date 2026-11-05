@@ -4,10 +4,10 @@
 // link per remote player.
 // More: docs/notes/network.md, "Message links".
 
-#include "core_refcount.h"
-#include "core_streams.h"
-#include "net_connection.h"
-#include "player_source.h"
+#include "game/core_refcount.h"
+#include "game/core_streams.h"
+#include "game/net_connection.h"
+#include "game/player_source.h"
 
 #include "platform/platform.h"
 #include <cstdint>

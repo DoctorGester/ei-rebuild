@@ -1,13 +1,13 @@
 // The unit record applied to a new unit. See unit_record.h.
-#include "item.h"
-#include "item_manager.h"
-#include "unit.h"
-#include "unit_db.h"
-#include "unit_record.h"
+#include "game/item.h"
+#include "game/item_manager.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
+#include "game/unit_record.h"
 
-#include "combat.h"
+#include "game/combat.h"
 #include "lib/crt.h"
-#include "world.h"
+#include "game/world.h"
 
 #include <cstring>
 

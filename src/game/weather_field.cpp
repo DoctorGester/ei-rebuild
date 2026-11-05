@@ -1,7 +1,7 @@
 // The rain's and the snow's field (weather_field.h): each particle's numbers from a hash of its index, kept in a table
 // ordered by bin; its anchor in the repeating box, its fall, the snow's drift and the fades that hide it where it
 // wraps.
-#include "weather_field.h"
+#include "game/weather_field.h"
 
 #include <algorithm>
 #include <cmath>

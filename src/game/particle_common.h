@@ -8,8 +8,8 @@
 // an Update moves one (0 drops it), a Tick works on one element of the source's array (taking the source alone: on the
 // whole array), a Setup starts the elements the source's spec made.
 
-#include "effects.h"
-#include "random.h"
+#include "game/effects.h"
+#include "game/random.h"
 
 #include "lib/vecmath.h"
 

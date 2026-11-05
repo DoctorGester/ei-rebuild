@@ -1,22 +1,22 @@
 // WorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map objects), the
 // script's AddUnitToServer, and writing the map objects into a save. See world.h and docs/notes/world.md.
-#include "app.h"
-#include "bink_video.h"   // g_loadingMovieOff
-#include "chunk_stream.h"
-#include "core_refcount.h"
-#include "game_flow.h"
-#include "game_singletons.h"
-#include "map_object.h"
-#include "map_spec.h"
-#include "model.h"   // TweenArray (countdowns)
-#include "net_delta.h"
-#include "object_tables.h"
-#include "party.h"
-#include "spell.h"         // SpellEffect: the missiles
-#include "unit.h"
-#include "unit_db.h"
-#include "world.h"
-#include "world_map_files.h"
+#include "game/app.h"
+#include "game/bink_video.h"   // g_loadingMovieOff
+#include "game/chunk_stream.h"
+#include "game/core_refcount.h"
+#include "game/game_flow.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
+#include "game/map_spec.h"
+#include "game/model.h"   // TweenArray (countdowns)
+#include "game/net_delta.h"
+#include "game/object_tables.h"
+#include "game/party.h"
+#include "game/spell.h"         // SpellEffect: the missiles
+#include "game/unit.h"
+#include "game/unit_db.h"
+#include "game/world.h"
+#include "game/world_map_files.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

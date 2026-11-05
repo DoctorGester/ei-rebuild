@@ -1,11 +1,11 @@
 // The old renderer's line-strip draw: stage 0 off around it (src/render/render_state.h), the lines to the new
 // renderer (render::TlDraw).
 // More: docs/notes/models.md, "Renderer".
-#include "renderer_lines.h"
+#include "game/renderer_lines.h"
 
-#include "figure_mesh.h"   // VertexPacket
-#include "model.h"
-#include "texture.h"
+#include "game/figure_mesh.h"   // VertexPacket
+#include "game/model.h"
+#include "game/texture.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "render/render.h"

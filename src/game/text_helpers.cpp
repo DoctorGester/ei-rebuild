@@ -1,5 +1,5 @@
 // Small text helpers of the engine base (text_helpers.h).
-#include "text_helpers.h"
+#include "game/text_helpers.h"
 
 #include "lib/containers.h"
 #include "lib/str.h"

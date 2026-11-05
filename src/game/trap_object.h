@@ -7,7 +7,7 @@
 // "CreateParticleSource( 100, x, y, z, 1, "Mushroom")" at its position and the trap disarms.
 // Names provisional; magic_trap.cpp. Unreached in the shipped game: no map record makes a TrapObject.
 
-#include "map_object.h"
+#include "game/map_object.h"
 
 #include <cstddef>
 #include <cstdint>

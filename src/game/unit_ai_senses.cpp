@@ -1,17 +1,17 @@
 // The unit AI's senses: the eye (the world server's AI events: what a unit sees each brain tick, the nearby
 // units, seeing new ones, the eye's height and facing), hearing, and the perception memory's queries. See
 // unit_ai.h and docs/notes/unit_ai.md.
-#include "ai_map.h"
-#include "combat.h"
-#include "console.h"
-#include "effects.h"
-#include "game_singletons.h"
-#include "map_object.h"
-#include "object_diplomacy.h"
-#include "sector_map.h"
-#include "unit.h"
-#include "unit_ai.h"
-#include "world.h"
+#include "game/ai_map.h"
+#include "game/combat.h"
+#include "game/console.h"
+#include "game/effects.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
+#include "game/object_diplomacy.h"
+#include "game/sector_map.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"

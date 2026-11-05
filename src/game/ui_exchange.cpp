@@ -1,20 +1,20 @@
 // The exchange between players (screen 9, ExchangeScreen; multiplayer only). See ui_screens.h and
 // docs/notes/ui.md, section 4.
-#include "text_manager.h"
-#include "net_classes.h"
-#include "net_messages.h"
-#include "party.h"
-#include "ui.h"
-#include "ui_mesh.h"
-#include "ui_edit_field.h"
-#include "ui_camp.h"
-#include "ui_item_info.h"
-#include "ui_screens.h"
-#include "world.h"
+#include "game/text_manager.h"
+#include "game/net_classes.h"
+#include "game/net_messages.h"
+#include "game/party.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/ui_edit_field.h"
+#include "game/ui_camp.h"
+#include "game/ui_item_info.h"
+#include "game/ui_screens.h"
+#include "game/world.h"
 
 #include "lib/crt.h"
-#include "player_client.h"
-#include "ui_cursor.h"
+#include "game/player_client.h"
+#include "game/ui_cursor.h"
 #include "lib/str.h"
 
 #include <cstdint>

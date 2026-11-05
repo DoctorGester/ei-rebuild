@@ -2,13 +2,13 @@
 // by its Blit: its frame picture, then its window's paint (PaintWith), which draws the window's current state straight
 // into the frame. Every live surface is in a registry so a resolution change places them all again
 // (UiSurface::RelayoutAll). See docs/notes/ui-native.md, section 3.
-#include "app.h"
+#include "game/app.h"
 
-#include "asset_text.h"
-#include "screen_layout.h"
-#include "surface.h"
-#include "ui.h"
-#include "ui_font.h"
+#include "game/asset_text.h"
+#include "game/screen_layout.h"
+#include "game/surface.h"
+#include "game/ui.h"
+#include "game/ui_font.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include "platform/log.h"

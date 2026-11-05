@@ -4,7 +4,7 @@
 // No holder has memory: a software cursor picture's pixels are the renderer's copy of the file's pixels
 // (render::PictureFromMmp); a texture's are decoded from its file or drawn on the GPU. See docs/notes/renderer.md, sections 6 and 7.
 
-#include "renderer_base.h"
+#include "game/renderer_base.h"
 #include "render/render.h"
 
 #include <cstdint>

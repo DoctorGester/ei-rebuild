@@ -1,15 +1,15 @@
 // The local view's orders (PlayerClient): the HUD and the battle screen queue them as messages for the
 // server (PlayerServer's handlers, player_server_handlers.cpp). Each is a type byte and a payload written to
 // the request stream; blocks the original writes in one piece are written in one piece here too.
-#include "player_client.h"
+#include "game/player_client.h"
 
-#include "game_flow.h"
-#include "item.h"
-#include "party.h"
-#include "unit.h"
-#include "world.h"
+#include "game/game_flow.h"
+#include "game/item.h"
+#include "game/party.h"
+#include "game/unit.h"
+#include "game/world.h"
 
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 #include "lib/containers.h"
 
 #include <cstring>

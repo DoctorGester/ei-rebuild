@@ -2,7 +2,7 @@
 // >= 0 -> u <= 1 -> v <= 1, with entry points part way), each stage writing its second triangle into its own
 // function-static buffer. ClipStage is that pipeline with one buffer per stage, so the in-place clipping and
 // the order triangles are emitted in are the same.
-#include "ground_decal.h"
+#include "game/ground_decal.h"
 
 #include "lib/float_select.h"
 

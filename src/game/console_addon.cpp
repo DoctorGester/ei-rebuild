@@ -2,14 +2,14 @@
 // console"): AddNewConsoleCommands ("help", "addon", "execs", "listgvar", "drawall", "nogui") and AutoExec (the
 // "Console AutoExec" registry lines, then 2utoexec.cfg, before each of three console executions). The texts are
 // addon's; its own state (the two log levels, the GUI flags) lives here.
-#include "console.h"
-#include "game_singletons.h"
-#include "options.h"
-#include "script.h"
-#include "settings.h"
+#include "game/console.h"
+#include "game/game_singletons.h"
+#include "game/options.h"
+#include "game/script.h"
+#include "game/settings.h"
 #include "platform/platform.h"
-#include "ui.h"
-#include "ui_cursor.h"
+#include "game/ui.h"
+#include "game/ui_cursor.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

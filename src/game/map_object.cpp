@@ -1,16 +1,16 @@
-#include "map_object.h"
+#include "game/map_object.h"
 
-#include "core_streams.h"
-#include "core_transform.h"
-#include "map_object_figures.h"
-#include "net_delta.h"
-#include "save_versions.h"
-#include "server_specific_manager.h"   // TorchObjectSpec
-#include "spell.h"    // SpellType
-#include "torch.h"
-#include "unit.h"     // MapObjectServer
-#include "unit_create.h"
-#include "world.h"    // World
+#include "game/core_streams.h"
+#include "game/core_transform.h"
+#include "game/map_object_figures.h"
+#include "game/net_delta.h"
+#include "game/save_versions.h"
+#include "game/server_specific_manager.h"   // TorchObjectSpec
+#include "game/spell.h"    // SpellType
+#include "game/torch.h"
+#include "game/unit.h"     // MapObjectServer
+#include "game/unit_create.h"
+#include "game/world.h"    // World
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"

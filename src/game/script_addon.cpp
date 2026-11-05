@@ -5,12 +5,12 @@
 // a name already in the table (case-insensitive) keeps its id and gets the record's signature as its function
 // signature (the first letter is one of "FGOS") or command signature (both cleared first); a new name is appended
 // with id 300 + the record's index. A map by id finds the record before the game's own switch runs.
-#include "script_addon.h"
-#include "script_addon_handlers.h"
+#include "game/script_addon.h"
+#include "game/script_addon_handlers.h"
 
-#include "engine_object.h"
-#include "combat.h"
-#include "unit.h"
+#include "game/engine_object.h"
+#include "game/combat.h"
+#include "game/unit.h"
 
 #include <cstdint>
 #include <cstring>

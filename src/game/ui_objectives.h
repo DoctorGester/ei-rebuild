@@ -2,9 +2,9 @@
 
 // The objectives window.
 
-#include "ui.h"
-#include "ui_scroll_text.h"
-#include "ui_scrollbar.h"
+#include "game/ui.h"
+#include "game/ui_scroll_text.h"
+#include "game/ui_scrollbar.h"
 
 // An exit shown on the objectives window's zone picture.
 struct ObjectiveExit {

@@ -1,8 +1,8 @@
 // BaseManager and the object list iterator. See base_manager.h and docs/notes/core.md.
-#include "base_manager.h"
+#include "game/base_manager.h"
 
-#include "core_streams.h"
-#include "hash_tables_400.h"
+#include "game/core_streams.h"
+#include "game/hash_tables_400.h"
 
 #include "lib/crt.h"
 

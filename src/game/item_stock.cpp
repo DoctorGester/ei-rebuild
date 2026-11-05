@@ -1,13 +1,13 @@
 // The trader stock generation: see docs/notes/items_spells.md ("Trader stock").
-#include "item_stock.h"
+#include "game/item_stock.h"
 
-#include "core_streams.h"
-#include "item.h"
-#include "item_db.h"
-#include "item_manager.h"
-#include "party.h"
-#include "random.h"
-#include "spell.h"
+#include "game/core_streams.h"
+#include "game/item.h"
+#include "game/item_db.h"
+#include "game/item_manager.h"
+#include "game/party.h"
+#include "game/random.h"
+#include "game/spell.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

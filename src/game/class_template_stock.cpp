@@ -2,10 +2,10 @@
 // camp calls when its constructor record is due (items, magic). The generators
 // collect new items in a vector, hand each to the template's party and release it.
 // Names are provisional; see docs/notes/items_spells.md ("Trader stock").
-#include "class_templates.h"
+#include "game/class_templates.h"
 
-#include "item.h"
-#include "party.h"
+#include "game/item.h"
+#include "game/party.h"
 
 #include "lib/crt.h"
 

@@ -2,20 +2,20 @@
 // takes off the vitals' protection, wears the attacker's weapon, and lets the hit location's
 // body slot (or all of them) absorb the rest through its armour layers (DamageSlot), wearing the
 // armour pieces. See unit.h and docs/notes/units.md.
-#include "combat.h"
-#include "console.h"
-#include "options.h"
-#include "unit.h"
+#include "game/combat.h"
+#include "game/console.h"
+#include "game/options.h"
+#include "game/unit.h"
 
-#include "object_tables.h"
-#include "party.h"
-#include "player_messages.h"
-#include "item.h"
-#include "spell.h"
+#include "game/object_tables.h"
+#include "game/party.h"
+#include "game/player_messages.h"
+#include "game/item.h"
+#include "game/spell.h"
 
 #include <cstring>
 #include "lib/rounding.h"
-#include "logic_settings.h"
+#include "game/logic_settings.h"
 #include "lib/float_select.h"
 
 namespace {

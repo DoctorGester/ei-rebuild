@@ -1,8 +1,8 @@
 // Containers (UiContainer, ui.h): the input dispatch, which passes an
 // event on to the extra inputs and the child windows. See docs/notes/ui.md ("Container input dispatch").
-#include "game_singletons.h"
-#include "model.h"
-#include "ui.h"
+#include "game/game_singletons.h"
+#include "game/model.h"
+#include "game/ui.h"
 
 // --- Per-frame slots ---------------------------------------------------------------------------
 
