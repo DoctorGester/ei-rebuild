@@ -4,3 +4,5 @@ group = "port"
 depends = ["PL19a"]
 note = "From PL19a. settings.cpp's FileNextToExe puts ei_settings.ini beside the executable, which on macOS is inside ei-rebuild.app/Contents/MacOS (lost when the app is replaced, and it changes a signed bundle); a translocated (quarantined) app cannot write there and falls back to ~/Library/Application Support/EvilIslands. Pick one rule behind the platform layer (e.g. a platform::SettingsFolder: the program's folder on Windows/Linux, the game folder or ~/Library/Application Support/ei-rebuild on macOS), update the zip's README.txt and macos.md ('The game folder and the log'). Windows and Linux unchanged."
 order = 1175
+status = "running"
+started = "2026-11-05"
