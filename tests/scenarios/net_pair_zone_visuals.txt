@@ -1,0 +1,66 @@
+# R57c: a multiplayer client keeps its own picture of a zone it leaves (saves\current\<zone>.visuals.sav in its own
+# saves folder, src/game/client_visuals.h; docs/notes/renderer.md, "What a save keeps of the picture"). This game hosts
+# as net_pair_join does, picks z3q2 (the sheriff's second topic, as net_host_death) and walks into it; the peer
+# (peer/net_pair_zone_visuals.txt) joins it there and walks (footprints), leaves back to its own base through exit 1
+# and comes in again: its prints come back from its own side file, aged by the ticks this game's zone ran on without
+# it. This game stays in the zone throughout and keeps no side file of the peer's (each game its own saves folder).
+# A clickground lands where the clicked pixel's ray meets the ground and the leader walks to that exact point, so
+# the walk follows the frame's pixel grid. The vanilla runs play in the image's 4:3 window (harness_starter.h); the
+# Rebirth runs at the desktop's size, the wide layout at 16:9 (W12).
+rebirth resolution desktop
+timeout 180
+peer net_pair_zone_visuals
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+peerwait 90 joined
+frames 20
+
+# The sheriff's second topic picks the map.
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+waitdialogue 10 1
+clickregion 1
+talk 30
+
+# Out through the gate into the game zone; the peer follows, leaves and comes back.
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 20
+peersignal entered
+peerwait 150 back
+frames 20
+peersignal done
+frames 20
+report
+quit

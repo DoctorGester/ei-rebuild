@@ -3,9 +3,10 @@ r"""Saved games decoded field by field (docs/notes/standalone-verification.md, S
 The game writes a save (GameFlow::SaveGame 0057B3B0) as files in saves\<slot>\: scenario.sav (the party, the
 input state, the scripts, the globals; magic 0xDEAD), mission.sav (the world, CWorldServer::SaveWorld 00597BD0;
 magic 0x102), info.sav (the slot's title, raw) and shot.sav (the thumbnail). Visited zones are kept as
-saves\current\<zone>.sav (SaveWorld too). Ours adds visuals.sav beside them (the client's picture: magic 0x157,
-src/game/client_visuals.h). Every .sav but info.sav and shot.sav is SaveFileWrite's (00579B80) frame:
-magic, version, checksum of the plain data, a compressed flag and the LZ coder's output (net_coder.cpp).
+saves\current\<zone>.sav (SaveWorld too). Ours adds visuals.sav beside a slot's files and <zone>.visuals.sav
+beside a zone's (the client's picture: magic 0x157, src/game/client_visuals.h). Every .sav but info.sav and shot.sav
+is SaveFileWrite's (00579B80) frame: magic, version, checksum of the plain data, a compressed flag and the LZ
+coder's output (net_coder.cpp).
 
 decode(path) gives the save as entities keyed by object id rather than by memory: [(key, description, [(field,
 value)])]. Values that follow memory layout can be written as a rule token (`~addr`, `~junk`, ...; RULES gives each
@@ -555,7 +556,8 @@ def read_ground_print(r, kind):
 def read_visuals(r):
     """visuals.sav (ClientVisuals::Save): sections of a u32 kind, a u32 version and a u32 size until kind 0. The
     versions this decoder knows are read field by field; any other is kept as its bytes."""
-    known = {(1, 1): 'weather', (2, 1): 'waves', (3, 1): 'units', (4, 1): 'prints', (5, 1): 'generator'}
+    known = {(1, 1): 'weather', (2, 1): 'waves', (3, 1): 'units', (4, 1): 'prints', (5, 1): 'generator',
+             (6, 1): 'zone'}
     while True:
         kind = r.u32(None)
         version = r.u32(None)
@@ -600,6 +602,9 @@ def read_visuals(r):
             r.u32('aa')
             r.u32('bb')
             r.u32('cc')
+        elif name == 'zone':
+            r.i32('tick')
+            r.string('map')
         else:
             r.raw('bytes', size)
         if r.p != end:

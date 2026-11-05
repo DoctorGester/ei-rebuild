@@ -3,6 +3,7 @@
 #include "client_visuals.h"
 
 #include "core_streams.h"
+#include "game_singletons.h"
 #include "ground_print.h"
 #include "random.h"
 #include "save_file.h"
@@ -11,6 +12,8 @@
 #include "texture.h"
 #include "world.h"
 
+#include "lib/str.h"
+#include "platform/log.h"
 #include "render/render.h"
 
 #include <algorithm>
@@ -26,6 +29,7 @@ constexpr std::uint32_t kWavesVersion = 1;
 constexpr std::uint32_t kUnitsVersion = 1;
 constexpr std::uint32_t kPrintsVersion = 1;
 constexpr std::uint32_t kGeneratorVersion = 1;
+constexpr std::uint32_t kZoneVersion = 1;
 // A section's head: its kind, its version and its size, a u32 each.
 constexpr std::uint32_t kSectionHead = 12;
 // A kept unit in the Units section: its id, wetness and snow.
@@ -33,6 +37,11 @@ constexpr std::uint32_t kUnitBytes = 12;
 // The Generator section: seeded, count, results, memory, aa, bb, cc (a u32 each).
 constexpr std::uint32_t kGeneratorResults = 256;
 constexpr std::uint32_t kGeneratorBytes = 4 * (2 + 2 * kGeneratorResults + 3);
+constexpr const char* kCurrentFolder = "%ssaves\\current\\";
+constexpr const char* kZoneVisualsFile = ".visuals.sav";
+// A picture is the loaded zone's when it was kept at most this many ticks after the zone's tick: the client's tick runs
+// a tick or two ahead of the server's that a save keeps.
+constexpr std::int32_t kTickSlack = 8;
 
 bool Finite(float value) { return std::isfinite(value); }
 bool Finite(double value) { return std::isfinite(value); }
@@ -151,7 +160,33 @@ void SaveGenerator(const IsaacRandom& random, ByteStream* body) {
     body->WriteValue(random.cc);
 }
 
+// The Zone section: the tick, then the map's name. None when the section is malformed.
+std::optional<KeptZone> LoadZone(MemoryStream& body) {
+    KeptZone zone;
+    body.ReadValue(zone.tick);
+    zone.map = body.ReadString();
+    if (!body.ok || body.Position() != body.Size()) return std::nullopt;
+    return zone;
+}
+
+// A print list moved on by `ticks` of its life (the zone's time away): each print ticked as the client world does,
+// the ones that run out on the way dropped.
+template <typename Print>
+void AgePrints(std::vector<Print>& list, int ticks) {
+    std::erase_if(list, [ticks](Print& print) {
+        if (ticks >= print.life) return true;
+        for (int k = ticks; k > 0; --k) print.Tick();
+        return false;
+    });
+}
+
 }   // namespace
+
+std::string ZoneVisualsName(std::string_view zone) { return std::string(zone) + kZoneVisualsFile; }
+
+std::string ZoneVisualsPath(std::string_view zone) {
+    return str::Format(kCurrentFolder, DataFolderText()) + ZoneVisualsName(zone);
+}
 
 ClientVisuals ClientVisuals::Take(const WorldClient& world) {
     ClientVisuals kept;
@@ -169,6 +204,7 @@ ClientVisuals ClientVisuals::Take(const WorldClient& world) {
     SavePrints(world.scorchMarks, &body);
     kept.prints.assign(body.data.data(), body.data.data() + body.Size());
     if (g_clientRandom.seeded) kept.generator = g_clientRandom;
+    kept.zone = KeptZone{world.tick, world.shownMap};
     return kept;
 }
 
@@ -221,6 +257,9 @@ void ClientVisuals::Load(ByteStream* stream) {
         case VisualSection::Generator:
             if (version == kGeneratorVersion) generator = LoadGenerator(body);
             break;
+        case VisualSection::Zone:
+            if (version == kZoneVersion) zone = LoadZone(body);
+            break;
         default:
             break;
         }
@@ -249,24 +288,42 @@ void ClientVisuals::Save(ByteStream* stream) const {
         SaveGenerator(*generator, &body);
         WriteSection(stream, VisualSection::Generator, kGeneratorVersion, body);
     }
+    if (zone) {
+        body.Resize(0);
+        body.WriteValue(zone->tick);
+        body.WriteString(zone->map);
+        WriteSection(stream, VisualSection::Zone, kZoneVersion, body);
+    }
     stream->WriteValue(static_cast<std::uint32_t>(VisualSection::End));
     stream->WriteValue(std::uint32_t{0});
     stream->WriteValue(std::uint32_t{0});
 }
 
 void ClientVisuals::Restore(WorldClient& world) {
-    if (weather) render::RestoreWeather(*weather);
-    if (wavePhase && world.terrain) world.terrain->wavePhase = *wavePhase;
-    if (!prints.empty()) RestorePrints(world);
-    if (generator) g_clientRandom = *generator;
+    const bool fits = !zone || (zone->map == world.shownMap && zone->tick <= world.tick + kTickSlack);
+    const int away = fits && zone ? std::max(world.tick - zone->tick, 0) : 0;
+    if (zone) {
+        ei::Log("client visuals: %s kept at tick %d of %s, loaded at tick %d of %s: %s", world.shownZone.c_str(),
+                zone->tick, zone->map.c_str(), world.tick, world.shownMap.c_str(),
+                fits ? "restored" : "not the zone's");
+    }
+    dueUnits.clear();
+    if (fits) {
+        if (weather) render::RestoreWeather(*weather);
+        if (wavePhase && world.terrain) world.terrain->wavePhase = *wavePhase;
+        if (!prints.empty()) RestorePrints(world, away);
+        if (generator) g_clientRandom = *generator;
+        dueUnits = std::move(units);
+    }
     weather.reset();
     wavePhase.reset();
+    units.clear();
     prints.clear();
     generator.reset();
-    dueUnits = std::exchange(units, {});
+    zone.reset();
 }
 
-void ClientVisuals::RestorePrints(WorldClient& world) const {
+void ClientVisuals::RestorePrints(WorldClient& world, int away) const {
     MemoryStream body;
     body.Fill(prints.data(), static_cast<std::uint32_t>(prints.size()));
     std::vector<BloodPrint> blood;
@@ -274,6 +331,9 @@ void ClientVisuals::RestorePrints(WorldClient& world) const {
     std::vector<GroundPrint> scorch;
     if (LoadPrints(body, &blood) && LoadPrints(body, &feet) && LoadPrints(body, &scorch) &&
         body.Position() == body.Size()) {
+        AgePrints(blood, away);
+        AgePrints(feet, away);
+        AgePrints(scorch, away);
         world.bloodPrints = std::move(blood);
         world.footprints = std::move(feet);
         world.scorchMarks = std::move(scorch);

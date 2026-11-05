@@ -1,0 +1,68 @@
+# The peer of net_pair_zone_visuals: joins the host's game (as in net_pair_join); once the host has entered z3q2 it
+# walks out of its own base the same way into the host's zone, walks towards exit 1 (footprints), leaves through it
+# back to its own base (the leave box's Enter: the zone change keeps its picture of z3q2 in its own saves\current) and
+# walks out through the gate again: the zone's load restores its prints from that side file.
+rebirth resolution desktop
+timeout 180
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+peerwait 90 hosted
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 40 briefing
+peersignal joined
+
+peerwait 200 entered
+frames 20
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitwindow 60 battle
+frames 20
+
+# A walk in the zone (footprints), then out through exit 1 (remove rectangle 0 130 20 147) to the base.
+clickground 15 138 dblclick
+frames 40
+groundprints 0 99 1 999
+clickground 8 138 dblclick
+waitwindow 30 msgbox
+key enter
+waitwindow 60 briefing
+frames 40
+
+# In again: the prints are back (over 80 kept, about 20 when only those made since the return).
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitwindow 60 battle
+frames 20
+groundprints 0 99 40 999
+peersignal back
+peerwait 60 done
+frames 2
+report
+quit
