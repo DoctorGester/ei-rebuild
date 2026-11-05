@@ -1591,11 +1591,21 @@ std::size_t SubmissionsHeld() {
     return g_submissions.size();
 }
 
+// The frame timer's thread ended and joined: a joinable std::thread that is destroyed calls std::terminate, which
+// ended the game with a crash report (seconds long) after every quit with the performance overlay on. SetFrameTiming
+// registers it with std::atexit for the exits that never reach the renderer's stop (a fatal error's, std::exit).
+static void EndTimer() {
+    g_timing.store(false);
+    if (g_timer.joinable()) g_timer.join();
+}
+
 void SetFrameTiming(bool on) {
     if (on == g_timing.load()) return;
     if (on && !g_device) return;
     g_timing.store(on);
     if (on) {
+        static const bool registered = (std::atexit(EndTimer), true);
+        (void)registered;
         {
             std::lock_guard<std::mutex> lock(g_fenceLock);
             g_lastFinished = 0.0;

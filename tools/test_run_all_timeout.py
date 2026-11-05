@@ -152,6 +152,14 @@ report('console output:\n  hello\nRESULT: ' + ('FAIL' if peer and mode == 'peerf
 open(os.path.join(out, 'harness_quit'), 'w').close()
 if mode == 'exithang':
     time.sleep(60)
+if mode == 'slowexit':   # the game's own exit stages over the limit
+    open(os.path.join(out, 'ei-rebuild.log'), 'w').write(
+        '[10:00:01.000] exit: the quit request\n[10:00:01.500] exit: the game stopped\n[10:00:04.200] exit: the exit functions done\n')
+if mode == 'abortexit':   # an abort at exit (std::terminate): the fast-fail exit code
+    sys.exit(0xC0000409)
+if mode == 'quickexit':
+    open(os.path.join(out, 'ei-rebuild.log'), 'w').write(
+        '[23:59:59.900] exit: the quit request\n[00:00:00.050] exit: the exit functions done\n')
 '''
 
 
@@ -227,6 +235,18 @@ class Launch(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn('still running 1 s after the scenario quit', output)
         self.assertTrue(os.path.exists(os.path.join(self.out, 'exit_hang.txt')))
+
+    def test_slow_exit_and_abort_at_exit_fail_the_run(self):
+        # PL22: a game that ended by itself fails when its own exit stages took over EXIT_SLOW_S or it left by an abort;
+        # a quick quit (across midnight too) passes.
+        code, _, report = self.launch('slowexit')
+        self.assertEqual(code, 1)
+        self.assertIn('FAILED: the game took 3.2 s from the quit request to the end of its exit functions (limit 2 s)', report)
+        code, _, report = self.launch('abortexit')
+        self.assertEqual(code, 1)
+        self.assertIn('FAILED: the game ended with exit code C0000409 after its scenario quit', report)
+        self.assertEqual(self.launch('quickexit')[0], 0)
+        self.assertEqual(self.launch('pass')[0], 0)
 
     def test_settings_file(self):
         os.makedirs(os.path.join(self.root, 'scenarios', 'settings'))

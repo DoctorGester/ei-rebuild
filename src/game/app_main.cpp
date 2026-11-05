@@ -457,7 +457,10 @@ int RunMainLoop() {
             waits = EventWaits(ei::mainloop::Site::PeekAfterFrame);
         }
         const platform::Event event = platform::NextEvent();
-        if (event.type == platform::EventType::Quit) return event.quitCode;
+        if (event.type == platform::EventType::Quit) {
+            ei::Log("exit: the quit request");
+            return event.quitCode;
+        }
         if (interfaceInput) DispatchInput(event);
         else HandleWindowEvent(event);
     }
@@ -494,9 +497,12 @@ void StopGame() {
 
 void ShutDown() {
     StopGame();
+    ei::Log("exit: the game stopped");
     g_sceneRenderer.SetGamma(0.0f, 0.0f);
     g_sceneRenderer.DestroyRenderer();
+    ei::Log("exit: the renderer destroyed");
     options::g_options.Save();
+    ei::Log("exit: the settings saved");
 }
 
 // ---- A switch of mods ------------------------------------------------------------------------------

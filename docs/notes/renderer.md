@@ -1560,7 +1560,11 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
 - **The frame's GPU time** (the overlay's GPU line, one whole-frame time, user 2026-11-03): SDL_GPU has no timestamp
   queries, so `SetFrameTiming(true)` starts a thread that polls the submissions' fences every 0.2 ms; a submission's
   time runs from its submission (or the end of the one before, if later) to when its fence was seen signalled.
-  `FrameGpuTime` gives the latest. The thread only queries fences: SDL's Direct3D 12 `SDL_WaitForGPUFences` holds the
+  `FrameGpuTime` gives the latest. The thread is joined when the renderer stops (`render::Shutdown`, from
+  `SceneRenderer::DestroyRenderer`) and by an `std::atexit` function for exits that skip it: a joinable `std::thread`
+  destroyed at exit called `std::terminate`, and with the overlay on (Rebirth's profile) every quit crashed after the
+  exit functions and waited 2-3 s for the system's crash report (PL22). `gpu::Stop` is not called at exit: the device,
+  its textures and the window go with the process. The thread only queries fences: SDL's Direct3D 12 `SDL_WaitForGPUFences` holds the
   submit lock while it waits, so a waiting thread would stall the main thread's submissions.
 - **Fences**: each `Submit` keeps its submission's fence until the submission is seen finished; with the frame timer
   off, `Submit` asks the older ones itself, so a finished submission's fence goes back to SDL at the next submission

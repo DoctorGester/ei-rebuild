@@ -605,6 +605,8 @@ void PrepareDevice(int msaa) {
     });
 }
 
+void Shutdown() { perf::Release(); }
+
 void StartPresenting() { Start(); }
 
 void SetMsaa(int samples) {

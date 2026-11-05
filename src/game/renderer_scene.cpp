@@ -95,6 +95,7 @@ void SceneRenderer::SetSunAndAmbient(Light* light, float r, float g, float b) {
 SceneRenderer g_sceneRenderer;
 
 void SceneRenderer::DestroyRenderer() {
+    render::Shutdown();
     ReleasePipeline();
     helper.Reset();
     device.Reset();

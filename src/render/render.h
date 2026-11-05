@@ -49,6 +49,9 @@ void SetAnisotropy(int level);
 int Anisotropy();
 // False in the harness build: its pinned settings file lacks the values (a read of a missing value fails a run).
 bool QualitySettingsSupported();
+// The renderer stops: the performance overlay's frame timing thread ended. The device, its textures and its window
+// stay until the process ends (nothing the next start needs is in them).
+void Shutdown();
 // The world view's draws (WorldClient::Render) come between BeginWorld and EndWorld.
 void BeginWorld();
 void EndWorld();
