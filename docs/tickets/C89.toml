@@ -5,4 +5,5 @@ model = "sonnet"
 depends = ["C87"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items R6, R9. FrameStats keeps counts[kCountKinds] and ms[kTimeKinds] indexed by enum (summing becomes two loops); one plain Timer with Begin/End replacing the placement-new/launder storage, optional<StatsTimer>, the intrusive chain and perf::CpuTimer duplicates. Move the harness-only API (SmoothInfo, OcclusionInfo, ShadowInfo, cache infos, CursorInfo, WindowPresentInfo, the Begin/End*Time functions) to render_checks.h with the same API in every build and the check bodies in render_checks.cpp; no declared-but-only-defined-under-EI_RENDER_VALIDATION functions or (void)x bodies. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1019
-status = "queued"
+status = "running"
+started = "2026-11-05"
