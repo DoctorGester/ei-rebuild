@@ -374,8 +374,8 @@ F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF 
   0-20 the original's, 21 our resolution row, a drop-down list: renderer.md, "Resolution changes"; 22-26 our graphics
   rows in the display group's free rows 8 and 10-13, kind 3 a spin control over a list of choices: renderer.md, "The
   graphics rows"; their labels and tips are added texts, Russian where the game's are),
-  59 key actions; 14 rows, 11 groups. The slider (`UiSlider : UiScrollbar`): regions 0 (left, bottom - 10, left + 12,
-  bottom), 1 (right - 12, bottom - 10, right, bottom), 2 (left, top, right, bottom - 10); the scroll bar's depth is 3.0. The
+  59 key actions; 14 rows, 11 groups. The slider (`UiSlider : UiScrollbar`): `upButton` (left, bottom - 10, left + 12,
+  bottom), `downButton` (right - 12, bottom - 10, right, bottom), `trackArea` (left, top, right, bottom - 10); the scroll bar's depth is 3.0. The
   edit field's keys: Backspace, End, Home, Left, Right, Delete. Key names are followed by "  |  ".
 - **Objectives window**: TAB (keyboard.ini `obj`) opens it, Esc or Enter closes it; OK asks for the zone at the nearest exit.
   Build shows the current zone's page, or the zones of the allod in which the player holds quests ("q.<zone>.<quest>" = 1;

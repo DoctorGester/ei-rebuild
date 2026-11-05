@@ -25,6 +25,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <initializer_list>
 #include <memory>
 #include <string>
 
@@ -41,9 +42,6 @@ constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: 
 // Animation frames per millisecond of timeGetTime (15 / 1024; a double: the milliseconds since the system started).
 constexpr double kFramesPerMillisecond = 15.0 / 1024.0;
 
-constexpr int kFirstVoiceRegion = 9;
-constexpr int kVoiceRegionEnd = 20;
-constexpr int kCreateButton = 9;             // scene object of the create button
 constexpr float kListDepth = 553.0f;
 constexpr float kNewHeroDepth = 400.0f;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
@@ -52,7 +50,6 @@ constexpr int kFont = 1;
 const char* const kVoicesKey = "lmp_voices";
 // The voice rows' first y offset of the selection frame.
 constexpr float kVoiceFrameTop = 332.5f;
-constexpr int kSelectionFrame = 2;           // scene object
 constexpr std::uint32_t kListFormat = render::text::kNoPrefix;
 constexpr float kFrameDepth = 3.0f;
 
@@ -108,8 +105,7 @@ void MpHeroScreen::DrawSprites(SceneRenderer* pass) {
         if (info.kind == HoverKind::None) {
             if (statsPanel->enabled) info = statsPanel->HoverInfo(cursor);
             if (info.kind == HoverKind::None && mode == kModeNewHero) {
-                int region = RegionAt(cursor);
-                if (region >= kFirstVoiceRegion && region < kVoiceRegionEnd) {
+                if (const int row = ListRow(RegionUnder(cursor)); row >= 0 && row < kVoiceRows) {
                     info.kind = HoverKind::Text;
                     info.text = kSelectVoiceKey;
                 }
@@ -151,10 +147,9 @@ void MpHeroScreen::Update() {
     bool equal = points == target;
     bool ready = equal && !name.empty();
     float shade = ready ? 1.0f : 0.5f;
-    auto* button = sceneObjects[kCreateButton];
-    button->tint[0] = shade;
-    button->tint[1] = shade;
-    button->tint[2] = shade;
+    createIcon->tint[0] = shade;
+    createIcon->tint[1] = shade;
+    createIcon->tint[2] = shade;
 }
 
 // --- Close -----------------------------------------------------------------------------
@@ -172,16 +167,15 @@ void MpHeroScreen::CloseScreen() {
 
 void MpHeroScreen::DrawHeroList() {
     labels[0].clear();
-    UiMesh* frame = sceneObjects[kSelectionFrame];
-    frame->visible = false;
+    selectionFrame->visible = false;
     Rect area = {12, 13, 265, 33};
     const auto count = static_cast<std::uint32_t>(g_savedParties.Count());
     std::uint32_t index = static_cast<std::uint32_t>(heroTop);
     for (int y = 262; y < 502; y += 24, ++index) {
         if (index >= count) break;
         if (static_cast<int>(index) == heroIndex) {
-            frame->visible = true;
-            frame->Place(240.0f, static_cast<float>(y), kFrameDepth);
+            selectionFrame->visible = true;
+            selectionFrame->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
         // A hero record is a party; its name the first member's scriptName.
         labels[0].push_back({g_savedParties.Hero(static_cast<int>(index))->GetParty()->members[0].scriptName, area, {1, kUiTextColour, kListFormat}});
@@ -192,8 +186,7 @@ void MpHeroScreen::DrawHeroList() {
 void MpHeroScreen::DrawVoices() {
     std::vector<UiLabel>& out = labels[2];
     out.clear();
-    UiMesh* frame = sceneObjects[kSelectionFrame];
-    frame->visible = false;
+    selectionFrame->visible = false;
     std::string title;
     title = g_clientWorld.texts->GetString(kVoicesKey);
     out.push_back({title, Rect{10, 5, 190, 20}, {0, kWhite, render::text::kCenter}});
@@ -203,9 +196,9 @@ void MpHeroScreen::DrawVoices() {
         const std::vector<MpVoiceEntry>& currentVoices = *voices;
         if (index >= currentVoices.size()) break;
         if (static_cast<int>(index) == voiceIndex) {
-            frame->visible = true;
+            selectionFrame->visible = true;
             float y = offset + kVoiceFrameTop;
-            frame->Place(97.5f, y, kFrameDepth);
+            selectionFrame->Place(97.5f, y, kFrameDepth);
         }
         out.push_back({currentVoices[index].name, area, {0, kUiTextColour, kListFormat}});
         area.Offset(0, 15);
@@ -278,30 +271,24 @@ void MpHeroScreen::ShowHero(int index) {
 
 namespace {
 
-// The sprites: the selection frame, the four quarters of the frame around the figure, and the
-// three shown only on the new hero's pages (the last is the create button).
-constexpr int kFirstQuarter = 3;
-constexpr int kFirstNewHeroSprite = 7;
-constexpr int kSpritesEnd = 10;
-// The regions every mode keeps (the buttons); the list rows come after them.
-constexpr int kFixedRegions = 9;
 constexpr int kRowsBottom = 490;
 
 constexpr float kQuarterDepth = 7.0f;
 constexpr float kScale = 100.0f;
 
-void ShowSprites(MpHeroScreen* screen, int first, int end, int visible) {
-    for (int i = first; i < end; ++i) screen->sceneObjects[i]->visible = visible;
+void ShowNewHeroIcons(MpHeroScreen* screen, bool visible) {
+    for (UiMesh* icon : {screen->resetIcon, screen->cancelIcon, screen->createIcon}) icon->visible = visible;
 }
 
 // A quarter of the frame around the figure: texels (u0, 0x1C)-(u1, 0xE4).
 void SetQuarter(MpHeroScreen* screen, int quarter, float left, float top, float right, float bottom, int u0, int u1) {
-    screen->sceneObjects[kFirstQuarter + quarter]->SetRectangle(kQuarterDepth, kScale, left, top, right, bottom, u0, 0x1C, u1, 0xE4);
+    screen->quarters[quarter]->SetRectangle(kQuarterDepth, kScale, left, top, right, bottom, u0, 0x1C, u1, 0xE4);
 }
 
 // The selection frame over a list's first row (the whole texture).
 void SetSelectionFrame(MpHeroScreen* screen, float left, float top, float right, float bottom) {
-    screen->sceneObjects[kSelectionFrame]->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, kUiTextureSize, kUiTextureSize);
+    screen->selectionFrame->SetRectangle(kFrameDepth, kScale, left, top, right, bottom, 0, 0, kUiTextureSize,
+                                         kUiTextureSize);
 }
 
 // The rows of a list as regions: `height` apart from `top` down to kRowsBottom.
@@ -328,29 +315,31 @@ void MpHeroScreen::SetMode(int newMode) {
     heroScroll->SetEnabled(false);
     voiceScroll->SetEnabled(false);
     iconWindow->SetEnabled(false);
-    ShowSprites(this, 0, static_cast<int>(std::ssize(sceneObjects)), 0);
+    for (UiMesh* sprite : sceneObjects) sprite->visible = false;
     for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide();
     while (std::ssize(regions) > kFixedRegions) RemoveRegionAt(kFixedRegions);
     for (int i = 0; i < std::ssize(regions); ++i) regions[i]->SetTip(0);
 
-    UiRegion** newRegions = regions.data();
     if (newMode == kModeList) {
         menu->ShowPart("but03", 1);
         menu->ShowPart("button03_multiplayer", 1);
         heroScroll->SetEnabled(true);
-        ShowSprites(this, 0, static_cast<int>(std::ssize(sceneObjects)), 1);
-        ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 0);
+        for (UiMesh* sprite : sceneObjects) sprite->visible = true;
+        ShowNewHeroIcons(this, false);
         SetQuarter(this, 0, 410.0f, 100.0f, 555.0f, 300.0f, 0x53, 0xE4);
         SetQuarter(this, 1, 555.0f, 100.0f, 700.0f, 300.0f, 0x1C, 0xAD);
         SetQuarter(this, 2, 410.0f, 300.0f, 555.0f, 500.0f, 0x53, 0xE4);
         SetQuarter(this, 3, 555.0f, 300.0f, 700.0f, 500.0f, 0x1C, 0xAD);
-        newRegions[0]->SetRect(563, 526, 637, 574);
-        newRegions[1]->SetRect(163, 526, 237, 574);
-        newRegions[2]->SetRect(455, 470, 485, 500);
-        newRegions[3]->SetRect(625, 470, 655, 500);
-        newRegions[0]->SetTip(0x9CA5);
-        newRegions[1]->SetTip(0x9CA4);
-        for (int i = 5; i < kFixedRegions; ++i) newRegions[i]->SetTip(i + 0x9D03);
+        backButton->SetRect(563, 526, 637, 574);
+        forwardButton->SetRect(163, 526, 237, 574);
+        turnButtons[0]->SetRect(455, 470, 485, 500);
+        turnButtons[1]->SetRect(625, 470, 655, 500);
+        backButton->SetTip(0x9CA5);
+        forwardButton->SetTip(0x9CA4);
+        newHeroButton->SetTip(0x9D08);
+        renameButton->SetTip(0x9D09);
+        deleteButton->SetTip(0x9D0A);
+        inventoryButton->SetTip(0x9D0B);
         surfaces[0]->Show();
         surfaces[1]->Show();
         nameEdit->SetEnabled(false);
@@ -360,7 +349,8 @@ void MpHeroScreen::SetMode(int newMode) {
         ShowHero(heroIndex);
     } else if (newMode == kModeNewHero) {
         voiceScroll->SetEnabled(true);
-        ShowSprites(this, kFirstQuarter, kSpritesEnd, 1);
+        for (UiMesh* quarter : quarters) quarter->visible = true;
+        ShowNewHeroIcons(this, true);
         SetQuarter(this, 0, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0xE4);
         SetQuarter(this, 1, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0xE4);
         SetQuarter(this, 2, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0xE4);
@@ -370,13 +360,13 @@ void MpHeroScreen::SetMode(int newMode) {
         statsPanel->SetEnabled(true);
         figureStrips[0]->SetEnabled(true);
         figureStrips[1]->SetEnabled(true);
-        newRegions[0]->SetRect(620, 430, 660, 470);
-        newRegions[1]->SetRect(740, 430, 780, 470);
-        newRegions[2]->SetRect(300, 470, 330, 500);
-        newRegions[3]->SetRect(470, 470, 500, 500);
-        newRegions[0]->SetTip(0x9D6D);
-        newRegions[1]->SetTip(0x9D6C);
-        newRegions[4]->SetTip(0x9D6E);
+        backButton->SetRect(620, 430, 660, 470);
+        forwardButton->SetRect(740, 430, 780, 470);
+        turnButtons[0]->SetRect(300, 470, 330, 500);
+        turnButtons[1]->SetRect(470, 470, 500, 500);
+        backButton->SetTip(0x9D6D);
+        forwardButton->SetTip(0x9D6C);
+        resetButton->SetTip(0x9D6E);
         nameEdit->SetEnabled(true);
         nameEdit->SetFocused(true);
         surfaces[2]->Show();
@@ -384,18 +374,18 @@ void MpHeroScreen::SetMode(int newMode) {
         AddRows(this, 10, 180, 325, 15);
         DrawVoices();
     } else if (newMode == kModeStats) {
-        ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 1);
+        ShowNewHeroIcons(this, true);
         iconWindow->SetEnabled(true);
         iconWindow->PlaceBars(400);
         weaponPanel->SetEnabled(true);
         spellPanel->SetEnabled(true);
         tradePanel->SetEnabled(true);
         statsPanel->SetEnabled(true);
-        newRegions[0]->SetRect(620, 430, 660, 470);
-        newRegions[1]->SetRect(740, 430, 780, 470);
-        newRegions[0]->SetTip(0x9E35);
-        newRegions[1]->SetTip(0x9E34);
-        newRegions[4]->SetTip(0x9E36);
+        backButton->SetRect(620, 430, 660, 470);
+        forwardButton->SetRect(740, 430, 780, 470);
+        backButton->SetTip(0x9E35);
+        forwardButton->SetTip(0x9E34);
+        resetButton->SetTip(0x9E36);
         surfaces[2]->Show();
         nameEdit->SetEnabled(false);
         nameEdit->SetFocused(false);
