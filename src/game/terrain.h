@@ -82,10 +82,11 @@ public:
     // No map: sizes -1, the ambient loops stopped.
     void ClearMap();
 
-    // The shown point lights (`lights`, the GPU lighting's). Nothing happens before a map is loaded.
-    // Registers the light by id (held).
+    // The shown point lights (`lights`, the GPU lighting's). Registers the light by id (held); nothing happens
+    // before a map is loaded.
     void AddLight(Light* light);
-    // Takes the light off the table, which drops the reference it held (none for a light not registered).
+    // Takes the light off the table, which drops the reference it held (none for a light not registered), with or
+    // without a map.
     void RemoveLight(Light* light);
 
     // The change is added to the material and to every sector's level table. Nothing for a material the map

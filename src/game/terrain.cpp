@@ -279,11 +279,14 @@ void Terrain::DrawPages(SceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return;
     ForVisibleSectors(this, [&](SectorData* sector) { sector->ClipTest(renderer); });
     for (int page = firstPage; page <= lastPage; ++page) {
+        // An extra page whose texture file is missing has no texture and is not drawn.
+        const std::size_t index = static_cast<std::size_t>(page % LayerPages());
+        if (index >= pageTextures.size()) continue;
         bool bound = false;
         ForVisibleSectors(this, [&](SectorData* sector) {
             if (!sector->IsDrawn() || !HasTilesOn(sector, page)) return;
             if (!bound) {
-                renderer->SetTexture(0, pageTextures[page % LayerPages()]);
+                renderer->SetTexture(0, pageTextures[index]);
                 bound = true;
             }
             sector->DrawPage(renderer, page);
