@@ -368,6 +368,19 @@ shown on the game's display; run_all starts one Xvfb for the suite (`start_headl
 every game's DISPLAY pointed at it, WAYLAND_DISPLAY unset, stopped when run_all ends), so a local run opens nothing on the
 desktop; `EI_SHOW_WINDOWS=1` leaves the games on the session's display to watch them. Harness runs open no sound device (sound.md).
 
+**The game window's size** (H62b). A windowed harness game's client area is always the size asked for (the resolution,
+`windowsize`, the options' `SetClientSize`), even where it and the borders do not fit in the display's usable bounds:
+centred there when it fits, else at their top left and past their right and bottom (harness_platform.cpp's
+`PlaceClient`; the game's own backend makes it smaller instead). A smaller window would show the 960x720 frame scaled
+into it, and every point given in window pixels would land elsewhere in the frame: a recorded scenario's clicks
+(rec_save_load's Save button missed, so no save1 and the game stayed paused) and `lookat`'s minimap clicks
+(render_water's camera a little off, one object seen a record sooner). That made render_water differ on GitHub's
+Windows runner (1024x768) and both differ on the macOS one, not Metal: both differences come back exactly on a desktop
+with the usable area cut to 1024x674. When the window is shown, a size the system changed (AppKit may fit a resizable
+window taller than the screen) is set again. The log says it: `harness: the game window's client area WxH made|shown|set
+(asked WxH; the display's usable area WxH)`. Each step and each replayed input event is logged with the frame the digest
+counts (`harness: frame N: ...`), and so is each pause and resume of the game (the client world's).
+
 ## The harness's code
 
 tests/verify: harness.cpp (the steps, the overlay, the report) and its parts; image/ (what reads the game's objects);
@@ -467,12 +480,15 @@ job, never Release, nothing published or uploaded:
   items; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
   goldens block, the GPU device line and each run's `TIMING: median frame` (harness_report.txt). Goldens that differ on
   Metal are listed, not excused: no check is widened for it.
-- **Differences in detail** (always runs): for each differing scenario, `golden.py compare --records 3 --fields 30` (the
-  first differing digest records with their world update, frame and tick, and the fields) and the run's log lines on
-  focus / window steps / activation / the present mode ("render: presenting ... asked for mode N, got M") / pause, with
-  its median frame. The harness drops every system event, so a focus or occlusion event cannot pause a game there;
-  a `world paused 1` in a digest is the game's own pause (the menu). Metal has no Mailbox, so the harness's present mode
-  falls back to Immediate (it fell back to Vsync before H62a: every frame 16.7 ms).
+- **Differences in detail** (always runs): for each differing scenario (run folder `runs/<name>-standalone`), `golden.py
+  compare --records 3 --fields 30` (the first differing digest records with their world update, frame and tick, and the
+  fields); the log lines on the game window's client area (made, shown, set, with the size asked for and the display's
+  usable area), the present mode ("render: presenting ... asked for mode N, got M"), the device, focus and the cursor
+  confinement; then the log from 15 frames before the first differing record's frame to 2 after it, between the
+  frame-stamped lines (each step, each replayed input event, each pause and resume); and its median frame. The harness
+  drops every system event, so a focus or occlusion event cannot pause a game there; a `world paused 1` in a digest is the
+  game's own pause (the menu). Metal has no Mailbox, so the harness's present mode falls back to Immediate (it fell back
+  to Vsync before H62a: every frame 16.7 ms).
 - **Verdict**: fails on GOLDENS DIFFER, "not passed:", or no "GOLDENS THE SAME" line (bash -e ignores a failed `! grep`
   that is not the step's last command, so H62's first run passed with a difference printed).
 - **Folder rule**: PL19a's, with `EI_GAME_ROOT` unset: the harness-build app (no `EI_HARNESS`, so a player's start) copied

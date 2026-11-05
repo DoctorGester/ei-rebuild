@@ -2654,6 +2654,7 @@ void RunSteps() {
             s.verb = line.substr(0, space);
             s.argument = space == std::string::npos ? "" : line.substr(space + 1);
             if (s.verb == "event") {
+                Log("harness: frame %u: at %lu event %s", g_frames, frame, s.argument.c_str());
                 if (std::string error = record::Replay(s.argument); !error.empty()) {
                     Log("harness: %s", error.c_str());
                     g_failures.push_back(error);
@@ -2689,7 +2690,7 @@ void RunSteps() {
             --g_next;
             return;
         }
-        Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
+        Log("harness: frame %u: %s %s", g_frames, s.verb.c_str(), s.argument.c_str());
         clock::RandomNote("step %s %s", s.verb.c_str(), s.argument.c_str());
         if (record::On()) {
             const record::StepKind kind = record::Classify(s.verb);
@@ -3605,6 +3606,15 @@ bool HoldMessagesForCloseAll() {
 
 bool g_closeTaken = false;   // live play's window close, taken as a quit
 
+// The client world's pause (the escape menu, a dialogue, ...) logged where it changes, with the frame, so a golden
+// that differs from a pause on can be read against the steps' lines (H62b).
+void LogPauseChange() {
+    static bool paused = false;
+    if (image::ClientPaused() == paused) return;
+    paused = !paused;
+    Log("harness: frame %u: the game %s", g_frames, paused ? "paused" : "resumed");
+}
+
 // Before the game looks for events (harness_platform.h): the frame count, the steps; false
 // while the close-all holds the events.
 bool BeforeEvents() {
@@ -3614,6 +3624,7 @@ bool BeforeEvents() {
     const bool afterFrame = ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame;
     if (afterFrame) {
         ++g_frames;
+        LogPauseChange();
         timing::FrameEnd();
         timing::Scope scope(timing::PairWait);
         pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)

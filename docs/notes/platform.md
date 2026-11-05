@@ -213,7 +213,7 @@ What SDL's backend does (platform_sdl.cpp):
 - **The window**: hidden until ShowGameWindow, its client area the game's size. Full screen a borderless SDL window at
   the screen's top left, which `CoverMonitor` moves and sizes over its display (no display mode change, no SDL full
   screen). Windowed a decorated, resizable window centred in the primary display's usable bounds, its client area made
-  smaller when it and the borders would not fit there (the harness's backend places its window the same way). `SetClientSize` (a resolution picked in the options, windowed) sizes
+  smaller when it and the borders would not fit there (the harness's backend places its window the same way but never makes it smaller: harness.md, "The game window's size"). `SetClientSize` (a resolution picked in the options, windowed) sizes
   and places it the same way in the usable bounds of the display it is on (restored first when maximised, in points on
   macOS) and waits for the system (`SDL_SyncWindow`). `SetFullScreen` (the options' display mode) switches between the
   two: borderless and unsizeable (the next present's `CoverMonitor` covers the display) or decorated and resizable (the

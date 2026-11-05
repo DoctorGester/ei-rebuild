@@ -81,6 +81,7 @@ bool CloseAllPending();
 bool ScreenFade(bool* running, float* alpha);   // false without one
 int CampaignMode();                             // the server world's session kind
 void* ClientWorldObject();                      // the client world
+bool ClientPaused();                            // the client world's pause
 void* SceneDevice();                            // the scene renderer's device, null before it is made
 
 // ---- the steps' calls of the game (harness.cpp; image/harness_objects_image.cpp)

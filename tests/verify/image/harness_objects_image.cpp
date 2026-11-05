@@ -175,6 +175,7 @@ bool ScreenFade(bool* running, float* alpha) {
 }
 int CampaignMode() { return static_cast<int>(g_serverWorld.zoneMode); }
 void* ClientWorldObject() { return &g_clientWorld; }
+bool ClientPaused() { return g_clientWorld.paused != 0; }
 void* SceneDevice() { return g_sceneRenderer.device.Get(); }
 
 void ServerUpdate(void* server) { static_cast<WorldServer*>(server)->Update(); }

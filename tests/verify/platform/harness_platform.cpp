@@ -223,25 +223,40 @@ void WaitForClientSize(int width, int height) {
     }
 }
 
-// As platform_sdl.cpp's: the client area made smaller when it and the borders would not fit in `display`'s usable
-// bounds, centred there; false when SDL cannot tell the bounds. Sets `width` and `height` to the size asked for.
-bool PlaceInUsableBounds(SDL_DisplayID display, int* width, int* height) {
+// The client area a windowed harness game asked for last (PlaceClient, ResizeClient), which ShowGameWindow keeps.
+int g_askedWidth = 0, g_askedHeight = 0;
+
+void LogClientSize(const char* when) {
+    int width = 0, height = 0;
+    SDL_GetWindowSizeInPixels(g_window, &width, &height);
     SDL_Rect work{};
-    if (!SDL_GetDisplayUsableBounds(display, &work)) return false;
+    SDL_GetDisplayUsableBounds(SDL_GetDisplayForWindow(g_window), &work);
+    ei::Log("harness: the game window's client area %dx%d %s (asked %dx%d; the display's usable area %dx%d)", width,
+            height, when, g_askedWidth, g_askedHeight, work.w, work.h);
+}
+
+// Unlike platform_sdl.cpp's, the client area is the size asked for even where it and the borders do not fit in
+// `display`'s usable bounds (a CI runner's 1024x768 screen): a run's frame and the window's points are then the same
+// on every machine, so recorded clicks and the minimap's land where they did when the goldens were recorded (H62b).
+// Centred there when it fits, else at their top left (the title bar on the screen), past their right and bottom.
+void PlaceClient(SDL_DisplayID display, int width, int height) {
+    g_askedWidth = width;
+    g_askedHeight = height;
+    SDL_SetWindowSize(g_window, width, height);
+    SDL_Rect work{};
+    if (!SDL_GetDisplayUsableBounds(display, &work)) return;
     int top = 0, left = 0, bottom = 0, right = 0;
     SDL_GetWindowBordersSize(g_window, &top, &left, &bottom, &right);
-    *width = (std::min)(*width, work.w - left - right);
-    *height = (std::min)(*height, work.h - top - bottom);
-    SDL_SetWindowSize(g_window, *width, *height);
-    SDL_SetWindowPosition(g_window, work.x + left + (work.w - left - right - *width) / 2,
-                          work.y + top + (work.h - top - bottom - *height) / 2);
-    return true;
+    SDL_SetWindowPosition(g_window, (std::max)(work.x + left, work.x + left + (work.w - left - right - width) / 2),
+                          (std::max)(work.y + top, work.y + top + (work.h - top - bottom - height) / 2));
 }
 
 } // namespace
 
 void ResizeClient(int width, int height) {
     if (!g_window) return;
+    g_askedWidth = width;
+    g_askedHeight = height;
     SDL_SetWindowSize(g_window, width, height);
     WaitForClientSize(width, height);
 }
@@ -308,8 +323,8 @@ void StartWindowSystem(const char* name) {
     SDL_InitSubSystem(SDL_INIT_VIDEO);
 }
 
-// As the game's: the client area the resolution's, centred in the primary display's usable bounds (made smaller when
-// it would not fit), or a borderless window at the screen's top left; its title marked. Concealed before it is first
+// As the game's: the client area the resolution's, centred in the primary display's usable bounds (but never made
+// smaller: PlaceClient), or a borderless window at the screen's top left; its title marked. Concealed before it is first
 // shown (sys::ConcealWindow: never activated, no taskbar button, cloaked).
 NativeWindow CreateGameWindow(const char* title, int width, int height, bool fullScreen) {
     const std::string marked = std::string(title) + " (harness)";
@@ -325,7 +340,10 @@ NativeWindow CreateGameWindow(const char* title, int width, int height, bool ful
     hp::g_window = SDL_CreateWindowWithProperties(properties);
     SDL_DestroyProperties(properties);
     if (!hp::g_window) return nullptr;
-    if (!fullScreen) hp::PlaceInUsableBounds(SDL_GetPrimaryDisplay(), &width, &height);
+    if (!fullScreen) {
+        hp::PlaceClient(SDL_GetPrimaryDisplay(), width, height);
+        hp::LogClientSize("made");
+    }
 #if defined(SDL_PLATFORM_WINDOWS)
     hp::g_native = SDL_GetPointerProperty(SDL_GetWindowProperties(hp::g_window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 #else
@@ -341,6 +359,13 @@ void ShowGameWindow(NativeWindow window) {
     if (!w) return;
     SDL_ShowWindow(w);
     if (hp::g_live) SDL_RaiseWindow(w);
+    // AppKit may fit a resizable titled window taller than the screen into it when the window is ordered in
+    // (constrainFrameRect:toScreen:): the client area asked for is then set again.
+    int width = 0, height = 0;
+    if (!(SDL_GetWindowFlags(w) & SDL_WINDOW_BORDERLESS) && hp::g_askedWidth > 0 &&
+        SDL_GetWindowSizeInPixels(w, &width, &height) && (width != hp::g_askedWidth || height != hp::g_askedHeight))
+        hp::ResizeClient(hp::g_askedWidth, hp::g_askedHeight);
+    hp::LogClientSize("shown");
 }
 
 Point ScreenToClient(NativeWindow window, Point point) {
@@ -391,8 +416,9 @@ void SetClientSize(NativeWindow window, int width, int height) {
     SDL_Window* w = hp::WindowOf(window);
     if (!w) return;
     if (SDL_GetWindowFlags(w) & SDL_WINDOW_MAXIMIZED) SDL_RestoreWindow(w);
-    if (!hp::PlaceInUsableBounds(SDL_GetDisplayForWindow(w), &width, &height)) SDL_SetWindowSize(w, width, height);
+    hp::PlaceClient(SDL_GetDisplayForWindow(w), width, height);
     hp::WaitForClientSize(width, height);
+    hp::LogClientSize("set");
 }
 
 // A list of its own, the same on every machine, so that the options' resolution row steps through the same sizes
