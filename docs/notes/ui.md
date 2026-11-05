@@ -203,10 +203,11 @@ gives "Prototype" and a "Rune" per modifier; `DeconstructItem` "Instruction Weap
 
 **Hero panels, trade panel, strips** (`ui_stats.cpp`, `ui_equip_panels.cpp`, `ui_panel_draws.cpp`, `ui_hero_panels.cpp`,
 `ui_trade_panel.cpp`, `ui_item_strip.cpp`):
-- `HeroStatsPanel::SetHero` stores height * 100 truncated. The panel's page 10 -/+ (regions 6-13): a hold starts at -500 ms
-  with the capture, a step every frame from 250 ms (whole milliseconds, `UiContainer::FrameTicks`); regions 0 / 1 previous
-  / next hero. `DrawPart`'s armour "%.1f" is the largest of the first six damage types' three-layer sums; a NaN keeps the
-  old maximum. `HeroEquipPanel::RightDown` does not mark the event used.
+- `HeroStatsPanel::SetHero` stores height * 100 truncated. The panel's page 10 -/+ buttons (its `rows` 4-11, regions
+  6-13): a hold starts at -500 ms with the capture, a step every frame from 250 ms (whole milliseconds,
+  `UiContainer::FrameTicks`); regions 0 / 1 previous / next hero. `DrawPart`'s armour "%.1f" is the largest of the first
+  six damage types' three-layer sums; a NaN keeps the old maximum. `HeroEquipPanel::RightDown` does not mark the event
+  used.
 - `RepairGrid::DrawSprites` puts models at depth 2^(3 - row) * 6; the constructor pages' highlight p = (cos(5 t) + 1) / 2 stored as
   float, colours truncated and clamped. Lists are `UiItemList` = `std::vector<CItem*>`.
 - Trade panel (`ui_trade_panel.cpp`): `SnapshotRecord` copies floats as dwords, `Settle` (the all-branch tests the low byte
@@ -327,8 +328,8 @@ weapon `HudWeaponBar::Choose`, the slings `PanelSlide::Toggle`, "camera north" `
 `ClickAlternate`, the quick items' `Pick` / `UseNow`, the action column's `Select`. A held view button's release on the map
 is not marked used.
 
-- Quick items' slot lookup uses RegionAt's result unchecked: a point inside the panel but outside every slot (-1) reads the
-  entry before the table (zero in practice) and counts as a hit (`RegionItem`); the weapon bar's button-up orders
+- Quick items: a point outside every slot finds no entry (`RegionItem`; the original read the entry before its table,
+  zero in practice, and counted a hit; the slots cover the panel's rectangle); the weapon bar's button-up orders
   `LocalView()` without a null check; the minimap wheel zooms only over region 0 (zoom 2.5^(notches/10)); hidden minimap
   entries keep stale positions; unit 0xA2C2A counts as hostile in gz20g.
 - Minimap sprites are `UiMesh` quads; `UpdateView` clips the outline in place against the world rectangle, pads to a

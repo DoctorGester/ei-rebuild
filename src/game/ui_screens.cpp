@@ -85,9 +85,9 @@ void UiItemStrip::SetTab(int newTab) {
     float& scrollPosition = position[tab];
     scrollPosition = static_cast<float>(static_cast<int>(pending + scrollPosition));
     tab = newTab;
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < kTabs; ++i) {
         float shade = i == newTab ? 1.0f : 0.5f;
-        float* color = sceneObjects[i + 2]->tint;
+        float* color = tabFaces[i]->tint;
         color[0] = shade;
         color[1] = shade;
         color[2] = shade;
@@ -112,9 +112,9 @@ void UiItemStrip::SetFilter(int newFilter) {
     case 2: tipBase = 0x5206; column = 0; break;
     default: return;
     }
-    for (int i = 2; i < 8; ++i) {
-        sceneObjects[i]->textureOffsetU = std::bit_cast<float>(column);
-        regions[i]->SetTip(tipBase + i);
+    for (int i = 0; i < kTabs; ++i) {
+        tabFaces[i]->textureOffsetU = std::bit_cast<float>(column);
+        tabButtons[i]->SetTip(tipBase + 2 + i);
     }
 }
 
@@ -177,7 +177,7 @@ int UiItemStrip::ArmorTab(const Item* item) {
 
 void ForwardingStrip::RebuildList() {
     list.clear();
-    if (filter == 0 && tab == 5) {
+    if (filter == 0 && tab == kAllTab) {
         for (int i = 0; i < std::ssize(*source); ++i) {
             int index = lib::Count(list);
             Item* item = (*source)[i];
@@ -218,7 +218,7 @@ void UiItemStrip::ScrollToItem(Item* item) {
         list.resize(index + 1);
         list[index] = entry;
     };
-    if (filter == 0 && tab == 5) {
+    if (filter == 0 && tab == kAllTab) {
         for (int i = 0; i < std::ssize(*source); ++i) append((*source)[i]);
     } else {
         int newTab = TabOf(item);
@@ -241,7 +241,7 @@ void UiItemStrip::ScrollToItem(Item* item) {
 
 Item* ForwardingStrip::ItemAt(Point point, int* cursor) {
     if (!enabled) return nullptr;
-    if (RegionAt(point) != 8) return nullptr;
+    if (RegionUnder(point) != itemArea) return nullptr;
     switch (mode) {
     case 1: *cursor = 0x16; break;
     case 2: *cursor = 0x18; break;
@@ -273,24 +273,26 @@ void UiItemStrip::SettleScroll() {
 }
 
 void UiItemStrip::LeftDown(Point point) {
-    int region = RegionAt(point);
-    if (region == 0 || region == 1) {
+    UiRegion* region = RegionUnder(point);
+    const int scrollButton = RegionIndex(scrollButtons, region);
+    if (scrollButton >= 0) {
         if (!ui->shiftDown) {
             ui->PlayInterfaceSound(kSoundCampScroll);
             CaptureMouse();
-            scrollDirection = region == 0 ? 1 : 2;
+            scrollDirection = scrollButton + 1;
         } else {
             // Shift jumps to the start or (clamped later) the end.
-            position[tab] = region == 0 ? 0.0f : 1e6f;
+            position[tab] = scrollButton == 0 ? 0.0f : 1e6f;
             pending = 0.0f;
             velocity = 0.0f;
         }
     }
-    if (tabsEnabled && region >= 2 && region < 8) {
+    const int tabButton = RegionIndex(tabButtons, region);
+    if (tabsEnabled && tabButton >= 0) {
         ui->PlayInterfaceSound(kSoundCampMode);
-        SetTab(region - 2);
+        SetTab(tabButton);
     }
-    if (region >= 0) handled = true;
+    if (region) handled = true;
 }
 
 void UiItemStrip::LeftUp(Point) {
@@ -298,13 +300,12 @@ void UiItemStrip::LeftUp(Point) {
 }
 
 void UiItemStrip::MouseMove(Point point) {
-    int region = RegionAt(point);
     // Leaving the held arrow stops scrolling.
-    if ((scrollDirection == 1 && region != 0) || (scrollDirection == 2 && region != 1)) SettleScroll();
+    if (scrollDirection != 0 && RegionUnder(point) != scrollButtons[scrollDirection - 1]) SettleScroll();
 }
 
 void UiItemStrip::Wheel(float notches, Point point) {
-    if (RegionAt(point) == 8) {
+    if (RegionUnder(point) == itemArea) {
         pending = static_cast<int>(notches) + pending;   // whole notches, towards 0
         ui->PlayInterfaceSound(kSoundCampScroll);
     }

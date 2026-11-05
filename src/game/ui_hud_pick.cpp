@@ -212,9 +212,9 @@ void UiMesh::SetScale(float scale) {
 // --- A quick item slot ---------------------------------------------------------------
 
 void HudQuickItems::Highlight(int slot, bool on) {
-    int sprite = regionItem[slot];
-    if (sprite < 0 || sprite >= shownCount) return;
-    UiMesh* mesh = sceneObjects[sprite];
+    const int entry = regionItem[slot];
+    if (entry < 0 || entry >= shownCount) return;
+    UiMesh* mesh = entries[entry].sprite;
     if (slot < kBottomRow)
         mesh->SetScale(on ? kQuickScaleOn : kQuickScaleOff);
     else

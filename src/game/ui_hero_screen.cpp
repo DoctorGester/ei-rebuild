@@ -291,12 +291,14 @@ void SetSelectionFrame(MpHeroScreen* screen, float left, float top, float right,
                                          kUiTextureSize);
 }
 
-// The rows of a list as regions: `height` apart from `top` down to kRowsBottom.
+// The rows of a list as regions (the screen's listRows): `height` apart from `top` down to kRowsBottom.
 void AddRows(MpHeroScreen* screen, int left, int right, int top, int height) {
     int y = top;
     do {
         const int next = y + height;
-        screen->AddRegion()->SetRect(left, y, right, next);
+        UiRegion* row = screen->AddRegion();
+        row->SetRect(left, y, right, next);
+        screen->listRows.push_back(row);
         y = next;
     } while (y < kRowsBottom);
 }
@@ -317,7 +319,8 @@ void MpHeroScreen::SetMode(int newMode) {
     iconWindow->SetEnabled(false);
     for (UiMesh* sprite : sceneObjects) sprite->visible = false;
     for (int i = 0; i < std::ssize(surfaces); ++i) surfaces[i]->Hide();
-    while (std::ssize(regions) > kFixedRegions) RemoveRegionAt(kFixedRegions);
+    for (UiRegion* row : listRows) RemoveRegion(row);
+    listRows.clear();
     for (int i = 0; i < std::ssize(regions); ++i) regions[i]->SetTip(0);
 
     if (newMode == kModeList) {

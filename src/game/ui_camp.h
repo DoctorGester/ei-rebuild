@@ -217,9 +217,12 @@ public:
     // "%d" below 1000, "%.1fk" below 10000, "%dk" below a million, "%.1fm" below ten million, "%dm" below
     // 1e9, else "%.1fg"; a negative price shows as 0x7FFFFFFF.
     static std::string FormatPrice(int price);
-    // Regions 4-9 the schools (Skill), 10 science (Science), 11 up the perks (Perk: the perk's record name
-    // without its level digits, plus "0"; held ones with their level).
+    // The school rows (Skill), the science row (Science), the learnable and held perks' rows (Perk: the perk's
+    // record name without its level digits, plus "0"; held ones with their level).
     ItemHoverInfo HoverInfo(Point at);
+    // The held perk row (from the first shown) of `region`, a perkRows entry. No region gives -35, as the
+    // original's unsigned region number -1 did: no list reaches it (at most 36 perks).
+    int HeldPerkRow(const UiRegion* region) const { return region ? RegionIndex(perkRows, region) : -35; }
     // One record per party member (recordIndex is left at the last).
     void ResetRecords();
     // Record recordIndex (when >= 0) from the party member's statistics; bought cleared.
@@ -238,8 +241,8 @@ public:
     int PurchaseCost();
     // The scroll arrows show only where the list can scroll.
     void ClampScroll();
-    // Regions 0-3 scroll; from 4 a purchase the experience covers (a school or science row is then held),
-    // the record marked bought.
+    // The arrows scroll; a row buys what the experience covers (a school or science row is then held), the
+    // record marked bought.
     void LeftDown(Point point) override;
     // Releases the mouse unconditionally and ends a hold.
     void LeftUp(Point point) override;
@@ -258,10 +261,22 @@ public:
     std::vector<TradeRow> science;               // one
     int experience = 0;              // experience the hero can spend
     std::vector<TradeStatsRecord> records;    // one per party member
-    int heldRegion = -1;             // the school / science row held after a purchase
+    UiRegion* heldRow = nullptr;     // the school / science row held after a purchase
     int holdTicks = 0;               // milliseconds held, from -500
     std::vector<std::string> texts; // the titles
     std::vector<UiLabel> labels;     // the surface's paint: the titles and the rows DrawLists shows
+    static constexpr int kSchools = 6;
+    static constexpr int kLearnableRows = 23;
+    static constexpr int kHeldRows = 10;
+    UiRegion* perkScroll[2] = {};        // the held perks' arrows: up, down
+    UiRegion* learnableScroll[2] = {};   // the learnable perks'
+    UiRegion* schoolRows[kSchools] = {}; // the third is empty (that school is not offered)
+    UiRegion* scienceRow = nullptr;
+    UiRegion* learnableRows[kLearnableRows] = {};
+    UiRegion* perkRows[kHeldRows] = {};
+    UiMesh* perkScrollIcons[2] = {};
+    UiMesh* learnableScrollIcons[2] = {};
+    std::vector<UiMesh*> priceSprites;   // the coins after the prices, made anew by DrawLists
 };
 
 // --- Camp pages ---
@@ -415,25 +430,24 @@ public:
     void ShowStats(int page);
     void DrawStats();
     void Build() override;
-    // Page 0: rows 2-5 the body parts' armour, 6 / 7 the shown weapon's attack / defence, 8 the damage, 9
-    // encumbrance, 10 the magic skills; other pages the attributes (page 10: row 14 the points left, row 5
-    // the height).
+    // Page 0: the rows of the body parts' armour, the shown weapon's attack / defence, the damage,
+    // encumbrance, the magic skills; other pages the attributes (page 10 also the height and the points left).
     ItemHoverInfo HoverInfo(Point at);
     // `title` may be null; the hero arrows show only for a party of more than one; points = the hero's
     // height * 100 (truncated).
     void SetHero(int heroIndex, std::optional<std::string_view> title);
-    // On page 10 a -/+ button (regions 6-13) steps a point and is held; elsewhere region 0 / 1 show the
-    // owner's previous / next hero.
+    // On page 10 a -/+ button steps a point and is held; elsewhere the hero buttons show the owner's previous
+    // / next hero.
     void LeftDown(Point point) override;
     // A held -/+ button repeats every frame from 750 ms after the press until it can step no more; the owner
     // is refreshed on every attempt.
     void Update() override;
     // Lets the mouse go unconditionally and ends the hold.
     void LeftUp(Point point) override;
-    // Regions 6-8 take a point from strength, dexterity, intelligence (above 15), 9 the height down
-    // (points >= 1), 10-12 give one (below 35, while the three add up to under 75), 13 the height up
-    // (points <= 99; height = points * 0.01). True when it changed something.
-    bool StepPoint(int region);
+    // -/+ buttons 0-2 take a point from strength, dexterity, intelligence (above 15), 3 the height down
+    // (points >= 1), 4-6 give one (below 35, while the three add up to under 75), 7 the height up
+    // (points <= 99; height = points * 0.01); other numbers nothing. True when it changed something.
+    bool StepPoint(int button);
     // The text of "perk <label>" (else `label` itself), `value` as "%d", or "%d/%d" with a maximum >= 0.
     void DrawRow(const Rect& rect, std::string_view label, int value, int maximum);
     // "     " and the text of "hl_<name>", the part's armour as "%.1f".
@@ -446,9 +460,21 @@ public:
     int page = 0;
     std::vector<std::string> texts;
     int points = 0;                  // skill points left (page 10); SetHero puts the height * 100 here
-    int heldRegion = -1;             // the -/+ button held on page 10 (-1 none)
+    int heldButton = -1;             // the -/+ button held on page 10 (-1 none)
     int holdTicks = 0;               // milliseconds it has been held (from -500)
     std::vector<UiLabel> labels;     // the surface's paint: the title and the rows DrawStats shows
+    // Page 10's rows: the three attributes, the height, the -/+ buttons (the minus column, then the plus
+    // column), the points left.
+    static constexpr int kHeightRow = 3;
+    static constexpr int kFirstButtonRow = 4;
+    static constexpr int kPointButtons = 8;
+    static constexpr int kPointsLeftRow = 12;
+    UiRegion* previousButton = nullptr;
+    UiRegion* nextButton = nullptr;
+    std::vector<UiRegion*> rows;     // the page's rows, made anew by ShowStats
+    UiMesh* nextArrow = nullptr;
+    UiMesh* previousArrow = nullptr;
+    UiMesh* pointButtons[kPointButtons] = {};   // page 10's -/+ buttons
 };
 
 // --- Hero equipment panel ---
@@ -466,12 +492,17 @@ public:
     // On the camp's body: a right click on a filled weapon slot (of the first four) shows that weapon. The
     // event is not marked used.
     void RightDown(Point point) override;
-    // Regions 0-3 the weapons (topic 2), 4-7 the quick items from the right (3), body regions 8-14 the armour
-    // worn at body part region - 8 (topic region - 4).
+    // Cells 0-3 the weapons (topic 2), 4-7 the quick items from the right (3), a body slot the armour worn
+    // at that body part (topic the part + 4).
     Item* ItemAt(Point point, int* topic) override;
 
     bool body = false;
     int selected = -1;
+    static constexpr int kCells = 8;
+    UiRegion* cells[kCells] = {};
+    UiRegion* bodySlots[7] = {};    // the camp's, at kBodySlotX / Y
+    UiMesh* weaponFrame = nullptr;  // on the shown weapon
+    UiMesh* quickItemFrame = nullptr;   // on the selected quick item
 };
 
 // The 4 x 4 grid of item cells on the constructors' first pages.
@@ -482,10 +513,11 @@ public:
     // `spells` chooses the price kinds (the spell constructor's buy / sell, or the item one's); the
     // exchange window's grid (`exchange`) shows no prices.
     void Build(std::vector<Item*>* bought, std::vector<Item*>* sold, bool spells, bool exchange);
-    // Regions 0-7 the bought list (topic 0x1C on the exchange window, else 0x0B for the item constructor,
+    // Cells 0-7 the bought list (topic 0x1C on the exchange window, else 0x0B for the item constructor,
     // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12).
     Item* ItemAt(Point point, int* topic) override;
 
+    UiRegion* cells[16] = {};       // row by row
     std::vector<Item*>* bought = nullptr;
     std::vector<Item*>* sold = nullptr;
     PriceKind buyKind = PriceKind::SpellBuy;
@@ -506,6 +538,7 @@ public:
 
     std::vector<Item*>* items = nullptr;
     std::vector<UiLabel> labels;     // the surface's paint: the counts and prices of the last Draw
+    UiRegion* cells[16] = {};       // row by row
 };
 
 // The quick item strip of the hero panels: eight cells along the top (camp) or the bottom of the screen.
@@ -522,6 +555,8 @@ public:
 
     int y = 0;
     int selected = -1;
+    UiRegion* cells[8] = {};
+    UiMesh* highlightFrame = nullptr;   // on the selected entry
 };
 
 // The constructors' second pages: the spell maker and the item maker: the slots of what is being made beside
@@ -532,18 +567,23 @@ public:
     void BuildItemMaker(Party* slots);
     // Without a blueprint or a container, a pulsing highlight shows where the next part goes.
     void DrawSprites(SceneRenderer* pass) override;
-    // Region 0 the first item that can be taken apart (0xD), 1 the first part (0xE), 2 the first spell
-    // container (0x10), from 3 material region - 3 (0xF).
+    // The blueprint slot the first item that can be taken apart (0xD), the part slot the first part (0xE),
+    // the container slot the first spell container (0x10), grid cell n material n (0xF).
     Item* ItemAt(Point point, int* topic) override;
 
     Party* slots = nullptr;
     float pulse = 0.0f;              // the highlight's time
+    UiRegion* blueprintSlot = nullptr;   // the item maker's
+    UiRegion* partSlot = nullptr;        // the item maker's
+    UiRegion* containerSlot = nullptr;   // the spell container's
+    UiRegion* gridCells[8] = {};         // the 2 x 4 grid, column by column
+    UiMesh* highlight = nullptr;         // the pulsing frame
 };
 class SpellMakerPage : public ConstructorPage {
 public:
     using ConstructorPage::ConstructorPage;
-    // Region 0 the first spell container (topic 0x13), 1 the first spell (0x14), 2-9 modifier region - 2
-    // (0x15), 10 / 11 the cost lines (0x1A / 0x1B, no item).
+    // The container slot the first spell container (topic 0x13), the spell slot the first spell (0x14),
+    // grid cell n modifier n (0x15), the cost lines (0x1A / 0x1B, no item).
     Item* ItemAt(Point point, int* topic) override;
     void BuildSpellMaker(Party* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
@@ -553,4 +593,6 @@ public:
 
     std::vector<std::string> texts; // the cost texts ("infoitem_35", "infoitem_36")
     std::vector<UiLabel> labels;     // the surface's paint: the cost lines of the last Draw
+    UiRegion* spellSlot = nullptr;
+    UiRegion* costLines[2] = {};
 };

@@ -40,7 +40,7 @@ bool IsBuildable(const Item* item);
 // --- Camp item strip ------------------------------------------------------------------------
 // The horizontal strip of items (or spells) at the bottom (y 500) or top (y 0) of the camp screens: six tab regions
 // choose a category, two arrows scroll it, the strip itself shows `visible` slots. Created by the camp screen and
-// the exchange window. Regions: 0/1 arrows, 2-7 tabs, 8 the strip.
+// the exchange window.
 
 // An item panel (UiItemPanel): mode is what clicking an item does (1 equip, 2, 3, cursor 0x16-0x18); owner is the
 // screen that owns the strip (item clicks, predicates).
@@ -51,8 +51,8 @@ public:
     virtual void RebuildList() = 0;
 
     // For the camp's three strips and the exchange window's: the background texture "Inventory02" (`top`) or "Inventory01", the
-    // strip built, the arrows' tips 0x4FB0 / 0x4FB1, two text surfaces (x 50..750, y top + 15..35 and top + 65..85), nine
-    // slots and the source list.
+    // strip built, the arrows' tips 0x4FB0 / 0x4FB1, two text surfaces (x 50..750, y top + 15..35 and top + 65..85) and the
+    // source list.
     void Setup(std::vector<Item*>* source, bool top);
     // The text surfaces' paints, over the items in view: the stack counts (not 1); unless priceKind is None, the
     // owner's number (Price) of each item the strip's mode takes (CanEquip).
@@ -112,6 +112,17 @@ public:
     std::vector<Item*> list;           // the visible items
     std::vector<Item*>* source = nullptr; // all the items (a party's item list, PartyItemArray)
     PriceKind priceKind = {};   // the price shown under each item (None: no price)
+    static constexpr int kTabs = 6;
+    static constexpr int kAllTab = 5;   // under filter 0 every item
+    static constexpr int kCells = 8;
+    UiRegion* scrollButtons[2] = {};    // back and on
+    UiRegion* tabButtons[kTabs] = {};   // three at the left end, three at the right
+    UiRegion* itemArea = nullptr;
+    UiMesh* endFaces[2] = {};           // dimmed while the strip can scroll that way
+    UiMesh* tabFaces[kTabs] = {};
+    UiMesh* highlightFrame = nullptr;
+    UiMesh* background = nullptr;
+    UiMesh* cellFrames[kCells] = {};
 };
 
 // The forwarding strip: the camp's item strips and the exchange's; an item click goes to the owner.
@@ -135,16 +146,16 @@ class FigureStrip : public UiItemStrip {
 public:
     using UiItemStrip::UiItemStrip;
     // The figure strips (the hero screen's two, the exchange window's): the name list, the texture "InventoryM01", Build, the
-    // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs, the six tab buttons' sprites (scene objects 2..7) hidden.
+    // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs, the tab buttons' sprites hidden.
     void SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips);
-    // The end faces dimmed where it can scroll on, the background and cells placed by the current tab's fraction, the frame
-    // (scene object 8) on selected when in view, the window's sprites, then each visible name's hero face through the owner.
+    // The end faces dimmed where it can scroll on, the background and cells placed by the current tab's fraction, the
+    // highlight frame on selected when in view, the window's sprites, then each visible name's hero face through the owner.
     void DrawSprites(SceneRenderer* pass) override;
     // No item: null, `topic` not written.
     Item* ItemAt(Point point, int* topic) override;
     // Count_ = the number of names.
     void RebuildList() override;
-    // The strip's own click, then on the items (region 8) the figure under the point picked: the "on_off" sound and the
+    // The strip's own click, then on the items the figure under the point picked: the "on_off" sound and the
     // owner's choose-figure virtual with its name.
     void LeftDown(Point point) override;
 
@@ -177,8 +188,7 @@ public:
     static constexpr int kModeStats = 11;
     // The points a new hero's three attributes must add up to before it can be created (a float in the exe's data).
     static constexpr float kAttributePoints = 75.0f;
-    // The regions before the shown list's rows, and the rows of the hero list and of the voices.
-    static constexpr int kFixedRegions = 9;
+    // The rows of the hero list and of the voices.
     static constexpr int kHeroRows = 10;
     static constexpr int kVoiceRows = 11;
 
@@ -273,8 +283,8 @@ public:
     // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
-    // The shown list's row of `region` (negative for a button or none).
-    int ListRow(const UiRegion* region) const { return RegionIndex(regions, region) - kFixedRegions; }
+    // The shown list's row of `region` (-1 for a button or none).
+    int ListRow(const UiRegion* region) const { return RegionIndex(listRows, region); }
 
     int mode = 0;               // 9, 10, 11
     int heroIndex = 0;          // selected hero
@@ -315,6 +325,7 @@ public:
     UiRegion* renameButton = nullptr;
     UiRegion* deleteButton = nullptr;
     UiRegion* inventoryButton = nullptr;
+    std::vector<UiRegion*> listRows;       // the shown list's rows, made anew by SetMode
     screen_layout::Curtains curtains;      // over the screen's margins, after the screen's sprites
     // The sprites SetMode shows and places by mode.
     UiMesh* selectionFrame = nullptr;      // on the selected hero or voice
