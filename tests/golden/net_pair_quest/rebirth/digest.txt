@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash E8A81067 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
 + world world
 world tick 20
 world updates 20
@@ -1293,7 +1293,7 @@ client units 5
 client synchronised 6
 + cunit2 80 unmoco2 ""
 cunit2 #place 40E7E427
-cunit2 #unit CA7CD47D
+cunit2 #unit 0370F4FB
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place CC95DED6
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 20 zone - hash F1921AB3 n 173
+@ 1 update 40 frame 7 tick 20 zone - hash 9903C6FB n 173
 world updates 40
 world paused 1
 random isaac.count 128
@@ -1332,41 +1332,41 @@ cunit388 #place C2155DED
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 16FCEE62
 cunit1000011214 #vitals 5E393164
-@ 2 update 60 frame 11 tick 20 zone - hash 42D61C16 n 173
+@ 2 update 60 frame 11 tick 20 zone - hash 2A47C05E n 173
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash F346135A n 173
+@ 3 update 80 frame 15 tick 20 zone - hash 9BD7CF12 n 173
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash 187E7CB1 n 173
+@ 4 update 100 frame 19 tick 20 zone - hash 70EFA0F9 n 173
 world updates 100
 random isaac.count 126
 client ticksRun 97
 cunit1000011214 #unit 826048BE
-@ 5 update 120 frame 23 tick 20 zone - hash 7F44B31D n 173
+@ 5 update 120 frame 23 tick 20 zone - hash 17D56F55 n 173
 world updates 120
 client ticksRun 117
 cunit1000011214 #unit 7B9422DD
-@ 6 update 140 frame 27 tick 20 zone - hash C2DFB90A n 173
+@ 6 update 140 frame 27 tick 20 zone - hash AA4E6542 n 173
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash 5D78B35A n 173
+@ 7 update 160 frame 31 tick 20 zone - hash 35E96F12 n 173
 world updates 160
 random isaac.count 125
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash F7F9C9FA n 173
+@ 8 update 180 frame 35 tick 20 zone - hash 9F6815B2 n 173
 world updates 180
 client ticksRun 177
-@ 9 update 200 frame 39 tick 20 zone - hash 04B1DDBE n 173
+@ 9 update 200 frame 39 tick 20 zone - hash 6C2001F6 n 173
 world updates 200
 client ticksRun 197
-@ 10 update 220 frame 43 tick 20 zone - hash 5028DE5A n 173
+@ 10 update 220 frame 43 tick 20 zone - hash 38B90212 n 173
 world updates 220
 client ticksRun 217
-@ 11 update 240 frame 47 tick 20 zone - hash 766D9363 n 173
+@ 11 update 240 frame 47 tick 20 zone - hash 1EFC4F2B n 173
 world updates 240
 client ticksRun 237
-@ 12 update 260 frame 51 tick 20 zone - hash 9A90080A n 173
+@ 12 update 260 frame 51 tick 20 zone - hash F201D442 n 173
 world updates 260
 client ticksRun 257
 @ 13 update 280 frame 55 tick 32 zone bz1mpg hash EB2C8A4F n 389

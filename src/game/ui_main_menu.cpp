@@ -64,6 +64,16 @@ constexpr SkillAnimation kStoneAnimation[MainMenu::kButtons] = {SkillAnimation::
                                                SkillAnimation::Briefing05, SkillAnimation::Briefing07,
                                                SkillAnimation::Briefing11, SkillAnimation::Briefing09};
 
+// The stones (a unit of the menu's world) play the hovered button's animation, or their rest pose for none.
+void PlayStoneAnimation(Object3D* stones, int button) {
+    FigureAnimation* animation;
+    if (button >= 0)
+        animation = stones->FindSkillAnimation(kStoneAnimation[button]);
+    else
+        animation = g_clientWorld.objectManager->FindAnimation(stones->name, kRestPoseKind);
+    stones->PlayAnimation(animation);
+}
+
 } // namespace
 
 // --- The interface's saved state cleared ----------------------------------------------
@@ -106,6 +116,10 @@ void MainMenu::CreateScreen() {
     g_interface.ResetSavedState();
     g_gameFlow.UseResources(false);
     hovered = -1;
+    // The stones start in their rest pose, as after a hover: a unit playing no animation is taken for lying (its
+    // client tick sets flag 8) and casts no shadow until it plays one (docs/notes/ui.md, section 4).
+    if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject))
+        PlayStoneAnimation(stones, hovered);
     rect = Rect{0, 0, 800, 600};
     AddVersionLine();
     for (int i = 0; i < kButtons; ++i) {
@@ -193,12 +207,7 @@ void MainMenu::MouseMove(UiEvent& event) {
     if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject)) {
         const int button = RegionIndex(buttons, RegionUnder(event.at));
         if (button != hovered) {
-            FigureAnimation* animation;
-            if (button >= 0)
-                animation = stones->FindSkillAnimation(kStoneAnimation[button]);
-            else
-                animation = g_clientWorld.objectManager->FindAnimation(stones->name, kRestPoseKind);
-            stones->PlayAnimation(animation);
+            PlayStoneAnimation(stones, button);
             g_interface.PlayInterfaceSound(kStoneSound);
         }
         hovered = button;

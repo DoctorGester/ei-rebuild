@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 3E83749B n 236
+@ 0 update 20 frame 3 tick 20 zone - hash 597C9908 n 236
 + world world
 world tick 20
 world updates 20
@@ -1743,7 +1743,7 @@ client units 6
 client synchronised 9
 + cunit2 80 unmoco2 ""
 cunit2 #place EF0B8BB1
-cunit2 #unit CA7CD47D
+cunit2 #unit 0370F4FB
 cunit2 #vitals 5E295D74
 + cunit1493 80 unmosk ""
 cunit1493 #place 22E9046C
@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 40 frame 72 tick 40 zone - hash 6201DE11 n 236
+@ 1 update 40 frame 72 tick 40 zone - hash 05FE3382 n 236
 world tick 40
 world updates 40
 random isaac.count 38

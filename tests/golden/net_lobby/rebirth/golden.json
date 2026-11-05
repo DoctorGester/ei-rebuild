@@ -1,27 +1,20 @@
 {
   "scenario": "net_lobby",
   "install": "rebirth",
-  "recorded": "2026-11-03",
-  "commit": "fa001802b",
+  "recorded": "2026-11-05",
+  "commit": "a4ca9ca88",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C74b and C76: one summation order for every vector, quaternion and matrix helper, and pc24 / the game CRT maths removed (plain float maths, std:: on floats, float heights, speeds and constants). Float results differ in their last bits; outcomes are the same but net_pair_quest's fight, which ends sooner.",
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
   "source": "image",
   "change": [
-    "digest: 4 of 4 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 8 fields",
-    "    world (world) secondsPerTick: 0.00111111114 in before, 0.00111111125 in after (d 1.1e-10)",
-    "    obj129 (80 unanwibo \"\") rot.w: -0.142985955 in before, -0.142985836 in after (d 1.19e-07)",
-    "    obj129 (80 unanwibo \"\") rot.z: 0.989724696 in before, 0.989724755 in after (d 5.9e-08)",
-    "    ... 5 more",
+    "digest: 1 of 4 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  world: 1 of 1 differ",
-    "    secondsPerTick: 1 world, 4 records, from 0; max |d| 1.1e-10 (1 ulps) at world secondsPerTick, record 0: 0.00111111114 -> 0.00111111125",
-    "  units: 1 of 5 differ",
-    "    rot: 1 unit, 1 record, from 0; max |d| 1.19e-07 (8 ulps) at obj129 rot.w, record 0: -0.142985955 -> -0.142985836",
-    "  client units: 2 of 5 differ",
-    "... 2 more lines"
+    "  client units: 1 of 5 differ",
+    "    #unit: 1 client unit, 1 record, from 0; hash only (no numbers kept)"
   ]
 }

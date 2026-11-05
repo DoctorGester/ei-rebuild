@@ -1,0 +1,37 @@
+# R58: the main menu's signpost (the stones, unit 2 of the menu's world) casts its shadow from the first frame. It cast
+# none until the mouse first hovered a button: a unit playing no animation is taken for lying (its client tick sets
+# flag 8, no shadow), and the stones played nothing until a hover; the menu now plays their rest pose when it opens
+# (docs/notes/ui.md, section 4). The menu's first frame and the frame after a hover of the first button and back (the
+# rest pose again, a few frames later) are taken frozen, each also as the shadow alone (`shadowview on`: white lit,
+# black shadowed); the ground around the signpost's foot (560,500)-(780,620) at 1280x720 matches between the two
+# shadow views (tolerance 64: the soft edges and the light move a little in those frames; without the fix about 2-3%
+# of the rectangle differs, the signpost's shadow, against 0.06%). shadowcheck: the map made in both. Captures to look
+# at: first, rest, first_shadow, rest_shadow.
+render checkall
+resolution 1280x720
+fullscreen 0
+timeout 60
+reject Script error
+waitmenu
+move 400 20
+freeze
+shadowcheck 1
+capture first
+shadowview on
+capture first_shadow
+shadowview off
+unfreeze
+moveregion 0
+frames 3
+move 400 20
+frames 3
+freeze
+shadowcheck 1
+capture rest
+shadowview on
+capture rest_shadow
+shadowview off
+unfreeze
+samecapture first_shadow rest_shadow 64 0.005 560 500 780 620
+report
+quit

@@ -2,12 +2,20 @@
   "scenario": "net_pair_quest",
   "install": "vanilla",
   "recorded": "2026-11-05",
-  "commit": "d5b3c20ae",
+  "commit": "fd79c6714",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R57c: visuals.sav gains the Zone section (the client's tick and the zone's map when taken), and a zone left keeps its side file saves\\current\\<zone>.visuals.sav (copied into a slot with the zone files); no digest or console moves (client-side picture only)",
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
   "side": "peer",
-  "source": "image"
+  "source": "image",
+  "change": [
+    "digest: 21 of 541 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  client units: 1 of 23 differ",
+    "    #unit: 1 client unit, 21 records, from 0; hash only (no numbers kept)"
+  ]
 }

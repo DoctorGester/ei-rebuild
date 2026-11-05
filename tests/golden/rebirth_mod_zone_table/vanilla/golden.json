@@ -2,24 +2,19 @@
   "scenario": "rebirth_mod_zone_table",
   "install": "vanilla",
   "recorded": "2026-11-05",
-  "commit": "c4a4ce818",
+  "commit": "fd79c6714",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C162: the mod-folder patches apply whenever a mod is played, on both installs; the S19 mods are chosen by 'mod harness_saves\\...' and their saves go to harness_saves\\<mod>",
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
   "source": "image",
   "change": [
-    "digest: 6 of 17 records differ, first at record 11 (world update 240, tick 20, frame 47, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 11 (world update 240, tick 20, frame 47, zone -): 1 fields",
-    "    random (random) isaac.count: 152 in the old golden, 155 in the new run (d 3)",
+    "digest: 12 of 17 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  random: 1 of 1 differ",
-    "    isaac: 1 generator, 6 records, from 11; max |d| 3 at random isaac.count, record 11: 152 -> 155",
-    "  units: 20 of 26 differ",
-    "    #ai: 5 units, 5 records, from 12; hash only (no numbers kept)",
-    "    #unit: 15 units, 5 records, from 12; hash only (no numbers kept)",
-    "  client units: 4 of 15 differ",
-    "    #unit: 4 client units, 5 records, from 12; hash only (no numbers kept)"
+    "  client units: 1 of 15 differ",
+    "    #unit: 1 client unit, 12 records, from 0; hash only (no numbers kept)"
   ]
 }

@@ -1,28 +1,21 @@
 {
   "scenario": "net_pair_speed",
   "install": "rebirth",
-  "recorded": "2026-11-03",
-  "commit": "0999ae8c4",
+  "recorded": "2026-11-05",
+  "commit": "a4ca9ca88",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
   "side": "peer",
   "source": "image",
   "change": [
-    "digest: 160 of 258 records differ, first at record 78 (world update 1580, tick 1137, frame 315, zone bz1mpg); outcomes the same; no unit position differs",
-    "  first difference at record 78 (world update 1580, tick 1137, frame 315, zone bz1mpg): 2 fields",
-    "    obj399469 (80 unanhopi \"\") #unit: 02FF2E5D in the old golden, AA6FA62A in the new run",
-    "    cunit399469 (80 unanhopi \"\") #place: 40ED571C in the old golden, 31CD9F7C in the new run",
+    "digest: 23 of 258 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  units: 2 of 27 differ",
-    "    #unit: 2 units, 6 records, from 78; hash only (no numbers kept)",
-    "  client units: 9 of 26 differ",
-    "    #place: 8 client units, 89 records, from 78; hash only (no numbers kept)",
-    "    #unit: 8 client units, 87 records, from 171; hash only (no numbers kept)",
-    "    only in the new run: 4 (cunit4518 80 unanwibo \"\", cunit4767 80 unanhoha \"\", cunit4768 80 unanhoha \"\", ...), from record 173",
-    "    only in the old golden: 4 (cunit4518 80 unanwibo \"\", cunit4767 80 unanhoha \"\", cunit4768 80 unanhoha \"\", ...), from record 197",
-    "... 6 more lines"
+    "  client units: 1 of 26 differ",
+    "    #unit: 1 client unit, 23 records, from 0; hash only (no numbers kept)"
   ]
 }

@@ -3235,18 +3235,23 @@ void RunSteps() {
             g_captureDeadline = sys::TickCount() + (count > 0 ? 30000 : 10000);
             return;
         } else if (s.verb == "samecapture") {
+            // samecapture <a> <b> [tolerance [fraction [left top right bottom]]]: the rectangle as diffcapture's.
             char a[64] = "", b[64] = "";
             int tolerance = 8;
             double limit = 0.001;
-            if (std::sscanf(s.argument.c_str(), "%63s %63s %d %lf", a, b,
-                         &tolerance, &limit) < 2) {
-                g_failures.push_back("samecapture needs two frame names");
+            int rect[4] = {};
+            const int read = std::sscanf(s.argument.c_str(), "%63s %63s %d %lf %d %d %d %d", a, b, &tolerance, &limit,
+                                         &rect[0], &rect[1], &rect[2], &rect[3]);
+            if (read < 2 || (read > 4 && read < 8)) {
+                g_failures.push_back("samecapture needs two frame names (and a rectangle's four sides)");
                 continue;
             }
             double differing = 0;
             int largest = 0;
             const char* why = "";
-            if (!capture::Compare(a, b, tolerance, &differing, &largest, &why)) {
+            if (!(read == 8 ? capture::CompareRect(a, b, tolerance, rect[0], rect[1], rect[2], rect[3], &differing,
+                                                   &largest, &why)
+                            : capture::Compare(a, b, tolerance, &differing, &largest, &why))) {
                 g_failures.push_back(std::string("samecapture ") + a + " " + b + ": " + why);
                 continue;
             }

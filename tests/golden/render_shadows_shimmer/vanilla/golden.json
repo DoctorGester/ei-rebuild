@@ -1,28 +1,21 @@
 {
   "scenario": "render_shadows_shimmer",
   "install": "vanilla",
-  "recorded": "2026-11-03",
-  "commit": "0bf7a1ac8",
+  "recorded": "2026-11-05",
+  "commit": "fd79c6714",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C81: settings pruned; water waves and marks always on, one Shadows switch (terrain sun shadows on), blood stains re-lit every 10 s, the scenarios' options dance removed; outcomes the same",
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
   "source": "image",
+  "saves": "7 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 3 of 12 records differ, first at record 9 (world update 200, tick 19191, frame 39, zone bz1g); outcomes CHANGED: quest variables, script (deaths unknown: hash only); max unit move 2.97 (obj831510, record 11); the digests have different numbers of records",
-    "  digest: the records no longer line up at record 9: the old golden world update 200 tick 19191, the new run world update 200 tick 19201",
-    "  digest: the old golden has more records; the other ends before its record 12 (world update 260, frame 51, tick 19191, zone bz1g)",
-    "  first difference at record 9 (world update 200, tick 19191, frame 39, zone bz1g): 56 fields",
-    "    world (world) tick: 19191 in the old golden, 19201 in the new run (d 10)",
-    "    world (world) paused: 1 in the old golden, 0 in the new run (d 1)",
-    "    random (random) isaac.count: 103 in the old golden, 53 in the new run (d 50)",
-    "    ... 53 more",
-    "  outcomes: CHANGED quest variables, script (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, party and items, game result",
-    "    quest variables: 1 variables differ (gtime); first from record 10: player0 gtime: 27.3100452 in the old golden, 27.3811569 in the new run",
-    "    script: script #inst differs (hashes only), from record 9 (+5 more)",
-    "  world: 1 of 1 differ",
-    "... 26 more lines"
-  ],
-  "saves": "7 decoded saves (tools/savefile.py), the same in 2 runs"
+    "digest: 1 of 12 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  client units: 1 of 17 differ",
+    "    #unit: 1 client unit, 1 record, from 0; hash only (no numbers kept)"
+  ]
 }

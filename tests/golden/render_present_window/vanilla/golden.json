@@ -1,20 +1,20 @@
 {
   "scenario": "render_present_window",
   "install": "vanilla",
-  "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "recorded": "2026-11-05",
+  "commit": "fd79c6714",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
   "source": "image",
   "change": [
-    "digest: 1 of 6 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "digest: 3 of 6 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
     "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    cunit148 (80 unanwiwo \"\") #place: 226A830E in the old golden, 93682B97 in the new run",
+    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
     "  client units: 1 of 4 differ",
-    "    #place: 1 client unit, 1 record, from 0; hash only (no numbers kept)"
+    "    #unit: 1 client unit, 3 records, from 0; hash only (no numbers kept)"
   ]
 }
