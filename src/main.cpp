@@ -1,8 +1,10 @@
 // ei-rebuild: the game.
 // usage: ei-rebuild [-- <game arguments>]
-//   The game folder is the one EI_GAME_ROOT names (tools/run_all.py's), else the program's
-//   own (the exe dropped into a game folder). With EI_GAME_ROOT the settings file's Work path
-//   is read as that folder. What follows "--" is the game's command line, as typed (WinMain's).
+//   The game folder is the one EI_GAME_ROOT names (tools/run_all.py's), else the platform's
+//   (platform::DefaultGameFolder: the exe's own, dropped into a game folder; on macOS beside the
+//   app or chosen); without one (none chosen) the program ends at once. With EI_GAME_ROOT the
+//   settings file's Work path is read as that folder. What follows "--" is the game's command
+//   line, as typed (WinMain's).
 #include "game/app.h"
 #include "game/rebirth_profile.h"
 #include "game/settings.h"
@@ -24,11 +26,7 @@ void RedirectGamePath(const char* name, std::string& value) {
 
 std::string GameFolder() {
     std::string folder = platform::EnvironmentVariable("EI_GAME_ROOT");
-    if (folder.empty()) {
-        folder = platform::ProgramPath();
-        const std::size_t slash = folder.find_last_of("\\/");
-        folder.resize(slash == std::string::npos ? 0 : slash);
-    }
+    if (folder.empty()) folder = platform::DefaultGameFolder();
     while (folder.size() > 3 && (folder.back() == '\\' || folder.back() == '/')) folder.pop_back();
     return folder;
 }
@@ -43,8 +41,12 @@ int main(int argc, char** argv) {
         return 2;
     }
     const std::string folder = GameFolder();
+    if (folder.empty()) {
+        ei::Log("ei-rebuild: no game folder");
+        return 1;
+    }
     std::uint32_t error = 0;
-    if (!folder.empty() && !platform::SetCurrentFolder(folder, &error))
+    if (!platform::SetCurrentFolder(folder, &error))
         ei::Log("cannot enter the game folder %s (error %u)", folder.c_str(), error);
     if (!platform::EnvironmentVariable("EI_GAME_ROOT").empty()) {
         g_gameRoot = folder + "\\";

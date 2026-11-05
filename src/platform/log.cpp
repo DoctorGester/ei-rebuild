@@ -28,9 +28,7 @@ std::filesystem::path SystemPath(const std::string& utf8) {
 // The folder `OutputPath` puts its files in (log.h).
 std::string OutputFolder() {
     const std::string folder = platform::EnvironmentVariable("EI_OUT_DIR");
-    if (!folder.empty()) return folder;
-    const std::string program = platform::ProgramPath();
-    return program.substr(0, program.find_last_of("\\/"));
+    return folder.empty() ? platform::DefaultOutputFolder() : folder;
 }
 
 // The file stays open for the whole run and each line is flushed as it is written (a crash loses

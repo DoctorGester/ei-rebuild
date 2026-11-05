@@ -42,10 +42,8 @@ and third_party_notices.txt.
 
 The app is not Developer ID signed or notarised (that needs an Apple Developer account: the user's call), so a
 downloaded copy is quarantined and Gatekeeper refuses it: `xattr -dr com.apple.quarantine ei-rebuild.app` once, or
-Control-click > Open (macOS 15 and later: open it once, then System Settings > Privacy & Security > Open Anyway). It
-does not find the game folder by itself yet: started without `EI_GAME_ROOT` it looks beside its executable, inside
-the bundle, and its log goes there too, so the README says to start
-`EI_GAME_ROOT=... ./ei-rebuild.app/Contents/MacOS/ei-rebuild` from Terminal.
+Control-click > Open (macOS 15 and later: open it once, then System Settings > Privacy & Security > Open Anyway).
+The zip's README.txt says how the app finds the game folder and where it writes ("The game folder and the log" below).
 
 Not run yet (2026-11-04): the job as a whole. Its weakest guesses are the Vulkan SDK's download name and installer
 command line, ctest's GPU checks on the runner's virtual Metal device, and a universal Release build at 13.3 (the
@@ -76,7 +74,27 @@ python3 tools/run_macos.py --data ~/workspace/ei --seconds 60
 Each makes a new folder under `build/macos/runs/`, links the game data's read-only folders (Res, Maps, Movies, Stream,
 Camera) into it, copies `Config` and the settings, and points every writable path there (`EI_GAME_ROOT`, `EI_OUT_DIR`,
 `EI_SETTINGS_PATH`); it keeps `stdout.txt`, `ei-rebuild.log` and the settings. Do not recursive-delete such a folder
-while it holds the links. The app started directly without those variables expects the data beside the executable.
+while it holds the links.
+
+## The game folder and the log
+
+The app started without `EI_GAME_ROOT` (opened from the Finder, the release's way) takes one rule
+(`platform::DefaultGameFolder`, src/platform/posix/paths.cpp): the folder holding `ei-rebuild.app` when it holds the
+game's data (`Res/database.res`, its names matched with Windows' case rules), else the folder named in
+`~/Library/Application Support/ei-rebuild/game_folder.txt` when it still does, else a folder picker (SDL's
+`SDL_ShowFileDialogWithProperties`, NSOpenPanel run modally before the window exists; `SDL_DIALOG` is on for Apple
+only, CMakeLists.txt), asking again while the chosen folder lacks the data; its choice is written to that file.
+Cancelled, the program ends (main.cpp: no game folder, exit 1). SDL's video runs only around the picker and quits
+before `StartWindowSystem` starts it again with the game's hints. A quarantined app runs translocated (from a random
+read-only copy), where nothing is beside it: the picker then, once, so beside-the-app works only after `xattr -dr`.
+
+The log and a run's other output go to `~/Library/Logs/ei-rebuild` (`platform::DefaultOutputFolder`; the Console app
+lists it) unless `EI_OUT_DIR` names a folder. The settings are still `ei_settings.ini` beside the executable, inside
+the bundle, or `~/Library/Application Support/EvilIslands/ei_settings.ini` when the bundle cannot be written
+(settings.cpp; a translocated app). Windows and Linux keep the program's own folder for both the game and the log.
+
+Not checked on a Mac yet (written without one, 2026-11-05; compiled only by the Release workflow's macOS job): the
+picker's look and its answer, the remembered file, the log's folder, and SDL's video quit and started again.
 
 ## What differs on macOS
 

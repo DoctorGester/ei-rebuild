@@ -63,6 +63,14 @@ std::string CurrentFolder();
 bool SetCurrentFolder(const std::string& path, std::uint32_t* error);
 // The folder for the current user's program data, with a trailing separator; empty when the user has none.
 std::string UserDataFolder();
+// The game's folder when nothing names one (main.cpp's EI_GAME_ROOT), with the system's separators: the program's own
+// folder (the exe dropped into a game folder). On macOS, where that folder is inside the app: the folder holding
+// ei-rebuild.app when it holds the game's data, else the one chosen last time, else one the player chooses in a folder
+// picker (remembered in ~/Library/Application Support/ei-rebuild). Empty when the player chose none.
+std::string DefaultGameFolder();
+// The folder for the log and a run's other output when nothing names one (log.h's EI_OUT_DIR): the program's own
+// folder; on macOS ~/Library/Logs/ei-rebuild.
+std::string DefaultOutputFolder();
 // What follows the argument "--" on the program's command line: on Windows the command line's own text, as typed;
 // elsewhere the arguments (main's) joined by spaces. Empty without one.
 std::string ArgumentsAfterSeparator(int argc, char** argv);
