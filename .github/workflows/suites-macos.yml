@@ -5,7 +5,7 @@
 #
 # build: the harness build (-DEI_HARNESS=ON, RelWithDebInfo, arm64, no Release / no publishing) as macos.md describes:
 # pip's cmake and ninja, DXC from the LunarG Vulkan SDK (release.yml's macos job: the same cache keys, so the two share
-# them), the shader toolchain built at configure time. ccache keeps the objects between runs.
+# them), the shader toolchain built at configure time. ccache keeps the objects between runs. Then its ctest checks.
 #
 # smoke: the stub game data (H41) fetched from the private repository with the read-only token, as suites-linux.yml and
 # suites-windows.yml do (same variable EI_STUB_DATA_REPO, same secrets EI_STUB_DATA_TOKEN / EI_STUB_DATA_KEY). The
@@ -114,6 +114,11 @@ jobs:
           ccache --show-stats
           test -x build/macos-verify/ei-rebuild.app/Contents/MacOS/ei-rebuild
           echo "build harness: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
+
+      # The checks release.yml's macOS job runs (port_platform, port_render, ...), on the harness build: a failure is
+      # found here, not first at a release (MAC5, the v1.0.0 path map on macOS's /var -> /private/var).
+      - name: Checks
+        run: ctest --test-dir build/macos-verify --output-on-failure
 
       # The private repository's files, fetched and unpacked as in suites-linux.yml (no token kept in the checkout).
       - name: Fetch the stub data
