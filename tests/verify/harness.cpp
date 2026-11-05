@@ -22,7 +22,8 @@
 //                             starting, 3 phrases, 4 rewards), in a main loop pass (input steps follow)
 //   talk <seconds>            click through the base screen's dialogue: a click at the layout's centre in
 //                             states 3 and 4 (the next phrase, then the rewards taken), two frames apart,
-//                             until it is back in state 0 (a topic without phrases at once)
+//                             until it is back in state 0 (a topic without phrases at once) or the game
+//                             has left the base for a battle zone
 //   waitunit <seconds> <name> wait until the unit with script name <name> is drawn and the game's
 //                             picking finds it, as "clickunit" needs (a unit just added to the
 //                             server reaches the client and the screen a few frames later)
@@ -2432,7 +2433,9 @@ void RunSteps() {
         bool done = false;
         if (!g_talking) {
             done = state == g_dialogueState && g_inputLoop;
-        } else if (state == 0) {
+        } else if (state == 0 || (state < 0 && HarnessCampaignMode() == 1)) {
+            // Back in state 0, or the dialogue's end left the base for a battle zone (a cut-scene base's
+            // LeaveToZone as its briefing completes: Lost in Astral's cz* bases).
             done = true;
         } else if ((state == 3 || state == 4) && g_inputLoop && g_frames >= g_talkNextFrame) {
             PostMouse("click", 400, 300);

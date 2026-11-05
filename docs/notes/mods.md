@@ -13,6 +13,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/platform/files.cpp` | `FolderEntries`: each layer's search (the backends' `SearchFolder`) merged |
 | `src/main.cpp` | reads `[game] Mod` after the Rebirth profile, calls `platform::UseMod` |
 | `src/game/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"): `ModPath()` is the Mod folder, else `[rebirth] AddonPath` |
+| `src/game/mod_plugins.h`, `.cpp` | the mods' plugins carried as code ("The mods' plugins"): `modplugins::FourShopClasses` |
 | `tests/verify/harness.cpp` | `Layers` / `MapPath` / `MapSearches`: the run's overlay as the map's top layer |
 | `tests/unit/path_layers.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_lost_in_astral.txt` | a new game in Lost in Astral (Rebirth's data) |
@@ -80,10 +81,31 @@ The game's registry format (src/game/registry.h). Sections in Rebirth's mods:
   `music.reg = res\music.reg`, the lights `.ini` files, keyboard.ini, addrbook.ini, tutorial.ini; IronMod:
   `ai.reg`). In every shipped mod each value is where the game folder has the file of that name (`config\`, the
   resources' `res\`), so the mod's layer gives the mod's file; the section itself is not read.
-- `[DEV] Plugin`: a DLL that patches game.exe (Lost in Astral's fixshops.plg, IronMod's fixfslpatei.plg); not loaded.
+- `[DEV] Plugin`: a DLL that patches game.exe (Lost in Astral's fixshops.plg, IronMod's fixfslpatei.plg), which the
+  starter loads; never loaded by our exe. The ones that matter are code, on while the mod names them ("The mods'
+  plugins").
 
 Rebirth's own Maps, CameraPatch, MoviesPatch and StreamPatch look in `ModPath()` too; with the layer they find the
 same files.
+
+## The mods' plugins
+
+A `.plg` is a DLL the starter loads into game.exe (1.06) when the mod's config.reg names it; it writes bytes into the
+code. Read with a disassembler, never loaded. `src/game/mod_plugins.cpp` reads the mod's config.reg (`ModPath()`) at
+each question, so a plugin's change is on exactly while the chosen mod names it.
+
+- Lost in Astral's `fixshops.plg` (`modplugins::FourShopClasses`, used by party_manager.cpp) makes two changes:
+  - a new game (`PartyManagerNewGame`) builds the trader class templates as a network game does (`Build(1)`: classes
+    1, 3, 4 and 5, each selling items and spells with the default weights) instead of the campaign's `Build(0)`
+    (five classes: 1 items only, 2 spells only, 5 zero weights). The mod's bases name classes 1 (OrcC, OrcPyr), 3
+    (Trader), 4 (YCF, Zaku) and 5 (Stark), never 2: with the campaign's five its class 1 traders sold no spells and
+    class 5 nothing.
+  - `PartyManager::Load` builds them again after reading the save: the saved templates and their stock are dropped,
+    so a loaded game restocks at the next camp visit.
+  Checked by `mod_lost_in_astral_shops` (the camp of classes 1 and 5, a quick save, its load, the camp again, a
+  second quick save: the saves golden holds the four templates and the stock made after the load) and by every
+  Lost in Astral scenario's autosave (four templates).
+- IronMod's `fixfslpatei.plg`: not read yet.
 
 ## Checks
 
@@ -221,9 +243,7 @@ new window, and is outside what the harness can check.
 
 ## Open questions
 
-- The stub data (linux.md, "The stub data") has no `starter\Mods`: `mod_lost_in_astral` needs the mod's files read in
-  its run.
-- The `.plg` plugins: what fixshops.plg changes in the shops.
+- IronMod's `fixfslpatei.plg` (above).
 - `[MOD] Single` / `Multi`: a mod for one kind of game only (the menu's list, MOD3).
 
 ## Lost in Astral played (MOD2)
@@ -249,10 +269,33 @@ What the expansion's data asks of the game that the base game's never did, and h
   bz23k's stops at line 267, a call of the never declared script `BuyHaburuMain#2#1#0` (the mod's error; the scripts
   before it stay).
 - The cut-scene bases (cz*) move story people ("merc2" and others) who join the party on the way: entered without
-  them, their briefings never start (MOD2a plays them from the story's state).
+  them, their briefings never start. Played from the story's state (`mod_lost_in_astral_cz_suslanger`, `_cz_ingos`,
+  `_cz_jigran`): the party the story has there, made by the script calls the mod's zones use (`CreateParty`,
+  `AddUnitToParty(0, "<party>::<member>", "<unit>")`, `SetCurrentParty`, `RedeployParty`; a member's unit is named
+  by the member: "merc2" whatever its prototype). The parties: FPrison (Hero1, merc2) on Suslanger, Gipat (Hero3,
+  merc2g as "merc2") on Gipat and Ingos, Jigran1 (Hero3 alone, `CopyStats` from Gipat's hero) on Jigran, Jigran3
+  for cz4j; cz2j and cz3j make Jigran2 and Jigran5 themselves. Each base's briefing, read to the end, leaves for the
+  next zone (`LeaveToZone` from its briefing check, which the harness's `talk` sees as the base left); cz3j's leads to
+  gz35j, where merc2 dies in the acid column as the story has it.
+- cz3h and cz4h have no mob in the mod or the game and are reached by nothing: cz3h's exit is commented out in
+  zone2's script and cz4h's (zone2's VCheck#6#1) waits for `q24h` equal to 1 and to 0 at once.
+- The later quests (`mod_lost_in_astral_gipat_quests`, `_gipat_necropolis`): gz11g's q11g (areas), gz12g's q27g (the
+  broken palantir and three key levers), gz13g's q17g (a chest's key on three key levers, opened from the quick
+  panel as a player does) and gz14g's q28g (a lever's golem centre key on two key levers), each to its end and the
+  briefing or exit it opens. A key lever's lock (the lever record's id) is the quest item's index in items.idb
+  (TeleportKey00 2, AmbushKey00 38, GolemCenterKey00 39, PalantirBroken00 44). Not matched: the key levers of gz12g
+  (4523 to 4525) and gz14g (1712, 57) do not open from the quick panel's key: the order is taken (the panel's mode
+  back to 0) but the hero stops about 2 units short (gz12g) or does not move (gz14g), where gz13g's and bz1r's open;
+  the scenarios switch them by `SwitchLeverState` (MOD2b).
+- The ending (`mod_lost_in_astral_ending`): gz36j (zonefinal.mob) from cz4j, its four levers of q22j, the last enemy
+  (object 666666, which the zone heals until the step q22j.5 is done) killed, and `LeaveToZone(0, "EndofGame", ...)`: the
+  campaign's end mode, the credits screen ("titles").
 - Leftovers of the game's map.txt in the mod's, which no exit or script reaches: gz17g names the game's zone17.mob, one
   of whose units carries `necrolabkey00`, an item the mod's database lacks (Rebirth's FixCreateItem gives no item, now
   logged as Rebirth's addon.log did, `GiveItem: can't find prototype ...`; the unit record adds no carried item for
   it, where both games crashed); bz15g and mov1 name mobs (bz15g.mob, 1mov.mob) that neither the mod nor the game has,
   so they load nowhere (entering one leaves the world broken in both games).
-- Not matched: the mod's `fixshops.plg` (a game.exe patch DLL for its shops) is not loaded (open questions above).
+- The mod's `fixshops.plg` (its shops' patch) is code ("The mods' plugins").
+- On Linux CI the stub data keeps the Rebirth mods whole (linux.md, "The stub data"): starter\Mods\LostInAstral's
+  Camera, Config, Maps, Movies, Res, Stream, config.reg, fixshops.plg and readme.txt are all in the pack, so the
+  mod's scenarios run there as on Windows.

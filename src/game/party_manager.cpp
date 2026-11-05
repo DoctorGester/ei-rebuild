@@ -8,6 +8,7 @@
 #include "core_streams.h"
 #include "game_singletons.h"
 #include "item_manager.h"
+#include "mod_plugins.h"
 #include "object_tables.h"
 #include "party.h"
 #include "party_manager.h"
@@ -201,6 +202,8 @@ void PartyManager::Load(MemoryStream* from) {
     archive.Open(&local, 1, from->version);
     ArchiveManager(this, &archive);
     archive.Close(&local);
+    // A mod with fixshops.plg builds the four trader classes again, the saved ones and their stock dropped.
+    if (modplugins::FourShopClasses()) templates.Build(1);
 }
 
 void PartyManager::Save(MemoryStream* to) {
@@ -294,7 +297,7 @@ Party* PartyAt(PartyMap& parties, int key) {
 
 void PartyManagerNewGame(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
-    manager->templates.Build(0);
+    manager->templates.Build(modplugins::FourShopClasses() ? 1 : 0);
 }
 
 void PartyManagerNewGameFour(PartyManager* manager) {

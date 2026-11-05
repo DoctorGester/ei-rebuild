@@ -74,7 +74,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   zone; the multiplayer bases are each game's own) a new item by its database name, as a script's GiveItem
   (`net_pair_database.txt`). On the base screen: `waitdialogue <seconds> <state>` waits for its
   dialogue state (1 a person's topics open: `clickregion` picks one), `talk <seconds>` clicks through the dialogue's
-  phrases and rewards until it is over (`net_pair_leave.txt`).
+  phrases and rewards until it is over, or until the base is left for a battle zone (a cut-scene base whose briefing
+  ends in LeaveToZone: `mod_lost_in_astral_cz_ingos.txt`; `net_pair_leave.txt`).
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window (coordinates in the
   800x600 interface layout); Esc and mouse clicks reach the interface. `clickregion/rclickregion/dblclickregion/
   moveregion <n>` do the same at the centre of region `<n>` of the window on top (region numbers as the screen's code

@@ -1,0 +1,92 @@
+# Lost in Astral's Gipat quests in gz13g and gz14g (MOD2a; docs/notes/mods.md, "Lost in Astral played (MOD2)"). In
+# gz13g the hero takes the key from the chest 1281 and opens the three key levers (1321, 1323, 1322) as a player
+# does: the leader selected, the key picked from the quick panel, then the lever clicked. In gz14g the lever 42
+# gives the golem centre's key; the key levers 1712 and 57 do not open from the quick panel there (MOD2b) and are
+# switched by script. Each quest's end is checked (and gz14g's exit opened). On the vanilla data only the menu runs.
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+digest off
+rebirth console thingamabob
+rebirth newgame
+rebirth waitfor 20 IsGreater(HP(GetLeader()),0)
+rebirth waitline 20 Saved savea
+
+rebirth zone gz13g 0
+rebirth waitzone 25 gz13g
+rebirth waitfor 15 IsGreater(HP(GetLeader()),0)
+rebirth waitwindow 15 battle
+rebirth console @GodMode(0,1)
+rebirth console @GSSetVar(0,"q.gz13g.q17g",1)
+rebirth waitfor 10 IsEqual(GSGetVar(0,"q.gz13g.q17g.1"),1)
+rebirth digest
+rebirth console @SetCPFast(GetLeader(),71,110,0)
+rebirth camera 73 112
+rebirth waitunit 10 #1281
+rebirth clickunit #1281
+rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz13g.q17g.2"),1)
+rebirth camera 76.3 114.6
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #1321
+rebirth clickunit #1321 move
+rebirth frames 5
+rebirth clickunit #1321
+rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz13g.q17g.3"),1)
+rebirth console @SetCPFast(GetLeader(),33,120,0)
+rebirth camera 33.3 122
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #1323
+rebirth clickunit #1323 move
+rebirth frames 5
+rebirth clickunit #1323
+rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz13g.q17g.4"),1)
+rebirth console @SetCPFast(GetLeader(),93,63,0)
+rebirth camera 94.7 64.9
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #1322
+rebirth clickunit #1322 move
+rebirth frames 5
+rebirth clickunit #1322
+rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz13g.q17g.5"),1)
+rebirth console @SetCPFast(GetLeader(),52,143,0)
+rebirth waitfor 10 IsEqual(GSGetVar(0,"q.gz13g.q17g"),2)
+rebirth check IsEqual(GSGetVar(0,"b.bz12g.brief_129"),1)
+rebirth digest
+
+rebirth zone gz14g 0
+rebirth waitzone 25 gz14g
+rebirth waitfor 15 IsGreater(HP(GetLeader()),0)
+rebirth waitwindow 15 battle
+rebirth console @GodMode(0,1)
+rebirth console @GSSetVar(0,"q.gz14g.q28g",1)
+rebirth waitfor 10 IsEqual(GSGetVar(0,"q.gz14g.q28g.1"),1)
+rebirth digest
+rebirth console @SetCPFast(GetLeader(),134,134,0)
+rebirth waitfor 10 IsEqual(GSGetVar(0,"q.gz14g.q28g.2"),1)
+rebirth console @SetCPFast(GetLeader(),160,94,0)
+rebirth camera 161.9 95.8
+rebirth waitunit 10 #42
+rebirth clickunit #42
+rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz14g.q28g.3"),1)
+rebirth console @SwitchLeverState(GetObject(1712),1)
+rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz14g.q28g.4"),1)
+rebirth console @SwitchLeverState(GetObject(57),1)
+rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz14g.q28g.5"),1)
+rebirth console @SetCPFast(GetLeader(),245,151,0)
+rebirth waitfor 10 IsEqual(GSGetVar(0,"q.gz14g.q28g"),2)
+rebirth check IsEqual(GSGetVar(0,"z.gz11g_bz14g"),2)
+rebirth digest
+report
+quit

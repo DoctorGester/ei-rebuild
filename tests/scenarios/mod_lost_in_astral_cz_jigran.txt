@@ -1,0 +1,42 @@
+# Lost in Astral's cut-scene bases on Jigran, cz2j and cz3j (MOD2a; docs/notes/mods.md, "Lost in Astral played
+# (MOD2)"), from the story's own state: the party Jigran1 (Hero3 alone, his stats copied from the Gipat party's hero,
+# as zone32's script does). cz2j makes the party Jigran2 with merc2 and leaves for bz31j; cz3j makes Jigran5 and
+# leaves for gz35j, where merc2 dies in the acid column (no GodMode in this run: the death is the check).
+# On the vanilla data only the menu runs.
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+digest off
+rebirth console thingamabob
+rebirth newgame
+rebirth waitfor 20 IsGreater(HP(GetLeader()),0)
+rebirth waitline 20 Saved savea
+rebirth waitwindow 15 battle
+
+rebirth console @CreateParty(0,"Gipat")
+rebirth console @AddUnitToParty(0,"Gipat::Hero","Hero3")
+rebirth console @AddUnitToParty(0,"Gipat::merc2","merc2g")
+rebirth console @CreateParty(0,"Jigran1")
+rebirth console @AddUnitToParty(0,"Jigran1::Hero","Hero3")
+rebirth console @CopyStats(0,"Gipat::Hero","Jigran1::Hero")
+rebirth console @SetCurrentParty(0,"Jigran1")
+rebirth console @RedeployParty(0)
+rebirth wait 500
+
+rebirth zone cz2j 0
+rebirth waitzone 25 cz2j
+rebirth waitdialogue 30 3
+rebirth digest
+rebirth talk 40
+rebirth waitzone 40 bz31j
+rebirth check IsAlive(GetObjectByName("merc2"))
+rebirth check IsEqual(GSGetVar(0,"b.BSon.brief_324"),2)
+rebirth digest
+
+rebirth zone cz3j 0
+rebirth waitzone 25 cz3j
+rebirth waitzone 50 gz35j
+rebirth check Not(IsAlive(GetObjectByName("merc2")))
+rebirth digest
+report
+quit

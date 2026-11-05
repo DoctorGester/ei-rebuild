@@ -1,0 +1,43 @@
+# Lost in Astral's cut-scene bases on Suslanger, cz1h and cz2h (MOD2a; docs/notes/mods.md, "Lost in Astral
+# played (MOD2)"), from the story's own state: the prison party FPrison (the hero Hero1 and the mercenary merc2, made
+# with the script calls the mod's zones use), so the cut-scene finds "merc2" and plays. Each base moves the two,
+# opens merc2's briefing (brief_5, brief_5a), and when it is read to the end (talk: the harness clicks through it)
+# leaves for its battle zone, cz1h for gz1d2 and cz2h for gz1h; the briefing's variable at 2 is checked there.
+# The digest is recorded on arrival only. On the vanilla data (no starter\Mods) only the menu runs.
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+digest off
+rebirth console thingamabob
+rebirth newgame
+rebirth waitfor 20 IsGreater(HP(GetLeader()),0)
+rebirth waitline 20 Saved savea
+rebirth waitwindow 15 battle
+
+rebirth console @CreateParty(0,"FPrison")
+rebirth console @AddUnitToParty(0,"FPrison::Hero","Hero1")
+rebirth console @AddUnitToParty(0,"FPrison::merc2","merc2")
+rebirth console @SetCurrentParty(0,"FPrison")
+rebirth console @RedeployParty(0)
+rebirth waitfor 10 IsAlive(GetObjectByName("merc2"))
+
+rebirth zone cz1h 0
+rebirth waitzone 25 cz1h
+rebirth check IsAlive(GetObjectByName("merc2"))
+rebirth digest
+rebirth waitwindow 20 briefing
+rebirth waitdialogue 30 3
+rebirth talk 40
+rebirth waitzone 40 gz1d2
+rebirth check IsEqual(GSGetVar(0,"b.merc2.brief_5"),2)
+rebirth digest
+
+rebirth zone cz2h 0
+rebirth waitzone 25 cz2h
+rebirth waitdialogue 30 3
+rebirth talk 40
+rebirth waitzone 40 gz1h
+rebirth check IsEqual(GSGetVar(0,"b.merc2.brief_5a"),2)
+rebirth digest
+report
+quit
