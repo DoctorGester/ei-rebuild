@@ -1,0 +1,108 @@
+# The first frames after a scene is loaded (R56; docs/notes/renderer.md, "Frame capture"): nothing the renderer keeps
+# (the shadow maps, the point shadows' faces, the terrain and mesh caches, the occlusion, the light) may start a frame
+# late. Each load's first presented frames are captured one after another with the clocks frozen from the first
+# ("capture <name> <count> freeze after|on ..."), then a frame later in the same frozen moment: the world view of the
+# first frame must match it, and the second frame all of it. Outside the world view only the HUD moves on the
+# second frame: the portrait's face eases into its selected turn and the clock's marks step, by the interface's frame
+# time, which is 0 on the first frame after a load and then the load's. Loads: a new game, F8, the Load window, Esc >
+# main menu > new game, the main menu's load of the quick save, a zone change (gz2g).
+render checkall
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+newgame
+capture newgame 2 freeze after Saved savea
+frames 10
+capture newgame_later
+unfreeze
+samecapture newgame_1 newgame_later 8 0
+samecapture newgame_2 newgame_later 8 0
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 20
+frames 5
+key f5
+waitline 15 Saved saveq
+frames 5
+
+# F8: the quick save.
+key f8
+capture quick 2 freeze after Loaded saveq
+frames 10
+capture quick_later
+unfreeze
+diffcapture quick_1 quick_later 0 0 8 60 280 900 600
+samecapture quick_2 quick_later 8 0
+frames 5
+
+# Esc menu > Load > the newest save (saveq) > OK.
+key esc
+waitwindow 10 escmenu
+click 395 187
+waitwindow 10 saveload
+click 200 550
+capture window 2 freeze after Loaded saveq
+frames 10
+capture window_later
+unfreeze
+diffcapture window_1 window_later 0 0 8 60 280 900 600
+samecapture window_2 window_later 8 0
+waitwindow 15 battle
+frames 5
+
+# Esc > main menu (Enter on the question) > new game.
+key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+capture menu 2 freeze on menu
+frames 10
+capture menu_later
+unfreeze
+samecapture menu_2 menu_later 8 0.0001
+waitwindow 15 menu
+newgame
+capture menugame 2 freeze after Saved savea
+frames 10
+capture menugame_later
+unfreeze
+samecapture menugame_1 menugame_later 8 0
+samecapture menugame_2 menugame_later 8 0
+waitwindow 15 battle
+frames 5
+
+# Esc > main menu > the quick save loaded.
+key esc
+waitwindow 10 escmenu
+clickregion 3
+frames 5
+key enter
+waitwindow 15 menu
+load saveq
+capture menuload 2 freeze after Loaded saveq
+frames 10
+capture menuload_later
+unfreeze
+diffcapture menuload_1 menuload_later 0 0 8 60 280 900 600
+samecapture menuload_2 menuload_later 8 0
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+frames 5
+
+# A zone change: the forest gz2g (its entry saves savea).
+zone gz2g 0
+capture zone 2 freeze after Saved savea
+frames 10
+capture zone_later
+unfreeze
+diffcapture zone_1 zone_later 0 0 8 60 280 900 600
+samecapture zone_2 zone_later 8 0
+waitzone 20 gz2g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit

@@ -643,6 +643,25 @@ differ. `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--exclu
 OUT]`: per-pixel tolerance (default 8), differing fraction (default limit 0.1%), worst regions. What moves by itself
 between frames without the game's clocks (other threads) is not held.
 
+**Bursts** (R56). `capture <name> <count> [freeze] [after <text> | on <window>]` writes `count` presented frames one
+after another (`<name>_1` .. `<name>_<count>`; a single `capture` lands only every third frame): from the next present,
+from the first present after the console printed a line holding `<text>` (a load's `Loaded <slot>`, a new game's or
+zone entry's `Saved savea`) or from the first with `<window>` on top (`menu` after a return to the main menu); with
+`freeze` the clocks freeze once the first is written, so the later frames differ from it only by what is drawn late.
+The first frame after a load is the first present after it: the battle screen is made by a client tick, so a load with
+the clocks already frozen presents nothing. `tools/frame_preview.py` makes the sheets.
+
+**The first frames after a load** (R56; scenario render_load_first_frame: a new game, F8, the Load window, Esc > main
+menu > new game, the main menu's load, a zone change). With the clocks frozen from the first frame, every later frame
+matches it in the world view to the pixel, also at msaa 8, at night with point shadows and in the town (scratch runs
+over 30-40 frames each): no shadow map, point shadow face, terrain or mesh cache entry, occlusion or light starts a
+frame late. Unfrozen (also on the real clock) the step from the first frame to the second is no larger than any later
+step. What does change on the second frame is the HUD's own animation: the interface's frame time
+(`UiContainer::FrameTime`) is 0 on the first frame after a load and the load's length on the next, so the selected
+portrait's face, eased from its straight rest towards its selected turn (`HudPortraits::Update`: at once when the step
+is 0.5 s or more), snaps into the turn on frame 2, and the clock's marks step (the game's behaviour). The main menu's
+first frozen frames differ in a few single pixels (its particles).
+
 ## 12. The device layer in game code
 
 All in `src/game`:
