@@ -1670,6 +1670,8 @@ void PostLayoutMouse(const std::string& verb, Point point) {
     }
     point = ToWindow(point.x, point.y);
     const Point at = point;
+    g_mouseX = at.x;   // the polled cursor follows, as in PostMouse: hovers and tooltips read it
+    g_mouseY = at.y;
     input::MoveMouse(at);
     if (verb == "clickregion") {
         input::PressButton(MouseButton::Left, at);

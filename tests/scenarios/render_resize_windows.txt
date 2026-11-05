@@ -113,6 +113,8 @@ waitwindow 10 battle
 frames 5
 
 # The camp (trader class 1): the inventory resized to 1000x800, then the trade page (region 6) resized back.
+# The mouse moves off the page before each trade capture: the region click leaves the cursor on the button, and a resize
+# keeps its pixel, so the two frames would show different hovers.
 screen 5 1
 waitwindow 15 camp
 frames 5
@@ -128,6 +130,7 @@ frames 5
 freeze
 windowsize 1280 720
 waitpresent 10
+move 400 20
 frames 5
 capture trade_wide
 unfreeze
@@ -138,6 +141,7 @@ screen 5 1
 waitwindow 15 camp
 clickregion 6
 wait 500
+move 400 20
 frames 5
 freeze
 capture trade_wide_fresh
