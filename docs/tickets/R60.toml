@@ -5,5 +5,6 @@ size = 2
 model = "opus"
 note = "User report 2026-11-05: starting a new game in Lost in Astral (Rebirth, starter\\Mods\\LostInAstral), the first frame shown is the start's autosave over the campfire scene at sunset, and its lighting (campfire glow, ground light) differs from the next frames. Reproduce with a scenario (save frame + ~1 s later, log time of day / sun / ambient / point lights), find the cause and fix it so the first frame drawn already has the zone's settled lighting; one uniform path, no mod special case, no render flags. Keep a scenario comparing the two frames (samecapture over the region). Before/after frames on the captures page (build/captures/r60/). Cause: QuickSave draws a frame for the save's picture without presenting (app::FrameStep(false)) and then the status frame; the second draw was added to the first one's renderer frame, whose once-a-frame passes (shadow maps, point shadows, occlusion, sky reflection) and state came from the first. Not the time of day or the mod's script. Fix: render::EndUnshownFrame at the end of an unshown frame step. Scenario render_save_frame."
 order = 1240
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
