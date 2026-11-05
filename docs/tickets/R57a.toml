@@ -7,5 +7,6 @@ depends = ["R57"]
 files = ["src/game/client_visuals.cpp src/game/ground_print.cpp src/game/ground_print.h tools/savefile.py"]
 note = "Follow-up of R57 (renderer.md 11c). A Prints section in visuals.sav: the client world's bloodPrints, footprints and scorchMarks written with the original's GroundPrint/Footprint/BloodPrint::Save (which have no caller today) and read back with their Load at the end of WorldClient::LoadZone (after it clears the vectors), so a load shows the marks it was saved with. Needs a load constructor per print class (texture looked up by name; geometry rebuilt on the first draw; Footprint's visible byte is not in Save: keep only drawn prints or add it to the section), a section version, read_visuals in tools/savefile.py, and a harness readout of the print counts (or a capture) in render_weather_save or ground_prints. Check whether bloody footprints after a load change client draws (cunit digests)."
 order = 1223
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
