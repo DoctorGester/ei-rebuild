@@ -18,10 +18,8 @@ constexpr int kAtlasWidth = kFaces * kPointFaceTexels;
 constexpr int kAtlasHeight = kMostPointShadows * kPointFaceTexels;
 // The faces' near distance (world units): nearer geometry is drawn at it (shaders/shadow_caster.hlsl).
 constexpr float kNear = 0.05f;
-// A light dimmer than this in every channel casts no shadow; casters weaker than kLeastStrength (units
-// fading in) cast none, as for the sun.
+// A light dimmer than this in every channel casts no shadow; casters weaker than kLeastStrength cast none, as for the sun.
 constexpr float kLeastColour = 0.02f;
-constexpr float kLeastStrength = 0.5f;
 // An object holds a light (and casts nothing for it) when the light lies within this far of one of its
 // meshes' spheres: a lamp's post, the campfire's spit.
 constexpr float kHoldMargin = 0.5f;
@@ -206,11 +204,7 @@ static const FaceCaster& DrawOf(const PointShadowFrame& ps, int index) {
     d.model = ps.models[static_cast<std::size_t>(c.model)];
     d.texture = st.texture ? st.texture : SurfaceView(nullptr);
     d.sampler = StageSampler(st);
-    d.alpha[0] = d.alpha[1] = 0.0f;
-    if ((s.alphaTest || s.blend) && st.hasTexture) {
-        d.alpha[0] = 1.0f;
-        d.alpha[1] = s.alphaTest ? (static_cast<float>(s.alphaReference) + 0.5f) / 255.0f : 0.5f;
-    }
+    CasterAlpha(s, d.alpha);
     d.uv[0] = batch.uOffset;
     d.uv[1] = batch.vOffset;
     g_drawMade[k] = 1;
@@ -360,13 +354,12 @@ void PreparePointShadows(Frame& f) {
         return a.strength > b.strength || (a.strength == b.strength && a.scene < b.scene);
     });
 
-    // The objects handed over as casters (a later entry of the same object wins), then the others met.
+    // The objects handed over as casters, then the others met.
     g_objectIndex.clear();
     g_objects.clear();
-    for (const auto& c : f.shadow.casters) {
-        auto [it, added] = g_objectIndex.try_emplace(c.first, static_cast<int>(g_objects.size()));
-        if (added) g_objects.push_back(FrameObject{c.second});
-        else g_objects[static_cast<std::size_t>(it->second)].strength = c.second;
+    for (const auto& [object, strength] : f.shadow.casters) {
+        g_objectIndex.emplace(object, static_cast<int>(g_objects.size()));
+        g_objects.push_back(FrameObject{strength});
     }
     const void* lastObject = nullptr;
     int lastObjectIndex = -1;
@@ -403,33 +396,22 @@ void PreparePointShadows(Frame& f) {
         }
         return lastSphere;
     };
-    const CachedMesh* lastMesh = nullptr;
-    int lastFirst = -1;
-    bool started = false;
-    for (const Frame::Range& r : f.worldRanges) {
-        const std::size_t end = std::min(r.end, f.commands.size());
-        for (std::size_t k = r.first; k < end; ++k) {
-            const Command& c = f.commands[k];
-            if (c.kind == Command::Terrain) started = started || !f.terrainBatches[static_cast<std::size_t>(c.index)].water;
-            if (!started || c.kind != Command::Mesh) continue;
-            MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
-            if (!b.model || b.flat || b.indexCount <= 0) continue;
-            if (b.lighting >= 0) b.landscape = modelOf(b);
-            if (!b.caster || !b.boxed) continue;
-            const int object = objectOf(b.caster);
-            if (b.figure) g_units.push_back(UnitMesh{&b, object, modelOf(b), false, Sphere{}});
-            if (b.state.blend && b.state.destBlend == 2) continue;
-            if (g_objects[static_cast<std::size_t>(object)].strength < kLeastStrength) continue;
-            if (b.cached == lastMesh && b.firstIndex == lastFirst) continue;   // a later pass of the same mesh
-            lastMesh = b.cached;
-            lastFirst = b.firstIndex;
-            const int model = modelOf(b);
-            if (model < 0) continue;
-            g_casters.push_back(Caster{&b, object, sphereOf(b, model), model, 0.0f});
-            if (b.figure) {
-                g_units.back().haveSphere = true;
-                g_units.back().sphere = g_casters.back().sphere;
-            }
+    for (const WorldMesh& w : f.worldMeshes) {
+        MeshBatch& b = f.meshBatches[static_cast<std::size_t>(w.batch)];
+        if (b.flat) continue;
+        if (b.lighting >= 0) b.landscape = modelOf(b);
+        if (!b.caster || !b.boxed) continue;
+        const int object = objectOf(b.caster);
+        if (b.figure) g_units.push_back(UnitMesh{&b, object, modelOf(b), false, Sphere{}});
+        if (w.additive) continue;
+        if (g_objects[static_cast<std::size_t>(object)].strength < kLeastStrength) continue;
+        if (w.repeat) continue;   // a later pass of the same mesh
+        const int model = modelOf(b);
+        if (model < 0) continue;
+        g_casters.push_back(Caster{&b, object, sphereOf(b, model), model, 0.0f});
+        if (b.figure) {
+            g_units.back().haveSphere = true;
+            g_units.back().sphere = g_casters.back().sphere;
         }
     }
     if (g_casters.empty()) return;

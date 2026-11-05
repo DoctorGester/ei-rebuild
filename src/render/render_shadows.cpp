@@ -32,7 +32,6 @@ constexpr float kLeastElevation = 20.0f * kPi / 180.0f;
 constexpr float kStrength = 0.5f;
 constexpr float kDepthBias = 0.04f;
 constexpr float kLargestSlope = 4.0f;
-constexpr float kLeastStrength = 0.5f;   // casters weaker than this (units fading in) do not cast
 // Soft edges: the filter's radius in world units is the distance along the light from the
 // receiver to the blocker times kSunSize (the tangent of the sun's chosen angular radius: about twice
 // the real sun's, for a soft edge like the old blurred decals'), at least kLeastRadius texels, at most
@@ -143,10 +142,6 @@ static std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
 constexpr std::size_t kMostOutside = 100'000;
 std::unordered_set<const void*> g_drawnParts;   // NoteCasterPart, this frame
-// CastsShadow's strengths by object, made at the first CasterStrength of a frame.
-static std::unordered_map<const void*, float> g_strengths;
-static std::uint32_t g_strengthsFrame = 0xFFFFFFFFu;
-static std::size_t g_strengthsCount = 0;
 static bool g_outsideOn = true;   // SetOffscreenCasters: not View
 static bool g_walkedOnly = false; // SetOffscreenCasters: Walked
 static bool g_shadowView = false; // SetShadowView
@@ -311,10 +306,11 @@ static void ViewPlanes(const Matrix4& camera, Plane planes[kViewPlanes]) {
     planes[5] = sum(w, 1.0f, z, -1.0f);
 }
 
-// Of the view's planes in `asked` (bit k: plane k), those the box low..high crosses; -1 when it is wholly outside
+// Of the view's planes in `asked` (bit k: plane k), those the box crosses; -1 when it is wholly outside
 // one of them: its corners farthest out and farthest in along each plane's normal.
 constexpr int kAllPlanes = (1 << kViewPlanes) - 1;
-static int CrossedPlanes(const Vector3& low, const Vector3& high, const Plane planes[kViewPlanes], int asked) {
+static int CrossedPlanes(const Box& box, const Plane planes[kViewPlanes], int asked) {
+    const Vector3 &low = box.low, &high = box.high;
     int crossed = 0;
     for (int k = 0; k < kViewPlanes; ++k) {
         if (!(asked & (1 << k))) continue;
@@ -334,14 +330,13 @@ struct Fit {
     std::uint32_t frame = 0xFFFFFFFFu;   // FrameNumber() it was made in
     std::size_t pieces = 0;              // the frame's terrain pieces then
     bool ok = false;
-    std::size_t firstGround = SIZE_MAX;  // the world's first ground batch (its command)
     M4 fromClip{};                       // the camera's clip space to the landscape's
     bool haveEye = false;                // the camera's position (none: at infinity)
     Vector3 eye{};
     Vector3 x{}, y{}, d{};               // the map's axes (FitMap): the ground's x and y, the light's direction (down)
     float x0 = 0.0f, y0 = 0.0f, extent = 0.0f;   // the map's area along x and y
     float groundNear = 0.0f, groundFar = 0.0f;   // the visible ground's depths along d
-    Vector3 lowGround{}, highGround{};   // the visible ground's box in the landscape's space
+    Box ground;                          // the visible ground's box in the landscape's space
     // PrepareShadows: the map's depth range (from the nearest caster) and landscape space to its clip space.
     float depth = 0.0f;
     Matrix4 light{};
@@ -414,26 +409,25 @@ static const Fit& FitMap(Frame& f) {
     Plane planes[kViewPlanes];
     ViewPlanes(camera, planes);
     Vector3 lo{1e30f, 1e30f, 1e30f}, hi{-1e30f, -1e30f, -1e30f};
-    Vector3 groundLo{1e30f, 1e30f, 1e30f}, groundHi{-1e30f, -1e30f, -1e30f};
+    Box visible;
     int seen = 0;
     auto take = [&](const Vector3& at) {
         const Vector3 l{Dot(x, at), Dot(y, at), Dot(d, at)};
         lo = Min(lo, l);
         hi = Max(hi, l);
-        groundLo = Min(groundLo, at);
-        groundHi = Max(groundHi, at);
+        visible.Extend(at);
         ++seen;
     };
     static std::vector<Vector3> positions;
     auto crossedBy = [&](const TerrainGroup& g, int asked) {
-        return CrossedPlanes(g.low, g.high, planes, asked);
+        return CrossedPlanes(g.box, planes, asked);
     };
     for (const TerrainPiece& piece : f.terrainPieces) {
         const TerrainGroup& whole = TerrainPieceWhole(piece);
         const int pieceCrossed = whole.count != 0 ? crossedBy(whole, kAllPlanes) : -1;
         if (pieceCrossed < 0) continue;
         for (const TerrainGroup& group : TerrainPieceGroups(piece)) {
-            const Vector3 &low = group.low, &high = group.high;
+            const Vector3 &low = group.box.low, &high = group.box.high;
             const int crossed = crossedBy(group, pieceCrossed);
             if (crossed < 0) continue;
             if (crossed == 0) {
@@ -455,14 +449,13 @@ static const Fit& FitMap(Frame& f) {
     // The texels' corners lie on whole texels of the landscape's x and y at the plane's height: the visible
     // ground's middle height in steps of kPlaneStep (ground away from it moves on the map by its height over the
     // plane as the sun turns).
-    const float plane = std::round((groundLo.z + groundHi.z) * 0.5f / kPlaneStep) * kPlaneStep;
+    const float plane = std::round((visible.low.z + visible.high.z) * 0.5f / kPlaneStep) * kPlaneStep;
     const float ox = x.z * plane, oy = y.z * plane;
     const float shiftX = static_cast<float>(g_shadowShift), shiftY = static_cast<float>(g_shadowShift / 2);
     const float x0 = (std::floor(((lo.x + hi.x) * 0.5f - extent * 0.5f - ox) / texel) - shiftX) * texel + ox;
     const float y0 = (std::floor(((lo.y + hi.y) * 0.5f - extent * 0.5f - oy) / texel) - shiftY) * texel + oy;
 
     g_fit.ok = true;
-    g_fit.firstGround = firstGround;
     g_fit.fromClip = fromClip;
     g_fit.haveEye = haveEye;
     g_fit.eye = eye;
@@ -475,8 +468,7 @@ static const Fit& FitMap(Frame& f) {
     g_fit.groundNear = lo.z;
     g_fit.groundFar = hi.z;
     g_fit.light = LightMatrix(g_fit, lo.z - kDepthMargin, &g_fit.depth);
-    g_fit.lowGround = groundLo;
-    g_fit.highGround = groundHi;
+    g_fit.ground = visible;
     return g_fit;
 }
 
@@ -488,13 +480,13 @@ static bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     // above the ground by at most highestTop less the lowest ground, so back towards the sun from it by
     // at most that height over the tangent of the sun's elevation (d is never flatter than 20 degrees).
     // The ground's box swept back that far, widened by the widest object's radius.
-    const float back = std::max(0.0f, highestTop - fit.lowGround.z) / std::fabs(fit.d.z);
+    const float back = std::max(0.0f, highestTop - fit.ground.low.z) / std::fabs(fit.d.z);
     const float towardsX = -fit.d.x * back, towardsY = -fit.d.y * back;
     const float margin = std::max(0.0f, widest);
-    area->x0 = fit.lowGround.x + std::min(0.0f, towardsX) - margin;
-    area->y0 = fit.lowGround.y + std::min(0.0f, towardsY) - margin;
-    area->x1 = fit.highGround.x + std::max(0.0f, towardsX) + margin;
-    area->y1 = fit.highGround.y + std::max(0.0f, towardsY) + margin;
+    area->x0 = fit.ground.low.x + std::min(0.0f, towardsX) - margin;
+    area->y0 = fit.ground.low.y + std::min(0.0f, towardsY) - margin;
+    area->x1 = fit.ground.high.x + std::max(0.0f, towardsX) + margin;
+    area->y1 = fit.ground.high.y + std::max(0.0f, towardsY) + margin;
     return true;
 }
 
@@ -605,11 +597,10 @@ int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip) {
     return added;
 }
 
-bool VisibleGround(Frame& f, Vector3* low, Vector3* high) {
+bool VisibleGround(Frame& f, Box* box) {
     const Fit& fit = FitMap(f);
     if (!fit.ok) return false;
-    *low = fit.lowGround;
-    *high = fit.highGround;
+    *box = fit.ground;
     return true;
 }
 
@@ -648,7 +639,7 @@ void EndCaster() {
 
 void CastsShadow(const void* object, float strength) {
     if (!object) return;
-    g_frame.shadow.casters.emplace_back(object, strength);
+    g_frame.shadow.casters[object] = strength;
 }
 
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
@@ -679,14 +670,8 @@ bool CasterPartDrawn(const void* part) { return part && g_drawnParts.count(part)
 
 float CasterStrength(const void* object) {
     const auto& casters = g_frame.shadow.casters;
-    if (g_strengthsFrame != FrameNumber() || g_strengthsCount != casters.size()) {
-        g_strengths.clear();
-        for (const auto& c : casters) g_strengths[c.first] = c.second;
-        g_strengthsFrame = FrameNumber();
-        g_strengthsCount = casters.size();
-    }
-    auto it = g_strengths.find(object);
-    return it == g_strengths.end() ? -1.0f : it->second;
+    auto it = casters.find(object);
+    return it == casters.end() ? -1.0f : it->second;
 }
 
 void ShadowCasterMesh(const void* object, const ShadowMesh& m) {
@@ -822,9 +807,38 @@ void ShadowFrameDone() {
     TerrainCastersDone();
 }
 
+// The world's ground batches and the models drawn after the first of them, listed once for this frame's walks.
+static void ListWorld(Frame& f) {
+    f.worldGround.clear();
+    f.worldMeshes.clear();
+    const CachedMesh* lastMesh = nullptr;
+    int lastFirst = -1;
+    for (const Frame::Range& r : f.worldRanges) {
+        const std::size_t end = std::min(r.end, f.commands.size());
+        for (std::size_t k = r.first; k < end; ++k) {
+            const Command& c = f.commands[k];
+            if (c.kind == Command::Terrain) {
+                if (!f.terrainBatches[static_cast<std::size_t>(c.index)].water) f.worldGround.push_back(c.index);
+                continue;
+            }
+            if (f.worldGround.empty() || c.kind != Command::Mesh) continue;
+            const MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
+            if (!b.model || (b.flat && !b.decal)) continue;
+            WorldMesh m{c.index, b.state.blend && b.state.destBlend == 2, false};
+            if (!m.additive) {
+                m.repeat = b.cached == lastMesh && b.firstIndex == lastFirst;
+                lastMesh = b.cached;
+                lastFirst = b.firstIndex;
+            }
+            f.worldMeshes.push_back(m);
+        }
+    }
+}
+
 void PrepareShadows(Frame& f) {
     ShadowFrame& sh = f.shadow;
     sh.prepared = true;
+    ListWorld(f);
     sh.on = false;
     sh.clouds = false;
     sh.lights.clear();
@@ -844,7 +858,6 @@ void PrepareShadows(Frame& f) {
     // Along the light from the nearest caster that reaches the map (the ground's near side without one).
     Fit& fit = g_fit;
     fit.light = LightMatrix(fit, std::min(fit.groundNear, g_nearestCaster) - kDepthMargin, &fit.depth);
-    const std::size_t firstGround = fit.firstGround;
     const Matrix4& light = fit.light;
     const float extent = fit.extent, depth = fit.depth;
     sh.lights.push_back(light);
@@ -852,29 +865,20 @@ void PrepareShadows(Frame& f) {
 
     // Every model mesh the world draws after the ground (figures, objects; not the sky, the flat geometry
     // but the ground prints, or additive effects) gets its matrix into the map.
+    g_info.receivingTerrain += static_cast<int>(f.worldGround.size());
     std::unordered_map<std::uint32_t, int> reused;   // the frame's matrix index -> light index
-    for (const Frame::Range& r : f.worldRanges) {
-        std::size_t end = std::min(r.end, f.commands.size());
-        for (std::size_t k = std::max(r.first, firstGround); k < end; ++k) {
-            const Command& c = f.commands[k];
-            if (c.kind == Command::Terrain) {
-                if (!f.terrainBatches[static_cast<std::size_t>(c.index)].water) ++g_info.receivingTerrain;
-                continue;
-            }
-            if (c.kind != Command::Mesh) continue;
-            MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
-            if (!b.model || (b.flat && !b.decal)) continue;
-            if (b.state.blend && b.state.destBlend == 2) continue;   // D3DBLEND_ONE: light added
-            auto it = reused.find(static_cast<std::uint32_t>(b.matrix));
-            if (it == reused.end()) {
-                M4 m = Multiply(lightFromClip, FromMatrix(f.matrices[static_cast<std::size_t>(b.matrix)]));
-                sh.lights.push_back(ToMatrix(m));
-                it = reused.emplace(static_cast<std::uint32_t>(b.matrix), static_cast<int>(sh.lights.size()) - 1).first;
-            }
-            b.light = it->second;
-            if (b.decal) ++g_info.receivingDecals;
-            else ++g_info.receivingMeshes;
+    for (const WorldMesh& w : f.worldMeshes) {
+        if (w.additive) continue;
+        MeshBatch& b = f.meshBatches[static_cast<std::size_t>(w.batch)];
+        auto it = reused.find(static_cast<std::uint32_t>(b.matrix));
+        if (it == reused.end()) {
+            M4 m = Multiply(lightFromClip, FromMatrix(f.matrices[static_cast<std::size_t>(b.matrix)]));
+            sh.lights.push_back(ToMatrix(m));
+            it = reused.emplace(static_cast<std::uint32_t>(b.matrix), static_cast<int>(sh.lights.size()) - 1).first;
         }
+        b.light = it->second;
+        if (b.decal) ++g_info.receivingDecals;
+        else ++g_info.receivingMeshes;
     }
     FigureFronts(f);
 
@@ -944,8 +948,7 @@ void DrawShadowMap(Frame& f) {
     EnsureDummy();
     if (f.shadow.on) {
         StatsTimer timer(&FrameStats::shadowMs);
-        std::unordered_map<const void*, float> casters;
-        for (const auto& c : f.shadow.casters) casters[c.first] = c.second;
+        const auto& casters = f.shadow.casters;
         if (!g_map) g_map = MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map");
         if (!g_cells) g_cells = MakeRange(kRangeSize, "ei-shadow-cells");
         if (!g_range) g_range = MakeRange(kRangeSize, "ei-shadow-range");
@@ -973,10 +976,7 @@ void DrawShadowMap(Frame& f) {
                 const PassState& s = batch.state;
                 const StageState& st = s.stages[0];
                 CasterInstance instance{f.shadow.lights[static_cast<std::size_t>(batch.light)], {batch.uOffset, batch.vOffset}, {}};
-                if ((s.alphaTest || s.blend) && st.hasTexture) {
-                    instance.alpha[0] = 1.0f;
-                    instance.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
-                }
+                CasterAlpha(s, instance.alpha);
                 if (st.hasTexture && st.texture) {
                     if (g_cuts.size() >= kMostCuts) g_cuts.clear();
                     g_cuts[st.texture.texture] = AlphaCut{instance.alpha[0] > 0.5f, instance.alpha[1]};

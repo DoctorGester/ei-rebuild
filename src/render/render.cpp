@@ -852,6 +852,8 @@ void Present() {
     UiFrameDone();
     g_frame.commands.clear();
     g_frame.worldRanges.clear();
+    g_frame.worldGround.clear();
+    g_frame.worldMeshes.clear();
     g_frame.shadow.haveSun = false;
     g_frame.shadow.haveClouds = false;
     g_frame.shadow.clouds = false;

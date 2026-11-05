@@ -397,18 +397,16 @@ static void MakeGroups(CachedPage& p) {
     p.groups.clear();
     for (QuarterRange& q : p.quarters) {
         q.firstGroup = static_cast<std::uint32_t>(p.groups.size());
-        q.whole = TerrainGroup{{1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, q.firstVertex, q.vertexCount};
+        q.whole = TerrainGroup{Box{}, q.firstVertex, q.vertexCount};
         for (std::uint32_t first = q.firstVertex; first < q.firstVertex + q.vertexCount; first += kGroupVertices) {
-            TerrainGroup g{{1e30f, 1e30f, 1e30f}, {-1e30f, -1e30f, -1e30f}, first,
-                           (std::min)(kGroupVertices, q.firstVertex + q.vertexCount - first)};
+            TerrainGroup g{Box{}, first, (std::min)(kGroupVertices, q.firstVertex + q.vertexCount - first)};
             for (std::uint32_t i = first; i < first + g.count; ++i) {
                 const Vector3& at = p.vertices[i].position;
-                g.low = Min(g.low, at);
-                g.high = Max(g.high, at);
+                g.box.Extend(at);
             }
             p.groups.push_back(g);
-            q.whole.low = Min(q.whole.low, g.low);
-            q.whole.high = Max(q.whole.high, g.high);
+            q.whole.box.low = Min(q.whole.box.low, g.box.low);
+            q.whole.box.high = Max(q.whole.box.high, g.box.high);
         }
         q.groupCount = static_cast<std::uint32_t>(p.groups.size()) - q.firstGroup;
     }

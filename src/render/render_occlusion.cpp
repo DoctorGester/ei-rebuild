@@ -137,42 +137,29 @@ void DrawOcclusion(Frame& f) {
     g_depthDraws.Clear();
     const CachedMesh* lastMesh = nullptr;
     int lastFirst = -1;
-    bool ground = false;
-    for (const Frame::Range& r : f.worldRanges) {
-        const std::size_t end = std::min(r.end, f.commands.size());
-        for (std::size_t k = r.first; k < end; ++k) {
-            const Command& c = f.commands[k];
-            if (c.kind == Command::Terrain) {
-                TerrainBatch& t = f.terrainBatches[static_cast<std::size_t>(c.index)];
-                if (t.water) continue;
-                t.occluded = true;
-                ground = true;
-                ++g_info.receivingTerrain;
-                continue;
-            }
-            if (c.kind != Command::Mesh || !ground) continue;
-            MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
-            const PassState& s = b.state;
-            if (!b.model || b.flat || b.indexCount <= 0 || (s.blend && s.destBlend == 2)) continue;   // D3DBLEND_ONE
-            if (b.lighting >= 0) {
-                b.occluded = true;
-                ++g_info.receivingMeshes;
-            }
-            if (!s.depthWrite || (b.cached && b.cached == lastMesh && b.firstIndex == lastFirst)) continue;
-            lastMesh = b.cached;
-            lastFirst = b.firstIndex;
-            Geometry g;
-            int first = 0;
-            if (!BindMeshBatch(b, g, &first)) continue;
-            const StageState& st = s.stages[0];
-            CasterInstance instance{f.matrices[static_cast<std::size_t>(b.matrix)], {b.uOffset, b.vOffset}, {}};
-            if ((s.alphaTest || s.blend) && st.hasTexture) {
-                instance.alpha[0] = 1.0f;
-                instance.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
-            }
-            g_depthDraws.Add(g, b.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr), StageSampler(st),
-                             first, b.indexCount, instance);
+    for (int index : f.worldGround) {
+        f.terrainBatches[static_cast<std::size_t>(index)].occluded = true;
+        ++g_info.receivingTerrain;
+    }
+    for (const WorldMesh& w : f.worldMeshes) {
+        MeshBatch& b = f.meshBatches[static_cast<std::size_t>(w.batch)];
+        if (w.additive || b.flat) continue;
+        const PassState& s = b.state;
+        if (b.lighting >= 0) {
+            b.occluded = true;
+            ++g_info.receivingMeshes;
         }
+        if (!s.depthWrite || (b.cached && b.cached == lastMesh && b.firstIndex == lastFirst)) continue;
+        lastMesh = b.cached;
+        lastFirst = b.firstIndex;
+        Geometry g;
+        int first = 0;
+        if (!BindMeshBatch(b, g, &first)) continue;
+        const StageState& st = s.stages[0];
+        CasterInstance instance{f.matrices[static_cast<std::size_t>(b.matrix)], {b.uOffset, b.vOffset}, {}};
+        CasterAlpha(s, instance.alpha);
+        g_depthDraws.Add(g, b.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr), StageSampler(st), first,
+                         b.indexCount, instance);
     }
     g_depthDraws.Sort(0, g_depthDraws.Count());
     const bool drawMeshes = g_depthDraws.Upload();

@@ -74,10 +74,6 @@ struct UnitSurface {
 static std::unordered_map<const void*, UnitSurface> g_units;
 static const void* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
 
-struct Box {
-    Vector3 low{1e30f, 1e30f, 1e30f}, high{-1e30f, -1e30f, -1e30f};
-};
-
 // A mesh that can roof a unit this frame: an object's (not a unit's) mesh drawn in the world, its model matrix into
 // the landscape's space and its box there; the matrix is inverted when a point first lies under the box.
 struct Roof {
@@ -112,15 +108,10 @@ static float Follow(float now, float target, double step, double rise, double fa
     return now + (target - now) * (1.0f - lib::Exp(static_cast<float>(-step / ticks)));
 }
 
-static void Extend(Box& box, const Vector3& p) {
-    box.low = Vector3{std::min(box.low.x, p.x), std::min(box.low.y, p.y), std::min(box.low.z, p.z)};
-    box.high = Vector3{std::max(box.high.x, p.x), std::max(box.high.y, p.y), std::max(box.high.z, p.z)};
-}
-
 // A mesh's model-space box (MeshBatch::box) placed by `model`, added to a box in the landscape's space.
 static void ExtendPlaced(Box& box, const float local[6], const Matrix4& model) {
     for (int k = 0; k < 8; ++k)
-        Extend(box, TransformColumn(model, Vector3{local[(k & 1) ? 3 : 0], local[(k & 2) ? 4 : 1], local[(k & 4) ? 5 : 2]}));
+        box.Extend(TransformColumn(model, Vector3{local[(k & 1) ? 3 : 0], local[(k & 2) ? 4 : 1], local[(k & 4) ? 5 : 2]}));
 }
 
 // Of the rays `wanted` (a bit each) from `from[k]` along `along` (the mesh's model space, the same for all), those
@@ -211,27 +202,19 @@ static void CollectUnitsAndRoofs(const Frame& f) {
         return index;
     };
     const MeshBatch* last = nullptr;
-    bool started = false;
-    for (const Frame::Range& r : f.worldRanges) {
-        const std::size_t end = std::min(r.end, f.commands.size());
-        for (std::size_t k = r.first; k < end; ++k) {
-            const Command& c = f.commands[k];
-            if (c.kind == Command::Terrain) started = started || !f.terrainBatches[static_cast<std::size_t>(c.index)].water;
-            if (!started || c.kind != Command::Mesh) continue;
-            const MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
-            if (!b.model || b.flat || b.lines || b.indexCount <= 0 || !b.caster || !b.boxed) continue;
-            if (b.state.blend && b.state.destBlend == 2) continue;   // D3DBLEND_ONE: light added
-            if (last && b.cached == last->cached && b.firstIndex == last->firstIndex && b.matrix == last->matrix) continue;
-            last = &b;
-            const int model = modelOf(b);
-            if (model < 0) continue;
-            const Matrix4& placed = g_models[static_cast<std::size_t>(model)];
-            if (b.figure) {
-                ExtendPlaced(g_unitBoxes[b.caster], b.box, placed);
-            } else {
-                g_roofs.push_back(Roof{&b, placed, Box{}});
-                ExtendPlaced(g_roofs.back().box, b.box, placed);
-            }
+    for (const WorldMesh& w : f.worldMeshes) {
+        const MeshBatch& b = f.meshBatches[static_cast<std::size_t>(w.batch)];
+        if (b.flat || b.lines || !b.caster || !b.boxed || w.additive) continue;
+        if (last && w.repeat && b.matrix == last->matrix) continue;
+        last = &b;
+        const int model = modelOf(b);
+        if (model < 0) continue;
+        const Matrix4& placed = g_models[static_cast<std::size_t>(model)];
+        if (b.figure) {
+            ExtendPlaced(g_unitBoxes[b.caster], b.box, placed);
+        } else {
+            g_roofs.push_back(Roof{&b, placed, Box{}});
+            ExtendPlaced(g_roofs.back().box, b.box, placed);
         }
     }
 }
@@ -312,8 +295,9 @@ void PrepareRoofs(Frame& f) {
     g_roofInfo = RoofInfo{};
     const Surfaces& s = g_surfaces;
     if (!g_roofShelter || std::max(std::max(s.wet, s.puddles), std::max(s.snow, s.rain)) <= kWeatherShown) return;
-    Vector3 low, high;
-    if (!VisibleGround(f, &low, &high)) return;
+    Box ground;
+    if (!VisibleGround(f, &ground)) return;
+    const Vector3 &low = ground.low, &high = ground.high;
     StatsTimer timer(&FrameStats::shadowMs);
     float extent = std::max(high.x - low.x, high.y - low.y) + 2.0f * kRoofMargin;
     extent = std::ceil(extent / kRoofStep) * kRoofStep;
@@ -378,10 +362,7 @@ void DrawRoofMap() {
         const PassState& s = batch.state;
         const StageState& st = s.stages[0];
         CasterInstance instance{Product(g_roofFit.clip, r.model), {batch.uOffset, batch.vOffset}, {}};
-        if ((s.alphaTest || s.blend) && st.hasTexture) {
-            instance.alpha[0] = 1.0f;
-            instance.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
-        }
+        CasterAlpha(s, instance.alpha);
         g_roofDraws.Add(g, batch.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr), StageSampler(st),
                         first, batch.indexCount, instance);
     }
