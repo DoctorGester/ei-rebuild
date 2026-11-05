@@ -62,21 +62,14 @@ static bool g_haveSource = false;
 static bool g_interface = false;   // SetInterfaceDraw
 
 // A figure mesh's corners as kept, and their place in the pool.
-struct CachedMesh {
+struct CachedMesh : KeptRanges {
     MeshFrom from;
     bool valid = false;                  // built (a corner out of range: not)
     std::vector<MeshVertex> vertices;
     std::vector<std::uint32_t> colours;
     std::vector<std::uint32_t> indices;
-    PoolPlace place;
-    bool dirty = true;                               // all of it to upload
-    std::uint32_t vertexFrom = 0, vertexTo = 0;
-    std::uint32_t colourFrom = 0, colourTo = 0;
-    bool pending = false;
     bool drawn = false;
     bool relightNext = false;                        // a draw not kept wrote the colours (NoteMeshDraw)
-    std::uint32_t lastUsed = 0;
-    std::uint32_t mark = 0;
     std::uint32_t version = 0;                       // CachedMeshVersion
     bool boxKept = false;                            // CachedMeshBox's box taken since the positions changed
     float box[6] = {};
@@ -135,13 +128,6 @@ static MeshFrom FromOf(const ShadowMesh& m) {
     return f;
 }
 
-// Vertex `index` of the packets: lane index % 4 of packet index / 4.
-static Vector3 PacketVertex(const VertexPacket* packets, int index) {
-    const VertexPacket& packet = packets[index / 4];
-    const int lane = index % 4;
-    return Vector3{packet.x()[lane], packet.y()[lane], packet.z()[lane]};
-}
-
 // Corner `i`'s position, texture coordinates and normal.
 static MeshVertex CornerVertex(const MeshDraw& m, int i) {
     const MeshCorner& c = m.corners[i];
@@ -160,16 +146,6 @@ static MeshVertex CasterCorner(const ShadowMesh& m, int i) {
     return v;
 }
 
-// The triangles over `cornerCount` corners into `out`; one with a corner out of range is left out.
-static void BuildTriangles(const std::uint16_t* indices, int indexCount, int cornerCount,
-                           std::vector<std::uint32_t>& out) {
-    out.clear();
-    for (int k = 0; k + 2 < indexCount; k += 3) {
-        if (indices[k] >= cornerCount || indices[k + 1] >= cornerCount || indices[k + 2] >= cornerCount) continue;
-        for (int j = 0; j < 3; ++j) out.push_back(indices[k + j]);
-    }
-}
-
 // The mesh's corners and triangles as the frame's stream builds them (render_mesh.cpp), in `out`;
 // false when a corner's position is out of range (nothing drawn).
 static bool Build(const MeshDraw& m, CachedMesh& out) {
@@ -182,7 +158,8 @@ static bool Build(const MeshDraw& m, CachedMesh& out) {
         out.colours.push_back(m.colours[c.normal]);
         out.colours.push_back(m.speculars[c.normal]);
     }
-    BuildTriangles(m.indices, m.indexCount, m.cornerCount, out.indices);
+    out.indices.clear();
+    AppendTriangles(m.indices, m.indexCount, m.cornerCount, 0, out.indices);
     return true;
 }
 
@@ -194,18 +171,9 @@ static bool Build(const ShadowMesh& m, CachedMesh& out) {
         if (m.corners[i].position >= m.positionCount) return false;
         out.vertices.push_back(CasterCorner(m, i));
     }
-    BuildTriangles(m.indices, m.indexCount, m.cornerCount, out.indices);
+    out.indices.clear();
+    AppendTriangles(m.indices, m.indexCount, m.cornerCount, 0, out.indices);
     return true;
-}
-
-static void Mark(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
-    if (to <= from) {
-        from = i;
-        to = i + 1;
-    } else {
-        if (i < from) from = i;
-        if (i + 1 > to) to = i + 1;
-    }
 }
 
 // Reads every corner again (`corner(i)`: CornerVertex or CasterCorner); the changed ones are marked for upload.
@@ -217,7 +185,7 @@ static bool ReadPositions(int cornerCount, CachedMesh& e, Corner corner) {
         MeshVertex& kept = e.vertices[static_cast<std::size_t>(i)];
         if (std::memcmp(&kept, &now, sizeof(MeshVertex)) == 0) continue;
         kept = now;
-        Mark(static_cast<std::uint32_t>(i), e.vertexFrom, e.vertexTo);
+        e.MarkVertex(static_cast<std::uint32_t>(i));
         changed = true;
     }
     return changed;
@@ -231,7 +199,7 @@ static bool ReadColours(const MeshDraw& m, CachedMesh& e) {
         if (kept[0] == m.colours[index] && kept[1] == m.speculars[index]) continue;
         kept[0] = m.colours[index];
         kept[1] = m.speculars[index];
-        Mark(static_cast<std::uint32_t>(i), e.colourFrom, e.colourTo);
+        e.MarkColour(static_cast<std::uint32_t>(i));
         changed = true;
     }
     return changed;
@@ -305,67 +273,6 @@ static void Check(const ShadowMesh& m, CachedMesh& e) {
 }
 #endif
 
-static bool Place(CachedMesh& e) {
-    bool anew = false;
-    if (!g_pool.Place(e.place, static_cast<std::uint32_t>(e.vertices.size()), static_cast<std::uint32_t>(e.indices.size()),
-                      &anew))
-        return false;
-    if (anew) e.dirty = true;
-    return true;
-}
-
-// The pool starts again with the meshes of frame `f` (and the pending ones), placed again from its start.
-static void Restart(const Frame& f) {
-    static std::uint32_t stamp = 0;
-    ++stamp;
-    std::uint64_t vertices = 0, indices = 0;
-    std::vector<CachedMesh*> meshes;
-    auto take = [&](CachedMesh* e) {
-        if (e->mark == stamp) return;
-        e->mark = stamp;
-        vertices += e->vertices.size();
-        indices += e->indices.size();
-        meshes.push_back(e);
-    };
-    for (const MeshBatch& b : f.meshBatches)
-        if (b.cached) take(b.cached);
-    for (auto& entry : g_casterMeshes)
-        if (entry.second.lastUsed == FrameNumber() && entry.second.valid) take(&entry.second);
-    for (CachedMesh* e : g_pending) take(e);
-    g_pool.Restart(vertices, indices);
-    for (CachedMesh* e : meshes) {
-        if (!e->pending) {
-            e->pending = true;
-            g_pending.push_back(e);
-        }
-    }
-}
-
-static void Write(CachedMesh& e) {
-    FrameStats& stats = g_stats;
-    if (e.dirty) {
-        auto count = static_cast<std::uint32_t>(e.vertices.size());
-        g_pool.WriteGeometry(e.place, 0, count, e.vertices.data());
-        if (!e.colours.empty()) g_pool.WriteColours(e.place, 0, count, e.colours.data());   // a caster has none
-        g_pool.WriteIndices(e.place, e.indices.data(), e.indices.size());
-        stats.counts[FrameStats::MeshVertexBytes] += e.vertices.size() * sizeof(MeshVertex) + e.colours.size() * sizeof(std::uint32_t);
-        stats.counts[FrameStats::MeshIndexBytes] += e.indices.size() * sizeof(std::uint32_t);
-    } else {
-        if (e.vertexTo > e.vertexFrom) {
-            g_pool.WriteGeometry(e.place, e.vertexFrom, e.vertexTo - e.vertexFrom, &e.vertices[e.vertexFrom]);
-            stats.counts[FrameStats::MeshVertexBytes] += (e.vertexTo - e.vertexFrom) * sizeof(MeshVertex);
-        }
-        if (e.colourTo > e.colourFrom) {
-            g_pool.WriteColours(e.place, e.colourFrom, e.colourTo - e.colourFrom,
-                                &e.colours[2 * static_cast<std::size_t>(e.colourFrom)]);
-            stats.counts[FrameStats::MeshVertexBytes] += (e.colourTo - e.colourFrom) * sizeof(ColourPair);
-        }
-    }
-    e.dirty = false;
-    e.vertexFrom = e.vertexTo = 0;
-    e.colourFrom = e.colourTo = 0;
-}
-
 CachedMesh* KeepMesh(const MeshDraw& m) {
     if (g_haveSource && g_source.moved) {
         ++g_stats.counts[FrameStats::MorphMeshes];
@@ -395,8 +302,7 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
         e.valid = Build(m, e);
         e.version = ++g_lastVersion;
         if (!e.valid) return nullptr;
-        e.dirty = true;
-        e.vertexFrom = e.vertexTo = e.colourFrom = e.colourTo = 0;
+        e.WriteAll();
         reuse = FrameStats::New;
     } else {
         if (move && ReadPositions(m.cornerCount, e, [&](int i) { return CornerVertex(m, i); })) {
@@ -415,10 +321,7 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
     e.drawn = true;
     e.lastUsed = FrameNumber();
     if (!g_pool.Placed(e.place)) e.dirty = true;
-    if ((e.dirty || e.vertexTo > e.vertexFrom || e.colourTo > e.colourFrom) && !e.pending) {
-        e.pending = true;
-        g_pending.push_back(&e);
-    }
+    if (e.HasWrites()) AddPending(g_pending, e);
     ++g_stats.meshReuse[reuse];
     return &e;
 }
@@ -435,8 +338,7 @@ CachedMesh* KeepCasterMesh(const ShadowMesh& m) {
     if (build) {
         e.valid = Build(m, e);
         e.version = ++g_lastVersion;
-        e.dirty = true;
-        e.vertexFrom = e.vertexTo = e.colourFrom = e.colourTo = 0;
+        e.WriteAll();
     } else {
         if (!e.from.SamePositions(now) && ReadPositions(m.cornerCount, e, [&](int i) { return CasterCorner(m, i); }))
             e.version = ++g_lastVersion;
@@ -449,10 +351,7 @@ CachedMesh* KeepCasterMesh(const ShadowMesh& m) {
     e.lastUsed = FrameNumber();
     if (!e.valid || e.indices.empty()) return nullptr;
     if (!g_pool.Placed(e.place)) e.dirty = true;
-    if ((e.dirty || e.vertexTo > e.vertexFrom) && !e.pending) {
-        e.pending = true;
-        g_pending.push_back(&e);
-    }
+    if (e.HasWrites()) AddPending(g_pending, e);
     return &e;
 }
 
@@ -463,12 +362,11 @@ bool PositionBox(const MeshDraw& m, float box[6]) {
         box[3 + k] = -1e30f;
     }
     for (int i = 0; i < m.positionCount; ++i) {
-        const VertexPacket& packet = m.positions[i / 4];
-        int lane = i % 4;
+        const Vector3 p = PacketVertex(m.positions, i);
+        const float v[3] = {p.x, p.y, p.z};
         for (int k = 0; k < 3; ++k) {
-            float v = packet.block[k][lane];
-            box[k] = v < box[k] ? v : box[k];
-            box[3 + k] = v > box[3 + k] ? v : box[3 + k];
+            box[k] = v[k] < box[k] ? v[k] : box[k];
+            box[3 + k] = v[k] > box[3 + k] ? v[k] : box[3 + k];
         }
     }
     return true;
@@ -495,9 +393,7 @@ Vector3 CornerNormal(const MeshDraw& m, int index) {
     if (!m.normals || !m.words || index >= m.wordCount) return Vector3{};
     const int normal = static_cast<int>(m.words[index] >> 16);
     if (normal >= m.normalCount) return Vector3{};
-    const NormalPacket& packet = m.normals[normal / 4];
-    const int lane = normal % 4;
-    return Vector3{packet.block[0][lane], packet.block[1][lane], packet.block[2][lane]};
+    return PacketVertex(m.normals, normal);
 }
 
 int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.indices.size()); }
@@ -509,23 +405,14 @@ Vector3 CachedCorner(const CachedMesh& mesh, int k) { return mesh.vertices[mesh.
 std::uint32_t CachedMeshVersion(const CachedMesh& mesh) { return mesh.version; }
 
 void UploadCachedMeshes(const Frame& f) {
-    if (g_pending.empty()) return;
-    bool placed = true;
-    for (CachedMesh* e : g_pending) {
-        if (!Place(*e)) {
-            placed = false;
-            break;
-        }
-    }
-    if (!placed) {
-        Restart(f);
-        for (CachedMesh* e : g_pending) Place(*e);   // fits: the pool holds twice the frame's meshes
-    }
-    for (CachedMesh* e : g_pending) {
-        if (g_pool.Placed(e->place)) Write(*e);
-        e->pending = false;
-    }
-    g_pending.clear();
+    // The frame's meshes: those its batches draw and the casters read this frame.
+    auto frameMeshes = [&](auto add) {
+        for (const MeshBatch& b : f.meshBatches)
+            if (b.cached) add(*b.cached);
+        for (auto& entry : g_casterMeshes)
+            if (entry.second.lastUsed == FrameNumber() && entry.second.valid) add(entry.second);
+    };
+    UploadKept(g_pool, g_pending, frameMeshes, FrameStats::MeshVertexBytes, FrameStats::MeshIndexBytes);
 }
 
 bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex) {
@@ -536,13 +423,12 @@ bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex) {
 }
 
 void MeshCacheFrameDone() {
-    std::uint32_t now = FrameNumber();
+    const std::uint32_t now = FrameNumber();
     if (now % 64 != 0) return;
     for (auto* meshes : {&g_meshes, &g_casterMeshes})
-        for (auto it = meshes->begin(); it != meshes->end();) {
-            if (!it->second.pending && now - it->second.lastUsed > kMeshLife) it = meshes->erase(it);
-            else ++it;
-        }
+        std::erase_if(*meshes, [now](const auto& entry) {
+            return !entry.second.pending && now - entry.second.lastUsed > kMeshLife;
+        });
 }
 
 void SetMeshSource(const MeshSource* source) {

@@ -483,6 +483,37 @@ struct PoolPlace {
     std::uint32_t firstVertex = 0, vertexRoom = 0, firstIndex = 0, indexRoom = 0;
 };
 
+// An item kept in a GpuPool (a terrain page, a figure mesh, a caster): its place and what of it is still to be
+// written there.
+struct KeptRanges {
+    PoolPlace place;
+    bool dirty = true;                               // all of it to write
+    bool pending = false;                            // in its cache's list of items to write (UploadKept)
+    std::uint32_t vertexFrom = 0, vertexTo = 0;      // vertices whose geometry to write
+    std::uint32_t colourFrom = 0, colourTo = 0;      // vertices whose colours to write
+    std::uint32_t lastUsed = 0;                      // FrameNumber() of its last use
+
+    void MarkVertex(std::uint32_t i) { Widen(i, vertexFrom, vertexTo); }
+    void MarkColour(std::uint32_t i) { Widen(i, colourFrom, colourTo); }
+    // All of it to write (built again), no ranges.
+    void WriteAll() {
+        dirty = true;
+        vertexFrom = vertexTo = colourFrom = colourTo = 0;
+    }
+    bool HasWrites() const { return dirty || vertexTo > vertexFrom || colourTo > colourFrom; }
+
+private:
+    static void Widen(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
+        if (to <= from) {
+            from = i;
+            to = i + 1;
+        } else {
+            if (i < from) from = i;
+            if (i + 1 > to) to = i + 1;
+        }
+    }
+};
+
 // Vertices and indices kept on the GPU across frames (terrain pages, meshes): a geometry stream, a colour
 // stream (a ColourPair a vertex) and absolute 32-bit indices, in buffers written in place, only the changed
 // ranges. Items are placed one after the other; when one does not fit, the pool starts again (Restart) with the
@@ -494,14 +525,19 @@ class GpuPool {
 public:
     GpuPool(std::size_t newGeometryStride, std::uint32_t newLeastVertices, std::uint32_t newLeastIndices, const char* newLabel)
         : geometryStride(newGeometryStride), leastVertices(newLeastVertices), leastIndices(newLeastIndices), label(newLabel) {}
-// Keeps the place when the item still fits there, else places it at the end (`anew`: all of it to write).
+// Keeps the item's place when it still fits there, else places it at the end (all of it to write: `dirty`).
 // False when the pool is full.
-    bool Place(PoolPlace& p, std::uint32_t vertices, std::uint32_t indices, bool* anew);
+    bool Place(KeptRanges& k, std::size_t vertices, std::size_t indices);
     bool Placed(const PoolPlace& p) const { return p.generation == generation && geometry.buffer; }
     void Restart(std::uint64_t vertices, std::uint64_t indices);
     void WriteGeometry(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const void* data) const;
-    void WriteColours(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const std::uint32_t* pairs) const;
     void WriteIndices(const PoolPlace& p, const std::uint32_t* relative, std::size_t count);
+    // Writes what `k` says of an item's arrays as kept on the CPU: all of them when dirty, else the vertices' and
+    // colours' changed ranges; their bytes are counted under `vertexBytes` and `indexBytes`. `vertices` holds
+    // `vertexCount` of the pool's geometry stride; `colours` two words a vertex, or none (a caster); `indices` are
+    // relative to the item's first vertex.
+    void WriteKept(KeptRanges& k, const void* vertices, std::size_t vertexCount, std::span<const std::uint32_t> colours,
+                   std::span<const std::uint32_t> indices, FrameStats::Count vertexBytes, FrameStats::Count indexBytes);
     void Bind(Geometry& g) const;
     void Drop();
 
@@ -521,6 +557,48 @@ private:
     std::uint32_t generation = 1;
     std::vector<std::uint32_t> absolute;    // scratch: an item's indices made absolute
 };
+
+// `item` (a KeptRanges) joins its cache's list of items to write, unless it is in it.
+template <class Item>
+void AddPending(std::vector<Item*>& pending, Item& item) {
+    if (item.pending) return;
+    item.pending = true;
+    pending.push_back(&item);
+}
+
+// The pending items (Item: a KeptRanges with its `vertices`, `colours` and `indices`) placed in `pool` and written.
+// When one does not fit, the frame's items (`frameItems(add)` calls add(item) for each) join the pending ones and the
+// pool starts again with all of them, placed again from its start.
+template <class Item, class FrameItems>
+void UploadKept(GpuPool& pool, std::vector<Item*>& pending, FrameItems frameItems, FrameStats::Count vertexBytes,
+                FrameStats::Count indexBytes) {
+    if (pending.empty()) return;
+    bool placed = true;
+    for (Item* item : pending) {
+        if (!pool.Place(*item, item->vertices.size(), item->indices.size())) {
+            placed = false;
+            break;
+        }
+    }
+    if (!placed) {
+        frameItems([&](Item& item) { AddPending(pending, item); });
+        std::uint64_t vertices = 0, indices = 0;
+        for (const Item* item : pending) {
+            vertices += item->vertices.size();
+            indices += item->indices.size();
+        }
+        pool.Restart(vertices, indices);
+        // They fit: the pool holds twice what they need.
+        for (Item* item : pending) pool.Place(*item, item->vertices.size(), item->indices.size());
+    }
+    for (Item* item : pending) {
+        if (pool.Placed(item->place))
+            pool.WriteKept(*item, item->vertices.data(), item->vertices.size(), item->colours, item->indices,
+                           vertexBytes, indexBytes);
+        item->pending = false;
+    }
+    pending.clear();
+}
 
 // The terrain, inside EndFrame's off-screen pass. For the shadow map's fit: TerrainPieceGroups, a piece's
 // vertices in runs (TerrainGroup: kept with the page, made when its vertices are built or moved), and
@@ -570,6 +648,11 @@ void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, int anisotropy);
 // false when it has none. MeshLayout `positionsOnly`: position and texture coordinates alone (the casters).
 bool BindMeshBatch(const MeshBatch& batch, Geometry& g, int* firstIndex);
 void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly);
+
+// Appends the triangles of `indices` (three a triangle) over `cornerCount` corners to `out`, each index plus `base`; a
+// triangle with a corner out of range is left out.
+void AppendTriangles(const std::uint16_t* indices, int indexCount, int cornerCount, std::uint32_t base,
+                     std::vector<std::uint32_t>& out);
 
 // Meshes kept on the GPU (docs/notes/renderer.md section 13). KeepMesh: the mesh being handed over brought up
 // to date as kept for render::SetMeshSource's figure mesh, or null: it goes into the frame's stream (no source,

@@ -45,13 +45,6 @@ int ProjectToClip(const TransformPipeline& pipeline, const Matrix4& m, PointAt p
     return result;
 }
 
-// Point i of packets of four.
-Vector3 PacketPoint(const VertexPacket* packets, int i) {
-    const VertexPacket& packet = packets[i >> 2];
-    const int lane = i & 3;
-    return {packet.block[0][lane], packet.block[1][lane], packet.block[2][lane]};
-}
-
 // A corner's screen position, depth and 1 / w.
 void SetPosition(TLVertex& v, float x, float y, float z, float rhw) {
     v.x = x;
@@ -73,7 +66,7 @@ void ClipBounds::Fit(const VertexPacket* packets, int blocks) {
     Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     for (int b = blocks - 1; b >= 0; --b)
         for (int lane = 0; lane < 4; ++lane) {
-            const Vector3 p = PacketPoint(packets, b * 4 + lane);
+            const Vector3 p = render::PacketVertex(packets, b * 4 + lane);
             high = MaxKeepB(high, p);
             low = MinKeepA(p, low);
         }
@@ -98,7 +91,7 @@ void TransformPipeline::SetDepthRange(float start, float end) {
 
 void TransformPipeline::Project(const Matrix4& m, const VertexPacket* positions, Vector4* projected, int blocks) {
     for (int i = 0; i < blocks * 4; ++i) {
-        const Vector3 p = PacketPoint(positions, i);
+        const Vector3 p = render::PacketVertex(positions, i);
         const Vector3 transformed = TransformColumn(m, p);
         projected[i] = Divided({transformed.x, transformed.y, transformed.z, TransformColumnW(m, p)});
     }
@@ -107,7 +100,7 @@ void TransformPipeline::Project(const Matrix4& m, const VertexPacket* positions,
 int TransformPipeline::ProjectClipped(const Matrix4& m, const VertexPacket* positions, Vector4* projected,
                                        std::uint8_t* outcodes, int blocks) const {
     return ProjectToClip(
-        *this, m, [positions](int i) { return PacketPoint(positions, i); }, projected, outcodes, blocks * 4);
+        *this, m, [positions](int i) { return render::PacketVertex(positions, i); }, projected, outcodes, blocks * 4);
 }
 
 void TransformPipeline::ProjectPoints(const Matrix4& m, const Vector3* points, Vector4* projected, int count) {

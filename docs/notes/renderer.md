@@ -732,7 +732,9 @@ uploads every page every frame; `terraincache check` compares every kept page wi
 stale); scenario `terrain_water_waves` (the waves are always on; the digest's `water` group).
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
-`GpuPool`). Each figure mesh drawn through the figure part draws (either through the device or a link figure's part) is
+`GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
+places and writes, the pool started again with the frame's items when one does not fit). Each figure mesh drawn
+through the figure part draws (either through the device or a link figure's part) is
 kept under the mesh: its corners' model-space positions and texture coordinates, the colour and specular pair (a stream of
 its own) and the valid triangles; the draw binds the pool with the mesh's first index, the texture offset (animated water
 and lava) a shader constant. The game says what changed (`render::SetMeshSource` around the device's draw;
