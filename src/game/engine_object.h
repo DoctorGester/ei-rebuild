@@ -2,19 +2,9 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <new>
 
 #include "ref.h"
-
-// `new (kZeroed) T(...)`: T constructed on a zeroed block, for the engine objects whose constructors leave fields
-// unset (the two factories' server and map objects, the lights, the particle sources): a determinism fix the
-// standalone keeps.
-// `delete` frees them as any other.
-struct ZeroFill {};
-inline constexpr ZeroFill kZeroed{};
-inline void* operator new(std::size_t size, ZeroFill) { return std::memset(::operator new(size), 0, size); }
-inline void operator delete(void* block, ZeroFill) noexcept { ::operator delete(block); }
 
 // EngineObject::id of an object no manager registered; the saves' and messages' "no object".
 inline constexpr int kNoObjectId = -1;

@@ -630,9 +630,9 @@ public:
     ClipBounds clip = {};
     std::vector<Particle*> particles;
     std::vector<SourceFrame> frames;
-    EmitCallback emitFn;
-    UpdateCallback updateFn;
-    ElementCallback elementFn;
+    EmitCallback emitFn = nullptr;
+    UpdateCallback updateFn = nullptr;
+    ElementCallback elementFn = nullptr;
     Ref<Texture> texture;
 };
 

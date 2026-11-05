@@ -188,12 +188,12 @@ const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::Sk
 
 struct FactoryEntry {
     MapObjectType type = {};
-    EngineObject* (*create)();
+    EngineObject* (*create)() = nullptr;
 };
 // The class's entry: its id and a new object of it.
 template <class T>
 constexpr FactoryEntry Make(MapObjectType type) {
-    return {type, [] () -> EngineObject* { return new (kZeroed) T(); }};
+    return {type, [] () -> EngineObject* { return new T(); }};
 }
 constexpr FactoryEntry kFactory[] = {
     Make<Unit>(MapObjectType::Hero),
@@ -571,8 +571,6 @@ void MapObjectManager::ApplyPrototype(MapObject* object, const std::string& name
 
 // --- The factory ------------------------------------------------------------------------------
 
-// Every object starts zeroed (kZeroed): the units' constructors leave exposure and the
-// motion's turn fields, which the saves write.
 EngineObject* MapObjectManager::NewObject(int objectType) {
     for (const FactoryEntry& entry : kFactory) {
         if (entry.type != static_cast<MapObjectType>(objectType)) continue;

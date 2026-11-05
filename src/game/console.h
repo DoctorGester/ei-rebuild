@@ -174,7 +174,7 @@ CommandHandler FindCommand(const CommandMap& map, const std::string& key);
 struct CommandRegistration {
     bool cheat = false;
     const char* name = nullptr;
-    CommandHandler handler;
+    CommandHandler handler = nullptr;
 };
 extern const CommandRegistration kCommandRegistrations[25];
 

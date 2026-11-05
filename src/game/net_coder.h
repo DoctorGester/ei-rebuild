@@ -61,7 +61,7 @@ public:
     // The position of `at` from the start.
     std::int32_t PositionOf(const std::uint8_t* at) const { return static_cast<std::int32_t>(at - begin); }
 
-    std::uint8_t* begin;
+    std::uint8_t* begin = nullptr;
     std::uint8_t* cur = nullptr;
     std::uint8_t* end = nullptr;  // capacity
     std::uint8_t* high = nullptr;  // highest position written (raised lazily)
@@ -170,7 +170,7 @@ struct CoderState {
     CoderState() { Start(); }
     ~CoderState() { out.End(); }
 
-    std::uint8_t window[0x800];
+    std::uint8_t window[0x800] = {};
     std::int32_t chain[0x400] = {};  // distance to the previous position with the same hash
     std::int32_t head[0x400] = {};   // last position per hash ((previous byte << 2) ^ byte)
     BufferCursor out;

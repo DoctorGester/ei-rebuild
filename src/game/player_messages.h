@@ -450,7 +450,7 @@ public:
     // The connection as the server's view of it (a PlayerServer on the server world, null for none).
     PlayerServer* Server() const { return dynamic_cast<PlayerServer*>(connection); }
 
-    netlink::NetLink* link;                     // the connection to the player's client, null: none
+    netlink::NetLink* link = nullptr;           // the connection to the player's client, null: none
     PlayerConnection* connection = nullptr;    // PlayerServer / PlayerClient (counted)
     int playerId = 0;                           // player number (0 = the local player)
     MapObjectMap knownObjects;                  // map objects sent to the client

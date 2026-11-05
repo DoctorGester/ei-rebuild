@@ -29,7 +29,7 @@ struct Value {
         : section(valueSection), name(valueName), number(field), flag(isFlag) {}
     constexpr Value(const char* valueSection, const char* valueName, float GameOptions::*field)
         : section(valueSection), name(valueName), real(field) {}
-    const char* section;
+    const char* section = nullptr;
     const char* name = nullptr;
     int GameOptions::*number = nullptr;
     float GameOptions::*real = nullptr;
@@ -110,7 +110,7 @@ std::string& StringOf(GameOptions& options) { return options.*Member; }
 struct StringValue {
     const char* section = nullptr;
     const char* name = nullptr;
-    StringField field;
+    StringField field = nullptr;
 };
 constexpr StringValue kPathValues[] = {
     {kPaths, "Work path", &StringOf<&GameOptions::workPath>},

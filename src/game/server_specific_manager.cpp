@@ -23,19 +23,18 @@ ServerSpecificManager::~ServerSpecificManager() {}
 const char* ServerSpecificManager::ClassName() { return kManagerClassName; }
 ClassId ServerSpecificManager::GetClassId() { return ClassId::ServerSpecificManager; }
 
-// Every object starts zeroed (kZeroed): their constructors leave fields the saves write.
 EngineObject* ServerSpecificManager::NewObject(int objectType) {
     switch (static_cast<SideObjectType>(objectType)) {
     case SideObjectType::Object3D:
-        return new (kZeroed) Object3DServer();
+        return new Object3DServer();
     case SideObjectType::MapObject:
-        return new (kZeroed) MapObjectServer();
+        return new MapObjectServer();
     case SideObjectType::Unit:
-        return new (kZeroed) UnitServer();
+        return new UnitServer();
     case SideObjectType::Player:
-        return new (kZeroed) PlayerServer();
+        return new PlayerServer();
     case SideObjectType::Torch:
-        return new (kZeroed) TorchObjectSpec();
+        return new TorchObjectSpec();
     default:
         return nullptr;
     }

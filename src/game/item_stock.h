@@ -44,7 +44,7 @@ struct ItemStock {
     // The owner `party` and class index 0; baseLevels and scrollLevels are not written.
     explicit ItemStock(Party* party) : party(party) {}
 
-    Party* party;                  // the template's party object (its item constructor and item manager)
+    Party* party = nullptr;        // the template's party object (its item constructor and item manager)
     int classIndex = 0;             // bit of the records' class masks
     std::vector<itemdb::ArmorRecord*> armors;
     std::vector<itemdb::WeaponRecord*> weapons;

@@ -12,8 +12,8 @@ namespace platform::sdl_keys {
 
 // A key as Windows named it: the key and the scan code (set 1, 0x100 for an extended key).
 struct KeyCode {
-    Key key;
-    int scan;
+    Key key = {};
+    int scan = 0;
 };
 
 // The active keyboard layout's answers for SDL's keys, each system's (win32/keyboard.cpp: Windows' layouts;

@@ -140,8 +140,8 @@ struct ScriptNamedValues {
 // Where ScriptVars::FindVariable found a variable: its type (1..4) and index in that type's arrays. A name
 // not found has index -1 and the last type searched (group).
 struct ScriptVarRef {
-    int index;
-    ScriptType type;
+    int index = 0;
+    ScriptType type = {};
 };
 
 // A set of named script variables, one value array and one name array per type: a script's local variables
@@ -170,9 +170,9 @@ struct ScriptVars {
 
 // Binds argument `argIndex` of a command to variable `varIndex` of the same type.
 struct ScriptBinding {
-    ScriptType type;
-    int argIndex;
-    int varIndex;
+    ScriptType type = {};
+    int argIndex = 0;
+    int varIndex = 0;
 };
 static_assert(sizeof(ScriptBinding) == 12);   // saved as its 12 bytes
 
@@ -223,19 +223,19 @@ public:
     bool EndOfFileError();
 
 private:
-    Script* script;
-    const std::vector<ScriptToken>* tokens;
+    Script* script = nullptr;
+    const std::vector<ScriptToken>* tokens = nullptr;
     std::vector<ScriptToken>::const_iterator pos;
 };
 
 // A part of a named area for IsInArea (AddRectToArea / AddRoundToArea).
 struct ScriptAreaPart {
-    std::uint8_t isRect;
-    std::uint8_t unused_01[3];
-    float x;        // rectangle: x1, y1, x2, y2; circle: centre x, y and radius squared
-    float y;
-    float x2OrRadiusSquared;
-    float y2;
+    std::uint8_t isRect = 0;
+    std::uint8_t unused_01[3] = {};
+    float x = 0.0f;  // rectangle: x1, y1, x2, y2; circle: centre x, y and radius squared
+    float y = 0.0f;
+    float x2OrRadiusSquared = 0.0f;
+    float y2 = 0.0f;
 };
 static_assert(sizeof(ScriptAreaPart) == 0x14);   // saved as its 20 bytes
 
@@ -355,9 +355,9 @@ struct ScriptLightning {
 
 // One particle type CreateParticleSource accepts (64 entries).
 struct ScriptParticleType {
-    const char* name;
-    int type;               // EffectParticle::type (0x2000..)
-    int lifetime;           // ticks, -1 forever
+    const char* name = nullptr;
+    int type = 0;           // EffectParticle::type (0x2000..)
+    int lifetime = 0;       // ticks, -1 forever
 };
 constexpr int kScriptParticleTypeCount = 64;
 
@@ -462,7 +462,7 @@ public:
     int TextCount() const { return static_cast<int>(call->stringArgs.size()); }
 
 private:
-    const ScriptCall* call;
+    const ScriptCall* call = nullptr;
     std::size_t floats = 0;
     std::size_t texts = 0;
     std::size_t objects = 0;
@@ -543,16 +543,16 @@ enum class ScriptArgSyntax { List, Value };
 // A script's error as Script::GetError hands it out: the text, the code and the line.
 struct ScriptErrorInfo {
     std::string text;
-    int code;
-    int line;
+    int code = 0;
+    int line = 0;
 };
 
 // ---- Quest construction ----
 // An objective of the quest QStart starts; QFinish turns them into a script.
 struct ScriptQuestObjective {
-    ScriptFunction type;    // the QObj* command
+    ScriptFunction type = {};  // the QObj* command
     std::string text;       // its string argument (empty for QObjArea / QObjGetItem)
-    float value;            // its float argument
+    float value = 0.0f;     // its float argument
 };
 // The quest a script's QStart / QObj* / QFinish commands build (Script::quest).
 struct ScriptQuestBuilder {
@@ -937,10 +937,10 @@ enum class ScriptFunction : int {
 // then the commands, then the functions. Signatures are strings of type letters (f float, s string, o object,
 // g group); a function's starts with its result type in upper case ("Fff": float IsEqual(float, float)).
 struct ScriptKeyword {
-    const char* name;
+    const char* name = nullptr;
     ScriptFunction id{};
-    const char* function;   // functions: result and parameter types, else null
-    const char* command;    // commands: parameter types, else null
+    const char* function = nullptr;  // functions: result and parameter types, else null
+    const char* command = nullptr;  // commands: parameter types, else null
 };
 // 225 keywords and the null entry; the loader reads it through KeywordTable().
 extern const ScriptKeyword kScriptKeywords[226];

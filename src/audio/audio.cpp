@@ -454,7 +454,7 @@ public:
     MainTimer& operator=(const MainTimer&) = delete;
 
 private:
-    bool timed;
+    bool timed = false;
     Clock::time_point start;
 };
 

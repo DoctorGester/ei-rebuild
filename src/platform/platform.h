@@ -112,8 +112,8 @@ double FreeDiskSpace(std::string_view path);
 struct FolderEntry {
     std::string name;
     std::string path;     // the search pattern's folder made absolute, a separator and the name
-    std::uint32_t size;   // a file's size, its low 32 bits
-    bool folder;
+    std::uint32_t size = 0;  // a file's size, its low 32 bits
+    bool folder = false;
 
     // The name without its extension (from its last '.').
     std::string Title() const { return name.substr(0, name.find_last_of('.')); }
@@ -461,10 +461,10 @@ inline constexpr Socket kNoSocket = ~Socket{0};
 // and the address in network order, 8 zero bytes). Passed to the system as it is: an address whose family is not
 // kIpv4 fails there.
 struct Address {
-    std::uint16_t family;
-    std::uint16_t port;
-    std::uint32_t ip;
-    std::uint8_t zero[8];
+    std::uint16_t family = 0;
+    std::uint16_t port = 0;
+    std::uint32_t ip = 0;
+    std::uint8_t zero[8] = {};
 };
 static_assert(sizeof(Address) == 16);
 

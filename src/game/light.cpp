@@ -103,10 +103,7 @@ EngineObject* LightFactory::NewObject(int objectType) {
         game::DebugLog(kUnknownLightType, objectType);
         return nullptr;
     }
-    // Allocated zeroed: the constructor leaves the transform's positions, and nothing sets a
-    // directional light's localPosition (the game's terrain lighting read its z under water, so heap
-    // leftovers there, a NaN, darkened the shallow water's sun light by the heap's history).
-    auto* light = new (kZeroed) Light();
+    auto* light = new Light();
     light->type = objectType;
     return light;
 }

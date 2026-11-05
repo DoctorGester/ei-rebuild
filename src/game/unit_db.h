@@ -147,7 +147,7 @@ struct UnitModelRecord {
     std::vector<std::uint32_t> soundCounts;
 
     const std::uint32_t* SoundCounts() const { return soundCounts.data(); }
-    std::uint32_t idleSoundChance;  // 0x25 percent
+    std::uint32_t idleSoundChance = 0;  // 0x25 percent
     std::uint32_t attackSoundChance = 0;  // 0x26 percent
     // The eyes on the skin texture (in 256ths of its width; the blink; read as signed ints): left, distance
     // of their bottom from the bottom edge, width, height.

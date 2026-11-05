@@ -32,11 +32,11 @@ struct Call {
     ScriptObjectRef* ObjectResult() const { return *result.object; }
     ScriptGroup* GroupResult() const { return *result.group; }
 
-    ScriptCall* cmd;
-    Script* script;
+    ScriptCall* cmd = nullptr;
+    Script* script = nullptr;
     Result result;
-    int* cont;
-    ScriptRun* run;
+    int* cont = nullptr;
+    ScriptRun* run = nullptr;
 };
 
 // The extended keyword table, built once: the game's entries (ConsoleString, Add, Mul and Random with the longer
