@@ -1324,9 +1324,10 @@ and each multiplayer client writes its own.
   generators again after the load: the client's has drawn in the frames between the load and the origin, which the
   recording and its replay need not draw alike (harness.md, "Parts").
 - **Checks**: zone_visuals (zone1 in rain: blood and footprints, then out to bz1g and back: the prints come back aged,
-  the ground, the hero and the cover as left); net_host_death (a host alone: z3q2 left to the base and loaded again
-  from saves\current, its blood and footprints back); net_pair_zone_visuals (the peer walks in the host's z3q2, goes
-  back to its own base and in again: its footprints back from its own side file while the host stayed);
+  the ground, the hero and the cover as left; zone_return's goldens hold the zone side files); net_host_death (a host
+  alone: z3q2 left to the base and loaded again from saves\current, its log's "client visuals: z3q2 ... restored");
+  net_pair_zone_visuals (the peer walks in the host's z3q2, goes back to its own base and in again: its footprints back
+  from its own side file, over 80 against about 20 without, while the host stayed);
   render_weather_save (zone1 by day: 15 s of rain, F5, 20 s of drying, F8): `weathercheck` and `unitweather`
   read the ground and the hero exactly as saved (0.759 both; from the settled rain they would be 1) and `cloudcheck`
   the cover near the saved one. ground_prints: `groundprints` counts the blood and footprints at the save and the

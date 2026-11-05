@@ -2,16 +2,17 @@
   "scenario": "mod_lost_in_astral_ingos",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "eb5178845",
+  "commit": "d5b3c20ae",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
+  "reason": "R57c: visuals.sav gains the Zone section (the client's tick and the zone's map when taken), and a zone left keeps its side file saves\\current\\<zone>.visuals.sav (copied into a slot with the zone files); no digest or console moves (client-side picture only)",
   "source": "image",
-  "saves": "21 decoded saves (tools/savefile.py), the same in 2 runs",
+  "saves": "38 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/savea/visuals.sav: 10 fields in 2 records differ: visuals 10",
-    "  visuals: 10 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+    "saves: the old golden has LostInAstral/current/bz21k.sav, LostInAstral/current/bz23k.sav, LostInAstral/current/gz1g.sav, LostInAstral/current/gz21k.sav, LostInAstral/current/gz22d1.sav, LostInAstral/current/gz22k.sav, LostInAstral/current/gz23k.sav, LostInAstral/current/gz24k.sav, LostInAstral/current/gz25k.sav, LostInAstral/current/gz26k.sav, LostInAstral/savea/bz23k.sav, LostInAstral/savea/gz21k.sav, LostInAstral/savea/gz22k.sav, LostInAstral/savea/gz23k.sav, LostInAstral/savea/gz24k.sav, LostInAstral/savea/gz25k.sav, LostInAstral/savea/gz26k.sav, LostInAstral/savea/info.sav, LostInAstral/savea/mission.sav, LostInAstral/savea/scenario.sav, LostInAstral/savea/visuals.sav, the new run LostInAstral/current/bz21k.sav, LostInAstral/current/bz21k.visuals.sav, LostInAstral/current/bz23k.sav, LostInAstral/current/bz23k.visuals.sav, LostInAstral/current/gz1g.sav, LostInAstral/current/gz1g.visuals.sav, LostInAstral/current/gz21k.sav, LostInAstral/current/gz21k.visuals.sav, LostInAstral/current/gz22d1.sav, LostInAstral/current/gz22d1.visuals.sav, LostInAstral/current/gz22k.sav, LostInAstral/current/gz22k.visuals.sav, LostInAstral/current/gz23k.sav, LostInAstral/current/gz23k.visuals.sav, LostInAstral/current/gz24k.sav, LostInAstral/current/gz24k.visuals.sav, LostInAstral/current/gz25k.sav, LostInAstral/current/gz25k.visuals.sav, LostInAstral/current/gz26k.sav, LostInAstral/current/gz26k.visuals.sav, LostInAstral/savea/bz23k.sav, LostInAstral/savea/bz23k.visuals.sav, LostInAstral/savea/gz21k.sav, LostInAstral/savea/gz21k.visuals.sav, LostInAstral/savea/gz22k.sav, LostInAstral/savea/gz22k.visuals.sav, LostInAstral/savea/gz23k.sav, LostInAstral/savea/gz23k.visuals.sav, LostInAstral/savea/gz24k.sav, LostInAstral/savea/gz24k.visuals.sav, LostInAstral/savea/gz25k.sav, LostInAstral/savea/gz25k.visuals.sav, LostInAstral/savea/gz26k.sav, LostInAstral/savea/gz26k.visuals.sav, LostInAstral/savea/info.sav, LostInAstral/savea/mission.sav, LostInAstral/savea/scenario.sav, LostInAstral/savea/visuals.sav",
+    "save LostInAstral/savea/visuals.sav: 2 fields in 1 records differ: visuals 2",
+    "  visuals: 2 fields in 1 records; first visuals.zone tick: (none) in the old golden, 311 in the new run"
   ]
 }

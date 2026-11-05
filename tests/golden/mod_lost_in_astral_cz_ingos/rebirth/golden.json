@@ -2,16 +2,17 @@
   "scenario": "mod_lost_in_astral_cz_ingos",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "eb5178845",
+  "commit": "d5b3c20ae",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R57a/R57b: visuals.sav gains the Prints section (the client's blood, footprints and scorch marks) and the Generator section (g_clientRandom's state); no digest moves (the restored generator draws differently only after the loads, and no scenario's post-load tail reaches a draw the digests hold)",
+  "reason": "R57c: visuals.sav gains the Zone section (the client's tick and the zone's map when taken), and a zone left keeps its side file saves\\current\\<zone>.visuals.sav (copied into a slot with the zone files); no digest or console moves (client-side picture only)",
   "source": "image",
-  "saves": "15 decoded saves (tools/savefile.py), the same in 2 runs",
+  "saves": "26 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/savea/visuals.sav: 238 fields in 2 records differ: visuals 238",
-    "  visuals: 238 fields in 2 records; first visuals.prints blood.count: (none) in the old golden, 0 in the new run"
+    "saves: the old golden has LostInAstral/current/bz21k.sav, LostInAstral/current/cz0k.sav, LostInAstral/current/cz1j.sav, LostInAstral/current/cz1k.sav, LostInAstral/current/cz2k.sav, LostInAstral/current/cz3k.sav, LostInAstral/current/cz4k.sav, LostInAstral/current/gz1g.sav, LostInAstral/current/gz21k.sav, LostInAstral/savea/cz1j.sav, LostInAstral/savea/gz1g.sav, LostInAstral/savea/info.sav, LostInAstral/savea/mission.sav, LostInAstral/savea/scenario.sav, LostInAstral/savea/visuals.sav, the new run LostInAstral/current/bz21k.sav, LostInAstral/current/bz21k.visuals.sav, LostInAstral/current/cz0k.sav, LostInAstral/current/cz0k.visuals.sav, LostInAstral/current/cz1j.sav, LostInAstral/current/cz1j.visuals.sav, LostInAstral/current/cz1k.sav, LostInAstral/current/cz1k.visuals.sav, LostInAstral/current/cz2k.sav, LostInAstral/current/cz2k.visuals.sav, LostInAstral/current/cz3k.sav, LostInAstral/current/cz3k.visuals.sav, LostInAstral/current/cz4k.sav, LostInAstral/current/cz4k.visuals.sav, LostInAstral/current/gz1g.sav, LostInAstral/current/gz1g.visuals.sav, LostInAstral/current/gz21k.sav, LostInAstral/current/gz21k.visuals.sav, LostInAstral/savea/cz1j.sav, LostInAstral/savea/cz1j.visuals.sav, LostInAstral/savea/gz1g.sav, LostInAstral/savea/gz1g.visuals.sav, LostInAstral/savea/info.sav, LostInAstral/savea/mission.sav, LostInAstral/savea/scenario.sav, LostInAstral/savea/visuals.sav",
+    "save LostInAstral/savea/visuals.sav: 7 fields in 3 records differ: visuals 7",
+    "  visuals: 7 fields in 3 records; first visuals.weather cloudDriftA.x: 162.5880765671978 in the old golden, 166.66260386733143 in the new run; largest numeric d 6.31 at visuals.waves wavePhase: -35.5059662 -> -29.1973019"
   ]
 }

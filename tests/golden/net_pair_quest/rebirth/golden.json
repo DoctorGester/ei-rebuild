@@ -2,27 +2,15 @@
   "scenario": "net_pair_quest",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "6c7081606",
+  "commit": "d5b3c20ae",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
+  "reason": "R57c: visuals.sav gains the Zone section (the client's tick and the zone's map when taken), and a zone left keeps its side file saves\\current\\<zone>.visuals.sav (copied into a slot with the zone files); no digest or console moves (client-side picture only)",
   "source": "image",
+  "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 186 of 521 records differ, first at record 335 (world update 6720, tick 6472, frame 1343, zone z9q2); outcomes CHANGED: zone, deaths, spawns, quest variables, party and items, game result, script; max unit move 404 (obj1574, record 488); the digests have different numbers of records",
-    "  digest: the old golden has more records; the other ends before its record 521 (world update 10440, frame 2087, tick 10192, zone bz1mpg)",
-    "  first difference at record 335 (world update 6720, tick 6472, frame 1343, zone z9q2): 1 fields",
-    "    random (random) isaac.count: 16 in the old golden, 19 in the new run (d 3)",
-    "  outcomes: CHANGED zone, deaths, spawns, quest variables, party and items, game result, script; same: money",
-    "    zone: record 485: z9q2 in the old golden, bz1mpg in the new run (+3 more)",
-    "    deaths: obj576876 dead: 0 in the old golden, 1 in the new run, from record 478 (+243 more)",
-    "    spawns: obj29 (82 nafltr59) only in the old golden, from record 485 (+6547 more)",
-    "    quest variables: 9 variables differ (b.Nsheriff.intro_1q, b.Nsheriff.z9q2_3, b.Smith.intro_1k, b.smith.constr_1, gtime, q.z9q2.z9q2, ...); first from record 485: player0 gtime: 10.3877726 in the old golden, 10.44555 in the new run",
-    "    party and items: player0 objects: 24 in the old golden, 25 in the new run, from record 347 (+92 more)",
-    "    game result: world gameResult: 2 in the old golden, 1 in the new run, from record 485 (+3 more)",
-    "    script: script #files differs (hashes only), from record 485 (+155 more)",
-    "... 35 more lines"
-  ],
-  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs"
+    "saves: the old golden has current/z9q2.sav, the new run current/z9q2.sav, current/z9q2.visuals.sav"
+  ]
 }

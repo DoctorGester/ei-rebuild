@@ -2,16 +2,12 @@
   "scenario": "net_pair_quest",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "6c7081606",
+  "commit": "d5b3c20ae",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
+  "reason": "R57c: visuals.sav gains the Zone section (the client's tick and the zone's map when taken), and a zone left keeps its side file saves\\current\\<zone>.visuals.sav (copied into a slot with the zone files); no digest or console moves (client-side picture only)",
   "side": "peer",
-  "source": "image",
-  "change": [
-    "digest: digest: the old golden has more records; the other ends before its record 516 (world update 10340, frame 2067, tick 9937, zone bz1mpg)",
-    "  digest: the old golden has more records; the other ends before its record 516 (world update 10340, frame 2067, tick 9937, zone bz1mpg)"
-  ]
+  "source": "image"
 }

@@ -2,27 +2,15 @@
   "scenario": "net_pair_quest",
   "install": "vanilla",
   "recorded": "2026-11-05",
-  "commit": "c4a4ce818",
+  "commit": "d5b3c20ae",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "C162: EI_Plugin's Briefings always on: a network client also queues the briefing completion script (checked: with it off the runs match the old goldens)",
+  "reason": "R57c: visuals.sav gains the Zone section (the client's tick and the zone's map when taken), and a zone left keeps its side file saves\\current\\<zone>.visuals.sav (copied into a slot with the zone files); no digest or console moves (client-side picture only)",
   "source": "image",
+  "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 50 of 545 records differ, first at record 46 (world update 940, tick 692, frame 187, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 46 (world update 940, tick 692, frame 187, zone bz1mpg): 2 fields",
-    "    script (script) #files: 982697DF in the old golden, 012FC665 in the new run",
-    "    script (script) #run: 3A0279B3 in the old golden, EE9A9444 in the new run",
-    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #files differs (hashes only), from record 46 (+159 more)",
-    "  script: 1 of 1 differ",
-    "    files: 1 script, 50 records, from 46; hash only (no numbers kept)",
-    "    run: 1 script, 50 records, from 46; hash only (no numbers kept)",
-    "    inst: 1 script, 20 records, from 48; hash only (no numbers kept)",
-    "    instances: 1 script, 20 records, from 48; hash only (no numbers kept)",
-    "    ... 1 more (other kinds of field)",
-    "... 2 more lines"
-  ],
-  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs"
+    "saves: the old golden has current/z9q2.sav, the new run current/z9q2.sav, current/z9q2.visuals.sav"
+  ]
 }
