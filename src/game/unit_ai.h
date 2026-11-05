@@ -150,6 +150,13 @@ inline constexpr float kNoWander = -1.0f;
 // A squared distance larger than any real one: the start of a nearest-unit search.
 inline constexpr float kFarSq = 1e30f;
 
+// A path search's range for a way of length `way`, and the detour limit: a path whose smoothing exceeds 2 x the way x
+// kDetourScale counts as none (AIBrain::FindStandPoint, FearMode's flight point).
+inline constexpr float kPathRangePerDistance = 3.0f;
+inline constexpr float kPathRangeBase = 10.0f;
+inline constexpr float kDetourScale = 5000.0f;
+inline float PathRange(float way) { return way * kPathRangePerDistance + kPathRangeBase; }
+
 // A value that moves back to its default by 1/31 a call: (value * kRelaxKeep + default) * kRelaxDivisor
 // (the brain's decay, FearMode::distance).
 inline constexpr float kRelaxKeep = 30.0f;

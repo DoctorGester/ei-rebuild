@@ -72,39 +72,7 @@ bool OrderAllowedFrom(AIBrain* brain, const AITargetChoice& choice, const Vector
 }
 } // namespace
 
-// --- The orders the choice checks --------------------------------------------------------------
-
-void AIOrder::Clear() {
-    kind = UnitOrderKind::None;
-    target.Reset();
-    pointIsUseSpot = false;
-}
-
-void AIOrder::MakeAttack(MapObject* object) {
-    Clear();
-    kind = UnitOrderKind::Attack;
-    source = kAttackAllParts;
-    target.Assign(object);
-}
-
-void AIOrder::MakeCast(int spell, MapObject* object) {
-    Clear();
-    kind = UnitOrderKind::CastOn;
-    target.Assign(object);
-    source = static_cast<std::uint32_t>(spell);
-}
-
-void AIOrder::MakeUse(MapObject* object, UseSource use) {
-    Clear();
-    kind = UnitOrderKind::Use;
-    target.Assign(object);
-    source = static_cast<std::uint32_t>(use);
-}
-
-Vector3 AIOrder::AimPoint() const {
-    if (target == nullptr) return point;
-    return target->AimPoint();
-}
+// --- Whether the unit can get at a target ------------------------------------------------------------
 
 bool AIBrain::CanReach(const AITargetChoice& choice, bool fromHere) {
     AIPath path;
