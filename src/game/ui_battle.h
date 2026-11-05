@@ -17,16 +17,16 @@ class HudTopPanel;
 class UiScrollText;
 
 // What the next click on the view does (BattleScreen::pendingAction, SelectUnit).
-enum PendingAction : int {
-    kPendingNone = 0,           // select, attack or move
-    kPendingSpellOnUnit = 1,    // the pending spell
-    kPendingSpellAtPoint = 2,
-    kPendingQuickOnUnit = 3,    // the pending quick item
-    kPendingQuickAtPoint = 4,
-    kPendingItemOnObject = 5,   // an item (pendingItem) used on an object
-    kPendingKeyOnObject = 6,    // one of the player's items (its key in itemUseKey) used on an object
-    kPendingFollow = 7,         // the action buttons
-    kPendingOrder = 8,          // an order on an object (the science button)
+enum class PendingAction : int {
+    None = 0,           // select, attack or move
+    SpellOnUnit = 1,    // the pending spell
+    SpellAtPoint = 2,
+    QuickOnUnit = 3,    // the pending quick item
+    QuickAtPoint = 4,
+    ItemOnObject = 5,   // an item (pendingItem) used on an object
+    KeyOnObject = 6,    // one of the player's items (its key in itemUseKey) used on an object
+    Follow = 7,         // the action buttons
+    Order = 8,          // an order on an object (the science button)
 };
 
 // The in-game screen (CreateScreen id 1); its Create builds the HUD panels as children in order: weapon
@@ -46,7 +46,7 @@ public:
     // exit whose "z.<zone>" variable is not 1 is remembered (exitPending).
     void OrderAt(Vector3 point, bool goTo, bool run);
     // The pending action becomes `mode` on `slot` with `item`, the panels' highlights move to `slot` in the
-    // panel of that mode. kPendingNone with slot and item -1 cancels.
+    // panel of that mode. PendingAction::None with slot and item -1 cancels.
     void SetPendingAction(PendingAction mode, int slot, int item);
 
     // Reads the screen's saved state when a game is being loaded, else remembers the local player's first

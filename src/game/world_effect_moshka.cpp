@@ -28,7 +28,6 @@ namespace {
 constexpr int kBirdParticles = static_cast<int>(ParticleType::Bag);        // the particle type the figure carries
 constexpr float kBirdParticleScale = 0.5f;
 
-enum MoshkaState { kPerched = 0, kCircling = 1, kFlyingOff = 2 };
 constexpr float kPerchedFrames = 200.0f;      // after Follow
 constexpr float kCirclingFrames = 100.0f;     // then a perch is looked for
 constexpr float kFlyingOffFrames = 150.0f;    // after which the bird is reset
@@ -119,14 +118,14 @@ void EffectMoshka::Update(float now) {
     bool timeUp = timer < 0.0f;
 
     Vector3 target{};   // unset in the original for other states (Follow sets 0, so none occur)
-    if (state == kFlyingOff) {
+    if (state == State::FlyingOff) {
         if (timeUp || (Same(localPosition.x, birdAt.x) && Same(localPosition.y, birdAt.y) &&
                        Same(localPosition.z, birdAt.z))) {
             Reset();   // the virtual
             return;
         }
         target = localPosition;
-    } else if (state == kCircling) {
+    } else if (state == State::Circling) {
         float flightAngle = now * kAngularSpeed + angle;
         if (timeUp) {
             // A perch straight out from the circle, seen from the bird.
@@ -136,7 +135,7 @@ void EffectMoshka::Update(float now) {
             perch.x = (lib::Cos(outward) * kPerchSearchRadius) + perch.x;
             perch.y = (lib::Sin(outward) * kPerchSearchRadius) + perch.y;
             if (g_serverWorld.aiMap.LineOfSight(currentBird->localPosition, perch) > kClearance) {
-                state = kFlyingOff;
+                state = State::FlyingOff;
                 timer = kFlyingOffFrames;
                 localPosition = perch;
             } else {
@@ -146,10 +145,10 @@ void EffectMoshka::Update(float now) {
         target.z = kCircleHeight + followed.z;
         target.x = (lib::Cos(flightAngle) * kCircleRadius) + followed.x;
         target.y = (lib::Sin(flightAngle) * kCircleRadius) + followed.y;
-    } else if (state == kPerched) {
+    } else if (state == State::Perched) {
         if (timeUp) {
             Vector3 perch = FindPerch(followed);
-            state = kFlyingOff;
+            state = State::FlyingOff;
             timer = kFlyingOffFrames;
             localPosition = perch;
         }
@@ -160,7 +159,7 @@ void EffectMoshka::Update(float now) {
         float dy = target.y - birdAt.y;
         if (LengthSquared2D(dy, dx) < kNearSquared) {   // close: start circling from here
             float heading = lib::Atan2(-toFollowed.x, toFollowed.y);
-            state = kCircling;
+            state = State::Circling;
             timer = kCirclingFrames;
             height = kCircleStartHeight;
             angle = (heading - now * kAngularSpeed) - kAngleOffset;
@@ -226,7 +225,7 @@ void EffectMoshka::Follow(int objectId) {
     source.Assign(particles);
     source->ScaleSize(kBirdParticleScale);
     source->Attach(bird);
-    state = kPerched;
+    state = State::Perched;
     timer = kPerchedFrames;
 }
 

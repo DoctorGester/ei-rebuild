@@ -84,13 +84,13 @@ void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord
     PartyOf(player)->money += static_cast<int>(static_cast<std::int64_t>(record->money));   // _ftol: 0 for a NaN
 
     std::vector<Item*> items;
-    for (const std::string& name : record->lists[QuestBriefingRecord::kGiveItems]) {
+    for (const std::string& name : record->lists[QuestBriefingRecord::ListKind::GiveItems]) {
         Item* item = world->CreateItemNamed(name);
         if (item) items.push_back(item);
     }
     if (!items.empty()) player->GiveItems(&items, 0);
 
-    for (const std::string& name : record->lists[QuestBriefingRecord::kRemoveItems]) {
+    for (const std::string& name : record->lists[QuestBriefingRecord::ListKind::RemoveItems]) {
         Item* item = world->CreateItemNamed(name);
         if (!item) continue;
         item->AddRef();
@@ -100,13 +100,13 @@ void GiveBriefingRewards(WorldServer* world, Player* player, QuestBriefingRecord
     }
 
     PlayerServer* state = player->Server();
-    for (const std::string& name : record->lists[QuestBriefingRecord::kGiveQuests])
+    for (const std::string& name : record->lists[QuestBriefingRecord::ListKind::GiveQuests])
         state->SetVariableMax(name, 1.0f);
-    for (const std::string& name : record->lists[QuestBriefingRecord::kCompleteQuests])
+    for (const std::string& name : record->lists[QuestBriefingRecord::ListKind::CompleteQuests])
         state->SetVariable(name, 2.0f);
-    for (const std::string& name : record->lists[QuestBriefingRecord::kAvailableZones])
+    for (const std::string& name : record->lists[QuestBriefingRecord::ListKind::AvailableZones])
         state->SetVariableMax(name, 1.0f);
-    for (const std::string& name : record->lists[QuestBriefingRecord::kCompleteZones])
+    for (const std::string& name : record->lists[QuestBriefingRecord::ListKind::CompleteZones])
         state->SetVariable(name, 2.0f);
 
     items.clear();

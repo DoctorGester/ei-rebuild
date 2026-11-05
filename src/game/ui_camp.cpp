@@ -72,7 +72,7 @@ void SetShade(UiMesh* mesh, float shade) {
 
 // A white centred line of a surface's labels.
 void AddLine(std::vector<UiLabel>& labels, std::string_view text, const Rect& rect) {
-    labels.push_back({std::string(text), rect, {1, 0xFFFFFF, render::text::kCenter}});
+    labels.push_back({std::string(text), rect, {1, 0xFFFFFF, render::text::Format::Center}});
 }
 
 // The database records of the camp's loot items (the record index): spells, spell modifiers and materials; the
@@ -188,14 +188,14 @@ const char* const kPrototypeItem = "Prototype";
 const char* const kRuneItem = "Rune";
 
 // Pages of the action buttons.
-enum CampPage {
-    kEquipment = 0,
-    kTrade = 1,
-    kSpellTrade = 2,
-    kSpellMaker = 3,
-    kItemTrade = 4,
-    kItemMaker = 5,
-    kRepair = 6,
+enum class CampPage : int {
+    Equipment = 0,
+    Trade = 1,
+    SpellTrade = 2,
+    SpellMaker = 3,
+    ItemTrade = 4,
+    ItemMaker = 5,
+    Repair = 6,
 };
 
 // The prototype index an item's packed id carries (its high word).
@@ -1502,43 +1502,43 @@ void CampPages::DeconstructItem() {
 
 void CampPages::DoAction() {
     g_interface.PlayInterfaceSound(kBuySound);
-    switch (page) {
-    case kEquipment:
+    switch (static_cast<CampPage>(page)) {
+    case CampPage::Equipment:
         if (itemConstructor && !noConstructor) {
             PartyUnitRecord* heroRecord = HeroRecord();
             for (Item* weapon : heroRecord->weapons) weapon->Repair();
             for (Item* worn : heroRecord->armor) worn->Repair();
         }
         break;
-    case kTrade:
+    case CampPage::Trade:
         trade->Settle(true, false);
         return;
-    case kSpellTrade:
+    case CampPage::SpellTrade:
         constructor->SpellsParty()->GetSpellManager();
         StockSpells(this, spellParts[2]);
         ReturnToStrip(this, spellParts[0], spellParts[2], spellStrip);
         ReturnToStrip(this, LocalPlayerData(), spellParts[1], itemStrip);
         break;
-    case kSpellMaker:
+    case CampPage::SpellMaker:
         if (deconstructing) {
             DeconstructSpell();
         } else if (spellMade) {
             TakeMade(spellResults, spellMade);
         }
         break;
-    case kItemTrade:
+    case CampPage::ItemTrade:
         StockItems(this, itemParts[2]);
         ReturnToStrip(this, itemParts[0], itemParts[2], partStrip);
         ReturnToStrip(this, LocalPlayerData(), itemParts[1], itemStrip);
         break;
-    case kItemMaker:
+    case CampPage::ItemMaker:
         if (deconstructing) {
             DeconstructItem();
         } else if (itemMade) {
             TakeMade(itemResults, itemMade);
         }
         break;
-    case kRepair:
+    case CampPage::Repair:
         RepairAll(itemExtra);
         ReturnToStrip(this, LocalPlayerData(), itemExtra, itemStrip);
         break;
@@ -1552,25 +1552,25 @@ void CampPages::DoAction() {
 
 void CampPages::UndoAction() {
     g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
-    switch (page) {
-    case kTrade:
+    switch (static_cast<CampPage>(page)) {
+    case CampPage::Trade:
         trade->Settle(false, false);
         return;
-    case kSpellTrade:
+    case CampPage::SpellTrade:
         ReturnToStrip(this, spellParts[0], spellParts[1], spellStrip);
         ReturnToStrip(this, LocalPlayerData(), spellParts[2], itemStrip);
         break;
-    case kSpellMaker:
+    case CampPage::SpellMaker:
         ReturnResults(this, spellResults, spellParts[0], spellStrip);
         break;
-    case kItemTrade:
+    case CampPage::ItemTrade:
         ReturnToStrip(this, itemParts[0], itemParts[1], partStrip);
         ReturnToStrip(this, LocalPlayerData(), itemParts[2], itemStrip);
         break;
-    case kItemMaker:
+    case CampPage::ItemMaker:
         ReturnResults(this, itemResults, itemParts[0], partStrip);
         break;
-    case kRepair:
+    case CampPage::Repair:
         ReturnToStrip(this, LocalPlayerData(), itemExtra, itemStrip);
         break;
     default:

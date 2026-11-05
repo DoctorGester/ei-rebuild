@@ -28,7 +28,7 @@ namespace {
 int LoadPicture(Surface* holder, const MmpFile& file) {
     if (!file.data) return game::FatalError("Can't load picture from NULL pointer.\n");
     const MmpHeader* picture = &file.header;
-    if (picture->format != kMmpFormat8888) return game::FatalError("Can't load picture from non-8888 format.\n");
+    if (picture->format != MmpFormat::A8R8G8B8) return game::FatalError("Can't load picture from non-8888 format.\n");
     const int width = static_cast<int>(picture->width), height = static_cast<int>(picture->height);
     if (width <= 0 || height <= 0)
         return game::FatalError("Can't create surface to load picture %d:%d:%d.\n", picture->width, picture->height,

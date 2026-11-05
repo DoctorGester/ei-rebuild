@@ -208,7 +208,7 @@ void SignatureStep(ScriptCall* cmd, const char** signature, int tokenId) {
     bool repeat = *p == '+';
     bool optional = *p == '?';
     if (!repeat && !optional) return;
-    if (tokenId == kLexClose) {
+    if (tokenId == ScriptLexeme::Close) {
         if (repeat) {
             ++p;
             return;

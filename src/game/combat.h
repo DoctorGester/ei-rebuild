@@ -7,6 +7,7 @@
 #include "ai_alarm.h"
 #include "spell.h"
 #include "unit_ai.h"
+#include "lib/enum_array.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -184,13 +185,13 @@ enum class UnitState : int {
 };
 
 // The slots of UnitServer::moveFactors: what the light, the weather and the unit's pose make of its senses. Each
-// multiplies one Sense of the unit: noise its conspicuity[kSenseHearing], hearing its perception[kSenseHearing],
-// visibility its conspicuity[kSenseSight], sight its perception[kSenseSight].
-enum MoveFactor {
-    kFactorNoise = 0,
-    kFactorHearing = 1,
-    kFactorVisibility = 2,
-    kFactorSight = 3,
+// multiplies one Sense of the unit: noise its conspicuity[Sense::Hearing], hearing its perception[Sense::Hearing],
+// visibility its conspicuity[Sense::Sight], sight its perception[Sense::Sight].
+enum class MoveFactor : int {
+    Noise = 0,
+    Hearing = 1,
+    Visibility = 2,
+    Sight = 3,
 };
 
 class UnitServer : public UnitController {
@@ -605,7 +606,7 @@ public:
     DamageWords protection{};       // [0] the defence value, [1..7] the body's protection
                                     // per damage type (UnitStats::PackBodyProtection)
     float sinkSpeed = 0.0f;         // a dead unit's body sinks this much a tick (accelerating)
-    float moveFactors[4] = {1.0f, 1.0f, 1.0f, 1.0f};    // by MoveFactor (UpdateMoveFactors)
+    lib::EnumArray<float, MoveFactor, 4> moveFactors = {1.0f, 1.0f, 1.0f, 1.0f};    // UpdateMoveFactors
     int tameStage = 0;              // 0..3 (TryTame)
     int ownSide = -1;               // the unit's own side while tamed (TryTame)
     int tamerSide = -1;             // the tamer's side (TryTame)

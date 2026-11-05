@@ -221,10 +221,10 @@ bool GiveUnitWeapon(Call* call) {
         stats.damage = made->damage;
         stats.damageSpread = made->damageSpread;
         float sum = prototype->combat[3] + weapon->defenceBonus;
-        stats.combat[UnitStats::kDefence] = sum;
-        stats.combat[UnitStats::kReach] = weapon->reach;
+        stats.combat[UnitStats::CombatIndex::Defence] = sum;
+        stats.combat[UnitStats::CombatIndex::Reach] = weapon->reach;
         sum = prototype->combat[1] + weapon->attackBonus;
-        stats.combat[UnitStats::kAttack] = sum;
+        stats.combat[UnitStats::CombatIndex::Attack] = sum;
         stats.attackCategory = static_cast<float>(weapon->category);
         stats.naturalWeapon = made->GetType();
         for (int i = 0; i < 7; ++i) stats.damageWeights[i] = weapon->damageTypes[i];

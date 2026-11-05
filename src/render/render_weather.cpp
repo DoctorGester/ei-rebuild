@@ -252,7 +252,7 @@ void PrepareSurfaces(const ShadowFrame& shadow) {
 }
 
 void PrepareUnitWeather(Frame& f) {
-    Timer timer(FrameStats::ShadowMs);
+    Timer timer(FrameStats::Time::ShadowMs);
     const Surfaces& surfaces = g_surfaces;
     CollectUnitsAndRoofs(f);
     // Each unit's wetness and snow follow the settled weather on it (none under a roof), on the ground's time, which
@@ -298,7 +298,7 @@ void PrepareRoofs(Frame& f) {
     const std::optional<Box> ground = VisibleGround(f);
     if (!ground) return;
     const Vector3 &low = ground->low, &high = ground->high;
-    Timer timer(FrameStats::ShadowMs);
+    Timer timer(FrameStats::Time::ShadowMs);
     float extent = std::max(high.x - low.x, high.y - low.y) + 2.0f * kRoofMargin;
     extent = std::ceil(extent / kRoofStep) * kRoofStep;
     const float texel = extent / kRoofMapSize;
@@ -346,7 +346,7 @@ void RoofUniforms(const Matrix4& light, ShadowParams* params) {
 // The roofs straight down into the roof map (depth only; cut out by their texture's alpha as in the sun map).
 void DrawRoofMap() {
     if (!g_roofFit.on) return;
-    Timer timer(FrameStats::ShadowMs);
+    Timer timer(FrameStats::Time::ShadowMs);
     if (!g_roofTexture) g_roofTexture = MakeShadowDepth(kRoofMapSize, kRoofMapSize, "ei-roof-map");
     if (!g_roofTexture) {
         g_roofFit.on = false;
@@ -373,10 +373,10 @@ void DrawRoofMap() {
     pass.depth = {g_roofTexture, 0, gpu::Load::Clear, 1.0f, true};
     pass.label = "ei-roof-map";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the roof map's pass could not begin (%s).", gpu::Error());
-    ++g_stats.counts[FrameStats::Passes];
+    ++g_stats.counts[FrameStats::Count::Passes];
     if (draw) g_roofDraws.Draw(0, g_roofDraws.Count());
     gpu::EndPass();
-    g_stats.counts[FrameStats::ShadowDraws] += g_roofDraws.Count();
+    g_stats.counts[FrameStats::Count::ShadowDraws] += g_roofDraws.Count();
     g_roofInfo.roofs = static_cast<int>(g_roofDraws.Count());
 }
 

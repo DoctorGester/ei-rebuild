@@ -178,7 +178,7 @@ void Interface3D::Update() {
     if (pollTop && !stack.empty()) pollTop = !stack.back()->ReadyToStopPolling();
     CloseAllPending();
     mouse = g_cursor.position;
-    if (disconnected && IsMultiplayerClient() && net::g_gameClient->joinState != 2) {
+    if (disconnected && IsMultiplayerClient() && net::g_gameClient->joinState != net::ClientBase::JoinState::Joined) {
         disconnected = false;
         auto box = std::make_unique<MessageWindow>("disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok);
         if (!disconnectReason.empty()) box->text = std::exchange(disconnectReason, std::string());
@@ -332,7 +332,7 @@ void Interface3D::ShowStatusText(std::string_view text) {
     statusSurface = std::make_unique<UiSurface>(0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
     statusSurface->PaintWith([text](UiSurface& out) {
         Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
-        out.DrawTextIn(text, rect, TextStyle{kStatusFont, kStatusColour, render::text::kCenter});    // Rebirth-patched
+        out.DrawTextIn(text, rect, TextStyle{kStatusFont, kStatusColour, render::text::Format::Center});    // Rebirth-patched
     });
     app::FrameStep(true);
     statusSurface.reset();
@@ -428,7 +428,7 @@ void Interface3D::PaintFps(UiSurface& surface) const {
     if (fpsText.empty()) return;
     Rect rect{0, 0, 60, 18};
     surface.DrawTextIn("FPS:", rect, TextStyle{kFpsFont, kWhite});
-    surface.DrawTextIn(fpsText, rect, TextStyle{kFpsFont, kWhite, render::text::kRight});
+    surface.DrawTextIn(fpsText, rect, TextStyle{kFpsFont, kWhite, render::text::Format::Right});
 }
 
 void Interface3D::DrawOverlays() {

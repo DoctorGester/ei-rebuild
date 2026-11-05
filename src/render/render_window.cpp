@@ -124,7 +124,7 @@ static void DrawRampCheck(gpu::Format format, int width, int height, const Rect&
     }
     if (g_rampCheck.width != width || g_rampCheck.height != height || g_rampCheck.format != format) {
         gpu::Release(g_rampCheck);
-        g_rampCheck = gpu::MakeTexture({width, height, 1, 1, format, gpu::kColourTarget, "ei-gamma-ramp-check"});
+        g_rampCheck = gpu::MakeTexture({width, height, 1, 1, format, gpu::TextureUse::ColourTarget, "ei-gamma-ramp-check"});
         if (!g_rampCheck) return;
     }
     gpu::PassDesc pass;
@@ -188,7 +188,7 @@ bool DrawToWindow() {
     if (!frame || !FrameTexture()) return false;
     if (!ClaimGameWindow()) Fatal("The renderer cannot present on the game window: %s.", gpu::Error());
     if (!g_rampImage) {
-        g_rampImage = gpu::MakeTexture({256, 1, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-gamma-ramp"});
+        g_rampImage = gpu::MakeTexture({256, 1, 1, 1, gpu::Format::Rgba8, gpu::TextureUse::Sampled, "ei-gamma-ramp"});
         if (!g_rampImage) Fatal("The renderer cannot present on the game window: no gamma ramp.");
         g_rampDirty = true;
     }

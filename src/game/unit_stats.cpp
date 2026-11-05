@@ -312,7 +312,7 @@ void UnitStats::Pack(UnitParams* params) {
 
 void UnitStats::Reset() {
     *this = {};
-    combat[kAttackSpread] = 1.0f;
+    combat[CombatIndex::AttackSpread] = 1.0f;
     naturalWeapon = WeaponType::NoWeapon;   // after Reset
     for (UnitStatSlot& slot : slots) slot.type = kResetSlotType;
 }

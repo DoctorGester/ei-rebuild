@@ -62,14 +62,14 @@ constexpr const char* kSpace = " ";
 constexpr float kTexel = 0.00390625f;
 constexpr std::uint32_t kTitleColour = 0x82F5FF;
 constexpr std::uint32_t kTextColour = 0xBBF9FF;
-constexpr TextStyle kPageTitleText{2, kTitleColour, render::text::kCenter};
-constexpr TextStyle kHeaderText{1, kTitleColour, render::text::kCenter};
-constexpr TextStyle kFooterText{0, kTitleColour, render::text::kCenter};
+constexpr TextStyle kPageTitleText{2, kTitleColour, render::text::Format::Center};
+constexpr TextStyle kHeaderText{1, kTitleColour, render::text::Format::Center};
+constexpr TextStyle kFooterText{0, kTitleColour, render::text::Format::Center};
 constexpr int kStripHeight = 55;                   // the title's and the buttons' strips
 constexpr int kRowHeight = 16;
 constexpr int kPictureSize = 64;
 constexpr int kMaxPictures = 16;                   // the picture texture's cells
-constexpr int kWrapFormat = render::text::kWordBreak | render::text::kExpandTabs;
+constexpr render::text::Format kWrapFormat = render::text::Format::WordBreak | render::text::Format::ExpandTabs;
 
 // The body's texts: their left edge without a picture and beside one, and the room the original left
 // on the right (the width the texts wrap to is the page's less both).

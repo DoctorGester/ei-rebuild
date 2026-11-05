@@ -8,6 +8,8 @@
 
 #include <cstdint>
 
+#include "lib/bit_flags.h"
+
 namespace render {
 
 // D3DBLEND.
@@ -62,15 +64,16 @@ enum class TextureOp : std::uint8_t {
 };
 
 // A texture operation's argument (D3DTA_): a source, optionally with a modifier or'd in.
-enum TextureArg : std::uint8_t {
-    kArgDiffuse = 0,
-    kArgCurrent = 1,   // the stage before's result (stage 0: the diffuse colour)
-    kArgTexture = 2,
-    kArgFactor = 3,
-    kArgSpecular = 4,
-    kArgComplement = 0x10,
-    kArgAlphaReplicate = 0x20,
+enum class TextureArg : std::uint8_t {
+    Diffuse = 0,
+    Current = 1,   // the stage before's result (stage 0: the diffuse colour)
+    Texture = 2,
+    Factor = 3,
+    Specular = 4,
+    Complement = 0x10,
+    AlphaReplicate = 0x20,
 };
+constexpr bool EnableBitFlags(TextureArg) { return true; }
 
 // D3DTFG / D3DTFN (the minification and magnification filters share these two values).
 enum class Filter : std::uint8_t { Point = 1, Linear };
@@ -82,9 +85,9 @@ enum class Address : std::uint8_t { Wrap = 1, Mirror, Clamp };
 // A texture stage's colour and alpha operations, each of its first and second argument.
 struct StageCombiner {
     TextureOp colourOp = {};
-    std::uint8_t colourArg1 = 0, colourArg2 = 0;  // TextureArg
+    TextureArg colourArg1 = TextureArg::Diffuse, colourArg2 = TextureArg::Diffuse;
     TextureOp alphaOp = {};
-    std::uint8_t alphaArg1 = 0, alphaArg2 = 0;
+    TextureArg alphaArg1 = TextureArg::Diffuse, alphaArg2 = TextureArg::Diffuse;
 };
 
 struct TextureStage {
@@ -107,11 +110,11 @@ struct RenderState {
     bool specular = false;           // the vertices' specular colour added
     bool fog = false;                // the vertices' fog factor (the specular colour's alpha) mixes in fogColour
     std::uint32_t fogColour = 0;     // D3DCOLOR
-    std::uint32_t textureFactor = 0xFFFFFFFF;   // kArgFactor's colour
+    std::uint32_t textureFactor = 0xFFFFFFFF;   // TextureArg::Factor's colour
     // The renderer draws with two stages; a stage whose colour operation is Disable turns off the ones after it.
     TextureStage stages[2] = {
-        {{TextureOp::Modulate, kArgTexture, kArgCurrent, TextureOp::SelectArg1, kArgTexture, kArgCurrent}},
-        {{TextureOp::Disable, kArgTexture, kArgCurrent, TextureOp::Disable, kArgTexture, kArgCurrent}},
+        {{TextureOp::Modulate, TextureArg::Texture, TextureArg::Current, TextureOp::SelectArg1, TextureArg::Texture, TextureArg::Current}},
+        {{TextureOp::Disable, TextureArg::Texture, TextureArg::Current, TextureOp::Disable, TextureArg::Texture, TextureArg::Current}},
     };
 };
 

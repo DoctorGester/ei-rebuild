@@ -117,7 +117,7 @@ static int BoxCorners(const Matrix4& m, const Vector3& c, const Vector3& lo, con
 
 // The answers are the corners' codes' (CubeCorners, BoxCorners); the planes' ranges decide most volumes first, and
 // the codes are computed only for a volume with a corner near a plane.
-int TransformPipeline::ClipTest(const ClipBounds* bounds) const {
+TransformPipeline::ClipResult TransformPipeline::ClipTest(const ClipBounds* bounds) const {
     const MatrixStack& stack = stacks[kClipStack];
     const Matrix4& m = stack.matrices[stack.count - 1];
     const PlaneRanges planes(m);
@@ -126,21 +126,21 @@ int TransformPipeline::ClipTest(const ClipBounds* bounds) const {
         const float r = bounds->radius;
         int result = planes.Classify(bounds->center, {-r, -r, -r}, {r, r, r});
         if (result == kNearPlane) result = CubeCorners(m, bounds->center, r);
-        if (result >= 0) return result;
+        if (result >= 0) return static_cast<ClipResult>(result);
     }
 
     if (bounds->flags & 2) {
         int result = planes.Classify(bounds->center, bounds->boxMin, bounds->boxMax);
         if (result == kNearPlane) result = BoxCorners(m, bounds->center, bounds->boxMin, bounds->boxMax);
-        if (result >= 0) return result;
+        if (result >= 0) return static_cast<ClipResult>(result);
     }
-    return 1;
+    return ClipResult::Crossing;
 }
 
-int TransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
+TransformPipeline::ClipResult TransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
                                       int blocks, const ClipBounds* bounds) const {
-    const int where = bounds ? ClipTest(bounds) : 1;
-    if (where == 1) return ProjectClipped(*Top(kClipStack), positions, projected, outcodes, blocks);
+    const ClipResult where = bounds ? ClipTest(bounds) : ClipResult::Crossing;
+    if (where == ClipResult::Crossing) return ProjectClipped(*Top(kClipStack), positions, projected, outcodes, blocks);
     return where;
 }
 

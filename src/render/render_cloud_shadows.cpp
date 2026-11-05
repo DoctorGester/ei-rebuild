@@ -118,7 +118,7 @@ void CloudShadows(const CloudWeather& weather) {
 
 float PrepareClouds(const ShadowFrame& shadow) {
     if (!g_cloudMap) {
-        g_cloudMap = gpu::MakeTexture({kCloudSize, kCloudSize, 1, 1, gpu::Format::R8, gpu::kSampled, "ei-cloud-map"});
+        g_cloudMap = gpu::MakeTexture({kCloudSize, kCloudSize, 1, 1, gpu::Format::R8, gpu::TextureUse::Sampled, "ei-cloud-map"});
         const std::vector<std::uint8_t> texels = CloudTexels();
         if (!g_cloudMap || !gpu::Write(g_cloudMap, 0, {0, 0, kCloudSize, kCloudSize}, texels.data(), kCloudSize))
             Fatal("Can't make the cloud shadows' map (%s).", gpu::Error());

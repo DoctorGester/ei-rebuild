@@ -11,18 +11,18 @@
 
 namespace render {
 
-enum PipelineKind { kBlit, kClearDepth, kFill };
+enum class PipelineKind : int { Blit, ClearDepth, Fill };
 
 // None of them tests the depth: a blit and the fill keep the depth buffer, the depth clear writes only it. Made for
 // the pass's sample count (render_smooth.cpp).
 static gpu::PipelineDesc PassDesc(PipelineKind kind, int samples) {
     gpu::PipelineDesc p;
-    p.program = kind == kBlit ? gpu_shaders::blit::kIndex : gpu_shaders::solid::kIndex;
+    p.program = kind == PipelineKind::Blit ? gpu_shaders::blit::kIndex : gpu_shaders::solid::kIndex;
     p.depth = kDepthFormat;
     p.depthCompare = gpu::Compare::Always;
-    p.depthWrite = kind == kClearDepth;
+    p.depthWrite = kind == PipelineKind::ClearDepth;
     p.colour = kColourFormat;
-    p.colourMask = kind == kClearDepth ? 0 : gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
+    p.colourMask = kind == PipelineKind::ClearDepth ? gpu::ColourMask::None : gpu::ColourMask::Red | gpu::ColourMask::Green | gpu::ColourMask::Blue;
     p.samples = samples;
     AddDepthCopy(p);
     return p;
@@ -30,7 +30,7 @@ static gpu::PipelineDesc PassDesc(PipelineKind kind, int samples) {
 
 static gpu::Pipeline PassPipeline(PipelineKind kind) {
     return gpu::MakePipeline(PassDesc(kind, PassSampleCount()),
-                             kind == kBlit ? "ei-image-blit" : kind == kClearDepth ? "ei-clear-depth" : "ei-fill");
+                             kind == PipelineKind::Blit ? "ei-image-blit" : kind == PipelineKind::ClearDepth ? "ei-clear-depth" : "ei-fill");
 }
 
 // `r` with the depth clear's or the fill's pipeline; `colour` a D3DCOLOR, its alpha ignored.
@@ -51,11 +51,11 @@ static void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t c
 // A movie's RGBA8 image, written in place instead of made again. A recorded blit draws the image's contents at the end
 // of the frame (DrawPending), so an image is rewritten only when no blit of it is recorded in this frame.
 static gpu::Texture MakeMovieImage(int w, int h) {
-    return gpu::MakeTexture({w, h, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-movie-frame"});
+    return gpu::MakeTexture({w, h, 1, 1, gpu::Format::Rgba8, gpu::TextureUse::Sampled, "ei-movie-frame"});
 }
 
 static void UpdateMovieImage(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
-    CountUpload(FrameStats::Movie, static_cast<std::size_t>(w) * h * 4);
+    CountUpload(FrameStats::Upload::Movie, static_cast<std::size_t>(w) * h * 4);
     gpu::Write(image, 0, {0, 0, w, h}, rgba, static_cast<std::size_t>(w) * 4, gpu::Contents::Discard);
 #if defined(EI_RENDER_VALIDATION)
     CheckMovieUpload(image, rgba, w, h);
@@ -71,11 +71,11 @@ static std::unordered_map<const void*, Movie> g_movies;
 static std::vector<std::uint8_t> g_movieScratch;
 
 void ListBlitPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
-    for (PipelineKind kind : {kBlit, kClearDepth, kFill}) out.push_back(PassDesc(kind, samples));
+    for (PipelineKind kind : {PipelineKind::Blit, PipelineKind::ClearDepth, PipelineKind::Fill}) out.push_back(PassDesc(kind, samples));
 }
 
 bool CreateBlitPipeline() {
-    bool ok = PassPipeline(kBlit) && PassPipeline(kClearDepth) && PassPipeline(kFill);
+    bool ok = PassPipeline(PipelineKind::Blit) && PassPipeline(PipelineKind::ClearDepth) && PassPipeline(PipelineKind::Fill);
     if (!ok) ei::Log("render: the image blit, depth clear or fill pipeline could not be created (see the gpu messages above)");
     return ok;
 }
@@ -85,7 +85,7 @@ void DrawBlitBatch(const BlitBatch& b, int width, int height) {
     int dw = b.destination.Width(), dh = b.destination.Height();
     int sw = b.source.Width(), sh = b.source.Height();
     if (dw <= 0 || dh <= 0 || sw <= 0 || sh <= 0) return;
-    gpu::Pipeline pipeline = PassPipeline(kBlit);
+    gpu::Pipeline pipeline = PassPipeline(PipelineKind::Blit);
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
@@ -104,10 +104,10 @@ void DrawBlitBatch(const BlitBatch& b, int width, int height) {
 
 void DrawClearDepth(const ClearBatch& clear, int width, int height) {
     Rect r = clear.rect.right > clear.rect.left ? clear.rect : Rect{0, 0, width, height};
-    DrawSolid(kClearDepth, r, clear.z, 0, width, height);
+    DrawSolid(PipelineKind::ClearDepth, r, clear.z, 0, width, height);
 }
 
-void DrawFill(const FillBatch& fill, int width, int height) { DrawSolid(kFill, fill.rect, 0.0f, fill.colour, width, height); }
+void DrawFill(const FillBatch& fill, int width, int height) { DrawSolid(PipelineKind::Fill, fill.rect, 0.0f, fill.colour, width, height); }
 
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
     if (!key || !rgbx || width <= 0 || height <= 0) return;
@@ -132,16 +132,16 @@ void MovieBlit(const void* key, const Rect& to) {
     if (it == g_movies.end() || !it->second.image) return;
     Movie& m = it->second;
     m.blitFrame = FrameNumber();
-    ++g_stats.counts[FrameStats::Blits];
+    ++g_stats.counts[FrameStats::Count::Blits];
     Frame& f = g_frame;
     f.blitBatches.push_back(BlitBatch{m.image, m.width, m.height, to, Rect{0, 0, m.width, m.height}});
-    f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
+    f.commands.push_back(Command{Command::Kind::Blit, static_cast<int>(f.blitBatches.size()) - 1});
 }
 
 void Fill(const Rect& to, std::uint32_t colour) {
     if (to.right <= to.left || to.bottom <= to.top) return;
     g_frame.fills.push_back(FillBatch{to, colour});
-    g_frame.commands.push_back(Command{Command::Fill, static_cast<int>(g_frame.fills.size()) - 1});
+    g_frame.commands.push_back(Command{Command::Kind::Fill, static_cast<int>(g_frame.fills.size()) - 1});
 }
 
 } // namespace render

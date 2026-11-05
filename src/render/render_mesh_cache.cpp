@@ -275,8 +275,8 @@ static void Check(const ShadowMesh& m, CachedMesh& e) {
 
 CachedMesh* KeepMesh(const MeshDraw& m) {
     if (g_haveSource && g_source.moved) {
-        ++g_stats.counts[FrameStats::MorphMeshes];
-        g_stats.counts[FrameStats::MorphCorners] += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
+        ++g_stats.counts[FrameStats::Count::MorphMeshes];
+        g_stats.counts[FrameStats::Count::MorphCorners] += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
     }
     if (!g_haveSource || !g_source.owner || !m.corners || g_interface) return nullptr;
     if (!g_cacheOn) return nullptr;
@@ -296,20 +296,20 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
     if (e.drawn && e.lastUsed == FrameNumber() && (build || move || relight || check)) return nullptr;
     e.relightNext = false;
 
-    FrameStats::Reuse reuse = FrameStats::Same;
+    FrameStats::Reuse reuse = FrameStats::Reuse::Same;
     if (build || move) e.boxKept = false;
     if (build) {
         e.valid = Build(m, e);
         e.version = ++g_lastVersion;
         if (!e.valid) return nullptr;
         e.WriteAll();
-        reuse = FrameStats::New;
+        reuse = FrameStats::Reuse::New;
     } else {
         if (move && ReadPositions(m.cornerCount, e, [&](int i) { return CornerVertex(m, i); })) {
-            reuse = FrameStats::Moved;
+            reuse = FrameStats::Reuse::Moved;
             e.version = ++g_lastVersion;
         }
-        if (relight && ReadColours(m, e) && reuse == FrameStats::Same) reuse = FrameStats::Relit;
+        if (relight && ReadColours(m, e) && reuse == FrameStats::Reuse::Same) reuse = FrameStats::Reuse::Relit;
 #if defined(EI_RENDER_VALIDATION)
         if (check) {
             Check(m, e);
@@ -412,7 +412,7 @@ void UploadCachedMeshes(const Frame& f) {
         for (auto& entry : g_casterMeshes)
             if (entry.second.lastUsed == FrameNumber() && entry.second.valid) add(entry.second);
     };
-    UploadKept(g_pool, g_pending, frameMeshes, FrameStats::MeshVertexBytes, FrameStats::MeshIndexBytes);
+    UploadKept(g_pool, g_pending, frameMeshes, FrameStats::Count::MeshVertexBytes, FrameStats::Count::MeshIndexBytes);
 }
 
 bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex) {

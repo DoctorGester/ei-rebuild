@@ -84,7 +84,7 @@ static_assert(sizeof(Vertex) == 40);
 
 // One texture stage of a pass (render_state.h's values). A stage the pass leaves off keeps these.
 struct StageState {
-    StageCombiner combiner = {TextureOp::Disable, kArgTexture, kArgCurrent, TextureOp::Disable, kArgTexture, kArgCurrent};
+    StageCombiner combiner = {TextureOp::Disable, TextureArg::Texture, TextureArg::Current, TextureOp::Disable, TextureArg::Texture, TextureArg::Current};
     Filter magFilter = Filter::Linear, minFilter = Filter::Linear;
     MipFilter mipFilter = MipFilter::None;
     Address addressU = Address::Wrap, addressV = Address::Wrap;
@@ -252,7 +252,7 @@ struct PictureBatch {
 };
 
 struct Command {
-    enum Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Fill, Ui, Picture };
+    enum class Kind : std::uint8_t { Terrain, Mesh, Blit, ClearDepth, Fill, Ui, Picture };
     Kind kind = {};
     int index = 0;            // into terrainBatches / meshBatches / blitBatches / clears / fills / uiBatches / pictureBatches
 };

@@ -1026,7 +1026,7 @@ void HudUnitPanel::PaintParts(UiSurface& surface, Unit* unit) {
             }
         }
         surface.DrawTextIn(name, Rect{kLabelX[i], kLabelY[i], kLabelX[i] + 60, kLabelY[i] + 15},
-                           TextStyle{0, part.kind == 1 ? kRed : kUiTextColour, render::text::kCenter});
+                           TextStyle{0, part.kind == 1 ? kRed : kUiTextColour, render::text::Format::Center});
     }
 }
 
@@ -1365,7 +1365,7 @@ void HudUnitPanel::PaintTexts(UiSurface& surface) {
     Unit* unit = PanelUnit();
     if (!unit) return;
     Rect nameRect = {5, 5, 155, 20};
-    surface.DrawWrappedText(strings[hoverUnit ? 1 : 0], nameRect, 2, TextStyle{0, kUiTextColour, render::text::kCenter | render::text::kWordBreak});
+    surface.DrawWrappedText(strings[hoverUnit ? 1 : 0], nameRect, 2, TextStyle{0, kUiTextColour, render::text::Format::Center | render::text::Format::WordBreak});
     switch (bodyPart) {
     case 0:
         PaintHealth(surface, unit);

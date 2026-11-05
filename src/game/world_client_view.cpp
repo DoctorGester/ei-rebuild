@@ -176,11 +176,11 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
         matrix[12] = 0.0f;
         matrix[15] = 1.0f;
         PushStackMatrix(device, TransformPipeline::kClipStack, matrix);
-        int where = g_sceneRenderer.pipeline->ClipTest(&o3d->bounds);
+        const TransformPipeline::ClipResult where = g_sceneRenderer.pipeline->ClipTest(&o3d->bounds);
         device->PopMatrix(TransformPipeline::kClipStack);
 
         MapObject* const& entry = object;
-        if (where != 2) {
+        if (where != TransformPipeline::ClipResult::Outside) {
             object->flags |= MapObjectFlag::Shown;
             // View-space position.
             o3d->worldPosition = TransformColumnNormal(*view, o3d->localPosition);

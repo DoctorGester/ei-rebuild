@@ -152,7 +152,7 @@ static bool UploadText() {
     if (g_image.width != g_text.width || g_image.height != g_text.height) {
         gpu::Release(g_image);
         g_image =
-            gpu::MakeTexture({g_text.width, g_text.height, 1, 1, gpu::Format::R8, gpu::kSampled, "ei-perf-overlay"});
+            gpu::MakeTexture({g_text.width, g_text.height, 1, 1, gpu::Format::R8, gpu::TextureUse::Sampled, "ei-perf-overlay"});
         if (!g_image) return false;
         g_textChanged = true;
     }

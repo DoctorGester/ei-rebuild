@@ -40,7 +40,7 @@
 #include <new>
 
 namespace net {
-int MasterLinkTick(net::MasterLink*);
+net::MasterLink::State MasterLinkTick(net::MasterLink*);
 }
 namespace {
 
@@ -77,7 +77,7 @@ constexpr int kTextPassword = 18, kTextAddress = 19, kTextMaster = 20;
 constexpr std::uint32_t kLeaveScreen = 0x1000001;
 constexpr int kNoPing = 9999;
 constexpr int kNewGameType = 4;
-constexpr int kStateAsked = 1;   // net::ServerEntryBase::kAsked
+constexpr int kStateAsked = 1;   // net::ServerEntryBase::State::Asked
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
@@ -114,7 +114,7 @@ constexpr int kScrollbarObject = 1;   // objects: 0 "saveload", 1 "scrollbar"
 
 void MpConnectScreen::Update() {
     net::ClientSession* client = net::g_gameClient;
-    bool asking = client->joinState == net::ClientBase::kAsking;
+    bool asking = client->joinState == net::ClientBase::JoinState::Asking;
     if (asking) {
         surfaces[kSurfaceConnecting]->Show();
     } else {
@@ -596,7 +596,7 @@ MasterRequestBox::MasterRequestBox(std::string_view titleKey, const char* textKe
 void MasterRequestBox::Update() {
     float right = net::g_gameClient->BufferRatio(&link.in) * kBarWidth + kBarLeft;
     bar->SetRectangle(2.5f, kSpriteScale, 220.0f, 280.0f, right, 300.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-    if (net::MasterLinkTick(&link) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link.in);
-    if (net::MasterLinkTick(&link) == net::MasterLink::kDone || net::MasterLinkTick(&link) == net::MasterLink::kClosed)
+    if (net::MasterLinkTick(&link) == net::MasterLink::State::Done) net::g_gameClient->ReadServerList(&link.in);
+    if (net::MasterLinkTick(&link) == net::MasterLink::State::Done || net::MasterLinkTick(&link) == net::MasterLink::State::Closed)
         g_interface.SetPendingValue(BoxResult(MpConnectScreen::kBoxMaster, MessageAnswer::Cancel));
 }

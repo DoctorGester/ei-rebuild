@@ -33,7 +33,7 @@ constexpr int kActionQuickLoad = '6';
 
 // The tip of the zone under the mouse: the text's font, colour and DrawText format.
 constexpr int kTipFont = 2;
-constexpr std::uint32_t kTipFormat = render::text::kVCenter;
+constexpr render::text::Format kTipFormat = render::text::Format::VCenter;
 constexpr int kTipLine = 20;
 constexpr const char* kZoneSound = "buttons\\globalmap\\zone.wav";
 
@@ -145,9 +145,9 @@ void GlobalMap::PaintTip(UiSurface& surface) const {
 
 void GlobalMap::PaintTitle(UiSurface& surface) const {
     Rect line1 = {0, 5, 150, 25};
-    surface.DrawTextIn(allodTitle, line1, TextStyle{2, kUiTextColour, render::text::kCenter | render::text::kVCenter | render::text::kSingleLine});
+    surface.DrawTextIn(allodTitle, line1, TextStyle{2, kUiTextColour, render::text::Format::Center | render::text::Format::VCenter | render::text::Format::SingleLine});
     Rect line2 = {0, 25, 150, 45};
-    surface.DrawTextIn(clock, line2, TextStyle{2, kUiTextColour, render::text::kCenter | render::text::kVCenter | render::text::kSingleLine});
+    surface.DrawTextIn(clock, line2, TextStyle{2, kUiTextColour, render::text::Format::Center | render::text::Format::VCenter | render::text::Format::SingleLine});
 }
 
 void GlobalMap::KeyDown(UiEvent& event) {

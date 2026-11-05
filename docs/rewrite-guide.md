@@ -92,9 +92,15 @@ writer and the reviewer.
   `constexpr` in the owning header. A constant is named by what it is for (`kStandingHeight`, `kRateBase`), never by
   its value (`kOne`, `kHalf`, `kTwo`, `kZero`). Checked: `check_cleanup.py` counts "#define EI_ number" and
   "value-named constant" (ratchet; the dashboard charts both).
-- **A code has its enum.** The codes of a kind (message ids, states, modes, results) are one `enum` or `enum class` in
-  the header of the type that owns them; a function that takes or returns a kind says the enum, not `int`. No
-  second list of the same codes in another file.
+- **A code has its enum, and it is an `enum class`.** The codes of a kind (message ids, states, modes, results) are one
+  `enum class` in the header of the type that owns them, with a fixed underlying type where the value is saved or sent;
+  a function that takes or returns a kind says the enum, not `int`. No second list of the same codes in another file.
+  Enumerators carry no `k` or kind prefix (`LogCategory::Ai`, not `kLogAi`). A flag set is an `enum class` that opts in
+  to `src/lib/bit_flags.h` (`|`, `&`, `~`, `lib::Has`), not a plain enum and not int constants. An enum that indexes a
+  table is indexed through `lib::EnumArray<T, E, N>` (`src/lib/enum_array.h`), so no cast stands at each use; cast
+  (`static_cast`) only where a value is saved, sent or read from data. The one plain `enum` left is an array-index enum
+  local to a .cpp whose last enumerator is a count (`...Count`, `...Kinds`, `...Values`). Checked: `check_cleanup.py`
+  counts "plain enum (not enum class)" (ratchet at 0).
 - **One comment per declaration**, a full sentence that says what it is for and what a caller must know. No hex ids
   in comments: not addon.dll's or EI_Plugin's addresses ("addon's 10025C9D"), not a patch's code location. Say what the
   code does. A format's own ids (a chunk id, a field id) stay where the format is described. Checked:

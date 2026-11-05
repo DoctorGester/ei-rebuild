@@ -143,8 +143,8 @@ void ScriptCall::Load(ByteStream* stream, const Script* script) {
     floatArgs.erase(floatArgs.begin(), floatArgs.begin() + leadFloats);
     stringArgs.erase(stringArgs.begin(), stringArgs.begin() + leadTexts);
     auto argIndexPastLead = [&](ScriptType type, int* argIndex) {
-        if (type == kScriptFloat) *argIndex -= leadFloats;
-        else if (type == kScriptString) *argIndex -= leadTexts;
+        if (type == ScriptType::Float) *argIndex -= leadFloats;
+        else if (type == ScriptType::String) *argIndex -= leadTexts;
     };
     for (ScriptBinding& binding : localBindings) argIndexPastLead(binding.type, &binding.argIndex);
     for (ScriptBinding& binding : globalBindings) argIndexPastLead(binding.type, &binding.argIndex);

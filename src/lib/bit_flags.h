@@ -1,7 +1,9 @@
 #pragma once
 
 // Bit operators for the enum classes that name the bits of a flag word. An enum opts in with
-//     template <> inline constexpr bool lib::kBitFlags<MapObjectFlag> = true;
+//     template <> inline constexpr bool lib::kBitFlags<MapObjectFlag> = true;   (at global scope)
+// or, where the enum lies in a namespace, with a function beside it that ADL finds:
+//     constexpr bool EnableBitFlags(ColourMask) { return true; }
 // after which `|`, `&`, `^`, `~` and the assignment forms work on the enum, and a plain std::uint32_t word (a
 // saved or sent field, which keeps its number) can be tested and changed with the enum's bits:
 //     flags |= MapObjectFlag::Hidden;   flags &= ~MapObjectFlag::Hidden;   if (lib::Has(flags, MapObjectFlag::Hidden))
@@ -13,7 +15,7 @@ namespace lib {
 
 template <class E> inline constexpr bool kBitFlags = false;
 
-template <class E> concept BitFlags = std::is_enum_v<E> && kBitFlags<E>;
+template <class E> concept BitFlags = std::is_enum_v<E> && (kBitFlags<E> || requires(E e) { EnableBitFlags(e); });
 
 template <BitFlags E> constexpr std::uint32_t Bits(E bit) { return static_cast<std::uint32_t>(bit); }
 

@@ -596,7 +596,7 @@ static gpu::Texture LevelView(const gpu::Texture& page) {
         if (made.width == width && made.height == height && made.levels == levels) return made;
     if (width <= 0 || height <= 0 || levels <= 0) return gpu::Texture{};
     gpu::Texture image =
-        gpu::MakeTexture({width, height, levels, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-terrain-levels"});
+        gpu::MakeTexture({width, height, levels, 1, gpu::Format::Rgba8, gpu::TextureUse::Sampled, "ei-terrain-levels"});
     if (!image) return image;
     std::vector<std::uint8_t> level;
     for (int k = 0; k < levels; ++k) {
@@ -673,11 +673,11 @@ void UploadTerrain(const Frame& f) {
         for (const TerrainBatch& batch : f.terrainBatches)
             if (!batch.water) LevelView(TextureView(batch.texture));
     if (g_pending.empty()) return;
-    Timer timer(FrameStats::TerrainMs);
+    Timer timer(FrameStats::Time::TerrainMs);
     auto framePages = [&](auto add) {
         for (const TerrainPiece& piece : f.terrainPieces) add(*piece.page);
     };
-    UploadKept(g_pool, g_pending, framePages, FrameStats::TerrainVertexBytes, FrameStats::TerrainIndexBytes);
+    UploadKept(g_pool, g_pending, framePages, FrameStats::Count::TerrainVertexBytes, FrameStats::Count::TerrainIndexBytes);
 }
 
 void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
@@ -847,8 +847,8 @@ TerrainCacheInfo TerrainCacheState() {
 
 void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int page) {
     if (!sector || !renderer) return;
-    Timer timer(FrameStats::TerrainMs);
-    ++g_stats.counts[FrameStats::TerrainPages];
+    Timer timer(FrameStats::Time::TerrainMs);
+    ++g_stats.counts[FrameStats::Count::TerrainPages];
     Frame& f = g_frame;
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack, which the old path transforms the sector's
@@ -865,7 +865,7 @@ void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int pa
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {
         const auto& lists = sector->tiles[q];
-        inView = sector->quarterMode[q] != TransformPipeline::kClipOutside && page < std::ssize(lists) &&
+        inView = sector->quarterMode[q] != TransformPipeline::ClipResult::Outside && page < std::ssize(lists) &&
                  !lists[page].empty() && std::ssize(lists[page]) >= 9;
     }
     if (!inView) return;
@@ -915,7 +915,7 @@ void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int pa
     std::size_t firstPiece = f.terrainPieces.size();
     for (int q = 0; q < 4; ++q) {
         const QuarterRange& range = cached.quarters[q];
-        if (sector->quarterMode[q] == TransformPipeline::kClipOutside || range.indexCount == 0) continue;
+        if (sector->quarterMode[q] == TransformPipeline::ClipResult::Outside || range.indexCount == 0) continue;
         if (!upload && ReadColours(sector, cached, range.firstVertex, range.firstVertex + range.vertexCount))
             relit = true;
         f.terrainPieces.push_back(TerrainPiece{&cached, q});
@@ -924,11 +924,11 @@ void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int pa
     if (cached.HasWrites()) AddPending(g_pending, cached);
     auto count = static_cast<int>(f.terrainPieces.size() - firstPiece);
     if (count <= 0) return;
-    ++g_stats.terrainReuse[made ? FrameStats::New : moved ? FrameStats::Moved : relit ? FrameStats::Relit : FrameStats::Same];
+    ++g_stats.terrainReuse[made ? FrameStats::Reuse::New : moved ? FrameStats::Reuse::Moved : relit ? FrameStats::Reuse::Relit : FrameStats::Reuse::Same];
     // The old device's state the page is drawn with; DrawPage changes none of what the pipeline
     // takes before its draws (it turns SPECULARENABLE on around each, which the shader always adds).
     const PassState state = ReadPassState(nullptr);
-    if (!f.commands.empty() && f.commands.back().kind == Command::Terrain) {
+    if (!f.commands.empty() && f.commands.back().kind == Command::Kind::Terrain) {
         TerrainBatch& last = f.terrainBatches[static_cast<std::size_t>(f.commands.back().index)];
         if (last.texture == texture && last.water == water && last.matrix == matrix &&
             last.state.PipelineKey() == state.PipelineKey() &&
@@ -937,9 +937,9 @@ void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int pa
             return;
         }
     }
-    ++g_stats.counts[FrameStats::TerrainBatches];
+    ++g_stats.counts[FrameStats::Count::TerrainBatches];
     f.terrainBatches.push_back(TerrainBatch{texture, water, matrix, static_cast<int>(firstPiece), count, state});
-    f.commands.push_back(Command{Command::Terrain, static_cast<int>(f.terrainBatches.size()) - 1});
+    f.commands.push_back(Command{Command::Kind::Terrain, static_cast<int>(f.terrainBatches.size()) - 1});
 }
 
 // --- The ground's casters into the shadow map ------------------------------------------------------
@@ -948,7 +948,7 @@ void ShadowTerrainSector(const SectorData* sector) {
     if (!sector || !lib::Has(sector->built, terrain::SectorStage::Loaded) || sector->vertices.empty() ||
         std::ssize(sector->vertices) < kWaterRecords)
         return;
-    Timer timer(FrameStats::ShadowMs);
+    Timer timer(FrameStats::Time::ShadowMs);
     std::uint32_t rebuilt = 0;
     if (auto it = g_changes.find(sector); it != g_changes.end()) rebuilt = it->second.rebuilt;
     SectorCaster& caster = g_sectorCasters[sector];
@@ -994,7 +994,7 @@ void UploadTerrainCasters() {
         if (!c->dirty || !g_casterPool.Placed(c->place)) continue;
         g_casterPool.WriteGeometry(c->place, 0, vertices, c->vertices.data());
         g_casterPool.WriteIndices(c->place, g_gridIndices.data(), g_gridIndices.size());
-        g_stats.counts[FrameStats::TerrainVertexBytes] += c->vertices.size() * sizeof(TerrainCasterVertex);
+        g_stats.counts[FrameStats::Count::TerrainVertexBytes] += c->vertices.size() * sizeof(TerrainCasterVertex);
         c->dirty = false;
     }
 }

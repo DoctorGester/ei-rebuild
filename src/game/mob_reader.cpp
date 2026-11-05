@@ -39,7 +39,6 @@ constexpr std::uint32_t kChunkPlayers = 0xDDDDDDD1;
 constexpr std::uint32_t kChunkFlagOn = 0xC000;
 constexpr std::uint32_t kChunkFlagOff = 0xD000;
 
-constexpr int kRelationHostile = 2;
 constexpr int kBehaviourCount = 5;
 
 // A new record for the given chunk id, or null for other ids (or without memory).
@@ -140,7 +139,7 @@ bool MobFile::Load(int keepIds) {
     if (ReadChunks(&records, diplomacy, &scripts)) {
         Diplomacy* table = &g_serverWorld.diplomacy;
         for (int i = 0; i < 32; ++i)
-            for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j]);
+            for (int j = 0; j < 32; ++j) table->SetRelation(i, j, static_cast<DiplomacyRelation>(diplomacy->relations[i][j]));
     }
 
     // Every record becomes a world object, then is deleted (the map keeps the dangling pointer).
@@ -153,8 +152,8 @@ bool MobFile::Load(int keepIds) {
             record->trap.sides = 0;
             record->trap.position = spec->position;
             const std::int32_t* row = diplomacy->relations[record->side];
-            for (int c = 0; c < 32; ++c)
-                record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
+            const auto hostile = static_cast<std::int32_t>(DiplomacyRelation::Hostile);
+            for (int c = 0; c < 32; ++c) record->trap.sides |= static_cast<std::uint32_t>(row[c] == hostile) << c;
         }
         g_serverWorld.CreateObject(spec);
         if (spec->kind == SpecKind::Unit) {

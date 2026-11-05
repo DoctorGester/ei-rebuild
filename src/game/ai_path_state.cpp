@@ -13,19 +13,19 @@ constexpr float kOrderAngleLimit = /*007C4378*/ 6.2831855f;
 constexpr std::uint16_t kMaxStepFlags = 0x3FF;
 // A step's coordinate code (two bits each in the header): one less than the previous step's, the
 // same, one more, or written out.
-enum StepCode : std::uint16_t { kStepMinus = 0, kStepSame = 1, kStepPlus = 2, kStepWritten = 3 };
+enum class StepCode : std::uint16_t { Minus = 0, Same = 1, Plus = 2, Written = 3 };
 
-std::uint16_t StepCodeFor(std::int16_t value, std::int16_t previous) {
+StepCode StepCodeFor(std::int16_t value, std::int16_t previous) {
     int difference = value - previous;
-    if (difference == -1) return kStepMinus;
-    if (difference == 0) return kStepSame;
-    if (difference == 1) return kStepPlus;
-    return kStepWritten;
+    if (difference == -1) return StepCode::Minus;
+    if (difference == 0) return StepCode::Same;
+    if (difference == 1) return StepCode::Plus;
+    return StepCode::Written;
 }
 
-std::int16_t StepFromCode(std::uint16_t code, std::int16_t previous) {
-    if (code == kStepMinus) return static_cast<std::int16_t>(previous - 1);
-    if (code == kStepSame) return previous;
+std::int16_t StepFromCode(StepCode code, std::int16_t previous) {
+    if (code == StepCode::Minus) return static_cast<std::int16_t>(previous - 1);
+    if (code == StepCode::Same) return previous;
     return static_cast<std::int16_t>(previous + 1);
 }
 } // namespace
@@ -51,14 +51,15 @@ void PathOrder::WriteState(DeltaWriter& field) {
     for (auto& node : steps) {
         PathCell& cell = node;
         std::uint16_t flags = cell.flags > kMaxStepFlags ? kMaxStepFlags : cell.flags;
-        std::uint16_t xCode = StepCodeFor(cell.x, previousX);
-        std::uint16_t yCode = StepCodeFor(cell.y, previousY);
-        std::uint16_t header = static_cast<std::uint16_t>(flags << 6 | (cell.terrainBits & 3) << 4 | yCode << 2 | xCode);
+        const StepCode xCode = StepCodeFor(cell.x, previousX);
+        const StepCode yCode = StepCodeFor(cell.y, previousY);
+        std::uint16_t header = static_cast<std::uint16_t>(flags << 6 | (cell.terrainBits & 3) << 4 |
+                                                          static_cast<unsigned>(yCode) << 2 | static_cast<unsigned>(xCode));
         previousX = cell.x;
         previousY = cell.y;
         field.WriteBoth(&header, 2);
-        if (xCode == kStepWritten) field.WriteBoth(&cell.x, 2);
-        if (yCode == kStepWritten) field.WriteBoth(&cell.y, 2);
+        if (xCode == StepCode::Written) field.WriteBoth(&cell.x, 2);
+        if (yCode == StepCode::Written) field.WriteBoth(&cell.y, 2);
     }
 }
 
@@ -86,11 +87,11 @@ void PathOrder::ReadState(DeltaReader& field) {
         field.ReadRaw(&header, 2);
         cell.terrainBits = static_cast<std::uint16_t>((header >> 4) & 3);
         cell.flags = static_cast<std::uint16_t>(header >> 6);
-        const std::uint16_t xCode = header & 3;
-        if (xCode == kStepWritten) field.ReadRaw(&cell.x, 2);
+        const auto xCode = static_cast<StepCode>(header & 3);
+        if (xCode == StepCode::Written) field.ReadRaw(&cell.x, 2);
         else cell.x = StepFromCode(xCode, previousX);
-        const std::uint16_t yCode = (header >> 2) & 3;
-        if (yCode == kStepWritten) field.ReadRaw(&cell.y, 2);
+        const auto yCode = static_cast<StepCode>((header >> 2) & 3);
+        if (yCode == StepCode::Written) field.ReadRaw(&cell.y, 2);
         else cell.y = StepFromCode(yCode, previousY);
         previousX = cell.x;
         previousY = cell.y;

@@ -42,8 +42,8 @@ console::Stream& LogPair(Unit* self, const char* text, EngineObject* other) {
 
 // How far `seer` sees `seen`: the product of their move factors and sight ratings.
 float SightRange(UnitServer* seer, UnitServer* seen) {
-    return seen->moveFactors[kFactorVisibility] * seer->moveFactors[kFactorSight] * seen->stats.conspicuity[kSenseSight].current *
-           seer->stats.perception[kSenseSight].current;
+    return seen->moveFactors[MoveFactor::Visibility] * seer->moveFactors[MoveFactor::Sight] * seen->stats.conspicuity[Sense::Sight].current *
+           seer->stats.perception[Sense::Sight].current;
 }
 
 } // namespace
@@ -66,8 +66,8 @@ void AIViewer::Refresh(Unit* self, AIMemory* memory) {
     memory->nearbyCountdown = (libcrt::Rand() & 3) + 8;
     const Point block = eyeCell / 32;
     UnitServer* control = self->ServerController();
-    float hearing = control->stats.perception[kSenseNear].current;
-    float sight = control->moveFactors[kFactorSight] * control->stats.perception[kSenseSight].current;
+    float hearing = control->stats.perception[Sense::Near].current;
+    float sight = control->moveFactors[MoveFactor::Sight] * control->stats.perception[Sense::Sight].current;
     float reach = MaxKeepB(sight, hearing);
     int count = 0;
     const std::int16_t* offsets = memory->sightCells.Get(reach * kSightCellsFactor * kSectorScale, &count);
@@ -121,7 +121,7 @@ void AIViewer::See(Unit* self, AIMemory* memory) {
                 seen = true;
             } else {
                 if (dead) continue;
-                if (theirs->stats.conspicuity[kSenseNear].current * ours->stats.perception[kSenseNear].current <= distance) continue;
+                if (theirs->stats.conspicuity[Sense::Near].current * ours->stats.perception[Sense::Near].current <= distance) continue;
                 console::EndLine(kAiLog << "using sense life");
                 alive = true;
             }
@@ -158,7 +158,7 @@ bool StillSees(UnitServer* owner, AIMemory* memory, Unit* other, float reachFact
     if (theirs->moveMode2.onGuard && theirBrain->target == self) return true;
     float sight = SightRange(owner, theirs) * reachFactor;
     if (sight > distance) return true;
-    float sense = theirs->stats.conspicuity[kSenseNear].current * owner->stats.perception[kSenseNear].current * reachFactor;
+    float sense = theirs->stats.conspicuity[Sense::Near].current * owner->stats.perception[Sense::Near].current * reachFactor;
     if (sense > distance) return true;
     return theirBrain->AggressionEnemy() == self;
 }
@@ -206,7 +206,7 @@ void MarkSightCells(Unit* seer, Unit* observer, FogGrid* grid) {
     float height = observer->ModeSpeed();
     AIMap& map = g_serverWorld.aiMap;
     map.MarkVisibleCells(eye, radius, look, cone, height, grid);
-    float hearing = mine->stats.perception[kSenseNear].current * theirs->stats.conspicuity[kSenseNear].current;
+    float hearing = mine->stats.perception[Sense::Near].current * theirs->stats.conspicuity[Sense::Near].current;
     if (hearing != 0.0f) map.MarkVisibleCells(eye, hearing, look, kNoCone, kNoLineOfSight, grid);
     float peripheral = mine->stats.peripheralRange;
     if (peripheral != 0.0f) map.MarkVisibleCells(eye, peripheral, look, 0.0f, kNoLineOfSight, grid);
@@ -247,11 +247,11 @@ void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector
         AIBrain* brain = &control->brain;
         // A unit that noticed something at least as loud as a call hears nothing.
         if (brain->memory.noticedLevel >= kNoticeCallLevel) continue;
-        const float hearing = control->moveFactors[kFactorHearing] * control->stats.perception[kSenseHearing].current;
+        const float hearing = control->moveFactors[MoveFactor::Hearing] * control->stats.perception[Sense::Hearing].current;
         const float distance = Distance(at, other->localPosition);
         if (hearing * loudness <= distance) continue;
         std::string text;
-        if (console::g_filterMask & console::kLogAi) {
+        if (lib::Has(console::g_filterMask, console::LogCategory::Ai)) {
             const float between = Distance(other->localPosition, unit->localPosition);
             text = str::Format(kHeardFormat, other->id, unit->id, between);
         }
@@ -261,7 +261,7 @@ void AIViewer::Noise(UnitServer* source, float loudness, int delay, const Vector
 
 void AIViewer::StepNoise(const Vector3& position, UnitServer* source) {
     const AITerrainType* ground = g_serverWorld.aiMap.MaterialRecordAt(position);
-    float loudness = source->moveFactors[kFactorNoise] * source->stats.conspicuity[kSenseHearing].current;
+    float loudness = source->moveFactors[MoveFactor::Noise] * source->stats.conspicuity[Sense::Hearing].current;
     loudness *= ground->noise;
     Noise(source, loudness, AIBrain::kCallDelay, source->unit->localPosition);
 }
@@ -336,7 +336,7 @@ void AIMemory::ForceSee(Unit* self, Unit* object) {
                      theirBrain->target == self;
     if (!attacksUs) {
         float sight = SightRange(ours, theirs);
-        float nearValue = theirs->stats.conspicuity[kSenseNear].current * ours->stats.perception[kSenseNear].current;
+        float nearValue = theirs->stats.conspicuity[Sense::Near].current * ours->stats.perception[Sense::Near].current;
         if (sight > distance && nearValue > distance) return;
     }
     if (object->IsDead()) {
@@ -354,30 +354,30 @@ void AIMemory::SeeCorpse(Unit* self, Unit* corpse) {
     if (g_serverWorld.diplomacy.IsAllied(self->side, corpse->side)) corpses.push_back(corpse);
 }
 
-std::array<float, 5> AIMemory::MeasureExposure(UnitServer* self) {
-    std::array<float, 5> out;
-    out.fill(kMaxExposure);
+lib::EnumArray<float, ExposureKind, 5> AIMemory::MeasureExposure(UnitServer* self) {
+    lib::EnumArray<float, ExposureKind, 5> out;
+    out.items.fill(kMaxExposure);
     Unit* unit = self->unit;
     Vector3 eye = unit->EyePoint();
     for (Unit* other : nearby) {
         if (other->IsDead() || !unit->IsHostileTo(other)) continue;
         UnitServer* theirs = other->ServerController();
         float distance = std::sqrt(LengthSquared(other->localPosition - unit->localPosition));
-        float sight = theirs->moveFactors[kFactorSight] * self->moveFactors[kFactorVisibility] *
-                      theirs->stats.perception[kSenseSight].current * self->stats.conspicuity[kSenseSight].current;
+        float sight = theirs->moveFactors[MoveFactor::Sight] * self->moveFactors[MoveFactor::Visibility] *
+                      theirs->stats.perception[Sense::Sight].current * self->stats.conspicuity[Sense::Sight].current;
         if (distance < sight) {
             Vector3 to = other->EyePoint();
             float range = g_serverWorld.aiMap.LineOfSight(eye, to) * sight;
-            KeepLower(out[kExposureSight], Exposure(distance, range));
+            KeepLower(out[ExposureKind::Sight], Exposure(distance, range));
         }
-        KeepLower(out[kExposureNear],
-                  Exposure(distance, theirs->stats.perception[kSenseNear].current * self->stats.conspicuity[kSenseNear].current));
-        KeepLower(out[kExposureSlot4],
-                  Exposure(distance, theirs->stats.perception[kSenseSlot4].current * self->stats.conspicuity[kSenseSlot4].current));
-        KeepLower(out[kExposureHearing],
-                  Exposure(distance, theirs->moveFactors[kFactorHearing] * self->moveFactors[kFactorNoise] *
-                                         theirs->stats.perception[kSenseHearing].current *
-                                         self->stats.conspicuity[kSenseHearing].current));
+        KeepLower(out[ExposureKind::Near],
+                  Exposure(distance, theirs->stats.perception[Sense::Near].current * self->stats.conspicuity[Sense::Near].current));
+        KeepLower(out[ExposureKind::Slot4],
+                  Exposure(distance, theirs->stats.perception[Sense::Slot4].current * self->stats.conspicuity[Sense::Slot4].current));
+        KeepLower(out[ExposureKind::Hearing],
+                  Exposure(distance, theirs->moveFactors[MoveFactor::Hearing] * self->moveFactors[MoveFactor::Noise] *
+                                         theirs->stats.perception[Sense::Hearing].current *
+                                         self->stats.conspicuity[Sense::Hearing].current));
     }
     return out;
 }

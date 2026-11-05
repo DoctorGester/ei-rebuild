@@ -75,19 +75,19 @@ bool ScriptVars::HasVariable(std::string_view name) const {
 
 ScriptVarRef ScriptVars::FindVariable(std::string_view name) const {
     int index = floats.Find(name);
-    if (index >= 0) return {index, kScriptFloat};
+    if (index >= 0) return {index, ScriptType::Float};
     index = strings.Find(name);
-    if (index >= 0) return {index, kScriptString};
+    if (index >= 0) return {index, ScriptType::String};
     index = objects.Find(name);
-    if (index >= 0) return {index, kScriptObject};
-    return {groups.Find(name), kScriptGroup};
+    if (index >= 0) return {index, ScriptType::Object};
+    return {groups.Find(name), ScriptType::Group};
 }
 
 int ScriptVars::FindOfType(ScriptType type, std::string_view name) const {
     switch (type) {
-    case kScriptFloat: return floats.Find(name);
-    case kScriptString: return strings.Find(name);
-    case kScriptObject: return objects.Find(name);
+    case ScriptType::Float: return floats.Find(name);
+    case ScriptType::String: return strings.Find(name);
+    case ScriptType::Object: return objects.Find(name);
     default: return groups.Find(name);
     }
 }
@@ -104,10 +104,10 @@ bool ScriptDefinition::AddParameter(const std::string* parameterName, ScriptType
     const std::string& text = *parameterName;
     bool added;
     switch (type) {
-    case kScriptFloat: added = AddVariable(vars.floats, text); break;
-    case kScriptString: added = AddVariable(vars.strings, text); break;
-    case kScriptObject: added = AddVariable(vars.objects, text); break;
-    case kScriptGroup: added = AddVariable(vars.groups, text); break;
+    case ScriptType::Float: added = AddVariable(vars.floats, text); break;
+    case ScriptType::String: added = AddVariable(vars.strings, text); break;
+    case ScriptType::Object: added = AddVariable(vars.objects, text); break;
+    case ScriptType::Group: added = AddVariable(vars.groups, text); break;
     default: return true;
     }
     if (added) params += ScriptTypeLetter(type);
@@ -117,16 +117,16 @@ bool ScriptDefinition::AddParameter(const std::string* parameterName, ScriptType
 void ScriptCall::SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars) {
     for (const ScriptBinding& b : bindings) {
         switch (b.type) {
-        case kScriptFloat:
+        case ScriptType::Float:
             floatArgs[b.argIndex] = vars->floats.values[b.varIndex];
             break;
-        case kScriptString:
+        case ScriptType::String:
             stringArgs[b.argIndex] = vars->strings.values[b.varIndex];
             break;
-        case kScriptObject:
+        case ScriptType::Object:
             objectArgs[b.argIndex] = &vars->objects.values[b.varIndex];
             break;
-        case kScriptGroup:
+        case ScriptType::Group:
             groupArgs[b.argIndex] = &vars->groups.values[b.varIndex];
             break;
         default:
@@ -138,7 +138,7 @@ void ScriptCall::SetParameters(const std::vector<ScriptBinding>& bindings, Scrip
 void ScriptCall::Clear() {
     id = ScriptFunction{};
     target = 0;
-    targetType = ScriptType{};
+    targetType = ScriptType::None;
     targetName.clear();
     floatArgs.clear();
     stringArgs.clear();
@@ -157,13 +157,13 @@ void ScriptCall::Save(ByteStream* stream) const {
     const int leadFloats = assign ? 2 : callScript ? 1 : 0;
     const int leadTexts = callScript ? 1 : 0;
     auto savedArgIndex = [&](ScriptType type, int argIndex) {
-        return argIndex + (type == kScriptFloat ? leadFloats : type == kScriptString ? leadTexts : 0);
+        return argIndex + (type == ScriptType::Float ? leadFloats : type == ScriptType::String ? leadTexts : 0);
     };
 
     stream->WriteValue(id);
     stream->WriteCount(floatArgs.size() + leadFloats);
     if (assign || callScript) stream->WriteValue(static_cast<float>(target));
-    if (assign) stream->WriteValue(static_cast<float>(targetType - 1));
+    if (assign) stream->WriteValue(static_cast<float>(lib::Index(targetType) - 1));
     for (const float& value : floatArgs) stream->WriteValue(value);
 
     stream->WriteCount(stringArgs.size() + leadTexts);

@@ -322,7 +322,8 @@ static Ring g_ring;
 static std::uint64_t g_uploaded = 0;   // bytes written in the open command buffer
 
 struct CopyOp {
-    enum Kind : std::uint8_t { UploadBuffer, UploadTexture, CopyTexture, DownloadTexture } kind;
+    enum class Kind : std::uint8_t { UploadBuffer, UploadTexture, CopyTexture, DownloadTexture };
+    Kind kind = {};
     SDL_GPUTransferBuffer* transfer = nullptr;
     std::uint32_t offset = 0;
     bool releaseTransfer = false;   // a large write's own transfer buffer
@@ -354,13 +355,13 @@ static void Flush() {
     }
     for (const CopyOp& op : g_copies) {
         switch (op.kind) {
-        case CopyOp::UploadBuffer: {
+        case CopyOp::Kind::UploadBuffer: {
             const SDL_GPUTransferBufferLocation from{op.transfer, op.offset};
             const SDL_GPUBufferRegion to{op.buffer, op.bufferOffset, op.bytes};
             SDL_UploadToGPUBuffer(pass, &from, &to, op.cycle);
             break;
         }
-        case CopyOp::UploadTexture: {
+        case CopyOp::Kind::UploadTexture: {
             const SDL_GPUTextureTransferInfo from{op.transfer, op.offset, op.pixelsPerRow, op.rowsPerLayer};
             SDL_GPUTextureRegion to{};
             to.texture = op.texture;
@@ -373,7 +374,7 @@ static void Flush() {
             SDL_UploadToGPUTexture(pass, &from, &to, op.cycle);
             break;
         }
-        case CopyOp::CopyTexture: {
+        case CopyOp::Kind::CopyTexture: {
             SDL_GPUTextureLocation from{};
             from.texture = op.texture;
             from.mip_level = op.level;
@@ -387,7 +388,7 @@ static void Flush() {
             SDL_CopyGPUTextureToTexture(pass, &from, &to, op.w, op.h, 1, false);
             break;
         }
-        case CopyOp::DownloadTexture: {
+        case CopyOp::Kind::DownloadTexture: {
             SDL_GPUTextureRegion from{};
             from.texture = op.texture;
             from.mip_level = op.level;
@@ -927,22 +928,22 @@ bool SupportsSamples(Format colour, Format depth, int samples) {
     return g_device && SupportsSamplesOn(g_device, colour, depth, samples);
 }
 
-static SDL_GPUTextureUsageFlags Usage(std::uint8_t use) {
+static SDL_GPUTextureUsageFlags Usage(TextureUse use) {
     SDL_GPUTextureUsageFlags flags = 0;
-    if (use & kSampled) flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
-    if (use & kColourTarget) flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-    if (use & kDepthTarget) flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+    if (lib::Has(use, TextureUse::Sampled)) flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
+    if (lib::Has(use, TextureUse::ColourTarget)) flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+    if (lib::Has(use, TextureUse::DepthTarget)) flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
     return flags;
 }
 
-bool FormatSupported(Format format, std::uint8_t use) {
+bool FormatSupported(Format format, TextureUse use) {
     return g_device && format != Format::None &&
            SDL_GPUTextureSupportsFormat(g_device, ToSdl(format), SDL_GPU_TEXTURETYPE_2D, Usage(use));
 }
 
 Texture MakeTexture(const TextureDesc& desc) {
     if (!g_device) return {};
-    if (Integer(desc.format) && (desc.use & kSampled)) {
+    if (Integer(desc.format) && (lib::Has(desc.use, TextureUse::Sampled))) {
         Problem("texture %s: an integer format is not sampled", desc.label ? desc.label : "");
         return {};
     }
@@ -1038,7 +1039,7 @@ bool Write(const Buffer& buffer, std::uint32_t offset, const void* data, std::ui
         Problem("a write of %u bytes at %u into a buffer of %u", bytes, offset, buffer.size);
         return false;
     }
-    CopyOp op{CopyOp::UploadBuffer};
+    CopyOp op{CopyOp::Kind::UploadBuffer};
     std::uint8_t* to = Place(bytes, 16, &op);
     if (!to) return false;
     std::memcpy(to, data, bytes);
@@ -1062,7 +1063,7 @@ bool Write(const Texture& texture, int level, const Rect& region, const void* ro
     }
     const std::uint32_t rowBytes = RowBytes(texture.format, w), rowCount = Rows(texture.format, h);
     const std::uint32_t padded = Align(rowBytes, kRowPitchAlignment);
-    CopyOp op{CopyOp::UploadTexture};
+    CopyOp op{CopyOp::Kind::UploadTexture};
     std::uint8_t* to = Place(padded * rowCount, kTexturePlacement, &op);
     if (!to) return false;
     const auto* from = static_cast<const std::uint8_t*>(rows);
@@ -1087,7 +1088,7 @@ bool Copy(const Texture& from, int fromLevel, const Rect& region, const Texture&
         Problem("a texture copy of another format, of samples or of nothing");
         return false;
     }
-    CopyOp op{CopyOp::CopyTexture};
+    CopyOp op{CopyOp::Kind::CopyTexture};
     op.texture = from.texture;
     op.level = static_cast<std::uint32_t>(fromLevel);
     op.x = static_cast<std::uint32_t>(region.left);
@@ -1125,7 +1126,7 @@ Ticket Download(const Texture& texture, int level, const Rect& region) {
     d.texels.width = w;
     d.texels.height = h;
     d.texels.format = texture.format;
-    CopyOp op{CopyOp::DownloadTexture};
+    CopyOp op{CopyOp::Kind::DownloadTexture};
     op.transfer = d.buffer;
     op.texture = texture.texture;
     op.level = static_cast<std::uint32_t>(level);

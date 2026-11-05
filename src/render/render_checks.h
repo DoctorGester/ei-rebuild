@@ -4,6 +4,7 @@
 // state its checks read back and the counts and times of the frames (renderstats). The same API in every build; the
 // product never calls the switches, and its FrameStats has no times. See docs/notes/renderer.md.
 
+#include "lib/enum_array.h"
 #include "lib/vecmath.h"
 
 #include <cstddef>
@@ -105,7 +106,7 @@ ShadowInfo ShadowState();
 // TakeFrameStats returns the sums since its last call (the harness's "renderstats"). The CPU times and the
 // reuse counts are the harness build's only.
 struct FrameStats {
-    enum Count {
+    enum class Count : int {
         // Hand-over: Meshes are BeginMesh with corners built; StateReads are the passes' reads of the render state
         // (ReadPassState).
         TerrainPages, TerrainBatches, Meshes, MeshPasses, TransformedDraws, Blits, DepthClears, StateReads, Matrices,
@@ -122,26 +123,28 @@ struct FrameStats {
         ShadowDraws,
         // Meshes handed over with per-vertex offsets (an animation's morph) and their corners.
         MorphMeshes, MorphCorners,
-        CountKinds
+        Kinds
     };
     // CPU times (ms). Each leaves out the times measured inside it: StatsMs (these counts' own hashing and checks),
     // TerrainMs (the terrain pages' hand-over and uploads), ShadowMs (the shadow map's work) and the rest.
     // DeviceMeshMs: the game device's mesh draws (device_mesh.cpp's DrawMesh); DecalPrintMs: ProjectDecal for ground
     // prints; FlatMs: the device's flat draws; ShadowBuildMs: RenderShadow.
-    enum Time { TerrainMs, HandOverMs, TextureMs, EndFrameMs, StatsMs, DeviceMeshMs, DecalPrintMs, FlatMs, ShadowBuildMs,
-                ShadowMs, TimeKinds };
+    enum class Time : int {
+        TerrainMs, HandOverMs, TextureMs, EndFrameMs, StatsMs, DeviceMeshMs, DecalPrintMs, FlatMs, ShadowBuildMs, ShadowMs,
+        Kinds
+    };
     // Images made (or updated in place) per kind.
-    enum Upload { Mmp, Movie, Small, UploadKinds };
+    enum class Upload : int { Mmp, Movie, Small, Kinds };
     // Vertices against the last frame's of the same terrain page or mesh: all the same, only colours changed,
     // positions or texture coordinates changed, none last frame.
-    enum Reuse { Same, Relit, Moved, New, ReuseKinds };
+    enum class Reuse : int { Same, Relit, Moved, New, Kinds };
 
     std::uint32_t frames = 0;
     int width = 0, height = 0;   // the last frame's size
-    std::uint64_t counts[CountKinds] = {};
-    double ms[TimeKinds] = {};
-    std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {};
-    std::uint64_t terrainReuse[ReuseKinds] = {}, meshReuse[ReuseKinds] = {};
+    lib::EnumArray<std::uint64_t, Count, lib::Index(Count::Kinds)> counts;
+    lib::EnumArray<double, Time, lib::Index(Time::Kinds)> ms;
+    lib::EnumArray<std::uint64_t, Upload, lib::Index(Upload::Kinds)> uploads, uploadBytes;
+    lib::EnumArray<std::uint64_t, Reuse, lib::Index(Reuse::Kinds)> terrainReuse, meshReuse;
 };
 FrameStats TakeFrameStats();
 // The game's own work timed into FrameStats (DeviceMeshMs, DecalPrintMs, FlatMs, ShadowBuildMs) with its counts.

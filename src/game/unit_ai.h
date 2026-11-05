@@ -10,6 +10,7 @@
 #include "engine_object.h"
 #include "map_spec.h"
 
+#include "lib/enum_array.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>
@@ -21,6 +22,7 @@
 struct AIBrain;
 class Spell;
 class UnitServer;
+enum class ExposureKind : int;
 namespace console {
 class Stream;
 extern Stream g_aiLogOut;
@@ -602,7 +604,7 @@ struct AIMemory {
     // The unit's exposure to the living hostile units nearby (Unit::exposure): per kind the
     // smallest distance / range ratio, at most 3 (a zero range counts 3). [0] sight (scaled by the line of
     // sight between the eyes, only within range), [4], [1], [2] three other ranges; [3] stays 3.
-    std::array<float, 5> MeasureExposure(UnitServer* self);
+    lib::EnumArray<float, ExposureKind, 5> MeasureExposure(UnitServer* self);
     // From / to a save: the four object lists (replaced on load), the noticed point, level and countdown,
     // the reports, the heard calls (point, delay, text, hostileMask) and the noticed decay (-1 until read).
     void Load(ByteStream* stream);
@@ -746,7 +748,7 @@ struct AIBrain {
     // the distance) fail at once.
     std::optional<Vector3> FindStandPoint(const Vector3& point, float radius);
     // Every allied unit within callRadius of the owner's unit hears a call for help (delay kCallDelay) at
-    // `point`; the message text is formatted only while the console shows the AI filter (console::kLogAi).
+    // `point`; the message text is formatted only while the console shows the AI filter (console::LogCategory::Ai).
     void CallAllies(const Vector3& point);
     static constexpr int kCallDelay = 0x1A;
 

@@ -5,5 +5,5 @@ size = 2
 model = "sonnet"
 note = "User 2026-11-05: we settled on enum class almost everywhere, but plain enums remain. rewrite-guide 'A code has its enum' still says 'enum or enum class'; 42 plain enums in src (27 game, 13 render, lib crt_format State, video bink BlockType). Rule: enum class always, with a fixed underlying type where it is saved or sent; a flag set (ColourMask, DrawFlag, Edge, LogCategory, TextureUse, ClientHalfFlag, text_format Format, ...) becomes enum class with its |, &, ~ operators (one shared helper, e.g. a EI_FLAG_OPERATORS(T) or template in src/lib) and a HasFlag/Any test; an index enum that only sizes or indexes arrays inside one .cpp may stay plain (render_checks' Count/Time/Upload/Reuse are in a header: make them enum class with a count and std::to_underlying at the index, or constexpr ints, whichever reads simpler). Convert all in one or two scripted batches; fix call sites (casts at serialisation only). Update the rewrite-guide rule and add a build check (check_cleanup.py or a new check) counting plain enums outside the allowed .cpp-local index case (ratchet at 0). Goldens the same; build verify+release 0 warnings; WSL warning compile (Linux files may change)."
 order = 1191
-status = "running"
+status = "review"
 started = "2026-11-05"

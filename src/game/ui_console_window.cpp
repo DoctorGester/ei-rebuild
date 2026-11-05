@@ -29,8 +29,8 @@ constexpr std::uint32_t kInputText = 0xFFFFFF;
 // Layout pixels (ConsoleWindow::Px scales them): the line pitch and the input strip at the bottom.
 constexpr int kLineHeight = 15;
 constexpr int kInputHeight = 0x1F;
-constexpr std::uint32_t kDrawLine = 0x800;      // DT_NOPREFIX
-constexpr std::uint32_t kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
+constexpr render::text::Format kDrawLine = render::text::Format::NoPrefix;
+constexpr render::text::Format kDrawMark = render::text::Format::NoPrefix | render::text::Format::Right;
 
 int Clamp(int value, int high) {
     if (value > high) value = high;

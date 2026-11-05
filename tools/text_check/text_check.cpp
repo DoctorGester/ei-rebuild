@@ -70,22 +70,22 @@ std::string Shorten(const std::string& text, std::size_t limit = 90) {
     return text.size() <= limit ? text : text.substr(0, limit) + "...";
 }
 
-std::string FormatName(unsigned format) {
+std::string FormatName(Format format) {
     std::string name;
-    auto add = [&](unsigned bit, const char* text) {
-        if (!(format & bit)) return;
+    auto add = [&](Format bit, const char* text) {
+        if (!lib::Has(format, bit)) return;
         if (!name.empty()) name += '|';
         name += text;
     };
-    add(kCenter, "CENTER");
-    add(kRight, "RIGHT");
-    add(kVCenter, "VCENTER");
-    add(kWordBreak, "WORDBREAK");
-    add(kSingleLine, "SINGLELINE");
-    add(kExpandTabs, "EXPANDTABS");
-    add(kNoPrefix, "NOPREFIX");
-    add(kEndEllipsis, "END_ELLIPSIS");
-    add(kCalcRect, "CALCRECT");
+    add(Format::Center, "CENTER");
+    add(Format::Right, "RIGHT");
+    add(Format::VCenter, "VCENTER");
+    add(Format::WordBreak, "WORDBREAK");
+    add(Format::SingleLine, "SINGLELINE");
+    add(Format::ExpandTabs, "EXPANDTABS");
+    add(Format::NoPrefix, "NOPREFIX");
+    add(Format::EndEllipsis, "END_ELLIPSIS");
+    add(Format::CalcRect, "CALCRECT");
     return name.empty() ? "0" : name;
 }
 
@@ -131,167 +131,167 @@ struct RuleCase {
     int calcLeft, calcRight, calcCentre;   // DT_CALCRECT width in cells: left, DT_RIGHT, DT_CENTER
     const char* left;                  // drawn extent of each line, left-aligned ("a..b" in cells, "-" none)
     const char* right;                 // ... right-aligned
-    unsigned extra;                    // format bits besides DT_WORDBREAK
+    Format extra;                      // format bits besides DT_WORDBREAK
 };
 
 // Measured with DrawTextA (DT_WORDBREAK | extra) in a rectangle `cells` x 10 px wide.
 const RuleCase kRuleCases[] = {
-    {"aaa bbb ccc", 2, 3, 3, 3, "0..2 0..2 0..2", "0..2 - 0..2 - 0..2", 0},
-    {"aaa bbb ccc", 3, 3, 3, 3, "0..3 0..3 0..3", "0..3 - 0..3 - 0..3", 0},
-    {"aaa bbb ccc", 4, 4, 3, 3, "0..4 0..4 0..3", "1..4 1..4 1..4", 0},
-    {"aaa bbb ccc", 5, 4, 3, 3, "0..4 0..4 0..3", "2..5 2..5 2..5", 0},
-    {"aaa bbb ccc", 6, 4, 3, 3, "0..4 0..4 0..3", "3..6 3..6 3..6", 0},
-    {"aaa bbb ccc", 7, 7, 7, 7, "0..7 0..3", "0..7 3..7", 0},
-    {"aaa bbb ccc", 8, 8, 7, 7, "0..8 0..3", "1..8 5..8", 0},
-    {"aaa bbb ccc", 9, 8, 7, 7, "0..8 0..3", "2..9 6..9", 0},
-    {"aaa bbb ccc", 10, 8, 7, 7, "0..8 0..3", "3..10 7..10", 0},
-    {"aaa bbb ccc", 11, 11, 11, 11, "0..11", "0..11", 0},
-    {"aaa  bbb  ccc", 2, 3, 3, 3, "0..2 0..1 0..2 0..1 0..2", "0..2 1..2 0..2 1..2 0..2", 0},
-    {"aaa  bbb  ccc", 3, 3, 3, 3, "0..3 0..1 0..3 0..1 0..3", "0..3 2..3 0..3 2..3 0..3", 0},
-    {"aaa  bbb  ccc", 4, 4, 4, 3, "0..4 0..4 0..3", "1..4 0..4 3..4 1..4", 0},
-    {"aaa  bbb  ccc", 5, 5, 4, 4, "0..5 0..5 0..3", "1..5 1..5 2..5", 0},
-    {"aaa  bbb  ccc", 6, 5, 4, 4, "0..5 0..5 0..3", "2..6 2..6 3..6", 0},
-    {"aaa  bbb  ccc", 7, 5, 4, 4, "0..5 0..5 0..3", "3..7 3..7 4..7", 0},
-    {"aaa  bbb  ccc", 8, 8, 8, 8, "0..8 0..4", "0..8 3..8", 0},
-    {"aaa  bbb  ccc", 9, 9, 8, 8, "0..9 0..3", "1..9 5..9", 0},
-    {"aaa  bbb  ccc", 10, 10, 9, 9, "0..10 0..3", "1..10 7..10", 0},
-    {"aaa  bbb  ccc", 11, 10, 9, 9, "0..10 0..3", "2..11 8..11", 0},
-    {"aaa  bbb  ccc", 12, 10, 9, 9, "0..10 0..3", "3..12 9..12", 0},
-    {"aaa   bbb   ccc", 2, 3, 3, 3, "0..2 0..2 0..2 0..2 0..2", "0..2 1..2 - 0..2 1..2 - 0..2", 0},
-    {"aaa   bbb   ccc", 3, 3, 3, 3, "0..3 0..2 0..3 0..2 0..3", "0..3 1..3 0..3 1..3 0..3", 0},
-    {"aaa   bbb   ccc", 4, 4, 3, 4, "0..4 0..4 0..2 0..3", "1..4 3..4 1..4 3..4 1..4", 0},
-    {"aaa   bbb   ccc", 5, 5, 5, 4, "0..5 0..5 0..3", "1..5 1..5 0..5", 0},
-    {"aaa   bbb   ccc", 6, 6, 5, 5, "0..6 0..6 0..3", "1..6 1..6 3..6", 0},
-    {"aaa   bbb   ccc", 7, 6, 5, 5, "0..6 0..6 0..3", "2..7 2..7 4..7", 0},
-    {"aaa   bbb   ccc", 8, 6, 5, 5, "0..6 0..6 0..3", "3..8 3..8 5..8", 0},
-    {"aaa   bbb   ccc", 9, 9, 9, 9, "0..9 0..5", "0..9 3..9", 0},
-    {"aaa   bbb   ccc", 10, 10, 9, 9, "0..10 0..4", "1..10 5..10", 0},
-    {"aaa   bbb   ccc", 11, 11, 10, 10, "0..11 0..3", "1..11 7..11", 0},
-    {"aaa   bbb   ccc", 12, 12, 11, 11, "0..12 0..3", "1..12 9..12", 0},
-    {"aaa    bbb", 2, 3, 3, 3, "0..2 0..2 0..2", "0..2 1..2 1..2 0..2", 0},
-    {"aaa    bbb", 3, 3, 3, 3, "0..3 0..3 0..3", "0..3 1..3 - 0..3", 0},
-    {"aaa    bbb", 4, 4, 3, 3, "0..4 0..2 0..3", "1..4 2..4 1..4", 0},
-    {"aaa    bbb", 5, 5, 5, 4, "0..5 0..4", "1..5 0..5", 0},
-    {"aaa    bbb", 6, 6, 5, 5, "0..6 0..3", "1..6 2..6", 0},
-    {"aaa    bbb", 7, 7, 6, 6, "0..7 0..3", "1..7 4..7", 0},
-    {"aaa    bbb", 8, 7, 6, 6, "0..7 0..3", "2..8 5..8", 0},
-    {"aaa    bbb", 9, 7, 6, 6, "0..7 0..3", "3..9 6..9", 0},
-    {"aaa    bbb", 10, 10, 10, 10, "0..10", "0..10", 0},
-    {"aaaaaaaa bbb", 2, 8, 8, 8, "0..2 0..2", "0..2 - 0..2", 0},
-    {"aaaaaaaa bbb", 3, 8, 8, 8, "0..3 0..3", "0..3 - 0..3", 0},
-    {"aaaaaaaa bbb", 4, 8, 8, 8, "0..4 0..3", "0..4 0..4", 0},
-    {"aaaaaaaa bbb", 5, 8, 8, 8, "0..5 0..3", "0..5 1..5", 0},
-    {"aaaaaaaa bbb", 6, 8, 8, 8, "0..6 0..3", "0..6 2..6", 0},
-    {"aaaaaaaa bbb", 7, 8, 8, 8, "0..7 0..3", "0..7 3..7", 0},
-    {"aaaaaaaa bbb", 8, 8, 8, 8, "0..8 0..3", "0..8 4..8", 0},
-    {"aaaaaaaa bbb", 9, 9, 8, 8, "0..9 0..3", "1..9 6..9", 0},
-    {"aaaaaaaa bbb", 10, 9, 8, 8, "0..9 0..3", "2..10 7..10", 0},
-    {"aaaaaaaa bbb", 11, 9, 8, 8, "0..9 0..3", "3..11 8..11", 0},
-    {"aaaaaaaa bbb", 12, 12, 12, 12, "0..12", "0..12", 0},
-    {"aaaaaaaa  bbb", 2, 8, 8, 8, "0..2 0..1 0..2", "0..2 1..2 0..2", 0},
-    {"aaaaaaaa  bbb", 3, 8, 8, 8, "0..3 0..1 0..3", "0..3 2..3 0..3", 0},
-    {"aaaaaaaa  bbb", 4, 8, 8, 8, "0..4 0..4", "0..4 3..4 1..4", 0},
-    {"aaaaaaaa  bbb", 5, 8, 8, 8, "0..5 0..4", "0..5 0..5", 0},
-    {"aaaaaaaa  bbb", 6, 8, 8, 8, "0..6 0..4", "0..6 1..6", 0},
-    {"aaaaaaaa  bbb", 7, 8, 8, 8, "0..7 0..4", "0..7 2..7", 0},
-    {"aaaaaaaa  bbb", 8, 8, 8, 8, "0..8 0..4", "0..8 3..8", 0},
-    {"aaaaaaaa  bbb", 9, 9, 8, 8, "0..9 0..3", "1..9 5..9", 0},
-    {"aaaaaaaa  bbb", 10, 10, 9, 9, "0..10 0..3", "1..10 7..10", 0},
-    {"aaaaaaaa  bbb", 11, 10, 9, 9, "0..10 0..3", "2..11 8..11", 0},
-    {"aaaaaaaa  bbb", 12, 10, 9, 9, "0..10 0..3", "3..12 9..12", 0},
-    {"aaaaaaaa   bbb", 2, 8, 8, 8, "0..2 0..2 0..2", "0..2 1..2 - 0..2", 0},
-    {"aaaaaaaa   bbb", 3, 8, 8, 8, "0..3 0..2 0..3", "0..3 1..3 0..3", 0},
-    {"aaaaaaaa   bbb", 4, 8, 8, 8, "0..4 0..2 0..3", "0..4 2..4 1..4", 0},
-    {"aaaaaaaa   bbb", 5, 8, 8, 8, "0..5 0..5", "0..5 3..5 2..5", 0},
-    {"aaaaaaaa   bbb", 6, 8, 8, 8, "0..6 0..5", "0..6 0..6", 0},
-    {"aaaaaaaa   bbb", 7, 8, 8, 8, "0..7 0..5", "0..7 1..7", 0},
-    {"aaaaaaaa   bbb", 8, 8, 8, 8, "0..8 0..5", "0..8 2..8", 0},
-    {"aaaaaaaa   bbb", 9, 9, 8, 8, "0..9 0..4", "1..9 4..9", 0},
-    {"aaaaaaaa   bbb", 10, 10, 9, 9, "0..10 0..3", "1..10 6..10", 0},
-    {"aaaaaaaa   bbb", 11, 11, 10, 10, "0..11 0..3", "1..11 8..11", 0},
-    {"aaaaaaaa   bbb", 12, 11, 10, 10, "0..11 0..3", "2..12 9..12", 0},
-    {"aa bbbbbbbb cc", 2, 8, 8, 8, "0..2 0..2 0..2", "0..2 - 0..2 - 0..2", 0},
-    {"aa bbbbbbbb cc", 3, 8, 8, 8, "0..3 0..3 0..2", "1..3 0..3 0..3", 0},
-    {"aa bbbbbbbb cc", 4, 8, 8, 8, "0..3 0..4 0..2", "2..4 0..4 1..4", 0},
-    {"aa bbbbbbbb cc", 5, 8, 8, 8, "0..3 0..5 0..2", "3..5 0..5 2..5", 0},
-    {"aa bbbbbbbb cc", 6, 8, 8, 8, "0..3 0..6 0..2", "4..6 0..6 3..6", 0},
-    {"aa bbbbbbbb cc", 7, 8, 8, 8, "0..3 0..7 0..2", "5..7 0..7 4..7", 0},
-    {"aa bbbbbbbb cc", 8, 8, 8, 8, "0..3 0..8 0..2", "6..8 0..8 5..8", 0},
-    {"aa bbbbbbbb cc", 9, 9, 8, 8, "0..3 0..9 0..2", "7..9 1..9 7..9", 0},
-    {"aa bbbbbbbb cc", 10, 9, 8, 8, "0..3 0..9 0..2", "8..10 2..10 8..10", 0},
-    {"aa bbbbbbbb cc", 11, 11, 11, 11, "0..11 0..2", "0..11 8..11", 0},
-    {"aa bbbbbbbb cc", 12, 12, 11, 11, "0..12 0..2", "1..12 10..12", 0},
-    {"aa  bbbbbbbb  cc", 2, 8, 8, 8, "0..2 0..1 0..2 0..1 0..2", "0..2 1..2 0..2 1..2 0..2", 0},
-    {"aa  bbbbbbbb  cc", 3, 8, 8, 8, "0..3 0..3 0..3", "1..3 - 0..3 2..3 1..3", 0},
-    {"aa  bbbbbbbb  cc", 4, 8, 8, 8, "0..4 0..4 0..3", "1..4 0..4 0..4", 0},
-    {"aa  bbbbbbbb  cc", 5, 8, 8, 8, "0..4 0..5 0..3", "2..5 0..5 1..5", 0},
-    {"aa  bbbbbbbb  cc", 6, 8, 8, 8, "0..4 0..6 0..3", "3..6 0..6 2..6", 0},
-    {"aa  bbbbbbbb  cc", 7, 8, 8, 8, "0..4 0..7 0..3", "4..7 0..7 3..7", 0},
-    {"aa  bbbbbbbb  cc", 8, 8, 8, 8, "0..4 0..8 0..3", "5..8 0..8 4..8", 0},
-    {"aa  bbbbbbbb  cc", 9, 9, 8, 8, "0..4 0..9 0..2", "6..9 1..9 6..9", 0},
-    {"aa  bbbbbbbb  cc", 10, 10, 9, 9, "0..4 0..10 0..2", "7..10 1..10 8..10", 0},
-    {"aa  bbbbbbbb  cc", 11, 10, 9, 9, "0..4 0..10 0..2", "8..11 2..11 9..11", 0},
-    {"aa  bbbbbbbb  cc", 12, 12, 12, 12, "0..12 0..3", "0..12 8..12", 0},
-    {"   aaa bbb", 2, 3, 3, 3, "0..2 0..2 0..2", "1..2 - 0..2 - 0..2", 0},
-    {"   aaa bbb", 3, 3, 3, 3, "0..3 0..3 0..3", "1..3 0..3 - 0..3", 0},
-    {"   aaa bbb", 4, 4, 3, 3, "0..3 0..4 0..3", "2..4 1..4 1..4", 0},
-    {"   aaa bbb", 5, 4, 3, 3, "0..3 0..4 0..3", "3..5 2..5 2..5", 0},
-    {"   aaa bbb", 6, 6, 6, 6, "0..6 0..3", "0..6 2..6", 0},
-    {"   aaa bbb", 7, 7, 6, 6, "0..7 0..3", "1..7 4..7", 0},
-    {"   aaa bbb", 8, 7, 6, 6, "0..7 0..3", "2..8 5..8", 0},
-    {"   aaa bbb", 9, 7, 6, 6, "0..7 0..3", "3..9 6..9", 0},
-    {"   aaa bbb", 10, 10, 10, 10, "0..10", "0..10", 0},
-    {"aaa bbb   ", 2, 3, 3, 3, "0..2 0..2 0..2", "0..2 - 0..2 1..2 1..2", 0},
-    {"aaa bbb   ", 3, 3, 3, 3, "0..3 0..3 0..2", "0..3 - 0..3 0..3", 0},
-    {"aaa bbb   ", 4, 4, 3, 3, "0..4 0..4 0..1", "1..4 1..4 2..4", 0},
-    {"aaa bbb   ", 5, 5, 4, 4, "0..4 0..5", "2..5 1..5 4..5", 0},
-    {"aaa bbb   ", 6, 6, 6, 6, "0..4 0..6", "3..6 0..6", 0},
-    {"aaa bbb   ", 7, 7, 7, 7, "0..7 0..2", "0..7 4..7", 0},
-    {"aaa bbb   ", 8, 8, 7, 7, "0..8 0..1", "1..8 6..8", 0},
-    {"aaa bbb   ", 9, 9, 8, 8, "0..9", "1..9 8..9", 0},
-    {"aaa bbb   ", 10, 10, 10, 10, "0..10", "0..10", 0},
-    {"aaa \nbbb", 2, 3, 3, 3, "0..2 - 0..2", "0..2 1..2 0..2", 0},
-    {"aaa \nbbb", 3, 3, 3, 3, "0..3 - 0..3", "0..3 2..3 0..3", 0},
-    {"aaa \nbbb", 4, 4, 4, 4, "0..4 0..3", "0..4 1..4", 0},
-    {"aaa \nbbb", 5, 4, 4, 4, "0..4 0..3", "1..5 2..5", 0},
-    {"aaa \nbbb", 6, 4, 4, 4, "0..4 0..3", "2..6 3..6", 0},
-    {"aaa \nbbb", 7, 4, 4, 4, "0..4 0..3", "3..7 4..7", 0},
-    {"aaa \nbbb", 8, 4, 4, 4, "0..4 0..3", "4..8 5..8", 0},
-    {"aaa  \nbbb", 2, 3, 3, 3, "0..2 0..1 0..2", "0..2 0..2 0..2", 0},
-    {"aaa  \nbbb", 3, 3, 3, 3, "0..3 0..1 0..3", "0..3 1..3 0..3", 0},
-    {"aaa  \nbbb", 4, 4, 3, 3, "0..4 - 0..3", "1..4 3..4 1..4", 0},
-    {"aaa  \nbbb", 5, 5, 5, 5, "0..5 0..3", "0..5 2..5", 0},
-    {"aaa  \nbbb", 6, 5, 5, 5, "0..5 0..3", "1..6 3..6", 0},
-    {"aaa  \nbbb", 7, 5, 5, 5, "0..5 0..3", "2..7 4..7", 0},
-    {"aaa  \nbbb", 8, 5, 5, 5, "0..5 0..3", "3..8 5..8", 0},
-    {"aaa  \nbbb", 9, 5, 5, 5, "0..5 0..3", "4..9 6..9", 0},
-    {"aaa \n bbb", 2, 3, 3, 3, "0..2 - 0..1 0..2", "0..2 1..2 - 0..2", 0},
-    {"aaa \n bbb", 3, 3, 3, 3, "0..3 - 0..1 0..3", "0..3 2..3 - 0..3", 0},
-    {"aaa \n bbb", 4, 4, 4, 4, "0..4 0..4", "0..4 0..4", 0},
-    {"aaa \n bbb", 5, 4, 4, 4, "0..4 0..4", "1..5 1..5", 0},
-    {"aaa \n bbb", 6, 4, 4, 4, "0..4 0..4", "2..6 2..6", 0},
-    {"aaa \n bbb", 7, 4, 4, 4, "0..4 0..4", "3..7 3..7", 0},
-    {"aaa \n bbb", 8, 4, 4, 4, "0..4 0..4", "4..8 4..8", 0},
-    {"aaa \n bbb", 9, 4, 4, 4, "0..4 0..4", "5..9 5..9", 0},
-    {" ", 2, 1, 1, 1, "0..1", "1..2", 0},
-    {" ", 3, 1, 1, 1, "0..1", "2..3", 0},
-    {"   ", 2, 2, 1, 1, "0..2", "1..2 1..2", 0},
-    {"   ", 3, 3, 3, 3, "0..3", "0..3", 0},
-    {"a   ", 2, 2, 2, 1, "0..2 0..1", "1..2 0..2", 0},
-    {"a   ", 3, 3, 2, 2, "0..3", "1..3 2..3", 0},
-    {"a   ", 4, 4, 4, 4, "0..4", "0..4", 0},
-    {"aaa\tbbb", 4, 3, 3, 3, "0..3 0..3", "1..4 1..4", 0},
-    {"aaa\t\tbbb", 4, 3, 3, 3, "0..3 0..3", "1..4 1..4", 0},
-    {"aaa \tbbb", 4, 4, 4, 4, "0..4 0..3", "0..4 1..4", 0},
-    {"aaa\t bbb", 4, 4, 3, 3, "0..4 0..3", "1..4 1..4", 0},
-    {"aaa\tbbb", 4, 3, 3, 3, "0..3 0..3", "1..4 - 1..4", kExpandTabs},
-    {"aaa\tbbb", 9, 8, 3, 3, "0..8 0..3", "6..9 6..9", kExpandTabs},
-    {"aaa\t\tbbb", 9, 8, 3, 3, "0..8 0..3", "6..9 - 6..9", kExpandTabs},
-    {"aaa\tbbb ccc", 12, 12, 11, 11, "0..12 0..3", "1..12 9..12", kExpandTabs},
-    {"aaa\tbbb ccc", 11, 11, 11, 11, "0..11 0..3", "0..11 7..11", kExpandTabs},
-    {"a&a bbb", 3, 3, 3, 3, "0..3 0..3", "1..3 0..3", 0},
-    {"aaa &bbb", 4, 4, 3, 3, "0..4 0..3", "1..4 1..4", 0},
-    {"aaa& bbb", 4, 4, 3, 3, "0..4 0..3", "1..4 1..4", 0},
+    {"aaa bbb ccc", 2, 3, 3, 3, "0..2 0..2 0..2", "0..2 - 0..2 - 0..2", Format::Left},
+    {"aaa bbb ccc", 3, 3, 3, 3, "0..3 0..3 0..3", "0..3 - 0..3 - 0..3", Format::Left},
+    {"aaa bbb ccc", 4, 4, 3, 3, "0..4 0..4 0..3", "1..4 1..4 1..4", Format::Left},
+    {"aaa bbb ccc", 5, 4, 3, 3, "0..4 0..4 0..3", "2..5 2..5 2..5", Format::Left},
+    {"aaa bbb ccc", 6, 4, 3, 3, "0..4 0..4 0..3", "3..6 3..6 3..6", Format::Left},
+    {"aaa bbb ccc", 7, 7, 7, 7, "0..7 0..3", "0..7 3..7", Format::Left},
+    {"aaa bbb ccc", 8, 8, 7, 7, "0..8 0..3", "1..8 5..8", Format::Left},
+    {"aaa bbb ccc", 9, 8, 7, 7, "0..8 0..3", "2..9 6..9", Format::Left},
+    {"aaa bbb ccc", 10, 8, 7, 7, "0..8 0..3", "3..10 7..10", Format::Left},
+    {"aaa bbb ccc", 11, 11, 11, 11, "0..11", "0..11", Format::Left},
+    {"aaa  bbb  ccc", 2, 3, 3, 3, "0..2 0..1 0..2 0..1 0..2", "0..2 1..2 0..2 1..2 0..2", Format::Left},
+    {"aaa  bbb  ccc", 3, 3, 3, 3, "0..3 0..1 0..3 0..1 0..3", "0..3 2..3 0..3 2..3 0..3", Format::Left},
+    {"aaa  bbb  ccc", 4, 4, 4, 3, "0..4 0..4 0..3", "1..4 0..4 3..4 1..4", Format::Left},
+    {"aaa  bbb  ccc", 5, 5, 4, 4, "0..5 0..5 0..3", "1..5 1..5 2..5", Format::Left},
+    {"aaa  bbb  ccc", 6, 5, 4, 4, "0..5 0..5 0..3", "2..6 2..6 3..6", Format::Left},
+    {"aaa  bbb  ccc", 7, 5, 4, 4, "0..5 0..5 0..3", "3..7 3..7 4..7", Format::Left},
+    {"aaa  bbb  ccc", 8, 8, 8, 8, "0..8 0..4", "0..8 3..8", Format::Left},
+    {"aaa  bbb  ccc", 9, 9, 8, 8, "0..9 0..3", "1..9 5..9", Format::Left},
+    {"aaa  bbb  ccc", 10, 10, 9, 9, "0..10 0..3", "1..10 7..10", Format::Left},
+    {"aaa  bbb  ccc", 11, 10, 9, 9, "0..10 0..3", "2..11 8..11", Format::Left},
+    {"aaa  bbb  ccc", 12, 10, 9, 9, "0..10 0..3", "3..12 9..12", Format::Left},
+    {"aaa   bbb   ccc", 2, 3, 3, 3, "0..2 0..2 0..2 0..2 0..2", "0..2 1..2 - 0..2 1..2 - 0..2", Format::Left},
+    {"aaa   bbb   ccc", 3, 3, 3, 3, "0..3 0..2 0..3 0..2 0..3", "0..3 1..3 0..3 1..3 0..3", Format::Left},
+    {"aaa   bbb   ccc", 4, 4, 3, 4, "0..4 0..4 0..2 0..3", "1..4 3..4 1..4 3..4 1..4", Format::Left},
+    {"aaa   bbb   ccc", 5, 5, 5, 4, "0..5 0..5 0..3", "1..5 1..5 0..5", Format::Left},
+    {"aaa   bbb   ccc", 6, 6, 5, 5, "0..6 0..6 0..3", "1..6 1..6 3..6", Format::Left},
+    {"aaa   bbb   ccc", 7, 6, 5, 5, "0..6 0..6 0..3", "2..7 2..7 4..7", Format::Left},
+    {"aaa   bbb   ccc", 8, 6, 5, 5, "0..6 0..6 0..3", "3..8 3..8 5..8", Format::Left},
+    {"aaa   bbb   ccc", 9, 9, 9, 9, "0..9 0..5", "0..9 3..9", Format::Left},
+    {"aaa   bbb   ccc", 10, 10, 9, 9, "0..10 0..4", "1..10 5..10", Format::Left},
+    {"aaa   bbb   ccc", 11, 11, 10, 10, "0..11 0..3", "1..11 7..11", Format::Left},
+    {"aaa   bbb   ccc", 12, 12, 11, 11, "0..12 0..3", "1..12 9..12", Format::Left},
+    {"aaa    bbb", 2, 3, 3, 3, "0..2 0..2 0..2", "0..2 1..2 1..2 0..2", Format::Left},
+    {"aaa    bbb", 3, 3, 3, 3, "0..3 0..3 0..3", "0..3 1..3 - 0..3", Format::Left},
+    {"aaa    bbb", 4, 4, 3, 3, "0..4 0..2 0..3", "1..4 2..4 1..4", Format::Left},
+    {"aaa    bbb", 5, 5, 5, 4, "0..5 0..4", "1..5 0..5", Format::Left},
+    {"aaa    bbb", 6, 6, 5, 5, "0..6 0..3", "1..6 2..6", Format::Left},
+    {"aaa    bbb", 7, 7, 6, 6, "0..7 0..3", "1..7 4..7", Format::Left},
+    {"aaa    bbb", 8, 7, 6, 6, "0..7 0..3", "2..8 5..8", Format::Left},
+    {"aaa    bbb", 9, 7, 6, 6, "0..7 0..3", "3..9 6..9", Format::Left},
+    {"aaa    bbb", 10, 10, 10, 10, "0..10", "0..10", Format::Left},
+    {"aaaaaaaa bbb", 2, 8, 8, 8, "0..2 0..2", "0..2 - 0..2", Format::Left},
+    {"aaaaaaaa bbb", 3, 8, 8, 8, "0..3 0..3", "0..3 - 0..3", Format::Left},
+    {"aaaaaaaa bbb", 4, 8, 8, 8, "0..4 0..3", "0..4 0..4", Format::Left},
+    {"aaaaaaaa bbb", 5, 8, 8, 8, "0..5 0..3", "0..5 1..5", Format::Left},
+    {"aaaaaaaa bbb", 6, 8, 8, 8, "0..6 0..3", "0..6 2..6", Format::Left},
+    {"aaaaaaaa bbb", 7, 8, 8, 8, "0..7 0..3", "0..7 3..7", Format::Left},
+    {"aaaaaaaa bbb", 8, 8, 8, 8, "0..8 0..3", "0..8 4..8", Format::Left},
+    {"aaaaaaaa bbb", 9, 9, 8, 8, "0..9 0..3", "1..9 6..9", Format::Left},
+    {"aaaaaaaa bbb", 10, 9, 8, 8, "0..9 0..3", "2..10 7..10", Format::Left},
+    {"aaaaaaaa bbb", 11, 9, 8, 8, "0..9 0..3", "3..11 8..11", Format::Left},
+    {"aaaaaaaa bbb", 12, 12, 12, 12, "0..12", "0..12", Format::Left},
+    {"aaaaaaaa  bbb", 2, 8, 8, 8, "0..2 0..1 0..2", "0..2 1..2 0..2", Format::Left},
+    {"aaaaaaaa  bbb", 3, 8, 8, 8, "0..3 0..1 0..3", "0..3 2..3 0..3", Format::Left},
+    {"aaaaaaaa  bbb", 4, 8, 8, 8, "0..4 0..4", "0..4 3..4 1..4", Format::Left},
+    {"aaaaaaaa  bbb", 5, 8, 8, 8, "0..5 0..4", "0..5 0..5", Format::Left},
+    {"aaaaaaaa  bbb", 6, 8, 8, 8, "0..6 0..4", "0..6 1..6", Format::Left},
+    {"aaaaaaaa  bbb", 7, 8, 8, 8, "0..7 0..4", "0..7 2..7", Format::Left},
+    {"aaaaaaaa  bbb", 8, 8, 8, 8, "0..8 0..4", "0..8 3..8", Format::Left},
+    {"aaaaaaaa  bbb", 9, 9, 8, 8, "0..9 0..3", "1..9 5..9", Format::Left},
+    {"aaaaaaaa  bbb", 10, 10, 9, 9, "0..10 0..3", "1..10 7..10", Format::Left},
+    {"aaaaaaaa  bbb", 11, 10, 9, 9, "0..10 0..3", "2..11 8..11", Format::Left},
+    {"aaaaaaaa  bbb", 12, 10, 9, 9, "0..10 0..3", "3..12 9..12", Format::Left},
+    {"aaaaaaaa   bbb", 2, 8, 8, 8, "0..2 0..2 0..2", "0..2 1..2 - 0..2", Format::Left},
+    {"aaaaaaaa   bbb", 3, 8, 8, 8, "0..3 0..2 0..3", "0..3 1..3 0..3", Format::Left},
+    {"aaaaaaaa   bbb", 4, 8, 8, 8, "0..4 0..2 0..3", "0..4 2..4 1..4", Format::Left},
+    {"aaaaaaaa   bbb", 5, 8, 8, 8, "0..5 0..5", "0..5 3..5 2..5", Format::Left},
+    {"aaaaaaaa   bbb", 6, 8, 8, 8, "0..6 0..5", "0..6 0..6", Format::Left},
+    {"aaaaaaaa   bbb", 7, 8, 8, 8, "0..7 0..5", "0..7 1..7", Format::Left},
+    {"aaaaaaaa   bbb", 8, 8, 8, 8, "0..8 0..5", "0..8 2..8", Format::Left},
+    {"aaaaaaaa   bbb", 9, 9, 8, 8, "0..9 0..4", "1..9 4..9", Format::Left},
+    {"aaaaaaaa   bbb", 10, 10, 9, 9, "0..10 0..3", "1..10 6..10", Format::Left},
+    {"aaaaaaaa   bbb", 11, 11, 10, 10, "0..11 0..3", "1..11 8..11", Format::Left},
+    {"aaaaaaaa   bbb", 12, 11, 10, 10, "0..11 0..3", "2..12 9..12", Format::Left},
+    {"aa bbbbbbbb cc", 2, 8, 8, 8, "0..2 0..2 0..2", "0..2 - 0..2 - 0..2", Format::Left},
+    {"aa bbbbbbbb cc", 3, 8, 8, 8, "0..3 0..3 0..2", "1..3 0..3 0..3", Format::Left},
+    {"aa bbbbbbbb cc", 4, 8, 8, 8, "0..3 0..4 0..2", "2..4 0..4 1..4", Format::Left},
+    {"aa bbbbbbbb cc", 5, 8, 8, 8, "0..3 0..5 0..2", "3..5 0..5 2..5", Format::Left},
+    {"aa bbbbbbbb cc", 6, 8, 8, 8, "0..3 0..6 0..2", "4..6 0..6 3..6", Format::Left},
+    {"aa bbbbbbbb cc", 7, 8, 8, 8, "0..3 0..7 0..2", "5..7 0..7 4..7", Format::Left},
+    {"aa bbbbbbbb cc", 8, 8, 8, 8, "0..3 0..8 0..2", "6..8 0..8 5..8", Format::Left},
+    {"aa bbbbbbbb cc", 9, 9, 8, 8, "0..3 0..9 0..2", "7..9 1..9 7..9", Format::Left},
+    {"aa bbbbbbbb cc", 10, 9, 8, 8, "0..3 0..9 0..2", "8..10 2..10 8..10", Format::Left},
+    {"aa bbbbbbbb cc", 11, 11, 11, 11, "0..11 0..2", "0..11 8..11", Format::Left},
+    {"aa bbbbbbbb cc", 12, 12, 11, 11, "0..12 0..2", "1..12 10..12", Format::Left},
+    {"aa  bbbbbbbb  cc", 2, 8, 8, 8, "0..2 0..1 0..2 0..1 0..2", "0..2 1..2 0..2 1..2 0..2", Format::Left},
+    {"aa  bbbbbbbb  cc", 3, 8, 8, 8, "0..3 0..3 0..3", "1..3 - 0..3 2..3 1..3", Format::Left},
+    {"aa  bbbbbbbb  cc", 4, 8, 8, 8, "0..4 0..4 0..3", "1..4 0..4 0..4", Format::Left},
+    {"aa  bbbbbbbb  cc", 5, 8, 8, 8, "0..4 0..5 0..3", "2..5 0..5 1..5", Format::Left},
+    {"aa  bbbbbbbb  cc", 6, 8, 8, 8, "0..4 0..6 0..3", "3..6 0..6 2..6", Format::Left},
+    {"aa  bbbbbbbb  cc", 7, 8, 8, 8, "0..4 0..7 0..3", "4..7 0..7 3..7", Format::Left},
+    {"aa  bbbbbbbb  cc", 8, 8, 8, 8, "0..4 0..8 0..3", "5..8 0..8 4..8", Format::Left},
+    {"aa  bbbbbbbb  cc", 9, 9, 8, 8, "0..4 0..9 0..2", "6..9 1..9 6..9", Format::Left},
+    {"aa  bbbbbbbb  cc", 10, 10, 9, 9, "0..4 0..10 0..2", "7..10 1..10 8..10", Format::Left},
+    {"aa  bbbbbbbb  cc", 11, 10, 9, 9, "0..4 0..10 0..2", "8..11 2..11 9..11", Format::Left},
+    {"aa  bbbbbbbb  cc", 12, 12, 12, 12, "0..12 0..3", "0..12 8..12", Format::Left},
+    {"   aaa bbb", 2, 3, 3, 3, "0..2 0..2 0..2", "1..2 - 0..2 - 0..2", Format::Left},
+    {"   aaa bbb", 3, 3, 3, 3, "0..3 0..3 0..3", "1..3 0..3 - 0..3", Format::Left},
+    {"   aaa bbb", 4, 4, 3, 3, "0..3 0..4 0..3", "2..4 1..4 1..4", Format::Left},
+    {"   aaa bbb", 5, 4, 3, 3, "0..3 0..4 0..3", "3..5 2..5 2..5", Format::Left},
+    {"   aaa bbb", 6, 6, 6, 6, "0..6 0..3", "0..6 2..6", Format::Left},
+    {"   aaa bbb", 7, 7, 6, 6, "0..7 0..3", "1..7 4..7", Format::Left},
+    {"   aaa bbb", 8, 7, 6, 6, "0..7 0..3", "2..8 5..8", Format::Left},
+    {"   aaa bbb", 9, 7, 6, 6, "0..7 0..3", "3..9 6..9", Format::Left},
+    {"   aaa bbb", 10, 10, 10, 10, "0..10", "0..10", Format::Left},
+    {"aaa bbb   ", 2, 3, 3, 3, "0..2 0..2 0..2", "0..2 - 0..2 1..2 1..2", Format::Left},
+    {"aaa bbb   ", 3, 3, 3, 3, "0..3 0..3 0..2", "0..3 - 0..3 0..3", Format::Left},
+    {"aaa bbb   ", 4, 4, 3, 3, "0..4 0..4 0..1", "1..4 1..4 2..4", Format::Left},
+    {"aaa bbb   ", 5, 5, 4, 4, "0..4 0..5", "2..5 1..5 4..5", Format::Left},
+    {"aaa bbb   ", 6, 6, 6, 6, "0..4 0..6", "3..6 0..6", Format::Left},
+    {"aaa bbb   ", 7, 7, 7, 7, "0..7 0..2", "0..7 4..7", Format::Left},
+    {"aaa bbb   ", 8, 8, 7, 7, "0..8 0..1", "1..8 6..8", Format::Left},
+    {"aaa bbb   ", 9, 9, 8, 8, "0..9", "1..9 8..9", Format::Left},
+    {"aaa bbb   ", 10, 10, 10, 10, "0..10", "0..10", Format::Left},
+    {"aaa \nbbb", 2, 3, 3, 3, "0..2 - 0..2", "0..2 1..2 0..2", Format::Left},
+    {"aaa \nbbb", 3, 3, 3, 3, "0..3 - 0..3", "0..3 2..3 0..3", Format::Left},
+    {"aaa \nbbb", 4, 4, 4, 4, "0..4 0..3", "0..4 1..4", Format::Left},
+    {"aaa \nbbb", 5, 4, 4, 4, "0..4 0..3", "1..5 2..5", Format::Left},
+    {"aaa \nbbb", 6, 4, 4, 4, "0..4 0..3", "2..6 3..6", Format::Left},
+    {"aaa \nbbb", 7, 4, 4, 4, "0..4 0..3", "3..7 4..7", Format::Left},
+    {"aaa \nbbb", 8, 4, 4, 4, "0..4 0..3", "4..8 5..8", Format::Left},
+    {"aaa  \nbbb", 2, 3, 3, 3, "0..2 0..1 0..2", "0..2 0..2 0..2", Format::Left},
+    {"aaa  \nbbb", 3, 3, 3, 3, "0..3 0..1 0..3", "0..3 1..3 0..3", Format::Left},
+    {"aaa  \nbbb", 4, 4, 3, 3, "0..4 - 0..3", "1..4 3..4 1..4", Format::Left},
+    {"aaa  \nbbb", 5, 5, 5, 5, "0..5 0..3", "0..5 2..5", Format::Left},
+    {"aaa  \nbbb", 6, 5, 5, 5, "0..5 0..3", "1..6 3..6", Format::Left},
+    {"aaa  \nbbb", 7, 5, 5, 5, "0..5 0..3", "2..7 4..7", Format::Left},
+    {"aaa  \nbbb", 8, 5, 5, 5, "0..5 0..3", "3..8 5..8", Format::Left},
+    {"aaa  \nbbb", 9, 5, 5, 5, "0..5 0..3", "4..9 6..9", Format::Left},
+    {"aaa \n bbb", 2, 3, 3, 3, "0..2 - 0..1 0..2", "0..2 1..2 - 0..2", Format::Left},
+    {"aaa \n bbb", 3, 3, 3, 3, "0..3 - 0..1 0..3", "0..3 2..3 - 0..3", Format::Left},
+    {"aaa \n bbb", 4, 4, 4, 4, "0..4 0..4", "0..4 0..4", Format::Left},
+    {"aaa \n bbb", 5, 4, 4, 4, "0..4 0..4", "1..5 1..5", Format::Left},
+    {"aaa \n bbb", 6, 4, 4, 4, "0..4 0..4", "2..6 2..6", Format::Left},
+    {"aaa \n bbb", 7, 4, 4, 4, "0..4 0..4", "3..7 3..7", Format::Left},
+    {"aaa \n bbb", 8, 4, 4, 4, "0..4 0..4", "4..8 4..8", Format::Left},
+    {"aaa \n bbb", 9, 4, 4, 4, "0..4 0..4", "5..9 5..9", Format::Left},
+    {" ", 2, 1, 1, 1, "0..1", "1..2", Format::Left},
+    {" ", 3, 1, 1, 1, "0..1", "2..3", Format::Left},
+    {"   ", 2, 2, 1, 1, "0..2", "1..2 1..2", Format::Left},
+    {"   ", 3, 3, 3, 3, "0..3", "0..3", Format::Left},
+    {"a   ", 2, 2, 2, 1, "0..2 0..1", "1..2 0..2", Format::Left},
+    {"a   ", 3, 3, 2, 2, "0..3", "1..3 2..3", Format::Left},
+    {"a   ", 4, 4, 4, 4, "0..4", "0..4", Format::Left},
+    {"aaa\tbbb", 4, 3, 3, 3, "0..3 0..3", "1..4 1..4", Format::Left},
+    {"aaa\t\tbbb", 4, 3, 3, 3, "0..3 0..3", "1..4 1..4", Format::Left},
+    {"aaa \tbbb", 4, 4, 4, 4, "0..4 0..3", "0..4 1..4", Format::Left},
+    {"aaa\t bbb", 4, 4, 3, 3, "0..4 0..3", "1..4 1..4", Format::Left},
+    {"aaa\tbbb", 4, 3, 3, 3, "0..3 0..3", "1..4 - 1..4", Format::ExpandTabs},
+    {"aaa\tbbb", 9, 8, 3, 3, "0..8 0..3", "6..9 6..9", Format::ExpandTabs},
+    {"aaa\t\tbbb", 9, 8, 3, 3, "0..8 0..3", "6..9 - 6..9", Format::ExpandTabs},
+    {"aaa\tbbb ccc", 12, 12, 11, 11, "0..12 0..3", "1..12 9..12", Format::ExpandTabs},
+    {"aaa\tbbb ccc", 11, 11, 11, 11, "0..11 0..3", "0..11 7..11", Format::ExpandTabs},
+    {"a&a bbb", 3, 3, 3, 3, "0..3 0..3", "1..3 0..3", Format::Left},
+    {"aaa &bbb", 4, 4, 3, 3, "0..4 0..3", "1..4 1..4", Format::Left},
+    {"aaa& bbb", 4, 4, 3, 3, "0..4 0..3", "1..4 1..4", Format::Left},
 };
 
 // What the underline probe saw: each line's [x, x + width) clipped to the rectangle, in cells.
@@ -316,15 +316,15 @@ int CheckRules() {
     for (const RuleCase& rule : kRuleCases) {
         const std::u32string text = DecodeCp1251(rule.text);
         const Rect rect{0, 0, rule.cells * kCell, 1000};
-        const unsigned base = kWordBreak | rule.extra;
-        const unsigned aligns[3] = {kLeft, kRight, kCenter};
+        const Format base = Format::WordBreak | rule.extra;
+        const Format aligns[3] = {Format::Left, Format::Right, Format::Center};
         const int calc[3] = {rule.calcLeft, rule.calcRight, rule.calcCentre};
         for (int i = 0; i < 3; ++i) {
             TextLayout layout;
-            Layout(font, text, rect, base | aligns[i] | kCalcRect, layout);
+            Layout(font, text, rect, base | aligns[i] | Format::CalcRect, layout);
             ++checks;
             if (layout.rect.right != calc[i] * kCell)
-                fail("\"" + Utf8(text) + "\" W" + std::to_string(rule.cells) + " " + FormatName(base | aligns[i] | kCalcRect) +
+                fail("\"" + Utf8(text) + "\" W" + std::to_string(rule.cells) + " " + FormatName(base | aligns[i] | Format::CalcRect) +
                      ": width " + std::to_string(layout.rect.right / kCell) + ", DrawText " + std::to_string(calc[i]));
         }
         for (int i = 0; i < 2; ++i) {
@@ -342,35 +342,35 @@ int CheckRules() {
     // Line breaks, prefixes, tabs, the return value (measured with Times New Roman 13 px; restated in cells).
     struct Simple {
         const char* text;
-        unsigned format;
+        Format format;
         int height;    // rectangle height (0: tall)
         int result;    // return value in lines (-1: the special value 1 of an empty text)
         int width;     // DT_CALCRECT width in cells
     };
     const Simple simples[] = {
-        {"", 0, 0, -1, 0},
-        {"abc", 0, 0, 1, 3},
-        {"abc\n", 0, 0, 2, 3},
-        {"abc\r\n", 0, 0, 2, 3},
-        {"\n", 0, 0, 2, 0},
-        {"\n\n", 0, 0, 3, 0},
-        {"\r\n\r\n", 0, 0, 3, 0},
-        {"\n\r", 0, 0, 2, 0},
-        {"\r\r", 0, 0, 3, 0},
-        {"a\n\rb", 0, 0, 2, 1},
-        {"a\r\rb", 0, 0, 3, 1},
-        {"abc   ", kRight, 0, 1, 6},
-        {"abc   ", kRight | kWordBreak, 0, 1, 6},
-        {"&abc", 0, 0, 1, 3},
-        {"a&&b", 0, 0, 1, 3},
-        {"a&&b", kNoPrefix, 0, 1, 4},
-        {"abc&", 0, 0, 1, 3},
-        {"&ab&cd", 0, 0, 1, 4},
-        {"a\tb", 0, 0, 1, 2},
-        {"a\tb", kExpandTabs, 0, 1, 9},
-        {"abc", kVCenter, 0, 1, 3},
-        {"a\nb\nc\nd\ne\nf", 0, 20, 2, 1},
-        {"aaa bbb ccc ddd eee fff ggg", kWordBreak, 20, 2, 4},
+        {"", Format::Left, 0, -1, 0},
+        {"abc", Format::Left, 0, 1, 3},
+        {"abc\n", Format::Left, 0, 2, 3},
+        {"abc\r\n", Format::Left, 0, 2, 3},
+        {"\n", Format::Left, 0, 2, 0},
+        {"\n\n", Format::Left, 0, 3, 0},
+        {"\r\n\r\n", Format::Left, 0, 3, 0},
+        {"\n\r", Format::Left, 0, 2, 0},
+        {"\r\r", Format::Left, 0, 3, 0},
+        {"a\n\rb", Format::Left, 0, 2, 1},
+        {"a\r\rb", Format::Left, 0, 3, 1},
+        {"abc   ", Format::Right, 0, 1, 6},
+        {"abc   ", Format::Right | Format::WordBreak, 0, 1, 6},
+        {"&abc", Format::Left, 0, 1, 3},
+        {"a&&b", Format::Left, 0, 1, 3},
+        {"a&&b", Format::NoPrefix, 0, 1, 4},
+        {"abc&", Format::Left, 0, 1, 3},
+        {"&ab&cd", Format::Left, 0, 1, 4},
+        {"a\tb", Format::Left, 0, 1, 2},
+        {"a\tb", Format::ExpandTabs, 0, 1, 9},
+        {"abc", Format::VCenter, 0, 1, 3},
+        {"a\nb\nc\nd\ne\nf", Format::Left, 20, 2, 1},
+        {"aaa bbb ccc ddd eee fff ggg", Format::WordBreak, 20, 2, 4},
     };
     for (const Simple& simple : simples) {
         const std::u32string text = DecodeCp1251(simple.text);
@@ -378,7 +378,7 @@ int CheckRules() {
         if (simple.height) rect.right = 50;
         TextLayout drawn, measured;
         Layout(font, text, rect, simple.format, drawn);
-        Layout(font, text, rect, simple.format | kCalcRect, measured);
+        Layout(font, text, rect, simple.format | Format::CalcRect, measured);
         const int want = simple.result < 0 ? 1 : simple.result * 18;
         ++checks;
         if (drawn.result != want)
@@ -386,7 +386,7 @@ int CheckRules() {
                  std::to_string(want));
         ++checks;
         if (measured.rect.right != simple.width * kCell)
-            fail("\"" + Utf8(text) + "\" " + FormatName(simple.format | kCalcRect) + ": width " + std::to_string(measured.rect.right) +
+            fail("\"" + Utf8(text) + "\" " + FormatName(simple.format | Format::CalcRect) + ": width " + std::to_string(measured.rect.right) +
                  ", DrawText " + std::to_string(simple.width * kCell));
     }
     // Underlines: the last prefix character's cell, one pixel at ascent + 1.
@@ -396,7 +396,7 @@ int CheckRules() {
     };
     for (const Underline& underline : {Underline{"&abc", 0}, Underline{"&ab&cd", 2}, Underline{"a&&b", -1}}) {
         TextLayout layout;
-        Layout(font, DecodeCp1251(underline.text), Rect{0, 0, 300, 100}, 0, layout);
+        Layout(font, DecodeCp1251(underline.text), Rect{0, 0, 300, 100}, Format::Left, layout);
         ++checks;
         const bool ok = underline.cell < 0 ? layout.underlines.empty()
                                            : layout.underlines.size() == 1 && layout.underlines[0].left == underline.cell * kCell &&
@@ -670,9 +670,9 @@ std::vector<FontSpec> FontSpecs() {
     return out;
 }
 
-const unsigned kFormats[] = {
-    0, kWordBreak, kWordBreak | kCenter, kWordBreak | kRight, kWordBreak | kExpandTabs, kCenter | kVCenter, kWordBreak | kNoPrefix, kRight,
-    kCenter | kVCenter | kSingleLine, kSingleLine, kSingleLine | kEndEllipsis, kCenter | kVCenter | kSingleLine | kEndEllipsis,
+const Format kFormats[] = {
+    Format::Left, Format::WordBreak, Format::WordBreak | Format::Center, Format::WordBreak | Format::Right, Format::WordBreak | Format::ExpandTabs, Format::Center | Format::VCenter, Format::WordBreak | Format::NoPrefix, Format::Right,
+    Format::Center | Format::VCenter | Format::SingleLine, Format::SingleLine, Format::SingleLine | Format::EndEllipsis, Format::Center | Format::VCenter | Format::SingleLine | Format::EndEllipsis,
 };
 const int kWidths[] = {90, 220, 420};   // in the 800 x 600 layout, scaled to the screen
 
@@ -731,7 +731,7 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
             const std::u32string text = DecodeCp1251(test.bytes.c_str(), static_cast<int>(test.bytes.size()));
             bool breaksDiffer = false;
             int variant = 0;
-            for (unsigned format : kFormats) {
+            for (Format format : kFormats) {
                 for (int width : kWidths) {
                     ++variant;
                     const int rectWidth = width * spec.screenWidth / 800;
@@ -739,9 +739,9 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                     if (options.gdi) {
                         // Return value and DT_CALCRECT.
                         RECT gdiRect = ToGdi(rect);
-                        const int gdiResult = DrawTextA(measure.dc, test.bytes.c_str(), -1, &gdiRect, format | DT_CALCRECT);
+                        const int gdiResult = DrawTextA(measure.dc, test.bytes.c_str(), -1, &gdiRect, static_cast<UINT>(format) | DT_CALCRECT);
                         TextLayout ours;
-                        Layout(gdiFont, text, rect, format | kCalcRect, ours);
+                        Layout(gdiFont, text, rect, format | Format::CalcRect, ours);
                         ++stats.layouts;
                         const bool same = gdiResult == ours.result && FromGdi(gdiRect) == ours.rect;
                         if (!same) {
@@ -760,13 +760,13 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                         if (pixelCase && gdiResult < 4000) {
                             // A single line is placed in heights that leave even, odd and negative room around it.
                             const int heights[4] = {gdiResult + lineHeight, lineHeight, 2 * lineHeight + 1, std::max(1, lineHeight - 3)};
-                            const int cases = (format & kSingleLine) ? 4 : test.synthetic && (format & kWordBreak) ? 3 : 1;
+                            const int cases = (lib::Has(format, Format::SingleLine)) ? 4 : test.synthetic && (lib::Has(format, Format::WordBreak)) ? 3 : 1;
                             for (int h = 0; h < cases; ++h) {
                                 const Rect drawRect{8, 4, 8 + rectWidth, 4 + heights[h]};
                                 Dib gdi(rectWidth + 16, heights[h] + 8);
                                 SelectObject(gdi.dc, hfont);
                                 RECT drawGdi = ToGdi(drawRect);
-                                const int drawnResult = DrawTextA(gdi.dc, test.bytes.c_str(), -1, &drawGdi, format);
+                                const int drawnResult = DrawTextA(gdi.dc, test.bytes.c_str(), -1, &drawGdi, static_cast<UINT>(format));
                                 GdiFlush();
                                 TextLayout drawn;
                                 Layout(gdiFont, text, drawRect, format, drawn);
@@ -792,8 +792,8 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                     }
                     if (stbFont && !test.synthetic) {
                         TextLayout gdiLines, stbLines;
-                        Layout(gdiFont, text, rect, format | kCalcRect, gdiLines);
-                        Layout(*stbFont, text, rect, format | kCalcRect, stbLines);
+                        Layout(gdiFont, text, rect, format | Format::CalcRect, gdiLines);
+                        Layout(*stbFont, text, rect, format | Format::CalcRect, stbLines);
                         ++stats.reportCases;
                         bool differ = gdiLines.lines.size() != stbLines.lines.size();
                         for (std::size_t i = 0; !differ && i < gdiLines.lines.size(); ++i)
@@ -903,7 +903,7 @@ int RunGdi(const std::string& textsPath, const Options& options) {
 
 // --explain <text> <rect width> <format>: our lines with the first font, and what GDI measures for each.
 // The text is read from the wide command line; \n, \r and \t escapes give line breaks and tabs.
-int Explain(int rectWidth, unsigned format, int fontIndex) {
+int Explain(int rectWidth, Format format, int fontIndex) {
     int argc = 0;
     wchar_t** wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
     std::wstring wide;
@@ -923,15 +923,15 @@ int Explain(int rectWidth, unsigned format, int fontIndex) {
     Dib dib(1, 1);
     SelectObject(dib.dc, hfont);
     RECT gdiRect{0, 0, rectWidth, 10000};
-    const int gdiResult = DrawTextA(dib.dc, bytes.c_str(), -1, &gdiRect, format | DT_CALCRECT);
+    const int gdiResult = DrawTextA(dib.dc, bytes.c_str(), -1, &gdiRect, static_cast<UINT>(format) | DT_CALCRECT);
     std::printf("GDI: %d, width %d\n", gdiResult, int(gdiRect.right));
     const std::u32string text = DecodeCp1251(bytes.c_str());
     TextLayout layout;
-    Layout(font, text, Rect{0, 0, rectWidth, 10000}, format | kCalcRect, layout);
+    Layout(font, text, Rect{0, 0, rectWidth, 10000}, format | Format::CalcRect, layout);
     std::printf("ours: %d, width %d\n", layout.result, layout.rect.right);
     for (int height : {15, 31, 46, 10000}) {
         RECT drawRect{0, 0, rectWidth, height};
-        const int drawn = DrawTextA(dib.dc, bytes.c_str(), -1, &drawRect, format);
+        const int drawn = DrawTextA(dib.dc, bytes.c_str(), -1, &drawRect, static_cast<UINT>(format));
         TextLayout ours;
         Layout(font, text, Rect{0, 0, rectWidth, height}, format, ours);
         std::printf("  height %d: GDI draws %d, ours %d (%zu lines)\n", height, drawn, ours.result, ours.lines.size());
@@ -953,7 +953,7 @@ int Explain(int rectWidth, unsigned format, int fontIndex) {
     SetBkMode(picture.dc, TRANSPARENT);
     SetTextColor(picture.dc, RGB(255, 255, 255));
     RECT drawRect{4, 4, 4 + rectWidth, pictureHeight - 4};
-    DrawTextA(picture.dc, bytes.c_str(), -1, &drawRect, format);
+    DrawTextA(picture.dc, bytes.c_str(), -1, &drawRect, static_cast<UINT>(format));
     GdiFlush();
     TextLayout drawn;
     Layout(font, text, Rect{4, 4, 4 + rectWidth, pictureHeight - 4}, format, drawn);
@@ -998,8 +998,8 @@ int Pictures(const std::string& outPath, const std::string& textsPath, int fontI
         for (int width : {220, 420}) {
             const int rectWidth = width * spec.screenWidth / 800;
             TextLayout a, b;
-            Layout(gdiFont, text, Rect{0, 0, rectWidth, 100000}, kWordBreak | kCalcRect, a);
-            Layout(stbFont, text, Rect{0, 0, rectWidth, 100000}, kWordBreak | kCalcRect, b);
+            Layout(gdiFont, text, Rect{0, 0, rectWidth, 100000}, Format::WordBreak | Format::CalcRect, a);
+            Layout(stbFont, text, Rect{0, 0, rectWidth, 100000}, Format::WordBreak | Format::CalcRect, b);
             bool differ = a.lines.size() != b.lines.size();
             for (std::size_t i = 0; !differ && i < a.lines.size(); ++i) differ = a.lines[i].begin != b.lines[i].begin || a.lines[i].end != b.lines[i].end;
             if (differ) all.push_back({test.bytes, text, rectWidth, std::max(a.result, b.result), a.lines.size(), b.lines.size()});
@@ -1029,10 +1029,10 @@ int Pictures(const std::string& outPath, const std::string& textsPath, int fontI
     for (const Case& c : cases) {
         const int top = y + pad, bottom = y + pad + c.height;
         RECT gdiRect{pad, top, pad + c.width, bottom};
-        DrawTextA(picture.dc, c.bytes.c_str(), -1, &gdiRect, kWordBreak);
+        DrawTextA(picture.dc, c.bytes.c_str(), -1, &gdiRect, static_cast<UINT>(Format::WordBreak));
         const int x = panel + pad + pad;
         TextLayout layout;
-        Layout(stbFont, c.text, Rect{x, top, x + c.width, bottom}, kWordBreak, layout);
+        Layout(stbFont, c.text, Rect{x, top, x + c.width, bottom}, Format::WordBreak, layout);
         ComposeAgainstBlack(stbFont, layout, 0xFFFFFF, mine.data(), picture.width, picture.height, picture.width);
         for (int edge : {pad - 2, pad + c.width + 1, x - 2, x + c.width + 1}) {
             RECT line{edge, top - 2, edge + 1, bottom + 2};
@@ -1077,7 +1077,7 @@ int main(int argc, char** argv) {
     if ((argc == 5 || argc == 6) && std::string(argv[1]) == "--explain") {
         const int font = argc == 6 ? std::atoi(argv[5]) : 0;
         if (font < 0 || font >= static_cast<int>(FontSpecs().size())) return 2;
-        return Explain(std::atoi(argv[3]), static_cast<unsigned>(std::strtoul(argv[4], nullptr, 0)), font);
+        return Explain(std::atoi(argv[3]), static_cast<Format>(std::strtoul(argv[4], nullptr, 0)), font);
     }
     if ((argc >= 3 && argc <= 5) && std::string(argv[1]) == "--pictures") {
         const int font = argc >= 4 ? std::atoi(argv[3]) : 0;

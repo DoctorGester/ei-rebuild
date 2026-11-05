@@ -165,7 +165,7 @@ bool SocketDriver::Receive(NetAddress* from, GrowingBuffer* buffer) {
 MasterLink::MasterLink(const NetAddress* address) {
     socket = sockets::Open(sockets::Kind::Tcp);
     if (socket == kNoSocket) {
-        state = 0;
+        state = State::Closed;
         return;
     }
     sockets::Address any{};
@@ -173,12 +173,12 @@ MasterLink::MasterLink(const NetAddress* address) {
     if (!sockets::Bind(socket, any)) {
         if (socket != kNoSocket) sockets::Close(socket);
         socket = kNoSocket;
-        state = 0;
+        state = State::Closed;
         return;
     }
     sockets::SetNonBlocking(socket, true);
     sockets::Connect(socket, *address);
-    state = 1;
+    state = State::Connecting;
 }
 
 // Closes the socket (left as it is); the buffers are destroyed after it (in, then out).
@@ -191,30 +191,30 @@ MasterLink::~MasterLink() {
 // socket (0). Each step waits at most kSelectTimeout (a poll). The failure check after a select that found the
 // socket not ready asks with the set that select emptied, which always fails: an error never closes the link
 // there. Returns the state.
-int MasterLinkTick(MasterLink* self) {
+MasterLink::State MasterLinkTick(MasterLink* self) {
     sockets::SocketGroup set(self->socket);
-    auto close = [self](std::int32_t state) {
+    auto close = [self](MasterLink::State state) {
         if (self->socket != kNoSocket) sockets::Close(self->socket);
         self->socket = kNoSocket;
         self->state = state;
     };
     switch (self->state) {
-    case 1:
+    case MasterLink::State::Connecting:
         if (sockets::Select(nullptr, &set, nullptr, kSelectTimeout) == 1) {
-            self->state = 4;
+            self->state = MasterLink::State::Sending;
             return self->state;
         }
-        if (sockets::Select(nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
+        if (sockets::Select(nullptr, nullptr, &set, kSelectTimeout) == 1) close(MasterLink::State::Closed);
         return self->state;
-    case 2: {
+    case MasterLink::State::Receiving: {
         if (sockets::Select(&set, nullptr, nullptr, kSelectTimeout) != 1) {
-            if (sockets::Select(nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
+            if (sockets::Select(nullptr, nullptr, &set, kSelectTimeout) == 1) close(MasterLink::State::Closed);
             return self->state;
         }
         std::uint8_t data[0x800];
         int n = sockets::Receive(self->socket, data, 0x800);
         if (n == -1) {
-            close(0);
+            close(MasterLink::State::Closed);
             return self->state;
         }
         if (n == 0) {
@@ -224,23 +224,23 @@ int MasterLinkTick(MasterLink* self) {
                 received->PositionOf(received->high) ==
                     0)
                 return self->state;
-            close(3);
+            close(MasterLink::State::Done);
             return self->state;
         }
         self->in.Seek(self->in.Size());
         self->in.Write(data, static_cast<std::uint32_t>(n));
         return self->state;
     }
-    case 4: {
+    case MasterLink::State::Sending: {
         if (sockets::Select(nullptr, &set, nullptr, kSelectTimeout) != 1) {
-            if (sockets::Select(nullptr, nullptr, &set, kSelectTimeout) == 1) close(0);
+            if (sockets::Select(nullptr, nullptr, &set, kSelectTimeout) == 1) close(MasterLink::State::Closed);
             return self->state;
         }
-        self->state = 2;
+        self->state = MasterLink::State::Receiving;
         sockets::SetNonBlocking(self->socket, false);
         int sent = sockets::Send(self->socket, self->out.begin, self->out.Size());
         sockets::SetNonBlocking(self->socket, true);
-        if (sent != self->out.Size()) close(0);
+        if (sent != self->out.Size()) close(MasterLink::State::Closed);
         return self->state;
     }
     default:

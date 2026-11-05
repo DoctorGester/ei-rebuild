@@ -21,9 +21,9 @@ Item* CreateItem(ItemManager* factory, std::string_view name) {   // patched by 
 }
 
 void AddItems(const UnitRecord& record, Unit* unit, ItemManager* factory) {
-    for (const std::string& name : record.lists[UnitRecord::kQuickItems])
+    for (const std::string& name : record.lists[UnitRecord::List::QuickItems])
         unit->AddQuickItem(CreateItem(factory, name));
-    for (const std::string& name : record.lists[UnitRecord::kCarried]) unit->AddCarried(CreateItem(factory, name));
+    for (const std::string& name : record.lists[UnitRecord::List::Carried]) unit->AddCarried(CreateItem(factory, name));
 }
 
 } // namespace
@@ -78,10 +78,10 @@ void UnitRecord::ApplyTo(Unit* target) {
     for (std::size_t i = 0; i < 6; ++i) s.conspicuity[i].base = s.conspicuity[i].current = r.conspicuity[i];
     std::memmove(s.attributes, r.attributes, sizeof r.attributes);
 
-    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name, g_serverWorld.spellManager.get()));
+    for (const std::string& name : lists[List::Spells]) unit->AddSpell(factory->CreateSpellItem(name, g_serverWorld.spellManager.get()));
     AddItems(*this, unit, factory);
-    for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name));
-    for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name));
+    for (const std::string& name : lists[List::Armour]) unit->EquipArmour(CreateItem(factory, name));
+    for (const std::string& name : lists[List::Weapons]) unit->AddWeapon(CreateItem(factory, name));
 }
 
 } // namespace unitrecord

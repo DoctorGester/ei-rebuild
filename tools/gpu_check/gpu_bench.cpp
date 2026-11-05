@@ -189,11 +189,11 @@ bool MakeWorld(World* w) {
     g::Write(w->instances, 0, instance, sizeof(instance));
     std::vector<std::uint32_t> texels(64 * 64, 0xFF808080u);
     for (g::Texture& t : w->textures) {
-        t = g::MakeTexture({64, 64, 1, 1, g::Format::Rgba8, g::kSampled, "bench texture"});
+        t = g::MakeTexture({64, 64, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "bench texture"});
         if (!t) return false;
         g::Write(t, 0, {0, 0, 64, 64}, texels.data(), 64 * 4);
     }
-    w->range = g::MakeTexture({256, 256, 1, 1, g::Format::Rgba32Float, g::kSampled, "bench range"});
+    w->range = g::MakeTexture({256, 256, 1, 1, g::Format::Rgba32Float, g::TextureUse::Sampled, "bench range"});
     const std::vector<float> rangeTexels(256 * 256 * 4, 0.5f);
     g::Write(w->range, 0, {0, 0, 256, 256}, rangeTexels.data(), 256 * 16);
     w->linear = g::MakeSampler({});
@@ -350,9 +350,9 @@ std::pair<double, double> Range(const std::vector<double>& v) {
 // the rounds' medians.
 void Frames(const char* driver, int width, int height, World& world, int count) {
     Targets t;
-    t.shadow = g::MakeTexture({4096, 4096, 1, 1, g::Format::Depth32Float, g::kDepthTarget | g::kSampled, "bench shadow"});
-    t.colour = g::MakeTexture({width, height, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "bench colour"});
-    t.depth = g::MakeTexture({width, height, 1, 1, g::Format::Depth32Float, g::kDepthTarget, "bench depth"});
+    t.shadow = g::MakeTexture({4096, 4096, 1, 1, g::Format::Depth32Float, g::TextureUse::DepthTarget | g::TextureUse::Sampled, "bench shadow"});
+    t.colour = g::MakeTexture({width, height, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "bench colour"});
+    t.depth = g::MakeTexture({width, height, 1, 1, g::Format::Depth32Float, g::TextureUse::DepthTarget, "bench depth"});
     if (!t.shadow || !t.colour || !t.depth) {
         std::printf("gpu_bench: %s: no targets for %dx%d\n", driver, width, height);
         return;
@@ -393,7 +393,7 @@ void Frames(const char* driver, int width, int height, World& world, int count) 
 // read), drawn (a pass clearing it, then the read), and polled (the download recorded with a frame and read a frame
 // later without a wait: the cost of the calls).
 void Readbacks(const char* driver, int width, int height, int count) {
-    g::Texture target = g::MakeTexture({width, height, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "bench frame"});
+    g::Texture target = g::MakeTexture({width, height, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "bench frame"});
     if (!target) return;
     auto draw = [&](float shade) {
         g::PassDesc p;

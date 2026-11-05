@@ -176,7 +176,7 @@ void UiEditField::PaintContents(UiSurface& surface) const {
     const int width = area.Width();
     const int height = area.Height();
     Rect box{0, 0, width, height};
-    surface.DrawTextIn(currentText, box, TextStyle{font, colour, centred ? render::text::kNoPrefix | render::text::kCenter : render::text::kNoPrefix});
+    surface.DrawTextIn(currentText, box, TextStyle{font, colour, centred ? render::text::Format::NoPrefix | render::text::Format::Center : render::text::Format::NoPrefix});
     // The caret stands after the first caret characters; a centred text starts half its width left
     // of the middle.
     int caretX = g_interface.TextExtent(str::Left(currentText, caret), font).w;

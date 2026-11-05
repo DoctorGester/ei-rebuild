@@ -215,31 +215,31 @@ void ExchangeScreen::DrawSprites(SceneRenderer* pass) {
     // Surface 0: our money and the accept caption.
     text = texts->GetString("xch_current_money");
     line = std::format("{} {}", text, LocalPlayerData()->money);
-    labels[0].push_back({line, Rect{0, 0, 200, 0x14}, {kFont, kWhite, render::text::kCenter}});
+    labels[0].push_back({line, Rect{0, 0, 200, 0x14}, {kFont, kWhite, render::text::Format::Center}});
     text = texts->GetString("xch_accept");
-    labels[0].push_back({text, Rect{0, 0x14, 200, 0x28}, {kFont, kWhite, render::text::kCenter}});
+    labels[0].push_back({text, Rect{0, 0x14, 200, 0x28}, {kFont, kWhite, render::text::Format::Center}});
 
     // Surface 1: the money offer's caption.
     text = texts->GetString("xch_money_offer");
-    labels[1].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
+    labels[1].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::Format::Center}, kWrapLines});
 
     // Surface 2: the partner's money, while its offer pairs with ours.
     net::PartyMessage* partner = client->FindParty();
     if (IsLive(partner)) {
         text = texts->GetString("xch_money_remote");
-        labels[2].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
+        labels[2].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::Format::Center}, kWrapLines});
         line = std::format("{}", partnerOffer->money);
-        labels[2].push_back({line, Rect{0, 0x28, 200, 0x3C}, {kFont, kWhite, render::text::kCenter}});
+        labels[2].push_back({line, Rect{0, 0x28, 200, 0x3C}, {kFont, kWhite, render::text::Format::Center}});
     }
 
     // Surface 3: whether the partner accepted.
     partner = client->FindParty();
     if (IsLive(partner)) {
         text = texts->GetString("xch_remote_header");
-        labels[3].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::kCenter}, kWrapLines});
+        labels[3].push_back({text, Rect{0x14, 0, 0xB4, 0x14}, {1, kWhite, render::text::Format::Center}, kWrapLines});
         text = texts->GetString(client->FindParty()->accepted ? "xch_remote_ok"
                                                               : "xch_remote_cancel");
-        labels[3].push_back({text, Rect{0, 0x28, 200, 0x3C}, {kFont, kUiTextColour, render::text::kCenter}});
+        labels[3].push_back({text, Rect{0, 0x28, 200, 0x3C}, {kFont, kUiTextColour, render::text::Format::Center}});
     }
 
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;

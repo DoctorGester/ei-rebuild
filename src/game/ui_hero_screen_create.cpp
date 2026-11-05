@@ -282,7 +282,7 @@ void MpHeroScreen::CreateScreen() {
     int top = 16;
     for (const char* key : commandKeys) {
         line = texts->GetString(key);
-        commands.push_back({line, Rect{0, top, 290, top + 20}, {1, kWhite, render::text::kCenter}});
+        commands.push_back({line, Rect{0, top, 290, top + 20}, {1, kWhite, render::text::Format::Center}});
         top += 24;
     }
 

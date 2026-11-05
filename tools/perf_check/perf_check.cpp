@@ -113,7 +113,7 @@ void CheckText() {
 constexpr gpu::Format kTargetFormat = gpu::Format::Bgra8;
 
 gpu::Texture MakeTarget(int width, int height) {
-    return gpu::MakeTexture({width, height, 1, 1, kTargetFormat, gpu::kColourTarget, "perf-check-target"});
+    return gpu::MakeTexture({width, height, 1, 1, kTargetFormat, gpu::TextureUse::ColourTarget, "perf-check-target"});
 }
 
 constexpr std::uint8_t kClear[3] = {160, 90, 40};   // B, G, R

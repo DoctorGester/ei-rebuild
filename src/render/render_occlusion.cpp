@@ -58,9 +58,9 @@ static bool EnsureTextures(int width, int height) {
     if (w == g_width && h == g_height && g_depth && g_occlusion && g_across) return true;
     for (gpu::Texture* t : {&g_depth, &g_occlusion, &g_across}) gpu::Release(*t);
     g_width = g_height = 0;
-    g_depth = gpu::MakeTexture({w, h, 1, 1, kDepthFormat, gpu::kDepthTarget | gpu::kSampled, "ei-occlusion-depth"});
-    g_occlusion = gpu::MakeTexture({w, h, 1, 1, gpu::Format::R8, gpu::kColourTarget | gpu::kSampled, "ei-occlusion"});
-    g_across = gpu::MakeTexture({w, h, 1, 1, gpu::Format::R8, gpu::kColourTarget | gpu::kSampled, "ei-occlusion-across"});
+    g_depth = gpu::MakeTexture({w, h, 1, 1, kDepthFormat, gpu::TextureUse::DepthTarget | gpu::TextureUse::Sampled, "ei-occlusion-depth"});
+    g_occlusion = gpu::MakeTexture({w, h, 1, 1, gpu::Format::R8, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-occlusion"});
+    g_across = gpu::MakeTexture({w, h, 1, 1, gpu::Format::R8, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-occlusion-across"});
     if (!g_depth || !g_occlusion || !g_across) {
         ei::Log("render: the ambient occlusion's %dx%d textures could not be made", w, h);
         return false;
@@ -90,7 +90,7 @@ static void FullScreenPass(gpu::Pipeline pipeline, const gpu::Texture& target,
     pass.colour.load = gpu::Load::DontCare;
     pass.label = label;
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the ambient occlusion's pass could not begin (%s).", gpu::Error());
-    ++g_stats.counts[FrameStats::Passes];
+    ++g_stats.counts[FrameStats::Count::Passes];
     gpu::ApplyPipeline(pipeline);
     gpu::BindTextures(gpu::Stage::Fragment, 0, textures);
     gpu::PushUniforms(gpu::Stage::Fragment, 0, params, bytes);
@@ -168,7 +168,7 @@ void DrawOcclusion(Frame& f) {
     pass.depth = {g_depth, 0, gpu::Load::Clear, 1.0f, true};
     pass.label = "ei-occlusion-depth";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the ambient occlusion's pass could not begin (%s).", gpu::Error());
-    ++g_stats.counts[FrameStats::Passes];
+    ++g_stats.counts[FrameStats::Count::Passes];
     g_info.terrainDraws = DrawTerrainDepth(f, g_terrainPipeline);
     if (drawMeshes) g_depthDraws.Draw(0, g_depthDraws.Count());
     g_info.meshDraws = static_cast<int>(drawMeshes ? g_depthDraws.Count() : 0);

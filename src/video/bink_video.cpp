@@ -20,17 +20,17 @@ namespace bink {
 
 namespace {
 
-enum BlockType {
-    kSkip = 0,      // the previous frame's block
-    kScaled = 1,    // a 16x16 block: an 8x8 one of the subtype below doubled
-    kMotion = 2,    // the previous frame's block moved
-    kRun = 3,       // runs of one colour and of single colours along a pattern
-    kResidue = 4,   // moved, plus a residue
-    kIntra = 5,     // DCT
-    kFill = 6,      // one colour
-    kInter = 7,     // moved, plus a DCT residual
-    kPattern = 8,   // two colours by a bit pattern
-    kRaw = 9,       // 64 colours
+enum class BlockType : int {
+    Skip = 0,      // the previous frame's block
+    Scaled = 1,    // a 16x16 block: an 8x8 one of the subtype below doubled
+    Motion = 2,    // the previous frame's block moved
+    Run = 3,       // runs of one colour and of single colours along a pattern
+    Residue = 4,   // moved, plus a residue
+    Intra = 5,     // DCT
+    Fill = 6,      // one colour
+    Inter = 7,     // moved, plus a DCT residual
+    Pattern = 8,   // two colours by a bit pattern
+    Raw = 9,       // 64 colours
 };
 
 // ---- Prefix codes ----
@@ -489,8 +489,8 @@ public:
             ReadDc(bits, interDc, true);
             ReadRuns(bits, runs);
             for (int x = 0; x < to.width;) {
-                const int type = blockTypes.Next();
-                if (type == kScaled) {
+                const auto type = static_cast<BlockType>(blockTypes.Next());
+                if (type == BlockType::Scaled) {
                     // A 16x16 block covers the next row's two blocks too; their entries there are skipped.
                     if (!(y & 8)) Scaled(to, x, y);
                     x += 16;
@@ -503,17 +503,17 @@ public:
     }
 
 private:
-    void Block(int type, Plane& to, const Plane& from, int x, int y) {
+    void Block(BlockType type, Plane& to, const Plane& from, int x, int y) {
         std::uint8_t* out = to.Row(y) + x;
         std::uint8_t block[64];
         switch (type) {
-        case kSkip:
+        case BlockType::Skip:
             CopyBlock(out, to.stride, from.Row(y) + x, from.stride);
             break;
-        case kMotion:
+        case BlockType::Motion:
             CopyBlock(out, to.stride, Moved(from, x, y), from.stride);
             break;
-        case kResidue: {
+        case BlockType::Residue: {
             CopyBlock(block, 8, Moved(from, x, y), from.stride);
             const int masks = static_cast<int>(bits.Bits(7));
             std::int8_t residue[64];
@@ -522,7 +522,7 @@ private:
             CopyBlock(out, to.stride, block, 8);
             break;
         }
-        case kInter: {
+        case BlockType::Inter: {
             CopyBlock(block, 8, Moved(from, x, y), from.stride);
             std::int16_t coefficients[64];
             std::int32_t transformed[64];
@@ -541,26 +541,26 @@ private:
 
     void Scaled(Plane& to, int x, int y) {
         std::uint8_t block[64];
-        if (MakeBlock(subTypes.Next(), block)) PutScaled(to, x, y, block);
+        if (MakeBlock(static_cast<BlockType>(subTypes.Next()), block)) PutScaled(to, x, y, block);
     }
 
     // The block of a type that needs nothing of the previous frame (also the subtype of a scaled block); false for
     // the other types.
-    bool MakeBlock(int type, std::uint8_t block[64]) {
+    bool MakeBlock(BlockType type, std::uint8_t block[64]) {
         switch (type) {
-        case kRun:
+        case BlockType::Run:
             RunBlock(block);
             return true;
-        case kIntra:
+        case BlockType::Intra:
             IntraBlock(block);
             return true;
-        case kFill:
+        case BlockType::Fill:
             std::memset(block, colors.bundle.Next(), 64);
             return true;
-        case kPattern:
+        case BlockType::Pattern:
             PatternBlock(block);
             return true;
-        case kRaw:
+        case BlockType::Raw:
             RawBlock(block);
             return true;
         default:

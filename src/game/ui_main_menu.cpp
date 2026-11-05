@@ -84,7 +84,7 @@ void MainMenu::AddVersionLine() {
     UiSurface* surface = AddSurface(std::make_unique<UiSurface>(100, 480, 780, 600, SurfaceBlend::Keyed, true));
     surface->PaintWith([text = g_clientWorld.texts->TextManager::GetString(kVersionKey)](UiSurface& out) {
         Rect area = {0, 0, 675, 120};
-        out.DrawTextIn(text, area, TextStyle{2, kUiTextColour, render::text::kRight});
+        out.DrawTextIn(text, area, TextStyle{2, kUiTextColour, render::text::Format::Right});
     });
 }
 

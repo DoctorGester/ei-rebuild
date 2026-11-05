@@ -502,7 +502,7 @@ constexpr unsigned char kFormatLookup[89] = {
     0x00, 0x70, 0x70, 0x78, 0x78, 0x78, 0x78, 0x08, 0x07, 0x08, 0x00, 0x00, 0x07, 0x00, 0x08, 0x08,
     0x08, 0x00, 0x00, 0x08, 0x00, 0x08, 0x00, 0x07, 0x08,
 };
-enum State { kNormal, kPercent, kFlag, kWidth, kDot, kPrecision, kSize, kType };
+enum class State : int { Normal, Percent, Flag, Width, Dot, Precision, Size, Type };
 
 // The text buffer is 512 bytes: an integer's precision stops at 511 digits, a float's buffer grows past
 // precision 112.
@@ -620,24 +620,24 @@ std::string Format(const char* format, va_list arguments) {
     va_list args;   // a copy HostConversion can take by reference (a va_list parameter is a pointer on x86-64 POSIX)
     va_copy(args, arguments);
     std::string out;
-    int state = kNormal;
+    State state = State::Normal;
     unsigned flags = 0;
     int width = 0;
     int precision = -1;
     for (const char* f = format; *f != '\0';) {
         const char c = *f++;
         const int cls = c < ' ' || c > 'x' ? 0 : kFormatLookup[c - ' '] & 0xF;
-        state = kFormatLookup[cls * 8 + state] >> 4;
+        state = static_cast<State>(kFormatLookup[cls * 8 + static_cast<int>(state)] >> 4);
         switch (state) {
-        case kNormal:
+        case State::Normal:
             out += c;
             break;
-        case kPercent:
+        case State::Percent:
             flags = 0;
             width = 0;
             precision = -1;
             break;
-        case kFlag:
+        case State::Flag:
             switch (c) {
             case ' ': flags |= kSignSpace; break;
             case '#': flags |= kAlternate; break;
@@ -646,7 +646,7 @@ std::string Format(const char* format, va_list arguments) {
             case '0': flags |= kLeadZero; break;
             }
             break;
-        case kWidth:
+        case State::Width:
             if (c == '*') {
                 width = va_arg(args, int);
                 if (width < 0) {
@@ -657,10 +657,10 @@ std::string Format(const char* format, va_list arguments) {
                 width = width * 10 + (c - '0');
             }
             break;
-        case kDot:
+        case State::Dot:
             precision = 0;
             break;
-        case kPrecision:
+        case State::Precision:
             if (c == '*') {
                 precision = va_arg(args, int);
                 if (precision < 0) precision = -1;
@@ -668,10 +668,10 @@ std::string Format(const char* format, va_list arguments) {
                 precision = precision * 10 + (c - '0');
             }
             break;
-        case kSize:
+        case State::Size:
             if (c == 'I') {
                 if (f[0] != '6' || f[1] != '4') {   // not "I64": the 'I' is text
-                    state = kNormal;
+                    state = State::Normal;
                     out += c;
                     break;
                 }
@@ -685,7 +685,7 @@ std::string Format(const char* format, va_list arguments) {
                 flags |= kWide;
             }
             break;
-        case kType:
+        case State::Type:
             if (std::strchr("eEfgG", c)) {
                 FloatConversion(out, c, flags, width, precision, va_arg(args, double));
             } else if (c == 'n') {

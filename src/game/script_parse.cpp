@@ -36,17 +36,17 @@ constexpr ScriptFunction Lex(ScriptLexeme lexeme) { return static_cast<ScriptFun
 
 // The game's table (script.h): the punctuation and section keywords, the commands, the functions.
 const ScriptKeyword kScriptKeywords[226] = /*0078BCA0*/ {
-    {"(", Lex(kLexOpen), nullptr, nullptr},
-    {")", Lex(kLexClose), nullptr, nullptr},
-    {",", Lex(kLexComma), nullptr, nullptr},
-    {":", Lex(kLexColon), nullptr, nullptr},
-    {"=", Lex(kLexAssign), nullptr, nullptr},
-    {"WorldScript", Lex(kLexWorldScript), nullptr, nullptr},
-    {"Script", Lex(kLexScript), nullptr, nullptr},
-    {"DeclareScript", Lex(kLexDeclareScript), nullptr, nullptr},
-    {"GlobalVars", Lex(kLexGlobalVars), nullptr, nullptr},
-    {"if", Lex(kLexIf), nullptr, nullptr},
-    {"then", Lex(kLexThen), nullptr, nullptr},
+    {"(", Lex(ScriptLexeme::Open), nullptr, nullptr},
+    {")", Lex(ScriptLexeme::Close), nullptr, nullptr},
+    {",", Lex(ScriptLexeme::Comma), nullptr, nullptr},
+    {":", Lex(ScriptLexeme::Colon), nullptr, nullptr},
+    {"=", Lex(ScriptLexeme::Assign), nullptr, nullptr},
+    {"WorldScript", Lex(ScriptLexeme::WorldScript), nullptr, nullptr},
+    {"Script", Lex(ScriptLexeme::Script), nullptr, nullptr},
+    {"DeclareScript", Lex(ScriptLexeme::DeclareScript), nullptr, nullptr},
+    {"GlobalVars", Lex(ScriptLexeme::GlobalVars), nullptr, nullptr},
+    {"if", Lex(ScriptLexeme::If), nullptr, nullptr},
+    {"then", Lex(ScriptLexeme::Then), nullptr, nullptr},
     {"ActivateTrap", ScriptFunction::ActivateTrap, nullptr, "of"},
     {"AddLoot", ScriptFunction::AddLoot, nullptr, "fss"},
     {"AddRectToArea", ScriptFunction::AddRectToArea, nullptr, "fffff"},
@@ -280,7 +280,7 @@ void ClassifyToken(const char* text, int* id, int* rest) {
             if (*p == '.' && dots++ != 0) break;
             ++p;
         }
-        if (id) *id = kLexNumber;
+        if (id) *id = static_cast<int>(ScriptLexeme::Number);
         if (rest) {
             *rest = 0;
             for (; *p; ++p) ++*rest;
@@ -293,7 +293,7 @@ void ClassifyToken(const char* text, int* id, int* rest) {
         ++p;
         while (*p && *p != quote) ++p;
         if (*p) {
-            if (id) *id = kLexString;
+            if (id) *id = static_cast<int>(ScriptLexeme::String);
             if (rest) {
                 *rest = -1;
                 for (; *p; ++p) ++*rest;
@@ -321,14 +321,14 @@ const char* FunctionSignature(int id, ScriptType type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         if (static_cast<int>(k->id) != id || !k->function) continue;
         // The first letter is the result's type (F, G, O or S).
-        if (type != 0 && ScriptTypeOfLetter(k->function[0]) == type) return k->function + 1;
+        if (type != ScriptType::None && ScriptTypeOfLetter(k->function[0]) == type) return k->function + 1;
     }
     return nullptr;
 }
 
-const char* KeywordName(int id) {
+const char* KeywordName(ScriptLexeme id) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
-        if (static_cast<int>(k->id) == id) return k->name;
+        if (static_cast<int>(k->id) == static_cast<int>(id)) return k->name;
     return "Unknown command";
 }
 
@@ -369,7 +369,7 @@ bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* token
         if (std::strncmp(buffer, kCommentOpen, std::strlen(kCommentOpen)) == 0) {
             // Block comment: the search for the end starts after the token (so "/**/" written as
             // one token does not end it) and skips quoted text.
-            if (!*p) return Error(this, line, kErrEndOfFile, "End of file before '%s'", kCommentClose);
+            if (!*p) return Error(this, line, ScriptParseError::EndOfFile, "End of file before '%s'", kCommentClose);
             for (;;) {
                 const char c = *p;
                 if (c == '\n') ++line;
@@ -379,7 +379,7 @@ bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* token
                     break;
                 }
                 ++p;
-                if (!*p) return Error(this, line, kErrEndOfFile, "End of file before '%s'", kCommentClose);
+                if (!*p) return Error(this, line, ScriptParseError::EndOfFile, "End of file before '%s'", kCommentClose);
             }
             continue;
         }
@@ -410,15 +410,15 @@ ScriptToken TokenReader::Next(int* id) {
     return token;
 }
 
-bool TokenReader::Expect(int id) {
+bool TokenReader::Expect(ScriptLexeme lexeme) {
     if (AtEnd()) return EndOfFileError();
     int found;
     const ScriptToken token = Next(&found);
-    if (found != id) return Script::Error(script, token.line, kErrWrongLexeme, "Wrong lexeme %s", token.text);
+    if (found != lexeme) return Script::Error(script, token.line, ScriptParseError::WrongLexeme, "Wrong lexeme %s", token.text);
     return true;
 }
 
-bool TokenReader::EndOfFileError() { return Script::Error(script, LastLine(), kErrEndOfFile, "Unexpected end of file"); }
+bool TokenReader::EndOfFileError() { return Script::Error(script, LastLine(), ScriptParseError::EndOfFile, "Unexpected end of file"); }
 
 std::string Script::QualifyName(const std::string& name) {
     if (fileCount == 0) return name;

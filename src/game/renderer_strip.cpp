@@ -131,10 +131,10 @@ int TextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const st
 }
 
 // `points` holds the world points (x, y, z and one more); `width` scales
-// the ribbon's screen width; `mode` 0 projects, 1 projects and clips (a section between two points that are
-// both off screen is skipped), 2 only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
+// the ribbon's screen width; `mode` Inside projects, Crossing projects and clips (a section between two points that are
+// both off screen is skipped), Outside only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
 // is 0), v from `vStart` over `vSize`. Returns the draw's result (1 when nothing is drawn).
-int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width, int mode, float uLength,
+int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width, TransformPipeline::ClipResult mode, float uLength,
                               float vStart, float vSize) {
     const Vector3* points = pointArray->data();
     const int pointCount = static_cast<int>(std::ssize(*pointArray));
@@ -149,7 +149,7 @@ int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width
     g_indices.clear();
     g_indices.reserve(g_ribbon.size() * 3 + 0x96);
 
-    if (mode == 2) return 1;
+    if (mode == TransformPipeline::ClipResult::Outside) return 1;
     if (pointCount < 2) return 1;
 
     g_currentU = 0.0f;
@@ -159,13 +159,13 @@ int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width
     g_bottomV = vStart + vSize;
     g_topV = vStart;
 
-    int clipped = mode;
-    if (mode == 0) {
+    TransformPipeline::ClipResult clipped = mode;
+    if (mode == TransformPipeline::ClipResult::Inside) {
         TransformPipeline::ProjectPoints(*currentPipeline->Top(1), points, g_projected.data(), pointCount);
     } else {
         clipped = currentPipeline->ProjectPointsClipped(*currentPipeline->Top(TransformPipeline::kClipStack), points,
                                                  g_projected.data(), g_clipped.data(), pointCount);
-        if (clipped == 2) return 1;
+        if (clipped == TransformPipeline::ClipResult::Outside) return 1;
     }
 
     // The projected points as TL vertices: opaque white, black specular; the ends transparent.
@@ -182,7 +182,7 @@ int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width
     TLVertex* ribbon = g_ribbon.data();
     std::uint32_t widthBits;
     widthBits = std::bit_cast<std::uint32_t>(width);
-    if (clipped == 0) {
+    if (clipped == TransformPipeline::ClipResult::Inside) {
         bool started = false;
         for (int i = 1; i < std::ssize(g_strip); ++i) {
             if (!started) EmitFirstSection(StripAt(i - 1), StripAt(i), &ribbon, &count, widthBits);

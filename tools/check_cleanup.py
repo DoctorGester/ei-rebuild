@@ -260,6 +260,23 @@ def wants_path(function):
     return function
 
 
+# A plain `enum` (C160): every enum is an `enum class`, a flag set with lib/bit_flags.h's operators. The one plain enum
+# kept is an array-index enum local to a .cpp (its last enumerator a count: ...Count, ...Kinds, ...Values), which indexes
+# a file's own table and would need a cast at every use.
+_PLAIN_ENUM = re.compile(r'^[ \t]*(?:typedef[ \t]+)?enum\b(?![ \t]+(?:class|struct)\b)[^{};]*\{([^{}]*)\}', re.M)
+_COUNT_LAST = re.compile(r'(?:Count|Kinds|Values)\w*\s*(?:=[^,]*)?,?\s*$')
+
+
+@wants_path
+def count_plain_enums(text, rel):
+    n = 0
+    for m in _PLAIN_ENUM.finditer(text):
+        if rel.endswith('.cpp') and _COUNT_LAST.search(m.group(1).strip()):
+            continue
+        n += 1
+    return n
+
+
 def _value(text):
     """A constant's value: a number when it is a literal (suffixes dropped, hex and decimal alike), else its text."""
     t = re.sub(r'\s+', '', text)
@@ -628,6 +645,8 @@ PATTERNS = {
     # Style round 3 (docs/rewrite-guide.md, "Style rules"):
     # An enum never used as a type (count_unused_enums above).
     'enum never used as a type': count_unused_enums,
+    # A plain `enum` instead of an `enum class` (count_plain_enums above).
+    'plain enum (not enum class)': count_plain_enums,
     # A method named after a message's hex id (SendState02, SendObject0A, OnMessage37): name what it means.
     'hex-named message method': re.compile(r'\b(?:Send|On)\w*[0-9A-F]{2}\b'),
     # The same small helper written again in a file: IsZero(float), the 1/255 colour scale (0.003921569f), a function

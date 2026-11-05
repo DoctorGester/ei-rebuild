@@ -682,7 +682,7 @@ void AIBrain::CallAllies(const Vector3& point) {
         if (other == self || !g_serverWorld.diplomacy.IsAllied(self->side, other->side)) continue;
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
-        if (console::g_filterMask & console::kLogAi) {
+        if (lib::Has(console::g_filterMask, console::LogCategory::Ai)) {
             message = str::Format("Unit %i call for help unit %i from %fm distance", self->id, other->id,
                            std::sqrt(LengthSquared(self->localPosition - other->localPosition)));
         }

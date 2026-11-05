@@ -9,20 +9,20 @@
 class ByteStream;
 class Unit;
 
-enum DiplomacyRelation : int {
-    kRelationAllied = 0,
-    kRelationNeutral = 1,
-    kRelationHostile = 2,
+enum class DiplomacyRelation : int {
+    Allied = 0,
+    Neutral = 1,
+    Hostile = 2,
 };
 
 struct Diplomacy {
     // Every player is allied with itself only; nobody is hostile.
     void Reset();
 
-    // Sets how `player` treats `other` (row `player`, bit `other`): 0 allied, 1 neutral,
-    // 2 hostile; other values leave the table alone. With `applyToUnits`, every unit of `player`
-    // gets bit `other` of its hostile mask set (relation 2) or cleared (anything else).
-    void SetRelation(int player, int other, int relation);
+    // Sets how `player` treats `other` (row `player`, bit `other`); a value outside the enum
+    // leaves the table alone. Every unit of `player`
+    // gets bit `other` of its hostile mask set (Hostile) or cleared (anything else).
+    void SetRelation(int player, int other, DiplomacyRelation relation);
 
     // 0 if `player` is allied with `other`, else 2 if hostile, else 1.
     DiplomacyRelation GetRelation(int player, int other) const;

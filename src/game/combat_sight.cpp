@@ -46,8 +46,8 @@ int CastDelayTicks(float distanceSq, float flight) {
 // AI units only act on a target within 1.05 times their sight range: the larger of a stats value and the
 // movement factor times the sight; the original's select picks the stats value for a NaN product.
 bool OutOfSightRange(UnitServer* self, const Vector3& point) {
-    float limit = self->stats.perception[kSenseNear].current;
-    float range = self->moveFactors[kFactorSight] * self->stats.perception[kSenseSight].current;
+    float limit = self->stats.perception[Sense::Near].current;
+    float range = self->moveFactors[MoveFactor::Sight] * self->stats.perception[Sense::Sight].current;
     float rangeValue = range;
     float chosen = MaxKeepB(rangeValue, limit);
     float reach = chosen * kRangeSlack;
@@ -86,7 +86,7 @@ bool NeedsClearWay(UnitServer* self, const AIOrder* order) {
     if (order->kind != UnitOrderKind::Attack) return false;
     ItemWeapon* weapon = self->unit->ActiveWeapon();
     if (weapon && weapon->IsRanged()) return false;
-    float reach = weapon ? weapon->reach : self->stats.combat[UnitStats::kReach];
+    float reach = weapon ? weapon->reach : self->stats.combat[UnitStats::CombatIndex::Reach];
     return reach < kMeleeReach;
 }
 

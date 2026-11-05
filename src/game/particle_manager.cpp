@@ -323,7 +323,7 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 // bound.
 int ParticleSource::Draw(SceneRenderer* renderer) {
     if (particles.empty()) return 1;
-    if (renderer->pipeline->ClipTest(&clip) == TransformPipeline::kClipOutside) {
+    if (renderer->pipeline->ClipTest(&clip) == TransformPipeline::ClipResult::Outside) {
         ++hiddenTicks;
         return 1;
     }

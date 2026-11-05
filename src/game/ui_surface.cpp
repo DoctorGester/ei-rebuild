@@ -28,9 +28,6 @@ std::vector<UiSurface*> g_surfaces;
 
 constexpr std::uint32_t kShadowColour = 0x080808;
 constexpr int kRectSlack = 2;           // pixels added to a scaled rectangle's right and bottom
-// DT_MODIFYSTRING (the connection list's names, with DT_END_ELLIPSIS): DrawText would write the shortened text back
-// into the caller's buffer, which the game never reads; nothing is written.
-constexpr std::uint32_t kModifyString = 0x10000;
 } // namespace
 
 UiSurface::~UiSurface() {
@@ -133,27 +130,20 @@ int UiSurface::DrawTextIn(std::string_view text, const Rect& area, const TextSty
     return screen_layout::FromScreenNoMargin(Point{0, textHeight}).y;
 }
 
-int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const Rect& area, std::uint32_t format, std::uint32_t colour,
+int UiSurface::DrawTextPixels(const UiFont& font, std::string_view text, const Rect& area, render::text::Format format, std::uint32_t colour,
                                bool shadow) {
     return DrawTextFrame(font, text, area, format, colour, shadow);
 }
 
 // `text` laid out in `font` in `frame` (surface pixels) and, inside the paint and not in the key colour, drawn at the
 // surface's place, its shadow first.
-int UiSurface::DrawTextFrame(const UiFont& font, std::string_view text, const Rect& frame, std::uint32_t format, std::uint32_t colour,
+int UiSurface::DrawTextFrame(const UiFont& font, std::string_view text, const Rect& frame, render::text::Format format, std::uint32_t colour,
                              bool shadow) {
-    format &= ~kModifyString;
-    if (format & ~render::text::kSupportedFormats) {
-        static bool logged = false;
-        if (!logged) ei::Log("ui: DrawText format %#x has bits the layout does not follow; laid out without them", format);
-        logged = true;
-        format &= render::text::kSupportedFormats;
-    }
     render::text::TextFont* laidFont = TextFontOf(font);
     if (!laidFont) return 0;
     render::text::TextLayout layout;
-    if (!render::text::Layout(*laidFont, ::text::CodePoints(text), frame, format, layout)) return 0;
-    if (painting && !(format & render::text::kCalcRect) && !Transparent(colour)) {
+    render::text::Layout(*laidFont, ::text::CodePoints(text), frame, format, layout);
+    if (painting && !(lib::Has(format, render::text::Format::CalcRect)) && !Transparent(colour)) {
         const Point origin = rect.TopLeft();
         if (shadow) render::ui::Glyphs(*laidFont, layout, origin + Point{1, 1}, kShadowColour, paintClip);
         render::ui::Glyphs(*laidFont, layout, origin, colour, paintClip);

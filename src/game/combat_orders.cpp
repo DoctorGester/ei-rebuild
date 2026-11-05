@@ -87,7 +87,7 @@ void UnitServer::FinishCast() {
     }
     world->CastSpell(spell, unit, unit->localPosition, action.target, at, 0);
     if (spell->GetPrototype()->castType != 1) {
-        float loudness = stats.conspicuity[kSenseHearing].current * kCastNoiseScale;
+        float loudness = stats.conspicuity[Sense::Hearing].current * kCastNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
     }
     action.source = kNoSource;

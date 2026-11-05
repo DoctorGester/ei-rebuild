@@ -170,7 +170,7 @@ void BriefingScreen::MouseMove(UiEvent& event) {
         auto node = personTexts.find(objectId);
         if (node == personTexts.end()) return;
         UiSurface* label = surfaces[1].get();
-        personLabel = {{node->second, Rect{0, 0, 0, 0}, {kFont, kUiTextColour, render::text::kCenter}}};
+        personLabel = {{node->second, Rect{0, 0, 0, 0}, {kFont, kUiTextColour, render::text::Format::Center}}};
         Point at = screen_layout::FromScreen(event.at);
         label->MoveTo(at - Point{kLabelOffsetX, kLabelOffsetY});
         label->Show();

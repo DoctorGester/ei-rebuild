@@ -448,21 +448,17 @@ SectorData::~SectorData() { render::TerrainChanged(this, render::TerrainChange::
 
 // Clipping and drawing
 
-bool SectorData::IsDrawn() const { return clipMode != TransformPipeline::kClipOutside; }
+bool SectorData::IsDrawn() const { return clipMode != TransformPipeline::ClipResult::Outside; }
 
 void SectorData::ClipTest(SceneRenderer* renderer) {
-    // The verdict as it is stored: -1 counts as outside.
-    const auto verdict = [&](const SectorBox& bounds) {
-        const int where = renderer->pipeline->ClipTest(&bounds);
-        return where == -1 ? TransformPipeline::kClipOutside : static_cast<TransformPipeline::ClipResult>(where);
-    };
+    const auto verdict = [&](const SectorBox& bounds) { return renderer->pipeline->ClipTest(&bounds); };
     clipMode = verdict(box);
-    if (clipMode == TransformPipeline::kClipOutside) return;
+    if (clipMode == TransformPipeline::ClipResult::Outside) return;
     for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
 }
 
 void SectorData::DrawPage(const SceneRenderer* renderer, int page) {
-    if (clipMode == TransformPipeline::kClipOutside) return;
+    if (clipMode == TransformPipeline::ClipResult::Outside) return;
     if (hasWater) ApplyWaterLevels();
     render::TerrainPage(this, renderer, page);
 }
@@ -481,7 +477,7 @@ void SectorData::Clear() {
     owner = nullptr;
     built = SectorStage::None;
     lastUsed = 0;
-    clipMode = TransformPipeline::kClipOutside;
+    clipMode = TransformPipeline::ClipResult::Outside;
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);
 }
 

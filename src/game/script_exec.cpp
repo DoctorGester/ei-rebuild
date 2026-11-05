@@ -303,10 +303,10 @@ bool ScriptRun::Execute(Script* script) {
             ScriptVars* globals = &script->globals;
             const std::size_t index = static_cast<std::size_t>(cmd->target);
             switch (cmd->targetType) {
-            case kScriptFloat: globals->floats.values[index] = args.Float(); break;
-            case kScriptString: globals->strings.values[index] = args.Text(); break;
-            case kScriptObject: globals->objects.values[index] = args.Object(); break;
-            case kScriptGroup: globals->groups.values[index] = *args.Group(); break;
+            case ScriptType::Float: globals->floats.values[index] = args.Float(); break;
+            case ScriptType::String: globals->strings.values[index] = args.Text(); break;
+            case ScriptType::Object: globals->objects.values[index] = args.Object(); break;
+            case ScriptType::Group: globals->groups.values[index] = *args.Group(); break;
             default: break;   // a loaded save's unknown type
             }
             break;
@@ -393,8 +393,8 @@ bool ScriptRun::Execute(Script* script) {
             const int b = lib::Truncate(args.Float());
             const float value = args.Float();
             DiplomacyRelation relation;
-            if (value > 0.0f) relation = kRelationAllied;
-            else relation = value < 0.0f ? kRelationHostile : kRelationNeutral;
+            if (value > 0.0f) relation = DiplomacyRelation::Allied;
+            else relation = value < 0.0f ? DiplomacyRelation::Hostile : DiplomacyRelation::Neutral;
             g_serverWorld.diplomacy.SetRelation(a, b, relation);
             break;
         }

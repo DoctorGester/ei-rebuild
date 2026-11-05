@@ -316,7 +316,7 @@ top panel. `UseNow` (`ui_hud_slots.cpp`) casts at once on the unit, or for an at
 - **Button release**: without a press on the view (set when no panel took the press) the container's handler; a drag (the
   mouse moved past the threshold option; 0 or less = no boxes) selects the party units inside the box; otherwise the unit
   at the point (kept only with flag 0x400000) goes to SelectUnit.
-- **Pending action** (`BattleScreen::SetPendingAction(mode, slot, item)`; a cancel is (kPendingNone, -1, -1)): every
+- **Pending action** (`BattleScreen::SetPendingAction(mode, slot, item)`; a cancel is (PendingAction::None, -1, -1)): every
   highlight off, then the slot's button highlighted in the mode's panel. Modes: 1 / 2 a spell on a unit / at a point (spell
   data flag 0x10000000 or not), 3 / 4 a quick item's spell likewise, 6 a player's item, 7 follow, 8 an order on an object
   (science). A highlighted button clicked again cancels with a sound; only a spell item with its data sets the action; only

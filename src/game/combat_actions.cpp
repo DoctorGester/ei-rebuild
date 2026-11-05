@@ -119,7 +119,7 @@ void UnitServer::DeliverAttack(MapObject* target, DamageInfo* hit) {
     }
     TriggerWeaponSpell(target);
     if (hit->backstabFactor == 1.0f) {
-        float loudness = stats.conspicuity[kSenseHearing].current * kHitNoiseScale;
+        float loudness = stats.conspicuity[Sense::Hearing].current * kHitNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
     }
 }
@@ -299,7 +299,7 @@ void UnitServer::UseSkill(MapObject* target) {
         if (!looted) return;
         if (Player* player = unit->player) world->Loot(looted, player);
         world->RemoveObject(target->id);
-        float loudness = stats.conspicuity[kSenseHearing].current * kSkillNoiseScale;
+        float loudness = stats.conspicuity[Sense::Hearing].current * kSkillNoiseScale;
         world->aiMap.events.Noise(this, loudness, AIBrain::kCallDelay, unit->localPosition);
         return;
     }

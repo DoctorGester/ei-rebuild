@@ -103,8 +103,8 @@ void CollectTimedObjects(WorldServer* world, PlayerServer* state, std::vector<Ef
 
 float HearingRadius(Unit* unit, float margin) {
     auto* controller = unit->ServerController();
-    float perception = controller->moveFactors[kFactorSight] * controller->stats.perception[kSenseSight].current;
-    float minimum = controller->stats.perception[kSenseNear].current;
+    float perception = controller->moveFactors[MoveFactor::Sight] * controller->stats.perception[Sense::Sight].current;
+    float minimum = controller->stats.perception[Sense::Near].current;
     float range = MaxKeepB(perception, minimum);   // branch-free select
     return range * kHearingScale + margin;
 }

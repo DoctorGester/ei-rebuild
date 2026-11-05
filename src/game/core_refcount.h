@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "lib/bit_flags.h"
 #include "ref.h"
 
 class ChunkArchive;
@@ -17,16 +18,17 @@ enum class ArchiveClass : std::int32_t {
     PartyRecord = 2,
 };
 
+// The bits of RefCounted's two flag bytes.
+enum class RefFlag : std::uint8_t {
+    CopyOnShare = 0x01,    // flags6: sharing makes a copy (the copy is marked too)
+    Detached = 0x80,       // flags7: shut down by its owner; not shared any more
+};
+constexpr bool EnableBitFlags(RefFlag) { return true; }
+
 // The root of the reference-counted classes. The network sessions and the cast spells derive from it directly,
 // everything else through RefObject.
 class RefCounted {
 public:
-
-    enum : std::uint8_t {
-        kCopyOnShare = 0x01,    // flags6: sharing makes a copy (the copy is marked too)
-        kDetached = 0x80,       // flags7: shut down by its owner; not shared any more
-    };
-
     RefCounted() = default;
     RefCounted(const RefCounted&) = delete;
     RefCounted& operator=(const RefCounted&) = delete;
@@ -42,12 +44,12 @@ public:
 
     // A new object has no references and no flags.
     std::int16_t refs = 0;
-    std::uint8_t flags6 = 0;
-    std::uint8_t flags7 = 0;
+    RefFlag flags6 = {};
+    RefFlag flags7 = {};
 };
 
 // The test the network code inlines before using a counted object: set and not detached.
-inline bool IsLive(const RefCounted* object) { return object && !(object->flags7 & RefCounted::kDetached); }
+inline bool IsLive(const RefCounted* object) { return object && !lib::Has(object->flags7, RefFlag::Detached); }
 
 // Reference-counted objects of the engine core (script values, network records and messages, AI shapes).
 class RefObject : public RefCounted {
@@ -56,7 +58,7 @@ public:
     ~RefObject() override = default;
 
     virtual void OnShutdown() {}             // the object is still shared and about to lose its owner
-    // The copy handed out when a kCopyOnShare object is shared; fatal for a class that is never shared twice.
+    // The copy handed out when a RefFlag::CopyOnShare object is shared; fatal for a class that is never shared twice.
     virtual RefObject* Clone();
 
     // Calls OnShutdown with an extra reference held, so it cannot destroy itself meanwhile.
@@ -77,7 +79,7 @@ void DestroyOwned(Ref<T>& slot) {
     T* object = slot;
     if (!object) return;
     if (object->refs != 1) {
-        object->flags7 |= RefCounted::kDetached;
+        object->flags7 |= RefFlag::Detached;
         object->AddRef();
         object->OnShutdown();
         --object->refs;
@@ -91,9 +93,9 @@ template <typename T>
 void ShareOwned(Ref<T>& slot, std::type_identity_t<T>* object) {
     static_assert(std::is_base_of_v<RefObject, T>);
     if (!IsLive(object)) return;
-    if (object->flags6 & RefCounted::kCopyOnShare) object = static_cast<T*>(object->Clone());
+    if (lib::Has(object->flags6, RefFlag::CopyOnShare)) object = static_cast<T*>(object->Clone());
     slot.Assign(object);
-    object->flags6 |= RefCounted::kCopyOnShare;
+    object->flags6 |= RefFlag::CopyOnShare;
 }
 
 // Unless the slot already holds `object`: DestroyOwned, then ShareOwned.

@@ -50,7 +50,7 @@ constexpr int kLineWidth = 0x30C;
 constexpr int kLineFont = 1;
 constexpr int kLineSurfaceHeight = 0x11, kLineSurfacePad = 3;
 constexpr int kLineDrawRight = 0x30F;
-constexpr std::uint32_t kLineDrawFormat = render::text::kNoPrefix;
+constexpr render::text::Format kLineDrawFormat = render::text::Format::NoPrefix;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 const char* const kColourMark = "^";
 const char* const kDefaultColour = "7";
@@ -201,7 +201,7 @@ void ChatOverlay::ShowTyped() {
 void ChatOverlay::PaintTyped(UiSurface& surface) const {
     surface.Clear();
     Rect area{0, 0, kTypedTextRight, kTypedTextBottom};
-    surface.DrawTextIn(typed, area, TextStyle{kTypedFont, kTypedColour, render::text::kNoPrefix});
+    surface.DrawTextIn(typed, area, TextStyle{kTypedFont, kTypedColour, render::text::Format::NoPrefix});
     int width = g_interface.TextExtent(str::Left(typed, caret), kTypedFont).w;
     if (width < kMaxTypedWidth) {
         Point top{width, 0};

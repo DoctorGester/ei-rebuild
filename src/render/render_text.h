@@ -122,9 +122,6 @@ std::u32string DecodeCp1251(const char* text, int count = -1);
 
 // ---- Layout -------------------------------------------------------------------------------------------
 
-constexpr unsigned kSupportedFormats =
-    kCenter | kRight | kVCenter | kWordBreak | kSingleLine | kExpandTabs | kNoClip | kCalcRect | kNoPrefix | kEndEllipsis;
-
 struct GlyphQuad {
     int atlasX = 0, atlasY = 0, width = 0, height = 0;  // source in the atlas
     int x = 0, y = 0;                    // destination top-left (same size, unclipped)
@@ -138,17 +135,16 @@ struct TextLine {
 
 struct TextLayout {
     int result = 0;                     // DrawText's return value (the height drawn)
-    Rect rect;                          // the rectangle; with kCalcRect, DrawText's computed one
-    Rect clip;                          // glyphs and underlines are clipped to it (unless kNoClip)
+    Rect rect;                          // the rectangle; with Format::CalcRect, DrawText's computed one
+    Rect clip;                          // glyphs and underlines are clipped to it (unless Format::NoClip)
     bool clipped = true;
     std::vector<TextLine> lines;
-    std::vector<GlyphQuad> quads;       // empty with kCalcRect
+    std::vector<GlyphQuad> quads;       // empty with Format::CalcRect
     std::vector<Rect> underlines;       // the '&' prefix underlines, drawn in the text colour
 };
 
 // Lays out `text` in `rect` the way DrawTextA(text, -1, rect, format) does with this font's metrics.
-// False (and nothing written) for format bits outside kSupportedFormats.
-bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned format, TextLayout& out);
+void Layout(TextFont& font, std::u32string_view text, const Rect& rect, Format format, TextLayout& out);
 
 // GetTextExtentPoint32: the advances summed (no kerning, prefix or tab handling) and the font's height; 0 x 0 for an
 // empty text.

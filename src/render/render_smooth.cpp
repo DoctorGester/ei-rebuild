@@ -23,7 +23,7 @@ static gpu::PipelineDesc CopyDesc(int program, int samples, bool writeColour) {
     p.depthCompare = gpu::Compare::Always;
     p.depthWrite = true;
     p.colour = kColourFormat;
-    p.colourMask = writeColour ? gpu::kWriteAll : 0;
+    p.colourMask = writeColour ? gpu::ColourMask::All : gpu::ColourMask::None;
     p.samples = samples;
     AddDepthCopy(p);
     return p;
@@ -41,7 +41,7 @@ static void Draw(gpu::Pipeline pipeline, const gpu::Texture* textures, int count
 void AddDepthCopy(gpu::PipelineDesc& p) {
     if (p.samples <= 1) return;
     p.second = kDepthCopyFormat;
-    p.secondMask = p.depthWrite ? gpu::kWriteRed : 0;
+    p.secondMask = p.depthWrite ? gpu::ColourMask::Red : gpu::ColourMask::None;
 }
 
 void ListSmoothPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {

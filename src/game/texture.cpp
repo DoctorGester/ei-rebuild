@@ -23,11 +23,11 @@ const std::string& GameRoot() { return options::g_options.workPath; }
 constexpr std::uint32_t kDxtCode = 'D' | ('X' << 8) | ('T' << 16);   // a DXT format's code without its digit
 
 // Texture format of a .bmp texture, by texture kind.
-std::uint32_t BmpFormatFor(int type) {
+MmpFormat BmpFormatFor(int type) {
     switch (type) {
-    case 1: case 2: case 3: case 4: case 8: return kMmpFormat1555;   // 1-bit alpha
-    case 6: case 13: return kMmpFormat4444;                          // 4-bit alpha
-    default: return kMmpFormat565;                                   // no alpha
+    case 1: case 2: case 3: case 4: case 8: return MmpFormat::A1R5G5B5;   // 1-bit alpha
+    case 6: case 13: return MmpFormat::A4R4G4B4;                          // 4-bit alpha
+    default: return MmpFormat::R5G6B5;                                   // no alpha
     }
 }
 
@@ -36,31 +36,32 @@ std::uint32_t BmpFormatFor(int type) {
 // The list the old device offered. Rebirth's battle screen texture (battle00, 1536x1536) and footprints are DXT5:
 // without it no format is found, LoadTexture fails (Rebirth's DisableExitOnCrashReport goes on), the battle screen
 // misses a texture and its sprites bind garbage.
-bool IsTextureFormat(std::uint32_t id) {
-    if (id == kMmpFormat565 || id == kMmpFormat1555 || id == kMmpFormat4444 || id == kMmpFormat8888) return true;
-    const std::uint32_t digit = id >> 24;
-    return (id & 0x00FFFFFF) == kDxtCode && digit >= '1' && digit <= '5';
+bool IsTextureFormat(MmpFormat id) {
+    if (id == MmpFormat::R5G6B5 || id == MmpFormat::A1R5G5B5 || id == MmpFormat::A4R4G4B4 || id == MmpFormat::A8R8G8B8) return true;
+    const auto code = static_cast<std::uint32_t>(id);
+    const std::uint32_t digit = code >> 24;
+    return (code & 0x00FFFFFF) == kDxtCode && digit >= '1' && digit <= '5';
 }
 
-render::PixelFormat TextureFormat(std::uint32_t id) {
+render::PixelFormat TextureFormat(MmpFormat id) {
     switch (id) {
-    case kMmpFormat565: return render::PixelFormat{16, 0xF800, 0x07E0, 0x001F, 0};
-    case kMmpFormat1555: return render::PixelFormat{16, 0x7C00, 0x03E0, 0x001F, 0x8000};
-    case kMmpFormat4444: return render::PixelFormat{16, 0x0F00, 0x00F0, 0x000F, 0xF000};
-    case kMmpFormat8888: return render::PixelFormat{32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000u};
+    case MmpFormat::R5G6B5: return render::PixelFormat{16, 0xF800, 0x07E0, 0x001F, 0};
+    case MmpFormat::A1R5G5B5: return render::PixelFormat{16, 0x7C00, 0x03E0, 0x001F, 0x8000};
+    case MmpFormat::A4R4G4B4: return render::PixelFormat{16, 0x0F00, 0x00F0, 0x000F, 0xF000};
+    case MmpFormat::A8R8G8B8: return render::PixelFormat{32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000u};
     default: return render::PixelFormat{};
     }
 }
 
-std::uint32_t MmpHeader::HeldFormat() const {
+MmpFormat MmpHeader::HeldFormat() const {
     if (IsTextureFormat(format)) return format;
-    if ((format & 0x00FFFFFF) != kDxtCode) return 0;
+    if ((static_cast<std::uint32_t>(format) & 0x00FFFFFF) != kDxtCode) return MmpFormat::None;
     // A DXT code outside the list: the RGB format its channel bit counts name (the loader decodes into it).
-    if (redBits == 5 && greenBits == 6 && blueBits == 5 && alphaKind == 0) return kMmpFormat565;
-    if (redBits == 5 && greenBits == 5 && blueBits == 5 && alphaKind == 1) return kMmpFormat1555;
-    if (redBits == 4 && greenBits == 4 && blueBits == 4 && alphaKind == 4) return kMmpFormat4444;
-    if (redBits == 8 && greenBits == 8 && blueBits == 8 && alphaKind == 8) return kMmpFormat8888;
-    return 0;
+    if (redBits == 5 && greenBits == 6 && blueBits == 5 && alphaKind == 0) return MmpFormat::R5G6B5;
+    if (redBits == 5 && greenBits == 5 && blueBits == 5 && alphaKind == 1) return MmpFormat::A1R5G5B5;
+    if (redBits == 4 && greenBits == 4 && blueBits == 4 && alphaKind == 4) return MmpFormat::A4R4G4B4;
+    if (redBits == 8 && greenBits == 8 && blueBits == 8 && alphaKind == 8) return MmpFormat::A8R8G8B8;
+    return MmpFormat::None;
 }
 
 int TextureManager::LoadTexture(Texture* texture) {
@@ -85,7 +86,7 @@ int TextureManager::LoadTexture(Texture* texture) {
     path = std::string(texture->GetName()) + ".mmp";
     if (const MmpFile file(GetFile(path, nullptr)); file.data) {
         texture->format = file.header.HeldFormat();
-        if (!texture->format)
+        if (texture->format == MmpFormat::None)
             return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                     texture->GetName());
         unsigned mip = mipLevel;
@@ -102,7 +103,7 @@ int TextureManager::LoadTexture(Texture* texture) {
         return 1;
     }
     texture->format = composed->header.HeldFormat();
-    if (!texture->format)
+    if (texture->format == MmpFormat::None)
         return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                 texture->GetName());
     texture->CreateComposed(device, *composed, mipLevel);
@@ -133,25 +134,25 @@ EngineObject* TextureManager::NewObject(int textureType) {
 // create by name, reload after a lost device, the cache's size limit) and the .mmp header's pixel format
 // layouts.
 
-void MmpHeader::SetFormat(std::uint32_t id) {
+void MmpHeader::SetFormat(MmpFormat id) {
     struct Channel {
         std::uint32_t mask = 0, shift = 0, bits = 0;
     };
     struct Layout {
-        std::uint32_t id = 0;
+        MmpFormat id = {};
         Channel alpha, red, green, blue;
     };
     static constexpr Layout kLayouts[] = {
-        {kMmpFormat565, {0, 0, 0}, {0xF800, 11, 5}, {0x07E0, 5, 6}, {0x001F, 0, 5}},
-        {kMmpFormat1555, {0x8000, 15, 1}, {0x7C00, 10, 5}, {0x03E0, 5, 5}, {0x001F, 0, 5}},
-        {kMmpFormat4444, {0xF000, 12, 4}, {0x0F00, 8, 4}, {0x00F0, 4, 4}, {0x000F, 0, 4}},
+        {MmpFormat::R5G6B5, {0, 0, 0}, {0xF800, 11, 5}, {0x07E0, 5, 6}, {0x001F, 0, 5}},
+        {MmpFormat::A1R5G5B5, {0x8000, 15, 1}, {0x7C00, 10, 5}, {0x03E0, 5, 5}, {0x001F, 0, 5}},
+        {MmpFormat::A4R4G4B4, {0xF000, 12, 4}, {0x0F00, 8, 4}, {0x00F0, 4, 4}, {0x000F, 0, 4}},
     };
     alphaMask = alphaKind = alphaShift = 0;
     redMask = redBits = redShift = 0;
     greenMask = greenBits = greenShift = 0;
     blueMask = blueBits = blueShift = 0;
     bitsPerPixel = 0;
-    format = 0;
+    format = MmpFormat::None;
     for (const Layout& layout : kLayouts) {
         if (layout.id != id) continue;
         alphaMask = layout.alpha.mask, alphaShift = layout.alpha.shift, alphaKind = layout.alpha.bits;
@@ -181,7 +182,7 @@ void Texture::Create() {
     height = 0;
     width = 0;
     uploadResult = 0;
-    format = 0;
+    format = MmpFormat::None;
     extra.clear();
 }
 
@@ -196,7 +197,7 @@ Texture::Texture() {
     height = 0;
     width = 0;
     uploadResult = 0;
-    format = 0;
+    format = MmpFormat::None;
     extra.clear();
 }
 
