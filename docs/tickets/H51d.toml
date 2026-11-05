@@ -4,3 +4,5 @@ group = "harness"
 depends = ["H51c"]
 note = "Found in H51c: on the stub set render_water fails its own diffcapture water_shore water_shore_later: 0.9893% of the pixels differ against at least 1.0% (the install passes; vanilla). The textures of the shore (ground or water) are blank; find which ones by keeping or painting candidates as H51b/H51c did, keep the pack near 80 MB."
 order = 842
+status = "running"
+started = "2026-11-05"
