@@ -20,6 +20,7 @@
 #include "lib/text_case.h"
 #include "render/render_state.h"
 #include "lib/crt.h"
+#include "lib/rounding.h"
 #include <algorithm>
 #include <cstdint>
 #include <string>
@@ -293,7 +294,7 @@ bool CampPages::CanEquip(Item* item, int mode) {
     switch (page) {
     case 0: {   // equipment: weapons, armour, spell containers (worn-out ones not to a hero)
         ItemKind itemKind = item->Kind();
-        if ((itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor) && std::lround(item->condition) <= 0 && mode == 1) return false;
+        if ((itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor) && lib::RoundEven(item->condition) <= 0 && mode == 1) return false;
         return itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor || itemKind == ItemKind::Quick;
     }
     case 1: {   // trade: a spell container only for a hero who can cast its spell
