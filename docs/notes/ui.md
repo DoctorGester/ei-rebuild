@@ -54,7 +54,7 @@ in the key table (`config\keyboard.ini`, `key_bindings.cpp`); a zone has no inve
 | `ui_global_map*.cpp` | global map (id 4) |
 | `ui_main_menu.cpp`, `ui_message_box.cpp`, `ui_message_box.h` | main menu, new-game dialog, message box |
 | `ui_battle.cpp`, `ui_battle.h` | battle screen (`battle00`): creation, update, input, selection and orders |
-| `ui_hud*.cpp`, `ui_spell_column.cpp`, `ui_hud.h` | the HUD panels the battle screen builds (weapon bar, quick items, spell and action columns, portraits, map, unit panel, clock, movement and top panels, `PanelSlide`), quest / zone messages, portraits, unit info |
+| `ui_hud.h`, `ui_hud_slots.cpp`, `ui_hud_corner.cpp`, `ui_hud_side.cpp`, `ui_hud_portraits.cpp`, `ui_hud_pieces.h` | the HUD panels the battle screen builds: the slots (weapon bar, quick items, spell and action columns), the corner panels (clock, movement and top panels), the side panels (map, unit panel, `PanelSlide`) and the portraits, one source each; `ui_hud_pieces.h` holds what the sources share (click sound, sling arrow, tint, pause) |
 | `ui_objectives.cpp`, `ui_objectives.h` | objectives window |
 | `ui_options.cpp`, `ui_options.h`, `key_bindings.cpp`, `key_bindings.h` | options window and the key actions table (`kActionDefinitions`, defined in `ui_options.cpp`); the bindings file |
 | `ui_saveload.cpp`, `ui_saveload.h` | save / load window and the quick saves |
@@ -292,12 +292,12 @@ the topics' frame inside the text's).
 
 ## 6. Battle screen: update, selection, orders, pending actions
 
-Files `ui_battle.cpp`, `ui_hud.cpp`, `ui_hud_pick.cpp`, `ui_spell_column.cpp`; scenarios `ui_hud`, `ui_battle_commands`,
+Files `ui_battle.cpp`, `ui_hud_slots.cpp`; scenarios `ui_hud`, `ui_battle_commands`,
 `ui_battle_spells`, `ui_order_move`, `ui_quick_items`, `ui_quest_notice`. The key handler runs the key table's actions (1
 pause, 2 / 3 game speed, 4 objectives, 0x17-0x1A movement modes, ...; Esc cancels a targeting mode or opens the escape
 menu); the full list is in section 11, "BattleScreen::KeyDown". `UnitJoined` places a unit by the local player's record
 order. `KeyUp` releases the order key of actions 0x11..0x16; `Wheel` offers the event to the map, unit panel, message log and
-top panel. `UseNow` (`ui_hud_pick.cpp`) casts at once on the unit, or for an attack spell on the nearest unit it sees (none:
+top panel. `UseNow` (`ui_hud_slots.cpp`) casts at once on the unit, or for an attack spell on the nearest unit it sees (none:
 "nomagic").
 
 - **Selection.** `RefreshSelection` is the hub: a single living selected member (flag 0x10) goes to the four `SetUnit`s,
@@ -331,7 +331,7 @@ portrait pick branch (multiplayer).
 
 ## 7. Battle HUD panels
 
-Files `ui_hud*.cpp` (declarations in `ui_hud.h`); scenario `ui_hud` (new game, mouse moves
+Files `ui_hud_slots.cpp`, `ui_hud_corner.cpp`, `ui_hud_side.cpp`, `ui_hud_portraits.cpp` (declarations in `ui_hud.h`); scenario `ui_hud` (new game, mouse moves
 over every panel, clicks on weapon slots, top panel pages and sling, unit panel body parts and sling, map views, movement
 panel, a portrait; the escape menu: Options -> group -> Cancel, Load -> row -> Cancel, Save -> Esc, Resume; the hero must
 take damage; the wheel over the map's sling button (in, then out past the limit) and the map; TAB opens the objectives
@@ -345,9 +345,11 @@ items 520..720 x 500..600 (8 slots 50x50), spell column 760..800 x 190..510, act
 quarter circle radius 34, 1-4 ring sectors 35..80), top panel 180..620 x 0..100 (sling 385..415 x 0..20, page buttons
 185..215 / 215..245).
 
-Classes: `HudWeaponBar`, `HudQuickItems`, `HudSpellColumn`, `HudActionColumn`, `HudPortraits` (`ui_hud_portraits.cpp`;
-Rebuild every new game, ShowFace for low mana and hits), `HudMap`, `HudUnitPanel` (`ui_hud_panels.cpp`, `PaintUnitInfo`),
-`HudClock`, `HudMovePanel` (`ToggleFlag` orders through the local view), `HudTopPanel` (`ui_hud_frame.cpp`).
+Classes: `HudWeaponBar`, `HudQuickItems`, `HudSpellColumn`, `HudActionColumn` (`ui_hud_slots.cpp`), `HudPortraits`
+(`ui_hud_portraits.cpp`; Rebuild every new game, ShowFace for low mana and hits), `PanelSlide`, `HudMap`, `HudUnitPanel`
+(`ui_hud_side.cpp`, `PaintUnitInfo`), `HudClock`, `HudMovePanel` (`ToggleFlag` orders through the local view), `HudTopPanel`
+(`ui_hud_corner.cpp`). A family source defines its classes' functions grouped by class, its file-local helpers in one
+anonymous namespace at the top; names the sources share live in `ui_hud_pieces.h`, so a file-local name means one thing.
 
 A panel's buttons go through `UiWindow::PressRegion` (button down: the region, the event used, the mouse taken),
 `PressedRegion` (button up: only with the mouse taken here) and `HitRegion` (move, wheel), over its first `count` regions

@@ -224,11 +224,6 @@ constexpr int kWobbleNod = 1;
 constexpr int kWobbleShake = 2;
 } // namespace
 
-// The panels Create builds inline (they have no constructors of their own).
-HudUnitPanel::HudUnitPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-
-HudMap::HudMap(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-
 void BattleScreen::CreateScreen() {
     ui->battle = this;
     float mapZoom = 1.0f;

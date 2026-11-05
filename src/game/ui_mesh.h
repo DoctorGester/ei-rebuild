@@ -79,7 +79,6 @@ public:
     // Puts the sprite at layout point (x, y) at `depth` in front of the interface camera (`depth` copied as
     // bits). Rebirth-patched: with Rebirth's WideScreen x is moved by the panel offset first.
     void Place(float x, float y, float depth);
-    // Copied as bits.
     void SetScale(float scale);
     void SetScaleYBits(std::uint32_t bits);
     // When visible.

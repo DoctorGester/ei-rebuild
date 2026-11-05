@@ -19,8 +19,8 @@ address,size,name,file
 00741138,28,kSlotYs,src/game/ui_briefing.cpp
 00741EC4,28,kBodySlotX,src/game/ui_camp.h
 00741EE0,28,kBodySlotY,src/game/ui_camp.h
-00742434,24,kPartX,src/game/ui_hud_slide.cpp
-0074244C,24,kPartY,src/game/ui_hud_slide.cpp
+00742434,24,kPartX,src/game/ui_hud_side.cpp
+0074244C,24,kPartY,src/game/ui_hud_side.cpp
 007428AC,4,g_panelRight,src/game/screen_layout.cpp
 00742B08,4,g_layoutWidth,src/game/screen_layout.cpp
 00743BF8,64,kMaterialKindFiles,src/game/material.cpp

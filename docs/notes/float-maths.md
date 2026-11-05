@@ -55,7 +55,7 @@ checked across them.
 - Hit tests are integer: pixels and cell widths with a float position snapped once (`UiItemStrip::SlotAt`); a held
   button's repeat counts whole milliseconds (`UiContainer::FrameTicks`). A float hit test picked the neighbouring
   figure where `200 * 0.01f` is 1.99999996 in double and 2.0 at 24 bits.
-- Accepted rounding differences: ui_hud_setup's `OnArc` and the round map's outline (a region corner one pixel off),
+- Accepted rounding differences: ui_hud_corner.cpp's `OnArc` and the round map's outline (a region corner one pixel off),
   colour bytes and wave entries at an exact half, terrain_animation's waves and `EdgeFade`.
 
 ## Selects on `>=` / `<=` (lib/float_select.h)

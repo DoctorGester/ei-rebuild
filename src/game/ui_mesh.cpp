@@ -306,6 +306,12 @@ void UiMesh::ResetColours() { ResetVertexColours(this); }
 
 void UiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix.m[5] = std::bit_cast<float>(bits); }
 
+void UiMesh::SetScale(float scale) {
+    ScaleX() = scale;
+    ScaleY() = scale;
+    ScaleZ() = scale;
+}
+
 // --- Draw --------------------------------------------------------------------------------------------
 
 // An interface sprite (UiMesh, ui_mesh.h): its Create, its draw (called by the window base's draw and the panels

@@ -270,5 +270,5 @@ manager. `CarriedWeight` sums weapons, quick items, spells and armour in one run
 
 The HUD regions' arc vertices are `_ftol(cos(k x pi x step) x radius)` with every product rounded to float but not the
 cosine or sine themselves (the original's 24-bit precision reached FADD / FSUB / FMUL / FDIV / FSQRT only): sin(pi / 2)
-x 34 rounds to 34, cos(pi / 3) x 34 = 16.9999991 rounds to 17. `OnArc` (ui_hud_frame.cpp) rounds each product with
+x 34 rounds to 34, cos(pi / 3) x 34 = 16.9999991 rounds to 17. `OnArc` (ui_hud_corner.cpp) rounds each product with
 RoundToFloat. The map's outline is `(_ftol(700 - sin x 65), _ftol(cos x 65 + 80))` the same way.
