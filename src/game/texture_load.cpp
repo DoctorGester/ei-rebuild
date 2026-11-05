@@ -205,8 +205,8 @@ int TextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* ou
 
 namespace {
 
-const char* CantLoadText() { return "CTexture::FillSurface.\n Can't Load texture %s.\n"; }        // "CTexture::FillSurface.\n Can't Load texture %s.\n"
-const char* AlphaNot8BitText() { return "Alpha-file %s must be 8bit gray instead of %d"; }
+constexpr const char* kCantLoadText = "CTexture::FillSurface.\n Can't Load texture %s.\n";
+constexpr const char* kAlphaNot8BitText = "Alpha-file %s must be 8bit gray instead of %d";
 
 // The .bmp's pixels as 0xAARRGGBB, `width` x `height`: `width` rows of `height` pixels read (the original's loop),
 // the colours read on as B, G, R bytes without the .bmp's row padding (and in its row order: a bottom-up .bmp comes out
@@ -240,7 +240,7 @@ int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* a
     Dib colour;
     Dib alpha;
     if (!file.Open(path, platform::FileMode::Read)) {
-        game::DebugLog(CantLoadText(), GetName());
+        game::DebugLog(kCantLoadText, GetName());
         return 0;
     }
     colour.Read(&file);
@@ -255,7 +255,7 @@ int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* a
         if (bits == 8)
             withAlpha = true;
         else
-            game::DebugLog(AlphaNot8BitText(), alphaPath, static_cast<unsigned>(bits));
+            game::DebugLog(kAlphaNot8BitText, alphaPath, static_cast<unsigned>(bits));
     }
     height = static_cast<std::uint32_t>(bmpHeight);
     width = static_cast<std::uint32_t>(bmpWidth);
@@ -280,7 +280,7 @@ int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* a
 namespace {
 
 const char* AlreadyLoadedText() { return "CTexture::Load.\n Texture \"%s\" already loaded.\n"; }     // "CTexture::Load.\n Texture \"%s\" already loaded.\n"
-const char* AlphaPrefixText() { return "a_"; }
+constexpr const char* kAlphaPrefixText = "a_";
 
 } // namespace
 
@@ -298,7 +298,7 @@ int Texture::LoadBmp(TextureDevice* device, const char* path) {
     pieces = text::Split(path, '\\');
     file = pieces.back();
     pieces.pop_back();
-    alphaPath = AlphaPrefixText() + file;
+    alphaPath = kAlphaPrefixText + file;
     pieces.push_back(alphaPath);
     alphaPath = text::Join(pieces, '\\');
     pieces.pop_back();
@@ -345,9 +345,9 @@ const ComposedTexture* TextureManager::FindComposed(std::string_view name) {
     return found == g_composed.end() ? nullptr : &found->second;
 }
 
-int TextureManager::FindLayers(const std::vector<std::string>* names, int width, std::vector<std::string>* found) {
+int TextureManager::FindLayers(const std::vector<std::string>& names, int width, std::vector<std::string>* found) {
     int count = 0;
-    for (const std::string& name : *names) {
+    for (const std::string& name : names) {
         const MmpFile file = GetFileData(name);
         if (!file.data) {
             game::DebugLog(kCantFindLayer, name);
@@ -367,19 +367,19 @@ int TextureManager::FindLayers(const std::vector<std::string>* names, int width,
 // when `name` has none. One made from the request's layer bytes is reused (1). Otherwise, without layer textures,
 // the composed texture is forgotten (0); else it is made anew (`request->side` texels square, `mipCount` levels in
 // `format`) from the layer textures found (1; 0 when none is).
-int TextureManager::Compose(std::string* out, const SkinRequest* request, const std::string* name,
-                             const std::string* fallback, unsigned mipCount, MmpFormat format) {
-    std::string key = *name;
-    *out = *name;
-    if (const ComposedTexture* composed = FindComposed(*name)) {
+int TextureManager::Compose(std::string* out, const SkinRequest* request, const std::string& name,
+                             const std::string& fallback, unsigned mipCount, MmpFormat format) {
+    std::string key = name;
+    *out = name;
+    if (const ComposedTexture* composed = FindComposed(name)) {
         if (SameRequest(*composed, request)) return 1;
-    } else if (*name != *fallback) {
-        *out = *fallback;
-        key = *fallback;
-        if (const ComposedTexture* other = FindComposed(*fallback)) {
+    } else if (name != fallback) {
+        *out = fallback;
+        key = fallback;
+        if (const ComposedTexture* other = FindComposed(fallback)) {
             if (SameRequest(*other, request)) return 1;
-            *out = *name;
-            key = *name;
+            *out = name;
+            key = name;
         }
     }
 
@@ -388,7 +388,7 @@ int TextureManager::Compose(std::string* out, const SkinRequest* request, const 
         return 0;
     }
     ComposedTexture composed{};
-    if (FindLayers(&request->textures, request->side, &composed.layers) == 0) return 0;
+    if (FindLayers(request->textures, request->side, &composed.layers) == 0) return 0;
 
     MmpHeader& header = composed.header;
     header.magic = kMmpMagic;

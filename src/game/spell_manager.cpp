@@ -225,14 +225,14 @@ SpellContainer* SpellManager::NewContainer() {
     return CreateObjectAs<SpellContainer>(SpellObjectType::Container, -1);
 }
 
-Spell* SpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>* modifiers) {
+Spell* SpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>& modifiers) {
     SpellConstructor* constructor = context->GetSpellConstructor();
     if (!constructor) return game::FatalErrorAs<Spell>("%s", kNoSpellConstructor);
     constructor->SetManager(this);
     if (!constructor->BeginConstruct(prototype))
         return game::FatalErrorAs<Spell>(kCantBegin, prototype->code.c_str());
     int added = 0;
-    for (itemdb::SpellModifierRecord* modifier : *modifiers) {
+    for (itemdb::SpellModifierRecord* modifier : modifiers) {
         if (added >= 8) break;
         constructor->AddModifier(modifier);
         ++added;

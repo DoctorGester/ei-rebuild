@@ -5,6 +5,7 @@
 #include "chunk_archive.h"
 #include "resource.h"
 #include "core_streams.h"
+#include "database_file.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -35,16 +36,8 @@ void ChunkArchive::SerializeLevers(int id, std::vector<LeverRecord>* list) {
 int LeverRecordTable::Load(const std::string& folder) {
     std::string dir = folder;
     MappedResource resource;
-    bool opened;
-    {
-        std::string path = dir + "database.res";
-        opened = resource.OpenResource(path);
-    }
-    if (!opened) {
-        // The message names "databases.res", not the file it tried: as in the game.
-        std::string path = dir + "databases.res";
-        return game::FatalError("Can't open database file \"%s\"\n", path);
-    }
+    // The message names "databases.res", not the file it tried: as in the game.
+    if (!dbfile::OpenDatabase(resource, dir)) return dbfile::ReportNoDatabase(dir);
     std::uint32_t size;
     void* data = resource.GetFile("Levers.ldb", &size);
     if (!data) return game::FatalError("Can't open Levers database\n");

@@ -41,6 +41,13 @@ T* UnguardedPartition(T* first, T* last, const T& pivot, Less& less) {
     }
 }
 
+// Partitions [first, last) around a copy of the median of its first, middle and last elements; the cut.
+template <typename T, typename Less>
+T* PartitionAroundMedian(T* first, T* last, Less& less) {
+    const T pivot = Median(*first, first[(last - first) / 2], last[-1], less);
+    return UnguardedPartition(first, last, pivot, less);
+}
+
 // Sifts the hole at `hole` down to a leaf, then pushes `value` up from there (not above `hole`).
 template <typename T, typename Less>
 void AdjustHeap(T* first, int hole, int length, T value, Less& less) {
@@ -122,11 +129,7 @@ void IntroSortLoop(T* first, T* last, int depthLimit, Less less) {
             return;
         }
         --depthLimit;
-        T* cut;
-        {
-            const T pivot = intro_sort::Median(*first, first[(last - first) / 2], last[-1], less);
-            cut = intro_sort::UnguardedPartition(first, last, pivot, less);
-        }
+        T* cut = intro_sort::PartitionAroundMedian(first, last, less);
         IntroSortLoop(cut, last, depthLimit, less);
         last = cut;
     }

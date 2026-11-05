@@ -59,13 +59,13 @@ namespace {
 
 // The fonts: the face, the size the scale is measured with (tenths of a point) and each font's
 // share of the screen width.
-const char* FontFace() { return "Times New Roman"; }
+constexpr const char* kFontFace = "Times New Roman";
 constexpr int kMeasureSize = 750;
 constexpr int kFontShares[3] = {104, 112, 144};
 
 // A font of `size` tenths of a point, kept in `font`; false (and the fatal error) when it has no size.
 bool MakeFont(UiFont& font, int size) {
-    font = PointFont(size, FontFace());
+    font = PointFont(size, kFontFace);
     if (font) return true;
     game::FatalError("CInterface3D::Create.\n Cannot create font.\n");
     return false;

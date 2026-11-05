@@ -66,7 +66,7 @@ void MagicTrap::UpdateVictims() {
     WorldServer* context = ServerWorld();
     std::vector<Unit*> found;
     std::vector<Unit*> newcomers;
-    FindTrapVictims(context, &area, sides, &found);
+    FindTrapVictims(context, area, sides, &found);
     for (Unit* unit : found) {
         if (lib::Contains(inside, unit)) continue;
         inside.emplace_back(unit);
@@ -75,12 +75,12 @@ void MagicTrap::UpdateVictims() {
     if (!newcomers.empty()) CastAtUnits(&newcomers);
 }
 
-void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
+void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>& area, std::uint32_t sides,
                                 std::vector<Unit*>* out) {
     out->clear();
     SectorMap* sectors = &context->aiMap.sectorMap;
-    for (int i = 0; i < std::ssize(*area); ++i) {
-        const TrapCircle& circle = (*area)[i];
+    for (int i = 0; i < std::ssize(area); ++i) {
+        const TrapCircle& circle = area[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
         for (Unit* unit : sectors->FindUnitsInRadius(point, circle.radius)) {
             if (unit->IsDead()) continue;
@@ -225,7 +225,7 @@ void MagicTrap::FireAtOccupants() {
     WorldServer* context = ServerWorld();
     std::vector<Unit*> found;
     if (flags & MapObjectFlag::Armed) {
-        FindTrapVictims(context, &area, sides, &found);
+        FindTrapVictims(context, area, sides, &found);
         if (!found.empty()) CastAtUnits(&found);
     }
 }

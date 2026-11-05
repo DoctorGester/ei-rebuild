@@ -127,10 +127,10 @@ PartyUnitRecord* Party::Find(int unitId) {
 
 namespace {
 
-const char* TempFileName() { return "temp.mp"; }
+constexpr const char* kTempFileName = "temp.mp";
 
 std::string InFolder(const std::string& folder, const std::string& name) { return folder + name; }
-std::string TempFile(const std::string& folder) { return folder + TempFileName(); }
+std::string TempFile(const std::string& folder) { return folder + kTempFileName; }
 
 // The file stream and the memory stream the originals build on the stack (the memory stream torn down first).
 struct LocalStreams {
@@ -154,10 +154,7 @@ void MpHeroRecord::WriteFile(const std::string& folder) {
         platform::RemoveFile(InFolder(folder, file).c_str());
         return;
     }
-    {
-        std::string temp = TempFile(folder);
-        platform::RenameFile(InFolder(folder, file).c_str(), temp.c_str());
-    }
+    platform::RenameFile(InFolder(folder, file).c_str(), TempFile(folder).c_str());
     {
         LocalStreams streams;
         streams.file.Open(InFolder(folder, file), platform::FileMode::Create);
@@ -329,7 +326,7 @@ void CopyList(std::vector<Item*>& list, const std::vector<Item*>& source, Party*
     }
 }
 
-const char* ZoneVariableFormat() { return "z.%s"; }
+constexpr const char* kZoneVariableFormat = "z.%s";
 constexpr int kZoneKindGame = 0;
 constexpr int kZoneKindEdge = 1;
 constexpr float kOpened = 1.0f;
@@ -410,7 +407,7 @@ void Party::OpenEdgeExits() {
     for (int i = 0; i < std::ssize(newZone->exits); ++i) {
         MapRecord* target = g_mapDatabase.FindMap(newZone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
-        variable = str::Format(ZoneVariableFormat(), target->name);
+        variable = str::Format(kZoneVariableFormat, target->name);
         float value = currentVariables.Get(variable);
         if (value == 0.0f) currentVariables.Set(variable, kOpened);
     }

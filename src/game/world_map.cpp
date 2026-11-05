@@ -203,7 +203,7 @@ void WorldServer::SendFreshObjects() {
         }
         newObjects.push_back(object);
     }
-    state->SendObjectsAdded(&newObjects);
+    state->SendObjectsAdded(newObjects);
     state->WriteTo(header);
     temporary->Release();
     lib::FreeStorage(newObjects);
@@ -244,7 +244,7 @@ void WorldServer::EnsureZone(std::string_view map, std::string_view mob) {
 
 namespace {
 
-const char* MapsFolderName() { return "maps\\"; }
+constexpr const char* kMapsFolderName = "maps\\";
 
 // Rebirth's Maps (modfolders::SelectMaps): addon names the file before each maps-folder use.
 bool ModMaps() { return ei::rebirth::Enabled(ei::rebirth::Patch::Maps); }
@@ -254,7 +254,7 @@ bool ModMaps() { return ei::rebirth::Enabled(ei::rebirth::Patch::Maps); }
 std::string MapsFolder() {
     // Rebirth's Maps: the folder the last site selected.
     std::string folder(ModMaps() ? modfolders::MapsRoot(g_dataFolder) : g_dataFolder);
-    return folder + MapsFolderName();
+    return folder + kMapsFolderName;
 }
 
 std::string MapPath(std::string_view name) {

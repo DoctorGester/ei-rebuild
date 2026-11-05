@@ -175,8 +175,8 @@ void ScriptGroup::RemoveDeleted() {
     }
 }
 
-void ScriptGroup::InsertAll(const std::vector<HeldRef<Unit>>* list) {
-    for (Unit* unit : *list) Insert(unit);
+void ScriptGroup::InsertAll(const std::vector<HeldRef<Unit>>& list) {
+    for (Unit* unit : list) Insert(unit);
 }
 
 void ScriptGroup::CopyToList(std::vector<HeldRef<Unit>>* list) const {

@@ -22,7 +22,7 @@ bool IsFormat(const char* token) {
     return token[0] == '\n' || (token[0] == kEscape && (token[1] == 'C' || token[1] == 'F'));
 }
 
-const char* FontSampleText() { return "W"; }   // measured for each font's height
+constexpr const char* kFontSampleText = "W";   // measured for each font's height
 constexpr int kMeasuredFonts = 3;
 
 constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
@@ -120,7 +120,7 @@ void UiScrollText::PlaceWords(int scroll) {
     // The fonts' heights (the extent of the sample text in fonts 0-2).
     int heights[kMeasuredFonts];
     for (int font = 0; font < kMeasuredFonts; ++font) {
-        std::string sample = FontSampleText();
+        std::string sample = kFontSampleText;
         heights[font] = g_interface.TextExtent(sample, font).h;
     }
 
@@ -259,7 +259,7 @@ void UiScrollText::Layout() {
     int font = kDefaultFont;
     int heights[kFontSlots] = {};
     for (int f = 0; f < kMeasuredFonts; ++f) {
-        std::string sample = FontSampleText();
+        std::string sample = kFontSampleText;
         heights[f] = g_interface.TextExtent(sample, f).h;
     }
     lines.clear();

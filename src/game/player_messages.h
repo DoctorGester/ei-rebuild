@@ -134,7 +134,7 @@ public:
     virtual void UnitChanged(Unit*) {}     // client (the unit's controller); server empty
     virtual void ResetState() {}            // server and client versions
     virtual void Leave() {}                 // server (State::Leaving, flushed); client empty
-    virtual void ItemsGiven(const std::vector<Item*>*, int) {}   // server; client empty
+    virtual void ItemsGiven(const std::vector<Item*>&, int) {}   // server; client empty
     virtual void ItemsTaken() {}            // server (message 0x17); client empty
     virtual void ItemTaken(EngineObject*) {}   // server (message 0x0A); client empty
     virtual void LeaderDied() {}            // the player's leader died: server; client empty
@@ -168,7 +168,7 @@ public:
     void Leave() override;
     // For a joined player (State::Joined): message 0x05, a stream with the given items' spells and then the items,
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
-    void ItemsGiven(const std::vector<Item*>* items, int flag) override;
+    void ItemsGiven(const std::vector<Item*>& items, int flag) override;
     void ItemsTaken() override;                       // message 0x17
     void ItemTaken(EngineObject* item) override;     // message 0x0A: the item's id
     // The player's leader died. Outside a network game: messages 0x09 and 0x0B (the hero's id, 0xFF). In one,
@@ -215,15 +215,15 @@ public:
     // Each new map object (message 0x40: header, scale, names, the server companion's names and strings, a
     // unit's name, its full state) / timed object (0x50: id, class, full state) is sent and kept, counted, in
     // the player's map.
-    void SendObjectsAdded(const std::vector<MapObject*>* objects);
-    void SendTimedAdded(const std::vector<Effect*>* effects);
+    void SendObjectsAdded(const std::vector<MapObject*>& objects);
+    void SendTimedAdded(const std::vector<Effect*>& effects);
     // The objects changed in this world update (their stamp equals the world's update count) send their delta
     // (0x41 / 0x51: id, then the delta stream).
-    void SendObjectsChanged(const std::vector<MapObject*>* objects);
-    void SendTimedChanged(const std::vector<Effect*>* effects);
+    void SendObjectsChanged(const std::vector<MapObject*>& objects);
+    void SendTimedChanged(const std::vector<Effect*>& effects);
     // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id).
-    void SendObjectsRemoved(const std::vector<MapObject*>* objects);
-    void SendTimedRemoved(const std::vector<Effect*>* effects);
+    void SendObjectsRemoved(const std::vector<MapObject*>& objects);
+    void SendTimedRemoved(const std::vector<Effect*>& effects);
     // Every item of the player's item list the party's item manager knows is sent (ItemUsed).
     void SendItems();
     // Message 0x60: the world's pause flag, possessedId, the party units (partyUnits) by id and the party's
@@ -365,7 +365,7 @@ bool IsPrintableText(const char* text);
 
 // The walk orders' formation: one unit gets (0, 0, 0); several get the unit vector (x, y, 0) from the units'
 // 2D centroid to each (unnormalised when it is zero). `offsets` is sized to the units.
-void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* offsets);
+void FormationOffsets(const std::vector<Unit*>& units, std::vector<Vector3>* offsets);
 
 // The bits of Player::dirty: the state the server still has to send the player (WorldServer::SyncPlayer),
 // each cleared by its message. kPlayerDirtyAll after a reset or a load.
@@ -423,7 +423,7 @@ public:
     // null.
     bool IsLeader(const EngineObject* unit);
     // The connection's ItemsGiven, then every item of `items` counted and appended to the given items.
-    void GiveItems(const std::vector<Item*>* items, int flag);
+    void GiveItems(const std::vector<Item*>& items, int flag);
     // The connection's ItemsTaken, then every given item taken off the head and released.
     void TakeAllItems();
     // 1 when a given loot item (ItemKind::Quest) has `kind` (ItemLoot::kind), or an item a unit of the player

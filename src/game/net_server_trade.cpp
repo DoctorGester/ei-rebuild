@@ -149,17 +149,13 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
 // its share of the entry's two values (exp as Experience, money as Gold, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
 // empties queuedMaps, variables and files, and queues the following zones
-void ServerSession::CompleteZone(const std::string* zone) {
+void ServerSession::CompleteZone(const std::string& zone) {
     auto* holder = &map;
     if (IsLive(holder->Get())) {
         Announce(g_interface.MessageText(7, SessionMapName().c_str()), nullptr);
     }
 
-    QuestBriefingRecord* entry;
-    {
-        std::string key = *zone + kZoneCompleteSuffix;
-        entry = g_questDatabase.briefings.index[key];
-    }
+    QuestBriefingRecord* entry = g_questDatabase.briefings.index[zone + kZoneCompleteSuffix];
     if (entry) {
         int count = static_cast<int>(clients.size());
         int share = count < 1 ? 1 : count;
@@ -193,12 +189,7 @@ void ServerSession::LeaveZone() {
     if (IsLive(holder->Get())) {
         Announce(g_interface.MessageText(6, SessionMapName().c_str()), nullptr);
 
-        QuestBriefingRecord* entry;
-        {
-            std::string key = holder->Get()->text + kZoneEnterSuffix;
-            std::string lookup(key.data());
-            entry = g_questDatabase.briefings.index[lookup];
-        }
+        QuestBriefingRecord* entry = g_questDatabase.briefings.index[std::string(holder->Get()->text.c_str()) + kZoneEnterSuffix];
         if (entry) AwardHost(entry, true);
     }
 

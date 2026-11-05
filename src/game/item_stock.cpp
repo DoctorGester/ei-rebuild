@@ -164,10 +164,9 @@ constexpr int kScrollTries = 10;
 // up an object id.
 template <class Record>
 void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, int maxCount, std::vector<Item*>& out,
-                              const std::vector<itemdb::SpellListRecord>* spellRecipes) {
+                              bool withSpells) {
     ItemConstructor* ctor = party->GetItemConstructor();
     ItemManager* manager = party->ItemFactory();
-    if (spellRecipes) FillSpellMaps(*spellRecipes);
 
     int count = RandomCount(minCount, maxCount);
     std::vector<Record*> taken;
@@ -210,7 +209,7 @@ void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, in
         ctor->material = chosen ? chosen->record : nullptr;
 
         RolledSpell roll;   // its spells released after the build
-        if (spellRecipes) {
+        if (withSpells) {
             roll = RollItemSpell(this, prototype->Kind(), prototype, ctor->material);
             if (roll.chosen) ctor->spell = roll.chosen;
         }
@@ -230,13 +229,15 @@ void ItemStock::SetLevels(const float (&base)[kSchoolCount], const float (&scrol
 }
 
 void ItemStock::GenerateWeapons(int minCount, int maxCount, std::vector<Item*>& out) {
-    GenerateItems(&weapons, minCount, maxCount, out, &g_spellDatabase.weaponRecipes);
+    FillSpellMaps(g_spellDatabase.weaponRecipes);
+    GenerateItems(&weapons, minCount, maxCount, out, true);
 }
 void ItemStock::GenerateArmors(int minCount, int maxCount, std::vector<Item*>& out) {
-    GenerateItems(&armors, minCount, maxCount, out, &g_spellDatabase.armorRecipes);
+    FillSpellMaps(g_spellDatabase.armorRecipes);
+    GenerateItems(&armors, minCount, maxCount, out, true);
 }
 void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::vector<Item*>& out) {
-    GenerateItems(&quickItems, minCount, maxCount, out, nullptr);
+    GenerateItems(&quickItems, minCount, maxCount, out, false);
 }
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, std::vector<Item*>& out) {
@@ -359,7 +360,7 @@ std::vector<HeldRef<Spell>> ItemStock::GenerateSpells(const float (&levels)[kSch
                     if (budget < repeated->skill + reached) break;
                 }
             }
-            made.emplace_back(spellManager->CreateSpell(prototype, &chosen));
+            made.emplace_back(spellManager->CreateSpell(prototype, chosen));
         }
     }
     return made;

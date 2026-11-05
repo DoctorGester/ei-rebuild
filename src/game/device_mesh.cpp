@@ -51,7 +51,7 @@ void Submit(TextureDevice* device, const Textures* textures) {
 // On screen or crossing the view's edges: draw flag 1's rectangle from the projected positions (screen positions,
 // or clip-space ones when the mesh crosses the edges), and the passes go to the device; the GPU clips the hand-over.
 void Draw(TextureDevice* device, const MeshArgs& args, const Textures* textures, bool crossing) {
-    if (lib::Has(args.flags, DrawFlag::ScreenRect)) device->BoundsOfProjected(&g_projected, crossing);
+    if (lib::Has(args.flags, DrawFlag::ScreenRect)) device->BoundsOfProjected(g_projected, crossing);
     Submit(device, textures);
 }
 

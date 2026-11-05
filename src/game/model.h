@@ -282,7 +282,7 @@ public:
     int SetTexture(int stage, Texture* texture);
     // Draws `figure` (a FigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
-    int DrawFigureLit(FigureMesh* figure, const std::vector<Light*>* lights, Material* material, int alpha, Rect* screen, Texture* textureA,
+    int DrawFigureLit(FigureMesh* figure, const std::vector<Light*>& lights, Material* material, int alpha, Rect* screen, Texture* textureA,
                       Texture* textureB);
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
@@ -292,11 +292,11 @@ public:
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
     // lengthwise), `slant` 0.25 at every call known.
-    int DrawStrip(const std::vector<Vector3>* points, float width, TransformPipeline::ClipResult visibility, float length, float offset,
+    int DrawStrip(const std::vector<Vector3>& points, float width, TransformPipeline::ClipResult visibility, float length, float offset,
                   float slant);
     // Draws sprites facing the view with the bound texture: `points` their centres and sizes, `sprites` an array of
     // their colours and texture rectangles. The first argument is 0 at every call known.
-    int DrawSprites(int unknown, const std::vector<SpritePoint>* points, void* sprites);
+    int DrawSprites(int unknown, const std::vector<SpritePoint>& points, void* sprites);
     // The selection marker under a selected unit (the draw pass): a flat green arrow of half-transparent
     // 0x8000FF00, 0.3 above `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the
     // device's flat geometry draw as six triangles of two vertex blocks.

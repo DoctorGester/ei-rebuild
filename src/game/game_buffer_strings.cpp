@@ -31,8 +31,8 @@ bool GameBuffer::ReadString(std::string* s, int maxLength) {
     return true;
 }
 
-void GameBuffer::WriteString(const std::string* text) {
-    const std::string bytes = text::ToAssetText(*text);   // in the asset code page, as vanilla peers read it
+void GameBuffer::WriteString(std::string_view text) {
+    const std::string bytes = text::ToAssetText(text);   // in the asset code page, as vanilla peers read it
     const auto length = static_cast<std::uint32_t>(bytes.size());
     if (static_cast<int>(length) >= 0x80) {
         Put(length * 2 + 1);

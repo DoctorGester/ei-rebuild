@@ -213,12 +213,12 @@ bool Script::LoadScriptBody(ScriptDefinition* script, TokenReader* tokens) {
     return false;
 }
 
-bool Script::LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string* name) {
+bool Script::LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string& name) {
     cmd->Clear();
     if (!tokens->Expect(ScriptLexeme::Assign)) return false;
 
     // The value is the single argument of an Assign command (the caller found the variable).
-    const auto [index, type] = globals.FindVariable(*name);
+    const auto [index, type] = globals.FindVariable(name);
     const char signature[2] = {ScriptTypeLetter(type), 0};
     bool result = LoadFunction(cmd, tokens, ScriptFunction::Assign, locals, signature, ScriptArgSyntax::Value);
     cmd->target = index;
@@ -241,7 +241,7 @@ bool Script::LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tok
         token = tokens->Next();
         const ScriptType type = TypeOfName(token.text);
         if (type == ScriptType::None) return Error(this, token.line, ScriptParseError::UnknownType, "Unknown parameter type");
-        if (!script->AddParameter(&name, type)) return Error(this, token.line, ScriptParseError::DuplicateVariable, "Duplicate variable name %s", name);
+        if (!script->AddParameter(name, type)) return Error(this, token.line, ScriptParseError::DuplicateVariable, "Duplicate variable name %s", name);
         first = false;
     }
     return tokens->EndOfFileError();
@@ -293,9 +293,9 @@ bool Script::LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens
                 continue;
             }
             if (globals.HasVariable(text)) {
-                ok = LoadAssignOperator(&cmd, tokens, locals, &text);
+                ok = LoadAssignOperator(&cmd, tokens, locals, text);
             } else if (globals.HasVariable(qualified)) {
-                ok = LoadAssignOperator(&cmd, tokens, locals, &qualified);
+                ok = LoadAssignOperator(&cmd, tokens, locals, qualified);
             } else {
                 return Error(this, token.line, ScriptParseError::UnexpectedToken, "Unexpected token '%s'", text);
             }
@@ -342,7 +342,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
                 AddDefine(&defines, &define);
                 line.clear();
             } else {
-                ApplyDefines(&line, &defines);
+                ApplyDefines(&line, defines);
             }
             result = (result + line) + "\n";
         }
@@ -351,7 +351,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
 
     if (!Tokenize(*text, &tokens)) return false;
 
-    TokenReader reader(this, &tokens);
+    TokenReader reader(this, tokens);
     while (!reader.AtEnd()) {
         int id;
         ScriptToken token = reader.Next(&id);

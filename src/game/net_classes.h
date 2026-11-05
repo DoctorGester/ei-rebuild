@@ -434,22 +434,22 @@ public:
     bool Admit(const NetAddress* from, BufferCursor* password, RefusalReason* reason) override;
 
     // Switches the server to map `name`.
-    void SetMap(const std::string* name);
+    void SetMap(const std::string& name);
     // Queues a map message for each zone that follows the current map.
     void QueueMapList();
     // When the held map message names `name`: drops it and queues "name_3" instead.
-    bool FinishMap(const std::string* name);
+    bool FinishMap(const std::string& name);
     // The variable named `name`, variables.end() when missing.
-    std::vector<SharedRef<VariableMessage>>::iterator FindVariable(const std::string* name);
+    std::vector<SharedRef<VariableMessage>>::iterator FindVariable(const std::string& name);
     // The variable named `name`, made (value 0) at the front of the list when missing.
-    std::vector<SharedRef<VariableMessage>>::iterator FindOrAddVariable(const std::string* name);
-    void SetVariable(const std::string* name, float value);       // zero removes it
-    void RaiseVariable(const std::string* name, float value);     // to the larger value
-    void RemoveVariable(const std::string* name);
-    double GetVariable(const std::string* name);                  // 0 when missing
+    std::vector<SharedRef<VariableMessage>>::iterator FindOrAddVariable(const std::string& name);
+    void SetVariable(const std::string& name, float value);       // zero removes it
+    void RaiseVariable(const std::string& name, float value);     // to the larger value
+    void RemoveVariable(const std::string& name);
+    double GetVariable(const std::string& name);                  // 0 when missing
     // The zone completion command ("<zone>_3"): the clients'
     // shares of the zone's two values and the host's items, then the map state is dropped.
-    void CompleteZone(const std::string* zone);
+    void CompleteZone(const std::string& zone);
     // The zone leaving command ("<zone>_2"): the host's items with the final award, then
     // the map state is dropped and the world's map cleared.
     void LeaveZone();
@@ -458,7 +458,7 @@ public:
     // Queues an award message for `connection` (60 s delay); destroys `text`.
     void QueueAward(RefObject* connection, AwardKind awardKind, float value, std::string text);
     // Lists `data` under `name` (unless listed) as a file message with 64-byte chunk messages.
-    void ShareFile(const std::string* name, GameBuffer* data);
+    void ShareFile(const std::string& name, GameBuffer* data);
     // Whether the server is announced to the master server (port 28004).
     void SetPublic(bool announce);
     // Sends the master server this game's record: the name, the played map's title (empty without a map), the
@@ -473,7 +473,7 @@ public:
     TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     int LeaderId();                                       // the first host's id, -1
     void SetPassword(const char* text);
-    Connection* FindGuestConnection(const std::string* name);
+    Connection* FindGuestConnection(const std::string& name);
     Connection* FindConnectionBySerial(int serial);
     PlayerMessage* FindPlayer(int id);
     void AnnounceToGuests(int kind, const char* text);

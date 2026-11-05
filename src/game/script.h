@@ -105,7 +105,7 @@ public:
     void Insert(MapObject* object);
     // Also empty slots.
     void RemoveDeleted();
-    void InsertAll(const std::vector<HeldRef<Unit>>* list);
+    void InsertAll(const std::vector<HeldRef<Unit>>& list);
     // Replaces the list's contents (an AI memory list; the group holds units only).
     void CopyToList(std::vector<HeldRef<Unit>>* list) const;
     bool Contains(EngineObject* object) const;
@@ -214,7 +214,7 @@ enum class ScriptLexeme : int;   // below
 // The tokens of one file in reading order, and the Script that gets the parse errors.
 class TokenReader {
 public:
-    TokenReader(Script* script, const std::vector<ScriptToken>* tokens) : script(script), tokens(tokens), pos(tokens->begin()) {}
+    TokenReader(Script* script, const std::vector<ScriptToken>& tokens) : script(script), tokens(&tokens), pos(tokens.begin()) {}
 
     bool AtEnd() const { return pos == tokens->end(); }
     // The line of the last token (-1 with no tokens).
@@ -518,7 +518,7 @@ struct ScriptDefinition {
     // A script call's arguments into the instance's variables; FatalError when a type's count does not match.
     void BindCall(const ScriptCall* call);
     // False when the name is taken.
-    bool AddParameter(const std::string* name, ScriptType type);
+    bool AddParameter(const std::string& name, ScriptType type);
     // Emptied (Script::Load before each `Script` section).
     void Reset();
 
@@ -671,7 +671,7 @@ public:
     // `if(...)then(...)` pairs up to ')'.
     bool LoadScriptBody(ScriptDefinition* script, TokenReader* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
-    bool LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string* name);
+    bool LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string& name);
     // `name : type, ...)` (parameters or GlobalVars); "Unexpected end of file" when the tokens run out.
     bool LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tokens, bool qualify);
     // Commands up to ')'; null `locals` means an empty variable set (the WorldScript). A For body sees the
@@ -991,7 +991,7 @@ struct ScriptDefine {
 // empty).
 void AddDefine(std::vector<ScriptDefine>* defines, const ScriptDefine* define);
 // Each define in list order.
-void ApplyDefines(std::string* line, const std::vector<ScriptDefine>* defines);
+void ApplyDefines(std::string* line, const std::vector<ScriptDefine>& defines);
 
 // *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.

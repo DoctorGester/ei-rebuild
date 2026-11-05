@@ -71,26 +71,26 @@ int WorldUpdateCount(Player* player) { return player->ServerWorld()->updateCount
 
 // SaveListedObjects on a typed list.
 template <typename T>
-void SaveListed(const std::vector<T*>* list, ByteStream* stream) {
-    for (T* object : *list) SaveListedObject(object, stream);
+void SaveListed(const std::vector<T*>& list, ByteStream* stream) {
+    for (T* object : list) SaveListedObject(object, stream);
     SaveListedObjectsEnd(stream);
 }
 
 } // namespace
 
-void PlayerServer::ItemsGiven(const std::vector<Item*>* items, int flag) {
+void PlayerServer::ItemsGiven(const std::vector<Item*>& items, int flag) {
     if (state != State::Joined) return;
     ItemsAndSpells gathered;
-    for (Item* item : *items) gathered.Add(item);
+    for (Item* item : items) gathered.Add(item);
     MemoryStream states;
-    SaveListed(&gathered.spells, &states);
-    SaveListed(&gathered.items, &states);
+    SaveListed(gathered.spells, &states);
+    SaveListed(gathered.items, &states);
     WriteType(&out, ServerMessage::NewItemsAndSpells);
     out.WriteStream(&states);
     WriteType(&out, ServerMessage::ItemsReceived);
     WriteDword(&out, static_cast<std::uint32_t>(player->GetParty()->money));
     out.WriteValue(static_cast<std::uint8_t>(flag));
-    for (Item* item : *items) WriteDword(&out, static_cast<std::uint32_t>(item->id));
+    for (Item* item : items) WriteDword(&out, static_cast<std::uint32_t>(item->id));
     WriteDword(&out, 0xFFFFFFFFu);
     gathered.items.clear();
     gathered.spells.clear();
@@ -111,8 +111,8 @@ int PlayerServer::Flush() {
     return sent;
 }
 
-void PlayerServer::SendObjectsAdded(const std::vector<MapObject*>* objects) {
-    for (MapObject* object : *objects) {
+void PlayerServer::SendObjectsAdded(const std::vector<MapObject*>& objects) {
+    for (MapObject* object : objects) {
         bool isUnit = object->GetClassId() == ClassId::Unit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id), static_cast<std::uint32_t>(object->type),
                                    object->prototypeId, object->flags};
@@ -144,9 +144,9 @@ void PlayerServer::SendObjectsAdded(const std::vector<MapObject*>* objects) {
     }
 }
 
-void PlayerServer::SendObjectsChanged(const std::vector<MapObject*>* objects) {
+void PlayerServer::SendObjectsChanged(const std::vector<MapObject*>& objects) {
     int stamp = WorldUpdateCount(player);
-    for (MapObject* object : *objects) {
+    for (MapObject* object : objects) {
         if (object->changeStamp != stamp) continue;
         if (object->flags & kFlagDeltaPending) object->WriteChangedState();
         WriteType(&out, ServerMessage::ObjectChanged);
@@ -155,8 +155,8 @@ void PlayerServer::SendObjectsChanged(const std::vector<MapObject*>* objects) {
     }
 }
 
-void PlayerServer::SendObjectsRemoved(const std::vector<MapObject*>* objects) {
-    for (MapObject* object : *objects) {
+void PlayerServer::SendObjectsRemoved(const std::vector<MapObject*>& objects) {
+    for (MapObject* object : objects) {
         int objectId = object->id;
         Forget(player->knownObjects, objectId);
         object->Release();
@@ -165,8 +165,8 @@ void PlayerServer::SendObjectsRemoved(const std::vector<MapObject*>* objects) {
     }
 }
 
-void PlayerServer::SendTimedAdded(const std::vector<Effect*>* effects) {
-    for (Effect* effect : *effects) {
+void PlayerServer::SendTimedAdded(const std::vector<Effect*>& effects) {
+    for (Effect* effect : effects) {
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
         std::uint32_t header[2];
         header[1] = static_cast<std::uint32_t>(effect->GetClassId());
@@ -179,9 +179,9 @@ void PlayerServer::SendTimedAdded(const std::vector<Effect*>* effects) {
     }
 }
 
-void PlayerServer::SendTimedChanged(const std::vector<Effect*>* effects) {
+void PlayerServer::SendTimedChanged(const std::vector<Effect*>& effects) {
     int stamp = WorldUpdateCount(player);
-    for (Effect* effect : *effects) {
+    for (Effect* effect : effects) {
         if (effect->changeStamp != stamp) continue;
         if (effect->flags & kFlagDeltaPending) effect->SendDelta();
         WriteType(&out, ServerMessage::TimedChanged);
@@ -190,8 +190,8 @@ void PlayerServer::SendTimedChanged(const std::vector<Effect*>* effects) {
     }
 }
 
-void PlayerServer::SendTimedRemoved(const std::vector<Effect*>* effects) {
-    for (Effect* effect : *effects) {
+void PlayerServer::SendTimedRemoved(const std::vector<Effect*>& effects) {
+    for (Effect* effect : effects) {
         WriteType(&out, ServerMessage::TimedRemoved);
         WriteDword(&out, static_cast<std::uint32_t>(effect->id));
         Forget(player->knownTimed, effect->id);
@@ -338,8 +338,8 @@ void PlayerServer::UpdatePartyUnits() {
             Unit* unit = node->second;
             party.Insert(unit);
             AIBrain* brain = &unit->ServerController()->brain;
-            party.InsertAll(&brain->memory.visible);
-            known.InsertAll(&brain->memory.seenCorpses);
+            party.InsertAll(brain->memory.visible);
+            known.InsertAll(brain->memory.seenCorpses);
         }
         partyUnits.Union(party, known);
         for (auto node = units.begin(); node != units.end() && node->second; ++node)

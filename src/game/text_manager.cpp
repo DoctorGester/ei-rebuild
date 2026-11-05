@@ -360,12 +360,7 @@ std::vector<std::string> TextManager::Split(bool advance) {
 
 bool TextManager::FindHeader() {
     while (std::optional<std::string> word = PeekWord()) {
-        bool header;
-        {
-            std::string first = str::Left(*word, 1);
-            header = str::Compare(first, kHeader) == 0 && !IsComment(*word);
-        }
-        if (header) return true;
+        if (str::Compare(str::Left(*word, 1), kHeader) == 0 && !IsComment(*word)) return true;
         Advance(this, kFindFirst);
     }
     return false;

@@ -43,8 +43,7 @@ void ShareQuestFile(const std::string& path, const std::string& name) {
     platform::ReadWholeFile(path, &bytes);
     GrowingBuffer data;
     data.Write(bytes.data(), static_cast<std::uint32_t>(bytes.size()));
-    std::string listed = name;
-    net::g_gameServer->ShareFile(&listed, &data);
+    net::g_gameServer->ShareFile(name, &data);
 }
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).

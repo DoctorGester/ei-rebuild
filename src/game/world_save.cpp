@@ -473,7 +473,7 @@ void SharedObject::Save(ByteStream* stream) const {
     for (const Item* object : objects) stream->WriteId(object);
 }
 
-void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::vector<Item*>* newObjects) {
+void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::vector<Item*>& newObjects) {
     // The session player record's serial in a multiplayer game, else -1.
     int player = -1;
     net::ServerSession* session = net::g_gameServer;
@@ -486,7 +486,7 @@ void WorldServer::AddSharedObject(int newId, std::uint32_t value, const std::vec
     entry.objectId = newId;
     entry.player = player;
     entry.money = value;
-    for (Item* object : *newObjects) entry.objects.emplace_back(object);
+    for (Item* object : newObjects) entry.objects.emplace_back(object);
 }
 
 void WorldServer::PrepareSave() {

@@ -134,10 +134,10 @@ int TextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const st
 // the ribbon's screen width; `mode` Inside projects, Crossing projects and clips (a section between two points that are
 // both off screen is skipped), Outside only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
 // is 0), v from `vStart` over `vSize`. Returns the draw's result (1 when nothing is drawn).
-int SceneRenderer::DrawStrip(const std::vector<Vector3>* pointArray, float width, TransformPipeline::ClipResult mode, float uLength,
+int SceneRenderer::DrawStrip(const std::vector<Vector3>& pointArray, float width, TransformPipeline::ClipResult mode, float uLength,
                               float vStart, float vSize) {
-    const Vector3* points = pointArray->data();
-    const int pointCount = static_cast<int>(std::ssize(*pointArray));
+    const Vector3* points = pointArray.data();
+    const int pointCount = static_cast<int>(std::ssize(pointArray));
     const TransformPipeline* currentPipeline = pipeline;
 
     const auto n = static_cast<std::size_t>(pointCount);

@@ -509,7 +509,7 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
         s.rect = frames[frame % 15];
         frame += 2;
     }
-    device->DrawSprites(0, &g_glowPoints, &g_sprites);
+    device->DrawSprites(0, g_glowPoints, &g_sprites);
 }
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
@@ -523,16 +523,16 @@ int Lightning::Draw(SceneRenderer* device) {
     if (power >= zero) Animate();
     const float slant = 0.25f;
     if (power < zero) {    // negative: untextured lengthwise
-        renderer->DrawStrip(&main.points, main.width, visibility, 0.0f, 0.0f, slant);
-        for (LightningSegment& b : branches) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
+        renderer->DrawStrip(main.points, main.width, visibility, 0.0f, 0.0f, slant);
+        for (LightningSegment& b : branches) renderer->DrawStrip(b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
         float span = Length(main.step) * std::ssize(main.points) * 0.6f;
-        renderer->DrawStrip(&main.points, main.width, visibility, span, offset, slant);
+        renderer->DrawStrip(main.points, main.width, visibility, span, offset, slant);
         for (LightningSegment& b : branches) {
             offset = RandomOffset();
             span = Length(b.step) * std::ssize(b.points) * 0.6f;
-            renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
+            renderer->DrawStrip(b.points, b.width, visibility, span, offset, slant);
         }
     }
 

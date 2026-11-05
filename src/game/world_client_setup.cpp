@@ -31,14 +31,14 @@ namespace {
 constexpr float kByteToUnit = lib::kByteScale;
 
 // The game's data folder (a string global) and the strings passed by address.
-const char* ConfigFolder() { return "config\\"; }
-const char* SunlightSection() { return "sunlight"; }
-const char* AmbientSection() { return "ambient"; }
-const char* SkySection() { return "sky"; }
+constexpr const char* kConfigFolder = "config\\";
+constexpr const char* kSunlightSection = "sunlight";
+constexpr const char* kAmbientSection = "ambient";
+constexpr const char* kSkySection = "sky";
 
 constexpr int kNumbersKind = static_cast<int>(TextureKind::Effects);
 
-const char* NumbersName() { return "numbers"; }
+constexpr const char* kNumbersName = "numbers";
 const char* FiguresResource() { return options::g_options.resourcesPath.c_str(); }
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
@@ -73,24 +73,24 @@ void ReadTable(IniFile& ini, const char* section, LightColour* table) {
 
 constexpr int kSkyObjectId = -666;
 constexpr int kSkyMaterialType = 0x12;
-const char* SkyPartName() { return "nask0"; }
-const char* SkyFigureFile() { return "nask0sky.fig"; }
+constexpr const char* kSkyPartName = "nask0";
+constexpr const char* kSkyFigureFile = "nask0sky.fig";
 
 } // namespace
 
 void WorldClient::LoadLights(const std::string& file) {
     IniFile ini;
-    ini.Load(g_dataFolder + ConfigFolder() + file);
-    ReadTable(ini, SunlightSection(), sunlight);
-    ReadTable(ini, AmbientSection(), ambient);
-    ReadTable(ini, SkySection(), sky);
+    ini.Load(g_dataFolder + kConfigFolder + file);
+    ReadTable(ini, kSunlightSection, sunlight);
+    ReadTable(ini, kAmbientSection, ambient);
+    ReadTable(ini, kSkySection, sky);
 }
 
 void WorldClient::SetUpGraphics(TextureDevice* device) {
     GetTextureManager()->SetDevice(device);
     LoadSky();
     numbers = std::make_unique<FlyingHitPoints>();
-    auto* texture = GetTextureManager()->FindOrCreate(kNumbersKind, NumbersName());
+    auto* texture = GetTextureManager()->FindOrCreate(kNumbersKind, kNumbersName);
     if (texture) {
         numbers->texture.Assign(texture);
         GetTextureManager()->LoadTexture(texture);
@@ -109,9 +109,9 @@ void WorldClient::LoadSky() {
     auto* figures = GetFigureManager();
     auto* object = figures->CreateObjectAs<SkyObject>(FigureObjectType::SkyObject, kSkyObjectId);
     if (!object) return;
-    object->name = SkyPartName();
+    object->name = kSkyPartName;
     object->directory.clear();
-    char* data = static_cast<char*>(figures->GetFile(SkyFigureFile(), nullptr));
+    char* data = static_cast<char*>(figures->GetFile(kSkyFigureFile, nullptr));
     if (!data) {
         object->AddRef();
         object->Release();

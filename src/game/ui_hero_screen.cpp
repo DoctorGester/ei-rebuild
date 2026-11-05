@@ -160,7 +160,7 @@ void MpHeroScreen::CloseScreen() {
     g_savedParties.SaveAll();
     std::vector<PartyUnitRecord*> records;
     for (PartyUnitRecord& record : LocalPlayerData()->members) records.push_back(&record);
-    g_clientWorld.RemoveUnitsOf(&records);
+    g_clientWorld.RemoveUnitsOf(records);
     previewModel = nullptr;
     descPanel->Describe(nullptr);
 }
@@ -217,7 +217,7 @@ void MpHeroScreen::MakePreview(bool allArmour) {
         player->AddMember(kHeroName, kHumanHero, "");
     }
     const std::vector<PartyUnitRecord*> records{player->members.data()};
-    g_clientWorld.CreatePartyUnits(&records, allArmour);
+    g_clientWorld.CreatePartyUnits(records, allArmour);
     auto* unit = g_clientWorld.FindUnit(player->members.data()->unitId);
     unit->SetSecondPrototype(unit->GetPrototype());
     previewModel = unit;
@@ -244,7 +244,7 @@ void MpHeroScreen::ShowHero(int index) {
     auto* player = LocalPlayerData();
     if (!player->members.empty()) {
         std::vector<PartyUnitRecord*> records{player->members.data()};
-        g_clientWorld.RemoveUnitsOf(&records);
+        g_clientWorld.RemoveUnitsOf(records);
     }
     heroIndex = -1;
     if (index >= 0 && index < g_savedParties.Count()) {

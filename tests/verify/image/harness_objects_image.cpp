@@ -227,7 +227,7 @@ std::string GiveItem(int playerId, const char* name) {
     Item* item = g_serverWorld.CreateItemNamed(name);
     if (!item) return std::string("giveitem: no item ") + name;
     std::vector<Item*> items{item};
-    player->GiveItems(&items, 0);
+    player->GiveItems(items, 0);
     return "";
 }
 void* WorldHandle() { return g_serverWorld.worldHandle.Get(); }

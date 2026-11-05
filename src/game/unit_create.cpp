@@ -92,7 +92,7 @@ void Unit::DropBrokenEquipment() {
     if (weaponLost) controller->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
     if (!broken.empty()) {
-        ownerObject->GiveItems(&broken, 1);
+        ownerObject->GiveItems(broken, 1);
         for (Item* item : broken) item->Release();
         MarkChanged(NetField::Equipment);
     }

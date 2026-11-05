@@ -108,12 +108,7 @@ bool UnitServer::TargetBusy(MapObject* target) {
 }
 
 void UnitServer::PlayAnimation(const char* name) {
-    const FigureAnimation* entry;
-    {
-        std::string figure = unit->name;
-        auto* world = OwningWorld();
-        entry = (world->GetMapObjectManager())->FindFigureAnimation(figure, name);
-    }
+    const FigureAnimation* entry = OwningWorld()->GetMapObjectManager()->FindFigureAnimation(unit->name, name);
     if (!entry) return;
     action2.Reset();
     action2.param = entry->index;

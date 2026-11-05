@@ -42,12 +42,12 @@ constexpr bool NoPadding(const AtPointBlock*) {
     return lib::FieldsFill<&AtPointBlock::slot, &AtPointBlock::caster, &AtPointBlock::point, &AtPointBlock::ctrl>();
 }
 
-void WriteUnits(MemoryStream& out, const std::vector<Unit*>* units) {
-    out.WriteCount(units->size());
-    for (const Unit* unit : *units) out.WriteId(unit);
+void WriteUnits(MemoryStream& out, const std::vector<Unit*>& units) {
+    out.WriteCount(units.size());
+    for (const Unit* unit : units) out.WriteId(unit);
 }
 
-void SendMove(MemoryStream* out, ClientMessage type, const std::vector<Unit*>* units, const Vector3& to, int run) {
+void SendMove(MemoryStream* out, ClientMessage type, const std::vector<Unit*>& units, const Vector3& to, int run) {
     WriteType(out, type);
     WriteUnits(*out, units);
     out->WriteValue(run);
@@ -62,14 +62,14 @@ void SpendPotion(Unit* user, int slot) {
 
 } // namespace
 
-void PlayerClient::SendWalk(const std::vector<Unit*>* units, const Vector3& to, int run) {
+void PlayerClient::SendWalk(const std::vector<Unit*>& units, const Vector3& to, int run) {
     SendMove(&out, ClientMessage::Walk, units, to, run);
 }
-void PlayerClient::SendGoTo(const std::vector<Unit*>* units, const Vector3& to, int run) {
+void PlayerClient::SendGoTo(const std::vector<Unit*>& units, const Vector3& to, int run) {
     SendMove(&out, ClientMessage::GoTo, units, to, run);
 }
 
-void PlayerClient::SendAttack(const std::vector<Unit*>* units, EngineObject* target, int how, int ctrl) {
+void PlayerClient::SendAttack(const std::vector<Unit*>& units, EngineObject* target, int how, int ctrl) {
     WriteType(&out, ClientMessage::Attack);
     WriteUnits(out, units);
     out.WriteValue(ctrl);
@@ -150,7 +150,7 @@ void PlayerClient::SendUseOrder(Unit* unit, EngineObject* target, int kind, int 
     out.WriteId(target);
 }
 
-void PlayerClient::SendUseDead(const std::vector<Unit*>* units, EngineObject* target, int flag) {
+void PlayerClient::SendUseDead(const std::vector<Unit*>& units, EngineObject* target, int flag) {
     WriteType(&out, ClientMessage::UseOrder);
     WriteUnits(out, units);
     out.WriteValue(flag);

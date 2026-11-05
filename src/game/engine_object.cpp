@@ -4,6 +4,8 @@
 #include "base_manager.h"
 #include "manager_context.h"
 
+constexpr const char* kNoName = "noname";
+
 void EngineObject::CopyFrom(const EngineObject& other) {
     flags = other.flags;
     type = other.type;
@@ -24,7 +26,7 @@ void EngineObject::Release() {
     if (--refCount == 0) owner->ReleaseObject(this);
 }
 
-const char* EngineObject::GetName() { return "noname"; }
+const char* EngineObject::GetName() { return kNoName; }
 
 ManagerContext* EngineObject::GetManagerContext() const { return owner->context; }
 

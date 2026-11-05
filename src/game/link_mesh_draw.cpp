@@ -70,16 +70,21 @@ void KeepScreen(LinkMesh* mesh, std::string_view name, DrawFlag flags, bool draw
     mesh->headers[std::string(name)].screen = kNoScreen;
 }
 
-// The four draws: `offsets` (null: none asked) moves the positions when it has any; without
+const std::vector<Vector3> kNoOffsets;
+
+// The offsets a draw's caller passed (null: none asked).
+const std::vector<Vector3>& OffsetsOf(std::vector<Vector3>* offsets) { return offsets ? *offsets : kNoOffsets; }
+
+// The four draws: `offsets` moves the positions when it has any; without
 // surfaces the device's specular is on around the draw for DrawFlag::Specular.
 bool DrawPartCommon(LinkMesh* mesh, std::string_view name, DrawFlag flags, Surface* first, Surface* second,
                    bool textured, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                   const std::vector<Vector3>* offsets, float u, float v) {
+                   const std::vector<Vector3>& offsets, float u, float v) {
     auto node = mesh->ranges.find(name);
     if (node == mesh->ranges.end()) return false;
     const LinkPartRanges& r = node->second;
     const VertexPacket* positions = mesh->vertices.data() + r.vertices.start;
-    if (offsets && !offsets->empty()) positions = MovedPositions(positions, r.vertices.count, *offsets);
+    if (!offsets.empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
 
     const bool specular = !textured && lib::Has(flags, DrawFlag::Specular);
     if (specular) render::g_renderState.specular = true;
@@ -111,7 +116,7 @@ bool LinkMesh::FlatColours(std::string_view partName, std::uint32_t colour, std:
 // (Material::GpuLitColour; the transform object's LightMesh lit them before); every specular is the alpha
 // byte in the top byte, over the material's specular colour (components times 255, truncated by
 // _ftol and OR-ed in unmasked) when the material keeps its speculars.
-bool LinkMesh::LightPart(std::string_view partName, const std::vector<Light*>* lights, Material* material, int alpha,
+bool LinkMesh::LightPart(std::string_view partName, const std::vector<Light*>& lights, Material* material, int alpha,
                           std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) {
     auto node = ranges.find(partName);
     if (node == ranges.end()) return false;
@@ -141,21 +146,21 @@ bool LinkMesh::LightPart(std::string_view partName, const std::vector<Light*>* l
 
 bool LinkMesh::DrawPartMoved(std::string_view partName, DrawFlag flags, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                              std::vector<Vector3>* offsets, float u, float v) {
-    return DrawPartCommon(this, partName, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
+    return DrawPartCommon(this, partName, flags, nullptr, nullptr, false, colours, speculars, OffsetsOf(offsets), u, v);
 }
 
 bool LinkMesh::DrawPart(std::string_view partName, DrawFlag flags, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                         float u, float v) {
-    return DrawPartCommon(this, partName, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
+    return DrawPartCommon(this, partName, flags, nullptr, nullptr, false, colours, speculars, kNoOffsets, u, v);
 }
 
 bool LinkMesh::DrawPartMovedTextured(std::string_view partName, DrawFlag flags, Surface* first, Surface* second,
                                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                                      std::vector<Vector3>* offsets, float u, float v) {
-    return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, offsets, u, v);
+    return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, OffsetsOf(offsets), u, v);
 }
 
 bool LinkMesh::DrawPartTextured(std::string_view partName, DrawFlag flags, Surface* first, Surface* second,
                                 std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars, float u, float v) {
-    return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, nullptr, u, v);
+    return DrawPartCommon(this, partName, flags, first, second, true, colours, speculars, kNoOffsets, u, v);
 }

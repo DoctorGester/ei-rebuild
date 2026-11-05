@@ -40,7 +40,7 @@ bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     return found;
 }
 
-Item* ItemAt(const std::vector<Item*>* items, int i) { return (*items)[i]; }
+Item* ItemAt(const std::vector<Item*>& items, int i) { return items[i]; }
 
 // Appends to the list: the list holds a reference.
 void AddCountedTail(std::vector<EngineObject*>* list, EngineObject* object) {
@@ -65,14 +65,14 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
     // Quest items move from the array to the list: in single player only those whose
     // description names this zone or whose id an object asks for; otherwise all of them.
     for (int i = 0; i < std::ssize(*items); ++i) {
-        if (ItemAt(items, i)->GetClassId() != ClassId::ItemQuest) continue;
-        Item* item = ItemAt(items, i);
+        if (ItemAt(*items, i)->GetClassId() != ClassId::ItemQuest) continue;
+        Item* item = ItemAt(*items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
         if (zoneMode == ZoneMode::Battle && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName.c_str());
             if (!here && !lib::Contains(wanted, static_cast<int>(item->AsQuest()->questItemId))) continue;
         }
-        taken.push_back(ItemAt(items, i));
+        taken.push_back(ItemAt(*items, i));
         items->erase(items->begin() + i);
         --i;
     }
@@ -85,7 +85,7 @@ void WorldServer::RestorePlayerItems(Player* player) {
         std::vector<Item*>* items = &player->GetParty()->items;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
-            for (int i = 0; i < std::ssize(*items); ++i) taken.push_back(ItemAt(items, i));
+            for (int i = 0; i < std::ssize(*items); ++i) taken.push_back(ItemAt(*items, i));
             items->clear();
         } else {
             taken = TakeZoneQuestItems(items);
@@ -97,7 +97,7 @@ void WorldServer::RestorePlayerItems(Player* player) {
                 Item* fresh = DuplicateItem(item);
                 fresh->count = item->count;
                 std::vector<Item*> one{fresh};
-                player->GiveItems(&one, 0);
+                player->GiveItems(one, 0);
                 item->Release();
             }
             taken.clear();

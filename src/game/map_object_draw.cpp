@@ -124,7 +124,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
                 pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
                 if (pushed) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
                 TextureParts* current = partSets[k].get();
-                int drawn = context->DrawFigureLit(part, &list, current->groups[g]->material, static_cast<int>(lit),
+                int drawn = context->DrawFigureLit(part, list, current->groups[g]->material, static_cast<int>(lit),
                                                    dirty ? &partRect : nullptr, nullptr, nullptr);
                 if (!drawn) {
                     return game::FatalError("CObject3DClientSpecific::Draw.\n CFigure::Draw failed.\n");

@@ -139,9 +139,9 @@ int WorldServer::SyncPlayer(Player* player) {
         std::vector<MapObject*> same;
         CollectMapObjects(this, player, state, collected);
         DiffObjectSets(&state->sentObjects, &collected, &added, &gone, &same);
-        state->SendObjectsRemoved(&gone);
-        state->SendObjectsAdded(&added);
-        state->SendObjectsChanged(&same);
+        state->SendObjectsRemoved(gone);
+        state->SendObjectsAdded(added);
+        state->SendObjectsChanged(same);
 
         std::vector<Effect*> timed;
         std::vector<Effect*> timedAdded;
@@ -149,9 +149,9 @@ int WorldServer::SyncPlayer(Player* player) {
         std::vector<Effect*> timedSame;
         CollectTimedObjects(this, state, timed);
         DiffObjectSets(&state->sentTimed, &timed, &timedAdded, &timedGone, &timedSame);
-        state->SendTimedRemoved(&timedGone);
-        state->SendTimedAdded(&timedAdded);
-        state->SendTimedChanged(&timedSame);
+        state->SendTimedRemoved(timedGone);
+        state->SendTimedAdded(timedAdded);
+        state->SendTimedChanged(timedSame);
 
         if (zoneMode == ZoneMode::Battle && IsMultiplayerClient()) {
             int& timer = state->refreshTimer;
@@ -191,5 +191,5 @@ void WorldServer::SendZone(Player* player) {
     units.Write(&message);
 
     state->SendZone(&message);
-    player->connection->ItemsGiven(&player->items, 0);
+    player->connection->ItemsGiven(player->items, 0);
 }

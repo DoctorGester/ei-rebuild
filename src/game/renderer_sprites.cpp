@@ -207,14 +207,14 @@ int SceneRenderer::BindLoadedTexture(int stage, Texture* texture) {
 // With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).
 // The sprites are projected with the top of the clip stack. Returns 1, or 0 when a draw fails (the blend is
 // then left as it is).
-int SceneRenderer::DrawSprites(int additiveArgument, const std::vector<SpritePoint>* points, void* spriteArray) {
+int SceneRenderer::DrawSprites(int additiveArgument, const std::vector<SpritePoint>& points, void* spriteArray) {
     const char additive = static_cast<char>(additiveArgument);   // only its low byte counts
     const auto* sprites = static_cast<const std::vector<Sprite>*>(spriteArray);
     const TransformPipeline* currentPipeline = pipeline;
     const Matrix4& clip = *currentPipeline->Top(TransformPipeline::kClipStack);
 
-    const SpritePoint* point = points->data();
-    int remaining = lib::Count(*points);
+    const SpritePoint* point = points.data();
+    int remaining = lib::Count(points);
     const Sprite* sprite = sprites->data();
     render::RenderState& state = render::g_renderState;
     const render::Blend savedSource = state.sourceBlend;

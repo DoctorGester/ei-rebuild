@@ -185,8 +185,6 @@ constexpr int kWarmUpTicks = 0x3C;
 constexpr float kShowFarFactor = 3.0f;
 constexpr float kSetFarFactor = 5.0f;
 constexpr float kSoundNear = 1.0f;
-// "CTorchObjectClientSpecific".
-const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
 // The sources are engine objects: Release drops a reference.
 void ReleaseSource(ParticleSource* source) { source->Release(); }
@@ -309,5 +307,5 @@ void TorchObjectClientSpec::SetSound(const char* newName) {
 // The update returns 1; the class name and id.
 
 bool TorchObjectClientSpec::RunTick() { return true; }
-const char* TorchObjectClientSpec::ClassName() { return ClassNameText(); }
+const char* TorchObjectClientSpec::ClassName() { return "CTorchObjectClientSpecific"; }
 ClassId TorchObjectClientSpec::GetClassId() { return ClassId::TorchObjectClientSpec; }

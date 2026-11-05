@@ -346,7 +346,7 @@ void UnitServer::UseSkill(MapObject* target) {
             console::EndLine(kCombatLog << "Item has been stolen from");
             if (Player* player = unit->player) {
                 std::vector<Item*> list{item};
-                player->GiveItems(&list, 0);
+                player->GiveItems(list, 0);
             }
             item->Release();
             return;

@@ -72,7 +72,7 @@ bool LoadingGame() { return g_saveStream.size != 0; }
 constexpr int kDefaultUpdatePeriod = 55;
 // The autosave option (nonzero: save "savea" on entering a zone).
 bool AutoSaveEnabled() { return options::g_options.autosave != 0; }
-const char* AutoSaveName() { return "savea"; }
+constexpr const char* kAutoSaveName = "savea";
 
 // The portraits' selected-face turn: pi / 2 times (1/7).
 float SelectedFaceAngle() {
@@ -385,7 +385,7 @@ bool BattleScreen::ReadyToStopPolling() {
     if (hasHero) {
         auto& currentParty = party;
         if (!currentParty.empty()) g_camera.SetTarget(currentParty[0]);
-        if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), true);
+        if (AutoSaveEnabled()) ::QuickSave(kAutoSaveName, true);
         hasHero = false;
         g_interface.OpenHelp(false);
     }
@@ -558,7 +558,7 @@ void BattleScreen::Update() {
         Party* data = LocalPlayerData();
         for (auto& member : data->members)
             records.push_back(&member);
-        if (g_clientWorld.PartyInExit(&records, pendingExit, &second)) {
+        if (g_clientWorld.PartyInExit(records, pendingExit, &second)) {
             g_interface.PushWindow(std::make_unique<MessageWindow>("leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
             exitPending = false;
         }
@@ -1336,7 +1336,7 @@ void BattleScreen::AttackUnit(Unit* target, bool ctrl) {
         portraits->Wobble(i, kWobbleNod);
         if (target->Level() - member->Level() > 5) Speech(member->id, AckKind::BigAttack, nullptr);
     }
-    if (!units.empty()) g_clientWorld.LocalView()->SendAttack(&units, target, kind, ctrl);
+    if (!units.empty()) g_clientWorld.LocalView()->SendAttack(units, target, kind, ctrl);
 }
 
 void BattleScreen::OrderDeadUnit(Unit* target, bool ctrl) {
@@ -1345,7 +1345,7 @@ void BattleScreen::OrderDeadUnit(Unit* target, bool ctrl) {
         units.push_back(party[i]);
         portraits->Wobble(i, kWobbleNod);
     }
-    if (!units.empty()) g_clientWorld.LocalView()->SendUseDead(&units, target, ctrl);
+    if (!units.empty()) g_clientWorld.LocalView()->SendUseDead(units, target, ctrl);
 }
 
 // --- the pending spell or quick item used --------------------------------------------------------
@@ -1634,9 +1634,9 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     if (!units.empty()) {
         PlayerClient* view = g_clientWorld.LocalView();
         if (goTo)
-            view->SendGoTo(&units, point, run);
+            view->SendGoTo(units, point, run);
         else
-            view->SendWalk(&units, point, run);
+            view->SendWalk(units, point, run);
     }
 }
 

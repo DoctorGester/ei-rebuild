@@ -284,9 +284,9 @@ void WorldClient::LoadUnitFaces() {
 
 const char* WorldClient::ExitTarget(int index) { return exits[index].target.c_str(); }
 
-void WorldClient::RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records) {
-    for (int i = 0; i < std::ssize(*records); ++i)
-        RemoveObject(static_cast<int>((*records)[i]->unitId));
+void WorldClient::RemoveUnitsOf(const std::vector<PartyUnitRecord*>& records) {
+    for (int i = 0; i < std::ssize(records); ++i)
+        RemoveObject(static_cast<int>(records[i]->unitId));
 }
 
 void WorldClient::SendPause(int value) {
@@ -398,10 +398,10 @@ std::vector<MapObject*> WorldClient::UnitsInBox(const Rect* rect) {
 
 // The figure's part names (kHeroFigureParts): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
 // with the prototype's number, or left out at -1), "lh1".."rl3".
-void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour) {
+void WorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>& party, char allArmour) {
     std::string hair;
-    for (int i = 0; i < std::ssize(*party); ++i) {
-        auto* record = (*party)[i];
+    for (int i = 0; i < std::ssize(party); ++i) {
+        auto* record = party[i];
         std::vector<std::string> parts;
         for (int n = 0; n < kHeroPartCount; ++n) {
             const char* name = kHeroFigureParts[n];

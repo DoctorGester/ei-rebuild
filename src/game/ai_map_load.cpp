@@ -146,11 +146,7 @@ constexpr float kHundredth = 0.01f;
 // error's result when the archive, the file or the registry cannot be read.
 int ReadTerrainTypes(AIMap& map) {
     MappedResource archive;
-    bool opened;
-    {
-        std::string folder = g_textFolder;
-        opened = archive.OpenResource((folder + "aiinfo.res"));
-    }
+    const bool opened = archive.OpenResource(g_textFolder + "aiinfo.res");
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
     void* file = archive.GetFile("tileDesc.reg", nullptr);
     if (!file) return game::FatalError("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");

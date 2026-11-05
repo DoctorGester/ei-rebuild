@@ -184,10 +184,10 @@ void WaypointsRead(std::vector<Waypoint>* waypoints, ByteStream* stream) {
 }
 
 // The count, then the raw waypoints.
-void WaypointsWrite(const std::vector<Waypoint>* waypoints, ByteStream* stream) {
-    int n = static_cast<int>(waypoints->size());
+void WaypointsWrite(const std::vector<Waypoint>& waypoints, ByteStream* stream) {
+    int n = static_cast<int>(waypoints.size());
     StreamWrite(stream, &n, 4);
-    for (const Waypoint& w : *waypoints) StreamWrite(stream, &w, sizeof(Waypoint));
+    for (const Waypoint& w : waypoints) StreamWrite(stream, &w, sizeof(Waypoint));
 }
 
 // The record from a stream. Files before version 0x53 have no alarm level: it follows
@@ -230,7 +230,7 @@ void Behaviour::Write(ByteStream* stream) const {
     for (int i = 0; i < std::ssize(patrols); ++i) {
         const Patrol* p = &patrols[i];
         StreamWrite(stream, &p->position, 12);
-        WaypointsWrite(&p->waypoints, stream);
+        WaypointsWrite(p->waypoints, stream);
     }
     StreamWrite(stream, &guard, 12);
     std::uint32_t value;

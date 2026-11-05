@@ -88,7 +88,7 @@ void MoveUnits(MemoryStream& in, MoveCommand command) {
     Vector3 to{};
     in.ReadValue(run);
     in.ReadValue(to);
-    FormationOffsets(&units, &offsets);
+    FormationOffsets(units, &offsets);
     for (int i = 0; i < std::ssize(units); ++i) {
         AIBrain* brain = &units[i]->ServerController()->brain;
         PlayerMode* mode = brain->FindModeOf<PlayerMode>();
@@ -128,7 +128,7 @@ void PlayerServer::LeaderDied() {
         newId = oldId;
         if (newId < kRevivedIdBase) newId += kRevivedIdStep;
         while (g_serverWorld.FindObject(static_cast<unsigned>(newId))) ++newId;
-        g_serverWorld.AddSharedObject(oldId, static_cast<std::uint32_t>(lost), &currentPlayer->items);
+        g_serverWorld.AddSharedObject(oldId, static_cast<std::uint32_t>(lost), currentPlayer->items);
         currentPlayer->TakeAllItems();
     }
     if (partyDeployed) {
@@ -242,8 +242,8 @@ bool PlayerServer::OnUseOrder() {
 
 // --- Zone changes, joining, party blocks, the walk / attack orders -------------------------
 
-void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* offsets) {
-    int count = lib::Count(*units);
+void FormationOffsets(const std::vector<Unit*>& units, std::vector<Vector3>* offsets) {
+    int count = lib::Count(units);
     if (count < 1) return;
     if (count == 1) {
         offsets->resize(1);
@@ -251,11 +251,11 @@ void FormationOffsets(const std::vector<Unit*>* units, std::vector<Vector3>* off
         return;
     }
     Vector2 sum{0.0f, 0.0f};
-    for (int i = 0; i < count; ++i) sum += XY((*units)[i]->localPosition);
+    for (int i = 0; i < count; ++i) sum += XY(units[i]->localPosition);
     const Vector2 centre = sum / static_cast<float>(count);
     offsets->resize(count);
-    for (int i = 0; i < std::ssize(*units); ++i) {
-        Vector2 d = XY((*units)[i]->localPosition) - centre;
+    for (int i = 0; i < std::ssize(units); ++i) {
+        Vector2 d = XY(units[i]->localPosition) - centre;
         const float length = Length2D(d);
         if (length > 0.0f) d *= 1.0f / length;   // the original skips zero and NaN
         (*offsets)[i] = WithZ(d, 0.0f);

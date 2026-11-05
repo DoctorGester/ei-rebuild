@@ -145,7 +145,7 @@ void MpHeroScreen::ChooseFigure(std::string_view prototype) {
         height = first->height;
         intelligence = stats->intelligence;
         std::vector<PartyUnitRecord*> records{first};
-        g_clientWorld.RemoveUnitsOf(&records);
+        g_clientWorld.RemoveUnitsOf(records);
     }
     player->Clear(true, false);
     player->AddMember(kHeroName, prototype, prototype);

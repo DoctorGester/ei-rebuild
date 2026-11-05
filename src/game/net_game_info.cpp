@@ -19,8 +19,8 @@ void Sanitize(std::string* s) {
 void GameInfoRecord::Write(GameBuffer* buffer) const {
     buffer->Put(masterKey);
     buffer->Put(masterToken);
-    buffer->WriteString(&name);
-    buffer->WriteString(&description);
+    buffer->WriteString(name);
+    buffer->WriteString(description);
     buffer->Put(players);
     buffer->Put(maxPlayers);
     buffer->Put(hasPassword);

@@ -76,7 +76,7 @@ void VectorClear(std::vector<MapObject*>* v) { v->clear(); }
 constexpr float kMapEdgeMargin = 1.0f;
 // The length of the shadows' projection along the camera's Z axis.
 constexpr float kShadowLength = -0.02f;
-const char* MarkerPartName() { return "hp"; }
+constexpr const char* kMarkerPartName = "hp";
 
 // a < b, or unordered.
 bool Less(float a, float b) {
@@ -381,7 +381,7 @@ int WorldClient::DrawPass() {
             if (object->IsDead() == 0) {
                 Vector3 point;
                 point = object->localPosition;
-                if (FigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
+                if (FigureMesh* part = object->FindPartByPrefix(kMarkerPartName)) {
                     point = object->PartWorldPosition(part);
                     point.z = object->localPosition.z;
                 }

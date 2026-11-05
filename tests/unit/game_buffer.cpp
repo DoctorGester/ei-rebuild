@@ -82,8 +82,8 @@ void StringChecks() {
     GrowingBuffer b;
     const std::string shortText = "lobby";
     const std::string longText(200, 'x');
-    b.WriteString(&shortText);
-    b.WriteString(&longText);
+    b.WriteString(shortText);
+    b.WriteString(longText);
     Check(b.begin[0] == 10 && b.Size() == 1 + 5 + 4 + 200, "string headers: length * 2, or * 2 + 1 in four bytes");
     b.Seek(0);
     std::string a, c;
@@ -95,7 +95,7 @@ void StringChecks() {
     // A length past the high mark stops there, with the error, even with room left in the block.
     GrowingBuffer cut;
     const std::string cutText = "abcdef";
-    cut.WriteString(&cutText);
+    cut.WriteString(cutText);
     cut.Seek(0);
     cut.high -= 3;
     std::string got;
