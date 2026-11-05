@@ -346,8 +346,9 @@ public:
 // --- Multiplayer connection screen --------------------------------------------------------------
 // The servers found (config\addrbook.ini keeps the ones asked directly): a list of 15 rows with a scroll bar, row 0
 // the entry that hosts a new game. Regions: 0 connect / host, 1 back, 2 ask the master server, 3 add / forget an
-// address, 4 the unlisted switch, 5 the password, 6-9 the sort columns, 10-13 the game type tabs, 14 and up the list
-// rows. Sprites: 4 the unlisted switch, 5 the password's, 6-9 the game type tabs (textureOffsetU 0.09 selected).
+// address, 4 the unlisted switch, 5 the password, 6-9 the sort columns, 10-13 the game type tabs, 14-28 the list
+// rows, 29 the pause mode (ours). Sprites: 4 the unlisted switch, 5 the password's, 6-9 the game type tabs
+// (textureOffsetU 0.09 selected).
 
 // An entry of the connection screen's list.
 struct MpAddressEntry {
@@ -396,8 +397,8 @@ public:
     void OnEvent(UiEvent& event) override;
     // By region: Connect, back (the cancel sound, the address book written, the network sessions dropped, the screen
     // closed with 0x1000001), MasterRequest, EditAddress, the unlisted switch, the password (none: a box for one; else it
-    // is dropped), a sort column (a second click reverses it), a game type tab (only with row 0 selected), a row (the
-    // select sound, it and its address selected); then the container's handler.
+    // is dropped), a sort column (a second click reverses it), a game type tab or the pause mode's next choice (only
+    // with row 0 selected), a row (the select sound, it and its address selected); then the container's handler.
     void LeftDown(UiEvent& event);
     // A row double-clicked is selected (no sound, no drawing) and Connect follows; then the container's handler.
     void LeftDouble(UiEvent& event);
@@ -408,10 +409,10 @@ public:
     // scrolled to show it and drawn.
     void SelectAndScroll();
     // The OK sound; row 0 hosts (GameFlow::StartServer: the name typed or the default, the player slider + 1,
-    // gameType, hostPassword, unlisted, the client's queries' extra word) after the address book is written;
-    // another row joins: a foreign server gets the "lmp_wrong_protocol" box; otherwise the address book is
+    // pauseMode, gameType, hostPassword, unlisted, the client's queries' extra word) after the address book is
+    // written; another row joins: a foreign server gets the "lmp_wrong_protocol" box; otherwise the address book is
     // written, a password server opens the password box, the server is joined at once with no password and the
-    // client's game type set from the row.
+    // client's game type and player limit set from the row.
     void Connect();
     // On a valid selection: an entry asked directly is forgotten (and the address book written); another
     // opens the address box (texts[19]) with the row's address (empty for row 0).
@@ -442,6 +443,7 @@ public:
     UiRegion* passwordSwitch = nullptr;
     UiRegion* sortColumns[kSortColumns] = {};
     UiRegion* tabAreas[kTabs] = {};          // the new game's type tabs
+    UiRegion* pauseSwitch = nullptr;         // the new game's pause mode: a click steps to the next
     UiRegion* rows[kRows] = {};              // the visible rows, from scrollTop
     UiMesh* selectionMarker = nullptr;
     UiMesh* sortArrow = nullptr;
@@ -458,6 +460,7 @@ public:
     UiEditField* nameEdit = nullptr;  // the new game's name
     int maxPlayers = 0;            // the slider's position + 1 (6 from Create)
     int gameType = 0;              // the new game's type tab 0..3
+    net::PauseMode pauseMode{};    // the new game's pause mode (the original's from Create)
     char boxText[0x80] = {};       // the edit boxes' text (an address, a password)
     bool unlisted = false;         // the new game is not announced (1 from Create)
     std::string hostPassword;     // the new game's password
@@ -465,7 +468,7 @@ public:
     bool joining = false;          // the client was asking a host last frame
     std::vector<std::string> texts;       // "lmp_connection %d" texts (22)
     int sortKey = 0;               // 0 none; 1..8 the column pairs (odd ascending)
-    bool newGameTips = false;      // the unlisted and password regions have their tips (DrawList; 0 from Create)
+    bool newGameTips = false;      // the unlisted, password and pause regions have their tips (DrawList; 0 from Create)
     std::uint32_t titleColour = kUiTextColour;   // the titles' colour: g_connectTextColour before the last DrawListVanilla
 };
 

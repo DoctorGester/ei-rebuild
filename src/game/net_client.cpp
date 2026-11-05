@@ -73,6 +73,11 @@ void ClientSession::SendCommand(CommandKind kind, std::string_view text) {
     AddTimed(command, kTimedEntryLifetime);
 }
 
+int ClientSession::PlayerLimit() const {
+    const int present = static_cast<int>(players.size());
+    return static_cast<int>(maxPlayers) > present ? static_cast<int>(maxPlayers) : present;
+}
+
 // Makes `*out` an empty server entry (no name or description, no kind, no players).
 void ClientSession::CreateEntry(Ref<ServerEntry>* out) { ShareAssignOwned(*out, new ServerEntry()); }
 

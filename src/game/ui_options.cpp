@@ -120,7 +120,7 @@ int ChoiceIndex(std::span<const Choice> choices, int value) {
 }
 
 // The texts of what the rebuild adds to the options, which the game's texts lack: in Russian where the game's are
-// (the video group's title holds letters beyond ASCII), else in English. A text the game's files have wins.
+// (GameTextsInRussian), else in English. A text the game's files have wins.
 struct AddedText {
     const char* key = nullptr;
     const char* russian = nullptr;
@@ -151,12 +151,8 @@ constexpr AddedText kAddedTexts[] = {
 };
 
 std::optional<std::string> FindAddedText(std::string_view key) {
-    for (const AddedText& added : kAddedTexts) {
-        if (key != added.key) continue;
-        const std::string title = g_clientWorld.texts->GetString("option_group_video");
-        const bool russian = std::any_of(title.begin(), title.end(), [](char c) { return (c & 0x80) != 0; });
-        return russian ? added.russian : added.english;
-    }
+    for (const AddedText& added : kAddedTexts)
+        if (key == added.key) return GameTextsInRussian() ? added.russian : added.english;
     return std::nullopt;
 }
 
@@ -209,6 +205,11 @@ constexpr int kScanEsc = 1;              // the scan code that gives up a key bi
 // The end of the key name table (88 entries of 0x48 bytes).
 const UiKeyName* KeyNamesEnd() { return g_keyNames + kUiKeyNameCount; }
 } // namespace
+
+bool GameTextsInRussian() {
+    const std::string title = g_clientWorld.texts->GetString("option_group_video");
+    return std::any_of(title.begin(), title.end(), [](char c) { return (c & 0x80) != 0; });
+}
 
 const ActionDefinition kActionDefinitions[60] = /*00787070*/ {
     {0, "", 0, 0},

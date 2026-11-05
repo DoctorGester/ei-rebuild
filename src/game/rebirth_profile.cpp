@@ -1,6 +1,5 @@
 #include "rebirth_profile.h"
 
-#include "ini_file.h"
 #include "platform/log.h"
 
 #include "game/settings.h"
@@ -18,40 +17,24 @@ void Load(const std::string& gameFolder) {
     const bool rebirthInstall = platform::PathExists(gameFolder + "\\starter\\addon.dll") ||
                                 platform::PathExists(gameFolder + "\\EI_Plugin.asi");
     if (rebirthInstall) {
-        int players = 7;
-        int pause = 1;
-        const std::string plugin = gameFolder + "\\EI_Plugin.ini";
-        if (platform::PathExists(plugin)) {
-            IniFile ini;
-            ini.Load(plugin);
-            players = ini.GetInt("CONFIG", "NPlayers", players);
-            pause = ini.GetInt("CONFIG", "Pause", pause);
-        }
-        rebirth::SetPluginNPlayers(players);
-        rebirth::SetPluginPause(pause);
         rebirth::SetDisableExitOnCrashReport(true);
-        Log("Rebirth: EI_Plugin's players %d, pause mode %d, DisableExitOnCrashReport on (the Rebirth install %s)",
-            players, pause, gameFolder.c_str());
+        Log("Rebirth: DisableExitOnCrashReport on (the Rebirth install %s)", gameFolder.c_str());
     }
 
-    // [patches]: the player count, the pause mode and DisableExitOnCrashReport; every other line named the Rebirth flags
-    // of older builds.
+    // [patches]: DisableExitOnCrashReport; every other line named the Rebirth flags of older builds or EI_Plugin's
+    // player count and pause mode, now the host's choices on the create-server screen.
     std::string ignored;
     for (const ::settings::Document::Line& line : ::settings::GetLines(::settings::kPatches)) {
         const char* name = line.name.c_str();
-        int number = 0;
         bool on = false;
-        if (text::CompareIgnoringCase(name, "NPlayers") == 0 && ::settings::ParseInt(line.value, &number))
-            rebirth::SetPluginNPlayers(number);
-        else if (text::CompareIgnoringCase(name, "Pause") == 0 && ::settings::ParseInt(line.value, &number))
-            rebirth::SetPluginPause(number);
-        else if (text::CompareIgnoringCase(name, "DisableExitOnCrashReport") == 0 && ::settings::ParseBool(line.value, &on))
+        if (text::CompareIgnoringCase(name, "DisableExitOnCrashReport") == 0 && ::settings::ParseBool(line.value, &on))
             rebirth::SetDisableExitOnCrashReport(on);
         else
             ignored += (ignored.empty() ? "" : ", ") + line.name;
     }
     if (!ignored.empty())
-        Log("Rebirth: [%s] %s ignored: those patches are always on", ::settings::kPatches, ignored.c_str());
+        Log("Rebirth: [%s] %s ignored: Rebirth's patches are always on, the players and the pause are chosen on the "
+            "create-server screen", ::settings::kPatches, ignored.c_str());
     rebirth::SetPluginSecondMaster(::settings::GetString(::settings::kNetwork, "SecondMaster", ""));
     rebirth::ApplyQueued();
     if (const std::string& master = rebirth::PluginSecondMaster(); !master.empty())

@@ -16,8 +16,6 @@
 
 #include "lib/vecmath.h"
 
-#include "lib/rebirth.h"
-
 #include <cstdint>
 #include <cstdio>
 #include <string>
@@ -39,8 +37,9 @@ constexpr int kWeOffer = 4, kTheyOffer = 5;
 constexpr const char* kOnOffSound = "buttons\\battle\\on_off.wav";
 
 constexpr int kFaceWidth = 0x38;
-constexpr int kFirstFaceLeft = 0x2E8;
-constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 with EI_Plugin's NPlayers
+constexpr int kFirstFaceLeft = 0x2E8;     // the faces go leftwards from here, kFaceWidth apart
+constexpr int kOriginalLeft = 0x1D0;     // the window's left edge for up to 6 players (the original's 6 faces)
+constexpr int kOriginalPlayers = 6;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 
 } // namespace
@@ -51,8 +50,9 @@ constexpr std::uint32_t kWhite = 0xFFFFFF;
 ChatWindow::~ChatWindow() = default;
 
 ChatWindow::ChatWindow(BriefingScreen* screen) : briefing(screen) {
-    // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
-    const int left = ei::rebirth::PluginNPlayers() != 0 ? 0 : 0x1D0;
+    // EI_Plugin's NPlayers: for a game of more than 6 players (ClientSession::PlayerLimit) the window and its surface
+    // start at x 0, not 0x1D0.
+    const int left = net::g_gameClient->PlayerLimit() > kOriginalPlayers ? 0 : kOriginalLeft;
     rect = Rect{left, 0, 800, 0xA0};
     UiSurface* surface = AddSurface(std::make_unique<UiSurface>(left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) { PaintStatus(out); });
@@ -62,8 +62,8 @@ ChatWindow::ChatWindow(BriefingScreen* screen) : briefing(screen) {
         texts.push_back(text);
     }
 }
-// EI_Plugin.asi patches the constructor and Update (NPlayers: the window's left edge and the first status
-// column) and ShowPlayers (Fixes: the faces' sex and the prototype fallback) in a Rebirth launch.
+// EI_Plugin's NPlayers moves the window's left edge (the constructor) and with it the first status column (Update);
+// its Fixes patch ShowPlayers (the faces' sex and the prototype fallback).
 
 // --- a face --------------------------------------------------------------------------------------
 
@@ -163,7 +163,7 @@ void ChatWindow::Update() {
     }
     statusRows.clear();
     std::string status, offer;
-    int left = ei::rebirth::PluginNPlayers() != 0 ? kFirstFaceLeft : kFirstStatusLeft;
+    int left = kFirstFaceLeft - rect.left;   // the surface's x of the first face
     for (auto p = players.begin(); p != players.end(); ++p, left -= kFaceWidth) {
         net::PlayerMessage* player = *p;
         status.clear();

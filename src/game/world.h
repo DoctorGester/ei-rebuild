@@ -168,7 +168,8 @@ public:
     // A new empty network session shared into the world's session pointer, the previous one destroyed.
     void OpenSession();
     void CloseSession();
-    // Stores paused. SetServerPaused is the server's entry: EI_Plugin's Pause in mode 3 makes it a plain return.
+    // Stores paused. SetServerPaused is the server's entry: a pause is a plain return in a hosted game whose pause mode
+    // is Off (net::PauseMode; EI_Plugin's Pause 3 returned for a resume too, so a world paused before stayed paused).
     void SetPaused(std::uint8_t value);
     void SetServerPaused(std::uint8_t value);
 

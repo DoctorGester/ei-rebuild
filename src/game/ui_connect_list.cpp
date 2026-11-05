@@ -73,6 +73,25 @@ void DrawEllipsis(UiSurface& surface, std::string_view text, Rect* rect, render:
 }
 void Down(Rect* rect, int dy = kRowHeight) { rect->Offset(0, dy); }
 
+// The new game's pause modes (net::PauseMode, in order) and the switch's tip: ours, in Russian where the game's
+// texts are (GameTextsInRussian), else in English.
+struct AddedText {
+    const char* russian = nullptr;
+    const char* english = nullptr;
+};
+constexpr AddedText kPauseModeTexts[] = {
+    {"Пауза: как в оригинале", "Pause: as the original"},
+    {"Пауза: ведущий, с объявлением", "Pause: the leader, announced"},
+    {"Пауза: любой игрок", "Pause: any player"},
+    {"Пауза: нет", "Pause: off"},
+};
+constexpr AddedText kPauseTip = {
+    "Кто может ставить игру на паузу. Как в оригинале: только ведущий, пауза объявляется. Ведущий, с объявлением: "
+    "объявляются и пауза, и продолжение. Любой игрок: каждый, с объявлением. Нет: пауз нет",
+    "Who may pause the game. As the original: the leader only, the pause announced. The leader, announced: pauses and "
+    "resumes announced. Any player: everyone, announced. Off: no pauses"};
+const char* Shown(const AddedText& text) { return GameTextsInRussian() ? text.russian : text.english; }
+
 } // namespace
 
 void MpConnectScreen::DrawListVanilla() {
@@ -88,9 +107,11 @@ void MpConnectScreen::DrawListVanilla() {
     if (!newGame) {
         unlistedSwitch->SetTip(0);
         passwordSwitch->SetTip(0);
+        pauseSwitch->SetTip(0);
     } else if (!newGameTips) {
         unlistedSwitch->SetTip(kTipUnlisted);
         passwordSwitch->SetTip(kTipPassword);
+        pauseSwitch->SetTipString(Shown(kPauseTip));
     }
     newGameTips = newGame;
 
@@ -212,6 +233,10 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
         DrawLabel(surface, label(16), &row, render::text::Format::Left, colour);
         Down(&row);
         DrawLabel(surface, label(17), &row, render::text::Format::Left, colour);
+        Down(&row);
+        row.left = 340;
+        DrawLabel(surface, Shown(kPauseModeTexts[static_cast<int>(pauseMode)]), &row, render::text::Format::Left,
+                  colour);
         return;
     }
     text = std::format("{} {}", label(0), entry.name);

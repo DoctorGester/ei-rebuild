@@ -1,8 +1,10 @@
-# W4c: EI_Plugin's NPlayers above 7 (EI_Plugin.ini NPlayers=8; rebirth.md, "EI_Plugin.asi"): the battle screen's portraits
-# are 20 wide at a pitch of 20 with the face models at depth 9.1875 (AddPortrait's six extra sites; HudPortraits::AddPortrait),
-# the host screen's slider runs to 7 and the chat window starts at 0. A pair as net_pair_zone (without its exchange):
-# the peer, a network client, captures its battle screen in the zone, the host its own.
-plugin NPlayers=8
+# W4c, C163: a game for more than 7 players (EI_Plugin's NPlayers; rebirth.md, "EI_Plugin.asi"): the host drags the
+# create-server screen's player slider from 6 to 8; the joined peer takes the limit from the lobby's answer. The battle
+# screen's portraits are 20 wide at a pitch of 20 with the face models at depth 9.1875 (AddPortrait's six extra sites;
+# HudPortraits::AddPortrait) and the chat window starts at 0. A pair as net_pair_zone (without its exchange): the peer,
+# a network client, captures its battle screen in the zone, the host its own. The host's pause mode is "any player"
+# (EI_Plugin's Pause 2: two clicks on the mode's region): in the zone the peer, not the game's leader, pauses the
+# host's world (Space) and resumes it; the original's mode would ignore its pause.
 rebirth resolution desktop
 timeout 180
 peer net_pair_portraits
@@ -32,8 +34,20 @@ waitwindow 15 mpconnect
 
 clickregion 14
 frames 5
+# The slider's thumb from position 5 (x 544) to 7 (8 players).
+layout ldown 544 201
+frames 3
+layout move 578 201
+frames 3
+layout lup 578 201
+frames 3
+clickregion 29
+frames 3
+clickregion 29
+frames 3
 clickregion 0
 waitwindow 25 briefing
+checkplayers 8
 peersignal hosted
 
 # The peer joins; no exchange.
@@ -67,6 +81,13 @@ frames 20
 capture portraits_host
 peersignal entered
 peerwait 120 peerin
+peerwait 60 paused
+frames 20
+checkpaused 1
+peersignal checked
+peerwait 60 resumed
+frames 20
+checkpaused 0
 frames 100
 peersignal done
 frames 100

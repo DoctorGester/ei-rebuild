@@ -44,6 +44,13 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   FinishQuestMap). Awards wait 60 s on the server's timed list before the Award message goes out.
 - **Exchange**: a click on another player's face sends a Party offer; the partner's click on the offerer's face opens
   the exchange on both; both accepting completes the Trade.
+- **The host's choices** (the create-server screen: ui.md, "MpConnectScreen::CreateScreen"): the player limit (1 to
+  `net::kMostPlayers`, 14; 6 by default) and the pause mode (`net::PauseMode`: Original, Announced, AnyPlayer, Off;
+  rebirth.md, "EI_Plugin.asi"), both on the ServerSession (StartServer). The limit refuses joins (`Admit`) and is in the
+  lobby's answer and the master's record; the session's messages do not carry it, so a joiner keeps the joined entry's
+  `maxPlayers` as it keeps its game type (`ClientSession::maxPlayers`, `PlayerLimit`: the HUD portraits and the chat
+  strip are laid out for it). The pause mode stays on the server (`PlayerServer::OnPause`, `World::SetServerPaused`).
+  Scenarios: `net_pair_portraits` (limit 8 on both games, the peer pausing under AnyPlayer), `net_host_pause` (Off).
 - **Kick / ban**: console `kick` / `ban` without a name opens the host's player pick (a face click sends KickBySerial / BanBySerial
   with the serial); with a name, KickByName / BanByName (guests whose name starts with it). A banned address's join is refused.
 - **Shared files**: the server shares each queued zone's .mq (a File message, 64-byte FileChunk messages); a client

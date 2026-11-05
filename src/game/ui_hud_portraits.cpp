@@ -24,7 +24,6 @@
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
-#include "lib/rebirth.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -39,6 +38,8 @@
 #include <string>
 
 namespace {
+constexpr int kOriginalRow = 6;   // portraits to a row for up to 6 players
+constexpr int kWideRow = 7;       // the most players whose faces keep the full width
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;
 constexpr float kBarStart = 9.0f;
@@ -342,11 +343,12 @@ void HudPortraits::ShowFace(int index, int state) {
 }
 
 void HudPortraits::AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer) {
-    // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6; above 7 the faces are 20 wide at a pitch of
-    // 20 instead of 40 and the face model sits at depth 9.1875 instead of 7 (EI_Plugin's six extra sites).
-    const int pluginPlayers = ei::rebirth::PluginNPlayers();
-    const int perRow = pluginPlayers != 0 ? (pluginPlayers < 7 ? 7 : pluginPlayers) : 6;
-    const bool crowded = pluginPlayers > 7;
+    // EI_Plugin's NPlayers, for a network game's player limit (ClientSession::PlayerLimit): max(players, 6) portraits
+    // to a row; above 7 the faces are 20 wide at a pitch of 20 instead of 40 and the face model sits at depth 9.1875
+    // instead of 7 (EI_Plugin's six extra sites).
+    const int players = IsMultiplayerClient() ? net::g_gameClient->PlayerLimit() : 0;
+    const int perRow = players > kOriginalRow ? players : kOriginalRow;
+    const bool crowded = players > kWideRow;
     const int pitch = crowded ? 20 : 40;
     const int column = count % perRow;
     int u = 0;
@@ -367,8 +369,8 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
     int width;
     if (IsMultiplayerClient()) {
         width = crowded ? pitch : wide ? 0x38 : 0x28;
-        int players = static_cast<int>(net::g_gameClient->players.size());
-        x = 400 - static_cast<int>(static_cast<unsigned>(width + players * pitch - pitch) >> 1);
+        const int present = static_cast<int>(net::g_gameClient->players.size());
+        x = 400 - static_cast<int>(static_cast<unsigned>(width + present * pitch - pitch) >> 1);
         if (column > 0) {
             x += width + column * pitch - pitch;
             width = pitch;

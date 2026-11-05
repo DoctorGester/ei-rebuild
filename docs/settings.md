@@ -136,8 +136,6 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 | Name | Default | Values | What it does |
 |---|---|---|---|
 | `DisableExitOnCrashReport` | `(install)` | true / false | After a fatal error the game goes on instead of showing it and quitting. On in a Rebirth install. |
-| `NPlayers` | `(install)` | 0, or 7 or more | Multiplayer games for up to this many players: the lobby's player slider, the portraits column and the chat window follow it. 0: the original's six. |
-| `Pause` | `(install)` | 0, 1, 2 or 3 | Multiplayer pausing: 0 the original's; 1 the game's leader pauses, pausing and resuming announced; 2 any player pauses; 3 the leader pauses, nothing announced. |
 
 ## [autoexec]
 

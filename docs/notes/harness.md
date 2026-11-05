@@ -129,8 +129,10 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   writes the file itself. A file a `# prepare:` tool writes into `harness_saves\<install path>` is read in place of the
   install's by the scenario's own game (the overlay), not by its peer: `net_pair_database.txt`'s host plays with a
   network item database of one item more (`tools/make_extra_item_db.py`).
-- `plugin NPlayers=<n> Pause=<n> SecondMaster=<host[:port]>` sets EI_Plugin's values for the run, over the install
-  folder's (rebirth.md, "Settings"). `folderprofile` checks the drop-in start-up (harness_folder_profile.h,
+- `plugin SecondMaster=<host[:port]> DisableExitOnCrashReport=0|1` sets Rebirth's values for the run, over the
+  install folder's (rebirth.md, "Settings"). A game's player limit and pause mode are the host's create-server choices:
+  a scenario drags the player slider (`layout ldown` / `move` / `lup`, `net_pair_portraits`) or clicks the pause
+  mode's region (29) with the new game's row selected. `folderprofile` checks the drop-in start-up (harness_folder_profile.h,
   `dropin_profile.txt`).
 - Mod folders (S19d; standalone.md, "Mod folders"): `mod <folder>` answers the settings' `[game] Mod` with a mod folder
   of the install (relative to the game folder, `starter\Mods\LostInAstral`), in full, or `harness_saves\<folder>` for

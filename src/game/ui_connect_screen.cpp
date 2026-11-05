@@ -1,7 +1,7 @@
 // The multiplayer connection screen (MpConnectScreen), its master server request box (MasterRequestBox) and the
 // address list's vector members. See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only. Its Create
-// reproduces addon's ExtendedServerName sites and EI_Plugin's NPlayers, as the list draw (ui_connect_list.cpp) does
-// its patches.
+// reproduces addon's ExtendedServerName sites, as the list draw (ui_connect_list.cpp) does its patches; EI_Plugin's
+// NPlayers and Pause are the new game's player slider and pause mode.
 #include "game_flow.h"
 #include "net_classes.h"
 #include "options.h"
@@ -24,7 +24,6 @@
 #include "world.h"
 #include "text_manager.h"
 
-#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 #include "lib/intro_sort.h"
@@ -109,6 +108,8 @@ constexpr int kTextCount = 22;
 constexpr int kTextConnecting = 8;
 constexpr int kNameLength = 10;
 constexpr int kScrollbarObject = 1;   // objects: 0 "saveload", 1 "scrollbar"
+constexpr int kDefaultPlayers = 6;    // the player slider's start
+constexpr int kPauseModes = static_cast<int>(net::PauseMode::Off) + 1;
 
 } // namespace
 
@@ -174,6 +175,7 @@ void MpConnectScreen::MessageResult(std::uint32_t result) {
     } else if (result == BoxResult(kBoxJoinPassword, MessageAnswer::Ok)) {
         g_gameFlow.JoinServer(&entries[selected].address, boxText);
         net::g_gameClient->gameType = entries[selected].gameType;
+        net::g_gameClient->maxPlayers = entries[selected].maxPlayers;
     }
 }
 
@@ -227,6 +229,8 @@ void MpConnectScreen::LeftDown(UiEvent& event) {
             for (UiMesh* box : tabBoxes) box->textureOffsetU = 0.0f;
             tabBoxes[gameType]->textureOffsetU = kTabSelected;
         }
+    } else if (region == pauseSwitch) {
+        if (selected == 0) pauseMode = static_cast<net::PauseMode>((static_cast<int>(pauseMode) + 1) % kPauseModes);
     } else if (shownRow >= 0) {
         unsigned row = static_cast<unsigned>(scrollTop + shownRow);
         if (row < entries.size()) {
@@ -298,8 +302,8 @@ void MpConnectScreen::Connect() {
         std::string name = nameEdit->text;
         if (name.size() == 0) name = kDefaultGameName;
         SaveAddressBook();
-        g_gameFlow.StartServer(name.c_str(), players, gameType, hostPassword.c_str(), unlisted,
-                                   static_cast<int>(net::g_gameClient->queries.extra));
+        g_gameFlow.StartServer(name.c_str(), players, pauseMode, gameType, hostPassword.c_str(), unlisted,
+                               static_cast<int>(net::g_gameClient->queries.extra));
         return;
     }
     if (row < 0 || static_cast<unsigned>(row) >= entries.size()) return;
@@ -314,6 +318,7 @@ void MpConnectScreen::Connect() {
     }
     g_gameFlow.JoinServer(&entries[selected].address, "");
     net::g_gameClient->gameType = entries[selected].gameType;
+    net::g_gameClient->maxPlayers = entries[selected].maxPlayers;
 }
 
 void MpConnectScreen::EditAddress() {
@@ -496,31 +501,32 @@ void MpConnectScreen::CreateScreen() {
     for (int top = 444; top < 492; top += 24)
         sprite(3.0f, 490.0f, static_cast<float>(top), 620.0f, static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
     AddBlankSprite()->SetFrame(2.0f, 100.0f, 95.0f, 95.0f, 395.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 95.0f, 705.0f, 415.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 425.0f, 705.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    // The details' panel reaches 10 lower than the original's (to 420) for the pause mode's row, the panel of the
+    // master and address buttons starts 4 lower (at 434).
+    AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 95.0f, 705.0f, 425.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 429.0f, 705.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
-    plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 410.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
-    plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
+    plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 420.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
+    plain(sprite(5.0f, 410.0f, 434.0f, 700.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     for (int row = 0, top = 132; row < kRows; ++row, top += 24) rows[row] = region(108, top, 370, top + 24, 0);
+    pauseSwitch = region(440, 396, 690, 418, 0);
+    pauseMode = net::PauseMode::Original;
 
     AddSurface(NewSurface(Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
     {
         scroll = AddChild(std::make_unique<UiScrollbar>(Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f));
     }
     {
-        // EI_Plugin's NPlayers: the slider's maximum is max(players, 7) - 1 and its
-        // position max(players, 1) - 1 instead of 5 and 5. addon's ExtendedServerName makes the
-        // right edge of the layout rectangle, set after the construction, and of the name's field 680.
-        const int players = ei::rebirth::PluginNPlayers();
-        const bool plugin = players != 0;
-        const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
-        const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
+        // EI_Plugin's NPlayers: the slider runs to the most players the game takes (net::kMostPlayers), the original's
+        // to 6; it starts at the original's 6. addon's ExtendedServerName makes the right edge of the layout rectangle,
+        // set after the construction, and of the name's field 680.
         const int right = kExtendedFieldRight;
-        playersSlider = AddChild(std::make_unique<UiSlider>(Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f));
+        playersSlider =
+            AddChild(std::make_unique<UiSlider>(Rect{450, 196, 650, 206}, 3.0f, net::kMostPlayers - 1, 1.0f));
         Rect area{450, 196, right, 206};
         playersSlider->SetRect(area);
-        playersSlider->SetPosition(position);
-        maxPlayers = 6;
+        playersSlider->SetPosition(kDefaultPlayers - 1);
+        maxPlayers = kDefaultPlayers;
     }
     {
         nameEdit = AddChild(std::make_unique<UiEditField>(Rect{450, 144, kExtendedFieldRight, 160}));

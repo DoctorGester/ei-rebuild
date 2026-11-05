@@ -24,7 +24,6 @@
 #include "unit.h"
 #include "world.h"
 #include "world_effect.h"
-#include "lib/rebirth.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
@@ -143,7 +142,8 @@ void WorldServer::SetWeather(int newWeather, float strength) {
 void World::SetPaused(std::uint8_t value) { paused = value; }
 
 void World::SetServerPaused(std::uint8_t value) {
-    if (ei::rebirth::PluginPause() == 3) return;
+    const net::ServerSession* server = ActiveGameServer();
+    if (value != 0 && server && server->pauseMode == net::PauseMode::Off) return;
     SetPaused(value);
 }
 

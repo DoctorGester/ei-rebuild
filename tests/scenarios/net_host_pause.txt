@@ -1,0 +1,72 @@
+# C163: the host's pause mode "off" (EI_Plugin's Pause 3: three clicks on the create-server screen's pause region, 29,
+# with the new game's row selected): a game hosted alone, into zone z3q2 as net_pair_portraits' host goes; there the
+# host, the game's leader, presses Space and its world keeps running. The player slider is left at the original's 6.
+rebirth resolution desktop
+timeout 120
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 29
+frames 3
+clickregion 29
+frames 3
+clickregion 29
+frames 3
+clickregion 0
+waitwindow 25 briefing
+checkplayers 6
+frames 20
+
+# The sheriff's second topic (z3q2_1: four phrases, then the end).
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+frames 10
+clickregion 1
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+frames 40
+
+# Out through the gate into exit 1 (remove rectangle 56 39 62.5 45).
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 20
+key space
+frames 20
+checkpaused 0
+frames 5
+report
+quit

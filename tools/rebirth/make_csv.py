@@ -411,9 +411,9 @@ for patch, a, n, var, summ in PLUGIN:
 GROUP = {'bugfix': 'bug fix', 'widescreen': 'widescreen/rendering', 'rendering': 'widescreen/rendering',
          'scripting': 'scripting/console', 'console': 'scripting/console', 'multiplayer': 'multiplayer',
          'resources': 'resources/paths', 'infrastructure': 'infrastructure', 'content': 'infrastructure'}
-# The standalone's kind of each patch (SV9, C68, C162): always the rebuilt code's, with a mod played (mod), a setting
-# (EI_Plugin's values), a flag (DisableExitOnCrashReport), dropped or implemented nowhere (none); the CSV keeps each
-# patch's.
+# The standalone's kind of each patch (SV9, C68, C162, C163): always the rebuilt code's, with a mod played (mod), the
+# host's choice on the create-server screen (host: EI_Plugin's NPlayers and Pause), a flag (DisableExitOnCrashReport),
+# dropped or implemented nowhere (none); the CSV keeps each patch's.
 FORMER = {r['patch']: r['standalone'] for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'),
                                                                      encoding='utf-8'))}
 for r in rows:

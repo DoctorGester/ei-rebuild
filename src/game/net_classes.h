@@ -71,6 +71,16 @@ enum class RefusalReason : std::uint8_t {
 };
 
 // The kind of an award message (AwardMessage::kind; ClientSession::ApplyAwards).
+// Who may pause a hosted game (the host's choice on the create-server screen, ServerSession::pauseMode;
+// PlayerServer::OnPause). Original: only the leader pauses (anyone resumes), the pause announced. Announced: only the
+// leader pauses and resumes, both announced (EI_Plugin's Pause 1). AnyPlayer: everyone pauses and resumes, announced
+// under the player's own name (Pause 2). Off: no pausing (Pause 3).
+enum class PauseMode : std::uint8_t { Original, Announced, AnyPlayer, Off };
+
+// The most players a hosted game takes (the create-server screen's slider): the chat strip's faces, 0x38 wide from
+// x 0x2E8 leftwards, fit 14 in the layout's width.
+inline constexpr int kMostPlayers = 14;
+
 enum class AwardKind : std::uint32_t {
     Experience = 0,
     Gold = 1,
@@ -524,6 +534,7 @@ public:
     std::string name;
     std::string mapName;
     std::uint32_t maxPlayers = 8;       // 8; set by the creator
+    PauseMode pauseMode = PauseMode::Original;   // set by the creator (StartServer)
     std::uint32_t kind = 0;             // the constructor's argument: the game kind
     char password[0x14] = {};           // the join password (empty: none)
     std::uint32_t masterKey = 0;        // set by the creator (StartServer); announced, and the master
@@ -634,6 +645,9 @@ public:
     void AddTimed(Message* object, float seconds);
     // A command message ({kind, text}) for the server, kept 60 s.
     void SendCommand(CommandKind kind, std::string_view text);
+    // The players the session's screens lay out for: the game's limit, or the players present when more (the limit
+    // unknown).
+    int PlayerLimit() const;
 
 private:
     // OnMessage's longer cases, each for a created message (OnTradeChanged a changed one).
@@ -666,6 +680,9 @@ public:
     std::list<TradeRecord> tradeRecords;   // a list: a record's copy draws object ids, so records never move
     Ref<TradeMessage> trade;            // the current trade
     std::uint32_t gameType = 0;         // the multiplayer game type 0..3 (StartServer): start zone, type variable
+    // The joined game's player limit: the host's own (StartServer), a joiner's from the lobby's answer for the server
+    // it joined (the connect screen); 0 unknown.
+    std::uint32_t maxPlayers = 0;
     Party parties[2];                   // ours, the partner's
 };
 
