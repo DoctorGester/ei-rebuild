@@ -7,5 +7,5 @@ depends = ["R57"]
 files = ["src/game/world_game.cpp src/game/client_visuals.cpp"]
 note = "Follow-up of R57 (renderer.md 11c). visuals.sav is written only by GameFlow::SaveGame into a slot. A zone left and entered again (LeaveZone / RestoreZone, saves\\current\\<zone>.sav, copied with the slot by CopyVisitedZones) and a multiplayer client (which never saves a slot; the host keeps saves\\current) start from the defaults. User 2026-11-05: each multiplayer client writes its own side file. Write <zone>.visuals.sav beside each zone file on the client side (each client its own, in its own saves folder), copy it with the zone files, restore it at the zone's LoadZone; mind the catch-up ticks of a revisit (the time away) and the cloud cover dip while the rain layer fades in (renderer.md 11c, Left)."
 order = 1222
-status = "running"
+status = "review"
 started = "2026-11-05"
