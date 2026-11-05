@@ -6,3 +6,5 @@ model = "sonnet"
 files = ["tools/test_resolve_crash.py"]
 note = "Fails on main before the C156/C95/C106 merges too (2026-11-05). The test reads a real run's stack; match the throw frame with or without the leading underscore."
 order = 1165
+status = "review"
+started = "2026-11-05"
