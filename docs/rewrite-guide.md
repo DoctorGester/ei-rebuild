@@ -83,6 +83,80 @@ compare function pointers for identity.
   destroys it, and the member order gives the teardown order (no constructor or destructor called by hand). A
   reset assigns the fields (`Reset()`), never destroys and builds the object again in place.
 
+## Style rules
+
+From the style review rounds (2026-11-04). Checks are named where a pattern can be counted; the others are for the
+writer and the reviewer.
+- **Numbers have meaning names.** No `#define` for a number or a string (`#define EI_ASSET_CODEPAGE 1251`): a
+  `constexpr` in the owning header. A constant is named by what it is for (`kStandingHeight`, `kRateBase`), never by
+  its value (`kOne`, `kHalf`, `kTwo`, `kZero`). Checked: `check_cleanup.py` counts "#define EI_ number" and
+  "value-named constant" (ratchet; the dashboard charts both).
+- **A code has its enum.** The codes of a kind (message ids, states, modes, results) are one `enum` or `enum class` in
+  the header of the type that owns them; a function that takes or returns a kind says the enum, not `int`. No
+  second list of the same codes in another file.
+- **One comment per declaration**, a full sentence that says what it is for and what a caller must know. No hex ids
+  in comments: not addon.dll's or EI_Plugin's addresses ("addon's 10025C9D"), not a patch's code location. Say what the
+  code does. A format's own ids (a chunk id, a field id) stay where the format is described. Checked:
+  `comments.py check` counts "addon addresses" (8 hex digits from 10 to 1F with a letter) in comments, shaders
+  included.
+- **Rebirth's patch is named.** A comment that says "Rebirth-patched" names the flag (`Patch::CameraPatch`) or says
+  "always on" (a fix that has no flag, rule 8). Checked: "unnamed Rebirth patches" per comment line.
+- **In-memory structs are typed.** Members have their real types (an enum, a `Ref<T>`, a `Vector3`), not the bytes they
+  were read from. A byte layout (fixed-width members, padding, `static_assert` on the size) belongs to the structs
+  that cross the process: a file, a save, a packet, a GPU buffer; and says so.
+- **A virtual needs two real overrides.** A class with one implementation is a plain class; a callback is a virtual
+  interface or a `std::function`, never a pointer-to-member plus an object pointer passed together.
+- **A feature's code shares a file.** The members of one feature (a window, a tool, a message group) live in the
+  feature's files, not spread by the order they were decompiled in. The checks that look at game state (digests,
+  consistency, debug dumps) go to `*_checks` files and are not mixed into the code they check.
+- **State is taken or read, never both.** A function that receives the state it works on (a reference to the world,
+  the player) does not also read the global that names the same object; one path chooses. No function-local `static`
+  state: a counter or a cache that outlives the call is a member of its owner (Reset() clears it).
+- **Inputs are `const T&`, results are returned.** An input too big to copy is `const T&` (`std::string_view` for
+  text); a result is the return value (a struct or `std::optional` for several or none), not an out-parameter, unless
+  the caller supplies the storage (a buffer it reuses).
+- **One integer type per quantity.** A count, an index, an id or a size has one type through the code that passes it
+  around (`std::int32_t` for a saved id, `std::size_t` for a container index); no converting back and forth at each
+  call, no `int` that is compared with an unsigned size.
+
+From round 3 (networking, scripts, saves, sound; 2026-11-04):
+- **Documented undefined behaviour is not a fix** (rule 9). A comment that says a read is uninitialised, a pointer may
+  be null or a copy is unbounded, and keeps it, is a bug listed: fix it, or, if only a player can see it, list it under
+  "Original bugs kept" in the area's notes. `volatile` is not a thread flag (`std::atomic`).
+- **One little-endian reader, one stream vocabulary.** Integers come out of bytes through `lib::Load<T>` /
+  `lib::Store`, and through the streams' and buffers' own members (`ReadAs<T>`, `ReadCount`, `ReadId`, `Put<T>`,
+  `Get<T>`); a file does not define its own `U32` / `Get32` / `ReadWord`, and nothing but a buffer's own file moves a
+  cursor by hand (`memcpy(...); p += N`). Checked: "own integer reader" and "cursor moved by hand after memcpy".
+- **A field or parameter that holds a kind takes the enum**, so a literal does not compile; message ids, connection
+  states, packet and award kinds, music modes, image formats and the like are enumerators, and a method is named by
+  what it means (`SendWeather`), never by its id (`SendState71`). A version test follows `save_versions.h`'s
+  convention. Checked: "enum never used as a type", "hex-named message method".
+- **Every field is initialised, a reset assigns.** All fields have default initialisers ("field without a default
+  initialiser"); a reset is `Reset()` that assigns the fields, never `OnShutdown` destroying members by hand and
+  `new (this)`. A counted object's count starts in its constructor.
+- **A saved type pairs `Load` and `Save`**, members declared side by side, reading and writing the same fields in the
+  same order (`UnitServer::Load` / `Save` are the model); one name pair (`Load` / `Save`, not `ReadFrom` / `WriteTo`).
+  Positional records (script arguments) are read through one cursor in declaration order.
+- **When a library is replaced, justify every parameter again.** A parameter that every caller passes as the same
+  constant, or that the callee ignores, goes; so does a scale, a callback or a buffer-ownership rule the old library
+  needed (sound's `OpenOutput` ignoring three of its four parameters is the example).
+- **No current-object globals.** Pass the object or make it a member. Where a global cannot be avoided (a load in
+  progress), a scope guard sets it and restores it on every exit; nothing resets it by hand before each `return`.
+- **Rebirth's behaviour is named by its flag or "always on"** in comments (see the comment guide); a comment never
+  claims a flag that does not exist.
+- **One helper per owner; names are unique within a subsystem; declare where initialised.** `IsZero`, the 1/255 colour
+  scale and "does the game server run" live once, in their owner's header. Two functions or types of one subsystem
+  never share a name with different meanings (`Arg`, `Drop`). No scope block that exists only to copy a temporary
+  (`{ std::string tmp = ...; x = tmp; }`): `x = f(...)`. A function that only returns a string literal is a constant
+  or a lookup table. Checked: "copied small helper", "function returning only a string literal", "scope block around a
+  temporary".
+- **Never key on a code address.** A class that needs an id carries an enum `Type()`; dispatch is a `switch` or a
+  virtual, not a table of member-function pointers (the exe links with `/OPT:ICF`: two functions can share an
+  address). Checked: "pointer to member function" (also the round-2 rule on callbacks).
+
+The ratchet columns are listed by `python tools/check_cleanup.py` (counts) and `python tools/comments.py check`. A
+column's pattern is narrow on purpose: it finds the plain cases; the rule is wider than the count.
+
 ## Names and files
 
 - Members have plain names, no trailing `_`; where a member and a parameter would share a name, rename the parameter

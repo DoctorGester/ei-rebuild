@@ -71,12 +71,38 @@ BANNED_COMMON = re.compile(
     r"|\bvtable slots?\b|\bvirtual slots?\b"
     r"|\b(?:its|their|the|renderer|input|stream|world's|context's|loader's|helper's|DLL's|connection's|manager's|"
     r"Spell|CItem|UnitClientSpecific|FigureManager's) [Ss]lots? [0-9]|\b(?:through|via|calls?) slot [0-9]"
-    r"|\([Ss]lots? [0-9]|^//\s*[Ss]lots? [0-9]+(?: [/-] [0-9]+)*[:.]")
+    r"|\([Ss]lots? [0-9]|^//\s*[Ss]lots? [0-9]+(?: [/-] [0-9]+)*[:.]"
+    # Hook-era and decompiler narration (style round 3): where the code once ran, what the registers held, the renderer
+    # that is simply the renderer now.
+    r"|\b[Ii]nstalls? in the vanilla launch|\bcalled through (?:its|their) address\b|\bverify wrappers?\b"
+    r"|\b[Ss]calar deleting destructors?\b|\bE(?:AX|BX|CX|DX|SI|DI|BP|SP)\b|\bSHR by CL\b|\b[Tt]he new renderer\b")
 BANNED_GAME = re.compile(
     r"\b(?:CList|CPtrList|CObList|CTypedPtrList|CArrays?|CByteArray|CWordArray|CDWordArray|CObArray|CPtrArray|"
     r"CStrings?|RemoveAll|AddHead|RemoveHead|RemoveTail|InsertAt)\b|\bMFC\b")
 
-HISTORY_RX = re.compile(r'(?i)\b(?:shim|forwarder|ported|rewritten|the hook era|was a |used to |no longer|'
+# An address in addon.dll or EI_Plugin.asi (image base 10000000), "addon's 10025C9D": 8 hex digits from 10 to 1F with at
+# least one letter (a digit-only run is a number). Comments name the patch (Patch::<name> or "always on"), never where
+# its code sat (style round 2).
+ADDON_ADDRESS_RX = re.compile(r'\b(?=\d*[A-F])1[0-9A-F]{7}\b')
+# "Rebirth-patched" says that Rebirth changed the original's code but not what the rebuild does about it: the same
+# line has to name the flag (a rebirth_patches.inc name, Patch::<name>) or say "always on".
+REBIRTH_PATCHED_RX = re.compile(r'Rebirth-patched')
+
+
+def rebirth_patch_names():
+    names = set()
+    with open(os.path.join(ROOT, 'src', 'lib', 'rebirth_patches.inc'), encoding='utf-8') as f:
+        for line in f:
+            m = re.match(r'EI_REBIRTH_PATCH\((\w+)\)', line)
+            if m:
+                names.add(m.group(1))
+    return names
+
+
+PATCH_NAMED_RX = re.compile(r'\bPatch::\w+|\balways on\b|\b(?:' + '|'.join(sorted(rebirth_patch_names(), key=len, reverse=True))
+                            + r')\b')
+
+HISTORY_RX =re.compile(r'(?i)\b(?:shim|forwarder|ported|rewritten|the hook era|was a |used to |no longer|'
                         r'formerly|previously|registration)\b')
 ORIGINAL_RX = re.compile(r'(?i)\bthe original\b|\bgame\.exe\b')
 
@@ -219,9 +245,14 @@ def orphan_blocks(text):
     return found
 
 
+def unnamed_rebirth_patches(body):
+    """1 when the comment line says "Rebirth-patched" without naming the patch's flag or "always on"."""
+    return int(bool(REBIRTH_PATCHED_RX.search(body)) and not PATCH_NAMED_RX.search(body))
+
+
 def count(text, path=None):
     c = {'comment lines': 0, 'addresses': 0, 'ticket ids': 0, 'original / game.exe': 0, 'history words': 0,
-         'banned words': 0, 'orphan comments': 0}
+         'banned words': 0, 'orphan comments': 0, 'addon addresses': 0, 'unnamed Rebirth patches': 0}
     if GENERATED.search(text[:600]):
         return c
     c['orphan comments'] = len(orphan_blocks(text))
@@ -233,6 +264,8 @@ def count(text, path=None):
         c['original / game.exe'] += len(ORIGINAL_RX.findall(body))
         c['history words'] += len(HISTORY_RX.findall(body))
         c['banned words'] += banned_count(body, path)
+        c['addon addresses'] += len(ADDON_ADDRESS_RX.findall(body))
+        c['unnamed Rebirth patches'] += unnamed_rebirth_patches(body)
     return c
 
 
@@ -376,7 +409,7 @@ def cmd_samecode(rev):
     return 1 if bad else 0
 
 
-RATCHET = ['addresses', 'ticket ids', 'banned words', 'orphan comments']
+RATCHET = ['addresses', 'ticket ids', 'banned words', 'orphan comments', 'addon addresses', 'unnamed Rebirth patches']
 
 
 def cmd_check(update):
@@ -406,6 +439,8 @@ def cmd_check(update):
                 print(f'{r}: {c[k]} {k} in comments (allowed {limit}); see docs/comment-guide.md'
                       + ('; `python tools/comments.py banned` lists them' if k == 'banned words'
                          else '; a comment left by deleted code: delete it with the code' if k == 'orphan comments'
+                         else '; say what the code does, not where addon.dll kept it' if k == 'addon addresses'
+                         else '; name the flag (Patch::<name>) or say "always on"' if k == 'unnamed Rebirth patches'
                          else '; `list` shows them'))
     totals = {k: sum(c[k] for c in now.values()) for k in count('')}
     print('comment counts: ' + ', '.join(f'{v:,} {k}' for k, v in totals.items()) + f'; {problems} problem(s)')
