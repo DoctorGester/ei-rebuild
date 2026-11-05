@@ -207,7 +207,7 @@ constexpr int kInfoPage = 2;          // bodyPart: the page of texts, without th
 } // namespace
 
 Unit* HudUnitPanel::PanelUnit() const {
-    if (slide >= 1.0f) return nullptr;
+    if (slide.t >= 1.0f) return nullptr;
     Unit* unit = hoverUnit ? hoverUnit : shownUnit;
     return unit && unit->AsObject3D()->attached ? unit : nullptr;
 }
@@ -250,7 +250,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
     Unit* unit = nullptr;
     float size = 0.0f;     // the original leaves both unset without a unit (never read then)
     float height = 0.0f;
-    if (slide < 1.0f) {
+    if (slide.t < 1.0f) {
         const int which = hoverUnit ? 1 : 0;
         unit = hoverUnit ? hoverUnit : shownUnit;
         size = viewSize[which];
@@ -263,6 +263,7 @@ void HudUnitPanel::Draw(SceneRenderer* pass) {
 
     if (unit && unit->AsObject3D()->attached) {
         Object3D* model = unit->AsObject3D();
+        const int offset = slide.Offset();
         const bool drawn = bodyPart != kInfoPage;
         if (drawn) {
             // The screen around the panel's model area (right of it, its sling strip, below it):

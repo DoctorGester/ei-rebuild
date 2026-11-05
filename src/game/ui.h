@@ -85,6 +85,15 @@ enum class WindowBackdrop {
     FirstWindow,    // the same (mode 1) when only one window is open, else nothing
 };
 
+// Where the backdrop behind the windows stands (Interface3D::backdropMode); DrawOverlays moves it on.
+enum class Backdrop {
+    None,
+    TakeFirst,      // the screen is captured and greyed into `backdrop` at the next DrawOverlays (a window opened over the screen)
+    First,          // the greyed screen is drawn behind the windows
+    TakeSecond,     // the old backdrop is put aside and the screen captured again (a window opened over a window)
+    Both,           // the second backdrop is drawn; the first one is under it
+};
+
 // The interface manager.
 class Interface3D {
 public:
@@ -194,6 +203,8 @@ public:
     // A key released: Shift, Control and Alt clear their modifier flags; then the shown console's OnKeyUp, else the top
     // window.
     void OnKeyUp(platform::Key key, int scan);
+    // Closes and deletes the top window: its input deactivated, its CloseScreen run.
+    void PopWindow();
     // Closes every window, top first.
     void CloseAll();
     // CloseAll when asked for.
@@ -234,7 +245,6 @@ public:
     ScreenFade* fade = nullptr;
     ChatOverlay* root = nullptr;    // the chat overlay; updated after the top window every frame
     UiSurface* fpsSurface = nullptr;
-    int fpsSpare = 0;                // 0 from Create with the frame rate fields; nothing reads it
     std::uint32_t fpsTime = 0;
     int fpsFrames = 0;
     std::string fpsText;             // the last measured rate ("%.1f"); empty until the first period
@@ -245,7 +255,7 @@ public:
     bool closeAll = false;
     std::uint32_t pendingValue = 0;
     bool pendingFlag = false;
-    int backdropMode = 0;            // the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
+    Backdrop backdropMode = Backdrop::None;   // the backdrop is drawn in First, TakeSecond and Both (PushWindow sets TakeSecond / TakeFirst)
     UiSurface* backdrop = nullptr;
     UiSurface* secondBackdrop = nullptr;
     std::size_t backdropWindows = 0;   // mode 4: the windows its backdrop shows (the stack's size when mode 3 was set)
@@ -967,6 +977,20 @@ public:
     Texture* texture = nullptr;     // one of the window's referenced textures
 };
 
+// A side panel's slide (the map's, the unit panel's, the top panel's): the sling button or its key flips `direction` and
+// starts it, every frame's Step moves `t` by the frame's time and stops it at either end.
+struct PanelSlide {
+    // `t` moves by the frame's time * direction / 0.3 and stays within 0..1; `moving` ends at either end.
+    void Step();
+    // The panel's offset in pixels: `travel` eased (2 t^2 up to half way, 1 - 2 (1 - t)^2 after), truncated.
+    int Offset() const;
+
+    float t = 0.0f;                  // 0..1: how far the panel has slid
+    float direction = 0.0f;          // +1 / -1
+    int travel = 0;                  // full slide distance in pixels
+    bool moving = false;             // set when the sling button (or its key) starts the slide
+};
+
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
 // view buttons, 5 a button above them, 6 the whole panel.
 class HudMap : public UiWindow {
@@ -1008,12 +1032,8 @@ public:
     float halfSide = 0.0f;           // 80: half the map's side in layout units (a click's offset over it)
     std::vector<Vector2> viewPolygon;        // the round map's outline in map units (the disc's corners)
     std::vector<Vector2> visibleArea;        // the outline in world units, clipped to the world
-    bool sliding = false;            // set when the sling button (or its key) starts the slide
-    int offset = 0;                  // current slide offset in pixels (to the right)
-    int travel = 0;                  // full slide distance
-    float slide = 0.0f;              // 0..1: how far the panel has slid (offset = travel eased)
-    float slideDirection = 0.0f;     // +1 / -1
-    int view = 0;                    // 1 or 2 while a view button is held (scene objects 6 and 7), else 0
+    PanelSlide slide;                // the offset is to the right
+    int view = 0;                   // 1 or 2 while a view button is held (scene objects 6 and 7), else 0
     float northTime = 0.0f;          // 0.5 when "camera north" turns the camera, then counts down
 };
 
@@ -1067,11 +1087,7 @@ public:
     float viewHeight[2] = {};        // how far up the panel the model stands, in units of its size
     float viewSize[2] = {};          // the model's size: it is drawn 1 / size (times its animation's ratio)
     std::string strings[2];         // the selected and the hover unit's names
-    bool sliding = false;            // set when the sling button starts the slide
-    int offset = 0;                  // current slide offset in pixels (to the left)
-    int travel = 0;                  // full slide distance
-    float slide = 0.0f;              // 0..1: how far the panel has slid (offset = travel eased)
-    float slideDirection = 0.0f;     // +1 / -1
+    PanelSlide slide;                // the offset is to the left
     int bodyPart = 0;                // selected body part 0-3 (scene objects 3-6)
     int effectIcons[6] = {};         // the spell pictures in the icon texture's six places
     std::vector<std::string> texts; // "infounit_0".."infounit_17": the info lines' labels
@@ -1158,11 +1174,7 @@ public:
     void AddMoney(int money);
 
     BattleScreen* owner = nullptr;
-    bool sliding = false;
-    int offset = 0;                  // current slide offset in pixels
-    int travel = 0;                  // full slide distance
-    float slide = 0.0f;              // 0 (out) .. 1 (in)
-    float slideDirection = 0.0f;
+    PanelSlide slide;                // t 0 (out) .. 1 (in)
     int page = 0;
     std::string pageTexts[2];       // the message log's text of pages 0 and 1
 };
@@ -1188,9 +1200,10 @@ public:
     void Update() override;
     // The screen as the briefing, null for any other.
     virtual BriefingScreen* AsBriefing() { return nullptr; }
-    // The screens' virtuals the interface calls (Interface3D); the defaults do nothing.
-    virtual void CreateScreen();
-    virtual void CloseScreen();
+    // The screens' virtuals the interface calls (Interface3D); every window put on the stack has its own, the others' defaults
+    // do nothing.
+    virtual void CreateScreen() = 0;
+    virtual void CloseScreen() = 0;
     virtual void MessageResult(std::uint32_t) {}                                 // the value a window above left pending when it closed
     virtual void ItemsPicked(const std::vector<Item*>&, int, bool) {}   // items picked up (items, money, crippled)
     virtual void UnitJoined(Unit*) {}
@@ -1603,6 +1616,9 @@ public:
     // The entries from `index` on shown (scrolled as little as needed).
     void ScrollTo(int index);
 
+    // A control inside a window, never put on the stack: nothing to create or close.
+    void CreateScreen() override {}
+    void CloseScreen() override {}
     void Update() override;
     void Deactivate() override;
     void LeftDown(Point point) override;

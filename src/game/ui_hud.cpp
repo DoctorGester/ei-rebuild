@@ -303,8 +303,8 @@ void HudMap::LeftUp(Point point) {
     switch (region) {
     case 0:     // the sling button
         ui->PlayInterfaceSound(kSoundSling);
-        slideDirection = -slideDirection;
-        sliding = true;
+        slide.direction = -slide.direction;
+        slide.moving = true;
         handled = true;
         return;
     case 1:     // the round map (zoomed)
@@ -359,8 +359,8 @@ void HudUnitPanel::LeftUp(Point point) {
     int region = RegionAt(point);
     if (region == 0) {
         ui->PlayInterfaceSound(kSoundSling);
-        sliding = true;
-        slideDirection = -slideDirection;
+        slide.moving = true;
+        slide.direction = -slide.direction;
         handled = true;
         return;
     }
@@ -539,8 +539,8 @@ void HudTopPanel::LeftUp(Point point) {
     switch (region) {
     case 0:
         ui->PlayInterfaceSound(kSoundSling);
-        sliding = true;
-        slideDirection = -slideDirection;
+        slide.moving = true;
+        slide.direction = -slide.direction;
         handled = true;
         return;
     case 1:

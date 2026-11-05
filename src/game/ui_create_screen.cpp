@@ -93,7 +93,7 @@ void OpenOnTop(Interface3D* ui, UiContainer* window) {
 void Interface3D::PushWindow(UiContainer* window, WindowBackdrop keep) {
     g_cursor.SetShape(CursorShape::Wait);
     if (keep == WindowBackdrop::Screen) {
-        backdropMode = 3;
+        backdropMode = Backdrop::TakeSecond;
         backdropWindows = stack.size();
         app::FrameStep(false);
     }
@@ -101,16 +101,11 @@ void Interface3D::PushWindow(UiContainer* window, WindowBackdrop keep) {
         serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
         if (!IsMultiplayerClient()) g_serverWorld.SetServerPaused(1);
         if (keep == WindowBackdrop::FirstWindow) {
-            backdropMode = 1;
+            backdropMode = Backdrop::TakeFirst;
             app::FrameStep(false);
         }
     }
-    ctrlDown = false;
-    altDown = false;
-    shiftDown = 0;
-    rightDown = false;
-    doubleClick = false;
-    if (!stack.empty()) stack.back()->Input()->Deactivate();
+    ResetInput();
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
     OpenOnTop(this, window);
 }
@@ -118,28 +113,16 @@ void Interface3D::PushWindow(UiContainer* window, WindowBackdrop keep) {
 // --- Activate ------------------------------------------------------------------------------------
 
 void Interface3D::Activate(UiContainer* window) {
-    if (closeAll) {
-        closeAll = false;
-        CloseAll();
-    }
+    CloseAllPending();
     g_cursor.SetShape(CursorShape::Wait);
     delete backdrop;
     backdrop = nullptr;
     delete secondBackdrop;
     secondBackdrop = nullptr;
-    backdropMode = 0;
+    backdropMode = Backdrop::None;
     serverFlag = 0;
     g_serverWorld.SetServerPaused(0);
-    g_cursor.SetShape(CursorShape::Wait);
-    while (!stack.empty()) {
-        stack.back()->Input()->Deactivate();
-        stack.back()->CloseScreen();
-        delete stack.back();
-        stack.pop_back();
-    }
-    ResetInput();
-    app::PumpMessages();
-    app::g_interfaceHasScreen = 0;
+    CloseAll();
     if (!window) {
         game::FatalError("Cannot activate NULL interface screen\n");
         return;

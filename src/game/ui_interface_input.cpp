@@ -35,8 +35,7 @@
 
 UiInputSide* Interface3D::MouseTarget() const {
     if (mouseCapture) return mouseCapture;
-    if (stack.begin() != stack.end()) return stack.end()[-1]->Input();
-    return nullptr;
+    return stack.empty() ? nullptr : stack.back()->Input();
 }
 
 namespace {
@@ -120,21 +119,26 @@ void console::ConsoleWindow::OnKeyUp(platform::Key key, int) {
 
 // --- Every window closed --------------------------------------------------
 
-void Interface3D::CloseAll() {
-    g_cursor.SetShape(CursorShape::Wait);
-    while (!stack.empty()) {
-        stack.back()->Input()->Deactivate();
-        stack.back()->CloseScreen();
-        delete stack.back();
-        stack.pop_back();
-    }
+void Interface3D::PopWindow() {
+    stack.back()->Input()->Deactivate();
+    stack.back()->CloseScreen();
+    delete stack.back();
+    stack.pop_back();
+}
+
+void Interface3D::ResetInput() {
     ctrlDown = false;
     altDown = false;
     shiftDown = 0;
     rightDown = false;
     doubleClick = false;
-    // No top window to deactivate here (the original deactivates it, but none can exist any more).
     if (!stack.empty()) stack.back()->Input()->Deactivate();
+}
+
+void Interface3D::CloseAll() {
+    g_cursor.SetShape(CursorShape::Wait);
+    while (!stack.empty()) PopWindow();
+    ResetInput();
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 }
@@ -163,31 +167,22 @@ void Interface3D::Update() {
     while (pendingFlag) {
         pendingFlag = false;
         g_cursor.SetShape(CursorShape::Wait);
-        ctrlDown = false;
-        altDown = false;
-        shiftDown = 0;
-        rightDown = false;
-        doubleClick = false;
-        if (!stack.empty()) stack.back()->Input()->Deactivate();
-        if (!stack.empty()) {
-            stack.back()->CloseScreen();
-            delete stack.back();
-            stack.pop_back();
-        }
+        ResetInput();
+        if (!stack.empty()) PopWindow();
         app::PumpMessages();
-        if (backdropMode == 4) {
+        if (backdropMode == Backdrop::Both) {
             delete backdrop;
             UiSurface* next = secondBackdrop;
             secondBackdrop = nullptr;
             backdrop = next;
-            backdropMode = next ? 2 : 0;
+            backdropMode = next ? Backdrop::First : Backdrop::None;
         }
         if (std::ssize(stack) == 1) {
             delete backdrop;
             backdrop = nullptr;
             delete screenCopy;
             screenCopy = nullptr;
-            backdropMode = 0;
+            backdropMode = Backdrop::None;
             if (!IsMultiplayerClient()) g_serverWorld.SetServerPaused(serverFlag);
             serverFlag = 0;
         }
@@ -203,19 +198,7 @@ void Interface3D::Update() {
         g_cursor.SetShape(CursorShape::Default);
     }
     if (pollTop && !stack.empty()) pollTop = !stack.back()->ReadyToStopPolling();
-    if (closeAll) {
-        closeAll = false;
-        g_cursor.SetShape(CursorShape::Wait);
-        while (!stack.empty()) {
-            stack.back()->Input()->Deactivate();
-            stack.back()->CloseScreen();
-            delete stack.back();
-            stack.pop_back();
-        }
-        ResetInput();
-        app::PumpMessages();
-        app::g_interfaceHasScreen = 0;
-    }
+    CloseAllPending();
     if (queuedWindow) {
         Activate(queuedWindow);
         queuedWindow = nullptr;
@@ -475,7 +458,7 @@ void ScreenFade::Start(int ms) {
 
 void Interface3D::Draw() {
     CloseAllPending();
-    if ((backdropMode == 2 || backdropMode == 4 || backdropMode == 3) && backdrop) backdrop->Blit();
+    if ((backdropMode == Backdrop::First || backdropMode == Backdrop::Both || backdropMode == Backdrop::TakeSecond) && backdrop) backdrop->Blit();
     if (!stack.empty()) stack.back()->Draw(&g_sceneRenderer);
     fade->Draw(&g_sceneRenderer);
 }
@@ -496,20 +479,20 @@ void Interface3D::DrawOverlays() {
     // (The original calls an empty function on the fade here; nothing to do.)
     if (statusSurface) statusSurface->Blit();
 
-    if (backdropMode == 1) {
+    if (backdropMode == Backdrop::TakeFirst) {
         // A window opens over the screen: the screen greyed behind it.
         if (!backdrop) MakeBackdrop(this);
         backdrop->CaptureScreen();
         if (!screenCopy) screenCopy = new UiSurface(this, 0, 0, width, height, SurfaceBlend::Opaque, false);
         screenCopy->CaptureScreen();
         backdrop->Greyscale();
-        backdropMode = 2;
-    } else if (backdropMode == 3) {
+        backdropMode = Backdrop::First;
+    } else if (backdropMode == Backdrop::TakeSecond) {
         // A window opens over a window: the screen as it is, the old backdrop put aside.
         secondBackdrop = backdrop;
         MakeBackdrop(this);
         backdrop->CaptureScreen();
-        backdropMode = 4;
+        backdropMode = Backdrop::Both;
     }
     if (IsMultiplayerClient() && std::ssize(stack) == 1) root->Redraw();
 

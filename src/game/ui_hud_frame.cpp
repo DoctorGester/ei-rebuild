@@ -39,7 +39,6 @@ constexpr float kCentreY = 600.0f;
 constexpr float kBlinkBase = 1.4f;
 constexpr float kPulseAmplitude = 0.3f;
 constexpr float kPulseMiddle = 0.7f;
-constexpr float kSlideTime = 0.3f;   // 0.3 seconds for a full slide
 bool GamePaused() { return g_clientWorld.paused != 0; }
 
 constexpr float kHandDepth = 8.0f;
@@ -153,28 +152,12 @@ void HudClock::Show() {
 // --- Top panel ---------------------------------------------------------------------------------
 
 void HudTopPanel::Update() {
-    if (sliding) {
-        float slideAt = UiContainer::FrameTime() * slideDirection / kSlideTime + slide;
-        slide = slideAt;
-        if (slideAt > 1.0f) slide = 1.0f;
-        slide = MaxKeepB(slide, 0.0f);      // NaN too
-        // Ease in and out: 2s^2 for the first half, 1 - 2(1-s)^2 for the second.
-        float eased;
-        if (slide < 0.5f) {
-            float s = slide;
-            eased = s * s;
-            eased += eased;
-        } else {
-            float r = 1.0f - slide;
-            float r2 = r * r;
-            eased = 1.0f - (r2 + r2);
-        }
-        offset = static_cast<int>(travel * eased);
-        if (Bits(slide) == 0x3F800000 || slide == 0.0f) sliding = false;
+    if (slide.moving) {
+        slide.Step();
         Layout();
         UiMesh* sling = sceneObjects[2];
         float y;
-        if (Bits(slideDirection) == 0xBF800000) {    // -1: sliding out
+        if (slide.direction == -1.0f) {    // sliding out
             Turn(sling, 1.0f, kPi);
             y = kSlingInY;
         } else {
@@ -183,7 +166,7 @@ void HudTopPanel::Update() {
         }
         sling->Place(kSlingX, y, kSpriteDepth);
     }
-    ui->hudPanelsIn[1] = slideDirection > 0.0f ? 1 : 0;             // the panel is (coming) in
+    ui->hudPanelsIn[1] = slide.direction > 0.0f ? 1 : 0;             // the panel is (coming) in
     ui->hudTopPage = page;
 }
 
@@ -195,14 +178,13 @@ void HudTopPanel::Update() {
 
 void HudTopPanel::Setup(int newPage, bool shown) {
     rect.left = 0xB4;
-    offset = shown ? 0x5F : 0;
     rect.top = 0;
-    slide = shown ? 1.0f : 0.0f;
+    slide.t = shown ? 1.0f : 0.0f;
     rect.right = 0x26C;
     rect.bottom = 100;
-    sliding = true;
-    travel = 0x5F;
-    slideDirection = shown ? 1.0f : -1.0f;
+    slide.moving = true;
+    slide.travel = 0x5F;
+    slide.direction = shown ? 1.0f : -1.0f;
 
     UiRegion* region = AddRegion();
     region->SetRect(0x181, 0, 0x19F, 0x14);   // the slide button

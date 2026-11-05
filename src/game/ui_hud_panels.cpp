@@ -313,6 +313,7 @@ void HudTopPanel::ShowItems() {
 
 void HudTopPanel::Layout() {
     // Place is Rebirth-patched.
+    const int offset = slide.Offset();
     float slideOffset = static_cast<float>(offset);
     sceneObjects[0]->Place(400.0f, 57.5f - slideOffset, 20.0f);
     sceneObjects[1]->Place(400.0f, 10.0f - slideOffset, 20.0f);
