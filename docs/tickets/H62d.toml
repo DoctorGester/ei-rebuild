@@ -6,3 +6,5 @@ model = "opus"
 depends = ["H62c"]
 note = "User 2026-11-05: suspicious that the Mac (paravirtual Metal GPU) is fast, Linux (lavapipe) holds on, and Windows (WARP, same 4-vCPU runner class) is nowhere close. Ruled out: the D3D12 debug layer (gpu.cpp creates the device with debug off), MSAA/anisotropy (1 in harness builds). Measure on the runner: one heavy and one light scenario (e.g. render_weather_shelter, smoke) on suites-windows.yml and suites-linux.yml with the renderer's timing (renderstats / the perf overlay's counters to the log: frame CPU, waits on fences, present, capture readbacks, pipeline creation in PrepareInBackground, shader compile) and WARP's thread use; compare with a local WARP run (EI_GPU_D3D12_WARP=1). Suspects: fence waits or readbacks that stall WARP's queue, present to a window on a headless desktop (DWM), every pipeline compiled at start in every game, WARP's thread count. Fix the stall where it is ours; then shrink WINDOWS_SKIP to what is really too slow. Goldens the same."
 order = 1208
+status = "running"
+started = "2026-11-05"
