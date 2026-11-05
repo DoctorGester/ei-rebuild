@@ -5,5 +5,6 @@ model = "sonnet"
 depends = ["C126"]
 note = "Style review round 4 (2026-11-04, https://claude.ai/artifact/BzXaX58kMcB9E2dwRuhN2U, reviewer reports in build/style_review/round4/<area>.md; user: file them all). Patterns Z1-Z11 into the rewrite guide and the checks (beside C106 and C126): a member body is not re-spelled in a sibling file (a tool lists identical normalised 3-line windows within a class's files); a k* name is defined once (check_cleanup fails on the same name with another value); 'never read' comments count down to zero; virtuals with no caller and empty virtuals still called are listed; helpers take and return values (no address-of-constant helpers); no x87 store residue; data headers hold no literal-returning functions; members use this, not their own singleton; platform.h names concepts (grep for Win32|TranslateMessage|GetTickCount|HWND|WM_); printf-like functions annotated. comments.py bans 'new renderer', 'inline[sd]', 'provisional', '0x.. bytes', 'Direct3D|DirectDraw|old path|game.exe|through its address', empty namespace {}. Fix what the checks find outside C128-C143, or list it. Style only: goldens the same, float operation order untouched (any float rewrite exact and said why), no new forwarders, normal C++ classes; gameplay code stays (technical dead code goes)."
 order = 1075
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
