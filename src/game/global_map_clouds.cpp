@@ -20,7 +20,7 @@ void GlobalMapClouds::Start() {
     for (int frameStep = 0; frameStep < kSteps; ++frameStep) Generate(&frames[1], frameStep);
 }
 
-void GlobalMapClouds::Draw(const void* holder, float seconds) {
+void GlobalMapClouds::Draw(const Surface* holder, float seconds) {
     phase = seconds * speed + phase;
     while (phase >= 1.0f) {    // a NaN phase ends it (it looped for ever in the game)
         phase -= 1.0f;

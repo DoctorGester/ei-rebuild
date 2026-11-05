@@ -15,7 +15,7 @@ public:
     void Start();
     // Advances the fade by seconds * speed (each whole unit one build step) and draws the blended frame into the
     // texture of `holder` (render::DrawClouds).
-    void Draw(const void* holder, float seconds);
+    void Draw(const Surface* holder, float seconds);
     // The alpha ramp: entry i is 255 - (width / 255)^max(0, i - start) * 255; `speed` is kept for Draw.
     void SetRamp(int start, int width, float speed);
 

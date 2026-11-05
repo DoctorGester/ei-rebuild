@@ -100,7 +100,7 @@ struct StagePatch {
     float map[4] = {};
     float inside[4] = {};   // u0, v0, u1, v1
 };
-StagePatch PatchOf(const void* holder);
+StagePatch PatchOf(const Surface* holder);
 
 // The render state of one pass of a mesh draw. Blend, depth and culling make the pipeline; the rest
 // goes to the shader.
@@ -601,7 +601,7 @@ std::uint32_t CachedMeshVersion(const CachedMesh& mesh);
 void UploadCachedMeshes(const Frame& frame);
 bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex);
 void MeshCacheFrameDone();
-const void* MeshSourceOwner();
+const FigureMesh* MeshSourceOwner();
 const MeshLighting* MeshSourceLighting();
 // The model-space normal of the corners with colour index `index`, zero without normals or words.
 Vector3 CornerNormal(const MeshDraw& mesh, int index);
@@ -727,7 +727,7 @@ const void* CurrentCaster();
 bool CurrentCasterFigure();
 // The world unit an interface figure being handed over shows (render::BeginInterfaceUnit), or null.
 const void* CurrentInterfaceUnit();
-void NoteCasterPart(const void* part);
+void NoteCasterPart(const FigureMesh* part);
 void ShadowFrameDone();
 
 // The screen's ambient occlusion (docs/notes/renderer.md section 13, item 11). DrawOcclusion, once a frame after the
@@ -748,7 +748,7 @@ void DrawFill(const FillBatch& fill, int width, int height);
 // At the frame's present: the frame's cursor (render::Cursor) shown, or none (render_cursor.cpp).
 void ShowFrameCursor();
 // The holder is gone: the cursor shapes made from its picture let go.
-void ForgetCursor(const void* holder);
+void ForgetCursor(const Surface* holder);
 
 // The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
 // timer inside another's scope takes its time out of the outer one's field.
@@ -795,17 +795,17 @@ void RunCanvasesNow();
 // A Texture or a texture's holder (Surface) as a texture with its mip levels: what was decoded or drawn for it; white
 // when there is none. Valid until the next Present.
 const gpu::Texture& TextureView(const ::Texture* texture);
-const gpu::Texture& SurfaceView(const void* holder);
+const gpu::Texture& SurfaceView(const Surface* holder);
 // render::TextureFromMmp: kept until the holder goes.
-bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, unsigned levels);
-void ForgetHolder(const void* holder);
+bool TextureFromMmpData(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels);
+void ForgetHolder(const Surface* holder);
 // render::PictureFromMmp: level 0 as RGBA8, kept until the holder goes.
 struct Picture {
     int width = 0, height = 0;
     std::vector<std::uint8_t> rgba;
 };
-bool PictureFromMmpData(const void* holder, const MmpFile& file);
-const Picture* PictureOf(const void* holder);
+bool PictureFromMmpData(const Surface* holder, const MmpFile& file);
+const Picture* PictureOf(const Surface* holder);
 gpu::Sampler LinearSampler();
 // A 1x1 white texture.
 const gpu::Texture& WhiteView();
@@ -849,7 +849,7 @@ void DrawComposed(const ComposeShape& shape, const gpu::Texture& image, const Co
 bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height, std::vector<std::uint8_t>* rgba);
 #endif
 // render::ComposeTexture's and BlankTexture's entry for `holder` (render_textures.cpp): `shape` made with `steps`.
-bool StoreComposed(const void* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
+bool StoreComposed(const Surface* holder, const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
 gpu::Sampler StageSampler(const StageState& stage);
 // Linear filters asked for: anisotropic at `level` (2..kMostAnisotropy) with linear mips; point filters as the
 // stage says. Always for the terrain pages (at kMostAnisotropy, whatever the render quality), at the render

@@ -17,7 +17,7 @@ namespace render {
 // A shape made: `from` of the picture `holder` with `mask`, at `scale` (the frame's placed size) through ramp
 // `ramp` (GammaRampChanges).
 struct Made {
-    const void* holder = nullptr;
+    const Surface* holder = nullptr;
     const void* mask = nullptr;
     Rect from{0, 0, 0, 0};
     int placedWidth = 0, placedHeight = 0;
@@ -163,7 +163,7 @@ void ShowFrameCursor() {
     g_wanted = false;
 }
 
-void ForgetCursor(const void* holder) {
+void ForgetCursor(const Surface* holder) {
     if (g_shown.shape && g_shown.holder == holder) Show(nullptr);
     std::erase_if(g_made, [&](const Made& m) {
         if (m.holder != holder) return false;

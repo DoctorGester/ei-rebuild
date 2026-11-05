@@ -141,7 +141,7 @@ struct OutsideCaster {
 static std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
 constexpr std::size_t kMostOutside = 100'000;
-std::unordered_set<const void*> g_drawnParts;   // NoteCasterPart, this frame
+std::unordered_set<const FigureMesh*> g_drawnParts;   // NoteCasterPart, this frame
 static bool g_outsideOn = true;                 // SetOffscreenCasters: not View
 static bool g_walkedOnly = false;               // SetOffscreenCasters: Walked
 static bool g_shadowView = false;               // SetShadowView
@@ -665,7 +665,7 @@ bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
     return true;
 }
 
-bool CasterPartDrawn(const void* part) { return part && g_drawnParts.count(part) != 0; }
+bool CasterPartDrawn(const FigureMesh* part) { return part && g_drawnParts.count(part) != 0; }
 
 float CasterStrength(const void* object) {
     const auto& casters = g_frame.shadow.casters;
@@ -733,7 +733,7 @@ ShadowInfo ShadowState() { return g_lastInfo; }
 const void* CurrentCaster() { return g_caster; }
 bool CurrentCasterFigure() { return g_caster && g_casterFigure; }
 
-void NoteCasterPart(const void* part) {
+void NoteCasterPart(const FigureMesh* part) {
     if (part && !g_walkedOnly) g_drawnParts.insert(part);
 }
 

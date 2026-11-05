@@ -14,6 +14,8 @@
 #include <cstdint>
 #include <vector>
 
+class FigureMesh;
+class LinkMesh;
 struct MmpFile;
 struct Surface;
 class SceneRenderer;
@@ -159,7 +161,7 @@ struct ShadowCasterSphere {
     float x = 0.0f, y = 0.0f, z = 0.0f, radius = 0.0f;
 };
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere);
-bool CasterPartDrawn(const void* part);
+bool CasterPartDrawn(const FigureMesh* part);
 float CasterStrength(const void* object);
 struct ShadowMesh {
     const VertexPacket* positions = nullptr;  // as MeshDraw's
@@ -172,12 +174,12 @@ struct ShadowMesh {
     int indexCount = 0;
     float uOffset = 0.0f, vOffset = 0.0f;  // added to the texture coordinates
     Matrix4 model;                     // model space to the landscape's, row-major: out = M * (x, y, z, 1)
-    const void* texture = nullptr;     // stage 0's surface holder, or null
+    const Surface* texture = nullptr;  // stage 0's surface holder, or null
     // The part (MeshSource::owner) and its link figure (MeshSource::shared, else null), and whether the
     // positions are a copy with the per-vertex offsets added (MeshSource::moved): the renderer keeps the
     // corners on the GPU by part, read again when MeshChanged says so.
-    const void* owner = nullptr;
-    const void* shared = nullptr;
+    const FigureMesh* owner = nullptr;
+    const LinkMesh* shared = nullptr;
     bool moved = false;
     bool unit = false;  // a unit's part: no roof over the weather (render_weather.cpp's roof map)
 };
@@ -296,10 +298,10 @@ void BeginShadowBuildTime();
 void EndShadowBuildTime();
 
 // The holder is destroyed: what the renderer kept for it forgotten.
-void HolderGone(const void* holder);
+void HolderGone(const Surface* holder);
 // A holder loaded from an 8888 .mmp picture (the software cursor's images): the renderer keeps the
 // picture's pixels from the file data.
-void PictureFromMmp(const void* holder, const MmpFile& file);
+void PictureFromMmp(const Surface* holder, const MmpFile& file);
 
 // The device object is being built: the renderer starts (it presents through its own swap chain). When it cannot
 // start the game ends here.
@@ -347,13 +349,13 @@ struct MeshDraw {
 
 // A texture's .mmp file in memory: the levels from `mip` on that the game loads for `holder`, decoded and
 // kept until the holder goes. False when not decoded (a format it does not read).
-bool TextureFromMmp(const void* holder, const MmpFile& file, unsigned mip, unsigned levels);
+bool TextureFromMmp(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels);
 
 // From now on mesh draws sampling `target` in their first stage take the rectangle `to` from `source`'s
 // rectangle `from` (left, top, right, bottom in first-level texels); the target's texture is not changed.
 // One per target; forgotten when either holder goes; nothing recorded for an empty or outside rectangle.
 // The unit's face blink.
-void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]);
+void TexturePatch(const Surface* target, const int to[4], const Surface* source, const int from[4]);
 
 // How an image's pixels are stored (TextureImage).
 enum class ImageLayout : std::uint8_t {
@@ -374,7 +376,7 @@ struct TextureImage {
 // square) drawn over the last (premultiplied: what is there x (1 - the image's alpha) + the image), the levels
 // below made from it; the texture shows the levels from `mip` on, `levels` of them (its size `size` >> `mip`).
 // Kept until the holder goes. False when not made (nothing shown).
-bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count);
+bool ComposeTexture(const Surface* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count);
 // What a texture the game draws into (BlankTexture) keeps of the alpha drawn into it, and what it starts as.
 enum class BlankAlpha : std::uint8_t {
     None,     // no alpha (a 5:6:5 texture's): opaque black, everything drawn into it opaque
@@ -383,10 +385,10 @@ enum class BlankAlpha : std::uint8_t {
 };
 // A texture of `holder` the game draws into on the GPU (DrawIntoTexture, DrawClouds): `width` x `height` texels; with
 // `mipmapped` the levels below the first are made from it after each draw, else it has one level.
-bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, bool mipmapped);
+bool BlankTexture(const Surface* holder, int width, int height, BlankAlpha alpha, bool mipmapped);
 // The rectangle `width` x `height` at `image`'s top-left put into the texture at (x, y), replacing what is there
 // (clipped to the texture); without an image that rectangle is filled with opaque white.
-void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height);
+void DrawIntoTexture(const Surface* holder, const TextureImage* image, int x, int y, int width, int height);
 // One frame of the global map's clouds (DrawClouds): 256 x 256 grey levels of value noise summed from four 32 x 32
 // layers, each made from three random words (GlobalMapClouds, global_map_clouds.cpp).
 struct CloudFrame {
@@ -394,7 +396,7 @@ struct CloudFrame {
 };
 // The whole 256 x 256 texture of `holder` (BlankTexture) made the clouds: each texel white with the alpha `ramp`[g],
 // g = (frame `to`'s grey level x `blend` + `from`'s x (256 - `blend`)) / 256.
-void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]);
+void DrawClouds(const Surface* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]);
 
 void BeginMesh(const TextureDevice* device, const MeshDraw& mesh);
 void MeshPass(const TextureDevice* device);
@@ -505,8 +507,8 @@ struct MeshLighting {
 // renderer keeps its corners on the GPU under `owner` and rebuilds only what changed: the colours when the
 // draw wrote them, the positions on MeshChanged. A mesh draw without one is built every frame.
 struct MeshSource {
-    const void* owner = nullptr;  // the figure mesh (FigureMesh) drawn
-    const void* shared = nullptr;  // the link figure (LinkMesh) whose part it draws, else null
+    const FigureMesh* owner = nullptr;  // the figure mesh drawn
+    const LinkMesh* shared = nullptr;    // the link figure whose part it draws, else null
     bool moved = false;    // the positions handed over are a copy with the per-vertex offsets added
     bool coloursWritten = false;  // this draw wrote the mesh's colour arrays (lit, flat colours)
     const MeshLighting* lighting = nullptr;   // lit on the GPU (the draw's colours: only their alpha)

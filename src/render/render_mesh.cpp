@@ -189,7 +189,7 @@ PassState ReadPassState(const TextureDevice* device) {
         st.addressV = from.addressV;
         // The surface holder the game bound to the stage.
         if (!device) continue;
-        const void* holder = device->stageSurfaces[stage];
+        const Surface* holder = device->stageSurfaces[stage];
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
         if (stage == 0) s.patch = PatchOf(holder);
