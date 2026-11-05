@@ -125,7 +125,8 @@ void WorldServer::MarkPlayersDirty(std::uint32_t mask) {
 void WorldServer::SetCave(int value) { cave = value; }
 
 void WorldServer::SetClimate(int value) {
-    if (weather != 0) {
+    // The zone's own climate set again after a revisit's load keeps the weather it was left with.
+    if (value != climate && weather != 0) {
         weather = 0;
         weatherStrength = 20.0f;
         MarkPlayersDirty(lib::Bits(PlayerDirty::Weather));

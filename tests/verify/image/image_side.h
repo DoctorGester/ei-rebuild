@@ -309,9 +309,17 @@ struct CameraView {
 };
 CameraView PlaceCamera(const CameraPlacement& placement);
 CameraView ViewCamera();
-// "climate" (harness.cpp): the server world's climate (WorldServer::SetClimate: 0 none, 1 rain, 2 snow, 3 storms; the
-// weather cleared): with 0 no rain starts by chance (UpdateRain's rolls) during a scene's captures.
+// "climate" (harness.cpp): the server world's climate (WorldServer::SetClimate: 0 none, 1 rain, 2 snow, 3 storms; a
+// change of climate clears the weather): with 0 no rain starts by chance (UpdateRain's rolls) during a scene's captures.
 void SetClimate(int climate);
+// "weatherstate" (harness.cpp): the server world's weather (0 clear, 1 light rain, 2 heavy rain), its fade and sight
+// factor, and the client's rain / snow layer (mode, the mode it heads for, density 0..64).
+struct WeatherState {
+    int weather = 0;
+    float strength = 0, factor = 0;
+    int layerMode = 0, layerTarget = 0, layerDensity = 0;
+};
+WeatherState Weather();
 
 // What the object trace samples of a client world object (harness_camera.cpp): its id, its own place and the
 // place the draw shows (drawn::PoseOf), the yaw in radians (about z); with a part named, both the part's place in

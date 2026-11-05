@@ -3,8 +3,8 @@
 # wolves bleed and the hero walks (blood and footprints), the ground and the hero wet. Out to the town bz1g (LeaveZone
 # keeps zone1, the client its picture beside it) and back: zone1 comes back from saves\current with its prints (aged
 # by the ticks the zone ran meanwhile), the ground and the hero as wet as they were left and the clouds' cover going on
-# from the kept one. The zone comes back with its weather cleared (WorldServer::LoadMap, as at every load), so all of
-# them then dry and clear. Without the side file zone1 would come back with no prints, the ground and the hero dry at
+# from the kept one. The zone comes back still raining (the weather kept by the load, `weatherstate`; the original came
+# back clear). Without the side file zone1 would come back with no prints, the ground and the hero dry at
 # once and the cover at a clear sky's.
 render checkall
 resolution 1440x1080
@@ -40,6 +40,7 @@ weathercheck 0.3 0.9 0 0
 unitweather leader 0.3 0.9 0 0
 cloudcheck 0.5 0.6 0.5 0.8
 groundprints 1 99 4 999 0 0
+weatherstate 1 64
 
 # Out to the town and back.
 zone bz1g 0
@@ -54,5 +55,6 @@ weathercheck 0.6 0.95 0 0
 unitweather leader 0.6 0.95 0 0
 cloudcheck 0.5 0.6 0.6 0.8
 groundprints 1 99 4 999 0 0
+weatherstate 1 64
 report
 quit

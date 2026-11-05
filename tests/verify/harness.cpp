@@ -127,9 +127,13 @@
 //                             90 turned so that screen right is +y), distance and pitch (degrees) set when
 //                             given, else kept. Logs the pose after it ("camera" alone only logs it). The
 //                             game's limits still ease a distance outside them back (Camera::Update)
-//   climate <n>               the server world's climate (0 none, 1 rain, 2 snow, 3 storms; the weather
-//                             cleared): "climate 0" keeps rain from starting by chance (one roll in 101 every
-//                             64 ticks on zone1) while a scene is captured dry
+//   climate <n>               the server world's climate (0 none, 1 rain, 2 snow, 3 storms; a change of
+//                             climate clears the weather): "climate 0" keeps rain from starting by chance
+//                             (one roll in 101 every 64 ticks on zone1) while a scene is captured dry
+//   weatherstate <weather> [<least density>]
+//                             require the server world's weather (0 clear, 1 rain, 2 snow) and the client's
+//                             rain / snow layer heading for it with at least <least density> (0..64); logs
+//                             the weather's fade, its sight factor and the layer's mode (R57d)
 //   hold <mods>, release <mods>
 //                             press / release the modifier keys <mods> (ctrl, shift, alt; separated by
 //                             spaces, "+" or ","), held over frames and further steps. The game takes
@@ -2926,6 +2930,23 @@ void RunSteps() {
             } else {
                 g_failures.push_back("climate needs 0, 1, 2 or 3");
                 Log("harness: %s", g_failures.back().c_str());
+            }
+        } else if (s.verb == "weatherstate") {
+            int expected = 0, leastDensity = 0;
+            if (std::sscanf(s.argument.c_str(), "%d %d", &expected, &leastDensity) < 1) {
+                g_failures.push_back("weatherstate needs the weather");
+                Log("harness: %s", g_failures.back().c_str());
+            } else {
+                const image::WeatherState w = image::Weather();
+                char text[240];
+                std::snprintf(text, sizeof(text),
+                              "weatherstate: weather %d (want %d), fade %.0f, sight factor %.2f; the layer's mode %d, "
+                              "heading for %d, density %d (at least %d)",
+                              w.weather, expected, static_cast<double>(w.strength), static_cast<double>(w.factor),
+                              w.layerMode, w.layerTarget, w.layerDensity, leastDensity);
+                Log("harness: %s", text);
+                if (w.weather != expected || w.layerTarget != expected || w.layerDensity < leastDensity)
+                    g_failures.push_back(text);
             }
         } else if (s.verb == "lookat") {
             std::string error = LookAt(s.argument);

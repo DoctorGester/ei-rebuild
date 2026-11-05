@@ -1129,10 +1129,9 @@ option). Client side only: driven by the weather the world's light hands over (`
   message comes a tick or more after the zone's; a zone entered or loaded in snow is covered at once, in rain wet), then
   it follows; after a load with a side file (11c: a save's, or a zone's left before) the surfaces hold the kept state
   over those 32 ticks instead. The world's time goes on over a zone change (8 ticks), so without the landscape's call
-  the ground of gz11k stayed as wet as zone1's. Every load (a save's, a revisited zone's, a multiplayer zone's) comes
-  back with the weather cleared: WorldServer::LoadSave reads the saved `weather` and `weatherStrength`, then its
-  LoadMap sets both to 0, so the zone's first weather message stops the client's rain layer at once and the rain
-  only comes back when UpdateWeather rolls it. The rain falling now (the layer's density, none in snow) drives the
+  the ground of gz11k stayed as wet as zone1's. Every load (a save's, a revisited zone's, a multiplayer zone's) keeps
+  the saved weather (R57d; world.md, "Weather across a load"), and the zone's first weather message after it has no
+  fade, so the client's rain layer is at the saved weather at once. The rain falling now (the layer's density, none in snow) drives the
   rings and splashes.
 - **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
   ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover (0.15 either side of it), broken by the
@@ -1252,15 +1251,15 @@ and each multiplayer client writes its own.
 - **What the original's save keeps** (mission.sav, WorldServer::SaveWorld): the world's tick, which the client takes
   with the zone (WorldClient::LoadZone), so every clock on the client's time goes on after a load: the day's light and
   the sun, the sky dome's turn, the rain rings' clock and the water's ripples (`clientTicks`), the animations. The
-  weather (`weather`, `weatherStrength`, though every load clears it after reading it: LoadSave's LoadMap; item 13,
-  "State"), the wind, the night level, the clock and its speed, the last rain bolt's tick; the water levels a script
+  weather (`weather`, `weatherStrength`; a load keeps the weather, which the original cleared, and sends it with no
+  fade: world.md, "Weather across a load"), the wind, the night level, the clock and its speed, the last rain bolt's tick; the water levels a script
   is still changing (the countdowns); the scripts' FX sources, particles, point lights and lightning; the timed effects
   and the missiles in flight, which the client then shows again.
 - **What a load loses** (without the side file):
   - The ground prints: blood, footprints and scorch marks. `GroundPrint::Save` / `Load` (and Footprint's and
     BloodPrint's) exist from the original with no caller; WorldClient::LoadZone clears the three vectors. Kept (Prints).
-  - The client's rain or snow layer: the zone's first weather message after the load says clear (the load cleared
-    the world's weather), and the layer stops at once (a duration of 0). Not kept: the game's weather is clear.
+  - The client's rain or snow layer: not kept, but the zone's first weather message after the load carries the
+    saved weather with no fade, so the layer is at it at once (R57d).
   - The landscape's wave phase (`terrain::Terrain::wavePhase`, the water vertices' waves, SectorData::AnimateWaves):
     back to 2 pi at every map load; the tiles' animation frame (`Terrain::frame`) back to 1.
   - The client generator (`g_clientRandom`, R34a): seeded once per process (World::Create), so the client's draws
@@ -1310,7 +1309,7 @@ and each multiplayer client writes its own.
   less the kept one: a revisit's catch-up, RestoreZone's, about 8 ticks for a quick one; the time a multiplayer client
   spent away while the host's zone ran on) age the prints: each is ticked as the client world does, and those that
   run out on the way are dropped. The weather is not moved on by them: the zone's weather over that time is not the
-  client's to know (and a load clears it), and the kept state follows the zone's own after the 32 ticks' hold anyway.
+  client's to know, and the kept state follows the zone's own after the 32 ticks' hold anyway.
 - **The restore**: the end of WorldClient::LoadZone (after the landscape's LandscapeLoaded) restores the surfaces and
   the clouds (`RestoreWeather`: the surfaces hold the kept state while they would settle, 32 ticks; the clouds go on
   from the kept drift and cover), the wave phase, the prints (made again into the lists the load emptied; their
@@ -1319,10 +1318,9 @@ and each multiplayer client writes its own.
   (WorldClient::UpdateLighting, `ClientVisuals::RestoreUnits`): each kept unit present among the client's objects takes
   its kept wetness and snow (`RestoreUnitWeather`), and holds it while the ground holds. Everything kept is used once,
   so a later zone change starts from the defaults.
-- **The cloud cover after a load**: it goes on from the kept cover towards a clear sky's (0.74 to 0.70 at the
-  first frames in render_weather_save), because the load cleared the world's weather (LoadMap, above), not because a
-  rain layer fades in again: the layer stops at the zone's first weather message. Keeping the saved weather across a
-  load would change the game's state (UpdateWeather's rolls, the digests): R57d asks the user.
+- **The cloud cover after a load**: it goes on from the kept cover towards the saved weather's (0.737 to 0.745 at the
+  first frames in render_weather_save): the load keeps the world's weather and its first message has no fade, so the
+  rain layer is at full density from it (`weatherstate` checks the server's weather and the layer).
 - **Left**: a multiplayer client's file that outlives its session (a crash, a host that picks the same map later) is
   only rejected by its map and tick; the host empties its saves\current at every new map (SetNetworkZone), a client
   does not. The harness's `origin` step (a recorded part that begins at a load) still seeds both
