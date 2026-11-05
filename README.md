@@ -21,8 +21,12 @@ files with goldens that were the same as the original game's runs when the harne
 - **Your saves and multiplayer still work.** Saves are in the original's format, so your old saves load. Hosting and joining
   network games work as before.
 - **A 64-bit exe** with the original's behaviour.
-- **A new renderer** on Direct3D 12 or Vulkan (SDL3's GPU API): per-pixel lighting, soft sun and moon shadows, MSAA and anisotropic filtering,
+- **A new renderer** on Direct3D 12, Vulkan or Metal (SDL3's GPU API): per-pixel lighting, soft sun and moon shadows, MSAA and anisotropic filtering,
   a smooth camera, vsync, and an optional performance overlay.
+- **A better-looking world:** water with waves, sky reflections, depth colour and soft shores (green swamps
+  with muddy rims), ambient occlusion, cloud shadows drifting over the ground, and weather that touches surfaces: rain
+  ripples on water, wet ground, objects and characters, snow cover, and dry spots under roofs.
+- **Smoother characters:** animations blend from one state into the next (idle, walk, run, attack, hit, death).
 - **Widescreen** at any resolution, with the interface scaled to the window. The options window picks the resolution from
   the display's own sizes; full screen never changes the display mode (the picture is scaled to the monitor), and a
   window can be resized freely.
@@ -43,7 +47,8 @@ files with goldens that were the same as the original game's runs when the harne
 
 - Settings live in `ei_settings.ini` beside the exe, a plain ini (`[video]`, `FullScreen = true`), not in the
   registry; one file serves both installs.
-- Graphics differ: the lighting, shadows and texture filtering are new, so screenshots won't match the original's.
+- Graphics differ: the lighting, shadows, water, weather and texture filtering are new, so screenshots won't match the
+  original's.
 - Sound volume, panning and cave reverb follow our own curves, since the original's sound library is not used.
 - Some MP3 voice lines start up to about 90 ms earlier than with the original's decoder.
 - Rebirth's bug fixes and its widescreen layout are always on, even on GOG data.
@@ -117,6 +122,11 @@ Scenarios are text files in `tests/scenarios/`. The harness runs the game hidden
 repeats exactly, and compares the world state with its goldens (`tests/golden/`): our game's own runs (those that existed when the harness
 stopped running the original game, H40, were the same as its runs). How to write scenarios and what a run does:
 `docs/notes/harness.md`; how changes are checked: `docs/notes/standalone-verification.md`.
+
+On GitHub, `suites.yml` runs the suites on a self-hosted Windows runner that has the game installed, and
+`suites-linux.yml` runs them on GitHub's Linux runners (eight shards on Mesa's
+software Vulkan, with a stub of the game data from a private repository). Scenarios that a CPU renderer cannot finish
+in time are left out there (`LINUX_SKIP`; `docs/notes/linux.md`, The CI job).
 
 The test tools find the installs as play.cmd does (`EI_GAME_VANILLA`, `EI_GAME_REBIRTH`, default the `F:\games` paths
 above; `tools/run_all.py` install_dir); the tools that read game.exe's file (the generators, `find_*`) read the
