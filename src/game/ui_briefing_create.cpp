@@ -115,6 +115,7 @@ void StopTalking(Unit* speaker) {
 } // namespace
 
 void BriefingScreen::CreateScreen() {
+    ui->briefing = this;
     chatActive = 0;
     autosave = false;
     if (g_saveStream.size != 0)    // loading a game

@@ -3,6 +3,7 @@
 // (UiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui.h"
 
+#include "ui_camp.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
 #include "lib/float_select.h"
@@ -48,7 +49,9 @@ void UiItemStrip::PaintPrices(UiSurface& surface) const {
     if (priceKind == PriceKind::None) return;
     ForItemsInView(*this, [&](Item* item, const Rect& area) {
         // Whether the strip's mode takes the item, then the number shown under it.
-        if (owner->CanEquip(item, mode)) surface.DrawTextIn(str::Format("%d", owner->Price(item, priceKind)), area, TextStyle{1, kUiTextColour, render::text::kCenter});
+        if (!owner->CanEquip(item, mode)) return;
+        const int price = camp ? camp->Price(item, priceKind) : 0;   // the exchange's strip: 0
+        surface.DrawTextIn(str::Format("%d", price), area, TextStyle{1, kUiTextColour, render::text::kCenter});
     });
 }
 
@@ -359,7 +362,7 @@ void FigureStrip::LeftDown(UiEvent& event) {
     int index = SlotAt(at.x);
     if (index < 0 || index >= count) return;
     ui->PlayInterfaceSound(kOnOffSound);
-    owner->ChooseFigure((*figures)[index]);     // the hero screen: the new hero's figure
+    if (heroScreen) heroScreen->ChooseFigure((*figures)[index]);     // the new hero's figure
 }
 
 Item* FigureStrip::ItemAt(Point, int*) { return nullptr; }

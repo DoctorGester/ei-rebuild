@@ -93,13 +93,12 @@ public:
 class BriefingScreen : public UiContainer {
 public:
     explicit BriefingScreen(Interface3D* ui);
-    BriefingScreen* AsBriefing() override { return this; }
     void DrawSprites(SceneRenderer* pass) override;
     // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
     void CloseScreen() override;
     bool ReadyToStopPolling() override { return true; }
     // A network client's chat window shows the players again (not for 0).
-    void PlayersChanged(int show) override;
+    void PlayersChanged(int show);
     // The chat window's pick mode (chatActive).
     void PlayerList(int mode) override { chatActive = mode; }
     // 0x10001 leaves through exit; 0x20001 (game over: load) opens the load window; 0x20002, 0x90001,
@@ -113,7 +112,7 @@ public:
     void UnitJoined(Unit* unit) override;
     void GameOver(bool) override;
     // The interface command "briefing <name>": dialogue `name` starts at once.
-    void ShowBriefing(std::string_view name) override;
+    void ShowBriefing(std::string_view name);
     // One zero dword.
     void SaveState() override;
     // A saved game's screen part is dropped.

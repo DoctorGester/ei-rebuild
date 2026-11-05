@@ -689,6 +689,7 @@ void CampPages::CloseScreen() {
         list->Destroy();
         delete list;
     }
+    ui->camp = nullptr;
 }
 
 // --- taking an item off the hero -----------------------------------------------------------------

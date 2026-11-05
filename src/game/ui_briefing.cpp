@@ -55,6 +55,7 @@ void BriefingScreen::CloseScreen() {
     g_clientWorld.terrain->StopAmbience();
     std::uint32_t& cameraFlags = g_camera.flags;
     cameraFlags = (cameraFlags & ~(Camera::kBounded | Camera::kAlternate)) | Camera::kFree;
+    ui->briefing = nullptr;
 }
 
 void BriefingScreen::MessageResult(std::uint32_t result) {

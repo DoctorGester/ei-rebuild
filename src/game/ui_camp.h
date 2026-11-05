@@ -206,7 +206,7 @@ struct TradeStatsRecord {
 
 class TradePanel : public UiItemPanel {
 public:
-    TradePanel(Interface3D* ui, ItemScreen* owner) : UiItemPanel(ui, owner) {}
+    using UiItemPanel::UiItemPanel;
     // One statistics record per party member; the selected record -1.
     void Build() override;
     // The schools, the held perks (a level byte per group of three skill records) and every first-level perk
@@ -297,12 +297,10 @@ public:
     // of itemExtra. Refused by CanEquip: the cancel sound.
     void TakeItem(Item* item, int mode) override;
     // Camp page `page` (1-21).
-    void TopicClicked(int page) override;
-    // Not checked.
-    Unit* HeroUnit(int index) override { return heroes[index]; }
+    void TopicClicked(int page);
     // Over the party's heroes, the best skill in spell school `school` (rounded to nearest) and the most
     // mana units (maximum mana / period, truncated).
-    PartySkill BestPartySkill(SpellSchool school) override;
+    PartySkill BestPartySkill(SpellSchool school);
     // Rebirth-patched: BuildPages, then with WideScreen the two curtains over the screen's margins.
     void CreateScreen() override;
     // The curtains over the margins of the window's new shape.
@@ -326,7 +324,7 @@ public:
     // The item's base price times the camp's weight for deal `kind`; weapons and armour also lose the repair cost
     // of their wear, or gain it when taken apart (Rebirth's FixRepairPrice). A repair costs at least 1, or 0 for an
     // unworn item.
-    int Price(Item* item, PriceKind kind) override;
+    int Price(Item* item, PriceKind kind);
     // Also finds what is under the mouse for the description panel.
     void DrawSprites(SceneRenderer* pass) override;
     // A weapon, armour, quick item or spell container off the current hero into the player's items (whose
@@ -338,13 +336,13 @@ public:
     // Pages 0 / 1 put the item on the hero; the others move it into the page's slots (with Shift and a
     // material the whole stack).
     void PutOnFromStrip(Item* item);
-    void RefreshWeapons() override;
+    void RefreshWeapons();
     void RefreshStats() override;
     // The hero preview turns while a turn button is held.
     void Update() override;
     // Wrapping; fatal after a full round without a hero (prototype class MapObjectType::Hero).
-    void NextHero() override;
-    void PreviousHero() override;
+    void NextHero();
+    void PreviousHero();
     // The unit's own name, else the text of "pers <record name>".
     void ShowHero();
     void OnEvent(UiEvent& event) override;
@@ -368,7 +366,7 @@ public:
 
     // The console's "give <player> assortment": every instruction, material and rune into the constructors'
     // first lists.
-    void DebugFill() override;
+    void DebugFill();
 
     int page = 0;
     bool fromHeroScreen = false;     // opened from the multiplayer hero screen (closes with a pending value)

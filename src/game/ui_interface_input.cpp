@@ -16,7 +16,9 @@
 #include "sound.h"
 #include "text_split.h"
 #include "texture.h"
+#include "ui_briefing.h"
 #include "ui_cursor.h"
+#include "ui_screens.h"
 #include "screen_layout.h"
 #include "world.h"
 #include "terrain.h"
@@ -217,14 +219,13 @@ void Interface3D::OnStringEvent(std::string_view event) {
         if (words.size() < 2) return;
         int number = words.size() > 2 ? TextKeyFromName(words[2]) : 0;
         AckKind kind = str::Compare(words[0], "say_block") != 0 ? AckKind::Scenario : AckKind::ScenarioTalking;
-        if (!stack.empty())
-            top()->Speech(number, kind, const_cast<char*>(words[1].c_str()));
+        if (BattleScreen* screen = OnTop(battle)) screen->Speech(number, kind, const_cast<char*>(words[1].c_str()));
     } else if (str::Compare(words[0], "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
         messages.push_back(words[1]);
     } else if (str::Compare(words[0], "briefing") == 0) {
-        if (words.size() < 2 || stack.empty()) return;
-        top()->ShowBriefing(words[1]);
+        if (words.size() < 2) return;
+        if (BriefingScreen* screen = OnTop(briefing)) screen->ShowBriefing(words[1]);
     } else if (str::Compare(words[0], "autosave") == 0) {
         pollTop = true;
     } else if (str::Compare(words[0], "endofgame") == 0) {
@@ -290,7 +291,7 @@ void Interface3D::ShowFps(bool on) {
 }
 
 void Interface3D::OnQuestVariable(std::string_view name, float value) {
-    if (!stack.empty()) stack.back()->QuestVariable(name, value);
+    if (BattleScreen* screen = OnTop(battle)) screen->QuestVariable(name, value);
     std::vector<std::string> parts;
     if (value != 1.0f) return;
     parts = text::SplitWords(name, '.');
@@ -300,7 +301,7 @@ void Interface3D::OnQuestVariable(std::string_view name, float value) {
 // --- News for the top window -------------------------------------
 
 void Interface3D::OnItemsPicked(const std::vector<Item*>& items, int money, bool crippled) {
-    if (!stack.empty()) stack.back()->ItemsPicked(items, money, crippled);
+    if (BattleScreen* screen = OnTop(battle)) screen->ItemsPicked(items, money, crippled);
 }
 
 void Interface3D::OnUnitJoined(Unit* unit) {
@@ -316,11 +317,11 @@ void Interface3D::OnGameLost() {
 }
 
 void Interface3D::OnUnitSpeech(int id, AckKind kind) {
-    if (!stack.empty()) stack.back()->Speech(id, kind, kNoExtra);
+    if (BattleScreen* screen = OnTop(battle)) screen->Speech(id, kind, kNoExtra);
 }
 
 void Interface3D::OnPlayersChanged(int added) {
-    if (!stack.empty()) stack.back()->PlayersChanged(added);
+    if (BriefingScreen* screen = OnTop(briefing)) screen->PlayersChanged(added);
 }
 
 void Interface3D::OnChatLine(const char* text) {
@@ -328,7 +329,7 @@ void Interface3D::OnChatLine(const char* text) {
 }
 
 void Interface3D::OnExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
-    if (!stack.empty()) stack.back()->ExchangeDone(partyB, partyA, partyC);
+    if (ExchangeScreen* screen = OnTop(exchange)) screen->ExchangeDone(partyB, partyA, partyC);
 }
 
 // The bottom window, not the top one (a save is made from the battle screen under the save window).

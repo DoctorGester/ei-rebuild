@@ -208,7 +208,7 @@ public:
     // The local player's first hero.
     PartyUnitRecord* HeroRecord() override;
     // The weight carried by the hero being made (weapon, armour, spell container and the quick items).
-    float Weight() override;
+    float Weight();
     // Keeps the selected hero in the list and visible (ten rows), then shows it.
     void ClampHeroSelection();
     // The same for the voice list (eleven rows), then shows the voice's name.
@@ -244,7 +244,7 @@ public:
     // docs/notes/ui.md, "MpHeroScreen::MakePreview".
     void MakePreview(bool allArmour);
     // The new hero takes figure (unit prototype) `prototype`: see docs/notes/ui.md, "MpHeroScreen::ChooseFigure".
-    void ChooseFigure(std::string_view prototype) override;
+    void ChooseFigure(std::string_view prototype);
     // The voices' surface (2): the "lmp_voices" title and eleven rows from voiceTop, the selection frame on the chosen one.
     void DrawVoices();
     // The hero list's surface (0): ten rows of names from heroTop, the selection frame on the selected hero.
@@ -641,7 +641,7 @@ public:
     // The exchange went through: the local party's items are released, every item of `partyC`, then of
     // `partyB`, returned into it (ReturnAll), its money set to partyB's - partyA's + partyC's, and the client
     // goes back to the world.
-    void ExchangeDone(Party* partyB, Party* partyA, Party* partyC) override;
+    void ExchangeDone(Party* partyB, Party* partyA, Party* partyC);
     // Mode 1 (the strip): the put_on sound, `item` moves from the local party into our offer (MoveItem with
     // limit 8, merging) and the offer is published. Mode 5 (the grid), only for an item of our offer: the
     // put_off sound, the item moves back to the local party, the strip scrolls to what the party now holds and

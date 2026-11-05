@@ -126,10 +126,10 @@ void HeroStatsPanel::LeftDown(UiEvent& event) {
     }
     if (region == previousButton) {
         ui->PlayInterfaceSound(kHeroSound);
-        owner->PreviousHero();
+        if (camp) camp->PreviousHero();
     } else if (region == nextButton) {
         ui->PlayInterfaceSound(kHeroSound);
-        owner->NextHero();
+        if (camp) camp->NextHero();
     }
 }
 

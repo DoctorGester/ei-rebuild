@@ -45,6 +45,10 @@ class Party;
 class UiWindow;
 class UiContainer;
 class BriefingScreen;
+class BattleScreen;
+class CampPages;
+class ExchangeScreen;
+class MpHeroScreen;
 class ChatOverlay;
 class UiMesh;
 struct Surface;
@@ -153,6 +157,11 @@ public:
     // "endofgame"); the first word is lowercased. Rebirth's NewStringEvents adds "gameover [title [text]]".
     void OnStringEvent(std::string_view event);
     UiContainer* GetActiveWindow() const;
+    // `screen` (one of the screen pointers below) while it is the top window, else null.
+    template <typename Screen>
+    Screen* OnTop(Screen* screen) const {
+        return screen && GetActiveWindow() == screen ? screen : nullptr;
+    }
     // Consumed by Update (the top window closes).
     void SetPendingValue(std::uint32_t value);
     // Makes screen `id` (1 in-game, 3 base, 4 island map, 2, 5, 7, 8, 9) and activates it; 0 does
@@ -206,9 +215,10 @@ public:
     // A quest variable changed (client, script): the top window hears of it; at 1 (or NaN) a name of
     // three or more '.' parts keeps its third part in savedText (the current quest).
     void OnQuestVariable(std::string_view name, float value);
-    // News for the top window (nothing without a window), each reaching its virtual of that name: items
-    // picked up, a unit joined / left the party, the game lost, a unit speaks, the players changed, an
-    // exchange between players ended; SaveWindowState has the bottom window save its state.
+    // News for the top window (nothing without a window), each reaching its handler of that name: items
+    // picked up and a unit's speech (the battle screen's), a unit joined / left the party, the game lost, the players
+    // changed (the briefing's), an exchange between players ended (the exchange screen's); SaveWindowState has the
+    // bottom window save its state.
     void OnItemsPicked(const std::vector<Item*>& items, int money, bool crippled);
     void OnUnitJoined(Unit* unit);
     void OnUnitLeft(Unit* unit);
@@ -281,6 +291,12 @@ public:
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing = false;
     std::vector<UiContainer*> stack;    // the open windows (every one a container), the top one last
+    // The screens with news of their own, while open (each sets itself in its CreateScreen and clears itself in its
+    // CloseScreen); the news reaches one only while it is the top window (OnTop).
+    BattleScreen* battle = nullptr;
+    BriefingScreen* briefing = nullptr;
+    ExchangeScreen* exchange = nullptr;
+    CampPages* camp = nullptr;
     UiContainer* queuedWindow = nullptr;    // activated by the next frame update
     bool closeAll = false;
     std::uint32_t pendingValue = 0;
@@ -687,17 +703,22 @@ public:
 class UiItemPanel : public UiWindow {
 public:
     UiItemPanel(Interface3D* ui, ItemScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
+    // The camp's and the hero screen's panels also keep their owner as that screen (camp, heroScreen).
+    UiItemPanel(Interface3D* ui, CampPages* newCamp);
+    UiItemPanel(Interface3D* ui, MpHeroScreen* newHeroScreen);
     // The item under the screen point (x, y), or null; a panel may set a help topic instead. The panels
     // without items of their own (description panel, statistics column, trade panel): nothing, `topic` 0.
     virtual Item* ItemAt(Point point, int* topic);
 
     void OnEvent(UiEvent& event) override;
     // The item under (x, y) goes to the owner with mode; without one, a help topic the panel named goes to
-    // the owner's help handler. The event is not marked used.
+    // the camp's help handler (nothing on the other screens). The event is not marked used.
     void LeftDown(UiEvent& event);
 
     int mode = 0;                    // the action mode handed to the owner (ItemCell::mode)
     ItemScreen* owner = nullptr;
+    CampPages* camp = nullptr;            // the owner when it is the camp, else null
+    MpHeroScreen* heroScreen = nullptr;   // the owner when it is the multiplayer hero screen, else null
 };
 
 // The in-game key bindings' size (g_keyActions).
@@ -1301,25 +1322,16 @@ public:
     void DrawSurfaces() override;
     void DrawTips() override;
     void Update() override;
-    // The screen as the briefing, null for any other.
-    virtual BriefingScreen* AsBriefing() { return nullptr; }
     // The screens' virtuals the interface calls (Interface3D); every window put on the stack has its own, the others' defaults
-    // do nothing.
+    // do nothing. The news only one screen hears goes to it through the interface's pointer to it (Interface3D::battle).
     virtual void CreateScreen() = 0;
     virtual void CloseScreen() = 0;
     virtual void MessageResult(std::uint32_t) {}                                 // the value a window above left pending when it closed
-    virtual void ItemsPicked(const std::vector<Item*>&, int, bool) {}   // items picked up (items, money, crippled)
     virtual void UnitJoined(Unit*) {}
     virtual void UnitLeft(Unit*) {}
     virtual void GameOver(bool) {}
-    virtual void Speech(int, AckKind, char*) {}                        // a unit speaks
-    virtual void QuestVariable(std::string_view, float) {}                  // a quest variable changed
-    virtual void ShowBriefing(std::string_view) {}                          // a "briefing <name>" string event
     virtual bool ReadyToStopPolling() { return false; }                // whether the interface may stop asking (pollTop)
-    virtual void PlayersChanged(int) {}
-    virtual void ExchangeDone(Party*, Party*, Party*) {}            // an exchange ended
     virtual void PlayerList(int) {}                                    // the player list for kicking (1) or banning (2)
-    virtual void DebugFill() {}                                        // the console's "give <player> assortment"
     virtual void SaveState() {}                                        // the window's part of a save game
     virtual const char* HelpTopic() { return nullptr; }
     // The screen took another size (Interface3D::Resize), after every surface was placed again: what of the
@@ -1425,7 +1437,7 @@ public:
     std::string UnitName(Unit* unit);
     // A "q." player variable changed: a quest line to the top panel's text and the message log; the clock
     // pulses. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
-    void QuestVariable(std::string_view name, float value) override;
+    void QuestVariable(std::string_view name, float value);
     // With exactly one living party unit selected the weapon bar, quick items, spell and action columns show
     // it, otherwise they are emptied; the pending action and highlights are cleared. Details:
     // docs/notes/ui.md, "Behaviour moved out of header comments".
@@ -1448,13 +1460,14 @@ public:
     void UseAtPoint(Vector3 point, Unit* unit, bool quick);
     // The unit's speech line goes to the top panel's text and the message log; the kind Kill shows its timed
     // face, the kinds NoWayToAttack..Injured shake its portrait.
-    void Speech(int id, AckKind kind, char* extra) override;
+    void Speech(int id, AckKind kind, char* extra);
 
     void CloseScreen() override;
     // Polled every frame by the interface until it answers true. After a new game (hasHero): the camera
     // follows the first party unit and the autosave "savea" when the option is on.
     bool ReadyToStopPolling() override;
-    void ItemsPicked(const std::vector<Item*>& items, int money, bool crippled) override;
+    // Items picked up (items, money, crippled): the items and the money to the top panel, which shows them.
+    void ItemsPicked(const std::vector<Item*>& items, int money, bool crippled);
     // A network client instead empties the top panel's page-0 text.
     void UnitLeft(Unit* unit) override;
     // The count and ids of the selected party units, the map's zoom, the server flag (a byte), the local
@@ -1546,8 +1559,8 @@ public:
     // Clamped to 0..maximum, moved set.
     virtual void SetPosition(int position);
     // The track is the right 10 pixels less 26 at either end. The position is set again (one below first,
-    // so it counts as a change).
-    virtual void SetRect(const Rect* rect);
+    // so it counts as a change). The slider has its own (UiSlider::SetRect).
+    void SetRect(const Rect* rect);
     // Negative: 0. The sprites show only for a maximum above 0; the position is set again as SetRect does.
     void SetMaximum(int maximum);
     int maxPosition = 0;
@@ -1584,7 +1597,8 @@ public:
     void OnEvent(UiEvent& event) override;
     // The scroll bar's drag along x.
     void MouseMove(UiEvent& event);
-    void SetRect(const Rect* rect) override;
+    // Along the bottom 10 pixels, the sprites turned a quarter; the position set again as the scroll bar's does.
+    void SetRect(const Rect* rect);
 };
 
 // A piece of a scrolling text: a format change (newline, font, colour) or a word (text, width).

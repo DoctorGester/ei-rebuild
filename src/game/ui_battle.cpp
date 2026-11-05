@@ -59,6 +59,7 @@ HudUnitPanel::HudUnitPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(u
 HudMap::HudMap(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
 
 void BattleScreen::CreateScreen() {
+    ui->battle = this;
     float mapZoom = 1.0f;
     portraitMode = 0;
     std::string savedText;
@@ -125,9 +126,6 @@ void BattleScreen::CreateScreen() {
 
     // The "pers <name>" texts: one line per person, by the person's text key.
     LoadPersonTexts(&personTexts);
-    if (IsMultiplayerClient()) {
-        PlayersChanged(1);
-    }
     clientParty.camera = -1;
 }
 
@@ -192,8 +190,7 @@ void BattleScreen::LayoutChanged() {
     topPanel->pageTexts[1] = pageTexts[1];
     if (topPanel->page == 0) messageLog->AddText(pageTexts[0]);
     topPanel->ShowItems();
-    if (IsMultiplayerClient()) PlayersChanged(1);
-    else portraits->Rebuild(false);
+    if (!IsMultiplayerClient()) portraits->Rebuild(false);
     RefreshSelection();
     SetPendingAction(mode, slot, item);
     clock->blink = blink;
@@ -245,6 +242,7 @@ void BattleScreen::CloseScreen() {
     g_clientWorld.sounds->StopAll(true);
     g_clientWorld.terrain->StopAmbience();
     party.clear();
+    ui->battle = nullptr;
 }
 
 bool BattleScreen::ReadyToStopPolling() {

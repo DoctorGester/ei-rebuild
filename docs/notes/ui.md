@@ -73,6 +73,15 @@ briefing's topic rows, the objectives' exits and places). The creation order sti
 region holding the point), the drawing order and the harness's `region <n>` steps, so the scenario notes keep region
 numbers. The camp's and the hero screen's curtains are a `screen_layout::Curtains` pair. `SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` with each step stored as float.
 
+News only one screen hears (items picked up, speech and quest variables for the battle screen; "briefing <name>" and
+the players changing for the briefing; an exchange's end; the console's "give <player> assortment" for the camp) goes
+through the interface's typed pointer to that screen (`battle`, `briefing`, `exchange`, `camp`: each set in the screen's
+CreateScreen and cleared in its CloseScreen), and only while it is the top window (`OnTop`), as the original's virtuals
+reached the top window and did nothing on the others. The item panels likewise keep their owner as `ItemScreen*` for the
+slots every item screen answers (TakeItem, CanEquip, RefreshStats, HeroRecord) and as `camp` / `heroScreen` (null on the
+other screens; the constructor overload the creating screen's `this` picks sets them) for one screen's own: help topics,
+prices, heroes and the spell maker's party skill (camp), the weight and the figure choice (hero screen).
+
 `CreateScreen` (`ui_create_screen.cpp`) builds screens 1, 2, 3 and 7 inline. `PushWindow` sets the backdrops, the server
 flag (kept for the first window), five render states, runs the window's Create and pumps messages. `UiModel::Draw` animates
 by timeGetTime / 67; model part flag 0x80 = hidden. `FrameTime` is the display's frame milliseconds * 0.001f, left

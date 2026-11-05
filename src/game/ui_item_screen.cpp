@@ -146,13 +146,12 @@ Item* ItemScreen::ReturnAll(Party* to, Party* from) {
 
 bool ItemScreen::CanEquip(Item*, int) { return false; }
 
-PartySkill ItemScreen::BestPartySkill(SpellSchool) { return {}; }
+// --- The item panels' owners ------------------------------------------------------------------------
 
-Unit* ItemScreen::HeroUnit(int) { return nullptr; }
+UiItemPanel::UiItemPanel(Interface3D* ui, CampPages* newCamp) : UiWindow(ui), owner(newCamp), camp(newCamp) {}
 
-float ItemScreen::Weight() { return 0.0f; }
-
-int ItemScreen::Price(Item*, PriceKind) { return 0; }
+UiItemPanel::UiItemPanel(Interface3D* ui, MpHeroScreen* newHeroScreen)
+    : UiWindow(ui), owner(newHeroScreen), heroScreen(newHeroScreen) {}
 
 // --- Ui item model -----------------------------------------------------------------------------------
 
@@ -203,7 +202,7 @@ void UiItemPanel::LeftDown(UiEvent& event) {
         owner->TakeItem(item, mode);
         return;
     }
-    if (topic) owner->TopicClicked(topic);
+    if (topic && camp) camp->TopicClicked(topic);
 }
 
 Item* UiItemPanel::ItemAt(Point, int* topic) {

@@ -64,7 +64,7 @@ void HeroEquipPanel::RightDown(UiEvent& event) {
         ui->PlayInterfaceSound(kChangeSound);
         hero->weaponIndex = static_cast<std::uint32_t>(cell);
     }
-    owner->RefreshWeapons();
+    if (camp) camp->RefreshWeapons();
 }
 
 // --- the item under a point ----------------------------------------------------------------------

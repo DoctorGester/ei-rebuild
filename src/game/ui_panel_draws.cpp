@@ -120,7 +120,7 @@ void RepairGrid::DrawSprites(SceneRenderer* pass) {
         if (pieces > 1) {
             labels.push_back({std::format("{}", pieces), Rect{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23}, {1, kUiTextColour, render::text::kRight}});
         }
-        labels.push_back({std::format("{}", owner->Price(item, PriceKind::Repair)), Rect{x + 0x0F, y + 0x41, x + 0x55, y + 0x55}, {1, kUiTextColour, render::text::kCenter}});
+        labels.push_back({std::format("{}", camp->Price(item, PriceKind::Repair)), Rect{x + 0x0F, y + 0x41, x + 0x55, y + 0x55}, {1, kUiTextColour, render::text::kCenter}});
     }
     DrawBase(pass);
     ClearUiDepth(1.0f, &screen, 1);
@@ -174,7 +174,7 @@ void SpellMakerPage::DrawSprites(SceneRenderer* pass) {
     const Rect first{10, 0, 200, 20};
     const Rect second{10, 20, 200, 40};
     if (hasSpell) {
-        PartySkill best = owner->BestPartySkill(school);
+        PartySkill best = camp->BestPartySkill(school);
         labels.push_back({str::Format(kCostFormat, texts[0], best.skill, needed), first, {1, kUiTextColour}});
         // The larger of the two (the last spell's when the sum is smaller or unordered).
         float shown = MaxKeepB(manaSum, lastMana);
