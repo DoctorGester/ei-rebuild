@@ -308,8 +308,8 @@ public:
     void MarkPlayersDirty(std::uint32_t mask);
     // SetWind with the strength clamped to 0..1 (NaN: 0), then the players marked dirty (8).
     void ChangeWind(const Vector3& direction, float strength);
-    // Setters of cave, climate (any weather stops first) and weather / weatherStrength (the players
-    // marked dirty).
+    // Setters of cave, climate (a change of climate stops any weather first) and weather / weatherStrength (the
+    // players marked dirty).
     void SetCave(int value);
     void SetClimate(int value);
     void SetWeather(int weather, float strength);

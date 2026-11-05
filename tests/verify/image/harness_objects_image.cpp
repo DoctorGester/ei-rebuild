@@ -527,6 +527,12 @@ CameraView ViewCamera() {
 
 void SetClimate(int climate) { g_serverWorld.SetClimate(climate); }
 
+WeatherState Weather() {
+    const RainSnow& layer = g_clientWorld.rainSnow;
+    return WeatherState{g_serverWorld.weather, g_serverWorld.weatherStrength, g_serverWorld.weatherFactor,
+                        layer.mode,           layer.targetMode,               layer.density};
+}
+
 CameraView PlaceCamera(const CameraPlacement& placement) {
     ::Camera& c = g_camera;
     c.SetTargetId(-1);

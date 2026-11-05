@@ -74,6 +74,7 @@ The main menu at night in the rain (GOG data).
 - Sound volume, panning and cave reverb follow our own curves, since the original's sound library is not used.
 - Some MP3 voice lines start up to about 90 ms earlier than with the original's decoder.
 - Rebirth's bug fixes and its widescreen layout are always on, even on GOG data.
+- A loaded save, or a zone entered again, keeps the rain it had; the original always came back with a clear sky.
 
 The source is readable modern C++: every function is rewritten from the original, with no leftover MFC or STLport.
 Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue is `docs/tickets/` (one file per ticket; `python tools/tickets.py list` or the ticket board).

@@ -82,7 +82,10 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
     for (Player* player = it.First(PlayerList()); player; player = it.Next())
         player->dirty = kPlayerDirtyAll;
     zoneLoaded = 1;
-    weather = 0;
+    // A fresh zone starts clear; a save's load (a slot, a revisited zone, a multiplayer zone) keeps the weather
+    // LoadSave read, where the original cleared it too (docs/notes/world.md, "Weather across a load"). The zone's
+    // first weather message has no fade, so the client's rain / snow layer is at the zone's weather at once.
+    if (!fromSave) weather = 0;
     weatherStrength = 0.0f;
     for (Player* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= PlayerDirty::Weather;
 

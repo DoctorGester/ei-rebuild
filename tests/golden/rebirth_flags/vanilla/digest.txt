@@ -7262,11 +7262,10 @@ client ticksRun 532
 @ 28 update 580 frame 115 tick 407 zone gz1g hash FFC73BC7 n 813
 world updates 580
 client ticksRun 552
-@ 29 update 600 frame 119 tick 427 zone gz1g hash 95057E5C n 814
+@ 29 update 600 frame 119 tick 427 zone gz1g hash EDFF9439 n 814
 world tick 427
 world updates 600
 world paused 0
-world weatherStrength 0.0
 world objects 778
 world mapObjects 55
 world updateMap 13

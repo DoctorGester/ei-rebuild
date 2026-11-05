@@ -2,18 +2,27 @@
   "scenario": "render_weather_save",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "d5b3c20ae",
+  "commit": "352b29ff7",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R57c: visuals.sav gains the Zone section (the client's tick and the zone's map when taken), and a zone left keeps its side file saves\\current\\<zone>.visuals.sav (copied into a slot with the zone files); no digest or console moves (client-side picture only)",
+  "reason": "R57d: a load keeps the saved weather and the battle screen no longer clears it; ground_prints and render_weather_save load a save made in rain (zone1's chance rain on Rebirth's stream for ground_prints), rebirth_flags re-enters the battle screen after the camp (weatherStrength stays 20)",
   "source": "image",
   "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 2 fields in 1 records differ: visuals 2",
-    "  visuals: 2 fields in 1 records; first visuals.zone tick: (none) in the old golden, 31 in the new run",
-    "save saveq/visuals.sav: 2 fields in 1 records differ: visuals 2",
-    "  visuals: 2 fields in 1 records; first visuals.zone tick: (none) in the old golden, 381 in the new run"
+    "digest: 1 of 39 records differ, first at record 38 (world update 780, tick 395, frame 155, zone gz1g); outcomes the same; max unit move 1.67 (obj1937, record 38)",
+    "  first difference at record 38 (world update 780, tick 395, frame 155, zone gz1g): 60 fields",
+    "    world (world) weatherFactor: 0x3F800000 in the old golden, 0x3F666666 in the new run",
+    "    world (world) weather: 0 in the old golden, 1 in the new run (d 1)",
+    "    world (world) lastRainBoltTick: 323 in the old golden, 380 in the new run (d 57)",
+    "    ... 57 more",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  world: 1 of 1 differ",
+    "    lastRainBoltTick: 1 world, 1 record, from 38; max |d| 57 at world lastRainBoltTick, record 38: 323 -> 380",
+    "    updateMap: 1 world, 1 record, from 38; max |d| 3 at world updateMap, record 38: 16 -> 13",
+    "    weather: 1 world, 1 record, from 38; max |d| 1 at world weather, record 38: 0 -> 1",
+    "    weatherFactor: 1 world, 1 record, from 38; e.g. world weatherFactor: 0x3F800000 in the old golden, 0x3F666666 in the new run",
+    "... 7 more lines"
   ]
 }

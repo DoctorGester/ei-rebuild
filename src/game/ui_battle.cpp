@@ -270,7 +270,6 @@ void BattleScreen::CreateScreen() {
     g_camera.flags &= ~0x40u;
     pendingAction = PendingAction::None;
     pendingSlot = -1;
-    g_serverWorld.SetWeather(0, 0.0f);   // clear weather
     g_clientWorld.terrain->landscapeFlags |= terrain::LandscapeFlag::Ambience;
     party.clear();
     viewPressed = false;

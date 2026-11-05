@@ -1,9 +1,10 @@
 # R57: the client's picture kept beside a save (saves\<slot>\visuals.sav, src/game/client_visuals.h; docs/notes/renderer.md,
 # "What a save keeps of the picture"). Zone1 by day, 15 seconds into rain: the ground half wet, the puddles filling, the
 # clouds closing in, the hero wet. F5 saves; the rain stops and everything dries for 20 seconds; F8 loads the quick save
-# back, and the ground, the clouds and the hero are as they were saved. Without the side file the load would start from
-# the settled rain at once (wetness and puddles 1, the cover at the weather's target). Readouts only (goldens hold no
-# frames); the side file itself is compared by the golden's saves.
+# back, and the ground, the clouds and the hero are as they were saved, and so is the rain (the server's weather and the
+# client's rain layer at full density at once: `weatherstate`; the original came back clear). Without the side file the
+# load would start from the settled rain at once (wetness and puddles 1, the cover at the weather's target). Readouts
+# only (goldens hold no frames); the side file itself is compared by the golden's saves.
 render checkall
 resolution 1440x1080
 reject Script error
@@ -30,6 +31,7 @@ frames 2
 weathercheck 0.7 0.82 0 0
 unitweather leader 0.7 0.82 0 0
 cloudcheck 0.5 0.6 0.68 0.78
+weatherstate 1 64
 key f5
 waitline 15 Saved saveq
 
@@ -40,16 +42,17 @@ frames 2
 weathercheck 0.55 0.66 0 0
 unitweather leader 0.45 0.56 0 0
 cloudcheck 0.5 0.6 0.38 0.48
+weatherstate 0
 
 # The quick save back: the ground and the hero exactly as saved (0.759; from the settled rain they would be 1); the
-# cover a little under the saved one, as the client's rain layer fades in again over its first ticks (from the rain's
-# target it would start near 0.4, the layer's density being 0 then).
+# cover going on from the saved one (0.737) towards the rain's (0.745); the rain falling as when it was saved.
 key f8
 waitline 30 Loaded saveq
 waitfor 15 IsGreater(HP(GetLeader()),0)
 frames 2
 weathercheck 0.755 0.765 0 0
 unitweather leader 0.755 0.765 0 0
-cloudcheck 0.5 0.6 0.65 0.75
+cloudcheck 0.5 0.6 0.7 0.8
+weatherstate 1 64
 report
 quit
