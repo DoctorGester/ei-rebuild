@@ -8,6 +8,7 @@
 #include "render_state.h"
 
 #include <cstring>
+#include <optional>
 #include <unordered_map>
 
 namespace render {
@@ -51,9 +52,9 @@ static void Refuse(Refusal reason, const char* what) {
 
 // A matrix giving screen pixels after the divide (sx = row0.p / row3.p, sy = row1.p / row3.p) as a
 // clip-space one: ndc x = 2 sx / width - 1, ndc y = 1 - 2 sy / height; z and w unchanged.
-static Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
-    float kx = 2.0f / width;
-    float ky = 2.0f / height;
+static Matrix4 ScreenToClip(const Matrix4& screen, Size target) {
+    float kx = 2.0f / target.w;
+    float ky = 2.0f / target.h;
     const float* s = screen.m;
     Matrix4 clip;
     float* c = clip.m;
@@ -442,12 +443,12 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     }
     Matrix4 clip;
     if (mesh.screenMatrix) {
-        int width = 0, height = 0;
-        if (!GameTargetSize(&width, &height)) {
+        const std::optional<Size> target = GameTargetSize();
+        if (!target) {
             Refuse(NoTargetSize, "a mesh draw with no render target size");
             return;
         }
-        clip = ScreenToClip(*mesh.matrix, width, height);
+        clip = ScreenToClip(*mesh.matrix, *target);
     } else {
         clip = *mesh.matrix;
     }
@@ -572,8 +573,8 @@ void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vert
     }
     Timer timer(FrameStats::HandOverMs);
     ++g_stats.counts[FrameStats::TransformedDraws];
-    int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height)) {
+    const std::optional<Size> target = GameTargetSize();
+    if (!target) {
         Refuse(NoTargetSize, "a pre-transformed draw with no render target size");
         return;
     }
@@ -582,7 +583,7 @@ void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vert
         Refuse(VertexLimit, "too many pre-transformed vertices in one frame");
         return;
     }
-    Matrix4 clip = ScreenToClip(kIdentity, width, height);
+    Matrix4 clip = ScreenToClip(kIdentity, *target);
     // kFvfUntextured's vertex is a ScreenVertex; kFvfTextured's has the texture coordinates after it.
     struct TexturedVertex {
         ScreenVertex screen;
@@ -631,13 +632,13 @@ void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int c
     Start();
     Timer timer(FrameStats::HandOverMs);
     ++g_stats.counts[FrameStats::TransformedDraws];
-    int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height)) {
+    const std::optional<Size> target = GameTargetSize();
+    if (!target) {
         Refuse(NoTargetSize, "a screen draw with no render target size");
         return;
     }
     Frame& f = g_frame;
-    Matrix4 clip = ScreenToClip(kIdentity, width, height);
+    Matrix4 clip = ScreenToClip(kIdentity, *target);
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < count; ++i) {
         const ScreenVertex& s = vertices[i];

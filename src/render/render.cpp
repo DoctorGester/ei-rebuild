@@ -369,8 +369,9 @@ static bool DrawPending() {
     perf::BeginDraws();
     perf::Enter(perf::Pass::Ui);
     RunCanvasCommands();
-    int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height) || !EnsureTarget(width, height, g_passes == 0)) return false;
+    const std::optional<Size> target = GameTargetSize();
+    if (!target || !EnsureTarget(target->w, target->h, g_passes == 0)) return false;
+    const int width = target->w, height = target->h;
     if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
     perf::Enter(perf::Pass::Other);
     UploadTerrain(g_frame);
@@ -447,21 +448,19 @@ std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
 
 const gpu::Texture& FrameTexture() { return g_colour; }
-bool FrameSize(int* width, int* height) {
-    *width = g_width;
-    *height = g_height;
-    return static_cast<bool>(g_colour);
+std::optional<Size> FrameSize() {
+    if (!g_colour) return std::nullopt;
+    return Size{g_width, g_height};
 }
 
 TextureDevice* DeviceObject() { return g_sceneRenderer.device; }
 
-// The size of the game's screen (the device object's).
-bool GameTargetSize(int* width, int* height) {
+std::optional<Size> GameTargetSize() {
     const TextureDevice* device = DeviceObject();
-    if (!device) return false;
-    *width = device->screen.right;
-    *height = device->screen.bottom;
-    return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
+    if (!device) return std::nullopt;
+    const Size size{device->screen.right, device->screen.bottom};
+    if (size.w <= 0 || size.h <= 0 || size.w > 16384 || size.h > 16384) return std::nullopt;
+    return size;
 }
 
 int AddMatrix(const Matrix4& m) {
@@ -643,19 +642,17 @@ SmoothInfo SmoothState() {
     return info;
 }
 
-bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
-    if (!g_started || !g_haveFrame || !g_colour) return false;
+std::optional<FrameImage> ReadFrame() {
+    if (!g_started || !g_haveFrame || !g_colour) return std::nullopt;
     const int w = g_width, h = g_height;
     gpu::Ticket copy = gpu::Download(g_colour, 0, Rect{0, 0, w, h});
     gpu::Texels texels;
-    const bool read = gpu::Wait(copy) && gpu::Read(copy, &texels);
-    if (read) {
-        *width = w;
-        *height = h;
-        bgr->resize(static_cast<std::size_t>(w) * h * 3);
+    std::optional<FrameImage> frame;
+    if (gpu::Wait(copy) && gpu::Read(copy, &texels)) {
+        frame.emplace(FrameImage{w, h, std::vector<std::uint8_t>(static_cast<std::size_t>(w) * h * 3)});
         for (int y = 0; y < h; ++y) {
             const std::uint8_t* row = texels.Row(y);
-            std::uint8_t* out = bgr->data() + static_cast<std::size_t>(y) * w * 3;
+            std::uint8_t* out = frame->bgr.data() + static_cast<std::size_t>(y) * w * 3;
             for (int x = 0; x < w; ++x) {
                 out[x * 3 + 0] = row[x * 4 + 2];
                 out[x * 3 + 1] = row[x * 4 + 1];
@@ -664,7 +661,7 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
         }
     }
     gpu::Release(copy);
-    return read;
+    return frame;
 }
 
 } // namespace render

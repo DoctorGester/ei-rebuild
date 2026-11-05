@@ -84,11 +84,11 @@ static std::vector<std::uint8_t> Pixels(const Picture& picture, const std::uint8
 // The shape for the frame's cursor at the window's scale and the current ramp, made at its first use; null when there
 // is no picture or no window.
 static const Made* ShapeFor(const FrameCursor& cursor) {
-    int frameWidth = 0, frameHeight = 0;
-    Rect placed{};
-    if (!FrameInWindow(&frameWidth, &frameHeight, &placed) || frameWidth <= 0 || frameHeight <= 0) return nullptr;
-    g_placedWidth = placed.Width();
-    g_placedHeight = placed.Height();
+    const std::optional<FramePlacement> shown = FrameInWindow();
+    if (!shown || shown->frame.w <= 0 || shown->frame.h <= 0) return nullptr;
+    const int frameWidth = shown->frame.w, frameHeight = shown->frame.h;
+    g_placedWidth = shown->placed.Width();
+    g_placedHeight = shown->placed.Height();
     const std::uint32_t ramp = GammaRampChanges();
     for (const Made& m : g_made)
         if (m.holder == cursor.imageHolder && m.mask == cursor.mask && m.from == cursor.from &&

@@ -17,7 +17,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -197,9 +199,9 @@ void UiSurface::CaptureScreen() {
 }
 
 save_picture::Picture UiSurface::ReadPicture() const {
-    save_picture::Picture picture;
-    if (!render::ui::ReadPicture(this, &picture.width, &picture.height, &picture.rgba)) return {};
-    return picture;
+    std::optional<render::Picture> read = render::ui::ReadPicture(this);
+    if (!read) return {};
+    return {read->width, read->height, std::move(read->rgba)};
 }
 
 void UiSurface::Greyscale() { greyed = true; }

@@ -188,15 +188,14 @@ static void CollectUnitsAndRoofs(const Frame& f) {
     g_roofs.clear();
     g_unitBoxes.clear();
     g_models.clear();
-    Matrix4 clip;
-    Vector3 eye;
-    CameraInverse camera;
-    if (f.worldRanges.empty() || !WorldCamera(f, &clip, &eye) || !camera.Invert(clip)) return;
+    if (f.worldRanges.empty()) return;
+    const std::optional<WorldView> view = WorldCamera(f);
+    if (!view) return;
     g_modelOf.assign(f.matrices.size(), kModelUnknown);
     auto modelOf = [&](const MeshBatch& b) {
         int& index = g_modelOf[static_cast<std::size_t>(b.matrix)];
         if (index == kModelUnknown) {
-            g_models.push_back(camera.Under(f.matrices[static_cast<std::size_t>(b.matrix)]));
+            g_models.push_back(view->inverse.Under(f.matrices[static_cast<std::size_t>(b.matrix)]));
             index = static_cast<int>(g_models.size()) - 1;
         }
         return index;

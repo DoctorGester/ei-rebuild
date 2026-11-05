@@ -90,14 +90,13 @@ void CheckText() {
         for (char c : l) Check(c == ' ' || perf::HasGlyph(c), std::string("a glyph for '") + c + "'");
     for (char c : std::string("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:/-+%()"))
         Check(perf::HasGlyph(c), std::string("a glyph for '") + c + "'");
-    std::vector<std::uint8_t> pixels;
-    int w = 0, h = 0;
-    perf::Rasterise({"1", "AB"}, &pixels, &w, &h);
+    const perf::TextImage image = perf::Rasterise({"1", "AB"});
+    const int w = image.width, h = image.height;
     Check(w == 2 * perf::kBorder + perf::kCellWidth + perf::kGlyphWidth &&
               h == 2 * perf::kBorder + perf::kCellHeight + perf::kGlyphHeight,
           "the image's size");
     // '1': its top row "..#..", its bottom row ".###." (a digit: kValue); 'A' of the second line a label.
-    auto at = [&](int x, int y) { return pixels[static_cast<std::size_t>(y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(x)]; };
+    auto at = [&](int x, int y) { return image.pixels[static_cast<std::size_t>(y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(x)]; };
     const int b = perf::kBorder;
     Check(at(b + 2, b) == perf::kValue && at(b + 1, b) == 0 && at(b + 1, b + 6) == perf::kValue && at(b, b + 6) == 0,
           "the pixels of '1'");
@@ -152,9 +151,8 @@ void CheckDraw(int width, int height) {
     }
     gpu::Submit();
     // What it should show: the current numbers' lines (none measured yet), scaled up from the corner.
-    std::vector<std::uint8_t> text;
-    int tw = 0, th = 0;
-    perf::Rasterise(perf::Lines(perf::Current()), &text, &tw, &th);
+    const perf::TextImage text = perf::Rasterise(perf::Lines(perf::Current()));
+    const int tw = text.width, th = text.height;
     int scale = perf::Scale(height), x0 = perf::Margin(scale), y0 = perf::Margin(scale);
     std::vector<std::uint8_t> bgra;
     bool read = ReadTarget(t, &bgra);
@@ -168,7 +166,7 @@ void CheckDraw(int width, int height) {
             int tx = (x - x0) / scale, ty = (y - y0) / scale;
             bool inside = x >= x0 && y >= y0 && tx < tw && ty < th;
             if (inside) {
-                std::uint8_t v = text[static_cast<std::size_t>(ty) * static_cast<std::size_t>(tw) + static_cast<std::size_t>(tx)];
+                std::uint8_t v = text.pixels[static_cast<std::size_t>(ty) * static_cast<std::size_t>(tw) + static_cast<std::size_t>(tx)];
                 for (int c = 0; c < 3; ++c) want[c] = v ? v : (kClear[c] * 4 + 5) / 10;
                 if (v) ++textPixels;
             }

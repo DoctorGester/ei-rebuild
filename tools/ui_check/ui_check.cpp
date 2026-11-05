@@ -64,10 +64,9 @@ namespace render {
 Frame g_frame;
 FrameStats g_stats;   // render_buffers.cpp's counts (the quads' vertex stream)
 const gpu::Texture& FrameTexture() { return glyph_cases::Target(); }
-bool FrameSize(int* width, int* height) {
-    *width = glyph_cases::TargetSize().w;
-    *height = glyph_cases::TargetSize().h;
-    return static_cast<bool>(glyph_cases::Target());
+std::optional<Size> FrameSize() {
+    if (!glyph_cases::Target()) return std::nullopt;
+    return glyph_cases::TargetSize();
 }
 int PassSampleCount() { return 1; }
 std::uint32_t CommitNumber() { return glyph_cases::Commits(); }
@@ -275,11 +274,12 @@ void CheckPicture() {
             picture[static_cast<std::size_t>(y) * pw + static_cast<std::size_t>(x)] =
                 frame[static_cast<std::size_t>(source.top + y * source.Height() / ph) * w + static_cast<std::size_t>(source.left + x * source.Width() / pw)];
     // Read back as it is.
-    int rw = 0, rh = 0;
-    std::vector<std::uint8_t> rgba;
-    bool same = ui::ReadPicture(&key, &rw, &rh, &rgba) && rw == pw && rh == ph;
-    for (std::size_t i = 0; same && i < picture.size(); ++i)
-        same = (static_cast<std::uint32_t>(rgba[i * 4]) << 16 | static_cast<std::uint32_t>(rgba[i * 4 + 1]) << 8 | rgba[i * 4 + 2]) == picture[i];
+    const std::optional<render::Picture> read = ui::ReadPicture(&key);
+    bool same = read && read->width == pw && read->height == ph;
+    for (std::size_t i = 0; same && i < picture.size(); ++i) {
+        const std::uint8_t* rgba = &read->rgba[i * 4];
+        same = (static_cast<std::uint32_t>(rgba[0]) << 16 | static_cast<std::uint32_t>(rgba[1]) << 8 | rgba[2]) == picture[i];
+    }
     Check(same, "the picture read back");
     EndFrame();
     // Drawn onto the next frame at twice its size, plain and greyed.

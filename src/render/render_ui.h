@@ -7,6 +7,7 @@
 #include "render.h"
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace render::text {
@@ -39,7 +40,7 @@ void CapturePicture(const void* key, const Rect& source, int width, int height);
 bool HasPicture(const void* key);
 void DrawPicture(const void* key, const Rect& destination, bool grey);
 void DropPicture(const void* key);
-// The picture as it is: its size and its RGBA8 pixels, rows from the top (read back now, a stall): the save's picture.
-bool ReadPicture(const void* key, int* width, int* height, std::vector<std::uint8_t>* rgba);
+// The picture as it is (read back now, a stall): the save's picture. None without a picture under `key`.
+std::optional<Picture> ReadPicture(const void* key);
 
 } // namespace render::ui

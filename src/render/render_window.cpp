@@ -95,24 +95,14 @@ static void DrawFrame(gpu::Format format, const Rect& placed) {
 }
 
 // The frame's place in a client area: its aspect kept, as large as fits, centred.
-static Rect Placed(int clientWidth, int clientHeight, int frameWidth, int frameHeight) {
-    long long a = static_cast<long long>(clientWidth) * frameHeight;
-    long long b = static_cast<long long>(clientHeight) * frameWidth;
-    int w = clientWidth, h = clientHeight;
-    if (a > b) w = static_cast<int>((static_cast<long long>(clientHeight) * frameWidth + frameHeight / 2) / frameHeight);
-    else if (a < b) h = static_cast<int>((static_cast<long long>(clientWidth) * frameHeight + frameWidth / 2) / frameWidth);
-    int x = (clientWidth - w) / 2, y = (clientHeight - h) / 2;
+static Rect Placed(Size client, Size frame) {
+    long long a = static_cast<long long>(client.w) * frame.h;
+    long long b = static_cast<long long>(client.h) * frame.w;
+    int w = client.w, h = client.h;
+    if (a > b) w = static_cast<int>((static_cast<long long>(client.h) * frame.w + frame.h / 2) / frame.h);
+    else if (a < b) h = static_cast<int>((static_cast<long long>(client.w) * frame.h + frame.w / 2) / frame.w);
+    int x = (client.w - w) / 2, y = (client.h - h) / 2;
     return Rect{x, y, x + w, y + h};
-}
-
-// The client area, the frame's size and its place; false when there is no frame or window.
-static bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameHeight, Rect* placed) {
-    const std::optional<Size> client = platform::WindowPixelSize(GameWindow());
-    if (!client || !GameTargetSize(frameWidth, frameHeight)) return false;
-    *clientWidth = client->w;
-    *clientHeight = client->h;
-    *placed = Placed(*clientWidth, *clientHeight, *frameWidth, *frameHeight);
-    return true;
 }
 
 #if defined(EI_RENDER_VALIDATION)
@@ -125,8 +115,8 @@ static int g_checkWidth = 0, g_checkHeight = 0;
 // Before the present's pass: the present drawn into the check's texture too, when a check is due and the frame is
 // placed one to one.
 static void DrawRampCheck(gpu::Format format, int width, int height, const Rect& placed) {
-    int fw = 0, fh = 0;
-    if (!g_checkRamp || !FrameSize(&fw, &fh) || fw != width || fh != height || placed.left != 0 || placed.top != 0 ||
+    const std::optional<Size> frame = FrameSize();
+    if (!g_checkRamp || !frame || *frame != Size{width, height} || placed.left != 0 || placed.top != 0 ||
         (format != gpu::Format::Bgra8 && format != gpu::Format::Rgba8)) {
         g_checkRamp = false;
         return;
@@ -193,8 +183,8 @@ void ListPresentPipelines(std::vector<gpu::PipelineDesc>& out) {
 }
 
 bool DrawToWindow() {
-    int frameWidth = 0, frameHeight = 0;
-    if (!GameTargetSize(&frameWidth, &frameHeight) || !FrameTexture()) return false;
+    const std::optional<Size> frame = GameTargetSize();
+    if (!frame || !FrameTexture()) return false;
     if (!ClaimGameWindow()) Fatal("The renderer cannot present on the game window: %s.", gpu::Error());
     if (!g_rampImage) {
         g_rampImage = gpu::MakeTexture({256, 1, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-gamma-ramp"});
@@ -210,7 +200,7 @@ bool DrawToWindow() {
     if (!gpu::AcquireSwapchain(&target)) Fatal("The renderer cannot present on the game window: %s.", gpu::Error());
     if (!target) return false;   // minimised or hidden: nothing to draw into
     // The frame's place in the swap chain's texture (the window's pixel size this frame).
-    const Rect placed = Placed(target.width, target.height, frameWidth, frameHeight);
+    const Rect placed = Placed(Size{target.width, target.height}, *frame);
 #if defined(EI_RENDER_VALIDATION)
     DrawRampCheck(target.format, target.width, target.height, placed);
 #endif
@@ -290,15 +280,19 @@ WindowPresentInfo WindowPresents() {
     return info;
 }
 
-bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed) {
-    int cw = 0, ch = 0;
-    return Placement(&cw, &ch, frameWidth, frameHeight, placed);
+std::optional<FramePlacement> FrameInWindow() {
+    const std::optional<Size> client = platform::WindowPixelSize(GameWindow());
+    if (!client) return std::nullopt;
+    const std::optional<Size> frame = GameTargetSize();
+    if (!frame) return std::nullopt;
+    return FramePlacement{*frame, Placed(*client, *frame)};
 }
 
 void WindowToFrame(int* x, int* y) {
-    int fw = 0, fh = 0;
-    Rect r{};
-    if (!FrameInWindow(&fw, &fh, &r)) return;
+    const std::optional<FramePlacement> shown = FrameInWindow();
+    if (!shown) return;
+    const int fw = shown->frame.w, fh = shown->frame.h;
+    const Rect& r = shown->placed;
     int w = r.Width(), h = r.Height();
     if (w == fw && h == fh && r.left == 0 && r.top == 0) return;
     // Floor division, so that points left of / above the frame stay negative.
@@ -308,9 +302,10 @@ void WindowToFrame(int* x, int* y) {
 }
 
 void FrameToWindow(int* x, int* y) {
-    int fw = 0, fh = 0;
-    Rect r{};
-    if (!FrameInWindow(&fw, &fh, &r)) return;
+    const std::optional<FramePlacement> shown = FrameInWindow();
+    if (!shown) return;
+    const int fw = shown->frame.w, fh = shown->frame.h;
+    const Rect& r = shown->placed;
     int w = r.Width(), h = r.Height();
     if (w == fw && h == fh && r.left == 0 && r.top == 0) return;
     // The centre of the window pixels that map to the frame pixel.

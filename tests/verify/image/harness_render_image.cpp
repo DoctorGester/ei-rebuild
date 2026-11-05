@@ -16,7 +16,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace ei::verify::image {
@@ -53,24 +55,29 @@ WindowPresents WindowPresentCounts() {
     return counts;
 }
 
-bool FrameInWindow(int* width, int* height) {
-    Rect placed{};
-    return render::FrameInWindow(width, height, &placed);
+std::optional<Size> FrameInWindow() {
+    const std::optional<render::FramePlacement> shown = render::FrameInWindow();
+    if (!shown) return std::nullopt;
+    return shown->frame;
 }
-bool FramePlaced(int* width, int* height) {
-    int fw = 0, fh = 0;
-    Rect placed{};
-    if (!render::FrameInWindow(&fw, &fh, &placed)) return false;
-    *width = placed.right - placed.left;
-    *height = placed.bottom - placed.top;
-    return true;
+std::optional<Size> FramePlaced() {
+    const std::optional<render::FramePlacement> shown = render::FrameInWindow();
+    if (!shown) return std::nullopt;
+    return shown->placed.Extent();
 }
 void FrameToWindow(int* x, int* y) { render::FrameToWindow(x, y); }
 void WindowToFrame(int* x, int* y) { render::WindowToFrame(x, y); }
 void ConfigureRenderer(const char* spec) { render::Configure(spec ? spec : ""); }
 void SetWaitForVsync(bool on) { render::SetWaitForVsync(on); }
 void EndFrame() { render::EndFrame(); }
-bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) { return render::ReadFrame(width, height, bgr); }
+bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
+    std::optional<render::FrameImage> frame = render::ReadFrame();
+    if (!frame) return false;
+    *width = frame->width;
+    *height = frame->height;
+    *bgr = std::move(frame->bgr);
+    return true;
+}
 
 bool RenderStep(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,
                 std::vector<std::string>* frames) {

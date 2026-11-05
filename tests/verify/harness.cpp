@@ -521,6 +521,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -1432,9 +1433,9 @@ image::WindowPresents HarnessWindowPresents() { return image::WindowPresentCount
 // (render::FrameInWindow: the frame may be scaled into a larger window, R9c); a point of it reaches
 // the window through ToWindow.
 Rect GameClient() {
+    if (const std::optional<Size> frame = image::FrameInWindow()) return Rect::Sized({}, *frame);
     int width = 0, height = 0;
-    if (image::FrameInWindow(&width, &height) || harnessplatform::ClientSize(&width, &height))
-        return Rect{0, 0, width, height};
+    if (harnessplatform::ClientSize(&width, &height)) return Rect{0, 0, width, height};
     return Rect{0, 0, 0, 0};
 }
 Point ToWindow(int x, int y) {
@@ -1499,11 +1500,12 @@ std::string GammaShapeCheck(const harnessplatform::ShownCursor& shown) {
 // the cursor's pixel under its top left corner, alpha blended) into frames\<name>.bmp.
 std::string WriteCursorFrame(const char* name, const image::CursorState& game) {
     harnessplatform::ShownCursor cursor;
-    int fw = 0, fh = 0, pw = 0, ph = 0;
+    const std::optional<Size> placed = image::FramePlaced();
+    int fw = 0, fh = 0;
     std::vector<std::uint8_t> bgr;
-    if (!harnessplatform::CursorShown(&cursor) || !image::FramePlaced(&pw, &ph) || !image::ReadFrame(&fw, &fh, &bgr) ||
-        fw <= 0 || fh <= 0)
+    if (!harnessplatform::CursorShown(&cursor) || !placed || !image::ReadFrame(&fw, &fh, &bgr) || fw <= 0 || fh <= 0)
         return "cursorcheck: no frame or cursor to write";
+    const int pw = placed->w, ph = placed->h;
     const int left = game.x - game.hotX, top = game.y - game.hotY;
     for (int y = (std::max)(0, top); y < fh; ++y) {
         const int cy = static_cast<int>(static_cast<long long>(y - top) * ph / fh);
@@ -1546,9 +1548,9 @@ std::string CursorCheck(const std::string& argument) {
     if (now.failures) {
         std::snprintf(failure, sizeof(failure), "cursorcheck: the system could not make %u shapes", now.failures);
     } else if (kind == "shown") {
-        int fw = 0, fh = 0, pw = 0, ph = 0;
-        image::FrameInWindow(&fw, &fh);
-        image::FramePlaced(&pw, &ph);
+        const Size frame = image::FrameInWindow().value_or(Size{});
+        const Size placed = image::FramePlaced().value_or(Size{});
+        const int fw = frame.w, fh = frame.h, pw = placed.w, ph = placed.h;
         const int width = fw > 0 ? (std::max)(1, (game.width * pw + fw / 2) / fw) : 0;
         const int height = fh > 0 ? (std::max)(1, (game.height * ph + fh / 2) / fh) : 0;
         int opaque = 0, clear = 0;

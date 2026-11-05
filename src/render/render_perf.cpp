@@ -141,26 +141,25 @@ constexpr double kRefreshMs = 250.0;   // the text is made again this often
 
 static gpu::Texture g_image;
 static bool g_imageReady = false;            // Prepare wrote it for this frame's Draw
-static std::vector<std::uint8_t> g_pixels;   // the text's image
-static int g_pixelsWidth = 0, g_pixelsHeight = 0;
-static bool g_pixelsChanged = false;
+static TextImage g_text;   // the text's image
+static bool g_textChanged = false;
 static long long g_lastText = 0;
 static std::vector<std::string> g_lines;
 
 // The text's image on the GPU, made again when its size changed.
 static bool UploadText() {
-    if (g_pixels.empty()) return false;
-    if (g_image.width != g_pixelsWidth || g_image.height != g_pixelsHeight) {
+    if (g_text.pixels.empty()) return false;
+    if (g_image.width != g_text.width || g_image.height != g_text.height) {
         gpu::Release(g_image);
-        g_image = gpu::MakeTexture({g_pixelsWidth, g_pixelsHeight, 1, 1, gpu::Format::R8, gpu::kSampled, "ei-perf-overlay"});
+        g_image = gpu::MakeTexture({g_text.width, g_text.height, 1, 1, gpu::Format::R8, gpu::kSampled, "ei-perf-overlay"});
         if (!g_image) return false;
-        g_pixelsChanged = true;
+        g_textChanged = true;
     }
-    if (g_pixelsChanged) {
-        if (!gpu::Write(g_image, 0, {0, 0, g_pixelsWidth, g_pixelsHeight}, g_pixels.data(),
-                        static_cast<std::size_t>(g_pixelsWidth), gpu::Contents::Discard))
+    if (g_textChanged) {
+        if (!gpu::Write(g_image, 0, {0, 0, g_text.width, g_text.height}, g_text.pixels.data(),
+                        static_cast<std::size_t>(g_text.width), gpu::Contents::Discard))
             return false;
-        g_pixelsChanged = false;
+        g_textChanged = false;
     }
     return true;
 }
@@ -168,13 +167,13 @@ static bool UploadText() {
 // The text made again from the last second's numbers (every kRefreshMs: readable, and cheap).
 static void RefreshText() {
     long long now = Ticks();
-    if (!g_pixels.empty() && static_cast<double>(now - g_lastText) * kMsPerTick < kRefreshMs) return;
+    if (!g_text.pixels.empty() && static_cast<double>(now - g_lastText) * kMsPerTick < kRefreshMs) return;
     g_lastText = now;
     std::vector<std::string> lines = Lines(Current());
-    if (lines == g_lines && !g_pixels.empty()) return;
+    if (lines == g_lines && !g_text.pixels.empty()) return;
     g_lines = std::move(lines);
-    Rasterise(g_lines, &g_pixels, &g_pixelsWidth, &g_pixelsHeight);
-    g_pixelsChanged = true;
+    g_text = Rasterise(g_lines);
+    g_textChanged = true;
 }
 
 bool On() { return g_on; }
@@ -263,7 +262,7 @@ void Release() {
     g_timing = false;
     gpu::Release(g_image);
     g_imageReady = false;
-    g_pixelsChanged = true;
+    g_textChanged = true;
 }
 
 Numbers Current() {
@@ -314,13 +313,13 @@ std::vector<std::string> Lines(const Numbers& n) {
     return lines;
 }
 
-void Rasterise(const std::vector<std::string>& lines, std::vector<std::uint8_t>* pixels, int* width, int* height) {
+TextImage Rasterise(const std::vector<std::string>& lines) {
     std::size_t columns = 1;
     for (const std::string& l : lines) columns = std::max(columns, l.size());
     int rows = static_cast<int>(lines.size());
     int w = 2 * kBorder + static_cast<int>(columns) * kCellWidth - (kCellWidth - kGlyphWidth);
     int h = 2 * kBorder + (rows > 0 ? rows * kCellHeight - (kCellHeight - kGlyphHeight) : 0);
-    pixels->assign(static_cast<std::size_t>(w) * static_cast<std::size_t>(h), 0);
+    TextImage image{w, h, std::vector<std::uint8_t>(static_cast<std::size_t>(w) * static_cast<std::size_t>(h), 0)};
     for (int r = 0; r < rows; ++r) {
         const std::string& l = lines[static_cast<std::size_t>(r)];
         for (std::size_t c = 0; c < l.size(); ++c) {
@@ -331,11 +330,10 @@ void Rasterise(const std::vector<std::string>& lines, std::vector<std::uint8_t>*
             for (int y = 0; y < kGlyphHeight; ++y)
                 for (int x = 0; x < kGlyphWidth; ++x)
                     if (g->rows[y][x] == '#')
-                        (*pixels)[static_cast<std::size_t>(y0 + y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(x0 + x)] = value;
+                        image.pixels[static_cast<std::size_t>(y0 + y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(x0 + x)] = value;
         }
     }
-    *width = w;
-    *height = h;
+    return image;
 }
 
 bool HasGlyph(char c) { return FindGlyph(c) != nullptr; }
