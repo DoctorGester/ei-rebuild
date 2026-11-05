@@ -6,5 +6,6 @@ model = "opus"
 depends = ["MOD3a"]
 note = "User 2026-11-05: fold the Rebirth flags per my recommendations. Fold with no flag: the five mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch) become 'whenever a mod is set' on MOD1's path layer (ResOverride merges a mod's partial .res into the game's); include MOD1a (AddonPath folded into [game] Mod, the S19b/S19d addonpath scenarios moved to 'mod'). Always on: EiPluginFixes, EiPluginBriefings (may move GOLD goldens: re-record and explain), DisableExitOnCrashReport (log the FatalError and carry on), MQClient (a client never writes a map file the server sends). EiPluginNewMaster: SecondMaster address stays a setting (empty = none), the rest always on. NPlayers and Pause go to C163. Remove the patch enum, rebirth_patches.inc, the profile's patch lines, rebirth_profile.ini/inc and the folderprofile step if nothing is left for them; docs/notes/rebirth.md and docs/settings.md updated; the [patches] section of ei_settings.ini ignored with one log line. Goldens: GOLD may move for Briefings and DisableExit/MQClient only where a scenario reaches them; say which."
 order = 1204
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
