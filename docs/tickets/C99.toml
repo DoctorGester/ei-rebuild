@@ -5,4 +5,5 @@ model = "sonnet"
 depends = ["C98"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U10. OptionsWindow (4 files), SaveLoadWindow (5), HudUnitPanel (5), BattleScreen (5), CampPages (5), HelpWindow (3) each into ui_<family>.{h,cpp}; ui.h (2,072 lines) keeps Interface3D, UiWindow, UiContainer, UiSurface, UiRegion; the 60-row data table to its window's file; fold the slivers (ui_input_defaults.cpp, ui_control_delete.cpp); fix file headers pointing at the wrong notes. Pure moves: run when no other ui* ticket is running. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1029
-status = "queued"
+status = "running"
+started = "2026-11-05"
