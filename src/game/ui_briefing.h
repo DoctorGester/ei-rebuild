@@ -124,8 +124,9 @@ public:
     // open topics are marked and the leader's pending exit is left once it can be; 2 the phrases start once no
     // waited mover walks; 3 the next phrase when the voice ends or phraseTime runs out.
     void Update() override;
-    // Every person with a client unit is marked (dialogue event 1) when a "b.<person>.<topic>" variable is 1
-    // for a topic that is not "constr...", else unmarked (event 2).
+    // Every person with a client unit is marked (WorldClient::MarkPerson) when a "b.<person>.<topic>" variable is
+    // 1 for a topic that is not "constr...", else unmarked; only where the game is served (player 0 has a server
+    // half: not on a network client).
     void MarkPeople();
     // Not when exit's zone is "none" or visited ("z.<zone>" not 1).
     void LeaveIfExitOpen();

@@ -224,8 +224,16 @@ struct ViewPose {
 void NoteViewBeforeTick(const Camera* camera);
 void NoteViewTick(const Camera* camera);
 // A placement of the camera outside its update (a focus, heading or view set, a scripted placement, a load, a
-// recorded path's start): the last step is forgotten, so the next frame draws the placed pose.
+// recorded path's start): the last step is forgotten, so the next frame draws the placed pose. Until a frame draws
+// the world, the ticks' steps are cuts and a new target is drawn as reached (Camera::SetTargetId, SettleBy).
 void ForgetViewStep();
+// The drawn view's settle onto a target taken before the first frame after a placement (Camera::SetTargetId): `gap`
+// from the camera's own focus to the settled one, added to the drawn focus and position; the camera's update shrinks
+// it as its drift (x, y) and height lag (z, `height`) close the same gap (`keep`: the part left; 0 when the drift
+// stops: no target, a pan), and drops it once it is tiny, or when the camera is placed by its own position.
+void SettleBy(const Vector3& gap);
+void ForgetSettle();
+void ShrinkSettle(float keep, bool height);
 // Once a pass, after the worlds ran: the part of a tick the client has had since its last tick (its backlog over
 // a tick; clamped to 0..1) and the pass's real time in ticks (TickLength's: 27 ms in fast mode). The first pass
 // after a tick sets how much of its step the frames spread: all of it after a pass of up to a tick, less after a

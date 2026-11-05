@@ -913,6 +913,9 @@ public:
     // Adds `object` (not null) to the selection list: its part bounds refreshed, the highlight on when it was off,
     // and its id appended unless it is listed already.
     void Select(MapObject* object);
+    // A base person's mark (the briefing's people with a topic open): its figure lit (MapObjectFlag::BoxMarked)
+    // or not; a selected one is left as it is.
+    void MarkPerson(MapObject* object, bool marked);
     // One more reference on every item and, when the item factory exists, on every spell.
     void ReferenceItemsAndSpells();
     // The reverse, used by the teardown: every item and spell released, each manager emptied.

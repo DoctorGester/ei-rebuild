@@ -670,6 +670,17 @@ portrait's face, eased from its straight rest towards its selected turn (`HudPor
 is 0.5 s or more), snaps into the turn on frame 2, and the clock's marks step (the game's behaviour). The main menu's
 first frozen frames differ in a few single pixels (its particles).
 
+**The town's first frames** (R56a; scenario render_load_town, the user's save "ShadowCorrupt", tests/saves/shadow_corrupt:
+the town bz1g, its camera panned off the leader, saved from the Esc menu). Frozen bursts hid what moves only when the
+clocks run. Three things differed from the settled frames: the camera swung in from its stale pose and glided ~3 units
+onto the leader (section 14, "Placed"), and the people with a topic lit up a tick or two late (ui.md, "Briefing / base
+screen": the screen marks them on the local view itself). The poses the user saw change were those two (the swing's
+other angle, the lit figures' white emissive); no animation starts from a default pose: each unit's first frame shows
+its animation where it restarted. On the virtual clock the save's pause (the Esc menu's, saved with the world and
+cleared when the screen is made) reaches the client after the first tick, so the first dozen 8 ms frames show the
+world still (the fires too) until the unpause arrives; on the real clock the load's long passes (60-160 ms) run those
+ticks before the first present. Captures: build/captures/r56a in the main checkout.
+
 ## 12. The device layer in game code
 
 All in `src/game`:
@@ -1230,7 +1241,16 @@ only the pose the world's draw shows changes (always on, no option; moving the c
   so later passes only reach further into the step and the drawn view never moves back.
 - **Placed:** a placement of the camera outside its update forgets the step (`camera::ForgetViewStep`: SetFocus,
   SetHeading, RestoreView, SetDistancePitch, LookFrom, PlaybackStart, Init, Load), so the next frame draws the placed
-  pose. Inside a tick the update then notes its own step.
+  pose. Until a frame draws the world after it, every tick's step is a cut: a load leaves the camera's own position
+  and turn as they were (only its update places them by the loaded focus), so the first tick's step began at a pose no
+  frame showed and the first frames after the user's town save swung in from there (R56a). A target given in that time
+  (`Camera::SetTargetId`: the base and battle screens take the leader as they are made after a load or a zone's entry)
+  is drawn as reached: the gap from the camera's own focus to where the update's drift (a fifth of the way a call) and
+  height lag (a tenth) settle it is added to the drawn focus and position (`camera::SettleBy`), and the update shrinks
+  it by the same parts (both are linear, so it stays exact wherever the target goes) until it is gone. The camera's own
+  focus keeps the game's glide: it is saved (scenario.sav's camera) and clicks pick through it, and moving it moved 153
+  goldens (savea's camera focus, units 1e-5 apart in the recorded and network scenarios). A pan or a lost target drops
+  the gap; later targets keep the glide (a click on another hero).
 - **Following** (flag 8, only from a save that has it; nothing in the game sets it): the camera sits on the target and
   its focus stays where it was, so the drawn position turns about that stale focus. Not reached in play.
 - **Cut:** a tick whose update moved the focus by more than 8 map units, or the camera nearer to its focus or farther
