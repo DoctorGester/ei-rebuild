@@ -7,4 +7,5 @@ depends = ["MOD1"]
 files = ["docs/notes/mods.md"]
 note = "Found in MOD1: Lost in Astral's config.reg [DEV] Plugin = fixshops.plg and IronMod's fixfslpatei.plg are DLLs Rebirth's addon loads to patch game.exe; our exe does not load them (mods.md). Read them (read only, never write F:\\games): what each changes (fixshops: the shops), and carry it as code behind the mod (on when the mod's config.reg names the plugin), or say why it is not needed. A scenario that reaches the change."
 order = 1200
-status = "later"
+status = "running"
+started = "2026-11-05"
