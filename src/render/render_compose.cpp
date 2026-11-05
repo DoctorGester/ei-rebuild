@@ -292,7 +292,6 @@ void DrawComposed(const ComposeShape& shape, const gpu::Texture& image, const Co
     DrawSteps(shape, image, steps, count, false);
 }
 
-#if defined(EI_RENDER_VALIDATION)
 bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height, std::vector<std::uint8_t>* rgba) {
     if (!image || width <= 0 || height <= 0 || !EnsurePipelines()) return false;
     gpu::Texture target = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget, "ei-texture-level-read"});
@@ -313,6 +312,5 @@ bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height,
     gpu::Release(target);
     return read;
 }
-#endif
 
 }   // namespace render

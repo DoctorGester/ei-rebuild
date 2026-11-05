@@ -100,13 +100,9 @@ static void FullScreenPass(gpu::Pipeline pipeline, const gpu::Texture& target,
 }
 
 void SetOcclusion(OcclusionMode mode) {
-#if defined(EI_RENDER_VALIDATION)
     static const char* const kNames[] = {"on", "off", "shown alone"};
     if (mode != g_mode) ei::Log("render: ambient occlusion %s", kNames[static_cast<int>(mode)]);
     g_mode = mode;
-#else
-    (void)mode;
-#endif
 }
 
 OcclusionInfo OcclusionState() {

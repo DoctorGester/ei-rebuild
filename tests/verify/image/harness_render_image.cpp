@@ -9,6 +9,7 @@
 #include "system/harness_system.h"
 
 #include "render/render.h"
+#include "render/render_checks.h"
 
 #include <chrono>
 #include <cstdint>

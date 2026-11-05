@@ -421,12 +421,8 @@ void BeginInterfaceUnit(const Object3D* object) { g_interfaceUnit = object; }
 void EndInterfaceUnit() { g_interfaceUnit = nullptr; }
 
 void SetRoofShelter(bool on) {
-#if defined(EI_RENDER_VALIDATION)
     if (on != g_roofShelter) ei::Log("render: the roofs' shelter from the weather %s", on ? "on" : "off");
     g_roofShelter = on;
-#else
-    (void)on;
-#endif
 }
 
 RoofInfo RoofState() { return g_roofInfo; }

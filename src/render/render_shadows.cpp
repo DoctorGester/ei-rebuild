@@ -696,7 +696,6 @@ void BeginShadowWalk() {
 void EndShadowWalk() { g_walkTimer.End(); }
 
 void SetOffscreenCasters(OffscreenCasters mode) {
-#if defined(EI_RENDER_VALIDATION)
     const bool on = mode != OffscreenCasters::View, walked = mode == OffscreenCasters::Walked;
     if (on != g_outsideOn || walked != g_walkedOnly)
         ei::Log("render: object shadows: %s", walked ? "every caster from the walk, none from the game's draws"
@@ -704,27 +703,16 @@ void SetOffscreenCasters(OffscreenCasters mode) {
                                                      : "only the objects drawn cast");
     g_outsideOn = on;
     g_walkedOnly = walked;
-#else
-    (void)mode;
-#endif
 }
 
 void SetShadowView(bool on) {
-#if defined(EI_RENDER_VALIDATION)
     if (on != g_shadowView) ei::Log("render: shadow map: %s", on ? "the shadow alone" : "the frame as drawn");
     g_shadowView = on;
-#else
-    (void)on;
-#endif
 }
 
 void SetShadowShift(int texels) {
-#if defined(EI_RENDER_VALIDATION)
     if (texels != g_shadowShift) ei::Log("render: shadow map: origin moved by %d, %d texels", texels, texels / 2);
     g_shadowShift = texels;
-#else
-    (void)texels;
-#endif
 }
 
 ShadowInfo ShadowState() { return g_lastInfo; }

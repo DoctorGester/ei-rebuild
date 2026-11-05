@@ -683,10 +683,12 @@ to rain the layer keeps drawing snow, its density from 0 up, and turns to rain a
 The direction (user): composite in shaders, keep data on the GPU, upload only what changed; no matching of the old
 renderer's calls.
 
-**1. Measuring.** `render::FrameStats` (render.h) counts per presented frame: the hand-over (terrain pages and batches,
+**1. Measuring.** `render::FrameStats` (render_checks.h) counts per presented frame (`counts[]` and `ms[]` by its
+`Count` and `Time` enums): the hand-over (terrain pages and batches,
 meshes and passes, flat geometry, pre-transformed draws, blits, depth clears, state reads, matrices), bytes appended to the
 vertex / index streams, uniform bytes, passes, draws, pipeline and first-texture changes, images made per kind with their
-bytes. The harness build adds the CPU time (hand-over, texture work, EndFrame) and each terrain page's / mesh's vertices
+bytes. The harness build adds the CPU time (hand-over, texture work, EndFrame; `render::Timer`, render_internal.h: a
+timer begun inside another takes its time out of the outer one's) and each terrain page's / mesh's vertices
 against the last frame's (same / relit / moved / new). The harness step `renderstats <label>|-` logs the averages since
 the last one into the report, with the main thread's CPU and wall time per frame; scenario `render_stats` measures the
 main menu, zone1, a fight of twelve creatures, the camp, the base bz1g (a town), the global map and its escape menu.
@@ -1699,6 +1701,16 @@ beach's shore line nearer; the camera placed by map point with the harness's `ca
 so the views are the same on Rebirth's data: zone1.mpr is the same file in both installs). zone1's water materials
 (kind 3): 0 and 2 water (0.19, 0.32, 0.65; 0 the lake and the river, 2 the sea), 1 the swamp; the swamp's tiles lie in
 x 123..193, y 3..93 (the big one around (158, 34), deepest (163, 47); the east one around (172, 70)).
+
+### render_checks.{h,cpp}: the harness's API
+
+Everything the harness's steps call besides the product's API, the same in every build: the switches (smoothorder,
+shadowcasters, shadowview, occlusion, terraincache, meshcache, terrainlevels, ...), the state read back (SmoothState,
+ShadowState, OcclusionState, the caches', CursorState, WindowPresents, CheckMmpLevels) and FrameStats with
+TakeFrameStats and the game's timed work (Begin/End*Time). render_checks.cpp keeps FrameStats' counts and times (the
+frame's `g_stats`, Timer, the Count* functions); a switch's or read-back's body stays in the file whose state it
+turns. EI_RENDER_VALIDATION (`kRenderValidation`) gates only the checks themselves (the read-backs, the caches'
+compares every 16th frame) and the times; the product never calls a switch.
 
 ### render_perf.h: the performance overlay
 

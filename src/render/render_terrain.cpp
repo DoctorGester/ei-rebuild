@@ -533,9 +533,9 @@ static std::unordered_map<PageKey, CachedPage, PageKeyHash> g_pages;
 static std::vector<CachedPage*> g_pending;   // pages with something to upload
 constexpr std::uint32_t kPageLife = 600;
 
-#if defined(EI_RENDER_VALIDATION)
-static bool g_cacheOn = true;
+static bool g_cacheOn = true;   // SetTerrainCache
 static std::uint64_t g_checks = 0, g_stale = 0;
+#if defined(EI_RENDER_VALIDATION)
 // Every this many frames each kept page is compared with a fresh build.
 constexpr std::uint32_t kCheckEvery = 16;
 #endif
@@ -593,8 +593,7 @@ static gpu::Pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {
     return pipeline;
 }
 
-#if defined(EI_RENDER_VALIDATION)
-// --- The level map (render::TerrainLevels, harness build) ---------------------------------------------
+// --- The level map (render::TerrainLevels, the harness's) ---------------------------------------------
 
 static TerrainLevelMode g_levelMode = TerrainLevelMode::Off;
 
@@ -620,7 +619,6 @@ static gpu::Texture LevelView(const gpu::Texture& page) {
     g_levelImages.push_back(t);
     return t;
 }
-#endif
 
 // The index runs of `batch`'s pieces placed in the pool, pieces that follow each other in it as one run:
 // `draw(first, count)` per run.
@@ -741,12 +739,10 @@ bool CreateTerrainShader() {
 }
 
 void UploadTerrain(const Frame& f) {
-#if defined(EI_RENDER_VALIDATION)
     // The level maps are written here, before the scene's pass (gpu.h refuses writes inside one).
     if (g_levelMode != TerrainLevelMode::Off)
         for (const TerrainBatch& batch : f.terrainBatches)
             if (!batch.water) LevelView(TextureView(batch.texture));
-#endif
     if (g_pending.empty()) return;
     Timer timer(FrameStats::TerrainMs);
     bool placed = true;
@@ -780,7 +776,6 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     g.Bind();
     gpu::TextureBinding texture{TextureView(batch.texture), AnisotropicSampler(batch.state.stages[0], kMostAnisotropy)};
     float mode = batch.water ? 1.0f : 0.0f;
-#if defined(EI_RENDER_VALIDATION)
     if (g_levelMode != TerrainLevelMode::Off && !batch.water) {
         gpu::Texture levels = LevelView(texture.texture);
         if (levels) {
@@ -789,7 +784,6 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
             mode = 2.0f;
         }
     }
-#endif
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
     BindShadowMap(program::kSamplerShadowMap);
     BindPointShadows(program::kSamplerPointShadowMap);
@@ -901,14 +895,12 @@ void TerrainFrameDone() {
     }
 }
 
-#if defined(EI_RENDER_VALIDATION)
 void TerrainLevels(TerrainLevelMode mode) {
     if (mode != g_levelMode)
         ei::Log("render: terrain level map %s",
                 mode == TerrainLevelMode::Off ? "off" : mode == TerrainLevelMode::Levels ? "on" : "on, through point mips");
     g_levelMode = mode;
 }
-#endif
 
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change) {
     if (!sector) return;
@@ -926,7 +918,6 @@ void TerrainChanged(const terrain::SectorData* sector, TerrainChange change) {
     }
 }
 
-#if defined(EI_RENDER_VALIDATION)
 void SetTerrainCache(bool on) {
     if (on != g_cacheOn) ei::Log("render: terrain pages %s", on ? "kept on the GPU" : "built and uploaded every frame");
     g_cacheOn = on;
@@ -940,7 +931,6 @@ TerrainCacheInfo TerrainCacheState() {
     info.stale = g_stale;
     return info;
 }
-#endif
 
 void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     if (!s || !renderer) return;
@@ -978,11 +968,9 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     if (made) {
         BuildPage(s, page, p, occluded);
         upload = true;
-#if defined(EI_RENDER_VALIDATION)
     } else if (!g_cacheOn) {
         moved = BuildAgain(s, page, p, occluded);   // off: all of it uploaded again, as before
         upload = true;
-#endif
     } else if (!p.source.SameTiles(source)) {
         moved = upload = BuildAgain(s, page, p, occluded);
     } else if ((p.animatedTiles && p.source.changes.moved != source.changes.moved) ||

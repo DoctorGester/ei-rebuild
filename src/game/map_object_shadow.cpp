@@ -10,6 +10,7 @@
 #include "object.h"
 #include "options.h"
 #include "render/render.h"
+#include "render/render_checks.h"
 #include "spell.h"                // Light
 #include "unit.h"                 // Unit
 #include "unit_client_models.h"   // UnitClientSpecific

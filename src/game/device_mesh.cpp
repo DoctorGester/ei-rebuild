@@ -6,6 +6,7 @@
 #include "figure_mesh.h"
 #include "model.h"
 #include "render/render.h"
+#include "render/render_checks.h"
 #include "settings.h"
 #include "texture.h"
 

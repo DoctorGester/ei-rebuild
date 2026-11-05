@@ -487,7 +487,6 @@ void PictureFromMmp(const Surface* holder, const MmpFile& file) {
     PictureFromMmpData(holder, file);
 }
 
-#if defined(EI_RENDER_VALIDATION)
 // The next level of an RGBA8 level as a 2x2 box filter (sizes halved, at least 1; `*width`, `*height` updated).
 static std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
     int w = *width, h = *height;
@@ -555,6 +554,5 @@ MmpLevelCheck CheckMmpLevels() {
     }
     return c;
 }
-#endif
 
 }   // namespace render

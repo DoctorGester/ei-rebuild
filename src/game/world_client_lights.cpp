@@ -20,6 +20,7 @@
 #include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
+#include "render/render_checks.h"
 
 #include <bit>
 #include <cmath>
