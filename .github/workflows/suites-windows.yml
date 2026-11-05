@@ -1,0 +1,215 @@
+# Windows CI: the Windows builds and the suites on GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU), on SDL_GPU's
+# Direct3D 12 driver with WARP, the software adapter (docs/notes/harness.md, "The Windows CI job"; H61). By hand only
+# until a run has shown what passes (Actions > Windows > Run workflow).
+#
+# build-release / build-verify (parallel): build.cmd release and build.cmd verify, as on a desktop: the MSVC of the
+# runner's Visual Studio (EI_VSROOT from vswhere), warnings and the build checks included (build.cmd runs them; they
+# draw on WARP here). build-verify uploads the harness exe (build/verify/ei-rebuild.exe: code only, no game data) for
+# the suites jobs. A failed build check on verify is a warning when the exe was built, so the suites still run.
+#
+# suites: the suites-linux.yml job's way: the stub game data (H41) fetched from the private repository with the
+# read-only token, both suites, the scenarios dealt round the SHARDS jobs, one game at a time each. EI_GPU_D3D12_WARP=1
+# makes the vendored SDL pick the WARP adapter (third_party/SDL/README.txt); with no GPU on the runner it is the
+# only adapter anyway, and the variable makes a local run on a GPU machine use the same path.
+#
+# The suites need the repository variable EI_STUB_DATA_REPO and the secrets EI_STUB_DATA_TOKEN / EI_STUB_DATA_KEY, as
+# suites-linux.yml does. The data never leaves the runner (temp folder, nothing uploaded but the exe).
+name: Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenarios:
+        description: "Only these scenarios (space-separated; empty: the suites less WINDOWS_SKIP)"
+        required: false
+        default: ""
+      shards:
+        description: "Suites jobs the scenarios are dealt round (1 to 8; a few scenarios: 1)"
+        required: false
+        default: "8"
+      suites:
+        description: "full: image and Rebirth suites; image: the image suite only; builds: only the two builds"
+        type: choice
+        options: [full, image, builds]
+        default: full
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  EI_GPU_D3D12_WARP: "1"
+  EI_COMPILER_CACHE: "0"
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - name: Shader toolchain cache
+        uses: actions/cache@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      - name: Visual Studio
+        run: |
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '')
+          [ -n "$vs" ] || { echo "::error::no Visual Studio with the x64 C++ tools"; exit 1; }
+          echo "EI_VSROOT=$vs" >> $GITHUB_ENV
+          echo "Visual Studio: $vs"
+          ls "$(cygpath -u "$vs")/VC/Tools/MSVC"
+      - name: Build release
+        run: |
+          start=$(date +%s)
+          cmd //c ".\\build.cmd release > build_release.log 2>&1" && ok=1 || ok=0
+          echo "build release: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
+          tail -40 build_release.log
+          grep -h "warning" build_release.log | head -20 || true
+          [ $ok = 1 ] || { echo "::error::build release failed"; exit 1; }
+          ! grep -q "warning C\|warning LNK" build_release.log
+
+  build-verify:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - name: Shader toolchain cache
+        uses: actions/cache@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      - name: Visual Studio
+        run: |
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '')
+          [ -n "$vs" ] || { echo "::error::no Visual Studio with the x64 C++ tools"; exit 1; }
+          echo "EI_VSROOT=$vs" >> $GITHUB_ENV
+          echo "Visual Studio: $vs"
+          ls "$(cygpath -u "$vs")/VC/Tools/MSVC"
+      - name: Build verify
+        run: |
+          start=$(date +%s)
+          cmd //c ".\\build.cmd verify > build_verify.log 2>&1" && ok=1 || ok=0
+          echo "build verify: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
+          tail -60 build_verify.log
+          grep -h "warning" build_verify.log | head -20 || true
+          if [ $ok = 0 ]; then
+            # the build checks (they draw on WARP) can fail with the exe built: say so and let the suites run
+            [ -f build/verify/ei-rebuild.exe ] || { echo "::error::build verify failed"; exit 1; }
+            echo "::warning::build verify failed after linking ei-rebuild.exe (the build checks?): see the log"
+          fi
+          ! grep -q "warning C\|warning LNK" build_verify.log
+      - name: Harness exe
+        uses: actions/upload-artifact@v5
+        with:
+          name: harness-exe
+          path: build/verify/ei-rebuild.exe
+          retention-days: 3
+          if-no-files-found: error
+
+  suites:
+    needs: build-verify
+    if: >-
+      inputs.suites != 'builds' && vars.EI_STUB_DATA_REPO != ''
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    env:
+      # Linux's factor (suites-linux.yml; linux.md, "The CI job"); the WARP measurement of the first run decides it.
+      EI_TIME_SCALE: 3
+      # Scenarios that need a 3840x2160 desktop (they say `resolution desktop`: ui_widescreen*, whose layout and clicks
+      # follow the screen; the pair scenarios among the net ones) and that the runner's small screen cannot give. Nothing
+      # else is skipped until a run measures it.
+      WINDOWS_SKIP: >-
+        net_pair_leave net_pair_quest net_pair_speed net_pair_zone net_zone_leader net_zone_vars
+        ui_widescreen ui_widescreen_dialogue ui_widescreen_hud ui_widescreen_more ui_widescreen_screens
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: harness-exe
+          path: build/verify
+      - name: Fetch the stub data
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ vars.EI_STUB_DATA_REPO }}
+          token: ${{ secrets.EI_STUB_DATA_TOKEN }}
+          path: stub-data-checkout
+          persist-credentials: false
+          lfs: false
+      - name: Unpack the stub data
+        env:
+          KEY: ${{ secrets.EI_STUB_DATA_KEY }}
+        run: |
+          set +x
+          command -v zstd >/dev/null || choco install zstandard -y --no-progress
+          DATA=$(cygpath -u "$RUNNER_TEMP")/ei-data
+          mkdir -p "$DATA"
+          shopt -s nullglob
+          parts=(stub-data-checkout/ei-stub-data.tar.zst*)
+          [ ${#parts[@]} -gt 0 ] || { echo "::error::no ei-stub-data.tar.zst* in the stub data repository"; exit 1; }
+          case "${parts[0]}" in
+            *.enc | *.enc.*)
+              [ -n "$KEY" ] || { echo "::error::the stub data is encrypted and EI_STUB_DATA_KEY is not set"; exit 1; }
+              cat "${parts[@]}" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY | zstd -dq | tar -x -C "$DATA" ;;
+            *)
+              cat "${parts[@]}" | zstd -dq | tar -x -C "$DATA" ;;
+          esac
+          rm -rf stub-data-checkout
+          [ -d "$DATA/vanilla" ] && [ -d "$DATA/rebirth" ] || { echo "::error::the stub data has no vanilla/ and rebirth/"; exit 1; }
+          echo "stub data: $(du -sm "$DATA" | cut -f1) MB unpacked"
+          echo "DATA_WIN=$(cygpath -w "$DATA")" >> $GITHUB_ENV
+
+      - name: Suites
+        env:
+          SCENARIOS: ${{ inputs.scenarios }}
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ inputs.shards || '8' }}
+          SUITES: ${{ inputs.suites || 'full' }}
+        run: |
+          # fewer shards than jobs: the jobs past the last shard have nothing to do
+          [ "$SHARD" -lt "$SHARDS" ] || { echo "shard $SHARD: not used (shards=$SHARDS)"; exit 0; }
+          export EI_BUILD_DIR="$(cygpath -w "$PWD/build/verify")" EI_GAME_VANILLA="$DATA_WIN\\vanilla" EI_GAME_REBIRTH="$DATA_WIN\\rebirth"
+          names="$SCENARIOS"
+          if [ -z "$names" ]; then
+            names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -vxF -f <(tr ' ' '\n' <<< "$WINDOWS_SKIP"))
+          fi
+          names=$(tr ' ' '\n' <<< "$names" | grep . | sort | awk -v n="$SHARDS" -v s="$SHARD" '(NR - 1) % n == s' | tr '\n' ' ')
+          echo "shard $SHARD of $SHARDS: $names"
+          : > suite_image.txt; : > suite_rebirth.txt
+          if [ -n "${names// }" ]; then
+            PYTHONUNBUFFERED=1 python tools/run_all.py --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
+            if [ "$SUITES" = full ]; then
+              rebirth=$(python -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:], goldens=False)))" $names)
+              if [ -n "${rebirth// }" ]; then
+                PYTHONUNBUFFERED=1 python tools/run_all.py --rebirth-only --golden --jobs 1 $rebirth 2>&1 | tee suite_rebirth.txt || true
+              fi
+            fi
+          fi
+          for f in suite_image.txt suite_rebirth.txt; do
+            echo "### shard $SHARD ${f%.txt}" | tee -a $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' "$f" | head -400 | tee -a $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          done
+          grep -rh "gpu: .* device" build/verify/runs/*/launch.txt build/verify/runs/*/*.log 2>/dev/null | sort | uniq -c | head -5 | tee -a $GITHUB_STEP_SUMMARY || true
+          ! grep -q "GOLDENS DIFFER" suite_*.txt
+
+      - name: Remove the data
+        if: always()
+        run: rm -rf "$(cygpath -u "$RUNNER_TEMP")/ei-data" stub-data-checkout build/verify/runs

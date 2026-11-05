@@ -8638,6 +8638,13 @@ static bool D3D12_PrepareDriver(SDL_VideoDevice *_this, SDL_PropertiesID props)
         SDL_UnloadObject(dxgiDll);
         return false;
     }
+    if (SDL_GetHintBoolean("EI_GPU_D3D12_WARP", false)) {
+        res = IDXGIFactory4_EnumWarpAdapter(
+            factory4,
+            D3D_GUID(D3D_IID_IDXGIAdapter1),
+            (void **)&adapter);
+        IDXGIFactory4_Release(factory4);
+    } else {
     IDXGIFactory4_Release(factory4);
 
     res = IDXGIFactory1_QueryInterface(
@@ -8657,6 +8664,7 @@ static bool D3D12_PrepareDriver(SDL_VideoDevice *_this, SDL_PropertiesID props)
             factory,
             0,
             &adapter);
+    }
     }
     if (FAILED(res)) {
         SDL_LogWarn(SDL_LOG_CATEGORY_GPU, "D3D12: Failed to find adapter for D3D12Device");
@@ -9114,6 +9122,12 @@ static SDL_GPUDevice *D3D12_CreateDevice(bool debugMode, bool preferLowPower, SD
     }
 
     // Select the appropriate device for rendering
+    if (SDL_GetHintBoolean("EI_GPU_D3D12_WARP", false)) {
+        res = IDXGIFactory4_EnumWarpAdapter(
+            renderer->factory,
+            D3D_GUID(D3D_IID_IDXGIAdapter1),
+            (void **)&renderer->adapter);
+    } else {
     res = IDXGIFactory4_QueryInterface(
         renderer->factory,
         D3D_GUID(D3D_IID_IDXGIFactory6),
@@ -9131,6 +9145,7 @@ static SDL_GPUDevice *D3D12_CreateDevice(bool debugMode, bool preferLowPower, SD
             renderer->factory,
             0,
             &renderer->adapter);
+    }
     }
 
     if (FAILED(res)) {

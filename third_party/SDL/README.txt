@@ -12,3 +12,7 @@ Local changes from that release:
   the region's width, so gpu.cpp's 256-byte padded rows went up skewed on Metal; port_gpu's read-back checks), as
   METAL_DownloadFromTexture and the other drivers do. Upstream's fix is commit 32f9c098d5 on main (2026-11-02),
   not in release-3.4.x as of 3.4.20: drop this change once the vendored release includes it.
+- src/gpu/d3d12/SDL_gpu_d3d12.c: the hint (so the environment variable) EI_GPU_D3D12_WARP=1 picks the WARP software
+  adapter (IDXGIFactory4::EnumWarpAdapter) instead of the high-performance one, in the driver's support check and in
+  the device. SDL has no such switch; the Windows CI job (no GPU) and local checks of that path set it
+  (docs/notes/harness.md, "The Windows CI job").

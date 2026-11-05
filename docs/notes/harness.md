@@ -419,3 +419,26 @@ through it.
   `tools/gen_settings_doc.py --check`. Linux builds there too (linux.md).
 - A change that should not alter behaviour keeps every golden the same; an intended change re-records the affected
   goldens and says why in the commit.
+
+## The Windows CI job
+
+`.github/workflows/suites-windows.yml` ("Windows", H61; by hand only until a run has shown what passes) builds on
+GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data suites the way the Linux job does
+(linux.md, "The CI job"), on SDL_GPU's Direct3D 12 driver with WARP, the software adapter.
+- **Builds**: `build-release` and `build-verify` in parallel, each `build.cmd` of its name (the runner's Visual Studio,
+  found by vswhere and given as EI_VSROOT; no sccache: EI_COMPILER_CACHE=0; the shader toolchain's build folder cached),
+  with the warnings and build checks included. The verify job uploads `build/verify/ei-rebuild.exe`; a failed build
+  check with the exe linked is a warning, so the suites still run.
+- **Suites**: eight jobs (input `shards`), each its share of the sorted scenarios, image suite then Rebirth's, one game
+  at a time, `--golden`; the stub set fetched and unpacked as in the Linux job (same variable and secrets). Inputs:
+  `scenarios` (a few names: also give `shards` 1), `suites` (full, image, builds).
+- **WARP**: SDL's D3D12 driver takes the high-performance adapter (`EnumAdapterByGpuPreference`), which on the GPU-less
+  runner is the Basic Render Driver, i.e. WARP. SDL has no switch for it, so third_party/SDL/README.txt lists ours:
+  the hint (so the environment variable) `EI_GPU_D3D12_WARP=1` picks `IDXGIFactory4::EnumWarpAdapter` in the driver's
+  support check and in the device. The workflow sets it everywhere; on a desktop with a GPU it runs the same path
+  locally (`gpu: direct3d12 device (Microsoft Basic Render Driver)` in the run's log tells it took effect; `work.py test`
+  carries every EI_* variable to the games).
+- **Skipped**: `WINDOWS_SKIP`: the scenarios that say `resolution desktop` (the five ui_widescreen ones and the net pair /
+  zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small. Anything else
+  is added only for a measured reason.
+
