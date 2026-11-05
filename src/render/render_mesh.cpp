@@ -23,9 +23,6 @@ struct Pending {
     int matrix = 0;
     int firstIndex = 0;
     int indexCount = 0;
-    bool distanceFog = false;
-    float fogNear = 0.0f;
-    float fogScale = 0.0f;
     const Object3D* caster = nullptr;   // render::BeginCaster's object
     bool figure = false;            // ... a unit's
     const Object3D* interfaceUnit = nullptr;   // render::BeginInterfaceUnit's unit, if any
@@ -342,12 +339,12 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     CountBindings(textures[0].texture);
     MeshVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-    if (batch.distanceFog && batch.fogScale > 0.0f) {
-        vs.distanceFog = 1;
-        vs.fogStart = batch.fogNear;
-        vs.fogScale = batch.fogScale / 255.0f;
-    }
     vs.unclipped = batch.unclipped ? 1 : 0;
+    vs.fogStart = batch.fog.start;
+    vs.fogDensity = batch.fog.density;
+    vs.fogDepthPerW = batch.fog.depthPerW;
+    vs.horizon = batch.horizon ? 1 : 0;
+    vs.eyeHeight = batch.eyeHeight;
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
     vs.depthScale = batch.zScale;
@@ -477,14 +474,6 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
         g_pending.mesh.normals = nullptr;   // an interface figure with weather keeps them (its snow settles by them)
         g_pending.mesh.words = nullptr;
     }
-    // The distance fog's range: the pipeline's (its start and 255 / length).
-    g_pending.distanceFog = mesh.distanceFog;
-    if (const TransformPipeline* pipeline = g_pending.device->pipeline) {
-        g_pending.fogNear = pipeline->fogStart;
-        g_pending.fogScale = pipeline->fogScale;
-    } else {
-        g_pending.distanceFog = false;
-    }
 }
 
 void MeshPass(const TextureDevice* device) {
@@ -527,9 +516,9 @@ void MeshPass(const TextureDevice* device) {
         batch.firstIndex = g_pending.firstIndex;
         batch.indexCount = g_pending.indexCount;
         batch.state = ReadPassState(g_pending.device);
-        batch.distanceFog = g_pending.distanceFog;
-        batch.fogNear = g_pending.fogNear;
-        batch.fogScale = g_pending.fogScale;
+        if (g_pending.mesh.fog == MeshFog::Distance) batch.fog = g_renderState.distanceFog;
+        batch.horizon = g_pending.mesh.fog == MeshFog::Horizon;
+        batch.eyeHeight = g_pending.mesh.eyeHeight;
         batch.unclipped = !g_pending.mesh.clipped;
         batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
         batch.model = true;

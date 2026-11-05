@@ -37,6 +37,9 @@ struct ShadowParams {
     int roofOn;
     float roofOpenDepth;
     float roofNormalOffset;
+    // The map's shadows fade out from this distance to the camera (world units) over the length (none when 0).
+    float fadeFrom;
+    float fadeLength;
 };
 ConstantBuffer<ShadowParams> shadow : FS_BLOCK(SHADOW_BLOCK_SLOT);
 Texture2D<float> shadow_map : FS_TEXTURE(SHADOW_MAP_SLOT);
@@ -212,5 +215,10 @@ float shadow_amount(float3 s, float3 dsx, float3 dsy, float2 pixel, float front)
     float pull = clamp(fromX - h, -kQuadReach, kQuadReach) + clamp(fromY - h, -kQuadReach, kQuadReach) +
                  clamp(fromXY - h, -kQuadReach, kQuadReach);
     float quadMean = saturate(h + pull * 0.25);
-    return lerp(h, quadMean, saturate(radius / max(foot, 1e-20) * (2.0 / 3.0) - 1.0));   // 0 up to 1.5 pixels, 1 from 3
+    float hidden = lerp(h, quadMean, saturate(radius / max(foot, 1e-20) * (2.0 / 3.0) - 1.0));   // 0 up to 1.5 pixels, 1 from 3
+    if (shadow.fadeLength > 0.0) {
+        float away = length(map_to_landscape((s - shadow.camera) * shadow.scale));
+        hidden *= saturate((shadow.fadeFrom + shadow.fadeLength - away) / shadow.fadeLength);
+    }
+    return hidden;
 }

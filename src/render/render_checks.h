@@ -100,6 +100,17 @@ struct ShadowInfo {
     float wetness = 0.0f, puddles = 0.0f, snowCover = 0.0f;
 };
 ShadowInfo ShadowState();
+// "groundreach on|off": the last presented frame's ground as the camera's clip space keeps it (render_shadows.cpp's
+// terrain pieces' runs through the clip planes, measured only while on): the farthest point of it from the camera
+// (world units), the runs in the view's sides and of them those the far side cuts or leaves out (a hard edge where
+// the terrain ends; none since the view has no far plane).
+struct GroundReachInfo {
+    bool measured = false;
+    float reach = 0.0f;
+    int runs = 0, cut = 0;
+};
+void SetGroundReach(bool on);
+GroundReachInfo GroundReachState();
 
 // ---- What the frames cost ---------------------------------------------------------------------------------------
 

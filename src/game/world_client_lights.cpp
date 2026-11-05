@@ -22,6 +22,7 @@
 #include "lib/vecmath.h"
 #include "render/render.h"
 #include "render/render_checks.h"
+#include "render/render_state.h"
 
 #include <bit>
 #include <cmath>
@@ -37,10 +38,18 @@ constexpr float kHoursPerDay = 24.0f;
 constexpr float kAmbientFromSun = 0.8f;          // a black ambient entry takes 0.8 x the sunlight
 constexpr int kHours = 24;
 constexpr int kNoon = 12;                        // the daylight colours' hour (DaylightColours)
-// The fog start: the day's value from 6 to 18, the night's before 2 and from 22, linear between.
+// The cloud shadows' and the distance fog's day: from 6 to 18; the fog's night before 2 and from 22.
 constexpr float kDawnStart = 2.0f, kDayStart = 6.0f;
 constexpr float kDayEnd = 18.0f, kNightStart = 22.0f;
-constexpr float kDawnLength = 4.0f, kDuskLength = 4.0f;
+// The distance fog (render::DistanceFog): the depth along the view it starts at and the depth where it hides half a
+// colour, by day and (thicker) by night, linear between them at dawn and dusk; a cave has the day's.
+struct FogRange {
+    float start = 0.0f;
+    float half = 0.0f;
+};
+constexpr FogRange kDayFog = {40.0f, 130.0f};
+constexpr FogRange kNightFog = {25.0f, 90.0f};
+constexpr float kHalfHidden = 0.83255461f;   // sqrt(ln 2): exp(-x^2) is 1/2 there
 // The sun's elevation (degrees): 30 at hours 4 and 20, 90 at noon (a tent in between), and from
 // 30 to 75 over the night (falling from hour 0 to 4, rising from 20 to 24).
 constexpr float kSunrise = 4.0f, kSunset = 20.0f;
@@ -68,15 +77,19 @@ LightColour Lerp(const LightColour& from, const LightColour& to, float t) {
     return c;
 }
 
-float FogStart(float hour) {
-    const float day = options::kFogDayStartDistance, night = options::kFogNightStartDistance;
-    float fog;
-    if (hour >= kDayStart && hour <= kDayEnd) fog = day;
-    else if (hour < kNightStart && hour > kDawnStart) {
-        if (hour < kDayStart) fog = (hour - kDawnStart) / kDawnLength * (day - night) + night;
-        else fog = day - (hour - kDayEnd) / kDuskLength * (day - night);
-    } else fog = night;
-    return fog;
+FogRange FogAt(float hour) {
+    float t;   // 0 night, 1 day
+    if (hour >= kDayStart && hour <= kDayEnd) t = 1.0f;
+    else if (hour > kDawnStart && hour < kDayStart) t = (hour - kDawnStart) / (kDayStart - kDawnStart);
+    else if (hour > kDayEnd && hour < kNightStart) t = (kNightStart - hour) / (kNightStart - kDayEnd);
+    else t = 0.0f;
+    return {Lerp(kNightFog.start, kDayFog.start, t), Lerp(kNightFog.half, kDayFog.half, t)};
+}
+
+void SetDistanceFog(const FogRange& range) {
+    render::DistanceFog& fog = render::g_renderState.distanceFog;
+    fog.start = range.start;
+    fog.density = kHalfHidden / (range.half - range.start);
 }
 
 // In degrees.
@@ -140,15 +153,19 @@ void WorldClient::UpdateLighting() {
     const float hour = HourOfDay(this);
     keptVisuals.RestoreUnits(objects);
     HandOverClouds(this, hour);
-    TransformPipeline* pipeline = display->pipeline;
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 
     // The cave's light is the table's hour 0 and a fixed sun; outside it is the hour's colours between two rows.
     LightColour sun, ambientColour = {}, skyColour;
     bool blackAmbient;
     Vector3 direction;
+    // The ground's edge fade (Terrain::EdgeFade), which the renderer widens far away.
+    render::MapEdge& edge = render::g_renderState.mapEdge;
+    edge = {};
+    if (terrain && lib::Has(terrain->landscapeFlags, terrain::LandscapeFlag::EdgeFade))
+        edge = {terrain->width, terrain->height, options::g_options.borderFogDistance};
     if (cave == 1) {
-        pipeline->SetDepthRange(options::kFogDayStartDistance, options::g_options.farClipDistance);
+        SetDistanceFog(kDayFog);
         sun = sunlight[0];
         ambientColour = ambient[0];     // the table's hour 0
         blackAmbient = IsBlack(ambient[0]);
@@ -156,8 +173,7 @@ void WorldClient::UpdateLighting() {
         direction = kCaveSun;
     } else {
         const int index = HourIndex(hour);
-        pipeline->SetDepthRange(FogStart(hour), options::g_options.farClipDistance);
-
+        SetDistanceFog(FogAt(hour));
         const float elevation = SunElevation(hour) * kRadiansPerDegree;
         const float turn = hour * kPerHour;
         const float azimuth = (turn + turn) * kPi;

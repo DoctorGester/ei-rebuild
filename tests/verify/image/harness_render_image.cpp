@@ -257,6 +257,25 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         else if (argument == "all") render::SetOffscreenCasters(render::OffscreenCasters::All);
         else if (argument == "walked") render::SetOffscreenCasters(render::OffscreenCasters::Walked);
         else failures->push_back("shadowcasters needs view, all or walked");
+    } else if (verb == "groundreach") {
+        if (argument == "on" || argument == "off") {
+            render::SetGroundReach(argument == "on");
+            return true;
+        }
+        char* end = nullptr;
+        const double least = std::strtod(argument.c_str(), &end);
+        if (end == argument.c_str()) {
+            failures->push_back("groundreach needs on, off or the least reach");
+            return true;
+        }
+        const render::GroundReachInfo info = render::GroundReachState();
+        char text[200];
+        std::snprintf(text, sizeof(text), "groundreach: the ground reaches %.1f units (allowed from %.1f); %d of %d runs cut by the far side",
+                      info.reach, least, info.cut, info.runs);
+        Log("harness: %s", text);
+        frames->push_back(text);
+        if (!info.measured) failures->push_back("groundreach: nothing measured (groundreach on, then a frame of the world)");
+        else if (info.reach < least || info.cut != 0) failures->push_back(text);
     } else if (verb == "shadowview" || verb == "shadowshift") {
         if (verb == "shadowshift") render::SetShadowShift(std::atoi(argument.c_str()));
         else if (argument == "on" || argument == "off") render::SetShadowView(argument == "on");

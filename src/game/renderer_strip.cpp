@@ -121,11 +121,11 @@ Vector2 StripDirection(int index, int mode, const void* array) {
     return {1.0f, 0.0f};
 }
 
-// Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with distanceFog set
+// Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with the distance fog set
 // the pipeline fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
 int TextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices,
                                     int indexCount) {
-    if (distanceFog) pipeline->FogVertices(vertices, vertexCount);
+    if (fog == render::MeshFog::Distance) pipeline->FogVertices(vertices, vertexCount);
     render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::TlPrimitive::TriangleList);
     return 1;
 }

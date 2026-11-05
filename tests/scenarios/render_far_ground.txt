@@ -1,0 +1,44 @@
+# The far ground (R62; docs/notes/renderer.md, "The view's depth"): pitched up, the ground ended in a hard edge where
+# the camera's projection put its far plane, 100 units along the view, and the hills behind it were missing (the
+# user's 4K frame). The projection has no far plane now. zone1 at 1920x1080 at the settings' least pitch (30 degrees,
+# the most the player can pitch up) and farthest zoom (50): from the south-west corner looking north-east over the
+# shore, and from the map's middle looking south and north. "groundreach" measures each frame's ground through the
+# camera's clip planes: no run of it may be cut by the view's far side (71-108 of 451-519 were before), and from the
+# corner and looking south it reaches past 150 units (121 before). Frames for the eye (build/captures/r62).
+render checkall
+timeout 60
+resolution 1920x1080
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+climate 0
+console @FixWorldTime(12)
+groundreach on
+move 400 20
+
+camera 60 60 45 50 30
+frames 3
+freeze
+capture far_corner
+groundreach 150
+unfreeze
+
+camera 128 128 180 50 30
+frames 3
+freeze
+capture far_south
+groundreach 150
+unfreeze
+
+camera 128 128 0 50 30
+frames 3
+freeze
+capture far_north
+groundreach 0
+unfreeze
+report
+quit

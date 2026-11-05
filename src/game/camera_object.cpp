@@ -63,15 +63,14 @@ ClassId Camera::GetClassId() { return ClassId::Camera; }
 void Camera::Create() {
     targetId = -1;
     nearDistance = camera::kDefaultNear;
-    farDistance = camera::kDefaultFar;
     fieldOfView = camera::kDefaultFieldOfView;
 }
 void Camera::Destroy() { targetId = -1; }
 
 // Takes the views and the start distance and focus from the settings and places the camera at that focus, keeps
-// the near and far distances and the field of view, switches to free placement, and resets views 6 and 7 to the
+// the near distance and the field of view, switches to free placement, and resets views 6 and 7 to the
 // start distance at 45 degrees (the pitch too).
-void Camera::Init(options::GameOptions* newSettings, float nearClip, float farClip, float fov) {
+void Camera::Init(options::GameOptions* newSettings, float nearClip, float fov) {
     camera::ForgetViewStep();
     ViewsFromSettings(newSettings);
     settings = newSettings;
@@ -79,7 +78,6 @@ void Camera::Init(options::GameOptions* newSettings, float nearClip, float farCl
     focus = {newSettings->cameraDefaultXDeploy, newSettings->cameraDefaultYDeploy, newSettings->cameraDefaultHeight};
     localPosition = focus;
     nearDistance = nearClip;
-    farDistance = farClip;
     fieldOfView = fov;
     flags |= kFree;
     pitch = kDefaultPitch;

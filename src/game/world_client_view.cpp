@@ -176,11 +176,17 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
         matrix[12] = 0.0f;
         matrix[15] = 1.0f;
         PushStackMatrix(device, TransformPipeline::kClipStack, matrix);
-        const TransformPipeline::ClipResult where = g_sceneRenderer.pipeline->ClipTest(&o3d->bounds);
+        // A figure (a unit or a lever, drawn with its own pose and weather) beyond the game's reach is out of view as
+        // when the projection had its far plane there; the map's scenery is drawn to its edge
+        // (TransformPipeline::BeyondReach).
+        const ClassId kind = object->GetClassId();
+        const bool figure = kind == ClassId::Unit || kind == ClassId::Lever;
+        const bool inView = g_sceneRenderer.pipeline->ClipTest(&o3d->bounds) != TransformPipeline::ClipResult::Outside &&
+                            !(figure && g_sceneRenderer.pipeline->BeyondReach(&o3d->bounds));
         device->PopMatrix(TransformPipeline::kClipStack);
 
         MapObject* const& entry = object;
-        if (where != TransformPipeline::ClipResult::Outside) {
+        if (inView) {
             object->flags |= MapObjectFlag::Shown;
             // View-space position.
             o3d->worldPosition = TransformColumnNormal(*view, o3d->localPosition);

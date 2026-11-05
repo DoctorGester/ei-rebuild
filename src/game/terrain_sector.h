@@ -108,6 +108,7 @@ struct SectorData {
     Terrain* owner = nullptr;
     SectorBox box{};
     TransformPipeline::ClipResult clipMode = TransformPipeline::ClipResult::Outside;   // the box's clip test verdict
+    bool inReach = false;   // drawn and within the game's reach (TransformPipeline::BeyondReach)
     SectorBox quarters[4]{};
     TransformPipeline::ClipResult quarterMode[4] = {};   // the quarters' (ClipResult::Inside until tested)
     float minZ = 0.0f;
@@ -161,7 +162,7 @@ struct SectorData {
 
     // Whether the last clip test did not cull the sector.
     bool IsDrawn() const;
-    // The box, and unless culled its quarters, with the renderer's pipeline.
+    // The box, and unless culled its quarters, with the renderer's pipeline; and whether it is in the game's reach.
     void ClipTest(SceneRenderer* renderer);
 };
 

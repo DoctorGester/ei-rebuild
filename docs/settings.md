@@ -70,7 +70,7 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 | `CameraMaxLimitDistanceToCarrier` | `70` | world units | The hard limit on zooming out during play: a key zoom can pass the normal farthest distance and drift back, but never goes beyond this. |
 | `CameraDefaultDistanceToCarrier` | `30` | world units | How far the camera starts from the point it looks at when you first enter a map after launching; later map changes keep your own zoom. |
 | `NearClipDistance` | `2` | world units | Anything closer to the camera than this is cut away and not drawn. Read when the game starts. |
-| `FarClipDistance` | `100` | world units | How far the view reaches: anything farther is not drawn, and the distance fog is at its thickest here. |
+| `FarClipDistance` | `100` | world units | How far along the view units, levers, particles and lightning are shown. The ground, trees and buildings are drawn to the map's edge whatever this is, under a haze that thickens with distance. |
 | `CameraDefaultMinPitch` | `30` | degrees (0 level, 90 straight down) | The flattest you can tilt the camera during play, in degrees down from level. |
 | `CameraDefaultMaxPitch` | `60` | degrees (0 level, 90 straight down) | The steepest you can tilt the camera during play; 90 would look straight down. |
 | `CameraBriefingMinDistanceToCarrier` | `6` | world units | The closest you normally zoom in on the village screens between missions: the wheel stops here and a key zoom past it drifts back. |

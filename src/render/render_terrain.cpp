@@ -721,6 +721,12 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
     vs.normalOffset = ShadowNormalOffset(f, receives);
+    vs.fogStart = f.distanceFog.start;
+    vs.fogDensity = f.distanceFog.density;
+    vs.fogDepthPerW = f.distanceFog.depthPerW;
+    vs.mapWidth = f.mapEdge.width;
+    vs.mapHeight = f.mapEdge.height;
+    vs.edgeBand = f.mapEdge.band;
     TerrainFsParams fs{};
     UnpackColour(f.fogColour, fs.fog);
     fs.mode = mode;

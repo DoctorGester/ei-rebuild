@@ -219,7 +219,7 @@ bool StartGame(const std::function<bool()>& openDisplay, bool showLoading = fals
     g_clientWorld.Create();
     g_serverWorld.Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
-    g_camera.Init(options, options->nearClipDistance, options->farClipDistance, kPi * 2.0f / 7.0f);
+    g_camera.Init(options, options->nearClipDistance, kPi * 2.0f / 7.0f);
     g_clientWorld.camera = &g_camera;
     CreateFolders();
     if (options->audio) OpenSound();

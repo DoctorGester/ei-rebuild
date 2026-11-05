@@ -115,6 +115,11 @@ public:
     // ClipResult::Outside = entirely outside one clip plane, ClipResult::Inside = entirely inside, ClipResult::Crossing = crossing or
     // not decided. The cube (flag 0) is tried first, then the box (flag 1).
     ClipResult ClipTest(const ClipBounds* bounds) const;
+    // Whether `bounds` lie wholly beyond the game's reach along the view (reachW; FarClipDistance), where the
+    // projection had its far plane: the game leaves the figures (units, levers), particles and lightning there out
+    // of view as before, while the ground and the map's scenery are drawn to the map's edge (renderer.md, "The
+    // view's depth"). The cube (flag 0) or the box (flag 1) beyond is enough.
+    bool BeyondReach(const ClipBounds* bounds) const;
     // Pushes `m` onto stack `index`: an empty stack gets `m` itself, otherwise the new top is the old top
     // times `m` (no capacity check).
     void PushMatrix(const float* m, int index);
@@ -142,8 +147,6 @@ public:
 
     // The viewport the projections map clip space to: the screen's size.
     void SetViewportSize(float width, float height);
-    // The distance fog's depth range: where it starts and where it is full.
-    void SetDepthRange(float start, float end);
 
     // The positions of `blocks` packets of four projected with `m` (a screen matrix: stack 1's top) into
     // `projected`: x, y and z divided by w, and 1 / w (each row's sum adding the translation last).
@@ -164,8 +167,8 @@ public:
     Vector4 ToScreen(const Vector4& p) const;
     // ToScreen on the first 16 bytes (x, y, z, w) of `count` vertices.
     void ToScreen(TLVertex* vertices, int count) const;
-    // The distance fog of `count` screen vertices: the specular's alpha lowered to 255 less the fog of the
-    // vertex's depth (none before the range's start, full at its end).
+    // The distance fog (render::RenderState::distanceFog) of `count` screen vertices by their depth (from 1 / w):
+    // the specular's alpha, the fog factor, lowered to the share of their colour kept.
     void FogVertices(TLVertex* vertices, int count) const;
 
     // Counted (RendererBase): holders drop a reference, and the last one deletes it.
@@ -173,9 +176,7 @@ public:
     MatrixStack stacks[16];     // (models.md: stacks 0-2, 5-10 and 14 are in use)
     float halfWidth = 0.0f;     // the viewport's half size (SetViewportSize)
     float halfHeight = 0.0f;
-    float fogStart = 0.0f;   // the fog's depth range's start, and 255 over its length (SetDepthRange)
-    float fogScale = 0.0f;
-    Matrix4 projection{};   // the projection matrix (the fog's depth from a screen z)
+    float reachW = 3.4e38f;     // BeyondReach's: the game's reach as a clip w (SetViewport, renderer_init.cpp)
 };
 class TextureDevice;
 namespace options {
@@ -350,8 +351,9 @@ private:
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by the half extents,
 // y flipped.
 Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect);
-// Perspective projection; `fov` in radians (full angle).
-Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
+// Perspective projection with no far plane; `fov` in radians (full angle). The depth z / w is 1 - zNear / distance:
+// 0 at the near plane, below 1 at any distance (renderer.md, "The view's depth").
+Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear);
 
 using MeshCorner = render::MeshCorner;
 

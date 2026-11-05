@@ -450,6 +450,7 @@ bool SectorData::IsDrawn() const { return clipMode != TransformPipeline::ClipRes
 void SectorData::ClipTest(SceneRenderer* renderer) {
     const auto verdict = [&](const SectorBox& bounds) { return renderer->pipeline->ClipTest(&bounds); };
     clipMode = verdict(box);
+    inReach = clipMode != TransformPipeline::ClipResult::Outside && !renderer->pipeline->BeyondReach(&box);
     if (clipMode == TransformPipeline::ClipResult::Outside) return;
     for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
 }
@@ -475,6 +476,7 @@ void SectorData::Clear() {
     built = SectorStage::None;
     lastUsed = 0;
     clipMode = TransformPipeline::ClipResult::Outside;
+    inReach = false;
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);
 }
 

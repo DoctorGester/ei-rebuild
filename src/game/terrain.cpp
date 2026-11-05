@@ -316,7 +316,9 @@ bool Terrain::RunTick() {
         for (int sx = visible.firstX; sx <= visible.lastX; ++sx) {
             SectorData* sector = SectorAt(sx, sy, SectorStage::Built, false);
             if (sector && sector->IsDrawn()) {
-                sector->AnimateTiles(frame);
+                // The tiles' steps draw the client generator, which visuals.sav keeps: they step within the game's
+                // reach as when the view had its far plane there, and farther keep their frame.
+                if (sector->inReach) sector->AnimateTiles(frame);
                 sector->AnimateWaves();
             }
         }

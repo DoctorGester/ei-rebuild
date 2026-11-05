@@ -11,6 +11,7 @@
 #include "lib/vecmath.h"
 #include "render/kept_weather.h"
 #include "render/mesh_records.h"
+#include "render/render_state.h"
 
 #include <cstdint>
 #include <optional>
@@ -220,8 +221,9 @@ struct MeshDraw {
     bool moveUv = false;
     const Matrix4* matrix = nullptr;   // row-major, out = M * (x, y, z, 1)
     bool screenMatrix = false;         // `matrix` gives screen pixels after the divide, else clip space
-    bool clipped = false;              // else only projected: the depth is not cut at the near / far planes
-    bool distanceFog = false;
+    bool clipped = false;              // else only projected: the depth is not cut at the near plane
+    MeshFog fog = MeshFog::None;
+    float eyeHeight = 0.0f;            // MeshFog::Horizon's: the eye above the mesh's origin
     float zScale = 0.0f;               // 0 taken as 1
     bool coloursWritten = false;       // the draw set every colour to the device's (flag 4)
     bool groundDecal = false;          // flat geometry laid on the ground (a print: blood, footprints, scorch marks),

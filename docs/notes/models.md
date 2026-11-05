@@ -61,7 +61,8 @@ and passes the `std::string` by value to "%s".
 
 `SceneRenderer` (the global renderer) holds the transform pipeline (matrix stacks; projection.cpp, renderer.md) and the
 device holder. Its draws hand their triangles to src/render.
-- **Renderer creation**: the depth range comes from the options' far clip and fog day start distance; the sun and
+- **Renderer creation**: the projection takes the camera's near distance and field of view and has no far plane
+  (renderer.md, "The view's depth"; the options' far clip distance is the game's reach, `BeyondReach`); the sun and
   ambient go to the GPU lighting only.
 - **Mesh draws**: callers are the figures and the 3D library's meshes; flag 4 overwrites the mesh's colours with the
   device's override colour / alpha. `DeviceDrawFlat` is used by the selection marker and the ground prints. Of the old

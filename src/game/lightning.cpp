@@ -504,13 +504,13 @@ void Lightning::DrawGlow(SceneRenderer* device, const Vector3& position, float s
     device->DrawSprites(0, g_glowPoints, &g_sprites);
 }
 
-// 1 (also when the bolt is not visible).
+// 1 (also when the bolt is not visible: off screen or beyond the game's reach).
 int Lightning::Draw(SceneRenderer* device) {
     EnsureTextureLoaded(texture);
     SceneRenderer* renderer = device;
     renderer->SetTexture(0, texture);
     const TransformPipeline::ClipResult visibility = renderer->pipeline->ClipTest(&bounds);
-    if (visibility == TransformPipeline::ClipResult::Outside) return 1;
+    if (visibility == TransformPipeline::ClipResult::Outside || renderer->pipeline->BeyondReach(&bounds)) return 1;
     const float zero = 0.0f;
     if (power >= zero) Animate();
     const float slant = 0.25f;
