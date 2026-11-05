@@ -9,19 +9,23 @@
 
 #include "base_manager.h"
 #include "clip.h"   // TLVertex
+#include "core_streams.h"
 #include "core_transform.h"
-#include "lib/vecmath.h"
 #include "model.h"   // ClipBounds
 #include "search_grid.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"
-#include "core_streams.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <vector>
+
+namespace weather {
+enum class Kind;   // weather_field.h
+}
 
 // The particle source / effect types (EngineObject::type of a ParticleSource and a EffectParticle). The names
 // are the script table's (script_effects.cpp kScriptParticleTypes) and the texture its spec names
@@ -531,38 +535,26 @@ public:
     void UpdateFade(float now);
     void SetWind(const Vector3& direction, float strength);
     void Clear();
-    // The draw's work arrays sized and their fixed parts filled (the client world's setup).
-    void PrepareBuffers();
-    // The texture "RainSnow" (kind 6) made sure of; a running loop stopped unless `newMode` is 0; rain starts
-    // the looping "nature\rain\circle.wav"; the fade towards `newMode` starts now (the world's tick) over
-    // `duration` (0: at the next step). Called by the weather messages.
+    // A running loop stopped unless `newMode` is 0; rain starts the looping "nature\rain\circle.wav"; the fade
+    // towards `newMode` starts now (the world's tick) over `duration` (0: at the next step). Called by the weather
+    // messages.
     void Start(int newMode, float duration);
-    // Rain and snow; the layer's draw calls the one of the mode. The particles of the 81 x 81 grid cells around
-    // the point the wind carries them to the camera from, each cell's place and time hashed, `density` of 64 of
-    // them shown: a rain drop is a thin triangle along the wind, a snowflake a point swayed by the five sway
-    // tables that becomes a small triangle on screen. Projected with the pipeline's stack 2 and drawn as
-    // pre-transformed triangles through `indices` with the device's current state.
-    int DrawRain(SceneRenderer* renderer);
-    int DrawSnow(SceneRenderer* renderer);
-    // Their two halves: the vertices of the particles on screen built (returns their count, three per
-    // particle), and those drawn (the distance fog when the device has it on, the triangles to the new
-    // renderer, the frame's counts).
-    int BuildRain(SceneRenderer* renderer);
-    int BuildSnow(SceneRenderer* renderer);
-    void DrawParticles(SceneRenderer* renderer, int vertexCount);
+    // The rain's or the snow's particles drawn (weather_particles.cpp): the field of weather_field.h around the view,
+    // `density` of 64 of them shown, each built on the screen (a raindrop a streak along its motion, a snowflake a
+    // soft dot) and drawn as pre-transformed triangles with the device's current state.
+    void DrawParticles(SceneRenderer* renderer, weather::Kind kind);
+    // The vertices built so far drawn (unless the harness leaves the particles out) and emptied.
+    void Flush(SceneRenderer* renderer);
 
-    Ref<Texture> texture;            // "RainSnow"
     class WorldClient* world;      // the client world (set after construction)
     int sound = 0;                  // rain loop handle in the sound manager (0: none)
-    // The draws' work arrays.
-    std::vector<Vector4> projected;       // the positions projected (four per packet)
-    std::vector<VertexPacket> positions;  // the particles' corners (w not written)
-    std::vector<std::uint8_t> outcodes;   // a clip outcode per position
-    std::vector<std::uint8_t> frames;     // a texture frame (0..3) per particle
-    std::vector<TLVertex> vertices;       // what is drawn
-    std::vector<std::uint16_t> indices;   // 0, 1, 2, ... (filled elsewhere)
-    std::vector<int> offsets;             // the grid's 81 cell offsets (filled elsewhere)
-    int particleCount = 0;          // positions built by the last draw
+    // The draw's work arrays: a batch of particles' vertices and their triangles.
+    std::vector<TLVertex> vertices;
+    std::vector<std::uint16_t> indices;
+    // Where the wind has carried the particles (weather::FieldView::carry), up to the world time `carriedTo`.
+    Vector3 carry;
+    double carriedTo = 0.0;
+    bool carrying = false;   // `carriedTo` holds a frame's time
     Vector3 wind;
     int mode = 0;                   // 0 off, 1 rain, 2 snow
     int targetMode = 0;

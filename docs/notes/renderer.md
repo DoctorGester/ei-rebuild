@@ -180,7 +180,7 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
 | Depth clears | the battle screen's panels, the hero preview, the trade grid, the hero equipment, screens 2 / 3 | `ClearDepth` |
 | Shadows | `world_client_draw.cpp` (the sun; `BeginCaster` / `EndCaster` around each object's draws), `map_object_shadow.cpp` (`CastsShadow`), the casters outside the view | `ShadowSun`, `ShadowCasterMesh` (section 13) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites (`renderer_sprites.cpp`), ribbons and triangles (`renderer_strip.cpp`), line strips (`renderer_lines.cpp`) | `TlDraw` with vertices after the fog pass |
-| Weather | rain / snow triangles (`weather_particles.cpp`) | `TlDraw` |
+| Weather | rain streaks and snowflakes built on the screen (`weather_particles.cpp`, the field in `weather_field.cpp`) | `TlDraw` |
 | Interface surfaces | `UiSurface::Blit` (`ui_surface.cpp`) | `ui::Solid`, `ui::Glyphs`, `ui::DrawPicture` |
 | Rectangle fills | `renderer_marker.cpp` | `ScreenDraw` |
 | Cursor | the frame's cursor image (`ui_cursor.cpp`) | `Cursor` (shown as the system's cursor, section 9) |
@@ -732,27 +732,46 @@ All in `src/game`:
   it); `render_helper.cpp`: `RenderHelper`'s built-in presets (section 5).
 - `projection.cpp`: the transform pipeline's projections (section 10).
 - `link_mesh_draw.cpp`: LinkMesh's draws; `link_loader_create.cpp`: `LinkFigureLoader` (Rebirth's ResOverride changes it).
-- `weather_particles.cpp` (rain and snow), `effects_weather.cpp` (the visibility fog's draw, the rain / snow buffers).
+- `weather_field.cpp` (the rain's and the snow's particles: where each is and how much of it shows),
+  `weather_particles.cpp` (their draw), `effects_weather.cpp` (the visibility fog's draw, the rain / snow layer's).
 - `renderer_lines.cpp`: `LineBatch` (points four to a packet in an aligned array, a count and a colour; `AddPoint`
   appends a point with w 1 and repeats it through the rest of its packet; `Draw` projects with the clip stack's top and
   hands the points to the line strip draw). Users: the figure parts' debug bounds and the world client's line lists; no
   scenario turns either on.
 
-**Weather**: 81 x 81 cells (half a unit apart) around the point the wind carries a particle to the camera from. A cell's
-place gives a 16-bit number; with the world's time it gives the cycle the cell's particle is in (a rain drop falls for 200
-ticks, a snowflake for 1000) and how far it has fallen. `density` of 64 cycles show a particle; the cycle also shifts it
-within the cell and picks one of the texture's four frames. Corners go to `ProjectClipped` in packets of four, the ones on
-screen through `ToScreen` and, with the device's fog flag, `FogVertices`, then `render::TlDraw`. Snow sways by five tables
-of cubics built at start. Checked by the goldens (rain in many scenarios, snow in rebirth_flags via `SetWeather`) and
-for the look by `render_weather` (`weatherparticles off`: a frozen frame against the same without the particles; rain
-about 0.5% of a 1440x1080 frame on zone1, snow about 0.8% on gz11k).
+**Weather** (R59; the game's own draw was replaced). The particles are a field (`weather_field.h`) without state: a box
+of 80 x 80 x 40 units that repeats over the world, 20000 raindrops or 26000 snowflakes in it, each one's point, fall
+(rain 0.5 units a tick, snow 0.1, each its own share), size and shade from a hash of its index. Its place at a frame is
+that point carried by the wind so far (`RainSnow::carry`, summed from the world's time between frames, so a change of
+wind changes the speed, never the place) and by its fall over the world's time (tick + tickFraction: it moves every
+frame, not every tick), taken to the copy of the box around the field's centre: 10 units beyond the camera's focus along
+the view, its floor 8 under the focus. A particle leaving the box on one side comes back on the other, so its alpha
+fades to nothing over the outer fifth of the box's half side (a circle around the centre) and the outer 15% of its half
+height, and near the eye (rain from 0.8 to 3 units, snow 0.8 to 3); `density` / 64 shows that share of them, each fading
+over 5% of it. A snowflake also drifts on its own: a sine on each horizontal axis, 0.15 to 0.5 units, 4 to 12 seconds a
+turn. Nothing jumps or vanishes while it shows: the unit check `weather_field.cpp` (tests/unit) follows the particles
+over 600 frames of a third of a tick with the view panning and the wind changing, none moves further than its speed
+takes it nor its alpha by more than 0.2 in a frame.
 
-Every vertex is written whole each frame: white, its specular's alpha (the fog) full until `FogVertices` lowers it. The
-game wrote only the positions and the texture coordinates and left the colours to what the buffer held (white from its
-setup); the vertex array is resized every frame and a resize zero-fills, so in ours the particles came out with alpha 0
-and were never seen (R53; the snow too). Original details kept: the packets' w is never written; the rain's height uses
-the snow's rise (`kSnowRise`, both 40); a height that is not a number would loop forever in the rain's wrap. Different in
-ours: a throw from the constructors does not free what was built; fields the original left as stack contents are zero.
+The draw (`weather_particles.cpp`) projects each particle that shows with the clip stack's top and builds it on the
+screen, so its shape in pixels is the same at any aspect: a raindrop is a streak from where it was 1.6 ticks ago to
+where it is (the motion blur of its fall and the wind: aligned with its motion on the screen, longer the faster it
+crosses the view), alpha 0.45 at the head and 0.1 at the tail, bluish; a snowflake a soft disc (a middle, a ring of 12
+corners at 0.55 of the radius nearly as opaque, a clear rim), 0.035 to 0.07 units in radius, fading out over its last
+0.5 units above the terrain's ground or water as it lands (the depth test cut landing flakes in half); a drop whose
+streak is all under it is not drawn. Both are vertex colours on
+the white texture, clear at the edges, at least 1.2 (the streak's half width) or 2 (the flake's radius) 1080p pixels, thinner
+ones fainter by their share of that (so far ones fade instead of flickering), at most 5 and 10. Their colour is the
+scene's light (`frameAmbient` + 0.6 x `frameSun`, at least 0.12). Drawn as pre-transformed triangles in batches of up
+to 65535 vertices, clockwise on the screen (the effects pass culls the other way: R59's first draw showed nothing),
+fogged by `FogVertices`, with the effects pass's alpha blend and depth test. The old draw's faults (R59, the user's
+report at 16:9): its snowflakes were triangles offset in clip units, 1.75 times too wide at 21:9; its rain cycled every
+200 ticks per cell and wrapped within a band around the camera's height, so drops jumped while seen and when the camera
+climbed; its snow was cut off at 30 units under the camera and swayed by tables read by the place modulo 50 (a jump at
+each wrap); its 40-unit grid around the camera's upwind point left the sides of a wide view empty. Checked for the look
+by `render_weather` and `render_weather_particles` (rain on zone1, snow on gz11k at 1440x1080, 1920x1080 and 2520x1080:
+frozen frames against the same without the particles, bursts of four 16 ms frames, a night frame and 3840x2160; rain
+about 2.5% of the frame, snow about 1.2%); the goldens do not see it (client-only).
 
 The game's weather comes and goes by itself: WorldServer::UpdateWeather (every 64 ticks) stops rain or snow with a
 chance of 1 in 31 and starts it with 1 in 101, so a minute after `SetWeather("rain")` the rain has often stopped. A

@@ -1,0 +1,149 @@
+# R59: the rain's and the snow's particles at 4:3, 16:9 and 21:9 (docs/notes/renderer.md section 12, "Weather").
+# Zone1 in rain by day and the snow map gz11k in snow, each at 1440x1080, 1920x1080 and 2520x1080 (windowsize): a
+# frozen frame against the same without the particles (they cover a share of the frame at every width), and a burst of
+# four frames 16 ms apart (frametime 16: a real frame's step, about a third of a world update) to look at how the
+# particles move from frame to frame. Frames only (goldens hold none); the captures to compare before and after a
+# change: rain_4x3, rain_16x9, rain_21x9, snow_4x3, snow_16x9, snow_21x9 and their bursts (*_burst_1 .. 4), each kind
+# at night (rain_night, snow_night: the particles in the scene's light) and at 3840x2160 (rain_4k, snow_4k).
+render checkall
+resolution 1440x1080
+fullscreen 0
+reject Script error
+timeout 60
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+console @FixWorldTime(12)
+console @SetWeather("rain")
+wait 6000
+move 400 20
+camera 33 64 0 20 38
+frames 5
+
+freeze
+capture rain_4x3
+weatherparticles off
+capture rain_4x3_none
+weatherparticles on
+unfreeze
+diffcapture rain_4x3 rain_4x3_none 0.002 0.2
+frametime 16
+capture rain_4x3_burst 4
+frametime 0
+
+windowsize 1920 1080
+waitpresent 10
+frames 5
+freeze
+capture rain_16x9
+weatherparticles off
+capture rain_16x9_none
+weatherparticles on
+unfreeze
+diffcapture rain_16x9 rain_16x9_none 0.002 0.2
+frametime 16
+capture rain_16x9_burst 4
+frametime 0
+
+windowsize 2520 1080
+waitpresent 10
+frames 5
+freeze
+capture rain_21x9
+weatherparticles off
+capture rain_21x9_none
+weatherparticles on
+unfreeze
+diffcapture rain_21x9 rain_21x9_none 0.002 0.2
+frametime 16
+capture rain_21x9_burst 4
+frametime 0
+
+# At night (the particles take the scene's light) and at 3840x2160.
+windowsize 1920 1080
+console @FixWorldTime(23)
+waitpresent 10
+frames 5
+freeze
+capture rain_night
+unfreeze
+console @FixWorldTime(12)
+windowsize 3840 2160
+waitpresent 10
+frames 5
+freeze
+capture rain_4k
+unfreeze
+
+# The snow map.
+windowsize 1440 1080
+waitpresent 10
+zone gz11k 0
+waitzone 20 gz11k
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @FixWorldTime(12)
+console @SetWeather("snow")
+wait 6000
+move 400 20
+camera 490 336 60 20 38
+frames 5
+
+freeze
+capture snow_4x3
+weatherparticles off
+capture snow_4x3_none
+weatherparticles on
+unfreeze
+diffcapture snow_4x3 snow_4x3_none 0.002 0.2
+frametime 16
+capture snow_4x3_burst 4
+frametime 0
+
+windowsize 1920 1080
+waitpresent 10
+frames 5
+freeze
+capture snow_16x9
+weatherparticles off
+capture snow_16x9_none
+weatherparticles on
+unfreeze
+diffcapture snow_16x9 snow_16x9_none 0.002 0.2
+frametime 16
+capture snow_16x9_burst 4
+frametime 0
+
+windowsize 2520 1080
+waitpresent 10
+frames 5
+freeze
+capture snow_21x9
+weatherparticles off
+capture snow_21x9_none
+weatherparticles on
+unfreeze
+diffcapture snow_21x9 snow_21x9_none 0.002 0.2
+frametime 16
+capture snow_21x9_burst 4
+frametime 0
+
+windowsize 1920 1080
+console @FixWorldTime(23)
+waitpresent 10
+frames 5
+freeze
+capture snow_night
+unfreeze
+console @FixWorldTime(12)
+windowsize 3840 2160
+waitpresent 10
+frames 5
+freeze
+capture snow_4k
+unfreeze
+report
+quit

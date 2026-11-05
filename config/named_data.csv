@@ -65,8 +65,6 @@ address,size,name,file
 0078BC94,4,kLineComment,src/game/script_parse.h
 0078BCA0,3616,kScriptKeywords,src/game/script_parse.cpp
 0078DB28,128,kCoderBitMasks,src/game/net_coder.h
-0078DEA4,128,kRainSeeds,src/game/weather_particles.cpp
-0078DF24,128,kSnowSeeds,src/game/weather_particles.cpp
 0078F974,28,kHeroParts,src/game/unit_client_models.cpp
 0078F990,28,kParts,src/game/unit_client_models.cpp
 0078FF34,4,g_updatePeriod,src/game/app_main.cpp
@@ -128,16 +126,6 @@ address,size,name,file
 007A9C30,16,kIdentityRotation,src/game/particle_create.cpp
 007A9D40,2068,g_random,src/game/random.cpp
 007ABA58,256,g_fogTiles,src/game/effects.h
-007ABB98,2560,g_swayYByPlace,src/game/weather_noise.cpp
-007AC598,2560,g_swayXByPlace,src/game/weather_noise.cpp
-007ACF98,2560,g_swayZByHeight,src/game/weather_noise.cpp
-007AD998,2560,g_swayYByHeight,src/game/weather_noise.cpp
-007AE398,2560,g_swayXByHeight,src/game/weather_noise.cpp
-007AED98,4,kFlakeHeight,src/game/weather_particles.cpp
-007AED9C,4,kHalfHeight,src/game/weather_particles.cpp
-007AEDA0,4,kSnowRise,src/game/weather_particles.cpp
-007AEDA4,4,kRainRise,src/game/weather_particles.cpp
-007AEDA8,4,kCellSize,src/game/weather_particles.cpp
 007AF054,4,g_bottomV,src/game/renderer_strip.cpp
 007AF058,4,g_topV,src/game/renderer_strip.cpp
 007AF05C,4,g_currentU,src/game/renderer_strip.cpp

@@ -1,14 +1,15 @@
-#include "core_maths.h"
-
 #include "clip.h"   // TLVertex
+#include "core_maths.h"
 #include "effects.h"
 #include "figure_mesh.h"   // VertexPacket
 #include "game_singletons.h"
-#include "model.h"         // SceneRenderer, TransformPipeline
+#include "model.h"   // SceneRenderer, TransformPipeline
 #include "random.h"
 #include "sound.h"
 #include "texture.h"
+#include "weather_field.h"
 #include "world.h"
+
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
@@ -34,10 +35,8 @@ constexpr float kDensityScale = 64.0f;
 constexpr float kFogMinAlpha = 0.01f;
 constexpr float kFar = 1e30f;
 
-constexpr int kWeatherTextureKind = static_cast<int>(TextureKind::Effects);
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
-constexpr const char* kWeatherTextureName = "RainSnow";
 constexpr const char* kRainSoundName = "nature\\rain\\circle.wav";
 
 } // namespace
@@ -78,10 +77,10 @@ void RainSnow::Clear() {
         g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
-    texture.Reset();
     wind = Vector3{0.0f, 0.0f, 0.0f};
     world = nullptr;
-    particleCount = 0;
+    carry = Vector3{0.0f, 0.0f, 0.0f};
+    carrying = false;
     mode = 0;
     targetMode = 0;
     fadeStart = 0.0f;
@@ -90,7 +89,6 @@ void RainSnow::Clear() {
 }
 
 void RainSnow::Start(int newMode, float duration) {
-    LoadNamedTexture(texture, kWeatherTextureKind, kWeatherTextureName);
     if (sound && newMode) {
         g_clientWorld.sounds->StopSound(sound);
         sound = 0;
@@ -103,16 +101,11 @@ void RainSnow::Start(int newMode, float duration) {
 }
 
 RainSnow::RainSnow() {
-
     world = nullptr;
     Clear();
 }
 
-RainSnow::~RainSnow() {
-    Clear();
-
-    texture.Reset();
-}
+RainSnow::~RainSnow() { Clear(); }
 
 const char* RainSnow::ClassName() { return "CWeather"; }
 ClassId RainSnow::GetClassId() { return ClassId::RainSnow; }
@@ -211,8 +204,8 @@ ClassId VisibilityFog::GetClassId() { return ClassId::VisibilityFog; }
 
 // --- Draw --------------------------------------------------------------------------------------------
 
-// The visibility fog's draw (its cells as sprites through the scene renderer) and the rain / snow layer's work
-// arrays. See docs/notes/renderer.md (section 12).
+// The visibility fog's draw (its cells as sprites through the scene renderer) and the rain / snow layer's. See
+// docs/notes/renderer.md (section 12).
 
 // ---- The visibility fog ---------------------------------------------------------------------------------
 
@@ -232,10 +225,6 @@ constexpr int kWorkRecords = 0x1000;      // the arrays' first size
 constexpr unsigned kBoundsCells = 12000;  // only a fog of more cells gets its bounds computed here
 constexpr float kFogSpriteSize = 0.4f;
 constexpr float kColourScale = 255.0f;
-
-constexpr int kDrops = 0x8000;            // drops (flakes) at most; each is a triangle
-constexpr int kDropVertices = kDrops * 3;
-constexpr int kRings = 40;                // the offsets below: 40, -40, 39, -39, ..., 1, -1, 0
 
 } // namespace
 
@@ -266,46 +255,19 @@ int VisibilityFog::Draw(SceneRenderer* renderer) {
     return renderer->DrawSprites(0, g_points, &g_sprites);
 }
 
-// ---- Rain and snow ----------------------------------------------------------------------------------------
-
-void RainSnow::PrepareBuffers() {
-    positions.resize(kDrops);
-    vertices.resize(kDropVertices);
-    frames.resize(kDrops);
-
-    offsets.resize(2 * kRings + 1);
-    for (int i = 0; i < kRings; ++i) {
-        offsets[2 * i] = kRings - i;
-        offsets[2 * i + 1] = -offsets[2 * i];
-    }
-    offsets[std::ssize(offsets) - 1] = 0;
-
-    indices.resize(kDropVertices);
-    for (int i = 0; i < std::ssize(indices); ++i) indices[i] = static_cast<std::uint16_t>(i);
-}
-
 // --- Weather draw ------------------------------------------------------------------------------------
 
-// The weather's draw (on the weather object; called by the world view's effects pass with the renderer). Mode
-// (0 none, 1 rain, 2 snow): the weather is stepped (with the world's tick), its texture bound on stage 0, and
-// the rain or snow drawn. Those two build their particles' pre-transformed vertices (vertices, indices) and
-// hand them to the new renderer (src/render; RainSnow::DrawParticles). See docs/notes/effects.md and
-// docs/notes/renderer.md.
-
-// Returns what the rain / snow draw returned, 1 when there is nothing to draw, 0 without
-// a world or with an unknown mode.
+// The weather's draw (called by the world view's effects pass with the renderer). Mode (0 none, 1 rain, 2 snow):
+// the weather is stepped (with the world's tick) and the rain or snow drawn on the white texture
+// (weather_particles.cpp). See docs/notes/effects.md and docs/notes/renderer.md. Returns 1 (also when there is
+// nothing to draw), 0 without a world or with an unknown mode.
 int RainSnow::Draw(SceneRenderer* renderer) {
-    World* currentWorld = world;
-    if (!currentWorld) return 0;
-    if (this->mode == 0) return 1;
-    UpdateFade(static_cast<float>(currentWorld->tick));
-    if (this->mode == 0) return 1;
-    EnsureTextureLoaded(texture);
-    renderer->SetTexture(0, texture);
-    int currentMode = mode;
-    int result;
-    if (currentMode == 1) result = DrawRain(renderer);
-    else if (currentMode == 2) result = DrawSnow(renderer);
-    else return 0;
-    return result;
+    if (!world) return 0;
+    if (mode == 0) return 1;
+    UpdateFade(static_cast<float>(world->tick));
+    if (mode == 0) return 1;
+    if (mode != 1 && mode != 2) return 0;
+    renderer->SetTexture(0, nullptr);
+    DrawParticles(renderer, mode == 1 ? weather::Kind::Rain : weather::Kind::Snow);
+    return 1;
 }

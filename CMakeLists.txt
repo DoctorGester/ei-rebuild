@@ -353,12 +353,13 @@ if(WIN32)
 
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
     # lib::ParseIpv4, lib/maths.h, the save pictures, the bounded text reads, the tagged stream blocks and the byte
-    # buffers with their cursor and coder, the mod's path map, without the game. build.cmd runs it.
+    # buffers with their cursor and coder, the mod's path map, the weather's particle field, without the game. build.cmd
+    # runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
                    tests/unit/audio_mix.cpp tests/unit/display_sizes.cpp tests/unit/bounded_text.cpp
                    tests/unit/tagged_stream.cpp tests/unit/game_buffer.cpp tests/unit/platform_text.cpp
-                   tests/unit/path_layers.cpp src/game/game_buffer.cpp src/game/game_buffer_strings.cpp src/game/net_coder.cpp
+                   tests/unit/path_layers.cpp tests/unit/weather_field.cpp src/game/weather_field.cpp src/game/game_buffer.cpp src/game/game_buffer_strings.cpp src/game/net_coder.cpp
                    src/audio/audio.cpp src/game/settings_document.cpp src/game/core_streams.cpp src/game/ini_file.cpp
                    src/game/save_picture.cpp src/lib/qoi.cpp src/game/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
@@ -395,7 +396,7 @@ else()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp
                    src/game/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
                    tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp tests/unit/audio_mix.cpp
-                   tests/unit/display_sizes.cpp tests/unit/path_layers.cpp src/audio/audio.cpp src/game/ini_file.cpp src/game/asset_text.cpp src/game/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
+                   tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/weather_field.cpp src/game/weather_field.cpp src/audio/audio.cpp src/game/ini_file.cpp src/game/asset_text.cpp src/game/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
     target_link_libraries(ei_port_check PRIVATE ei_platform SDL3::SDL3-static)
