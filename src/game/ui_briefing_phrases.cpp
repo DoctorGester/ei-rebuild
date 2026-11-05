@@ -10,7 +10,6 @@
 #include "game/item_manager.h"
 #include "game/text_manager.h"
 #include "game/map_object_figures.h"
-#include "game/object_tables.h"
 #include "game/quest_records.h"
 #include "game/sound.h"
 #include "game/text_split.h"

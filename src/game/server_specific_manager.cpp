@@ -1,9 +1,14 @@
-// ServerSpecificManager and TorchObjectSpec. See server_specific_manager.h.
+// The side-specific managers, ServerSpecificManager and ClientSpecificManager. See server_specific_manager.h.
 #include "game/server_specific_manager.h"
 
 #include "game/combat.h"
+#include "game/link_figure.h"
+#include "game/map_object_shadow.h"
+#include "game/player_client.h"
 #include "game/player_messages.h"
+#include "game/torch_client_spec.h"
 #include "game/unit.h"   // MapObjectServer
+#include "game/unit_client_models.h"
 
 #include <new>
 
@@ -11,7 +16,6 @@ namespace {
 
 // The class names are the exe's strings (ClassName returns their addresses).
 constexpr const char* kManagerClassName = "CServerSpecificManager";
-constexpr const char* kTorchSpecClassName = "CTorchObjectSpecific";
 
 } // namespace
 
@@ -40,12 +44,19 @@ EngineObject* ServerSpecificManager::NewObject(int objectType) {
     }
 }
 
-TorchObjectSpec::TorchObjectSpec() {
-    CreateSpec();
+ClientSpecificManager::ClientSpecificManager() {}
+ClientSpecificManager::~ClientSpecificManager() {}
+const char* ClientSpecificManager::ClassName() { return "CClientSpecificManager"; }
+ClassId ClientSpecificManager::GetClassId() { return ClassId::ClientSpecificManager; }
+
+EngineObject* ClientSpecificManager::NewObject(int objectType) {
+    switch (static_cast<SideObjectType>(objectType)) {
+    case SideObjectType::Drawer: return new FigureMeshDrawer();
+    case SideObjectType::Object3D: return new Object3DClientSpecific();
+    case SideObjectType::MapObject: return new MapObjectClientSpecific();
+    case SideObjectType::Unit: return new UnitClientSpecific();
+    case SideObjectType::Player: return new PlayerClient();
+    case SideObjectType::Torch: return new TorchObjectClientSpec();
+    default: return nullptr;
+    }
 }
-
-TorchObjectSpec::~TorchObjectSpec() { DestroySpec(); }
-
-const char* TorchObjectSpec::ClassName() { return kTorchSpecClassName; }
-ClassId TorchObjectSpec::GetClassId() { return ClassId::TorchObjectSpec; }
-bool TorchObjectSpec::RunTick() { return true; }

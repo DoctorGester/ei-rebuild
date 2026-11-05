@@ -15,7 +15,7 @@
 #include "game/game_singletons.h"
 #include "game/model.h"
 #include "game/net_classes.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/sound.h"
 #include "game/text_split.h"
 #include "game/texture.h"

@@ -343,7 +343,7 @@ pixels right after the header (the extra block not skipped, as the original read
 
 ## 8. Draws outside the frame: movies and the cursor
 
-Interface draws (`ui_container_draws.cpp`; ui.md, "Container draws") set `render::g_renderState`, and their depth clears
+Interface draws (ui.md, "Container draws") set `render::g_renderState`, and their depth clears
 go through `ClearUiDepth` (ui.h) to `render::ClearDepth`.
 
 | Function | What ours does |

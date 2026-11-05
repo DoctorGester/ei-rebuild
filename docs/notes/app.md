@@ -61,7 +61,7 @@ from it by `tools/gen_settings_doc.py`, a build check).
 
 ## Small pieces
 
-- `NamedFloatTable` (object_tables.cpp; party and player variables): a `lib::HashMap<std::string, float>`; Set of zero
+- `NamedFloatTable` (named_floats.cpp; party and player variables): a `lib::HashMap<std::string, float>`; Set of zero
   removes the entry (a NaN removes it too), CopyPrefixed, Load, Save.
 - Key bindings (key_bindings.cpp): config\keyboard.ini of "command key" lines, key texts from the platform's key
   names; `platform.md` for the keys themselves.

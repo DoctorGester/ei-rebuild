@@ -2,6 +2,7 @@
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
 #include "game/frame_lists.h"
 #include "game/game_singletons.h"
+#include "game/light.h"
 #include "game/model.h"
 #include "game/options.h"
 #include "game/world.h"
@@ -11,7 +12,7 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "lib/containers.h"
 #include "game/terrain.h"
 

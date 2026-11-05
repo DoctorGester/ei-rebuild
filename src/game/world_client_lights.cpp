@@ -5,11 +5,12 @@
 #include "game/figure_mesh.h"   // VertexPacket, MeshCorner
 #include "game/game_singletons.h"
 #include "game/ground_decal.h"
+#include "game/light.h"
 #include "game/link_figure.h"
 #include "game/map_object.h"           // MapObject (ObjectWithId)
 #include "game/map_object_figures.h"   // Object3D
 #include "game/model.h"
-#include "game/object_tables.h"
+#include "game/named_floats.h"
 #include "game/options.h"
 #include "game/party.h"
 #include "game/sky_object.h"

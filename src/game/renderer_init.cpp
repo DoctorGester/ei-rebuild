@@ -9,7 +9,7 @@
 #include "game/model.h"   // SceneRenderer, TransformPipeline, RenderHelper
 #include "game/options.h"
 #include "render/render_state.h"
-#include "game/spell.h"     // Light, LightFactory
+#include "game/light.h"
 #include "game/texture.h"   // TextureDevice
 #include "game/world.h"
 

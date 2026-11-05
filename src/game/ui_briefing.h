@@ -7,7 +7,6 @@
 // 2 the dialogue starting (people still walking to their places), 3 phrases, 4 rewards.
 
 #include "lib/vecmath.h"
-#include "game/object_tables.h"
 #include "game/ui_camp.h"
 
 #include <cstdint>

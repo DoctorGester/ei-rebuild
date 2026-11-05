@@ -22,6 +22,7 @@
 #include "game/unit_create.h"
 #include "game/unit_db.h"
 #include "game/world.h"
+#include "game/object_tables.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

@@ -10,7 +10,7 @@
 #include "lib/rect.h"
 #include <string>
 #include "lib/vecmath.h"
-#include "game/object_tables.h"       // FindCommandByKey
+#include "game/key_bindings.h"
 
 #include <cstdint>
 #include <cstring>

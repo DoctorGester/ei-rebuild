@@ -17,7 +17,7 @@
 #include "game/model.h"
 #include "game/net_classes.h"
 #include "game/net_messages.h"
-#include "game/object_tables.h"
+#include "game/key_bindings.h"
 #include "game/options.h"
 #include "game/party.h"
 #include "game/player_client.h"

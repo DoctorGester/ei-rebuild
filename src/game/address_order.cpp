@@ -52,7 +52,7 @@ bool DepthBefore(Object3D* a, Object3D* b) {
 
 } // namespace
 
-bool address_order::DrawBefore(Object3D* a, Object3D* b) {
+bool object_order::DrawBefore(Object3D* a, Object3D* b) {
     if (!a || !b) return false;
     auto* groupA = a->ClientSpecific();
     auto* groupB = b->ClientSpecific();

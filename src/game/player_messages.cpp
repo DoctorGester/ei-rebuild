@@ -8,7 +8,7 @@
 #include "game/game_singletons.h"
 #include "game/item.h"
 #include "game/item_manager.h"
-#include "game/object_tables.h"
+#include "game/named_floats.h"
 #include "game/party.h"
 #include "game/random.h"
 #include "game/script.h"
@@ -24,14 +24,14 @@
 
 namespace {
 
-// The variables table (object_tables.cpp).
+// The variables table (named_floats.h).
 void VariableSet(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 
 void Write(MemoryStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteDword(MemoryStream* out, std::uint32_t value) { Write(out, &value, 4); }
 
 
-// The world player's party variables (a NamedFloatTable, object_tables.h).
+// The world player's party variables (a NamedFloatTable, named_floats.h).
 NamedFloatTable* Variables(Player* player) { return &player->GetParty()->variables; }
 
 // Looks an object up by id (base_manager.cpp), through its game address.

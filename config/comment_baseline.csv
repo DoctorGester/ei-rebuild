@@ -29,7 +29,9 @@ src/game/figure_part_draw.cpp,0,0,0,0,0,0,1
 src/game/item.h,0,0,1,0,0,0,0
 src/game/item_db.cpp,0,0,0,0,0,0,1
 src/game/item_db.h,0,0,0,0,0,0,2
+src/game/key_bindings.h,0,0,1,0,0,0,0
 src/game/lever_table.cpp,0,0,0,0,0,1,0
+src/game/light.h,0,0,0,0,0,0,2
 src/game/lightning.h,0,0,2,0,0,1,0
 src/game/link_mesh_draw.cpp,0,0,1,0,0,0,0
 src/game/lock_key.h,0,0,1,0,0,0,0
@@ -43,6 +45,7 @@ src/game/material.h,0,0,3,0,0,2,1
 src/game/mob_reader.cpp,0,0,1,0,0,0,0
 src/game/mod_folders.cpp,0,0,1,0,25,0,0
 src/game/model.h,0,0,1,0,0,1,1
+src/game/named_floats.h,0,0,1,0,0,0,0
 src/game/net_classes.h,0,0,1,0,0,0,0
 src/game/net_coder.h,0,0,4,0,0,0,0
 src/game/net_game_info.cpp,0,0,1,0,0,0,0
@@ -55,7 +58,6 @@ src/game/net_socket_driver.cpp,0,0,3,0,0,0,0
 src/game/object.h,0,0,1,0,0,0,1
 src/game/object3d_client.cpp,0,0,1,0,0,0,0
 src/game/object_diplomacy.h,0,0,2,0,0,0,0
-src/game/object_tables.h,0,0,3,0,0,0,1
 src/game/party_manager.cpp,0,0,1,0,0,0,0
 src/game/party_manager.h,0,0,0,0,0,0,1
 src/game/party_records.h,0,0,1,0,0,0,0
@@ -87,13 +89,12 @@ src/game/screen_layout.h,0,0,0,0,3,0,0
 src/game/script_parse_load.cpp,0,0,1,0,0,0,0
 src/game/sector_map.cpp,0,0,1,0,0,0,0
 src/game/sector_map.h,0,0,1,0,0,0,0
-src/game/server_specific_manager.h,0,0,1,0,0,0,0
 src/game/settings.h,0,0,0,0,0,0,1
 src/game/sky_object.cpp,0,0,1,0,0,0,0
 src/game/sky_object.h,0,0,2,0,0,0,0
 src/game/sound_manager.cpp,0,0,0,0,0,0,1
 src/game/spell.cpp,0,0,1,0,0,0,0
-src/game/spell.h,0,0,1,0,0,0,3
+src/game/spell.h,0,0,1,0,0,0,1
 src/game/spell_manager.cpp,0,0,1,0,0,0,0
 src/game/surface.cpp,0,0,5,0,0,0,0
 src/game/surface.h,0,0,1,0,0,0,0

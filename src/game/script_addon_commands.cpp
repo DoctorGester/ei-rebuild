@@ -17,6 +17,7 @@
 #include "game/unit_ai.h"
 #include "game/unit_db.h"
 #include "game/world.h"
+#include "game/named_floats.h"
 
 #include "lib/str.h"
 

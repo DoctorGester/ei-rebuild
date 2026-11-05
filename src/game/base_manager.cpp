@@ -162,7 +162,7 @@ void BaseManager::FreeAllFiles() {}
 
 EngineObject* BaseManager::CreateObject(int newType, int newId) {
     EngineObject* object = nullptr;
-    if (hash400::Entry(spareCounts, maxSpareCountType, newType) > 0) {
+    if (idtable::Entry(spareCounts, maxSpareCountType, newType) > 0) {
         if (auto found = spares.find(newType); found != spares.end() && !found->second.empty()) {
             object = found->second.front();
             found->second.pop_front();
@@ -177,15 +177,15 @@ EngineObject* BaseManager::CreateObject(int newType, int newId) {
     if (newId == -1) {
         int chosen = NextFreeId(this);
         if (!objects.contains(static_cast<unsigned>(chosen))) {    // Lookup
-            hash400::Entry(positions, maxPositionId, chosen) = AddTail(&objectList, object);
+            idtable::Entry(positions, maxPositionId, chosen) = AddTail(&objectList, object);
         }
-        hash400::SetAt(objects, maxId, chosen, object);
+        idtable::SetAt(objects, maxId, chosen, object);
         object->id = chosen;
         lastId = chosen;
     } else {
         if (!objects.contains(static_cast<unsigned>(newId))) {
             std::list<EngineObject*>::iterator position = AddTail(&objectList, object);
-            hash400::Entry(positions, maxPositionId, newId) = position;
+            idtable::Entry(positions, maxPositionId, newId) = position;
         }
         if (newId > maxId) maxId = newId;
         objects[static_cast<unsigned>(newId)] = object;
@@ -244,14 +244,14 @@ int BaseManager::RemoveObject(EngineObject* object) {
     auto found = objects.find(static_cast<unsigned>(objectId));
     if (found != objects.end() && found->second == object) {
         if (objects.contains(static_cast<unsigned>(objectId))) {    // Lookup
-            hash400::RemoveKey(objects, static_cast<unsigned>(objectId));
-            if (auto position = hash400::RemoveKey(positions, objectId); position != std::list<EngineObject*>::iterator{})
+            idtable::RemoveKey(objects, static_cast<unsigned>(objectId));
+            if (auto position = idtable::RemoveKey(positions, objectId); position != std::list<EngineObject*>::iterator{})
                 objectList.erase(position);
         }
     }
-    hash400::Entry(spares, maxSpareType, objectType).push_back(object);
+    idtable::Entry(spares, maxSpareType, objectType).push_back(object);
     object->id = -1;
-    int count = hash400::Entry(spareCounts, maxSpareCountType, objectType) + 1;
+    int count = idtable::Entry(spareCounts, maxSpareCountType, objectType) + 1;
     spareCounts[objectType] = count;
     return 0;
 }

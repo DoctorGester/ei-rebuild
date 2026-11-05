@@ -7,7 +7,6 @@
 // docs/notes/ui.md lists them).
 
 #include "game/engine_object.h"
-#include "game/object_tables.h"   // g_keyActions
 #include "game/save_picture.h"
 #include "game/texture.h"   // TextureKind
 #include "game/ui_font.h"
@@ -686,8 +685,11 @@ public:
 };
 
 // The depth buffer set to `z` over `count` screen rectangles (at most 8); all of it without rectangles
-// (ui_container_draws.cpp).
+// (ui_interface.cpp).
 void ClearUiDepth(float z, const Rect* rects = nullptr, int count = 0);
+// A screen's draw (the briefing screen's, the main menu's): the client world, then a mouse move at the cursor
+// when `mouseMove`, the depth buffer cleared to 1 and the container draw (ui_container.cpp).
+void DrawScreen(UiContainer* self, SceneRenderer* pass, bool mouseMove);
 
 // --- Screens with child windows ---
 

@@ -16,6 +16,13 @@
 #include <string_view>
 #include <vector>
 
+// Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
+// h % 1000000000 + 1000000000.
+int TextKeyFromName(std::string_view name);
+
+// Text keys are 1000000000..1999999999.
+bool IsTextKey(int id);
+
 class Item;
 class MappedResource;
 

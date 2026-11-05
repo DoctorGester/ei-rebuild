@@ -27,7 +27,7 @@ ref.h                       core/ref.h
 core_refcount.h             core/core_refcount.h
 core_refcount.cpp           core/ref.cpp                fold  # RefObject's two members (13 lines) beside the references' save and load
 counted_ref.cpp             core/ref.cpp                      # the counted references' out-of-line code (Ref<T> by id, the unit lists): named for ref.h
-hash_tables_400.h           core/id_tables.h                  # address-named: the id tables' map members (namespace hash400 -> idtable in C168b)
+hash_tables_400.h           core/id_tables.h                  # address-named: the id tables' map members (namespace idtable since C168b)
 core_streams.h              core/core_streams.h
 core_streams.cpp            core/core_streams.cpp
 net_coder.h                 core/coder.h                      # the byte buffers, bit cursors and LZ coder of saves and messages alike (not network-only)
@@ -137,7 +137,7 @@ world_tick.cpp              world/world_tick.cpp
 world_time.cpp              world/world_time.cpp
 world_sync.cpp              world/world_sync.cpp
 world_object_sets.cpp       world/world_object_sets.cpp
-address_order.h             world/object_order.h              # orders without addresses (namespace address_order -> object_order in C168b)
+address_order.h             world/object_order.h              # orders without addresses (namespace object_order since C168b)
 address_order.cpp           world/object_order.cpp          # with world/object_order.h
 world_map.cpp               world/world_map.cpp
 world_zone.cpp              world/world_zone.cpp
@@ -283,7 +283,7 @@ map_object_shadow.cpp       objects/map_object_shadow.cpp
 net_state.cpp               objects/net_state.cpp             # MapObject's and Unit's state writers (virtuals of the objects)
 server_specific_manager.h   objects/side_managers.h     split # ServerSpecificManager beside ClientSpecificManager (from base_manager.h); TorchObjectSpec -> objects/torch.h (C168b)
 server_specific_manager.cpp objects/side_managers.cpp   split # TorchObjectSpec -> objects/torch.cpp (C168b)
-misc_400.cpp                objects/side_managers.cpp   fold  # address-named: holds only ClientSpecificManager, the client halves' factory (C168b; its header comment is stale)
+misc_400.cpp                objects/side_managers.cpp   fold  # address-named: held only ClientSpecificManager, the client halves' factory (folded into server_specific_manager.cpp by C168b)
 lever.h                     objects/lever.h
 lever_object.cpp            objects/lever.cpp               # Lever's members, named for lever.h
 unit_lever.cpp              objects/lever.cpp           fold  # Lever::SetState and UseSpots (113 lines): Lever's members

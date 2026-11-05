@@ -7,9 +7,8 @@
 #include "game/game_singletons.h"
 #include "game/map_object.h"   // MapObject::position
 #include "game/net_delta.h"
-#include "game/server_specific_manager.h"
 #include "game/sound.h"        // SoundManager
-#include "game/spell.h"        // Light, LightFactory
+#include "game/light.h"
 #include "game/terrain.h"
 #include "game/torch.h"
 #include "game/torch_client_spec.h"
@@ -88,7 +87,7 @@ ClassId TorchObject::GetClassId() { return ClassId::TorchObject; }
 
 // --- Torch spec --------------------------------------------------------------------------------------
 
-// The torch's state object, TorchObjectSpec (server_specific_manager.h): its Create / Destroy,
+// The torch's state object, TorchObjectSpec (torch.h): its Create / Destroy,
 // Load / Save and setter slots. The network reader stays
 // the game's own code (it applies the values through its virtual setters, which a client-side spec may override).
 
@@ -97,7 +96,19 @@ constexpr float kDefaultValue = 1.0f;
 constexpr float kDefaultValue2C = 10.0f;
 // The default colour both colours start from (a static initialiser: black).
 constexpr float kDefaultColour[3] = /*007AF2D0*/ {};
+// The class name is the exe's string (ClassName returns its address).
+constexpr const char* kTorchSpecClassName = "CTorchObjectSpecific";
 } // namespace
+
+TorchObjectSpec::TorchObjectSpec() {
+    CreateSpec();
+}
+
+TorchObjectSpec::~TorchObjectSpec() { DestroySpec(); }
+
+const char* TorchObjectSpec::ClassName() { return kTorchSpecClassName; }
+ClassId TorchObjectSpec::GetClassId() { return ClassId::TorchObjectSpec; }
+bool TorchObjectSpec::RunTick() { return true; }
 
 void TorchObjectSpec::CreateSpec() {
     torch = nullptr;

@@ -157,25 +157,7 @@ void TransformPipeline::FogVertices(TLVertex* vertices, int count) const {
 
 // --- Matrix math -------------------------------------------------------------------------------------
 
-// The 4x4 matrix helpers: the product, a quaternion's rotation matrix and the
-// transform pipeline's matrix push. See model.h and docs/notes/script.md ("Leftovers").
-
-void Quaternion::ToMatrix(float* out) const {
-    // The unit quaternion's rotation matrix, from twice the vector part.
-    const float x2 = x + x, y2 = y + y, z2 = z + z;
-    const float wx = x2 * w, wy = y2 * w, wz = z2 * w;
-    const float xx = x2 * x, xy = y2 * x, xz = z2 * x;
-    const float yy = y2 * y, yz = z2 * y, zz = z2 * z;
-    out[0] = 1.0f - (yy + zz);
-    out[1] = xy - wz;
-    out[2] = xz + wy;
-    out[4] = xy + wz;
-    out[5] = 1.0f - (xx + zz);
-    out[6] = yz - wx;
-    out[8] = xz - wy;
-    out[9] = yz + wx;
-    out[10] = 1.0f - (xx + yy);
-}
+// The transform pipeline's matrix push. See model.h and docs/notes/script.md ("Leftovers").
 
 void TransformPipeline::PushMatrix(const float* m, int index) {
     MatrixStack& stack = stacks[index];

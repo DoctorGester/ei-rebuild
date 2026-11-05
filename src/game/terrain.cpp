@@ -1,4 +1,5 @@
 // The landscape (terrain.h): height queries, edge fade, ground decal triangles, draw passes and the per-frame update.
+#include "game/light.h"
 #include "game/terrain.h"
 
 #include "game/camera.h"

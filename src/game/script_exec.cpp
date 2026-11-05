@@ -2,7 +2,7 @@
 #include "game/ai_map.h"
 #include "game/item_manager.h"
 #include "game/options.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/script.h"
 #include "game/script_addon.h"
 

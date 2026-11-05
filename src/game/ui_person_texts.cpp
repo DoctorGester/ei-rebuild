@@ -4,7 +4,6 @@
 #include "game/ui_camp.h"
 
 #include "game/text_manager.h"
-#include "game/object_tables.h"
 
 #include "game/console.h"
 #include <string>

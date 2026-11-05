@@ -90,12 +90,12 @@ float AnimationTime() {
 }
 
 // Sorts one draw list by the first part set's texture, then the figure, then the view depth (the game's
-// comparator compares the texture and the figure by address; ours by name: address_order::DrawBefore).
+// comparator compares the texture and the figure by address; ours by name: object_order::DrawBefore).
 // Objects with the same keys are drawn in the game's sort's order.
 void SortByModel(FrameList list) {
     std::vector<MapObject*>& v = FrameObjects(list);
     lib::IntroSort(v.data(), v.data() + v.size(),
-                   [](MapObject* a, MapObject* b) { return address_order::DrawBefore(a, b); });
+                   [](MapObject* a, MapObject* b) { return object_order::DrawBefore(a, b); });
 }
 
 template <typename Draw>

@@ -1,7 +1,6 @@
 #pragma once
 
-// Out-of-line helpers from the engine core. The Quaternion members implemented in core_maths.cpp are declared
-// in lib/vecmath.h.
+// Out-of-line helpers from the engine core.
 
 #include "lib/vecmath.h"
 

@@ -20,6 +20,7 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "platform/platform.h"
+#include "render/render.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -352,4 +353,9 @@ void Interface3D::OnKeyDown(platform::Key key, int scan, bool repeat) {
     }
     if (!stack.empty()) stack.back()->OnEvent(event);
     if (!stack.empty() && !event.handled && KeyCharacter(scan) == ';') OpenHelp(true);
+}
+
+// Every depth clear goes to render::ClearDepth (docs/notes/renderer.md, sections 5 and 8).
+void ClearUiDepth(float z, const Rect* rects, int count) {
+    render::ClearDepth(z, rects, !rects ? 0 : count < 8 ? count : 8);
 }

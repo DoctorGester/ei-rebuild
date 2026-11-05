@@ -102,7 +102,8 @@ vectors (`M * v`, translation m[3], m[7], m[11]).
   scalars).
 - `TransformRow` / `TransformRowNormal` (`v * M`), `TransformColumn` / `TransformColumnNormal` / `TransformColumnW`
   (`M * v`), `Matrix4::Multiply`.
-- Quaternions: `a * b` (Hamilton), `Dot`, `AxisX / AxisY / AxisZ` (the rotation's columns), `Rotate(v)`, `ToMatrix`.
+- Quaternions: `a * b` (Hamilton), `Dot`, `AxisX / AxisY / AxisZ` (the rotation's columns), `Rotate(v)`, `ToMatrix`;
+  `ToMatrix`, `AxisAngle`, `Slerp`, `SetIdentity` and `PreMultiply` are out of line in src/lib/vecmath.cpp.
 
 `tools/check_cleanup.py` counts hand-written vector maths (two-product sums whose operands differ only in axis,
 `float n[3]`-style members) and keeps it at 0; exceptions are listed in it (`_VEC_NOT_VECTOR`).

@@ -11,7 +11,7 @@
 #include "game/ground_decal.h"
 #include "game/model.h"
 #include "game/options.h"
-#include "game/spell.h"   // Light
+#include "game/light.h"
 #include "game/terrain.h"
 #include "game/texture.h"
 #include "game/world.h"
@@ -20,6 +20,9 @@
 #include "lib/containers.h"
 #include "lib/maths.h"
 #include "lib/vecmath.h"
+#include "game/chunk_archive.h"
+#include "game/database_file.h"
+#include "lib/crt.h"
 
 #include <algorithm>
 #include <cmath>
@@ -28,6 +31,9 @@
 #include <memory>
 #include <new>
 #include <vector>
+
+// The database of the ground prints: built empty by the C++ runtime, loaded at start.
+PrintsDatabase g_printsDatabase;
 
 namespace {
 
@@ -356,4 +362,89 @@ void WorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLen
     const PrintLook& look = LookOf(*entry, rainSnow.mode != 0);
     if (alpha <= 0.0f || look.life <= 0 || look.lifetime <= 0) return;
     scorchMarks.emplace_back(x, y, halfWidth, halfLength, angle, alpha, look.life, look.lifetime);
+}
+
+// ---- prints.db ----------------------------------------------------------------------------------
+
+// The prints' records and their load from database.res, once at startup (as unit_db.cpp; docs/notes/models.md).
+
+namespace {
+
+using dbfile::LoadTable;
+using dbfile::OpenDatabase;
+
+// The chunks of prints.db.
+constexpr int kBloodChunk = 1;
+constexpr int kFootprintsChunk = 2;
+constexpr int kScorchChunk = 3;
+
+// Fields 1-3 of chunk `id`, four bytes each, if the chunk is present.
+void TripleChunk(ChunkArchive* ar, int id, void* first, void* second, void* third) {
+    if (!ar->EnterChunk(id)) return;
+    ar->Field(1, first, 4);
+    ar->Field(2, second, 4);
+    ar->Field(3, third, 4);
+    ar->LeaveChunk();
+}
+void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) { TripleChunk(ar, id, &values[0], &values[1], &values[2]); }
+void TripleChunk(ChunkArchive* ar, int id, PrintLook* look) { TripleChunk(ar, id, &look->alpha, &look->life, &look->lifetime); }
+
+// Every record of `records` filed in `index` under its name (the index's operator[]: a record of
+// a name seen before replaces the earlier one).
+template <typename Record, typename Index, typename Name>
+void FileRecords(std::vector<Record>& records, Index& index, Name name) {
+    for (Record& record : records) index[name(record)] = &record;
+}
+
+} // namespace
+
+void ChunkArchive::SerializePrints(int id, std::vector<PrintRecord>* records) {
+    RecordChunks(this, id, records, &PrintRecord::Serialize);
+}
+void ChunkArchive::SerializeFootprints(int id, std::vector<PrintRecord2>* records) {
+    RecordChunks(this, id, records, &PrintRecord2::Serialize);
+}
+
+PrintRecord::PrintRecord() : dryLook{}, wetLook{} {}
+PrintRecord::PrintRecord(const PrintRecord& from) : name(from.name), dryLook(from.dryLook), wetLook(from.wetLook) {}
+PrintRecord2::PrintRecord2() : dryLook{}, wetLook{}, unreadChunk{} {}
+PrintRecord2::PrintRecord2(const PrintRecord2& from) : name(from.name), dryLook(from.dryLook), wetLook(from.wetLook) {
+    std::memcpy(unreadChunk, from.unreadChunk, sizeof(unreadChunk));
+}
+
+void PrintRecord::Serialize(ChunkArchive* ar) {
+    ar->StringField(1, &name);
+    TripleChunk(ar, 2, &dryLook);
+    TripleChunk(ar, 3, &wetLook);
+}
+
+void PrintRecord2::Serialize(ChunkArchive* ar) {
+    ar->StringField(1, &name);
+    TripleChunk(ar, 2, &dryLook);
+    TripleChunk(ar, 3, &wetLook);
+    TripleChunk(ar, 10, unreadChunk);
+}
+
+int PrintsDatabase::Load(const std::string& folder) {
+    std::string base = folder;
+    MappedResource resource;
+    OpenDatabase(resource, base);
+    std::uint32_t size;
+    void* data = resource.GetFile("prints.db", &size);
+    if (!data) game::FatalExit("Can't open terrain prints database\n");
+
+    MemoryStream stream;
+    stream.Fill(data, size);
+
+    const auto name = [](auto& record) -> const std::string& { return record.name; };
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializePrints(kBloodChunk, &blood); });
+    FileRecords(blood, bloodByName, name);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeFootprints(kFootprintsChunk, &footprints); });
+    FileRecords(footprints, footprintsByName, name);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializePrints(kScorchChunk, &scorch); });
+    FileRecords(scorch, scorchByName, name);
+
+    resource.CloseFile(data);
+    resource.CloseResource();
+    return 1;
 }

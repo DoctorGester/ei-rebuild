@@ -8,7 +8,7 @@
 #include "game/link_figure.h"   // FigureMeshDrawer
 #include "game/model.h"     // SceneRenderer
 #include "game/renderer_lines.h"
-#include "game/spell.h"     // Light
+#include "game/light.h"
 #include "game/texture.h"   // TextureDevice, Texture
 #include "game/ui.h"
 #include "game/screen_layout.h"

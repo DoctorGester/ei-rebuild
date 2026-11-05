@@ -400,7 +400,7 @@ What must survive:
 - **Sort order:** STLport's `sort` leaves equal elements in another order than MSVC's. `lib::IntroSort`
   (src/lib/intro_sort.h: STLport's introsort, median of three, unguarded partition, heap sort at the depth limit,
   insertion sort of the first 16) is used where equal elements can differ and their order shows:
-  - the draw lists (`address_order::DrawBefore`);
+  - the draw lists (`object_order::DrawBefore`);
   - the touched models;
   - the particles by depth;
   - the picking hits;

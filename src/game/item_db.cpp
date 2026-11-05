@@ -16,6 +16,9 @@
 #include <cstdint>
 #include <string>
 
+// The database of the items: built empty by the C++ runtime, loaded at start.
+itemdb::ItemDatabase g_itemDatabase;
+
 namespace {
 
 // The chunks of items.idb.

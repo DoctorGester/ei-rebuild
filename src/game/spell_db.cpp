@@ -14,6 +14,9 @@
 #include <string>
 #include <vector>
 
+// The database of the spells: built empty by the C++ runtime, loaded at start.
+itemdb::SpellDatabase g_spellDatabase;
+
 namespace {
 
 // The chunks of spells.sdb.

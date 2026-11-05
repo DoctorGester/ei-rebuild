@@ -6,7 +6,7 @@
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
 #include "game/object.h"
-#include "game/spell.h"                // Light, TheLightFactory
+#include "game/light.h"
 #include "game/terrain.h"
 #include "game/texture.h"              // RenderDeviceObject
 #include "game/world.h"                // WorldClient

@@ -1,7 +1,6 @@
 #pragma once
 
-// Small lookup tables found among the object code: text keys, the map/allod
-// database, a name -> float table and the key -> command table. Names provisional.
+// The map database's records: the allods and zones of map.txt (map_database.cpp loads them).
 
 #include <cstddef>
 #include <cstdint>
@@ -9,17 +8,8 @@
 #include <string_view>
 #include <vector>
 
-#include "lib/hash_map.h"
-
 
 class ByteStream;
-
-// Text key of a name: h = 5 h + toupper(c) over the bytes (unsigned arithmetic), then
-// h % 1000000000 + 1000000000.
-int TextKeyFromName(std::string_view name);
-
-// Text keys are 1000000000..1999999999.
-bool IsTextKey(int id);
 
 // One "#allod" entry of map.txt.
 struct AllodRecord {
@@ -88,47 +78,3 @@ struct MapDatabase {
     std::vector<AllodRecord> allods;
     std::vector<MapRecord> maps;
 };
-
-// The game's hash_map<string, float> (the party's and players' variables, the briefing's copies) with std::string
-// keys, in game.exe's hash and bucket order (lib::HashMap: the variables are saved and listed in it), with the
-// named-variable members the game adds.
-struct NamedFloatTable : lib::HashMap<std::string, float, lib::TextHash> {
-
-    // Value stored under `name`, 0 if absent. Builds a string of the name first, as the game does.
-    float Get(std::string_view name);
-    // Stores `value` under `name`; a zero value (or NaN: the game's equality
-    // test) removes the entry instead. Nothing for an empty name.
-    void Set(std::string_view name, float value);
-    // Removes the entry stored under `name`.
-    void Remove(std::string_view name);
-    // Empties `out`, then copies into it every entry whose name starts with
-    // `prefix` (strncmp over the prefix's length).
-    void CopyPrefixed(std::string_view prefix, NamedFloatTable* out);
-    // Empties the table, then reads {zero-terminated name, float} pairs from the
-    // stream up to an empty name (compared with the exe's empty string).
-    void Load(ByteStream* stream);
-    // Writes each entry (name with its zero, then the value), in bucket order, then an empty name.
-    void Save(ByteStream* stream);
-};
-
-// Rebirth's PersistentGlobalVars (persistent_globals.cpp): empties `table` but keeps
-// its "gvar." entries, set again in the order addon's own container gives them.
-void ClearVariablesKeepingGlobals(NamedFloatTable* table);
-
-// The in-game key bindings (config\keyboard.ini; key_bindings.cpp): the action of each scan code
-// (0x200 entries, the WM_KEYDOWN flags & 0x1FF; the options window's OK stores its copy there).
-inline std::int8_t g_keyActions[512] = /*0079BF70*/ {};
-
-// The keys (0x48 bytes each, 88 of them; key_bindings.cpp's g_keyNames): the options window lists them, and
-// the bindings file names them.
-struct UiKeyName {
-    int scan = 0;                    // scan code, the index into g_keyActions
-    const char* file = nullptr;      // the bindings file's name ("TAB", "Q", ...)
-    char name[0x40] = {};            // GetKeyNameTextA's text (up to 31 bytes; LoadKeyBindings)
-};
-constexpr int kUiKeyNameCount = 88;
-extern UiKeyName g_keyNames[kUiKeyNameCount];
-
-// The command bound to `key`: the text of the first key of g_keyNames whose scan code i (0..0x1FF)
-// has `key` in g_keyActions, or null.
-const char* FindCommandByKey(int key);

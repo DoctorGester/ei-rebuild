@@ -41,8 +41,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073BE8C,2,,game,0041F5F0 00429110 004410A0,0041F740,OutOfRange,-,"out_of_range (stored only by game.exe's substr and __stl_throw_out_of_range; our ports never throw it)"
 0073BE94,2,,game,0042BEC0 0042BEF0 0042CA20 0042D1C0 0042D270 0046A710,0042BEE0,Chunk,src/game/chunk_stream.h,
 0073BE9C,2,,game,0042D1C0 0042D270,0042BEE0,RootChunk,src/game/chunk_stream.h,
-0073BECC,15,,game,0042D690 0042D6F0,0042D6D0,ClientSpecificManager,src/game/base_manager.h,
-0073BF08,10,,game,00613EA0,004034E0,ClientSpecificManager,src/game/base_manager.h,the tail of 0073BECC (a byte match)
+0073BECC,15,,game,0042D690 0042D6F0,0042D6D0,ClientSpecificManager,src/game/server_specific_manager.h,
+0073BF08,10,,game,00613EA0,004034E0,ClientSpecificManager,src/game/server_specific_manager.h,the tail of 0073BECC (a byte match)
 0073BF38,4,,game,00432DA0 00433060 00433320 004334E0,004334C0,Connection,src/game/net_connection.h,a connection (Connection)
 0073BF4C,4,,game,00434110 004343C0 00434430 004344C0,004344A0,ReplicaEntry,src/game/net_connection.h,a replicated object's tracking record (ReplicaEntry)
 0073BF5C,15,,game,00436770 00436A50,004368D0,SessionBase,src/game/net_classes.h,the session base (SessionBase)
@@ -189,7 +189,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D4B4,3,,game,004CDE30 00545990 005D0BE0 005D12B0 005D1700 005D1B70 005D1F80 005D21A0 005D6C80 005D8B40 005D9E40,007005E3,AiLookRecordArrayClass,-,CArray (the array inside the AI's 32-byte look records (base AiLookArrayClass); derived from AiLookArrayClass); stored only by game.exe (ours is a std::vector)
 0073D4C0,3,,game,004D6310 004D6340,007005E3,DefineListClass,-,CList (the script's #define list); stored only by game.exe (ours is a std::list)
 0073D4F4,25,,game,004D6900 004D6960,004D6940,ServerSpecificManager,src/game/server_specific_manager.h,
-0073D558,19,,game,004D6970 004D6BA0 0052D0D0 0052D1D0,004D6B80,TorchObjectSpec,src/game/server_specific_manager.h,
+0073D558,19,,game,004D6970 004D6BA0 0052D0D0 0052D1D0,004D6B80,TorchObjectSpec,src/game/torch.h,
 0073D5B8,24,,game,004D9110,004D9290,SkyObject,src/game/sky_object.h,
 0073D624,7,,game,004DA7F0 004DA910 004DA9E0,004DA630,GrowingBuffer,src/game/net_coder.h,the growing byte buffer
 0073D644,13,,game,004DDD6F 004DDE75,004DE8B0,CSysInfo,-,"the system information: stored only by game.exe's 004DDD6F / 004DDE75 (its constructor and destructor); nothing of ours read it, so it is not made"
@@ -524,8 +524,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00743AC8,5,,game,0068BA80 0068BC50,0068BC30,SpellContainer,src/game/spell.h,spell container
 00743ADC,3,,game,0068BC50,0068BE20,SpellContainer,src/game/spell.h,the tail of 00743AC8 (0068BC50 calls slot 5 through the table's memory)
 00743AE8,5,,lib,006E81C2,00402CF0,SpellContainer,src/game/spell.h,the tail of 00743ADC (a byte match in 006E81C2)
-00743AFC,18,,game,0068CED0,0068CFC0,Light,src/game/spell.h,light
-00743B50,25,,game,0068D850 0068D990,0068D970,LightFactory,src/game/spell.h,
+00743AFC,18,,game,0068CED0,0068CFC0,Light,src/game/light.h,light
+00743B50,25,,game,0068D850 0068D990,0068D970,LightFactory,src/game/light.h,
 00743BB4,13,,game,0068DBC0 0068DE30,0068DD20,Material,src/game/material.h,
 00743C38,26,,game,0068E3F0 0068E540 0068E640,0068E520,MaterialManager,src/game/material.h,
 00743CB0,26,,game,00691140 00691250,00691230,TextureManager,src/game/texture.h,

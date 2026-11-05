@@ -17,7 +17,7 @@
 #include <functional>
 #include <vector>
 
-bool address_order::ObjectBefore(const EngineObject* a, const EngineObject* b) {
+bool object_order::ObjectBefore(const EngineObject* a, const EngineObject* b) {
     int ia = a->id;
     int ib = b->id;
     if (ia != ib) return ia < ib;
@@ -25,12 +25,12 @@ bool address_order::ObjectBefore(const EngineObject* a, const EngineObject* b) {
 }
 
 // Sorts the set and drops the duplicates. The game sorts by address (four byte passes of a radix sort,
-// through a scratch array freed at exit); this sorts by id (address_order::ObjectBefore), a comparison sort
+// through a scratch array freed at exit); this sorts by id (object_order::ObjectBefore), a comparison sort
 // without the scratch array.
 template <class T>
 void ObjectSetSortUnique(std::vector<T*>* self) {
     if (std::ssize(*self) < 2) return;
-    std::sort(self->data(), self->data() + std::ssize(*self), address_order::ObjectBefore);
+    std::sort(self->data(), self->data() + std::ssize(*self), object_order::ObjectBefore);
     // Each element compared with the one before it in place.
     T** end = self->data() + std::ssize(*self);
     T** out = self->data() + 1;
@@ -71,7 +71,7 @@ void DiffObjectSets(std::vector<T*>* sent, std::vector<T*>* current, std::vector
             continue;
         }
         changed = true;
-        if (address_order::ObjectBefore(old, now)) {
+        if (object_order::ObjectBefore(old, now)) {
             (*gone)[goneCount++] = old;
             ++s;
             old->Release();

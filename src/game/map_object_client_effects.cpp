@@ -3,6 +3,7 @@
 // parts' alpha / tint when an invisibility or stun effect ends.
 
 #include "game/effects.h"
+#include "game/light.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"

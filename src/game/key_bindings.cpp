@@ -20,7 +20,7 @@
 #include <memory>
 #include <format>
 
-// The keys (object_tables.h's UiKeyName): scan code, the bindings file's name and Windows' text
+// The keys (UiKeyName): scan code, the bindings file's name and Windows' text
 // (LoadKeyBindings fills it). The actions' table (kActionDefinitions) follows it in memory.
 UiKeyName g_keyNames[88] = /*007857B0*/ {
     {2, "1", ""}, {3, "2", ""}, {4, "3", ""}, {5, "4", ""}, {6, "5", ""}, {7, "6", ""}, {8, "7", ""}, {9, "8", ""},
@@ -116,3 +116,13 @@ void SaveKeyBindings() {
 }
 
 } // namespace keybind
+
+const char* FindCommandByKey(int key) {
+    const signed char* keys = g_keyActions;
+    for (int slot = 0; slot < 0x200; ++slot) {
+        if (keys[slot] != key) continue;
+        for (UiKeyName& entry : g_keyNames)
+            if (entry.scan == slot) return entry.name;
+    }
+    return nullptr;
+}

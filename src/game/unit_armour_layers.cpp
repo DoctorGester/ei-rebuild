@@ -4,7 +4,7 @@
 #include "game/unit.h"
 
 #include "game/item.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 
 #include "lib/float_select.h"
 #include "lib/rounding.h"

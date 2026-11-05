@@ -6,11 +6,12 @@
 #include "lib/str.h"
 #include "game/map_object.h"
 #include "game/net_delta.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/random.h"
 #include "game/sound.h"
 #include "game/terrain.h"
-#include "game/spell.h"    // Light
+#include "game/light.h"
+#include "game/spell.h"
 #include "game/unit.h"
 #include "game/world.h"
 

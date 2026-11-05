@@ -21,6 +21,7 @@
 #include "game/net_messages.h"
 #include "game/net_session.h"
 #include "game/object.h"
+#include "game/named_floats.h"
 #include "game/object_tables.h"
 #include "game/options.h"
 #include "game/party.h"

@@ -102,6 +102,23 @@ bool FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char*
     return true;
 }
 
+// --- Model names -------------------------------------------------------------------------------------
+
+// A length-prefixed name in a model file's data. See model.h.
+
+void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
+    std::int32_t length = lib::Load<std::int32_t>(*cursor);
+    *cursor += 4;
+    if (length == 0) {
+        out->clear();
+        return;
+    }
+    // Up to the first zero byte, as the original's copy through a C string.
+    const auto* text = reinterpret_cast<const char*>(*cursor);
+    out->assign(text, strnlen(text, static_cast<std::size_t>(length)));
+    *cursor += length;
+}
+
 // --- Figure links ------------------------------------------------------------------------------------
 
 // Links a figure's pieces from the skeleton file of the model `name`. With the model cached, its mesh archive

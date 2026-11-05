@@ -490,7 +490,7 @@ def read_diplomacy(r):
 
 
 def read_countdowns(r):
-    """TweenSave (006D47E0, model_db.cpp): the count, then the 16-byte TweenEntry records."""
+    """TweenSave (006D47E0, water_tweens.cpp): the count, then the 16-byte TweenEntry records."""
     count = r.i32('count')
     for i in range(count):
         with r.scope(i):

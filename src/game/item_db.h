@@ -423,7 +423,7 @@ struct ItemDatabase {
 } // namespace itemdb
 
 // The databases: built empty by their static initialisers, destroyed by the exit functions
-// those register (database_globals.cpp); the resource switch empties them (SwitchResourceDatabases).
+// those register (spell_db.cpp, item_db.cpp); the resource switch empties them (SwitchResourceDatabases).
 extern itemdb::SpellDatabase g_spellDatabase;
 extern itemdb::ItemDatabase g_itemDatabase;
 namespace itemdb {

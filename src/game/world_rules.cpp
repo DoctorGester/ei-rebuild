@@ -1,19 +1,14 @@
-// Sorting predicates used by the world code and the game interface glue functions. See world.h.
+// The local player's queries for the game interface: the game time, the local player's party, zone and variables,
+// player 0's variables. See world.h.
 #include "game/world.h"
 
-#include "game/base_manager.h"
-#include "game/core_maths.h"
-#include "game/link_figure.h"
-#include "game/map_object.h"
-#include "game/map_object_figures.h"
-#include "game/map_object_shadow.h"
 #include "game/net_classes.h"
 #include "game/net_messages.h"
 #include "game/party.h"
 #include "game/player_client.h"
-#include "game/texture.h"
 
 #include "game/game_singletons.h"
+#include "game/named_floats.h"
 
 #include <memory>
 #include <new>
@@ -27,28 +22,6 @@ Player* LocalPlayer() { return g_clientWorld.LocalView()->player; }
 float Variable(Player* player, std::string_view name) { return player->GetParty()->variables.Get(name); }
 
 } // namespace
-
-// ---- Sorting predicates --------------------------------------------------------------------------
-
-bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
-    MapObject* first = manager->FindMapObject(a->objectId);
-    MapObject* second = manager->FindMapObject(b->objectId);
-    if (!first || !second) return false;
-    // The matrix's row 2: the depth axis and its offset.
-    const Vector3 normal{view[8], view[9], view[10]};
-    float offset = view[11];
-    float da = Dot(first->localPosition, normal) + offset;
-    float db = Dot(second->localPosition, normal) + offset;
-    // Living objects come before dead ones; within each kind, by depth. The game asks each object again at
-    // every step, so the calls are repeated here in the same order.
-    if ((first->IsDead() == 0 && second->IsDead() == 0) ||
-        (first->IsDead() != 0 && second->IsDead() != 0)) {
-        return da < db;
-    }
-    return first->IsDead() == 0;
-}
-
-// ---- Game interface glue -------------------------------------------------------------------------
 
 bool IsMultiplayerClient() {
     net::ClientSession* client = net::g_gameClient;

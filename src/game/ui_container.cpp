@@ -1,8 +1,37 @@
-// Containers (UiContainer, ui.h): the input dispatch, which passes an
+// Containers (UiContainer, ui.h): the draw, and the input dispatch, which passes an
 // event on to the extra inputs and the child windows. See docs/notes/ui.md ("Container input dispatch").
 #include "game/game_singletons.h"
 #include "game/model.h"
 #include "game/ui.h"
+#include "game/texture.h"
+#include "game/ui_cursor.h"
+#include "game/world.h"
+#include "render/render_state.h"
+
+// --- Draws ------------------------------------------------------------------------------------
+
+// Every state set goes to render::g_renderState (docs/notes/ui.md, "Container draws").
+
+void UiContainer::DrawSprites(SceneRenderer* pass) {
+    if (!g_interface.drawing) return;
+    render::g_renderState.stages[0].combiner = kAlphaPassStage;
+    DrawBase(pass);
+    // By index: a child's draw may change the list.
+    for (int i = 0; i < std::ssize(children); ++i) {
+        UiWindow* child = children[i].get();
+        if (child->enabled) child->DrawSprites(pass);
+    }
+}
+
+void DrawScreen(UiContainer* self, SceneRenderer* pass, bool mouseMove) {
+    g_clientWorld.Render();
+    if (mouseMove) {
+        UiEvent move{.kind = UiEventKind::MouseMove, .at = g_cursor.position};
+        self->OnEvent(move);
+    }
+    ClearUiDepth(1.0f);
+    self->UiContainer::DrawSprites(pass);
+}
 
 // --- Per-frame slots ---------------------------------------------------------------------------
 

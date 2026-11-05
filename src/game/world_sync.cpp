@@ -11,6 +11,7 @@
 #include "game/unit.h"
 #include "game/world.h"
 #include "game/world_effect.h"
+#include "game/object_tables.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

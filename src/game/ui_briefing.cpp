@@ -364,3 +364,5 @@ void BriefingScreen::ShowItem(std::string_view name, int index) {
 
     shown.insert(shown.begin(), BriefingShownItem{std::string(name), item, back, frame});
 }
+
+void BriefingScreen::DrawSprites(SceneRenderer* pass) { DrawScreen(this, pass, true); }

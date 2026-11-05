@@ -1,5 +1,6 @@
 // The shadow map's casters the game does not draw this frame (render::ShadowCasterMesh). Only reads the game's
 // objects. See docs/notes/renderer.md, "The renderer's source files".
+#include "game/light.h"
 #include "game/world_client_shadow_casters.h"
 
 #include "game/camera.h"
