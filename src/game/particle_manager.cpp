@@ -239,7 +239,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
     order.clear();
     Vector3 axis = camera::FrameView().rotation.AxisZ();
 
-    // The manager's objects are its sources.
+    // The manager's objects are its sources (it makes no other class).
     for (auto node = objectList.begin(); node != objectList.end() && *node; ++node) {
         auto* source = static_cast<ParticleSource*>(*node);
         order.push_back({Dot(axis, source->WorldPosition()), source});

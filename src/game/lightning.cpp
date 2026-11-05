@@ -290,7 +290,7 @@ void Lightning::SetEndpoints(const Vector3& from, const Vector3& to) {
 // --- LightningManager --------------------------------------------------------------------------
 
 int LightningManager::DrawAll(SceneRenderer* device) {
-    // The manager's object list (the bolts, in creation order).
+    // The manager's object list: the bolts (the manager makes no other class), in creation order.
     auto node = objectList.begin();
     while (node != objectList.end()) {
         auto current = node;

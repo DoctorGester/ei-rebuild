@@ -774,8 +774,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 
     // The commanded target first, when it can be reached from here.
     if (target && !target->IsDead()) {
-        AITargetChoice choice{kWeaponPart, static_cast<Unit*>(target.Get())};   // taken as a unit
-        if (brain->CanReach(choice, true)) {
+        AITargetChoice choice{kWeaponPart, UnitOrNull(target.Get())};   // CommandAttack also takes any map object
+        if (choice.object && brain->CanReach(choice, true)) {
             brain->AttackTarget(target);
             return;
         }

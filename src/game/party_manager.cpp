@@ -38,8 +38,12 @@ void ObjectRefFields(ChunkArchive* ar, int id, std::vector<HeldRef<T>>* objects)
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
         HeldRef<T>& slot = (*objects)[static_cast<std::size_t>(i)];
-        if (ar->loading) slot = static_cast<T*>(ar->ObjectRef(1));
-        else ar->SaveObjectRef(1, slot);
+        if (ar->loading) {
+            RefCounted* object = ar->ObjectRef(1);   // a key naming another class loads as none
+            slot = object && object->ArchiveType() == T::kArchiveClass ? static_cast<T*>(object) : nullptr;
+        } else {
+            ar->SaveObjectRef(1, slot);
+        }
     }
     ar->LeaveChunk();
 }

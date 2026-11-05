@@ -340,7 +340,7 @@ namespace {
 // EngineObject::Release, its caller, returns it but no caller reads it).
 int TextureManager::ReleaseObject(EngineObject* object) {
     if (!object || object->refCount != 0) return 0;
-    auto* texture = static_cast<Texture*>(object);
+    auto* texture = static_cast<Texture*>(object);   // the manager's objects are all textures
     if (auto node = objects.find(static_cast<unsigned>(object->id)); node != objects.end()) {
         Unregister(node->second->id);
         if (object->flags & TextureFlag::Cacheable) {

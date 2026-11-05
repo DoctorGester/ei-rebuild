@@ -91,6 +91,21 @@ void StringChecks() {
           "strings read back");
     b.Seek(0);
     Check(!b.ReadString(&a, 4) && b.readPastEnd, "a string over the limit is refused with the error");
+
+    // A length past the high mark stops there, with the error, even with room left in the block.
+    GrowingBuffer cut;
+    const std::string cutText = "abcdef";
+    cut.WriteString(&cutText);
+    cut.Seek(0);
+    cut.high -= 3;
+    std::string got;
+    Check(cut.ReadString(&got, 0) && got == "abc" && cut.readPastEnd && cut.cur == cut.high,
+          "a string past the high mark is cut there, with the error");
+    GrowingBuffer huge;
+    huge.Put(std::uint32_t{0xFFFFFFF1});
+    huge.Seek(0);
+    Check(huge.ReadString(&got, 0) && got.empty() && huge.readPastEnd && huge.cur == huge.high,
+          "a huge length reads nothing past the end");
 }
 
 void CursorChecks() {

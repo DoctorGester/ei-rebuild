@@ -23,7 +23,8 @@ public:
     // Fields 1 class (4 bytes), 2 / 3 the flags (1 byte each), 4 the weights and weightsTail, 5 (both parties
     // without variables, then both stocks' lists: SaveLists / LoadLists), 6 restockDue (1 byte).
     void Serialize(ChunkArchive* ar) override;
-    ArchiveClass ArchiveType() const override { return ArchiveClass::ClassTemplate; }
+    static constexpr ArchiveClass kArchiveClass = ArchiveClass::ClassTemplate;
+    ArchiveClass ArchiveType() const override { return kArchiveClass; }
     // Both stocks take the kSchoolCount base and scroll levels.
     void SetLevels(const float (&base)[kSchoolCount], const float (&scroll)[kSchoolCount]);
 

@@ -12,12 +12,18 @@ bool GameBuffer::ReadString(std::string* s, int maxLength) {
     auto* bytes = reinterpret_cast<std::uint8_t*>(&word);
     Read(bytes, 1);
     if (word & 1) Read(bytes + 1, 3);
-    const int length = static_cast<int>(word) >> 1;
+    int length = static_cast<int>(word) >> 1;
     if (maxLength > 0 && length > maxLength) {
         readPastEnd = true;
         return false;
     }
-    if (cur + length > end) Reserve(length);
+    // As Read: a text longer than the data left is cut at the high mark, with the error.
+    if (cur > high) cur = high;
+    const int left = static_cast<int>(high - cur);
+    if (length < 0 || length > left) {
+        readPastEnd = true;
+        length = left;
+    }
     const char* first = reinterpret_cast<const char*>(cur);
     s->assign(first, first + length);
     text::FromAssetText(s);   // the wire's text is in the asset code page, as vanilla peers send it
