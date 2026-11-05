@@ -20,7 +20,6 @@
 #include "lib/vecmath.h"
 
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>

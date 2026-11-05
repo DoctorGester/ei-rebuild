@@ -331,8 +331,8 @@ float WeaponPrototypeSkillBonus(std::uint32_t itemId) {
 }
 
 float UnitParams::VisionRange(float daylight) {
-    float day = perception[1] * daylight * kPercent;
-    return (day + (1.0f - daylight)) * perception[0];
+    float day = perception[kSenseDaySight] * daylight * kPercent;
+    return (day + (1.0f - daylight)) * perception[kSenseSight];
 }
 
 void Unit::AdvanceTime(float time) {

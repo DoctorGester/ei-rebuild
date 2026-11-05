@@ -22,7 +22,6 @@
 #include "lib/rounding.h"
 
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -91,8 +90,6 @@ void AIMode::Enter(AIBrain* brain) {
     brain->owner->moveMode2.onGuard = 0;
 }
 
-void AIActionMode::Enter(AIBrain* brain) { brain->StopAction(); }
-
 // --- Guard ---------------------------------------------------------------------------------------
 
 void GuardMode::Set(const Vector3& p, float newRadius, float newWander) {
@@ -113,21 +110,18 @@ void GuardMode::Execute(AIBrain* brain) {
     if (brain->action != AIAction::None) return;
     SetPositions(brain, point, kNearRange + radius, kFarRange + radius);
 
-    AIMoveOrder order;
     std::optional<Vector3> stand = brain->FindStandPoint(point, radius);
     if (!stand) {
         if (++failures <= 100) return;
         stand = brain->FindStandPoint(brain->owner->unit->localPosition, radius);
         if (!stand) return;
     }
-    order.point = *stand;
     failures = 0;
-    Vector3 direction = order.point - point;
+    Vector3 direction = *stand - point;
     // A radius of 0 leaves the direction unscaled.
     if (radius != 0.0f) direction *= std::sqrt(LengthSquared(direction)) / radius * 0.5f;
     bool farLook = g_random.Next() % 11 == 0;
-    brain->PlanLooks(&order, direction, wander, farLook);
-    brain->StartMove(&order);
+    brain->StartMove({*stand, brain->PlanLooks(*stand, direction, wander, farLook)});
 }
 
 void GuardMode::Load(ByteStream* stream) {
@@ -158,13 +152,9 @@ void PatrolMode::Execute(AIBrain* brain) {
     if (points.empty() || brain->action != AIAction::None) return;
     if (++current >= std::ssize(points)) current = 0;
     const PatrolPoint& next = points[current];
-    AIMoveOrder order;
-    order.point = next.position;
-    order.looks = next.looks;
-    if (order.looks.empty()) {
-        brain->PlanLooks(&order, Vector3{}, kNoWander, false);
-    }
-    brain->StartMove(&order);
+    AIMoveOrder order{next.position, next.looks};
+    if (order.looks.empty()) order.looks = brain->PlanLooks(order.point, Vector3{}, kNoWander, false);
+    brain->StartMove(order);
     SetPositions(brain, order.point, kNearRange, kFarRange);
 }
 
@@ -188,7 +178,7 @@ void PatrolMode::Save(ByteStream* stream) {
     stream->WriteCount(points.size());
     for (const PatrolPoint& point : points) {
         stream->WriteValue(point.position);
-        SaveLooks(&point.looks, stream);
+        SaveLooks(point.looks, stream);
     }
     stream->WriteValue(current);
 }
@@ -198,14 +188,11 @@ void PatrolMode::Save(ByteStream* stream) {
 void SentryMode::Execute(AIBrain* brain) {
     AIMode::Execute(brain);
     if (brain->action != AIAction::None) return;
-    AIMoveOrder order;
-    order.point = point;
     bool farLook = g_random.Next() % 11 == 0;
     // A far look waits up to the guards' stay time, a near one the sentries'.
     float stayTime = farLook ? g_logicSettings.guardStayTime : g_logicSettings.sentryStayTime;
-    brain->PlanLooks(&order, Vector3{}, stayTime, farLook);
-    brain->StartMove(&order);
-    SetPositions(brain, order.point, kNearRange, kFarRange);
+    brain->StartMove({point, brain->PlanLooks(point, Vector3{}, stayTime, farLook)});
+    SetPositions(brain, point, kNearRange, kFarRange);
 }
 
 void SentryMode::Load(ByteStream* stream) { stream->ReadValue(point); }
@@ -263,17 +250,14 @@ void SuspectionMode::Execute(AIBrain* brain) {
     } else {
         order.point = point;
     }
-    brain->PlanLooks(&order, Vector3{}, kNoWander, false);
-    brain->StartMove(&order);
+    order.looks = brain->PlanLooks(order.point, Vector3{}, kNoWander, false);
+    brain->StartMove(order);
     level = brain->memory.noticedLevel;
 }
 
 void SuspectionMode::Enter(AIBrain* brain) {
     brain->owner->moveMode2.onGuard = 1;
-    AIMoveOrder order;
-    order.point = point;
-    brain->PlanLooks(&order, Vector3{}, kNoWander, false);
-    brain->StartMove(&order);
+    brain->StartMove({point, brain->PlanLooks(point, Vector3{}, kNoWander, false)});
     brain->owner->voice.Raise(AIRemark::Suspicion);
 }
 
@@ -318,7 +302,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     }
     if (!brain->memory.seesEnemy) return kPriorityNone;
     UnitList candidates = brain->memory.FindEnemies(self);
-    chosen = brain->Choose(&candidates, self->localPosition, false, false);
+    chosen = brain->Choose(candidates, self->localPosition, false, false);
     enemy.Assign(chosen.object);
     return chosen.object ? kPriorityFight : kPriorityNone;
 }
@@ -327,7 +311,7 @@ void AggressionMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, AIRemark::FightingIdle);
     if (!chosen.object) return;
     brain->CallAllies(chosen.object->localPosition);
-    brain->ApplyAttack(&chosen);
+    brain->ApplyAttack(chosen);
 }
 
 void AggressionMode::Enter(AIBrain* brain) {
@@ -454,7 +438,7 @@ void PlayerMode::Execute(AIBrain* brain) {
         } else if (danger || StaysWithParty(brain, false)) {
             point.z = kWalking;
             Vector3 to{point.x, point.y, kUnsetCoordinate};
-            brain->Walk(to, 0);
+            brain->Walk(to, false);
         }
         if (state == PlayerState::MoveTo) UpdateCombat(brain);
         return;
@@ -537,6 +521,8 @@ void PlayerMode::SetLeader(AIBrain* brain, Unit* newLeader) {
     leader.Assign(newLeader);
 }
 
+void PlayerMode::Enter(AIBrain* brain) { brain->StopAction(); }
+
 void PlayerMode::OnObjectDeleted(EngineObject* object) {
     if (target == object) target.Reset();
     if (leader == object) leader.Reset();
@@ -606,8 +592,8 @@ bool IsUnset(const Vector3& point) { return point.x == kUnsetCoordinate; }
 // A flight point 5 from the enemy's side of the unit and within 3 of it at random, accepted when a
 // path there is not too roundabout and the order check from the path's end (at most 1 from the
 // point) lets the unit attack `enemy` from there.
-bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const Vector3& foe, float dx, float dy,
-                     Vector3* out) {
+std::optional<Vector3> FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, const Vector3& me, const Vector3& foe,
+                                       float dx, float dy) {
     Vector3 away{dx, dy, foe.z - me.z};
     ScaleToFlightStep(away, Length(away));
     float jitterX = g_random.Range(-kFlightSpread, kFlightSpread);
@@ -617,18 +603,17 @@ bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const 
 
     AIPath path;
     float way = Distance(dest, me);
-    if (!g_serverWorld.aiMap.FindPath(self, dest, &path, PathRange(way), kMinDistance)) return false;
+    if (!g_serverWorld.aiMap.FindPath(self, dest, &path, PathRange(way), kMinDistance)) return std::nullopt;
     float limit = 2.0f * way * kDetourScale;
-    if (limit < static_cast<float>(path.smoothing)) return false;
+    if (limit < static_cast<float>(path.smoothing)) return std::nullopt;
     Vector3 end = WithZ(0.5f * path.target, 0.0f);
 
     AIOrder order;
     order.MakeAttack(enemy);
-    if (!brain->owner->CanReachAndPlanFrom(&order, end)) return false;
+    if (!brain->owner->CanReachAndPlanFrom(&order, end)) return std::nullopt;
     Vector3 e = dest - end;
-    if (LengthSquared(e) >= 1.0f) return false;
-    *out = dest;
-    return true;
+    if (LengthSquared(e) >= 1.0f) return std::nullopt;
+    return dest;
 }
 } // namespace
 
@@ -659,9 +644,8 @@ int FearMode::Evaluate(AIBrain* brain) {
         float dy = foe.y - me.y;
         if (range * range > LengthSquared2D(dx, dy)) {
             if (brain->owner->action.kind == UnitOrderKind::Move || brain->owner->action2.kind == UnitOrderKind::Move) return kFlee;
-            Vector3 flight;
-            if (FindFlightPoint(brain, self, enemy, me, foe, dx, dy, &flight)) {
-                fleePoint = flight;
+            if (std::optional<Vector3> flight = FindFlightPoint(brain, self, enemy, me, foe, dx, dy)) {
+                fleePoint = *flight;
                 fleePoint.z = 1.0f;
                 return kFlee;
             }
@@ -707,7 +691,6 @@ int FearMode::Evaluate(AIBrain* brain) {
 }
 
 void FearMode::Execute(AIBrain* brain) {
-    AIMoveOrder order;
     UnitServer* owner = brain->owner;
     const Vector3& here = owner->unit->localPosition;
 
@@ -757,14 +740,10 @@ void FearMode::Execute(AIBrain* brain) {
 
     if (brain->action == AIAction::None) {
         // Fight back when there is something worth it (helping allies too).
-        UnitList candidates;
-        Vector3 at = brain->owner->unit->localPosition;
-        AITargetChoice best = brain->Choose(&candidates, at, true, true);
-        brain->ApplyAttack(&best);
+        brain->ApplyAttack(brain->Choose(UnitList{}, brain->owner->unit->localPosition, true, true));
 
         if (brain->action == AIAction::None) {
             // Stand still and look away from the danger.
-            order.point = brain->owner->unit->localPosition;
             Vector3 v = from - here;
             Vector3 direction = v;
             float length = Length(v);
@@ -772,8 +751,7 @@ void FearMode::Execute(AIBrain* brain) {
                 float twice = length + length;
                 direction = v / twice;
             }
-            brain->PlanLooks(&order, direction, kNoWander, false);
-            brain->StartMove(&order);
+            brain->StartMove({here, brain->PlanLooks(here, direction, kNoWander, false)});
         }
     }
 }
@@ -800,7 +778,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     // The commanded target first, when it can be reached from here.
     if (target && !target->IsDead()) {
         AITargetChoice choice{kWeaponPart, static_cast<Unit*>(target.Get())};   // taken as a unit
-        if (brain->CanReach(&choice, true)) {
+        if (brain->CanReach(choice, true)) {
             brain->AttackTarget(target);
             return;
         }
@@ -825,7 +803,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     });
     AddPartyTargets(brain, &candidates);
     unit->flags |= MapObjectFlag::ChoosingTarget;
-    AITargetChoice best = brain->Choose(&candidates, unit->localPosition, false, false);
+    AITargetChoice best = brain->Choose(candidates, unit->localPosition, false, false);
     unit->flags &= ~MapObjectFlag::ChoosingTarget;
 
     Unit* chosen = best.object;
@@ -842,7 +820,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 theirs->StopAction();
             }
         }
-        brain->ApplyAttack(&best);
+        brain->ApplyAttack(best);
         target.Reset();
     }
 }
@@ -937,12 +915,10 @@ constexpr float kSamePointSq = 0.01f;
 
 } // namespace
 
-void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wander, bool farGoal) {
-    std::vector<AILook>& planned = order->looks;
-    planned.clear();
-
+std::vector<AILook> AIBrain::PlanLooks(const Vector3& point, const Vector3& direction, float wander, bool farGoal) {
+    std::vector<AILook> planned;
     int count = static_cast<int>(g_random.Next() & 3) + 1;
-    Vector3 eye = order->point;
+    Vector3 eye = point;
     eye.z = g_serverWorld.aiMap.TopHeightAt(eye) + kEyeHeight;
     if (wander >= 0.0f) wander = wander * kWanderScale;
     else wander = kDefaultWander;   // also NaN
@@ -978,6 +954,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
         look.stopFirst = farGoal;
         planned.push_back(look);
     }
+    return planned;
 }
 
 std::optional<Vector3> AIBrain::FindStandPoint(const Vector3& point, float radius) {

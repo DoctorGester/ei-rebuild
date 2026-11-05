@@ -21,9 +21,14 @@ void LoadRef(Ref<T>& ref, ByteStream* stream, World* world) {
 template void LoadRef(Ref<MapObject>&, ByteStream*, World*);
 template void LoadRef(Ref<Unit>&, ByteStream*, World*);
 
-// Reads a count, then that many counted references that replace the list, each loaded in `context` (the
-// trap's units, the brain's lists).
-void CountedListLoad(HeldUnits* list, ByteStream* stream, World* context) {
-    list->clear();
-    for (int count = stream->ReadCount(); count > 0; --count) LoadRef(list->emplace_back(), stream, context);
+// The trap's units and the brain's lists.
+HeldUnits LoadUnitList(ByteStream* stream, World* context) {
+    HeldUnits list;
+    for (int count = stream->ReadCount(); count > 0; --count) LoadRef(list.emplace_back(), stream, context);
+    return list;
+}
+
+void SaveUnitList(const HeldUnits& list, ByteStream* stream) {
+    stream->WriteCount(list.size());
+    for (const HeldRef<Unit>& unit : list) stream->WriteId(unit);
 }

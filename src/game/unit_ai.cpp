@@ -24,7 +24,6 @@
 #include "lib/str.h"
 
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -241,7 +240,7 @@ void AIBrain::UpdateMove() {
         actionTime = kLookStarted;
         const AILook& look = move.looks.front();
         const Vector3 direction = {lib::Cos(look.angle), lib::Sin(look.angle), 0.0f};
-        owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
+        owner->OrderTurn(direction, look.time);
         return;
     }
     if (actionTime == kLookStarted) {
@@ -289,7 +288,7 @@ void AIBrain::AttackTarget(MapObject* object) {
     owner->OrderAttack(target, kAttackAllParts, 0, flags);
 }
 
-void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, int run) {
+void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, bool run) {
     if (!object) return;
     action = AIAction::Use;
     target.Reset();
@@ -311,32 +310,31 @@ void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, int run) {
     }
 }
 
-void AIBrain::StartMove(const AIMoveOrder* order) {
+void AIBrain::StartMove(const AIMoveOrder& order) {
     target.Reset();
     action = AIAction::Move;
     actionTime = kNoTime;
-    move.point = order->point;
-    move.looks = order->looks;
+    move = order;
     owner->OrderMove(move.point, 0, 0);
 }
 
-void AIBrain::Walk(const Vector3& point, int run) {
+void AIBrain::Walk(const Vector3& point, bool run) {
     action = AIAction::Walk;
     owner->OrderMove(point, run, 0);
 }
 
 void AIBrain::TurnTowards(const Vector3& direction, float time) {
     action = AIAction::Walk;
-    owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
+    owner->OrderTurn(direction, time);
 }
 
-void AIBrain::CastAt(int spell, const Vector3& point, int run) {
+void AIBrain::CastAt(int spell, const Vector3& point, bool run) {
     if (!owner->IsPotionSource(spell)) action = AIAction::Cast;
     actionTime = spell;
     owner->OrderCastAt(spell, point, run);
 }
 
-void AIBrain::CastOn(int spell, MapObject* object, int run) {
+void AIBrain::CastOn(int spell, MapObject* object, bool run) {
     if (!owner->IsPotionSource(spell)) action = AIAction::Cast;
     target.Assign(object);
     actionTime = spell;
@@ -441,24 +439,7 @@ void AIBrain::Reset() {
     seen.Reset();
 }
 
-void AIBrain::Init() {
-    Reset();
-    owner = nullptr;
-    alerted = false;
-    alarm = 0;
-    alarmCountdown = 1;
-    alarmSlot = 0;
-    actionTime = kNoTime;
-    memory.seesEnemy = false;
-    alarmRecords.clear();
-    callRadius = kInitialCallRadius;
-    position = Vector3{0.0f, 0.0f, 0.0f};
-    alertMode = mapspec::AlertMode::OnSight;
-    alwaysUpdated = false;
-    standCooldown = 0;
-    followTimer = 0;
-    previousPosition = Vector3{0.0f, 0.0f, 0.0f};
-}
+void AIBrain::Init() { *this = AIBrain{}; }
 
 void AIMemory::Reset() {
     nearby.clear();
@@ -635,7 +616,7 @@ void AIBrain::Load(ByteStream* stream) {
 void AIBrain::Save(ByteStream* stream) {
     stream->WriteValue(action);
     stream->WriteValue(move.point);
-    SaveLooks(&move.looks, stream);
+    SaveLooks(move.looks, stream);
     stream->WriteValue(actionTime);
     stream->WriteId(target);
     stream->WriteId(seen);
@@ -688,22 +669,17 @@ AITargetChoice AIBrain::CurrentAttack() {
     return choice;
 }
 
-void AIBrain::LookAround() {
-    UnitList candidates;
-    Vector3 from = owner->unit->localPosition;
-    AITargetChoice best = Choose(&candidates, from, true, false);
-    ApplyAttack(&best);
-}
+void AIBrain::LookAround() { ApplyAttack(Choose(UnitList{}, owner->unit->localPosition, true, false)); }
 
-void AIBrain::ApplyAttack(const AITargetChoice* choice) {
-    Unit* object = choice->object;
+void AIBrain::ApplyAttack(const AITargetChoice& choice) {
+    Unit* object = choice.object;
     if (!object) return;
     AITargetChoice now = CurrentAttack();
-    if (object == now.object && choice->part == now.part) return;
-    if (choice->part == kWeaponPart)
+    if (object == now.object && choice.part == now.part) return;
+    if (choice.part == kWeaponPart)
         AttackTarget(object);
     else
-        CastOn(choice->part, object, 0);
+        CastOn(choice.part, object, false);
 }
 
 // --- Behaviour (alarm) records: the zone file's records copied into the brain and one applied as the
@@ -827,15 +803,6 @@ void AIBrain::ResetBehaviour() {
 
 // --- Save-game helpers: the looks and the perception memory ----------------------------------------------
 
-namespace {
-
-// Each object's counted reference (its id) of a memory list.
-void SaveObjectList(const HeldUnits& list, ByteStream* stream) {
-    stream->WriteCount(list.size());
-    for (const HeldRef<Unit>& unit : list) stream->WriteId(unit);
-}
-} // namespace
-
 std::vector<AILook> LoadLooks(ByteStream* stream) {
     std::vector<AILook> looks(stream->ReadCount());
     for (AILook& look : looks) {
@@ -847,9 +814,9 @@ std::vector<AILook> LoadLooks(ByteStream* stream) {
     return looks;
 }
 
-void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream) {
-    stream->WriteCount(looks->size());
-    for (const AILook& look : *looks) {
+void SaveLooks(const std::vector<AILook>& looks, ByteStream* stream) {
+    stream->WriteCount(looks.size());
+    for (const AILook& look : looks) {
         stream->WriteValue(look.angle);
         stream->WriteValue(look.time);
         stream->WriteValue(look.wait);
@@ -859,10 +826,10 @@ void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream) {
 
 void AIMemory::Load(ByteStream* stream) {
     noticedDecay = -1;
-    CountedListLoad(&nearby, stream, &g_serverWorld);
-    CountedListLoad(&visible, stream, &g_serverWorld);
-    CountedListLoad(&seenCorpses, stream, &g_serverWorld);
-    CountedListLoad(&corpses, stream, &g_serverWorld);
+    nearby = LoadUnitList(stream, &g_serverWorld);
+    visible = LoadUnitList(stream, &g_serverWorld);
+    seenCorpses = LoadUnitList(stream, &g_serverWorld);
+    corpses = LoadUnitList(stream, &g_serverWorld);
     stream->ReadValue(noticed);
     stream->ReadValue(noticedLevel);
     stream->ReadValue(nearbyCountdown);
@@ -909,10 +876,10 @@ void AIHeardCalls::Save(ByteStream* stream) const {
 }
 
 void AIMemory::Save(ByteStream* stream) {
-    SaveObjectList(nearby, stream);
-    SaveObjectList(visible, stream);
-    SaveObjectList(seenCorpses, stream);
-    SaveObjectList(corpses, stream);
+    SaveUnitList(nearby, stream);
+    SaveUnitList(visible, stream);
+    SaveUnitList(seenCorpses, stream);
+    SaveUnitList(corpses, stream);
     stream->WriteValue(noticed);
     stream->WriteValue(noticedLevel);
     stream->WriteValue(nearbyCountdown);

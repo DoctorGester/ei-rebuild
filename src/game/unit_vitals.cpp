@@ -350,24 +350,30 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
         float old = strongest[type];
         strongest[type] = SelectLess(old, value, value, old);
     }
-    float general = strongest[0x1A];
-    vitals->protection[3].current = SelectLess(strongest[9], general, general, strongest[9]) + vitals->protection[3].current;
-    vitals->protection[5].current = SelectLess(strongest[10], general, general, strongest[10]) + vitals->protection[5].current;
-    vitals->protection[4].current = SelectLess(strongest[11], general, general, strongest[11]) + vitals->protection[4].current;
-    perception[kSenseSight].current = strongest[12] + perception[kSenseSight].current;
-    perception[kSenseDaySight].current = strongest[13] + perception[kSenseDaySight].current;
-    perception[kSenseNear].current = strongest[14] + perception[kSenseNear].current;
-    float lowered = conspicuity[kSenseSight].current - strongest[15] * kPercentB;
+    auto strongestOf = [&strongest](SpellType type) { return strongest[static_cast<int>(type)]; };
+    // A protection spell adds the larger of its own and Antimagic's value to its damage type's protection.
+    const float general = strongestOf(SpellType::Antimagic);
+    auto protect = [vitals, general](DamageType damage, float own) {
+        float& protection = vitals->protection[static_cast<int>(damage)].current;
+        protection = SelectLess(own, general, general, own) + protection;
+    };
+    protect(DamageType::Fire, strongestOf(SpellType::ProtectionFromFire));
+    protect(DamageType::Lightning, strongestOf(SpellType::ProtectionFromLightning));
+    protect(DamageType::Acid, strongestOf(SpellType::ProtectionFromAcid));
+    perception[kSenseSight].current = strongestOf(SpellType::EagleSight) + perception[kSenseSight].current;
+    perception[kSenseDaySight].current = strongestOf(SpellType::Infravision) + perception[kSenseDaySight].current;
+    perception[kSenseNear].current = strongestOf(SpellType::DetectLife) + perception[kSenseNear].current;
+    float lowered = conspicuity[kSenseSight].current - strongestOf(SpellType::Invisibility) * kPercentB;
     float l = lowered;
     conspicuity[kSenseSight].current = SelectLess(0.0f, l, l, 0.0f);
-    lowered = conspicuity[kSenseHearing].current - strongest[16];
+    lowered = conspicuity[kSenseHearing].current - strongestOf(SpellType::Silence);
     l = lowered;
     conspicuity[kSenseHearing].current = SelectLess(0.0f, l, l, 0.0f);
-    lowered = conspicuity[kSenseNear].current - strongest[17];
+    lowered = conspicuity[kSenseNear].current - strongestOf(SpellType::Lichdom);
     l = lowered;
     conspicuity[kSenseNear].current = SelectLess(0.0f, l, l, 0.0f);
-    conspicuity[kSenseSlot4].current = strongest[19] + conspicuity[kSenseSlot4].current;
-    float hasteDelta = strongest[0x21] - strongest[0x22];
+    conspicuity[kSenseSlot4].current = strongestOf(SpellType::Stench) + conspicuity[kSenseSlot4].current;
+    float hasteDelta = strongestOf(SpellType::Speed) - strongestOf(SpellType::Slow);
 
     if (keyed) {
         float curve =

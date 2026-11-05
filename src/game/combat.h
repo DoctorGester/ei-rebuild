@@ -299,8 +299,9 @@ public:
     // A carrier pays from its charge (not enough: nothing is cast), a party unit from its mana; noise unless
     // the spell's castType is 1.
     void FinishCast();
-    // Order setters: each replaces the queued order (action2). A Turn towards `direction`; param = `time`.
-    void OrderTurn(const Vector3& direction, std::uint32_t time);
+    // Order setters: each replaces the queued order (action2). A Turn towards `direction`; param = the bits of
+    // `time` (sic: the AI passes a turning time as a float and the turn reads the bits as its tick count).
+    void OrderTurn(const Vector3& direction, float time);
     // A Move to `point`: source = `walk` != 0, modifier = `run`. A party unit with a real point (z not -1313)
     // gets param 1 while the world is not paused, else plans the move at once (PlanMove).
     void OrderMove(const Vector3& point, int run, int walk);

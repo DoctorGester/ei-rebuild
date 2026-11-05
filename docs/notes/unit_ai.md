@@ -1,7 +1,8 @@
 # Unit AI: brain, modes and actions
 
-Code: `src/game/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (brain Think /
-lookups / actions in unit_ai.cpp; modes, senses, targets, save). Scenarios: `unit_ai.txt`, `unit_ai_fear.txt`,
+Code: `src/game/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (in unit_ai.cpp
+the brain's Think, lookups, AIOrder's members, actions and movement, resets, calls, memory, behaviour records and save;
+modes, senses, targets). Scenarios: `unit_ai.txt`, `unit_ai_fear.txt`,
 `unit_ai_attack_removed`, `script_exec` (UMClear, UM*, UMAg, Guard / Sentry), `combat_more` (a death), `world_load`,
 every spawn; `unit_ai_flight` (an archer in Fear mode steps away from the hero: FindFlightPoint), `party_leader_switch`
 (PlayerMode::SetLeader through the battle screen's follow button, CommandGoTo with Ctrl, StaysWithParty, SeeCorpse of a
@@ -21,7 +22,8 @@ RestoreCell, BridgeDeckAt).
   Load creates modes by type; an unknown type leaves Load at once (kept).
 - The perception memory `AIMemory`: lists of counted object references (nearby, visible, seen corpses, corpses), reports
   (`AIReports`) and heard calls (`AIHeardCalls`), `sightCells`, `nearbyCountdown`; the alarm records (`AIAlarmRecordArray`,
-  the map spec's behaviour record); `callRadius` (10 after Init; equal to [Logic] CallForHelpRadiusDefault becomes
+  the map spec's behaviour record); `AIBrain::Init` (the controller's reset) assigns a new brain, attention and sight-cell
+  cache included (a reset controller is only created or torn down); `callRadius` (10 after Init; equal to [Logic] CallForHelpRadiusDefault becomes
   CallForHelpRadius on load, NaN too); FindStandPoint's cooldown (after a failure, a third of the distance in calls, at
   most 10); UpdateFollow's timer (acts from 8; an order sets 0 or 6). The attention: two arrays of `AIAttackOption`
   (`weapons`: the weapon and the attack spells, kinds 1..4; `spells`: the helping ones, 5..7) and the heal weight.

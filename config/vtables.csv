@@ -142,7 +142,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D190,13,,game,004BA360 004BA3B0 004BA3F0 005D65B0 005D8310,004BA420,SentryMode,src/game/unit_ai.h,the Sentry AI mode
 0073D1C4,13,,game,004BA450 004BA4A0 004BA510 004BA5B0 005D8310,004BA590,FollowMode,src/game/unit_ai.h,the Follow AI mode
 0073D1F8,13,,game,004BA610 004BA630 004BA6B0 005D63B0 005D8310,004BA6E0,SuspectionMode,src/game/unit_ai.h,the Suspection AI mode
-0073D22C,13,,game,004BA630 004BA730 00551E10 00551F50 005D2880 005D6D10,004BA680,AIActionMode,src/game/unit_ai.h,the acting AI modes' abstract base
+0073D22C,13,,game,004BA630 004BA730 00551E10 00551F50 005D2880 005D6D10,004BA680,AIActionMode,-,"the acting AI modes' abstract base; folded into AIMode (C147: PlayerMode::Enter stops the action)"
 0073D260,13,,game,004BA710 004BA730 004BA7C0 004BA830 004BA8C0 005D63F0 005D8310,004BA8A0,AggressionMode,src/game/unit_ai.h,the Aggression AI mode
 0073D294,13,,game,004BA920 004BA930 004BA950 005D6440 005D8310,004BA990,CorpseWatcherMode,src/game/unit_ai.h,the CorpseWatcher AI mode
 0073D2C8,3,,game,004BB000 004BB020 004CB710 0066C540 0066C770,007005E3,PartySlotArrayClass,-,CArray (the script's party slots); stored only by game.exe (ours is a std::vector)

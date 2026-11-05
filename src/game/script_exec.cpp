@@ -655,7 +655,7 @@ bool ScriptRun::Execute(Script* script) {
             const float x = args.Float();
             const float y = args.Float();
             Vector3 point = {x, y, 0.0f};
-            state->brain.Walk(point, 0);
+            state->brain.Walk(point, false);
             break;
         }
         case ScriptFunction::RotateTo: {   // RotateTo(unit, x, y)
@@ -673,7 +673,7 @@ bool ScriptRun::Execute(Script* script) {
             MapObject* target = args.Object().object;
             if (!state || !target) break;
             Vector3 point = {target->localPosition.x, target->localPosition.y, 0.0f};
-            state->brain.Walk(point, 0);
+            state->brain.Walk(point, false);
             break;
         }
         case ScriptFunction::Follow: {   // Follow(unit, leader)
@@ -701,7 +701,7 @@ bool ScriptRun::Execute(Script* script) {
             float y = args.Float();
             float z = g_serverWorld.GridHeight(x, y);
             Vector3 point = {x, y, z};
-            state->brain.CastAt(0, point, 0);
+            state->brain.CastAt(0, point, false);
             break;
         }
         case ScriptFunction::CastSpellPoint:   // CastSpellPoint(spell, x, y, x2, y2)
