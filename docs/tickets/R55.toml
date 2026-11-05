@@ -4,5 +4,5 @@ group = "renderer"
 model = "sonnet"
 note = "From C87 (R12 deleted the renderer's front caches over gpu.cpp's own). gpu.cpp caches built pipelines but not failures, so a pipeline that fails to build is retried on every draw; the terrain failure log is rate-limited with LogFirst, the mesh one is not. Keep a failed key in gpu.cpp's cache (one log line, then skip), so every caller gets it. Check with a forced failure in a unit check if gpu_check has a way; goldens the same."
 order = 1158
-status = "running"
+status = "review"
 started = "2026-11-05"

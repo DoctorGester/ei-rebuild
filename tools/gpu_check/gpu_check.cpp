@@ -617,6 +617,7 @@ void CheckMisuse() {
     g::PipelineDesc missing = CasterDesc();
     missing.attributeCount = 1;
     Check(!g::MakePipeline(missing), "a pipeline without the program's inputs refused");
+    Check(!g::MakePipeline(missing, "again") && g::Problems() - before == 5, "a refused pipeline remembered, not tried again");
     Check(!g::MakeTexture({4, 4, 1, 1, g::Format::R8Uint, g::kSampled, "sampled uint"}),
           "a sampled uint texture refused");
     Check(g::Problems() - before == 6, "each misuse counted once");
