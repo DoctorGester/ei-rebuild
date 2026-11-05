@@ -139,6 +139,16 @@ The renderer's frame: game code hands data over while running its draw code, as 
 capture) draws them with depth; the swap chain's present shows it (section 9). Per-frame data is rebuilt every frame
 unless kept on the GPU (section 13); textures are kept per holder.
 
+A frame step without a present (`app::FrameStep(false)`: a frame drawn for a copy of the screen, the quick save's
+picture and the windows' backdrops) is a renderer frame of its own: `render::EndUnshownFrame()` draws it into the frame
+target, which keeps it for the copies taken after it (they run before the next frame's first pass), and begins a new
+frame. Before R60 its draws stayed in the frame and the next step's were added to them: the shown frame's once-a-frame
+passes (the shadow maps, the point shadows, the occlusion, the sky reflection) and its kept state came from the first
+draw's hand-over, so a new game's autosave frame (QuickSave: the unshown frame for its picture, then "saving..." over
+the scene, the first frame shown) was lit otherwise than every frame after it: the meshes warmer and lighter, 15-18%
+of the world view off by more than 8 (the user's Lost in Astral start at the camp fire, 2026-11-05; vanilla's zone1
+alike). Scenario render_save_frame: the save's frame and the next (the same tick) match in the world view.
+
 Conventions taken over: Direct3D clip space (the game's projection already produces it), Direct3D 7 pixel centres (3D
 draws shift their clip positions by half a pixel, `Frame::pixelShift`, because the viewport is kept in whole pixels
 (gpu.h's `SetViewport` takes a `Rect`); a clip -0.5..0.5 square covers pixels 16..47 of 64, a screen-pixel mesh from 8 to 24 covers 8..23),

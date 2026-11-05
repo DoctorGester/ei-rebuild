@@ -1,9 +1,9 @@
 id = "R60"
-title = "Lost in Astral new game: the first frames (the start's autosave) are lit differently from the frames after"
+title = "Lost in Astral new game: the first frame (start autosave) lit differently from the frames after"
 group = "renderer"
-size = 1
+size = 2
 model = "opus"
-note = "User 2026-11-05 (two frames of a recording, Lost in Astral's start by the campfire at sunset): the new game's first frame is the autosave ('Запись игры...'), and its lighting differs from the frames right after (the campfire's glow, the ground's light). Find what differs between the save frame and the next (time of day set by the mod's script, lights not yet registered, the sun map or relight countdown, the frame drawn before the zone's lighting settles); fix so the first frame already has the zone's settled lighting (one uniform path), with a scenario comparing the save frame with a frame a second later."
+note = "User report 2026-11-05: starting a new game in Lost in Astral (Rebirth, starter\\Mods\\LostInAstral), the first frame shown is the start's autosave over the campfire scene at sunset, and its lighting (campfire glow, ground light) differs from the next frames. Reproduce with a scenario (save frame + ~1 s later, log time of day / sun / ambient / point lights), find the cause and fix it so the first frame drawn already has the zone's settled lighting; one uniform path, no mod special case, no render flags. Keep a scenario comparing the two frames (samecapture over the region). Before/after frames on the captures page (build/captures/r60/). Cause: QuickSave draws a frame for the save's picture without presenting (app::FrameStep(false)) and then the status frame; the second draw was added to the first one's renderer frame, whose once-a-frame passes (shadow maps, point shadows, occlusion, sky reflection) and state came from the first. Not the time of day or the mod's script. Fix: render::EndUnshownFrame at the end of an unshown frame step. Scenario render_save_frame."
 order = 1240
-status = "running"
+status = "review"
 started = "2026-11-05"

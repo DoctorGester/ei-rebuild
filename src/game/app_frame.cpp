@@ -14,6 +14,7 @@
 #include "main_loop.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -43,7 +44,11 @@ void FrameStep(bool draw) {
     g_interface.Draw();
     g_sceneRenderer.EndScene();
     g_interface.DrawOverlays();
-    if (!draw || !Running()) return;
+    if (!draw) {
+        render::EndUnshownFrame();
+        return;
+    }
+    if (!Running()) return;
     // The harness's frame capture reads the finished frame here (game/main_loop.h).
     if (auto hook = ei::mainloop::g_harnessHooks.beforePresent) hook();
     CursorDrawFrame(&g_cursor);
