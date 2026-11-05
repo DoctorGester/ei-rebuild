@@ -962,7 +962,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {
         const auto& lists = s->tiles[q];
-        inView = s->quarterMode[q] != terrain::kCulled && page < std::ssize(lists) && !lists[page].empty() &&
+        inView = s->quarterMode[q] != TransformPipeline::kClipOutside && page < std::ssize(lists) && !lists[page].empty() &&
                  std::ssize(lists[page]) >= 9;
     }
     if (!inView) return;
@@ -1015,7 +1015,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     std::size_t firstPiece = f.terrainPieces.size();
     for (int q = 0; q < 4; ++q) {
         const QuarterRange& range = p.quarters[q];
-        if (s->quarterMode[q] == terrain::kCulled || range.indexCount == 0) continue;
+        if (s->quarterMode[q] == TransformPipeline::kClipOutside || range.indexCount == 0) continue;
         if (!upload && ReadColours(s, p, range.firstVertex, range.firstVertex + range.vertexCount)) relit = true;
         f.terrainPieces.push_back(TerrainPiece{&p, q});
     }

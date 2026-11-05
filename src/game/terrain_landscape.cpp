@@ -33,9 +33,7 @@
 #include <vector>
 
 namespace terrain {
-
 namespace {
-
 
 // How many frames an unused sector stays cached before a load may reuse or free it.
 constexpr int kSectorAge = 240;

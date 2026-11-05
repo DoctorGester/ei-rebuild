@@ -1,4 +1,4 @@
-// The landscape's height queries (terrain.h): vertices, heights, the surface and its texture class.
+// The landscape (terrain.h): height queries, edge fade, ground decal triangles, draw passes and the per-frame update.
 #include "terrain.h"
 
 #include "camera.h"
@@ -54,7 +54,39 @@ SplitVertex SplitOf(int v) {
     return {sector, vertex};
 }
 
+// The ground decal's quad is padded by one cell.
+constexpr float kMargin = 1.0f;
+
+// A cell bound: the coordinate rounded to nearest.
+int CellBound(float v) { return std::lround(v); }
+
+Vector3 Corner(const VertexPacket& quad, int corner) { return {quad.x()[corner], quad.y()[corner], quad.z()[corner]}; }
+
+constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
+
+// Calls `visit(sector)` for every visible sector (ShowAllSectors' rows and columns) that is there once built.
+template <typename Visit>
+void ForVisibleSectors(Terrain* terrain, Visit visit) {
+    const Terrain::SectorRect& visible = terrain->visible;
+    for (int sy = visible.firstY; sy <= visible.lastY; ++sy)
+        for (int sx = visible.firstX; sx <= visible.lastX; ++sx)
+            if (SectorData* sector = terrain->SectorAt(sx, sy, SectorStage::Built, true)) visit(sector);
+}
+
+bool HasTilesOn(const SectorData* sector, int page) {
+    for (const auto& quarter : sector->tiles)
+        if (!quarter[page].empty()) return true;
+    return false;
+}
+
 } // namespace
+
+// --- Class name and id ------------------------------------------------------------------------------
+
+const char* Terrain::ClassName() { return "CTerrain"; }
+ClassId Terrain::GetClassId() { return ClassId::Terrain; }
+
+// --- Height queries ----------------------------------------------------------------------------------
 
 const Vector3* Terrain::VertexAt(int ix, int iy, Layer layer) {
     if (ix < 0 || iy < 0) return nullptr;
@@ -133,7 +165,7 @@ int Terrain::SurfaceClass(float x, float y) {
     SectorData* sector = SectorAt(ix / kSectorCells, iy / kSectorCells, SectorStage::Built, true);
     int tile = (iy % kSectorCells) / 2 * kSectorTiles + (ix % kSectorCells) / 2;
     if (!sector) return kOutsideClass;
-    if (sector->hasWater && sector->waterTiles[tile] != -1) {
+    if (sector->hasWater && sector->waterTiles[tile] != kNoMaterial) {
         float water = HeightAt(x, y, Layer::Water);
         const float ground = HeightAt(x, y, Layer::Ground);
         if (ground < water) return textureClass[sector->tileTextures[tile + kLayerTiles]];
@@ -141,19 +173,10 @@ int Terrain::SurfaceClass(float x, float y) {
     return textureClass[sector->tileTextures[tile]];
 }
 
-} // namespace terrain
-
-// --- Class name and id ------------------------------------------------------------------------------
-
-const char* terrain::Terrain::ClassName() { return "CTerrain"; }
-ClassId terrain::Terrain::GetClassId() { return ClassId::Terrain; }
-
-// --- Shadow ------------------------------------------------------------------------------------------
+// --- Edge fade ---------------------------------------------------------------------------------------
 
 // The fade of the light at the map's edges (terrain.h): from the sector build (the fog factor of the vertices'
 // specular words), the figures' draws and the ground prints.
-
-namespace terrain {
 
 std::uint8_t Terrain::EdgeFade(const Vector3& point) {
     if (!lib::Has(landscapeFlags, LandscapeFlag::EdgeFade)) return 0xFF;
@@ -174,27 +197,11 @@ std::uint8_t Terrain::EdgeFade(const Vector3& point) {
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));
 }
 
-} // namespace terrain
+// --- Ground decal ------------------------------------------------------------------------------------
 
-// --- Decal -------------------------------------------------------------------------------------------
-
-// The terrain part of a ground decal (the shadow projector). The decal quad is
-// slid along the builder's slope until its lowest point matches the lowest ground vertex under
-// its bounding cells; the ground cells of that rectangle then go to the builder as two triangles
-// each.
-
-namespace terrain {
-namespace {
-
-constexpr float kMargin = 1.0f;   // one cell around the quad
-
-// A cell bound: the coordinate rounded to nearest.
-int CellBound(float v) { return std::lround(v); }
-
-Vector3 Corner(const VertexPacket& quad, int corner) { return {quad.x()[corner], quad.y()[corner], quad.z()[corner]}; }
-
-} // namespace
-
+// The terrain part of a ground decal (the shadow projector). The decal quad is slid along the builder's slope
+// until its lowest point matches the lowest ground vertex under its bounding cells; the ground cells of that
+// rectangle then go to the builder as two triangles each.
 void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad) {
     Vector3 origin = Corner(quad, 3);
     Vector3 u = Corner(quad, 2);
@@ -243,39 +250,14 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad)
     }
 }
 
-} // namespace terrain
+// --- Draw passes -------------------------------------------------------------------------------------
 
-// --- Passes ------------------------------------------------------------------------------------------
-
-// The landscape's draw passes (terrain.h), called by the client's draw after Terrain::ShowAllSectors:
-// the ground pages, then (after the objects) the water pages. A pass pushes the landscape's matrix on the
-// renderer's pipeline, prepares every visible sector (the clip test of the sector and its quarters)
-// and hands the sectors page by page to the renderer (render::TerrainPage, which builds the page's tiles
-// from the sector's data); the GPU clips what crosses the view's edges. Nothing here talks to the device: the texture goes through the renderer's SetTexture.
-
-namespace terrain {
-namespace {
-
-constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
-
-// Calls `visit(sector)` for every visible sector (ShowAllSectors' rows and columns) that is there once built.
-template <typename Visit>
-void ForVisibleSectors(Terrain* terrain, Visit visit) {
-    const Terrain::SectorRect& visible = terrain->visible;
-    for (int sy = visible.firstY; sy <= visible.lastY; ++sy)
-        for (int sx = visible.firstX; sx <= visible.lastX; ++sx)
-            if (SectorData* sector = terrain->SectorAt(sx, sy, SectorStage::Built, true)) visit(sector);
-}
-
-bool HasTilesOn(const SectorData* sector, int page) {
-    for (const auto& quarter : sector->tiles)
-        if (!quarter[page].empty()) return true;
-    return false;
-}
-
-} // namespace
-
-// --- The passes ------------------------------------------------------------------------------------
+// The landscape's draw passes (terrain.h), called by the client's draw after Terrain::ShowAllSectors: the ground
+// pages, then (after the objects) the water pages. A pass pushes the landscape's matrix on the renderer's
+// pipeline, prepares every visible sector (the clip test of the sector and its quarters) and hands the sectors
+// page by page to the renderer (render::TerrainPage, which builds the page's tiles from the sector's data); the
+// GPU clips what crosses the view's edges. Nothing here talks to the device: the texture goes through the
+// renderer's SetTexture.
 
 void Terrain::DrawPass(SceneRenderer* renderer, int firstPage, int lastPage) {
     Matrix4 matrix;
@@ -313,14 +295,10 @@ void Terrain::DrawGround(SceneRenderer* renderer) { DrawPass(renderer, 0, LayerP
 
 void Terrain::DrawWater(SceneRenderer* renderer) { DrawPass(renderer, LayerPages(), 2 * LayerPages() - 1); }
 
-} // namespace terrain
-
-// --- Update ---------------------------------------------------------------------------------------------
+// --- Update ------------------------------------------------------------------------------------------
 
 // The landscape's per-frame work: the update (RunTick) and the sun (SetSun); the sectors animate their tiles and
 // waves (SectorData::AnimateTiles, AnimateWaves, terrain_sector.cpp).
-
-namespace terrain {
 
 void Terrain::SetSun(Light* light, const Vector4& colour) {
     ambient = colour;

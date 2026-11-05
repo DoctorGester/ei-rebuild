@@ -88,10 +88,9 @@ struct AnimatedTile {
 
 using SectorBox = ClipBounds;
 
-// TransformPipeline::ClipTest's verdicts as the sector keeps them (clipMode, quarterMode): 0 inside the
-// view, 1 crossing its edge, 2 outside (-1 is stored as 2).
-constexpr int kCrossing = 1;
-constexpr int kCulled = 2;
+// A tile or vertex without a water material (waterTiles, the material helpers); the sector records keep it as
+// SectorVertex::kNoWaterMaterial.
+constexpr int kNoMaterial = -1;
 
 struct SectorPosition : Vector3 {};
 
@@ -108,9 +107,9 @@ struct SectorData {
     const std::uint8_t* data = nullptr;   // the .sec file after its header
     Terrain* owner = nullptr;
     SectorBox box{};
-    int clipMode = kCulled;             // the box's clip test verdict (kCrossing, kCulled)
+    TransformPipeline::ClipResult clipMode = TransformPipeline::kClipOutside;   // the box's clip test verdict
     SectorBox quarters[4]{};
-    int quarterMode[4] = {};
+    TransformPipeline::ClipResult quarterMode[4] = {};   // the quarters' (kClipInside until tested)
     float minZ = 0.0f;
     float maxZ = 0.0f;
     std::vector<std::uint8_t> waterMaterials;
@@ -118,7 +117,7 @@ struct SectorData {
     std::vector<SectorVertex> records;   // ground, then water (zeroed when made)
     std::vector<int> tileTextures;      // per tile, ground then water tiles
     std::uint8_t tileRotation[kLayerTiles] = {};
-    std::vector<int> waterTiles;        // water material per tile, -1 none
+    std::vector<int> waterTiles;        // water material per tile, kNoMaterial none
     std::vector<std::vector<TileVertex>> tiles[4];       // per quarter, per page (9 per tile)
     std::vector<AnimatedTile> animated;
     std::vector<int> classCounts;       // 16 texture classes
