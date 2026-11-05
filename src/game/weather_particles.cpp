@@ -49,8 +49,12 @@ constexpr float kLeastStreakWidth = 1.2f;
 constexpr float kMostStreakWidth = 5.0f;
 // Snow: the flake's alpha at its middle, the least radius and the most in 1080p pixels.
 constexpr float kSnowAlpha = 0.95f;
-constexpr float kLeastFlakeRadius = 1.6f;
+constexpr float kLeastFlakeRadius = 2.0f;
 constexpr float kMostFlakeRadius = 10.0f;
+// The height over the ground a flake fades out over as it lands.
+constexpr float kLanding = 0.5f;
+// The ground's height taken without a landscape: far under every particle.
+constexpr float kNoGround = 1e6f;
 // The flake's shape: an inner ring of kFlakeRim corners at kFlakeCore of the radius, nearly as opaque as the middle
 // (kCoreAlpha), and the clear rim: a disc with a soft edge.
 constexpr int kFlakeRim = 12;
@@ -156,12 +160,20 @@ void RainSnow::DrawParticles(SceneRenderer* renderer, weather::Kind kind) {
     auto light = [&](float a, float s) { return std::clamp(a + kSunShare * s, kLeastLight, 1.0f); };
     const float lightR = light(ambient.r, sun.r), lightG = light(ambient.g, sun.g), lightB = light(ambient.b, sun.b);
 
+    const bool landscape = world->terrain != nullptr;
     vertices.clear();
     indices.clear();
     const int count = weather::Count(kind);
     const int perParticle = kind == weather::Kind::Rain ? 6 : 2 * kFlakeRim + 1;
     for (int i = 0; i < count; ++i) {
-        const weather::Particle p = weather::Place(kind, i, view);
+        weather::Particle p = weather::Place(kind, i, view);
+        if (p.alpha < kLeastAlpha) continue;
+        // The ground or water under it (the terrain's, not the roofs'): a flake fades out over its last kLanding
+        // units as it lands (the depth test would cut it in half), a drop whose streak is all under it is not drawn.
+        const float ground = landscape ? world->RawSurfaceHeightAt(p.position.x, p.position.y) : -kNoGround;
+        const float above = p.position.z - ground;
+        if (kind == weather::Kind::Snow) p.alpha *= std::clamp(above / kLanding, 0.0f, 1.0f);
+        else if (above + p.velocity.z * -kStreakTicks < 0.0f) continue;
         if (p.alpha < kLeastAlpha) continue;
         if (lib::Count(vertices) + perParticle > kMostVertices) Flush(renderer);
         const auto base = static_cast<std::uint16_t>(vertices.size());

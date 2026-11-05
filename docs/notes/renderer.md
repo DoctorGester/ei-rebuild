@@ -756,8 +756,10 @@ The draw (`weather_particles.cpp`) projects each particle that shows with the cl
 screen, so its shape in pixels is the same at any aspect: a raindrop is a streak from where it was 1.6 ticks ago to
 where it is (the motion blur of its fall and the wind: aligned with its motion on the screen, longer the faster it
 crosses the view), alpha 0.45 at the head and 0.1 at the tail, bluish; a snowflake a soft disc (a middle, a ring of 12
-corners at 0.55 of the radius nearly as opaque, a clear rim), 0.035 to 0.07 units in radius. Both are vertex colours on
-the white texture, clear at the edges, at least 1.2 (the streak's half width) or 1.6 (the flake's radius) 1080p pixels, thinner
+corners at 0.55 of the radius nearly as opaque, a clear rim), 0.035 to 0.07 units in radius, fading out over its last
+0.5 units above the terrain's ground or water as it lands (the depth test cut landing flakes in half); a drop whose
+streak is all under it is not drawn. Both are vertex colours on
+the white texture, clear at the edges, at least 1.2 (the streak's half width) or 2 (the flake's radius) 1080p pixels, thinner
 ones fainter by their share of that (so far ones fade instead of flickering), at most 5 and 10. Their colour is the
 scene's light (`frameAmbient` + 0.6 x `frameSun`, at least 0.12). Drawn as pre-transformed triangles in batches of up
 to 65535 vertices, clockwise on the screen (the effects pass culls the other way: R59's first draw showed nothing),
