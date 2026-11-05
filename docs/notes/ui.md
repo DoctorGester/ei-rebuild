@@ -171,7 +171,11 @@ resume, Esc, the quit box cancelled), `ui_view_screen`. The harness's `newgame` 
 
 - **Main menu** (`ui_main_menu.cpp`, a UiContainer; regions from the `MainMenu` layout in `menus.reg`): 0 new game (the
   difficulty question, "option_difficulty"), 1 load, 2 exit ("Movies\Exit.bik", then quit), 3 options, 4 credits, 5 the
-  multiplayer hero screen. `Update`: rain at 0 / 7 o'clock, night lightning 1 in 41 per 100 ms.
+  multiplayer hero screen. `Update`: rain at 0 / 7 o'clock, night lightning 1 in 41 per 100 ms. The signpost is the
+  stones, unit 2 of the menu's world ("unmoco2"): a hovered button plays its Briefing animation, none the rest pose
+  (kind 0x80590000), and `CreateScreen` plays the rest pose too (R58). `UnitClientSpecific::RunTick` sets flag 8 (no
+  shadow: `ShadowCastStrength`) on a unit lying, long dead or playing no animation, so before R58 the signpost cast no
+  shadow until the first hover. Scenario `render_menu_shadow`.
 - **Escape menu** (Esc in the menu resumes): rectangles from `menus.reg` in `Res\menus.res`: 0 save, 1 load, 2 resume, 3
   exit to the main menu (asks `quit_msg`; Enter = 0x10001 leaves the game, Esc = 0x10002), 4 options. The click builds the
   save / load and options windows and pushes them; save opens in save mode, load without; both slide in.

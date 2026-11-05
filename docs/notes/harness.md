@@ -121,8 +121,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - `speed <ms>` sets the real time per world update (game default 55); on the virtual clock it speeds nothing up.
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder; `capture <name> <count>
   [freeze] [after <text> | on <window>]` a burst of consecutive frames (renderer.md, "Frame capture"); `freeze` / `unfreeze`
-  hold the game's clocks and camera around captures; `samecapture <a> <b>` requires two captures to match,
-  `diffcapture <a> <b> <least> <most>` that they differ in that share of the pixels; `printlight <with> <without>
+  hold the game's clocks and camera around captures; `samecapture <a> <b> [<tolerance> [<fraction> [<left> <top>
+  <right> <bottom>]]]` requires two captures to match (within the rectangle when given, as diffcapture's; R58),
+  `diffcapture <a> <b> <least> <most> [<tolerance> [<left> <top> <right> <bottom>]]` that they differ in that share of the pixels; `printlight <with> <without>
   <least> <most>` bounds the brightness of what one capture draws over the other (the ground prints, `decals off`)
   over that of what it covers (render_shadows_decals); `blink faces|open|close` loads the
   units' faces or shows every face's open / closed state (render_blink). `skin <unit> <first> [<second>]` gives a

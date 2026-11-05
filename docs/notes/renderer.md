@@ -705,7 +705,8 @@ step. What does change on the second frame is the HUD's own animation: the inter
 (`UiContainer::FrameTime`) is 0 on the first frame after a load and the load's length on the next, so the selected
 portrait's face, eased from its straight rest towards its selected turn (`HudPortraits::Update`: at once when the step
 is 0.5 s or more), snaps into the turn on frame 2, and the clock's marks step (the game's behaviour). The main menu's
-first frozen frames differ in a few single pixels (its particles).
+first frozen frames differ in a few single pixels (its particles). Its signpost (a unit) cast no shadow until the first
+hover, as it played no animation (R58; ui.md, section 4; scenario render_menu_shadow).
 
 **The town's first frames** (R56a; scenario render_load_town, the user's save "ShadowCorrupt", tests/saves/shadow_corrupt:
 the town bz1g, its camera panned off the leader, saved from the Esc menu). Frozen bursts hid what moves only when the
