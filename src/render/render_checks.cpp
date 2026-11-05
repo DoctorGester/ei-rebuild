@@ -1,12 +1,16 @@
 // The renderer's harness API (render_checks.h): what the frames cost, the counts and CPU times of FrameStats, and the
-// timers behind them. The switches and read-backs of the renderer's state are in the files that keep that state.
+// timers behind them, and the read-backs that need no state of the files they check (the held textures' levels, the
+// movie uploads). The switches and the other read-backs are in the files that keep that state.
 #include "render_checks.h"
 
+#include "../platform/log.h"
 #include "render_internal.h"
 #include "render_perf.h"
 
+#include <cstring>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace render {
 
@@ -180,6 +184,97 @@ void BeginShadowBuildTime() {
 }
 
 void EndShadowBuildTime() { g_shadowBuildTimer.End(); }
+
+#if defined(EI_RENDER_VALIDATION)
+static long g_uploadChecks = 0, g_uploadMismatches = 0;
+static long g_uploads = 0;   // movie uploads so far (the read-back is sampled: ReadBackDue)
+
+void CheckMovieUpload(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
+    if (!ReadBackDue(g_uploads++)) return;
+    gpu::Ticket copy = gpu::Download(image, 0, Rect{0, 0, w, h});
+    gpu::Texels texels;
+    if (gpu::Wait(copy) && gpu::Read(copy, &texels)) {
+        bool same = true;
+        for (int y = 0; y < h && same; ++y)
+            same = std::memcmp(texels.Row(y), rgba + static_cast<std::size_t>(y) * w * 4,
+                               static_cast<std::size_t>(w) * 4) == 0;
+        ++g_uploadChecks;
+        if (!same)
+            LogFirst(g_uploadMismatches, 10,
+                     "render: MISMATCH: movie image %dx%d read back from the GPU differs from the pixels written", w,
+                     h);
+    }
+    gpu::Release(copy);
+    if (g_uploadChecks % 20 == 1)
+        ei::Log("render: image uploads checked back from the GPU: %ld of %ld, mismatches %ld", g_uploadChecks, g_uploads, g_uploadMismatches);
+}
+#endif
+
+// The next level of an RGBA8 level as a 2x2 box filter (sizes halved, at least 1; `*width`, `*height` updated).
+static std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
+    int w = *width, h = *height;
+    int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
+    std::vector<std::uint8_t> dst(static_cast<std::size_t>(nw) * nh * 4);
+    for (int y = 0; y < nh; ++y) {
+        for (int x = 0; x < nw; ++x) {
+            int x0 = x * 2, y0 = y * 2, x1 = x0 + 1 < w ? x0 + 1 : x0, y1 = y0 + 1 < h ? y0 + 1 : y0;
+            for (int c = 0; c < 4; ++c) {
+                int sum = src[(static_cast<std::size_t>(y0) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y0) * w + x1) * 4 + c] +
+                          src[(static_cast<std::size_t>(y1) * w + x0) * 4 + c] + src[(static_cast<std::size_t>(y1) * w + x1) * 4 + c];
+                dst[(static_cast<std::size_t>(y) * nw + x) * 4 + c] = static_cast<std::uint8_t>((sum + 2) / 4);
+            }
+        }
+    }
+    *width = nw;
+    *height = nh;
+    return dst;
+}
+
+MmpLevelCheck CheckMmpLevels() {
+    MmpLevelCheck c;
+    for (const HeldMmp& t : HeldMmpTextures()) {
+        // The levels as the GPU reads them, down to 4 x 4 (DXT levels under 4 x 4 are only partly in the file).
+        const int width = t.width, height = t.height;
+        std::vector<std::vector<std::uint8_t>> levels;
+        int w = width, hh = height;
+        bool all = true;
+        for (int l = 0; l < t.levels && w >= 4 && hh >= 4 && all; ++l) {
+            levels.emplace_back();
+            all = ReadImageLevel(t.image, l, w, hh, &levels.back());
+            w = w > 1 ? w / 2 : 1;
+            hh = hh > 1 ? hh / 2 : 1;
+        }
+        if (!all || levels.empty()) continue;
+        ++c.textures;
+        // Each level and level 0 box-filtered down to 4 x 4 (or less): the file's own filtering of
+        // a level (1-bit alpha kept 0 or 1, sharpened colours) changes its texels, not those averages.
+        auto summary = [](std::vector<std::uint8_t> level, int w, int hh) {
+            while (w > 4 || hh > 4) level = HalveLevel(level, &w, &hh);
+            return level;
+        };
+        const std::vector<std::uint8_t> reference = summary(levels[0], width, height);
+        w = width;
+        hh = height;
+        for (std::size_t l = 1; l < levels.size(); ++l) {
+            w = w > 1 ? w / 2 : 1;
+            hh = hh > 1 ? hh / 2 : 1;
+            const std::vector<std::uint8_t> mine = summary(levels[l], w, hh);
+            std::uint32_t sum = 0;
+            for (std::size_t i = 0; i < reference.size(); ++i)
+                sum += static_cast<std::uint32_t>(reference[i] > mine[i] ? reference[i] - mine[i] : mine[i] - reference[i]);
+            double difference = static_cast<double>(sum) / static_cast<double>(reference.size());
+            ++c.levels;
+            if (difference > c.worst) {
+                c.worst = difference;
+                c.worstWidth = width;
+                c.worstHeight = height;
+                c.worstLevel = static_cast<int>(l);
+                c.worstFormat = t.format;
+            }
+        }
+    }
+    return c;
+}
 
 std::uint64_t perf::FrameDrawCount() { return g_stats.counts[FrameStats::Draws] + g_stats.counts[FrameStats::ShadowDraws]; }
 

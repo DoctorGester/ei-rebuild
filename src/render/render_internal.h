@@ -532,6 +532,9 @@ std::uint32_t GammaRampChanges();
 // kReadBackAlways, then every 16th, and every one with "checkall" in EI_RENDER.
 constexpr long kReadBackAlways = 64;
 bool ReadBackDue(long count);
+// The movie image just uploaded read back from the GPU and compared with the pixels written (render_checks.cpp),
+// sampled.
+void CheckMovieUpload(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h);
 #endif
 
 // Appended to between passes (a frame drawn in several passes appends after what it drew from), written from its
@@ -1008,6 +1011,14 @@ struct Picture {
     std::vector<std::uint8_t> rgba;
 };
 bool PictureFromMmpData(const Surface* holder, const MmpFile& file);
+// The held .mmp textures (not the composed ones): the image, its first level's size, the levels uploaded and the
+// file's format id (render::CheckMmpLevels reads them).
+struct HeldMmp {
+    gpu::Texture image;
+    int width = 0, height = 0, levels = 0;
+    std::uint32_t format = 0;
+};
+std::vector<HeldMmp> HeldMmpTextures();
 const Picture* PictureOf(const Surface* holder);
 gpu::Sampler LinearSampler();
 // A 1x1 white texture.
