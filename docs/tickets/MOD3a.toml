@@ -1,0 +1,8 @@
+id = "MOD3a"
+title = "Switch mods in-process: StartGame/StopGame, resets, SwitchMod, start-twice check"
+group = "mods"
+size = 3
+model = "opus"
+depends = ["MOD3"]
+note = "MOD3 survey (docs/notes/mods.md, 'Switching mods'), option (a), recommended 2026-11-05 pending the user's choice. Split GameMain's game half into StartGame/StopGame used by start-up, exit and the switch; platform::SwitchMod (old Mod kept alive); resettable mod-folder statics; clear the zone table, lightning noise flag, map list (MapDatabase::Load appends) and UseResources' static; WorldClient::Create safe to run twice. Allowed only in the main menu with no network session. Harness step 'mod <folder>' mid-run and a scenario: switch to LostInAstral and back, then a new game whose digests equal a plain new game's; asan suite run."
+order = 1201

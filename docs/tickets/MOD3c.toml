@@ -1,0 +1,8 @@
+id = "MOD3c"
+title = "A loading screen during a mod switch"
+group = "mods"
+size = 1
+model = "sonnet"
+depends = ["MOD3a"]
+note = "While MOD3a's switch reloads (worlds, databases, interface), show the game's loading picture instead of a frozen frame; audio gap kept short."
+order = 1203

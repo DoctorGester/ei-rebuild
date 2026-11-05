@@ -1,0 +1,8 @@
+id = "MOD3b"
+title = "The main menu's mod list"
+group = "mods"
+size = 1
+model = "sonnet"
+depends = ["MOD3a"]
+note = "A mod list in the main menu (or the options window) from starter\\Mods\\*\\config.reg [MOD] (Title, Single/Multi) plus 'none'; picking one calls MOD3a's switch and writes [game] Mod. Native UI (P8 style)."
+order = 1202
