@@ -95,13 +95,19 @@ GroundPrint::GroundPrint(float x, float y, float newHalfWidth, float newHalfLeng
     SetTexture("fireprints");
 }
 
+GroundPrint::GroundPrint(ByteStream* stream) : GroundPrint(1, 0, 0.0f, 0) { GroundPrint::Load(stream); }
+
+void GroundPrint::Fade() {
+    float t = static_cast<float>(lifetime - life) / lifetime;
+    float spent = t > 0.0f ? t : 0.0f;
+    alpha = (1.0f - spent) * alphaScale;
+}
+
 int GroundPrint::Tick() {
     --life;
     halfWidth += growth;
     halfLength += growth;
-    float t = static_cast<float>(lifetime - life) / lifetime;
-    float spent = t > 0.0f ? t : 0.0f;
-    alpha = (1.0f - spent) * alphaScale;
+    Fade();
     return life;
 }
 
@@ -122,9 +128,10 @@ void GroundPrint::Load(ByteStream* stream) {
     stream->ReadValue(alphaScale);
     stream->ReadValue(lifetime);
     built = false;
+    Fade();
 }
 
-void GroundPrint::Save(ByteStream* stream) {
+void GroundPrint::Save(ByteStream* stream) const {
     stream->WriteValue(position);
     stream->WriteValue(halfWidth);
     stream->WriteValue(halfLength);
@@ -225,16 +232,20 @@ Footprint::Footprint(float x, float y, float newHalfWidth, float newHalfLength, 
     growth = 0.0f;
 }
 
+Footprint::Footprint(ByteStream* stream) : GroundPrint(0, 0, 0.0f, 0) { Footprint::Load(stream); }
+
 void Footprint::Load(ByteStream* stream) {
     GroundPrint::Load(stream);
     stream->ReadValue(scale);
     stream->ReadValue(kind);
+    stream->ReadValue(visible);
 }
 
-void Footprint::Save(ByteStream* stream) {
+void Footprint::Save(ByteStream* stream) const {
     GroundPrint::Save(stream);
     stream->WriteValue(scale);
     stream->WriteValue(kind);
+    stream->WriteValue(visible);
 }
 
 // ---- BloodPrint ---------------------------------------------------------------------------------
@@ -267,6 +278,8 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     growth = (fullSize - halfWidth) / spreadTicks;
 }
 
+BloodPrint::BloodPrint(ByteStream* stream) : GroundPrint(1, 0, 0.0f, 0) { BloodPrint::Load(stream); }
+
 int BloodPrint::Tick() {
     if (--spreadTicks < 0) growth = 0.0f;
     else built = false;
@@ -290,7 +303,7 @@ void BloodPrint::Load(ByteStream* stream) {
     stream->ReadValue(fresh);
 }
 
-void BloodPrint::Save(ByteStream* stream) {
+void BloodPrint::Save(ByteStream* stream) const {
     GroundPrint::Save(stream);
     stream->WriteValue(spin);
     stream->WriteValue(spreadTicks);

@@ -2,7 +2,8 @@
 
 // Ground prints: footprints, blood and scorch marks lying on the ground. The client world keeps them by value
 // in three vectors (blood, footprints, scorch marks), ticks them (a print whose life reaches 0 is erased) and
-// draws them (Draw); Save / Load have no caller (the save file holds no prints). A print is a textured quad
+// draws them (Draw). The original's save holds no prints; ours keeps them in the side file beside a save (Save, and the
+// constructors from a stream: client_visuals.h's Prints section). A print is a textured quad
 // around its point, rotated by `angle`, its texture tile picked by the uv offset and scale and turned by
 // `uvAngle`; Draw lays it on the ground once (the decal projector) and draws it with an alpha that fades over
 // the print's life. See docs/notes/models.md.
@@ -32,6 +33,8 @@ public:
     // texture, turned by the same quarter; white, lit as the terrain says.
     GroundPrint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
                 int lifetime);
+    // A scorch mark read back from what Save wrote (Load), shown.
+    explicit GroundPrint(ByteStream* stream);
     GroundPrint(const GroundPrint&) = delete;
     GroundPrint& operator=(const GroundPrint&) = delete;
     GroundPrint(GroundPrint&&) noexcept = default;   // the client world's print vectors move them
@@ -41,12 +44,12 @@ public:
     // One tick: life - 1, both half sizes grow by `growth`, alpha = (1 - max(t, 0))
     // * alphaScale with t = (lifetime - life) / lifetime. Returns the life left.
     virtual int Tick();
-    // Reads what Save writes (the texture looked up again by its name);
-    // the geometry is made again (built cleared).
+    // Reads what Save writes (the texture looked up again by its name); the geometry is made again (built cleared)
+    // and the alpha is the one the life left gives, as Tick sets it.
     virtual void Load(ByteStream* stream);
     // Writes the position, half sizes, growth, life (2 bytes), texture name (with its terminator), uv offset
     // and scale, both angles, lit (1 byte), alpha scale and lifetime.
-    virtual void Save(ByteStream* stream);
+    virtual void Save(ByteStream* stream) const;
 
     // Draws the print when visible: the first time, lays the quad on the ground (z from the client world's
     // ground and platforms; the projector clips it to the terrain and the platforms under it) and turns its
@@ -63,6 +66,8 @@ protected:
     GroundPrint(std::uint8_t visible, int life, float alphaScale, int lifetime);
     // The texture `name`, looked up in the texture manager or made and loaded (kind 6).
     void SetTexture(const char* name);
+    // alpha = (1 - max(t, 0)) * alphaScale with t = (lifetime - life) / lifetime.
+    void Fade();
 
 public:
     bool built = false;            // the ground geometry is made
@@ -92,9 +97,13 @@ public:
     // the left foot's half); `kind` -1 "footprints", else "footprints<kind + 1>" (a blood print's kind).
     Footprint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
               int lifetime, std::uint32_t tile, float scale, int visible, int kind);
+    // A footprint read back from what Save wrote (Load).
+    explicit Footprint(ByteStream* stream);
 
-    void Load(ByteStream* stream) override;   // GroundPrint's, then scale, kind
-    void Save(ByteStream* stream) override;   // the same order
+    // GroundPrint's, then scale, kind and (ours) the visible byte: the original's Save had no caller and left it
+    // out, so a footprint not yet seen would come back shown.
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) const override;   // the same order
 
     float scale = 0.0f;             // the unit's footprint scale (only saved)
     int kind = 0;                   // -1, or the blood print's kind it was made with
@@ -109,6 +118,8 @@ public:
     // angle (ClientRand() twice).
     BloodPrint(float x, float y, float halfSize, float fullSize, float alphaScale, int life, int lifetime,
                std::uint32_t tile, std::uint8_t fresh);
+    // A blood print read back from what Save wrote (Load), shown.
+    explicit BloodPrint(ByteStream* stream);
 
     // While spreading (spreadTicks counts down) the geometry is made again every
     // tick, after that the growth stops; the angle turns by spin; then GroundPrint's tick.
@@ -116,7 +127,7 @@ public:
     // The grey of the daylight sun's luminance.
     std::uint32_t DayColour() const override;
     void Load(ByteStream* stream) override;   // GroundPrint's, then spin, spread, kind, fresh
-    void Save(ByteStream* stream) override;
+    void Save(ByteStream* stream) const override;
 
     float spin = 0.0f;              // radians per tick: 30 / life degrees
     std::int16_t spreadTicks = 0;

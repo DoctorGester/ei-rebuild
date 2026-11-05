@@ -134,14 +134,15 @@ copied into its list and destroyed; its prints.db entry (by the ground's surface
 - Blood: spin = 30 / life degrees per tick, spreads min(life / 2, 45) ticks (rebuilt each tick), the angle a random
   multiple of 0.001 below 2 pi. Footprints take the kind of a death's blood print they step into (fresh hits' are
   skipped) and return it.
-- Draw's uv loop rounds the fourth vertex's u part to a float, the others their v part (kept). Load does not restore
-  alpha (the next tick does).
+- Draw's uv loop rounds the fourth vertex's u part to a float, the others their v part (kept). Load sets the alpha
+  from the life left, as Tick does (the original's left it to the next tick).
 - Colour: a print keeps none; it is drawn in `DayColour` (white; blood the grey of the daylight sun's luminance,
   `WorldClient::DaylightColours`: the table's noon, a cave's hour 0) and the renderer lights it as the ground under it
   (renderer.md section 13, item 10, "Ground prints"); the original's blood colour (the sun at its making, re-lit
   every 10 s by the lights reaching it) is not kept.
-- Load / Save (the prints' own record) have no caller: the save file holds no prints (a loaded game starts without
-  them).
+- Load / Save (the prints' own record) had no caller in the original: its save holds no prints. Ours keeps them in
+  the side file beside a save (visuals.sav's Prints section, renderer.md 11c), read back by the constructors from a
+  stream; Footprint's record adds its visible byte (a footprint not yet seen stays hidden).
 - `WorldClient::ProjectDecal` (world_client_lights.cpp) lays a print on the ground on its first draw: the platform faces
   (an object with several faces adds its parts once per face, kept), each part's matrix pushed on the pipeline's decal
   stack (multiplied through `MatrixMultiply`'s order, `PushDecalMatrix`), the part's packets transformed and each

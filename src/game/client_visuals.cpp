@@ -3,9 +3,12 @@
 #include "client_visuals.h"
 
 #include "core_streams.h"
+#include "ground_print.h"
+#include "random.h"
 #include "save_file.h"
 #include "save_versions.h"
 #include "terrain.h"
+#include "texture.h"
 #include "world.h"
 
 #include "render/render.h"
@@ -21,10 +24,15 @@ namespace {
 constexpr std::uint32_t kWeatherVersion = 1;
 constexpr std::uint32_t kWavesVersion = 1;
 constexpr std::uint32_t kUnitsVersion = 1;
+constexpr std::uint32_t kPrintsVersion = 1;
+constexpr std::uint32_t kGeneratorVersion = 1;
 // A section's head: its kind, its version and its size, a u32 each.
 constexpr std::uint32_t kSectionHead = 12;
 // A kept unit in the Units section: its id, wetness and snow.
 constexpr std::uint32_t kUnitBytes = 12;
+// The Generator section: seeded, count, results, memory, aa, bb, cc (a u32 each).
+constexpr std::uint32_t kGeneratorResults = 256;
+constexpr std::uint32_t kGeneratorBytes = 4 * (2 + 2 * kGeneratorResults + 3);
 
 bool Finite(float value) { return std::isfinite(value); }
 bool Finite(double value) { return std::isfinite(value); }
@@ -89,6 +97,60 @@ void SaveUnits(const std::vector<KeptUnitWeather>& units, ByteStream* body) {
     }
 }
 
+// A print list of the Prints section: its count, then each print's Save.
+template <typename Print>
+void SavePrints(const std::vector<Print>& list, ByteStream* body) {
+    body->WriteValue(static_cast<std::uint32_t>(list.size()));
+    for (const Print& print : list) print.Save(body);
+}
+
+// A print read back makes sense: its place, sizes and angles numbers, its life and lifetime above 0 (Tick divides by
+// the lifetime).
+bool Sound(const GroundPrint& print) {
+    return Finite(print.position.x) && Finite(print.position.y) && Finite(print.halfWidth) &&
+           Finite(print.halfLength) && Finite(print.growth) && Finite(print.angle) && Finite(print.uvAngle) &&
+           Finite(print.alphaScale) && print.life > 0 && print.lifetime > 0;
+}
+
+// A print list read back into `list` (empty). False when the count is more than the bytes left, a read runs past the
+// end or a print is not sound.
+template <typename Print>
+bool LoadPrints(MemoryStream& body, std::vector<Print>* list) {
+    const auto count = body.ReadAs<std::uint32_t>();
+    if (count > body.Size() - body.Position()) return false;
+    list->reserve(count);
+    for (std::uint32_t i = 0; i < count; ++i) {
+        list->emplace_back(&body);
+        if (!body.ok || !Sound(list->back())) return false;
+    }
+    return body.ok;
+}
+
+// The Generator section's state: none when its size is wrong, it was never seeded or its count is past its results.
+std::optional<IsaacRandom> LoadGenerator(MemoryStream& body) {
+    if (body.Size() != kGeneratorBytes) return std::nullopt;
+    IsaacRandom random;
+    body.ReadValue(random.seeded);
+    body.ReadValue(random.count);
+    for (std::uint32_t& word : random.results) body.ReadValue(word);
+    for (std::uint32_t& word : random.memory) body.ReadValue(word);
+    body.ReadValue(random.aa);
+    body.ReadValue(random.bb);
+    body.ReadValue(random.cc);
+    if (random.seeded == 0 || random.count > kGeneratorResults) return std::nullopt;
+    return random;
+}
+
+void SaveGenerator(const IsaacRandom& random, ByteStream* body) {
+    body->WriteValue(random.seeded);
+    body->WriteValue(random.count);
+    for (std::uint32_t word : random.results) body->WriteValue(word);
+    for (std::uint32_t word : random.memory) body->WriteValue(word);
+    body->WriteValue(random.aa);
+    body->WriteValue(random.bb);
+    body->WriteValue(random.cc);
+}
+
 }   // namespace
 
 ClientVisuals ClientVisuals::Take(const WorldClient& world) {
@@ -101,6 +163,12 @@ ClientVisuals ClientVisuals::Take(const WorldClient& world) {
             kept.units.push_back(KeptUnitWeather{object->id, *levels});
     }
     std::ranges::sort(kept.units, {}, &KeptUnitWeather::id);
+    MemoryStream body;
+    SavePrints(world.bloodPrints, &body);
+    SavePrints(world.footprints, &body);
+    SavePrints(world.scorchMarks, &body);
+    kept.prints.assign(body.data.data(), body.data.data() + body.Size());
+    if (g_clientRandom.seeded) kept.generator = g_clientRandom;
     return kept;
 }
 
@@ -147,6 +215,12 @@ void ClientVisuals::Load(ByteStream* stream) {
         case VisualSection::Units:
             if (version == kUnitsVersion) units = LoadUnits(body);
             break;
+        case VisualSection::Prints:
+            if (version == kPrintsVersion) prints = std::move(bytes);
+            break;
+        case VisualSection::Generator:
+            if (version == kGeneratorVersion) generator = LoadGenerator(body);
+            break;
         default:
             break;
         }
@@ -167,6 +241,14 @@ void ClientVisuals::Save(ByteStream* stream) const {
     body.Resize(0);
     SaveUnits(units, &body);
     WriteSection(stream, VisualSection::Units, kUnitsVersion, body);
+    body.Resize(0);
+    body.Write(prints.data(), static_cast<std::uint32_t>(prints.size()));
+    WriteSection(stream, VisualSection::Prints, kPrintsVersion, body);
+    if (generator) {
+        body.Resize(0);
+        SaveGenerator(*generator, &body);
+        WriteSection(stream, VisualSection::Generator, kGeneratorVersion, body);
+    }
     stream->WriteValue(static_cast<std::uint32_t>(VisualSection::End));
     stream->WriteValue(std::uint32_t{0});
     stream->WriteValue(std::uint32_t{0});
@@ -175,9 +257,27 @@ void ClientVisuals::Save(ByteStream* stream) const {
 void ClientVisuals::Restore(WorldClient& world) {
     if (weather) render::RestoreWeather(*weather);
     if (wavePhase && world.terrain) world.terrain->wavePhase = *wavePhase;
+    if (!prints.empty()) RestorePrints(world);
+    if (generator) g_clientRandom = *generator;
     weather.reset();
     wavePhase.reset();
+    prints.clear();
+    generator.reset();
     dueUnits = std::exchange(units, {});
+}
+
+void ClientVisuals::RestorePrints(WorldClient& world) const {
+    MemoryStream body;
+    body.Fill(prints.data(), static_cast<std::uint32_t>(prints.size()));
+    std::vector<BloodPrint> blood;
+    std::vector<Footprint> feet;
+    std::vector<GroundPrint> scorch;
+    if (LoadPrints(body, &blood) && LoadPrints(body, &feet) && LoadPrints(body, &scorch) &&
+        body.Position() == body.Size()) {
+        world.bloodPrints = std::move(blood);
+        world.footprints = std::move(feet);
+        world.scorchMarks = std::move(scorch);
+    }
 }
 
 void ClientVisuals::RestoreUnits(const std::vector<MapObject*>& objects) {

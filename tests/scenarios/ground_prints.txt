@@ -1,8 +1,9 @@
 # Ground prints (src/game/ground_print.cpp, world_client_lights.cpp; docs/notes/models.md "Ground
 # prints"): the hero walks (footprints, AddFootprint 0056D150, laid on the ground by ProjectDecal
 # 0056C750 on their first draw), two wolves bleed (a hit and a death: AddBloodPrint 0056CE90), the
-# hero walks through the dead wolf's blood (bloody footprints), then the game is saved and loaded back
-# (the save holds no prints). Blood and footprints tick and draw every frame.
+# hero walks through the dead wolf's blood (bloody footprints), then the game is saved and loaded back:
+# the prints come back from the side file beside the save (visuals.sav's Prints section, R57a;
+# src/game/client_visuals.h), else the load would show none. Blood and footprints tick and draw every frame.
 reject Script error
 waitmenu
 console thingamabob
@@ -35,12 +36,15 @@ click 395 120
 waitwindow 10 saveload
 clickregion 0
 waitline 10 Saved save1
+groundprints 2 99 4 999 0 0
 console @AddUnitToServer("PrintMarker","WolfTutor","PrintMarker",Add(GetX(GetLeader()),8),GetY(GetLeader()),0)
 waitfor 5 IsAlive(GetObjectByName("PrintMarker"))
 load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("PrintMarker"))),IsGreater(HP(GetLeader()),0))
 # The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
 dump loaded_save1
+# The save's prints (as many as the line after the save logged, less any that ran out since).
+groundprints 2 99 4 999 0 0
 wait 1000
 report
 quit

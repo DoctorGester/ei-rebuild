@@ -526,10 +526,36 @@ def read_info(r):
     r.raw('rest', len(r.d) - r.p)
 
 
+def read_ground_print(r, kind):
+    """A ground print of visuals.sav's Prints section (GroundPrint::Save, then Footprint's or BloodPrint's part)."""
+    r.vec('position', 2)
+    r.f32('halfWidth')
+    r.f32('halfLength')
+    r.f32('growth')
+    r.i16('life')
+    r.string('texture')
+    r.vec('uvOffset', 2)
+    r.vec('uvScale', 2)
+    r.f32('uvAngle')
+    r.f32('angle')
+    r.u8('lit')
+    r.f32('alphaScale')
+    r.i32('lifetime')
+    if kind == 'footprints':
+        r.f32('scale')
+        r.i32('kind')
+        r.u8('visible')
+    elif kind == 'blood':
+        r.f32('spin')
+        r.i16('spreadTicks')
+        r.i32('kind')
+        r.u8('fresh')
+
+
 def read_visuals(r):
     """visuals.sav (ClientVisuals::Save): sections of a u32 kind, a u32 version and a u32 size until kind 0. The
     versions this decoder knows are read field by field; any other is kept as its bytes."""
-    known = {(1, 1): 'weather', (2, 1): 'waves', (3, 1): 'units'}
+    known = {(1, 1): 'weather', (2, 1): 'waves', (3, 1): 'units', (4, 1): 'prints', (5, 1): 'generator'}
     while True:
         kind = r.u32(None)
         version = r.u32(None)
@@ -560,6 +586,20 @@ def read_visuals(r):
                     r.i32('id')
                     r.f32('wet')
                     r.f32('snow')
+        elif name == 'prints':
+            for kind in ('blood', 'footprints', 'scorch'):
+                with r.scope(kind):
+                    for i in range(r.u32('count')):
+                        with r.scope(f'print{i}'):
+                            read_ground_print(r, kind)
+        elif name == 'generator':
+            r.u32('seeded')
+            r.u32('count')
+            r.raw('results', 1024)
+            r.raw('memory', 1024)
+            r.u32('aa')
+            r.u32('bb')
+            r.u32('cc')
         else:
             r.raw('bytes', size)
         if r.p != end:

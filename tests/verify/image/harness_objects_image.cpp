@@ -222,6 +222,21 @@ std::string HitUnit(int target, int attacker, float amount) {
     unit->ReceiveHit(&damage, from, from);
     return "";
 }
+GroundPrintCounts CountGroundPrints() {
+    const WorldClient& world = g_clientWorld;
+    GroundPrintCounts counts;
+    counts.blood = static_cast<int>(world.bloodPrints.size());
+    counts.footprints = static_cast<int>(world.footprints.size());
+    counts.scorch = static_cast<int>(world.scorchMarks.size());
+    for (const BloodPrint& print : world.bloodPrints) counts.lifeLeft += print.life;
+    for (const Footprint& print : world.footprints) {
+        counts.lifeLeft += print.life;
+        if (print.visible) ++counts.shownFootprints;
+    }
+    for (const GroundPrint& print : world.scorchMarks) counts.lifeLeft += print.life;
+    return counts;
+}
+
 std::string GiveItem(int playerId, const char* name) {
     Player* player = g_serverWorld.GetPlayer(playerId);
     if (!player) return "giveitem: no player " + std::to_string(playerId);

@@ -1251,14 +1251,14 @@ are, and a save without the side file starts from the defaults.
   flight, which the client then shows again.
 - **What a load loses** (without the side file):
   - The ground prints: blood, footprints and scorch marks. `GroundPrint::Save` / `Load` (and Footprint's and
-    BloodPrint's) exist from the original with no caller; WorldClient::LoadZone clears the three vectors.
+    BloodPrint's) exist from the original with no caller; WorldClient::LoadZone clears the three vectors. Kept (Prints).
   - The client's rain or snow layer: it restarts from density 0 and fades in over the weather message's 20 / 40 ticks
     (`RainSnow::Clear`, then `Start`), with its sound.
   - The landscape's wave phase (`terrain::Terrain::wavePhase`, the water vertices' waves, SectorData::AnimateWaves):
     back to 2 pi at every map load; the tiles' animation frame (`Terrain::frame`) back to 1.
-  - The client generator (`g_clientRandom`, R34a): seeded once per process (World::Create), never saved, so the
-    client's draws after a load depend on the session before it (the harness's record and replay reseed it at a
-    load, `image::ReseedRandom`). The game's own ISAAC and rand() are not saved either (game state, not the picture).
+  - The client generator (`g_clientRandom`, R34a): seeded once per process (World::Create), so the client's draws
+    after a load depended on the session before it. Kept (Generator): the draws after a load follow the save. The
+    game's own ISAAC and rand() are not saved (game state, not the picture).
   - Ours: the surfaces' wetness, puddles and snow and each unit's (11b) started again from the settled weather (a
     save loaded in rain was soaked at once, one loaded in snow covered at once); the clouds' drift (a new process starts
     at 0) and their cover (from the target of the rain falling at the first frame, which after a load is none: 0.4).
@@ -1272,18 +1272,36 @@ are, and a save without the side file starts from the defaults.
   - Weather (1): wetness, puddles, snow (f32), the clouds' two layers' drift (x, y in f64 each) and cover (f32).
   - Waves (2): the landscape's wave phase (f32).
   - Units (3): a u32 count, then per unit drawn lately its object id (i32), wetness and snow (f32), by ascending id.
+  - Prints (4; R57a): the blood prints, the footprints and the scorch marks, each list a u32 count and its prints'
+    `Save` (the original's record: place, sizes, growth, life, texture name, tile, angles, lit, alpha scale, lifetime;
+    a footprint's scale, kind and ours, its visible byte; a blood print's spin, spread, kind, fresh). Always written
+    (three zero counts when there are none); read back only at the restore, where the prints look their textures up.
+    A list that runs past the section, or a print whose place or sizes are not numbers or whose life or lifetime is
+    not above 0, drops all three lists. The alpha is not saved: Load sets it from the life left, as Tick does.
+  - Generator (5; R57b): `g_clientRandom` whole: seeded, count, results and memory (256 u32 each), aa, bb, cc (2068
+    bytes). Only when seeded; skipped when its size is wrong or its count above 256.
+- **What depends on the frames drawn**: the generator's state at a save (its draws follow frames, the camera and what
+  was drawn: idle picks, particles, sounds) and the footprints' places (a unit's animation's steps). Both are
+  deterministic on the harness's virtual clock and are the same draws the client units' digests (cunit) already
+  follow, so the Linux CI's llvmpipe runs compare them as they compare those; a run cut by its real-time limit
+  differs in both.
 - **The restore**: the end of WorldClient::LoadZone (after the landscape's LandscapeLoaded) restores the surfaces and
   the clouds (`RestoreWeather`: the surfaces hold the kept state while they would settle, 32 ticks; the clouds go on
-  from the kept drift and cover) and the wave phase, and hands the units to the next frame's light
+  from the kept drift and cover), the wave phase, the prints (made again into the lists the load emptied; their
+  ground geometry on their first draw) and the client generator (after the landscape's own draws: the animated
+  tiles' start frames), and hands the units to the next frame's light
   (WorldClient::UpdateLighting, `ClientVisuals::RestoreUnits`): each kept unit present among the client's objects takes
   its kept wetness and snow (`RestoreUnitWeather`), and holds it while the ground holds. Everything kept is used once,
   so a later zone change starts from the defaults.
 - **Left**: the cloud cover dips after a load (0.74 to 0.70 in render_weather_save) while the client's rain layer fades
-  in again, as its density drives the cover's target. Not kept yet: the ground prints (R57a), the client generator
-  (R57b), the visited zones' saves\current\<zone>.sav and the multiplayer clients (R57c).
+  in again, as its density drives the cover's target. Not kept yet: the visited zones' saves\current\<zone>.sav and
+  the multiplayer clients (R57c). The harness's `origin` step (a recorded part that begins at a load) still seeds both
+  generators again after the load: the client's has drawn in the frames between the load and the origin, which the
+  recording and its replay need not draw alike (harness.md, "Parts").
 - **Checks**: render_weather_save (zone1 by day: 15 s of rain, F5, 20 s of drying, F8): `weathercheck` and `unitweather`
   read the ground and the hero exactly as saved (0.759 both; from the settled rain they would be 1) and `cloudcheck`
-  the cover near the saved one. Every golden with saves holds its visuals.sav decoded (tools/savefile.py's
+  the cover near the saved one. ground_prints: `groundprints` counts the blood and footprints at the save and the
+  same after its load (none without the side file). Every golden with saves holds its visuals.sav decoded (tools/savefile.py's
   `read_visuals`, field by field in saves.txt), not left out of the comparison.
 
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora

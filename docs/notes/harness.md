@@ -128,6 +128,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   units' faces or shows every face's open / closed state (render_blink). `skin <unit> <first> [<second>]` gives a
   spawned unit's client figure the textures a map placement names (AddUnitToServer names none: untextured, world.md),
   `unitskins <unit> <first> <second>` requires the client unit's texture names (party_join_skin),
+  `groundprints [<least> <most> blood, footprints [, scorch]]` logs the client's ground prints and checks their counts
+  (ground_prints: the save's prints back after its load),
   `unitcolour <frame> <a> <b> <least> <most>` compares two units' mean colours in a frozen capture (render_unit_skin;
   the crowds of render_occlusion, render_lighting and render_stats are skinned). `python tools\compare_frames.py A B` compares
   two captures or two runs' frames with a tolerance (`--mask` restricts it to where two other frames differ). A
@@ -247,8 +249,9 @@ the next file, `recorded_2.txt`, begins as its replay will run: `# prepare: reco
 `waitmenu`, the kept settings (`frametime`, `speed`, `windowsize`, `screen`, `shadows`, `focus`: the last value each
 had), those three load steps, then its `at` lines. They count from the `origin` step (the frame where the loaded game
 settled: `record::Frame()` is the harness's frame less that origin), so a part's lines do not depend on how many frames
-the menu or the load took. `origin` also seeds the generators again (image::ReseedRandom: a save holds none, and a
-replay that begins at a load has drawn otherwise than the recording did), in the recording and in the replay alike. The automatic cut waits until the part has `cut` frames, the battle screen takes input and
+the menu or the load took. `origin` also seeds the generators again (image::ReseedRandom: a save holds no game generator, and the client's,
+kept beside the save, has drawn in the frames between the load and the origin, which a replay that begins at a load
+draws otherwise than the recording did), in the recording and in the replay alike. The automatic cut waits until the part has `cut` frames, the battle screen takes input and
 the player holds no key or button; the player's input between the cut and the origin is dropped. `recorded.py take <run>
 <name>` makes `rec_<name>_1.txt`, `rec_<name>_2.txt`, ... (`{previous}` becomes the part before). Saves are made by the
 game from its data, so none is committed: `tools/recorded_save.py` (the prepare tool) plays the part before once per

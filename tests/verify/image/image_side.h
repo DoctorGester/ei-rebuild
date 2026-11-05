@@ -98,7 +98,8 @@ const char* DataFolder();                       // the data folder's text, may b
 // IsaacRandom's seed hook: rand() seeded with 12345 and the generator's results filled by `fill`.
 void SetFixedSeed(void (*fill)(std::uint32_t* results));
 // The generators seeded again as a first world seeds them (World::Create): a recording's part begins so (the "origin"
-// step), since a save holds no generator and a replay that begins at a load has drawn otherwise than the recording.
+// step), since a save holds no game generator, and the client's (kept beside the save, client_visuals.h) has drawn in
+// the frames between the load and the origin, which a replay that begins at a load draws otherwise than the recording.
 void ReseedRandom();
 int TextKey(const char* name);                  // TextKeyFromName
 void* LocalWorldPlayer(int player);             // WorldServer::GetPlayer
@@ -108,6 +109,12 @@ std::string HitUnit(int target, int attacker, float amount);
 // The "giveitem" step: the server world's player `player` is given a new item named `name` (WorldServer::CreateItemNamed,
 // Player::GiveItems), as the script's GiveItem. "" or the error.
 std::string GiveItem(int player, const char* name);
+// The "groundprints" step: the client world's ground prints now.
+struct GroundPrintCounts {
+    int blood = 0, footprints = 0, shownFootprints = 0, scorch = 0;
+    int lifeLeft = 0;   // the life left of all of them together, in ticks
+};
+GroundPrintCounts CountGroundPrints();
 void* WorldHandle();                          // the server world's worldHandle
 const char* ServerZoneName();                   // the server world's zone, may be null
 const char* LoadingMovieName();                 // app::g_loadingMovieName: the loading screen's movie file
