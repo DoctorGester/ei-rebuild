@@ -109,3 +109,26 @@ What the expansion's data asks of the game that the base game's never did, and h
   game's own file has unit rotations). The game draws it as it is; the drawn view between ticks once undid it by its
   length squared and zoomed the menu in and out on every frame (renderer.md section 14, "Rotations of other lengths";
   scenario `mod_lost_in_astral_menu_camera`).
+- Its campaign: map.txt (texts.res) names the allods Jigran (the start), Suslanger, Gipat (gipat2) and Ingos, and the
+  game zones gz1g (zonezero), gz1h..gz5h, gz7g..gz16g, gz21k..gz26k, gz31j..gz36j with their caves, bases (bz*) and
+  cut-scene bases (cz*). Every keyword its map.txt uses (`#cage`, `#restrict`, `#deployangle`, `#camera`, ...) the
+  map database reads; every function its scripts call is in the keyword table (the game's and Rebirth's
+  AddNewScriptCommands); its database.res (units, items, quests, levers, spells, perks, acks) stands in for the
+  game's file by file (rebirth.md, "Resources and paths").
+- The opening (scenario `mod_lost_in_astral_start`): the new game in gz1g, the camp bz1r and its briefing (the mod's
+  texts and speech), the quest q1r with its areas, a chest lever, the portal lever that takes the quest item
+  TeleportKey00 (a lock by id: the key from the quick item panel; a plain click does not open it), QuestComplete, the
+  movie teleprt1.bik from the mod's Movies\ and the change to the next allod's base bz1h.
+- Every zone of the campaign is entered and its scripts run for two seconds (`mod_lost_in_astral_suslanger`, `_gipat`,
+  `_ingos`, `_jigran`). A zone's mission script that does not load is reported on the console (`Script error:
+  <zone>.mob line <n>: <error>`; the original said nothing and played on without the scripts after the error):
+  bz23k's stops at line 267, a call of the never declared script `BuyHaburuMain#2#1#0` (the mod's error; the scripts
+  before it stay).
+- The cut-scene bases (cz*) move story people ("merc2" and others) who join the party on the way: entered without
+  them, their briefings never start (MOD2a plays them from the story's state).
+- Leftovers of the game's map.txt in the mod's, which no exit or script reaches: gz17g names the game's zone17.mob, one
+  of whose units carries `necrolabkey00`, an item the mod's database lacks (Rebirth's FixCreateItem gives no item, now
+  logged as Rebirth's addon.log did, `GiveItem: can't find prototype ...`; the unit record adds no carried item for
+  it, where both games crashed); bz15g and mov1 name mobs (bz15g.mob, 1mov.mob) that neither the mod nor the game has,
+  so they load nowhere (entering one leaves the world broken in both games).
+- Not matched: the mod's `fixshops.plg` (a game.exe patch DLL for its shops) is not loaded (open questions above).

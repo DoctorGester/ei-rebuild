@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_lost_in_astral_jigran",
+  "install": "rebirth",
+  "recorded": "2026-11-05",
+  "commit": "48ac7942a",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenarios: every Lost in Astral campaign zone entered (MOD2).",
+  "source": "image",
+  "saves": "21 decoded saves (tools/savefile.py), the same in 2 runs"
+}

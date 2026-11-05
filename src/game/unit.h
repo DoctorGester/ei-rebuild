@@ -390,7 +390,7 @@ public:
     // Releases every item (weapons, armour with ArmourTakenOff and ClearOuterArmourLayers, quick items,
     // spells, the carried ones) and frees the carried array.
     void ReleaseAllItems();
-    // Adds `item` (referenced) to the carried items.
+    // Adds `item` (referenced) to the carried items; no item (an unknown name in a unit record) adds nothing.
     void AddCarried(Item* item);
     // Releases carried item `index` and closes the gap. Returns the new count.
     int RemoveCarried(int index);

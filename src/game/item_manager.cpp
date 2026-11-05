@@ -12,6 +12,7 @@
 
 #include "lib/crt.h"
 #include "lib/str.h"
+#include "platform/log.h"
 
 
 #include <cstdint>
@@ -282,7 +283,8 @@ Item* ItemManager::CreateItem(std::string_view name) {
     if (!prototype) prototype = g_itemDatabase.questItems.Named(prototypeName);
     if (!prototype) prototype = g_itemDatabase.loot.Named(prototypeName);
     if (!prototype) {
-        // An unknown prototype gives no item and no fatal error.
+        // An unknown prototype gives no item and no fatal error (Rebirth's addon.log line, in ours).
+        ei::Log("GiveItem: can't find prototype %s", text.c_str());
         return nullptr;
     }
     MaterialRecordHead* material = parts.size() > 1 ? g_itemDatabase.materials.Named(parts[1]) : nullptr;
@@ -297,7 +299,10 @@ Item* ItemManager::CreateItem(std::string_view name) {
     }
     Item* item = context->GetItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
     // A failed build gives no item.
-    if (!item) return nullptr;
+    if (!item) {
+        ei::Log("GiveItem: can't make %s", text.c_str());
+        return nullptr;
+    }
     if (ItemLoot* loot = item->AsLoot(); loot && parts.size() > 1) {
         if (loot->kind == LootKind::Record) loot->index = static_cast<std::uint32_t>(LootTableIndex(loot->recordType, parts[1]));
     }

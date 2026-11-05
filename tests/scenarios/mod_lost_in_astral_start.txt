@@ -1,0 +1,85 @@
+# Lost in Astral's opening played through (MOD2; docs/notes/mods.md, "Lost in Astral played (MOD2)"): the new game in
+# gz1g (the mod's zonezero), its first script areas, the walk into the camp bz1r, the recruiter's briefing (the
+# mod's texts and speech) clicked through, the way back to gz1g by its exit 2 with the quest q1r, the quest's areas,
+# the chest lever that gives the quest item TeleportKey00, the portal lever, which takes that key from the quick
+# item panel (its lock is by id; a plain click does not open it), and the portal: QuestComplete, the movie
+# teleprt1.bik from the mod's Movies\ and the zone change to the next allod's base bz1h.
+# The walks: the hero walks to the first area and to the camp; the quest areas, the levers' ground and the portal's
+# platform are reached with SetCPFast (on the way a flying creature attacks and holds the hero in a fight; GodMode).
+# On the vanilla data (no starter\Mods) only the menu runs: every later step is Rebirth's.
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+rebirth console thingamabob
+rebirth newgame
+rebirth waitfor 20 IsGreater(HP(GetLeader()),0)
+rebirth waitline 20 Saved savea
+rebirth console @GodMode(0,1)
+rebirth waitwindow 15 battle
+rebirth check IsEqual(GSGetVar(0,"b.First.brief_0"),0)
+
+# The first area (23, 121): object 1664521 attacks; the camp's area (54, 146) leaves to bz1r.
+rebirth console @MoveToPoint(GetLeader(),23,121)
+rebirth waitfor 30 IsLess(DistanceUnitPoint(GetLeader(),23,121),3)
+rebirth console @MoveToPoint(GetLeader(),54,146)
+rebirth waitzone 40 bz1r
+rebirth waitfor 15 IsGreater(HP(GetLeader()),0)
+
+# The camp: the hero walks to the recruiter ("First"), the briefing brief_0 opens by itself.
+rebirth waitwindow 20 briefing
+rebirth waitdialogue 20 3
+rebirth talk 40
+rebirth check IsEqual(GSGetVar(0,"b.First.brief_0"),2)
+rebirth waitzone 40 gz1g
+rebirth waitfor 15 IsGreater(HP(GetLeader()),0)
+rebirth waitwindow 15 battle
+rebirth console @GodMode(0,1)
+rebirth wait 3000
+rebirth check IsLess(DistanceUnitPoint(GetLeader(),50.5,149.5),1)
+rebirth check IsEqual(GSGetVar(0,"q.gz1g.q1r"),1)
+
+# The quest's areas 2 (100, 174) and 3 (100, 90).
+rebirth console @SetCPFast(GetLeader(),100,174,0)
+rebirth wait 2000
+rebirth check IsEqual(GSGetVar(0,"q.gz1g.q1r.1"),2)
+rebirth console @SetCPFast(GetLeader(),100,90,0)
+rebirth wait 2000
+rebirth check IsEqual(GSGetVar(0,"q.gz1g.q1r.2"),2)
+
+# The chest lever 3340943: a click; the script gives TeleportKey00.
+rebirth waitunit 10 #3340943
+rebirth clickunit #3340943
+rebirth waitfor 20 IsEqual(GetLeverState(GetObject(3340943)),1)
+rebirth wait 1000
+rebirth check IsEqual(GSGetVar(0,"q.gz1g.q1r.4"),1)
+
+# The portal lever 43974: the key from the quick item panel (its top row), then the lever.
+rebirth console @SetCPFast(GetLeader(),43,62,0)
+rebirth wait 300
+rebirth camera 45 62
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #43974
+rebirth clickunit #43974 move
+rebirth frames 5
+rebirth clickunit #43974
+rebirth waitfor 20 IsEqual(GetLeverState(GetObject(43974)),1)
+rebirth wait 5000
+rebirth check IsEqual(GSGetVar(0,"q.gz1g.q1r.5"),1)
+
+# The portal: area 4 (53.5, 50.5) on its platform.
+rebirth console @SetCPFast(GetLeader(),53.5,50.5,0)
+rebirth waitzone 40 bz1h
+rebirth waitfor 15 IsGreater(HP(GetLeader()),0)
+rebirth check IsEqual(GSGetVar(0,"q.gz1g.q1r"),2)
+rebirth check IsEqual(GSGetVar(0,"b.bz1h.brief_2"),1)
+rebirth wait 3000
+rebirth check IsAlive(GetLeader())
+
+rebirth read mod Movies\teleprt1.bik yes
+rebirth read mod Maps\bz1h.mob yes
+report
+quit

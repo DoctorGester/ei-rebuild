@@ -687,7 +687,13 @@ void WorldServer::LoadZoneScripts(std::string_view mob) {
         script = reinterpret_cast<const char*>(text.data.data());
     }
     MainScript()->Reset();
-    MainScript()->Load(&script, 1);
+    // The game goes on without the scripts after the error (the original said nothing); the console names it.
+    if (!MainScript()->Load(&script, 1)) {
+        ScriptErrorInfo error;
+        MainScript()->GetError(&error);
+        console::EndLine(console::g_consoleOut << "Script error: " << std::string(mob) << " line " << error.line
+                                               << ": " << error.text);
+    }
 }
 
 void GameFlow::SwitchMultiplayerZone() {

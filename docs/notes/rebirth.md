@@ -29,7 +29,8 @@ everything here: static analysis of addon.dll, EI_Plugin.asi, the starter's dinp
   NaN through); taking an item apart adds the repair cost of its wear instead of subtracting.
 - **FixRemoveMapObject**: `WorldServer::RemoveObject` logs an unknown id and returns (vanilla crashes).
 - **FixCreateItem**: the item factory logs "GiveItem: ..." for an unknown prototype or material and returns no item
-  instead of FatalError.
+  instead of FatalError (the line in ei-rebuild.log). A unit record's carried item that gives none is not added (both
+  games crashed on it in AddCarried: Lost in Astral over the game's zone17, mods.md).
 - **FixProcessLogin** (multiplayer): the join's age field is cleared (ours always did).
 
 ### Widescreen and rendering
