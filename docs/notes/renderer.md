@@ -1386,7 +1386,8 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   `render::VsyncSwitchSupported()` is false in the harness build; the harness's own `SetWaitForVsync(false)` under the
   virtual clock presents in `Mailbox` (no wait, no tearing).
 - **Off**: `PresentMode::Immediate` (no wait; may tear), which gpu.h's `SetPresentMode` turns into `Mailbox` where the
-  swap chain has no immediate mode, and `Mailbox` into `Vsync` where it has neither (render_window.cpp logs the mode it
+  swap chain has no immediate mode, and `Mailbox` into `Immediate` where it has no mailbox (Metal), then `Vsync` (the
+  harness build's presents must not wait for the display; render_window.cpp logs the mode asked for and the one it
   got: "render: presenting on the game window through the <driver> swap chain, <mode>").
 - **Nothing else relies on vsync pacing**: game time is the world updates (section 3); an unlocked game runs the main
   thread flat out, which is the point of the switch.
@@ -1494,7 +1495,7 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   downloads (four at most). Not downloadable: the swap chain's texture (Vulkan makes it without transfer source) and a
   multisampled texture; a depth texture only whole on Direct3D 12.
 - **The window**: `ClaimWindow(SDL_Window*)`, `SetPresentMode` (Vsync; Immediate, falling back to Mailbox, then Vsync;
-  Mailbox, falling back to Vsync), `SwapchainFormat`, `AcquireSwapchain` (waits while too many frames are in flight;
+  Mailbox, falling back to Immediate, then Vsync), `SwapchainFormat`, `AcquireSwapchain` (waits while too many frames are in flight;
   an empty texture while the window is minimised or hidden, which SDL's Vulkan driver treats so). SDL follows the
   window's size by itself.
 - **The frame's GPU time** (the overlay's GPU line, one whole-frame time, user 2026-11-03): SDL_GPU has no timestamp

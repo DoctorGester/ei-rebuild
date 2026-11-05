@@ -130,7 +130,8 @@ started again.
   have matched them (port_check's "plain enum bit operations").
 - **Rendering**: SDL_GPU on Metal (gpu.cpp's driver `metal`, MSL code). The MSL is spirv-cross's with each resource
   at its SPIR-V binding, which gen_gpu_shaders.py checks on every system's build. Metal has no D24S8 (the renderer's
-  depth is D32F) and no Mailbox present mode (gpu.h's fallbacks take Vsync for it). SDL 3.4.18's Metal driver took
+  depth is D32F) and no Mailbox present mode (gpu.h's fallbacks take Immediate for it, so the harness's presents do not wait for the
+  display; Vsync made every harness frame 16.7 ms in H62's first run). SDL 3.4.18's Metal driver took
   a texture upload's rows as packed, not at `pixels_per_row`, so gpu.cpp's 256-byte padded rows went up skewed (the
   movies, port_gpu's read-backs); a local patch of the vendored SDL reads them (third_party/SDL/README.txt), upstream's
   fix being SDL commit 32f9c098d5.

@@ -340,7 +340,8 @@ enum class PresentMode : std::uint8_t {
     Mailbox,     // no wait; the newest frame is shown at the vertical blank, others dropped
 };
 bool PresentModeSupported(PresentMode mode);
-// The mode set: an unsupported Immediate becomes Mailbox, an unsupported Mailbox Vsync (always supported).
+// The mode set: an unsupported Immediate becomes Mailbox, an unsupported Mailbox Immediate (Metal has no Mailbox),
+// and what is still unsupported Vsync (always supported).
 PresentMode SetPresentMode(PresentMode mode);
 Format SwapchainFormat();
 // The window's texture for this frame, at the window's size (waits while too many frames are in flight). True with

@@ -253,10 +253,46 @@ jobs:
           PY
           { echo "### The folder rule"; echo '```'; cat folder_rule.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
 
+      # What a differing golden needs to be understood without the machine: the first differing digest records (golden.py
+      # compare: the record's world update / frame / tick and the fields that differ), then the log lines that say what
+      # could have paused or slowed the game (focus and window steps, activation, the present mode and the driver's
+      # device, the cursor confinement) and the run's frame timing. Printed, not uploaded (the data never leaves the runner).
+      - name: Differences in detail
+        if: always()
+        env:
+          SCENARIOS: ${{ inputs.scenarios }}
+        run: |
+          export EI_BUILD_DIR=$PWD/build/macos-verify EI_GAME_VANILLA=$DATA/vanilla EI_GAME_REBIRTH=$DATA/rebirth
+          names="$SCENARIOS"
+          [ -n "${names// }" ] || names="$SMOKE_LIST"
+          {
+            echo "### Differences in detail"
+            echo '```'
+            for n in $names; do
+              d=build/macos-verify/runs/$n-vanilla
+              [ -d "$d" ] || { echo "== $n: no run folder"; continue; }
+              out=$(python3 tools/golden.py compare "$n" --run "$d" --records 3 --fields 30 2>&1 || true)
+              case "$out" in *DIFFERS*) ;; *) continue ;; esac
+              echo "== $n: first differing digest records"
+              echo "$out" | head -80
+              echo "-- $n: log lines (focus, window, present mode, device, pause)"
+              grep -h -i -E "harness: (focus|the game window|windowsize)|focus (off|on|lost|gained)|activat|minimi|occlu|render: presenting|gpu: .*device|cursor confinement|pause" \
+                "$d/ei-rebuild.log" 2>/dev/null | head -40 || true
+              grep -h "^TIMING: median frame" "$d/harness_report.txt" 2>/dev/null || true
+            done
+            echo '```'
+          } 2>&1 | tee -a $GITHUB_STEP_SUMMARY
+
+      # The job fails on a difference. (`! grep` alone does not: bash -e ignores a negated command that is not the last
+      # one, which is how H62's first run passed with GOLDENS DIFFER printed.)
       - name: Verdict
         run: |
-          ! grep -q "GOLDENS DIFFER" suite_image.txt
-          ! grep -q "^not passed:" suite_image.txt
+          bad=0
+          if [ ! -s suite_image.txt ]; then echo "::error::the smoke suite printed nothing"; bad=1; fi
+          if grep -q "GOLDENS DIFFER" suite_image.txt; then echo "::error::GOLDENS DIFFER on Metal (see the summary)"; bad=1; fi
+          if grep -q "^not passed:" suite_image.txt; then echo "::error::scenarios did not pass"; bad=1; fi
+          if ! grep -q "GOLDENS THE SAME" suite_image.txt; then echo "::error::no GOLDENS THE SAME line in the suite output"; bad=1; fi
+          exit $bad
 
       - name: Remove the data
         if: always()

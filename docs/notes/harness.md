@@ -467,6 +467,14 @@ job, never Release, nothing published or uploaded:
   items; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
   goldens block, the GPU device line and each run's `TIMING: median frame` (harness_report.txt). Goldens that differ on
   Metal are listed, not excused: no check is widened for it.
+- **Differences in detail** (always runs): for each differing scenario, `golden.py compare --records 3 --fields 30` (the
+  first differing digest records with their world update, frame and tick, and the fields) and the run's log lines on
+  focus / window steps / activation / the present mode ("render: presenting ... asked for mode N, got M") / pause, with
+  its median frame. The harness drops every system event, so a focus or occlusion event cannot pause a game there;
+  a `world paused 1` in a digest is the game's own pause (the menu). Metal has no Mailbox, so the harness's present mode
+  falls back to Immediate (it fell back to Vsync before H62a: every frame 16.7 ms).
+- **Verdict**: fails on GOLDENS DIFFER, "not passed:", or no "GOLDENS THE SAME" line (bash -e ignores a failed `! grep`
+  that is not the step's last command, so H62's first run passed with a difference printed).
 - **Folder rule**: PL19a's, with `EI_GAME_ROOT` unset: the harness-build app (no `EI_HARNESS`, so a player's start) copied
   into the data folder, then elsewhere with `game_folder.txt` naming the data; each must log `ei-rebuild started in`
   the data folder. The picker is not reached.

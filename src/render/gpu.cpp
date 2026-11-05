@@ -1492,7 +1492,8 @@ bool PresentModeSupported(PresentMode mode) {
 
 PresentMode SetPresentMode(PresentMode mode) {
     if (mode == PresentMode::Immediate && !PresentModeSupported(mode)) mode = PresentMode::Mailbox;
-    if (mode == PresentMode::Mailbox && !PresentModeSupported(mode)) mode = PresentMode::Vsync;
+    if (mode == PresentMode::Mailbox && !PresentModeSupported(mode)) mode = PresentMode::Immediate;
+    if (mode == PresentMode::Immediate && !PresentModeSupported(mode)) mode = PresentMode::Vsync;
     if (g_window && !SDL_SetGPUSwapchainParameters(g_device, g_window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, ToSdl(mode))) {
         Problem("present mode %d: %s", static_cast<int>(mode), SDL_GetError());
         return PresentMode::Vsync;
