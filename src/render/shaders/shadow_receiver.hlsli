@@ -4,22 +4,39 @@
 // names its slots: SHADOW_BLOCK_SLOT, SHADOW_MAP_SLOT and SHADOW_RANGE_SLOT.
 #include "bindings.hlsli"
 struct ShadowParams {
-    float4 on;       // x: on, y: strength, z: 1 the shadow alone (SetShadowView), w: constant depth bias
-    float4 scale;    // xyz: shadow clip units to the map's world units (normals), w: largest depth slope
-    float4 camera;   // xyz: the camera in shadow clip space
-    float4 soft;     // x: filter radius (across the light, in uv) per unit of blocker distance (clip z), y: the blocker
-                     // search's radius (the widest filter), z: the narrowest filter, w: texels a side
-    float4 sun;      // xyz: the light's direction in the landscape's space (travelling, down), w: the most a disc
-                     // across the light is stretched on the map
-    float4 disc;     // a disc across the light onto the map: uv = (x * a + y * b, x * c + y * d) (xyzw: a b c d)
+    int on;               // the map is read (the clouds' and the roofs' parts have their own)
+    float strength;       // the share of the light a full shadow takes
+    int shadowView;       // the shadow alone (SetShadowView)
+    float depthBias;      // constant
+    float3 scale;         // shadow clip units to the map's world units (normals)
+    float largestSlope;   // of the depth
+    float3 camera;        // the camera in shadow clip space
+    float softness;       // the filter's radius (across the light, in uv) per unit of blocker distance (clip z)
+    float searchRadius;   // the blocker search's (the widest filter)
+    float narrowest;      // the narrowest filter
+    float texels;         // the map's, a side
+    float3 sun;           // the light's direction in the landscape's space (travelling, down)
+    float stretch;        // the most a disc across the light is stretched on the map
+    float4 disc;          // a disc across the light onto the map: uv = (x * a + y * b, x * c + y * d) (xyzw: a b c d)
     float4 discInverse;   // the same back from uv
-    float4 clouds;        // the cloud shadows (cloud_shadow.hlsli): x, y the map's clip space to the two layers' uv,
-                          // z the cover's threshold, w how much of the sun a full cloud hides (0: none)
-    float4 cloudShift;    // xy, zw: the two layers' uv at the map's clip origin
-    float4 roofRows[3];   // the roofs over the weather (roof.hlsli): the map's clip space to the roof map's u, v, depth
-    float4 roofScale;     // xyz: a landscape offset (per unit) in the roof map's u, v, depth; w: its filter's step in uv
-    float4 roof;          // x: on, y: a receiver this much depth under the highest roof is in the open, z: the lookup's
-                          // offset along the receiver's normal, landscape units
+    // The cloud shadows (cloud_shadow.hlsli): the map's clip space to each layer's uv (times the scale, plus the
+    // shift: the layer's uv at the map's clip origin), the cover's threshold and how much of the sun a full cloud
+    // hides (0: none).
+    float cloudScaleA;
+    float cloudScaleB;
+    float cloudThreshold;
+    float cloudLight;
+    float2 cloudShiftA;
+    float2 cloudShiftB;
+    // The roofs over the weather (roof.hlsli): the map's clip space to the roof map's u, v, depth; a landscape offset
+    // (per unit) in them; the filter's step in uv; a receiver this much depth under the highest roof is in the open;
+    // the lookup's offset along the receiver's normal, landscape units.
+    float4 roofRows[3];
+    float3 roofScale;
+    float roofStep;
+    int roofOn;
+    float roofOpenDepth;
+    float roofNormalOffset;
 };
 ConstantBuffer<ShadowParams> shadow : FS_BLOCK(SHADOW_BLOCK_SLOT);
 Texture2D<float> shadow_map : FS_TEXTURE(SHADOW_MAP_SLOT);
@@ -99,19 +116,19 @@ float shadow_filter(float2 uv, float z, float2 slope, float radius, float2 turn,
 // The map's world units (the landscape's x and y along the light onto a level plane, the distance along the light)
 // to the landscape's space (offsets).
 float3 map_to_landscape(float3 m) {
-    float3 d = shadow.sun.xyz;
+    float3 d = shadow.sun;
     float along = m.z - d.x * m.x - d.y * m.y;
     return float3(m.x + d.x * along, m.y + d.y * along, d.z * along);
 }
 // A face's turn to the sun from its face normal (the derivatives, turned towards the camera): 1 facing it, 0 turned
 // away.
 float shadow_facing(float3 s, float3 dsx, float3 dsy) {
-    float3 n = cross(map_to_landscape(dsx * shadow.scale.xyz), map_to_landscape(dsy * shadow.scale.xyz));
+    float3 n = cross(map_to_landscape(dsx * shadow.scale), map_to_landscape(dsy * shadow.scale));
     float len = length(n);
     if (len <= 1e-20) return 1.0;
     n /= len;
-    if (dot(n, map_to_landscape((shadow.camera.xyz - s) * shadow.scale.xyz)) < 0.0) n = -n;
-    return saturate(dot(n, -shadow.sun.xyz) * 6.0);
+    if (dot(n, map_to_landscape((shadow.camera - s) * shadow.scale)) < 0.0) n = -n;
+    return saturate(dot(n, -shadow.sun) * 6.0);
 }
 // One pixel's share hidden, with `grad` its slope and `radius` the filter's (0 when decided without it), across the
 // light. `least`: the narrowest filter.
@@ -119,14 +136,14 @@ float shadow_pixel(float2 uv, float z, float2 slope, float least, float2 turn, f
                    out float radius) {
     grad = 0.0;
     radius = 0.0;
-    float4 soft = shadow.soft;
     float4 around = range_at(uv);
-    float reach = (abs(slope.x) + abs(slope.y)) * soft.y * shadow.sun.w;   // the receiver's plane across the search
+    // The receiver's plane across the search.
+    float reach = (abs(slope.x) + abs(slope.y)) * shadow.searchRadius * shadow.stretch;
     if (around.x >= z + reach) return 0.0;
-    float widest = clamp((z + reach - around.x) * soft.x, least, soft.y);
+    float widest = clamp((z + reach - around.x) * shadow.softness, least, shadow.searchRadius);
     if (around.y < z - reach) return 1.0;
     float wide = widest;
-    float searched = saturate(widest * soft.w * 2.0 / kShadowCell - 1.0);   // 0 up to half a cell, 1 from a cell
+    float searched = saturate(widest * shadow.texels * 2.0 / kShadowCell - 1.0);   // 0 up to half a cell, 1 from a cell
     if (searched > 0.0) {
         float apart = 0.0, hidden = 0.0;
         if (around.z < z) {
@@ -143,12 +160,13 @@ float shadow_pixel(float2 uv, float z, float2 slope, float least, float2 turn, f
             }
         }
         if (hidden == 0.0 && searched >= 1.0) return 0.0;
-        float found = hidden > 0.0 ? clamp(apart / hidden * soft.x, least, widest) : least;
+        float found = hidden > 0.0 ? clamp(apart / hidden * shadow.softness, least, widest) : least;
         wide = lerp(widest, found, searched);
     }
     radius = wide;
     float2 turn2 = turned(turn, float2(0.70710678, 0.70710678));
-    return shadow_filter(uv, z, slope, radius, turn2, quad, radius * soft.w < 4.0 ? kFewTaps : kFilterTaps, grad);
+    int taps = radius * shadow.texels < 4.0 ? kFewTaps : kFilterTaps;
+    return shadow_filter(uv, z, slope, radius, turn2, quad, taps, grad);
 }
 // The share of the sun hidden at a pixel. A filter wider than a few pixels takes the taps of the pixel's whole 2 x 2
 // quad (each neighbour's result moved to this pixel's centre by its own gradient), four times as many for the cost of
@@ -156,18 +174,18 @@ float shadow_pixel(float2 uv, float z, float2 slope, float least, float2 turn, f
 // A filter is never narrower than half a pixel, so a hard edge is smoothed at the screen's resolution and does not
 // crawl from pixel to pixel.
 float shadow_amount(float3 s, float3 dsx, float3 dsy, float2 pixel, float front) {
-    if (shadow.on.x < 0.5) return 0.0;
+    if (shadow.on == 0) return 0.0;
     float2 uv = float2(s.x * 0.5 + 0.5, 0.5 - s.y * 0.5);
     float2 ux = float2(dsx.x * 0.5, -dsx.y * 0.5), uy = float2(dsy.x * 0.5, -dsy.y * 0.5);
     float det = ux.x * uy.y - ux.y * uy.x;
     float2 slope = 0.0;
     if (abs(det) > 1e-24) slope = float2(uy.y * dsx.z - ux.y * dsy.z, ux.x * dsy.z - uy.x * dsx.z) / det;
-    slope = clamp(slope, -shadow.scale.w, shadow.scale.w);
-    float z = s.z - shadow.on.w;
+    slope = clamp(slope, -shadow.largestSlope, shadow.largestSlope);
+    float z = s.z - shadow.depthBias;
     // A unit's mesh: compared as a plane facing the light at its object's nearest depth (`front`; above 1: not a
     // unit), so only what lies nearer the sun than all of the unit shadows it.
     if (front <= 1.0) {
-        z = min(s.z, front) - shadow.on.w;
+        z = min(s.z, front) - shadow.depthBias;
         slope = 0.0;
     }
     // A pixel's size across the light (the disc's units).
@@ -179,7 +197,7 @@ float shadow_amount(float3 s, float3 dsx, float3 dsy, float2 pixel, float front)
     float h = 0.0, radius = 0.0;
     float2 grad = 0.0;
     if (all(uv >= 0.0) && all(uv <= 1.0) && s.z <= 1.0)
-        h = shadow_pixel(uv, z, slope, min(max(shadow.soft.z, foot * 0.5), shadow.soft.y), turn, quad, grad, radius);
+        h = shadow_pixel(uv, z, slope, min(max(shadow.narrowest, foot * 0.5), shadow.searchRadius), turn, quad, grad, radius);
     // The quad's neighbours, each extrapolated to this pixel (fine derivatives: the pixel and its neighbour in the
     // quad's row or column).
     float sx = (at.x & 1u) != 0u ? -1.0 : 1.0, sy = (at.y & 1u) != 0u ? -1.0 : 1.0;

@@ -328,8 +328,8 @@ void PreparePointShadows(Frame& f) {
     g_casters.clear();
     g_units.clear();
     g_mappedCount = 0;
-    const SceneLightParams& scene = KeptSceneLight();
-    const int sceneCount = static_cast<int>(scene.counts[0]);
+    const KeptScene& scene = KeptSceneLight();
+    const int sceneCount = scene.count;
     Matrix4 camera;
     Vector3 eye;
     if (sceneCount == 0 || f.worldRanges.empty() || !WorldCamera(f, &camera, &eye)) return;
@@ -339,14 +339,12 @@ void PreparePointShadows(Frame& f) {
     // the scene's order).
     g_candidates.clear();
     for (int k = 0; k < sceneCount; ++k) {
-        const float* at = scene.pointAt[k];
-        const float* colour = scene.pointColour[k];
-        const float brightest = std::max({colour[0], colour[1], colour[2]});
-        if (!SceneLightCastsShadows(k) || !(at[3] > 0.0f) || brightest < kLeastColour) continue;
-        const float range = 1.0f / std::sqrt(at[3]);
-        const Vector3 position{at[0], at[1], at[2]};
-        if (range <= kNear * 4.0f || !InView(camera, position, range)) continue;
-        g_candidates.push_back(Candidate{k, position, range, brightest * range});
+        const KeptLight& l = scene.lights[k];
+        const float brightest = std::max({l.colour[0], l.colour[1], l.colour[2]});
+        if (!l.shadows || !(l.inverseRangeSquared > 0.0f) || brightest < kLeastColour) continue;
+        const float range = 1.0f / std::sqrt(l.inverseRangeSquared);
+        if (range <= kNear * 4.0f || !InView(camera, l.at, range)) continue;
+        g_candidates.push_back(Candidate{k, l.at, range, brightest * range});
     }
     if (g_candidates.empty()) return;
     std::sort(g_candidates.begin(), g_candidates.end(), [](const Candidate& a, const Candidate& b) {
@@ -459,8 +457,9 @@ void PreparePointShadows(Frame& f) {
         ps.params.depth[m.row][0] = a;
         ps.params.depth[m.row][1] = b;
     }
-    ps.params.on[0] = static_cast<float>(g_mappedCount);
-    ps.params.on[1] = static_cast<float>(kPointFaceTexels);
+    ps.mapped = g_mappedCount;
+    ps.params.count = g_mappedCount;
+    ps.params.texels = static_cast<float>(kPointFaceTexels);
     ps.params.eye[0] = eye.x;
     ps.params.eye[1] = eye.y;
     ps.params.eye[2] = eye.z;
@@ -501,7 +500,8 @@ void DrawPointShadows(Frame& f) {
     }
     const bool ok = MakePipelines() && g_atlas;
     if (!ok) {
-        ps.params.on[0] = 0.0f;
+        ps.mapped = 0;
+        ps.params.count = 0;
         for (int& s : ps.sceneSlots) s = 0;
         g_mappedCount = 0;
         return;
@@ -591,7 +591,7 @@ int PointShadowSlot(const Frame& f, int sceneLight) {
 }
 
 void BindPointShadows(int slot) {
-    const bool on = g_atlas && g_frame.shadow.point.params.on[0] > 0.5f;
+    const bool on = g_atlas && g_frame.shadow.point.mapped > 0;
     const gpu::TextureBinding b{on ? g_atlas : NoShadowTexture(), ShadowCompareSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }

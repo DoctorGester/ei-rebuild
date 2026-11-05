@@ -1,8 +1,9 @@
 // The GPU lighting's scene light (docs/notes/renderer.md section 13): what the world's draw hands
 // over once a frame (render::SceneLighting) kept for the terrain shader's uniforms
 // (shaders/scene_lighting.hlsli). The point lights nearest the camera (by the distance to their reach)
-// are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) becomes the mesh
-// shader's uniforms (MeshLightUniforms) in the part's model space, a ground print's the scene's (GroundDecalLight).
+// are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) is kept in the part's model space
+// (FigureLight), a ground print's is the scene's (GroundDecalLight); either becomes the mesh shader's uniforms at its
+// draw (MeshLightUniforms).
 #include "render.h"
 #include "render_internal.h"
 
@@ -12,32 +13,21 @@
 
 namespace render {
 
-// Until the first hand-over: a sun from above, half ambient.
-static SceneLightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}};
-// Per kept point light: it casts point shadows (ScenePointLight::shadows).
-static bool g_shadows[kMostSceneLights] = {};
-// The daylight colours (SceneLights::daySunColour, dayAmbientColour): until the first hand-over the sun's and the
-// ambient light's above.
-static float g_daySunColour[3] = {1.0f, 1.0f, 1.0f};
-static float g_dayAmbientColour[3] = {0.5f, 0.5f, 0.5f};
-static double g_clientTicks = 0.0;
+static KeptScene g_scene;
 
 void SceneLighting(const SceneLights& lights) {
-    SceneLightParams p{};
+    KeptScene s;
     const Vector3& d = lights.sunDirection;
     const float length = std::sqrt(LengthSquared(d));
-    const float sun[3] = {d.x, d.y, d.z};
+    s.sun = length > 1e-09f ? Vector3{d.x / length, d.y / length, d.z / length} : Vector3{0.0f, 0.0f, -1.0f};
     for (int k = 0; k < 3; ++k) {
-        p.sun[k] = length > 1e-09f ? sun[k] / length : (k == 2 ? -1.0f : 0.0f);
-        p.sunColour[k] = lights.sunColour[k];
-        p.ambient[k] = lights.ambientColour[k];
-        g_daySunColour[k] = lights.daySunColour[k];
-        g_dayAmbientColour[k] = lights.dayAmbientColour[k];
+        s.sunColour[k] = lights.sunColour[k];
+        s.ambientColour[k] = lights.ambientColour[k];
+        s.daySunColour[k] = lights.daySunColour[k];
+        s.dayAmbientColour[k] = lights.dayAmbientColour[k];
     }
-    p.camera[0] = lights.camera.x;
-    p.camera[1] = lights.camera.y;
-    p.camera[2] = lights.camera.z;
-    g_clientTicks = lights.clientTicks;
+    s.camera = lights.camera;
+    s.clientTicks = lights.clientTicks;
     // The nearest point lights: by how far the camera is outside each one's reach.
     static std::vector<std::pair<float, int>> order;
     order.clear();
@@ -49,38 +39,57 @@ void SceneLighting(const SceneLights& lights) {
         order.emplace_back(outside, i);
     }
     std::stable_sort(order.begin(), order.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-    int count = std::min(static_cast<int>(order.size()), kMostSceneLights);
-    bool shadows[kMostSceneLights] = {};
-    for (int k = 0; k < count; ++k) {
+    s.count = std::min(static_cast<int>(order.size()), kMostSceneLights);
+    for (int k = 0; k < s.count; ++k) {
         const ScenePointLight& l = lights.points[order[static_cast<std::size_t>(k)].second];
-        p.pointAt[k][0] = l.position.x;
-        p.pointAt[k][1] = l.position.y;
-        p.pointAt[k][2] = l.position.z;
+        KeptLight& kept = s.lights[k];
+        kept.at = l.position;
+        kept.inverseRangeSquared = l.inverseRangeSquared;
+        for (int j = 0; j < 3; ++j) kept.colour[j] = l.colour[j];
+        kept.specular = l.specular;
+        kept.shadows = l.shadows;
+    }
+    g_scene = s;
+}
+
+// The direction the shadow map's light travels: the frame's sun as the map takes it, else the scene's.
+static Vector3 MapSun() {
+    Vector3 travel = g_scene.sun;
+    const ShadowFrame& sh = g_frame.shadow;
+    if (sh.haveSun) MapLightDirection(sh.sun, &travel);
+    return travel;
+}
+
+SceneLightParams SceneLightUniforms() {
+    const KeptScene& s = g_scene;
+    SceneLightParams p{};
+    const Vector3 mapSun = MapSun();
+    const float sun[3] = {s.sun.x, s.sun.y, s.sun.z};
+    const float map[3] = {mapSun.x, mapSun.y, mapSun.z};
+    const float camera[3] = {s.camera.x, s.camera.y, s.camera.z};
+    for (int k = 0; k < 3; ++k) {
+        p.sun[k] = sun[k];
+        p.sunColour[k] = s.sunColour[k];
+        p.ambient[k] = s.ambientColour[k];
+        p.mapSun[k] = map[k];
+        p.camera[k] = camera[k];
+    }
+    p.pointCount = s.count;
+    for (int k = 0; k < s.count; ++k) {
+        const KeptLight& l = s.lights[k];
+        p.pointAt[k][0] = l.at.x;
+        p.pointAt[k][1] = l.at.y;
+        p.pointAt[k][2] = l.at.z;
         p.pointAt[k][3] = l.inverseRangeSquared;
         for (int j = 0; j < 3; ++j) p.pointColour[k][j] = l.colour[j];
-        p.pointColour[k][3] = l.specular ? 1.0f : 0.0f;
-        shadows[k] = l.shadows;
+        p.pointSpecular[k / 4][k % 4] = l.specular ? 1 : 0;
     }
-    p.counts[0] = static_cast<float>(count);
-    g_params = p;
-    std::copy(std::begin(shadows), std::end(shadows), g_shadows);
+    for (int k = 0; k < kMostSceneLights; ++k) p.pointShadows[k / 4][k % 4] = PointShadowSlot(g_frame, k);
+    return p;
 }
 
-void LightUniforms(SceneLightParams* params) {
-    *params = g_params;
-    const Frame& f = g_frame;
-    for (int k = 0; k < kMostSceneLights; ++k)
-        params->shadowSlots[k / 4][k % 4] = static_cast<float>(PointShadowSlot(f, k) + 1);
-    const ShadowFrame& sh = g_frame.shadow;
-    Vector3 travel{params->sun[0], params->sun[1], params->sun[2]};
-    if (sh.haveSun) MapLightDirection(sh.sun, &travel);
-    params->mapSun[0] = travel.x;
-    params->mapSun[1] = travel.y;
-    params->mapSun[2] = travel.z;
-}
-
-void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
-    MeshLightParams p{};
+MeshLight FigureLight(const MeshLighting& l) {
+    MeshLight light;
     Matrix4 model = l.model;
     if (l.camera && !UnderCamera(*l.camera, l.model, &model)) model = Matrix4{};
     // The model matrix's inverse: rows of its upper 3 x 3's inverse (the cross products of its columns
@@ -103,17 +112,13 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
         return Vector3{Dot(r0, v), Dot(r1, v), Dot(r2, v)};
     };
     const float* diffuse = l.diffuseColour;
-    p.on[0] = 1.0f;
     if (l.sun) {
-        const Vector3 towards = toModel(-l.sunDirection);   // as the figure part draw's TransformSun (no translation)
-        p.sun[0] = towards.x;
-        p.sun[1] = towards.y;
-        p.sun[2] = towards.z;
-        for (int k = 0; k < 3; ++k) p.sunColour[k] = diffuse[k] * l.sunColour[k] * l.coefficient;
+        light.sun = toModel(-l.sunDirection);   // as the figure part draw's TransformSun (no translation)
+        for (int k = 0; k < 3; ++k) light.sunColour[k] = diffuse[k] * l.sunColour[k] * l.coefficient;
     }
     for (int k = 0; k < 3; ++k) {
-        p.ambient[k] = l.ambientColour[k];
-        p.emissive[k] = l.emissiveColour[k];
+        light.ambientColour[k] = l.ambientColour[k];
+        light.emissiveColour[k] = l.emissiveColour[k];
     }
     // The lights nearest the part's origin.
     static std::vector<std::pair<float, int>> order;
@@ -121,33 +126,29 @@ void MeshLightUniforms(const MeshLighting& l, MeshLightParams* params) {
     for (int i = 0; i < l.lightCount && l.lights; ++i)
         order.emplace_back(LengthSquared(l.lights[i].position - at), i);
     std::stable_sort(order.begin(), order.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-    const int count = (std::min)(static_cast<int>(order.size()), kMostMeshLights);
-    for (int k = 0; k < count; ++k) {
+    light.count = (std::min)(static_cast<int>(order.size()), kMostMeshLights);
+    for (int k = 0; k < light.count; ++k) {
         const MeshLightSource& s = l.lights[order[static_cast<std::size_t>(k)].second];
-        const Vector3 position = toModel(s.position - at);
-        p.pointAt[k][0] = position.x;
-        p.pointAt[k][1] = position.y;
-        p.pointAt[k][2] = position.z;
-        p.pointAt[k][3] = s.inverseRangeSquared;
-        for (int j = 0; j < 3; ++j) p.pointColour[k][j] = diffuse[j] * s.colour[j] * l.coefficient;
-        p.pointColour[k][3] = static_cast<float>(SceneLightIndex(s.position) + 1);   // its point shadow at the draw
+        MeshLight::Point& point = light.points[k];
+        point.at = toModel(s.position - at);
+        point.inverseRangeSquared = s.inverseRangeSquared;
+        for (int j = 0; j < 3; ++j) point.colour[j] = diffuse[j] * s.colour[j] * l.coefficient;
+        point.sceneLight = SceneLightIndex(s.position);
     }
-    p.on[2] = static_cast<float>(count);
-    *params = p;
+    return light;
 }
 
-void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* params) {
-    SceneLightParams scene;
-    LightUniforms(&scene);
-    MeshLightParams p{};
-    p.on[1] = 1.0f;
+MeshLight GroundDecalLight(const float box[6]) {
+    const KeptScene& scene = g_scene;
+    MeshLight light;
+    light.groundPrint = true;
+    light.sun = -scene.sun;
+    light.mapSun = MapSun();
     for (int k = 0; k < 3; ++k) {
-        p.sun[k] = -scene.sun[k];
-        p.sunColour[k] = scene.sunColour[k];
-        p.ambient[k] = scene.ambient[k];
-        p.mapSun[k] = scene.mapSun[k];
-        p.daySunColour[k] = g_daySunColour[k];
-        p.dayAmbient[k] = g_dayAmbientColour[k];
+        light.sunColour[k] = scene.sunColour[k];
+        light.ambientColour[k] = scene.ambientColour[k];
+        light.daySunColour[k] = scene.daySunColour[k];
+        light.dayAmbientColour[k] = scene.dayAmbientColour[k];
     }
     // The lights that reach the box's sphere, the nearest to their reach first.
     const Vector3 low{box[0], box[1], box[2]}, high{box[3], box[4], box[5]};
@@ -155,36 +156,62 @@ void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* p
     const float radius = std::sqrt(LengthSquared(high - low)) * 0.5f;
     static std::vector<std::pair<float, int>> order;
     order.clear();
-    for (int k = 0; k < static_cast<int>(scene.counts[0]); ++k) {
-        const float* at = scene.pointAt[k];
-        if (!(at[3] > 0.0f)) continue;
-        const float outside = std::sqrt(LengthSquared(Vector3{at[0], at[1], at[2]} - centre)) - 1.0f / std::sqrt(at[3]);
+    for (int k = 0; k < scene.count; ++k) {
+        const KeptLight& l = scene.lights[k];
+        if (!(l.inverseRangeSquared > 0.0f)) continue;
+        const float outside = std::sqrt(LengthSquared(l.at - centre)) - 1.0f / std::sqrt(l.inverseRangeSquared);
         if (outside < radius) order.emplace_back(outside, k);
     }
     std::stable_sort(order.begin(), order.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-    const int count = std::min(static_cast<int>(order.size()), kMostMeshLights);
-    for (int j = 0; j < count; ++j) {
+    light.count = std::min(static_cast<int>(order.size()), kMostMeshLights);
+    for (int j = 0; j < light.count; ++j) {
         const int k = order[static_cast<std::size_t>(j)].second;
-        for (int i = 0; i < 4; ++i) p.pointAt[j][i] = scene.pointAt[k][i];
-        for (int i = 0; i < 3; ++i) p.pointColour[j][i] = scene.pointColour[k][i];
-        p.pointColour[j][3] = static_cast<float>(PointShadowSlot(frame, k) + 1);
-        p.pointSpecular[j / 4][j % 4] = scene.pointColour[k][3];
+        const KeptLight& l = scene.lights[k];
+        MeshLight::Point& point = light.points[j];
+        point.at = l.at;
+        point.inverseRangeSquared = l.inverseRangeSquared;
+        for (int i = 0; i < 3; ++i) point.colour[i] = l.colour[i];
+        point.sceneLight = k;
+        point.specular = l.specular;
     }
-    p.on[2] = static_cast<float>(count);
-    *params = p;
+    return light;
 }
 
-const SceneLightParams& KeptSceneLight() { return g_params; }
+MeshLightParams MeshLightUniforms(const Frame& frame, const MeshLight& light) {
+    MeshLightParams p{};
+    p.lit = light.groundPrint ? 0 : 1;
+    p.groundPrint = light.groundPrint ? 1 : 0;
+    p.lightCount = light.count;
+    const float sun[3] = {light.sun.x, light.sun.y, light.sun.z};
+    const float mapSun[3] = {light.mapSun.x, light.mapSun.y, light.mapSun.z};
+    for (int k = 0; k < 3; ++k) {
+        p.sun[k] = sun[k];
+        p.sunColour[k] = light.sunColour[k];
+        p.ambient[k] = light.ambientColour[k];
+        p.emissive[k] = light.emissiveColour[k];
+        p.mapSun[k] = mapSun[k];
+        p.daySunColour[k] = light.daySunColour[k];
+        p.dayAmbient[k] = light.dayAmbientColour[k];
+    }
+    for (int k = 0; k < kMostMeshLights; ++k) {
+        const MeshLight::Point& point = light.points[k];
+        p.pointAt[k][0] = point.at.x;
+        p.pointAt[k][1] = point.at.y;
+        p.pointAt[k][2] = point.at.z;
+        p.pointAt[k][3] = point.inverseRangeSquared;
+        for (int j = 0; j < 3; ++j) p.pointColour[k][j] = point.colour[j];
+        p.pointShadows[k / 4][k % 4] = PointShadowSlot(frame, point.sceneLight);
+        p.pointSpecular[k / 4][k % 4] = point.specular ? 1 : 0;
+    }
+    return p;
+}
 
-double KeptClientTicks() { return g_clientTicks; }
-
-bool SceneLightCastsShadows(int k) { return k >= 0 && k < kMostSceneLights && g_shadows[k]; }
+const KeptScene& KeptSceneLight() { return g_scene; }
 
 int SceneLightIndex(const Vector3& position) {
-    const int count = static_cast<int>(g_params.counts[0]);
-    for (int k = 0; k < count; ++k) {
-        const float* at = g_params.pointAt[k];
-        if (at[0] == position.x && at[1] == position.y && at[2] == position.z) return k;
+    for (int k = 0; k < g_scene.count; ++k) {
+        const Vector3& at = g_scene.lights[k].at;
+        if (at.x == position.x && at.y == position.y && at.z == position.z) return k;
     }
     return -1;
 }

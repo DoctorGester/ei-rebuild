@@ -149,7 +149,7 @@ gpu::TextureBinding RippleMap() {
 void RippleOffsets(float water[4], float swamp[4]) {
     constexpr double kDrift[4] = {0.0016, 0.0010, -0.0012, 0.0019};
     constexpr double kSwampDrift = 0.2;
-    const double ticks = KeptClientTicks();
+    const double ticks = KeptSceneLight().clientTicks;
     for (int k = 0; k < 4; ++k) {
         const double moved = ticks * kDrift[k], slow = moved * kSwampDrift;
         water[k] = static_cast<float>(moved - std::floor(moved));

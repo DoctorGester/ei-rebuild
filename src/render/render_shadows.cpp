@@ -869,15 +869,17 @@ void PrepareShadows(Frame& f) {
     FigureFronts(f);
 
     ShadowParams p{};
-    p.on[0] = 1.0f;
-    p.on[1] = kStrength;
-    p.on[2] = g_shadowView ? 1.0f : 0.0f;
-    p.on[3] = kDepthBias / depth;
+    p.on = 1;
+    p.strength = kStrength;
+    p.shadowView = g_shadowView ? 1 : 0;
+    p.depthBias = kDepthBias / depth;
     p.scale[0] = extent * 0.5f;
     p.scale[1] = extent * 0.5f;
     p.scale[2] = depth;
     // The largest depth change per uv unit: kLargestSlope world units of depth per unit across.
-    p.scale[3] = kLargestSlope * extent / depth;
+    p.largestSlope = kLargestSlope * extent / depth;
+    // 1.5 of the map's texels in world units.
+    sh.normalOffset = extent * 0.5f * 2.0f / static_cast<float>(kMapSize) * 1.5f;
     if (fit.haveEye) {
         const Vector3 c = TransformColumn(light, fit.eye);
         p.camera[0] = c.x;
@@ -902,14 +904,14 @@ void PrepareShadows(Frame& f) {
     p.discInverse[2] = -disc[2] / discDet;
     p.discInverse[3] = disc[0] / discDet;
     const float stretch = std::max(lib::Hypot(disc[0], disc[2]), lib::Hypot(disc[1], disc[3]));
-    p.sun[3] = stretch;
-    p.soft[0] = depth * kSunSize / extent;
+    p.stretch = stretch;
+    p.softness = depth * kSunSize / extent;
     // The widest filter, in texels across the light: kWidestRadius, at most what the dilation's cells reach on the map.
     constexpr float kWidestReach = (kMostCellsAround - 1) * kRangeCell - 1.0f;
     const float widestTexels = std::min(kWidestRadius / extent * kMapSize, kWidestReach / stretch);
-    p.soft[1] = widestTexels / kMapSize;
-    p.soft[2] = kLeastRadius / kMapSize;
-    p.soft[3] = static_cast<float>(kMapSize);
+    p.searchRadius = widestTexels / kMapSize;
+    p.narrowest = kLeastRadius / kMapSize;
+    p.texels = static_cast<float>(kMapSize);
     // The cells around a cell that hold every texel the search and the filter read (+1 texel for the
     // bilinear comparisons' second texel), and one cell more: the receivers read the range filtered
     // between the four cells around a pixel, each of which must hold the pixel's taps.
@@ -919,7 +921,7 @@ void PrepareShadows(Frame& f) {
     RoofUniforms(light, &p);
     sh.params = p;
     sh.cloudParams = p;
-    sh.cloudParams.on[0] = 0.0f;
+    sh.cloudParams.on = 0;
     sh.clouds = cloudLight > 0.0f;
     g_info.cloudLight = cloudLight;
     g_info.cloudCover = sh.clouds ? CloudCover() : 0.0f;

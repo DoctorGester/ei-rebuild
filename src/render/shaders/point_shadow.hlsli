@@ -2,8 +2,9 @@
 // lights given a map this frame, a light a row of the atlas, a face a column. Included after shadow_receiver.hlsli
 // (shadow_disc) by the terrain and mesh programs, which name its slots: POINT_BLOCK_SLOT and POINT_MAP_SLOT.
 struct PointShadowParams {
-    float4 on;          // x: the lights with a map, y: texels a face side
-    float4 eye;         // xyz: the camera (the landscape's space)
+    int count;          // the lights with a map
+    float texels;       // a face's, a side
+    float3 eye;         // the camera (the landscape's space)
     float4 lights[4];   // xyz: the light (the landscape's space), w: the faces' near distance
     float4 depth[4];    // a face's depth for a distance d along its axis: x + y / d
 };
@@ -25,7 +26,7 @@ static const float kNoPointFront = 1e29;       // MeshBatch::pointFront's none (
 // disc per pixel.
 float point_seen(int slot, float3 p, float3 n, float front, float2 turn) {
     float4 at = pointShadow.lights[slot];
-    float texels = pointShadow.on.y;
+    float texels = pointShadow.texels;
     float3 v = p - at.xyz;
     float len = length(v);
     if (front <= at.w || len <= at.w) return 1.0;

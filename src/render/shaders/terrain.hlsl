@@ -39,19 +39,19 @@ struct VsOut {
 struct TerrainVsParams {
     row_major float4x4 matrix;
     row_major float4x4 light;   // to the shadow map
-    float4 shift;               // xy: the half-pixel shift (render_internal.h)
-    float4 normalOffset;        // x: how far along its normal a receiver's point is looked up in the map
+    float2 shift;               // the half-pixel shift (render_internal.h)
+    float normalOffset;         // how far along its normal a receiver's point is looked up in the map
 };
 ConstantBuffer<TerrainVsParams> vs : VS_BLOCK(0);
 VsOut vs_main(VsIn i) {
     float4 p = float4(i.pos, 1.0);
     VsOut o;
     o.pos = float4(dot(vs.matrix[0], p), dot(vs.matrix[1], p), dot(vs.matrix[2], p), dot(vs.matrix[3], p));
-    o.pos.xy += vs.shift.xy * o.pos.w;   // Direct3D 7 pixel centres (render_internal.h)
+    o.pos.xy += vs.shift * o.pos.w;   // Direct3D 7 pixel centres (render_internal.h)
     o.col = i.col.zyxw;                  // D3DCOLOR bytes are B, G, R, A
     o.spec = i.spec.zyxw;
     o.uv = i.uv;
-    float4 q = float4(i.pos + i.normal * vs.normalOffset.x, 1.0);
+    float4 q = float4(i.pos + i.normal * vs.normalOffset, 1.0);
     o.shadow = float4(dot(vs.light[0], q), dot(vs.light[1], q), dot(vs.light[2], q), 1.0);
     o.world = i.pos;
     o.normal = i.normal;
@@ -84,15 +84,23 @@ VsOut vs_main(VsIn i) {
 #include "ambient_occlusion.hlsli"
 #include "roof.hlsli"
 struct TerrainFsParams {
-    float4 fog;            // rgb: the fog colour
-    float4 flags;          // x: water (alpha from the vertex colour; 2: the level map, render::TerrainLevels), y: fog on
+    float3 fog;            // the fog's colour
+    int fogOn;
+    int mode;              // the ground, kWater (alpha from the vertex colour) or kLevels (render::TerrainLevels)
     float4 ripples;        // the two ripple layers' offsets at the client time (render_water.cpp): xy, zw
     float4 slowRipples;    // ... the swamps' slower ones
-    float4 weather;        // the surfaces' weather (render_weather.cpp): x wet, y puddles, z snow, w the rain falling
-    float4 rain;           // x: the rain's rings' clock (client ticks)
+    // The surfaces' weather (render_weather.cpp): the wetness, the puddles, the snow, the rain falling and the rain's
+    // rings' clock (client ticks).
+    float wet;
+    float puddles;
+    float snow;
+    float rain;
+    float rainClock;
     float4 occlusion;      // ambient_occlusion's `on`
     float4 occlusionMap;   // ... and `map`
 };
+static const int kWater = 1;
+static const int kLevels = 2;
 ConstantBuffer<TerrainFsParams> fs : FS_BLOCK(0);
 Texture2D<float4> tex : FS_TEXTURE(0);
 SamplerState smp : FS_SAMPLER(0);
@@ -136,7 +144,7 @@ float4 rain_rings(float2 xy, float rain, float footprint) {
         float3 g = hash3(float3(cell + 31.7, layer * 17.0 + 5.0));
         if (g.x >= rain) continue;
         float period = layer == 0 ? kRingPeriodA : kRingPeriodB;
-        float age = frac(fs.rain.x / period + h.z);
+        float age = frac(fs.rainClock / period + h.z);
         float2 d = p - (cell + 0.25 + 0.5 * h.xy);
         float r = length(d);
         float x = (r - age * kRingReach) / kRingWidth;
@@ -184,21 +192,21 @@ struct GroundWeather {
 GroundWeather ground_weather(VsOut i, float3 n, float open) {
     GroundWeather g = (GroundWeather)0;
     float dry = 1.0 - saturate(i.loss * 50.0);   // under the water: none
-    if (fs.weather.z > 0.0) {
+    if (fs.snow > 0.0) {
         // Snow settles on the flattest ground first, then on steeper; a little sooner higher up. A dusting: at most
         // 0.62 .. 0.87 of the ground (by the noise), so the texture shows through, with a soft edge.
         float noise = cloud_map.Sample(cloud_smp, i.world.xy * kSnowScale);
         float up = n.z + (noise - 0.5) * 0.3 + 0.1 * saturate(i.world.z / 30.0);
-        float edge = lerp(1.15, 0.55, fs.weather.z);
+        float edge = lerp(1.15, 0.55, fs.snow);
         g.snow = smoothstep(edge - 0.15, edge + 0.15, up) * (0.62 + 0.25 * noise) * dry * open;
     }
-    g.wet = fs.weather.x * dry * (1.0 - g.snow) * open;
-    if (fs.weather.y > 0.0) {
+    g.wet = fs.wet * dry * (1.0 - g.snow) * open;
+    if (fs.puddles > 0.0) {
         // Puddles: in flat ground, more where the ground lies low (its own occlusion), patchy.
         float low = saturate((1.0 - i.occlusion) * 3.0);
         float flat = smoothstep(0.86, 0.96, n.z);
         float noise = cloud_map.Sample(cloud_smp, i.world.xy * kPuddleScale);
-        float edge = lerp(1.35, 0.75, fs.weather.y);
+        float edge = lerp(1.35, 0.75, fs.puddles);
         g.puddle = smoothstep(edge, edge + 0.05, noise * 0.75 + low * 0.5) * flat * g.wet;
     }
     if (i.depth > -0.99) {
@@ -224,16 +232,16 @@ float3 weathered(float3 albedo, GroundWeather g) {
 // rippled water and the drops' rings and splashes (rain_dimples).
 float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, float4 rings) {
     if (g.wet <= 0.0) return c;
-    float3 toEye = scene.camera.xyz - i.world;
+    float3 toEye = scene.camera - i.world;
     float3 v = toEye * rsqrt(max(dot(toEye, toEye), 1e-12));
-    float3 toSun = -scene.sun.xyz;
+    float3 toSun = -scene.sun;
     float3 h = normalize(toSun + v);
-    float3 sun = scene.sunColour.rgb * saturate(toSun.z * 4.0) * (1.0 - hidden);
+    float3 sun = scene.sunColour * saturate(toSun.z * 4.0) * (1.0 - hidden);
     c += sun * pow(saturate(dot(n, h)), 40.0) * 0.12 * g.wet;
     if (g.puddle <= 0.0) return saturate(c);
     float3 pn = normalize(float3(-rings.xy, 1.0));
     float fresnel = 0.02 + 0.98 * pow(1.0 - saturate(dot(pn, v)), 5.0);
-    float3 sky = fs.fog.rgb * lerp(1.0, 0.75, saturate(reflect(-v, pn).z));
+    float3 sky = fs.fog * lerp(1.0, 0.75, saturate(reflect(-v, pn).z));
     c = lerp(c, sky, saturate(0.15 + fresnel) * g.puddle);
     c += sun * pow(saturate(dot(pn, h)), 300.0) * 0.6 * g.puddle;
     c = lerp(c, rain_dimples(c, sky, rings), g.puddle);
@@ -286,7 +294,7 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     slope = slope * (1.0 + 0.5 * rain) + rings.xy;
     float3 rippled = normalize(n + float3(-slope, 0.0));
 
-    float3 toEye = scene.camera.xyz - i.world;
+    float3 toEye = scene.camera - i.world;
     float3 v = toEye * rsqrt(max(dot(toEye, toEye), 1e-12));
     float facing = saturate(dot(rippled, v));
     // Schlick's, water's 0.02 head-on; a swamp's still skin keeps a faint sheen of the sky whatever the angle.
@@ -294,22 +302,22 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     float fresnel = lerp(schlick, 0.03 + 0.6 * schlick, swamp);
     float3 r = reflect(-v, rippled);
     // The sky: the horizon in the fog's colour, darker overhead.
-    float3 sky = fs.fog.rgb * lerp(1.0, 0.75, saturate(r.z)) * lerp(1.0, 0.7, swamp);
+    float3 sky = fs.fog * lerp(1.0, 0.75, saturate(r.z)) * lerp(1.0, 0.7, swamp);
 
-    float3 toSun = -scene.sun.xyz;
+    float3 toSun = -scene.sun;
     float3 h = normalize(toSun + v);
     float nh = saturate(dot(rippled, h));
     // The sun's glints and the ripples' sun shading, gone as the sun sets or a cloud hides it; a swamp has a glossy
     // lobe in place of the sharp one.
     float sunUp = saturate(toSun.z * 4.0) * (1.0 - clouded);
-    float3 glint = scene.sunColour.rgb * sunUp *
+    float3 glint = scene.sunColour * sunUp *
                    (pow(nh, 400.0) * 0.25 * (1.0 - swamp) + pow(nh, 60.0) * 0.03 * (1.0 - 0.7 * swamp) +
                     pow(nh, 300.0) * 0.15 * swamp);
     // The ripples turned to the sun or away from it, by the sun's share of the light.
     float sunShare = saturate(max(scene.sunColour.r, max(scene.sunColour.g, scene.sunColour.b))) * sunUp;
     base *= clamp(1.0 + kRippleShade * sunShare * (dot(rippled, toSun) - dot(n, toSun)), 0.75, 1.3);
 
-    float3 light = saturate(scene.ambient.rgb + saturate(toSun.z) * (1.0 - clouded) * scene.sunColour.rgb);
+    float3 light = saturate(scene.ambient + saturate(toSun.z) * (1.0 - clouded) * scene.sunColour);
     float deep = 1.0 - exp(-kClearDepth * depth);
     // A swamp: see-through at its very edge, opaque a little way in; the water by its depth.
     float edge = swamp > 0.0 ? shore_distance(i.depth, i.slope) : 0.0;
@@ -339,40 +347,40 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
 float4 Shade(VsOut i) {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);
-    if (fs.flags.x > 1.5) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
+    if (fs.mode == kLevels) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
     // How much of the sun the map and the clouds hide (the water takes no map: the clouds only).
     float hidden = shadow_amount(i.shadow.xyz, dsx, dsy, i.pos.xy, 2.0);
     hidden = with_clouds(hidden, i.shadow.xy);
-    if (shadow.on.z > 0.5) return float4((1.0 - hidden).xxx, 1.0);   // the harness's shadowview
+    if (shadow.shadowView != 0) return float4((1.0 - hidden).xxx, 1.0);   // the harness's shadowview
     float len = length(i.normal);
     float3 n = len > 1e-6 ? i.normal / len : float3(0.0, 0.0, 1.0);
     float footprint = length(fwidth(i.world.xy));
-    float open = fs.weather.x > 0.0 || fs.weather.z > 0.0 || fs.weather.w > 0.0 ? roof_open(i.shadow.xyz, n) : 1.0;
+    float open = fs.wet > 0.0 || fs.snow > 0.0 || fs.rain > 0.0 ? roof_open(i.shadow.xyz, n) : 1.0;
     float3 spec, c;
     // The layer is the batch's, not the interpolated `loss`'s sign: with multisampling a pixel on a triangle's edge is
     // shaded at its centre, past the triangle, and there the ground's loss (0 on the dry ground, more under the water)
     // fell below 0 at the shore, which drew the ground's edge pixels as water, nearly transparent: the sky showed
     // through in a dotted line along the triangles (scenario render_shore_seams).
-    const bool water = fs.flags.x > 0.5;
+    const bool water = fs.mode == kWater;
     float a = water ? i.col.a : t.a;
     // The water: the clouds' shade only (the map's falls on the ground under it); the crests or the specular lights.
     if (water) {
-        float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.on.y, false, 0.0, 1.0, spec);
+        float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.strength, false, 0.0, 1.0, spec);
         float seen;
-        c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, hidden, footprint, fs.weather.w * open, seen);
+        c = Water(i, saturate(t.rgb * lit + max(spec, i.spec.rgb)), a, n, hidden, footprint, fs.rain * open, seen);
         a = seen;
     } else {
         i.loss = max(i.loss, 0.0);   // past the triangle's edge (above) it can fall below 0
         float occlusion = i.occlusion * ambient_occlusion(i.pos.xy, i.pos.z, fs.occlusion, fs.occlusionMap);
         if (fs.occlusion.w > 0.5) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
-        float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.on.y, pointShadow.on.x > 0.5,
+        float3 lit = ground_light(i.world, n, i.col.rgb, 0.0, i.loss, hidden, shadow.strength, pointShadow.count > 0,
                                   pixel_turn(i.pos.xy), occlusion, spec);
         GroundWeather g = ground_weather(i, n, open);
         float4 rings = 0.0;
-        if (g.puddle > 0.0) rings = rain_rings(i.world.xy, fs.weather.w, footprint);
+        if (g.puddle > 0.0) rings = rain_rings(i.world.xy, fs.rain, footprint);
         c = wet_ground(saturate(weathered(t.rgb, g) * lit + spec), i, n, g, hidden, rings);
     }
-    if (fs.flags.y > 0.5) c = lerp(fs.fog.rgb, c, i.spec.a);
+    if (fs.fogOn != 0) c = lerp(fs.fog, c, i.spec.a);
     return float4(c, a);
 }
 

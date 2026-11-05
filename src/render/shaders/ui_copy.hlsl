@@ -5,7 +5,7 @@ Texture2D<float4> tex0 : FS_TEXTURE(0);
 SamplerState smp : FS_SAMPLER(0);
 float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
     uint2 x = uint2(pos.xy);   // the source rectangle and sizes are clamped non-negative
-    uint2 t = uint2(ui.source.xy) + (x * uint2(ui.source.zw)) / uint2(ui.dest.xy);
+    uint2 t = uint2(ui.sourceAt) + (x * uint2(ui.sourceSize)) / uint2(ui.targetSize);
     return FromBytes(Bytes(tex0.Load(int3(int2(t), 0)).rgb));
 }
 #endif
