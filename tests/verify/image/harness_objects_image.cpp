@@ -158,7 +158,6 @@ CursorState Cursor() {
     return state;
 }
 
-void* QueuedWindow() { return g_interface.queuedWindow; }
 bool CloseAllPending() { return g_interface.closeAll; }
 bool ScreenFade(bool* running, float* alpha) {
     const ::ScreenFade* fade = g_interface.fade;

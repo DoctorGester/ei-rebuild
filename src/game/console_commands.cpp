@@ -13,6 +13,7 @@
 #include "player_messages.h"
 #include "text_split.h"
 #include "ui.h"
+#include "ui_camp.h"
 #include "unit.h"
 #include "world.h"
 
@@ -365,7 +366,7 @@ void Give(const CommandArgs& args) {
         return;
     }
     if (ArgIs(args, 1, "assortment")) {
-        g_interface.GetActiveWindow()->DebugFill();
+        if (CampPages* camp = g_interface.OnTop(g_interface.camp)) camp->DebugFill();
         return;
     }
     PrintLine("Give what?");

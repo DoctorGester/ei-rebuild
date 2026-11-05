@@ -57,6 +57,7 @@ constexpr int kOfferLimit = 8;
 void ExchangeScreen::CloseScreen() {
     descPanel->Describe(nullptr);
     delete scratch;    // the deleting destructor
+    ui->exchange = nullptr;
 }
 
 // --- the update ----------------------------------------------------------------------------------
@@ -124,6 +125,7 @@ void ExchangeScreen::ExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
 // --- Create --------------------------------------------------------------------------------------
 
 void ExchangeScreen::CreateScreen() {
+    ui->exchange = this;
     LoadTexture("campinfo", TextureKind::Interface);
     acceptButton = AddRegion();
     acceptButton->SetRect(12, 450, 52, 490);

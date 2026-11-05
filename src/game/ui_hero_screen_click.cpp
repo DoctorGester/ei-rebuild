@@ -314,15 +314,14 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
         // Delete: asks first ("lmp_deletepers").
         ui->PlayInterfaceSound(kSaveSelectSound);
         if (!IsHero(heroIndex)) return;
-        auto* box = new MessageWindow(ui, "lmp_deletepers", "lmp_deletepers_msg", MessageQuestion::First, MessageButtons::OkCancel);
-        ui->PushWindow(box, WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<MessageWindow>(ui, "lmp_deletepers", "lmp_deletepers_msg", MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
         return;
     }
     if (region == inventoryButton) {
         // The hero's inventory: the camp screen.
         ui->PlayInterfaceSound(kSaveSelectSound);
         if (!IsHero(heroIndex)) return;
-        ui->PushWindow(new CampPages(ui, true), WindowBackdrop::None);
+        ui->PushWindow(std::make_unique<CampPages>(ui, true), WindowBackdrop::None);
         return;
     }
     const int row = ListRow(region);
@@ -397,11 +396,10 @@ void MpHeroScreen::Continue() {
     ui->PlayInterfaceSound(kMessageBoxOkSound);
     if (IsHero(heroIndex)) {
         g_savedParties.SaveAll();
-        ui->PushWindow(new MpConnectScreen(ui), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<MpConnectScreen>(ui), WindowBackdrop::FirstWindow);
         return;
     }
-    auto* box = new MessageWindow(ui, "lmp_no_pers", "lmp_no_pers_msg", MessageQuestion::Second, MessageButtons::Ok);
-    ui->PushWindow(box, WindowBackdrop::FirstWindow);
+    ui->PushWindow(std::make_unique<MessageWindow>(ui, "lmp_no_pers", "lmp_no_pers_msg", MessageQuestion::Second, MessageButtons::Ok), WindowBackdrop::FirstWindow);
 }
 
 // --- The new hero's statistics and its creation --------------------------------------

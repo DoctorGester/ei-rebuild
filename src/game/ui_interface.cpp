@@ -46,7 +46,7 @@ void Interface3D::ScalePointToScreenNoMargin(Point* point) const { screen_layout
 void Interface3D::ScalePointFromScreenNoMargin(Point* point) const { screen_layout::PointFromScreen(point, false); }
 
 UiContainer* Interface3D::GetActiveWindow() const {
-    return stack.empty() ? nullptr : stack.back();
+    return stack.empty() ? nullptr : stack.back().get();
 }
 
 void Interface3D::SetPendingValue(std::uint32_t value) {
@@ -130,32 +130,43 @@ void Interface3D::Resize(const screen_layout::Layout& before) {
     UiSurface::RelayoutAll(before);
     if (console) console->OnResize();
     // (A window's LayoutChanged may replace its children, never the stack.)
-    for (UiContainer* window : stack) window->LayoutChanged();
+    for (const std::unique_ptr<UiContainer>& window : stack) window->LayoutChanged();
     RetakeBackdrops();
 }
 
 void Interface3D::RetakeBackdrops() {
     if (backdropMode != Backdrop::First && backdropMode != Backdrop::Both) return;
-    const std::vector<UiContainer*> windows = stack;
-    UiSurface* over = nullptr;   // mode 4's copy, of the windows under a help window
+    const std::size_t windows = stack.size();
+    std::vector<std::unique_ptr<UiContainer>> cut;   // the windows taken off the stack, the top one first
+    // The stack cut back to its first `count` windows, or given back its windows up to that many.
+    auto showFirst = [this, &cut](std::size_t count) {
+        while (stack.size() > count) {
+            cut.push_back(std::move(stack.back()));
+            stack.pop_back();
+        }
+        while (stack.size() < count && !cut.empty()) {
+            stack.push_back(std::move(cut.back()));
+            cut.pop_back();
+        }
+    };
+    std::unique_ptr<UiSurface> over;   // mode 4's copy, of the windows under a help window
     if (backdropMode == Backdrop::Both) {
-        over = backdrop;
-        backdrop = secondBackdrop;
-        secondBackdrop = nullptr;
+        over = std::move(backdrop);
+        backdrop = std::move(secondBackdrop);
     }
     backdropMode = Backdrop::None;
     if (backdrop) {   // the bottom window greyed, and the save copy (DrawOverlays' mode 1, into mode 2)
-        stack.resize(1);
+        showFirst(1);
         backdropMode = Backdrop::TakeFirst;
         app::FrameStep(false);
     }
     if (over) {   // the windows under the help window over that (mode 3, into mode 4)
-        delete over;
-        stack.assign(windows.begin(), windows.begin() + std::min(backdropWindows, windows.size()));
+        over.reset();
+        showFirst(std::min(backdropWindows, windows));
         backdropMode = Backdrop::TakeSecond;
         app::FrameStep(false);
     }
-    stack = windows;
+    showFirst(windows);
 }
 
 Rect Interface3D::PictureRect() const {
@@ -188,16 +199,10 @@ void Interface3D::Shutdown() {
         for (const auto& [topic, page] : helpTopics) file.WriteLine(str::Format("%s %d", topic, page));
     }
 
-    delete fpsSurface;
-    fpsSurface = nullptr;
-    // The queued window is deleted but its pointer kept (like the original).
-    delete queuedWindow;
-    delete backdrop;
-    backdrop = nullptr;
-    delete secondBackdrop;
-    secondBackdrop = nullptr;
-    delete screenCopy;
-    screenCopy = nullptr;
+    fpsSurface.reset();
+    backdrop.reset();
+    secondBackdrop.reset();
+    screenCopy.reset();
     if (root) {
         delete root;
         root = nullptr;

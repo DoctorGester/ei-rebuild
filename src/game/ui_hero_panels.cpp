@@ -11,6 +11,7 @@
 #include "text_manager.h"
 #include "ui.h"
 #include "ui_camp.h"
+#include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
 
@@ -162,7 +163,7 @@ void HeroStatsPanel::DrawStats() {
 
     auto hero = [this]() { return owner->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
-    Unit* unit = owner->HeroUnit(heroIndex);
+    Unit* unit = camp ? camp->heroes[heroIndex] : nullptr;   // not checked
     std::string line;
     std::string text;
     TextManager* clientWorldTexts = g_clientWorld.texts.get();
@@ -286,8 +287,8 @@ void HeroStatsPanel::DrawStats() {
                 static_cast<int>(stats->pendingExperience + stats->experience), -1);
         Down(&area);
         float carried;
-        if (page == 11) {
-            carried = owner->Weight();
+        if (page == MpHeroScreen::kModeStats) {   // the hero screen's (the camp's pages end at 7)
+            carried = heroScreen->Weight();
         } else {
             carried = hero()->CarriedWeight();
         }

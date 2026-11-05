@@ -112,11 +112,9 @@ constexpr MessageQuestion kAskOverwrite = MessageQuestion::Second, kAskDelete = 
 constexpr const char* kFolderFormat = "%ssaves\\%s";
 constexpr const char* kEveryFile = "\\*.*";
 
-// A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
-// original does).
+// A message box `name` / `text` on top of the interface.
 void Ask(Interface3D* ui, const char* name, const char* text, MessageQuestion question) {
-    auto* box = new MessageWindow(ui, name, text, question, MessageButtons::OkCancel);
-    ui->PushWindow(box, WindowBackdrop::FirstWindow);
+    ui->PushWindow(std::make_unique<MessageWindow>(ui, name, text, question, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }
 
 } // namespace
@@ -176,8 +174,7 @@ void SaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
-            auto* box = new MessageWindow(ui, "no_disc_space", "no_disc_space_msg", MessageQuestion::Third, MessageButtons::Ok);
-            ui->PushWindow(box, WindowBackdrop::FirstWindow);
+            ui->PushWindow(std::make_unique<MessageWindow>(ui, "no_disc_space", "no_disc_space_msg", MessageQuestion::Third, MessageButtons::Ok), WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -306,9 +303,8 @@ void QuickSave(const char* slot, bool stepFrame) {
     // 0 means unknown: no check.
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false);
-    // A null surface (no memory) is used all the same, as in the original.
-    UiSurface* surface = new UiSurface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
-    surface->CaptureScreen();
+    UiSurface surface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
+    surface.CaptureScreen();
     g_cursor.SetShape(CursorShape::Wait);
     g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
     std::string notice = g_clientWorld.texts->GetString("notify_saving");
@@ -335,14 +331,11 @@ void QuickSave(const char* slot, bool stepFrame) {
     info.Close();
 
     // shot.sav: the copied screen.
-    const std::vector<std::uint8_t> bytes = ShotOf(*surface, &g_interface);
+    const std::vector<std::uint8_t> bytes = ShotOf(surface, &g_interface);
     platform::File shot;
     shot.Open(folder + "shot.sav", platform::FileMode::Create);
     shot.Write(bytes.data(), static_cast<unsigned>(bytes.size()));
     shot.Close();
-    if (surface != nullptr) {
-        delete surface;
-    }
     g_cursor.SetShape(CursorShape::Default);
 }
 

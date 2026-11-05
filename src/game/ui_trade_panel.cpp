@@ -507,7 +507,7 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
             labels.push_back({std::format("{}", pieces), Rect{x + 15, y + countTop, x + 0x55, y + countTop + 20}, {1, kUiTextColour, render::text::kRight}});
         }
         if (!grid->exchange) {
-            labels.push_back({std::format("{}", grid->owner->Price(cell.item, kind)), Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, {1, kUiTextColour, render::text::kCenter}});
+            labels.push_back({std::format("{}", grid->camp->Price(cell.item, kind)), Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, {1, kUiTextColour, render::text::kCenter}});
         }
     }
 }

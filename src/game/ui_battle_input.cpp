@@ -31,6 +31,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -185,7 +186,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
             SetPendingAction(kPendingNone, -1, -1);
             return;
         }
-        ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<EscMenu>(ui), WindowBackdrop::FirstWindow);
         event.handled = true;
         return;
     }

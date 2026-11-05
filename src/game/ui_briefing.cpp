@@ -55,6 +55,7 @@ void BriefingScreen::CloseScreen() {
     g_clientWorld.terrain->StopAmbience();
     std::uint32_t& cameraFlags = g_camera.flags;
     cameraFlags = (cameraFlags & ~(Camera::kBounded | Camera::kAlternate)) | Camera::kFree;
+    ui->briefing = nullptr;
 }
 
 void BriefingScreen::MessageResult(std::uint32_t result) {
@@ -63,7 +64,7 @@ void BriefingScreen::MessageResult(std::uint32_t result) {
         g_gameFlow.LeaveThroughExit(exit);
         break;
     case kGameOverLoad: {
-        ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<SaveLoadWindow>(ui, false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kGameOverQuit:
@@ -137,8 +138,7 @@ void BriefingScreen::UnitLeft(Unit* unit) {
 
 void BriefingScreen::GameOver(bool) {
     ui->PlayInterfaceSound("buttons\\gameover.wav");
-    MessageWindow* box = new MessageWindow(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel);
-    ui->PushWindow(box, WindowBackdrop::FirstWindow);
+    ui->PushWindow(std::make_unique<MessageWindow>(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }
 
 void BriefingScreen::ShowBriefing(std::string_view name) {

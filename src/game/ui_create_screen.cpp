@@ -32,39 +32,39 @@ BattleScreen::BattleScreen(Interface3D* ui) : UiContainer(ui) {}
 BriefingScreen::BriefingScreen(Interface3D* ui) : UiContainer(ui) {}
 
 void Interface3D::CreateScreen(int id) {
-    UiContainer* screen = nullptr;
+    std::unique_ptr<UiContainer> screen;
     switch (id) {
     case 0:
         return;
     case 1:   // the in-game screen
-        screen = new BattleScreen(this);
+        screen = std::make_unique<BattleScreen>(this);
         break;
     case 2:   // the main menu
-        screen = new MainMenu(this);
+        screen = std::make_unique<MainMenu>(this);
         break;
     case 3:   // the base / briefing screen
-        screen = new BriefingScreen(this);
+        screen = std::make_unique<BriefingScreen>(this);
         break;
     case 4:
-        screen = new GlobalMap(this);
+        screen = std::make_unique<GlobalMap>(this);
         break;
     case 5:
-        screen = new CampPages(this, false);
+        screen = std::make_unique<CampPages>(this, false);
         break;
     case 7:
-        screen = new ViewScreen(this);
+        screen = std::make_unique<ViewScreen>(this);
         break;
     case 8:   // the titles
-        screen = new CreditsScreen(this, false, "Crdt");
+        screen = std::make_unique<CreditsScreen>(this, false, "Crdt");
         break;
     case 9:
-        screen = new ExchangeScreen(this);
+        screen = std::make_unique<ExchangeScreen>(this);
         break;
     default:   // 6 and above 9: the original activates the id itself as a window pointer (a crash), here the
                // fatal error of a missing screen
         break;
     }
-    Activate(screen);
+    Activate(std::move(screen));
 }
 
 // --- PushWindow ----------------------------------------------------------------------------------
@@ -74,8 +74,9 @@ namespace {
 // The end both PushWindow and Activate share: the window pushed on the stack, the render state the
 // interface draws with (blending by source alpha, the alpha test against 0x80), the window created, the messages
 // pumped, the mouse released.
-void OpenOnTop(Interface3D* ui, UiContainer* window) {
-    ui->stack.push_back(window);
+void OpenOnTop(Interface3D* ui, std::unique_ptr<UiContainer> window) {
+    UiContainer* opened = window.get();
+    ui->stack.push_back(std::move(window));
     render::RenderState& state = render::g_renderState;
     state.blend = true;
     state.alphaTest = true;
@@ -83,14 +84,14 @@ void OpenOnTop(Interface3D* ui, UiContainer* window) {
     state.destBlend = render::Blend::InvSourceAlpha;
     state.alphaReference = 0x80;
     app::g_interfaceHasScreen = 1;
-    window->CreateScreen();
+    opened->CreateScreen();
     app::PumpMessages();
     ui->mouseCapture = nullptr;
     g_cursor.SetShape(CursorShape::Default);
 }
 } // namespace
 
-void Interface3D::PushWindow(UiContainer* window, WindowBackdrop keep) {
+void Interface3D::PushWindow(std::unique_ptr<UiContainer> window, WindowBackdrop keep) {
     g_cursor.SetShape(CursorShape::Wait);
     if (keep == WindowBackdrop::Screen) {
         backdropMode = Backdrop::TakeSecond;
@@ -107,18 +108,16 @@ void Interface3D::PushWindow(UiContainer* window, WindowBackdrop keep) {
     }
     ResetInput();
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
-    OpenOnTop(this, window);
+    OpenOnTop(this, std::move(window));
 }
 
 // --- Activate ------------------------------------------------------------------------------------
 
-void Interface3D::Activate(UiContainer* window) {
+void Interface3D::Activate(std::unique_ptr<UiContainer> window) {
     CloseAllPending();
     g_cursor.SetShape(CursorShape::Wait);
-    delete backdrop;
-    backdrop = nullptr;
-    delete secondBackdrop;
-    secondBackdrop = nullptr;
+    backdrop.reset();
+    secondBackdrop.reset();
     backdropMode = Backdrop::None;
     serverFlag = 0;
     g_serverWorld.SetServerPaused(0);
@@ -127,7 +126,7 @@ void Interface3D::Activate(UiContainer* window) {
         game::FatalError("Cannot activate NULL interface screen\n");
         return;
     }
-    OpenOnTop(this, window);
+    OpenOnTop(this, std::move(window));
 }
 
 // --- the message window --------------------------------------------------------------------------
@@ -142,15 +141,14 @@ void Interface3D::ShowMessage(bool forced) {
     }
     if (messageText.size() == 0) return;
     if (options::g_options.showTutorial == 0 && !forced) return;
-    PushWindow(new HelpWindow(this, true, messageText, messageFlag), WindowBackdrop::Screen);
+    PushWindow(std::make_unique<HelpWindow>(this, true, messageText, messageFlag), WindowBackdrop::Screen);
 }
 
 // --- the help window -----------------------------------------------------------------------------
 
 void Interface3D::OpenHelp(bool forced) {
     if (stack.empty()) return;
-    UiContainer* active = stack.back();
-    const char* topic = active->HelpTopic();
+    const char* topic = stack.back()->HelpTopic();
     if (!topic) return;
     int seen = -1;
     // The seen-topics map (find; operator[], lower_bound an insert at that
@@ -163,7 +161,7 @@ void Interface3D::OpenHelp(bool forced) {
     } else if (!forced) {
         return;
     }
-    PushWindow(new HelpWindow(this, false, topic, seen), WindowBackdrop::Screen);
+    PushWindow(std::make_unique<HelpWindow>(this, false, topic, seen), WindowBackdrop::Screen);
 }
 
 // --- Screens 8 and 9: constructors -------------------------------------------------------------------

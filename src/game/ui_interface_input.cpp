@@ -16,7 +16,9 @@
 #include "sound.h"
 #include "text_split.h"
 #include "texture.h"
+#include "ui_briefing.h"
 #include "ui_cursor.h"
+#include "ui_screens.h"
 #include "screen_layout.h"
 #include "world.h"
 #include "terrain.h"
@@ -30,12 +32,13 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <memory>
 #include <string>
 #include <vector>
 
 UiWindow* Interface3D::MouseTarget() const {
     if (mouseCapture) return mouseCapture;
-    return stack.empty() ? nullptr : stack.back();
+    return stack.empty() ? nullptr : stack.back().get();
 }
 
 namespace {
@@ -99,7 +102,6 @@ void console::ConsoleWindow::OnKeyUp(platform::Key key, int) {
 void Interface3D::PopWindow() {
     stack.back()->Deactivate();
     stack.back()->CloseScreen();
-    delete stack.back();
     stack.pop_back();
 }
 
@@ -148,17 +150,12 @@ void Interface3D::Update() {
         if (!stack.empty()) PopWindow();
         app::PumpMessages();
         if (backdropMode == Backdrop::Both) {
-            delete backdrop;
-            UiSurface* next = secondBackdrop;
-            secondBackdrop = nullptr;
-            backdrop = next;
-            backdropMode = next ? Backdrop::First : Backdrop::None;
+            backdrop = std::move(secondBackdrop);
+            backdropMode = backdrop ? Backdrop::First : Backdrop::None;
         }
         if (std::ssize(stack) == 1) {
-            delete backdrop;
-            backdrop = nullptr;
-            delete screenCopy;
-            screenCopy = nullptr;
+            backdrop.reset();
+            screenCopy.reset();
             backdropMode = Backdrop::None;
             if (!IsMultiplayerClient()) g_serverWorld.SetServerPaused(serverFlag);
             serverFlag = 0;
@@ -176,17 +173,12 @@ void Interface3D::Update() {
     }
     if (pollTop && !stack.empty()) pollTop = !stack.back()->ReadyToStopPolling();
     CloseAllPending();
-    if (queuedWindow) {
-        Activate(queuedWindow);
-        queuedWindow = nullptr;
-    }
     mouse = g_cursor.position;
     if (disconnected && IsMultiplayerClient() && net::g_gameClient->joinState != 2) {
         disconnected = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
                 static_cast<unsigned>(net::g_gameClient->joinState));
-        MessageWindow* box = new MessageWindow(this, "disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok);
-        PushWindow(box, WindowBackdrop::FirstWindow);
+        PushWindow(std::make_unique<MessageWindow>(this, "disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok), WindowBackdrop::FirstWindow);
     } else if (!stack.empty()) {
         stack.back()->Update();
     }
@@ -207,28 +199,25 @@ void Interface3D::OnStringEvent(std::string_view event) {
         PlayInterfaceSound("buttons\\gameover.wav");
         const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
         const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
-        MessageWindow* window = new MessageWindow(this, title, message, MessageQuestion::Second, MessageButtons::OkCancel);
-        PushWindow(window, WindowBackdrop::FirstWindow);
+        PushWindow(std::make_unique<MessageWindow>(this, title, message, MessageQuestion::Second, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
         return;
     }
-    auto top = [this]() { return stack.back(); };
     if (str::Compare(words[0], "say") == 0 || str::Compare(words[0], "say_block") == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size() < 2) return;
         int number = words.size() > 2 ? TextKeyFromName(words[2]) : 0;
         AckKind kind = str::Compare(words[0], "say_block") != 0 ? AckKind::Scenario : AckKind::ScenarioTalking;
-        if (!stack.empty())
-            top()->Speech(number, kind, const_cast<char*>(words[1].c_str()));
+        if (BattleScreen* screen = OnTop(battle)) screen->Speech(number, kind, const_cast<char*>(words[1].c_str()));
     } else if (str::Compare(words[0], "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
         messages.push_back(words[1]);
     } else if (str::Compare(words[0], "briefing") == 0) {
-        if (words.size() < 2 || stack.empty()) return;
-        top()->ShowBriefing(words[1]);
+        if (words.size() < 2) return;
+        if (BriefingScreen* screen = OnTop(briefing)) screen->ShowBriefing(words[1]);
     } else if (str::Compare(words[0], "autosave") == 0) {
         pollTop = true;
     } else if (str::Compare(words[0], "endofgame") == 0) {
-        if (!stack.empty()) top()->GameOver(true);
+        if (!stack.empty()) stack.back()->GameOver(true);
     }
 }
 
@@ -277,20 +266,17 @@ void Interface3D::SetConsoleHistory(int lines) {
 
 void Interface3D::ShowFps(bool on) {
     if (!on) {
-        if (fpsSurface) {
-            delete fpsSurface;
-        }
-        fpsSurface = nullptr;
+        fpsSurface.reset();
         return;
     }
     if (fpsSurface) return;
-    fpsSurface = new UiSurface(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, SurfaceBlend::Keyed, true);
+    fpsSurface = std::make_unique<UiSurface>(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, SurfaceBlend::Keyed, true);
     fpsText.clear();
     fpsSurface->PaintWith([this](UiSurface& out) { PaintFps(out); });
 }
 
 void Interface3D::OnQuestVariable(std::string_view name, float value) {
-    if (!stack.empty()) stack.back()->QuestVariable(name, value);
+    if (BattleScreen* screen = OnTop(battle)) screen->QuestVariable(name, value);
     std::vector<std::string> parts;
     if (value != 1.0f) return;
     parts = text::SplitWords(name, '.');
@@ -300,7 +286,7 @@ void Interface3D::OnQuestVariable(std::string_view name, float value) {
 // --- News for the top window -------------------------------------
 
 void Interface3D::OnItemsPicked(const std::vector<Item*>& items, int money, bool crippled) {
-    if (!stack.empty()) stack.back()->ItemsPicked(items, money, crippled);
+    if (BattleScreen* screen = OnTop(battle)) screen->ItemsPicked(items, money, crippled);
 }
 
 void Interface3D::OnUnitJoined(Unit* unit) {
@@ -316,11 +302,11 @@ void Interface3D::OnGameLost() {
 }
 
 void Interface3D::OnUnitSpeech(int id, AckKind kind) {
-    if (!stack.empty()) stack.back()->Speech(id, kind, kNoExtra);
+    if (BattleScreen* screen = OnTop(battle)) screen->Speech(id, kind, kNoExtra);
 }
 
 void Interface3D::OnPlayersChanged(int added) {
-    if (!stack.empty()) stack.back()->PlayersChanged(added);
+    if (BriefingScreen* screen = OnTop(briefing)) screen->PlayersChanged(added);
 }
 
 void Interface3D::OnChatLine(const char* text) {
@@ -328,7 +314,7 @@ void Interface3D::OnChatLine(const char* text) {
 }
 
 void Interface3D::OnExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
-    if (!stack.empty()) stack.back()->ExchangeDone(partyB, partyA, partyC);
+    if (ExchangeScreen* screen = OnTop(exchange)) screen->ExchangeDone(partyB, partyA, partyC);
 }
 
 // The bottom window, not the top one (a save is made from the battle screen under the save window).
@@ -337,16 +323,13 @@ void Interface3D::SaveWindowState() {
 }
 
 void Interface3D::ShowStatusText(std::string_view text) {
-    statusSurface = new UiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
+    statusSurface = std::make_unique<UiSurface>(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
     statusSurface->PaintWith([text](UiSurface& out) {
         Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
         out.DrawTextIn(text, rect, TextStyle{kStatusFont, kStatusColour, render::text::kCenter});    // Rebirth-patched
     });
     app::FrameStep(true);
-    if (statusSurface) {
-        delete statusSurface;
-    }
-    statusSurface = nullptr;
+    statusSurface.reset();
 }
 
 // --- The interface manager and its chat keys ---------------------------------------------------------
@@ -386,7 +369,7 @@ constexpr int kFpsFont = 1;
 // A new surface for the screen's picture, as the interface's backdrop: the whole window in pixels, unscaled
 // (Rebirth's WideScreen; the original's 800 x 600 layout rectangle scaled is the same on a 4:3 window).
 void MakeBackdrop(Interface3D* ui) {
-    ui->backdrop = new UiSurface(ui, 0, 0, ui->width, ui->height, SurfaceBlend::Opaque, false);
+    ui->backdrop = std::make_unique<UiSurface>(ui, 0, 0, ui->width, ui->height, SurfaceBlend::Opaque, false);
 }
 
 } // namespace
@@ -460,13 +443,13 @@ void Interface3D::DrawOverlays() {
         // A window opens over the screen: the screen greyed behind it.
         if (!backdrop) MakeBackdrop(this);
         backdrop->CaptureScreen();
-        if (!screenCopy) screenCopy = new UiSurface(this, 0, 0, width, height, SurfaceBlend::Opaque, false);
+        if (!screenCopy) screenCopy = std::make_unique<UiSurface>(this, 0, 0, width, height, SurfaceBlend::Opaque, false);
         screenCopy->CaptureScreen();
         backdrop->Greyscale();
         backdropMode = Backdrop::First;
     } else if (backdropMode == Backdrop::TakeSecond) {
         // A window opens over a window: the screen as it is, the old backdrop put aside.
-        secondBackdrop = backdrop;
+        secondBackdrop = std::move(backdrop);
         MakeBackdrop(this);
         backdrop->CaptureScreen();
         backdropMode = Backdrop::Both;

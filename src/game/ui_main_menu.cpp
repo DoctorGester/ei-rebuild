@@ -19,6 +19,7 @@
 #include "lib/rect.h"
 #include "platform/platform.h"
 #include <cstdint>
+#include <memory>
 #include <string>
 #include "camera.h"
 #include "terrain.h"
@@ -193,5 +194,5 @@ void MainMenu::MouseMove(UiEvent& event) {
 void MainMenu::KeyDown(UiEvent& event) {
     UiContainer::OnEvent(event);
     if (event.key != platform::Key::Escape) return;
-    ui->PushWindow(new MessageWindow(ui, kQuitTitle, kQuitText, MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
+    ui->PushWindow(std::make_unique<MessageWindow>(ui, kQuitTitle, kQuitText, MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }

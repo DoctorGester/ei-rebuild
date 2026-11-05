@@ -10,8 +10,7 @@
 //                             its first console, newgame or menu click
 //   waitwindow <seconds> <window>
 //                             wait until <window> is the window on top of the interface and takes
-//                             input: no window queued (005F57C0 activates it on the next frame), no
-//                             game request pending (007AFE20), the save/load and options windows
+//                             input: no game request pending (007AFE20), the save/load and options windows
 //                             done sliding in (they ignore input meanwhile), on top for two frames;
 //                             fails after <seconds>. <window>: menu, battle, briefing, map, camp,
 //                             view, trade, escmenu, saveload, options, objectives, help, msgbox,
@@ -2131,7 +2130,7 @@ std::string CampPutOn(const std::string& argument) {
 // Whether the awaited window is on top and takes input (see the step's description).
 bool WindowReady(const std::string& name) {
     void* top = TopWindow();
-    if (!top || HarnessQueuedWindow() || HarnessFlowState() != 0) return false;
+    if (!top || HarnessFlowState() != 0) return false;
     const std::string kind = WindowKind(top);
     if (kind != name) return false;
     if (kind == "saveload") return !image::SaveLoadSliding(top);
@@ -2153,9 +2152,8 @@ void InjectCut() {
 std::string DescribeTopWindow() {
     void* top = TopWindow();
     char text[200];
-    std::snprintf(text, sizeof(text), "top window %p (%s), queued %p, request %d, campaign mode %d", top,
-                  top ? WindowKind(top).c_str() : "none", HarnessQueuedWindow(), HarnessFlowState(),
-                  HarnessCampaignMode());
+    std::snprintf(text, sizeof(text), "top window %p (%s), request %d, campaign mode %d", top,
+                  top ? WindowKind(top).c_str() : "none", HarnessFlowState(), HarnessCampaignMode());
     return text;
 }
 

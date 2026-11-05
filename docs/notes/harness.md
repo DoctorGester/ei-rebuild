@@ -53,7 +53,7 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   `wait`s. `waitline <seconds> <text>` waits until the console has printed <text> (e.g. `Saved savea`).
 - Waits on the interface rather than the clock (each fails the run after <seconds>): `waitmenu [seconds]` (default 30)
   waits until the main menu is up and taking input, and every scenario starts with it. `waitwindow <seconds> <window>`
-  waits until that window is on top, nothing is queued to replace it, no game request (new game, load) is pending, and
+  waits until that window is on top, no game request (new game, load) is pending, and
   the save/load or options window has finished sliding in, for two frames in a row. Names: `menu battle briefing map
   camp view trade escmenu saveload options objectives help msgbox difficulty heroes titles mpconnect masterbox`. `ifwindow <window> <step>` runs a step only while that window is
   on top (else skipped, logged): a box that Windows keeps up and Linux closes by itself. A new

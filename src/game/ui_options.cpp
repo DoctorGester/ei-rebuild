@@ -462,7 +462,7 @@ void OptionsWindow::Apply() {
     options::g_options.Save();
 }
 
-// --- The slider's virtual ------------------------------------------------------------------
+// --- The slider's layout -------------------------------------------------------------------
 
 void UiSlider::SetRect(const Rect* newRect) {
     rect = *newRect;

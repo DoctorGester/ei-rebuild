@@ -145,20 +145,12 @@ public:
     ~ItemScreen() override;
 
     // The item screens' slots over the container's: the plain item screen's answers and empty stubs; the
-    // camp, the exchange and the hero screen override them.
+    // camp, the exchange and the hero screen override them. What one screen alone answers its panels ask it
+    // directly (UiItemPanel::camp, heroScreen).
     virtual void TakeItem(Item*, int) {}
     virtual bool CanEquip(Item* item, int mode);
-    virtual void TopicClicked(int) {}
-    virtual PartySkill BestPartySkill(SpellSchool school);
-    virtual void RefreshWeapons() {}
     virtual void RefreshStats() {}
-    virtual void NextHero() {}
-    virtual void PreviousHero() {}
-    virtual Unit* HeroUnit(int index);
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // the shown hero
-    virtual void ChooseFigure(std::string_view) {}
-    virtual float Weight();
-    virtual int Price(Item* item, PriceKind kind);
     // Draws `cell`'s item: its model (cached, created) with its texture (cached) turning while the mouse is
     // on it, a glow in the colour of the carried spell's school, a frame behind it, the modifier marks of a
     // spell container, and a shade over items the strip's mode cannot take (CanEquip).

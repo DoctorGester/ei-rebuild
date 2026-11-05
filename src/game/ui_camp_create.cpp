@@ -68,6 +68,7 @@ double FramesNow() { return platform::FrameClock() * (15.0 / 1024.0); }
 } // namespace
 
 void CampPages::CreateScreen() {
+    ui->camp = this;
     BuildPages();
     curtains = screen_layout::AddCurtains(this, 1);
 }

@@ -57,7 +57,9 @@ in the key table (`config\keyboard.ini`, `key_bindings.cpp`); a zone has no inve
 
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 
-`Interface3D` (`g_interface`) keeps the active windows in a vector; the top one receives input. A `UiWindow` holds five
+`Interface3D` (`g_interface`) owns the active windows in a vector (`unique_ptr`; `PushWindow` and `Activate` take the
+new window's), the top one receives input; it owns its backdrops, screen copy, frame rate and status surfaces the same
+way. A `UiWindow` holds five
 arrays: referenced engine objects and scene objects (counted: released in ~UiWindow), and the surfaces, regions and
 models it owns (`unique_ptr`; `AddSurface` takes the owner and returns the surface); a container owns its children and
 extra inputs the same way (`AddChild`). A window destroyed while it holds the mouse lets it go. `UiRegion` is a
@@ -72,6 +74,15 @@ window that clears or trims its regions or sprites resets or rebuilds those memb
 briefing's topic rows, the objectives' exits and places). The creation order still decides the hit test (the first
 region holding the point), the drawing order and the harness's `region <n>` steps, so the scenario notes keep region
 numbers. The camp's and the hero screen's curtains are a `screen_layout::Curtains` pair. `SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` with each step stored as float.
+
+News only one screen hears (items picked up, speech and quest variables for the battle screen; "briefing <name>" and
+the players changing for the briefing; an exchange's end; the console's "give <player> assortment" for the camp) goes
+through the interface's typed pointer to that screen (`battle`, `briefing`, `exchange`, `camp`: each set in the screen's
+CreateScreen and cleared in its CloseScreen), and only while it is the top window (`OnTop`), as the original's virtuals
+reached the top window and did nothing on the others. The item panels likewise keep their owner as `ItemScreen*` for the
+slots every item screen answers (TakeItem, CanEquip, RefreshStats, HeroRecord) and as `camp` / `heroScreen` (null on the
+other screens; the constructor overload the creating screen's `this` picks sets them) for one screen's own: help topics,
+prices, heroes and the spell maker's party skill (camp), the weight and the figure choice (hero screen).
 
 `CreateScreen` (`ui_create_screen.cpp`) builds screens 1, 2, 3 and 7 inline. `PushWindow` sets the backdrops, the server
 flag (kept for the first window), five render states, runs the window's Create and pumps messages. `UiModel::Draw` animates
@@ -100,8 +111,8 @@ reads the same.
 
 ## 3. Interface base: frame update, text, console window, cursor, chat
 
-- `Interface3D::Update`: a pending value pops the top window (Deactivate, OnActivate, delete); 0x990001 sets close-all
-  and leaves the game; then close-all pops every window, a queued window is activated, the mouse position is copied, a
+- `Interface3D::Update`: a pending value pops the top window (Deactivate, CloseScreen, delete); 0x990001 sets close-all
+  and leaves the game; then close-all pops every window, the mouse position is copied, a
   network client that lost the server gets the "disconnect" box (0x990000), else the top window's Update runs, last the
   root's. `ScreenFade::Draw`: alpha step `ms * rate + alpha` stored as float, clamped at 255, below 0 the fade ends.
   `Shutdown` writes `config\tutorial.ini` from `helpTopics`.

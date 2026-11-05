@@ -76,7 +76,6 @@ struct CursorState {
 };
 CursorState Cursor();
 
-void* QueuedWindow();
 bool CloseAllPending();
 bool ScreenFade(bool* running, float* alpha);   // false without one
 int CampaignMode();                             // the server world's session kind

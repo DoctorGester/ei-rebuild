@@ -25,6 +25,7 @@
 #include "lib/rect.h"
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include "lib/text_case.h"
 #include "terrain.h"
@@ -255,35 +256,25 @@ void EscMenu::LeftDown(UiEvent& event) {
         ui->PlayInterfaceSound("buttons\\menu\\ok.wav");
         event.handled = true;
     }
-    UiContainer* opened = nullptr;
-    bool open = true;
+    std::unique_ptr<UiContainer> opened;
     switch (stone) {
     case kSave:
-    case kLoad: {
-        if (IsMultiplayerClient()) {
-            open = false;
-            break;
-        }
-        opened = new SaveLoadWindow(ui, stone == kSave, true);
+    case kLoad:
+        if (!IsMultiplayerClient()) opened = std::make_unique<SaveLoadWindow>(ui, stone == kSave, true);
         break;
-    }
     case kResume:
         ui->SetPendingValue(0);
-        open = false;
         break;
-    case kQuit: {
-        opened = new MessageWindow(ui, "quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
+    case kQuit:
+        opened = std::make_unique<MessageWindow>(ui, "quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
         break;
-    }
-    case kOptions: {
-        opened = new OptionsWindow(ui, true);
+    case kOptions:
+        opened = std::make_unique<OptionsWindow>(ui, true);
         break;
-    }
     default:
-        open = false;
         break;
     }
-    if (open) ui->PushWindow(opened, WindowBackdrop::FirstWindow);
+    if (opened) ui->PushWindow(std::move(opened), WindowBackdrop::FirstWindow);
     UiContainer::OnEvent(event);
 }
 
@@ -304,12 +295,12 @@ void MainMenu::LeftDown(UiEvent& event) {
     case kNewGame: {
         // A new game: the difficulty question (a message box with its own vtables).
         ui->PlayInterfaceSound(okSound);
-        ui->PushWindow(new DifficultyBox(ui), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<DifficultyBox>(ui), WindowBackdrop::FirstWindow);
         break;
     }
     case kLoad: {
         ui->PlayInterfaceSound(okSound);
-        ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<SaveLoadWindow>(ui, false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kExit: {
@@ -322,7 +313,7 @@ void MainMenu::LeftDown(UiEvent& event) {
     }
     case kOptions: {
         ui->PlayInterfaceSound(okSound);
-        ui->PushWindow(new OptionsWindow(ui, false), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<OptionsWindow>(ui, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kTitles: {
@@ -331,7 +322,7 @@ void MainMenu::LeftDown(UiEvent& event) {
         g_clientWorld.terrain->StopAmbience();
         ui->PlayInterfaceSound(okSound);
         ClearSurfaces();
-        ui->PushWindow(new CreditsScreen(ui, true, "Titles"), WindowBackdrop::None);
+        ui->PushWindow(std::make_unique<CreditsScreen>(ui, true, "Titles"), WindowBackdrop::None);
         break;
     }
     case kMultiplayer: {
@@ -342,7 +333,7 @@ void MainMenu::LeftDown(UiEvent& event) {
         g_interface.ShowStatusText(text);
         g_serverWorld.SetServerPaused(1);
         ui->PlayInterfaceSound(okSound);
-        ui->PushWindow(new MpHeroScreen(ui), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<MpHeroScreen>(ui), WindowBackdrop::FirstWindow);
         break;
     }
     default:

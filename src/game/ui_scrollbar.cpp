@@ -40,7 +40,7 @@ UiScrollbar::UiScrollbar(Interface3D* ui, Rect rect, float newDepth, int maximum
     upButton = AddRegion();
     downButton = AddRegion();
     trackArea = AddRegion();
-    UiScrollbar::SetRect(&rect);
+    SetRect(&rect);
     UiScrollbar::SetPosition(0);
     accumulated = 0.0f;
 }
