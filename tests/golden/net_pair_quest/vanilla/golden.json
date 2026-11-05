@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "C162: EI_Plugin's Briefings always on: a network client also queues the briefing completion script (checked: with it off the runs match the old goldens)",
   "source": "image",
-  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 50 of 545 records differ, first at record 46 (world update 940, tick 692, frame 187, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
     "  first difference at record 46 (world update 940, tick 692, frame 187, zone bz1mpg): 2 fields",
@@ -24,5 +23,6 @@
     "    instances: 1 script, 20 records, from 48; hash only (no numbers kept)",
     "    ... 1 more (other kinds of field)",
     "... 2 more lines"
-  ]
+  ],
+  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs"
 }

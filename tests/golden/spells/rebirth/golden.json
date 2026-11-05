@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 14 of 23 records differ, first at record 9 (world update 200, tick 200, frame 39, zone gz1g); outcomes the same; max unit move 2.92 (obj1937, record 22)",
     "  first difference at record 9 (world update 200, tick 200, frame 39, zone gz1g): 1 fields",
@@ -23,5 +22,6 @@
     "    pos: 1 unit, 7 records, from 16; moved 2.92 at obj1937 80 unmoto \"\", record 17",
     "  client units: 2 of 16 differ",
     "    #unit: 2 client units, 13 records, from 10; hash only (no numbers kept)"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

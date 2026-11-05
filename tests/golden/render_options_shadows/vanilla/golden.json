@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "C81: settings pruned; water waves and marks always on, one Shadows switch (terrain sun shadows on), blood stains re-lit every 10 s, the scenarios' options dance removed; outcomes the same",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 9 of 19 records differ, first at record 9 (world update 200, tick 100, frame 42, zone gz1g); outcomes CHANGED: quest variables (deaths unknown: hash only); max unit move 1.72 (obj1890, record 11); the digests have different numbers of records",
     "  digest: the records no longer line up at record 9: the old golden world update 200 tick 100, the new run world update 200 tick 105",
@@ -24,5 +23,6 @@
     "  world: 1 of 1 differ",
     "    paused: 1 world, 9 records, from 9; max |d| 1 at world paused, record 9: 1 -> 0",
     "... 23 more lines"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

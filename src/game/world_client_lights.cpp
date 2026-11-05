@@ -138,6 +138,7 @@ void WorldClient::UpdateLighting() {
     if (!display->running) return;
     UpdateExitMarkers();
     const float hour = HourOfDay(this);
+    keptVisuals.RestoreUnits(objects);
     HandOverClouds(this, hour);
     TransformPipeline* pipeline = display->pipeline;
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;

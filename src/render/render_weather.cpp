@@ -24,8 +24,8 @@ constexpr double kSnowTicks = 1600.0, kMeltTicks = 2400.0, kRainMeltTicks = 900.
 // A unit wets and takes snow as fast as the ground but dries and loses its snow by itself, faster: about 50 s and
 // 100 s for 1 - 1/e of the way (in rain its snow melts as the ground's).
 constexpr double kUnitDryTicks = 900.0, kUnitMeltTicks = 1800.0;
-// For this long after a landscape's load the surfaces take the settled weather as it is: the weather's message comes a
-// tick or more after the zone's.
+// For this long after a landscape's load the surfaces take the settled weather as it is (or, restored from a save's
+// side file, hold the kept state): the weather's message comes a tick or more after the zone's.
 constexpr double kSettleTicks = 32.0;
 // A unit not drawn for longer than this is forgotten: when it is met again it starts from the ground's state.
 constexpr double kUnitForgetTicks = 64.0;
@@ -58,7 +58,8 @@ struct Surfaces {
     bool started = false;
     double time = 0.0;    // the latest world time followed to
     double loaded = 0.0;  // the world time of the first hand-over after a landscape's load
-    bool settling = false;   // within kSettleTicks of a landscape's load: the state is the settled weather
+    bool settling = false;   // within kSettleTicks of a landscape's load: the state is the settled weather or the kept
+    bool kept = false;       // restored from a save's side file (RestoreWeather): it holds while settling
     float wet = 0.0f, puddles = 0.0f, snow = 0.0f;
     float rain = 0.0f;              // the rain falling this frame (0 .. 1)
     float settledRain = 0.0f;       // the settled weather: 1 rain, else 0
@@ -68,6 +69,7 @@ struct Surfaces {
 // A unit's own weather, kept by its object while it is drawn (and up to kUnitForgetTicks ticks after).
 struct UnitSurface {
     double time = 0.0;
+    bool kept = false;   // restored from a save's side file and not drawn since: its time is not the ground's
     float wet = 0.0f, snow = 0.0f, shelter = 0.0f;
     Vector3 at{};   // the middle of its box's foot (the harness's)
 };
@@ -239,8 +241,10 @@ void PrepareSurfaces(const ShadowFrame& shadow) {
     }
     surfaces.settling = weather.time - surfaces.loaded <= kSettleTicks;
     if (surfaces.settling) {
-        surfaces.wet = surfaces.puddles = rain;
-        surfaces.snow = snow;
+        if (!surfaces.kept) {
+            surfaces.wet = surfaces.puddles = rain;
+            surfaces.snow = snow;
+        }
         surfaces.time = std::max(surfaces.time, weather.time);
         return;
     }
@@ -257,13 +261,14 @@ void PrepareUnitWeather(Frame& f) {
     CollectUnitsAndRoofs(f);
     // Each unit's wetness and snow follow the settled weather on it (none under a roof), on the ground's time, which
     // only goes forward; a unit first met, not met for longer than kUnitForgetTicks or while the ground settles after a
-    // load starts from the ground's state times its exposure.
+    // load starts from the ground's state times its exposure. After a save's load the units restored from its side file
+    // and those met while the ground holds its kept state hold theirs too.
     for (const auto& [object, box] : g_unitBoxes) {
         const float shelter = Shelter(f, box), open = 1.0f - shelter;
         auto [it, added] = g_units.try_emplace(object);
         UnitSurface& unit = it->second;
-        const double step = std::max(surfaces.time - unit.time, 0.0);
-        if (added || surfaces.settling || step > kUnitForgetTicks) {
+        const double step = unit.kept || surfaces.settling ? 0.0 : std::max(surfaces.time - unit.time, 0.0);
+        if (added || (surfaces.settling && !surfaces.kept) || step > kUnitForgetTicks) {
             unit.wet = surfaces.wet * open;
             unit.snow = surfaces.snow * open;
         } else {
@@ -272,10 +277,13 @@ void PrepareUnitWeather(Frame& f) {
                             surfaces.settledRain > 0.0f ? kRainMeltTicks : kUnitMeltTicks);
         }
         unit.time = surfaces.time;
+        unit.kept = false;
         unit.shelter = shelter;
         unit.at = Vector3{(box.low.x + box.high.x) * 0.5f, (box.low.y + box.high.y) * 0.5f, box.low.z};
     }
-    std::erase_if(g_units, [&](const auto& entry) { return surfaces.time - entry.second.time > kUnitForgetTicks; });
+    std::erase_if(g_units, [&](const auto& entry) {
+        return !entry.second.kept && surfaces.time - entry.second.time > kUnitForgetTicks;
+    });
     // A unit's figure parts, in the world (its own weather) and in the interface (the same unit's).
     for (MeshBatch& batch : f.meshBatches) {
         if (!batch.figure && !batch.interfaceUnit) continue;
@@ -422,7 +430,38 @@ RoofInfo RoofState() { return g_roofInfo; }
 
 void LandscapeLoaded() {
     g_surfaces.started = false;
+    g_surfaces.kept = false;
     g_units.clear();
+}
+
+KeptWeather WeatherToKeep() {
+    KeptWeather kept;
+    kept.wet = g_surfaces.wet;
+    kept.puddles = g_surfaces.puddles;
+    kept.snow = g_surfaces.snow;
+    CloudsToKeep(&kept);
+    return kept;
+}
+
+void RestoreWeather(const KeptWeather& weather) {
+    g_surfaces.wet = std::clamp(weather.wet, 0.0f, 1.0f);
+    g_surfaces.puddles = std::clamp(weather.puddles, 0.0f, 1.0f);
+    g_surfaces.snow = std::clamp(weather.snow, 0.0f, 1.0f);
+    g_surfaces.kept = true;
+    RestoreClouds(weather);
+}
+
+std::optional<UnitWeatherLevels> UnitWeatherToKeep(const Object3D* object) {
+    auto it = g_units.find(object);
+    if (it == g_units.end()) return std::nullopt;
+    return UnitWeatherLevels{it->second.wet, it->second.snow};
+}
+
+void RestoreUnitWeather(const Object3D* object, const UnitWeatherLevels& levels) {
+    UnitSurface& unit = g_units[object];
+    unit.wet = std::clamp(levels.wet, 0.0f, 1.0f);
+    unit.snow = std::clamp(levels.snow, 0.0f, 1.0f);
+    unit.kept = true;
 }
 
 UnitWeather UnitWeatherState(const Object3D* object) {

@@ -5,4 +5,5 @@ size = 2
 model = "opus"
 note = "User 2026-11-05: a side file next to each save (original save format untouched; a save without it starts from defaults) carrying the client-only visual state: ground wetness, puddles, snow cover and per-unit wetness/snow, the cloud and wave clocks, client decals and marks (foot tracks, blood, scorches) and the client-effects generator (R34a). Versioned so later renderer changes skip old data. Each multiplayer client writes its own. First step: list what the original's save already keeps (tracks, decals) and what is lost on load. The side file gets its own golden rather than being left out of the comparison. Loading a town should then show the same weather and marks as when it was saved."
 order = 1210
-status = "later"
+status = "review"
+started = "2026-11-05"

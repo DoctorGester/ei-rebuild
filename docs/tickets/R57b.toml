@@ -1,0 +1,10 @@
+id = "R57b"
+title = "The client-effects generator kept in the save's side file"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R57"]
+files = ["src/game/client_visuals.cpp src/game/random.h tests/verify"]
+note = "Follow-up of R57 (renderer.md 11c). A Generator section in visuals.sav with g_clientRandom's whole state (results, memory, aa/bb/cc, count), restored at the load, so the client's draws after a load (idle animation picks, particles, prints) follow the save rather than the session before it. Moves the client unit digests (cunit) of every scenario that loads a save after the load: re-record those goldens with the reason. The harness's record/replay reseeds the generator at a load (image::ReseedRandom): decide whether that stays or the side file replaces it."
+order = 1221
+status = "later"

@@ -42,7 +42,8 @@ constexpr double kLongestStep = 64.0;
 static gpu::Texture g_cloudMap;
 
 struct Drift {
-    bool started = false;
+    bool started = false;   // `time` is a hand-over's: the next one moves the layers by the step
+    bool covered = false;   // `cover` follows the weather (else the next hand-over sets it to its target)
     double time = 0.0;
     // Each layer's offset in landscape units, kept within its repeat: the first's tile, five of the second's (turned
     // by (0.8, 0.6), five tiles along x or y are whole tiles of its own: 4 and 3).
@@ -129,8 +130,8 @@ float PrepareClouds(const ShadowFrame& shadow) {
     Drift& d = g_drift;
     double step = d.started ? w.time - d.time : 0.0;
     if (!(step >= 0.0 && step <= kLongestStep)) step = 0.0;
-    d.cover = d.started ? d.cover + (target - d.cover) * (1.0f - lib::Exp(static_cast<float>(-step / kCoverTicks))) : target;
-    d.started = true;
+    d.cover = d.covered ? d.cover + (target - d.cover) * (1.0f - lib::Exp(static_cast<float>(-step / kCoverTicks))) : target;
+    d.started = d.covered = true;
     d.time = w.time;
     d.a[0] = Wrapped(d.a[0] + w.windX * kDriftA * step, kTileA);
     d.a[1] = Wrapped(d.a[1] + w.windY * kDriftA * step, kTileA);
@@ -140,6 +141,26 @@ float PrepareClouds(const ShadowFrame& shadow) {
 }
 
 float CloudCover() { return g_drift.cover; }
+
+void CloudsToKeep(KeptWeather* weather) {
+    for (int k = 0; k < 2; ++k) {
+        weather->cloudDriftA[k] = g_drift.a[k];
+        weather->cloudDriftB[k] = g_drift.b[k];
+    }
+    weather->cloudCover = g_drift.cover;
+}
+
+// The layers go on from the kept drift and the cover from the kept cover; the next hand-over's time starts the steps.
+void RestoreClouds(const KeptWeather& weather) {
+    Drift& d = g_drift;
+    for (int k = 0; k < 2; ++k) {
+        d.a[k] = Wrapped(weather.cloudDriftA[k], kTileA);
+        d.b[k] = Wrapped(weather.cloudDriftB[k], kTileB * 5.0);
+    }
+    d.cover = std::clamp(weather.cloudCover, 0.0f, 1.0f);
+    d.started = false;
+    d.covered = true;
+}
 
 void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* params) {
     // The landscape's x and y on the level plane at the map's clip point s: s * extent / 2 + (x0, y0) + extent / 2.

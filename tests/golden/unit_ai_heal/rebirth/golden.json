@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "console: differs from line 129: the old golden 'Unit 1000011214 was attacked by 1804 skill=-3.40282e+038 damage=11.63 destHL=Head!', the new run 'Unit 1000011214 was attacked by 1804 skill=3.40282e+038 damage=12.69 destHL=RLeg'",
     "digest: 32 of 37 records differ, first at record 3 (world update 80, tick 80, frame 15, zone gz1g); outcomes the same; max unit move 6.97 (obj1934, record 36)",
@@ -24,5 +23,6 @@
     "    isaac: 1 generator, 4 records, from 33; max |d| 242 at random isaac.count, record 35: 249 -> 7",
     "  world: 1 of 1 differ",
     "... 6 more lines"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

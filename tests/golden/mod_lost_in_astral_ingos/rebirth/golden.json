@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
   "source": "image",
-  "saves": "20 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 18 of 19 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: party and items; max unit move 7.3 (obj158195, record 3)",
     "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
@@ -24,5 +23,6 @@
     "    #ai: 122 units, 15 records, from 2; hash only (no numbers kept)",
     "    #unit: 708 units, 17 records, from 2; hash only (no numbers kept)",
     "... 54 more lines"
-  ]
+  ],
+  "saves": "21 decoded saves (tools/savefile.py), the same in 2 runs"
 }

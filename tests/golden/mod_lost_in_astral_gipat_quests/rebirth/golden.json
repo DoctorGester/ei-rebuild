@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "MOD2b: gz12g's key levers (4523-4525) and gz14g's (1712, 57) are opened from the quick panel's key instead of SwitchLeverState: the hero walks to each lever's use spot and the lever takes the key, so the zone's part from the first lever on plays differently (the quest steps the same).",
   "source": "image",
-  "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "console: differs from line 26: the old golden '1', the new run '0'",
     "digest: 1 of 5 records differ, first at record 4 (world update 250, tick 250, frame 50, zone gz12g); outcomes CHANGED: quest variables, party and items (deaths unknown: hash only); max unit move 108 (obj1000011214, record 4)",
@@ -24,5 +23,6 @@
     "    party and items: player0 objects: 20 in the old golden, 9 in the new run, from record 4",
     "  world: 1 of 1 differ",
     "... 30 more lines"
-  ]
+  ],
+  "saves": "7 decoded saves (tools/savefile.py), the same in 2 runs"
 }
