@@ -103,8 +103,9 @@ terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`,
   `ambient\<set>\<class>\day\<n>.wav` exist (each probe holds a reference on the wave that is never given back).
 - **Sectors** (`<zone>XXXYYY.sec`, magic CF4BF774): Load, Build (the random generator and the owner's water row matter;
   Build writes the edge fade into each vertex's specular word, rounded to nearest), ApplyWaterLevels, Ensure (build /
-  light on demand). `SectorAt` is a cache over the grid with an LRU list and a 240-frame age limit. `SurfaceClass` is the
-  texture class under a point (footprints, blood, effects); `SurfaceHeight` the ground raised to the water surface.
+  light on demand). `SectorAt` is a cache over the grid with an LRU list and a 240-frame age limit (the list owns the
+  sectors, the grid only points at them). `SurfaceClass` is the texture class under a point (footprints, blood,
+  effects); `SurfaceHeight` the ground raised to the water surface.
 - **Landscape passes, light tests**: `DrawGround` / `DrawWater` differ only in the page range (ground
   0..LayerPages()-1, water the next LayerPages(); LayerPages() = pages + the two extra pages); a page's texture is
   bound at the first sector with tiles on it. `DrawPages` per visible sector: clip test, projection, per page the
@@ -112,7 +113,7 @@ terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`,
   and seams are gone; the two LOD options stay in the settings file, read by nothing). `EdgeFade` is the map edge's
   fade byte. The GPU lights the terrain: the original's vertex lighting, sun shadow ray march, point light areas and
   relight countdowns are not ported (renderer.md says what looks different); `AddLight` / `RemoveLight` keep only the
-  table of shown lights.
+  table of shown lights (it holds them: removing a light it never registered releases nothing).
 - Waves and animated tiles: `SectorData::Animate`; the tiles draw from the client effects' generator
   (`g_clientRandom`, core.md "Random generators"). Animate's sine index uses 256 / pi as a double.
 - Ambience: sixteen sound classes (name, variants, weight, pan limit, chance %); the class votes are sorted by the
