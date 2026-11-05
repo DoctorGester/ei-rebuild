@@ -24,7 +24,7 @@ namespace render::text {
 class GlyphAtlas;
 } // namespace render::text
 
-namespace render::detail {
+namespace render {
 
 using gpu_shaders::BlitParams;
 using gpu_shaders::CloudParams;
@@ -834,4 +834,4 @@ void CopyIntoMultisampled(const gpu::Texture& colour, const gpu::Texture& depth)
 // multisampled pass's resolve.
 void CopyDepthFromResolved(const gpu::Texture& depth);
 
-} // namespace render::detail
+} // namespace render

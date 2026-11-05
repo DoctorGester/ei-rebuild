@@ -15,10 +15,6 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 // The map: kMapSize texels a side over the visible ground (its larger side in the landscape's x and y along the light
 // onto a level plane, in steps of kExtentStep world units so that the texel size changes seldom), the texels' corners
 // on whole texels of the landscape at the plane's height (shadows neither swim while the camera moves nor crawl while
@@ -63,19 +59,19 @@ struct M4 {
     double m[16] = {};
 };
 
-M4 FromMatrix(const Matrix4& a) {
+static M4 FromMatrix(const Matrix4& a) {
     M4 r;
     for (int i = 0; i < 16; ++i) r.m[i] = a.m[i];
     return r;
 }
 
-Matrix4 ToMatrix(const M4& a) {
+static Matrix4 ToMatrix(const M4& a) {
     Matrix4 r;
     for (int i = 0; i < 16; ++i) r.m[i] = static_cast<float>(a.m[i]);
     return r;
 }
 
-M4 Multiply(const M4& a, const M4& b) {
+static M4 Multiply(const M4& a, const M4& b) {
     M4 r;
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j) {
@@ -88,7 +84,7 @@ M4 Multiply(const M4& a, const M4& b) {
 
 // The camera's position: the point clip space puts at w = 0 (x = y = 0), the inverse's third column. False
 // when it lies at infinity.
-bool CameraEye(const M4& fromClip, Vector3* eye) {
+static bool CameraEye(const M4& fromClip, Vector3* eye) {
     const double* r = fromClip.m;
     const double w = r[14];
     if (std::fabs(w) <= 1e-12) return false;
@@ -97,7 +93,7 @@ bool CameraEye(const M4& fromClip, Vector3* eye) {
 }
 
 // Gauss-Jordan with partial pivoting; false when singular.
-bool Invert(const M4& a, M4* out) {
+static bool Invert(const M4& a, M4* out) {
     double w[4][8];
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j) {
@@ -126,9 +122,9 @@ bool Invert(const M4& a, M4* out) {
 
 // --- The game's hand-over ---------------------------------------------------------------------------
 
-const void* g_caster = nullptr;     // BeginCaster .. EndCaster
-bool g_casterFigure = false;        // ... a unit's draw
-ShadowInfo g_info, g_lastInfo;
+static const void* g_caster = nullptr;     // BeginCaster .. EndCaster
+static bool g_casterFigure = false;        // ... a unit's draw
+static ShadowInfo g_info, g_lastInfo;
 
 // --- Casters outside the view --------------------------------------------------------------------
 
@@ -143,18 +139,18 @@ struct OutsideCaster {
     const void* object = nullptr;
     bool unit = false;
 };
-std::vector<OutsideCaster> g_outside;
+static std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
 constexpr std::size_t kMostOutside = 100'000;
 std::unordered_set<const void*> g_drawnParts;   // NoteCasterPart, this frame
 // CastsShadow's strengths by object, made at the first CasterStrength of a frame.
-std::unordered_map<const void*, float> g_strengths;
-std::uint32_t g_strengthsFrame = 0xFFFFFFFFu;
-std::size_t g_strengthsCount = 0;
-bool g_outsideOn = true;   // SetOffscreenCasters: not View
-bool g_walkedOnly = false; // SetOffscreenCasters: Walked
-bool g_shadowView = false; // SetShadowView
-int g_shadowShift = 0;     // SetShadowShift: texels
+static std::unordered_map<const void*, float> g_strengths;
+static std::uint32_t g_strengthsFrame = 0xFFFFFFFFu;
+static std::size_t g_strengthsCount = 0;
+static bool g_outsideOn = true;   // SetOffscreenCasters: not View
+static bool g_walkedOnly = false; // SetOffscreenCasters: Walked
+static bool g_shadowView = false; // SetShadowView
+static int g_shadowShift = 0;     // SetShadowShift: texels
 // How the meshes drawn on screen with a texture cut it out (alpha test or blending, and the least alpha
 // kept), by the texture: a caster outside the view with that texture cuts it out the same way;
 // one whose texture was not drawn yet cuts below one half (a texture with alpha is drawn alpha-tested
@@ -163,12 +159,12 @@ struct AlphaCut {
     bool cut = false;
     float least = 0.0f;
 };
-std::unordered_map<const void*, AlphaCut> g_cuts;
+static std::unordered_map<const void*, AlphaCut> g_cuts;
 constexpr std::size_t kMostCuts = 8192;
 // The nearest depth along the light of a caster that reaches the map this frame (ShadowCasterReaches):
 // the map's near plane. Casters the game draws outside the walked objects' area are kept in front of
 // it by the caster shader (depths before the near plane drawn at it).
-float g_nearestCaster = 1e30f;
+static float g_nearestCaster = 1e30f;
 
 // --- GPU side ---------------------------------------------------------------------------------------
 
@@ -179,19 +175,19 @@ float g_nearestCaster = 1e30f;
 constexpr int kInstanceBuffer = 1;
 constexpr int kInstanceAttrs = 5;
 static_assert(sizeof(CasterInstance) == 16 * kInstanceAttrs);
-CasterDraws g_casterDraws("ei-shadow-casters");   // the sun map's
-gpu::Pipeline g_casterPipelines[2];   // the frame's stream, the meshes kept on the GPU (MeshLayout)
-gpu::Pipeline g_terrainCasterPipeline;   // the ground's casters (shaders/shadow_terrain.hlsl)
-gpu::Pipeline g_reducePipeline, g_dilatePipeline;
-bool g_pipelinesTried = false;
-gpu::Texture g_map, g_dummy;
-bool g_dummyCleared = false;
-gpu::Texture g_cells, g_range;
-gpu::Texture g_rangeDummy;   // the range's 1 x 1 stand-in without a map (the receivers' read of the range needs a texture bound)
-int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
+static CasterDraws g_casterDraws("ei-shadow-casters");   // the sun map's
+static gpu::Pipeline g_casterPipelines[2];   // the frame's stream, the meshes kept on the GPU (MeshLayout)
+static gpu::Pipeline g_terrainCasterPipeline;   // the ground's casters (shaders/shadow_terrain.hlsl)
+static gpu::Pipeline g_reducePipeline, g_dilatePipeline;
+static bool g_pipelinesTried = false;
+static gpu::Texture g_map, g_dummy;
+static bool g_dummyCleared = false;
+static gpu::Texture g_cells, g_range;
+static gpu::Texture g_rangeDummy;   // the range's 1 x 1 stand-in without a map (the receivers' read of the range needs a texture bound)
+static int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 
 // A depth-only pipeline into the shadow maps (kDepthFormat, nearer or equal kept, the slope's bias 1.5).
-void DepthOnly(gpu::PipelineDesc& p) {
+static void DepthOnly(gpu::PipelineDesc& p) {
     p.colour = gpu::Format::None;
     p.depth = kDepthFormat;
     p.depthCompare = gpu::Compare::LessEqual;
@@ -199,7 +195,7 @@ void DepthOnly(gpu::PipelineDesc& p) {
     p.depthBiasSlope = 1.5f;
 }
 
-gpu::PipelineDesc CasterDesc(bool cached) {
+static gpu::PipelineDesc CasterDesc(bool cached) {
     namespace program = gpu_shaders::shadow_caster;
     gpu::PipelineDesc p;
     p.program = program::kIndex;
@@ -215,7 +211,7 @@ gpu::PipelineDesc CasterDesc(bool cached) {
 
 // The ground's casters: TerrainCasterVertex (position, normal), the light matrix in the vertex uniforms, the sun's
 // direction in the fragment ones.
-gpu::PipelineDesc TerrainCasterDesc() {
+static gpu::PipelineDesc TerrainCasterDesc() {
     namespace program = gpu_shaders::shadow_terrain;
     gpu::PipelineDesc p;
     p.program = program::kIndex;
@@ -229,7 +225,7 @@ gpu::PipelineDesc TerrainCasterDesc() {
 }
 
 // A full-screen pass into an RGBA32F texture (it reads its texture 0 with the point sampler).
-gpu::PipelineDesc RangeDesc(int program) {
+static gpu::PipelineDesc RangeDesc(int program) {
     gpu::PipelineDesc p;
     p.program = program;
     p.colour = gpu::Format::Rgba32Float;
@@ -237,7 +233,7 @@ gpu::PipelineDesc RangeDesc(int program) {
 }
 
 // The pipelines of the casters and the range passes, made at the first map (and tried once).
-bool MakeShadowPipelines() {
+static bool MakeShadowPipelines() {
     if (!g_pipelinesTried) {
         g_pipelinesTried = true;
         g_casterPipelines[0] = gpu::MakePipeline(CasterDesc(false), "ei-shadow-caster");
@@ -253,19 +249,19 @@ bool MakeShadowPipelines() {
            g_dilatePipeline;
 }
 
-gpu::Texture MakeRange(int size, const char* label) {
+static gpu::Texture MakeRange(int size, const char* label) {
     gpu::Texture t = gpu::MakeTexture({size, size, 1, 1, gpu::Format::Rgba32Float, gpu::kSampled | gpu::kColourTarget, label});
     if (!t) ei::Log("render: the %dx%d shadow texture %s could not be made", size, size, label);
     return t;
 }
 
-gpu::Sampler PointSampler() {
+static gpu::Sampler PointSampler() {
     static const gpu::Sampler point =
         gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
     return point;
 }
 
-void RangePass(gpu::Pipeline pipeline, const gpu::Texture& target, const gpu::Texture& source,
+static void RangePass(gpu::Pipeline pipeline, const gpu::Texture& target, const gpu::Texture& source,
                const ShadowDilateParams* dilate, const char* label) {
     static_assert(gpu_shaders::shadow_reduce::kSamplerMap == 0 && gpu_shaders::shadow_dilate::kSamplerCells == 0);
     gpu::PassDesc pass;
@@ -282,7 +278,7 @@ void RangePass(gpu::Pipeline pipeline, const gpu::Texture& target, const gpu::Te
     gpu::EndPass();
 }
 
-void EnsureDummy() {
+static void EnsureDummy() {
     if (!g_rangeDummy)
         g_rangeDummy = gpu::MakeTexture({1, 1, 1, 1, gpu::Format::Rgba32Float, gpu::kSampled, "ei-shadow-range-none"});
     if (!g_dummy && !(g_dummy = MakeShadowDepth(1, 1, "ei-shadow-none"))) return;
@@ -306,7 +302,7 @@ struct Plane {
 // The camera's view as the fit takes it, in the landscape's space (clip space's rows combined): in front of
 // the camera (w >= 0), its sides widened by 5% (|x|, |y| <= 1.05 w) and before the far plane (z <= w).
 constexpr int kViewPlanes = 6;
-void ViewPlanes(const Matrix4& camera, Plane planes[kViewPlanes]) {
+static void ViewPlanes(const Matrix4& camera, Plane planes[kViewPlanes]) {
     auto row = [&](int i) { return Plane{camera.m[i * 4], camera.m[i * 4 + 1], camera.m[i * 4 + 2], camera.m[i * 4 + 3]}; };
     auto sum = [](const Plane& p, float k, const Plane& q, float l) {
         return Plane{p.a * k + q.a * l, p.b * k + q.b * l, p.c * k + q.c * l, p.d * k + q.d * l};
@@ -323,7 +319,7 @@ void ViewPlanes(const Matrix4& camera, Plane planes[kViewPlanes]) {
 // Of the view's planes in `asked` (bit k: plane k), those the box low..high crosses; -1 when it is wholly outside
 // one of them: its corners farthest out and farthest in along each plane's normal.
 constexpr int kAllPlanes = (1 << kViewPlanes) - 1;
-int CrossedPlanes(const Vector3& low, const Vector3& high, const Plane planes[kViewPlanes], int asked) {
+static int CrossedPlanes(const Vector3& low, const Vector3& high, const Plane planes[kViewPlanes], int asked) {
     int crossed = 0;
     for (int k = 0; k < kViewPlanes; ++k) {
         if (!(asked & (1 << k))) continue;
@@ -355,9 +351,9 @@ struct Fit {
     float depth = 0.0f;
     Matrix4 light{};
 };
-Fit g_fit;
+static Fit g_fit;
 
-std::size_t FirstGround(const Frame& f) {
+static std::size_t FirstGround(const Frame& f) {
     for (const Frame::Range& r : f.worldRanges) {
         std::size_t end = std::min(r.end, f.commands.size());
         for (std::size_t k = r.first; k < end; ++k) {
@@ -370,7 +366,7 @@ std::size_t FirstGround(const Frame& f) {
 
 // Landscape space to the map's clip space: x, y -1..1 over the area, z 0..1 from `zNear` to the
 // ground's far side.
-Matrix4 LightMatrix(const Fit& fit, float zNear, float* depth) {
+static Matrix4 LightMatrix(const Fit& fit, float zNear, float* depth) {
     const float zFar = fit.groundFar + kDepthMargin;
     *depth = zFar - zNear;
     Matrix4 light{};
@@ -389,7 +385,7 @@ Matrix4 LightMatrix(const Fit& fit, float zNear, float* depth) {
     return light;
 }
 
-const Fit& FitMap(Frame& f) {
+static const Fit& FitMap(Frame& f) {
     if (g_fit.frame == FrameNumber() && g_fit.pieces == f.terrainPieces.size()) return g_fit;
     g_fit = Fit{};
     g_fit.frame = FrameNumber();
@@ -489,7 +485,7 @@ const Fit& FitMap(Frame& f) {
     return g_fit;
 }
 
-bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
+static bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     StatsTimer timer(&FrameStats::shadowMs);
     const Fit& fit = FitMap(g_frame);
     if (!fit.ok) return false;
@@ -507,11 +503,11 @@ bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     return true;
 }
 
-std::optional<StatsTimer> g_walkTimer;
+static std::optional<StatsTimer> g_walkTimer;
 
 // A caster outside the view into `draws` through `light` (the landscape's space to a map's clip space), cut out as the
 // meshes drawn with its texture are (g_cuts); false when its mesh is not on the GPU.
-bool AddOutsideCaster(CasterDraws& draws, const OutsideCaster& e, const Matrix4& light) {
+static bool AddOutsideCaster(CasterDraws& draws, const OutsideCaster& e, const Matrix4& light) {
     Geometry b;
     int first = 0;
     if (!BindCachedMesh(*e.mesh, b, &first)) return false;
@@ -531,7 +527,7 @@ bool AddOutsideCaster(CasterDraws& draws, const OutsideCaster& e, const Matrix4&
 // (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
 // its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
 // none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.
-void FigureFronts(Frame& f) {
+static void FigureFronts(Frame& f) {
     std::unordered_map<const void*, float> fronts;
     for (const MeshBatch& b : f.meshBatches) {
         if (!b.figure || b.light < 0 || !b.caster) continue;
@@ -546,11 +542,7 @@ void FigureFronts(Frame& f) {
         if (b.figure && b.light >= 0 && b.caster) b.front = fronts[b.caster];
 }
 
-} // namespace
-
 // --- The hand-over ----------------------------------------------------------------------------------
-
-namespace detail {
 
 void ListShadowPipelines(std::vector<gpu::PipelineDesc>& out) {
     out.push_back(CasterDesc(false));
@@ -643,8 +635,6 @@ Matrix4 Product(const Matrix4& a, const Matrix4& b) {
         }
     return r;
 }
-
-} // namespace detail
 
 void ShadowSun(const Vector3& direction) {
     ShadowFrame& s = g_frame.shadow;
@@ -760,8 +750,6 @@ void SetShadowShift(int texels) {
 }
 
 ShadowInfo ShadowState() { return g_lastInfo; }
-
-namespace detail {
 
 const void* CurrentCaster() { return g_caster; }
 bool CurrentCasterFigure() { return g_caster && g_casterFigure; }
@@ -1073,7 +1061,5 @@ void BindShadowMap(int mapSlot) {
                                       {on ? g_range : g_rangeDummy, PointSampler()}};
     gpu::BindTextures(gpu::Stage::Fragment, mapSlot, b);
 }
-
-} // namespace detail
 
 } // namespace render

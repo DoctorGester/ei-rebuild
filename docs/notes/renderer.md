@@ -88,7 +88,7 @@ presents it through its own swap chain on the game window (section 9); captures 
 `frames\<name>.bmp`.
 
 **When the renderer fails** (the user's rule: no fallbacks). When it cannot start or cannot go on, the game ends.
-`render::detail::Fatal` (render.cpp) logs "render: fatal: <reason>" to ei-rebuild.log, shows the reason in the game's
+`render::Fatal` (render.cpp) logs "render: fatal: <reason>" to ei-rebuild.log, shows the reason in the game's
 error box (`app::ShowMessageBox`; the harness ends the run on it) and exits with -1, also with Rebirth's
 DisableExitOnCrashReport. The cases:
 - no device at the start (the first use): "Can't start the renderer: <gpu::Error()>." (no Direct3D 12 or Vulkan

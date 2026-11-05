@@ -164,7 +164,7 @@ int QualitySetting(const char* name, int fallback) {
 TextureDevice::TextureDevice(platform::NativeWindow newWindow, bool newFullScreen, int width, int height)
     : fullScreen(newFullScreen), screen{0, 0, width, height}, window(newWindow) {
     // (The original required MMX and loaded 2DintMMX.dll, its pixel converter, here; nothing needs it now.)
-    // The new renderer presents; when it cannot start, the game ends there (render::detail::Fatal).
+    // The new renderer presents; when it cannot start, the game ends there (render::Fatal).
     render::StartPresenting();
     render::SetPerfOverlay(PerfOverlaySetting());
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());

@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-namespace render::detail {
+namespace render {
 
 // --- Streams ---------------------------------------------------------------------------------------------
 
@@ -151,4 +151,4 @@ void GpuPool::Drop() {
     ++generation;
 }
 
-} // namespace render::detail
+} // namespace render

@@ -14,9 +14,7 @@
 #include <iterator>
 #include <unordered_map>
 
-namespace render::detail {
-
-namespace {
+namespace render {
 
 struct Texture {
     gpu::Texture image;
@@ -28,16 +26,16 @@ struct Texture {
     std::size_t bytes = 0;        // .mmp: the image's bytes on the GPU
 };
 
-std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures (the only copy)
+static std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures (the only copy)
 // Replaced during the frame: released at Present (the frame's recorded commands, drawn at its end, hold them).
-std::vector<gpu::Texture> g_retiredImages;
-Texture g_white;
-int g_failures = 0;
+static std::vector<gpu::Texture> g_retiredImages;
+static Texture g_white;
+static int g_failures = 0;
 
 constexpr int kMostLevels = 16;
 
 // The bytes of a row of a level `width` texels wide: of 4x4 blocks for the compressed formats.
-std::size_t RowPitch(gpu::Format format, int width) {
+static std::size_t RowPitch(gpu::Format format, int width) {
     if (format == gpu::Format::Bc1) return static_cast<std::size_t>((width + 3) / 4) * 8;
     if (format == gpu::Format::Bc2 || format == gpu::Format::Bc3) return static_cast<std::size_t>((width + 3) / 4) * 16;
     return static_cast<std::size_t>(width) * 4;
@@ -45,7 +43,7 @@ std::size_t RowPitch(gpu::Format format, int width) {
 
 // A texture of `format` from `levels` (level 0 first): the levels given only, as the .mmp file has them and the
 // original's texture had them (RGBA8 or the file's DXT blocks).
-gpu::Texture MakeImage(gpu::Format format, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
+static gpu::Texture MakeImage(gpu::Format format, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
                        const char* label, FrameStats::Upload kind, std::size_t* madeBytes = nullptr) {
     std::size_t bytes = 0;
     for (const std::vector<std::uint8_t>& level : levels) bytes += level.size();
@@ -65,19 +63,19 @@ gpu::Texture MakeImage(gpu::Format format, int width, int height, std::vector<st
     return t;
 }
 
-const Texture& White() {
+static const Texture& White() {
     if (!g_white.image)
         g_white.image = MakeImage(gpu::Format::Rgba8, 1, 1, {std::vector<std::uint8_t>(4, 255)}, "ei-white", FrameStats::Small);
     return g_white;
 }
 
-void Retire(Texture& t) {
+static void Retire(Texture& t) {
     if (t.image) g_retiredImages.push_back(t.image);
     t.image = gpu::Texture{};
 }
 
 // The levels of a texture of `width` x `height` down to 1 x 1.
-int LevelCount(int width, int height) {
+static int LevelCount(int width, int height) {
     int levels = 1;
     while ((width > 1 || height > 1) && levels < kMostLevels) {
         width = width > 1 ? width / 2 : 1;
@@ -92,10 +90,10 @@ struct Patch {
     int to[4] = {};
     int from[4] = {};
 };
-std::unordered_map<const void*, Patch> g_patches;
-int g_patchFailures = 0;
+static std::unordered_map<const void*, Patch> g_patches;
+static int g_patchFailures = 0;
 
-bool HolderSize(const void* holder, int* width, int* height) {
+static bool HolderSize(const void* holder, int* width, int* height) {
     auto decoded = g_textures.find(holder);
     if (decoded == g_textures.end() || decoded->second.width <= 0) return false;
     *width = decoded->second.width;
@@ -103,19 +101,19 @@ bool HolderSize(const void* holder, int* width, int* height) {
     return true;
 }
 
-bool Inside(const int r[4], int width, int height) {
+static bool Inside(const int r[4], int width, int height) {
     return r[0] >= 0 && r[1] >= 0 && r[0] < r[2] && r[1] < r[3] && r[2] <= width && r[3] <= height;
 }
 
 // The bytes level `mip` takes in the file as the game's fill copies it: bits per pixel x width x height / 8
 // of the level's size (halved per level, down to 0), no whole DXT blocks for the levels under 4 x 4.
-std::uint32_t MmpFileLevelBytes(const MmpHeader& h, unsigned mip) {
+static std::uint32_t MmpFileLevelBytes(const MmpHeader& h, unsigned mip) {
     return (h.bitsPerPixel * (h.width >> (mip & 31)) * (h.height >> (mip & 31))) >> 3;
 }
 
 // The block-compressed format an .mmp "DXTn" file's blocks are uploaded in (DXT2 / DXT4, the premultiplied
 // variants, as DXT3 / DXT5); None for the RGB formats.
-gpu::Format BlockFormat(std::uint32_t format) {
+static gpu::Format BlockFormat(std::uint32_t format) {
     if ((format & 0xFFFFFF) != 0x545844) return gpu::Format::None;   // "DXT"
     switch (static_cast<char>(format >> 24)) {
     case '1': return gpu::Format::Bc1;
@@ -128,7 +126,7 @@ gpu::Format BlockFormat(std::uint32_t format) {
 }
 
 // One level of an RGB .mmp file as RGBA8.
-bool DecodeMmpLevel(const MmpHeader& h, const std::uint8_t* pixels, int width, int height, std::vector<std::uint8_t>& out) {
+static bool DecodeMmpLevel(const MmpHeader& h, const std::uint8_t* pixels, int width, int height, std::vector<std::uint8_t>& out) {
     int bytes = static_cast<int>(h.bitsPerPixel / 8);
     // RGB with its masks in the header; "PNT2" / "PNT3" (item pictures, a packed format the game
     // decodes itself) and anything else are not decoded.
@@ -147,7 +145,7 @@ bool DecodeMmpLevel(const MmpHeader& h, const std::uint8_t* pixels, int width, i
     return true;
 }
 
-std::uint32_t MmpLevelBytes(const MmpHeader& h, int width, int height) {
+static std::uint32_t MmpLevelBytes(const MmpHeader& h, int width, int height) {
     if (BlockFormat(h.format) != gpu::Format::None) {
         auto blocks = static_cast<std::uint32_t>((width + 3) / 4) * static_cast<std::uint32_t>((height + 3) / 4);
         return blocks * (BlockFormat(h.format) == gpu::Format::Bc1 ? 8u : 16u);
@@ -164,7 +162,7 @@ struct MmpLevels {
 };
 
 // The levels from `mip` on (`levels` of them, at least one); `pixels`: the file's bytes after the header.
-bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, unsigned mip, unsigned levels, MmpLevels* read) {
+static bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, unsigned mip, unsigned levels, MmpLevels* read) {
     *read = MmpLevels{};
     const gpu::Format blocks = BlockFormat(h.format);
     read->format = blocks != gpu::Format::None ? blocks : gpu::Format::Rgba8;
@@ -198,7 +196,7 @@ bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, unsigned mip, unsig
     return !read->levels.empty() && read->width > 0 && read->height > 0;
 }
 
-int g_mmpFailures = 0;
+static int g_mmpFailures = 0;
 
 #if defined(EI_RENDER_VALIDATION)
 // The .mmp textures made (render::TextureFromMmp), logged at exit: their images' bytes on the GPU, the most held at
@@ -214,7 +212,7 @@ struct MmpImageCounts {
     }
 } g_mmpImageCounts;
 
-void CountMmpImage(const void* holder, long long ticks) {
+static void CountMmpImage(const void* holder, long long ticks) {
     std::uint64_t held = 0;
     for (const auto& entry : g_textures)
         if (!entry.second.composed && entry.second.image) held += entry.second.bytes;
@@ -226,11 +224,11 @@ void CountMmpImage(const void* holder, long long ticks) {
 }
 #endif
 
-std::unordered_map<const void*, Picture> g_pictures;
+static std::unordered_map<const void*, Picture> g_pictures;
 
 // `step` (its rectangle `to` relative to the texture, clipped to it) drawn into the texture BlankTexture made for
 // `holder`.
-void DrawStep(const void* holder, ComposeStep step) {
+static void DrawStep(const void* holder, ComposeStep step) {
     auto found = holder ? g_textures.find(holder) : g_textures.end();
     if (found == g_textures.end() || !found->second.composed) {
         if (g_failures++ < 10) ei::Log("render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
@@ -250,15 +248,13 @@ void DrawStep(const void* holder, ComposeStep step) {
     DrawComposed(t.shape, t.image, &step, 1);
 }
 
-gpu::Wrap Wrap(std::uint8_t address) {
+static gpu::Wrap Wrap(std::uint8_t address) {
     switch (address) {
     case 2: return gpu::Wrap::Mirror;
     case 3: return gpu::Wrap::Clamp;
     default: return gpu::Wrap::Repeat;
     }
 }
-
-} // namespace
 
 const gpu::Texture& SurfaceView(const void* holder) {
     StatsTimer timer(&FrameStats::textureMs);
@@ -383,10 +379,8 @@ gpu::Sampler LinearSampler() {
     return linear;
 }
 
-namespace {
 // The stages' samplers by their filters and addresses (gpu.h keeps them by description; this skips the lookup).
-std::unordered_map<std::uint32_t, gpu::Sampler> g_samplers;
-} // namespace
+static std::unordered_map<std::uint32_t, gpu::Sampler> g_samplers;
 
 gpu::Sampler StageSampler(const StageState& s) {
     std::uint32_t key = static_cast<std::uint32_t>(s.magFilter & 7) | (static_cast<std::uint32_t>(s.minFilter & 7) << 3) |
@@ -443,19 +437,14 @@ void ForgetHolder(const void* holder) {
     g_textures.erase(it);
 }
 
-} // namespace render::detail
-
-namespace render {
-
 bool TextureFromMmp(const void* holder, const MmpFile& file, unsigned mip, unsigned levels) {
     if (!holder || !file.data) return false;
-    detail::Start();
-    detail::StatsTimer timer(&FrameStats::textureMs);
-    return detail::TextureFromMmpData(holder, file, mip, levels);
+    Start();
+    StatsTimer timer(&FrameStats::textureMs);
+    return TextureFromMmpData(holder, file, mip, levels);
 }
 
 bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count) {
-    using namespace detail;
     if (!holder || size <= 0 || size > 4096) return false;
     Start();
     StatsTimer timer(&FrameStats::textureMs);
@@ -483,7 +472,6 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
 }
 
 bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, bool mipmapped) {
-    using namespace detail;
     if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
     Start();
     StatsTimer timer(&FrameStats::textureMs);
@@ -496,7 +484,6 @@ bool BlankTexture(const void* holder, int width, int height, BlankAlpha alpha, b
 }
 
 void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
-    using namespace detail;
     Start();
     StatsTimer timer(&FrameStats::textureMs);
     ComposeImage decoded;
@@ -511,7 +498,6 @@ void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y
 }
 
 void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
-    using namespace detail;
     Start();
     StatsTimer timer(&FrameStats::textureMs);
     CloudsDraw clouds;
@@ -527,7 +513,6 @@ void DrawClouds(const void* holder, const CloudFrame& from, const CloudFrame& to
 }
 
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {
-    using namespace detail;
     if (!target || !source) return;
     Start();
     int tw = 0, th = 0, sw = 0, sh = 0;
@@ -546,29 +531,24 @@ void TexturePatch(const void* target, const int to[4], const void* source, const
     }
 }
 
-} // namespace render
-
-namespace render {
-
 void HolderGone(const void* holder) {
-    detail::g_patches.erase(holder);
-    for (auto it = detail::g_patches.begin(); it != detail::g_patches.end();)
-        it = it->second.source == holder ? detail::g_patches.erase(it) : std::next(it);
-    detail::g_pictures.erase(holder);
+    g_patches.erase(holder);
+    for (auto it = g_patches.begin(); it != g_patches.end();)
+        it = it->second.source == holder ? g_patches.erase(it) : std::next(it);
+    g_pictures.erase(holder);
     // What the renderer made for it (a later holder at the same address starts afresh).
-    detail::ForgetHolder(holder);
-    detail::ForgetCursor(holder);
+    ForgetHolder(holder);
+    ForgetCursor(holder);
 }
 
 void PictureFromMmp(const void* holder, const MmpFile& file) {
     if (!holder || !file.data) return;
-    detail::PictureFromMmpData(holder, file);
+    PictureFromMmpData(holder, file);
 }
 
 #if defined(EI_RENDER_VALIDATION)
-namespace {
 // The next level of an RGBA8 level as a 2x2 box filter (sizes halved, at least 1; `*width`, `*height` updated).
-std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
+static std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
     int w = *width, h = *height;
     int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
     std::vector<std::uint8_t> dst(static_cast<std::size_t>(nw) * nh * 4);
@@ -586,10 +566,8 @@ std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* 
     *height = nh;
     return dst;
 }
-} // namespace
 
 MmpLevelCheck CheckMmpLevels() {
-    using namespace detail;
     MmpLevelCheck c;
     for (const auto& entry : g_textures) {
         const Texture& t = entry.second;

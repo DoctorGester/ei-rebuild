@@ -23,22 +23,20 @@
 
 namespace render::gpu {
 
-namespace {
-
 // ---- The device ---------------------------------------------------------------------------------------------------
 
-SDL_GPUDevice* g_device = nullptr;
-std::string g_error;
-std::string g_driverName, g_deviceName;
-bool g_debug = false;
+static SDL_GPUDevice* g_device = nullptr;
+static std::string g_error;
+static std::string g_driverName, g_deviceName;
+static bool g_debug = false;
 // Direct3D 12 copies a compressed texture's region only in whole 4x4 blocks, also where a small level is less than one;
 // Vulkan wants the level's own size there.
-bool g_wholeBlocks = false;
-bool g_videoStarted = false;   // SDL's video subsystem started here (SDL_GPU's Vulkan driver loads through it)
-std::atomic<int> g_problems{0};   // also counted by the thread that makes pipelines ahead
+static bool g_wholeBlocks = false;
+static bool g_videoStarted = false;   // SDL's video subsystem started here (SDL_GPU's Vulkan driver loads through it)
+static std::atomic<int> g_problems{0};   // also counted by the thread that makes pipelines ahead
 
-void Problem(const char* format, ...) SDL_PRINTF_VARARG_FUNC(1);
-void Problem(const char* format, ...) {
+static void Problem(const char* format, ...) SDL_PRINTF_VARARG_FUNC(1);
+static void Problem(const char* format, ...) {
     if (g_problems.fetch_add(1) >= 50) return;
     char text[512];
     va_list args;
@@ -48,16 +46,16 @@ void Problem(const char* format, ...) {
     ei::Log("gpu: %s", text);
 }
 
-double NowMs() {
+static double NowMs() {
     return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-std::uint32_t Align(std::uint32_t value, std::uint32_t alignment) {
+static std::uint32_t Align(std::uint32_t value, std::uint32_t alignment) {
     return (value + alignment - 1) / alignment * alignment;
 }
 
 // Each driver of `driver` (or the system's order) tried in turn; null with `error` saying why when none made one.
-SDL_GPUDevice* CreateDevice(const std::string& driver, bool debug, std::string* error) {
+static SDL_GPUDevice* CreateDevice(const std::string& driver, bool debug, std::string* error) {
     std::vector<std::string> drivers;
     if (!driver.empty()) drivers.push_back(driver);
 #if defined(_WIN32)
@@ -89,7 +87,7 @@ SDL_GPUDevice* CreateDevice(const std::string& driver, bool debug, std::string* 
 
 // ---- Formats ------------------------------------------------------------------------------------------------------
 
-SDL_GPUTextureFormat ToSdl(Format f) {
+static SDL_GPUTextureFormat ToSdl(Format f) {
     switch (f) {
     case Format::Rgba8: return SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
     case Format::Bgra8: return SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
@@ -107,20 +105,20 @@ SDL_GPUTextureFormat ToSdl(Format f) {
     return SDL_GPU_TEXTUREFORMAT_INVALID;
 }
 
-bool Compressed(Format f) { return f == Format::Bc1 || f == Format::Bc2 || f == Format::Bc3; }
-bool Integer(Format f) { return f == Format::R8Uint || f == Format::R16Uint; }
+static bool Compressed(Format f) { return f == Format::Bc1 || f == Format::Bc2 || f == Format::Bc3; }
+static bool Integer(Format f) { return f == Format::R8Uint || f == Format::R16Uint; }
 
 // A copy's width or height in texels as the driver takes it.
-std::uint32_t CopyExtent(Format f, int texels) {
+static std::uint32_t CopyExtent(Format f, int texels) {
     return static_cast<std::uint32_t>(Compressed(f) && g_wholeBlocks ? (texels + 3) / 4 * 4 : texels);
 }
 
 // A row of `width` texels (of 4x4 blocks when compressed) in bytes, and the rows of `height`.
-std::uint32_t RowBytes(Format f, int width) {
+static std::uint32_t RowBytes(Format f, int width) {
     const std::uint32_t block = SDL_GPUTextureFormatTexelBlockSize(ToSdl(f));
     return static_cast<std::uint32_t>(Compressed(f) ? (width + 3) / 4 : width) * block;
 }
-std::uint32_t Rows(Format f, int height) {
+static std::uint32_t Rows(Format f, int height) {
     return static_cast<std::uint32_t>(Compressed(f) ? (height + 3) / 4 : height);
 }
 
@@ -130,12 +128,12 @@ constexpr std::uint32_t kRowPitchAlignment = 256;
 constexpr std::uint32_t kTexturePlacement = 512;
 
 // The texels a padded row of `pitch` bytes holds, as SDL's pixels_per_row.
-std::uint32_t PixelsPerRow(Format f, std::uint32_t pitch) {
+static std::uint32_t PixelsPerRow(Format f, std::uint32_t pitch) {
     const std::uint32_t block = SDL_GPUTextureFormatTexelBlockSize(ToSdl(f));
     return Compressed(f) ? pitch / block * 4 : pitch / block;
 }
 
-SDL_GPUSampleCount SampleCount(int samples) {
+static SDL_GPUSampleCount SampleCount(int samples) {
     switch (samples) {
     case 2: return SDL_GPU_SAMPLECOUNT_2;
     case 4: return SDL_GPU_SAMPLECOUNT_4;
@@ -144,7 +142,7 @@ SDL_GPUSampleCount SampleCount(int samples) {
     }
 }
 
-SDL_GPUCompareOp ToSdl(Compare c) {
+static SDL_GPUCompareOp ToSdl(Compare c) {
     switch (c) {
     case Compare::Never: return SDL_GPU_COMPAREOP_NEVER;
     case Compare::Less: return SDL_GPU_COMPAREOP_LESS;
@@ -158,7 +156,7 @@ SDL_GPUCompareOp ToSdl(Compare c) {
     return SDL_GPU_COMPAREOP_ALWAYS;
 }
 
-SDL_GPUBlendFactor ToSdl(BlendFactor f) {
+static SDL_GPUBlendFactor ToSdl(BlendFactor f) {
     switch (f) {
     case BlendFactor::Zero: return SDL_GPU_BLENDFACTOR_ZERO;
     case BlendFactor::One: return SDL_GPU_BLENDFACTOR_ONE;
@@ -175,7 +173,7 @@ SDL_GPUBlendFactor ToSdl(BlendFactor f) {
     return SDL_GPU_BLENDFACTOR_ONE;
 }
 
-SDL_GPUBlendOp ToSdl(BlendOp op) {
+static SDL_GPUBlendOp ToSdl(BlendOp op) {
     switch (op) {
     case BlendOp::Add: return SDL_GPU_BLENDOP_ADD;
     case BlendOp::Subtract: return SDL_GPU_BLENDOP_SUBTRACT;
@@ -186,7 +184,7 @@ SDL_GPUBlendOp ToSdl(BlendOp op) {
     return SDL_GPU_BLENDOP_ADD;
 }
 
-SDL_GPUVertexElementFormat ToSdl(VertexFormat f) {
+static SDL_GPUVertexElementFormat ToSdl(VertexFormat f) {
     switch (f) {
     case VertexFormat::Float: return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
     case VertexFormat::Float2: return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
@@ -197,7 +195,7 @@ SDL_GPUVertexElementFormat ToSdl(VertexFormat f) {
     return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 }
 
-SDL_GPUSamplerAddressMode ToSdl(Wrap w) {
+static SDL_GPUSamplerAddressMode ToSdl(Wrap w) {
     switch (w) {
     case Wrap::Repeat: return SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
     case Wrap::Mirror: return SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT;
@@ -217,17 +215,17 @@ struct Submission {
     bool done = false;
     double gpuMs = -1.0;   // the frame timer's, when it saw it finish
 };
-std::mutex g_fenceLock;
-std::deque<Submission> g_submissions;
-std::uint64_t g_serial = 1;      // the open command buffer's: the next submission's
-std::uint64_t g_doneBefore = 1;  // every submission before this serial is done and dropped
-double g_lastFinished = 0.0;     // the frame timer's: when the last submission it saw finish did
-double g_latestGpuMs = -1.0;     // its time, not yet taken by FrameGpuTime
-std::thread g_timer;
-std::atomic<bool> g_timing{false};
+static std::mutex g_fenceLock;
+static std::deque<Submission> g_submissions;
+static std::uint64_t g_serial = 1;      // the open command buffer's: the next submission's
+static std::uint64_t g_doneBefore = 1;  // every submission before this serial is done and dropped
+static double g_lastFinished = 0.0;     // the frame timer's: when the last submission it saw finish did
+static double g_latestGpuMs = -1.0;     // its time, not yet taken by FrameGpuTime
+static std::thread g_timer;
+static std::atomic<bool> g_timing{false};
 
 // Under g_fenceLock.
-void MarkDone(Submission& s, bool timed) {
+static void MarkDone(Submission& s, bool timed) {
     s.done = true;
     if (!timed) return;
     const double now = NowMs();
@@ -237,7 +235,7 @@ void MarkDone(Submission& s, bool timed) {
 }
 
 // Done submissions at the front dropped, their fences released. Under g_fenceLock.
-void DropDone() {
+static void DropDone() {
     while (!g_submissions.empty() && g_submissions.front().done) {
         if (g_submissions.front().fence) SDL_ReleaseGPUFence(g_device, g_submissions.front().fence);
         g_doneBefore = g_submissions.front().serial + 1;
@@ -246,7 +244,7 @@ void DropDone() {
 }
 
 // The finished submissions marked done, asking their fences. Under g_fenceLock.
-void MarkFinished(bool timed) {
+static void MarkFinished(bool timed) {
     // One queue: they finish in order.
     for (Submission& s : g_submissions) {
         if (s.done) continue;
@@ -255,12 +253,12 @@ void MarkFinished(bool timed) {
     }
 }
 
-void PollFences(bool timed) {
+static void PollFences(bool timed) {
     std::lock_guard<std::mutex> lock(g_fenceLock);
     MarkFinished(timed);
 }
 
-void TimerThread() {
+static void TimerThread() {
     while (g_timing.load()) {
         PollFences(true);
         SDL_DelayNS(200000);
@@ -268,7 +266,7 @@ void TimerThread() {
 }
 
 // Whether submission `serial` is done (asking its fence). The open command buffer's is not.
-bool SubmissionDone(std::uint64_t serial) {
+static bool SubmissionDone(std::uint64_t serial) {
     if (serial >= g_serial) return false;
     if (serial < g_doneBefore) return true;
     std::lock_guard<std::mutex> lock(g_fenceLock);
@@ -282,13 +280,13 @@ bool SubmissionDone(std::uint64_t serial) {
 
 // ---- The frame's commands -----------------------------------------------------------------------------------------
 
-SDL_GPUCommandBuffer* g_commands = nullptr;
-SDL_GPURenderPass* g_pass = nullptr;
-SDL_Window* g_window = nullptr;
-Texture g_swapchainTexture;
-bool g_swapchainTaken = false;   // AcquireSwapchain was asked this command buffer
+static SDL_GPUCommandBuffer* g_commands = nullptr;
+static SDL_GPURenderPass* g_pass = nullptr;
+static SDL_Window* g_window = nullptr;
+static Texture g_swapchainTexture;
+static bool g_swapchainTaken = false;   // AcquireSwapchain was asked this command buffer
 
-SDL_GPUCommandBuffer* Commands() {
+static SDL_GPUCommandBuffer* Commands() {
     if (!g_commands && g_device) {
         g_commands = SDL_AcquireGPUCommandBuffer(g_device);
         if (!g_commands) Problem("no command buffer: %s", SDL_GetError());
@@ -320,8 +318,8 @@ struct Ring {
     bool cycleNext = true;
     int cycles = 0;
 };
-Ring g_ring;
-std::uint64_t g_uploaded = 0;   // bytes written in the open command buffer
+static Ring g_ring;
+static std::uint64_t g_uploaded = 0;   // bytes written in the open command buffer
 
 struct CopyOp {
     enum Kind : std::uint8_t { UploadBuffer, UploadTexture, CopyTexture, DownloadTexture } kind;
@@ -337,9 +335,9 @@ struct CopyOp {
     SDL_GPUTexture* toTexture = nullptr;   // CopyTexture's
     std::uint32_t toLevel = 0, toX = 0, toY = 0;
 };
-std::vector<CopyOp> g_copies;
+static std::vector<CopyOp> g_copies;
 
-void Flush() {
+static void Flush() {
     if (g_copies.empty()) return;
     if (g_ring.mapped) {
         SDL_UnmapGPUTransferBuffer(g_device, g_ring.buffer);
@@ -409,7 +407,7 @@ void Flush() {
     g_copies.clear();
 }
 
-SDL_GPUTransferBuffer* MakeTransfer(SDL_GPUTransferBufferUsage usage, std::uint32_t bytes) {
+static SDL_GPUTransferBuffer* MakeTransfer(SDL_GPUTransferBufferUsage usage, std::uint32_t bytes) {
     SDL_GPUTransferBufferCreateInfo ci{};
     ci.usage = usage;
     ci.size = bytes;
@@ -420,7 +418,7 @@ SDL_GPUTransferBuffer* MakeTransfer(SDL_GPUTransferBufferUsage usage, std::uint3
 
 // Room for `bytes` at a multiple of `alignment`: the op's transfer buffer and offset set, the bytes' place returned
 // (null on a failure).
-std::uint8_t* Place(std::uint32_t bytes, std::uint32_t alignment, CopyOp* op) {
+static std::uint8_t* Place(std::uint32_t bytes, std::uint32_t alignment, CopyOp* op) {
     g_uploaded += bytes;
     if (bytes > kLargeWrite) {
         op->transfer = MakeTransfer(SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, bytes);
@@ -465,13 +463,13 @@ std::uint8_t* Place(std::uint32_t bytes, std::uint32_t alignment, CopyOp* op) {
 }
 
 // After the bytes went into Place's room: a large write's own transfer buffer unmapped, the op queued.
-void PlaceDone(CopyOp& op) {
+static void PlaceDone(CopyOp& op) {
     if (op.releaseTransfer) SDL_UnmapGPUTransferBuffer(g_device, op.transfer);
     g_copies.push_back(op);
 }
 
 // A write starts: false (logged) inside a pass or without a device; a burst's command buffer submitted first.
-bool WriteAllowed(const char* what) {
+static bool WriteAllowed(const char* what) {
     if (!g_device) return false;
     if (g_pass) {
         Problem("%s inside a pass", what);
@@ -490,17 +488,17 @@ struct DownloadEntry {
     Texels texels;
     bool mapped = false;
 };
-std::unordered_map<std::uint32_t, DownloadEntry> g_downloads;
-std::uint32_t g_nextTicket = 1;
+static std::unordered_map<std::uint32_t, DownloadEntry> g_downloads;
+static std::uint32_t g_nextTicket = 1;
 // Download transfer buffers of released tickets, kept for the next downloads (the largest few).
 struct Spare {
     SDL_GPUTransferBuffer* buffer = nullptr;
     std::uint32_t capacity = 0;
 };
-std::vector<Spare> g_spares;
+static std::vector<Spare> g_spares;
 constexpr std::size_t kMostSpares = 4;
 
-SDL_GPUTransferBuffer* TakeDownloadBuffer(std::uint32_t bytes, std::uint32_t* capacity) {
+static SDL_GPUTransferBuffer* TakeDownloadBuffer(std::uint32_t bytes, std::uint32_t* capacity) {
     auto best = g_spares.end();
     for (auto it = g_spares.begin(); it != g_spares.end(); ++it)
         if (it->capacity >= bytes && (best == g_spares.end() || it->capacity < best->capacity)) best = it;
@@ -514,7 +512,7 @@ SDL_GPUTransferBuffer* TakeDownloadBuffer(std::uint32_t bytes, std::uint32_t* ca
     return MakeTransfer(SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD, *capacity);
 }
 
-void GiveBackDownloadBuffer(SDL_GPUTransferBuffer* buffer, std::uint32_t capacity) {
+static void GiveBackDownloadBuffer(SDL_GPUTransferBuffer* buffer, std::uint32_t capacity) {
     g_spares.push_back({buffer, capacity});
     if (g_spares.size() <= kMostSpares) return;
     auto smallest = std::min_element(g_spares.begin(), g_spares.end(),
@@ -529,10 +527,10 @@ void GiveBackDownloadBuffer(SDL_GPUTransferBuffer* buffer, std::uint32_t capacit
 struct ShaderPrograms {
     std::vector<SDL_GPUShader*> vertex, fragment;
 };
-ShaderPrograms g_shaders;
+static ShaderPrograms g_shaders;
 
 // A made shader failing is a Problem unless `quiet`.
-SDL_GPUShader* ProgramShader(SDL_GPUDevice* device, ShaderPrograms& set, int program, bool vertex, bool quiet) {
+static SDL_GPUShader* ProgramShader(SDL_GPUDevice* device, ShaderPrograms& set, int program, bool vertex, bool quiet) {
     std::vector<SDL_GPUShader*>& shaders = vertex ? set.vertex : set.fragment;
     shaders.resize(gpu_shaders::kProgramCount, nullptr);
     if (shaders[static_cast<std::size_t>(program)]) return shaders[static_cast<std::size_t>(program)];
@@ -580,7 +578,7 @@ struct SamplerHash {
         return h.h;
     }
 };
-std::unordered_map<SamplerDesc, Sampler, SamplerHash> g_samplers;
+static std::unordered_map<SamplerDesc, Sampler, SamplerHash> g_samplers;
 
 struct PipelineHash {
     std::size_t operator()(const PipelineDesc& d) const {
@@ -598,10 +596,10 @@ struct PipelineHash {
         return h.h;
     }
 };
-std::unordered_map<PipelineDesc, Pipeline, PipelineHash> g_pipelines;
+static std::unordered_map<PipelineDesc, Pipeline, PipelineHash> g_pipelines;
 
 // A description's fault, or null.
-const char* PipelineFault(const PipelineDesc& d) {
+static const char* PipelineFault(const PipelineDesc& d) {
     if (d.program < 0 || d.program >= gpu_shaders::kProgramCount) return "no such program";
     if (d.bufferCount < 0 || d.bufferCount > kMostVertexBuffers) return "too many vertex buffers";
     if (d.attributeCount < 0 || d.attributeCount > kMostVertexAttributes) return "too many vertex attributes";
@@ -620,7 +618,7 @@ const char* PipelineFault(const PipelineDesc& d) {
 
 // `desc`'s pipeline made on `device` with `shaders`' programs; empty when it cannot be (a Problem unless `quiet`).
 // Touches nothing else, so the thread that made the device can run it before Start.
-Pipeline BuildPipeline(SDL_GPUDevice* device, ShaderPrograms& shaders, const PipelineDesc& desc, const char* label,
+static Pipeline BuildPipeline(SDL_GPUDevice* device, ShaderPrograms& shaders, const PipelineDesc& desc, const char* label,
                        bool quiet) {
     if (const char* fault = PipelineFault(desc)) {
         if (!quiet) Problem("pipeline %s: %s", label ? label : "", fault);
@@ -716,10 +714,10 @@ struct Prepared {
     int wanted = 0;      // descriptions listed
     double madeMs = 0;   // the time the pipelines took
 };
-Prepared g_prepared;
+static Prepared g_prepared;
 
 // A device's pipelines and shaders let go (the device's own release does not).
-void ReleaseMade(SDL_GPUDevice* device, std::unordered_map<PipelineDesc, Pipeline, PipelineHash>& pipelines,
+static void ReleaseMade(SDL_GPUDevice* device, std::unordered_map<PipelineDesc, Pipeline, PipelineHash>& pipelines,
                  ShaderPrograms& shaders) {
     for (auto& [desc, p] : pipelines) SDL_ReleaseGPUGraphicsPipeline(device, p.pipeline);
     pipelines.clear();
@@ -730,21 +728,21 @@ void ReleaseMade(SDL_GPUDevice* device, std::unordered_map<PipelineDesc, Pipelin
     }
 }
 
-bool SupportsSamplesOn(SDL_GPUDevice* device, Format colour, Format depth, int samples) {
+static bool SupportsSamplesOn(SDL_GPUDevice* device, Format colour, Format depth, int samples) {
     const SDL_GPUSampleCount count = SampleCount(samples);
     if (colour != Format::None && !SDL_GPUTextureSupportsSampleCount(device, ToSdl(colour), count)) return false;
     if (depth != Format::None && !SDL_GPUTextureSupportsSampleCount(device, ToSdl(depth), count)) return false;
     return true;
 }
 
-int MaxSamplesOn(SDL_GPUDevice* device, Format colour, Format depth, int most) {
+static int MaxSamplesOn(SDL_GPUDevice* device, Format colour, Format depth, int most) {
     for (int samples = most; samples > 1; samples /= 2)
         if (SupportsSamplesOn(device, colour, depth, samples)) return samples;
     return 1;
 }
 
 // The pipelines the renderer listed, on the thread that made the device.
-void MakeAhead(Prepared& prepared) {
+static void MakeAhead(Prepared& prepared) {
     std::vector<PipelineDesc> descs;
     prepared.lister(DeviceLimits{prepared.device}, descs);
     prepared.wanted = static_cast<int>(descs.size());
@@ -779,11 +777,9 @@ struct Bound {
         std::memset(pushed, 0, sizeof(pushed));
     }
 };
-Bound g_bound;
-DrawCounts g_counts;
-bool g_filtering = true;
-
-} // namespace
+static Bound g_bound;
+static DrawCounts g_counts;
+static bool g_filtering = true;
 
 // ---- The device ---------------------------------------------------------------------------------------------------
 
@@ -924,17 +920,13 @@ bool SupportsSamples(Format colour, Format depth, int samples) {
     return g_device && SupportsSamplesOn(g_device, colour, depth, samples);
 }
 
-namespace {
-
-SDL_GPUTextureUsageFlags Usage(std::uint8_t use) {
+static SDL_GPUTextureUsageFlags Usage(std::uint8_t use) {
     SDL_GPUTextureUsageFlags flags = 0;
     if (use & kSampled) flags |= SDL_GPU_TEXTUREUSAGE_SAMPLER;
     if (use & kColourTarget) flags |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
     if (use & kDepthTarget) flags |= SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
     return flags;
 }
-
-} // namespace
 
 bool FormatSupported(Format format, std::uint8_t use) {
     return g_device && format != Format::None &&
@@ -1213,9 +1205,7 @@ int PipelineCount() { return static_cast<int>(g_pipelines.size()); }
 
 // ---- Passes and draws ---------------------------------------------------------------------------------------------
 
-namespace {
-
-SDL_GPULoadOp ToSdl(Load l) {
+static SDL_GPULoadOp ToSdl(Load l) {
     switch (l) {
     case Load::Keep: return SDL_GPU_LOADOP_LOAD;
     case Load::Clear: return SDL_GPU_LOADOP_CLEAR;
@@ -1223,8 +1213,6 @@ SDL_GPULoadOp ToSdl(Load l) {
     }
     return SDL_GPU_LOADOP_DONT_CARE;
 }
-
-} // namespace
 
 bool BeginPass(const PassDesc& pass) {
     if (!g_device) return false;
@@ -1450,9 +1438,7 @@ void ReleaseWindow() {
     g_window = nullptr;
 }
 
-namespace {
-
-SDL_GPUPresentMode ToSdl(PresentMode m) {
+static SDL_GPUPresentMode ToSdl(PresentMode m) {
     switch (m) {
     case PresentMode::Vsync: return SDL_GPU_PRESENTMODE_VSYNC;
     case PresentMode::Immediate: return SDL_GPU_PRESENTMODE_IMMEDIATE;
@@ -1460,8 +1446,6 @@ SDL_GPUPresentMode ToSdl(PresentMode m) {
     }
     return SDL_GPU_PRESENTMODE_VSYNC;
 }
-
-} // namespace
 
 bool PresentModeSupported(PresentMode mode) {
     return g_window && SDL_WindowSupportsGPUPresentMode(g_device, g_window, ToSdl(mode));

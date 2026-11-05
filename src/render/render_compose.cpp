@@ -12,11 +12,9 @@
 #include <utility>
 #include <vector>
 
-namespace render::detail {
+namespace render {
 
-namespace {
-
-int g_failures = 0;
+static int g_failures = 0;
 
 constexpr int kCloudSize = 256;   // a clouds frame's width and height
 // The clouds' frames the GPU built, by their words: the two a draw blends and the next ones (a few).
@@ -25,13 +23,13 @@ struct CloudFrameTexture {
     gpu::Texture image;
     std::uint32_t used = 0;   // the composition that last used it
 };
-std::vector<CloudFrameTexture> g_cloudFrames;
-std::uint32_t g_compositions = 0;
+static std::vector<CloudFrameTexture> g_cloudFrames;
+static std::uint32_t g_compositions = 0;
 constexpr std::size_t kCloudFramesKept = 4;
 
 // The programs' rectangle into a target of `format`, no depth; `over`: premultiplied blending (the image plus what is
 // there times one less the image's alpha, alpha too).
-gpu::PipelineDesc Desc(int program, gpu::Format format, bool over) {
+static gpu::PipelineDesc Desc(int program, gpu::Format format, bool over) {
     gpu::PipelineDesc p;
     p.program = program;
     p.colour = format;
@@ -41,19 +39,19 @@ gpu::PipelineDesc Desc(int program, gpu::Format format, bool over) {
     return p;
 }
 
-gpu::PipelineDesc ComposeDesc(bool over) { return Desc(gpu_shaders::texture_compose::kIndex, gpu::Format::Rgba8, over); }
-gpu::PipelineDesc MipDesc() { return Desc(gpu_shaders::texture_mip::kIndex, gpu::Format::Rgba8, false); }
-gpu::PipelineDesc CloudFrameDesc() { return Desc(gpu_shaders::texture_clouds_frame::kIndex, gpu::Format::R8, false); }
-gpu::PipelineDesc CloudsDesc() { return Desc(gpu_shaders::texture_clouds::kIndex, gpu::Format::Rgba8, false); }
+static gpu::PipelineDesc ComposeDesc(bool over) { return Desc(gpu_shaders::texture_compose::kIndex, gpu::Format::Rgba8, over); }
+static gpu::PipelineDesc MipDesc() { return Desc(gpu_shaders::texture_mip::kIndex, gpu::Format::Rgba8, false); }
+static gpu::PipelineDesc CloudFrameDesc() { return Desc(gpu_shaders::texture_clouds_frame::kIndex, gpu::Format::R8, false); }
+static gpu::PipelineDesc CloudsDesc() { return Desc(gpu_shaders::texture_clouds::kIndex, gpu::Format::Rgba8, false); }
 
-gpu::Pipeline ComposePipeline(bool over) {
+static gpu::Pipeline ComposePipeline(bool over) {
     return gpu::MakePipeline(ComposeDesc(over), over ? "ei-texture-compose-over" : "ei-texture-compose-replace");
 }
-gpu::Pipeline MipPipeline() { return gpu::MakePipeline(MipDesc(), "ei-texture-mip"); }
-gpu::Pipeline CloudFramePipeline() { return gpu::MakePipeline(CloudFrameDesc(), "ei-cloud-frame"); }
-gpu::Pipeline CloudsPipeline() { return gpu::MakePipeline(CloudsDesc(), "ei-clouds"); }
+static gpu::Pipeline MipPipeline() { return gpu::MakePipeline(MipDesc(), "ei-texture-mip"); }
+static gpu::Pipeline CloudFramePipeline() { return gpu::MakePipeline(CloudFrameDesc(), "ei-cloud-frame"); }
+static gpu::Pipeline CloudsPipeline() { return gpu::MakePipeline(CloudsDesc(), "ei-clouds"); }
 
-bool EnsurePipelines() {
+static bool EnsurePipelines() {
     static bool tried = false, made = false;
     if (tried) return made;
     tried = true;
@@ -62,15 +60,15 @@ bool EnsurePipelines() {
     return made;
 }
 
-gpu::Sampler Nearest() {
+static gpu::Sampler Nearest() {
     return gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
 }
-gpu::Sampler Linear() {
+static gpu::Sampler Linear() {
     return gpu::MakeSampler({gpu::Filter::Linear, gpu::Filter::Linear, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
 }
 
 // One 0xAARRGGBB pixel (bytes B, G, R, A) as R, G, B, A.
-void PutPixel(std::uint8_t* out, const std::uint8_t* in) {
+static void PutPixel(std::uint8_t* out, const std::uint8_t* in) {
     out[0] = in[2];
     out[1] = in[1];
     out[2] = in[0];
@@ -79,7 +77,7 @@ void PutPixel(std::uint8_t* out, const std::uint8_t* in) {
 
 // The image's pixels as RGBA8 rows from the top; texels the packed data leaves out (or the bytes do not reach) are
 // transparent black (what drawing them over anything leaves as it was).
-void Decode(const TextureImage& image, ComposeImage& out) {
+static void Decode(const TextureImage& image, ComposeImage& out) {
     out.width = image.width;
     out.height = image.height;
     const std::size_t count = static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
@@ -111,7 +109,7 @@ void Decode(const TextureImage& image, ComposeImage& out) {
 
 // The clouds frame of `frame`'s words as a texture (R8): one the GPU built for an earlier composition, else built now
 // (a pass of its own, so not inside another). Empty when it cannot be made.
-gpu::Texture CloudFrameImage(const CloudFrame& frame) {
+static gpu::Texture CloudFrameImage(const CloudFrame& frame) {
     for (CloudFrameTexture& f : g_cloudFrames) {
         if (std::memcmp(&f.frame, &frame, sizeof(frame)) != 0) continue;
         f.used = g_compositions;
@@ -152,7 +150,7 @@ gpu::Texture CloudFrameImage(const CloudFrame& frame) {
 }
 
 // A texture of the image's pixels for one composition.
-gpu::Texture MakeStepTexture(const ComposeImage& image) {
+static gpu::Texture MakeStepTexture(const ComposeImage& image) {
     if (image.width <= 0 || image.height <= 0) return gpu::Texture{};
     gpu::Texture t = gpu::MakeTexture({image.width, image.height, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-texture-compose-image"});
     if (t) gpu::Write(t, 0, {0, 0, image.width, image.height}, image.rgba.data(), static_cast<std::size_t>(image.width) * 4);
@@ -163,7 +161,7 @@ gpu::Texture MakeStepTexture(const ComposeImage& image) {
 // In a pass of its own: level `targetLevel` of `target` (`width` x `height`) drawn from level `level` of `source`,
 // filtered down from it (texture_mip with the linear sampler: `source`'s level twice the size) or texel for texel
 // (the nearest one: the same size).
-void DrawLevel(const gpu::Texture& source, int level, gpu::Sampler sampler, const gpu::Texture& target, int targetLevel,
+static void DrawLevel(const gpu::Texture& source, int level, gpu::Sampler sampler, const gpu::Texture& target, int targetLevel,
                int width, int height) {
     gpu::PassDesc pass;
     pass.colour.texture = target;
@@ -183,10 +181,10 @@ void DrawLevel(const gpu::Texture& source, int level, gpu::Sampler sampler, cons
 
 // The scratch texture the levels of a composed texture are drawn into (a pass may not read the texture it draws into):
 // half the texture's size, kept for the next of the same shape (the global map's clouds are drawn every frame).
-gpu::Texture g_levelScratch;
+static gpu::Texture g_levelScratch;
 
 // The levels below the first, each from the one above: drawn into the scratch's level, then copied into the texture's.
-void DrawLevels(const ComposeShape& shape, const gpu::Texture& target) {
+static void DrawLevels(const ComposeShape& shape, const gpu::Texture& target) {
     gpu::Texture& scratch = g_levelScratch;
     const int width = std::max(shape.width / 2, 1), height = std::max(shape.height / 2, 1);
     if (scratch.width != width || scratch.height != height || scratch.levels != shape.levels - 1) {
@@ -202,7 +200,7 @@ void DrawLevels(const ComposeShape& shape, const gpu::Texture& target) {
     }
 }
 
-void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, const ComposeStep* steps, std::size_t count, bool clear) {
+static void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, const ComposeStep* steps, std::size_t count, bool clear) {
     // What the steps draw from, made before the pass (a clouds frame is built in a pass of its own).
     ++g_compositions;
     std::vector<gpu::Texture> textures;
@@ -252,8 +250,6 @@ void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, const Comp
     for (gpu::Texture& t : textures) gpu::Release(t);
     if (shape.levels > 1) DrawLevels(shape, target);
 }
-
-} // namespace
 
 void ListComposePipelines(std::vector<gpu::PipelineDesc>& out) {
     out.push_back(ComposeDesc(true));
@@ -320,4 +316,4 @@ bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height,
 }
 #endif
 
-} // namespace render::detail
+} // namespace render

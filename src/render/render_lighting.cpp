@@ -12,21 +12,15 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 // Until the first hand-over: a sun from above, half ambient.
-SceneLightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}};
+static SceneLightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.5f, 0.5f, 0.5f, 0.0f}};
 // Per kept point light: it casts point shadows (ScenePointLight::shadows).
-bool g_shadows[kMostSceneLights] = {};
+static bool g_shadows[kMostSceneLights] = {};
 // The daylight colours (SceneLights::daySunColour, dayAmbientColour): until the first hand-over the sun's and the
 // ambient light's above.
-float g_daySunColour[3] = {1.0f, 1.0f, 1.0f};
-float g_dayAmbientColour[3] = {0.5f, 0.5f, 0.5f};
-double g_clientTicks = 0.0;
-
-} // namespace
+static float g_daySunColour[3] = {1.0f, 1.0f, 1.0f};
+static float g_dayAmbientColour[3] = {0.5f, 0.5f, 0.5f};
+static double g_clientTicks = 0.0;
 
 void SceneLighting(const SceneLights& lights) {
     SceneLightParams p{};
@@ -71,8 +65,6 @@ void SceneLighting(const SceneLights& lights) {
     g_params = p;
     std::copy(std::begin(shadows), std::end(shadows), g_shadows);
 }
-
-namespace detail {
 
 void LightUniforms(SceneLightParams* params) {
     *params = g_params;
@@ -195,7 +187,5 @@ int SceneLightIndex(const Vector3& position) {
     }
     return -1;
 }
-
-} // namespace detail
 
 } // namespace render

@@ -17,9 +17,6 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
 using terrain::SectorData;
 using terrain::SectorPosition;
 using terrain::SectorVertex;
@@ -35,7 +32,7 @@ constexpr std::uint16_t kTileTriangles[24] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4
 
 // The landscape's page texture of `page` (Terrain::pageTextures, indexed page % LayerPages(); they are bound
 // so before each page).
-const Texture* PageTexture(const SectorData* s, int page) {
+static const Texture* PageTexture(const SectorData* s, int page) {
     if (!s->owner || s->LayerPages() <= 0) return nullptr;
     const std::vector<Texture*>& textures = s->owner->pageTextures;
     const int index = page % s->LayerPages();
@@ -49,7 +46,7 @@ struct SectorChanges {
     std::uint32_t rebuilt = 0, moved = 0, waterMoved = 0;
 };
 constexpr int kWaterRecords = terrain::kSectorVertices;
-std::unordered_map<const SectorData*, SectorChanges> g_changes;
+static std::unordered_map<const SectorData*, SectorChanges> g_changes;
 
 // --- Pages kept on the GPU ----------------------------------------------------------------------
 
@@ -74,7 +71,7 @@ static_assert(sizeof(PageVertex) == 48);
 
 // The ground record `index` lies under the sector's water (a water material above it, the depth not negative):
 // its water record, else null.
-const SectorVertex* WaterAbove(const SectorData* s, int index) {
+static const SectorVertex* WaterAbove(const SectorData* s, int index) {
     if (!s->hasWater || index >= kWaterRecords || index + kWaterRecords >= std::ssize(s->records)) return nullptr;
     const SectorVertex& water = s->records[index + kWaterRecords];
     if (water.waterMaterial == SectorVertex::kNoWaterMaterial || SignBit(s->records[index].depth)) return nullptr;
@@ -83,7 +80,7 @@ const SectorVertex* WaterAbove(const SectorData* s, int index) {
 
 // The kind of water a material is (terrain.hlsl's Water): 0 water, 1 a swamp, 2 lava. The map's materials tell them
 // apart only by their colour: the water's blue, the swamps' green and the lava's red (which also lights itself).
-float WaterKind(const terrain::TerrainMaterial& m) {
+static float WaterKind(const terrain::TerrainMaterial& m) {
     const Vector3& c = m.waveColour;
     if (c.x > c.y && c.x > c.z) return 2.0f;
     return c.y > c.z ? 1.0f : 0.0f;
@@ -91,7 +88,7 @@ float WaterKind(const terrain::TerrainMaterial& m) {
 
 // The depth of the swamp over ground record `index`, -1 .. 1 (negative where the ground is above it), or -1 where its
 // water record is not a swamp's.
-float SwampDepth(const SectorData* s, int index) {
+static float SwampDepth(const SectorData* s, int index) {
     if (!s->hasWater || index + kWaterRecords >= std::ssize(s->records) || !s->owner) return -1.0f;
     const SectorVertex& water = s->records[index + kWaterRecords];
     const terrain::Terrain& owner = *s->owner;
@@ -103,13 +100,13 @@ float SwampDepth(const SectorData* s, int index) {
 
 // The rise of the ground per landscape unit at a ground record, from its normal (the map's, smooth across the triangles:
 // terrain.hlsl's shore_distance divides the depth by it, which a slope taken per triangle broke into steps).
-float GroundSlope(const SectorVertex& ground) {
+static float GroundSlope(const SectorVertex& ground) {
     const Vector3& n = ground.normal;
     return std::min(std::sqrt(LengthSquared2D(n.x, n.y)) / std::max(n.z, 0.05f), 20.0f);
 }
 
 // `occlusion`: the sector's ground occlusion per ground record (GroundOcclusion).
-PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const float* occlusion) {
+static PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const float* occlusion) {
     const SectorVertex& record = s->records[index];
     PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f, 0.0f, 0.0f, 0.0f};
     if (index >= kWaterRecords) {
@@ -134,7 +131,7 @@ PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e, const
     return v;
 }
 
-std::uint32_t Byte(float v) {
+static std::uint32_t Byte(float v) {
     float c = v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v;
     return static_cast<std::uint32_t>(c * 255.0f + 0.5f);
 }
@@ -142,7 +139,7 @@ std::uint32_t Byte(float v) {
 // The colour word a page vertex of record `index` is drawn with (lit on the GPU): the material
 // colour the sun's light starts from (on the ground the water's above it, else the record's own), alpha the
 // material byte (the water's opacity).
-std::uint32_t ColourWord(const SectorData* s, int index) {
+static std::uint32_t ColourWord(const SectorData* s, int index) {
     const SectorVertex& record = s->records[index];
     Vector3 m = record.materialColour;
     if (const SectorVertex* water = WaterAbove(s, index)) {
@@ -174,7 +171,7 @@ struct PageSource {
     }
 };
 
-PageSource SourceOf(const SectorData* s, int page) {
+static PageSource SourceOf(const SectorData* s, int page) {
     PageSource src;
     src.records = s->records.data();
     src.recordCount = lib::Count(s->records);
@@ -214,12 +211,12 @@ struct SectorCaster {
     std::uint32_t seen = 0;
     bool cast = false;
 };
-std::unordered_map<const SectorData*, SectorCaster> g_sectorCasters;
-std::vector<SectorCaster*> g_frameCasters;
-std::vector<std::uint32_t> g_gridIndices;
-GpuPool g_casterPool(sizeof(TerrainCasterVertex), 1u << 15, 3u << 16, "ei-terrain-casters");
+static std::unordered_map<const SectorData*, SectorCaster> g_sectorCasters;
+static std::vector<SectorCaster*> g_frameCasters;
+static std::vector<std::uint32_t> g_gridIndices;
+static GpuPool g_casterPool(sizeof(TerrainCasterVertex), 1u << 15, 3u << 16, "ei-terrain-casters");
 
-void BuildCaster(const SectorData* s, SectorCaster& c) {
+static void BuildCaster(const SectorData* s, SectorCaster& c) {
     const Vector3* v = s->vertices.data();
     c.vertices.resize(static_cast<std::size_t>(kWaterRecords));
     Vector3 lo{1e30f, 1e30f, 1e30f}, hi{-1e30f, -1e30f, -1e30f};
@@ -271,12 +268,12 @@ struct SectorOcclusion {
     std::uint32_t seen = 0;            // FrameNumber() of its last use
     std::vector<float> occlusion;      // per ground record
 };
-std::unordered_map<const SectorData*, SectorOcclusion> g_occlusion;
-std::uint32_t g_occlusionVersion = 0;   // the last given out; also how often one was worked out
+static std::unordered_map<const SectorData*, SectorOcclusion> g_occlusion;
+static std::uint32_t g_occlusionVersion = 0;   // the last given out; also how often one was worked out
 constexpr int kNeighbours[8][2] = {{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}};
 
 // The ground vertices' positions of the sector's neighbour `k`, if the landscape holds it.
-const SectorPosition* NeighbourVertices(const SectorData* s, int k) {
+static const SectorPosition* NeighbourVertices(const SectorData* s, int k) {
     const terrain::Terrain* owner = s->owner;
     if (!owner) return nullptr;
     const int nx = s->sx + kNeighbours[k][0], ny = s->sy + kNeighbours[k][1];
@@ -286,14 +283,14 @@ const SectorPosition* NeighbourVertices(const SectorData* s, int k) {
     return n->vertices.data();
 }
 
-std::uint8_t HeldNeighbours(const SectorData* s) {
+static std::uint8_t HeldNeighbours(const SectorData* s) {
     std::uint8_t held = 0;
     for (int k = 0; k < 8; ++k)
         if (NeighbourVertices(s, k)) held |= static_cast<std::uint8_t>(1u << k);
     return held;
 }
 
-void WorkOutOcclusion(const SectorData* s, SectorOcclusion& o) {
+static void WorkOutOcclusion(const SectorData* s, SectorOcclusion& o) {
     using terrain::kLastVertex, terrain::kSectorCells, terrain::kSectorRow;
     constexpr int kReach = kOcclusionReach, kRow = kSectorRow + 2 * kReach;
     o.version = ++g_occlusionVersion;
@@ -354,7 +351,7 @@ void WorkOutOcclusion(const SectorData* s, SectorOcclusion& o) {
 }
 
 // The sector's ground occlusion, worked out when it is new for the sector or a neighbour it continued is held now.
-const SectorOcclusion& GroundOcclusion(const SectorData* s) {
+static const SectorOcclusion& GroundOcclusion(const SectorData* s) {
     std::uint32_t rebuilt = 0;
     if (auto it = g_changes.find(s); it != g_changes.end()) rebuilt = it->second.rebuilt;
     SectorOcclusion& o = g_occlusion[s];
@@ -371,10 +368,6 @@ const SectorOcclusion& GroundOcclusion(const SectorData* s) {
     WorkOutOcclusion(s, o);
     return o;
 }
-
-} // namespace
-
-namespace detail {
 
 // A sector page as built and as placed in the pool.
 struct CachedPage {
@@ -397,15 +390,10 @@ struct CachedPage {
     std::uint32_t mark = 0;                          // Restart's
 };
 
-} // namespace detail
-
-// A second block: it uses CachedPage (defined above).
-namespace {
-
 // The quarters' vertices in runs with their boxes, after they were built or moved: a run is a few tiles in a row
 // (8 tiles), small enough that its box's top stays close to its ground.
 constexpr std::uint32_t kGroupVertices = 72;
-void MakeGroups(CachedPage& p) {
+static void MakeGroups(CachedPage& p) {
     p.groups.clear();
     for (QuarterRange& q : p.quarters) {
         q.firstGroup = static_cast<std::uint32_t>(p.groups.size());
@@ -428,7 +416,7 @@ void MakeGroups(CachedPage& p) {
 
 // The tiles of `page`, every quarter's (culled or not), as DrawSectorPage builds them: positions, texture coordinates, the record of each
 // vertex and the triangles; `occlusion` is the sector's GroundOcclusion.
-void BuildPage(const SectorData* s, int page, CachedPage& out, const float* occlusion) {
+static void BuildPage(const SectorData* s, int page, CachedPage& out, const float* occlusion) {
     out.vertices.clear();
     out.records.clear();
     out.entries.clear();
@@ -479,7 +467,7 @@ void BuildPage(const SectorData* s, int page, CachedPage& out, const float* occl
     MakeGroups(out);
 }
 
-bool SameGeometry(const CachedPage& a, const CachedPage& b) {
+static bool SameGeometry(const CachedPage& a, const CachedPage& b) {
     return a.vertices.size() == b.vertices.size() && a.indices.size() == b.indices.size() &&
            std::memcmp(a.vertices.data(), b.vertices.data(), a.vertices.size() * sizeof(PageVertex)) == 0 &&
            std::memcmp(a.records.data(), b.records.data(), a.records.size() * sizeof(std::uint16_t)) == 0 &&
@@ -487,7 +475,7 @@ bool SameGeometry(const CachedPage& a, const CachedPage& b) {
            std::memcmp(a.indices.data(), b.indices.data(), a.indices.size() * sizeof(std::uint32_t)) == 0;
 }
 
-void MarkVertex(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
+static void MarkVertex(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
     if (to <= from) {
         from = i;
         to = i + 1;
@@ -499,7 +487,7 @@ void MarkVertex(std::uint32_t i, std::uint32_t& from, std::uint32_t& to) {
 
 // Reads the colours of vertices [from, to) of `p` from the sector's records; the changed ones are
 // marked for upload. True when any changed.
-bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, std::uint32_t to) {
+static bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, std::uint32_t to) {
     bool changed = false;
     for (std::uint32_t i = from; i < to; ++i) {
         // The colour word (the material) is the one the page was built with; the game writes the
@@ -519,7 +507,7 @@ bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, std::ui
 // Reads every vertex's position, texture coordinates and occlusion of `p` again (the game moved some, or the
 // occlusion was worked out again: the tiles are the same); the changed ones are marked for upload. True when any
 // changed.
-bool ReadVertices(const SectorData* s, CachedPage& p, const float* occlusion) {
+static bool ReadVertices(const SectorData* s, CachedPage& p, const float* occlusion) {
     bool changed = false;
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(p.vertices.size()); ++i) {
         PageVertex& kept = p.vertices[i];
@@ -543,29 +531,29 @@ struct PageKeyHash {
         return std::hash<const void*>()(k.sector) ^ static_cast<std::size_t>(k.page) * 0x9E3779B9u;
     }
 };
-std::unordered_map<PageKey, CachedPage, PageKeyHash> g_pages;
-std::vector<CachedPage*> g_pending;   // pages with something to upload
+static std::unordered_map<PageKey, CachedPage, PageKeyHash> g_pages;
+static std::vector<CachedPage*> g_pending;   // pages with something to upload
 constexpr std::uint32_t kPageLife = 600;
 
 #if defined(EI_RENDER_VALIDATION)
-bool g_cacheOn = true;
-std::uint64_t g_checks = 0, g_stale = 0;
+static bool g_cacheOn = true;
+static std::uint64_t g_checks = 0, g_stale = 0;
 // Every this many frames each kept page is compared with a fresh build.
 constexpr std::uint32_t kCheckEvery = 16;
 #endif
 
-GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
+static GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
 
 // --- GPU side ------------------------------------------------------------------------------------------
 
-std::unordered_map<std::uint32_t, gpu::Pipeline> g_pipelines;   // by PassState::PipelineKey
+static std::unordered_map<std::uint32_t, gpu::Pipeline> g_pipelines;   // by PassState::PipelineKey
 
 // The pipeline drawing terrain as the old device does with `s`: culling, depth and blending from the
 // state the old path draws the page with. The ground pass runs under the terrain's state
 // block with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw), the
 // water pass under the scene's; both with ALPHABLENDENABLE on (SRCALPHA /
 // INVSRCALPHA in the harness runs; the verify build logs each new pipeline's state).
-gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
+static gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     namespace program = gpu_shaders::terrain;
     gpu::PipelineDesc p;
     p.program = program::kIndex;
@@ -588,7 +576,7 @@ gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
 }
 
 // TerrainDesc's pipeline, kept by the state and the sample count.
-gpu::Pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
+static gpu::Pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
     int samples = PassSampleCount();
     std::uint32_t key = s.PipelineKey() | (static_cast<std::uint32_t>(samples) << 24);
     auto it = g_pipelines.find(key);
@@ -606,12 +594,12 @@ gpu::Pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // w
 #if defined(EI_RENDER_VALIDATION)
 // --- The level map (render::TerrainLevels, harness build) ---------------------------------------------
 
-TerrainLevelMode g_levelMode = TerrainLevelMode::Off;
+static TerrainLevelMode g_levelMode = TerrainLevelMode::Off;
 
 // A texture of the page texture's size and levels, each level one grey (level k: 32 k).
-std::vector<gpu::Texture> g_levelImages;
+static std::vector<gpu::Texture> g_levelImages;
 
-gpu::Texture LevelView(const gpu::Texture& page) {
+static gpu::Texture LevelView(const gpu::Texture& page) {
     if (!page) return gpu::Texture{};
     const int width = page.width, height = page.height, levels = page.levels;
     for (const gpu::Texture& l : g_levelImages)
@@ -635,7 +623,7 @@ gpu::Texture LevelView(const gpu::Texture& page) {
 // The index runs of `batch`'s pieces placed in the pool, pieces that follow each other in it as one run:
 // `draw(first, count)` per run.
 template <class Draw>
-void ForPieceRuns(const Frame& f, const TerrainBatch& batch, Draw draw) {
+static void ForPieceRuns(const Frame& f, const TerrainBatch& batch, Draw draw) {
     std::uint32_t first = 0, count = 0;
     for (int k = batch.firstPiece; k < batch.firstPiece + batch.pieceCount; ++k) {
         const TerrainPiece& piece = f.terrainPieces[static_cast<std::size_t>(k)];
@@ -656,7 +644,7 @@ void ForPieceRuns(const Frame& f, const TerrainBatch& batch, Draw draw) {
 
 // --- The pool -------------------------------------------------------------------------------------------
 
-bool Place(CachedPage& p) {
+static bool Place(CachedPage& p) {
     bool anew = false;
     if (!g_pool.Place(p.place, static_cast<std::uint32_t>(p.vertices.size()), static_cast<std::uint32_t>(p.indices.size()),
                       &anew))
@@ -667,7 +655,7 @@ bool Place(CachedPage& p) {
 
 // The pool starts again with the pages of frame `f` (and the pending ones): they are placed again
 // from its start. It is made larger when they need more than half of it.
-void Restart(const Frame& f) {
+static void Restart(const Frame& f) {
     static std::uint32_t stamp = 0;
     ++stamp;
     std::uint64_t vertices = 0, indices = 0;
@@ -690,7 +678,7 @@ void Restart(const Frame& f) {
     }
 }
 
-void Write(CachedPage& p) {
+static void Write(CachedPage& p) {
     FrameStats& stats = g_stats;
     if (p.geometryDirty) {
         auto count = static_cast<std::uint32_t>(p.vertices.size());
@@ -715,8 +703,8 @@ void Write(CachedPage& p) {
     p.colourFrom = p.colourTo = 0;
 }
 
-CachedPage g_scratch;
-bool BuildAgain(const SectorData* s, int page, CachedPage& p, const float* occlusion) {
+static CachedPage g_scratch;
+static bool BuildAgain(const SectorData* s, int page, CachedPage& p, const float* occlusion) {
     BuildPage(s, page, g_scratch, occlusion);
     if (SameGeometry(g_scratch, p)) return false;
     p.vertices.swap(g_scratch.vertices);
@@ -729,10 +717,6 @@ bool BuildAgain(const SectorData* s, int page, CachedPage& p, const float* occlu
     p.groups.swap(g_scratch.groups);
     return true;
 }
-
-} // namespace
-
-namespace detail {
 
 // The pass states the ground and the water pages are drawn with in every battle (the pipelines a run makes, logged).
 void ListTerrainPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
@@ -917,8 +901,6 @@ void TerrainFrameDone() {
     }
 }
 
-} // namespace detail
-
 #if defined(EI_RENDER_VALIDATION)
 void TerrainLevels(TerrainLevelMode mode) {
     if (mode != g_levelMode)
@@ -1080,8 +1062,6 @@ void ShadowTerrainSector(const SectorData* s) {
     g_frameCasters.push_back(&c);
 }
 
-namespace detail {
-
 std::size_t TerrainCasterCount() { return g_frameCasters.size(); }
 
 void UploadTerrainCasters() {
@@ -1141,6 +1121,5 @@ void TerrainCastersDone() {
         else ++it;
     }
 }
-} // namespace detail
 
 } // namespace render

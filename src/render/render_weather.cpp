@@ -13,9 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace render::detail {
-
-namespace {
+namespace render {
 
 // How fast each follows the weather, in world ticks (about 18 a second) for 1 - 1/e of the way: the ground is wet
 // within half a minute of rain and dries over a few; the puddles fill and dry slower; snow settles over minutes (about
@@ -73,8 +71,8 @@ struct UnitSurface {
     float wet = 0.0f, snow = 0.0f, shelter = 0.0f;
     Vector3 at{};   // the middle of its box's foot (the harness's)
 };
-std::unordered_map<const void*, UnitSurface> g_units;
-const void* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
+static std::unordered_map<const void*, UnitSurface> g_units;
+static const void* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
 
 struct Box {
     Vector3 low{1e30f, 1e30f, 1e30f}, high{-1e30f, -1e30f, -1e30f};
@@ -92,42 +90,42 @@ struct Roof {
 };
 
 // The frame's lists, kept for their room.
-std::vector<Roof> g_roofs;
-std::unordered_map<const void*, Box> g_unitBoxes;
+static std::vector<Roof> g_roofs;
+static std::unordered_map<const void*, Box> g_unitBoxes;
 // The frame's roof map (PrepareRoofs): its area and depth range, the landscape's space to its clip space.
 struct RoofFit {
     bool on = false;
     float extent = 0.0f, range = 0.0f;
     Matrix4 clip{};
 } g_roofFit;
-CasterDraws g_roofDraws("ei-roof-casters");
-gpu::Texture g_roofTexture;
-bool g_roofShelter = true;   // SetRoofShelter
-RoofInfo g_roofInfo;
+static CasterDraws g_roofDraws("ei-roof-casters");
+static gpu::Texture g_roofTexture;
+static bool g_roofShelter = true;   // SetRoofShelter
+static RoofInfo g_roofInfo;
 constexpr int kModelUnknown = -2;
-std::vector<int> g_modelOf;   // per frame matrix: into g_models, -1 none, kModelUnknown not yet
-std::vector<Matrix4> g_models;
+static std::vector<int> g_modelOf;   // per frame matrix: into g_models, -1 none, kModelUnknown not yet
+static std::vector<Matrix4> g_models;
 
 // `now` moved towards `target` over `step` ticks: rising with `rise`, falling with `fall` as its time constant.
-float Follow(float now, float target, double step, double rise, double fall) {
+static float Follow(float now, float target, double step, double rise, double fall) {
     const double ticks = target > now ? rise : fall;
     return now + (target - now) * (1.0f - lib::Exp(static_cast<float>(-step / ticks)));
 }
 
-void Extend(Box& box, const Vector3& p) {
+static void Extend(Box& box, const Vector3& p) {
     box.low = Vector3{std::min(box.low.x, p.x), std::min(box.low.y, p.y), std::min(box.low.z, p.z)};
     box.high = Vector3{std::max(box.high.x, p.x), std::max(box.high.y, p.y), std::max(box.high.z, p.z)};
 }
 
 // A mesh's model-space box (MeshBatch::box) placed by `model`, added to a box in the landscape's space.
-void ExtendPlaced(Box& box, const float local[6], const Matrix4& model) {
+static void ExtendPlaced(Box& box, const float local[6], const Matrix4& model) {
     for (int k = 0; k < 8; ++k)
         Extend(box, TransformColumn(model, Vector3{local[(k & 1) ? 3 : 0], local[(k & 2) ? 4 : 1], local[(k & 4) ? 5 : 2]}));
 }
 
 // Of the rays `wanted` (a bit each) from `from[k]` along `along` (the mesh's model space, the same for all), those
 // that meet one of the batch's triangles ahead of them.
-unsigned RaysMeetMesh(const Frame& f, const MeshBatch& b, const Vector3* from, const Vector3& along, unsigned wanted) {
+static unsigned RaysMeetMesh(const Frame& f, const MeshBatch& b, const Vector3* from, const Vector3& along, unsigned wanted) {
     auto corner = [&](int k) {
         return b.cached ? CachedCorner(*b.cached, k) : f.meshVertices[f.meshIndices[static_cast<std::size_t>(k)]].position;
     };
@@ -157,7 +155,7 @@ unsigned RaysMeetMesh(const Frame& f, const MeshBatch& b, const Vector3* from, c
 
 // The share of a unit's top under a roof: of kRoofPoints points of its box at kRoofLook of its height, those with a
 // roof's triangle straight above (the rays under a roof's box tested together against its triangles).
-float Shelter(const Frame& f, const Box& unit) {
+static float Shelter(const Frame& f, const Box& unit) {
     const float cx = (unit.low.x + unit.high.x) * 0.5f, cy = (unit.low.y + unit.high.y) * 0.5f;
     const float dx = (unit.high.x - unit.low.x) * kRoofSpread, dy = (unit.high.y - unit.low.y) * kRoofSpread;
     const float z = unit.low.z + (unit.high.z - unit.low.z) * kRoofLook;
@@ -193,7 +191,7 @@ float Shelter(const Frame& f, const Box& unit) {
 
 // The world's model meshes after the ground: the units' boxes (by object), and the other objects' meshes as roofs (one
 // for all passes of a mesh; not the light added).
-void CollectUnitsAndRoofs(const Frame& f) {
+static void CollectUnitsAndRoofs(const Frame& f) {
     g_roofs.clear();
     g_unitBoxes.clear();
     g_models.clear();
@@ -237,8 +235,6 @@ void CollectUnitsAndRoofs(const Frame& f) {
         }
     }
 }
-
-} // namespace
 
 // The wetness and the puddles follow the settled rain, the snow cover the settled snow (not the layer's fade, which
 // lasts the weather message's 20 or 40 ticks, nor its mode, which stays snow through a fade from snow to rain). The
@@ -437,33 +433,29 @@ void SurfaceState(float* wet, float* puddles, float* snow) {
     *snow = g_surfaces.snow;
 }
 
-} // namespace render::detail
-
-namespace render {
-
-void BeginInterfaceUnit(const void* object) { detail::g_interfaceUnit = object; }
-void EndInterfaceUnit() { detail::g_interfaceUnit = nullptr; }
+void BeginInterfaceUnit(const void* object) { g_interfaceUnit = object; }
+void EndInterfaceUnit() { g_interfaceUnit = nullptr; }
 
 void SetRoofShelter(bool on) {
 #if defined(EI_RENDER_VALIDATION)
-    if (on != detail::g_roofShelter) ei::Log("render: the roofs' shelter from the weather %s", on ? "on" : "off");
-    detail::g_roofShelter = on;
+    if (on != g_roofShelter) ei::Log("render: the roofs' shelter from the weather %s", on ? "on" : "off");
+    g_roofShelter = on;
 #else
     (void)on;
 #endif
 }
 
-RoofInfo RoofState() { return detail::g_roofInfo; }
+RoofInfo RoofState() { return g_roofInfo; }
 
 void LandscapeLoaded() {
-    detail::g_surfaces.started = false;
-    detail::g_units.clear();
+    g_surfaces.started = false;
+    g_units.clear();
 }
 
 UnitWeather UnitWeatherState(const void* object) {
     UnitWeather out;
-    auto it = detail::g_units.find(object);
-    if (it == detail::g_units.end()) return out;
+    auto it = g_units.find(object);
+    if (it == g_units.end()) return out;
     out.known = true;
     out.wet = it->second.wet;
     out.snow = it->second.snow;

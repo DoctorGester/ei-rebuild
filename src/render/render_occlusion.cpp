@@ -11,10 +11,6 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 // The radius the occlusion is looked for in (world units: about a unit's height and a half), the most it darkens
 // (horizons all round at the surface's normal: 1 - kStrength), the rise above a surface's plane that hides nothing
 // (its facets' creases), and the widest radius in texels (a surface just before the camera).
@@ -25,28 +21,28 @@ constexpr float kWidestTexels = 40.0f;
 // The blur leaves out a texel whose depth lies 1 / kBlurSharpness of the distance nearer or further: another surface.
 constexpr float kBlurSharpness = 8.0f;
 
-OcclusionMode g_mode = OcclusionMode::On;
-OcclusionInfo g_info, g_lastInfo;
+static OcclusionMode g_mode = OcclusionMode::On;
+static OcclusionInfo g_info, g_lastInfo;
 
 // The half-size depth and the occlusion (raw, across, then blurred down into `g_occlusion` again).
-int g_width = 0, g_height = 0;
-gpu::Texture g_depth, g_occlusion, g_across;
-gpu::Pipeline g_findPipeline, g_blurPipeline, g_terrainPipeline;
-bool g_pipelinesTried = false;
-CasterDraws g_depthDraws("ei-occlusion-depth");
+static int g_width = 0, g_height = 0;
+static gpu::Texture g_depth, g_occlusion, g_across;
+static gpu::Pipeline g_findPipeline, g_blurPipeline, g_terrainPipeline;
+static bool g_pipelinesTried = false;
+static CasterDraws g_depthDraws("ei-occlusion-depth");
 
 // The receivers' uniforms this frame (ambient_occlusion.hlsli's `on` and `map`).
-bool g_on = false;
-float g_params[4] = {}, g_map[4] = {};
+static bool g_on = false;
+static float g_params[4] = {}, g_map[4] = {};
 
-gpu::PipelineDesc FullScreenDesc(int program) {
+static gpu::PipelineDesc FullScreenDesc(int program) {
     gpu::PipelineDesc p;
     p.program = program;
     p.colour = gpu::Format::R8;
     return p;
 }
 
-bool MakePipelines() {
+static bool MakePipelines() {
     if (!g_pipelinesTried) {
         g_pipelinesTried = true;
         g_findPipeline = gpu::MakePipeline(FullScreenDesc(gpu_shaders::occlusion::kIndex), "ei-occlusion");
@@ -58,14 +54,14 @@ bool MakePipelines() {
     return g_findPipeline && g_blurPipeline && g_terrainPipeline;
 }
 
-gpu::Sampler NearestSampler() {
+static gpu::Sampler NearestSampler() {
     static const gpu::Sampler nearest =
         gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
     return nearest;
 }
 
 // The textures of a `width` x `height` frame's half size; false when they cannot be made.
-bool EnsureTextures(int width, int height) {
+static bool EnsureTextures(int width, int height) {
     const int w = (width + 1) / 2, h = (height + 1) / 2;
     if (w == g_width && h == g_height && g_depth && g_occlusion && g_across) return true;
     for (gpu::Texture* t : {&g_depth, &g_occlusion, &g_across}) gpu::Release(*t);
@@ -84,7 +80,7 @@ bool EnsureTextures(int width, int height) {
 
 // A camera's clip depth z at the clip w is A + B / w (a perspective: its depth row is A times its w row plus B
 // times (0, 0, 0, 1)); `out` gets A and B.
-void DepthMap(const Matrix4& clip, float out[2]) {
+static void DepthMap(const Matrix4& clip, float out[2]) {
     const float* m = clip.m;
     const Vector3 depth{m[8], m[9], m[10]}, w{m[12], m[13], m[14]};
     const float ww = LengthSquared(w);
@@ -94,7 +90,7 @@ void DepthMap(const Matrix4& clip, float out[2]) {
 }
 
 // A full-screen pass of `pipeline` into `target` reading `textures`.
-void FullScreenPass(gpu::Pipeline pipeline, const gpu::Texture& target, std::span<const gpu::TextureBinding> textures,
+static void FullScreenPass(gpu::Pipeline pipeline, const gpu::Texture& target, std::span<const gpu::TextureBinding> textures,
                     const void* params, std::uint32_t bytes, const char* label) {
     gpu::PassDesc pass;
     pass.colour.texture = target;
@@ -108,8 +104,6 @@ void FullScreenPass(gpu::Pipeline pipeline, const gpu::Texture& target, std::spa
     gpu::Draw(0, 3);
     gpu::EndPass();
 }
-
-} // namespace
 
 void SetOcclusion(OcclusionMode mode) {
 #if defined(EI_RENDER_VALIDATION)
@@ -126,8 +120,6 @@ OcclusionInfo OcclusionState() {
     GroundOcclusionCounts(&info.groundSectors, &info.groundMade);
     return info;
 }
-
-namespace detail {
 
 void ListOcclusionPipelines(std::vector<gpu::PipelineDesc>& out) {
     out.push_back(FullScreenDesc(gpu_shaders::occlusion::kIndex));
@@ -261,7 +253,5 @@ void OcclusionFrameDone() {
     g_lastInfo = g_info;
     g_on = false;
 }
-
-} // namespace detail
 
 } // namespace render

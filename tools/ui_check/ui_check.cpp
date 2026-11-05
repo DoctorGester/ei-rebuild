@@ -31,7 +31,6 @@
 
 namespace ui = render::ui;
 namespace text = render::text;
-namespace detail = render::detail;
 namespace gpu = render::gpu;
 
 namespace {
@@ -62,7 +61,6 @@ void Log(const char* fmt, ...) {
 } // namespace ei
 
 namespace render {
-namespace detail {
 Frame g_frame;
 FrameStats g_stats;   // render_buffers.cpp's counts (the quads' vertex stream)
 const gpu::Texture& FrameTexture() { return glyph_cases::Target(); }
@@ -79,7 +77,6 @@ void SplitFrame() {
     glyph_cases::DrawFrame();
 }
 void RunCanvasesNow() { RunCanvasCommands(); }
-} // namespace detail
 } // namespace render
 
 namespace {

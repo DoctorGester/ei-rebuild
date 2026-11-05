@@ -8,9 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace render::detail {
-
-namespace {
+namespace render {
 
 // The map: kRippleSize texels a side, repeating, with its levels down to 1 x 1.
 constexpr int kRippleSize = 256;
@@ -18,7 +16,7 @@ constexpr int kRippleLevels = 9;
 static_assert(1 << (kRippleLevels - 1) == kRippleSize);
 constexpr float kTwoPi = 6.28318531f;
 
-gpu::Texture g_ripples;
+static gpu::Texture g_ripples;
 
 // The map is the same on every run and draws nothing from the game's generators.
 struct MapRandom {
@@ -37,7 +35,7 @@ struct Wave {
 
 // `count` waves in random directions, from `longest` to `shortest` cycles across the map, the heights falling as
 // the cycles to the power `falloff`.
-std::vector<Wave> Waves(MapRandom& random, int count, float longest, float shortest, float falloff) {
+static std::vector<Wave> Waves(MapRandom& random, int count, float longest, float shortest, float falloff) {
     std::vector<Wave> waves;
     while (static_cast<int>(waves.size()) < count) {
         const float angle = random.Next() * kTwoPi;
@@ -52,12 +50,12 @@ std::vector<Wave> Waves(MapRandom& random, int count, float longest, float short
     return waves;
 }
 
-std::uint8_t Signed(float v) { return static_cast<std::uint8_t>(std::lround(127.5f + 127.0f * v)); }
-std::uint8_t Unsigned(float v) { return static_cast<std::uint8_t>(std::lround(255.0f * v)); }
+static std::uint8_t Signed(float v) { return static_cast<std::uint8_t>(std::lround(127.5f + 127.0f * v)); }
+static std::uint8_t Unsigned(float v) { return static_cast<std::uint8_t>(std::lround(255.0f * v)); }
 
 // Level 0: r, g the slopes of a sum of waves along x and y (-1 .. 1 as 0 .. 255, the steepest at the ends), b the
 // foam's pattern (a finer sum's height, 0 .. 1), a 255.
-std::vector<std::uint8_t> FirstLevel() {
+static std::vector<std::uint8_t> FirstLevel() {
     MapRandom random;
     const std::vector<Wave> surface = Waves(random, 40, 3.0f, 22.0f, 1.5f);
     const std::vector<Wave> foam = Waves(random, 24, 10.0f, 40.0f, 0.8f);
@@ -107,7 +105,7 @@ std::vector<std::uint8_t> FirstLevel() {
 }
 
 // The level after `level` (`size` texels a side): each texel the mean of four.
-std::vector<std::uint8_t> NextLevel(const std::vector<std::uint8_t>& level, int size) {
+static std::vector<std::uint8_t> NextLevel(const std::vector<std::uint8_t>& level, int size) {
     const int half = size / 2;
     std::vector<std::uint8_t> next(static_cast<std::size_t>(half) * half * 4);
     for (int y = 0; y < half; ++y)
@@ -121,8 +119,6 @@ std::vector<std::uint8_t> NextLevel(const std::vector<std::uint8_t>& level, int 
             }
     return next;
 }
-
-} // namespace
 
 bool MakeRippleMap() {
     if (g_ripples) return true;
@@ -161,4 +157,4 @@ void RippleOffsets(float water[4], float swamp[4]) {
     }
 }
 
-} // namespace render::detail
+} // namespace render

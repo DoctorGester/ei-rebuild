@@ -7,12 +7,8 @@
 
 namespace render::text {
 
-namespace {
-
 #include "fonts/LiberationMono.h"
 #include "fonts/LiberationSerif.h"
-
-} // namespace
 
 std::span<const unsigned char> FontForFace(std::string_view face) {
     constexpr std::string_view kCourierNew = "Courier New";

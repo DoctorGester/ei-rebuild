@@ -14,10 +14,6 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 // The map: kCloudSize texels a side, repeating, R8. Gradient noise summed over kOctaves octaves, the first of
 // kFirstCells cells across, each next twice as many at half the height; then each texel's value replaced by its rank
 // among them (so a threshold t leaves the share 1 - t above it).
@@ -43,7 +39,7 @@ constexpr float kCloudLight = 0.55f;
 // A step of the world's time longer than this (a load, a zone change) or back moves nothing.
 constexpr double kLongestStep = 64.0;
 
-gpu::Texture g_cloudMap;
+static gpu::Texture g_cloudMap;
 
 struct Drift {
     bool started = false;
@@ -55,7 +51,7 @@ struct Drift {
 } g_drift;
 
 // A lattice corner's gradient direction: a hash of the corner (taken around the octave's cells) and the octave.
-float CornerAngle(int x, int y, int octave) {
+static float CornerAngle(int x, int y, int octave) {
     std::uint32_t h = static_cast<std::uint32_t>(x) * 0x8DA6B343u ^ static_cast<std::uint32_t>(y) * 0xD8163841u ^
                       static_cast<std::uint32_t>(octave + 1) * 0xCB1AB31Fu;
     h ^= h >> 13;
@@ -64,10 +60,10 @@ float CornerAngle(int x, int y, int octave) {
     return static_cast<float>(static_cast<double>(h & 0xFFFFu) / 65536.0 * kTwoPi);
 }
 
-double Fade(double t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
+static double Fade(double t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
 
 // The gradient noise of `cells` cells across the map at the texel's centre (x, y), repeating with the map.
-double Noise(int x, int y, int cells, int octave) {
+static double Noise(int x, int y, int cells, int octave) {
     const double u = (x + 0.5) * cells / kCloudSize, v = (y + 0.5) * cells / kCloudSize;
     const int i = static_cast<int>(std::floor(u)), j = static_cast<int>(std::floor(v));
     const double fx = u - i, fy = v - j;
@@ -82,7 +78,7 @@ double Noise(int x, int y, int cells, int octave) {
     return low + (high - low) * sy;
 }
 
-std::vector<std::uint8_t> CloudTexels() {
+static std::vector<std::uint8_t> CloudTexels() {
     const int texels = kCloudSize * kCloudSize;
     std::vector<double> sum(static_cast<std::size_t>(texels), 0.0);
     double height = 1.0;
@@ -101,7 +97,7 @@ std::vector<std::uint8_t> CloudTexels() {
 
 // The threshold the layers' weighted sum (wa A + wb B, A and B evenly spread over 0 .. 1, wa >= wb) exceeds on
 // `cover` of the ground: the inverse of the sum's spread, a trapezoid.
-float CoverThreshold(float cover) {
+static float CoverThreshold(float cover) {
     const double wa = kWeightA, wb = kWeightB;
     const double below = 1.0 - std::clamp(static_cast<double>(cover), 0.0, 1.0);   // the share under the threshold
     const double corner = wb / (2.0 * wa);                                            // the share below wb
@@ -112,17 +108,13 @@ float CoverThreshold(float cover) {
     return static_cast<float>(t);
 }
 
-double Wrapped(double offset, double tile) { return offset - std::floor(offset / tile) * tile; }
-
-} // namespace
+static double Wrapped(double offset, double tile) { return offset - std::floor(offset / tile) * tile; }
 
 void CloudShadows(const CloudWeather& weather) {
     ShadowFrame& s = g_frame.shadow;
     s.haveClouds = true;
     s.weather = weather;
 }
-
-namespace detail {
 
 float PrepareClouds(const ShadowFrame& shadow) {
     if (!g_cloudMap) {
@@ -172,7 +164,5 @@ void BindCloudMap(int slot) {
     const gpu::TextureBinding b{g_cloudMap, sampler};
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }
-
-} // namespace detail
 
 } // namespace render

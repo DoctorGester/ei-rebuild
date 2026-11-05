@@ -12,15 +12,11 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 enum PipelineKind { kBlit, kClearDepth, kFill };
 
 // None of them tests the depth: a blit and the fill keep the depth buffer, the depth clear writes only it. Made for
 // the pass's sample count (render_smooth.cpp).
-gpu::PipelineDesc PassDesc(PipelineKind kind, int samples) {
+static gpu::PipelineDesc PassDesc(PipelineKind kind, int samples) {
     gpu::PipelineDesc p;
     p.program = kind == kBlit ? gpu_shaders::blit::kIndex : gpu_shaders::solid::kIndex;
     p.depth = kDepthFormat;
@@ -33,13 +29,13 @@ gpu::PipelineDesc PassDesc(PipelineKind kind, int samples) {
     return p;
 }
 
-gpu::Pipeline PassPipeline(PipelineKind kind) {
+static gpu::Pipeline PassPipeline(PipelineKind kind) {
     return gpu::MakePipeline(PassDesc(kind, PassSampleCount()),
                              kind == kBlit ? "ei-image-blit" : kind == kClearDepth ? "ei-clear-depth" : "ei-fill");
 }
 
 // `r` with the depth clear's or the fill's pipeline; `colour` a D3DCOLOR, its alpha ignored.
-void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, int width, int height) {
+static void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t colour, int width, int height) {
     if (r.IsEmpty()) return;
     gpu::Pipeline pipeline = PassPipeline(kind);
     if (!pipeline) return;
@@ -60,9 +56,9 @@ struct LetGo {
     gpu::Texture image;
     std::uint32_t frame = 0;
 };
-std::vector<LetGo> g_letGo;
+static std::vector<LetGo> g_letGo;
 
-void ReleaseLetGo() {
+static void ReleaseLetGo() {
     std::size_t kept = 0;
     for (LetGo& l : g_letGo) {
         if (l.frame != FrameNumber()) gpu::Release(l.image);
@@ -73,19 +69,19 @@ void ReleaseLetGo() {
 
 // A movie's RGBA8 image, written in place instead of made again. A recorded blit draws the image's contents at the end
 // of the frame (DrawPending), so an image is rewritten only when no blit of it is recorded in this frame.
-gpu::Texture MakeMovieImage(int w, int h) {
+static gpu::Texture MakeMovieImage(int w, int h) {
     CountImage(ImageUse::Movie, true);
     return gpu::MakeTexture({w, h, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-movie-frame"});
 }
 
 #if defined(EI_RENDER_VALIDATION)
-long g_uploadChecks = 0, g_uploadMismatches = 0;
-long g_uploads = 0;   // movie uploads so far (the read-back is sampled: ReadBackDue)
+static long g_uploadChecks = 0, g_uploadMismatches = 0;
+static long g_uploads = 0;   // movie uploads so far (the read-back is sampled: ReadBackDue)
 #endif
 
 // Verify build: the movie image just uploaded read back from the GPU and compared with the pixels written (what the
 // shaders then draw are exactly these texels), sampled. Nothing in the other builds.
-void CheckUpload(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
+static void CheckUpload(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
 #if defined(EI_RENDER_VALIDATION)
     if (!ReadBackDue(g_uploads++)) return;
     gpu::Ticket copy = gpu::Download(image, 0, Rect{0, 0, w, h});
@@ -110,7 +106,7 @@ void CheckUpload(const gpu::Texture& image, const std::uint8_t* rgba, int w, int
 #endif
 }
 
-void UpdateMovieImage(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
+static void UpdateMovieImage(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
     CountImage(ImageUse::Movie, false);
     CountUpload(FrameStats::Movie, static_cast<std::size_t>(w) * h * 4);
     gpu::Write(image, 0, {0, 0, w, h}, rgba, static_cast<std::size_t>(w) * 4, gpu::Contents::Discard);
@@ -122,12 +118,8 @@ struct Movie {
     int width = 0, height = 0;
     std::uint32_t blitFrame = 0xFFFFFFFFu;      // FrameNumber() of the last blit recorded
 };
-std::unordered_map<const void*, Movie> g_movies;
-std::vector<std::uint8_t> g_movieScratch;
-
-} // namespace
-
-namespace detail {
+static std::unordered_map<const void*, Movie> g_movies;
+static std::vector<std::uint8_t> g_movieScratch;
 
 void ListBlitPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
     for (PipelineKind kind : {kBlit, kClearDepth, kFill}) out.push_back(PassDesc(kind, samples));
@@ -170,14 +162,9 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height) {
 
 void DrawFill(const FillBatch& fill, int width, int height) { DrawSolid(kFill, fill.rect, 0.0f, fill.colour, width, height); }
 
-} // namespace detail
-
-namespace detail {
-namespace {
-long g_imageMade[static_cast<int>(ImageUse::Count)];
-long g_imageUpdated[static_cast<int>(ImageUse::Count)];
-long g_imageRequests[static_cast<int>(ImageUse::Count)];   // pictures asked for (movie frames)
-} // namespace
+static long g_imageMade[static_cast<int>(ImageUse::Count)];
+static long g_imageUpdated[static_cast<int>(ImageUse::Count)];
+static long g_imageRequests[static_cast<int>(ImageUse::Count)];   // pictures asked for (movie frames)
 
 void CountImage(ImageUse use, bool made) { ++(made ? g_imageMade : g_imageUpdated)[static_cast<int>(use)]; }
 void CountImageRequest(ImageUse use) { ++g_imageRequests[static_cast<int>(use)]; }
@@ -190,14 +177,10 @@ void LogImageCounts(const char* when) {
 }
 
 #if defined(EI_RENDER_VALIDATION)
-namespace {
 struct ImageCountLogger {
     ~ImageCountLogger() { LogImageCounts("at exit"); }
 } g_imageCountLogger;
-} // namespace
 #endif
-} // namespace detail
-
 
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
     if (!key || !rgbx || width <= 0 || height <= 0) return;
