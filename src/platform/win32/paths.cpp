@@ -1,5 +1,5 @@
-// The platform's paths on Windows (platform.h, "Paths"): the program's file, the current folder, the user's data folder
-// and the command line, through the wide calls.
+// The platform's paths on Windows (platform.h, "Paths"): the program's file and folder, the current folder, the user's
+// data folder and the command line, through the wide calls.
 #include "platform/platform.h"
 
 #include "platform/win32/platform_win32.h"
@@ -7,6 +7,18 @@
 #include <string>
 
 namespace platform {
+
+namespace {
+
+// The program's file's folder, without a trailing separator.
+std::string ProgramFolder() {
+    std::string folder = ProgramPath();
+    const std::size_t slash = folder.find_last_of("\\/");
+    folder.resize(slash == std::string::npos ? 0 : slash);
+    return folder;
+}
+
+} // namespace
 
 std::string CurrentFolder() {
     const DWORD needed = GetCurrentDirectoryW(0, nullptr);
@@ -44,6 +56,10 @@ std::string ProgramPath() {
     }
     return text::Narrow(path);
 }
+
+std::string DefaultGameFolder() { return ProgramFolder(); }
+
+std::string DefaultOutputFolder() { return ProgramFolder(); }
 
 bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
     if (SetCurrentDirectoryW(text::Wide(path).c_str())) return true;

@@ -282,13 +282,17 @@ jobs:
           (or Control-click the app > Open and confirm; on macOS 15 and later open it once, then System Settings >
           Privacy & Security > Open Anyway).
 
-          The app does not ask for the game folder yet: start it from Terminal with the folder named:
+          The game folder: put ei-rebuild.app into it (beside its Res and Maps folders) and open the app there, or
+          open the app from anywhere and choose the folder when it asks. The choice is remembered in
+          ~/Library/Application Support/ei-rebuild/game_folder.txt (delete that file to choose again). An app opened
+          with the quarantine flag still set runs from a hidden read-only copy, so it asks even inside the game
+          folder. From Terminal, EI_GAME_ROOT="/path/to/Evil Islands" before ./ei-rebuild.app/Contents/MacOS/ei-rebuild
+          names the folder instead.
 
-              EI_GAME_ROOT="/path/to/Evil Islands" ./ei-rebuild.app/Contents/MacOS/ei-rebuild
-
-          The settings are the game folder's ei_settings.ini (EI_SETTINGS_PATH names another file) and the game
-          writes its saves there, so use a copy of the install if you want the original kept as it is. The log is
-          ei-rebuild.log beside the program, in ei-rebuild.app/Contents/MacOS (EI_OUT_DIR names another folder).
+          The game writes its saves into the game folder, so use a copy of the install if you want the original
+          kept as it is. The settings are ei_settings.ini inside the app, in ei-rebuild.app/Contents/MacOS, or in
+          ~/Library/Application Support/EvilIslands when the app cannot be written to (EI_SETTINGS_PATH names
+          another file). The log is ~/Library/Logs/ei-rebuild/ei-rebuild.log (EI_OUT_DIR names another folder).
 
           third_party_notices.txt holds the licences of the code and fonts built in.
           EOF
@@ -330,7 +334,7 @@ jobs:
           - **macOS** (Apple silicon and Intel): `ei-rebuild-macos.zip`, an app neither Developer ID signed nor
             notarised: clear the quarantine flag once (`xattr -dr com.apple.quarantine ei-rebuild.app`, or
             Control-click > Open; on macOS 15 and later System Settings > Privacy & Security > Open Anyway), then
-            start it with the game folder named; its README.txt has the commands.
+            open it inside the game folder or choose the folder when it asks; its README.txt has the details.
           EOF
           gh release create "${{ inputs.version }}" dist/ei-rebuild.exe dist/ei-rebuild-linux-x64.tar.gz \
             dist/ei-rebuild-macos.zip --title "${{ inputs.version }}" --notes-file notes.md --generate-notes $flags

@@ -35,6 +35,10 @@ foreach(off SDL_SHARED SDL_TEST_LIBRARY SDL_TESTS SDL_EXAMPLES SDL_INSTALL SDL_U
             SDL_DISKAUDIO SDL_DUMMYAUDIO SDL_DUMMYVIDEO)
     set(${off} OFF CACHE BOOL "" FORCE)
 endforeach()
+# macOS's folder picker (src/platform/posix/paths.cpp: the game's folder when none is beside the app).
+if(APPLE)
+    set(SDL_DIALOG ON CACHE BOOL "" FORCE)
+endif()
 # SDL's GPU API (Direct3D 12, Vulkan): the renderer's (docs/notes/renderer.md, "gpu.h").
 set(SDL_GPU ON CACHE BOOL "" FORCE)
 set(SDL_VULKAN ON CACHE BOOL "" FORCE)
