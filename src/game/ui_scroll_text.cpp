@@ -226,7 +226,7 @@ void UiScrollText::PaintWords(UiSurface& surface) const {
 // The scroll bar's tables with its own drawing and layout.
 UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect rect, float depth)
     : UiScrollbar(ownerUi, rect, depth, 0, kScrollSpeed) {
-    AddSurface(new UiSurface(ui, &rect, SurfaceBlend::Keyed))->PaintWith([this](UiSurface& out) { PaintWords(out); });
+    AddSurface(std::make_unique<UiSurface>(ui, &rect, SurfaceBlend::Keyed))->PaintWith([this](UiSurface& out) { PaintWords(out); });
     UiScrollbar::SetRect(&rect);
     PlaceText(rect);
     DeleteTokens();

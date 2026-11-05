@@ -159,31 +159,26 @@ void ExchangeScreen::CreateScreen() {
     ownOffer->Clear(true, false);
 
     // The description panel (its item list and text arrays constructed in place).
-    descPanel = new ItemInfoPanel(ui, this);
-    AddChild(descPanel);
+    descPanel = AddChild(std::make_unique<ItemInfoPanel>(ui, this));
     descPanel->Build(600, 100);
 
     // The local party's items (the strip that hands clicks to this screen).
-    strip = new ForwardingStrip(ui, this);
-    AddChild(strip);
+    strip = AddChild(std::make_unique<ForwardingStrip>(ui, this));
     strip->Setup(&LocalPlayerData()->items, false);
     strip->mode = kStripActionTake;
     strip->SetFilter(0);
 
     // The players.
-    figures = new FigureStrip(ui, this);
-    AddChild(figures);
+    figures = AddChild(std::make_unique<FigureStrip>(ui, this));
     figures->SetupFigures(&names, true, true);
 
     // Both offers.
-    grid = new TradeGrid(ui, this);
-    AddChild(grid);
+    grid = AddChild(std::make_unique<TradeGrid>(ui, this));
     grid->Build(&partnerOffer->items, &ownOffer->items, false, true);
     grid->mode = kGridMode;
 
     // The money offered.
-    moneyField = new UiEditField(ui, Rect{0, 0x15E, 200, 0x16E});
-    AddChild(moneyField);
+    moneyField = AddChild(std::make_unique<UiEditField>(ui, Rect{0, 0x15E, 200, 0x16E}));
     moneyField->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     moneyField->SetText("");
 

@@ -24,14 +24,6 @@ int Mul(int a, int b) {
     return static_cast<int>(static_cast<std::uint32_t>(a) * static_cast<std::uint32_t>(b));
 }
 
-// A surface of the window's list, destroyed as a plain surface whatever its class, as the original does (a scrolling
-// surface's own destructor does not run: UiSurface's is not virtual); the block is freed unsized, since it may be a
-// derived class's.
-void DestroySurface(UiSurface* surface) {
-    surface->~UiSurface();
-    ::operator delete(surface);
-}
-
 // A new object of the model manager by name, or null.
 UiMesh* NewModelObject(std::string_view name) {
     return g_clientWorld.figureManager->NewFigure(name);
@@ -124,8 +116,8 @@ void UiRegion::OnMouseMove(Point point) {
 
 UiRegion* UiWindow::RegionUnder(Point point) const {
     ui->ScalePointFromScreen(&point);
-    for (UiRegion* region : regions) {
-        if (region->HitTest(point)) return region;
+    for (const auto& region : regions) {
+        if (region->HitTest(point)) return region.get();
     }
     return nullptr;
 }
@@ -141,7 +133,7 @@ UiRegion* UiWindow::HitRegion(UiEvent& event, int count) {
     for (int i = 0; i < std::ssize(regions) && i < count; ++i) {
         if (regions[i]->HitTest(point)) {
             event.handled = true;
-            return regions[i];
+            return regions[i].get();
         }
     }
     return nullptr;
@@ -161,10 +153,10 @@ UiRegion* UiWindow::PressedRegion(UiEvent& event, int count) {
 void UiWindow::DrawTips() {
     Point mouse = ui->mouse;
     ui->ScalePointFromScreen(&mouse);
-    for (int i = 0; i < std::ssize(regions); ++i) {
-        UiRegion* region = regions[i];
-        if (region->tip) region->OnMouseMove(mouse);
-        if (UiTooltip* tip = regions[i]->tip) tip->DrawSurfaces();
+    for (const auto& region : regions) {
+        if (!region->tip) continue;
+        region->OnMouseMove(mouse);
+        region->tip->Draw();
     }
 }
 
@@ -175,8 +167,7 @@ void UiWindow::DrawBase(SceneRenderer* pass) {
 }
 
 void UiWindow::DrawSurfaces() {
-    for (int i = 0; i < std::ssize(surfaces); ++i) {
-        UiSurface* surface = surfaces[i];
+    for (const auto& surface : surfaces) {
         if (surface->Shown()) surface->Blit();
     }
 }
@@ -227,20 +218,7 @@ void UiWindow::ClearObjects() {
     objects.clear();
 }
 
-// Returns `surface`, which the original leaves as its result; the titles' Create freezes the surface through
-// it.
-UiSurface* UiWindow::AddSurface(UiSurface* surface) {
-    if (!surface) return nullptr;
-    surfaces.push_back(surface);
-    return surface;
-}
-
-void UiWindow::ClearSurfaces() {
-    for (int i = 0; i < std::ssize(surfaces); ++i) {
-        if (UiSurface* surface = surfaces[i]) DestroySurface(surface);
-    }
-    surfaces.clear();
-}
+void UiWindow::ClearSurfaces() { surfaces.clear(); }
 
 Texture* UiWindow::LoadTexture(std::string_view name, TextureKind kind) {
     TextureManager* manager = g_clientWorld.textureManager.get();
@@ -264,31 +242,16 @@ Texture* UiWindow::CreateTexture(int width, int height, TextureKind kind) {
     return texture;
 }
 
-UiRegion* UiWindow::AddRegion() {
-    auto* region = new UiRegion(ui);
-    regions.push_back(region);
-    return region;
-}
+UiRegion* UiWindow::AddRegion() { return regions.emplace_back(std::make_unique<UiRegion>(ui)).get(); }
 
 void UiWindow::RemoveRegion(UiRegion* region) {
     const int index = RegionIndex(regions, region);
-    if (index < 0) return;
-    delete region;
-    regions.erase(regions.begin() + index);
+    if (index >= 0) regions.erase(regions.begin() + index);
 }
 
-void UiWindow::ClearRegions() {
-    for (int i = 0; i < std::ssize(regions); ++i) {
-        delete regions[i];
-    }
-    regions.clear();
-}
+void UiWindow::ClearRegions() { regions.clear(); }
 
-UiModel* UiWindow::AddModel() {
-    auto* model = new UiModel();
-    models.push_back(model);
-    return model;
-}
+UiModel* UiWindow::AddModel() { return models.emplace_back(std::make_unique<UiModel>()).get(); }
 
 // --- ReplaceSceneObject ----------------------------------------------------------------------------
 
@@ -362,21 +325,6 @@ UiWindow::~UiWindow() {
         if (*held) (*held)->Release();
         *held = nullptr;
     }
-    for (int i = 0; i < std::ssize(sceneObjects); ++i) sceneObjects[i]->Release();
-    sceneObjects.clear();
-    for (int i = 0; i < std::ssize(surfaces); ++i) {
-        if (UiSurface* surface = surfaces[i]) DestroySurface(surface);
-    }
-    surfaces.clear();
-    for (int i = 0; i < std::ssize(regions); ++i) {
-        delete regions[i];
-    }
-    regions.clear();
-    for (int i = 0; i < std::ssize(objects); ++i) objects[i]->Release();
-    objects.clear();
-    for (int i = 0; i < std::ssize(models); ++i) {
-        delete models[i];
-    }
-    models.clear();
-    flags = 0;
+    ReleaseAndClear(sceneObjects);
+    ReleaseAndClear(objects);
 }

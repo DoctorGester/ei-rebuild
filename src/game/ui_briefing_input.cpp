@@ -165,7 +165,7 @@ void BriefingScreen::MouseMove(UiEvent& event) {
         if (!topics.empty()) g_cursor.SetShape(CursorShape::Talk);
         auto node = personTexts.find(objectId);
         if (node == personTexts.end()) return;
-        UiSurface* label = surfaces[1];
+        UiSurface* label = surfaces[1].get();
         personLabel = {{node->second, Rect{0, 0, 0, 0}, {kFont, kUiTextColour, render::text::kCenter}}};
         Point at = event.at;
         ui->ScalePointFromScreen(&at);

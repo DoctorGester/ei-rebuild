@@ -855,8 +855,7 @@ void ItemInfoPanel::KeyUp(UiEvent& event) {
 void ItemInfoPanel::Build(int atX, int atY) {
     x = atX;
     y = atY;
-    UiSurface* surface = new UiSurface(ui, Rect::Sized({x, y}, {200, 300}), SurfaceBlend::Keyed, true);
-    AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
+    AddSurface(std::make_unique<UiSurface>(ui, Rect::Sized({x, y}, {200, 300}), SurfaceBlend::Keyed, true))->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     TextManager* texts = g_clientWorld.texts.get();
     std::string text, key;
     for (int i = 0; i < 45; ++i) {

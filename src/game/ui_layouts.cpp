@@ -46,10 +46,6 @@ UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
     return region;
 }
 
-UiScrollbar* NewScrollbar(Interface3D* ui, int left, int top, int right, int bottom) {
-    return new UiScrollbar(ui, Rect{left, top, right, bottom}, 3.0f, 0, 1.0f);
-}
-
 void Frame(UiWindow* window, float depth, float left, float top, float right, float bottom) {
     window->AddBlankSprite()->SetFrame(depth, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 }
@@ -126,11 +122,9 @@ void SaveLoadWindow::CreateScreen() {
 
     for (int row = 0, top = 108; row < kVisibleRows; ++row, top += 24) rows[row] = AddRect(this, 108, top, 370, top + 24);
 
-    UiSurface* list = NewSurface(ui, Rect{100, 100, 700, 500});
-    AddSurface(list);
+    UiSurface* list = AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}));
     list->PaintWith([this](UiSurface& out) { PaintList(out); });
-    scrollbar = NewScrollbar(ui, 108, 108, 384, 492);
-    AddChild(scrollbar);
+    scrollbar = AddChild(std::make_unique<UiScrollbar>(ui, Rect{108, 108, 384, 492}, 3.0f, 0, 1.0f));
 
     UiModel* model = AddMenuModel(this, kSaveLoadTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
@@ -203,8 +197,7 @@ void OptionsWindow::CreateScreen() {
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
     for (int row = 0, top = 156; row < kRows; ++row, top += 24) rowAreas[row] = AddRect(this, 250, top, 520, top + 24);
-    UiSurface* surface = NewSurface(ui, Rect{100, 100, 700, 500});
-    AddSurface(surface);
+    UiSurface* surface = AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}));
     surface->PaintWith([this](UiSurface& out) { PaintRows(out); });
 
     UiModel* model = AddMenuModel(this, kOptionsTilt);
@@ -362,8 +355,8 @@ void MainMenu::LeftDown(UiEvent& event) {
 
 void MessageWindow::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    UiSurface* surface = NewSurface(ui, Rect{200, 50, 600, 500});
-    AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
+    UiSurface* surface = AddSurface(NewSurface(ui, Rect{200, 50, 600, 500}));
+    surface->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
     int font = question != MessageQuestion::Exit ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
@@ -378,10 +371,9 @@ void MessageWindow::CreateScreen() {
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     labels.push_back({title, Rect{15, top - 35, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
     if (editing) {
-        edit = new UiEditField(ui, Rect{215, top + titleHeight + 30, 585, height + top + 30});
+        edit = AddChild(std::make_unique<UiEditField>(ui, Rect{215, top + titleHeight + 30, 585, height + top + 30}));
         edit->SetLook(15, 0, font, 0x32, kUiTextColour, 0x31B3FF);
         edit->SetText(editText);
-        AddChild(edit);
     } else {
         labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, {font, kUiTextColour, render::text::kCenter | render::text::kWordBreak}});
     }
@@ -418,8 +410,8 @@ void MessageWindow::CreateScreen() {
 
 void DifficultyBox::CreateScreen() {
     LoadTexture("saveload", TextureKind::Interface);
-    UiSurface* surface = NewSurface(ui, Rect{200, 100, 600, 500});
-    AddSurface(surface)->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
+    UiSurface* surface = AddSurface(NewSurface(ui, Rect{200, 100, 600, 500}));
+    surface->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
     labels.clear();
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     Rect area = {15, 0, 385, 200};
@@ -530,13 +522,12 @@ void CreditsScreen::CreateScreen() {
     // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
     {
         Rect area = {10, 0x96, 0x316, 0x1C2};
-        textSurface = new UiScrollingSurface(ui, &area);
-        AddSurface(textSurface);
+        textSurface = AddSurface(std::make_unique<UiScrollingSurface>(ui, &area));
         textSurface->Hide();
     }
     {
         Rect area = {10, 0x6E, 0x316, 0x8C};
-        headerSurface = AddSurface(new UiSurface(ui, &area, SurfaceBlend::Keyed));
+        headerSurface = AddSurface(std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed));
         headerSurface->PaintWith([this](UiSurface& out) { PaintHeader(out); });
         headerSurface->Hide();
     }

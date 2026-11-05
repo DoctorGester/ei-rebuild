@@ -74,9 +74,8 @@ void ItemIconWindow::PlaceBars(int y) {
 // --- The item screens' base Create ------------------------------------------------------
 
 void ItemScreen::CreateBase() {
-    ItemIconWindow* icons = new ItemIconWindow(ui);
+    ItemIconWindow* icons = AddChild(std::make_unique<ItemIconWindow>(ui));
     iconWindow = icons;
-    AddChild(icons);
     iconWindow->AddObject(objects[0]);
     iconWindow->Build();
     LoadTexture("modifiers2", TextureKind::Interface);

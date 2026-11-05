@@ -51,8 +51,7 @@ ChatWindow::ChatWindow(Interface3D* ownerUi, BriefingScreen* screen) : UiWindow(
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect = Rect{left, 0, 800, 0xA0};
-    UiSurface* surface = new UiSurface(ui, left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true);
-    AddSurface(surface);
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) { PaintStatus(out); });
     portraits = 0;
     std::string text;

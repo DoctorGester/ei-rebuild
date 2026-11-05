@@ -4,18 +4,6 @@
 #include "model.h"
 #include "ui.h"
 
-// --- Construction and destruction --------------------------------------------------------------
-
-UiContainer::~UiContainer() {
-    for (UiInput* input : inputs) delete input;
-    for (int i = 0; i < std::ssize(children); ++i) delete children[i];
-    children.clear();
-}
-
-void UiContainer::AddInput(UiInput* input) {
-    if (input) inputs.push_back(input);
-}
-
 // --- Per-frame slots ---------------------------------------------------------------------------
 
 float UiContainer::FrameTime() { return g_sceneRenderer.FrameTime() * 0.001f; }
@@ -30,7 +18,7 @@ void UiContainer::DrawSurfaces() {
     if (!ui->drawing) return;
     UiWindow::DrawSurfaces();
     for (int i = 0; i < std::ssize(children); ++i) {
-        UiWindow* child = children[i];
+        UiWindow* child = children[i].get();
         if (child->enabled) child->DrawSurfaces();
     }
 }
@@ -39,7 +27,7 @@ void UiContainer::DrawTips() {
     if (!ui->drawing) return;
     UiWindow::DrawTips();
     for (int i = 0; i < std::ssize(children); ++i) {
-        UiWindow* child = children[i];
+        UiWindow* child = children[i].get();
         if (child->enabled) child->DrawTips();
     }
 }
@@ -47,7 +35,7 @@ void UiContainer::DrawTips() {
 // --- Input dispatch ----------------------------------------------------------------------------
 
 void UiContainer::Deactivate() {
-    for (UiInput* input : inputs) input->Deactivate();
+    for (const auto& input : inputs) input->Deactivate();
     for (int i = 0; i < std::ssize(children); ++i) children[i]->Deactivate();
 }
 
@@ -58,20 +46,15 @@ void UiContainer::OnEvent(UiEvent& event) {
         event.handled = true;
         return;
     }
-    for (UiInput* input : inputs) {
+    for (const auto& input : inputs) {
         input->OnEvent(event);
         if (event.handled) return;
     }
     // By index: a handler may add children.
     for (int i = 0; i < std::ssize(children); ++i) {
-        UiWindow* child = children[i];
+        UiWindow* child = children[i].get();
         if (!child->enabled || (event.AtMouse() && !child->ContainsPoint(event.at))) continue;
         child->OnEvent(event);
         if (event.handled) return;
     }
-}
-
-void UiContainer::AddChild(UiWindow* child) {
-    if (!child) return;
-    children.push_back(child);
 }

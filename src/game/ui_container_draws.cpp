@@ -41,7 +41,7 @@ void UiContainer::DrawSprites(SceneRenderer* pass) {
     DrawBase(pass);
     // By index: a child's draw may change the list.
     for (int i = 0; i < std::ssize(children); ++i) {
-        UiWindow* child = children[i];
+        UiWindow* child = children[i].get();
         if (child->enabled) child->DrawSprites(pass);
     }
 }

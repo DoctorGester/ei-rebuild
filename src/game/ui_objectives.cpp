@@ -395,10 +395,8 @@ void ObjectivesWindow::CreateScreen() {
     }
 
     // The text column.
-    questText = new UiScrollText(ui, "", Rect{60, 190, 384, 510}, 10.0f);
-    AddChild(questText);
-    bar = new UiScrollbar(ui, Rect{60, 30, 384, 150}, 3.0f, 0, 1.0f);
-    AddChild(bar);
+    questText = AddChild(std::make_unique<UiScrollText>(ui, "", Rect{60, 190, 384, 510}, 10.0f));
+    bar = AddChild(std::make_unique<UiScrollbar>(ui, Rect{60, 30, 384, 150}, 3.0f, 0, 1.0f));
 
     LoadTexture("saveload", TextureKind::Interface);
     LoadTexture("cross", TextureKind::Interface);

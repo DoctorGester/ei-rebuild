@@ -502,8 +502,7 @@ void MpConnectScreen::CreateScreen() {
 
     AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
     {
-        scroll = new UiScrollbar(ui, Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f);
-        AddChild(scroll);
+        scroll = AddChild(std::make_unique<UiScrollbar>(ui, Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f));
     }
     {
         // EI_Plugin's NPlayers: the slider's maximum is max(players, 7) - 1 and its
@@ -514,16 +513,14 @@ void MpConnectScreen::CreateScreen() {
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
         const int right = kExtendedFieldRight;
-        playersSlider = new UiSlider(ui, Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f);
-        AddChild(playersSlider);
+        playersSlider = AddChild(std::make_unique<UiSlider>(ui, Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f));
         Rect area{450, 196, right, 206};
         playersSlider->SetRect(&area);
         playersSlider->SetPosition(position);
         maxPlayers = 6;
     }
     {
-        nameEdit = new UiEditField(ui, Rect{450, 144, kExtendedFieldRight, 160});
-        AddChild(nameEdit);
+        nameEdit = AddChild(std::make_unique<UiEditField>(ui, Rect{450, 144, kExtendedFieldRight, 160}));
         // The classes 15, font 0, at most 50 characters (Rebirth's ExtendedServerName; the original's 3, 1, 10). The
         // name taken from the hero below still stops at 10.
         nameEdit->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);

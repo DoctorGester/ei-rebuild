@@ -281,8 +281,7 @@ void ChatOverlay::Char(UiEvent& event) {
 
 // Its own redraw and update; its keys and characters.
 ChatOverlay::ChatOverlay(Interface3D* ownerUi) : UiWindow(ownerUi) {
-    UiSurface* newTyped = new UiSurface(ui, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true);
-    AddSurface(newTyped);
+    UiSurface* newTyped = AddSurface(std::make_unique<UiSurface>(ui, kTypedLeft, kTypedTop, kTypedRight, kTypedBottom, SurfaceBlend::Opaque, true));
     newTyped->PaintWith([this](UiSurface& out) { PaintTyped(out); });
     chatOpen = false;
     caret = 0;

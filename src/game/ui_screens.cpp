@@ -489,7 +489,7 @@ void MpHeroScreen::LeftUp(UiEvent& event) {
 // --- EscMenu ---------------------------------------------------------------------------------
 
 void EscMenu::MouseMove(UiEvent& event) {
-    UiModel* model = models[0];
+    UiModel* model = models[0].get();
     const int stone = RegionIndex(stones, RegionUnder(event.at));
     // Hovering a stone plays its animation (save and load only in single player).
     switch (stone) {

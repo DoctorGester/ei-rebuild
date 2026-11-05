@@ -170,7 +170,7 @@ Rect Interface3D::PictureRect() const {
 
 bool Interface3D::EdgePanLive() const {
     if (stack.empty()) return false;
-    for (const UiInput* input : stack.back()->inputs)
+    for (const auto& input : stack.back()->inputs)
         if (input->PansAtEdges()) return true;
     return false;
 }

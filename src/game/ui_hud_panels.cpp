@@ -319,8 +319,8 @@ void HudTopPanel::Layout() {
     Rect area{190, 25 - offset, 610, 89 - offset};
     owner->messageLog->SetRect(&area);
     // Every region but the sling button moves with the panel.
-    for (UiRegion* region : regions) {
-        if (region == slingButton) continue;
+    for (const auto& region : regions) {
+        if (region.get() == slingButton) continue;
         region->offsetX = 0;
         region->offsetY = -offset;
     }

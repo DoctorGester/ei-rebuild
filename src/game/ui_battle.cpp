@@ -110,7 +110,7 @@ void BattleScreen::CreateScreen() {
     if (topPanel->page == 0) messageLog->AddText(savedText);
     topPanel->ShowItems();
 
-    AddInput(new CameraInput(ui));
+    AddInput(std::make_unique<CameraInput>(ui));
 
     g_camera.flags &= ~0x40u;
     pendingAction = kPendingNone;
@@ -133,54 +133,43 @@ void BattleScreen::CreateScreen() {
 
 void BattleScreen::BuildPanels(float mapZoom) {
     // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
-    weaponBar = new HudWeaponBar(ui, this);
-    AddChild(weaponBar);
+    weaponBar = AddChild(std::make_unique<HudWeaponBar>(ui, this));
     weaponBar->AddObject(objects[0]);
 
-    quickItems = new HudQuickItems(ui, this);
-    AddChild(quickItems);
+    quickItems = AddChild(std::make_unique<HudQuickItems>(ui, this));
     quickItems->AddObject(objects[0]);
 
-    spellColumn = new HudSpellColumn(ui, this);
-    AddChild(spellColumn);
+    spellColumn = AddChild(std::make_unique<HudSpellColumn>(ui, this));
     spellColumn->AddObject(objects[1]);
 
-    actionColumn = new HudActionColumn(ui, this);
-    AddChild(actionColumn);
+    actionColumn = AddChild(std::make_unique<HudActionColumn>(ui, this));
     actionColumn->AddObject(objects[1]);
 
-    portraits = new HudPortraits(ui, this);
-    AddChild(portraits);
+    portraits = AddChild(std::make_unique<HudPortraits>(ui, this));
     portraits->AddObject(objects[2]);
 
-    unitPanel = new HudUnitPanel(ui, this);
-    AddChild(unitPanel);
+    unitPanel = AddChild(std::make_unique<HudUnitPanel>(ui, this));
     unitPanel->AddObject(objects[2]);
     unitPanel->AddObject(objects[1]);
     unitPanel->Setup(ui->hudBodyPart, ui->hudPanelsIn[0] != 0);
 
-    map = new HudMap(ui, this);
-    AddChild(map);
+    map = AddChild(std::make_unique<HudMap>(ui, this));
     map->AddObject(objects[2]);
     map->Setup(mapZoom, ui->hudPanelsIn[2] != 0);
 
-    clock = new HudClock(ui);
-    AddChild(clock);
+    clock = AddChild(std::make_unique<HudClock>(ui));
     clock->AddObject(objects[2]);
     clock->Setup(ui->fastGame != 0);
 
-    movePanel = new HudMovePanel(ui, this);
-    AddChild(movePanel);
+    movePanel = AddChild(std::make_unique<HudMovePanel>(ui, this));
     movePanel->AddObject(objects[2]);
     movePanel->Build();
 
     // The message log.
-    messageLog = new UiScrollText(ui, "", Rect{0xBE, 0x19, 0x262, 0x59}, 3.0f);
-    AddChild(messageLog);
+    messageLog = AddChild(std::make_unique<UiScrollText>(ui, "", Rect{0xBE, 0x19, 0x262, 0x59}, 3.0f));
     messageLog->align = 1;
 
-    topPanel = new HudTopPanel(ui, this);
-    AddChild(topPanel);
+    topPanel = AddChild(std::make_unique<HudTopPanel>(ui, this));
     topPanel->AddObject(objects[2]);
     topPanel->Setup(ui->hudTopPage, ui->hudPanelsIn[1] != 0);
 }
@@ -196,10 +185,9 @@ void BattleScreen::LayoutChanged() {
     const std::string pageTexts[2] = {topPanel->pageTexts[0], topPanel->pageTexts[1]};
     const PendingAction mode = pendingAction;
     const int slot = pendingSlot, item = pendingItem;
-    for (UiWindow* child : children) {
+    for (const auto& child : children) {
         child->Deactivate();
-        if (ui->mouseCapture == child) ui->mouseCapture = nullptr;
-        delete child;
+        if (ui->mouseCapture == child.get()) ui->mouseCapture = nullptr;
     }
     children.clear();
     BuildPanels(mapZoom);

@@ -306,7 +306,7 @@ void AddRows(MpHeroScreen* screen, int left, int right, int top, int height) {
 } // namespace
 
 void MpHeroScreen::SetMode(int newMode) {
-    UiModel* menu = UiWindow::models[0];    // the window's models (ItemScreen::models is the item cache)
+    UiModel* menu = UiWindow::models[0].get();    // the window's models (ItemScreen::models is the item cache)
     menu->ShowAllParts(0);
     weaponPanel->SetEnabled(false);
     spellPanel->SetEnabled(false);

@@ -287,30 +287,26 @@ void OptionsWindow::BuildSettings() {
 
         int top = definition->row * 24;
         if (definition->kind == kSliderKind) {
-            auto* slider = new UiSlider(ui, Rect{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f);
+            auto* slider = AddChild(std::make_unique<UiSlider>(ui, Rect{0, 0, 100, 100}, 3.0f, definition->maximum, 1.0f));
             setting.bar = slider;
             Rect area = {530, top + 163, 680, top + 173};
             slider->SetRect(&area);
-            AddChild(slider);
         } else if (definition->kind == kSpinKind) {
             std::string text = g_clientWorld.texts->GetString(kTextOptionOff);
             if (i == kOptionDifficulty) text = g_clientWorld.texts->GetString(kTextDifficultyHard);
-            setting.spin = new UiSpin(ui, Rect{530, top + 160, 690, top + 176}, text.c_str());
+            setting.spin = AddChild(std::make_unique<UiSpin>(ui, Rect{530, top + 160, 690, top + 176}, text.c_str()));
             text = g_clientWorld.texts->GetString(kTextOptionOn);
             if (i == kOptionDifficulty) text = g_clientWorld.texts->GetString(kTextDifficultyEasy);
             setting.spin->AddText(text);
-            AddChild(setting.spin);
         } else if (definition->kind == kResolutionKind) {
             resolutions = platform::DisplaySizes(g_sceneRenderer.device->window);
             platform::AddSize(resolutions, ScreenSize());
-            setting.list = new UiDropList(ui, this, Rect{530, top + 160, 690, top + 176});
+            setting.list = AddChild(std::make_unique<UiDropList>(ui, this, Rect{530, top + 160, 690, top + 176}));
             for (const Size size : resolutions) setting.list->AddText(str::Format("%d x %d", size.w, size.h));
-            AddChild(setting.list);
         } else if (definition->kind == kChoiceKind) {
             const std::span<const Choice> choices = ChoicesOf(i);
-            setting.spin = new UiSpin(ui, Rect{530, top + 160, 690, top + 176}, ShownName("", choices[0].text).c_str());
+            setting.spin = AddChild(std::make_unique<UiSpin>(ui, Rect{530, top + 160, 690, top + 176}, ShownName("", choices[0].text).c_str()));
             for (const Choice& choice : choices.subspan(1)) setting.spin->AddText(ShownName("", choice.text));
-            AddChild(setting.spin);
         }
     }
 }

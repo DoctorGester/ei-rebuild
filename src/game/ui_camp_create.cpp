@@ -164,96 +164,68 @@ void CampPages::BuildPages() {
     itemExtra = NewItemList();
 
     // The description panel on the right.
-    ItemInfoPanel* info = new ItemInfoPanel(ui, this);
-    descPanel = info;
-    AddChild(info);
+    descPanel = AddChild(std::make_unique<ItemInfoPanel>(ui, this));
     descPanel->Build(600, 100);
 
     // The hero's statistics.
-    auto* stats = new HeroStatsPanel(ui, this);
-    statsPanel = stats;
-    AddChild(stats);
+    statsPanel = AddChild(std::make_unique<HeroStatsPanel>(ui, this));
     statsPanel->AddObject(objects[0]);
     statsPanel->Build();
 
     // The help panel on the left.
-    info = new ItemInfoPanel(ui, this);
-    helpPanel = info;
-    AddChild(info);
+    helpPanel = AddChild(std::make_unique<ItemInfoPanel>(ui, this));
     helpPanel->Build(0, 100);
 
     // The party's items.
-    UiItemStrip* strip = new ForwardingStrip(ui, this);
-    itemStrip = strip;
-    AddChild(strip);
+    itemStrip = AddChild(std::make_unique<ForwardingStrip>(ui, this));
     itemStrip->Setup(&LocalPlayerData()->items, false);
     itemStrip->mode = kActionEquip;
     itemStrip->SetFilter(kFilterItems);
 
     // The hero's equipment (with the body) and quick items.
-    auto* equipPanel = new HeroEquipPanel(ui, this);
-    equipment = equipPanel;
-    AddChild(equipPanel);
+    equipment = AddChild(std::make_unique<HeroEquipPanel>(ui, this));
     equipment->AddObject(objects[2]);
     equipment->Build(true);
 
-    auto* quick = new HeroQuickStrip(ui, this);
-    equipment2 = quick;
-    AddChild(quick);
+    equipment2 = AddChild(std::make_unique<HeroQuickStrip>(ui, this));
     equipment2->AddObject(objects[2]);
     equipment2->Build(true);
 
     // The skills for experience.
-    auto* tradeWith = new TradePanel(ui, this);
-    trade = tradeWith;
-    AddChild(tradeWith);
+    trade = AddChild(std::make_unique<TradePanel>(ui, this));
     trade->AddObject(objects[0]);
     trade->Build();
 
     if (spellConstructor) {
-        strip = new ForwardingStrip(ui, this);
-        spellStrip = strip;
-        AddChild(strip);
+        spellStrip = AddChild(std::make_unique<ForwardingStrip>(ui, this));
         spellStrip->Setup(&spellParts[0]->items, true);
         spellStrip->mode = kActionSpellParts;
         spellStrip->SetFilter(kFilterSpells);
         spellStrip->priceKind = PriceKind::SpellBuy;
 
-        auto* grid = new TradeGrid(ui, this);
-        spellConstructor1 = grid;
-        AddChild(grid);
+        spellConstructor1 = AddChild(std::make_unique<TradeGrid>(ui, this));
         spellConstructor1->Build(&spellParts[1]->items, &spellParts[2]->items, true, false);
         spellConstructor1->mode = kModeSpellTrade;
 
-        auto* makerPage = new SpellMakerPage(ui, this);
-        spellConstructor2 = makerPage;
-        AddChild(makerPage);
+        spellConstructor2 = AddChild(std::make_unique<SpellMakerPage>(ui, this));
         spellConstructor2->BuildSpellMaker(spellResults);
     }
 
     if (itemConstructor) {
-        strip = new ForwardingStrip(ui, this);
-        partStrip = strip;
-        AddChild(strip);
+        partStrip = AddChild(std::make_unique<ForwardingStrip>(ui, this));
         partStrip->Setup(&itemParts[0]->items, true);
         partStrip->mode = kActionItemParts;
         partStrip->SetFilter(kFilterArmour);
         partStrip->priceKind = PriceKind::ItemBuy;
 
-        auto* grid = new TradeGrid(ui, this);
-        itemConstructor1 = grid;
-        AddChild(grid);
+        itemConstructor1 = AddChild(std::make_unique<TradeGrid>(ui, this));
         itemConstructor1->Build(&itemParts[1]->items, &itemParts[2]->items, false, false);
         itemConstructor1->mode = kModeItemTrade;
 
-        auto* makerPage = new ConstructorPage(ui, this);
-        itemConstructor2 = makerPage;
-        AddChild(makerPage);
+        itemConstructor2 = AddChild(std::make_unique<ConstructorPage>(ui, this));
         itemConstructor2->BuildItemMaker(itemResults);
 
-        auto* repairs = new RepairGrid(ui, this);
-        itemConstructor3 = repairs;
-        AddChild(repairs);
+        itemConstructor3 = AddChild(std::make_unique<RepairGrid>(ui, this));
         itemConstructor3->Build(&itemExtra->items);
     }
 

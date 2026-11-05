@@ -60,8 +60,8 @@ void SetTint(UiMesh* object, float value) {
 
 // Every region but the sling button moves with the panel.
 void MoveRegions(UiWindow* window, const UiRegion* sling, int offsetX) {
-    for (UiRegion* region : window->regions) {
-        if (region == sling) continue;
+    for (const auto& region : window->regions) {
+        if (region.get() == sling) continue;
         region->offsetX = offsetX;
         region->offsetY = 0;
     }
@@ -319,8 +319,7 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
         effectSprites[i]->texture = objects[1];
     }
 
-    UiSurface* panel = new UiSurface(ui, 20, 0, 180, 220, SurfaceBlend::Keyed, true);
-    AddSurface(panel);
+    UiSurface* panel = AddSurface(std::make_unique<UiSurface>(ui, 20, 0, 180, 220, SurfaceBlend::Keyed, true));
     panel->PaintWith([this](UiSurface& out) { PaintTexts(out); });
 
     bodyPart = newBodyPart;
@@ -447,8 +446,7 @@ void HudMap::Setup(float newZoom, bool slid) {
     northIcon = AddBlankSprite();
     northIcon->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
-    UiSurface* dot = new UiSurface(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true);
-    AddSurface(dot);
+    UiSurface* dot = AddSurface(std::make_unique<UiSurface>(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true));
     dot->PaintWith([](UiSurface& out) { out.Dot({0, 0}, 0xFFFFFF); });
 
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
