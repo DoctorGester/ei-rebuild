@@ -385,6 +385,8 @@ bool EventWaits() {
     return !g_waiting.empty() || g_quitPosted;
 }
 
+void PumpEvents() { Fill(); }
+
 Event NextEvent() {
     for (;;) {
         Fill();

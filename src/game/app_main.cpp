@@ -42,6 +42,7 @@
 #include "platform/platform.h"
 #include "lib/text_case.h"
 #include "text_split.h"
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -208,12 +209,24 @@ void LoadDatabases() {
     LoadFresh(g_printsDatabase, options->resourcesPath);
 }
 
+// One step of a switch's loading screen (the zone's own steps, 8 and up, follow in the first zone's load): the
+// picture of the game's level load at `progress`, with the window's messages taken. The log line says whether a
+// picture was drawn (the check of the scenarios, whose harness cannot capture inside a pass). The movie is closed
+// again at once: it may hold a stream of the sound device, which the stop and OpenSound close and open again, and the
+// last picture presented stays in the window until the next.
+void LoadingStep(int progress) {
+    const bool drawn = ShowLoadingMovie(progress);
+    CloseLoadingMovie();
+    ei::Log("mod: loading screen step %d %s", progress, drawn ? "drawn" : "not drawn");
+}
+
 // The game's half of the start, which the program's start and a switch of mods both run (docs/notes/mods.md,
 // "Switching mods"): the logic settings (config\ai.reg, a mod's file), both worlds, the camera, the folders, the
 // sound, the databases and the map list; then the sun (the renderer's default light), the world's graphics, the
 // cursors, the interface and the first map. `openDisplay` (the program's start: the window, the renderer and the start
-// movies) runs between the two; false from it ends the start.
-bool StartGame(const std::function<bool()>& openDisplay) {
+// movies) runs between the two; false from it ends the start. `showLoading` (a switch of mods) steps the loading
+// screen after each long part, as a zone's load does (LoadingStep).
+bool StartGame(const std::function<bool()>& openDisplay, bool showLoading = false) {
     GameOptions* options = &options::g_options;
     g_gameFlow.Restart();
     g_logicSettings.Load(g_startFolder + "config\\ai.reg");
@@ -227,13 +240,18 @@ bool StartGame(const std::function<bool()>& openDisplay) {
     g_clientWorld.camera = &g_camera;
     CreateFolders();
     if (options->audio) OpenSound();
+    if (showLoading) LoadingStep(1);
     LoadDatabases();
+    if (showLoading) LoadingStep(2);
     g_mapDatabase.LoadAll();
     if (openDisplay && !openDisplay()) return false;
+    if (showLoading) LoadingStep(3);
     g_sceneRenderer.AddDefaultLight();
     g_clientWorld.SetUpGraphics(g_sceneRenderer.device);
+    if (showLoading) LoadingStep(4);
     SetUpCursors(0);
     g_interface.Create(g_sceneRenderer.device);
+    if (showLoading) LoadingStep(5);
     StartFirstMap();
     return true;
 }
@@ -501,13 +519,19 @@ void TakeModSwitch() {
         return;
     }
     ei::Log("mod: switching to \"%s\"", mod.c_str());
+    const auto began = std::chrono::steady_clock::now();
+    // The game's loading picture (the one a level's load draws) goes up before the stop (nothing can be drawn while
+    // the worlds are gone), and each long part of the start steps it again (StartGame), from the new mod's Movies folder.
+    LoadingStep(0);
     StopGame();
     modfolders::Reset();
     UseMod(g_gameFolder, mod);
     settings::SetString(settings::kGame, "Mod", mod);
     settings::Save();
     g_clock = LoopClock{};
-    StartGame({});
+    StartGame({}, true);
+    ei::Log("mod: the reload took %d ms (the sound and the music are silent from the stop until the menu's zone is made)",
+            static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - began).count()));
 }
 
 } // namespace

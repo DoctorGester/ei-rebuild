@@ -396,6 +396,9 @@ void ConfineCursor(NativeWindow window, bool confined);
 
 // Whether an event waits in the queue (it stays there).
 bool EventWaits();
+// The system's messages taken into the queue without taking any event off it, so that the window answers while a long
+// load holds the main thread (the loading screen's steps). Nothing in the harness's backend (its events are the scenario's).
+void PumpEvents();
 // Waits for the next event and takes it: a Quit event at the quit request.
 Event NextEvent();
 // Takes the next waiting event (a Quit event at the quit request); none when none waits.

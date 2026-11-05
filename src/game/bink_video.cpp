@@ -134,11 +134,13 @@ bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loa
 }
 
 // `progress` is a frame number. The loading screen's movie (the file named by a global, opened once) is decoded
-// up to that frame and stretched over the screen. Nothing when the off switch is set.
-void ShowLoadingMovie(int progress) {
+// up to that frame and stretched over the screen. Nothing when the off switch is set. The window's messages are taken
+// first, so that the system does not call the window hung while a long load goes on between the steps.
+bool ShowLoadingMovie(int progress) {
+    platform::PumpEvents();
     net::Pump();
     app::StepMusic();
-    if (g_loadingMovieOff) return;
+    if (g_loadingMovieOff) return false;
     g_cursor.ShowImage(0);
     if (!g_loadingMovie) {
         std::string path = DataFolderText();
@@ -147,7 +149,7 @@ void ShowLoadingMovie(int progress) {
         g_loadingMovie = OpenMovie(path.c_str());
         if (!g_loadingMovie) {
             game::DebugLog("Can't open video file \"%s\"\n", path);
-            return;
+            return false;
         }
     }
     g_loadingScreen = g_sceneRenderer.device->screen;
@@ -168,6 +170,7 @@ void ShowLoadingMovie(int progress) {
     if (decoded) render::MovieFrame(key, video::FramePixels(movie), video::Width(movie), video::Height(movie));
     render::MovieBlit(key, g_loadingScreen);
     PresentMovieFrame();
+    return true;
 }
 
 // --- Opening a movie for the frame's player ----------------------------------------------
