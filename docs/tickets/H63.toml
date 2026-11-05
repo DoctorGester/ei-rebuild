@@ -5,5 +5,6 @@ size = 1
 model = "sonnet"
 note = "Found: LiA hero npc record experience=1 -> level -11; zonezero Rat/Scrab/Skeleton/Toad level 1 -> gap 12 (consider_more12, ack >5). Vanilla: exp 271, level 1. Code reads the same fields as the original; mod data. Note in mods.md. No src change."
 order = 1245
-status = "review"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
