@@ -75,7 +75,8 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     m.screenMatrix = true;
     m.matrix = device->pipeline->Top(kScreenStack);
     m.clipped = lib::Has(args.flags, DrawFlag::Clipped);
-    m.distanceFog = device->distanceFog != 0;
+    m.fog = device->fog;
+    m.eyeHeight = device->eyeHeight;
     m.zScale = 1.0f;
     m.coloursWritten = lib::Has(args.flags, DrawFlag::Colours);   // OverrideColours
     // A figure part lit on the GPU needs its normals.
@@ -206,7 +207,8 @@ void HandOver(TextureDevice* device, const VertexPacket* positions, const TexCoo
     m.matrix = device->pipeline->Top(kScreenStack);
     m.screenMatrix = true;
     m.clipped = clipped;
-    m.distanceFog = false;   // no fog pass here
+    m.fog = device->fog;
+    m.eyeHeight = device->eyeHeight;
     m.zScale = 1.0f;   // multiplies z (1: none)
     m.groundDecal = groundPrint;
     render::BeginMesh(device, m);

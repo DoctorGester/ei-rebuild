@@ -95,8 +95,8 @@ EI_SETTING(kCamera, "CameraDefaultDistanceToCarrier", "30", "world units",
 EI_SETTING(kCamera, "NearClipDistance", "2", "world units",
            "Anything closer to the camera than this is cut away and not drawn. Read when the game starts.")
 EI_SETTING(kCamera, "FarClipDistance", "100", "world units",
-           "How far the view reaches: anything farther is not drawn, and the distance fog is at its thickest "
-           "here.")
+           "How far along the view units, levers, particles and lightning are shown. The ground, trees and buildings are "
+           "drawn to the map's edge whatever this is, under a haze that thickens with distance.")
 EI_SETTING(kCamera, "CameraDefaultMinPitch", "30", "degrees (0 level, 90 straight down)",
            "The flattest you can tilt the camera during play, in degrees down from level.")
 EI_SETTING(kCamera, "CameraDefaultMaxPitch", "60", "degrees (0 level, 90 straight down)",

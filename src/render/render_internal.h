@@ -182,9 +182,9 @@ struct MeshBatch {
     int firstIndex = 0;       // into the frame's mesh stream, or (cached) the mesh's own indices
     int indexCount = 0;
     PassState state;
-    bool distanceFog = false;
-    float fogNear = 0.0f;     // the pipeline's fog start
-    float fogScale = 0.0f;    // 255 / (end - start)
+    DistanceFog fog;          // the distance fog's (density 0: none; MeshFog::Distance)
+    bool horizon = false;     // MeshFog::Horizon, from the eye eyeHeight above the mesh's origin
+    float eyeHeight = 0.0f;
     bool unclipped = false;   // the old path projected it without clipping
     float zScale = 0.0f;      // the depth is multiplied by it (1: unchanged)
     bool lines = false;       // a line list (else triangles)
@@ -430,6 +430,8 @@ struct Frame {
     bool haveFog = false;
     bool fogEnabled = false;
     std::uint32_t fogColour = 0;   // D3DCOLOR
+    DistanceFog distanceFog;       // the terrain's
+    MapEdge mapEdge;
 // Direct3D 7 samples a pixel at its integer screen coordinates, today's GPUs half a pixel further right and
 // down: the 3D draws move their clip positions by half a pixel (x by +1 / width, y by -1 / height, times w)
 // so the same screen coordinates get the same pixels, texture coordinates and colours. Set by EndFrame.
@@ -457,6 +459,8 @@ struct Frame {
         haveFog = false;
         fogEnabled = false;
         fogColour = 0;
+        distanceFog = {};
+        mapEdge = {};
         pixelShift[0] = pixelShift[1] = 0.0f;
         shadow.Clear();
     }

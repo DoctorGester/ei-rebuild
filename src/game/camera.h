@@ -74,7 +74,6 @@ inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
 inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
 inline constexpr float kRightAngle = ei::kRadiansPerDegree * 90.0f;
 inline constexpr float kDefaultNear = 1.0f;
-inline constexpr float kDefaultFar = 2000.0f;
 inline constexpr float kDefaultFieldOfView = kPi * (2.0f / 7.0f);
 }   // namespace camera
 
@@ -142,9 +141,9 @@ public:
     bool PlaybackStart();
     void PlaybackStep(float time);
 
-    // Views and start placement from the settings; the near / far distances and the field of view are kept in
-    // nearDistance..fieldOfView.
-    void Init(options::GameOptions* settings, float nearClip, float farClip, float fov);
+    // Views and start placement from the settings; the near distance and the field of view are kept in
+    // nearDistance and fieldOfView.
+    void Init(options::GameOptions* settings, float nearClip, float fov);
 
     // Lifts the camera over the terrain and the objects within 16 of it.
     void ClampAboveObjects();
@@ -199,8 +198,7 @@ public:
     float boundsRadius = 0.0f;
     int targetId = -1;
     CameraView views[8];
-    float nearDistance = camera::kDefaultNear;   // (renderer_init reads the three as zNear / zFar / fov)
-    float farDistance = camera::kDefaultFar;
+    float nearDistance = camera::kDefaultNear;   // (renderer_init's projection reads the two; it has no far plane)
     float fieldOfView = camera::kDefaultFieldOfView;
     std::string fileName;      // the camera file being recorded
     std::vector<CameraKey> keys;   // the recorded path's keys

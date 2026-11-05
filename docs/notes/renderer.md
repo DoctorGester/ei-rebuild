@@ -122,9 +122,9 @@ logged as unknown.
 
 Per main-loop pass: BeginScene; the interface draws window by window; EndScene; the escape menu; **present**
 (`device_draw.cpp`: ends the frame, `render::Present`). The battle screen's world view (`WorldClient::Render`):
-- view setup (the view matrix from the camera pushed on the transform pipeline's stacks; fog range), the visible sector
-  range (100 units);
-- sky (a model following the camera, z-write and alpha test off);
+- view setup (the view matrix from the camera pushed on the transform pipeline's stacks), the visible sectors (every
+  sector of the map; the view has no far plane: section 10, "The view's depth");
+- sky (a model following the camera, z-write and alpha test off, hazed into the fog's colour towards the horizon);
 - terrain ground pages (`SectorData::DrawPage` per page);
 - objects (CollectVisible, sort, figure parts, the shadow lists);
 - terrain water pages, blended;
@@ -165,7 +165,7 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
   produce them. The rule (`device_draw.cpp` `BoundsOfProjected`, one path for every mesh): the bounds of the projected
   positions, clamped to the screen. The projection leaves screen positions when the whole mesh is on screen and
   clip-space ones when it crosses the view's edges; those count when inside the depth range (nothing behind the camera or
-  past the far plane), mapped as ToScreen maps them. A crossing mesh always hands its passes over (the GPU clips them); a
+  nearer than the near plane), mapped as ToScreen maps them. A crossing mesh always hands its passes over (the GPU clips them); a
   part with no position on screen gets an empty rectangle.
   - **Accepted difference from the original** (user's call): the original clipped a crossing mesh on the CPU and took
     the bounds of the clipped triangles' points inside every plane; an empty clip kept the last draw's rectangle. Ours is
@@ -185,11 +185,11 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
 |---|---|---|
 | Clip matrix of the current draw | the transform pipeline's stacks (`TransformPipeline`, model.h: clip space = axis swap x projection x view x model; the screen matrix; the view stack) read at hand-over time | with each draw |
 | Terrain sectors | `SectorData::DrawPage` (terrain_sector.cpp): vertices (33x33 per layer, water after ground), vertex records (normal, material colour, the specular word: edge fade, on the water the crests), tile lists, edge flags, quarter verdicts; `HandOverSceneLights` (world_client_shadow_casters.cpp) | `TerrainPage`, `SceneLighting` |
-| Meshes (figures, objects, sky, interface sprites and previews) | `device_mesh.cpp`'s mesh draws: positions and normals in packets of four, corners and texture coordinates (`render::VertexPacket` / `NormalPacket` / `MeshCorner` / `TexCoord`, mesh_records.h: the game's meshes hold the renderer's records), colours; matrix = the screen stack's top converted back to clip space; distance fog switch and range | `BeginMesh` / `EndMesh`; `MeshLighting` for parts lit on the GPU |
+| Meshes (figures, objects, sky, interface sprites and previews) | `device_mesh.cpp`'s mesh draws: positions and normals in packets of four, corners and texture coordinates (`render::VertexPacket` / `NormalPacket` / `MeshCorner` / `TexCoord`, mesh_records.h: the game's meshes hold the renderer's records), colours; matrix = the screen stack's top converted back to clip space; the distance fog switch | `BeginMesh` / `EndMesh`; `MeshLighting` for parts lit on the GPU |
 | Pass state | per pass of a mesh (material preset or two textures): `render::g_renderState` (section 5) | `MeshPass`; per terrain page at `TerrainPage` |
 | Depth clears | the battle screen's panels, the hero preview, the trade grid, the hero equipment, screens 2 / 3 | `ClearDepth` |
 | Shadows | `world_client_draw.cpp` (the sun; `BeginCaster` / `EndCaster` around each object's draws), `map_object_shadow.cpp` (`CastsShadow`), the casters outside the view | `ShadowSun`, `ShadowCasterMesh` (section 13) |
-| Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites (`renderer_sprites.cpp`), ribbons and triangles (`renderer_strip.cpp`), line strips (`renderer_lines.cpp`) | `TlDraw` with vertices after the fog pass |
+| Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites (`renderer_sprites.cpp`), ribbons and triangles (`renderer_strip.cpp`), line strips (`renderer_lines.cpp`) | `TlDraw` with vertices after the distance fog (`FogVertices`) |
 | Weather | rain streaks and snowflakes built on the screen (`weather_particles.cpp`, the field in `weather_field.cpp`) | `TlDraw` |
 | Interface surfaces | `UiSurface::Blit` (`ui_surface.cpp`) | `ui::Solid`, `ui::Glyphs`, `ui::DrawPicture` |
 | Rectangle fills | `renderer_marker.cpp` | `ScreenDraw` |
@@ -571,9 +571,9 @@ still needs of that is `projection.cpp`, as members of `TransformPipeline` (mode
 (clip space, the translation added first in each row; the decals' TransformPoints is this with the matrix untransposed),
 `ProjectClipped` / `ProjectPointsClipped` (an outcode per point, `clip.h`'s `ClipCodeOf`, and the batch's verdict,
 `ClipVerdict`; on screen the points go on to `ToScreen`), `Project` / `ProjectPoints` (the screen matrix's division),
-`ProjectSprites`, `ToScreen`, `FogVertices` and `ClipBounds::Fit`. The pipeline keeps the viewport's half size, the fog's
-range and the projection matrix itself (`SetViewportSize`, `SetDepthRange`, `projection`). Checked once bit-identical
-against the DLL on random inputs.
+`ProjectSprites`, `ToScreen`, `FogVertices` and `ClipBounds::Fit`. The pipeline keeps the viewport's half size and the
+game's reach (`SetViewportSize`, `reachW`: section 10, "The view's depth").
+Checked once bit-identical against the DLL on random inputs (with the far plane it had then).
 
 Behaviour differences (one path for every input; none in a golden):
 - A terrain quarter is culled only by its box's `ClipTest`; a quarter whose vertices are all outside one plane is drawn and
@@ -588,10 +588,60 @@ Behind the camera 1 / w is negative and z / w lies above 1; at w 0 it is infinit
 - The original's outcodes moved the centre's clip x and y by `size` / w where the corners lie `size` clip units away (a
   factor w short), so a sprite whose centre was just past an edge was dropped although its quad reached onto the screen
   (sprites popped in and out at the screen's edges). Those sprites are drawn now.
-- Sprites past the far plane are dropped before the sort: the order of sprites at exactly the same depth may differ.
+- Sprites nearer than the near plane are dropped before the sort: the order of sprites at exactly the same depth may
+  differ.
 - A sprite at z exactly +0 is drawn.
 - A call with more than 511 sprites lost the colour and texture coordinates of some corners of its later batches in the
   original; each batch is sized before it is filled now.
+
+### The view's depth
+
+The camera's projection (`ProjectionMatrix`, model.cpp) has no far plane: its depth z / w is 1 - near / d (d the
+distance along the view, near the settings' NearClipDistance, 2), 0 at the near plane and below 1 at any distance, so
+the ground and the map's scenery draw to the map's edge. The original cut everything at FarClipDistance (100 units
+along the view): pitched up, the ground ended in a hard edge against the sky and the hills behind it were missing (R62,
+the user's 4K frame). In the D32F depth a step at d is about d^2 / near x 6e-8 units: 0.0006 at 100, 0.005 at 300, as
+with the far plane (whose depth differed by the factor far / (far - near) only). What follows:
+- Drawn to the map's edge: the terrain's sectors and quarters (`SectorData::ClipTest`; their waves move wherever they
+  are drawn), the trees, buildings and the other map objects (`CollectVisible`), the vision fog. Picking reads the matrix's x, y and w rows, which the far plane never touched.
+- Kept at the game's reach, FarClipDistance along the view as a clip w (`TransformPipeline::BeyondReach`, a volume
+  wholly past it): the figures `CollectVisible` takes (units and levers, drawn with their own poses and weather), the
+  casters out of view whose shadows it lists (`ShadowInView`), the particle sources (their hidden ticks idle them),
+  the lightning and the terrain's animated tiles' steps (`SectorData::inReach`: a step draws the client generator;
+  farther a tile keeps its frame). What the figures drawn do on the client (their poses, footprints, weather, the client
+  generator's draws) goes into visuals.sav and the digests, so that set stays as it was; the server sends a player
+  its units only within about 100 units of the camera anyway.
+- The distance fog (`render::DistanceFog`, render_state.h; `distance_fog.hlsli`): a world draw's point at depth d
+  along the view keeps exp(-((d - start) x density)^2) of its colour past `start`, the rest is the fog's colour, a haze
+  that thickens smoothly with distance (nothing up to `start`, flat at first, near full far away). `WorldClient::
+  UpdateLighting` sets it by the hour: from 40 units, half at 130 (89% at 200), by day (6 to 18); from 25, half at 90,
+  at night (before 2 and from 22); linear between; a cave has the day's. Per vertex, as the fog factor in the specular
+  alpha (the smallest of it and the vertex's own is kept): the terrain's vertex shader, the meshes' (`MeshFog::Distance`)
+  and the pre-transformed draws' (`FogVertices`, the depth from 1 / w). The world's draws after the sky take it
+  (`TextureDevice::fog`), the hit points and the interface do not.
+- Where the fog meets the sky: the map's edge fade on the ground (`Terrain::EdgeFade`, the vertex's own, 16 units) is
+  widened in the terrain's vertex shader to 0.2 times the depth (`render::MapEdge`, terrain.hlsl's edge_kept): seen
+  from far at a grazing angle the 16 units were a few pixels, a hard line. The sky dome (`Sky::Draw`, `MeshFog::Horizon`)
+  is hazed into the fog's colour towards the eye's level (none from a rise of 11.5 degrees up, all of it at the eye's
+  level and below), so the fogged distance and the map's edge meet a sky of the same colour; pitched up, what lies
+  past the map's edge was the dome's lower part, darker than the fog, and the edge drew a line against it. The original's ran linearly from 90 units by day (50 at night) to the far plane at 100 and only
+  on the pre-transformed draws; on our meshes it ran on clip w (0.43 times the distance), so it began past the far
+  plane and never showed; the ground had only the map's edge fade, so the middle distance had no haze at all.
+- The sun's shadow map covers the ground within kShadowReach (100 units) along the view (the fit's sixth plane,
+  render_shadows.cpp's ViewPlanes), so its texels are as fine as before, and its shadows fade out over the last 20
+  units of distance from the camera (`ShadowParams::fadeFrom` / `fadeLength`): no line marks where they end. The
+  clouds' shadows have no end.
+- Cost: what is in view is drawn, so a pitched-up view across the map draws more. Zone1 at msaa 8 and anisotropy 16,
+  medians of 300 frozen frames (one game at a time, two rounds, NVIDIA RTX 4070 Ti SUPER, Direct3D 12): looking across
+  the map from its middle (194 ground pages and 430 meshes instead of 97 and 294) 1.19-1.28 -> 1.54-1.56 ms a frame
+  at 1080p (GPU 1.04-1.07 -> 1.26-1.29) and 1.95-1.97 -> 2.25-2.29 ms at 4K (GPU 2.07-2.13 -> 2.16-2.19); from the
+  corner over the shore and at the game's default pitch the same as before.
+- Check: scenario `render_far_ground` (zone1 at 1920x1080, pitched up to the settings' least pitch, 30 degrees, at the
+  farthest zoom, from the map's corner and middle). `groundreach on` measures each frame's ground through the camera's
+  clip planes (render_shadows.cpp's MeasureGroundReach: the terrain pieces' runs, the farthest point kept and the runs
+  the far side z <= w cuts or leaves out); `groundreach <least>` requires no run cut and the farthest point at least
+  that far. With the far plane 71-108 of 451-519 runs were cut and the ground reached 121 units; now none, and 133-204
+  units.
 
 ## 11. Verification and frame capture
 
@@ -962,7 +1012,7 @@ game draws this frame (`CastsShadow` after its option, class switch and visibili
 half). Once a frame before the first pass (`PrepareShadows`): the camera's matrix is the world's first ground batch's; its
 inverse times a mesh's clip matrix gives the mesh in the landscape's space; a view along the sun's light (tilted to at
 least 20 degrees; its x and y the landscape's where a point meets a level plane along the light, an oblique projection) is
-fitted around the visible ground (in steps of 8 units, the texels' corners on whole texels of the landscape at the plane's
+fitted around the visible ground within kShadowReach (section 10, "The view's depth"; in steps of 8 units, the texels' corners on whole texels of the landscape at the plane's
 height, the visible ground's middle in steps of 8; along the light from the nearest caster that reaches it), 4096 x 4096
 D32. The ground is taken in runs of 72 of a terrain piece's
 vertices: a run wholly inside the view (widened by 5% at its sides) by its box's corners, one the view's sides cross by

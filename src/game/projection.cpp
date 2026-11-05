@@ -11,6 +11,7 @@
 #include "view_matrices.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
+#include "render/render_state.h"
 
 #include <cfloat>
 #include <cmath>
@@ -84,11 +85,6 @@ void TransformPipeline::SetViewportSize(float width, float height) {
     halfHeight = height * 0.5f;
 }
 
-void TransformPipeline::SetDepthRange(float start, float end) {
-    fogStart = start;
-    fogScale = 255.0f / (end - start);
-}
-
 void TransformPipeline::Project(const Matrix4& m, const VertexPacket* positions, Vector4* projected, int blocks) {
     for (int i = 0; i < blocks * 4; ++i) {
         const Vector3 p = render::PacketVertex(positions, i);
@@ -147,17 +143,13 @@ void TransformPipeline::ToScreen(TLVertex* vertices, int count) const {
     }
 }
 
-// The depth (the camera's distance along the view) from the screen z through the projection's depth row and the
-// homogeneous row; the fog's 0..255 from the range's start, capped, and the alpha only lowered.
 void TransformPipeline::FogVertices(TLVertex* vertices, int count) const {
-    const float* p = projection.m;
+    const render::DistanceFog& fog = render::g_renderState.distanceFog;
+    if (!(fog.density > 0.0f)) return;
     for (int i = 0; i < count; ++i) {
         TLVertex& v = vertices[i];
-        const float depth = p[11] / (v.z * p[14] - p[10]);
-        if (!(depth >= fogStart)) continue;
-        const float fog = (depth - fogStart) * fogScale;
-        const float alpha = 255.0f - MinKeepA(fog, 255.0f);
-        const std::uint32_t lowered = static_cast<std::uint32_t>(lib::RoundEven(alpha)) << 24;
+        const float kept = fog.Kept(fog.depthPerW / v.rhw) * 255.0f;
+        const std::uint32_t lowered = static_cast<std::uint32_t>(lib::RoundEven(kept)) << 24;
         const std::uint32_t old = v.specular & 0xFF000000u;
         v.specular = (v.specular & 0x00FFFFFFu) | (lowered < old ? lowered : old);
     }

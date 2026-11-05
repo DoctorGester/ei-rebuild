@@ -7,6 +7,7 @@
 // as the ground under it: by the time of day, the lights and the shadows (ground_shade).
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
+#include "distance_fog.hlsli"
 struct VsIn {
     [[vk::location(0)]] float3 pos : TEXCOORD0;
     [[vk::location(1)]] float4 col : TEXCOORD1;
@@ -34,14 +35,17 @@ struct MeshVsParams {
     float2 shift;               // the half-pixel shift (render_internal.h)
     float depthScale;           // the flat geometry's (shadows drawn just in front)
     int unclipped;              // z kept inside the depth range
-    int distanceFog;            // the vertex fog by distance (vs_main): from fogStart, fogScale = 1 / (end - start)
-    float fogStart;
-    float fogScale;
+    float fogStart;             // the distance fog (distance_fog.hlsli; fogDensity 0 none)
+    float fogDensity;
+    float fogDepthPerW;
+    int horizon;                // the sky dome's haze towards the horizon (render::MeshFog::Horizon)
+    float eyeHeight;            // ... the eye above the mesh's origin
     float normalOffset;         // how far along its normal a receiver's point is looked up in the map
     float2 uvOffset;            // added to the texture coordinates (a mesh kept on the GPU)
     int normalUp;               // a ground print's (no vertex normals): the offset along the landscape's up
 };
 ConstantBuffer<MeshVsParams> vs : VS_BLOCK(0);
+static const float kHazeTop = 0.2;   // the sine of the rise over the eye's level where the sky's haze ends (11.5 degrees)
 VsOut vs_main(VsIn i) {
     float4 p = float4(i.pos, 1.0);
     VsOut o;
@@ -53,10 +57,12 @@ VsOut vs_main(VsIn i) {
     o.pos.xy += vs.shift * o.pos.w;
     o.col = i.col.zyxw;
     o.spec = i.spec.zyxw;
-    // The old path's vertex fog by distance (3DfpFPU slot 35): the fog factor in the specular alpha falls from the
-    // start of the range, the smaller of it and the vertex's own is kept.
-    if (vs.distanceFog != 0 && o.pos.w >= vs.fogStart)
-        o.spec.a = min(o.spec.a, 1.0 - min((o.pos.w - vs.fogStart) * vs.fogScale, 1.0));
+    // The distance fog lowers the fog factor in the specular alpha: the smaller of it and the vertex's own is kept.
+    o.spec.a = min(o.spec.a, fog_kept(o.pos.w, vs.fogStart, vs.fogDensity, vs.fogDepthPerW));
+    if (vs.horizon != 0) {
+        float3 seen = i.pos - float3(0.0, 0.0, vs.eyeHeight);   // from the eye
+        o.spec.a = min(o.spec.a, smoothstep(0.0, kHazeTop, seen.z / max(length(seen), 1e-6)));
+    }
     o.uv = i.uv + vs.uvOffset;
     // The normal offset: the point looked up in the map moved along its normal (a figure part's).
     float3 normal = vs.normalUp != 0 ? float3(0.0, 0.0, 1.0) : i.normal;

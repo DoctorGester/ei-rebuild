@@ -1,7 +1,7 @@
 // The renderer's creation. It
 // creates the device object, fills the transform pipeline's
 // matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport
-// and depth range, the render state (render/render_state.h), a default light and the ambient colour, and creates
+// and the game's reach, the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
 #include "app.h"
 #include "camera.h"
@@ -83,27 +83,24 @@ void FillScreenStacks(SceneRenderer* renderer) {
 void FillMatrixStacks(SceneRenderer* renderer) {
     TransformPipeline* pipeline = renderer->pipeline;
     MatrixStack* stacks = pipeline->stacks;
-    // The camera's near and far distances and field of view.
+    // The camera's near distance and field of view.
     const Camera* cam = &g_camera;
-    float zNear, zFar, fov;
-    zNear = cam->nearDistance;
-    zFar = cam->farDistance;
-    fov = cam->fieldOfView;
     Matrix4 m;
-    ProjectionMatrix(&m, fov, 1.3333334f, zNear, zFar);   // aspect 4/3
+    ProjectionMatrix(&m, cam->fieldOfView, 1.3333334f, cam->nearDistance);   // aspect 4/3
     StackPush(stacks[kProjection], &m);
     FillScreenStacks(renderer);
-    // The projection, for the fog's depth.
-    pipeline->projection = *StackTop(stacks[kProjection]);
+    // The distance fog's depth from a clip w (w is the projection's m[14] times the depth).
+    render::g_renderState.distanceFog.depthPerW = 1.0f / m.m[14];
 }
 
-// The pipeline's viewport size and depth range (the options' fog start and far clip distances).
+// The pipeline's viewport size and the game's reach (the settings' far clip distance as a clip w).
 void SetViewport(SceneRenderer* renderer, const GameOptions* settings) {
     const Rect& screen = renderer->device->screen;
     float width = static_cast<float>(screen.Width());
     float height = static_cast<float>(screen.Height());
-    renderer->pipeline->SetViewportSize(width, height);
-    renderer->pipeline->SetDepthRange(options::kFogDayStartDistance, settings->farClipDistance);
+    TransformPipeline* pipeline = renderer->pipeline;
+    pipeline->SetViewportSize(width, height);
+    pipeline->reachW = settings->farClipDistance * StackTop(pipeline->stacks[kProjection])->m[14];
 }
 
 // The texture filters of the stages: linear min / mag filters with the mip levels (anisotropy: [renderer]).

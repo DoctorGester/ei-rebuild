@@ -115,7 +115,13 @@ void Sky::Draw(SceneRenderer* renderer, const Vector3& eye) {
     pipeline->PushMatrix(m, 1);
     EnsureTextureLoaded(texture);
     renderer->SetTexture(0, texture);
+    // Hazed towards the horizon, the fog's colour at the eye's level (render::MeshFog::Horizon).
+    TextureDevice* device = renderer->device;
+    const render::MeshFog fog = device->fog;
+    device->fog = render::MeshFog::Horizon;
+    device->eyeHeight = kSkyDrop;
     renderer->DrawFigure(object, nullptr, 0xFF, nullptr);
+    device->fog = fog;
     const int stacks[2] = {TransformPipeline::kClipStack, 1};
     for (int stack : stacks) {
         int& count = pipeline->stacks[stack].count;

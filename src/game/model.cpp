@@ -137,6 +137,25 @@ TransformPipeline::ClipResult TransformPipeline::ClipTest(const ClipBounds* boun
     return ClipResult::Crossing;
 }
 
+// The least clip w over the box c + [lo, hi] (its centre's less the extents along the w row).
+static float LeastW(const Matrix4& m, const Vector3& c, const Vector3& lo, const Vector3& hi) {
+    const float* r = m.m;
+    const Vector3 w{r[12], r[13], r[14]};
+    const Vector3 middle = c + (lo + hi) * 0.5f;
+    return TransformColumnW(m, middle) - Dot(Abs(w), Abs(hi - lo) * 0.5f);
+}
+
+bool TransformPipeline::BeyondReach(const ClipBounds* bounds) const {
+    const MatrixStack& stack = stacks[kClipStack];
+    const Matrix4& m = stack.matrices[stack.count - 1];
+    if (bounds->flags & 1) {
+        const float r = bounds->radius;
+        if (LeastW(m, bounds->center, {-r, -r, -r}, {r, r, r}) > reachW) return true;
+    }
+    if (bounds->flags & 2) return LeastW(m, bounds->center, bounds->boxMin, bounds->boxMax) > reachW;
+    return false;
+}
+
 TransformPipeline::ClipResult TransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
                                       int blocks, const ClipBounds* bounds) const {
     const ClipResult where = bounds ? ClipTest(bounds) : ClipResult::Crossing;
@@ -157,17 +176,16 @@ Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect) {
     return out;
 }
 
-Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
+Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear) {
     float half = fov * 0.5f;
     float c = lib::Cos(half);
     const float s = lib::Sin(half);
-    float q = (s * zFar) / (zFar - zNear);
     std::memset(out, 0, sizeof(Matrix4));
     out->m[0] = c;
     out->m[5] = c * aspect;
-    out->m[10] = q;
+    out->m[10] = s;
     out->m[14] = s;
-    out->m[11] = -(q * zNear);
+    out->m[11] = -(s * zNear);
     return out;
 }
 

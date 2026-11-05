@@ -555,6 +555,8 @@ void ReadFog(Frame& f) {
     f.haveFog = true;
     f.fogEnabled = g_renderState.fog;
     f.fogColour = g_renderState.fogColour;
+    f.distanceFog = g_renderState.distanceFog;
+    f.mapEdge = g_renderState.mapEdge;
 }
 
 #if defined(EI_RENDER_VALIDATION)

@@ -9,6 +9,7 @@
 // not a swamp.
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
+#include "distance_fog.hlsli"
 struct VsIn {
     [[vk::location(0)]] float3 pos : TEXCOORD0;
     [[vk::location(1)]] float4 col : TEXCOORD1;
@@ -41,8 +42,23 @@ struct TerrainVsParams {
     row_major float4x4 light;   // to the shadow map
     float2 shift;               // the half-pixel shift (render_internal.h)
     float normalOffset;         // how far along its normal a receiver's point is looked up in the map
+    float fogStart;             // the distance fog (distance_fog.hlsli; fogDensity 0 none)
+    float fogDensity;
+    float fogDepthPerW;
+    float mapWidth;             // the map's size and edge fade band (render::MapEdge; band 0 none)
+    float mapHeight;
+    float edgeBand;
 };
 ConstantBuffer<TerrainVsParams> vs : VS_BLOCK(0);
+static const float kEdgeWidening = 0.2;   // the edge fade's band at least this times the depth
+// The map's edge fade (Terrain::EdgeFade: 1 inside, falling to 0 over the band at the edges, by the distance into the
+// band from its inner border) with the band widened to kEdgeWidening times the depth `depth`.
+float edge_kept(float2 p, float depth) {
+    if (vs.edgeBand <= 0.0) return 1.0;
+    float band = max(vs.edgeBand, depth * kEdgeWidening);
+    float4 inside = float4(p, float2(vs.mapWidth, vs.mapHeight) - p) - band - 1.0;
+    return 1.0 - min(length(min(inside, 0.0)), band) / band;
+}
 VsOut vs_main(VsIn i) {
     float4 p = float4(i.pos, 1.0);
     VsOut o;
@@ -50,6 +66,10 @@ VsOut vs_main(VsIn i) {
     o.pos.xy += vs.shift * o.pos.w;   // Direct3D 7 pixel centres (render_internal.h)
     o.col = i.col.zyxw;                  // D3DCOLOR bytes are B, G, R, A
     o.spec = i.spec.zyxw;
+    // The fog factor: the map's edge fade (the vertex's own, Terrain::EdgeFade, and the band widened with the depth)
+    // or the distance fog, the smallest.
+    o.spec.a = min(min(o.spec.a, edge_kept(i.pos.xy, o.pos.w * vs.fogDepthPerW)),
+                   fog_kept(o.pos.w, vs.fogStart, vs.fogDensity, vs.fogDepthPerW));
     o.uv = i.uv;
     float4 q = float4(i.pos + i.normal * vs.normalOffset, 1.0);
     o.shadow = float4(dot(vs.light[0], q), dot(vs.light[1], q), dot(vs.light[2], q), 1.0);

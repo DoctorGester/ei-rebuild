@@ -245,7 +245,8 @@ bool Object3DClientSpecific::ShadowInView() {
     if (lib::Has(flags, ClientHalfFlag::Shown)) return true;
     auto placed = sphere;
     placed.center += object->localPosition;
-    return g_sceneRenderer.pipeline->ClipTest(&placed) != TransformPipeline::ClipResult::Outside;
+    return g_sceneRenderer.pipeline->ClipTest(&placed) != TransformPipeline::ClipResult::Outside &&
+           !g_sceneRenderer.pipeline->BeyondReach(&placed);
 }
 
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------

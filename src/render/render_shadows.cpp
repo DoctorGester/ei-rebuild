@@ -14,16 +14,21 @@
 
 namespace render {
 
-// The map: kMapSize texels a side over the visible ground (its larger side in the landscape's x and y along the light
-// onto a level plane, in steps of kExtentStep world units so that the texel size changes seldom), the texels' corners
-// on whole texels of the landscape at the plane's height (shadows neither swim while the camera moves nor crawl while
-// the sun turns). Along the light it reaches from the nearest caster towards the sun (every caster whose bounds are in
-// the map's area seen from the sun and in front of the ground's far side; none is too high) to kDepthMargin behind the
-// ground.
+// The map: kMapSize texels a side over the visible ground up to kShadowReach along the view (its larger side in the
+// landscape's x and y along the light onto a level plane, in steps of kExtentStep world units so that the texel size
+// changes seldom), the texels' corners on whole texels of the landscape at the plane's height (shadows neither swim
+// while the camera moves nor crawl while the sun turns). Along the light it reaches from the nearest caster towards
+// the sun (every caster whose bounds are in the map's area seen from the sun and in front of the ground's far side;
+// none is too high) to kDepthMargin behind the ground.
 constexpr int kMapSize = 4096;
 constexpr float kExtentStep = 8.0f;
 constexpr float kPlaneStep = 8.0f;   // the height at which the map's texels stay on the ground (FitMap)
 constexpr float kDepthMargin = 2.0f;
+// The view has no far plane (renderer.md, "The view's depth"): the map covers the ground up to kShadowReach world
+// units along the view (the old far plane's distance, so the map's texels are as fine as they were), and its shadows
+// fade out over the last kShadowFade of that distance from the camera, so no line marks where they end.
+constexpr float kShadowReach = 100.0f;
+constexpr float kShadowFade = 20.0f;
 // The sun at least this far above the horizon (the old shadows' 20 degrees).
 constexpr float kLeastElevation = 20.0f * kPi / 180.0f;
 // How dark a fully shadowed pixel gets (the old decal: alpha 0x80 of black), the receivers' constant
@@ -289,7 +294,8 @@ struct Plane {
 };
 
 // The camera's view as the fit takes it, in the landscape's space (clip space's rows combined): in front of
-// the camera (w >= 0), its sides widened by 5% (|x|, |y| <= 1.05 w) and before the far plane (z <= w).
+// the camera (w >= 0), its sides widened by 5% (|x|, |y| <= 1.05 w) and no farther along the view than
+// kShadowReach (w <= kShadowReach times the w row's scale: w is the distance along the view times it).
 constexpr int kViewPlanes = 6;
 static void ViewPlanes(const Matrix4& camera, Plane planes[kViewPlanes]) {
     auto row = [&](int i) { return Plane{camera.m[i * 4], camera.m[i * 4 + 1], camera.m[i * 4 + 2], camera.m[i * 4 + 3]}; };
@@ -302,7 +308,8 @@ static void ViewPlanes(const Matrix4& camera, Plane planes[kViewPlanes]) {
     planes[2] = sum(w, 1.05f, x, 1.0f);
     planes[3] = sum(w, 1.05f, y, -1.0f);
     planes[4] = sum(w, 1.05f, y, 1.0f);
-    planes[5] = sum(w, 1.0f, z, -1.0f);
+    const float scale = std::sqrt(w.a * w.a + w.b * w.b + w.c * w.c);
+    planes[5] = Plane{-w.a, -w.b, -w.c, scale * kShadowReach - w.d};
 }
 
 // Of the view's planes in `asked` (bit k: plane k), those the box crosses; -1 when it is wholly outside
@@ -422,6 +429,60 @@ static SeenGround SeeGround(const Frame& f, const Matrix4& camera, const Vector3
     }
     return seen;
 }
+
+// "groundreach" (render_checks.h): the ground the camera's clip space keeps, by the terrain pieces' runs as SeeGround
+// takes them but through the exact clip planes (0 <= z <= w, |x|, |y| <= w): the farthest point of it from the camera,
+// and the runs the far side (z <= w) cuts or leaves out while the other sides keep some of them.
+static bool g_measureReach = false;
+static GroundReachInfo g_reach, g_lastReach;
+
+static void MeasureGroundReach(const Frame& f) {
+    g_reach = GroundReachInfo{};
+    if (!g_measureReach) return;
+    const std::size_t firstGround = FirstGround(f);
+    if (firstGround == SIZE_MAX) return;
+    const Matrix4& camera = f.matrices[static_cast<std::size_t>(f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)].matrix)];
+    M4 fromClip;
+    Vector3 eye{};
+    if (!Invert(FromMatrix(camera), &fromClip) || !CameraEye(fromClip, &eye)) return;
+    auto row = [&](int i) { return Plane{camera.m[i * 4], camera.m[i * 4 + 1], camera.m[i * 4 + 2], camera.m[i * 4 + 3]}; };
+    auto sum = [](const Plane& p, float k, const Plane& q, float l) {
+        return Plane{p.a * k + q.a * l, p.b * k + q.b * l, p.c * k + q.c * l, p.d * k + q.d * l};
+    };
+    const Plane x = row(0), y = row(1), z = row(2), w = row(3);
+    // The sides and the near plane, then the far side.
+    const Plane planes[kViewPlanes] = {z, sum(w, 1.0f, x, -1.0f), sum(w, 1.0f, x, 1.0f), sum(w, 1.0f, y, -1.0f),
+                                       sum(w, 1.0f, y, 1.0f), sum(w, 1.0f, z, -1.0f)};
+    constexpr int kFar = 1 << (kViewPlanes - 1), kSides = kAllPlanes & ~kFar;
+    g_reach.measured = true;
+    float farthest = 0.0f;
+    auto take = [&](const Vector3& at) { farthest = std::max(farthest, DistanceSquared(at, eye)); };
+    for (const TerrainPiece& piece : f.terrainPieces) {
+        for (const TerrainGroup& group : TerrainPieceGroups(piece)) {
+            const int sides = CrossedPlanes(group.box, planes, kSides);
+            if (sides < 0) continue;
+            ++g_reach.runs;
+            const int crossed = CrossedPlanes(group.box, planes, kAllPlanes);
+            if (crossed < 0 || (crossed & kFar)) ++g_reach.cut;
+            if (crossed < 0) continue;
+            if (crossed == 0) {
+                const Vector3 &low = group.box.low, &high = group.box.high;
+                for (int i = 0; i < 8; ++i) take(Vector3{(i & 1) ? high.x : low.x, (i & 2) ? high.y : low.y, (i & 4) ? high.z : low.z});
+                continue;
+            }
+            TerrainGroupPositions(piece, group, 1, &g_groupPositions);
+            for (const Vector3& at : g_groupPositions) {
+                bool inside = true;
+                for (int k = 0; k < kViewPlanes && inside; ++k) inside = !(crossed & (1 << k)) || planes[k].Side(at) >= 0.0f;
+                if (inside) take(at);
+            }
+        }
+    }
+    g_reach.reach = std::sqrt(farthest);
+}
+
+void SetGroundReach(bool on) { g_measureReach = on; }
+GroundReachInfo GroundReachState() { return g_lastReach; }
 
 static const Fit& FitMap(Frame& f) {
     if (g_fit.frame == FrameNumber() && g_fit.pieces == f.terrainPieces.size()) return g_fit;
@@ -801,6 +862,7 @@ void CasterDraws::Clear() {
 }
 
 void ShadowFrameDone() {
+    g_lastReach = g_reach;
     g_lastInfo = g_info;
     g_info = ShadowInfo{};
     g_outside.clear();
@@ -902,6 +964,8 @@ static void MapUniforms(const Fit& fit, ShadowFrame& shadow) {
         params.camera[0] = camera.x;
         params.camera[1] = camera.y;
         params.camera[2] = camera.z;
+        params.fadeFrom = kShadowReach - kShadowFade;
+        params.fadeLength = kShadowFade;
     }
     params.sun[0] = fit.d.x;
     params.sun[1] = fit.d.y;
@@ -924,6 +988,7 @@ static void MapUniforms(const Fit& fit, ShadowFrame& shadow) {
 void PrepareShadows(Frame& f) {
     ShadowFrame& sh = f.shadow;
     sh.prepared = true;
+    MeasureGroundReach(f);
     ListWorld(f);
     g_info = ShadowInfo{};
     PreparePointShadows(f);

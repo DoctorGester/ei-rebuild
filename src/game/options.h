@@ -41,8 +41,6 @@ inline constexpr LightOptions kHeroLight = {216.0f * lib::kByteScale, 216.0f * l
                                             116.0f * lib::kByteScale, 5.0f};
 inline constexpr LightOptions kQuestLight = {120.0f * lib::kByteScale, 72.0f * lib::kByteScale,
                                              120.0f * lib::kByteScale, 5.0f};
-inline constexpr float kFogNightStartDistance = 50.0f;
-inline constexpr float kFogDayStartDistance = 90.0f;
 inline constexpr int kLightingPeriod = 10000;        // ms before a stationary model in view is kept loaded again
 inline constexpr float kDefaultWindForce = 0.4f;     // the strongest wind a map may have
 inline constexpr int kDefaultTimeScale = 60;         // the day and night clock: bigger is slower
@@ -106,7 +104,7 @@ public:
     float cameraDefaultMinPitch = 20.0f;
     float cameraDefaultMaxPitch = 80.0f;
     float nearClipDistance = 2.0f;
-    float farClipDistance = 100.0f;  // FarClipDistance
+    float farClipDistance = 100.0f;  // FarClipDistance: the game's reach (TransformPipeline::BeyondReach)
     int selectionType = 0;
     int drawVisibleOnly = 1;         // not a setting: 1 draws only the units the party sees (the spectator switch turns it off)
     int drawPath = 1;

@@ -5,5 +5,5 @@ size = 2
 model = "opus"
 note = "User 2026-11-05 with a screenshot (build/r62/user_frame.png in main's tree): pitching the camera up shows a hard cutoff of the terrain, maybe the far clip. 'Effectively infinite draw distance is probably fine.' Find what cuts it (far plane, the tiles/objects drawn around the view, fog end) and draw to the map's edge with a soft distance fade or none; keep the frame rate."
 order = 1243
-status = "running"
+status = "review"
 started = "2026-11-05"

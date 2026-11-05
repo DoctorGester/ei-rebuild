@@ -146,7 +146,6 @@ void WorldClient::Render() {
     // by the camera (camera::FrameView).
     camera::TakeFrameView(&g_camera);
     const camera::ViewPose& drawn = camera::FrameView();
-    TextureDevice* renderer = g_sceneRenderer.device;
     TransformPipeline* device = g_sceneRenderer.pipeline;
     UpdateLighting();
     // The sun the new renderer's shadow map is drawn from: the terrain's (Terrain::SetSun), as this
@@ -172,13 +171,15 @@ void WorldClient::Render() {
         state.depthWrite = false;
         state.cull = render::Cull::None;
         state.specular = true;
-        renderer->distanceFog = 0;
         skyDome->Draw(&g_sceneRenderer, drawn.position);
-        renderer->distanceFog = 1;
         state.cull = render::Cull::Clockwise;
         state.specular = false;
         state.depthWrite = true;
     }
+    // The world's draws after the sky fog by distance (UpdateLighting set the fog), the hit points and the interface
+    // don't.
+    TextureDevice* renderer = g_sceneRenderer.device;
+    renderer->fog = render::MeshFog::Distance;
     net::Pump();
     if ((flags & WorldClientFlag::DrawTerrain) && terrain) {
         Vector3 frame;
@@ -229,12 +230,11 @@ void WorldClient::Render() {
     PopMatrix(device->stacks[kStackScene2]);
     PopMatrix(device->stacks[kStackScene1]);
     g_haveSceneCamera = false;
+    renderer->fog = render::MeshFog::None;
     if (flags & WorldClientFlag::DrawNumbers) {
         state.depthTest = false;
         state.stages[0].combiner = kAlphaPassStage;
-        renderer->distanceFog = 0;
         numbers->Draw(&g_sceneRenderer);
-        renderer->distanceFog = 1;
         state.depthTest = true;
     }
     render::EndWorld();

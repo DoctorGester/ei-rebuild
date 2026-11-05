@@ -98,8 +98,11 @@ public:
     Surface* stageSurfaces[8] = {};    // the holder bound to each texture stage
     DeviceMaterial* material = nullptr;
     std::uint32_t colour = 0xFF000000;    // the renderer's draw colour (mesh draw flag 4)
-    // The draws fog their screen vertices by distance when set; cleared around the sky and hit point draws.
-    int distanceFog = 0;
+    // The mesh draws' fog (render::MeshFog; the triangle lists' FogVertices with Distance): the world's draws after its
+    // sky fog by distance, its sky towards the horizon (eyeHeight the eye above the dome's origin), its hit points and
+    // the interface not (WorldClient::Render, Sky::Draw).
+    render::MeshFog fog = render::MeshFog::None;
+    float eyeHeight = 0.0f;
     Rect drawnRect = {};        // the screen rectangle of the last mesh draw
 };
 
