@@ -292,10 +292,9 @@ void WorldServer::Create() {
     specificManager->SetContext(this);
     hoover = std::make_unique<Hoover>();
 
-    // The wind: along x, no strength yet (three dwords), then 0.4.
-    const float direction[3] = {1.0f, 0.0f, 0.0f};
-    std::memcpy(windDirection, direction, sizeof(direction));
-    windStrength = std::bit_cast<std::uint32_t>(kWindStrength);
+    // The wind: along x, 0.4.
+    windDirection = {1.0f, 0.0f, 0.0f};
+    windStrength = kWindStrength;
     zoneMode = ZoneMode::None;
     scriptsActive = 0;
     exits.clear();

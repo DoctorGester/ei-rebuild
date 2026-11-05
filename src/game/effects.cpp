@@ -57,14 +57,16 @@ void ParticleSource::Stop() {
 
 // --- Particle updates ---------------------------------------------------------------------------
 
-// Falling drops: move by the drift, scale the size, accelerate down to the terminal speed in
-// velocity.y (drift.z = max(drift.z + velocity.z, velocity.y)); dropped once below z = 0.
+// Falling drops: move by the drift, scale the size, accelerate down to the terminal speed (drift.z = max(drift.z +
+// gravity, terminal)); dropped once below z = 0.
 int ParticleSource::UpdateFalling(Particle* p) {
+    const float& sizeFactor = p->velocity.x;
+    const float& terminal = p->velocity.y;
+    const float& gravity = p->velocity.z;
     if (p->pos.z < 0.0f) return 0;
-    float terminal = p->velocity.y;
     p->pos += p->drift;
-    p->size = p->velocity.x * p->size;
-    float fall = p->velocity.z + p->drift.z;
+    p->size = sizeFactor * p->size;
+    float fall = gravity + p->drift.z;
     p->drift.z = MaxKeepB(fall, terminal);
     return 1;
 }
@@ -89,6 +91,8 @@ int ParticleSource::UpdateCloud(Particle* p) {
 // Smoke puffs: rise and spread for the first two frames, then grow; past frame 7 they drift with
 // the wind and fire smoke dies (other smoke lives on, a quarter of the time each later frame).
 int ParticleSource::UpdateSmoke(Particle* p) {
+    const Vector3& spreadStep = p->velocity;   // in the first two frames
+    float& rise = p->drift.z;
     if (--p->life == 0) return 0;
     if (--p->frameTimer == 0) {
         int frame = ++p->frame;
@@ -99,11 +103,11 @@ int ParticleSource::UpdateSmoke(Particle* p) {
             p->frameTimer = frameDelay << 2;
             if ((g_clientRandom.Next() & 3) == 0) return 0;
         }
-        if (p->frame == 8) p->drift.z = p->drift.z * 0.5f;
+        if (p->frame == 8) rise = rise * 0.5f;
     }
     int frame = p->frame;
-    p->pos.z += p->drift.z;
-    if (frame < 2) p->pos += p->velocity;
+    p->pos.z += rise;
+    if (frame < 2) p->pos += spreadStep;
     if (frame < 7) {
         p->size = growth * p->size;
         return 1;
@@ -118,6 +122,8 @@ int ParticleSource::UpdateSmoke(Particle* p) {
 // A new smoke puff: a random offset in the source's spread (smaller puffs, 40% of them, spread
 // wider), half of it applied at once, and a random height up to `height`.
 int ParticleSource::EmitSmoke(Particle* p, int) {
+    Vector3& spreadStep = p->velocity;  // half the puff's random offset: added again in its first two frames
+    float& rise = p->drift.z;
     float extra = 0.0f;
     p->color = 0xFFFFFFFFu;
     p->life = lifetime;
@@ -130,18 +136,18 @@ int ParticleSource::EmitSmoke(Particle* p, int) {
     }
     float hi = extra + spreadMax.x;
     float lo = spreadMin.x - extra;
-    p->velocity.x = g_clientRandom.Range(lo, hi);
+    spreadStep.x = g_clientRandom.Range(lo, hi);
     hi = extra + spreadMax.y;
     lo = spreadMin.y - extra;
-    p->velocity.z = 0.0f;
-    p->velocity.y = g_clientRandom.Range(lo, hi);
-    p->velocity *= 0.5f;
-    p->pos.x = origin.x + p->velocity.x;
-    p->pos.y = origin.y + p->velocity.y;
+    spreadStep.z = 0.0f;
+    spreadStep.y = g_clientRandom.Range(lo, hi);
+    spreadStep *= 0.5f;
+    p->pos.x = origin.x + spreadStep.x;
+    p->pos.y = origin.y + spreadStep.y;
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
     p->pos.z = g_clientRandom.Range(0.0f, height) + origin.z;
-    p->drift.z = height;
+    rise = height;
     return 1;
 }
 
@@ -181,44 +187,46 @@ int ParticleSource::UpdateDebris(Particle* p) {
 // plane through element 1's normal at element 0's distance, and place it around the source; the size follows a
 // curve over the lifetime.
 int ParticleSource::UpdateOrbit(Particle* p) {
+    Vector3& onSphere = p->velocity;
+    const float& sizeFactor = p->drift.x;
     if (--p->life == 0) return 0;
     p->frame = (p->frame + 1) % frameCount;
     const ParticleElement* e = elements.data();
     float scale = e[0].sphere.radius;
     float c = e[1].sphereTilt.tiltCos;
     float s = e[1].sphereTilt.tiltSin;
-    float x = p->velocity.x;
-    float y = p->velocity.y;
+    float x = onSphere.x;
+    float y = onSphere.y;
     // Both are computed before either store; the plane test below reloads the stored floats.
     float ny = c * y + x * s;
-    p->velocity.x = c * x - s * y;
-    p->velocity.y = ny;
+    onSphere.x = c * x - s * y;
+    onSphere.y = ny;
     Vector3 offset;
     float d = elements[0].sphere.speed;
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
-        float t = -(Dot(p->velocity, n) / d);
+        float t = -(Dot(onSphere, n) / d);
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
         Vector3 along = t * n;
-        offset = p->velocity - along;
+        offset = onSphere - along;
     } else {
-        offset = p->velocity;
+        offset = onSphere;
     }
     const Vector3& center = elements[0].pos;
     p->pos = offset + (origin + center);
     switch (ParticleTypeOf(type)) {
     case ParticleType::SphereFire:
-        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale * 2.0f;
+        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * sizeFactor * scale * 2.0f;
         break;
     case ParticleType::Antimagic:
-        p->size = ByLife(kAntimagicSizeByLife, p->life, kSphereSizeByLife[15]) * p->drift.x * scale;
+        p->size = ByLife(kAntimagicSizeByLife, p->life, kSphereSizeByLife[15]) * sizeFactor * scale;
         break;
     case ParticleType::SphereElectricity:
-        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale;
+        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * sizeFactor * scale;
         break;
     default:
-        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale * kSphereScale;
+        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * sizeFactor * scale * kSphereScale;
         break;
     }
     return 1;
@@ -249,7 +257,7 @@ void ParticleSource::TickMushroom(ParticleElement* e) {
     if (ParticleTypeOf(type) == ParticleType::Mushroom && e->ticks == 0 && e == elements.data())
         g_camera.Shake(origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
-    e->pos.x = lib::Log(static_cast<float>(ticks + 1)) * size * kMushroomWidth;
-    e->pos.z = size * kMushroomRise + e->pos.z;
+    e->mushroom.spread = lib::Log(static_cast<float>(ticks + 1)) * size * kMushroomWidth;
+    e->mushroom.capHeight = size * kMushroomRise + e->mushroom.capHeight;
     if (ticks == 30) flags &= ~ParticleSourceFlag::Emitting;
 }

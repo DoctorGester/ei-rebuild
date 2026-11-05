@@ -236,7 +236,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
             player->dirty = kPlayerDirtyAll;
     }
 
-    stream->Read(windDirection, sizeof(windDirection));
+    stream->ReadValue(windDirection);
     stream->ReadValue(windStrength);
     stream->ReadValue(nightLevel);
     for (WorldAlarm& alarm : alarms) stream->ReadValue(alarm);
@@ -376,7 +376,7 @@ void WorldServer::SaveWorld(ByteStream* stream) {
     stream->WriteString(mobName);
     stream->WriteString(mapName);
     stream->WriteString(zoneName);
-    stream->Write(windDirection, sizeof(windDirection));
+    stream->WriteValue(windDirection);
     stream->WriteValue(windStrength);
     stream->WriteValue(nightLevel);
     for (WorldAlarm& alarm : alarms) stream->WriteValue(alarm);

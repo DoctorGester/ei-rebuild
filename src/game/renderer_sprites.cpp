@@ -199,6 +199,11 @@ void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord**
     }
 }
 
+int SceneRenderer::BindLoadedTexture(int stage, Texture* texture) {
+    EnsureTextureLoaded(texture);
+    return SetTexture(stage, texture);
+}
+
 // With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).
 // The sprites are projected with the top of the clip stack. Returns 1, or 0 when a draw fails (the blend is
 // then left as it is).

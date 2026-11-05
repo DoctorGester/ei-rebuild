@@ -92,12 +92,10 @@ void ReadWorld(WorldServer* w, Builder& b) {
     b.Unsigned("paused", w->paused);
     b.Float("timeBase", w->timeBase);
     b.Float("secondsPerTick", w->secondsPerTick);
-    float wind[3];
-    std::memcpy(wind, w->windDirection, sizeof(wind));
-    b.Float("wind.x", wind[0]);
-    b.Float("wind.y", wind[1]);
-    b.Float("wind.z", wind[2]);
-    b.Bits("windStrength", w->windStrength);
+    b.Float("wind.x", w->windDirection.x);
+    b.Float("wind.y", w->windDirection.y);
+    b.Float("wind.z", w->windDirection.z);
+    b.Bits("windStrength", std::bit_cast<std::uint32_t>(w->windStrength));
     b.Bits("nightLevel", std::bit_cast<std::uint32_t>(w->nightLevel));
     b.Bits("weatherFactor", std::bit_cast<std::uint32_t>(w->weatherFactor));
     for (int i = 0; i < 5; ++i) {

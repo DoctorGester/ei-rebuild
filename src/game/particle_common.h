@@ -11,6 +11,9 @@
 #include <bit>
 #include <cstdint>
 
+// Bag: its balls (the elements, and the first particles).
+constexpr int kBagBalls = 80;
+
 // [0, 0.4): 0.4f * 2^-32 is 0x2ECCCCCD.
 constexpr float kWordTo0_4 = 9.3132266e-11f;
 static_assert(std::bit_cast<std::uint32_t>(kWordTo0_4) == 0x2ECCCCCE);

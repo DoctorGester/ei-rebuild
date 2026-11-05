@@ -5,7 +5,7 @@
 // constructor stores (emit one particle, update one particle: 0 kills it, update
 // one element of the source's own array).
 // - RainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
-// - VisibilityFog ("VisibilityFog", class id 0x5F): a hash_map of fog cells, one per visible map square; each
+// - VisibilityFog ("VisibilityFog"): a hash_map of fog cells, one per visible map square; each
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
 
 #include "base_manager.h"
@@ -119,21 +119,21 @@ enum class ParticleType : int {
 inline ParticleType ParticleTypeOf(int type) { return static_cast<ParticleType>(type); }
 
 // One particle (from the source's pool). The source's tick saves the "prev" fields before calling the update
-// callback and restores them when it returns 0. The meaning of velocity..drift depends on the source type; the
-// comments name the types written here.
+// callback and restores them when it returns 0. What velocity, aux and drift hold depends on the source type: each
+// callback names the parts it uses with local references at its top (float& angle = p->velocity.x).
 struct Particle {
     Vector3 pos;
     float size = 0.0f;
     Vector3 prevPos;
     float prevSize = 0.0f;
-    Vector3 velocity;           // smoke: initial offset; spheres: orbit offset
-    Vector3 aux;                // per-type scratch the emitter and update callbacks share (angles, speeds, growth, steps)
-    Vector3 drift;              // smoke: rise in z; debris: speed; spheres: x = size factor
+    Vector3 velocity;
+    Vector3 aux;
+    Vector3 drift;
     int frame = 0;              // texture frame
     int prevFrame = 0;
-    int frameTimer = 0;         // ticks until the next frame
+    int frameTimer = 0;         // ticks until the next frame (some types: their own count, named where used)
     int life = 0;               // ticks left
-    int state = 0;              // debris: landed
+    int state = 0;              // per type: a kind, an index or a phase
     std::uint32_t color = 0;    // ARGB
     std::uint32_t prevColor = 0;
     int dead = 0;               // set by the tick when the update returned 0
@@ -148,97 +148,13 @@ constexpr T ByLife(const T (&table)[N], int life, T before) {
     return life < 0 ? before : table[life];
 }
 
-// One element of a source's own array (32-byte aligned). What the slots hold depends on the source type (the
-// views below); code indexes element 0 and reads element 1 through it.
+// One element of a source's own array. What it holds depends on the source type: pos and ticks (a countdown or an
+// age) for every type, the rest through the type's view below. The views start zero: the first one is the largest
+// and its initialiser covers the union.
 struct ParticleElement {
     Vector3 pos;
     union {
-        float value[10] = {};
-        std::int32_t word[10];  // the same slots as dwords (the set-ups clear some the type never reads)
-        // Lightning (EmitLightning, particle_emitters.cpp): a point of the bolt, on the ground;
-        // LightningBlast's heads (TickLightning) move by fork and remember their position in base.
-        struct {
-            Vector3 fork;
-            Vector3 base;       // pos as placed
-            std::uint8_t unused_24[0xC];
-            int emitted;        // point 0: particles emitted along the bolt
-        } bolt;
-        // Modifier1-12 (EmitModifier): a point of the ring around the carrier.
-        struct {
-            Vector3 start;      // pos as placed (TickModifier: the last position)
-            Vector3 offset;     // from the emission point
-        } ring;
-        // The ground plane under the source (TickGroundPlane, PlatformSet::SurfacePlane).
-        struct {
-            float height;
-            float unused_10[2];
-            Vector3 normal;     // its z replaced by its reciprocal when not 0
-            std::uint8_t unused_24[0xC];
-            std::uint32_t color;    // the ground dust's colour (0x203A / 0x203B)
-        } plane;
-        // FeetCloud (TickFeetCloud): a foot; ticks says which (nonzero: the left).
-        struct {
-            std::uint8_t unused_0C[0xC];
-            float radius;       // the carrier's radius (AttachmentOffset)
-            float unused_1C[5];
-            std::int32_t countdown;   // reset every tick; the cloud starts at the foot while >= 0
-        } foot;
-        // Casting (0x2027-0x202A): element 0 the effect's state (pos.x 1 once set up, ticks the
-        // countdown the alpha follows), elements 1.. the swirls.
-        struct {
-            float growth;       // the particles' growth per tick
-            float unused_10[2];
-            float radius;
-            float size;         // the particles' size
-            float unused_20[4];
-            std::int32_t alpha;
-        } cast;
-        struct {
-            std::uint8_t unused_0C[0xC];
-            Vector3 position;    // drifting by velocity
-            Vector3 velocity;
-        } swirl;
-        // Protection spheres and AntiMagic (0x2015-0x2017, 0x201A): element 0 (pos.z the height
-        // above the carrier); element 1's pos is the carrier's smoothed motion.
-        struct {
-            std::uint8_t unused_0C[0xC];
-            float radius;       // the sphere's
-            float unused_1C;
-            float speed;        // the carrier's (0 below 0.01)
-        } sphere;
-        struct {
-            std::uint8_t unused_0C[0xC];
-            float tiltCos;      // element 1: the tilt's cosine and sine (0.01 radians)
-            float tiltSin;
-        } sphereTilt;
-        // Casting (0x200B) and Healing (0x2006): a ring of flames (pos its centre, relative to
-        // the source; ticks its countdown).
-        struct {
-            float radius;
-            float angle;        // of its leading flame
-            float rise;         // per tick
-            Vector3 centre;      // its starting centre
-        } flames;
-        // CastingIllusion ... Healing (0x202B-0x202E): an orbiting light (pos its world position).
-        struct {
-            float turnCos;      // the cosine and sine of its turn per tick
-            float turnSin;
-            float scale;        // the carrier's radius (times -1 for 0x202C)
-            Vector3 relative;    // its position relative to the source (element 0's x: the orbit)
-            Vector3 previous;    // its last world position
-        } orbiter;
-        // Link (0x2014): element 0 the beam's length and its inverse (ticks the alpha cap);
-        // elements 1-3 the beam's frame (direction, side, their cross product).
-        struct {
-            std::uint8_t unused_0C[0xC];
-            float length;
-            float inverseLength;
-        } link;
-        struct {
-            std::uint8_t unused_0C[0xC];
-            Vector3 axis;        // a unit vector
-        } linkAxis;
-        // FireBlast (0x2002): a fragment flying out (pos its position).
+        // FireBlast (SetupExplosion, TickBlast): a fragment flying out (pos its position).
         struct {
             Vector3 velocity;
             float radius;       // the flame radius
@@ -246,97 +162,157 @@ struct ParticleElement {
             float decay;        // the growth's factor per tick
             float frame;        // a random frame (0..5)
             float sizeFactor;   // 0 or 1
-            float unused_2C;
             std::int32_t age;   // in ticks
-        } fragment;
-        // Geyser / Fireworks (0x2009): a vent (pos the jet's angles and strength, ticks the
-        // eruption's remaining ticks).
+        } fragment = {};
+        // CastingIllusion ... CastingHealing: an orbiting light (pos its world position).
         struct {
-            float unused_0C[9];
+            float turnCos;      // the cosine and sine of its turn per tick
+            float turnSin;
+            float scale;        // the carrier's radius (times -1 for CastingDomination)
+            Vector3 relative;   // its position relative to the source (element 0's x: the orbit)
+            Vector3 previous;   // its last world position
+        } orbiter;
+        // LightningBlast (EmitLightning, TickLightning): a point of the bolt, on the ground; the heads move by fork
+        // and remember their position in base.
+        struct {
+            Vector3 fork;
+            Vector3 base;       // pos as placed
+            std::int32_t emitted;   // point 0: particles emitted along the bolt
+        } bolt;
+        // Modifier1-12 (EmitModifier): a point of the ring around the carrier.
+        struct {
+            Vector3 start;      // pos as placed (TickModifier: the last position)
+            Vector3 offset;     // from the emission point
+        } ring;
+        // GroundDust1 / 2 (TickGroundPlane, PlatformSet::SurfacePlane): the ground plane under the source.
+        struct {
+            float height;
+            Vector3 normal;     // its z replaced by its reciprocal when not 0
+            std::uint32_t color;    // the dust's colour
+        } plane;
+        // FeetCloud1 / 2 (TickFeetCloud): a foot; ticks says which (nonzero: the left).
+        struct {
+            float radius;       // the carrier's radius (AttachmentOffset)
+            std::int32_t countdown;   // reset every tick; the cloud starts at the foot while >= 0
+        } foot;
+        // CastingFire ... CastingDivination: element 0 the effect's state (pos.x 1 once set up, ticks the countdown
+        // the alpha follows), elements 1.. the swirls.
+        struct {
+            float growth;       // the particles' growth per tick
+            float radius;
+            float size;         // the particles' size
+            std::int32_t alpha;
+        } cast;
+        struct {
+            Vector3 position;   // drifting by velocity
+            Vector3 velocity;
+        } swirl;
+        // Protection spheres and Antimagic: element 0 (pos.z the height above the carrier); element 1's pos is the
+        // carrier's smoothed motion.
+        struct {
+            float radius;       // the sphere's
+            float speed;        // the carrier's (0 below 0.01)
+        } sphere;
+        struct {
+            float tiltCos;      // element 1: the tilt's cosine and sine (0.01 radians)
+            float tiltSin;
+        } sphereTilt;
+        // Casting and Healing: a ring of flames (pos its centre, relative to the source; ticks its countdown).
+        struct {
+            float radius;
+            float angle;        // of its leading flame
+            float rise;         // per tick
+            Vector3 centre;     // its starting centre
+        } flames;
+        // Link: element 0 the beam's length and its inverse (ticks the alpha cap); elements 1-3 the beam's frame
+        // (direction, side, their cross product).
+        struct {
+            float length;
+            float inverseLength;
+        } link;
+        struct {
+            Vector3 axis;       // a unit vector
+        } linkAxis;
+        // Geyser (the fireworks): a vent (ticks the eruption's remaining ticks).
+        struct {
+            float yaw;          // the jet's direction (radians)
+            float tilt;         // off vertical (radians)
+            float power;        // its strength
             std::int32_t pause; // before the next eruption
         } vent;
-        // Shower (0x200F, 0x2031-0x2033): a direction (pos); element 0's ticks is the texture frame.
+        // Shower1-4: a direction (pos); element 0's ticks is the texture frame.
         struct {
-            float unused_0C[9];
             std::int32_t age;   // in ticks; element 0: negative until the directions are chosen
         } ray;
-        // Bag (0x203C): a ball (pos its position, ticks its countdown).
+        // Bag: a ball (pos its position, ticks its countdown).
         struct {
-            Vector3 step;        // its last step
+            Vector3 step;       // its last step
             Vector3 velocity;
-            std::uint8_t unused_24[0xC];
             std::int32_t age;   // its kind, then its age (indexes the sizes)
         } ball;
-        // 0x202F: the ring around the carrier (ticks its age).
+        // TeleportRing: the ring around the carrier (ticks its age).
         struct {
-            std::uint8_t unused_0C[0xC];
             float radius;
-            float unused_1C;
             float height;       // the carrier's
-            float unused_24[2];
             float foot;         // the ring's offset below the carrier's centre
         } column;
-        // Mushroom and Transform (0x200E, 0x2052): pos.x the puffs' spread, pos.z the cap's height.
+        // Mushroom and Transform.
         struct {
-            std::uint8_t unused_0C[0xC];
-            Vector3 stem;        // the stem's foot
+            float spread;       // the puffs'
+            float capHeight;
+            Vector3 stem;       // the stem's foot
         } mushroom;
-        // BlueGas (0x2013): pos the carrier's figure offset.
+        // BlueGas: pos the carrier's figure offset.
         struct {
-            std::uint8_t unused_0C[0xC];
             float radius;       // the gas radius
-            float unused_1C;
             float height;       // the carrier's
         } gas;
-        // Tornado and CurseHolder (0x200A, 0x2050): a ring of the funnel (pos its centre); element 0
-        // also holds the funnel's own values.
+        // Tornado and CurseHolder: a ring of the funnel (pos its centre); element 0 also holds the funnel's own
+        // values.
         struct {
-            float unused_0C[6];
             float height;       // the funnel's
             float bend;         // 0: the rings sway with the source's motion, else they lean
             float damping;      // the particles' spin damping
         } funnel;
-        // Cylinder1 / Cylinder2 (0x203F, 0x2040): a star (pos relative to the source, ticks its countdown).
+        // Cylinder1 / 2: a star (pos relative to the source, ticks its countdown).
         struct {
-            Vector3 step;        // its last step
+            Vector3 step;       // its last step
             float rotation[2];  // the cosine and sine of its turn per tick
-            float unused_20;
             float inverseOrbit;
             float orbit;        // the orbit radius
             float rise;         // per tick
         } star;
-        // Banshee (0x200D): pos.z the ring's height, ticks the countdown.
+        // Banshee: ticks the countdown.
         struct {
             float radius;       // easing towards 30 times the source's height
+            float height;       // the ring's
         } banshee;
-        // ClayRing (0x2018): a point on the ground (pos; ticks the countdown).
+        // ClayRing: a point on the ground (pos; ticks the countdown).
         struct {
-            Vector3 previous;    // its previous position
-            Vector3 direction;   // turning a little each tick
+            Vector3 previous;   // its previous position
+            Vector3 direction;  // turning a little each tick
         } clay;
-        // Falling (0x2034-0x2037): a gust.
+        // Falling1-4: a gust.
         struct {
             float reach;
             float direction;    // radians, truncated
-            float unused_14[7];
             std::int32_t age;
         } wind;
-        // StartTrans (0x2051): element 0 (ticks the countdown).
+        // StartTrans: element 0 (ticks the countdown).
         struct {
-            std::uint8_t unused_0C[0xC];
             float scale;        // the glow's size, growing with the source's
             float count;        // the emitted count, rising by 0.4 per tick
         } trans;
-        // ShapeChange glow (0x2039): element 0.
+        // ShapeChange: element 0.
         struct {
-            std::uint8_t unused_0C[0xC];
-            Vector3 mark;        // the last point glowed at
-            std::uint8_t unused_24[0xC];
-            std::uint32_t color;    // by the alpha field
+            Vector3 mark;       // the last point glowed at
+            std::uint32_t color;    // by the source's glowKind
         } glow;
     };
-    int ticks = 0;              // (lightning point 0: bursts; modifier point 0: the fade step)
+    int ticks = 0;              // (LightningBlast point 0: the bursts; Modifier point 0: the fade step)
 };
+static_assert(sizeof(ParticleElement) == sizeof(Vector3) + sizeof(ParticleElement::fragment) + sizeof(int),
+              "the first view is the largest: its initialiser zeroes every view");
 
 class ParticleSource;
 class Object3D;
@@ -367,8 +343,8 @@ public:
     Particle* AcquireParticle();                    // from the pool, else new
     void ReleaseParticle(Particle* p);              // back to the pool's tail
     int DrawAll(SceneRenderer* renderer);
-    // CreateObject(type, -1), referenced and held under its id; with quietStart set, types 0x2001 / 0x2003 /
-    // 0x2004 start without emitting.
+    // CreateObject(type, -1), referenced and held under its id; with quietStart set, CampFire, Fire and Smoke start
+    // without emitting.
     ParticleSource* CreateSource(int type);
     // Every source's tick (with `paused` only the ones with ParticleSourceFlag::TicksWhilePaused); a held source whose tick returned 0 is
     // released and leaves `held`. Returns 0.
@@ -401,10 +377,34 @@ enum class ParticleSourceFlag : std::uint32_t {
     KeepAlive = 0x4,        // a detached source stays while it has it (else while it has particles)
     TicksWhilePaused = 0x8, // ticked while the game is paused
     OnPart = 0x10,          // sits on a unit's part chosen by attachPoint (else on the top of the object's bounds)
-    IdlesOffScreen = 0x20,  // the tick idles once the draws were skipped off screen past 0x38 times
+    IdlesOffScreen = 0x20,  // the tick idles once the draws were skipped off screen kIdleAfterHidden times
     NotDrawn = 0x40,        // the draw skips it; nothing sets it
 };
 template <> inline constexpr bool lib::kBitFlags<ParticleSourceFlag> = true;
+
+// The colour of a ShapeChange glow (the path markers; player_client.cpp picks it by the marker's kind).
+enum class GlowKind : std::uint8_t { Grey, Green, Orange };
+
+// Where a source with ParticleSourceFlag::OnPart sits on a unit (ParticleSource::AttachmentPoint): the unit's effect
+// point or a part of its figure (the part's name; a figure without it gives "bd", then the top of its bounds).
+enum class AttachPoint : std::uint8_t {
+    EffectPoint,    // Unit::EffectPoint
+    Head,           // "hd"
+    AboveHead,      // "hd", 1 higher
+    LeftHand,       // "lh2"
+    RightHand,      // "rh2"
+    LeftLeg,        // "ll2"
+    RightLeg,       // "rl2"
+    Body,           // "bd"
+    Body00,         // "body00" ... "body04"
+    Body01,
+    Body02,
+    Body03,
+    Body04,
+};
+
+// The draws a source with ParticleSourceFlag::IdlesOffScreen skips off screen before its tick idles.
+inline constexpr int kIdleAfterHidden = 57;
 
 // A particle source: localPosition is where it emits relative to what it is attached to, localRotation the
 // identity after Reset.
@@ -438,108 +438,108 @@ public:
     using ElementCallback = void (ParticleSource::*)(ParticleElement* e);
 
     // --- per-particle callbacks, return 0 to drop ---
-    int UpdateFalling(Particle* p);                 // types 0x2034-0x2037
-    int UpdateCloud(Particle* p);                   // PoisonFog and similar
-    int UpdateSmoke(Particle* p);                   // CampFire, Fire, Smoke, 0x2010
+    int UpdateFalling(Particle* p);                 // Falling1-4
+    int UpdateCloud(Particle* p);                   // PoisonFog, PoisonCloud
+    int UpdateSmoke(Particle* p);                   // CampFire, Fire, Smoke, Tendril
     int EmitSmoke(Particle* p, int index);
     int UpdateDebris(Particle* p);                  // Nuke
-    int UpdateOrbit(Particle* p);                   // Antimagic, spheres, 0x2014
+    int UpdateOrbit(Particle* p);                   // the protection spheres, Antimagic
 
     int EmitLightning(Particle* p, int index);      // LightningBlast
     int EmitModifier(Particle* p, int index);       // Modifier1-12
     int EmitZoneExit(Particle* p, int index);
     int EmitFeebleMind(Particle* p, int index);
     int EmitFeetCloud(Particle* p, int index);      // FeetCloud1/2
-    int UpdateGlow(Particle* p);                    // 0x2039
-    int UpdateGroundDust(Particle* p);              // 0x203A, 0x203B
+    int UpdateGlow(Particle* p);                    // ShapeChange
+    int UpdateGroundDust(Particle* p);              // GroundDust1 / 2
     int UpdatePortal(Particle* p);
     int UpdateSparks(Particle* p);
-    void TickGroundPlane(ParticleElement* e);       // 0x203A, 0x203B
+    void TickGroundPlane(ParticleElement* e);       // GroundDust1 / 2
     void TickPortal(ParticleElement* e);
     void TickStartTrans(ParticleElement* e);
 
     // The emission point in the world (attachment point plus the local position).
     Vector3 WorldPosition();
 
-    int EmitCasting(Particle* p, int index);        // 0x2027-0x202A
+    int EmitCasting(Particle* p, int index);        // CastingFire ... CastingDivination
     int UpdateCasting(Particle* p);
     void TickCasting(ParticleElement* e);
-    int EmitOrbit(Particle* p, int index);          // 0x2015-0x2017, 0x201A
-    int EmitCastRing(Particle* p, int index);       // Casting, 0x200B
+    int EmitOrbit(Particle* p, int index);          // the protection spheres, Antimagic
+    int EmitCastRing(Particle* p, int index);       // Casting
     int UpdateCastRing(Particle* p);
     void TickCastRing(ParticleElement* e);
-    int EmitHealing(Particle* p, int index);        // Healing, 0x2006
+    int EmitHealing(Particle* p, int index);        // Healing
     int UpdateHealing(Particle* p);
     void TickHealing(ParticleElement* e);
-    int EmitCastSwirl(Particle* p, int index);      // 0x202B-0x202E
+    int EmitCastSwirl(Particle* p, int index);      // CastingIllusion ... CastingHealing
     int UpdateCastSwirl(Particle* p);
     void TickCastSwirl(ParticleElement* e);
-    int EmitLink(Particle* p, int index);           // Link, 0x2014
+    int EmitLink(Particle* p, int index);           // Link
     int UpdateLink(Particle* p);
     void TickLink(ParticleElement* e);
-    int EmitBlast(Particle* p, int index);          // FireBlast, 0x2002
+    int EmitBlast(Particle* p, int index);          // FireBlast
     int UpdateBlast(Particle* p);
     void TickBlast(ParticleElement* e);
-    int EmitPoisonFog(Particle* p, int index);      // PoisonFog, 0x2007 / 0x2008
-    int EmitGeyser(Particle* p, int index);         // Geyser, 0x2009
+    int EmitPoisonFog(Particle* p, int index);      // PoisonFog, PoisonCloud
+    int EmitGeyser(Particle* p, int index);         // Geyser
     int UpdateGeyser(Particle* p);
     void TickGeyser(ParticleElement* e);
-    int EmitShower(Particle* p, int index);         // 0x200F, 0x2031-0x2033
+    int EmitShower(Particle* p, int index);         // Shower1-4
     int UpdateShower(Particle* p);
     void TickShower(ParticleElement* e);
-    int EmitBag(Particle* p, int index);            // Bag, 0x203C
+    int EmitBag(Particle* p, int index);            // Bag
     int UpdateBag(Particle* p);
     void TickBag(ParticleElement* e);
-    int EmitColumn(Particle* p, int index);         // 0x202F
+    int EmitColumn(Particle* p, int index);         // TeleportRing
     int UpdateColumn(Particle* p);
     void TickColumn(ParticleElement* e);
     int EmitMushroom(Particle* p, int index);       // Mushroom, Transform
     int UpdateMushroom(Particle* p);
-    int EmitStench(Particle* p, int index);         // BlueGas, 0x2013
+    int EmitStench(Particle* p, int index);         // BlueGas
     int UpdateStench(Particle* p);
     int EmitTornado(Particle* p, int index);        // Tornado, CurseHolder
     int UpdateTornado(Particle* p);
     void TickTornado(ParticleElement* e);
-    int EmitPortalStar(Particle* p, int index);     // PortalStar, 0x203D
+    int EmitPortalStar(Particle* p, int index);     // PortalStar
     int UpdatePortalStar(Particle* p);
-    int EmitCylinder(Particle* p, int index);       // Cylinder1/2, 0x203F / 0x2040
+    int EmitCylinder(Particle* p, int index);       // Cylinder1 / 2
     int UpdateCylinder(Particle* p);
     void TickCylinder(ParticleElement* e);
-    int EmitFireBall(Particle* p, int index);       // FireBall, 0x2000
+    int EmitFireBall(Particle* p, int index);       // FireBall
     int UpdateFireBall(Particle* p);
-    int EmitArrowSmoke(Particle* p, int index);     // FireArrow 0x2011, 0x204E
+    int EmitArrowSmoke(Particle* p, int index);     // FireArrow, RikArrowSmoke
     int UpdateArrowSmoke(Particle* p);
-    int EmitBanshee(Particle* p, int index);        // Banshee, 0x200D
+    int EmitBanshee(Particle* p, int index);        // Banshee
     int UpdateBanshee(Particle* p);
     void TickBanshee(ParticleElement* e);
-    int EmitPortal(Particle* p, int index);         // Portal, 0x203E
-    int EmitAcidRay(Particle* p, int index);        // AcidRay, 0x2012
+    int EmitPortal(Particle* p, int index);         // Portal
+    int EmitAcidRay(Particle* p, int index);        // AcidRay
     int UpdateAcidRay(Particle* p);
-    int EmitSparks(Particle* p, int index);         // Sparks, 0x2043
-    int EmitClayRing(Particle* p, int index);       // ClayRing, 0x2018
+    int EmitSparks(Particle* p, int index);         // Sparks
+    int EmitClayRing(Particle* p, int index);       // ClayRing
     int UpdateClayRing(Particle* p);
     void TickClayRing(ParticleElement* e);
-    int EmitFalling(Particle* p, int index);        // 0x2034-0x2037
+    int EmitFalling(Particle* p, int index);        // Falling1-4
     void TickFalling(ParticleElement* e);
-    int EmitVulkan(Particle* p, int index);         // VulcanSmoke, 0x2005
+    int EmitVulkan(Particle* p, int index);         // VulcanSmoke
     int UpdateVulkan(Particle* p);
     int EmitFireStar(Particle* p, int index);       // FireStar, AcidStar
     int UpdateFireStar(Particle* p);
     int EmitRegeneration(Particle* p, int index);
     int UpdateRegeneration(Particle* p);
-    int EmitVisionStar(Particle* p, int index);     // VisionStar1-3
+    int EmitVisionStar(Particle* p, int index);     // VisionStar1-4
     int UpdateVisionStar(Particle* p);
     int UpdateZoneExit(Particle* p);
-    int UpdateFeebleMind(Particle* p);              // FeebleMind, 0x2049
-    int UpdateFeetCloud(Particle* p);               // FeetCloud, 0x2047
+    int UpdateFeebleMind(Particle* p);              // FeebleMind
+    int UpdateFeetCloud(Particle* p);               // FeetCloud1 / 2
     void TickFeetCloud(ParticleElement* e);
-    int EmitSilence(Particle* p, int index);        // Silence, 0x2048
+    int EmitSilence(Particle* p, int index);        // Silence
     int UpdateSilence(Particle* p);
     int UpdateModifier(Particle* p);
     void TickModifier(ParticleElement* e);
-    int UpdateLightning(Particle* p);               // LightningBlast, 0x2030
+    int UpdateLightning(Particle* p);               // LightningBlast
     void TickLightning(ParticleElement* e);
-    int EmitTeleport(Particle* p, int index);       // Teleport, 0x2019
+    int EmitTeleport(Particle* p, int index);       // Teleport
     int UpdateTeleport(Particle* p);
     void TickTeleport(ParticleElement* e);
     int EmitCurseStars(Particle* p, int index);
@@ -548,10 +548,10 @@ public:
     int UpdateStartTrans(Particle* p);
     int EmitNuke(Particle* p, int index);
     int EmitTendril(Particle* p, int index);
-    int EmitGroundDust(Particle* p, int index);     // 0x203A, 0x203B
-    int EmitGlow(Particle* p, int index);           // ShapeChange, 0x2039
+    int EmitGroundDust(Particle* p, int index);     // GroundDust1 / 2
+    int EmitGlow(Particle* p, int index);           // ShapeChange
     void TickGlow(ParticleElement* e);
-    int EmitStun(Particle* p, int index);           // Stun, 0x204D
+    int EmitStun(Particle* p, int index);           // Stun
     int UpdateStun(Particle* p);
 
     // Offset (0, 0, the bounds centre's z) and radius of the object followed (its bounds recomputed); (0, 0, 0)
@@ -564,7 +564,7 @@ public:
 
     // --- per-element callbacks ---
     void TickNuke(ParticleElement* e);
-    void TickTendril(ParticleElement* e);           // 0x2010
+    void TickTendril(ParticleElement* e);           // Tendril
     void TickMushroom(ParticleElement* e);          // Mushroom, Transform
     void TickNone(ParticleElement* e);              // does nothing; ten more callbacks are as empty
 
@@ -572,15 +572,14 @@ public:
     void ScaleSize(float factor);
     void StopEmitting();                            // Emitting off, KeepAlive on
     void StartEmitting();                           // Emitting and KeepAlive on
-    void Stop();                                    // bits 0 and 2 off, detach
+    void Stop();                                    // Emitting and KeepAlive off, detach
 
     // Follow `object` (a map object, or null to let go): the old object
     // drops the source (its point is folded into the local position), the new one adds it, and
     // the emission point becomes the new attachment point (or the local position).
     void Attach(MapObject* object);
-    // Where the source sits on `object`: with OnPart a unit's part chosen by attachPoint (0 the effect
-    // point, 1-7 head / hands / legs / body, 8-12 body00-04), else the top of its bounds; without OnPart its
-    // position.
+    // Where the source sits on `object`: with OnPart a unit's attachPoint, else the top of its bounds; without
+    // OnPart its position.
     Vector3 AttachmentPoint(Object3D* object);
     // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else its position
     // raised by the bounds' upper z extent.
@@ -589,8 +588,7 @@ public:
     void StopAndClear();
     void ReleaseAllParticles();
 
-    // EngineObject's flags: the ParticleSourceFlag bits; type 0x2000.. (the effect names in the type name
-    // table).
+    // EngineObject's flags hold the ParticleSourceFlag bits, its type a ParticleType.
     MapObject* attachedTo = nullptr;  // the object followed, null: none
     Vector3 origin;                 // world emission point
     Vector3 motion;                 // movement since the last tick
@@ -603,8 +601,8 @@ public:
     int maxParticles = 0;
     int frameCount = 0;
     int frameColumns = 0;           // columns of the texture's frame grid
-    int frameDelay = 0;             // (Tornado, CurseHolder: the particle colour)
-    int hiddenTicks = 0;            // draws skipped off screen (the tick idles past 0x38 with IdlesOffScreen)
+    int frameDelay = 0;             // ticks per texture frame
+    int hiddenTicks = 0;            // draws skipped off screen in a row (IdlesOffScreen)
     int lifetime = 0;
     Vector3 spreadMin;
     Vector3 spreadMax;
@@ -618,15 +616,18 @@ public:
     float baseSize = 0.0f;
     int emitState = 0;              // per type: the emitted count or a one-shot flag
     Vector3 extent;
-    int attachPoint = 0;
+    AttachPoint attachPoint = AttachPoint::EffectPoint;
     Vector3 windDirection;          // copied from the world every tick
     float windStrength = 0.0f;
     bool additiveBlend = false;     // drawn with additive blending
+    std::uint32_t tint = 0;         // the particles' colour: Tornado and CurseHolder ARGB, FeetCloud RGB
+    int rayCount = 0;               // Shower1-4: the directions chosen (alpha * 8, at least 1)
+    GlowKind glowKind = GlowKind::Green;   // ShapeChange
     std::vector<ParticleElement> elements;   // per type
     Vector3 boundsMin;              // over the particles, rebuilt every tick
     Vector3 boundsMax;
-    // the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
-    // boundsMax less the centre) relative to the centre; the radius is not written.
+    // The bounds the renderer clips by: BoundsFlag::Box set by the tick, the box (boundsMin and boundsMax less the
+    // centre) relative to the centre; the radius is not written.
     ClipBounds clip = {};
     std::vector<Particle*> particles;
     std::vector<SourceFrame> frames;

@@ -116,16 +116,13 @@ void ParticleManagerClearQuietStart(ParticleManager* manager) {
 
 // --- Particle attach ---------------------------------------------------------------------------------
 
-// Particle sources that follow an object (A-S4): Attach, the attachment point
-// and its part lookup, the attachment offset and StopAndClear
-//. Names are provisional.
-// The object a source follows is a map object (attachedTo, +0x94). With ParticleSourceFlag::OnPart a source on a
-// unit sits on the part attachPoint names; otherwise on top of the object's bounds.
+// Particle sources that follow an object: Attach, the attachment point and its part lookup, the attachment offset
+// and StopAndClear. The object a source follows is a map object (attachedTo). With ParticleSourceFlag::OnPart a
+// source on a unit sits on the part attachPoint names; otherwise on top of the object's bounds.
 
 namespace {
 
-// The part each attachPoint 1..12 asks for (0 is the unit's effect point). 2 is the head raised
-// by 1; 7 asks for "bd" twice (the fallback part).
+// The part each AttachPoint asks for (EffectPoint none); Body asks for "bd" twice (the fallback part).
 const char* const kPartNames[13] = {nullptr, "hd", "hd", "lh2", "rh2", "ll2", "rl2", "bd",
                                     "body00", "body01", "body02", "body03", "body04"};
 
@@ -149,11 +146,10 @@ Vector3 ParticleSource::PartPoint(Object3D* object, const char* prefix) {
 Vector3 ParticleSource::AttachmentPoint(Object3D* object) {
     if (!object) return {0.0f, 0.0f, 0.0f};
     if (!(flags & ParticleSourceFlag::OnPart)) return object->localPosition;
-    const auto point = static_cast<std::uint32_t>(attachPoint);
-    if (Unit* unit = UnitOrNull(object); unit && point <= 12) {
-        if (point == 0) return unit->EffectPoint();
-        Vector3 at = PartPoint(object, kPartNames[point]);
-        if (point == 2) at.z = at.z + 1.0f;
+    if (Unit* unit = UnitOrNull(object)) {
+        if (attachPoint == AttachPoint::EffectPoint) return unit->EffectPoint();
+        Vector3 at = PartPoint(object, kPartNames[static_cast<int>(attachPoint)]);
+        if (attachPoint == AttachPoint::AboveHead) at.z = at.z + 1.0f;
         return at;
     }
     float rise = lib::Has(object->bounds.flags, BoundsFlag::Sphere) ? object->bounds.radius * 1.6f
@@ -209,16 +205,14 @@ void ParticleSource::StopAndClear() {
 
 // The particle manager's draw pass and its draw order: every source's depth along the camera's view axis goes
 // into an array, which is sorted far-to-near with the game's sort (lib/intro_sort.h: sources at the same depth
-// keep its order) and drawn in that order. Names are provisional.
+// keep its order) and drawn in that order.
 
 namespace {
 
 // The particles' draw order, reused by every frame.
 std::vector<ParticleDepth> g_drawOrder;
-// The orientation of the camera the frame shows (camera::FrameView).
-const Quaternion& CameraRotation() { return camera::FrameView().rotation; }
 
-// A source attached to a unit (class 0x50) is drawn only while the unit has MapObjectFlag::InParty.
+// A source attached to a unit is drawn only while the unit has MapObjectFlag::InParty.
 bool AttachedToHiddenUnit(const ParticleSource* s) {
     EngineObject* object = s->attachedTo;
     if (!object) return false;
@@ -237,13 +231,13 @@ Vector3 ParticleSource::WorldPosition() {
 
 // Rebuilds the draw order (depth = position . camera view axis, iterating the manager's
 // sources until the first empty entry), sorts it far to near and draws each source that is not
-// hidden (ParticleSourceFlag::NotDrawn) and not on a hidden unit, switching to additive blending for sources with
-// +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.
+// hidden (ParticleSourceFlag::NotDrawn) and not on a hidden unit, switching to additive blending for the sources
+// with additiveBlend. Returns 0 as soon as a source fails to draw. The manager is referenced meanwhile.
 int ParticleManager::DrawAll(SceneRenderer* renderer) {
     ++refCount;
     std::vector<ParticleDepth>& order = g_drawOrder;
     order.clear();
-    Vector3 axis = CameraRotation().AxisZ();
+    Vector3 axis = camera::FrameView().rotation.AxisZ();
 
     // The manager's objects are its sources.
     for (auto node = objectList.begin(); node != objectList.end() && *node; ++node) {
@@ -281,7 +275,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
 
 // Particle drawing: each visible source fills the shared vertex array (position and size interpolated between
 // the last two ticks) and sprite array (interpolated colour, texture frame), binds its texture and hands both
-// arrays to the renderer. Names are provisional.
+// arrays to the renderer.
 
 namespace {
 
@@ -305,17 +299,12 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 } // namespace
 
-int SceneRenderer::BindLoadedTexture(int stage, Texture* texture) {
-    EnsureTextureLoaded(texture);
-    return SetTexture(stage, texture);
-}
-
-// Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
-// ticks. Otherwise the arrays are reserved for 0x1000 particles, sized to this source's, filled,
-// and drawn; 0 when the texture cannot be bound.
+// Off screen (the renderer's clip test on the bounds says outside) only counts the hidden ticks. Otherwise the
+// arrays are reserved for 4096 particles, sized to this source's, filled, and drawn; 0 when the texture cannot be
+// bound.
 int ParticleSource::Draw(SceneRenderer* renderer) {
     if (particles.empty()) return 1;
-    if (renderer->pipeline->ClipTest(&clip) == 2) {
+    if (renderer->pipeline->ClipTest(&clip) == TransformPipeline::kClipOutside) {
         ++hiddenTicks;
         return 1;
     }
@@ -373,7 +362,7 @@ void GrowBounds(Vector3& low, Vector3& high, const Vector3& p) {
     high = MaxKeepB(high, p);
 }
 
-// Saves the fields the update callback may change, so a rejected update can be undone (dword copies).
+// Saves the fields the update callback may change, so a rejected update can be undone.
 void SavePrevious(Particle* p) {
     p->prevPos = p->pos;
     p->prevColor = p->color;
@@ -487,14 +476,14 @@ void FinishBounds(ParticleSource& s) {
     s.clip.center = (s.boundsMax + s.boundsMin) * 0.5f;
     s.clip.boxMin = s.boundsMin - s.clip.center;
     s.clip.boxMax = s.boundsMax - s.clip.center;
-    s.clip.flags |= 2;
+    s.clip.flags |= lib::Bits(BoundsFlag::Box);
 }
 
 } // namespace
 
 // --- Particle pool --------------------------------------------------------------------------------
 
-// The head of the free list, or a fresh 0x64-byte particle when it is empty.
+// The head of the free list, or a fresh particle when it is empty.
 Particle* ParticleManager::AcquireParticle() {
     if (freeParticles.empty()) return new Particle;
     Particle* p = freeParticles.front();
@@ -516,10 +505,10 @@ void ParticleSource::AddParticle(Particle* p) {
 // Returns 1 while the source is still needed: a free source while it keeps
 // alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
 bool ParticleSource::RunTick() {
-    if (hiddenTicks > 0x38 && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
+    if (hiddenTicks >= kIdleAfterHidden && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
     const WorldClient* world = &g_clientWorld;
-    windDirection = lib::Load<Vector3>(world->windDirection);
-    windStrength = std::bit_cast<float>(world->windStrength);
+    windDirection = world->windDirection;
+    windStrength = world->windStrength;
     boundsMin = {kFar, kFar, kFar};
     boundsMax = {kNear, kNear, kNear};
     if (attachedTo && (attachedTo->flags & MapObjectFlag::Removed)) Attach(nullptr);

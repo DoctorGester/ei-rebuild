@@ -57,8 +57,8 @@ World::Clock World::GetTime() {
 }
 
 void World::SetWind(const Vector3& direction, float strength) {
-    std::memcpy(windDirection, &direction, sizeof(windDirection));
-    windStrength = std::bit_cast<std::uint32_t>(strength);
+    windDirection = direction;
+    windStrength = strength;
 }
 
 void WorldServer::SetTime(float hours) {

@@ -58,7 +58,7 @@ constexpr float kDeathDecalScale = 0.75f;
 constexpr int kDeathVariantBase = 2;
 constexpr int kSparks = static_cast<int>(ParticleType::Sparks);
 constexpr float kSparkAlpha = 10.0f;
-constexpr int kSparkAttach = 7;
+constexpr AttachPoint kSparkAttach = AttachPoint::Body;
 constexpr int kMinFlashTicks = 4;
 
 // The armour slots covering each hit location (four ints per location; columns 2, 0,
@@ -69,9 +69,11 @@ constexpr int kArmourColumns[3] = {2, 0, 1};
 // The figure part and the particle attach point of each hit location.
 struct HitPart {
     const char* name = nullptr;
-    int attachPoint = 0;
+    AttachPoint attachPoint = AttachPoint::EffectPoint;
 };
-constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, {"ll2", 5}, {"rl2", 6}};
+constexpr HitPart kHitParts[6] = {{"hd", AttachPoint::Head},         {"bd", AttachPoint::Body},
+                                  {"lh2", AttachPoint::LeftHand},    {"rh2", AttachPoint::RightHand},
+                                  {"ll2", AttachPoint::LeftLeg},     {"rl2", AttachPoint::RightLeg}};
 
 // The particle type of each blood kind (1..8).
 constexpr int kBloodParticles[8] = {static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4), static_cast<int>(ParticleType::Shower1), static_cast<int>(ParticleType::Shower2), static_cast<int>(ParticleType::Shower3), static_cast<int>(ParticleType::Shower4)};

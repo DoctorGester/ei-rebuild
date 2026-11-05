@@ -51,10 +51,9 @@ void World::Create() {
     g_textFolder = options::g_options.resourcesPath;
     tick = 0;
     // The wind: along x, no strength.
-    const float direction[3] = {1.0f, 0.0f, 0.0f};
-    std::memcpy(windDirection, direction, sizeof(direction));
+    windDirection = {1.0f, 0.0f, 0.0f};
     updateCount = 0;
-    windStrength = 0;
+    windStrength = 0.0f;
 
     players = std::make_unique<PlayerManager>();
     players->Init(this);
