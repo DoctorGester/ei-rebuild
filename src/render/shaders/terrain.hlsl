@@ -4,8 +4,9 @@
 // (`extra` there, 1 none: render_terrain.cpp's height field), which the screen's (ambient_occlusion.hlsli) darkens
 // more. On the water `depth` is its depth over the ground (negative where the ground is above it) and `extra` its
 // kind (0 water, 1 a swamp, 2 lava: render_terrain.cpp's WaterKind), which the water's look (Water, below) starts
-// from. On the ground `depth` is the depth of a swamp over it (-1 where there is none near), for the swamps' muddy rim,
-// and `otherWater` 1 where it lies under water that is not a swamp.
+// from, and `slope` the rise of the ground under it per landscape unit. On the ground `depth` is the depth of a swamp
+// over it (-1 where there is none near), for the swamps' muddy rim, and `otherWater` 1 where it lies under water that is
+// not a swamp.
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 struct VsIn {
@@ -15,7 +16,7 @@ struct VsIn {
     [[vk::location(3)]] float2 uv : TEXCOORD3;
     [[vk::location(4)]] float3 normal : TEXCOORD4;
     [[vk::location(5)]] float loss : TEXCOORD5;
-    [[vk::location(6)]] float2 depth : TEXCOORD6;   // the depth, otherWater
+    [[vk::location(6)]] float2 depth : TEXCOORD6;   // the depth; otherWater on the ground, the slope on the water
     [[vk::location(7)]] float extra : TEXCOORD7;
 };
 struct VsOut {
@@ -30,6 +31,7 @@ struct VsOut {
     [[vk::location(8)]] float occlusion : TEXCOORD8;   // the ground's own (1 on the water)
     [[vk::location(9)]] float kind : TEXCOORD9;        // the water's kind (0 on the ground)
     [[vk::location(10)]] float otherWater : TEXCOORD10;
+    [[vk::location(11)]] float slope : TEXCOORD11;     // the ground's under the water (0 on the ground)
     float4 pos : SV_Position;
 };
 
@@ -55,8 +57,9 @@ VsOut vs_main(VsIn i) {
     o.normal = i.normal;
     o.loss = i.loss;
     o.depth = i.depth.x;
-    o.otherWater = i.depth.y;
     const bool water = i.loss < 0.0;
+    o.otherWater = water ? 0.0 : i.depth.y;
+    o.slope = water ? i.depth.y : 0.0;
     o.occlusion = water ? 1.0 : i.extra;
     o.kind = water ? i.extra : 0.0;
     return o;
@@ -152,20 +155,26 @@ float3 rain_dimples(float3 c, float3 sky, float4 rings) {
     return lerp(c, lighter, saturate(rings.w * 0.55 + rings.z * 0.5));
 }
 
-// How far `xy` lies from where the depth `d` (linear over a triangle) reaches 0, in landscape units: positive under
-// the water, negative above it. From the depth's slope over the landscape, taken from the pixel's derivatives.
-float shore_distance(float d, float2 xy) {
-    float ddxd = ddx(d), ddyd = ddy(d);
-    float2 dx = ddx(xy), dy = ddy(xy);
-    float det = dx.x * dy.y - dx.y * dy.x;
-    det = abs(det) > 1e-12 ? det : 1e-12;
-    float2 grad = float2(dy.y * ddxd - dx.y * ddyd, dx.x * ddyd - dy.x * ddxd) / det;
-    return d / max(length(grad), 0.02);
+// About how far a point at depth `d` lies from where the depth reaches 0, in landscape units: positive under the water,
+// negative above it. `slope`: the ground's rise per landscape unit there, interpolated from the vertices' normals so
+// the distance runs on smoothly across the triangles. Taken per triangle (from the depth's pixel derivatives) it
+// jumped at every triangle's edge where the ground bends, and the swamps' edges and muddy rims stepped along the
+// triangles in straight lines and notches (scenario render_swamp_shore).
+float shore_distance(float d, float slope) {
+    return d / max(slope, 0.02);
+}
+
+// The rise per landscape unit of ground with the normal `n` (unit length).
+float ground_slope(float3 n) {
+    return length(n.xy) / max(n.z, 0.05);
 }
 
 static const float kMudRim = 0.6;                      // the swamps' muddy rim on the ground, landscape units
+static const float kMudUnder = 0.3;                    // ... and under the swamp, where it fades out
 static const float kMudOther = 0.25;                   // the otherWater over which it fades out
-static const float3 kMud = float3(0.95, 0.78, 0.52);   // its tint, of the ground's luminance
+static const float3 kMud = float3(0.85, 0.8, 0.5);     // its tint, of the ground's luminance
+static const float kMudShare = 0.45;                   // how much of the ground's colour turns to mud
+static const float kMudWet = 0.5;                      // how wet it is
 
 // The weather at a ground pixel: how wet (0 .. 1), how much of a puddle and how much snow; and how much of a swamp's
 // muddy rim (wet whatever the weather). `open`: how much of it lies under the sky (roof_open), the rest stays dry.
@@ -195,9 +204,10 @@ GroundWeather ground_weather(VsOut i, float3 n, float open) {
     if (i.depth > -0.99) {
         // Where a swamp meets other water both under it, the depth runs to the other's -1 and crosses 0 under the
         // water: no rim there, gone within a quarter of the way to ground under the other water.
-        g.mud = (1.0 - smoothstep(0.0, kMudRim, -shore_distance(i.depth, i.world.xy))) *
+        float shore = shore_distance(i.depth, ground_slope(n));
+        g.mud = (1.0 - smoothstep(0.0, kMudRim, -shore)) * (1.0 - smoothstep(0.0, kMudUnder, shore)) *
                 (1.0 - smoothstep(0.0, kMudOther, i.otherWater));
-        g.wet = max(g.wet, g.mud * (1.0 - g.snow));
+        g.wet = max(g.wet, g.mud * kMudWet * (1.0 - g.snow));
     }
     return g;
 }
@@ -205,8 +215,8 @@ GroundWeather ground_weather(VsOut i, float3 n, float open) {
 // The ground's colour `albedo` under the weather; the snow keeps some of the texture's light and dark.
 float3 weathered(float3 albedo, GroundWeather g) {
     float shade = lerp(0.72, 1.08, saturate(dot(albedo, float3(0.3, 0.59, 0.11)) * 2.0));
-    float3 mud = dot(albedo, float3(0.3, 0.59, 0.11)) * kMud * 0.8;
-    albedo = lerp(albedo, mud, g.mud * 0.8);
+    float3 mud = dot(albedo, float3(0.3, 0.59, 0.11)) * kMud;
+    albedo = lerp(albedo, mud, g.mud * kMudShare);
     return lerp(albedo, kSnow * shade, g.snow) * lerp(1.0, kWetDark, g.wet) * lerp(1.0, kPuddleDark, g.puddle);
 }
 
@@ -234,8 +244,9 @@ float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, fl
 // (alpha `opacity`, the material's) seen through small ripples, more opaque and darker with the depth, the sky and
 // the sun reflected by the rippled normal, and foam where the depth runs out at the shore; it fades in from the shore
 // line; in the rain (`rain`: the drops' share where it falls, none under a roof) the drops' rings and splashes and a
-// rougher surface. A swamp is still standing water: a dark olive-brown body, opaque but at its very edge, faint slow
-// ripples, a glossy sheen of the sky and the sun, sparse scum in place of the foam (and a muddy rim on the ground:
+// rougher surface. A swamp is still standing water: a deep green body (the game's green, darker and murkier), opaque
+// but at its very edge, faint slow ripples, a glossy sheen of the sky and the sun, sparse scum in place of the foam
+// (and a muddy rim on the ground:
 // ground_weather); lava keeps the game's look. `clouded`: the share of the sun the clouds hide, `footprint` the
 // landscape units a pixel spans.
 static const float kRippleScaleA = 1.0 / 9.0;    // the ripple map's repeats per landscape unit, layer A
@@ -248,7 +259,9 @@ static const float kFoamDepth = 0.5;             // the foam's band, from the sh
 static const float kShoreFade = 0.25;            // the depth over which the water fades in from the shore line
 static const float kScumScale = 1.0 / 17.0;      // the swamps' scum patches' repeats per landscape unit
 static const float3 kScum = float3(0.24, 0.27, 0.12);
-static const float3 kSwampBody = float3(0.13, 0.115, 0.05);   // a swamp's body, of the light on it
+static const float3 kSwampBody = float3(0.07, 0.12, 0.03);    // a swamp's murk, of the light on it
+static const float kSwampMurk = 0.35;            // ... its share of the body, the rest the game's lit layer darkened
+static const float kSwampLayer = 0.8;            // ... by this
 static const float kSwampEdge = 0.25;            // a swamp fades in over this distance from its shore line
 static const float kSwampClear = 1.2;            // ... and is opaque from this distance
 
@@ -276,12 +289,12 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     float3 toEye = scene.camera.xyz - i.world;
     float3 v = toEye * rsqrt(max(dot(toEye, toEye), 1e-12));
     float facing = saturate(dot(rippled, v));
-    // Schlick's, water's 0.02 head-on; a swamp's still, dark skin keeps a sheen of the sky whatever the angle.
+    // Schlick's, water's 0.02 head-on; a swamp's still skin keeps a faint sheen of the sky whatever the angle.
     float schlick = 0.02 + 0.98 * pow(1.0 - facing, 5.0);
-    float fresnel = lerp(schlick, 0.045 + 0.75 * schlick, swamp);
+    float fresnel = lerp(schlick, 0.03 + 0.6 * schlick, swamp);
     float3 r = reflect(-v, rippled);
     // The sky: the horizon in the fog's colour, darker overhead.
-    float3 sky = fs.fog.rgb * lerp(1.0, 0.75, saturate(r.z)) * lerp(1.0, 0.85, swamp);
+    float3 sky = fs.fog.rgb * lerp(1.0, 0.75, saturate(r.z)) * lerp(1.0, 0.7, swamp);
 
     float3 toSun = -scene.sun.xyz;
     float3 h = normalize(toSun + v);
@@ -290,7 +303,8 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     // lobe in place of the sharp one.
     float sunUp = saturate(toSun.z * 4.0) * (1.0 - clouded);
     float3 glint = scene.sunColour.rgb * sunUp *
-                   (pow(nh, 400.0) * 0.25 * (1.0 - swamp) + pow(nh, 60.0) * 0.03 + pow(nh, 150.0) * 0.12 * swamp);
+                   (pow(nh, 400.0) * 0.25 * (1.0 - swamp) + pow(nh, 60.0) * 0.03 * (1.0 - 0.7 * swamp) +
+                    pow(nh, 300.0) * 0.15 * swamp);
     // The ripples turned to the sun or away from it, by the sun's share of the light.
     float sunShare = saturate(max(scene.sunColour.r, max(scene.sunColour.g, scene.sunColour.b))) * sunUp;
     base *= clamp(1.0 + kRippleShade * sunShare * (dot(rippled, toSun) - dot(n, toSun)), 0.75, 1.3);
@@ -298,10 +312,11 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     float3 light = saturate(scene.ambient.rgb + saturate(toSun.z) * (1.0 - clouded) * scene.sunColour.rgb);
     float deep = 1.0 - exp(-kClearDepth * depth);
     // A swamp: see-through at its very edge, opaque a little way in; the water by its depth.
-    float edge = swamp > 0.0 ? shore_distance(i.depth, xy) : 0.0;
+    float edge = swamp > 0.0 ? shore_distance(i.depth, i.slope) : 0.0;
     float swampBody = lerp(0.35, 0.97, max(smoothstep(0.0, kSwampClear, edge), smoothstep(0.0, 0.5, depth)));
     float body = lerp(saturate(opacity * lerp(0.5, 1.15, deep)), swampBody, swamp);
-    float3 transmitted = lerp(base * lerp(1.0, 0.85, deep), lerp(base * 0.5, light * kSwampBody, 0.6), swamp);
+    float3 transmitted = lerp(base * lerp(1.0, 0.85, deep), lerp(base * kSwampLayer, light * kSwampBody, kSwampMurk),
+                              swamp);
 
     // Over the ground: the transmitted layer under the reflection, then the foam (a swamp's scum) over both.
     float3 colour = transmitted * body * (1.0 - fresnel) + sky * fresnel + glint;
