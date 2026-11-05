@@ -43,7 +43,11 @@ int RunPathLayersChecks() {
     std::error_code error;
     const fs::path root = fs::temp_directory_path() / "ei_unit_path_layers";
     fs::remove_all(root, error);
-    const fs::path game = root / "game", mod = game / "starter" / "Mods" / "Astral";
+    // The game folder reached through a symbolic link where the system makes one (macOS's temporary folder in /var is
+    // in /private/var): its paths keep the link's.
+    fs::create_directories(root / "real", error);
+    fs::create_directory_symlink(root / "real", root / "link", error);
+    const fs::path game = (error ? root / "real" : root / "link") / "game", mod = game / "starter" / "Mods" / "Astral";
     Write(game / "config" / "ai.reg", "game");
     Write(game / "config" / "keyboard.ini", "game");
     Write(game / "res" / "texts.res", "game");
@@ -90,9 +94,7 @@ int RunPathLayersChecks() {
         std::string names;
         for (const platform::FolderEntry& entry : platform::FolderEntries(".\\maps\\*.mob")) {
             if (entry.IsDots()) continue;
-            // POSIX's entries keep the pattern's "." (game\.\maps\...): the same file.
-            const std::string path = platform::FullGamePath(entry.path);
-            names += entry.name + (path == g + "\\maps\\" + entry.name ? "" : "(" + path + ")") + " ";
+            names += entry.name + (entry.path == g + "\\maps\\" + entry.name ? "" : "(" + entry.path + ")") + " ";
             if (entry.name == "zone2.mob" && entry.size != 3) names += "(not the mod's) ";
         }
         Expect("the merged search", names, "bz1h.mob zone1.mob zone2.mob ");

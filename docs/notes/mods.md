@@ -36,7 +36,10 @@ Every file and folder call of the platform takes its path from `SystemPath(path,
 harness's overlay"); with a mod, or in a harness run, that is a `PathLayers` map:
 - `bases`: the game folder in full (the harness adds the settings' data folder when it differs). A path is made full
   lexically (`FullGamePath`: the current folder for a relative one, `.` and `..` folded, `/` as `\`), and only paths
-  below a base are mapped; every other path is the system's as it is.
+  below a base are mapped; every other path is the system's as it is. The current folder is the path it was set
+  to, symbolic links kept, on every system (POSIX's `CurrentFolder` keeps what `SetCurrentFolder` was given, as
+  Windows does): the system's resolved path (macOS's `/private/var` for `/var`, any game folder under a link) would
+  lie outside the base, and the mod would be skipped (the v1.0.0 macOS check, 2026-11-05).
 - `layers`, top first, each a folder (or a `place` function) standing for the game folder's files, with `owns`: the
   files it answers for even when it lacks them (read as missing, nothing below asked).
 - Read: the first layer whose file exists (or owns it); else the path itself.
@@ -162,7 +165,8 @@ makes that call and then `TemplateTable::Build(this + 0x38, 1)`; and the byte 0x
 ## Checks
 
 - `tests/unit/path_layers.cpp`: full paths, the mod's and the game's files for reads and writes, archives and root
-  files left out, the saves' folder, merged searches.
+  files left out, the saves' folder, merged searches; the game folder is reached through a symbolic link where the
+  system makes one (Linux, macOS).
 - `mod_lost_in_astral` (Rebirth's data): with Lost in Astral the main menu's zone (ZoneMainMenuNew) and the new game's
   (gz1g, the mod's zonezero) and `config\ai.reg` are the mod's, and the autosave goes to
   `harness_saves\LostInAstral\savea`. On the vanilla data the folder is missing: logged, the game without a mod.

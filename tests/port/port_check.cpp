@@ -74,10 +74,11 @@ int main() {
 #endif
     }
     namespace fs = std::filesystem;
-    const fs::path old = fs::current_path();
+    const std::string old = platform::CurrentFolder();
     std::string temp = (fs::temp_directory_path() / "ei-port-XXXXXX").string();
     Check(mkdtemp(temp.data()) != nullptr, "scratch directory");
-    fs::current_path(temp);
+    std::uint32_t folderError = 0;
+    Check(platform::SetCurrentFolder(temp, &folderError), "enter the scratch directory");
     Check(platform::CreateFolder("Movies"), "create movie directory");
     {
         // A one-frame Bink container: an 8x8 picture and eight video bytes, no sound track.
@@ -175,7 +176,7 @@ int main() {
     Check(Select(&ready, nullptr, nullptr, 1000) == 0 && ready.count == 0, "select clears nonready sockets");
     Close(receiver);
     Close(sender);
-    fs::current_path(old);
+    platform::SetCurrentFolder(old, &folderError);
     // This tree is freshly made by this process and contains no links or game data.
     fs::remove_all(temp);
     // Last: it sets the program's mod.

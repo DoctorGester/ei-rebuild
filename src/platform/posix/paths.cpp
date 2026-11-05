@@ -4,6 +4,7 @@
 // ~/Library/Logs/ei-rebuild.
 #include "platform/platform.h"
 
+#include "platform/path_layers.h"
 #include "platform/posix/platform_posix.h"
 #include "platform/seams.h"
 
@@ -12,6 +13,7 @@
 #include <cerrno>
 #include <climits>
 #include <cstring>
+#include <mutex>
 #include <unistd.h>
 #if defined(__APPLE__)
 #include <atomic>
@@ -175,13 +177,37 @@ std::string ArgumentsAfterSeparator(int argc, char** argv) {
     return arguments;
 }
 
-std::string CurrentFolder() { return posix::GamePath(fs::current_path()); }
+namespace {
+
+// The current folder as it was given (SetCurrentFolder), as Windows keeps it: a game folder reached through a symbolic
+// link (macOS's temporary folder in /var is in /private/var) keeps the path that named it, which the mod's map
+// (path_layers.h) matches the game's full paths against. The system's resolved path until one is given.
+std::mutex g_currentMutex;
+std::string g_current;
+
+} // namespace
+
+std::string CurrentFolder() {
+    {
+        const std::lock_guard lock(g_currentMutex);
+        if (!g_current.empty()) return g_current;
+    }
+    std::error_code error;
+    return posix::GamePath(fs::current_path(error));
+}
 
 std::string UserDataFolder() { return PrefFolder(""); }
 
 bool SetCurrentFolder(const std::string& path, std::uint32_t* error) {
-    if (chdir(NativePath(path).c_str()) == 0) return true;
-    if (error) *error = errno;
+    // The system is given the full path with its ".." taken off as written, as Windows does, so it and the folder kept
+    // agree.
+    const std::string full = FullGamePath(path);
+    if (!full.empty() && chdir(NativePath(full).c_str()) == 0) {
+        const std::lock_guard lock(g_currentMutex);
+        g_current = full;
+        return true;
+    }
+    if (error) *error = full.empty() ? ENOENT : errno;
     return false;
 }
 
