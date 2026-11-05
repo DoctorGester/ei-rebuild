@@ -4,8 +4,11 @@
 #include "fullscreen.hlsli"
 #ifdef EI_FRAGMENT
 struct OcclusionBlurParams {
-    int4 step;          // xy: the direction in texels, zw: the last texel
-    float4 depthMap;    // a depth z at the clip w = y / (z - x); z: the weight lost per relative depth difference
+    int2 step;          // the direction in texels
+    int2 last;          // the last texel
+    float depthOffset;  // a depth z at the clip w = depthScale / (z - depthOffset)
+    float depthScale;
+    float sharpness;    // the weight lost per relative depth difference
 };
 ConstantBuffer<OcclusionBlurParams> params : FS_BLOCK(0);
 Texture2D<float> occlusion : FS_TEXTURE(0);
@@ -19,15 +22,15 @@ float ps_main(float4 pos : SV_Position) : SV_Target0 {
     int2 c = int2(pos.xy);
     float z = depth.Load(int3(c, 0));
     if (z >= 1.0) return 1.0;
-    float w = params.depthMap.y / (z - params.depthMap.x);
+    float w = params.depthScale / (z - params.depthOffset);
     float sum = occlusion.Load(int3(c, 0)), weights = 1.0;
     [unroll] for (int i = -kTaps; i <= kTaps; ++i) {
         if (i == 0) continue;
-        int2 t = clamp(c + params.step.xy * i, int2(0, 0), params.step.zw);
+        int2 t = clamp(c + params.step * i, int2(0, 0), params.last);
         float zt = depth.Load(int3(t, 0));
         if (zt >= 1.0) continue;
-        float wt = params.depthMap.y / (zt - params.depthMap.x);
-        float weight = exp(-0.125 * i * i) * saturate(1.0 - abs(wt - w) / w * params.depthMap.z);
+        float wt = params.depthScale / (zt - params.depthOffset);
+        float weight = exp(-0.125 * i * i) * saturate(1.0 - abs(wt - w) / w * params.sharpness);
         sum += occlusion.Load(int3(t, 0)) * weight;
         weights += weight;
     }

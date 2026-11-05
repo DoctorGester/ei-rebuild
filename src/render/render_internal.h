@@ -923,7 +923,30 @@ void ShadowFrameDone();
 // none, unless `receives` and made) and bind the occlusion and its depth at `slot` with BindOcclusion (white
 // stand-ins without). OcclusionFrameDone: the frame is presented.
 void DrawOcclusion(Frame& frame);
-void OcclusionUniforms(bool receives, float on[4], float map[4]);
+// What the receivers take of the occlusion this frame (ambient_occlusion.hlsli's arguments; all zero: none).
+struct OcclusionReceiver {
+    bool on = false;
+    bool view = false;                  // the occlusion alone (SetOcclusion's View)
+    float depthOffset = 0.0f;           // a depth's clip w: depthScale / (depth - depthOffset)
+    float depthScale = 0.0f;
+    float scale[2] = {};                // the half-size texels per frame pixel
+    float texel[2] = {};                // their inverse size
+};
+// The frame's, or none when the receiver does not take it.
+const OcclusionReceiver& OcclusionOf(bool receives);
+// Fills the occlusion members of a receiver's block (MeshFsParams, TerrainFsParams).
+template <class Block>
+void OcclusionUniforms(bool receives, Block& fs) {
+    const OcclusionReceiver& o = OcclusionOf(receives);
+    fs.occlusionOn = o.on ? 1 : 0;
+    fs.occlusionView = o.view ? 1 : 0;
+    fs.occlusionDepthOffset = o.depthOffset;
+    fs.occlusionDepthScale = o.depthScale;
+    for (int k = 0; k < 2; ++k) {
+        fs.occlusionScale[k] = o.scale[k];
+        fs.occlusionTexel[k] = o.texel[k];
+    }
+}
 void BindOcclusion(int slot);
 void OcclusionFrameDone();
 

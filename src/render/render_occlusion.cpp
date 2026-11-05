@@ -30,9 +30,8 @@ static gpu::Pipeline g_findPipeline, g_blurPipeline, g_terrainPipeline;
 static bool g_pipelinesTried = false;
 static CasterDraws g_depthDraws("ei-occlusion-depth");
 
-// The receivers' uniforms this frame (ambient_occlusion.hlsli's `on` and `map`).
-static bool g_on = false;
-static float g_params[4] = {}, g_map[4] = {};
+// What the receivers take this frame.
+static OcclusionReceiver g_receiver;
 
 static gpu::PipelineDesc FullScreenDesc(int program) {
     gpu::PipelineDesc p;
@@ -118,7 +117,7 @@ void ListOcclusionPipelines(std::vector<gpu::PipelineDesc>& out) {
 }
 
 void DrawOcclusion(Frame& f) {
-    g_on = false;
+    g_receiver = OcclusionReceiver{};
     g_info = OcclusionInfo{};
     if (g_mode == OcclusionMode::Off || f.worldRanges.empty()) return;
     Matrix4 camera, fromClip;
@@ -176,22 +175,28 @@ void DrawOcclusion(Frame& f) {
     find.fromClip = fromClip;
     find.size[0] = static_cast<float>(g_width);
     find.size[1] = static_cast<float>(g_height);
-    find.size[2] = 1.0f / g_width;
-    find.size[3] = 1.0f / g_height;
+    find.texel[0] = 1.0f / g_width;
+    find.texel[1] = 1.0f / g_height;
     find.eye[0] = eye.x;
     find.eye[1] = eye.y;
     find.eye[2] = eye.z;
-    find.reach[0] = kRadius;
-    find.reach[1] = 1.0f / (kRadius * kRadius);
-    find.reach[2] = 0.5f * g_height * Length(Vector3{m[4], m[5], m[6]});   // the y row: the projection's scale
-    find.reach[3] = kWidestTexels;
-    find.depthMap[0] = depthMap[0];
-    find.depthMap[1] = depthMap[1];
-    find.depthMap[2] = kStrength;
-    find.depthMap[3] = kAngleBias;
+    find.radius = kRadius;
+    find.inverseRadiusSquared = 1.0f / (kRadius * kRadius);
+    find.texelsPerUnit = 0.5f * g_height * Length(Vector3{m[4], m[5], m[6]});   // the y row: the projection's scale
+    find.widestRadius = kWidestTexels;
+    find.depthOffset = depthMap[0];
+    find.depthScale = depthMap[1];
+    find.strength = kStrength;
+    find.angleBias = kAngleBias;
     const gpu::TextureBinding depth{g_depth, gpu::NearestClampSampler()};
     FullScreenPass(g_findPipeline, g_occlusion, {&depth, 1}, &find, sizeof(find), "ei-occlusion");
-    OcclusionBlurParams blur{{1, 0, g_width - 1, g_height - 1}, {depthMap[0], depthMap[1], kBlurSharpness, 0.0f}};
+    OcclusionBlurParams blur{};
+    blur.step[0] = 1;
+    blur.last[0] = g_width - 1;
+    blur.last[1] = g_height - 1;
+    blur.depthOffset = depthMap[0];
+    blur.depthScale = depthMap[1];
+    blur.sharpness = kBlurSharpness;
     const gpu::TextureBinding across[2] = {{g_occlusion, gpu::NearestClampSampler()}, depth};
     FullScreenPass(g_blurPipeline, g_across, across, &blur, sizeof(blur), "ei-occlusion-across");
     blur.step[0] = 0;
@@ -199,38 +204,34 @@ void DrawOcclusion(Frame& f) {
     const gpu::TextureBinding down[2] = {{g_across, gpu::NearestClampSampler()}, depth};
     FullScreenPass(g_blurPipeline, g_occlusion, down, &blur, sizeof(blur), "ei-occlusion-down");
 
-    g_on = true;
-    g_params[0] = 1.0f;
-    g_params[1] = depthMap[0];
-    g_params[2] = depthMap[1];
-    g_params[3] = g_mode == OcclusionMode::View ? 1.0f : 0.0f;
-    g_map[0] = static_cast<float>(g_width) / width;
-    g_map[1] = static_cast<float>(g_height) / height;
-    g_map[2] = 1.0f / g_width;
-    g_map[3] = 1.0f / g_height;
+    g_receiver.on = true;
+    g_receiver.view = g_mode == OcclusionMode::View;
+    g_receiver.depthOffset = depthMap[0];
+    g_receiver.depthScale = depthMap[1];
+    g_receiver.scale[0] = static_cast<float>(g_width) / width;
+    g_receiver.scale[1] = static_cast<float>(g_height) / height;
+    g_receiver.texel[0] = 1.0f / g_width;
+    g_receiver.texel[1] = 1.0f / g_height;
     g_info.made = true;
     g_info.width = g_width;
     g_info.height = g_height;
 }
 
-void OcclusionUniforms(bool receives, float on[4], float map[4]) {
-    const bool taken = receives && g_on;
-    for (int k = 0; k < 4; ++k) {
-        on[k] = taken ? g_params[k] : 0.0f;
-        map[k] = taken ? g_map[k] : 0.0f;
-    }
+const OcclusionReceiver& OcclusionOf(bool receives) {
+    static const OcclusionReceiver none;
+    return receives && g_receiver.on ? g_receiver : none;
 }
 
 void BindOcclusion(int slot) {
     const gpu::Texture& none = WhiteView();
-    const gpu::TextureBinding b[2] = {{g_on ? g_occlusion : none, gpu::NearestClampSampler()},
-                                      {g_on ? g_depth : none, gpu::NearestClampSampler()}};
+    const gpu::TextureBinding b[2] = {{g_receiver.on ? g_occlusion : none, gpu::NearestClampSampler()},
+                                      {g_receiver.on ? g_depth : none, gpu::NearestClampSampler()}};
     gpu::BindTextures(gpu::Stage::Fragment, slot, b);
 }
 
 void OcclusionFrameDone() {
     g_lastInfo = g_info;
-    g_on = false;
+    g_receiver = OcclusionReceiver{};
 }
 
 } // namespace render
