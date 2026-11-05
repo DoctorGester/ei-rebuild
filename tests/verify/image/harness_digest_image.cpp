@@ -167,7 +167,7 @@ void ReadEffects(MapObject* m, Builder& b) {
 }
 
 void ReadBrain(AIBrain& brain, Builder& b) {
-    b.Int("ai.action", brain.action);
+    b.Int("ai.action", static_cast<int>(brain.action));
     b.Vector("ai.point.x", "ai.point.y", "ai.point.z", brain.move.point);
     b.Int("ai.looks", static_cast<int>(brain.move.looks.size()));
     b.Int("ai.actionTime", brain.actionTime);
@@ -177,7 +177,7 @@ void ReadBrain(AIBrain& brain, Builder& b) {
     b.Int("ai.alarm", brain.alarm);
     b.Int("ai.alarmSlot", brain.alarmSlot);
     b.Float("ai.callRadius", brain.callRadius);
-    b.Int("ai.alertMode", brain.alertMode);
+    b.Int("ai.alertMode", static_cast<int>(brain.alertMode));
     b.Int("ai.alarmCountdown", brain.alarmCountdown);
     // The keys keep the fields' old names (nearX / nearY, noticedKind): the goldens hold them.
     b.Float("ai.near.x", brain.nearRange);

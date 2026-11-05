@@ -289,8 +289,8 @@ void Possession(SpellEffect* e) {
         group->InsertAll(&server->brain.memory.seenCorpses);
         player->Server()->possessedId = target->id;
         target->flags |= MapObjectFlag::SeeAll;
-        float sight = server->moveFactors[3] * server->stats.perception[0].current;
-        float floor = server->stats.perception[2].current;
+        float sight = server->moveFactors[kFactorSight] * server->stats.perception[kSenseSight].current;
+        float floor = server->stats.perception[kSenseNear].current;
         float reach = MaxKeepB(sight, floor);
         float wake = reach * kPossessWake + kPossessWakeBase;
         e->world->WakeUnitsAround(target->localPosition, wake);

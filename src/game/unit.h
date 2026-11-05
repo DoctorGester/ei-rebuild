@@ -513,7 +513,7 @@ public:
     // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 moves on the water surface), the
     // mode and base speeds and the six body slots (the unit panel's parts are their kind / current / maximum).
     UnitParams params;
-    int fightAtWill = 0;                // 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
+    int fightAtWill = 0;                // kFightAtWill: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
     std::uint32_t altPassCosts = 0;     // set: path searches use the AI map's alternative cost table
     Item* weapons[4] = {};
     Item* quickItems[4] = {};
@@ -521,8 +521,20 @@ public:
     ItemArmor* armor[7] = {};           // a piece per armour type
     std::vector<Item*> carried;    // further items, each holding a reference
     float actionSpeeds[6] = {};     // per action kind (ActionSpeed; from the model record)
-    std::array<float, 5> exposure = {};         // any at most 2 (or NaN) asks for a party refresh
+    std::array<float, 5> exposure = {};         // by ExposureKind; any at most 2 (or NaN) asks for a party refresh
 };
+
+// The slots of Unit::exposure: how near the nearest hostile unit is to sensing this one, as distance / range (at most 3).
+enum ExposureKind {
+    kExposureSight = 0,
+    kExposureSlot4 = 1,     // the kSenseSlot4 pair
+    kExposureHearing = 2,
+    kExposureUnused = 3,    // never written: stays 3
+    kExposureNear = 4,
+};
+
+// Unit::fightAtWill of a unit that attacks on its own.
+inline constexpr int kFightAtWill = 1;
 
 inline Unit* UnitOrNull(EngineObject* object) {
     return object && object->GetClassId() == ClassId::Unit ? static_cast<Unit*>(object) : nullptr;
@@ -593,6 +605,16 @@ struct UnitVitals {
     float maxMana = 0.0f;
     float manaRegen = 0.0f;
     UnitStatPair protection[7];     // per damage type (current: what a hit loses to it)
+};
+
+// The slots of UnitStats::perception (what a unit senses) and UnitStats::conspicuity (what others sense of it). A
+// seer's perception multiplies the seen unit's conspicuity in the same slot.
+enum Sense {
+    kSenseSight = 0,        // perception: the sight range at night; conspicuity: how visible the unit is
+    kSenseDaySight = 1,     // perception only: the sight range's percentage by day
+    kSenseNear = 2,         // the range sensed whatever the light / how near it is sensed
+    kSenseHearing = 3,      // perception: hearing; conspicuity: how loud the unit is (the noise it makes)
+    kSenseSlot4 = 4,        // read only by AIMemory::MeasureExposure; effect 19 raises its conspicuity
 };
 
 // A creature's computed statistics (built from the unit's parameters).
@@ -780,11 +802,9 @@ struct UnitStats {
     float attackCategory = 0.0f;    // the natural attack's category (UnitPrototypeRecord::attackCategory)
     float damageWeights[7] = {};    // the natural attack's, per damage type
     WeaponType naturalWeapon = {};  // weapon type of the natural attack (SpellsOnly: none)
-    // What the unit senses (the AI's sight and hearing): [0] sight range at night, [1] its percentage by day, [2] the
-    // range it senses at, whatever the light, [3] hearing.
+    // What the unit senses (the AI's sight and hearing), by Sense.
     UnitStatPair perception[6];
-    // What others sense of it, multiplied with their perception: [0] how visible it is, [2] how near it is sensed,
-    // [3] how loud it is (the noise it makes).
+    // What others sense of it, multiplied with their perception, by Sense.
     UnitStatPair conspicuity[6];
     UnitStatSlot slots[6];
     std::uint8_t attributes[3] = {};

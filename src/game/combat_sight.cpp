@@ -46,8 +46,8 @@ int CastDelayTicks(float distanceSq, float flight) {
 // AI units only act on a target within 1.05 times their sight range: the larger of a stats value and the
 // movement factor times the sight; the original's select picks the stats value for a NaN product.
 bool OutOfSightRange(UnitServer* self, const Vector3& point) {
-    float limit = self->stats.perception[2].current;
-    float range = self->moveFactors[3] * self->stats.perception[0].current;
+    float limit = self->stats.perception[kSenseNear].current;
+    float range = self->moveFactors[kFactorSight] * self->stats.perception[kSenseSight].current;
     float rangeValue = range;
     float chosen = MaxKeepB(rangeValue, limit);
     float reach = chosen * kRangeSlack;

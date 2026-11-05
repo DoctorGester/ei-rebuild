@@ -118,6 +118,24 @@ enum class AIModeType : int {
     Follow = 10,
 };
 
+// What the brain is carrying out (AIBrain::action; saved as four bytes).
+enum class AIAction : std::int32_t {
+    None = 0,
+    Walk = 1,
+    Move = 2,       // move to `move.point`, then the queued looks
+    Attack = 3,
+    Cast = 4,
+    Use = 5,
+    Follow = 6,
+};
+
+// Where a Player mode is (PlayerMode::state; saved as four bytes).
+enum class PlayerState : std::int32_t {
+    Follow = 0,     // fights and follows the leader
+    Command = 1,    // waits for the commanded action to end
+    MoveTo = 2,     // walks to the commanded point
+};
+
 // Mode priorities (AIMode::Evaluate): the idle modes' claim, an Aggression mode's while it has an enemy, none.
 inline constexpr int kPriorityIdle = 50;
 inline constexpr int kPriorityFight = 10000;
@@ -329,7 +347,7 @@ public:
     // Runs from the nearest enemy (calling allies to it), else stays in shelter, else from the noticed point
     // (forgotten unless `watchful` and above 500): within `distance`, and not walking on command, to `fleePoint`
     // when one is pending, else 5 away plus a random offset of at most `spread` (which first drops to 2.5 x
-    // `distance`), when a path is found (action 1); `spread` doubles. Without an action: attack the best
+    // `distance`), when a path is found (AIAction::Walk); `spread` doubles. Without an action: attack the best
     // target in sight (allies only), else stand and look away from the point.
     void Execute(AIBrain* brain) override;
     void Enter(AIBrain* brain) override;
@@ -354,7 +372,6 @@ public:
 // Player: the party's units.
 class PlayerMode : public AIActionMode {
 public:
-    enum { kStateFollow = 0, kStateCommand = 1, kStateMoveTo = 2 };
     static constexpr int kPriority = 10;
     static constexpr AIModeType kType = AIModeType::Player;   // the type FindModeOf finds (not Tamed)
 
@@ -362,7 +379,7 @@ public:
     int Evaluate(AIBrain*) override { return kPriority; }
 
     // State 0: follow the leader (unless the party is in danger) and fight (unless the leader carries out a
-    // command); state 1: wait for the commanded action to end; state 2: walk to `point` (staying with the party
+    // command); PlayerState::Command: wait for the commanded action to end; MoveTo: walk to `point` (staying with the party
     // unless it is in danger) and fight on the way.
     void Execute(AIBrain* brain) override;
     void OnObjectDeleted(EngineObject* object) override;
@@ -373,10 +390,10 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
 
-    // The player's commands (state 1 or 2). Walk to `to` + `offset` (just `to` when the way there is
+    // The player's commands (PlayerState::Command or MoveTo). Walk to `to` + `offset` (just `to` when the way there is
     // blocked); forgets the leader unless the party is in danger.
     void CommandWalk(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset);
-    // The same in state 2 (keep fighting on the way); when the unit would leave the party it only turns
+    // The same in MoveTo (keep fighting on the way); when the unit would leave the party it only turns
     // towards the point.
     void CommandGoTo(AIBrain* brain, const Vector3& to, bool inGroup, bool run, const Vector3& offset);
     void CommandAttack(AIBrain* brain, MapObject* object, int how, int calledShot);
@@ -386,18 +403,18 @@ public:
 
     // Follow `leader` (counted): none when it is the unit itself. When the chain of leaders from `leader`
     // (each unit's first Player mode) comes back to this unit, this unit's own Player mode stops following
-    // first. A walk in progress (action 1) is dropped (state 0).
+    // first. A walk in progress (AIAction::Walk) is dropped (PlayerState::Follow).
     void SetLeader(AIBrain* brain, Unit* leader);
 
-    // Only for units with fightAtWill 1: the mode's target when it can be reached from here (attacked at
+    // Only for units with kFightAtWill: the mode's target when it can be reached from here (attacked at
     // once); else the best target (no allies) among the enemies near `point` (within [Logic] SwarmRadius in
-    // state 2, anywhere otherwise, the point then zeroed) that are no farther than 1.1 x their own sight or
+    // MoveTo, anywhere otherwise, the point then zeroed) that are no farther than 1.1 x their own sight or
     // hearing, plus what the party is fighting. When there is one, the party's other followers that are not
     // attacking or casting stop (unless the party is in danger), the unit attacks it unless it
     // already does, and the mode's target is dropped.
     void UpdateCombat(AIBrain* brain);
     // Adds to `targets` (once each) the units that party members within [Logic] PlayerCallForHelp are
-    // attacking (action 3), unless they belong to the same player.
+    // attacking (AIAction::Attack), unless they belong to the same player.
     void AddPartyTargets(AIBrain* brain, UnitList* targets);
     // The unit, the chain of leaders above it (Player mode's leader, or the followed unit), and repeatedly
     // every unit of its player whose leader is listed (the player's units in hash order, up to the first
@@ -412,8 +429,8 @@ public:
 
     Ref<MapObject> target;
     Ref<Unit> leader;
-    Vector3 point{};                // (z: 1.0 while walking there in state 2)
-    int state = kStateFollow;
+    Vector3 point{};                // (z: 1.0 while walking there in MoveTo)
+    PlayerState state = PlayerState::Follow;
     bool runs = false;              // the commanded walk runs (and so do the casts after it)
 
 protected:
@@ -634,16 +651,6 @@ struct AIMemory {
 
 // The brain, embedded in the unit controller.
 struct AIBrain {
-    // Actions (`action`).
-    enum {
-        kActionNone = 0,
-        kActionWalk = 1,
-        kActionMove = 2,        // move to `move.point`, then the queued looks
-        kActionAttack = 3,
-        kActionCast = 4,
-        kActionUse = 5,
-        kActionFollow = 6,
-    };
     static constexpr int kNoTime = -10000;          // actionTime: no look in progress
     static constexpr int kLookStarted = -9999;      // actionTime: the first queued look is turning
     static constexpr float kRangeCleared = 100000.0f;  // nearRange / farRange without a mode that sets them
@@ -722,7 +729,7 @@ struct AIBrain {
     // Chooses the best target in sight (Choose from the unit's position, allies only) and takes it up
     // (ApplyAttack).
     void LookAround();
-    // The current attack as {part, object}: action 3 {kWeaponPart, target}, action 4 {spell, target}, the object
+    // The current attack as {part, object}: AIAction::Attack {kWeaponPart, target}, AIAction::Cast {spell, target}, the object
     // only when it is a unit; otherwise {kWeaponPart, null}.
     AITargetChoice CurrentAttack();
     // Takes up {part, object} unless there is no object or it is the current attack: kWeaponPart AttackTarget,
@@ -739,16 +746,16 @@ struct AIBrain {
     void StartMove(const AIMoveOrder* order);
     void Walk(const Vector3& point, int run);
     void TurnTowards(const Vector3& direction, float time);
-    // Action 4 (unless the spell comes from a scroll): cast `spell` at `point`.
+    // AIAction::Cast (unless the spell comes from a scroll): cast `spell` at `point`.
     void CastAt(int spell, const Vector3& point, int run);
-    // Action 4 (unless the spell comes from a scroll) on `object` (the target, counted): cast `spell` at it.
+    // AIAction::Cast (unless the spell comes from a scroll) on `object` (the target, counted): cast `spell` at it.
     void CastOn(int spell, MapObject* object, int run);
     void Follow(MapObject* object);
     // Something was noticed: remember `object` as seen, call allies to it (or to the unit itself when null)
-    // unless it is an ally, become alerted in alert mode 1, and remember a unit in the perception memory.
+    // unless it is an ally, become alerted in mapspec::AlertMode::OnSeen, and remember a unit in the perception memory.
     void SetSeen(MapObject* object);
     void AttackTarget(MapObject* object);
-    // Action 5: use something on `object` (`kind` the use order's UseSource).
+    // AIAction::Use: use something on `object` (`kind` the use order's UseSource).
     void UseOn(MapObject* object, UseSource kind, int spot, int run);
 
     // Action 6 (follow `target`): every few ticks walk to where the leader is or will be
@@ -764,12 +771,12 @@ struct AIBrain {
     // the distance) fail at once.
     std::optional<Vector3> FindStandPoint(const Vector3& point, float radius);
     // Every allied unit within callRadius of the owner's unit hears a call for help (delay kCallDelay) at
-    // `point`; the message text is formatted only while the console shows filter bit 0.
+    // `point`; the message text is formatted only while the console shows the AI filter (console::kLogAi).
     void CallAllies(const Vector3& point);
     static constexpr int kCallDelay = 0x1A;
 
     UnitServer* owner = nullptr;
-    int action = kActionNone;
+    AIAction action = AIAction::None;
     AIMoveOrder move;               // the action point, and what to look at after arriving
     int actionTime = kNoTime;       // game time the current look ends (or kNoTime / kLookStarted)
     Ref<MapObject> target;
@@ -779,7 +786,7 @@ struct AIBrain {
     std::int8_t alarmSlot = 0;      // the world alarm slot of the applied record (ApplyBehaviour)
     bool alwaysUpdated = false;     // the world keeps the unit in its update map (the record's flag bit 3)
     float callRadius = kInitialCallRadius;  // allies within it hear a call for help
-    int alertMode = 0;
+    mapspec::AlertMode alertMode = mapspec::AlertMode::OnSight;
     int alarmCountdown = 1;
     // Two distances the idle modes set (35 and 80, plus the radius for Guard). Nothing reads them: they are only
     // saved and loaded.

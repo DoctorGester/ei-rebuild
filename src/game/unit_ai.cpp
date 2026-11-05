@@ -58,7 +58,7 @@ float ConfiguredCallRadius(float radius) {
     return radius == g_logicSettings.callForHelpRadiusDefault ? g_logicSettings.callForHelpRadius : radius;
 }
 
-// The modes that alert a brain in alert mode 2 when they take charge.
+// The modes that alert a brain in mapspec::AlertMode::OnSightOrMode when they take charge.
 bool IsAlertMode(AIModeType type) {
     switch (type) {
     case AIModeType::Suspection:
@@ -87,7 +87,8 @@ void AIBrain::Think() {
     memory.seesEnemy = std::ranges::any_of(memory.visible, [unit](Unit* other) { return unit->IsHostileTo(other) && !other->IsDead(); });
 
     if (owner->state == UnitState::Acting) return;
-    if (memory.seesEnemy && !alerted && (alertMode == 0 || alertMode == 2)) alerted = true;
+    const bool alertsOnSight = alertMode == mapspec::AlertMode::OnSight || alertMode == mapspec::AlertMode::OnSightOrMode;
+    if (memory.seesEnemy && !alerted && alertsOnSight) alerted = true;
 
     // Choose the mode: the one in charge keeps it with a bonus.
     AIMode* best = nullptr;
@@ -112,7 +113,7 @@ void AIBrain::Think() {
         if (best) {
             console::EndLine(kAiLog << str::Format("Unit %i new motivation %s with power of %i", owner->unit->id,
                                                    ModeName(best->type), bestPriority));
-            if (IsAlertMode(best->type) && alertMode == 2 && !alerted) alerted = true;
+            if (IsAlertMode(best->type) && alertMode == mapspec::AlertMode::OnSightOrMode && !alerted) alerted = true;
         }
         if (current) current->Leave(this);
         if (best) best->Enter(this);
@@ -131,33 +132,33 @@ void AIBrain::Think() {
     memory.corpses.clear();
 
     switch (action) {
-    case kActionNone:
+    case AIAction::None:
         target.Reset();
         owner->Idle();
         return;
-    case kActionWalk:
+    case AIAction::Walk:
         target.Reset();
         if (owner->HasOrder(UnitOrderKind::Move) || owner->HasOrder(UnitOrderKind::Turn)) return;
-        action = kActionNone;
+        action = AIAction::None;
         return;
-    case kActionMove:
+    case AIAction::Move:
         target.Reset();
         UpdateMove();
         return;
-    case kActionAttack:
+    case AIAction::Attack:
         UpdateAttack();
         return;
-    case kActionCast:
+    case AIAction::Cast:
         if (owner->HasOrder(UnitOrderKind::CastAt) || owner->HasOrder(UnitOrderKind::CastOn)) return;
         if (target && owner->orderStopped) memory.reports.Report(target, AIReports::kCastStoppedTicks);
         StopAction();
         return;
-    case kActionUse:
+    case AIAction::Use:
         target.Reset();
         if (owner->HasOrder(UnitOrderKind::Use)) return;
-        action = kActionNone;
+        action = AIAction::None;
         return;
-    case kActionFollow:
+    case AIAction::Follow:
         UpdateFollow();
         return;
     default:
@@ -177,7 +178,7 @@ AIMode* AIBrain::FindMode(AIModeType type) {
 MapObject* AIBrain::LeaderOrFollowed() {
     MapObject* leader = nullptr;
     if (PlayerMode* mode = FindModeOf<PlayerMode>()) leader = mode->leader;
-    if (!leader && action == kActionFollow) return target;
+    if (!leader && action == AIAction::Follow) return target;
     return leader;
 }
 
@@ -255,29 +256,29 @@ void AIBrain::UpdateMove() {
 
 void AIBrain::UpdateAttack() {
     if (!target || target->IsDead()) {
-        action = kActionNone;
+        action = AIAction::None;
         return;
     }
     // A unit without a player gives up a unit it can no longer keep track of and remembers where it was.
     Unit* unit = UnitOrNull(target);
     if (unit && !owner->unit->player && !memory.CanTrack(owner->unit, unit)) {
         memory.Notice(target->localPosition, kNoticeSeenLevel, kNoticeSeenDecay);
-        action = kActionNone;
+        action = AIAction::None;
         return;
     }
     if (owner->action.kind == UnitOrderKind::Attack && owner->action.target == target) return;
     if (owner->action2.kind == UnitOrderKind::Attack && owner->action2.target == target) return;
     if (owner->HasOrder(UnitOrderKind::CastAt) || owner->HasOrder(UnitOrderKind::CastOn)) return;
-    action = kActionNone;
+    action = AIAction::None;
 }
 
 void AIBrain::StopAction() {
     target.Reset();
-    action = kActionNone;
+    action = AIAction::None;
 }
 
 void AIBrain::AttackTarget(MapObject* object) {
-    action = kActionAttack;
+    action = AIAction::Attack;
     target.Assign(object);
     AckKind flags = AckKind::DecidedToAttack;
     if (owner->unit->player) {
@@ -290,7 +291,7 @@ void AIBrain::AttackTarget(MapObject* object) {
 
 void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, int run) {
     if (!object) return;
-    action = kActionUse;
+    action = AIAction::Use;
     target.Reset();
     switch (kind) {
     case UseSource::Use:
@@ -312,7 +313,7 @@ void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, int run) {
 
 void AIBrain::StartMove(const AIMoveOrder* order) {
     target.Reset();
-    action = kActionMove;
+    action = AIAction::Move;
     actionTime = kNoTime;
     move.point = order->point;
     move.looks = order->looks;
@@ -320,30 +321,30 @@ void AIBrain::StartMove(const AIMoveOrder* order) {
 }
 
 void AIBrain::Walk(const Vector3& point, int run) {
-    action = kActionWalk;
+    action = AIAction::Walk;
     owner->OrderMove(point, run, 0);
 }
 
 void AIBrain::TurnTowards(const Vector3& direction, float time) {
-    action = kActionWalk;
+    action = AIAction::Walk;
     owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
 }
 
 void AIBrain::CastAt(int spell, const Vector3& point, int run) {
-    if (!owner->IsPotionSource(spell)) action = kActionCast;
+    if (!owner->IsPotionSource(spell)) action = AIAction::Cast;
     actionTime = spell;
     owner->OrderCastAt(spell, point, run);
 }
 
 void AIBrain::CastOn(int spell, MapObject* object, int run) {
-    if (!owner->IsPotionSource(spell)) action = kActionCast;
+    if (!owner->IsPotionSource(spell)) action = AIAction::Cast;
     target.Assign(object);
     actionTime = spell;
     owner->OrderCast(spell, object, run);
 }
 
 void AIBrain::Follow(MapObject* object) {
-    action = kActionFollow;
+    action = AIAction::Follow;
     target.Assign(object);
 }
 
@@ -354,7 +355,7 @@ void AIBrain::SetSeen(MapObject* object) {
     } else if (!IsAlliedUnit(object)) {
         CallAllies(object->localPosition);
     }
-    if (!alerted && alertMode == 1) alerted = true;
+    if (!alerted && alertMode == mapspec::AlertMode::OnSeen) alerted = true;
     if (Unit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);
 }
 
@@ -433,7 +434,7 @@ void AIBrain::ClearModes() {
 
 void AIBrain::Reset() {
     ClearModes();
-    action = kActionNone;
+    action = AIAction::None;
     memory.Reset();
     move.Clear();
     target.Reset();
@@ -452,7 +453,7 @@ void AIBrain::Init() {
     alarmRecords.clear();
     callRadius = kInitialCallRadius;
     position = Vector3{0.0f, 0.0f, 0.0f};
-    alertMode = 0;
+    alertMode = mapspec::AlertMode::OnSight;
     alwaysUpdated = false;
     standCooldown = 0;
     followTimer = 0;
@@ -495,7 +496,7 @@ void AIBrain::CallAllies(const Vector3& point) {
         if (other == self || !g_serverWorld.diplomacy.IsAllied(self->side, other->side)) continue;
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
-        if (console::g_filterMask & 1) {
+        if (console::g_filterMask & console::kLogAi) {
             message = str::Format("Unit %i call for help unit %i from %fm distance", self->id, other->id,
                            std::sqrt(LengthSquared(self->localPosition - other->localPosition)));
         }
@@ -676,9 +677,9 @@ void AIBrain::Save(ByteStream* stream) {
 
 AITargetChoice AIBrain::CurrentAttack() {
     AITargetChoice choice;
-    if (action == kActionAttack) {
+    if (action == AIAction::Attack) {
         choice.part = kWeaponPart;
-    } else if (action == kActionCast) {
+    } else if (action == AIAction::Cast) {
         choice.part = actionTime;     // the spell being cast
     } else {
         return choice;
@@ -715,8 +716,6 @@ Vector3 HalfCellCentre(const Vector3& position) {
 }
 
 namespace {
-enum BehaviourType { kGuard = 1, kPatrol = 2, kSentry = 3, kParty = 4, kGuardAlarm = 5 };
-enum Reaction { kFight = 0, kRevenge = 1, kWatch = 2, kWatchFearful = 3 };
 
 // Patrol points from the record's patrols: each start on its half-cell's middle (z 0) and its
 // waypoints as looks of that point (the direction from the start, the wait and the turning time).
@@ -745,28 +744,28 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
 void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     ClearModes();
     callRadius = ConfiguredCallRadius(record->callRadius);
-    alertMode = static_cast<int>(record->alertMode);
+    alertMode = record->alertMode;
 
     switch (record->type) {
-    case kGuard: {
+    case mapspec::BehaviourType::Guard: {
         AddMode(std::make_unique<GuardMode>(record->guard, record->guardRadius, kNoWander));
         break;
     }
-    case kGuardAlarm: {
+    case mapspec::BehaviourType::GuardAlarm: {
         const WorldAlarm& alarmAt = g_serverWorld.alarms[slot];
         Vector3 point{alarmAt.x, alarmAt.y, 0.0f};
         AddMode(std::make_unique<GuardMode>(point, record->guardRadius, kNoWander));
         break;
     }
-    case kSentry: {
+    case mapspec::BehaviourType::Sentry: {
         AddMode(std::make_unique<SentryMode>(record->guard));
         break;
     }
-    case kParty: {
+    case mapspec::BehaviourType::Party: {
         AddMode(std::make_unique<PlayerMode>());
         break;
     }
-    case kPatrol: {
+    case mapspec::BehaviourType::Patrol: {
         AddMode(std::make_unique<PatrolMode>());
         AddPatrolPoints(FindModeOf<PatrolMode>(), record);
         break;
@@ -775,19 +774,19 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
         break;
     }
 
-    if (record->type != 0 && record->type != kParty) {
-        int reaction = static_cast<int>(record->alarm);
-        if (reaction == kFight || reaction == kRevenge) {
-            AddMode(std::make_unique<AggressionMode>(reaction == kRevenge));
+    if (record->type != mapspec::BehaviourType::None && record->type != mapspec::BehaviourType::Party) {
+        const mapspec::Reaction reaction = record->alarm;
+        if (reaction == mapspec::Reaction::Fight || reaction == mapspec::Reaction::Revenge) {
+            AddMode(std::make_unique<AggressionMode>(reaction == mapspec::Reaction::Revenge));
             AddMode(std::make_unique<SuspectionMode>());
             AddMode(std::make_unique<CorpseWatcherMode>());
             AddMode(std::make_unique<FearMode>(false));
         }
-        if (reaction == kWatch) {
+        if (reaction == mapspec::Reaction::Watch) {
             AddMode(std::make_unique<CorpseWatcherMode>());
             AddMode(std::make_unique<FearMode>(false));
         }
-        if (reaction == kWatchFearful) {
+        if (reaction == mapspec::Reaction::WatchFearful) {
             AddMode(std::make_unique<CorpseWatcherMode>());
             AddMode(std::make_unique<FearMode>(true));
         }
@@ -800,7 +799,7 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     int delay = static_cast<int>(record->alarmDelay);
     alarmCountdown = delay < 1 ? 1 : delay;
     target.Reset();
-    action = kActionNone;
+    action = AIAction::None;
     attention.Build(owner->unit);
     if (alwaysUpdated) g_serverWorld.AddToUpdateMap(owner->unit);
 }
