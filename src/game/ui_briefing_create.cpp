@@ -65,8 +65,6 @@ constexpr int kRewards = 4;
 
 constexpr float kMoverTimeout = 30.0f;
 constexpr float kCloseEnough = 0.01f;       // squared distance
-constexpr int kEventOpenTopics = 1;
-constexpr int kEventNoTopics = 2;
 constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;       // "constr"
 
@@ -301,11 +299,14 @@ void BriefingScreen::MarkPeople() {
         if (std::find(people.begin(), people.end(), textKey) == people.end()) continue;
         open.push_back(textKey);
     }
+    // Marked on the local view directly, where the game is served: a mark sent through the server's player 0
+    // reaches the view a tick or two after the screen's first frame.
+    auto* player = g_serverWorld.GetPlayer(0);
+    if (!player || !player->Server()) return;
     for (auto& personId : people) {
-        if (!g_clientWorld.FindUnit(personId)) continue;
-        bool hasTopics = std::find(open.begin(), open.end(), personId) != open.end();
-        auto* player = g_serverWorld.GetPlayer(0);
-        if (player && player->Server()) player->Server()->SendUnitControl(hasTopics ? kEventOpenTopics : kEventNoTopics, personId);
+        Unit* unit = g_clientWorld.FindUnit(personId);
+        if (!unit) continue;
+        g_clientWorld.MarkPerson(unit, std::find(open.begin(), open.end(), personId) != open.end());
     }
     open.clear();
 }

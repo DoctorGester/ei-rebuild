@@ -296,6 +296,11 @@ topic last; `TopicTitle` maps "constr..." to "briefing constr"; the "constr" top
 leader's "b.<zone>" topic starts at once. `PersonTextMap::Load` serves the battle screen too. The rewards are the quest
 database's `QuestBriefingRecord` (quest_records.h). Per-function detail: section 11.
 
+`MarkPeople` (each Update in states 0 and 1) marks the people with a topic open (`WorldClient::MarkPerson`: the
+figure lit, MapObjectFlag::BoxMarked; a selected one is left alone) on the local view directly, only where the game is
+served (player 0 has a server half); the original sent each mark as message 0x19 kind 1 / 2 through the server's player
+0, which reached the view a tick or two after the screen's first frame (the people lit up late, R56a).
+
 Meshes: 0 / 1 the topics' backdrop and frame (shown in state 1 only), 2 / 3 the text's backdrop and frame, then the people's
 slots. Update hides them all each frame, then state 1 shows 0 and 1 and states 3 / 4 show 2 onwards (showing every mesh drew
 the topics' frame inside the text's).

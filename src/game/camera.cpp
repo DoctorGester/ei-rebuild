@@ -59,12 +59,17 @@ void Approach(float& rate, float target, float response, float dt) {
 // farther from it by more, placed it anew (a map change, a jump of the focus): shown at once, not spread. A
 // turn, pan, tilt, zoom or lift over the ground stays within both in a tick, however fast the camera turns.
 constexpr float kViewCut = 8.0f;
+// A settle left shorter than this (map units) is dropped.
+constexpr float kSettleDone = 1e-4f;
 
 // The last client tick's step of the camera (the change its update made: focus and distance; the turns as the
 // rotations that undo them; `stretch`, the part of the camera's reach from its focus the step added, 1 - before /
 // after; nothing for a cut, a placement or a load), the pose before that update, the part of the step the frames
 // spread (`spread`: taken once, by the pass that ran the tick, so it stays the same until the next tick) and the
-// part the frame has not reached yet.
+// part the frame has not reached yet. `placed`: placed since the last frame drew the world (ForgetViewStep).
+// `settle`: what the drawn focus and position add to the camera's own while it glides onto a target given before
+// the first frame after a placement (Camera::SetTargetId): the drawn view shows the glide's end at once, the
+// camera's own state (saved, picked through) keeps the game's glide.
 struct ViewStep {
     camera::ViewPose before{};
     Vector3 focus{};
@@ -74,12 +79,16 @@ struct ViewStep {
     float spread = 0.0f;
     bool spreadTaken = true;
     float back = 0.0f;
+    bool placed = false;
+    Vector3 settle{};
 };
 ViewStep g_viewStep;
 camera::ViewPose g_frameView{};   // camera::FrameView
 
+// The camera's pose as drawn before the tick's spread: its own, moved by the settle.
 camera::ViewPose PoseOf(const Camera* c) {
-    return camera::ViewPose{c->localPosition, c->localRotation, c->focus, c->viewRotation, c->distance};
+    const Vector3& settle = g_viewStep.settle;
+    return camera::ViewPose{c->localPosition + settle, c->localRotation, c->focus + settle, c->viewRotation, c->distance};
 }
 
 Quaternion Conjugate(const Quaternion& q) { return Quaternion{q.w, -q.x, -q.y, -q.z}; }
@@ -124,8 +133,10 @@ void camera::NoteViewTick(const Camera* camera) {
     const ViewPose now = PoseOf(camera);
     const ViewPose& before = step.before;
     const float reachNow = Reach(now), reachBefore = Reach(before);
-    const bool kept =
-        DistanceSquared(now.focus, before.focus) <= kViewCut * kViewCut && std::fabs(reachNow - reachBefore) <= kViewCut;
+    // A tick after a placement starts from a pose no frame showed (a load leaves the camera's own position and
+    // turn as they were until its update places it by the loaded focus): shown at once, as a cut.
+    const bool kept = !step.placed && DistanceSquared(now.focus, before.focus) <= kViewCut * kViewCut &&
+                      std::fabs(reachNow - reachBefore) <= kViewCut;
     step.focus = kept ? now.focus - before.focus : kZeroVector;
     step.distance = kept ? now.distance - before.distance : 0.0f;
     step.stretch = kept && reachNow > 0.0f ? 1.0f - reachBefore / reachNow : 0.0f;
@@ -134,7 +145,25 @@ void camera::NoteViewTick(const Camera* camera) {
     step.spreadTaken = false;
 }
 
-void camera::ForgetViewStep() { g_viewStep = ViewStep{}; }
+void camera::ForgetViewStep() {
+    g_viewStep = ViewStep{};
+    g_viewStep.placed = true;
+}
+
+void camera::SettleBy(const Vector3& gap) { g_viewStep.settle = gap; }
+
+void camera::ForgetSettle() { g_viewStep.settle = kZeroVector; }
+
+void camera::ShrinkSettle(float keep, bool height) {
+    Vector3& settle = g_viewStep.settle;
+    if (height) {
+        settle.z *= keep;
+    } else {
+        settle.x *= keep;
+        settle.y *= keep;
+    }
+    if (LengthSquared(settle) < kSettleDone * kSettleDone) settle = kZeroVector;
+}
 
 void camera::SetViewProgress(float reached, float passTicks) {
     ViewStep& step = g_viewStep;
@@ -165,7 +194,10 @@ camera::ViewPose camera::DrawnView(const Camera* camera) {
     return out;
 }
 
-void camera::TakeFrameView(const Camera* camera) { g_frameView = DrawnView(camera); }
+void camera::TakeFrameView(const Camera* camera) {
+    g_frameView = DrawnView(camera);
+    g_viewStep.placed = false;
+}
 
 const camera::ViewPose& camera::FrameView() { return g_frameView; }
 
@@ -294,7 +326,10 @@ void Camera::Update(float dt) {
     }
     Vector3 forward = localRotation.AxisZ();
     g_clientWorld.sounds->SetListener(listener, forward);
-    if (flags & kPlaced) return;
+    if (flags & kPlaced) {
+        camera::ForgetSettle();
+        return;
+    }
 
     Object3D* target = g_clientWorld.objectManager->FindObjectAs<Object3D>(static_cast<unsigned>(targetId));
     if (flags & kFollowing) {
@@ -312,6 +347,7 @@ void Camera::Update(float dt) {
             dir.y *= inv;
             TurnTowards(dir);
             AlignToTarget();
+            camera::ForgetSettle();
             return;
         }
     } else if (target) {
@@ -322,6 +358,10 @@ void Camera::Update(float dt) {
         focus.x = ClampToMap(dx * kTrackGain + focus.x, width);
         float height = g_clientWorld.terrain->height;
         focus.y = ClampToMap(dy * kTrackGain + focus.y, height);
+        // The drift is linear: the gap to the settled focus shrinks by the same part wherever the target goes.
+        camera::ShrinkSettle(1.0f - kTrackGain, false);
+    } else {
+        camera::ShrinkSettle(0.0f, false);
     }
 
     // Pan: the velocity eases towards its target.
@@ -353,6 +393,7 @@ void Camera::Update(float dt) {
         float y = ClampToMap(stepY + focus.y, height);
         targetId = -1;
         flags &= ~kFollowing;
+        camera::ShrinkSettle(0.0f, false);
         focus.y = y;
         if (flags & kBounded) {
             float bx = focus.x - boundsCenter.x;
@@ -376,6 +417,7 @@ void Camera::Update(float dt) {
                                                 options::g_options.cameraTerrainArea, options::g_options.cameraTerrainArea);
     float ground = target ? target->localPosition.z : terrain.average;
     focus.z = ((ground + focusHeight) - focus.z) * kHeightLag + focus.z;
+    camera::ShrinkSettle(1.0f - kHeightLag, true);
 
     // Tilt (pitch in degrees, clamped to the settings' range).
     Approach(tiltRate, tiltTarget, tiltResponse, dt);
@@ -551,6 +593,18 @@ void Camera::SetTargetId(int newId) {
         panTarget = camera::kZeroVector;
         panVelocity = camera::kZeroVector;
     }
+    // A target given before any frame showed the camera since its placement (the screens take the leader as they
+    // are made after a load or a zone's entry) is drawn as reached: the first frame shows the focus where the
+    // update's drift (a fifth of the way a call) and height lag (a tenth) settle it, not the placed focus gliding
+    // there. The camera's own focus glides as the game's does (it is saved, and clicks pick through it).
+    camera::ForgetSettle();
+    if (newId == -1 || !g_viewStep.placed || (flags & kFollowing)) return;
+    const Object3D* target = g_clientWorld.objectManager->FindObjectAs<Object3D>(static_cast<unsigned>(newId));
+    if (!target) return;
+    const Vector3 settled = {ClampToMap(target->localPosition.x, g_clientWorld.terrain->width),
+                             ClampToMap(target->localPosition.y, g_clientWorld.terrain->height),
+                             target->localPosition.z + focusHeight};
+    camera::SettleBy(settled - focus);
 }
 
 void Camera::SetBounds(const Vector3& center, float radius) {

@@ -195,8 +195,9 @@ public:
     // Message 0x16. (unit id, index): the party member's weapon record `index` is removed (signed bound
     // check) and the client unit's controller shows no weapon.
     bool OnWeaponRemoved();
-    // Message 0x19. A kind byte and a unit id: 0 the client world controls the unit, 1 / 2 set / clear its
-    // flag 0x100 and light (not with flag 0x10), 3 deselects; false for other kinds.
+    // Message 0x19. A kind byte and a unit id: 0 the client world controls the unit, 1 / 2 mark / unmark the base
+    // person (WorldClient::MarkPerson; our briefing marks its people itself and sends none), 3 deselects; false
+    // for other kinds.
     bool OnUnitControl();
     // Message 0x41. A known map object reads its delta; platforms (0x54, 0x5D) refresh. False when unknown or
     // the read fails.

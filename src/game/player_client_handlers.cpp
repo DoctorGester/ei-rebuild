@@ -29,8 +29,6 @@
 namespace {
 
 constexpr int kGameStateBetweenZones = 3;
-constexpr std::uint32_t kUnitFlagHidden = 0x10;
-constexpr std::uint32_t kUnitFlagLit = 0x100;
 constexpr float kSpecialZoneDistance = 23.0f;
 
 // The zone whose camera placement keeps a fixed view ("gz20g").
@@ -180,14 +178,9 @@ bool PlayerClient::OnUnitControl() {
         if (unit) g_clientWorld.Select(unit);
         return true;
     case 1:
-    case 2: {
-        if (!unit || (unit->flags & kUnitFlagHidden)) return true;
-        const bool lit = (unit->flags & kUnitFlagLit) != 0;
-        if (lit == (kind == 1)) return true;
-        unit->flags ^= kUnitFlagLit;
-        unit->AsObject3D()->attached->SetLit(kind == 1);
+    case 2:
+        if (unit) g_clientWorld.MarkPerson(unit, kind == 1);
         return true;
-    }
     case 3:
         g_clientWorld.Deselect();
         return true;

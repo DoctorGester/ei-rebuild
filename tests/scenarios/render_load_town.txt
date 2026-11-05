@@ -1,0 +1,41 @@
+# R56a: the first frame after loading the user's Rebirth save "ShadowCorrupt" (tests/saves/shadow_corrupt, prepared
+# by tools/copy_save.py): the town bz1g's base view, its camera panned off the leader and saved from the Esc menu.
+# Before R56a the first frames differed from the settled ones in two ways (docs/notes/renderer.md section 14,
+# "Placed"; ui.md, "Briefing / base screen"):
+# - the camera: a load leaves the camera's own position and turn as they were until its update places it by the
+#   loaded focus, and the drawn view spread that first tick's swing over the frames; then the base screen made the
+#   leader the camera's target and the focus glided the ~3 units to it (a fifth of the way a call). Now the ticks
+#   before the first frame after a placement are cuts, and a target given then is taken at once;
+# - the people with a topic open lit up a tick or two late: the screen sent each mark to the server's player 0, which
+#   passed it back to the local view. Now the screen marks them itself.
+# At 8 ms frames, the first frame (frozen at once) against the settled one 60 frames later: the people's idle
+# animations and the fires differ (under 1.5% of the pixels; 93% before, the camera elsewhere), and the
+# people with a topic stand out from an unlit guard (#999742) as brightly in both: their largest mean channel
+# difference 45-68 (before, in the first frame, 17-30).
+# The save loads paused (the Esc menu's pause), so on the virtual clock the first frames show the world still until
+# the screen's unpause reaches the client; on the real clock the load's long passes cover that.
+# prepare: copy_save.py tests/saves/shadow_corrupt save2
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+move 400 20
+frametime 8
+load save2
+capture first 1 freeze after Loaded save2
+frames 10
+unitcolour first_1 #1001577495 #999742 55 85
+unitcolour first_1 #1000059184 #999742 42 75
+unitcolour first_1 #1000054752 #999742 38 70
+unfreeze
+waitwindow 30 briefing
+frames 60
+freeze
+capture settled
+unitcolour settled #1001577495 #999742 55 85
+unitcolour settled #1000059184 #999742 42 75
+unitcolour settled #1000054752 #999742 38 70
+unfreeze
+diffcapture first_1 settled 0 1.5
+report
+quit

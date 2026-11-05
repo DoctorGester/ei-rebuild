@@ -607,6 +607,14 @@ void WorldClient::Select(MapObject* object) {
     if (std::ranges::find(selectedIds, object->id) == selectedIds.end()) selectedIds.push_back(object->id);
 }
 
+void WorldClient::MarkPerson(MapObject* object, bool marked) {
+    if (object->flags & MapObjectFlag::Selected) return;
+    if (((object->flags & MapObjectFlag::BoxMarked) != 0) == marked) return;
+    if (marked) object->flags |= MapObjectFlag::BoxMarked;
+    else object->flags &= ~MapObjectFlag::BoxMarked;
+    object->attached->SetLit(marked);
+}
+
 void SectorGrid::Allocate() {
     cells = std::make_unique<std::vector<HeldRef<MapObject>>[]>(static_cast<std::size_t>(allocatedWidth) * allocatedHeight);
     rows = std::make_unique<std::vector<HeldRef<MapObject>>*[]>(static_cast<std::size_t>(allocatedHeight));
