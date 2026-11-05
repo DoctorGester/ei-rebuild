@@ -329,13 +329,21 @@ What of them reaches game state, and so what the stubs keep:
   0.90% against 1.41 / - / 0.91%). The ruins alone leave Rebirth's anisotropy check at 0.47% (its tree is 2048 x 2048
   DXT5, 5.4 MB of the set), the tree alone leaves msaa 2 at 0.13%. The units' skins are composed textures (made from
   the game's pieces) and cannot be kept (their pieces can, below); the ground needs no pixels for this scenario.
-  `KEPT_VANILLA` (C159, the vanilla install's stub set only: Rebirth's copies of these add 23 MB): render_shadows_decals
-  and render_weather_panel found 0.0000% in CI (run 41953378949) with the ground prints and the HUD figure drawn
+  render_shadows_decals and render_weather_panel (C159, both sets since H62e; Rebirth's copies add 23 MB of pixels):
+  found 0.0000% in CI (run 41953378949) with the ground prints and the HUD figure drawn
   blank: `footprints*`, `bloodprints`, `fireprints` (clear on blank pixels), zone2's ground pages `zone2000`-`2007`
   (gz2g; printlight compares a print's brightness with the ground's under it: black ground gave ratios 1.4 to 2.3
   against 1.0 to 1.13) and the thirteen layers the hero's skin is composed of (`unhuma*`; a wet black figure is as
   black as a dry one). Not a driver gap: the install passes on lavapipe and dzn, the old stub set fails on both, the
-  new one passes on both. A layer's name: log `FindLayers`' `found` (texture_load.cpp).
+  new one passes on both. A layer's name: log `FindLayers`' `found` (texture_load.cpp). H62e: C159 kept them in the
+  vanilla set only, and the Windows CI runs 42016421240 and 42039247533 failed render_shadows_decals on Rebirth's
+  (diffcapture decals bare 0.0000%, printlight no pixel differs). Keeping the names in Rebirth's set was not enough:
+  its textures.res stores some names twice over one range (`Zone2000` and `bz2g000`, `Zone2003` / `bz2g003`, `Zone2005` /
+  `bz2g005`: one entry's bytes, two names), and blanking the other name zeroed the kept pixels, so the ground of gz2g
+  stayed a checkerboard of lit and black pages. `stub_in_place` now keeps every name of a kept entry's range. With it
+  Rebirth's printlight reads as the install's (decals 66 69 61 over 38 85 59, ratio 1.071; before 57 54 59 over 20 56 56,
+  1.286 against at most 1.13), and render_water, render_smooth, render_shadows_outside, render_weather, _roofs and _panel
+  pass on that set; the vanilla set is the same. Check after a repack: the kept entries' bytes equal the install's.
   render_water (H51d): its diffcapture of the beach (the ripples moving between two frozen moments, at least 1.0% of the
   pixels) reached 0.9907% on GitHub's runner with the vanilla stubs; the water layer draws the same page textures as the
   ground (Terrain::DrawWater binds `pageTextures` again), so black pages leave the sand and the water over it dark and the
@@ -350,7 +358,9 @@ What of them reaches game state, and so what the stubs keep:
   and Rebirth's 2.8 MB: the ground of bz1g under the gateway's floor; render_weather_roofs' rain and snow captures
   differed in 72.7% of the rectangle against at least 80% on blank ground, 95.5% and 97.4% with the page: each of
   `basegipat00x` painted in turn, 002 and 003 together 74.7%, 004, 006 and 007 nothing). The pack: 85.6 MB (79.3 before),
-  both installs, level 22.
+  both installs, level 22. After H62e (Rebirth's prints, ground pages and skins, and the aliases above): 93.0 MB
+  (97.6 million bytes, under GitHub's 100 MB file limit: the next addition to Rebirth's set may need the split parts
+  the CI job unpacks, `ei-stub-data.tar.zst.00`, `.01`).
 - Sounds (.wav): every chunk; the samples 0. A voice ends by its data's bytes over its byte rate (sound.md).
 - MP3 (speech, music): every frame header (the game counts frames: ScanMp3), the frames' data 0, an info frame whole.
 - Movies (.bik): header and frame index (frame count, size, rate, keyframes); every frame emptied (no sound packet, no
@@ -382,7 +392,7 @@ Sizes: the vanilla set 724 MB on disk (121 MB of it not zero: figures.res 53, th
 not zero): its high-resolution textures.res is 655 MB of blanked pixels and the LostInAstral mod 711 MB (its speech and
 sfx blanked; 119 MB of maps and figures that no run reads). The blanks cost next to nothing packed; truncating them
 would change the archives' layout and only save the runner's disk. `stub_data.py pack` (Python 3.14's zstd) puts both
-in one .tar.zst of 79.3 MB (74.5 MB before `KEPT`, 77.1 before H51c): level 22 with a 128 MB window and long matching, the two installs' copies of a file next
+in one .tar.zst of 93.0 MB (79.3 MB before H60 and H62e; 74.5 MB before `KEPT`, 77.1 before H51c): level 22 with a 128 MB window and long matching, the two installs' copies of a file next
 to each other. Against xz -9 with a 256 MB window: 65.0 MB, but 7 to 9 s to unpack against zstd's 1 s; zstd -19
 --long=27 76.3 MB. Leaving out LostInAstral would give 49 MB. Building takes about 20 s an install, packing 5 minutes.
 
@@ -417,7 +427,7 @@ render_drawn_lights, render_drawn_motion, render_shadows_outside, render_stats, 
 the five ui_widescreen ones, unit_ai_bridge, zone_gz15h_tornado and zone_gz15h_tornado_client. Run 41953378949 (scale 3)
 cut the weather scenarios, the drawn-frame ones, Rebirth's widescreen set, unit_ai_bridge, the tornado client and
 camera_smooth, which are back in the list; render_shadows_decals and render_weather_panel are out of it again (C159,
-"The stub data": blank ground prints, ground and hero skin, not the driver; they need the repacked stub set). The four
+"The stub data": blank ground prints, ground and hero skin, not the driver; they run on the repacked stub set). The four
 render_weather* scenarios (not _panel) are out of it too (H60), each with a `timeout` line the scale multiplies, set from
 WSL on lavapipe with `taskset -c 0-3` and the factor of two the runner seems to be slower by (camera_spin: 207 s here, cut
 at its 360 s, step 31 of 51, twice on CI's runner in run 41971981364 and through the next run, 41972714191):

@@ -42,9 +42,10 @@ MMP_MAGIC = b'MMP\0'
 PROGRAMS = ('.exe', '.dll', '.asi')        # stand-ins: empty files
 # Not copied (paths below the install, lower case): the install's saves (a run reads and writes its own folder's), what
 # the game never opens (ResBuild's work folder, the uninstaller, the Rebirth starter's own program, data and crash
-# dumps) and logs (a player's; a run starts its own).
+# dumps), logs (a player's; a run starts its own) and zips (a mod's download left in the starter's Mods folder, 760 MB
+# on 2026-11-05; the game opens the unpacked folders).
 LEFT_OUT = ('saves', 'cache', 'uninstall', 'starter/dumps', 'starter/engine', 'starter/eirelements.db')
-LEFT_OUT_TYPES = ('.log',)
+LEFT_OUT_TYPES = ('.log', '.zip')
 # Textures kept whole, by their file or archive entry name (lower case, in any archive or folder): the few whose pixels
 # a frame check reads, which fail on blanks (H51b, H51c; Windows and Linux alike). Their pixels reach no golden. Most of
 # it is Rebirth's 2048 x 2048 ground and tree.
@@ -65,16 +66,10 @@ KEPT = (
                    'anisotropy check reaches 0.47% against at least 0.5%, with the tree alone msaa 2 0.13% against 0.2%)'),
     ('rainsnow.mmp', "render_weather: the rain's and snow's particle texture (effects_weather.cpp WeatherTextureName); "
                      'blank, the particles are clear and the frame with them equals the frame without'),
-)
-
-# Kept in the vanilla install's stub set only (C159): for scenarios that run on the vanilla install alone, where Rebirth's
-# copies of these (a 2048 x 2048 ground, high-resolution skins) would add 23 MB to the pack. Same rule as KEPT.
-KEPT_VANILLA = (
     ('footprints*.mmp', "render_shadows_decals: the ground prints' textures (ground_print.cpp); blank ones are clear"),
     ('bloodprints.mmp', 'render_shadows_decals: the same, the blood splats'),
     ('fireprints.mmp', 'render_shadows_decals: the same, the scorch marks'),
     ('zone200[0-7].mmp', "render_shadows_decals: gz2g's ground, zone2's pages (printlight compares the prints' brightness with the ground's under them: black ground gives ratios of 1.4 to 2.3)"),
-    ('zone100[0-2].mmp', "render_water: zone1's ground pages (the shore's sand and the sea bed; the water layer draws the same pages)"),
     ('unhumaskin_00.mmp', "render_weather_panel: the hero Zak's skin and gear layers in the HUD panel (the wet figure is darker than the dry one: a black figure shows no difference)"),
     ('unhumaskin_07.mmp', 'render_weather_panel: the same'),
     ('unhumabt_00.le.0.mmp', 'render_weather_panel: the same'),
@@ -88,6 +83,12 @@ KEPT_VANILLA = (
     ('unhumapt_12.cw.0.mmp', 'render_weather_panel: the same'),
     ('unhumash_00.le.0.mmp', 'render_weather_panel: the same'),
     ('unhumash_12.cw.0.mmp', 'render_weather_panel: the same'),
+)
+
+# Kept in the vanilla install's stub set only (C159, H51d): render_water passes on Rebirth's set without it, and its
+# copies would add 0.5 MB. Same rule as KEPT.
+KEPT_VANILLA = (
+    ('zone100[0-2].mmp', "render_water: zone1's ground pages (the shore's sand and the sea bed; the water layer draws the same pages)"),
 )
 
 
@@ -203,7 +204,13 @@ def stub_in_place(buf, start, size, name, counts, depth=0):
     extension, and into a .res archive's entries (any name: .mpr maps, .mod / .anm figures are archives too)."""
     entries = res_entries(buf, start, size)
     if entries is not None:
+        # Entries may share their bytes under two names (Rebirth's textures.res: Zone2000 and bz2g000 are one range,
+        # H62e): the other name of a kept entry's range is kept with it, or its blanking would zero the kept pixels.
+        shared = {(at, length) for entry, at, length in entries if kept(entry)}
         for entry, at, length in entries:
+            if (at, length) in shared and not kept(entry):
+                counts.add('kept', length, 0)
+                continue
             stub_in_place(buf, at, length, entry, counts, depth + 1)
         if depth == 0:
             counts.add('.res archives', size, 0)

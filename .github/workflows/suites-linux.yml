@@ -111,7 +111,7 @@ jobs:
       # - render_smooth (llvmpipe's multisampling gives 4 samples whatever is asked, and edges too few pixels).
       # The slow ones ran with this list until H58 and came back under EI_TIME_SCALE 3; run 41953378949 (2026-11-05)
       # still cut these past 3x their limits on llvmpipe (weather, drawn frames, Rebirth widescreen, the tornado client).
-      # (render_shadows_decals / render_weather_panel found 0% there: blank textures in the stub set, not lavapipe; C159.)
+      # (render_shadows_decals / render_weather_panel found 0% there: blank textures in the stub set, not lavapipe; C159, H62e.)
       # The four render_weather* scenarios are out of it again (H60): their own `timeout` lines, which this scale
       # multiplies, give the minutes their drawn frames take on 4 cores (linux.md, "The CI job").
       LINUX_SKIP: >-
