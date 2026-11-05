@@ -4,4 +4,5 @@ group = "cleanup"
 model = "opus"
 note = "Round 1b re-check (2026-11-05, digests in build/style_review/round1b). Terrain: HeightAt can retry the same cell forever (terrain.cpp:87, its comment says so); CountTiles does not skip kNoTile, so a 0xFFFF tile word writes past a stack array; ClassOf compares a texture class with the texture count, never true (check against the original before changing); LoadMap reads files[0] without checking the list; file names passed inside FatalError's format string. Items: out-of-range records dereferenced and kept as 'faults as in the game' (item.h:318, item_db.h:4); ItemStock dereferences a failed build twice ('Original bug kept'); CreateItem reads parts[0] of a split without checking it is non-empty. Same style as C108/C127: fix the undefined behaviour with one uniform path, goldens the same; where a fix would change a golden, say so and stop for that item."
 order = 1154
-status = "queued"
+status = "running"
+started = "2026-11-05"
