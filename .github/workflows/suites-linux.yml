@@ -114,6 +114,7 @@ jobs:
       # (render_shadows_decals / render_weather_panel found 0% there: blank textures in the stub set, not lavapipe; C159, H62e.)
       # The four render_weather* scenarios are out of it again (H60): their own `timeout` lines, which this scale
       # multiplies, give the minutes their drawn frames take on 4 cores (linux.md, "The CI job").
+      # render_device_lost_* (D7a, left out below) remove the Direct3D 12 device: Linux has no way to.
       LINUX_SKIP: >-
         net_pair_join net_pair_kick net_pair_leave net_pair_lobby net_pair_master net_pair_party net_pair_password
         net_pair_quest net_pair_speed net_pair_zone net_zone_leader net_zone_vars
@@ -187,7 +188,7 @@ jobs:
           export EI_BUILD_DIR=$PWD/build/linux-harness EI_GAME_VANILLA=$DATA/vanilla EI_GAME_REBIRTH=$DATA/rebirth
           names="$SCENARIOS"
           if [ -z "$names" ]; then
-            names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -v '^screenshots_' | grep -vxF -f <(tr ' ' '\n' <<< "$LINUX_SKIP"))
+            names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -v '^screenshots_' | grep -v '^render_device_lost_' | grep -vxF -f <(tr ' ' '\n' <<< "$LINUX_SKIP"))
           fi
           names=$(tr ' ' '\n' <<< "$names" | grep . | sort | awk -v n="$SHARDS" -v s="$SHARD" '(NR - 1) % n == s' | tr '\n' ' ')
           echo "shard $SHARD of $SHARDS: $names"

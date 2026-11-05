@@ -1374,6 +1374,9 @@ DZN_ICD = os.path.join('~', 'mesa-dzn', 'share', 'vulkan', 'icd.d', 'dzn_icd.x86
 # On the system's driver (lavapipe, the CPU): CI's LINUX_SKIP (.github/workflows/suites-linux.yml) and a few more
 # that pass 60 s on llvmpipe. render_terrain_seams (the level steps) is lavapipe's own difference; it passes on a GPU.
 # On a GPU (dzn): net_pair_master, whose peer list shows the server one poll sooner on any Linux.
+# The losedevice scenarios (D7a) remove the Direct3D 12 device, which Linux has no way to; left out on every Linux run.
+D3D12_ONLY_PREFIX = 'render_device_lost_'
+
 LINUX_LEFT_OUT = {
     'system': ('net_pair_join', 'net_pair_kick', 'net_pair_leave', 'net_pair_master', 'net_pair_quest', 'net_pair_speed',
                'net_pair_zone', 'render_terrain_seams', 'camera_drag_rate', 'camera_smooth',
@@ -1393,7 +1396,10 @@ def linux_left_out(gpu):
     gpu (vulkan_driver()'s manifest, or None for the system's); () elsewhere."""
     if not sys.platform.startswith('linux'):
         return ()
-    return LINUX_LEFT_OUT['gpu' if gpu else 'system']
+    folder = os.path.join(ROOT, 'tests', 'scenarios')
+    names = os.listdir(folder) if os.path.isdir(folder) else []
+    d3d12_only = tuple(n[:-4] for n in names if n.startswith(D3D12_ONLY_PREFIX) and n.endswith('.txt'))
+    return LINUX_LEFT_OUT['gpu' if gpu else 'system'] + d3d12_only
 
 
 def vulkan_driver(choice=None, environ=None, wsl=None):
