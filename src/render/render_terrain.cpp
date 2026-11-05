@@ -33,10 +33,10 @@ constexpr std::uint16_t kTileTriangles[24] = {0, 1, 4, 0, 4, 3, 1, 2, 5, 1, 5, 4
 // The landscape's page texture of `page` (Terrain::pageTextures, indexed page % LayerPages(); they are bound
 // so before each page).
 static const Texture* PageTexture(const SectorData* s, int page) {
-    if (!s->owner || s->LayerPages() <= 0) return nullptr;
-    const std::vector<Texture*>& textures = s->owner->pageTextures;
-    const int index = page % s->LayerPages();
-    return index < std::ssize(textures) ? textures[index] : nullptr;
+    if (!s->owner || s->owner->LayerPages() <= 0) return nullptr;
+    const std::vector<HeldRef<Texture>>& textures = s->owner->pageTextures;
+    const int index = page % s->owner->LayerPages();
+    return index < std::ssize(textures) ? textures[index].Get() : nullptr;
 }
 
 // The game's changes to a sector (render::TerrainChanged): how often it was built again (tile lists,
@@ -958,7 +958,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     if (!f.haveFog) ReadFog(f);
     int matrix = AddMatrix(clipStack.matrices[depth - 1]);
     const Texture* texture = PageTexture(s, page);
-    bool water = page >= s->LayerPages();
+    bool water = page >= s->owner->LayerPages();
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {
         const auto& lists = s->tiles[q];

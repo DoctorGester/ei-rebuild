@@ -601,7 +601,7 @@ void ReadWater(State& state) {
     b.Int("frame", t->frame);
     b.Float("phase", t->wavePhase);
     constexpr int kVertices = 33 * 33;
-    for (const auto* sector : t->sectorCache) {
+    for (const auto& sector : t->sectorCache) {
         if (!sector || !sector->hasWater || static_cast<int>(std::ssize(sector->vertices)) < 2 * kVertices || static_cast<int>(std::ssize(sector->records)) < 2 * kVertices)
             continue;
         Hash positions, speculars;

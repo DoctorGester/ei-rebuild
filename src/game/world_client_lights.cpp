@@ -203,7 +203,7 @@ void WorldClient::UpdateLighting() {
     g_lastLitHour = std::floor(hour);
     if (terrain) {
         const Vector4 terrainAmbient = Ambient(frameAmbient);
-        terrain->SetSun(light, &terrainAmbient);
+        terrain->SetSun(light, terrainAmbient);
     }
 }
 

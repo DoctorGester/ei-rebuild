@@ -18,6 +18,7 @@
 #include "render/render.h"
 
 #include <algorithm>
+#include <array>
 #include <climits>
 #include <cmath>
 #include <cstdint>
@@ -366,9 +367,11 @@ inline float Sine(const Terrain* owner, float phase) { return owner->sine[std::l
 inline std::uint32_t ColourByte(float v) { return static_cast<std::uint32_t>(std::lround(v)) & 0xFF; }
 
 // The circling waves' sine per column (and per row: the same values) at the world time, once per call.
-void CircleSines(const Terrain* owner, float* sines) {
+std::array<float, kSectorRow> CircleSines(const Terrain* owner) {
     float time = (g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale;
+    std::array<float, kSectorRow> sines;
     for (int i = 0; i < kSectorRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
+    return sines;
 }
 
 } // namespace
@@ -426,7 +429,7 @@ void SectorData::AnimateWaves() {
     float amplitude = 0.0f;
     int kind = 0;
     Vector3 crest = {0.0f, 0.0f, 0.0f};
-    float circle[kSectorRow];
+    std::array<float, kSectorRow> circle{};
     bool circling = false;
     for (int row = 0; row < kSectorRow; ++row) {
         float along = rowStart;
@@ -464,7 +467,7 @@ void SectorData::AnimateWaves() {
                 } else {
                     position.z = lift * kRiseScale + record.position.z;
                     if (!circling) {
-                        CircleSines(owner, circle);
+                        circle = CircleSines(owner);
                         circling = true;
                     }
                     position.x = circle[column] * amplitude * kCircleScale + record.position.x;
@@ -478,8 +481,8 @@ void SectorData::AnimateWaves() {
     render::TerrainChanged(this, render::TerrainChange::WaterMoved);
 }
 
-void Terrain::SetSun(Light* light, const Vector4* colour) {
-    ambient = *colour;
+void Terrain::SetSun(Light* light, const Vector4& colour) {
+    ambient = colour;
     sun = light;
 }
 

@@ -125,15 +125,13 @@ struct SectorData {
     int lastUsed = 0;                   // owner frame of the last use
 
     SectorData() = default;
+    // Tells the renderer (TerrainChange::Rebuilt), as Clear does.
     ~SectorData();
     SectorData(const SectorData&) = delete;
     SectorData& operator=(const SectorData&) = delete;
 
-    // The owner's texture pages of one tile layer.
-    int LayerPages() const { return owner->LayerPages(); }
-
-    // Vertex positions and water tiles. Returns FatalError's result for a missing or malformed file, else 1.
-    int Load(MappedResource* archive, int sx, int sy, const char* prefix, Terrain* owner);
+    // Vertex positions and water tiles. False (after FatalError) for a missing or malformed file.
+    bool Load(MappedResource* archive, int sx, int sy, const char* prefix, Terrain* owner);
 
     // Builds the vertex records, tile lists (the animated tiles' start frames drawn from g_clientRandom),
     // bounding boxes and water materials; every vertex's specular word becomes its edge fade (the fog factor; the

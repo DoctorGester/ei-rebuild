@@ -22,10 +22,12 @@
 #include "lib/vecmath.h"
 #include "render/render.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <format>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -138,37 +140,34 @@ int Terrain::LayerPages() const { return pages + kExtraPages; }
 
 SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, bool create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
-    SectorData*& cell = sectorGrid[sx * sectorsY + sy];
+    SectorData*& cell = sectorGrid[GridIndex(sx, sy)];
     SectorData* sector = cell;
     if (!sector) {
         if (!create) return nullptr;
         // A new sector, or the least recently used one when it is old enough; then every further
         // sector at the cache's end that is old enough is freed.
-        SectorData* last = !sectorCache.empty() ? sectorCache.back() : nullptr;
-        if (!last || frame - kSectorAge <= last->lastUsed) {
-            sector = new SectorData();
+        std::unique_ptr<SectorData> loaded;
+        if (sectorCache.empty() || frame - kSectorAge <= sectorCache.back()->lastUsed) {
+            loaded = std::make_unique<SectorData>();
         } else {
-            sector = last;
-            sectorGrid[sector->sx * sectorsY + sector->sy] = nullptr;
+            loaded = std::move(sectorCache.back());
             sectorCache.pop_back();
+            sectorGrid[GridIndex(loaded->sx, loaded->sy)] = nullptr;
             while (!sectorCache.empty() && sectorCache.back()->lastUsed < frame - kSectorAge) {
-                SectorData* old = sectorCache.back();
+                sectorGrid[GridIndex(sectorCache.back()->sx, sectorCache.back()->sy)] = nullptr;
                 sectorCache.pop_back();
-                sectorGrid[old->sx * sectorsY + old->sy] = nullptr;
-                delete old;
             }
         }
-        if (!sector->Load(&archive, sx, sy, mapName.c_str(), this)) {
-            delete sector;
-            return nullptr;
-        }
-        sector->lastUsed = frame;
-        sectorCache.insert(sectorCache.begin(), sector);
+        if (!loaded->Load(&archive, sx, sy, mapName.c_str(), this)) return nullptr;
+        loaded->lastUsed = frame;
+        sector = loaded.get();
+        sectorCache.insert(sectorCache.begin(), std::move(loaded));
         cell = sector;
     } else if (sector->lastUsed < frame) {
         sector->lastUsed = frame;
-        std::erase(sectorCache, sector);
-        sectorCache.insert(sectorCache.begin(), sector);
+        // To the front, the others keeping their order.
+        const auto used = std::ranges::find(sectorCache, sector, &std::unique_ptr<SectorData>::get);
+        std::rotate(sectorCache.begin(), used, used + 1);
     }
     if (create) sector->Ensure(wanted);
     return lib::Has(sector->built, wanted) ? sector : nullptr;
@@ -207,9 +206,7 @@ void Terrain::BuildVertexTiles() {
 
 void Terrain::ClearMap() {
     StopAmbientLoops();
-    for (SectorData* sector : sectorCache) delete sector;
     sectorCache.clear();
-    for (Texture* texture : pageTextures) texture->Release();
     pageTextures.clear();
     archive.CloseResource();
     sectorGrid.clear();
@@ -221,10 +218,9 @@ void Terrain::ClearMap() {
 }
 
 Terrain::Terrain() {
-    // Identity rotations (w first); the positions are not initialised.
+    // Identity rotations (w first).
     localRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    Reset();
 }
 
 Terrain::~Terrain() { Terrain::Destroy(); }
@@ -240,26 +236,15 @@ void Terrain::Create() {
 
 void Terrain::Destroy() {
     ClearMap();
-    for (auto& [objectId, light] : lights) light->Release();
     lights.clear();
-    Reset();
 }
 
 void Terrain::Reset() {
     landscapeFlags = LandscapeFlag::None;
-    pageTextures.clear();
-    mapLoaded = false;
     mapName = "none";
-    sectorsX = -1;
-    sectorsY = -1;
     perPage = -1;
     frame = 1;
-    for (int i = 0; i < 4; ++i) {
-        uvTables[i].clear();
-        uvTablesLast[i].clear();
-    }
     waveDirection = {0.0f, 0.0f, 1.0f};
-    sectorGrid.clear();
     ambient.x = ambient.y = ambient.z = 0.0f;
     sun = nullptr;
     SetWaveStrength(0.0f);
@@ -324,31 +309,27 @@ void Terrain::SetWaves(const Vector3& direction, float strength) {
     SetWaveStrength(strength);
 }
 
-int Terrain::SetupPages(int count) {
-    pageTextures.resize(count);
+bool Terrain::SetupPages(int count) {
     for (int i = 0; i < count + kExtraPages; ++i) {
         std::string name;
         if (i < count) {
             name = std::format("{}{:03}", mapName, i);
         } else {
             name = std::format("{}L{:02}", mapName, i - count);
-            if (!g_clientWorld.textureManager->HasFile((name + ".mmp"))) return 1;
-            pageTextures.push_back(nullptr);
+            if (!g_clientWorld.textureManager->HasFile((name + ".mmp"))) return true;
         }
-        Texture* texture = g_clientWorld.textureManager->FindOrCreate(kPageTexture, name);
-        pageTextures[i] = texture;
-        texture->AddRef();
-        if (!g_clientWorld.textureManager->LoadTexture(pageTextures[i])) return 0;
+        Texture* texture = pageTextures.emplace_back(g_clientWorld.textureManager->FindOrCreate(kPageTexture, name));
+        if (!g_clientWorld.textureManager->LoadTexture(texture)) return false;
     }
-    return 1;
+    return true;
 }
 
 // --- The map loader ----------------------------------------------------------------------------
 
-int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon) {
+bool Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon) {
     ClearMap();
     const std::string name(path);
-    if (!archive.OpenResource(name)) return 0;
+    if (!archive.OpenResource(name)) return false;
     std::vector<std::string> files;
     archive.ListFiles(&files, "*.mp");
     // (An archive without a map file is not tested for either.)
@@ -360,17 +341,19 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon)
     const auto* file = static_cast<const std::uint8_t*>(archive.GetFile((mapName + kMapDataExtension), &size));
     if (!file) {
         ClearMap();
-        return game::FatalError("Unable to open file \"" + name + "\"");
+        game::FatalError("Unable to open file \"" + name + "\"");
+        return false;
     }
     const std::optional<MapHeader> header = ReadMapHeader(file, size);
     if (!header) {
         ClearMap();
-        return game::FatalError("Wrong file format: " + name);
+        game::FatalError("Wrong file format: " + name);
+        return false;
     }
     ReadMap(*header, file);
     if (!SetupPages(pages)) {
         ClearMap();
-        return 0;
+        return false;
     }
     BuildUvTables(header->tileSize);
     mapLoaded = true;
@@ -380,7 +363,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon)
     landscapeFlags |= LandscapeFlag::All;
     waterLevels.assign(static_cast<std::size_t>(sectorsY * sectorsX) * materials.size(), 0.0f);
     render::LandscapeLoaded();
-    return 1;
+    return true;
 }
 
 void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
@@ -447,14 +430,12 @@ void Terrain::BuildUvTables(int tileSize) {
 
 void Terrain::AddLight(Light* light) {
     if (!mapLoaded) return;
-    light->AddRef();
     lights[light->id] = light;
 }
 
 void Terrain::RemoveLight(Light* light) {
     if (!mapLoaded) return;
     lights.erase(light->id);
-    light->Release();
 }
 
 const TileUv& Terrain::TileUvAt(int rotation, int index, int page) const {
