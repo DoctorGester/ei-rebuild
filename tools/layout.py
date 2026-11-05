@@ -2,7 +2,7 @@
 
   python tools/layout.py check      the map against src/game: every file has one line, every destination one owner,
                                     every rename says why, every line's file is where the map's state allows (flat,
-                                    moved, or not made yet); exit 1 on a problem
+                                    moved, not made yet, or folded early into a flat owner); exit 1 on a problem
   python tools/layout.py listing    rewrites the generated part of docs/notes/file-layout.md (the tree's counts and
                                     every file's destination); --check fails when it is not current
   python tools/layout.py where NAME...  where a file of the flat src/game goes and whether it moved (an old name in a
@@ -129,9 +129,16 @@ def problems(lines, batches, files):
                 out.append(f'line {l.number}: {l.old} is both flat and at {l.new}')
             elif not old and not new and l.op != 'new':
                 out.append(f'line {l.number}: {l.old} is neither in src/game nor at {l.new}')
-        elif l.op == 'fold' and not old and not new:
+        elif l.op == 'fold' and not old and not new and not folded_early(l, first, files):
             out.append(f'line {l.number}: {l.old} is gone but {l.new}, which it folds into, is not there')
     return out
+
+
+def folded_early(l, owners, files):
+    """A fold a split batch made while its owner was still flat (misc_400.cpp into server_specific_manager.cpp): its
+    file gone, NEW not there yet, NEW's owner flat. Its move batch counts it done."""
+    owner = owners.get(l.new)
+    return l.op == 'fold' and l.old not in files and l.new not in files and owner is not None and owner.old in files
 
 
 def lines_counted(path):
@@ -223,7 +230,8 @@ _now = None
 
 def moved_map(lines=None, files=None, planned=()):
     """OLD -> NEW for every line whose file has gone to NEW (OLD gone, NEW there), and for the lines in `planned`
-    (a batch's dry run). A split into another's file is left out: its batch rewrote its references by hand."""
+    (a batch's dry run); a fold made early -> its owner's flat name. A split into another's file is left out: its
+    batch rewrote its references by hand."""
     if lines is None:
         lines, _ = read_map()
     files = present() if files is None else files
@@ -234,6 +242,8 @@ def moved_map(lines=None, files=None, planned=()):
             continue
         if (l.old not in files and l.new in files) or l in planned:
             out[l.old] = l.new
+        elif folded_early(l, owners, files):
+            out[l.old] = owners[l.new].old
     return out
 
 

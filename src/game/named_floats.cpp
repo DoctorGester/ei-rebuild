@@ -1,28 +1,9 @@
-#include "game/object_tables.h"
+// NamedFloatTable's members. See named_floats.h.
+#include "game/named_floats.h"
 
 #include "game/core_streams.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
 #include <string>
-#include "lib/text_case.h"
-
-#include "lib/str.h"
-
-#include <memory>
-#include <new>
-
-int TextKeyFromName(std::string_view name) {
-    std::uint32_t h = 0;
-    for (char c : name.substr(0, name.find('\0')))
-        h = static_cast<std::uint32_t>(text::ToUpper(static_cast<unsigned char>(c))) + h * 5;
-    return static_cast<int>(h % 1000000000u + 1000000000u);
-}
-
-bool IsTextKey(int id) {
-    return id >= 1000000000 && id < 2000000000;
-}
 
 float NamedFloatTable::Get(std::string_view name) {
     const auto node = find(std::string(name));
@@ -64,14 +45,4 @@ void NamedFloatTable::Save(ByteStream* stream) {
         stream->WriteValue(value);
     }
     stream->WriteString("");   // the end
-}
-
-const char* FindCommandByKey(int key) {
-    const signed char* keys = g_keyActions;
-    for (int slot = 0; slot < 0x200; ++slot) {
-        if (keys[slot] != key) continue;
-        for (UiKeyName& entry : g_keyNames)
-            if (entry.scan == slot) return entry.name;
-    }
-    return nullptr;
 }

@@ -122,6 +122,20 @@ class MoverTest(unittest.TestCase):
         self.assertIn('d_old.cpp is neither in src/game nor at a/d_new.cpp', out)
         self.assertEqual(self.run_tool('apply', 'B1')[0], 1)                   # refuses on a bad map
 
+    def test_fold_made_early(self):
+        """A split batch folds a file into its owner while both are flat: check accepts it, the rewrite names the
+        owner's flat file, the owner's move batch counts the fold done."""
+        with open(os.path.join(self.root, 'src/game/a_x.h'), 'a', encoding='utf-8', newline='\n') as f:
+            f.write('constexpr int kOne = 1;\n')
+        os.remove(os.path.join(self.root, 'src/game/c_fold.h'))
+        code, out = self.run_tool('check')
+        self.assertEqual(code, 0, out)
+        self.assertEqual(layout.moved_map()['c_fold.h'], 'a_x.h')
+        code, out = self.run_tool('apply', 'B1')
+        self.assertEqual(code, 0, out)
+        self.assertIn('4 moves, 0 folds, 1 done before', out)
+        self.assertEqual(self.read('docs/notes/n.md'), 'X is in src/game/a/a_x.cpp; a/d_new.cpp and a/a_x.h are gone.\n')
+
     def test_game_paths_and_flat_name(self):
         self.run_tool('apply', 'B1')
         layout._now = layout._flat = None
