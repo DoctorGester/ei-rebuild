@@ -22,8 +22,6 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_lost_in_astral.txt` | a new game in Lost in Astral (Rebirth's data) |
 | `tests/scenarios/mod_switch.txt`, `mod_switch_plain.txt` | a switch to Lost in Astral and back, then a new game; the same new game from the start |
 | `tests/scenarios/mod_menu_list.txt` | the menu's list picked through the UI, and the settings file written |
-| `src/game/mod_plugin_ironmod.h`, `.cpp` | IronMod's fixfslpatei.plg as code ("IronMod's fixfslpatei.plg") |
-| `tests/scenarios/mod_ironmod.txt` | IronMod's plugin: the cheat word's reply, the console's commands, no quick saves |
 
 ## Choosing a mod
 
@@ -115,7 +113,7 @@ each question, so a plugin's change is on exactly while the chosen mod names it.
   Checked by `mod_lost_in_astral_shops` (the camp of classes 1 and 5, a quick save, its load, the camp again, a
   second quick save: the saves golden holds the four templates and the stock made after the load) and by every
   Lost in Astral scenario's autosave (four templates).
-- IronMod's `fixfslpatei.plg` (MOD1b): below.
+- IronMod's `fixfslpatei.plg`: not supported (below).
 
 ### IronMod's fixfslpatei.plg (MOD1b)
 
@@ -130,16 +128,14 @@ cache. IronMod's patches.txt (mod 1.0.8) has 21 lines, all on strings in game.ex
 
 - `config\keyboard.ini` (0x787C04) becomes `config\kbdinput.ini`: the key bindings file, read at the interface's
   start and written at its shutdown. Rebirth ships `Config\kbdinput.ini`: its keyboard.ini without the `F5 quicksave`
-  and `F8 quickload` lines. Carried: `modplugins::KeyBindingsFile()` (key_bindings.cpp).
+  and `F8 quickload` lines.
 - `saveq` (0x7933AC) becomes `save:`: the one string every quick-save site shares (16 references: the battle screen's,
   the briefing's and the global map's keys, and the save list's titles and reserved names). On Windows `saves\save:`
   cannot be made, so the quick load finds no folder and does nothing, and the quick save's `GameFlow::SaveGame` cannot
   open scenario.sav and starts the main menu's zone: in Rebirth the quick-save key leaves the game for the main menu
-  (the play since the last save lost). Carried: `QuickSave` and `QuickLoad` of the quick slot do nothing under the
-  plugin and log `mod: no quick save (IronMod's fixfslpatei.plg)` (or `quick load`); the drop to the main menu is not
-  carried (the side effect of a name Windows refuses, and "save:" is a valid name on Linux and macOS).
+  (the play since the last save lost).
 - `Activated!` (0x792388) becomes `NoCheating`: only the cheat word's reply changes; the word still unlocks the cheat
-  commands and the script lines. Carried: `modplugins::CheatWordReply()` (console.cpp).
+  commands and the script lines.
 - Eighteen names in the script keyword table's strings (0x78D010 to 0x78D680, `kScriptKeywords`) get a letter or more
   made '0' (GiveMoney becomes GiveM0ne0): SetPlayer, SetDiplomacy, RemoveUnitFromServer, KillUnit, InflictDamage,
   GodMode, GiveUnitSpell, GiveUnitQuestItem, GiveStrength, GiveSkill, GiveQuestItem, GiveMoney, GiveItem,
@@ -147,24 +143,20 @@ cache. IronMod's patches.txt (mod 1.0.8) has 21 lines, all on strings in game.ex
   game's table entries (the name pointers) into its own, so every parse sees the renamed names: Rebirth with IronMod
   knows none of the eighteen, in the console's lines and in the zones' own scripts alike. The game's maps call them in
   57 of their .mob files (zone2.mob's traps call InflictDamage from line 71, its quests GiveQuestItem and
-  RemoveUnitFromServer), so there each zone's scripts stop loading at the first such call. Carried as its evident aim,
-  no cheating: the eighteen are hidden only from the script text the console runs (`@`, `#` and `$` lines and
-  `execs`: `modplugins::ConsoleScript` around the parse, `modplugins::HidesKeyword` in `ClassifyToken`), and the
-  zones' scripts keep them. Rebirth's literal effect would be the same check without the console condition.
+  RemoveUnitFromServer), so there each zone's scripts stop loading at the first such call.
 
-All four are on while the mod's config.reg names fixfslpatei.plg (`src/game/mod_plugin_ironmod.cpp`; the config.reg
-read at each question). A mod with another patches.txt beside the same plugin would need its own lines read; IronMod
-is the only one shipped.
+Purpose, taken together: IronMod is a no-cheating, no-quick-save mode. It drops F5/F8 from the bindings, breaks the
+quick-save slot's folder name, renames the cheat word's reply and takes the cheat-like script commands away (in Rebirth
+from every script, which also stops the game's own zone scripts that call them).
+
+Not supported (user 2026-11-05): our exe does not carry fixfslpatei.plg; IronMod played from our exe runs with its
+data but none of these four changes. MOD1b carried them as code and that code was taken out at its merge; the reading
+above stays for when the mod matters.
 
 Lost in Astral's fixshops.plg read the same way agrees with MOD2a's reading: it writes a call (`E8` and a rel32 into
 the plugin) over 0x4A84F3, the call of the list clear 0x4A9650 near the end of `PartyManager::Load`, to a stub that
 makes that call and then `TemplateTable::Build(this + 0x38, 1)`; and the byte 0x4A88AC, the `push 0` before
 `PartyManagerNewGame`'s Build call, becomes 1.
-
-Check: `mod_ironmod` (both installs; IronMod on Rebirth's data): the cheat word's reply, `@GiveMoney` a script error,
-F5 and F8 doing nothing (the log lines; no `IronMod\saveq\`) with the overlay's kbdinput.ini binding them (the prepare
-tool `make_keyboard_ini.py kbdinput.ini`, read in place of keyboard.ini), then gz2g (zone2.mob) loaded without a script
-error. On the vanilla data the folder is missing and the same steps show the game without a mod.
 
 ## Checks
 

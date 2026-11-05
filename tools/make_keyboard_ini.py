@@ -1,12 +1,10 @@
 """Writes a remapped config\\keyboard.ini for tests/scenarios/ui_options_remap_load.txt (SV8).
 
-usage: python tools/make_keyboard_ini.py <saves dir> [<file name>]
+usage: python tools/make_keyboard_ini.py <saves dir>
   <saves dir>  the run's harness_saves folder. The harness's copy-on-write overlay keeps the install's other
                files there by their relative path, and a read takes the overlay copy when there is one, so
                <saves dir>\\config\\keyboard.ini is what the game reads as its config\\keyboard.ini (00462C10).
                Nothing under the install is written.
-  <file name>  the bindings file's name in config\\ (default keyboard.ini; mod_ironmod.txt writes IronMod's
-               kbdinput.ini, so that its game has the F5 / F8 quick save keys).
 
 The file is the one ui_options_remap.txt makes the game save (00462DF0, on the interface's shutdown) after
 it remaps "obj" to Y, "crawl" to J and "run" to Q (taken from weapon1): the same bytes from the original
@@ -35,12 +33,11 @@ def text():
 
 
 def main():
-    if len(sys.argv) not in (2, 3):
+    if len(sys.argv) != 2:
         sys.exit(__doc__)
-    name = sys.argv[2] if len(sys.argv) == 3 else 'keyboard.ini'
     folder = os.path.join(sys.argv[1], 'config')
     os.makedirs(folder, exist_ok=True)
-    with open(os.path.join(folder, name), 'wb') as f:
+    with open(os.path.join(folder, 'keyboard.ini'), 'wb') as f:
         f.write(text())
 
 

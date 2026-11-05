@@ -4,7 +4,6 @@
 #include "script.h"
 #include "script_parse.h"
 #include "script_addon.h"
-#include "mod_plugin_ironmod.h"
 
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -310,7 +309,6 @@ void ClassifyToken(const char* text, int* id, int* rest) {
         int length = static_cast<int>(std::strlen(k->name));
         if (length < best) continue;
         if (text::CompareIgnoringCase(p, k->name, static_cast<std::size_t>(length)) != 0) continue;
-        if (modplugins::HidesKeyword(k->id)) continue;
         best = length;
         // An identifier-like match must end the identifier.
         if (scriptaddon::RejectsMatch(k->name, p[length])) continue;
