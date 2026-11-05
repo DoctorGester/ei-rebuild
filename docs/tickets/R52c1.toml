@@ -3,5 +3,6 @@ title = "work_sched: a finished batch's reused submitter pid holds its run folde
 group = "harness"
 note = "R52c found (2026-11-05): reserved_folders keeps a finished batch's run folders while pid_alive(batch.submitter) is true, by pid only. Batch #7938 (work.py test, pid 54116) finished; Windows gave 54116 to the bash that started the next work.py test of the same scenario, so #7941 waited on its own folder forever (queued behind later batches until cancelled). Check the process's creation time against the batch's submitted time (or keep a handle), so a reused pid counts as gone."
 order = 1169
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"

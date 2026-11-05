@@ -4,5 +4,6 @@ group = "cleanup"
 depends = ["C155"]
 note = "C155 (2026-11-05): the two std::lround sites in game-affecting code. CampPages::CanEquip (ui_camp.cpp:296) refuses a worn-out weapon or armour when std::lround(item->condition) <= 0, where combat.cpp:612, unit_armour_layers.cpp:54 and unit_create.cpp:31 test lib::RoundEven(condition); HeroSchoolSkill (ui_screens.cpp:323) rounds SpellSchoolSkill with std::lround before comparing it with a spell's required skill, where ui_item_info.cpp:795 prints the same skill truncated. lround and RoundEven differ at exact halves (condition 0.5, skill 2.5). Find what the original does at each (FISTP to even, _ftol truncation or something else), use lib::RoundEven or lib::Truncate to match, and the column 'std::lround in game-affecting code' in check_cleanup goes to 0 (lower the baseline). A change that alters an order or the equip rules re-records the goldens it reaches and says why."
 order = 1167
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
