@@ -20,7 +20,8 @@
 class MappedResource;
 namespace modfolders {
 
-// The mod's folder with a trailing '\' (AddonPath), empty without one.
+// The mod's folder with a trailing '\': the settings' [game] Mod (platform::ModFolder), else [rebirth] AddonPath; empty
+// without one.
 const std::string& ModPath();
 
 // OpenResource's entry (+8), before the archive opens: the first call loads the mod's

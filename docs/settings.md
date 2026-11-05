@@ -113,6 +113,7 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 | `ToolTip Time` | `0.5` | seconds | How long the pointer must rest on a control before its tooltip shows. 0: no tooltips. |
 | `SwitchFilters` | `true` | true / false | In the camp's screens the item lists jump to the tab that fits the page or item you pick. |
 | `Difficulty Level` | `0` | 0 or 1 | 1 Easy, 0 Hard, as the new game's question names them: scales the monsters' attack, defence and armour. Network games always play at 0. |
+| `Mod` |  | a folder | The mod to play (docs/notes/mods.md): its folder, relative to the exe's folder (Rebirth's starter\Mods\LostInAstral) or in full. Its files take the place of the game's, its config.reg's archives are combined with the game's, and its saves are kept apart (saves\<the folder's name>). Read at the start. Empty: the game without a mod. |
 
 ## [network]
 
@@ -153,7 +154,7 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `AddonPath` |  | a folder | The mod's folder, which the mod folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch) look in first. Empty: no mod. |
+| `AddonPath` |  | a folder | The mod's folder, which the mod folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch) look in first, when [game] Mod names none. Empty: no mod. |
 
 ## [autoexec]
 

@@ -82,7 +82,7 @@ replacements, ...).
 
 The five mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch), behind their flags
 (`src/game/mod_folders.{h,cpp}`):
-- The mod: the settings file's `[rebirth] AddonPath` + `\`. Its `config.reg` (the game's registry format) section [RES]:
+- The mod: the settings file's `[game] Mod` (mods.md), else its `[rebirth] AddonPath`, + `\`. Its `config.reg` (the game's registry format) section [RES]:
   for twelve archives (aiinfo, database, databaseLmp, gfx, materials, outro, redress, sfx, speech, texts, textsLmp,
   textures) a value (string or array) names mod archives (paths relative to the mod) that `MappedResource::GetFile` asks
   before the game's archive; a value starting with `-` makes the game's archive ignored. The key is the lower-case path

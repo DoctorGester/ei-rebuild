@@ -132,7 +132,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - `rebirthflags <names>` turns on Rebirth patch flags for the run, on top of the install folder's profile (rebirth.md).
   `folderprofile` checks that profile itself (harness_folder_profile.h, `dropin_profile.txt`).
 - Mod folders (S19d; standalone.md, "Mod folders"): `addonpath <folder>` selects a mod the scenario's `# prepare:` tool
-  wrote into the run's `harness_saves`. `read` / `wrote` `mod|game <path> yes|no` and `waitread <seconds> mod|game <path>`
+  wrote into the run's `harness_saves`; `mod <folder>` answers the settings' `[game] Mod` with a mod folder of the
+  install (relative to the game folder, `starter\Mods\LostInAstral`) or in full (mods.md). `read` / `wrote` `mod|game <path> yes|no` and `waitread <seconds> mod|game <path>`
   ask which files the game touched or wrote (`harness_modtrace.h`; noted only in a scenario that uses them, the wait is in
   real seconds because a thread opens the file); `modfile`, `modlist`, `modarchive` and `mapfile` ask Rebirth's patches
   directly; `playstream <file>.mp3` asks the music stream for a track. The stream's steps run on the virtual clock (a

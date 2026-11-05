@@ -13,13 +13,14 @@ int RunBoundedTextChecks();    // bounded_text.cpp: str::BoundedLength and str::
 int RunTaggedStreamChecks();   // tagged_stream.cpp: ByteStream::ReadTagged's block sizes
 int RunGameBufferChecks();     // game_buffer.cpp: the byte buffers, their cursor and the LZ coder
 int RunPlatformTextChecks();   // platform_text.cpp: Cyrillic names through the environment and the current folder
+int RunPathLayersChecks();     // path_layers.cpp: the mod's path map (sets the program's mod: last)
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
     const int failures = RunSettingsFileChecks() + RunHashMapChecks() + RunIniFileChecks() + RunIpv4Checks() +
                          RunMathsChecks() + RunSavePictureChecks() + RunAudioMixChecks() +
                          RunDisplaySizesChecks() + RunBoundedTextChecks() + RunTaggedStreamChecks() +
-                         RunGameBufferChecks() + RunPlatformTextChecks();
+                         RunGameBufferChecks() + RunPlatformTextChecks() + RunPathLayersChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }

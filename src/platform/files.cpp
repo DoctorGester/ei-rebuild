@@ -1,10 +1,15 @@
 // platform.h's folder calls on std::filesystem, for every system: each path through SystemPath, then the backend's
-// NativePath (seams.h). The file objects, the folder search and the whole files are each backend's.
+// NativePath (seams.h); and the folder search, its layers' searches (SystemSearches) merged. The file objects, one
+// folder's search and the whole files are each backend's.
 #include "platform/platform.h"
 
+#include "lib/text_case.h"
+#include "platform/path_layers.h"
 #include "platform/seams.h"
 
+#include <algorithm>
 #include <filesystem>
+#include <set>
 #include <system_error>
 
 namespace platform {
@@ -64,6 +69,34 @@ double FreeDiskSpace(std::string_view path) {
     std::error_code error;
     const fs::space_info space = fs::space(Native(path, PathUse::Read), error);
     return error ? 0.0 : static_cast<double>(space.available);
+}
+
+// One search, as the system's, when the path has no layers. With several a name an upper layer found hides the same
+// name (Windows' case rules) below it, and when more than one layer found names they are ordered by name as NTFS
+// orders them.
+std::vector<FolderEntry> FolderEntries(std::string_view pattern) {
+    const std::vector<FolderSearch> searches = SystemSearches(pattern);
+    if (searches.size() == 1 && !searches.front().keeps) return SearchFolder(searches.front().pattern, pattern);
+    std::vector<FolderEntry> entries;
+    std::set<std::string> names;   // lower case
+    std::size_t searchesFound = 0;
+    for (const FolderSearch& search : searches) {
+        bool found = false;
+        for (FolderEntry& entry : SearchFolder(search.pattern, pattern)) {
+            if (search.keeps && !search.keeps(entry.name)) continue;
+            std::string lower = entry.name;
+            text::LowerInPlace(lower.data(), lower.size());
+            if (!names.insert(std::move(lower)).second) continue;
+            entries.push_back(std::move(entry));
+            found = true;
+        }
+        if (found) ++searchesFound;
+    }
+    if (searchesFound > 1)
+        std::stable_sort(entries.begin(), entries.end(), [](const FolderEntry& a, const FolderEntry& b) {
+            return text::CompareIgnoringCase(a.name, b.name) < 0;
+        });
+    return entries;
 }
 
 } // namespace platform

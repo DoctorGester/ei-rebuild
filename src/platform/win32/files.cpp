@@ -4,6 +4,7 @@
 // write watch (seams.h), which the harness's builds answer.
 #include "platform/platform.h"
 
+#include "platform/path_layers.h"
 #include "platform/seams.h"
 #include "platform/win32/platform_win32.h"
 
@@ -88,10 +89,10 @@ bool WriteWholeFile(std::string_view path, const std::string& bytes, std::uint32
     return ok;
 }
 
-std::vector<FolderEntry> FolderEntries(std::string_view pattern) {
+std::vector<FolderEntry> SearchFolder(std::string_view systemPattern, std::string_view pattern) {
     std::vector<FolderEntry> entries;
     WIN32_FIND_DATAW found;
-    const HANDLE find = FindFirstFileW(SystemWide(pattern, PathUse::Read).c_str(), &found);
+    const HANDLE find = FindFirstFileW(text::Wide(systemPattern).c_str(), &found);
     if (find == INVALID_HANDLE_VALUE) return entries;
     // The entries' folder: the pattern as the game named it made absolute (the current folder for an empty one), up to
     // its last separator; a path of MAX_PATH bytes or more finds nothing.

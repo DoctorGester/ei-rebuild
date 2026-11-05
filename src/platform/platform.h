@@ -120,6 +120,14 @@ bool IsFile(std::string_view path);
 // The bytes this user may still write on the drive of `path` (a folder on it, or its root); 0 when unknown.
 double FreeDiskSpace(std::string_view path);
 
+// The mod the game plays (docs/notes/mods.md): from now on a file in `modFolder`'s folders stands for the one of the
+// same path in `gameFolder` (read first, written there when the mod has it; not the mod's .res archives, which its
+// config.reg combines with the game's), and the saves are <gameFolder>\saves\<the mod folder's name>\. Once, at the
+// start, before the game reads its data; false (no mod) when the folder is not there or a mod is set already.
+bool UseMod(std::string_view gameFolder, std::string_view modFolder);
+// The mod's folder in full (UseMod), empty without one.
+std::string ModFolder();
+
 // One entry of a folder search.
 struct FolderEntry {
     std::string name;

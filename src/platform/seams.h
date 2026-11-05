@@ -8,8 +8,10 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace platform {
 
@@ -25,11 +27,23 @@ enum class PathUse : std::uint8_t {
 
 // Every file and folder call of platform.h (src/platform/files.cpp and each system's backend) asks for its path here,
 // then NativePath: the path the system is asked for when the game names `path` for `use`. The game's builds: `path`
-// itself. The harness's builds map it onto the run's overlay instead (tests/verify/harness.cpp, MapPath): the saves to
-// the run's folder, a write of an install file to the overlay (with Update its contents copied there first), a read to
-// the overlay's copy when there is one; an empty path for a file the run hides, which fails every call as a missing
-// file.
+// itself, or with a mod (platform.h, UseMod) its layer's map (path_layers.h): the mod's file when it has one, its saves
+// in a folder of their own. The harness's builds map it onto the run's overlay instead (tests/verify/harness.cpp,
+// MapPath), the same map with the overlay as its top layer: the saves to the run's folder, a write of an install file
+// to the overlay (with Update its contents copied there first), a read to the overlay's copy when there is one; an
+// empty path for a file the run hides, which fails every call as a missing file.
 std::string SystemPath(std::string_view path, PathUse use);
+
+// A folder search of one layer (path_layers.h): its pattern as the system names it, and which of the names it finds
+// count (all without `keeps`).
+struct FolderSearch {
+    std::string pattern;
+    std::function<bool(std::string_view name)> keeps;
+};
+// FolderEntries asks here for the searches that make up a search of `pattern`, top first: a name one finds hides the
+// same name in the ones after it. The game's builds: one, `pattern` itself, without a mod; with one the mod's folder's
+// too (path_layers.h). The harness's builds: the run's overlay's, the mod's and the game folder's.
+std::vector<FolderSearch> SystemSearches(std::string_view pattern);
 
 // `path` (UTF-8, the game's separators) as the system names it: the backend's (Windows: UTF-16; POSIX: slashes, each
 // name matched with Windows' case rules).

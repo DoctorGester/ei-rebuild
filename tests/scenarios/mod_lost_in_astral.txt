@@ -1,0 +1,30 @@
+# The mod overlay (MOD1; docs/notes/mods.md): on Rebirth's data the settings' [game] Mod names Rebirth's Lost in Astral
+# (starter\Mods\LostInAstral; the harness line "mod" answers Mod with that folder in full). The game then plays the
+# mod: the main menu's zone and the new game's (gz1g, which the mod's database.res makes its zonezero) come from the
+# mod's Maps\ (the mod's layer over the game folder, and Rebirth's Maps patch, which the mod's folder now selects), its
+# config\ai.reg from the mod's Config\, and the new game's autosave goes to the mod's own saves folder
+# (harness_saves\LostInAstral\savea: the run's saves with the mod's name below them), never to the game's
+# (harness_saves\savea). The vanilla data has no such folder: the game logs it and plays without a mod, its autosave in
+# the game's saves.
+# The checks are the trace of the files the game touches (tests/verify/harness_modtrace.h).
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 20 IsGreater(HP(GetLeader()),0)
+waitline 20 Saved savea
+
+rebirth read mod Maps\ZoneMainMenuNew.mob yes
+rebirth read game Maps\ZoneMainMenuNew.mob no
+rebirth read mod Maps\zonezero.mob yes
+rebirth read game Maps\zone1.mob no
+rebirth read mod Config\ai.reg yes
+rebirth read game Config\ai.reg no
+vanilla read game Maps\zone1.mob yes
+vanilla read game Config\ai.reg yes
+rebirth wrote game LostInAstral\savea\info.sav yes
+rebirth wrote game savea\info.sav no
+vanilla wrote game savea\info.sav yes
+report
+quit

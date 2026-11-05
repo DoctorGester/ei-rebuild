@@ -201,6 +201,11 @@ EI_SETTING(kGame, "SwitchFilters", "true", "true / false",
 EI_SETTING(kGame, "Difficulty Level", "0", "0 or 1",
            "1 Easy, 0 Hard, as the new game's question names them: scales the monsters' attack, defence and "
            "armour. Network games always play at 0.")
+EI_SETTING(kGame, "Mod", "", "a folder",
+           "The mod to play (docs/notes/mods.md): its folder, relative to the exe's folder (Rebirth's "
+           "starter\\Mods\\LostInAstral) or in full. Its files take the place of the game's, its config.reg's "
+           "archives are combined with the game's, and its saves are kept apart (saves\\<the folder's name>). "
+           "Read at the start. Empty: the game without a mod.")
 
 // [network]
 EI_SETTING(kNetwork, "Master Server Name", "a3master.nival.com", "host[:port]",
@@ -262,7 +267,7 @@ EI_SETTING(kPatches, "SecondMaster", "", "host[:port]",
 // [rebirth]
 EI_SETTING(kRebirth, "AddonPath", "", "a folder",
            "The mod's folder, which the mod folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, "
-           "StreamPatch) look in first. Empty: no mod.")
+           "StreamPatch) look in first, when [game] Mod names none. Empty: no mod.")
 
 // [autoexec]
 EI_SETTING(kAutoExec, "<name>", "", "a console line",

@@ -82,8 +82,10 @@ platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, 
 // The harness's mouse's position on the screen (false: none).
 bool MousePosition(Point* at);
 // Whether the harness answers the game's calls (a scenario runs), and the path the system is asked for when the game
-// names `path` for `use` (the run's overlay: platform::SystemPath's answer).
+// names `path` for `use` (the run's overlay: platform::SystemPath's answer), and the searches that make up a folder
+// search (platform::SystemSearches').
 bool Answering();
 std::string MapPath(std::string_view path, platform::PathUse use);
+std::vector<platform::FolderSearch> MapSearches(std::string_view pattern);
 
 } // namespace ei::verify::harnessplatform

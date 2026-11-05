@@ -29,7 +29,7 @@
 //
 // Install files the user's play rewrites and every run reads (config\keyboard.ini: the key bindings,
 // config\addrbook.ini: the multiplayer address book): read from config\harness\<vanilla|rebirth>\ unless the
-// run's overlay has its own copy (a "# prepare:" tool's, or the game's own write; harness.cpp ReadPath).
+// run's overlay has its own copy (a "# prepare:" tool's, or the game's own write; harness.cpp Layers).
 //
 // The folder: EI_HARNESS_SETTINGS, else config\harness two levels above our module (build\<config>\).
 

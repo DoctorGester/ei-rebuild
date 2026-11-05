@@ -23,6 +23,7 @@ Engine and game:
 - `models.md`: models, resources, the draw layer, terrain and ground prints.
 - `sound.md`: sound, music and movies (src/audio, src/video).
 - `rebirth.md`: what the Rebirth edition patches, and the patch flags.
+- `mods.md`: Rebirth's mods from our exe: the settings' Mod, the layered path map, saves per mod, config.reg.
 
 Drawing and the interface:
 - `renderer.md`: the renderer (src/render). Renderer workers read it whole.

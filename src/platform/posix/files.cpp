@@ -6,6 +6,7 @@
 #include "platform/platform.h"
 
 #include "lib/text_case.h"
+#include "platform/path_layers.h"
 #include "platform/posix/platform_posix.h"
 #include "platform/seams.h"
 
@@ -134,17 +135,20 @@ bool WriteWholeFile(std::string_view path, const std::string& bytes, std::uint32
     return ok;
 }
 
-// The pattern's folder through the mapping, its entries matched with Windows' wildcards and case rules, in NTFS's name
-// order (Windows' order on its volumes); no "." or "..".
-std::vector<FolderEntry> FolderEntries(std::string_view pattern) {
-    // The folder in the game's form (backslashes), as every other call asks SystemPath for its path.
-    const std::string game(pattern);
-    const std::size_t slash = game.find_last_of("\\/");
-    const std::string folderName = slash == std::string::npos ? "." : game.substr(0, slash == 0 ? 1 : slash);
-    const fs::path folder = SystemNative(folderName, PathUse::Read);
-    const std::string mask = slash == std::string::npos ? game : game.substr(slash + 1);
+// The mapped pattern's folder, its entries matched with Windows' wildcards and case rules, in NTFS's name order
+// (Windows' order on its volumes); no "." or "..". Their paths are in the folder of the game's pattern.
+std::vector<FolderEntry> SearchFolder(std::string_view systemPattern, std::string_view pattern) {
+    // The folders in the game's form (backslashes).
+    auto folderOf = [](std::string_view path) {
+        const std::size_t slash = path.find_last_of("\\/");
+        return slash == std::string::npos ? std::string(".") : std::string(path.substr(0, slash == 0 ? 1 : slash));
+    };
+    const std::string mapped(systemPattern);
+    const std::size_t slash = mapped.find_last_of("\\/");
+    const fs::path folder = NativePath(folderOf(mapped));
+    const std::string mask = slash == std::string::npos ? mapped : mapped.substr(slash + 1);
     std::error_code e;
-    const std::string root = posix::GamePath(fs::absolute(NativePath(folderName), e));
+    const std::string root = posix::GamePath(fs::absolute(NativePath(folderOf(pattern)), e));
     std::vector<fs::directory_entry> found;
     for (const auto& entry : fs::directory_iterator(folder, e))
         if (Matches(mask, entry.path().filename().string())) found.push_back(entry);

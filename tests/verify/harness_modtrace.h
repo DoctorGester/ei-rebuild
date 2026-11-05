@@ -4,7 +4,7 @@
 // A scenario that uses one of the steps below has every path the game's file calls map (the harness's MapPath: reads,
 // listings and asks whether a file exists) noted, once each; the steps then ask where the game looked.
 //
-// Steps (<where> is "mod": below the run's mod folder, the harness step "addonpath"'s; or "game": below the game folder
+// Steps (<where> is "mod": below the run's mod folder, the harness step "mod"'s or "addonpath"'s; or "game": below the game folder
 // or its copy in the run's overlay; <path> is relative to that folder):
 //   read <where> <path> yes|no           require that the game has (yes) or has not (no) touched that file so far
 //   wrote <where> <path> yes|no          the same for a file the game wrote (the path of a write in the run's overlay)

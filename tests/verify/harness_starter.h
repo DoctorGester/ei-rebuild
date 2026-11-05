@@ -17,6 +17,8 @@
 //   addonpath <folder>             the starter's Settings\AddonPath (the selected Rebirth mod: addon.dll's,
 //                                  and the standalone image's mod_folders.h) as harness_saves\<folder>;
 //                                  a "# prepare:" tool writes the mod there (tools/make_test_mod.py)
+//   mod <folder>                   the settings' [game] Mod (docs/notes/mods.md), in full: <folder> relative to
+//                                  the game folder (starter\Mods\LostInAstral) or in full
 // Without them the environment variables EI_RESOLUTION and EI_WIDESCREEN (same values) apply, and
 // without those the registry snapshot's values (harness_settings.h), but for the resolution: a window (FullScreen 0
 // unless a "fullscreen" line says otherwise; H31) of 960x720 on the vanilla data and 1280x720 on Rebirth's (the shape
@@ -37,7 +39,7 @@ inline constexpr unsigned long kString = 1, kBinary = 3, kDword = 4;
 // 4-byte answer); false when the run leaves it to the snapshot.
 bool Answer(const char* name, unsigned long* type, const unsigned char** data, unsigned long* size, unsigned long* dword);
 
-// Consumes a "resolution", "widescreen", "fullscreen", "music" or "addonpath" scenario line; false for any
+// Consumes a "resolution", "widescreen", "fullscreen", "music", "addonpath" or "mod" scenario line; false for any
 // other verb.
 bool ParseStep(const std::string& verb, const std::string& argument);
 
@@ -66,6 +68,8 @@ std::string MapFileStep(const std::string& argument);
 
 // The mod folder the scenario's "addonpath" step names, in full (empty without one).
 std::string AddonPath();
+// The mod folder the scenario's "mod" step names, in full (empty without one).
+std::string ModPath();
 
 // Whether this run plays the Rebirth install: the image runs with Rebirth flags (rebirth_profile::SettingsOnly; S19).
 // Scenario lines "vanilla ..." / "rebirth ..." and the digest's and the UI census's install follow it.
