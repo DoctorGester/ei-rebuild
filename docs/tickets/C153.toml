@@ -1,0 +1,7 @@
+id = "C153"
+title = "Terrain style re-check 3: SectorData members in its file, clip verdicts and sector codes named"
+group = "cleanup"
+model = "sonnet"
+depends = ["C152"]
+note = "Style re-check of round-1 areas against the later rules (2026-11-05, digest build/style_review/round1b/terrain.md). Items T3, T4 and T5's tile decode (X8, R1, Y3, Z3). SectorData::IsDrawn, ClipTest, DrawPage, Clear, AnimateTiles and AnimateWaves move from terrain.cpp to terrain_sector.cpp; terrain.cpp keeps the Terrain members in one namespace block with honest section headers (EdgeFade is not 'Shadow'). clipMode / quarterMode are typed TransformPipeline::ClipResult (C134's kClipInside / kClipCrossing / kClipOutside, model.h:113) and kCrossing / kCulled go. The sector file's flag bits (terrain_sector.cpp:262-263) are named beside kSectorMagic; the no-water-material sentinels are spelled once (kNoWaterMaterial for the file's 0xFFFF at :276, one int constant for -1). CountTiles and FillTiles share one DecodeTile(word, layer) (texture, rotation, slot, page, quarter); the two passes stay. Do the file move first, in its own commit. Leave the rule-9 items in the digest's last section (HeightAt's endless retry, CountTiles not skipping kNoTile, ClassOf's comparison, LoadMap's files[0], file names inside FatalError formats) to a bug ticket. Style only: goldens the same (wire, save and file bytes unchanged), float operation order untouched, no new forwarders, normal C++ classes."
+order = 1153
