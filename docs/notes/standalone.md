@@ -207,9 +207,9 @@ Classes are ordinary C++: constructors, virtual destructors, virtual overrides w
   - An object embedded in an owner that builds it is a `lib::InPlace<X>` member (PartyStorage).
 - **Members:** members are trivially default-constructible or initialised in the constructor's list as the original
   does. A constructor default-initialises what it does not name.
-- **The window base** (ui.h): `UiInputSide` holds input slots 1-12. `UiWindow : UiWindowBase, UiInputSide` puts the
-  input side at +0x94 and adds slots 18-24. `UiContainer` adds 25-41 and the input dispatch. Screens call the defaults
-  qualified (`UiContainer::LeftDown(...)`).
+- **The window base** (ui.h): game.exe's windows had a second base for the input (12 slots); ours take every input
+  event through one virtual, `UiWindow::OnEvent(UiEvent&)`, and `UiContainer::OnEvent` is the dispatch. Screens call
+  the container's qualified (`UiContainer::OnEvent(event)`).
 
 ### In place of game.exe's module
 

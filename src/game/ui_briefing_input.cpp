@@ -80,16 +80,26 @@ static void WalkLeaderTo(BriefingScreen* screen, int x, int y, bool run) {
     unit->ServerController()->brain.Walk(point, run);
 }
 
-void BriefingScreen::LeftDown(Point point) {
+void BriefingScreen::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::LeftDouble: LeftDouble(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void BriefingScreen::LeftDown(UiEvent& event) {
     if (chatActive) {
-        if (chat) chat->Input()->LeftDown(point);
+        if (chat) chat->OnEvent(event);
         return;
     }
-    UiContainer::LeftDown(point);
-    if (handled) return;
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
     switch (state) {
     case 0: {
-        Unit* object = g_clientWorld.UnitAt(point, HitTest::Parts);
+        Unit* object = g_clientWorld.UnitAt(event.at, HitTest::Parts);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 ui->PlayInterfaceSound(kClickSound);
@@ -97,11 +107,11 @@ void BriefingScreen::LeftDown(Point point) {
             }
             return;
         }
-        if (!noWalk) WalkLeaderTo(this, point.x, point.y, false);
+        if (!noWalk) WalkLeaderTo(this, event.at.x, event.at.y, false);
         return;
     }
     case 1: {
-        const int row = RegionIndex(topicRows, RegionUnder(point));
+        const int row = RegionIndex(topicRows, RegionUnder(event.at));
         if (row < 0 || row + topicTop >= std::ssize(topics)) return;
         ui->PlayInterfaceSound(kClickSound);
         topic = topics[row + topicTop];
@@ -123,16 +133,16 @@ void BriefingScreen::LeftDown(Point point) {
     }
 }
 
-void BriefingScreen::MouseMove(Point point) {
+void BriefingScreen::MouseMove(UiEvent& event) {
     if (chatActive) {
         g_cursor.SetShape(CursorShape::Cancel);
-        if (chat) chat->Input()->MouseMove(point);
+        if (chat) chat->OnEvent(event);
         return;
     }
     g_cursor.SetShape(CursorShape::Default);
-    UiContainer::MouseMove(point);
+    UiContainer::OnEvent(event);
     if (state == 1) {
-        const int row = RegionIndex(topicRows, RegionUnder(point));
+        const int row = RegionIndex(topicRows, RegionUnder(event.at));
         int hovered = -1;
         if (row >= 0 && row + topicTop < std::ssize(topics)) hovered = row + topicTop;
         if (hovered != hoveredTopic) {
@@ -146,7 +156,7 @@ void BriefingScreen::MouseMove(Point point) {
     }
     if (ui->rightDown || state != 0) return;
 
-    Unit* object = g_clientWorld.UnitAt(point, HitTest::Parts);
+    Unit* object = g_clientWorld.UnitAt(event.at, HitTest::Parts);
     if (IsPerson(object)) {
         int objectId = object->id;
         if (IsMultiplayerClient() && leader && leader->id == objectId) return;
@@ -157,13 +167,13 @@ void BriefingScreen::MouseMove(Point point) {
         if (node == personTexts.end()) return;
         UiSurface* label = surfaces[1];
         personLabel = {{node->second, Rect{0, 0, 0, 0}, {kFont, kUiTextColour, render::text::kCenter}}};
-        Point at = point;
+        Point at = event.at;
         ui->ScalePointFromScreen(&at);
         label->MoveTo(at - Point{kLabelOffsetX, kLabelOffsetY});
         label->Show();
         return;
     }
-    Vector3 ground = g_clientWorld.PickSurface(point.x, point.y);
+    Vector3 ground = g_clientWorld.PickSurface(event.at.x, event.at.y);
     if (!g_clientWorld.FindExitAt(ground)) return;
     std::string zone = g_clientWorld.ExitTarget(exit);
     if (text::CompareIgnoringCase(zone,
@@ -175,22 +185,24 @@ void BriefingScreen::MouseMove(Point point) {
     if (visited != 1.0f) g_cursor.SetShape(CursorShape::Move);
 }
 
-void BriefingScreen::LeftDouble(Point point) {
+void BriefingScreen::LeftDouble(UiEvent& event) {
     if (chatActive) return;
-    UiContainer::LeftDouble(point);
-    if (handled) return;
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
     if (state != 0) {
-        Input()->LeftDown(point);
+        event.kind = UiEventKind::LeftDown;   // a click
+        LeftDown(event);
         return;
     }
-    Unit* object = g_clientWorld.UnitAt(point, HitTest::Parts);
+    Unit* object = g_clientWorld.UnitAt(event.at, HitTest::Parts);
     if (IsPerson(object)) {
         for (const BriefingMover& mover : movers)
             if (mover.person->id == object->id) return;
-        Input()->LeftDown(point);
+        event.kind = UiEventKind::LeftDown;   // a click
+        LeftDown(event);
         return;
     }
-    if (!noWalk) WalkLeaderTo(this, point.x, point.y, true);
+    if (!noWalk) WalkLeaderTo(this, event.at.x, event.at.y, true);
 }
 
 void BriefingScreen::OpenTopics(EngineObject* speaker) {
@@ -271,17 +283,17 @@ void OpenObjectives(Interface3D* ui) {
 
 } // namespace
 
-void BriefingScreen::KeyDown(platform::Key key, int scan, bool repeat) {
+void BriefingScreen::KeyDown(UiEvent& event) {
     if (chatActive) {
-        if (key == platform::Key::Escape) chatActive = 0;
+        if (event.key == platform::Key::Escape) chatActive = 0;
         return;
     }
-    UiContainer::KeyDown(key, scan, repeat);
-    switch (key) {
+    UiContainer::OnEvent(event);
+    switch (event.key) {
     case platform::Key::Backspace:
         if (IsMultiplayerClient()) {
             ui->ChatKeyBackspace();
-            handled = true;
+            event.handled = true;
             return;
         }
         break;
@@ -295,7 +307,7 @@ void BriefingScreen::KeyDown(platform::Key key, int scan, bool repeat) {
             ui->PlayInterfaceSound(kClickSound);
             FinishDialogue();
         }
-        handled = true;
+        event.handled = true;
         return;
     case platform::Key::Escape:
         if (state == 0) {
@@ -311,7 +323,7 @@ void BriefingScreen::KeyDown(platform::Key key, int scan, bool repeat) {
         } else if (state == 1) {
             state = 0;
         }
-        handled = true;
+        event.handled = true;
         return;
     case platform::Key::Space:
         if (state == 3) {
@@ -323,19 +335,19 @@ void BriefingScreen::KeyDown(platform::Key key, int scan, bool repeat) {
         } else if (state == 2) {
             StartDialogue(true, false);
         }
-        handled = true;
+        event.handled = true;
         return;
     default:
         break;
     }
     if (state != 0) return;
-    switch (g_keyActions[scan]) {
+    switch (g_keyActions[event.scan]) {
     case kActionObjectives:
         OpenObjectives(ui);
         break;
     case kActionLeader:
         if (leader) g_camera.SetTarget(leader);
-        handled = true;
+        event.handled = true;
         break;
     case kActionQuickSave:
         ::QuickSave(kQuickSaveName, false);

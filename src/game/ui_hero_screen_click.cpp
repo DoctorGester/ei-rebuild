@@ -121,13 +121,22 @@ void MpHeroScreen::FinishRename() {
     ShowHero(heroIndex);
 }
 
-void MpHeroScreen::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
-    if (handled) return;
+void MpHeroScreen::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: ItemScreen::OnEvent(event); break;
+    }
+}
+
+void MpHeroScreen::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
     bool renaming = renameEdit->focused;
     int heroStep = 0;
     int voiceStep = 0;
-    switch (key) {
+    switch (event.key) {
     case platform::Key::Return:
         if (renaming)
             FinishRename();
@@ -137,7 +146,7 @@ void MpHeroScreen::KeyDown(platform::Key key, int scan, bool repeat) {
             AddNewHero();
         else if (mode == kModeNewHero)
             CreateHero();
-        handled = true;
+        event.handled = true;
         return;
     case platform::Key::Escape:
         if (renaming) {
@@ -151,7 +160,7 @@ void MpHeroScreen::KeyDown(platform::Key key, int scan, bool repeat) {
             ui->PlayInterfaceSound(kMessageBoxCancelSound);
             SetMode(kModeList);
         }
-        handled = true;
+        event.handled = true;
         return;
     case platform::Key::PageUp:
         heroStep = -10;
@@ -184,14 +193,14 @@ void MpHeroScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     } else {
         return;
     }
-    handled = true;
+    event.handled = true;
 }
 
-void MpHeroScreen::LeftDown(Point point) {
+void MpHeroScreen::LeftDown(UiEvent& event) {
     if (renameEdit->focused) return;
-    UiContainer::LeftDown(point);
-    if (handled) return;
-    const UiRegion* region = RegionUnder(point);
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
+    const UiRegion* region = RegionUnder(event.at);
     auto rotate = [&](int direction) {
         ui->PlayInterfaceSound("buttons\\camp\\move.wav");
         rotating = direction;

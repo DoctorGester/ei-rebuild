@@ -176,8 +176,17 @@ void MpConnectScreen::MessageResult(std::uint32_t result) {
 
 // --- input ---------------------------------------------------------------------------------------
 
-void MpConnectScreen::LeftDown(Point point) {
-    UiRegion* region = RegionUnder(point);
+void MpConnectScreen::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftDouble: LeftDouble(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void MpConnectScreen::LeftDown(UiEvent& event) {
+    UiRegion* region = RegionUnder(event.at);
     const int column = RegionIndex(sortColumns, region);
     const int tab = RegionIndex(tabAreas, region);
     const int shownRow = RegionIndex(rows, region);
@@ -224,11 +233,11 @@ void MpConnectScreen::LeftDown(Point point) {
             DrawListVanilla();
         }
     }
-    UiContainer::LeftDown(point);
+    UiContainer::OnEvent(event);
 }
 
-void MpConnectScreen::LeftDouble(Point point) {
-    const int shownRow = RegionIndex(rows, RegionUnder(point));
+void MpConnectScreen::LeftDouble(UiEvent& event) {
+    const int shownRow = RegionIndex(rows, RegionUnder(event.at));
     if (shownRow >= 0) {
         unsigned row = static_cast<unsigned>(scrollTop + shownRow);
         if (row < entries.size()) {
@@ -237,22 +246,22 @@ void MpConnectScreen::LeftDouble(Point point) {
             Connect();
         }
     }
-    UiContainer::LeftDouble(point);
+    UiContainer::OnEvent(event);
 }
 
-void MpConnectScreen::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
+void MpConnectScreen::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
     int step;
-    switch (key) {
+    switch (event.key) {
     case platform::Key::Return:
         Connect();
-        handled = true;
+        event.handled = true;
         return;
     case platform::Key::Escape:
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
-        handled = true;
+        event.handled = true;
         return;
     case platform::Key::Up: step = -1; break;
     case platform::Key::Down: step = 1; break;
@@ -263,7 +272,7 @@ void MpConnectScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     ui->PlayInterfaceSound(kSaveSelectSound);
     selected += step;
     SelectAndScroll();
-    handled = true;
+    event.handled = true;
 }
 
 void MpConnectScreen::SelectAndScroll() {

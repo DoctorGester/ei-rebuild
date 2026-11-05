@@ -1,8 +1,8 @@
 #pragma once
 
 // Interface screens (docs/notes/ui.md, "Screens"): the camp's item strips, the multiplayer hero and
-// connection screens, the escape menu, the credits, the main menu and the exchange window. Handler arguments
-// as UiInputSide's (ui.h).
+// connection screens, the escape menu, the credits, the main menu and the exchange window. Handlers take
+// a UiEvent (ui.h).
 
 #include "bink_video.h"
 #include "ui_item_info.h"
@@ -84,10 +84,12 @@ public:
     // slot and settling on a whole slot; then the list is rebuilt and the position kept within [0, count - 7].
     void Update() override;
 
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
-    void Wheel(float notches, Point point) override;
+    void OnEvent(UiEvent& event) override;
+
+    void LeftDown(UiEvent& event);
+    void LeftUp(UiEvent& event);
+    void MouseMove(UiEvent& event);
+    void Wheel(UiEvent& event);
 
     // Settles the pending scroll on release.
     void SettleScroll();
@@ -137,8 +139,9 @@ public:
     Item* ItemAt(Point point, int* cursor) override;
     // Rebuilds the visible list from the source list for the current filter and tab (tab 5 of filter 0 shows everything).
     void RebuildList() override;
+    void OnEvent(UiEvent& event) override;
     // The strip's own click, then the item under the point to the owner.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
 };
 
 // The figure strips (the hero screen's two, the exchange window's).
@@ -155,9 +158,10 @@ public:
     Item* ItemAt(Point point, int* topic) override;
     // Count_ = the number of names.
     void RebuildList() override;
+    void OnEvent(UiEvent& event) override;
     // The strip's own click, then on the items the figure under the point picked: the "on_off" sound and the
     // owner's choose-figure virtual with its name.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
 
     std::vector<std::string>* figures = nullptr;    // the figure names
 };
@@ -214,13 +218,15 @@ public:
     // Whether the hero can take `item`; spell containers need the spell's skill and mana.
     bool CanEquip(Item* item, int mode) override;
 
-    void LeftUp(Point point) override;
+    void OnEvent(UiEvent& event) override;
+
+    void LeftUp(UiEvent& event);
     // Nothing while a hero is being renamed; after the base handler, clicks by mode (9 list, 10 new hero, 11 statistics):
     // see docs/notes/ui.md, "MpHeroScreen::LeftDown".
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // After the container's handler, unless a child used the key: Enter, Esc and the paging keys by mode (9, 10, 11):
     // see docs/notes/ui.md, "MpHeroScreen::KeyDown". A key used is marked.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // Enter while renaming: the hero's name becomes the text before its " | " plus " | " and the typed text (trimmed); the
     // transfer sent; the edit window put away.
     void FinishRename();
@@ -385,16 +391,17 @@ public:
     // game's password (0x30001 / 0x30002) is kept and its switch shows whether there is one; a join password
     // (0x50001) joins the selected server with it and sets the client's game type from the row.
     void MessageResult(std::uint32_t result) override;
+    void OnEvent(UiEvent& event) override;
     // By region: Connect, back (the cancel sound, the address book written, the network sessions dropped, the screen
     // closed with 0x1000001), MasterRequest, EditAddress, the unlisted switch, the password (none: a box for one; else it
     // is dropped), a sort column (a second click reverses it), a game type tab (only with row 0 selected), a row (the
     // select sound, it and its address selected); then the container's handler.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // A row double-clicked is selected (no sound, no drawing) and Connect follows; then the container's handler.
-    void LeftDouble(Point point) override;
+    void LeftDouble(UiEvent& event);
     // The container's handler first; then Enter connects, Esc leaves (as back without the address book), Up / Down / PgUp /
     // PgDn move the selection by 1 / 15 with the select sound (SelectAndScroll); those keys are marked used.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // The selection clamped to the list (an empty list gives -1 and reads the entry before it), its address kept, the list
     // scrolled to show it and drawn.
     void SelectAndScroll();
@@ -482,13 +489,14 @@ public:
 class EscMenu : public UiContainer {
 public:
     explicit EscMenu(Interface3D* ui) : UiContainer(ui) {}
-    void MouseMove(Point point) override;
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void OnEvent(UiEvent& event) override;
+    void MouseMove(UiEvent& event);
+    void KeyDown(UiEvent& event);
     void MessageResult(std::uint32_t result) override;
     // The stone model and the five regions, whose rectangles come from menus.reg.
     void CreateScreen() override;
     // Opens the save window, the load window (neither in multiplayer), resumes, asks to quit or opens the options.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // The menu closes: its stone model (models[0]) plays animation 0.
     void CloseScreen() override;
 
@@ -541,8 +549,8 @@ public:
 class CreditsScreen : public UiContainer {
 public:
     CreditsScreen(Interface3D* ui, bool fromGame, const char* name);
-    void LeftDown(Point point) override;
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void OnEvent(UiEvent& event) override;
+    void KeyDown(UiEvent& event);
     // Ends the titles: back to where they were opened from.
     void Close();
     // Opened in a game (fromGame 0) the loading screen steps and the music stops; the cursor hidden, the
@@ -587,11 +595,12 @@ public:
     void DrawSprites(SceneRenderer* pass) override;
     // The map edge fade put back, the sounds and the ambience stopped.
     void CloseScreen() override;
+    void OnEvent(UiEvent& event) override;
     // By button: new game the difficulty question (a message box), load the save/load window, exit the exit movie and
     // quit, options, the titles (surfaces cleared, opened over the menu), multiplayer (status "reserved_04", the server
     // flag, the hero screen). Then the container's handler.
-    void LeftDown(Point point) override;
-    // The interface's saved state cleared, the flow's party step 0, an inert extra input side (UiInertInput),
+    void LeftDown(UiEvent& event);
+    // The interface's saved state cleared, the flow's party step 0,
     // the full-screen rectangle, the version line, the six buttons; the default music, the map edge fade kept
     // and set to 6, rain by a coin toss, daylight between 7 and 21, the rain started before 7; the camera
     // path "MainMenu.cam" and the menu music.
@@ -608,9 +617,9 @@ public:
     void MessageResult(std::uint32_t result) override;
     // Hovering a button plays its stone's animation (kStoneAnimation; off them the rest pose) with the stone sound, once
     // per button; then the container's handler.
-    void MouseMove(Point point) override;
+    void MouseMove(UiEvent& event);
     // The container's handler, then Esc asks to quit (a message box "quit" / "quit_msg", flags 0x10000).
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
 
     // The buttons, in their creation order.
     static constexpr int kNewGame = 0, kLoad = 1, kExit = 2, kOptions = 3, kTitles = 4, kMultiplayer = 5, kButtons = 6;
@@ -649,7 +658,8 @@ public:
     // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded by our
     // offer's acceptance and the third button by the partner's; then the children.
     void DrawSprites(SceneRenderer* pass) override;
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void OnEvent(UiEvent& event) override;
+    void KeyDown(UiEvent& event);
     // The children's update; then, when the client's offer is gone or detached, our offer's items go back to
     // the local party and the client returns to the world; else a changed money field (its changed cleared)
     // becomes our offer's money (atoi) and the offer is published.
@@ -658,7 +668,7 @@ public:
     // party, when our offer is live and not accepted and its money is within the local party's; else the
     // cancel sound), take the acceptance back (cancel sound and the recorded take-back, when it is
     // accepted), leave (the transit sound and the recorded leave). The event is not marked used.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
 
     Party* scratch = nullptr;       // a party of the screen's own (made by Create, deleted by Close)
     Party* partnerOffer = nullptr;  // the client's parties[1]

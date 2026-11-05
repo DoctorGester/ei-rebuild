@@ -385,8 +385,16 @@ void TradePanel::ClampScroll() {
 
 // --- The left button (input click) ---------------------------------------------------------------------
 
-void TradePanel::LeftDown(Point point) {
-    UiRegion* region = RegionUnder(point);
+void TradePanel::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    default: UiItemPanel::OnEvent(event); break;
+    }
+}
+
+void TradePanel::LeftDown(UiEvent& event) {
+    UiRegion* region = RegionUnder(event.at);
     if (region) {
         if (region == perkScroll[0]) { --perkTop; ClampScroll(); return; }
         if (region == perkScroll[1]) { ++perkTop; ClampScroll(); return; }
@@ -437,7 +445,7 @@ void TradePanel::LeftDown(Point point) {
 
 // --- The left button released (input release) -----------------------------------------------------------
 
-void TradePanel::LeftUp(Point) {
+void TradePanel::LeftUp(UiEvent&) {
     ui->mouseCapture = nullptr;
     heldRow = nullptr;
     holdTicks = 0;

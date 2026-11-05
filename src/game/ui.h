@@ -46,7 +46,6 @@ class UiWindow;
 class UiContainer;
 class BriefingScreen;
 class ChatOverlay;
-struct UiInputSide;
 class UiMesh;
 struct Surface;
 class Material;
@@ -54,6 +53,43 @@ class Texture;
 class TextureDevice;
 class UiSurface;
 class ItemScreen;
+
+// What an input event is (UiEvent::kind).
+enum class UiEventKind : std::uint8_t {
+    LeftDown,
+    LeftUp,
+    MouseMove,
+    RightDown,
+    RightUp,
+    LeftDouble,
+    RightDouble,
+    KeyDown,
+    Char,
+    KeyUp,
+    Wheel,
+};
+
+// An input event. The interface hands each to the window that took the mouse or the top window (OnEvent); a
+// container offers it to its extra inputs, then its children, until one uses it. A handler without its own
+// double click takes one as a press.
+struct UiEvent {
+    UiEventKind kind = UiEventKind::MouseMove;
+    Point at;                                   // the mouse in screen pixels (mouse events and the wheel)
+    platform::Key key = platform::Key::None;    // KeyDown, KeyUp
+    int scan = 0;                               // KeyDown, KeyUp, Char: the key's scan code (0x100 extended)
+    int character = 0;                          // Char: the code point typed
+    float delta = 0.0f;                         // Wheel: the turn in notches (fractions from a smooth wheel),
+                                                // positive away from the player
+    bool repeat = false;                        // KeyDown: the key was down already
+    bool handled = false;                       // set by a handler that used it: a container passes it on no further
+
+    // Whether a container offers it only to the children under the mouse (mouse events and the wheel; keys go to
+    // every enabled child).
+    bool AtMouse() const {
+        return kind != UiEventKind::KeyDown && kind != UiEventKind::Char && kind != UiEventKind::KeyUp;
+    }
+};
+
 namespace screen_layout {
 struct Layout;
 }
@@ -186,18 +222,11 @@ public:
     // for one frame, then the surface freed.
     void ShowStatusText(std::string_view text);
 
-    // Mouse messages from the input dispatcher (ui_interface_input.cpp): each goes to the input side that
-    // took the mouse, else the top window's, else nowhere. Button downs and double clicks set or clear
-    // the button flags around the call.
-    void OnLeftDown(Point point);
-    void OnLeftUp(Point point);
-    void OnMouseMove(Point point);
-    void OnRightDown(Point point);
-    void OnRightUp(Point point);
-    void OnLeftDouble(Point point);
-    void OnRightDouble(Point point);
-    void OnWheel(float notches, Point point);
-    UiInputSide* MouseTarget() const;
+    // A mouse event from the input dispatcher (ui_interface_input.cpp; its kind, position and the wheel's turn): it
+    // goes to the window that took the mouse, else the top window, else nowhere. Button downs and double clicks set
+    // or clear the button flags around the call.
+    void OnMouse(UiEvent event);
+    UiWindow* MouseTarget() const;
     // A typed character (a code point) with the scan code of the key that typed it: nothing for the key under Esc;
     // the shown console's OnChar, else a multiplayer client's open chat line, else the top window.
     void OnChar(int key, int scan);
@@ -241,7 +270,7 @@ public:
     int width = 0;                   // screen width
     int height = 0;                  // screen height
     TextureDevice* renderer = nullptr;    // the device
-    UiInputSide* mouseCapture = nullptr;    // input side that took the button press
+    UiWindow* mouseCapture = nullptr;    // the window that took the button press
     console::ConsoleWindow* console = nullptr;
     ScreenFade* fade = nullptr;
     ChatOverlay* root = nullptr;    // the chat overlay; updated after the top window every frame
@@ -290,7 +319,7 @@ public:
     int messageFlag = 0;             // the message window's page, set when it closes
     std::string savedText;          // the current quest (OnQuestVariable); saved from version 0x5F
 
-    // Clears the modifier and button flags and deactivates the top window's input side.
+    // Clears the modifier and button flags and deactivates the top window.
     void ResetInput();
     // The main loop's exit: closes every window, writes the help topics to config\tutorial.ini, saves the
     // key bindings and frees what Create made (the queued window and the fade pointers are not cleared).
@@ -497,49 +526,23 @@ public:
 // The wheel's units a notch: the original took the turn in Windows' units, and its wheel constants are per unit.
 inline constexpr float kWheelUnits = 120.0f;
 
-// An input side: a window's own (UiWindow's second base) or a separate handler a container keeps in its
-// list (e.g. the battle camera's keys, CameraInput). The interface hands each event to the top window's
-// side (arguments: the mouse's position in screen pixels; a key (platform::Key), its scan code and, pressed, its repeat;
-// a character's code point and scan code; the wheel's turn in notches and the position). The base does nothing, except
-// that a double click is a press.
-struct UiInputSide {
-    // The handled flag is left as it is (a dispatcher clears it before each event).
-    explicit UiInputSide(Interface3D* ownerUi) : ui(ownerUi) {}
-    virtual ~UiInputSide() = default;
+// A container's extra input: a handler that is not a window (the battle camera's, CameraInput; the view screen's unit
+// picking, UnitPickInput). The container offers each event to its extra inputs before its children.
+class UiInput {
+public:
+    explicit UiInput(Interface3D* ownerUi) : ui(ownerUi) {}
+    virtual ~UiInput() = default;
+    virtual void OnEvent(UiEvent& event) = 0;
+    // The input loses the screen (the window under it deactivated): held buttons and modes let go.
     virtual void Deactivate() {}
-    virtual void LeftDown(Point) {}
-    virtual void LeftUp(Point) {}
-    virtual void MouseMove(Point) {}
-    virtual void RightDown(Point) {}
-    virtual void RightUp(Point) {}
-    virtual void LeftDouble(Point point);
-    virtual void RightDouble(Point point);
-    virtual void KeyDown(platform::Key, int, bool) {}
-    virtual void Char(int, int) {}
-    virtual void KeyUp(platform::Key, int) {}
-    // The wheel turned by `notches` (fractions from a smooth wheel), positive away from the player.
-    virtual void Wheel(float notches, Point point);
-    // Whether the side pans the camera at the screen's edges (CameraInput with the border scroll area above 0).
+    // Whether it pans the camera at the screen's edges (CameraInput with the border scroll area above 0).
     virtual bool PansAtEdges() const { return false; }
 
     Interface3D* ui = nullptr;
-    bool handled = false;            // set by a handler that used the event
 };
 
-// The extra input side whose handlers do nothing: the battle screen's, the briefing's, the main menu's and
-// the view screens'.
-struct UiInertInput final : UiInputSide {
-    explicit UiInertInput(Interface3D* ui) : UiInputSide(ui) {}
-};
-
-// The window's part below its input side: the engine's transform object and 0x40 bytes the window's code
-// never touches.
-class UiWindowBase : public TransformObject {
-protected:
-};
-
-// Base of the interface windows; its input side is its second base.
-class UiWindow : public UiWindowBase, public UiInputSide {
+// Base of the interface windows.
+class UiWindow : public TransformObject {
 public:
     explicit UiWindow(Interface3D* ui);
     ~UiWindow() override;
@@ -557,6 +560,11 @@ public:
     // After the surfaces: the tooltips follow the mouse and redraw.
     virtual void DrawTips();
     virtual void Update() {}
+    // An input event (UiEvent); the base uses none.
+    virtual void OnEvent(UiEvent&) {}
+    // The window loses the input (popped, the application deactivated, a container's whole tree): held buttons and
+    // modes let go. A container's goes to its extra inputs and every child.
+    virtual void Deactivate() {}
 
     // The first region containing the screen point, or null.
     UiRegion* RegionUnder(Point point) const;
@@ -587,22 +595,21 @@ public:
 
     UiModel* AddModel();
 
-    UiInputSide* Input() { return this; }
     // Takes the mouse for the next button-up (what every button-down handler does).
-    void CaptureMouse() { ui->mouseCapture = Input(); }
+    void CaptureMouse() { ui->mouseCapture = this; }
     // Button-up handlers act only when they took the mouse; they release it first.
     bool ReleaseMouse() {
-        if (ui->mouseCapture != Input()) return false;
+        if (ui->mouseCapture != this) return false;
         ui->mouseCapture = nullptr;
         return true;
     }
     // A button's mouse handling (like ImGui's ButtonBehavior) over the window's first `count` regions:
-    // HitRegion gives the region under the point, the event marked used, or null (a move, a wheel turn);
+    // HitRegion gives the region under the event's point, the event marked used, or null (a move, a wheel turn);
     // PressRegion also takes the mouse (a button down); PressedRegion is the release: null without the
     // mouse taken here, which it releases first.
-    UiRegion* HitRegion(Point point, int count = INT_MAX);
-    UiRegion* PressRegion(Point point, int count = INT_MAX);
-    UiRegion* PressedRegion(Point point, int count = INT_MAX);
+    UiRegion* HitRegion(UiEvent& event, int count = INT_MAX);
+    UiRegion* PressRegion(UiEvent& event, int count = INT_MAX);
+    UiRegion* PressedRegion(UiEvent& event, int count = INT_MAX);
     // The scene objects, then the models.
     void DrawBase(SceneRenderer* pass);
     // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`
@@ -625,6 +632,7 @@ public:
     UiMesh* AddBlankSprite();
     UiMesh* AddSceneObject(UiMesh* object);   // AddSprite's shared end: listed, black material, texture 0
 
+    Interface3D* ui = nullptr;
     Rect rect = {};                           // layout coordinates
     bool enabled = true;
     Material* blackMaterial = nullptr;   // given to every sprite (AddSprite)
@@ -671,7 +679,7 @@ struct UiTooltip : UiWindow {
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel, hero
 // equipment, quick strip, trade and repair grids, constructor pages and item strips, built on the blank
-// panel. Their input sides share the left-button handler; ItemAt gives the item or help topic under the
+// panel. They share the left-button handler; ItemAt gives the item or help topic under the
 // mouse.
 class UiItemPanel : public UiWindow {
 public:
@@ -680,9 +688,10 @@ public:
     // without items of their own (description panel, statistics column, trade panel): nothing, `topic` 0.
     virtual Item* ItemAt(Point point, int* topic);
 
+    void OnEvent(UiEvent& event) override;
     // The item under (x, y) goes to the owner with mode; without one, a help topic the panel named goes to
     // the owner's help handler. The event is not marked used.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
 
     int mode = 0;                    // the action mode handed to the owner (ItemCell::mode)
     ItemScreen* owner = nullptr;
@@ -711,9 +720,8 @@ void ClearUiDepth(float z, const Rect* rects = nullptr, int count = 0);
 // Weapon bar (four 40x80 slots at (80..240, 520..600)).
 class HudWeaponBar : public UiWindow {
 public:
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;     // selects a weapon
-    void MouseMove(Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftUp(UiEvent& event);     // selects a weapon
     // Every frame: the highlight follows the unit's weapon.
     void Update() override;
     void DrawSprites(SceneRenderer* pass) override;
@@ -741,11 +749,12 @@ public:
 // Quick items (2 rows of four 50x50 slots at (520..720, 500..600)).
 class HudQuickItems : public UiWindow {
 public:
-    void LeftDown(Point point) override;
-    void MouseMove(Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftDown(UiEvent& event);
+    void MouseMove(UiEvent& event);
     // A unit's quick item (bottom row) is picked or, with a double click, used at once; a player's item
     // (top row) starts mode 6, or cancels when it is the highlighted one.
-    void LeftUp(Point point) override;
+    void LeftUp(UiEvent& event);
     void DrawSprites(SceneRenderer* pass) override;
     // Every frame: the tooltips of the slots that show an item.
     void Update() override;
@@ -793,9 +802,8 @@ public:
 // Spell column on the right (760..800 x 190..510).
 class HudSpellColumn : public UiWindow {
 public:
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftUp(UiEvent& event);
     void DrawSprites(SceneRenderer* pass) override;
     // Spell `index` (its button or key) becomes the pending action: 1 on a unit for a spell with flag
     // 0x10000000, else 2 at a point; the highlighted one again drops it.
@@ -824,9 +832,8 @@ public:
 // Action column on the left (six 40x40 buttons at 0..40 x 270..510).
 class HudActionColumn : public UiWindow {
 public:
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftUp(UiEvent& event);
     void DrawSprites(SceneRenderer* pass) override;
     // Action button `index` (a click or its key) becomes the pending action: 8 (an order on an object) for
     // action 0 (science), else 7 (follow); the highlighted one again drops it.
@@ -881,9 +888,10 @@ struct HudPortraitSlot {
 // Party portraits (250..550 x 440..600).
 class HudPortraits : public UiWindow {
 public:
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;     // selects the unit
-    void MouseMove(Point point) override;   // shows the unit / sets the cursor
+    void OnEvent(UiEvent& event) override;
+    void LeftDown(UiEvent& event);
+    void LeftUp(UiEvent& event);     // selects the unit
+    void MouseMove(UiEvent& event);   // shows the unit / sets the cursor
     // Every frame: the bars, the hit flash, the face picture and model, the wobble and the selection marker.
     void Update() override;
     // Face picture `state` (the face name plus "a" 1, "c" 2, "b" 3; the plain name without such an image)
@@ -1025,14 +1033,14 @@ struct PanelSlide {
 class HudMap : public UiWindow {
 public:
     HudMap(Interface3D* ui, BattleScreen* owner);
-    void LeftDown(Point point) override;   // the view buttons
+    void OnEvent(UiEvent& event) override;
+    void LeftDown(UiEvent& event);   // the view buttons
     // Rebirth-patched (WideScreen: the map's centre at 700 + shift). A held view button is
     // let go; otherwise the sling button starts the slide, the round map and the map's square focus the
     // camera on the map point (inside the world), the north button is FaceNorth.
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
+    void LeftUp(UiEvent& event);
     // Over the sling button the wheel zooms the map by 2.5^(notches / 10).
-    void Wheel(float notches, Point point) override;
+    void Wheel(UiEvent& event);
     // "Camera north" (its button and key): the click sound, the camera turned north, northTime 0.5.
     void FaceNorth();
     // The view buttons' icons lit by `view`.
@@ -1108,10 +1116,8 @@ public:
     // The durability bar of each present part in state 3; PaintParts the parts' names.
     void ShowParts(Unit* unit);
     void PaintParts(UiSurface& surface, Unit* unit);
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
-    void Wheel(float notches, Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftUp(UiEvent& event);
     // The body part buttons lit by bodyPart.
     void ShowBodyPart();
     // The pictures of the first six effects on `unit`; the "more" mark shows when there are more. PaintEffects
@@ -1169,12 +1175,11 @@ public:
 class HudClock : public UiWindow {
 public:
     explicit HudClock(Interface3D* ui) : UiWindow(ui) {}
-    void LeftDown(Point point) override;
+    void OnEvent(UiEvent& event) override;
     // Rebirth's MPSpeedControl behind its flag. The pause button toggles the pause; the normal and fast
     // buttons set the speed (not on a network client: update period 55 / 27 ms); the objectives button opens
     // the objectives.
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
+    void LeftUp(UiEvent& event);
     // Every frame: the blink and the dial step on (the dial only while the game runs), then Show.
     void Update() override;
     // The face turned to the time of day, the hand and the dial's marks placed; the face and the hand blink while
@@ -1212,9 +1217,8 @@ public:
 class HudMovePanel : public UiWindow {
 public:
     HudMovePanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftUp(UiEvent& event);
     // Every frame: the selected units' common mode and flag.
     void Update() override;
     // The flag button (and its key): the selected party units' flag becomes 0 when all have 1, else 1.
@@ -1244,10 +1248,8 @@ public:
 class HudTopPanel : public UiWindow {
 public:
     HudTopPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
-    void Wheel(float notches, Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftUp(UiEvent& event);
     // Page `page` into the message log (page 0 scrolled to the end).
     void ShowPage();
     // Every frame: the slide.
@@ -1282,9 +1284,9 @@ public:
 
 // --- Screens with child windows ---
 
-// Base of the screens that hold child windows and extra input sides (the Esc menu, the save/load and
-// options windows, the battle screen). An event goes to the extra input sides in order, then to the enabled
-// children (mouse events only to those holding the point), until one sets its handled flag; see
+// Base of the screens that hold child windows and extra inputs (the Esc menu, the save/load and
+// options windows, the battle screen). An event goes to the extra inputs in order, then to the enabled
+// children (mouse events only to those holding the point), until one uses it; see
 // docs/notes/ui.md, "Container input dispatch".
 class UiContainer : public UiWindow {
 public:
@@ -1323,18 +1325,10 @@ public:
     // camp's curtains over the margins). Most windows have nothing of that.
     virtual void LayoutChanged() {}
 
-    void Deactivate() override;                                        // every side and child, no flags
-    void LeftDown(Point point) override;
-    void LeftUp(Point point) override;
-    void MouseMove(Point point) override;
-    void RightDown(Point point) override;
-    void RightUp(Point point) override;
-    void LeftDouble(Point point) override;
-    void RightDouble(Point point) override;
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
-    void Char(int key, int scan) override;
-    void KeyUp(platform::Key key, int scan) override;
-    void Wheel(float notches, Point point) override;
+    void Deactivate() override;   // every extra input and child
+    // The event, unused so far, to the popup alone (then used); else to each extra input, then each enabled child
+    // (under the mouse for mouse events and the wheel), until one uses it.
+    void OnEvent(UiEvent& event) override;
 
     // Seconds since the last frame (milliseconds * 0.001f).
     static float FrameTime();
@@ -1342,10 +1336,10 @@ public:
     static int FrameTicks();
     // Null is ignored.
     void AddChild(UiWindow* child);
-    void AddInput(UiInputSide* input);
+    void AddInput(UiInput* input);
 
     std::vector<UiWindow*> children;
-    std::vector<UiInputSide*> inputs;         // extra input sides
+    std::vector<UiInput*> inputs;         // extra inputs
     // A child that takes every input event while it is set, wherever the mouse is (an open drop-down list).
     UiWindow* popup = nullptr;
 };
@@ -1398,26 +1392,27 @@ public:
     // Every frame: a dead selected unit empties the panels, a multiplayer client rebuilds the party, the
     // "leave_zone" box for a pending exit, the selection box's marks, the quest sound.
     void Update() override;
+    void OnEvent(UiEvent& event) override;
     // A click on the unit under the point, or a drag selecting the party units inside the box. Details:
     // docs/notes/ui.md, "Behaviour moved out of header comments".
-    void LeftUp(Point point) override;
+    void LeftUp(UiEvent& event);
     // Also every frame from Draw. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
-    void MouseMove(Point point) override;
+    void MouseMove(UiEvent& event);
     // While a portrait click picks a player the portraits get it; else, when no panel took it, a press on
     // the view starts.
-    void LeftDown(Point point) override;
-    void LeftDouble(Point point) override;
+    void LeftDown(UiEvent& event);
+    void LeftDouble(UiEvent& event);
     void Deactivate() override;
     // Rebirth's MPSpeedControl behind its flag. While a portrait click picks a player, Esc ends that; on a
     // network client Enter / Backspace go to the chat line. Otherwise Esc drops the pending action, else
     // opens the escape menu; other keys run their action (docs/notes/ui.md, "Behaviour moved out of header
     // comments").
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // Releases the order key of the key's action.
-    void KeyUp(platform::Key key, int scan) override;
+    void KeyUp(UiEvent& event);
     // Offered to the map, the unit panel, the message log and the top panel in that order; when none takes
     // it, the container passes it on with those four disabled.
-    void Wheel(float notches, Point point) override;
+    void Wheel(UiEvent& event);
     // Its GetName when not empty; for a unit whose id is a text key, its "pers" text; otherwise the first
     // line of the text "unit " + the prototype's name with spaces as '_'.
     std::string UnitName(Unit* unit);
@@ -1534,12 +1529,13 @@ public:
     ~UiScrollbar() override;
     // Scrolls while an arrow is held: whole steps of the accumulated amount move the position.
     void Update() override;
-    void LeftDown(Point point) override;   // thumb drag or an arrow
-    void LeftUp(Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftDown(UiEvent& event);   // thumb drag or an arrow
+    void LeftUp(UiEvent& event);
     // Drags the thumb (state 1). The event is used either way.
-    void MouseMove(Point point) override;
+    void MouseMove(UiEvent& event);
     // Over the track: delta (low 16 bits) * speed / 120 into the accumulated amount.
-    void Wheel(float notches, Point point) override;
+    void Wheel(UiEvent& event);
     // Clamped to 0..maximum, moved set.
     virtual void SetPosition(int position);
     // The track is the right 10 pixels less 26 at either end. The position is set again (one below first,
@@ -1578,8 +1574,9 @@ public:
         : UiScrollbar(ui, rect, depth, maximum, speed) {}
     // Along the track's width; the thumb 28 wide and 10 high.
     void SetPosition(int position) override;
+    void OnEvent(UiEvent& event) override;
     // The scroll bar's drag along x.
-    void MouseMove(Point point) override;
+    void MouseMove(UiEvent& event);
     void SetRect(const Rect* rect) override;
 };
 
@@ -1686,9 +1683,9 @@ public:
     void SetValue(int value);
     // The value `by` steps on, wrapping both ways.
     void Step(int by);
+    void OnEvent(UiEvent& event) override;
     // The next value, wrapping.
-    void LeftDown(Point point) override;
-    void LeftDouble(Point) override {}
+    void LeftDown(UiEvent& event);
 
     std::vector<std::string> texts;
     int value = 0;
@@ -1727,11 +1724,11 @@ public:
     void CloseScreen() override {}
     void Update() override;
     void Deactivate() override;
-    void LeftDown(Point point) override;
-    void LeftDouble(Point point) override { LeftDown(point); }
-    void MouseMove(Point point) override;
-    void Wheel(float notches, Point point) override;
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftDown(UiEvent& event);
+    void MouseMove(UiEvent& event);
+    void Wheel(UiEvent& event);
+    void KeyDown(UiEvent& event);
 
     std::vector<std::string> texts;
     int value = 0;                   // the chosen entry
@@ -1794,8 +1791,9 @@ public:
     void Update() override;
     // The new save's picture released.
     void CloseScreen() override;
-    void LeftDown(Point point) override;
-    void LeftDouble(Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftDown(UiEvent& event);
+    void LeftDouble(UiEvent& event);
     void MessageResult(std::uint32_t result) override;
 
     // A save window saves into the new save (row 0) or asks "overwrite" (message box 0x20000); a load
@@ -1830,10 +1828,10 @@ public:
 
     // In a save window the edit keys edit the save's name (the first edit of an ordinary save takes over its
     // title, Backspace / Delete starting from an empty name).
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // In a save window: the first character for an ordinary save starts an empty name; a name stays under 60
     // characters and 178 pixels (font 1).
-    void Char(int key, int scan) override;
+    void Char(UiEvent& event);
     // Clamps the selection and scrolls it into view (16 rows).
     void ShowSelection();
     // "saveq", "savea" or "saveb"; no bound check.
@@ -2014,12 +2012,13 @@ public:
     // Surface 0's and surface 1's paints: questTitles; the zone's title and description.
     void PaintQuestList(UiSurface& surface) const;
     void PaintZone(UiSurface& surface) const;
+    void OnEvent(UiEvent& event) override;
     // OK (with two buttons the time to the nearest exit passes and that zone is requested), cancel, the previous /
     // next listed zone, a quest row or an exit.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // Enter as OK, Esc closes, PgUp / PgDn / Up / Down move the selected quest by 5 / 1. A key
     // left unused that is bound to the objectives action closes a window with one button.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // A multiplayer client takes them from the quest database's record, otherwise from map.txt's "#quest
     // <name>" entry (the second line after it, its words as x y pairs).
     void LoadQuestPlaces(std::string_view name);
@@ -2106,8 +2105,9 @@ public:
     void DrawSurfaces() override;                            // not while sliding
     void CloseScreen() override {}
     const char* HelpTopic() override;
-    void LeftDown(Point point) override;
-    void LeftDouble(Point point) override;
+    void OnEvent(UiEvent& event) override;
+    void LeftDown(UiEvent& event);
+    void LeftDouble(UiEvent& event);
     void MessageResult(std::uint32_t result) override;
     // Applies the settings whose bar or spin control changed (volumes, the display's gamma at once).
     void Update() override;
@@ -2140,7 +2140,7 @@ public:
     // Esc cancels, Enter starts a key binding, steps a spin row or opens a list row, Up / Down select rows, PgUp /
     // PgDn switch groups, Left / Right move a bar or step a spin or list row back or on. While a binding waits, the
     // next key is bound (Esc gives up); a key bound to another action asks first. An open list takes every key.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
 
     signed char keyOfScan[0x200] = {};  // the key code bound to each scan code
     int selectedRow = 0;
@@ -2168,9 +2168,10 @@ public:
 // The message box's edit field.
 class UiEditField : public UiWindow {
 public:
+    void OnEvent(UiEvent& event) override;
     // While focused. The first edit key starts editing (Backspace / Delete from an empty text, the others
     // with the caret at the end); the caret is not clamped here.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // The caret kept within the text (after every change, as the original's redraw did).
     void ClampCaret();
     // The surface's paint: the text (centred with mode 1), then a 1-pixel caret line in caretColour after the
@@ -2182,7 +2183,7 @@ public:
     ~UiEditField() override;
     // While focused and without Ctrl, a character of an allowed class: the first one starts editing from an
     // empty text; inserted while shorter than maxLength and narrower than area.
-    void Char(int key, int scan) override;
+    void Char(UiEvent& event);
     // SetText: not editing, changed, the caret at its end.
     void SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, std::uint32_t colour, std::uint32_t caretColour);
     void SetText(std::string_view text);
@@ -2241,11 +2242,12 @@ public:
     // A missing text gives its key. The text is centred and word-wrapped.
     MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question, MessageButtons buttons);
     void CreateScreen() override;
+    void OnEvent(UiEvent& event) override;
     // OK: for the exit question the exit movie and the game quits; otherwise the edit field's text into editText.
     // OK or cancel then leaves BoxResult(question, Ok / Cancel) pending.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // Into the caller's buffer.
     void CopyEditText();
     // Also the master request box's and the difficulty question's.
@@ -2275,10 +2277,11 @@ public:
     void CreateScreen() override;
     // The pulse: v = (cos(5 t) + 1) / 2 gives alpha 255 * v and the colour 80 * (1 - v).
     void Update() override;
+    void OnEvent(UiEvent& event) override;
     // The previous page, OK (Finish) or the next page.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // Enter the next page (Finish on the last), Esc or the help key Finish.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // Rebirth-patched (WideScreen). Builds the page from its "#screen" line: the rectangle
     // (200, 50)-(600, 560) or "#position", one pulsing frame per "#rectangle" line, one entry per "#text"
     // line. Details: docs/notes/ui.md, "Behaviour moved out of header comments".
@@ -2342,11 +2345,12 @@ public:
     void ShowTyped();
     // Rebirth-patched (WideScreen). The typed line's paint: the background, the text and a 1-pixel caret line.
     void PaintTyped(UiSurface& surface) const;
+    void OnEvent(UiEvent& event) override;
     // Nothing while the chat is closed. Every key is marked used; Enter sends a non-empty line (a network
     // client: SayMessage kept 60 s) and, like Esc, closes the chat. Char inserts unless Ctrl is down, the
     // line is 200 characters or more, or it would be 780 pixels wide; the character is not marked used.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
-    void Char(int key, int scan) override;
+    void KeyDown(UiEvent& event);
+    void Char(UiEvent& event);
     // Lines older than 20 s are erased.
     void Update() override;
     void DrawSurfaces() override;
@@ -2363,10 +2367,11 @@ public:
 class DifficultyBox : public MessageWindow {
 public:
     explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", "", MessageQuestion::Second, MessageButtons::OkCancel) {}
+    void OnEvent(UiEvent& event) override;
     // No container handler. OK (easy to options::g_options.difficulty), cancel, or a check box checked.
-    void LeftDown(Point point) override;
+    void LeftDown(UiEvent& event);
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
-    void KeyDown(platform::Key key, int scan, bool repeat) override;
+    void KeyDown(UiEvent& event);
     // The texture shift of a checked box (0xBDB80000).
     static constexpr float kCheckedOffset = -0.08984375f;
 

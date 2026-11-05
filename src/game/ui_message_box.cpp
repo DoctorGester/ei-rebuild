@@ -41,9 +41,17 @@ void MessageWindow::CopyEditText() {
     text::CopyFitting(editText, kEditTextSize, edit->text);
 }
 
-void MessageWindow::LeftDown(Point point) {
-    UiContainer::LeftDown(point);
-    UiRegion* region = RegionUnder(point);
+void MessageWindow::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void MessageWindow::LeftDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    UiRegion* region = RegionUnder(event.at);
     if (!region) return;
     const bool ok = region == okButton;
     if (ok) {
@@ -59,10 +67,10 @@ void MessageWindow::LeftDown(Point point) {
     ui->SetPendingValue(BoxResult(question, ok ? MessageAnswer::Ok : MessageAnswer::Cancel));
 }
 
-void MessageWindow::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
-    if (handled) return;
-    if (key == platform::Key::Return) {
+void MessageWindow::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
+    if (event.key == platform::Key::Return) {
         if (question == MessageQuestion::Exit) {
             PlayExitMovieAndQuit();
         } else {
@@ -70,19 +78,27 @@ void MessageWindow::KeyDown(platform::Key key, int scan, bool repeat) {
             ui->PlayInterfaceSound(kMessageBoxOkSound);
             ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
         }
-    } else if (key == platform::Key::Escape) {
+    } else if (event.key == platform::Key::Escape) {
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
         return;
     }
-    handled = true;
+    event.handled = true;
 }
 
 // --- DifficultyBox ------------------------------------------------------------------------------
 
-void DifficultyBox::LeftDown(Point point) {
-    UiRegion* region = RegionUnder(point);
+void DifficultyBox::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: MessageWindow::OnEvent(event); break;
+    }
+}
+
+void DifficultyBox::LeftDown(UiEvent& event) {
+    UiRegion* region = RegionUnder(event.at);
     if (!region) return;
     if (region == okButton) {
         options::g_options.difficulty = easy;
@@ -102,20 +118,20 @@ void DifficultyBox::LeftDown(Point point) {
     }
 }
 
-void DifficultyBox::KeyDown(platform::Key key, int scan, bool repeat) {
-    UiContainer::KeyDown(key, scan, repeat);
-    if (handled) return;
-    if (key == platform::Key::Return) {
+void DifficultyBox::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
+    if (event.key == platform::Key::Return) {
         options::g_options.difficulty = easy;
         ui->PlayInterfaceSound(kMessageBoxOkSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
-    } else if (key == platform::Key::Escape) {
+    } else if (event.key == platform::Key::Escape) {
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
         return;
     }
-    handled = true;
+    event.handled = true;
 }
 
 void MessageWindow::CloseScreen() {

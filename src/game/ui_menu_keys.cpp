@@ -1,7 +1,7 @@
 // The Esc menu's save/load and options windows: their key handlers and the
 // save/load window's selection helpers. See ui.h and docs/notes/ui.md.
-// Both key handlers live on the window's input side. They pass the key to the base handler first, set the
-// input side's handled flag for the keys they use, and ignore keys while the window slides in.
+// Both key handlers pass the key to the container first, mark the event used for the keys they use, and
+// ignore keys while the window slides in.
 #include "asset_text.h"
 #include "ui.h"
 #include "ui_screens.h"
@@ -58,19 +58,29 @@ void SaveLoadWindow::ShowSelection() {
     ShowPicture();
 }
 
-void SaveLoadWindow::KeyDown(platform::Key key, int scan, bool repeat) {
+void SaveLoadWindow::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftDouble: LeftDouble(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    case UiEventKind::Char: Char(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void SaveLoadWindow::KeyDown(UiEvent& event) {
     if (sliding) return;
-    UiContainer::KeyDown(key, scan, repeat);
+    UiContainer::OnEvent(event);
     int step = 0;
-    switch (key) {
+    switch (event.key) {
     case platform::Key::Return:
         Confirm();
-        handled = true;
+        event.handled = true;
         break;
     case platform::Key::Escape:
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(kCloseSaveLoad);
-        handled = true;
+        event.handled = true;
         break;
     case platform::Key::PageUp: step = -kListRows; break;
     case platform::Key::PageDown: step = kListRows; break;
@@ -82,9 +92,9 @@ void SaveLoadWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         ui->PlayInterfaceSound(kSaveSelectSound);
         selected += step;
         ShowSelection();
-        handled = true;
+        event.handled = true;
     }
-    if (handled || !isSave) return;
+    if (event.handled || !isSave) return;
 
     // Editing the name. The first edit of an ordinary save starts from its title (Backspace and
     // Delete from an empty name); the quick and automatic saves keep their names.
@@ -92,7 +102,7 @@ void SaveLoadWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     bool editable = currentSelected >= 0 && static_cast<unsigned>(currentSelected) < static_cast<unsigned>(EntryCount()) &&
                     !IsReservedSave(currentSelected) && !nameTyped;
     auto& currentName = name;
-    switch (key) {
+    switch (event.key) {
     case platform::Key::Backspace:
         if (editable) {
             nameTyped = true;
@@ -123,11 +133,11 @@ void SaveLoadWindow::KeyDown(platform::Key key, int scan, bool repeat) {
             currentName = entries[selected].title;
             cursor = lib::Count(currentName);
         }
-        if (key == platform::Key::End)
+        if (event.key == platform::Key::End)
             cursor = lib::Count(currentName);
-        else if (key == platform::Key::Home)
+        else if (event.key == platform::Key::Home)
             cursor = 0;
-        else if (key == platform::Key::Left)
+        else if (event.key == platform::Key::Left)
             cursor = text::PreviousCharacter(currentName, cursor);
         else
             cursor = text::NextCharacter(currentName, cursor);
@@ -136,12 +146,12 @@ void SaveLoadWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         return;
     }
     RefreshListVanilla();
-    handled = true;
+    event.handled = true;
 }
 
-void SaveLoadWindow::Char(int key, int scan) {
+void SaveLoadWindow::Char(UiEvent& event) {
     if (!isSave) return;
-    switch (key) {
+    switch (event.character) {
     case '\b':
     case '\t':
     case '\r':
@@ -161,29 +171,38 @@ void SaveLoadWindow::Char(int key, int scan) {
             std::string typed;
             {
                 std::string head = str::Left(currentName, cursor);
-                typed = text::Typed(head, key) + tail;   // the character's UTF-8 bytes
+                typed = text::Typed(head, event.character) + tail;   // the character's UTF-8 bytes
             }
             if (ui->TextExtent(typed, 1).w < kMaxNameWidth) {
                 currentName = typed;
-                cursor += text::TypedLength(key);
+                cursor += text::TypedLength(event.character);
             }
         }
         RefreshListVanilla();
         break;
     }
     }
-    UiContainer::Char(key, scan);
+    UiContainer::OnEvent(event);
 }
 
-void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
+void OptionsWindow::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftDouble: LeftDouble(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void OptionsWindow::KeyDown(UiEvent& event) {
     if (sliding) return;
     const bool listOpen = popup != nullptr;
-    UiContainer::KeyDown(key, scan, repeat);
+    UiContainer::OnEvent(event);
     if (listOpen) return;   // the open list took the key (Enter or Escape may have closed it)
     if (waitingForKey) {
         // The key for the selected binding row, by scan code.
-        handled = true;
-        if (scan == kScanEsc) {
+        event.handled = true;
+        if (event.scan == kScanEsc) {
             waitingForKey = false;
             RefreshRows();
             return;
@@ -191,7 +210,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         const UiKeyName* pressed = nullptr;
         pressedKey = nullptr;
         for (const UiKeyName* k = g_keyNames; k < KeyNamesEnd(); ++k) {
-            if (k->scan == scan) {
+            if (k->scan == event.scan) {
                 pressed = k;
                 pressedKey = k;
                 break;
@@ -233,7 +252,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         return;
     }
 
-    switch (key) {
+    switch (event.key) {
     case platform::Key::Return: {
         OptionRow& row = rows[selectedRow];
         if (row.binding) {
@@ -242,7 +261,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
             row.setting->list->Open();
         } else {
             if (!row.setting || !row.setting->spin) {
-                handled = true;
+                event.handled = true;
                 return;
             }
             const int value = row.setting->spin->TakeValue();
@@ -250,7 +269,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         }
         ui->PlayInterfaceSound(kMessageBoxOkSound);
         RefreshRows();
-        handled = true;
+        event.handled = true;
         return;
     }
     case platform::Key::Escape:
@@ -261,26 +280,26 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     case platform::Key::PageUp:
     case platform::Key::PageDown:
         ui->PlayInterfaceSound(kSaveSelectSound);
-        ShowGroup(key == platform::Key::PageUp ? group - 1 : group + 1);
+        ShowGroup(event.key == platform::Key::PageUp ? group - 1 : group + 1);
         break;
     case platform::Key::Left:
     case platform::Key::Right: {
-        // The row's bar moves one step, or its spin control steps back or on; the handled flag stays as it is.
+        // The row's bar moves one step, or its spin control steps back or on; the event is not marked used.
         OptionSetting* setting = rows[selectedRow].setting;
         if (!setting) return;
         if (setting->list) {
-            setting->list->Step(key == platform::Key::Left ? -1 : 1);
+            setting->list->Step(event.key == platform::Key::Left ? -1 : 1);
             ui->PlayInterfaceSound(kMessageBoxOkSound);
             return;
         }
         if (setting->spin) {
-            setting->spin->Step(key == platform::Key::Left ? -1 : 1);
+            setting->spin->Step(event.key == platform::Key::Left ? -1 : 1);
             ui->PlayInterfaceSound(kMessageBoxOkSound);
             return;
         }
         if (!setting->bar) return;
         const int position = setting->bar->TakePosition();
-        rows[selectedRow].setting->bar->SetPosition(key == platform::Key::Left ? position - 1 : position + 1);
+        rows[selectedRow].setting->bar->SetPosition(event.key == platform::Key::Left ? position - 1 : position + 1);
         return;
     }
     case platform::Key::Up:
@@ -306,5 +325,5 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
     default:
         return;
     }
-    handled = true;
+    event.handled = true;
 }

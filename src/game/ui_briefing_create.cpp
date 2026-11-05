@@ -173,9 +173,7 @@ void BriefingScreen::CreateScreen() {
     g_clientWorld.terrain->landscapeFlags |= terrain::LandscapeFlag::Ambience;
     g_serverWorld.SetWeather(0, 0.0f);
 
-    // The screen's own input side (its third dword is left as allocated) and the view's.
-    UiInputSide* input = new UiInertInput(ui);           // 0x0C bytes
-    AddInput(input);
+    // The view's input.
     AddInput(new CameraInput(ui));
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,

@@ -1,6 +1,6 @@
 // The interface's input dispatch (Interface3D): the input dispatcher closes the
-// windows when asked, then hands each mouse message here (on to the
-// input side that took the mouse or the top window's) and each typed character and key release
+// windows when asked, then hands each mouse event here (on to the
+// window that took the mouse or the top window) and each typed character and key release
 // (on to the console, the chat line or the top window). See ui.h and
 // docs/notes/ui.md ("Container input dispatch").
 #include "ui.h"
@@ -33,9 +33,9 @@
 #include <string>
 #include <vector>
 
-UiInputSide* Interface3D::MouseTarget() const {
+UiWindow* Interface3D::MouseTarget() const {
     if (mouseCapture) return mouseCapture;
-    return stack.empty() ? nullptr : stack.back()->Input();
+    return stack.empty() ? nullptr : stack.back();
 }
 
 namespace {
@@ -43,42 +43,17 @@ constexpr int kScanConsoleKey = 0x29;   // the key under Esc (the console's)
 
 } // namespace
 
-void Interface3D::OnLeftDown(Point point) {
-    doubleClick = false;
-    if (UiInputSide* target = MouseTarget()) target->LeftDown(point);
-}
-
-void Interface3D::OnLeftUp(Point point) {
-    if (UiInputSide* target = MouseTarget()) target->LeftUp(point);
-    doubleClick = false;
-}
-
-void Interface3D::OnMouseMove(Point point) {
-    if (UiInputSide* target = MouseTarget()) target->MouseMove(point);
-}
-
-void Interface3D::OnRightDown(Point point) {
-    rightDown = true;
-    if (UiInputSide* target = MouseTarget()) target->RightDown(point);
-}
-
-void Interface3D::OnRightUp(Point point) {
-    rightDown = false;
-    if (UiInputSide* target = MouseTarget()) target->RightUp(point);
-}
-
-void Interface3D::OnLeftDouble(Point point) {
-    doubleClick = true;
-    if (UiInputSide* target = MouseTarget()) target->LeftDouble(point);
-}
-
-void Interface3D::OnRightDouble(Point point) {
-    rightDown = true;
-    if (UiInputSide* target = MouseTarget()) target->RightDouble(point);
-}
-
-void Interface3D::OnWheel(float notches, Point point) {
-    if (UiInputSide* target = MouseTarget()) target->Wheel(notches, point);
+void Interface3D::OnMouse(UiEvent event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: doubleClick = false; break;
+    case UiEventKind::LeftDouble: doubleClick = true; break;
+    case UiEventKind::RightDown:
+    case UiEventKind::RightDouble: rightDown = true; break;
+    case UiEventKind::RightUp: rightDown = false; break;
+    default: break;
+    }
+    if (UiWindow* target = MouseTarget()) target->OnEvent(event);
+    if (event.kind == UiEventKind::LeftUp) doubleClick = false;
 }
 
 // --- Keys ------------------------------------------------------------------
@@ -89,11 +64,12 @@ void Interface3D::OnChar(int key, int scan) {
         console->OnChar(key, scan);
         return;
     }
+    UiEvent event{.kind = UiEventKind::Char, .scan = scan, .character = key};
     if (IsMultiplayerClient() && root->chatOpen) {
-        root->Input()->Char(key, scan);
+        root->OnEvent(event);
         return;
     }
-    if (!stack.empty()) stack.back()->Input()->Char(key, scan);
+    if (!stack.empty()) stack.back()->OnEvent(event);
 }
 
 void Interface3D::OnKeyUp(platform::Key key, int scan) {
@@ -107,7 +83,8 @@ void Interface3D::OnKeyUp(platform::Key key, int scan) {
         console->OnKeyUp(key, scan);
         return;
     }
-    if (!stack.empty()) stack.back()->Input()->KeyUp(key, scan);
+    UiEvent event{.kind = UiEventKind::KeyUp, .key = key, .scan = scan};
+    if (!stack.empty()) stack.back()->OnEvent(event);
 }
 
 void console::ConsoleWindow::OnKeyUp(platform::Key key, int) {
@@ -120,7 +97,7 @@ void console::ConsoleWindow::OnKeyUp(platform::Key key, int) {
 // --- Every window closed --------------------------------------------------
 
 void Interface3D::PopWindow() {
-    stack.back()->Input()->Deactivate();
+    stack.back()->Deactivate();
     stack.back()->CloseScreen();
     delete stack.back();
     stack.pop_back();
@@ -132,7 +109,7 @@ void Interface3D::ResetInput() {
     shiftDown = 0;
     rightDown = false;
     doubleClick = false;
-    if (!stack.empty()) stack.back()->Input()->Deactivate();
+    if (!stack.empty()) stack.back()->Deactivate();
 }
 
 void Interface3D::CloseAll() {

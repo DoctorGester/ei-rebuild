@@ -5,4 +5,5 @@ model = "opus"
 depends = ["C95"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U8. struct UiEvent {kind, at, key, scan, delta, repeat, handled} and one virtual OnEvent(UiEvent&); UiContainer's dispatch one plain loop; UiInputSide (the second base), Input() and UiInertInput go; the template Offer and its triple children[i] re-reads go. Event order and handled semantics unchanged. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1027
-status = "queued"
+status = "review"
+started = "2026-11-05"

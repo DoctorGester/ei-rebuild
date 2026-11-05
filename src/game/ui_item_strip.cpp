@@ -344,11 +344,19 @@ void FigureStrip::DrawSprites(SceneRenderer* pass) {
 
 void FigureStrip::RebuildList() { count = static_cast<int>(figures->size()); }
 
-void FigureStrip::LeftDown(Point point) {
-    UiItemStrip::LeftDown(point);
-    if (RegionUnder(point) != itemArea) return;
-    ui->ScalePointFromScreen(&point);
-    int index = SlotAt(point.x);
+void FigureStrip::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    default: UiItemStrip::OnEvent(event); break;
+    }
+}
+
+void FigureStrip::LeftDown(UiEvent& event) {
+    UiItemStrip::LeftDown(event);
+    if (RegionUnder(event.at) != itemArea) return;
+    Point at = event.at;
+    ui->ScalePointFromScreen(&at);
+    int index = SlotAt(at.x);
     if (index < 0 || index >= count) return;
     ui->PlayInterfaceSound(kOnOffSound);
     owner->ChooseFigure((*figures)[index]);     // the hero screen: the new hero's figure

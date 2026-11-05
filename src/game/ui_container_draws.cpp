@@ -25,7 +25,10 @@ namespace {
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
 void ScreenDraw(UiContainer* self, SceneRenderer* pass, bool mouseMove) {
     g_clientWorld.Render();
-    if (mouseMove) self->Input()->MouseMove(g_cursor.position);
+    if (mouseMove) {
+        UiEvent move{.kind = UiEventKind::MouseMove, .at = g_cursor.position};
+        self->OnEvent(move);
+    }
     ClearUiDepth(1.0f);
     self->UiContainer::DrawSprites(pass);
 }

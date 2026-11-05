@@ -834,14 +834,22 @@ void ItemInfoPanel::Describe(Item* item) {
     DescribeItem();
 }
 
-// --- Input side: the input virtuals (mouse, key down, key up) ------------------
+// --- Input: key down and key up --------------------------------------------------
 
-void ItemInfoPanel::KeyDown(platform::Key key, int, bool repeat) {
-    if (key == platform::Key::Control && !repeat && FirstItem()) DescribeItem();
+void ItemInfoPanel::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    case UiEventKind::KeyUp: KeyUp(event); break;
+    default: UiItemPanel::OnEvent(event); break;
+    }
 }
 
-void ItemInfoPanel::KeyUp(platform::Key key, int) {
-    if (key == platform::Key::Control && FirstItem()) DescribeItem();
+void ItemInfoPanel::KeyDown(UiEvent& event) {
+    if (event.key == platform::Key::Control && !event.repeat && FirstItem()) DescribeItem();
+}
+
+void ItemInfoPanel::KeyUp(UiEvent& event) {
+    if (event.key == platform::Key::Control && FirstItem()) DescribeItem();
 }
 
 void ItemInfoPanel::Build(int atX, int atY) {

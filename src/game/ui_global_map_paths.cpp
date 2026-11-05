@@ -91,9 +91,9 @@ void GlobalMap::FindPaths(MapRecord* from) {
     }
 }
 
-void GlobalMap::LeftDown(Point point) {
+void GlobalMap::LeftDown(UiEvent& event) {
     if (dragging) return;
-    UiRegion* region = RegionUnder(point);
+    UiRegion* region = RegionUnder(event.at);
     if (region == turnLeftButton || region == turnRightButton) {
         turning = region == turnLeftButton ? -1 : 1;
         ui->PlayInterfaceSound(kMoveSound);
@@ -111,7 +111,7 @@ void GlobalMap::LeftDown(Point point) {
     if (link >= 0) {
         ui->PlayInterfaceSound(kOkSound);
     } else {
-        const int index = ZoneAt(point);
+        const int index = ZoneAt(event.at);
         if (index < 0 || zones[index].state == 0) return;
         ui->PlayInterfaceSound(kOkSound);
         GlobalMapZone& zone = zones[index];

@@ -37,10 +37,18 @@ std::uint32_t CharClass(int key) {
 
 } // namespace
 
-void UiEditField::KeyDown(platform::Key key, int, bool) {
+void UiEditField::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    case UiEventKind::Char: Char(event); break;
+    default: break;
+    }
+}
+
+void UiEditField::KeyDown(UiEvent& event) {
     if (!focused) return;
     auto& currentText = text;
-    switch (key) {
+    switch (event.key) {
     case platform::Key::Backspace:
     case platform::Key::Delete:
         // The first edit key of a field starts from an empty text.
@@ -51,7 +59,7 @@ void UiEditField::KeyDown(platform::Key key, int, bool) {
             changed = true;
         }
         // By character (a UTF-8 character's bytes).
-        if (key == platform::Key::Backspace) {
+        if (event.key == platform::Key::Backspace) {
             if (caret > 0) {
                 const int previous = text::PreviousCharacter(currentText, caret);
                 std::string tail = str::Mid(currentText, caret);
@@ -76,11 +84,11 @@ void UiEditField::KeyDown(platform::Key key, int, bool) {
             editing = true;
             caret = lib::Count(currentText);
         }
-        if (key == platform::Key::End)
+        if (event.key == platform::Key::End)
             caret = lib::Count(currentText);
-        else if (key == platform::Key::Home)
+        else if (event.key == platform::Key::Home)
             caret = 0;
-        else if (key == platform::Key::Left)
+        else if (event.key == platform::Key::Left)
             caret = text::PreviousCharacter(currentText, caret);
         else
             caret = text::NextCharacter(currentText, caret);
@@ -89,10 +97,10 @@ void UiEditField::KeyDown(platform::Key key, int, bool) {
         return;
     }
     ClampCaret();
-    handled = true;
+    event.handled = true;
 }
 
-// The window's slots; the input side's keys and characters.
+// The window's slots; its keys and characters.
 UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
     charClasses = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
     centred = 0;
@@ -109,11 +117,12 @@ UiEditField::UiEditField(Interface3D* ownerUi, Rect rect) : UiWindow(ownerUi) {
     focused = true;
 }
 
-void UiEditField::Char(int key, int) {
+void UiEditField::Char(UiEvent& event) {
     if (!focused) return;
-    if (key == '\b' || key == '\t' || key == '\r' || key == '\x1B') return;
+    const int character = event.character;
+    if (character == '\b' || character == '\t' || character == '\r' || character == '\x1B') return;
     if (ui->ctrlDown) return;
-    if ((charClasses & CharClass(key)) == 0) return;
+    if ((charClasses & CharClass(character)) == 0) return;
     auto& currentText = text;
     // The first character of a field starts from an empty text.
     if (!editing) {
@@ -124,14 +133,14 @@ void UiEditField::Char(int key, int) {
     }
     std::string tail = str::Mid(currentText, caret);
     std::string head = str::Left(currentText, caret);
-    std::string typed = text::Typed(head, key) + tail;
+    std::string typed = text::Typed(head, character) + tail;
     if (text::CharacterCount(currentText) < maxLength && ui->TextExtent(typed, font).w < area.Width()) {
         currentText = typed;
         changed = true;
-        caret += text::TypedLength(key);
+        caret += text::TypedLength(character);
     }
     ClampCaret();
-    handled = true;
+    event.handled = true;
 }
 
 // --- the look, the text and the focus ------------------------------------------------------------

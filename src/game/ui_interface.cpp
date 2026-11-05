@@ -170,8 +170,8 @@ Rect Interface3D::PictureRect() const {
 
 bool Interface3D::EdgePanLive() const {
     if (stack.empty()) return false;
-    for (const UiInputSide* side : stack.back()->inputs)
-        if (side->PansAtEdges()) return true;
+    for (const UiInput* input : stack.back()->inputs)
+        if (input->PansAtEdges()) return true;
     return false;
 }
 
@@ -349,14 +349,12 @@ void Interface3D::OnKeyDown(platform::Key key, int scan, bool repeat) {
         consoleWindow->OnKeyDown(key, scan, repeat);
         return;
     }
+    UiEvent event{.kind = UiEventKind::KeyDown, .key = key, .scan = scan, .repeat = repeat};
     ChatOverlay* chat = root;
     if (IsMultiplayerClient() && chat->chatOpen) {
-        chat->Input()->KeyDown(key, scan, repeat);
+        chat->OnEvent(event);
         return;
     }
-    if (!stack.empty()) stack.back()->Input()->KeyDown(key, scan, repeat);
-    if (!stack.empty() && !stack.back()->Input()->handled &&
-        KeyCharacter(scan) == ';') {
-        OpenHelp(true);
-    }
+    if (!stack.empty()) stack.back()->OnEvent(event);
+    if (!stack.empty() && !event.handled && KeyCharacter(scan) == ';') OpenHelp(true);
 }

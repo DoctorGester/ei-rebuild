@@ -11,13 +11,20 @@ each frame, text, the glyph atlas) is ui-native.md.
 wrapping products, truncating division). The WideScreen layout (rebirth.md, "WideScreen"; `screen_layout.h`) keeps the
 800x600 middle and moves the edge panels by `EdgeShift`.
 
-**Screen classes.** Each screen is a `UiWindow` subclass with an input side (`UiInputSide`). Input handlers get the platform's
-event data, the mouse's in screen pixels: Deactivate, LeftDown, LeftUp, MouseMove, RightDown / RightUp, LeftDouble /
-RightDouble `(point)`, KeyDown `(key, scan, repeat)`, KeyUp `(key, scan)`, Char `(code point, scan)`, Wheel `(notches, point)`
-(a float, positive away from the player; the original's wheel constants are per Windows unit, `kWheelUnits` 120 a
-notch, and its handlers multiply by it, exact for whole notches). The key tables are indexed by the scan code (0x100 extended). A button-down handler that takes the mouse
-stores its input side in `Interface3D::mouseCapture`; the button-up handler acts only when the capture is its own and
-clears it; a handler sets `handled` when it used the event, which stops the container passing it on.
+**Screen classes.** Each screen is a `UiWindow` subclass. Every input event reaches a window through one virtual,
+`OnEvent(UiEvent&)`: its kind (LeftDown, LeftUp, MouseMove, RightDown / RightUp, LeftDouble / RightDouble, KeyDown,
+Char, KeyUp, Wheel), the mouse in screen pixels (`at`), the key, scan code and repeat, the typed code point
+(`character`), the wheel's turn in notches (`delta`: a float, positive away from the player; the original's wheel
+constants are per Windows unit, `kWheelUnits` 120 a notch, and its handlers multiply by it, exact for whole notches) and
+`handled`. A window's OnEvent is a switch to its named handlers (`LeftDown(UiEvent&)` ...); what it does not take goes
+to its base class's OnEvent (a container's: the dispatch below). A window without a double-click handler of its own or
+in a base takes a double click as a press (the original's default), a container's goes to its children as a double
+click. `Deactivate()` is a virtual of its own (no event, no flag). The key tables are indexed by the scan code (0x100
+extended). A button-down handler that takes the mouse stores its window in `Interface3D::mouseCapture`; the button-up
+handler acts only when the capture is its own and clears it; a handler sets `event.handled` when it used the event,
+which stops the container passing it on. A handler that hands the event to another window (the battle screen's wheel to
+its panels, the drop-down list's press to its scroll bar) passes the same event, and its point unchanged: handlers that
+scale the point scale a copy.
 
 **How the screens open.** `Interface3D::CreateScreen` is called by the client's message 7 handler with the id the server
 sends: 1 battle screen, 3 briefing / base, 4 global map, 5 camp, 7 view screen, 9 exchange (0 does nothing). The client asks
@@ -75,13 +82,18 @@ and a right-button flag on the interface.
 
 ### Container input dispatch (`ui_container.cpp`; scenario `ui_container_input`)
 
-The window's events map to the top window's input handlers (left down; right down sets the right-button flag; double click
-sets the double-click flag; key down; char unless the console or a multiplayer chat takes it; key up; wheel). The
-container's dispatchers are identical apart from the handler: the container's handled flag is cleared; each extra input
-side gets its flag cleared and the event, and one that sets its flag ends it; then each enabled child (mouse and wheel
-events also need the point inside it) the same, the child and the list's end re-read after each call. Deactivate goes to
-every side and child and touches no flag. Ours: while a container has a `popup` (an open drop-down list, ui-native.md
-"The drop-down list"), every event goes to it alone and the container counts as handled.
+The window's events go to the window that took the mouse, else the top window, as UiEvents (`Interface3D::OnMouse`:
+left down clears the double-click flag, a double click sets it, left up clears it after the call; right down and a
+right double click set the right-button flag, right up clears it; key down, key up, and a char unless the console or a
+multiplayer chat takes it). `UiContainer::OnEvent` is one loop: the event's handled flag cleared; each extra input
+(`UiInput`: the camera's keys, the view screen's unit picking) gets it, and one that uses it ends it; then each enabled
+child (mouse and wheel events also need the point inside it) the same, by index (a handler may add children; none
+removes one during input). Deactivate goes to every extra input and child and touches no flag. Ours: while a container
+has a `popup` (an open drop-down list, ui-native.md "The drop-down list"), every event goes to it alone and the
+container counts as handled. The original's flag lived on each window and was read stale by the interface's help-key
+check (`OnKeyDown`: an unused ';' opens help) after a screen's early return; only windows with a help topic (global
+map, camp, objectives, options) open one, and their key handlers write the flag on every path, so the event's flag
+reads the same.
 
 ## 3. Interface base: frame update, text, console window, cursor, chat
 
@@ -142,7 +154,7 @@ resume, Esc, the quit box cancelled), `ui_view_screen`. The harness's `newgame` 
   server flag at the end; plays the movies under "Titlesfin", draws the header unsmoothed (ui-native.md), parses
   "credits.scr" from "<data>outro.res" (one TitleLine per line) and starts "Movies\Titles.bik". `Draw` takes the next line
   once the time passes `nextLineAt` and the text stopped (`speed` 0 or NaN).
-- **View screen** (`ui_view_screen.cpp`): screen 7, a debug view: inert input, `UnitPickInput` (picked ids: `LeftDown`
+- **View screen** (`ui_view_screen.cpp`): screen 7, a debug view: `UnitPickInput` (picked ids: `LeftDown`
   picks / walks, Ctrl attacks, Space toggles the server pause flag), camera keys; focus (30, 30), rotation premultiplied by
   225 degrees about x. No unit can be picked in ui_view_screen: the party leaves the world with the request.
 
@@ -364,8 +376,8 @@ F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF 
 - Save entries' titles: `ZoneTitle` / `AllodTitle` ("zone " / "allod " with the space; else "save_camp" / "Unknown").
   `QuickLoad` loads newgame's savea. A save window edits the name; the first edit of an entry other than "saveq" / "savea" /
   "saveb" marks it changed.
-- Key handlers run only when the window is not sliding in, pass the key to the container first and set the input side's
-  handled flag for the keys they use. Options: while a binding row waits, the next scan code is looked up in
+- Key handlers run only when the window is not sliding in, pass the key to the container first and mark the event used
+  for the keys they use. Options: while a binding row waits, the next scan code is looked up in
   the key names (88 entries), a key bound to another row asks "key_already_mapped", else CommitBinding and RefreshRows. OK
   only copies the window's table into the key table (Apply); `config\keyboard.ini` ("<key name> <action>" lines) is written
   on the interface's shutdown, so a game that ends without it keeps the remap for that session only. Settings go to the
@@ -563,8 +575,8 @@ no arrow tips), the trade grid over both offers (mode 5) and the money field (0.
 `ui_container_draws.cpp`:
 - the container windows' base draw (UiContainer): stage 0 set to `kAlphaPassStage`, then the window's own sprites and models
   and its enabled children;
-- the base / briefing screen's and screen 2's draws: the menu frame step, (screen 3) a mouse move to the input side, a depth
-  clear, then the children;
+- the base / briefing screen's and screen 2's draws: the menu frame step, (screen 3) a mouse move to the window itself, a
+  depth clear, then the children;
 - the hero equipment panel's draw (HeroEquipPanel): the two highlight frames placed (the shown weapon, the selected quick
   item), the weapons' (left) and quick items' (from the right) item models, and with the body (the camp) the seven equipment
   slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1 afterwards), as the hero preview and the
@@ -714,7 +726,7 @@ Long header comments of ui.h, ui_camp.h and the other UI headers; the header kee
 
 ### BattleScreen::LeftUp
 
-Input side (ui_battle.cpp). The left button released: nothing while a portrait click picks a player; without a press on the
+Input (ui_battle.cpp). The left button released: nothing while a portrait click picks a player; without a press on the
 view the container's handler; a press without a drag, or on a network client, is a click on the unit under the point (units
 with flag 0x400000 only) through SelectUnit; a drag selects the party units inside the box: the world's selection cleared,
 the box marks and portraits' markers reset, each unit inside controlled with its portrait marked and its face turned (about
@@ -722,7 +734,7 @@ the box marks and portraits' markers reset, each unit inside controlled with its
 
 ### BattleScreen::MouseMove
 
-Input side (ui_battle_input.cpp). The mouse moved (also every frame from Draw, at the current position): while a portrait
+Input (ui_battle_input.cpp). The mouse moved (also every frame from Draw, at the current position): while a portrait
 click picks a player the cursor shape 0xD and the portraits' own mouse move; otherwise shape 0, then with a press on the
 view, a positive BoxSelectThreshold and not a network client: a move farther than the threshold from the press point in x or
 y starts the selection box, which empties the unit panel's hover unit and spans the press point and (x, y); before that the

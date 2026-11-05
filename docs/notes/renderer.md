@@ -472,7 +472,7 @@ game sets it). A window narrower than 4:3 has the world over its whole height.
 **The cursor is confined whenever the edge pan is available** (no option; a stale `ConfineCursor` line in
 ei_settings.ini is ignored). `app::UpdateCursorConfinement`, run every main loop pass and at the window's focus
 changes, asks `platform::ConfineCursor` (SDL_SetWindowMouseGrab) while the game's window is the active one and
-`Interface3D::EdgePanLive` says the top window has an input side that pans at the edges (`UiInputSide::PansAtEdges`:
+`Interface3D::EdgePanLive` says the top window has an extra input that pans at the edges (`UiInput::PansAtEdges`:
 the `CameraInput` of the battle, briefing and view screens with the border scroll area above 0). The main menu, the
 escape menu and the modal windows are other top windows, so the cursor is free there; it is let go too when the window
 loses the focus or is minimised, and at the focus loss the input is reset (`Interface3D::ResetInput`), so an edge pan

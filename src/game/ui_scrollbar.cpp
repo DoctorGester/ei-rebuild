@@ -85,20 +85,21 @@ void UiScrollbar::SetRect(const Rect* newRect) {
 
 // --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
 
-void UiScrollbar::MouseMove(Point point) {
+void UiScrollbar::MouseMove(UiEvent& event) {
     if (state == kDragging) {
-        ui->ScalePointFromScreen(&point);
-        int along = point.y - grabY;
+        Point at = event.at;
+        ui->ScalePointFromScreen(&at);
+        int along = at.y - grabY;
         SetPosition(lib::Truncate(static_cast<float>(along - track.top) * maxPosition / track.Height()));
     }
-    handled = true;
+    event.handled = true;
 }
 
-void UiScrollbar::Wheel(float notches, Point point) {
-    if (RegionUnder(point) == trackArea) {
-        float step = notches * kWheelUnits * speed * kWheelStep;
+void UiScrollbar::Wheel(UiEvent& event) {
+    if (RegionUnder(event.at) == trackArea) {
+        float step = event.delta * kWheelUnits * speed * kWheelStep;
         accumulated -= step;
-        handled = true;
+        event.handled = true;
     }
 }
 
@@ -116,13 +117,21 @@ void UiSlider::SetPosition(int newPosition) {
     thumb = {centre - kSliderThumbHalfWidth, track.top, centre + kSliderThumbHalfWidth, track.top + kSliderThumbHeight};
 }
 
-void UiSlider::MouseMove(Point point) {
+void UiSlider::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    default: UiScrollbar::OnEvent(event); break;
+    }
+}
+
+void UiSlider::MouseMove(UiEvent& event) {
     if (state == kDragging) {
-        ui->ScalePointFromScreen(&point);
-        int along = point.x - grabX;
+        Point at = event.at;
+        ui->ScalePointFromScreen(&at);
+        int along = at.x - grabX;
         SetPosition(lib::Truncate(static_cast<float>(along - track.left) * maxPosition / track.Width()));
     }
-    handled = true;
+    event.handled = true;
 }
 
 void UiScrollbar::SetMaximum(int maximum) {

@@ -47,9 +47,16 @@ void HeroQuickStrip::ShowEntry(Item* item) {
 
 // --- the equipment panel's right button ----------------------------------------------------------
 
-void HeroEquipPanel::RightDown(Point point) {
+void HeroEquipPanel::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::RightDown: case UiEventKind::RightDouble: RightDown(event); break;
+    default: UiItemPanel::OnEvent(event); break;
+    }
+}
+
+void HeroEquipPanel::RightDown(UiEvent& event) {
     if (!body || !enabled) return;
-    const UiRegion* region = RegionUnder(point);
+    const UiRegion* region = RegionUnder(event.at);
     if (!region) return;
     PartyUnitRecord* hero = owner->HeroRecord();
     const int cell = RegionIndex(cells, region);

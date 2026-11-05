@@ -247,11 +247,20 @@ void EscMenu::CreateScreen() {
 
 // --- Esc menu clicks -------------------------------------------------------------------
 
-void EscMenu::LeftDown(Point point) {
-    const int stone = RegionIndex(stones, RegionUnder(point));
+void EscMenu::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void EscMenu::LeftDown(UiEvent& event) {
+    const int stone = RegionIndex(stones, RegionUnder(event.at));
     if (stone >= 0) {
         ui->PlayInterfaceSound("buttons\\menu\\ok.wav");
-        handled = true;
+        event.handled = true;
     }
     UiContainer* opened = nullptr;
     bool open = true;
@@ -282,14 +291,23 @@ void EscMenu::LeftDown(Point point) {
         break;
     }
     if (open) ui->PushWindow(opened, WindowBackdrop::FirstWindow);
-    UiContainer::LeftDown(point);
+    UiContainer::OnEvent(event);
 }
 
 // --- Main menu clicks ------------------------------------------------------------
 
-void MainMenu::LeftDown(Point point) {
+void MainMenu::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void MainMenu::LeftDown(UiEvent& event) {
     const char* okSound = "buttons\\menu\\ok.wav";
-    switch (RegionIndex(buttons, RegionUnder(point))) {
+    switch (RegionIndex(buttons, RegionUnder(event.at))) {
     case kNewGame: {
         // A new game: the difficulty question (a message box with its own vtables).
         ui->PlayInterfaceSound(okSound);
@@ -337,7 +355,7 @@ void MainMenu::LeftDown(Point point) {
     default:
         break;
     }
-    UiContainer::LeftDown(point);
+    UiContainer::OnEvent(event);
 }
 
 // --- Message box -----------------------------------------------------------------------

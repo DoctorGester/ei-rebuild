@@ -354,7 +354,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 007400A8,13,,game,005E26F0,005E3C80,ChatOverlay,src/game/ui.h,the chat overlay's input side
 007400DC,25,,game,005E26F0,005E28C0,ChatOverlay,src/game/ui.h,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,,game,005EA600,005EA810,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
-007401D0,13,,game,005EA830 005EA850 005EACF0 005EB620 005EB910 005FE700 005FE900 005FE930 00602BA0,005EA850,UiInputSide,src/game/ui.h,the base input side (also stored by game.exe's dead 005EA830 / 005EB620 and the unwind-only 005FE900)
+007401D0,13,,game,005EA830 005EA850 005EACF0 005EB620 005EB910 005FE700 005FE900 005FE930 00602BA0,005EA850,UiInputSide,-,"the base input side (also stored by game.exe's dead 005EA830 / 005EB620 and the unwind-only 005FE900); ours has none: a window's OnEvent takes a UiEvent (C97)"
 00740208,13,,game,005EACB0,005EACD0,CameraInput,src/game/ui_camera_keys.h,the battle camera's input side (CCameraInput)
 00740244,13,,game,005EB580,005EB600,input side,-,stored only by game.exe's 005EACF0 (InputSideDestroy stores the base input vtable)
 00740278,13,,game,005EB8C0,005EB8F0,UnitPickInput,src/game/ui_view_screen.h,the view screen's unit pick input side (UnitPickInput)
@@ -393,7 +393,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00740FD4,5,,game,00600B20 00600BA0,00601E70,UiContainer,src/game/ui.h,a container's input side (CUiContainer's UiInputSide)
 00740FE8,8,,game,006DBE20,006013B0,UiContainer,src/game/ui.h,the container input side's tail (a byte match in 006DBE20 split it off)
 00741008,42,,game,00600B20 00600BA0,00600B80,UiContainer,src/game/ui.h,the container (CUiContainer)
-00741154,13,,game,006024B0 0062A830 006326B0 00635250,00602B80,UiInertInput,src/game/ui.h,an inert extra input side
+00741154,13,,game,006024B0 0062A830 006326B0 00635250,00602B80,UiInertInput,-,an inert extra input side; stored only by game.exe (ours adds none: it did nothing)
 00741188,13,,game,006034A0 0062F950 0063B5D0 00648F10,0060C7C0,ObjectivesWindow,src/game/ui.h,the objectives window's input side
 007411BC,42,,game,006034A0 0062F950 0063B5D0 00648F10,00603B70,ObjectivesWindow,src/game/ui.h,the objectives window (CObjectivesWindow)
 00741264,3,,game,006034A0 00603B90 0060A870 0062F950 0063B5D0 00648F10,007005E3,ObjectiveExitArrayClass,-,CArray (the objectives window's exits); stored only by game.exe (ours is a std::vector)
