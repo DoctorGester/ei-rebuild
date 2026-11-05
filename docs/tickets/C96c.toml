@@ -1,0 +1,7 @@
+id = "C96c"
+title = "Spell column: regions[i] by spell slot can read past the list"
+group = "cleanup"
+size = 1
+model = "sonnet"
+note = "From C96b (2026-11-05): ui_spell_column indexes regions[i] by spell slot, not by button count; a unit whose spells are not in consecutive slots reads past the list (the original's read, UB here). Bound it the uniform way (no edge-only branch: look the button up by slot), goldens the same."
+order = 1171
