@@ -1,8 +1,9 @@
 # Lost in Astral's Gipat quests in gz11g and gz12g (MOD2a; docs/notes/mods.md, "Lost in Astral played (MOD2)"): the
 # quest is given through its variable (as its briefing does), its steps are played by moving the hero to the places
-# its scripts watch (SetCPFast) and switching the key levers of gz12g (4523 to 4525) by script, and the quest's end
-# and the briefing it opens next are checked. The key levers do not open from the quick panel's key in this zone
-# (the hero stops short of them; MOD2b). On the vanilla data only the menu runs.
+# its scripts watch (SetCPFast) and opening gz12g's key levers (4523 to 4525) as a player does: the leader selected,
+# the broken palantir picked from the quick panel, then the lever clicked. Each SetCPFast puts the hero on a cell he
+# can walk from (a cell inside a blocked one leaves him no path to the lever's use spot; MOD2b). The quest's end and
+# the briefing it opens next are checked. On the vanilla data only the menu runs.
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu
@@ -37,13 +38,42 @@ rebirth console @GiveQuestItem(0,"PalantirBroken00")
 rebirth console @GSSetVar(0,"q.gz12g.q27g",1)
 rebirth waitfor 10 IsEqual(GSGetVar(0,"q.gz12g.q27g.1"),1)
 rebirth digest
-rebirth console @SetCPFast(GetLeader(),110,119,0)
+rebirth console @SetCPFast(GetLeader(),110.2,116.7,0)
 rebirth waitfor 10 IsEqual(GSGetVar(0,"q.gz12g.q27g.2"),1)
-rebirth console @SwitchLeverState(GetObject(4523),1)
+rebirth camera 112.6 120.6
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #4523
+rebirth clickunit #4523 move
+rebirth frames 5
+rebirth clickunit #4523
 rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz12g.q27g.2"),2)
-rebirth console @SwitchLeverState(GetObject(4524),1)
+rebirth console @SetCPFast(GetLeader(),171.8,112.3,0)
+rebirth camera 171.8 117.3
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #4524
+rebirth clickunit #4524 move
+rebirth frames 5
+rebirth clickunit #4524
 rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz12g.q27g.3"),2)
-rebirth console @SwitchLeverState(GetObject(4525),1)
+rebirth console @SetCPFast(GetLeader(),218.4,117.5,0)
+rebirth camera 218.4 122.5
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #4525
+rebirth clickunit #4525 move
+rebirth frames 5
+rebirth clickunit #4525
 rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz12g.q27g"),2)
 rebirth check IsEqual(GSGetVar(0,"b.Witch.brief_148"),1)
 rebirth digest

@@ -339,10 +339,16 @@ What the expansion's data asks of the game that the base game's never did, and h
   broken palantir and three key levers), gz13g's q17g (a chest's key on three key levers, opened from the quick
   panel as a player does) and gz14g's q28g (a lever's golem centre key on two key levers), each to its end and the
   briefing or exit it opens. A key lever's lock (the lever record's id) is the quest item's index in items.idb
-  (TeleportKey00 2, AmbushKey00 38, GolemCenterKey00 39, PalantirBroken00 44). Not matched: the key levers of gz12g
-  (4523 to 4525) and gz14g (1712, 57) do not open from the quick panel's key: the order is taken (the panel's mode
-  back to 0) but the hero stops about 2 units short (gz12g) or does not move (gz14g), where gz13g's and bz1r's open;
-  the scenarios switch them by `SwitchLeverState` (MOD2b).
+  (TeleportKey00 2, AmbushKey00 38, GolemCenterKey00 39, PalantirBroken00 44). Every key lever is opened from the
+  quick panel's key, as a player does.
+- A teleport for a quest's area (`SetCPFast`) can put the hero on a cell he cannot stand on (inside the stone around
+  gz12g's palantir lever 4523 at (110, 119), beside gz14g's lever 42 at (160, 94)): the cell is not passable for his
+  size, so `FindPath` from there finds a way only to a spot its local search reaches (lever 42's) and none further: a
+  use order's spots all fail (`FindUseSpot`: NoPath, the order dropped) or a spotless lever's way (1712) is to stand
+  still. A player never stands there, so this is the scenario's doing, not the game's
+  or the mod's (MOD2b): put the hero where the walk can start ((110.2, 116.7) still sets q27g.2). A lever's use spots
+  can also be on the far side of a wall: gz14g's gate lever 57 (radius 5.6) has one spot, west of it at (177.9, 46.0),
+  reached from outside the enclosure.
 - The ending (`mod_lost_in_astral_ending`): gz36j (zonefinal.mob) from cz4j, its four levers of q22j, the last enemy
   (object 666666, which the zone heals until the step q22j.5 is done) killed, and `LeaveToZone(0, "EndofGame", ...)`:
   the campaign's end mode, the credits screen ("titles").
