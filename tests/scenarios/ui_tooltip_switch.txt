@@ -5,8 +5,8 @@
 # mouse when it reached the delay (0.5 s after it was entered), where the game group's own tooltip appears 5 frames
 # later (docs/notes/ui.md, section 2). Frames of 20 ms on the virtual clock; each cycle captures one frame of the
 # window around that moment (the 19th frame after the second move), all before the game group's own tooltip, and
-# requires it to match the frame without a tooltip. Plain move steps: the region steps do not move the harness's
-# cursor, which the tooltips read.
+# requires it to match the frame without a tooltip. The hovers are moveregion steps (they move the harness's cursor,
+# which the tooltips read, like the plain move steps).
 reject Script error
 waitmenu
 clickregion 3
@@ -19,7 +19,7 @@ capture none
 unfreeze
 
 # The game group's tooltip after its delay: tooltips are drawn (the captures below would match without any).
-move 175 240
+moveregion 5
 frames 60
 capture shown
 diffcapture none shown 0.005 0.2
@@ -27,73 +27,73 @@ move 400 20
 frames 30
 
 # The sound group, briefly, then the game group; one capture per cycle.
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 15
 capture switch15
 samecapture none switch15
 move 400 20
 frames 60
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 16
 capture switch16
 samecapture none switch16
 move 400 20
 frames 60
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 17
 capture switch17
 samecapture none switch17
 move 400 20
 frames 60
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 18
 capture switch18
 samecapture none switch18
 move 400 20
 frames 60
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 19
 capture switch19
 samecapture none switch19
 move 400 20
 frames 60
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 20
 capture switch20
 samecapture none switch20
 move 400 20
 frames 60
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 21
 capture switch21
 samecapture none switch21
 move 400 20
 frames 60
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 22
 capture switch22
 samecapture none switch22
 move 400 20
 frames 60
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 23
 capture switch23
 samecapture none switch23
@@ -101,9 +101,9 @@ move 400 20
 frames 60
 
 # The game group's own tooltip still follows, where the sound group's flashed.
-move 175 192
+moveregion 3
 frames 5
-move 175 240
+moveregion 5
 frames 30
 capture switched
 diffcapture none switched 0.005 0.2

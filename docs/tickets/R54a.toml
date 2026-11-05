@@ -5,5 +5,5 @@ model = "sonnet"
 files = ["tests/verify/harness.cpp"]
 note = "Found in R54: PostLayoutMouse (clickregion/rclickregion/dblclickregion/moveregion and layout) posts the events but does not set g_mouseX/g_mouseY, which the harness platform's MousePosition returns each frame (Cursor::UpdatePosition polls it). So the polled cursor stays where the last plain mouse step put it: a moveregion hover never reaches the tooltips (ui_gallery_menus's help_tip capture is identical to help: no tooltip drawn). Fix: set g_mouseX/Y there as PostMouse and PostUnitMouse do. May move goldens of scenarios that click regions in a world (hover, edge scroll read the polled cursor): run --golden on both installs, re-record with a reason if they move. Then ui_tooltip_switch could use moveregion."
 order = 1159
-status = "running"
+status = "review"
 started = "2026-11-05"

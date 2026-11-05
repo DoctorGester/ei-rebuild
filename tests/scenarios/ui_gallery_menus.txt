@@ -35,6 +35,7 @@ moveregion 1
 wait 2500
 freeze
 capture help_tip
+diffcapture help help_tip 0.005 0.2
 unfreeze
 clickregion 1
 waitwindow 10 options
