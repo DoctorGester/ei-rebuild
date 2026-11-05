@@ -81,8 +81,7 @@ struct Roof {
     Matrix4 model;
     Box box;
     bool inverted = false;
-    bool invertible = false;
-    Matrix4 toModel{};
+    std::optional<Matrix4> toModel;   // the model's inverse, none when it has none (once `inverted`)
 };
 
 // The frame's lists, kept for their room.
@@ -170,12 +169,12 @@ static float Shelter(const Frame& f, const Box& unit) {
         if (!under) continue;
         if (!roof.inverted) {
             roof.inverted = true;
-            roof.invertible = InvertMatrix(roof.model, &roof.toModel);
+            roof.toModel = InvertMatrix(roof.model);
         }
-        if (!roof.invertible) continue;
+        if (!roof.toModel) continue;
         Vector3 from[kRoofPoints];
-        for (int k = 0; k < kRoofPoints; ++k) from[k] = TransformColumn(roof.toModel, points[k]);
-        const Vector3 along = TransformColumnNormal(roof.toModel, Vector3{0.0f, 0.0f, 1.0f});
+        for (int k = 0; k < kRoofPoints; ++k) from[k] = TransformColumn(*roof.toModel, points[k]);
+        const Vector3 along = TransformColumnNormal(*roof.toModel, Vector3{0.0f, 0.0f, 1.0f});
         roofed |= RaysMeetMesh(f, *roof.batch, from, along, under);
         if (roofed == kAll) break;
     }
@@ -296,9 +295,9 @@ void PrepareRoofs(Frame& f) {
     if (!g_roofShelter ||
         std::max(std::max(surfaces.wet, surfaces.puddles), std::max(surfaces.snow, surfaces.rain)) <= kWeatherShown)
         return;
-    Box ground;
-    if (!VisibleGround(f, &ground)) return;
-    const Vector3 &low = ground.low, &high = ground.high;
+    const std::optional<Box> ground = VisibleGround(f);
+    if (!ground) return;
+    const Vector3 &low = ground->low, &high = ground->high;
     Timer timer(FrameStats::ShadowMs);
     float extent = std::max(high.x - low.x, high.y - low.y) + 2.0f * kRoofMargin;
     extent = std::ceil(extent / kRoofStep) * kRoofStep;
@@ -326,10 +325,10 @@ void PrepareRoofs(Frame& f) {
 
 void RoofUniforms(const Matrix4& light, ShadowParams* params) {
     const RoofFit& fit = g_roofFit;
-    Matrix4 fromMap;
-    if (!fit.on || !InvertMatrix(light, &fromMap)) return;
+    const std::optional<Matrix4> fromMap = fit.on ? InvertMatrix(light) : std::nullopt;
+    if (!fromMap) return;
     // The sun map's clip space to the roof map's, then to its texture's u, v (v down the rows) and depth.
-    const Matrix4 clip = Product(fit.clip, fromMap);
+    const Matrix4 clip = Product(fit.clip, *fromMap);
     for (int k = 0; k < 4; ++k) {
         params->roofRows[0][k] = 0.5f * clip.m[k] + 0.5f * clip.m[12 + k];
         params->roofRows[1][k] = -0.5f * clip.m[4 + k] + 0.5f * clip.m[12 + k];
@@ -409,11 +408,7 @@ void MeshWeatherUniforms(MeshFsParams* fs) {
     for (int k = 0; k < 3; ++k) fs->weatherSunColour[k] = light.sunColour[k];
 }
 
-void SurfaceState(float* wet, float* puddles, float* snow) {
-    *wet = g_surfaces.wet;
-    *puddles = g_surfaces.puddles;
-    *snow = g_surfaces.snow;
-}
+SurfaceLevels SurfaceState() { return {g_surfaces.wet, g_surfaces.puddles, g_surfaces.snow}; }
 
 void BeginInterfaceUnit(const Object3D* object) { g_interfaceUnit = object; }
 void EndInterfaceUnit() { g_interfaceUnit = nullptr; }

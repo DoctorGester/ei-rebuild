@@ -288,7 +288,7 @@ SceneLightParams SceneLightUniforms(const Frame& frame);
 int SceneLightIndex(const Vector3& position);
 // The shadow map's light for the sun `sun`: at least 20 degrees above the horizon, unit. False without a
 // direction. Receivers lit on the GPU weigh the map's darkening by their facing to it.
-bool MapLightDirection(const Vector3& sun, Vector3* travel);
+std::optional<Vector3> MapLightDirection(const Vector3& sun);
 // A camera's clip matrix inverted, in double: a model matrix taken from under it moves by less than the camera's
 // rounding (render_point_shadows.cpp's kKeptPlace). Invert works on the camera given unless it is the one inverted
 // last; false when it has no inverse. Under: `placed` (camera x model) without the camera.
@@ -303,8 +303,8 @@ private:
     bool known = false;   // `camera` was inverted (`ok`: it has an inverse)
     bool ok = false;
 };
-// `m`'s inverse (worked in double); false when it has none.
-bool InvertMatrix(const Matrix4& m, Matrix4* inverse);
+// `m`'s inverse (worked in double); none when it has none.
+std::optional<Matrix4> InvertMatrix(const Matrix4& m);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
 // A mesh lit on the GPU (shaders/mesh.hlsl's MeshLightParams). FigureLight: a figure part's, the sun and lights in
@@ -729,7 +729,10 @@ void TerrainFrameDone();
 // occlusion is kept, and how often one was worked out (render::OcclusionInfo).
 gpu::PipelineDesc TerrainDepthDesc();
 int DrawTerrainDepth(const Frame& frame, gpu::Pipeline pipeline);
-void GroundOcclusionCounts(int* sectors, int* made);
+struct GroundOcclusionCount {
+    int sectors = 0, made = 0;
+};
+GroundOcclusionCount GroundOcclusionCounts();
 // The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer
 // 0: TerrainCasterVertex, 32-bit indices) whose uniforms the caller applied.
 struct TerrainCasterVertex {
@@ -815,14 +818,17 @@ void BindCloudMap(int slot);
 // The weather on the surfaces (render_weather.cpp; section 13, item 11b). PrepareSurfaces, from PrepareShadows once a
 // frame: the wetness, the puddles and the snow cover moved on towards the frame's weather by the world's time.
 // SurfaceUniforms: the terrain's weather in its TerrainFsParams. MeshWeatherUniforms: a world mesh's in its
-// MeshFsParams (wet, snow, weatherSun, weatherSunColour). SurfaceState: the three for the harness.
+// MeshFsParams (wet, snow, weatherSun, weatherSunColour). SurfaceState: the three levels for the harness.
 // PrepareUnitWeather, after PrepareSurfaces: each unit drawn gets its own wetness and snow (MeshBatch::weather),
 // following the weather out of shelter and drying under a roof (the casters straight above it).
 void PrepareSurfaces(const ShadowFrame& shadow);
 void PrepareUnitWeather(Frame& frame);
 void SurfaceUniforms(TerrainFsParams* fs);
 void MeshWeatherUniforms(MeshFsParams* fs);
-void SurfaceState(float* wet, float* puddles, float* snow);
+struct SurfaceLevels {
+    float wet = 0.0f, puddles = 0.0f, snow = 0.0f;
+};
+SurfaceLevels SurfaceState();
 // The roofs over the ground and the world's meshes (render_weather.cpp, shaders/roof.hlsli): while there is weather on
 // the surfaces, PrepareRoofs (after PrepareUnitWeather) fits a top-down depth map of the frame's roofs (the drawn
 // objects' meshes, not the units') around the visible ground; RoofUniforms writes the receivers' part of `params` for
@@ -832,10 +838,10 @@ void PrepareRoofs(Frame& frame);
 void RoofUniforms(const Matrix4& light, ShadowParams* params);
 void DrawRoofMap();
 void BindRoofMap(int slot);
-// The visible ground's box in the landscape's space, by the sun map's fit of this frame; false without one.
+// The visible ground's box in the landscape's space, by the sun map's fit of this frame; none without one.
 // AddOutsideRoofs: the sun map's casters outside the view that are not units (render::ShadowCasterMesh) into `draws`
 // through `clip` (the landscape's space to the roof map's), after the sun map's draws were listed; the count added.
-bool VisibleGround(Frame& frame, Box* box);
+std::optional<Box> VisibleGround(Frame& frame);
 class CasterDraws;
 int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip);
 // How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,

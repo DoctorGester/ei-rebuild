@@ -28,17 +28,14 @@ platform::NativeWindow Window() {
 Point ScreenToGame(Point point) {
     platform::NativeWindow window = Window();
     if (!window) return point;
-    point = platform::ScreenToClient(window, point);
-    render::WindowToFrame(&point.x, &point.y);
-    return point;
+    return render::WindowToFrame(platform::ScreenToClient(window, point));
 }
 
 // A point of the frame as the screen's.
 Point GameToScreen(Point point) {
     platform::NativeWindow window = Window();
     if (!window) return point;
-    render::FrameToWindow(&point.x, &point.y);
-    return platform::ClientToScreen(window, point);
+    return platform::ClientToScreen(window, render::FrameToWindow(point));
 }
 
 } // namespace
@@ -88,8 +85,7 @@ bool MouseToGame(platform::Event* event) {
     if (event->type != EventType::MouseMove && event->type != EventType::MouseDown &&
         event->type != EventType::MouseUp && event->type != EventType::Wheel)
         return true;
-    Point p{event->x, event->y};
-    render::WindowToFrame(&p.x, &p.y);
+    Point p = render::WindowToFrame({event->x, event->y});
     bool onFrame = true;
     if (const TextureDevice* device = g_sceneRenderer.device) {
         const Point clamped = Min(Max(p, Point{}), device->screen.BottomRight() - Point{1, 1});

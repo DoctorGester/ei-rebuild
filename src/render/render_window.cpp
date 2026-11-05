@@ -288,29 +288,29 @@ std::optional<FramePlacement> FrameInWindow() {
     return FramePlacement{*frame, Placed(*client, *frame)};
 }
 
-void WindowToFrame(int* x, int* y) {
+Point WindowToFrame(Point p) {
     const std::optional<FramePlacement> shown = FrameInWindow();
-    if (!shown) return;
+    if (!shown) return p;
     const int fw = shown->frame.w, fh = shown->frame.h;
     const Rect& r = shown->placed;
     int w = r.Width(), h = r.Height();
-    if (w == fw && h == fh && r.left == 0 && r.top == 0) return;
+    if (w == fw && h == fh && r.left == 0 && r.top == 0) return p;
     // Floor division, so that points left of / above the frame stay negative.
-    long long px = static_cast<long long>(*x - r.left) * fw, py = static_cast<long long>(*y - r.top) * fh;
-    *x = static_cast<int>(px >= 0 ? px / w : -((-px + w - 1) / w));
-    *y = static_cast<int>(py >= 0 ? py / h : -((-py + h - 1) / h));
+    long long px = static_cast<long long>(p.x - r.left) * fw, py = static_cast<long long>(p.y - r.top) * fh;
+    return {static_cast<int>(px >= 0 ? px / w : -((-px + w - 1) / w)),
+            static_cast<int>(py >= 0 ? py / h : -((-py + h - 1) / h))};
 }
 
-void FrameToWindow(int* x, int* y) {
+Point FrameToWindow(Point p) {
     const std::optional<FramePlacement> shown = FrameInWindow();
-    if (!shown) return;
+    if (!shown) return p;
     const int fw = shown->frame.w, fh = shown->frame.h;
     const Rect& r = shown->placed;
     int w = r.Width(), h = r.Height();
-    if (w == fw && h == fh && r.left == 0 && r.top == 0) return;
+    if (w == fw && h == fh && r.left == 0 && r.top == 0) return p;
     // The centre of the window pixels that map to the frame pixel.
-    *x = r.left + static_cast<int>((static_cast<long long>(*x) * w * 2 + w) / (2LL * fw));
-    *y = r.top + static_cast<int>((static_cast<long long>(*y) * h * 2 + h) / (2LL * fh));
+    return {r.left + static_cast<int>((static_cast<long long>(p.x) * w * 2 + w) / (2LL * fw)),
+            r.top + static_cast<int>((static_cast<long long>(p.y) * h * 2 + h) / (2LL * fh))};
 }
 
 } // namespace render

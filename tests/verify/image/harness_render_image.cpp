@@ -65,18 +65,15 @@ std::optional<Size> FramePlaced() {
     if (!shown) return std::nullopt;
     return shown->placed.Extent();
 }
-void FrameToWindow(int* x, int* y) { render::FrameToWindow(x, y); }
-void WindowToFrame(int* x, int* y) { render::WindowToFrame(x, y); }
+Point FrameToWindow(Point p) { return render::FrameToWindow(p); }
+Point WindowToFrame(Point p) { return render::WindowToFrame(p); }
 void ConfigureRenderer(const char* spec) { render::Configure(spec ? spec : ""); }
 void SetWaitForVsync(bool on) { render::SetWaitForVsync(on); }
 void EndFrame() { render::EndFrame(); }
-bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
+std::optional<FrameImage> ReadFrame() {
     std::optional<render::FrameImage> frame = render::ReadFrame();
-    if (!frame) return false;
-    *width = frame->width;
-    *height = frame->height;
-    *bgr = std::move(frame->bgr);
-    return true;
+    if (!frame) return std::nullopt;
+    return FrameImage{frame->width, frame->height, std::move(frame->bgr)};
 }
 
 bool RenderStep(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,

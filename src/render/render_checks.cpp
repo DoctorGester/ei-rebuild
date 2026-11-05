@@ -210,9 +210,13 @@ void CheckMovieUpload(const gpu::Texture& image, const std::uint8_t* rgba, int w
 }
 #endif
 
-// The next level of an RGBA8 level as a 2x2 box filter (sizes halved, at least 1; `*width`, `*height` updated).
-static std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src, int* width, int* height) {
-    int w = *width, h = *height;
+// The next level of an RGBA8 level `src` of `size` as a 2x2 box filter (sizes halved, at least 1).
+struct HalvedLevel {
+    std::vector<std::uint8_t> texels;
+    Size size;
+};
+static HalvedLevel HalveLevel(const std::vector<std::uint8_t>& src, Size size) {
+    int w = size.w, h = size.h;
     int nw = w > 1 ? w / 2 : 1, nh = h > 1 ? h / 2 : 1;
     std::vector<std::uint8_t> dst(static_cast<std::size_t>(nw) * nh * 4);
     for (int y = 0; y < nh; ++y) {
@@ -225,9 +229,7 @@ static std::vector<std::uint8_t> HalveLevel(const std::vector<std::uint8_t>& src
             }
         }
     }
-    *width = nw;
-    *height = nh;
-    return dst;
+    return {std::move(dst), {nw, nh}};
 }
 
 MmpLevelCheck CheckMmpLevels() {
@@ -249,7 +251,12 @@ MmpLevelCheck CheckMmpLevels() {
         // Each level and level 0 box-filtered down to 4 x 4 (or less): the file's own filtering of
         // a level (1-bit alpha kept 0 or 1, sharpened colours) changes its texels, not those averages.
         auto summary = [](std::vector<std::uint8_t> level, int w, int hh) {
-            while (w > 4 || hh > 4) level = HalveLevel(level, &w, &hh);
+            Size size{w, hh};
+            while (size.w > 4 || size.h > 4) {
+                HalvedLevel next = HalveLevel(level, size);
+                level = std::move(next.texels);
+                size = next.size;
+            }
             return level;
         };
         const std::vector<std::uint8_t> reference = summary(levels[0], width, height);
