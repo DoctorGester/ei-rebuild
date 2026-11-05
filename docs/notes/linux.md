@@ -328,7 +328,14 @@ What of them reaches game state, and so what the stubs keep:
   anisotropy 8: vanilla 2.95 / 0.61 / 2.30% on the stubs against 3.03 / - / 2.31% on the install, Rebirth 1.41 / 0.47 /
   0.90% against 1.41 / - / 0.91%). The ruins alone leave Rebirth's anisotropy check at 0.47% (its tree is 2048 x 2048
   DXT5, 5.4 MB of the set), the tree alone leaves msaa 2 at 0.13%. The units' skins are composed textures (made from
-  the game's pieces) and cannot be kept; the ground needs no pixels for this scenario.
+  the game's pieces) and cannot be kept (their pieces can, below); the ground needs no pixels for this scenario.
+  `KEPT_VANILLA` (C159, the vanilla install's stub set only: Rebirth's copies of these add 23 MB): render_shadows_decals
+  and render_weather_panel found 0.0000% in CI (run 41953378949) with the ground prints and the HUD figure drawn
+  blank: `footprints*`, `bloodprints`, `fireprints` (clear on blank pixels), zone2's ground pages `zone2000`-`2007`
+  (gz2g; printlight compares a print's brightness with the ground's under it: black ground gave ratios 1.4 to 2.3
+  against 1.0 to 1.13) and the thirteen layers the hero's skin is composed of (`unhuma*`; a wet black figure is as
+  black as a dry one). Not a driver gap: the install passes on lavapipe and dzn, the old stub set fails on both, the
+  new one passes on both. A layer's name: log `FindLayers`' `found` (texture_load.cpp).
 - Sounds (.wav): every chunk; the samples 0. A voice ends by its data's bytes over its byte rate (sound.md).
 - MP3 (speech, music): every frame header (the game counts frames: ScanMp3), the frames' data 0, an info frame whole.
 - Movies (.bik): header and frame index (frame count, size, rate, keyframes); every frame emptied (no sound packet, no
@@ -391,9 +398,21 @@ net_zone_leader, net_zone_vars: their frames stall past the harness's 16 s frame
 steps differ on lavapipe) and render_smooth (llvmpipe gives 4 samples whatever is asked). Until H58 it also held the
 slow ones, which were taken out when the scale came: camera_drag_rate, camera_smooth, camera_spin, camera_drawn,
 render_drawn_lights, render_drawn_motion, render_shadows_outside, render_stats, spells_more, levers_key, ui_minimap_edges,
-the five ui_widescreen ones, unit_ai_bridge, zone_gz15h_tornado and zone_gz15h_tornado_client. Whether they finish on
-the runner at a scale of 3 is open until one check run (`workflow_dispatch` with these names); the ones that still fail
-for speed go back with a higher scale or into the list. Before the split (2026-11-04) one job played the image suite in
+the five ui_widescreen ones, unit_ai_bridge, zone_gz15h_tornado and zone_gz15h_tornado_client. Run 41953378949 (scale 3)
+cut the weather scenarios, the drawn-frame ones, Rebirth's widescreen set, unit_ai_bridge, the tornado client and
+camera_smooth, which are back in the list; render_shadows_decals and render_weather_panel are out of it again (C159,
+"The stub data": blank ground prints, ground and hero skin, not the driver; they need the repacked stub set).
+
+Why the weather scenarios are slow (C159, WSL on lavapipe pinned to 4 cores with `taskset -c 0-3` as the runner has:
+render_weather_roofs stopped at step 53 of 72 against the runner's 51, so it is the same). A virtual `wait` costs real
+time because every frame in it is drawn: 20 s of virtual rain 14 to 17 s of wall time at 1440x1080, 960x720 and 640x480
+alike (so not fill-bound), and `weatherparticles off` changed nothing. A frame: 0.16 s clear and 0.34 s rain at 1440x1080;
+at 640x480 0.22 s clear and 0.23 s rain (a CPU floor of about 0.2 s: the game's updates, vertex work and uploads on
+4 cores; the machine was shared, so the figures are good to 30%). Rain's added cost is the particles' fill, which a
+smaller window removes, the floor stays. So a smaller CI resolution does not bring them in: render_weather_roofs (9 x 20 s
+of waits) would go from about 185 s to about 150 s against its 180 s, render_weather has 618 s of waits (about 430 s),
+render_weather_units 188 s and shelter 93 s, and the scenarios fix 1440x1080 and pixel rectangles in their
+diffcaptures. They need a `timeout` line of their own (the scale multiplies it) or a job of their own, not a size. Before the split (2026-11-04) one job played the image suite in
 83 minutes and the Rebirth set in 39, and the slow scenarios made all its 18 failures (14 timeouts, 4 pair frame
 stalls). Local Linux runs without names leave out `LINUX_LEFT_OUT` (run_all.py) instead; `EI_TIME_SCALE=3` on a local
 run takes them as well, as far as the machine has the cores.

@@ -62,6 +62,28 @@ KEPT = (
                    'anisotropy check reaches 0.47% against at least 0.5%, with the tree alone msaa 2 0.13% against 0.2%)'),
 )
 
+# Kept in the vanilla install's stub set only (C159): for scenarios that run on the vanilla install alone, where Rebirth's
+# copies of these (a 2048 x 2048 ground, high-resolution skins) would add 23 MB to the pack. Same rule as KEPT.
+KEPT_VANILLA = (
+    ('footprints*.mmp', "render_shadows_decals: the ground prints' textures (ground_print.cpp); blank ones are clear"),
+    ('bloodprints.mmp', 'render_shadows_decals: the same, the blood splats'),
+    ('fireprints.mmp', 'render_shadows_decals: the same, the scorch marks'),
+    ('zone200[0-7].mmp', "render_shadows_decals: gz2g's ground, zone2's pages (printlight compares the prints' brightness with the ground's under them: black ground gives ratios of 1.4 to 2.3)"),
+    ('unhumaskin_00.mmp', "render_weather_panel: the hero Zak's skin and gear layers in the HUD panel (the wet figure is darker than the dry one: a black figure shows no difference)"),
+    ('unhumaskin_07.mmp', 'render_weather_panel: the same'),
+    ('unhumabt_00.le.0.mmp', 'render_weather_panel: the same'),
+    ('unhumabt_02.le.0.mmp', 'render_weather_panel: the same'),
+    ('unhumabt_12.cw.0.mmp', 'render_weather_panel: the same'),
+    ('unhumadg_03.br.1.mmp', 'render_weather_panel: the same'),
+    ('unhumagl_00.le.0.mmp', 'render_weather_panel: the same'),
+    ('unhumagl_12.cw.0.mmp', 'render_weather_panel: the same'),
+    ('unhumapt_00.le.0.mmp', 'render_weather_panel: the same'),
+    ('unhumapt_02.lt.0.mmp', 'render_weather_panel: the same'),
+    ('unhumapt_12.cw.0.mmp', 'render_weather_panel: the same'),
+    ('unhumash_00.le.0.mmp', 'render_weather_panel: the same'),
+    ('unhumash_12.cw.0.mmp', 'render_weather_panel: the same'),
+)
+
 
 class Counts:
     """What the stubbing did, by kind: files, bytes in, bytes zeroed or dropped."""
@@ -192,9 +214,13 @@ def stub_in_place(buf, start, size, name, counts, depth=0):
         counts.add(ext.lstrip('.') or '(none)', size, cut)
 
 
+rebirth_install = False        # set by build(): the install being stubbed has Rebirth's starter folder
+
+
 def kept(name):
     base = name.replace('\\', '/').rsplit('/', 1)[-1].lower()
-    return any(fnmatch.fnmatchcase(base, pattern) for pattern, _ in KEPT)
+    kept_here = KEPT if rebirth_install else KEPT + KEPT_VANILLA
+    return any(fnmatch.fnmatchcase(base, pattern) for pattern, _ in kept_here)
 
 
 def stub_bik(data):
@@ -231,6 +257,8 @@ def build(install, out, force=False):
         if not force:
             sys.exit(f'stub_data: {out} exists (--force replaces it)')
         remove_tree(out)
+    global rebirth_install
+    rebirth_install = os.path.isdir(os.path.join(install, 'starter'))
     counts = Counts()
     for folder, dirs, files in os.walk(install):
         relative = os.path.relpath(folder, install)
