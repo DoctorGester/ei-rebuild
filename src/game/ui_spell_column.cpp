@@ -15,20 +15,6 @@
 #include <vector>
 #include <format>
 
-namespace {
-
-
-// The unit's spell `index` (0..7) or null.
-// The next spell's sprite (model `model`, picture `image`; Rebirth-patched), counted in a member.
-// An item's texts; the text of a key (the text manager).
-// A spell's prototype record (school, a flag that shows a number).
-const itemdb::SpellRecord* SpellPrototypeOf(Spell* spell) {
-    return spell->GetPrototype();
-}
-
-
-} // namespace
-
 void HudSpellColumn::SetUnit(Unit* newUnit) {
     std::string tip;
     std::string description;
@@ -58,11 +44,11 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
             line = std::format("{} {}  ", currentLabels[0], Truncate(data->manaCost));
             tip += line;
             line = "Unknown";
-            description = std::format("school_{}", SpellPrototypeOf(data)->castType);
+            description = std::format("school_{}", data->GetPrototype()->castType);
             line = g_clientWorld.texts->TextManager::GetString(description);
             line = currentLabels[1] + " " + line + " \n";
             tip += line;
-            if (SpellPrototypeOf(data)->allowedModifiers[3] == 0)
+            if (data->GetPrototype()->allowedModifiers[3] == 0)
                 line = std::format("{} {}  ", currentLabels[2], currentLabels[12]);
             else
                 line = std::format("{} {}  ", currentLabels[2], Truncate(data->damage));
@@ -95,7 +81,8 @@ void HudSpellColumn::SetUnit(Unit* newUnit) {
             line = std::format("{} {} \n", currentLabels[7], static_cast<int>(data->targetCount));
             tip += line;
         }
-        // The region of the spell's index (the original does not count the missing ones).
-        regions[i]->SetTipString(tip, static_cast<int>(i) + 0x1E);
+        // The slot's button is the one AddSpell just added (the original indexed the regions by slot, reading past
+        // them after an empty slot); the tip's key is still by slot.
+        regions.back()->SetTipString(tip, static_cast<int>(i) + 0x1E);
     }
 }
