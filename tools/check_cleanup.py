@@ -57,8 +57,8 @@ def count_vector_maths(text):
 
 # A data member of a class or struct without a default initialiser (docs/rewrite-guide.md, "Lifetimes"; MSVC's
 # C26495 by source scan): a member of a fundamental type, a pointer, an enum or an array of them, declared with no
-# `= ...` or `{...}`. Class-type members construct themselves; union members (and the structs inside a union),
-# static and const ones, references and members under an #if inside the class are not counted.
+# `= ...` or `{...}`; a function pointer too. Class-type members construct themselves; union members (and the
+# structs inside a union), static and const ones, references and members under an #if inside the class are not counted.
 _FIELD_CLASS = re.compile(r'\b(struct|class|union)\s+(?:alignas\s*\([^)]*\)\s*)?(\w+)?\s*(?:final\s*)?(?::[^{;()]*)?\{')
 _FIELD_SKIP = re.compile(r'^(?:using|typedef|friend|static|enum|struct|class|union|template|return|operator|~|'
                          r'virtual|explicit|inline|constexpr|#|public|private|protected)\b')
@@ -66,18 +66,24 @@ _FIELD_SCALAR = re.compile(r'^(?:(?:volatile|mutable|const)\s+)*(?:(?:unsigned|s
                            r'size_t|ptrdiff_t|uintptr_t|intptr_t)|bool|char|short|int|long|float|double|wchar_t|'
                            r'char8_t|char16_t|char32_t|unsigned|BOOL|DWORD|WORD|BYTE|UINT|LONG|HRESULT)\b')
 _FIELD_DECL = re.compile(r'^(.*?)([\s*]+)(\w+)\s*((?:\[[^\]]*\]\s*)*)(?::\s*\w+\s*)?$', re.S)
-_enum_names = None
+_FIELD_FNPTR = re.compile(r'^[\w:<>,\s*&]+\(\s*(?:\w+::)?\*\s*\w+\s*\)\s*\(.*\)\s*(?:const\s*)?$')
+_scalar_names = None   # names of enums, function pointers and aliases of scalars
 
 
-def _enums():
-    global _enum_names
-    if _enum_names is None:
-        _enum_names = set()
+def _scalar_names_all():
+    global _scalar_names
+    if _scalar_names is None:
+        _scalar_names = set()
         for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.*'), recursive=True):
             if path.endswith(('.cpp', '.h', '.inc')):
                 text = open(path, encoding='utf-8', errors='replace').read()
-                _enum_names.update(re.findall(r'\benum\s+(?:class\s+|struct\s+)?(\w+)\s*[:{]', text))
-    return _enum_names
+                _scalar_names.update(re.findall(r'\benum\s+(?:class\s+|struct\s+)?(\w+)\s*[:{]', text))
+                # `using Handler = bool (*)(Call*);`: a function pointer type is as indeterminate as a pointer.
+                _scalar_names.update(re.findall(r'\busing\s+(\w+)\s*=\s*[^;{]*\(\s*(?:\w+::)?\*\s*\)', text))
+                # `using Id = std::uint32_t;`: a scalar under another name.
+                _scalar_names.update(re.findall(
+                    r'\busing\s+(\w+)\s*=\s*(?:unsigned\s+|signed\s+)?(?:std::)?(?:u?int\d+_t|size_t|bool|char|short|int|long|float|double)\s*;', text))
+    return _scalar_names
 
 
 def _closing_brace(text, i):
@@ -92,34 +98,52 @@ def _closing_brace(text, i):
     return len(text) - 1
 
 
+_FN_QUALIFIER = re.compile(r'\b(?:const|noexcept|override|final|volatile)\s*$')
+
+
+def _opens_function_body(head):
+    """The text before a `{` in a class body (nested braces already collapsed to `{}`) is a function's declarator:
+    a `(` before any `=`, and it does not end in a member's name (`Type name{...}`, `: member{...}`)."""
+    head = re.sub(r'\boperator\s*[^\w\s(]+|\boperator\s*\(\s*\)', 'operator', head).strip()
+    if '(' not in head or ('=' in head and head.index('=') < head.index('(')):
+        return False
+    if re.search(r'\b(?:struct|class|union|enum)\b[^()]*$', head):
+        return False
+    return not re.search(r'\w$', head) or bool(_FN_QUALIFIER.search(head))
+
+
 def _class_statements(text, lo, hi):
-    """The class body's statements that end in ';' (function bodies and nested types are skipped whole)."""
-    out, start, i = [], lo, lo
+    """The class body's statements that end in ';' (a function body ends its statement; nested types and brace
+    initialisers stay inside the one they belong to)."""
+    out, buf, i = [], '', lo
     while i < hi:
         c = text[i]
         if c == '{':
-            head = text[start:i]
-            i = _closing_brace(text, i) + 1
-            if '(' in head or re.search(r'\b(struct|class|union|enum)\b', head):
-                k = i
-                while k < hi and text[k] in ' \t\r\n':
-                    k += 1
-                if k >= hi or (text[k] != ';' and not text[k].isalpha() and text[k] != '*'):
-                    start = i
+            j = _closing_brace(text, i)
+            if _opens_function_body(buf):
+                buf = ''
+            else:
+                buf += '{}'
+            i = j + 1
             continue
         if c == ';':
-            out.append(text[start:i])
-            start = i + 1
-        elif c == ':' and text[i + 1:i + 2] != ':' and text[i - 1:i] != ':' and \
-                re.search(r'\b(public|private|protected)\s*$', text[start:i]):
-            start = i + 1
+            out.append(buf)
+            buf = ''
+        elif c == ':' and text[i + 1:i + 2] != ':' and text[i - 1:i] != ':' and                 re.search(r'\b(public|private|protected)\s*$', buf):
+            buf = ''
+        else:
+            buf += c
         i += 1
     return out
 
 
 def _uninitialised(statement):
     body = re.sub(r'^\[\[[^\]]*\]\]\s*', '', ' '.join(statement.split()))
-    if not body or _FIELD_SKIP.match(body) or any(c in body for c in '(={&'):
+    if not body or _FIELD_SKIP.match(body):
+        return 0
+    if '=' not in body and '{' not in body and _FIELD_FNPTR.match(body):
+        return 1
+    if any(c in body for c in '(={&'):
         return 0
     parts, depth, cur = [], 0, ''
     for c in body:
@@ -138,7 +162,11 @@ def _uninitialised(statement):
         return 0
     base = m.group(1).strip()
     words = base.split('::')[-1].split()
-    scalar = _FIELD_SCALAR.match(base) or (words and words[-1] in _enums())
+    scalar = _FIELD_SCALAR.match(base) or (words and words[-1] in _scalar_names_all())
+    array = re.match(r'(?:std::)?array\s*<\s*([^<>]*?)\s*,[^<>]*>$', base)     # a std::array of them leaves them too
+    if array:
+        element = array.group(1)
+        scalar = _FIELD_SCALAR.match(element) or '*' in element or element.split('::')[-1] in _scalar_names_all()
     n = 0
     for i, part in enumerate(parts):
         pointer = '*' in m.group(2) if i == 0 else part.strip().startswith('*')
@@ -148,8 +176,12 @@ def _uninitialised(statement):
     return n
 
 
+_DIRECTIVE = re.compile(r'^[ \t]*#(?:[^\n]*\\\n)*[^\n]*', re.M)
+
+
 def count_uninitialised_fields(text):
     text = re.sub(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])\'', '""', text)
+    text = _DIRECTIVE.sub('', text)     # the members under an #if count (both branches)
     n = 0
     unions = [(m.end() - 1, _closing_brace(text, m.end() - 1)) for m in _FIELD_CLASS.finditer(text)
               if m.group(1) == 'union']

@@ -182,9 +182,9 @@ bool GetSkill(Call* call) {
     *call->result.number = 0.0f;
     if (!data) return InvalidArguments("GetSkill");
     static const struct {
-        const char* name;
-        bool attribute;   // UnitStats::attributes (else skills)
-        int index;
+        const char* name = nullptr;
+        bool attribute = false;  // UnitStats::attributes (else skills)
+        int index = 0;
     } kSkills[] = {{"science", true, 0}, {"melee", false, 0}, {"archery", false, 1},
                    {"elemental", false, 3}, {"sense", false, 4}, {"astral", false, 5}};
     for (const auto& skill : kSkills)

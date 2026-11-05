@@ -90,7 +90,7 @@ public:
     static constexpr MessageType kType = MessageType::Command;
     MessageType Type() const override { return kType; }
 
-    CommandKind kind;
+    CommandKind kind = {};
     std::string text;
 };
 
@@ -189,7 +189,7 @@ public:
     static constexpr MessageType kType = MessageType::Line;
     MessageType Type() const override { return kType; }
 
-    std::uint32_t number;
+    std::uint32_t number = 0;
     std::string text;
     Ref<RefObject> connection{};            // the only receiver (null: everyone; not sent)
 };
@@ -285,7 +285,7 @@ public:
     static constexpr MessageType kType = MessageType::File;
     MessageType Type() const override { return kType; }
 
-    std::uint16_t chunkCount;
+    std::uint16_t chunkCount = 0;
     std::int32_t size = 0;       // in bytes
     std::string name;
     std::vector<SharedRef<FileChunkMessage>> chunks;    // not sent

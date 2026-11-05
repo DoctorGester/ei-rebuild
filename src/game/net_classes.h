@@ -306,7 +306,7 @@ template <typename Holder>
 struct TimedEntry {
     TimedEntry(float seconds, Holder object) : seconds(seconds), ref(std::move(object)) {}
 
-    float seconds;
+    float seconds = 0.0f;
     Holder ref = {};
 };
 static_assert(std::is_nothrow_move_constructible_v<TimedEntry<SharedRef<RefObject>>>);

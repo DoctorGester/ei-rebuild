@@ -499,7 +499,7 @@ struct UiInputSide {
     // Whether the side pans the camera at the screen's edges (CameraInput with the border scroll area above 0).
     virtual bool PansAtEdges() const { return false; }
 
-    Interface3D* ui;
+    Interface3D* ui = nullptr;
     bool handled = false;            // set by a handler that used the event
 };
 
@@ -963,7 +963,7 @@ public:
     float& ScaleX() { return scaleMatrix.m[0]; }
     float& ScaleY() { return scaleMatrix.m[5]; }
     float& ScaleZ() { return scaleMatrix.m[10]; }
-    Material* material;             // the window's black material
+    Material* material = nullptr;   // the window's black material
     Texture* texture = nullptr;     // one of the window's referenced textures
 };
 
@@ -1475,7 +1475,7 @@ struct UiTextToken {
     virtual const UiFormatToken* AsFormat() const { return nullptr; }
     virtual UiWordToken* AsWord() { return nullptr; }
 
-    int type;                        // 1 format, 2 word
+    int type = 0;                    // 1 format, 2 word
 };
 struct UiFormatToken : UiTextToken {
     explicit UiFormatToken(int font);
@@ -1483,7 +1483,7 @@ struct UiFormatToken : UiTextToken {
     UiFormatToken* AsFormat() override { return this; }
     const UiFormatToken* AsFormat() const override { return this; }
 
-    bool newline;                    // a newline token, or a font change after the first token
+    bool newline = false;            // a newline token, or a font change after the first token
     int font = 0;                    // interface font
     std::uint32_t colour = 0;
 };
@@ -1958,7 +1958,7 @@ public:
 
     OptionRow& RegionRow(int region) { return rows[region - 13]; }
 
-    signed char keyOfScan[0x200];    // the key code bound to each scan code
+    signed char keyOfScan[0x200] = {};  // the key code bound to each scan code
     int selectedRow = 0;
     int group = 0;                   // the option group shown
     std::vector<OptionBinding> bindings;

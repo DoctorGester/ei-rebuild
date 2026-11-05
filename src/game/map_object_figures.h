@@ -187,7 +187,7 @@ struct FigureAnimationRecord {
     int Number() const { return AnimationNumber(key); }
     BlowSide Side() const { return static_cast<BlowSide>(flags & kBlowSideMask); }
 
-    char name[0x10];                // (the figure manager takes the entry as an animation's name)
+    char name[0x10] = {};           // (the figure manager takes the entry as an animation's name)
     std::uint8_t index = 0;         // its index in the database (a unit keeps it)
     std::uint8_t unused_11[3] = {};
     std::uint32_t key = 0;          // the animation key (above)
@@ -267,7 +267,7 @@ public:
     virtual int PartsContainPoint(const std::int32_t* point);
     virtual void SetLit(bool) {}                     // the object's light is on / off (client); base: nothing
 
-    Object3D* object;              // the object it belongs to
+    Object3D* object = nullptr;    // the object it belongs to
 };
 
 // The server's half: no parts, nothing drawn.
@@ -411,7 +411,7 @@ public:
     std::deque<FigureAnimation*> queue;
     float time = 0.0f;              // the frame reached
     // Called each time an animation's end is passed, or null.
-    void(*onEnd)(Object3D* owner);
+    void(*onEnd)(Object3D* owner) = nullptr;
     float morphS = 0.0f;            // the figure's morph coefficients (Rescale; bones copy them)
     float morphT = 0.0f;
     float morphU = 0.0f;

@@ -202,7 +202,7 @@ public:
     virtual void StopSpeech() {}
     virtual void MoveFactorsChanged() {}
 
-    Unit* unit;   // the unit it controls (Unit::AttachObject sets and clears it)
+    Unit* unit = nullptr;  // the unit it controls (Unit::AttachObject sets and clears it)
 };
 
 // Items and the spells they carry, gathered in order.
@@ -518,7 +518,7 @@ public:
     ItemArmor* armor[7] = {};           // a piece per armour type
     std::vector<Item*> carried;    // further items, each holding a reference
     float actionSpeeds[6] = {};     // per action kind (ActionSpeed; from the model record)
-    std::array<float, 5> exposure;             // any at most 2 (or NaN) asks for a party refresh
+    std::array<float, 5> exposure = {};         // any at most 2 (or NaN) asks for a party refresh
 };
 
 inline Unit* UnitOrNull(EngineObject* object) {

@@ -14,8 +14,8 @@ namespace platform {
 namespace {
 
 struct UsKeyName {
-    int scan;
-    const char* name;
+    int scan = 0;
+    const char* name = nullptr;
 };
 
 // Windows' US layout's key names (GetKeyNameTextW), by set-1 scan code (0x100 extended). Of the keys a layout moves

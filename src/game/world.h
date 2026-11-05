@@ -104,7 +104,7 @@ class FlyingHitPoints;
 
 // A light colour of the client's tables (a is 1).
 struct LightColour {
-    float r, g, b, a;
+    float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
 };
 
 class World : public ManagerContext {
@@ -164,8 +164,8 @@ public:
     bool IsNight();
     // The time of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
     struct Clock {
-        float hours;
-        float speed;
+        float hours = 0.0f;
+        float speed = 0.0f;
     };
     Clock GetTime();
     void SetWind(const Vector3& direction, float strength);
@@ -207,9 +207,9 @@ public:
 
 // One of the five alarms InvokeAlarm raises (the script's IsAlarm / AlarmTime / AlarmPosX / AlarmPosY).
 struct WorldAlarm {
-    std::uint8_t active;
-    int time;                             // tick it was raised
-    float x, y;
+    std::uint8_t active = 0;
+    int time = 0;                         // tick it was raised
+    float x = 0.0f, y = 0.0f;
 };
 static_assert(sizeof(WorldAlarm) == 16);   // saved as its 16 bytes
 
@@ -592,14 +592,14 @@ void DiffObjectSets(std::vector<T*>* sent, std::vector<T*>* current, std::vector
 
 // One walkable platform (bridge, deck) the client tests positions against.
 struct Platform {
-    int id;                               // the object it belongs to (RemoveObject drops its faces)
+    int id = 0;                           // the object it belongs to (RemoveObject drops its faces)
     Vector3 centre;                       // of the bounding circle (x, y)
-    float radius;
+    float radius = 0.0f;
     Vector3 origin;
     Vector3 axisU;                        // local u axis
     Vector3 axisV;                        // local v axis
     Vector3 normal;
-    float sizeU, sizeV;                   // extent along u and v
+    float sizeU = 0.0f, sizeV = 0.0f;     // extent along u and v
 };
 
 // The client world's platform set: the engine's CBridgeManager (class 0x34) with the list of the platform faces
@@ -621,7 +621,7 @@ public:
     // (0, 0, 1) when there is none.
     struct SurfacePlaneResult {
         Vector3 normal;
-        float height;
+        float height = 0.0f;
     };
     SurfacePlaneResult SurfacePlane(float x, float y);
     // Adds the face with corner `a`, edges to `b` and `c` and `normal` when normal.z >= 0.8: origin a,
@@ -667,7 +667,7 @@ UnitLooks ReadUnitLooks(ByteStream* stream);
 
 // A block of sector cells, both corners included.
 struct CellRange {
-    std::uint32_t x0, y0, x1, y1;
+    std::uint32_t x0 = 0, y0 = 0, x1 = 0, y1 = 0;
 };
 
 struct SectorGrid {
@@ -675,9 +675,9 @@ struct SectorGrid {
     // units to the deferred vector); Move erases from one cell and appends to another.
     std::unique_ptr<std::vector<HeldRef<MapObject>>[]> cells;
     std::unique_ptr<std::vector<HeldRef<MapObject>>*[]> rows;  // row y: its cells
-    int allocatedWidth, allocatedHeight;    // the cells allocated (Resize: when they change)
-    std::uint32_t width;                  // cells along x
-    std::uint32_t height;                 // cells along y
+    int allocatedWidth = 0, allocatedHeight = 0;  // the cells allocated (Resize: when they change)
+    std::uint32_t width = 0;              // cells along x
+    std::uint32_t height = 0;             // cells along y
     // allocatedWidth x allocatedHeight empty cells, then the row pointers.
     void Allocate();
     // When the storage has another size: Free, the size taken, then Allocate.
@@ -720,8 +720,8 @@ public:
 
 // A window rectangle of the frame (the client's screen list and hit vector).
 struct ScreenEntry {
-    ClassId classId;
-    unsigned objectId;                    // the object, in the map object manager
+    ClassId classId = {};
+    unsigned objectId = 0;                // the object, in the map object manager
     Rect rect;                            // on the screen
 };
 // An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40) puts its class id, id and
@@ -1071,8 +1071,8 @@ public:
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and
 // living objects are separated first.
 struct DepthLess {
-    const float* view;                    // the view matrix (row-major): row 2 the depth axis, its translation the offset
-    MapObjectManager* manager;
+    const float* view = nullptr;          // the view matrix (row-major): row 2 the depth axis, its translation the offset
+    MapObjectManager* manager = nullptr;
     bool Less(const ScreenEntry* a, const ScreenEntry* b) const;
 };
 

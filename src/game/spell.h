@@ -178,7 +178,7 @@ struct DamageInfo {
     float typeWeights[7] = {};  // one weight per damage type
     float& Weight(DamageType type) { return typeWeights[static_cast<int>(type)]; }
     float Weight(DamageType type) const { return typeWeights[static_cast<int>(type)]; }
-    std::uint32_t weaponValue;  // 0 unarmed; not read here
+    std::uint32_t weaponValue = 0;  // 0 unarmed; not read here
     float attackRoll = 0.0f;    // against the defence; FLT_MAX for spells
     float amount = 0.0f;
     float multiplier = 0.0f;
@@ -456,7 +456,7 @@ public:
     Light* LightWithId(unsigned lightId) const { return FindObjectAs<Light>(lightId); }
     Light* CreateLight(int lightType, int lightId = -1) { return CreateObjectAs<Light>(lightType, lightId); }
 
-    EngineObject* held;            // released by the destructor
+    EngineObject* held = nullptr;  // released by the destructor
     std::vector<int> litIds;
 };
 

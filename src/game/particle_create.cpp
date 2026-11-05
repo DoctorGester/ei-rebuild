@@ -768,9 +768,7 @@ ParticleSource::ParticleSource(int newType) {
     type = newType;
 }
 
-// Sources start zeroed: nothing in the constructor or Reset sets the emission point (origin) and the first Tick
-// takes the motion from it. The harness zeroes the game's sources alike.
-ParticleSource* NewParticleSource(int type) { return new (kZeroed) ParticleSource(type); }
+ParticleSource* NewParticleSource(int type) { return new ParticleSource(type); }
 
 ParticleManager* ParticleSource::Manager() const { return static_cast<ParticleManager*>(owner); }
 

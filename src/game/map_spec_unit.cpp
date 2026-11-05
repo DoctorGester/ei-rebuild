@@ -28,7 +28,7 @@ template <typename T>
 class TargetChunk : public Chunk {
 public:
     explicit TargetChunk(Chunk* parent) : Chunk(parent) {}
-    T* target;
+    T* target = nullptr;
 };
 // A waypoint, a patrol and a behaviour record.
 class WaypointChunk : public TargetChunk<Waypoint> {

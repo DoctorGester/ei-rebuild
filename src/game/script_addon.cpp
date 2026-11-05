@@ -26,9 +26,9 @@ namespace {
 
 // A command record: the first letter alone makes a signature a function's.
 struct Record {
-    const char* name;
-    const char* signature;
-    Handler handler;
+    const char* name = nullptr;
+    const char* signature = nullptr;
+    Handler handler = nullptr;
 };
 
 // In addon's order (ids follow it).
@@ -118,7 +118,7 @@ bool IsVanillaKept(const char* name) {
 
 struct Built {
     std::vector<ScriptKeyword> table;
-    signed char recordById[kFirstNewId + kRecordCount];   // id -> record index, -1 for none
+    signed char recordById[kFirstNewId + kRecordCount] = {};  // id -> record index, -1 for none
 };
 
 const Built& Build() {

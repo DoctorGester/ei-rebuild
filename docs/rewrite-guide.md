@@ -35,8 +35,7 @@ compare function pointers for identity.
    seam (`IsaacRandom::SetSeedHook`, `IsaacRandom::SetDrawObserver`, `libcrt::SetRandObserver`), never an address.
 3. **Memory.** `new T(...)` / `delete p`; an owned array is a `std::vector<T>` (`std::unique_ptr<T[]>` where its
    address is handed out and must not move); a block of a byte count other than its type's is
-   `::operator new(bytes)`. An engine object whose constructor leaves fields the game reads is
-   `new (kZeroed) T(...)` (engine_object.h). A local with a destructor that replaced a hand-freed helper runs at the
+   `::operator new(bytes)`. Every field starts initialised (Lifetimes below), so no object is allocated zeroed. A local with a destructor that replaced a hand-freed helper runs at the
    end of its scope: scope it so it ends before anything it holds is deleted (WorldServer::Destroy's iterator once
    outlived the list it walked: a flaky crash at quit). A `std::vector` is read and written within its size (code
    that read the popped element through `end()` or wrote into spare capacity is undefined): `build.cmd asan`

@@ -245,7 +245,7 @@ struct ArmorRecord : ItemRecordHead {
     // Two rows of nine dwords: a factor (the first row's is the head's category), the absorption
     // per damage type (each times the row's factor and the material's absorbFactors) and flags
     // (the material's armourFlags or'ed in).
-    float absorbFirst[kDamageTypeCount];   // item absorb[0]
+    float absorbFirst[kDamageTypeCount] = {};  // item absorb[0]
     std::uint32_t firstFlags = 0;
     float othersFactor = 0.0f;
     float absorbOthers[kDamageTypeCount] = {};  // item absorb[1]
@@ -290,7 +290,7 @@ struct LootItemRecord : ItemRecordHead {
     // What the loot item stands for (the head's category).
     LootKind Stands() const { return static_cast<LootKind>(category); }
 
-    std::uint32_t recordType;
+    std::uint32_t recordType = 0;
     std::uint32_t index = 0;
 };
 
