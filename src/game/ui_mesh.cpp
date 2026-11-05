@@ -52,15 +52,6 @@ void SetVertex(UiMesh* mesh, int index, int position, int uv) {
     v.texCoord = static_cast<std::uint16_t>(uv);
 }
 
-// Appends index `value` (the array's SetSize to size + 1, then the store, or its SetAtGrow; the
-// original mixes both).
-void AppendBySize(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) {
-    int at = lib::Count(mesh->indices);
-    indices->resize(at + 1);
-    mesh->indices[at] = static_cast<std::uint16_t>(value);
-}
-void AppendByGrow(std::vector<std::uint16_t>* indices, UiMesh* mesh, int value) { lib::SetAtGrow(*indices, lib::Count(mesh->indices), static_cast<std::uint16_t>(value)); }
-
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(UiMesh* mesh) {
     float half = kHalfTexel;
@@ -151,10 +142,9 @@ void UiMesh::Framed(float depth, float scale, float left, float top, float right
     uv[7].v = uv[5].v;
 
     // The frame's eight triangles between the outer (0-3) and inner (4-7) corners.
-    auto* currentIndices = &indices;
-    currentIndices->clear();
+    indices.clear();
     static const int kFrame[24] = {0, 4, 2, 4, 6, 2, 2, 6, 3, 6, 7, 3, 3, 7, 1, 7, 5, 1, 1, 5, 0, 5, 4, 0};
-    for (int index : kFrame) AppendByGrow(currentIndices, this, index);
+    for (int index : kFrame) indices.push_back(static_cast<std::uint16_t>(index));
 
     SetVertexCount(8);
     for (int i = 0; i < 8; ++i) SetVertex(this, i, i, i);
@@ -211,12 +201,11 @@ void UiMesh::Disc(float depth, float scale, float x, float y, float outerRadius,
         texCoords[i].v = CircleTexel(i, count, true, uvRadius, v);
     }
     // A fan around point 0.
-    auto* currentIndices = &indices;
-    currentIndices->clear();
+    indices.clear();
     for (int i = 1; i < count - 1; ++i) {
-        AppendByGrow(currentIndices, this, 0);
-        AppendByGrow(currentIndices, this, i + 1);
-        AppendByGrow(currentIndices, this, i);
+        indices.push_back(0);
+        indices.push_back(static_cast<std::uint16_t>(i + 1));
+        indices.push_back(static_cast<std::uint16_t>(i));
     }
     // The points, four per quad (count / 4 quads, rounded towards zero).
     int quadCount = count / 4;
@@ -268,16 +257,15 @@ void UiMesh::Ring(float depth, float scale, float x, float y, float outerRadius,
     texCoords[3].v = texCoords[1].v;
 
     // Two triangles per segment.
-    auto* currentIndices = &indices;
-    currentIndices->clear();
+    indices.clear();
     for (int i = 0; i < count; ++i) {
         int base = 4 * i;
-        AppendBySize(currentIndices, this, base);
-        AppendBySize(currentIndices, this, base + 1);
-        AppendBySize(currentIndices, this, base + 2);
-        AppendByGrow(currentIndices, this, base + 1);
-        AppendByGrow(currentIndices, this, base + 3);
-        AppendBySize(currentIndices, this, base + 2);
+        indices.push_back(static_cast<std::uint16_t>(base));
+        indices.push_back(static_cast<std::uint16_t>(base + 1));
+        indices.push_back(static_cast<std::uint16_t>(base + 2));
+        indices.push_back(static_cast<std::uint16_t>(base + 1));
+        indices.push_back(static_cast<std::uint16_t>(base + 3));
+        indices.push_back(static_cast<std::uint16_t>(base + 2));
     }
 
     // count / 2 quads: points j and j + 1 at the outer and the inner radius.
@@ -475,9 +463,6 @@ void UiMesh::Create() {
     tint[0] = 1.0f;
     tint[1] = 1.0f;
     tint[2] = 1.0f;
-    tintSpare[0] = 0.0f;
-    tintSpare[1] = 0.0f;
-    tintSpare[2] = 0.0f;
     localRotation = kIdentityOrientation;
     localPosition = {0.0f, 0.0f, kSpriteDepth};
     flatColour = kOpaqueBlack;

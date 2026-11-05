@@ -125,7 +125,6 @@ void Cursor::Init(TextureDevice* newDevice, bool smallCursors) {
     position = {};
     motion = {};
     image = nullptr;
-    imageSpare = 0;
     shape = -1;
     imageShown = true;
     enabled = true;
@@ -225,7 +224,6 @@ void Cursor::Shutdown() {
     position = {};
     motion = {};
     image = nullptr;
-    imageSpare = 0;
     shape = -1;
     enabled = false;
 }

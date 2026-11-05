@@ -12,6 +12,8 @@
 #include "object_tables.h"
 #include "text_manager.h"
 #include "ui.h"
+
+#include <algorithm>
 #include "ui_screens.h"
 #include "world.h"
 #include "player_client.h"
@@ -73,14 +75,7 @@ void GlobalMap::FindPaths(MapRecord* from) {
         }
         // A zone already on the way ends this branch (and leaves beyondTarget set when the
         // branch had set it: kept).
-        bool onWay = false;
-        for (GlobalMapStep* step = path.data() + path.size(); step != path.data(); --step) {
-            if (step[-1].zone == zone) {
-                onWay = true;
-                break;
-            }
-        }
-        if (onWay) continue;
+        if (std::any_of(path.begin(), path.end(), [zone](const GlobalMapStep& step) { return step.zone == zone; })) continue;
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
             variable = str::Format(kZoneVariable, zone->name);

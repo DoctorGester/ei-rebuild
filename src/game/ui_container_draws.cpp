@@ -27,29 +27,29 @@ void ScreenDraw(UiContainer* self, SceneRenderer* pass, bool mouseMove) {
     g_clientWorld.Render();
     if (mouseMove) self->Input()->MouseMove(g_cursor.position);
     ClearUiDepth(1.0f);
-    self->UiContainer::Draw(pass);
+    self->UiContainer::DrawSprites(pass);
 }
 
 } // namespace
 
-void UiContainer::Draw(SceneRenderer* pass) {
+void UiContainer::DrawSprites(SceneRenderer* pass) {
     if (!ui->drawing) return;
     render::g_renderState.stages[0].combiner = kAlphaPassStage;
     DrawBase(pass);
     // By index: a child's draw may change the list.
     for (int i = 0; i < std::ssize(children); ++i) {
         UiWindow* child = children[i];
-        if (child->enabled) child->Draw(pass);
+        if (child->enabled) child->DrawSprites(pass);
     }
 }
 
-void BriefingScreen::Draw(SceneRenderer* pass) { ScreenDraw(this, pass, true); }
+void BriefingScreen::DrawSprites(SceneRenderer* pass) { ScreenDraw(this, pass, true); }
 
-void MainMenu::Draw(SceneRenderer* pass) { ScreenDraw(this, pass, false); }
+void MainMenu::DrawSprites(SceneRenderer* pass) { ScreenDraw(this, pass, false); }
 
 // The hero's weapons (the strip's left part), quick items (from the right) and worn armour, with the frames of
 // the shown weapon and the selected quick item.
-void HeroEquipPanel::Draw(SceneRenderer* pass) {
+void HeroEquipPanel::DrawSprites(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
     auto frame = [this](int i) { return sceneObjects[i]; };
     std::uint32_t shown = hero->weaponIndex;

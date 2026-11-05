@@ -40,7 +40,7 @@ public:
     // no longer free, its focus at (30, 30) and its rotation turned by 225 degrees about x (premultiplied).
     void CreateScreen() override;
     // The client glue's per-frame step.
-    void Draw(SceneRenderer*) override;
+    void DrawSprites(SceneRenderer*) override;
     // The camera free again.
     void CloseScreen() override;
 

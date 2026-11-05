@@ -42,14 +42,6 @@ float Ease(float slide) {
     return 1.0f - e;
 }
 
-constexpr int kSettingVolumeA = 0;     // \ volumes, applied at once
-constexpr int kSettingVolumeB = 1;     //  |
-constexpr int kSettingVolumeC = 2;     // /
-constexpr int kSettingShadows = 7;
-constexpr int kSettingBrightness = 10; // the display's brightness and gamma (settings 10 and 11)
-constexpr int kSettingGamma = 11;
-constexpr int kSettingReverseStereo = 19;
-constexpr int kSettingCount = kOptionDefinitionCount;
 constexpr float kGammaScale = 0.02f;   // value * 0.02 - 1
 constexpr float kSlideSeconds = 0.5f;
 
@@ -113,11 +105,11 @@ void SaveLoadWindow::LeftDouble(Point point) {
     UiContainer::LeftDouble(point);
 }
 
-void SaveLoadWindow::Draw(SceneRenderer* pass) {
+void SaveLoadWindow::DrawSprites(SceneRenderer* pass) {
     if (!sliding) {
         surfaces[0]->Show();
         models[0]->SetScreenPosition(400.0f, isSave ? 620.0f : 550.0f, 4.8f);
-        UiContainer::Draw(pass);
+        UiContainer::DrawSprites(pass);
         return;
     }
     surfaces[0]->Hide();
@@ -236,11 +228,11 @@ void OptionsWindow::LeftDouble(Point point) {
     UiContainer::LeftDouble(point);
 }
 
-void OptionsWindow::Draw(SceneRenderer* pass) {
+void OptionsWindow::DrawSprites(SceneRenderer* pass) {
     if (!sliding) {
         surfaces[0]->Show();
         models[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
-        UiContainer::Draw(pass);
+        UiContainer::DrawSprites(pass);
         return;
     }
     surfaces[0]->Hide();
@@ -252,8 +244,8 @@ void OptionsWindow::Draw(SceneRenderer* pass) {
     model->Draw(pass);
 }
 
-void OptionsWindow::Redraw() {
-    if (!sliding) UiContainer::Redraw();
+void OptionsWindow::DrawSurfaces() {
+    if (!sliding) UiContainer::DrawSurfaces();
 }
 
 void OptionsWindow::MessageResult(std::uint32_t result) {
@@ -266,7 +258,7 @@ const char* OptionsWindow::HelpTopic() {
     return waitingForKey ? nullptr : "options";
 }
 
-// The settings the window applies while it is open (their ids, the first int of the definition).
+// The volumes, the display's brightness and gamma, the shadows and the stereo switch are applied while the window is open.
 
 void OptionsWindow::Update() {
     UiContainer::Update();
@@ -278,31 +270,30 @@ void OptionsWindow::Update() {
             ui->OpenHelp(false);
         }
     }
-    for (int i = 0; i < kSettingCount; ++i) {
-        if (settings[i].bar && settings[i].bar->TakeMoved()) {
-            const int value = settings[i].bar->Position();
-            settings[i].value = value;
-            unsigned definitionId = static_cast<unsigned>(settings[i].definition->id);
-            if (definitionId == kSettingVolumeA) {
+    for (int i = 0; i < kOptionCount; ++i) {
+        OptionSetting& setting = settings[i];
+        if (setting.bar && setting.bar->TakeMoved()) {
+            const int value = setting.bar->Position();
+            setting.value = value;
+            if (i == kOptionSfxVolume) {
                 g_clientWorld.sounds->SetEffectsVolume(value);
-            } else if (definitionId == kSettingVolumeB) {
+            } else if (i == kOptionStreamVolume) {
                 g_clientWorld.sounds->SetMusicVolume(value);
-            } else if (definitionId == kSettingVolumeC) {
+            } else if (i == kOptionVoiceVolume) {
                 g_clientWorld.sounds->SetSpeechVolume(value);
-            } else if (definitionId == kSettingBrightness || definitionId == kSettingGamma) {
-                float brightness = settings[kSettingBrightness].value * kGammaScale - 1.0f;
-                float gamma = settings[kSettingGamma].value * kGammaScale - 1.0f;
+            } else if (i == kOptionBrightness || i == kOptionGamma) {
+                float brightness = settings[kOptionBrightness].value * kGammaScale - 1.0f;
+                float gamma = settings[kOptionGamma].value * kGammaScale - 1.0f;
                 g_sceneRenderer.SetGamma(brightness, gamma);
             }
         }
-        if (settings[i].list && settings[i].list->TakeChanged()) settings[i].value = settings[i].list->value;
-        if (settings[i].spin && settings[i].spin->TakeChanged()) {
-            const int value = settings[i].spin->Value();
-            settings[i].value = value;
-            int definitionId = settings[i].definition->id;
-            if (definitionId == kSettingShadows)
+        if (setting.list && setting.list->TakeChanged()) setting.value = setting.list->value;
+        if (setting.spin && setting.spin->TakeChanged()) {
+            const int value = setting.spin->Value();
+            setting.value = value;
+            if (i == kOptionShadows)
                 shadowsChanged = true;
-            else if (definitionId == kSettingReverseStereo)   // the sound system's pan switch
+            else if (i == kOptionReverseStereo)   // the sound system's pan switch
                 g_clientWorld.sounds->panDirect = value != 0;
         }
     }
@@ -377,4 +368,3 @@ void UiScrollbar::LeftUp(Point) {
     handled = true;
 }
 
-// --- Tooltip -----------------------------------------------------------------------------------

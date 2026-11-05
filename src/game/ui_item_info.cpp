@@ -387,8 +387,6 @@ void ItemInfoPanel::DescribeItem() {
         w.line = std::format("{} {}/{}", w.T(14), spellValue, static_cast<int>(item->magicLevel));
         w.Text(w.line);
         w.Down();
-    } else if (kind == ItemKind::Quick) {
-        goto tail;
     }
 
     if (kind == ItemKind::Armor || kind == ItemKind::Weapon) {
@@ -424,7 +422,6 @@ void ItemInfoPanel::DescribeItem() {
                 w.Number(10, static_cast<int>(weapon->reach));
             else
                 w.Number(39, static_cast<int>(WeaponDefenceBonus(item->prototypeId)));
-            goto tail;
         }
     }
     if (kind == ItemKind::Armor) {
@@ -433,7 +430,6 @@ void ItemInfoPanel::DescribeItem() {
         w.DamageLines(values, 25);
     }
 
-tail:
     w.Down();
     if (kind == ItemKind::Loot) {
         text = texts->GetString("loot_item");

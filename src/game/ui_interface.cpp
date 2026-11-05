@@ -46,19 +46,13 @@ void Interface3D::ScalePointToScreenNoMargin(Point* point) const { screen_layout
 void Interface3D::ScalePointFromScreenNoMargin(Point* point) const { screen_layout::PointFromScreen(point, false); }
 
 UiContainer* Interface3D::GetActiveWindow() const {
-    return stack.begin() != stack.end() ? stack.end()[-1] : nullptr;
+    return stack.empty() ? nullptr : stack.back();
 }
 
 void Interface3D::SetPendingValue(std::uint32_t value) {
     pendingFlag = true;
     pendingValue = value;
 }
-
-// --- UiSurface ------------------------------------------------------------------------------
-
-// --- UiModel --------------------------------------------------------------------------------
-
-// --- Record lookups --------------------------------------------------------------------------
 
 // --- Create ------------------------------------------------------------------------------------------
 
@@ -112,27 +106,8 @@ void Interface3D::Create(TextureDevice* device) {
     keybind::LoadKeyBindings();
     console = new console::ConsoleWindow(this);
     root = new ChatOverlay(this);
-    mouse = {};
-    mouseCapture = nullptr;
-    backdrop = nullptr;
-    secondBackdrop = nullptr;
-    backdropMode = 0;
-    closeAll = false;
-    queuedWindow = nullptr;
     drawing = true;
     fade = new ScreenFade();
-    hudPanelsIn[0] = 0;
-    hudPanelsIn[1] = 0;
-    hudPanelsIn[2] = 0;
-    hudBodyPart = 0;
-    hudTopPage = 0;
-    fastGame = 0;
-    ctrlDown = false;
-    shiftDown = 0;
-    altDown = false;
-    doubleClick = false;
-    rightDown = false;
-    pollTop = false;
 
     // The help topics seen: "topic count" lines.
     if (std::string bytes; platform::ReadWholeFile(g_dataFolder + "config\\tutorial.ini", &bytes)) {
@@ -143,12 +118,7 @@ void Interface3D::Create(TextureDevice* device) {
             helpTopics[words[0]] = str::ToInt(words[1]);
         }
     }
-    messageFlag = 0;
-    fpsSurface = nullptr;
-    fpsSpare = 0;
     fpsTime = platform::FrameClock();
-    fpsFrames = 0;
-    disconnected = false;
 }
 
 // --- Resize ------------------------------------------------------------------------------------------
@@ -165,24 +135,24 @@ void Interface3D::Resize(const screen_layout::Layout& before) {
 }
 
 void Interface3D::RetakeBackdrops() {
-    if (backdropMode != 2 && backdropMode != 4) return;
+    if (backdropMode != Backdrop::First && backdropMode != Backdrop::Both) return;
     const std::vector<UiContainer*> windows = stack;
     UiSurface* over = nullptr;   // mode 4's copy, of the windows under a help window
-    if (backdropMode == 4) {
+    if (backdropMode == Backdrop::Both) {
         over = backdrop;
         backdrop = secondBackdrop;
         secondBackdrop = nullptr;
     }
-    backdropMode = 0;
+    backdropMode = Backdrop::None;
     if (backdrop) {   // the bottom window greyed, and the save copy (DrawOverlays' mode 1, into mode 2)
         stack.resize(1);
-        backdropMode = 1;
+        backdropMode = Backdrop::TakeFirst;
         app::FrameStep(false);
     }
     if (over) {   // the windows under the help window over that (mode 3, into mode 4)
         delete over;
         stack.assign(windows.begin(), windows.begin() + std::min(backdropWindows, windows.size()));
-        backdropMode = 3;
+        backdropMode = Backdrop::TakeSecond;
         app::FrameStep(false);
     }
     stack = windows;
@@ -207,53 +177,26 @@ bool Interface3D::EdgePanLive() const {
 
 // --- Shutdown ----------------------------------------------------------------------------------------
 
-// The interface manager's end (Interface3D): the input reset after the windows close, the shutdown from the
+// The interface manager's end (Interface3D): the shutdown from the
 // main loop's exit (it writes config\tutorial.ini), the destructor body of the global interface run at exit
 // and the console window's destructor body. See ui.h and docs/notes/ui.md, section 3.
 
-namespace {
-
-// A surface the interface owns: its destructor body, then the memory.
-void DeleteSurface(UiSurface* surface) {
-    if (!surface) return;
-    delete surface;
-}
-} // namespace
-
-void Interface3D::ResetInput() {
-    ctrlDown = false;
-    altDown = false;
-    shiftDown = 0;
-    rightDown = false;
-    doubleClick = false;
-    if (!stack.empty()) stack.back()->Input()->Deactivate();
-}
-
 void Interface3D::Shutdown() {
-    g_cursor.SetShape(CursorShape::Wait);
-    while (!stack.empty()) {
-        stack.back()->Input()->Deactivate();
-        stack.back()->CloseScreen();
-        delete stack.back();
-        stack.pop_back();
-    }
-    ResetInput();
-    app::PumpMessages();
-    app::g_interfaceHasScreen = 0;
+    CloseAll();
 
     if (platform::File file; file.Open(g_dataFolder + "config\\tutorial.ini", platform::FileMode::Create)) {
         for (const auto& [topic, page] : helpTopics) file.WriteLine(str::Format("%s %d", topic, page));
     }
 
-    DeleteSurface(fpsSurface);
+    delete fpsSurface;
     fpsSurface = nullptr;
     // The queued window is deleted but its pointer kept (like the original).
     delete queuedWindow;
-    DeleteSurface(backdrop);
+    delete backdrop;
     backdrop = nullptr;
-    DeleteSurface(secondBackdrop);
+    delete secondBackdrop;
     secondBackdrop = nullptr;
-    DeleteSurface(screenCopy);
+    delete screenCopy;
     screenCopy = nullptr;
     if (root) {
         delete root;
@@ -269,7 +212,7 @@ void Interface3D::Shutdown() {
 }
 
 console::ConsoleWindow::~ConsoleWindow() {
-    DeleteSurface(surface);
+    delete surface;
     surface = nullptr;
     font = UiFont{};
 }

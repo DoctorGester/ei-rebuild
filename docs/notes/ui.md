@@ -59,7 +59,7 @@ the key. `SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` wit
 `CreateScreen` (`ui_create_screen.cpp`) builds screens 1, 2, 3 and 7 inline. `PushWindow` sets the backdrops, the server
 flag (kept for the first window), five render states, runs the window's Create and pumps messages. `UiModel::Draw` animates
 by timeGetTime / 67; model part flag 0x80 = hidden. `FrameTime` is the display's frame milliseconds * 0.001f, left
-unrounded. `UiContainer::Redraw` / `RedrawTips` do nothing unless the interface is drawing. `MasterRequestBox` is a message
+unrounded. `UiContainer::DrawSurfaces` / `DrawTips` do nothing unless the interface is drawing. `MasterRequestBox` is a message
 box plus a master server link.
 
 Input: `OnKeyDown` / `OnChar` / `OnKeyUp` (`ui_interface.cpp`; a character goes to the console, a client's open chat line,
@@ -162,7 +162,7 @@ offered, and no script command or key wears one). The map's camp button (region 
 **Global map** (`ui_global_map*.cpp`). Titles go through `PlaceTitle`, positions through `MapPosition` ((0, 0, 0) for a
 missing entry). `SetWeather` gives the three layers, the display colour and the clouds' ramp their final values once.
 The zone under the mouse is `ZoneAt`: each zone marker's triangles projected as its draw projects them (the screen
-matrix the window's draw starts from, recorded by `GlobalMap::Draw`, times the marker's placement and scale), the faces the
+matrix the window's draw starts from, recorded by `GlobalMap::DrawSprites`, times the marker's placement and scale), the faces the
 clockwise cull keeps, the nearest depth there and of equal ones the later marker (the depth test's LessEqual), at the
 mouse's pixel (Direct3D 7's pixel centres). The original drew the markers alone in grey levels into a half-size picture and
 read the clicked pixel back; a scratch run (P9d, 960x720, 12 zones) found ZoneAt equal to that picture at every one of its
@@ -200,7 +200,7 @@ gives "Prototype" and a "Rune" per modifier; `DeconstructItem` "Instruction Weap
   with the capture, a step every frame from 250 ms (whole milliseconds, `UiContainer::FrameTicks`); regions 0 / 1 previous
   / next hero. `DrawPart`'s armour "%.1f" is the largest of the first six damage types' three-layer sums; a NaN keeps the
   old maximum. `HeroEquipPanel::RightDown` does not mark the event used.
-- `RepairGrid::Draw` puts models at depth 2^(3 - row) * 6; the constructor pages' highlight p = (cos(5 t) + 1) / 2 stored as
+- `RepairGrid::DrawSprites` puts models at depth 2^(3 - row) * 6; the constructor pages' highlight p = (cos(5 t) + 1) / 2 stored as
   float, colours truncated and clamped. Lists are `UiItemList` = `std::vector<CItem*>`.
 - Trade panel (`ui_trade_panel.cpp`): `SnapshotRecord` copies floats as dwords, `Settle` (the all-branch tests the low byte
   of `keep`), `RestoreRecord` (HealSlots by old hp / old max * new max - Reduce(new max), the maxima stored as float).
@@ -565,7 +565,7 @@ rates: the drag in layout units (ScalePointFromScreenNoMargin, integer: it trunc
 `speed * dx / 400 * 10`, tilt `speed * dy / 300 * 500`. Camera::SetTurnRate / SetTiltRate jump the rate up to a larger
 target; a smaller one (0 too) is approached in the camera's updates at response 1/3 a camera second (55 ms), and each
 update turns by dt * rate. The interface's mouse-move events reach the camera input as well as the frame's own call
-(BattleScreen::Draw): the first call after the cursor's poll (once a frame, Cursor::UpdatePosition, after the interface's
+(BattleScreen::DrawSprites): the first call after the cursor's poll (once a frame, Cursor::UpdatePosition, after the interface's
 draw) takes the drag, later ones get (0, 0) and set the targets to 0, so the rate eases off between takes; the original's
 order, kept.
 

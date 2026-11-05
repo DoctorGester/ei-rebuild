@@ -142,17 +142,17 @@ constexpr int kScienceButton = 1;
 // choice already shown slides the panel away.
 template <typename Panel, typename Show>
 void SlideKey(Panel* panel, int& shown, int choice, Show show) {
-    if (panel->slideDirection == 1.0f) {
+    if (panel->slide.direction == 1.0f) {
         shown = choice;
-        panel->slideDirection = -1.0f;
-        panel->sliding = true;
+        panel->slide.direction = -1.0f;
+        panel->slide.moving = true;
     } else if (shown != choice) {
         shown = choice;
         show(panel);
         return;
     } else {
-        panel->sliding = true;
-        panel->slideDirection = 1.0f;
+        panel->slide.moving = true;
+        panel->slide.direction = 1.0f;
     }
     panel->ui->PlayInterfaceSound(kSoundSling);
     show(panel);
@@ -312,8 +312,8 @@ void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     }
     case kActionMapSlide:
         ui->PlayInterfaceSound(kSoundSling);
-        map->slideDirection = -map->slideDirection;
-        map->sliding = true;
+        map->slide.direction = -map->slide.direction;
+        map->slide.moving = true;
         return;
     case kActionQuickSave:
         ::QuickSave(kQuickSaveName, false);
@@ -622,7 +622,7 @@ void BattleScreen::ToggleMember(int index) {
     std::vector<std::uint32_t> chosen{};
     for (int i = 0; i < std::ssize(*currentParty); ++i) {
         Unit* member = unitAt(i);
-        lib::SetAtGrow(chosen, lib::Count(chosen), member ? (member->flags & MapObjectFlag::Selected) : 0);
+        chosen.push_back(static_cast<std::uint32_t>(member ? (member->flags & MapObjectFlag::Selected) : 0));
     }
     if (ui->shiftDown) {
         chosen[index] = chosen[index] == 0 ? 1u : 0u;

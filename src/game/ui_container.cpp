@@ -4,8 +4,6 @@
 #include "model.h"
 #include "ui.h"
 
-#include <cstdlib>
-
 // --- Construction and destruction --------------------------------------------------------------
 
 UiContainer::~UiContainer() {
@@ -13,10 +11,6 @@ UiContainer::~UiContainer() {
     for (int i = 0; i < std::ssize(children); ++i) delete children[i];
     children.clear();
 }
-
-// Pure: a screen that does not override CreateScreen never gets on the screen.
-void UiContainer::CreateScreen() { std::abort(); }
-void UiContainer::CloseScreen() { std::abort(); }
 
 void UiContainer::AddInput(UiInputSide* input) {
     if (input) inputs.push_back(input);
@@ -32,21 +26,21 @@ void UiContainer::Update() {
     for (int i = 0; i < std::ssize(children); ++i) children[i]->Update();
 }
 
-void UiContainer::Redraw() {
+void UiContainer::DrawSurfaces() {
     if (!ui->drawing) return;
-    UiWindow::Redraw();
+    UiWindow::DrawSurfaces();
     for (int i = 0; i < std::ssize(children); ++i) {
         UiWindow* child = children[i];
-        if (child->enabled) child->Redraw();
+        if (child->enabled) child->DrawSurfaces();
     }
 }
 
-void UiContainer::RedrawTips() {
+void UiContainer::DrawTips() {
     if (!ui->drawing) return;
-    UiWindow::RedrawTips();
+    UiWindow::DrawTips();
     for (int i = 0; i < std::ssize(children); ++i) {
         UiWindow* child = children[i];
-        if (child->enabled) child->RedrawTips();
+        if (child->enabled) child->DrawTips();
     }
 }
 

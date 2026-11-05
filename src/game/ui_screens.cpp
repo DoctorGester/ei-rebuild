@@ -275,12 +275,11 @@ void UiItemStrip::SettleScroll() {
 }
 
 void UiItemStrip::LeftDown(Point point) {
-    Interface3D* currentUi = ui;
     int region = RegionAt(point);
     if (region == 0 || region == 1) {
-        if (!currentUi->shiftDown) {
-            currentUi->PlayInterfaceSound(kSoundCampScroll);
-            currentUi->mouseCapture = Input();
+        if (!ui->shiftDown) {
+            ui->PlayInterfaceSound(kSoundCampScroll);
+            ui->mouseCapture = Input();
             scrollDirection = region == 0 ? 1 : 2;
         } else {
             // Shift jumps to the start or (clamped later) the end.
@@ -290,7 +289,7 @@ void UiItemStrip::LeftDown(Point point) {
         }
     }
     if (tabsEnabled && region >= 2 && region < 8) {
-        currentUi->PlayInterfaceSound(kSoundCampMode);
+        ui->PlayInterfaceSound(kSoundCampMode);
         SetTab(region - 2);
     }
     if (region >= 0) handled = true;

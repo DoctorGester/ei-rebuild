@@ -93,19 +93,15 @@ void BriefingScreen::UnitJoined(Unit* unit) {
     if (record < count) {
         // Insert `unit` at `place` (the slot is zeroed, then written); the
         // original then looks the unit up in the server world without using the result.
-        int size = lib::Count(party);
+        const int size = lib::Count(party);
         if (place >= size) {
             party.resize(place + 1);
+            party[place] = unit;
         } else {
-            party.resize(size + 1);
-            std::memmove(&party[place + 1], &party[place], (size - place) * sizeof(party[0]));
+            party.insert(party.begin() + place, unit);
         }
-        party[place] = unit;
     } else {
-        // SetAtGrow(size, unit).
-        int size = lib::Count(party);
-        party.resize(size + 1);
-        party[size] = unit;
+        party.push_back(unit);
     }
     if (unit->id != static_cast<int>(player->members[0].unitId)) return;
 

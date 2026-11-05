@@ -118,7 +118,7 @@ void HudWeaponBar::Update() {
     Highlight(selected, true);
 }
 
-void HudWeaponBar::Draw(SceneRenderer* pass) {
+void HudWeaponBar::DrawSprites(SceneRenderer* pass) {
     render::RenderState& state = render::g_renderState;
     const std::uint8_t alphaRef = state.alphaReference;
     const bool alphaTest = state.alphaTest;
@@ -133,9 +133,9 @@ void HudWeaponBar::Draw(SceneRenderer* pass) {
 
 // The three other panels draw the same way, with specular on (the draw virtual).
 
-void HudQuickItems::Draw(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
-void HudSpellColumn::Draw(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
-void HudActionColumn::Draw(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
+void HudQuickItems::DrawSprites(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
+void HudSpellColumn::DrawSprites(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
+void HudActionColumn::DrawSprites(SceneRenderer* pass) { DrawWithSpecular(this, pass); }
 
 // --- Quick items -------------------------------------------------------------------------------
 
@@ -303,8 +303,8 @@ void HudMap::LeftUp(Point point) {
     switch (region) {
     case 0:     // the sling button
         ui->PlayInterfaceSound(kSoundSling);
-        slideDirection = -slideDirection;
-        sliding = true;
+        slide.direction = -slide.direction;
+        slide.moving = true;
         handled = true;
         return;
     case 1:     // the round map (zoomed)
@@ -359,8 +359,8 @@ void HudUnitPanel::LeftUp(Point point) {
     int region = RegionAt(point);
     if (region == 0) {
         ui->PlayInterfaceSound(kSoundSling);
-        sliding = true;
-        slideDirection = -slideDirection;
+        slide.moving = true;
+        slide.direction = -slide.direction;
         handled = true;
         return;
     }
@@ -539,8 +539,8 @@ void HudTopPanel::LeftUp(Point point) {
     switch (region) {
     case 0:
         ui->PlayInterfaceSound(kSoundSling);
-        sliding = true;
-        slideDirection = -slideDirection;
+        slide.moving = true;
+        slide.direction = -slide.direction;
         handled = true;
         return;
     case 1:
@@ -732,7 +732,6 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
 void HudQuickItems::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     int region = RegionAt(point);
-    // Unchecked, like the original (region -1 reads a neighbouring field).
     int entry = RegionItem(region);
     if (entry < 0) return;
     handled = true;

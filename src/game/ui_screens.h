@@ -120,7 +120,7 @@ public:
     // The end faces dimmed (sprite alpha 0.195) where it can scroll on, the background cells shifted by the current tab's
     // fractional position, the window's sprites, eight item cells through the owner (its two text surfaces paint
     // themselves: UiItemStrip::PaintCounts, PaintPrices).
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // The item under the screen point, or null; sets the cursor for the strip's action mode.
     Item* ItemAt(Point point, int* cursor) override;
     // Rebuilds the visible list from the source list for the current filter and tab (tab 5 of filter 0 shows everything).
@@ -138,7 +138,7 @@ public:
     void SetupFigures(std::vector<std::string>* names, bool top, bool noArrowTips);
     // The end faces dimmed where it can scroll on, the background and cells placed by the current tab's fraction, the frame
     // (scene object 8) on selected when in view, the window's sprites, then each visible name's hero face through the owner.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // No item: null, `topic` not written.
     Item* ItemAt(Point point, int* topic) override;
     // Count_ = the number of names.
@@ -231,7 +231,7 @@ public:
 
     // On the statistics page the experience lines on surface 2; then what is under the mouse for the description panel, the
     // children drawn and the hero previewed (list at depth 553, new hero at 400).
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // The children's update; a held rotate arrow turns the preview by twice the frame time; the scroll bars' moves redraw the
     // list and voices; on the new hero page the create button is bright only when the three attributes add up to the
     // attribute points and the name is not empty.
@@ -504,7 +504,7 @@ public:
     // stays for its speed in seconds), or past the last line finished. The movie steps (stretched unless the
     // movie flag is 1); when it has ended after the last line: "<name>fout" played, the screen flag cleared
     // and the titles closed as Close() does; otherwise the container's draw.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // The lines freed, the display's flag restored, the screen flag set and the cursor shown.
     void CloseScreen() override;
     // A window above closed: the movie player is closed.
@@ -532,7 +532,7 @@ public:
 class MainMenu : public UiContainer {
 public:
     explicit MainMenu(Interface3D* ui) : UiContainer(ui) {}
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // The map edge fade put back, the sounds and the ambience stopped.
     void CloseScreen() override;
     // By region: 0 the difficulty question (a message box), 1 load (the save/load window), 2 the exit movie and quit, 3
@@ -593,7 +593,7 @@ public:
     // "xch_money_offer", and while the partner's offer pairs with ours "xch_money_remote" with its money and
     // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are shaded by our
     // offer's acceptance and the third button by the partner's; then the children.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     void KeyDown(platform::Key key, int scan, bool repeat) override;
     // The children's update; then, when the client's offer is gone or detached, our offer's items go back to
     // the local party and the client returns to the world; else a changed money field (its changed cleared)

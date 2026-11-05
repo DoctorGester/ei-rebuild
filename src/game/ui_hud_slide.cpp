@@ -11,6 +11,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -67,28 +68,6 @@ void MoveRegions(UiWindow* window, int offsetX) {
     }
 }
 
-// A running slide advanced by the frame's time: slide moves by time * direction / 0.3 and stays
-// within 0..1; offset is travel eased (2 s^2 up to half way, 1 - 2 (1 - s)^2 after), truncated;
-// the slide ends at either end.
-template <typename Panel>
-void AdvanceSlide(Panel* panel) {
-    const float moved =
-        UiContainer::FrameTime() * panel->slideDirection / kSlideTime + panel->slide;
-    panel->slide = moved;
-    if (moved > 1.0f) panel->slide = 1.0f;
-    if (panel->slide < 0.0f) panel->slide = 0.0f;
-    const float s = panel->slide;
-    float eased;
-    if (panel->slide < 0.5f) {
-        eased = 2.0f * (s * s);
-    } else {
-        const float rest = 1.0f - s;
-        eased = 1.0f - 2.0f * (rest * rest);
-    }
-    panel->offset = static_cast<int>(panel->travel * eased);
-    if (panel->slide == 1.0f || panel->slide == 0.0f) panel->sliding = false;
-}
-
 void PlaceSling(UiMesh* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     sling->localRotation = Quaternion::AxisAngle(axis, angle);
@@ -129,10 +108,31 @@ void SetPlain(UiMesh* sprite, std::uint32_t colour) {
 
 } // namespace
 
+// --- The slide -----------------------------------------------------------------------------------
+
+void PanelSlide::Step() {
+    t = UiContainer::FrameTime() * direction / kSlideTime + t;
+    if (t > 1.0f) t = 1.0f;
+    t = MaxKeepB(t, 0.0f);      // NaN too
+    if (t == 1.0f || t == 0.0f) moving = false;
+}
+
+int PanelSlide::Offset() const {
+    float eased;
+    if (t < 0.5f) {
+        eased = 2.0f * (t * t);
+    } else {
+        const float rest = 1.0f - t;
+        eased = 1.0f - 2.0f * (rest * rest);
+    }
+    return static_cast<int>(travel * eased);
+}
+
 // --- The map -------------------------------------------------------------------------------------
 
 void HudMap::Layout() {
     screen_layout::EnterRightPanel();   // addon's 10023366
+    const int offset = slide.Offset();
     const float slideOffset = static_cast<float>(offset);
     const float middle = slideOffset + kMapCentreX;
     const float buttons = slideOffset + kMapButtonsX;
@@ -167,16 +167,16 @@ void HudMap::Update() {
     UpdateView();
     BuildMarkers();
 
-    if (sliding) {
-        AdvanceSlide(this);
+    if (slide.moving) {
+        slide.Step();
         Layout();
         // WideScreen.
-        if (slideDirection == 1.0f)
+        if (slide.direction == 1.0f)
             PlaceSling(sceneObjects[5], kHudQuarterTurn, RightEdge(713.0f));
         else
             PlaceSling(sceneObjects[5], -kHudQuarterTurn, RightEdge(850.0f));
     }
-    ui->hudPanelsIn[2] = slideDirection > 0.0f ? 1 : 0;
+    ui->hudPanelsIn[2] = slide.direction > 0.0f ? 1 : 0;
 
     if (northTime > 0.0f) northTime = northTime - UiContainer::FrameTime();
     SetTint(sceneObjects[11], northTime > 0.0f ? 1.0f : 0.5f);
@@ -186,6 +186,7 @@ void HudMap::Update() {
 
 void HudUnitPanel::Layout() {
     screen_layout::EnterLeftPanel();    // addon's 100232AF
+    const int offset = slide.Offset();
     const float slideOffset = static_cast<float>(offset);
     const float edge = kUnitEdgeX - slideOffset;
     const float middle = kUnitMiddleX - slideOffset;
@@ -214,35 +215,34 @@ void HudUnitPanel::Layout() {
 }
 
 void HudUnitPanel::Update() {
-    if (sliding) {
-        AdvanceSlide(this);
+    if (slide.moving) {
+        slide.Step();
         Layout();
         // WideScreen.
-        if (slideDirection == -1.0f)
+        if (slide.direction == -1.0f)
             PlaceSling(sceneObjects[2], kHudQuarterTurn, LeftEdge(-50.0f));
         else
             PlaceSling(sceneObjects[2], -kHudQuarterTurn, LeftEdge(87.0f));
     }
     if (hoverUnit && hoverUnit->IsDead() != 0) hoverUnit = nullptr;
-    ui->hudPanelsIn[0] = slideDirection > 0.0f ? 1 : 0;
+    ui->hudPanelsIn[0] = slide.direction > 0.0f ? 1 : 0;
     ui->hudBodyPart = bodyPart;
 }
 
 // --- The unit panel's setup ----------------------------------------------------------------
 
 void HudUnitPanel::Setup(int newBodyPart, bool slid) {
-    offset = slid ? kUnitTravel : 0;
-    slide = slid ? 1.0f : 0.0f;
-    slideDirection = slid ? 1.0f : -1.0f;
+    slide.t = slid ? 1.0f : 0.0f;
+    slide.direction = slid ? 1.0f : -1.0f;
     // The panel offset from here on (addon's handler over the fields' stores) and the original's rectangle moved to the
-    // window's left edge. addon wrote (-133, 0)-(52, 225) and `sliding` 0 whatever the margin: its rectangle is this one
+    // window's left edge. addon wrote (-133, 0)-(52, 225) and `moving` 0 whatever the margin: its rectangle is this one
     // at 16:9 but a unit to the right, and without the first update's slide a panel set up slid out kept its sling
     // button where it was made, turned the other way.
     screen_layout::EnterLeftPanel();
     const int shift = screen_layout::EdgeShift();
     rect = Rect{-shift, 0, 185 - shift, 225};
-    sliding = true;
-    travel = kUnitTravel;
+    slide.moving = true;
+    slide.travel = kUnitTravel;
 
     UiRegion* sling = AddRegion();
     sling->SetRect(0, 0, 20, 30);
@@ -356,11 +356,10 @@ void HudMap::Setup(float newZoom, bool slid) {
     zoom = zoomMax < newZoom ? zoomMax : newZoom;
     centre = {0.0f, 0.0f};
     facing = {0.0f, 1.0f};
-    offset = slid ? kMapTravel : 0;
-    slide = slid ? 1.0f : 0.0f;
-    sliding = true;
-    travel = kMapTravel;
-    slideDirection = slid ? 1.0f : -1.0f;
+    slide.t = slid ? 1.0f : 0.0f;
+    slide.moving = true;
+    slide.travel = kMapTravel;
+    slide.direction = slid ? 1.0f : -1.0f;
 
     // Regions: 0 the sling button, 1 the round map, 2 the map's square, 3 and 4 the view buttons,
     // 5 "camera north", 6 the whole panel.

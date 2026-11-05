@@ -129,7 +129,6 @@ void BattleScreen::CreateScreen() {
 
     // The "pers <name>" texts: one line per person, by the person's text key.
     LoadPersonTexts(&personTexts);
-    spare = 0;
     if (IsMultiplayerClient()) {
         PlayersChanged(1);
     }
@@ -169,7 +168,7 @@ void BattleScreen::BuildPanels(float mapZoom) {
     map->AddObject(objects[2]);
     map->Setup(mapZoom, ui->hudPanelsIn[2] != 0);
 
-    clock = new HudClock(ui, this);
+    clock = new HudClock(ui);
     AddChild(clock);
     clock->AddObject(objects[2]);
     clock->Setup(ui->fastGame != 0);
@@ -223,7 +222,7 @@ void BattleScreen::LayoutChanged() {
     movePanel->Update();
 }
 
-void BattleScreen::Draw(SceneRenderer* pass) {
+void BattleScreen::DrawSprites(SceneRenderer* pass) {
     g_clientWorld.Render();
     if (boxSelecting) {    // the selection box, a dark rectangle with an outline
         pass->DrawRectangle(selectionBox.left, selectionBox.top, selectionBox.right,
@@ -234,7 +233,7 @@ void BattleScreen::Draw(SceneRenderer* pass) {
     ClearUiDepth(1.0f);
     // "nogui" shows or hides the panels (Rebirth's AddNewConsoleCommands).
     console::ApplyAddonGuiVisibility(this);
-    UiContainer::Draw(pass);
+    UiContainer::DrawSprites(pass);
 }
 
 // --- Closing, the first poll, picked-up items, a unit leaving the party and the saved state ------------
@@ -565,7 +564,7 @@ void RebuildClientParty(BattleScreen* screen) {
                 (*party)[0] = unit;
                 cameraFirst = true;
             } else {
-                lib::SetAtGrow(*party, lib::Count(*party), unit);
+                party->push_back(unit);
             }
         }
         screen->portraits->Rebuild(cameraFirst);
@@ -577,18 +576,6 @@ void RebuildClientParty(BattleScreen* screen) {
         screen->clientParty.camera = ids.camera;
         screen->clientParty.without = ids.without;
     }
-}
-
-bool SameIds(const std::vector<int>& a, const std::vector<int>& b) {
-    if (a.end() - a.begin() != b.end() - b.begin()) return false;
-    for (const int *x = a.data(), *y = b.data(); x != a.data() + a.size(); ++x, ++y)
-        if (*x != *y) return false;
-    return true;
-}
-
-// Equal.
-bool Equal(float a, float b) {
-    return a == b;
 }
 
 } // namespace
@@ -632,7 +619,7 @@ void BattleScreen::Update() {
         std::vector<PartyUnitRecord*> second = {};
         Party* data = LocalPlayerData();
         for (int i = 0; i < std::ssize(data->members); ++i)
-            lib::SetAtGrow(records, lib::Count(records), &data->members[i]);
+            records.push_back(&data->members[i]);
         if (g_clientWorld.PartyInExit(&records, pendingExit, &second)) {
             MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel);
             ui->PushWindow(box, WindowBackdrop::FirstWindow);
@@ -686,7 +673,7 @@ void BattleScreen::Update() {
 // --- the party ids compared ----------------------------------------------------------------------
 
 bool BattleScreen::PartyIds::Equals(const BattleScreen::PartyIds& other) const {
-    return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
+    return withUnit == other.withUnit && without == other.without;
 }
 
 // --- the battle screen's left button release -----------------------------------------------------
@@ -764,10 +751,10 @@ void BattleScreen::QuestVariable(std::string_view name, float value) {
     const float failed = 3.0f;
     if (parts.size() == 3) {
         const char* key;
-        if (Equal(value, complete)) {
+        if (value == complete) {
             if (questSound <= 3) questSound = 3;
             key = "combat_complete_quest";
-        } else if (Equal(value, failed)) {
+        } else if (value == failed) {
             value = 1.0f;
             key = "combat_failed_quest";
         } else {
@@ -786,9 +773,9 @@ void BattleScreen::QuestVariable(std::string_view name, float value) {
             if (current == 0.0f) return;
         }
         const char* key;
-        if (Equal(value, complete)) {
+        if (value == complete) {
             key = "combat_complete_subobj";
-        } else if (Equal(value, failed)) {
+        } else if (value == failed) {
             value = 1.0f;
             key = "combat_failed_subobj";
         } else {

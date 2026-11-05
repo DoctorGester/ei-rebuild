@@ -1069,7 +1069,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   met while the ground settles after a zone's landscape was loaded (its first 32 ticks) starts from the ground's state
   times its exposure; no step of the time back restarts it. Client-side only: no random, nothing the
   game simulates reads it.
-  The HUD unit panel's figure takes its unit's own value too (R53a): `HudUnitPanel::Draw` hands its meshes over between
+  The HUD unit panel's figure takes its unit's own value too (R53a): `HudUnitPanel::DrawSprites` hands its meshes over between
   `render::BeginInterfaceUnit(unit as a MapObject)` and `EndInterfaceUnit` (the object the world's draw gave
   `BeginCaster`), `MeshBatch::interfaceUnit` finds that unit's state (the ground's when the world has not drawn it
   lately), and the mesh shader's `weathered_figure` (`MeshFsParams::weather` z 2) applies it: the snow's and the wet's

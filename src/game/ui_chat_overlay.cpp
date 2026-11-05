@@ -285,12 +285,12 @@ void ChatOverlay::Update() {
     std::erase_if(lines, [now](const ChatLine& line) { return static_cast<int>(now - line.time) > kLineLifetime; });
 }
 
-void ChatOverlay::Redraw() {
+void ChatOverlay::DrawSurfaces() {
     int y = kTop;
     for (const ChatLine& line : lines) {
         line.surface->MoveTo({kLeft, y});
         line.surface->Blit();
         y += kLineHeight;
     }
-    UiWindow::Redraw();
+    UiWindow::DrawSurfaces();
 }

@@ -498,11 +498,10 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
 
 } // namespace
 
-void TradeGrid::Draw(SceneRenderer* pass) {
-    Interface3D* currentUi = ui;
+void TradeGrid::DrawSprites(SceneRenderer* pass) {
     Rect grid{200, 100, 600, 500};
-    currentUi->ScaleRectToScreen(&grid);
-    Rect screen{0, 0, currentUi->width, currentUi->height};
+    ui->ScaleRectToScreen(&grid);
+    Rect screen{0, 0, ui->width, ui->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
     DrawBase(pass);

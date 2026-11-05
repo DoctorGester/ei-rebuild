@@ -80,7 +80,7 @@ const itemdb::ItemRecordHead* PartRecord(const ItemLoot* part) {
 
 // --- The quick strip ------------------------------------------------------------------
 
-void HeroQuickStrip::Draw(SceneRenderer* pass) {
+void HeroQuickStrip::DrawSprites(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
     auto* frame = sceneObjects[0];
     int count = lib::Count(hero->spells);
@@ -100,11 +100,10 @@ void HeroQuickStrip::Draw(SceneRenderer* pass) {
 
 // --- The repair grid ------------------------------------------------------------------
 
-void RepairGrid::Draw(SceneRenderer* pass) {
-    Interface3D* currentUi = ui;
+void RepairGrid::DrawSprites(SceneRenderer* pass) {
     Rect grid{200, 100, 600, 500};
-    currentUi->ScaleRectToScreen(&grid);
-    Rect screen{0, 0, currentUi->width, currentUi->height};
+    ui->ScaleRectToScreen(&grid);
+    Rect screen{0, 0, ui->width, ui->height};
     ClearUiDepth(0.0f, &screen, 1);
     ClearUiDepth(1.0f, &grid, 1);
 
@@ -131,7 +130,7 @@ void RepairGrid::Draw(SceneRenderer* pass) {
 
 // --- The constructors' second pages ----------------------------------------
 
-void SpellMakerPage::Draw(SceneRenderer* pass) {
+void SpellMakerPage::DrawSprites(SceneRenderer* pass) {
     const std::vector<Item*>& newSlots = slots->items;
     int needed = 0;
     float manaSum = 0.0f;
@@ -205,7 +204,7 @@ void SpellMakerPage::Draw(SceneRenderer* pass) {
     highlight->visible = false;
 }
 
-void ConstructorPage::Draw(SceneRenderer* pass) {
+void ConstructorPage::DrawSprites(SceneRenderer* pass) {
     DrawBase(pass);
     const std::vector<Item*>& newSlots = slots->items;
     bool hasBlueprint = false;   // or a spell container
