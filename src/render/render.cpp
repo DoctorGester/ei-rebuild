@@ -361,16 +361,19 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
     }
 }
 
-// The end of the frame's first world view that draws water, where the frame is copied for the next frame's water
-// reflections (render_water.cpp); SIZE_MAX: no such view has ended, or this frame's copy was taken.
+// Where the frame is copied for the water's reflections (render_water.cpp): the end of its first world view that
+// draws water (the copy the next frame's water reads), or, when the last frame left no copy (the first frame after a
+// load), before the water's first draw (the copy this frame's water reads); SIZE_MAX: no such point is drawn yet,
+// or this frame's copy was taken.
 static std::size_t WaterCopyPoint() {
     if (WaterCopyTaken()) return SIZE_MAX;
     for (const Frame::Range& r : g_frame.worldRanges) {
-        if (r.end > g_frame.commands.size()) continue;
-        for (std::size_t k = r.first; k < r.end; ++k) {
+        for (std::size_t k = r.first; k < std::min(r.end, g_frame.commands.size()); ++k) {
             const Command& c = g_frame.commands[k];
-            if (c.kind == Command::Terrain && g_frame.terrainBatches[static_cast<std::size_t>(c.index)].water)
-                return r.end;
+            if (c.kind != Command::Terrain || !g_frame.terrainBatches[static_cast<std::size_t>(c.index)].water)
+                continue;
+            if (!LastWaterCopyKept()) return k;
+            return r.end <= g_frame.commands.size() ? r.end : SIZE_MAX;
         }
     }
     return SIZE_MAX;
@@ -424,6 +427,7 @@ static bool DrawPending() {
         if (last > r.first + 1) split = r.first + (last - r.first) / 2;
     }
     const std::size_t water = WaterCopyPoint();
+    if (water == k && g_holder != Holder::None) CopyFrameForWater(g_colour);
     do {
         bool world = multisampling && k < end && InWorld(k);
         std::size_t stop = k;

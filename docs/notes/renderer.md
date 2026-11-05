@@ -608,9 +608,9 @@ with its own level.
   before a world run that follows other draws the frame target's colour and depth go into every sample (a pass of its
   own). The frame target is what every reader takes, always resolved. The water's reflections copy the frame where a
   world view with water ends (render.cpp's WaterCopyPoint, render_water.cpp's CopyFrameForWater): with msaa the
-  world's own resolve, without it a pass ending there. A copy before the water's first draw would split the world's
-  multisampled pass and resolve it once more (R17a1 did: about 0.2-0.25 ms at 3840x2009, msaa 8; SDL_GPU reads a
-  multisampled target only through a resolve).
+  world's own resolve, without it a pass ending there. A copy before the water's first draw splits the world's
+  multisampled pass and resolves it once more (about 0.2-0.25 ms at 3840x2009, msaa 8; SDL_GPU reads a multisampled
+  target only through a resolve): taken so only when the last frame left no copy (R17a3; R17a1 took it every frame).
 - **The depth copy.** A multisampled depth is never read back: SDL_GPU samples no multisampled texture and resolves
   only colour. So a multisampled pass has a second colour attachment, R32F (`kDepthCopyFormat`), and every pipeline
   made for more than one sample has it (`AddDepthCopy`): written (red only, no blending) when the pipeline writes the
@@ -1674,8 +1674,11 @@ The reflections (R17a1), read by shaders/terrain.hlsl's `reflected_sky` and `scr
   frame's world view: CopyFrameForWater (shaders/scene_copy.hlsl) copies the frame target's colour at half size (per
   2 x 2 pixels the mean) where a world view with water ends, after its resolve, and keeps that frame's water clip
   matrix; the hit point is looked up through it (`sceneView`), so the camera's motion moves nothing; what moved in the
-  frame shows where it was one frame before. Used only when the copy is the last frame's at this frame's size and the
-  occlusion was drawn (else the sky alone: the first frame of water, `occlusion off`).
+  frame shows where it was one frame before. When the last frame left no copy at this size (the first frame after a
+  load or a resolution change, or with water again after frames without) the copy is taken before the water's first
+  draw instead, as R17a1 did (one more resolve, that frame only), so the reflections start with the first frame
+  (render_load_first_frame: its first frame against a later one). Without the occlusion (`occlusion off`) the water
+  reflects the sky alone.
   Why: SDL_GPU samples no multisampled texture, so a copy of the frame before the water (R17a1's) needs the world's pass
   split there and resolved once more, about 0.2-0.25 ms at 3840x2009, msaa 8 (the colour's resolve about 0.1, the depth
   copy's 0.12; the split itself 0.03). The copy at the world's end reuses its resolve, and the depth before the water

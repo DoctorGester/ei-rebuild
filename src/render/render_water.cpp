@@ -167,7 +167,8 @@ constexpr int kSkyScale = 4;
 constexpr float kSkyMargin = 1.25f;
 
 static gpu::Texture g_skyImage, g_skyDepth;
-// The last frame's world view at half its size (CopyFrameForWater, shaders/scene_copy.hlsl).
+// The world view at half its size (CopyFrameForWater, shaders/scene_copy.hlsl): the last frame's at its end, or this
+// frame's before the water when the last frame left none.
 static gpu::Texture g_sceneColour;
 static gpu::Pipeline g_copyPipeline;
 static bool g_copyTried = false;
@@ -178,7 +179,7 @@ static Matrix4 g_skyView{};   // the landscape's space to the sky image's clip s
 static Vector3 g_domeCentre{};
 static float g_domeRadius = 1000.0f, g_domeHeight = 1000.0f;
 static std::uint32_t g_copyFrame = ~0u;   // the frame (FrameNumber) CopyFrameForWater last copied
-static Matrix4 g_waterView{};   // this frame's water's clip matrix (BindWaterReflections)
+static Matrix4 g_waterView{};   // the clip matrix of the terrain drawn last (BindWaterReflections)
 static Matrix4 g_copyView{};    // the copied frame's (the landscape's space to its clip space)
 
 static gpu::PipelineDesc CopyDesc() {
@@ -313,10 +314,21 @@ void CopyFrameForWater(const gpu::Texture& colour) {
 
 bool WaterCopyTaken() { return g_copyFrame == FrameNumber(); }
 
+// The copy has this frame's half size.
+static bool CopyFitsFrame() {
+    const std::optional<Size> frame = FrameSize();
+    return frame && g_sceneColour && g_sceneColour.width == (frame->w + 1) / 2 &&
+           g_sceneColour.height == (frame->h + 1) / 2;
+}
+
+bool LastWaterCopyKept() { return g_copyFrame + 1 == FrameNumber() && CopyFitsFrame(); }
+
 void BindWaterReflections(const Matrix4& view, TerrainFsParams* fs) {
     namespace program = gpu_shaders::terrain;
     fs->view = view;
     g_waterView = view;
+    // A copy of this frame (before its water) is seen through this frame's camera.
+    if (WaterCopyTaken()) g_copyView = view;
     fs->sceneView = g_copyView;
     fs->skyView = g_skyView;
     fs->dome[0] = g_domeCentre.x;
@@ -328,12 +340,11 @@ void BindWaterReflections(const Matrix4& view, TerrainFsParams* fs) {
     DepthMap(view, depthMap);
     fs->sceneDepthOffset = depthMap[0];
     fs->sceneDepthScale = depthMap[1];
-    // The rays are marched through this frame's depth (the ambient occlusion's) and take the colour from the last
-    // frame's copy, when there is one of that frame's world at this frame's size.
+    // The rays are marched through this frame's depth (the ambient occlusion's) and take the colour from the copy,
+    // this frame's or the last one's, at this frame's half size.
     const std::optional<Size> frame = FrameSize();
     const int width = frame ? (frame->w + 1) / 2 : 0, height = frame ? (frame->h + 1) / 2 : 0;
-    const bool copied = g_copyFrame + 1 == FrameNumber() && g_sceneColour && g_sceneColour.width == width &&
-                        g_sceneColour.height == height && OcclusionOf(true).on;
+    const bool copied = (WaterCopyTaken() || LastWaterCopyKept()) && CopyFitsFrame() && OcclusionOf(true).on;
     fs->sceneOn = copied ? 1 : 0;
     fs->sceneSize[0] = static_cast<float>(width);
     fs->sceneSize[1] = static_cast<float>(height);
