@@ -5,5 +5,6 @@ model = "sonnet"
 depends = ["C98"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U10. OptionsWindow (4 files), SaveLoadWindow (5), HudUnitPanel (5), BattleScreen (5), CampPages (5), HelpWindow (3) each into ui_<family>.{h,cpp}; ui.h (2,072 lines) keeps Interface3D, UiWindow, UiContainer, UiSurface, UiRegion; the 60-row data table to its window's file; fold the slivers (ui_input_defaults.cpp, ui_control_delete.cpp); fix file headers pointing at the wrong notes. Pure moves: run when no other ui* ticket is running. Style only: goldens the same, float operation order untouched, no new forwarders. Done: ui.h (2394 -> 770 lines) keeps the core; 15 new headers (ui_mesh, ui_hud, ui_battle, ui_scrollbar, ui_scroll_text, ui_spin, ui_drop_list, ui_edit_field, ui_saveload, ui_options, ui_objectives, ui_message_box, ui_help_window, ui_chat_overlay, key_bindings) + ui_menu_pieces.h; UiItemPanel in ui_item_info.h; sources merged for Options, SaveLoad, Help, Objectives, Camp, Battle; slivers folded. HUD panel sources left for C99a (shared file-local helpers and clashing names need renames)."
 order = 1029
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
