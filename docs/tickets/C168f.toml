@@ -1,0 +1,9 @@
+id = "C168f"
+title = "File layout moves: ai, combat, objects, units"
+group = "cleanup"
+size = 1
+model = "sonnet"
+depends = ["C168e"]
+note = "Plan: docs/notes/file-layout.md. layout.py apply C168f plus 21 folds (ai_map_construct and the other AIMap pieces, combat orders, levers, torches, traps, unit stats); 700 include lines, 658 references. Quiet window. All goldens the same."
+order = 1234
+status = "later"

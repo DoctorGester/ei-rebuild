@@ -1,0 +1,9 @@
+id = "C168j"
+title = "File layout, optional: src/render under the same name rule (render/blit.cpp)"
+group = "cleanup"
+size = 1
+model = "sonnet"
+depends = ["C168h"]
+note = "Plan: docs/notes/file-layout.md (The rest of src). 30 render_* files drop the word; render.h / render.cpp, gpu.*, kept_weather.h, mesh_records.h, text_format.h stay. On a quiet day of the renderer workers. The user decides."
+order = 1238
+status = "later"
