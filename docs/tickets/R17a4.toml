@@ -4,3 +4,5 @@ group = "renderer"
 depends = ["R17a3"]
 note = "Found in R17a3 (renderer.md, 'shaders/terrain.hlsl: the water', the cost paragraph): at 3840x2009 msaa 8 the lake views render_water's steps reach (water_lake, water_lake_night) spend about 1.2 ms on the water's draws even without the reflected rays (sceneOn 0), against 0.16-0.3 ms for the shore, sea and river views. Find why (overdraw of the lake's pages or layers, blending into 8 samples over a screen of water, the shader's cost per pixel) with the fence-probe kit in build/R17a3 of the main checkout; make it cheaper without changing the look."
 order = 1192
+status = "running"
+started = "2026-11-05"
