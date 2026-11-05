@@ -234,7 +234,6 @@ constexpr int kWorkRecords = 0x1000;      // the arrays' first size
 constexpr unsigned kBoundsCells = 12000;  // only a fog of more cells gets its bounds computed here
 constexpr float kFogSpriteSize = 0.4f;
 constexpr float kColourScale = 255.0f;
-constexpr int kOutOfView = 2;
 
 constexpr int kDrops = 0x8000;            // drops (flakes) at most; each is a triangle
 constexpr int kDropVertices = kDrops * 3;
@@ -245,7 +244,7 @@ constexpr int kRings = 40;                // the offsets below: 40, -40, 39, -39
 int VisibilityFog::Draw(SceneRenderer* renderer) {
     if (cells.size() == 0) return 1;
     if (cells.size() > kBoundsCells && !boundsValid) ComputeBounds();
-    if (renderer->pipeline->ClipTest(&bounds) == kOutOfView) return 1;
+    if (renderer->pipeline->ClipTest(&bounds) == TransformPipeline::ClipResult::Outside) return 1;
 
     g_sprites.resize(kWorkRecords);
     g_points.resize(kWorkRecords);

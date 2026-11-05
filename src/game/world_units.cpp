@@ -408,7 +408,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
             unit->SetHostileMask(static_cast<std::uint32_t>(diplomacy.GetHostileMask(spec->side)));
             newObjectManager->ApplyPrototype(object, unitSpec->prototype);
             newObjectManager->GiveStartingEquipment(unit, unitSpec->prototype);
-            for (const std::string& name : unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems])
+            for (const std::string& name : unitSpec->record.lists[unitrecord::UnitRecord::List::QuickItems])
                 unit->AddQuickItem(ItemFactory()->CreateItem(name));
             unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord) go to the unit.

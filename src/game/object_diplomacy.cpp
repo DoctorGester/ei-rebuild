@@ -19,18 +19,18 @@ void Diplomacy::Reset() {
     for (int i = 0; i < 32; ++i) allied[i] = 1u << i;
 }
 
-void Diplomacy::SetRelation(int player, int other, int relation) {
+void Diplomacy::SetRelation(int player, int other, DiplomacyRelation relation) {
     std::uint32_t bit = Bit(other);
     switch (relation) {
-    case kRelationAllied:
+    case DiplomacyRelation::Allied:
         hostile[player] &= ~bit;
         allied[player] |= bit;
         break;
-    case kRelationNeutral:
+    case DiplomacyRelation::Neutral:
         hostile[player] &= ~bit;
         allied[player] &= ~bit;
         break;
-    case kRelationHostile:
+    case DiplomacyRelation::Hostile:
         hostile[player] |= bit;
         allied[player] &= ~bit;
         break;
@@ -43,14 +43,14 @@ void Diplomacy::SetRelation(int player, int other, int relation) {
         if (!unit) continue;
         if (unit->side != player) continue;
         std::uint32_t mask = unit->relationsA;
-        mask = relation == kRelationHostile ? mask | Bit(other) : mask & ~Bit(other);
+        mask = relation == DiplomacyRelation::Hostile ? mask | Bit(other) : mask & ~Bit(other);
         unit->SetHostileMask(mask);
     }
 }
 
 DiplomacyRelation Diplomacy::GetRelation(int player, int other) const {
-    if (IsAllied(player, other)) return kRelationAllied;
-    return (hostile[player] & Bit(other)) != 0 ? kRelationHostile : kRelationNeutral;
+    if (IsAllied(player, other)) return DiplomacyRelation::Allied;
+    return (hostile[player] & Bit(other)) != 0 ? DiplomacyRelation::Hostile : DiplomacyRelation::Neutral;
 }
 
 int Diplomacy::GetHostileMask(int player) const {

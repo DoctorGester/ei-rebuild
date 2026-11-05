@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "camera_trace.h"
 #include "game_singletons.h"
+#include "lib/bit_flags.h"
 #include "options.h"
 #include "ui.h"
 #include "ui_cursor.h"
@@ -32,19 +33,20 @@ bool Differs(float a, float b) {
     return a != b;
 }
 
-enum Edge : unsigned { kLeft = 1, kRight = 0x10, kTop = 0x100, kBottom = 0x1000 };
+enum class Edge : unsigned { Left = 1, Right = 0x10, Top = 0x100, Bottom = 0x1000 };
+constexpr bool EnableBitFlags(Edge) { return true; }
 
 // The arrow cursor of the screen edges the mouse is at.
-CursorShape EdgeCursor(unsigned edges) {
-    switch (edges) {
-    case kLeft: return CursorShape::ScrollLeft;
-    case kRight: return CursorShape::ScrollRight;
-    case kTop: return CursorShape::ScrollUp;
-    case kLeft | kTop: return CursorShape::ScrollUpLeft;
-    case kRight | kTop: return CursorShape::ScrollUpRight;
-    case kBottom: return CursorShape::ScrollDown;
-    case kLeft | kBottom: return CursorShape::ScrollDownLeft;
-    case kRight | kBottom: return CursorShape::ScrollDownRight;
+CursorShape EdgeCursor(Edge edges) {
+    switch (lib::Bits(edges)) {
+    case lib::Bits(Edge::Left): return CursorShape::ScrollLeft;
+    case lib::Bits(Edge::Right): return CursorShape::ScrollRight;
+    case lib::Bits(Edge::Top): return CursorShape::ScrollUp;
+    case lib::Bits(Edge::Left | Edge::Top): return CursorShape::ScrollUpLeft;
+    case lib::Bits(Edge::Right | Edge::Top): return CursorShape::ScrollUpRight;
+    case lib::Bits(Edge::Bottom): return CursorShape::ScrollDown;
+    case lib::Bits(Edge::Left | Edge::Bottom): return CursorShape::ScrollDownLeft;
+    case lib::Bits(Edge::Right | Edge::Bottom): return CursorShape::ScrollDownRight;
     default: return CursorShape::Default;
     }
 }
@@ -165,21 +167,21 @@ void CameraInput::MouseMove(UiEvent& event) {
     if (margin > 0) {
         // The edges of the picture: the screen's, or the letterbox bars' inner ones.
         const Rect picture = g_interface.PictureRect();
-        unsigned edges = 0;
+        Edge edges = {};
         Vector3 direction{0.0f, 0.0f, 0.0f};
         if (event.at.x < picture.left + margin) {
             direction.x = -1.0f;
-            edges = kLeft;
+            edges = Edge::Left;
         } else if (event.at.x >= picture.right - margin) {
             direction.x = 1.0f;
-            edges = kRight;
+            edges = Edge::Right;
         }
         if (event.at.y < picture.top + margin) {
             direction.y = -1.0f;
-            edges |= kTop;
+            edges |= Edge::Top;
         } else if (event.at.y >= picture.bottom - margin) {
             direction.y = 1.0f;
-            edges |= kBottom;
+            edges |= Edge::Bottom;
         }
         if (!ModifierHeld()) {
             // The keys' pan goes on (KeyUp sets the same).
@@ -192,7 +194,7 @@ void CameraInput::MouseMove(UiEvent& event) {
         }
         g_cursor.SetShape(EdgeCursor(edges));
         camera->Pan(direction);
-        if (edges) event.handled = true;
+        if (edges != Edge{}) event.handled = true;
     }
     pressLayout = event.at;
 }

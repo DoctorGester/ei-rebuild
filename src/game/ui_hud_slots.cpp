@@ -97,7 +97,7 @@ bool UseAtOnce(BattleScreen* screen, Unit* unit, Spell* spell, bool quick) {
         target = g_clientWorld.NearestVisibleUnit(unit);
         if (!target) {
             g_interface.PlayInterfaceSound(kSoundNoMagic);
-            screen->SetPendingAction(kPendingNone, -1, -1);
+            screen->SetPendingAction(PendingAction::None, -1, -1);
             return false;
         }
     } else if (!target) {
@@ -378,11 +378,11 @@ void HudQuickItems::LeftUp(UiEvent& event) {
         // One of the player's items (top row): used on an object, with the item's key in the screen's
         // itemUseKey and its id in pendingItem.
         owner->itemUseKey = entries[entry].item->GetUse();
-        owner->SetPendingAction(kPendingKeyOnObject, slot, entries[entry].id);
+        owner->SetPendingAction(PendingAction::KeyOnObject, slot, entries[entry].id);
         return;
     }
     // The highlighted one again: back to plain selection.
-    owner->SetPendingAction(kPendingNone, -1, -1);
+    owner->SetPendingAction(PendingAction::None, -1, -1);
 }
 
 UiMesh* HudQuickItems::AddItem(std::string_view model, std::string_view image) {
@@ -407,19 +407,19 @@ void HudQuickItems::Pick(int slot) {
     if (!unit) return;
     Item* item = unit->GetQuickItem(slot);
     if (!item) {
-        owner->SetPendingAction(kPendingNone, -1, -1);
+        owner->SetPendingAction(PendingAction::None, -1, -1);
         return;
     }
     g_interface.PlayInterfaceSound(kSoundClick);
     if (selected == slot) {
-        owner->SetPendingAction(kPendingNone, -1, -1);
+        owner->SetPendingAction(PendingAction::None, -1, -1);
         return;
     }
     QuickItemCategory category = item->GetCategory();
     if (category != QuickItemCategory::Wand && category != QuickItemCategory::Potion) return;
-    PendingAction mode = kPendingNone;
+    PendingAction mode = PendingAction::None;
     if (Spell* spell = item->spell)
-        mode = (spell->targetFlags & SpellTargetFlag::AtUnits) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
+        mode = (spell->targetFlags & SpellTargetFlag::AtUnits) ? PendingAction::QuickOnUnit : PendingAction::QuickAtPoint;
     owner->SetPendingAction(mode, slot, -1);
 }
 
@@ -427,12 +427,12 @@ void HudQuickItems::UseNow(int slot) {
     if (!unit) return;
     Item* item = unit->GetQuickItem(slot);
     if (!item) return;
-    owner->SetPendingAction(kPendingQuickOnUnit, slot, -1);
+    owner->SetPendingAction(PendingAction::QuickOnUnit, slot, -1);
     QuickItemCategory category = item->GetCategory();
     if ((category == QuickItemCategory::Wand || category == QuickItemCategory::Potion) && item->spell)
         if (!UseAtOnce(owner, unit, item->spell, true)) return;
     g_interface.PlayInterfaceSound(kSoundClick);
-    owner->SetPendingAction(kPendingNone, -1, -1);
+    owner->SetPendingAction(PendingAction::None, -1, -1);
 }
 
 void HudQuickItems::Highlight(int slot, bool on) {
@@ -672,7 +672,7 @@ void HudSpellColumn::Click(int index) {
     int previous = selected;
     if (previous == index) {
         g_interface.PlayInterfaceSound(kSoundClick);
-        owner->SetPendingAction(kPendingNone, -1, -1);
+        owner->SetPendingAction(PendingAction::None, -1, -1);
         return;
     }
     if (previous >= 0 && previous < count) Highlight(previous, false);
@@ -682,17 +682,17 @@ void HudSpellColumn::Click(int index) {
     if (!item) return;
     Spell* spell = item->spell;
     if (!spell) return;
-    owner->SetPendingAction((spell->targetFlags & SpellTargetFlag::AtUnits) ? kPendingSpellOnUnit : kPendingSpellAtPoint, index, -1);
+    owner->SetPendingAction((spell->targetFlags & SpellTargetFlag::AtUnits) ? PendingAction::SpellOnUnit : PendingAction::SpellAtPoint, index, -1);
 }
 
 void HudSpellColumn::ClickAlternate(int index) {
     if (!unit || index < 0 || index >= count) return;
-    owner->SetPendingAction(kPendingSpellOnUnit, index, -1);
+    owner->SetPendingAction(PendingAction::SpellOnUnit, index, -1);
     Item* item = unit->GetSpell(index);
     if (item && item->spell)
         if (!UseAtOnce(owner, unit, item->spell, false)) return;
     g_interface.PlayInterfaceSound(kSoundClick);
-    owner->SetPendingAction(kPendingNone, -1, -1);
+    owner->SetPendingAction(PendingAction::None, -1, -1);
 }
 
 void HudSpellColumn::Highlight(int index, bool on) { HighlightButton(this, &selected, index, on); }
@@ -826,14 +826,14 @@ void HudActionColumn::Select(int index) {
     int previous = selected;
     if (previous == index) {
         g_interface.PlayInterfaceSound(kSoundClick);
-        owner->SetPendingAction(kPendingNone, -1, -1);
+        owner->SetPendingAction(PendingAction::None, -1, -1);
         return;
     }
     if (previous >= 0 && previous < count) Highlight(previous, false);
     Highlight(index, true);
     g_interface.PlayInterfaceSound(kSoundClick);
     int action = static_cast<int>(actions[index]);
-    owner->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
+    owner->SetPendingAction(action == 0 ? PendingAction::Order : PendingAction::Follow, index, action);
 }
 
 void HudActionColumn::Highlight(int index, bool on) { HighlightButton(this, &selected, index, on); }

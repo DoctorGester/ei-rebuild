@@ -337,6 +337,8 @@ class EffectMoshka final : public Effect {
 public:
     const char* ClassName() override;
     ClassId GetClassId() override;
+    enum class State : int { Perched = 0, Circling = 1, FlyingOff = 2 };
+
     EffectMoshka();
     ~EffectMoshka() override;
     void Reset() override;                                 // the figure out of the maps, both released
@@ -347,7 +349,7 @@ public:
     // The frame's step: `now` is the animation time (frames).
     void Update(float now);
     // Follows object `objectId`: when it exists, a new figure at a perch near it (filed in the client's
-    // maps) with its source, perched (state 0) for 200 frames.
+    // maps) with its source, perched for 200 frames.
     void Follow(int objectId);
     int Unpack(int update, DeltaReader& field) override;    // 1
     void Pack(DeltaWriter&) override {}            // nothing is sent
@@ -360,7 +362,7 @@ public:
     float timer = 0.0f;        // frames left in the state
     float angle = 0.0f;        // circling: the angle at time 0 (radians)
     float height = 0.0f;       // circling: the height above the bird where it looks for a perch
-    int state = 0;             // 0 perched, 1 circling, 2 flying to position (the perch)
+    State state = State::Perched;   // FlyingOff: flying to the position (the perch)
 };
 
 // A tornado crossing the map (class id 0x65, "EffectTornado"; the server weather launches it). It moves in a

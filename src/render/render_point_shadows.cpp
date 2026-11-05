@@ -493,7 +493,7 @@ void PreparePointShadows(Frame& f) {
     if (scene.count == 0 || f.worldRanges.empty()) return;
     const std::optional<WorldView> view = WorldCamera(f);
     if (!view) return;
-    Timer timer(FrameStats::ShadowMs);
+    Timer timer(FrameStats::Time::ShadowMs);
     if (!ListCandidates(scene, view->clip)) return;
     LastSphere spheres;
     ListCasters(f, view->inverse, spheres);
@@ -535,7 +535,7 @@ static void ListRedrawnFaces(const PointShadowFrame& ps) {
                 }
                 g_faceDraws.Add(b, batch.cached != nullptr, d.texture, d.sampler, first, batch.indexCount,
                                 CasterInstance{Product(view, d.model), {d.uv[0], d.uv[1]}, {d.alpha[0], d.alpha[1]}});
-                ++g_stats.counts[FrameStats::ShadowDraws];
+                ++g_stats.counts[FrameStats::Count::ShadowDraws];
                 kept.casters.push_back(d);
             }
             r.to = g_faceDraws.Count();
@@ -556,7 +556,7 @@ static void DrawRedrawnFaces(bool fresh) {
     pass.depth = {g_atlas, 0, fresh ? gpu::Load::Clear : gpu::Load::Keep, 1.0f, true};
     pass.label = "ei-point-shadows";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the point shadows' pass could not begin (%s).", gpu::Error());
-    ++g_stats.counts[FrameStats::Passes];
+    ++g_stats.counts[FrameStats::Count::Passes];
     bool clearApplied = false;
     for (const RedrawnFace& r : g_redrawn) {
         if (!r.clear) continue;
@@ -582,7 +582,7 @@ static void DrawRedrawnFaces(bool fresh) {
 void DrawPointShadows(Frame& f) {
     PointShadowFrame& ps = f.shadow.point;
     if (ps.mapped == 0) return;
-    Timer timer(FrameStats::ShadowMs);
+    Timer timer(FrameStats::Time::ShadowMs);
     if (!g_atlas) {
         g_atlasKnown = false;
         g_atlas = MakeShadowDepth(kAtlasWidth, kAtlasHeight, "ei-point-shadows");

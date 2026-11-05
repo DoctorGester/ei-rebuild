@@ -597,9 +597,9 @@ void ObjectivesWindow::PaintQuestList(UiSurface& surface) const {
 
 void ObjectivesWindow::PaintZone(UiSurface& surface) const {
     Rect titleRect = {0, 5, 340, 25};
-    surface.DrawTextIn(zoneTitle, titleRect, TextStyle{1, 0x31B3FF, render::text::kCenter});
+    surface.DrawTextIn(zoneTitle, titleRect, TextStyle{1, 0x31B3FF, render::text::Format::Center});
     Rect textRect = {10, 25, 330, 140};
-    surface.DrawTextIn(zoneText, textRect, TextStyle{1, kUiTextColour, render::text::kCenter | render::text::kWordBreak});
+    surface.DrawTextIn(zoneText, textRect, TextStyle{1, kUiTextColour, render::text::Format::Center | render::text::Format::WordBreak});
 }
 
 // --- What the window is opened for, and its help topic --------------------

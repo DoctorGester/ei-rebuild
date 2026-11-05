@@ -386,7 +386,7 @@ void AIAttention::Build(Unit* unit) {
             AIOptionKind kind = SpellKind(spell);
             if (kind == AIOptionKind::Unused) continue;
             float range = spell->range;
-            if (server->stats.naturalWeapon == WeaponType::SpellsOnly) range = server->stats.combat[UnitStats::kReach];
+            if (server->stats.naturalWeapon == WeaponType::SpellsOnly) range = server->stats.combat[UnitStats::CombatIndex::Reach];
             std::uint32_t count = spell->targetCount;
             int maxCount = static_cast<int>((count < 1 ? 1 : count) - 1);
             float radius = 0.0f;

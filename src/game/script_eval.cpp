@@ -88,24 +88,24 @@ void ScriptCall::PrepareArguments(Script* script, ScriptVars* vars) {
 
 const ScriptSubCall* ScriptCall::ConditionCall() const {
     for (const ScriptSubCall& call : subCalls)
-        if (call.type == kScriptFloat) return &call;
+        if (call.type == ScriptType::Float) return &call;
     return nullptr;
 }
 
 void ScriptCall::CalcParameters(Script* script, ScriptVars* vars, const ScriptSubCall* call) {
     switch (call->type) {
-    case kScriptFloat:
+    case ScriptType::Float:
         floatArgs[call->argIndex] = call->cmd->CalcFloat(script, vars);
         return;
-    case kScriptString: {
+    case ScriptType::String: {
         // Only Rebirth's functions return strings.
         scriptaddon::CalcString(call->cmd.get(), script, vars, &stringArgs[call->argIndex]);
         return;
     }
-    case kScriptObject:
+    case ScriptType::Object:
         call->cmd->CalcObject(script, vars, &objectArgs[call->argIndex]);
         return;
-    case kScriptGroup:
+    case ScriptType::Group:
         call->cmd->CalcGroup(script, vars, &groupArgs[call->argIndex]);
         return;
     default:
@@ -240,8 +240,8 @@ float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
         int a = lib::Truncate(args.Float());
         int b = lib::Truncate(args.Float());
         DiplomacyRelation relation = g_serverWorld.diplomacy.GetRelation(a, b);
-        if (relation == kRelationHostile) result = kMinusOne;
-        else if (relation == kRelationAllied) result = 1.0f;
+        if (relation == DiplomacyRelation::Hostile) result = kMinusOne;
+        else if (relation == DiplomacyRelation::Allied) result = 1.0f;
         return result;
     }
     case ScriptFunction::IsAlive:

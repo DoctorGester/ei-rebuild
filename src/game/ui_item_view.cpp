@@ -138,14 +138,13 @@ void SetShade(UiMesh* sprite, float grey) {
     sprite->tint[2] = grey;
 }
 
-constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
 
 // An item picture's file as the renderer takes it: `width` x `height` pixels right after the header (the extra block
 // not skipped, as the original read them), premultiplied 32-bit or "PNT3" packed. Valid while the file is.
 render::TextureImage PictureOf(const MmpFile& image, std::uint32_t fileBytes, int width, int height) {
     const std::uint32_t header = static_cast<std::uint32_t>(sizeof(MmpHeader));
     return render::TextureImage{image.Body(), fileBytes > header ? fileBytes - header : 0, width, height,
-                                image.header.format == kPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb};
+                                image.header.format == MmpFormat::Pnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb};
 }
 
 } // namespace

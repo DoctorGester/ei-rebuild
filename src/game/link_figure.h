@@ -102,21 +102,21 @@ public:
     // Draws (link_mesh_draw.cpp): a figure mesh's part `name` drawn through this figure
     // (Object3D::figure): the first fills a flat part's colours and speculars, the second lights it
     // (both: false when there is no such part), the next four draw it (with the mesh's per-vertex
-    // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return 2 when nothing
+    // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return false when nothing
     // was drawn. `u`, `v` are members of the mesh.
     bool FlatColours(std::string_view name, std::uint32_t colour, std::uint32_t specular,
                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
     bool LightPart(std::string_view name, const std::vector<Light*>* lights, Material* material, int alpha,
                    std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
-    int DrawPartMoved(std::string_view name, int flags, std::vector<std::uint32_t>* colours,
+    bool DrawPartMoved(std::string_view name, DrawFlag flags, std::vector<std::uint32_t>* colours,
                       std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
                       float u, float v);
-    int DrawPart(std::string_view name, int flags, std::vector<std::uint32_t>* colours,
+    bool DrawPart(std::string_view name, DrawFlag flags, std::vector<std::uint32_t>* colours,
                  std::vector<std::uint32_t>* speculars, float u, float v);
-    int DrawPartMovedTextured(std::string_view name, int flags, Surface* first, Surface* second,
+    bool DrawPartMovedTextured(std::string_view name, DrawFlag flags, Surface* first, Surface* second,
                               std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                               std::vector<Vector3>* offsets, float u, float v);
-    int DrawPartTextured(std::string_view name, int flags, Surface* first, Surface* second,
+    bool DrawPartTextured(std::string_view name, DrawFlag flags, Surface* first, Surface* second,
                          std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                          float u, float v);
 

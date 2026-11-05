@@ -169,9 +169,9 @@ static int EllipsisWidth(TextFont& font) { return 3 * font.Advance(U'.') + 2 * f
 
 class LineMaker {
 public:
-    LineMaker(TextFont& newFont, std::u32string_view newText, unsigned newFormat)
-        : font(newFont), text(newText), format(newFormat), prefixes(!(newFormat & kNoPrefix)),
-          expandTabs((newFormat & kExpandTabs) != 0), tabLength(8 * newFont.Metrics().averageWidth) {}
+    LineMaker(TextFont& newFont, std::u32string_view newText, Format newFormat)
+        : font(newFont), text(newText), format(newFormat), prefixes(!(lib::Has(newFormat, Format::NoPrefix))),
+          expandTabs(lib::Has(newFormat, Format::ExpandTabs)), tabLength(8 * newFont.Metrics().averageWidth) {}
 
     // Calls visit(index, character, x) for each character drawn of [begin, end) from x = origin;
     // returns the pen position after the last one. `prefix(index, x, width)` gets each prefix
@@ -250,13 +250,13 @@ public:
     Line Next(int begin, int rectWidth) {
         const int size = static_cast<int>(text.size());
         Line line{begin, begin, begin, false};
-        if (format & kSingleLine) {    // the whole text, CR and LF as characters, no word breaks
+        if (lib::Has(format, Format::SingleLine)) {    // the whole text, CR and LF as characters, no word breaks
             line.end = line.next = size;
             return line;
         }
         int at = begin;
         bool wrapped = false;
-        if (format & kWordBreak) {
+        if (lib::Has(format, Format::WordBreak)) {
             while (at < size && !IsLineBreak(text[at])) {
                 const int wordEnd = WordEnd(at);
                 if (Width(begin, wordEnd) > rectWidth) {
@@ -272,8 +272,8 @@ public:
             while (at < size && !IsLineBreak(text[at])) ++at;
         }
         if (wrapped) {
-            if (!(format & kRight) && line.next < size && IsWhite(text[line.next])) ++line.next;
-            if ((format & (kRight | kCenter)) && line.end > line.begin && IsWhite(text[line.end - 1])) --line.end;
+            if (!(lib::Has(format, Format::Right)) && line.next < size && IsWhite(text[line.next])) ++line.next;
+            if (lib::Has(format, Format::Right | Format::Center) && line.end > line.begin && IsWhite(text[line.end - 1])) --line.end;
             return line;
         }
         line.end = line.next = at;
@@ -289,7 +289,7 @@ public:
 private:
     TextFont& font;
     std::u32string_view text;
-    unsigned format = 0;
+    Format format = {};
     bool prefixes = false, expandTabs = false;
     int tabLength = 0;
 };
@@ -421,20 +421,19 @@ std::u32string DecodeCp1251(const char* text, int count) {
 // DrawText-compatible layout rules (measured against user32's DrawTextA on Windows 10 with fixed-pitch fonts;
 // tools/text_check checks each): docs/notes/ui-native.md, "DrawText layout rules".
 
-bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned format, TextLayout& out) {
-    if (format & ~kSupportedFormats) return false;
+void Layout(TextFont& font, std::u32string_view text, const Rect& rect, Format format, TextLayout& out) {
     out = TextLayout{};
     out.rect = rect;
     out.clip = rect;
-    out.clipped = !(format & kNoClip);
-    const bool calc = (format & kCalcRect) != 0;
-    if (text.empty() && !(format & kSingleLine)) {   // (a single line is one line high, empty or not)
+    out.clipped = !(lib::Has(format, Format::NoClip));
+    const bool calc = lib::Has(format, Format::CalcRect);
+    if (text.empty() && !(lib::Has(format, Format::SingleLine))) {   // (a single line is one line high, empty or not)
         if (calc) {
             out.rect.right = rect.left;
             out.rect.bottom = rect.top;
         }
         out.result = 1;
-        return true;
+        return;
     }
 
     const FontMetrics& metrics = font.Metrics();
@@ -444,7 +443,7 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
     const int size = static_cast<int>(text.size());
     int y = rect.top;
     // One line centred in the rectangle's height: half the room left, rounded towards zero (also when negative).
-    if ((format & kSingleLine) && (format & kVCenter)) y = rect.top + (rect.Height() - metrics.height) / 2;
+    if ((lib::Has(format, Format::SingleLine)) && (lib::Has(format, Format::VCenter))) y = rect.top + (rect.Height() - metrics.height) / 2;
     int widest = 0;
     int at = 0;
     for (;;) {
@@ -455,7 +454,7 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
         // drawing has: DrawText draws the shortened text whole).
         bool ellipsis = false;
         int dotsKerning = 0;
-        if ((format & kEndEllipsis) && width > rectWidth) {
+        if ((lib::Has(format, Format::EndEllipsis)) && width > rectWidth) {
             const int dots = EllipsisWidth(font);
             while (line.end > line.begin && maker.Width(line.begin, line.end) + dots > rectWidth) --line.end;
             if (line.end > line.begin) dotsKerning = font.Kerning(text[line.end - 1], U'.');
@@ -464,8 +463,8 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
         }
         widest = std::max(widest, width);
         int x = rect.left;
-        if (format & kRight) x = rect.right - width;
-        else if (format & kCenter) x = rect.left + ((rectWidth - width) >> 1);   // rounds down, also when the line is wider
+        if (lib::Has(format, Format::Right)) x = rect.right - width;
+        else if (lib::Has(format, Format::Center)) x = rect.left + ((rectWidth - width) >> 1);   // rounds down, also when the line is wider
         out.lines.push_back({line.begin, line.end, x, y, width});
         if (!calc) {
             bool underlined = false, underlinedTab = false;
@@ -523,13 +522,12 @@ bool Layout(TextFont& font, std::u32string_view text, const Rect& rect, unsigned
         out.rect.right = rect.left + widest;
         out.rect.bottom = y;
         // A word wider than the rectangle widens it, and DT_CALCRECT wraps the text again at that width.
-        if ((format & kWordBreak) && widest > rectWidth) {
+        if ((lib::Has(format, Format::WordBreak)) && widest > rectWidth) {
             Rect wider = rect;
             wider.right = rect.left + widest;
-            return Layout(font, text, wider, format, out);
+            Layout(font, text, wider, format, out);
         }
     }
-    return true;
 }
 
 Size TextExtent(TextFont& font, std::u32string_view text) {

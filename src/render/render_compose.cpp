@@ -130,7 +130,7 @@ static gpu::Texture CloudFrameImage(const CloudFrame& frame) {
     CloudFrameTexture f;
     f.frame = frame;
     f.used = g_compositions;
-    f.image = gpu::MakeTexture({kCloudSize, kCloudSize, 1, 1, gpu::Format::R8, gpu::kColourTarget | gpu::kSampled, "ei-cloud-frame"});
+    f.image = gpu::MakeTexture({kCloudSize, kCloudSize, 1, 1, gpu::Format::R8, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-cloud-frame"});
     gpu::PassDesc pass;
     pass.colour.texture = f.image;
     pass.colour.load = gpu::Load::DontCare;
@@ -155,9 +155,9 @@ static gpu::Texture CloudFrameImage(const CloudFrame& frame) {
 // A texture of the image's pixels for one composition.
 static gpu::Texture MakeStepTexture(const ComposeImage& image) {
     if (image.width <= 0 || image.height <= 0) return gpu::Texture{};
-    gpu::Texture t = gpu::MakeTexture({image.width, image.height, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-texture-compose-image"});
+    gpu::Texture t = gpu::MakeTexture({image.width, image.height, 1, 1, gpu::Format::Rgba8, gpu::TextureUse::Sampled, "ei-texture-compose-image"});
     if (t) gpu::Write(t, 0, {0, 0, image.width, image.height}, image.rgba.data(), static_cast<std::size_t>(image.width) * 4);
-    CountUpload(FrameStats::Mmp, image.rgba.size());
+    CountUpload(FrameStats::Upload::Mmp, image.rgba.size());
     return t;
 }
 
@@ -192,7 +192,7 @@ static void DrawLevels(const ComposeShape& shape, const gpu::Texture& target) {
     const int width = std::max(shape.width / 2, 1), height = std::max(shape.height / 2, 1);
     if (scratch.width != width || scratch.height != height || scratch.levels != shape.levels - 1) {
         gpu::Release(scratch);
-        scratch = gpu::MakeTexture({width, height, shape.levels - 1, 1, gpu::Format::Rgba8, gpu::kColourTarget | gpu::kSampled,
+        scratch = gpu::MakeTexture({width, height, shape.levels - 1, 1, gpu::Format::Rgba8, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled,
                                     "ei-texture-levels"});
         if (!scratch) return;
     }
@@ -272,7 +272,7 @@ gpu::Texture MakeComposed(const ComposeShape& shape, const ComposeStep* steps, s
     if (!EnsurePipelines() || shape.width <= 0 || shape.height <= 0 || shape.levels < 1 || shape.firstLevel >= shape.levels)
         return gpu::Texture{};
     gpu::Texture image = gpu::MakeTexture({shape.width, shape.height, shape.levels, 1, gpu::Format::Rgba8,
-                                           gpu::kColourTarget | gpu::kSampled, "ei-composed-texture"});
+                                           gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-composed-texture"});
     if (!image) {
         LogFirst(g_failures, 10, "render: a %dx%d composed texture could not be made", shape.width, shape.height);
         return gpu::Texture{};
@@ -282,7 +282,7 @@ gpu::Texture MakeComposed(const ComposeShape& shape, const ComposeStep* steps, s
     // Shown from a level below the first: those levels copied out of the full-size image (there are no views).
     const int w = std::max(shape.width >> shape.firstLevel, 1), h = std::max(shape.height >> shape.firstLevel, 1);
     gpu::Texture shown = gpu::MakeTexture(
-        {w, h, shape.levels - shape.firstLevel, 1, gpu::Format::Rgba8, gpu::kColourTarget | gpu::kSampled, "ei-composed-texture"});
+        {w, h, shape.levels - shape.firstLevel, 1, gpu::Format::Rgba8, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-composed-texture"});
     for (int level = shape.firstLevel; shown && level < shape.levels; ++level)
         gpu::Copy(image, level, {0, 0, std::max(shape.width >> level, 1), std::max(shape.height >> level, 1)}, shown,
                   level - shape.firstLevel, 0, 0);
@@ -297,7 +297,7 @@ void DrawComposed(const ComposeShape& shape, const gpu::Texture& image, const Co
 
 bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height, std::vector<std::uint8_t>* rgba) {
     if (!image || width <= 0 || height <= 0 || !EnsurePipelines()) return false;
-    gpu::Texture target = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget, "ei-texture-level-read"});
+    gpu::Texture target = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::TextureUse::ColourTarget, "ei-texture-level-read"});
     bool read = false;
     if (target) {
         DrawLevel(image, level, gpu::NearestClampSampler(), target, 0, width, height);

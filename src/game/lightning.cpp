@@ -529,8 +529,8 @@ int Lightning::Draw(SceneRenderer* device) {
     EnsureTextureLoaded(texture);
     SceneRenderer* renderer = device;
     if (!renderer->SetTexture(0, texture)) return 0;
-    int visibility = renderer->pipeline->ClipTest(&bounds);
-    if (visibility == 2) return 1;
+    const TransformPipeline::ClipResult visibility = renderer->pipeline->ClipTest(&bounds);
+    if (visibility == TransformPipeline::ClipResult::Outside) return 1;
     const float zero = 0.0f;
     if (power >= zero) Animate();
     const float slant = 0.25f;

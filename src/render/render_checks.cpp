@@ -50,7 +50,7 @@ void Timer::Begin() {
 void Timer::Begin(FrameStats::Time newKind) {
     if constexpr (kRenderValidation) {
         if (start) return;
-        kind = newKind;
+        kind = static_cast<int>(newKind);
         outer = g_timedKind;
         g_timedKind = kind;
         start = Ticks();
@@ -71,26 +71,26 @@ double Timer::End() {
 }
 
 void CountPipeline(gpu::Pipeline pipeline) {
-    ++g_stats.counts[FrameStats::PipelineApplies];
-    if (pipeline.pipeline != g_lastPipeline) ++g_stats.counts[FrameStats::PipelineChanges];
+    ++g_stats.counts[FrameStats::Count::PipelineApplies];
+    if (pipeline.pipeline != g_lastPipeline) ++g_stats.counts[FrameStats::Count::PipelineChanges];
     g_lastPipeline = pipeline.pipeline;
 }
 
 void CountBindings(const gpu::Texture& first) {
-    ++g_stats.counts[FrameStats::Bindings];
-    if (first.texture != g_lastTexture) ++g_stats.counts[FrameStats::TextureChanges];
+    ++g_stats.counts[FrameStats::Count::Bindings];
+    if (first.texture != g_lastTexture) ++g_stats.counts[FrameStats::Count::TextureChanges];
     g_lastTexture = first.texture;
 }
 
 void CountDraw(std::size_t uniformBytes) {
-    ++g_stats.counts[FrameStats::Draws];
-    g_stats.counts[FrameStats::UniformBytes] += uniformBytes;
+    ++g_stats.counts[FrameStats::Count::Draws];
+    g_stats.counts[FrameStats::Count::UniformBytes] += uniformBytes;
 }
 
 void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key, [[maybe_unused]] int page,
                 [[maybe_unused]] const Vertex* vertices, [[maybe_unused]] std::size_t count) {
 #if defined(EI_RENDER_VALIDATION)
-    Timer timer(FrameStats::StatsMs);
+    Timer timer(FrameStats::Time::StatsMs);
     VertexHashes h{0xCBF29CE484222325ull, 0xCBF29CE484222325ull};
     for (std::size_t i = 0; i < count; ++i) {
         const Vertex& v = vertices[i];
@@ -101,14 +101,14 @@ void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key,
     std::uint64_t id = (static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(key)) << 8) ^
                        static_cast<std::uint64_t>(page) ^ (terrain ? 1ull << 63 : 0);
     auto last = g_lastHashes.find(id);
-    FrameStats::Reuse r = last == g_lastHashes.end()            ? FrameStats::New
-                          : last->second.geometry != h.geometry ? FrameStats::Moved
-                          : last->second.colours != h.colours   ? FrameStats::Relit
-                                                                : FrameStats::Same;
+    FrameStats::Reuse r = last == g_lastHashes.end()            ? FrameStats::Reuse::New
+                          : last->second.geometry != h.geometry ? FrameStats::Reuse::Moved
+                          : last->second.colours != h.colours   ? FrameStats::Reuse::Relit
+                                                                : FrameStats::Reuse::Same;
     auto& reuse = terrain ? g_stats.terrainReuse : g_stats.meshReuse;
     ++reuse[r];
     g_hashes[id] = h;
-    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.counts[FrameStats::SharedMeshes];
+    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.counts[FrameStats::Count::SharedMeshes];
 #endif
 }
 
@@ -124,7 +124,7 @@ FrameStats TakeFrameStats() {
 }
 
 void AddFrameStats(std::size_t matrices, int width, int height) {
-    g_stats.counts[FrameStats::Matrices] = matrices;
+    g_stats.counts[FrameStats::Count::Matrices] = matrices;
     if (width > 0) {
         g_statsSum.width = width;
         g_statsSum.height = height;
@@ -132,13 +132,13 @@ void AddFrameStats(std::size_t matrices, int width, int height) {
     FrameStats& s = g_statsSum;
     const FrameStats& f = g_stats;
     s.frames += 1;
-    for (int k = 0; k < FrameStats::CountKinds; ++k) s.counts[k] += f.counts[k];
-    for (int k = 0; k < FrameStats::TimeKinds; ++k) s.ms[k] += f.ms[k];
-    for (int k = 0; k < FrameStats::UploadKinds; ++k) {
+    for (std::size_t k = 0; k < s.counts.size(); ++k) s.counts[k] += f.counts[k];
+    for (std::size_t k = 0; k < s.ms.size(); ++k) s.ms[k] += f.ms[k];
+    for (std::size_t k = 0; k < s.uploads.size(); ++k) {
         s.uploads[k] += f.uploads[k];
         s.uploadBytes[k] += f.uploadBytes[k];
     }
-    for (int k = 0; k < FrameStats::ReuseKinds; ++k) {
+    for (std::size_t k = 0; k < s.terrainReuse.size(); ++k) {
         s.terrainReuse[k] += f.terrainReuse[k];
         s.meshReuse[k] += f.meshReuse[k];
     }
@@ -151,36 +151,36 @@ void AddFrameStats(std::size_t matrices, int width, int height) {
 #endif
 }
 
-void BeginDeviceMeshTime() { g_deviceMeshTimer.Begin(FrameStats::DeviceMeshMs); }
+void BeginDeviceMeshTime() { g_deviceMeshTimer.Begin(FrameStats::Time::DeviceMeshMs); }
 
 void EndDeviceMeshTime() { g_deviceMeshTimer.End(); }
 
 void BeginDecalTime() {
     if (g_decalTimer.Running()) return;
-    g_decalTimer.Begin(FrameStats::DecalPrintMs);
-    if (g_decalTimer.Running()) ++g_stats.counts[FrameStats::DecalPrints];
+    g_decalTimer.Begin(FrameStats::Time::DecalPrintMs);
+    if (g_decalTimer.Running()) ++g_stats.counts[FrameStats::Count::DecalPrints];
 }
 
 void EndDecalTime(int vertices) {
     if (!g_decalTimer.Running()) return;
     g_decalTimer.End();
-    g_stats.counts[FrameStats::DecalVertices] += static_cast<std::uint64_t>(vertices);
+    g_stats.counts[FrameStats::Count::DecalVertices] += static_cast<std::uint64_t>(vertices);
 }
 
 void BeginFlatDrawTime(int vertices) {
     if (g_flatDrawTimer.Running()) return;
-    g_flatDrawTimer.Begin(FrameStats::FlatMs);
+    g_flatDrawTimer.Begin(FrameStats::Time::FlatMs);
     if (!g_flatDrawTimer.Running()) return;
-    ++g_stats.counts[FrameStats::FlatDraws];
-    g_stats.counts[FrameStats::FlatDrawVertices] += static_cast<std::uint64_t>(vertices);
+    ++g_stats.counts[FrameStats::Count::FlatDraws];
+    g_stats.counts[FrameStats::Count::FlatDrawVertices] += static_cast<std::uint64_t>(vertices);
 }
 
 void EndFlatDrawTime() { g_flatDrawTimer.End(); }
 
 void BeginShadowBuildTime() {
     if (g_shadowBuildTimer.Running()) return;
-    g_shadowBuildTimer.Begin(FrameStats::ShadowBuildMs);
-    if (g_shadowBuildTimer.Running()) ++g_stats.counts[FrameStats::ShadowBuilds];
+    g_shadowBuildTimer.Begin(FrameStats::Time::ShadowBuildMs);
+    if (g_shadowBuildTimer.Running()) ++g_stats.counts[FrameStats::Count::ShadowBuilds];
 }
 
 void EndShadowBuildTime() { g_shadowBuildTimer.End(); }
@@ -283,6 +283,6 @@ MmpLevelCheck CheckMmpLevels() {
     return c;
 }
 
-std::uint64_t perf::FrameDrawCount() { return g_stats.counts[FrameStats::Draws] + g_stats.counts[FrameStats::ShadowDraws]; }
+std::uint64_t perf::FrameDrawCount() { return g_stats.counts[FrameStats::Count::Draws] + g_stats.counts[FrameStats::Count::ShadowDraws]; }
 
 } // namespace render

@@ -426,9 +426,9 @@ void UnitStats::ResetToBase(float newLoad) {
     float bonus = 0.0f;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         float level = record->Value();
-        if (level != 0.0f) bonus = level * perception[kSenseDaySight].current * kPercent;
+        if (level != 0.0f) bonus = level * perception[Sense::DaySight].current * kPercent;
     }
-    perception[kSenseDaySight].current = bonus + perception[kSenseDaySight].current;
+    perception[Sense::DaySight].current = bonus + perception[Sense::DaySight].current;
     strength = LevelOrZero(this, kSkillStat10) + strength;
     dexterity = LevelOrZero(this, kSkillStat18) + dexterity;
     sightCone = kMinusTwo;

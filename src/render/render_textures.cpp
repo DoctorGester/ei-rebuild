@@ -45,7 +45,7 @@ static gpu::Texture MakeImage(gpu::Format format, int width, int height, std::ve
     std::size_t bytes = 0;
     for (const std::vector<std::uint8_t>& level : levels) bytes += level.size();
     CountUpload(kind, bytes);
-    gpu::Texture t = gpu::MakeTexture({width, height, static_cast<int>(levels.size()), 1, format, gpu::kSampled, label});
+    gpu::Texture t = gpu::MakeTexture({width, height, static_cast<int>(levels.size()), 1, format, gpu::TextureUse::Sampled, label});
     bool written = static_cast<bool>(t);
     for (std::size_t i = 0; written && i < levels.size(); ++i) {
         const int w = std::max(width >> i, 1), h = std::max(height >> i, 1);
@@ -60,7 +60,7 @@ static gpu::Texture MakeImage(gpu::Format format, int width, int height, std::ve
 
 static const Texture& White() {
     if (!g_white.image)
-        g_white.image = MakeImage(gpu::Format::Rgba8, 1, 1, {std::vector<std::uint8_t>(4, 255)}, "ei-white", FrameStats::Small);
+        g_white.image = MakeImage(gpu::Format::Rgba8, 1, 1, {std::vector<std::uint8_t>(4, 255)}, "ei-white", FrameStats::Upload::Small);
     return g_white;
 }
 
@@ -106,7 +106,8 @@ static std::uint32_t MmpFileLevelBytes(const MmpHeader& h, unsigned mip) {
 
 // The block-compressed format an .mmp "DXTn" file's blocks are uploaded in (DXT2 / DXT4, the premultiplied
 // variants, as DXT3 / DXT5); None for the RGB formats.
-static gpu::Format BlockFormat(std::uint32_t format) {
+static gpu::Format BlockFormat(MmpFormat id) {
+    const auto format = static_cast<std::uint32_t>(id);
     if ((format & 0xFFFFFF) != 0x545844) return gpu::Format::None;   // "DXT"
     switch (static_cast<char>(format >> 24)) {
     case '1': return gpu::Format::Bc1;
@@ -227,7 +228,7 @@ static gpu::Wrap ToGpu(Address address) {
 static gpu::Filter ToGpu(Filter filter) { return filter == Filter::Point ? gpu::Filter::Nearest : gpu::Filter::Linear; }
 
 const gpu::Texture& SurfaceView(const Surface* holder) {
-    Timer timer(FrameStats::TextureMs);
+    Timer timer(FrameStats::Time::TextureMs);
     auto decoded = holder ? g_textures.find(holder) : g_textures.end();
     if (decoded == g_textures.end() || !decoded->second.image) return White().image;
     return decoded->second.image;
@@ -242,7 +243,7 @@ bool StoreMmp(const Surface* holder, MmpLevels read, std::uint32_t format) {
     t.mmpFormat = format;
     t.levels = static_cast<int>(read.levels.size());
     t.image =
-        MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-mmp-texture", FrameStats::Mmp);
+        MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-mmp-texture", FrameStats::Upload::Mmp);
     t.width = read.width;
     t.height = read.height;
     return static_cast<bool>(t.image);
@@ -308,7 +309,7 @@ bool TextureFromMmpData(const Surface* holder, const MmpFile& file, unsigned mip
                  static_cast<unsigned>(h.bitsPerPixel));
         return false;
     }
-    return StoreMmp(holder, std::move(read), h.format);
+    return StoreMmp(holder, std::move(read), static_cast<std::uint32_t>(h.format));
 }
 
 bool PictureFromMmpData(const Surface* holder, const MmpFile& file) {
@@ -381,14 +382,14 @@ void ForgetHolder(const Surface* holder) {
 bool TextureFromMmp(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels) {
     if (!holder || !file.data) return false;
     Start();
-    Timer timer(FrameStats::TextureMs);
+    Timer timer(FrameStats::Time::TextureMs);
     return TextureFromMmpData(holder, file, mip, levels);
 }
 
 bool ComposeTexture(const Surface* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count) {
     if (!holder || size <= 0 || size > 4096) return false;
     Start();
-    Timer timer(FrameStats::TextureMs);
+    Timer timer(FrameStats::Time::TextureMs);
     ComposeShape shape;
     shape.width = shape.height = size;
     shape.firstLevel = static_cast<int>(mip);
@@ -415,7 +416,7 @@ bool ComposeTexture(const Surface* holder, int size, unsigned mip, unsigned leve
 bool BlankTexture(const Surface* holder, int width, int height, BlankAlpha alpha, bool mipmapped) {
     if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
     Start();
-    Timer timer(FrameStats::TextureMs);
+    Timer timer(FrameStats::Time::TextureMs);
     ComposeShape shape;
     shape.width = width;
     shape.height = height;
@@ -426,7 +427,7 @@ bool BlankTexture(const Surface* holder, int width, int height, BlankAlpha alpha
 
 void DrawIntoTexture(const Surface* holder, const TextureImage* image, int x, int y, int width, int height) {
     Start();
-    Timer timer(FrameStats::TextureMs);
+    Timer timer(FrameStats::Time::TextureMs);
     ComposeImage decoded;
     ComposeStep step;
     step.over = false;
@@ -440,7 +441,7 @@ void DrawIntoTexture(const Surface* holder, const TextureImage* image, int x, in
 
 void DrawClouds(const Surface* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
     Start();
-    Timer timer(FrameStats::TextureMs);
+    Timer timer(FrameStats::Time::TextureMs);
     CloudsDraw clouds;
     clouds.from = from;
     clouds.to = to;

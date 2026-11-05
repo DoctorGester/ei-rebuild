@@ -57,7 +57,7 @@ Script::~Script() { Reset(); }
 
 ScriptErrorInfo* Script::GetError(ScriptErrorInfo* out) {
     out->text = errorText;
-    out->code = errorCode;
+    out->code = static_cast<int>(errorCode);
     out->line = errorLine;
     return out;
 }

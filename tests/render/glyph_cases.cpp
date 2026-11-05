@@ -31,8 +31,8 @@ void NewFrame(int width, int height) {
     g_targetWidth = width;
     g_targetHeight = height;
     g_target = gpu::MakeTexture(
-        {width, height, 1, 1, render::kColourFormat, gpu::kColourTarget | gpu::kSampled, "ui-check-target"});
-    g_targetDepth = gpu::MakeTexture({width, height, 1, 1, render::kDepthFormat, gpu::kDepthTarget, "ui-check-depth"});
+        {width, height, 1, 1, render::kColourFormat, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ui-check-target"});
+    g_targetDepth = gpu::MakeTexture({width, height, 1, 1, render::kDepthFormat, gpu::TextureUse::DepthTarget, "ui-check-depth"});
 }
 
 void DrawFrame() {
@@ -47,9 +47,9 @@ void DrawFrame() {
     for (std::size_t k = g_drawnCommands; k < render::g_frame.commands.size(); ++k) {
         const render::Command& c = render::g_frame.commands[k];
         const auto i = static_cast<std::size_t>(c.index);
-        if (c.kind == render::Command::Ui)
+        if (c.kind == render::Command::Kind::Ui)
             render::DrawUiBatch(render::g_frame.uiBatches[i], g_targetWidth, g_targetHeight);
-        if (c.kind == render::Command::Picture)
+        if (c.kind == render::Command::Kind::Picture)
             render::DrawPictureBatch(render::g_frame.pictureBatches[i], g_targetWidth, g_targetHeight);
     }
     gpu::EndPass();
@@ -159,30 +159,31 @@ void Run(CheckFn check) {
     const Rect all{0, 0, w, h};
     struct Case {
         const char* text;
-        unsigned format;
+        text::Format format;
         Rect rect;
         bool smoothing;
         int pixels;
     };
     const Case cases[] = {
-        {"Hello, &world: AV Wa fi", 0, {4, 4, 176, 40}, true, 16},
+        {"Hello, &world: AV Wa fi", text::Format::Left, {4, 4, 176, 40}, true, 16},
         {"\xCF\xF0\xE8\xE2\xE5\xF2, \xEC\xE8\xF0! \xD1\xEB\xEE\xE2\xE0 \xED\xE0 \xED\xE5\xF1\xEA\xEE\xEB\xFC\xEA\xEE "
          "\xF1\xF2\xF0\xEE\xEA",
-         text::kWordBreak | text::kCenter,
+         text::Format::WordBreak | text::Format::Center,
          {10, 2, 120, 70},
          true,
          19},
-        {"Clipped text that runs past the right edge of its rectangle", text::kNoPrefix, {-6, 30, 90, 44}, true, 13},
-        {"Right &aligned\r\nsecond line", text::kRight, {0, 20, 175, 71}, false, 16},
+        {"Clipped text that runs past the right edge of its rectangle", text::Format::NoPrefix, {-6, 30, 90, 44}, true, 13},
+        {"Right &aligned\r\nsecond line", text::Format::Right, {0, 20, 175, 71}, false, 16},
     };
     int caseIndex = 0;
     for (const Case& c : cases) {
         text::TextFont* font = text::GetTextFont("Times New Roman", c.pixels, c.smoothing);
         text::TextLayout layout;
-        if (!font || !text::Layout(*font, text::DecodeCp1251(c.text), c.rect, c.format, layout)) {
-            check(false, "font and layout of case " + std::to_string(caseIndex));
+        if (!font) {
+            check(false, "font of case " + std::to_string(caseIndex));
             continue;
         }
+        text::Layout(*font, text::DecodeCp1251(c.text), c.rect, c.format, layout);
         NewFrame(w, h);
         // A background of fills (the text blends over it), the shadow one pixel right and down, then the text,
         // drawn at an origin inside the frame and clipped to a part of it.
@@ -225,7 +226,7 @@ void Run(CheckFn check) {
     int runs = 0;
     for (int i = 0; i < 13; ++i) {
         text::TextLayout layout;
-        if (!text::Layout(*font, text::DecodeCp1251(line), Rect{2, 2 + i * 26, bw - 2, 2 + i * 26 + 24}, text::kNoPrefix, layout)) continue;
+        text::Layout(*font, text::DecodeCp1251(line), Rect{2, 2 + i * 26, bw - 2, 2 + i * 26 + 24}, text::Format::NoPrefix, layout);
         ui::Glyphs(*font, layout, {0, 0}, Colourref(220, 230, 140 + i * 8), Rect{0, 0, bw, bh});
         RefGlyphs(expected, blends, bw, Rect{0, 0, bw, bh}, *font, layout, {0, 0}, Colourref(220, 230, 140 + i * 8));
         ++runs;

@@ -167,12 +167,12 @@ static void DestroyTarget() {
 // The multisampled colour, depth and depth copy of `samples` and the copy's resolve; false when the device
 // refused them.
 static bool MakeMultisampled(int width, int height, int samples) {
-    g_multiColour = gpu::MakeTexture({width, height, 1, samples, kColourFormat, gpu::kColourTarget, "ei-frame-colour-multisampled"});
+    g_multiColour = gpu::MakeTexture({width, height, 1, samples, kColourFormat, gpu::TextureUse::ColourTarget, "ei-frame-colour-multisampled"});
     g_multiDepthCopy =
-        gpu::MakeTexture({width, height, 1, samples, kDepthCopyFormat, gpu::kColourTarget, "ei-frame-depth-copy-multisampled"});
+        gpu::MakeTexture({width, height, 1, samples, kDepthCopyFormat, gpu::TextureUse::ColourTarget, "ei-frame-depth-copy-multisampled"});
     g_resolvedDepth =
-        gpu::MakeTexture({width, height, 1, 1, kDepthCopyFormat, gpu::kColourTarget | gpu::kSampled, "ei-frame-depth-copy"});
-    g_multiDepth = gpu::MakeTexture({width, height, 1, samples, kDepthFormat, gpu::kDepthTarget, "ei-frame-depth-multisampled"});
+        gpu::MakeTexture({width, height, 1, 1, kDepthCopyFormat, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-frame-depth-copy"});
+    g_multiDepth = gpu::MakeTexture({width, height, 1, samples, kDepthFormat, gpu::TextureUse::DepthTarget, "ei-frame-depth-multisampled"});
     const bool ok = g_multiColour && g_multiDepthCopy && g_resolvedDepth && g_multiDepth && PrepareSmoothCopies(samples);
     if (!ok) {
         DestroyMultisampled();
@@ -189,8 +189,8 @@ static bool EnsureTarget(int width, int height, bool mayChange) {
     const int samples = g_deviceSamples > 1 ? SamplesFor(g_msaa, gpu::SupportsSamples) : 1;
     if (width == g_width && height == g_height && g_colour && (samples == g_targetSamples || !mayChange)) return true;
     DestroyTarget();
-    g_colour = gpu::MakeTexture({width, height, 1, 1, kColourFormat, gpu::kColourTarget | gpu::kSampled, "ei-frame-colour"});
-    g_depth = gpu::MakeTexture({width, height, 1, 1, kDepthFormat, gpu::kDepthTarget | gpu::kSampled, "ei-frame-depth"});
+    g_colour = gpu::MakeTexture({width, height, 1, 1, kColourFormat, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-frame-colour"});
+    g_depth = gpu::MakeTexture({width, height, 1, 1, kDepthFormat, gpu::TextureUse::DepthTarget | gpu::TextureUse::Sampled, "ei-frame-depth"});
     if (!g_colour || !g_depth) {
         ei::Log("render: cannot create the %dx%d frame target", width, height);
         DestroyTarget();
@@ -262,7 +262,7 @@ static void BeginFramePass() {
     pass.depth.clear = 1.0f;
     pass.label = "ei-frame";
     if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
-    ++g_stats.counts[FrameStats::Passes];
+    ++g_stats.counts[FrameStats::Count::Passes];
     g_passSamples = 1;
     if (afterWorld) {
         CopyDepthFromResolved(g_resolvedDepth);
@@ -286,7 +286,7 @@ static void BeginMultisampledPass() {
         copy.depth.load = gpu::Load::DontCare;
         copy.label = "ei-frame-into-multisampled";
         if (!gpu::BeginPass(copy)) Fatal("The renderer cannot draw the frame.");
-        ++g_stats.counts[FrameStats::Passes];
+        ++g_stats.counts[FrameStats::Count::Passes];
         g_passSamples = g_targetSamples;
         CopyIntoMultisampled(g_colour, g_depth);
         gpu::EndPass();
@@ -306,7 +306,7 @@ static void BeginMultisampledPass() {
     pass.depth.clear = 1.0f;
     pass.label = "ei-frame-multisampled";
     if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
-    ++g_stats.counts[FrameStats::Passes];
+    ++g_stats.counts[FrameStats::Count::Passes];
     g_passSamples = g_targetSamples;
     g_holder = Holder::Multisampled;
     ++g_counts.multisampledPasses;
@@ -323,8 +323,8 @@ static void EmptyFramePass() {
 // The performance overlay's pass of command `k` (render_perf.h).
 static perf::Pass OverlayPass(const Command& c, std::size_t k) {
     if (!InWorld(k)) return perf::Pass::Ui;
-    if (c.kind == Command::Terrain) return perf::Pass::Terrain;
-    if (c.kind == Command::Mesh) {
+    if (c.kind == Command::Kind::Terrain) return perf::Pass::Terrain;
+    if (c.kind == Command::Kind::Mesh) {
         const MeshBatch& b = g_frame.meshBatches[static_cast<std::size_t>(c.index)];
         if (b.model && !b.flat && b.caster) return perf::Pass::Objects;
     }
@@ -337,8 +337,8 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
         auto i = static_cast<std::size_t>(c.index);
         if (perf::On()) perf::Enter(OverlayPass(c, k));
         switch (c.kind) {
-        case Command::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
-        case Command::Mesh: {
+        case Command::Kind::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
+        case Command::Kind::Mesh: {
             const MeshBatch& batch = g_frame.meshBatches[i];
             // The render quality's anisotropy: the world's models sampled anisotropically at its level; the
             // interface's sprites and previews and the pre-transformed draws as the stage says.
@@ -350,13 +350,13 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
             DrawMeshBatch(g_frame, batch, anisotropy);
             break;
         }
-        case Command::Blit:
+        case Command::Kind::Blit:
             DrawBlitBatch(g_frame.blitBatches[i], width, height);
             break;
-        case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
-        case Command::Fill: DrawFill(g_frame.fills[i], width, height); break;
-        case Command::Ui: DrawUiBatch(g_frame.uiBatches[i], width, height); break;
-        case Command::Picture: DrawPictureBatch(g_frame.pictureBatches[i], width, height); break;
+        case Command::Kind::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
+        case Command::Kind::Fill: DrawFill(g_frame.fills[i], width, height); break;
+        case Command::Kind::Ui: DrawUiBatch(g_frame.uiBatches[i], width, height); break;
+        case Command::Kind::Picture: DrawPictureBatch(g_frame.pictureBatches[i], width, height); break;
         }
     }
 }
@@ -367,7 +367,7 @@ static std::size_t FirstWater(std::size_t k, std::size_t end) {
     if (WaterCopyTaken()) return SIZE_MAX;
     for (; k < end; ++k) {
         const Command& c = g_frame.commands[k];
-        if (c.kind == Command::Terrain && g_frame.terrainBatches[static_cast<std::size_t>(c.index)].water) return k;
+        if (c.kind == Command::Kind::Terrain && g_frame.terrainBatches[static_cast<std::size_t>(c.index)].water) return k;
     }
     return SIZE_MAX;
 }
@@ -580,15 +580,15 @@ void EndWorld() {
 }
 
 void ClearDepth(float z, const Rect* rects, int count) {
-    g_stats.counts[FrameStats::DepthClears] += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
+    g_stats.counts[FrameStats::Count::DepthClears] += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
     if (!rects) {
         g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
-        g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
+        g_frame.commands.push_back(Command{Command::Kind::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
         return;
     }
     for (int i = 0; i < count; ++i) {
         g_frame.clears.push_back(ClearBatch{z, rects[i]});
-        g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
+        g_frame.commands.push_back(Command{Command::Kind::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
     }
 }
 
@@ -606,7 +606,7 @@ void EndFrame() {
     if (g_frameDrawn) return;
     Start();
     g_frameDrawn = true;
-    Timer timer(FrameStats::EndFrameMs);
+    Timer timer(FrameStats::Time::EndFrameMs);
     Timer submitTime;
     submitTime.Begin();
     // Onto the game window through the swap chain.

@@ -5,6 +5,7 @@
 
 #include "ui_font.h"
 #include "platform/platform.h"
+#include "lib/bit_flags.h"
 #include "lib/str.h"
 #include "lib/rect.h"
 
@@ -23,17 +24,18 @@ namespace platform { class File; }
 namespace console {
 
 // The message categories: one bit each, shown when the "filter" command has it on. The console itself (0) is always
-// shown; kLogAll is every category's bit.
-enum LogCategory : unsigned {
-    kLogConsole = 0,
-    kLogAi = 1,
-    kLogEvent = 2,
-    kLogGraphics = 4,
-    kLogRpg = 8,
-    kLogUnitAcks = 0x10,
-    kLogNet = 0x20,
-    kLogAll = 0xFFFFFFFF,
+// shown; LogCategory::All is every category's bit.
+enum class LogCategory : unsigned {
+    Console = 0,
+    Ai = 1,
+    Event = 2,
+    Graphics = 4,
+    Rpg = 8,
+    UnitAcks = 0x10,
+    Net = 0x20,
+    All = 0xFFFFFFFF,
 };
+constexpr bool EnableBitFlags(LogCategory) { return true; }
 
 // The console's streambuf (eight static instances, one per message category). Characters collect in the put
 // area (buffer) and move into line on overflow; sync hands the line to the console window.
@@ -55,7 +57,7 @@ private:
     // Moves the put area (and `c`, unless EOF) into the line when this streambuf's category is shown.
     void Overflow(int c);
 
-    LogCategory category = {};  // kLogConsole: always shown
+    LogCategory category = {};  // LogCategory::Console: always shown
     std::string line;
     std::size_t putEnd = 0;    // the put area's size: 0 until the first overflow while shown
     std::size_t putNext = 0;   // characters in the put area
@@ -103,7 +105,7 @@ void PrintLine(const char* text);
 extern void (*g_consoleLineObserver)(const char* line);
 
 // The message categories shown (bit per filter, "filter" command).
-inline unsigned g_filterMask = /*007C7B68*/ {};
+inline LogCategory g_filterMask = /*007C7B68*/ {};
 // Set by the cheat word; unlocks the second command map and the script lines.
 inline bool g_cheatEnabled = /*007C7B64*/ {};
 

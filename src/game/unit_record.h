@@ -7,8 +7,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-
 #include <vector>
+
+#include "lib/enum_array.h"
 
 class Unit;
 
@@ -61,12 +62,13 @@ public:
     // Applies the record to `unit`.
     void ApplyTo(Unit* unit);
 
+    // The item lists of the record, by name.
+    enum class List : int { Carried, QuickItems, Spells, Weapons, Armour };
+
     UnitRecordStats stats;          // +0x000 (chunk BBBB0004)
     // +0x0AC (chunks BBBB0005 ... BBBB0009) the item names: carried, quick items (worn; also CreateObject),
     // spells, weapons, armour.
-    std::vector<std::string> lists[5];
+    lib::EnumArray<std::vector<std::string>, List, 5> lists;
     std::uint32_t applyStats = 0;   // +0x110 (chunk BBBB000A, a byte) 0: only the items are applied
-
-    enum List { kCarried, kQuickItems, kSpells, kWeapons, kArmour };
 };
 } // namespace unitrecord

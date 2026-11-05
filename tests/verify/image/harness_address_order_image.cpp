@@ -13,7 +13,7 @@ bool BriefingPlayerList(void* briefing, PlayerList* list) {
     if (!client || !chat) return false;
     list->players = static_cast<int>(client->players.size());
     const RefObject* binding = client->binding;
-    list->bound = binding && !(binding->flags7 & RefObject::kDetached);
+    list->bound = binding && !lib::Has(binding->flags7, RefFlag::Detached);
     list->listed = chat->listed;
     return true;
 }

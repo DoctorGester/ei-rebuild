@@ -51,7 +51,7 @@ void Submit(TextureDevice* device, const Textures* textures) {
 // On screen or crossing the view's edges: draw flag 1's rectangle from the projected positions (screen positions,
 // or clip-space ones when the mesh crosses the edges), and the passes go to the device; the GPU clips the hand-over.
 void Draw(TextureDevice* device, const MeshArgs& args, const Textures* textures, bool crossing) {
-    if (args.flags & kDrawScreenRect) device->BoundsOfProjected(&g_projected, crossing);
+    if (lib::Has(args.flags, DrawFlag::ScreenRect)) device->BoundsOfProjected(&g_projected, crossing);
     Submit(device, textures);
 }
 
@@ -74,10 +74,10 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     // previews). Both stacks get the same pushes.
     m.screenMatrix = true;
     m.matrix = device->pipeline->Top(kScreenStack);
-    m.clipped = (args.flags & kDrawClipped) != 0;
+    m.clipped = lib::Has(args.flags, DrawFlag::Clipped);
     m.distanceFog = device->distanceFog != 0;
     m.zScale = 1.0f;
-    m.coloursWritten = (args.flags & kDrawColours) != 0;   // OverrideColours
+    m.coloursWritten = lib::Has(args.flags, DrawFlag::Colours);   // OverrideColours
     // A figure part lit on the GPU needs its normals.
     m.normals = args.normals;
     m.normalCount = args.colourCount * 4;
@@ -86,46 +86,42 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     render::BeginMesh(device, m);
 }
 
-// Returns the projection's verdict: kClipOutside nothing on screen, kClipCrossing crossing the edges, kClipInside on
-// screen (drawn: 1). Without kDrawClipped the mesh is projected with the screen stack and counts as on screen.
-int ProjectAndDraw(TextureDevice* device, const MeshArgs& args, const Textures* textures) {
+// Whether the mesh was drawn: not outside the view's edges. Without DrawFlag::Clipped the mesh is projected with the
+// screen stack and counts as on screen.
+bool ProjectAndDraw(TextureDevice* device, const MeshArgs& args, const Textures* textures) {
     const TransformPipeline* pipeline = device->pipeline;
     g_projected.resize(args.blocks * 4);
-    int visibility = TransformPipeline::kClipInside;
-    if (args.flags & kDrawClipped) {
+    TransformPipeline::ClipResult visibility = TransformPipeline::ClipResult::Inside;
+    if (lib::Has(args.flags, DrawFlag::Clipped)) {
         g_outcodes.resize(args.blocks * 4);
         visibility = pipeline->ProjectClipped(*pipeline->Top(kClipStack), args.positions, g_projected.data(),
                                               g_outcodes.data(), args.blocks);
     } else {
         TransformPipeline::Project(*pipeline->Top(kScreenStack), args.positions, g_projected.data(), args.blocks);
     }
-    if (visibility == TransformPipeline::kClipOutside) return TransformPipeline::kClipOutside;
-    if (args.flags & kDrawColours) OverrideColours(device, args);
+    if (visibility == TransformPipeline::ClipResult::Outside) return false;
+    if (lib::Has(args.flags, DrawFlag::Colours)) OverrideColours(device, args);
     // The new renderer (src/render) takes the mesh in model space with the matrix it was projected
     // with; each pass the old path draws below hands over the device's state.
     HandOver(device, args);
-    int result = visibility;
-    if (visibility == TransformPipeline::kClipInside || visibility == TransformPipeline::kClipCrossing) {
-        Draw(device, args, textures, visibility == TransformPipeline::kClipCrossing);
-        result = 1;
-    }
+    Draw(device, args, textures, visibility == TransformPipeline::ClipResult::Crossing);
     render::EndMesh();
-    return result;
+    return true;
 }
 
 // The harness build's renderstats time the draw ("device mesh draws").
-int DrawMesh(TextureDevice* device, const MeshArgs& args, const Textures* textures) {
+bool DrawMesh(TextureDevice* device, const MeshArgs& args, const Textures* textures) {
     render::BeginDeviceMeshTime();
-    int result = ProjectAndDraw(device, args, textures);
+    const bool result = ProjectAndDraw(device, args, textures);
     render::EndDeviceMeshTime();
     return result;
 }
 
 } // namespace
 
-int TextureDevice::DrawMeshBlocks(const MeshArgs& args) { return DrawMesh(this, args, nullptr); }
+bool TextureDevice::DrawMeshBlocks(const MeshArgs& args) { return DrawMesh(this, args, nullptr); }
 
-int TextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const MeshArgs& args) {
+bool TextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const MeshArgs& args) {
     Textures textures{firstTexture, secondTexture};
     return DrawMesh(this, args, &textures);
 }
@@ -223,10 +219,10 @@ int DrawFlat(TextureDevice* device, const VertexPacket* positions, const TexCoor
     std::uint32_t colours[2] = {colour, specular};
     g_projected.resize(count);
     g_outcodes.resize(count);
-    // The verdict: 0 on screen, 1 crossing, 2 outside.
-    int visibility = pipeline->ProjectBlocks(positions, g_projected.data(), g_outcodes.data(), blocks, nullptr);
-    if (visibility == 2) return 2;
-    HandOver(device, positions, uvs, count, indices, indexCount, colours, visibility == 1, groundPrint);
+    const TransformPipeline::ClipResult visibility =
+        pipeline->ProjectBlocks(positions, g_projected.data(), g_outcodes.data(), blocks, nullptr);
+    if (visibility == TransformPipeline::ClipResult::Outside) return 2;
+    HandOver(device, positions, uvs, count, indices, indexCount, colours, visibility == TransformPipeline::ClipResult::Crossing, groundPrint);
     device->DrawIndexed();
     return 0;
 }

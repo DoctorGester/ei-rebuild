@@ -6,6 +6,7 @@
 // SerializeBriefings (chunk_archive.h), one chunk 1 per record. quest_records.cpp.
 
 #include "unit_db.h"   // InlineStrings
+#include "lib/enum_array.h"
 
 
 #include <cstddef>
@@ -39,12 +40,12 @@ struct QuestBriefingRecord {
 
     // The lists (lists[k]): item names given and taken, quest variables ("a.b.<quest>") given and
     // completed, zone variables raised to 1 and set to 2 (WorldServer::CompleteBriefing).
-    enum ListKind { kGiveItems, kRemoveItems, kGiveQuests, kCompleteQuests, kAvailableZones, kCompleteZones };
+    enum class ListKind : int { GiveItems, RemoveItems, GiveQuests, CompleteQuests, AvailableZones, CompleteZones };
 
     std::string name;
     float exp = 0.0f;
     float money = 0.0f;
-    std::vector<std::string> lists[6];   // by ListKind
+    lib::EnumArray<std::vector<std::string>, ListKind, 6> lists;
     std::string text;
     // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
     // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).

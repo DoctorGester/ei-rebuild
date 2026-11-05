@@ -119,12 +119,12 @@ public:
     MasterLink(const MasterLink&) = delete;
     MasterLink& operator=(const MasterLink&) = delete;
 
-    enum State : std::int32_t { kClosed = 0, kConnecting = 1, kReceiving = 2, kDone = 3, kSending = 4 };
+    enum class State : std::int32_t { Closed = 0, Connecting = 1, Receiving = 2, Done = 3, Sending = 4 };
 
     GrowingBuffer out;           // what is sent once connected
     GrowingBuffer in;
     platform::net::Socket socket;   // (kNoSocket: none)
-    std::int32_t state = 0;
+    State state = State::Closed;
 };
 
 // ---- The globals of the session code ------------------------------------------------------------
@@ -213,17 +213,17 @@ public:
     virtual void Write(BufferCursor* cursor) = 0;
     virtual void Read(BufferCursor* cursor) = 0;
 
-    enum State : std::uint32_t {
-        kLocal = 0,        // found by a broadcast ping
-        kAsked = 1,        // asked directly
-        kFromList = 2,     // from the master server's list
+    enum class State : std::uint32_t {
+        Local = 0,        // found by a broadcast ping
+        Asked = 1,        // asked directly
+        FromList = 2,     // from the master server's list
     };
 
     NetAddress address;
     float timeout = 0.0f;    // seconds until the entry is checked again (1e38: never)
     float ping = 0.0f;       // seconds; a constant when unknown
     std::uint8_t foreign = 0;  // the reply's echoed word differs from the magic
-    std::uint32_t state = 0;
+    State state = State::Local;
 
 protected:
     ServerEntryBase();
@@ -530,7 +530,7 @@ public:
 class ClientBase : public SessionBase {
 public:
 
-    enum JoinState : std::uint32_t { kNotJoined = 0, kAsking = 1, kJoined = 2 };
+    enum class JoinState : std::uint32_t { NotJoined = 0, Asking = 1, Joined = 2 };
 
     ClientBase();
     ~ClientBase() override;
@@ -566,7 +566,7 @@ public:
     NetAddress host;                    // the host joined or being asked
     GrowingBuffer joinData;             // sent with every join request
     std::uint32_t joinId = 0;           // rand() << 16 | tick count
-    std::uint32_t joinState = 0;
+    JoinState joinState = JoinState::NotJoined;
     RefusalReason refusal = {};         // the reason the host gave
     float retryTimer = 0.0f;            // seconds to the next join request
     float retryInterval = 0.0f;         // doubles with every request (0.1 first)

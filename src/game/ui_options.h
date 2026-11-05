@@ -7,36 +7,38 @@
 #include "ui_scrollbar.h"
 #include "ui_spin.h"
 
+#include "lib/enum_array.h"
+
 // The options window's settings, in the order of OptionsWindow::settings and kOptionDefinitions.
-enum OptionId : int {
-    kOptionSfxVolume,
-    kOptionStreamVolume,
-    kOptionVoiceVolume,
-    kOptionKeyboardPower,
-    kOptionMousePower,
-    kOptionScrollBorder,
-    kOptionRubberSelect,
-    kOptionShadows,
-    kOptionSelectType,
-    kOptionShowPath,
-    kOptionBrightness,
-    kOptionGamma,
-    kOptionShowFlyingHp,
-    kOptionShowTutorial,
-    kOptionAutosave,
-    kOptionTooltipTime,
-    kOptionSwitchFilters,
-    kOptionCameraReverseX,
-    kOptionCameraReverseY,
-    kOptionReverseStereo,
-    kOptionDifficulty,
-    kOptionResolution,
-    kOptionDisplayMode,
-    kOptionVsync,
-    kOptionMsaa,
-    kOptionAnisotropy,
-    kOptionPerfOverlay,
-    kOptionCount,
+enum class OptionId : int {
+    SfxVolume,
+    StreamVolume,
+    VoiceVolume,
+    KeyboardPower,
+    MousePower,
+    ScrollBorder,
+    RubberSelect,
+    Shadows,
+    SelectType,
+    ShowPath,
+    Brightness,
+    Gamma,
+    ShowFlyingHp,
+    ShowTutorial,
+    Autosave,
+    TooltipTime,
+    SwitchFilters,
+    CameraReverseX,
+    CameraReverseY,
+    ReverseStereo,
+    Difficulty,
+    Resolution,
+    DisplayMode,
+    Vsync,
+    Msaa,
+    Anisotropy,
+    PerfOverlay,
+    Count,
 };
 
 struct OptionDefinition {
@@ -48,7 +50,7 @@ struct OptionDefinition {
     int row = 0;                     // its row there
 };
 
-constexpr int kOptionDefinitionCount = kOptionCount;
+constexpr int kOptionDefinitionCount = static_cast<int>(OptionId::Count);
 
 struct ActionDefinition {
     int id = 0;                      // the action (the key code in the key table)
@@ -139,7 +141,7 @@ public:
     int selectedRow = 0;
     int group = 0;                   // the option group shown
     std::vector<OptionBinding> bindings;
-    std::vector<OptionSetting> settings;
+    lib::EnumArray<OptionSetting, OptionId, static_cast<std::size_t>(OptionId::Count)> settings;
     OptionRow rows[kRows];
     bool waitingForKey = false;      // a key binding row waits for the new key
     bool sliding = false;

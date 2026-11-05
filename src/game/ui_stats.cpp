@@ -192,8 +192,8 @@ void HeroStatsPanel::DrawRow(const Rect& area, std::string_view label, int value
     else
         name = label;
     std::string number = maximum >= 0 ? str::Format(kRangeFormat, value, maximum) : str::Format(kValueFormat, value);
-    labels.push_back({name, area, {0, kUiTextColour, render::text::kLeft}});
-    labels.push_back({number, area, {0, kUiTextColour, render::text::kRight}});
+    labels.push_back({name, area, {0, kUiTextColour, render::text::Format::Left}});
+    labels.push_back({number, area, {0, kUiTextColour, render::text::Format::Right}});
 }
 
 // --- A body part's armour ------------------------------------------------------------------------
@@ -218,8 +218,8 @@ void HeroStatsPanel::DrawPart(const Rect& area, std::string_view name, int part)
     key += name;
     std::string label = g_clientWorld.texts->TextManager::GetString(key);
     label = kPartIndent + label;
-    labels.push_back({label, area, {0, kUiTextColour, render::text::kLeft}});
-    labels.push_back({str::Format(kArmourFormat, PartArmour(part)), area, {0, kUiTextColour, render::text::kRight}});
+    labels.push_back({label, area, {0, kUiTextColour, render::text::Format::Left}});
+    labels.push_back({str::Format(kArmourFormat, PartArmour(part)), area, {0, kUiTextColour, render::text::Format::Right}});
 }
 
 // --- the statistics column -----------------------------------------------------------------------

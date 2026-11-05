@@ -31,12 +31,13 @@ using NormalPacket = render::NormalPacket;
 struct Vector4;
 
 // The flags of the device's mesh draws (DrawMeshBlocks, DrawMeshBlocks2).
-enum DrawFlag : int {
-    kDrawScreenRect = 1,   // keep the drawn screen rectangle (TextureDevice::drawnRect)
-    kDrawClipped = 2,      // the mesh crosses the view's edges: project it with the clip stack
-    kDrawColours = 4,      // the device colours the mesh (the alpha with it)
-    kDrawSpecular = 8,     // the material keeps its speculars
+enum class DrawFlag : int {
+    ScreenRect = 1,   // keep the drawn screen rectangle (TextureDevice::drawnRect)
+    Clipped = 2,      // the mesh crosses the view's edges: project it with the clip stack
+    Colours = 4,      // the device colours the mesh (the alpha with it)
+    Specular = 8,     // the material keeps its speculars
 };
+constexpr bool EnableBitFlags(DrawFlag) { return true; }
 
 // The arguments of a mesh draw. A corner's position indexes the projected vertices, its normal the colour and specular
 // arrays (one colour per normal) and its texCoord the texture coordinates.
@@ -57,7 +58,7 @@ struct MeshArgs {
     float uOffset = 0.0f;         // compared with 0 and added to the texture coordinates
     float vOffset = 0.0f;
     int alpha = 0;                // the low byte, with flag 4
-    int flags = 0;                // DrawFlag bits
+    DrawFlag flags = {};
 };
 
 // The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
@@ -68,10 +69,10 @@ public:
     void SetMaterial(DeviceMaterial* material);
     int DrawFlatBlocks(const VertexPacket* positions, const render::TexCoord* uvs, int blocks, const std::uint16_t* indices,
                        int indexCount, std::uint32_t colour, std::uint32_t specular, bool groundPrint);
-    // The mesh drawn (with two textures for DrawMeshBlocks2). Returns the projection's verdict (TransformPipeline::ClipResult;
-    // drawn: 1). Without kDrawClipped the mesh is projected with the screen stack and counts as on screen.
-    int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const MeshArgs& args);
-    int DrawMeshBlocks(const MeshArgs& args);
+    // The mesh drawn (with two textures for DrawMeshBlocks2). Returns whether it was drawn: false for a mesh outside the view.
+    // Without DrawFlag::Clipped the mesh is projected with the screen stack and counts as on screen.
+    bool DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const MeshArgs& args);
+    bool DrawMeshBlocks(const MeshArgs& args);
     void DrawTwoTextures(Surface* first, Surface* second);
     void DrawIndexed();
     // Draw flag 1's rectangle: the bounds of the projected `positions` (screen positions, or with `clipSpace` the
@@ -105,27 +106,28 @@ public:
 // Texture stage 0's three setups the world's and the interface's draws switch between: the scene's (texture x
 // diffuse, alpha diffuse), the alpha passes' (texture x diffuse for colour and alpha) and the terrain's (texture x
 // current, alpha texture).
-inline constexpr render::StageCombiner kSceneStage = {render::TextureOp::Modulate, render::kArgTexture,
-                                                      render::kArgDiffuse, render::TextureOp::SelectArg1,
-                                                      render::kArgDiffuse, render::kArgCurrent};
-inline constexpr render::StageCombiner kAlphaPassStage = {render::TextureOp::Modulate, render::kArgTexture,
-                                                          render::kArgDiffuse, render::TextureOp::Modulate,
-                                                          render::kArgTexture, render::kArgDiffuse};
-inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modulate, render::kArgTexture,
-                                                        render::kArgCurrent, render::TextureOp::SelectArg1,
-                                                        render::kArgTexture, render::kArgCurrent};
+inline constexpr render::StageCombiner kSceneStage = {render::TextureOp::Modulate, render::TextureArg::Texture,
+                                                      render::TextureArg::Diffuse, render::TextureOp::SelectArg1,
+                                                      render::TextureArg::Diffuse, render::TextureArg::Current};
+inline constexpr render::StageCombiner kAlphaPassStage = {render::TextureOp::Modulate, render::TextureArg::Texture,
+                                                          render::TextureArg::Diffuse, render::TextureOp::Modulate,
+                                                          render::TextureArg::Texture, render::TextureArg::Diffuse};
+inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modulate, render::TextureArg::Texture,
+                                                        render::TextureArg::Current, render::TextureOp::SelectArg1,
+                                                        render::TextureArg::Texture, render::TextureArg::Current};
 
 // Once a frame: the new renderer's frame shown.
 void DevicePresent(TextureDevice* device);
 
 // The pixel format ids of .mmp files and textures (MmpHeader::format, Texture::format): the RGB ones and the item
 // pictures' PNT3. The compressed DXT1 .. DXT5 have their four-character codes.
-enum MmpFormat : std::uint32_t {
-    kMmpFormat565 = 0x5650,     // 5:6:5
-    kMmpFormat1555 = 0x5551,    // 1:5:5:5; the item pictures and image atlases too
-    kMmpFormat4444 = 0x4444,
-    kMmpFormat8888 = 0x8888,
-    kMmpFormatPnt3 = 0x33544E50,    // "PNT3"
+enum class MmpFormat : std::uint32_t {
+    None = 0,
+    R5G6B5 = 0x5650,     // 5:6:5
+    A1R5G5B5 = 0x5551,    // 1:5:5:5; the item pictures and image atlases too
+    A4R4G4B4 = 0x4444,
+    A8R8G8B8 = 0x8888,
+    Pnt3 = 0x33544E50,    // "PNT3"
 };
 
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its
@@ -135,7 +137,7 @@ struct MmpHeader {
     std::uint32_t width = 0;
     std::uint32_t height = 0;
     std::uint32_t mipCount = 0;
-    std::uint32_t format = 0;   // pixel format id (MmpFormat, or a DXT code)
+    MmpFormat format = {};   // pixel format id (a DXT code is another value of the type)
     std::uint32_t bitsPerPixel = 0;
     std::uint32_t alphaMask = 0;
     std::uint32_t alphaShift = 0;
@@ -154,14 +156,14 @@ struct MmpHeader {
     // After the header: the extra block plus the sizes of the larger levels (32-bit arithmetic).
     std::uint32_t MipOffset(unsigned mip) const;
     // The texture format the file's texture is held in (IsTextureFormat): its own when listed; for another DXT code
-    // the RGB format its channel bit counts name. 0 when none is.
-    std::uint32_t HeldFormat() const;
+    // the RGB format its channel bit counts name. None when none is.
+    MmpFormat HeldFormat() const;
     // What filling a texture of format `heldFormat` from this file returned (the texture cache counts it as the
     // texture's size): per level width x height times the bits written, / 8 (the file's own bits, 16 for a DXT file
     // held in an RGB format); 32-bit arithmetic.
-    std::uint32_t FilledBytes(std::uint32_t heldFormat, unsigned mip, unsigned levels) const;
+    std::uint32_t FilledBytes(MmpFormat heldFormat, unsigned mip, unsigned levels) const;
     // The channel layout of the RGB format `id` (16 bits per pixel; the 32-bit one is not made); all zero for another.
-    void SetFormat(std::uint32_t id);
+    void SetFormat(MmpFormat id);
 };
 static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);
@@ -179,9 +181,9 @@ struct MmpFile {
 
 // The texture formats, one fixed list: the RGB ids 0x5650 (5:6:5), 0x5551 (1:5:5:5), 0x4444 and 0x8888 and the
 // compressed DXT1 .. DXT5 by their four-character codes (texture.cpp).
-bool IsTextureFormat(std::uint32_t id);
+bool IsTextureFormat(MmpFormat id);
 // The pixel format of an RGB texture format; none (all zero) for a compressed or unknown one.
-render::PixelFormat TextureFormat(std::uint32_t id);
+render::PixelFormat TextureFormat(MmpFormat id);
 
 // A texture's kind: its type, the texture manager's object type. Neither the data nor the strings name them; the
 // callers pass a figure part's meshType (1..0x10, Object3DClientSpecific's part sets; 1 and 2 also the units'
@@ -260,7 +262,7 @@ public:
     std::uint32_t height = 0;
     int uploadResult = 0;       // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
     std::vector<std::uint8_t> extra;        // the .mmp file's extra block
-    std::uint32_t format = 0;   // the texture format it is held in (TextureFormat); 0 none
+    MmpFormat format = {};   // the texture format it is held in (TextureFormat)
     Ref<Surface> surface;
 
     TextureManager* Manager() const;

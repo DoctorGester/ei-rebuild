@@ -65,7 +65,7 @@ constexpr float kToStep = 0.02f;     // setting = value * 0.02
 constexpr float kScrollFrom = 4.0f; // setting 15's value
 constexpr float kScrollTo = 0.25f;   // setting 15 from it
 
-// By OptionId. kOptionShowTutorial: help windows (Rebirth's ForceShowTutorial patches its store).
+// By OptionId. OptionId::ShowTutorial: help windows (Rebirth's ForceShowTutorial patches its store).
 constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
     {"volume_sfx", 0, 100, 1, 0},
     {"volume_stream", 0, 100, 1, 1},
@@ -105,9 +105,9 @@ constexpr Choice kDisplayModes[] = {{"option_window", 0}, {"option_full_screen",
 constexpr Choice kMsaaLevels[] = {{kTextOptionOff, 1}, {"2x", 2}, {"4x", 4}, {"8x", 8}};
 constexpr Choice kAnisotropyLevels[] = {{kTextOptionOff, 1}, {"2x", 2}, {"4x", 4}, {"8x", 8}, {"16x", 16}};
 
-std::span<const Choice> ChoicesOf(int setting) {
-    if (setting == kOptionMsaa) return kMsaaLevels;
-    if (setting == kOptionAnisotropy) return kAnisotropyLevels;
+std::span<const Choice> ChoicesOf(OptionId setting) {
+    if (setting == OptionId::Msaa) return kMsaaLevels;
+    if (setting == OptionId::Anisotropy) return kAnisotropyLevels;
     return kDisplayModes;
 }
 
@@ -293,11 +293,11 @@ void OptionsWindow::RefreshRows() {
 void OptionsWindow::PaintRows(UiSurface& surface) const {
     Rect title = {10, 60, 140, 80};
     for (int groupIndex = 0; groupIndex < kGroups; ++groupIndex) {
-        surface.DrawTextIn(groupNames[groupIndex], title, TextStyle{1, groupIndex == group ? kUiTextColour : kColourDim, render::text::kCenter});
+        surface.DrawTextIn(groupNames[groupIndex], title, TextStyle{1, groupIndex == group ? kUiTextColour : kColourDim, render::text::Format::Center});
         title.Offset(0, 24);
     }
     Rect heading = {0, 10, 600, 34};
-    surface.DrawTextIn(groupNames[group], heading, TextStyle{2, kUiTextColour, render::text::kCenter});
+    surface.DrawTextIn(groupNames[group], heading, TextStyle{2, kUiTextColour, render::text::Format::Center});
 
     Rect name = {160, 60, 420, 80};
     Rect keys = {430, 60, 590, 80};
@@ -361,9 +361,10 @@ void OptionsWindow::ShowGroup(int groupIndex) {
 }
 
 void OptionsWindow::BuildSettings() {
-    settings.clear();    // copy and destructors inlined
+    settings = {};
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
-        OptionSetting& setting = settings.emplace_back();
+        OptionSetting& setting = settings[i];
+        const auto optionId = static_cast<OptionId>(i);
         const OptionDefinition* definition = &kOptionDefinitions[i];
         setting.text = ShownName(kTextOptionPrefix, definition->name);
 
@@ -375,10 +376,10 @@ void OptionsWindow::BuildSettings() {
             slider->SetRect(area);
         } else if (definition->kind == kSpinKind) {
             std::string text = g_clientWorld.texts->GetString(kTextOptionOff);
-            if (i == kOptionDifficulty) text = g_clientWorld.texts->GetString(kTextDifficultyHard);
+            if (optionId == OptionId::Difficulty) text = g_clientWorld.texts->GetString(kTextDifficultyHard);
             setting.spin = AddChild(std::make_unique<UiSpin>(Rect{530, top + 160, 690, top + 176}, text.c_str()));
             text = g_clientWorld.texts->GetString(kTextOptionOn);
-            if (i == kOptionDifficulty) text = g_clientWorld.texts->GetString(kTextDifficultyEasy);
+            if (optionId == OptionId::Difficulty) text = g_clientWorld.texts->GetString(kTextDifficultyEasy);
             setting.spin->AddText(text);
         } else if (definition->kind == kResolutionKind) {
             resolutions = platform::DisplaySizes(g_sceneRenderer.device->window);
@@ -386,7 +387,7 @@ void OptionsWindow::BuildSettings() {
             setting.list = AddChild(std::make_unique<UiDropList>(this, Rect{530, top + 160, 690, top + 176}));
             for (const Size size : resolutions) setting.list->AddText(str::Format("%d x %d", size.w, size.h));
         } else if (definition->kind == kChoiceKind) {
-            const std::span<const Choice> choices = ChoicesOf(i);
+            const std::span<const Choice> choices = ChoicesOf(optionId);
             setting.spin = AddChild(std::make_unique<UiSpin>(Rect{530, top + 160, 690, top + 176}, ShownName("", choices[0].text).c_str()));
             for (const Choice& choice : choices.subspan(1)) setting.spin->AddText(ShownName("", choice.text));
         }
@@ -439,37 +440,37 @@ void OptionsWindow::CommitBinding() {
 
 void OptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan, g_keyActions, sizeof(keyOfScan));
-    OptionSetting* s = settings.data();
+    auto& s = settings;
     const options::GameOptions& o = options::g_options;
-    s[kOptionSfxVolume].value = o.audioSfx;
-    s[kOptionStreamVolume].value = o.audioStreaming;
-    s[kOptionVoiceVolume].value = o.audioSpeech;
-    s[kOptionReverseStereo].value = o.reverseStereo;
+    s[OptionId::SfxVolume].value = o.audioSfx;
+    s[OptionId::StreamVolume].value = o.audioStreaming;
+    s[OptionId::VoiceVolume].value = o.audioSpeech;
+    s[OptionId::ReverseStereo].value = o.reverseStereo;
     // _ftol: truncation.
-    s[kOptionKeyboardPower].value = static_cast<int>(o.cameraScroll.powerKeyboard * kFromStep);
-    s[kOptionMousePower].value = static_cast<int>(o.cameraScroll.powerMouse * kFromStep);
-    s[kOptionCameraReverseX].value = o.cameraFlipX == 1.0f ? 0 : 1;
-    s[kOptionCameraReverseY].value = o.cameraFlipY == 1.0f ? 0 : 1;
-    s[kOptionScrollBorder].value = o.cameraBorderScrollArea;
-    s[kOptionRubberSelect].value = o.cameraFrameSelectionArea / 10;
-    s[kOptionTooltipTime].value = static_cast<int>(o.toolTipTime * kScrollFrom);
-    s[kOptionShadows].value = o.shadows;
-    s[kOptionSelectType].value = o.selectionType;
-    s[kOptionShowPath].value = o.drawPath;
-    s[kOptionShowFlyingHp].value = o.drawFlyingHp;
-    s[kOptionShowTutorial].value = o.showTutorial;
-    s[kOptionAutosave].value = o.autosave;
-    s[kOptionSwitchFilters].value = o.switchFilters;
-    s[kOptionBrightness].value = static_cast<int>((o.brightness + 1.0f) * kFromStep);
-    s[kOptionGamma].value = static_cast<int>((o.gamma + 1.0f) * kFromStep);
-    s[kOptionDifficulty].value = o.difficulty;
-    s[kOptionResolution].value = static_cast<int>(
+    s[OptionId::KeyboardPower].value = static_cast<int>(o.cameraScroll.powerKeyboard * kFromStep);
+    s[OptionId::MousePower].value = static_cast<int>(o.cameraScroll.powerMouse * kFromStep);
+    s[OptionId::CameraReverseX].value = o.cameraFlipX == 1.0f ? 0 : 1;
+    s[OptionId::CameraReverseY].value = o.cameraFlipY == 1.0f ? 0 : 1;
+    s[OptionId::ScrollBorder].value = o.cameraBorderScrollArea;
+    s[OptionId::RubberSelect].value = o.cameraFrameSelectionArea / 10;
+    s[OptionId::TooltipTime].value = static_cast<int>(o.toolTipTime * kScrollFrom);
+    s[OptionId::Shadows].value = o.shadows;
+    s[OptionId::SelectType].value = o.selectionType;
+    s[OptionId::ShowPath].value = o.drawPath;
+    s[OptionId::ShowFlyingHp].value = o.drawFlyingHp;
+    s[OptionId::ShowTutorial].value = o.showTutorial;
+    s[OptionId::Autosave].value = o.autosave;
+    s[OptionId::SwitchFilters].value = o.switchFilters;
+    s[OptionId::Brightness].value = static_cast<int>((o.brightness + 1.0f) * kFromStep);
+    s[OptionId::Gamma].value = static_cast<int>((o.gamma + 1.0f) * kFromStep);
+    s[OptionId::Difficulty].value = o.difficulty;
+    s[OptionId::Resolution].value = static_cast<int>(
         std::find(resolutions.begin(), resolutions.end(), ScreenSize()) - resolutions.begin());
-    s[kOptionDisplayMode].value = g_sceneRenderer.device->fullScreen ? 1 : 0;
-    s[kOptionVsync].value = render::Vsync() ? 1 : 0;
-    s[kOptionMsaa].value = ChoiceIndex(kMsaaLevels, render::Msaa());
-    s[kOptionAnisotropy].value = ChoiceIndex(kAnisotropyLevels, render::Anisotropy());
-    s[kOptionPerfOverlay].value = render::PerfOverlay() ? 1 : 0;
+    s[OptionId::DisplayMode].value = g_sceneRenderer.device->fullScreen ? 1 : 0;
+    s[OptionId::Vsync].value = render::Vsync() ? 1 : 0;
+    s[OptionId::Msaa].value = ChoiceIndex(kMsaaLevels, render::Msaa());
+    s[OptionId::Anisotropy].value = ChoiceIndex(kAnisotropyLevels, render::Anisotropy());
+    s[OptionId::PerfOverlay].value = render::PerfOverlay() ? 1 : 0;
 
     for (OptionSetting& setting : settings) {
         if (setting.bar)
@@ -483,13 +484,13 @@ void OptionsWindow::LoadSettings() {
 
 void OptionsWindow::Apply() {
     std::memcpy(g_keyActions, keyOfScan, sizeof(keyOfScan));
-    const OptionSetting* s = settings.data();
-    options::g_options.audioSfx = s[kOptionSfxVolume].value;
-    options::g_options.audioStreaming = s[kOptionStreamVolume].value;
-    options::g_options.audioSpeech = s[kOptionVoiceVolume].value;
-    options::g_options.reverseStereo = s[kOptionReverseStereo].value;
-    float speedA = s[kOptionKeyboardPower].value * kToStep;
-    float speedB = s[kOptionMousePower].value * kToStep;
+    const auto& s = settings;
+    options::g_options.audioSfx = s[OptionId::SfxVolume].value;
+    options::g_options.audioStreaming = s[OptionId::StreamVolume].value;
+    options::g_options.audioSpeech = s[OptionId::VoiceVolume].value;
+    options::g_options.reverseStereo = s[OptionId::ReverseStereo].value;
+    float speedA = s[OptionId::KeyboardPower].value * kToStep;
+    float speedB = s[OptionId::MousePower].value * kToStep;
     options::g_options.cameraScroll.powerKeyboard = speedA;
     options::g_options.cameraPitch.powerKeyboard = speedA;
     options::g_options.cameraZoom.powerKeyboard = speedA;
@@ -498,46 +499,46 @@ void OptionsWindow::Apply() {
     options::g_options.cameraPitch.powerMouse = speedB;
     options::g_options.cameraZoom.powerMouse = speedB;
     options::g_options.cameraRotate.powerMouse = speedB;
-    options::g_options.cameraFlipX = s[kOptionCameraReverseX].value == 1 ? -1.0f : 1.0f;
-    options::g_options.cameraFlipY = s[kOptionCameraReverseY].value == 1 ? -1.0f : 1.0f;
-    options::g_options.cameraBorderScrollArea = s[kOptionScrollBorder].value;
-    options::g_options.cameraFrameSelectionArea = s[kOptionRubberSelect].value * 10;
-    options::g_options.toolTipTime = s[kOptionTooltipTime].value * kScrollTo;
-    options::g_options.shadows = s[kOptionShadows].value;
-    options::g_options.selectionType = s[kOptionSelectType].value;
-    options::g_options.drawPath = s[kOptionShowPath].value;
-    options::g_options.drawFlyingHp = s[kOptionShowFlyingHp].value;
-    options::g_options.showTutorial = s[kOptionShowTutorial].value;
-    options::g_options.autosave = s[kOptionAutosave].value;
-    options::g_options.switchFilters = s[kOptionSwitchFilters].value;
-    options::g_options.brightness = s[kOptionBrightness].value * kToStep - 1.0f;
-    options::g_options.gamma = s[kOptionGamma].value * kToStep - 1.0f;
+    options::g_options.cameraFlipX = s[OptionId::CameraReverseX].value == 1 ? -1.0f : 1.0f;
+    options::g_options.cameraFlipY = s[OptionId::CameraReverseY].value == 1 ? -1.0f : 1.0f;
+    options::g_options.cameraBorderScrollArea = s[OptionId::ScrollBorder].value;
+    options::g_options.cameraFrameSelectionArea = s[OptionId::RubberSelect].value * 10;
+    options::g_options.toolTipTime = s[OptionId::TooltipTime].value * kScrollTo;
+    options::g_options.shadows = s[OptionId::Shadows].value;
+    options::g_options.selectionType = s[OptionId::SelectType].value;
+    options::g_options.drawPath = s[OptionId::ShowPath].value;
+    options::g_options.drawFlyingHp = s[OptionId::ShowFlyingHp].value;
+    options::g_options.showTutorial = s[OptionId::ShowTutorial].value;
+    options::g_options.autosave = s[OptionId::Autosave].value;
+    options::g_options.switchFilters = s[OptionId::SwitchFilters].value;
+    options::g_options.brightness = s[OptionId::Brightness].value * kToStep - 1.0f;
+    options::g_options.gamma = s[OptionId::Gamma].value * kToStep - 1.0f;
     if (!IsMultiplayerClient()) {
-        options::g_options.difficultyStored = s[kOptionDifficulty].value;
-        options::g_options.difficulty = s[kOptionDifficulty].value;
+        options::g_options.difficultyStored = s[OptionId::Difficulty].value;
+        options::g_options.difficulty = s[OptionId::Difficulty].value;
     }
     if (shadowsChanged) g_clientWorld.DropShadows();
     // The display mode first: a window takes the chosen resolution's size after it.
-    if (const bool fullScreen = s[kOptionDisplayMode].value == 1; fullScreen != g_sceneRenderer.device->fullScreen)
+    if (const bool fullScreen = s[OptionId::DisplayMode].value == 1; fullScreen != g_sceneRenderer.device->fullScreen)
         app::ChooseFullScreen(fullScreen);
-    if (const Size chosen = resolutions[s[kOptionResolution].value]; chosen != ScreenSize())
+    if (const Size chosen = resolutions[s[OptionId::Resolution].value]; chosen != ScreenSize())
         app::ChooseResolution(chosen.w, chosen.h);
 
     // The renderer's switches, each from the next frame; a value the window left as it was is not written (the
     // harness build's renderer ignores the VSync and overlay switches; they are still saved).
-    if (const bool vsync = s[kOptionVsync].value == 1; vsync != render::Vsync()) {
+    if (const bool vsync = s[OptionId::Vsync].value == 1; vsync != render::Vsync()) {
         render::SetVsync(vsync);
         settings::SetBool(settings::kRenderer, "VSync", vsync);
     }
-    if (const int samples = kMsaaLevels[s[kOptionMsaa].value].value; samples != render::Msaa()) {
+    if (const int samples = kMsaaLevels[s[OptionId::Msaa].value].value; samples != render::Msaa()) {
         render::SetMsaa(samples);
         settings::SetInt(settings::kRenderer, "Msaa", samples);
     }
-    if (const int level = kAnisotropyLevels[s[kOptionAnisotropy].value].value; level != render::Anisotropy()) {
+    if (const int level = kAnisotropyLevels[s[OptionId::Anisotropy].value].value; level != render::Anisotropy()) {
         render::SetAnisotropy(level);
         settings::SetInt(settings::kRenderer, "Anisotropy", level);
     }
-    if (const bool overlay = s[kOptionPerfOverlay].value == 1; overlay != render::PerfOverlay()) {
+    if (const bool overlay = s[OptionId::PerfOverlay].value == 1; overlay != render::PerfOverlay()) {
         render::SetPerfOverlay(overlay);
         settings::SetBool(settings::kRenderer, "PerfOverlay", overlay);
     }
@@ -720,20 +721,21 @@ void OptionsWindow::Update() {
             g_interface.OpenHelp(false);
         }
     }
-    for (int i = 0; i < kOptionCount; ++i) {
+    for (int i = 0; i < kOptionDefinitionCount; ++i) {
         OptionSetting& setting = settings[i];
+        const auto optionId = static_cast<OptionId>(i);
         if (setting.bar && setting.bar->TakeMoved()) {
             const int value = setting.bar->Position();
             setting.value = value;
-            if (i == kOptionSfxVolume) {
+            if (optionId == OptionId::SfxVolume) {
                 g_clientWorld.sounds->SetEffectsVolume(value);
-            } else if (i == kOptionStreamVolume) {
+            } else if (optionId == OptionId::StreamVolume) {
                 g_clientWorld.sounds->SetMusicVolume(value);
-            } else if (i == kOptionVoiceVolume) {
+            } else if (optionId == OptionId::VoiceVolume) {
                 g_clientWorld.sounds->SetSpeechVolume(value);
-            } else if (i == kOptionBrightness || i == kOptionGamma) {
-                float brightness = settings[kOptionBrightness].value * kGammaScale - 1.0f;
-                float gamma = settings[kOptionGamma].value * kGammaScale - 1.0f;
+            } else if (optionId == OptionId::Brightness || optionId == OptionId::Gamma) {
+                float brightness = settings[OptionId::Brightness].value * kGammaScale - 1.0f;
+                float gamma = settings[OptionId::Gamma].value * kGammaScale - 1.0f;
                 g_sceneRenderer.SetGamma(brightness, gamma);
             }
         }
@@ -741,9 +743,9 @@ void OptionsWindow::Update() {
         if (setting.spin && setting.spin->TakeChanged()) {
             const int value = setting.spin->Value();
             setting.value = value;
-            if (i == kOptionShadows)
+            if (optionId == OptionId::Shadows)
                 shadowsChanged = true;
-            else if (i == kOptionReverseStereo)   // the sound system's pan switch
+            else if (optionId == OptionId::ReverseStereo)   // the sound system's pan switch
                 g_clientWorld.sounds->panDirect = value != 0;
         }
     }

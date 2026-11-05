@@ -150,31 +150,32 @@ constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundOnOff = "buttons\\battle\\on_off.wav";
 constexpr const char* kQuickSaveName = "saveq";
 
-// The key actions (the key table's values).
-enum KeyAction {
-    kActionPause = 1,
-    kActionNormalSpeed = 2,
-    kActionFastSpeed = 3,
-    kActionObjectives = 4,
-    kActionCameraToUnit = 0xB,
-    kActionCameraNorth = 0xC,
-    kActionOrderKey = 0x11,      // .. 0x16
-    kActionMoveMode = 0x17,      // .. 0x1A: modes 0..3
-    kActionMoveFlag = 0x1B,
-    kActionFollow = 0x1C,
-    kActionScience = 0x1D,
-    kActionSpell = 0x1E,         // .. 0x25: spells 0..7
-    kActionWeapon = 0x26,        // .. 0x29: weapons 0..3
-    kActionQuickItem = 0x2A,     // .. 0x2D: quick items 0..3
-    kActionBodyPart = 0x2E,      // .. 0x31: body parts 0..3
-    kActionPage = 0x32,          // 0x33: the top panel's pages 0, 1
-    kActionMapSlide = 0x34,
-    kActionQuickSave = 0x35,
-    kActionQuickLoad = 0x36,
-    kActionMember = 0x37,        // .. 0x39: party members 0..2
-    kActionSelectAll = 0x3A,
-    kActionMessage = 0x3B,
-};
+// The key actions (the key table's values). A family of actions (the spells, the weapons) is a run of consecutive
+// numbers from its first, so they are numbers for the dispatch's `case Spell + 1:`, not an enum class.
+namespace KeyAction {
+constexpr int Pause = 1;
+constexpr int NormalSpeed = 2;
+constexpr int FastSpeed = 3;
+constexpr int Objectives = 4;
+constexpr int CameraToUnit = 0xB;
+constexpr int CameraNorth = 0xC;
+constexpr int OrderKey = 0x11;      // .. 0x16
+constexpr int MoveMode = 0x17;      // .. 0x1A: modes 0..3
+constexpr int MoveFlag = 0x1B;
+constexpr int Follow = 0x1C;
+constexpr int Science = 0x1D;
+constexpr int Spell = 0x1E;         // .. 0x25: spells 0..7
+constexpr int Weapon = 0x26;        // .. 0x29: weapons 0..3
+constexpr int QuickItem = 0x2A;     // .. 0x2D: quick items 0..3
+constexpr int BodyPart = 0x2E;      // .. 0x31: body parts 0..3
+constexpr int Page = 0x32;          // 0x33: the top panel's pages 0, 1
+constexpr int MapSlide = 0x34;
+constexpr int QuickSave = 0x35;
+constexpr int QuickLoad = 0x36;
+constexpr int Member = 0x37;        // .. 0x39: party members 0..2
+constexpr int SelectAll = 0x3A;
+constexpr int Message = 0x3B;
+} // namespace KeyAction
 
 // The action column's buttons the keys select (the original compares the names "follow" and "science"
 // with "follow").
@@ -271,7 +272,7 @@ void BattleScreen::CreateScreen() {
     AddInput(std::make_unique<CameraInput>());
 
     g_camera.flags &= ~0x40u;
-    pendingAction = kPendingNone;
+    pendingAction = PendingAction::None;
     pendingSlot = -1;
     g_serverWorld.SetWeather(0, 0.0f);   // clear weather
     g_clientWorld.terrain->landscapeFlags |= terrain::LandscapeFlag::Ambience;
@@ -791,7 +792,7 @@ void BattleScreen::RefreshSelection() {
     }
 
     // No pending action; every highlight cleared.
-    SetPendingAction(kPendingNone, -1, -1);
+    SetPendingAction(PendingAction::None, -1, -1);
 }
 
 // --- the battle screen loses the top -------------------------------------------------------------
@@ -873,9 +874,9 @@ void BattleScreen::KeyDown(UiEvent& event) {
     if (event.repeat) return;
 
     if (event.key == platform::Key::Escape) {
-        if (pendingAction != kPendingNone) {
+        if (pendingAction != PendingAction::None) {
             // The pending action is dropped with every panel's highlight.
-            SetPendingAction(kPendingNone, -1, -1);
+            SetPendingAction(PendingAction::None, -1, -1);
             return;
         }
         g_interface.PushWindow(std::make_unique<EscMenu>(), WindowBackdrop::FirstWindow);
@@ -886,22 +887,22 @@ void BattleScreen::KeyDown(UiEvent& event) {
     const int action = g_keyActions[event.scan];
     Camera* camera = &g_camera;
     switch (action) {
-    case kActionPause: {
+    case KeyAction::Pause: {
         clock->TogglePause();
         event.handled = true;
         return;
     }
-    case kActionNormalSpeed:
-    case kActionFastSpeed: {
+    case KeyAction::NormalSpeed:
+    case KeyAction::FastSpeed: {
         if (g_clientWorld.paused) return;
-        clock->SetSpeed(action == kActionFastSpeed);
+        clock->SetSpeed(action == KeyAction::FastSpeed);
         return;
     }
-    case kActionObjectives:
+    case KeyAction::Objectives:
         clock->OpenObjectives();
         event.handled = true;
         return;
-    case kActionCameraToUnit:
+    case KeyAction::CameraToUnit:
         // The camera follows the first selected member, or nobody.
         for (Unit* member : party) {
             if (member->flags & MapObjectFlag::Selected) {
@@ -911,93 +912,93 @@ void BattleScreen::KeyDown(UiEvent& event) {
         }
         camera->SetTargetId(-1);
         return;
-    case kActionCameraNorth:
+    case KeyAction::CameraNorth:
         map->FaceNorth();
         return;
-    case kActionOrderKey:
-    case kActionOrderKey + 1:
-    case kActionOrderKey + 2:
-    case kActionOrderKey + 3:
-    case kActionOrderKey + 4:
-    case kActionOrderKey + 5:
-        orderKeys[kOrderKeyOfAction[action - kActionOrderKey]] = 1;
+    case KeyAction::OrderKey:
+    case KeyAction::OrderKey + 1:
+    case KeyAction::OrderKey + 2:
+    case KeyAction::OrderKey + 3:
+    case KeyAction::OrderKey + 4:
+    case KeyAction::OrderKey + 5:
+        orderKeys[kOrderKeyOfAction[action - KeyAction::OrderKey]] = 1;
         return;
-    case kActionMoveMode:
-    case kActionMoveMode + 1:
-    case kActionMoveMode + 2:
-    case kActionMoveMode + 3: {
-        movePanel->SetMode(action - kActionMoveMode);
+    case KeyAction::MoveMode:
+    case KeyAction::MoveMode + 1:
+    case KeyAction::MoveMode + 2:
+    case KeyAction::MoveMode + 3: {
+        movePanel->SetMode(action - KeyAction::MoveMode);
         event.handled = true;
         return;
     }
-    case kActionMoveFlag:
+    case KeyAction::MoveFlag:
         movePanel->ToggleFlag();
         event.handled = true;
         return;
-    case kActionFollow:
+    case KeyAction::Follow:
         actionColumn->Select(kFollowButton);
         return;
-    case kActionScience:
+    case KeyAction::Science:
         actionColumn->Select(kScienceButton);
         return;
-    case kActionSpell:
-    case kActionSpell + 1:
-    case kActionSpell + 2:
-    case kActionSpell + 3:
-    case kActionSpell + 4:
-    case kActionSpell + 5:
-    case kActionSpell + 6:
-    case kActionSpell + 7:
+    case KeyAction::Spell:
+    case KeyAction::Spell + 1:
+    case KeyAction::Spell + 2:
+    case KeyAction::Spell + 3:
+    case KeyAction::Spell + 4:
+    case KeyAction::Spell + 5:
+    case KeyAction::Spell + 6:
+    case KeyAction::Spell + 7:
         // With Ctrl or Alt the spell is cast at once.
         if (!g_interface.ctrlDown && !g_interface.altDown)
-            spellColumn->Click(action - kActionSpell);
+            spellColumn->Click(action - KeyAction::Spell);
         else
-            spellColumn->ClickAlternate(action - kActionSpell);
+            spellColumn->ClickAlternate(action - KeyAction::Spell);
         return;
-    case kActionWeapon:
-    case kActionWeapon + 1:
-    case kActionWeapon + 2:
-    case kActionWeapon + 3:
-        weaponBar->Choose(action - kActionWeapon);
+    case KeyAction::Weapon:
+    case KeyAction::Weapon + 1:
+    case KeyAction::Weapon + 2:
+    case KeyAction::Weapon + 3:
+        weaponBar->Choose(action - KeyAction::Weapon);
         return;
-    case kActionQuickItem:
-    case kActionQuickItem + 1:
-    case kActionQuickItem + 2:
-    case kActionQuickItem + 3:
+    case KeyAction::QuickItem:
+    case KeyAction::QuickItem + 1:
+    case KeyAction::QuickItem + 2:
+    case KeyAction::QuickItem + 3:
         // With Ctrl or Alt the item is used at once.
         if (!g_interface.ctrlDown && !g_interface.altDown)
-            quickItems->Pick(action - kActionQuickItem);
+            quickItems->Pick(action - KeyAction::QuickItem);
         else
-            quickItems->UseNow(action - kActionQuickItem);
+            quickItems->UseNow(action - KeyAction::QuickItem);
         return;
-    case kActionBodyPart:
-    case kActionBodyPart + 1:
-    case kActionBodyPart + 2:
-    case kActionBodyPart + 3: {
+    case KeyAction::BodyPart:
+    case KeyAction::BodyPart + 1:
+    case KeyAction::BodyPart + 2:
+    case KeyAction::BodyPart + 3: {
         auto* panel = unitPanel;
-        SlideKey(panel, panel->bodyPart, action - kActionBodyPart,
+        SlideKey(panel, panel->bodyPart, action - KeyAction::BodyPart,
                  [](HudUnitPanel* shown) { shown->ShowBodyPart(); });
         return;
     }
-    case kActionPage:
-    case kActionPage + 1: {
+    case KeyAction::Page:
+    case KeyAction::Page + 1: {
         auto* panel = topPanel;
-        SlideKey(panel, panel->page, action - kActionPage, [](HudTopPanel* shown) { shown->ShowPage(); });
+        SlideKey(panel, panel->page, action - KeyAction::Page, [](HudTopPanel* shown) { shown->ShowPage(); });
         return;
     }
-    case kActionMapSlide:
+    case KeyAction::MapSlide:
         map->slide.Toggle();
         return;
-    case kActionQuickSave:
+    case KeyAction::QuickSave:
         ::QuickSave(kQuickSaveName, false);
         return;
-    case kActionQuickLoad:
+    case KeyAction::QuickLoad:
         QuickLoad(kQuickSaveName);
         return;
-    case kActionMember:
-    case kActionMember + 1:
-    case kActionMember + 2: {
-        const int member = action - kActionMember;
+    case KeyAction::Member:
+    case KeyAction::Member + 1:
+    case KeyAction::Member + 2: {
+        const int member = action - KeyAction::Member;
         g_interface.PlayInterfaceSound(kSoundOnOff);
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
@@ -1005,7 +1006,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
             camera->SetTarget(party[member]);
         return;
     }
-    case kActionSelectAll:
+    case KeyAction::SelectAll:
         if (IsMultiplayerClient()) return;
         g_interface.PlayInterfaceSound(kSoundOnOff);
         for (int i = 0; i < std::ssize(party); ++i) {
@@ -1015,7 +1016,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
         if (!party.empty() && party[0]) Speech(party[0]->id, AckKind::Selected, nullptr);
         RefreshSelection();
         return;
-    case kActionMessage:
+    case KeyAction::Message:
         g_interface.ShowMessage(true);
         event.handled = true;
         return;
@@ -1152,7 +1153,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
     }
 
     switch (pendingAction) {
-    case kPendingNone:
+    case PendingAction::None:
         if (unit) {
             if (unitDead(unit)) {
                 shape = CursorShape::Use;
@@ -1186,7 +1187,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
             }
             return;
         }
-    case kPendingSpellOnUnit: {
+    case PendingAction::SpellOnUnit: {
         if (!unit || unitDead(unit)) {
             shape = CursorShape::SpellCancel;
             break;
@@ -1198,19 +1199,19 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
         shape = CursorShape::Spell;
         break;
     }
-    case kPendingSpellAtPoint:
-    case kPendingQuickAtPoint: {
+    case PendingAction::SpellAtPoint:
+    case PendingAction::QuickAtPoint: {
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if ((IsZero(at.x) && IsZero(at.y)) || !first) {
             shape = CursorShape::SpellCancel;
             break;
         }
-        const bool able = pendingAction == kPendingSpellAtPoint ? first->CanCastSpell(pendingSlot)
+        const bool able = pendingAction == PendingAction::SpellAtPoint ? first->CanCastSpell(pendingSlot)
                                                                  : first->CanUseQuickItem(pendingSlot);
         shape = able ? CursorShape::Spell : CursorShape::SpellCancel;
         break;
     }
-    case kPendingQuickOnUnit: {   // a potion only on the user itself
+    case PendingAction::QuickOnUnit: {   // a potion only on the user itself
         shape = CursorShape::SpellCancel;
         if (!unit || unitDead(unit)) break;
         if (!first || !first->CanUseQuickItem(pendingSlot)) break;
@@ -1219,22 +1220,22 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
         shape = CursorShape::Spell;
         break;
     }
-    case kPendingItemOnObject: {
+    case PendingAction::ItemOnObject: {
         MapObject* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0) ? CursorShape::Use : CursorShape::Cancel;
         break;
     }
-    case kPendingKeyOnObject: {
+    case PendingAction::KeyOnObject: {
         MapObject* target = unit ? unit : objectAt();
         shape = (target && first && target->IsUsable() != 0 && target->AcceptsKey(&itemUseKey) != 0)
                     ? CursorShape::Use
                     : CursorShape::Cancel;
         break;
     }
-    case kPendingFollow:
+    case PendingAction::Follow:
         shape = (first && unit && !unitDead(unit)) ? CursorShape::Move : CursorShape::Cancel;
         break;
-    case kPendingOrder: {
+    case PendingAction::Order: {
         if (unit) {
             shape = CursorShape::Cancel;
             if (!first) break;
@@ -1367,7 +1368,7 @@ void BattleScreen::UseOnUnit(Unit* target, bool quick, bool ctrl) {
         }
         if (able) portraits->Wobble(i, kWobbleNod);
     }
-    SetPendingAction(kPendingNone, -1, -1);
+    SetPendingAction(PendingAction::None, -1, -1);
 }
 
 // The shift below stays for the later members.
@@ -1390,7 +1391,7 @@ void BattleScreen::UseAtPoint(Vector3 point, Unit* unit, bool quick) {
         }
         if (able) portraits->Wobble(i, kWobbleNod);
     }
-    SetPendingAction(kPendingNone, -1, -1);
+    SetPendingAction(PendingAction::None, -1, -1);
 }
 
 // --- a unit's speech event -----------------------------------------------------------------------
@@ -1497,7 +1498,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
     }
 
     switch (pendingAction) {
-    case kPendingNone:
+    case PendingAction::None:
         if (unit) {
             if (unitDead(unit)) {
                 OrderDeadUnit(unit, ctrl);
@@ -1537,38 +1538,38 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
                                                       << " " << at.z);
         }
         return;
-    case kPendingSpellOnUnit:
+    case PendingAction::SpellOnUnit:
         if (!unit || unitDead(unit) || !first) return;
         // `quick` false (Rebirth's FixSpellSelfCasting; the original passed the Ctrl flag).
         UseOnUnit(unit, false, false);
         return;
-    case kPendingSpellAtPoint:
-    case kPendingQuickAtPoint: {
+    case PendingAction::SpellAtPoint:
+    case PendingAction::QuickAtPoint: {
         Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if (IsZero(at.x) && IsZero(at.y)) return;
         if (!first) return;
-        UseAtPoint(at, living, pendingAction == kPendingQuickAtPoint);
+        UseAtPoint(at, living, pendingAction == PendingAction::QuickAtPoint);
         return;
     }
-    case kPendingQuickOnUnit: {
+    case PendingAction::QuickOnUnit: {
         if (!unit || unitDead(unit) || !first) return;
         Item* item = first->GetQuickItem(pendingSlot);
         if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) return;
         UseOnUnit(unit, true, false);
         return;
     }
-    case kPendingItemOnObject:
-    case kPendingKeyOnObject: {
+    case PendingAction::ItemOnObject:
+    case PendingAction::KeyOnObject: {
         MapObject* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (target->IsUsable() == 0) return;
-        if (pendingAction == kPendingKeyOnObject && target->AcceptsKey(&itemUseKey) == 0) return;
+        if (pendingAction == PendingAction::KeyOnObject && target->AcceptsKey(&itemUseKey) == 0) return;
         order(first, target, 0, pendingItem);
         flash(firstIndex);
-        SetPendingAction(kPendingNone, -1, -1);
+        SetPendingAction(PendingAction::None, -1, -1);
         return;
     }
-    case kPendingFollow: {   // every selected member follows the unit
+    case PendingAction::Follow: {   // every selected member follows the unit
         if (!unit || unitDead(unit)) return;
         for (int i = 0; i < std::ssize(party); ++i) {
             Unit* member = party[i];
@@ -1577,10 +1578,10 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
             Speech(party[i]->id, AckKind::Follow, nullptr);
             portraits->Wobble(i, kWobbleNod);
         }
-        SetPendingAction(kPendingNone, -1, -1);
+        SetPendingAction(PendingAction::None, -1, -1);
         return;
     }
-    case kPendingOrder: {   // a unit outside the party, or the object under the mouse
+    case PendingAction::Order: {   // a unit outside the party, or the object under the mouse
         MapObject* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (unit) {
@@ -1592,7 +1593,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
             order(first, target, 0, -1);
         }
         flash(firstIndex);
-        SetPendingAction(kPendingNone, -1, -1);
+        SetPendingAction(PendingAction::None, -1, -1);
         return;
     }
     default:
@@ -1653,18 +1654,18 @@ void BattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
     spellColumn->ClearHighlights();
     actionColumn->ClearHighlights();
     switch (mode) {
-    case kPendingSpellOnUnit:
-    case kPendingSpellAtPoint:
+    case PendingAction::SpellOnUnit:
+    case PendingAction::SpellAtPoint:
         spellColumn->Highlight(slot, true);
         break;
-    case kPendingQuickOnUnit:
-    case kPendingQuickAtPoint:
-    case kPendingItemOnObject:
-    case kPendingKeyOnObject:
+    case PendingAction::QuickOnUnit:
+    case PendingAction::QuickAtPoint:
+    case PendingAction::ItemOnObject:
+    case PendingAction::KeyOnObject:
         quickItems->Highlight(slot, true);
         break;
-    case kPendingFollow:
-    case kPendingOrder:
+    case PendingAction::Follow:
+    case PendingAction::Order:
         actionColumn->Highlight(slot, true);
         break;
     default:

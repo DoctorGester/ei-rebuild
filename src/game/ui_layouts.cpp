@@ -194,21 +194,21 @@ void MessageWindow::CreateScreen() {
     int font = question != MessageQuestion::Exit ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     Rect area = {15, 0, 385, 200};
-    int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
+    int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::Format::Center | render::text::Format::WordBreak | render::text::Format::CalcRect});
     area = Rect{15, 0, 385, 400};
-    int textHeight = surface->DrawTextIn(text, area, TextStyle{font, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
+    int textHeight = surface->DrawTextIn(text, area, TextStyle{font, 0, render::text::Format::Center | render::text::Format::WordBreak | render::text::Format::CalcRect});
     // An edit field takes one line of the font (the extent of "A").
     const bool editing = buttons == MessageButtons::OkCancelEdit;
     if (editing) textHeight = g_interface.TextExtent("A", font).h;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
-    labels.push_back({title, Rect{15, top - 35, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
+    labels.push_back({title, Rect{15, top - 35, 385, 450}, {2, 0x31B3FF, render::text::Format::Center | render::text::Format::WordBreak}});
     if (editing) {
         edit = AddChild(std::make_unique<UiEditField>(Rect{215, top + titleHeight + 30, 585, height + top + 30}));
         edit->SetLook(15, 0, font, 0x32, kUiTextColour, 0x31B3FF);
         edit->SetText(editText);
     } else {
-        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, {font, kUiTextColour, render::text::kCenter | render::text::kWordBreak}});
+        labels.push_back({text, Rect{15, top + titleHeight - 20, 385, 450}, {font, kUiTextColour, render::text::Format::Center | render::text::Format::WordBreak}});
     }
 
     int bottom = top + height + 0x3C;
@@ -248,19 +248,19 @@ void DifficultyBox::CreateScreen() {
     labels.clear();
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     Rect area = {15, 0, 385, 200};
-    int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::kCenter | render::text::kWordBreak | render::text::kCalcRect});
+    int titleHeight = surface->DrawTextIn(title, area, TextStyle{2, 0, render::text::Format::Center | render::text::Format::WordBreak | render::text::Format::CalcRect});
     std::string explanation;
     int textHeight = 0;
     if (g_clientWorld.texts->Open("tip option_difficulty") != 0) {
         explanation = g_clientWorld.texts->ReadToHash();
         str::TrimRight(explanation, "\r\n");
         area = Rect{15, 0, 385, 300};
-        textHeight = surface->DrawTextIn(explanation, area, TextStyle{1, 0, render::text::kWordBreak | render::text::kCalcRect});
+        textHeight = surface->DrawTextIn(explanation, area, TextStyle{1, 0, render::text::Format::WordBreak | render::text::Format::CalcRect});
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
-    labels.push_back({title, Rect{15, top - 0x55, 385, 450}, {2, 0x31B3FF, render::text::kCenter | render::text::kWordBreak}});
-    labels.push_back({explanation, Rect{15, titleHeight + top - 7, 385, 450}, {1, kUiTextColour, render::text::kWordBreak}});
+    labels.push_back({title, Rect{15, top - 0x55, 385, 450}, {2, 0x31B3FF, render::text::Format::Center | render::text::Format::WordBreak}});
+    labels.push_back({explanation, Rect{15, titleHeight + top - 7, 385, 450}, {1, kUiTextColour, render::text::Format::WordBreak}});
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     std::string newEasy;

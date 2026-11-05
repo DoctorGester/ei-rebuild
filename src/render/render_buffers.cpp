@@ -69,8 +69,8 @@ bool GeometryStream::Upload(const std::vector<Vertex>& vertexData, const std::ve
     vertexOffset = vertices.Append(vertexData.data(), vertexBytes);
     indexOffset = indices.Append(indexData.data(), indexBytes);
     FrameStats& stats = g_stats;
-    (terrain ? stats.counts[FrameStats::TerrainVertexBytes] : stats.counts[FrameStats::MeshVertexBytes]) += vertexBytes;
-    (terrain ? stats.counts[FrameStats::TerrainIndexBytes] : stats.counts[FrameStats::MeshIndexBytes]) += indexBytes;
+    (terrain ? stats.counts[FrameStats::Count::TerrainVertexBytes] : stats.counts[FrameStats::Count::MeshVertexBytes]) += vertexBytes;
+    (terrain ? stats.counts[FrameStats::Count::TerrainIndexBytes] : stats.counts[FrameStats::Count::MeshIndexBytes]) += indexBytes;
     return vertexOffset >= 0 && indexOffset >= 0;
 }
 

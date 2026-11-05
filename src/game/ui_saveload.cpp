@@ -129,8 +129,8 @@ constexpr float kMinutesPerHour = 60.0f;
 
 constexpr int kFont = 1;
 constexpr TextStyle kRowText{kFont, kUiTextColour};
-constexpr TextStyle kRowTextNoPrefix{kFont, kUiTextColour, render::text::kNoPrefix};
-constexpr TextStyle kRowTextRight{kFont, kUiTextColour, render::text::kRight};
+constexpr TextStyle kRowTextNoPrefix{kFont, kUiTextColour, render::text::Format::NoPrefix};
+constexpr TextStyle kRowTextRight{kFont, kUiTextColour, render::text::Format::Right};
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 constexpr int kRowHeight = 24;
 constexpr int kFirstRowY = 120;          // the marker's layout y for the first row

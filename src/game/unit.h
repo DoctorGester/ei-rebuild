@@ -10,6 +10,7 @@
 #include "unit_motion.h"
 
 #include "lib/containers.h"
+#include "lib/enum_array.h"
 #include "lib/crt.h"
 
 #include <array>
@@ -127,6 +128,7 @@ static_assert(sizeof(UnitParams) == 0x108);   // sent as its 264 bytes
 struct PathOrder;
 struct SpeechRecord;
 class Unit;
+enum class ExposureKind : int;   // below
 
 // A unit's movement mode (Unit::moveMode, the wanted moveMode2, the scripts' Lie / Crawl / Walk / Run style, the
 // movement modes' sectors of the interface): the numbers of the animation data. Run is 3 for the unit and the
@@ -521,16 +523,16 @@ public:
     ItemArmor* armor[7] = {};           // a piece per armour type
     std::vector<Item*> carried;    // further items, each holding a reference
     float actionSpeeds[6] = {};     // per action kind (ActionSpeed; from the model record)
-    std::array<float, 5> exposure = {};         // by ExposureKind; any at most 2 (or NaN) asks for a party refresh
+    lib::EnumArray<float, ExposureKind, 5> exposure = {};         // by ExposureKind; any at most 2 (or NaN) asks for a party refresh
 };
 
 // The slots of Unit::exposure: how near the nearest hostile unit is to sensing this one, as distance / range (at most 3).
-enum ExposureKind {
-    kExposureSight = 0,
-    kExposureSlot4 = 1,     // the kSenseSlot4 pair
-    kExposureHearing = 2,
-    kExposureUnused = 3,    // never written: stays 3
-    kExposureNear = 4,
+enum class ExposureKind : int {
+    Sight = 0,
+    Slot4 = 1,     // the Sense::Slot4 pair
+    Hearing = 2,
+    Unused = 3,    // never written: stays 3
+    Near = 4,
 };
 
 // Unit::fightAtWill of a unit that attacks on its own.
@@ -615,18 +617,18 @@ constexpr bool NoPadding(const UnitVitals*) {
 
 // The slots of UnitStats::perception (what a unit senses) and UnitStats::conspicuity (what others sense of it). A
 // seer's perception multiplies the seen unit's conspicuity in the same slot.
-enum Sense {
-    kSenseSight = 0,        // perception: the sight range at night; conspicuity: how visible the unit is
-    kSenseDaySight = 1,     // perception only: the sight range's percentage by day
-    kSenseNear = 2,         // the range sensed whatever the light / how near it is sensed
-    kSenseHearing = 3,      // perception: hearing; conspicuity: how loud the unit is (the noise it makes)
-    kSenseSlot4 = 4,        // read only by AIMemory::MeasureExposure; effect 19 raises its conspicuity
+enum class Sense : int {
+    Sight = 0,        // perception: the sight range at night; conspicuity: how visible the unit is
+    DaySight = 1,     // perception only: the sight range's percentage by day
+    Near = 2,         // the range sensed whatever the light / how near it is sensed
+    Hearing = 3,      // perception: hearing; conspicuity: how loud the unit is (the noise it makes)
+    Slot4 = 4,        // read only by AIMemory::MeasureExposure; effect 19 raises its conspicuity
 };
 
 // A creature's computed statistics (built from the unit's parameters).
 struct UnitStats {
     // Indices of combat[].
-    enum CombatIndex { kReach, kAttack, kAttackSpread, kDefence, kSpeed };
+    enum class CombatIndex : int { Reach, Attack, AttackSpread, Defence, Speed };
     // Period20: 25 / intelligence.
     float Period20();
     // The item panel's lines: strength over the setting "HP Val 1", dexterity over "MP Val 1".
@@ -802,16 +804,16 @@ struct UnitStats {
     std::int16_t unused_06A = 0;
     std::int16_t sizeClass20 = 0;   // the same for 0.2 times the size
     std::int16_t sizeClass60 = 0;   // and for 0.6 times the size
-    float combat[5] = {};           // reach, attack, attack spread, defence, speed (the prototype's)
+    lib::EnumArray<float, CombatIndex, 5> combat;   // the prototype's
     float damage = 0.0f;
     float damageSpread = 0.0f;
     float attackCategory = 0.0f;    // the natural attack's category (UnitPrototypeRecord::attackCategory)
     float damageWeights[7] = {};    // the natural attack's, per damage type
     WeaponType naturalWeapon = {};  // weapon type of the natural attack (SpellsOnly: none)
     // What the unit senses (the AI's sight and hearing), by Sense.
-    UnitStatPair perception[6];
+    lib::EnumArray<UnitStatPair, Sense, 6> perception;
     // What others sense of it, multiplied with their perception, by Sense.
-    UnitStatPair conspicuity[6];
+    lib::EnumArray<UnitStatPair, Sense, 6> conspicuity;
     UnitStatSlot slots[6];
     std::uint8_t attributes[3] = {};
     std::uint8_t skills[8] = {};

@@ -28,13 +28,13 @@ namespace {
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;   // "MMP"
 
-// The format of a blank texture of `kind`; 0 for another kind.
-std::uint32_t BlankFormatOf(TextureKind kind) {
+// The format of a blank texture of `kind`; None for another kind.
+MmpFormat BlankFormatOf(TextureKind kind) {
     switch (kind) {
-    case TextureKind::Blank565: return kMmpFormat565;
-    case TextureKind::Blank1555: return kMmpFormat1555;
-    case TextureKind::Blank4444: return kMmpFormat4444;
-    default: return 0;
+    case TextureKind::Blank565: return MmpFormat::R5G6B5;
+    case TextureKind::Blank1555: return MmpFormat::A1R5G5B5;
+    case TextureKind::Blank4444: return MmpFormat::A4R4G4B4;
+    default: return MmpFormat::None;
     }
 }
 
@@ -55,7 +55,7 @@ void Texture::TakeBlankHolder(TextureDevice* device, int newWidth, int newHeight
 int Texture::CreateBlank(TextureDevice* device, const MmpHeader* header) {
     // The atlases keep one level, as the original's every blank texture (a level below would mix neighbouring cells);
     // the others get their levels made after each draw.
-    TakeBlankHolder(device, static_cast<int>(header->width), static_cast<int>(header->height), format != kMmpFormat1555);
+    TakeBlankHolder(device, static_cast<int>(header->width), static_cast<int>(header->height), format != MmpFormat::A1R5G5B5);
     // The original meant bits * width * height / 8 but took the bits from a field its channel split never writes.
     uploadResult = 0;
     return 1;
@@ -66,7 +66,7 @@ Texture* TextureManager::NewTexture(int width, int height, TextureKind kind) {
     MmpHeader header{};
     texture->width = static_cast<std::uint32_t>(width);
     texture->height = static_cast<std::uint32_t>(height);
-    if (const std::uint32_t blankFormat = BlankFormatOf(kind)) {
+    if (const MmpFormat blankFormat = BlankFormatOf(kind); blankFormat != MmpFormat::None) {
         texture->format = blankFormat;
         header.SetFormat(blankFormat);
     }
@@ -133,9 +133,9 @@ std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
     return larger + extraSize;
 }
 
-std::uint32_t MmpHeader::FilledBytes(std::uint32_t heldFormat, unsigned mip, unsigned levels) const {
+std::uint32_t MmpHeader::FilledBytes(MmpFormat heldFormat, unsigned mip, unsigned levels) const {
     std::uint32_t bits = bitsPerPixel;
-    if ((format & 0xFFFFFF) == kDxtTag && heldFormat != format) bits = 16;   // decoded into an RGB format
+    if ((static_cast<std::uint32_t>(format) & 0xFFFFFF) == kDxtTag && heldFormat != format) bits = 16;   // decoded into an RGB format
     std::uint32_t w = width >> (mip & 31);
     std::uint32_t h = height >> (mip & 31);
     std::uint32_t total = 0;
@@ -422,7 +422,7 @@ int Texture::CreateComposed(TextureDevice* device, const ComposedTexture& compos
         files.push_back(file.data);
         const MmpHeader& h = file.header;
         const std::uint32_t skipped = static_cast<std::uint32_t>(sizeof(MmpHeader)) + h.extraSize;
-        const render::ImageLayout layout = h.format == kMmpFormatPnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb;
+        const render::ImageLayout layout = h.format == MmpFormat::Pnt3 ? render::ImageLayout::Pnt3 : render::ImageLayout::Argb;
         images.push_back(render::TextureImage{file.Body() + h.extraSize, size > skipped ? size - skipped : 0,
                                               static_cast<int>(h.width), static_cast<int>(h.height), layout});
     }

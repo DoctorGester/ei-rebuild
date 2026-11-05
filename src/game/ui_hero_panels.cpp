@@ -160,7 +160,7 @@ void HeroStatsPanel::ShowStats(int newPage) {
 
 void HeroStatsPanel::DrawStats() {
     labels.clear();
-    labels.push_back({title, Rect{0, 0x1B, 0xC8, 0x2B}, {1, 0xFFFFFF, render::text::kCenter}});
+    labels.push_back({title, Rect{0, 0x1B, 0xC8, 0x2B}, {1, 0xFFFFFF, render::text::Format::Center}});
 
     auto hero = [this]() { return owner->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
@@ -198,12 +198,12 @@ void HeroStatsPanel::DrawStats() {
             float value = static_cast<float>(values[i]);
             storedStats[i] = value;
             std::uint32_t colour = value > minimum ? kUiTextColour : kGrey;
-            labels.push_back({"-", area, {0, colour, render::text::kCenter}});
+            labels.push_back({"-", area, {0, colour, render::text::Format::Center}});
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        labels.push_back({"-", area, {0, points <= 0 ? kGrey : kUiTextColour, render::text::kCenter}});
+        labels.push_back({"-", area, {0, points <= 0 ? kGrey : kUiTextColour, render::text::Format::Center}});
 
         // "+": while below 35 and points are left.
         int left = static_cast<int>(75.0f - sumF);
@@ -212,12 +212,12 @@ void HeroStatsPanel::DrawStats() {
         for (int i = 0; i < 3; ++i) {
             bool below = storedStats[i] < maximum;
             std::uint32_t colour = below && left > 0 ? kUiTextColour : kGrey;
-            labels.push_back({"+", area, {0, colour, render::text::kCenter}});
+            labels.push_back({"+", area, {0, colour, render::text::Format::Center}});
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        labels.push_back({"+", area, {0, points >= 100 ? kGrey : kUiTextColour, render::text::kCenter}});
+        labels.push_back({"+", area, {0, points >= 100 ? kGrey : kUiTextColour, render::text::Format::Center}});
     } else if (page == 0) {
         area = Rect{0x14, 0x41, 0xAF, 0x50};
         text = clientWorldTexts->GetString("infoitem_25");
@@ -242,12 +242,12 @@ void HeroStatsPanel::DrawStats() {
             line = std::format("     {}", texts[0]);
             labels.push_back({line, area, {0, kUiTextColour}});
             line = std::format("{}", info.attack);
-            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::Format::Right}});
             Down(&area);
             line = std::format("     {}", texts[1]);
             labels.push_back({line, area, {0, kUiTextColour}});
             line = std::format("{}", info.defence);
-            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::Format::Right}});
             Down(&area);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
                 line = std::format("damage_{}", info.damageType);
@@ -258,7 +258,7 @@ void HeroStatsPanel::DrawStats() {
             int high = static_cast<int>(info.damageMax);
             int low = static_cast<int>(info.damageMin);
             line = std::format("{}-{}", low, high);
-            labels.push_back({line, area, {0, kUiTextColour, render::text::kRight}});
+            labels.push_back({line, area, {0, kUiTextColour, render::text::Format::Right}});
             Down(&area);
             Down(&area);
         }
@@ -266,7 +266,7 @@ void HeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
-        if (weight > capacity) labels.push_back({texts[4], area, {0, 0xFF, render::text::kRight}});
+        if (weight > capacity) labels.push_back({texts[4], area, {0, 0xFF, render::text::Format::Right}});
         Down(&area);
         labels.push_back({texts[7], area, {0, kUiTextColour}});
     } else {
@@ -297,7 +297,7 @@ void HeroStatsPanel::DrawStats() {
         int capacity = static_cast<int>(stats->capacity);
         DrawRow(area, "Encumbrance", weight, capacity);
         Down(&area);
-        if (weight > capacity) labels.push_back({texts[4], area, {0, 0xFF, render::text::kRight}});
+        if (weight > capacity) labels.push_back({texts[4], area, {0, 0xFF, render::text::Format::Right}});
         Down(&area);
     }
 }

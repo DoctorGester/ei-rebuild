@@ -196,7 +196,7 @@ PassState ReadPassState(const TextureDevice* device) {
         to.texture = SurfaceView(holder);
         if (stage == 0) pass.patch = PatchOf(holder);
     }
-    ++g_stats.counts[FrameStats::StateReads];
+    ++g_stats.counts[FrameStats::Count::StateReads];
     return pass;
 }
 
@@ -250,7 +250,7 @@ void ApplyPassState(gpu::PipelineDesc& desc, const PassState& state) {
     desc.colour = kColourFormat;
     // The old render target has no alpha channel: destination alpha reads as one, so the new
     // target's alpha stays at the clear value.
-    desc.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
+    desc.colourMask = gpu::ColourMask::Red | gpu::ColourMask::Green | gpu::ColourMask::Blue;
     if (state.blend) {
         gpu::BlendFactor source = ToGpu(state.sourceBlend), dest = ToGpu(state.destBlend);
         if (state.sourceBlend == Blend::BothSourceAlpha) {
@@ -404,17 +404,17 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     const StageCombiner& c0 = state.stages[0].combiner;
     const StageCombiner& c1 = state.stages[1].combiner;
     fs.colourStage0[0] = static_cast<int>(c0.colourOp);
-    fs.colourStage0[1] = c0.colourArg1;
-    fs.colourStage0[2] = c0.colourArg2;
+    fs.colourStage0[1] = static_cast<int>(c0.colourArg1);
+    fs.colourStage0[2] = static_cast<int>(c0.colourArg2);
     fs.colourStage1[0] = static_cast<int>(c0.colourOp != TextureOp::Disable ? c1.colourOp : TextureOp::Disable);
-    fs.colourStage1[1] = c1.colourArg1;
-    fs.colourStage1[2] = c1.colourArg2;
+    fs.colourStage1[1] = static_cast<int>(c1.colourArg1);
+    fs.colourStage1[2] = static_cast<int>(c1.colourArg2);
     fs.alphaStage0[0] = static_cast<int>(c0.alphaOp);
-    fs.alphaStage0[1] = c0.alphaArg1;
-    fs.alphaStage0[2] = c0.alphaArg2;
+    fs.alphaStage0[1] = static_cast<int>(c0.alphaArg1);
+    fs.alphaStage0[2] = static_cast<int>(c0.alphaArg2);
     fs.alphaStage1[0] = static_cast<int>(c1.alphaOp);
-    fs.alphaStage1[1] = c1.alphaArg1;
-    fs.alphaStage1[2] = c1.alphaArg2;
+    fs.alphaStage1[1] = static_cast<int>(c1.alphaArg1);
+    fs.alphaStage1[2] = static_cast<int>(c1.alphaArg2);
     fs.specular = state.specular ? 1 : 0;
     fs.alphaFunc = state.alphaTest ? static_cast<int>(state.alphaFunc) : 0;
     fs.alphaReference = state.alphaReference;
@@ -442,7 +442,7 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     NoteMeshDraw(mesh);
     if (!device || !mesh.matrix) return;
     Start();
-    Timer timer(FrameStats::HandOverMs);
+    Timer timer(FrameStats::Time::HandOverMs);
     Frame& f = g_frame;
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
         LogFirst(g_dropped, 1, "render: too many meshes in one frame; the rest are dropped");
@@ -490,11 +490,11 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
 void MeshPass(const TextureDevice* device) {
     // Not handed over (BeginMesh logged why) or given up after a failed Build.
     if (!g_pending.active || device != g_pending.device) return;
-    Timer timer(FrameStats::HandOverMs);
+    Timer timer(FrameStats::Time::HandOverMs);
     Frame& f = g_frame;
     if (!g_pending.built) {
         g_pending.built = true;
-        ++g_stats.counts[FrameStats::Meshes];
+        ++g_stats.counts[FrameStats::Count::Meshes];
         if (g_pending.caster) NoteCasterPart(MeshSourceOwner());
         // A figure mesh kept on the GPU, else its vertices into the frame's stream.
         g_pending.cached = KeepMesh(g_pending.mesh);
@@ -510,8 +510,8 @@ void MeshPass(const TextureDevice* device) {
             }
             CountReuse(false, g_pending.mesh.positions, 0, f.meshVertices.data() + first, f.meshVertices.size() - first);
             if (!g_pending.mesh.corners) {
-                ++g_stats.counts[FrameStats::FlatMeshes];
-                g_stats.counts[FrameStats::FlatVertexBytes] += (f.meshVertices.size() - first) * sizeof(Vertex);
+                ++g_stats.counts[FrameStats::Count::FlatMeshes];
+                g_stats.counts[FrameStats::Count::FlatVertexBytes] += (f.meshVertices.size() - first) * sizeof(Vertex);
             }
         }
         if (g_pending.boxed) {
@@ -546,9 +546,9 @@ void MeshPass(const TextureDevice* device) {
             batch.uOffset = g_pending.mesh.uOffset;
             batch.vOffset = g_pending.mesh.vOffset;
         }
-        ++g_stats.counts[FrameStats::MeshPasses];
+        ++g_stats.counts[FrameStats::Count::MeshPasses];
         f.meshBatches.push_back(batch);
-        f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
+        f.commands.push_back(Command{Command::Kind::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
 }
 
@@ -578,8 +578,8 @@ void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vert
         Refuse(OtherFvf, "a pre-transformed draw in another vertex format");
         return;
     }
-    Timer timer(FrameStats::HandOverMs);
-    ++g_stats.counts[FrameStats::TransformedDraws];
+    Timer timer(FrameStats::Time::HandOverMs);
+    ++g_stats.counts[FrameStats::Count::TransformedDraws];
     const std::optional<Size> target = GameTargetSize();
     if (!target) {
         Refuse(NoTargetSize, "a pre-transformed draw with no render target size");
@@ -628,7 +628,7 @@ void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vert
         batch.zScale = 1.0f;
         batch.lines = lines;
         f.meshBatches.push_back(batch);
-        f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
+        f.commands.push_back(Command{Command::Kind::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     } else {
         f.meshVertices.resize(base);
     }
@@ -637,8 +637,8 @@ void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vert
 void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
     if (!device || !vertices || count <= 0) return;   // nothing to draw
     Start();
-    Timer timer(FrameStats::HandOverMs);
-    ++g_stats.counts[FrameStats::TransformedDraws];
+    Timer timer(FrameStats::Time::HandOverMs);
+    ++g_stats.counts[FrameStats::Count::TransformedDraws];
     const std::optional<Size> target = GameTargetSize();
     if (!target) {
         Refuse(NoTargetSize, "a screen draw with no render target size");
@@ -672,7 +672,7 @@ void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int c
         batch.zScale = 1.0f;
         batch.lines = lines;
         f.meshBatches.push_back(batch);
-        f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
+        f.commands.push_back(Command{Command::Kind::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
 }
 

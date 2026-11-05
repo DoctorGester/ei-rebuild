@@ -97,21 +97,21 @@ void TransformPipeline::Project(const Matrix4& m, const VertexPacket* positions,
     }
 }
 
-int TransformPipeline::ProjectClipped(const Matrix4& m, const VertexPacket* positions, Vector4* projected,
+TransformPipeline::ClipResult TransformPipeline::ProjectClipped(const Matrix4& m, const VertexPacket* positions, Vector4* projected,
                                        std::uint8_t* outcodes, int blocks) const {
-    return ProjectToClip(
-        *this, m, [positions](int i) { return render::PacketVertex(positions, i); }, projected, outcodes, blocks * 4);
+    return static_cast<ClipResult>(ProjectToClip(
+        *this, m, [positions](int i) { return render::PacketVertex(positions, i); }, projected, outcodes, blocks * 4));
 }
 
 void TransformPipeline::ProjectPoints(const Matrix4& m, const Vector3* points, Vector4* projected, int count) {
     for (int i = 0; i < count; ++i) projected[i] = Divided(ToClip(m, points[i]));
 }
 
-int TransformPipeline::ProjectPointsClipped(const Matrix4& m, const Vector3* points, Vector4* projected,
+TransformPipeline::ClipResult TransformPipeline::ProjectPointsClipped(const Matrix4& m, const Vector3* points, Vector4* projected,
                                              std::uint8_t* outcodes, int count) const {
-    return ProjectToClip(
+    return static_cast<ClipResult>(ProjectToClip(
         *this, m, [points](int i) { return points[i]; }, projected, outcodes,
-        count);
+        count));
 }
 
 // A sprite's corners lie `size` / w times the viewport's half width to either side of its centre on the screen (the

@@ -126,7 +126,7 @@ std::int16_t SizeClassOf(float size, float load) {
 float UnitServer::AttackRange() {
     ItemWeapon* weapon = unit->ActiveWeapon();
     if (weapon) return weapon->reach;
-    return stats.combat[UnitStats::kReach];
+    return stats.combat[UnitStats::CombatIndex::Reach];
 }
 
 bool UnitServer::HasRangedWeapon() {
@@ -136,7 +136,7 @@ bool UnitServer::HasRangedWeapon() {
 
 bool UnitServer::AttacksFromRange() {
     ItemWeapon* weapon = unit->ActiveWeapon();
-    if (!weapon) return stats.naturalWeapon != WeaponType::SpellsOnly && stats.combat[UnitStats::kReach] > 1.0f;
+    if (!weapon) return stats.naturalWeapon != WeaponType::SpellsOnly && stats.combat[UnitStats::CombatIndex::Reach] > 1.0f;
     return weapon->IsRanged();
 }
 
@@ -235,7 +235,7 @@ float UnitServer::ActionDistance(const AIOrder* order) {
     UnitOrderKind kind = order->kind;
     MapObject* target = order->target;
     if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn) {
-        if (!unit->player && stats.naturalWeapon == WeaponType::SpellsOnly) return stats.combat[UnitStats::kReach];
+        if (!unit->player && stats.naturalWeapon == WeaponType::SpellsOnly) return stats.combat[UnitStats::CombatIndex::Reach];
         Spell* spell = SpellOfSource(order->source);
         if (spell) return SpellRange(spell);
         return kTen;
@@ -255,12 +255,12 @@ float UnitServer::ActionDistance(const AIOrder* order) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kPointTwo;
         ItemWeapon* weapon = unit->ActiveWeapon();
-        float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
+        float range = weapon ? weapon->reach : stats.combat[UnitStats::CombatIndex::Reach];
         float reach = MaxKeepB(range, floor);
         return (unit->standingHeight + other->standingHeight) + reach;
     }
     ItemWeapon* weapon = unit->ActiveWeapon();
-    float range = weapon ? weapon->reach : stats.combat[UnitStats::kReach];
+    float range = weapon ? weapon->reach : stats.combat[UnitStats::CombatIndex::Reach];
     float own = unit->Radius();
     return (target->Radius() + own) + range;
 }
@@ -327,9 +327,9 @@ void UnitServer::GetAttackParams(AttackParams* out) {
     } else {
         out->damageMin = stats.damage;
         out->damageMax = stats.damageSpread + stats.damage;
-        out->attack = lib::Truncate(stats.combat[UnitStats::kAttack]);
-        out->defence = lib::Truncate(stats.combat[UnitStats::kDefence]);
-        out->speed = stats.combat[UnitStats::kSpeed];
+        out->attack = lib::Truncate(stats.combat[UnitStats::CombatIndex::Attack]);
+        out->defence = lib::Truncate(stats.combat[UnitStats::CombatIndex::Defence]);
+        out->speed = stats.combat[UnitStats::CombatIndex::Speed];
         if (weapon) {
             out->weaponType = weapon->GetType();
             out->damageType = WeaponDamageType(weapon->prototypeId);
@@ -350,7 +350,7 @@ void UnitServer::GetAttackParams(AttackParams* out) {
     if (IsRanged(out->weaponType)) out->defence = 0;
     out->damageMax = ScaleDamageByEffects(self, out->damageMax);
     out->damageMin = ScaleDamageByEffects(self, out->damageMin);
-    out->attackSpread = stats.combat[UnitStats::kAttackSpread];
+    out->attackSpread = stats.combat[UnitStats::CombatIndex::AttackSpread];
     out->ScaleForDifficulty(keyed);
 }
 
@@ -419,7 +419,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
         std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
         float factor = keyed ? 1.0f : DifficultyAttackFactor();
-        float roll = factor * stats.combat[UnitStats::kAttack];
+        float roll = factor * stats.combat[UnitStats::CombatIndex::Attack];
         out->attackRoll = roll;
         float extra = 0.0f;
         float spread = stats.damageSpread;
@@ -536,31 +536,31 @@ void UnitServer::UpdateSizeClasses() {
 void UnitServer::UpdateMoveFactors() {
     const WorldServer* world = ServerWorld();
     float factor = world->nightLevel;
-    float scaled = (factor * stats.perception[kSenseDaySight].current) * kWorldFactorScale;
-    moveFactors[kFactorNoise] = 1.0f;
-    moveFactors[kFactorVisibility] = 1.0f;
-    moveFactors[kFactorHearing] = 1.0f;
+    float scaled = (factor * stats.perception[Sense::DaySight].current) * kWorldFactorScale;
+    moveFactors[MoveFactor::Noise] = 1.0f;
+    moveFactors[MoveFactor::Visibility] = 1.0f;
+    moveFactors[MoveFactor::Hearing] = 1.0f;
     float sum = scaled + (1.0f - factor);
-    moveFactors[kFactorSight] = world->weatherFactor * sum;
+    moveFactors[MoveFactor::Sight] = world->weatherFactor * sum;
     if (unit->moveMode == MoveMode::Lie) {
-        moveFactors[kFactorVisibility] = kMode0Factor2;
+        moveFactors[MoveFactor::Visibility] = kMode0Factor2;
     } else if (unit->moveMode == MoveMode::Crawl) {
-        moveFactors[kFactorVisibility] = kMode1Factor2;
+        moveFactors[MoveFactor::Visibility] = kMode1Factor2;
     }
     if (state == UnitState::Idle) {
-        if (unit->moveMode == MoveMode::Lie) moveFactors[kFactorNoise] = kIdleMode0Factor0;
-        else if (unit->moveMode == MoveMode::Crawl) moveFactors[kFactorNoise] = kIdleMode1Factor0;
+        if (unit->moveMode == MoveMode::Lie) moveFactors[MoveFactor::Noise] = kIdleMode0Factor0;
+        else if (unit->moveMode == MoveMode::Crawl) moveFactors[MoveFactor::Noise] = kIdleMode1Factor0;
         if (unit->moveMode == MoveMode::Run) {
-            moveFactors[kFactorNoise] = kIdleMode3Scale * moveFactors[kFactorNoise];
-            moveFactors[kFactorHearing] = kIdleMode3Factor1;
+            moveFactors[MoveFactor::Noise] = kIdleMode3Scale * moveFactors[MoveFactor::Noise];
+            moveFactors[MoveFactor::Hearing] = kIdleMode3Factor1;
         }
     } else {
-        moveFactors[kFactorNoise] = 0.0f;
+        moveFactors[MoveFactor::Noise] = 0.0f;
     }
     if (state == UnitState::Acting && (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn)) {
         Spell* spell = SpellOfSource(action.source);
         if (spell && spell->GetPrototype()->castType != 1)
-            moveFactors[kFactorVisibility] = kCastingFactor2 * moveFactors[kFactorVisibility];
+            moveFactors[MoveFactor::Visibility] = kCastingFactor2 * moveFactors[MoveFactor::Visibility];
     }
     if (state != UnitState::Idle) {
         speedClass = 15;
@@ -716,7 +716,7 @@ void UnitServer::UpdateProtection() {
         float bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);
         protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(bonus * factor));
     } else {
-        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(factor * stats.combat[UnitStats::kDefence]));
+        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(factor * stats.combat[UnitStats::CombatIndex::Defence]));
     }
 }
 

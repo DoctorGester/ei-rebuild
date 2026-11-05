@@ -110,17 +110,17 @@ public:
     static constexpr int kViewStack = 9;
 
     // ClipTest's verdicts, also the result of the device's mesh draws.
-    enum ClipResult : int { kClipInside = 0, kClipCrossing = 1, kClipOutside = 2 };
+    enum class ClipResult : int { Inside = 0, Crossing = 1, Outside = 2 };
     // Classifies `bounds` against the view volume of the current (top) matrix:
-    // kClipOutside = entirely outside one clip plane, kClipInside = entirely inside, kClipCrossing = crossing or
+    // ClipResult::Outside = entirely outside one clip plane, ClipResult::Inside = entirely inside, ClipResult::Crossing = crossing or
     // not decided. The cube (flag 0) is tried first, then the box (flag 1).
-    int ClipTest(const ClipBounds* bounds) const;
+    ClipResult ClipTest(const ClipBounds* bounds) const;
     // Pushes `m` onto stack `index`: an empty stack gets `m` itself, otherwise the new top is the old top
     // times `m` (no capacity check).
     void PushMatrix(const float* m, int index);
     // The verdict on `blocks` packets of four positions as ClipTest classifies `bounds` (null: crossing): 0 on
     // screen, 2 outside, and when crossing ProjectClipped's with stack 2's top (writing `projected` and `outcodes`).
-    int ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes, int blocks,
+    ClipResult ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes, int blocks,
                       const ClipBounds* bounds) const;
     // PushMatrix as the draw code inlines it: the new top by Matrix4::Multiply, whose elements sum in
     // another order.
@@ -150,12 +150,12 @@ public:
     static void Project(const Matrix4& m, const VertexPacket* positions, Vector4* projected, int blocks);
     // The positions of `blocks` packets of four to clip space with `m` (ToClip) into `projected`, an outcode
     // each; returns the verdict (ClipVerdict). On screen (0) they are taken to the screen (ToScreen).
-    int ProjectClipped(const Matrix4& m, const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
+    ClipResult ProjectClipped(const Matrix4& m, const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
                        int blocks) const;
     // The same for `count` ribbon points: Project's division without clipping (with ToClip's sums), and
     // ProjectClipped's.
     static void ProjectPoints(const Matrix4& m, const Vector3* points, Vector4* projected, int count);
-    int ProjectPointsClipped(const Matrix4& m, const Vector3* points, Vector4* projected, std::uint8_t* outcodes,
+    ClipResult ProjectPointsClipped(const Matrix4& m, const Vector3* points, Vector4* projected, std::uint8_t* outcodes,
                              int count) const;
     // `count` screen-facing sprites, their centres to the screen with `m` (the clip stack's top), as four
     // corners each (positions only; `size` the half side at w 1).
@@ -289,7 +289,7 @@ public:
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
     // lengthwise), `slant` 0.25 at every call known.
-    int DrawStrip(const std::vector<Vector3>* points, float width, int visibility, float length, float offset,
+    int DrawStrip(const std::vector<Vector3>* points, float width, TransformPipeline::ClipResult visibility, float length, float offset,
                   float slant);
     // Draws sprites facing the view with the bound texture: `points` their centres and sizes, `sprites` an array of
     // their colours and texture rectangles. The first argument is 0 at every call known.

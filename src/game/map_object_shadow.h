@@ -9,6 +9,7 @@
 #include "engine_object.h"
 #include "map_object_figures.h"   // Object3D, Object3DSpecific (the base half)
 #include "material.h"             // Material
+#include "lib/bit_flags.h"
 #include "lib/vecmath.h"
 #include "model.h"   // ClipBounds, SceneRenderer (the draws' context), TransformPipeline
 #include "lib/rect.h"   // RECT
@@ -39,10 +40,11 @@ struct TextureParts {
 struct WoundsMaterial;
 
 // The client half's `flags` bits.
-enum ClientHalfFlag : std::uint32_t {
-    kHalfRedraw = 8,    // the static draw changed: the shadow's sphere is fitted again (the draw sets it, the fit clears it)
-    kHalfShown = 0x20,  // the object was shown: its shadow counts as in view
+enum class ClientHalfFlag : std::uint32_t {
+    Redraw = 8,    // the static draw changed: the shadow's sphere is fitted again (the draw sets it, the fit clears it)
+    Shown = 0x20,  // the object was shown: its shadow counts as in view
 };
+constexpr bool EnableBitFlags(ClientHalfFlag) { return true; }
 
 // The client's half of a 3D object (class id 0x37): the shadow, the part sets and the skins.
 class Object3DClientSpecific : public Object3DSpecific {

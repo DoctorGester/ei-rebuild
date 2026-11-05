@@ -244,10 +244,10 @@ void Object3DClientSpecific::ClearShadow() {
 
 bool Object3DClientSpecific::ShadowInView() {
     if (!options::g_options.shadows) return false;
-    if (flags & kHalfShown) return true;
+    if (lib::Has(flags, ClientHalfFlag::Shown)) return true;
     auto placed = sphere;
     placed.center += object->localPosition;
-    return g_sceneRenderer.pipeline->ClipTest(&placed) != TransformPipeline::kClipOutside;
+    return g_sceneRenderer.pipeline->ClipTest(&placed) != TransformPipeline::ClipResult::Outside;
 }
 
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------

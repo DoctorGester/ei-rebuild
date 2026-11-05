@@ -69,6 +69,7 @@ TYPES = {
     'bool': 'B', 'std::int8_t': 'b', 'std::uint8_t': 'B', 'BYTE': 'B',
     'Rect': 'iiii', 'Point': 'ii', 'HINSTANCE': 'I', 'platform::NativeWindow': 'I', 'HWND': 'I', 'GUID': 'IHH' + 'B' * 8, 'IID': 'IHH' + 'B' * 8, 'CLSID': 'IHH' + 'B' * 8,   # one code per number
     'DecalBuilder': 'B' * 0x7C,   # ground_decal.h
+    'LogCategory': 'I',   # console.h: the shown categories (an enum class of unsigned)
     'SpiralCache': 'if',   # ai_map.h: length, radius
     'CellOffset': 'ii',    # ai_refresh.cpp: dy, dx
     'Vector3': 'fff', 'Quaternion': 'ffff', 'FogTile': 'ffff',   # effects.h
@@ -254,22 +255,22 @@ _ENUM_NUMBERS = {}
 
 def enum_numbers():
     """Names an initialiser writes for a number, from script.h: `ScriptFunction::Name` (the enum class's values) and
-    `Lex(kLexName)` (ScriptKeyword's punctuation entries: a ScriptLexeme value) -> the number's text."""
+    `Lex(ScriptLexeme::Name)` (ScriptKeyword's punctuation entries: a ScriptLexeme value) -> the number's text."""
     if not _ENUM_NUMBERS:
         text = srcscan.blank_comments(open(os.path.join(ROOT, 'src', 'game', 'script.h'), encoding='utf-8').read())
         body = re.search(r'enum class ScriptFunction\b[^{;]*\{(.*?)\};', text, re.S).group(1)
         for name, value in re.findall(r'(\w+)\s*=\s*(-?\w+)', body):
             _ENUM_NUMBERS['ScriptFunction::' + name] = value
-        body = re.search(r'enum ScriptLexeme\b[^{;]*\{(.*?)\};', text, re.S).group(1)
+        body = re.search(r'enum class ScriptLexeme\b[^{;]*\{(.*?)\};', text, re.S).group(1)
         for name, value in re.findall(r'(\w+)\s*=\s*(0[xX][0-9A-Fa-f]+|\d+)', body):
-            _ENUM_NUMBERS['Lex(' + name + ')'] = value
+            _ENUM_NUMBERS['Lex(ScriptLexeme::' + name + ')'] = value
     return _ENUM_NUMBERS
 
 
 def resolve_enums(code):
     numbers = enum_numbers()
     code = code.replace('ScriptFunction{}', '0')
-    return re.sub(r'ScriptFunction::\w+|Lex\(\w+\)', lambda m: numbers.get(m.group(0), m.group(0)), code)
+    return re.sub(r'ScriptFunction::\w+|Lex\(ScriptLexeme::\w+\)', lambda m: numbers.get(m.group(0), m.group(0)), code)
 
 
 def tokens(body):

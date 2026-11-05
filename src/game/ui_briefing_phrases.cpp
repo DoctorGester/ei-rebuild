@@ -220,7 +220,7 @@ void BriefingScreen::NextPhrase(bool skip) {
                 add();
             }
             label = texts->GetString(kItemLabel);
-            addItems(record->lists[QuestBriefingRecord::kGiveItems]);
+            addItems(record->lists[QuestBriefingRecord::ListKind::GiveItems]);
             label = texts->GetString(kLostItemLabel);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && !topic.empty() && text::CompareIgnoringCase(str::Left(topic, 1), kZonePrefix) == 0) {
@@ -234,11 +234,11 @@ void BriefingScreen::NextPhrase(bool skip) {
                     }
                 }
             }
-            addItems(record->lists[QuestBriefingRecord::kRemoveItems]);
+            addItems(record->lists[QuestBriefingRecord::ListKind::RemoveItems]);
             label = texts->GetString(kQuestLabel);
-            addQuests(record->lists[QuestBriefingRecord::kGiveQuests]);
+            addQuests(record->lists[QuestBriefingRecord::ListKind::GiveQuests]);
             label = texts->GetString(kQuestDoneLabel);
-            addQuests(record->lists[QuestBriefingRecord::kCompleteQuests]);
+            addQuests(record->lists[QuestBriefingRecord::ListKind::CompleteQuests]);
             if (record->specials > 0) {
                 label = str::Format(kSpecialsLabel, record->specials);
                 label = texts->GetString(label);

@@ -119,7 +119,7 @@ void PresentChecks() {
             drawn += PresentRows(solid) ? 1 : 0;
         }
         // The frames finished: the device waited for (a download's wait would do; Stop is too much).
-        gpu::Texture probe = gpu::MakeTexture({1, 1, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-present-probe"});
+        gpu::Texture probe = gpu::MakeTexture({1, 1, 1, 1, gpu::Format::Rgba8, gpu::TextureUse::Sampled, "ei-present-probe"});
         gpu::Ticket ticket = gpu::Download(probe, 0, {0, 0, 1, 1});
         gpu::Submit();
         gpu::Wait(ticket);

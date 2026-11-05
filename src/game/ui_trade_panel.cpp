@@ -61,12 +61,12 @@ void PriceSprite(TradePanel* panel, const Rect& row, float left, float right) {
 }
 
 void DrawSchool(TradePanel* panel, Rect* row, const TradeRow& school) {
-    panel->labels.push_back({school.name, *row, 0, kUiTextColour, 0});
+    panel->labels.push_back({school.name, *row, {0, kUiTextColour, render::text::Format::Left}});
     Rect levelRect = *row;
     levelRect.Offset(-40, 0);
-    panel->labels.push_back({std::format("{}", school.level), levelRect, {0, kUiTextColour, render::text::kRight}});
+    panel->labels.push_back({std::format("{}", school.level), levelRect, {0, kUiTextColour, render::text::Format::Right}});
     if (school.level < 100) {
-        panel->labels.push_back({TradePanel::FormatPrice(school.price), *row, 0, PriceColour(school.price, panel->experience), 2});
+        panel->labels.push_back({TradePanel::FormatPrice(school.price), *row, {0, PriceColour(school.price, panel->experience), render::text::Format::Right}});
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
 }
@@ -91,10 +91,10 @@ void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& l
         grid->owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(cell.item->count);
         if (pieces > 1) {
-            labels.push_back({std::format("{}", pieces), Rect{x + 15, y + countTop, x + 0x55, y + countTop + 20}, {1, kUiTextColour, render::text::kRight}});
+            labels.push_back({std::format("{}", pieces), Rect{x + 15, y + countTop, x + 0x55, y + countTop + 20}, {1, kUiTextColour, render::text::Format::Right}});
         }
         if (!grid->exchange) {
-            labels.push_back({std::format("{}", grid->camp->Price(cell.item, kind)), Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, {1, kUiTextColour, render::text::kCenter}});
+            labels.push_back({std::format("{}", grid->camp->Price(cell.item, kind)), Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, {1, kUiTextColour, render::text::Format::Center}});
         }
     }
 }
@@ -185,9 +185,9 @@ void TradePanel::DrawLists() {
         priceSprites.pop_back();
     }
 
-    labels.push_back({texts[0], Rect{0, 10, 200, 25}, {0, 0xFFFFFF, render::text::kCenter}});
-    labels.push_back({texts[1], Rect{0, 205, 200, 220}, {0, 0xFFFFFF, render::text::kCenter}});
-    labels.push_back({texts[2], Rect{200, 10, 400, 25}, {0, 0xFFFFFF, render::text::kCenter}});
+    labels.push_back({texts[0], Rect{0, 10, 200, 25}, {0, 0xFFFFFF, render::text::Format::Center}});
+    labels.push_back({texts[1], Rect{0, 205, 200, 220}, {0, 0xFFFFFF, render::text::Format::Center}});
+    labels.push_back({texts[2], Rect{200, 10, 400, 25}, {0, 0xFFFFFF, render::text::Format::Center}});
 
     Rect row = {15, 35, 180, 50};
     for (unsigned i = 0; i < 6; ++i) {
@@ -208,7 +208,7 @@ void TradePanel::DrawLists() {
         const TradeRow& perk = perks[index];
         labels.push_back({perk.name, row, {0, kUiTextColour}});
         if (!perk.nextKey.empty()) {
-            labels.push_back({FormatPrice(perk.price), row, {0, PriceColour(perk.price, experience), render::text::kRight}});
+            labels.push_back({FormatPrice(perk.price), row, {0, PriceColour(perk.price, experience), render::text::Format::Right}});
             PriceSprite(this, row, 350.0f, 390.0f);
         }
         Down(&row);
@@ -225,7 +225,7 @@ void TradePanel::DrawLists() {
             priceColour = PriceColour(perk.price, experience);
         }
         labels.push_back({perk.name, row, {0, textColour}});
-        labels.push_back({FormatPrice(perk.price), row, {0, priceColour, render::text::kRight}});
+        labels.push_back({FormatPrice(perk.price), row, {0, priceColour, render::text::Format::Right}});
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
     }

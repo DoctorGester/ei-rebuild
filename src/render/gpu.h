@@ -10,6 +10,7 @@
 // draws: a draw recorded before a write still reads what it replaces. Handles are plain values; a texture, buffer or
 // download released while recorded commands still use it lives until they are done.
 
+#include "lib/bit_flags.h"
 #include "lib/rect.h"
 
 #include <cstddef>
@@ -82,19 +83,20 @@ int MaxSamples(Format colour, Format depth, int most);
 // counts it has (lavapipe: 1 and 4, no 2), and a count it does not list is not drawn (a pass with it is invalid).
 bool SupportsSamples(Format colour, Format depth, int samples);
 
-enum TextureUse : std::uint8_t {
-    kSampled = 1,   // not with an integer format (SDL_GPU samples none)
-    kColourTarget = 2,
-    kDepthTarget = 4,
+enum class TextureUse : std::uint8_t {
+    Sampled = 1,   // not with an integer format (SDL_GPU samples none)
+    ColourTarget = 2,
+    DepthTarget = 4,
 };
+constexpr bool EnableBitFlags(TextureUse) { return true; }
 // Whether textures of `format` can be made for `use` (TextureUse bits).
-bool FormatSupported(Format format, std::uint8_t use);
+bool FormatSupported(Format format, TextureUse use);
 struct TextureDesc {
     int width = 1, height = 1;
     int levels = 1;
     int samples = 1;
     Format format = Format::Rgba8;
-    std::uint8_t use = kSampled;   // TextureUse bits
+    TextureUse use = TextureUse::Sampled;
     const char* label = nullptr;
 };
 struct Texture {
@@ -211,7 +213,8 @@ struct BlendState {
     BlendOp colourOp = BlendOp::Add, alphaOp = BlendOp::Add;
     bool operator==(const BlendState&) const = default;
 };
-enum ColourMask : std::uint8_t { kWriteRed = 1, kWriteGreen = 2, kWriteBlue = 4, kWriteAlpha = 8, kWriteAll = 15 };
+enum class ColourMask : std::uint8_t { None = 0, Red = 1, Green = 2, Blue = 4, Alpha = 8, All = 15 };
+constexpr bool EnableBitFlags(ColourMask) { return true; }
 
 constexpr int kMostVertexBuffers = 4;
 constexpr int kMostVertexAttributes = 8;
@@ -227,10 +230,10 @@ struct PipelineDesc {
     CullFace cull = CullFace::None;
     Winding front = Winding::CounterClockwise;
     Format colour = Format::Rgba8;   // None: depth only
-    std::uint8_t colourMask = kWriteAll;
+    ColourMask colourMask = ColourMask::All;
     BlendState blend = {};
     Format second = Format::None;    // a second colour target (PassDesc::second), never blended
-    std::uint8_t secondMask = kWriteAll;
+    ColourMask secondMask = ColourMask::All;
     Format depth = Format::None;     // None: without a depth buffer
     Compare depthCompare = Compare::Always;
     bool depthWrite = false;

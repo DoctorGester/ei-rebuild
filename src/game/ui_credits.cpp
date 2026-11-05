@@ -68,7 +68,7 @@ void CreditsScreen::DrawSprites(SceneRenderer* pass) {
 void CreditsScreen::PaintHeader(UiSurface& surface) const {
     const UiFont& font = g_interface.fonts[kHeaderFont];
     const Rect whole = {0, 0, surface.rect.Width(), surface.rect.Height()};
-    surface.DrawTextPixels(UiFont{font.face, font.pixels, true}, header, whole, render::text::kCenter, kHeaderColour, true);
+    surface.DrawTextPixels(UiFont{font.face, font.pixels, true}, header, whole, render::text::Format::Center, kHeaderColour, true);
 }
 
 // --- the close -----------------------------------------------------------------------------------

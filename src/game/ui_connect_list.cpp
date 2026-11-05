@@ -41,7 +41,6 @@ struct Layout {
     float selectionX = 0.0f;
 };
 constexpr Layout kLayout{278, 283, 233, 244.75f};
-constexpr std::uint32_t kFormatEllipsis = 0x18000;   // DT_END_ELLIPSIS | DT_MODIFYSTRING
 constexpr std::size_t kExtendedTextSize = 90;
 constexpr int kExtendedNameRight = 140;    // the servers' names are drawn within this column
 constexpr int kDetailsNameLines = 3;
@@ -61,16 +60,16 @@ std::uint32_t RowColour(const MpAddressEntry& entry) {
     return entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kUiTextColour;
 }
 
-void DrawLabel(UiSurface& surface, std::string_view text, Rect* rect, std::uint32_t format, std::uint32_t colour) {
+void DrawLabel(UiSurface& surface, std::string_view text, Rect* rect, render::text::Format format, std::uint32_t colour) {
     surface.DrawTextIn(text, *rect, TextStyle{kFont, colour, format});
 }
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
 // would hit the CRT's invalid parameter handler, here it is cut at a character's end) and
 // is drawn with an ellipsis.
-void DrawEllipsis(UiSurface& surface, std::string_view text, Rect* rect, std::uint32_t format, std::uint32_t colour) {
+void DrawEllipsis(UiSurface& surface, std::string_view text, Rect* rect, render::text::Format format, std::uint32_t colour) {
     char buffer[kExtendedTextSize];
     text::CopyFitting(buffer, kExtendedTextSize, text);
-    DrawLabel(surface, buffer, rect, format | kFormatEllipsis, colour);
+    DrawLabel(surface, buffer, rect, format | render::text::Format::EndEllipsis, colour);
 }
 void Down(Rect* rect, int dy = kRowHeight) { rect->Offset(0, dy); }
 
@@ -135,18 +134,18 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
     std::uint32_t colour = titleColour;
     // The two buttons' texts.
     Rect button{390, 345, 520, 365};
-    DrawLabel(surface, label(10), &button, render::text::kCenter, colour);
+    DrawLabel(surface, label(10), &button, render::text::Format::Center, colour);
     button = Rect{390, 369, 520, 389};
-    DrawLabel(surface, label(11), &button, render::text::kCenter, colour);
+    DrawLabel(surface, label(11), &button, render::text::Format::Center, colour);
     // The column titles.
     Rect row{20, 8, 290, 29};
-    DrawLabel(surface, label(12), &row, render::text::kLeft, colour);
+    DrawLabel(surface, label(12), &row, render::text::Format::Left, colour);
     row.left = 150;
-    DrawLabel(surface, label(13), &row, render::text::kLeft, colour);
+    DrawLabel(surface, label(13), &row, render::text::Format::Left, colour);
     row.left = 178;
-    DrawLabel(surface, label(14), &row, render::text::kLeft, colour);
+    DrawLabel(surface, label(14), &row, render::text::Format::Left, colour);
     row.left = 248;
-    DrawLabel(surface, label(15), &row, render::text::kLeft, colour);
+    DrawLabel(surface, label(15), &row, render::text::Format::Left, colour);
     row.left = 12;
     row.right = layout.rowRight;
     // The line under the titles.
@@ -166,23 +165,23 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
         if (index == 0) {
             // The new game: its name as typed.
             text = std::format("{} {}", label(7), nameEdit->text);
-            DrawEllipsis(surface, text, &row, render::text::kNoPrefix, colour);
+            DrawEllipsis(surface, text, &row, render::text::Format::NoPrefix, colour);
         } else {
             Rect nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
             nameRect.right = kExtendedNameRight;
-            DrawEllipsis(surface, entry.name, &nameRect, render::text::kNoPrefix, colour);
+            DrawEllipsis(surface, entry.name, &nameRect, render::text::Format::NoPrefix, colour);
             row.left = 142;
             text = std::format("{}/{}", entry.players, entry.maxPlayers);
-            DrawLabel(surface, text, &row, render::text::kLeft, colour);
+            DrawLabel(surface, text, &row, render::text::Format::Left, colour);
             row.left = 170;
             if (entry.gameType == kNewGameType)
                 text = "?";
             else
                 text = std::format("{}", allod(entry.gameType));
-            DrawLabel(surface, text, &row, render::text::kLeft, colour);
+            DrawLabel(surface, text, &row, render::text::Format::Left, colour);
             row.left = layout.rowLeftPing;
             text = std::format("{}", entry.ping);
-            DrawLabel(surface, text, &row, render::text::kRight, colour);
+            DrawLabel(surface, text, &row, render::text::Format::Right, colour);
             row.left = 12;
         }
         Down(&row);
@@ -194,25 +193,25 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
     const MpAddressEntry& entry = entries[selected];
     row = Rect{340, 20, 590, 44};
     if (selected == 0) {
-        DrawLabel(surface, label(0), &row, render::text::kLeft, colour);
+        DrawLabel(surface, label(0), &row, render::text::Format::Left, colour);
         Down(&row);
         Down(&row);
         text = std::format("{} {}", label(2), maxPlayers);
-        DrawLabel(surface, text, &row, render::text::kLeft, colour);
+        DrawLabel(surface, text, &row, render::text::Format::Left, colour);
         Down(&row);
         Down(&row);
-        DrawLabel(surface, label(3), &row, render::text::kLeft, colour);
+        DrawLabel(surface, label(3), &row, render::text::Format::Left, colour);
         Down(&row);
         row.left = 390;
         for (int i = 0; i < kGameTypes; ++i) {
-            DrawLabel(surface, allod(i), &row, render::text::kLeft, colour);
+            DrawLabel(surface, allod(i), &row, render::text::Format::Left, colour);
             Down(&row);
         }
         row.left = 370;
         Down(&row, 12);
-        DrawLabel(surface, label(16), &row, render::text::kLeft, colour);
+        DrawLabel(surface, label(16), &row, render::text::Format::Left, colour);
         Down(&row);
-        DrawLabel(surface, label(17), &row, render::text::kLeft, colour);
+        DrawLabel(surface, label(17), &row, render::text::Format::Left, colour);
         return;
     }
     text = std::format("{} {}", label(0), entry.name);
@@ -222,26 +221,26 @@ void MpConnectScreen::PaintList(UiSurface& surface) const {
     row.bottom += nameLines * kRowHeight - kRowHeight;
     Down(&row);
     text = std::format("{} {} / {}", label(1), entry.players, entry.maxPlayers);
-    DrawLabel(surface, text, &row, render::text::kLeft, colour);
+    DrawLabel(surface, text, &row, render::text::Format::Left, colour);
     Down(&row);
     if (entry.gameType == kNewGameType)
         text = texts[3] + " ?";
     else
         text = std::format("{} {}", label(3), allod(entry.gameType));
-    DrawLabel(surface, text, &row, render::text::kLeft, colour);
+    DrawLabel(surface, text, &row, render::text::Format::Left, colour);
     Down(&row);
     text = std::format("{} {}", label(4), entry.description);
     int lines = surface.DrawWrappedText(text, row, 3, TextStyle{kFont, colour});
     for (; lines != 0; --lines) Down(&row);
     std::string address = entry.address.ToString();
     text = std::format("{} {}", label(5), address.data());
-    DrawLabel(surface, text, &row, render::text::kLeft, colour);
+    DrawLabel(surface, text, &row, render::text::Format::Left, colour);
     Down(&row);
     text = std::format("{} {}", label(6), entry.ping);
-    DrawLabel(surface, text, &row, render::text::kLeft, colour);
+    DrawLabel(surface, text, &row, render::text::Format::Left, colour);
     Down(&row);
     if (entry.password) {
-        DrawLabel(surface, label(21), &row, render::text::kLeft, colour);
+        DrawLabel(surface, label(21), &row, render::text::Format::Left, colour);
         Down(&row);
     }
 }

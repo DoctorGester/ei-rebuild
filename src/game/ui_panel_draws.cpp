@@ -118,9 +118,9 @@ void RepairGrid::DrawSprites(SceneRenderer* pass) {
         owner->DrawItem(pass, cell);
         int pieces = static_cast<int>(item->count);    // the stack's count
         if (pieces > 1) {
-            labels.push_back({std::format("{}", pieces), Rect{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23}, {1, kUiTextColour, render::text::kRight}});
+            labels.push_back({std::format("{}", pieces), Rect{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23}, {1, kUiTextColour, render::text::Format::Right}});
         }
-        labels.push_back({std::format("{}", camp->Price(item, PriceKind::Repair)), Rect{x + 0x0F, y + 0x41, x + 0x55, y + 0x55}, {1, kUiTextColour, render::text::kCenter}});
+        labels.push_back({std::format("{}", camp->Price(item, PriceKind::Repair)), Rect{x + 0x0F, y + 0x41, x + 0x55, y + 0x55}, {1, kUiTextColour, render::text::Format::Center}});
     }
     DrawBase(pass);
     ClearUiDepth(1.0f, &screen, 1);

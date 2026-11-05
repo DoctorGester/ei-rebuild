@@ -7,17 +7,19 @@
 #include <string>
 #include <vector>
 
+#include "lib/bit_flags.h"
 #include "resource.h"
 
-enum RegistryType : std::uint8_t {
-    kRegInt = 0,
-    kRegFloat = 1,
-    kRegString = 2,
-    kRegArray = 0x80,       // with one of the above
-    kRegIntArray = kRegArray | kRegInt,
-    kRegFloatArray = kRegArray | kRegFloat,
-    kRegStringArray = kRegArray | kRegString,
+enum class RegistryType : std::uint8_t {
+    Int = 0,
+    Float = 1,
+    String = 2,
+    Array = 0x80,       // with one of the above
+    IntArray = Array | Int,
+    FloatArray = Array | Float,
+    StringArray = Array | String,
 };
+constexpr bool EnableBitFlags(RegistryType) { return true; }
 
 class FileRegistry {
 public:

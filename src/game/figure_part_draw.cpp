@@ -63,7 +63,7 @@ struct Part {
     Texture* textureA = nullptr;
     Texture* textureB = nullptr;
     LinkMesh* figure = nullptr;  // the mesh owner's figure (Object3D::figure), or null
-    int drawFlags = 0;        // DrawFlag bits
+    DrawFlag drawFlags = {};
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
     const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
 
@@ -172,9 +172,9 @@ const VertexPacket* MovedPositions(const VertexPacket* source, int packets, cons
 namespace {
 
 // The mesh through the device, its positions moved by its offsets; textured when both textures are given. Returns
-// the device's result.
-int DeviceDraw(TextureDevice* device, FigureMesh* mesh, const render::MeshSource& source, const Texture* textureA,
-               const Texture* textureB, int alpha, int drawFlags) {
+// whether it was drawn.
+bool DeviceDraw(TextureDevice* device, FigureMesh* mesh, const render::MeshSource& source, const Texture* textureA,
+                const Texture* textureB, int alpha, DrawFlag drawFlags) {
     const MeshBuffers& b = mesh->buffers;
     const VertexPacket* positions = b.vertices;
     if (!mesh->offsets.empty()) positions = MovedPositions(positions, b.vertexCount, mesh->offsets);
@@ -182,10 +182,10 @@ int DeviceDraw(TextureDevice* device, FigureMesh* mesh, const render::MeshSource
     const MeshArgs args{positions, b.vertexCount, b.normals, b.normalCount, mesh->colorsA.data(), mesh->colorsB.data(),
                         b.texCoords, b.corners, b.cornerCount, b.words, b.wordCount, b.indices, b.indexCount,
                         mesh->textureOffsetU, mesh->textureOffsetV, alpha, drawFlags};
-    const int result = textureA && textureB ? device->DrawMeshBlocks2(textureA->surface, textureB->surface, args)
+    const bool drawn = textureA && textureB ? device->DrawMeshBlocks2(textureA->surface, textureB->surface, args)
                                             : device->DrawMeshBlocks(args);
     render::SetMeshSource(nullptr);
-    return result;
+    return drawn;
 }
 
 // An animated mesh steps to the world's time before it is drawn.
@@ -201,10 +201,10 @@ void AnimateSheet(FigureMeshDrawer* drawer) {
 void DrawThroughDevice(Part& part) {
     FigureMesh* mesh = part.node->mesh;
     const render::MeshSource source = part.Source(false);
-    const int result = DeviceDraw(part.device, mesh, source, part.textureA, part.textureB, part.alpha, part.drawFlags);
+    const bool drawn = DeviceDraw(part.device, mesh, source, part.textureA, part.textureB, part.alpha, part.drawFlags);
     if (!part.rect) return;
     Rect* own = &part.node->screen;
-    if (result == TransformPipeline::kClipOutside) {
+    if (!drawn) {
         *own = {};
         *part.rect = {};
         return;
@@ -227,17 +227,17 @@ void DrawThroughFigure(Part& part) {
     std::vector<Vector3>* offsets = &mesh->offsets;
     const render::MeshSource source = part.Source(true);
     render::SetMeshSource(&source);
-    int result;
+    bool drawn;
     if (moved && part.Textured()) {
-        result = part.figure->DrawPartMovedTextured(name, part.drawFlags, part.textureA->surface,
+        drawn = part.figure->DrawPartMovedTextured(name, part.drawFlags, part.textureA->surface,
                                                     part.textureB->surface, colours, speculars, offsets, u, v);
     } else if (moved) {
-        result = part.figure->DrawPartMoved(name, part.drawFlags, colours, speculars, offsets, u, v);
+        drawn = part.figure->DrawPartMoved(name, part.drawFlags, colours, speculars, offsets, u, v);
     } else if (part.Textured()) {
-        result = part.figure->DrawPartTextured(name, part.drawFlags, part.textureA->surface,
+        drawn = part.figure->DrawPartTextured(name, part.drawFlags, part.textureA->surface,
                                                part.textureB->surface, colours, speculars, u, v);
     } else {
-        result = part.figure->DrawPart(name, part.drawFlags, colours, speculars, u, v);
+        drawn = part.figure->DrawPart(name, part.drawFlags, colours, speculars, u, v);
     }
     render::SetMeshSource(nullptr);
 
@@ -247,7 +247,7 @@ void DrawThroughFigure(Part& part) {
         *own = node->second.screen;
         *part.rect = *own;
     }
-    if (result != TransformPipeline::kClipOutside) part.node->mesh->flags |= FigureMeshFlag::Drawn;
+    if (drawn) part.node->mesh->flags |= FigureMeshFlag::Drawn;
 }
 
 } // namespace
@@ -263,10 +263,10 @@ int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>* 
     // Only the scene's parts reach here (the owner is an Object3D: map_object_draw, also for the interface's previews); the other meshes draw plain.
     TransformObject* ownerObject = mesh->object;
     Part part{this, device, lights, material, alpha, rect, textureA, textureB,
-              ownerObject ? static_cast<Object3D*>(ownerObject)->figure.Get() : nullptr, 0};
+              ownerObject ? static_cast<Object3D*>(ownerObject)->figure.Get() : nullptr, DrawFlag{}};
 
-    int visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
-    if (visibility == TransformPipeline::kClipOutside) return 1;
+    const TransformPipeline::ClipResult visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
+    if (visibility == TransformPipeline::ClipResult::Outside) return 1;
     AnimateSheet(this);
 
     std::uint32_t meshFlags = part.node->mesh->flags;
@@ -277,9 +277,9 @@ int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>* 
         if (!(meshFlags & FigureMeshFlag::Lit)) LightFigurePart(part);
     }
 
-    if (visibility == TransformPipeline::kClipCrossing) part.drawFlags = kDrawClipped;
-    if (rect) part.drawFlags |= kDrawScreenRect;
-    if (material->flags & MaterialFlag::KeepSpecular) part.drawFlags |= kDrawSpecular;
+    if (visibility == TransformPipeline::ClipResult::Crossing) part.drawFlags = DrawFlag::Clipped;
+    if (rect) part.drawFlags |= DrawFlag::ScreenRect;
+    if (material->flags & MaterialFlag::KeepSpecular) part.drawFlags |= DrawFlag::Specular;
     if (part.figure) {
         DrawThroughFigure(part);
     } else {
@@ -327,10 +327,10 @@ void FigureMeshDrawer::DrawBounds(SceneRenderer* renderer) {
 // (empty when off screen). Returns 1.
 int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect) {
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
-    int drawFlags = 0;
+    DrawFlag drawFlags = {};
     mesh->flags &= ~FigureMeshFlag::Drawn;
-    int visibility = device->pipeline->ClipTest(&mesh->box.bounds);
-    if (visibility == TransformPipeline::kClipOutside) return 1;
+    const TransformPipeline::ClipResult visibility = device->pipeline->ClipTest(&mesh->box.bounds);
+    if (visibility == TransformPipeline::ClipResult::Outside) return 1;
     AnimateSheet(this);
 
     std::uint32_t meshFlags = mesh->flags;
@@ -338,16 +338,16 @@ int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Rec
         Fill(mesh->colorsA, mesh->flatColour);
         Fill(mesh->colorsB, mesh->flatSpecular);
     } else if (!(meshFlags & FigureMeshFlag::Lit)) {
-        drawFlags = kDrawColours;
+        drawFlags = DrawFlag::Colours;
     }
-    if (visibility == TransformPipeline::kClipCrossing) drawFlags |= kDrawClipped;
-    if (rect) drawFlags |= kDrawScreenRect;
+    if (visibility == TransformPipeline::ClipResult::Crossing) drawFlags |= DrawFlag::Clipped;
+    if (rect) drawFlags |= DrawFlag::ScreenRect;
 
     const render::MeshSource source{mesh, nullptr, !mesh->offsets.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat)};
-    const int result = DeviceDraw(device, mesh, source, nullptr, nullptr, alpha, drawFlags);
+    const bool drawn = DeviceDraw(device, mesh, source, nullptr, nullptr, alpha, drawFlags);
     if (rect) {
         Rect* own = &screen;
-        if (result == TransformPipeline::kClipOutside) {
+        if (!drawn) {
             *own = {};
             *rect = {};
         } else {
@@ -355,7 +355,7 @@ int FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Rec
             *rect = *own;
         }
     }
-    if (result != TransformPipeline::kClipOutside) mesh->flags |= FigureMeshFlag::Drawn;
+    if (drawn) mesh->flags |= FigureMeshFlag::Drawn;
     DrawBounds(&g_sceneRenderer);
     return 1;
 }

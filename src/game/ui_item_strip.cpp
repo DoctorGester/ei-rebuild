@@ -43,7 +43,7 @@ void ForItemsInView(const UiItemStrip& strip, Each each) {
 void UiItemStrip::PaintCounts(UiSurface& surface) const {
     ForItemsInView(*this, [&](const Item* item, const Rect& area) {
         const int stackCount = static_cast<int>(item->count);
-        if (stackCount != 1) surface.DrawTextIn(str::Format("%d", stackCount), area, TextStyle{1, kUiTextColour, render::text::kRight});
+        if (stackCount != 1) surface.DrawTextIn(str::Format("%d", stackCount), area, TextStyle{1, kUiTextColour, render::text::Format::Right});
     });
 }
 
@@ -53,7 +53,7 @@ void UiItemStrip::PaintPrices(UiSurface& surface) const {
         // Whether the strip's mode takes the item, then the number shown under it.
         if (!owner->CanEquip(item, mode)) return;
         const int price = camp ? camp->Price(item, priceKind) : 0;   // the exchange's strip: 0
-        surface.DrawTextIn(str::Format("%d", price), area, TextStyle{1, kUiTextColour, render::text::kCenter});
+        surface.DrawTextIn(str::Format("%d", price), area, TextStyle{1, kUiTextColour, render::text::Format::Center});
     });
 }
 

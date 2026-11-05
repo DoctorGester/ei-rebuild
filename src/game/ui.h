@@ -346,7 +346,7 @@ inline constexpr std::uint32_t kUiTextColour = 0xA7D7E4;
 struct TextStyle {
     int font = 0;
     std::uint32_t colour = 0;
-    std::uint32_t format = render::text::kLeft;
+    render::text::Format format = render::text::Format::Left;
     bool shadow = true;
 };
 
@@ -383,7 +383,7 @@ public:
     // DrawText of `text` (UTF-8) in `font` in `rect` (surface pixels) by DrawText's `format` (render_text.h's
     // Layout), in `colour`, first in 0x080808 one pixel right and down when `shadow`. Returns DrawText's value
     // (the height laid out, pixels); 0 without a surface or font.
-    int DrawTextPixels(const UiFont& font, std::string_view text, const Rect& rect, std::uint32_t format, std::uint32_t colour,
+    int DrawTextPixels(const UiFont& font, std::string_view text, const Rect& rect, render::text::Format format, std::uint32_t colour,
                        bool shadow);
     // Show: shown. Hide: not shown (its frame picture is kept).
     void Show();
@@ -430,7 +430,7 @@ private:
     bool painting = false;           // inside paint
     Rect paintClip;                  // Blit's clip while painting
     bool Transparent(std::uint32_t colour) const;
-    int DrawTextFrame(const UiFont& font, std::string_view text, const Rect& frame, std::uint32_t format, std::uint32_t colour,
+    int DrawTextFrame(const UiFont& font, std::string_view text, const Rect& frame, render::text::Format format, std::uint32_t colour,
                       bool shadow);
 };
 

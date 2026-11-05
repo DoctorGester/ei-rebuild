@@ -55,7 +55,7 @@ std::vector<SharedRef<ServerEntry>>::iterator FindServer(ClientBase* self, const
 // Hands `entry` (non-null) over to a new node at the end of the servers list, marked copy-on-share as a shared
 // object is.
 void AppendServer(ClientBase* self, SharedRef<ServerEntry>& entry) {
-    entry.Get()->flags6 |= RefCounted::kCopyOnShare;
+    entry.Get()->flags6 |= RefFlag::CopyOnShare;
     self->servers.push_back(std::move(entry));
 }
 
@@ -76,7 +76,7 @@ ServerEntryBase::ServerEntryBase() {
     timeout = 0.0f;
     ping = kNoPing;
     foreign = 0;
-    state = kLocal;
+    state = State::Local;
 }
 
 std::vector<Query>::iterator ClientQueries::Find(const NetAddress* address) {
@@ -110,7 +110,7 @@ void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
 
 // Updates count only once joined.
 bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
-    if (joinState != kJoined) {
+    if (joinState != JoinState::Joined) {
         LogLine("ERROR: Normal update when not in active state");
         return false;
     }
@@ -128,8 +128,8 @@ void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
         LogLine("ERROR: Accepted msg received with wrong linkID");
         return;
     }
-    if (joinState == kAsking) {
-        joinState = kJoined;
+    if (joinState == JoinState::Asking) {
+        joinState = JoinState::Joined;
         std::uint32_t rate = RateFor(&host);
         AddClient(&host, id, static_cast<int>(rate));
         LogLine("Start connection");
@@ -151,9 +151,9 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
         LogAddressLine("ERROR: Rejected msg received with wrong linkID from ", from);
         return;
     }
-    if (joinState == kAsking) {
+    if (joinState == JoinState::Asking) {
         cursor->Take(refusal);
-        joinState = kNotJoined;
+        joinState = JoinState::NotJoined;
     } else {
         LogAddressLine("ERROR: Reject not during connecting from ", from);
     }
@@ -181,15 +181,15 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     auto end = v.list.end();
     auto query = v.Find(from);
     if (local) {
-        e->state = query != end ? ServerEntry::kAsked : ServerEntry::kLocal;
+        e->state = query != end ? ServerEntry::State::Asked : ServerEntry::State::Local;
         e->timeout = 20.0f;
     } else if (query != end) {
-        e->state = ServerEntry::kAsked;
+        e->state = ServerEntry::State::Asked;
         auto count = static_cast<std::uint32_t>(v.list.size());
         e->timeout = static_cast<float>(count) * 0.5f + 20.0f;
     } else {
         if (node == servers.end()) return;
-        e->state = ServerEntry::kFromList;
+        e->state = ServerEntry::State::FromList;
         e->timeout = kNever;
     }
     e->ping = static_cast<float>(time) - std::bit_cast<float>(echo);
@@ -215,7 +215,7 @@ void ClientBase::RemoveClient(std::list<SharedRef<Connection>>::iterator node) {
     if (!clients.empty()) return;
     LogLine("CONNECTION LOST server link is lost, entering idle");
     ei::Log("net: the client lost its connection to the host");   // not the game's
-    joinState = kNotJoined;
+    joinState = JoinState::NotJoined;
 }
 
 // ---- Client: the lobby's requests ---------------------------------------------------------------
@@ -266,7 +266,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
         }
         if (!entry) continue;
         ServerEntry* e = entry.Get();
-        e->state = ServerEntry::kAsked;
+        e->state = ServerEntry::State::Asked;
         e->address = q->address;
         AppendServer(this, entry);
     }
@@ -282,7 +282,7 @@ void ClientBase::Ask(const NetAddress* address) {
     }
     auto node = FindServer(this, address);
     if (node != servers.end()) {
-        node->Get()->state = ServerEntry::kAsked;
+        node->Get()->state = ServerEntry::State::Asked;
         return;
     }
     SharedRef<ServerEntry> entry;
@@ -290,7 +290,7 @@ void ClientBase::Ask(const NetAddress* address) {
     if (entry.Get()) {
         ServerEntry* e = entry.Get();
         e->address = *address;
-        e->state = ServerEntry::kAsked;
+        e->state = ServerEntry::State::Asked;
         AppendServer(this, entry);
     }
 }
@@ -312,7 +312,7 @@ void ClientBase::Forget(const NetAddress* address) {
 // Listed (never checked again) unless known, and its address queued to be asked.
 void ClientBase::AddServer(ServerEntry* entry) {
     if (FindServer(this, &entry->address) == servers.end()) {
-        entry->state = ServerEntry::kFromList;
+        entry->state = ServerEntry::State::FromList;
         entry->timeout = kNever;
         servers.emplace_back(entry);
     }
@@ -322,12 +322,12 @@ void ClientBase::AddServer(ServerEntry* entry) {
 // Unless already asking that host: a new join id (rand() << 16 | GetTickCount() & 0xFFFF), the
 // first retry at once.
 void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
-    if (joinState == kAsking && SameAddress(address, &host)) return;
+    if (joinState == JoinState::Asking && SameAddress(address, &host)) return;
     host = *address;
     std::uint32_t id = static_cast<std::uint32_t>(libcrt::Rand()) << 16;
     id |= platform::CoarseClock() & 0xFFFF;
     joinId = id;
-    joinState = kAsking;
+    joinState = JoinState::Asking;
     retryTimer = 0.0f;
     retryInterval = kFirstRetry;
     refusal = RefusalReason::None;
@@ -356,12 +356,12 @@ void ClientBase::Tick(double dt) {
         ++node;
     }
     SessionBase::Tick(dt);
-    if (joinState != kAsking) return;
+    if (joinState != JoinState::Asking) return;
     retryTimer -= static_cast<float>(dt);
     if (retryTimer > 0.0f) return;
     if (retryInterval > 3.0f) {
         LogLine("Connection failed");
-        joinState = kNotJoined;
+        joinState = JoinState::NotJoined;
         return;
     }
     SendJoin(&host, &joinData);

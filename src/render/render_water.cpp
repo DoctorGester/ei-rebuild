@@ -125,7 +125,7 @@ static std::vector<std::uint8_t> NextLevel(const std::vector<std::uint8_t>& leve
 
 bool MakeRippleMap() {
     if (g_ripples) return true;
-    g_ripples = gpu::MakeTexture({kRippleSize, kRippleSize, kRippleLevels, 1, gpu::Format::Rgba8, gpu::kSampled,
+    g_ripples = gpu::MakeTexture({kRippleSize, kRippleSize, kRippleLevels, 1, gpu::Format::Rgba8, gpu::TextureUse::Sampled,
                                   "ei-water-ripples"});
     if (!g_ripples) return false;
     std::vector<std::uint8_t> level = FirstLevel();
@@ -190,7 +190,7 @@ static gpu::PipelineDesc CopyDesc() {
 void ListWaterPipelines(std::vector<gpu::PipelineDesc>& out) { out.push_back(CopyDesc()); }
 
 // `t` remade at `width` x `height` (of `format`, for `use`) when it has another size.
-static bool Ensure(gpu::Texture& t, int width, int height, gpu::Format format, std::uint8_t use, const char* label) {
+static bool Ensure(gpu::Texture& t, int width, int height, gpu::Format format, gpu::TextureUse use, const char* label) {
     if (t && t.width == width && t.height == height) return true;
     gpu::Release(t);
     t = gpu::MakeTexture({width, height, 1, 1, format, use, label});
@@ -220,8 +220,8 @@ void DrawSkyReflection(Frame& f) {
     const std::optional<Size> size = FrameSize();
     if (!view || !size || f.worldRanges.empty()) return;
     const int width = std::max(1, size->w / kSkyScale), height = std::max(1, size->h / kSkyScale);
-    if (!Ensure(g_skyImage, width, height, kColourFormat, gpu::kColourTarget | gpu::kSampled, "ei-water-sky") ||
-        !Ensure(g_skyDepth, width, height, kDepthFormat, gpu::kDepthTarget, "ei-water-sky-depth"))
+    if (!Ensure(g_skyImage, width, height, kColourFormat, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-water-sky") ||
+        !Ensure(g_skyDepth, width, height, kDepthFormat, gpu::TextureUse::DepthTarget, "ei-water-sky-depth"))
         Fatal("Can't draw the frame: the water's sky image could not be made.");
     // The mirror's plane: the mean level of the water drawn (the image is read where it shows a point of the dome, so
     // water at another level reads it right too; the plane only keeps the dome in view).
@@ -251,15 +251,15 @@ void DrawSkyReflection(Frame& f) {
     pass.depth = {g_skyDepth, 0, gpu::Load::Clear, 1.0f, false};
     pass.label = "ei-water-sky";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the water's sky pass could not begin (%s).", gpu::Error());
-    ++g_stats.counts[FrameStats::Passes];
+    ++g_stats.counts[FrameStats::Count::Passes];
     // The dome: the meshes the world draws before its first ground (WorldClient::Render draws the sky first), mirrored,
     // so their faces turn the other way; the image keeps no depth.
     const Frame::Range& world = f.worldRanges.front();
     bool first = true;
     for (std::size_t k = world.first; k < std::min(world.end, f.commands.size()); ++k) {
         const Command& c = f.commands[k];
-        if (c.kind == Command::Terrain) break;
-        if (c.kind != Command::Mesh) continue;
+        if (c.kind == Command::Kind::Terrain) break;
+        if (c.kind != Command::Kind::Mesh) continue;
         MeshBatch batch = f.meshBatches[static_cast<std::size_t>(c.index)];
         if (!batch.model) continue;
         const Matrix4 model = view->inverse.Under(f.matrices[static_cast<std::size_t>(batch.matrix)]);
@@ -293,9 +293,9 @@ void CopyFrameForWater(const gpu::Texture& colour, const gpu::Texture& depth) {
         return;
     }
     const int width = (colour.width + 1) / 2, height = (colour.height + 1) / 2;
-    if (!Ensure(g_sceneColour, width, height, kColourFormat, gpu::kColourTarget | gpu::kSampled,
+    if (!Ensure(g_sceneColour, width, height, kColourFormat, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled,
                 "ei-water-scene") ||
-        !Ensure(g_sceneDepth, width, height, kDepthCopyFormat, gpu::kColourTarget | gpu::kSampled,
+        !Ensure(g_sceneDepth, width, height, kDepthCopyFormat, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled,
                 "ei-water-scene-depth"))
         Fatal("Can't draw the frame: the water's copy of the frame could not be made.");
     gpu::PassDesc pass;
@@ -305,7 +305,7 @@ void CopyFrameForWater(const gpu::Texture& colour, const gpu::Texture& depth) {
     pass.second.load = gpu::Load::DontCare;
     pass.label = "ei-water-scene-copy";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the water's frame copy could not begin (%s).", gpu::Error());
-    ++g_stats.counts[FrameStats::Passes];
+    ++g_stats.counts[FrameStats::Count::Passes];
     gpu::ApplyPipeline(g_copyPipeline);
     const gpu::TextureBinding sources[2] = {{colour, gpu::NearestClampSampler()}, {depth, gpu::NearestClampSampler()}};
     static_assert(gpu_shaders::scene_copy::kSamplerColour == 0 && gpu_shaders::scene_copy::kSamplerDepth == 1);

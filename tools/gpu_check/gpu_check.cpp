@@ -205,7 +205,7 @@ void CheckTextures() {
                           {g::Format::Bc2, 8, 8, "BC2"},              {g::Format::Bc3, 12, 4, "BC3"}};
     for (const Case& c : cases) {
         const bool integer = c.format == g::Format::R8Uint || c.format == g::Format::R16Uint;
-        const std::uint8_t use = integer ? g::kColourTarget : g::kSampled;   // an integer texture is not sampled
+        const g::TextureUse use = integer ? g::TextureUse::ColourTarget : g::TextureUse::Sampled;   // an integer texture is not sampled
         if (!g::FormatSupported(c.format, use)) {
             std::printf("gpu_check: %s: %s textures not supported, left out\n", g_driver.c_str(), c.name);
             continue;
@@ -263,7 +263,7 @@ void CheckTextures() {
 
 void CheckAsyncDownload() {
     const int w = 40, h = 30;
-    g::Texture t = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kSampled, "async"});
+    g::Texture t = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "async"});
     std::vector<std::uint8_t> data = Pattern(w * 4, h, w * 4, 3);
     g::Write(t, 0, {0, 0, w, h}, data.data(), static_cast<std::size_t>(w) * 4);
     g::Ticket ticket = g::Download(t, 0, {0, 0, w, h});
@@ -291,9 +291,9 @@ void CheckAsyncDownload() {
 // writes between passes, in place and discarding.
 void CheckDrawsAndOrder() {
     const int w = 64, h = 64;
-    g::Texture colour = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "colour"});
-    g::Texture depth = g::MakeTexture({w, h, 1, 1, g::Format::Depth32Float, g::kDepthTarget, "depth"});
-    g::Texture white = g::MakeTexture({1, 1, 1, 1, g::Format::Rgba8, g::kSampled, "white"});
+    g::Texture colour = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "colour"});
+    g::Texture depth = g::MakeTexture({w, h, 1, 1, g::Format::Depth32Float, g::TextureUse::DepthTarget, "depth"});
+    g::Texture white = g::MakeTexture({1, 1, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "white"});
     const std::uint32_t whiteTexel = 0xFFFFFFFFu;
     g::Write(white, 0, {0, 0, 1, 1}, &whiteTexel, 4);
     g::Buffer vertices = g::MakeBuffer(g::BufferUse::Vertex, 4 * sizeof(CasterVertex), "caster vertices");
@@ -400,14 +400,14 @@ void CheckBindings() {
     const int w = 24, h = 16;
     std::vector<std::uint8_t> data = Pattern(w * 4, h, w * 4, 5);
     for (int i = 3; i < w * h * 4; i += 4) data[static_cast<std::size_t>(i)] = 255;   // opaque: nothing cut out
-    g::Texture source = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kSampled, "blit source"});
-    g::Texture target = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kColourTarget, "blit target"});
+    g::Texture source = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "blit source"});
+    g::Texture target = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget, "blit target"});
     g::Write(source, 0, {0, 0, w, h}, data.data(), static_cast<std::size_t>(w) * 4);
     g::PipelineDesc desc;
     desc.program = gpu_shaders::blit::kIndex;
-    desc.colourMask = g::kWriteRed;
+    desc.colourMask = g::ColourMask::Red;
     const g::Pipeline red = g::MakePipeline(desc, "blit red");
-    desc.colourMask = g::kWriteGreen | g::kWriteBlue | g::kWriteAlpha;
+    desc.colourMask = g::ColourMask::Green | g::ColourMask::Blue | g::ColourMask::Alpha;
     const g::Pipeline rest = g::MakePipeline(desc, "blit rest");
     Check(red && rest && red.pipeline != rest.pipeline, "two blit pipelines");
     g::PassDesc pass;
@@ -438,7 +438,7 @@ void CheckBindings() {
 // A mip level and a resolved multisampled target as targets; a texture copy.
 void CheckTargets() {
     const int w = 32, h = 32;
-    g::Texture levels = g::MakeTexture({w, h, 2, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "levels"});
+    g::Texture levels = g::MakeTexture({w, h, 2, 1, g::Format::Rgba8, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "levels"});
     std::vector<std::uint8_t> data = Pattern(w * 4, h, w * 4, 6);
     g::Write(levels, 0, {0, 0, w, h}, data.data(), static_cast<std::size_t>(w) * 4);
     g::PassDesc pass;
@@ -459,7 +459,7 @@ void CheckTargets() {
     g::Ticket zero = g::Download(levels, 0, {0, 0, w, h});
     SameRows(zero, data.data(), w * 4, h, w * 4, "level 0 kept beside it");
 
-    g::Texture copy = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kSampled, "copy"});
+    g::Texture copy = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "copy"});
     Check(g::Copy(levels, 0, {4, 6, 20, 30}, copy, 0, 1, 2), "a texture copy recorded");
     g::Ticket copied = g::Download(copy, 0, {1, 2, 17, 26});
     SameRows(copied, data.data() + 6 * w * 4 + 4 * 4, 16 * 4, 24, w * 4, "a texture copy's texels");
@@ -473,10 +473,10 @@ void CheckTargets() {
         Fail("no 4 samples for RGBA8 with D32F");
         return;
     }
-    g::Texture multi = g::MakeTexture({w, h, 1, 4, g::Format::Rgba8, g::kColourTarget, "multisampled"});
+    g::Texture multi = g::MakeTexture({w, h, 1, 4, g::Format::Rgba8, g::TextureUse::ColourTarget, "multisampled"});
     g::Texture multiDepth =
-        g::MakeTexture({w, h, 1, 4, g::Format::Depth32Float, g::kDepthTarget, "multisampled depth"});
-    g::Texture resolved = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "resolved"});
+        g::MakeTexture({w, h, 1, 4, g::Format::Depth32Float, g::TextureUse::DepthTarget, "multisampled depth"});
+    g::Texture resolved = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "resolved"});
     g::PassDesc m;
     m.colour.texture = multi;
     m.colour.load = g::Load::Clear;
@@ -502,9 +502,9 @@ void CheckTargets() {
     if (g::MaxSamples(g::Format::R32Float, g::Format::None, 4) < 4) {
         Fail("no 4 samples for R32F");
     } else {
-        g::Texture multiCopy = g::MakeTexture({w, h, 1, 4, g::Format::R32Float, g::kColourTarget, "multisampled copy"});
+        g::Texture multiCopy = g::MakeTexture({w, h, 1, 4, g::Format::R32Float, g::TextureUse::ColourTarget, "multisampled copy"});
         g::Texture copyResolved =
-            g::MakeTexture({w, h, 1, 1, g::Format::R32Float, g::kColourTarget | g::kSampled, "resolved copy"});
+            g::MakeTexture({w, h, 1, 1, g::Format::R32Float, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "resolved copy"});
         m.second.texture = multiCopy;
         m.second.load = g::Load::Clear;
         m.second.clear[0] = 1.0f;
@@ -513,7 +513,7 @@ void CheckTargets() {
         g::BeginPass(m);
         g::PipelineDesc desc = SolidDesc(g::Format::Rgba8, g::Format::Depth32Float, g::Compare::Less, 4);
         desc.second = g::Format::R32Float;
-        desc.secondMask = g::kWriteRed;
+        desc.secondMask = g::ColourMask::Red;
         g::ApplyPipeline(g::MakePipeline(desc));
         Solid({0, 0, w / 2, h}, w, h, 0.25f, 1, 0, 0);
         g::EndPass();
@@ -550,7 +550,7 @@ void CheckUploadRing() {
     const int sizes[][2] = {{1024, 1024}, {2048, 1024}, {700, 300}};
     for (int k = 0; k < 18; ++k) {
         const int w = sizes[k % 3][0], h = sizes[k % 3][1];
-        textures.push_back(g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kSampled, "ring"}));
+        textures.push_back(g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "ring"}));
         datas.push_back(Pattern(w * 4, h, w * 4, 10 + k));
         g::Write(textures.back(), 0, {0, 0, w, h}, datas.back().data(), static_cast<std::size_t>(w) * 4);
     }
@@ -602,7 +602,7 @@ void CheckCaches() {
 // What gpu.cpp refuses and logs: each counted as one problem.
 void CheckMisuse() {
     const int before = g::Problems();
-    g::Texture t = g::MakeTexture({8, 8, 1, 1, g::Format::Rgba8, g::kColourTarget, "misuse"});
+    g::Texture t = g::MakeTexture({8, 8, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget, "misuse"});
     g::Buffer b = g::MakeBuffer(g::BufferUse::Vertex, 64);
     g::PassDesc p;
     p.colour.texture = t;
@@ -618,7 +618,7 @@ void CheckMisuse() {
     missing.attributeCount = 1;
     Check(!g::MakePipeline(missing), "a pipeline without the program's inputs refused");
     Check(!g::MakePipeline(missing, "again") && g::Problems() - before == 5, "a refused pipeline remembered, not tried again");
-    Check(!g::MakeTexture({4, 4, 1, 1, g::Format::R8Uint, g::kSampled, "sampled uint"}),
+    Check(!g::MakeTexture({4, 4, 1, 1, g::Format::R8Uint, g::TextureUse::Sampled, "sampled uint"}),
           "a sampled uint texture refused");
     Check(g::Problems() - before == 6, "each misuse counted once");
     g_misuses += 6;
@@ -691,7 +691,7 @@ void CheckSwapchain() {
 // Many submissions with the frame timer off: their fences go back once they have finished (they were all kept,
 // and Dozen on WSL refused new fences after some thousands).
 void CheckFencesReleased() {
-    g::Texture target = g::MakeTexture({4, 4, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "fences"});
+    g::Texture target = g::MakeTexture({4, 4, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "fences"});
     for (int k = 0; k < 300; ++k) {
         g::PassDesc p;
         p.colour.texture = target;
@@ -712,7 +712,7 @@ void CheckFencesReleased() {
 
 void CheckFrameTiming() {
     const int w = 512, h = 512;
-    g::Texture target = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::kColourTarget | g::kSampled, "timed"});
+    g::Texture target = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "timed"});
     const g::Pipeline solid = g::MakePipeline(SolidDesc(g::Format::Rgba8, g::Format::None, g::Compare::Always));
     g::SetFrameTiming(true);
     std::vector<double> times;
@@ -790,7 +790,7 @@ bool CheckDriver(const char* driver) {
           "no problem but the misuses, each logged");
     std::printf("gpu_check: %s (%s): %d checks, %d failed, %d pipelines\n", driver, g::DeviceName(),
                 g_checks - checks, g_failures - failures, g::PipelineCount());
-    g::Texture late = g::MakeTexture({4, 4, 1, 1, g::Format::Rgba8, g::kSampled, "late"});
+    g::Texture late = g::MakeTexture({4, 4, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "late"});
     g::Stop();
     g::Release(late);   // after Stop: nothing done
     Check(!late && !g::Started(), "a handle released after Stop");

@@ -46,12 +46,12 @@ struct LogName {
     LogCategory category = {};
 };
 constexpr LogName kLogNames[] = {
-    {"ai", "AI: ", kLogAi},
-    {"event", "\nEVENT: ", kLogEvent},
-    {"graphics", "\nGRAPHICS: ", kLogGraphics},
-    {"rpg", "\nRPG: ", kLogRpg},
-    {"unitacks", "\nUNITACKS: ", kLogUnitAcks},
-    {"net", "\nNET: ", kLogNet},
+    {"ai", "AI: ", LogCategory::Ai},
+    {"event", "\nEVENT: ", LogCategory::Event},
+    {"graphics", "\nGRAPHICS: ", LogCategory::Graphics},
+    {"rpg", "\nRPG: ", LogCategory::Rpg},
+    {"unitacks", "\nUNITACKS: ", LogCategory::UnitAcks},
+    {"net", "\nNET: ", LogCategory::Net},
 };
 
 // "1"/"on" and "0"/"off".
@@ -209,14 +209,14 @@ void Filter(const CommandArgs& args) {
     if (args.empty()) {
         Stream& os = g_consoleOut;
         for (const LogName& log : kLogNames)   // "AI: on", "\nEVENT: off", ...
-            os << log.label << (g_filterMask & log.category ? "on" : "off");
+            os << log.label << (lib::Has(g_filterMask, log.category) ? "on" : "off");
         EndLine(os);
         return;
     }
-    unsigned type = 0;
+    LogCategory type = {};
     bool known = ArgIs(args, 0, "none");
     if (ArgIs(args, 0, "all")) {
-        type = kLogAll;
+        type = LogCategory::All;
         known = true;
     }
     for (const LogName& log : kLogNames) {

@@ -79,9 +79,9 @@ int LineBatch::Draw(TransformPipeline* pipeline, TextureDevice* device) {
     std::vector<Vector4>& projected = g_lineProjected;
     projected.resize(std::ssize(packets) * 4);
     g_lineOutcodes.resize(std::ssize(packets) * 4);
-    int visibility = pipeline->ProjectClipped(*pipeline->Top(TransformPipeline::kClipStack), packets.data(),
+    const TransformPipeline::ClipResult visibility = pipeline->ProjectClipped(*pipeline->Top(TransformPipeline::kClipStack), packets.data(),
                                               projected.data(), g_lineOutcodes.data(), lib::Count(packets));
-    if (visibility == 0) {
+    if (visibility == TransformPipeline::ClipResult::Inside) {
         const ProjectedPoints points{projected.data(), static_cast<int>(lib::Count(projected))};
         DeviceDrawLineStrip(device, &points, colour);
     }

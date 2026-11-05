@@ -85,9 +85,9 @@ void UiTooltip::PaintLines(UiSurface& out) const {
         std::uint32_t colour = i > 0 ? kUiTextColour : kTitleColour;
         if (i == 0 && keyName) {
             std::string text = lines[0] + KeyOpen() + keyName + KeyClose();
-            out.DrawTextIn(text, row, TextStyle{kFont, colour, render::text::kLeft, false});
+            out.DrawTextIn(text, row, TextStyle{kFont, colour, render::text::Format::Left, false});
         } else {
-            out.DrawTextIn(lines[i], row, TextStyle{kFont, colour, render::text::kLeft, false});
+            out.DrawTextIn(lines[i], row, TextStyle{kFont, colour, render::text::Format::Left, false});
         }
         row.Offset(0, step);
     }

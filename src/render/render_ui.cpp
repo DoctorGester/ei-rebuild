@@ -48,7 +48,7 @@ static gpu::PipelineDesc QuadDesc(int samples) {
     p.attributes[1] = {gpu_shaders::ui_quad::kAttrColour, 0, gpu::VertexFormat::UByte4Norm, offsetof(UiVertex, colour)};
     p.depth = kDepthFormat;
     p.colour = kColourFormat;
-    p.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
+    p.colourMask = gpu::ColourMask::Red | gpu::ColourMask::Green | gpu::ColourMask::Blue;
     p.blend = {true, gpu::BlendFactor::SourceAlpha, gpu::BlendFactor::OneMinusSourceAlpha, gpu::BlendFactor::One,
                gpu::BlendFactor::Zero, gpu::BlendOp::Add, gpu::BlendOp::Add};
     p.samples = samples;
@@ -60,7 +60,7 @@ static gpu::PipelineDesc QuadDesc(int samples) {
 static gpu::Texture AtlasImage(const text::GlyphAtlas* atlas) {
     if (!atlas) {
         if (!g_noAtlas) {
-            g_noAtlas = gpu::MakeTexture({1, 1, 1, 1, gpu::Format::R8, gpu::kSampled, "ei-ui-no-atlas"});
+            g_noAtlas = gpu::MakeTexture({1, 1, 1, 1, gpu::Format::R8, gpu::TextureUse::Sampled, "ei-ui-no-atlas"});
             const std::uint8_t zero = 0;
             if (g_noAtlas) gpu::Write(g_noAtlas, 0, {0, 0, 1, 1}, &zero, 1);
         }
@@ -71,7 +71,7 @@ static gpu::Texture AtlasImage(const text::GlyphAtlas* atlas) {
     gpu::Release(t.image);
     t = AtlasTexture{};
     if (atlas->Width() <= 0 || atlas->Height() <= 0) return gpu::Texture{};
-    t.image = gpu::MakeTexture({atlas->Width(), atlas->Height(), 1, 1, gpu::Format::R8, gpu::kSampled, "ei-ui-atlas"});
+    t.image = gpu::MakeTexture({atlas->Width(), atlas->Height(), 1, 1, gpu::Format::R8, gpu::TextureUse::Sampled, "ei-ui-atlas"});
     if (t.image)
         gpu::Write(t.image, 0, {0, 0, atlas->Width(), atlas->Height()}, atlas->Pixels(), static_cast<std::size_t>(atlas->Width()));
     t.generation = atlas->Generation();
@@ -82,7 +82,7 @@ static gpu::Texture AtlasImage(const text::GlyphAtlas* atlas) {
 // (solids join any batch: their texture coordinates read no atlas), else a new one.
 static UiBatch& BatchFor(const text::GlyphAtlas* atlas, const Rect& scissor) {
     Frame& f = g_frame;
-    if (!f.commands.empty() && f.commands.back().kind == Command::Ui) {
+    if (!f.commands.empty() && f.commands.back().kind == Command::Kind::Ui) {
         UiBatch& last = f.uiBatches[static_cast<std::size_t>(f.commands.back().index)];
         if (last.scissor == scissor && (!atlas || !last.atlas || last.atlas == atlas)) {
             if (atlas) last.atlas = atlas;
@@ -90,7 +90,7 @@ static UiBatch& BatchFor(const text::GlyphAtlas* atlas, const Rect& scissor) {
         }
     }
     f.uiBatches.push_back(UiBatch{static_cast<std::uint32_t>(f.uiVertices.size()), 0, atlas, scissor});
-    f.commands.push_back(Command{Command::Ui, static_cast<int>(f.uiBatches.size()) - 1});
+    f.commands.push_back(Command{Command::Kind::Ui, static_cast<int>(f.uiBatches.size()) - 1});
     return f.uiBatches.back();
 }
 
@@ -136,7 +136,7 @@ static gpu::PipelineDesc PictureDesc(int samples) {
     p.program = gpu_shaders::ui_picture::kIndex;
     p.depth = kDepthFormat;
     p.colour = kColourFormat;
-    p.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
+    p.colourMask = gpu::ColourMask::Red | gpu::ColourMask::Green | gpu::ColourMask::Blue;
     p.samples = samples;
     AddDepthCopy(p);
     return p;
@@ -271,7 +271,7 @@ void CapturePicture(const void* key, const Rect& source, int width, int height) 
     UiPicture& p = g_uiPictures[key];
     if (!p.image || p.width != width || p.height != height) {
         ReleaseAfterPresent(p.image);   // a picture the frame still draws is released after it
-        p.image = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget | gpu::kSampled, "ei-ui-picture"});
+        p.image = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-ui-picture"});
         p.width = width;
         p.height = height;
         if (!p.image) {
@@ -282,7 +282,7 @@ void CapturePicture(const void* key, const Rect& source, int width, int height) 
                            [&](const PictureBatch& b) { return b.texture.texture == p.image.texture; })) {
         // Drawn in this frame and not replaced under that draw: a new image.
         ReleaseAfterPresent(p.image);
-        p.image = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget | gpu::kSampled, "ei-ui-picture"});
+        p.image = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-ui-picture"});
         if (!p.image) return;
     }
     // The frame as drawn up to now: its commands recorded so far drawn before the copy is.
@@ -297,7 +297,7 @@ void DrawPicture(const void* key, const Rect& destination, bool grey) {
     if (it == g_uiPictures.end() || !it->second.image || destination.IsEmpty()) return;
     Frame& f = g_frame;
     f.pictureBatches.push_back(PictureBatch{it->second.image, it->second.width, it->second.height, destination, grey});
-    f.commands.push_back(Command{Command::Picture, static_cast<int>(f.pictureBatches.size()) - 1});
+    f.commands.push_back(Command{Command::Kind::Picture, static_cast<int>(f.pictureBatches.size()) - 1});
 }
 
 void DropPicture(const void* key) {

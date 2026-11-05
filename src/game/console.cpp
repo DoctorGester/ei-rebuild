@@ -85,7 +85,7 @@ void ConsoleStreambuf::Write(std::string_view text) {
 }
 
 void ConsoleStreambuf::Overflow(int c) {
-    if (category == kLogConsole || (g_filterMask & category) != 0) {
+    if (category == LogCategory::Console || lib::Has(g_filterMask, category)) {
         line.append(buffer, putNext);
         if (c != -1) line += static_cast<char>(c);
         putNext = 0;
@@ -252,14 +252,14 @@ void RunScriptLine(const std::string& text, const std::vector<std::string>& args
 
 namespace {
 
-ConsoleStreambuf g_consoleBuf(kLogConsole);
-ConsoleStreambuf g_allLogBuf(kLogAll);
-ConsoleStreambuf g_netLogBuf(kLogNet);
-ConsoleStreambuf g_unitAcksLogBuf(kLogUnitAcks);
-ConsoleStreambuf g_rpgLogBuf(kLogRpg);
-ConsoleStreambuf g_graphicsLogBuf(kLogGraphics);
-ConsoleStreambuf g_eventLogBuf(kLogEvent);
-ConsoleStreambuf g_aiLogBuf(kLogAi);
+ConsoleStreambuf g_consoleBuf(LogCategory::Console);
+ConsoleStreambuf g_allLogBuf(LogCategory::All);
+ConsoleStreambuf g_netLogBuf(LogCategory::Net);
+ConsoleStreambuf g_unitAcksLogBuf(LogCategory::UnitAcks);
+ConsoleStreambuf g_rpgLogBuf(LogCategory::Rpg);
+ConsoleStreambuf g_graphicsLogBuf(LogCategory::Graphics);
+ConsoleStreambuf g_eventLogBuf(LogCategory::Event);
+ConsoleStreambuf g_aiLogBuf(LogCategory::Ai);
 
 } // namespace
 

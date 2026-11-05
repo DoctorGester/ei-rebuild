@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "engine_object.h"
+#include "lib/enum_array.h"
 #include "lib/printf_args.h"
 #include "lib/vecmath.h"
 
@@ -28,11 +29,12 @@ class EffectParticle;
 class EffectSound;
 class EffectLightning;
 
-enum ScriptType : int {
-    kScriptFloat = 1,
-    kScriptString = 2,
-    kScriptObject = 3,
-    kScriptGroup = 4,
+enum class ScriptType : int {
+    None = 0,
+    Float = 1,
+    String = 2,
+    Object = 3,
+    Group = 4,
 };
 
 // The four types' signature letters and names, in ScriptType order.
@@ -41,18 +43,18 @@ inline constexpr const char* kScriptTypeNames[] = {"float", "string", "object", 
 
 // The signature letter of a type ('f', 's', 'o', 'g'); 0 for a number that is none.
 inline char ScriptTypeLetter(ScriptType type) {
-    return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeLetters[type - 1] : 0;
+    return type >= ScriptType::Float && type <= ScriptType::Group ? kScriptTypeLetters[lib::Index(type) - 1] : 0;
 }
 // The type of a signature letter (upper-case too: a result letter, the loop counter 'O'); 0 for none.
 inline ScriptType ScriptTypeOfLetter(char letter) {
-    for (int type = kScriptFloat; type <= kScriptGroup; ++type)
+    for (int type = static_cast<int>(ScriptType::Float); type <= static_cast<int>(ScriptType::Group); ++type)
         if (letter == kScriptTypeLetters[type - 1] || letter == kScriptTypeLetters[type - 1] - 'a' + 'A')
             return static_cast<ScriptType>(type);
-    return ScriptType{};
+    return ScriptType::None;
 }
 // "float", "string", "object" or "group"; null for any other number.
 inline const char* ScriptTypeName(ScriptType type) {
-    return type >= kScriptFloat && type <= kScriptGroup ? kScriptTypeNames[type - 1] : nullptr;
+    return type >= ScriptType::Float && type <= ScriptType::Group ? kScriptTypeNames[lib::Index(type) - 1] : nullptr;
 }
 
 // A condition's value as the script gives it: 1 for true, 0 for false.
@@ -183,28 +185,30 @@ struct ScriptToken {
 };
 
 // What Script::Error records as the error code.
-enum ScriptParseError : int {
-    kErrNone = 0,
-    kErrEndOfFile = 1,          // "Unexpected end of file" (and the open comment)
-    kErrWrongLexeme = 2,
-    kErrUnexpectedToken = 3,
-    kErrExpected = 4,
-    kErrNotEnoughParameters = 5,
-    kErrTooManyParameters = 6,
-    kErrParameterType = 7,
-    kErrLoopCounter = 8,
-    kErrFloatFunction = 9,
-    kErrExpectedIf = 10,
-    kErrNoCondition = 11,
-    kErrUnknownType = 12,
-    kErrDuplicateVariable = 13,
-    kErrSecondWorldScript = 14,
-    kErrDuplicateScript = 15,
-    kErrMultipleDeclaration = 16,
-    kErrCannotRead = 17,
+enum class ScriptParseError : int {
+    None = 0,
+    EndOfFile = 1,          // "Unexpected end of file" (and the open comment)
+    WrongLexeme = 2,
+    UnexpectedToken = 3,
+    Expected = 4,
+    NotEnoughParameters = 5,
+    TooManyParameters = 6,
+    ParameterType = 7,
+    LoopCounter = 8,
+    FloatFunction = 9,
+    ExpectedIf = 10,
+    NoCondition = 11,
+    UnknownType = 12,
+    DuplicateVariable = 13,
+    SecondWorldScript = 14,
+    DuplicateScript = 15,
+    MultipleDeclaration = 16,
+    CannotRead = 17,
 };
 
 class Script;
+
+enum class ScriptLexeme : int;   // below
 
 // The tokens of one file in reading order, and the Script that gets the parse errors.
 class TokenReader {
@@ -218,7 +222,7 @@ public:
     // the last line, the position staying (the game read past the end: a script ending in "Foo(" faulted).
     ScriptToken Next(int* id = nullptr);
     // The next token must be lexeme `id`: otherwise the error "Unexpected end of file" or "Wrong lexeme", returns false.
-    bool Expect(int id);
+    bool Expect(ScriptLexeme lexeme);
     // Records "Unexpected end of file" on the last line; returns false.
     bool EndOfFileError();
 
@@ -707,7 +711,7 @@ public:
     std::list<ScriptObjectRef> tempObjects;         // one is kept
     int forDepth = 0;           // nesting of running For loops
     std::string errorText;
-    int errorCode = 0;
+    ScriptParseError errorCode = ScriptParseError::None;
     int errorLine = 0;
     ScriptQuestBuilder quest;   // Reset leaves it
 };
@@ -949,21 +953,23 @@ struct ScriptKeyword {
 // 225 keywords and the null entry; the loader reads it through KeywordTable().
 extern const ScriptKeyword kScriptKeywords[226];
 
-enum ScriptLexeme : int {
-    kLexOpen = 0x6D,          // (
-    kLexClose = 0x6E,         // )
-    kLexIf = 0x6F,
-    kLexThen = 0x70,
-    kLexComma = 0x71,
-    kLexAssign = 0x72,        // =
-    kLexColon = 0x73,
-    kLexWorldScript = 0x74,
-    kLexScript = 0x75,
-    kLexDeclareScript = 0x76,
-    kLexGlobalVars = 0x77,
-    kLexNumber = 0x7A,        // not in the table: digits, '.', '-'
-    kLexString = 0x7B,        // not in the table: "..."
+enum class ScriptLexeme : int {
+    Open = 0x6D,          // (
+    Close = 0x6E,         // )
+    If = 0x6F,
+    Then = 0x70,
+    Comma = 0x71,
+    Assign = 0x72,        // =
+    Colon = 0x73,
+    WorldScript = 0x74,
+    Script = 0x75,
+    DeclareScript = 0x76,
+    GlobalVars = 0x77,
+    Number = 0x7A,        // not in the table: digits, '.', '-'
+    String = 0x7B,        // not in the table: "..."
 };
+// A token's id (what ClassifyToken makes of it) is a keyword table id or a lexeme's number: it compares with a lexeme.
+constexpr bool operator==(int id, ScriptLexeme lexeme) { return id == static_cast<int>(lexeme); }
 
 struct ScriptDefine {
     std::string name;
@@ -982,6 +988,6 @@ inline void ClassifyToken(const std::string& text, int* id, int* rest) { Classif
 // Null unless function `id` returns `type`.
 const char* FunctionSignature(int id, ScriptType type);
 // "Unknown command" if none.
-const char* KeywordName(int id);
+const char* KeywordName(ScriptLexeme id);
 // The keyword table with Rebirth's additions (scriptaddon::Table()).
 const ScriptKeyword* KeywordTable();

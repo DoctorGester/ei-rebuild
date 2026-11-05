@@ -352,7 +352,7 @@ void MpHeroScreen::Rename() {
         str::TrimRight(name);
     }
     surfaces[3]->Show();
-    labels[3] = {{name + kRenameSeparator, kRenameTitle, 1, kUiTextColour, 2}};
+    labels[3] = {{name + kRenameSeparator, kRenameTitle, {1, kUiTextColour, render::text::Format::Right}}};
 }
 
 // --- The voice's sound ----------------------------------------------------------------

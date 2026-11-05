@@ -52,7 +52,7 @@ constexpr int kFont = 1;
 const char* const kVoicesKey = "lmp_voices";
 // The voice rows' first y offset of the selection frame.
 constexpr float kVoiceFrameTop = 332.5f;
-constexpr std::uint32_t kListFormat = render::text::kNoPrefix;
+constexpr render::text::Format kListFormat = render::text::Format::NoPrefix;
 constexpr float kFrameDepth = 3.0f;
 
 const char* const kHeroName = "Hero";
@@ -81,12 +81,12 @@ void MpHeroScreen::DrawExperience() {
     std::string line;
     out.clear();
     levelText = g_clientWorld.texts->GetString(kLevelUpKey);
-    out.push_back({levelText, Rect{0, 130, 200, 150}, {kFont, kWhite, render::text::kCenter}});
+    out.push_back({levelText, Rect{0, 130, 200, 150}, {kFont, kWhite, render::text::Format::Center}});
     levelText = str::Format(kSignedFormat, -tradePanel->PurchaseCost());
-    out.push_back({levelText, Rect{0, 150, 200, 170}, {kFont, kWhite, render::text::kCenter}});
+    out.push_back({levelText, Rect{0, 150, 200, 170}, {kFont, kWhite, render::text::Format::Center}});
     levelText = g_clientWorld.texts->GetString(kCurrentExpKey);
     line = str::Format(kLabelFormat, levelText, tradePanel->Experience());
-    out.push_back({line, Rect{0, 110, 200, 130}, {kFont, kWhite, render::text::kCenter}});
+    out.push_back({line, Rect{0, 110, 200, 130}, {kFont, kWhite, render::text::Format::Center}});
 }
 
 void MpHeroScreen::DrawSprites(SceneRenderer* pass) {
@@ -191,7 +191,7 @@ void MpHeroScreen::DrawVoices() {
     selectionFrame->visible = false;
     std::string title;
     title = g_clientWorld.texts->GetString(kVoicesKey);
-    out.push_back({title, Rect{10, 5, 190, 20}, {0, kWhite, render::text::kCenter}});
+    out.push_back({title, Rect{10, 5, 190, 20}, {0, kWhite, render::text::Format::Center}});
     Rect area = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop);
     for (int offset = 0; offset < 165; offset += 15, ++index) {

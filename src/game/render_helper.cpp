@@ -16,16 +16,16 @@ using State = RenderPreset::State;
 // The new elements are filled from an uninitialised local with only the two flags cleared and then writes the
 // fields below, so what a list does not set (stage 0's operations everywhere, the alpha arguments of presets
 // 5-7) is stack contents there and zero here; the preset's first pass sets the alpha arguments even so.
-State TextureStage(render::TextureOp operation, std::uint8_t argument, bool alphaArguments) {
+State TextureStage(render::TextureOp operation, render::TextureArg argument, bool alphaArguments) {
     State state{};
     state.enabled = true;
     state.combiner.colourOp = operation;
     state.combiner.colourArg1 = argument;
-    state.combiner.colourArg2 = render::kArgCurrent;
+    state.combiner.colourArg2 = render::TextureArg::Current;
     state.combiner.alphaOp = render::TextureOp::Disable;
     if (alphaArguments) {
-        state.combiner.alphaArg1 = render::kArgTexture;
-        state.combiner.alphaArg2 = render::kArgCurrent;
+        state.combiner.alphaArg1 = render::TextureArg::Texture;
+        state.combiner.alphaArg2 = render::TextureArg::Current;
     }
     return state;
 }
@@ -38,30 +38,30 @@ std::vector<State> BuiltInStates(unsigned index) {
     switch (index) {
     case 1:   // texture x frame
         states.resize(2, unset);
-        states[1] = TextureStage(Op::Modulate, render::kArgTexture, true);
+        states[1] = TextureStage(Op::Modulate, render::TextureArg::Texture, true);
         break;
     case 2:   // the texture's alpha x frame
         states.resize(2, unset);
-        states[1] = TextureStage(Op::Modulate, render::kArgTexture | render::kArgAlphaReplicate, true);
+        states[1] = TextureStage(Op::Modulate, render::TextureArg::Texture | render::TextureArg::AlphaReplicate, true);
         break;
     case 3:   // added
         states.resize(2, unset);
-        states[1] = TextureStage(Op::Add, render::kArgTexture, true);
+        states[1] = TextureStage(Op::Add, render::TextureArg::Texture, true);
         break;
     case 4:   // blended by the texture's alpha
         states.resize(2, unset);
-        states[1] = TextureStage(Op::BlendTextureAlpha, render::kArgTexture, true);
+        states[1] = TextureStage(Op::BlendTextureAlpha, render::TextureArg::Texture, true);
         break;
     case 5:
         states.resize(3, unset);
-        states[1] = TextureStage(Op::Add, render::kArgTexture, false);
-        states[2] = TextureStage(Op::Modulate2x, render::kArgTexture, false);
+        states[1] = TextureStage(Op::Add, render::TextureArg::Texture, false);
+        states[2] = TextureStage(Op::Modulate2x, render::TextureArg::Texture, false);
         break;
     case 6:
     case 7:   // bump mapped (7: with luminance), a texture added
         states.resize(3, unset);
-        states[1] = TextureStage(index == 6 ? Op::BumpEnvMap : Op::BumpEnvMapLuminance, render::kArgTexture, false);
-        states[2] = TextureStage(Op::Add, render::kArgTexture, false);
+        states[1] = TextureStage(index == 6 ? Op::BumpEnvMap : Op::BumpEnvMapLuminance, render::TextureArg::Texture, false);
+        states[2] = TextureStage(Op::Add, render::TextureArg::Texture, false);
         break;
     }
     return states;
