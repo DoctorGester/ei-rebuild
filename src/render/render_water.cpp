@@ -60,7 +60,7 @@ static std::uint8_t Unsigned(float v) { return static_cast<std::uint8_t>(std::lr
 // foam's pattern (a finer sum's height, 0 .. 1), a 255.
 static std::vector<std::uint8_t> FirstLevel() {
     MapRandom random;
-    const std::vector<Wave> surface = Waves(random, 40, 3.0f, 22.0f, 1.5f);
+    const std::vector<Wave> surface = Waves(random, 100, 3.0f, 24.0f, 1.5f);
     const std::vector<Wave> foam = Waves(random, 24, 10.0f, 40.0f, 0.8f);
     // A wave's angle at a texel is a whole number of kRippleSize-th turns: its cosine and sine from these.
     std::vector<float> cosines(kRippleSize), sines(kRippleSize);
