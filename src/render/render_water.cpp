@@ -140,8 +140,7 @@ gpu::TextureBinding RippleMap() {
     gpu::SamplerDesc d;
     d.mip = gpu::Filter::Linear;
     d.anisotropy = 8;
-    static const gpu::Sampler sampler = gpu::MakeSampler(d);
-    return gpu::TextureBinding{g_ripples, sampler};
+    return gpu::TextureBinding{g_ripples, gpu::MakeSampler(d)};
 }
 
 // The layers drift apart in two directions, in map widths per client tick (about 55 ms): A about 0.27 landscape

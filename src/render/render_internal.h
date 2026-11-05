@@ -257,6 +257,8 @@ struct Command {
     int index = 0;            // into terrainBatches / meshBatches / blitBatches / clears / fills / uiBatches / pictureBatches
 };
 
+struct Frame;
+
 // The scene's light as render::SceneLighting keeps it: the sun (the direction its light travels, unit), its colours
 // and the point lights nearest the camera. Until the first hand-over: a sun from above, half ambient.
 struct KeptLight {
@@ -281,14 +283,26 @@ const KeptScene& KeptSceneLight();
 // The terrain shader's (shaders/scene_lighting.hlsli): the kept light with the frame's point shadows and the shadow
 // map's light direction.
 static_assert(std::size(SceneLightParams{}.pointAt) == kMostSceneLights);
-SceneLightParams SceneLightUniforms();
+SceneLightParams SceneLightUniforms(const Frame& frame);
 // The kept light at `position` exactly (the same Light's), -1 none.
 int SceneLightIndex(const Vector3& position);
 // The shadow map's light for the sun `sun`: at least 20 degrees above the horizon, unit. False without a
 // direction. Receivers lit on the GPU weigh the map's darkening by their facing to it.
 bool MapLightDirection(const Vector3& sun, Vector3* travel);
-// `placed` (camera x model) without the camera. False when the camera has no inverse.
-bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model);
+// A camera's clip matrix inverted, in double: a model matrix taken from under it moves by less than the camera's
+// rounding (render_point_shadows.cpp's kKeptPlace). Invert works on the camera given unless it is the one inverted
+// last; false when it has no inverse. Under: `placed` (camera x model) without the camera.
+class CameraInverse {
+public:
+    bool Invert(const Matrix4& camera);
+    Matrix4 Under(const Matrix4& placed) const;
+
+private:
+    Matrix4 camera{};
+    double inverse[16] = {};
+    bool known = false;   // `camera` was inverted (`ok`: it has an inverse)
+    bool ok = false;
+};
 // `m`'s inverse (worked in double); false when it has none.
 bool InvertMatrix(const Matrix4& m, Matrix4* inverse);
 // a x b, both row-major.
@@ -332,6 +346,12 @@ struct PointShadowFrame {
     int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
     int mapped = 0;                          // the lights with a map
     PointShadowParams params{};
+    void Clear() {
+        models.clear();
+        for (int& slot : sceneSlots) slot = 0;
+        mapped = 0;
+        params = PointShadowParams{};
+    }
 };
 
 // Casters weaker than this (units fading in) cast no shadow.
@@ -351,7 +371,24 @@ struct ShadowFrame {
     ShadowParams params{};
     ShadowParams cloudParams{};    // the clouds alone (`on` 0): for the water, and when no map is drawn
     float normalOffset = 0.0f;     // ShadowNormalOffset's with the map
+    int cellsAround = 1;           // the dilation of the map's depth range (shaders/shadow_dilate.hlsl)
     PointShadowFrame point;
+    void Clear() {
+        haveSun = false;
+        sun = Vector3{};
+        casters.clear();
+        prepared = false;
+        on = false;
+        haveClouds = false;
+        weather = CloudWeather{};
+        clouds = false;
+        lights.clear();
+        params = ShadowParams{};
+        cloudParams = ShadowParams{};
+        normalOffset = 0.0f;
+        cellsAround = 1;
+        point.Clear();
+    }
 };
 
 // A mesh batch the world draws after its first ground batch that has a model (the flat geometry only as a ground
@@ -397,6 +434,31 @@ struct Frame {
 // so the same screen coordinates get the same pixels, texture coordinates and colours. Set by EndFrame.
     float pixelShift[2] = {0.0f, 0.0f};
     ShadowFrame shadow;
+    // Empties the frame for the next one (at its present), the lists keeping their room.
+    void Clear() {
+        matrices.clear();
+        terrainPieces.clear();
+        terrainBatches.clear();
+        meshVertices.clear();
+        meshIndices.clear();
+        meshBatches.clear();
+        meshLights.clear();
+        blitBatches.clear();
+        clears.clear();
+        fills.clear();
+        uiVertices.clear();
+        uiBatches.clear();
+        pictureBatches.clear();
+        commands.clear();
+        worldRanges.clear();
+        worldGround.clear();
+        worldMeshes.clear();
+        haveFog = false;
+        fogEnabled = false;
+        fogColour = 0;
+        pixelShift[0] = pixelShift[1] = 0.0f;
+        shadow.Clear();
+    }
 };
 extern Frame g_frame;   // the frame being built
 std::uint32_t FrameNumber();
@@ -728,13 +790,14 @@ Vector3 CornerNormal(const MeshDraw& mesh, int index);
 
 // Object shadows (docs/notes/renderer.md section 13). PrepareShadows, once a frame before its first pass on
 // the world: fits the map around the visible ground seen from the sun and gives every receiving batch its
-// light matrix; DrawShadowMap draws the casters and the depth range per cell. Receivers include
+// light matrix; DrawShadowMap draws the casters and the depth range per cell (nothing when the map is off), then the
+// caller the roof map and the point lights' shadows. Receivers include
 // shaders/shadow_receiver.hlsli, take its ShadowParams (ShadowUniforms: all zero, no shadow, unless `receives`) and
 // bind the map (or a cleared 1 x 1 one) at `mapSlot` and its depth range per cell after it with BindShadowMap.
 void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
 const ShadowParams& ShadowUniforms(const Frame& frame, bool receives, bool clouded);
-void BindShadowMap(int mapSlot);
+void BindShadowMap(const Frame& frame, int mapSlot);
 // The cloud shadows (render_cloud_shadows.cpp, shaders/cloud_shadow.hlsli), in the receivers' ShadowParams: a batch
 // with a light matrix takes them (`clouded` in ShadowUniforms), the water too. PrepareClouds, from PrepareShadows
 // once a frame outside a pass: the cloud map made at the first, the drift and the cover moved on by the world's time;
@@ -835,13 +898,13 @@ private:
 // matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.
 void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
-void BindPointShadows(int slot);
+void BindPointShadows(const Frame& frame, int slot);
 int PointShadowSlot(const Frame& frame, int sceneLight);
 // A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade): the scene's sun, ambient light and the
 // kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, the
 // shadow map's light and the daylight colours. MeshLightUniforms: a mesh's light as the shader takes it, each light
 // with its point shadow (-1 none).
-MeshLight GroundDecalLight(const float box[6]);
+MeshLight GroundDecalLight(const Frame& frame, const float box[6]);
 MeshLightParams MeshLightUniforms(const Frame& frame, const MeshLight& light);
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
 const Object3D* CurrentCaster();

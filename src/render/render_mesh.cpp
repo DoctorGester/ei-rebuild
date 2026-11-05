@@ -329,8 +329,8 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     textures[2] = {s.patch.texture ? s.patch.texture : SurfaceView(nullptr), textures[0].sampler};   // sampled as stage 0
     static_assert(program::kSamplerTex0 == 0 && program::kSamplerTex1 == 1 && program::kSamplerTex2 == 2);
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
-    BindShadowMap(program::kSamplerShadowMap);
-    BindPointShadows(program::kSamplerPointShadowMap);
+    BindShadowMap(f, program::kSamplerShadowMap);
+    BindPointShadows(f, program::kSamplerPointShadowMap);
     BindCloudMap(program::kSamplerCloudMap);
     BindOcclusion(program::kSamplerOcclusionMap);
     BindRoofMap(program::kSamplerRoofMap);
@@ -365,7 +365,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
         }
     }
     if (batch.decal) {   // a ground print: lit as the ground (its positions the landscape's), its normal up
-        lighting = MeshLightUniforms(f, GroundDecalLight(batch.box));
+        lighting = MeshLightUniforms(f, GroundDecalLight(f, batch.box));
         for (int k = 0; k < 3; ++k) vs.landscape[k][k] = 1.0f;
         vs.normalUp = 1;
         fs.pointShadows = 1;

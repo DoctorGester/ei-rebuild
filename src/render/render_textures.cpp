@@ -338,8 +338,7 @@ const gpu::Texture& TextureView(const ::Texture* texture) {
 
 gpu::Sampler LinearSampler() {
     // The game's D3DTFP_POINT mips.
-    static const gpu::Sampler linear = gpu::MakeSampler({gpu::Filter::Linear, gpu::Filter::Linear, gpu::Filter::Nearest});
-    return linear;
+    return gpu::MakeSampler({gpu::Filter::Linear, gpu::Filter::Linear, gpu::Filter::Nearest});
 }
 
 // The stages' samplers by their filters and addresses (gpu.h keeps them by description).

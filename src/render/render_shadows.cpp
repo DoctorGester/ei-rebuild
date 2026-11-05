@@ -49,7 +49,7 @@ static_assert(kMapSize == 4096 && kRangeCell == 16,
 
 // --- Matrices in double ----------------------------------------------------------------------------
 
-// The camera's clip matrix inverted and multiplied back into the game's clip matrices (FitMap, UnderCamera,
+// The camera's clip matrix inverted and multiplied back into the game's clip matrices (FitMap, CameraInverse,
 // PrepareShadows' light matrices): their product nearly cancels, so the inverse and the products through it
 // are double (a float inverse moves still objects by the camera's rounding, render_point_shadows.cpp's
 // kKeptPlace); everything else is float.
@@ -140,7 +140,7 @@ struct OutsideCaster {
 static std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
 constexpr std::size_t kMostOutside = 100'000;
-std::unordered_set<const FigureMesh*> g_drawnParts;   // NoteCasterPart, this frame
+static std::unordered_set<const FigureMesh*> g_drawnParts;   // NoteCasterPart, this frame
 static bool g_outsideOn = true;                 // SetOffscreenCasters: not View
 static bool g_walkedOnly = false;               // SetOffscreenCasters: Walked
 static bool g_shadowView = false;               // SetShadowView
@@ -179,7 +179,6 @@ static bool g_dummyCleared = false;
 static gpu::Texture g_cells, g_range;
 static gpu::Texture
     g_rangeDummy;   // the range's 1 x 1 stand-in without a map (the receivers' read of the range needs a texture bound)
-static int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 
 // A depth-only pipeline into the shadow maps (kDepthFormat, nearer or equal kept, the slope's bias 1.5).
 static void DepthOnly(gpu::PipelineDesc& p) {
@@ -375,50 +374,31 @@ static Matrix4 LightMatrix(const Fit& fit, float zNear, float* depth) {
     return light;
 }
 
-static const Fit& FitMap(Frame& f) {
-    if (g_fit.frame == FrameNumber() && g_fit.pieces == f.terrainPieces.size()) return g_fit;
-    g_fit = Fit{};
-    g_fit.frame = FrameNumber();
-    g_fit.pieces = f.terrainPieces.size();
-    ShadowFrame& sh = f.shadow;
-    if (!sh.haveSun || f.worldRanges.empty()) return g_fit;
+// The visible ground seen from the sun along the map's axes x, y and d (FitMap): the least and the greatest of its
+// points' places on them, its box in the landscape's space and the points taken.
+struct SeenGround {
+    Vector3 low{1e30f, 1e30f, 1e30f}, high{-1e30f, -1e30f, -1e30f};
+    Box box;
+    int points = 0;
+};
+static std::vector<Vector3> g_groupPositions;   // SeeGround's, kept for its room
 
-    const std::size_t firstGround = FirstGround(f);
-    if (firstGround == SIZE_MAX) return g_fit;
-    const TerrainBatch& ground = f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)];
-    const Matrix4& camera = f.matrices[static_cast<std::size_t>(ground.matrix)];
-    M4 fromClip;
-    if (!Invert(FromMatrix(camera), &fromClip)) return g_fit;
-    Vector3 eye{};
-    const bool haveEye = CameraEye(fromClip, &eye);
-
-    // The sun's direction, at least kLeastElevation above the horizon, travelling down.
-    Vector3 travel;
-    if (!MapLightDirection(sh.sun, &travel)) return g_fit;
-    const Vector3 d = travel;
-    // The map's axes: the landscape's x and y where a point meets a level plane along the light (d.z is below
-    // -sin(kLeastElevation)), z along the light. A point at the plane's height keeps its place on the map
-    // wherever the sun stands, so the map's texels stay on the ground while the sun turns.
-    const Vector3 x{1.0f, 0.0f, -d.x / d.z}, y{0.0f, 1.0f, -d.y / d.z};
-
-    // The visible ground seen from the sun, by the terrain pieces' runs of vertices (a piece wholly outside the
-    // view skipped by its box, the planes it lies inside not tested again): a run wholly inside the camera's view
-    // by its box's corners (a box reaches above the run's low ground: seen from the sun its top lies
-    // a little further along y), one the view's sides cross by every second vertex inside them, as the camera
-    // sees it.
+// The visible ground by the terrain pieces' runs of vertices (a piece wholly outside the view skipped by its box, the
+// planes it lies inside not tested again): a run wholly inside the camera's view by its box's corners (a box reaches
+// above the run's low ground: seen from the sun its top lies a little further along y), one the view's sides cross by
+// every second vertex inside them, as the camera sees it.
+static SeenGround SeeGround(const Frame& f, const Matrix4& camera, const Vector3& x, const Vector3& y,
+                            const Vector3& d) {
     Plane planes[kViewPlanes];
     ViewPlanes(camera, planes);
-    Vector3 lo{1e30f, 1e30f, 1e30f}, hi{-1e30f, -1e30f, -1e30f};
-    Box visible;
-    int seen = 0;
+    SeenGround seen;
     auto take = [&](const Vector3& at) {
         const Vector3 l{Dot(x, at), Dot(y, at), Dot(d, at)};
-        lo = Min(lo, l);
-        hi = Max(hi, l);
-        visible.Extend(at);
-        ++seen;
+        seen.low = Min(seen.low, l);
+        seen.high = Max(seen.high, l);
+        seen.box.Extend(at);
+        ++seen.points;
     };
-    static std::vector<Vector3> positions;
     auto crossedBy = [&](const TerrainGroup& g, int asked) { return CrossedPlanes(g.box, planes, asked); };
     for (const TerrainPiece& piece : f.terrainPieces) {
         const TerrainGroup& whole = TerrainPieceWhole(piece);
@@ -432,15 +412,47 @@ static const Fit& FitMap(Frame& f) {
                 for (int i = 0; i < 8; ++i) take(Vector3{(i & 1) ? high.x : low.x, (i & 2) ? high.y : low.y, (i & 4) ? high.z : low.z});
                 continue;
             }
-            TerrainGroupPositions(piece, group, 2, &positions);
-            for (const Vector3& at : positions) {
+            TerrainGroupPositions(piece, group, 2, &g_groupPositions);
+            for (const Vector3& at : g_groupPositions) {
                 bool inside = true;
                 for (int k = 0; k < kViewPlanes && inside; ++k) inside = !(crossed & (1 << k)) || planes[k].Side(at) >= 0.0f;
                 if (inside) take(at);
             }
         }
     }
-    if (seen == 0) return g_fit;
+    return seen;
+}
+
+static const Fit& FitMap(Frame& f) {
+    if (g_fit.frame == FrameNumber() && g_fit.pieces == f.terrainPieces.size()) return g_fit;
+    g_fit = Fit{};
+    g_fit.frame = FrameNumber();
+    g_fit.pieces = f.terrainPieces.size();
+    const ShadowFrame& shadow = f.shadow;
+    if (!shadow.haveSun || f.worldRanges.empty()) return g_fit;
+
+    const std::size_t firstGround = FirstGround(f);
+    if (firstGround == SIZE_MAX) return g_fit;
+    const TerrainBatch& ground = f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)];
+    const Matrix4& camera = f.matrices[static_cast<std::size_t>(ground.matrix)];
+    M4 fromClip;
+    if (!Invert(FromMatrix(camera), &fromClip)) return g_fit;
+    Vector3 eye{};
+    const bool haveEye = CameraEye(fromClip, &eye);
+
+    // The sun's direction, at least kLeastElevation above the horizon, travelling down.
+    Vector3 travel;
+    if (!MapLightDirection(shadow.sun, &travel)) return g_fit;
+    const Vector3 d = travel;
+    // The map's axes: the landscape's x and y where a point meets a level plane along the light (d.z is below
+    // -sin(kLeastElevation)), z along the light. A point at the plane's height keeps its place on the map
+    // wherever the sun stands, so the map's texels stay on the ground while the sun turns.
+    const Vector3 x{1.0f, 0.0f, -d.x / d.z}, y{0.0f, 1.0f, -d.y / d.z};
+
+    const SeenGround seen = SeeGround(f, camera, x, y, d);
+    if (seen.points == 0) return g_fit;
+    const Vector3 &lo = seen.low, &hi = seen.high;
+    const Box& visible = seen.box;
     float extent = std::max(hi.x - lo.x, hi.y - lo.y) + 2.0f;
     extent = std::ceil(extent / kExtentStep) * kExtentStep;
     const float texel = extent / kMapSize;
@@ -557,8 +569,7 @@ gpu::Sampler ShadowCompareSampler() {
     gpu::SamplerDesc d;
     d.u = d.v = gpu::Wrap::Clamp;
     d.compare = gpu::Compare::LessEqual;
-    static const gpu::Sampler compare = gpu::MakeSampler(d);
-    return compare;
+    return gpu::MakeSampler(d);
 }
 
 const gpu::Texture& NoShadowTexture() { return g_dummy; }
@@ -574,18 +585,20 @@ bool MapLightDirection(const Vector3& sun, Vector3* travel) {
     return true;
 }
 
-bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model) {
-    // The inverse is kept for the camera last asked (one per frame in the world's draw).
-    static Matrix4 lastCamera{};
-    static M4 lastInverse{};
-    static bool haveLast = false;
-    if (!haveLast || std::memcmp(&lastCamera, &camera, sizeof(Matrix4)) != 0) {
-        haveLast = Invert(FromMatrix(camera), &lastInverse);
-        lastCamera = camera;
-        if (!haveLast) return false;
-    }
-    *model = ToMatrix(Multiply(lastInverse, FromMatrix(placed)));
-    return true;
+bool CameraInverse::Invert(const Matrix4& clip) {
+    if (known && std::memcmp(&camera, &clip, sizeof(Matrix4)) == 0) return ok;
+    M4 m;
+    ok = render::Invert(FromMatrix(clip), &m);
+    known = true;
+    camera = clip;
+    if (ok) std::copy(std::begin(m.m), std::end(m.m), inverse);
+    return ok;
+}
+
+Matrix4 CameraInverse::Under(const Matrix4& placed) const {
+    M4 m;
+    std::copy(std::begin(inverse), std::end(inverse), m.m);
+    return ToMatrix(Multiply(m, FromMatrix(placed)));
 }
 
 int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip) {
@@ -821,36 +834,12 @@ static void ListWorld(Frame& f) {
     }
 }
 
-void PrepareShadows(Frame& f) {
+// Every model mesh the world draws after the ground (figures, objects; not the sky, the flat geometry but the ground
+// prints, or additive effects) gets its matrix into the map (MeshBatch::light; the meshes of one frame matrix share
+// it), the units their fronts.
+static void ReceiverMatrices(Frame& f, const Fit& fit) {
     ShadowFrame& sh = f.shadow;
-    sh.prepared = true;
-    ListWorld(f);
-    sh.on = false;
-    sh.clouds = false;
-    sh.lights.clear();
-    g_info = ShadowInfo{};
-    PreparePointShadows(f);
-    // The map is drawn with casters; the receivers' matrices into it are made for the clouds too.
-    const float cloudLight = PrepareClouds(sh);
-    PrepareSurfaces(sh);
-    PrepareUnitWeather(f);
-    PrepareRoofs(f);
-    SurfaceState(&g_info.wetness, &g_info.puddles, &g_info.snowCover);
-    for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
-    const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
-    if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;
-    Timer timer(FrameStats::ShadowMs);
-    if (!FitMap(f).ok) return;
-    // Along the light from the nearest caster that reaches the map (the ground's near side without one).
-    Fit& fit = g_fit;
-    fit.light = LightMatrix(fit, std::min(fit.groundNear, g_nearestCaster) - kDepthMargin, &fit.depth);
-    const Matrix4& light = fit.light;
-    const float extent = fit.extent, depth = fit.depth;
-    sh.lights.push_back(light);
-    const M4 lightFromClip = Multiply(FromMatrix(light), fit.fromClip);
-
-    // Every model mesh the world draws after the ground (figures, objects; not the sky, the flat geometry
-    // but the ground prints, or additive effects) gets its matrix into the map.
+    const M4 lightFromClip = Multiply(FromMatrix(fit.light), fit.fromClip);
     g_info.receivingTerrain += static_cast<int>(f.worldGround.size());
     std::unordered_map<std::uint32_t, int> reused;   // the frame's matrix index -> light index
     for (const WorldMesh& w : f.worldMeshes) {
@@ -867,60 +856,94 @@ void PrepareShadows(Frame& f) {
         else ++g_info.receivingMeshes;
     }
     FigureFronts(f);
+}
 
-    ShadowParams p{};
-    p.on = 1;
-    p.strength = kStrength;
-    p.shadowView = g_shadowView ? 1 : 0;
-    p.depthBias = kDepthBias / depth;
-    p.scale[0] = extent * 0.5f;
-    p.scale[1] = extent * 0.5f;
-    p.scale[2] = depth;
-    // The largest depth change per uv unit: kLargestSlope world units of depth per unit across.
-    p.largestSlope = kLargestSlope * extent / depth;
-    // 1.5 of the map's texels in world units.
-    sh.normalOffset = extent * 0.5f * 2.0f / static_cast<float>(kMapSize) * 1.5f;
-    if (fit.haveEye) {
-        const Vector3 c = TransformColumn(light, fit.eye);
-        p.camera[0] = c.x;
-        p.camera[1] = c.y;
-        p.camera[2] = c.z;
-    }
-    p.sun[0] = fit.d.x;
-    p.sun[1] = fit.d.y;
-    p.sun[2] = fit.d.z;
-    // The filters' discs lie across the light (as the sun's own disc does) and are drawn onto the map: a unit across
-    // the light in uv, by two axes across it, `level` and `up` (towards the sun's azimuth); the map's v runs against
-    // its y. The level axis keeps its length, the other is stretched by 1 / sin(elevation).
+// The filters' discs lie across the light (as the sun's own disc does) and are drawn onto the map: a unit across the
+// light in uv, by two axes across it, `level` and `up` (towards the sun's azimuth); the map's v runs against its y.
+// The level axis keeps its length, the other is stretched by 1 / sin(elevation): `params`' disc, its inverse and the
+// stretch.
+static void DiscUniforms(const Fit& fit, ShadowParams& params) {
     const float horizontal = lib::Hypot(fit.d.x, fit.d.y);
     const Vector3 level =
         horizontal < 1e-6f ? Vector3{1.0f, 0.0f, 0.0f} : Vector3{fit.d.y, -fit.d.x, 0.0f} * (1.0f / horizontal);
     const Vector3 up = Cross(fit.d, level);
     const float disc[4] = {Dot(fit.x, level), Dot(fit.x, up), -Dot(fit.y, level), -Dot(fit.y, up)};
     const float discDet = disc[0] * disc[3] - disc[1] * disc[2];
-    for (int k = 0; k < 4; ++k) p.disc[k] = disc[k];
-    p.discInverse[0] = disc[3] / discDet;
-    p.discInverse[1] = -disc[1] / discDet;
-    p.discInverse[2] = -disc[2] / discDet;
-    p.discInverse[3] = disc[0] / discDet;
-    const float stretch = std::max(lib::Hypot(disc[0], disc[2]), lib::Hypot(disc[1], disc[3]));
-    p.stretch = stretch;
-    p.softness = depth * kSunSize / extent;
+    for (int k = 0; k < 4; ++k) params.disc[k] = disc[k];
+    params.discInverse[0] = disc[3] / discDet;
+    params.discInverse[1] = -disc[1] / discDet;
+    params.discInverse[2] = -disc[2] / discDet;
+    params.discInverse[3] = disc[0] / discDet;
+    params.stretch = std::max(lib::Hypot(disc[0], disc[2]), lib::Hypot(disc[1], disc[3]));
+}
+
+// The receivers' uniforms for the map (shaders/shadow_receiver.hlsli; the clouds' and the roofs' parts are added
+// after), the receivers' normal offset and the dilation of the map's depth range.
+static void MapUniforms(const Fit& fit, ShadowFrame& shadow) {
+    const float extent = fit.extent, depth = fit.depth;
+    ShadowParams& params = shadow.params;
+    params = ShadowParams{};
+    params.on = 1;
+    params.strength = kStrength;
+    params.shadowView = g_shadowView ? 1 : 0;
+    params.depthBias = kDepthBias / depth;
+    params.scale[0] = extent * 0.5f;
+    params.scale[1] = extent * 0.5f;
+    params.scale[2] = depth;
+    // The largest depth change per uv unit: kLargestSlope world units of depth per unit across.
+    params.largestSlope = kLargestSlope * extent / depth;
+    // 1.5 of the map's texels in world units.
+    shadow.normalOffset = extent * 0.5f * 2.0f / static_cast<float>(kMapSize) * 1.5f;
+    if (fit.haveEye) {
+        const Vector3 camera = TransformColumn(fit.light, fit.eye);
+        params.camera[0] = camera.x;
+        params.camera[1] = camera.y;
+        params.camera[2] = camera.z;
+    }
+    params.sun[0] = fit.d.x;
+    params.sun[1] = fit.d.y;
+    params.sun[2] = fit.d.z;
+    DiscUniforms(fit, params);
+    params.softness = depth * kSunSize / extent;
     // The widest filter, in texels across the light: kWidestRadius, at most what the dilation's cells reach on the map.
     constexpr float kWidestReach = (kMostCellsAround - 1) * kRangeCell - 1.0f;
-    const float widestTexels = std::min(kWidestRadius / extent * kMapSize, kWidestReach / stretch);
-    p.searchRadius = widestTexels / kMapSize;
-    p.narrowest = kLeastRadius / kMapSize;
-    p.texels = static_cast<float>(kMapSize);
+    const float widestTexels = std::min(kWidestRadius / extent * kMapSize, kWidestReach / params.stretch);
+    params.searchRadius = widestTexels / kMapSize;
+    params.narrowest = kLeastRadius / kMapSize;
+    params.texels = static_cast<float>(kMapSize);
     // The cells around a cell that hold every texel the search and the filter read (+1 texel for the
     // bilinear comparisons' second texel), and one cell more: the receivers read the range filtered
     // between the four cells around a pixel, each of which must hold the pixel's taps.
-    const float reachTexels = widestTexels * stretch + 1.0f;
-    g_cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)) + 1);
-    CloudUniforms(fit.x0, fit.y0, extent, cloudLight, &p);
-    RoofUniforms(light, &p);
-    sh.params = p;
-    sh.cloudParams = p;
+    const float reachTexels = widestTexels * params.stretch + 1.0f;
+    shadow.cellsAround = std::min(kMostCellsAround, static_cast<int>(std::ceil(reachTexels / kRangeCell)) + 1);
+}
+
+void PrepareShadows(Frame& f) {
+    ShadowFrame& sh = f.shadow;
+    sh.prepared = true;
+    ListWorld(f);
+    g_info = ShadowInfo{};
+    PreparePointShadows(f);
+    // The map is drawn with casters; the receivers' matrices into it are made for the clouds too.
+    const float cloudLight = PrepareClouds(sh);
+    PrepareSurfaces(sh);
+    PrepareUnitWeather(f);
+    PrepareRoofs(f);
+    SurfaceState(&g_info.wetness, &g_info.puddles, &g_info.snowCover);
+    for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
+    const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
+    if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;
+    Timer timer(FrameStats::ShadowMs);
+    if (!FitMap(f).ok) return;
+    // Along the light from the nearest caster that reaches the map (the ground's near side without one).
+    Fit& fit = g_fit;
+    fit.light = LightMatrix(fit, std::min(fit.groundNear, g_nearestCaster) - kDepthMargin, &fit.depth);
+    sh.lights.push_back(fit.light);
+    ReceiverMatrices(f, fit);
+    MapUniforms(fit, sh);
+    CloudUniforms(fit.x0, fit.y0, fit.extent, cloudLight, &sh.params);
+    RoofUniforms(fit.light, &sh.params);
+    sh.cloudParams = sh.params;
     sh.cloudParams.on = 0;
     sh.clouds = cloudLight > 0.0f;
     g_info.cloudLight = cloudLight;
@@ -929,105 +952,120 @@ void PrepareShadows(Frame& f) {
     sh.on = true;
     g_info.made = true;
     g_info.size = kMapSize;
-    g_info.extent = extent;
+    g_info.extent = fit.extent;
+}
+
+// The casters the game drew (the batches with a light matrix of the objects it shadows; one for all passes of a mesh)
+// into g_casterDraws, each one's cut noted by its texture for the casters outside the view (g_cuts); their objects
+// into `counted`.
+static void AddDrawnCasters(const Frame& f, std::unordered_set<const Object3D*>& counted) {
+    const auto& casters = f.shadow.casters;
+    const CachedMesh* lastMesh = nullptr;
+    int lastFirst = -1;
+    for (const MeshBatch& batch : f.meshBatches) {
+        if (batch.light < 0 || !batch.caster || batch.indexCount <= 0) continue;
+        auto it = casters.find(batch.caster);
+        if (it == casters.end() || it->second < kLeastStrength) continue;
+        if (batch.cached == lastMesh && batch.firstIndex == lastFirst) continue;   // a later pass of the same mesh
+        lastMesh = batch.cached;
+        lastFirst = batch.firstIndex;
+        Geometry geometry;
+        int first = 0;
+        if (!BindMeshBatch(batch, geometry, &first)) continue;
+        const PassState& state = batch.state;
+        const StageState& stage = state.stages[0];
+        CasterInstance instance{f.shadow.lights[static_cast<std::size_t>(batch.light)], {batch.uOffset, batch.vOffset}, {}};
+        CasterAlpha(state, instance.alpha);
+        if (stage.hasTexture && stage.texture) {
+            if (g_cuts.size() >= kMostCuts) g_cuts.clear();
+            g_cuts[stage.texture.texture] = AlphaCut{instance.alpha[0] > 0.5f, instance.alpha[1]};
+        }
+        if (g_walkedOnly) continue;   // the walk hands this caster over instead
+        g_casterDraws.Add(geometry, batch.cached != nullptr, stage.texture ? stage.texture : SurfaceView(nullptr),
+                          StageSampler(stage), first, batch.indexCount, instance);
+        ++g_stats.counts[FrameStats::ShadowDraws];
+        ++g_info.casterDraws;
+        counted.insert(batch.caster);
+    }
+}
+
+// The casters outside the view (ShadowCasterMesh) into g_casterDraws through the map's light matrix; their objects
+// into `counted`.
+static void AddOutsideCasters(const Fit& fit, std::unordered_set<const Object3D*>& counted) {
+    std::unordered_set<const Object3D*> outside;
+    int corners = 0;
+    for (const OutsideCaster& e : g_outside) {
+        if (!AddOutsideCaster(g_casterDraws, e, fit.light)) continue;
+        ++g_stats.counts[FrameStats::ShadowDraws];
+        ++g_info.outsideDraws;
+        corners += CachedVertexCount(*e.mesh);
+        outside.insert(e.object);
+        counted.insert(e.object);
+    }
+    g_info.outsideCasters = static_cast<int>(outside.size());
+    g_info.outsideCorners = corners;
+}
+
+// The map's pass (g_casterDraws, then the ground's casters), then its depth range per cell, dilated by `cellsAround`.
+static void DrawMap(const Fit& fit, int cellsAround) {
+    const bool drawCasters = g_casterDraws.Upload();
+    gpu::PassDesc pass;
+    pass.depth = {g_map, 0, gpu::Load::Clear, 1.0f, true};
+    pass.label = "ei-shadow-map";
+    if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the shadow map's pass could not begin (%s).", gpu::Error());
+    ++g_stats.counts[FrameStats::Passes];
+    if (drawCasters) g_casterDraws.Draw(0, g_casterDraws.Count());
+    if (TerrainCasterCount() != 0) {
+        namespace program = gpu_shaders::shadow_terrain;
+        const ShadowTerrainVsParams vs{fit.light};
+        const ShadowTerrainFsParams fs{{fit.d.x, fit.d.y, fit.d.z, 0.0f}};
+        gpu::ApplyPipeline(g_terrainCasterPipeline);
+        gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockShadowTerrainVsParams, vs);
+        gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowTerrainFsParams, fs);
+        int draws = DrawTerrainCasters(g_terrainCasterPipeline);
+        g_stats.counts[FrameStats::ShadowDraws] += static_cast<std::uint64_t>(draws);
+        g_info.terrainCasters = draws;
+    }
+    gpu::EndPass();
+    RangePass(g_reducePipeline, g_cells, g_map, nullptr, "ei-shadow-cells");
+    const ShadowDilateParams around{cellsAround, kRangeSize - 1};
+    RangePass(g_dilatePipeline, g_range, g_cells, &around, "ei-shadow-range");
+}
+
+// The objects the game shadows that cast nothing (not in `counted`): not drawn at all, or drawn but lost here.
+static void CountMissingCasters(const Frame& f, const std::unordered_set<const Object3D*>& counted) {
+    std::unordered_set<const Object3D*> handedOver;
+    for (const MeshBatch& batch : f.meshBatches)
+        if (batch.caster && batch.indexCount > 0) handedOver.insert(batch.caster);
+    for (const auto& [object, strength] : f.shadow.casters) {
+        if (strength < kLeastStrength || counted.count(object)) continue;
+        if (handedOver.count(object)) ++g_info.lost;
+        else ++g_info.offScreen;
+    }
 }
 
 void DrawShadowMap(Frame& f) {
     EnsureDummy();
-    if (f.shadow.on) {
-        Timer timer(FrameStats::ShadowMs);
-        const auto& casters = f.shadow.casters;
-        if (!g_map) g_map = MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map");
-        if (!g_cells) g_cells = MakeRange(kRangeSize, "ei-shadow-cells");
-        if (!g_range) g_range = MakeRange(kRangeSize, "ei-shadow-range");
-        const bool ok = MakeShadowPipelines() && g_map && g_cells && g_range;
-        if (!ok) {
-            f.shadow.on = false;
-            g_info.made = false;
-        } else {
-            // The casters' geometry and instances are written before the pass (no writes inside one).
-            UploadTerrainCasters();
-            std::unordered_map<const Object3D*, bool> counted;
-            g_casterDraws.Clear();
-            const CachedMesh* lastMesh = nullptr;
-            int lastFirst = -1;
-            for (const MeshBatch& batch : f.meshBatches) {
-                if (batch.light < 0 || !batch.caster || batch.indexCount <= 0) continue;
-                auto it = casters.find(batch.caster);
-                if (it == casters.end() || it->second < kLeastStrength) continue;
-                if (batch.cached == lastMesh && batch.firstIndex == lastFirst) continue;   // a later pass of the same mesh
-                lastMesh = batch.cached;
-                lastFirst = batch.firstIndex;
-                Geometry b;
-                int first = 0;
-                if (!BindMeshBatch(batch, b, &first)) continue;
-                const PassState& s = batch.state;
-                const StageState& st = s.stages[0];
-                CasterInstance instance{f.shadow.lights[static_cast<std::size_t>(batch.light)], {batch.uOffset, batch.vOffset}, {}};
-                CasterAlpha(s, instance.alpha);
-                if (st.hasTexture && st.texture) {
-                    if (g_cuts.size() >= kMostCuts) g_cuts.clear();
-                    g_cuts[st.texture.texture] = AlphaCut{instance.alpha[0] > 0.5f, instance.alpha[1]};
-                }
-                if (g_walkedOnly) continue;   // the walk hands this caster over instead
-                g_casterDraws.Add(b, batch.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr),
-                                  StageSampler(st), first, batch.indexCount, instance);
-                ++g_stats.counts[FrameStats::ShadowDraws];
-                ++g_info.casterDraws;
-                counted[batch.caster] = true;
-            }
-            if (!g_outside.empty()) {
-                std::unordered_map<const Object3D*, bool> outside;
-                int corners = 0;
-                for (const OutsideCaster& e : g_outside) {
-                    if (!AddOutsideCaster(g_casterDraws, e, g_fit.light)) continue;
-                    ++g_stats.counts[FrameStats::ShadowDraws];
-                    ++g_info.outsideDraws;
-                    corners += CachedVertexCount(*e.mesh);
-                    outside[e.object] = true;
-                    counted[e.object] = true;
-                }
-                g_info.outsideCasters = static_cast<int>(outside.size());
-                g_info.outsideCorners = corners;
-            }
-            g_casterDraws.Sort(0, g_casterDraws.Count());
-            const bool drawCasters = g_casterDraws.Upload();
-            gpu::PassDesc pass;
-            pass.depth = {g_map, 0, gpu::Load::Clear, 1.0f, true};
-            pass.label = "ei-shadow-map";
-            if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the shadow map's pass could not begin (%s).", gpu::Error());
-            ++g_stats.counts[FrameStats::Passes];
-            if (drawCasters) g_casterDraws.Draw(0, g_casterDraws.Count());
-            if (TerrainCasterCount() != 0) {
-                namespace program = gpu_shaders::shadow_terrain;
-                const ShadowTerrainVsParams vs{g_fit.light};
-                const ShadowTerrainFsParams fs{{g_fit.d.x, g_fit.d.y, g_fit.d.z, 0.0f}};
-                gpu::ApplyPipeline(g_terrainCasterPipeline);
-                gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockShadowTerrainVsParams, vs);
-                gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowTerrainFsParams, fs);
-                int draws = DrawTerrainCasters(g_terrainCasterPipeline);
-                g_stats.counts[FrameStats::ShadowDraws] += static_cast<std::uint64_t>(draws);
-                g_info.terrainCasters = draws;
-            }
-            gpu::EndPass();
-            RangePass(g_reducePipeline, g_cells, g_map, nullptr, "ei-shadow-cells");
-            const ShadowDilateParams around{g_cellsAround, kRangeSize - 1};
-            RangePass(g_dilatePipeline, g_range, g_cells, &around, "ei-shadow-range");
-            g_info.casters = static_cast<int>(counted.size());
-            // The objects the game shadows that cast nothing: not drawn at all, or drawn but lost here.
-            std::unordered_map<const Object3D*, bool> handedOver;
-            for (const MeshBatch& batch : f.meshBatches)
-                if (batch.caster && batch.indexCount > 0) handedOver[batch.caster] = true;
-            for (const auto& c : casters) {
-                if (c.second < kLeastStrength || counted.count(c.first)) continue;
-                if (handedOver.count(c.first)) ++g_info.lost;
-                else ++g_info.offScreen;
-            }
-        }
+    if (!f.shadow.on) return;
+    Timer timer(FrameStats::ShadowMs);
+    if (!g_map) g_map = MakeShadowDepth(kMapSize, kMapSize, "ei-shadow-map");
+    if (!g_cells) g_cells = MakeRange(kRangeSize, "ei-shadow-cells");
+    if (!g_range) g_range = MakeRange(kRangeSize, "ei-shadow-range");
+    if (!MakeShadowPipelines() || !g_map || !g_cells || !g_range) {
+        f.shadow.on = false;
+        g_info.made = false;
+        return;
     }
-    DrawRoofMap();
-    perf::Enter(perf::Pass::Point);
-    DrawPointShadows(f);
+    // The casters' geometry and instances are written before the pass (no writes inside one).
+    UploadTerrainCasters();
+    std::unordered_set<const Object3D*> counted;
+    g_casterDraws.Clear();
+    AddDrawnCasters(f, counted);
+    AddOutsideCasters(g_fit, counted);
+    g_casterDraws.Sort(0, g_casterDraws.Count());
+    DrawMap(g_fit, f.shadow.cellsAround);
+    g_info.casters = static_cast<int>(counted.size());
+    CountMissingCasters(f, counted);
 }
 
 const ShadowParams& ShadowUniforms(const Frame& f, bool receives, bool clouded) {
@@ -1036,10 +1074,10 @@ const ShadowParams& ShadowUniforms(const Frame& f, bool receives, bool clouded) 
     return clouded && f.shadow.clouds ? f.shadow.cloudParams : kNone;
 }
 
-void BindShadowMap(int mapSlot) {
+void BindShadowMap(const Frame& f, int mapSlot) {
     static_assert(gpu_shaders::mesh::kSamplerShadowRange == gpu_shaders::mesh::kSamplerShadowMap + 1 &&
                   gpu_shaders::terrain::kSamplerShadowRange == gpu_shaders::terrain::kSamplerShadowMap + 1);
-    const bool on = g_map && g_range && g_frame.shadow.on;
+    const bool on = g_map && g_range && f.shadow.on;
     // The range after the map: with no map its 1 x 1 stand-in (the shaders read neither then).
     const gpu::TextureBinding b[2] = {{on ? g_map : g_dummy, ShadowCompareSampler()},
                                       {on ? g_range : g_rangeDummy, gpu::NearestClampSampler()}};

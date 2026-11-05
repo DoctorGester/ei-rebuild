@@ -81,6 +81,9 @@ static int g_deviceSamples = 1;   // the most samples up to kSmoothSamples the d
 // The SSE control bits (rounding, flush-to-zero, denormals-are-zero, the exception masks) the renderer started with.
 // The game's code does not change them; a driver or library that did would change every float of the frame.
 static unsigned g_mxcsr = 0;
+#if defined(EI_RENDER_VALIDATION)
+static int g_mxcsrLogged = 0;   // CheckFloatControl's log lines
+#endif
 #endif
 
 // The largest power of two up to `samples`, at most kSmoothSamples.
@@ -129,9 +132,8 @@ static void CheckFloatControl() {
     const unsigned now = _mm_getcsr();
     if ((now & 0xFFC0u) == g_mxcsr) return;
 #if defined(EI_RENDER_VALIDATION)
-    static int logged = 0;
-    LogFirst(logged, 10, "render: MXCSR's control bits changed (%04X, at the start %04X); set back", now & 0xFFC0u,
-             g_mxcsr);
+    LogFirst(g_mxcsrLogged, 10, "render: MXCSR's control bits changed (%04X, at the start %04X); set back",
+             now & 0xFFC0u, g_mxcsr);
 #endif
     _mm_setcsr((now & 0x3Fu) | g_mxcsr);
 #endif
@@ -382,6 +384,9 @@ static bool DrawPending() {
             perf::Enter(perf::Pass::Sun);
             PrepareShadows(g_frame);
             DrawShadowMap(g_frame);
+            DrawRoofMap();
+            perf::Enter(perf::Pass::Point);
+            DrawPointShadows(g_frame);
             perf::AddCpu(perf::Cpu::Shadow, shadowTime.End());
         }
         perf::Enter(perf::Pass::Other);
@@ -603,36 +608,12 @@ void Present() {
     AddFrameStats(g_frame.matrices.size(), g_width, g_height);
     g_drawnCommands = 0;
     g_passes = 0;
-    g_frame.matrices.clear();
-    g_frame.terrainPieces.clear();
-    g_frame.terrainBatches.clear();
+    g_frame.Clear();
     TerrainFrameDone();
     MeshCacheFrameDone();
-    g_frame.meshVertices.clear();
-    g_frame.meshIndices.clear();
-    g_frame.meshBatches.clear();
-    g_frame.meshLights.clear();
-    g_frame.blitBatches.clear();
-    g_frame.clears.clear();
-    g_frame.fills.clear();
-    g_frame.uiVertices.clear();
-    g_frame.uiBatches.clear();
-    g_frame.pictureBatches.clear();
     UiFrameDone();
-    g_frame.commands.clear();
-    g_frame.worldRanges.clear();
-    g_frame.worldGround.clear();
-    g_frame.worldMeshes.clear();
-    g_frame.shadow.haveSun = false;
-    g_frame.shadow.haveClouds = false;
-    g_frame.shadow.clouds = false;
-    g_frame.shadow.casters.clear();
-    g_frame.shadow.prepared = false;
-    g_frame.shadow.on = false;
-    g_frame.shadow.lights.clear();
     ShadowFrameDone();
     OcclusionFrameDone();
-    g_frame.haveFog = false;
     g_frameDrawn = false;
     g_holder = Holder::None;
     g_lastCounts = g_counts;

@@ -98,8 +98,8 @@ static CasterDraws g_roofDraws("ei-roof-casters");
 static gpu::Texture g_roofTexture;
 static bool g_roofShelter = true;   // SetRoofShelter
 static RoofInfo g_roofInfo;
-constexpr int kModelUnknown = -2;
-static std::vector<int> g_modelOf;   // per frame matrix: into g_models, -1 none, kModelUnknown not yet
+constexpr int kModelUnknown = -1;
+static std::vector<int> g_modelOf;   // per frame matrix: into g_models, kModelUnknown not yet
 static std::vector<Matrix4> g_models;
 
 // `now` moved towards `target` over `step` ticks: rising with `rise`, falling with `fall` as its time constant.
@@ -188,17 +188,15 @@ static void CollectUnitsAndRoofs(const Frame& f) {
     g_roofs.clear();
     g_unitBoxes.clear();
     g_models.clear();
-    Matrix4 camera;
+    Matrix4 clip;
     Vector3 eye;
-    if (f.worldRanges.empty() || !WorldCamera(f, &camera, &eye)) return;
+    CameraInverse camera;
+    if (f.worldRanges.empty() || !WorldCamera(f, &clip, &eye) || !camera.Invert(clip)) return;
     g_modelOf.assign(f.matrices.size(), kModelUnknown);
     auto modelOf = [&](const MeshBatch& b) {
         int& index = g_modelOf[static_cast<std::size_t>(b.matrix)];
-        if (index != kModelUnknown) return index;
-        Matrix4 model;
-        index = -1;
-        if (UnderCamera(camera, f.matrices[static_cast<std::size_t>(b.matrix)], &model)) {
-            g_models.push_back(model);
+        if (index == kModelUnknown) {
+            g_models.push_back(camera.Under(f.matrices[static_cast<std::size_t>(b.matrix)]));
             index = static_cast<int>(g_models.size()) - 1;
         }
         return index;
@@ -209,9 +207,7 @@ static void CollectUnitsAndRoofs(const Frame& f) {
         if (b.flat || b.lines || !b.caster || !b.boxed || w.additive) continue;
         if (last && w.repeat && b.matrix == last->matrix) continue;
         last = &b;
-        const int model = modelOf(b);
-        if (model < 0) continue;
-        const Matrix4& placed = g_models[static_cast<std::size_t>(model)];
+        const Matrix4& placed = g_models[static_cast<std::size_t>(modelOf(b))];
         if (b.figure) {
             ExtendPlaced(g_unitBoxes[b.caster], b.box, placed);
         } else {
