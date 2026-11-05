@@ -35,8 +35,7 @@ public:
         float x = 0.0f, y = 0.0f, depth = 0.0f;
     };
     Placement GetPlacement() const;
-    // The shapes, Rebirth-patched: with Rebirth's WideScreen every shape's layout x is moved
-    // by the panel offset. A rectangle: texels (u0, v0)-(u1, v1), v upwards, both u one less when u0 > u1,
+    // The shapes. A rectangle: texels (u0, v0)-(u1, v1), v upwards, both u one less when u0 > u1,
     // half a texel inwards; position the layout centre at `depth`.
     void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1);
@@ -77,7 +76,7 @@ public:
     // (the builders' common start).
     void ResetColours();
     // Puts the sprite at layout point (x, y) at `depth` in front of the interface camera (`depth` copied as
-    // bits). Rebirth-patched: with Rebirth's WideScreen x is moved by the panel offset first.
+    // bits).
     void Place(float x, float y, float depth);
     void SetScale(float scale);
     void SetScaleYBits(std::uint32_t bits);

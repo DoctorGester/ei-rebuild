@@ -185,16 +185,20 @@ addon computed its layout once from the starter's settings: for a mode at least 
 `extra = ceil((float)(margin * 800.0 / width43))` layout units. It widened the layout widths 800 and 695 by `extra`,
 scaled layout to screen with the margin added and screen to layout with it taken off, and moved x by a *panel offset*
 (`-extra` or `+extra` while one of its panel builders runs, 0 otherwise) in `UiRegion::SetRect` / `AddPoint` and the
-sprites' Place; the builders put the battle screen's panels at the screen's edges. The rebuild does all of it in
-`screen_layout.{h,cpp}` for every window shape (the module overview below):
+sprites' Place; the builders put the battle screen's panels at the screen's edges. The rebuild does all of it for every
+window shape, in `screen_layout.{h,cpp}` (the module overview below) and, for the panel offset, as each edge panel's
+origin (`UiWindow::originX`):
 - Places scaled without the margin (addon's ECX 0): the text surfaces' draw, the edit field, the save / load list, the
   chat line, the tooltip (right edge at `800 + extra`, `LayoutRight`), the connect list; `screen_layout::ToScreenNoMargin`
   / `FromScreenNoMargin`.
-- Text extent: pixels to layout units `w * 800 / width43`, `h * 600 / height` (`TextExtentToLayout`). The shape
-  builders move x by the panel offset (SetRectangle / SetFrame add it twice to the left + right sum, as addon).
+- Text extent: pixels to layout units `w * 800 / width43`, `h * 600 / height` (`TextExtentToLayout`).
 - Battle screen panels (the map, the unit panel, the weapon bar, the quick items, the spell and action columns, the
-  movement panel, the clock; ui_hud_*.cpp) call `EnterLeftPanel` / `EnterRightPanel` / `LeavePanel` where addon set its
-  offset, and move their constants by `EdgeShift()`. As with addon, a builder called inside another leaves 0 behind.
+  movement panel, the clock; ui_hud_*.cpp) have their origin at `-EdgeShift()` (left edge) or `+EdgeShift()` (right
+  edge) and add it to every x they give their regions, sprites and shapes, where addon's offset was set and where it
+  moved their constants by hand. The ring (`UiMesh::Ring`) took no offset and takes no origin. The shape builders'
+  coordinates are exact integers, so the origin added to each edge gives addon's sum (it added the offset twice to a
+  rectangle's left + right); the movement panel's sectors, whose points are not whole, are shaped about the layout's
+  corner and then placed at the origin (the same position SetTriangle would give).
   The weapon bar starts its regions at 80 - extra but still loops while x < 240 (at 3840x2160: eight regions, tips on
   the first four). The unit panel's draw puts the model at layout x 100 - extra - slide offset; the map's click takes the
   centre at 700 + extra.

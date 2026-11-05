@@ -73,12 +73,9 @@ bool UiRegion::HasActiveTip() const {
     return tip && tip->Shown();
 }
 
-// Rebirth's WideScreen replaces SetRect and AddPoint (addon's replacements in front of the original's body): x
-// is moved by the panel offset its panel builders set (screen_layout.h; 0 outside them).
 void UiRegion::SetRect(const Rect& area) {
     points.clear();
     bounds = area;
-    bounds.Offset(screen_layout::PanelOffset(), 0);
     enabled = true;
     rectOnly = true;
 }
@@ -86,7 +83,6 @@ void UiRegion::SetRect(const Rect& area) {
 void UiRegion::SetRect(int left, int top, int right, int bottom) { SetRect(Rect{left, top, right, bottom}); }
 
 void UiRegion::AddPoint(int x, int y) {
-    x += screen_layout::PanelOffset();
     if (points.empty()) {
         bounds = {x, y, x, y};
     } else {

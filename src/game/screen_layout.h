@@ -43,22 +43,10 @@ const Layout& Get();
 extern float g_layoutWidth;   // the layout's right edge: the clock's centre x (HudClock::Update)
 extern float g_panelRight;    // the bottom panels' right column: the quick items' x (HudQuickItems::SetUnit)
 
-// The panel offset (addon's 100BD0A0): added to the x of every region rectangle and point and every sprite placed or
-// shaped while one of the battle screen's panel builders runs (they set it to -extra or +extra and back to 0:
-// EnterLeftPanel / EnterRightPanel / LeavePanel). 0 outside them.
-int PanelOffset();
-void SetPanelOffset(int offset);
-
 // The layout units the battle screen's panels move by to reach the window's edges: `extra` (0 on a window 4:3 or
-// narrower). Added to (right edge) or taken off (left edge) the builders' layout constants.
+// narrower). A panel at the left edge has its origin (UiWindow::originX) at -EdgeShift(), one at the right edge at
+// +EdgeShift().
 int EdgeShift();
-
-// At a panel builder's entry: the panel offset -EdgeShift() for a panel at the window's left edge, +EdgeShift() at its
-// right; and at its exit (every return), 0 again, also when the builder ran inside another one (the outer one then
-// goes on with 0, as with addon).
-void EnterLeftPanel();
-void EnterRightPanel();
-void LeavePanel();
 
 // Layout (800x600) to screen pixels and back: x by the 4:3 part's width, y by its height, and the 4:3 part's place in
 // the window (its left and top margins) added / taken off. A rectangle's corners go each on its own.
