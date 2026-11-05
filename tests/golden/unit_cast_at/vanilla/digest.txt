@@ -6547,10 +6547,10 @@ client tick 120
 client ticksRun 92
 cunit1804 #place 6961E790
 cunit1804 #unit D81E8D84
-@ 6 update 140 frame 27 tick 140 zone gz1g hash 2D18F341 n 794
+@ 6 update 140 frame 27 tick 140 zone gz1g hash 8C6256FD n 794
 world tick 140
 world updates 140
-random isaac.count 194
+random isaac.count 195
 random isaac.a 0xBF01EE41
 random isaac.b 0xEC7AF5D6
 random isaac.c 0x00000004
@@ -6574,7 +6574,7 @@ obj1890 pos.y 96.0119324
 obj1890 #ai 912AD2E1
 obj1890 #place B4C17380
 obj1890 #vitals 42A461EE
-obj1936 #ai 4886CB18
+obj1936 #ai 260AD059
 obj1936 #vitals 559F1F72
 obj1937 #ai 60920932
 obj1937 #unit B771B33A

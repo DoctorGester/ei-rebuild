@@ -33,6 +33,7 @@
 inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 
+class IsaacRandom;
 class ParticleSource;
 class PlayerClient;
 namespace netlink {
@@ -1104,8 +1105,9 @@ float PlayerZeroVariable(std::string_view name);
 void PlayerZeroVariables(const char* prefix, NamedFloatTable* out);
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
-// thunder sound, otherwise a point light at the middle, a sound and two bolts.
-void ShowBolt(Vector3 from, Vector3 to);
+// thunder sound, otherwise a point light at the middle, a sound and two bolts. `picks` draws the choices: the
+// server's rain bolts draw g_random (the world's tick decides when), the main menu's g_clientRandom.
+void ShowBolt(Vector3 from, Vector3 to, IsaacRandom& picks);
 
 // With `plain` 0 the players' gold, party records and, on the server, their units' controller statistics are
 // XORed with a new random key, with 1 they are XORed back; also the party records outside a game. Nothing

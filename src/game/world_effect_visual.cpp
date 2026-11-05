@@ -281,12 +281,12 @@ void EffectParticle::Spawn() {
     if (ParticleTypeOf(type) == ParticleType::FireBlast) {
         float fadeAlpha = BelowOneOrOne(alpha * kScorchAlpha);
         float radius = typeParam;
-        float angle = RandomAngle(g_random.Next());
+        float angle = RandomAngle(g_clientRandom.Next());
         g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);
     }
     if (ParticleTypeOf(type) == ParticleType::LightningBlast) {
         float fadeAlpha = BelowOneOrOne(alpha * kScorchAlpha);
-        std::uint32_t random = g_random.Next();
+        std::uint32_t random = g_clientRandom.Next();
         float radius = size;
         float angle = RandomAngle(random);
         g_clientWorld.AddScorchMark(localPosition.x, localPosition.y, radius, radius, angle, fadeAlpha);

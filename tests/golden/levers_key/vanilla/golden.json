@@ -1,21 +1,28 @@
 {
   "scenario": "levers_key",
   "install": "vanilla",
-  "recorded": "2026-11-03",
-  "commit": "56708991a",
+  "recorded": "2026-11-05",
+  "commit": "6c7081606",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H47c: game maths through lib/maths.h (each system's double function rounded to float), the same on Windows and Linux; UCRT's float sinf/cosf/... were an ulp off for some inputs",
+  "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 39 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    cunit148 (80 unanwiwo \"\") #place: 226A830E in the old golden, 93682B97 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 13 differ",
-    "    #place: 1 client unit, 1 record, from 0; hash only (no numbers kept)"
+    "digest: 37 of 39 records differ, first at record 2 (world update 60, tick 60, frame 11, zone gz1g); outcomes CHANGED: party and items (deaths unknown: hash only); max unit move 12.9 (obj1943, record 38)",
+    "  first difference at record 2 (world update 60, tick 60, frame 11, zone gz1g): 2 fields",
+    "    random (random) isaac.count: 88 in the old golden, 101 in the new run (d 13)",
+    "    obj1936 (80 unmoto \"\") #ai: 73E77B38 in the old golden, AEFF4DBA in the new run",
+    "  outcomes: CHANGED party and items (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, quest variables, game result, script",
+    "    party and items: player0 objects: 10 in the old golden, 11 in the new run, from record 13 (+25 more)",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 37 records, from 2; max |d| 233 at random isaac.count, record 24: 243 -> 10",
+    "    crt: 1 generator, 14 records, from 20; e.g. random crt.rand: 0xC108389E in the old golden, 0x95F1ECE9 in the new run",
+    "  units: 48 of 52 differ",
+    "    #ai: 15 units, 34 records, from 2; hash only (no numbers kept)",
+    "    pos: 8 units, 32 records, from 7; moved 12.9 at obj1943 80 unmogo \"\", record 18",
+    "... 21 more lines"
   ]
 }

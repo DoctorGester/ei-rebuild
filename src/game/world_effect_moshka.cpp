@@ -91,7 +91,7 @@ Vector3 EffectMoshka::FindPerch(const Vector3& from) {
     Vector3 perch;
     for (;;) {
         float radius = MaxKeepB(distance, kPerchMinRadius);
-        float flightAngle = static_cast<float>(g_random.Next()) * kRandomAngle;
+        float flightAngle = static_cast<float>(g_clientRandom.Next()) * kRandomAngle;
         perch.z = from.z + perchHeight;
         perch.x = (lib::Cos(flightAngle) * radius) + from.x;
         perch.y = (lib::Sin(flightAngle) * radius) + from.y;
