@@ -1,0 +1,24 @@
+# The autosave's frame (R60; docs/notes/renderer.md, "The first frames after a load"): a new game's battle screen
+# saves at its first poll (BattleScreen::ReadyToStopPolling > QuickSave), which draws a frame for the save's picture
+# without showing it (app::FrameStep(false)), then the frame with "saving..." over the scene (ShowStatusText), the
+# first one shown. Each is a renderer frame of its own (render::EndUnshownFrame): the shown frame was added to the
+# unshown one's, whose once-a-frame passes (the shadow maps, the occlusion) and kept state came from the first
+# draw, so the user saw the save's frame lit otherwise than every frame after it (Lost in Astral's camp fire at
+# the start; on the vanilla data zone1's start alike). The save's frame and the next (the same tick) must match in the
+# world view, above and below the status text (the HUD's first-frame steps left out). "later", a second of game time
+# on (the fire's flicker, the water, the day's light moved on), is for the eye only (build/captures/r60).
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+console thingamabob
+newgame
+capture save 2 on battle
+waitline 20 Saved savea
+frames 4
+capture later
+rebirth samecapture save_1 save_2 8 0 0 195 1280 335
+rebirth samecapture save_1 save_2 8 0 0 365 1280 565
+vanilla samecapture save_1 save_2 8 0 0 195 960 335
+vanilla samecapture save_1 save_2 8 0 0 365 960 565
+report
+quit

@@ -398,6 +398,11 @@ void EndFrame();
 // EndFrame if not done yet, then a new frame begins.
 void Present();
 
+// A frame drawn but not shown (the game's frame step without a present: a frame drawn for a copy of the screen):
+// what was handed over is drawn into the frame target, which keeps it for copies until the next frame's first pass,
+// and a new frame begins, so the next frame's draws are a frame of their own and not added to this one.
+void EndUnshownFrame();
+
 // 24-bit BGR pixels, rows from the top.
 struct FrameImage {
     int width = 0, height = 0;

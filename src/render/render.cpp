@@ -691,9 +691,8 @@ void EndFrame() {
     g_haveFrame = true;
 }
 
-void Present() {
-    EndFrame();
-    ShowFrameCursor();
+// A drawn frame done with: its stats counted, each part's per-frame state let go; a new frame begins.
+static void NextFrame() {
     perf::FrameDone();
     AddFrameStats(g_frame.matrices.size(), g_width, g_height);
     g_drawnCommands = 0;
@@ -714,6 +713,26 @@ void Present() {
         CheckFloatControl();
     }
     ++g_frameNumber;
+}
+
+void Present() {
+    EndFrame();
+    ShowFrameCursor();
+    NextFrame();
+}
+
+void EndUnshownFrame() {
+    if (!g_frameDrawn) {
+        Start();
+        g_frameDrawn = true;
+        if (DrawPending()) {
+            perf::EndDraws();
+            gpu::Submit();
+            ++g_commits;
+            g_haveFrame = true;
+        }
+    }
+    NextFrame();
 }
 
 int PassSampleCount() { return g_passSamples; }
