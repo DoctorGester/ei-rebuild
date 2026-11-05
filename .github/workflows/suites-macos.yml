@@ -1,0 +1,265 @@
+# macOS smoke: the harness build and a short list of scenarios on GitHub's macos-latest runner (Apple silicon VM, 3 cores,
+# 7 GB) on SDL_GPU's Metal driver (docs/notes/macos.md, "The harness"; docs/notes/harness.md, "The macOS CI job"; H62).
+# By hand only (Actions > macOS > Run workflow): it answers whether the runner's virtual Metal device draws the game, how
+# long a frame takes there, and which goldens differ on Metal. Nothing here widens a check.
+#
+# build: the harness build (-DEI_HARNESS=ON, RelWithDebInfo, arm64, no Release / no publishing) as macos.md describes:
+# pip's cmake and ninja, DXC from the LunarG Vulkan SDK (release.yml's macos job: the same cache keys, so the two share
+# them), the shader toolchain built at configure time. ccache keeps the objects between runs.
+#
+# smoke: the stub game data (H41) fetched from the private repository with the read-only token, as suites-linux.yml and
+# suites-windows.yml do (same variable EI_STUB_DATA_REPO, same secrets EI_STUB_DATA_TOKEN / EI_STUB_DATA_KEY). The
+# first game is `boot` alone as a gate: when Metal does not draw in the VM the job prints the device lines and the
+# log and stops there. Then the scenarios of the `scenarios` input (empty: SMOKE_LIST below), one game at a time,
+# vanilla data only, `--golden`; the summary has run_all's table, the goldens block and each run's GPU device line and
+# frame times (the harness report's TIMING lines). Last, PL19a's folder rule: the app started with EI_GAME_ROOT unset
+# beside the data, and from elsewhere with game_folder.txt naming it.
+#
+# The data never leaves the runner (its temp folder, nothing uploaded).
+name: macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenarios:
+        description: "Scenarios to play (space-separated; empty: the smoke list in the workflow)"
+        required: false
+        default: ""
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  VULKAN_SDK_VERSION: 1.4.363.1
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_MAXSIZE: 2G
+  # The harness's real-time limits times 3, as the Linux and Windows jobs (a virtual GPU on 3 cores).
+  EI_TIME_SCALE: 3
+  # Cheap scenarios that reach the menu, the interface (menus, HUD, save and load screens), a new game, a zone change,
+  # saves written and loaded back, the renderer's frame (scene, present, water, shadows) and its per-frame statistics.
+  SMOKE_LIST: >-
+    boot smoke settings_defaults ui_main_menu ui_screens ui_hud ui_saveload rec_save_load save_flight world_load
+    zone_gz3g render_scene render_present render_water render_shadows render_stats units items
+
+jobs:
+  smoke:
+    runs-on: macos-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: The runner
+        run: |
+          {
+            echo "### The runner"
+            echo '```'
+            sw_vers
+            uname -m
+            sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
+            # the GPU the VM shows (an empty or software-only list means Metal has no device)
+            system_profiler SPDisplaysDataType 2>&1 | head -40 || true
+            echo '```'
+          } | tee -a $GITHUB_STEP_SUMMARY
+      - name: Tools
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: |
+          pip install cmake==3.31.6 ninja
+          brew install ccache
+          command -v zstd >/dev/null || brew install zstd
+      - name: DXC cache
+        id: dxc-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/dxc-macos
+          key: dxc-macos-${{ env.VULKAN_SDK_VERSION }}
+      - name: DXC from the Vulkan SDK
+        if: steps.dxc-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/vulkansdk.zip" \
+            "https://sdk.lunarg.com/sdk/download/$VULKAN_SDK_VERSION/mac/vulkansdk-macos-$VULKAN_SDK_VERSION.zip"
+          unzip -q "$RUNNER_TEMP/vulkansdk.zip" -d "$RUNNER_TEMP/vulkansdk-installer"
+          set -- "$RUNNER_TEMP"/vulkansdk-installer/*.app/Contents/MacOS/*
+          sudo "$1" --root "$RUNNER_TEMP/vulkansdk-root" --accept-licenses --default-answer --confirm-command install
+          sdk="$RUNNER_TEMP/vulkansdk-root/macOS"
+          mkdir -p ~/dxc-macos/lib ~/dxc-macos/include
+          cp -a "$sdk"/lib/libdxcompiler*.dylib ~/dxc-macos/lib/
+          cp -a "$sdk/include/dxc" ~/dxc-macos/include/
+          test -f ~/dxc-macos/include/dxc/dxcapi.h
+          test -f ~/dxc-macos/lib/libdxcompiler.dylib
+      - name: Shader toolchain cache
+        uses: actions/cache@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ env.VULKAN_SDK_VERSION }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      - name: Compiler cache
+        uses: actions/cache@v5
+        with:
+          path: .ccache
+          key: ccache-macos-${{ github.sha }}
+          restore-keys: ccache-macos-
+      - name: Build the harness
+        run: |
+          start=$(date +%s)
+          cmake -S . -B build/macos-verify -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON \
+            "-DEI_DXC_ROOT=$HOME/dxc-macos" -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build build/macos-verify
+          ccache --show-stats
+          test -x build/macos-verify/ei-rebuild.app/Contents/MacOS/ei-rebuild
+          echo "build harness: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
+
+      # The private repository's files, fetched and unpacked as in suites-linux.yml (no token kept in the checkout).
+      - name: Fetch the stub data
+        if: vars.EI_STUB_DATA_REPO != ''
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ vars.EI_STUB_DATA_REPO }}
+          token: ${{ secrets.EI_STUB_DATA_TOKEN }}
+          path: stub-data-checkout
+          persist-credentials: false
+          lfs: false
+      - name: Unpack the stub data
+        if: vars.EI_STUB_DATA_REPO != ''
+        env:
+          KEY: ${{ secrets.EI_STUB_DATA_KEY }}
+        run: |
+          set +x
+          DATA=$RUNNER_TEMP/ei-data
+          echo "DATA=$DATA" >> $GITHUB_ENV
+          mkdir -p "$DATA"
+          shopt -s nullglob
+          parts=(stub-data-checkout/ei-stub-data.tar.zst*)
+          [ ${#parts[@]} -gt 0 ] || { echo "::error::no ei-stub-data.tar.zst* in the stub data repository"; exit 1; }
+          case "${parts[0]}" in
+            *.enc | *.enc.*)
+              [ -n "$KEY" ] || { echo "::error::the stub data is encrypted and EI_STUB_DATA_KEY is not set"; exit 1; }
+              cat "${parts[@]}" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY | zstd -dq | tar -x -C "$DATA" ;;
+            *)
+              cat "${parts[@]}" | zstd -dq | tar -x -C "$DATA" ;;
+          esac
+          rm -rf stub-data-checkout
+          [ -d "$DATA/vanilla" ] && [ -d "$DATA/rebirth" ] || { echo "::error::the stub data has no vanilla/ and rebirth/"; exit 1; }
+          echo "stub data: $(du -sm "$DATA" | cut -f1) MB unpacked"
+      - name: Stub data missing
+        if: vars.EI_STUB_DATA_REPO == ''
+        run: |
+          echo "::error::the repository variable EI_STUB_DATA_REPO is not set (docs/notes/linux.md, The stub data)"
+          exit 1
+
+      # The gate: the first game alone. Without a Metal device, or when it cannot draw, the log says so and the job stops.
+      - name: Metal gate (boot)
+        run: |
+          export EI_BUILD_DIR=$PWD/build/macos-verify EI_GAME_VANILLA=$DATA/vanilla EI_GAME_REBIRTH=$DATA/rebirth
+          export PYTHONUNBUFFERED=1
+          if python3 tools/run_all.py --vanilla-only --golden --jobs 1 boot 2>&1 | tee gate.txt; then ok=1; else ok=0; fi
+          {
+            echo "### Metal gate (boot)"
+            echo '```'
+            grep -h "gpu: " build/macos-verify/runs/*/ei-rebuild.log 2>/dev/null | head -10 || true
+            sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' gate.txt | head -60
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+          if [ $ok = 0 ] || grep -q "not passed:" gate.txt; then
+            echo "::error::boot did not pass: Metal may not draw in the VM; the logs follow"
+            for f in build/macos-verify/runs/*/launch.txt build/macos-verify/runs/*/ei-rebuild.log; do
+              echo "=== $f"; tail -40 "$f" || true
+            done
+            exit 1
+          fi
+
+      - name: Smoke scenarios
+        env:
+          SCENARIOS: ${{ inputs.scenarios }}
+        run: |
+          export EI_BUILD_DIR=$PWD/build/macos-verify EI_GAME_VANILLA=$DATA/vanilla EI_GAME_REBIRTH=$DATA/rebirth
+          export PYTHONUNBUFFERED=1
+          names="$SCENARIOS"
+          [ -n "${names// }" ] || names="$SMOKE_LIST"
+          echo "scenarios: $names"
+          python3 tools/run_all.py --vanilla-only --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
+          {
+            echo "### Smoke scenarios"
+            echo '```'
+            sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' suite_image.txt | head -300
+            echo '```'
+            echo "### GPU device and frame times"
+            echo '```'
+            grep -h "gpu: .* device" build/macos-verify/runs/*/ei-rebuild.log 2>/dev/null | sort | uniq -c | head -5 || true
+            for d in build/macos-verify/runs/*/; do
+              n=$(basename "$d")
+              grep -h "^TIMING: median frame" "$d/harness_report.txt" 2>/dev/null | sed "s/^TIMING: /$n: /" || true
+            done
+            echo '```'
+          } | tee -a $GITHUB_STEP_SUMMARY
+
+      # PL19a's rule: no EI_GAME_ROOT, the game's folder is the one holding ei-rebuild.app when it has Res/database.res,
+      # else the one named in ~/Library/Application Support/ei-rebuild/game_folder.txt. Each start is the harness build
+      # as a player's (no EI_HARNESS), settings and log redirected into the case's own folder, windowed; the game runs
+      # until killed after 15 s and its log must say where it started.
+      - name: The folder rule (EI_GAME_ROOT unset)
+        run: |
+          app=build/macos-verify/ei-rebuild.app
+          data="$DATA/vanilla"
+          mkdir -p "$RUNNER_TEMP/folder-rule/beside" "$RUNNER_TEMP/folder-rule/elsewhere"
+          cat > "$RUNNER_TEMP/folder-rule/ei_settings.ini" <<'EOF'
+          [video]
+          VideoResolution = 1280x720
+          FullScreen = false
+          EOF
+          # case 1: the app inside the data folder (a copy: the data stays where it is)
+          cp -R "$app" "$data/ei-rebuild.app"
+          # case 2: the app elsewhere, the folder remembered
+          cp -R "$app" "$RUNNER_TEMP/folder-rule/elsewhere/ei-rebuild.app"
+          remembered="$HOME/Library/Application Support/ei-rebuild"
+          mkdir -p "$remembered"
+          python3 -I - "$data" "$RUNNER_TEMP/folder-rule" "$remembered" <<'PY' | tee folder_rule.txt
+          import os, signal, subprocess, sys, time
+          data, work, remembered = sys.argv[1:4]
+          cases = [("beside the app", os.path.join(data, "ei-rebuild.app"), False),
+                   ("game_folder.txt", os.path.join(work, "elsewhere", "ei-rebuild.app"), True)]
+          bad = 0
+          for name, app, remember in cases:
+              out = os.path.join(work, "out-" + str(int(remember)))
+              os.makedirs(out, exist_ok=True)
+              file = os.path.join(remembered, "game_folder.txt")
+              if remember:
+                  open(file, "w").write(data + "\n")
+              elif os.path.exists(file):
+                  os.remove(file)
+              env = {k: v for k, v in os.environ.items() if not k.startswith("EI_")}
+              env.update(EI_OUT_DIR=out, EI_SETTINGS_PATH=os.path.join(work, "ei_settings.ini"))
+              exe = os.path.join(app, "Contents", "MacOS", "ei-rebuild")
+              p = subprocess.Popen([exe], env=env, stdout=open(os.path.join(out, "stdout.txt"), "w"),
+                                   stderr=subprocess.STDOUT, start_new_session=True)
+              try:
+                  p.wait(timeout=15)
+              except subprocess.TimeoutExpired:
+                  os.killpg(p.pid, signal.SIGKILL)
+                  p.wait()
+              log = open(os.path.join(out, "ei-rebuild.log"), errors="replace").read() if os.path.exists(os.path.join(out, "ei-rebuild.log")) else ""
+              started = [l for l in log.splitlines() if "ei-rebuild started in" in l]
+              gpu = [l for l in log.splitlines() if "gpu: " in l and "device" in l]
+              good = bool(started) and (data in started[0] or os.path.realpath(data) in started[0])
+              print(name + ": " + ("ok" if good else "FAILED") + " | " + (started[0] if started else "no 'started in' line (exit " + str(p.returncode) + ")") + " | " + (gpu[0] if gpu else "no gpu line"))
+              bad += 0 if good else 1
+          sys.exit(1 if bad else 0)
+          PY
+          { echo "### The folder rule"; echo '```'; cat folder_rule.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
+
+      - name: Verdict
+        run: |
+          ! grep -q "GOLDENS DIFFER" suite_image.txt
+          ! grep -q "^not passed:" suite_image.txt
+
+      - name: Remove the data
+        if: always()
+        run: |
+          [ -z "$DATA" ] || rm -rf "$DATA"
+          rm -rf stub-data-checkout "$RUNNER_TEMP/folder-rule" build/macos-verify/runs
