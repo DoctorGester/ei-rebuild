@@ -6,4 +6,5 @@ depends = ["R34a"]
 files = ["src/game/effects*.cpp", "src/game/lightning*.cpp", "src/game/world_weather*.cpp"]
 note = "R34a moved every client-only draw to g_clientRandom and left on the game's ISAAC the draws of server-side effect objects (CEffectSoundSeq, CEffectParticle::Spawn, CEffectMoshka, CEffectTornado, ShowBolt, world_weather), which tick with the world and are saved. Check whether any of them still draws a frame- or camera-dependent number of times (a golden that moves with the frame rate would show it); if one does, it goes to the client generator the same way (the harness's client_effects tables)."
 order = 109
-status = "later"
+status = "running"
+started = "2026-11-05"
