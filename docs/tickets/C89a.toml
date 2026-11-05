@@ -4,5 +4,6 @@ group = "cleanup"
 depends = ["C89"]
 note = "C89 left the harness switches' and read-backs' bodies in the files whose state they turn (render_checks.h declares them, every build defines them). Candidates to move where they need no file-private state, or need only a small internal read: CheckMmpLevels with HalveLevel (render_textures.cpp, walks g_textures) and ReadImageLevel (render_compose.cpp), the movie upload check (render_blit.cpp CheckUpload), the window's ramp check (render_window.cpp DrawRampCheck/CheckRamp). Decide per body; no new forwarders. Style only: goldens the same. Moved CheckMmpLevels, HalveLevel and the movie upload check (CheckMovieUpload) into render_checks.cpp, reading the held .mmp textures through HeldMmpTextures (render_textures.cpp). The window's ramp check stays in render_window.cpp: it needs the ramp, DrawFrame and the window's state."
 order = 1173
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
