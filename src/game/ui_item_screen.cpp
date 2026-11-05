@@ -148,7 +148,7 @@ Item* ItemScreen::ReturnAll(Party* to, Party* from) {
 
 bool ItemScreen::CanEquip(Item*, int) { return false; }
 
-PartySkill ItemScreen::BestPartySkill(int) { return {}; }
+PartySkill ItemScreen::BestPartySkill(SpellSchool) { return {}; }
 
 Unit* ItemScreen::HeroUnit(int) { return nullptr; }
 

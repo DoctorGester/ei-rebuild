@@ -28,6 +28,3 @@ std::string WeaponModelName(std::uint32_t weaponIndex, std::uint32_t materialInd
 // with number 7, the bow and crossbow pieces plus the quiver and arrows. Nothing for an index out of range
 // or an unknown weapon type.
 std::vector<std::string> WeaponModelParts(std::uint32_t index);
-
-// The same names for a packed item id, appended to a vector of strings.
-void AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out);

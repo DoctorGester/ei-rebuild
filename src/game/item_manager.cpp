@@ -267,8 +267,8 @@ Item* ItemManager::CreateItem(std::string_view name) {
         text = str::Left(text, bracket);
         str::TrimRight(text);
     }
-    std::vector<std::string> parts;      // the name split at '.': at least one piece, empty for an empty name
-    parts = text::Split(text, '.');
+    // The name split at '.': at least one piece, empty for an empty name.
+    std::vector<std::string> parts = text::Split(text, '.');
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
@@ -276,17 +276,16 @@ Item* ItemManager::CreateItem(std::string_view name) {
 
     // "prototype[.material]".
     const std::string& prototypeName = parts[0];
-    ItemDatabase& items = g_itemDatabase;
-    ItemRecordHead* prototype = items.weapons.Named(prototypeName);
-    if (!prototype) prototype = items.armors.Named(prototypeName);
-    if (!prototype) prototype = items.quickItems.Named(prototypeName);
-    if (!prototype) prototype = items.questItems.Named(prototypeName);
-    if (!prototype) prototype = items.loot.Named(prototypeName);
+    ItemRecordHead* prototype = g_itemDatabase.weapons.Named(prototypeName);
+    if (!prototype) prototype = g_itemDatabase.armors.Named(prototypeName);
+    if (!prototype) prototype = g_itemDatabase.quickItems.Named(prototypeName);
+    if (!prototype) prototype = g_itemDatabase.questItems.Named(prototypeName);
+    if (!prototype) prototype = g_itemDatabase.loot.Named(prototypeName);
     if (!prototype) {
-        // No item, no fatal error (Rebirth's FixCreateItem; the original stopped the game).
+        // An unknown prototype gives no item and no fatal error.
         return nullptr;
     }
-    MaterialRecordHead* material = parts.size() > 1 ? items.materials.Named(parts[1]) : nullptr;
+    MaterialRecordHead* material = parts.size() > 1 ? g_itemDatabase.materials.Named(parts[1]) : nullptr;
     // The bracket part: the count for materials, a spell for the other prototypes.
     Spell* spell = nullptr;
     int count = 1;
@@ -297,7 +296,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
             spell = context->GetSpellManager()->CreateSpellFromText(extra);
     }
     Item* item = context->GetItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
-    // No item (Rebirth's FixCreateItem; the original reported the error and went on with the null item, crashing).
+    // A failed build gives no item.
     if (!item) return nullptr;
     if (ItemLoot* loot = item->AsLoot(); loot && parts.size() > 1) {
         if (loot->kind == LootKind::Record) loot->index = static_cast<std::uint32_t>(LootTableIndex(loot->recordType, parts[1]));

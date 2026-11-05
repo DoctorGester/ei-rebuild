@@ -345,7 +345,7 @@ bool PlayerClient::OnItemsReceived() {
             break;
         }
         auto* manager = g_clientWorld.itemManager.get();
-        if (Item* item = FindItem(manager, static_cast<unsigned>(objectId))) items.insert(items.begin(), item);
+        if (Item* item = manager->FindObjectAs<Item>(static_cast<unsigned>(objectId))) items.insert(items.begin(), item);
     }
     if (complete) {
         player->GiveItems(&items, flag);

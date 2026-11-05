@@ -215,7 +215,7 @@ void RemoveEntry(std::vector<Item*>& list, Item* entry) {
 // One running sum over the lists, in this order.
 void AddListWeight(float& weight, const std::vector<Item*>& list) {
     for (int i = 0; i < std::ssize(list); ++i) {
-        if (list[i]) weight += list[i]->Weight();
+        if (list[i]) weight += list[i]->weight;
     }
 }
 
@@ -450,7 +450,7 @@ void ReadItemIds(ByteStream* stream, std::vector<Item*>& list, BaseManager* mana
     ReleaseItems(list);
     list.resize(stream->ReadCount());
     for (Item*& item : list) {
-        item = FindItem(manager, static_cast<unsigned>(stream->ReadId()));
+        item = manager->FindObjectAs<Item>(static_cast<unsigned>(stream->ReadId()));
         if (item != nullptr) item->AddRef();
     }
 }

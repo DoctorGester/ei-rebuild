@@ -391,10 +391,10 @@ using SpellModifierTable = RecordTable<SpellModifierRecord>;
 
 // The spell database: the spells and the modifiers by code, and the three lists of spells.sdb's chunks 3-5.
 struct SpellDatabase {
-    // Rebirth-patched. "spells.sdb" of the archive `folder` + `archive`: the spells (chunk 1) and the modifiers
-    // (chunk 2), each read through an archive of its own and filed under its code, then the three lists through
-    // a third. 1; FatalError's result when the archive or the file cannot be opened.
-    int Load(const std::string& folder, const std::string& archive);
+    // "spells.sdb" of the archive `folder` + `archive`: the spells (chunk 1) and the modifiers (chunk 2), each
+    // read through an archive of its own and filed under its code, then the three lists through a third. False
+    // (after FatalError) when the archive or the file cannot be opened.
+    bool Load(const std::string& folder, const std::string& archive);
 
     SpellTable spells;
     SpellModifierTable modifiers;
@@ -405,11 +405,11 @@ struct SpellDatabase {
 };
 
 struct ItemDatabase {
-    // Rebirth-patched. "items.idb" of the archive `folder` + `archive`: the materials (chunk 1, filed under
-    // their key), the weapons (2) and the armour (3), each through an archive of its own and filed under its
-    // name, then the quick items, quest items and loot (chunks 4-6, their loads). 1; FatalError's result when
-    // the archive or the file cannot be opened.
-    int Load(const std::string& folder, const std::string& archive);
+    // "items.idb" of the archive `folder` + `archive`: the materials (chunk 1, filed under their key), the weapons
+    // (2) and the armour (3), each through an archive of its own and filed under its name, then the quick items,
+    // quest items and loot (chunks 4-6, their loads). False (after FatalError) when the archive or the file
+    // cannot be opened.
+    bool Load(const std::string& folder, const std::string& archive);
 
     MaterialTable materials;
     WeaponTable weapons;

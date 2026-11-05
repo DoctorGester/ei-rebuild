@@ -91,7 +91,7 @@ void LoadPlayers(WorldServer* world, ByteStream* stream) {
         for (;;) {
             const int id = stream->ReadId();
             if (id == kNoObjectId) break;
-            Item* object = FindItem(items, id);
+            Item* object = items->FindObjectAs<Item>(id);
             if (!object) continue;
             player->items.push_back(object);
             object->AddRef();
@@ -325,7 +325,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
             const int objectId = stream->ReadId();
             if (objectId == kNoObjectId) break;
             const auto value = stream->ReadAs<std::uint32_t>();
-            Item* object = FindItem(ItemFactory(), objectId);
+            Item* object = ItemFactory()->FindObjectAs<Item>(objectId);
             if (!object) continue;
             auto* record = new ItemLink();
             record->value = value;
@@ -455,7 +455,7 @@ void SharedObject::Load(ByteStream* stream) {
     stream->ReadValue(player);
     stream->ReadValue(money);
     for (int count = stream->ReadCount(); count > 0; --count) {
-        Item* object = FindItem(g_serverWorld.itemManager.get(), stream->ReadId());
+        Item* object = g_serverWorld.itemManager.get()->FindObjectAs<Item>(stream->ReadId());
         if (object) objects.emplace_back(object);
     }
 }

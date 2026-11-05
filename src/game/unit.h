@@ -771,7 +771,7 @@ struct UnitStats {
     float AttributeWithItems(int index, Unit* unit);
     // The skill for spell school `school` (4 counts as 3, 6 and 7 as 5): skill byte 3 (schools 0-2), 4 (3-4)
     // or 5 (5-7), plus the level value of skill school + 7, plus intelligence - 25.
-    float SpellSchoolSkill(int school);
+    float SpellSchoolSkill(SpellSchool school);
 
     std::uint32_t builtFlags = 0;       // bit 0 set when built from the prototype
     float experience = 0.0f;

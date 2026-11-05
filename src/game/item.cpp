@@ -187,20 +187,18 @@ const char* ItemWeapon::ClassName() { return "CItemWeapon"; }
 ClassId ItemWeapon::GetClassId() { return ClassId::ItemWeapon; }
 
 WeaponType ItemWeapon::GetType() {
-    return static_cast<WeaponType>(WeaponAt(PrototypeIndex(prototypeId))->type);
+    return static_cast<WeaponType>(WeaponOf(prototypeId)->type);
 }
 
 std::array<float, kDamageTypeCount> ItemWeapon::DamageTypes() {
-    if (const WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId))) return prototype->damageTypes;
+    if (const WeaponRecord* prototype = WeaponOf(prototypeId)) return prototype->damageTypes;
     return {};
 }
 
-// ((high - low) * roll) * 2^-32 + low.
+// A damage in [damage, damage + damageSpread); no draw without a spread.
 float ItemWeapon::RollDamage() {
     if (damageSpread == 0.0f) return damage;
-    float high = damageSpread + damage;
-    float low = damage;
-    return ((high - low) * g_random.Next()) * 0x1p-32f + low;
+    return g_random.Range(damage, damageSpread + damage);
 }
 
 void ItemWeapon::InitFromRecord(const ItemRecordHead* record) {

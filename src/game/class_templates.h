@@ -25,7 +25,7 @@ public:
     void Serialize(ChunkArchive* ar) override;
     ArchiveClass ArchiveType() const override { return ArchiveClass::ClassTemplate; }
     // Both stocks take the kSchoolCount base and scroll levels.
-    void SetLevels(const float* base, const float* scroll);
+    void SetLevels(const float (&base)[kSchoolCount], const float (&scroll)[kSchoolCount]);
 
     Party* ItemsParty() { return &items; }
     Party* SpellsParty() { return &spells; }

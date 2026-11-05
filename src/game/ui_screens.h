@@ -154,7 +154,7 @@ public:
 
 // A party hero's statistics as the camp reads them: the skill in a spell school rounded to nearest, and the
 // whole "mana units" (the mana maximum stored as float, divided by the period, truncated).
-int HeroSchoolSkill(UnitStats* stats, int school);
+int HeroSchoolSkill(UnitStats* stats, SpellSchool school);
 int HeroManaUnits(UnitStats* stats);
 // Whether a hero with `stats` can use the spell `spell` (required skill, mana cost).
 bool HeroCanUseSpell(UnitStats* stats, Spell* spell);

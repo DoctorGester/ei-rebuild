@@ -54,12 +54,12 @@ public:
     // The classes call it first: price, weight, unreadValue, charge and chargeMax, magicLevel, condition
     // and conditionMax from the record (see ItemConstructor::FillItem); chargeRate 0.001.
     virtual void InitFromRecord(const itemdb::ItemRecordHead* record);
-    // 1 for the item itself; else the same kind, packed id, magicLevel and (equal or unordered floats)
+    // True for the item itself; else the same kind, packed id, magicLevel and (equal or unordered floats)
     // condition..chargeMax and weight..unreadValue, and both without a spell or both with one of the same
     // packed id and modifiers.
     virtual bool IsSameAs(Item* other);
     // `target`, when of the same kind, gets (after its Destroy) this item's packed id, condition..magicLevel,
-    // a copy of the spell (Spell::Clone with `spells`) and count 1. 0 for another kind.
+    // a copy of the spell (Spell::Clone with `spells`) and count 1. False for another kind.
     virtual bool CopyTo(Item* target, SpellManager* spells);
     // The base price: `price`; the loot item's depends on what it stands for (ItemLoot::GetPrice).
     virtual float GetPrice() { return price; }
@@ -103,7 +103,6 @@ public:
     void AttachSpell(Spell* spell);
 
     void Repair() { condition = conditionMax; }
-    float Weight() const { return weight; }
 
     // The world server's link record: the id the world's save keeps per item, or the party record's item.
     Ref<ItemLink> serverLink;
@@ -325,6 +324,3 @@ float WeaponDefenceBonus(std::uint32_t packedId);
 
 // The armour prototype's layer by prototype index; 0 if out of range.
 int ArmorLayer(std::uint32_t index);
-
-// The item with id `id` in an item manager (a party's, the world's item factory), or null.
-inline Item* FindItem(const BaseManager* items, unsigned id) { return items->FindObjectAs<Item>(id); }

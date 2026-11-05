@@ -377,7 +377,7 @@ void ItemInfoPanel::DescribeItem() {
         w.Text(w.line);
         w.Down();
     }
-    if (kind != ItemKind::Quest) w.Number(0, static_cast<int>(item->Weight()));
+    if (kind != ItemKind::Quest) w.Number(0, static_cast<int>(item->weight));
 
     if (kind == ItemKind::Armor || kind == ItemKind::Weapon || (kind == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Wand)) {
         Spell* spell = item->spell;
@@ -792,7 +792,7 @@ void ItemInfoPanel::DescribeStats(const ItemHoverInfo& info) {
             if (school == 4 || school == 6 || school == 7) continue;
             w.line = std::format("     {}", w.T(label++));
             w.Text(w.line);
-            w.line = std::format("{}", static_cast<int>(stats->SpellSchoolSkill(school)));
+            w.line = std::format("{}", static_cast<int>(stats->SpellSchoolSkill(static_cast<SpellSchool>(school))));
             w.Value(w.line);
             w.Down();
         }

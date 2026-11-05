@@ -117,7 +117,7 @@ bool PlayerClient::OnObjectValues() {
         const int objectId = in.ReadId();
         if (objectId == -1) return true;
         if (!in.ok) return false;
-        Item* item = FindItem(g_clientWorld.itemManager.get(), static_cast<unsigned>(objectId));
+        Item* item = g_clientWorld.itemManager.get()->FindObjectAs<Item>(static_cast<unsigned>(objectId));
         if (!item) continue;   // the value is then read as the next id (kept)
         float value;
         in.ReadValue(value);
@@ -148,7 +148,7 @@ bool PlayerClient::OnItemValue() {
     float value;
     in.ReadValue(value);
     Player* currentPlayer = player;
-    Item* item = FindItem(currentPlayer->GetParty()->ItemFactory(), static_cast<unsigned>(objectId));
+    Item* item = currentPlayer->GetParty()->ItemFactory()->FindObjectAs<Item>(static_cast<unsigned>(objectId));
     if (item) {
         item->charge = value;
         currentPlayer->ItemUsed(item);
