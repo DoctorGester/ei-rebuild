@@ -1,0 +1,8 @@
+id = "H62b"
+title = "macOS: rec_save_load and render_water differ on Metal (deterministic, not frame pacing)"
+group = "harness"
+size = 2
+model = "opus"
+depends = ["H62a"]
+note = "Rerun 42007493370 (2026-11-05, after H62a): the Verdict now fails on GOLDENS DIFFER; frames unpaced (median 6-7 ms, was 16.7). Both differences remain exactly as before: rec_save_load first at record 14 (world update 300, frame 59): world and client paused 1 vs 0 from there on (15 records), plus tick 245 vs 260; render_water first at record 13 (frame 64): player0 objects 9 vs 8, client objects +1, synchronised +1. Same records on both runs, so deterministic on macOS, not timing. The 'Differences in detail' step printed 'no run folder' for both (its folder name is wrong: runs are <name>-standalone). Fix that step, then find the cause by reading the two scenarios' input around frames 55-64 (rec_save_load is a recorded scenario: realinput/at lines; a key or click mapped differently on macOS? LX4 keyboard layout via SDL_GetKeyFromScancode, or a mouse button / modifier difference) and fix it in the platform layer with Windows/Linux goldens unchanged. I push and dispatch."
+order = 1188
