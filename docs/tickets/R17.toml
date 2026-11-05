@@ -4,4 +4,5 @@ group = "renderer"
 model = "opus"
 note = "User 2026-10-21 asked to plan these for later: nicer water, ambient occlusion, weather that interacts with water and objects, cloud shadows on the ground. All are new-renderer features (src/render, sokol D3D11) behind options, off in the golden and capture runs so the suites keep comparing the classic look; each gets a frame-capture check of its own. Start after R16i (per-pixel sun and point lights), which most of them build on. Sub-tickets R17a-R17d; order to be picked with the user."
 order = 57
-status = "queued"
+status = "done"
+done = "2026-11-05"
