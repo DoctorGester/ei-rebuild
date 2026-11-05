@@ -1,8 +1,8 @@
 # Mods
 
 Rebirth's mods (its install's `starter\Mods\<mod>`: Lost in Astral, IronMod, AllHeroes, Standard) played from our exe:
-the settings choose a mod folder, whose files then stand over the game folder's. Tickets MOD1 (this), MOD2 (the menu's
-choice), MOD3 (switching without a restart).
+the settings choose a mod folder, whose files then stand over the game folder's. Tickets MOD1 (the overlay), MOD2
+(Lost in Astral played through), MOD3 (the menu's choice, without a restart).
 
 ## Files
 
@@ -73,7 +73,7 @@ folder); the snapshot (config/harness/registry.reg) marks `Mod` absent otherwise
 
 The game's registry format (src/game/registry.h). Sections in Rebirth's mods:
 - `[MOD]`: Title, Author, Version, Date_DMY, URL, AuthorEmail, GameSaves, Single, Multi, ForceShowTutorial: the
-  starter's list (MOD2 shows Title).
+  starter's list (the menu's list, MOD3).
 - `[RES]`: archive name = the mod's archive(s) (string or array), `-` to drop the game's; read by ResOverride
   (mod_folders.cpp) from `ModPath()`, which is the Mod folder.
 - `[CONFIG]`: file name = the mod's file (Lost in Astral: `ai.reg = config\ai.reg`, `movie.ini = config\movie.ini`,
@@ -100,4 +100,4 @@ same files.
 - The stub data (linux.md, "The stub data") has no `starter\Mods`: `mod_lost_in_astral` needs the mod's files read in
   its run.
 - The `.plg` plugins: what fixshops.plg changes in the shops.
-- `[MOD] Single` / `Multi`: a mod for one kind of game only (MOD2's menu).
+- `[MOD] Single` / `Multi`: a mod for one kind of game only (the menu's list, MOD3).

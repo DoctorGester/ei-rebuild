@@ -146,13 +146,8 @@ std::string PathLayers::Map(std::string_view path, PathUse use, Placed* placed) 
         }
         return Joined(saves, std::string_view(relative).substr(std::min(relative.size(), kSaves.size() + 1)));
     }
-    if (use == PathUse::Read) {
-        std::string found = relative.empty() ? std::string() : Find(relative, 0);
-        if (found.empty()) return std::string(path);
-        if (placed) *placed = Placed::Layer;
-        return found;
-    }
-    if (!writesToTop || layers.empty()) {
+    // A read, or the game's write: the top layer that has the file.
+    if (use == PathUse::Read || !writesToTop || layers.empty()) {
         std::string found = relative.empty() ? std::string() : Find(relative, 0);
         if (found.empty()) return std::string(path);
         if (placed) *placed = Placed::Layer;

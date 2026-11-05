@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_lost_in_astral",
+  "install": "rebirth",
+  "recorded": "2026-11-05",
+  "commit": "e8e0b7f94",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MOD1: new scenario mod_lost_in_astral (Lost in Astral's main menu and new game)",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}
