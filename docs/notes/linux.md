@@ -396,6 +396,7 @@ every eighth scenario of the sorted list (both suites, one game at a time) under
 a job fails when a golden differs. It runs on pushes to main and `claude/**` (not docs-only ones), on pull requests
 from this repository's own branches (a fork's gets no secrets and the suites are skipped) and by hand; it uploads
 nothing, and the data is outside every cached path. The suites are off until the variable below is set.
+The Windows twin (suites-windows.yml, by hand: windows-latest on D3D12 WARP) is in harness.md, "The Windows CI job".
 
 `EI_TIME_SCALE` (3 in the workflow; default 1, never below 1) multiplies the harness's real-time limits: a `frames` step's
 (10 s plus 100 ms a frame), the real-time safety limit of the other waits (four times the wait plus 10 s) and the
