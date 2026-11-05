@@ -105,6 +105,8 @@ void UseMod(const std::string& gameFolder, const std::string& setting);
 // main menu; the renderer, the window and the audio device stay. Only in the main menu (its window on top) with no
 // network session: false and nothing asked otherwise.
 bool RequestModSwitch(const std::string& setting);
+// The game folder UseMod was given (the main menu's list of mods scans its starter\Mods).
+const std::string& GameFolder();
 // Whether a switch asked for is still to be made.
 bool ModSwitchPending();
 

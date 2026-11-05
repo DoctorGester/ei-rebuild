@@ -6,5 +6,5 @@ model = "sonnet"
 depends = ["MOD3a"]
 note = "A mod list in the main menu (or the options window) from starter\\Mods\\*\\config.reg [MOD] (Title, Single/Multi) plus 'none'; picking one calls MOD3a's switch and writes [game] Mod. Native UI (P8 style)."
 order = 1202
-status = "running"
+status = "review"
 started = "2026-11-05"

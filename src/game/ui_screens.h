@@ -7,6 +7,8 @@
 #include "bink_video.h"
 #include "ui_item_info.h"
 #include "ui_message_box.h"
+#include "ui_drop_list.h"
+#include "mod_list.h"
 #include "net_classes.h"
 
 #include "resource.h"
@@ -609,6 +611,9 @@ public:
     // changing); at night before 6 with rain and an option bit, every 100 ms a 1 in 41 chance of a lightning
     // bolt at random; the hour kept.
     void Update() override;
+    // The list of mods (a drop-down list at the bottom left, only when starter\Mods holds a mod): `mods` are its entries,
+    // the one played shown. A pick asks for a switch of mods (app::RequestModSwitch).
+    void AddModList();
     // A message box's answer (the flow's party step 0 and the server flag cleared first): 0x10001 (the quit
     // box's yes) the exit movie and quit, 0x20001 the intro movie and the flow's state 3, 0xCCCCCCCC (the
     // titles closed) the version line again.
@@ -627,6 +632,9 @@ public:
     bool daylight = false;                   // the hour was between 7 and 21 when the menu opened
     float hour = 0.0f;                      // the time of day at the last update
     float savedEdgeFade = 0.0f;             // the map edge fade before the menu
+    std::vector<modlist::Entry> mods;       // the list's entries
+    UiDropList* modList = nullptr;          // null without a mod to choose
+    int modShown = 0;                       // the entry the list showed when it was made, or last asked for
 };
 
 // Trading between two players (screen 9, Xch_* texts). Multiplayer only.

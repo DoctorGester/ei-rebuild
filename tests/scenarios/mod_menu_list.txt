@@ -1,0 +1,46 @@
+# The main menu's list of mods (MOD3b; docs/notes/mods.md, "The menu's list"): a drop-down list at the menu's bottom left
+# of the entries "No mod" and every folder of starter\Mods with a config.reg (Rebirth's install: AllHeroes, IronMod, Lost
+# in Astral, Standard), shown only when there is a mod to choose. Picked through the UI path (the harness's droplist
+# steps click the row and the entry): the switch of mods (MOD3a) runs, the main menu is made again with the list showing
+# the mod played, and [game] Mod is written to the settings file (a "settingsfile writable" run: the file after the
+# exit is compared with settings/mod_menu_list.rebirth.ini, which has the mod's folder in full). Lost in Astral and then
+# the game's own files and then Lost in Astral again, so the last pick is the one the file keeps. The vanilla data has
+# no starter\Mods: the menu has no list, the run only reaches the menu.
+# settings-file: settings/mod_menu_list.ini
+timeout 60
+settingsfile writable
+resolution 1280x720
+fullscreen 0
+reject Script error
+waitmenu
+rebirth droplist expect No mod
+rebirth droplist open
+rebirth frames 3
+rebirth droplist isopen 1
+rebirth freeze
+rebirth capture list_open
+rebirth unfreeze
+rebirth droplist pick 3
+rebirth frames 20
+rebirth expectlog starter\Mods\LostInAstral"
+rebirth expectlog (its saves in saves\LostInAstral)
+waitmenu
+rebirth droplist expect Lost in Astral (single player)
+rebirth droplist isopen 0
+rebirth droplist open
+rebirth frames 3
+rebirth freeze
+rebirth capture list_astral
+rebirth unfreeze
+rebirth droplist pick 0
+rebirth frames 20
+waitmenu
+rebirth droplist expect No mod
+rebirth droplist open
+rebirth frames 3
+rebirth droplist pick 3
+rebirth frames 20
+waitmenu
+rebirth droplist expect Lost in Astral (single player)
+report
+quit
