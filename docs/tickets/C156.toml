@@ -4,4 +4,5 @@ group = "cleanup"
 model = "sonnet"
 note = "User 2026-11-05. Walk every tracked file outside src/ and tests/golden (tools/ has 93 entries, config/, docs/, root scripts, .github/, third_party/ leftovers, tests/ data and scenario helpers) and delete what nothing uses any more: no caller in the build, CMake, CI workflows, other tools, the harness or the docs' live instructions. Migration-era scripts (game.exe readers, address tools, one-off converters, generators whose output is now committed or gone) go unless a current check needs them; say per deletion why it was dead. play.cmd and launch-vanilla.cmd go now that the exe is drop-in (S23): keep the recording path (play.cmd record <name>, used by H44b/H44a1 and tools/recorded.py) as a harness.cmd or tools command, and update README.md (Play section: copy the exe into the game folder), docs/notes/harness.md, docs/worker-brief.md and run_all.py's references. Also unused config rows, stale .gitignore entries and docs/notes that only describe deleted things. Keep unreached gameplay code (not in scope). Checks: build verify + release 0 warnings, suites the same, CI workflows still name only existing files (grep), tools/test_*.py pass."
 order = 1156
-status = "queued"
+status = "running"
+started = "2026-11-05"
