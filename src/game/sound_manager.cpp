@@ -160,8 +160,8 @@ void ReadOrSilence(SoundManager* m, std::uint8_t* to, int bytes) {
 
 // The next file takes over: `bytes` of it (or silence) to `to`.
 void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
-    // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
-    const bool modStream = ei::rebirth::Enabled(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
+    // The mod's Stream\ folder when it has the file (Rebirth's StreamPatch).
+    const bool modStream = modfolders::StreamInMod(m->nextName);
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     CodecClose(m);
     std::string file;

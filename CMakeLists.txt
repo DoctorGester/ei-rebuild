@@ -305,19 +305,6 @@ if(APPLE)
 endif()
 target_include_directories(ei-rebuild PRIVATE src)
 target_link_libraries(ei-rebuild PRIVATE ei_game)
-# The Rebirth install's profile, which an exe takes in a Rebirth folder (src/game/rebirth_profile.cpp):
-# config/rebirth_profile.ini's patches as a spec (rebirth::ApplySpec: none, then each name), written at configure time
-# into config/rebirth_profile.inc in the build folder.
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/config/rebirth_profile.ini)
-file(STRINGS ${CMAKE_SOURCE_DIR}/config/rebirth_profile.ini EI_REBIRTH_PROFILE_LINES REGEX "^[A-Za-z]+ = true$")
-set(EI_REBIRTH_PROFILE none)
-foreach(line ${EI_REBIRTH_PROFILE_LINES})
-    string(REGEX REPLACE " = true$" "" name ${line})
-    list(APPEND EI_REBIRTH_PROFILE ${name})
-endforeach()
-list(JOIN EI_REBIRTH_PROFILE "," EI_REBIRTH_PROFILE)
-file(CONFIGURE OUTPUT ${CMAKE_BINARY_DIR}/config/rebirth_profile.inc CONTENT "\"@EI_REBIRTH_PROFILE@\"\n" @ONLY)
-set_source_files_properties(src/game/rebirth_profile.cpp PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/config)
 # The product's notices (third_party_notices.txt beside the executables): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)

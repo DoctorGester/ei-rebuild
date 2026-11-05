@@ -12,8 +12,6 @@
 #include "lib/crt.h"
 #include "lib/rect.h"
 
-#include "lib/rebirth.h"
-
 #include <bit>
 #include <cstring>
 #include <initializer_list>

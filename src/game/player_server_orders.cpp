@@ -87,7 +87,7 @@ bool PlayerServer::OnPause() {
     // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump to bytes
     // which write the text key's digit and go on to announce resumes too; 2 also replaces the leader
     // test by the pausing player's own leader; 3 skips the announcement.
-    const int mode = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) ? ei::rebirth::PluginPause() : 0;
+    const int mode = ei::rebirth::PluginPause();
     const bool announceResume = mode == 1 || mode == 2;
     if (IsMultiplayerClient() && IsLive(server) && (pause || announceResume)) {
         if (announceResume) SetPauseTextDigit(pause);

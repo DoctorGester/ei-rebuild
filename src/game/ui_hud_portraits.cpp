@@ -87,15 +87,9 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 
 constexpr float kSeventh = 0.14285715f;         // 1 / 7
 
-// The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
-// EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".
-void SexOf(const std::string& figure, std::string& sex) {
-    const bool fixes = pluginfixes::Enabled();
-    if (fixes ? !pluginfixes::ModelIsFemale(figure) : figure == "unhuma")
-        sex = "m";
-    else if (fixes || figure == "unhufe")
-        sex = "f";
-}
+// The face picture's sex letter: "f" when the fifth character of the name is 'f', else "m" (EI_Plugin's Fixes, always
+// on; the original's "m" for "unhuma", "f" for "unhufe", else none).
+void SexOf(const std::string& figure, std::string& sex) { sex = pluginfixes::ModelIsFemale(figure) ? "f" : "m"; }
 } // namespace
 
 // --- Portraits -------------------------------------------------------------------------------------------------------
@@ -350,9 +344,9 @@ void HudPortraits::ShowFace(int index, int state) {
 void HudPortraits::AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer) {
     // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6; above 7 the faces are 20 wide at a pitch of
     // 20 instead of 40 and the face model sits at depth 9.1875 instead of 7 (EI_Plugin's six extra sites).
-    const bool plugin = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers);
-    const int perRow = plugin ? (ei::rebirth::PluginNPlayers() < 7 ? 7 : ei::rebirth::PluginNPlayers()) : 6;
-    const bool crowded = plugin && ei::rebirth::PluginNPlayers() > 7;
+    const int pluginPlayers = ei::rebirth::PluginNPlayers();
+    const int perRow = pluginPlayers != 0 ? (pluginPlayers < 7 ? 7 : pluginPlayers) : 6;
+    const bool crowded = pluginPlayers > 7;
     const int pitch = crowded ? 20 : 40;
     const int column = count % perRow;
     int u = 0;
@@ -500,9 +494,8 @@ void HudPortraits::Rebuild(bool wide) {
         UnitPrototypeRecord* prototype;
         {
             prototype = g_unitDatabase.prototypes.FindByName(std::string(player->text));
-            // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
-            if (!prototype && pluginfixes::Enabled())
-                prototype = pluginfixes::FallbackPrototype();
+            // EI_Plugin's Fixes (always on): an unknown prototype becomes the first one that is no creature.
+            if (!prototype) prototype = pluginfixes::FallbackPrototype();
         }
         const UnitModelRecord* figure = g_unitDatabase.models.FindByName(std::string(prototype->modelName));
         SexOf(figure->figureName, sex);

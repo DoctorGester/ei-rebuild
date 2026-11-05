@@ -1,4 +1,4 @@
-# Rebirth's bug fixes reached through script commands (docs/notes/rebirth.md, "One test profile"), on the vanilla
+# Rebirth's bug fixes reached through script commands (docs/notes/rebirth.md, "Settings"), on the vanilla
 # data; the golden came from the original with addon.dll's fixes (until H40). Each part differs from the plain
 # original (addon.dll's fixes off):
 # - FixCreateItem (CItemManager::CreateItem 006AC970): GiveItem of an unknown name gives nothing; the plain

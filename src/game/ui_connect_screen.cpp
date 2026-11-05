@@ -337,7 +337,7 @@ void MpConnectScreen::MasterRequest() {
     CopyText(boxText, "");
     net::NetAddress master{};
     // EI_Plugin's NewMaster: with a second master set, the master is tried first.
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) && net::second_master::Configured())
+    if (net::second_master::Configured())
         net::second_master::ParseMaster(&master, options::g_options.masterServerName.c_str(), kMasterPort);
     else
         master.Parse(options::g_options.masterServerName.c_str(), kMasterPort);
@@ -511,8 +511,8 @@ void MpConnectScreen::CreateScreen() {
         // EI_Plugin's NPlayers: the slider's maximum is max(players, 7) - 1 and its
         // position max(players, 1) - 1 instead of 5 and 5. addon's ExtendedServerName makes the
         // right edge of the layout rectangle, set after the construction, and of the name's field 680.
-        const bool plugin = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers);
         const int players = ei::rebirth::PluginNPlayers();
+        const bool plugin = players != 0;
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
         const int right = kExtendedFieldRight;

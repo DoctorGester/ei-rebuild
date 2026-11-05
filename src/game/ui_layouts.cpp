@@ -28,7 +28,6 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
 #include <cstdint>
@@ -174,8 +173,8 @@ void MainMenu::LeftDown(UiEvent& event) {
     }
     case kMultiplayer: {
         // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up its
-        // second master server.
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
+        // second master server (when one is set).
+        net::second_master::OnMultiplayerClick();
         std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
         g_serverWorld.SetServerPaused(1);

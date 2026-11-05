@@ -7,12 +7,11 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
                    match, LINUX_LEFT_OUT)
   default          the image, build\\verify\\ei-rebuild.exe (the game and the harness linked in), started by this
                    tool (launch()) on an install's data: EI_GAME_ROOT names the install, each run takes the
-                   install folder's own Rebirth profile as a player's exe does (EI_REBIRTH only when the caller sets
-                   it). Installs: "standalone" the vanilla data (vanilla goldens), "standalone-rebirth" Rebirth's
+                   install folder's own EI_Plugin values as a player's exe does. Installs: "standalone" the vanilla data (vanilla goldens), "standalone-rebirth" Rebirth's
                    (Rebirth goldens); the folders are EI_GAME_VANILLA and EI_GAME_REBIRTH (install_dir()). Every
                    scenario runs on the vanilla data; Rebirth's data only on demand (SV9; main checks the Rebirth set
                    after every merge with --rebirth-only): --rebirth adds the Rebirth set (rebirth_scenarios(): config/rebirth_scenarios.csv's
-                   marks, every scenario with a step for one install, rebirthflags, addonpath or widescreen, and
+                   marks, every scenario with a step for one install, plugin or widescreen, and
                    every scenario with a Rebirth golden) or the named scenarios, --rebirth-only runs those alone,
                    --all-rebirth every scenario on both.
   renderers        The image draws with our renderer (no DirectDraw device, its own swap chain, no display mode
@@ -1031,9 +1030,9 @@ def widescreen_check(jobs, out=None, root=ROOT, build=BUILD):
     return ok
 
 
-# A scenario line that makes the run depend on the install (SV9): a step for one install only, Rebirth's flags, its
-# mod folder or WideScreen switch.
-REBIRTH_LINE = re.compile(r'^\s*(?:rebirth|vanilla|rebirthflags|addonpath|widescreen)\s', re.M)
+# A scenario line that makes the run depend on the install (SV9): a step for one install only, EI_Plugin's values
+# (which a Rebirth install's EI_Plugin.ini sets) or the WideScreen switch.
+REBIRTH_LINE = re.compile(r'^\s*(?:rebirth|vanilla|plugin|widescreen)\s', re.M)
 
 
 def rebirth_scenarios(names, root=ROOT, goldens=True):

@@ -2,8 +2,7 @@
 
 usage: python tools/make_test_mod.py <saves dir> [--maps-source <zone2.mob>] [--camera-source <bz3g.cam>]
   <saves dir>      the run's harness_saves folder; the mod goes to <saves dir>\\s19b_mod, which the
-                   scenario selects with the harness step "addonpath s19b_mod" (the starter's
-                   Settings\\AddonPath, answered for addon.dll and for the standalone image)
+                   scenario selects with the harness step "mod harness_saves\\s19b_mod" (the settings' Mod)
   --maps-source    passed to tools/make_trap_mob.py (default its own, read only)
   --camera-source  default the vanilla install's camera\\bz3g.cam (EI_GAME_VANILLA; read only)
 

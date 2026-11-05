@@ -322,7 +322,7 @@ bool WorldClient::RunTick() {
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport
             // keeps the session: only the error is reported.
-            if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session);
+            if (!ei::rebirth::DisableExitOnCrashReport()) SessionDisconnect(session);
             game::FatalError("%s", "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n");
             return false;
         }

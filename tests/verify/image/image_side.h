@@ -238,9 +238,8 @@ void PlayStream(const char* name);
 bool SwitchMod(const char* folder);
 // Whether the switch asked for is still to be made (at the main loop's next pass).
 bool ModSwitchPending();
-// The maps folder's MapFileExists, and WriteMapFile with five bytes ("S19d" and a line feed).
+// The maps folder's MapFileExists.
 bool MapsFileExists(const char* name);
-void WriteMapBytes(const char* name);
 
 // ---- the save trace (harness_savetrace.cpp; image/harness_objects_image.cpp)
 

@@ -1305,7 +1305,7 @@ void HudUnitPanel::PaintUnitInfo(UiSurface& surface, Unit* unit) {
     panel.DrawLine();
 
     auto description = params->ProtectionBlock(&unit->packedVitals, static_cast<unsigned char>(IsTextKey(unit->id)));
-    const DamageLists lines = ItemDamageLists(description.data(), true);
+    const DamageLists lines = ItemDamageLists(description.data());
     panel.DrawLabelled(10, lines.threshold);
     if (outside) {
         if (!lines.above.empty()) panel.DrawLabelled(11, lines.above);

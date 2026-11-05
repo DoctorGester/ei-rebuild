@@ -307,11 +307,8 @@ constexpr float kLeadInGap = 500.0f;
 bool Camera::LoadPath(const char* name, int settle) {
     platform::File file;
     const std::string path = g_dataFolder + "camera\\" + name;
-    // CameraPatch: the mod's Camera\ copy when there is one.
-    const bool opened = ei::rebirth::Enabled(ei::rebirth::Patch::CameraPatch)
-                            ? file.Open(modfolders::CameraFile(path.c_str()), platform::FileMode::Read)
-                            : file.Open(path, platform::FileMode::Read);
-    if (!opened) return false;
+    // The mod's Camera\ copy when there is one (Rebirth's CameraPatch).
+    if (!file.Open(modfolders::CameraFile(path.c_str()), platform::FileMode::Read)) return false;
 
     // As many keys as the file holds whole; the array is resized as the engine's aligned arrays
     // are (the old keys kept when it grows) and filled with one read.

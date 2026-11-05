@@ -8,7 +8,7 @@ usage: python tools/gen_settings_doc.py            writes docs/settings.md
 
 The settings the code reads are found by their spelling: options.cpp's tables (section and name, the camera's
 motion values, the shortcuts, the lights), every Get*(section, "name") under src/, the renderer's QualitySetting
-names, Rebirth's patches (src/lib/rebirth_patches.inc) and the [patches] names rebirth_profile.cpp understands.
+names and the [patches] names rebirth_profile.cpp understands.
 """
 import os, re, sys
 
@@ -112,8 +112,6 @@ def read_names(names_of):
                     found.add(('kPatches', name))
             if 'GetValues(settings::kAutoExec)' in text:
                 found.add(('kAutoExec', '<name>'))
-    for name in re.findall(r'^EI_REBIRTH_PATCH\((\w+)\)', read(os.path.join(ROOT, 'src', 'lib', 'rebirth_patches.inc')), re.M):
-        found.add(('kPatches', name))
     return found
 
 
@@ -128,8 +126,8 @@ def doc(rows, names):
            'comment. When the file is missing or empty the game writes the defaults, each line with its description above',
            'it; it never adds comments to a file that exists. A value the file lacks takes the default below.',
            '',
-           'Defaults: the value a new file holds, else the one the game takes when the line is absent. `(profile)`: the',
-           "game folder's profile decides (Rebirth's patches in a Rebirth install, none in a plain one).",
+           'Defaults: the value a new file holds, else the one the game takes when the line is absent. `(install)`: the',
+           "game folder decides (a Rebirth install's EI_Plugin.ini or Rebirth's own setting, else the original's).",
            '',
            "The original game's settings this build does not read (a file that holds them keeps the lines; the game",
            'ignores them): ' + ', '.join(DROPPED) + '.']

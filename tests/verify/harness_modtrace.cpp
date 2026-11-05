@@ -54,7 +54,7 @@ bool Seen(const std::string& where, const std::string& path, bool written, std::
     const std::set<std::string>& seen = written ? g_written : g_seen;
     if (where == "mod") {
         if (g_mod.empty()) {
-            *error = "no mod folder (the scenario has no addonpath)";
+            *error = "no mod folder (the scenario has no mod line)";
             return false;
         }
         return seen.count(g_mod + "\\" + relative) != 0;

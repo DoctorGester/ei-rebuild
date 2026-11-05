@@ -22,14 +22,15 @@
 class ItemInfoPanel;
 class Texture;
 
-// The seven damage values against the last one: the threshold ("%d" when `integer`, else "%.1f"), the damage
-// kinds ("dmg_<n>" texts, ", " separated) of the first six above it and those below it (or unordered).
+// The seven damage values against the last one: the threshold ("%.1f": EI_Plugin's Fixes, always on, where the
+// original printed the battle screen's as "%d"), the damage kinds ("dmg_<n>" texts, ", " separated) of the first six
+// above it and those below it (or unordered).
 struct DamageLists {
     std::string threshold;
     std::string above;
     std::string below;
 };
-DamageLists ItemDamageLists(const float* values, bool integer);
+DamageLists ItemDamageLists(const float* values);
 
 // --- The item screens' model view --------------------------------------------------------------
 

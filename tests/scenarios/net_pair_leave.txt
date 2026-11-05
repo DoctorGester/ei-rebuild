@@ -3,8 +3,7 @@
 # lacks one of the quest files the server shares ("hidefile": z6q2.mq on Rebirth, z7q1.mq on vanilla), and joins.
 # - Shared files: each queued zone's .mq is listed (QueueMapList -> LoadZoneQuests -> ShareFile 00419A00, File
 #   messages); the peer lacks one (ClientOnFile 0041EAC0: a FileRequest), the server lists the request
-#   (0041B690) and sends the chunks; vanilla writes the file (ClientOnFileChunk 0041ECC0 -> WriteMapFile 005813A0),
-#   Rebirth's MQClient only collects them.
+#   (0041B690) and sends the chunks, which the peer collects without writing the file (Rebirth's MQClient, always on).
 # - The map and the zone as in net_pair_zone (z3q2).
 # - The lost client: the peer's network is cut in the zone ("netcut"); after the session timeout (60 s) this
 #   game's server drops it (ReportDeparture 0041A700 text 4) and the peer shows the lost server box (the peer

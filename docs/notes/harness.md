@@ -29,9 +29,8 @@ game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two
 (linux.md, "The stub data") goes through the scheduler too. `EI_BUILD_DIR` points run_all at another verify build.
 
 How a run starts (run_all.launch, tools/game_process.py): the exe itself, with the working directory and `EI_GAME_ROOT`
-the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. No
-`EI_REBIRTH`: a run takes the install folder's own profile, as a player's exe does (rebirth.md; a caller's `EI_REBIRTH`,
-such as the Suites workflow's diff `flags`, replaces it on both installs). The game prints into the run folder's
+the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. A run takes
+the install folder's EI_Plugin values, as a player's exe does (rebirth.md, "Settings"). The game prints into the run folder's
 `launch.txt`, followed by run_all's own lines (`run_all: ...`). The games run in a job object on Windows (a session of
 their own with PR_SET_PDEATHSIG on Linux), so none outlives run_all.
 
@@ -129,13 +128,14 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   writes the file itself. A file a `# prepare:` tool writes into `harness_saves\<install path>` is read in place of the
   install's by the scenario's own game (the overlay), not by its peer: `net_pair_database.txt`'s host plays with a
   network item database of one item more (`tools/make_extra_item_db.py`).
-- `rebirthflags <names>` turns on Rebirth patch flags for the run, on top of the install folder's profile (rebirth.md).
-  `folderprofile` checks that profile itself (harness_folder_profile.h, `dropin_profile.txt`).
-- Mod folders (S19d; standalone.md, "Mod folders"): `addonpath <folder>` selects a mod the scenario's `# prepare:` tool
-  wrote into the run's `harness_saves`; `mod <folder>` answers the settings' `[game] Mod` with a mod folder of the
-  install (relative to the game folder, `starter\Mods\LostInAstral`) or in full (mods.md); after a `waitmenu` or `waitwindow` line, `mod <folder>|none` switches the mod in the main menu instead (mods.md, "Switching mods"). `read` / `wrote` `mod|game <path> yes|no` and `waitread <seconds> mod|game <path>`
+- `plugin NPlayers=<n> Pause=<n> SecondMaster=<host[:port]>` sets EI_Plugin's values for the run, over the install
+  folder's (rebirth.md, "Settings"). `folderprofile` checks the drop-in start-up (harness_folder_profile.h,
+  `dropin_profile.txt`).
+- Mod folders (S19d; standalone.md, "Mod folders"): `mod <folder>` answers the settings' `[game] Mod` with a mod folder
+  of the install (relative to the game folder, `starter\Mods\LostInAstral`), in full, or `harness_saves\<folder>` for
+  a mod the scenario's `# prepare:` tool wrote into the run's overlay (mods.md); after a `waitmenu` or `waitwindow` line, `mod <folder>|none` switches the mod in the main menu instead (mods.md, "Switching mods"). `read` / `wrote` `mod|game <path> yes|no` and `waitread <seconds> mod|game <path>`
   ask which files the game touched or wrote (`harness_modtrace.h`; noted only in a scenario that uses them, the wait is in
-  real seconds because a thread opens the file); `modfile`, `modlist`, `modarchive` and `mapfile` ask Rebirth's patches
+  real seconds because a thread opens the file); `modfile`, `modlist`, `modarchive` and `mapfile exists` ask Rebirth's patches
   directly; `playstream <file>.mp3` asks the music stream for a track. The stream's steps run on the virtual clock (a
   harness run opens no sound device), so the wait takes the same world updates every run and the digest records them
   (S19d1: four runs agreed record for record); with `music <volume>` and a device the halves free in real time and would not.

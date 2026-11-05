@@ -205,7 +205,7 @@
 //                             be suspended does that), "all" stops the watchdog thread as well, so only
 //                             run_all can end the game
 //   modfile <archive> <file> <bytes>, modlist <archive> <pattern> <count>, modarchive figures|links|textures <file> <bytes>,
-//   mapfile exists <name> yes|no, mapfile write <name>, playstream <name>.mp3
+//   mapfile exists <name> yes|no, playstream <name>.mp3
 //                             Rebirth's mod-folder patches asked directly (harness_starter.h; S19d)
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>
@@ -240,10 +240,10 @@
 //   layout <mouse step> <x> <y> ...  the mouse step (click, move, ...) at layout point (x, y) of the 800x600
 //                             interface, placed in the window's centred 4:3 part (the other mouse steps spread
 //                             their points over the whole window): the same place at any resolution
-//   rebirthflags <spec>       turn Rebirth patch flags on for this run (src/lib/rebirth.h): "all",
-//                             or patch names, each optionally =0/=1. Read before the hooks are
-//                             installed; in a Rebirth launch the flags follow addon.dll anyway.
-//                             "SecondMaster=<host[:port]>" sets NewMaster's second master server.
+//   plugin <spec>             EI_Plugin's values for this run (src/lib/rebirth.h), over the install's and the
+//                             settings file's: "NPlayers=<n>", "Pause=<n>", "SecondMaster=<host[:port]>"
+//                             (NewMaster's second master server), "DisableExitOnCrashReport=0|1". Read before
+//                             the game starts.
 //   resolution <W>x<H>|desktop, widescreen 0|1
 //                             answer the game's VideoResolution and the starter's WideScreen setting
 //                             for this run (game.exe's and addon.dll's registry reads; read before
@@ -496,7 +496,6 @@
 #include "harness_digest_read.h"   // the class ids
 #include "harness_folder_profile.h"
 #include "harness_modtrace.h"
-
 
 #include "harness_savetrace.h"
 
@@ -2569,10 +2568,10 @@ void RunSteps() {
             g_waitUntil = Deadline{};
         }
         Step s = g_steps[g_next++];
-        // "vanilla <step>" / "rebirth <step>": only in that install (Rebirth changes some behaviour
-        // itself, e.g. script error messages). Rebirth is recognised by its addon.dll, or the standalone image's flags.
+        // "vanilla <step>" / "rebirth <step>": only in that install's data (its maps, scripts and resources differ).
+        // Rebirth is recognised by its addon.dll or EI_Plugin.asi.
         if (s.verb == "vanilla" || s.verb == "rebirth") {
-            const bool runs = (s.verb == "rebirth") == starter::RebirthInstall();
+            const bool runs = (s.verb == "rebirth") == starter::RebirthData();
             if (!runs) {
                 Log("harness: skipped (%s only): %s", s.verb.c_str(), s.argument.c_str());
                 continue;
@@ -3693,7 +3692,7 @@ bool LoadScenario(const char* path) {
             TakeLoadLine();
             continue;
         }
-        if (g_steps.back().verb == "rebirthflags") {
+        if (g_steps.back().verb == "plugin") {
             ei::rebirth::QueueSpec(g_steps.back().argument.c_str());
             TakeLoadLine();
             continue;
@@ -3809,8 +3808,7 @@ struct Harness {
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN), the image's small
         // window otherwise: harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
-        modtrace::SetRoots(starter::ModPath().empty() ? starter::AddonPath() : starter::ModPath(), starter::GameFolder(),
-                           g_savesDir);
+        modtrace::SetRoots(starter::ModPath(), starter::GameFolder(), g_savesDir);
         settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST

@@ -53,7 +53,7 @@ one-line pointer; move, don't lose.
   (config/comment_baseline.csv). Workers don't update the baseline; the coordinator does after a merge.
   Two more columns are ratcheted (style round 2): "addon addresses" (addon.dll's 8-hex-digit addresses in a comment;
   say what the code does) and "unnamed Rebirth patches" (a comment line that says "Rebirth-patched" without a
-  `Patch::` flag name from `src/lib/rebirth_patches.inc` or "always on"). The scan includes the shaders (`.hlsl`,
+  patch name from `config/rebirth_patches.csv` or "always on"). The scan includes the shaders (`.hlsl`,
   `.hlsli`). The banned words also hold hook-era and decompiler narration (style round 3): "installs in the vanilla
   launch", "called through its address", "verify wrapper", "scalar deleting destructor", "SHR by CL", the registers
   (`EAX`, `ECX`, ...) and "the new renderer" (it is the renderer). Style round 4 adds the banned words "new

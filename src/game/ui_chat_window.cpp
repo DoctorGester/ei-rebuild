@@ -52,7 +52,7 @@ ChatWindow::~ChatWindow() = default;
 
 ChatWindow::ChatWindow(BriefingScreen* screen) : briefing(screen) {
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
-    const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
+    const int left = ei::rebirth::PluginNPlayers() != 0 ? 0 : 0x1D0;
     rect = Rect{left, 0, 800, 0xA0};
     UiSurface* surface = AddSurface(std::make_unique<UiSurface>(left, 0x4B, 800, 0x69, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) { PaintStatus(out); });
@@ -135,20 +135,16 @@ void ChatWindow::ShowPlayers() {
         UnitPrototypeRecord* prototype;
         {
             prototype = g_unitDatabase.prototypes.FindByName(std::string(player->text));
-            // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
-            if (!prototype && pluginfixes::Enabled())
-                prototype = pluginfixes::FallbackPrototype();
+            // EI_Plugin's Fixes (always on): an unknown prototype becomes the first one that is no creature.
+            if (!prototype) prototype = pluginfixes::FallbackPrototype();
         }
         UnitModelRecord* figure;
         {
             std::string key(prototype->modelName);
             figure = g_unitDatabase.models.FindByName(key);
         }
-        const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
-        if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName) : figure->figureName == "unhuma")
-            sex = "m";
-        else if (fixes || figure->figureName == "unhufe")
-            sex = "f";
+        // EI_Plugin's Fixes (always on): the model's fifth character.
+        sex = pluginfixes::ModelIsFemale(figure->figureName) ? "f" : "m";
         build = "me";
         model = std::format("infa{}{}{}face", figure->figureName, build, prototype->hair + 1);
         picture = std::format("face{}{:02}", sex, prototype->skin);
@@ -167,7 +163,7 @@ void ChatWindow::Update() {
     }
     statusRows.clear();
     std::string status, offer;
-    int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
+    int left = ei::rebirth::PluginNPlayers() != 0 ? kFirstFaceLeft : kFirstStatusLeft;
     for (auto p = players.begin(); p != players.end(); ++p, left -= kFaceWidth) {
         net::PlayerMessage* player = *p;
         status.clear();

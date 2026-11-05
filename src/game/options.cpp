@@ -7,8 +7,6 @@
 
 #include "lib/str.h"
 
-#include "lib/rebirth.h"
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -256,9 +254,7 @@ void GameOptions::Save() {
     s.WriteCameraShortcuts();
     s.Write(kGameValues);
     SetInt(kGame, "Difficulty Level", difficultyStored);
-    // EI_Plugin's NewMaster NOPs these 42 bytes: the Master Server Name is not saved.
-    if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
-        SetString(kNetwork, "Master Server Name", masterServerName);
+    // The Master Server Name is not saved (EI_Plugin's NewMaster, always on, NOPs these 42 bytes).
     settings::Save();
 }
 

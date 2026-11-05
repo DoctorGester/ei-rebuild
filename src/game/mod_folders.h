@@ -1,16 +1,14 @@
 #pragma once
 
 // The standalone resource layer: Rebirth's mod-folder patches, which addon.dll v0.12.4.2 applies around the
-// selected mod (the settings file's [rebirth] AddonPath, a '\' added): - Maps (10 sites): every
-// maps-folder user names its file first; the maps folder is the mod's folder when the mod's Maps\ held that
-// name at start, else the game's. - ResOverride (25 sites): the mod's config.reg [Res] lists archives that
+// selected mod. They apply whenever a mod is played (the settings file's [game] Mod, a '\' added; Active), with no
+// flag: - Maps (9 sites): every maps-folder user names its file first; the maps folder is the mod's folder when the
+// mod's Maps\ held that name at start, else the game's. - ResOverride (25 sites): the mod's config.reg [Res] lists archives that
 // come before (or, with '-', instead of) the game's twelve archives, plus extra figure and texture archives;
 // every MappedResource::GetFile and ListFiles goes through addon (its virtual and all their calls). -
 // MoviesPatch (the BinkOpen import), CameraPatch (the camera path's file open), StreamPatch (the stream
 // file's path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
 // More: docs/notes/rebirth.md, "Resources and paths".
-
-#include "lib/rebirth.h"
 
 #include <cstdint>
 #include <string>
@@ -20,9 +18,10 @@
 class MappedResource;
 namespace modfolders {
 
-// The mod's folder with a trailing '\': the settings' [game] Mod (platform::ModFolder), else [rebirth] AddonPath; empty
-// without one.
+// The mod's folder with a trailing '\': the settings' [game] Mod (platform::ModFolder); empty without one.
 const std::string& ModPath();
+// Whether a mod is played (ModPath is not empty): the resource sites go through the layer only then.
+bool Active();
 // The mod changes (a switch of mods, after the game's stop): the mod's archives closed, and what the layer read of the
 // mod (its folder, [Res] lists, Maps\ listing, the maps folder chosen) read again at the next use.
 void Reset();
@@ -51,14 +50,14 @@ const std::vector<std::string>& FigureArchives();
 std::vector<std::string> FigureArchivePaths(const std::string& folder);
 const std::vector<std::string>& TextureArchives();
 
-// The site kinds addon passes (1-9): NewZone's map and mob, MapPath, the client's LoadZone, the zone
-// table's "*.mq" list, LoadZoneQuests (twice), MapFileExists, WriteMapFile.
+// The site kinds addon passes (1-8; its 9, WriteMapFile, went with the client's writing of shared files): NewZone's
+// map and mob, MapPath, the client's LoadZone, the zone table's "*.mq" list, LoadZoneQuests (twice), MapFileExists.
 enum class MapsSite : int {
-    NewZoneMap = 1, NewZoneMob, MapPath, ClientLoadZone, ZoneTable, ZoneQuests, ZoneQuestsPath, FileExists, WriteFile,
+    NewZoneMap = 1, NewZoneMob, MapPath, ClientLoadZone, ZoneTable, ZoneQuests, ZoneQuestsPath, FileExists,
 };
 // Before a maps-folder use: the folder becomes the mod's when its Maps\ has `name` (any case; the
 // zone table: when its top folder has a ".mq" file), else the game's. It stays until the next one.
-// Nothing without the Maps flag (ei::rebirth::Enabled).
+// Nothing without a mod.
 void SelectMaps(std::string_view name, MapsSite site);
 // The folder MapsFolder starts from: the game's data folder or the mod's.
 const std::string& MapsRoot(const std::string& dataFolder);

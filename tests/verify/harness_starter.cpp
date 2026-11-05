@@ -7,7 +7,6 @@
 #include "platform/log.h"
 #include "platform/platform.h"
 #include "system/harness_system.h"
-#include "../../src/game/rebirth_profile.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -24,10 +23,9 @@ char g_resolution[32];      // "WxH", empty: the snapshot's
 int g_wideScreen = -1;      // 0 / 1, -1: the snapshot's
 int g_fullScreen = -1;      // 0 / 1, -1: the snapshot's
 int g_music = -1;           // AudioStreaming (the streamed music's volume), -1: the snapshot's
-std::string g_addonFolder;  // "addonpath": the mod's folder under harness_saves, empty: the snapshot's
-char g_addonPath[sys::kMaxPath]; // its full path (Install)
 std::string g_modFolder;    // "mod": the settings' Mod, relative to the game folder or in full; empty: none
 char g_modPath[sys::kMaxPath];   // its full path (Install)
+std::string g_savesDir;     // the run's harness_saves (Install)
 
 // Rebirth's starter switch CtfMon (Settings\CtfMon, read by addon.dll) is always off in a harness run (S3e).
 // On, addon closes the text input service's window (class CicLoaderWndClass: ctfmon) when it applies its
@@ -42,8 +40,7 @@ constexpr unsigned long kCtfMon = 0;
 // shape decides the interface layout (src/game/screen_layout.h), so each install's runs take the shape of the
 // original's runs their goldens come from: 4:3 on the vanilla data (game.exe's layout is the stretched 800x600, the
 // same as a 4:3 window's), 16:9 on Rebirth's (addon's WideScreen at the 16:9 desktop). The data folder tells them
-// apart as the image's start-up tells the profiles apart (src/game/rebirth_profile.cpp): Rebirth's has starter\addon.dll
-// or EI_Plugin.asi. (EI_REBIRTH does not: a caller may set it on either install.)
+// apart (RebirthData).
 constexpr const char* kImageResolution = "960x720";
 constexpr const char* kImageResolutionRebirth = "1280x720";
 
@@ -99,12 +96,6 @@ bool Answer(const char* name, unsigned long* type, const unsigned char** data, u
         *size = static_cast<unsigned long>(std::strlen(g_modPath) + 1);
         return true;
     }
-    if (g_addonPath[0] && text::CompareIgnoringCase(name, "AddonPath") == 0) {
-        *type = kString;
-        *data = reinterpret_cast<const unsigned char*>(g_addonPath);
-        *size = static_cast<unsigned long>(std::strlen(g_addonPath) + 1);
-        return true;
-    }
     if (g_wideScreen >= 0 && text::CompareIgnoringCase(name, "WideScreen") == 0) {
         *dword = static_cast<unsigned long>(g_wideScreen);
         *type = kDword;
@@ -133,10 +124,6 @@ bool ParseStep(const std::string& verb, const std::string& argument) {
         if (g_music < 0) g_music = 0;
         return true;
     }
-    if (verb == "addonpath") {
-        g_addonFolder = argument;
-        return true;
-    }
     if (verb == "mod") {
         g_modFolder = argument;
         return true;
@@ -146,12 +133,15 @@ bool ParseStep(const std::string& verb, const std::string& argument) {
 
 std::string ModStepPath(const std::string& argument) {
     if (argument.empty() || argument == "none") return {};
+    constexpr std::string_view kOverlay = "harness_saves\\";
+    if (argument.size() > kOverlay.size() && text::CompareIgnoringCase(argument.c_str(), kOverlay.data(), kOverlay.size()) == 0)
+        return sys::FullPath(g_savesDir + "\\" + argument.substr(kOverlay.size()));
     const bool full = argument[0] == '\\' || argument[0] == '/' || (argument.size() >= 2 && argument[1] == ':');
     return sys::FullPath(full ? argument : GameFolder() + "\\" + argument);
 }
 
 void Install(const char* savesDir) {
-    if (!g_addonFolder.empty()) std::snprintf(g_addonPath, sizeof(g_addonPath), "%s\\%s", savesDir, g_addonFolder.c_str());
+    g_savesDir = savesDir;
     if (!g_modFolder.empty()) {
         sys::CopyText(g_modPath, ModStepPath(g_modFolder).c_str());
         Log("harness: the settings' Mod: %s", g_modPath);
@@ -169,16 +159,14 @@ void Install(const char* savesDir) {
     }
     const std::string wideScreen = platform::EnvironmentVariable("EI_WIDESCREEN");
     if (g_wideScreen < 0 && !wideScreen.empty()) g_wideScreen = std::atoi(wideScreen.c_str()) != 0 ? 1 : 0;
-    if (g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_music >= 0 || g_addonPath[0]) {
+    if (g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_music >= 0) {
         char music[16] = "(snapshot)";
         if (g_music >= 0) std::snprintf(music, sizeof(music), "%d", g_music);
-        Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s, "
-            "AudioStreaming %s, AddonPath %s",
+        Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s, AudioStreaming %s",
             g_resolution[0] ? g_resolution : "(snapshot)", g_wideScreen < 0 ? "(snapshot)" : g_wideScreen ? "1" : "0",
-            g_fullScreen < 0 ? "(snapshot)" : g_fullScreen ? "1" : "0", music, g_addonPath[0] ? g_addonPath : "(snapshot)");
+            g_fullScreen < 0 ? "(snapshot)" : g_fullScreen ? "1" : "0", music);
     }
 }
-std::string AddonPath() { return g_addonPath; }
 std::string ModPath() { return g_modPath; }
 
 // Whether `got` is what a step expects: "<n>" that many bytes (or names), "!<n>" anything else, "+" anything but 0.
@@ -233,20 +221,13 @@ std::string PlayStreamStep(const std::string& argument) {
 std::string MapFileStep(const std::string& argument) {
     char what[16] = {}, name[sys::kMaxPath] = {}, expected[8] = {};
     const int n = std::sscanf(argument.c_str(), "%15s %259s %7s", what, name, expected);
-    if (n >= 2 && std::strcmp(what, "write") == 0) {
-        image::WriteMapBytes(name);
-        Log("harness: mapfile write %s", name);
-        return std::string();
-    }
     if (n != 3 || std::strcmp(what, "exists") != 0 || (std::strcmp(expected, "yes") != 0 && std::strcmp(expected, "no") != 0))
-        return "mapfile " + argument + ": not exists <name> yes|no, or write <name>";
+        return "mapfile " + argument + ": not exists <name> yes|no";
     const bool exists = image::MapsFileExists(name);
     Log("harness: mapfile exists %s: %s", name, exists ? "yes" : "no");
     if (exists == (std::strcmp(expected, "yes") == 0)) return std::string();
     return std::string("mapfile exists ") + name + ": " + (exists ? "yes" : "no") + ", expected " + expected;
 }
-
-bool RebirthInstall() { return rebirth_profile::RebirthLaunch(); }
 
 std::string GameFolder() {
     std::string folder = platform::EnvironmentVariable("EI_GAME_ROOT");
@@ -262,9 +243,12 @@ std::string GameFolder() {
 }
 
 bool RebirthData() {
-    const std::string folder = GameFolder();
-    if (folder.empty()) return false;
-    return sys::Exists(folder + "\\starter\\addon.dll") || sys::Exists(folder + "\\EI_Plugin.asi");
+    static const bool rebirth = [] {
+        const std::string folder = GameFolder();
+        if (folder.empty()) return false;
+        return sys::Exists(folder + "\\starter\\addon.dll") || sys::Exists(folder + "\\EI_Plugin.asi");
+    }();
+    return rebirth;
 }
 
 } // namespace ei::verify::starter

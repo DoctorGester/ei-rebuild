@@ -41,9 +41,6 @@ waitwindow 40 briefing
 peersignal joined
 
 peerwait 200 entered
-# The received file, written by ClientOnFileChunk 0041ECC0 -> WriteMapFile 005813A0 (vanilla only: Rebirth's
-# MQClient collects the chunks and writes nothing).
-vanilla samefile maps\z7q1.mq
 frames 20
 clickground 61 50 dblclick
 frames 60

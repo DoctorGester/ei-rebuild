@@ -460,12 +460,6 @@ bool ModSwitchPending() { return app::ModSwitchPending(); }
 
 bool MapsFileExists(const char* name) { return MapFileExists(name); }
 
-void WriteMapBytes(const char* name) {
-    static std::uint8_t bytes[] = {'S', '1', '9', 'd', 10};
-    BufferView view(bytes, bytes + sizeof(bytes));
-    WriteMapFile(name, &view);
-}
-
 namespace {
 void (*g_streamWrites)(void* stream, std::uint32_t size, void* const* frame) = nullptr;
 void ObservedStreamWrite(MemoryStream* stream, std::uint32_t size, void* const* frame) { g_streamWrites(stream, size, frame); }

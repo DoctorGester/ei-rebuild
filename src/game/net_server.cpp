@@ -10,7 +10,6 @@
 #include "net_messages.h"
 #include "net_second_master.h"
 #include "options.h"
-#include "lib/rebirth.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -195,19 +194,15 @@ void ServerSession::AnnounceToMaster() {
     info.magic = kSessionMagic;
     info.Write(&buffer);
     socket.SendTo(&masterAddress, &buffer);
-    // EI_Plugin's NewMaster (its call sends as SendTo does, then the copy).
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket.socket, buffer);
+    // EI_Plugin's NewMaster (its call sends as SendTo does, then the copy to the second master when one is set).
+    second_master::CopyAnnouncement(socket.socket, buffer);
 
 }
 
-// A PacketKind::Master packet: only from the master server's address (all 16 bytes compared; from any address with
-// EI_Plugin's NewMaster, which NOPs a jump so the answer of its second master server counts). Its first dword
-// must be the session's master key; the second is then kept (the next announcement sends it back). The first
-// dword is consumed either way.
-void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
-    if (std::memcmp(from, &masterAddress, sizeof(NetAddress)) != 0 &&
-        !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
-        return;
+// A PacketKind::Master packet, from any address (EI_Plugin's NewMaster, always on, NOPs the original's test of the
+// master server's address, so the answer of its second master server counts). Its first dword must be the session's
+// master key; the second is then kept (the next announcement sends it back). The first dword is consumed either way.
+void ServerSession::OnMaster(const NetAddress*, BufferCursor* cursor) {
     std::uint32_t key;
     cursor->Take(key);
     if (key != masterKey) return;

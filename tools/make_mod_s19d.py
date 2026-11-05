@@ -2,7 +2,7 @@
 
 usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
-                the harness step "addonpath s19d_mod" (the starter's Settings\\AddonPath)
+                the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
 
 Every file is a copy or a repack of the vanilla install's own data (EI_GAME_VANILLA; read only) or a few made-up bytes;
 nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):

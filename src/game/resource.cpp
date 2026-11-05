@@ -36,7 +36,7 @@ int ResourceBase::FindEntry(std::string_view name) const {
 
 MappedResource::~MappedResource() {
     // Rebirth's ResOverride: addon forgets the archive first.
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) modfolders::OnDestroyResource(this);
+    if (modfolders::Active()) modfolders::OnDestroyResource(this);
     CloseResource();
 }
 
@@ -45,7 +45,7 @@ MappedResource::~MappedResource() {
 bool MappedResource::OpenResource(const std::string& path) {
     // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
     // which archive this is.
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
+    if (modfolders::Active()) modfolders::OnOpenResource(this, path);
     CloseResource();
     if (!archive.Open(path, platform::FileMode::Read))
         return game::FatalError("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"");
@@ -103,9 +103,9 @@ void MappedResource::CloseResource() {
     header = ResHeader{};
 }
 
-// Rebirth's ResOverride sends every call to addon.
+// With a mod, Rebirth's ResOverride sends every call to addon.
 void* MappedResource::GetFile(std::string_view name, std::uint32_t* size) {
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) return modfolders::GetFile(this, name, size);
+    if (modfolders::Active()) return modfolders::GetFile(this, name, size);
     return GetFilePlain(name, size);
 }
 
@@ -147,7 +147,7 @@ bool MappedResource::CloseFile(void* data) {
     auto byData = filesByData.find(data);
     if (byData == filesByData.end()) {
         // Rebirth's ResOverride: a file one of the mod's archives gave in this one's place goes back to it.
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride))
+        if (modfolders::Active())
             if (MappedResource* mod = modfolders::ArchiveHolding(this, data)) return mod->CloseFile(data);
         game::DebugLog("CMappedResource::CloseFile()\nFile already closed\n");
         return false;

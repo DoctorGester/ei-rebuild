@@ -214,7 +214,7 @@ int game::FatalError(const char* format, ...) {
     va_start(args, format);
     std::vsnprintf(text, sizeof(text), format, args);
     va_end(args);
-    if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) {
+    if (!ei::rebirth::DisableExitOnCrashReport()) {
         app::ShowMessageBox(text);
         std::exit(-1);
     }

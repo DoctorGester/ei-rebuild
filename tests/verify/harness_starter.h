@@ -14,11 +14,10 @@
 //                                  system's random draws follow the track it reports (SV5d5: a fight's
 //                                  combat track is picked only when the playing one is not it), so a run
 //                                  whose fights must draw the same everywhere plays without it
-//   addonpath <folder>             the starter's Settings\AddonPath (the selected Rebirth mod: addon.dll's,
-//                                  and the standalone image's mod_folders.h) as harness_saves\<folder>;
-//                                  a "# prepare:" tool writes the mod there (tools/make_test_mod.py)
 //   mod <folder>                   the settings' [game] Mod (docs/notes/mods.md), in full: <folder> relative to
-//                                  the game folder (starter\Mods\LostInAstral) or in full. After a "waitmenu" or
+//                                  the game folder (starter\Mods\LostInAstral) or in full; "harness_saves\<folder>"
+//                                  is in the run's overlay, where a "# prepare:" tool writes a mod of its own
+//                                  (tools/make_test_mod.py, make_mod_s19d.py). After a "waitmenu" or
 //                                  "waitwindow" line the line is a step instead: a switch of mods in the main menu
 //                                  (app::RequestModSwitch; "none": the game's own files), the next step once it is
 //                                  made
@@ -42,8 +41,7 @@ inline constexpr unsigned long kString = 1, kBinary = 3, kDword = 4;
 // 4-byte answer); false when the run leaves it to the snapshot.
 bool Answer(const char* name, unsigned long* type, const unsigned char** data, unsigned long* size, unsigned long* dword);
 
-// Consumes a "resolution", "widescreen", "fullscreen", "music", "addonpath" or "mod" scenario line; false for any
-// other verb.
+// Consumes a "resolution", "widescreen", "fullscreen", "music" or "mod" scenario line; false for any other verb.
 bool ParseStep(const std::string& verb, const std::string& argument);
 
 // Applies the environment fallbacks (once, at harness start, before harness_settings' Install; `savesDir`:
@@ -65,26 +63,19 @@ std::string ModArchiveStep(const std::string& argument);
 // menu's music is; the stream's steps run on the virtual clock, so a scenario waits for it with "waitread"
 // (harness_modtrace.h) and the wait takes the same world updates every run.
 std::string PlayStreamStep(const std::string& argument);
-// "mapfile exists <name> yes|no" / "mapfile write <name>": the maps folder's MapFileExists, and WriteMapFile with five
-// bytes, as the client's shared-file handler calls them (the folder follows Rebirth's Maps: the mod's or the game's).
+// "mapfile exists <name> yes|no": the maps folder's MapFileExists, as the client's shared-file handler calls it (the
+// folder follows Rebirth's Maps: the mod's or the game's).
 std::string MapFileStep(const std::string& argument);
 
-// The mod folder the scenario's "addonpath" step names, in full (empty without one).
-std::string AddonPath();
 // The mod folder the scenario's "mod" step names, in full (empty without one).
 std::string ModPath();
 // A "mod" line's folder in full, as ModPath's (empty for "none").
 std::string ModStepPath(const std::string& argument);
 
-// Whether this run plays the Rebirth install: the image runs with Rebirth flags (rebirth_profile::SettingsOnly; S19).
-// Scenario lines "vanilla ..." / "rebirth ..." and the digest's and the UI census's install follow it.
-
-bool RebirthInstall();
-
 // Whether the run's data folder (EI_GAME_ROOT, else the exe's own) is a Rebirth install (starter\addon.dll or
-// EI_Plugin.asi, as the image's start-up decides its profile). Known before the game starts, unlike RebirthInstall:
-// the image's window size (960x720 on the vanilla data, 1280x720 on Rebirth's) and the scenario lines "vanilla
-// resolution ..." / "rebirth resolution ..." follow it.
+// EI_Plugin.asi, where the image's start-up reads EI_Plugin.ini). Known before the game starts: the image's window
+// size (960x720 on the vanilla data, 1280x720 on Rebirth's), the scenario lines "vanilla ..." / "rebirth ...", the
+// settings snapshot's tree, the pinned files and the digest's install follow it.
 bool RebirthData();
 
 // The run's game folder in full (EI_GAME_ROOT, else the exe's own folder) in the game's form (backslashes), "" when

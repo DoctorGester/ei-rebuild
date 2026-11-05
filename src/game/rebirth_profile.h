@@ -1,20 +1,16 @@
-// The Rebirth flags at the game's start: the game folder's profile, the settings file's [patches], EI_REBIRTH's and
-// the harness's specs (rebirth::Reset). No addon.dll and no EI_Plugin.asi run: the game has their fixes as flags.
+// The values Rebirth's patches leave to the player, set at the game's start (rebirth.h): EI_Plugin's player count and
+// pause mode and DisableExitOnCrashReport from the game folder, NewMaster's second master server from the settings
+// file, then the harness's specs.
 #pragma once
-
-#include "lib/rebirth.h"
 
 #include <string>
 
 namespace ei::rebirth_profile {
 
-// The flags for the game in `gameFolder`: the defaults, then the folder's profile (Rebirth's, config/rebirth_profile.ini
-// with EI_Plugin.ini's player count and pause mode, where Rebirth's addon or plugin is; else the plain install's; none
-// when EI_REBIRTH names the flags), then the settings file's [patches], then
-// EI_REBIRTH and the harness's specs. Logs the flags that are on.
+// The values for the game in `gameFolder`: the defaults; where Rebirth's addon or plugin is (starter\addon.dll or
+// EI_Plugin.asi), EI_Plugin.ini's player count and pause mode and DisableExitOnCrashReport on; the settings file's
+// [patches] NPlayers, Pause and DisableExitOnCrashReport, its [network] SecondMaster; then the harness's specs. Any
+// other line of [patches] (the Rebirth flags of older builds) is ignored, named in one log line.
 void Load(const std::string& gameFolder);
-
-// True when a flag other than the default bug fixes was on before the settings file was read.
-bool RebirthLaunch();
 
 } // namespace ei::rebirth_profile

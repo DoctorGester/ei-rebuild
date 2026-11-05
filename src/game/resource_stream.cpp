@@ -63,9 +63,9 @@ int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult)
     return *name == '\0' ? 1 : 0;
 }
 
-// Rebirth's ResOverride sends every call to addon.
+// With a mod, Rebirth's ResOverride sends every call to addon.
 void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* pattern) const {
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::ResOverride)) {
+    if (modfolders::Active()) {
         modfolders::ListFiles(this, fileNames, pattern);
         return;
     }

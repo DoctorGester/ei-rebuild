@@ -11,8 +11,6 @@
 
 #include "lib/crt.h"
 
-#include "lib/rebirth.h"
-
 #include <algorithm>
 #include <cstring>
 #include <type_traits>
@@ -205,38 +203,9 @@ void ClientSession::OnFile(FileMessage* message) {
     request->file.Assign(message);
     Append(fileRequests, request);
 }
-// A chunk of a shared file. When chunks then holds as many chunks of the file as the file message announces,
-// they are sorted by index, their 64 bytes each joined in a growing buffer cut to the file's size, the game
-// flow writes the buffer as the map file of that name, and the requests for the file leave fileRequests. A
-// file without a name is only collected. Rebirth's MQClient returns after collecting every chunk: no file from
-// the server is written.
-void ClientSession::OnFileChunk(FileChunkMessage* message) {
-    Append(chunks, message);
-    auto* file = message->file.Get();
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::MQClient)) return;
-    if (file->name.empty()) return;
-
-    std::vector<FileChunkMessage*> fileChunks;
-    int count = 0;
-    for (auto& node : chunks) {
-        auto* chunk = node.Get();
-        if (chunk->file.Get() != file) continue;
-        ++count;
-        fileChunks.push_back(chunk);
-    }
-    if (count == file->chunkCount) {
-        GrowingBuffer buffer;
-        // By the chunks' index. A file's chunks have different indices, and two messages of one index would
-        // carry the same chunk's data: any sort writes the same bytes.
-        std::sort(fileChunks.begin(), fileChunks.end(),
-                  [](const FileChunkMessage* a, const FileChunkMessage* b) { return a->index < b->index; });
-        for (auto& chunk : fileChunks) buffer.Put(chunk->data);
-        // The buffer rewound and its written length set to the file's (the last chunk is padded).
-        buffer.SetSize(static_cast<std::uint32_t>(file->size));
-        WriteMapFile(file->name.data(), &buffer);
-        DropRequestsFor(this, file);
-    }
-}
+// A chunk of a shared file: collected, never written (Rebirth's MQClient, always on: a client writes no file the
+// server sends; the original joined a file's chunks once all had come and wrote them to the maps folder).
+void ClientSession::OnFileChunk(FileChunkMessage* message) { Append(chunks, message); }
 // A new trade empties the trade records and resets both parties.
 void ClientSession::OnTrade(TradeMessage* message) {
     trade.Assign(message);

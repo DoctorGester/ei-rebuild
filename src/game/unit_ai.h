@@ -204,7 +204,7 @@ public:
     static constexpr AIModeType kType = AIModeType::Patrol;
     PatrolMode() : AIMode(kType) {}
     // kPriorityIdle; without points: FatalError "Unit %i has no patrol points, adding one at its position" (which
-    // exits unless ei::rebirth::Patch::DisableExitOnCrashReport is on), a point at the unit's position, and
+    // exits unless ei::rebirth::DisableExitOnCrashReport()), a point at the unit's position, and
     // kPriorityNone.
     int Evaluate(AIBrain* brain) override;
     // When idle: on to the next point and its looks.

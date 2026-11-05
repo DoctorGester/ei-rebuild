@@ -2,7 +2,7 @@
 
 // The standalone's settings: ei_settings.ini next to the exe (on macOS in ~/Library/Application Support/ei-rebuild; or %LOCALAPPDATA%\EvilIslands\ei_settings.ini when the
 // exe's folder has none and cannot be written; docs/notes/standalone.md, "Settings file"). The options (options.cpp),
-// the renderer's switches, Rebirth's patches, switches and console lines are read and written here through typed
+// the renderer's switches, the mod, EI_Plugin's values and the console lines are read and written here through typed
 // accessors; nothing reads or writes the registry.
 //
 // The file is a plain ini:
@@ -30,9 +30,8 @@ namespace settings {
 
 inline constexpr const char* kFileName = "ei_settings.ini";
 
-// The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), Rebirth's patches
-// (src/game/rebirth_profile.cpp, src/lib/rebirth.h), its switch (mod_folders.cpp) and its console lines
-// (console_addon.cpp).
+// The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), EI_Plugin's values
+// (src/game/rebirth_profile.cpp, src/lib/rebirth.h) and Rebirth's console lines (console_addon.cpp).
 inline constexpr const char* kPaths = "paths";
 inline constexpr const char* kVideo = "video";
 inline constexpr const char* kSound = "sound";
@@ -43,7 +42,6 @@ inline constexpr const char* kGame = "game";
 inline constexpr const char* kNetwork = "network";
 inline constexpr const char* kRenderer = "renderer";
 inline constexpr const char* kPatches = "patches";
-inline constexpr const char* kRebirth = "rebirth";
 inline constexpr const char* kAutoExec = "autoexec";
 
 // A settings file's text in memory: its sections in file order, each with its lines in order. Sections and names
@@ -96,8 +94,7 @@ bool ParseBool(std::string_view text, bool* value);
 // shadow, water waves, self shadowing, ground prints),
 // and what a game install writes in place of the game's own placeholder defaults (the camera's section, the objects'
 // lighting, the hero's and the quest light, the master server). The renderer: Msaa 8 (the device's best when less),
-// Anisotropy 16, VSync on, no performance overlay. Rebirth's patches: none named (each takes the game folder's
-// profile). Everything else (paths, the other options and switches) is left out: the game and Rebirth read it as
+// Anisotropy 16, VSync on, no performance overlay. Everything else (paths, the other options and switches) is left out: the game and Rebirth read it as
 // absent and take their own defaults. Each line has its catalog description above it (once for the lines of a
 // pattern, the camera shortcuts).
 Document Defaults(int width, int height);
@@ -146,7 +143,7 @@ void AddReadFilter(ReadFilter filter);
 // Harness runs: `file` in place of the one next to the exe, and each read of a value it lacks passed to `missing`
 // (section, name; may be null). `readOnly`: writes are dropped and a missing file stays missing; else the file is
 // written as in the product (Save, .tmp then moved) and a missing file is written with the defaults. `prepare` (may
-// be null) writes the file at the first use, once the start-up has set the Rebirth flags. Before the first use.
+// be null) writes the file at the first use. Before the first use.
 using MissingHandler = void (*)(const char* section, const char* name);
 using PrepareHandler = void (*)(const char* file);
 void Pin(const char* file, MissingHandler missing, bool readOnly, PrepareHandler prepare = nullptr);
