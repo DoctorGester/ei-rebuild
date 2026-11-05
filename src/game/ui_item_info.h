@@ -240,7 +240,7 @@ public:
     void KeyDown(platform::Key key, int scan, bool repeat) override;
     void KeyUp(platform::Key key, int scan) override;
     // Draws the described item's model at (x + 100, y + 200), size 120, greyed (mode 9) through the owner's DrawItem.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Builds the panel at layout point (x, y): its 200 x 300 surface (format 5), the item texts
     // "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text table, and an empty
     // item list.

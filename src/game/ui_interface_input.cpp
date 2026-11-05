@@ -459,7 +459,7 @@ void ScreenFade::Start(int ms) {
 void Interface3D::Draw() {
     CloseAllPending();
     if ((backdropMode == Backdrop::First || backdropMode == Backdrop::Both || backdropMode == Backdrop::TakeSecond) && backdrop) backdrop->Blit();
-    if (!stack.empty()) stack.back()->Draw(&g_sceneRenderer);
+    if (!stack.empty()) stack.back()->DrawSprites(&g_sceneRenderer);
     fade->Draw(&g_sceneRenderer);
 }
 
@@ -473,8 +473,8 @@ void Interface3D::PaintFps(UiSurface& surface) const {
 
 void Interface3D::DrawOverlays() {
     if (!stack.empty()) {
-        stack.back()->Redraw();        // its surfaces blit themselves
-        stack.back()->RedrawTips();    // its tooltips follow the mouse and redraw
+        stack.back()->DrawSurfaces();
+        stack.back()->DrawTips();
     }
     // (The original calls an empty function on the fade here; nothing to do.)
     if (statusSurface) statusSurface->Blit();
@@ -494,7 +494,7 @@ void Interface3D::DrawOverlays() {
         backdrop->CaptureScreen();
         backdropMode = Backdrop::Both;
     }
-    if (IsMultiplayerClient() && std::ssize(stack) == 1) root->Redraw();
+    if (IsMultiplayerClient() && std::ssize(stack) == 1) root->DrawSurfaces();
 
     ++fpsFrames;
     const std::uint32_t now = platform::FrameClock();

@@ -26,21 +26,21 @@ void UiContainer::Update() {
     for (int i = 0; i < std::ssize(children); ++i) children[i]->Update();
 }
 
-void UiContainer::Redraw() {
+void UiContainer::DrawSurfaces() {
     if (!ui->drawing) return;
-    UiWindow::Redraw();
+    UiWindow::DrawSurfaces();
     for (int i = 0; i < std::ssize(children); ++i) {
         UiWindow* child = children[i];
-        if (child->enabled) child->Redraw();
+        if (child->enabled) child->DrawSurfaces();
     }
 }
 
-void UiContainer::RedrawTips() {
+void UiContainer::DrawTips() {
     if (!ui->drawing) return;
-    UiWindow::RedrawTips();
+    UiWindow::DrawTips();
     for (int i = 0; i < std::ssize(children); ++i) {
         UiWindow* child = children[i];
-        if (child->enabled) child->RedrawTips();
+        if (child->enabled) child->DrawTips();
     }
 }
 

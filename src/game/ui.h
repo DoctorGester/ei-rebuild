@@ -318,7 +318,7 @@ public:
     // Adds a polygon vertex, growing the bounds; three vertices enable the region.
     void AddPoint(int x, int y);
     void OnMouseMove(Point point);
-    // Enabled when its rectangle is set; the bounds are left uninitialised, as in the original.
+    // Enabled when its rectangle is set.
     explicit UiRegion(Interface3D* ownerUi)
         : ui(ownerUi), rectOnly(false), enabled(false), offsetX(0), offsetY(0), tip(nullptr) {}
     ~UiRegion();
@@ -537,16 +537,17 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     virtual void Build() {}
-    virtual void Draw(SceneRenderer* pass) { DrawBase(pass); }
-    virtual void DrawChild(SceneRenderer*) { UpdateRegionTips(); }
-    virtual void Redraw();
-    virtual void RedrawTips();
+    // Into the frame, in the scene: the window's sprites and models; a container's children after them.
+    virtual void DrawSprites(SceneRenderer* pass) { DrawBase(pass); }
+    // After the scene: the window's surfaces blit themselves; a container's children after them.
+    virtual void DrawSurfaces();
+    // After the surfaces: the tooltips follow the mouse and redraw.
+    virtual void DrawTips();
     virtual void Update() {}
 
     // The first region containing the screen point, or -1.
     int RegionAt(Point point) const;
     bool ContainsPoint(Point point) const;
-    void UpdateRegionTips();
 
     void SetEnabled(bool enabled);
 
@@ -632,8 +633,8 @@ struct UiTooltip : UiWindow {
     // then on (Appearing); Appearing becomes Shown; Disappearing waits while the timer is positive, then drops the
     // surface (Idle).
     void OnMouseMove(Point point);
-    void Draw(SceneRenderer* pass) override;
-    void Redraw() override;
+    void DrawSprites(SceneRenderer* pass) override;
+    void DrawSurfaces() override;
     bool Shown() const { return state != State::Idle && state != State::Hovered; }
 
     std::vector<std::string> lines; // the text's lines (none for an empty text)
@@ -695,7 +696,7 @@ public:
     void MouseMove(Point point) override;
     // Every frame: the highlight follows the unit's weapon.
     void Update() override;
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Rebirth-patched (WideScreen: the bar at the screen's left edge, from 80 - shift with
     // more regions up to x 240).
     HudWeaponBar(Interface3D* ui, BattleScreen* owner);
@@ -723,7 +724,7 @@ public:
     // A unit's quick item (bottom row) is picked or, with a double click, used at once; a player's item
     // (top row) starts mode 6, or cancels when it is the highlighted one.
     void LeftUp(Point point) override;
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Every frame: the tooltips of the slots that show an item.
     void Update() override;
     // The item's name and, for a wand (category 5) or a scroll (8) with a spell, its numbers after labels.
@@ -739,11 +740,8 @@ public:
     void Highlight(int slot, bool on);
     // Every slot off; selected = -1.
     void ClearHighlights();
-    // Item of the region at `index` (-1: empty). Not checked: index -1 reads the dword before the array.
-    int RegionItem(int index) const {
-        const int* items = regionItem;    // declared below
-        return items[index];
-    }
+    // Item of the region at `index` (-1: empty, or no region).
+    int RegionItem(int index) const { return index < 0 ? -1 : regionItem[index]; }
 
     // Rebirth-patched (WideScreen: the panel at the screen's right edge).
     HudQuickItems(Interface3D* ui, BattleScreen* owner);
@@ -775,7 +773,7 @@ public:
     void LeftDown(Point point) override;
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Spell `index` (its button or key) becomes the pending action: 1 on a unit for a spell with flag
     // 0x10000000, else 2 at a point; the highlighted one again drops it.
     void Click(int index);
@@ -806,7 +804,7 @@ public:
     void LeftDown(Point point) override;
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Action button `index` (a click or its key) becomes the pending action: 8 (an order on an object) for
     // action 0 (science), else 7 (follow); the highlighted one again drops it.
     void Select(int index);
@@ -967,7 +965,6 @@ public:
     // sprite sheet, localRotation the HUD face models' turn.
     bool visible = false;
     float tint[3] = {};              // colour factors (the HUD: 1 selected, 0.5 not)
-    float tintSpare[3] = {};         // nothing reads it
     // Applied after the placement; the diagonal is SetScale's scale.
     Matrix4 scaleMatrix;
     float& ScaleX() { return scaleMatrix.m[0]; }
@@ -1077,7 +1074,7 @@ public:
     // Rebirth-patched (WideScreen). The hover unit, else the selected one, while the panel
     // is not slid away: its model (not on info page 2) over a depth buffer cleared to 0 around the panel and
     // its bars (the texts are PaintTexts').
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
 
     BattleScreen* owner = nullptr;
     Unit* shownUnit = nullptr;      // the first selected unit (RefreshSelection), or null
@@ -1097,7 +1094,7 @@ public:
 // Game clock (720..800 x 520..600).
 class HudClock : public UiWindow {
 public:
-    HudClock(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
+    explicit HudClock(Interface3D* ui) : UiWindow(ui) {}
     void LeftDown(Point point) override;
     // Rebirth's MPSpeedControl behind its flag. Region 0 toggles the pause; 1 and 2 set the normal / fast
     // speed (not on a network client: update period 55 / 27 ms); 3 opens the objectives.
@@ -1118,7 +1115,6 @@ public:
     // pause, normal and fast sectors, 3 the objectives quarter disc.
     void Setup(bool fast);
 
-    BattleScreen* owner = nullptr;  // the clock does not read it
     float blink = 0.0f;              // 0..1, the pause blink phase
     float dial = 0.0f;               // speed dial angle (wraps at pi / 6)
     bool fast = false;               // fast game speed (copied to Interface3D::fastGame)
@@ -1191,12 +1187,10 @@ public:
     ~UiContainer() override;
 
     // Only while the interface draws: the window's own draw, then every enabled child's.
-    void Draw(SceneRenderer* pass) override;
-    // Alpha reference 1 around the region tips and every enabled child's draw, while the interface draws.
-    void DrawChild(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Only while the interface draws: the window's own, then every enabled child's.
-    void Redraw() override;
-    void RedrawTips() override;
+    void DrawSurfaces() override;
+    void DrawTips() override;
     void Update() override;
     // The screen as the briefing, null for any other.
     virtual BriefingScreen* AsBriefing() { return nullptr; }
@@ -1295,7 +1289,7 @@ public:
     // The HUD panels (the children, in their order) for the window's shape, the map at `mapZoom`.
     void BuildPanels(float mapZoom);
     // Rebirth's AddNewConsoleCommands applies "nogui" first.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Every frame: a dead selected unit empties the panels, a multiplayer client rebuilds the party, the
     // "leave_zone" box for a pending exit, the selection box's marks, the quest sound.
     void Update() override;
@@ -1384,7 +1378,6 @@ public:
         std::vector<int> without;
     };
 
-    int spare = 0;                   // nothing reads it
     std::vector<Unit*> party;       // shown as portraits
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item
     // or action button, and the player's item id (mode 6) or the action (7, 8).
@@ -1527,7 +1520,7 @@ public:
     void SetText(std::string_view text);
     void SetRect(const Rect* rect) override;
     // Places the words again when the position moved.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // The lines stay until the next layout.
     void Clear();
     // Words apart by a third of the line's height (the font in effect at the line's start); a newline format
@@ -1679,7 +1672,7 @@ class SaveLoadWindow : public UiContainer {
 public:
     SaveLoadWindow(Interface3D* ui, bool newIsSave, bool newSliding)
         : UiContainer(ui), isSave(newIsSave), sliding(newSliding) {}
-    void Draw(SceneRenderer* pass) override;                      // slides in
+    void DrawSprites(SceneRenderer* pass) override;                      // slides in
     void Update() override;
     // The new save's picture released.
     void CloseScreen() override;
@@ -1745,8 +1738,39 @@ public:
     int cursor = 0;                  // caret position in name (bytes, at a character's start: U4)
 };
 
+// The options window's settings, in the order of OptionsWindow::settings and kOptionDefinitions.
+enum OptionId : int {
+    kOptionSfxVolume,
+    kOptionStreamVolume,
+    kOptionVoiceVolume,
+    kOptionKeyboardPower,
+    kOptionMousePower,
+    kOptionScrollBorder,
+    kOptionRubberSelect,
+    kOptionShadows,
+    kOptionSelectType,
+    kOptionShowPath,
+    kOptionBrightness,
+    kOptionGamma,
+    kOptionShowFlyingHp,
+    kOptionShowTutorial,
+    kOptionAutosave,
+    kOptionTooltipTime,
+    kOptionSwitchFilters,
+    kOptionCameraReverseX,
+    kOptionCameraReverseY,
+    kOptionReverseStereo,
+    kOptionDifficulty,
+    kOptionResolution,
+    kOptionDisplayMode,
+    kOptionVsync,
+    kOptionMsaa,
+    kOptionAnisotropy,
+    kOptionPerfOverlay,
+    kOptionCount,
+};
+
 struct OptionDefinition {
-    int id = 0;
     const char* name = nullptr;      // "option_" + name is its text key (else the name is shown)
     int kind = 0;                    // 0 a slider, 1 an on / off spin control, 2 the resolutions' drop-down list, 3 a
                                      // spin control over a choice list (ui_options.cpp's)
@@ -1754,7 +1778,7 @@ struct OptionDefinition {
     int group = 0;                   // the option group (0-10) it is shown in
     int row = 0;                     // its row there
 };
-constexpr int kOptionDefinitionCount = 27;
+constexpr int kOptionDefinitionCount = kOptionCount;
 
 struct ActionDefinition {
     int id = 0;                      // the action (the key code in the key table)
@@ -1830,7 +1854,6 @@ inline constexpr ActionDefinition kActionDefinitions[60] = /*00787070*/ {
 
 // The rows of the shown group point at them.
 struct OptionSetting {
-    const OptionDefinition* definition = nullptr;
     int value = 0;
     UiScrollbar* bar = nullptr;     // a UiSlider, or null
     UiSpin* spin = nullptr;         // or null
@@ -1915,8 +1938,7 @@ public:
 // A key binding row of the options window.
 struct OptionBinding {
     const ActionDefinition* action = nullptr;
-    // The keys bound to the action (BuildBindings keeps at most one).
-    std::vector<const UiKeyName*> keys;
+    const UiKeyName* key = nullptr;     // the key bound to the action, or null
     std::string name;               // the action's shown name
     std::string keysText;           // the keys' names
 };
@@ -1932,8 +1954,8 @@ struct OptionRow {
 class OptionsWindow : public UiContainer {
 public:
     OptionsWindow(Interface3D* ui, bool newSliding) : UiContainer(ui), sliding(newSliding) {}
-    void Draw(SceneRenderer* pass) override;                      // slides in
-    void Redraw() override;                            // not while sliding
+    void DrawSprites(SceneRenderer* pass) override;                      // slides in
+    void DrawSurfaces() override;                            // not while sliding
     void CloseScreen() override {}
     const char* HelpTopic() override;
     void LeftDown(Point point) override;
@@ -2090,7 +2112,7 @@ class HelpWindow : public UiContainer {
 public:
     HelpWindow(Interface3D* ui, bool newMessage, const std::string& newText, int newPage)
         : UiContainer(ui), message(newMessage), text(newText), page(newPage) {}
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // The pulsing frames, pictures, surfaces, regions and sprites dropped.
     void CloseScreen() override;
     // Without the text or without pages the interface's pending value is set to 0 and nothing else happens.
@@ -2168,7 +2190,7 @@ public:
     void Char(int key, int scan) override;
     // Lines older than 20 s are erased.
     void Update() override;
-    void Redraw() override;
+    void DrawSurfaces() override;
 
     std::vector<ChatLine> lines;
     bool chatOpen = false;           // a multiplayer client's chat line is open (it takes the keys)

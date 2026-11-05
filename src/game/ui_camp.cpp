@@ -525,7 +525,7 @@ void CampPages::UpdateAction() {
     SetShade(sceneObjects[1], actionShown ? 1.0f : 0.5f);
 }
 
-void CampPages::Draw(SceneRenderer* pass) {
+void CampPages::DrawSprites(SceneRenderer* pass) {
     const Point cursor = g_cursor.position;    // the mouse in screen pixels
     hoveredItem = nullptr;
     int topic = 0;
@@ -572,7 +572,7 @@ void CampPages::Draw(SceneRenderer* pass) {
         if (descPanel) descPanel->DescribeStats(info);
     }
     UpdateAction();
-    UiContainer::Draw(pass);
+    UiContainer::DrawSprites(pass);
     if (page == 0) DrawHeroPreview(pass, heroes[hero], heroTurn, 400.0f, true);
 }
 

@@ -40,11 +40,6 @@ constexpr int kMaxStretch = 3;               // a justified line's gaps at most 
 // stack memory (font 3: its return address) for the others; here they are 0.
 constexpr int kFontSlots = 10;
 
-void TokenizeText(UiScrollText* self, std::string_view text) {
-    self->Tokenize(std::string(text));
-}
-void LayOut(UiScrollText* self) { self->Layout(); }
-
 } // namespace
 
 int UiScrollText::NextToken(const std::string& text, int pos, std::string* out) {
@@ -236,8 +231,8 @@ UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect rect, fl
     PlaceText(rect);
     DeleteTokens();
     tokens.clear();
-    TokenizeText(this, text);
-    LayOut(this);
+    Tokenize(std::string(text));
+    Layout();
     SetPosition(0);
     UiScrollbar::SetPosition(0);
     align = kJustified;
@@ -252,7 +247,7 @@ void UiScrollText::PlaceText(const Rect& area) {
     if (!surfaces.empty() && surfaces[0]) surfaces[0]->MoveTo(area.TopLeft());
     textRect = {0, 0, area.Width(), area.Height()};
     textRect.right -= kBarWidth;
-    LayOut(this);
+    Layout();
 }
 
 UiScrollText::~UiScrollText() {
@@ -267,15 +262,15 @@ void UiScrollText::AddText(std::string_view text) {
     moved = true;
     const int scrollPosition = TakePosition();
     int before = maxPosition;
-    TokenizeText(this, text);
-    LayOut(this);
+    Tokenize(std::string(text));
+    Layout();
     SetPosition(maxPosition - before + scrollPosition);
 }
 
 void UiScrollText::SetText(std::string_view text) {
     Clear();
-    TokenizeText(this, text);
-    LayOut(this);
+    Tokenize(std::string(text));
+    Layout();
     SetPosition(0);
 }
 
@@ -284,7 +279,7 @@ void UiScrollText::SetRect(const Rect* newRect) {
     PlaceText(*newRect);
 }
 
-void UiScrollText::Draw(SceneRenderer* pass) {
+void UiScrollText::DrawSprites(SceneRenderer* pass) {
     if (TakeMoved()) PlaceWords(Position());
     DrawBase(pass);
 }
@@ -335,7 +330,6 @@ void UiScrollText::Layout() {
     SetMaximum(textRect.top - textRect.bottom + total);
 }
 
-// --- The scroll bar's maximum ------------------------------------------------------------------
 
 // --- The tokens' destructors ---------------------------------------------------------------------
 

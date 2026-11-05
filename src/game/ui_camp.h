@@ -71,7 +71,7 @@ struct GlobalMapStep {
 class GlobalMap : public UiContainer {
 public:
     using UiContainer::UiContainer;
-    void Draw(SceneRenderer* pass) override;   // the container's, blended
+    void DrawSprites(SceneRenderer* pass) override;   // the container's, blended
     // The clouds freed, the wind stopped.
     void CloseScreen() override;
     // One zero dword.
@@ -299,7 +299,7 @@ public:
     // unworn item.
     int Price(Item* item, PriceKind kind) override;
     // Also finds what is under the mouse for the description panel.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // A weapon, armour, quick item or spell container off the current hero into the player's items (whose
     // result it returns; null for other kinds).
     Item* TakeOff(Item* item);
@@ -434,7 +434,7 @@ public:
 class HeroEquipPanel : public UiItemPanel {
 public:
     using UiItemPanel::UiItemPanel;
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // With `body` (the camp) the panel is 500 high with the seven body slots.
     void Build(bool body);
     // The place in the hero's weapon list, or -1.
@@ -456,7 +456,7 @@ public:
 class TradeGrid : public UiItemPanel {
 public:
     using UiItemPanel::UiItemPanel;
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // `spells` chooses the price kinds (the spell constructor's buy / sell, or the item one's); the
     // exchange window's grid (`exchange`) shows no prices.
     void Build(std::vector<Item*>* bought, std::vector<Item*>* sold, bool spells, bool exchange);
@@ -478,7 +478,7 @@ public:
     using UiItemPanel::UiItemPanel;
     void Build(std::vector<Item*>* items);
     // Each item's model in its cell (depth 2^(3 - row) * 6), its count and its repair price.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Topic 0x19 on the 16 cells.
     Item* ItemAt(Point point, int* topic) override;
 
@@ -496,7 +496,7 @@ public:
     void ShowEntry(Item* item);
     // The hero's spell list entry (topic 1).
     Item* ItemAt(Point point, int* topic) override;
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
 
     int y = 0;
     int selected = -1;
@@ -509,7 +509,7 @@ public:
     using UiItemPanel::UiItemPanel;
     void BuildItemMaker(Party* slots);
     // Without a blueprint or a container, a pulsing highlight shows where the next part goes.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // Region 0 the first item that can be taken apart (0xD), 1 the first part (0xE), 2 the first spell
     // container (0x10), from 3 material region - 3 (0xF).
     Item* ItemAt(Point point, int* topic) override;
@@ -527,7 +527,7 @@ public:
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
     // and the last spell's mana>)" with a spell. Without a container, a pulsing highlight shows where the
     // next part goes.
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
 
     std::vector<std::string> texts; // the cost texts ("infoitem_35", "infoitem_36")
     std::vector<UiLabel> labels;     // the surface's paint: the cost lines of the last Draw

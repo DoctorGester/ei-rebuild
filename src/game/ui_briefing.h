@@ -91,7 +91,7 @@ class BriefingScreen : public UiContainer {
 public:
     explicit BriefingScreen(Interface3D* ui);
     BriefingScreen* AsBriefing() override { return this; }
-    void Draw(SceneRenderer* pass) override;
+    void DrawSprites(SceneRenderer* pass) override;
     // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
     void CloseScreen() override;
     bool ReadyToStopPolling() override { return true; }

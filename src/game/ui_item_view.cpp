@@ -282,7 +282,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
     }
 }
 
-void ItemInfoPanel::Draw(SceneRenderer* pass) {
+void ItemInfoPanel::DrawSprites(SceneRenderer* pass) {
     if (Item* item = FirstItem()) {
         const ItemCell cell{item, x + 100.0f,
                             y + 200.0f, 3.0f, 120.0f, 9};

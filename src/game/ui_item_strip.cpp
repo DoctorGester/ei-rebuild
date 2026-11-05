@@ -124,7 +124,7 @@ void UiItemStrip::Build(bool atTop) {
 
 // `first` is the current tab's position truncated, `frac` what is left of it
 // (kept as a float); the cells sit 100 pixels apart from x 100 - frac * 100.
-void ForwardingStrip::Draw(SceneRenderer* pass) {
+void ForwardingStrip::DrawSprites(SceneRenderer* pass) {
     const float scrollPosition = position[tab];
     const int first = static_cast<int>(scrollPosition);
     const float frac = scrollPosition - first;
@@ -304,7 +304,7 @@ void FigureStrip::SetupFigures(std::vector<std::string>* names, bool newTop, boo
 
 // --- The figure strips' slots ----------------------------------------------------------------------
 
-void FigureStrip::Draw(SceneRenderer* pass) {
+void FigureStrip::DrawSprites(SceneRenderer* pass) {
     const float scrollPosition = position[tab];
     const int first = static_cast<int>(scrollPosition);   // _ftol
     const float frac = scrollPosition - first;

@@ -108,7 +108,6 @@ public:
     TextureDevice* device = nullptr;    // referenced
     bool imageShown = false;         // an image is shown
     CursorImage* image = nullptr;
-    std::uint32_t imageSpare = 0;    // 0 from Init and Shutdown (with image); nothing reads it
     int shape = 0;                   // the shape SetShape selected
     Rect drawn = {};                 // the rectangle drawn last
     Rect rect = {};                  // the cursor's screen rectangle

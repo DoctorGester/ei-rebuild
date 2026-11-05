@@ -244,10 +244,9 @@ void EscMenu::CreateScreen() {
 // --- Esc menu clicks -------------------------------------------------------------------
 
 void EscMenu::LeftDown(Point point) {
-    Interface3D* currentUi = ui;
     int region = RegionAt(point);
     if (region >= 0) {
-        currentUi->PlayInterfaceSound("buttons\\menu\\ok.wav");
+        ui->PlayInterfaceSound("buttons\\menu\\ok.wav");
         handled = true;
     }
     UiContainer* opened = nullptr;
@@ -259,44 +258,43 @@ void EscMenu::LeftDown(Point point) {
             open = false;
             break;
         }
-        opened = new SaveLoadWindow(currentUi, region == 0, true);
+        opened = new SaveLoadWindow(ui, region == 0, true);
         break;
     }
     case 2:   // resume
-        currentUi->SetPendingValue(0);
+        ui->SetPendingValue(0);
         open = false;
         break;
     case 3: { // quit: the message box
-        opened = new MessageWindow(currentUi, "quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
+        opened = new MessageWindow(ui, "quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
         break;
     }
     case 4: { // options
-        opened = new OptionsWindow(currentUi, true);
+        opened = new OptionsWindow(ui, true);
         break;
     }
     default:
         open = false;
         break;
     }
-    if (open) currentUi->PushWindow(opened, WindowBackdrop::FirstWindow);
+    if (open) ui->PushWindow(opened, WindowBackdrop::FirstWindow);
     UiContainer::LeftDown(point);
 }
 
 // --- Main menu clicks ------------------------------------------------------------
 
 void MainMenu::LeftDown(Point point) {
-    Interface3D* currentUi = ui;
     const char* okSound = "buttons\\menu\\ok.wav";
     switch (RegionAt(point)) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
-        currentUi->PlayInterfaceSound(okSound);
-        currentUi->PushWindow(new DifficultyBox(currentUi), WindowBackdrop::FirstWindow);
+        ui->PlayInterfaceSound(okSound);
+        ui->PushWindow(new DifficultyBox(ui), WindowBackdrop::FirstWindow);
         break;
     }
     case 1: {
-        currentUi->PlayInterfaceSound(okSound);
-        currentUi->PushWindow(new SaveLoadWindow(currentUi, false, false), WindowBackdrop::FirstWindow);
+        ui->PlayInterfaceSound(okSound);
+        ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case 2: {
@@ -308,17 +306,17 @@ void MainMenu::LeftDown(Point point) {
         break;
     }
     case 3: {
-        currentUi->PlayInterfaceSound(okSound);
-        currentUi->PushWindow(new OptionsWindow(currentUi, false), WindowBackdrop::FirstWindow);
+        ui->PlayInterfaceSound(okSound);
+        ui->PushWindow(new OptionsWindow(ui, false), WindowBackdrop::FirstWindow);
         break;
     }
     case 4: {
         // The titles (opened over a cleared menu, not as a dialog).
         g_clientWorld.sounds->StopAll(false);
         g_clientWorld.terrain->StopAmbience();
-        currentUi->PlayInterfaceSound(okSound);
+        ui->PlayInterfaceSound(okSound);
         ClearSurfaces();
-        currentUi->PushWindow(new CreditsScreen(currentUi, true, "Titles"), WindowBackdrop::None);
+        ui->PushWindow(new CreditsScreen(ui, true, "Titles"), WindowBackdrop::None);
         break;
     }
     case 5: {
@@ -328,8 +326,8 @@ void MainMenu::LeftDown(Point point) {
         std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
         g_interface.ShowStatusText(text);
         g_serverWorld.SetServerPaused(1);
-        currentUi->PlayInterfaceSound(okSound);
-        currentUi->PushWindow(new MpHeroScreen(currentUi), WindowBackdrop::FirstWindow);
+        ui->PlayInterfaceSound(okSound);
+        ui->PushWindow(new MpHeroScreen(ui), WindowBackdrop::FirstWindow);
         break;
     }
     default:
@@ -452,7 +450,6 @@ void DifficultyBox::CreateScreen() {
 // --- Titles ----------------------------------------------------------------------------
 
 void CreditsScreen::CreateScreen() {
-    Interface3D* currentUi = ui;
     const std::string& currentName = name;
     if (!fromGame) {
         g_clientWorld.sounds->StopAll(true);
@@ -503,13 +500,13 @@ void CreditsScreen::CreateScreen() {
     // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
     {
         Rect area = {10, 0x96, 0x316, 0x1C2};
-        textSurface = new UiScrollingSurface(currentUi, &area);
+        textSurface = new UiScrollingSurface(ui, &area);
         AddSurface(textSurface);
         textSurface->Hide();
     }
     {
         Rect area = {10, 0x6E, 0x316, 0x8C};
-        headerSurface = AddSurface(new UiSurface(currentUi, &area, SurfaceBlend::Keyed));
+        headerSurface = AddSurface(new UiSurface(ui, &area, SurfaceBlend::Keyed));
         headerSurface->PaintWith([this](UiSurface& out) { PaintHeader(out); });
         headerSurface->Hide();
     }

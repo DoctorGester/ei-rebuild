@@ -42,7 +42,7 @@ void ViewScreen::CreateScreen() {
     camera->localRotation.PreMultiply(turn);
 }
 
-void ViewScreen::Draw(SceneRenderer*) {
+void ViewScreen::DrawSprites(SceneRenderer*) {
     g_clientWorld.Render();
 }
 

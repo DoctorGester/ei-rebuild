@@ -53,7 +53,6 @@ Material* NewGlowMaterial(float value) {
 
 } // namespace
 
-// --- UiTooltip ------------------------------------------------------------------------------
 
 // --- UiRegion -------------------------------------------------------------------------------
 
@@ -136,24 +135,13 @@ bool UiWindow::ContainsPoint(Point point) const {
     return rect.Contains(point);
 }
 
-void UiWindow::UpdateRegionTips() {
-    Point mouse = ui->mouse;
-    ui->ScalePointFromScreen(&mouse);
-    // Inlines UiRegion::OnMouseMove for every region with a tooltip.
-    for (int i = 0; i < std::ssize(regions); ++i) {
-        UiRegion* region = regions[i];
-        if (region->tip) region->OnMouseMove(mouse);
-    }
-}
-
-// The same per region, each tooltip then redrawn (the tooltip is re-read).
-void UiWindow::RedrawTips() {
+void UiWindow::DrawTips() {
     Point mouse = ui->mouse;
     ui->ScalePointFromScreen(&mouse);
     for (int i = 0; i < std::ssize(regions); ++i) {
         UiRegion* region = regions[i];
         if (region->tip) region->OnMouseMove(mouse);
-        if (UiTooltip* tip = regions[i]->tip) tip->Redraw();
+        if (UiTooltip* tip = regions[i]->tip) tip->DrawSurfaces();
     }
 }
 
@@ -163,7 +151,7 @@ void UiWindow::DrawBase(SceneRenderer* pass) {
     for (int i = 0; i < std::ssize(models); ++i) models[i]->Draw(pass);
 }
 
-void UiWindow::Redraw() {
+void UiWindow::DrawSurfaces() {
     for (int i = 0; i < std::ssize(surfaces); ++i) {
         UiSurface* surface = surfaces[i];
         if (surface->Shown()) surface->Blit();
@@ -324,7 +312,7 @@ UiMesh* UiWindow::AddSceneObject(UiMesh* object) {
     bool listed = false;
     for (int i = 0; i < std::ssize(sceneObjects) && !listed; ++i) listed = sceneObjects[i] == object;
     if (!listed) {
-        lib::SetAtGrow(sceneObjects, lib::Count(sceneObjects), object);
+        sceneObjects.push_back(object);
         object->AddRef();
         object->SetObject(this);
     }
@@ -346,7 +334,6 @@ UiWindow::UiWindow(Interface3D* ui) : UiInputSide(ui) {
 const char* UiWindow::ClassName() { return kClassName; }
 ClassId UiWindow::GetClassId() { return ClassId::UiWindow; }
 
-// --- UiContainer::AddChild ------------------------------------------------------------------------
 
 // --- The destructor ---------------------------------------------------------------------------------
 

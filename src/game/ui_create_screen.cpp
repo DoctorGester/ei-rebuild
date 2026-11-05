@@ -173,16 +173,6 @@ ExchangeScreen::ExchangeScreen(Interface3D* ui) : ItemScreen(ui) {}
 CreditsScreen::CreditsScreen(Interface3D* ui, bool newFromGame, const char* newName)
     : UiContainer(ui), name(newName), fromGame(newFromGame) {}
 
-// --- Ui screen constructors --------------------------------------------------------------------------
-
-// Constructors of interface windows: the message box, the objectives window
-// and the battle screen's portraits panel. Their Create / Build
-// does the rest. See ui.h and docs/notes/ui.md.
-
-namespace {
-
-} // namespace
-
 // --- The message box ----------------------------------------------------------------------------------
 
 MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion newQuestion,
@@ -200,8 +190,6 @@ MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const c
         text = line;
     }
 }
-
-// --- The objectives window ----------------------------------------------------------------------------
 
 // --- The portraits panel ------------------------------------------------------------------------------
 

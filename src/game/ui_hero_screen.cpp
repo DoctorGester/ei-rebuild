@@ -90,7 +90,7 @@ void MpHeroScreen::DrawExperience() {
     out.push_back({line, Rect{0, 110, 200, 130}, {kFont, kWhite, render::text::kCenter}});
 }
 
-void MpHeroScreen::Draw(SceneRenderer* pass) {
+void MpHeroScreen::DrawSprites(SceneRenderer* pass) {
     if (mode == kModeStats) DrawExperience();
     const Point cursor = g_cursor.position;
     hoveredItem = nullptr;
@@ -118,7 +118,7 @@ void MpHeroScreen::Draw(SceneRenderer* pass) {
         if (descPanel) descPanel->DescribeStats(info);
     }
 
-    UiContainer::Draw(pass);
+    UiContainer::DrawSprites(pass);
     if (mode == kModeList && heroIndex >= 0)
         DrawHeroPreview(pass, previewModel, turn, kListDepth, false);
     else if (mode == kModeNewHero)

@@ -164,11 +164,11 @@ void UiTooltip::OnMouseMove(Point point) {
     }
 }
 
-void UiTooltip::Draw(SceneRenderer* pass) {
+void UiTooltip::DrawSprites(SceneRenderer* pass) {
     if (!Shown()) return;
     DrawBase(pass);
 }
 
-void UiTooltip::Redraw() {
-    if (Shown()) UiWindow::Redraw();
+void UiTooltip::DrawSurfaces() {
+    if (Shown()) UiWindow::DrawSurfaces();
 }

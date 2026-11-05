@@ -31,7 +31,7 @@ void CreditsScreen::MessageResult(std::uint32_t) { player.Close(); }
 
 // --- the frame -----------------------------------------------------------------------------------
 
-void CreditsScreen::Draw(SceneRenderer* pass) {
+void CreditsScreen::DrawSprites(SceneRenderer* pass) {
     if (GameTime() > nextLineAt && textSurface->speed == 0.0f) {
         nextLineAt = 0.0f;
         textSurface->Hide();
@@ -60,7 +60,7 @@ void CreditsScreen::Draw(SceneRenderer* pass) {
         Close();
         return;
     }
-    UiContainer::Draw(pass);
+    UiContainer::DrawSprites(pass);
 }
 
 // Centred over the whole surface with its shadow, without smoothing: the original switched the system's font

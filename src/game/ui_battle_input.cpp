@@ -622,7 +622,7 @@ void BattleScreen::ToggleMember(int index) {
     std::vector<std::uint32_t> chosen{};
     for (int i = 0; i < std::ssize(*currentParty); ++i) {
         Unit* member = unitAt(i);
-        lib::SetAtGrow(chosen, lib::Count(chosen), member ? (member->flags & MapObjectFlag::Selected) : 0);
+        chosen.push_back(static_cast<std::uint32_t>(member ? (member->flags & MapObjectFlag::Selected) : 0));
     }
     if (ui->shiftDown) {
         chosen[index] = chosen[index] == 0 ? 1u : 0u;

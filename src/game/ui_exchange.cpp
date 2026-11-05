@@ -191,7 +191,7 @@ void ExchangeScreen::CreateScreen() {
 
 // --- Draw ----------------------------------------------------------------------------------------
 
-void ExchangeScreen::Draw(SceneRenderer* pass) {
+void ExchangeScreen::DrawSprites(SceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem = nullptr;
     int topic = 0;
@@ -249,7 +249,7 @@ void ExchangeScreen::Draw(SceneRenderer* pass) {
     bool partnerAccepted = LiveAccepted(client->FindParty());
     SetTint(sceneObjects[2], partnerAccepted ? 0.5f : 1.0f);
 
-    UiContainer::Draw(pass);
+    UiContainer::DrawSprites(pass);
 }
 
 // --- an item clicked in the strip or the grid ------------------------------------------------------

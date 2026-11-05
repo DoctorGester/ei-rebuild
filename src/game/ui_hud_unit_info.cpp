@@ -235,7 +235,7 @@ void HudUnitPanel::PaintTexts(UiSurface& surface) {
     }
 }
 
-void HudUnitPanel::Draw(SceneRenderer* pass) {
+void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
     screen_layout::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};

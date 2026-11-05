@@ -54,12 +54,6 @@ void Interface3D::SetPendingValue(std::uint32_t value) {
     pendingValue = value;
 }
 
-// --- UiSurface ------------------------------------------------------------------------------
-
-// --- UiModel --------------------------------------------------------------------------------
-
-// --- Record lookups --------------------------------------------------------------------------
-
 // --- Create ------------------------------------------------------------------------------------------
 
 // The interface manager's start (Interface3D::Create, called once by the application's start with the
@@ -183,18 +177,9 @@ bool Interface3D::EdgePanLive() const {
 
 // --- Shutdown ----------------------------------------------------------------------------------------
 
-// The interface manager's end (Interface3D): the input reset after the windows close, the shutdown from the
+// The interface manager's end (Interface3D): the shutdown from the
 // main loop's exit (it writes config\tutorial.ini), the destructor body of the global interface run at exit
 // and the console window's destructor body. See ui.h and docs/notes/ui.md, section 3.
-
-namespace {
-
-// A surface the interface owns: its destructor body, then the memory.
-void DeleteSurface(UiSurface* surface) {
-    if (!surface) return;
-    delete surface;
-}
-} // namespace
 
 void Interface3D::Shutdown() {
     CloseAll();
@@ -203,15 +188,15 @@ void Interface3D::Shutdown() {
         for (const auto& [topic, page] : helpTopics) file.WriteLine(str::Format("%s %d", topic, page));
     }
 
-    DeleteSurface(fpsSurface);
+    delete fpsSurface;
     fpsSurface = nullptr;
     // The queued window is deleted but its pointer kept (like the original).
     delete queuedWindow;
-    DeleteSurface(backdrop);
+    delete backdrop;
     backdrop = nullptr;
-    DeleteSurface(secondBackdrop);
+    delete secondBackdrop;
     secondBackdrop = nullptr;
-    DeleteSurface(screenCopy);
+    delete screenCopy;
     screenCopy = nullptr;
     if (root) {
         delete root;
@@ -227,7 +212,7 @@ void Interface3D::Shutdown() {
 }
 
 console::ConsoleWindow::~ConsoleWindow() {
-    DeleteSurface(surface);
+    delete surface;
     surface = nullptr;
     font = UiFont{};
 }

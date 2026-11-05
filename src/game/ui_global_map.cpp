@@ -393,7 +393,7 @@ void GlobalMap::Update() {
 
 // --- Draw -------------------------------------------------------------------------------
 
-void GlobalMap::Draw(SceneRenderer* pass) {
+void GlobalMap::DrawSprites(SceneRenderer* pass) {
     render::RenderState& state = render::g_renderState;
     state.blend = true;
     state.alphaTest = false;
@@ -402,7 +402,7 @@ void GlobalMap::Draw(SceneRenderer* pass) {
     state.alphaReference = 1;
     const MatrixStack& screen = pass->pipeline->stacks[kScreenStack];
     markerCamera = screen.count != 0 ? screen.matrices[screen.count - 1] : kIdentity;
-    UiContainer::Draw(pass);
+    UiContainer::DrawSprites(pass);
 }
 
 int GlobalMap::ZoneAt(Point point) const {
