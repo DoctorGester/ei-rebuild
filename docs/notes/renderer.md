@@ -1876,8 +1876,9 @@ stay on the GPU (section 13, item 3).
 
 The water's small ripples (R17a): a 256 x 256 RGBA8 map with its levels down to 1 x 1, made at the start (section 1) from
 a fixed generator of its own (the same map on every run and system, nothing drawn from the game's): r, g the slopes of
-40 waves along x and y, b the foam's pattern (the height of 24 finer waves), each wave a whole number of cycles across
-the map so it repeats without a seam. The terrain batches bind it with a repeating, linearly mipmapped sampler
+100 waves along x and y (3 to 24 cycles across, in random directions), b the foam's pattern (the height of 24 finer
+waves), each wave a whole number of cycles across the map so it repeats without a seam. With 40 (until R63) a few long
+waves crossed into a regular knit that no shifting of the map hid. The terrain batches bind it with a repeating, linearly mipmapped sampler
 (anisotropy 8); RippleOffsets gives its two layers' offsets at the client's time (SceneLights::clientTicks: the client
 world's tick and the fraction of the next one it has had), and the swamps' a fifth as fast, so the ripples hold still
 under `freeze` and move with the game's clock.
@@ -1931,9 +1932,19 @@ render_terrain.cpp's WaterKind): the maps' water materials (kind 3 in the .mp fi
 by their colour, so blue is water, green (zone1's, zone2's, zone7's swamps: 0.19, 0.54, 0.36, opacity 0.7) a swamp and
 red (0.8, 0, 0, lit by itself) lava; the kind is interpolated, so where a swamp meets water the looks blend. `Water`
 then, per pixel:
-- **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned against it (at
-  0.45 of A's weight), drifting apart; their slopes (0.15 at the steepest texel, calmer within half a unit of the shore)
-  turn the vertex normal. The rippled normal lights the layer up to 30% more or 25% less as it turns to the sun or away
+- **Ripples**: two layers of the ripple map, one repeating every 9 landscape units and one every 5 turned 0.65 radians
+  against it (at 0.45 of A's weight), drifting apart; their slopes (0.165 at the steepest texel, calmer within half a
+  unit of the shore) turn the vertex normal. **No repeat shows** (R63): each layer is laid in patches (`ripple_patch`),
+  the map shifted by a patch's own offset (the R2 sequence), the patch picked by the cloud map at 1/47 a unit (turned
+  0.4 radians): 8 patches across its range for A, 10.6 for B with their borders between A's; across a border a narrow
+  blend whose slopes are scaled back to their contrast; the same noise scales the slopes 0.75 .. 1.2 (calmer and
+  rougher stretches). Before, the map's repeat showed as a grid of the same glints every 9 units (B was turned by
+  (0.8, 0.6), a 3-4-5 turn, so the two layers together repeated exactly every 45 units), plainest at sunset from a low
+  camera. Measured from above (a scratch model of the map and the shader): the slopes' correlation with themselves 9
+  units along was 0.79-0.83 and 1.0 at (27, 36); now 0.09-0.12. Cost: four ripple reads and one noise read per water
+  pixel, as before (the swamps' slower layers are read only where a swamp is, the scum's noise likewise); the frame's GPU
+  time on zone1's sea at 4K, msaa 8 (whole frame, lowest of 4 interleaved runs): 2.38 / 2.24 / 2.45 / 2.39 ms before,
+  2.35 / 2.28 / 2.52 / 2.44 after (noon from 45 and 18 degrees, sunset from 45 and 16). The rippled normal lights the layer up to 30% more or 25% less as it turns to the sun or away
   (kRippleShade 2, by the sun's share of the light not under a cloud).
 - **Depth** (`depth`, PageVertex's: the water's depth over the ground at the vertex, from the ground record,
   interpolated): the share 1 - e^(-0.5 depth) of the depth's look: from half the material's opacity at the shore to 1.15

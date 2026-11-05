@@ -357,7 +357,15 @@ float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, fl
 // `footprint` the landscape units a pixel spans.
 static const float kRippleScaleA = 1.0 / 9.0;    // the ripple map's repeats per landscape unit, layer A
 static const float kRippleScaleB = 1.0 / 5.0;    // layer B, turned against A
-static const float kRippleSlope = 0.15;          // the slope at the map's steepest texel
+static const float2 kRippleTurnB = float2(0.7961, 0.6052);   // B's turn: 0.65 radians, so no lattice is shared
+static const float kPatchScale = 1.0 / 47.0;     // the patches' noise (the cloud map) per landscape unit
+static const float2 kPatchTurn = float2(0.9211, 0.3894);     // ... turned 0.4 radians against the landscape
+static const float kPatchesA = 8.0;              // layer A's patches across the noise's range
+static const float kPatchesB = 10.6;             // layer B's: their borders lie between A's
+static const float2 kPatchShift = float2(0.7548777, 0.5698403);   // a patch's shift of the map per patch (R2)
+static const float kCalmest = 0.75;              // the slopes' scale where the noise is lowest
+static const float kRoughest = 1.2;              // ... and highest
+static const float kRippleSlope = 0.165;         // the slope at the map's steepest texel
 static const float kSwampSlope = 0.2;            // a swamp's ripples, of the water's
 static const float kRippleShade = 2.0;           // how much the ripples' turn to the sun lightens or darkens
 static const float kClearDepth = 0.5;            // the depth's look reached at depth d: 1 - e^(-0.5 d)
@@ -373,12 +381,26 @@ static const float kSwampClear = 1.2;            // ... and is opaque from this 
 static const float kLeastReflection = 0.12;      // the least share of the water's colour its reflection is
 static const float kShadedReflection = 0.3;      // the share of the reflection a full shadow takes away
 
-// The two ripple layers at `xy` moved by `offsets`: the slopes (xy) and the foam's pattern (z).
-float3 ripple_layers(float2 xy, float4 offsets) {
-    float4 a = ripples.Sample(rippleSmp, xy * kRippleScaleA + offsets.xy);
-    float4 b = ripples.Sample(rippleSmp, float2(0.8 * xy.x - 0.6 * xy.y, 0.6 * xy.x + 0.8 * xy.y) * kRippleScaleB +
-                                             offsets.zw);
-    return float3((a.xy * 2.0 - 1.0) + (b.xy * 2.0 - 1.0) * 0.45, a.z * 0.6 + b.z * 0.4);
+// The ripple map at `uv` (its gradients `dx`, `dy`) in patch `k`: each whole k shifts the map elsewhere, so the
+// map's repeat never lines up with itself across the water; between two patches a narrow blend of both, its slopes
+// scaled back to their contrast (two unrelated slopes blended half and half are 0.71 as steep). The slopes -1 .. 1,
+// the foam's pattern 0 .. 1.
+float3 ripple_patch(float2 uv, float2 dx, float2 dy, float k) {
+    float i = floor(k);
+    float w = smoothstep(0.35, 0.65, k - i);
+    float4 a = ripples.SampleGrad(rippleSmp, uv + frac(i * kPatchShift), dx, dy);
+    float4 b = ripples.SampleGrad(rippleSmp, uv + frac((i + 1.0) * kPatchShift), dx, dy);
+    float4 m = lerp(a, b, w);
+    return float3((m.xy * 2.0 - 1.0) * rsqrt(1.0 - 2.0 * w + 2.0 * w * w), m.z);
+}
+
+// The two ripple layers at `xy` (its gradients `dx`, `dy`) moved by `offsets`, in the patches of `noise` (0 .. 1):
+// the slopes (xy) and the foam's pattern (z).
+float3 ripple_layers(float2 xy, float2 dx, float2 dy, float4 offsets, float noise) {
+    float3 a = ripple_patch(xy * kRippleScaleA + offsets.xy, dx * kRippleScaleA, dy * kRippleScaleA, noise * kPatchesA);
+    float3 b = ripple_patch(turned(kRippleTurnB, xy) * kRippleScaleB + offsets.zw, turned(kRippleTurnB, dx) * kRippleScaleB,
+                            turned(kRippleTurnB, dy) * kRippleScaleB, noise * kPatchesB + 0.5);
+    return float3(a.xy + b.xy * 0.45, a.z * 0.6 + b.z * 0.4);
 }
 
 float3 Water(VsOut i, float3 base, float opacity, float3 n, float hidden, float footprint, float rain, out float alpha) {
@@ -387,8 +409,14 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float hidden, float 
     float lava = saturate(i.kind - 1.0);
     float swamp = saturate(i.kind) - lava;
     float2 xy = i.world.xy;
-    float3 layers = lerp(ripple_layers(xy, fs.ripples), ripple_layers(xy, fs.slowRipples), swamp);
-    float2 slope = layers.xy * kRippleSlope * lerp(1.0, kSwampSlope, swamp);
+    // The noise that picks the ripples' patches (ripple_patch) and scales their slopes: rougher and calmer stretches
+    // of water some tens of units across.
+    float noise = cloud_map.SampleLevel(cloud_smp, turned(kPatchTurn, xy) * kPatchScale, 0.0);
+    float2 dx = ddx(xy), dy = ddy(xy);
+    float3 layers = 0.0;
+    if (swamp < 1.0) layers = ripple_layers(xy, dx, dy, fs.ripples, noise) * (1.0 - swamp);
+    if (swamp > 0.0) layers += ripple_layers(xy, dx, dy, fs.slowRipples, noise) * swamp;
+    float2 slope = layers.xy * kRippleSlope * lerp(1.0, kSwampSlope, swamp) * lerp(kCalmest, kRoughest, noise);
     slope *= 0.4 + 0.6 * saturate(depth * 2.0);   // calmer at the shore
     float4 rings = rain_rings(xy, rain, footprint);
     slope = slope * (1.0 + 0.5 * rain) + rings.xy;
@@ -436,8 +464,11 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float hidden, float 
     float foam = shore * smoothstep(0.4, 0.75, layers.z) * 0.35 * (1.0 - swamp);
     colour = lerp(colour, light * 0.9, foam);
     alpha = lerp(alpha, 1.0, foam);
-    float patches = 0.5 * cloud_map.Sample(cloud_smp, xy * kScumScale) + 0.5 * layers.z;
-    float scum = swamp * smoothstep(0.78, 0.86, patches + 0.1 * (1.0 - smoothstep(0.0, 1.5, depth))) * 0.45;
+    float scum = 0.0;
+    if (swamp > 0.0) {
+        float patches = 0.5 * cloud_map.SampleLevel(cloud_smp, xy * kScumScale, 0.0) + 0.5 * layers.z;
+        scum = swamp * smoothstep(0.78, 0.86, patches + 0.1 * (1.0 - smoothstep(0.0, 1.5, depth))) * 0.45;
+    }
     colour = lerp(colour, light * kScum, scum);
     alpha = lerp(alpha, 1.0, scum);
     colour = saturate(colour / max(alpha, 1e-3));

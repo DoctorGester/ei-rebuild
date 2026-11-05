@@ -6,5 +6,5 @@ model = "opus"
 files = ["src/render/render_water.cpp", "src/render/shaders/terrain.hlsl"]
 note = "User 2026-11-05: 'one thing about new water I'm not a big fan of is that it maybe looks as if there is a repeating pattern in the waves'. Find what repeats (normal map / wave texture tiling, too few wave octaves, aligned directions) and make it read as non-repeating at near, middle and far distances, from the normal camera and pitched up; keep the look otherwise and the frame cost."
 order = 1244
-status = "running"
+status = "review"
 started = "2026-11-05"
