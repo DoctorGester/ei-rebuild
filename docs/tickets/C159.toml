@@ -4,4 +4,5 @@ group = "port"
 model = "sonnet"
 note = "CI run 41953378949 (2026-11-05, logs build/ci_logs_41953378949/failed.txt), the first with EI_TIME_SCALE 3 (H58): render_shadows_decals' diffcapture decals bare found 0.0000% (decals not drawn) and render_weather_panel's panel_rain vs panel_rain_off 0.0000% (rain not drawn in the panel) on lavapipe; render_water's shore check 0.9907% against 1.0% (stub set, H51d). The weather scenarios (render_weather*, ui_minimap_edges, render_drawn_*, Rebirth ui_widescreen*, unit_ai_bridge, the tornado client, camera_smooth) still ran past 3x their limits. All are back in LINUX_SKIP. Reproduce the two zero-diff captures in WSL on lavapipe (docs/notes/linux.md), find whether it is a driver gap (a format or feature lavapipe lacks: check the gpu log) or our bug, fix or document; profile one weather frame on llvmpipe and say whether a smaller CI resolution would bring the weather scenarios in. Take scenarios out of LINUX_SKIP as they pass."
 order = 1161
-status = "queued"
+status = "running"
+started = "2026-11-05"
