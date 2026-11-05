@@ -5,5 +5,6 @@ size = 1
 model = "opus"
 note = "User 2026-11-05 with a screenshot (build/r61/user_frame.png in main's tree): new game (no mod), exit to menu; one frame shows the menu scene without the pillar/stones while the pillar's light still lights the ground. R58 (stones' rest pose, sun map) and R60 (unshown frames end their own render frame) are related. Cause: the server sends map objects within 100 units of the client's last camera position; after a game it still held the game's camera when it sent the menu's game state, so the menu's dynamic objects (signpost, troll, fire) came an update later (8 frames at 120 Hz). Fix: the main menu sees its whole zone (world_sync.cpp SeesWholeZone). Scenario render_menu_return (both installs, frametime 8); render_load_first_frame vanilla golden re-recorded (client units a tick earlier, outcomes same)."
 order = 1242
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
