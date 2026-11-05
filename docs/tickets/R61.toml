@@ -1,0 +1,9 @@
+id = "R61"
+title = "Leaving a game to the main menu: one frame without the menu's pillar and stones (their light still on)"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-11-05 with a screenshot (build/r61/user_frame.png in main's tree): new game (no mod), exit to menu; one frame shows the menu scene without the pillar/stones while the pillar's light still lights the ground. R58 (stones' rest pose, sun map) and R60 (unshown frames end their own render frame) are related."
+order = 1242
+status = "running"
+started = "2026-11-05"
