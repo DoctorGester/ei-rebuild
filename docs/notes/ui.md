@@ -53,7 +53,9 @@ in the key table (`config\keyboard.ini`, `key_bindings.cpp`); a zone has no inve
 `Interface3D` (`g_interface`) keeps the active windows in a vector; the top one receives input. A `UiWindow` holds five
 arrays: referenced engine objects, scene objects, surfaces, regions and models. `UiRegion` is a rectangle or a convex
 polygon (from 3 vertices) tested with integer cross products; tooltip states 0 idle, 1 hovered, 2 appearing, 3 disappearing,
-4 shown (0 and 4 stay, 1 -> 0 or 2, 2 -> 4, 3 -> 0). `UiRegion::SetTip` formats "tip %d" up to '#'; a missing text shows
+4 shown (0 and 4 stay, 1 -> 0 or 2, 2 -> 4, 3 -> 0). A hovered tooltip goes back to idle (its timer 0) as soon as the
+mouse is outside its region: the original's kept counting there and showed for one frame at the mouse, over whatever
+region the mouse was on, when the count reached the delay (scenario `ui_tooltip_switch`). `UiRegion::SetTip` formats "tip %d" up to '#'; a missing text shows
 the key. `SetScreenPosition` computes `(x * 0.0025f - 1) * 0.48157f * depth` with each step stored as float.
 
 `CreateScreen` (`ui_create_screen.cpp`) builds screens 1, 2, 3 and 7 inline. `PushWindow` sets the backdrops, the server

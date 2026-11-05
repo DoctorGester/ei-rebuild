@@ -101,6 +101,13 @@ void UiTooltip::PaintLines(UiSurface& surface) const {
 void UiTooltip::OnMouseMove(Point point) {
     switch (state) {
     case State::Hovered: {
+        // Left before the delay ran out: back to Idle, the wait starting again on the next hover. A tooltip left
+        // waiting would show at the mouse over another region, where that region's own appears next.
+        if (!region->HitTest(point)) {
+            state = State::Idle;
+            timer = 0.0f;
+            return;
+        }
         const float delay = options::g_options.toolTipTime;
         if (lines.empty() || delay == 0.0f) {
             state = State::Idle;
