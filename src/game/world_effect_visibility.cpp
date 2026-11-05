@@ -63,7 +63,7 @@ bool EffectShowVisibility::RunTick() {
     Unit* seer = OwningWorld()->FindUnit(seerId);
     Unit* observer = OwningWorld()->FindUnit(observerId);
     if (seer == nullptr || observer == nullptr) return false;
-    std::memcpy(&localPosition, &seer->localPosition.x, sizeof(Vector3));
+    localPosition = seer->localPosition;
     // The squares `seer` sees, with `observer`'s skills.
     MarkSightCells(seer, observer, &grid);
     MarkChanged();

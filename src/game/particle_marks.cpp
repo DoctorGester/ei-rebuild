@@ -134,7 +134,7 @@ int UpdateRegeneration(ParticleSource& s, Particle& p) {
         float scale = carrier->bounds.radius * sideSign * 0.65f;
         target += carrier->localRotation.AxisX() * scale;
     }
-    p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.size * 0.25f;
+    p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.25f;
     float keep = 0.7f;
     float pull = 0.3f;
     p.pos.x = p.pos.x * keep + target.x * pull;
@@ -177,7 +177,7 @@ int EmitSilence(ParticleSource& s, Particle& p, int) {
     Vector3 v = RandomInBall();
     p.size = 0.0f;
     p.pos = v * orb->size * 0.8f + start;
-    wispSize = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.size * 0.08f;
+    wispSize = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.08f;
     p.color = 0xFFFFFFFF;
     p.frame = 6;
     p.state = 0;
@@ -223,7 +223,7 @@ int UpdateSilence(ParticleSource& s, Particle& p) {
     p.pos = next;
     angle = angleStep + angle;
     tilt = tiltStep + tilt;
-    p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_2 + 0.9f) * s.size * 0.22f;
+    p.size = (g_clientRandom.Below(0.2f) + 0.9f) * s.size * 0.22f;
     return 1;
 }
 
@@ -254,7 +254,7 @@ int EmitFeebleMind(ParticleSource& s, Particle& p, int) {
     offset.x = lib::Cos(angle) * 0.05f;
     offset.y = lib::Sin(angle) * 0.05f;
     p.pos += offset;
-    float grow = (WordToFloat(g_clientRandom.Next()) * kWordTo0_2 + 0.9f) * s.size * 0.035f;
+    float grow = (g_clientRandom.Below(0.2f) + 0.9f) * s.size * 0.035f;
     growingSize = grow;
     return 1;
 }
@@ -409,7 +409,7 @@ int EmitStun(ParticleSource& s, Particle& p, int) {
     p.size = 0.0f;
     p.pos = v * (radius * 0.8f) + s.origin;
     p.life = 20;
-    sizeFactor = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f;
+    sizeFactor = g_clientRandom.Below(0.6f) + 0.7f;
     Unit* unit = UnitOrNull(s.attachedTo);   // stun rides units (the game reads any carrier as one)
     if (!unit) {
         s.Stop();
@@ -433,7 +433,7 @@ int UpdateStun(ParticleSource& s, Particle& p) {
     const float& sizeFactor = p.velocity.x;
     if (--p.life < 0) return 0;
     p.color = 0xFFFFFFFF;
-    p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.size * sizeFactor;
+    p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * sizeFactor;
     if (!s.attachedTo) {
         s.Stop();
     }
@@ -476,7 +476,7 @@ int UpdateCurseStars(ParticleSource& s, Particle& p) {
     if (life < 0) return 0;
     p.color = (static_cast<std::uint32_t>(kCurseAlpha[life]) << 24) | 0xFFFFFF;
     if (p.size == 0.0f) {
-        p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.size * 0.04f;
+        p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.04f;
     } else {
         p.size *= 0.95f;
     }
@@ -542,7 +542,7 @@ int UpdateStartTrans(ParticleSource& s, Particle& p) {
             return 1;
         }
         p.color = 0xFFFFFFFF;
-        p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.elements[0].trans.scale;
+        p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.elements[0].trans.scale;
         return 1;
     }
     int life = --p.life;
@@ -596,7 +596,7 @@ int EmitSparks(ParticleSource& s, Particle& p, int) {
     }
     s.flags &= ~ParticleSourceFlag::Emitting;
     p.color = 0xFFFFFFFF;
-    float speed = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.8f;
+    float speed = g_clientRandom.Below(0.6f) + 0.8f;
     float lengthSquared;
     Vector3 v = RandomInBall(lengthSquared);
     Vector3 direction = v / std::sqrt(lengthSquared);
@@ -604,7 +604,7 @@ int EmitSparks(ParticleSource& s, Particle& p, int) {
     p.drift = direction * k;
     float t = g_clientRandom.Range(0.0f, 1.0f);
     p.pos = t * p.drift + s.origin;
-    p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.size * 0.2f;
+    p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.2f;
     p.life = 6;
     p.state = 0;
     p.frame = static_cast<int>(g_clientRandom.Next() % 3) + 1;
@@ -616,7 +616,7 @@ int EmitSparks(ParticleSource& s, Particle& p, int) {
 int UpdateSparks(ParticleSource& s, Particle& p) {
     if (p.state != 0) {
         if (p.size != 0.0f) return 0;
-        p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.size * 0.55f;
+        p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size * 0.55f;
         return 1;
     }
     if (--p.life < 0) return 0;
@@ -770,7 +770,7 @@ int EmitFalling(ParticleSource& s, Particle& p, int) {
     p.drift.y = lib::Cos(angle) * x;
     p.drift.z = 0.0f;
     gravity = g_clientRandom.Range(0.0f, 0.12f) + gravity - 0.06f;
-    terminal = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 - 0.6f;
+    terminal = g_clientRandom.Below(0.4f) - 0.6f;
     return 1;
 }
 
@@ -793,7 +793,7 @@ int UpdateFalling(ParticleSource&, Particle& p) {
 void TickFalling(ParticleSource& s, ParticleElement& e) {
     int age = e.wind.age;
     if (age == 0) {
-        e.wind.reach = WordToFloat(g_clientRandom.Next()) * kWordTo0_2Gust + 0.1f;
+        e.wind.reach = g_clientRandom.Below(0.2f) + 0.1f;
         float whole = static_cast<float>(static_cast<int>(ei::kRadiansPerDegree * 360.0f));
         e.wind.direction = g_clientRandom.Range(0.0f, whole);
         age = e.wind.age;

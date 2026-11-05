@@ -548,7 +548,7 @@ int UpdatePortal(ParticleSource& s, Particle& p) {
             p.size = 0.0f;
             return 1;
         }
-        p.size = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 * 1.5f + 1.2f;
+        p.size = g_clientRandom.Below(0.4f) * 1.5f + 1.2f;
         return 1;
     }
     if (p.life == 0) return 0;
@@ -601,7 +601,7 @@ int EmitPortalStar(ParticleSource& s, Particle& p, int) {
 int UpdatePortalStar(ParticleSource& s, Particle& p) {
     if (!(s.flags & ParticleSourceFlag::Emitting)) return 0;
     p.color = 0xFFFFFFFF;
-    p.size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * s.size;
+    p.size = (g_clientRandom.Below(0.4f) + 0.8f) * s.size;
     return 1;
 }
 
@@ -636,7 +636,7 @@ int EmitZoneExit(ParticleSource& s, Particle& p, int) {
     p.pos.y = y;
     p.size = 0.0f;
     p.pos.z = ground + 0.1f;
-    float roll = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f;
+    float roll = g_clientRandom.Below(0.6f) + 0.7f;
     sparkSize = roll * falloff * 0.05f;
     return 1;
 }

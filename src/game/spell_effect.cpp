@@ -44,6 +44,12 @@ void SpellEffect::HitUnit(DamageInfo* hit, MapObject* unit) {
     unit->ReceiveHit(hit, attacker, caster);
 }
 
+void SpellEffect::HitTarget() {
+    DamageInfo hit;
+    GetDamage(&hit);
+    if (spellfx::IsUnit(target)) HitUnit(&hit, target);
+}
+
 void SpellEffect::HitUnitsInRadius() {
     DamageInfo hit;
     GetDamage(&hit);
@@ -224,9 +230,7 @@ void StartLightning(SpellEffect* e, SpellType type, const Vector3& from) {
     float range = Prototype(e)->lightRange;
     Vector3 color = Prototype(e)->lightColor;
     if (e->target) e->CreatePointLight(e->target->EyePoint(), color, range, kZeroVector);
-    DamageInfo hit;
-    e->GetDamage(&hit);
-    if (IsUnit(e->target)) e->HitUnit(&hit, e->target);
+    e->HitTarget();
     e->timer = 7;
     e->state = kStateLasting;
 }

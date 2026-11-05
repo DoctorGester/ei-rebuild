@@ -5,6 +5,7 @@
 // (only Random does that, for one argument).
 
 #include "script_addon.h"
+#include "lib/printf_args.h"
 
 class UnitServer;
 
@@ -24,7 +25,7 @@ bool IsUnit(EngineObject* object);
 // Rebirth reports a handler's problem as a "Scripts" error ("<function>: <message>") in its console log only when the
 // mod setting EnableShowingScriptErrors is on, which no mod sets, so nothing is shown. Returns true: the call counts
 // as done.
-bool Report(const char* function, const char* format, ...);
+EI_PRINTF_FORMAT(2, 3) bool Report(const char* function, const char* format, ...);
 // Report(function, "Invalid argument(s) passed to function").
 bool InvalidArguments(const char* function);
 

@@ -8,6 +8,7 @@
 #include "render/gpu.h"
 #include "render_state.h"
 
+#include "lib/printf_args.h"
 #include "lib/vecmath.h"
 
 // The programs' uniform blocks, slots and vertex inputs (CMakeLists.txt, tools/gen_gpu_shaders.py).
@@ -476,7 +477,7 @@ std::optional<Size> GameTargetSize();
 void Start();
 // The renderer cannot go on (no device, no swap chain): the reason is logged and shown in the game's error box, and
 // the game ends (exit -1), Rebirth's DisableExitOnCrashReport or not. There is no other way to draw: no fallback.
-[[noreturn]] void Fatal(const char* format, ...);
+[[noreturn]] EI_PRINTF_FORMAT(1, 2) void Fatal(const char* format, ...);
 
 // `r` as a shader's float4: left, top, right, bottom.
 inline void StoreRect(const Rect& r, float (&out)[4]) {

@@ -42,13 +42,6 @@ constexpr float kFadeStep = 0.06666667f;              // 1/15
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr int kIdleRestartBelow = 3;                  // FigureAnimationState::queue.count
 
-void SetTalking(const Unit* unit, bool talking) {
-    EngineObject* serverUnit = g_serverWorld.FindUnit(unit->id);
-    if (!serverUnit) return;
-    if (talking) serverUnit->flags |= MapObjectFlag::Blocked;
-    else serverUnit->flags &= ~MapObjectFlag::Blocked;
-}
-
 // The drawn parts take `alpha`.
 void SetPartsAlpha(Object3DClientSpecific* half, float alpha) {
     for (Material* part : half->materials) part->colors.diffuse.w = alpha;
@@ -99,14 +92,14 @@ bool UnitClientSpecific::RunTick() {
         ClientSpeech* first = &speech.front();
         int delay = --first->delay;
         if (delay == 0) {
-            if (first->talking) SetTalking(unit, true);
+            if (first->talking) SetTalking(unit->id, true);
             if (first->kind == AckKind::Attack || first->kind == AckKind::DecidedToAttack) {
                 if (!g_clientWorld.sounds->IsPlaying(speechSound) && Speak(first)) speechSound = first->sound;
             } else {
                 Speak(first);
             }
         } else if (delay < 0 && !g_clientWorld.sounds->IsPlaying(first->sound)) {
-            if (speech.front().talking) SetTalking(unit, false);
+            if (speech.front().talking) SetTalking(unit->id, false);
             speech.pop_front();
         }
     }
@@ -153,7 +146,6 @@ void UnitClientSpecific::RefreshWounds() {
 // AdvanceTime, the idle animation). See unit_client_models.h, map_object_shadow.h and docs/notes/units.md.
 
 namespace {
-constexpr std::uint32_t kFlagFrozen = 0x10000000;     // the unit's flags
 constexpr std::int8_t kNoEntry = -1;                  // Unit::secondEntry
 constexpr float kLongStep = 500.0f;
 constexpr std::uint32_t kLongStepSpread = 101;        // a long step becomes 500..600
@@ -188,7 +180,7 @@ void UnitClientSpecific::AdvanceTime(float time) {
 }
 
 void UnitClientSpecific::RestartAnimation(float time) {
-    if (unit->flags & kFlagFrozen) return;
+    if (unit->flags & MapObjectFlag::NoCasting) return;
     FigureAnimationState* state = unit->AsObject3D()->animation;
     state->queue.clear();
     if (unit->secondEntry == kModeSpecialIdle) {
@@ -222,7 +214,7 @@ void UnitClientSpecific::RestartAnimation(float time) {
 }
 
 void UnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
-    if (unit->flags & kFlagFrozen) return;
+    if (unit->flags & MapObjectFlag::NoCasting) return;
     std::uint32_t key = 0;
     std::uint32_t weapon = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoWeapon;
     if (weapon != kNoWeapon) {

@@ -8,6 +8,7 @@
 #include "net_connection.h"
 #include "net_messages.h"
 #include "ui.h"
+#include "lib/float_select.h"
 #include "lib/text_case.h"
 
 #include <bit>
@@ -366,14 +367,7 @@ void ServerSession::RaiseVariable(const std::string* variableName, float value) 
     auto found = FindOrAddVariable(variableName);
     VariableMessage* variable = found->Get();
     float current = variable->value;
-    std::uint32_t currentBits, valueBits;
-    currentBits = std::bit_cast<std::uint32_t>(current);
-    valueBits = std::bit_cast<std::uint32_t>(value);
-    std::uint32_t bits = current >= value ? currentBits : valueBits;
-    float selected;
-    selected = std::bit_cast<float>(bits);
-    volatile double loaded = selected;   // reloaded through memory, as the original does
-    found->Get()->value = static_cast<float>(loaded);
+    found->Get()->value = MaxKeepB(current, value);
     found->Get()->serial = g_variableSerial;
     ++g_variableSerial;
     ++found->Get()->version;

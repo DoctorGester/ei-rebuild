@@ -66,7 +66,7 @@ bool SectorMap::Add(MapObject* object) {
     bool fits = aiMap->MarkFootprint(object, false);
     if (fits) {
         ++added;
-        object->flags |= kInSectorMap;
+        object->flags |= MapObjectFlag::InSectorMap;
         object->sectorCellY = cell.y;
         object->sectorCellX = cell.x;
         return true;
@@ -170,7 +170,7 @@ bool SectorMap::Move(MapObject* object, const Vector3& position) {
             to.objects.push_back(object);
         }
     }
-    object->flags |= kInSectorMap;
+    object->flags |= MapObjectFlag::InSectorMap;
     object->sectorCellY = cell.y;
     object->sectorCellX = cell.x;
     return true;

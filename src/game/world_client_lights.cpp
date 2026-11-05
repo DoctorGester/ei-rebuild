@@ -17,6 +17,7 @@
 #include "terrain.h"
 #include "world.h"
 #include "lib/containers.h"
+#include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
@@ -54,10 +55,6 @@ const Vector3 kCaveSun = {0.5f, 0.5f, -0.707106f};
 // Terrain::SetSun takes the ambient colour as a Vector4 (and copies it).
 Vector4 Ambient(const LightColour& c) { return {c.r, c.g, c.b, c.a}; }
 
-// The original's test counts a NaN as zero; the audit checks that none arrives.
-bool IsZero(float value) {
-    return value == 0.0f;
-}
 bool IsBlack(const LightColour& c) { return IsZero(c.r) && IsZero(c.g) && IsZero(c.b); }
 
 // (b - a) * t + a.

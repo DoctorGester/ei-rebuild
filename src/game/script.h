@@ -17,6 +17,7 @@
 #include "engine_object.h"
 #include "lib/enum_array.h"
 #include "lib/printf_args.h"
+#include "lib/scales.h"
 #include "lib/vecmath.h"
 
 
@@ -268,9 +269,6 @@ void ScriptDropEffect(T* object);
 // FX sources).
 EffectSound* ScriptNewSound(const Vector3& position, float volume, float radius, const std::string& name, bool looping);
 
-// A colour channel in 0..255 scaled to 0..1 (1 / 255).
-inline constexpr float kScriptColourScale = 0.003921569f;
-
 // The effect object of one of them: made from a pointer it takes a reference of its own; reset, assigned over or
 // destroyed, it drops the effect. Move-only. Made and read only where the effect classes are complete
 // (world_effect.h).
@@ -461,6 +459,20 @@ public:
     float Float() { return call->floatArgs[floats++]; }
     const std::string& Text() { return call->stringArgs[texts++]; }
     const ScriptObjectRef& Object() { return *call->objectArgs[objects++]; }
+    // Three floats in order: a point's x, y and z.
+    Vector3 Point() {
+        const float x = Float();
+        const float y = Float();
+        const float z = Float();
+        return {x, y, z};
+    }
+    // Three colour channels in 0..255, scaled to 0..1.
+    Vector3 Colour() {
+        const float red = Float() * lib::kByteScale;
+        const float green = Float() * lib::kByteScale;
+        const float blue = Float() * lib::kByteScale;
+        return {red, green, blue};
+    }
     ScriptGroup* Group() { return call->groupArgs[groups++]; }
     // The player whose number is the next float (truncated), null when there is none.
     Player* FindPlayer();
@@ -637,7 +649,7 @@ public:
     // recording the error. `tokens` is the file's token stream; functions consume it.
 
     // Formats the message into the error text; returns 0.
-    static int Error(Script* script, int line, ScriptParseError code, const char* format, ...);
+    EI_PRINTF_FORMAT(4, 5) static int Error(Script* script, int line, ScriptParseError code, const char* format, ...);
     // With a std::string among the arguments: its text is passed for the %s.
     template <class... Args>
         requires libprintf::HasString<Args...>

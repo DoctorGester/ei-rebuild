@@ -428,7 +428,7 @@ What must survive:
 
 ## 4. UTF-8 instead of cp1251
 
-Every string inside the game is UTF-8. Text in the asset code page (`EI_ASSET_CODEPAGE`, a CMake cache string, 1251) is
+Every string inside the game is UTF-8. Text in the asset code page (`text::kAssetCodePage`, 1251) is
 converted where it crosses into the game and back where it leaves: the assets when they are read, the saves and the
 network both ways. So the files the game writes and the network's messages carry the original's bytes: saves stay
 byte-identical to vanilla's, and vanilla peers read and send cp1251. The system calls are the wide ones.

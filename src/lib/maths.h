@@ -14,6 +14,7 @@ namespace lib {
 
 inline float Sin(float x) { return static_cast<float>(std::sin(static_cast<double>(x))); }
 inline float Cos(float x) { return static_cast<float>(std::cos(static_cast<double>(x))); }
+inline float Tan(float x) { return static_cast<float>(std::tan(static_cast<double>(x))); }
 inline float Asin(float x) { return static_cast<float>(std::asin(static_cast<double>(x))); }
 inline float Acos(float x) { return static_cast<float>(std::acos(static_cast<double>(x))); }
 inline float Atan2(float y, float x) {

@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include <cstddef>
 #include <vector>
@@ -243,3 +244,17 @@ public:
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).
 void SpeakerAnimationDone(Unit* serverUnit);
+// The speaker's lips stop (UnitClientSpecific's blink: eyes open).
+void StopTalking(Unit* speaker);
+// The speaker's server unit plays the skill animation `number` of the client unit, then calls SpeakerAnimationDone.
+void StartSpeakerAnimation(Unit* unit, SkillAnimation number);
+// A speaker leaves the dialogue: its server unit shows the helmet again, stands at height 0 and stops its action.
+void ReleaseSpeaker(Unit* unit);
+// Whether the local player has visited `zone` (its "z.<zone>" variable is 1).
+bool ZoneVisited(std::string_view zone);
+// The topic variables of player zero are named "b.<person>.<topic>".
+inline constexpr const char* kTopicPrefix = "b.";
+inline constexpr std::size_t kTopicNameParts = 3;
+// The topics open for the local player: the parts ("b", person, topic) of each variable under `prefix` that is 1, in the
+// variable table's order.
+std::vector<std::vector<std::string>> OpenTopicNames(const char* prefix);

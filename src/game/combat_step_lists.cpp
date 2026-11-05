@@ -7,7 +7,7 @@
 
 
 namespace {
-constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / variant: none (a pause)
+constexpr std::uint8_t kNoStepVariant = 0xFF;    // AnimationStep::animation / variant: none (a pause)
 
 } // namespace
 
@@ -18,7 +18,7 @@ void AnimationSteps::AddStep(int animation, int duration) {
 }
 
 void AnimationSteps::AddEmote(int emote) {
-    if (steps.empty() || steps.back().variant != kNone) steps.emplace_back();
+    if (steps.empty() || steps.back().variant != kNoStepVariant) steps.emplace_back();
     AnimationStep& last = steps.back();
     last.variant = static_cast<std::uint8_t>(emote);
     last.duration = -1;

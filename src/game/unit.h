@@ -156,9 +156,7 @@ public:
     virtual int FiguresLoaded();
     // Plays the unit's animationEntry / secondEntry from frame `time` (client).
     virtual void RestartAnimation(float) {}
-    virtual void Unused15() {}                   // empty everywhere
     virtual PathOrder* Path() = 0;
-    virtual void Unused17() = 0;                 // empty everywhere
     virtual void PlayerChanged(void*) {}
     virtual void RefreshVitals(bool withHitPoints);
     // Either unit may be null.
@@ -545,8 +543,6 @@ inline Unit* UnitOrNull(EngineObject* object) {
 // The object registered under a unit's id (the party's and the players' unit ids, a unit's speech), or null; taken as
 // a unit without a class test.
 inline Unit* UnitWithId(const BaseManager* objects, unsigned id) { return objects->FindObjectAs<Unit>(id); }
-
-constexpr std::uint32_t kInSectorMap = 0x8000;    // EngineObject::flags
 
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {

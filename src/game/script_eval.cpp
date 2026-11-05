@@ -43,15 +43,11 @@ float SquaredDistance(float x, float y, float centreX, float centreY) {
     return DistanceSquared2D(Vector2{x, y}, Vector2{centreX, centreY});
 }
 
-// value * range / 2^32.
-float ScaleRandom(std::uint32_t value, float range) { return range * (value * 0x1p-32f); }
-
 // (float)(time + add) rounded to nearest: the sum (the int loaded whole) is rounded to float before the conversion.
 int RoundTimeOffset(int time, float extra) {
     return lib::RoundEven(static_cast<float>(time) + extra);
 }
 
-constexpr float kMinusOne = -1.0f;
 constexpr float kFar = 1e30f;     // the distance when an object is missing
 
 // ---- Game state reached by the functions --------------------------------------------------------
@@ -234,13 +230,13 @@ float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
     case ScriptFunction::Random: { // Random(range): [0, range]
         float range = args.Float();
         std::uint32_t value = g_random.Next();
-        return ScaleRandom(value, range);
+        return ScaleWord(value, range);
     }
     case ScriptFunction::GetDiplomacy: { // GetDiplomacy(a, b): 1 allied, -1 enemies, 0 otherwise
         int a = lib::Truncate(args.Float());
         int b = lib::Truncate(args.Float());
         DiplomacyRelation relation = g_serverWorld.diplomacy.GetRelation(a, b);
-        if (relation == DiplomacyRelation::Hostile) result = kMinusOne;
+        if (relation == DiplomacyRelation::Hostile) result = -1.0f;
         else if (relation == DiplomacyRelation::Allied) result = 1.0f;
         return result;
     }
@@ -267,7 +263,7 @@ float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
     }
     case ScriptFunction::GetAIClass: { // GetAIClass (the unit's size class)
         Unit* unit = args.Object().AsUnit();
-        result = kMinusOne;
+        result = -1.0f;
         if (unit) result = static_cast<float>(unit->sizeClass);
         return result;
     }

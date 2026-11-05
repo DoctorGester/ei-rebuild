@@ -19,17 +19,6 @@ using namespace effect;
 
 namespace {
 
-// What every Reset does to the base part first: position, field streams, start tick, velocity, moving
-// flag and stamp.
-void ClearBase(Effect* e) {
-    e->localPosition = Vector3{0.0f, 0.0f, 0.0f};
-    e->state.Empty();
-    e->velocity = Vector3{0.0f, 0.0f, 0.0f};
-    e->startTick = 0;
-    e->moving = 0;
-    e->changeStamp = -1;
-}
-
 // The local position moved by the velocity.
 void MoveByVelocity(Effect* e) { e->localPosition += e->velocity; }
 
@@ -87,7 +76,7 @@ float Effect::Radius() { return 100.0f; }
 
 
 void EffectSound::Reset() {
-    ClearBase(this);
+    Effect::Reset();
     if (sound != -1 && looping != 0) g_clientWorld.sounds->StopSound(sound);
     sound = -1;
     looping = 1;
@@ -123,15 +112,7 @@ int EffectSound::Unpack(int update, DeltaReader& field) {
     position = field.ReadPosition();
     field.ReadDelta(&looping, 4);
     field.ReadText(name, 0xFF);
-    volume = field.ReadFloat16();
-    radius = field.ReadFloat16();
-    velocity = field.ReadFloat16x3();
-    field.ReadDelta(&noFade, 1);
-    moving = IsMoving(velocity);
-    if (!field.SnapshotConsumed()) return 0;
-    localPosition = position;
-    Start(update);
-    return 1;
+    return UnpackSoundTail(*this, field, position, update);
 }
 
 void EffectSound::Pack(DeltaWriter& field) {
@@ -173,7 +154,7 @@ float EffectSound::Radius() { return radius; }
 
 
 void EffectSoundSeq::Reset() {
-    ClearBase(this);
+    Effect::Reset();
     if (sound != -1) g_clientWorld.sounds->RemoveSequence(sound);
     sound = -1;
     volume = 0.0f;
@@ -233,7 +214,7 @@ float EffectSoundSeq::Radius() { return radius; }
 
 
 void EffectAmbientSound::Reset() {
-    ClearBase(this);
+    Effect::Reset();
     if (sound != -1) {
         g_clientWorld.sounds->RemoveEmitter(sound);
         sound = -1;
@@ -309,10 +290,6 @@ void EffectAmbientSound::Save(ByteStream* stream) {
 float EffectAmbientSound::Radius() { return radius; }
 
 // --- The effects' lifetime and the state field's constructor and emptying --------------------------------
-
-namespace {
-
-} // namespace
 
 // --- The effect base -----------------------------------------------------------------------------
 

@@ -166,8 +166,6 @@ void BaseManager::DestroyAll() {
 // --- No archives --------------------------------------------------------------------------------
 
 bool BaseManager::AddArchive(const std::string&) { return false; }
-bool BaseManager::RemoveArchive(const std::string&) { return false; }
-bool BaseManager::RemoveAllArchives() { return false; }
 void* BaseManager::GetFile(std::string_view, std::uint32_t*) { return nullptr; }
 bool BaseManager::CloseFile(void*) { return false; }
 bool BaseManager::HasFile(std::string_view) { return false; }

@@ -75,7 +75,7 @@ constexpr float kTabSelected = 0.08984375f;               // 0x3DB80000
 constexpr int kSurfaceConnecting = 1;
 constexpr int kTextPassword = 18, kTextAddress = 19, kTextMaster = 20;
 constexpr std::uint32_t kLeaveScreen = 0x1000001;
-constexpr int kNoPing = 9999;
+constexpr int kNoPingMillis = 9999;
 constexpr int kNewGameType = 4;
 constexpr int kStateAsked = 1;   // net::ServerEntryBase::State::Asked
 constexpr std::uint32_t kBarColour = 0xFFA06800;
@@ -402,7 +402,7 @@ void MpConnectScreen::RebuildList() {
     newGame.gameType = kNewGameType;
     newGame.name = kNewGameText;
     newGame.description = kNewGameText;
-    newGame.ping = kNoPing;
+    newGame.ping = kNoPingMillis;
     newGame.players = 0;
     newGame.maxPlayers = 0;
     newGame.foreign = false;

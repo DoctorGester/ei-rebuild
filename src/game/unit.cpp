@@ -3,6 +3,7 @@
 #include "ai_map.h"      // AIPath
 #include "ai_motion.h"   // UnitMotion
 #include "item.h"
+#include "lib/scales.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 #include "logic_settings.h"
@@ -16,9 +17,8 @@
 
 namespace {
 constexpr float kSpeedByteScale = 0.039215688f;  // (1 / 25.5)
-constexpr float kByteScale = 0.003921569f;       // (1 / 255)
-constexpr float kThree = 3.0f;
-constexpr float kTen = 10.0f;
+constexpr float kPatienceScale = 3.0f;
+constexpr float kPatienceBase = 10.0f;
 constexpr float kNoPlayerValue = 1000000.0f;
 constexpr float kFastSpeedScale = 1.8f;
 constexpr float kWalkSpeedScale = 0.7f;
@@ -72,7 +72,7 @@ float ModeSpeedOf(const Unit* unit, MoveMode mode) {
     case MoveMode::Run: speed = unit->params.modeSpeeds[0]; break;
     default: return base;
     }
-    return base * (static_cast<float>(speed) * 2.0f) * kByteScale;
+    return base * (static_cast<float>(speed) * 2.0f) * lib::kByteScale;
 }
 
 } // namespace
@@ -275,15 +275,15 @@ Unit::MoveSpeeds Unit::GetMoveSpeeds() {
     case MoveMode::Run: speed = params.modeSpeeds[0]; break;
     case MoveMode::Walk:
     case MoveMode::Stop:
-        speeds.turn = static_cast<float>(params.modeSpeeds[0]) * speeds.forward * 2.0f * kByteScale;
-        speeds.forward = static_cast<float>(params.modeSpeeds[1]) * speeds.forward * 2.0f * kByteScale;
+        speeds.turn = static_cast<float>(params.modeSpeeds[0]) * speeds.forward * 2.0f * lib::kByteScale;
+        speeds.forward = static_cast<float>(params.modeSpeeds[1]) * speeds.forward * 2.0f * lib::kByteScale;
         speeds.turn = g_logicSettings.rotateSpeedMult * speeds.turn;
         return speeds;
     default:
         speeds.turn = g_logicSettings.rotateSpeedMult * speeds.turn;
         return speeds;
     }
-    float scaled = static_cast<float>(speed) * speeds.forward * 2.0f * kByteScale;
+    float scaled = static_cast<float>(speed) * speeds.forward * 2.0f * lib::kByteScale;
     speeds.forward = scaled;
     speeds.turn = scaled;
     speeds.turn = g_logicSettings.rotateSpeedMult * speeds.turn;
@@ -295,10 +295,10 @@ float Unit::MoveSpeed2() { return ModeSpeedOf(this, moveMode2); }
 float Unit::MoveSpeedFor(MoveMode mode) { return ModeSpeedOf(this, mode); }
 
 float Unit::ScaledValue(float value) {
-    if (!player) return value * kThree + kTen;
+    if (!player) return value * kPatienceScale + kPatienceBase;
     if (flags & MapObjectFlag::ChoosingTarget) {
-        float capped = MinKeepA(value, kTen);   // NaN is kept
-        return capped * kThree + kTen;
+        float capped = MinKeepA(value, kPatienceBase);   // NaN is kept
+        return capped * kPatienceScale + kPatienceBase;
     }
     return kNoPlayerValue;
 }

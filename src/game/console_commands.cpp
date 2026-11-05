@@ -107,13 +107,13 @@ std::optional<std::int64_t> DateDays(const std::string& text) {
 }
 
 // join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
-// to the game flow's request 5 / 6 with the map name.
-template <void (GameFlow::*Request)(const char*, Party*)>
-void RequestWithParty(const CommandArgs& args, const char* extra) {
+// to the game flow's request 5 (join) / 6 (host) with the map name.
+void RequestWithParty(const CommandArgs& args, const char* extra, bool host) {
     Party party;
     party.AddMember("F", "Human Hero", extra);
     std::string map = args[0];
-    (g_gameFlow.*Request)(map.c_str(), &party);
+    if (host) g_gameFlow.RequestPartyZone6(map.c_str(), &party);
+    else g_gameFlow.RequestPartyZone5(map.c_str(), &party);
 }
 
 void WriteSpeech(platform::File* file, const SpeechRecord& speech) {
@@ -378,7 +378,7 @@ void Join(const CommandArgs& args) {
         PrintLine("Join has 1 parameter, server name");
         return;
     }
-    RequestWithParty<&GameFlow::RequestPartyZone5>(args, "Hercules");
+    RequestWithParty(args, "Hercules", false);
 }
 
 // server <map>: "Starting up a server", then the flow's request 6 with a party of one ("Serv").
@@ -388,7 +388,7 @@ void HostServer(const CommandArgs& args) {
         return;
     }
     PrintLine("Starting up a server");
-    RequestWithParty<&GameFlow::RequestPartyZone6>(args, "Serv");
+    RequestWithParty(args, "Serv", true);
 }
 
 void MemUsage(const CommandArgs&) {}

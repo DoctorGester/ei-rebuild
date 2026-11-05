@@ -126,8 +126,8 @@ public:
     void End();
 
 private:
-    // One 16-bit value (ReadDelta of 2 bytes).
-    std::uint16_t ReadWord();
+    // One quantised 16-bit value (ReadDelta of 2 bytes).
+    std::uint16_t ReadQuantised();
 
     DeltaField* field = nullptr;
     MemoryStream* snapshot = nullptr;  // the one read against

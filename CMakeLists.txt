@@ -59,9 +59,7 @@ set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
 
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/asset_text.h): asset, save and
-# network text is converted from and to EI_ASSET_CODEPAGE where it crosses.
-set(EI_ASSET_CODEPAGE 1251 CACHE STRING "The code page of the assets', the saves' and the network's text")
-add_compile_definitions(EI_ASSET_CODEPAGE=${EI_ASSET_CODEPAGE})
+# network text is converted from and to text::kAssetCodePage where it crosses.
 
 # What differs between the systems: the compiler's options and the platform's and the renderer's backends. Floating
 # point stays in the order the code writes it (MSVC's default /fp:precise: /fp:fast regrouped sums and

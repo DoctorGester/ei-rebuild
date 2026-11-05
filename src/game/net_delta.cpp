@@ -4,6 +4,7 @@
 #include "lib/bytes.h"
 #include "lib/rounding.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -68,7 +69,7 @@ bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, MemoryStr
     const std::uint32_t words = size / 4;
     for (std::uint32_t i = 0; i < words; ++i) {
         std::uint8_t* word = bytes + i * 4;
-        if (received->GetBit()) std::memcpy(word, old + i * 4, 4);
+        if (received->GetBit()) std::copy_n(old + i * 4, 4, word);
         else received->Read(word, 4);
     }
     received->Read(bytes + words * 4, size - words * 4);
@@ -234,7 +235,7 @@ void DeltaReader::ReadText(char* text, int size) {
 
 int DeltaReader::ReadStream(MemoryStream* to) { return received->ReadStream(to); }
 
-std::uint16_t DeltaReader::ReadWord() {
+std::uint16_t DeltaReader::ReadQuantised() {
     std::uint16_t q;
     ReadDelta(&q, 2);
     return q;
@@ -242,26 +243,26 @@ std::uint16_t DeltaReader::ReadWord() {
 
 Vector3 DeltaReader::ReadPosition() {
     Vector3 position;
-    position.x = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
-    position.y = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
-    position.z = Dequantize(ReadWord(), kReadScaleZ, kReadOffsetZ);
+    position.x = Dequantize(ReadQuantised(), kReadScaleXY, kReadOffsetXY);
+    position.y = Dequantize(ReadQuantised(), kReadScaleXY, kReadOffsetXY);
+    position.z = Dequantize(ReadQuantised(), kReadScaleZ, kReadOffsetZ);
     return position;
 }
 
 Vector2 DeltaReader::ReadPosition2D() {
     Vector2 position;
-    position.x = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
-    position.y = Dequantize(ReadWord(), kReadScale2D, kReadOffset2D);
+    position.x = Dequantize(ReadQuantised(), kReadScale2D, kReadOffset2D);
+    position.y = Dequantize(ReadQuantised(), kReadScale2D, kReadOffset2D);
     return position;
 }
 
 float DeltaReader::ReadRanged(float min, float max) {
     float step = (max - min) * kRangeStep;
-    std::uint16_t q = ReadWord();
+    std::uint16_t q = ReadQuantised();
     return static_cast<float>(static_cast<int>(q)) * step + min;
 }
 
-float DeltaReader::ReadFloat16() { return UnpackFloat16(ReadWord()); }
+float DeltaReader::ReadFloat16() { return UnpackFloat16(ReadQuantised()); }
 
 Vector3 DeltaReader::ReadFloat16x3() {
     Vector3 values;

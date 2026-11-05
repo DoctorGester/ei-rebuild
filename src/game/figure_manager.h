@@ -48,7 +48,6 @@ public:
     // BaseManager::CreateObject; a new figure (classes 0x41-0x44) also gets a drawer: a class 0x45 object (id -1)
     // of the context's specific manager.
     EngineObject* CreateObject(int newType, int newId) override;
-    const char* GetFolderName() override;
 
     int LoadSkeletonLinks(FigureAnimationState* state, std::string_view name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);

@@ -4,10 +4,46 @@
 
 #include "item.h"
 #include "item_manager.h"
+#include "world.h"
 
 #include <cstdint>
 
 void ManagerContext::Create() {}
+
+World* ManagerContext::ThisWorld() { return contextKind == ContextKind::Party ? nullptr : static_cast<World*>(this); }
+
+WorldServer* ManagerContext::ThisServerWorld() {
+    return contextKind == ContextKind::Server ? static_cast<WorldServer*>(this) : nullptr;
+}
+
+WorldClient* ManagerContext::ThisClientWorld() {
+    return contextKind == ContextKind::Client ? static_cast<WorldClient*>(this) : nullptr;
+}
+
+BaseManager* ManagerContext::TimedObjectManager() {
+    World* world = ThisWorld();
+    return world ? world->timedObjectManager.get() : nullptr;
+}
+
+FigureManager* ManagerContext::GetFigureManager() {
+    World* world = ThisWorld();
+    return world ? world->figureManager.get() : nullptr;
+}
+
+MapObjectManager* ManagerContext::GetMapObjectManager() {
+    World* world = ThisWorld();
+    return world ? world->objectManager.get() : nullptr;
+}
+
+BaseManager* ManagerContext::SpecificManager() {
+    World* world = ThisWorld();
+    return world ? world->specificManager.get() : nullptr;
+}
+
+LinkFigureLoader* ManagerContext::FigureLoader() {
+    World* world = ThisWorld();
+    return world ? world->figureLoader.Get() : nullptr;
+}
 
 Item* ManagerContext::MakeCopyOf(Item* item) {
     std::uint32_t packed = item->prototypeId;

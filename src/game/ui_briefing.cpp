@@ -24,6 +24,7 @@
 #include "ui_message_box.h"
 #include "unit.h"
 #include "unit_ai.h"
+#include "unit_client_models.h"
 #include "world.h"
 #include "sound.h"
 #include "terrain.h"
@@ -48,7 +49,6 @@ constexpr std::uint32_t kLeaveAnswer = 0x90001;
 constexpr std::uint32_t kLoadWindowClosed = 0x100001;
 
 constexpr const char* kZoneTopicFormat = "b.%s";
-constexpr int kTopicNameParts = 3;
 
 } // namespace
 
@@ -114,18 +114,11 @@ void BriefingScreen::UnitJoined(Unit* unit) {
     g_camera.SetTarget(unit);
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     std::string prefix = str::Format(kZoneTopicFormat, zone->name);
-    NamedFloatTable variables;
-    PlayerZeroVariables(prefix.c_str(), &variables);
-    std::vector<std::string> parts;
-    for (auto& node : variables) {
-        if (node.second != 1.0f) continue;
-        parts = text::Split(node.first, '.');
-        if (parts.size() != kTopicNameParts) continue;
-        topic = parts[2];
-        briefingStarted = true;
-        StartDialogue(true, true);
-        break;
-    }
+    const auto open = OpenTopicNames(prefix.c_str());
+    if (open.empty()) return;
+    topic = open.front()[2];
+    briefingStarted = true;
+    StartDialogue(true, true);
 }
 
 void BriefingScreen::UnitLeft(Unit* unit) {
@@ -161,25 +154,62 @@ void BriefingScreen::SaveState() {
 
 namespace {
 
-constexpr const char* kTopicPrefix = "b.";
 constexpr const char* kConstructorTopic = "constr";
 constexpr const char* kBriefingSection = "briefing ";
 
 constexpr int kConstructorPrefixLength = 6;
+constexpr const char* kZoneVariablePrefix = "z.";
 
 } // namespace
 
+void StopTalking(Unit* speaker) {
+    UnitClientSpecific* model = speaker->ClientController();
+    model->blinks = 0;
+    model->BlinkOpen(true);
+}
+
+void StartSpeakerAnimation(Unit* unit, SkillAnimation number) {
+    auto* serverUnit = g_serverWorld.FindUnit(unit->id);
+    if (!serverUnit) return;
+    auto* controller = serverUnit->ServerController();
+    controller->StopAction();
+    controller->actionDone = SpeakerAnimationDone;
+    if (FigureAnimation* animation = unit->AsObject3D()->FindSkillAnimation(number))
+        controller->PlayAnimation(animation->name);
+}
+
+void ReleaseSpeaker(Unit* unit) {
+    auto* serverUnit = g_serverWorld.FindUnit(unit->id);
+    if (!serverUnit) return;
+    serverUnit->ShowHelmet(true);
+    g_serverWorld.SetUnitHeight(unit->id, 0.0f);
+    auto* controller = serverUnit->ServerController();
+    controller->actionDone = nullptr;
+    controller->StopAction();
+}
+
+bool ZoneVisited(std::string_view zone) {
+    std::string variable = kZoneVariablePrefix;
+    variable += zone;
+    return PlayerZeroVariable(variable) == 1.0f;
+}
+
+std::vector<std::vector<std::string>> OpenTopicNames(const char* prefix) {
+    std::vector<std::vector<std::string>> open;
+    for (auto& node : PlayerZeroVariables(prefix)) {
+        if (node.second != 1.0f) continue;
+        std::vector<std::string> parts = text::Split(node.first, '.');
+        if (parts.size() == kTopicNameParts) open.push_back(std::move(parts));
+    }
+    return open;
+}
+
 void BriefingScreen::FindTopics(int personId) {
-    NamedFloatTable variables;
-    PlayerZeroVariables(kTopicPrefix, &variables);
-    std::vector<std::string> parts;
     std::string name;
     std::string constructor;
     std::vector<std::string> found;
-    for (auto& node : variables) {
-        if (node.second != 1.0f) continue;
-        parts = text::Split(node.first, '.');
-        if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
+    for (const auto& parts : OpenTopicNames(kTopicPrefix)) {
+        if (TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
         bool isConstructor;
         {

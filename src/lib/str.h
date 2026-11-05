@@ -57,7 +57,7 @@ template <class F, class... Args>
 std::string Format(F&& format, Args&&... args) {
     return Format(format.c_str(), libprintf::Arg(std::forward<Args>(args))...);
 }
-std::string FormatV(const char* format, va_list arguments);
+EI_PRINTF_FORMAT(1, 0) std::string FormatV(const char* format, va_list arguments);
 
 int Find(const std::string& s, char c, int start = 0);
 int Find(const std::string& s, const char* sub, int start = 0);

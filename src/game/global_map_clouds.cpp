@@ -4,6 +4,7 @@
 
 #include "random.h"
 
+#include "lib/scales.h"
 #include "lib/maths.h"
 
 #include <cmath>
@@ -38,7 +39,7 @@ void GlobalMapClouds::Draw(const Surface* holder, float seconds) {
 }
 
 void GlobalMapClouds::SetRamp(int start, int width, float newSpeed) {
-    float base = width * (1.0f / 255.0f);
+    float base = width * lib::kByteScale;
     speed = newSpeed;
     for (int i = 0; i < 0x100; ++i) {
         const int exponent = i - start < 0 ? 0 : i - start;

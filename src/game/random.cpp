@@ -14,9 +14,6 @@ namespace {
 IsaacRandom::SeedHook g_seedHook;
 IsaacRandom::DrawObserver g_drawObserver;
 
-// The 2^-32 scale of Range.
-constexpr float kRangeScale = 0x1p-32f;
-
 // The reference ISAAC mix of the eight randinit words.
 struct InitMix {
     std::uint32_t a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0;
@@ -59,9 +56,9 @@ std::uint32_t IsaacRandom::Next() {
     return value;
 }
 
-float IsaacRandom::Range(float min, float max) {
-    return ((max - min) * static_cast<float>(Next())) * kRangeScale + min;
-}
+float IsaacRandom::Range(float min, float max) { return RangeOfWord(Next(), min, max); }
+
+float IsaacRandom::Below(float limit) { return ScaleWord(Next(), limit); }
 
 void IsaacRandom::Refill() {
     // One ISAAC step: mix a, produce memory and result words. `ind` reads memory at the byte

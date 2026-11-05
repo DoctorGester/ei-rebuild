@@ -27,7 +27,9 @@
 #include "player_manager.h"
 #include "world_effect.h"
 
+#include "lib/scales.h"
 #include "lib/containers.h"
+#include "lib/float_select.h"
 #include "lib/rounding.h"
 #include "bink_video.h"
 #include "game_singletons.h"
@@ -42,10 +44,6 @@
 #include <memory>
 
 namespace {
-
-bool IsZero(float value) {
-    return value == 0.0f;
-}
 
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 
@@ -71,13 +69,10 @@ void SetLoopCounter(const ScriptCall* cmd, int i) { *cmd->objectArgs[0] = (*cmd-
 void SetCP(ScriptArgs args, bool fast) {
     MapObject* object = args.Object().object;   // a unit or another map object
     if (!object) return;
-    const float x = args.Float();
-    const float y = args.Float();
-    const float z = args.Float();
+    const Vector3 point = args.Point();
     AIMap* map = &g_serverWorld.aiMap;
     if (fast) {
         map->SetRefreshUnits(0);
-        Vector3 point = {x, y, z};
         map->MoveInSectors(object, point);
         if (Unit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
         map->SetRefreshUnits(1);
@@ -85,7 +80,6 @@ void SetCP(ScriptArgs args, bool fast) {
         return;
     }
     float oldZ = object->localPosition.z;
-    Vector3 point = {x, y, z};
     map->MoveInSectors(object, point);
     if (Unit* unit = UnitOrNull(object)) {
         unit->ServerController()->ResyncWithUnit();
@@ -436,10 +430,8 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::SetBackGroundColor: {   // SetBackGroundColor(r, g, b): 0..255 scaled by 1/255
-            const float red = args.Float() * kScriptColourScale;
-            const float green = args.Float() * kScriptColourScale;
-            const float blue = args.Float() * kScriptColourScale;
-            g_sceneRenderer.SetFogColour(red, green, blue);
+            const Vector3 colour = args.Colour();
+            g_sceneRenderer.SetFogColour(colour.x, colour.y, colour.z);
             break;
         }
         case ScriptFunction::RunWorldTime:   // RunWorldTime(time): the configured speed (int)

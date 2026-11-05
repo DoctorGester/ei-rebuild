@@ -89,7 +89,6 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     PathOrder* Path() override { return &motion; }
-    void Unused17() override {}
 
     void PlaceOnPath(float time, float rate);
     // The attack figures the interface shows for a party unit: a text-key unit with a weapon in hand takes damage,
@@ -288,5 +287,8 @@ struct ArmourPartNames {
 // "hr.<hair>").
 ArmourPartNames CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>& armourIds,
                                        const std::vector<std::uint32_t>& weaponIds);
+
+// The server unit `unitId` is blocked while its speech plays (talking), free again after (unit_client_effects.cpp).
+void SetTalking(int unitId, bool talking);
 
 

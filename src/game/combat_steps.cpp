@@ -17,7 +17,7 @@
 
 namespace {
 constexpr float kPercent = 0.01f;
-constexpr float kHundred = 100.0f;
+constexpr float kHeightSteps = 100.0f;
 constexpr float kLowerPart = 0.4f;
 constexpr float kUpperPart = 0.8f;
 constexpr float kEyeLevel = 0.7f;
@@ -139,10 +139,10 @@ std::uint32_t BandAt(float h, float base, float size, float top) {
 // A random height in [from, to) in steps of 0.01 (the span in hundredths, rounded), else in the
 // overlap [high, low), else `high`. The pick (a dword, exact) times 0.01 rounds once.
 float RandomHeight(float to, float from, float low, float high) {
-    float span = (to - from) * kHundred;
+    float span = (to - from) * kHeightSteps;
     float base = from;
     if (lib::RoundEven(span) <= 0) {
-        span = (low - high) * kHundred;
+        span = (low - high) * kHeightSteps;
         base = high;
         if (lib::RoundEven(span) <= 0) return high;
     }

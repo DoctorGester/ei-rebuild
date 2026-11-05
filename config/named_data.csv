@@ -77,7 +77,6 @@ address,size,name,file
 0079026C,1,g_guardPlain,src/game/world_guard.cpp
 00790270,120,kAllodMaps,src/game/world_game.cpp
 007907AC,40,kMercZones,src/game/world_quests.cpp
-00790C0C,4,kAnimatedDrawerFlags,src/game/figure_mesh.h
 00791108,36,kDirectionDx,src/game/ai_map.h
 0079112C,36,kDirectionDy,src/game/ai_map.h
 00791164,320,kMarkTable,src/game/ai_map.h

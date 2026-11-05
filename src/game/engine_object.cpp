@@ -25,7 +25,6 @@ void EngineObject::Release() {
 }
 
 const char* EngineObject::GetName() { return "noname"; }
-const char* EngineObject::GetDescription() { return "nodesc"; }
 
 ManagerContext* EngineObject::GetManagerContext() const { return owner->context; }
 

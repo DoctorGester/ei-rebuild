@@ -212,7 +212,6 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     PathOrder* Path() override { return &motion; }
-    void Unused17() override {}
     int ShowWeapon(std::uint32_t slot) override { return TakeUpWeapon(static_cast<int>(slot)); }
     // The armour layers rebuilt (the slot unread).
     void ArmourTakenOff(std::uint32_t) override { stats.RebuildArmourLayers(unit); }

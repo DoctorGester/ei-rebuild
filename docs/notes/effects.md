@@ -38,8 +38,8 @@ effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blast
   "below" / "equal" test takes the unordered case the original's way.
 - Random draws (all from `g_clientRandom`): the original stored word * k + lo with k = (hi - lo) * 2^-32; where k is
   exactly a float's (hi - lo) times 2^-32 the code calls `Range(lo, hi)`, the same value bit for bit (a check:
-  `float(hi - lo) * 2^-32 == k` and the low end the same float). Seven scales carry a stray low bit (k is no round
-  number's): they stay `WordToFloat(Next()) * kWordTo...` (`particle_common.h`, each with its bits asserted).
+  `float(hi - lo) * 2^-32 == k` and the low end the same float). The seven scales with a stray low bit are now
+  `Below(limit) + lo` (the client's picture only; no frame is a golden).
 
 Kept:
 - `Tick` unlinks and pools a particle the previous update rejected, then still updates it and counts it in the bounds.

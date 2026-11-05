@@ -42,10 +42,8 @@ namespace {
 
 constexpr const char* kSaveLoadTexture = "saveload";
 constexpr const char* kDefaultAllod = "gipat";
-constexpr const char* kTopicPrefix = "b.";
 constexpr const char* kConstructorTopic = "constr";
 constexpr const char* kNoZone = "none";
-constexpr const char* kZoneVariablePrefix = "z.";
 
 constexpr int kFromCamp = 5;              // Player::lastScreen
 constexpr float kEdgeFade = 4.0f;
@@ -65,7 +63,6 @@ constexpr int kRewards = 4;
 
 constexpr float kMoverTimeout = 30.0f;
 constexpr float kCloseEnough = 0.01f;       // squared distance
-constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;       // "constr"
 
 // A mover that took too long is put at its place, facing its direction, at once.
@@ -104,13 +101,6 @@ void StepTurning(BriefingMover* node) {
 void SetMeshesVisible(UiWindow* window, int visible, std::initializer_list<const UiMesh*> keep = {}) {
     for (UiMesh* mesh : window->sceneObjects)
         if (std::ranges::find(keep, mesh) == keep.end()) mesh->visible = visible;
-}
-
-// The speaker's lips stop (UnitClientSpecific's blink: eyes open).
-void StopTalking(Unit* speaker) {
-    UnitClientSpecific* model = speaker->ClientController();
-    model->blinks = 0;
-    model->BlinkOpen(true);
 }
 
 } // namespace
@@ -285,15 +275,9 @@ void BriefingScreen::Update() {
 }
 
 void BriefingScreen::MarkPeople() {
-    NamedFloatTable variables;
-    PlayerZeroVariables(kTopicPrefix, &variables);
-    std::vector<std::string> parts;
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     std::vector<int> open;
-    for (auto& node : variables) {
-        if (node.second != 1.0f) continue;
-        parts = text::Split(node.first, '.');
-        if (parts.size() != kTopicNameParts) continue;
+    for (const auto& parts : OpenTopicNames(kTopicPrefix)) {
         if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), kConstructorTopic) == 0) continue;
         int textKey = TextKeyFromName(parts[1]);
         if (std::find(people.begin(), people.end(), textKey) == people.end()) continue;
@@ -316,10 +300,7 @@ void BriefingScreen::LeaveIfExitOpen() {
     if (!exitPending || std::ssize(localParty->members) <= 0) return;
     std::string zone = g_clientWorld.ExitTarget(exit);
     if (text::CompareIgnoringCase(zone, kNoZone) == 0) return;
-    std::string variable = kZoneVariablePrefix;
-    variable += zone;
-    float visited = PlayerZeroVariable(variable);
-    if (visited == 1.0f) return;
+    if (ZoneVisited(zone)) return;
     std::vector<PartyUnitRecord*> records{};
     std::vector<PartyUnitRecord*> second{};
     records.resize(1);

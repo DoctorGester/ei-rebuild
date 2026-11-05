@@ -234,7 +234,7 @@ const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
 const char* const kFirstZone = "gz1g";
 const char* const kGameTime = "gtime";
-constexpr float kSix = 6.0f;
+constexpr float kStartGameTime = 6.0f;
 
 // The party stored under `key` (find, inlined), null if none. Not const: the parties' copies read their source
 // non-const.
@@ -256,7 +256,7 @@ void PartyRecordsReset(NamedPartyRecords* list) {
     party->AddMember(kHero, kHumanHero, "");
     party->zone = kFirstZone;
     party->entrance = 0;
-    party->variables.Set(kGameTime, kSix);
+    party->variables.Set(kGameTime, kStartGameTime);
 }
 
 Party* NamedPartyRecords::Find(std::string_view name) const {

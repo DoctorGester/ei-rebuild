@@ -25,6 +25,9 @@
 
 #include "vecmath.h"
 
+// Whether `v` is zero of either sign (a NaN is not zero).
+inline bool IsZero(float v) { return v == 0.0f; }
+
 // The sign bit of `v` (set for -0.0 and for a negative NaN).
 inline bool SignBit(float v) { return (std::bit_cast<std::uint32_t>(v) >> 31) != 0; }
 

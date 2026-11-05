@@ -32,13 +32,12 @@ void Append(std::vector<Item*>* list, Item* object) {
 }
 
 // One gold roll of the prototype: the amount (the minimum rounded, or a random value between the minimum and
-// a larger maximum, truncated), kept when the percent roll (CRT rand) is within the chance. The spread times the
-// random word, times 2^-32.
+// a larger maximum, truncated), kept when the percent roll (CRT rand) is within the chance.
 void RollGold(const UnitGoldRoll& roll, int* gold) {
     float low = roll.minimum;
     float high = roll.maximum;
     int amount = lib::RoundEven(low);
-    if (high > low) amount = static_cast<int>(((high - low) * g_random.Next()) * 0x1p-32f + low);
+    if (high > low) amount = static_cast<int>(g_random.Range(low, high));
     int percent = libcrt::RandBelow(100) + 1;
     if (static_cast<float>(percent) <= roll.chance) *gold += amount;
 }

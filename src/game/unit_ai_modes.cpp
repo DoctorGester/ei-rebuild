@@ -28,8 +28,8 @@
 #include <utility>
 
 namespace {
-// A random word * 0.4 / 2^32 + 0.8: the new alertness decay.
-constexpr float kDecayRandomScale = 0.4f * 0x1p-32f;
+// The new alertness decay: a random word to [0, 0.4) + 0.8.
+constexpr float kDecayRandomRange = 0.4f;
 constexpr float kDecayBase = 0.8f;
 
 constexpr float kNearRange = 35.0f;         // AIBrain::nearRange / farRange of the idle modes
@@ -86,7 +86,7 @@ void AIMode::Execute(AIBrain* brain) {
 void AIMode::Enter(AIBrain* brain) {
     brain->StopAction();
     std::uint32_t roll = g_random.Next();
-    brain->decay = (static_cast<float>(roll) * kDecayRandomScale) + kDecayBase;
+    brain->decay = ScaleWord(roll, kDecayRandomRange) + kDecayBase;
     brain->owner->moveMode2.onGuard = 0;
 }
 

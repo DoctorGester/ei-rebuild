@@ -48,12 +48,13 @@ constexpr float kPointTwo = 0.2f;
 constexpr float kPointThree = 0.3f;
 constexpr float kPointSix = 0.6f;
 constexpr std::uint32_t kRollSides = 5;           // a weapon hit rolls one of five faces
-constexpr float kTen = 10.0f;
+constexpr float kDefaultCastReach = 10.0f;
+constexpr float kCalledShotLimb = 10.0f;
 constexpr float kDistanceScale = 10.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kSpeedScale = 20.0f;
 constexpr float kCalledShotHead = 25.0f;
-constexpr float kHundred = 100.0f;
+constexpr float kSpreadSteps = 100.0f;
 constexpr float kPercent = 0.01f;
 constexpr float kHitMark = 3.4028235e38f;       // FLT_MAX
 constexpr float kMissMark = -3.4028235e38f;      // -FLT_MAX
@@ -238,7 +239,7 @@ float UnitServer::ActionDistance(const AIOrder* order) {
         if (!unit->player && stats.naturalWeapon == WeaponType::SpellsOnly) return stats.combat[UnitStats::CombatIndex::Reach];
         Spell* spell = SpellOfSource(order->source);
         if (spell) return SpellRange(spell);
-        return kTen;
+        return kDefaultCastReach;
     }
     if (kind == UnitOrderKind::Use) {
         if (order->Skill() == UseSource::SearchBody) {
@@ -390,7 +391,7 @@ bool UnitServer::ResolveHit(DamageInfo* hit, Unit* attacker) {
         }
         if (hit->calledShot) {
             if (hit->location == 0) roll = MaxKeepB(0.0f, roll - kCalledShotHead);
-            else if (hit->location != 1) roll = MaxKeepB(0.0f, roll - kTen);
+            else if (hit->location != 1) roll = MaxKeepB(0.0f, roll - kCalledShotLimb);
         }
     }
     AttackParams mine;
@@ -424,7 +425,7 @@ void UnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, cha
         float extra = 0.0f;
         float spread = stats.damageSpread;
         if (spread != 0.0f) {
-            float scaled = spread * kHundred;
+            float scaled = spread * kSpreadSteps;
             int sides = lib::RoundEven(scaled);
             std::uint32_t random = g_random.Next();
             extra = static_cast<float>(random % static_cast<std::uint32_t>(sides + 1)) * kPercent;

@@ -110,7 +110,7 @@ struct LightColour {
 
 class World : public ManagerContext {
 public:
-    World();
+    explicit World(ContextKind kind);
     ~World() override;
 
     // Folders, managers, the ISAAC generator and the countdowns set up.
@@ -119,21 +119,14 @@ public:
     void Destroy() override;
     bool RunTick() override;
 
-    World* ThisWorld() override { return this; }
-    BaseManager* TimedObjectManager() override { return timedObjectManager.get(); }
-    FigureManager* GetFigureManager() override { return figureManager.get(); }
     ItemConstructor* GetItemConstructor() override { return itemConstructor.get(); }
     SpellConstructor* GetSpellConstructor() override { return spellConstructor.get(); }
     ItemManager* ItemFactory() override { return itemManager.get(); }
-    MapObjectManager* GetMapObjectManager() override { return objectManager.get(); }
     PlayerManager* PlayerList() override { return players.get(); }
-    BaseManager* SpecificManager() override { return specificManager.get(); }
     SpellManager* GetSpellManager() override { return spellManager.get(); }
-    LinkFigureLoader* FigureLoader() override { return figureLoader; }
 
     // The world's own virtuals; docs/notes/map_objects.md, "Virtual slot names".
-    virtual const char* TexturePath() { return nullptr; }   // the client's "textures\"
-    virtual bool IsServer() { return false; }                    // the server's 1
+    bool IsServer() const { return contextKind == ContextKind::Server; }
     virtual float GridHeightAt(float x, float y) = 0;
     // The server's AI map height.
     virtual float RawSurfaceHeightAt(float x, float y) = 0;
@@ -148,10 +141,10 @@ public:
     // Seconds per tick become 1 / speed (0: stopped; negative: the setting) times 1/15, keeping the time
     // of day (SetTime). The server's updates the players and weather as SetTime does.
     virtual void SetTimeSpeed(float speed);
-    // The client's managers; null in the base.
-    virtual MaterialManager* GetMaterialManager() { return nullptr; }
-    virtual TextureManager* GetTextureManager() { return nullptr; }
-    virtual ParticleManager* ClientParticleManager() { return nullptr; }
+    // The client's managers; null on the server's world (world_client.cpp).
+    MaterialManager* GetMaterialManager();
+    TextureManager* GetTextureManager();
+    ParticleManager* ClientParticleManager();
     virtual MapObject* ObjectWithId(int id);
     // `object` moves to `position` (the client's sector map).
     virtual void MoveObject(MapObject*, const float*) {}
@@ -281,8 +274,6 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
     Item* DuplicateItem(Item* item) override { return CopyItem(item); }
-    WorldServer* ThisServerWorld() override { return this; }
-    bool IsServer() override;
     float GridHeightAt(float x, float y) override { return GridHeight(x, y); }
     // RawSurfaceHeightAt: the AI map's top height at (x, y, 0); the other two return GridHeightAt /
     // RawSurfaceHeightAt unclamped.
@@ -806,17 +797,12 @@ public:
     bool RunTick() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    WorldClient* ThisClientWorld() override { return this; }
-    const char* TexturePath() override;
     float GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }
     // The height of whatever surface is on top at (x, y): the ground, or the water when the point is submerged.
     float RawSurfaceHeightAt(float x, float y) override;
     // GridHeightAt / RawSurfaceHeightAt raised to the platforms over the point.
     float GroundHeightAt(float x, float y) override;
     float SurfaceHeightAt(float x, float y) override;
-    MaterialManager* GetMaterialManager() override;
-    TextureManager* GetTextureManager() override;
-    ParticleManager* ClientParticleManager() override;
     void MoveObject(MapObject* object, const float* position) override;
 
     void BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed);
@@ -1052,7 +1038,6 @@ public:
     // sessionKind 1 / 3 for kinds of multiplayer session.
     Player* session = nullptr;
     Camera* camera = nullptr;             // the view camera (DrawPass, Render)
-    std::string texturePath;             // <data path>textures\ (Setup)
     // The light colours by hour (0..23; r, g, b, 1) from the lights table's [sunlight], [ambient] and
     // [sky] sections (LoadLights).
     LightColour sunlight[24] = {};
@@ -1104,8 +1089,8 @@ float LocalPlayerVariable(std::string_view name);
 // of the server otherwise (0 without that player).
 float PlayerZeroVariable(std::string_view name);
 // For the quest and briefing screens: player zero's variables whose names start with `prefix` copied into
-// `out` (NamedFloatTable::CopyPrefixed), PlayerZeroVariable's player; `out` is emptied when there is none.
-void PlayerZeroVariables(const char* prefix, NamedFloatTable* out);
+// a table (NamedFloatTable::CopyPrefixed), PlayerZeroVariable's player; empty when there is none.
+NamedFloatTable PlayerZeroVariables(const char* prefix);
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts. `picks` draws the choices: the

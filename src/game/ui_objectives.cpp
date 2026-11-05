@@ -85,7 +85,7 @@ constexpr float kPictureSpan = 300.0f;
 constexpr float kMarkerHeight = 20.0f;
 constexpr float kMarkerHalfWidth = 10.0f;
 constexpr float kExitHalf = 15.0f;
-constexpr std::uint32_t kFarAway = 0x5A0E1BCA;   // 1e16
+constexpr std::uint32_t kObjectiveSearchStart = 0x5A0E1BCA;   // 1e16
 constexpr float kExitTurn = /*007C8170*/ 1.5707964f;   // a static initialiser: pi * 0.5
 constexpr float kExitTurnDown = 3.1415927f;
 
@@ -143,7 +143,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     zonePicture->texture = objects[2];
 
     // The exits that lead somewhere: a marker (triangle pointing out of the picture) and a region.
-    float nearest = FloatFromBits(kFarAway);
+    float nearest = FloatFromBits(kObjectiveSearchStart);
     nearestExit = -1;
     bool anyKnown = false;
     exits.clear();

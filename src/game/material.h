@@ -80,7 +80,6 @@ public:
     ~MaterialManager() override;
     const char* ClassName() override;   // 11: "CMaterialManager"
     ClassId GetClassId() override;
-    const char* GetFolderName() override;    // 25: "materials"
 
     // Rebirth-patched. BaseManager's Create (0 when it fails); the archive "materials.res" of the text
     // folder added; then the colours of each of the eight kinds of kMaterialKindFiles (0x11 leather, wood,

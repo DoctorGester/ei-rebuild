@@ -47,7 +47,7 @@ constexpr int kRevivedIdStep = 1000000;
 constexpr int kNoId = -1;                             // see LeaderDied: the original's uninitialised ids
 constexpr float kUnknownZ = -1313.0f;                 // lastPosition.z after a revival
 constexpr float kPathRange = 1000000.0f;              // FindPath's range for the use order
-constexpr float kFarAway = 1e30f;                     // the nearest-unit search's start
+constexpr float kNearestSearchStart = 1e30f;                     // the nearest-unit search's start
 
 // The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
@@ -79,7 +79,7 @@ bool DropForOtherDatabase(PlayerServer* server) {
     return true;
 }
 
-using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, bool, bool, const Vector3&);
+enum class MoveCommand { Walk, GoTo };
 void MoveUnits(MemoryStream& in, MoveCommand command) {
     std::vector<Unit*> units{};
     std::vector<Vector3> offsets{};
@@ -91,8 +91,10 @@ void MoveUnits(MemoryStream& in, MoveCommand command) {
     FormationOffsets(&units, &offsets);
     for (int i = 0; i < std::ssize(units); ++i) {
         AIBrain* brain = &units[i]->ServerController()->brain;
-        if (PlayerMode* mode = brain->FindModeOf<PlayerMode>())
-            (mode->*command)(brain, to, std::ssize(units) > 1, run != 0, offsets[i]);
+        PlayerMode* mode = brain->FindModeOf<PlayerMode>();
+        if (!mode) continue;
+        if (command == MoveCommand::Walk) mode->CommandWalk(brain, to, std::ssize(units) > 1, run != 0, offsets[i]);
+        else mode->CommandGoTo(brain, to, std::ssize(units) > 1, run != 0, offsets[i]);
     }
 }
 
@@ -192,7 +194,7 @@ bool PlayerServer::OnUseOrder() {
         Unit* first = nullptr;
         bool accepted = false;
         while (!units.empty()) {
-            float best = kFarAway;
+            float best = kNearestSearchStart;
             Unit* nearest = nullptr;
             int nearestIndex = 0;
             for (int i = 0; i < std::ssize(units); ++i) {
@@ -374,11 +376,11 @@ bool PlayerServer::OnResume() {
 }
 
 bool PlayerServer::OnWalk() {
-    MoveUnits(in, &PlayerMode::CommandWalk);
+    MoveUnits(in, MoveCommand::Walk);
     return true;
 }
 bool PlayerServer::OnGoTo() {
-    MoveUnits(in, &PlayerMode::CommandGoTo);
+    MoveUnits(in, MoveCommand::GoTo);
     return true;
 }
 

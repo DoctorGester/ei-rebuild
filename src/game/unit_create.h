@@ -91,7 +91,6 @@ struct MapObjectManager : ResourceManager {
     // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
     // Torch for the torch. Returns the object or null.
     EngineObject* CreateObject(int type, int id) override;
-    const char* GetFolderName() override;                   // "map objects"
 
     // The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(Unit* unit, const std::string& name);

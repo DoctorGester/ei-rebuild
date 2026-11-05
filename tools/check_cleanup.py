@@ -628,8 +628,9 @@ PATTERNS = {
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
     # The system's own sin, cos, pow ... round differently on each system; game code calls src/lib/maths.h's
-    # (docs/notes/float-maths.md, "Maths functions"). The renderer's, the sound's and the scripts' doubles are counted
-    # where they were.
+    # (docs/notes/float-maths.md, "Maths functions"). Left at 4 (C161): script_addon_math.cpp's Sin / Cos / Pow (Rebirth's
+    # script functions answer the CRT's own results; lib:: would move a script's value by an ulp) and bink_audio.cpp's
+    # double pow (the decoder is checked bit for bit against the oracle).
     'system maths function': re.compile(
         r'\bstd::(?:sin|cos|tan|asin|acos|atan|atan2|exp|exp2|expm1|log|log2|log10|log1p|pow|hypot|cbrt|sinh|cosh|tanh)'
         r'\s*\('),
@@ -685,7 +686,9 @@ PATTERNS = {
     'field with two start values (initialiser, constructor or Reset)': count_double_start_states,
     # A k* constant at namespace scope defined in two files with different values (count_conflicting_constants above).
     'constant defined twice with another value': count_conflicting_constants,
-    # Virtuals nobody calls, and empty virtuals that are still called (count_virtuals_never_called above).
+    # Virtuals nobody calls, and empty virtuals that are still called (count_virtuals_never_called above). Left at 2
+    # (C161), unreached gameplay code that stays (user, "keep gameplay code"): MapObject::IsOverkilled and
+    # Unit::RemoveWeaponModel.
     'virtual never called': count_virtuals_never_called,
     'empty virtual still called': count_empty_virtuals_called,
     # Maths helpers take and return values (round 4 Z5): a helper over the address of a constant, ConstPtr<>(2.0f), a

@@ -62,9 +62,6 @@ constexpr SkillAnimation kStoneAnimation[MainMenu::kButtons] = {SkillAnimation::
                                                SkillAnimation::Briefing05, SkillAnimation::Briefing07,
                                                SkillAnimation::Briefing11, SkillAnimation::Briefing09};
 
-// A random word scaled to [0, scale).
-float RandomScaled(float scale) { return g_clientRandom.Next() * scale; }
-
 } // namespace
 
 // --- The interface's saved state cleared ----------------------------------------------
@@ -130,10 +127,10 @@ void MainMenu::Update() {
             if (g_clientRandom.Next() % 41 == 4) {
                 // A bolt from a random point high above the map to one near it on the ground; each
                 // coordinate is stored as a float before it is used again.
-                float fromX = RandomScaled(4.656613e-09f);
-                float fromY = RandomScaled(1.3969839e-08f);
-                float toX = RandomScaled(9.313226e-10f) + fromX - 2.0f;
-                float toY = RandomScaled(9.313226e-10f) + fromY - 2.0f;
+                float fromX = g_clientRandom.Below(20.0f);
+                float fromY = g_clientRandom.Below(60.0f);
+                float toX = g_clientRandom.Below(4.0f) + fromX - 2.0f;
+                float toY = g_clientRandom.Below(4.0f) + fromY - 2.0f;
                 ShowBolt(Vector3{fromX, fromY, 17.0f}, Vector3{toX, toY, 1.0f}, g_clientRandom);
             }
         }

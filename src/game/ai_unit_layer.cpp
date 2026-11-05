@@ -65,7 +65,7 @@ void UnitLayer::Add(UnitLayerOwner owner, const UnitShape* shape, Point topLeft)
     UnitLayerNode* node = TakeNode(this);
     for (int by = 0; by < 5; ++by) {
         for (int bx = 0; bx < 5; ++bx) {
-            for (int r = 0; r < 4; ++r) std::memcpy(&node->levels[r * 4], grid + (by * 4 + r) * 20 + bx * 4, 4);
+            for (int r = 0; r < 4; ++r) std::copy_n(grid + (by * 4 + r) * 20 + bx * 4, 4, &node->levels[r * 4]);
             if (!AnyLevel(node)) continue;
             int keyY = (topLeft.y >> 2) + by;
             int keyX = (topLeft.x >> 2) + bx;

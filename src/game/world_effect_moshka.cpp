@@ -32,7 +32,7 @@ constexpr float kPerchedFrames = 200.0f;      // after Follow
 constexpr float kCirclingFrames = 100.0f;     // then a perch is looked for
 constexpr float kFlyingOffFrames = 150.0f;    // after which the bird is reset
 constexpr float kMaxStep = 5.0f;              // frames per Update at most
-constexpr float kNearSquared = 25.0f;         // planar distance^2 at which a perched bird starts circling
+constexpr float kCirclingRangeSquared = 25.0f;         // planar distance^2 at which a perched bird starts circling
 constexpr float kCircleRadius = 1.5f;         // around the followed object
 constexpr float kCircleHeight = 3.2f;         // above it
 constexpr float kAngularSpeed = 0.2f;         // radians per frame
@@ -50,7 +50,7 @@ constexpr float kPerchRadiusStep = 5.0f;
 constexpr float kPerchMinRadius = 4.0f;
 constexpr float kPerchHeight = 30.0f;
 constexpr float kPerchHeightStep = 3.0f;
-constexpr float kRandomAngle = 6.28f * 0x1p-32f;   // a random word to [0, 6.28)
+constexpr float kFlightAngleRange = 6.28f;   // a random word to [0, 6.28)
 
 // a == b, or unordered.
 bool Same(float a, float b) {
@@ -90,7 +90,7 @@ Vector3 EffectMoshka::FindPerch(const Vector3& from) {
     Vector3 perch;
     for (;;) {
         float radius = MaxKeepB(distance, kPerchMinRadius);
-        float flightAngle = static_cast<float>(g_clientRandom.Next()) * kRandomAngle;
+        float flightAngle = g_clientRandom.Below(kFlightAngleRange);
         perch.z = from.z + perchHeight;
         perch.x = (lib::Cos(flightAngle) * radius) + from.x;
         perch.y = (lib::Sin(flightAngle) * radius) + from.y;
@@ -157,7 +157,7 @@ void EffectMoshka::Update(float now) {
                            target.z - birdAt.z};
         float dx = target.x - birdAt.x;
         float dy = target.y - birdAt.y;
-        if (LengthSquared2D(dy, dx) < kNearSquared) {   // close: start circling from here
+        if (LengthSquared2D(dy, dx) < kCirclingRangeSquared) {   // close: start circling from here
             float heading = lib::Atan2(-toFollowed.x, toFollowed.y);
             state = State::Circling;
             timer = kCirclingFrames;

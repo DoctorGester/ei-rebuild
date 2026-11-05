@@ -23,12 +23,13 @@ constexpr std::uint32_t kMaxStreamLength = 100000;
 
 // A fixed view over `self`'s bytes run through the coder into a growing buffer, whose bytes then replace
 // `out`'s (Resize, Seek 0, Write, Seek 0).
-void CodeStream(MemoryStream* self, CoderState* coder, MemoryStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
+void CodeStream(MemoryStream* self, CoderState* coder, MemoryStream* out, bool compress) {
     GrowingBuffer result;
     std::uint8_t* data = self->data.data();
     std::uint8_t* last = data + self->Size();
     BufferView view(data, last);
-    (coder->*code)(&view, &result);
+    if (compress) coder->Compress(&view, &result);
+    else coder->Decompress(&view, &result);
     out->Resize(static_cast<std::uint32_t>(result.Size()));
     out->Seek(0);
     std::uint32_t length = static_cast<std::uint32_t>(result.Size());
@@ -406,9 +407,9 @@ int MemoryStream::ReadStream(MemoryStream* to) {
     return 1;
 }
 
-void MemoryStream::CompressTo(CoderState* coder, MemoryStream* out) { CodeStream(this, coder, out, &CoderState::Compress); }
+void MemoryStream::CompressTo(CoderState* coder, MemoryStream* out) { CodeStream(this, coder, out, true); }
 
-void MemoryStream::DecompressTo(CoderState* coder, MemoryStream* out) { CodeStream(this, coder, out, &CoderState::Decompress); }
+void MemoryStream::DecompressTo(CoderState* coder, MemoryStream* out) { CodeStream(this, coder, out, false); }
 
 FileStream::FileStream() = default;
 

@@ -388,10 +388,18 @@ ClassId WorldClient::GetClassId() { return ClassId::WorldClient; }
 // --- Getters and small calls other code reaches through the world: the managers, the new texture /
 // material, the camera, the value of message 0x12 and the water levels of message 0x73 --------------------
 
-const char* WorldClient::TexturePath() { return texturePath.c_str(); }
-MaterialManager* WorldClient::GetMaterialManager() { return materialManager.get(); }
-TextureManager* WorldClient::GetTextureManager() { return textureManager.get(); }
-ParticleManager* WorldClient::ClientParticleManager() { return particleManager.get(); }
+MaterialManager* World::GetMaterialManager() {
+    WorldClient* client = ThisClientWorld();
+    return client ? client->materialManager.get() : nullptr;
+}
+TextureManager* World::GetTextureManager() {
+    WorldClient* client = ThisClientWorld();
+    return client ? client->textureManager.get() : nullptr;
+}
+ParticleManager* World::ClientParticleManager() {
+    WorldClient* client = ThisClientWorld();
+    return client ? client->particleManager.get() : nullptr;
+}
 
 void WorldClient::MoveObject(MapObject* object, const float* position) {
     objectGrid.Move(object, position);

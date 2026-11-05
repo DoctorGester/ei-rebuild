@@ -23,11 +23,8 @@ const char* const kWrongStringCount = "Wrong number of script %s string paramete
 const char* const kWrongObjectCount = "Wrong number of script %s object parameters";
 const char* const kWrongGroupCount = "Wrong number of script %s group parameters";
 
-// An FX source's offset on one axis: (r - (-r)) * random / 2^32 + (-r).
-float FxOffset(float radius, std::uint32_t random) {
-    const float negative = -radius;
-    return (radius - negative) * (random * 0x1p-32f) + negative;
-}
+// An FX source's offset on one axis: a random word to [-radius, radius).
+float FxOffset(float radius, std::uint32_t random) { return RangeOfWord(random, -radius, radius); }
 
 void RespawnFxSources(Script* script) {
     for (ScriptFxSource& fx : script->fxSources) {

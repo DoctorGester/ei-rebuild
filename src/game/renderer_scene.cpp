@@ -13,6 +13,7 @@
 #include "ui.h"
 #include "screen_layout.h"
 #include "world.h"
+#include "lib/scales.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "platform/platform.h"
@@ -42,7 +43,6 @@ int SceneRenderer::EndScene() {
 namespace {
 
 constexpr float kColourScale = 255.0f;
-constexpr float kInverseColourScale = 0.003921569f;   // 1 / 255
 // AmbientColour: the ambient colour SetColour set last.
 float g_ambientColour[3] = {};
 
@@ -70,9 +70,9 @@ void SceneRenderer::SetColour(std::uint32_t newColour) {
     const int red = static_cast<int>((newColour >> 16) & 0xFF);
     const int green = static_cast<int>((newColour >> 8) & 0xFF);
     const int blue = static_cast<int>(newColour & 0xFF);
-    g_ambientColour[0] = red * kInverseColourScale;
-    g_ambientColour[1] = green * kInverseColourScale;
-    g_ambientColour[2] = blue * kInverseColourScale;
+    g_ambientColour[0] = red * lib::kByteScale;
+    g_ambientColour[1] = green * lib::kByteScale;
+    g_ambientColour[2] = blue * lib::kByteScale;
     device->colour = newColour;
 }
 
@@ -149,9 +149,6 @@ void SceneRenderer::CreatePipeline() { pipeline.Assign(new TransformPipeline());
 // --- Scene renderer ----------------------------------------------------------------------------------
 
 // The scene renderer's members (SceneRenderer, model.h) that are game code rather than device code.
-
-namespace {
-} // namespace
 
 void SceneRenderer::SetFogColour(float r, float g, float b) {
     // Each product is stored as a float, then it is rounded to the nearest integer.

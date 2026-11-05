@@ -18,6 +18,7 @@
 #include "ui_flying_hit_points.h"
 #include "unit_db.h"
 #include "world.h"
+#include "lib/scales.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 
@@ -27,7 +28,7 @@
 #include <vector>
 
 namespace {
-constexpr float kByteToUnit = 0.003921569f;   // 1 / 255
+constexpr float kByteToUnit = lib::kByteScale;
 
 // The game's data folder (a string global) and the strings passed by address.
 const char* ConfigFolder() { return "config\\"; }

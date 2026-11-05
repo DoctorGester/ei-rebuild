@@ -78,7 +78,7 @@ void World::Create() {
     countdowns.entries.clear();
 }
 
-World::World() {}
+World::World(ContextKind kind) : ManagerContext(kind) {}
 
 bool World::RunTick() { return true; }
 
@@ -106,12 +106,12 @@ static_assert(lib::Bits(kClientFlags) == 0x35C0);
 
 } // namespace
 
-WorldServer::WorldServer() {
+WorldServer::WorldServer() : World(ContextKind::Server) {
     diplomacy.Reset();
     ResetState();
 }
 
-WorldClient::WorldClient() {
+WorldClient::WorldClient() : World(ContextKind::Client) {
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).
     objectGrid.allocatedWidth = 1;
     objectGrid.allocatedHeight = 1;
@@ -185,7 +185,6 @@ namespace {
 constexpr const char* kPlayerManagerName = "CPlayerManager";
 constexpr const char* kEffectManagerName = "CEffectManager";
 constexpr const char* kItemManagerName = "CItemManager";
-constexpr const char* kItemsFolderName = "items";
 
 } // namespace
 
@@ -227,7 +226,6 @@ ItemManager::ItemManager() {}
 ItemManager::~ItemManager() {}
 const char* ItemManager::ClassName() { return kItemManagerName; }
 ClassId ItemManager::GetClassId() { return ClassId::ItemManager; }
-const char* ItemManager::GetFolderName() { return kItemsFolderName; }
 
 
 // --- World sessions ----------------------------------------------------------------------------------

@@ -43,8 +43,6 @@ public:
     // The archive interface of the managers that load from resource archives
     // (ResourceManager overrides them); here they do nothing and return 0 / null / false.
     virtual bool AddArchive(const std::string& path);
-    virtual bool RemoveArchive(const std::string& path);
-    virtual bool RemoveAllArchives();
     virtual void* GetFile(std::string_view name, std::uint32_t* size);
     virtual bool CloseFile(void* data);
     virtual bool HasFile(std::string_view name);

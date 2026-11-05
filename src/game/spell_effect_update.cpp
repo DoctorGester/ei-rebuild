@@ -38,9 +38,7 @@ void MissileImpact(SpellEffect* e, ParticleType particleType, const char* sound)
     e->position = missile->localPosition;
     if (missile->arrived == 0) return;
 
-    DamageInfo hit;
-    e->GetDamage(&hit);
-    if (IsUnit(e->target)) e->HitUnit(&hit, e->target);
+    e->HitTarget();
     e->ReleaseVisual();
     e->ReleaseSound();
     e->ReleaseLight();

@@ -473,13 +473,7 @@ int PanelSlide::Offset() const {
 // --- Map -------------------------------------------------------------------------------------------------------------
 
 void HudMap::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: HitRegion(event); break;
-    case UiEventKind::Wheel: Wheel(event); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { LeftDown(event); }, [&] { LeftUp(event); }, [&] { HitRegion(event); }, [&] { Wheel(event); });
 }
 
 void HudMap::LeftDown(UiEvent& event) {
@@ -950,21 +944,12 @@ void HudMap::Setup(float newZoom, bool slid) {
 // --- Unit panel ------------------------------------------------------------------------------------------------------
 
 void HudUnitPanel::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: PressRegion(event); break;
-    case UiEventKind::LeftUp: LeftUp(event); break;
-    case UiEventKind::MouseMove: HitRegion(event); break;
-    case UiEventKind::Wheel: HitRegion(event); break;
-    default: break;
-    }
+    DispatchMouse(event, [&] { PressRegion(event); }, [&] { LeftUp(event); }, [&] { HitRegion(event); }, [&] { HitRegion(event); });
 }
 
 void HudUnitPanel::LeftUp(UiEvent& event) {
     const UiRegion* region = PressedRegion(event);
-    if (region == slingButton) {
-        slide.Toggle();
-        return;
-    }
+    if (ToggleSling(region, slingButton, slide)) return;
     if (const int part = RegionIndex(partButtons, region); part >= 0) {
         g_interface.PlayInterfaceSound(kSoundClick);
         bodyPart = part;

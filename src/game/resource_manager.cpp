@@ -39,21 +39,6 @@ bool ResourceManager::AddArchiveOf(const std::string& path, bool mapped) {
     return true;
 }
 
-bool ResourceManager::RemoveArchive(const std::string& path) {
-    for (auto e = archives.begin(); e != archives.end(); ++e) {
-        if (e->name != path) continue;
-        delete e->resource;
-        archives.erase(e);
-        return true;
-    }
-    return false;
-}
-
-bool ResourceManager::RemoveAllArchives() {
-    CloseAll(archives);
-    return true;
-}
-
 void* ResourceManager::GetFile(std::string_view name, std::uint32_t* size) {
     for (ArchiveEntry& e : archives)
         if (void* data = e.resource->GetFile(name, size)) return data;

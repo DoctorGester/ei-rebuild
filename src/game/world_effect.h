@@ -144,7 +144,6 @@ public:
     void Pack(DeltaWriter& field) override;
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    virtual float LightRadius();
 
     Vector3 color;
     float range = 0.0f;        // negative: LightFlag::Off on the light

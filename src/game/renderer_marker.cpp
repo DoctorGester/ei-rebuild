@@ -6,6 +6,7 @@
 
 #include "model.h"         // SceneRenderer
 #include "texture.h"       // TextureDevice
+#include "lib/scales.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/vecmath.h"
@@ -137,7 +138,6 @@ int SceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int a
 
 namespace {
 
-constexpr float kLevelStep = 0.003921569f;   // 1/255
 constexpr float kRampScale = 65280.0f;
 constexpr int kLevels = 256;
 
@@ -151,7 +151,7 @@ void BuildRamp(std::uint16_t (&ramp)[kLevels], float brightness, float gamma) {
     else if (gamma < 0.0f) exponent = 1.0f / (gamma * 0.5f + 1.0f);
 
     for (int i = 0; i < kLevels; ++i) {
-        float value = lib::Pow(i * kLevelStep, exponent);
+        float value = lib::Pow(i * lib::kByteScale, exponent);
         value = Clamp(value, 0.0f, 1.0f);
         value = Clamp(value + brightness, 0.0f, 1.0f);
         auto level = static_cast<std::uint16_t>(static_cast<int>(value * kRampScale));   // _ftol: truncated

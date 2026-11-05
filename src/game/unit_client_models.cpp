@@ -39,8 +39,8 @@ namespace {
 constexpr int kLayerSkin = 0x32;
 constexpr int kDetailedLayers = 8;
 constexpr int kSimpleLayers = 2;
-constexpr int kFlagDetailed = 0x100;
-constexpr int kFlagSimple = 0x80;
+constexpr int kDetailedSide = 256;   // the texture side of a full skin
+constexpr int kSimpleSide = 128;
 
 const char* const kHair = "hr";
 const char* const kHead = "hd";
@@ -104,7 +104,7 @@ void NameSkinTextures(const UnitClientSpecific* self, int detailed, SkinRequest&
     if (!detailed) {
         unitKey = std::format("mo{}s", id);
         prototypeKey = std::format("prot{}s", static_cast<int>(unit->prototypeId));
-        request.side = kFlagSimple;
+        request.side = kSimpleSide;
         if (self->armourIds[0] != kNoItemId) AddArmourTexture(request, unit, texture, self->armourIds[0]);
         std::uint32_t hand = unit->activeWeapon;
         if (hand < 4 && self->weaponIds[hand] != kNoItemId) {
@@ -116,7 +116,7 @@ void NameSkinTextures(const UnitClientSpecific* self, int detailed, SkinRequest&
     }
     unitKey = std::format("mo{}p", id);
     prototypeKey = std::format("prot{}p", static_cast<int>(unit->prototypeId));
-    request.side = kFlagDetailed;
+    request.side = kDetailedSide;
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId));
     if (prototype)
         texture = str::Format("%sskin_%.2d.mmp", unit->name, prototype->skin);
@@ -404,7 +404,7 @@ bool UnitClientSpecific::ComposeSkin(int detailed, std::string* target) {
 // --- The client controller's Create and Destroy ----------------------------------------------------
 
 namespace {
-constexpr int kNone = -1;
+constexpr int kUnsetIndex = -1;
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
 constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
 
@@ -426,14 +426,14 @@ void UnitClientSpecific::Create() {
     arrowHidden = 0;
     snapHeading = 1;
     fadeIn = 1.0f;
-    idleSound = kNone;
-    otherSound = kNone;
-    speechSound = kNone;
+    idleSound = kUnsetIndex;
+    otherSound = kUnsetIndex;
+    speechSound = kUnsetIndex;
     lastSpeech = nullptr;
     lastSpeechTime = 0;
     flashCountdown = 0;
-    footprintRepeats = kNone;
-    footprint = kNone;
+    footprintRepeats = kUnsetIndex;
+    footprint = kUnsetIndex;
     blinks = 0;
     blinkTimer = 0;
     eyesClosed = 0;

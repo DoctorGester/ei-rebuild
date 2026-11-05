@@ -76,7 +76,6 @@ constexpr const char* kCFigureManagerClassName = "CFigureManager";
 
 const char* FigureManager::ClassName() { return kCFigureManagerClassName; }
 ClassId FigureManager::GetClassId() { return ClassId::FigureManager; }
-const char* FigureManager::GetFolderName() { return "figures"; }
 
 // --- Figure animation --------------------------------------------------------------------------------
 

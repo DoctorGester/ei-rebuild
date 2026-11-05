@@ -139,15 +139,15 @@ void ListMeshPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
         bool cached = false;
     };
     constexpr Cull kCw = Cull::Clockwise, kNone = Cull::None;
-    constexpr Blend kSourceAlpha = Blend::SourceAlpha, kInvSourceAlpha = Blend::InvSourceAlpha, kOne = Blend::One;
+    constexpr Blend kSourceAlpha = Blend::SourceAlpha, kInvSourceAlpha = Blend::InvSourceAlpha;
     static constexpr Wanted kWanted[] = {
         {kCw, true, kSourceAlpha, kInvSourceAlpha, true, true, true},
         {kCw, true, kSourceAlpha, kInvSourceAlpha, true, true, false},
         {kCw, true, kSourceAlpha, kInvSourceAlpha, true, false, false},
         {kNone, true, kSourceAlpha, kInvSourceAlpha, true, false, true},
         {kNone, true, kSourceAlpha, kInvSourceAlpha, true, false, false},
-        {kNone, false, kOne, Blend::Zero, true, true, false},
-        {kCw, true, kSourceAlpha, kOne, true, false, false},
+        {kNone, false, Blend::One, Blend::Zero, true, true, false},
+        {kCw, true, kSourceAlpha, Blend::One, true, false, false},
         {kCw, true, kSourceAlpha, kInvSourceAlpha, false, false, false},
     };
     for (const Wanted& w : kWanted) {
