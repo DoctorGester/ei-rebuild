@@ -1,16 +1,16 @@
 // The "pers <name>" texts of the battle and briefing screens (PersonTextMap, ui_camp.h): one line
 // per person, by the text key of the person's name. Read by the battle screen's setup (inline
 // there) and the briefing screen.
-#include "ui_camp.h"
+#include "game/ui_camp.h"
 
-#include "text_manager.h"
-#include "object_tables.h"
+#include "game/text_manager.h"
+#include "game/object_tables.h"
 
-#include "console.h"
+#include "game/console.h"
 #include <string>
 #include "lib/str.h"
-#include "game_singletons.h"
-#include "world.h"
+#include "game/game_singletons.h"
+#include "game/world.h"
 
 namespace {
 

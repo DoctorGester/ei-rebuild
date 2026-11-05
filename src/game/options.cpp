@@ -1,9 +1,9 @@
 // The options loader and writer. See options.h.
 // Every value is read from the settings file in the game's order; a value that is missing keeps the field's current
 // value, which is passed as the default.
-#include "options.h"
+#include "game/options.h"
 
-#include "settings.h"
+#include "game/settings.h"
 
 #include "lib/str.h"
 

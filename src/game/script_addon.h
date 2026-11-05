@@ -5,7 +5,7 @@
 // replacing a game one, the '?' (optional parameter) and '+' (repeat the previous type) signature letters, and a
 // stricter keyword match. Internal to script_addon*.cpp and the script functions that call into it.
 
-#include "script.h"
+#include "game/script.h"
 
 namespace scriptaddon {
 

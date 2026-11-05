@@ -2,7 +2,7 @@
 
 // The in-game chat overlay.
 
-#include "ui.h"
+#include "game/ui.h"
 
 // A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.
 struct ChatLine {

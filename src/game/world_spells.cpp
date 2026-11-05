@@ -1,16 +1,16 @@
 // WorldServer: casting spells into the world (CastSpell) and the missile that carries one (CreateMissile). See
 // world.h and docs/notes/world.md.
-#include "object_diplomacy.h"
-#include "world.h"
-#include "combat.h"
+#include "game/object_diplomacy.h"
+#include "game/world.h"
+#include "game/combat.h"
 
-#include "core_maths.h"
-#include "map_object.h"
-#include "player_messages.h"
-#include "script.h"
-#include "spell.h"
-#include "unit.h"
-#include "unit_ai.h"
+#include "game/core_maths.h"
+#include "game/map_object.h"
+#include "game/player_messages.h"
+#include "game/script.h"
+#include "game/spell.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
 
 #include <cstring>
 

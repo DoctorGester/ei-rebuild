@@ -1,18 +1,18 @@
 // The renderer's scene bracket: BeginScene with the last frame's time, EndScene closing the frame. The main loop
 // brackets each frame's drawing with them.
-#include "core_maths.h"
+#include "game/core_maths.h"
 
-#include "engine_object.h"
-#include "figure_mesh.h"   // FigureMesh
-#include "game_singletons.h"
-#include "link_figure.h"   // FigureMeshDrawer
-#include "model.h"     // SceneRenderer
-#include "renderer_lines.h"
-#include "spell.h"     // Light
-#include "texture.h"   // TextureDevice, Texture
-#include "ui.h"
-#include "screen_layout.h"
-#include "world.h"
+#include "game/engine_object.h"
+#include "game/figure_mesh.h"   // FigureMesh
+#include "game/game_singletons.h"
+#include "game/link_figure.h"   // FigureMeshDrawer
+#include "game/model.h"     // SceneRenderer
+#include "game/renderer_lines.h"
+#include "game/spell.h"     // Light
+#include "game/texture.h"   // TextureDevice, Texture
+#include "game/ui.h"
+#include "game/screen_layout.h"
+#include "game/world.h"
 #include "lib/scales.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"

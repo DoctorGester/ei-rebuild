@@ -6,8 +6,8 @@
 // compiler makes their vtables).
 // server_specific_manager.cpp. Names from the classes' own ClassName strings.
 
-#include "base_manager.h"
-#include "engine_object.h"
+#include "game/base_manager.h"
+#include "game/engine_object.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -7,7 +7,7 @@
 // when that worked and no bridge deck is left on the grid cell, a cell that was under a bridge is restored from
 // the bridge map, kCellBridge cleared and kCellWater set when the cell has a water depth; with a deck left, the
 // ground becomes max(saved ground, highest deck). See ai_map.h and docs/notes/ai.md.
-#include "ai_map.h"
+#include "game/ai_map.h"
 
 #include <cstdint>
 

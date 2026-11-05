@@ -1,7 +1,7 @@
 // The settings file's text, its values' text, the catalog of what every setting does and the defaults (no file, no
 // game): Document, the Parse / Text functions of the values, Describe, Defaults. See settings.h;
 // tests/unit/settings_file.cpp checks them without the game.
-#include "settings.h"
+#include "game/settings.h"
 
 #include "lib/text_case.h"
 
@@ -228,7 +228,7 @@ namespace {
 
 constexpr Described kCatalog[] = {
 #define EI_SETTING(section, name, defaultText, values, description) {section, name, defaultText, values, description},
-#include "settings_catalog.inc"
+#include "game/settings_catalog.inc"
 #undef EI_SETTING
 };
 

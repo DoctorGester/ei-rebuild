@@ -1,13 +1,13 @@
 // Small pieces of the early code without a better home: the BaseManager subclass
 // (its deleting destructor and the object factory differ), a
 // cursor reset of the coder, an exception cleanup step and the aligned array allocations. See docs/notes/core.md.
-#include "base_manager.h"
-#include "link_figure.h"
-#include "map_object_shadow.h"
-#include "player_client.h"
-#include "torch_client_spec.h"
-#include "unit.h"
-#include "unit_client_models.h"
+#include "game/base_manager.h"
+#include "game/link_figure.h"
+#include "game/map_object_shadow.h"
+#include "game/player_client.h"
+#include "game/torch_client_spec.h"
+#include "game/unit.h"
+#include "game/unit_client_models.h"
 
 #include <cstdint>
 #include <cstring>

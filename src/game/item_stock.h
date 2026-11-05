@@ -10,8 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "engine_object.h"
-#include "item_db.h"
+#include "game/engine_object.h"
+#include "game/item_db.h"
 #include "lib/hash_map.h"
 
 class Item;

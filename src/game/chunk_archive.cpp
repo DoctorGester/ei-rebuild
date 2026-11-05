@@ -1,11 +1,11 @@
 // The tagged-chunk archive: the chunk primitives, entering and leaving chunks,
 // fields, whole archives over a stream. See docs/notes/core.md.
-#include "chunk_archive.h"
+#include "game/chunk_archive.h"
 
-#include "class_templates.h"
-#include "core_refcount.h"
-#include "hash_tables_400.h"
-#include "party_records.h"
+#include "game/class_templates.h"
+#include "game/core_refcount.h"
+#include "game/hash_tables_400.h"
+#include "game/party_records.h"
 
 #include "lib/bytes.h"
 

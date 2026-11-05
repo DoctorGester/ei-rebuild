@@ -1,9 +1,9 @@
 // ServerSpecificManager and TorchObjectSpec. See server_specific_manager.h.
-#include "server_specific_manager.h"
+#include "game/server_specific_manager.h"
 
-#include "combat.h"
-#include "player_messages.h"
-#include "unit.h"   // MapObjectServer
+#include "game/combat.h"
+#include "game/player_messages.h"
+#include "game/unit.h"   // MapObjectServer
 
 #include <new>
 

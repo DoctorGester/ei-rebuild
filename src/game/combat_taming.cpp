@@ -3,14 +3,14 @@
 // the controller), 3 in the tamer's party with a "tamed" AI mode; a failed attempt (or one on a creature with
 // a player) undoes the taming when it was the tamer's side doing it, and counts as an attack. See
 // docs/notes/combat.md ("Order lifecycle").
-#include "combat.h"
-#include "engine_object.h"
-#include "map_object.h"
-#include "object_diplomacy.h"
-#include "player_messages.h"
-#include "unit.h"
-#include "unit_ai.h"
-#include "world.h"
+#include "game/combat.h"
+#include "game/engine_object.h"
+#include "game/map_object.h"
+#include "game/object_diplomacy.h"
+#include "game/player_messages.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world.h"
 
 #include <cstdint>
 #include <list>

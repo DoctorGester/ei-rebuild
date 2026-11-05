@@ -1,7 +1,7 @@
 // Object footprints in the AI map: collecting the cells an object's model parts cover, stamping
 // them into the occluder grid, and refreshing passability around them.
-#include "ai_map.h"
-#include "ai_unit_layer.h"
+#include "game/ai_map.h"
+#include "game/ai_unit_layer.h"
 
 #include "lib/containers.h"
 #include "lib/rounding.h"

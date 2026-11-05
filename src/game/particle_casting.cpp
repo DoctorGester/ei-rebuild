@@ -1,16 +1,16 @@
 // Particle effects of spells being cast or worn: each effect's set-up, emission, update and element tick.
 // More: docs/notes/effects.md, "Particle sources".
-#include "particle_common.h"
+#include "game/particle_common.h"
 
-#include "angles.h"
-#include "camera.h"
-#include "core_maths.h"
-#include "effects.h"
-#include "game_singletons.h"
-#include "map_object_figures.h"
-#include "random.h"
-#include "unit.h"
-#include "world.h"
+#include "game/angles.h"
+#include "game/camera.h"
+#include "game/core_maths.h"
+#include "game/effects.h"
+#include "game/game_singletons.h"
+#include "game/map_object_figures.h"
+#include "game/random.h"
+#include "game/unit.h"
+#include "game/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

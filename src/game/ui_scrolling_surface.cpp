@@ -3,12 +3,12 @@
 // glyph runs at a scroll offset that moves with the game time. Twips and font sizes go to pixels at a DPI taken from
 // the window's size, as the interface's fonts are sized (TitlesDpi), not from the system's (docs/notes/ui-native.md,
 // "The titles' rich text"). See docs/notes/ui.md, section 4.
-#include "ui.h"
-#include "ui_screens.h"
-#include "screen_layout.h"
+#include "game/ui.h"
+#include "game/ui_screens.h"
+#include "game/screen_layout.h"
 
-#include "resource.h"
-#include "world.h"
+#include "game/resource.h"
+#include "game/world.h"
 
 #include "lib/crt.h"
 #include "render/render_rich_text.h"

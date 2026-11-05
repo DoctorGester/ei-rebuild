@@ -4,10 +4,10 @@
 // stream on their stacks, the open of a folder's database and a table's pass over the
 // stream.
 
-#include "chunk_archive.h"
-#include "core_streams.h"
+#include "game/chunk_archive.h"
+#include "game/core_streams.h"
 #include "lib/crt.h"
-#include "resource.h"
+#include "game/resource.h"
 
 #include <string>
 

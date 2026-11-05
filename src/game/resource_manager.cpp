@@ -1,5 +1,5 @@
 // ResourceManager. See resource_manager.h.
-#include "resource_manager.h"
+#include "game/resource_manager.h"
 
 #include <vector>
 

@@ -3,7 +3,7 @@
 // Structures of the order planning code (combat_sight.cpp, combat_tick.cpp): the animation lists
 // the planner builds and the plan of an order.
 
-#include "combat.h"
+#include "game/combat.h"
 
 #include <cstddef>
 #include <cstdint>

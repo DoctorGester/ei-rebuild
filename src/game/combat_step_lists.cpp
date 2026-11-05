@@ -1,6 +1,6 @@
 // AnimationSteps, the step lists of the unit controller's animations: appending steps and
 // emotes, flags, duration, comparison. See combat.h and docs/notes/combat.md.
-#include "combat.h"
+#include "game/combat.h"
 
 #include <bit>
 #include <cstdint>

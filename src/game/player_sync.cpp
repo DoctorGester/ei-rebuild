@@ -2,26 +2,26 @@
 // world_sync.cpp): the map and timed objects that came into view, changed or left, and the flush
 // of the collected messages to the player's link. See player_messages.h and docs/notes/objects.md.
 
-#include "item_manager.h"
-#include "player_messages.h"
-#include "console.h"
+#include "game/item_manager.h"
+#include "game/player_messages.h"
+#include "game/console.h"
 
-#include "base_manager.h"
-#include "combat.h"
-#include "map_object.h"
-#include "net_link.h"
-#include "party.h"
-#include "random.h"
-#include "resource_manager.h"
-#include "script.h"
-#include "unit.h"
-#include "unit_ai.h"
-#include "world.h"
-#include "world_effect.h"
+#include "game/base_manager.h"
+#include "game/combat.h"
+#include "game/map_object.h"
+#include "game/net_link.h"
+#include "game/party.h"
+#include "game/random.h"
+#include "game/resource_manager.h"
+#include "game/script.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world.h"
+#include "game/world_effect.h"
 
 #include "lib/crt.h"
 
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 #include <cstring>
 #include <vector>

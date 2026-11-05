@@ -1,14 +1,14 @@
 // The scroll bar and the options slider (ui_scrollbar.h): the constructors, the position and layout, the thumb
 // drags, the wheel and the slider's position. See docs/notes/ui.md, section 8.
-#include "ui_scrollbar.h"
-#include "ui.h"
-#include "ui_mesh.h"
-#include "ui_screens.h"
+#include "game/ui_scrollbar.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
+#include "game/ui_screens.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
 #include "lib/rounding.h"
 #include "lib/vecmath.h"
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 
 #include <cstdint>
 #include <initializer_list>

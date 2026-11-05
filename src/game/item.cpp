@@ -1,13 +1,13 @@
 // The items: Item, its six classes (construction, the recharge, the values a record gives, the
 // comparison, the copy, Load / Save), the link record and the weapon stats by packed id. The name builders are
 // item_names.cpp; the item constructor and manager item_manager.cpp. See item.h and docs/notes/items_spells.md.
-#include "item.h"
+#include "game/item.h"
 
-#include "base_manager.h"
-#include "core_streams.h"
-#include "random.h"
-#include "spell.h"
-#include "world.h"
+#include "game/base_manager.h"
+#include "game/core_streams.h"
+#include "game/random.h"
+#include "game/spell.h"
+#include "game/world.h"
 
 #include "lib/float_select.h"
 

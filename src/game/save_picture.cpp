@@ -1,5 +1,5 @@
 // The save pictures (save_picture.h).
-#include "save_picture.h"
+#include "game/save_picture.h"
 
 #include "lib/bytes.h"
 #include "lib/qoi.h"

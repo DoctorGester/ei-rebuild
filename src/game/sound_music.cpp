@@ -3,12 +3,12 @@
 // party fights (party danger 2) and otherwise, after a random pause of 120..180 s, a calm track; the
 // briefing, constructor, main menu and credits states each play one file. The themes come from music.reg
 // (Create).
-#include "console.h"
-#include "game_singletons.h"
-#include "random.h"
-#include "registry.h"
-#include "sound.h"
-#include "world.h"
+#include "game/console.h"
+#include "game/game_singletons.h"
+#include "game/random.h"
+#include "game/registry.h"
+#include "game/sound.h"
+#include "game/world.h"
 
 #include "lib/crt.h"
 #include "platform/platform.h"

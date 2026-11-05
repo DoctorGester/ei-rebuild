@@ -1,7 +1,7 @@
 // A connection's state and reset, its tick (clocks, lost packets, sending, delayed id reuse, the timeout) and what a
 // delivered packet does. See net_connection.h and docs/notes/network.md. The clocks are doubles holding float
 // values: their sums are float sums, as the original's were.
-#include "net_connection.h"
+#include "game/net_connection.h"
 
 #include "lib/float_select.h"
 #include "platform/platform.h"

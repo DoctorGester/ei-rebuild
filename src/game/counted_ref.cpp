@@ -1,9 +1,9 @@
 // A counted engine object reference (Ref<T>, ref.h; the map objects, the AI, the traps, the effects and the unit
 // controller keep these) saved and loaded by object id.
-#include "unit_ai.h"
+#include "game/unit_ai.h"
 
-#include "base_manager.h"
-#include "world.h"
+#include "game/base_manager.h"
+#include "game/world.h"
 
 
 template <typename T>

@@ -2,7 +2,7 @@
 
 // The saved multiplayer parties (saves\*.mp) and the hero kept outside a running game.
 
-#include "party.h"
+#include "game/party.h"
 
 #include <string>
 #include <vector>

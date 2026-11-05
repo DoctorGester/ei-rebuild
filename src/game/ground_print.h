@@ -8,7 +8,7 @@
 // `uvAngle`; Draw lays it on the ground once (the decal projector) and draws it with an alpha that fades over
 // the print's life. See docs/notes/models.md.
 
-#include "ground_decal.h"   // DecalBuilder
+#include "game/ground_decal.h"   // DecalBuilder
 
 #include "lib/vecmath.h"
 

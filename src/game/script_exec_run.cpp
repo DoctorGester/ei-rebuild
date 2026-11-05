@@ -1,14 +1,14 @@
 // The script runtime around command execution: starting script instances, running an
 // instance's if-then pairs, running a command block, freeing evaluation
 // temporaries and the per-tick driver. See script.h and docs/notes/script.md.
-#include "script.h"
+#include "game/script.h"
 
-#include "base_manager.h"
-#include "random.h"
-#include "world.h"
-#include "world_effect.h"
+#include "game/base_manager.h"
+#include "game/random.h"
+#include "game/world.h"
+#include "game/world_effect.h"
 
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 #include "lib/str.h"
 

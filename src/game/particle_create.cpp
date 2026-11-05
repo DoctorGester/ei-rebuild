@@ -1,12 +1,12 @@
 // ParticleSource set-up: the per-type spec table, Create, Reset and Clear.
 // More: docs/notes/effects.md, "Particle sources".
-#include "core_transform.h"
-#include "effects.h"
-#include "game_singletons.h"
-#include "map_object_figures.h"
-#include "particle_common.h"
-#include "texture.h"
-#include "world.h"
+#include "game/core_transform.h"
+#include "game/effects.h"
+#include "game/game_singletons.h"
+#include "game/map_object_figures.h"
+#include "game/particle_common.h"
+#include "game/texture.h"
+#include "game/world.h"
 
 #include "lib/containers.h"
 

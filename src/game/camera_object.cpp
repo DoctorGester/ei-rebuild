@@ -1,14 +1,14 @@
 // The camera object itself: construction and destruction, its small virtuals, Init, and saving / loading
 // its state with the world. See camera.h and docs/notes/core.md.
-#include "camera.h"
+#include "game/camera.h"
 
-#include "core_streams.h"
-#include "game_singletons.h"
-#include "map_object_figures.h"
-#include "mod_folders.h"
-#include "options.h"
-#include "save_versions.h"
-#include "world.h"
+#include "game/core_streams.h"
+#include "game/game_singletons.h"
+#include "game/map_object_figures.h"
+#include "game/mod_folders.h"
+#include "game/options.h"
+#include "game/save_versions.h"
+#include "game/world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"

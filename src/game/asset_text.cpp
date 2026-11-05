@@ -1,5 +1,5 @@
 // Asset text to UTF-8 and back; lengths, cuts and typed text by character. See asset_text.h.
-#include "asset_text.h"
+#include "game/asset_text.h"
 
 #include <algorithm>
 #include <cstdint>

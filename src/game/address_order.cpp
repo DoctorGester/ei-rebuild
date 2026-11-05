@@ -1,14 +1,14 @@
 // The draw lists' order without addresses (address_order.h, DrawBefore). The harness sorts game.exe's draw
 // lists the same way over its own views of game.exe's objects (tests/verify/harness_address_order.cpp): a
 // change of the order here changes it there too.
-#include "address_order.h"
+#include "game/address_order.h"
 
-#include "engine_object.h"
-#include "link_figure.h"
-#include "map_object.h"
-#include "map_object_figures.h"
-#include "map_object_shadow.h"
-#include "texture.h"
+#include "game/engine_object.h"
+#include "game/link_figure.h"
+#include "game/map_object.h"
+#include "game/map_object_figures.h"
+#include "game/map_object_shadow.h"
+#include "game/texture.h"
 
 
 #include <bit>

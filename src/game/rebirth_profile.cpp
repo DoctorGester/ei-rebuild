@@ -1,4 +1,4 @@
-#include "rebirth_profile.h"
+#include "game/rebirth_profile.h"
 
 #include "platform/log.h"
 

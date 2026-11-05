@@ -1,8 +1,8 @@
 // EngineObject: the default slots of its vtable and its non-virtual members.
-#include "engine_object.h"
+#include "game/engine_object.h"
 
-#include "base_manager.h"
-#include "manager_context.h"
+#include "game/base_manager.h"
+#include "game/manager_context.h"
 
 constexpr const char* kNoName = "noname";
 

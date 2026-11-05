@@ -11,7 +11,7 @@
 // version it knows and skips the rest, so a section whose contents change takes a new version and an older file falls
 // back to the defaults for that part.
 
-#include "random.h"
+#include "game/random.h"
 
 #include "render/kept_weather.h"
 

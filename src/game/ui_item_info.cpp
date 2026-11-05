@@ -1,17 +1,17 @@
 // The item description panel: what the camp, the multiplayer hero screen and the exchange window write about the item or
 // statistic under the mouse (ui_item_info.h, docs/notes/ui.md, "Item descriptions").
-#include "party.h"
-#include "ui_screens.h"
-#include "text_split.h"
-#include "ui_item_info.h"
+#include "game/party.h"
+#include "game/ui_screens.h"
+#include "game/text_split.h"
+#include "game/ui_item_info.h"
 
-#include "console.h"
-#include "item.h"
-#include "item_db.h"
-#include "text_manager.h"
-#include "spell.h"
-#include "unit.h"
-#include "unit_db.h"
+#include "game/console.h"
+#include "game/item.h"
+#include "game/item_db.h"
+#include "game/text_manager.h"
+#include "game/spell.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
 
 #include "lib/maths.h"
 #include "lib/crt.h"
@@ -25,8 +25,8 @@
 
 #include <concepts>
 #include <vector>
-#include "game_singletons.h"
-#include "world.h"
+#include "game/game_singletons.h"
+#include "game/world.h"
 #include "lib/str.h"
 #include <format>
 

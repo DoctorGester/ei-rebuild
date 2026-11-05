@@ -1,15 +1,15 @@
 // The camera (Camera, camera.h): the per-frame update and view placement, focus and terrain sampling,
 // panning / zoom / saved views, shakes and recorded camera paths.
-#include "camera.h"
+#include "game/camera.h"
 
-#include "base_manager.h"
-#include "core_maths.h"
-#include "drawn_motion.h"
-#include "game_singletons.h"
-#include "map_object_figures.h"
-#include "sound.h"
-#include "terrain.h"
-#include "world.h"
+#include "game/base_manager.h"
+#include "game/core_maths.h"
+#include "game/drawn_motion.h"
+#include "game/game_singletons.h"
+#include "game/map_object_figures.h"
+#include "game/sound.h"
+#include "game/terrain.h"
+#include "game/world.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"

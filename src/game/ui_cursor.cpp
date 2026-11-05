@@ -1,14 +1,14 @@
 // The cursor images' constructor (the cursor object, see docs/notes/ui.md, "Cursor"), which builds each image's mask
 // from its picture's pixels in the .mmp file (the holder has no memory). (The software cursor's blit, which combined
 // image, mask and background through Locks of the holders' surfaces, is gone: the cursor is the system's.)
-#include "ui_cursor.h"
+#include "game/ui_cursor.h"
 
-#include "camera_trace.h"
-#include "game_singletons.h"
-#include "model.h"
-#include "surface.h"
-#include "texture.h"
-#include "world.h"
+#include "game/camera_trace.h"
+#include "game/game_singletons.h"
+#include "game/model.h"
+#include "game/surface.h"
+#include "game/texture.h"
+#include "game/world.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 #include "render/render.h"

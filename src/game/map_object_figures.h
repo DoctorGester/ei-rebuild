@@ -4,15 +4,15 @@
 // manager), its parts (scene nodes, one per figure piece) and their bounding box, and the scale the figure
 // was built for. See docs/notes/map_objects.md ("Figures").
 
-#include "core_transform.h"
-#include "drawn_motion.h"
-#include "engine_object.h"
-#include "figure_mesh.h"            // FigureMesh (an object's figure parts)
-#include "item_db.h"                // WeaponType
-#include "map_object_animation.h"   // AnimationTrack (a bone's animator)
+#include "game/core_transform.h"
+#include "game/drawn_motion.h"
+#include "game/engine_object.h"
+#include "game/figure_mesh.h"            // FigureMesh (an object's figure parts)
+#include "game/item_db.h"                // WeaponType
+#include "game/map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "lib/vecmath.h"
-#include "ref.h"
-#include "unit_create.h"   // MapObjectType
+#include "game/ref.h"
+#include "game/unit_create.h"   // MapObjectType
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

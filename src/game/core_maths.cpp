@@ -1,4 +1,4 @@
-#include "core_maths.h"
+#include "game/core_maths.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"

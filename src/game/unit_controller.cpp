@@ -1,13 +1,13 @@
 // The unit's link to its controller and player: the hostile mask, the motion rebuilt after a path
 // change, the owning player, and the release / Destroy slots. See unit.h and docs/notes/units.md.
-#include "ai_motion.h"
-#include "effects.h"   // ParticleSource
+#include "game/ai_motion.h"
+#include "game/effects.h"   // ParticleSource
 #include "lib/crt.h"
-#include "map_object.h"
-#include "player_messages.h"
-#include "texture.h"   // Texture
-#include "unit.h"
-#include "unit_client_models.h"
+#include "game/map_object.h"
+#include "game/player_messages.h"
+#include "game/texture.h"   // Texture
+#include "game/unit.h"
+#include "game/unit_client_models.h"
 
 #include <cstdint>
 

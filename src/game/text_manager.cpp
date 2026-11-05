@@ -1,13 +1,13 @@
 // The text manager's string lookup and the item texts (names, descriptions, kinds). The line reader is
 // text_manager.cpp, the archive list text_manager.cpp. See text_manager.h.
-#include "text_manager.h"
+#include "game/text_manager.h"
 
-#include "asset_text.h"
-#include "engine_object.h"
-#include "item.h"
-#include "resource.h"
-#include "spell.h"
-#include "text_split.h"
+#include "game/asset_text.h"
+#include "game/engine_object.h"
+#include "game/item.h"
+#include "game/resource.h"
+#include "game/spell.h"
+#include "game/text_split.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

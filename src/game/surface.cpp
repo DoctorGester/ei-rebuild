@@ -2,12 +2,12 @@
 // holders and the destructor; the pixel formats and their channels. Used for the software cursor and the textures. No
 // holder has a DirectDraw surface or memory: a picture's pixels are the renderer's copy of the file's pixels (render::PictureFromMmp), a texture's decoded from
 // its file or drawn on the GPU. See docs/notes/renderer.md, sections 6 and 7.
-#include "surface.h"
+#include "game/surface.h"
 
-#include "dib.h"
-#include "texture.h"
-#include "../platform/log.h"
-#include "../render/render.h"
+#include "game/dib.h"
+#include "game/texture.h"
+#include "platform/log.h"
+#include "render/render.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/str.h"

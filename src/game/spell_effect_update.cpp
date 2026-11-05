@@ -1,15 +1,15 @@
 // A spell effect's later states: the per-tick dispatch, the missiles' flight and impact (state 1) and the
 // lasting effects (state 2), plus the release helpers. See docs/notes/items_spells.md.
-#include "ai_map.h"
-#include "map_object.h"
-#include "script.h"
-#include "spell.h"
-#include "spell_effect_internal.h"
-#include "combat.h"
-#include "player_messages.h"
-#include "unit.h"
-#include "unit_ai.h"
-#include "world_effect.h"
+#include "game/ai_map.h"
+#include "game/map_object.h"
+#include "game/script.h"
+#include "game/spell.h"
+#include "game/spell_effect_internal.h"
+#include "game/combat.h"
+#include "game/player_messages.h"
+#include "game/unit.h"
+#include "game/unit_ai.h"
+#include "game/world_effect.h"
 #include "lib/float_select.h"
 
 

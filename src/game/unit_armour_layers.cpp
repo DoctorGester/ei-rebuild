@@ -1,10 +1,10 @@
 // Creature statistics: the armour layers of the body slots, the body's packed protection and two skill values
 // (an attribute with the quick items' bonuses, a spell school's skill). See unit.h (UnitStats) and
 // docs/notes/units.md ("Statistics in play").
-#include "unit.h"
+#include "game/unit.h"
 
-#include "item.h"
-#include "object_tables.h"
+#include "game/item.h"
+#include "game/object_tables.h"
 
 #include "lib/float_select.h"
 #include "lib/rounding.h"

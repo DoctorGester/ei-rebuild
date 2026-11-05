@@ -3,7 +3,7 @@
 // (the options' brightness / contrast / gamma, SetGammaRamp's table) as a shader step, and presented with the vertical
 // blank. Also where the frame sits in the window, for the game's mouse coordinates (WindowToFrame / FrameToWindow).
 // docs/notes/renderer.md, section 9.
-#include "../game/app.h"
+#include "game/app.h"
 #include "../platform/log.h"
 #include "../platform/sdl/sdl_window.h"
 #include "render.h"

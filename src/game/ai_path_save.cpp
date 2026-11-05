@@ -3,9 +3,9 @@
 // (12), the four flag bytes one by one, the excluded regions' count and each {x, y} as two dwords, and the
 // smoothing value. Loading appends the cells to the list (created as {0, 0}, then read over). See ai_map.h
 // (AIPath).
-#include "ai_map.h"
-#include "ai_motion.h"
-#include "core_streams.h"
+#include "game/ai_map.h"
+#include "game/ai_motion.h"
+#include "game/core_streams.h"
 
 #include <cstdint>
 

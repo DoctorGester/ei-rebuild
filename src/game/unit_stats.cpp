@@ -1,12 +1,12 @@
 // Creature statistics: attribute, skill and skill level lookups over UnitStats, and small helpers
 // of the hit (DamageInfo) and lock records. See unit.h.
-#include "logic_settings.h"
+#include "game/logic_settings.h"
 
-#include "random.h"
-#include "save_versions.h"
-#include "spell.h"
-#include "unit.h"
-#include "unit_db.h"
+#include "game/random.h"
+#include "game/save_versions.h"
+#include "game/spell.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
 #include "lib/rounding.h"

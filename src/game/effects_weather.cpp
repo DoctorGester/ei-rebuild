@@ -1,14 +1,14 @@
-#include "clip.h"   // TLVertex
-#include "core_maths.h"
-#include "effects.h"
-#include "figure_mesh.h"   // VertexPacket
-#include "game_singletons.h"
-#include "model.h"   // SceneRenderer, TransformPipeline
-#include "random.h"
-#include "sound.h"
-#include "texture.h"
-#include "weather_field.h"
-#include "world.h"
+#include "game/clip.h"   // TLVertex
+#include "game/core_maths.h"
+#include "game/effects.h"
+#include "game/figure_mesh.h"   // VertexPacket
+#include "game/game_singletons.h"
+#include "game/model.h"   // SceneRenderer, TransformPipeline
+#include "game/random.h"
+#include "game/sound.h"
+#include "game/texture.h"
+#include "game/weather_field.h"
+#include "game/world.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

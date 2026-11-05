@@ -1,16 +1,16 @@
 // The battle camera's input (CameraInput): key release, right-button turning, deactivation and the wheel
 // (CameraInput, ui_camera_keys.h; the key press is in ui_camera_input.cpp). See docs/notes/ui.md,
 // section 3.
-#include "ui_camera_keys.h"
+#include "game/ui_camera_keys.h"
 
-#include "camera.h"
-#include "camera_trace.h"
-#include "game_singletons.h"
+#include "game/camera.h"
+#include "game/camera_trace.h"
+#include "game/game_singletons.h"
 #include "lib/bit_flags.h"
-#include "options.h"
-#include "ui.h"
-#include "ui_cursor.h"
-#include "screen_layout.h"
+#include "game/options.h"
+#include "game/ui.h"
+#include "game/ui_cursor.h"
+#include "game/screen_layout.h"
 #include "lib/vecmath.h"
 #include "platform/platform.h"
 

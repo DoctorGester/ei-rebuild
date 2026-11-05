@@ -1,19 +1,19 @@
 // The interface's depth clear (ClearUiDepth) and the draws of the container windows' base, the base / briefing screen,
 // the menu frame step and the hero equipment panel. Every state set goes to render::g_renderState; every depth clear to
 // render::ClearDepth. See docs/notes/ui.md, "Container draws", and docs/notes/renderer.md, sections 5 and 8.
-#include "item.h"
-#include "world.h"
-#include "ui.h"
-#include "ui_briefing.h"
-#include "ui_camp.h"
-#include "ui_item_info.h"
-#include "texture.h"   // kAlphaPassStage
-#include "unit.h"
-#include "ui_cursor.h"
+#include "game/item.h"
+#include "game/world.h"
+#include "game/ui.h"
+#include "game/ui_briefing.h"
+#include "game/ui_camp.h"
+#include "game/ui_item_info.h"
+#include "game/texture.h"   // kAlphaPassStage
+#include "game/unit.h"
+#include "game/ui_cursor.h"
 
 #include "render/render.h"
 #include "render/render_state.h"
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 
 #include <cstdint>
 

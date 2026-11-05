@@ -1,8 +1,8 @@
 // The quest database's records in an archive: the records' Serialize (quests,
 // briefings) and the two vectors'. See quest_records.h and docs/notes/items_spells.md ("Quest database").
-#include "quest_records.h"
+#include "game/quest_records.h"
 
-#include "chunk_archive.h"
+#include "game/chunk_archive.h"
 
 #include <vector>
 

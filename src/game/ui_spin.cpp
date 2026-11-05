@@ -1,8 +1,8 @@
 // The options window's spin control (ui_spin.h): constructor, destructor, texts and value. See docs/notes/ui.md,
 // section 8.
-#include "ui_spin.h"
-#include "ui.h"
-#include "ui_screens.h"
+#include "game/ui_spin.h"
+#include "game/ui.h"
+#include "game/ui_screens.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 

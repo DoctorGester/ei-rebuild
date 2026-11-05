@@ -1,11 +1,11 @@
 // The standalone resource layer: addon.dll's mod-folder patches (Maps, ResOverride, MoviesPatch,
 // CameraPatch, StreamPatch) for the standalone image. See mod_folders.h; addon's functions are named
 // by their addresses in addon.dll v0.12.4.2 (image base 10000000).
-#include "mod_folders.h"
+#include "game/mod_folders.h"
 
-#include "registry.h"
-#include "resource.h"
-#include "settings.h"
+#include "game/registry.h"
+#include "game/resource.h"
+#include "game/settings.h"
 #include "lib/text_case.h"
 
 #include "platform/platform.h"

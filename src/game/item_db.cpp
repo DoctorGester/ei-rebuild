@@ -1,12 +1,12 @@
 // The item database: its records' Serialize, the tables' load and ItemDatabase::Load ("items.idb", at startup and
 // at every switch of the resource database). The spell database is spell_db.cpp. See item_db.h and
 // docs/notes/items_spells.md ("Databases and naming").
-#include "item_db.h"
+#include "game/item_db.h"
 
-#include "chunk_archive.h"
-#include "core_streams.h"
-#include "database_file.h"
-#include "unit_db.h"   // InlineStrings
+#include "game/chunk_archive.h"
+#include "game/core_streams.h"
+#include "game/database_file.h"
+#include "game/unit_db.h"   // InlineStrings
 
 #include "lib/crt.h"
 #include "lib/text_case.h"

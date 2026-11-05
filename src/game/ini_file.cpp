@@ -1,7 +1,7 @@
 // IniFile: the game's .ini files, read whole and parsed here (ini_file.h).
-#include "ini_file.h"
+#include "game/ini_file.h"
 
-#include "asset_text.h"
+#include "game/asset_text.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"

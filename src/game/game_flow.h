@@ -3,7 +3,7 @@
 // The game flow: the requests the main loop acts on (main menu, new game, load, zone changes), the saves, the
 // multiplayer sessions' start and zone switches, and the quests and briefings of the zones.
 
-#include "party.h"
+#include "game/party.h"
 
 #include <cstdint>
 #include <optional>

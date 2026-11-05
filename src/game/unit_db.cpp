@@ -1,18 +1,18 @@
 // The units database records' serialisers: unit prototypes, unit models and NPCs the skill (perk)
 // database's records, vectors and lookups. See unit_db.h and docs/notes/units.md ("Database records").
-#include "chunk_archive.h"
+#include "game/chunk_archive.h"
 
-#include "combat.h"
-#include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
-#include "logic_settings.h"
-#include "model.h"   // ChunkArchive
-#include "net_delta.h"
-#include "options.h"
-#include "sound.h"
-#include "unit.h"
-#include "unit_create.h"
-#include "unit_db.h"
-#include "world.h"
+#include "game/combat.h"
+#include "game/database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
+#include "game/logic_settings.h"
+#include "game/model.h"   // ChunkArchive
+#include "game/net_delta.h"
+#include "game/options.h"
+#include "game/sound.h"
+#include "game/unit.h"
+#include "game/unit_create.h"
+#include "game/unit_db.h"
+#include "game/world.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"

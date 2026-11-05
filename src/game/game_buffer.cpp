@@ -1,6 +1,6 @@
 // The byte buffers (GameBuffer, GrowingBuffer, net_coder.h): reads and writes, growth and the cursor binding. See
 // net_coder.h and docs/notes/network.md, "Compression".
-#include "net_coder.h"
+#include "game/net_coder.h"
 
 #include <cstring>
 

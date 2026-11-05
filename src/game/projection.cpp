@@ -2,13 +2,13 @@
 // to the screen, screen-facing sprites, the distance fog of screen vertices, and the flat projection and bounds
 // fitting of shadows and figure parts. Plain C++ on the pipeline's matrices; 3DfpFPU.dll's transform object did
 // this in the original (docs/notes/renderer.md, section 10).
-#include "clip.h"          // TLVertex, ClipCodeOf, ClipVerdict
+#include "game/clip.h"          // TLVertex, ClipCodeOf, ClipVerdict
 
-#include "core_maths.h"
-#include "core_transform.h"
-#include "figure_mesh.h"   // VertexPacket
-#include "model.h"
-#include "view_matrices.h"
+#include "game/core_maths.h"
+#include "game/core_transform.h"
+#include "game/figure_mesh.h"   // VertexPacket
+#include "game/model.h"
+#include "game/view_matrices.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 #include "render/render_state.h"

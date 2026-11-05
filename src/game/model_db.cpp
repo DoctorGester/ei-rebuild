@@ -1,11 +1,11 @@
 // Databases read at startup from database.res (prints.db, acks.db) and the world's water level changes.
-#include "acks_db.h"
+#include "game/acks_db.h"
 
-#include "chunk_archive.h"
-#include "database_file.h"
-#include "model.h"
-#include "terrain.h"
-#include "water_tweens.h"
+#include "game/chunk_archive.h"
+#include "game/database_file.h"
+#include "game/model.h"
+#include "game/terrain.h"
+#include "game/water_tweens.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
 

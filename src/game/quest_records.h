@@ -5,7 +5,7 @@
 // patched) writes and reads its two vectors of them through ChunkArchive::SerializeQuests /
 // SerializeBriefings (chunk_archive.h), one chunk 1 per record. quest_records.cpp.
 
-#include "unit_db.h"   // InlineStrings
+#include "game/unit_db.h"   // InlineStrings
 #include "lib/enum_array.h"
 
 

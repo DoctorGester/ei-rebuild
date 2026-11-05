@@ -1,12 +1,12 @@
 // Path search on the AI map: snapping the target to a reachable cell, planning, and feeding the
 // planned cells to the unit's steering.
-#include "ai_map.h"
-#include "ai_motion.h"
-#include "core_maths.h"
-#include "game_singletons.h"
-#include "map_object.h"
-#include "sector_map.h"
-#include "world.h"
+#include "game/ai_map.h"
+#include "game/ai_motion.h"
+#include "game/core_maths.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
+#include "game/sector_map.h"
+#include "game/world.h"
 
 #include "lib/float_select.h"
 #include "lib/maths.h"

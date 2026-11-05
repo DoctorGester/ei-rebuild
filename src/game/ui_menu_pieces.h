@@ -3,8 +3,8 @@
 // The pieces the escape menu's windows (save / load, options) are built and slid in with: a region over a layout
 // rectangle, a frame and a shade sprite, the stone menu model and the slide's ease.
 
-#include "ui.h"
-#include "ui_mesh.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
 
 inline UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
     UiRegion* region = window->AddRegion();

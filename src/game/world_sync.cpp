@@ -1,16 +1,16 @@
 // WorldServer: keeping each player's view of the world up to date (single player too: the local
 // player is a client of the server). SyncPlayer runs once per world update for every player
 // SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
-#include "combat.h"
-#include "core_maths.h"
-#include "core_streams.h"
-#include "map_object.h"
-#include "object.h"
-#include "options.h"
-#include "player_messages.h"
-#include "unit.h"
-#include "world.h"
-#include "world_effect.h"
+#include "game/combat.h"
+#include "game/core_maths.h"
+#include "game/core_streams.h"
+#include "game/map_object.h"
+#include "game/object.h"
+#include "game/options.h"
+#include "game/player_messages.h"
+#include "game/unit.h"
+#include "game/world.h"
+#include "game/world_effect.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

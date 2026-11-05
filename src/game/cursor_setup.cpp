@@ -1,8 +1,8 @@
 // The mouse cursor's set-up and reset: the cursor object is initialised and given its 25 shapes, the "sm_"
 // set when the small cursors are on. The cursor object itself stays the game's own code.
-#include "ui_cursor.h"
-#include "game_singletons.h"
-#include "model.h"
+#include "game/ui_cursor.h"
+#include "game/game_singletons.h"
+#include "game/model.h"
 
 #include <cstdint>
 

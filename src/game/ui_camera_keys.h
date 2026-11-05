@@ -2,8 +2,8 @@
 
 // The battle camera's input (ui_camera_input.cpp, ui_camera_input.cpp).
 
-#include "options.h"
-#include "ui.h"
+#include "game/options.h"
+#include "game/ui.h"
 #include "lib/rect.h"
 
 // A camera motion's speed with the keys: its keyboard power times its speed.

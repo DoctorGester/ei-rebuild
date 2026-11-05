@@ -1,13 +1,13 @@
 // The lever map object's own functions: lifetime, update, save / load, network state, the zone record set-up
 // and the small slots. SetState and UseSpots are in unit_lever.cpp (docs/notes/units.md, "Levers").
-#include "core_maths.h"
-#include "core_streams.h"
-#include "game_singletons.h"
-#include "lever.h"
-#include "map_object_figures.h"
-#include "net_delta.h"
-#include "sound.h"
-#include "world.h"
+#include "game/core_maths.h"
+#include "game/core_streams.h"
+#include "game/game_singletons.h"
+#include "game/lever.h"
+#include "game/map_object_figures.h"
+#include "game/net_delta.h"
+#include "game/sound.h"
+#include "game/world.h"
 
 
 #include <initializer_list>

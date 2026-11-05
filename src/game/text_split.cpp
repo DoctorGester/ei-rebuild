@@ -1,5 +1,5 @@
 // Splitting texts into strings, joining them and replacing characters. See text_split.h.
-#include "text_split.h"
+#include "game/text_split.h"
 
 #include "lib/str.h"
 

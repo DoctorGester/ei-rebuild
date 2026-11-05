@@ -1,16 +1,16 @@
 // A region's tooltip (UiTooltip): its constructor, which splits the text into lines and measures them, SetText
 // and the painting of the lines; and its showing (Rebirth-patched: its WideScreen is
 // reproduced behind the flag). See ui.h and docs/notes/ui.md, section 2.
-#include "ui.h"
-#include "options.h"
-#include "screen_layout.h"
+#include "game/ui.h"
+#include "game/options.h"
+#include "game/screen_layout.h"
 
 #include "lib/crt.h"
-#include "text_split.h"
+#include "game/text_split.h"
 #include "lib/rect.h"
 #include <string>
 #include "lib/vecmath.h"
-#include "object_tables.h"       // FindCommandByKey
+#include "game/object_tables.h"       // FindCommandByKey
 
 #include <cstdint>
 #include <cstring>

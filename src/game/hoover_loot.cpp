@@ -4,16 +4,16 @@
 // the quick items and carried items, and for units with a text key also the armour and weapons, all taken off
 // the unit and put on the drop list. A unit is looted once (flag 0x100000). Plain float maths for the amounts
 // (rule 7).
-#include "item.h"
+#include "game/item.h"
 
-#include "figure_mesh.h"
-#include "item_manager.h"
-#include "object.h"
-#include "object_tables.h"
-#include "random.h"
-#include "unit.h"
-#include "unit_db.h"
-#include "world.h"
+#include "game/figure_mesh.h"
+#include "game/item_manager.h"
+#include "game/object.h"
+#include "game/object_tables.h"
+#include "game/random.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
+#include "game/world.h"
 #include "lib/crt.h"
 #include "lib/rounding.h"
 

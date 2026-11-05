@@ -3,7 +3,7 @@
 // The network pump: ticks the game server and the game client (net_classes.h, g_gameServer /
 // g_gameClient). Names provisional; see docs/notes/network.md.
 
-#include "net_classes.h"
+#include "game/net_classes.h"
 
 namespace net {
 

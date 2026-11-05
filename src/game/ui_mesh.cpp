@@ -1,11 +1,11 @@
 // The interface sprites' shape builders (framed rectangle, disc, ring).
 // See ui_mesh_build.h and docs/notes/ui.md ("Sprite shapes").
-#include "ui.h"
-#include "ui_mesh.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
 
-#include "figure_mesh.h"
-#include "material.h"
-#include "model.h"
+#include "game/figure_mesh.h"
+#include "game/material.h"
+#include "game/model.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/maths.h"

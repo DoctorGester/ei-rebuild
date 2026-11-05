@@ -1,11 +1,11 @@
 // Per-tick movement checks on the AI map: which unit blocks a moving unit, and the speed costs of
 // the steps a unit is about to walk.
-#include "ai_map.h"
-#include "ai_shape_cache.h"
-#include "ai_unit_layer.h"
-#include "core_maths.h"
-#include "core_refcount.h"
-#include "effects.h"
+#include "game/ai_map.h"
+#include "game/ai_shape_cache.h"
+#include "game/ai_unit_layer.h"
+#include "game/core_maths.h"
+#include "game/core_refcount.h"
+#include "game/effects.h"
 
 #include "lib/crt.h"
 #include "lib/rounding.h"

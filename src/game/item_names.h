@@ -3,7 +3,7 @@
 // Names built from the weapon and armour records by index: model names, the base figure and the figure parts a
 // weapon is drawn with. The items' own name virtuals are in item.h; both are defined in item_names.cpp.
 
-#include "item_db.h"
+#include "game/item_db.h"
 
 #include <cstdint>
 #include <string>

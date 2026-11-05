@@ -2,12 +2,12 @@
 // decoded when due, then blitted into the letterboxed rectangle), the blocking player (PlayMovie) and the
 // loading screen's movie. Every frame goes to the new renderer as a CPU copy (render::MovieFrame / MovieBlit); no
 // surface holds it. See docs/notes/renderer.md, section 8.
-#include "app.h"
-#include "bink_video.h"
-#include "mod_folders.h"
-#include "net_session.h"
-#include "sound.h"
-#include "texture.h"
+#include "game/app.h"
+#include "game/bink_video.h"
+#include "game/mod_folders.h"
+#include "game/net_session.h"
+#include "game/sound.h"
+#include "game/texture.h"
 
 #include "lib/crt.h"
 #include "lib/rect.h"
@@ -17,10 +17,10 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "ui_cursor.h"
-#include "game_singletons.h"
-#include "options.h"
-#include "world.h"
+#include "game/ui_cursor.h"
+#include "game/game_singletons.h"
+#include "game/options.h"
+#include "game/world.h"
 
 // Set while a .mob file loads (WorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
 std::uint8_t g_loadingMovieOff = /*007C554C*/ {};

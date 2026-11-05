@@ -3,10 +3,10 @@
 // Combat: the server-side unit controller (UnitServer, class id 0x3E). Every creature on the server has one;
 // it keeps the unit's computed statistics, its current orders, and the attack / hit code.
 
-#include "ack_kind.h"
-#include "ai_alarm.h"
-#include "spell.h"
-#include "unit_ai.h"
+#include "game/ack_kind.h"
+#include "game/ai_alarm.h"
+#include "game/spell.h"
+#include "game/unit_ai.h"
 #include "lib/enum_array.h"
 
 #include <cstddef>

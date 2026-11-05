@@ -1,17 +1,17 @@
 // The client's trade offer (called by the party screens after a change): one member
 // message per party member, kept in our PartyMessage. See net_messages.h and docs/notes/network.md.
-#include "core_refcount.h"
+#include "game/core_refcount.h"
 
-#include "core_streams.h"
-#include "game_singletons.h"
-#include "item.h"
-#include "item_manager.h"
-#include "net_messages.h"
-#include "party.h"
-#include "player_messages.h"
-#include "spell.h"
-#include "ui.h"
-#include "world.h"
+#include "game/core_streams.h"
+#include "game/game_singletons.h"
+#include "game/item.h"
+#include "game/item_manager.h"
+#include "game/net_messages.h"
+#include "game/party.h"
+#include "game/player_messages.h"
+#include "game/spell.h"
+#include "game/ui.h"
+#include "game/world.h"
 #include "lib/crt.h"
 
 #include <bit>

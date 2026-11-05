@@ -3,15 +3,15 @@
 // matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport
 // and the game's reach, the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
-#include "app.h"
-#include "camera.h"
-#include "game_singletons.h"
-#include "model.h"   // SceneRenderer, TransformPipeline, RenderHelper
-#include "options.h"
+#include "game/app.h"
+#include "game/camera.h"
+#include "game/game_singletons.h"
+#include "game/model.h"   // SceneRenderer, TransformPipeline, RenderHelper
+#include "game/options.h"
 #include "render/render_state.h"
-#include "spell.h"     // Light, LightFactory
-#include "texture.h"   // TextureDevice
-#include "world.h"
+#include "game/spell.h"     // Light, LightFactory
+#include "game/texture.h"   // TextureDevice
+#include "game/world.h"
 
 #include "lib/crt.h"
 #include "platform/platform.h"

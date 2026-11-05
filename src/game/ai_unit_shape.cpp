@@ -1,10 +1,10 @@
 // The unit shapes (UnitShape, ai_unit_layer.h): the 16 x 16 cell levels a unit of a radius stamps on the AI
 // map's unit layers. Shared through the shape cache, whose creator virtual makes them. See docs/notes/ai.md.
-#include "ai_map.h"
-#include "ai_shape_cache.h"
-#include "ai_unit_layer.h"
-#include "core_maths.h"
-#include "core_refcount.h"
+#include "game/ai_map.h"
+#include "game/ai_shape_cache.h"
+#include "game/ai_unit_layer.h"
+#include "game/core_maths.h"
+#include "game/core_refcount.h"
 
 #include "lib/containers.h"
 #include "lib/rounding.h"

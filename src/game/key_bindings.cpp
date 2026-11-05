@@ -3,18 +3,18 @@
 // action of each scan code (0x200 signed bytes, g_keyActions), the keys (0x48-byte entries at Scan code, the
 // file's name, Windows' display text) and the actions (0x10-byte entries at Id, name, options group and row;
 // the first is a blank id 0). See docs/notes/ui.md section 8.
-#include "console.h"
+#include "game/console.h"
 
 #include "platform/platform.h"
 #include <cstring>
 #include <string>
 #include "lib/str.h"
 #include "lib/text_case.h"
-#include "text_split.h"
-#include "ui.h"
-#include "ui_options.h"
-#include "key_bindings.h"
-#include "game_singletons.h"
+#include "game/text_split.h"
+#include "game/ui.h"
+#include "game/ui_options.h"
+#include "game/key_bindings.h"
+#include "game/game_singletons.h"
 
 #include <cstdint>
 #include <memory>

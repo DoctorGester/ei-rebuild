@@ -1,7 +1,7 @@
 // The path smoother (PathSmoother, in AIMap): a dynamic programme over the path's cells that may move each
 // cell to a neighbour when that makes the path cheaper, counting step costs and turns. Its 81 transition tables
 // are built on first use. See ai_map.h and docs/notes/ai.md.
-#include "ai_map.h"
+#include "game/ai_map.h"
 
 #include "lib/containers.h"
 #include "lib/rounding.h"

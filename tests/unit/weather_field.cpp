@@ -3,7 +3,7 @@
 // the wind changing on the way, no particle (every seventh is followed) that shows in two frames in a row moves
 // further between them than its speed takes it, and none appears or vanishes at once (its alpha changes by little in
 // a frame). Field::BinBounds: every particle that shows lies in its bin's boxes.
-#include "../../src/game/weather_field.h"
+#include "game/weather_field.h"
 
 #include <cmath>
 #include <cstdio>

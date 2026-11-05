@@ -1,19 +1,19 @@
 // Sorting predicates used by the world code and the game interface glue functions. See world.h.
-#include "world.h"
+#include "game/world.h"
 
-#include "base_manager.h"
-#include "core_maths.h"
-#include "link_figure.h"
-#include "map_object.h"
-#include "map_object_figures.h"
-#include "map_object_shadow.h"
-#include "net_classes.h"
-#include "net_messages.h"
-#include "party.h"
-#include "player_client.h"
-#include "texture.h"
+#include "game/base_manager.h"
+#include "game/core_maths.h"
+#include "game/link_figure.h"
+#include "game/map_object.h"
+#include "game/map_object_figures.h"
+#include "game/map_object_shadow.h"
+#include "game/net_classes.h"
+#include "game/net_messages.h"
+#include "game/party.h"
+#include "game/player_client.h"
+#include "game/texture.h"
 
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 #include <memory>
 #include <new>

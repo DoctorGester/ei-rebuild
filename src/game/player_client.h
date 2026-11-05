@@ -4,7 +4,7 @@
 // the server's messages through their handlers (DispatchMessages). The single-player game runs it next to PlayerServer over
 // the loopback link. See docs/notes/objects.md.
 
-#include "player_messages.h"
+#include "game/player_messages.h"
 
 #include <cstddef>
 #include <cstdint>

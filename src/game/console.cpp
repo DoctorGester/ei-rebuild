@@ -1,11 +1,11 @@
 // The developer console: output streambuf, command executor, tokenizer and script lines.
 // See docs/notes/console.md.
-#include "console.h"
+#include "game/console.h"
 
-#include "app.h"
-#include "game_singletons.h"
-#include "ui.h"
-#include "world.h"
+#include "game/app.h"
+#include "game/game_singletons.h"
+#include "game/ui.h"
+#include "game/world.h"
 #include "lib/str.h"
 #include "platform/platform.h"
 

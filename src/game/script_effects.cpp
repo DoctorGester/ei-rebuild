@@ -1,12 +1,12 @@
 // The effects a mission script places in the world: point lights, particle sources, sound (FX)
 // sources and lightning bolts (Script::pointLights, particles, fxSources, lightning). Saving
 // and loading them with the savegame. See script.h and docs/notes/script.md.
-#include "script.h"
+#include "game/script.h"
 
-#include "base_manager.h"
-#include "world.h"
-#include "world_effect.h"
-#include "game_singletons.h"
+#include "game/base_manager.h"
+#include "game/world.h"
+#include "game/world_effect.h"
+#include "game/game_singletons.h"
 
 #include "lib/rounding.h"
 #include "lib/str.h"

@@ -2,7 +2,7 @@
 
 // The battle screen (CreateScreen id 1) and what its next click does. Its HUD panels are in ui_hud.h.
 
-#include "ui.h"
+#include "game/ui.h"
 
 class HudQuickItems;
 class HudSpellColumn;

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "ai_event_table.h"
-#include "engine_object.h"
-#include "search_grid.h"
-#include "sector_map.h"
-#include "unit.h"
+#include "game/ai_event_table.h"
+#include "game/engine_object.h"
+#include "game/search_grid.h"
+#include "game/sector_map.h"
+#include "game/unit.h"
 
 #include "lib/containers.h"
 #include "lib/vecmath.h"

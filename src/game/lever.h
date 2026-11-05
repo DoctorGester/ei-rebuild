@@ -1,10 +1,10 @@
 #pragma once
 
-#include "lock_key.h"
-#include "map_object.h"
-#include "map_spec.h"   // LeverSetup
+#include "game/lock_key.h"
+#include "game/map_object.h"
+#include "game/map_spec.h"   // LeverSetup
 #include "lib/vecmath.h"
-#include "unit.h"
+#include "game/unit.h"
 
 #include <cstddef>
 #include <cstdint>

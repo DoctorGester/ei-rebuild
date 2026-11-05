@@ -4,10 +4,10 @@
 // party units. UnitClientSpecific is the client-side controller of a party unit (class id 0x3D). See
 // docs/notes/units.md ("Creation, databases, save").
 
-#include "ai_map.h"
-#include "engine_object.h"
+#include "game/ai_map.h"
+#include "game/engine_object.h"
 #include "lib/rect.h"
-#include "unit.h"
+#include "game/unit.h"
 
 #include <cstddef>
 #include <cstdint>

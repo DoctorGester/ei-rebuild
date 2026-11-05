@@ -5,9 +5,9 @@
 // headerless) record in figures.res / menus.res, morphed by three coefficients and appended to one LinkMesh.
 // See docs/notes/models.md, "Link figures".
 
-#include "figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
-#include "model.h"         // ClipBounds, TriangleIndexArray, LinkFigureLoader
-#include "texture.h"
+#include "game/figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
+#include "game/model.h"         // ClipBounds, TriangleIndexArray, LinkFigureLoader
+#include "game/texture.h"
 #include "lib/rect.h"
 
 #include <cstddef>

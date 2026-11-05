@@ -1,10 +1,10 @@
 // AIMap::Refresh: recomputes the passability of a rectangle of cells after the map changed: per standing level
 // the cell marks over the rectangle grown by 3 cells, the level's special areas, the second pass and the map
 // border; with the sector map on the objects around it are taken out and put back. See docs/notes/ai.md.
-#include "ai_map.h"
+#include "game/ai_map.h"
 
-#include "core_maths.h"
-#include "sector_map.h"
+#include "game/core_maths.h"
+#include "game/sector_map.h"
 
 #include <cstdint>
 

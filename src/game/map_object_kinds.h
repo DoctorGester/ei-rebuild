@@ -4,7 +4,7 @@
 // CStuffObject, all 0x238 bytes and made by the map object factory. Real
 // virtual classes. Each overrides only the destructor, class name and class id.
 
-#include "map_object.h"
+#include "game/map_object.h"
 
 #include <cstdint>
 

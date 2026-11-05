@@ -1,21 +1,21 @@
 // Ground prints: footprints, blood and scorch marks and the client world's functions that add them. A new print
 // is built on the stack, copied into its list (sharing the empty geometry arrays) and destroyed; its prints.db
 // entry (by the ground's surface class) gives the alpha and the life. See docs/notes/models.md ("Ground prints").
-#include "ground_print.h"
+#include "game/ground_print.h"
 
-#include "camera.h"
-#include "core_streams.h"
-#include "effects.h"
-#include "figure_mesh.h"
-#include "game_singletons.h"
-#include "ground_decal.h"
-#include "model.h"
-#include "options.h"
-#include "spell.h"   // Light
-#include "terrain.h"
-#include "texture.h"
-#include "world.h"
-#include "random.h"
+#include "game/camera.h"
+#include "game/core_streams.h"
+#include "game/effects.h"
+#include "game/figure_mesh.h"
+#include "game/game_singletons.h"
+#include "game/ground_decal.h"
+#include "game/model.h"
+#include "game/options.h"
+#include "game/spell.h"   // Light
+#include "game/terrain.h"
+#include "game/texture.h"
+#include "game/world.h"
+#include "game/random.h"
 
 #include "lib/containers.h"
 #include "lib/maths.h"

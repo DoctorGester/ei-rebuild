@@ -5,9 +5,9 @@
 // new values (references dropped; a field the constructor leaves unset keeps its value), Write / Read the fields at
 // the cursor. Clone (with the copy constructor) is only for the messages that are shared twice (RefObject::Clone).
 
-#include "net_classes.h"
-#include "core_refcount.h"
-#include "core_streams.h"
+#include "game/net_classes.h"
+#include "game/core_refcount.h"
+#include "game/core_streams.h"
 
 #include <cstddef>
 #include <cstdint>

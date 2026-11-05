@@ -2,12 +2,12 @@
 // around the sound listener choose up to three sound classes, which keep looping "circle" sounds and now and
 // then play a positioned one-shot. The time of day for the one-shots' folder comes from the client world
 // (WorldClient::AmbienceTimeOfDay).
-#include "terrain.h"
-#include "terrain_sector.h"
-#include "game_singletons.h"
-#include "random.h"
-#include "sound.h"
-#include "world.h"
+#include "game/terrain.h"
+#include "game/terrain_sector.h"
+#include "game/game_singletons.h"
+#include "game/random.h"
+#include "game/sound.h"
+#include "game/world.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"

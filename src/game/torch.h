@@ -5,7 +5,7 @@
 // type 0x4B),. Names provisional; torch_object.cpp; Create is in
 // map_object.cpp. A real virtual class: the compiler makes its vtable.
 
-#include "map_object.h"
+#include "game/map_object.h"
 
 #include <cstddef>
 #include <cstdint>

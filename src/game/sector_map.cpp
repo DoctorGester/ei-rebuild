@@ -1,6 +1,6 @@
-#include "sector_map.h"
+#include "game/sector_map.h"
 
-#include "ai_map.h"
+#include "game/ai_map.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

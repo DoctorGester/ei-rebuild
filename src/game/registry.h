@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "lib/bit_flags.h"
-#include "resource.h"
+#include "game/resource.h"
 
 enum class RegistryType : std::uint8_t {
     Int = 0,

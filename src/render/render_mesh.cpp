@@ -1,7 +1,7 @@
 // Meshes: each pass of an old-path device mesh draw becomes a batch with the old device's state of that pass.
 // See docs/notes/renderer.md, "The renderer's source files".
-#include "../game/model.h"   // TransformPipeline
-#include "../game/texture.h"
+#include "game/model.h"   // TransformPipeline
+#include "game/texture.h"
 #include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"

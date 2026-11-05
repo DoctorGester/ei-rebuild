@@ -1,7 +1,7 @@
 // The local search (LocalSearch, ai_map.h): Dijkstra over a 34 x 34 window of AI map cells, used
 // for short paths (AIMap::JoinLocalSearches runs a forward and a backward one until they meet),
 // the long-range planner's legs and the region map's block measurements. See docs/notes/ai.md.
-#include "ai_map.h"
+#include "game/ai_map.h"
 
 #include "lib/crt.h"
 #include <algorithm>

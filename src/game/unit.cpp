@@ -1,16 +1,16 @@
-#include "unit.h"
+#include "game/unit.h"
 
-#include "ai_map.h"      // AIPath
-#include "ai_motion.h"   // UnitMotion
-#include "item.h"
+#include "game/ai_map.h"      // AIPath
+#include "game/ai_motion.h"   // UnitMotion
+#include "game/item.h"
 #include "lib/scales.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
-#include "logic_settings.h"
-#include "party.h"
-#include "player_messages.h"
-#include "spell.h"
-#include "unit_db.h"
+#include "game/logic_settings.h"
+#include "game/party.h"
+#include "game/player_messages.h"
+#include "game/spell.h"
+#include "game/unit_db.h"
 
 #include <bit>
 #include <cstring>

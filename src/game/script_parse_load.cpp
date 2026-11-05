@@ -1,9 +1,9 @@
 // Script loader, part 2: the parser. Script::Load preprocesses the text (#define), tokenizes it
 // and parses the sections (WorldScript, Script, DeclareScript, GlobalVars); the Load* functions
 // below build the ScriptCall trees. See script.h and docs/notes/script.md ("Loader and parser").
-#include "script.h"
-#include "script_parse.h"
-#include "script_addon.h"
+#include "game/script.h"
+#include "game/script_parse.h"
+#include "game/script_addon.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

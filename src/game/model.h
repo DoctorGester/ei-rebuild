@@ -6,8 +6,8 @@
 #include "lib/vecmath.h"
 #include "render/mesh_records.h"
 #include "render/render_state.h"
-#include "renderer_base.h"
-#include "script.h"   // ScriptStream
+#include "game/renderer_base.h"
+#include "game/script.h"   // ScriptStream
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

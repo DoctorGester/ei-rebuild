@@ -1,14 +1,14 @@
 // The effect base (Effect) and the sound effects: EffectSound, EffectSoundSeq,
 // EffectAmbientSound. See world_effect.h for the class map and docs/notes/effects.md.
-#include "world_effect.h"
+#include "game/world_effect.h"
 
-#include "console.h"
-#include "game_singletons.h"
-#include "net_delta.h"
-#include "net_link.h"
-#include "save_versions.h"
-#include "sound.h"
-#include "world_effect_internal.h"
+#include "game/console.h"
+#include "game/game_singletons.h"
+#include "game/net_delta.h"
+#include "game/net_link.h"
+#include "game/save_versions.h"
+#include "game/sound.h"
+#include "game/world_effect_internal.h"
 
 #include <cstdint>
 #include <cstring>

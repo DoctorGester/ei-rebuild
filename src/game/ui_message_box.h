@@ -2,8 +2,8 @@
 
 // The message box and the difficulty question.
 
-#include "ui.h"
-#include "ui_edit_field.h"
+#include "game/ui.h"
+#include "game/ui_edit_field.h"
 
 // The buttons of a message box.
 enum class MessageButtons : std::uint32_t {

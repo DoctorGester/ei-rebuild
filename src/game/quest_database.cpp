@@ -3,13 +3,13 @@
 // the three briefing sections ("briefing receive", "briefing reject", "briefing complete") briefing records (name,
 // exp, money, six string lists); each record is added unless its name is already there. See
 // docs/notes/items_spells.md ("Quest database").
-#include "console.h"
+#include "game/console.h"
 
-#include "database_file.h"
-#include "quest_records.h"
-#include "registry.h"
-#include "script.h"
-#include "text_split.h"
+#include "game/database_file.h"
+#include "game/quest_records.h"
+#include "game/registry.h"
+#include "game/script.h"
+#include "game/text_split.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 

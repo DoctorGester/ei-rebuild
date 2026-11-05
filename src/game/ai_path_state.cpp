@@ -1,8 +1,8 @@
 // An AI path's network state: the motion order and the next steps written into a delta field (WriteState) and
 // read back (ReadState). Units' state messages (net_state.cpp), the player's path message (0x0E) and the
 // client's prediction (player_client.cpp) use them.
-#include "ai_motion.h"
-#include "net_delta.h"
+#include "game/ai_motion.h"
+#include "game/net_delta.h"
 
 #include <cstdint>
 

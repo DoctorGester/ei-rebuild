@@ -2,8 +2,8 @@
 
 // The hash tables of one-dword keys: the id tables' members and the registries' constructor and destructors.
 
-#include "chunk_archive.h"
-#include "net_classes.h"
+#include "game/chunk_archive.h"
+#include "game/net_classes.h"
 
 
 namespace hash400 {

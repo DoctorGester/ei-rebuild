@@ -1,6 +1,6 @@
 // ByteStream::ReadTagged (src/game/core_streams.cpp): a block is its tag, its size (counting the tag and the size) and
 // its bytes; a size below 8 is a corrupt block and ends the read before anything is allocated.
-#include "../../src/game/core_streams.h"
+#include "game/core_streams.h"
 #include "../../src/lib/vecmath.h"
 
 #include <array>

@@ -2,9 +2,9 @@
 
 #include "lib/str.h"
 #include "lib/text_case.h"
-#include "resource.h"
-#include "resource_stream.h"
-#include "mod_folders.h"
+#include "game/resource.h"
+#include "game/resource_stream.h"
+#include "game/mod_folders.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstring>

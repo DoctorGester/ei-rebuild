@@ -3,10 +3,10 @@
 // factory, Create / Destroy, the tick, the new fog and the draw, which binds the texture and has every fog
 // draw itself (the fog's own draw through the scene renderer: effects_weather.cpp). Main thread. See
 // docs/notes/script.md.
-#include "effects.h"
-#include "model.h"     // SceneRenderer
-#include "texture.h"
-#include "world.h"     // ClientArrayManager
+#include "game/effects.h"
+#include "game/model.h"     // SceneRenderer
+#include "game/texture.h"
+#include "game/world.h"     // ClientArrayManager
 
 #include <cstddef>
 #include <cstdint>

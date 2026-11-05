@@ -1,12 +1,12 @@
 // Application helpers around WinMain: the window's events, the input dispatcher, the event pump and the start of the
 // first map. See app.h.
-#include "app.h"
-#include "game_flow.h"
-#include "player_client.h"
-#include "sound.h"
-#include "ui_cursor.h"
-#include "present_window.h"
-#include "asset_text.h"
+#include "game/app.h"
+#include "game/game_flow.h"
+#include "game/player_client.h"
+#include "game/sound.h"
+#include "game/ui_cursor.h"
+#include "game/present_window.h"
+#include "game/asset_text.h"
 #include "platform/log.h"
 
 #include "lib/crt.h"
@@ -15,12 +15,12 @@
 #include <cstdarg>
 #include <cstring>
 #include <string>
-#include "options.h"
-#include "script.h"
-#include "texture.h"
-#include "ui.h"
-#include "world.h"
-#include "game_singletons.h"
+#include "game/options.h"
+#include "game/script.h"
+#include "game/texture.h"
+#include "game/ui.h"
+#include "game/world.h"
+#include "game/game_singletons.h"
 
 #include <cstdio>
 #include <cstdlib>

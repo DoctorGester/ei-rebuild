@@ -1,7 +1,7 @@
 // The game announcement record (GameInfoRecord). See net_classes.h and docs/notes/network.md.
-#include "net_classes.h"
+#include "game/net_classes.h"
 
-#include "net_coder.h"
+#include "game/net_coder.h"
 
 namespace net {
 

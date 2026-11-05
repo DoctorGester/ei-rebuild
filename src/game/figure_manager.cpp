@@ -1,16 +1,16 @@
 // The figure manager's loaders: NewFigure, LoadPart, LoadBoneAnimation. See figure_manager.h.
-#include "figure_manager.h"
+#include "game/figure_manager.h"
 
-#include "engine_object.h"   // EngineObject
-#include "figure_mesh.h"
-#include "game_singletons.h"
-#include "map_object_animation.h"
-#include "map_object_figures.h"
-#include "mod_folders.h"
-#include "model.h"
-#include "registry.h"
-#include "sky_object.h"
-#include "ui_mesh.h"
+#include "game/engine_object.h"   // EngineObject
+#include "game/figure_mesh.h"
+#include "game/game_singletons.h"
+#include "game/map_object_animation.h"
+#include "game/map_object_figures.h"
+#include "game/mod_folders.h"
+#include "game/model.h"
+#include "game/registry.h"
+#include "game/sky_object.h"
+#include "game/ui_mesh.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

@@ -1,13 +1,13 @@
 // AIMap::Load (Rebirth patches it): the navigation grid of a map from its archive. See docs/notes/ai.md, "The
 // map archive".
-#include "ai_map.h"
-#include "console.h"
-#include "game_singletons.h"
-#include "map_file.h"
-#include "registry.h"
-#include "resource.h"
-#include "sector_map.h"
-#include "unit_ai.h"
+#include "game/ai_map.h"
+#include "game/console.h"
+#include "game/game_singletons.h"
+#include "game/map_file.h"
+#include "game/registry.h"
+#include "game/resource.h"
+#include "game/sector_map.h"
+#include "game/unit_ai.h"
 
 #include "lib/bytes.h"
 #include "lib/maths.h"

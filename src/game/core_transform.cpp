@@ -1,6 +1,6 @@
-#include "core_transform.h"
+#include "game/core_transform.h"
 
-#include "core_maths.h"
+#include "game/core_maths.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
 

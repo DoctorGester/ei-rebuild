@@ -1,4 +1,4 @@
-#include "random.h"
+#include "game/random.h"
 
 #include "lib/caller.h"
 #include "lib/crt.h"

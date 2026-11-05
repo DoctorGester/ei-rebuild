@@ -12,8 +12,8 @@
 #include <vector>
 #include <unordered_map>
 
-#include "ack_kind.h"
-#include "unit_client_models.h"
+#include "game/ack_kind.h"
+#include "game/unit_client_models.h"
 
 namespace acks {
 

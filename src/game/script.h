@@ -14,7 +14,7 @@
 #include <utility>
 #include <vector>
 
-#include "engine_object.h"
+#include "game/engine_object.h"
 #include "lib/enum_array.h"
 #include "lib/printf_args.h"
 #include "lib/scales.h"

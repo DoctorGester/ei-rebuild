@@ -1,13 +1,13 @@
 // A lever's state change and the spots it is used from. See
 // docs/notes/units.md ("Levers").
-#include "lever.h"
-#include "combat.h"
+#include "game/lever.h"
+#include "game/combat.h"
 
-#include "ai_map.h"
-#include "map_object.h"
-#include "map_object_figures.h"
-#include "sector_map.h"
-#include "world.h"
+#include "game/ai_map.h"
+#include "game/map_object.h"
+#include "game/map_object_figures.h"
+#include "game/sector_map.h"
+#include "game/world.h"
 
 #include <algorithm>
 #include <cstdint>

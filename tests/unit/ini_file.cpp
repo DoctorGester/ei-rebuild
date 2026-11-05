@@ -2,7 +2,7 @@
 // without '=', the first of two keys, lists, numbers, the asset code page and a missing file. ei_unit_check
 // (unit_check.cpp) and Linux's ei_port_check run these and count their failures. The game's own files (movie.ini, the
 // lights tables) read as Windows' profile calls read them (C73 compared every one in the installs).
-#include "../../src/game/ini_file.h"
+#include "game/ini_file.h"
 #include "../../src/platform/platform.h"
 
 #include <cstdint>

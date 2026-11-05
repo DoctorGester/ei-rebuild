@@ -1,11 +1,11 @@
 // Message links over streams (net_link.h): the file stream, the link base, the loopback link, the framed
 // link and the per-player driver. See docs/notes/network.md.
-#include "net_link.h"
+#include "game/net_link.h"
 
-#include "core_streams.h"
-#include "net_connection.h"
-#include "net_messages.h"
-#include "world.h"   // WorldHandle (CreatePair)
+#include "game/core_streams.h"
+#include "game/net_connection.h"
+#include "game/net_messages.h"
+#include "game/world.h"   // WorldHandle (CreatePair)
 
 #include "lib/bytes.h"
 #include "platform/platform.h"

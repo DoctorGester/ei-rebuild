@@ -2,8 +2,8 @@
 // OnShutdown, Write, Read and destructor (Clone and the copy constructor only where a message is shared twice); the
 // same for the lobby's server entry (net_classes.h).
 // More: docs/notes/network.md, "Sessions and messages".
-#include "net_messages.h"
-#include "net_connection.h"
+#include "game/net_messages.h"
+#include "game/net_connection.h"
 
 #include <cstdint>
 #include <cstring>

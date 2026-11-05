@@ -2,10 +2,10 @@
 // "sw_03.iron.1", "unhumasw_03.iron.1", "initwesw3weapon", "qitem0012.uq"; the weapon and armour model names (unit
 // skins and models build the texture of a worn piece with them), the base figure and the figure parts a weapon is
 // drawn with. See item_names.h and item.h.
-#include "item_names.h"
+#include "game/item_names.h"
 
-#include "item.h"
-#include "spell.h"
+#include "game/item.h"
+#include "game/spell.h"
 
 #include "lib/str.h"
 

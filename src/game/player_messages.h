@@ -5,13 +5,13 @@
 // The single-player game runs the same server / client pair, so the per-tick player state, script variables
 // and unit events all go through them. See docs/notes/objects.md.
 
-#include "ack_kind.h"
-#include "engine_object.h"
+#include "game/ack_kind.h"
+#include "game/engine_object.h"
 #include "lib/vecmath.h"
-#include "net_delta.h"
-#include "party.h"
-#include "script.h"
-#include "water_tweens.h"
+#include "game/net_delta.h"
+#include "game/party.h"
+#include "game/script.h"
+#include "game/water_tweens.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

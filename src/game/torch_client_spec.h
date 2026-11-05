@@ -12,8 +12,8 @@
 // (also the sound's far distance divided by 5 / 3) and values[2..5] its colour; name the
 // sound.
 
-#include "server_specific_manager.h"   // TorchObjectSpec
-#include "sound.h"                     // kNoSound
+#include "game/server_specific_manager.h"   // TorchObjectSpec
+#include "game/sound.h"                     // kNoSound
 
 #include <cstddef>
 #include <cstdint>

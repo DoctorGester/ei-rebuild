@@ -1,7 +1,7 @@
 // The renderer's helper object (RenderHelper, model.h: the material presets): its constructor with the nine built-in
 // presets' state lists and its destructor, and its preset (the passes it sets in the renderer's render state). See
 // docs/notes/renderer.md (sections 5 and 12).
-#include "model.h"
+#include "game/model.h"
 #include "render/render_state.h"
 
 #include <cstdint>

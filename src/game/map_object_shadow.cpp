@@ -1,20 +1,20 @@
 // The shadow of a 3D object on the client: the renderer's shadow map draws it (CastsShadow); the game keeps a
 // sphere around the object and its shadow on the ground, which decides the shadow's visibility out of view
 // (ShadowInView). See map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
-#include "map_object_shadow.h"
+#include "game/map_object_shadow.h"
 
-#include "game_singletons.h"
-#include "map_object.h"
-#include "map_object_figures.h"
-#include "model.h"
-#include "object.h"
-#include "options.h"
+#include "game/game_singletons.h"
+#include "game/map_object.h"
+#include "game/map_object_figures.h"
+#include "game/model.h"
+#include "game/object.h"
+#include "game/options.h"
 #include "render/render.h"
 #include "render/render_checks.h"
-#include "spell.h"                // Light
-#include "unit.h"                 // Unit
-#include "unit_client_models.h"   // UnitClientSpecific
-#include "world.h"   // g_clientWorld
+#include "game/spell.h"                // Light
+#include "game/unit.h"                 // Unit
+#include "game/unit_client_models.h"   // UnitClientSpecific
+#include "game/world.h"   // g_clientWorld
 
 #include "lib/float_select.h"
 #include "lib/maths.h"

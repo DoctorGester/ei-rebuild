@@ -1,14 +1,14 @@
 // Combat orders: the setters of the queued order that the AI and the player's commands use in a
 // fight (turn, move, attack, cast, stop) and the end of a cast. See combat.h and docs/notes/combat.md.
-#include "combat.h"
-#include "combat_internal.h"
+#include "game/combat.h"
+#include "game/combat_internal.h"
 
-#include "item.h"
-#include "item_db.h"
+#include "game/item.h"
+#include "game/item_db.h"
 #include "lib/vecmath.h"
-#include "unit.h"
-#include "unit_db.h"
-#include "world.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
+#include "game/world.h"
 
 #include "lib/bytes.h"
 #include "lib/float_select.h"

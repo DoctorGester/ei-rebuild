@@ -1,8 +1,8 @@
 // Dib: construction, the header of a new bitmap and its memory. The file
 // reader and writer are in dib.cpp.
-#include "dib.h"
+#include "game/dib.h"
 
-#include "app.h"
+#include "game/app.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 

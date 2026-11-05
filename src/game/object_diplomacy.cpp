@@ -1,11 +1,11 @@
-#include "object_diplomacy.h"
+#include "game/object_diplomacy.h"
 
-#include "core_streams.h"
-#include "object.h"
-#include "player_messages.h"   // Player::units
-#include "unit.h"
+#include "game/core_streams.h"
+#include "game/object.h"
+#include "game/player_messages.h"   // Player::units
+#include "game/unit.h"
 
-#include "world.h"
+#include "game/world.h"
 
 namespace {
 

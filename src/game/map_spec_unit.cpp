@@ -1,13 +1,13 @@
 // The zone file's unit records (SpecKind::Unit; map_spec.h) with their five behaviour records (0x4C bytes: patrols of
 // waypoints and the guard settings), the small chunk classes that read those (waypoint, patrol,
 // behaviour) and the patrol array's copy. See docs/notes/objects.md, "Zone files and unit records".
-#include "ai_map.h"
-#include "map_object.h"
-#include "combat.h"
-#include "map_object_figures.h"
-#include "map_spec.h"
-#include "core_streams.h"
-#include "unit.h"
+#include "game/ai_map.h"
+#include "game/map_object.h"
+#include "game/combat.h"
+#include "game/map_object_figures.h"
+#include "game/map_spec.h"
+#include "game/core_streams.h"
+#include "game/unit.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"
@@ -16,9 +16,9 @@
 #include <initializer_list>
 #include <new>
 #include <string>
-#include "game_singletons.h"
-#include "world.h"
-#include "save_versions.h"
+#include "game/game_singletons.h"
+#include "game/world.h"
+#include "game/save_versions.h"
 
 namespace mapspec {
 

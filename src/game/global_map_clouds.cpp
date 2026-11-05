@@ -1,8 +1,8 @@
 // The global map's cloud layer: see global_map_clouds.h. The frames' noise is built by the renderer from the words
 // (render_compose.cpp, texture_clouds.glsl); the alpha ramp and the fade are plain float maths (rule 7).
-#include "global_map_clouds.h"
+#include "game/global_map_clouds.h"
 
-#include "random.h"
+#include "game/random.h"
 
 #include "lib/scales.h"
 #include "lib/maths.h"

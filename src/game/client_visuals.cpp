@@ -1,16 +1,16 @@
 // The client's picture kept beside a save (client_visuals.h; docs/notes/renderer.md, "What a save keeps of the
 // picture").
-#include "client_visuals.h"
+#include "game/client_visuals.h"
 
-#include "core_streams.h"
-#include "game_singletons.h"
-#include "ground_print.h"
-#include "random.h"
-#include "save_file.h"
-#include "save_versions.h"
-#include "terrain.h"
-#include "texture.h"
-#include "world.h"
+#include "game/core_streams.h"
+#include "game/game_singletons.h"
+#include "game/ground_print.h"
+#include "game/random.h"
+#include "game/save_file.h"
+#include "game/save_versions.h"
+#include "game/terrain.h"
+#include "game/texture.h"
+#include "game/world.h"
 
 #include "lib/str.h"
 #include "platform/log.h"

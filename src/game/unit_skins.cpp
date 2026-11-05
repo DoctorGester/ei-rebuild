@@ -3,16 +3,16 @@
 // "<model><item>.mmp"), registered as "mo<n>p" / "prot<n>p", then the head and weapon textures ("mo<n>s" /
 // "prot<n>s"); for every other unit (second list) the list of its textures goes to the figure maker. See
 // docs/notes/world.md.
-#include "item.h"
-#include "item_db.h"
-#include "item_names.h"
-#include "model.h"
-#include "texture.h"
-#include "unit.h"
-#include "unit_client_models.h"
-#include "unit_db.h"
-#include "unit_looks.h"
-#include "world.h"
+#include "game/item.h"
+#include "game/item_db.h"
+#include "game/item_names.h"
+#include "game/model.h"
+#include "game/texture.h"
+#include "game/unit.h"
+#include "game/unit_client_models.h"
+#include "game/unit_db.h"
+#include "game/unit_looks.h"
+#include "game/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

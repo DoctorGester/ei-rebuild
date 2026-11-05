@@ -1,7 +1,7 @@
 // The main menu's list of mods (mod_list.h).
-#include "mod_list.h"
+#include "game/mod_list.h"
 
-#include "registry.h"
+#include "game/registry.h"
 
 #include "lib/text_case.h"
 #include "platform/path_layers.h"

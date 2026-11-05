@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "lib/bit_flags.h"
-#include "ref.h"
+#include "game/ref.h"
 
 class ChunkArchive;
 

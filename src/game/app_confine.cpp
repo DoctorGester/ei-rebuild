@@ -1,8 +1,8 @@
 // The cursor confined to the game window (app.h's UpdateCursorConfinement). docs/notes/platform.md, "The cursor".
-#include "app.h"
+#include "game/app.h"
 
-#include "game_singletons.h"
-#include "ui.h"
+#include "game/game_singletons.h"
+#include "game/ui.h"
 
 #include "platform/log.h"
 #include "platform/platform.h"

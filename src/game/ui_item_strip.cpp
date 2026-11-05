@@ -1,15 +1,15 @@
 // The item strip's layout: the camp's and the hero screen's strips of items along the
 // top or bottom edge, the forwarding strip's draw and its two text surfaces' paints. See ui_screens.h
 // (UiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
-#include "ui.h"
-#include "ui_mesh.h"
+#include "game/ui.h"
+#include "game/ui_mesh.h"
 
-#include "ui_camp.h"
-#include "ui_item_info.h"
-#include "ui_screens.h"
+#include "game/ui_camp.h"
+#include "game/ui_item_info.h"
+#include "game/ui_screens.h"
 #include "lib/float_select.h"
 #include "lib/str.h"
-#include "screen_layout.h"
+#include "game/screen_layout.h"
 
 #include <bit>
 #include <cmath>

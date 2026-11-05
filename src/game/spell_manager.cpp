@@ -1,14 +1,14 @@
 // The spell manager and the spell containers: the manager's own code and the container's lifetime
 // (CreateSpellObject, the factory, Create / Destroy), the spell constructor, and spells from text. See
 // docs/notes/items_spells.md.
-#include "spell.h"
+#include "game/spell.h"
 
-#include "console.h"
-#include "item.h"
-#include "item_db.h"
-#include "item_manager.h"
-#include "manager_context.h"
-#include "text_split.h"
+#include "game/console.h"
+#include "game/item.h"
+#include "game/item_db.h"
+#include "game/item_manager.h"
+#include "game/manager_context.h"
+#include "game/text_split.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/str.h"

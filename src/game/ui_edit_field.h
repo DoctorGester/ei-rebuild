@@ -2,7 +2,7 @@
 
 // The message box's edit field.
 
-#include "ui.h"
+#include "game/ui.h"
 
 // The classes of typed characters a field admits (UiEditField::charClasses).
 constexpr std::uint32_t kClassDigit = 1;

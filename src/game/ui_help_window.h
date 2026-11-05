@@ -2,7 +2,7 @@
 
 // The help / message window.
 
-#include "ui.h"
+#include "game/ui.h"
 
 // The help / message window (Interface3D::ShowMessage and OpenHelp). Its pages come from the texts:
 // "tutorial <text>" holds the title key and a "#screen" line per page, and "tutor <key>" each key's text.

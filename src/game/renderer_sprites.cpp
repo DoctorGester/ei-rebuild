@@ -1,10 +1,10 @@
 // The renderer's sprite draw with its helpers (indexed draw, a radix sort pass, a merge sort pass).
 // More: docs/notes/models.md, "Renderer".
-#include "clip.h"   // TLVertex
-#include "model.h"
+#include "game/clip.h"   // TLVertex
+#include "game/model.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "texture.h"
+#include "game/texture.h"
 
 #include "lib/containers.h"
 #include "lib/vecmath.h"

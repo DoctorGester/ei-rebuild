@@ -1,10 +1,10 @@
 // Script object references and groups (sets of object references). See script.h.
-#include "script.h"
-#include "unit.h"
-#include "combat.h"
-#include "world.h"
+#include "game/script.h"
+#include "game/unit.h"
+#include "game/combat.h"
+#include "game/world.h"
 
-#include "game_singletons.h"
+#include "game/game_singletons.h"
 
 #include <algorithm>
 #include <cstdint>
