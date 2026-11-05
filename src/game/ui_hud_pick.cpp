@@ -272,8 +272,7 @@ void HudWeaponBar::SetUnit(Unit* newUnit) {
         tip += "\n";
 
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
-        float types[7];
-        weapon->GetDamageTypes(types);
+        const std::array<float, kDamageTypeCount> types = weapon->DamageTypes();
         const float zero = 0.0f;
         unsigned tipType = 0;
         while (tipType < 7 && types[tipType] == zero) ++tipType;

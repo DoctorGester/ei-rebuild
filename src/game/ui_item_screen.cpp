@@ -156,8 +156,6 @@ float ItemScreen::Weight() { return 0.0f; }
 
 int ItemScreen::Price(Item*, PriceKind) { return 0; }
 
-void ItemTurn::OnShutdown() {}
-
 // --- Ui item model -----------------------------------------------------------------------------------
 
 // An item's model for the item screens' model view (ui_item_view.cpp caches it). See

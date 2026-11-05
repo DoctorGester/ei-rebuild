@@ -33,7 +33,11 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 - Quick item categories (field 0x15, `QuickItemCategory`): 5 for "wand 1".."wand 6" (the spell is put in, casts pay from
   the charge), 8 for the potions and the scrolls' "spell container" (the spell comes from spellText; potions are used up
   and only on the user), 0 for the danger sensor; 2 (`Consumable`) has no prototype in the data. A loot prototype's
-  field 0x15 is its `LootKind` (2 for the "instruction ..." blueprints).
+  field 0x15 is its `LootKind` (2 for the "instruction ..." blueprints). An armour's field 0x15 is its first
+  absorption row (`ArmorRecord::firstFactor`, the row, the flags): the original kept that factor's bits in the head's
+  category, so `Item::GetCategory` of an armour read them; ours leaves the category 0. No category test can tell: the
+  callers compare with 2, 5 and 8, and no install's or mod's items.idb (192-215 rows, factors 0.63 and up) has a
+  factor with those bits.
 - Naming: 0x3007 is the loot item ("litem", ItemLoot) and 0x3009 the quest item ("questitem", ItemQuest).
 - Weapon stats: min damage = weapon damage x material damage, max = (spread + damage) x material damage, attack =
   weapon attack x material attack, damage type = the first non-zero weight (6 if none).
@@ -60,7 +64,7 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
   (the item views' `ItemTurn`).
 - Original bug kept: `Player::HasLoot` (over a unit's carried items) and the script's `RemoveQuestItem` compare the
   quest item id's word of every carried item without a class test: a weapon's or quick item's actionValue, the
-  armour's first absorption factor (its bits) or the loot's kind can match an id (`Item::QuestWord`). A fix would
+  armour's first absorption value (its bits) or the loot's kind can match an id (`Item::QuestWord`). A fix would
   test the class first.
 
 ## Item texts

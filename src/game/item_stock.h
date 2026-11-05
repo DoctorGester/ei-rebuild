@@ -41,7 +41,6 @@ inline constexpr int kMaxSpellModifiers = 8;
 } // namespace stock
 
 struct ItemStock {
-    // The owner `party` and class index 0; baseLevels and scrollLevels are not written.
     explicit ItemStock(Party* party) : party(party) {}
 
     Party* party = nullptr;        // the template's party object (its item constructor and item manager)

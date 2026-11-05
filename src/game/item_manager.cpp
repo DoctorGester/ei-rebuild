@@ -90,7 +90,7 @@ std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHe
         to->othersFlags = from->othersFlags | material->armourFlags;
         // Each absorption value scaled by the material's factor for its damage type and by the row's factor.
         for (int k = 0; k < kDamageTypeCount; ++k) {
-            to->absorbFirst[k] = from->absorbFirst[k] * material->absorbFactors[k] * from->FirstFactor();
+            to->absorbFirst[k] = from->absorbFirst[k] * material->absorbFactors[k] * from->firstFactor;
             to->absorbOthers[k] = from->absorbOthers[k] * material->absorbFactors[k] * from->othersFactor;
         }
         return IndexIn(g_itemDatabase.armors, prototype);

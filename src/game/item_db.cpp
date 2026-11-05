@@ -10,8 +10,9 @@
 
 #include "lib/crt.h"
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
-#include <cstring>
 #include <string>
 
 namespace {
@@ -29,24 +30,21 @@ const std::string& IndexKey(const itemdb::MaterialRecordHead& record) { return r
 const std::string& IndexKey(const itemdb::ItemRecordHead& record) { return record.name; }
 
 // An armour's absorption row as items.idb holds it (fields 0x15 and 0x16): the factor, the absorption per damage type
-// and the flags. The first row's factor is the head's category, which an x64 build's head (8-byte aligned for its
-// vtable) does not keep beside absorbFirst: each row goes through this copy, not one read across the members.
+// and the flags.
 struct AbsorbRow {
-    std::uint32_t factor = 0;  // float bits
-    float absorb[kDamageTypeCount] = {};
+    float factor = 0.0f;
+    std::array<float, kDamageTypeCount> absorb{};
     std::uint32_t flags = 0;
 };
 static_assert(sizeof(AbsorbRow) == 0x24);
 
-void AbsorbRowField(ChunkArchive* ar, int id, void* factor, float* absorb, std::uint32_t* flags) {
-    AbsorbRow row;
-    std::memcpy(&row.factor, factor, sizeof(row.factor));
-    std::memcpy(row.absorb, absorb, sizeof(row.absorb));
-    row.flags = *flags;
+void AbsorbRowField(ChunkArchive* ar, int id, float& factor, std::array<float, kDamageTypeCount>& absorb,
+                    std::uint32_t& flags) {
+    AbsorbRow row{factor, absorb, flags};
     ar->Field(id, &row);
-    std::memcpy(factor, &row.factor, sizeof(row.factor));
-    std::memcpy(absorb, row.absorb, sizeof(row.absorb));
-    *flags = row.flags;
+    factor = row.factor;
+    absorb = row.absorb;
+    flags = row.flags;
 }
 
 } // namespace
@@ -98,17 +96,23 @@ void WeaponRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x17, &reach);
     ar->Field(0x18, &damage);
     ar->Field(0x19, &damageSpread);
-    ar->Field(0x1A, damageTypes, sizeof(damageTypes));
+    ar->Field(0x1A, &damageTypes);
     ar->Field(0x1B, unreadFields + 8, 3);
-    ar->Field(0x1C, skillBonus, 8);   // skillBonus and the first six bytes after it
+    // Field 0x1C: the two skill bonus bytes, then six nothing reads.
+    std::array<std::uint8_t, 8> skillField{};
+    std::copy_n(skillBonus, 2, skillField.begin());
+    std::copy_n(unreadFields + 11, 6, skillField.begin() + 2);
+    ar->Field(0x1C, &skillField);
+    std::copy_n(skillField.begin(), 2, skillBonus);
+    std::copy_n(skillField.begin() + 2, 6, unreadFields + 11);
     ar->Field(0x1D, &attackBonus);
     ar->Field(0x1E, &defenceBonus);
 }
 
 void ArmorRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
-    AbsorbRowField(ar, 0x15, &category, absorbFirst, &firstFlags);
-    AbsorbRowField(ar, 0x16, &othersFactor, absorbOthers, &othersFlags);
+    AbsorbRowField(ar, 0x15, firstFactor, absorbFirst, firstFlags);
+    AbsorbRowField(ar, 0x16, othersFactor, absorbOthers, othersFlags);
     ar->Field(0x17, &showsWounds);
     ar->Field(0x18, &layer);
     ar->Field(0x19, unreadFields, 3);

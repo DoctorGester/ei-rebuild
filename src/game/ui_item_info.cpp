@@ -126,7 +126,7 @@ public:
 
 // Whether a 7-entry damage weight array has a weight that compares unequal (and ordered) to 0: returns the
 // index, or 7.
-unsigned FirstDamageKind(const float* weights) {
+unsigned FirstDamageKind(const std::array<float, kDamageTypeCount>& weights) {
     unsigned i = 0;
     for (; i < 7; ++i) {
         if (weights[i] != 0.0f) break;
@@ -401,9 +401,7 @@ void ItemInfoPanel::DescribeItem() {
             ItemWeapon* weapon = item->AsWeapon();
             // Damage: min-max and the first damage kind with a weight ("damage<n>"; the text
             // keeps the material line's otherwise).
-            float weights[7];
-            weapon->GetDamageTypes(weights);
-            unsigned first = FirstDamageKind(weights);
+            unsigned first = FirstDamageKind(weapon->DamageTypes());
             if (first < 7) {
                 w.line = std::format("damage_{}", first);
                 text = texts->GetString(w.line);
@@ -425,9 +423,7 @@ void ItemInfoPanel::DescribeItem() {
         }
     }
     if (kind == ItemKind::Armor) {
-        float values[7];
-        std::memcpy(values, item->AsArmor()->absorb[0], sizeof(values));
-        w.DamageLines(values, 25);
+        w.DamageLines(item->AsArmor()->absorb[0].data(), 25);
     }
 
     w.Down();
@@ -541,7 +537,7 @@ void ItemInfoPanel::DescribeBlueprint() {
             w.Number(39, static_cast<int>(weapon->defenceBonus));
     } else if (sort == 1) {
         float values[7];
-        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(armor->absorbFirst[i], armor->FirstFactor(), 10.0f);
+        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(armor->absorbFirst[i], armor->firstFactor, 10.0f);
         w.DamageLines(values, 4);
     }
     w.Down();

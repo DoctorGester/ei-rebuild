@@ -7,7 +7,7 @@
 
 #include "lib/vecmath.h"
 
-#include <bit>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -194,15 +194,14 @@ public:
     float condition = 0.0f;             // item condition and maximum (times the material's conditionFactor)
     std::uint32_t materialUnits = 0;    // units of material (the price; the trader stock takes them)
     std::uint32_t classMask = 0;        // bit (class - 1): the class templates that may use it
-    // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
-    // constructor (IsBuildable).
-    std::uint8_t buildable = 0;
-    // the category (QuickItemCategory), a quest
-    // item's id, a loot item's kind; an armour's first absorption factor (float bits).
+    // archive field 15: 0 keeps the item out of the camp's item constructor (IsBuildable).
+    std::uint8_t buildable = 1;
+    // field 0x15: the category (QuickItemCategory), a weapon's attack interval (AttackInterval), a quest item's id,
+    // a loot item's kind; 0 for armour.
     std::uint32_t category = 0;
 
 protected:
-    ItemRecordHead() : buildable(1) {}
+    ItemRecordHead() = default;
     ItemRecordHead(const ItemRecordHead&) = default;
     ItemRecordHead& operator=(const ItemRecordHead&) = default;
 };
@@ -214,41 +213,36 @@ Record* RecordAs(ItemRecordHead* record) { return static_cast<Record*>(record); 
 template <class Record>
 const Record* RecordAs(const ItemRecordHead* record) { return static_cast<const Record*>(record); }
 
-// The record kinds. Their constructors leave the fields the archive fills as they are.
-
 // A weapon prototype: what ItemWeapon takes besides the head.
 struct WeaponRecord : ItemRecordHead {
-    WeaponRecord() {}
     ItemKind Kind() override { return ItemKind::Weapon; }
     // The head, then fields 0x15-0x1E.
     void Serialize(ChunkArchive* ar);
 
-    std::uint8_t unreadFields[11] = {};  // archive fields 0x16 (8 bytes) and 0x1B (3); nothing reads them
-    std::uint8_t skillBonus[2] = {};    // the wielder's weapon skill bonus (skill 0 / 1)
-    std::uint8_t unused_7D[0x84 - 0x7D] = {};
+    // archive fields 0x16 (8 bytes), 0x1B (3) and the last six bytes of 0x1C; nothing reads them
+    std::uint8_t unreadFields[17] = {};
+    std::uint8_t skillBonus[2] = {};    // the wielder's weapon skill bonus (skill 0 / 1; the first bytes of 0x1C)
     float attackBonus = 0.0f;           // added to the wielder's attack (WeaponAttackBonus)
     float defenceBonus = 0.0f;          // added to the wielder's defence (WeaponDefenceBonus; 0 for types 5, 6)
     float reach = 0.0f;                 // ItemWeapon::reach
     float damage = 0.0f;                // minimum damage (times the material's damageFactor)
     float damageSpread = 0.0f;          // maximum damage = damage + spread
-    float damageTypes[kDamageTypeCount] = {};  // weight of each damage type
+    std::array<float, kDamageTypeCount> damageTypes{};  // weight of each damage type
 };
 
 // An armour prototype: the two absorption rows ItemArmor takes.
 struct ArmorRecord : ItemRecordHead {
-    ArmorRecord() {}
     ItemKind Kind() override { return ItemKind::Armor; }
     // The head, then the two rows, showsWounds, layer and unreadFields.
     void Serialize(ChunkArchive* ar);
-    float FirstFactor() const { return std::bit_cast<float>(category); }
 
-    // Two rows of nine dwords: a factor (the first row's is the head's category), the absorption
-    // per damage type (each times the row's factor and the material's absorbFactors) and flags
-    // (the material's armourFlags or'ed in).
-    float absorbFirst[kDamageTypeCount] = {};  // item absorb[0]
+    // Two rows of nine dwords: a factor, the absorption per damage type (each times the row's factor and the
+    // material's absorbFactors) and flags (the material's armourFlags or'ed in).
+    float firstFactor = 0.0f;
+    std::array<float, kDamageTypeCount> absorbFirst{};  // item absorb[0]
     std::uint32_t firstFlags = 0;
     float othersFactor = 0.0f;
-    float absorbOthers[kDamageTypeCount] = {};  // item absorb[1]
+    std::array<float, kDamageTypeCount> absorbOthers{};  // item absorb[1]
     std::uint32_t othersFlags = 0;
     std::uint8_t showsWounds = 0;       // 0: the piece hides the wounds of the parts it covers
     std::uint32_t layer = 0;            // the lower one's texture goes first (ArmorLayer)
@@ -257,7 +251,6 @@ struct ArmorRecord : ItemRecordHead {
 
 // A quick item prototype (potions, wands, scrolls).
 struct QuickItemRecord : ItemRecordHead {
-    QuickItemRecord() {}
     ItemKind Kind() override { return ItemKind::Quick; }
     // The head, then category (0x15), actionValue (0x16), unreadFields (0x17, 0x18), spellText (0x19), attributeBonus
     // (0x1A) and unreadFields (0x1B).
@@ -272,7 +265,6 @@ struct QuickItemRecord : ItemRecordHead {
 
 // A quest item prototype with a list of zone names (QuestItemInfo reads the list).
 struct QuestItemRecord : ItemRecordHead {
-    QuestItemRecord() {}
     ItemKind Kind() override { return ItemKind::Quest; }
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
@@ -282,7 +274,6 @@ struct QuestItemRecord : ItemRecordHead {
 
 // The prototype of a ItemLoot: kind (the head's category), record type, index.
 struct LootItemRecord : ItemRecordHead {
-    LootItemRecord() {}
     ItemKind Kind() override { return ItemKind::Loot; }
     // The head, then category, recordType, index.
     void Serialize(ChunkArchive* ar);

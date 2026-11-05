@@ -11,7 +11,7 @@
 
 #include "lib/float_select.h"
 
-#include <bit>
+#include <array>
 #include <cstdint>
 #include <cstring>
 
@@ -41,22 +41,6 @@ ItemRecordHead* PrototypeAt(ItemKind kind, std::uint32_t index) {
 }
 
 // --- Item ---------------------------------------------------------------------------------------
-
-Item::Item() {
-    condition = -1.0f;
-    conditionMax = -1.0f;
-    charge = -1.0f;
-    chargeMax = -1.0f;
-    chargeRate = -1.0f;
-    weight = -1.0f;
-    price = -1.0f;
-    unreadValue = -1.0f;
-    count = 1;
-}
-
-Item::~Item() {
-    Item::Destroy();
-}
 
 void Item::Create() {
     count = 1;
@@ -178,7 +162,7 @@ QuickItemCategory Item::GetCategory() {
 }
 
 void Item::AttachSpell(Spell* newSpell) {
-    if (Spell* previous = spell) price = price - std::bit_cast<float>(previous->price);
+    if (Spell* previous = spell) price = price - previous->price;
     spell.Assign(newSpell);
     if (spell) price = spell->price + price;
 }
@@ -188,10 +172,6 @@ LockKey Item::GetUse() { return LockKey{0, 0, 0}; }
 
 // --- ItemLink -----------------------------------------------------------------------------------
 
-ItemLink::ItemLink() = default;
-
-void ItemLink::OnShutdown() {}
-
 ItemLink* ItemLink::Clone() {
     auto* copy = new ItemLink();
     copy->value = value;
@@ -199,13 +179,6 @@ ItemLink* ItemLink::Clone() {
 }
 
 // --- ItemWeapon ---------------------------------------------------------------------------------
-
-ItemWeapon::ItemWeapon() {
-    damage = -1.0f;
-    damageSpread = -1.0f;
-    reach = -1.0f;
-    actionValue = 0;
-}
 
 const char* ItemWeapon::ClassName() { return "CItemWeapon"; }
 
@@ -215,11 +188,9 @@ WeaponType ItemWeapon::GetType() {
     return static_cast<WeaponType>(WeaponAt(PrototypeIndex(prototypeId))->type);
 }
 
-void ItemWeapon::GetDamageTypes(float (&out)[kDamageTypeCount]) {
-    if (const WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId)))
-        std::memcpy(out, prototype->damageTypes, sizeof(out));
-    else
-        std::memset(out, 0, sizeof(out));
+std::array<float, kDamageTypeCount> ItemWeapon::DamageTypes() {
+    if (const WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId))) return prototype->damageTypes;
+    return {};
 }
 
 // ((high - low) * roll) * 2^-32 + low.
@@ -287,22 +258,22 @@ int ItemArmor::GetType() {
 void ItemArmor::InitFromRecord(const ItemRecordHead* record) {
     Item::InitFromRecord(record);
     auto* r = RecordAs<ArmorRecord>(record);
-    std::memcpy(absorb[0], r->absorbFirst, sizeof(absorb[0]));
-    std::memcpy(absorb[1], r->absorbOthers, sizeof(absorb[1]));
+    absorb[0] = r->absorbFirst;
+    absorb[1] = r->absorbOthers;
 }
 
 bool ItemArmor::IsSameAs(Item* item) {
     if (!Item::IsSameAs(item)) return false;
     auto* other = item->AsArmor();
     // Both absorption rows and the layer masks, compared by their bits.
-    return std::memcmp(absorb, other->absorb, sizeof(absorb)) == 0 &&
+    return std::memcmp(&absorb, &other->absorb, sizeof(absorb)) == 0 &&
            std::memcmp(layerMask, other->layerMask, sizeof(layerMask)) == 0;
 }
 
 bool ItemArmor::CopyTo(Item* target, SpellManager* spells) {
     if (!Item::CopyTo(target, spells)) return false;
     auto* armor = target->AsArmor();
-    std::memcpy(armor->absorb, absorb, sizeof(absorb));
+    armor->absorb = absorb;
     armor->layerMask[0] = layerMask[0];
     armor->layerMask[1] = layerMask[1];
     return true;
@@ -310,14 +281,12 @@ bool ItemArmor::CopyTo(Item* target, SpellManager* spells) {
 
 void ItemArmor::Load(ByteStream* stream) {
     Item::Load(stream);
-    stream->Read(absorb[0], sizeof(absorb[0]));
-    stream->Read(absorb[1], sizeof(absorb[1]));
+    stream->ReadValue(absorb);
 }
 
 void ItemArmor::Save(ByteStream* stream) {
     Item::Save(stream);
-    stream->Write(absorb[0], sizeof(absorb[0]));
-    stream->Write(absorb[1], sizeof(absorb[1]));
+    stream->WriteValue(absorb);
 }
 
 // --- ItemQuick ----------------------------------------------------------------------------------
@@ -441,11 +410,8 @@ bool ItemLoot::CopyTo(Item* target, SpellManager* spells) {
 
 void ItemLoot::Load(ByteStream* stream) {
     Item::Load(stream);
-    std::uint32_t value = 0;
-    stream->ReadValue(value);
-    kind = static_cast<LootKind>(value);
-    stream->ReadValue(value);
-    recordType = static_cast<LootRecordType>(value);
+    stream->ReadValue(kind);
+    stream->ReadValue(recordType);
     stream->ReadValue(index);
 }
 
