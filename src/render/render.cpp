@@ -232,7 +232,7 @@ void Start() {
 
 #if defined(EI_RENDER_VALIDATION)
 // The timer of the device mesh draw running (at most one), made in place so no static destructor comes with it.
-static alignas(StatsTimer) unsigned char g_deviceMeshTimer[sizeof(StatsTimer)];
+alignas(StatsTimer) static unsigned char g_deviceMeshTimer[sizeof(StatsTimer)];
 static bool g_deviceMeshTiming = false;
 #endif
 
