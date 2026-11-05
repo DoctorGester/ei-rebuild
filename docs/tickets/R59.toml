@@ -5,5 +5,6 @@ size = 2
 model = "opus"
 note = "User 2026-11-05: the snow is not widescreen friendly (flakes look stretched), some flakes twitch during flight and some vanish abruptly; the rain does not look very rainy. Improve both (src/game/weather_particles.cpp, effects_weather.cpp, particle_create.cpp, RainSnow; the renderer's particle path). Find the stretch (aspect/projection of the particle quads at non-4:3), the twitch (per-tick position jumps not interpolated across frames, wind steps, respawn) and the abrupt vanish (culling, lifetime, the camera box wrap) and fix them; rain as motion-blurred streaks with speed and length that read as rain, splashes/ripples already exist on water and ground. Weather particles are client-only (no gameplay or digest change; client random R34a). Before/after frames on the captures page, not thread attachments. Done (R59 branch): a stateless particle field around the view (weather_field.cpp; unit check tests/unit/weather_field.cpp) drawn in pixels (weather_particles.cpp): rain as motion-blurred streaks, snow as round soft discs that drift and fade as they land; scene-lit, untextured. Captures: build/captures/r59, scenario render_weather_particles. Goldens unchanged."
 order = 1239
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
