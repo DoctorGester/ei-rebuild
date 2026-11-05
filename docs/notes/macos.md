@@ -50,7 +50,10 @@ command line, ctest's GPU checks on the runner's virtual Metal device, and a uni
 Mac builds so far were the user's arm64 RelWithDebInfo at the SDK's own target).
 
 `.github/workflows/suites-macos.yml` (by hand, H62) builds the harness on the same runner type and plays a short smoke list
-on the stub data (harness.md, "The macOS CI job"); not run yet.
+on the stub data (harness.md, "The macOS CI job"). Run since 2026-11-05: the VM's Metal device ("Apple Paravirtual
+device") draws the game; rec_save_load and render_water differed, as on the Windows runner, because the harness's window
+was made smaller on the runner's small screen (harness.md, "The game window's size"; H62b: both differences came back
+exactly on Windows with the usable area cut to 1024x674; the Mac's own `client area` log lines are still to be read).
 
 ## Run
 
