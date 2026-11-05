@@ -169,8 +169,7 @@ void MagicTrap::SaveTrap(ByteStream* stream) {
     stream->WriteId(spell);
     stream->WriteCount(area.size());
     for (int i = 0; i < std::ssize(area); ++i) stream->WriteValue(area[i]);
-    stream->WriteCount(inside.size());
-    for (Unit* unit : inside) stream->WriteId(unit);
+    SaveUnitList(inside, stream);
     stream->WriteCount(points.size());
     for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) {
@@ -185,7 +184,7 @@ void MagicTrap::LoadTrap(ByteStream* stream) {
     SetSpell(this, spellId == kNoObjectId ? nullptr : manager->FindObjectAs<Spell>(spellId));
     area.resize(stream->ReadCount());
     for (int i = 0; i < std::ssize(area); ++i) stream->ReadValue(area[i]);
-    CountedListLoad(&inside, stream, OwningWorld());
+    inside = LoadUnitList(stream, OwningWorld());
     points.resize(stream->ReadCount());
     for (int i = 0; i < std::ssize(points); ++i) stream->ReadValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) stream->Read(TailFields(this, i), 4);

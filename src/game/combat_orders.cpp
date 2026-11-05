@@ -14,6 +14,7 @@
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {
@@ -92,11 +93,11 @@ void UnitServer::FinishCast() {
     action.source = kNoSource;
 }
 
-void UnitServer::OrderTurn(const Vector3& direction, std::uint32_t time) {
+void UnitServer::OrderTurn(const Vector3& direction, float time) {
     action2.Reset();
     action2.kind = UnitOrderKind::Turn;
     action2.point = direction;
-    action2.param = static_cast<int>(time);
+    action2.param = std::bit_cast<int>(time);
 }
 
 void UnitServer::OrderMove(const Vector3& point, int run, int walk) {

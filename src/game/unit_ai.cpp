@@ -1,6 +1,7 @@
-// The unit AI brain: the per-tick mode selection and the actions, the mode list and resets, calls for help,
-// the perception memory's bookkeeping, the attention, the behaviour (alarm) records and the save games. See
-// unit_ai.h and docs/notes/unit_ai.md.
+// The unit AI brain: the per-tick mode selection, AIOrder's members, the actions and the movement (the looks of a
+// move, a place to stand, following a leader), the mode list and resets, calls for help, the perception memory's
+// bookkeeping, the attention, the behaviour (alarm) records and the save games. See unit_ai.h and
+// docs/notes/unit_ai.md.
 #include "unit_ai.h"
 
 #include "ai_alarm.h"
@@ -13,6 +14,7 @@
 #include "map_spec.h"
 #include "net_classes.h"
 #include "object_diplomacy.h"
+#include "random.h"
 #include "save_versions.h"
 #include "world.h"
 
@@ -24,7 +26,6 @@
 #include "lib/str.h"
 
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -222,6 +223,40 @@ void AIBrain::OnObjectDeleted(EngineObject* object) {
     memory.Forget(object);
 }
 
+// --- Orders for the controller's checks -------------------------------------------------------------------
+
+void AIOrder::Clear() {
+    kind = UnitOrderKind::None;
+    target.Reset();
+    pointIsUseSpot = false;
+}
+
+void AIOrder::MakeAttack(MapObject* object) {
+    Clear();
+    kind = UnitOrderKind::Attack;
+    source = kAttackAllParts;
+    target.Assign(object);
+}
+
+void AIOrder::MakeCast(int spell, MapObject* object) {
+    Clear();
+    kind = UnitOrderKind::CastOn;
+    target.Assign(object);
+    source = static_cast<std::uint32_t>(spell);
+}
+
+void AIOrder::MakeUse(MapObject* object, UseSource use) {
+    Clear();
+    kind = UnitOrderKind::Use;
+    target.Assign(object);
+    source = static_cast<std::uint32_t>(use);
+}
+
+Vector3 AIOrder::AimPoint() const {
+    if (target == nullptr) return point;
+    return target->AimPoint();
+}
+
 // --- Actions -------------------------------------------------------------------------------------
 
 void AIBrain::UpdateMove() {
@@ -241,7 +276,7 @@ void AIBrain::UpdateMove() {
         actionTime = kLookStarted;
         const AILook& look = move.looks.front();
         const Vector3 direction = {lib::Cos(look.angle), lib::Sin(look.angle), 0.0f};
-        owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(look.time));   // the float's bits as the time (sic)
+        owner->OrderTurn(direction, look.time);
         return;
     }
     if (actionTime == kLookStarted) {
@@ -289,7 +324,7 @@ void AIBrain::AttackTarget(MapObject* object) {
     owner->OrderAttack(target, kAttackAllParts, 0, flags);
 }
 
-void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, int run) {
+void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, bool run) {
     if (!object) return;
     action = AIAction::Use;
     target.Reset();
@@ -311,32 +346,31 @@ void AIBrain::UseOn(MapObject* object, UseSource kind, int spot, int run) {
     }
 }
 
-void AIBrain::StartMove(const AIMoveOrder* order) {
+void AIBrain::StartMove(const AIMoveOrder& order) {
     target.Reset();
     action = AIAction::Move;
     actionTime = kNoTime;
-    move.point = order->point;
-    move.looks = order->looks;
+    move = order;
     owner->OrderMove(move.point, 0, 0);
 }
 
-void AIBrain::Walk(const Vector3& point, int run) {
+void AIBrain::Walk(const Vector3& point, bool run) {
     action = AIAction::Walk;
     owner->OrderMove(point, run, 0);
 }
 
 void AIBrain::TurnTowards(const Vector3& direction, float time) {
     action = AIAction::Walk;
-    owner->OrderTurn(direction, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
+    owner->OrderTurn(direction, time);
 }
 
-void AIBrain::CastAt(int spell, const Vector3& point, int run) {
+void AIBrain::CastAt(int spell, const Vector3& point, bool run) {
     if (!owner->IsPotionSource(spell)) action = AIAction::Cast;
     actionTime = spell;
     owner->OrderCastAt(spell, point, run);
 }
 
-void AIBrain::CastOn(int spell, MapObject* object, int run) {
+void AIBrain::CastOn(int spell, MapObject* object, bool run) {
     if (!owner->IsPotionSource(spell)) action = AIAction::Cast;
     target.Assign(object);
     actionTime = spell;
@@ -357,6 +391,209 @@ void AIBrain::SetSeen(MapObject* object) {
     }
     if (!alerted && alertMode == mapspec::AlertMode::OnSeen) alerted = true;
     if (Unit* unit = UnitOrNull(object)) memory.ForceSee(owner->unit, unit);
+}
+
+// --- Movement: the looks planned for a move, a free place to stand, following a leader ---------------------
+
+namespace {
+constexpr float kEyeHeight = 1.4f;                  // looks are tested from this high
+constexpr float kWanderScale = 15.0f;
+constexpr float kDefaultWander = 40.0f;
+constexpr float kMinWaitFraction = 0.25f;
+// A random word to an angle in [0, 6.3).
+constexpr float kAngleScale = 6.3f * 0x1p-32f;
+constexpr const char kHumanPrefix[] = "unhu";
+
+constexpr float kMaxSlope = 0.3f;
+constexpr float kAllySpace = 2.5f;                  // x the standing height
+constexpr float kCooldownPerDistance = 0.33333334f;   // (1 / 3)
+constexpr int kMaxCooldown = 10;
+
+constexpr int kFollowWait = 8;
+constexpr int kFollowPause = 6;
+constexpr int kLeaderAhead = 5;                     // ticks ahead of the leader
+constexpr int kLeaderFirstStep = 6;
+constexpr int kLeaderLastStep = 100;
+constexpr int kLeaderSide = 40;
+constexpr float kOnTheWaySq = 1.3f;
+constexpr float kSideOffset = 1.3649999f;    // (1.365)
+constexpr float kReachedSq = 0.1f;
+constexpr float kPassRange = 10.0f;
+
+} // namespace
+
+std::vector<AILook> AIBrain::PlanLooks(const Vector3& point, const Vector3& direction, float wander, bool farGoal) {
+    std::vector<AILook> planned;
+    int count = static_cast<int>(g_random.Next() & 3) + 1;
+    Vector3 eye = point;
+    eye.z = g_serverWorld.aiMap.TopHeightAt(eye) + kEyeHeight;
+    if (wander >= 0.0f) wander = wander * kWanderScale;
+    else wander = kDefaultWander;   // also NaN
+    if (farGoal) {
+        if (owner->moveMode2.onGuard || owner->unit->name.starts_with(std::string_view(kHumanPrefix, 4))) {
+            farGoal = false;
+        } else {
+            wander = static_cast<float>(count) * wander;
+            count = 1;
+        }
+    }
+
+    float minWait = wander * kMinWaitFraction;
+    for (; count > 0; --count) {
+        int tries = 5;
+        float dx, dy, wait;
+        for (;;) {
+            float angle = static_cast<float>(g_random.Next()) * kAngleScale;
+            wait = g_random.Range(minWait, wander);
+            float sine = lib::Sin(angle);
+            dx = lib::Cos(angle) + direction.x;
+            dy = sine + direction.y;
+            if (tries-- < 0) break;
+            Vector3 reach{dx + dx, dy + dy, direction.z + direction.z};
+            Vector3 to = reach + eye;
+            float sight = g_serverWorld.aiMap.LineOfSight(eye, to);
+            if (sight == 1.0f) break;
+        }
+        AILook look{};
+        look.angle = lib::Atan2(dy, dx);
+        look.time = 0.0f;
+        look.wait = wait;
+        look.stopFirst = farGoal;
+        planned.push_back(look);
+    }
+    return planned;
+}
+
+std::optional<Vector3> AIBrain::FindStandPoint(const Vector3& point, float radius) {
+    if (standCooldown > 0) {
+        --standCooldown;
+        return std::nullopt;
+    }
+    float dx = g_random.Range(-radius, radius);
+    float dy = g_random.Range(-radius, radius);
+    float radiusSq = radius * radius;
+    for (int tries = 9;;) {
+        if (LengthSquared2D(dy, dx) <= radiusSq) break;
+        dx = g_random.Range(-radius, radius);
+        dy = g_random.Range(-radius, radius);
+        if (--tries < 0) break;
+    }
+    Vector3 spot = {dx + point.x, dy + point.y, 0.0f};
+    AIMap& map = g_serverWorld.aiMap;
+    if (map.SlopeAt(spot) > kMaxSlope) return std::nullopt;
+
+    // No unit of an allied player may stand near it.
+    Unit* self = owner->unit;
+    UnitList units = map.sectorMap.FindUnitsInRadius(spot, self->standingHeight * kAllySpace);
+    for (Unit* other : units) {
+        if (g_serverWorld.diplomacy.IsAllied(other->side, self->side)) return std::nullopt;
+    }
+
+    AIPath path;
+    float distance = std::sqrt(LengthSquared(self->localPosition - spot));
+    bool found = map.FindPath(self, spot, &path, PathRange(distance), 0.0f);
+    // A path much longer than the way there (smoothing) counts as none.
+    if (!found || 2.0f * distance * kDetourScale < static_cast<float>(path.smoothing)) {
+        int cooldown = lib::RoundEven(distance * kCooldownPerDistance);
+        standCooldown = (std::min)(cooldown, kMaxCooldown);
+        return std::nullopt;
+    }
+    return spot;
+}
+
+void AIBrain::UpdateFollow() {
+    if (!target || target->IsDead()) {
+        StopAction();
+        return;
+    }
+    if (followTimer++ < kFollowWait) return;
+
+    float farSq = g_logicSettings.followMaxDist * g_logicSettings.followMaxDist;
+    Unit* self = owner->unit;
+    float nearSq = g_logicSettings.followMinDist * g_logicSettings.followMinDist;
+    // A script may name another object as the leader (Follow): it ends the following like a lost leader (the
+    // original read it as a unit).
+    Unit* leader = UnitOrNull(target.Get());
+    if (!leader) {
+        StopAction();
+        return;
+    }
+    Vector3 toLeader = leader->localPosition - self->localPosition;
+    int now = g_serverWorld.tick;
+    float distance = std::sqrt(LengthSquared(toLeader));
+    UnitServer* leaderController = leader->ServerController();
+
+    if (leaderController->action.kind != UnitOrderKind::Move && leaderController->action2.kind != UnitOrderKind::Move) {
+        // The leader stands: stop near it, else walk to it when the current goal is too far off.
+        if (distance * distance < nearSq) {
+            owner->Idle();
+            return;
+        }
+        Vector3 goal = owner->GetMovePoint().value_or(self->localPosition);
+        if (DistanceSquaredXY(goal, leader->localPosition) > farSq) {
+            owner->OrderMove(leader->localPosition, 0, 0);
+            followTimer = 0;
+        }
+        return;
+    }
+
+    // The leader walks: where it will be in a moment.
+    Vector3 goal = owner->GetMovePoint().value_or(self->localPosition);
+    Vector3 soon = leader->PositionAt(now + kLeaderAhead);
+    float soonSq = DistanceSquaredXY(self->localPosition, soon);
+    if (soonSq >= distance * distance || soonSq >= nearSq) {
+        // Not coming closer: walk to that point unless already going near it.
+        if (DistanceSquaredXY(soon, goal) > farSq) {
+            owner->OrderMove(soon, 0, 0);
+            followTimer = kFollowPause;
+        }
+        return;
+    }
+
+    // The leader comes this way: find the moment it passes closest; when it passes within reach,
+    // step aside of its way.
+    float best = soonSq;
+    for (int ahead = kLeaderFirstStep;; ) {
+        Vector3 later = leader->PositionAt(now + ahead);
+        float laterSq = DistanceSquaredXY(self->localPosition, later);
+        if (laterSq > best) return;
+        if (laterSq < kOnTheWaySq) break;
+        best = laterSq;
+        if (++ahead >= kLeaderLastStep) return;
+    }
+
+    Vector3 passing = leader->PositionAt(now + kLeaderSide);
+    float along = passing.y - leader->localPosition.y;
+    float across = passing.x - leader->localPosition.x;
+    Vector3 side{-along, across, 0.0f};
+    float lengthSq = side.y * side.y + along * along;
+    if (lengthSq <= 0.0f) return;
+    float scale = kSideOffset / std::sqrt(lengthSq);
+    side.x = scale * -along;
+    side.y = scale * side.y;
+    side.z *= scale;
+    Vector3 u = self->localPosition - leader->localPosition;
+    if (Dot(side, u) < 0.0f) {
+        side = -side;
+    }
+
+    AIPath path;
+    Vector3 aside = passing + side;
+    bool found = g_serverWorld.aiMap.FindPath(self, aside, &path, kPassRange, 0.0f);
+    if (found && LengthSquared2D(XY(aside) - 0.5f * path.target) < kReachedSq) {
+        owner->OrderMove(aside, 0, 0);
+        followTimer = kFollowPause;
+    } else {
+        if (DistanceSquaredXY(goal, passing) > 0.5f) {
+            owner->OrderMove(passing, 0, 0);
+            followTimer = kFollowPause;
+        }
+    }
+}
+
+void AIMoveOrder::Clear() {
+    point = Vector3{0.0f, 0.0f, 0.0f};
+    looks.clear();
 }
 
 // --- The brain's mode list, state resets and save games --------------------------------------------------
@@ -441,24 +678,7 @@ void AIBrain::Reset() {
     seen.Reset();
 }
 
-void AIBrain::Init() {
-    Reset();
-    owner = nullptr;
-    alerted = false;
-    alarm = 0;
-    alarmCountdown = 1;
-    alarmSlot = 0;
-    actionTime = kNoTime;
-    memory.seesEnemy = false;
-    alarmRecords.clear();
-    callRadius = kInitialCallRadius;
-    position = Vector3{0.0f, 0.0f, 0.0f};
-    alertMode = mapspec::AlertMode::OnSight;
-    alwaysUpdated = false;
-    standCooldown = 0;
-    followTimer = 0;
-    previousPosition = Vector3{0.0f, 0.0f, 0.0f};
-}
+void AIBrain::Init() { *this = AIBrain{}; }
 
 void AIMemory::Reset() {
     nearby.clear();
@@ -635,7 +855,7 @@ void AIBrain::Load(ByteStream* stream) {
 void AIBrain::Save(ByteStream* stream) {
     stream->WriteValue(action);
     stream->WriteValue(move.point);
-    SaveLooks(&move.looks, stream);
+    SaveLooks(move.looks, stream);
     stream->WriteValue(actionTime);
     stream->WriteId(target);
     stream->WriteId(seen);
@@ -688,22 +908,17 @@ AITargetChoice AIBrain::CurrentAttack() {
     return choice;
 }
 
-void AIBrain::LookAround() {
-    UnitList candidates;
-    Vector3 from = owner->unit->localPosition;
-    AITargetChoice best = Choose(&candidates, from, true, false);
-    ApplyAttack(&best);
-}
+void AIBrain::LookAround() { ApplyAttack(Choose(UnitList{}, owner->unit->localPosition, true, false)); }
 
-void AIBrain::ApplyAttack(const AITargetChoice* choice) {
-    Unit* object = choice->object;
+void AIBrain::ApplyAttack(const AITargetChoice& choice) {
+    Unit* object = choice.object;
     if (!object) return;
     AITargetChoice now = CurrentAttack();
-    if (object == now.object && choice->part == now.part) return;
-    if (choice->part == kWeaponPart)
+    if (object == now.object && choice.part == now.part) return;
+    if (choice.part == kWeaponPart)
         AttackTarget(object);
     else
-        CastOn(choice->part, object, 0);
+        CastOn(choice.part, object, false);
 }
 
 // --- Behaviour (alarm) records: the zone file's records copied into the brain and one applied as the
@@ -827,15 +1042,6 @@ void AIBrain::ResetBehaviour() {
 
 // --- Save-game helpers: the looks and the perception memory ----------------------------------------------
 
-namespace {
-
-// Each object's counted reference (its id) of a memory list.
-void SaveObjectList(const HeldUnits& list, ByteStream* stream) {
-    stream->WriteCount(list.size());
-    for (const HeldRef<Unit>& unit : list) stream->WriteId(unit);
-}
-} // namespace
-
 std::vector<AILook> LoadLooks(ByteStream* stream) {
     std::vector<AILook> looks(stream->ReadCount());
     for (AILook& look : looks) {
@@ -847,9 +1053,9 @@ std::vector<AILook> LoadLooks(ByteStream* stream) {
     return looks;
 }
 
-void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream) {
-    stream->WriteCount(looks->size());
-    for (const AILook& look : *looks) {
+void SaveLooks(const std::vector<AILook>& looks, ByteStream* stream) {
+    stream->WriteCount(looks.size());
+    for (const AILook& look : looks) {
         stream->WriteValue(look.angle);
         stream->WriteValue(look.time);
         stream->WriteValue(look.wait);
@@ -859,10 +1065,10 @@ void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream) {
 
 void AIMemory::Load(ByteStream* stream) {
     noticedDecay = -1;
-    CountedListLoad(&nearby, stream, &g_serverWorld);
-    CountedListLoad(&visible, stream, &g_serverWorld);
-    CountedListLoad(&seenCorpses, stream, &g_serverWorld);
-    CountedListLoad(&corpses, stream, &g_serverWorld);
+    nearby = LoadUnitList(stream, &g_serverWorld);
+    visible = LoadUnitList(stream, &g_serverWorld);
+    seenCorpses = LoadUnitList(stream, &g_serverWorld);
+    corpses = LoadUnitList(stream, &g_serverWorld);
     stream->ReadValue(noticed);
     stream->ReadValue(noticedLevel);
     stream->ReadValue(nearbyCountdown);
@@ -909,10 +1115,10 @@ void AIHeardCalls::Save(ByteStream* stream) const {
 }
 
 void AIMemory::Save(ByteStream* stream) {
-    SaveObjectList(nearby, stream);
-    SaveObjectList(visible, stream);
-    SaveObjectList(seenCorpses, stream);
-    SaveObjectList(corpses, stream);
+    SaveUnitList(nearby, stream);
+    SaveUnitList(visible, stream);
+    SaveUnitList(seenCorpses, stream);
+    SaveUnitList(corpses, stream);
     stream->WriteValue(noticed);
     stream->WriteValue(noticedLevel);
     stream->WriteValue(nearbyCountdown);

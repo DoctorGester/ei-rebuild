@@ -145,7 +145,7 @@ void Unit::Reset() {
     // every later Reset (Destroy, the destructor).
     altPassCosts = 0;
     AsMapObject()->netState.Reset();
-    fightAtWill = 1;
+    fightAtWill = kFightAtWill;
 }
 
 Unit::~Unit() {

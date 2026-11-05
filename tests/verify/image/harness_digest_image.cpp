@@ -219,7 +219,7 @@ void ReadController(Unit* u, Builder& b) {
     b.Float("experience", c->stats.experience);
     b.Float("speed", c->stats.speed);
     b.Bits("statFlags", c->stats.flags);
-    for (int i = 0; i < 4; ++i) b.Float("moveFactor#", c->moveFactors[i], i);
+    for (int i = 0; i < std::ssize(c->moveFactors); ++i) b.Float("moveFactor#", c->moveFactors[i], i);
     ReadBrain(c->brain, b);
 }
 

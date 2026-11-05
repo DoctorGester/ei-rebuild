@@ -116,7 +116,7 @@ void UnitServer::Load(ByteStream* stream) {
     stats.Load(stream);
     if (stream->version < kVersionFixedMaxHitPoints)
         stats.fixedMaxHitPoints = unit->Vitals().maxHitPoints;
-    for (int i = 0; i < 4; ++i) stream->ReadValue(moveFactors[i]);
+    for (float& factor : moveFactors) stream->ReadValue(factor);
     stream->ReadValue(tameStage);
     stream->ReadValue(ownSide);
     stream->ReadValue(tamerSide);
@@ -174,7 +174,7 @@ void UnitServer::Save(ByteStream* stream) {
     SaveOrder(stream, &action);
     SaveOrder(stream, &action2);
     stats.Save(stream);
-    for (int i = 0; i < 4; ++i) stream->WriteValue(moveFactors[i]);
+    for (float factor : moveFactors) stream->WriteValue(factor);
     stream->WriteValue(tameStage);
     stream->WriteValue(ownSide);
     stream->WriteValue(tamerSide);

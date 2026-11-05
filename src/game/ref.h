@@ -8,7 +8,8 @@
 // presets and helper). A site that keeps a raw pointer counts by hand with the same two members.
 
 // A counted pointer: Assign and Reset count, reads see the object, and its destructor drops the reference it
-// holds. There is no plain store.
+// holds. There is no plain store; a move hands the reference over (an object holding Refs can be assigned a
+// new one: AIBrain::Init).
 template <typename T>
 class Ref {
 public:
@@ -16,6 +17,14 @@ public:
     Ref(std::nullptr_t) {}
     Ref(const Ref&) = delete;
     Ref& operator=(const Ref&) = delete;
+    Ref(Ref&& other) noexcept : object(other.Take()) {}
+    // Takes `other`'s reference (`other` ends empty), then the old one is dropped.
+    Ref& operator=(Ref&& other) noexcept {
+        if (this != &other) {
+            if (T* old = std::exchange(object, other.Take())) old->Release();
+        }
+        return *this;
+    }
     ~Ref() { Reset(); }
 
     // Holds `object`: it gains a reference, then the old one loses its own. Nothing when it is held already.

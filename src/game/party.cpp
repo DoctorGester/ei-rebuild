@@ -464,7 +464,7 @@ void PartyUnitRecord::Load(ByteStream* stream, Party* party) {
     moveMode2 = MoveMode::Walk;
     leaderId = -1;
     selected = 0;
-    fightAtWill = 1;
+    fightAtWill = kFightAtWill;
     scriptName = stream->ReadString();
     figureName = stream->ReadString();
     parentIname = stream->ReadString();
