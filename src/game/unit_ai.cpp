@@ -33,12 +33,8 @@
 #include <string>
 
 namespace {
-constexpr float kDecayScale = 30.0f;
-constexpr float kDecayDivisor = 0.032258064f;      // (1 / 31)
 constexpr float kArrivedDistanceSq = 1.0f;
 constexpr int kCurrentModeBonus = 100;             // the mode in charge keeps it against equal claims
-
-// UnitServer::state while the planned action runs (combat_update.cpp): the brain does not think meanwhile.
 
 // The mode names of the "new motivation" message.
 const char* ModeName(AIModeType type) {
@@ -55,6 +51,11 @@ const char* ModeName(AIModeType type) {
     case AIModeType::Follow: return "Follow";
     default: return "Unknown";    // no mode has another type
     }
+}
+
+// A call radius saved as the default one becomes the configured one.
+float ConfiguredCallRadius(float radius) {
+    return radius == g_logicSettings.callForHelpRadiusDefault ? g_logicSettings.callForHelpRadius : radius;
 }
 
 // The modes that alert a brain in alert mode 2 when they take charge.
@@ -79,7 +80,7 @@ void AIBrain::Think() {
             owner->voice.Raise(AIRemark::Alarm);
         }
     }
-    decay = (decay * kDecayScale + 1.0f) * kDecayDivisor;
+    decay = (decay * kRelaxKeep + 1.0f) * kRelaxDivisor;
     memory.Update(owner);
 
     Unit* unit = owner->unit;
@@ -475,7 +476,7 @@ void AIMemory::Reset() {
 
 void AIBrain::StandardGuard(const Vector3& point, float radius) {
     ClearModes();
-    AddMode(std::make_unique<GuardMode>(point, radius, -1.0f));
+    AddMode(std::make_unique<GuardMode>(point, radius, kNoWander));
     AddAlertModes(this);
 }
 
@@ -490,9 +491,7 @@ void AIBrain::StandardSentry(const Vector3& point) {
 void AIBrain::CallAllies(const Vector3& point) {
     Unit* self = owner->unit;
     UnitList units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(self->localPosition, callRadius);
-    for (auto node = units.begin(); node != units.end();) {
-        auto* other = *node;
-        ++node;
+    for (Unit* other : units) {
         if (other == self || !g_serverWorld.diplomacy.IsAllied(self->side, other->side)) continue;
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
@@ -506,11 +505,15 @@ void AIBrain::CallAllies(const Vector3& point) {
 
 // --- Perception memory ----------------------------------------------------------------------------
 
+void AIMemory::SetNoticed(const Vector3& point, int level, int decay) {
+    noticed = XY(point);
+    noticedLevel = level;
+    noticedDecay = decay;
+}
+
 void AIMemory::Notice(const Vector3& point, int level, int decay) {
     if (level <= noticedLevel) return;
-    noticedLevel = level;
-    noticed = XY(point);
-    noticedDecay = decay;
+    SetNoticed(point, level, decay);
 }
 
 void AIMemory::Forget(EngineObject* object) {
@@ -538,9 +541,7 @@ void AIHeardCalls::Update(Unit* unit, AIMemory* memory) {
             if (kNoticeCallLevel - memory->noticedLevel <= 100) {
                 changed = DistanceSquaredXY(call->point, memory->NoticedPoint()) > 10.0f;
             }
-            memory->noticed = XY(call->point);
-            memory->noticedLevel = kNoticeCallLevel;
-            memory->noticedDecay = kNoticeCallDecay;
+            memory->SetNoticed(call->point, kNoticeCallLevel, kNoticeCallDecay);
             if (changed) console::EndLine(kAiLog << "Delayed sound: " << call->text);
         }
         call = calls.erase(call);
@@ -617,10 +618,7 @@ void AIBrain::Load(ByteStream* stream) {
     alarmRecords.resize(stream->ReadCount());
     for (mapspec::Behaviour& record : alarmRecords) record.Read(stream);
     stream->ReadValue(alarmCountdown);
-    // A radius saved as the default one becomes the configured one.
-    LogicSettings& settings = g_logicSettings;
-    if (callRadius == settings.callForHelpRadiusDefault)
-        callRadius = settings.callForHelpRadius;
+    callRadius = ConfiguredCallRadius(callRadius);
     stream->ReadValue(alwaysUpdated);
     if (stream->version < kVersionAttackOptions) return;
     attention.healWeight = 0.0f;
@@ -710,46 +708,29 @@ void AIBrain::ApplyAttack(const AITargetChoice* choice) {
 // --- Behaviour (alarm) records: the zone file's records copied into the brain and one applied as the
 // unit's modes.
 
-namespace {
-constexpr float kNoWander = -1.0f;          // pushed as 0xBF800000
+Vector3 HalfCellCentre(const Vector3& position) {
+    int ix = lib::RoundEven(2.0f * position.x);
+    int iy = lib::RoundEven(2.0f * position.y);
+    return Vector3{(static_cast<float>(ix) + 0.5f) * 0.5f, (static_cast<float>(iy) + 0.5f) * 0.5f, 0.0f};
+}
 
+namespace {
 enum BehaviourType { kGuard = 1, kPatrol = 2, kSentry = 3, kParty = 4, kGuardAlarm = 5 };
 enum Reaction { kFight = 0, kRevenge = 1, kWatch = 2, kWatchFearful = 3 };
-
-// Equal.
-bool Same(float a, float b) {
-    return a == b;
-}
-bool IsZero(float v) {
-    return v == 0.0f;
-}
 
 // Patrol points from the record's patrols: each start on its half-cell's middle (z 0) and its
 // waypoints as looks of that point (the direction from the start, the wait and the turning time).
 void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
     mode->points.clear();
-    for (int i = 0; i < std::ssize(record->patrols); ++i) {
-        const mapspec::Patrol& patrol = record->patrols[i];
-        float cell = 0.5f;
-        int cellX = lib::RoundEven(1.0f / cell * patrol.position.x);
-        int cellY = lib::RoundEven(1.0f / cell * patrol.position.y);
-        PatrolPoint point{};
-        // The cell's centre.
-        point.position.y = (static_cast<float>(cellY) + 0.5f) * cell;
-        point.position.x = (static_cast<float>(cellX) + 0.5f) * cell;
-        point.position.z = 0.0f;
-        mode->points.push_back(point);
-
-        if (std::ssize(patrol.waypoints) == 0) continue;
-        PatrolPoint* last = std::ssize(mode->points) ? &mode->points[std::ssize(mode->points) - 1] : nullptr;
-        for (int j = 0; j < std::ssize(record->patrols[i].waypoints); ++j) {
-            const mapspec::Waypoint& waypoint = record->patrols[i].waypoints[j];
-            const Vector3& from = record->patrols[i].position;
+    for (const mapspec::Patrol& patrol : record->patrols) {
+        PatrolPoint& point = mode->points.emplace_back();
+        point.position = HalfCellCentre(patrol.position);
+        for (const mapspec::Waypoint& waypoint : patrol.waypoints) {
             float angle = 0.0f;
-            float dx = waypoint.position.x - from.x;
-            float dy = waypoint.position.y - from.y;
-            if (!IsZero(dx) || !IsZero(dy)) angle = lib::Atan2(dy, dx);
-            last->looks.push_back(AILook{angle, waypoint.time, static_cast<float>(waypoint.lookWait),
+            float dx = waypoint.position.x - patrol.position.x;
+            float dy = waypoint.position.y - patrol.position.y;
+            if (dx != 0.0f || dy != 0.0f) angle = lib::Atan2(dy, dx);
+            point.looks.push_back(AILook{angle, waypoint.time, static_cast<float>(waypoint.lookWait),
                                          (waypoint.stopFirst & 1) != 0});
         }
     }
@@ -762,13 +743,8 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
 } // namespace
 
 void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
-    // and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
     ClearModes();
-    float radius = record->callRadius;
-    callRadius = radius;
-    LogicSettings& logic = g_logicSettings;
-    if (Same(radius, logic.callForHelpRadiusDefault))
-        callRadius = logic.callForHelpRadius;
+    callRadius = ConfiguredCallRadius(record->callRadius);
     alertMode = static_cast<int>(record->alertMode);
 
     switch (record->type) {
@@ -844,8 +820,8 @@ void AIBrain::HearAlarm(int slot) {
 void AIBrain::ResetBehaviour() {
     memory.Reset();
     int slot = alarmSlot;
-    // A unit without behaviour records (the party's) has nothing to apply: the game read past the list and
-    // could crash (Rebirth's ResetTarget reports it instead).
+    // A unit without behaviour records (the party's) has nothing to apply (the script command ResetTarget reports
+    // it instead).
     if (slot < 0 || slot >= std::ssize(alarmRecords)) return;
     ApplyBehaviour(&alarmRecords[slot], slot);
 }
@@ -916,7 +892,6 @@ void AIReports::Save(ByteStream* stream) const {
 void AIHeardCalls::Load(ByteStream* stream) {
     calls.resize(stream->ReadCount());
     for (AICallRecord& call : calls) {
-        call.hostileMask = 0;
         stream->ReadValue(call.point);
         stream->ReadValue(call.delay);
         call.text = stream->ReadString();

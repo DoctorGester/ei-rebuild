@@ -55,6 +55,9 @@ struct DamageWords {
 };
 static_assert(sizeof(DamageWords) == 0x10);
 
+// The largest of the damage words 1..7 of `words` (unsigned).
+std::uint16_t MaxDamage(const std::uint16_t* words);
+
 // A body slot as UnitParams keeps it (UnitStatSlot rounded).
 struct UnitParamsSlot {
     int type = 0;
