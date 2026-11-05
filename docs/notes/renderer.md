@@ -164,7 +164,7 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
 | Data | Hand-over point | `render::` call |
 |---|---|---|
 | Clip matrix of the current draw | the transform pipeline's stacks (`TransformPipeline`, model.h: clip space = axis swap x projection x view x model; the screen matrix; the view stack) read at hand-over time | with each draw |
-| Terrain sectors | `SectorData::DrawPage` (terrain.cpp): vertices (33x33 per layer, water after ground), vertex records (normal, material colour, the specular word: edge fade, on the water the crests), tile lists, edge flags, quarter verdicts; `HandOverSceneLights` (world_client_shadow_casters.cpp) | `TerrainPage`, `SceneLighting` |
+| Terrain sectors | `SectorData::DrawPage` (terrain_sector.cpp): vertices (33x33 per layer, water after ground), vertex records (normal, material colour, the specular word: edge fade, on the water the crests), tile lists, edge flags, quarter verdicts; `HandOverSceneLights` (world_client_shadow_casters.cpp) | `TerrainPage`, `SceneLighting` |
 | Meshes (figures, objects, sky, interface sprites and previews) | `device_mesh.cpp`'s mesh draws: positions and normals in packets of four, corners and texture coordinates (`render::VertexPacket` / `NormalPacket` / `MeshCorner` / `TexCoord`, mesh_records.h: the game's meshes hold the renderer's records), colours; matrix = the screen stack's top converted back to clip space; distance fog switch and range | `BeginMesh` / `EndMesh`; `MeshLighting` for parts lit on the GPU |
 | Pass state | per pass of a mesh (material preset or two textures): `render::g_renderState` (section 5) | `MeshPass`; per terrain page at `TerrainPage` |
 | Depth clears | the battle screen's panels, the hero preview, the trade grid, the hero equipment, screens 2 / 3 | `ClearDepth` |
@@ -1584,7 +1584,7 @@ and mesh programs.
 
 ### render_terrain.cpp: the terrain
 
-The game's terrain passes (ground pages, water pages) call DrawSectorPage (SectorData::DrawPage, src/game/terrain.cpp) for
+The game's terrain passes (ground pages, water pages) call DrawSectorPage (SectorData::DrawPage, src/game/terrain_sector.cpp) for
 every visible sector page; it hands the page here. The page's tiles are turned into world-space triangles (every tile's
 nine vertices and eight triangles, the full detail at any distance), with the vertex records' normals and material
 colours, the tile texture coordinates and the page's texture; the clip matrix is the pipeline's. The GPU clips. The pages

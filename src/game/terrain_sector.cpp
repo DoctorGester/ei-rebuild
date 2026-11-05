@@ -2,10 +2,12 @@
 // the file format.
 #include "terrain_sector.h"
 
+#include "game_singletons.h"
 #include "model.h"
 #include "random.h"
 #include "render/render.h"
 #include "terrain.h"
+#include "world.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"
@@ -13,6 +15,8 @@
 #include "lib/float_select.h"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -34,8 +38,34 @@ constexpr int kNormalXShift = 11;
 constexpr std::uint32_t kNormalMask = 0x7FF;
 
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
+// The sector file's flag byte: a water layer of vertices (with a water material per tile), a second tile layer
+// (the water tiles; a water layer has one too).
+constexpr std::uint8_t kFlagWater = 1;
+constexpr std::uint8_t kFlagWaterTiles = 2;
 constexpr int kTextureClasses = 16;
 constexpr int kFallbackClass = 0xF;
+
+constexpr float kSineIndex = 256.0f / 3.14159265f;        // table entries per radian
+constexpr float kQuarterTurn = 0.785398126f;
+constexpr float kTimeScale = 0.05f;                        // the circling waves' speed per world tick
+constexpr float kGlowScale = 50.0f;
+constexpr float kRiseScale = 0.25f;
+constexpr float kCircleScale = 3.0f;
+constexpr int kTileFrameEvery = 3;                         // animated tiles step every third frame
+constexpr int kAlwaysSteps = 1000;                         // a tile speed that steps every time
+
+// The sine table entry at `phase` radians: phase * 256 / pi rounded to nearest, mod 512.
+inline float Sine(const Terrain* owner, float phase) { return owner->sine[std::lround(phase * kSineIndex) & 0x1FF]; }
+
+inline std::uint32_t ColourByte(float v) { return static_cast<std::uint32_t>(std::lround(v)) & 0xFF; }
+
+// The circling waves' sine per column (and per row: the same values) at the world time, once per call.
+std::array<float, kSectorRow> CircleSines(const Terrain* owner) {
+    float time = (g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale;
+    std::array<float, kSectorRow> sines;
+    for (int i = 0; i < kSectorRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
+    return sines;
+}
 
 // A tile's entries (3 x 3 vertices).
 constexpr int kTileEntries = TileUv::kVertices;
@@ -81,23 +111,23 @@ bool IsAnimated(const Terrain* owner, int texture) {
            owner->textureFrames[texture] != 0;
 }
 
-// The water material a water vertex's record keeps: the first among its tiles' (-1 none).
+// The water material a water vertex's record keeps: the first among its tiles' (kNoMaterial none).
 int FirstWaterMaterial(const SectorData& s, int vertex) {
     const VertexTiles& around = s.owner->vertexTiles[vertex];
     int material = s.waterTiles[around.tiles[0]];
-    for (int i = 1; material == -1 && i < around.count; ++i) material = s.waterTiles[around.tiles[i]];
+    for (int i = 1; material == kNoMaterial && i < around.count; ++i) material = s.waterTiles[around.tiles[i]];
     return material;
 }
 
-// The water material that places a water vertex: the lowest priority among its tiles' (-1 none).
+// The water material that places a water vertex: the lowest priority among its tiles' (kNoMaterial none).
 int LowestPriorityWaterMaterial(const SectorData& s, int vertex) {
     const std::vector<TerrainMaterial>& materials = s.owner->materials;
     const VertexTiles& around = s.owner->vertexTiles[vertex];
     int material = s.waterTiles[around.tiles[0]];
     for (int i = 1; i < around.count; ++i) {
         int other = s.waterTiles[around.tiles[i]];
-        if (other == -1) continue;
-        if (material == -1 || materials[other].priority < materials[material].priority) material = other;
+        if (other == kNoMaterial) continue;
+        if (material == kNoMaterial || materials[other].priority < materials[material].priority) material = other;
     }
     return material;
 }
@@ -123,7 +153,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
             const int ground = i - kSectorVertices;
             int material = FirstWaterMaterial(s, ground);
             record.waterMaterial = static_cast<std::uint16_t>(material);
-            if (material != -1) {
+            if (material != kNoMaterial) {
                 record.materialByte = s.owner->materials[material].opacityByte;
                 record.materialColour = s.owner->materials[material].colour;
             }
@@ -136,6 +166,25 @@ const std::uint8_t* BuildRecords(SectorData& s) {
         record.normal.y = (static_cast<float>(normal & kNormalMask) - kNormalBias) * kNormalScale;
     }
     return s.data + layers * kLayerBytes;
+}
+
+// A tile word taken apart: its texture, quarter turns, the texture's slot, its page (a water tile's after the
+// ground pages) and the quarter of the sector the tile at (column, row) is in.
+struct DecodedTile {
+    int texture = 0, rotation = 0;
+    PageSlot slot;
+    int page = 0, quarter = 0;
+};
+// A tile word decoded; texture -1 (TileTexture) for a tile without one, whose other fields are then unused.
+DecodedTile DecodeTile(const Terrain* owner, std::uint16_t word, int layer, int column, int row) {
+    DecodedTile tile;
+    tile.texture = TileTexture(owner, word);
+    tile.rotation = word >> kTileRotationShift;
+    if (tile.texture < 0) return tile;
+    tile.slot = SlotOf(tile.texture, owner->perPage, owner->pages);
+    tile.page = tile.slot.page + layer * owner->LayerPages();
+    tile.quarter = QuarterOf(column, row);
+    return tile;
 }
 
 // Tiles per quarter and page (ground pages, then the water tiles' pages after them).
@@ -156,27 +205,25 @@ int CountTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
         for (int row = 0; row < kSectorTiles; ++row) {
             for (int column = 0; column < kSectorTiles; ++column, source += 2, ++out) {
                 const int tile = row * kSectorTiles + column;
-                if (layer == 1 && s.waterTiles[tile] == -1) {
+                if (layer == 1 && s.waterTiles[tile] == kNoMaterial) {
                     *out = -1;
                     continue;
                 }
-                std::uint16_t word = lib::Load<std::uint16_t>(source);
-                if (layer == 0) s.tileRotation[tile] = static_cast<std::uint8_t>(word >> kTileRotationShift);
-                const int texture = TileTexture(owner, word);
-                *out = texture;
-                if (texture < 0) continue;
-                int page = SlotOf(texture, owner->perPage, owner->pages).page + layer * owner->LayerPages();
-                if (IsAnimated(owner, texture)) ++animated;
-                ++counts[QuarterOf(column, row)][page];
-                ++s.classCounts[ClassOf(owner, texture)];
+                const DecodedTile decoded = DecodeTile(owner, lib::Load<std::uint16_t>(source), layer, column, row);
+                if (layer == 0) s.tileRotation[tile] = static_cast<std::uint8_t>(decoded.rotation);
+                *out = decoded.texture;
+                if (decoded.texture < 0) continue;
+                if (IsAnimated(owner, decoded.texture)) ++animated;
+                ++counts[decoded.quarter][decoded.page];
+                ++s.classCounts[ClassOf(owner, decoded.texture)];
             }
         }
     }
     return animated;
 }
 
-// Fills the tile lists: 9 entries per tile (3x3 vertices with texture coordinates), its edge
-// flags, and the animated tiles (random start frame).
+// Fills the tile lists: 9 entries per tile (3x3 vertices with texture coordinates) and the animated tiles
+// (random start frame).
 void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
     Terrain* owner = s.owner;
     const std::uint8_t* source = words;
@@ -184,14 +231,13 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
     for (int layer = 0; layer < (s.hasWaterTiles ? 2 : 1); ++layer) {
         for (int row = 0; row < kSectorTiles; ++row) {
             for (int column = 0; column < kSectorTiles; ++column, source += 2) {
-                if (layer == 1 && s.waterTiles[row * kSectorTiles + column] == -1) continue;
+                if (layer == 1 && s.waterTiles[row * kSectorTiles + column] == kNoMaterial) continue;
                 std::uint16_t word = lib::Load<std::uint16_t>(source);
-                const int texture = TileTexture(owner, word);
-                if (texture < 0) continue;
-                int rotation = word >> kTileRotationShift;
-                PageSlot slot = SlotOf(texture, owner->perPage, owner->pages);
-                int page = slot.page + layer * owner->LayerPages();
-                int quarter = QuarterOf(column, row);
+                const DecodedTile decoded = DecodeTile(owner, word, layer, column, row);
+                if (decoded.texture < 0) continue;
+                const int texture = decoded.texture, rotation = decoded.rotation, page = decoded.page;
+                const PageSlot slot = decoded.slot;
+                const int quarter = decoded.quarter;
                 const TileUv* uv = &owner->TileUvAt(rotation, slot.index, page);
 
                 int& count = counts[quarter][page];
@@ -274,8 +320,8 @@ bool SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const c
     data = file + kSectorHeaderBytes;
     if (magic != kSectorMagic) return fail("Wrong format resource: ");
 
-    hasWaterTiles = (flags & 3) != 0;
-    hasWater = (flags & 1) != 0;
+    hasWaterTiles = (flags & (kFlagWater | kFlagWaterTiles)) != 0;
+    hasWater = (flags & kFlagWater) != 0;
     const int layers = hasWater ? 2 : 1;
     const int tileLayers = hasWaterTiles ? 2 : 1;
     const int waterTileBytes = hasWater ? kTileLayerBytes : 0;
@@ -288,7 +334,7 @@ bool SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const c
         const std::uint8_t* source = data + layers * kLayerBytes + tileLayers * kTileLayerBytes;
         for (int i = 0; i < kLayerTiles; ++i) {
             std::uint16_t material = lib::Load<std::uint16_t>(source + i * 2);
-            waterTiles[i] = material == 0xFFFF ? -1 : material;
+            waterTiles[i] = material == SectorVertex::kNoWaterMaterial ? kNoMaterial : material;
         }
     } else {
         waterTiles.clear();
@@ -315,7 +361,7 @@ bool SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const c
                     out->y = 0.5f * static_cast<std::int8_t>(source[1]) * kOffsetScale + y;
                 } else {
                     int material = LowestPriorityWaterMaterial(*this, vertex);
-                    if (material == -1) {
+                    if (material == kNoMaterial) {
                         out->x = x;
                         out->z = 0.0f;
                         out->y = y;
@@ -399,5 +445,138 @@ void SectorData::Ensure(SectorStage wanted) {
 }
 
 SectorData::~SectorData() { render::TerrainChanged(this, render::TerrainChange::Rebuilt); }
+
+// Clipping and drawing
+
+bool SectorData::IsDrawn() const { return clipMode != TransformPipeline::kClipOutside; }
+
+void SectorData::ClipTest(SceneRenderer* renderer) {
+    // The verdict as it is stored: -1 counts as outside.
+    const auto verdict = [&](const SectorBox& bounds) {
+        const int where = renderer->pipeline->ClipTest(&bounds);
+        return where == -1 ? TransformPipeline::kClipOutside : static_cast<TransformPipeline::ClipResult>(where);
+    };
+    clipMode = verdict(box);
+    if (clipMode == TransformPipeline::kClipOutside) return;
+    for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
+}
+
+void SectorData::DrawPage(const SceneRenderer* renderer, int page) {
+    if (clipMode == TransformPipeline::kClipOutside) return;
+    if (hasWater) ApplyWaterLevels();
+    render::TerrainPage(this, renderer, page);
+}
+
+// Clearing and animation
+
+void SectorData::Clear() {
+    records.clear();
+    for (int quarter = 0; quarter < 4; ++quarter) {
+        for (std::vector<TileVertex>& list : tiles[quarter]) list.clear();
+    }
+    sx = sy = -1;
+    hasWater = false;
+    hasWaterTiles = false;
+    data = nullptr;
+    owner = nullptr;
+    built = SectorStage::None;
+    lastUsed = 0;
+    clipMode = TransformPipeline::kClipOutside;
+    render::TerrainChanged(this, render::TerrainChange::Rebuilt);
+}
+
+void SectorData::AnimateTiles(int frame) {
+    if (frame % kTileFrameEvery != 0 || !lib::Has(owner->landscapeFlags, LandscapeFlag::AnimatedTiles)) return;
+    bool stepped = false;
+    for (AnimatedTile& tile : animated) {
+        if (tile.frame == 0 && tile.speed < kAlwaysSteps &&
+            g_clientRandom.Next() % kAlwaysSteps + 1 > static_cast<std::uint32_t>(tile.speed)) {
+            continue;
+        }
+        tile.frame = (tile.frame + 1) % tile.frames;
+        stepped = true;
+        const TileUv& uv = owner->TileUvAt(tile.rotation, tile.frameBase + tile.frame, 0);
+        for (int k = 0; k < TileUv::kVertices; ++k) {
+            tile.vertices[k].u = uv.u[k];
+            tile.vertices[k].v = 1.0f - uv.v[k];
+        }
+    }
+    if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU
+}
+
+// Every water vertex has a phase offset (owner wavePhases); the phase along the wave direction runs from the
+// sector's first water vertex (mod 2 pi) and steps by the direction per vertex. The 512-entry sine table at
+// that phase lifts the vertex (by waveHeight times the material's priority) and gives the crest its specular
+// colour; materials of kind kKeepsGroundXY move the vertex sideways (only where its depth is negative), the
+// others up and in a circle driven by the world time (its sines per column and row once per call: CircleSines).
+void SectorData::AnimateWaves() {
+    if (!hasWater || !lib::Has(owner->landscapeFlags, LandscapeFlag::Waves)) return;
+
+    SectorPosition* positions = &vertices[kSectorVertices];
+    SectorVertex* water = &records[kSectorVertices];
+    const float* phaseOffset = owner->wavePhases.data();
+    Vector2 direction = XY(owner->waveDirection);
+    float height = owner->waveHeight;
+    float phase = owner->wavePhase;
+    float fullTurn = kPi + kPi;
+    Vector2 first = XY(positions[0]);
+    float rowStart = std::fmod(Dot2D(direction, first) + fullTurn, fullTurn);
+
+    int lastMaterial = kNoMaterial;
+    float lastTurn = 0.0f;
+    float amplitude = 0.0f;
+    int kind = 0;
+    Vector3 crest = {0.0f, 0.0f, 0.0f};
+    std::array<float, kSectorRow> circle{};
+    bool circling = false;
+    for (int row = 0; row < kSectorRow; ++row) {
+        float along = rowStart;
+        for (int column = 0; column < kSectorRow; ++column, ++phaseOffset) {
+            SectorVertex& record = water[row * kSectorRow + column];
+            SectorPosition& position = positions[row * kSectorRow + column];
+            int material = record.waterMaterial;
+            if (material != SectorVertex::kNoWaterMaterial) {
+                if (material != lastMaterial) {
+                    const TerrainMaterial& m = owner->materials[material];
+                    amplitude = height * m.priority;
+                    kind = m.kind;
+                    float glow = owner->waveGlow * m.priority * kGlowScale;
+                    crest = {glow * m.waveColour.x, glow * m.waveColour.y, glow * m.waveColour.z};
+                    float turn = std::fmod(phase * m.priority, fullTurn);
+                    float delta = turn - lastTurn;
+                    lastTurn = turn;
+                    rowStart += delta;
+                    along += delta;
+                    lastMaterial = material;
+                }
+                float wave = Sine(owner, along + *phaseOffset);
+                if (!SignBit(wave)) {
+                    record.specular = PackArgb(record.specular >> 24, ColourByte(wave * crest.x), ColourByte(wave * crest.y),
+                                               ColourByte(wave * crest.z));
+                } else {
+                    record.specular &= 0xFF000000u;
+                }
+                float lift = wave * amplitude;
+                if (kind == TerrainMaterial::kKeepsGroundXY) {
+                    if (SignBit(record.depth)) {
+                        position.x = lift + record.position.x;
+                        position.y = lift + record.position.y;
+                    }
+                } else {
+                    position.z = lift * kRiseScale + record.position.z;
+                    if (!circling) {
+                        circle = CircleSines(owner);
+                        circling = true;
+                    }
+                    position.x = circle[column] * amplitude * kCircleScale + record.position.x;
+                    position.y = circle[row] * amplitude * kCircleScale + record.position.y;
+                }
+            }
+            along += direction.x;
+        }
+        rowStart += direction.y;
+    }
+    render::TerrainChanged(this, render::TerrainChange::WaterMoved);
+}
 
 } // namespace terrain
