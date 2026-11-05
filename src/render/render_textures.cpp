@@ -228,7 +228,7 @@ static gpu::Wrap ToGpu(Address address) {
 static gpu::Filter ToGpu(Filter filter) { return filter == Filter::Point ? gpu::Filter::Nearest : gpu::Filter::Linear; }
 
 const gpu::Texture& SurfaceView(const Surface* holder) {
-    StatsTimer timer(&FrameStats::textureMs);
+    Timer timer(FrameStats::TextureMs);
     auto decoded = holder ? g_textures.find(holder) : g_textures.end();
     if (decoded == g_textures.end() || !decoded->second.image) return White().image;
     return decoded->second.image;
@@ -381,14 +381,14 @@ void ForgetHolder(const Surface* holder) {
 bool TextureFromMmp(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels) {
     if (!holder || !file.data) return false;
     Start();
-    StatsTimer timer(&FrameStats::textureMs);
+    Timer timer(FrameStats::TextureMs);
     return TextureFromMmpData(holder, file, mip, levels);
 }
 
 bool ComposeTexture(const Surface* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count) {
     if (!holder || size <= 0 || size > 4096) return false;
     Start();
-    StatsTimer timer(&FrameStats::textureMs);
+    Timer timer(FrameStats::TextureMs);
     ComposeShape shape;
     shape.width = shape.height = size;
     shape.firstLevel = static_cast<int>(mip);
@@ -415,7 +415,7 @@ bool ComposeTexture(const Surface* holder, int size, unsigned mip, unsigned leve
 bool BlankTexture(const Surface* holder, int width, int height, BlankAlpha alpha, bool mipmapped) {
     if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
     Start();
-    StatsTimer timer(&FrameStats::textureMs);
+    Timer timer(FrameStats::TextureMs);
     ComposeShape shape;
     shape.width = width;
     shape.height = height;
@@ -426,7 +426,7 @@ bool BlankTexture(const Surface* holder, int width, int height, BlankAlpha alpha
 
 void DrawIntoTexture(const Surface* holder, const TextureImage* image, int x, int y, int width, int height) {
     Start();
-    StatsTimer timer(&FrameStats::textureMs);
+    Timer timer(FrameStats::TextureMs);
     ComposeImage decoded;
     ComposeStep step;
     step.over = false;
@@ -440,7 +440,7 @@ void DrawIntoTexture(const Surface* holder, const TextureImage* image, int x, in
 
 void DrawClouds(const Surface* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
     Start();
-    StatsTimer timer(&FrameStats::textureMs);
+    Timer timer(FrameStats::TextureMs);
     CloudsDraw clouds;
     clouds.from = from;
     clouds.to = to;

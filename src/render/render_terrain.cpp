@@ -687,17 +687,17 @@ static void Write(CachedPage& p) {
         g_pool.WriteGeometry(p.place, 0, count, p.vertices.data());
         g_pool.WriteColours(p.place, 0, count, p.colours.data());
         g_pool.WriteIndices(p.place, p.indices.data(), p.indices.size());
-        stats.terrainVertexBytes += p.vertices.size() * (sizeof(PageVertex) + sizeof(ColourPair));
-        stats.terrainIndexBytes += p.indices.size() * sizeof(std::uint32_t);
+        stats.counts[FrameStats::TerrainVertexBytes] += p.vertices.size() * (sizeof(PageVertex) + sizeof(ColourPair));
+        stats.counts[FrameStats::TerrainIndexBytes] += p.indices.size() * sizeof(std::uint32_t);
     } else {
         if (p.vertexTo > p.vertexFrom) {
             g_pool.WriteGeometry(p.place, p.vertexFrom, p.vertexTo - p.vertexFrom, &p.vertices[p.vertexFrom]);
-            stats.terrainVertexBytes += (p.vertexTo - p.vertexFrom) * sizeof(PageVertex);
+            stats.counts[FrameStats::TerrainVertexBytes] += (p.vertexTo - p.vertexFrom) * sizeof(PageVertex);
         }
         if (p.colourTo > p.colourFrom) {
             g_pool.WriteColours(p.place, p.colourFrom, p.colourTo - p.colourFrom,
                                 &p.colours[2 * static_cast<std::size_t>(p.colourFrom)]);
-            stats.terrainVertexBytes += (p.colourTo - p.colourFrom) * sizeof(ColourPair);
+            stats.counts[FrameStats::TerrainVertexBytes] += (p.colourTo - p.colourFrom) * sizeof(ColourPair);
         }
     }
     p.geometryDirty = false;
@@ -748,7 +748,7 @@ void UploadTerrain(const Frame& f) {
             if (!batch.water) LevelView(TextureView(batch.texture));
 #endif
     if (g_pending.empty()) return;
-    StatsTimer timer(&FrameStats::terrainMs);
+    Timer timer(FrameStats::TerrainMs);
     bool placed = true;
     for (CachedPage* p : g_pending) {
         if (!Place(*p)) {
@@ -944,8 +944,8 @@ TerrainCacheInfo TerrainCacheState() {
 
 void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     if (!s || !renderer) return;
-    StatsTimer timer(&FrameStats::terrainMs);
-    ++g_stats.terrainPages;
+    Timer timer(FrameStats::TerrainMs);
+    ++g_stats.counts[FrameStats::TerrainPages];
     Frame& f = g_frame;
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack, which the old path transforms the sector's
@@ -1042,7 +1042,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
             return;
         }
     }
-    ++g_stats.terrainBatches;
+    ++g_stats.counts[FrameStats::TerrainBatches];
     f.terrainBatches.push_back(TerrainBatch{texture, water, matrix, static_cast<int>(firstPiece), count, state});
     f.commands.push_back(Command{Command::Terrain, static_cast<int>(f.terrainBatches.size()) - 1});
 }
@@ -1051,7 +1051,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
 
 void ShadowTerrainSector(const SectorData* s) {
     if (!s || !lib::Has(s->built, terrain::SectorStage::Loaded) || s->vertices.empty() || std::ssize(s->vertices) < kWaterRecords) return;
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
     std::uint32_t rebuilt = 0;
     if (auto it = g_changes.find(s); it != g_changes.end()) rebuilt = it->second.rebuilt;
     SectorCaster& c = g_sectorCasters[s];
@@ -1099,7 +1099,7 @@ void UploadTerrainCasters() {
         if (!c->dirty || !g_casterPool.Placed(c->place)) continue;
         g_casterPool.WriteGeometry(c->place, 0, vertices, c->vertices.data());
         g_casterPool.WriteIndices(c->place, g_gridIndices.data(), g_gridIndices.size());
-        g_stats.terrainVertexBytes += c->vertices.size() * sizeof(TerrainCasterVertex);
+        g_stats.counts[FrameStats::TerrainVertexBytes] += c->vertices.size() * sizeof(TerrainCasterVertex);
         c->dirty = false;
     }
 }

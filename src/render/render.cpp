@@ -21,7 +21,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <new>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -230,36 +229,14 @@ void Start() {
     g_started = true;
 }
 
-#if defined(EI_RENDER_VALIDATION)
-// The timer of the device mesh draw running (at most one), made in place so no static destructor comes with it.
-alignas(StatsTimer) static unsigned char g_deviceMeshTimer[sizeof(StatsTimer)];
-static bool g_deviceMeshTiming = false;
-#endif
-
-#if defined(EI_RENDER_VALIDATION)
-struct GameTimer {
-    alignas(StatsTimer) unsigned char storage[sizeof(StatsTimer)];
-    bool running = false;
-    void Begin(double FrameStats::* field) {
-        if (running) return;
-        new (storage) StatsTimer(field);
-        running = true;
-    }
-    bool End() {
-        if (!running) return false;
-        std::launder(reinterpret_cast<StatsTimer*>(storage))->~StatsTimer();
-        running = false;
-        return true;
-    }
-};
-static GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
-#endif
+// The game's timed work (BeginDeviceMeshTime and the others), at most one of each kind running.
+static Timer g_deviceMeshTimer, g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
 
 static FrameStats g_statsSum;                  // the presented frames since the last TakeFrameStats
 static const void* g_lastPipeline = nullptr;   // applied last in this frame
 static const void* g_lastTexture = nullptr;
+static int g_timedKind = -1;   // the kind of the innermost Timer with one running, -1 none
 #if defined(EI_RENDER_VALIDATION)
-static StatsTimer* g_innerTimer = nullptr;
 // CountReuse: per key the hashes of the vertices' geometry (positions, texture coordinates) and
 // colours, this frame's and the last; this frame's mesh geometry hashes.
 struct VertexHashes {
@@ -280,7 +257,7 @@ static std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
 #endif
 
 static void AddFrameStats() {
-    g_stats.matrices = g_frame.matrices.size();
+    g_stats.counts[FrameStats::Matrices] = g_frame.matrices.size();
     if (g_width > 0) {
         g_statsSum.width = g_width;
         g_statsSum.height = g_height;
@@ -288,16 +265,8 @@ static void AddFrameStats() {
     FrameStats& s = g_statsSum;
     const FrameStats& f = g_stats;
     s.frames += 1;
-    for (auto field : {&FrameStats::terrainPages, &FrameStats::terrainBatches, &FrameStats::meshes, &FrameStats::meshPasses,
-                       &FrameStats::transformedDraws, &FrameStats::blits, &FrameStats::depthClears, &FrameStats::stateReads,
-                       &FrameStats::flatMeshes, &FrameStats::flatVertexBytes, &FrameStats::matrices, &FrameStats::terrainVertexBytes, &FrameStats::terrainIndexBytes,
-                       &FrameStats::meshVertexBytes, &FrameStats::meshIndexBytes, &FrameStats::uniformBytes, &FrameStats::passes,
-                       &FrameStats::draws, &FrameStats::pipelineApplies, &FrameStats::pipelineChanges, &FrameStats::bindings,
-                       &FrameStats::textureChanges, &FrameStats::morphMeshes,
-                       &FrameStats::morphCorners, &FrameStats::decalPrints,
-                       &FrameStats::decalVertices, &FrameStats::flatDraws,
-                       &FrameStats::flatDrawVertices, &FrameStats::shadowBuilds})
-        s.*field += f.*field;
+    for (int k = 0; k < FrameStats::CountKinds; ++k) s.counts[k] += f.counts[k];
+    for (int k = 0; k < FrameStats::TimeKinds; ++k) s.ms[k] += f.ms[k];
     for (int k = 0; k < FrameStats::UploadKinds; ++k) {
         s.uploads[k] += f.uploads[k];
         s.uploadBytes[k] += f.uploadBytes[k];
@@ -306,18 +275,6 @@ static void AddFrameStats() {
         s.terrainReuse[k] += f.terrainReuse[k];
         s.meshReuse[k] += f.meshReuse[k];
     }
-    s.sharedMeshes += f.sharedMeshes;
-    s.handOverMs += f.handOverMs;
-    s.terrainMs += f.terrainMs;
-    s.textureMs += f.textureMs;
-    s.endFrameMs += f.endFrameMs;
-    s.statsMs += f.statsMs;
-    s.deviceMeshMs += f.deviceMeshMs;
-    for (auto field : {&FrameStats::decalPrintMs, &FrameStats::flatMs,
-                       &FrameStats::shadowBuildMs})
-        s.*field += f.*field;
-    s.shadowDraws += f.shadowDraws;
-    s.shadowMs += f.shadowMs;
     g_stats = FrameStats{};
     g_lastPipeline = g_lastTexture = nullptr;
 #if defined(EI_RENDER_VALIDATION)
@@ -362,7 +319,7 @@ static void BeginFramePass() {
     pass.depth.clear = 1.0f;
     pass.label = "ei-frame";
     if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     g_passSamples = 1;
     if (afterWorld) {
         CopyDepthFromResolved(g_resolvedDepth);
@@ -386,7 +343,7 @@ static void BeginMultisampledPass() {
         copy.depth.load = gpu::Load::DontCare;
         copy.label = "ei-frame-into-multisampled";
         if (!gpu::BeginPass(copy)) Fatal("The renderer cannot draw the frame.");
-        ++g_stats.passes;
+        ++g_stats.counts[FrameStats::Passes];
         g_passSamples = g_targetSamples;
         CopyIntoMultisampled(g_colour, g_depth);
         gpu::EndPass();
@@ -406,7 +363,7 @@ static void BeginMultisampledPass() {
     pass.depth.clear = 1.0f;
     pass.label = "ei-frame-multisampled";
     if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     g_passSamples = g_targetSamples;
     g_holder = Holder::Multisampled;
     ++g_counts.multisampledPasses;
@@ -481,10 +438,12 @@ static bool DrawPending() {
     // The sun's shadow map and the ambient occlusion, once a frame before its first pass.
     if (!g_frame.shadow.prepared) {
         {
-            perf::CpuTimer shadowTime(perf::Cpu::Shadow);
+            Timer shadowTime;
+            shadowTime.Begin();
             perf::Enter(perf::Pass::Sun);
             PrepareShadows(g_frame);
             DrawShadowMap(g_frame);
+            perf::AddCpu(perf::Cpu::Shadow, shadowTime.End());
         }
         perf::Enter(perf::Pass::Other);
         DrawOcclusion(g_frame);
@@ -620,61 +579,39 @@ void PrepareDevice(int msaa) {
     });
 }
 
-void BeginDeviceMeshTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_deviceMeshTiming) return;
-    new (g_deviceMeshTimer) StatsTimer(&FrameStats::deviceMeshMs);
-    g_deviceMeshTiming = true;
-#endif
-}
-void EndDeviceMeshTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (!g_deviceMeshTiming) return;
-    std::launder(reinterpret_cast<StatsTimer*>(g_deviceMeshTimer))->~StatsTimer();
-    g_deviceMeshTiming = false;
-#endif
-}
+void BeginDeviceMeshTime() { g_deviceMeshTimer.Begin(FrameStats::DeviceMeshMs); }
+
+void EndDeviceMeshTime() { g_deviceMeshTimer.End(); }
+
 void BeginDecalTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_decalTimer.running) return;
-    ++g_stats.decalPrints;
-    g_decalTimer.Begin(&FrameStats::decalPrintMs);
-#endif
+    if (g_decalTimer.Running()) return;
+    g_decalTimer.Begin(FrameStats::DecalPrintMs);
+    if (g_decalTimer.Running()) ++g_stats.counts[FrameStats::DecalPrints];
 }
+
 void EndDecalTime(int vertices) {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_decalTimer.End()) g_stats.decalVertices += static_cast<std::uint64_t>(vertices);
-#else
-    (void)vertices;
-#endif
+    if (!g_decalTimer.Running()) return;
+    g_decalTimer.End();
+    g_stats.counts[FrameStats::DecalVertices] += static_cast<std::uint64_t>(vertices);
 }
+
 void BeginFlatDrawTime(int vertices) {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_flatDrawTimer.running) return;
-    ++g_stats.flatDraws;
-    g_stats.flatDrawVertices += static_cast<std::uint64_t>(vertices);
-    g_flatDrawTimer.Begin(&FrameStats::flatMs);
-#else
-    (void)vertices;
-#endif
+    if (g_flatDrawTimer.Running()) return;
+    g_flatDrawTimer.Begin(FrameStats::FlatMs);
+    if (!g_flatDrawTimer.Running()) return;
+    ++g_stats.counts[FrameStats::FlatDraws];
+    g_stats.counts[FrameStats::FlatDrawVertices] += static_cast<std::uint64_t>(vertices);
 }
-void EndFlatDrawTime() {
-#if defined(EI_RENDER_VALIDATION)
-    g_flatDrawTimer.End();
-#endif
-}
+
+void EndFlatDrawTime() { g_flatDrawTimer.End(); }
+
 void BeginShadowBuildTime() {
-#if defined(EI_RENDER_VALIDATION)
-    if (g_shadowBuildTimer.running) return;
-    ++g_stats.shadowBuilds;
-    g_shadowBuildTimer.Begin(&FrameStats::shadowBuildMs);
-#endif
+    if (g_shadowBuildTimer.Running()) return;
+    g_shadowBuildTimer.Begin(FrameStats::ShadowBuildMs);
+    if (g_shadowBuildTimer.Running()) ++g_stats.counts[FrameStats::ShadowBuilds];
 }
-void EndShadowBuildTime() {
-#if defined(EI_RENDER_VALIDATION)
-    g_shadowBuildTimer.End();
-#endif
-}
+
+void EndShadowBuildTime() { g_shadowBuildTimer.End(); }
 
 void StartPresenting() { Start(); }
 
@@ -714,7 +651,7 @@ void EndWorld() {
 }
 
 void ClearDepth(float z, const Rect* rects, int count) {
-    g_stats.depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
+    g_stats.counts[FrameStats::DepthClears] += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
     if (!rects) {
         g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
         g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
@@ -730,44 +667,54 @@ void ClearDepth(float z, const Rect* rects, int count) {
 
 FrameStats g_stats;   // the frame being built
 
-StatsTimer::StatsTimer(double FrameStats::* newField) : field(newField), start(0), outer(nullptr) {
-#if defined(EI_RENDER_VALIDATION)
-    start = Ticks();
-    outer = g_innerTimer;
-    g_innerTimer = this;
-#endif
+void Timer::Begin() {
+    if (!start) start = Ticks();
 }
 
-StatsTimer::~StatsTimer() {
-#if defined(EI_RENDER_VALIDATION)
-    double ms = static_cast<double>(Ticks() - start) * kMsPerTick;
-    g_stats.*field += ms;
-    if (outer) g_stats.*(outer->field) -= ms;      // the outer timer counts its own work only
-    g_innerTimer = outer;
-#endif
+void Timer::Begin(FrameStats::Time newKind) {
+    if constexpr (kRenderValidation) {
+        if (start) return;
+        kind = newKind;
+        outer = g_timedKind;
+        g_timedKind = kind;
+        start = Ticks();
+    }
+}
+
+double Timer::End() {
+    if (!start) return 0.0;
+    const double ms = static_cast<double>(Ticks() - start) * kMsPerTick;
+    start = 0;
+    if (kind >= 0) {
+        g_stats.ms[kind] += ms;
+        if (outer >= 0) g_stats.ms[outer] -= ms;
+        g_timedKind = outer;
+        kind = outer = -1;
+    }
+    return ms;
 }
 
 void CountPipeline(gpu::Pipeline pipeline) {
-    ++g_stats.pipelineApplies;
-    if (pipeline.pipeline != g_lastPipeline) ++g_stats.pipelineChanges;
+    ++g_stats.counts[FrameStats::PipelineApplies];
+    if (pipeline.pipeline != g_lastPipeline) ++g_stats.counts[FrameStats::PipelineChanges];
     g_lastPipeline = pipeline.pipeline;
 }
 
 void CountBindings(const gpu::Texture& first) {
-    ++g_stats.bindings;
-    if (first.texture != g_lastTexture) ++g_stats.textureChanges;
+    ++g_stats.counts[FrameStats::Bindings];
+    if (first.texture != g_lastTexture) ++g_stats.counts[FrameStats::TextureChanges];
     g_lastTexture = first.texture;
 }
 
 void CountDraw(std::size_t uniformBytes) {
-    ++g_stats.draws;
-    g_stats.uniformBytes += uniformBytes;
+    ++g_stats.counts[FrameStats::Draws];
+    g_stats.counts[FrameStats::UniformBytes] += uniformBytes;
 }
 
 void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key, [[maybe_unused]] int page,
                 [[maybe_unused]] const Vertex* vertices, [[maybe_unused]] std::size_t count) {
 #if defined(EI_RENDER_VALIDATION)
-    StatsTimer timer(&FrameStats::statsMs);
+    Timer timer(FrameStats::StatsMs);
     VertexHashes h{0xCBF29CE484222325ull, 0xCBF29CE484222325ull};
     for (std::size_t i = 0; i < count; ++i) {
         const Vertex& v = vertices[i];
@@ -785,7 +732,7 @@ void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key,
     auto& reuse = terrain ? g_stats.terrainReuse : g_stats.meshReuse;
     ++reuse[r];
     g_hashes[id] = h;
-    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.sharedMeshes;
+    if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.counts[FrameStats::SharedMeshes];
 #endif
 }
 
@@ -810,21 +757,25 @@ void RunCanvasesNow() {
     RunCanvasCommands();
 }
 
-std::uint64_t perf::FrameDrawCount() { return g_stats.draws + g_stats.shadowDraws; }
+std::uint64_t perf::FrameDrawCount() { return g_stats.counts[FrameStats::Draws] + g_stats.counts[FrameStats::ShadowDraws]; }
 
 void EndFrame() {
     if (g_frameDrawn) return;
     Start();
     g_frameDrawn = true;
-    StatsTimer timer(&FrameStats::endFrameMs);
-    perf::CpuTimer submitTime(perf::Cpu::Submit);
+    Timer timer(FrameStats::EndFrameMs);
+    Timer submitTime;
+    submitTime.Begin();
     // Onto the game window through the swap chain.
-    if (!DrawPending()) return;
+    if (!DrawPending()) {
+        perf::AddCpu(perf::Cpu::Submit, submitTime.End());
+        return;
+    }
     perf::Enter(perf::Pass::Present);
     bool toWindow = DrawToWindow();
     perf::EndDraws();
     gpu::Submit();
-    submitTime.Stop();
+    perf::AddCpu(perf::Cpu::Submit, submitTime.End());
     ++g_commits;
     if (toWindow) PresentWindow();
     g_haveFrame = true;

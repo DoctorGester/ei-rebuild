@@ -348,17 +348,17 @@ static void Write(CachedMesh& e) {
         g_pool.WriteGeometry(e.place, 0, count, e.vertices.data());
         if (!e.colours.empty()) g_pool.WriteColours(e.place, 0, count, e.colours.data());   // a caster has none
         g_pool.WriteIndices(e.place, e.indices.data(), e.indices.size());
-        stats.meshVertexBytes += e.vertices.size() * sizeof(MeshVertex) + e.colours.size() * sizeof(std::uint32_t);
-        stats.meshIndexBytes += e.indices.size() * sizeof(std::uint32_t);
+        stats.counts[FrameStats::MeshVertexBytes] += e.vertices.size() * sizeof(MeshVertex) + e.colours.size() * sizeof(std::uint32_t);
+        stats.counts[FrameStats::MeshIndexBytes] += e.indices.size() * sizeof(std::uint32_t);
     } else {
         if (e.vertexTo > e.vertexFrom) {
             g_pool.WriteGeometry(e.place, e.vertexFrom, e.vertexTo - e.vertexFrom, &e.vertices[e.vertexFrom]);
-            stats.meshVertexBytes += (e.vertexTo - e.vertexFrom) * sizeof(MeshVertex);
+            stats.counts[FrameStats::MeshVertexBytes] += (e.vertexTo - e.vertexFrom) * sizeof(MeshVertex);
         }
         if (e.colourTo > e.colourFrom) {
             g_pool.WriteColours(e.place, e.colourFrom, e.colourTo - e.colourFrom,
                                 &e.colours[2 * static_cast<std::size_t>(e.colourFrom)]);
-            stats.meshVertexBytes += (e.colourTo - e.colourFrom) * sizeof(ColourPair);
+            stats.counts[FrameStats::MeshVertexBytes] += (e.colourTo - e.colourFrom) * sizeof(ColourPair);
         }
     }
     e.dirty = false;
@@ -368,8 +368,8 @@ static void Write(CachedMesh& e) {
 
 CachedMesh* KeepMesh(const MeshDraw& m) {
     if (g_haveSource && g_source.moved) {
-        ++g_stats.morphMeshes;
-        g_stats.morphCorners += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
+        ++g_stats.counts[FrameStats::MorphMeshes];
+        g_stats.counts[FrameStats::MorphCorners] += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
     }
     if (!g_haveSource || !g_source.owner || !m.corners || g_interface) return nullptr;
 #if defined(EI_RENDER_VALIDATION)

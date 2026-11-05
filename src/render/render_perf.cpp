@@ -203,14 +203,8 @@ void EndDraws() {
     g_inFrame = false;
 }
 
-CpuTimer::CpuTimer(Cpu newPart) : part(newPart), start(g_on ? Ticks() : 0) {}
-
-CpuTimer::~CpuTimer() { Stop(); }
-
-void CpuTimer::Stop() {
-    if (!start) return;
-    g_cpu[static_cast<int>(part)] += static_cast<double>(Ticks() - start) * kMsPerTick;
-    start = 0;
+void AddCpu(Cpu part, double ms) {
+    if (g_on) g_cpu[static_cast<int>(part)] += ms;
 }
 
 void FrameDone() {

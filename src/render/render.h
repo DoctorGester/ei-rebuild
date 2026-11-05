@@ -251,40 +251,43 @@ ShadowInfo ShadowState();
 // TakeFrameStats returns the sums since its last call (the harness's "renderstats"). The CPU times and the
 // reuse counts are the harness build's only.
 struct FrameStats {
+    enum Count {
+        // Hand-over: Meshes are BeginMesh with corners built; StateReads are the passes' reads of the render state
+        // (ReadPassState).
+        TerrainPages, TerrainBatches, Meshes, MeshPasses, TransformedDraws, Blits, DepthClears, StateReads, Matrices,
+        // Of the meshes: the flat geometry (object shadows, ground prints, selection markers, light decals).
+        FlatMeshes, FlatVertexBytes,
+        // Meshes whose vertices equal another mesh's of the same frame (instancing candidates).
+        SharedMeshes,
+        TerrainVertexBytes, TerrainIndexBytes, MeshVertexBytes, MeshIndexBytes, UniformBytes,
+        Passes, Draws, PipelineApplies, PipelineChanges, Bindings, TextureChanges,
+        // Ground prints projected (ProjectDecal) and their vertices; the device's flat draws and their vertices;
+        // RenderShadow's builds.
+        DecalPrints, DecalVertices, FlatDraws, FlatDrawVertices, ShadowBuilds,
+        // The shadow map's draws.
+        ShadowDraws,
+        // Meshes handed over with per-vertex offsets (an animation's morph) and their corners.
+        MorphMeshes, MorphCorners,
+        CountKinds
+    };
+    // CPU times (ms). Each leaves out the times measured inside it: StatsMs (these counts' own hashing and checks),
+    // TerrainMs (the terrain pages' hand-over and uploads), ShadowMs (the shadow map's work) and the rest.
+    // DeviceMeshMs: the game device's mesh draws (device_mesh.cpp's DrawMesh); DecalPrintMs: ProjectDecal for ground
+    // prints; FlatMs: the device's flat draws; ShadowBuildMs: RenderShadow.
+    enum Time { TerrainMs, HandOverMs, TextureMs, EndFrameMs, StatsMs, DeviceMeshMs, DecalPrintMs, FlatMs, ShadowBuildMs,
+                ShadowMs, TimeKinds };
+    // Images made (or updated in place) per kind.
     enum Upload { Mmp, Movie, Small, UploadKinds };
+    // Vertices against the last frame's of the same terrain page or mesh: all the same, only colours changed,
+    // positions or texture coordinates changed, none last frame.
+    enum Reuse { Same, Relit, Moved, New, ReuseKinds };
+
     std::uint32_t frames = 0;
     int width = 0, height = 0;   // the last frame's size
-// Hand-over: meshes are BeginMesh with corners built; stateReads are the passes' reads of the render state (ReadPassState).
-    std::uint64_t terrainPages = 0, terrainBatches = 0, meshes = 0, meshPasses = 0, transformedDraws = 0;
-    std::uint64_t blits = 0, depthClears = 0, stateReads = 0, matrices = 0;
-// Of the meshes: the flat geometry (object shadows, ground prints, selection markers, light decals).
-    std::uint64_t flatMeshes = 0, flatVertexBytes = 0;
-// Vertices against the last frame's of the same terrain page or mesh: all the same, only colours changed,
-// positions or texture coordinates changed, none last frame; shared: equal to another mesh of the same frame
-// (instancing candidates).
-    enum Reuse { Same, Relit, Moved, New, ReuseKinds };
-    std::uint64_t terrainReuse[ReuseKinds] = {}, meshReuse[ReuseKinds] = {}, sharedMeshes = 0;
-    std::uint64_t terrainVertexBytes = 0, terrainIndexBytes = 0, meshVertexBytes = 0, meshIndexBytes = 0;
-    std::uint64_t uniformBytes = 0;
-    std::uint64_t passes = 0, draws = 0, pipelineApplies = 0, pipelineChanges = 0, bindings = 0, textureChanges = 0;
-// Images made (or updated in place) per kind.
+    std::uint64_t counts[CountKinds] = {};
+    double ms[TimeKinds] = {};
     std::uint64_t uploads[UploadKinds] = {}, uploadBytes[UploadKinds] = {};
-// CPU times (ms). statsMs (these counts' own hashing and checks) and terrainMs (the terrain pages'
-// hand-over and uploads) are left out of the others.
-    double terrainMs = 0.0;
-    double handOverMs = 0.0, textureMs = 0.0, endFrameMs = 0.0, statsMs = 0.0;
-// The game device's mesh draws (device_mesh.cpp's DrawMesh, the BeginDeviceMeshTime timer), the hand-over in them left out.
-    double deviceMeshMs = 0.0;
-// ProjectDecal for ground prints; the device's flat draws (hand-over left out);
-// RenderShadow.
-    double decalPrintMs = 0.0, flatMs = 0.0, shadowBuildMs = 0.0;
-    std::uint64_t decalPrints = 0, decalVertices = 0;
-    std::uint64_t flatDraws = 0, flatDrawVertices = 0, shadowBuilds = 0;
-// The shadow map's draws and CPU time (left out of the times around it).
-    std::uint64_t shadowDraws = 0;
-    double shadowMs = 0.0;
-// Meshes handed over with per-vertex offsets (an animation's morph).
-    std::uint64_t morphMeshes = 0, morphCorners = 0;
+    std::uint64_t terrainReuse[ReuseKinds] = {}, meshReuse[ReuseKinds] = {};
 };
 FrameStats TakeFrameStats();
 

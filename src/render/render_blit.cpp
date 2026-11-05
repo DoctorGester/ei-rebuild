@@ -164,7 +164,7 @@ void MovieBlit(const void* key, const Rect& to) {
     if (it == g_movies.end() || !it->second.image) return;
     Movie& m = it->second;
     m.blitFrame = FrameNumber();
-    ++g_stats.blits;
+    ++g_stats.counts[FrameStats::Blits];
     Frame& f = g_frame;
     f.blitBatches.push_back(BlitBatch{m.image, m.width, m.height, to, Rect{0, 0, m.width, m.height}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});

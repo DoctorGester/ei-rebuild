@@ -423,6 +423,9 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         auto kb = [n](std::uint64_t bytes) { return static_cast<double>(bytes) / 1024.0 / n; };
         auto per = [n](std::uint64_t count) { return static_cast<double>(count) / n; };
         using F = render::FrameStats;
+        auto count = [&t, per](F::Count k) { return per(t.counts[k]); };
+        auto countKb = [&t, kb](F::Count k) { return kb(t.counts[k]); };
+        auto ms = [&t, n](F::Time k) { return t.ms[k] / n; };
         const render::SmoothInfo quality = render::SmoothState();
         char text[2400];
         std::snprintf(
@@ -440,20 +443,21 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "shadow map %.1f draws, CPU ms %.3f; morphed meshes %.1f "
             "(%.0f corners); main thread ms CPU %.2f / wall %.2f; quality: msaa %d (%d samples, the device gives %d), "
             "anisotropy %d",
-            argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
-            per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
-            per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
+            argument.c_str(), t.frames, t.width, t.height, count(F::TerrainPages), count(F::TerrainBatches), count(F::Meshes),
+            count(F::MeshPasses), count(F::FlatMeshes), countKb(F::FlatVertexBytes),
+            count(F::TransformedDraws), count(F::Blits), count(F::DepthClears), count(F::StateReads), count(F::Matrices),
             per(t.terrainReuse[F::Same]), per(t.terrainReuse[F::Relit]), per(t.terrainReuse[F::Moved]),
             per(t.terrainReuse[F::New]), per(t.meshReuse[F::Same]), per(t.meshReuse[F::Relit]), per(t.meshReuse[F::Moved]),
-            per(t.meshReuse[F::New]), per(t.sharedMeshes),
-            kb(t.terrainVertexBytes), kb(t.terrainIndexBytes), kb(t.meshVertexBytes), kb(t.meshIndexBytes), kb(t.uniformBytes),
-            per(t.passes), per(t.draws), per(t.pipelineApplies), per(t.pipelineChanges), per(t.bindings),
-            per(t.textureChanges), per(t.uploads[F::Mmp]), kb(t.uploadBytes[F::Mmp]),
+            per(t.meshReuse[F::New]), count(F::SharedMeshes),
+            countKb(F::TerrainVertexBytes), countKb(F::TerrainIndexBytes), countKb(F::MeshVertexBytes),
+            countKb(F::MeshIndexBytes), countKb(F::UniformBytes),
+            count(F::Passes), count(F::Draws), count(F::PipelineApplies), count(F::PipelineChanges), count(F::Bindings),
+            count(F::TextureChanges), per(t.uploads[F::Mmp]), kb(t.uploadBytes[F::Mmp]),
             per(t.uploads[F::Movie]), kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
-            t.terrainMs / n, t.handOverMs / n, t.textureMs / n, t.endFrameMs / n, t.statsMs / n, t.deviceMeshMs / n,
-            per(t.decalPrints), t.decalPrintMs / n, per(t.decalVertices),
-            per(t.flatDraws), t.flatMs / n, per(t.flatDrawVertices), per(t.shadowBuilds), t.shadowBuildMs / n,
-            per(t.shadowDraws), t.shadowMs / n, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
+            ms(F::TerrainMs), ms(F::HandOverMs), ms(F::TextureMs), ms(F::EndFrameMs), ms(F::StatsMs), ms(F::DeviceMeshMs),
+            count(F::DecalPrints), ms(F::DecalPrintMs), count(F::DecalVertices),
+            count(F::FlatDraws), ms(F::FlatMs), count(F::FlatDrawVertices), count(F::ShadowBuilds), ms(F::ShadowBuildMs),
+            count(F::ShadowDraws), ms(F::ShadowMs), count(F::MorphMeshes), count(F::MorphCorners), frameCpuMs / n,
             frameWallMs / n, quality.msaa, quality.targetSamples, quality.deviceSamples, quality.anisotropy);
         Log("harness: %s", text);
         frames->push_back(text);

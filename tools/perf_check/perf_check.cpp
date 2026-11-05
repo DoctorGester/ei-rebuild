@@ -200,16 +200,19 @@ void CheckTime() {
     auto slot = [](Pass p) { return static_cast<int>(p); };
     gpu::Texture t = MakeTarget(640, 360);
     Rect placed{0, 0, 640, 360};
+    // The milliseconds since `start`, as a render::Timer gives them.
+    auto since = [](std::chrono::steady_clock::time_point start) {
+        return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+    };
     for (int frame = 0; frame < 40; ++frame) {
         g_frameDraws = 0;
         perf::BeginDraws();
         PassWork(t, Pass::Ui, 2);   // the canvases' queued drawing
-        {
-            perf::CpuTimer shadow(perf::Cpu::Shadow);
-            PassWork(t, Pass::Sun, 3);
-            PassWork(t, Pass::Point, 2);
-        }
-        perf::CpuTimer submit(perf::Cpu::Submit);
+        const auto shadow = std::chrono::steady_clock::now();
+        PassWork(t, Pass::Sun, 3);
+        PassWork(t, Pass::Point, 2);
+        perf::AddCpu(perf::Cpu::Shadow, since(shadow));
+        const auto submit = std::chrono::steady_clock::now();
         PassWork(t, Pass::Other, 0);
         PassWork(t, Pass::Terrain, 4);
         PassWork(t, Pass::Objects, 5);
@@ -225,7 +228,7 @@ void CheckTime() {
         g_frameDraws += 1;
         perf::EndDraws();
         gpu::Submit();
-        submit.Stop();
+        perf::AddCpu(perf::Cpu::Submit, since(submit));
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
         perf::FrameDone();
     }

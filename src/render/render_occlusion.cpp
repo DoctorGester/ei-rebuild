@@ -91,7 +91,7 @@ static void FullScreenPass(gpu::Pipeline pipeline, const gpu::Texture& target,
     pass.colour.load = gpu::Load::DontCare;
     pass.label = label;
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the ambient occlusion's pass could not begin (%s).", gpu::Error());
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     gpu::ApplyPipeline(pipeline);
     gpu::BindTextures(gpu::Stage::Fragment, 0, textures);
     gpu::PushUniforms(gpu::Stage::Fragment, 0, params, bytes);
@@ -167,7 +167,7 @@ void DrawOcclusion(Frame& f) {
     pass.depth = {g_depth, 0, gpu::Load::Clear, 1.0f, true};
     pass.label = "ei-occlusion-depth";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the ambient occlusion's pass could not begin (%s).", gpu::Error());
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     g_info.terrainDraws = DrawTerrainDepth(f, g_terrainPipeline);
     if (drawMeshes) g_depthDraws.Draw(0, g_depthDraws.Count());
     g_info.meshDraws = static_cast<int>(drawMeshes ? g_depthDraws.Count() : 0);

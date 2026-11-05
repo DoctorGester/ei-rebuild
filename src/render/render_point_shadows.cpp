@@ -333,7 +333,7 @@ void PreparePointShadows(Frame& f) {
     Matrix4 camera;
     Vector3 eye;
     if (sceneCount == 0 || f.worldRanges.empty() || !WorldCamera(f, &camera, &eye)) return;
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
 
     // The lights in view that cast (not an object's own), strongest first (colour times reach; equals in
     // the scene's order).
@@ -493,7 +493,7 @@ void PreparePointShadows(Frame& f) {
 
 void DrawPointShadows(Frame& f) {
     if (g_mappedCount == 0) return;
-    StatsTimer timer(&FrameStats::shadowMs);
+    Timer timer(FrameStats::ShadowMs);
     PointShadowFrame& ps = f.shadow.point;
     if (!g_atlas) {
         g_atlasKnown = false;
@@ -544,7 +544,7 @@ void DrawPointShadows(Frame& f) {
                 }
                 g_faceDraws.Add(b, batch.cached != nullptr, d.texture, d.sampler, first, batch.indexCount,
                                 CasterInstance{Product(view, d.model), {d.uv[0], d.uv[1]}, {d.alpha[0], d.alpha[1]}});
-                ++g_stats.shadowDraws;
+                ++g_stats.counts[FrameStats::ShadowDraws];
                 kept.casters.push_back(d);
             }
             r.to = g_faceDraws.Count();
@@ -561,7 +561,7 @@ void DrawPointShadows(Frame& f) {
     pass.depth = {g_atlas, 0, fresh ? gpu::Load::Clear : gpu::Load::Keep, 1.0f, true};
     pass.label = "ei-point-shadows";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the point shadows' pass could not begin (%s).", gpu::Error());
-    ++g_stats.passes;
+    ++g_stats.counts[FrameStats::Passes];
     // The faces' clears first (the faces do not overlap), then their casters.
     bool clearApplied = false;
     for (const RedrawnFace& r : redrawn) {
