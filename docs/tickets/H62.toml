@@ -1,0 +1,8 @@
+id = "H62"
+title = "macOS CI: Metal smoke run of a few scenarios on a GitHub macOS runner"
+group = "harness"
+size = 1
+model = "sonnet"
+depends = ["PL19a"]
+note = "User 2026-11-05: a smoke run is acceptable. macos-latest (Apple silicon VM, 3 cores, 7 GB; GPU acceleration not documented): a build-only workflow (not Release, which publishes), then 3-5 short scenarios (a menu, a zone load, one render capture) with the stub data, to prove the Metal path draws and PL19a's folder rule works with EI_GAME_ROOT unset where testable. Report frame time; if Metal does not draw in the VM, document it and stop."
+order = 1180
