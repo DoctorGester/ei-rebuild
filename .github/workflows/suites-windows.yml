@@ -40,6 +40,10 @@ on:
         description: "Reruns of a failed scenario (run_all --retries; on WARP a rerun repeats a timeout)"
         required: false
         default: "0"
+      time_scale:
+        description: "EI_TIME_SCALE: the scenarios' real-time limits times this (WARP runs 2.4 times as long as lavapipe)"
+        required: false
+        default: "8"
 
 concurrency:
   group: windows-${{ github.ref }}
@@ -131,7 +135,7 @@ jobs:
     if: >-
       inputs.suites != 'builds' && vars.EI_STUB_DATA_REPO != ''
     runs-on: windows-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     defaults:
       run:
         shell: bash
@@ -140,8 +144,10 @@ jobs:
       matrix:
         shard: [0, 1, 2, 3, 4, 5, 6, 7]
     env:
-      # Linux's factor (suites-linux.yml; linux.md, "The CI job"); the WARP measurement of the first run decides it.
-      EI_TIME_SCALE: 3
+      # Linux's factor (3: suites-linux.yml; linux.md, "The CI job") times WARP's pace against lavapipe's on the same
+      # runner class: the 166 runs that passed on both, one game at a time, took a median 2.4 times as long here (run
+      # 42016421240 against Linux's 42040984380; docs/notes/harness.md, "The Windows CI job").
+      EI_TIME_SCALE: ${{ inputs.time_scale || '8' }}
       # Scenarios that need a 3840x2160 desktop (they say `resolution desktop`: ui_widescreen*, whose layout and clicks
       # follow the screen; the pair scenarios among the net ones) and that the runner's small screen cannot give (first
       # two lines). Then the ones that ran past a real-time limit at scale 3 on WARP, one game at a time: their own
