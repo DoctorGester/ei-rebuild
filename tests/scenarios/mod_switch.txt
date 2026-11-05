@@ -1,0 +1,18 @@
+# A switch of mods in the run (MOD3a; docs/notes/mods.md, "Switching mods"): in the main menu the game stops and starts
+# again with Rebirth's Lost in Astral (starter\Mods\LostInAstral: the mod's main menu zone read from its Maps\), then
+# again without a mod, and a new game follows. Starting twice gives the state of one start: the new game's dump is the
+# same as mod_switch_plain's, the same steps without the switches (tools/golden.py diff of the two dumps). The vanilla
+# data has no such folder: the switch logs it and starts the game again without a mod.
+reject Script error
+waitmenu
+mod starter\Mods\LostInAstral
+waitmenu
+rebirth read mod Maps\ZoneMainMenuNew.mob yes
+mod none
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+dump newgame
+report
+quit

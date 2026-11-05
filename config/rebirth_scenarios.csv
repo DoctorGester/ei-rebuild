@@ -15,3 +15,4 @@ render_shadows_shimmer,1,the user's Rebirth save "ShadowCorrupt": its camera dis
 render_load_town,1,the user's Rebirth save "ShadowCorrupt": the town's first frame after the load (R56a)
 render_shore_seams,1,the user's Rebirth save on zone 1's beach: the shore's seams (R17c1)
 dropin_profile,1,the Rebirth folder's own profile: its flags and EI_Plugin.ini's players and pause
+mod_switch_plain,1,mod_switch's twin without the switches: the two new games' dumps compared (MOD3a)
