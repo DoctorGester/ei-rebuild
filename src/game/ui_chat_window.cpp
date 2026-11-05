@@ -47,6 +47,8 @@ constexpr std::uint32_t kWhite = 0xFFFFFF;
 // --- the constructor -----------------------------------------------------------------------------
 
 // Its own update; its click and mouse move.
+ChatWindow::~ChatWindow() = default;
+
 ChatWindow::ChatWindow(Interface3D* ownerUi, BriefingScreen* screen) : UiWindow(ownerUi), briefing(screen) {
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;

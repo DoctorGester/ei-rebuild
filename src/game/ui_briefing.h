@@ -54,6 +54,7 @@ struct BriefingShownItem {
 class ChatWindow : public UiWindow {
 public:
     ChatWindow(Interface3D* ui, BriefingScreen* briefing);
+    ~ChatWindow() override;  // in ui_chat_window.cpp, where the players' message class is complete
     // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
     // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle. Returns the face's
     // region.
