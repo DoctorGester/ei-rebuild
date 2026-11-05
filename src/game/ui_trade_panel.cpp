@@ -55,6 +55,7 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 // the row's height lower by 100 (the panel's layout offset).
 void PriceSprite(TradePanel* panel, const Rect& row, float left, float right) {
     UiMesh* sprite = panel->AddBlankSprite();
+    panel->priceSprites.push_back(sprite);
     sprite->SetRectangle(6.0f, kSpriteScale, left, static_cast<float>(row.top + 100), right,
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
@@ -150,7 +151,11 @@ void TradePanel::BuildLists() {
 
 void TradePanel::DrawLists() {
     labels.clear();
-    while (lib::Count(sceneObjects) > 4) RemoveSceneObjectAt(lib::Count(sceneObjects) - 1);
+    // The last added first.
+    while (!priceSprites.empty()) {
+        RemoveSceneObject(priceSprites.back());
+        priceSprites.pop_back();
+    }
 
     labels.push_back({texts[0], Rect{0, 10, 200, 25}, {0, 0xFFFFFF, render::text::kCenter}});
     labels.push_back({texts[1], Rect{0, 205, 200, 220}, {0, 0xFFFFFF, render::text::kCenter}});
@@ -203,31 +208,41 @@ void TradePanel::Build() {
     AddSurface(new UiSurface(ui, 200, 100, 600, 500, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
 
-    AddRegion()->SetRect(360, 320, 380, 330);
-    AddRegion()->SetRect(360, 480, 380, 490);
-    AddRegion()->SetRect(560, 125, 580, 135);
-    AddRegion()->SetRect(560, 480, 580, 490);
+    auto region = [this](const Rect& area) {
+        UiRegion* added = AddRegion();
+        added->SetRect(area);
+        return added;
+    };
+    perkScroll[0] = region(Rect{360, 320, 380, 330});
+    perkScroll[1] = region(Rect{360, 480, 380, 490});
+    learnableScroll[0] = region(Rect{560, 125, 580, 135});
+    learnableScroll[1] = region(Rect{560, 480, 580, 490});
     Rect row = {215, 135, 385, 150};
     for (int i = 0; i < 2; ++i) {
-        AddRegion()->SetRect(row);
+        schoolRows[i] = region(row);
         Down(&row);
     }
     Down(&row);
     Down(&row);
-    AddRegion()->SetRect(0, 0, 0, 0);
-    for (int i = 0; i < 3; ++i) {
-        AddRegion()->SetRect(row);
+    schoolRows[2] = region(Rect{0, 0, 0, 0});
+    for (int i = 3; i < kSchools; ++i) {
+        schoolRows[i] = region(row);
         Down(&row);
     }
     Down(&row);
-    AddRegion()->SetRect(215, 165, 385, 180);
-    for (int y = 135; y < 480; y += 15) AddRegion()->SetRect(415, y, 585, y + 15);
-    for (int y = 330; y < 480; y += 15) AddRegion()->SetRect(215, y, 385, y + 15);
+    scienceRow = region(Rect{215, 165, 385, 180});
+    for (int i = 0; i < kLearnableRows; ++i) learnableRows[i] = region(Rect{415, 135 + 15 * i, 585, 150 + 15 * i});
+    for (int i = 0; i < kHeldRows; ++i) perkRows[i] = region(Rect{215, 330 + 15 * i, 385, 345 + 15 * i});
 
-    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
-    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
-    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
-    AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+    auto arrow = [this](float left, float top, float right, float bottom, int v0, int v1) {
+        UiMesh* sprite = AddBlankSprite();
+        sprite->SetRectangle(6.0f, kSpriteScale, left, top, right, bottom, 0x82, v0, 0x96, v1);
+        return sprite;
+    };
+    perkScrollIcons[0] = arrow(360.0f, 320.0f, 380.0f, 330.0f, 3, 0xD);
+    perkScrollIcons[1] = arrow(360.0f, 480.0f, 380.0f, 490.0f, 0xD, 3);
+    learnableScrollIcons[0] = arrow(560.0f, 125.0f, 580.0f, 135.0f, 3, 0xD);
+    learnableScrollIcons[1] = arrow(560.0f, 480.0f, 580.0f, 490.0f, 0xD, 3);
 
     TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
@@ -348,13 +363,6 @@ namespace {
 
 const char* const kPerkSound = "buttons\\camp\\perk.wav";
 
-constexpr int kHeldRows = 10;
-constexpr int kLearnableRows = 23;
-constexpr int kHeldUp = 0, kHeldDown = 1, kLearnableUp = 2, kLearnableDown = 3;
-constexpr int kFirstSchool = 4;
-constexpr int kScience = 10;
-constexpr int kFirstLearnable = 11;
-constexpr int kFirstHeld = 34;
 constexpr int kMaxLevel = 100;
 constexpr int kFirstHoldTicks = -500;    // milliseconds: the first repeat waits 750 ms
 constexpr int kRepeatTicks = 250;        // then a level every frame
@@ -368,49 +376,50 @@ void TradePanel::ClampScroll() {
     if (perkTop < 0) perkTop = 0;
     if (learnableTop > static_cast<int>(learnable.size()) - kLearnableRows) learnableTop = static_cast<int>(learnable.size()) - kLearnableRows;
     if (learnableTop < 0) learnableTop = 0;
-    sceneObjects[0]->visible = perkTop > 0;
-    sceneObjects[1]->visible = perkTop < static_cast<int>(perks.size()) - kHeldRows;
-    sceneObjects[2]->visible = learnableTop > 0;
-    sceneObjects[3]->visible = learnableTop < static_cast<int>(learnable.size()) - kLearnableRows;
+    perkScrollIcons[0]->visible = perkTop > 0;
+    perkScrollIcons[1]->visible = perkTop < static_cast<int>(perks.size()) - kHeldRows;
+    learnableScrollIcons[0]->visible = learnableTop > 0;
+    learnableScrollIcons[1]->visible = learnableTop < static_cast<int>(learnable.size()) - kLearnableRows;
     DrawLists();
 }
 
 // --- The left button (input click) ---------------------------------------------------------------------
 
 void TradePanel::LeftDown(Point point) {
-    int region = RegionAt(point);
-    switch (region) {
-    case kHeldUp: --perkTop; ClampScroll(); return;
-    case kHeldDown: ++perkTop; ClampScroll(); return;
-    case kLearnableUp: --learnableTop; ClampScroll(); return;
-    case kLearnableDown: ++learnableTop; ClampScroll(); return;
-    default: break;
+    UiRegion* region = RegionUnder(point);
+    if (region) {
+        if (region == perkScroll[0]) { --perkTop; ClampScroll(); return; }
+        if (region == perkScroll[1]) { ++perkTop; ClampScroll(); return; }
+        if (region == learnableScroll[0]) { --learnableTop; ClampScroll(); return; }
+        if (region == learnableScroll[1]) { ++learnableTop; ClampScroll(); return; }
+        ui->PlayInterfaceSound(kPerkSound);
     }
-    if (region >= kFirstSchool) ui->PlayInterfaceSound(kPerkSound);
     UnitStats* stats = &owner->HeroRecord()->stats;
     TradeStatsRecord& record = records[recordIndex];
 
     const TradeRow* row = nullptr;
     bool hold = false;
-    if (region >= kFirstSchool && region < kScience) {
-        row = &schools[region - kFirstSchool];
+    const int school = RegionIndex(schoolRows, region);
+    const int learnableRow = RegionIndex(learnableRows, region);
+    if (school >= 0) {
+        row = &schools[school];
         if (row->level >= kMaxLevel || row->price > experience) return;
-        ++stats->skills[region - kFirstSchool];
+        ++stats->skills[school];
         hold = true;
-    } else if (region == kScience) {
+    } else if (region == scienceRow) {
         row = &science[0];
         if (row->level >= kMaxLevel || row->price > experience) return;
         ++stats->attributes[0];
         hold = true;
-    } else if (region >= kFirstLearnable && region < kFirstHeld) {
-        std::uint32_t index = static_cast<std::uint32_t>(learnableTop + region - kFirstLearnable);
+    } else if (learnableRow >= 0) {
+        std::uint32_t index = static_cast<std::uint32_t>(learnableTop + learnableRow);
         if (index >= learnable.size()) return;
         row = &learnable[index];
         if (row->price > experience || !row->learnable) return;
         stats->LearnSkill(&g_skillDatabase, g_skillDatabase.FindLevel(row->key));
     } else {
-        // 34 and up, and (as unsigned) anything below 0: the next level of a held perk.
-        std::uint32_t index = static_cast<std::uint32_t>(perkTop + region - kFirstHeld);
+        // A held perk's row, or no region (HeldPerkRow): the next level of a held perk.
+        std::uint32_t index = static_cast<std::uint32_t>(perkTop + HeldPerkRow(region));
         if (index >= perks.size()) return;
         row = &perks[index];
         if (row->price > experience || row->nextKey.empty()) return;
@@ -420,7 +429,7 @@ void TradePanel::LeftDown(Point point) {
     record.bought = true;
     BuildLists();
     if (hold) {
-        heldRegion = region;
+        heldRow = region;
         holdTicks = kFirstHoldTicks;
         CaptureMouse();
     }
@@ -430,24 +439,23 @@ void TradePanel::LeftDown(Point point) {
 
 void TradePanel::LeftUp(Point) {
     ui->mouseCapture = nullptr;
-    heldRegion = -1;
+    heldRow = nullptr;
     holdTicks = 0;
 }
 
 // --- The held school / science button (update) ---------------------------------------------------------
 
 void TradePanel::Update() {
-    if (heldRegion < 0) return;
+    if (!heldRow) return;
     holdTicks += UiContainer::FrameTicks();
     if (holdTicks < kRepeatTicks) return;
-    int region = heldRegion;
     UnitStats* stats = &owner->HeroRecord()->stats;
     const TradeRow* row;
     std::uint8_t* level;
-    if (region >= kFirstSchool && region < kScience) {
-        row = &schools[region - kFirstSchool];
-        level = &stats->skills[region - kFirstSchool];
-    } else if (region == kScience) {
+    if (const int school = RegionIndex(schoolRows, heldRow); school >= 0) {
+        row = &schools[school];
+        level = &stats->skills[school];
+    } else if (heldRow == scienceRow) {
         row = &science[0];
         level = &stats->attributes[0];
     } else {
@@ -460,7 +468,7 @@ void TradePanel::Update() {
         return;
     }
     ui->mouseCapture = nullptr;
-    heldRegion = -1;
+    heldRow = nullptr;
 }
 
 // --- Ui trade grid draw ------------------------------------------------------------------------------

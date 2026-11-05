@@ -122,17 +122,12 @@ void UiRegion::OnMouseMove(Point point) {
 
 // --- UiWindow -------------------------------------------------------------------------------
 
-int UiWindow::RegionAt(Point point) const {
-    ui->ScalePointFromScreen(&point);
-    for (int i = 0; i < std::ssize(regions); ++i) {
-        if (regions[i]->HitTest(point)) return i;
-    }
-    return -1;
-}
-
 UiRegion* UiWindow::RegionUnder(Point point) const {
-    const int index = RegionAt(point);
-    return index < 0 ? nullptr : regions[index];
+    ui->ScalePointFromScreen(&point);
+    for (UiRegion* region : regions) {
+        if (region->HitTest(point)) return region;
+    }
+    return nullptr;
 }
 
 bool UiWindow::ContainsPoint(Point point) const {
@@ -141,10 +136,14 @@ bool UiWindow::ContainsPoint(Point point) const {
 }
 
 UiRegion* UiWindow::HitRegion(Point point, int count) {
-    const int index = RegionAt(point);
-    if (index < 0 || index >= count) return nullptr;
-    handled = true;
-    return regions[index];
+    ui->ScalePointFromScreen(&point);
+    for (int i = 0; i < std::ssize(regions) && i < count; ++i) {
+        if (regions[i]->HitTest(point)) {
+            handled = true;
+            return regions[i];
+        }
+    }
+    return nullptr;
 }
 
 UiRegion* UiWindow::PressRegion(Point point, int count) {
@@ -217,11 +216,6 @@ bool UiWindow::RemoveSceneObject(EngineObject* object) {
     return false;
 }
 
-void UiWindow::RemoveSceneObjectAt(int index) {
-    sceneObjects[index]->Release();
-    sceneObjects.erase(sceneObjects.begin() + index);
-}
-
 void UiWindow::ClearSceneObjects() {
     for (int i = 0; i < std::ssize(sceneObjects); ++i) sceneObjects[i]->Release();
     sceneObjects.clear();
@@ -275,14 +269,11 @@ UiRegion* UiWindow::AddRegion() {
     return region;
 }
 
-void UiWindow::RemoveRegionAt(int index) {
-    delete regions[index];
-    regions.erase(regions.begin() + index);
-}
-
 void UiWindow::RemoveRegion(UiRegion* region) {
     const int index = RegionIndex(regions, region);
-    if (index >= 0) RemoveRegionAt(index);
+    if (index < 0) return;
+    delete region;
+    regions.erase(regions.begin() + index);
 }
 
 void UiWindow::ClearRegions() {

@@ -14,12 +14,10 @@ namespace {
 
 const char* const kChangeSound = "buttons\\camp\\change.wav";
 
-constexpr int kWeaponSlots = 4;
-constexpr int kQuickSlots = 8;
-constexpr int kFirstBodySlot = 8;
-constexpr int kBodySlotEnd = 15;
+constexpr int kWeaponSlots = 4;      // the cells before the quick items
 constexpr int kTopicWeapon = 2;
 constexpr int kTopicQuickItem = 3;
+constexpr int kTopicFirstBodyPart = 4;   // plus the body part
 constexpr int kTopicEntry = 1;
 
 // `item`'s place in `list`, or -1.
@@ -51,12 +49,13 @@ void HeroQuickStrip::ShowEntry(Item* item) {
 
 void HeroEquipPanel::RightDown(Point point) {
     if (!body || !enabled) return;
-    int region = RegionAt(point);
-    if (region < 0) return;
+    const UiRegion* region = RegionUnder(point);
+    if (!region) return;
     PartyUnitRecord* hero = owner->HeroRecord();
-    if (region < std::ssize(hero->weapons) && region < kWeaponSlots) {
+    const int cell = RegionIndex(cells, region);
+    if (cell >= 0 && cell < std::ssize(hero->weapons) && cell < kWeaponSlots) {
         ui->PlayInterfaceSound(kChangeSound);
-        hero->weaponIndex = static_cast<std::uint32_t>(region);
+        hero->weaponIndex = static_cast<std::uint32_t>(cell);
     }
     owner->RefreshWeapons();
 }
@@ -66,22 +65,26 @@ void HeroEquipPanel::RightDown(Point point) {
 Item* HeroEquipPanel::ItemAt(Point point, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
-    int region = RegionAt(point);
-    if (region < 0) return nullptr;
+    const UiRegion* region = RegionUnder(point);
+    if (!region) return nullptr;
     PartyUnitRecord* hero = owner->HeroRecord();
-    if (region < kWeaponSlots) {
-        *topic = kTopicWeapon;
-        if (region < std::ssize(hero->weapons)) return hero->weapons[region];
-    } else if (region < kQuickSlots) {
-        *topic = kTopicQuickItem;
-        int fromEnd = kQuickSlots - 1 - region;
-        if (fromEnd < std::ssize(hero->quickItems)) return hero->quickItems[fromEnd];
+    if (const int cell = RegionIndex(cells, region); cell >= 0) {
+        if (cell < kWeaponSlots) {
+            *topic = kTopicWeapon;
+            if (cell < std::ssize(hero->weapons)) return hero->weapons[cell];
+        } else {
+            *topic = kTopicQuickItem;
+            int fromEnd = kCells - 1 - cell;
+            if (fromEnd < std::ssize(hero->quickItems)) return hero->quickItems[fromEnd];
+        }
+        return nullptr;
     }
-    if (!body || region < kFirstBodySlot || region >= kBodySlotEnd) return nullptr;
-    *topic = region - 4;
+    const int part = RegionIndex(bodySlots, region);
+    if (!body || part < 0) return nullptr;
+    *topic = kTopicFirstBodyPart + part;
     for (int i = 0; i < std::ssize(hero->armor); ++i) {
         ItemArmor* armour = hero->armor[i]->AsArmor();
-        if (static_cast<int>(armour->GetType()) == region - kFirstBodySlot) return armour;
+        if (static_cast<int>(armour->GetType()) == part) return armour;
     }
     return nullptr;
 }
@@ -89,10 +92,10 @@ Item* HeroEquipPanel::ItemAt(Point point, int* topic) {
 Item* HeroQuickStrip::ItemAt(Point point, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
-    int region = RegionAt(point);
+    const int cell = RegionIndex(cells, RegionUnder(point));
     PartyUnitRecord* hero = owner->HeroRecord();
-    if (region < 0 || region >= kQuickSlots) return nullptr;
+    if (cell < 0) return nullptr;
     *topic = kTopicEntry;
-    if (region >= std::ssize(hero->spells)) return nullptr;
-    return hero->spells[region];
+    if (cell >= std::ssize(hero->spells)) return nullptr;
+    return hero->spells[cell];
 }

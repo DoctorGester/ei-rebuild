@@ -169,8 +169,8 @@ HudQuickItems::HudQuickItems(Interface3D* ui, BattleScreen* newOwner) : UiWindow
     screen_layout::LeavePanel();
 }
 
-void HudQuickItems::AddItem(std::string_view model, std::string_view image) {
-    if (shownCount >= kMaxQuickItems) return;
+UiMesh* HudQuickItems::AddItem(std::string_view model, std::string_view image) {
+    if (shownCount >= kMaxQuickItems) return nullptr;
     const IconPlace at = IconAt(shownCount, 0x80);
     CopyImage(objects[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y);
     UiMesh* sprite = AddSprite(model);
@@ -184,6 +184,7 @@ void HudQuickItems::AddItem(std::string_view model, std::string_view image) {
     SetOffsets(sprite, at.x, at.y + kIconSize);
     MakePlain(sprite);
     ++shownCount;
+    return sprite;
 }
 
 // --- Spell column ----------------------------------------------------------------------------------------------
@@ -221,9 +222,8 @@ void HudSpellColumn::AddSpell(std::string_view model, std::string_view image) {
     MakePlain(sprite);
     int index = count;
     count = index + 1;
-    UiMesh* button = sceneObjects[index];
-    button->SetScale(1.0f);
-    button->flatSpecular = kColourOff;
+    sprite->SetScale(1.0f);
+    sprite->flatSpecular = kColourOff;
     selected = index;
     screen_layout::LeavePanel();
 }
@@ -261,8 +261,7 @@ void HudActionColumn::AddAction(std::string_view model, std::string_view image, 
     actions[place] = static_cast<std::uint32_t>(action);
     int index = count;
     count = index + 1;
-    UiMesh* button = sceneObjects[index];
-    button->SetScale(1.0f);
-    button->flatSpecular = kColourOff;
+    sprite->SetScale(1.0f);
+    sprite->flatSpecular = kColourOff;
     selected = index;
 }

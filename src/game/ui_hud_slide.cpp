@@ -58,11 +58,12 @@ void SetTint(UiMesh* object, float value) {
     tint[0] = tint[1] = tint[2] = value;
 }
 
-// Every region but the sling button (the first) moves with the panel.
-void MoveRegions(UiWindow* window, int offsetX) {
-    for (int i = 1; i < std::ssize(window->regions); ++i) {
-        window->regions[i]->offsetX = offsetX;
-        window->regions[i]->offsetY = 0;
+// Every region but the sling button moves with the panel.
+void MoveRegions(UiWindow* window, const UiRegion* sling, int offsetX) {
+    for (UiRegion* region : window->regions) {
+        if (region == sling) continue;
+        region->offsetX = offsetX;
+        region->offsetY = 0;
     }
 }
 
@@ -153,7 +154,7 @@ void HudMap::Layout() {
     northIcon->Place(buttons, 85.0f, 10.0f);
     surfaces[0]->MoveTo({offset + 700 + screen_layout::EdgeShift(), 80});     // WideScreen
     screen_layout::LeavePanel();        // addon's 1002337E, before the regions
-    MoveRegions(this, offset);
+    MoveRegions(this, slingButton, offset);
 }
 
 void HudMap::Update() {
@@ -215,7 +216,7 @@ void HudUnitPanel::Layout() {
     for (int i = 0; i < kEffects; ++i)
         effectSprites[i]->Place(kUnitEffectX - slideOffset, static_cast<float>(50 + 30 * i), 5.0f);
     surfaces[0]->MoveTo({20 - screen_layout::EdgeShift() - offset, 0});     // WideScreen
-    MoveRegions(this, -offset);
+    MoveRegions(this, slingButton, -offset);
     screen_layout::LeavePanel();        // addon's 100232E9
 }
 

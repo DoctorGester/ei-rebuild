@@ -437,43 +437,40 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
     if (!unit) return;
 
     // The entry of the sprite just added.
-    auto finish = [&](Item* item, bool own) {
+    auto finish = [&](Item* item, bool own, UiMesh* sprite) {
         entries.resize(shownCount);
         Entry& entry = entries[shownCount - 1];
         entry.own = own;
         entry.id = item->id;
         entry.item = item;
+        entry.sprite = sprite;
     };
     // The sprite just added: placed in its row (x from the panels' right column, 695; Rebirth moves it), its
-    // region pointing at it, scaled, opaque.
-    auto place = [&](int slot) {
-        UiMesh* sprite = sceneObjects[shownCount - 1];
+    // slot pointing at its entry, scaled, opaque.
+    auto place = [&](int slot, UiMesh* sprite) {
         const float right = screen_layout::g_panelRight;
         if (slot < 4)
             sprite->Place(right - (slot * 50), 575.0f, 20.0f);
         else
             sprite->Place(right - (slot * 50 - 200), 525.0f, 20.0f);
-        int last = shownCount - 1;
-        regionItem[slot] = last;
-        if (last >= 0 && last < shownCount) {
-            UiMesh* shown = sceneObjects[last];
-            shown->SetScale(slot < 4 ? 0.55f : 0.85f);
-            sceneObjects[last]->flatSpecular = 0xFF000000;
-        }
+        regionItem[slot] = shownCount - 1;
+        sprite->SetScale(slot < 4 ? 0.55f : 0.85f);
+        sprite->flatSpecular = 0xFF000000;
     };
 
     // The unit's four quick items in the bottom row.
     for (unsigned slot = 0; slot < 4; ++slot) {
         Item* item = unit->GetQuickItem(slot);
         if (!item) continue;
+        UiMesh* sprite;
         {
             std::string image = item->FigureName();
             std::string model = item->PictureName();
-            AddItem(model, image);
+            sprite = AddItem(model, image);
         }
-        finish(item, true);
+        finish(item, true, sprite);
         regions[slot]->SetTipString(ItemTip(slot), static_cast<int>(slot) + 0x2A);
-        place(static_cast<int>(slot));
+        place(static_cast<int>(slot), sprite);
     }
 
     // The local player's own unit also shows up to four of the player's ItemKind::Quest items above, from
@@ -490,16 +487,17 @@ void HudQuickItems::SetUnit(Unit* newUnit) {
         ++node;
         if (!item || item->Kind() != ItemKind::Quest)
             continue;
+        UiMesh* sprite;
         {
             std::string image = item->FigureName();
             std::string model = item->PictureName();
-            AddItem(model, image);
+            sprite = AddItem(model, image);
         }
-        finish(item, false);
+        finish(item, false, sprite);
         // The same string serves as the second and third texts.
         tip = g_clientWorld.texts->GetItemTexts(item).name;
         regions[slot]->SetTipString(tip);
-        place(slot);
+        place(slot, sprite);
         ++slot;
     }
 }

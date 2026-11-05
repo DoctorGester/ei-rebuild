@@ -229,6 +229,10 @@ constexpr int kPartTorso = 1;
 constexpr int kPartArms = 2;
 constexpr int kPartLegs = 4;
 
+// The statistics column's rows on page 0 (HeroStatsPanel::rows).
+constexpr int kSkullRow = 0, kArmsRow = 1, kTorsoRow = 2, kLegsRow = 3, kAttackRow = 4, kDefenceRow = 5, kDamageRow = 6,
+              kEncumbranceRow = 7, kMagicRow = 8;
+
 // The hero arrows' tooltips (texts "tip_20300" / "tip_20301").
 constexpr int kTipPreviousHero = 0x4F4C;
 constexpr int kTipNextHero = 0x4F4D;
@@ -240,28 +244,29 @@ constexpr int kTipNextHero = 0x4F4D;
 ItemHoverInfo TradePanel::HoverInfo(Point at) {
     ItemHoverInfo info;
     if (!enabled) return info;
-    // The region is tested with unsigned compares, so -1 (no region) falls through
-    // every range and ends on a held-perk index far past the list.
-    unsigned region = static_cast<unsigned>(RegionAt(at));
-    if (region >= 4 && region < 10) {
+    // No region falls through to the held perks (HeldPerkRow), past the list.
+    const UiRegion* region = RegionUnder(at);
+    const int school = RegionIndex(schoolRows, region);
+    const int learnableRow = RegionIndex(learnableRows, region);
+    if (school >= 0) {
         info.kind = HoverKind::Skill;
-        info.index = static_cast<int>(region - 4);
-        info.text = SkillNames()[region - 4];
-    } else if (region == 10) {
+        info.index = school;
+        info.text = SkillNames()[school];
+    } else if (region == scienceRow) {
         info.kind = HoverKind::Science;
         info.index = 0;
         info.text = SkillNames()[6];
-    } else if (region < 11) {
-        return info;   // regions 0-3: the scroll arrows
+    } else if (RegionIndex(perkScroll, region) >= 0 || RegionIndex(learnableScroll, region) >= 0) {
+        return info;
     } else {
         const TradeRow* row;
-        if (region < 0x22) {
-            unsigned i = static_cast<unsigned>(learnableTop) + region - 11;
+        if (learnableRow >= 0) {
+            unsigned i = static_cast<unsigned>(learnableTop) + static_cast<unsigned>(learnableRow);
             if (i >= learnable.size()) return info;
             row = &learnable[i];
             info.index = 0;
         } else {
-            unsigned i = static_cast<unsigned>(perkTop) + region - 0x22;
+            unsigned i = static_cast<unsigned>(perkTop) + static_cast<unsigned>(HeldPerkRow(region));
             if (i >= perks.size()) return info;
             row = &perks[i];
             info.index = row->level;
@@ -281,15 +286,15 @@ ItemHoverInfo HeroStatsPanel::HoverInfo(Point at) {
     PartyUnitRecord* hero = owner->HeroRecord();
     ItemHoverInfo info;
     info.stats = &hero->stats;
-    int row = RegionAt(at);
-    if (((page == 1 || page == 11) && row >= 2) || (page == 10 && row >= 2 && row < 5)) {
+    const int row = RegionIndex(rows, RegionUnder(at));
+    if (((page == 1 || page == 11) && row >= 0) || (page == 10 && row >= 0 && row < kHeightRow)) {
         info.kind = HoverKind::Attribute;
-        info.index = row - 2;
-        info.text = AttributeNames()[row - 2];
+        info.index = row;
+        info.text = AttributeNames()[row];
     }
-    if (page == 10 && (row == 14 || row == 5)) {
+    if (page == 10 && (row == kPointsLeftRow || row == kHeightRow)) {
         info.kind = HoverKind::Text;
-        info.text = row == 14 ? kPointsLeft : kHeight;
+        info.text = row == kPointsLeftRow ? kPointsLeft : kHeight;
     }
     if (page != 0) return info;
     auto armour = [&info](int part, const char* text) {
@@ -298,28 +303,28 @@ ItemHoverInfo HeroStatsPanel::HoverInfo(Point at) {
         info.text = text;
     };
     switch (row) {
-    case 2: armour(kPartSkull, kSkull); break;
-    case 3: armour(kPartArms, kArms); break;
-    case 4: armour(kPartTorso, kTorso); break;
-    case 5: armour(kPartLegs, kLegs); break;
-    case 6:
-    case 7:
+    case kSkullRow: armour(kPartSkull, kSkull); break;
+    case kArmsRow: armour(kPartArms, kArms); break;
+    case kTorsoRow: armour(kPartTorso, kTorso); break;
+    case kLegsRow: armour(kPartLegs, kLegs); break;
+    case kAttackRow:
+    case kDefenceRow:
         if (hero->weaponIndex < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
             info.kind = HoverKind::Weapon;
             info.weapon = hero->weapons[hero->weaponIndex]->AsWeapon();
-            info.text = row == 6 ? kAttack : kDefence;
+            info.text = row == kAttackRow ? kAttack : kDefence;
         }
         break;
-    case 8:
+    case kDamageRow:
         info.kind = HoverKind::Text;
         info.text = kDamage;
         break;
-    case 9:
+    case kEncumbranceRow:
         info.kind = HoverKind::Attribute;
         info.index = 7;
         info.text = AttributeNames()[7];
         break;
-    case 10:
+    case kMagicRow:
         info.kind = HoverKind::Magic;
         info.text = kMagicSkills;
         break;
@@ -333,10 +338,10 @@ ItemHoverInfo HeroStatsPanel::HoverInfo(Point at) {
 
 void HeroStatsPanel::SetHero(int newHeroIndex, std::optional<std::string_view> newTitle) {
     bool party = std::ssize(LocalPlayerData()->members) > 1;
-    sceneObjects[0]->visible = party;
-    sceneObjects[1]->visible = party;
-    regions[0]->SetTip(party ? kTipPreviousHero : 0);
-    regions[1]->SetTip(party ? kTipNextHero : 0);
+    nextArrow->visible = party;
+    previousArrow->visible = party;
+    previousButton->SetTip(party ? kTipPreviousHero : 0);
+    nextButton->SetTip(party ? kTipNextHero : 0);
     heroIndex = newHeroIndex;
     if (newTitle) title = std::string(*newTitle);
     points = static_cast<int>(owner->HeroRecord()->height * 100.0f);

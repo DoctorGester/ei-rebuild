@@ -51,20 +51,19 @@ void MainMenu::DrawSprites(SceneRenderer* pass) { ScreenDraw(this, pass, false);
 // the shown weapon and the selected quick item.
 void HeroEquipPanel::DrawSprites(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
-    auto frame = [this](int i) { return sceneObjects[i]; };
     std::uint32_t shown = hero->weaponIndex;
     if (shown < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
-        frame(0)->visible = true;
-        frame(0)->Place(static_cast<float>(shown * 100u + 50u), 50.0f, 3.0f);
+        weaponFrame->visible = true;
+        weaponFrame->Place(static_cast<float>(shown * 100u + 50u), 50.0f, 3.0f);
     } else {
-        frame(0)->visible = false;
+        weaponFrame->visible = false;
     }
     int currentSelected = selected;
     if (currentSelected >= 0 && currentSelected < std::ssize(hero->quickItems)) {
-        frame(1)->visible = true;
-        frame(1)->Place(static_cast<float>(750 - currentSelected * 100), 50.0f, 3.0f);
+        quickItemFrame->visible = true;
+        quickItemFrame->Place(static_cast<float>(750 - currentSelected * 100), 50.0f, 3.0f);
     } else {
-        frame(1)->visible = false;
+        quickItemFrame->visible = false;
     }
     DrawBase(pass);
     ItemScreen* currentOwner = owner;

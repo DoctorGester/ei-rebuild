@@ -65,26 +65,30 @@ void UiItemStrip::Build(bool atTop) {
     selected = -1;
     tabsEnabled = true;
 
-    // Regions 0 / 1 the scroll arrows, 2-4 and 5-7 the tab buttons at the left and right ends,
-    // 8 the items.
-    auto region = [this](int left, int atTop, int right, int bottom) { AddRegion()->SetRect(left, atTop, right, bottom); };
-    region(30, top + 35, 50, top + 65);
-    region(750, top + 35, 770, top + 65);
-    region(0, top + 5, 30, top + 35);
-    region(0, top + 35, 30, top + 65);
-    region(0, top + 65, 30, top + 95);
-    region(770, top + 5, 800, top + 35);
-    region(770, top + 35, 800, top + 65);
-    region(770, top + 65, 800, top + 95);
-    region(50, top, 750, top + 100);
+    auto region = [this](int left, int atTop, int right, int bottom) {
+        UiRegion* added = AddRegion();
+        added->SetRect(left, atTop, right, bottom);
+        return added;
+    };
+    scrollButtons[0] = region(30, top + 35, 50, top + 65);
+    scrollButtons[1] = region(750, top + 35, 770, top + 65);
+    tabButtons[0] = region(0, top + 5, 30, top + 35);
+    tabButtons[1] = region(0, top + 35, 30, top + 65);
+    tabButtons[2] = region(0, top + 65, 30, top + 95);
+    tabButtons[3] = region(770, top + 5, 800, top + 35);
+    tabButtons[4] = region(770, top + 35, 800, top + 65);
+    tabButtons[5] = region(770, top + 65, 800, top + 95);
+    itemArea = region(50, top, 750, top + 100);
 
     const float y = static_cast<float>(top);
     const float hundred = 100.0f;
     // The ends' faces.
     float depth = scale * 0.8f;
-    AddBlankSprite()->SetRectangle(depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
+    endFaces[0] = AddBlankSprite();
+    endFaces[0]->SetRectangle(depth, 100.0f, 0.0f, y, 50.0f, y + hundred, 0xC0, 0xE, 0x8E, 0x72);
     depth = scale * 0.8f;
-    AddBlankSprite()->SetRectangle(depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
+    endFaces[1] = AddBlankSprite();
+    endFaces[1]->SetRectangle(depth, 100.0f, 750.0f, y, 800.0f, y + hundred, 0x8E, 0xE, 0xC0, 0x72);
     // The tab buttons (y + 5, 35, 65, 95; depth scale * 0.6).
     const float y5 = 5.0f, y35 = 35.0f, y65 = 65.0f,
                 y95 = 95.0f;
@@ -92,33 +96,38 @@ void UiItemStrip::Build(bool atTop) {
         float left = 0.0f, right = 0.0f;
         int u0 = 0, u1 = 0;
     };
-    static constexpr Tab kTabs[2] = {{0.0f, 30.0f, 2, 0x2A}, {770.0f, 800.0f, 0x2C, 0x54}};
-    for (const Tab& entry : kTabs) {
+    static constexpr Tab kEnds[2] = {{0.0f, 30.0f, 2, 0x2A}, {770.0f, 800.0f, 0x2C, 0x54}};
+    int tabFace = 0;
+    for (const Tab& entry : kEnds) {
         const float tops[3] = {y5, y35, y65};
         const float bottoms[3] = {y35, y65, y95};
         static constexpr int kV[3][2] = {{0x82, 0xAA}, {0xAC, 0xD4}, {0xD6, 0xFE}};
         for (int i = 0; i < 3; ++i) {
             depth = scale * 0.6f;
-            AddBlankSprite()->SetRectangle(depth, 80.0f, entry.left, y + tops[i], entry.right, y + bottoms[i], entry.u0, kV[i][0], entry.u1, kV[i][1]);
+            UiMesh* face = AddBlankSprite();
+            tabFaces[tabFace++] = face;
+            face->SetRectangle(depth, 80.0f, entry.left, y + tops[i], entry.right, y + bottoms[i], entry.u0, kV[i][0], entry.u1, kV[i][1]);
         }
     }
     // The highlight frame (plain, colour 0xFF8B8B37), moved around later.
-    UiMesh* frame = AddBlankSprite();
-    frame->Framed(scale * 0.9f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-    frame->flags |= FigureMeshFlag::Flat;
-    frame->flatColour = 0xFF8B8B37;
-    frame->texture = nullptr;
-    frame->visible = false;
+    highlightFrame = AddBlankSprite();
+    highlightFrame->Framed(scale * 0.9f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
+    highlightFrame->flags |= FigureMeshFlag::Flat;
+    highlightFrame->flatColour = 0xFF8B8B37;
+    highlightFrame->texture = nullptr;
+    highlightFrame->visible = false;
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.
-    AddBlankSprite()->SetGrid(scale + scale, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
+    background = AddBlankSprite();
+    background->SetGrid(scale + scale, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72, 8, 1);
     const float fifty = 50.0f, hundredFifty = 150.0f;
     for (int x = 0; x < 800; x += 100) {
         UiMesh* cell = AddBlankSprite();
+        cellFrames[x / 100] = cell;
         const float fx = static_cast<float>(x);
         cell->Framed(scale, 100.0f, fx + fifty, y, fx + hundredFifty, y + hundred, 15.0f, 0xE, 0xE, 0x72, 0x72);
     }
-    tab = 5;
-    SetTab(5);
+    tab = kAllTab;
+    SetTab(kAllTab);
     hovered = -1;
 }
 
@@ -129,15 +138,14 @@ void ForwardingStrip::DrawSprites(SceneRenderer* pass) {
     const int first = static_cast<int>(scrollPosition);
     const float frac = scrollPosition - first;
     const float hundred = 100.0f, fifty = 50.0f, one = 1.0f;
-    // The scroll arrows (sprites 0 and 1) show their dim frame while the strip can move that way.
+    // The end faces show their dim frame while the strip can move that way.
     const float dim = 0.1953125f;
-    sceneObjects[0]->textureOffsetU = position[tab] > 0.0f ? dim : 0.0f;
-    sceneObjects[1]->textureOffsetU = (std::ssize(list) - 7) > position[tab] ? dim : 0.0f;
+    endFaces[0]->textureOffsetU = position[tab] > 0.0f ? dim : 0.0f;
+    endFaces[1]->textureOffsetU = (std::ssize(list) - 7) > position[tab] ? dim : 0.0f;
 
-    sceneObjects[9]->Place(fifty - frac * hundred, static_cast<float>(top), scale + scale);
-    for (int i = 0; i < 8; ++i) {
-        sceneObjects[10 + i]
-            ->Place(((i - frac) + one) * hundred, top + fifty, scale);
+    background->Place(fifty - frac * hundred, static_cast<float>(top), scale + scale);
+    for (int i = 0; i < kCells; ++i) {
+        cellFrames[i]->Place(((i - frac) + one) * hundred, top + fifty, scale);
     }
     DrawBase(pass);
 
@@ -280,8 +288,8 @@ const char* const kOnOffSound = "buttons\\battle\\on_off.wav";
 void UiItemStrip::Setup(std::vector<Item*>* newSource, bool newTop) {
     LoadTexture(newTop ? kTopTexture : kBottomTexture, TextureKind::Interface);
     Build(newTop);
-    regions[0]->SetTip(0x4FB0);
-    regions[1]->SetTip(0x4FB1);
+    scrollButtons[0]->SetTip(0x4FB0);
+    scrollButtons[1]->SetTip(0x4FB1);
     AddSurface(new UiSurface(ui, 50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintCounts(out); });
     AddSurface(new UiSurface(ui, 50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true))
@@ -295,11 +303,11 @@ void FigureStrip::SetupFigures(std::vector<std::string>* names, bool newTop, boo
     LoadTexture(kFigureTexture, TextureKind::Interface);
     Build(newTop);
     if (!noArrowTips) {
-        regions[0]->SetTip(0x9DD0);
-        regions[1]->SetTip(0x9DD1);
+        scrollButtons[0]->SetTip(0x9DD0);
+        scrollButtons[1]->SetTip(0x9DD1);
     }
     tabsEnabled = false;
-    for (int i = 2; i < 8; ++i) sceneObjects[i]->visible = false;
+    for (UiMesh* face : tabFaces) face->visible = false;
 }
 
 // --- The figure strips' slots ----------------------------------------------------------------------
@@ -308,14 +316,13 @@ void FigureStrip::DrawSprites(SceneRenderer* pass) {
     const float scrollPosition = position[tab];
     const int first = static_cast<int>(scrollPosition);   // _ftol
     const float frac = scrollPosition - first;
-    sceneObjects[0]->textureOffsetU = position[tab] > 0.0f ? kDimmed : 0.0f;
-    sceneObjects[1]->textureOffsetU = (count - 7) > position[tab] ? kDimmed : 0.0f;
-    sceneObjects[9]->Place(kHalfCell - frac * kCell, static_cast<float>(top), scale + scale);
-    for (int i = 0; i < 8; ++i) {
-        sceneObjects[10 + i]->Place(((i - frac) + 1.0f) * kCell, top + kHalfCell,
-                                 scale);
+    endFaces[0]->textureOffsetU = position[tab] > 0.0f ? kDimmed : 0.0f;
+    endFaces[1]->textureOffsetU = (count - 7) > position[tab] ? kDimmed : 0.0f;
+    background->Place(kHalfCell - frac * kCell, static_cast<float>(top), scale + scale);
+    for (int i = 0; i < kCells; ++i) {
+        cellFrames[i]->Place(((i - frac) + 1.0f) * kCell, top + kHalfCell, scale);
     }
-    UiMesh* frame = sceneObjects[8];
+    UiMesh* frame = highlightFrame;
     frame->visible = false;
     if (selected >= 0 && selected < count) {
         int cell = selected - first;
@@ -339,7 +346,7 @@ void FigureStrip::RebuildList() { count = static_cast<int>(figures->size()); }
 
 void FigureStrip::LeftDown(Point point) {
     UiItemStrip::LeftDown(point);
-    if (RegionAt(point) != 8) return;
+    if (RegionUnder(point) != itemArea) return;
     ui->ScalePointFromScreen(&point);
     int index = SlotAt(point.x);
     if (index < 0 || index >= count) return;

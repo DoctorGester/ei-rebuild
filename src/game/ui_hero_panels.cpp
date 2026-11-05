@@ -24,19 +24,20 @@ namespace {
 
 void Down(Rect* rect) { rect->Offset(0, 15); }
 
-void AddRect(UiWindow* window, const Rect& rect) { window->AddRegion()->SetRect(rect); }
-
-void ShowFrom(UiWindow* window, int first, bool shown) {
-    for (int i = first; i < std::ssize(window->sceneObjects); ++i) window->sceneObjects[i]->visible = shown;
+UiRegion* AddRect(UiWindow* window, const Rect& rect) {
+    UiRegion* region = window->AddRegion();
+    region->SetRect(rect);
+    return region;
 }
 
 constexpr std::uint32_t kGrey = 0x828282;
 
 // The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids: a picture (textures 0-3 by quarter)
 // and a frame per cell, a region per
-// cell, then the surface, painted from `labels`. Texels alternate between 0x1C and 0x80 across and down; each row's
-// pictures lie twice as deep as their frames, and half as deep as the row above.
-void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels) {
+// cell (into `cells`), then the surface, painted from `labels`. Texels alternate between 0x1C and 0x80 across and
+// down; each row's pictures lie twice as deep as their frames, and half as deep as the row above.
+void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels, UiRegion* (&cells)[16]) {
+    int cell = 0;
     int u = 0x1C;
     float depth = 32.0f;
     int v = 0x1C;
@@ -56,7 +57,7 @@ void BuildCellGrid(UiWindow* window, const std::vector<UiLabel>* labels) {
             frame->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                    static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
             frame->texture = texture;
-            AddRect(window, Rect{left, top, right, bottom});
+            cells[cell++] = AddRect(window, Rect{left, top, right, bottom});
             u = 0x9C - u;
         }
         depth *= 0.5f;   // * 0.5
@@ -76,8 +77,10 @@ constexpr int kTopicRepair = 0x19;
 // The pages' common part: the 2 x 4 grid of regions over 400..600 x 100..500 (column by column),
 // the four quarter pictures (textures 0-3) and a hidden highlight frame.
 void BuildMakerPage(ConstructorPage* page) {
+    int cell = 0;
     for (int left = 400; left < 600; left += 100)
-        for (int top = 100; top < 500; top += 100) AddRect(page, Rect{left, top, left + 100, top + 100});
+        for (int top = 100; top < 500; top += 100)
+            page->gridCells[cell++] = AddRect(page, Rect{left, top, left + 100, top + 100});
 }
 void AddMakerPictures(ConstructorPage* page) {
     const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
@@ -93,6 +96,7 @@ void AddMakerPictures(ConstructorPage* page) {
     frame->flags |= FigureMeshFlag::Flat;
     frame->texture = nullptr;
     frame->visible = false;
+    page->highlight = frame;
 }
 
 } // namespace
@@ -102,34 +106,36 @@ void AddMakerPictures(ConstructorPage* page) {
 void HeroStatsPanel::ShowStats(int newPage) {
     Rect area = {0x14, 0xA5, 0xB4, 0xB4};
     page = newPage;
-    while (std::ssize(regions) > 2) RemoveRegionAt(2);
-    ShowFrom(this, 4, false);
+    for (UiRegion* row : rows) RemoveRegion(row);
+    rows.clear();
+    for (UiMesh* button : pointButtons) button->visible = false;
+    auto addRow = [this](const Rect& row) { rows.push_back(AddRect(this, row)); };
     if (page == 0) {
         Down(&area);
         for (int i = 0; i < 4; ++i) {
-            AddRect(this, area);
+            addRow(area);
             Down(&area);
         }
         Down(&area);
         Down(&area);
-        AddRect(this, area);
+        addRow(area);
         Down(&area);
-        AddRect(this, area);
+        addRow(area);
         Down(&area);
-        AddRect(this, area);
-        Down(&area);
-        Down(&area);
-        AddRect(this, area);
+        addRow(area);
         Down(&area);
         Down(&area);
-        AddRect(this, area);
+        addRow(area);
+        Down(&area);
+        Down(&area);
+        addRow(area);
     } else if (page == 10) {
-        ShowFrom(this, 4, true);
+        for (UiMesh* button : pointButtons) button->visible = true;
         const Rect columns[3] = {{0x14, 0xA5, 0x8C, 0xB4}, {0x8C, 0xA5, 0xA0, 0xB4}, {0xA0, 0xA5, 0xB4, 0xB4}};
         for (const Rect& column : columns) {
             area = column;
             for (int i = 0; i < 4; ++i) {
-                AddRect(this, area);
+                addRow(area);
                 Down(&area);
                 if (i == 2) {
                     Down(&area);
@@ -137,10 +143,10 @@ void HeroStatsPanel::ShowStats(int newPage) {
                 }
             }
         }
-        AddRect(this, Rect{0x14, 0xD2, 0xB4, 0xE1});
+        addRow(Rect{0x14, 0xD2, 0xB4, 0xE1});
     } else {
         for (int i = 0; i < 8; ++i) {
-            AddRect(this, area);
+            addRow(area);
             Down(&area);
             if (i == 2) Down(&area);
         }
@@ -300,15 +306,18 @@ void HeroEquipPanel::Build(bool withBody) {
     body = withBody;
     rect = Rect{0, 0, 800, withBody ? 500 : 100};
     mode = 0;
-    for (int x = 0; x < 800; x += 100) AddRect(this, Rect{x, 0, x + 100, 100});
-    for (int i = 0; i < 2; ++i) {
+    for (int x = 0; x < 800; x += 100) cells[x / 100] = AddRect(this, Rect{x, 0, x + 100, 100});
+    auto addFrame = [this] {
         UiMesh* frame = AddBlankSprite();
         frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
         frame->flags |= FigureMeshFlag::Flat;
         frame->flatColour = 0xFF8B8B37;
         frame->texture = nullptr;
         frame->visible = false;
-    }
+        return frame;
+    };
+    weaponFrame = addFrame();
+    quickItemFrame = addFrame();
     // The slots' frames: four on the left half, four on the right, each half with its strip.
     float cell = 100.0f;
     for (int i = 0; i < 4; ++i)
@@ -322,7 +331,7 @@ void HeroEquipPanel::Build(bool withBody) {
     if (body) {
         const int* xs = kBodySlotX;
         const int* ys = kBodySlotY;
-        for (int i = 0; i < 7; ++i) AddRect(this, Rect{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
+        for (int i = 0; i < 7; ++i) bodySlots[i] = AddRect(this, Rect{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
         for (const char* name : {"camp1", "camp2", "camp3", "camp4"}) LoadTexture(name, TextureKind::Interface);
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
@@ -338,18 +347,25 @@ void HeroEquipPanel::Build(bool withBody) {
 
 void HeroStatsPanel::Build() {
     rect = Rect{0, 100, 200, 400};
-    AddRect(this, Rect{0, 0x7D, 0x1E, 0x91});      // previous hero
-    AddRect(this, Rect{0xAA, 0x7D, 200, 0x91});    // next hero
+    previousButton = AddRect(this, Rect{0, 0x7D, 0x1E, 0x91});
+    nextButton = AddRect(this, Rect{0xAA, 0x7D, 200, 0x91});
     AddSurface(new UiSurface(ui, 0, 100, 200, 400, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
-    AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
-    AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
+    nextArrow = AddBlankSprite();
+    nextArrow->SetRectangle(5.0f, kSpriteScale, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
+    previousArrow = AddBlankSprite();
+    previousArrow->SetRectangle(5.0f, kSpriteScale, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
     AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
     AddBlankSprite()->SetRectangle(6.0f, kSpriteScale, 100.0f, 110.0f, 186.0f, 160.0f, 0x91, 0x4C, 0xE7, 0x88);
-    // The new hero page's -/+ buttons (scene objects 4-11, shown only there).
-    const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
-                                 {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
-    for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, kSpriteScale, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
+    // The new hero page's -/+ buttons (shown only there).
+    const float buttons[kPointButtons][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210},
+                                             {140, 240, 160, 255}, {160, 165, 180, 180}, {160, 180, 180, 195},
+                                             {160, 195, 180, 210}, {160, 240, 180, 255}};
+    for (int i = 0; i < kPointButtons; ++i) {
+        const auto& b = buttons[i];
+        pointButtons[i] = AddBlankSprite();
+        pointButtons[i]->SetRectangle(5.0f, kSpriteScale, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
+    }
     TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
@@ -369,7 +385,7 @@ void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldI
     sellKind = spells ? PriceKind::SpellSell : PriceKind::ItemSell;
     exchange = isExchange;
     for (const char* name : {"trade1", "trade2", "trade3", "trade4"}) LoadTexture(name, TextureKind::Interface);
-    BuildCellGrid(this, &labels);
+    BuildCellGrid(this, &labels, cells);
 }
 
 // --- The item under the mouse ---------------------------------------------------------------
@@ -377,26 +393,26 @@ void TradeGrid::Build(std::vector<Item*>* boughtItems, std::vector<Item*>* soldI
 Item* TradeGrid::ItemAt(Point point, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
-    int region = RegionAt(point);
-    if (region >= 0 && region < kGridCellsPerList) {
+    const int cell = RegionIndex(cells, RegionUnder(point));
+    if (cell >= 0 && cell < kGridCellsPerList) {
         *topic = exchange ? kTopicExchangeBuy : buyKind == PriceKind::ItemBuy ? kTopicItemBuy : kTopicSpellBuy;
-        if (region < std::ssize(*bought)) return (*bought)[region];
+        if (cell < std::ssize(*bought)) return (*bought)[cell];
         return nullptr;
     }
-    if (region < kGridCellsPerList || region >= kGridCells) return nullptr;
+    if (cell < kGridCellsPerList) return nullptr;
     // The sold list's topic also follows buyKind.
     *topic = exchange ? kTopicExchangeSell : buyKind == PriceKind::ItemBuy ? kTopicItemSell : kTopicSpellSell;
-    if (region - kGridCellsPerList < std::ssize(*sold)) return (*sold)[region - kGridCellsPerList];
+    if (cell - kGridCellsPerList < std::ssize(*sold)) return (*sold)[cell - kGridCellsPerList];
     return nullptr;
 }
 
 Item* RepairGrid::ItemAt(Point point, int* topic) {
     *topic = 0;
     if (!enabled) return nullptr;
-    int region = RegionAt(point);
-    if (region < 0 || region >= kGridCells) return nullptr;
+    const int cell = RegionIndex(cells, RegionUnder(point));
+    if (cell < 0) return nullptr;
     *topic = kTopicRepair;
-    return region < std::ssize(*items) ? (*items)[region] : nullptr;
+    return cell < std::ssize(*items) ? (*items)[cell] : nullptr;
 }
 
 // --- The repair grid's Build ---------------------------------------------------------------
@@ -406,7 +422,7 @@ void RepairGrid::Build(std::vector<Item*>* damaged) {
     mode = 8;
     items = damaged;
     for (const char* name : {"repair1", "repair2", "repair3", "repair4"}) LoadTexture(name, TextureKind::Interface);
-    BuildCellGrid(this, &labels);
+    BuildCellGrid(this, &labels, cells);
 }
 
 // --- The quick strip's Build -------------------------------------------------------------
@@ -415,13 +431,13 @@ void HeroQuickStrip::Build(bool top) {
     y = top ? 0 : 500;
     rect = Rect{0, y, 800, y + 100};
     mode = 0;
-    for (int x = 0; x < 800; x += 100) AddRect(this, Rect{x, y, x + 100, y + 100});
-    UiMesh* frame = AddBlankSprite();
-    frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-    frame->flatColour = 0xFF8B8B37;
-    frame->flags |= FigureMeshFlag::Flat;
-    frame->texture = nullptr;
-    frame->visible = false;
+    for (int x = 0; x < 800; x += 100) cells[x / 100] = AddRect(this, Rect{x, y, x + 100, y + 100});
+    highlightFrame = AddBlankSprite();
+    highlightFrame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, kUiTextureSize, kUiTextureSize);
+    highlightFrame->flatColour = 0xFF8B8B37;
+    highlightFrame->flags |= FigureMeshFlag::Flat;
+    highlightFrame->texture = nullptr;
+    highlightFrame->visible = false;
     AddBlankSprite()->SetGrid(16.0f, 100.0f, 0.0f, static_cast<float>(y), 800.0f, static_cast<float>(y + 100), 0xE,
                                  0x8E, 0x72, 0xF2, 8, 1);
 }
@@ -433,11 +449,11 @@ void SpellMakerPage::BuildSpellMaker(Party* party) {
     mode = 6;
     slots = party;
     for (const char* name : {"constrspell1", "constrspell2", "constrspell3", "constrspell4"}) LoadTexture(name, TextureKind::Interface);
-    AddRect(this, Rect{200, 250, 300, 350});   // the container
-    AddRect(this, Rect{300, 250, 400, 350});   // the spell
+    containerSlot = AddRect(this, Rect{200, 250, 300, 350});
+    spellSlot = AddRect(this, Rect{300, 250, 400, 350});
     BuildMakerPage(this);
-    AddRect(this, Rect{200, 450, 400, 470});
-    AddRect(this, Rect{200, 470, 400, 490});
+    costLines[0] = AddRect(this, Rect{200, 450, 400, 470});
+    costLines[1] = AddRect(this, Rect{200, 470, 400, 490});
     AddMakerPictures(this);
     AddSurface(new UiSurface(ui, 200, 450, 400, 490, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintLabels(out, labels); });
@@ -455,9 +471,9 @@ void ConstructorPage::BuildItemMaker(Party* party) {
     mode = 7;
     slots = party;
     for (const char* name : {"constritem1", "constritem2", "constritem3", "constritem4"}) LoadTexture(name, TextureKind::Interface);
-    AddRect(this, Rect{200, 250, 300, 350});   // the blueprint
-    AddRect(this, Rect{300, 200, 400, 300});   // the parts
-    AddRect(this, Rect{300, 300, 400, 400});
+    blueprintSlot = AddRect(this, Rect{200, 250, 300, 350});
+    partSlot = AddRect(this, Rect{300, 200, 400, 300});
+    containerSlot = AddRect(this, Rect{300, 300, 400, 400});
     BuildMakerPage(this);
     AddMakerPictures(this);
 }
@@ -497,43 +513,45 @@ Item* NthSlot(Party* slots, int nth, Predicate matches) {
 Item* SpellMakerPage::ItemAt(Point point, int* topic) {
     *topic = kTopicNone;
     if (!enabled) return nullptr;
-    int region = RegionAt(point);
-    if (region == 0) {
+    const UiRegion* region = RegionUnder(point);
+    if (!region) return nullptr;
+    if (region == containerSlot) {
         *topic = kTopicSpellContainer;
         return NthSlot(slots, 0, IsSpellContainer);
     }
-    if (region == 1) {
+    if (region == spellSlot) {
         *topic = kTopicSpell;
         return NthSlot(slots, 0, IsSpell);
     }
-    if (region >= 2 && region < 10) {
+    if (const int cell = RegionIndex(gridCells, region); cell >= 0) {
         *topic = kTopicModifier;
-        if (Item* item = NthSlot(slots, region - 2, IsModifier)) return item;
+        if (Item* item = NthSlot(slots, cell, IsModifier)) return item;
     }
-    if (region == 10) *topic = kTopicSkillLine;
-    else if (region == 11) *topic = kTopicManaLine;
+    if (region == costLines[0]) *topic = kTopicSkillLine;
+    else if (region == costLines[1]) *topic = kTopicManaLine;
     return nullptr;
 }
 
 Item* ConstructorPage::ItemAt(Point point, int* topic) {
     *topic = kTopicNone;
     if (!enabled) return nullptr;
-    int region = RegionAt(point);
-    if (region == 0) {
+    const UiRegion* region = RegionUnder(point);
+    if (!region) return nullptr;
+    if (region == blueprintSlot) {
         *topic = kTopicBuildable;
         return NthSlot(slots, 0, IsBuildable);
     }
-    if (region == 1) {
+    if (region == partSlot) {
         *topic = kTopicPart;
         return NthSlot(slots, 0, IsPart);
     }
-    if (region == 2) {
+    if (region == containerSlot) {
         *topic = kTopicItemContainer;
         return NthSlot(slots, 0, IsSpellContainer);
     }
-    if (region > 2) {
+    if (const int cell = RegionIndex(gridCells, region); cell >= 0) {
         *topic = kTopicMaterial;
-        return NthSlot(slots, region - 3, IsMaterial);
+        return NthSlot(slots, cell, IsMaterial);
     }
     return nullptr;
 }

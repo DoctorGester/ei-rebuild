@@ -19,10 +19,6 @@ const char* const kPerkSound = "buttons\\camp\\perk.wav";
 const char* const kHeroSound = "buttons\\camp\\hero.wav";
 
 constexpr int kNewHeroPage = 10;
-constexpr int kFirstButton = 6;              // regions 6-13
-constexpr int kButtonEnd = 14;
-constexpr int kPreviousHero = 0;
-constexpr int kNextHero = 1;
 constexpr float kMinAttribute = 15.0f;
 constexpr float kMaxAttribute = 35.0f;
 constexpr float kMaxTotal = 75.0f;
@@ -40,13 +36,13 @@ void SetAttribute(float& base, float& current, float value) {
 
 } // namespace
 
-bool HeroStatsPanel::StepPoint(int region) {
+bool HeroStatsPanel::StepPoint(int button) {
     PartyUnitRecord* hero = owner->HeroRecord();
     UnitStats* stats = &hero->stats;
     int total = static_cast<int>(stats->strengthBase) + static_cast<int>(stats->intelligenceBase) +
                 static_cast<int>(stats->dexterityBase);
     bool roomLeft = total < kMaxTotal;
-    switch (region - kFirstButton) {
+    switch (button) {
     case 0:
         if (stats->strengthBase <= kMinAttribute) return false;
         SetAttribute(stats->strengthBase, stats->strength, stats->strengthBase - kStep);
@@ -89,14 +85,14 @@ bool HeroStatsPanel::StepPoint(int region) {
 // --- Update --------------------------------------------------------------------------------------
 
 void HeroStatsPanel::Update() {
-    if (page != kNewHeroPage || heldRegion < 0) return;
+    if (page != kNewHeroPage || heldButton < 0) return;
     holdTicks += UiContainer::FrameTicks();
     if (holdTicks < kRepeatTicks) return;
-    bool stepped = StepPoint(heldRegion);
+    bool stepped = StepPoint(heldButton);
     owner->RefreshStats();
     if (!stepped) {
         ui->mouseCapture = nullptr;
-        heldRegion = -1;
+        heldButton = -1;
         holdTicks = 0;
     }
 }
@@ -104,24 +100,26 @@ void HeroStatsPanel::Update() {
 // --- The left button (input click) -----------------------------------------------------------------
 
 void HeroStatsPanel::LeftDown(Point point) {
-    int region = RegionAt(point);
+    const UiRegion* region = RegionUnder(point);
     if (page == kNewHeroPage) {
-        heldRegion = -1;
-        if (StepPoint(region)) heldRegion = region;
-        if (region >= kFirstButton && region < kButtonEnd) {
+        const int row = RegionIndex(rows, region);
+        const int button = row >= kFirstButtonRow && row < kFirstButtonRow + kPointButtons ? row - kFirstButtonRow : -1;
+        heldButton = -1;
+        if (StepPoint(button)) heldButton = button;
+        if (button >= 0) {
             ui->PlayInterfaceSound(kPerkSound);
             owner->RefreshStats();
         }
-        if (heldRegion > 0) {
+        if (heldButton >= 0) {
             holdTicks = kFirstHoldTicks;
             CaptureMouse();
         }
         return;
     }
-    if (region == kPreviousHero) {
+    if (region == previousButton) {
         ui->PlayInterfaceSound(kHeroSound);
         owner->PreviousHero();
-    } else if (region == kNextHero) {
+    } else if (region == nextButton) {
         ui->PlayInterfaceSound(kHeroSound);
         owner->NextHero();
     }
@@ -129,7 +127,7 @@ void HeroStatsPanel::LeftDown(Point point) {
 
 void HeroStatsPanel::LeftUp(Point) {
     ui->mouseCapture = nullptr;
-    heldRegion = -1;
+    heldButton = -1;
     holdTicks = 0;
 }
 

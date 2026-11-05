@@ -558,8 +558,7 @@ public:
     virtual void DrawTips();
     virtual void Update() {}
 
-    // The first region containing the screen point: its index (-1 for none) or itself (null).
-    int RegionAt(Point point) const;
+    // The first region containing the screen point, or null.
     UiRegion* RegionUnder(Point point) const;
     bool ContainsPoint(Point point) const;
 
@@ -576,14 +575,12 @@ public:
     // given the window's texture 0 and the old one's position, orientation, texture and scale; returns the
     // new one or null.
     UiMesh* ReplaceSceneObject(UiMesh* object, std::string_view name);
-    void RemoveSceneObjectAt(int index);
     void ClearSceneObjects();
 
     UiSurface* AddSurface(UiSurface* surface);
     void ClearSurfaces();
 
     UiRegion* AddRegion();
-    void RemoveRegionAt(int index);
     // Deletes `region` and drops it from the list (nothing when it is not listed).
     void RemoveRegion(UiRegion* region);
     void ClearRegions();
@@ -765,14 +762,14 @@ public:
     void Highlight(int slot, bool on);
     // Every slot off; selected = -1.
     void ClearHighlights();
-    // Item of the region at `index` (-1: empty, or no region).
-    int RegionItem(int index) const { return index < 0 ? -1 : regionItem[index]; }
+    // The entry shown in slot `slot` (a region's index; -1: empty, or no region).
+    int RegionItem(int slot) const { return slot < 0 ? -1 : regionItem[slot]; }
 
     // Rebirth-patched (WideScreen: the panel at the screen's right edge).
     HudQuickItems(Interface3D* ui, BattleScreen* owner);
-    // The next sprite (at most eight): `image` copied into the panel's texture, the model `model` turned
-    // over (a plain rectangle without one).
-    void AddItem(std::string_view model, std::string_view image);
+    // The next sprite (at most eight, else null): `image` copied into the panel's texture, the model `model`
+    // turned over (a plain rectangle without one).
+    UiMesh* AddItem(std::string_view model, std::string_view image);
     // The unit's four quick items in the bottom row (sprites Rebirth-patched); for the local player's unit
     // up to four of the player's ItemKind::Quest items in the top row.
     void SetUnit(Unit* unit);
@@ -781,6 +778,7 @@ public:
         bool own = false;            // one of the unit's quick items (else the player's)
         int id = 0;                  // the item's id
         Item* item = nullptr;
+        UiMesh* sprite = nullptr;
     };
 
     BattleScreen* owner = nullptr;
@@ -788,7 +786,7 @@ public:
     int selected = 0;
     Unit* unit = nullptr;
     std::vector<Entry> entries;
-    int regionItem[8] = {};
+    int regionItem[8] = {};          // per slot (region) its entry, or -1
     std::vector<std::string> labels;    // the tooltip's labels
 };
 

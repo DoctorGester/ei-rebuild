@@ -129,9 +129,12 @@ public:
     // The frame sprites: a strip of 8 cells over the layout's middle, the column edges and corners of four
     // 200-wide columns, and six bars.
     void Build() override;
-    // Places the two bars (sprites 25, 26) across the left and right columns (0..100, 100..200) at y - 20..y
-    // + 20 (depth 7.8, scale 100); the exchange window passes 300.
+    // Places the two bars across the left and right columns (0..100, 100..200) at y - 20..y + 20 (depth 7.8,
+    // scale 100); the exchange window passes 300.
     void PlaceBars(int y);
+
+    UiMesh* leftBar = nullptr;      // the first two of the six bars
+    UiMesh* rightBar = nullptr;
 };
 
 // The item screens (the camp, the multiplayer hero screen and the exchange window share these fields): the

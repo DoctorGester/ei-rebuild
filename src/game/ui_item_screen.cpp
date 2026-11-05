@@ -52,8 +52,10 @@ void ItemIconWindow::Build() {
         sprite()->SetRectangle(7.8f, kSpriteScale, half, 100.0f, right, 130.0f, 0x9A, 2, 0xFE, 0x20);
         sprite()->SetRectangle(7.8f, kSpriteScale, half, 470.0f, right, 500.0f, 0x9A, 0x20, 0xFE, 2);
     }
-    sprite()->SetRectangle(7.8f, kSpriteScale, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
-    sprite()->SetRectangle(7.8f, kSpriteScale, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
+    leftBar = sprite();
+    leftBar->SetRectangle(7.8f, kSpriteScale, 0.0f, 380.0f, 100.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
+    rightBar = sprite();
+    rightBar->SetRectangle(7.8f, kSpriteScale, 100.0f, 380.0f, 200.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
     sprite()->SetRectangle(7.8f, kSpriteScale, 600.0f, 380.0f, 700.0f, 420.0f, 0xFE, 0x22, 0x9A, 0x4A);
     sprite()->SetRectangle(7.8f, kSpriteScale, 700.0f, 380.0f, 800.0f, 420.0f, 0x9A, 0x22, 0xFE, 0x4A);
     sprite()->SetRectangle(7.8f, kSpriteScale, 200.0f, 280.0f, 300.0f, 320.0f, 0xFE, 0x22, 0x9A, 0x4A);
@@ -63,13 +65,10 @@ void ItemIconWindow::Build() {
 // --- The first two bars moved ------------------------------------------------------------
 
 void ItemIconWindow::PlaceBars(int y) {
-    constexpr int kLeftBar = 25, kRightBar = 26;   // after the cell strip and the 4 x 6 column pieces
     float top = static_cast<float>(y - 20);
     float bottom = static_cast<float>(y + 20);
-    sceneObjects[kLeftBar]
-        ->SetRectangle(7.8f, kSpriteScale, 0.0f, top, 100.0f, bottom, 0xFE, 0x22, 0x9A, 0x4A);
-    sceneObjects[kRightBar]
-        ->SetRectangle(7.8f, kSpriteScale, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
+    leftBar->SetRectangle(7.8f, kSpriteScale, 0.0f, top, 100.0f, bottom, 0xFE, 0x22, 0x9A, 0x4A);
+    rightBar->SetRectangle(7.8f, kSpriteScale, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
 }
 
 // --- The item screens' base Create ------------------------------------------------------

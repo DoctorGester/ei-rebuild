@@ -131,13 +131,13 @@ void HudActionColumn::DrawSprites(SceneRenderer* pass) { DrawWithSpecular(this, 
 // --- Quick items -------------------------------------------------------------------------------
 
 void HudQuickItems::LeftDown(Point point) {
-    if (RegionItem(RegionAt(point)) < 0) return;
+    if (RegionItem(RegionIndex(regions, RegionUnder(point))) < 0) return;
     handled = true;
     CaptureMouse();
 }
 
 void HudQuickItems::MouseMove(Point point) {
-    if (RegionItem(RegionAt(point)) >= 0) handled = true;
+    if (RegionItem(RegionIndex(regions, RegionUnder(point))) >= 0) handled = true;
 }
 
 void HudQuickItems::Update() {
@@ -187,7 +187,7 @@ void HudPortraits::LeftDown(Point point) {
             CaptureMouse();
         return;
     }
-    const int region = RegionAt(point);
+    const int region = RegionIndex(regions, RegionUnder(point));
     if (region < 0 || region >= count) return;
     // Picking a player for a server command: the player id of the slot, or of the session
     // player whose unit is the portrait's unit.
@@ -228,7 +228,7 @@ void HudPortraits::MouseMove(Point point) {
         if (region >= 0 && region < std::ssize(owner->party)) owner->HoverUnit(owner->party[region], {});
         return;
     }
-    const int region = RegionAt(point);
+    const int region = RegionIndex(regions, RegionUnder(point));
     if (region >= 0 && region < count) g_cursor.SetShape(CursorShape::Default);
 }
 
@@ -610,23 +610,23 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
 
 void HudQuickItems::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
-    int region = RegionAt(point);
-    int entry = RegionItem(region);
+    const int slot = RegionIndex(regions, RegionUnder(point));
+    const int entry = RegionItem(slot);
     if (entry < 0) return;
     handled = true;
-    if (region < 4 && entries[entry].own) {
+    if (slot < 4 && entries[entry].own) {
         if (ui->doubleClick)
-            UseNow(region);
+            UseNow(slot);
         else
-            Pick(region);
+            Pick(slot);
         return;
     }
     ui->PlayInterfaceSound(kSoundClick);
-    if (selected != region) {
+    if (selected != slot) {
         // One of the player's items (top row): used on an object, with the item's key in the screen's
         // itemUseKey and its id in pendingItem.
         owner->itemUseKey = entries[entry].item->GetUse();
-        owner->SetPendingAction(kPendingKeyOnObject, region, entries[entry].id);
+        owner->SetPendingAction(kPendingKeyOnObject, slot, entries[entry].id);
         return;
     }
     // The highlighted one again: back to plain selection.

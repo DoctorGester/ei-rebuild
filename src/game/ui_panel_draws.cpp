@@ -26,7 +26,6 @@ namespace {
 
 
 const char* const kCostFormat = "%s %d (%d)";
-constexpr int kHighlight = 4;   // the pages' pulsing frame (scene object)
 
 int Channel(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 
@@ -82,13 +81,12 @@ const itemdb::ItemRecordHead* PartRecord(const ItemLoot* part) {
 
 void HeroQuickStrip::DrawSprites(SceneRenderer* pass) {
     PartyUnitRecord* hero = owner->HeroRecord();
-    auto* frame = sceneObjects[0];
     int count = lib::Count(hero->spells);
     if (selected >= 0 && selected < count) {
-        frame->visible = true;
-        frame->Place(static_cast<float>(selected * 100 + 50), static_cast<float>(y + 50), 3.0f);
+        highlightFrame->visible = true;
+        highlightFrame->Place(static_cast<float>(selected * 100 + 50), static_cast<float>(y + 50), 3.0f);
     } else {
-        frame->visible = false;
+        highlightFrame->visible = false;
     }
     for (int i = 0; i < std::ssize(hero->spells); ++i) {
         ItemCell cell{hero->spells[i], static_cast<float>(i * 100 + 50),
@@ -187,7 +185,6 @@ void SpellMakerPage::DrawSprites(SceneRenderer* pass) {
     }
     DrawBase(pass);
 
-    UiMesh* highlight = sceneObjects[kHighlight];
     highlight->visible = true;
     Pulse beat = Advance(this);
     if (!hasContainer) {
@@ -245,7 +242,6 @@ void ConstructorPage::DrawSprites(SceneRenderer* pass) {
             }
         }
     }
-    UiMesh* highlight = sceneObjects[kHighlight];
     highlight->visible = true;
     Pulse beat = Advance(this);
     highlight->flatColour = Colour(beat.alpha, beat.high, beat.low);
