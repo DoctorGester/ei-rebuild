@@ -106,7 +106,7 @@ unit's brain has an action. For(counter, group)(body) / ForIf(counter, group, co
 to first (size read once), store the member in the counter (a global object variable) and run the body block in the
 same run (block, index, ticks and sleep start saved, set to body / 0 / 0 / -1, Execute recursion, restored: a Sleep in
 the body ends the body for that member). A script call (command 8) adds an instance at the HEAD of the instance list and
-copies the arguments into its variables (FatalError "Wrong number of script %s float parameters" etc.); an instance
+copies the arguments into its variables (the parser checked their counts; a mismatch ends the game: "Wrong number of script %s float parameters" etc.); an instance
 started by a waiting run runs its pairs in the same tick, one started by another instance's commands from the next
 tick. Assign (0x78) copies floats as bits, strings, objects (reference) or groups.
 

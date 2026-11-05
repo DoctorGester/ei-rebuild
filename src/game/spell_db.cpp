@@ -101,16 +101,10 @@ void SpellListRecord::Serialize(ChunkArchive* ar) {
 bool SpellDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
     MappedResource resource;
-    if (!resource.OpenResource(path)) {
-        game::FatalError("Can't open database file \"%s\"\n", path);
-        return false;
-    }
+    resource.OpenResource(path);
     std::uint32_t size;
     void* data = resource.GetFile("spells.sdb", &size);
-    if (!data) {
-        game::FatalError("Can't open spells database\n");
-        return false;
-    }
+    if (!data) game::FatalExit("Can't open spells database\n");
 
     MemoryStream stream;
     stream.Fill(data, size);

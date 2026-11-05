@@ -108,8 +108,7 @@ struct AIEventTable : AIViewer {
     void Clear();
     // The table for a map of sizeX x sizeY: Clear, the map kept, the grid 1 - trunc(size * -0.125) cells each
     // way, emptied. Then the 4096 bytes of "normal.dat" in the text
-    // resources' "aiinfo.res" are copied. Returns 1; a missing archive or file is a fatal error, whose result
-    // is returned.
+    // resources' "aiinfo.res" are copied. Returns 1; a missing archive or file ends the game.
     int Setup(AIMap* aiMap, float sizeX, float sizeY);
 
     AIEventCell* CellOf(const AIEvent* event);

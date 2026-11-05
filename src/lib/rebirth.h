@@ -5,9 +5,8 @@
 // the bug fixes, the scripting and console additions, EI_Plugin's Fixes, Briefings and NewMaster and MQClient always;
 // the mod-folder patches whenever a mod is played (mod_folders.h). A GOG install and a Rebirth install run the same
 // code; only the folder's data differs. What stays, which the start-up sets before any game code runs
-// (src/game/rebirth_profile.cpp): EI_Plugin's player count and pause mode (the Rebirth install's EI_Plugin.ini),
-// NewMaster's second master server (the settings file's [network] SecondMaster) and the one flag left,
-// DisableExitOnCrashReport (on in a Rebirth install).
+// (src/game/rebirth_profile.cpp): EI_Plugin's player count and pause mode (the Rebirth install's EI_Plugin.ini) and
+// NewMaster's second master server (the settings file's [network] SecondMaster).
 #pragma once
 
 #include <string>
@@ -32,20 +31,14 @@ void SetPluginPause(int mode);
 const std::string& PluginSecondMaster();
 void SetPluginSecondMaster(std::string_view address);
 
-// Rebirth's DisableExitOnCrashReport: FatalError returns instead of showing its error and exiting, and a client whose
-// connection fails keeps its session. On in a Rebirth install, off in a plain one; the settings file's [patches]
-// DisableExitOnCrashReport = true / false wins.
-bool DisableExitOnCrashReport();
-void SetDisableExitOnCrashReport(bool on);
-
-// "NPlayers=<n>", "Pause=<n>", "SecondMaster=<host[:port]>" and "DisableExitOnCrashReport=0|1", separated by commas,
-// semicolons or spaces. Unknown words are skipped; returns false if there was one.
+// "NPlayers=<n>", "Pause=<n>" and "SecondMaster=<host[:port]>", separated by commas, semicolons or spaces. Unknown
+// words are skipped; returns false if there was one.
 bool ApplySpec(const char* spec);
 
 // Queues a spec that wins over the settings file (the harness's "plugin" lines, before the game starts).
 void QueueSpec(const char* spec);
 
-// The defaults: no plugin player count, no pause mode, no second master, DisableExitOnCrashReport off.
+// The defaults: no plugin player count, no pause mode, no second master.
 void Reset();
 
 // The queued specs (after the settings file).

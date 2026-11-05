@@ -231,10 +231,7 @@ EI_SETTING(kRenderer, "PerfOverlay", "false", "true / false",
            "Shows frames per second, frame and graphics card times and draw counts over the game. The options "
            "screen's performance overlay row sets it.")
 
-// [patches]: EI_Plugin's two values and Rebirth's one flag left (its other patches are always on; the section's other
-// lines are ignored).
-EI_SETTING(kPatches, "DisableExitOnCrashReport", "(install)", "true / false",
-           "After a fatal error the game goes on instead of showing it and quitting. On in a Rebirth install.")
+// [patches]: EI_Plugin's two values (Rebirth's patches are always on; the section's other lines are ignored).
 EI_SETTING(kPatches, "NPlayers", "(install)", "0, or 7 or more",
            "Multiplayer games for up to this many players: the lobby's player slider, the portraits column and "
            "the chat window follow it. 0: the original's six.")

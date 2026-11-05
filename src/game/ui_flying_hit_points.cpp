@@ -111,10 +111,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     std::uint32_t now = platform::FrameClock();
     const Rect& screen = renderer->device->screen;
     if (!texture) return;
-    if (!renderer->SetTexture(0, texture)) {
-        game::FatalError("%s", "CFlyingHitPoints::Draw.\n SetTexture failed.\n");
-        return;
-    }
+    renderer->SetTexture(0, texture);
 
     std::erase_if(points, [now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
     if (!options::g_options.drawFlyingHp) return;

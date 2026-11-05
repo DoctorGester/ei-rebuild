@@ -268,7 +268,7 @@ public:
     TextureManager* Manager() const;
 };
 
-// A null texture is a fatal error (its result returned); a loaded one gives 1.
+// A null texture ends the game; a loaded one gives 1.
 int EnsureTextureLoaded(Texture* texture);
 // Drops the texture `slot` holds, then takes the texture manager's texture of `kind` named `name`, made when
 // missing.
@@ -307,8 +307,7 @@ public:
     // has it.
     int LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out);
     // A texture the game fills on the CPU, in the format of `kind` (Blank565, Blank1555, Blank4444;
-    // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
-    // format.
+    // another kind keeps a zero format), square at `width`. Null when the blank texture cannot be made.
     Texture* NewTexture(int width, int height, TextureKind kind);
     // A registered texture with a TextureFlag::Cacheable bit goes into the cache, any other is destroyed and kept as a
     // spare. Returns 0.
@@ -325,8 +324,8 @@ public:
     Texture* FindTexture(std::string_view name);
     Texture* FindTypedTexture(int type, std::string_view name);
     void FreeCache();
-    // Each layer a `width` x `width` .mmp from the archives, its name into `found`; a missing one is skipped,
-    // one of another size is a fatal error (its result returned). Returns the layers found.
+    // Each layer a `width` x `width` .mmp from the archives, its name into `found`; a missing one is skipped, one of
+    // another size skipped with a warning. Returns the layers found.
     int FindLayers(const std::vector<std::string>& names, int width, std::vector<std::string>* found);
     // The composed texture `name` (`fallback` when `name` has none) made of the request's layers, the name used
     // into `out`: 1 when it was made of them already or is now, 0 when there is nothing to draw.

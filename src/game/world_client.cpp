@@ -32,8 +32,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
-#include "lib/rebirth.h"
-
 #include <cmath>
 #include <cstring>
 #include <iterator>
@@ -320,10 +318,11 @@ bool WorldClient::RunTick() {
         PlayerConnection* view = currentSession->connection;
         if (!paused) currentSession->Tick();
         if (view->Receive() == 0) {
-            // The connection is gone. Rebirth's DisableExitOnCrashReport
-            // keeps the session: only the error is reported.
-            if (!ei::rebirth::DisableExitOnCrashReport()) SessionDisconnect(session);
-            game::FatalError("%s", "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n");
+            // The connection failed or the server's packet could not be read: the session ends, and the next pass's
+            // idle check hands the flow back (RunPass: the multiplayer client's disconnect box, else the main menu).
+            game::Warning("CWorldClient::Segment(): disconnecting the client: its connection failed or a packet could "
+                          "not be read");
+            SessionDisconnect(session);
             return false;
         }
         view->RunTick();

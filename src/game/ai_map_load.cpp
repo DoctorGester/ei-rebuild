@@ -82,17 +82,17 @@ struct MapDescription {
     std::vector<std::uint32_t> tileTypes;
 };
 
-// The .mp file `name`.MP of `archive` into `map`. Returns 1, or the fatal error's result when the
-// file is missing or not a map (its size must be the header's counts).
+// The .mp file `name`.MP of `archive` into `map`. Returns 1; a missing file or one that is not a map (its size must
+// be the header's counts) ends the game.
 int ReadDescription(MappedResource& archive, const std::string& path, const std::string& name, MapDescription& map) {
     std::uint32_t size;
     void* file = archive.GetFile((name + kMapExtension).c_str(), &size);
-    if (!file) return game::FatalError(("Unable to open file \"" + path) + "\"");
-    if (size < sizeof(MapHeader)) return game::FatalError("Wrong file format: " + path);
+    if (!file) game::FatalExit(("Unable to open file \"" + path) + "\"");
+    if (size < sizeof(MapHeader)) game::FatalExit("Wrong file format: " + path);
     std::memcpy(&map.header, file, sizeof(MapHeader));
     const MapHeader& header = map.header;
     const std::uint32_t words = header.animated + header.materials * (sizeof(MapMaterial) / 4) + header.textures;
-    if (header.magic != kMapMagic || size != words * 4 + sizeof(MapHeader)) return game::FatalError("Wrong file format: " + path);
+    if (header.magic != kMapMagic || size != words * 4 + sizeof(MapHeader)) game::FatalExit("Wrong file format: " + path);
 
     const auto* materials = static_cast<const std::uint8_t*>(file) + sizeof(MapHeader);
     const std::size_t materialBytes = header.materials * sizeof(MapMaterial);
@@ -142,16 +142,15 @@ constexpr int kTerrainTypes = 16;
 constexpr float kHundredth = 0.01f;
 
 // The terrain types from tileDesc.reg in the text resources' aiinfo.res: sixteen with the defaults,
-// then every section of the registry into the type its name numbers. Returns 1, or the fatal
-// error's result when the archive, the file or the registry cannot be read.
+// then every section of the registry into the type its name numbers. Returns 1; an archive, file or registry that
+// cannot be read ends the game.
 int ReadTerrainTypes(AIMap& map) {
     MappedResource archive;
-    const bool opened = archive.OpenResource(g_textFolder + "aiinfo.res");
-    if (!opened) return game::FatalError("Unable to read file aiinfo.res");
+    archive.OpenResource(g_textFolder + "aiinfo.res");
     void* file = archive.GetFile("tileDesc.reg", nullptr);
-    if (!file) return game::FatalError("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
+    if (!file) game::FatalExit("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
     FileRegistry registry;
-    if (!registry.Attach(file)) return game::FatalError("CAIMap::Load.\n Can't open aiReg");
+    if (!registry.Attach(file)) game::FatalExit("CAIMap::Load.\n Can't open aiReg");
     std::vector<std::string> sections = registry.SectionNames();
 
     map.materials.resize(kTerrainTypes);
@@ -361,7 +360,7 @@ int AIMap::LoadTerrain(const char* path) {
     MappedResource archive;
     std::string full = path;
     // (The original also builds the path without its extension here and never uses it.)
-    if (!archive.OpenResource(full)) return 0;
+    archive.OpenResource(full);
     std::vector<std::string> maps;
     archive.ListFiles(&maps, "*.mp");
     if (maps.empty()) return 0;   // no map in the archive (the original read the first of none)
@@ -384,8 +383,8 @@ int AIMap::LoadTerrain(const char* path) {
             std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", name.c_str(), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.GetFile(file, &size);
-            if (!sector) return game::FatalError("Unable to locate resource: " + std::string(file));
-            if (!IsSector(sector, size)) return game::FatalError("Wrong format resource: " + std::string(file));
+            if (!sector) game::FatalExit("Unable to locate resource: " + std::string(file));
+            if (!IsSector(sector, size)) game::FatalExit("Wrong format resource: " + std::string(file));
             StampSector(*this, description, sector, sectorX * kSectorCells, sectorY * kSectorCells);
             archive.CloseFile(sector);
         }

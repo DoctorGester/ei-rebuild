@@ -83,8 +83,6 @@ const char* const kNoSpellManager = "CSpellConstructor::BeginConstructSpell.\n T
 const char* const kNoSpellPrototype = "No valid spell prototype\n";
 const char* const kNoManagerOrContainer = "No valid spell manager or spell container.\n";
 const char* const kNoSpellConstructor = "No valid spell constructor\n";
-const char* const kCantBegin = "Can't begin spell construction with prototype \"%s\"\n";
-const char* const kCantEnd = "Can't end spell construction\n";
 
 // value * factor truncated as _ftol does: through a 64-bit integer, 0 for a NaN.
 int ScaleTruncate(std::uint32_t value, float factor) {
@@ -121,7 +119,7 @@ void SpellContainer::Destroy() {
 const char* SpellContainer::GetName() { return name.c_str(); }
 
 bool SpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
-    if (!modifier) return game::FatalError(kInvalidRune);
+    if (!modifier) game::FatalExit("%s", kInvalidRune);
     modifiers.push_back(modifier);
     return true;
 }
@@ -227,17 +225,16 @@ SpellContainer* SpellManager::NewContainer() {
 
 Spell* SpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>& modifiers) {
     SpellConstructor* constructor = context->GetSpellConstructor();
-    if (!constructor) return game::FatalErrorAs<Spell>("%s", kNoSpellConstructor);
+    if (!constructor) game::FatalExit("%s", kNoSpellConstructor);
     constructor->SetManager(this);
-    if (!constructor->BeginConstruct(prototype))
-        return game::FatalErrorAs<Spell>(kCantBegin, prototype->code.c_str());
+    constructor->BeginConstruct(prototype);
     int added = 0;
     for (itemdb::SpellModifierRecord* modifier : modifiers) {
         if (added >= 8) break;
         constructor->AddModifier(modifier);
         ++added;
     }
-    if (!constructor->EndConstruct()) return game::FatalErrorAs<Spell>("%s", kCantEnd);
+    constructor->EndConstruct();
     Spell* spell = constructor->container->spell.Clone(this);
     constructor->SetManager(nullptr);
     return spell;
@@ -266,21 +263,17 @@ void SpellConstructor::SetManager(SpellManager* newManager) {
     if (newManager) newManager->AddRef();
 }
 
-bool SpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
-    if (!manager) return game::FatalError(kNoSpellManager);
-    if (!prototype) return game::FatalError(kNoSpellPrototype);
+void SpellConstructor::BeginConstruct(const itemdb::SpellRecord* prototype) {
+    if (!manager) game::FatalExit("%s", kNoSpellManager);
+    if (!prototype) game::FatalExit("%s", kNoSpellPrototype);
     SpellContainer* newContainer = manager->NewContainer();
     container.Assign(newContainer);
     container->prototype = prototype;
-    return true;
 }
 
-bool SpellConstructor::EndConstruct() {
-    if (manager && container) {
-        container->Build();
-        return true;
-    }
-    return game::FatalError(kNoManagerOrContainer);
+void SpellConstructor::EndConstruct() {
+    if (!manager || !container) game::FatalExit("%s", kNoManagerOrContainer);
+    container->Build();
 }
 
 bool SpellConstructor::AddModifier(itemdb::SpellModifierRecord* modifier) {
@@ -335,23 +328,26 @@ Spell* SpellManager::CreateSpellFromText(std::string_view source) {
     ParseSpellText(text, codes);
 
     SpellConstructor* constructor = context->GetSpellConstructor();
-    if (!constructor) return game::FatalErrorAs<Spell>("%s", kNoSpellConstructor);
-    constructor->SetManager(this);
+    if (!constructor) game::FatalExit("%s", kNoSpellConstructor);
 
     itemdb::SpellRecord* prototype;
     {
         std::string key(text);
         prototype = SpellNameMap()[key];
     }
-    if (!constructor->BeginConstruct(prototype))
-        return game::FatalErrorAs<Spell>(kCantBegin, text.c_str());
+    if (!prototype) {
+        game::Warning("No spell \"%s\" in the spell database: no spell made", text);
+        return nullptr;
+    }
+    constructor->SetManager(this);
+    constructor->BeginConstruct(prototype);
 
     for (const std::string& code : codes) {
         if (code.empty()) continue;
         constructor->AddModifier(FindModifier(code));
     }
 
-    if (!constructor->EndConstruct()) return game::FatalErrorAs<Spell>("%s", kCantEnd);
+    constructor->EndConstruct();
     Spell* spell = constructor->container->spell.Clone(this);
     constructor->SetManager(nullptr);
     return spell;

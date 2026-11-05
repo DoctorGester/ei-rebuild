@@ -281,7 +281,7 @@ writes the registry.
   |---|---|
   | paths, video, sound, shadows, terrain, camera, game, network, statistics | the game's options (options.cpp's tables; value names are the original's registry value names) |
   | renderer | Msaa, Anisotropy, VSync, PerfOverlay |
-  | patches | EI_Plugin's NPlayers and Pause, DisableExitOnCrashReport (rebirth.md, "Settings"); any other line is ignored (one log line) |
+  | patches | EI_Plugin's NPlayers and Pause (rebirth.md, "Settings"); any other line is ignored (one log line) |
   | autoexec | Rebirth's Console AutoExec lines, one value each |
 
   **Values:**
@@ -552,16 +552,16 @@ from there, started from anywhere, with no launcher, no DLL of ours and no file 
   - **Written as output:** `ei-rebuild.log` beside the exe (EI_OUT_DIR under the harness), and the saves.
   - **Not read:** `third_party_notices.txt` is the licences, shipped beside the exe.
 - **The Rebirth install** (src/game/rebirth_profile.cpp). Every Rebirth patch is the code's own; the game folder only
-  decides EI_Plugin's values and the one flag left: where `starter\addon.dll` or `EI_Plugin.asi` is, EI_Plugin.ini's
-  `[CONFIG] NPlayers` / `Pause` and DisableExitOnCrashReport on; else none (0, the original's, off). Then
-  ei_settings.ini's `[patches]` NPlayers / Pause / DisableExitOnCrashReport apply, then a scenario's `plugin` line. Harness runs take the install folder's values as a player's exe does, so the Rebirth goldens read the
+  decides EI_Plugin's values: where `starter\addon.dll` or `EI_Plugin.asi` is, EI_Plugin.ini's `[CONFIG] NPlayers` /
+  `Pause`; else none (0, the original's). Then ei_settings.ini's `[patches]` NPlayers / Pause apply, then a scenario's
+  `plugin` line. Harness runs take the install folder's values as a player's exe does, so the Rebirth goldens read the
   install's EI_Plugin.ini (players 7, pause 1: the defaults).
 - **The exe's own imports** (kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`). A wrapper DLL of the same name in a game folder (dgVoodoo, a dsound wrapper) is not
   taken. ASan's build leaves the flag out.
 - **Checks:** `dropin_profile` (both installs; in the Rebirth smoke set) is a run like any other: its `folderprofile`
   step (harness_folder_profile.h) checks the working directory, the data folder, EI_Plugin.ini's players and pause
-  and DisableExitOnCrashReport. Every run starts the exe with EI_GAME_ROOT;
+  values. Every run starts the exe with EI_GAME_ROOT;
   main.cpp's fallback to the exe's own folder (no EI_GAME_ROOT) has no run.
 
 ### The x64 build

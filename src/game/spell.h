@@ -310,7 +310,7 @@ public:
     const char* ClassName() override;
     ClassId GetClassId() override;
 
-    // Null is a fatal error (its result is returned). Returns 1.
+    // Null ends the game. Returns 1.
     bool AddModifier(itemdb::SpellModifierRecord* modifier);
 
     // By the modifier's first code letter: a, d, e, r, t read the prototype's flag bytes; others are
@@ -351,13 +351,13 @@ public:
     // A Spell (0x3002) or SpellContainer (0x3003); else null.
     EngineObject* NewObject(int type) override;
 
-    // Up to 8 modifiers, through the context's spell constructor. Returns the new spell, or a fatal error's
-    // result.
+    // Up to 8 modifiers, through the context's spell constructor. Returns the new spell.
     Spell* CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>& modifiers);
 
     // Text such as "healing{e2;e2}": the trimmed text before '{' is the prototype name, the ';'-separated
     // names inside the braces are modifiers (empty ones skipped). An unknown name is added to the name map
-    // with a null record. Returns the new spell, or a fatal error's result.
+    // with a null record. Returns the new spell; null, after a warning, for an unknown prototype name (a script's,
+    // a map's or a database's text naming a spell spells.sdb lacks).
     Spell* CreateSpellFromText(std::string_view text);
 
     // `this` is not used.
@@ -379,11 +379,11 @@ public:
     // Counts a reference to `manager` that is never released.
     void SetManager(SpellManager* manager);
 
-    // Returns 1, or a fatal error's result without a manager or prototype.
-    bool BeginConstruct(const itemdb::SpellRecord* prototype);
+    // A new container for `prototype` (without a manager or a prototype the game ends).
+    void BeginConstruct(const itemdb::SpellRecord* prototype);
 
-    // Returns 1, or a fatal error's result.
-    bool EndConstruct();
+    // Builds the container's spell (without a manager or a container the game ends).
+    void EndConstruct();
 
     // Rebuilds when the prototype accepts it.
     bool AddModifier(itemdb::SpellModifierRecord* modifier);

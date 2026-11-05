@@ -1,6 +1,6 @@
 #pragma once
 
-// printf-style functions (str::Format, game::FatalError, game::DebugLog, SayFormat, ei::Log) take a std::string
+// printf-style functions (str::Format, game::FatalExit, game::Warning, game::DebugLog, SayFormat, ei::Log) take a std::string
 // where the format has a %s: the caller passes the string, the call hands its text on. Each such function has a
 // template overload next to its C-variadic one; the template takes part only when an argument is a std::string,
 // turns every std::string into its c_str() and calls the variadic one.

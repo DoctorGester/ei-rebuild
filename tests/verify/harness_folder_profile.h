@@ -10,8 +10,8 @@
 // Step:
 //   folderprofile   require that start-up: the working directory and the game's data folder the game folder, and
 //                   EI_Plugin's player count and pause mode the folder's: on a Rebirth install its EI_Plugin.ini's, on
-//                   the vanilla install none (0); DisableExitOnCrashReport on the Rebirth install only. The expected
-//                   values are read here from the ini, not taken from the image's start-up.
+//                   the vanilla install none (0). The expected values are read here from the ini, not taken from the
+//                   image's start-up.
 
 #include <string>
 

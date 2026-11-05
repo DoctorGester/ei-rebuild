@@ -12,7 +12,6 @@ namespace {
 
 int g_pluginNPlayers = 0;
 int g_pluginPause = 0;
-bool g_disableExitOnCrashReport = false;
 
 // Function statics: the harness queues its specs before this file's static constructors may have run.
 std::string& SecondMaster() {
@@ -32,9 +31,6 @@ void SetPluginNPlayers(int players) { g_pluginNPlayers = players; }
 int PluginPause() { return g_pluginPause; }
 void SetPluginPause(int mode) { g_pluginPause = mode; }
 
-bool DisableExitOnCrashReport() { return g_disableExitOnCrashReport; }
-void SetDisableExitOnCrashReport(bool on) { g_disableExitOnCrashReport = on; }
-
 const std::string& PluginSecondMaster() { return SecondMaster(); }
 void SetPluginSecondMaster(std::string_view address) { SecondMaster() = address; }
 
@@ -52,8 +48,6 @@ bool ApplySpec(const char* spec) {
             SetPluginNPlayers(std::atoi(token.c_str() + 9));
         else if (text::CompareIgnoringCase(token.c_str(), "Pause=", 6) == 0)
             SetPluginPause(std::atoi(token.c_str() + 6));
-        else if (text::CompareIgnoringCase(token.c_str(), "DisableExitOnCrashReport=", 25) == 0)
-            SetDisableExitOnCrashReport(std::atoi(token.c_str() + 25) != 0);
         else
             ok = false;
     }
@@ -68,7 +62,6 @@ void QueueSpec(const char* spec) {
 void Reset() {
     g_pluginNPlayers = 0;
     g_pluginPause = 0;
-    g_disableExitOnCrashReport = false;
     SecondMaster().clear();
 }
 

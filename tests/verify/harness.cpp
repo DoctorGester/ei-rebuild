@@ -243,8 +243,7 @@
 //                             their points over the whole window): the same place at any resolution
 //   plugin <spec>             EI_Plugin's values for this run (src/lib/rebirth.h), over the install's and the
 //                             settings file's: "NPlayers=<n>", "Pause=<n>", "SecondMaster=<host[:port]>"
-//                             (NewMaster's second master server), "DisableExitOnCrashReport=0|1". Read before
-//                             the game starts.
+//                             (NewMaster's second master server). Read before the game starts.
 //   resolution <W>x<H>|desktop, widescreen 0|1
 //                             answer the game's VideoResolution and the starter's WideScreen setting
 //                             for this run (game.exe's and addon.dll's registry reads; read before
@@ -3006,7 +3005,7 @@ void RunSteps() {
             void* connection = LocalConnection();
             Log("harness: zone %s: %s", name, DescribeLocalPlayer().c_str());
             if (!record) {
-                // StartZone would show a fatal error and go to the main menu.
+                // StartZone would log a warning and go to the main menu.
                 g_failures.push_back(std::string("zone: no zone '") + name + "' in map.txt");
             } else if (!connection || ConnectionState(connection) != 1) {
                 g_failures.push_back(std::string("zone ") + name + ": the local player is not in the world (" + DescribeLocalPlayer() + ")");

@@ -255,7 +255,7 @@ void CalcString(ScriptCall* cmd, Script* script, ScriptVars* vars, std::string* 
     cmd->PrepareArguments(script, vars);
     Call call{cmd, script, result, nullptr, nullptr};
     if (Dispatch(&call)) return;
-    game::FatalError("Function does not return string at ScriptCall::CalcFunction");
+    game::FatalExit("Function does not return string at ScriptCall::CalcFunction");
 }
 
 } // namespace scriptaddon

@@ -58,7 +58,7 @@ void Interface3D::CreateScreen(int id) {
         screen = std::make_unique<ExchangeScreen>();
         break;
     default:   // 6 and above 9: the original activates the id itself as a window pointer (a crash), here the
-               // fatal error of a missing screen
+               // fatal exit of a missing screen
         break;
     }
     Activate(std::move(screen));
@@ -104,7 +104,7 @@ void Interface3D::PushWindow(std::unique_ptr<UiContainer> window, WindowBackdrop
         }
     }
     ResetInput();
-    if (!window) game::FatalError("Cannot activate NULL interface screen\n");
+    if (!window) game::FatalExit("Cannot activate NULL interface screen\n");
     OpenOnTop(std::move(window));
 }
 
@@ -119,10 +119,7 @@ void Interface3D::Activate(std::unique_ptr<UiContainer> window) {
     serverFlag = 0;
     g_serverWorld.SetServerPaused(0);
     CloseAll();
-    if (!window) {
-        game::FatalError("Cannot activate NULL interface screen\n");
-        return;
-    }
+    if (!window) game::FatalExit("Cannot activate NULL interface screen\n");
     OpenOnTop(std::move(window));
 }
 

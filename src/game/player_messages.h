@@ -180,7 +180,7 @@ public:
     void ItemUsed(Item* item) override;               // message 0x14: the item's id and charge
     // Every packet waiting on the link is decompressed into `in` and its messages run through the handlers;
     // before the player has logged in only types 0 and 8, the rest of such a packet is dropped. A read past the
-    // end, a type without a handler or a refusing handler ends in the fatal error (its result returned). 0 when
+    // end, a type without a handler or a refusing handler: a warning and 0 (the server drops the player). 0 when
     // leaving (State::Leaving, also after a handler) or without a link, else 1.
     int Receive() override;
 
@@ -249,7 +249,7 @@ public:
     // brain's Player mode runs CommandUse. Returns true.
     bool OnUseOrder();
 
-    // The rest of the client's messages. Each returns true, or false to refuse (the dispatcher's fatal error).
+    // The rest of the client's messages. Each returns true, or false to refuse (the dispatcher's error).
     // The player leaves for zone `zone` at `entrance` (joined players only): in campaign modes 1 and 3 a dead
     // or missing leader first dies (outside a network game nothing more); the party is collected, handed to
     // the party manager (single player) or sent (multiplayer); then message 0x08 and a flush.
@@ -474,6 +474,6 @@ public:
     std::uint32_t dirty = 0;                    // PlayerDirty bits
 };
 
-// The message dispatchers' fatal error: `format` with the previous and the current message type (their low
-// bytes); the FatalError result.
+// The message dispatchers' error on a packet the peer sent that cannot be read: a warning with `format`, the previous
+// and the current message type (their low bytes); 0, so the connection ends.
 int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type);

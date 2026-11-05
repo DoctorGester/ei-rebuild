@@ -121,7 +121,6 @@ namespace {
 
 using dbfile::LoadTable;
 using dbfile::OpenDatabase;
-using dbfile::ReportNoDatabase;
 
 // The chunks of prints.db and acks.db.
 constexpr int kBloodChunk = 1;
@@ -170,10 +169,10 @@ acks::Speeches* UnitList(acks::UnitAcks& record, int list) {
 int PrintsDatabase::Load(const std::string& folder) {
     std::string base = folder;
     MappedResource resource;
-    if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
+    OpenDatabase(resource, base);
     std::uint32_t size;
     void* data = resource.GetFile("prints.db", &size);
-    if (!data) return game::FatalError("Can't open terrain prints database\n");
+    if (!data) game::FatalExit("Can't open terrain prints database\n");
 
     MemoryStream stream;
     stream.Fill(data, size);
@@ -198,10 +197,10 @@ namespace acks {
 int AckDatabase::Load(const std::string& folder) {
     std::string base = folder;
     MappedResource resource;
-    if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
+    OpenDatabase(resource, base);
     std::uint32_t size;
     void* data = resource.GetFile("acks.db", &size);
-    if (!data) return game::FatalError("Can't open acks database\n");
+    if (!data) game::FatalExit("Can't open acks database\n");
 
     MemoryStream stream;
     stream.Fill(data, size);

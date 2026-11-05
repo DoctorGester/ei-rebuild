@@ -106,7 +106,7 @@ bool FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char*
 
 // Links a figure's pieces from the skeleton file of the model `name`. With the model cached, its mesh archive
 // reads the links (GetFile, freed by CloseFile); without it the manager opens "<name>.lnk" (its GetFile /
-// CloseFile); with neither the fatal error "Can't load skeleton file" is returned. The data is a count and
+// CloseFile); with neither the game ends ("Can't load skeleton file"). The data is a count and
 // that many (child, parent) length-prefixed names (read into strings), each passed to the animation state's
 // LinkPiece with the model; FindRoot finishes it. Returns 1. See docs/notes/models.md.
 
@@ -120,7 +120,7 @@ int FigureManager::LoadSkeletonLinks(FigureAnimationState* state, std::string_vi
         std::string path = base + ".lnk";
         data = GetFile(path, nullptr);
     }
-    if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", std::string(name));
+    if (!data) game::FatalExit("Can't load skeleton file for \"%s\"\n", std::string(name));
 
     // A count, then that many (child, parent) names.
     std::uint32_t links = lib::Load<std::uint32_t>(data);

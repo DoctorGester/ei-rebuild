@@ -109,24 +109,24 @@ std::string Format(const char* format, va_list args);
 
 namespace game {
 
-// Reports a fatal error (printf-style) and normally exits the game.
-EI_PRINTF_FORMAT(1, 2) int FatalError(const char* format, ...);
+// A real error (a required file missing or broken, corrupt saved data, broken internal state): logs "fatal: <text>",
+// shows the text in the error box and exits (exit(-1)) on every install. docs/notes/rebirth.md, "Fatal errors".
+[[noreturn]] EI_PRINTF_FORMAT(1, 2) void FatalExit(const char* format, ...);
 // With a std::string among the arguments: its text is passed for the %s.
 template <class... Args>
     requires libprintf::HasString<Args...>
-int FatalError(const char* format, Args&&... args) {
-    return FatalError(format, libprintf::Arg(std::forward<Args>(args))...);
+[[noreturn]] void FatalExit(const char* format, Args&&... args) {
+    FatalExit(format, libprintf::Arg(std::forward<Args>(args))...);
 }
 // A std::string message, printed as it is.
-inline int FatalError(const std::string& message) { return FatalError("%s", message.c_str()); }
-// Reports a fatal error (printf-style) in the error box and exits the game, also with Rebirth's
-// DisableExitOnCrashReport: for data the game cannot go on with (an item of another item database).
-[[noreturn]] EI_PRINTF_FORMAT(1, 2) void FatalExit(const char* format, ...);
-// FatalError for a function returning a pointer: null when it returns at all (FatalError's 0).
-template <class T, class... Args>
-T* FatalErrorAs(const char* format, Args... args) {
-    FatalError(format, args...);
-    return nullptr;
+[[noreturn]] inline void FatalExit(const std::string& message) { FatalExit("%s", message.c_str()); }
+// A data error the game gets past where it occurs (an unknown text token, a texture format it cannot hold, a unit
+// prototype the database lacks): logs "warning: <text>" to ei-rebuild.log; the caller does the safe local thing.
+EI_PRINTF_FORMAT(1, 2) void Warning(const char* format, ...);
+template <class... Args>
+    requires libprintf::HasString<Args...>
+void Warning(const char* format, Args&&... args) {
+    Warning(format, libprintf::Arg(std::forward<Args>(args))...);
 }
 // Debug log; compiled out (empty) in the release build, but other mods may hook it. It leaves the caller's
 // result register unchanged (bink_video.cpp's error message masks it, so it returns a value).

@@ -197,8 +197,7 @@ struct UnitDatabase {
     // Rebirth-patched: the vanilla behaviour. Reads "units.udb" of the archive `folder` + `archive`: the level
     // records (chunk 1), models (2), prototypes (3) and NPCs (4), each from its own pass with every record entered
     // into its table's name index; then every prototype's modelIndex and every model slot's levelIndex are resolved
-    // by name (-1 when there is none). Returns 1, or what the fatal error report returns when the archive or the file
-    // cannot be opened.
+    // by name (-1 when there is none). Returns 1; an archive or file that cannot be opened ends the game.
     int Load(const std::string& folder, const std::string& archive);
 
     UnitPrototypeTable prototypes;
@@ -268,8 +267,8 @@ struct SkillDatabase {
     int IndexOf(std::string_view levelName) const;
     int IndexOfLevel(const SkillLevelRecord* record);
     // Rebirth-patched: the vanilla behaviour. Reads "perks.pdb" of the archive `folder` +
-    // `archive`: the skills (chunk 1) and the level records (chunk 2, one chunk 1 each). Returns 1, or what
-    // the fatal error report returns when the archive or the file cannot be opened.
+    // `archive`: the skills (chunk 1) and the level records (chunk 2, one chunk 1 each). Returns 1; an archive or
+    // file that cannot be opened ends the game.
     int Load(const std::string& folder, const std::string& archive);
 
     std::vector<SkillRecord> skills;

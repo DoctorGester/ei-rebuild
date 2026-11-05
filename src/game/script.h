@@ -515,7 +515,7 @@ struct ScriptDefinition {
     void Save(ByteStream* stream) const;
     // Reads what Save wrote, the blocks resolved in `script`; if-then pairs naming a block it lacks are dropped.
     void Load(ByteStream* stream, const Script* script);
-    // A script call's arguments into the instance's variables; FatalError when a type's count does not match.
+    // A script call's arguments into the instance's variables; a type's count that does not match ends the game.
     void BindCall(const ScriptCall* call);
     // False when the name is taken.
     bool AddParameter(const std::string& name, ScriptType type);

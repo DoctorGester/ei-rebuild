@@ -184,8 +184,9 @@ planner's "say nothing".
 0x300D, 0x3010), constructed; null for other ids. `GiveStartingEquipment` gives `unit` the starting equipment of prototype
 `name`, made by the world's item manager: a unit of type 0x32 equips each armour piece and gets the weapon (unless named
 "none" or empty; the slot it lands in becomes the active weapon) and the second weapon; every unit gets each spell. A
-piece that cannot be made gets a FatalError message (a weapon is added even then: AddWeapon(null) returns 0, so the
-active weapon becomes 0). Without the prototype a FatalError message and 0; else 1.
+piece that cannot be made gets a warning in the log (a weapon is added even then: AddWeapon(null) returns 0, so the
+active weapon becomes 0). Without the prototype (a map's unit of a prototype the database lacks: Lost in Astral's
+gz17g) a warning and 0, the unit bare; else 1.
 
 ## CUnitClientModels per-tick update
 

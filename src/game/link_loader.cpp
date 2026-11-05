@@ -101,10 +101,7 @@ LinkMesh* LinkFigureLoader::LoadLinkFile(std::string_view name, Morph morph) {
     } else {
         data = FindInArchives(archives, std::string(name) + ".lnk");
     }
-    if (!data) {
-        game::FatalError("Can't find link file for \"%s\"\n", std::string(name));
-        return nullptr;
-    }
+    if (!data) game::FatalExit("Can't find link file for \"%s\"\n", std::string(name));
     auto* mesh = new LinkMesh(this, name, morph);
     std::uint32_t count = lib::Load<std::uint32_t>(data);
     const char* cursor = data + 4;

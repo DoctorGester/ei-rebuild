@@ -396,7 +396,7 @@ int Object3DClientSpecific::ShowWounds(const char* name) {
         woundsTexture.Assign(manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
             woundsTexture.Assign(manager->FindOrCreate(kWoundsTextureKind, name));
-            if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->ClassName(), object->id);
+            if (!woundsTexture) game::FatalExit(kNoWoundsTexture, object->ClassName(), object->id);
         }
     }
     std::vector<std::uint8_t> extra{};

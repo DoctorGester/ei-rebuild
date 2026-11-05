@@ -48,48 +48,36 @@ bool MappedResource::OpenResource(const std::string& path) {
     if (modfolders::Active()) modfolders::OnOpenResource(this, path);
     CloseResource();
     if (!archive.Open(path, platform::FileMode::Read))
-        return game::FatalError("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"");
-
-    if (archive.ReadAt(0, &header, sizeof(header))) {
-        if (header.magic != kResMagic) {
-            game::FatalError("Wrong format resource file \"" + path + "\"");
-            CloseResource();
-            return false;
-        }
-        unsigned tableSize = header.count * sizeof(ResEntry);
-        entryTable.resize(header.count);
-        nameTable.resize(header.namesSize);
-        entries = entryTable.data();
-        names = nameTable.data();
-        if (archive.ReadAt(static_cast<long>(header.tableOffset), entries, tableSize) &&
-            archive.ReadAt(static_cast<long>(header.tableOffset + tableSize), names, header.namesSize))
-            return true;
-    }
-    CloseResource();
-    return game::FatalError("CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"");
+        game::FatalExit("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"");
+    const std::string unreadable = "CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"";
+    if (!archive.ReadAt(0, &header, sizeof(header))) game::FatalExit(unreadable);
+    if (header.magic != kResMagic) game::FatalExit("Wrong format resource file \"" + path + "\"");
+    unsigned tableSize = header.count * sizeof(ResEntry);
+    entryTable.resize(header.count);
+    nameTable.resize(header.namesSize);
+    entries = entryTable.data();
+    names = nameTable.data();
+    if (!archive.ReadAt(static_cast<long>(header.tableOffset), entries, tableSize) ||
+        !archive.ReadAt(static_cast<long>(header.tableOffset + tableSize), names, header.namesSize))
+        game::FatalExit(unreadable);
+    return true;
 }
 
-bool MappedResource::ReadImage(char* base) {
+void MappedResource::ReadImage(char* base) {
     header = lib::Load<ResHeader>(base);
-    if (header.magic != kResMagic) {
-        game::FatalError("Wrong format resource");
-        return false;
-    }
+    if (header.magic != kResMagic) game::FatalExit("Wrong format resource");
     entryTable.resize(header.count);
     if (header.count != 0)
         std::memcpy(entryTable.data(), base + header.tableOffset, header.count * sizeof(ResEntry));
     entries = entryTable.data();
     names = base + header.tableOffset + header.count * sizeof(ResEntry);
-    return true;
 }
 
-bool MappedResource::OpenFromMemory(const void* memoryImage) {
+void MappedResource::OpenFromMemory(const void* memoryImage) {
     CloseResource();
     // GetFile hands out pointers into the image (writable through them).
     image = const_cast<char*>(static_cast<const char*>(memoryImage));
-    if (ReadImage(image)) return true;
-    CloseResource();
-    return false;
+    ReadImage(image);
 }
 
 void MappedResource::CloseResource() {
@@ -171,16 +159,13 @@ bool MMIOResource::OpenResource(const std::string& path) {
         game::DebugLog("CMappedFile::Open().\nUnable to open file \"%s\".\n", path);
         return false;
     }
-    if (OpenFromMemory(file.Data())) return true;
-    CloseResource();
-    return false;
+    OpenFromMemory(file.Data());
+    return true;
 }
 
-bool MMIOResource::OpenFromMemory(const void* memoryImage) {
+void MMIOResource::OpenFromMemory(const void* memoryImage) {
     mappedImage = const_cast<char*>(static_cast<const char*>(memoryImage));
-    if (ReadImage(mappedImage)) return true;
-    CloseResource();
-    return false;
+    ReadImage(mappedImage);
 }
 
 void MMIOResource::CloseResource() {

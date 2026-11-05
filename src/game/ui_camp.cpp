@@ -138,7 +138,7 @@ float TurnedBy(float seconds, float turn, bool backwards) {
     return std::fmod(turned, kCampFullTurn);
 }
 
-// From the current hero, step until a record of the hero class (fatal after more steps than there are
+// From the current hero, step until a record of the hero class (the game ends after more steps than there are
 // records).
 template <typename Step>
 int FindHero(int start, Step step) {
@@ -146,10 +146,7 @@ int FindHero(int start, Step step) {
     int i = start;
     for (int tries = 0;;) {
         int count = lib::Count(party->members);
-        if (tries > count) {
-            game::FatalError("ERROR: no human personages in the party.\n");
-            break;
-        }
+        if (tries > count) game::FatalExit("ERROR: no human personages in the party.\n");
         i = step(i, count);
         ++tries;
         PartyUnitRecord* record = &party->members[i];
@@ -808,20 +805,14 @@ bool CampPages::CanMakeSpell() {
     }
     if (!spell) return false;
     maker->SetManager(manager);
-    if (!maker->BeginConstruct(spell)) {
-        maker->SetManager(nullptr);
-        return false;
-    }
+    maker->BeginConstruct(spell);
     for (int i = 0; i < modifierCount; ++i) {
         if (!maker->AddModifier(modifiers[i])) {
             maker->SetManager(nullptr);
             return false;
         }
     }
-    if (!maker->EndConstruct()) {
-        maker->SetManager(nullptr);
-        return false;
-    }
+    maker->EndConstruct();
     Spell* made = maker->container->spell.Clone(manager);
     maker->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;

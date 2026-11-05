@@ -43,8 +43,7 @@ public:
     void Destroy() override;
 
     // An item of `kind` from `manager`, filled from `prototype` and `material` (FillItem), with `spell`
-    // attached and `count` as its count. Null when the manager cannot create the item (after a fatal error the
-    // game carries on from) or the build fails.
+    // attached and `count` as its count. Null when the build fails.
     Item* BuildItem(BaseManager* manager, ItemKind kind, itemdb::ItemRecordHead* prototype,
                      itemdb::MaterialRecordHead* material = nullptr, Spell* spell = nullptr, int count = 1);
 
@@ -52,8 +51,8 @@ public:
     void SetManager(BaseManager* manager);
 
     // Creates the item through the manager (with `kind`, no id asked for): counted, records cleared, count 1,
-    // MapObjectFlag::Constructing set. False after a fatal error the game carries on from.
-    bool BeginCreateItem(ItemKind kind);
+    // MapObjectFlag::Constructing set. An item the manager cannot create ends the game.
+    void BeginCreateItem(ItemKind kind);
 
     // Builds the item. On failure releases it and returns null; otherwise hands it over
     // (its count dropped without release, MapObjectFlag::Constructing cleared) and returns it.
@@ -97,10 +96,10 @@ struct ItemManager : ResourceManager {
     Item* MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material);
 
     // An item from its name, "prototype[.material][[extra]]" (lowercased): "spell container[spell]" makes a
-    // scroll; otherwise the prototype is looked up in the weapon, armor, quick, quest and loot tables (none:
-    // FatalError, null) and built with the material, the bracket part as a spell (or, for prototypes named
+    // scroll; otherwise the prototype is looked up in the weapon, armor, quick, quest and loot tables (none: a
+    // log line, null) and built with the material, the bracket part as a spell (or, for prototypes named
     // "material", as the count); a loot item standing for a record gets the table index of the second name
-    // part as index. An unknown prototype or a failed build gives null, without a FatalError.
+    // part as index. An unknown prototype or a failed build gives null.
     Item* CreateItem(std::string_view name);
 
     // A scroll ("spell container", kind ItemKind::Scroll) holding the spell that `spells` builds from `spellText`;

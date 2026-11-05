@@ -53,8 +53,9 @@ compare function pointers for identity.
    original's orders; don't swap a container without checking who walks it.
 8. **Rebirth's changes** are our code's own (`docs/notes/rebirth.md`), with no flag: a GOG and a Rebirth install run
    the same code. The mod-folder patches apply whenever a mod is played (`modfolders::Active`); EI_Plugin's player
-   count and pause mode are values (`src/lib/rebirth.h`), 0 the original's; DisableExitOnCrashReport is the one flag
-   left (on in a Rebirth install).
+   count and pause mode are values (`src/lib/rebirth.h`), 0 the original's. A fatal error ends the game on every
+   install (`game::FatalExit`); a data error the game can get past is a warning (`game::Warning`) and the safe local
+   thing (rebirth.md, "Fatal errors").
 9. **Fix the original's bugs** where they are found: crashes, undefined behaviour (null or out-of-range access, NaN
    loops, unchecked divisions, uninitialised fields, addresses used as values), leaks and bookkeeping nobody sees. A
    fix that moves a golden re-records it and names the reason. A bug that shapes gameplay (balance, AI, movement,

@@ -306,11 +306,10 @@ UnitLevelRecord* UnitLevelTable::FindByName(std::string_view name) {
 int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
     MappedResource resource;
-    if (!resource.OpenResource(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path);
+    resource.OpenResource(path);
     std::uint32_t size;
     void* data = resource.GetFile("units.udb", &size);
-    if (!data) return game::FatalError("Can't open units database\n");
+    if (!data) game::FatalExit("Can't open units database\n");
 
     MemoryStream stream;
     stream.Fill(data, size);
@@ -352,11 +351,10 @@ int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
 int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
     MappedResource resource;
-    if (!resource.OpenResource(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path);
+    resource.OpenResource(path);
     std::uint32_t size;
     void* data = resource.GetFile("perks.pdb", &size);
-    if (!data) return game::FatalError("Can't open perks database\n");
+    if (!data) game::FatalExit("Can't open perks database\n");
 
     ChunkArchive ar;
     {

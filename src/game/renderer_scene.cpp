@@ -101,22 +101,21 @@ void SceneRenderer::DestroyRenderer() {
 }
 
 // The holder is stored (the new renderer draws with it); no device lock.
-int SceneRenderer::SetTexture(int stage, Texture* texture) {
+void SceneRenderer::SetTexture(int stage, Texture* texture) {
     device->stageSurfaces[stage] = texture ? texture->surface.Get() : nullptr;
-    return 1;
 }
 
 void SceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline, device); }
 
-int SceneRenderer::DrawFigure(FigureMesh* mesh, Material* material, int alpha, Rect* screen) {
-    if (mesh->flags & FigureMeshFlag::Hidden) return 1;
-    return mesh->drawer->DrawPlain(device, material, alpha, screen);
+void SceneRenderer::DrawFigure(FigureMesh* mesh, Material* material, int alpha, Rect* screen) {
+    if (mesh->flags & FigureMeshFlag::Hidden) return;
+    mesh->drawer->DrawPlain(device, material, alpha, screen);
 }
 
-int SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<Light*>& lights, Material* material, int alpha, Rect* screen,
+void SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<Light*>& lights, Material* material, int alpha, Rect* screen,
                                   Texture* textureA, Texture* textureB) {
-    if (mesh->flags & FigureMeshFlag::Hidden) return 1;
-    return mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);
+    if (mesh->flags & FigureMeshFlag::Hidden) return;
+    mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);
 }
 
 // There are no DirectDraw surfaces to lose nor a display mode to set again.
@@ -125,7 +124,7 @@ bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }
 // --- Texture holders -----------------------------------------------------------------------------
 
 int EnsureTextureLoaded(Texture* texture) {
-    if (!texture) return game::FatalError("%s", kNullTextureText);
+    if (!texture) game::FatalExit("%s", kNullTextureText);
     if (texture->flags & TextureFlag::Loaded) return 1;
     return g_clientWorld.textureManager->LoadTexture(texture);
 }

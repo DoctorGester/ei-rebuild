@@ -31,8 +31,7 @@ struct LeverRecord {
 struct LeverRecordTable {
 
     // Reads Levers.ldb of <folder>database.res into the records (chunk 1 of a chunk archive) and files
-    // every record in the index under its name. Returns 1, or the fatal error's result when the archive
-    // or the file does not open.
+    // every record in the index under its name. Returns 1; an archive or file that does not open ends the game.
     int Load(const std::string& folder);
     // The record filed under `name`, or null.
     LeverRecord* Named(std::string_view name) {

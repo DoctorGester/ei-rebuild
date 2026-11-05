@@ -38,7 +38,6 @@ void PushFree(AIEvent* event) {
 }
 
 constexpr const char* kAiInfoArchive = "aiinfo.res";
-constexpr const char* kCantReadAiInfo = "Unable to read file aiinfo.res";
 constexpr const char* kNormalFile = "normal.dat";
 constexpr const char* kCantOpenNormal = "CAIMap::Load.\n Can't open file \"normal.dat\"";
 constexpr std::size_t kNormalTableSize = 0x1000;
@@ -168,14 +167,9 @@ int AIEventTable::Setup(AIMap* aiMap, float sizeX, float sizeY) {
     cells.assign(static_cast<std::size_t>(width * height), AIEventCell{});
 
     MappedResource archive;
-    const std::string path = g_textFolder + kAiInfoArchive;
-    void* data = nullptr;
-    const char* error = kCantReadAiInfo;
-    if (archive.OpenResource(path)) {
-        data = archive.GetFile(kNormalFile, nullptr);
-        error = kCantOpenNormal;
-    }
-    if (!data) return game::FatalError("%s", error);
+    archive.OpenResource(g_textFolder + kAiInfoArchive);
+    void* data = archive.GetFile(kNormalFile, nullptr);
+    if (!data) game::FatalExit("%s", kCantOpenNormal);
     std::memcpy(g_normalTable, data, kNormalTableSize);
     archive.CloseFile(data);
     return 1;

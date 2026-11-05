@@ -337,17 +337,9 @@ bool Terrain::LoadMap(std::string_view path, std::string_view zone, bool dungeon
         mapName = str::Left(files[0], str::Find(files[0], '.'));
         file = static_cast<const std::uint8_t*>(archive.GetFile(mapName + kMapDataExtension, &size));
     }
-    if (!file) {
-        ClearMap();
-        game::FatalError("Unable to open file \"" + name + "\"");
-        return false;
-    }
+    if (!file) game::FatalExit("Unable to open file \"" + name + "\"");
     const std::optional<MapHeader> header = ReadMapHeader(file, size);
-    if (!header) {
-        ClearMap();
-        game::FatalError("Wrong file format: " + name);
-        return false;
-    }
+    if (!header) game::FatalExit("Wrong file format: " + name);
     ReadMap(*header, file);
     if (!SetupPages(pages)) {
         ClearMap();

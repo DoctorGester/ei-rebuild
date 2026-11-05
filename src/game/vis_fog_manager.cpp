@@ -71,11 +71,11 @@ VisibilityFog* VisFogManagerAdd(ClientArrayManager* self) {
 }
 
 // Draw (called by the world's draw). Nothing listed: 1. Otherwise the texture is made sure of and bound to
-// stage 0 (a failed bind: 0), then every fog draws; 1.
+// stage 0, then every fog draws; 1.
 int ClientArrayManager::Draw(SceneRenderer* renderer) {
     if (list.empty()) return 1;
     EnsureTextureLoaded(texture);
-    if (!renderer->SetTexture(0, texture)) return 0;
+    renderer->SetTexture(0, texture);
     for (VisibilityFog* fog : list) fog->Draw(renderer);   // its result not read
     return 1;
 }

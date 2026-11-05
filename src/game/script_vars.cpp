@@ -130,7 +130,7 @@ void ScriptCall::SetParameters(const std::vector<ScriptBinding>& bindings, Scrip
             groupArgs[b.argIndex] = &vars->groups.values[b.varIndex];
             break;
         default:
-            game::FatalError("ScriptCall::SetParameters, unknown parameter type");
+            game::FatalExit("ScriptCall::SetParameters, unknown parameter type");
         }
     }
 }

@@ -36,11 +36,10 @@ void ChunkArchive::SerializeLevers(int id, std::vector<LeverRecord>* list) {
 int LeverRecordTable::Load(const std::string& folder) {
     std::string dir = folder;
     MappedResource resource;
-    // The message names "databases.res", not the file it tried: as in the game.
-    if (!dbfile::OpenDatabase(resource, dir)) return dbfile::ReportNoDatabase(dir);
+    dbfile::OpenDatabase(resource, dir);
     std::uint32_t size;
     void* data = resource.GetFile("Levers.ldb", &size);
-    if (!data) return game::FatalError("Can't open Levers database\n");
+    if (!data) game::FatalExit("Can't open Levers database\n");
 
     MemoryStream local;
     local.Fill(data, size);

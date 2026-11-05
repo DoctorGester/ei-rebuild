@@ -526,7 +526,7 @@ public:
     // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts.
     FigureMesh* LoadPart(std::string_view partName);
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
-    // (failures logged). Without a figure manager: FatalError. Returns 1.
+    // (failures logged). Without a figure manager the game ends. Returns 1.
     int LoadParts(std::string_view model, const std::vector<std::string>& partList);
     // When a unit becomes the controlled one (world client): with the figure loaded (flags 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.

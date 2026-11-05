@@ -357,16 +357,13 @@ void ParticleSource::Clear() {
     Reset();
 }
 
-// Create. Sets the source up for its type from its spec; for an unknown type the fatal error report.
+// Create. Sets the source up for its type from its spec; an unknown type ends the game.
 void ParticleSource::Create() {
     Reset();
     boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};
     boundsMax = {-kBoundsFar, -kBoundsFar, -kBoundsFar};
     const ParticleSpec* spec = FindSpec(type);
-    if (!spec) {
-        game::FatalError("CParticle::Create().\nUnknown ETypeID.\n");
-        return;
-    }
+    if (!spec) game::FatalExit("CParticle::Create().\nUnknown ETypeID.\n");
     flags = (flags & ~(ParticleSourceFlag::TicksWhilePaused | ParticleSourceFlag::OnPart)) |
             ParticleSourceFlag::Emitting | spec->flags;
     attachPoint = spec->attachPoint;

@@ -171,7 +171,7 @@ constexpr int kMaxCatchUpTicks = 1000;
 
 // The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world catch up with
 // the time spent away (one tick per elapsed unit, at most 1000, waking the units around the entrance).
-// Returns LoadSave's result, 0 when the file cannot be opened or is corrupt.
+// Returns LoadSave's result, 0 when the file cannot be opened; a corrupt one ends the game.
 int RestoreZone(Party* records, MapRecord* zoneRecord, const std::string& zone, std::string& folder,
                 const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables;
@@ -183,11 +183,7 @@ int RestoreZone(Party* records, MapRecord* zoneRecord, const std::string& zone, 
         return 0;
     }
     MemoryStream data;
-    if (!SaveFileRead(&data, kMagicMission, &file)) {
-        game::FatalError(kCorruptSave, fileName);
-        failed = true;
-        return 0;
-    }
+    if (!SaveFileRead(&data, kMagicMission, &file)) game::FatalExit(kCorruptSave, fileName);
     int result = g_serverWorld.LoadSave(&data, mapOverride);
     file.Close();
 
@@ -477,7 +473,7 @@ int StartNetworkZone(const std::string& zone) {
 
 // The counterpart of the zone load: saves the current zone into saves\current\<zone>.sav (SaveWorld, header
 // 0x102) and records in the party's variables that it was visited (zs.<zone> = 1) and when it was left
-// (zt.<zone> = gtime). Returns 1, 0 when the file cannot be written (after FatalError).
+// (zt.<zone> = gtime). Returns 1; a file that cannot be written ends the game.
 int LeaveZone(Party* records) {
     FileStream file;
     std::string path;
@@ -487,10 +483,7 @@ int LeaveZone(Party* records) {
     else if (g_serverWorld.zoneMode == ZoneMode::Base) g_camera.SaveView(6);
     path = str::Format(kCurrentFolder, DataFolderText());
     path += zone + kSaveExtension;
-    if (!file.Open(path, platform::FileMode::Create)) {
-        game::FatalError(kCantWrite, path);
-        return 0;
-    }
+    if (!file.Open(path, platform::FileMode::Create)) game::FatalExit(kCantWrite, path);
     g_serverWorld.PrepareSave();
     MemoryStream data;
     data.version = kSaveVersion;
@@ -868,8 +861,9 @@ void GameFlow::StartZone(std::string_view zone, ZoneMode mode) {
         found = mode == ZoneMode::EndOfGame || mode == ZoneMode::MainMenu || zoneRecord != nullptr;
     }
     if (!found) {
-        // An unknown zone: the error, the network sessions closed, the main menu instead.
-        game::FatalError(kZoneNotFound, std::string(zone));
+        // An unknown zone (a zone change naming a zone map.txt lacks): a warning, the network sessions closed, the
+        // main menu instead.
+        game::Warning(kZoneNotFound, std::string(zone));
         if (IsLive(net::g_gameClient)) DropSessions();
         mode = ZoneMode::MainMenu;
     }

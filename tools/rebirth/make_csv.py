@@ -109,9 +109,9 @@ SITE_STATUS = {
  ('FixSpellSelfCasting', 0x0068B770): 'implemented: CSpell::IsOffensive (src/game/spell.cpp)',
  ('FixSpellSelfCasting', 0x00639447): 'implemented: new rewrite CBattleScreen::SelectUnit 00638EF0 (src/game/ui_battle.cpp)',
  ('FixSpellEffectsOverflow', 0x0050F1E0): 'implemented: new rewrite CMapObject::AddEffect 0050F1E0 (src/game/map_object.cpp)',
- ('DisableExitOnCrashReport', 0x004800A7): 'implemented: new rewrite FatalError 00480080 (src/game/app.cpp; the addon.log line is not reproduced)',
- ('DisableExitOnCrashReport', 0x004800C9): 'implemented: new rewrite FatalError 00480080 (src/game/app.cpp)',
- ('DisableExitOnCrashReport', 0x00564330): 'implemented: new rewrite CWorldClient::Segment 005641F0 (src/game/world_client.cpp)',
+ ('DisableExitOnCrashReport', 0x004800A7): 'dropped: a fatal error always exits (game::FatalExit, src/game/app.cpp); data errors the game gets past are warnings where they occur (C167; docs/notes/rebirth.md, "Fatal errors")',
+ ('DisableExitOnCrashReport', 0x004800C9): 'dropped: a fatal error always exits (game::FatalExit, src/game/app.cpp); data errors the game gets past are warnings where they occur (C167; docs/notes/rebirth.md, "Fatal errors")',
+ ('DisableExitOnCrashReport', 0x00564330): "dropped: the client's session disconnects on a failed connection or an unreadable packet (CWorldClient::Segment 005641F0, src/game/world_client.cpp; C167)",
  ('FixSpellEffectsOverflow', 0x0058D82E): 'implemented: new rewrite CWorldServer::UpdateUnits 0058D670 (TickSleepingEffects; src/game/world_tick.cpp)',
  ('AddNewScriptCommands', 0x004B56AD): 'implemented: scriptaddon::CalcString (src/game/script_addon.cpp; 004B5650 is only reached from the patched CalcParameters)',
  ('AddNewScriptCommands', 0x004CF4A2): 'implemented as no-op: the hook only copies the error to addon.log',
@@ -411,9 +411,8 @@ for patch, a, n, var, summ in PLUGIN:
 GROUP = {'bugfix': 'bug fix', 'widescreen': 'widescreen/rendering', 'rendering': 'widescreen/rendering',
          'scripting': 'scripting/console', 'console': 'scripting/console', 'multiplayer': 'multiplayer',
          'resources': 'resources/paths', 'infrastructure': 'infrastructure', 'content': 'infrastructure'}
-# The standalone's kind of each patch (SV9, C68, C162): always the rebuilt code's, with a mod played (mod), a setting
-# (EI_Plugin's values), a flag (DisableExitOnCrashReport), dropped or implemented nowhere (none); the CSV keeps each
-# patch's.
+# The standalone's kind of each patch (SV9, C68, C162, C167): always the rebuilt code's, with a mod played (mod), a
+# setting (EI_Plugin's values), dropped or implemented nowhere (none); the CSV keeps each patch's.
 FORMER = {r['patch']: r['standalone'] for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'),
                                                                      encoding='utf-8'))}
 for r in rows:

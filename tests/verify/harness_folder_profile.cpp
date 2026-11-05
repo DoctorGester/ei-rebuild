@@ -36,8 +36,7 @@ std::string Step() {
         return std::string("folderprofile: the game's data folder ") + (data ? data : "(none)") +
                " is not the game folder";
 
-    // EI_Plugin's values: the Rebirth install's EI_Plugin.ini, none on the vanilla install; DisableExitOnCrashReport on
-    // the Rebirth install only.
+    // EI_Plugin's values: the Rebirth install's EI_Plugin.ini, none on the vanilla install.
     const bool rebirthInstall = starter::RebirthData();
     int players = 0;
     int pause = 0;
@@ -53,12 +52,8 @@ std::string Step() {
         return "folderprofile: the install's players / pause " + std::to_string(players) + " / " +
                std::to_string(pause) + ", the game's " + std::to_string(rebirth::PluginNPlayers()) + " / " +
                std::to_string(rebirth::PluginPause());
-    if (rebirth::DisableExitOnCrashReport() != rebirthInstall)
-        return std::string("folderprofile: DisableExitOnCrashReport ") + (rebirthInstall ? "off" : "on") + " on the " +
-               (rebirthInstall ? "Rebirth" : "vanilla") + " install";
-    Log("harness: folderprofile: the %s install, EI_Plugin's players %d, pause mode %d, DisableExitOnCrashReport %s, "
-        "the game folder %s", rebirthInstall ? "Rebirth" : "vanilla", players, pause, rebirthInstall ? "on" : "off",
-        folder.c_str());
+    Log("harness: folderprofile: the %s install, EI_Plugin's players %d, pause mode %d, the game folder %s",
+        rebirthInstall ? "Rebirth" : "vanilla", players, pause, folder.c_str());
     return {};
 }
 

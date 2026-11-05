@@ -40,8 +40,6 @@ void AppendCell(FootprintCellSet* set, const FootprintCell& cell) {
     set->buckets[bucket] = lib::Count(set->cells) - 1;
 }
 
-const char* PartNotFoundFormat() { return "Bodypart \"%s\" for object \"%s\" not found\n"; }
-
 void ResetCellSet(FootprintCellSet* set) {
     set->SetSize(0);
     for (int& b : set->buckets) b = -1;
@@ -110,8 +108,8 @@ bool AIMap::CollectFootprint(MapObject* object, FootprintCellSet* footprintSet, 
     bool hasBridge = false;
     for (const std::string& name : *names) {
         int index = object->FindPartIndex(name);
-        if (index < 0) {
-            game::FatalError(PartNotFoundFormat(), name, object->name);
+        if (index < 0) {   // a part the object's model lacks: it marks nothing
+            game::Warning("Bodypart \"%s\" for object \"%s\" not found", name, object->name);
             continue;
         }
         const FootprintPart* part = &object->partBoxes[index];

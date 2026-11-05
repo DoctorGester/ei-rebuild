@@ -105,7 +105,7 @@ void ScriptCall::CalcParameters(Script* script, ScriptVars* vars, const ScriptSu
         call->cmd->CalcGroup(script, vars, &groupArgs[call->argIndex]);
         return;
     default:
-        game::FatalError("ScriptCall::CalcParameters, unknown function parameter type");
+        game::FatalExit("ScriptCall::CalcParameters, unknown function parameter type");
     }
 }
 
@@ -431,8 +431,7 @@ float ScriptCall::CalcFloat(Script* script, ScriptVars* vars) {
         return ScriptBool(o && lib::Has(o->flags, MapObjectFlag::Blocked));
     }
     default:
-        game::FatalError("Function does not return float at ScriptCall::CalcFunction");
-        return result;
+        game::FatalExit("Function does not return float at ScriptCall::CalcFunction");
     }
 }
 
@@ -493,8 +492,7 @@ void ScriptCall::CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** 
         return;
     }
     default:
-        game::FatalError("Function does not return object at ScriptCall::CalcFunction");
-        return;
+        game::FatalExit("Function does not return object at ScriptCall::CalcFunction");
     }
 }
 
@@ -568,7 +566,6 @@ void ScriptCall::CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** resul
         break;
     }
     default:
-        game::FatalError("Function does not return string at ScriptCall::CalcFunction");
-        break;
+        game::FatalExit("Function does not return string at ScriptCall::CalcFunction");
     }
 }

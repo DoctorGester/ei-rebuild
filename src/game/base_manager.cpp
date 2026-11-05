@@ -69,7 +69,7 @@ int NextFreeId(BaseManager* m) {
             }
         }
     }
-    if (id == -1) game::FatalError("%s", kOutOfIdsMessage);
+    if (id == -1) game::FatalExit("%s", kOutOfIdsMessage);
     return id;
 }
 

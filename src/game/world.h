@@ -260,7 +260,7 @@ public:
     ~WorldServer() override;
 
     // The managers, the messages registry, the Hoover, the wind (1, 0, 0; strength 0.4) and the zone state
-    // set up (FatalError when the managers or the registry fail).
+    // set up (a registry that cannot be opened ends the game).
     void Create() override;
     void Destroy() override;
     // One world update: drops disconnected players and lets the others' units wake what they hear, accepts
@@ -365,9 +365,8 @@ public:
     // with its id (the unit's server-side parentIname and skinTexture), so the unit is drawn textured when the
     // party arrives in the next zone. No unit with that id: the names stay empty.
     void TakeLookFromUnit(PartyUnitRecord* record);
-    // Reads the objects of a .mob file (chunked). Returns 1, or what FatalError returns when the file
-    // cannot be opened or read.
-    int LoadMapObjects(std::string_view file, int keepIds);
+    // Reads the objects of a .mob file (chunked); a file that cannot be opened or read ends the game.
+    void LoadMapObjects(std::string_view file, int keepIds);
     // Loads .mob file `file` once (the loaded names are kept).
     int LoadMobFile(std::string_view file);
     // Removes every map object from the server, releases the missiles and the counted objects and clears
@@ -379,7 +378,7 @@ public:
 
     // Restores the world from a mission save, in the order SaveWorld writes it; units that cannot stand where they
     // were saved are moved to a free cell or removed. `map` replaces the saved map name when not null. Returns 1, 0
-    // when the AI graph cannot be read, or what FatalError returns when the zone cannot be loaded.
+    // when the AI graph cannot be read; a zone that cannot be loaded ends the game.
     int LoadSave(ByteStream* stream, const char* map);
     // Writes what LoadSave reads.
     void SaveWorld(ByteStream* stream);
@@ -427,7 +426,7 @@ public:
     // Before every game state request: every player leaves and the zone's contents go, then the base class's
     // teardown; the game result and kind are cleared.
     void TeardownZone();
-    // A new zone from `map` and `mob`: the loading movie for `zone` shown, the AI graph read (a fatal error
+    // A new zone from `map` and `mob`: the loading movie for `zone` shown, the AI graph read (the game ends
     // without it), the map loaded; the zone name kept when given, scriptsActive cleared. 0 when a file is
     // neither where its name says nor in the maps folder, else 1.
     int NewZone(std::string_view map, std::string_view mob, std::optional<std::string_view> zone);
@@ -792,8 +791,8 @@ public:
     void Create() override;
     // Tears the client world down in the reverse order, then deletes the owned objects (counted ones dropped first).
     void Destroy() override;
-    // The client's tick. True; false when the session's view has lost its connection (the session is
-    // disconnected, FatalError; Rebirth's DisableExitOnCrashReport keeps the session).
+    // The client's tick. True; false when the session's view has lost its connection or met a packet it cannot parse
+    // (a warning; the session is disconnected).
     bool RunTick() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
@@ -923,8 +922,8 @@ public:
     void ClearMaps();
     // The zone's leftovers dropped: the exit markers, the second grid's cells, the timed objects, the bird.
     void ResetZoneObjects();
-    // The zone's state block (docs/notes/world.md, "Zone state block"). Returns 1, or the fatal error's
-    // result when the map does not load.
+    // The zone's state block (docs/notes/world.md, "Zone state block"). Returns 1; a map that does not load ends the
+    // game.
     int LoadZone(ByteStream* block);
     // The local session takes a new link: the single-player loopback pair for `player`, or a driver for the game
     // client's first connection (false without an active client or connection). Each empties the maps and

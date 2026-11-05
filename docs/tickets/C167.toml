@@ -6,4 +6,5 @@ model = "opus"
 depends = ["C162"]
 note = "User 2026-11-05 asked why we would carry on after a fatal error. Rebirth's DisableExitOnCrashReport makes all ~98 game::FatalError sites log and return, so Rebirth's and the mods' data that trip over-strict checks keep playing (texture.cpp's DXT5 battle screen, ui_scroll_text.cpp's bad special symbol, WorldClient::Segment's packet error), but it also carries on after real corruption. Go through every FatalError site: a real error (corrupt save or packet, missing required file) exits with the message box on every install; a recoverable data error (an unknown text token, a texture format not found, a missing optional resource) logs one warning and does the safe local thing; WorldClient::Segment disconnects. Then remove the flag and its profile line. A scenario per recoverable kind that Rebirth or Lost in Astral data reaches. Goldens the same except where a run used to depend on carrying on (say which)."
 order = 1216
-status = "later"
+status = "running"
+started = "2026-11-05"
