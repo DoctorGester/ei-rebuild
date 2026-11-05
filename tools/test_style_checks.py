@@ -67,6 +67,11 @@ class RoundThreePatternTest(unittest.TestCase):
 
 
 class RoundFourPatternTest(unittest.TestCase):
+    def test_random_word_scaled_by_hand(self):
+        name = 'random word scaled by hand (Range copy)'
+        self.assertEqual(pattern_count(name, 'x = Next() * 0x1p-32f + low; y = r * 2.3283064e-10f; z = w * kTwoToMinus32;'), 3)
+        self.assertEqual(pattern_count(name, 'x = g_random.Range(low, high); float tiny = 1e-10f; auto a = 0x1p-3f;'), 0)
+
     def test_float_helper_over_addresses(self):
         name = 'float helper over addresses (ConstPtr, out pointer)'
         self.assertEqual(pattern_count(name, 'void HeightPlus(const float* base, const float* add, float* out);'), 1)
@@ -118,6 +123,16 @@ class RoundFourPatternTest(unittest.TestCase):
         finally:
             check_cleanup._constants = saved
 
+    def test_renamed_flag_bit(self):
+        saved = check_cleanup._flag_owners
+        try:
+            check_cleanup._flag_owners = {0x80000: {'src/game/map_object.h'}}
+            code = 'constexpr std::uint32_t kFlagNearbyListed = 0x80000;\nconstexpr int kFlagSmall = 0x10;\n'
+            self.assertEqual(check_cleanup.count_renamed_flag_bits(code, 'src/game/unit_ai.cpp'), 1)
+            self.assertEqual(check_cleanup.count_renamed_flag_bits(code, 'src/game/map_object.h'), 0)   # the owner's own file
+        finally:
+            check_cleanup._flag_owners = saved
+
     def test_virtual_index(self):
         tree = {'a.h': 'struct B { virtual B* AsKid() { return nullptr; } virtual void Unused() {} virtual void Idle() {}\n'
                        '  virtual bool IsLonely() { return false; } virtual int Never() = 0; };\n'
@@ -129,6 +144,14 @@ class RoundFourPatternTest(unittest.TestCase):
         self.assertEqual(index['Idle']['calls'], 1)             # a call from a member, no object in front
         self.assertEqual((index['IsLonely']['overrides'], index['IsLonely']['calls']), (1, 0))
         self.assertEqual(index['Never']['calls'], 0)
+
+    def test_two_start_states(self):
+        inits = {'Zz': {'count': 0.0, 'scale': 1.0, 'owner': 'nullptr'}}
+        code = ('struct Zz { int count = 0; float scale = 1.0f; Zz* owner = nullptr; Zz(Zz* from) : owner(from) { count = 5; }\n'
+                '  void Reset() { scale = 1.0f; count = 2; } };\n')
+        self.assertEqual(check_cleanup.count_double_start_states(code, inits), 2)     # count in Zz() and in Reset()
+        outside = 'Zz::Zz() : count(7) { scale = 3.0f; }\nvoid Zz::Reset() { scale = 1.0f; }\n'
+        self.assertEqual(check_cleanup.count_double_start_states(outside, inits), 2)
 
     def test_member_through_its_global(self):
         singletons = {'WorldServer': {'g_serverWorld'}}

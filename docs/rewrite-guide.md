@@ -43,7 +43,8 @@ compare function pointers for identity.
 4. **Floating point** is plain C++ (`docs/notes/float-maths.md`): the grouping written is the grouping compiled
    (`/fp:precise`, never `/fp:fast`); no `__asm`, no `#pragma float_control`. FISTP's rounding is `lib::RoundEven`,
    `_ftol` is `static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value beyond int can arrive; not
-   `std::lrint` or `std::lround`. A select of two floats on `>=` / `<=` goes through `lib/float_select.h`.
+   `std::lrint`, and `std::lround` only in client-only code (effects, particles, drawing, window sizes and the
+   interface's displays; "Style rules" below). A select of two floats on `>=` / `<=` goes through `lib/float_select.h`.
 5. **Comparisons** are the plain C++ ones; a NaN compares as IEEE says (the original counted NaN as equal and less).
 6. **Random draws.** Game state draws from the game's generators in the original's order; a draw whose result is
    unused still happens. Client-only effects draw from their own generator (`docs/notes/core.md`, "Random
@@ -212,6 +213,24 @@ From round 4 (world, objects, combat, app and platform; 2026-11-04):
 - **Comments** (`comments.py` banned words, round 4): "new renderer" (it is the renderer), "inlined", "provisional"
   (a name is final or it is renamed), a layout in bytes ("the first 0x20 bytes of PathOrder"), "Direct3D" and
   "DirectDraw" (the old device), "old path", "game.exe" and "through its address".
+
+From round 1b (unit AI, items, terrain; re-checked 2026-11-05):
+- **A re-spelled copy of an existing helper is a defect.** A random word scaled by hand (`Next() * 0x1p-32f + low`, a
+  `2.3283064e-10f` scale, `kTwoToMinus32`) is `IsaacRandom::Range` or a member beside it; the copies drift (seven in
+  the unit AI, nineteen in the particles). Checked: "random word scaled by hand (Range copy)" (`src/lib` and
+  `random.cpp` are exempt; the scale as `0x1p-30`..`0x1p-32` or a `[1-9].dddddde-10` decimal).
+- **A field has one start state.** A field with a default initialiser is not given another value in a constructor's
+  body or initialiser list, and not given a different one in `Reset()`; the initialiser carries the real start value
+  and the constructor needs no body. A value that comes from a constructor parameter is not a start state. Checked:
+  "field with two start values (initialiser, constructor or Reset)" (extends the "field without a default
+  initialiser" column of round 3).
+- **`std::lround` is allowed in client-only code** (rule 4, `docs/notes/float-maths.md`): the effects, particles,
+  lightning, weather and terrain drawing, the renderer, the platform layer's window sizes, and the interface's layout
+  and displays round values that only the picture, the sound or the window see, and a half differs there by one
+  colour step at most. A rounded value that gates an order or reaches game state is `lib::RoundEven` or
+  `lib::Truncate`, as the original's FISTP or `_ftol` did. Checked: "std::lround in game-affecting code" (every
+  `std::lround` outside the client-only files listed in `tools/check_cleanup.py`; its two sites, `CanEquip` and
+  `HeroSchoolSkill`, are C155a).
 
 The ratchet columns are listed by `python tools/check_cleanup.py` (counts) and `python tools/comments.py check`. A
 column's pattern is narrow on purpose: it finds the plain cases; the rule is wider than the count. The columns that

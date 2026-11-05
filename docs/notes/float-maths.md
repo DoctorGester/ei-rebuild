@@ -34,7 +34,16 @@ checked across them.
 ## Conversions and copies
 
 - FISTP rounds to nearest, ties to even: `lib::RoundEven` (0x80000000 for NaN or out of range). Not `std::lrint`
-  (reads the FP environment per call) nor `std::lround` (halves away from zero).
+  (reads the FP environment per call) nor, in game state, `std::lround` (halves away from zero).
+- `std::lround` is allowed in client-only code (user, 2026-11-05): a value that only the picture, the sound or the
+  window sees (a colour byte, a volume, a particle count, a window size, a number shown on a panel) differs from the
+  even rounding at exact halves only, by one step. Every site (66 lines) was read on that day; all but two are
+  client-only (the files `CLIENT_ONLY_ROUNDING` lists in `tools/check_cleanup.py`; its column "std::lround in
+  game-affecting code" holds the rest at two). The two that decide something are `CampPages::CanEquip` (`ui_camp.cpp`: a worn-out weapon or armour
+  is not given to a hero when `lround(condition) <= 0`; the combat and armour code test `RoundEven(condition) > 0`
+  for the same question) and `HeroSchoolSkill` (`ui_screens.cpp`: a skill compared with a spell's requirement; the
+  item panel prints the same skill truncated). They differ from FISTP at an exact half, and the original's rounding
+  there is C155a's question.
 - VC6's `_ftol` truncates and keeps the low half of the 64-bit integer (0 for NaN):
   `static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value beyond int can arrive, else
   `static_cast<int>`.
