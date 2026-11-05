@@ -5,5 +5,6 @@ model = "sonnet"
 depends = ["C94"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Review P3, P4, P8, P9 for the UI: the 119 index loops over std::ssize and 82 lib::Count loops become range-for where nothing erases (scripted batch); decide once whether g_interface is a global or passed and drop the stored copies; the Scale* forwarders become value-returning transforms (Rect ToScreen(Rect), 55 calls) instead of in-out pointers; ItemAt's int* parameter with two meanings split; const Rect& inputs in FrameRect and UiScrollbar::SetRect. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1037
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
