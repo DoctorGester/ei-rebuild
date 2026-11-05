@@ -5,6 +5,8 @@
 #include "net_messages.h"
 #include "party.h"
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_edit_field.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"

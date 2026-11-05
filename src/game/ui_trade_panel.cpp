@@ -1,15 +1,15 @@
 // The camp's trade panel (the level-up page): its layout, its lists of schools and perks and their drawing.
 // See docs/notes/ui.md ("Camp, global map, hero screens").
-#include "text_manager.h"
-
+#include "ui_camp.h"
 #include "core_maths.h"
 #include "game_singletons.h"
 #include "item.h"
 #include "party.h"
+#include "text_manager.h"
 #include "texture.h"
 #include "ui.h"
-#include "ui_camp.h"
 #include "ui_item_info.h"
+#include "ui_mesh.h"
 #include "ui_screens.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -25,7 +25,6 @@
 #include <string>
 
 namespace {
-
 // Opens text "perk <name>" (its first line is the row's shown name).
 bool OpenPerkText(TextManager* texts, std::string_view name) {
     std::string key("perk ");
@@ -73,6 +72,34 @@ void DrawSchool(TradePanel* panel, Rect* row, const TradeRow& school) {
 
 UnitStats* PartyMemberStats(int index) { return &LocalPlayerData()->members[index].stats; }
 
+const char* const kPerkSound = "buttons\\camp\\perk.wav";
+
+constexpr int kMaxLevel = 100;
+constexpr int kFirstHoldTicks = -500;    // milliseconds: the first repeat waits 750 ms
+constexpr int kRepeatTicks = 250;        // then a level every frame
+
+// One list's items: cell i at column i % 4, row i / 4; `yOffset` and the sizes differ between the
+// bought (upper) and sold (lower) lists, as do the text rows.
+void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& list, std::vector<UiLabel>& labels,
+               float yOffset, float bigSize, float smallSize, int countTop, int priceTop, PriceKind kind) {
+    for (int i = 0; i < std::ssize(list); ++i) {
+        int x = (i % 4) * 100;
+        int y = (i / 4) * 100;
+        ItemCell cell{list[i], x + 250.0f, y + yOffset,
+                      i <= 3 ? bigSize : smallSize, 100.0f, grid->mode};
+        grid->owner->DrawItem(pass, cell);
+        int pieces = static_cast<int>(cell.item->count);
+        if (pieces > 1) {
+            labels.push_back({std::format("{}", pieces), Rect{x + 15, y + countTop, x + 0x55, y + countTop + 20}, {1, kUiTextColour, render::text::kRight}});
+        }
+        if (!grid->exchange) {
+            labels.push_back({std::format("{}", grid->camp->Price(cell.item, kind)), Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, {1, kUiTextColour, render::text::kCenter}});
+        }
+    }
+}
+
+constexpr const char* kPerkLevelDigits = "123";
+constexpr const char* kPerkFirstLevel = "0";
 } // namespace
 
 void TradePanel::BuildLists() {
@@ -359,16 +386,6 @@ std::string TradePanel::FormatPrice(int price) {
 // or science level again every frame from 750 ms of holding on while the button stays down (whole
 // milliseconds). See docs/notes/ui.md, section 5.
 
-namespace {
-
-const char* const kPerkSound = "buttons\\camp\\perk.wav";
-
-constexpr int kMaxLevel = 100;
-constexpr int kFirstHoldTicks = -500;    // milliseconds: the first repeat waits 750 ms
-constexpr int kRepeatTicks = 250;        // then a level every frame
-
-} // namespace
-
 // --- The scroll positions clamped ----------------------------------------------------------------------
 
 void TradePanel::ClampScroll() {
@@ -489,31 +506,6 @@ void TradePanel::Update() {
 // to 1 again. The new renderer (src/render) gets the depth clears. See docs/notes/ui.md ("Camp") and
 // docs/notes/renderer.md.
 
-namespace {
-
-
-// One list's items: cell i at column i % 4, row i / 4; `yOffset` and the sizes differ between the
-// bought (upper) and sold (lower) lists, as do the text rows.
-void DrawItems(TradeGrid* grid, SceneRenderer* pass, const std::vector<Item*>& list, std::vector<UiLabel>& labels,
-               float yOffset, float bigSize, float smallSize, int countTop, int priceTop, PriceKind kind) {
-    for (int i = 0; i < std::ssize(list); ++i) {
-        int x = (i % 4) * 100;
-        int y = (i / 4) * 100;
-        ItemCell cell{list[i], x + 250.0f, y + yOffset,
-                      i <= 3 ? bigSize : smallSize, 100.0f, grid->mode};
-        grid->owner->DrawItem(pass, cell);
-        int pieces = static_cast<int>(cell.item->count);
-        if (pieces > 1) {
-            labels.push_back({std::format("{}", pieces), Rect{x + 15, y + countTop, x + 0x55, y + countTop + 20}, {1, kUiTextColour, render::text::kRight}});
-        }
-        if (!grid->exchange) {
-            labels.push_back({std::format("{}", grid->camp->Price(cell.item, kind)), Rect{x + 15, y + priceTop, x + 0x55, y + priceTop + 20}, {1, kUiTextColour, render::text::kCenter}});
-        }
-    }
-}
-
-} // namespace
-
 void TradeGrid::DrawSprites(SceneRenderer* pass) {
     Rect grid{200, 100, 600, 500};
     ui->ScaleRectToScreen(&grid);
@@ -526,4 +518,52 @@ void TradeGrid::DrawSprites(SceneRenderer* pass) {
     DrawItems(this, pass, *bought, labels, 150.0f, 48.0f, 24.0f, 0x0F, 0x41, buyKind);
     DrawItems(this, pass, *sold, labels, 350.0f, 12.0f, 6.0f, 0xD7, 0x109, sellKind);
     ClearUiDepth(1.0f, &screen, 1);
+}
+
+// --- Ui camp stats -----------------------------------------------------------------------------------
+
+// The camp's statistics column (HeroStatsPanel) and trade panel (TradePanel): what the
+// statistics under the mouse are, for the description panel (the camp's Draw
+// and the hero screen's draw ask every frame), and the column's hero. See ui_camp.h and
+// docs/notes/ui.md ("Camp, global map, hero screens").
+
+// --- the trade panel -----------------------------------------------------------------------------
+
+ItemHoverInfo TradePanel::HoverInfo(Point at) {
+    ItemHoverInfo info;
+    if (!enabled) return info;
+    // No region falls through to the held perks (HeldPerkRow), past the list.
+    const UiRegion* region = RegionUnder(at);
+    const int school = RegionIndex(schoolRows, region);
+    const int learnableRow = RegionIndex(learnableRows, region);
+    if (school >= 0) {
+        info.kind = HoverKind::Skill;
+        info.index = school;
+        info.text = SkillNames()[school];
+    } else if (region == scienceRow) {
+        info.kind = HoverKind::Science;
+        info.index = 0;
+        info.text = SkillNames()[6];
+    } else if (RegionIndex(perkScroll, region) >= 0 || RegionIndex(learnableScroll, region) >= 0) {
+        return info;
+    } else {
+        const TradeRow* row;
+        if (learnableRow >= 0) {
+            unsigned i = static_cast<unsigned>(learnableTop) + static_cast<unsigned>(learnableRow);
+            if (i >= learnable.size()) return info;
+            row = &learnable[i];
+            info.index = 0;
+        } else {
+            unsigned i = static_cast<unsigned>(perkTop) + static_cast<unsigned>(HeldPerkRow(region));
+            if (i >= perks.size()) return info;
+            row = &perks[i];
+            info.index = row->level;
+        }
+        info.kind = HoverKind::Perk;
+        info.text = row->key;
+        str::TrimRight(info.text, kPerkLevelDigits);
+        info.text += kPerkFirstLevel;
+    }
+    info.stats = &owner->HeroRecord()->stats;
+    return info;
 }

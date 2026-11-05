@@ -1,6 +1,6 @@
 // A region's tooltip (UiTooltip): its constructor, which splits the text into lines and measures them, SetText
 // and the painting of the lines; and its showing (Rebirth-patched: its WideScreen is
-// reproduced behind the flag). See ui.h and docs/notes/items_spells.md.
+// reproduced behind the flag). See ui.h and docs/notes/ui.md, section 2.
 #include "ui.h"
 #include "options.h"
 #include "screen_layout.h"

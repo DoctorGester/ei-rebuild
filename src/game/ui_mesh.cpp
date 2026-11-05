@@ -1,6 +1,7 @@
 // The interface sprites' shape builders (framed rectangle, disc, ring).
 // See ui_mesh_build.h and docs/notes/ui.md ("Sprite shapes").
 #include "ui.h"
+#include "ui_mesh.h"
 
 #include "figure_mesh.h"
 #include "material.h"
@@ -307,7 +308,7 @@ void UiMesh::SetScaleYBits(std::uint32_t bits) { scaleMatrix.m[5] = std::bit_cas
 
 // --- Draw --------------------------------------------------------------------------------------------
 
-// An interface sprite (UiMesh, ui.h): its Create, its draw (called by the window base's draw and the panels
+// An interface sprite (UiMesh, ui_mesh.h): its Create, its draw (called by the window base's draw and the panels
 // that draw single sprites), its constructor, destructor and virtuals. docs/notes/ui.md, section 9.
 
 namespace {
@@ -501,7 +502,7 @@ void UiMesh::SetUvCount(int count) { texCoords.resize(count); }
 
 // --- Shapes ------------------------------------------------------------------------------------------
 
-// The shapes an interface sprite (UiMesh, ui.h) is given. Rebirth's WideScreen patches each of
+// The shapes an interface sprite (UiMesh, ui_mesh.h) is given. Rebirth's WideScreen patches each of
 // them (one site: the x of the sprite's position moved by its panel offset, screen_layout.h), which
 // these reproduce for every window. docs/notes/ui.md, section 9.
 

@@ -1,13 +1,18 @@
-// The HUD buttons that start or drop a pending action on the battle screen: a spell button
-// an action button, a quick item slot, and the battle screen's pending action they share. See ui.h
-// and docs/notes/ui.md ("Battle screen").
-#include "ui.h"
-
+// The HUD buttons that start or drop a pending action on the battle screen: a spell button, an action button and a
+// quick item slot, and the weapon bar's, quick items' and action column's unit. See ui_hud.h and docs/notes/ui.md
+// ("Battle screen").
+#include "ui_hud.h"
 #include "game_singletons.h"
 #include "item.h"
+#include "player_messages.h"
+#include "screen_layout.h"
 #include "spell.h"
 #include "text_manager.h"
+#include "ui.h"
+#include "player_client.h"
+#include "ui_battle.h"
 #include "ui_float.h"
+#include "ui_mesh.h"
 #include "unit.h"
 #include "world.h"
 #include "lib/str.h"
@@ -44,36 +49,38 @@ bool UseAtOnce(BattleScreen* screen, Interface3D* ui, Unit* unit, Spell* spell, 
         screen->UseAtPoint(target->localPosition, unit, quick);
     return true;
 }
-} // namespace
 
-// --- The pending action ------------------------------------------------------------------------
+constexpr std::uint32_t kColourOn = 0xFF404040;
+constexpr std::uint32_t kColourOff = 0xFF000000;
+constexpr float kButtonScaleOn = 1.15f;
+constexpr float kButtonScaleOff = 1.0f;
+constexpr float kQuickScaleOn = 0.65f;    // the unit's quick items (bottom row)
+constexpr float kQuickScaleOff = 0.55f;
+constexpr float kOwnScaleOn = 1.0f;       // the player's items (top row)
+constexpr float kOwnScaleOff = 0.85f;
+constexpr int kBottomRow = 4;             // slots 0-3
+constexpr int kQuickSlots = 8;
 
-void BattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
-    pendingSlot = slot;
-    pendingAction = mode;
-    pendingItem = item;
-    quickItems->ClearHighlights();
-    spellColumn->ClearHighlights();
-    actionColumn->ClearHighlights();
-    switch (mode) {
-    case kPendingSpellOnUnit:
-    case kPendingSpellAtPoint:
-        spellColumn->Highlight(slot, true);
-        break;
-    case kPendingQuickOnUnit:
-    case kPendingQuickAtPoint:
-    case kPendingItemOnObject:
-    case kPendingKeyOnObject:
-        quickItems->Highlight(slot, true);
-        break;
-    case kPendingFollow:
-    case kPendingOrder:
-        actionColumn->Highlight(slot, true);
-        break;
-    default:
-        break;
-    }
+// The columns' button highlight (both columns share the code).
+void HighlightButton(UiWindow* column, int* selected, int index, bool on) {
+    UiMesh* sprite = column->sceneObjects[index];
+    sprite->SetScale(on ? kButtonScaleOn : kButtonScaleOff);
+    sprite->flatSpecular = on ? kColourOn : kColourOff;
+    *selected = index;
 }
+
+// The columns' clearing: every button off, selected passing through
+// each index, then -1.
+void ClearButtons(UiWindow* column, int count, int* selected) {
+    for (int i = 0; i < count; ++i) {
+        UiMesh* sprite = column->sceneObjects[i];
+        sprite->SetScale(kButtonScaleOff);
+        sprite->flatSpecular = kColourOff;
+        *selected = i;
+    }
+    *selected = -1;
+}
+} // namespace
 
 // --- A spell button ------------------------------------------------------------------
 
@@ -158,48 +165,6 @@ void HudSpellColumn::ClickAlternate(int index) {
     owner->SetPendingAction(kPendingNone, -1, -1);
 }
 
-// --- Ui hud highlight --------------------------------------------------------------------------------
-
-// The HUD buttons' highlights: the quick item panel's slots, the spell and action
-// columns' buttons and their clearing, and the
-// sprite scale they set. The pending action (ui_hud_pick.cpp, SetPendingAction) and
-// the panels' SetUnit drive them. See docs/notes/ui.md ("Battle screen").
-
-namespace {
-
-constexpr std::uint32_t kColourOn = 0xFF404040;
-constexpr std::uint32_t kColourOff = 0xFF000000;
-constexpr float kButtonScaleOn = 1.15f;
-constexpr float kButtonScaleOff = 1.0f;
-constexpr float kQuickScaleOn = 0.65f;    // the unit's quick items (bottom row)
-constexpr float kQuickScaleOff = 0.55f;
-constexpr float kOwnScaleOn = 1.0f;       // the player's items (top row)
-constexpr float kOwnScaleOff = 0.85f;
-constexpr int kBottomRow = 4;             // slots 0-3
-constexpr int kQuickSlots = 8;
-
-// The columns' button highlight (both columns share the code).
-void HighlightButton(UiWindow* column, int* selected, int index, bool on) {
-    UiMesh* sprite = column->sceneObjects[index];
-    sprite->SetScale(on ? kButtonScaleOn : kButtonScaleOff);
-    sprite->flatSpecular = on ? kColourOn : kColourOff;
-    *selected = index;
-}
-
-// The columns' clearing: every button off, selected passing through
-// each index, then -1.
-void ClearButtons(UiWindow* column, int count, int* selected) {
-    for (int i = 0; i < count; ++i) {
-        UiMesh* sprite = column->sceneObjects[i];
-        sprite->SetScale(kButtonScaleOff);
-        sprite->flatSpecular = kColourOff;
-        *selected = i;
-    }
-    *selected = -1;
-}
-
-} // namespace
-
 // --- A sprite's scale ----------------------------------------------------------------
 
 void UiMesh::SetScale(float scale) {
@@ -241,11 +206,6 @@ void HudActionColumn::Highlight(int index, bool on) { HighlightButton(this, &sel
 void HudSpellColumn::ClearHighlights() { ClearButtons(this, count, &selected); }
 
 void HudActionColumn::ClearHighlights() { ClearButtons(this, count, &selected); }
-
-// --- Ui hud tips -------------------------------------------------------------------------------------
-
-// The battle screen panels' tooltips: the weapon bar's unit, a quick item's tip
-// and the action column's unit. See ui.h and docs/notes/ui.md ("Battle screen").
 
 // --- The weapon bar's unit -----------------------------------------------------------
 
@@ -406,4 +366,85 @@ void HudActionColumn::SetUnit(Unit* newUnit, bool extra) {
     if (g_clientWorld.texts->TextManager::Open("tip 10511") != 0) hint = g_clientWorld.texts->ReadToHash();
     tip = tip + "\n" + title + hint;
     regions[count - 1]->SetTipString(tip, 0x1D);
+}
+
+// --- the quick item panel's unit -----------------------------------------------------------------
+
+void HudQuickItems::SetUnit(Unit* newUnit) {
+    std::string tip;
+    unit = newUnit;
+    ClearSceneObjects();
+    shownCount = 0;
+    selected = -1;
+    for (int i = 0; i < 8; ++i) {
+        regions[i]->SetTip(0);
+        regionItem[i] = -1;
+    }
+    entries.clear();    // (zeroed new entries)
+    if (!unit) return;
+
+    // The entry of the sprite just added.
+    auto finish = [&](Item* item, bool own, UiMesh* sprite) {
+        entries.resize(shownCount);
+        Entry& entry = entries[shownCount - 1];
+        entry.own = own;
+        entry.id = item->id;
+        entry.item = item;
+        entry.sprite = sprite;
+    };
+    // The sprite just added: placed in its row (x from the panels' right column, 695; Rebirth moves it), its
+    // slot pointing at its entry, scaled, opaque.
+    auto place = [&](int slot, UiMesh* sprite) {
+        const float right = screen_layout::g_panelRight;
+        if (slot < 4)
+            sprite->Place(right - (slot * 50), 575.0f, 20.0f);
+        else
+            sprite->Place(right - (slot * 50 - 200), 525.0f, 20.0f);
+        regionItem[slot] = shownCount - 1;
+        sprite->SetScale(slot < 4 ? 0.55f : 0.85f);
+        sprite->flatSpecular = 0xFF000000;
+    };
+
+    // The unit's four quick items in the bottom row.
+    for (unsigned slot = 0; slot < 4; ++slot) {
+        Item* item = unit->GetQuickItem(slot);
+        if (!item) continue;
+        UiMesh* sprite;
+        {
+            std::string image = item->FigureName();
+            std::string model = item->PictureName();
+            sprite = AddItem(model, image);
+        }
+        finish(item, true, sprite);
+        regions[slot]->SetTipString(ItemTip(slot), static_cast<int>(slot) + 0x2A);
+        place(static_cast<int>(slot), sprite);
+    }
+
+    // The local player's own unit also shows up to four of the player's ItemKind::Quest items above, from
+    // the last of the player's items backwards (node: +4 previous, +8 item).
+    Player* player = g_clientWorld.LocalView()->player;
+    if (!player->IsLeader(unit)) return;
+    player = g_clientWorld.LocalView()->player;
+    auto node = player->items.rbegin();
+    if (node == player->items.rend()) return;
+    int slot = 4;
+    while (node != player->items.rend()) {
+        if (slot - 4 >= 4) break;
+        Item* item = *node;
+        ++node;
+        if (!item || item->Kind() != ItemKind::Quest)
+            continue;
+        UiMesh* sprite;
+        {
+            std::string image = item->FigureName();
+            std::string model = item->PictureName();
+            sprite = AddItem(model, image);
+        }
+        finish(item, false, sprite);
+        // The same string serves as the second and third texts.
+        tip = g_clientWorld.texts->GetItemTexts(item).name;
+        regions[slot]->SetTipString(tip);
+        place(slot, sprite);
+        ++slot;
+    }
 }

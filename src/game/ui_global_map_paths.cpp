@@ -12,6 +12,8 @@
 #include "object_tables.h"
 #include "text_manager.h"
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_objectives.h"
 
 #include <algorithm>
 #include <memory>

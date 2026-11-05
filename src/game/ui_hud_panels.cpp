@@ -1,8 +1,11 @@
 // The battle HUD panels' state displays: the unit panel's bars and numbers,
 // the movement panel's flag button and the top panel's pages and layout.
-// See ui.h ("Battle screen and its HUD panels") and docs/notes/items_spells.md ("Party item
-// lists").
+// See ui_hud.h and docs/notes/ui.md, section 7.
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_hud.h"
+#include "ui_battle.h"
+#include "ui_scroll_text.h"
 
 #include "item.h"
 #include "text_manager.h"

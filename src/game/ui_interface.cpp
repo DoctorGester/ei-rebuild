@@ -1,6 +1,8 @@
 // Interface3D coordinate scaling and small accessors, surface placement, model previews and the
 // spell book's record lookups. See ui.h.
 #include "ui.h"
+#include "ui_chat_overlay.h"
+#include "key_bindings.h"
 
 #include "app.h"
 #include "console.h"

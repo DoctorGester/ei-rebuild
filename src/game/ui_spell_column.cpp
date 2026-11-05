@@ -1,8 +1,9 @@
-// The spell column's unit: a sprite and a tooltip per spell of the unit. See ui.h
+// The spell column's unit: a sprite and a tooltip per spell of the unit. See ui_hud.h
 // (HudSpellColumn::SetUnit) and docs/notes/ui.md ("Battle HUD panels").
 #include "text_manager.h"
 #include "spell.h"
 #include "ui.h"
+#include "ui_hud.h"
 #include "ui_float.h"
 
 #include <cstdint>

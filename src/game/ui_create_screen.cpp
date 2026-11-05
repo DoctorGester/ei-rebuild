@@ -1,6 +1,4 @@
 // Interface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
-// The constructors of screens 1, 2, 3 and 7 are inlined here (the container base, their members' constructors
-// and vtables); the others' constructors are called as functions.
 #include "app.h"
 
 #include "bink_video.h"
@@ -9,6 +7,10 @@
 #include "options.h"
 #include "text_manager.h"
 #include "ui.h"
+#include "ui_hud.h"
+#include "ui_battle.h"
+#include "ui_message_box.h"
+#include "ui_help_window.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
 #include "ui_cursor.h"
@@ -25,9 +27,6 @@
 #include <memory>
 #include <new>
 #include <string>
-
-// The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
-BattleScreen::BattleScreen(Interface3D* ui) : UiContainer(ui) {}
 
 BriefingScreen::BriefingScreen(Interface3D* ui) : UiContainer(ui) {}
 
@@ -187,12 +186,4 @@ MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const c
         line = texts->GetString(textKey);
         text = line;
     }
-}
-
-// --- The portraits panel ------------------------------------------------------------------------------
-
-HudPortraits::HudPortraits(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
-    rect = Rect{250, 440, 550, 600};
-    count = 0;
-    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
 }

@@ -15,6 +15,7 @@
 #include "sound.h"
 #include "text_split.h"
 #include "ui.h"
+#include "ui_scroll_text.h"
 #include "ui_briefing.h"
 #include "unit.h"
 #include "unit_ai.h"

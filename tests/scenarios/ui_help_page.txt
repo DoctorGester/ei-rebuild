@@ -1,4 +1,4 @@
-# The help window's pages (CHelpWindow, ui_help_window.cpp; the page 00659420, ui_help_page.cpp,
+# The help window's pages (CHelpWindow, ui_help_window.cpp; the page 00659420, ui_help_window.cpp,
 # A-H26): the help key is H ("tutorial_script" in config\keyboard.ini;
 # F1 is "select1"), and only topics with a "tutorial <topic>" text open a window (config\tutorial.ini
 # lists them): the main menu's options ("options"), the objectives window ("quest_mission") and

@@ -1,38 +1,46 @@
-// The options window's settings and key bindings and its slider's layout
-// (ui.h: OptionsWindow, UiSlider; docs/notes/ui.md "Objectives, save/load, options").
-#include "ui.h"
-
+// The options window (OptionsWindow, ui_options.h): its settings and key bindings (the key actions table), its
+// layout, mouse and key handlers, drawing and the slide-in. The key handler passes the key to the container first, marks
+// the event used for the keys it uses and ignores keys while the window slides in. See docs/notes/ui.md, section 8.
+#include "ui_options.h"
 #include "app.h"
-#include "texture.h"
-#include "text_manager.h"
-#include "lib/vecmath.h"
-#include "world.h"
-
-#include "lib/crt.h"
-#include "lib/rect.h"
-#include <cstddef>
-#include <cstring>
-#include <string>
 #include "game_singletons.h"
+#include "key_bindings.h"
+#include "model.h"
 #include "options.h"
 #include "settings.h"
+#include "text_manager.h"
+#include "texture.h"
+#include "ui.h"
+#include "sound.h"
+#include "ui_drop_list.h"
+#include "ui_menu_pieces.h"
+#include "ui_mesh.h"
+#include "ui_message_box.h"
+#include "ui_scrollbar.h"
+#include "ui_spin.h"
+#include "world.h"
+#include "lib/crt.h"
+#include "lib/rect.h"
 #include "lib/str.h"
-#include "render/render.h"
+#include "lib/vecmath.h"
 #include "platform/display_sizes.h"
 #include "platform/platform.h"
+#include "render/render.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <format>
+#include <memory>
 #include <new>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
-// --- Helpers -----------------------------------------------------------------------------------
-
 namespace {
-
 constexpr const char* kTextOptionPrefix = "option_";
 constexpr const char* kTextActionPrefix = "action_";
 constexpr const char* kTextTipOption = "tip option_%s";
@@ -56,8 +64,6 @@ constexpr float kFromStep = 50.0f;   // value = setting * 50
 constexpr float kToStep = 0.02f;     // setting = value * 0.02
 constexpr float kScrollFrom = 4.0f; // setting 15's value
 constexpr float kScrollTo = 0.25f;   // setting 15 from it
-constexpr float kThumbLift = 0.1f;  // the thumb above the track
-constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // By OptionId. kOptionShowTutorial: help windows (Rebirth's ForceShowTutorial patches its store).
 constexpr OptionDefinition kOptionDefinitions[kOptionDefinitionCount] = {
@@ -184,12 +190,88 @@ void RebuildKeysText(OptionBinding& binding) {
     str::TrimRight(binding.keysText, kTextKeyTrim);
 }
 
-void TurnQuarter(UiMesh* sprite) {
-    Vector3 axis = {0.0f, 0.0f, 1.0f};
-    sprite->localRotation = Quaternion::AxisAngle(axis, kQuarterTurn);
+constexpr float kOptionsTilt = /*007C81A0*/ 1.5707964f;
+
+const char* OptionGroupName(int index) {
+    static constexpr const char* kNames[13] = /*007947A8*/ {"video",  "sound",  "sens",   "game",    "select",
+                                                            "actions", "camera", "items",  "spells",  "cshots",
+                                                            "windows", "debug1", "debug2"};
+    return kNames[index];
 }
 
+constexpr std::uint32_t kCloseOptions = 0x110001;
+
+constexpr float kGammaScale = 0.02f;   // value * 0.02 - 1
+constexpr float kSlideSeconds = 0.5f;
+
+constexpr int kScanEsc = 1;              // the scan code that gives up a key binding
+
+// The end of the key name table (88 entries of 0x48 bytes).
+const UiKeyName* KeyNamesEnd() { return g_keyNames + kUiKeyNameCount; }
 } // namespace
+
+const ActionDefinition kActionDefinitions[60] = /*00787070*/ {
+    {0, "", 0, 0},
+    {1, "pause", 3, 4},
+    {2, "decel", 3, 3},
+    {3, "accel", 3, 2},
+    {4, "obj", 3, 6},
+    {5, "camera_up", 6, 1},
+    {6, "camera_down", 6, 2},
+    {7, "camera_left", 6, 3},
+    {8, "camera_right", 6, 4},
+    {9, "camera_zoom_in", 6, 5},
+    {10, "camera_zoom_out", 6, 6},
+    {11, "camera_track", 6, 0},
+    {12, "camera_norm", 6, 8},
+    {13, "camera1", 6, 9},
+    {14, "camera2", 6, 10},
+    {15, "camera3", 6, 11},
+    {16, "camera4", 6, 12},
+    {17, "cs_head", 9, 0},
+    {18, "cs_body", 9, 1},
+    {19, "cs_rleg", 9, 2},
+    {20, "cs_lleg", 9, 3},
+    {21, "cs_rhand", 9, 4},
+    {22, "cs_lhand", 9, 5},
+    {23, "crawl", 5, 7},
+    {24, "sneak", 5, 6},
+    {25, "walk", 5, 5},
+    {26, "run", 5, 4},
+    {27, "swarm", 5, 2},
+    {28, "follow", 5, 0},
+    {29, "use_science", 5, 1},
+    {30, "spell1", 8, 0},
+    {31, "spell2", 8, 1},
+    {32, "spell3", 8, 2},
+    {33, "spell4", 8, 3},
+    {34, "spell5", 8, 4},
+    {35, "spell6", 8, 5},
+    {36, "spell7", 8, 6},
+    {37, "spell8", 8, 7},
+    {38, "weapon1", 7, 0},
+    {39, "weapon2", 7, 1},
+    {40, "weapon3", 7, 2},
+    {41, "weapon4", 7, 3},
+    {42, "item1", 7, 5},
+    {43, "item2", 7, 6},
+    {44, "item3", 7, 7},
+    {45, "item4", 7, 8},
+    {46, "w_info1", 10, 3},
+    {47, "w_info2", 10, 4},
+    {48, "w_info3", 10, 5},
+    {49, "w_info4", 10, 6},
+    {50, "w_text1", 10, 0},
+    {51, "w_text2", 10, 1},
+    {52, "w_minimap", 10, 8},
+    {53, "quicksave", 3, 8},
+    {54, "quickload", 3, 9},
+    {55, "select1", 4, 0},
+    {56, "select2", 4, 1},
+    {57, "select3", 4, 2},
+    {58, "select_all", 4, 4},
+    {59, "tutorial_script", 10, 10},
+};
 
 void OptionsWindow::RefreshRows() {
     highlight->visible = false;
@@ -462,35 +544,349 @@ void OptionsWindow::Apply() {
     options::g_options.Save();
 }
 
-// --- The slider's layout -------------------------------------------------------------------
+// --- Options window ------------------------------------------------------------------
 
-void UiSlider::SetRect(const Rect* newRect) {
-    rect = *newRect;
-    const Rect bar = newRect->BottomStrip(10);   // the arrows at both ends, the track between them
-    track = bar.Inset(26, 0);
+void OptionsWindow::CreateScreen() {
+    rect = Rect{0, 0, 800, 600};
+    LoadTexture("saveload", TextureKind::Interface);
+    CreateTexture(0x100, 0x100, TextureKind::Blank565);
 
-    trackSprite->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,
-                              0xFC);
-    trackSprite->Place((newRect->right + newRect->left) * 0.5f, static_cast<float>(newRect->bottom - 5), depth);
-    TurnQuarter(trackSprite);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
+    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
+    okButton = AddRect(this, 213, 526, 287, 574);
+    okButton->SetTip(0x111D4);
+    cancelButton = AddRect(this, 513, 526, 587, 574);
+    cancelButton->SetTip(0x111D5);
+    highlight = AddBlankSprite();
+    highlight->SetRectangle(kDialogDepth, kSpriteScale, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
+    highlight->texture = nullptr;
+    highlight->flatColour = 0xC8A06800;
+    highlight->flags |= FigureMeshFlag::Flat;
 
-    thumbSprite->SetRectangle(depth - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
-    TurnQuarter(thumbSprite);
+    // The option groups, each with its button sprite, tooltip and title.
+    std::string text;
+    for (int k = 0, top = 156; k < kGroups; ++k, top += 24) {
+        groupButtons[k] = AddRect(this, 100, top, 250, top + 24);
+        groupIcons[k] = AddBlankSprite();
+        groupIcons[k]->SetRectangle(kDialogDepth, kSpriteScale, 110.0f, static_cast<float>(top + 2), 240.0f,
+                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
+        text = std::format("tip option_group_{}", OptionGroupName(k));
+        if (g_clientWorld.texts->Open(text) != 0) text = g_clientWorld.texts->ReadToHash();
+        groupButtons[k]->SetTipString(text);
+        {
+            std::string prefix("option_group_");
+            std::string key = prefix + OptionGroupName(k);
+            text = g_clientWorld.texts->GetString(key);
+        }
+        groupNames.push_back(text);
+    }
 
-    upArrow->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
-    upArrow->Place(static_cast<float>(newRect->right - 6), static_cast<float>(newRect->bottom - 5), depth);
-    TurnQuarter(upArrow);
+    Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
+    Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
+    for (int row = 0, top = 156; row < kRows; ++row, top += 24) rowAreas[row] = AddRect(this, 250, top, 520, top + 24);
+    UiSurface* surface = AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}));
+    surface->PaintWith([this](UiSurface& out) { PaintRows(out); });
 
-    downArrow->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
-    downArrow->Place(static_cast<float>(newRect->left + 6), static_cast<float>(newRect->bottom - 5), depth);
-    TurnQuarter(downArrow);
+    UiModel* model = AddMenuModel(this, kOptionsTilt);
+    model->SetScreenPosition(400.0f, 700.0f, 4.8f);
+    model->ShowAllParts(0);
+    model->ShowPart("options", 1);
+    model->ShowPart("optionslabel", 1);
 
-    upButton->SetRect(bar.LeftStrip(12));
-    downButton->SetRect(bar.RightStrip(12));
-    trackArea->SetRect(newRect->Inset(0, 0, 0, 10));
+    if (sliding) slide = 0.0f;
+    waitingForKey = false;
+    pressedKey = nullptr;
+    BuildSettings();
+    LoadSettings();
+    BuildBindings();
+    shadowsChanged = false;
+    ShowGroup(0);
+    if (!sliding) ui->OpenHelp(false);
+}
 
-    // The position set again (one below first, so the change virtual sees a change).
-    int currentPosition = position;
-    position = currentPosition - 1;
-    SetPosition(currentPosition);
+// --- Options window ----------------------------------------------------------------------------
+
+void OptionsWindow::RestoreSettings() {
+    // The values the window saved when it opened.
+    g_clientWorld.sounds->SetEffectsVolume(options::g_options.audioSfx);
+    g_clientWorld.sounds->SetMusicVolume(options::g_options.audioStreaming);
+    g_clientWorld.sounds->SetSpeechVolume(options::g_options.audioSpeech);
+    // The scene renderer's gamma.
+    g_sceneRenderer.SetGamma(options::g_options.brightness, options::g_options.gamma);
+}
+
+void OptionsWindow::LeftDown(UiEvent& event) {
+    if (sliding) return;
+    if (popup) {
+        UiContainer::OnEvent(event);
+        return;
+    }
+    const UiRegion* region = RegionUnder(event.at);
+    if (region == okButton || region == cancelButton) {
+        const char* sound;
+        if (region == okButton) {
+            Apply();
+            sound = kMessageBoxOkSound;
+        } else {
+            RestoreSettings();
+            sound = kMessageBoxCancelSound;
+        }
+        ui->PlayInterfaceSound(sound);
+        ui->SetPendingValue(kCloseOptions);
+    } else {
+        if (const int groupIndex = RegionIndex(groupButtons, region); groupIndex >= 0) {
+            ui->PlayInterfaceSound(kSaveSelectSound);
+            waitingForKey = false;
+            ShowGroup(groupIndex);
+        }
+        if (const int rowIndex = RegionIndex(rowAreas, region); rowIndex >= 0) {
+            const OptionRow& row = rows[rowIndex];
+            if (row.binding || row.setting) {
+                ui->PlayInterfaceSound(kSaveSelectSound);
+                selectedRow = rowIndex;
+                waitingForKey = false;
+                RefreshRows();
+            }
+        }
+    }
+    UiContainer::OnEvent(event);
+}
+
+void OptionsWindow::LeftDouble(UiEvent& event) {
+    if (sliding) return;
+    if (popup) {
+        UiContainer::OnEvent(event);
+        return;
+    }
+    if (const int rowIndex = RegionIndex(rowAreas, RegionUnder(event.at)); rowIndex >= 0) {
+        const OptionRow& row = rows[rowIndex];
+        if (row.binding) {
+            ui->PlayInterfaceSound(kSaveSelectSound);
+            selectedRow = rowIndex;
+            waitingForKey = true;
+            RefreshRows();
+        } else if (row.setting && row.setting->list) {
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
+            row.setting->list->Open();
+        } else if (row.setting && row.setting->spin) {
+            const int value = row.setting->spin->TakeValue();
+            row.setting->spin->SetValue(value + 1);
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
+            RefreshRows();
+        }
+    }
+    UiContainer::OnEvent(event);
+}
+
+void OptionsWindow::DrawSprites(SceneRenderer* pass) {
+    if (!sliding) {
+        surfaces[0]->Show();
+        models[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
+        UiContainer::DrawSprites(pass);
+        return;
+    }
+    surfaces[0]->Hide();
+    float e = Ease(slide);
+    UiModel* model = models[0].get();
+    if (!model) return;
+    float y = (480.0f - 700.0f) * e + 700.0f;
+    model->SetScreenPosition(400.0f, y, 4.8f);
+    model->Draw(pass);
+}
+
+void OptionsWindow::DrawSurfaces() {
+    if (!sliding) UiContainer::DrawSurfaces();
+}
+
+void OptionsWindow::MessageResult(std::uint32_t result) {
+    if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) CommitBinding();
+    RefreshRows();
+}
+
+const char* OptionsWindow::HelpTopic() {
+    // "options" unless a key binding waits for its key.
+    return waitingForKey ? nullptr : "options";
+}
+
+// The volumes, the display's brightness and gamma, the shadows and the stereo switch are applied while the window is open.
+
+void OptionsWindow::Update() {
+    UiContainer::Update();
+    if (sliding) {
+        float slideAt = FrameTime() / kSlideSeconds + slide;
+        slide = slideAt;
+        if (slideAt > 1.0f) {
+            sliding = false;
+            ui->OpenHelp(false);
+        }
+    }
+    for (int i = 0; i < kOptionCount; ++i) {
+        OptionSetting& setting = settings[i];
+        if (setting.bar && setting.bar->TakeMoved()) {
+            const int value = setting.bar->Position();
+            setting.value = value;
+            if (i == kOptionSfxVolume) {
+                g_clientWorld.sounds->SetEffectsVolume(value);
+            } else if (i == kOptionStreamVolume) {
+                g_clientWorld.sounds->SetMusicVolume(value);
+            } else if (i == kOptionVoiceVolume) {
+                g_clientWorld.sounds->SetSpeechVolume(value);
+            } else if (i == kOptionBrightness || i == kOptionGamma) {
+                float brightness = settings[kOptionBrightness].value * kGammaScale - 1.0f;
+                float gamma = settings[kOptionGamma].value * kGammaScale - 1.0f;
+                g_sceneRenderer.SetGamma(brightness, gamma);
+            }
+        }
+        if (setting.list && setting.list->TakeChanged()) setting.value = setting.list->value;
+        if (setting.spin && setting.spin->TakeChanged()) {
+            const int value = setting.spin->Value();
+            setting.value = value;
+            if (i == kOptionShadows)
+                shadowsChanged = true;
+            else if (i == kOptionReverseStereo)   // the sound system's pan switch
+                g_clientWorld.sounds->panDirect = value != 0;
+        }
+    }
+}
+
+void OptionsWindow::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: LeftDown(event); break;
+    case UiEventKind::LeftDouble: LeftDouble(event); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void OptionsWindow::KeyDown(UiEvent& event) {
+    if (sliding) return;
+    const bool listOpen = popup != nullptr;
+    UiContainer::OnEvent(event);
+    if (listOpen) return;   // the open list took the key (Enter or Escape may have closed it)
+    if (waitingForKey) {
+        // The key for the selected binding row, by scan code.
+        event.handled = true;
+        if (event.scan == kScanEsc) {
+            waitingForKey = false;
+            RefreshRows();
+            return;
+        }
+        const UiKeyName* pressed = nullptr;
+        pressedKey = nullptr;
+        for (const UiKeyName* k = g_keyNames; k < KeyNamesEnd(); ++k) {
+            if (k->scan == event.scan) {
+                pressed = k;
+                pressedKey = k;
+                break;
+            }
+        }
+        if (!pressed) {
+            ui->PlayInterfaceSound(kMessageBoxCancelSound);
+            return;
+        }
+        waitingForKey = false;
+        OptionBinding* binding = rows[selectedRow].binding;
+        if (!binding) {
+            RefreshRows();
+            return;
+        }
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
+        int code = keyOfScan[pressed->scan];
+        OptionBinding* other = nullptr;
+        for (OptionBinding& b : bindings) {
+            if (b.action->id == code) {
+                other = &b;
+                break;
+            }
+        }
+        if (other && other != binding) {
+            // Already bound to another action: ask (the box's result goes to MessageResult).
+            auto box = std::make_unique<MessageWindow>(ui, "key_already_mapped", "key_already_mapped_msg", MessageQuestion::First, MessageButtons::OkCancel);
+            std::string format;
+            std::string message;
+            format = g_clientWorld.texts->GetString("key_already_mapped_msg");
+            message = str::Format(format, pressed->name, other->name);
+            box->text = message.c_str();
+            ui->PushWindow(std::move(box), WindowBackdrop::FirstWindow);
+            return;
+        }
+        CommitBinding();
+        RefreshRows();
+        return;
+    }
+
+    switch (event.key) {
+    case platform::Key::Return: {
+        OptionRow& row = rows[selectedRow];
+        if (row.binding) {
+            waitingForKey = true;
+        } else if (row.setting && row.setting->list) {
+            row.setting->list->Open();
+        } else {
+            if (!row.setting || !row.setting->spin) {
+                event.handled = true;
+                return;
+            }
+            const int value = row.setting->spin->TakeValue();
+            rows[selectedRow].setting->spin->SetValue(value + 1);
+        }
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
+        RefreshRows();
+        event.handled = true;
+        return;
+    }
+    case platform::Key::Escape:
+        RestoreSettings();
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
+        ui->SetPendingValue(kCloseOptions);
+        break;
+    case platform::Key::PageUp:
+    case platform::Key::PageDown:
+        ui->PlayInterfaceSound(kSaveSelectSound);
+        ShowGroup(event.key == platform::Key::PageUp ? group - 1 : group + 1);
+        break;
+    case platform::Key::Left:
+    case platform::Key::Right: {
+        // The row's bar moves one step, or its spin control steps back or on; the event is not marked used.
+        OptionSetting* setting = rows[selectedRow].setting;
+        if (!setting) return;
+        if (setting->list) {
+            setting->list->Step(event.key == platform::Key::Left ? -1 : 1);
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
+            return;
+        }
+        if (setting->spin) {
+            setting->spin->Step(event.key == platform::Key::Left ? -1 : 1);
+            ui->PlayInterfaceSound(kMessageBoxOkSound);
+            return;
+        }
+        if (!setting->bar) return;
+        const int position = setting->bar->TakePosition();
+        rows[selectedRow].setting->bar->SetPosition(event.key == platform::Key::Left ? position - 1 : position + 1);
+        return;
+    }
+    case platform::Key::Up:
+        ui->PlayInterfaceSound(kSaveSelectSound);
+        for (int i = selectedRow - 1; i >= 0; --i) {
+            if (rows[i].binding || rows[i].setting) {
+                selectedRow = i;
+                RefreshRows();
+                break;
+            }
+        }
+        break;
+    case platform::Key::Down:
+        ui->PlayInterfaceSound(kSaveSelectSound);
+        for (int i = selectedRow + 1; i < kRows; ++i) {
+            if (rows[i].binding || rows[i].setting) {
+                selectedRow = i;
+                RefreshRows();
+                break;
+            }
+        }
+        break;
+    default:
+        return;
+    }
+    event.handled = true;
 }

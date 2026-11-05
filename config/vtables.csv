@@ -329,7 +329,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FB44,13,,game,005A7080 005A70C0,005A70A0,FigureDrawerBase,-,the drawer's base class: stored by game.exe's destructors 005A7080 / 005A70C0 (ours is FigureMeshDrawer alone)
 0073FB88,26,,game,005AA070 005AA1C0,005AA1A0,FigureManager,src/game/figure_manager.h,
 0073FBF0,22,,game,005AA8E0,005AADA0,SharedFigureMesh,-,class 0x41: stored by game.exe's constructors (ours is FigureMesh)
-0073FC48,24,,game,005AA8E0 005AAD00,005AACE0,UiMesh,src/game/ui.h,class 0x43 (CI3DFigure)
+0073FC48,24,,game,005AA8E0 005AAD00,005AACE0,UiMesh,src/game/ui_mesh.h,class 0x43 (CI3DFigure)
 0073FCF0,3,,game,005B0600 005B19A0,007005E3,AiMapListClass,-,CList (the AI map's lists); stored only by game.exe (ours is a std::list)
 0073FCFC,3,,game,005B0600 005B0AF0 005B1810,007005E3,BlockCostListClass,-,CList (the AI's block cost lists); stored only by game.exe (ours is a std::list)
 0073FD58,1,,game,005B32E0,005B33D0,UnitShapeCache,src/game/ai_shape_cache.h,the unit shapes' cache (007C2F70)
@@ -351,8 +351,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FF80,3,,game,005D1140 005D1240 005D8CF0 005D95B0,007005E3,PatrolPointsBaseClass,-,CArray (a patrol mode's points; the destructors': the same slots); stored only by game.exe (ours is a std::vector)
 0073FF8C,13,,game,005D2850 005D2880 005D28F0 005D6480 005D8310,005D2930,FearMode,src/game/unit_ai.h,the Fear AI mode
 00740034,11,,game,005DC200 005DC260,005DC240,ConsoleStreambuf,-,"stored only by game.exe's 005DC200 / 005DC260 (the console streambuf's constructor and destructor); ours (console.h) has no virtual functions"
-007400A8,13,,game,005E26F0,005E3C80,ChatOverlay,src/game/ui.h,the chat overlay's input side
-007400DC,25,,game,005E26F0,005E28C0,ChatOverlay,src/game/ui.h,the multiplayer chat overlay (CChatOverlay)
+007400A8,13,,game,005E26F0,005E3C80,ChatOverlay,src/game/ui_chat_overlay.h,the chat overlay's input side
+007400DC,25,,game,005E26F0,005E28C0,ChatOverlay,src/game/ui_chat_overlay.h,the multiplayer chat overlay (CChatOverlay)
 0074019C,13,,game,005EA600,005EA810,ui mesh local,-,stored only by game.exe's 005EA600 (CUiMesh::SetVertexCount stores none)
 007401D0,13,,game,005EA830 005EA850 005EACF0 005EB620 005EB910 005FE700 005FE900 005FE930 00602BA0,005EA850,UiInputSide,-,"the base input side (also stored by game.exe's dead 005EA830 / 005EB620 and the unwind-only 005FE900); ours has none: a window's OnEvent takes a UiEvent (C97)"
 00740208,13,,game,005EACB0,005EACD0,CameraInput,src/game/ui_camera_keys.h,the battle camera's input side (CCameraInput)
@@ -368,8 +368,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 007405AC,42,,game,005F5BA0,005F6B80,BriefingScreen,src/game/ui_briefing.h,the briefing screen (CBriefingScreen)
 00740654,13,,game,005F5BA0,005FC120,MainMenu,src/game/ui_screens.h,the main menu's input side
 00740688,42,,game,005F5BA0,005F5F60,MainMenu,src/game/ui_screens.h,the main menu (CMainMenu)
-00740730,13,,game,005F5BA0,005FC0E0,BattleScreen,src/game/ui.h,the battle screen's input side
-00740764,42,,game,005F5BA0,005F5FC0,BattleScreen,src/game/ui.h,the battle screen (CBattleScreen)
+00740730,13,,game,005F5BA0,005FC0E0,BattleScreen,src/game/ui_battle.h,the battle screen's input side
+00740764,42,,game,005F5BA0,005F5FC0,BattleScreen,src/game/ui_battle.h,the battle screen (CBattleScreen)
 0074080C,13,,game,005F5BA0,005FC140,ViewScreen,src/game/ui_view_screen.h,the view screen's input side
 00740840,42,,game,005F5BA0,005F5F30,ViewScreen,src/game/ui_view_screen.h,the view screen (CViewScreen)
 007408E8,13,,game,005F6240 00617050 00618060,005FC100,CampPages,src/game/ui_camp.h,the camp's input side
@@ -385,8 +385,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00740C3C,42,,game,005F6D50 00632D70,005F6E20,CreditsScreen,src/game/ui_screens.h,the titles (CCreditsScreen)
 00740CE4,13,,game,005F6F30,005FC110,ExchangeScreen,src/game/ui_screens.h,the exchange's input side
 00740D18,55,,game,005F6F30,005F6FF0,ExchangeScreen,src/game/ui_screens.h,the exchange between players (CExchangeScreen)
-00740DF4,13,,game,005F86F0 005F8A80,005FC0D0,HelpWindow,src/game/ui.h,the help window's input side
-00740E28,42,,game,005F86F0 005F8A80,005F8950,HelpWindow,src/game/ui.h,the help / message window (CHelpWindow)
+00740DF4,13,,game,005F86F0 005F8A80,005FC0D0,HelpWindow,src/game/ui_help_window.h,the help window's input side
+00740E28,42,,game,005F86F0 005F8A80,005F8950,HelpWindow,src/game/ui_help_window.h,the help / message window (CHelpWindow)
 00740F28,1,,game,005FCC00 005FCDD0 005FCF80 005FD120 005FD440,005FDA80,UiSurface,src/game/ui.h,a window's off-screen surface (CUiSurface)
 00740F2C,13,,game,005FE700 005FE930,00600AC0,UiWindow,src/game/ui.h,the plain window's input side (CUiWindow's UiInputSide)
 00740F60,25,,game,005FE700 005FE930,005FE910,UiWindow,src/game/ui.h,the plain window (CUiWindow)
@@ -394,13 +394,13 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00740FE8,8,,game,006DBE20,006013B0,UiContainer,src/game/ui.h,the container input side's tail (a byte match in 006DBE20 split it off)
 00741008,42,,game,00600B20 00600BA0,00600B80,UiContainer,src/game/ui.h,the container (CUiContainer)
 00741154,13,,game,006024B0 0062A830 006326B0 00635250,00602B80,UiInertInput,-,an inert extra input side; stored only by game.exe (ours adds none: it did nothing)
-00741188,13,,game,006034A0 0062F950 0063B5D0 00648F10,0060C7C0,ObjectivesWindow,src/game/ui.h,the objectives window's input side
-007411BC,42,,game,006034A0 0062F950 0063B5D0 00648F10,00603B70,ObjectivesWindow,src/game/ui.h,the objectives window (CObjectivesWindow)
+00741188,13,,game,006034A0 0062F950 0063B5D0 00648F10,0060C7C0,ObjectivesWindow,src/game/ui_objectives.h,the objectives window's input side
+007411BC,42,,game,006034A0 0062F950 0063B5D0 00648F10,00603B70,ObjectivesWindow,src/game/ui_objectives.h,the objectives window (CObjectivesWindow)
 00741264,3,,game,006034A0 00603B90 0060A870 0062F950 0063B5D0 00648F10,007005E3,ObjectiveExitArrayClass,-,CArray (the objectives window's exits); stored only by game.exe (ours is a std::vector)
 00741270,13,,game,006034A0 00630580 0063A560,0060C7E0,EscMenu,src/game/ui_screens.h,the Esc menu's input side
 007412A4,42,,game,006034A0 00630580 0063A560,00603CD0,EscMenu,src/game/ui_screens.h,the Esc menu (CEscMenu)
-00741354,13,,game,00606F40 0062AE90 00632D70 00635EB0,0060C7B0,SaveLoadWindow,src/game/ui.h,the save / load window's input side
-00741388,42,,game,00606F40 0062AE90 00632D70 00635EB0,006070A0,SaveLoadWindow,src/game/ui.h,the save / load window (CSaveLoadWindow)
+00741354,13,,game,00606F40 0062AE90 00632D70 00635EB0,0060C7B0,SaveLoadWindow,src/game/ui_saveload.h,the save / load window's input side
+00741388,42,,game,00606F40 0062AE90 00632D70 00635EB0,006070A0,SaveLoadWindow,src/game/ui_saveload.h,the save / load window (CSaveLoadWindow)
 00741444,13,,game,00608D20,0060C7D0,ChatWindow,src/game/ui_briefing.h,the briefing's chat window's input side
 00741478,25,,game,00608D20,00608EB0,ChatWindow,src/game/ui_briefing.h,the briefing's chat window (CChatWindow)
 00741504,13,,game,0060C870,00613DA0,RepairGrid,src/game/ui_camp.h,the camp repair grid's input side (CRepairGrid)
@@ -424,8 +424,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00741A1C,27,,game,0060C870,0060E260,UiItemStrip,src/game/ui_screens.h,the plain item strip (CUiItemStrip: the camp's spell and part strips; slot 26 _purecall)
 00741A88,13,,game,0060C870 00613EA0,00613DD0,HeroStatsPanel,src/game/ui_camp.h,the hero statistics column's input side (CHeroStatsPanel)
 00741ABC,26,,game,0060C870 00613EA0,0060E340,HeroStatsPanel,src/game/ui_camp.h,the hero statistics column (CHeroStatsPanel)
-00741B24,13,,game,0060C870 0060E210 00613EA0 0062C250,00613D50,UiItemPanel,src/game/ui.h,the blank item panel's input side (CUiItemPanel::ConstructBlank)
-00741B58,26,,game,0060C870 0060E210 00613EA0 0062C250,0060E240,UiItemPanel,src/game/ui.h,the blank item panel (CUiItemPanel::ConstructBlank; the item strips' base)
+00741B24,13,,game,0060C870 0060E210 00613EA0 0062C250,00613D50,UiItemPanel,src/game/ui_item_info.h,the blank item panel's input side (CUiItemPanel::ConstructBlank)
+00741B58,26,,game,0060C870 0060E210 00613EA0 0062C250,0060E240,UiItemPanel,src/game/ui_item_info.h,the blank item panel (CUiItemPanel::ConstructBlank; the item strips' base)
 00741BC0,3,,game,0060E2B0 00613670 00613A30 0062C250,007005E3,ItemStripArrayClass,-,CArray (an item strip's CArray<char*>); stored only by game.exe (ours is a std::vector)
 00741BF4,27,,game,00613EA0 0062C250,006157D0,FigureStrip,src/game/ui_screens.h,the figure strip (CFigureStrip::SetupFigures: the hero screen's and the exchange's)
 00741C60,13,,game,00613EA0 0062C250,0061B210,FigureStrip,src/game/ui_screens.h,the figure strip's input side (CUiItemStrip)
@@ -433,47 +433,47 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00741CD0,42,,game,006183B0,00618550,MpConnectScreen,src/game/ui_screens.h,the multiplayer connection screen (CMpConnectScreen)
 00741DA4,13,,game,0061E2F0,00620300,MasterRequestBox,src/game/ui_screens.h,the master server request box's input side
 00741DD8,42,,game,0061E2F0,0061E440,MasterRequestBox,src/game/ui_screens.h,the master server request box (CMasterRequestBox)
-00741F78,13,,game,0062AE90 00632D70,0062B770,OptionsWindow,src/game/ui.h,the options window's input side
-00741FAC,42,,game,0062AE90 00632D70,0062B160,OptionsWindow,src/game/ui.h,the options window (COptionsWindow)
+00741F78,13,,game,0062AE90 00632D70,0062B770,OptionsWindow,src/game/ui_options.h,the options window's input side
+00741FAC,42,,game,0062AE90 00632D70,0062B160,OptionsWindow,src/game/ui_options.h,the options window (COptionsWindow)
 007420D4,3,,game,0062D350,0049A090,GlobalMapClouds,src/game/global_map_clouds.h,the global map's clouds (derived from CCloudNoise; ours has no virtual functions)
 00742118,13,,game,00632D70,006345F0,MpHeroScreen,src/game/ui_screens.h,the hero screen's input side
 0074214C,55,,game,00632D70,00633240,MpHeroScreen,src/game/ui_screens.h,the multiplayer hero screen (CMpHeroScreen)
-00742228,13,,game,00632D70 006335E0,006345E0,DifficultyBox,src/game/ui.h,the difficulty question's input side
-0074225C,42,,game,00632D70 006335E0,00633730,DifficultyBox,src/game/ui.h,the difficulty question (CDifficultyBox)
-00742314,13,,game,00634650,00634FD0,MessageWindow,src/game/ui.h,the message box's input side
-00742348,42,,game,00634650,00634770,MessageWindow,src/game/ui.h,the message box (CMessageBox)
-00742464,6,,game,00635250,0064BD80,HudTopPanel,src/game/ui.h,the HUD top panel's input side
-0074247C,7,,game,005FE440,005E2850,HudTopPanel,src/game/ui.h,the top panel input side's tail (a byte match in 005FE440 split it off)
-00742498,25,,game,00635250,00635DE0,HudTopPanel,src/game/ui.h,the HUD top panel (CHudTopPanel)
-007424FC,13,,game,00635250,0064BD70,HudMovePanel,src/game/ui.h,the HUD movement panel's input side
-00742530,25,,game,00635250,00635DB0,HudMovePanel,src/game/ui.h,the HUD movement panel (CHudMovePanel)
-00742594,13,,game,00635250,0064BD60,HudClock,src/game/ui.h,the HUD clock's input side
-007425C8,25,,game,00635250,00635D80,HudClock,src/game/ui.h,the HUD clock (CHudClock)
-0074262C,13,,game,00635250,0064BD50,HudMap,src/game/ui.h,the HUD map's input side
-00742660,25,,game,00635250,00635C80,HudMap,src/game/ui.h,the HUD map (CHudMap)
-007426C4,13,,game,00635250,0064BD40,HudUnitPanel,src/game/ui.h,the HUD unit panel's input side
-007426F8,25,,game,00635250,00635CE0,HudUnitPanel,src/game/ui.h,the HUD unit panel (CHudUnitPanel)
-00742768,13,,game,0063BAB0,0064BCF0,HudWeaponBar,src/game/ui.h,the HUD weapon bar's input side
-0074279C,25,,game,0063BAB0,0063BC50,HudWeaponBar,src/game/ui.h,the HUD weapon bar (CHudWeaponBar)
-00742808,13,,game,0063C800,0064BD00,HudQuickItems,src/game/ui.h,the HUD quick items' input side
-0074283C,25,,game,0063C800,0063CA50,HudQuickItems,src/game/ui.h,the HUD quick items (CHudQuickItems)
+00742228,13,,game,00632D70 006335E0,006345E0,DifficultyBox,src/game/ui_message_box.h,the difficulty question's input side
+0074225C,42,,game,00632D70 006335E0,00633730,DifficultyBox,src/game/ui_message_box.h,the difficulty question (CDifficultyBox)
+00742314,13,,game,00634650,00634FD0,MessageWindow,src/game/ui_message_box.h,the message box's input side
+00742348,42,,game,00634650,00634770,MessageWindow,src/game/ui_message_box.h,the message box (CMessageBox)
+00742464,6,,game,00635250,0064BD80,HudTopPanel,src/game/ui_hud.h,the HUD top panel's input side
+0074247C,7,,game,005FE440,005E2850,HudTopPanel,src/game/ui_hud.h,the top panel input side's tail (a byte match in 005FE440 split it off)
+00742498,25,,game,00635250,00635DE0,HudTopPanel,src/game/ui_hud.h,the HUD top panel (CHudTopPanel)
+007424FC,13,,game,00635250,0064BD70,HudMovePanel,src/game/ui_hud.h,the HUD movement panel's input side
+00742530,25,,game,00635250,00635DB0,HudMovePanel,src/game/ui_hud.h,the HUD movement panel (CHudMovePanel)
+00742594,13,,game,00635250,0064BD60,HudClock,src/game/ui_hud.h,the HUD clock's input side
+007425C8,25,,game,00635250,00635D80,HudClock,src/game/ui_hud.h,the HUD clock (CHudClock)
+0074262C,13,,game,00635250,0064BD50,HudMap,src/game/ui_hud.h,the HUD map's input side
+00742660,25,,game,00635250,00635C80,HudMap,src/game/ui_hud.h,the HUD map (CHudMap)
+007426C4,13,,game,00635250,0064BD40,HudUnitPanel,src/game/ui_hud.h,the HUD unit panel's input side
+007426F8,25,,game,00635250,00635CE0,HudUnitPanel,src/game/ui_hud.h,the HUD unit panel (CHudUnitPanel)
+00742768,13,,game,0063BAB0,0064BCF0,HudWeaponBar,src/game/ui_hud.h,the HUD weapon bar's input side
+0074279C,25,,game,0063BAB0,0063BC50,HudWeaponBar,src/game/ui_hud.h,the HUD weapon bar (CHudWeaponBar)
+00742808,13,,game,0063C800,0064BD00,HudQuickItems,src/game/ui_hud.h,the HUD quick items' input side
+0074283C,25,,game,0063C800,0063CA50,HudQuickItems,src/game/ui_hud.h,the HUD quick items (CHudQuickItems)
 007428A0,3,,game,0063C800 0063CA70 0064B1C0,007005E3,QuickEntryArrayClass,-,CArray (the HUD's quick item entries); stored only by game.exe (ours is a std::vector)
-007428B0,13,,game,0063E2A0,0064BD10,HudSpellColumn,src/game/ui.h,the HUD spell column's input side
-007428E4,25,,game,0063E2A0,0063E440,HudSpellColumn,src/game/ui.h,the HUD spell column (CHudSpellColumn)
-0074294C,13,,game,0063F300,0064BD20,HudActionColumn,src/game/ui.h,the HUD action column's input side
-00742980,25,,game,0063F300,0063F470,HudActionColumn,src/game/ui.h,the HUD action column (CHudActionColumn)
-007429E4,13,,game,0063FE70,0064BD30,HudPortraits,src/game/ui.h,the HUD portraits' input side
-00742A18,25,,game,0063FE70,0063FF50,HudPortraits,src/game/ui.h,the HUD portraits (CHudPortraits)
-00742BE4,13,,game,0065AEA0 0065AFC0 0065BCB0 0065CE20,0065CB70,UiScrollbar,src/game/ui.h,the scroll bar's input side
-00742C18,27,,game,0065AEA0 0065AFC0 0065BCB0 0065CE20,0065AFA0,UiScrollbar,src/game/ui.h,the scroll bar (CUiScrollbar)
-00742C88,13,,game,0065BC30,0065CB80,UiSlider,src/game/ui.h,the options slider's input side
-00742CBC,27,,game,0065BC30,0065BC90,UiSlider,src/game/ui.h,the options slider (CUiSlider)
-00742D28,13,,game,0065BCD0 0065BE10,0065CB90,UiSpin,src/game/ui.h,the options spin's input side
-00742D5C,25,,game,0065BCD0 0065BE10,0065BDF0,UiSpin,src/game/ui.h,the options spin (CUiSpin)
-00742DC0,13,,game,0065C010 0065C140,0065CBA0,UiEditField,src/game/ui.h,the edit field's input side
-00742DF4,25,,game,0065C010 0065C140,0065C120,UiEditField,src/game/ui.h,the edit field (CUiEditField)
-00742E68,13,,game,0065CC00 0065CE20,0065E2B0,UiScrollText,src/game/ui.h,the scrolling text's input side
-00742E9C,27,,game,0065CC00 0065CE20,0065CE00,UiScrollText,src/game/ui.h,the scrolling text (CUiScrollText)
+007428B0,13,,game,0063E2A0,0064BD10,HudSpellColumn,src/game/ui_hud.h,the HUD spell column's input side
+007428E4,25,,game,0063E2A0,0063E440,HudSpellColumn,src/game/ui_hud.h,the HUD spell column (CHudSpellColumn)
+0074294C,13,,game,0063F300,0064BD20,HudActionColumn,src/game/ui_hud.h,the HUD action column's input side
+00742980,25,,game,0063F300,0063F470,HudActionColumn,src/game/ui_hud.h,the HUD action column (CHudActionColumn)
+007429E4,13,,game,0063FE70,0064BD30,HudPortraits,src/game/ui_hud.h,the HUD portraits' input side
+00742A18,25,,game,0063FE70,0063FF50,HudPortraits,src/game/ui_hud.h,the HUD portraits (CHudPortraits)
+00742BE4,13,,game,0065AEA0 0065AFC0 0065BCB0 0065CE20,0065CB70,UiScrollbar,src/game/ui_scrollbar.h,the scroll bar's input side
+00742C18,27,,game,0065AEA0 0065AFC0 0065BCB0 0065CE20,0065AFA0,UiScrollbar,src/game/ui_scrollbar.h,the scroll bar (CUiScrollbar)
+00742C88,13,,game,0065BC30,0065CB80,UiSlider,src/game/ui_scrollbar.h,the options slider's input side
+00742CBC,27,,game,0065BC30,0065BC90,UiSlider,src/game/ui_scrollbar.h,the options slider (CUiSlider)
+00742D28,13,,game,0065BCD0 0065BE10,0065CB90,UiSpin,src/game/ui_spin.h,the options spin's input side
+00742D5C,25,,game,0065BCD0 0065BE10,0065BDF0,UiSpin,src/game/ui_spin.h,the options spin (CUiSpin)
+00742DC0,13,,game,0065C010 0065C140,0065CBA0,UiEditField,src/game/ui_edit_field.h,the edit field's input side
+00742DF4,25,,game,0065C010 0065C140,0065C120,UiEditField,src/game/ui_edit_field.h,the edit field (CUiEditField)
+00742E68,13,,game,0065CC00 0065CE20,0065E2B0,UiScrollText,src/game/ui_scroll_text.h,the scrolling text's input side
+00742E9C,27,,game,0065CC00 0065CE20,0065CE00,UiScrollText,src/game/ui_scroll_text.h,the scrolling text (CUiScrollText)
 00742F08,3,,game,0065CC00 0065CE20 0065DE20,007005E3,LinePtrArrayClass,-,CArray (the scroll text's line pointers); stored only by game.exe (ours is a std::vector)
 00742F14,3,,game,0065CC00 0065CE20 0065DC70,007005E3,TokenPtrArrayClass,-,CArray (the scroll text's token pointers); stored only by game.exe (ours is a std::vector)
 00742F20,1,,game,0065D4B0 0065D910,0065D8F0,UiWordToken,-,a scrolling text's word (UiWordToken); stored only by game.exe (ours is a TextToken value of TokenKind::Word)

@@ -6,6 +6,9 @@
 #include "party.h"
 #include "saved_parties.h"
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_scrollbar.h"
+#include "ui_edit_field.h"
 #include "ui_screens.h"
 
 #include "core_transform.h"

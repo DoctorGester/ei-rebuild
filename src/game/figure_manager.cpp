@@ -10,7 +10,7 @@
 #include "model.h"
 #include "registry.h"
 #include "sky_object.h"
-#include "ui.h"   // UiMesh
+#include "ui_mesh.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -267,7 +267,7 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
 // --- Figure factory ----------------------------------------------------------------------------------
 
 // The figure object factory: creates a scene object of a class id. 0x41 and 0x42 are FigureMeshes, 0x43 a
-// UiMesh (ui.h), 0x44 a SkyObject and 0x300B-0x300D an AnimationTrack, a FigureBone and a
+// UiMesh (ui_mesh.h), 0x44 a SkyObject and 0x300B-0x300D an AnimationTrack, a FigureBone and a
 // FigureAnimationState. The new object's type gets the class id; an unknown id returns null. See
 // docs/notes/models.md.
 

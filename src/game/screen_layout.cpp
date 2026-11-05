@@ -3,6 +3,7 @@
 #include "screen_layout.h"
 
 #include "ui.h"
+#include "ui_mesh.h"
 
 #include "platform/log.h"
 #include "lib/rect.h"

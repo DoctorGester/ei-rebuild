@@ -16,6 +16,9 @@
 #include <cstddef>
 #include <vector>
 
+class UiScrollText;
+class UiScrollbar;
+
 namespace net {
 class PlayerMessage;
 }

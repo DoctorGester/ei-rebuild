@@ -7,6 +7,10 @@
 #include "options.h"
 #include "asset_text.h"
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_scrollbar.h"
+#include "ui_edit_field.h"
+#include "ui_message_box.h"
 #include "ui_screens.h"
 
 #include "chunk_archive.h"

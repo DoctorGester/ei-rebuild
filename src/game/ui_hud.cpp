@@ -1,5 +1,5 @@
 // The battle screen's HUD panels: mouse handlers, per-frame updates and the small drawing
-// wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
+// wrappers. See ui_hud.h and docs/notes/ui.md, section 7.
 #include "app.h"
 #include "camera.h"
 #include "console.h"
@@ -13,6 +13,10 @@
 #include "screen_layout.h"
 #include "texture.h"
 #include "ui.h"
+#include "ui_mesh.h"
+#include "ui_hud.h"
+#include "ui_battle.h"
+#include "ui_objectives.h"
 #include "ui_briefing.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
@@ -70,13 +74,6 @@ void DrawWithSpecular(UiWindow* window, SceneRenderer* pass) {
     render::g_renderState.specular = true;
     window->DrawBase(pass);
     render::g_renderState.specular = false;
-}
-
-constexpr int kWobbleNod = 1;   // HudPortraitSlot::wobbleKind
-
-// Whether `x` is zero (either sign).
-bool IsZero(float value) {
-    return value == 0.0f;
 }
 
 } // namespace
@@ -198,8 +195,6 @@ void HudActionColumn::OnEvent(UiEvent& event) {
 void HudActionColumn::LeftUp(UiEvent& event) {
     if (const int index = RegionIndex(regions, PressedRegion(event, count)); index >= 0) Select(index);
 }
-
-// --- Portraits ---------------------------------------------------------------------------------
 
 // The portraits read the portrait mode of the battle screen they belong to (the game reads the interface's active
 // screen: the battle screen while they get input).
@@ -504,169 +499,6 @@ void HudTopPanel::LeftUp(UiEvent& event) {
     }
 }
 
-// --- BattleScreen::SelectUnit --------------------------------------------------------
-
-void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
-    const bool ctrl = ui->doubleClick;
-    auto unitDead = [](Unit* u) { return u->IsDead(); };
-    auto pick = [mouse]() { return g_clientWorld.PickSurface(mouse.x, mouse.y); };
-    auto unitPosition = [](Unit* u) { return u->localPosition; };
-    auto objectAt = [mouse]() { return g_clientWorld.Pick(mouse, HitTest::Parts); };
-    // The portrait of member `index` nods after a short random delay.
-    auto flash = [this](int index) { portraits->Wobble(index, kWobbleNod); };
-    auto order = [this, ctrl](Unit* first, MapObject* target, int kind, int value) {
-        g_clientWorld.LocalView()->SendUseOrder(first, target, kind, value, ctrl);
-    };
-
-    Unit* living = (unit && !unitDead(unit)) ? unit : nullptr;
-    int count = lib::Count(party);
-    int firstIndex = -1;
-    Unit* first = nullptr;
-    int selected = 0;
-    for (int i = 0; i < count; ++i) {
-        Unit* member = party[i];
-        if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
-        if (!first) {
-            first = member;
-            firstIndex = i;
-        }
-        ++selected;
-    }
-
-    if (count <= 0 || selected == 0) {
-        // Nobody selected: a click on a portrait's unit selects it (Ctrl: the camera follows it).
-        if (count <= 0) return;
-        for (int i = 0; i < std::ssize(party); ++i) {
-            if (unit != party[i]) continue;
-            ui->PlayInterfaceSound("buttons\\battle\\on_off.wav");
-            if (ui->doubleClick) {
-                if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
-            } else {
-                ToggleMember(i);
-            }
-        }
-        return;
-    }
-
-    if (ui->altDown) {
-        OrderAt(unit ? unitPosition(unit) : pick(), false, ctrl);
-        return;
-    }
-    bool anyFlag = false;
-    for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = orderKeys[i] != 0;
-    if (anyFlag || ui->ctrlDown) {
-        if (unit && !unitDead(unit)) {
-            AttackUnit(unit, ctrl);
-            return;
-        }
-        OrderAt(pick(), true, ctrl);
-        return;
-    }
-
-    switch (pendingAction) {
-    case kPendingNone:
-        if (unit) {
-            if (unitDead(unit)) {
-                OrderDeadUnit(unit, ctrl);
-                return;
-            }
-            int members = lib::Count(party);
-            for (int i = 0; i < members; ++i) {
-                if (unit != party[i]) continue;
-                ui->PlayInterfaceSound("buttons\\battle\\on_off.wav");
-                if (ui->doubleClick) {
-                    if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
-                } else {
-                    ToggleMember(i);
-                }
-                return;
-            }
-            if (members != 0 && party[0] && party[0]->IsHostileTo(unit)) {
-                AttackUnit(unit, ctrl);
-                return;
-            }
-            OrderAt(unitPosition(unit), false, ctrl);
-            return;
-        }
-        if (MapObject* object = objectAt()) {
-            if (object->IsUsable() != 0 && object->IsDirectUseBlocked() == 0 && selected == 1) {
-                order(first, object, 0, -1);
-                flash(firstIndex);
-                return;
-            }
-        }
-        {
-            Vector3 at = pick();
-            OrderAt(at, false, ctrl);
-            // "Terrain Coords x y z" on the console: each float through the inline operator<<
-            // (x_floatused set, printed as a double), then '\n' and flush.
-            console::EndLine(console::g_graphicsLogOut << "Terrain Coords " << at.x << " " << at.y
-                                                      << " " << at.z);
-        }
-        return;
-    case kPendingSpellOnUnit:
-        if (!unit || unitDead(unit) || !first) return;
-        // `quick` false (Rebirth's FixSpellSelfCasting; the original passed the Ctrl flag).
-        UseOnUnit(unit, false, false);
-        return;
-    case kPendingSpellAtPoint:
-    case kPendingQuickAtPoint: {
-        Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
-        if (IsZero(at.x) && IsZero(at.y)) return;
-        if (!first) return;
-        UseAtPoint(at, living, pendingAction == kPendingQuickAtPoint);
-        return;
-    }
-    case kPendingQuickOnUnit: {
-        if (!unit || unitDead(unit) || !first) return;
-        Item* item = first->GetQuickItem(pendingSlot);
-        if (item && item->GetCategory() == QuickItemCategory::Potion && unit != first) return;
-        UseOnUnit(unit, true, false);
-        return;
-    }
-    case kPendingItemOnObject:
-    case kPendingKeyOnObject: {
-        MapObject* target = unit ? unit : objectAt();
-        if (!target || !first) return;
-        if (target->IsUsable() == 0) return;
-        if (pendingAction == kPendingKeyOnObject && target->AcceptsKey(&itemUseKey) == 0) return;
-        order(first, target, 0, pendingItem);
-        flash(firstIndex);
-        SetPendingAction(kPendingNone, -1, -1);
-        return;
-    }
-    case kPendingFollow: {   // every selected member follows the unit
-        if (!unit || unitDead(unit)) return;
-        for (int i = 0; i < std::ssize(party); ++i) {
-            Unit* member = party[i];
-            if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
-            g_clientWorld.LocalView()->SendFollow(member, unit);
-            Speech(party[i]->id, AckKind::Follow, nullptr);
-            portraits->Wobble(i, kWobbleNod);
-        }
-        SetPendingAction(kPendingNone, -1, -1);
-        return;
-    }
-    case kPendingOrder: {   // a unit outside the party, or the object under the mouse
-        MapObject* target = unit ? unit : objectAt();
-        if (!target || !first) return;
-        if (unit) {
-            for (int i = 0; i < std::ssize(party); ++i)
-                if (unit == party[i]) return;
-            order(first, unit, 1, -1);
-        } else {
-            if (target->IsUsable() == 0) return;
-            order(first, target, 0, -1);
-        }
-        flash(firstIndex);
-        SetPendingAction(kPendingNone, -1, -1);
-        return;
-    }
-    default:
-        return;
-    }
-}
-
 // --- The quick item panel's button release -------------------------------------------
 
 void HudQuickItems::LeftUp(UiEvent& event) {
@@ -692,48 +524,4 @@ void HudQuickItems::LeftUp(UiEvent& event) {
     }
     // The highlighted one again: back to plain selection.
     owner->SetPendingAction(kPendingNone, -1, -1);
-}
-
-// --- The selected units ordered to a point -------------------------------------------
-
-void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
-    int selected = 0;
-    for (int i = 0; i < std::ssize(party); ++i) {
-        Unit* member = party[i];
-        if (member && (member->flags & MapObjectFlag::Selected)) ++selected;
-    }
-
-    // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for the
-    // update to ask about leaving (exitPending and the exit).
-    exitPending = false;
-    if (std::optional<int> exit = g_clientWorld.FindExitAt(point); exit && selected > 0) {
-        std::string name = g_clientWorld.ExitTarget(*exit);
-        if (text::CompareIgnoringCase(name,
-                            "none") != 0) {
-            name = std::string("z.") + name;
-            float value = LocalPlayerVariable(name);
-            const float one = 1.0f;
-            // Equal skips.
-            if (value != one) {
-                exitPending = true;
-                pendingExit = *exit;
-            }
-        }
-    }
-
-    // The selected members go; each one's portrait nods after a short random delay.
-    std::vector<Unit*> units;
-    for (int i = 0; i < std::ssize(party); ++i) {
-        Unit* member = party[i];
-        if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
-        units.push_back(member);
-        portraits->Wobble(i, kWobbleNod);
-    }
-    if (!units.empty()) {
-        PlayerClient* view = g_clientWorld.LocalView();
-        if (goTo)
-            view->SendGoTo(&units, point, run);
-        else
-            view->SendWalk(&units, point, run);
-    }
 }

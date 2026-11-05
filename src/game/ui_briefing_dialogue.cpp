@@ -3,6 +3,7 @@
 #include "player_messages.h"
 #include "combat.h"
 #include "ui.h"
+#include "ui_scroll_text.h"
 #include "ui_briefing.h"
 
 #include "camera.h"

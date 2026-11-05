@@ -5,6 +5,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "ui.h"
+#include "ui_chat_overlay.h"
 #include "ui_screens.h"
 #include "world.h"
 

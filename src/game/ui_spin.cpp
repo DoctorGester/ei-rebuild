@@ -1,18 +1,13 @@
-// The options window's spin control (UiSpin): constructor, texts and value. See ui.h and
-// docs/notes/items_spells.md.
-
+// The options window's spin control (ui_spin.h): constructor, destructor, texts and value. See docs/notes/ui.md,
+// section 8.
+#include "ui_spin.h"
 #include "ui.h"
 #include "ui_screens.h"
-
-
 #include "lib/crt.h"
 #include "lib/rect.h"
 
 namespace {
-
 constexpr int kFont = 1;
-
-
 } // namespace
 
 // The window's virtuals; its click and a left double click that does nothing. Its surface paints the
@@ -68,3 +63,5 @@ void UiSpin::LeftDown(UiEvent&) {
     ui->PlayInterfaceSound(kMessageBoxOkSound);
     SetValue(value + 1);
 }
+
+UiSpin::~UiSpin() = default;

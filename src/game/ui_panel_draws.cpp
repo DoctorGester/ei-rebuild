@@ -2,6 +2,7 @@
 // constructors' spell maker and item maker. See docs/notes/ui.md, section 5. The trade grid's is in
 // ui_trade_panel.cpp.
 #include "ui.h"
+#include "ui_mesh.h"
 #include "texture.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"

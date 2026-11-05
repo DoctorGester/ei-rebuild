@@ -1,8 +1,10 @@
 # User interface
 
-Screens, windows and the battle HUD (`src/game/ui*.cpp`). Layouts and per-function behaviour are in the headers (`ui.h`,
-`ui_camp.h`, `ui_screens.h`, `ui_item_info.h`, `ui_cursor.h`, `console.h`) and the code; this note holds how the pieces fit,
-which scenarios reach them and the facts the code does not say. How the interface's pixels are made (the surfaces drawn
+Screens, windows and the battle HUD (`src/game/ui*.cpp`). Layouts and per-function behaviour are in the headers and the
+code; this note holds how the pieces fit, which scenarios reach them and the facts the code does not say. `ui.h` keeps the
+core only: the interface manager (`Interface3D`), the window base (`UiWindow`, `UiContainer`), `UiSurface`, `UiRegion`
+with its tooltip, labels and models, the event and the screen fade. Every other window family has its own header and
+source (the table below): a family's classes are declared in its header and their functions defined in its source file. How the interface's pixels are made (the surfaces drawn
 each frame, text, the glyph atlas) is ui-native.md.
 
 ## 1. Conventions shared by every screen
@@ -43,17 +45,23 @@ in the key table (`config\keyboard.ini`, `key_bindings.cpp`); a zone has no inve
 
 | Files | Screen |
 |---|---|
-| `ui_briefing*.cpp` | briefing / base screen (id 3, `BriefingScreen`) |
-| `ui_camp*.cpp` | camp (id 5, `CampPages`) |
+| `ui_briefing*.cpp`, `ui_briefing.h` | briefing / base screen (id 3, `BriefingScreen`) |
+| `ui_camp.cpp`, `ui_camp.h` | camp (id 5, `CampPages`), its pages and panels' class declarations |
 | `ui_hero_screen*.cpp`, `ui_hero_preview.cpp` | multiplayer hero screen (`MpHeroScreen`, texts `lmp_*`) |
 | `ui_connect_*.cpp` | multiplayer connection screen (`MpConnectScreen`, `config\addrbook.ini`) |
-| `ui_item_strip.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel.cpp`, `ui_equip_panels.cpp`, `ui_stats.cpp` | item strips and the hero panels shared by camp and hero screen; camp pages: trade, repair, spell and item constructors |
-| `ui_layouts.cpp`, `ui_menus.cpp`, `ui_credits.cpp`, `ui_exchange.cpp` | escape menu and the windows it opens, credits, exchange between players |
+| `ui_item_strip.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel.cpp`, `ui_equip_panels.cpp`, `ui_stats.cpp`, `ui_item_info.h` | item strips and the hero panels shared by camp and hero screen (`UiItemPanel` is in `ui_item_info.h`); camp pages: trade, repair, spell and item constructors |
+| `ui_layouts.cpp`, `ui_menu_pieces.h`, `ui_credits.cpp`, `ui_exchange.cpp` | escape menu and main menu layouts, credits, exchange between players; the pieces the escape menu's windows share (a region, a frame and a shade sprite, the stone model, the slide's ease) |
 | `ui_global_map*.cpp` | global map (id 4) |
-| `ui_main_menu.cpp`, `ui_message_box.cpp` | main menu, new-game dialog, message box |
-| `ui_battle*.cpp`, `ui_hud*.cpp` | battle screen (`battle00`), its panels, quest / zone messages, portraits, unit info |
-| `ui_objectives*.cpp`, `ui_options.cpp`, `ui_saveload*.cpp`, `ui_help_*.cpp` | objectives window, options, save / load, tutorial / help window |
-| `ui_scrollbar.cpp`, `ui_spin.cpp`, `ui_edit_field.cpp`, `ui_scroll_text.cpp`, `ui_tooltip.cpp`, `ui_scrolling_surface.cpp` | controls: scroll bar and slider, spin, edit field, scrolling text, tooltip, the titles' scrolling text |
+| `ui_main_menu.cpp`, `ui_message_box.cpp`, `ui_message_box.h` | main menu, new-game dialog, message box |
+| `ui_battle.cpp`, `ui_battle.h` | battle screen (`battle00`): creation, update, input, selection and orders |
+| `ui_hud*.cpp`, `ui_spell_column.cpp`, `ui_hud.h` | the HUD panels the battle screen builds (weapon bar, quick items, spell and action columns, portraits, map, unit panel, clock, movement and top panels, `PanelSlide`), quest / zone messages, portraits, unit info |
+| `ui_objectives.cpp`, `ui_objectives.h` | objectives window |
+| `ui_options.cpp`, `ui_options.h`, `key_bindings.cpp`, `key_bindings.h` | options window and the key actions table (`kActionDefinitions`, defined in `ui_options.cpp`); the bindings file |
+| `ui_saveload.cpp`, `ui_saveload.h` | save / load window and the quick saves |
+| `ui_help_window.cpp`, `ui_help_window.h` | tutorial / help window |
+| `ui_chat_overlay.cpp`, `ui_chat_overlay.h` | the in-game chat overlay |
+| `ui_scrollbar.cpp`, `ui_spin.cpp`, `ui_edit_field.cpp`, `ui_scroll_text.cpp`, `ui_drop_list.cpp`, `ui_tooltip.cpp`, `ui_scrolling_surface.cpp`, each with its `.h` where it has a class of its own | controls: scroll bar and slider, spin, edit field, scrolling text, drop-down list, tooltip, the titles' scrolling text |
+| `ui_mesh.cpp`, `ui_mesh.h` | the interface sprite (`UiMesh`) and the sizes the dialog pieces share |
 
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 
@@ -211,10 +219,10 @@ shown (the glow layer and a hidden camp button too) but the tip's two sprites, n
   draws the weather into texture 4 on the GPU (`render::DrawClouds`, renderer.md section 7). Create calls SelectZone
   before it creates the weather object.
 
-**Camp pages** (`ui_camp_*.cpp`). Input in `ui_camp_input.cpp`; `MessageResult` 0x10001 takes the first weapon back. Trade
+**Camp pages** (`ui_camp_*.cpp`). Input in `ui_camp.cpp`; `MessageResult` 0x10001 takes the first weapon back. Trade
 pages stock the constructor's class template's lists with the sold records (cost off except page 1). `DeconstructSpell`
 gives "Prototype" and a "Rune" per modifier; `DeconstructItem` "Instruction Weapon / Armor / Quick Item" and
-"material.<key>" (`ui_camp_deals.cpp`). Constructor pages 3 and 5 pick through `SpellMakerPage::ItemAt` /
+"material.<key>" (`ui_camp.cpp`). Constructor pages 3 and 5 pick through `SpellMakerPage::ItemAt` /
 `ConstructorPage::ItemAt` (`ui_hero_panels.cpp`).
 - An unoffered page shows the current one again (recursively: the tail runs twice, as in the original); constructor pages
   need the spell / item constructor flag, their second pages also not "i.noconstr"; money below the cost disables an
@@ -284,7 +292,7 @@ the topics' frame inside the text's).
 
 ## 6. Battle screen: update, selection, orders, pending actions
 
-Files `ui_battle*.cpp`, `ui_hud.cpp`, `ui_hud_pick.cpp`, `ui_spell_column.cpp`; scenarios `ui_hud`, `ui_battle_commands`,
+Files `ui_battle.cpp`, `ui_hud.cpp`, `ui_hud_pick.cpp`, `ui_spell_column.cpp`; scenarios `ui_hud`, `ui_battle_commands`,
 `ui_battle_spells`, `ui_order_move`, `ui_quick_items`, `ui_quest_notice`. The key handler runs the key table's actions (1
 pause, 2 / 3 game speed, 4 objectives, 0x17-0x1A movement modes, ...; Esc cancels a targeting mode or opens the escape
 menu); the full list is in section 11, "BattleScreen::KeyDown". `UnitJoined` places a unit by the local player's record
@@ -323,7 +331,7 @@ portrait pick branch (multiplayer).
 
 ## 7. Battle HUD panels
 
-Files `ui_hud*.cpp` (declarations in `ui.h`, "Battle screen and its HUD panels"); scenario `ui_hud` (new game, mouse moves
+Files `ui_hud*.cpp` (declarations in `ui_hud.h`); scenario `ui_hud` (new game, mouse moves
 over every panel, clicks on weapon slots, top panel pages and sling, unit panel body parts and sling, map views, movement
 panel, a portrait; the escape menu: Options -> group -> Cancel, Load -> row -> Cancel, Save -> Esc, Resume; the hero must
 take damage; the wheel over the map's sling button (in, then out past the limit) and the map; TAB opens the objectives
@@ -660,15 +668,14 @@ order, kept.
 
 The game clock (HudClock) and the movement panel (HudMovePanel): their setups make the panels' sprites and regions about
 the layout's bottom corners. The WideScreen layout (screen_layout.h) puts the clock at the screen's right edge and the
-movement panel at its left (the panel offset while they run, their rectangles moved by EdgeShift). See ui.h ("Battle screen
-and its HUD panels") and rebirth.md ("WideScreen").
+movement panel at its left (the panel offset while they run, their rectangles moved by EdgeShift). See ui_hud.h and rebirth.md ("WideScreen").
 
 ## Battle HUD sliding panels
 
 The two sliding side panels, the map (HudMap) and the unit panel (HudUnitPanel): their layouts at the current slide offset,
 their per-frame updates and their setups. The WideScreen layout (screen_layout.h) puts the map at the screen's right edge
 and the unit panel at its left (the panel offset while the setups and layouts run, their layout constants moved by
-EdgeShift). See ui.h ("Battle screen and its HUD panels") and rebirth.md ("WideScreen").
+EdgeShift). See ui_hud.h and rebirth.md ("WideScreen").
 
 ## Battle HUD unit panel draw
 
@@ -686,7 +693,7 @@ functions return double), so no rounding happens in between.
 
 ## Save / load window pictures
 
-The save / load window's saving, its entry list and the selected save's picture (ui.h, SaveLoadWindow; renderer.md sections
+The save / load window's saving, its entry list and the selected save's picture (ui_saveload.h, SaveLoadWindow; renderer.md sections
 6 and 7).
 
 **shot.sav** (`save_picture.h`). The original's file is 256x192 5:6:5 pixels (0x18000 bytes, rows from the top, no header),
@@ -738,7 +745,7 @@ surface's size, the greying a shader option when it is drawn, and the 5:6:5 copy
 
 ## 11. Behaviour moved out of header comments
 
-Long header comments of ui.h, ui_camp.h and the other UI headers; the header keeps the gist.
+Long header comments of ui.h, ui_camp.h, ui_battle.h and the other UI headers; the header keeps the gist.
 
 ### BattleScreen::LeftUp
 
@@ -750,7 +757,7 @@ the box marks and portraits' markers reset, each unit inside controlled with its
 
 ### BattleScreen::MouseMove
 
-Input (ui_battle_input.cpp). The mouse moved (also every frame from Draw, at the current position): while a portrait
+Input (ui_battle.cpp). The mouse moved (also every frame from Draw, at the current position): while a portrait
 click picks a player the cursor shape 0xD and the portraits' own mouse move; otherwise shape 0, then with a press on the
 view, a positive BoxSelectThreshold and not a network client: a move farther than the threshold from the press point in x or
 y starts the selection box, which empties the unit panel's hover unit and spans the press point and (x, y); before that the
@@ -759,7 +766,7 @@ unit under the point (any flags) goes to HoverUnit.
 
 ### BattleScreen::KeyDown
 
-A key pressed (ui_battle_input.cpp; Rebirth's MPSpeedControl behind its flag). While a portrait click picks a player, Esc
+A key pressed (ui_battle.cpp; Rebirth's MPSpeedControl behind its flag). While a portrait click picks a player, Esc
 ends that and nothing else happens. On a network client Enter / Backspace go to the chat line and the key is used.
 Otherwise the container's handler first; a key nobody used and not repeating: Esc drops the pending action with every
 panel's highlight, or without one opens the escape menu; any other key by its action (KeyActions, by the scan code): 1
@@ -799,7 +806,7 @@ by kHudQuarterTurn / 7 (or the identity); each chosen member is controlled and t
 
 ### HelpWindow::ShowPage
 
-The page setup (ui_help_page.cpp). Empties the two lists, the surfaces, regions and scene objects, opens "tutorial <text>"
+The page setup (ui_help_window.cpp). Empties the two lists, the surfaces, regions and scene objects, opens "tutorial <text>"
 (without it the pending value is set to 0) and goes to the page's "#screen" line. The page's rectangle is (200, 50)-(600,
 560), or "#position left top right [rows]" (at least 300 wide, rows x 16 + 110 high, at most 600). Scene objects 0 the plain
 background, 1 the frame, 2 / 3 / 4 the previous, OK and next buttons; then one pulsing frame per "#rectangle left top right

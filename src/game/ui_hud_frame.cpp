@@ -3,6 +3,10 @@
 // while the game is paused; the top panel (HudTopPanel::Update) slides in and out.
 // See docs/notes/ui.md.
 #include "ui.h"
+#include "ui_scroll_text.h"
+#include "ui_battle.h"
+#include "ui_mesh.h"
+#include "ui_hud.h"
 
 #include "app.h"
 #include "game_singletons.h"
@@ -170,7 +174,7 @@ void HudTopPanel::Update() {
 
 // The battle HUD's top panel (the message log's frame): its setup and the lines it adds
 // to page 0 for picked-up items and money. The page display and layout are
-// in ui_hud_panels.cpp. See ui.h and docs/notes/items_spells.md.
+// in ui_hud_panels.cpp. See ui_hud.h and docs/notes/ui.md, section 7.
 
 void HudTopPanel::Setup(int newPage, bool shown) {
     rect.left = 0xB4;
@@ -259,7 +263,7 @@ void HudTopPanel::AddMoney(int money) {
 
 // The battle HUD's two corner panels, the game clock (HudClock) and the movement panel (HudMovePanel): their setups.
 // Rebirth patches both for its WideScreen layout, reproduced for every window (screen_layout.h): the clock at the screen's
-// right edge, the movement panel at its left. See ui.h and docs/notes/ui.md, "Battle HUD corner panels".
+// right edge, the movement panel at its left. See ui_hud.h and docs/notes/ui.md, "Battle HUD corner panels".
 
 namespace {
 

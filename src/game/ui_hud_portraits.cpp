@@ -3,23 +3,25 @@
 // model (by the unit's build), the face model's easing towards its rest orientation with an
 // occasional random nod, shake or turn, and the marker under the selected unit's portrait.
 // See docs/notes/ui.md.
-#include "ui.h"
-
+#include "ui_hud.h"
 #include "camera.h"
 #include "game_singletons.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "plugin_fixes.h"
 #include "random.h"
+#include "ui.h"
+#include "ui_battle.h"
 #include "ui_float.h"
+#include "ui_mesh.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
-#include "lib/maths.h"
-#include "lib/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/maths.h"
+#include "lib/rebirth.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -28,10 +30,10 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
+#include <iterator>
 #include <string>
 
 namespace {
-
 bool GamePaused() { return g_clientWorld.paused != 0; }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
@@ -84,6 +86,17 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
     return q;
 }
 
+constexpr float kSeventh = 0.14285715f;         // 1 / 7
+
+// The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
+// EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".
+void SexOf(const std::string& figure, std::string& sex) {
+    const bool fixes = pluginfixes::Enabled();
+    if (fixes ? !pluginfixes::ModelIsFemale(figure) : figure == "unhuma")
+        sex = "m";
+    else if (fixes || figure == "unhufe")
+        sex = "f";
+}
 } // namespace
 
 void HudPortraits::Wobble(int index, int kind) {
@@ -252,23 +265,7 @@ void HudPortraits::Update() {
 // The battle HUD's party portraits, built when the party changes: HudPortraits::Rebuild
 // drops the old sprites and regions and adds one portrait per party unit (and, in a multiplayer
 // client, per player without a live unit) through AddPortrait; ShowFace copies
-// a face picture into the portrait's quarter of a face texture. See ui.h and docs/notes/items_spells.md.
-
-namespace {
-
-constexpr float kSeventh = 0.14285715f;         // 1 / 7
-
-// The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
-// EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".
-void SexOf(const std::string& figure, std::string& sex) {
-    const bool fixes = pluginfixes::Enabled();
-    if (fixes ? !pluginfixes::ModelIsFemale(figure) : figure == "unhuma")
-        sex = "m";
-    else if (fixes || figure == "unhufe")
-        sex = "f";
-}
-
-} // namespace
+// a face picture into the portrait's quarter of a face texture. See ui_hud.h and docs/notes/ui.md, section 7.
 
 void HudPortraits::ShowFace(int index, int state) {
     int u;
@@ -463,5 +460,10 @@ void HudPortraits::Rebuild(bool wide) {
     }
 }
 
-// EI_Plugin.asi patches both: NPlayers' row length in AddPortrait (the sites for more than 7 players are not
-// reproduced) and Fixes in Rebuild (the party's and the players' sex, the prototype fallback).
+// --- The portraits panel ------------------------------------------------------------------------------
+
+HudPortraits::HudPortraits(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {
+    rect = Rect{250, 440, 550, 600};
+    count = 0;
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
+}
