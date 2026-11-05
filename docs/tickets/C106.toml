@@ -4,4 +4,5 @@ group = "cleanup"
 model = "sonnet"
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Cross-area patterns X1-X10. Add the rules to the rewrite guide (no #define for numbers, meaning-named constexpr; an enum per code in the owning header; one full-sentence comment per declaration, no hex ids; in-memory structs typed, byte layout only for file/save/packet structs; a virtual needs two real overrides, no pointer-to-member callbacks; a feature's code shares a file, check code in *_checks files; take the state or read the global, never both, no function-local static state; inputs const T&, results returned; one integer type per quantity). Tools: comments.py scans .hlsl/.hlsli and bans addon's [0-9A-F]{8} and 'Rebirth-patched' without a Patch:: name; check_cleanup.py counts #define EI_ and value-named constants (kOne/kHalf/kTwo/kZero) for the dashboard's cleanup counts. Fix what the new checks find outside the areas the other round-2 tickets cover, or list it. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1036
-status = "queued"
+status = "running"
+started = "2026-11-05"

@@ -1,0 +1,7 @@
+id = "C147a"
+title = "AIOrder tail: one Clear, AimPoint not written out by hand, AIOrder beside UnitAction"
+group = "cleanup"
+model = "sonnet"
+note = "From C147 (2026-11-05). UnitAction::Reset in combat_tick.cpp repeats AIOrder::Clear; combat_sight.cpp:234 and combat_planning.cpp:112 / :154 write AIOrder::AimPoint out by hand; AIOrder could move to combat.h next to UnitAction, which derives from it. Style only, goldens the same."
+order = 1162
+status = "queued"
