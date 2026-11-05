@@ -78,7 +78,9 @@ the items.
   0x30 walk, 0x31 attack, 0x32 / 0x33 a spell or quick item at a point / on an object (a potion counted off at once),
   0x34 wanted weapon, 0x35 movement style, 0x36 use order (the nearest unit, checked from its path end), 0x39 follow,
   0x3A go to, 0x3B fight at will, 0x40 the camera anchor, 0x50 party update (SaveParty draws an ISAAC key). Orders
-  are refused for a unit flagged 0x800000 (blocked) or dead.
+  are refused for a unit flagged 0x800000 (blocked) or dead. A new party or party update naming items or spells the
+  server's databases lack gets message 0x11 with the reason and state 3 too (the player is dropped; ours, not the
+  original's); our client's 0x11 handler shows the text in the fatal error and refuses (the original had none).
 - **Dispatch**: each side runs a received packet's messages through a switch on the type byte (`PlayerServer::Receive`
   over its own stream `in`, `PlayerClient::DispatchMessages`); a type without a case or a handler returning false is
   the fatal error.

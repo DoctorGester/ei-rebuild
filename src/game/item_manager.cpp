@@ -344,10 +344,41 @@ EngineObject* ItemManager::NewObject(int kind) {
     return object;
 }
 
-// The world's save loads the map objects between the identity records and the items' own Load, and a unit's
-// load reads its weapon's type: the packed ids are checked here already.
-void ItemManager::Load(ByteStream* stream) {
-    ResourceManager::Load(stream);
-    ObjectListIteratorOf<Item> items;
-    for (Item* item = items.First(this); item; item = items.Next()) item->RequirePrototype();
+namespace {
+
+// The first item without its prototype and the first spell without its records of the context's managers (null
+// for none); the spell manager's containers are not spells.
+struct MissingRecords {
+    Item* item = nullptr;
+    Spell* spell = nullptr;
+};
+
+MissingRecords FindMissingRecords(ManagerContext* context) {
+    MissingRecords missing;
+    if (ItemManager* manager = context->ItemFactory()) {
+        ObjectListIteratorOf<Item> items;
+        for (Item* item = items.First(manager); item && !missing.item; item = items.Next())
+            if (!item->HasPrototype()) missing.item = item;
+    }
+    if (SpellManager* manager = context->GetSpellManager()) {
+        ObjectListIterator objects;
+        for (EngineObject* object = objects.First(manager); object && !missing.spell; object = objects.Next()) {
+            if (object->type != static_cast<int>(SpellObjectType::Spell)) continue;
+            if (auto* spell = static_cast<Spell*>(object); !spell->HasRecords()) missing.spell = spell;
+        }
+    }
+    return missing;
+}
+
+} // namespace
+
+bool HasEveryRecord(ManagerContext* context) {
+    MissingRecords missing = FindMissingRecords(context);
+    return !missing.item && !missing.spell;
+}
+
+void RequireEveryRecord(ManagerContext* context) {
+    MissingRecords missing = FindMissingRecords(context);
+    if (missing.item) missing.item->RequirePrototype();
+    if (missing.spell) missing.spell->RequireRecords();
 }

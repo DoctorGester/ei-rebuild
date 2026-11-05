@@ -48,8 +48,8 @@ public:
     // The recharge: charge moves towards chargeMax by chargeRate * chargeMax. 0 when already full.
     bool RunTick() override;
     // The packed id, condition..unreadValue, the spell's id (-1: none; Load finds it in the context's spell
-    // manager and counts it), count and magicLevel, four bytes each, in that order. A packed id that names no
-    // prototype of the item's kind ends the game (RequirePrototype).
+    // manager and counts it), count and magicLevel, four bytes each, in that order. The loaders check the
+    // packed id (HasPrototype).
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     // The classes call it first: price, weight, unreadValue, charge and chargeMax, magicLevel, condition
@@ -92,10 +92,12 @@ public:
 
     // The prototype record for the item's kind and index; null for spell containers.
     itemdb::ItemRecordHead* GetPrototype();
-    // Ends the game (game::FatalExit) when the packed id names no prototype of the item's kind: an item of a
-    // save, a party or a player made with another item database. Item::Load and ItemManager::Load call it, and
-    // FillItem makes no item without a prototype, so every item has one and its readers (the type getters,
-    // the names and texts) take it unchecked.
+    // The packed id names a prototype of the item's kind; false for an item of a save, a party or a player
+    // made with another item database. FillItem makes no item without a prototype, CopyTo copies one, and the
+    // loaders check what they load (HasEveryRecord in item_manager.h), so every item has one and its readers
+    // (the type getters, the names and texts) take it unchecked.
+    bool HasPrototype();
+    // Ends the game (game::FatalExit) without a prototype (HasPrototype).
     void RequirePrototype();
 
     // QuickItemCategory::NoPrototype without a prototype.

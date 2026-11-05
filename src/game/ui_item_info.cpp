@@ -662,14 +662,14 @@ void ItemInfoPanel::DescribeCarriedSpell() {
     w.Down();
     if (spell->GetModifierCount() > 0) {
         // "<infoitem_19> name, name, ...": each modifier's third text line ("modifier <code>"),
-        // "?" without one (or without the modifier's record).
+        // "?" without one.
         w.line = w.T(19);
         for (int i = 0; i < spell->GetModifierCount(); ++i) {
             w.line += " ";
             text = "?";
             std::uint32_t index = static_cast<std::uint32_t>(spell->modifiers[i] - 1);
             const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(index);
-            if (modifier && texts->Open(std::string("modifier ") + modifier->code)) {
+            if (texts->Open(std::string("modifier ") + modifier->code)) {
                 texts->NextLine();
                 texts->NextLine();
                 text = texts->ReadLine(true);

@@ -85,6 +85,7 @@ void LoadPlayers(WorldServer* world, ByteStream* stream) {
         PlayerServer* state = player->Server();
         stream->ReadValue(player->partyId);
         player->GetParty()->LoadParty(stream, true);
+        RequireEveryRecord(player->GetParty());
         player->lastTick = world->tick;
         stream->ReadValue(player->sessionKind);
         BaseManager* items = world->ItemFactory();
@@ -272,11 +273,15 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     timedObjectManager->Load(stream);
     spellManager->Load(stream);
     itemManager->Load(stream);
+    // The packed ids are tested before the map objects load: a unit's load reads its weapon's type. Then again
+    // after the objects' own data (an item reads its packed id again, a spell its modifiers).
+    RequireEveryRecord(this);
     ShowLoadProgress(kProgressManagers);
     LoadSavedMapObjects(stream);
     timedObjectManager->LoadObjects(stream);
     spellManager->LoadObjects(stream);
     itemManager->LoadObjects(stream);
+    RequireEveryRecord(this);
     ShowLoadProgress(kProgressObjects);
 
     // Timed objects (spells, effects) by id.

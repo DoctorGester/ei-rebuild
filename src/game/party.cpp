@@ -172,6 +172,7 @@ bool MpHeroRecord::ReadFile(const std::string& folder) {
     streams.file.Open(InFolder(folder, file), platform::FileMode::Read);
     if (!SaveFileRead(&streams.data, kMagicParty, &streams.file)) return false;
     GetParty()->LoadParty(&streams.data, true);
+    RequireEveryRecord(GetParty());
     return streams.data.ok;
 }
 
@@ -574,5 +575,8 @@ Party::Party(Party& source) : Party() { CopyFrom(&source); }
 void Party::ArchiveParty(ChunkArchive* ar, int field) {
     ar->StreamFieldOf(
         field, [this](MemoryStream* stream) { SaveParty(stream, true); },
-        [this](MemoryStream* stream) { LoadParty(stream, true); });
+        [this](MemoryStream* stream) {
+            LoadParty(stream, true);
+            RequireEveryRecord(this);
+        });
 }

@@ -94,7 +94,7 @@ std::string TextManager::GetString(std::string_view name) {
     return line ? std::move(*line) : std::string(name);
 }
 
-// The item's prototype is there (Item::RequirePrototype); the material and the record a loot item stands for are
+// The item's prototype and its spell's are there (Item::HasPrototype, Spell::HasRecords); the material and the record a loot item stands for are
 // tested: without one the item has no text key (no name and description).
 ItemTexts TextManager::GetItemTexts(Item* item) {
     const MaterialRecordHead* material = MaterialAt(MaterialIndex(item->prototypeId));

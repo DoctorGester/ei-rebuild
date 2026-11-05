@@ -180,6 +180,7 @@ int PlayerClient::DispatchMessages() {
         switch (static_cast<ServerMessage>(messageType)) {
         case ServerMessage::LoginAccepted: handled = OnLoginAccepted(); break;
         case ServerMessage::Disconnect: handled = OnDisconnect(); break;
+        case ServerMessage::Error: handled = OnError(); break;
         case ServerMessage::Zone: handled = OnZone(); break;
         case ServerMessage::ItemsAndSpells: handled = OnItemsAndSpells(); break;
         case ServerMessage::CameraPlacement: handled = OnCameraPlacement(); break;
@@ -364,6 +365,7 @@ bool PlayerClient::OnParty() {
         block.MemoryStream::Seek(0);
         if (in.ok) {
             party->LoadParty(&block, true);
+            RequireEveryRecord(party);
             std::vector<std::uint32_t>& recharging = player->recharging;
             recharging.clear();
             ObjectListIteratorOf<Item> walk;
@@ -387,7 +389,10 @@ bool PlayerClient::OnPartyUpdate() {
     MemoryStream block;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
-    if (in.ok) player->GetParty()->LoadParty(&block, false);
+    if (in.ok) {
+        player->GetParty()->LoadParty(&block, false);
+        RequireEveryRecord(player->GetParty());
+    }
     return true;
 }
 

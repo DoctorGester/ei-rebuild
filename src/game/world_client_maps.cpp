@@ -701,6 +701,7 @@ int WorldClient::LoadItemsAndSpells(ByteStream* block) {
         itemManager->Load(block);
         spellManager->LoadObjects(block);
         itemManager->LoadObjects(block);
+        RequireEveryRecord(this);
         ReferenceItemsAndSpells();
     }
     return 1;
@@ -732,8 +733,9 @@ int LoadManagerObjects(BaseManager* manager, ByteStream* stream) {
 int WorldClient::LoadNewItemsAndSpells(ByteStream* block) {
     block->Seek(0);
     block->ok = true;
-    if (!LoadManagerObjects(GetSpellManager(), block)) return 0;
-    return LoadManagerObjects(ItemFactory(), block) != 0;
+    const bool loaded = LoadManagerObjects(GetSpellManager(), block) && LoadManagerObjects(ItemFactory(), block);
+    RequireEveryRecord(this);
+    return loaded;
 }
 
 void PlatformSet::Create() {

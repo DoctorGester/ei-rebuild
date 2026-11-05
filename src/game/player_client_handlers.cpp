@@ -19,6 +19,7 @@
 #include "world.h"
 #include "world_effect.h"
 #include "lib/bytes.h"
+#include "lib/crt.h"
 #include "lib/vecmath.h"
 
 #include "game_singletons.h"
@@ -54,6 +55,12 @@ bool PlayerClient::OnLoginAccepted() {
 bool PlayerClient::OnDisconnect() {
     player->Disconnect();
     return true;
+}
+
+bool PlayerClient::OnError() {
+    const std::string text = in.ReadString();
+    game::FatalError("%s", text.c_str());
+    return false;
 }
 
 bool PlayerClient::OnCameraPlacement() {

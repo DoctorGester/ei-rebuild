@@ -138,8 +138,15 @@ public:
 
     void InitFromPrototype(const itemdb::SpellRecord* prototype);
 
-    // Null if the index is out of range.
+    // The prototype record. Every spell has one and a record for each modifier: the spells come from the spell
+    // constructor (records of the database), copies (CopyTo) and the loaders, which check what they load
+    // (HasRecords; HasEveryRecord in item_manager.h), so the readers take the records unchecked.
     itemdb::SpellRecord* GetPrototype();
+    // The prototype and every modifier name a record of the spell database; false for a spell of a save, a
+    // party or a player made with another database.
+    bool HasRecords();
+    // Ends the game (game::FatalExit) without the records (HasRecords).
+    void RequireRecords();
 
     // The prototype index of the packed id.
     SpellType Type() const { return static_cast<SpellType>(prototypeId >> 16); }
@@ -338,9 +345,8 @@ public:
 
     SpellContainer* NewContainer();
 
-    // For an id other than -1 the spell takes it as its packed id: low half 0 initialises it from prototype
-    // (id >> 16) (null when out of range); another low half is a FatalError (the spell keeps only its id).
-    Spell* CreateSpellObject(int id);
+    // A new empty spell under a free id (Spell::Clone fills it).
+    Spell* CreateSpellObject();
     // A Spell (0x3002) or SpellContainer (0x3003); else null.
     EngineObject* NewObject(int type) override;
 

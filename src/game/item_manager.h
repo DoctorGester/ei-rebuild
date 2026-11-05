@@ -12,6 +12,7 @@
 #include <string_view>
 #include <vector>
 
+class ManagerContext;
 class Spell;
 class SpellManager;
 
@@ -89,8 +90,6 @@ struct ItemManager : ResourceManager {
     // The item factory: a new constructed item for kind ItemKind::Weapon weapon, ItemKind::Armor armour, ItemKind::Quick quick, ItemKind::Loot
     // loot, ItemKind::Scroll scroll, ItemKind::Quest quest, its type set to the kind; null for another kind or without memory.
     EngineObject* NewObject(int kind) override;
-    // BaseManager's (the identity records), then every item's RequirePrototype.
-    void Load(ByteStream* stream) override;
 
     // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind`)
     // from prototype record `index` of the kind's table (an index whose low 16 bits are 0xFFFF: 0) and, for
@@ -115,3 +114,13 @@ struct ItemManager : ResourceManager {
     std::vector<std::string> ListArmorNames();
     std::vector<std::string> ListQuickItemNames();
 };
+
+// Every item of the context's item manager names its prototype (Item::HasPrototype) and every spell of its spell
+// manager its records (Spell::HasRecords). An item or spell of another database fails it: a save, party file or
+// player made with another items.idb or spells.sdb. The loaders test what they load, so the readers of the
+// records need not: the world server refuses a player's party (the player is dropped), a client a trade
+// partner's offer.
+bool HasEveryRecord(ManagerContext* context);
+// HasEveryRecord, or the game ends (game::FatalExit naming the item or spell): the loaders of saves, party files
+// and the world server's blocks on a client.
+void RequireEveryRecord(ManagerContext* context);

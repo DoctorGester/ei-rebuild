@@ -10,6 +10,7 @@
 #include "party.h"
 #include "player_messages.h"
 #include "spell.h"
+#include "ui.h"
 #include "world.h"
 #include "lib/crt.h"
 
@@ -42,6 +43,9 @@ MemberList::iterator FindSameMessage(MemberList::iterator first, MemberList::ite
 
 // Player 0 of the world (the local player), or null.
 Player* LocalPlayer() { return g_serverWorld.GetPlayer(0); }
+
+constexpr const char* kOtherDatabaseOffer =
+    "The other player's offer holds items or spells this game's item and spell databases do not have: refused.";
 
 } // namespace
 
@@ -114,7 +118,8 @@ void ClientSession::DropParty() { DestroyOwned(party); }
 // message gives (when its first dword, the spell's id, is positive) a spell made by the party's spell manager
 // (CreateObject with the stored type and that id, its packed id set and its Load) and an
 // item made by the item manager (CreateObject with id -1, packed id, Load). The items are added to
-// the party, which takes the offer's money first; trade records older than the offer's revision are dropped.
+// the party, which takes the offer's money first (an offer naming records this game lacks leaves the party
+// empty); trade records older than the offer's revision are dropped.
 void ClientSession::ApplyParty() {
     PartyMessage* remote = FindParty();
     if (!remote) return;
@@ -149,7 +154,16 @@ void ClientSession::ApplyParty() {
         item->AddRef();
         items.push_back(item);
     }
-    for (Item* item : items) partner->AddItem(item, true, true);
+    if (HasEveryRecord(partner)) {
+        for (Item* item : items) partner->AddItem(item, true, true);
+    } else {
+        // An offer naming items or spells this game's databases lack (a partner with another items.idb or
+        // spells.sdb) is refused: the partner's party stays empty and the chat says why.
+        for (Item* item : items) item->Release();
+        items.clear();
+        partner->Clear(true, false);
+        g_interface.OnChatLine(kOtherDatabaseOffer);
+    }
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision);
     for (auto record = tradeRecords.begin(); record != tradeRecords.end();)

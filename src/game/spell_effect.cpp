@@ -159,6 +159,7 @@ void SpellEffect::Load(ByteStream* stream) {
     std::uint32_t packed = 0;
     stream->ReadValue(packed);
     HeldSpell()->prototypeId = packed;
+    HeldSpell()->RequireRecords();
     World* server = world;
     LoadEffectObject(stream, server, visual);
     LoadEffectObject(stream, server, sound);

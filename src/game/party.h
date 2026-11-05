@@ -100,7 +100,7 @@ public:
     // name, entrance, both managers (their Load, then LoadObjects), the item ids (resolved in the item manager
     // and counted), the records (PartyUnitRecord::Load, their item ids resolved in this party), the variables
     // (with `loadVariables`), money (from version 0x6C stored xor a key that follows it); then both managers'
-    // ReleaseUnused.
+    // ReleaseUnused. The caller tests the items' and spells' records (HasEveryRecord / RequireEveryRecord).
     void LoadParty(ByteStream* stream, bool loadVariables);
     // Create when there is no item manager; the zone name with its zero, entrance, both managers (their Save,
     // then SaveObjects), the item ids (-1 for an empty entry), the record count and records, the variables
