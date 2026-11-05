@@ -22,10 +22,28 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
   items, spells, spell modifiers), each an `itemdb::RecordTable<Record>`: a vector plus an index by `IndexKey` (a
   material's key, an item prototype's name, a spell's or a modifier's code). `At` checks `index < (end - begin) /
   stride` (signed division, unsigned compare), else null. The original's callers read fields of the null record and
-  faulted; the items area tests it: the packed-id weapon stats give 0 (type NoWeapon, damage type 6), the names are
-  empty, a loot's price -1, and FillItem makes no item without a prototype. Callers elsewhere (item texts, UI, unit
-  skins) and the `ItemWeapon` / `ItemArmor::GetType` still read the record untested (C154a). `Named` files a null
-  record under an unknown key. `IndexOf` is -1 for a null record (the original divided the null record's address
+  faulted. Ours, one rule:
+  - **An item's prototype is always there.** Every item comes from FillItem (which makes none without a prototype),
+    CopyTo (a copy of one that has it) or `Item::Load`, the one reader of a saved, sent or traded item's packed id:
+    `Item::RequirePrototype` ends the game (`game::FatalExit`: the error box and exit, also with Rebirth's
+    DisableExitOnCrashReport) when the packed id names no record of the item's kind, i.e. a save, a party file or a
+    player of another item database. `ItemManager::Load` checks the identity records too, since the world's save
+    loads the map objects (a unit's load reads its weapon's type) before the items' own Load. So `GetType`,
+    `GetTypeGroup`, `GetPrototype` (null only for scrolls) and the texts read the prototype unchecked. Why there and
+    not a failed load: the item loaders (world save, party files, the client's item blocks, a partner's offer, the
+    party messages) mostly ignore a failed stream, and refusing in each would mean undoing half-loaded worlds and
+    parties; an item the database cannot name cannot be worn, shown or priced, and the original crashed on it.
+  - **Every other index is tested where it is read**: a packed id's material half, the record a loot item stands for
+    (`ItemLoot::HasRecord`), the packed ids a unit's figure gets (unit skins, the client's armour and weapon ids).
+    Without the record: the packed-id weapon stats give 0 (type NoWeapon, damage type 6), names and text keys are
+    empty, a loot's price -1, an id dresses or animates nothing. The camp's predicates (`IsPart`, `IsMaterial`,
+    `IsSpell`, `IsModifier`) and the item info's dispatch hold only with the record, so a loot item without one is
+    plain loot there and the code behind them reads the record unchecked. A script's unknown name ("Instruction
+    Weapon.nosuch") makes such a loot item too.
+  - Not yet: a spell's prototype (`Spell::GetPrototype`, read unchecked by the texts, the item info and the spell
+    code); see C154b. Open: a weapon's or armour's `type` is not checked at database load, and the armour type
+    indexes the unit's seven slots (every install's and mod's items.idb has 0-6). `Named` files a null record
+    under an unknown key. `IndexOf` is -1 for a null record (the original divided the null record's address
   offset by the record size): only a database without a "spell container" quick item reaches it, and the scroll
   makers (CreateSpellItem, the camp's) then pass -1 to MakeItem, which takes it as index 0.
 - Loading (startup and each switch of the resource database): "items.idb" (materials, weapons, armors, quick items,

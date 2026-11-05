@@ -149,10 +149,10 @@ void NameSkinTextures(const UnitClientSpecific* self, int detailed, SkinRequest&
 // --- Armour figure parts ----------------------------------------------------------------------
 
 void UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
-    if (itemId == kNoItemId) return;
-    std::uint32_t prototypeType = PrototypeIndex(itemId);
-    if (prototypeType == kNoIndex || MaterialIndex(itemId) == kNoIndex) return;
-    std::uint32_t slot = static_cast<std::uint32_t>(ArmourRecord(prototypeType)->type);
+    // No item (kNoItemId, a kNoIndex half) or an id of another database: no record, nothing put on.
+    const itemdb::ArmorRecord* armour = ArmourRecord(PrototypeIndex(itemId));
+    if (!armour || MaterialIndex(itemId) == kNoIndex) return;
+    std::uint32_t slot = static_cast<std::uint32_t>(armour->type);
     if (slot >= 7) return;
     if (armourIds[slot] == itemId) return;
     armourIds[slot] = itemId;
@@ -162,7 +162,6 @@ void UnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
 
     FigureModel* model = manager->FindModel(unit->name);
     if (!model) return;
-    const itemdb::ArmorRecord* armour = ArmourRecord(prototypeType);
     std::string armourPart;
     for (int i = 0; i < 7; ++i) {
         const char* plain = kArmourPartNames[row][i];
@@ -581,7 +580,6 @@ constexpr float kLight = 0.75f;
 constexpr int kLegsLeft = 4, kLegsRight = 5, kHandLeft = 2, kHandRight = 3, kBody = 1, kHeadLevel = 0;
 // armourIds: 0 the helmet, 1 the body armour, 2 the trousers.
 constexpr int kHelmetSlot = 0, kBodyArmourSlot = 1, kTrousersSlot = 2;
-constexpr std::uint32_t kNoArmour = 0xFFFFFFFF;
 
 constexpr int kHeroTextureSize = 0x80;
 constexpr int kTextureSize = 0x40;
@@ -605,11 +603,11 @@ std::uint8_t PartLevel(const UnitParamsSlot& part) {
     return 1;
 }
 
-// Whether the armour piece `id` (packed: prototype index in the high half) shows the wounds
-// under it. The record is read unchecked (an out-of-range index reads address 0xB4).
-bool ShowsWounds(std::uint32_t id) {
+// Whether the armour piece `id` (packed: prototype index in the high half) hides the wounds under it; false for
+// no piece (kNoItemId) and for an id whose record is missing (another database).
+bool HidesWounds(std::uint32_t id) {
     const auto* record = itemdb::ArmorAt(id >> 16);
-    return record->showsWounds != 0;
+    return record && record->showsWounds == 0;
 }
 
 std::uint8_t Worse(std::uint8_t a, std::uint8_t b) { return a > b ? a : b; }
@@ -631,16 +629,16 @@ bool UnitClientSpecific::WoundLevels(std::uint8_t** levels) {
     }
     std::uint8_t* out = *levels;
     if (unit->MapType() == MapObjectType::Hero) {
-        if (armourIds[kTrousersSlot] != kNoArmour && !ShowsWounds(armourIds[kTrousersSlot])) {
+        if (HidesWounds(armourIds[kTrousersSlot])) {
             out[kLegsRight] = 0;
             out[kLegsLeft] = 0;
         }
-        if (armourIds[kBodyArmourSlot] != kNoArmour && !ShowsWounds(armourIds[kBodyArmourSlot])) {
+        if (HidesWounds(armourIds[kBodyArmourSlot])) {
             out[kHandRight] = 0;
             out[kHandLeft] = 0;
             out[kBody] = 0;
         }
-        if (armourIds[kHelmetSlot] != kNoArmour && !ShowsWounds(armourIds[kHelmetSlot])) out[kHeadLevel] = 0;
+        if (HidesWounds(armourIds[kHelmetSlot])) out[kHeadLevel] = 0;
         return wounded;
     }
     out[kLegsLeft] = Worse(out[kLegsLeft], out[kLegsRight]);

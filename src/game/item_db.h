@@ -1,9 +1,10 @@
 #pragma once
 
 // The item and spell databases (items.idb and spells.sdb of the resource archive; item_db.cpp, spell_db.cpp):
-// records in tables held in globals, indexed by name or code. A lookup by index gives null out of range: the items
-// area then gives an empty name, a zero stat or no item (the game faulted); some callers elsewhere still read
-// the record without the test.
+// records in tables held in globals, indexed by name or code. A lookup by index gives null out of range (the game
+// faulted on it). An item's prototype is always there (Item::RequirePrototype); the other indices (a packed id's
+// material, the record a loot item stands for, the ids of a unit's figure) are tested where read: an empty name,
+// a zero stat or no item.
 
 #include "lib/vecmath.h"
 

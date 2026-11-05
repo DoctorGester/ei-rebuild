@@ -48,12 +48,12 @@ const ItemLoot* LootOrNull(const Item* item) {
 
 bool IsSpell(const Item* item) {
     const ItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind == LootKind::Record && loot->recordType == LootRecordType::Spell;
+    return loot && loot->kind == LootKind::Record && loot->recordType == LootRecordType::Spell && loot->HasRecord();
 }
 
 bool IsModifier(const Item* item) {
     const ItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind == LootKind::Record && loot->recordType == LootRecordType::Modifier;
+    return loot && loot->kind == LootKind::Record && loot->recordType == LootRecordType::Modifier && loot->HasRecord();
 }
 
 bool IsSpellContainer(const Item* item) {
@@ -62,12 +62,12 @@ bool IsSpellContainer(const Item* item) {
 
 bool IsPart(const Item* item) {
     const ItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind == LootKind::Record && loot->recordType <= LootRecordType::Quick;
+    return loot && loot->kind == LootKind::Record && loot->recordType <= LootRecordType::Quick && loot->HasRecord();
 }
 
 bool IsMaterial(const Item* item) {
     const ItemLoot* loot = LootOrNull(item);
-    return loot && loot->kind == LootKind::Material;
+    return loot && loot->kind == LootKind::Material && loot->HasRecord();
 }
 
 bool IsBuildable(const Item* item) {
@@ -145,7 +145,6 @@ int UiItemStrip::ItemTab(const Item* item) {
 
 int UiItemStrip::SpellTab(const Item* item) {
     if (IsSpell(item)) {
-        // A record out of range is read through null, as in the original.
         const itemdb::SpellRecord* spell = itemdb::SpellAt(item->AsLoot()->index);
         switch (spell->castType) {
         case 0: return 0;

@@ -31,7 +31,8 @@ struct RichLayout;
 } // namespace render::text
 
 // The item predicates of the camp screens. Loot items (type ItemKind::Loot, ItemLoot) are sorted by kind and record
-// type.
+// type; the four loot predicates hold only for a loot item whose record exists (ItemLoot::HasRecord), so the code
+// behind them reads the record unchecked.
 bool IsPart(const Item* item);             // kind 2, record type 0-2 (blueprint parts)
 bool IsMaterial(const Item* item);
 bool IsSpell(const Item* item);            // kind 2, record type 3 (the spell table)

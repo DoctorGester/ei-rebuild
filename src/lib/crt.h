@@ -119,6 +119,9 @@ int FatalError(const char* format, Args&&... args) {
 }
 // A std::string message, printed as it is.
 inline int FatalError(const std::string& message) { return FatalError("%s", message.c_str()); }
+// Reports a fatal error (printf-style) in the error box and exits the game, also with Rebirth's
+// DisableExitOnCrashReport: for data the game cannot go on with (an item of another item database).
+[[noreturn]] EI_PRINTF_FORMAT(1, 2) void FatalExit(const char* format, ...);
 // FatalError for a function returning a pointer: null when it returns at all (FatalError's 0).
 template <class T, class... Args>
 T* FatalErrorAs(const char* format, Args... args) {

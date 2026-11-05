@@ -160,7 +160,6 @@ constexpr std::uint32_t kLongStepSpread = 101;        // a long step becomes 500
 constexpr int kMotionPaused = 1;                      // Unit::motionMode
 constexpr int kMotionScaled = 2;
 constexpr std::uint32_t kNoWeapon = 0xFFFFFFFFu;
-constexpr std::uint32_t kNoPrototype = 0xFFFF;
 constexpr std::uint32_t kKeyNotHero = AnimationKeyOf(AnimationMoveBits::Walk);
 constexpr std::uint32_t kKeySpecialIdle = kAnimationSpecialIdleKey;
 } // namespace
@@ -227,13 +226,9 @@ void UnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     std::uint32_t key = 0;
     std::uint32_t weapon = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNoWeapon;
     if (weapon != kNoWeapon) {
-        std::uint32_t prototype = weapon >> 16;
-        if (prototype != kNoPrototype) {
-            // An index beyond the table reads the type at address 0xC (a fault).
-            const auto* record =
-                itemdb::WeaponAt(prototype);
+        // No record (a kNoIndex half, an id of another database): no weapon bit.
+        if (const auto* record = itemdb::WeaponAt(weapon >> 16))
             key = AnimationWeaponBit(static_cast<WeaponType>(record->type));
-        }
     } else if (unit->params.naturalWeapon < kAnimatedWeaponTypes) {
         key = AnimationWeaponBit(static_cast<WeaponType>(unit->params.naturalWeapon));
     }

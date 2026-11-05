@@ -48,7 +48,8 @@ public:
     // The recharge: charge moves towards chargeMax by chargeRate * chargeMax. 0 when already full.
     bool RunTick() override;
     // The packed id, condition..unreadValue, the spell's id (-1: none; Load finds it in the context's spell
-    // manager and counts it), count and magicLevel, four bytes each, in that order.
+    // manager and counts it), count and magicLevel, four bytes each, in that order. A packed id that names no
+    // prototype of the item's kind ends the game (RequirePrototype).
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     // The classes call it first: price, weight, unreadValue, charge and chargeMax, magicLevel, condition
@@ -89,9 +90,13 @@ public:
     // with the spell manager `spells`; when that fails the new item is released and the result is null.
     Item* Clone(SpellManager* spells);
 
-    // The prototype record for the item's kind and index; null for spell containers,
-    // other kinds and indices out of range.
+    // The prototype record for the item's kind and index; null for spell containers.
     itemdb::ItemRecordHead* GetPrototype();
+    // Ends the game (game::FatalExit) when the packed id names no prototype of the item's kind: an item of a
+    // save, a party or a player made with another item database. Item::Load and ItemManager::Load call it, and
+    // FillItem makes no item without a prototype, so every item has one and its readers (the type getters,
+    // the names and texts) take it unchecked.
+    void RequirePrototype();
 
     // QuickItemCategory::NoPrototype without a prototype.
     QuickItemCategory GetCategory();
@@ -152,7 +157,7 @@ public:
     ClassId GetClassId() override;
     std::uint32_t QuestWord() const override { return actionValue; }
 
-    // The weapon type from the prototype (faults if the index is out of range).
+    // The weapon type from the prototype.
     WeaponType GetType();
     bool IsRanged() { return ::IsRanged(GetType()); }
 
@@ -188,7 +193,7 @@ public:
     ClassId GetClassId() override;
     std::uint32_t QuestWord() const override { return std::bit_cast<std::uint32_t>(absorb[0][0]); }
 
-    // The armor type from the prototype (faults if the index is out of range).
+    // The armor type from the prototype.
     ArmorType GetType();
 
     // The unit's armour layer group the piece adds to (UnitStatLayer): 2 for upper body armour, else 1.
@@ -280,6 +285,11 @@ public:
     // The base price. Depends on what the loot stands for (kind): itself (price), a material, or a record
     // of another database (recordType).
     float GetPrice() override;
+    // The record the loot stands for exists: always for itself (its prototype), the material for a
+    // LootKind::Material, the record type's record for a LootKind::Record; false for another kind. One that
+    // names a record past its table (a save or player of another database, a script's unknown name) is plain
+    // loot to the camp's screens and the item info, and has no texts.
+    bool HasRecord() const;
     bool CopyTo(Item* target, SpellManager* spells) override;
     // The base's, then kind, recordType and index.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;

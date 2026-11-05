@@ -148,7 +148,6 @@ void SpellMakerPage::DrawSprites(SceneRenderer* pass) {
             owner->DrawItem(pass, cell);
             hasContainer = true;
         } else if (IsSpell(item)) {
-            // A record out of range is read through null, like the original.
             const itemdb::SpellRecord* spell = itemdb::SpellAt(item->AsLoot()->index);
             needed += spell->skill;
             manaSum += spell->mana;

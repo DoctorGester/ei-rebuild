@@ -75,8 +75,8 @@ void AddLine(std::vector<UiLabel>& labels, std::string_view text, const Rect& re
     labels.push_back({std::string(text), rect, {1, 0xFFFFFF, render::text::kCenter}});
 }
 
-// The database records of the camp's loot items (the record index): spells, spell
-// modifiers and materials (null past the end, which is then read through).
+// The database records of the camp's loot items (the record index): spells, spell modifiers and materials; the
+// camp's predicates (IsSpell, IsModifier, IsPart, IsMaterial) admit only items whose record exists.
 std::uint32_t Index(const Item* item) { return item->AsLoot()->index; }
 // The loot's record type: the record table it indexes.
 LootRecordType RecordType(const Item* item) { return item->AsLoot()->recordType; }
@@ -340,7 +340,7 @@ void AddNamed(Party* list, const char* name, std::uint32_t index, std::uint32_t 
 }
 
 // One item of class `kind` for `record` in every material whose soundName names the record's material class,
-// made by the list's item constructor with `manager`. A material index out of the table reads through null.
+// made by the list's item constructor with `manager`; `materials` is the material table's count.
 void AddInMaterials(Party* list, ResourceManager* manager, ItemConstructor* maker, itemdb::ItemRecordHead* record,
                     ItemKind kind, int materials) {
     for (int j = 0; j < materials; ++j) {
@@ -1477,9 +1477,9 @@ void CampPages::DeconstructItem() {
     if (const char* instruction = InstructionName(copy->Kind())) {
         if (ItemLoot* item = NewLoot(results, instruction)) AddLoot(results, item, PrototypeIndex(copy));
     }
-    // A material per one the prototype needs; a material index out of range reads its key through null.
-    for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
-        const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId));
+    // A material per one the prototype needs; none without the material's record (an item of another database).
+    const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId));
+    for (std::uint32_t i = 0; material && i < copy->GetPrototype()->materialUnits; ++i) {
         if (ItemLoot* item = NewLoot(results, std::string("material.") + material->key))
             AddLoot(results, item, std::nullopt);
     }

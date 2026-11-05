@@ -77,11 +77,12 @@ void AddItem(SkinRequest& set, const UnitModelRecord* model, std::uint32_t id) {
     set.textures.push_back(buffer);
 }
 
-// The weapons (items 1 and 2): the one whose armour layer is lower first when both exist.
+// The weapons (items 1 and 2): the one whose armour layer is lower first when both exist. An id whose record is
+// missing (kNoItemId, or an id of another database) is no item.
 void AddWeapons(SkinRequest& set, const UnitModelRecord* model, const std::uint32_t* items) {
-    if (items[1] != kNoItemId && items[2] != kNoItemId) {
-        const itemdb::ArmorRecord* second = itemdb::ArmorAt(items[2] >> 16);
-        const itemdb::ArmorRecord* first = itemdb::ArmorAt(items[1] >> 16);
+    const itemdb::ArmorRecord* first = itemdb::ArmorAt(items[1] >> 16);
+    const itemdb::ArmorRecord* second = itemdb::ArmorAt(items[2] >> 16);
+    if (first && second) {
         if (second->layer < first->layer) {
             AddItem(set, model, items[2]);
             AddItem(set, model, items[1]);
@@ -91,8 +92,8 @@ void AddWeapons(SkinRequest& set, const UnitModelRecord* model, const std::uint3
         }
         return;
     }
-    std::uint32_t id = items[1] == kNoItemId ? items[2] : items[1];
-    if (id != kNoItemId) AddItem(set, model, id);
+    if (first) AddItem(set, model, items[1]);
+    else if (second) AddItem(set, model, items[2]);
 }
 
 // The extra weapon picked by the record's index byte in its list: weapon and material records named together.
@@ -190,7 +191,8 @@ void WorldClient::BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::ve
 // (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of items[1..6] (ItemKind::Armor, the
 // armour's type; item i goes to record i + 1). The head list two: [0] the helmet row items[0] (ItemKind::Armor) and
 // [1] the shown extra weapon (ItemKind::Weapon, the weapon's type) when its index is within the list. items[1..6] are
-// read whatever the item list's size; an id past its table reads through a null record (it faults).
+// read whatever the item list's size; an id whose record is missing (kNoItemId, or an id of another database) is
+// no item.
 void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<TextureRecord>* list) {
     constexpr auto kBody = static_cast<std::uint32_t>(MapObjectType::Hero);
     list->clear();
@@ -205,28 +207,29 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
         out[0].kind = kBody;
         out[0].itemType = kNoRecordField;
         for (int i = 1; i < 7; ++i) {
-            if (ids[i] == kNoItemId) continue;
+            const itemdb::ArmorRecord* armour = itemdb::ArmorAt(ids[i] >> 16);
+            if (!armour) continue;
             out[i + 1].id = ids[i];
             out[i + 1].kind = static_cast<std::uint32_t>(ItemKind::Armor);
-            out[i + 1].itemType = static_cast<std::uint32_t>(itemdb::ArmorAt(ids[i] >> 16)->type);
+            out[i + 1].itemType = static_cast<std::uint32_t>(armour->type);
         }
         return;
     }
     list->resize(2, empty);
     TextureRecord* out = list->data();
-    if (ids[0] != kNoItemId) {
+    if (const itemdb::ArmorRecord* helmet = itemdb::ArmorAt(ids[0] >> 16)) {
         out[0].id = ids[0];
         out[0].kind = static_cast<std::uint32_t>(ItemKind::Armor);
-        out[0].itemType = static_cast<std::uint32_t>(itemdb::ArmorAt(ids[0] >> 16)->type);
+        out[0].itemType = static_cast<std::uint32_t>(helmet->type);
     }
     auto& extra = const_cast<std::vector<std::uint32_t>&>(record->extraWeapons);
     const auto count = static_cast<std::uint32_t>(extra.size());
     const auto index = static_cast<std::uint32_t>(static_cast<int>(record->extraWeapon));
     if (index >= count) return;
     const std::uint32_t weapon = extra[index];
-    if (weapon == kNoItemId) return;
+    const itemdb::WeaponRecord* shown = itemdb::WeaponAt(weapon >> 16);
+    if (!shown) return;
     out[1].id = weapon;
     out[1].kind = static_cast<std::uint32_t>(ItemKind::Weapon);
-    out[1].itemType = static_cast<std::uint32_t>(
-        itemdb::WeaponAt(weapon >> 16)->type);
+    out[1].itemType = static_cast<std::uint32_t>(shown->type);
 }
