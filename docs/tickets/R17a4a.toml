@@ -5,5 +5,6 @@ depends = ["C160"]
 files = ["src/render/render_smooth.cpp", "src/render/render.cpp", "src/render/render_internal.h"]
 note = "From R17a4 (renderer.md section 11 'The depth copy', and the water's cost paragraph): at 3840x2009 msaa 8 the R32F depth copy that every depth-writing world pipeline writes at each sample (AddDepthCopy) costs 0.55-1.2 ms a frame in render_water's views (probe: no pipeline writing it; shore 2.63 -> 2.08 ms, lake 3.46 -> 2.42, river at night 3.32 -> 2.15); the resolve a smaller part (without it 0.05-0.5 ms less). Its only reader is depth_from_resolved after a world run (the frame target's depth for later depth-testing draws, and CopyIntoMultisampled when a world run follows interface draws). The battle and container screens clear the depth (ClearUiDepth(1)) right after the world (the selection box between them at z 0). Plan: per frame, from the recorded commands, whether anything after a world run reads the depth before a whole-screen depth clear (or a later world run follows a frame pass, or a harness smoothorder mode); if not, the world's pipelines with the copy masked (or without the second target), no copy resolve and no depth_from_resolved. Same frames by construction; check render_smooth (smoothorder before/split/check), render_shore_seams, goldens; time with the R17a4 kit (build/R17a4 in the main checkout, variant G is the bound)."
 order = 1194
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
