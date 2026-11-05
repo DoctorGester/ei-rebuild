@@ -277,7 +277,7 @@ void UiItemStrip::LeftDown(Point point) {
     if (region == 0 || region == 1) {
         if (!ui->shiftDown) {
             ui->PlayInterfaceSound(kSoundCampScroll);
-            ui->mouseCapture = Input();
+            CaptureMouse();
             scrollDirection = region == 0 ? 1 : 2;
         } else {
             // Shift jumps to the start or (clamped later) the end.
@@ -464,7 +464,7 @@ PartyUnitRecord* MpHeroScreen::HeroRecord() { return LocalPlayerData()->members.
 void MpHeroScreen::LeftUp(Point point) {
     UiContainer::LeftUp(point);
     // Releasing a rotate arrow.
-    if (ui->mouseCapture == Input()) ui->mouseCapture = nullptr;
+    ReleaseMouse();
     rotating = 0;
 }
 

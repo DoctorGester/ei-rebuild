@@ -26,6 +26,7 @@
 
 namespace {
 
+constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr float kMapCentreX = 700.0f;
 constexpr float kMapButtonsX = 790.0f;
 constexpr float kMapFrameX = 710.0f;
@@ -115,6 +116,12 @@ void PanelSlide::Step() {
     if (t > 1.0f) t = 1.0f;
     t = MaxKeepB(t, 0.0f);      // NaN too
     if (t == 1.0f || t == 0.0f) moving = false;
+}
+
+void PanelSlide::Toggle(Interface3D* ui) {
+    ui->PlayInterfaceSound(kSoundSling);
+    direction = -direction;
+    moving = true;
 }
 
 int PanelSlide::Offset() const {

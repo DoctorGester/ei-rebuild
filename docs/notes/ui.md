@@ -309,6 +309,14 @@ Classes: `HudWeaponBar`, `HudQuickItems`, `HudSpellColumn`, `HudActionColumn`, `
 Rebuild every new game, ShowFace for low mana and hits), `HudMap`, `HudUnitPanel` (`ui_hud_panels.cpp`, `PaintUnitInfo`),
 `HudClock`, `HudMovePanel` (`ToggleFlag` orders through the local view), `HudTopPanel` (`ui_hud_frame.cpp`).
 
+A panel's buttons go through `UiWindow::PressRegion` (button down: the region, the event used, the mouse taken),
+`PressedRegion` (button up: only with the mouse taken here) and `HitRegion` (move, wheel), over its first `count` regions
+(weapon bar, spell and action columns) or all of them. Each action is one function the click and its key both call: the
+weapon `HudWeaponBar::Choose`, the slings `PanelSlide::Toggle`, "camera north" `HudMap::FaceNorth`, the clock's
+`TogglePause` / `SetSpeed` / `OpenObjectives`, the movement panel's `SetMode` / `ToggleFlag`, the spell column's `Click` /
+`ClickAlternate`, the quick items' `Pick` / `UseNow`, the action column's `Select`. A held view button's release on the map
+is not marked used.
+
 - Quick items' slot lookup uses RegionAt's result unchecked: a point inside the panel but outside every slot (-1) reads the
   entry before the table (zero in practice) and counts as a hit (`RegionItem`); the weapon bar's button-up orders
   `LocalView()` without a null check; the minimap wheel zooms only over region 0 (zoom 2.5^(notches/10)); hidden minimap

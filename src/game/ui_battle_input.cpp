@@ -100,8 +100,6 @@ void BattleScreen::Wheel(float notches, Point point) {
 
 namespace {
 
-constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
-constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundOnOff = "buttons\\battle\\on_off.wav";
 constexpr const char* kQuickSaveName = "saveq";
@@ -222,9 +220,7 @@ void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
         camera->SetTargetId(-1);
         return;
     case kActionCameraNorth:
-        ui->PlayInterfaceSound(kSoundClick);
-        camera->SetHeading(0.0f);
-        map->northTime = 0.5f;
+        map->FaceNorth();
         return;
     case kActionOrderKey:
     case kActionOrderKey + 1:
@@ -269,22 +265,9 @@ void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
     case kActionWeapon:
     case kActionWeapon + 1:
     case kActionWeapon + 2:
-    case kActionWeapon + 3: {
-        HudWeaponBar* bar = weaponBar;
-        const int slot = action - kActionWeapon;
-        const int count = bar->count;
-        if (count <= slot) return;
-        const int current = bar->selected;
-        if (current == slot) return;
-        if (current >= 0 && current < count) bar->Highlight(current, false);
-        bar->Highlight(slot, true);
-        bar->selected = slot;
-        ui->PlayInterfaceSound(kSoundWeapon);
-        Unit* unit = bar->unit;
-        if (!unit) return;
-        g_clientWorld.LocalView()->SetWeapon(unit, slot);
+    case kActionWeapon + 3:
+        weaponBar->Choose(action - kActionWeapon);
         return;
-    }
     case kActionQuickItem:
     case kActionQuickItem + 1:
     case kActionQuickItem + 2:
@@ -311,9 +294,7 @@ void BattleScreen::KeyDown(platform::Key key, int scan, bool repeat) {
         return;
     }
     case kActionMapSlide:
-        ui->PlayInterfaceSound(kSoundSling);
-        map->slide.direction = -map->slide.direction;
-        map->slide.moving = true;
+        map->slide.Toggle(ui);
         return;
     case kActionQuickSave:
         ::QuickSave(kQuickSaveName, false);
