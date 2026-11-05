@@ -4,4 +4,5 @@ group = "cleanup"
 model = "opus"
 note = "CI run 41953378949 (2026-11-05): ~25 Linux scenarios differed only in mission.sav's obj controller.moveMode.pad / moveMode2.pad (0 in the golden, garbage in the run). MoveModeState {MoveMode mode; uint8 onGuard, wasMode3;} has two padding bytes and combat_save.cpp writes it whole with WriteValue; C124a removed new(kZeroed), so the padding is no longer zero (Windows happened to read zeros). Fixed on main by naming the two bytes (std::uint16_t unused = 0). Make the class of bug impossible: WriteValue / lib::Store / any raw struct write rejects types with padding at compile time (e.g. a sizeof == sum-of-members check via a trait, or std::has_unique_object_representations for integer-only structs plus an explicit allow-list for float structs checked by a static_assert on sizeof); fix every struct it finds by naming its padding or writing field by field. Goldens the same; Linux CI's save diffs gone."
 order = 1160
-status = "queued"
+status = "running"
+started = "2026-11-05"
