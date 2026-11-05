@@ -2,7 +2,7 @@
 tests/verify/harness_record.h).
 
     python tools\\recorded.py play <name> [rebirth|vanilla]
-        Play a session yourself (play.cmd record <name> builds the verify build first): the verify build on
+        Play a session yourself (harness.cmd record <name> builds the verify build first): the verify build on
         tests/scenarios/record/live.txt in a window shown and activated, your keyboard and mouse recorded. Close the
         window (or quit from the menu) to end it; the recording becomes tests/scenarios/rec_<name>.txt. A session that
         runs past 3000 frames (live.txt) is cut by the game into parts, each from a save of its own: rec_<name>_1.txt,

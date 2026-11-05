@@ -31,8 +31,7 @@ One file per ticket, `docs/tickets/<ID>.toml`; the live status is in the shared 
 ## Build and test
 
 - `build.cmd verify` (the image with the harness: what the runs use) and `build.cmd release` (the product), by full
-  path, with no errors or warnings; both run the build checks (`tools/build_checks.py`), which must pass. Debug and asan builds are the coordinator's: debug as a compile check every few merges, asan with a suite run on it after memory-handling tickets and every few merges (user 2026-11-04). `play.cmd` (the user plays with
-  it) must keep working: change it with `build.cmd`'s arguments or outputs.
+  path, with no errors or warnings; both run the build checks (`tools/build_checks.py`), which must pass. Debug and asan builds are the coordinator's: debug as a compile check every few merges, asan with a suite run on it after memory-handling tickets and every few merges (user 2026-11-04).
 - A fresh worktree's first build takes most objects from the compiler cache that every checkout shares
   (`docs/notes/standalone.md`, "The compiler cache"). Debug information then names the first compiling checkout's paths.
 - Games only through `python tools/work.py test <ID> [run_all args]` (scenario names for a subset,

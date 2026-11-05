@@ -6,7 +6,7 @@ compiled from the same source and flags.
 - The program: sccache's release for x64 Windows, pinned and checked against its sha256, under the main checkout's
   build/third_party (shared by every worktree, like the shader toolchain); downloaded on the first use only.
 - The cache: build/compiler_cache/<configuration> in the main checkout: one per configuration (release, verify,
-  debug, play, asan), shared by every worktree.
+  debug, asan), shared by every worktree.
 - The server: one per checkout and configuration, on a port of its own. The checkout's folder is the server's base
   folder (SCCACHE_BASEDIRS): it is taken out of the paths before they are hashed, so another worktree's object is a
   hit. Its debug information names the folder that compiled it first (the cache's caveat for the debugger).

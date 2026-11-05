@@ -195,7 +195,7 @@ def adjust_hold(held, want):
     return len(held)
 
 
-# The installs whose data the runs play, read only (EI_GAME_VANILLA, EI_GAME_REBIRTH; play.cmd takes the same).
+# The installs whose data the runs play, read only (EI_GAME_VANILLA, EI_GAME_REBIRTH).
 INSTALL_ENV = {'vanilla': 'EI_GAME_VANILLA', 'rebirth': 'EI_GAME_REBIRTH'}
 DEFAULT_INSTALLS = {'vanilla': r'F:\games\EvilIslands', 'rebirth': r'F:\games\Evil Islands (Rebirth)'}
 

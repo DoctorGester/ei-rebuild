@@ -27,7 +27,7 @@
 namespace ei::verify::record {
 
 // "recordinput [live] [cut <frames>]" (read before the game starts): this run is recorded; "live" takes the player's own
-// keyboard and mouse (play.cmd record), its frames paced to real time; "cut": a part of this many frames is cut off
+// keyboard and mouse (harness.cmd record), its frames paced to real time; "cut": a part of this many frames is cut off
 // ("Parts" below).
 void Ask(bool live, unsigned cutFrames = 0);
 bool Asked();

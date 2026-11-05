@@ -86,7 +86,7 @@ jobs:
         run: |
           rm -f suite_*.txt build_*.log
           git clean -ffdq -e build/   # untracked files of an earlier ref, but not the build folders
-          # only the builds the suites play; debug / asan / play stay with the local merge routine
+          # only the builds the suites play; debug / asan stay with the local merge routine
           builds="verify release"
           fail=0
           for c in $builds; do

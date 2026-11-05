@@ -1,6 +1,6 @@
 // ei-rebuild: the game.
 // usage: ei-rebuild [-- <game arguments>]
-//   The game folder is the one EI_GAME_ROOT names (tools/run_all.py's, play.cmd's), else the program's
+//   The game folder is the one EI_GAME_ROOT names (tools/run_all.py's), else the program's
 //   own (the exe dropped into a game folder). With EI_GAME_ROOT the settings file's Work path
 //   is read as that folder. What follows "--" is the game's command line, as typed (WinMain's).
 #include "game/app.h"

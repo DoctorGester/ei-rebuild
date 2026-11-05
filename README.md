@@ -66,7 +66,7 @@ Lua mission scripting is planned (`docs/notes/lua-scripting.md`). The work queue
   - the GOG release (`EI_GAME_VANILLA`, default `F:\games\EvilIslands`), and/or
   - the Rebirth edition (`EI_GAME_REBIRTH`, default `F:\games\Evil Islands (Rebirth)`).
 
-  play.cmd keeps its settings and log in its own folder (`build\play_game`); the saves go to the install's `saves`.
+  The game keeps its settings and log in the folder it runs from; the saves go to the install's `saves`.
 
 ## Build
 
@@ -85,31 +85,21 @@ naming the game folder (the zip's README.txt).
 
 ## Play
 
-```
-play.cmd            builds the release and plays it on the Rebirth install's data, every option on
-play.cmd vanilla    the same on the GOG install's data, with Rebirth's bug fixes and widescreen
-launch-vanilla.cmd  plays the last release build on the GOG install's data, default options
-play.cmd record <name>   plays the test build with your input recorded as a scenario (docs/notes/harness.md)
-```
+Copy `build\release\ei-rebuild.exe` (or the exe from the GitHub release) into the game's folder, a GOG or Rebirth
+install, and start it there. It writes `ei_settings.ini` beside itself with the defaults (borderless full screen at the
+desktop's size, every graphics setting at its best) and picks the Rebirth flags from the folder (Rebirth's profile
+where Rebirth's plugin is, else the bug fixes and widescreen; a patch named in the file's `[patches]` overrides that).
+It writes into that folder (settings, saves, `ei-rebuild.log`), so use a copy of the install if you want the original
+kept as it is. The registry is never read.
 
-Or copy `build\release\ei-rebuild.exe` into the game's folder and start it there: it writes `ei_settings.ini`
-beside itself with the defaults and picks the Rebirth flags from the folder (Rebirth's profile where Rebirth's plugin
-is, else the bug fixes and widescreen; a patch named in the file's `[patches]` overrides that). It writes into that folder
-(settings, saves, `ei-rebuild.log`), so use a copy of the install if you want the original kept as it is.
+The render quality (MSAA samples, anisotropy), the performance overlay and vsync are set in the settings file's
+`[renderer]` section (`docs/settings.md`; `docs/notes/renderer.md` sections 11 and 15).
 
-For example, with the game somewhere else:
+To start it on an install from elsewhere, set `EI_GAME_ROOT` to the game folder and run the exe (arguments for the
+game follow `--`).
 
-```
-set EI_GAME_REBIRTH=D:\Games\Evil Islands
-play.cmd
-```
-
-The game plays from a copy of the build in `build\play_game`, so a game left open never locks the build. Its settings
-are `build\play_game\ei_settings.ini` (written with the defaults when missing: full screen at the desktop's size, every graphics
-setting at its best; the registry is never read). The render quality (MSAA samples,
-anisotropy), the performance overlay and vsync are set in its `[renderer]` section (comments at the top of `play.cmd`;
-`docs/notes/renderer.md` sections 11 and 15). The log is
-`build\play_game\ei-rebuild.log`.
+To record a session of your own play as a scenario: `harness.cmd record <name> [vanilla|rebirth]` (builds the test
+build and plays it with your input recorded; `docs/notes/harness.md`, "Recorded play").
 
 ## Test
 
@@ -128,8 +118,8 @@ On GitHub, `suites.yml` runs the suites on a self-hosted Windows runner that has
 software Vulkan, with a stub of the game data from a private repository). Scenarios that a CPU renderer cannot finish
 in time are left out there (`LINUX_SKIP`; `docs/notes/linux.md`, The CI job).
 
-The test tools find the installs as play.cmd does (`EI_GAME_VANILLA`, `EI_GAME_REBIRTH`, default the `F:\games` paths
-above; `tools/run_all.py` install_dir); the tools that read game.exe's file (the generators, `find_*`) read the
+The test tools find the installs by `EI_GAME_VANILLA`, `EI_GAME_REBIRTH`, default the `F:\games` paths
+above; `tools/run_all.py` install_dir); the few tools that read game.exe's file read the
 installs' (`tools/exe_path.py`).
 
 ## Layout
@@ -141,7 +131,7 @@ installs' (`tools/exe_path.py`).
   `src/video/` the movie player; `src/main.cpp` the exe's start.
 - `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/port/` the Linux and macOS
   checks; `tests/scenarios/` and their goldens in `tests/golden/`.
-- `tools/` the launcher, build checks, test runner, ticket and progress tools.
+- `tools/` the build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `comment-guide.md`), the tickets, and one
   note per area in `docs/notes/` (index: `docs/notes/README.md`).
 
@@ -150,7 +140,7 @@ installs' (`tools/exe_path.py`).
 The original work in this repository (the tools, the test harness, the renderer and the rebuilt source as written
 here) is under the MIT license (`LICENSE`). Libraries in `third_party/` keep their own licenses. The interface fonts
 (`third_party/fonts`, Liberation, SIL Open Font License 1.1) are built into the executable; every build writes
-`third_party_notices.txt` beside it with the third-party licences, and `play.cmd` copies it along.
+`third_party_notices.txt` beside it with the third-party licences.
 
 Evil Islands (Проклятые Земли) and its data are the property of their rights holders (Nival). This repository holds no
 game files: no `game.exe`, no resources, no music or video. To build or play it you need your own copy of the game.

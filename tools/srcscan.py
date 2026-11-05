@@ -1,4 +1,4 @@
-"""Shared helpers for the tools that scan the C++ sources under src/ (progress.py, inline_shims.py)."""
+"""Shared helpers for the tools that scan the C++ sources under src/ (progress.py, dashboard_data.py, named_data.py)."""
 import os
 import re
 

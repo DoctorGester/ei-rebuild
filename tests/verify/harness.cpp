@@ -447,7 +447,7 @@
 //                             (a line for the whole run) write the run's input into recorded.txt in the run folder
 //                             as a scenario that replays it (harness_record.h); "live": the player's own keyboard
 //                             and mouse in a window shown and activated, the frames paced to real time
-//                             (tools/recorded.py, play.cmd record); "cut": a part is cut off once it is this many
+//                             (tools/recorded.py, harness.cmd record); "cut": a part is cut off once it is this many
 //                             frames long (recorded_2.txt, ...: each part begins with a load of the quick save)
 //   recordcut                 (a recording's step) cut the recording here, as "cut" does
 //   origin                    (a recorded part's step) the "at" lines count their frames from here
