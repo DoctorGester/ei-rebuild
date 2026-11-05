@@ -2,12 +2,27 @@
   "scenario": "mod_lost_in_astral_gipat_necropolis",
   "install": "rebirth",
   "recorded": "2026-11-05",
-  "commit": "91a1238f4",
+  "commit": "efb250793",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "MOD2a: Lost in Astral's fixshops.plg as code: a new game builds four trader classes (Build(1)) instead of five, so the random draws after the templates move and every Lost in Astral run plays on from another stream (the autosave holds four templates, class 1 with spells); the new scenarios recorded too.",
+  "reason": "MOD2b: gz12g's key levers (4523-4525) and gz14g's (1712, 57) are opened from the quick panel's key instead of SwitchLeverState: the hero walks to each lever's use spot and the lever takes the key, so the zone's part from the first lever on plays differently (the quest steps the same).",
   "source": "image",
-  "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs",
+  "change": [
+    "console: differs from line 75: the old golden '1', the new run '0'",
+    "digest: 1 of 5 records differ, first at record 4 (world update 1115, tick 1115, frame 223, zone gz14g); outcomes CHANGED: quest variables, party and items, script (deaths unknown: hash only); max unit move 18.2 (obj1028953, record 4)",
+    "  digest: the records no longer line up at record 4: the old golden world update 1115 tick 1115, the new run world update 1485 tick 1485",
+    "  first difference at record 4 (world update 1115, tick 1115, frame 223; the new run: frame 297, zone gz14g): 149 fields",
+    "    world (world) tick: 1115 in the old golden, 1485 in the new run (d 370)",
+    "    world (world) updates: 1115 in the old golden, 1485 in the new run (d 370)",
+    "    world (world) updateMap: 45 in the old golden, 33 in the new run (d 12)",
+    "    ... 146 more",
+    "  outcomes: CHANGED quest variables, party and items, script (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, game result",
+    "    quest variables: 1 variables differ (gtime); first from record 4: player0 gtime: 7.16666842 in the old golden, 7.59333563 in the new run",
+    "    party and items: player0 objects: 19 in the old golden, 15 in the new run, from record 4",
+    "    script: script #instances differs (hashes only), from record 4 (+3 more)",
+    "... 31 more lines"
+  ]
 }

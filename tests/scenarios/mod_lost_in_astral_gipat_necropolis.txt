@@ -1,8 +1,9 @@
 # Lost in Astral's Gipat quests in gz13g and gz14g (MOD2a; docs/notes/mods.md, "Lost in Astral played (MOD2)"). In
 # gz13g the hero takes the key from the chest 1281 and opens the three key levers (1321, 1323, 1322) as a player
 # does: the leader selected, the key picked from the quick panel, then the lever clicked. In gz14g the lever 42
-# gives the golem centre's key; the key levers 1712 and 57 do not open from the quick panel there (MOD2b) and are
-# switched by script. Each quest's end is checked (and gz14g's exit opened). On the vanilla data only the menu runs.
+# gives the golem centre's key, which opens the key levers 1712 and 57 the same way (57's use spot is outside its
+# wall, west of it: the hero is put there; MOD2b). Each quest's end is checked (and gz14g's exit opened). On the
+# vanilla data only the menu runs.
 mod starter\Mods\LostInAstral
 reject Script error
 waitmenu
@@ -80,9 +81,29 @@ rebirth camera 161.9 95.8
 rebirth waitunit 10 #42
 rebirth clickunit #42
 rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz14g.q28g.3"),1)
-rebirth console @SwitchLeverState(GetObject(1712),1)
+rebirth console @SetCPFast(GetLeader(),170,124,0)
+rebirth camera 172.9 124.1
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #1712
+rebirth clickunit #1712 move
+rebirth frames 5
+rebirth clickunit #1712
 rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz14g.q28g.4"),1)
-rebirth console @SwitchLeverState(GetObject(57),1)
+rebirth console @SetCPFast(GetLeader(),176.5,44,0)
+rebirth camera 182 46.1
+rebirth frames 3
+rebirth click 400 560
+rebirth frames 10
+rebirth click 725 525
+rebirth frames 5
+rebirth waitunit 10 #57
+rebirth clickunit #57 move
+rebirth frames 5
+rebirth clickunit #57
 rebirth waitfor 20 IsEqual(GSGetVar(0,"q.gz14g.q28g.5"),1)
 rebirth console @SetCPFast(GetLeader(),245,151,0)
 rebirth waitfor 10 IsEqual(GSGetVar(0,"q.gz14g.q28g"),2)
