@@ -521,7 +521,7 @@ public:
     // A surface of format 5 over the layout rectangle (keyed on white); no text, the offsets and the speed 0
     // (startTime is left as it was).
     UiScrollingSurface(Interface3D* ui, const Rect* rect);
-    virtual ~UiScrollingSurface();
+    ~UiScrollingSurface() override;   // out of line: the laid out text's type is complete there
     // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
     bool Load(MappedResource* archive, const char* name);
     // Reads the RTF block and lays it out at the surface's width (render_rich_text.h), the offset 0.

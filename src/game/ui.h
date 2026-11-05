@@ -1586,34 +1586,13 @@ public:
     void SetRect(const Rect* rect) override;
 };
 
-// The pieces of a scrolling text: a format change (type 1) or a word (type 2).
-struct UiFormatToken;
-struct UiWordToken;
-struct UiTextToken {
-    explicit UiTextToken(int newType) : type(newType) {}
-    virtual ~UiTextToken();
-    // The token as the class its type makes, null for the other one.
-    virtual UiFormatToken* AsFormat() { return nullptr; }
-    virtual const UiFormatToken* AsFormat() const { return nullptr; }
-    virtual UiWordToken* AsWord() { return nullptr; }
-
-    int type = 0;                    // 1 format, 2 word
-};
-struct UiFormatToken : UiTextToken {
-    explicit UiFormatToken(int font);
-    ~UiFormatToken() override;
-    UiFormatToken* AsFormat() override { return this; }
-    const UiFormatToken* AsFormat() const override { return this; }
-
+// A piece of a scrolling text: a format change (newline, font, colour) or a word (text, width).
+enum class TokenKind : std::uint8_t { Format, Word };
+struct TextToken {
+    TokenKind kind = TokenKind::Word;
     bool newline = false;            // a newline token, or a font change after the first token
     int font = 0;                    // interface font
     std::uint32_t colour = 0;
-};
-struct UiWordToken : UiTextToken {
-    UiWordToken() : UiTextToken(2), width(0) {}
-    ~UiWordToken() override;
-    UiWordToken* AsWord() override { return this; }
-
     std::string text;
     int width = 0;                   // its width in the token's font
 };
@@ -1629,7 +1608,6 @@ class UiScrollText : public UiScrollbar {
 public:
     // 20 lines per second, justified (align 2).
     UiScrollText(Interface3D* ui, const char* text, Rect rect, float depth);
-    ~UiScrollText() override;
     // Scrolled to the end first, then kept that far from the end.
     void AddText(std::string_view text);
     // Scrolls to the top.
@@ -1655,8 +1633,8 @@ public:
     void PaintWords(UiSurface& surface) const;
 
     Rect textRect;                   // the text's rectangle (surface coordinates)
-    std::vector<UiTextToken*> tokens;
-    std::vector<UiTextLine*> lines; // the laid out lines
+    std::vector<TextToken> tokens;
+    std::vector<UiTextLine> lines;  // the laid out lines
     int align = 0;                   // 1: left aligned (else justified)
     // A word as PlaceWords placed it: its rectangle (surface layout units), font and colour.
     struct ShownWord {
@@ -1670,7 +1648,6 @@ public:
 private:
     // The tail of SetRect (the text 14 pixels narrower for the bar).
     void PlaceText(const Rect& rect);
-    void DeleteTokens();
 };
 
 
