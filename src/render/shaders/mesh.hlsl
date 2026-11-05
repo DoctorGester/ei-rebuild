@@ -169,9 +169,10 @@ float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, f
         if (slot >= 0 && fs.pointShadows != 0 && c > 0.0) {
             if (fs.pointUnit != 0) {
                 float4 fronts = fs.pointFront;
-                seen = point_seen(slot, land, 0.0, fronts[slot], turn);
+                seen = point_seen(slot, land, 0.0, fronts[point_index(slot)], turn);
             } else {
-                float lightFacing = saturate(dot(face, normalize(pointShadow.lights[slot].xyz - land)) * 6.0);
+                float lightFacing =
+                    saturate(dot(face, normalize(pointShadow.lights[point_index(slot)].xyz - land)) * 6.0);
                 if (lightFacing > 0.0) seen = lerp(1.0, point_seen(slot, land, face, kNoPointFront, turn), lightFacing);
             }
         }

@@ -150,21 +150,17 @@ jobs:
       EI_TIME_SCALE: ${{ inputs.time_scale || '8' }}
       # Scenarios that need a 3840x2160 desktop (they say `resolution desktop`: ui_widescreen*, whose layout and clicks
       # follow the screen; the pair scenarios among the net ones) and that the runner's small screen cannot give (first
-      # two lines). Then the ones that ran past a real-time limit at scale 3 on WARP, one game at a time: their own
-      # `timeout` (TIMEOUT) or a step's (a frames step's "N frames still to go"), measured in run 42016421240
-      # (2026-11-05; render_weather_units, ui_hud, unit_ai_corpse and zone_gz15h_tornado in 41998203418, whose shards
-      # were cut at 120 min before reaching them in the later run): a scenario past a limit goes on early and differs
+      # two lines). Then the ones still past a real-time limit at scale 8, one game at a time, in run 42057942638
+      # (2026-11-05): their own `timeout` or a frames step's ("N frames still to go"; net_pair_portraits on Rebirth's
+      # install), after which a scenario goes on early and differs; and render_weather / render_weather_units, which pass
+      # but take 37 to 55 minutes a run (render_weather 2222 s, 3289 s on Rebirth's), most of a shard's 180 minutes
       # (docs/notes/harness.md, "The Windows CI job").
       WINDOWS_SKIP: >-
         net_pair_leave net_pair_quest net_pair_speed net_pair_zone net_zone_leader net_zone_vars
         ui_widescreen ui_widescreen_dialogue ui_widescreen_hud ui_widescreen_more ui_widescreen_screens
-        app_record camera_drag_rate camera_smooth camera_spin levers_key
-        net_pair_database net_pair_join net_pair_lobby net_pair_master net_pair_party net_pair_password net_pair_portraits
-        party_leader_switch rec_menu_newgame render_cursor_present render_drawn_lights render_drawn_motion
-        render_preview_blend render_shadows_outside render_shadows_shimmer render_stats render_unit_skin
-        render_water_looks render_weather render_weather_panel render_weather_roofs render_weather_units spells_more
-        terrain_water_waves ui_hud ui_minimap_edges ui_options_remap_load unit_ai_bridge unit_ai_corpse
-        zone_gz15h_tornado zone_gz15h_tornado_client
+        net_pair_portraits render_drawn_lights render_drawn_motion render_weather_panel ui_minimap_edges unit_ai_bridge
+        zone_gz15h_tornado_client
+        render_weather render_weather_units
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5

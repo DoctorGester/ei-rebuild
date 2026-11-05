@@ -456,32 +456,47 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   few names: also give `shards` 1; the names given run even when skipped), `suites` (full, image, builds), `jobs`
   (games at once in a job, default 1: two at once, run 42039247533, made each run 1.86 times as long, 149 runs that
   passed both ways taking 10601 s against 5690 s, so 7% more runs per hour, and 30 runs that pass one at a time went
-  past a limit or failed, among them every recording part that prepares a save) and `retries` (run_all's, default 0: in run 42016421240, with run_all's default
-  of 1, the reruns of runs that had timed out took a third of each job's time, 1220 of 3678 s in one, and three of the
-  eight jobs were cut at their 120 minutes). After each suite a folded group in
+  past a limit or failed, among them every recording part that prepares a save), `retries` (run_all's, default 0: in
+  run 42016421240, with run_all's default of 1, the reruns of runs that had timed out took a third of each job's time,
+  1220 of 3678 s in one, and three of the eight jobs were cut at their 120 minutes; a job may take 180 now) and
+  `time_scale` (EI_TIME_SCALE, default 8: below). After each suite a folded group in
   the step's log holds `tools/ci_details.py`'s lines for every run that did not pass or differs (as the macOS job's
   "Differences in detail" below): the job keeps no run folders.
 - **WARP**: SDL's D3D12 driver takes the high-performance adapter (`EnumAdapterByGpuPreference`), which on the GPU-less
   runner is the Basic Render Driver, i.e. WARP. SDL has no switch for it, so third_party/SDL/README.txt lists ours:
   the hint (so the environment variable) `EI_GPU_D3D12_WARP=1` picks `IDXGIFactory4::EnumWarpAdapter` in the driver's
   support check and in the device. The workflow sets it everywhere; on a desktop with a GPU it runs the same path
-  locally (`gpu: direct3d12 device (Microsoft Basic Render Driver)` in the run's log tells it took effect; `work.py test`
-  carries every EI_* variable to the games).
+  locally (`gpu: direct3d12 device (Microsoft Basic Render Driver; driver 10.0.19041.5794)` in the run's log tells it
+  took effect and which WARP drew: the runner's is 10.0.26100.33648; `work.py test` carries every EI_* variable to the
+  games).
+- **Why it is slow** (H62d): the frame is WARP's work, not a stall of ours. The report's `TIMING: gpu:` line
+  (standalone-verification.md, "Run time") has the main thread waiting for the swap chain texture for all but a few ms
+  of each frame (on the runner 330 to 830 ms a frame; submissions 4 to 5 ms, download waits a few seconds a run, no
+  pipeline made late), and the process's CPU is WARP's: a frame of the base bz1g costs about 1.8 CPU-seconds, one of
+  render_weather_shelter about 3, on the desktop as on the runner, so 4 vCPUs draw it in 0.5 to 1 s. Split by pass
+  (a scratch probe that submitted and waited after each pipeline's draws, locally on WARP): the terrain's and the
+  meshes' draws in the frame target, the 4096 x 4096 sun map's casters, its cells and range, the occlusion and the
+  water's copies, in that order; the terrain shader cut to its texture still cost half its time and the sun filter's
+  taps a sixth, so no one shader part is the cause. One game at a time the 166 runs that passed on both took a median 2.4
+  times as long as on Linux's lavapipe (run 42016421240 against 42040984380), hence EI_TIME_SCALE 8 (input
+  `time_scale`) against Linux's 3. Microsoft's current WARP (NuGet Microsoft.Direct3D.WARP: AVX2 codegen, wave size 8,
+  uniform branches as jumps) would likely be faster; using it is H62g, waiting for the user's word.
+- **A lost device** (H62f): WARP 10.0.26100 removed its device in bz1g's scenes (ui_base_dialogue, render_stats in the
+  town, net_pair_database on Rebirth's): an access violation in its shader code reading 0xFFF0 bytes past a uniform
+  buffer, the point shadows' arrays read at index -1 by lanes that do not use the answer (point_shadow.hlsli's
+  `point_index` keeps them in range now). SDL then crashed in D3D12_PushVertexUniformData; with the vendored SDL's
+  change the run ends with "render: fatal: The renderer cannot present on the game window: the GPU device was lost:
+  ..." (renderer.md, "No device-loss recovery"), and the harness's log holds the exception (`harness: exception
+  C0000005 at <JIT address>`).
 - **Skipped**: `WINDOWS_SKIP`: the scenarios that say `resolution desktop` (the five ui_widescreen ones and the net pair
-  / zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small; and the 36 that ran
-  past a real-time limit on WARP at scale 3, one game at a time (run 42016421240, four of them in 41998203418): their
-  `timeout` or a frames step's ("N frames still to go after 48 s": WARP draws a heavy frame in up to 3 s on 4 vCPUs),
-  after which the scenario goes on early and its digest differs. They are the drawn-frame, weather, camera and
-  shadow-view ones, every two-game net_pair one that ran, the recordings app_record and rec_menu_newgame, and others
-  that draw many frames (the workflow lists them). A scenario that passes on one install and times out on the other
-  (levers_key, render_shadows_shimmer, render_unit_skin and zone_gz15h_tornado on Rebirth's) is skipped on both.
-  Anything else is added only for a measured reason. Left in on purpose: ui_base_dialogue and ui_gallery_base, which
-  crashed in SDL's D3D12 driver (D3D12_PushVertexUniformData) in the base's dialogue, ui_gallery_base after WARP had
-  suspended the device (`gpu: ... The GPU device instance has been suspended` on every texture made after it; H62f);
-  Rebirth's render_shadows_decals, whose prints are blank in the Rebirth stub set (linux.md, "The stub data"). Of the
-  rest, 182 of 220 runs passed in that run (the slowest: render_weather_shelter 438 s, net_pair_kick 185 to 303 s,
-  net_host_death 258 s, camera_drawn 202 s; most take 10 to 120 s).
-
+  / zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small; the seven still past a
+  real-time limit at scale 8, one game at a time, in run 42057942638 (render_drawn_lights, render_drawn_motion,
+  render_weather_panel, ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client; net_pair_portraits on Rebirth's
+  install), after which a scenario goes on early and differs; and render_weather and render_weather_units, which pass
+  but take 37 to 55 minutes a run. Anything else is added only for a measured reason. In that run at scale 8 the
+  slowest that passed: camera_spin 1083 s, camera_drag_rate 910 s, camera_smooth 808 s, render_weather_roofs 788 s,
+  net_pair_party 473 s (775 s on Rebirth's), render_weather_shelter 458 s. Left in on purpose: Rebirth's
+  render_shadows_decals, whose prints are blank in the Rebirth stub set (H62e; linux.md, "The stub data").
 
 ## The macOS CI job
 
