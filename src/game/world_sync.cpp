@@ -40,6 +40,13 @@ bool OutOfView(const Vector3& point, const PlayerServer* state) {
     return DistanceSquaredXY(point, state->lastPosition) >= kViewRange * kViewRange;
 }
 
+// The main menu's scene is sent whole, wherever the player's last position is: the menu's camera is the client's own
+// path, started by the menu screen that the server's game state message opens, so the server learns it a world
+// update after that message. With the view range, a return from a game (the camera still over the game's map) sent
+// the menu's objects (the signpost, the troll, the fire) an update after the menu was shown, and its first frames
+// had the menu's map and lights without them (docs/notes/world.md, "The view range").
+bool SeesWholeZone(const WorldServer* world) { return world->zoneMode == ZoneMode::MainMenu; }
+
 // The map objects a player should know: around its camera (or all of them), its own units, the
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // objects are appended to `out`.
@@ -67,7 +74,8 @@ void CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, 
     } else {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             MapObject* object = node->second;
-            if (object->MapType() != kTypeNoSync && !OutOfView(object->localPosition, state)) out.push_back(object);
+            if (object->MapType() == kTypeNoSync) continue;
+            if (SeesWholeZone(world) || !OutOfView(object->localPosition, state)) out.push_back(object);
         }
     }
     if (world->zoneMode != ZoneMode::Battle) return;
@@ -87,10 +95,14 @@ void CollectMapObjects(WorldServer* world, Player* player, PlayerServer* state, 
 }
 
 // The timed objects (spells, effects) a player should know: those whose reach (a virtual, squared) covers its
-// camera.
+// camera; in the main menu every one.
 void CollectTimedObjects(WorldServer* world, PlayerServer* state, std::vector<Effect*>& out) {
     for (auto node = world->timedObjects.map.begin(); node != world->timedObjects.map.end() && node->second; ++node) {
         Effect* timed = node->second;
+        if (SeesWholeZone(world)) {
+            out.push_back(timed);
+            continue;
+        }
         const Vector3* position = timed->Position(&state->partyUnits);
         float distance = DistanceSquaredXY(*position, state->lastPosition);
         float reach = timed->Radius();
