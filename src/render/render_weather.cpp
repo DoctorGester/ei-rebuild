@@ -360,10 +360,11 @@ void RoofUniforms(const Matrix4& light, ShadowParams* p) {
 }
 
 // The roofs straight down into the roof map (depth only; cut out by their texture's alpha as in the sun map).
-void DrawRoofMap(Frame&) {
+void DrawRoofMap() {
     if (!g_roofFit.on) return;
     StatsTimer timer(&FrameStats::shadowMs);
-    if (!g_roofTexture && !(g_roofTexture = MakeShadowDepth(kRoofMapSize, kRoofMapSize, "ei-roof-map"))) {
+    if (!g_roofTexture) g_roofTexture = MakeShadowDepth(kRoofMapSize, kRoofMapSize, "ei-roof-map");
+    if (!g_roofTexture) {
         g_roofFit.on = false;
         g_roofInfo.made = false;
         return;

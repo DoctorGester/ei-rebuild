@@ -806,8 +806,11 @@ void ReleasePrepared() {
 
 void PrepareInBackground(const DeviceOptions& options, PipelineLister lister) {
     if (g_device || g_prepared.thread.joinable()) return;
-    static const bool registered = (std::atexit(ReleasePrepared), true);
-    (void)registered;
+    static bool registered = false;
+    if (!registered) {
+        std::atexit(ReleasePrepared);
+        registered = true;
+    }
     g_prepared.driver = options.driver ? options.driver : "";
     g_prepared.debug = options.debug;
     g_prepared.lister = std::move(lister);
@@ -1287,7 +1290,10 @@ void EndPass() {
 bool InPass() { return g_pass != nullptr; }
 
 void SetViewport(const Rect& rect) {
-    if (!g_pass) return Problem("a viewport outside a pass");
+    if (!g_pass) {
+        Problem("a viewport outside a pass");
+        return;
+    }
     const SDL_GPUViewport v{static_cast<float>(rect.left), static_cast<float>(rect.top),
                             static_cast<float>(rect.Width()), static_cast<float>(rect.Height()),
                             0.0f, 1.0f};
@@ -1295,7 +1301,10 @@ void SetViewport(const Rect& rect) {
 }
 
 void SetScissor(const Rect& rect) {
-    if (!g_pass) return Problem("a scissor rectangle outside a pass");
+    if (!g_pass) {
+        Problem("a scissor rectangle outside a pass");
+        return;
+    }
     const SDL_Rect r{rect.left, rect.top, rect.Width(), rect.Height()};
     SDL_SetGPUScissor(g_pass, &r);
 }
@@ -1305,7 +1314,10 @@ void ResetCounts() { g_counts = DrawCounts{}; }
 void SetStateFiltering(bool on) { g_filtering = on; }
 
 void ApplyPipeline(Pipeline pipeline) {
-    if (!g_pass || !pipeline) return Problem("a pipeline %s", g_pass ? "that is empty" : "outside a pass");
+    if (!g_pass || !pipeline) {
+        Problem("a pipeline %s", g_pass ? "that is empty" : "outside a pass");
+        return;
+    }
     if (pipeline.pipeline == g_bound.pipeline && g_filtering) {
         ++g_counts.pipelinesSkipped;
         return;
@@ -1316,10 +1328,15 @@ void ApplyPipeline(Pipeline pipeline) {
 }
 
 void BindVertexBuffers(int first, std::span<const BufferBinding> buffers) {
-    if (!g_pass || first < 0 || first + static_cast<int>(buffers.size()) > kMostVertexBuffers)
-        return Problem("vertex buffers %s", g_pass ? "out of range" : "outside a pass");
+    if (!g_pass || first < 0 || first + static_cast<int>(buffers.size()) > kMostVertexBuffers) {
+        Problem("vertex buffers %s", g_pass ? "out of range" : "outside a pass");
+        return;
+    }
     for (const BufferBinding& b : buffers)
-        if (!b.buffer) return Problem("an empty vertex buffer bound");
+        if (!b.buffer) {
+            Problem("an empty vertex buffer bound");
+            return;
+        }
     // The changed ones' range bound again.
     int low = -1, high = -1;
     for (int i = 0; i < static_cast<int>(buffers.size()); ++i) {
@@ -1342,7 +1359,10 @@ void BindVertexBuffers(int first, std::span<const BufferBinding> buffers) {
 }
 
 void BindIndexBuffer(const BufferBinding& binding) {
-    if (!g_pass || !binding.buffer) return Problem("an index buffer %s", g_pass ? "that is empty" : "outside a pass");
+    if (!g_pass || !binding.buffer) {
+        Problem("an index buffer %s", g_pass ? "that is empty" : "outside a pass");
+        return;
+    }
     const BufferBinding& bound = g_bound.index;
     if (g_filtering && g_bound.haveIndex && bound.buffer.buffer == binding.buffer.buffer &&
         bound.offset == binding.offset) {
@@ -1357,10 +1377,15 @@ void BindIndexBuffer(const BufferBinding& binding) {
 }
 
 void BindTextures(Stage stage, int first, std::span<const TextureBinding> textures) {
-    if (!g_pass || first < 0 || first + static_cast<int>(textures.size()) > kMostSamplers)
-        return Problem("textures %s", g_pass ? "out of range" : "outside a pass");
+    if (!g_pass || first < 0 || first + static_cast<int>(textures.size()) > kMostSamplers) {
+        Problem("textures %s", g_pass ? "out of range" : "outside a pass");
+        return;
+    }
     for (const TextureBinding& t : textures)
-        if (!t.texture || !t.sampler) return Problem("an empty texture or sampler bound");
+        if (!t.texture || !t.sampler) {
+            Problem("an empty texture or sampler bound");
+            return;
+        }
     const int s = stage == Stage::Vertex ? 0 : 1;
     int low = -1, high = -1;
     for (int i = 0; i < static_cast<int>(textures.size()); ++i) {
@@ -1385,8 +1410,10 @@ void BindTextures(Stage stage, int first, std::span<const TextureBinding> textur
 }
 
 void PushUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes) {
-    if (!g_pass || slot < 0 || slot >= kMostBlocks)
-        return Problem("uniforms %s", g_pass ? "out of range" : "outside a pass");
+    if (!g_pass || slot < 0 || slot >= kMostBlocks) {
+        Problem("uniforms %s", g_pass ? "out of range" : "outside a pass");
+        return;
+    }
     const int s = stage == Stage::Vertex ? 0 : 1;
     std::vector<std::uint8_t>& last = g_bound.uniforms[s][slot];
     if (g_filtering && g_bound.pushed[s][slot] && last.size() == bytes && std::memcmp(last.data(), data, bytes) == 0) {
@@ -1402,15 +1429,20 @@ void PushUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes) 
 }
 
 void Draw(std::uint32_t first, std::uint32_t count, std::uint32_t instances) {
-    if (!g_pass || !g_bound.pipeline) return Problem("a draw %s", g_pass ? "without a pipeline" : "outside a pass");
+    if (!g_pass || !g_bound.pipeline) {
+        Problem("a draw %s", g_pass ? "without a pipeline" : "outside a pass");
+        return;
+    }
     ++g_counts.draws;
     SDL_DrawGPUPrimitives(g_pass, count, instances, first, 0);
 }
 
 void DrawIndexed(std::uint32_t first, std::uint32_t count, std::uint32_t instances, std::uint32_t firstInstance) {
-    if (!g_pass || !g_bound.pipeline || !g_bound.haveIndex)
-        return Problem("an indexed draw %s",
+    if (!g_pass || !g_bound.pipeline || !g_bound.haveIndex) {
+        Problem("an indexed draw %s",
                        !g_pass ? "outside a pass" : g_bound.pipeline ? "without indices" : "without a pipeline");
+        return;
+    }
     ++g_counts.draws;
     SDL_DrawGPUIndexedPrimitives(g_pass, count, instances, first, 0, firstInstance);
 }

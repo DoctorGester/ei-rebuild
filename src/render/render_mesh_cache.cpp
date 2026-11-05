@@ -289,8 +289,7 @@ static void Check(const MeshDraw& m, CachedMesh& e) {
 static void CheckBox(const MeshDraw& m, CachedMesh& e) {
     float fresh[6];
     if (!e.boxKept || !PositionBox(m, fresh) || std::memcmp(fresh, e.box, sizeof(fresh)) == 0) return;
-    if (++g_stale <= 20)
-        ei::Log("render: a kept mesh's box was stale: figure mesh %p, low %g %g %g, now %g %g %g", g_source.owner,
+    LogFirst(g_stale, 20, "render: a kept mesh's box was stale: figure mesh %p, low %g %g %g, now %g %g %g", g_source.owner,
                 e.box[0], e.box[1], e.box[2], fresh[0], fresh[1], fresh[2]);
     e.boxKept = false;
 }
@@ -302,8 +301,7 @@ static void Check(const ShadowMesh& m, CachedMesh& e) {
     if (g_fresh.vertices.size() == e.vertices.size() && g_fresh.indices == e.indices &&
         std::memcmp(g_fresh.vertices.data(), e.vertices.data(), e.vertices.size() * sizeof(MeshVertex)) == 0)
         return;
-    if (++g_stale <= 20)
-        ei::Log("render: a caster kept on the GPU was stale: figure mesh %p, link figure %p, %d corners%s", m.owner, m.shared,
+    LogFirst(g_stale, 20, "render: a caster kept on the GPU was stale: figure mesh %p, link figure %p, %d corners%s", m.owner, m.shared,
                 m.cornerCount, m.moved ? ", moved positions" : "");
     e.vertices.swap(g_fresh.vertices);
     e.indices.swap(g_fresh.indices);
@@ -564,7 +562,11 @@ void SetMeshSource(const MeshSource* source) {
 void MeshChanged(const void* object, MeshChange change) {
     if (!object) return;
     MeshChanges& c = g_changes[object];
-    ++(change == MeshChange::Positions ? c.positions : change == MeshChange::Colours ? c.colours : c.rebuilt);
+    switch (change) {
+    case MeshChange::Positions: ++c.positions; break;
+    case MeshChange::Colours: ++c.colours; break;
+    default: ++c.rebuilt; break;
+    }
 }
 
 void SetInterfaceDraw(bool on) { g_interface = on; }

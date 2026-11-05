@@ -61,6 +61,7 @@ void EndFrame() {
     render::g_frame.pictureBatches.clear();
     render::g_frame.commands.clear();
     render::UiFrameDone();
+    render::ReleaseRetired();
     g_drawnCommands = 0;
     g_passes = 0;
     gpu::Submit();

@@ -111,14 +111,13 @@ static const Made* ShapeFor(const FrameCursor& cursor) {
     m.hotX = std::clamp((cursor.hot.x * m.width + sw / 2) / sw, 0, m.width - 1);
     m.hotY = std::clamp((cursor.hot.y * m.height + sh / 2) / sh, 0, m.height - 1);
     const std::vector<std::uint8_t> rgba =
-        Pixels(*picture, static_cast<const std::uint8_t*>(cursor.mask), maskBytes, from, m.width, m.height, GammaRamp());
+        Pixels(*picture, static_cast<const std::uint8_t*>(cursor.mask), maskBytes, from, m.width, m.height, GammaRampTable());
     m.shape = platform::MakeCursor(rgba.data(), m.width, m.height, m.hotX, m.hotY);
     if (!m.shape) {
-        if (g_info.failures++ < 3) ei::Log("render: the system cannot make a %dx%d cursor", m.width, m.height);
+        LogFirst(g_info.failures, 3, "render: the system cannot make a %dx%d cursor", m.width, m.height);
         return nullptr;
     }
-    if (g_info.made++ < 32)
-        ei::Log("render: cursor made: picture %dx%d, its part %d,%d-%d,%d, %dx%d on the window (hot spot %d, %d)",
+    LogFirst(g_info.made, 32, "render: cursor made: picture %dx%d, its part %d,%d-%d,%d, %dx%d on the window (hot spot %d, %d)",
                 picture->width, picture->height, from.left, from.top, from.right, from.bottom, m.width, m.height, m.hotX,
                 m.hotY);
     g_made.push_back(m);

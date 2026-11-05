@@ -159,7 +159,10 @@ void ListMeshPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
         PassState s;
         s.cull = w.cull;
         s.blend = w.sourceBlend != 0;
-        if (s.blend) s.sourceBlend = w.sourceBlend, s.destBlend = w.destBlend;
+        if (s.blend) {
+            s.sourceBlend = w.sourceBlend;
+            s.destBlend = w.destBlend;
+        }
         s.depthTest = w.depthTest;
         s.depthWrite = w.depthWrite;
         out.push_back(MeshDesc(s, false, w.cached, samples));
@@ -399,12 +402,8 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
         fs.weather[1] = batch.weather[1];
         fs.weather[2] = 2.0f;
     }
-    fs.fogColour[0] = ((s.fogColour >> 16) & 0xFF) / 255.0f;
-    fs.fogColour[1] = ((s.fogColour >> 8) & 0xFF) / 255.0f;
-    fs.fogColour[2] = (s.fogColour & 0xFF) / 255.0f;
-    fs.factor[0] = ((s.textureFactor >> 16) & 0xFF) / 255.0f;
-    fs.factor[1] = ((s.textureFactor >> 8) & 0xFF) / 255.0f;
-    fs.factor[2] = (s.textureFactor & 0xFF) / 255.0f;
+    UnpackColour(s.fogColour, fs.fogColour);
+    UnpackColour(s.textureFactor, fs.factor);
     fs.factor[3] = ((s.textureFactor >> 24) & 0xFF) / 255.0f;
     const StageState& s0 = s.stages[0];
     const StageState& s1 = s.stages[1];
@@ -448,7 +447,7 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = g_frame;
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
-        if (g_dropped++ == 0) ei::Log("render: too many meshes in one frame; the rest are dropped");
+        LogFirst(g_dropped, 1, "render: too many meshes in one frame; the rest are dropped");
         return;
     }
     Matrix4 clip;

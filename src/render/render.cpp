@@ -52,7 +52,10 @@ static void ParseSpec(const char* spec) {
         while (!word.empty() && word.back() == ' ') word.pop_back();
         bool known = false;
 #if defined(EI_RENDER_VALIDATION)
-        if (word == "checkall") g_checkAll = known = true;
+        if (word == "checkall") {
+            g_checkAll = true;
+            known = true;
+        }
 #endif
         if (!known && !word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
@@ -71,9 +74,7 @@ static void EnsureConfigured() {
 static std::uint32_t GameClearColour() { return g_sceneRenderer.fogColour; }
 
 static void SetClear(float out[4], std::uint32_t c) {
-    out[0] = ((c >> 16) & 0xFF) / 255.0f;
-    out[1] = ((c >> 8) & 0xFF) / 255.0f;
-    out[2] = (c & 0xFF) / 255.0f;
+    UnpackColour(c, out);
     out[3] = 1.0f;
 }
 
@@ -132,7 +133,7 @@ static void CheckFloatControl() {
     if ((now & 0xFFC0u) == g_mxcsr) return;
 #if defined(EI_RENDER_VALIDATION)
     static int logged = 0;
-    if (logged++ < 10) ei::Log("render: MXCSR's control bits changed (%04X, at the start %04X); set back", now & 0xFFC0u, g_mxcsr);
+    LogFirst(logged, 10, "render: MXCSR's control bits changed (%04X, at the start %04X); set back", now & 0xFFC0u, g_mxcsr);
 #endif
     _mm_setcsr((now & 0x3Fu) | g_mxcsr);
 #endif
@@ -443,11 +444,14 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
             // The render quality's anisotropy: the world's models sampled anisotropically at its level; the
             // interface's sprites and previews and the pre-transformed draws as the stage says.
             int anisotropy = batch.model && InWorld(k) ? g_anisotropy : 1;
-            if (batch.model) ++(anisotropy > 1 ? g_counts.anisotropicModels : g_counts.plainModels);
+            if (batch.model) {
+                int& models = anisotropy > 1 ? g_counts.anisotropicModels : g_counts.plainModels;
+                ++models;
+            }
             DrawMeshBatch(g_frame, batch, anisotropy);
             break;
         }
-        case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
+        case Command::Blit: DrawBlitBatch(g_frame.blitBatches[i], width, height); break;
         case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
         case Command::Fill: DrawFill(g_frame.fills[i], width, height); break;
         case Command::Ui: DrawUiBatch(g_frame.uiBatches[i], width, height); break;
@@ -775,7 +779,8 @@ void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key,
                           : last->second.geometry != h.geometry ? FrameStats::Moved
                           : last->second.colours != h.colours   ? FrameStats::Relit
                                                                 : FrameStats::Same;
-    ++(terrain ? g_stats.terrainReuse : g_stats.meshReuse)[r];
+    auto& reuse = terrain ? g_stats.terrainReuse : g_stats.meshReuse;
+    ++reuse[r];
     g_hashes[id] = h;
     if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.sharedMeshes;
 #endif
@@ -862,7 +867,7 @@ void Present() {
     g_lastCounts = g_counts;
     g_counts = SmoothInfo{};
     if (g_started) {
-        RetireTextures();
+        ReleaseRetired();
         CheckFloatControl();
     }
     ++g_frameNumber;

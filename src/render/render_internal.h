@@ -6,6 +6,7 @@
 #include "render/gpu.h"
 
 #include "lib/vecmath.h"
+#include "platform/log.h"
 
 // The programs' uniform blocks, slots and vertex inputs (CMakeLists.txt, tools/gen_gpu_shaders.py).
 #include "shaders/gpu_shaders.h"
@@ -50,6 +51,21 @@ using gpu_shaders::UiParams;
 
 // The game's transform pipeline matrices are Matrix4: row-major, out = M * (x, y, z, 1), Direct3D clip
 // space (-w <= x, y <= w, 0 <= z <= w).
+
+// Logs a line the first most times it is asked for; count counts the asks.
+template <class Count, class... Args>
+void LogFirst(Count& count, int most, const char* format, Args... args) {
+    if (count++ >= static_cast<Count>(most)) return;
+    if constexpr (sizeof...(Args) == 0) ei::Log("%s", format);
+    else ei::Log(format, args...);
+}
+
+// A D3DCOLOR's red, green and blue as 0..1 (the alpha is left to the caller).
+inline void UnpackColour(std::uint32_t colour, float* rgb) {
+    rgb[0] = ((colour >> 16) & 0xFF) / 255.0f;
+    rgb[1] = ((colour >> 8) & 0xFF) / 255.0f;
+    rgb[2] = (colour & 0xFF) / 255.0f;
+}
 
 // A vertex: world (terrain) or model (meshes) position.
 struct Vertex {
@@ -365,9 +381,8 @@ bool FrameSize(int* width, int* height);
 // The frame into the swap chain's texture through the gamma ramp; PresentWindow, after the frame's submission (which
 // presents it), counts it. False: nothing to present into / nothing presented.
 bool DrawToWindow();
-bool PresentWindow();
-// The gamma ramp the present applies (256 RGBA8 entries) and how often SetGammaRamp changed it.
-const std::uint8_t* GammaRamp();
+void PresentWindow();
+// How often SetGammaRamp changed the gamma ramp the present applies (render.h's GammaRampTable).
 std::uint32_t GammaRampChanges();
 #if defined(EI_RENDER_VALIDATION)
 // Whether the verify build's GPU read-backs (a stall each) run for the `count`th of their kind: the first
@@ -575,7 +590,7 @@ void SurfaceState(float* wet, float* puddles, float* snow);
 // DrawRoofMap draws it (outside a pass); BindRoofMap binds it (or the 1 x 1 stand-in) at `slot`.
 void PrepareRoofs(Frame& frame);
 void RoofUniforms(const Matrix4& light, ShadowParams* params);
-void DrawRoofMap(Frame& frame);
+void DrawRoofMap();
 void BindRoofMap(int slot);
 // The visible ground's box in the landscape's space, by the sun map's fit of this frame; false without one.
 // AddOutsideRoofs: the sun map's casters outside the view that are not units (render::ShadowCasterMesh) into `draws`
@@ -675,7 +690,7 @@ void OcclusionFrameDone();
 
 // The movies' blits, the depth clear in the middle of the pass and the movie player's fill.
 bool CreateBlitPipeline();
-void DrawBlitBatch(const Frame& frame, const BlitBatch& batch, int width, int height);
+void DrawBlitBatch(const BlitBatch& batch, int width, int height);
 void DrawClearDepth(const ClearBatch& clear, int width, int height);
 void DrawFill(const FillBatch& fill, int width, int height);
 // At the frame's present: the frame's cursor (render::Cursor) shown, or none (render_cursor.cpp).
@@ -724,12 +739,6 @@ void DrawPictureBatch(const PictureBatch& batch, int width, int height);
 // RunCanvasCommands at once.
 void SplitFrame();
 void RunCanvasesNow();
-
-// Images made and updated in place by purpose, logged in the verify build.
-enum class ImageUse { Movie, Texture, Count };
-void CountImage(ImageUse use, bool made);
-void CountImageRequest(ImageUse use);
-void LogImageCounts(const char* when);
 
 // A Texture or a texture's holder (Surface) as a texture with its mip levels: what was decoded or drawn for it; white
 // when there is none. Valid until the next Present.
@@ -795,8 +804,9 @@ gpu::Sampler StageSampler(const StageState& stage);
 // quality's anisotropy for the world's models when it is above 1.
 constexpr std::uint32_t kMostAnisotropy = 16;
 gpu::Sampler AnisotropicSampler(const StageState& stage, std::uint32_t level);
-// After a present: textures replaced during the frame released, entries unused for a long time dropped.
-void RetireTextures();
+// An image the frame's recorded commands still draw: released by ReleaseRetired, after the present.
+void ReleaseAfterPresent(const gpu::Texture& image);
+void ReleaseRetired();
 
 constexpr gpu::Format kColourFormat = gpu::Format::Rgba8;
 constexpr gpu::Format kDepthFormat = gpu::Format::Depth32Float;

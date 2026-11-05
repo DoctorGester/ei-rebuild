@@ -255,12 +255,6 @@ static gpu::Texture MakeRange(int size, const char* label) {
     return t;
 }
 
-static gpu::Sampler PointSampler() {
-    static const gpu::Sampler point =
-        gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
-    return point;
-}
-
 static void RangePass(gpu::Pipeline pipeline, const gpu::Texture& target, const gpu::Texture& source,
                const ShadowDilateParams* dilate, const char* label) {
     static_assert(gpu_shaders::shadow_reduce::kSamplerMap == 0 && gpu_shaders::shadow_dilate::kSamplerCells == 0);
@@ -271,7 +265,7 @@ static void RangePass(gpu::Pipeline pipeline, const gpu::Texture& target, const 
     if (!gpu::BeginPass(pass)) return;
     ++g_stats.passes;
     gpu::ApplyPipeline(pipeline);
-    const gpu::TextureBinding b{source, PointSampler()};
+    const gpu::TextureBinding b{source, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, 0, {&b, 1});
     if (dilate) gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::shadow_dilate::kBlockShadowDilateParams, *dilate);
     gpu::Draw(0, 3);
@@ -281,7 +275,8 @@ static void RangePass(gpu::Pipeline pipeline, const gpu::Texture& target, const 
 static void EnsureDummy() {
     if (!g_rangeDummy)
         g_rangeDummy = gpu::MakeTexture({1, 1, 1, 1, gpu::Format::Rgba32Float, gpu::kSampled, "ei-shadow-range-none"});
-    if (!g_dummy && !(g_dummy = MakeShadowDepth(1, 1, "ei-shadow-none"))) return;
+    if (!g_dummy) g_dummy = MakeShadowDepth(1, 1, "ei-shadow-none");
+    if (!g_dummy) return;
     if (g_dummyCleared) return;
     gpu::PassDesc pass;
     pass.depth = {g_dummy, 0, gpu::Load::Clear, 1.0f, true};
@@ -877,7 +872,8 @@ void PrepareShadows(Frame& f) {
                 it = reused.emplace(static_cast<std::uint32_t>(b.matrix), static_cast<int>(sh.lights.size()) - 1).first;
             }
             b.light = it->second;
-            ++(b.decal ? g_info.receivingDecals : g_info.receivingMeshes);
+            if (b.decal) ++g_info.receivingDecals;
+            else ++g_info.receivingMeshes;
         }
     }
     FigureFronts(f);
@@ -1041,7 +1037,7 @@ void DrawShadowMap(Frame& f) {
             }
         }
     }
-    DrawRoofMap(f);
+    DrawRoofMap();
     perf::Enter(perf::Pass::Point);
     DrawPointShadows(f);
 }
@@ -1058,7 +1054,7 @@ void BindShadowMap(int mapSlot) {
     const bool on = g_map && g_range && g_frame.shadow.on;
     // The range after the map: with no map its 1 x 1 stand-in (the shaders read neither then).
     const gpu::TextureBinding b[2] = {{on ? g_map : g_dummy, ShadowCompareSampler()},
-                                      {on ? g_range : g_rangeDummy, PointSampler()}};
+                                      {on ? g_range : g_rangeDummy, gpu::NearestClampSampler()}};
     gpu::BindTextures(gpu::Stage::Fragment, mapSlot, b);
 }
 

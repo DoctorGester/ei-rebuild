@@ -494,10 +494,8 @@ static bool ReadColours(const SectorData* s, CachedPage& p, std::uint32_t from, 
         // specular word (the edge fade; on the water the wave crests).
         const SectorVertex& record = s->records[p.records[i]];
         std::uint32_t* kept = &p.colours[2 * static_cast<std::size_t>(i)];
-        std::uint32_t colour = kept[0], specular = record.specular;
-        if (kept[0] == colour && kept[1] == specular) continue;
-        kept[0] = colour;
-        kept[1] = specular;
+        if (kept[1] == record.specular) continue;
+        kept[1] = record.specular;
         MarkVertex(i, p.colourFrom, p.colourTo);
         changed = true;
     }
@@ -808,9 +806,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     vs.shift[1] = f.pixelShift[1];
     vs.normalOffset[0] = ShadowNormalOffset(shadow);
     TerrainFsParams fs{};
-    fs.fog[0] = ((f.fogColour >> 16) & 0xFF) / 255.0f;
-    fs.fog[1] = ((f.fogColour >> 8) & 0xFF) / 255.0f;
-    fs.fog[2] = (f.fogColour & 0xFF) / 255.0f;
+    UnpackColour(f.fogColour, fs.fog);
     fs.flags[0] = mode;
     fs.flags[1] = f.fogEnabled ? 1.0f : 0.0f;
     RippleOffsets(fs.ripples, fs.slowRipples);
@@ -913,7 +909,11 @@ void TerrainLevels(TerrainLevelMode mode) {
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change) {
     if (!sector) return;
     SectorChanges& c = g_changes[sector];
-    ++(change == TerrainChange::Rebuilt ? c.rebuilt : change == TerrainChange::Moved ? c.moved : c.waterMoved);
+    switch (change) {
+    case TerrainChange::Rebuilt: ++c.rebuilt; break;
+    case TerrainChange::Moved: ++c.moved; break;
+    default: ++c.waterMoved; break;
+    }
 }
 
 #if defined(EI_RENDER_VALIDATION)
@@ -983,8 +983,7 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     } else if (FrameNumber() % kCheckEvery == 0) {
         ++g_checks;
         if (BuildAgain(s, page, p, occluded)) {
-            if (++g_stale <= 20)
-                ei::Log("render: a terrain page kept on the GPU was stale: sector (%d, %d) page %d",
+            LogFirst(g_stale, 20, "render: a terrain page kept on the GPU was stale: sector (%d, %d) page %d",
                         s->sx, s->sy, page);
             moved = upload = true;
         }

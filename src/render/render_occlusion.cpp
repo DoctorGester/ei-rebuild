@@ -54,12 +54,6 @@ static bool MakePipelines() {
     return g_findPipeline && g_blurPipeline && g_terrainPipeline;
 }
 
-static gpu::Sampler NearestSampler() {
-    static const gpu::Sampler nearest =
-        gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
-    return nearest;
-}
-
 // The textures of a `width` x `height` frame's half size; false when they cannot be made.
 static bool EnsureTextures(int width, int height) {
     const int w = (width + 1) / 2, h = (height + 1) / 2;
@@ -151,7 +145,8 @@ void DrawOcclusion(Frame& f) {
             if (c.kind == Command::Terrain) {
                 TerrainBatch& t = f.terrainBatches[static_cast<std::size_t>(c.index)];
                 if (t.water) continue;
-                t.occluded = ground = true;
+                t.occluded = true;
+                ground = true;
                 ++g_info.receivingTerrain;
                 continue;
             }
@@ -211,14 +206,14 @@ void DrawOcclusion(Frame& f) {
     find.depthMap[1] = depthMap[1];
     find.depthMap[2] = kStrength;
     find.depthMap[3] = kAngleBias;
-    const gpu::TextureBinding depth{g_depth, NearestSampler()};
+    const gpu::TextureBinding depth{g_depth, gpu::NearestClampSampler()};
     FullScreenPass(g_findPipeline, g_occlusion, {&depth, 1}, &find, sizeof(find), "ei-occlusion");
     OcclusionBlurParams blur{{1, 0, g_width - 1, g_height - 1}, {depthMap[0], depthMap[1], kBlurSharpness, 0.0f}};
-    const gpu::TextureBinding across[2] = {{g_occlusion, NearestSampler()}, depth};
+    const gpu::TextureBinding across[2] = {{g_occlusion, gpu::NearestClampSampler()}, depth};
     FullScreenPass(g_blurPipeline, g_across, across, &blur, sizeof(blur), "ei-occlusion-across");
     blur.step[0] = 0;
     blur.step[1] = 1;
-    const gpu::TextureBinding down[2] = {{g_across, NearestSampler()}, depth};
+    const gpu::TextureBinding down[2] = {{g_across, gpu::NearestClampSampler()}, depth};
     FullScreenPass(g_blurPipeline, g_occlusion, down, &blur, sizeof(blur), "ei-occlusion-down");
 
     g_on = true;
@@ -245,7 +240,7 @@ void OcclusionUniforms(bool receives, float on[4], float map[4]) {
 
 void BindOcclusion(int slot) {
     const gpu::Texture& none = WhiteView();
-    const gpu::TextureBinding b[2] = {{g_on ? g_occlusion : none, NearestSampler()}, {g_on ? g_depth : none, NearestSampler()}};
+    const gpu::TextureBinding b[2] = {{g_on ? g_occlusion : none, gpu::NearestClampSampler()}, {g_on ? g_depth : none, gpu::NearestClampSampler()}};
     gpu::BindTextures(gpu::Stage::Fragment, slot, b);
 }
 

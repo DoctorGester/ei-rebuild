@@ -23,12 +23,10 @@ struct Texture {
     ComposeShape shape;           // composed: what DrawIntoTexture and DrawClouds draw into
     std::uint32_t mmpFormat = 0;  // .mmp: the file's format
     int levels = 0;               // .mmp: the levels uploaded
-    std::size_t bytes = 0;        // .mmp: the image's bytes on the GPU
 };
 
 static std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures (the only copy)
 // Replaced during the frame: released at Present (the frame's recorded commands, drawn at its end, hold them).
-static std::vector<gpu::Texture> g_retiredImages;
 static Texture g_white;
 static int g_failures = 0;
 
@@ -44,12 +42,10 @@ static std::size_t RowPitch(gpu::Format format, int width) {
 // A texture of `format` from `levels` (level 0 first): the levels given only, as the .mmp file has them and the
 // original's texture had them (RGBA8 or the file's DXT blocks).
 static gpu::Texture MakeImage(gpu::Format format, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
-                       const char* label, FrameStats::Upload kind, std::size_t* madeBytes = nullptr) {
+                       const char* label, FrameStats::Upload kind) {
     std::size_t bytes = 0;
     for (const std::vector<std::uint8_t>& level : levels) bytes += level.size();
-    CountImage(ImageUse::Texture, true);
     CountUpload(kind, bytes);
-    if (madeBytes) *madeBytes = bytes;
     gpu::Texture t = gpu::MakeTexture({width, height, static_cast<int>(levels.size()), 1, format, gpu::kSampled, label});
     bool written = static_cast<bool>(t);
     for (std::size_t i = 0; written && i < levels.size(); ++i) {
@@ -57,7 +53,7 @@ static gpu::Texture MakeImage(gpu::Format format, int width, int height, std::ve
         written = gpu::Write(t, static_cast<int>(i), {0, 0, w, h}, levels[i].data(), RowPitch(format, w));
     }
     if (!written) {
-        if (g_failures++ < 10) ei::Log("render: a texture image could not be made (bad data); drawn white");
+        LogFirst(g_failures, 10, "render: a texture image could not be made (bad data); drawn white");
         gpu::Release(t);
     }
     return t;
@@ -70,7 +66,7 @@ static const Texture& White() {
 }
 
 static void Retire(Texture& t) {
-    if (t.image) g_retiredImages.push_back(t.image);
+    ReleaseAfterPresent(t.image);
     t.image = gpu::Texture{};
 }
 
@@ -198,32 +194,6 @@ static bool ReadMmp(const MmpHeader& h, const std::uint8_t* pixels, unsigned mip
 
 static int g_mmpFailures = 0;
 
-#if defined(EI_RENDER_VALIDATION)
-// The .mmp textures made (render::TextureFromMmp), logged at exit: their images' bytes on the GPU, the most held at
-// once, and the CPU time making them (reading the levels, decoding, the upload).
-struct MmpImageCounts {
-    long made = 0;
-    std::uint64_t bytes = 0, mostHeld = 0;
-    long long ticks = 0;
-    ~MmpImageCounts() {
-        ei::Log("render: .mmp textures at exit: %ld made, %llu KB uploaded, at most %llu KB held at once, %.1f ms making them",
-                made, static_cast<unsigned long long>(bytes / 1024), static_cast<unsigned long long>(mostHeld / 1024),
-                static_cast<double>(ticks) * kMsPerTick);
-    }
-} g_mmpImageCounts;
-
-static void CountMmpImage(const void* holder, long long ticks) {
-    std::uint64_t held = 0;
-    for (const auto& entry : g_textures)
-        if (!entry.second.composed && entry.second.image) held += entry.second.bytes;
-    auto made = g_textures.find(holder);
-    if (made != g_textures.end() && made->second.image) g_mmpImageCounts.bytes += made->second.bytes;
-    ++g_mmpImageCounts.made;
-    g_mmpImageCounts.ticks += ticks;
-    if (held > g_mmpImageCounts.mostHeld) g_mmpImageCounts.mostHeld = held;
-}
-#endif
-
 static std::unordered_map<const void*, Picture> g_pictures;
 
 // `step` (its rectangle `to` relative to the texture, clipped to it) drawn into the texture BlankTexture made for
@@ -231,7 +201,7 @@ static std::unordered_map<const void*, Picture> g_pictures;
 static void DrawStep(const void* holder, ComposeStep step) {
     auto found = holder ? g_textures.find(holder) : g_textures.end();
     if (found == g_textures.end() || !found->second.composed) {
-        if (g_failures++ < 10) ei::Log("render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
+        LogFirst(g_failures, 10, "render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
         return;
     }
     const Texture& t = found->second;
@@ -271,8 +241,7 @@ bool StoreMmp(const void* holder, MmpLevels read, std::uint32_t format) {
     t.composed = false;
     t.mmpFormat = format;
     t.levels = static_cast<int>(read.levels.size());
-    t.image = MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-mmp-texture", FrameStats::Mmp,
-                        &t.bytes);
+    t.image = MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-mmp-texture", FrameStats::Mmp);
     t.width = read.width;
     t.height = read.height;
     return static_cast<bool>(t.image);
@@ -327,24 +296,16 @@ bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, u
     const MmpHeader& h = file.header;
     const std::uint8_t* base = file.Body();
     if (h.width == 0 || h.height == 0 || h.width > 8192 || h.height > 8192 || h.mipCount == 0 || h.mipCount > 16) {
-        if (g_mmpFailures++ < 10) ei::Log("render: .mmp header not understood; the texture is not decoded");
+        LogFirst(g_mmpFailures, 10, "render: .mmp header not understood; the texture is not decoded");
         return false;
     }
-#if defined(EI_RENDER_VALIDATION)
-    const long long started = Ticks();
-#endif
     MmpLevels read;
     if (!ReadMmp(h, base, mip, levels, &read)) {
-        if (g_mmpFailures++ < 10)
-            ei::Log("render: .mmp format %08X (%u bits) not decoded",
+        LogFirst(g_mmpFailures, 10, "render: .mmp format %08X (%u bits) not decoded",
                     static_cast<unsigned>(h.format), static_cast<unsigned>(h.bitsPerPixel));
         return false;
     }
-    bool made = StoreMmp(holder, std::move(read), h.format);
-#if defined(EI_RENDER_VALIDATION)
-    CountMmpImage(holder, Ticks() - started);
-#endif
-    return made;
+    return StoreMmp(holder, std::move(read), h.format);
 }
 
 bool PictureFromMmpData(const void* holder, const MmpFile& file) {
@@ -355,8 +316,7 @@ bool PictureFromMmpData(const void* holder, const MmpFile& file) {
     p.width = static_cast<int>(h.width);
     p.height = static_cast<int>(h.height);
     if (!DecodeMmpLevel(h, file.Body() + h.MipOffset(0), p.width, p.height, p.rgba)) {
-        if (g_mmpFailures++ < 10)
-            ei::Log("render: picture format %08X not decoded; the cursor draws nothing for it", static_cast<unsigned>(h.format));
+        LogFirst(g_mmpFailures, 10, "render: picture format %08X not decoded; the cursor draws nothing for it", static_cast<unsigned>(h.format));
         return false;
     }
     g_pictures.emplace(holder, std::move(p));
@@ -425,11 +385,6 @@ gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     return sampler;
 }
 
-void RetireTextures() {
-    for (gpu::Texture& t : g_retiredImages) gpu::Release(t);
-    g_retiredImages.clear();
-}
-
 void ForgetHolder(const void* holder) {
     auto it = g_textures.find(holder);
     if (it == g_textures.end()) return;
@@ -453,8 +408,7 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     shape.firstLevel = static_cast<int>(mip);
     shape.levels = static_cast<int>(mip + (levels ? levels : 1));
     if (shape.levels > LevelCount(size, size) || shape.firstLevel >= shape.levels) {
-        if (g_failures++ < 10)
-            ei::Log("render: a composed %dx%d texture from level %u (%u levels) has no such level; it shows nothing", size,
+        LogFirst(g_failures, 10, "render: a composed %dx%d texture from level %u (%u levels) has no such level; it shows nothing", size,
                     size, mip, levels);
         ForgetHolder(holder);
         return false;
@@ -517,8 +471,7 @@ void TexturePatch(const void* target, const int to[4], const void* source, const
     Start();
     int tw = 0, th = 0, sw = 0, sh = 0;
     if (!HolderSize(target, &tw, &th) || !HolderSize(source, &sw, &sh) || !Inside(to, tw, th) || !Inside(from, sw, sh)) {
-        if (g_patchFailures++ < 10)
-            ei::Log("render: texture patch (%d,%d)-(%d,%d) of a %dx%d texture from (%d,%d)-(%d,%d) of a %dx%d one: "
+        LogFirst(g_patchFailures, 10, "render: texture patch (%d,%d)-(%d,%d) of a %dx%d texture from (%d,%d)-(%d,%d) of a %dx%d one: "
                     "not recorded (a texture without its size, or a rectangle outside it)",
                     to[0], to[1], to[2], to[3], tw, th, from[0], from[1], from[2], from[3], sw, sh);
         return;

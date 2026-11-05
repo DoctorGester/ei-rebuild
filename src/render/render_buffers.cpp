@@ -7,8 +7,22 @@
 #include "../platform/log.h"
 
 #include <algorithm>
+#include <vector>
 
 namespace render {
+
+// --- Images and samplers shared by the passes ---------------------------------------------------------------
+
+static std::vector<gpu::Texture> g_released;
+
+void ReleaseAfterPresent(const gpu::Texture& image) {
+    if (image) g_released.push_back(image);
+}
+
+void ReleaseRetired() {
+    for (gpu::Texture& t : g_released) gpu::Release(t);
+    g_released.clear();
+}
 
 // --- Streams ---------------------------------------------------------------------------------------------
 

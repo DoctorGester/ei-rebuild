@@ -60,9 +60,6 @@ static bool EnsurePipelines() {
     return made;
 }
 
-static gpu::Sampler Nearest() {
-    return gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
-}
 static gpu::Sampler Linear() {
     return gpu::MakeSampler({gpu::Filter::Linear, gpu::Filter::Linear, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
 }
@@ -132,7 +129,7 @@ static gpu::Texture CloudFrameImage(const CloudFrame& frame) {
     pass.colour.load = gpu::Load::DontCare;
     pass.label = "ei-cloud-frame";
     if (!f.image || !gpu::BeginPass(pass)) {
-        if (g_failures++ < 10) ei::Log("render: a clouds frame could not be made");
+        LogFirst(g_failures, 10, "render: a clouds frame could not be made");
         gpu::Release(f.image);
         return gpu::Texture{};
     }
@@ -144,7 +141,6 @@ static gpu::Texture CloudFrameImage(const CloudFrame& frame) {
     gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::texture_clouds_frame::kBlockCloudParams, params);
     gpu::Draw(0, 6);
     gpu::EndPass();
-    CountImage(ImageUse::Texture, true);
     g_cloudFrames.push_back(f);
     return f.image;
 }
@@ -217,7 +213,7 @@ static void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, con
     pass.colour.clear[3] = shape.alpha == BlankAlpha::None ? 1.0f : 0.0f;
     pass.label = "ei-texture-compose";
     if (gpu::BeginPass(pass)) {
-        const gpu::Sampler nearest = Nearest();
+        const gpu::Sampler nearest = gpu::NearestClampSampler();
         for (std::size_t k = 0; k < count; ++k) {
             const ComposeStep& step = steps[k];
             if (step.clouds) {
@@ -271,10 +267,9 @@ gpu::Texture MakeComposed(const ComposeShape& shape, const ComposeStep* steps, s
     gpu::Texture image = gpu::MakeTexture({shape.width, shape.height, shape.levels, 1, gpu::Format::Rgba8,
                                            gpu::kColourTarget | gpu::kSampled, "ei-composed-texture"});
     if (!image) {
-        if (g_failures++ < 10) ei::Log("render: a %dx%d composed texture could not be made", shape.width, shape.height);
+        LogFirst(g_failures, 10, "render: a %dx%d composed texture could not be made", shape.width, shape.height);
         return gpu::Texture{};
     }
-    CountImage(ImageUse::Texture, true);
     DrawSteps(shape, image, steps, count, true);
     if (shape.firstLevel == 0) return image;
     // Shown from a level below the first: those levels copied out of the full-size image (there are no views).
@@ -299,7 +294,7 @@ bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height,
     gpu::Texture target = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget, "ei-texture-level-read"});
     bool read = false;
     if (target) {
-        DrawLevel(image, level, Nearest(), target, 0, width, height);
+        DrawLevel(image, level, gpu::NearestClampSampler(), target, 0, width, height);
         gpu::Ticket copy = gpu::Download(target, 0, Rect{0, 0, width, height});
         gpu::Texels texels;
         if (gpu::Wait(copy) && gpu::Read(copy, &texels)) {

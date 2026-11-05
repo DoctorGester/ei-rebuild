@@ -18,13 +18,9 @@ constexpr int kMostPicture = 8192;
 // 0x00BBGGRR (a COLORREF) as the vertex colour's bytes R, G, B, A (opaque).
 static std::uint32_t VertexColour(std::uint32_t colour) { return (colour & 0xFFFFFF) | 0xFF000000u; }
 
-static gpu::Sampler Nearest() {
-    return gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
-}
-
 // One texture with the nearest sampler at slot 0 of the fragment stage.
 static void BindTexture(const gpu::Texture& texture) {
-    const gpu::TextureBinding b{texture, Nearest()};
+    const gpu::TextureBinding b{texture, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, 0, {&b, 1});
 }
 
@@ -117,8 +113,6 @@ struct UiPicture {
     int width = 0, height = 0;
 };
 static std::unordered_map<const void*, UiPicture> g_uiPictures;
-// Pictures given up: released once the frames that drew them are done.
-static std::vector<gpu::Texture> g_retired;
 
 struct UiCopy {
     gpu::Texture image;
@@ -277,8 +271,7 @@ void CapturePicture(const void* key, const Rect& source, int width, int height) 
     if (!key || width < 1 || height < 1 || width > kMostPicture || height > kMostPicture || source.IsEmpty()) return;
     UiPicture& p = g_uiPictures[key];
     if (!p.image || p.width != width || p.height != height) {
-        // A picture the frame still draws is released after it.
-        if (p.image) g_retired.push_back(p.image);
+        ReleaseAfterPresent(p.image);   // a picture the frame still draws is released after it
         p.image = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget | gpu::kSampled, "ei-ui-picture"});
         p.width = width;
         p.height = height;
@@ -289,7 +282,7 @@ void CapturePicture(const void* key, const Rect& source, int width, int height) 
     } else if (std::any_of(g_frame.pictureBatches.begin(), g_frame.pictureBatches.end(),
                            [&](const PictureBatch& b) { return b.texture.texture == p.image.texture; })) {
         // Drawn in this frame and not replaced under that draw: a new image.
-        g_retired.push_back(p.image);
+        ReleaseAfterPresent(p.image);
         p.image = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget | gpu::kSampled, "ei-ui-picture"});
         if (!p.image) return;
     }
@@ -311,7 +304,7 @@ void DrawPicture(const void* key, const Rect& destination, bool grey) {
 void DropPicture(const void* key) {
     auto it = g_uiPictures.find(key);
     if (it == g_uiPictures.end()) return;
-    g_retired.push_back(it->second.image);
+    ReleaseAfterPresent(it->second.image);
     g_uiPictures.erase(it);
 }
 
@@ -355,8 +348,6 @@ void UploadUi(const Frame& f) {
 void UiFrameDone() {
     g_uploaded = 0;
     g_offset = -1;
-    for (gpu::Texture& t : g_retired) gpu::Release(t);
-    g_retired.clear();
 }
 
 void DrawUiBatch(const UiBatch& batch, int width, int height) {

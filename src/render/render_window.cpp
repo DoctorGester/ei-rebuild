@@ -12,6 +12,7 @@
 
 #include "../game/app.h"
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <utility>
@@ -32,17 +33,15 @@ static gpu::PresentMode g_presentMode = gpu::PresentMode::Vsync;   // the mode i
 // The gamma ramp as a 256 x 1 lookup (RGBA8: the red, green and blue ramps' entries scaled to 255),
 // identity until the game sets one.
 static gpu::Texture g_rampImage;
-struct Ramp {
-    std::uint8_t entries[256 * 4] = {};
-    Ramp() {
-        for (int i = 0; i < 256; ++i) {
-            entries[i * 4 + 0] = entries[i * 4 + 1] = entries[i * 4 + 2] = static_cast<std::uint8_t>(i);
-            entries[i * 4 + 3] = 255;
-        }
+static std::array<std::uint8_t, 256 * 4> IdentityRamp() {
+    std::array<std::uint8_t, 256 * 4> entries{};
+    for (int i = 0; i < 256; ++i) {
+        entries[i * 4 + 0] = entries[i * 4 + 1] = entries[i * 4 + 2] = static_cast<std::uint8_t>(i);
+        entries[i * 4 + 3] = 255;
     }
-};
-static Ramp g_rampTable;   // (kept across devices: the game sets it once, a new device gets it again)
-static std::uint8_t (&g_ramp)[256 * 4] = g_rampTable.entries;
+    return entries;
+}
+static std::array<std::uint8_t, 256 * 4> g_ramp = IdentityRamp();   // (kept across devices: the game sets it once, a new device gets it again)
 static bool g_rampDirty = true;     // to be uploaded before the next present
 static bool g_rampIdentity = true;
 static std::uint32_t g_rampChanges = 0;   // SetGammaRamp's calls (the cursor's shapes are made through the ramp)
@@ -204,7 +203,7 @@ bool DrawToWindow() {
         g_rampDirty = true;
     }
     if (g_rampDirty) {
-        gpu::Write(g_rampImage, 0, {0, 0, 256, 1}, g_ramp, sizeof(g_ramp), gpu::Contents::Discard);
+        gpu::Write(g_rampImage, 0, {0, 0, 256, 1}, g_ramp.data(), g_ramp.size(), gpu::Contents::Discard);
         g_rampDirty = false;
     }
     perf::Prepare();
@@ -227,15 +226,13 @@ bool DrawToWindow() {
     return true;
 }
 
-bool PresentWindow() {
+void PresentWindow() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_checkRamp) CheckRamp();
 #endif
     ++g_info.presents;
-    return true;
 }
 
-const std::uint8_t* GammaRamp() { return g_ramp; }
 std::uint32_t GammaRampChanges() { return g_rampChanges; }
 
 void SetWaitForVsync(bool on) { g_waitForVsync = on; }
@@ -256,7 +253,7 @@ bool VsyncSwitchSupported() {
 #endif
 }
 
-const std::uint8_t* GammaRampTable() { return g_ramp; }
+const std::uint8_t* GammaRampTable() { return g_ramp.data(); }
 
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue) {
     // The ramp's full scale is the game's 65280 (255 * 256); entries are

@@ -41,36 +41,17 @@ static void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t c
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
-    SolidParams vs{{},
-                   {static_cast<float>(width), static_cast<float>(height), z, 0.0f},
-                   {((colour >> 16) & 0xFF) / 255.0f, ((colour >> 8) & 0xFF) / 255.0f, (colour & 0xFF) / 255.0f, 1.0f}};
+    SolidParams vs{{}, {static_cast<float>(width), static_cast<float>(height), z, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}};
+    UnpackColour(colour, vs.colour);
     StoreRect(r, vs.rect);
     gpu::PushUniforms(gpu::Stage::Vertex, gpu_shaders::solid::kBlockSolidParams, vs);
     gpu::Draw(0, 6);
     CountDraw(sizeof(vs));
 }
 
-// Movie images let go during a frame (its blit commands, drawn at its end, still hold them), released once that
-// frame is presented.
-struct LetGo {
-    gpu::Texture image;
-    std::uint32_t frame = 0;
-};
-static std::vector<LetGo> g_letGo;
-
-static void ReleaseLetGo() {
-    std::size_t kept = 0;
-    for (LetGo& l : g_letGo) {
-        if (l.frame != FrameNumber()) gpu::Release(l.image);
-        else g_letGo[kept++] = l;
-    }
-    g_letGo.resize(kept);
-}
-
 // A movie's RGBA8 image, written in place instead of made again. A recorded blit draws the image's contents at the end
 // of the frame (DrawPending), so an image is rewritten only when no blit of it is recorded in this frame.
 static gpu::Texture MakeMovieImage(int w, int h) {
-    CountImage(ImageUse::Movie, true);
     return gpu::MakeTexture({w, h, 1, 1, gpu::Format::Rgba8, gpu::kSampled, "ei-movie-frame"});
 }
 
@@ -92,8 +73,7 @@ static void CheckUpload(const gpu::Texture& image, const std::uint8_t* rgba, int
             same = std::memcmp(texels.Row(y), rgba + static_cast<std::size_t>(y) * w * 4,
                                static_cast<std::size_t>(w) * 4) == 0;
         ++g_uploadChecks;
-        if (!same && g_uploadMismatches++ < 10)
-            ei::Log("render: MISMATCH: movie image %dx%d read back from the GPU differs from the pixels written", w, h);
+        if (!same) LogFirst(g_uploadMismatches, 10, "render: MISMATCH: movie image %dx%d read back from the GPU differs from the pixels written", w, h);
     }
     gpu::Release(copy);
     if (g_uploadChecks % 20 == 1)
@@ -107,7 +87,6 @@ static void CheckUpload(const gpu::Texture& image, const std::uint8_t* rgba, int
 }
 
 static void UpdateMovieImage(const gpu::Texture& image, const std::uint8_t* rgba, int w, int h) {
-    CountImage(ImageUse::Movie, false);
     CountUpload(FrameStats::Movie, static_cast<std::size_t>(w) * h * 4);
     gpu::Write(image, 0, {0, 0, w, h}, rgba, static_cast<std::size_t>(w) * 4, gpu::Contents::Discard);
     CheckUpload(image, rgba, w, h);
@@ -131,7 +110,7 @@ bool CreateBlitPipeline() {
     return ok;
 }
 
-void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int height) {
+void DrawBlitBatch(const BlitBatch& b, int width, int height) {
     if (!b.texture || b.textureWidth <= 0 || b.textureHeight <= 0) return;
     int dw = b.destination.Width(), dh = b.destination.Height();
     int sw = b.source.Width(), sh = b.source.Height();
@@ -141,8 +120,7 @@ void DrawBlitBatch(const Frame& /*frame*/, const BlitBatch& b, int width, int he
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
     const gpu::TextureBinding texture{
-        b.texture, gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp,
-                                     gpu::Wrap::Clamp})};
+        b.texture, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::blit::kSamplerTex, {&texture, 1});
     CountBindings(b.texture);
     ApplyRect(b.destination, width, height);
@@ -162,33 +140,11 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height) {
 
 void DrawFill(const FillBatch& fill, int width, int height) { DrawSolid(kFill, fill.rect, 0.0f, fill.colour, width, height); }
 
-static long g_imageMade[static_cast<int>(ImageUse::Count)];
-static long g_imageUpdated[static_cast<int>(ImageUse::Count)];
-static long g_imageRequests[static_cast<int>(ImageUse::Count)];   // pictures asked for (movie frames)
-
-void CountImage(ImageUse use, bool made) { ++(made ? g_imageMade : g_imageUpdated)[static_cast<int>(use)]; }
-void CountImageRequest(ImageUse use) { ++g_imageRequests[static_cast<int>(use)]; }
-
-void LogImageCounts(const char* when) {
-    static const char* const names[] = {"movie", "texture"};
-    for (int i = 0; i < static_cast<int>(ImageUse::Count); ++i)
-        ei::Log("render: images %s, frame %u: %s: %ld requested, %ld made, %ld updated in place", when,
-                static_cast<unsigned>(FrameNumber()), names[i], g_imageRequests[i], g_imageMade[i], g_imageUpdated[i]);
-}
-
-#if defined(EI_RENDER_VALIDATION)
-struct ImageCountLogger {
-    ~ImageCountLogger() { LogImageCounts("at exit"); }
-} g_imageCountLogger;
-#endif
-
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
     if (!key || !rgbx || width <= 0 || height <= 0) return;
     Start();
-    CountImageRequest(ImageUse::Movie);
     g_movieScratch.assign(rgbx, rgbx + static_cast<std::size_t>(width) * height * 4);
     for (std::size_t i = 3; i < g_movieScratch.size(); i += 4) g_movieScratch[i] = 255;
-    ReleaseLetGo();
     Movie& m = g_movies[key];
     if (m.image && m.width == width && m.height == height && m.blitFrame != FrameNumber()) {
         UpdateMovieImage(m.image, g_movieScratch.data(), width, height);
@@ -197,8 +153,8 @@ void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height
     gpu::Texture image = MakeMovieImage(width, height);
     if (!image) return;
     UpdateMovieImage(image, g_movieScratch.data(), width, height);
-    // The previous image may still be drawn by this frame's commands: released after the present.
-    if (m.image) g_letGo.push_back({m.image, FrameNumber()});
+    // The previous image may still be drawn by this frame's commands.
+    ReleaseAfterPresent(m.image);
     m = Movie{image, width, height, 0xFFFFFFFFu};
 }
 

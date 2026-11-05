@@ -255,8 +255,7 @@ void Draw(gpu::Format format, int width, int height, const Rect& placed) {
     float right = left + static_cast<float>(g_image.width * scale), bottom = top + static_cast<float>(g_image.height * scale);
     gpu::SetViewport({0, 0, width, height});
     gpu::ApplyPipeline(pipeline);
-    const gpu::TextureBinding text{g_image, gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest,
-                                                              gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp})};
+    const gpu::TextureBinding text{g_image, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, {&text, 1});
     const RectParams vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockRectParams, vs);

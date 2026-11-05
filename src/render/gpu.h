@@ -128,6 +128,10 @@ struct Sampler {
 };
 // Kept by description: the same description gives the same sampler, made at its first use and kept until Stop.
 Sampler MakeSampler(const SamplerDesc& desc);
+// Point filtered, clamped to the edge: what the passes read their targets and images with.
+inline Sampler NearestClampSampler() {
+    return MakeSampler({Filter::Nearest, Filter::Nearest, Filter::Nearest, Wrap::Clamp, Wrap::Clamp});
+}
 
 // ---- Buffers, writes, copies and downloads ------------------------------------------------------------------------
 
