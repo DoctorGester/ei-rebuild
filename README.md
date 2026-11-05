@@ -14,6 +14,15 @@ The whole game runs on the rebuilt code and is playable in single player and ove
 macOS. The test suite (about 200 scenarios on the GOG data and 110 on Rebirth's) compares every run's world state and save
 files with goldens that were the same as the original game's runs when the harness stopped running it.
 
+## Screenshots
+
+| | |
+|---|---|
+| ![A Rebirth town in widescreen with sun shadows](docs/screenshots/rebirth_town_shadows.png) | ![The widescreen HUD at 3840x2160 on the GOG data](docs/screenshots/widescreen_hud.png) |
+| Rebirth data: a town at 3840x2160 with the new renderer's sun shadows | GOG data: the widescreen HUD at 3840x2160 |
+| ![Snowfall in a Rebirth forest](docs/screenshots/rebirth_snow.png) | ![A town at night lit by a torch](docs/screenshots/night_town.png) |
+| Rebirth data: snowfall | GOG data: a town at night with torch light |
+
 ## What you get
 
 - **One exe, no installer.** Drop `ei-rebuild.exe` into a GOG or Rebirth install and start it. It needs no
