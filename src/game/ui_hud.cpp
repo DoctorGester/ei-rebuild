@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -397,9 +398,9 @@ void HudClock::SetSpeed(bool newFast) {
 void HudClock::OpenObjectives() {
     highlight = false;
     ui->PlayInterfaceSound(kSoundClick);
-    auto* window = new ObjectivesWindow(ui);
+    auto window = std::make_unique<ObjectivesWindow>(ui);
     window->Setup(LocalPlayerZone(), nullptr, false, false);
-    ui->PushWindow(window, WindowBackdrop::FirstWindow);
+    ui->PushWindow(std::move(window), WindowBackdrop::FirstWindow);
 }
 
 // --- Movement panel ----------------------------------------------------------------------------

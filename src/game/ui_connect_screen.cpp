@@ -79,8 +79,7 @@ constexpr std::uint32_t kBarColour = 0xFFA06800;
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
 void OpenBox(Interface3D* ui, std::string_view title, const char* text, MessageQuestion question, MessageButtons buttons) {
-    MessageWindow* box = new MessageWindow(ui, title, text, question, buttons);
-    ui->PushWindow(box, WindowBackdrop::FirstWindow);
+    ui->PushWindow(std::make_unique<MessageWindow>(ui, title, text, question, buttons), WindowBackdrop::FirstWindow);
 }
 
 
@@ -120,7 +119,7 @@ void MpConnectScreen::Update() {
             joining = false;
             std::string key = RefusalKey(client->refusal);
             std::string text = key + kMessageSuffix;
-            ui->PushWindow(new MessageWindow(ui, key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
+            ui->PushWindow(std::make_unique<MessageWindow>(ui, key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -340,7 +339,7 @@ void MpConnectScreen::MasterRequest() {
         master.Parse(options::g_options.masterServerName.c_str(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries.extra : 0;
-    ui->PushWindow(new MasterRequestBox(ui, texts[kTextMaster], boxText, kBoxMaster, &master, extra),
+    ui->PushWindow(std::make_unique<MasterRequestBox>(ui, texts[kTextMaster], boxText, kBoxMaster, &master, extra),
                    WindowBackdrop::FirstWindow);
 }
 

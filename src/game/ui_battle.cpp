@@ -367,7 +367,7 @@ void BattleScreen::MessageResult(std::uint32_t result) {
         g_gameFlow.LeaveThroughExit(pendingExit);
         break;
     case kGameOverLoad: {
-        ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<SaveLoadWindow>(ui, false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kGameOverQuit:
@@ -385,14 +385,14 @@ void BattleScreen::MessageResult(std::uint32_t result) {
 void BattleScreen::GameOver(bool won) {
     g_clientWorld.sounds->StopAll(true);
     g_clientWorld.terrain->StopAmbience();
-    MessageWindow* box;
+    std::unique_ptr<MessageWindow> box;
     if (!won) {
         ui->PlayInterfaceSound("buttons\\gameover.wav");
-        box = new MessageWindow(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel);
+        box = std::make_unique<MessageWindow>(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel);
     } else {
-        box = new MessageWindow(ui, "end_of_game", "end_of_game_msg", MessageQuestion::Exit, MessageButtons::OkCancel);
+        box = std::make_unique<MessageWindow>(ui, "end_of_game", "end_of_game_msg", MessageQuestion::Exit, MessageButtons::OkCancel);
     }
-    ui->PushWindow(box, WindowBackdrop::FirstWindow);
+    ui->PushWindow(std::move(box), WindowBackdrop::FirstWindow);
 }
 
 // --- The every-frame update --------------------------------------------------------------------------
@@ -598,8 +598,7 @@ void BattleScreen::Update() {
         for (int i = 0; i < std::ssize(data->members); ++i)
             records.push_back(&data->members[i]);
         if (g_clientWorld.PartyInExit(&records, pendingExit, &second)) {
-            MessageWindow* box = new MessageWindow(ui, "leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel);
-            ui->PushWindow(box, WindowBackdrop::FirstWindow);
+            ui->PushWindow(std::make_unique<MessageWindow>(ui, "leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
             exitPending = false;
         }
     }

@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <bit>
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -274,9 +275,9 @@ void OpenObjectives(Interface3D* ui) {
         MapRecord* questZone = g_mapDatabase.FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
-        auto* window = new ObjectivesWindow(ui);
+        auto window = std::make_unique<ObjectivesWindow>(ui);
         window->Setup(LocalPlayerZone(), nullptr, false, true);
-        ui->PushWindow(window, WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::move(window), WindowBackdrop::FirstWindow);
         break;
     }
 }
@@ -311,7 +312,7 @@ void BriefingScreen::KeyDown(UiEvent& event) {
         return;
     case platform::Key::Escape:
         if (state == 0) {
-            ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
+            ui->PushWindow(std::make_unique<EscMenu>(ui), WindowBackdrop::FirstWindow);
         } else if (state == 3) {
             ui->PlayInterfaceSound(kClickSound);
             while (state == 3) NextPhrase(true);

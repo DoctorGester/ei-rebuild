@@ -172,9 +172,9 @@ public:
     // "shot<nnnn>.bmp"; an unhandled ';' shows help.
     void OnKeyDown(platform::Key key, int scan, bool repeat);
     // Opens `window` on top of the stack (null is fatal). The first window keeps the server flag.
-    void PushWindow(UiContainer* window, WindowBackdrop keep);
+    void PushWindow(std::unique_ptr<UiContainer> window, WindowBackdrop keep);
     // Closes and deletes every window, then opens `window` as PushWindow does.
-    void Activate(UiContainer* window);
+    void Activate(std::unique_ptr<UiContainer> window);
     // Reads the interface's saved state from `stream`: flags and two values; from save version 0x47 one
     // more; from 0x56 an obsolete list (count, then name and value pairs, discarded) and a string; from
     // 0x5D one more value; from 0x5F a string.
@@ -284,30 +284,29 @@ public:
     console::ConsoleWindow* console = nullptr;
     ScreenFade* fade = nullptr;
     ChatOverlay* root = nullptr;    // the chat overlay; updated after the top window every frame
-    UiSurface* fpsSurface = nullptr;
+    std::unique_ptr<UiSurface> fpsSurface;
     std::uint32_t fpsTime = 0;
     int fpsFrames = 0;
     std::string fpsText;             // the last measured rate ("%.1f"); empty until the first period
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing = false;
-    std::vector<UiContainer*> stack;    // the open windows (every one a container), the top one last
+    std::vector<std::unique_ptr<UiContainer>> stack;    // the open windows (every one a container), the top one last
     // The screens with news of their own, while open (each sets itself in its CreateScreen and clears itself in its
     // CloseScreen); the news reaches one only while it is the top window (OnTop).
     BattleScreen* battle = nullptr;
     BriefingScreen* briefing = nullptr;
     ExchangeScreen* exchange = nullptr;
     CampPages* camp = nullptr;
-    UiContainer* queuedWindow = nullptr;    // activated by the next frame update
     bool closeAll = false;
     std::uint32_t pendingValue = 0;
     bool pendingFlag = false;
     Backdrop backdropMode = Backdrop::None;   // the backdrop is drawn in First, TakeSecond and Both (PushWindow sets TakeSecond / TakeFirst)
-    UiSurface* backdrop = nullptr;
-    UiSurface* secondBackdrop = nullptr;
+    std::unique_ptr<UiSurface> backdrop;
+    std::unique_ptr<UiSurface> secondBackdrop;
     std::size_t backdropWindows = 0;   // mode 4: the windows its backdrop shows (the stack's size when mode 3 was set)
-    UiSurface* screenCopy = nullptr;   // never shown: the screen under the first window, the escape menu's save picture
+    std::unique_ptr<UiSurface> screenCopy;   // never shown: the screen under the first window, the escape menu's save picture
     std::uint8_t serverFlag = 0;     // the server flag kept for the first window (PushWindow)
-    UiSurface* statusSurface = nullptr;    // only while ShowStatusText runs
+    std::unique_ptr<UiSurface> statusSurface;    // only while ShowStatusText runs
     Point mouse;
     // The three interface fonts (Create: "Times New Roman", sized with the screen width).
     UiFont fonts[3];

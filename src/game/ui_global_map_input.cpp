@@ -19,6 +19,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -151,7 +152,7 @@ void GlobalMap::PaintTitle(UiSurface& surface) const {
 void GlobalMap::KeyDown(UiEvent& event) {
     UiContainer::OnEvent(event);
     if (event.key == platform::Key::Escape) {
-        ui->PushWindow(new EscMenu(ui), WindowBackdrop::FirstWindow);
+        ui->PushWindow(std::make_unique<EscMenu>(ui), WindowBackdrop::FirstWindow);
         event.handled = true;
     }
     if (event.handled) return;

@@ -14,6 +14,7 @@
 #include "ui.h"
 
 #include <algorithm>
+#include <memory>
 #include "ui_screens.h"
 #include "world.h"
 #include "player_client.h"
@@ -119,9 +120,9 @@ void GlobalMap::LeftDown(UiEvent& event) {
         if (!gipat || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
             SearchWays(zone.name);
-            auto* window = new ObjectivesWindow(ui);
+            auto window = std::make_unique<ObjectivesWindow>(ui);
             window->Setup(target, &arrivals, true, false);
-            ui->PushWindow(window, WindowBackdrop::FirstWindow);
+            ui->PushWindow(std::move(window), WindowBackdrop::FirstWindow);
             return;
         }
     }

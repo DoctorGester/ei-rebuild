@@ -10,6 +10,7 @@
 #include "text_manager.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include "lib/containers.h"
 #include "lib/text_case.h"
@@ -237,14 +238,13 @@ void OptionsWindow::KeyDown(UiEvent& event) {
         }
         if (other && other != binding) {
             // Already bound to another action: ask (the box's result goes to MessageResult).
-            MessageWindow* box = new MessageWindow(ui, "key_already_mapped", "key_already_mapped_msg", MessageQuestion::First, MessageButtons::OkCancel);
+            auto box = std::make_unique<MessageWindow>(ui, "key_already_mapped", "key_already_mapped_msg", MessageQuestion::First, MessageButtons::OkCancel);
             std::string format;
             std::string message;
             format = g_clientWorld.texts->GetString("key_already_mapped_msg");
             message = str::Format(format, pressed->name, other->name);
-            // The box's text (a null box is written through, like the original).
             box->text = message.c_str();
-            ui->PushWindow(box, WindowBackdrop::FirstWindow);
+            ui->PushWindow(std::move(box), WindowBackdrop::FirstWindow);
             return;
         }
         CommitBinding();

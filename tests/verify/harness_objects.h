@@ -27,9 +27,7 @@ inline void HarnessSetShadows(bool on) { ei::verify::image::SetShadows(on); }
 // The cursor's state the cursor check logs and compares.
 inline ei::verify::image::CursorState HarnessCursor() { return ei::verify::image::Cursor(); }
 
-// The interface's window queued to come on top (null: none), its pending close-all and its screen fade (false
-// without one).
-inline void* HarnessQueuedWindow() { return ei::verify::image::QueuedWindow(); }
+// The interface's pending close-all and its screen fade (false without one).
 inline bool HarnessCloseAllPending() { return ei::verify::image::CloseAllPending(); }
 inline bool HarnessScreenFade(bool* running, float* alpha) { return ei::verify::image::ScreenFade(running, alpha); }
 
