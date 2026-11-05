@@ -196,10 +196,16 @@ jobs:
           : > suite_image.txt; : > suite_rebirth.txt
           if [ -n "${names// }" ]; then
             PYTHONUNBUFFERED=1 python tools/run_all.py --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
+            echo "::group::Image suite: the runs that did not pass or differ, in detail (tools/ci_details.py)"
+            python tools/ci_details.py build/verify/runs $names || true
+            echo "::endgroup::"
             if [ "$SUITES" = full ]; then
               rebirth=$(python -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:], goldens=False)))" $names)
               if [ -n "${rebirth// }" ]; then
                 PYTHONUNBUFFERED=1 python tools/run_all.py --rebirth-only --golden --jobs 1 $rebirth 2>&1 | tee suite_rebirth.txt || true
+                echo "::group::Rebirth suite: the runs that did not pass or differ, in detail (tools/ci_details.py)"
+                python tools/ci_details.py build/verify/runs --install rebirth $rebirth || true
+                echo "::endgroup::"
               fi
             fi
           fi

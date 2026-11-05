@@ -253,13 +253,10 @@ jobs:
           PY
           { echo "### The folder rule"; echo '```'; cat folder_rule.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
 
-      # What a differing golden needs to be understood without the machine: the first differing digest records (golden.py
-      # compare: the record's world update / frame / tick and the fields that differ); the log lines on the game window's
-      # client area (made, shown, set: the size asked for and the display's usable area), the present mode, the driver's
-      # device, focus and the cursor confinement; then every log line from 15 frames before the first differing record's
-      # frame to 2 after it, between the harness's frame-stamped lines (`harness: frame N: ...`: each step, each replayed
-      # input event of a recorded scenario, each pause and resume of the game); and the run's frame timing. Runs are in
-      # runs/<name>-standalone. Printed, not uploaded (the data never leaves the runner).
+      # What a run that did not pass or differs needs to be understood without the machine (tools/ci_details.py: the
+      # failures, the first differing digest records, the game window's client area, the present mode, the device, focus,
+      # the frame-stamped log lines around the first differing record, a crash's named stack, the frame timing). Runs
+      # are in runs/<name>-standalone. Printed, not uploaded (the data never leaves the runner).
       - name: Differences in detail
         if: always()
         env:
@@ -270,40 +267,7 @@ jobs:
           {
             echo "### Differences in detail"
             echo '```'
-            python3 -I - build/macos-verify/runs "$names" <<'PY'
-          import os, re, subprocess, sys
-          runs, names = sys.argv[1], sys.argv[2].split()
-          about = re.compile(r"client area|render: presenting|gpu: .*device|cursor confinement|focus|activat|minimi|occlu", re.I)
-          stamp = re.compile(r"harness: frame (\d+):")
-          for name in names:
-              run = os.path.join(runs, name + "-standalone")
-              if not os.path.isdir(run):
-                  print("== " + name + ": no run folder " + run)
-                  continue
-              done = subprocess.run([sys.executable, "tools/golden.py", "compare", name, "--run", run, "--records", "3",
-                                     "--fields", "30"], capture_output=True, text=True)
-              out = done.stdout + done.stderr
-              if "DIFFERS" not in out:
-                  continue
-              print("== " + name + ": the first differing digest records")
-              print("\n".join(out.splitlines()[:80]))
-              log = os.path.join(run, "ei-rebuild.log")
-              lines = open(log, encoding="utf-8", errors="replace").read().splitlines() if os.path.exists(log) else []
-              print("-- " + name + ": the window, the present mode, the device, focus")
-              print("\n".join([line for line in lines if about.search(line)][:20]))
-              first = re.search(r"first difference at record \d+ \(world update \d+, frame (\d+)", out)
-              if first:
-                  frame = int(first.group(1))
-                  print("-- " + name + ": the log from frame " + str(frame - 15) + " to " + str(frame + 2) +
-                        " (steps, input events, pauses; the first differing record is at frame " + str(frame) + ")")
-                  inside = [i for i, line in enumerate(lines)
-                            if (m := stamp.search(line)) and frame - 15 <= int(m.group(1)) <= frame + 2]
-                  print("\n".join(lines[inside[0]:inside[-1] + 1][:80]) if inside else "(nothing stamped then)")
-              report = os.path.join(run, "harness_report.txt")
-              if os.path.exists(report):
-                  print("\n".join(line for line in open(report, errors="replace").read().splitlines()
-                                  if line.startswith("TIMING: median frame")))
-          PY
+            python3 -I tools/ci_details.py build/macos-verify/runs $names
             echo '```'
           } 2>&1 | tee -a $GITHUB_STEP_SUMMARY
 

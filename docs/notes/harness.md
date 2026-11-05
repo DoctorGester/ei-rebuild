@@ -451,7 +451,9 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   build check with the exe linked is a warning, so the suites still run.
 - **Suites**: eight jobs (input `shards`), each its share of the sorted scenarios, image suite then Rebirth's, one game
   at a time, `--golden`; the stub set fetched and unpacked as in the Linux job (same variable and secrets). Inputs:
-  `scenarios` (a few names: also give `shards` 1), `suites` (full, image, builds).
+  `scenarios` (a few names: also give `shards` 1), `suites` (full, image, builds). After each suite a folded group in
+  the step's log holds `tools/ci_details.py`'s lines for every run that did not pass or differs (as the macOS job's
+  "Differences in detail" below): the job keeps no run folders.
 - **WARP**: SDL's D3D12 driver takes the high-performance adapter (`EnumAdapterByGpuPreference`), which on the GPU-less
   runner is the Basic Render Driver, i.e. WARP. SDL has no switch for it, so third_party/SDL/README.txt lists ours:
   the hint (so the environment variable) `EI_GPU_D3D12_WARP=1` picks `IDXGIFactory4::EnumWarpAdapter` in the driver's
@@ -481,12 +483,14 @@ job, never Release, nothing published or uploaded:
   items; seconds each on a desktop), one game at a time, `--vanilla-only --golden`, `EI_TIME_SCALE` 3. The summary has the
   goldens block, the GPU device line and each run's `TIMING: median frame` (harness_report.txt). Goldens that differ on
   Metal are listed, not excused: no check is widened for it.
-- **Differences in detail** (always runs): for each differing scenario (run folder `runs/<name>-standalone`), `golden.py
-  compare --records 3 --fields 30` (the first differing digest records with their world update, frame and tick, and the
-  fields); the log lines on the game window's client area (made, shown, set, with the size asked for and the display's
-  usable area), the present mode ("render: presenting ... asked for mode N, got M"), the device, focus and the cursor
-  confinement; then the log from 15 frames before the first differing record's frame to 2 after it, between the
-  frame-stamped lines (each step, each replayed input event, each pause and resume); and its median frame. The harness
+- **Differences in detail** (always runs; `tools/ci_details.py`): for each scenario that did not pass or differs (run
+  folder `runs/<name>-standalone`), the report's failures, `golden.py compare --records 3 --fields 30` (the first
+  differing digest records with their world update, frame and tick, and the fields); the log lines on the game window's
+  client area (made, shown, set, with the size asked for and the display's usable area; `windowsize`; the resolution),
+  the present mode ("render: presenting ... asked for mode N, got M"), the device, focus and the cursor confinement;
+  then the log from 15 frames before the first differing record's frame to 2 after it, between the frame-stamped lines
+  (each step, each replayed input event, each pause and resume; a failed run: its last 20), a crash's stack by function
+  names, and its median frame. The harness
   drops every system event, so a focus or occlusion event cannot pause a game there; a `world paused 1` in a digest is the
   game's own pause (the menu). Metal has no Mailbox, so the harness's present mode falls back to Immediate (it fell back
   to Vsync before H62a: every frame 16.7 ms).
