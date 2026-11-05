@@ -361,10 +361,28 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
     }
 }
 
+// The frame's first water draw from command `k` on, before which the water's reflections copy the frame as it
+// stands (render_water.cpp); SIZE_MAX: none, or this frame's copy was taken.
+static std::size_t FirstWater(std::size_t k, std::size_t end) {
+    if (WaterCopyTaken()) return SIZE_MAX;
+    for (; k < end; ++k) {
+        const Command& c = g_frame.commands[k];
+        if (c.kind == Command::Terrain && g_frame.terrainBatches[static_cast<std::size_t>(c.index)].water) return k;
+    }
+    return SIZE_MAX;
+}
+
+// The frame as it stands (between passes) into the water's copy: its colour and its depth, which after a multisampled
+// pass is the resolved depth copy.
+static void CopyForWater() {
+    if (g_holder == Holder::None) return;
+    CopyFrameForWater(g_colour, g_holder == Holder::Multisampled ? g_resolvedDepth : g_depth);
+}
+
 // Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first clearing
-// it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), and with
-// multisampling one pass per run of world and other commands. The copies waiting for the interface's
-// pictures go first.
+// it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), before the
+// water's first draw (the copy its reflections read), and with multisampling one pass per run of world and other
+// commands. The copies waiting for the interface's pictures go first.
 static bool DrawPending() {
     perf::BeginDraws();
     perf::Enter(perf::Pass::Ui);
@@ -377,7 +395,7 @@ static bool DrawPending() {
     UploadTerrain(g_frame);
     UploadMeshes(g_frame);
     UploadUi(g_frame);
-    // The sun's shadow map and the ambient occlusion, once a frame before its first pass.
+    // The sun's shadow map, the ambient occlusion and the water's sky image, once a frame before its first pass.
     if (!g_frame.shadow.prepared) {
         {
             Timer shadowTime;
@@ -392,6 +410,7 @@ static bool DrawPending() {
         }
         perf::Enter(perf::Pass::Other);
         DrawOcclusion(g_frame);
+        DrawSkyReflection(g_frame);
     }
     // Direct3D 7 puts pixel centres at integer screen coordinates, today's GPUs half a pixel further: the 3D
     // draws move their positions by half a pixel (Frame::pixelShift); the viewport is kept in whole pixels.
@@ -407,10 +426,14 @@ static bool DrawPending() {
         std::size_t last = r.end < end ? r.end : end;
         if (last > r.first + 1) split = r.first + (last - r.first) / 2;
     }
+    const std::size_t water = FirstWater(k, end);
     do {
+        if (k == water) CopyForWater();
         bool world = multisampling && k < end && InWorld(k);
         std::size_t stop = k;
-        while (stop < end && (multisampling && InWorld(stop)) == world && !(world && stop == split && stop > k)) ++stop;
+        while (stop < end && (multisampling && InWorld(stop)) == world && !(world && stop == split && stop > k) &&
+               !(stop == water && stop > k))
+            ++stop;
         // A pass's clear and copies are its first command's (the rest of the world in a world view), the
         // multisampled pass's resolve the world's.
         if (perf::On() && k < end) perf::Enter(InWorld(k) ? perf::Pass::Other : perf::Pass::Ui);
@@ -493,6 +516,7 @@ void Configure(const char* spec) {
 void ListPipelines(const gpu::DeviceLimits& limits, int msaa, std::vector<gpu::PipelineDesc>& out) {
     ListMeshPipelines(out, 1);
     ListTerrainPipelines(out, 1);
+    ListWaterPipelines(out);
     ListBlitPipelines(out, 1);
     ListUiPipelines(out, 1);
     ListShadowPipelines(out);

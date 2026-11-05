@@ -72,7 +72,7 @@ static bool EnsureTextures(int width, int height) {
 
 // A camera's clip depth z at the clip w is A + B / w (a perspective: its depth row is A times its w row plus B
 // times (0, 0, 0, 1)); `out` gets A and B.
-static void DepthMap(const Matrix4& clip, float out[2]) {
+void DepthMap(const Matrix4& clip, float out[2]) {
     const float* m = clip.m;
     const Vector3 depth{m[8], m[9], m[10]}, w{m[12], m[13], m[14]};
     const float ww = LengthSquared(w);

@@ -72,6 +72,8 @@ const Draw kDraws[] = {
     {"ui_picture", kRgba8, true, 4, -1, true},
     {"into_multisampled", kRgba8, true, 4, -1, true},
     {"depth_from_resolved", kRgba8, true, 1},
+    // The water's copy of the frame before its first draw (render_water.cpp): colour and the depth as R32F.
+    {"scene_copy", kRgba8, false, 1, -1, true},
     // The window's back buffer.
     {"present", kBgra8, false, 1},
     {"perf_overlay", kBgra8, false, 1},

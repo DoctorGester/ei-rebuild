@@ -712,13 +712,12 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     BindOcclusion(program::kSamplerOcclusionMap);
     BindRoofMap(program::kSamplerRoofMap);
     CountBindings(texture.texture);
-    // The ground receives the objects' shadows; the water does not (the ground under it does). Both take the clouds'.
-    const bool clouded = mode != kLevels && !f.shadow.lights.empty();
-    const bool receives = clouded && !batch.water;
-    const ShadowParams& shadow = ShadowUniforms(f, receives, clouded);
+    // The ground and the water receive the objects' shadows and the clouds'.
+    const bool receives = mode != kLevels && !f.shadow.lights.empty();
+    const ShadowParams& shadow = ShadowUniforms(f, receives, receives);
     TerrainVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-    vs.light = clouded ? f.shadow.lights[0] : vs.matrix;
+    vs.light = receives ? f.shadow.lights[0] : vs.matrix;
     vs.shift[0] = f.pixelShift[0];
     vs.shift[1] = f.pixelShift[1];
     vs.normalOffset = ShadowNormalOffset(f, receives);
@@ -729,6 +728,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     RippleOffsets(fs.ripples, fs.slowRipples);
     SurfaceUniforms(&fs);
     OcclusionUniforms(batch.occluded && mode != kLevels, fs);
+    BindWaterReflections(vs.matrix, &fs);
     const SceneLightParams light = SceneLightUniforms(f);
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainVsParams, vs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainFsParams, fs);

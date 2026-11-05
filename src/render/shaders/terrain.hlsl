@@ -76,7 +76,7 @@ VsOut vs_main(VsIn i) {
 #define CLOUD_MAP_SLOT 5   // 4 is the ripple map (render_water.cpp)
 #define OCCLUSION_MAP_SLOT 6
 #define OCCLUSION_DEPTH_SLOT 7
-#define ROOF_MAP_SLOT 8
+#define ROOF_MAP_SLOT 8   // 9 .. 11 the water's reflections (render_water.cpp)
 #include "shadow_receiver.hlsli"
 #include "point_shadow.hlsli"
 #include "cloud_shadow.hlsli"
@@ -102,6 +102,19 @@ struct TerrainFsParams {
     float occlusionDepthScale;
     float2 occlusionScale;
     float2 occlusionTexel;
+    // The water's reflections (render_water.cpp): the camera's clip matrix (the landscape's space to the frame's), the
+    // sky image's, the dome (its centre in the landscape's space, its radius across and its height above the centre),
+    // the frame's depth to clip w (w = sceneDepthScale / (depth - sceneDepthOffset)), whether the frame was copied
+    // before the water (0: the water reflects the sky alone) and its size in pixels.
+    row_major float4x4 view;
+    row_major float4x4 skyView;
+    float3 dome;
+    float domeRadius;
+    float domeHeight;
+    float sceneDepthOffset;
+    float sceneDepthScale;
+    int sceneOn;
+    float2 sceneSize;
 };
 static const int kWater = 1;
 static const int kLevels = 2;
@@ -110,6 +123,14 @@ Texture2D<float4> tex : FS_TEXTURE(0);
 SamplerState smp : FS_SAMPLER(0);
 Texture2D<float4> ripples : FS_TEXTURE(4);   // render_water.cpp: rg the slopes, b the foam's pattern
 SamplerState rippleSmp : FS_SAMPLER(4);
+// The water's reflections (render_water.cpp): the sky dome drawn mirrored in the water's plane (bilinear, clamped),
+// and the frame as it stood before the water's first draw: its colour (bilinear, clamped) and depth (read with Load).
+Texture2D<float4> sky_image : FS_TEXTURE(9);
+SamplerState sky_smp : FS_SAMPLER(9);
+Texture2D<float4> scene_colour : FS_TEXTURE(10);
+SamplerState scene_smp : FS_SAMPLER(10);
+Texture2D<float> scene_depth : FS_TEXTURE(11);
+SamplerState scene_depth_smp : FS_SAMPLER(11);   // unused: the depth is read with Load
 
 // The weather on the ground and the water (render_weather.cpp; docs/notes/renderer.md section 13, item 11b): wet ground
 // darker and glossy, puddles in low flat ground, snow on ground turned up, the rain's rings and splashes on the
@@ -232,6 +253,76 @@ float3 weathered(float3 albedo, GroundWeather g) {
     return lerp(albedo, kSnow * shade, g.snow) * lerp(1.0, kWetDark, g.wet) * lerp(1.0, kPuddleDark, g.puddle);
 }
 
+// `r` turned up to at least a little above the horizon (a ripple can tip it below).
+float3 upwards(float3 r) { return normalize(float3(r.xy, max(r.z, 0.02))); }
+
+float4 project(row_major float4x4 m, float3 p) {
+    float4 q = float4(p, 1.0);
+    return float4(dot(m[0], q), dot(m[1], q), dot(m[2], q), dot(m[3], q));
+}
+
+// The sky the water at `p` reflects along `r` (unit, upwards): where the ray meets the dome (taken as an ellipsoid of
+// its radius across and its height), looked up in the dome drawn mirrored in the water's plane. Right at any water
+// level: the mirrored image is read where it shows that point of the dome.
+float3 reflected_sky(float3 p, float3 r) {
+    float stretch = fs.domeRadius / max(fs.domeHeight, 1e-3);
+    float3 o = p - fs.dome;
+    o.z *= stretch;
+    float3 d = float3(r.xy, r.z * stretch);
+    float a = dot(d, d), b = dot(o, d), c = dot(o, o) - fs.domeRadius * fs.domeRadius;
+    float t = (-b + sqrt(max(b * b - a * c, 0.0))) / max(a, 1e-6);   // the far meeting: the point lies inside
+    float4 q = project(fs.skyView, p + r * max(t, 0.0));
+    float2 uv = q.xy / max(q.w, 1e-4) * float2(0.5, -0.5) + 0.5;
+    return sky_image.SampleLevel(sky_smp, uv, 0.0).rgb;
+}
+
+// The screen-space reflection: the ray from `p` along `r` marched through the frame as it stood before the water (its
+// depth), kMarchSteps steps over kMarchLength landscape units from a start moved per pixel, then refined by halving;
+// it hits where it passes behind what the frame shows by less than kThickness (clip w, landscape units). Returns the
+// frame's colour there (rgb) and how much of it to take (a): less towards the frame's edges and the ray's end, 0 for
+// no hit.
+static const int kMarchSteps = 10;
+static const int kRefineSteps = 3;
+static const float kMarchLength = 12.0;
+static const float kThickness = 2.0;
+float scene_w(float2 uv) {
+    int2 at = clamp(int2(uv * fs.sceneSize), 0, int2(fs.sceneSize) - 1);
+    return fs.sceneDepthScale / (scene_depth.Load(int3(at, 0)) - fs.sceneDepthOffset);
+}
+float2 clip_uv(float4 q) { return q.xy / q.w * float2(0.5, -0.5) + 0.5; }
+float4 screen_reflection(float3 p, float3 r, float2 pixel) {
+    if (fs.sceneOn == 0) return 0.0;
+    float4 a = project(fs.view, p), b = project(fs.view, p + r * kMarchLength);
+    // A ray turning towards the camera ends before it would pass behind it.
+    float end = b.w < 0.25 * a.w ? (0.75 * a.w) / max(a.w - b.w, 1e-4) : 1.0;
+    b = lerp(a, b, end);
+    float jitter = frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+    float before = 0.0, at = -1.0;
+    [loop] for (int k = 0; k < kMarchSteps; ++k) {
+        float t = (k + jitter) / kMarchSteps;
+        float4 q = lerp(a, b, t);
+        float2 uv = clip_uv(q);
+        if (any(uv < 0.0) || any(uv > 1.0)) break;
+        float behind = q.w - scene_w(uv);
+        if (behind > 0.0 && behind < kThickness) {
+            at = t;
+            break;
+        }
+        before = t;
+    }
+    if (at < 0.0) return 0.0;
+    [unroll] for (int k = 0; k < kRefineSteps; ++k) {
+        float t = 0.5 * (before + at);
+        float4 q = lerp(a, b, t);
+        if (q.w - scene_w(clip_uv(q)) > 0.0) at = t;
+        else before = t;
+    }
+    float2 uv = clip_uv(lerp(a, b, at));
+    float2 edge = min(uv, 1.0 - uv);
+    float weight = saturate(min(edge.x, edge.y) * 12.0) * (1.0 - smoothstep(0.6, 1.0, at * end));
+    return float4(scene_colour.SampleLevel(scene_smp, uv, 0.0).rgb, weight);
+}
+
 // The lit ground `c` with the wet ground's sheen of the sun, and in a puddle the sky and the sun reflected by its
 // rippled water and the drops' rings and splashes (rain_dimples).
 float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, float4 rings) {
@@ -245,7 +336,7 @@ float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, fl
     if (g.puddle <= 0.0) return saturate(c);
     float3 pn = normalize(float3(-rings.xy, 1.0));
     float fresnel = 0.02 + 0.98 * pow(1.0 - saturate(dot(pn, v)), 5.0);
-    float3 sky = fs.fog * lerp(1.0, 0.75, saturate(reflect(-v, pn).z));
+    float3 sky = reflected_sky(i.world, upwards(reflect(-v, pn)));
     c = lerp(c, sky, saturate(0.15 + fresnel) * g.puddle);
     c += sun * pow(saturate(dot(pn, h)), 300.0) * 0.6 * g.puddle;
     c = lerp(c, rain_dimples(c, sky, rings), g.puddle);
@@ -259,8 +350,8 @@ float3 wet_ground(float3 c, VsOut i, float3 n, GroundWeather g, float hidden, fl
 // rougher surface. A swamp is still standing water: a deep green body (the game's green, darker and murkier), opaque
 // but at its very edge, faint slow ripples, a glossy sheen of the sky and the sun, sparse scum in place of the foam
 // (and a muddy rim on the ground:
-// ground_weather); lava keeps the game's look. `clouded`: the share of the sun the clouds hide, `footprint` the
-// landscape units a pixel spans.
+// ground_weather); lava keeps the game's look. `hidden`: the share of the sun the shadow map and the clouds hide,
+// `footprint` the landscape units a pixel spans.
 static const float kRippleScaleA = 1.0 / 9.0;    // the ripple map's repeats per landscape unit, layer A
 static const float kRippleScaleB = 1.0 / 5.0;    // layer B, turned against A
 static const float kRippleSlope = 0.15;          // the slope at the map's steepest texel
@@ -276,6 +367,8 @@ static const float kSwampMurk = 0.35;            // ... its share of the body, t
 static const float kSwampLayer = 0.8;            // ... by this
 static const float kSwampEdge = 0.25;            // a swamp fades in over this distance from its shore line
 static const float kSwampClear = 1.2;            // ... and is opaque from this distance
+static const float kLeastReflection = 0.12;      // the least share of the water's colour its reflection is
+static const float kShadedReflection = 0.3;      // the share of the reflection a full shadow takes away
 
 // The two ripple layers at `xy` moved by `offsets`: the slopes (xy) and the foam's pattern (z).
 float3 ripple_layers(float2 xy, float4 offsets) {
@@ -285,7 +378,7 @@ float3 ripple_layers(float2 xy, float4 offsets) {
     return float3((a.xy * 2.0 - 1.0) + (b.xy * 2.0 - 1.0) * 0.45, a.z * 0.6 + b.z * 0.4);
 }
 
-float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float footprint, float rain, out float alpha) {
+float3 Water(VsOut i, float3 base, float opacity, float3 n, float hidden, float footprint, float rain, out float alpha) {
     const float3 game = base;
     float depth = max(i.depth, 0.0);
     float lava = saturate(i.kind - 1.0);
@@ -301,19 +394,22 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     float3 toEye = scene.camera - i.world;
     float3 v = toEye * rsqrt(max(dot(toEye, toEye), 1e-12));
     float facing = saturate(dot(rippled, v));
-    // Schlick's, water's 0.02 head-on; a swamp's still skin keeps a faint sheen of the sky whatever the angle.
+    // Schlick's, water's 0.02 head-on, but at least kLeastReflection (the game's lit layer is far brighter than deep
+    // water, which hid a reflection of 2%); a swamp's still skin keeps a faint sheen of the sky whatever the angle.
     float schlick = 0.02 + 0.98 * pow(1.0 - facing, 5.0);
-    float fresnel = lerp(schlick, 0.03 + 0.6 * schlick, swamp);
-    float3 r = reflect(-v, rippled);
-    // The sky: the horizon in the fog's colour, darker overhead.
-    float3 sky = fs.fog * lerp(1.0, 0.75, saturate(r.z)) * lerp(1.0, 0.7, swamp);
+    float fresnel = lerp(max(schlick, kLeastReflection), 0.03 + 0.6 * schlick, swamp);
+    float3 r = upwards(reflect(-v, rippled));
+    // What it reflects: the sky dome, and over it what the frame shows where the ray meets it (the shore, objects).
+    float3 sky = reflected_sky(i.world, r);
+    float4 seen = screen_reflection(i.world, r, i.pos.xy);
+    float3 reflected = lerp(sky, seen.rgb, seen.a) * lerp(1.0, 0.7, swamp) * (1.0 - kShadedReflection * hidden);
 
     float3 toSun = -scene.sun;
     float3 h = normalize(toSun + v);
     float nh = saturate(dot(rippled, h));
     // The sun's glints and the ripples' sun shading, gone as the sun sets or a cloud hides it; a swamp has a glossy
     // lobe in place of the sharp one.
-    float sunUp = saturate(toSun.z * 4.0) * (1.0 - clouded);
+    float sunUp = saturate(toSun.z * 4.0) * (1.0 - hidden);
     float3 glint = scene.sunColour * sunUp *
                    (pow(nh, 400.0) * 0.25 * (1.0 - swamp) + pow(nh, 60.0) * 0.03 * (1.0 - 0.7 * swamp) +
                     pow(nh, 300.0) * 0.15 * swamp);
@@ -321,7 +417,7 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
     float sunShare = saturate(max(scene.sunColour.r, max(scene.sunColour.g, scene.sunColour.b))) * sunUp;
     base *= clamp(1.0 + kRippleShade * sunShare * (dot(rippled, toSun) - dot(n, toSun)), 0.75, 1.3);
 
-    float3 light = saturate(scene.ambient + saturate(toSun.z) * (1.0 - clouded) * scene.sunColour);
+    float3 light = saturate(scene.ambient + saturate(toSun.z) * (1.0 - hidden) * scene.sunColour);
     float deep = 1.0 - exp(-kClearDepth * depth);
     // A swamp: see-through at its very edge, opaque a little way in; the water by its depth.
     float edge = swamp > 0.0 ? shore_distance(i.depth, i.slope) : 0.0;
@@ -331,7 +427,7 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float clouded, float
                               swamp);
 
     // Over the ground: the transmitted layer under the reflection, then the foam (a swamp's scum) over both.
-    float3 colour = transmitted * body * (1.0 - fresnel) + sky * fresnel + glint;
+    float3 colour = transmitted * body * (1.0 - fresnel) + reflected * fresnel + glint;
     alpha = 1.0 - (1.0 - body) * (1.0 - fresnel);
     float shore = 1.0 - smoothstep(0.0, kFoamDepth, depth);
     float foam = shore * smoothstep(0.4, 0.75, layers.z) * 0.35 * (1.0 - swamp);
@@ -352,7 +448,7 @@ float4 Shade(VsOut i) {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
     float4 t = tex.Sample(smp, i.uv);
     if (fs.mode == kLevels) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
-    // How much of the sun the map and the clouds hide (the water takes no map: the clouds only).
+    // How much of the sun the map and the clouds hide.
     float hidden = shadow_amount(i.shadow.xyz, dsx, dsy, i.pos.xy, 2.0);
     hidden = with_clouds(hidden, i.shadow.xy);
     if (shadow.shadowView != 0) return float4((1.0 - hidden).xxx, 1.0);   // the harness's shadowview
@@ -367,7 +463,8 @@ float4 Shade(VsOut i) {
     // through in a dotted line along the triangles (scenario render_shore_seams).
     const bool water = fs.mode == kWater;
     float a = water ? i.col.a : t.a;
-    // The water: the clouds' shade only (the map's falls on the ground under it); the crests or the specular lights.
+    // The water: in the shade of the map and the clouds as the ground (Water takes its glints and part of its
+    // reflection away there too); the crests or the specular lights.
     if (water) {
         float3 lit = ground_light(i.world, n, i.col.rgb, i.col.rgb, 0.0, hidden, shadow.strength, false, 0.0, 1.0, spec);
         float seen;
