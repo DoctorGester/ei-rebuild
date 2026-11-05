@@ -4,7 +4,6 @@
 #include "script.h"
 #include "map_object.h"
 
-#include "game_strings.h"
 #include "world_effect.h"
 
 #include <cstdint>
@@ -101,6 +100,6 @@ void ScriptDefinition::Reset() {
     ifThen.clear();
     vars.Clear();
     killed = false;
-    params = game::kEmptyText;
-    name = game::kEmptyText;
+    params.clear();
+    name.clear();
 }

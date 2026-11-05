@@ -4,7 +4,6 @@
 #include "options.h"
 #include "object_tables.h"
 #include "script.h"
-#include "game_strings.h"
 #include "script_addon.h"
 
 #include "combat.h"
@@ -938,7 +937,7 @@ bool ScriptRun::Execute(Script* script) {
             Party* records = PartyForScript(player, &name);
             if (records) {
                 if (function == ScriptFunction::AddUnitToParty)
-                    g_serverWorld.TakeLookFromUnit(records->AddMember(name, args.Text(), game::kEmptyText));
+                    g_serverWorld.TakeLookFromUnit(records->AddMember(name, args.Text(), ""));
                 else
                     records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name)));
             }
@@ -1043,7 +1042,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::QObjArea:   // QObjArea(area)
         case ScriptFunction::QObjGetItem:   // QObjGetItem(item)
-            script->quest.AddObjective(cmd->id, game::kEmptyText, args.Float());
+            script->quest.AddObjective(cmd->id, "", args.Float());
             break;
         case ScriptFunction::QObjSeeObject:   // QObjSeeObject(name)
         case ScriptFunction::QObjSeeUnit:

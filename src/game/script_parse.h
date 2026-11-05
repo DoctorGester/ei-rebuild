@@ -3,7 +3,6 @@
 // Helpers shared by the script loader files (script_parse.cpp, script_parse_load.cpp). Not part of the
 // game's interface.
 
-#include "game_strings.h"
 #include "script.h"
 
 #include <cstdarg>

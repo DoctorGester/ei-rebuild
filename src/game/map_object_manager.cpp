@@ -4,7 +4,6 @@
 #include "base_manager.h"
 #include "figure_manager.h"   // FigureObjectType
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "resource_manager.h"

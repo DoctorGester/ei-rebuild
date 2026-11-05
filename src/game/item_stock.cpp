@@ -2,7 +2,6 @@
 #include "item_stock.h"
 
 #include "core_streams.h"
-#include "game_strings.h"
 #include "item.h"
 #include "item_db.h"
 #include "item_manager.h"
@@ -188,11 +187,11 @@ void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, in
 
     std::vector<StockMaterial*> candidates;
     for (Record* prototype : taken) {
-        if (prototype->family == game::WandText()) continue;
+        if (prototype->family == "wand") continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(prototype->Kind());
         ctor->prototype = prototype;
-        bool needsMaterial = text::CompareIgnoringCase(prototype->materialClass.c_str(), game::NoneText()) != 0;
+        bool needsMaterial = text::CompareIgnoringCase(prototype->materialClass.c_str(), "none") != 0;
         candidates.clear();
         if (needsMaterial) {
             for (StockMaterial& e : materials) {
@@ -254,7 +253,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::vector<Item*>
     } else {
         taken = materials;
     }
-    itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(game::MaterialText());
+    itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named("material");
     for (const StockMaterial& e : taken) {
         int stackSize = libcrt::RandBelow(e.maxCount - e.minCount + 1) + e.minCount;
         Item* item = ctor->BuildItem(manager, ItemKind::Loot, prototype, e.record, nullptr, stackSize);
@@ -264,27 +263,27 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::vector<Item*>
 }
 
 void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
-    GenerateInstructions(this, game::InstructionWeaponText(), ItemIndices(weapons, g_itemDatabase.weapons), minCount,
+    GenerateInstructions(this, "instruction weapon", ItemIndices(weapons, g_itemDatabase.weapons), minCount,
                          maxCount, out);
 }
 
 void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
-    GenerateInstructions(this, game::InstructionArmorText(), ItemIndices(armors, g_itemDatabase.armors), minCount,
+    GenerateInstructions(this, "instruction armor", ItemIndices(armors, g_itemDatabase.armors), minCount,
                          maxCount, out);
 }
 
 void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
-    GenerateInstructions(this, game::InstructionQuickItemText(),
-                         ItemIndices(quickItems, g_itemDatabase.quickItems, game::ScrollText()), minCount, maxCount,
+    GenerateInstructions(this, "instruction quick item",
+                         ItemIndices(quickItems, g_itemDatabase.quickItems, "scroll"), minCount, maxCount,
                          out);
 }
 
 void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
-    GenerateInstructions(this, game::PrototypeText(), MagicIndices(spells, SpellIndex), minCount, maxCount, out);
+    GenerateInstructions(this, "prototype", MagicIndices(spells, SpellIndex), minCount, maxCount, out);
 }
 
 void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
-    GenerateInstructions(this, game::RuneText(), MagicIndices(modifiers, ModifierIndex), minCount, maxCount, out);
+    GenerateInstructions(this, "rune", MagicIndices(modifiers, ModifierIndex), minCount, maxCount, out);
 }
 
 // Kept bug: the lookup inserts a null entry into the spell map for every recipe name it does not know.
@@ -433,7 +432,7 @@ void ItemStock::GenerateScrolls(std::vector<Item*>* out) {
         list = GenerateSpells(scrollLevels, 50);
         if (list.size() >= spells.size()) break;
     }
-    itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named(game::SpellContainerText());
+    itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named("spell container");
     for (Spell* spell : list) {
         Item* item = ctor->BuildItem(manager, ItemKind::Scroll, prototype, nullptr, spell);
         item->AddRef();

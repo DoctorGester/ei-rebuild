@@ -5,7 +5,6 @@
 #include "item_manager.h"
 #include "player_messages.h"
 #include "console.h"
-#include "game_strings.h"
 
 #include "base_manager.h"
 #include "combat.h"
@@ -135,7 +134,7 @@ void PlayerServer::SendObjectsAdded(const std::vector<MapObject*>* objects) {
             out.WriteString(object->GetName());
             prototype = static_cast<std::uint32_t>(UnitOrNull(object)->secondPrototype);
         } else {
-            out.WriteString(game::kEmptyText);
+            out.WriteString("");
         }
         WriteDword(&out, prototype);
         if (object->flags & kFlagDeltaPending) object->WriteChangedState();

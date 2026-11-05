@@ -3,7 +3,6 @@
 // zone's allod in which the player has quests and shows one of them. See docs/notes/ui.md.
 #include "console.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "text_manager.h"
 #include "lib/vecmath.h"
 #include "object_tables.h"
@@ -387,7 +386,7 @@ void ObjectivesWindow::CreateScreen() {
     }
 
     // The text column.
-    questText = new UiScrollText(ui, game::kEmptyText, Rect{60, 190, 384, 510}, 10.0f);
+    questText = new UiScrollText(ui, "", Rect{60, 190, 384, 510}, 10.0f);
     AddChild(questText);
     bar = new UiScrollbar(ui, Rect{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar);

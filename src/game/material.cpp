@@ -3,7 +3,6 @@
 #include "material.h"
 
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "mod_folders.h"
 
 #include "lib/bytes.h"
@@ -28,10 +27,10 @@ constexpr MaterialKindFile kMaterialKindFiles[8] = /*00743BF8*/ {
 
 // The names and alpha the constructor and Create reset (in their order).
 void ResetFields(Material* m) {
-    m->name = game::NoneText();
+    m->name = "none";
     m->colors.diffuse.w = 1.0f;
-    m->name2 = game::NoneText();
-    m->name3 = game::NoneText();
+    m->name2 = "none";
+    m->name3 = "none";
 }
 
 // The table's colours for `key`; an absent key is entered with the default the game builds (its key copied

@@ -5,7 +5,6 @@
 
 #include "base_manager.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "script_parse.h"
 #include "world.h"
 #include "world_effect.h"
@@ -181,7 +180,7 @@ std::string ScriptQuestBuilder::Finish() {
         text += last;
     }
     text += "WorldScript( Su0() )\n";
-    name = game::kEmptyText;
+    name.clear();
     return text;
 }
 

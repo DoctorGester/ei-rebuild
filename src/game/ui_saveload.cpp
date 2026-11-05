@@ -11,7 +11,6 @@
 #include "game_flow.h"
 #include "ui.h"
 #include "save_picture.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "text_manager.h"
@@ -138,7 +137,7 @@ void SaveLoadWindow::ShowPicture() {
     // The file's picture, no larger than shown here.
     std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), entry->folder);
     std::string bytes;
-    if (!platform::ReadWholeFile(folder + game::savewords::ShotFile(), &bytes)) return;
+    if (!platform::ReadWholeFile(folder + "shot.sav", &bytes)) return;
     const Size size = ShownSize(ui);
     const auto* data = reinterpret_cast<const std::uint8_t*>(bytes.data());
     Texture* made = PictureTexture(save_picture::Fit(save_picture::ReadShot(data, bytes.size()), size.w, size.h));
@@ -178,13 +177,13 @@ void SaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
-            auto* box = new MessageWindow(ui, game::savewords::NoSpace(), game::savewords::NoSpaceText(), MessageQuestion::Third, MessageButtons::Ok);
+            auto* box = new MessageWindow(ui, "no_disc_space", "no_disc_space_msg", MessageQuestion::Third, MessageButtons::Ok);
             ui->PushWindow(box, WindowBackdrop::FirstWindow);
             return;
         }
     }
     std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), entry->folder);
-    std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
+    std::string notice = g_clientWorld.texts->GetString("notify_saving");
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGame(entry->folder);
     g_cursor.SetShape(CursorShape::Wait);
@@ -192,7 +191,7 @@ void SaveLoadWindow::SaveGame() {
     // info.sav: the new save's entry (the first) with the title being given.
     FileStream info;
     {
-        std::string path = folder + game::savewords::InfoFile();
+        std::string path = folder + "info.sav";
         info.Open(path, platform::FileMode::Create);
     }
     if (nameTyped)
@@ -217,7 +216,7 @@ void SaveLoadWindow::SaveGame() {
     if (dialog) {
         platform::File shot;
         {
-            std::string path = folder + game::savewords::ShotFile();
+            std::string path = folder + "shot.sav";
             shot.Open(path, platform::FileMode::Create);
         }
         shot.Write(newPicture.data(), static_cast<unsigned>(newPicture.size()));
@@ -228,7 +227,7 @@ void SaveLoadWindow::SaveGame() {
 }
 
 void SaveLoadWindow::FillEntries() {
-    std::string pattern = str::Format(game::savewords::SavePattern(), DataFolderText());
+    std::string pattern = str::Format("%ssaves\\save*", DataFolderText());
     entries.clear();
     int highest = 0;     // the highest number after "save" in the folder names
     for (const platform::FolderEntry& found : platform::FolderEntries(pattern)) {
@@ -236,10 +235,10 @@ void SaveLoadWindow::FillEntries() {
         // A new entry (the original copies a stack temporary whose numbers are left as the stack held them).
         SaveEntry* entry = &entries.emplace_back();
         entry->folder = found.name;
-        const std::string infoPath = found.path + game::savewords::InfoInFolder();
+        const std::string infoPath = found.path + "\\info.sav";
         if (!platform::PathExists(infoPath)) {
             entry->broken = true;
-            entry->title = game::savewords::BrokenTitle();
+            entry->title = "Error Save";
         } else {
             FileStream info;
             info.Open(infoPath, platform::FileMode::Read);
@@ -273,8 +272,8 @@ void SaveLoadWindow::FillEntries() {
     if (isSave) {
         // The new save first.
         SaveEntry* entry = &*entries.emplace(entries.begin());
-        entry->folder = str::Format(game::savewords::NewFolder(), highest + 1);
-        entry->gameTime = LocalPlayerVariable(game::savewords::GameTime());
+        entry->folder = str::Format("save%d", highest + 1);
+        entry->gameTime = LocalPlayerVariable("gtime");
         entry->zone = LocalPlayerZone();
         if (MapRecord* record = g_mapDatabase.FindMap(entry->zone))
             entry->map = record->allod;
@@ -313,7 +312,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     surface->CaptureScreen();
     g_cursor.SetShape(CursorShape::Wait);
     g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
-    std::string notice = g_clientWorld.texts->GetString(game::savewords::NotifySaving());
+    std::string notice = g_clientWorld.texts->GetString("notify_saving");
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGame(slot);
 
@@ -321,13 +320,13 @@ void QuickSave(const char* slot, bool stepFrame) {
     std::string title;
     std::string map;
     const std::int32_t savedAt = lib::CurrentTime();
-    const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
+    const float gameTime = LocalPlayerVariable("gtime");
     const std::string zone = LocalPlayerZone();
     if (const MapRecord* record = g_mapDatabase.FindMap(zone))
         map = record->allod;
     std::string folder = SlotFolder(slot);
     FileStream info;
-    info.Open(folder + game::savewords::InfoFile(), platform::FileMode::Create);
+    info.Open(folder + "info.sav", platform::FileMode::Create);
     info.WriteHeader(kInfoMagic, kInfoVersion);
     info.WriteValue(gameTime);
     info.WriteString(map);
@@ -339,7 +338,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     // shot.sav: the copied screen.
     const std::vector<std::uint8_t> bytes = ShotOf(*surface, &g_interface);
     platform::File shot;
-    shot.Open(folder + game::savewords::ShotFile(), platform::FileMode::Create);
+    shot.Open(folder + "shot.sav", platform::FileMode::Create);
     shot.Write(bytes.data(), static_cast<unsigned>(bytes.size()));
     shot.Close();
     if (surface != nullptr) {
@@ -378,7 +377,7 @@ void SaveLoadWindow::Confirm() {
         LoadSelected();
         return;
     }
-    ui->PlayInterfaceSound(game::OkSoundText());
+    ui->PlayInterfaceSound(kMessageBoxOkSound);
     if (selected == 0) {
         SaveGame();
         return;
@@ -399,7 +398,7 @@ void SaveLoadWindow::LoadSelected() {
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     g_clientWorld.sounds->StopAll(true);
-    ui->PlayInterfaceSound(game::OkSoundText());
+    ui->PlayInterfaceSound(kMessageBoxOkSound);
     g_gameFlow.RequestLoad(entries.data()[selected].folder);
 }
 

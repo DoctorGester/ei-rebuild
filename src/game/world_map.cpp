@@ -7,7 +7,6 @@
 #include "core_streams.h"
 #include "figure_manager.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "hash_tables_400.h"
 #include "map_object.h"
 #include "mod_folders.h"
@@ -57,7 +56,7 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
         bool failed = currentAiMap->Load(MapPath(map).c_str()) == 0;
         if (failed) return 0;
         mapName = map;
-        mobName = game::kEmptyText;
+        mobName.clear();
     }
     graph->Seek(0);
     if (graph->Size() != 0 && !aiMap.regionMap.LoadBlocks(graph)) return 0;
@@ -137,8 +136,8 @@ void WorldServer::ResetZone() {
     }
     projectiles.clear();
     EndTimedObjects(this);
-    mobName = game::kEmptyText;
-    zoneName = game::kEmptyText;
+    mobName.clear();
+    zoneName.clear();
     if (figureManager) figureManager->FreeSpares();
     if (objectManager) objectManager->FreeSpares();
     if (specificManager) specificManager->FreeSpares();
@@ -212,7 +211,7 @@ void WorldServer::SendFreshObjects() {
 
 void WorldServer::ResetState() {
     ResetZone();
-    mapName = game::kEmptyText;
+    mapName.clear();
     diplomacy.Reset();
     MainScript()->Reset();
     SecondScript()->Reset();

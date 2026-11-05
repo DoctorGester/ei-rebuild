@@ -4,7 +4,6 @@
 #include "core_maths.h"
 #include "effects.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "hash_tables_400.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -203,7 +202,7 @@ void WorldClient::CreateExitMarkers() {
     exitMarkers.resize(exits.size());
     for (int i = 0; i < std::ssize(exits); ++i) {
         if (text::CompareIgnoringCase(exits[i].target,
-                            game::NoneText()) == 0) {
+                            "none") == 0) {
             continue;
         }
         auto* source = particleManager->CreateSource(kExitParticles);

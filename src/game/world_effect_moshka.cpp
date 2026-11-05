@@ -5,7 +5,6 @@
 #include "camera.h"
 #include "effects.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
@@ -200,8 +199,8 @@ void EffectMoshka::Follow(int objectId) {
     followedId = objectId;
     MapObject* followed = g_clientWorld.ObjectWithId(objectId);
     if (followed == nullptr) return;
-    std::string model = game::MoshkaModelText();
-    std::string texture = game::MoshkaTextureText();
+    std::string model = "unmobi";
+    std::string texture = "bird00";
     int birdId = g_clientWorld.nextClientObjectId--;
     auto* object = g_clientWorld.objectManager->CreateObjectAs<MapObject>(MapObjectType::StuffObject, birdId);
     bird.Assign(object);
@@ -216,7 +215,7 @@ void EffectMoshka::Follow(int objectId) {
     attached->RegisterPartMaterials();
     currentBird->PlayAnimation(nullptr);
     currentBird->RestartPose();
-    attached->SetSkins(texture, game::kEmptyText);
+    attached->SetSkins(texture, "");
     g_clientWorld.AddObject(bird);
     attached->SetLit(true);
     if (FigureAnimation* first = currentBird->AnimationAt(0)) {

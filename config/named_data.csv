@@ -108,7 +108,6 @@ address,size,name,file
 007969D0,384,kAmbientSounds,src/game/terrain_ambience.cpp
 0079AE60,348,kPow10Positive,src/lib/crt_format.cpp
 0079AFC0,348,kPow10Negative,src/lib/crt_format.cpp
-0079B298,1,kEmptyText,src/game/game_strings.h
 0079B5B8,16,kIdentityRotation,src/game/camera.h
 0079B5C8,12,kZeroVector,src/game/camera.h
 0079B5D8,4,g_gameClient,src/game/net_classes.h

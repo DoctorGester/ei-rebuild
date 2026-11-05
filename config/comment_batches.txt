@@ -596,7 +596,6 @@ src/game/game_data.h
 src/game/game_flow_data.h
 src/game/game_folders.cpp
 src/game/game_singletons.h
-src/game/game_strings.h
 src/game/item.cpp
 src/game/item.h
 src/game/item_db.cpp
@@ -1075,7 +1074,6 @@ src/game/game_data.h
 src/game/game_flow_data.h
 src/game/game_folders.cpp
 src/game/game_singletons.h
-src/game/game_strings.h
 src/game/global_map_clouds.cpp
 src/game/global_map_clouds.h
 src/game/ground_decal.cpp

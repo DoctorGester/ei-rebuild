@@ -5,7 +5,6 @@
 #include "camera.h"
 #include "core_streams.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
@@ -248,8 +247,8 @@ void EffectArrowFigure::Start(int update) {
         MoveParts();
         return;
     }
-    std::string model = game::ArrowFigureModelText();
-    std::string texture = game::ArrowFigureTextureText();
+    std::string model = "efar1";
+    std::string texture = "arrow01";
     int objectId = g_clientWorld.nextClientObjectId--;
     auto* object = g_clientWorld.objectManager->CreateObjectAs<MapObject>(MapObjectType::StuffObject, objectId);
     figure.Assign(object);
@@ -263,7 +262,7 @@ void EffectArrowFigure::Start(int update) {
     attached->RegisterPartMaterials();
     currentFigure->PlayAnimation(nullptr);
     currentFigure->RestartPose();
-    attached->SetSkins(texture, game::kEmptyText);
+    attached->SetSkins(texture, "");
     g_clientWorld.AddObject(figure);
 }
 

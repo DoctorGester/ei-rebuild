@@ -2,7 +2,6 @@
 // and parses the sections (WorldScript, Script, DeclareScript, GlobalVars); the Load* functions
 // below build the ScriptCall trees. See script.h and docs/notes/script.md ("Loader and parser").
 #include "script.h"
-#include "game_strings.h"
 #include "script_parse.h"
 #include "script_addon.h"
 
@@ -330,8 +329,8 @@ bool Script::Load(std::string* text, bool runWorldScript) {
             if (*p) *p++ = 0;
             line = start;
             if (std::strncmp(start, keyword, std::strlen(keyword)) == 0) {
-                define.name = game::kEmptyText;
-                define.value = game::kEmptyText;
+                define.name.clear();
+                define.value.clear();
                 char* q = start + std::strlen(keyword);
                 while (*q && text::IsSpace(*q)) ++q;
                 char* name = q;
@@ -341,7 +340,7 @@ bool Script::Load(std::string* text, bool runWorldScript) {
                 while (*q && text::IsSpace(*q)) ++q;
                 define.value = q;
                 AddDefine(&defines, &define);
-                line = game::kEmptyText;
+                line.clear();
             } else {
                 ApplyDefines(&line, &defines);
             }

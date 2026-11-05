@@ -4,7 +4,6 @@
 
 #include "app.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "ui.h"
 #include "world.h"
 #include "lib/str.h"
@@ -191,7 +190,7 @@ void Execute(const std::string& text) {
     if (!g_cheatEnabled) {
         // The cheat word is kept XORed with 0x66; the whole command must match it.
         for (char& c : command) c ^= 0x66;
-        if (command == game::consoletexts::CheatWord()) {
+        if (command == "\022\016\017\010\001\007\013\007\004\t\004") {
             g_cheatEnabled = true;
             PrintLine("Activated!");
             return;

@@ -1,7 +1,6 @@
 // The briefing / base screen's dialogue (BriefingScreen, ui_briefing.h): the phrases' start, the
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
 #include "player_messages.h"
-#include "game_strings.h"
 #include "combat.h"
 #include "ui.h"
 #include "ui_briefing.h"
@@ -86,7 +85,7 @@ void BriefingScreen::StartPhrases() {
     lookAt = savedCamera + camera->localRotation.AxisZ();
 
     dialogueText.clear();
-    text->SetText(game::kEmptyText);
+    text->SetText("");
     state = kStatePhrases;
     firstPhrase = true;
     NextPhrase(false);

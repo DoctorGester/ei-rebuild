@@ -8,7 +8,6 @@
 #include "combat.h"
 #include "console.h"
 #include "core_maths.h"
-#include "game_strings.h"
 #include "hash_tables_400.h"
 #include "map_object.h"
 #include "net_classes.h"
@@ -304,7 +303,7 @@ void WorldServer::Create() {
     cave = 0;
     loadedFresh = 1;
     keepsState = 1;
-    zoneName = game::kEmptyText;
+    zoneName.clear();
     gameState = GameState::None;
     mobFiles.clear();
 }

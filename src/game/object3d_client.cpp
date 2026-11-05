@@ -7,7 +7,6 @@
 #include "core_refcount.h"
 #include "figure_mesh.h"   // VertexPacket
 #include "link_figure.h"   // FigureMeshDrawer
-#include "game_strings.h"
 #include "ground_print.h"   // NamedTexture
 #include "map_object_figures.h"
 #include "material.h"

@@ -1,6 +1,5 @@
 // The global map's input side (right-button drag, mouse, keys), its close and message-result slots
 // (GlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
-#include "game_strings.h"
 #include "ui.h"
 #include "ui_camp.h"
 

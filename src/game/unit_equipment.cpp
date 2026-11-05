@@ -3,7 +3,6 @@
 #include "item.h"
 #include "item_manager.h"
 #include "unit_create.h"
-#include "game_strings.h"
 
 #include "engine_object.h"
 #include "unit.h"
@@ -31,14 +30,14 @@ std::uint32_t Count(const std::vector<std::string>& names) { return static_cast<
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const std::string& name) {
     return str::Compare(name,
-                           game::NoneText()) != 0 &&
+                           "none") != 0 &&
            static_cast<int>(name.size()) != 0;
 }
 
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
 Item* MakeWeapon(ItemManager* items, const std::string& name, const std::string& prototype) {
     Item* weapon = items->CreateItem(name);
-    if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name, prototype);
+    if (!weapon) game::FatalError("Can't create weapon \"%s\" for unit \"%s\".\n", name, prototype);
     return weapon;
 }
 } // namespace
@@ -48,7 +47,7 @@ int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name)
     ItemManager* items = context->ItemFactory();
     auto* prototype = g_unitDatabase.prototypes.FindByName(name);
     if (!prototype) {
-        game::FatalError(game::equipmenttexts::NoPrototype(), name);
+        game::FatalError("Can't find prototype \"%s\".\n", name);
         return 0;
     }
     if (unit->MapType() == MapObjectType::Hero) {
@@ -56,7 +55,7 @@ int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name)
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             Item* armour = items->CreateItem(prototype->armourNames.begin()[i]);
             if (armour) unit->EquipArmour(armour);
-            else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i], name);
+            else game::FatalError("Can't create armor \"%s\" for unit \"%s\".\n", prototype->armourNames.begin()[i], name);
         }
         if (Named(prototype->weaponName)) {
             int slot = unit->AddWeapon(MakeWeapon(items, prototype->weaponName, name));
@@ -68,7 +67,7 @@ int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name)
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         Item* spell = items->CreateSpellItem(prototype->spellNames.begin()[i], spellOwner);
         if (spell) unit->AddSpell(spell);
-        else game::FatalError(game::equipmenttexts::NoSpell(), prototype->spellNames.begin()[i], name);
+        else game::FatalError("Can't create spell \"%s\" for unit \"%s\".\n", prototype->spellNames.begin()[i], name);
     }
     return 1;
 }

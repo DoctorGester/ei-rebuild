@@ -6,7 +6,6 @@
 #include "core_refcount.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "map_spec.h"
 #include "model.h"   // TweenArray (countdowns)
@@ -52,9 +51,9 @@ constexpr const char* kProgres5 = "progres5.bik";
 void WorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
     exits = {};
     for (const ZoneExit& from : *source) {
-        if (str::Compare(from.target, game::kEmptyText) == 0) continue;   // leads nowhere
+        if (from.target.empty()) continue;   // leads nowhere
         if (from.entrance < 0 && str::Compare(from.target, kNoExit) != 0)
-            game::FatalError("%s", game::zonetexts::WrongEntrance());
+            game::FatalError("%s", "Wrong entrance number in zone exits data");
         exits.push_back(from);
     }
 }
@@ -63,7 +62,7 @@ void WorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
 
 void WorldServer::AddUnitToServer(unsigned newId, const char* prototype, const char* name, const Vector3& position) {
     Party party;   // one member
-    party.AddMember(game::kEmptyText, prototype, name);
+    party.AddMember("", prototype, name);
     std::vector<PartyUnitRecord*> records;
     PartyUnitRecord* record = party.members.data();
     records.resize(1);
@@ -91,11 +90,11 @@ int WorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     std::string path = MapPath(file);
     int result;
     if (!root->Open(path, platform::FileMode::Read)) {
-        result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
+        result = game::FatalError("CWorldServer::LoadMapObjects()\nUnable to read file \"%s\"\n", file);
     } else {
         bool read = root->Load(keepIds);
         fileObject->Close();
-        result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
+        result = read ? 1 : game::FatalError("CWorldServer::LoadMapObjects\nUnable to read file \"%s\"\n", file);
     }
     return result;   // the file closed with the root
 }
@@ -107,7 +106,7 @@ int WorldServer::LoadMobFile(std::string_view file) {
     if (LoadMapObjects(file, 0) == 0) {
         g_loadingMovieOff = 0;
         zoneLoaded = 0;
-        return game::FatalError(game::zonetexts::CantLoadMob(), std::string(file));
+        return game::FatalError("CWorldServer::LoadMap.\n Can't load .mob file \"%s\".\n", std::string(file));
     }
     g_loadingMovieOff = 0;
     mobFiles.push_back(std::string(file));

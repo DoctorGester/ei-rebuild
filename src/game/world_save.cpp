@@ -8,7 +8,6 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "game_flow.h"
-#include "game_strings.h"
 #include "item.h"
 #include "item_manager.h"
 #include "map_object.h"
@@ -149,7 +148,7 @@ bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
 // The sum in the game's order ((elapsed * secondsPerTick + offset) + gtime); plain C++ maths, compared with
 // CheckNear.
 void WorldServer::UpdatePlayerTimes(float offset) {
-    const char* name = game::GTimeText();
+    const char* name = "gtime";
     int now = tick;
     PlayerIterator it;
     for (Player* player = it.First(PlayerList()); player; player = it.Next()) {
@@ -260,7 +259,7 @@ int WorldServer::LoadSave(ByteStream* stream, const char* map) {
     MemoryStream graph;
     graph.ApplyDiff(&savedGraph, stream);
     ShowLoadProgress(kProgressZone);
-    if (!LoadMap(newMapName, newMobName, &graph, 1)) return game::FatalError("%s", game::CantLoadSaveMapText());
+    if (!LoadMap(newMapName, newMobName, &graph, 1)) return game::FatalError("%s", "CWorldServer::LoadSave()\n Can't load map.\n");
 
     // The map objects' identities: id, type and prototype id.
     for (;;) {

@@ -10,7 +10,6 @@
 #include "clip.h"
 #include "core_maths.h"
 #include "engine_object.h"
-#include "game_strings.h"
 #include "link_figure.h"
 #include "map_object_figures.h"
 #include "model.h"
@@ -113,7 +112,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
     const Rect& screen = renderer->device->screen;
     if (!texture) return;
     if (!renderer->SetTexture(0, texture)) {
-        game::FatalError("%s", game::FlyingHitPointsTextureText());
+        game::FatalError("%s", "CFlyingHitPoints::Draw.\n SetTexture failed.\n");
         return;
     }
 
@@ -158,7 +157,7 @@ void FlyingHitPoints::Draw(SceneRenderer* renderer) {
         // The number drifts 120 right and rises 100 over its life (truncated, as _ftol).
         middleX += static_cast<int>(age * 120.0f * scale);
         middleY += static_cast<int>(age * -100.0f * scale);
-        text = str::Format(game::DecimalFormat(), point.amount);
+        text = str::Format("%d", point.amount);
         int length = lib::Count(text);
         // The box: the digits, at least a label row wide when there are labels; a digit high,
         // a label row more for each label.

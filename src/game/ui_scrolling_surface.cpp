@@ -6,7 +6,6 @@
 #include "ui.h"
 #include "ui_screens.h"
 #include "screen_layout.h"
-#include "game_strings.h"
 
 #include "resource.h"
 #include "world.h"

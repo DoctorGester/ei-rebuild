@@ -1,7 +1,6 @@
 // The exchange between players (screen 9, ExchangeScreen; multiplayer only). See ui_screens.h and
 // docs/notes/ui.md, section 4.
 #include "text_manager.h"
-#include "game_strings.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "party.h"
@@ -89,13 +88,13 @@ void ExchangeScreen::LeftDown(Point point) {
             net::g_gameClient->RecordTrade(LocalPlayerData());
             return;
         }
-        ui->PlayInterfaceSound(game::CancelSoundText());
+        ui->PlayInterfaceSound(kMessageBoxCancelSound);
         return;
     }
     case kTakeBackRegion: {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted) {
-            ui->PlayInterfaceSound(game::CancelSoundText());
+            ui->PlayInterfaceSound(kMessageBoxCancelSound);
             net::g_gameClient->CommitParty();
         }
         return;

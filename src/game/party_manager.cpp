@@ -7,7 +7,6 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "object_tables.h"
 #include "party.h"
 #include "party_manager.h"
@@ -241,13 +240,13 @@ Party* FindParty(const PartyMap& parties, int key) {
 
 void PartyRecordsReset(NamedPartyRecords* list) {
     list->records.clear();
-    list->requestedName = game::kEmptyText;
-    list->currentName = game::kEmptyText;
+    list->requestedName.clear();
+    list->currentName.clear();
 
     list->records.emplace_back(new PartyRecord());
 
     Party* party = list->records.front()->GetParty();
-    party->AddMember(kHero, kHumanHero, game::kEmptyText);
+    party->AddMember(kHero, kHumanHero, "");
     party->zone = kFirstZone;
     party->entrance = 0;
     party->variables.Set(kGameTime, kSix);
@@ -257,7 +256,7 @@ Party* NamedPartyRecords::Find(std::string_view name) const {
     Party* unnamed = nullptr;
     for (PartyRecord* record : records) {
         if (str::Compare(record->name.c_str(), name) == 0) return record->GetParty();
-        if (str::Compare(record->name.c_str(), game::kEmptyText) == 0) unnamed = record->GetParty();
+        if (record->name.empty()) unnamed = record->GetParty();
     }
     return unnamed;
 }

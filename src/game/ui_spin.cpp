@@ -3,7 +3,6 @@
 
 #include "ui.h"
 #include "ui_screens.h"
-#include "game_strings.h"
 
 
 #include "lib/crt.h"
@@ -27,7 +26,7 @@ UiSpin::UiSpin(Interface3D* ui, Rect newRect, const char* text) : UiWindow(ui) {
         area.Offset(-layout.left, -layout.top);
         out.DrawTextIn(texts[value], area, TextStyle{kFont, kUiTextColour});
     });
-    texts.push_back(text ? text : game::kEmptyText);
+    texts.push_back(text ? text : "");
     changed = false;
     layout = newRect;
     SetValue(0);
@@ -59,6 +58,6 @@ void UiSpin::Step(int by) {
 // --- A click steps the value ------------------------------------------------------------------------
 
 void UiSpin::LeftDown(Point) {
-    ui->PlayInterfaceSound(game::OkSoundText());
+    ui->PlayInterfaceSound(kMessageBoxOkSound);
     SetValue(value + 1);
 }

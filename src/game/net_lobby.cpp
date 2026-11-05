@@ -4,7 +4,6 @@
 // refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md.
 #include "console.h"
 #include "chunk_archive.h"
-#include "game_strings.h"
 #include "core_refcount.h"
 #include "net_classes.h"
 #include "net_messages.h"

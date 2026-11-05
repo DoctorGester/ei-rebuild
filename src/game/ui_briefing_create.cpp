@@ -8,7 +8,6 @@
 #include "core_transform.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "object_tables.h"
 #include "options.h"
 #include "party.h"
@@ -151,7 +150,7 @@ void BriefingScreen::CreateScreen() {
 
     topicBar = new UiScrollbar(ui, Rect{584, 440, 594, 560}, 3.0f, 0, 1.0f);
     AddChild(topicBar);
-    text = new UiScrollText(ui, game::kEmptyText, Rect{165, 426, 635, 570}, 10.0f);
+    text = new UiScrollText(ui, "", Rect{165, 426, 635, 570}, 10.0f);
     AddChild(text);
 
     SetMeshesVisible(this, 0);

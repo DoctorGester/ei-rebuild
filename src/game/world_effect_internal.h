@@ -5,7 +5,6 @@
 
 #include "world_effect.h"
 #include "map_object.h"
-#include "game_strings.h"
 #include "world.h"
 #include "net_delta.h"
 #include "game_singletons.h"

@@ -6,7 +6,6 @@
 #include "core_streams.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "item.h"
 #include "item_manager.h"
 #include "map_object.h"
@@ -426,7 +425,7 @@ void WorldServer::ApplyMercBriefing(Player* player, std::string_view name) {
             state->SetVariable(v.hired, 2.0f);
             const std::string_view prototype =
                 unit ? std::string_view(unit->GetPrototype()->name) : std::string_view("Human Hero");
-            party->AddMember(v.merc, prototype, game::kEmptyText);
+            party->AddMember(v.merc, prototype, "");
         }
     }
     UpdateMercBriefings();

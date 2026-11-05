@@ -6,7 +6,6 @@
 #include "camera.h"
 #include "combat.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "lib/vecmath.h"
 #include "text_manager.h"

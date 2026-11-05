@@ -24,9 +24,9 @@ read from both exes by `tools/exe_strings.py`, not typed by hand. Its options:
 - `--before RE` gives a parameter position;
 - `--skip` leaves addresses alone.
 
-The empty string is `game::kEmptyText` (game_strings.h). Its readers copy or compare the text; none compares the
-pointer. A pointer-sized cell read as `const char* const*` holds the address of the text, not the text: read the
-cell's pointer first.
+The original's empty string (0079B298) has no name here: its readers copy or compare the text (none compares the
+pointer), so a reader tests `empty()`, a writer calls `clear()` and a fallback passes `""`. A pointer-sized cell
+read as `const char* const*` holds the address of the text, not the text: read the cell's pointer first.
 
 ## 2. The image
 

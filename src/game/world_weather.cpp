@@ -3,7 +3,6 @@
 #include "ai_map.h"
 #include "base_manager.h"
 #include "core_maths.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "random.h"
 #include "script.h"
@@ -107,9 +106,6 @@ void ShowRainBolt(WorldServer* world) {
     ShowBolt(from, to);
 }
 
-// "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
-// "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
-//  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
 Script& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command queue (adds a line)
 
 
@@ -142,15 +138,18 @@ void ShowBolt(Vector3 from, Vector3 to) {
     if ((g_random.Next() & 3) == 0) {
         // Thunder only: one of four sounds at `from`.
         unsigned sound = (g_random.Next() & 3) + 1;
-        text = str::Format(game::weathertexts::ThunderScript(), fx, fy, fz, sound);
+        text = str::Format("WorldScript(CreateFX( %f,%f,%f,60,150,\"nature\\thunder\\%i.wav\" ) )", fx, fy, fz, sound);
         std::string line = prefix + text;
         ScriptQueue().Load(&line, 1);
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
         unsigned sound = g_random.Next() % 3 + 1;
-        text = str::Format(game::weathertexts::LightningScript(), static_cast<double>(middle.x),
-                    static_cast<double>(middle.y), static_cast<double>(middle.z), fx, fy, fz, sound, fx, fy, fz, tx, ty,
-                    tz, fx, fy, fz, tx, ty, tz);
+        text = str::Format("WorldScript(CreatePointLight(1,%f,%f,%f,80,255,255,255 ) "
+                           "CreateFX( %f,%f,%f,60,150,\"nature\\lightning\\%i.wav\" ) "
+                           "CreateLightning(1,%f,%f,%f,%f,%f,%f,-7)Sleep(1) DeleteLightning(1) Sleep(1)"
+                           "CreateLightning(2,%f,%f,%f,%f,%f,%f,-7)Sleep(1) DeleteLightning(2) DeletePointLight(1) )",
+                           static_cast<double>(middle.x), static_cast<double>(middle.y), static_cast<double>(middle.z),
+                           fx, fy, fz, sound, fx, fy, fz, tx, ty, tz, fx, fy, fz, tx, ty, tz);
         ScriptQueue().Load(&text, 1);
     }
 }

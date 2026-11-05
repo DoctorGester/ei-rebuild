@@ -68,7 +68,7 @@ void ObjectivesWindow::LeftDown(Point point) {
         return;
     case kRegionCancel:
         if (twoButtons) {
-            ui->PlayInterfaceSound(game::CancelSoundText());
+            ui->PlayInterfaceSound(kMessageBoxCancelSound);
             ui->SetPendingValue(0);
         }
         return;
@@ -103,7 +103,7 @@ void ObjectivesWindow::LeftDown(Point point) {
         SelectExit(exit);
         return;
     }
-    ui->PlayInterfaceSound(game::CancelSoundText());
+    ui->PlayInterfaceSound(kMessageBoxCancelSound);
 }
 
 void ObjectivesWindow::KeyDown(platform::Key key, int scan, bool repeat) {
@@ -123,7 +123,7 @@ void ObjectivesWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         handled = true;
         break;
     case platform::Key::Escape:
-        ui->PlayInterfaceSound(!twoButtons ? kOkSound : game::CancelSoundText());
+        ui->PlayInterfaceSound(!twoButtons ? kOkSound : kMessageBoxCancelSound);
         ui->SetPendingValue(0);
         handled = true;
         break;
@@ -140,7 +140,7 @@ void ObjectivesWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         handled = true;
     }
     if (!handled && g_keyActions[scan] == kActionObjectives && !twoButtons) {
-        ui->PlayInterfaceSound(game::OkSoundText());
+        ui->PlayInterfaceSound(kMessageBoxOkSound);
         ui->SetPendingValue(0);
     }
 }

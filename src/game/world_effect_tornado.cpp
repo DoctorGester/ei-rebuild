@@ -2,7 +2,6 @@
 // See world_effect.h and docs/notes/effects.md ("Tornado").
 #include "effects.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "map_object.h"
 #include "random.h"
 #include "sector_map.h"
@@ -131,7 +130,7 @@ void EffectTornado::Start(int update) {
     }
     if (source != nullptr) return;
     if (sound == -1) {
-        sound = g_clientWorld.sounds->Play3D(game::TornadoSoundText(), 0, localPosition, kSoundNear, kSoundFar, true);
+        sound = g_clientWorld.sounds->Play3D("nature\\tornado\\circle.wav", 0, localPosition, kSoundNear, kSoundFar, true);
     }
     ParticleSource* particles = g_clientWorld.particleManager->CreateSource(kTornadoParticles);
     source.Assign(particles);

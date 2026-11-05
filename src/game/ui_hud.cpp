@@ -4,7 +4,6 @@
 #include "camera.h"
 #include "console.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "item.h"
 #include "map_object.h"
 #include "net_classes.h"
@@ -599,7 +598,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
         if (count <= 0) return;
         for (int i = 0; i < std::ssize(party); ++i) {
             if (unit != party[i]) continue;
-            ui->PlayInterfaceSound(game::SoundOnOffText());
+            ui->PlayInterfaceSound("buttons\\battle\\on_off.wav");
             if (ui->doubleClick) {
                 if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
             } else {
@@ -634,7 +633,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
             int members = lib::Count(party);
             for (int i = 0; i < members; ++i) {
                 if (unit != party[i]) continue;
-                ui->PlayInterfaceSound(game::SoundOnOffText());
+                ui->PlayInterfaceSound("buttons\\battle\\on_off.wav");
                 if (ui->doubleClick) {
                     if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
                 } else {
@@ -661,8 +660,8 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
             OrderAt(at, false, ctrl);
             // "Terrain Coords x y z" on the console: each float through the inline operator<<
             // (x_floatused set, printed as a double), then '\n' and flush.
-            console::EndLine(console::g_graphicsLogOut << game::TerrainCoordsText() << at.x << game::SpaceText() << at.y
-                                                      << game::SpaceText() << at.z);
+            console::EndLine(console::g_graphicsLogOut << "Terrain Coords " << at.x << " " << at.y
+                                                      << " " << at.z);
         }
         return;
     case kPendingSpellOnUnit:
@@ -771,8 +770,8 @@ void BattleScreen::OrderAt(Vector3 point, bool goTo, bool run) {
     if (std::optional<int> exit = g_clientWorld.FindExitAt(point); exit && selected > 0) {
         std::string name = g_clientWorld.ExitTarget(*exit);
         if (text::CompareIgnoringCase(name,
-                            game::NoneText()) != 0) {
-            name = std::string(game::ZoneVariablePrefixText()) + name;   // "z."
+                            "none") != 0) {
+            name = std::string("z.") + name;
             float value = LocalPlayerVariable(name);
             const float one = 1.0f;
             // Equal skips.

@@ -1,7 +1,6 @@
 // FileRegistry: lookups in the game's binary registry files (see registry.h for the format).
 #include "registry.h"
 #include "asset_text.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "lib/bytes.h"

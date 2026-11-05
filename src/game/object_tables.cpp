@@ -1,5 +1,4 @@
 #include "object_tables.h"
-#include "game_strings.h"
 
 #include "core_streams.h"
 
@@ -52,7 +51,7 @@ void NamedFloatTable::Load(ByteStream* stream) {
     clear();
     for (;;) {
         std::string key = stream->ReadString();
-        if (str::Compare(key, game::kEmptyText) == 0) break;
+        if (key.empty()) break;
         float value;
         stream->ReadValue(value);
         (*this)[key] = value;

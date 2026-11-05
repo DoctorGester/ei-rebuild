@@ -6,7 +6,6 @@
 #include "core_streams.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "item.h"
 #include "item_manager.h"
 #include "net_link.h"
@@ -109,7 +108,7 @@ void Party::Clear(bool clearVariables, bool keepSpells) {
     }
     members.clear();
     if (clearVariables) variables.clear();
-    zone = game::kEmptyText;
+    zone.clear();
     entrance = 0;
     money = 0;
 }
@@ -177,8 +176,7 @@ bool MpHeroRecord::ReadFile(const std::string& folder) {
 }
 
 void SavedParties::SaveAll() {
-    if (str::Compare(folder, game::kEmptyText) == 0)
-        return;
+    if (folder.empty()) return;
     ClearSaveFolder(folder);
     // The count is read again after each write.
     for (unsigned i = 0; i < static_cast<unsigned>(entries.size()); ++i) entries[i].WriteFile(folder);
@@ -315,7 +313,7 @@ void AppendCopy(std::vector<Item*>& list, Item* item) {
 bool Named(const std::string& name) {
     return name.size() != 0 &&
            text::CompareIgnoringCase(name,
-                           game::NoneText()) != 0;
+                           "none") != 0;
 }
 
 // The party's copies of `source`'s items, each with the source's count and a reference.

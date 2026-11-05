@@ -6,7 +6,6 @@
 #include "core_streams.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_connection.h"
@@ -120,7 +119,7 @@ void SessionBase::Tick(double dt) {
             if (g_netLog) {
                 std::string address = from.ToString();
                 const char* text = address.data();
-                LogAddress(game::nettexts::ZeroLength(), text);
+                LogAddress("ZERO length packet received from ", text);
             }
             continue;
         }
@@ -147,7 +146,7 @@ void SessionBase::Tick(double dt) {
             if (g_netLog) {
                 std::string address = connection->address.ToString();
                 const char* text = address.data();
-                LogAddress(game::nettexts::Timeout(), text);
+                LogAddress("TIMEOUT client, drop ", text);
             }
             OnClientLost(connection);
             RemoveClient(node);
@@ -168,7 +167,7 @@ std::list<SharedRef<Connection>>::iterator SessionBase::FindClient(const NetAddr
 // Logs it, closes the connection and erases the node.
 void SessionBase::RemoveClient(std::list<SharedRef<Connection>>::iterator node) {
     if (node == clients.end()) return;
-    if (g_netLog) LogConnection(game::nettexts::RemoveClient(), node->Get(), nullptr);
+    if (g_netLog) LogConnection("REMOVE client ", node->Get(), nullptr);
     node->Get()->Close();
     clients.erase(node);
 }
@@ -178,11 +177,11 @@ void SessionBase::RemoveClient(std::list<SharedRef<Connection>>::iterator node) 
 bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     auto node = FindClient(from);
     if (node == clients.end()) {
-        LogText(game::nettexts::UnknownHost());
+        LogText("ERROR: Update from unknown host");
         return false;
     }
     if (!node->Get()->ReadUpdate(cursor)) {
-        if (g_netLog) LogConnection(game::nettexts::BadClient(), node->Get(), game::nettexts::BadUpdate());
+        if (g_netLog) LogConnection("ERROR: client ", node->Get(), " sent incorrect update");
         OnClientLost(node->Get());
         RemoveClient(node);
     }
@@ -202,12 +201,12 @@ void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // The base session's handlers of the kinds it does not serve: each logs an error.
-void SessionBase::OnGetInfo(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleGetInfo()); }
-void SessionBase::OnLogin(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleLogin()); }
-void SessionBase::OnInfo(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleInfo()); }
-void SessionBase::OnAccepted(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleAccepted()); }
-void SessionBase::OnRejected(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleRejected()); }
-void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleMaster()); }
+void SessionBase::OnGetInfo(const NetAddress*, BufferCursor*) { LogText("ERROR: Can`t handle get info"); }
+void SessionBase::OnLogin(const NetAddress*, BufferCursor*) { LogText("ERROR: Can`t handle login"); }
+void SessionBase::OnInfo(const NetAddress*, BufferCursor*) { LogText("ERROR: Can`t handle info"); }
+void SessionBase::OnAccepted(const NetAddress*, BufferCursor*) { LogText("ERROR: Can`t handle accepted"); }
+void SessionBase::OnRejected(const NetAddress*, BufferCursor*) { LogText("ERROR: Can`t handle rejected"); }
+void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText("ERROR: Can`t handle master packet"); }
 
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
 
@@ -241,7 +240,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     if (g_netLog) {
         std::string peer = address->ToString();
         const char* text = peer.data();
-        LogAddress(game::nettexts::AddClient(), text);
+        LogAddress("ADD client ", text);
     }
     RemoveClient(FindClient(address));
     clients.emplace_back(new Connection(*this, id));

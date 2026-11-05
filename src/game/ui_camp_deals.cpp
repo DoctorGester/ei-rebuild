@@ -2,7 +2,6 @@
 #include "item_manager.h"
 #include "item_stock.h"
 #include "ui_camp.h"
-#include "game_strings.h"
 
 #include "class_templates.h"
 #include "item.h"
@@ -235,7 +234,7 @@ void CampPages::DoAction() {
 // --- the second action button --------------------------------------------------------------------
 
 void CampPages::UndoAction() {
-    ui->PlayInterfaceSound(game::CancelSoundText());
+    ui->PlayInterfaceSound(kMessageBoxCancelSound);
     switch (page) {
     case kTrade:
         trade->Settle(false, false);

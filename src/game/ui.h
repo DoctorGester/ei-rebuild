@@ -6,7 +6,6 @@
 // position before hit testing.
 
 #include "engine_object.h"
-#include "game_strings.h"   // game::kEmptyText
 #include "object_tables.h"   // g_keyActions
 #include "save_picture.h"
 #include "texture.h"   // TextureKind
@@ -33,6 +32,11 @@
 inline constexpr float kHudFullTurn = /*007C8140*/ 6.2831855f;
 inline constexpr float kHudQuarterTurn = /*007C8144*/ 1.5707964f;
 inline constexpr Quaternion kHudRestRotation = /*007C8150*/ {1.0f, 0.0f, 0.0f, 0.0f};
+
+// The interface sounds most windows share (Interface3D::PlayInterfaceSound): a confirm, a cancel, a pick.
+inline constexpr const char* kMessageBoxOkSound = "buttons\\messbox\\ok.wav";
+inline constexpr const char* kMessageBoxCancelSound = "buttons\\messbox\\cancel.wav";
+inline constexpr const char* kSaveSelectSound = "buttons\\save\\select.wav";
 
 namespace console { class ConsoleWindow; }
 class Party;
@@ -2161,7 +2165,7 @@ public:
 // options::g_options.difficulty on OK.
 class DifficultyBox : public MessageWindow {
 public:
-    explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", game::kEmptyText, MessageQuestion::Second, MessageButtons::OkCancel) {}
+    explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", "", MessageQuestion::Second, MessageButtons::OkCancel) {}
     // No container handler. Region 0 OK (easy to options::g_options.difficulty), 1 cancel, 2 / 3 check easy / hard.
     void LeftDown(Point point) override;
     // Unless a child used the key, Enter answers as OK and Esc as cancel.

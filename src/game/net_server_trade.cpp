@@ -6,7 +6,6 @@
 #include "core_streams.h"
 #include "game_flow.h"
 #include "game_singletons.h"
-#include "game_strings.h"
 #include "net_connection.h"
 #include "net_messages.h"
 #include "quest_records.h"
@@ -142,7 +141,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
     if (!IsLive(connection)) return;
 
     for (const std::string& item : entry->lists[0]) QueueAward(connection, AwardKind::Item, 0.0f, item);   // the items given
-    if (withFinal) QueueAward(connection, AwardKind::QuestReset, 0.0f, std::string(game::kEmptyText));
+    if (withFinal) QueueAward(connection, AwardKind::QuestReset, 0.0f, std::string());
 }
 
 // The zone completion command ("<zone>_3"). Announces the current map's title (text 7)
@@ -158,7 +157,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
 
     QuestBriefingRecord* entry;
     {
-        std::string key = *zone + game::ZoneSuffix3Text();
+        std::string key = *zone + kZoneCompleteSuffix;
         entry = g_questDatabase.briefings.index[key];
     }
     if (entry) {
@@ -172,9 +171,8 @@ void ServerSession::CompleteZone(const std::string* zone) {
 
         for (auto& node : clients) {
             RefObject* connection = node.Get();
-            const char* empty = game::kEmptyText;
-            QueueAward(connection, AwardKind::Experience, award0, std::string(empty));
-            QueueAward(connection, AwardKind::Gold, award1, std::string(empty));
+            QueueAward(connection, AwardKind::Experience, award0, std::string());
+            QueueAward(connection, AwardKind::Gold, award1, std::string());
         }
         AwardHost(entry, true);
     }
@@ -197,7 +195,7 @@ void ServerSession::LeaveZone() {
 
         QuestBriefingRecord* entry;
         {
-            std::string key = holder->Get()->text + game::ZoneSuffix1Text();
+            std::string key = holder->Get()->text + kZoneEnterSuffix;
             std::string lookup(key.data());
             entry = g_questDatabase.briefings.index[lookup];
         }
