@@ -4,5 +4,6 @@ group = "renderer"
 model = "opus"
 note = "User 2026-11-05: hover a button with a tooltip (e.g. in the options window), then move to another button with a tooltip; while the second tooltip appears, the previous one momentarily flashes in its place. Code: src/game/ui_tooltip.cpp UiTooltip::OnMouseMove (Hovered -> Appearing makes a new UiSurface and paints it with PaintLines; Disappearing clears scene objects and surfaces only when its timer runs out) and Draw/Redraw gated on Shown(). Suspects: the new surface shows a reused texture/atlas slot or upload with the old tooltip's pixels for a frame before its paint lands (the native UI layer's surface cache), or the old tooltip still drawn at the new place during Disappearing. Reproduce in a harness scenario (hover one options button past the delay, move to another, capture the frames while the second appears; checkframes/diffcapture so the flash is caught), fix in one uniform path, keep the capture as the scenario's check. Goldens the same."
 order = 1157
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
