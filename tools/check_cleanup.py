@@ -9,6 +9,9 @@ usage: python tools/check_cleanup.py [--update]
 """
 import collections, csv, glob, os, re, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import layout   # src/game's files by their flat names, wherever they are now (tools/layout_map.txt)
+
 # Hand-written vector maths (docs/notes/float-maths.md, "Vector helpers"; the helpers are in src/lib/vecmath.h).
 # 1. A two-product sum `P * Q + R * S` whose operand pairs are the same expression on another axis:
 #    a.x * b.x + a.y * b.y, dx * dx + dy * dy, v[0] * w[0] + v[1] * w[1], m[8] * nx + m[4] * ny,
@@ -533,8 +536,9 @@ def count_members_through_global(text, singletons=None):
 
 
 # A member body written out again in a sibling file (round 4 Z2): three significant lines in a row that appear again in
-# a file of the same family (the same directory, the same first two words of the name: spell_effect*.cpp), in the same
-# or another place. Counted per copied run, in the later place. Lines that are only braces, `break;`, `return;` and the
+# a file of the same family (the same directory, the same first two words of the name: spell_effect*.cpp; in src/game
+# the name it had in the flat tree, tools/layout_map.txt, so a move or a meaning rename keeps a file's family), in the
+# same or another place. Counted per copied run, in the later place. Lines that are only braces, `break;`, `return;` and the
 # like, and windows shorter than 90 characters, are not significant.
 _TRIVIAL = re.compile(r'^(?:[{}]+|\}\s*else\s*\{?|else\s*\{?|break;|continue;|return;|return (?:true|false|0|1|nullptr);|default:|'
                       r'#.*|using .*|public:|private:|protected:|case [\w:]+:|\)?;|\};?)$')
@@ -542,6 +546,9 @@ _families = None
 
 
 def _family(rel):
+    if rel.startswith('src/game/'):
+        stem = os.path.splitext(layout.flat_name(rel))[0]
+        return 'src/game/' + '_'.join(stem.split('_')[:2])
     stem = os.path.splitext(os.path.basename(rel))[0]
     return os.path.dirname(rel) + '/' + '_'.join(stem.split('_')[:2])
 
@@ -743,7 +750,8 @@ PATTERNS = {
     'const string or vector pointer parameter': re.compile(
         r'(?:,|(?<!\bif )(?<!\bif)(?<!\bfor )(?<!\bfor)\()\s*const\s+std::(?:string|vector<[^<>()]*(?:<[^<>]*>)?[^<>()]*>)\s*\*\s*\w*\s*(?=[,)=])'),
 }
-# Patterns not counted under these directories (or files).
+# Patterns not counted under these directories (or files). src/game's files by their flat names (or name prefixes),
+# wherever they are now: layout.game_paths.
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
 # (2026-10-14) to hold the shared templates rather than repeat one: FootprintCellSet is a bucket hash
 # over std::vector; EffectIdMap and UnitSet
@@ -752,21 +760,20 @@ PATTERNS = {
 NOT_CONTAINERS = {'FootprintCellSet', 'EffectIdMap', 'MapObjectIdMap', 'UnitSet', 'RegionMap', 'PlatformSet'}
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
           'hand-written vector maths': ('src/lib/vecmath.h', 'src/lib/maths.h'),   # maths.h: Hypot's doubles
-          'system maths function': ('src/lib/maths.h', 'src/game/script_addon_math.cpp', 'src/video/bink_audio.cpp'),
+          'system maths function': ('src/lib/maths.h', 'src/video/bink_audio.cpp') + layout.game_paths('script_addon_math.cpp'),
           'copied small helper (IsZero, 1/255, server running)': 'src/lib/', 'own integer reader': 'src/lib/',
           # The streams and buffers own their cursors; src/lib's readers are the shared ones.
-          'cursor moved by hand after memcpy': ('src/lib/', 'src/game/core_streams.cpp', 'src/game/game_buffer',
-                                                'src/game/net_coder.cpp'),
+          'cursor moved by hand after memcpy': ('src/lib/',) + layout.game_paths('core_streams.cpp', 'game_buffer',
+                                                                                 'net_coder.cpp'),
           # The generator itself and its tests of the scale.
-          'random word scaled by hand (Range copy)': ('src/lib/', 'src/game/random.cpp'),
+          'random word scaled by hand (Range copy)': ('src/lib/',) + layout.game_paths('random.cpp'),
           'Windows name outside the Windows backend': 'src/platform/win32/'}
 # Files whose rounded values only the picture, the sound or the window see (2026-11-05, every site read): the effects,
 # particles, lightning, weather and terrain drawing, the ground prints, the renderer, the platform layer's sizes and
 # scales, and the interface's layout and displays (cursor scale, colour bytes, the ping and vision numbers shown).
-CLIENT_ONLY_ROUNDING = ('src/platform/', 'src/render/', 'src/lib/', 'src/game/effects', 'src/game/lightning',
-                        'src/game/particle', 'src/game/weather_particles', 'src/game/terrain', 'src/game/ground_print',
-                        'src/game/renderer_scene', 'src/game/console_window', 'src/game/ui_cursor', 'src/game/ui_mesh',
-                        'src/game/ui_connect_screen', 'src/game/ui_hud_side')
+CLIENT_ONLY_ROUNDING = ('src/platform/', 'src/render/', 'src/lib/') + layout.game_paths(
+    'effects', 'lightning', 'particle', 'weather_particles', 'terrain', 'ground_print', 'renderer_scene',
+    'console_window', 'ui_cursor', 'ui_mesh', 'ui_connect_screen', 'ui_hud_side')
 EXEMPT['std::lround in game-affecting code'] = CLIENT_ONLY_ROUNDING
 
 

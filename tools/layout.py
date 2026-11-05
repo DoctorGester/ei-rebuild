@@ -246,13 +246,15 @@ def now(name):
 
 
 def game_paths(*names):
-    """src/game/... paths for flat names or name prefixes ('ui_cursor', 'game_buffer', 'random.cpp'): each flat file
-    the map knows that starts with it, where it is now, and the flat prefix itself (a file the map does not know)."""
+    """src/game/... paths for flat names or name prefixes ('ui_cursor', 'game_buffer', 'random.cpp'): each file of
+    the flat tree whose name starts with one, where it is now (a fold: the file it joined), and each flat file the
+    map does not know yet."""
     lines = read_map()[0] if os.path.exists(MAP) else []
+    flat = sorted(n for n in os.listdir(GAME) if os.path.isfile(os.path.join(GAME, n)))
     out = []
     for name in names:
-        out.append('src/game/' + name)
         out += ['src/game/' + now(l.old) for l in lines if l.old.startswith(name)]
+        out += ['src/game/' + n for n in flat if n.startswith(name)]
     return tuple(dict.fromkeys(out))
 
 

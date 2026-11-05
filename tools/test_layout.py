@@ -126,7 +126,8 @@ class MoverTest(unittest.TestCase):
         self.run_tool('apply', 'B1')
         layout._now = layout._flat = None
         try:
-            self.assertEqual(layout.game_paths('d_old'), ('src/game/d_old', 'src/game/a/d_new.cpp'))
+            self.assertEqual(layout.game_paths('d_old', 'e_'), ('src/game/a/d_new.cpp', 'src/game/e_z.cpp'))
+            self.assertEqual(layout.game_paths('c_fold'), ('src/game/a/a_x.h',))
             self.assertEqual(layout.flat_name('src/game/a/d_new.cpp'), 'd_old.cpp')
             self.assertEqual(layout.flat_name('src/game/e_z.cpp'), 'e_z.cpp')
         finally:
