@@ -5,4 +5,5 @@ model = "opus"
 depends = ["C88"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Items R11 and the hidden-globals pattern for the renderer. Split PreparePointShadows (180 lines) along its comment headers; the caller calls DrawPointShadows itself and the sun map returns early when off; unordered_set instead of maps used as sets. A function takes Frame& or reads g_frame, never both (render_lighting.cpp:73-76, render_shadows.cpp:1040, render_point_shadows.cpp:621); no function-local static state or scratch (render_terrain.cpp:268, 401, 634; render_lighting.cpp:42, 121; render_shadows.cpp:435, UnderCamera's hidden cache); each per-frame struct gets one Clear() (Present's 25 field resets, ShadowFrame's split reset). Single-letter names only in short scopes. Out-params to returned Size/structs (15 int* width/height signatures, Placement's 5). Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1022
-status = "queued"
+status = "running"
+started = "2026-11-05"
