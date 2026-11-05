@@ -623,6 +623,10 @@ with its own level.
   covered). The copy's target is never blended (`PipelineDesc::second`), so a blended draw stores its own depth there. Its
   output has four components with alpha 1 (R32F keeps the red): lavapipe blends the second target with the first's state
   whatever the pipeline says, and a one-component output has alpha 0 there (docs/notes/linux.md, "The harness").
+  Its cost is the writes: at 3840x2009, msaa 8, the frame is 0.55-1.2 ms cheaper with no pipeline writing it (R17a4,
+  render_water's views; without its resolve 0.05-0.5 ms). The battle screen and the container screens clear the depth
+  (ClearUiDepth) right after the world (the battle's selection box between them lies at depth 0), so there nothing
+  reads it (R17a4a).
 - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`): a pipeline's
   count must match its pass's targets. A change of the sample count remakes the targets at a frame's first pass.
 - Check (scenario `render_smooth`, vanilla and Rebirth): in zone1 at one frozen moment the frame with msaa 8 and
@@ -1799,8 +1803,20 @@ water little. R17a3, the views render_water's steps reach at 3840x2009 (three ro
 the main checkout, a probe patch script whose EI_R17A3=s skips the water's draws (its render.cpp variants were written
 against R17a1's copy), the scenarios r17a3_time and r17a3_low, the runner and the tables), the water's part with R17a1's copy / without the rays (`sceneOn` 0) /
 R17a3's: the shore 0.61 / 0.29 / 0.32 ms, the sea 0.60 / 0.26 / 0.30, the lake 1.23 / 1.17 / 1.18, the river
-0.45 / 0.16 / 0.20, the river at night 0.47 / 0.20 / 0.20, the lake at night 1.24 / 1.21 / 1.27. Those lake views hold
-far more water than R17a1's: about 1.2 ms of the water's own drawing (R17a4). R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
+0.45 / 0.16 / 0.20, the river at night 0.47 / 0.20 / 0.20, the lake at night 1.24 / 1.21 / 1.27.
+Why the lake views cost more (R17a4; the kit: build/R17a4 in the main checkout, R17a3's probe adapted (EI_R17A4: the
+water skipped, flat, unblended, without its depth or its depth copy; no pipeline writing the depth copy; the copy not
+resolved or not stored), the scenarios r17a4_time and r17a4_over (variant o draws the water a see-through red, and
+r17a4_cover.py counts the frame's share of it), the runner and the table): at 3840x2009 their water covers 81% and 86%
+of the frame (render_water's 4:3 captures show the lake far smaller), the shore and sea views' 28%, the river's 13%;
+per frame of water every view costs about the same, 1.2-1.5 ms. Not the shading: the water's fragment returning its
+vertex colour costs the same (the lake 1.24 against 1.23 ms), without blending 1.09-1.21, without the shadow map's
+lookup the same. The per-sample writes are the cost: the flat water without its depth and its depth copy 0.31-0.35 ms on
+the lakes. Most of it is the depth copy (section 11, "The depth copy": an R32F target every depth-writing draw of the
+world writes at each sample): with no pipeline writing it the frame is 0.55-1.2 ms cheaper in every view (three rounds,
+medians: the shore 2.63 / 2.08 ms, the sea 2.67 / 2.10, the lake 3.46 / 2.42, the river 2.58 / 2.11, the river at night
+3.32 / 2.15, the lake at night 3.38 / 2.41), and the lakes' water then costs 0.25 ms. Its resolve is a smaller part (without it 0.05-0.5 ms
+less, a noisier round). The copy is general, not the water's: R17a4a. R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
 plain water shading. Check: scenario `render_water`
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
 and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and
