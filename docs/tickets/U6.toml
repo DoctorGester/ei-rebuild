@@ -4,5 +4,6 @@ group = "standalone"
 model = "sonnet"
 note = "From U5 (2026-10-21): with EI_UTF8 on, DrawWrappedText still does not break inside a long word (as the original); the profile calls (CIniFile, GetPrivateProfile*, WritePrivateProfileString) stay ANSI, so a Cyrillic install folder is unchecked and the ini files' code page undecided. The case table covers 1251/1252 letters only. Do with C34 (UTF-8 always): the profile calls and ini code page are one of its boundaries. Closed by earlier work: EI_UTF8 gone and the profile calls gone (C34; IniFile reads through platform::ReadWholeFile, asset code page to UTF-8; ei_settings.ini is UTF-8). Found and fixed: platform::EnvironmentVariable and the arguments after -- used the narrow Windows calls, so a Cyrillic EI_GAME_ROOT became question marks (error 123). Checked: tests/unit/platform_text.cpp and runs under a Cyrillic install path (build/u6_*). DrawWrappedText left as the original (no visible overflow reachable: the only player text through it is a server name cut at 90 bytes)."
 order = 630
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
