@@ -60,7 +60,7 @@ jobs:
           key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
       - name: Visual Studio
         run: |
-          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '')
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '\r')
           [ -n "$vs" ] || { echo "::error::no Visual Studio with the x64 C++ tools"; exit 1; }
           echo "EI_VSROOT=$vs" >> $GITHUB_ENV
           echo "Visual Studio: $vs"
@@ -90,7 +90,7 @@ jobs:
           key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
       - name: Visual Studio
         run: |
-          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '')
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '\r')
           [ -n "$vs" ] || { echo "::error::no Visual Studio with the x64 C++ tools"; exit 1; }
           echo "EI_VSROOT=$vs" >> $GITHUB_ENV
           echo "Visual Studio: $vs"
