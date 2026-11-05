@@ -4,3 +4,5 @@ group = "renderer"
 depends = ["R52a"]
 note = "R52a draws every ground print in its daylight colour (GroundPrint::DayColour) and lights it in mesh.hlsl's ground_shade, so BloodPrint::colour (the sun at its making, then Segment's grey re-lighting every 10 s, kLightingPeriod) is only saved. Drop the re-lighting loop in WorldClient::Segment and lightLevelsCountdown, keeping the saved field (write a fixed value) or changing the save with a golden re-record (ground_prints' saves); decide with the coordinator. Also check: specular point lights (script and spell lights) add to the ground after its texture, while ground_shade takes them as the other lights (a max), so a print under one need not match its ground exactly. User 2026-11-05: drop the re-lighting and the saved field; re-record the ground_prints golden once."
 order = 962
+status = "running"
+started = "2026-11-05"
