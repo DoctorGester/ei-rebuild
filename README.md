@@ -23,6 +23,10 @@ files with goldens that were the same as the original game's runs when the harne
 | ![Snowfall in a Rebirth forest](docs/screenshots/rebirth_snow.png) | ![A town at night lit by a torch](docs/screenshots/night_town.png) |
 | Rebirth data: snowfall | GOG data: a town at night with torch light |
 
+![The main menu at night in the rain](docs/screenshots/main_menu_rain.png)
+
+The main menu at night in the rain (GOG data).
+
 ## What you get
 
 - **One exe, no installer.** Drop `ei-rebuild.exe` into a GOG or Rebirth install and start it. It needs no
