@@ -4,5 +4,6 @@ group = "harness"
 model = "sonnet"
 note = "CI run 113628906828 (2026-11-04, logs in build/ci_logs_113628906828): 14 failures over 8 shards, none a real Linux difference. All are real-time limits on a slow llvmpipe runner: a frames step's limit (10 s plus 100 ms a frame) ran out (render_preview_blend, render_cursor_present, render_weather_units, net_host_death, terrain_water_waves Rebirth), or the scenario's 60 s limit (render_water_looks, render_weather, render_weather_panel, render_weather_roofs, render_weather_shelter, unit_ai_corpse, party_leader_switch). A cut frames step makes the later steps land on earlier world updates, so the digest differs after it (H56). The same 202 scenarios took 9% longer than in run 41857898300 and some 40 to 90% longer (world_load 6 s to 11 s), so the runner's speed varies; adding each new victim to LINUX_SKIP does not converge. Add one scale for the harness's real-time limits (frames step limit in tests/verify/harness.cpp and the scenario limit run_all applies), e.g. EI_TIME_SCALE, default 1, set to 3 in .github/workflows/suites-linux.yml. Then take the slowness-only entries out of LINUX_SKIP (camera_drawn, render_shadows_outside, spells_more, levers_key, render_stats, camera_smooth, camera_spin, zone_gz15h_tornado and the like; keep the pair games and render_smooth) and check with one workflow_dispatch run of those names. Update docs/notes/linux.md (The CI job)."
 order = 1144
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
