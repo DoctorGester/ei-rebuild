@@ -35,7 +35,6 @@ constexpr float kDecayBase = 0.8f;
 
 constexpr float kNearRange = 35.0f;         // AIBrain::nearRange / farRange of the idle modes
 constexpr float kFarRange = 80.0f;
-constexpr float kNoWander = -1.0f;
 constexpr float kStandRadius = 5.0f;
 constexpr float kArrivedSq = 0.2f;
 constexpr float kCloseSq = 25.0f;
@@ -163,8 +162,7 @@ void PatrolMode::Execute(AIBrain* brain) {
     order.point = next.position;
     order.looks = next.looks;
     if (order.looks.empty()) {
-        Vector3 none{0.0f, 0.0f, 0.0f};
-        brain->PlanLooks(&order, none, kNoWander, false);
+        brain->PlanLooks(&order, Vector3{}, kNoWander, false);
     }
     brain->StartMove(&order);
     SetPositions(brain, order.point, kNearRange, kFarRange);
@@ -203,10 +201,9 @@ void SentryMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     order.point = point;
     bool farLook = g_random.Next() % 11 == 0;
-    Vector3 none{0.0f, 0.0f, 0.0f};
     // A far look waits up to the guards' stay time, a near one the sentries'.
     float stayTime = farLook ? g_logicSettings.guardStayTime : g_logicSettings.sentryStayTime;
-    brain->PlanLooks(&order, none, stayTime, farLook);
+    brain->PlanLooks(&order, Vector3{}, stayTime, farLook);
     brain->StartMove(&order);
     SetPositions(brain, order.point, kNearRange, kFarRange);
 }
@@ -266,8 +263,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     } else {
         order.point = point;
     }
-    Vector3 none{0.0f, 0.0f, 0.0f};
-    brain->PlanLooks(&order, none, kNoWander, false);
+    brain->PlanLooks(&order, Vector3{}, kNoWander, false);
     brain->StartMove(&order);
     level = brain->memory.noticedLevel;
 }
@@ -276,8 +272,7 @@ void SuspectionMode::Enter(AIBrain* brain) {
     brain->owner->moveMode2.onGuard = 1;
     AIMoveOrder order;
     order.point = point;
-    Vector3 none{0.0f, 0.0f, 0.0f};
-    brain->PlanLooks(&order, none, kNoWander, false);
+    brain->PlanLooks(&order, Vector3{}, kNoWander, false);
     brain->StartMove(&order);
     brain->owner->voice.Raise(AIRemark::Suspicion);
 }
@@ -343,8 +338,7 @@ void AggressionMode::Enter(AIBrain* brain) {
 
 void AggressionMode::Leave(AIBrain* brain) {
     if (!enemy || enemy->IsDead()) {
-        brain->memory.noticedLevel = 0;
-        brain->memory.noticedDecay = 0;
+        brain->memory.ForgetNoticed();
     }
     enemy.Reset();
     brain->owner->moveMode2.onGuard = 0;
@@ -584,25 +578,28 @@ constexpr int kCalmLevel = 50;              // noticed levels above it keep the 
 constexpr int kKeepLevel = 500;             // a watchful mode does not forget levels above it
 constexpr int kLargeSizeClass = 6;
 
-constexpr float kThree = 3.0f;
-constexpr float kThird = 0.33333334f;
+constexpr float kFlightSpread = 3.0f;       // a flight point lies within this of the point 5 away
+constexpr float kSpreadGrowth = 3.0f;
+constexpr float kSpreadDecay = 0.33333334f; // (1 / 3)
 constexpr float kSeenScale = 1.5f;
 constexpr float kMaxLoadFactor = 0.6f;
 constexpr float kFlightStep = 5.0f;
+constexpr float kRangePerDistance = 3.0f;
 constexpr float kRangeBase = 10.0f;
-constexpr float kSmoothingScale = 5000.0f;
-constexpr float kFar = 1e30f;
-constexpr float kDistanceWeight = 30.0f;
-constexpr float kDistanceDivisor = 0.032258064f; // (1 / 31)
+constexpr float kDetourScale = 5000.0f;
 constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;
-constexpr float kRandomSix = 6.0f * 0x1p-32f;
-// A random word to [0, 1).
-constexpr float kRandomUnit = 0x1p-32f;
 
-bool IsZero(float v) {
-    return v == 0.0f;
+// `v` scaled to the length of a flight step (left alone when its `length` is 0).
+void ScaleToFlightStep(Vector3& v, float length) {
+    if (length != 0.0f) {
+        float scale = kFlightStep / length;
+        v *= scale;
+    }
 }
+
+// The path search range for a way of the given length.
+float PathRange(float way) { return way * kRangePerDistance + kRangeBase; }
 
 bool IsUnset(const Vector3& point) { return point.x == kUnsetCoordinate; }
 
@@ -612,25 +609,18 @@ bool IsUnset(const Vector3& point) { return point.x == kUnsetCoordinate; }
 bool FindFlightPoint(AIBrain* brain, Unit* self, Unit* enemy, Vector3 me, const Vector3& foe, float dx, float dy,
                      Vector3* out) {
     Vector3 away{dx, dy, foe.z - me.z};
-    float length = Length(away);
-    if (!IsZero(length)) {
-        float scale = kFlightStep / length;
-        away *= scale;
-    }
-    IsaacRandom& random = g_random;
-    float jitterX = (static_cast<float>(random.Next()) * kRandomSix) - kThree;
-    float jitterY = (static_cast<float>(random.Next()) * kRandomSix) - kThree;
+    ScaleToFlightStep(away, Length(away));
+    float jitterX = g_random.Range(-kFlightSpread, kFlightSpread);
+    float jitterY = g_random.Range(-kFlightSpread, kFlightSpread);
     Vector3 back = me - away;
     Vector3 dest{back.x + jitterX, back.y + jitterY, back.z};
 
     AIPath path;
     float way = Distance(dest, me);
-    float range = way * kThree + kRangeBase;
-    if (!g_serverWorld.aiMap.FindPath(self, dest, &path, range, kMinDistance)) return false;
-    float scale = 0.5f;
-    float limit = 1.0f / scale * way * kSmoothingScale;
+    if (!g_serverWorld.aiMap.FindPath(self, dest, &path, PathRange(way), kMinDistance)) return false;
+    float limit = 2.0f * way * kDetourScale;
     if (limit < static_cast<float>(path.smoothing)) return false;
-    Vector3 end = WithZ(scale * path.target, 0.0f);
+    Vector3 end = WithZ(0.5f * path.target, 0.0f);
 
     AIOrder order;
     order.MakeAttack(enemy);
@@ -646,20 +636,19 @@ int FearMode::Evaluate(AIBrain* brain) {
     UnitServer* owner = brain->owner;
     Unit* self = owner->unit;
     // The sum rounded first, then the product, as the original (not spread * 2/3 + 1).
-    float grown = spread + spread + kThree;
-    spread = grown * kThird;
+    float grown = spread + spread + kSpreadGrowth;
+    spread = grown * kSpreadDecay;
     if (MapObject* seen = brain->seen) {
-        const Vector3* at = &seen->localPosition;
-        brain->memory.Notice(*at, kNoticeSeenLevel, kNoticeSeenDecay);
-        const Vector3* me = &brain->owner->unit->localPosition;
-        float reach = std::sqrt(LengthSquared(*me - *at)) * kSeenScale;
+        const Vector3& at = seen->localPosition;
+        brain->memory.Notice(at, kNoticeSeenLevel, kNoticeSeenDecay);
+        float reach = std::sqrt(LengthSquared(self->localPosition - at)) * kSeenScale;
         // The larger of the two; an unordered pair takes the new one.
         distance = MaxKeepB(distance, reach);
     }
 
     // A unit that fights from a distance keeps away from its nearest enemy.
     Unit* enemy = brain->memory.NearestEnemy(self);
-    if (enemy && static_cast<std::uint8_t>(owner->AttacksFromRange()) != 0 &&
+    if (enemy && owner->AttacksFromRange() &&
         self->sizeClass < kLargeSizeClass && owner->unit->GetSpellObject(0) == nullptr &&
         owner->stats.MovementState(0) == 0 && owner->stats.loadFactor > kMaxLoadFactor) {
         bool aggressive = brain->current && brain->current->type == AIModeType::Aggression;
@@ -680,23 +669,21 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
 
     if (brain->memory.seesEnemy) return kSeesEnemy;
-    const Vector3* here = &self->localPosition;
+    const Vector3& here = self->localPosition;
     float height = self->GetPrototype()->height;
-    if (g_serverWorld.aiMap.HasSpellAreaAt(*here) && (self->sizeClass != 0 || height < 0.5f)) {
-        shelter = *here;
+    if (g_serverWorld.aiMap.HasSpellAreaAt(here) && (self->sizeClass != 0 || height < 0.5f)) {
+        shelter = here;
         return kShelter;
     }
     if (!IsUnset(shelter) && g_serverWorld.aiMap.HasSpellAreaAt(shelter)) return kShelter;
 
     if (watchful) {
         // The nearest player unit in sight (2D).
-        float best = kFar;
+        float best = kFarSq;
         Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
-        for (auto& node : brain->memory.visible) {
-            Unit* other = node;
+        for (Unit* other : brain->memory.visible) {
             if (!other->player) continue;
-            const Vector3* me = &brain->owner->unit->localPosition;
-            float d2 = DistanceSquaredXY(*me, other->localPosition);
+            float d2 = DistanceSquaredXY(self->localPosition, other->localPosition);
             if (d2 < best) {
                 nearest = other->localPosition;
                 best = d2;
@@ -714,15 +701,15 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
     // Back towards the default by 1/31 a call; the sum rounded first (see spread above: distributed,
     // 30/31 * distance + default / 31 settled at 9.99999714 instead of 10).
-    float weighted = distance * kDistanceWeight + kDefaultDistance;
-    distance = weighted * kDistanceDivisor;
+    float weighted = distance * kRelaxKeep + kDefaultDistance;
+    distance = weighted * kRelaxDivisor;
     return kPriorityNone;
 }
 
 void FearMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     UnitServer* owner = brain->owner;
-    const Vector3* here = &owner->unit->localPosition;
+    const Vector3& here = owner->unit->localPosition;
 
     // What to run from: the nearest enemy, a shelter to stay in, or the noticed point.
     Vector3 from = brain->memory.NoticedPoint();
@@ -731,44 +718,37 @@ void FearMode::Execute(AIBrain* brain) {
             from = enemy->localPosition;
             brain->CallAllies(enemy->localPosition);
         }
-    } else if (g_serverWorld.aiMap.HasSpellAreaAt(*here)) {
-        from = *here;
+    } else if (g_serverWorld.aiMap.HasSpellAreaAt(here)) {
+        from = here;
     } else if (!IsUnset(shelter) && g_serverWorld.aiMap.HasSpellAreaAt(shelter)) {
         from = shelter;
     } else if (!watchful || brain->memory.noticedLevel <= kKeepLevel) {
-        brain->memory.noticedLevel = 0;
-        brain->memory.noticedDecay = 0;
+        brain->memory.ForgetNoticed();
     }
 
-    float near2 = DistanceSquared(*here, from);
+    float near2 = DistanceSquared(here, from);
     if (distance * distance > near2 && brain->owner->action.kind != UnitOrderKind::Move &&
         brain->owner->action2.kind != UnitOrderKind::Move) {
         Vector3 dest;
-        if (!IsZero(fleePoint.z)) {
+        if (fleePoint.z != 0.0f) {
             dest = fleePoint;
             fleePoint.z = 0.0f;
         } else {
-            Vector3 step = from - *here;
+            Vector3 step = from - here;
             float length = std::sqrt(LengthSquared(step));
             float limit = distance * kSpreadScale;
             // The smaller of the two.
             float width = spread < limit ? spread : limit;
             spread = width;
-            if (!IsZero(length)) {
-                float scale = kFlightStep / length;
-                step *= scale;
-            }
-            float low = -width;
-            IsaacRandom& random = g_random;
-            float jitterX = (static_cast<float>(random.Next()) * (width - low)) * kRandomUnit + low;
-            float jitterY = (static_cast<float>(random.Next()) * (width - low)) * kRandomUnit + low;
-            Vector3 back = *here - step;
+            ScaleToFlightStep(step, length);
+            float jitterX = g_random.Range(-width, width);
+            float jitterY = g_random.Range(-width, width);
+            Vector3 back = here - step;
             dest = {back.x + jitterX, back.y + jitterY, back.z};
         }
         AIPath path;
-        float way = Distance(dest, *here);
-        float range = way * kThree + kRangeBase;
-        if (g_serverWorld.aiMap.FindPath(brain->owner->unit, dest, &path, range, kMinDistance)) {
+        float way = Distance(dest, here);
+        if (g_serverWorld.aiMap.FindPath(brain->owner->unit, dest, &path, PathRange(way), kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(dest, 0, 0);
         }
@@ -785,10 +765,10 @@ void FearMode::Execute(AIBrain* brain) {
         if (brain->action == AIBrain::kActionNone) {
             // Stand still and look away from the danger.
             order.point = brain->owner->unit->localPosition;
-            Vector3 v = from - *here;
+            Vector3 v = from - here;
             Vector3 direction = v;
             float length = Length(v);
-            if (!IsZero(length)) {
+            if (length != 0.0f) {
                 float twice = length + length;
                 direction = v / twice;
             }
@@ -807,13 +787,6 @@ constexpr float kReachScale = 1.1f;
 constexpr float kMovingSlack = 2.0f;
 constexpr float kStandingSlack = 1.4f;
 constexpr float kNoRadius = -1.0f;
-
-// Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
-Unit* LeaderOf(const Unit* unit) {
-    AIBrain* brain = &unit->ServerController()->brain;
-    if (auto* mode = brain->FindModeOf<PlayerMode>(); mode && mode->leader) return mode->leader;
-    return brain->action == AIBrain::kActionFollow ? UnitOrNull(brain->target) : nullptr;
-}
 } // namespace
 
 bool PartyInDanger(const Unit* unit) {
@@ -826,7 +799,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     if (unit->fightAtWill != kStandby) return;
 
     // The commanded target first, when it can be reached from here.
-    if (target && target->IsDead() == 0) {
+    if (target && !target->IsDead()) {
         AITargetChoice choice{kWeaponPart, static_cast<Unit*>(target.Get())};   // taken as a unit
         if (brain->CanReach(&choice, true)) {
             brain->AttackTarget(target);
@@ -861,9 +834,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         if (!PartyInDanger(brain->owner->unit)) {
             // The other followers that are not fighting stop following.
             UnitList party = CollectParty(brain);
-            for (auto node = party.begin(); node != party.end();) {
-                auto* other = *node;
-                ++node;
+            for (Unit* other : party) {
                 if (other == unit) continue;
                 AIBrain* theirs = &other->ServerController()->brain;
                 auto* mode = theirs->FindModeOf<PlayerMode>();
@@ -880,9 +851,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
 void PlayerMode::AddPartyTargets(AIBrain* brain, UnitList* targets) {
     Unit* unit = brain->owner->unit;
     UnitList nearby = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(unit->localPosition, g_logicSettings.playerCallForHelp);
-    for (auto node = nearby.begin(); node != nearby.end();) {
-        auto* other = *node;
-        ++node;
+    for (Unit* other : nearby) {
         if (other == unit || other->player != unit->player) continue;
         AIBrain* theirs = &other->ServerController()->brain;
         Unit* foe = UnitOrNull(theirs->target.Get());
@@ -901,7 +870,7 @@ UnitList PlayerMode::CollectParty(AIBrain* brain) {
     if (!player) return party;
     // The chain of leaders above the unit.
     for (const Unit* member = unit;;) {
-        Unit* above = LeaderOf(member);
+        Unit* above = UnitOrNull(member->ServerController()->brain.LeaderOrFollowed());
         if (!above || lib::Contains(party, above)) break;
         party.push_back(above);
         member = above;
@@ -912,7 +881,7 @@ UnitList PlayerMode::CollectParty(AIBrain* brain) {
         added = false;
         for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) {
             Unit* member = node->second;
-            Unit* followed = LeaderOf(member);
+            Unit* followed = UnitOrNull(member->ServerController()->brain.LeaderOrFollowed());
             if (!lib::Contains(party, followed) || lib::Contains(party, member)) continue;
             party.push_back(member);
             added = true;
@@ -929,7 +898,6 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     for (auto node = player->units.begin(); node != player->units.end() && node->second; ++node) {
         Unit* member = node->second;
         PlayerMode* mode = member->ServerController()->brain.FindModeOf<PlayerMode>();
-        // A unit without a Player mode would have its leader read at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
         Vector3 d = member->localPosition - unit->localPosition;
         float limit = g_logicSettings.followMaxDist * slack + 1.0f;
@@ -948,14 +916,10 @@ constexpr float kDefaultWander = 40.0f;
 constexpr float kMinWaitFraction = 0.25f;
 // A random word to an angle in [0, 6.3).
 constexpr float kAngleScale = 6.3f * 0x1p-32f;
-// A random word to [0, 1).
-constexpr float kUnitScale = 0x1p-32f;
 constexpr const char kHumanPrefix[] = "unhu";
 
 constexpr float kMaxSlope = 0.3f;
 constexpr float kAllySpace = 2.5f;                  // x the standing height
-constexpr float kRangePerDistance = 3.0f;
-constexpr float kDetourFactor = 5000.0f;
 constexpr float kCooldownPerDistance = 0.33333334f;   // (1 / 3)
 constexpr int kMaxCooldown = 10;
 
@@ -976,10 +940,9 @@ constexpr float kSamePointSq = 0.01f;
 
 void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wander, bool farGoal) {
     std::vector<AILook>& planned = order->looks;
-    planned = {};
+    planned.clear();
 
-    IsaacRandom* random = (&g_random);
-    int count = static_cast<int>(random->Next() & 3) + 1;
+    int count = static_cast<int>(g_random.Next() & 3) + 1;
     Vector3 eye = order->point;
     eye.z = g_serverWorld.aiMap.TopHeightAt(eye) + kEyeHeight;
     if (wander >= 0.0f) wander = wander * kWanderScale;
@@ -998,9 +961,8 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
         int tries = 5;
         float dx, dy, wait;
         for (;;) {
-            float angle = static_cast<float>(random->Next()) * kAngleScale;
-            std::uint32_t roll = random->Next();
-            wait = ((wander - minWait) * static_cast<float>(roll)) * kUnitScale + minWait;
+            float angle = static_cast<float>(g_random.Next()) * kAngleScale;
+            wait = g_random.Range(minWait, wander);
             float sine = lib::Sin(angle);
             dx = lib::Cos(angle) + direction.x;
             dy = sine + direction.y;
@@ -1015,7 +977,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3& direction, float wand
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = farGoal;
-        lib::SetAtGrow(planned, lib::Count(planned), look);
+        planned.push_back(look);
     }
 }
 
@@ -1024,50 +986,41 @@ std::optional<Vector3> AIBrain::FindStandPoint(const Vector3& point, float radiu
         --standCooldown;
         return std::nullopt;
     }
-    IsaacRandom* random = (&g_random);
-    float low = -radius;
-    float dx = ((radius - low) * static_cast<float>(random->Next())) * kUnitScale + low;
-    float dy = ((radius - low) * static_cast<float>(random->Next())) * kUnitScale + low;
+    float dx = g_random.Range(-radius, radius);
+    float dy = g_random.Range(-radius, radius);
     float radiusSq = radius * radius;
     for (int tries = 9;;) {
         if (LengthSquared2D(dy, dx) <= radiusSq) break;
-        dx = ((radius - low) * static_cast<float>(random->Next())) * kUnitScale + low;
-        dy = ((radius - low) * static_cast<float>(random->Next())) * kUnitScale + low;
+        dx = g_random.Range(-radius, radius);
+        dy = g_random.Range(-radius, radius);
         if (--tries < 0) break;
     }
     Vector3 spot = {dx + point.x, dy + point.y, 0.0f};
-    AIMap* map = &g_serverWorld.aiMap;
-    if (map->SlopeAt(spot) > kMaxSlope) return std::nullopt;
+    AIMap& map = g_serverWorld.aiMap;
+    if (map.SlopeAt(spot) > kMaxSlope) return std::nullopt;
 
     // No unit of an allied player may stand near it.
     Unit* self = owner->unit;
-    UnitList units = g_serverWorld.aiMap.sectorMap.FindUnitsInRadius(spot, self->standingHeight * kAllySpace);
+    UnitList units = map.sectorMap.FindUnitsInRadius(spot, self->standingHeight * kAllySpace);
     for (Unit* other : units) {
         if (g_serverWorld.diplomacy.IsAllied(other->side, self->side)) return std::nullopt;
     }
 
-    bool result = true;
-    {
-        AIPath path;
-        float distance = std::sqrt(LengthSquared(self->localPosition - spot));
-        float range = distance * kRangePerDistance + kRangeBase;
-        bool found = map->FindPath(self, spot, &path, range, 0.0f);
-        // A path much longer than the way there (smoothing) counts as none.
-        if (!found || 2.0f * distance * kDetourFactor < static_cast<float>(path.smoothing)) {
-            result = false;
-            int cooldown = lib::RoundEven(distance * kCooldownPerDistance);
-            standCooldown = (std::min)(cooldown, kMaxCooldown);
-        }
+    AIPath path;
+    float distance = std::sqrt(LengthSquared(self->localPosition - spot));
+    bool found = map.FindPath(self, spot, &path, PathRange(distance), 0.0f);
+    // A path much longer than the way there (smoothing) counts as none.
+    if (!found || 2.0f * distance * kDetourScale < static_cast<float>(path.smoothing)) {
+        int cooldown = lib::RoundEven(distance * kCooldownPerDistance);
+        standCooldown = (std::min)(cooldown, kMaxCooldown);
+        return std::nullopt;
     }
-    units.clear();
-    if (!result) return std::nullopt;
     return spot;
 }
 
 void AIBrain::UpdateFollow() {
     if (!target || target->IsDead()) {
-        target.Reset();
-        action = kActionNone;
+        StopAction();
         return;
     }
     if (followTimer++ < kFollowWait) return;
@@ -1079,8 +1032,7 @@ void AIBrain::UpdateFollow() {
     // original read it as a unit).
     Unit* leader = UnitOrNull(target.Get());
     if (!leader) {
-        target.Reset();
-        action = kActionNone;
+        StopAction();
         return;
     }
     Vector3 toLeader = leader->localPosition - self->localPosition;
@@ -1145,8 +1097,7 @@ void AIBrain::UpdateFollow() {
     AIPath path;
     Vector3 aside = passing + side;
     bool found = g_serverWorld.aiMap.FindPath(self, aside, &path, kPassRange, 0.0f);
-    float half = 0.5f;
-    if (found && LengthSquared2D(XY(aside) - half * path.target) < kReachedSq) {
+    if (found && LengthSquared2D(XY(aside) - 0.5f * path.target) < kReachedSq) {
         owner->OrderMove(aside, 0, 0);
         followTimer = kFollowPause;
     } else {
@@ -1171,26 +1122,9 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3& from, const Vector3& t
 
 // --- The look arrays: clearing a prepared move and adding a patrol point ---------------------------------
 
-namespace {
-
-} // namespace
-
 void AIMoveOrder::Clear() {
     point = Vector3{0.0f, 0.0f, 0.0f};
     looks.clear();
 }
 
-void PatrolMode::AppendPoint(const Vector3& position) {
-    // Half-cell index of each coordinate (rounded to nearest after a float store), then its middle.
-    float cell = 0.5f;
-    int ix = lib::RoundEven(1.0f / cell * position.x);
-    int iy = lib::RoundEven(1.0f / cell * position.y);
-    float x = (static_cast<float>(ix) + 0.5f) * cell;
-    float y = (static_cast<float>(iy) + 0.5f) * cell;
-    int index = lib::Count(points);
-    points.resize(index + 1);
-    PatrolPoint& added = points[index];
-    added.position = Vector3{x, y, 0.0f};
-    // An empty temporary look array is copied into the new point.
-    added.looks.clear();
-}
+void PatrolMode::AppendPoint(const Vector3& position) { points.push_back({HalfCellCentre(position), {}}); }

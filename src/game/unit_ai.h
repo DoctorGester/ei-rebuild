@@ -59,7 +59,7 @@ enum class UseSource : std::uint32_t {
 // An attack order's source and OrderAttack's location: every body part.
 inline constexpr int kAttackAllParts = 6;
 
-// An order as the controller's order checks take it (built on the stack).
+// An order as the controller's order checks take it.
 struct AIOrder {
     // UnitOrderKind::None: the object released and cleared, the flag cleared.
     void Clear();
@@ -96,7 +96,7 @@ struct AILook {
 std::vector<AILook> LoadLooks(ByteStream* stream);
 void SaveLooks(const std::vector<AILook>* looks, ByteStream* stream);
 
-// A move the modes prepare on the stack: where to go and what to look at there.
+// A move the modes prepare: where to go and what to look at there.
 struct AIMoveOrder {
     void Clear();
 
@@ -125,6 +125,17 @@ inline constexpr int kPriorityNone = -1000;
 
 // The x of a position not set yet (AIBrain's positions, FearMode::shelter).
 inline constexpr float kUnsetCoordinate = -1313.0f;
+
+// GuardMode's and PlanLooks' wander argument for the default wander time.
+inline constexpr float kNoWander = -1.0f;
+
+// A squared distance larger than any real one: the start of a nearest-unit search.
+inline constexpr float kFarSq = 1e30f;
+
+// A value that moves back to its default by 1/31 a call: (value * kRelaxKeep + default) * kRelaxDivisor
+// (the brain's decay, FearMode::distance).
+inline constexpr float kRelaxKeep = 30.0f;
+inline constexpr float kRelaxDivisor = 0.032258064f;   // (1 / 31)
 
 // Base of all modes (abstract). AIActionMode is the base of the modes that act. The brain owns its modes
 // (AIBrain::modes).
@@ -190,13 +201,18 @@ struct PatrolPoint {
     std::vector<AILook> looks;
 };
 
+// The point at ((n + 0.5) / 2, z 0) for n = 2x rounded to nearest of each coordinate of `position` (so 0..0.5 above
+// it, not the middle of its half-cell).
+Vector3 HalfCellCentre(const Vector3& position);
+
 // Patrol: walk a list of points.
 class PatrolMode : public AIMode {
 public:
     static constexpr AIModeType kType = AIModeType::Patrol;
     PatrolMode() : AIMode(kType) {}
     // kPriorityIdle; without points: FatalError "Unit %i has no patrol points, adding one at its position" (which
-    // exits unless the Rebirth patch DisableExitOnCrashReport is on), a point at the unit's position, and kPriorityNone.
+    // exits unless ei::rebirth::Patch::DisableExitOnCrashReport is on), a point at the unit's position, and
+    // kPriorityNone.
     int Evaluate(AIBrain* brain) override;
     // When idle: on to the next point and its looks.
     void Execute(AIBrain* brain) override;
@@ -206,8 +222,7 @@ public:
     // 0x44) the stop flag byte; then `current`.
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
-    // Appends a point with no looks at ((n + 0.5) / 2, z 0) for n = 2x rounded to nearest (so 0..0.5 above
-    // `position`, not the middle of its half-cell).
+    // Appends a point with no looks at HalfCellCentre(position).
     void AppendPoint(const Vector3& position);
 
     std::vector<PatrolPoint> points;
@@ -254,8 +269,7 @@ public:
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     // The original leaves these unset, but Evaluate keeps a point that compares the same (a NaN always does)
-    // and the lower level, so every new mode starts zeroed: a determinism fix (the harness zeroes the
-    // original's alike).
+    // and the lower level, so every new mode starts zeroed: a determinism fix.
     Vector3 point{};
     int level = 0;
 };
@@ -307,8 +321,7 @@ public:
 class FearMode : public AIActionMode {
 public:
     // Distance, spread 3 and an unset shelter (x = -1313). The other fields start zeroed (a determinism fix: the
-    // original leaves shelter y / z and fleePoint x / y, which the saves write; the harness zeroes the original's
-    // alike).
+    // original leaves shelter y / z and fleePoint x / y, which the saves write).
     explicit FearMode(bool isWatchful) : AIActionMode(AIModeType::Fear), watchful(isWatchful) {}
     // Remembers a seen object and calms `spread`; 15000 for a ranged unit that can run, 3000 while it sees an
     // enemy, 350 in shelter, else noticedLevel / 6 or kPriorityNone. See docs/notes/unit_ai.md, "FearMode::Evaluate".
@@ -568,6 +581,13 @@ struct AIMemory {
     bool CanTrack(Unit* self, Unit* other);
     // Takes over a noticed point of a higher `level`.
     void Notice(const Vector3& point, int level, int decay);
+    // Takes over the noticed point, level and decay whatever the current level.
+    void SetNoticed(const Vector3& point, int level, int decay);
+    // Level and decay back to 0 (the point stays).
+    void ForgetNoticed() {
+        noticedLevel = 0;
+        noticedDecay = 0;
+    }
     void Forget(EngineObject* object);
     void HearCall(const Vector3& point, int delay, std::string_view text);
     void AddClaim(std::uint32_t mask, int delay, std::string_view text);
@@ -584,6 +604,7 @@ struct AIMemory {
     // the two sight ranges: a corpse joins the seen corpses (and the corpses when allied), a living unit the
     // visible list's head (both counted); each logged.
     void ForceSee(Unit* self, Unit* object);
+    // `self` sees the dead `corpse`: logged, listed as seen and, when allied, as a corpse to watch.
     void SeeCorpse(Unit* self, Unit* corpse);
     // The unit's exposure to the living hostile units nearby (Unit::exposure): per kind the
     // smallest distance / range ratio, at most 3 (a zero range counts 3). [0] sight (scaled by the line of
