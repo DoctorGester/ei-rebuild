@@ -137,7 +137,7 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   real seconds because a thread opens the file); `modfile`, `modlist`, `modarchive` and `mapfile` ask Rebirth's patches
   directly; `playstream <file>.mp3` asks the music stream for a track. The stream's steps run on the virtual clock (a
   harness run opens no sound device), so the wait takes the same world updates every run and the digest records them
-  (S19d1: four runs agreed record for record); with `music <volume>` and a device the thread is real and would not.
+  (S19d1: four runs agreed record for record); with `music <volume>` and a device the halves free in real time and would not.
 - `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) set the run's window; without
   them runs play in a window of 960x720 on the vanilla data and 1280x720 on Rebirth's (each takes its goldens' shape;
   FullScreen 0 unless the scenario says `fullscreen 1`).

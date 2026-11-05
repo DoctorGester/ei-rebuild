@@ -398,6 +398,24 @@ std::optional<Event> TakeEvent() {
     return PopEvent();
 }
 
+namespace {
+
+void (*g_modalLoopStep)() = nullptr;
+
+// SDL sends a live resize's redraws to the event watches from inside the system's modal loop, on the main thread.
+bool SDLCALL WatchModalLoop(void*, SDL_Event* event) {
+    if (event->type == SDL_EVENT_WINDOW_EXPOSED && event->window.data1 == 1 && g_modalLoopStep != nullptr) g_modalLoopStep();
+    return true;
+}
+
+} // namespace
+
+void SetModalLoopStep(void (*step)()) {
+    if (g_modalLoopStep == nullptr && step != nullptr) SDL_AddEventWatch(WatchModalLoop, nullptr);
+    else if (g_modalLoopStep != nullptr && step == nullptr) SDL_RemoveEventWatch(WatchModalLoop, nullptr);
+    g_modalLoopStep = step;
+}
+
 void PostQuit(int code) {
     g_quitPosted = true;
     g_quitCode = code;

@@ -271,7 +271,7 @@
 //   fullscreen 0|1            answer the game's FullScreen setting for this run (harness_starter.h)
 //   music <volume>            answer the game's AudioStreaming setting (the streamed music's volume) for
 //                             this run; 0: no streamed music, so the music system's random draws do not
-//                             follow the real-time stream thread (harness_starter.h)
+//                             follow the stream (harness_starter.h)
 //   expectlog <text>          require <text> in ei-rebuild.log so far (the code's own log lines, e.g. the WideScreen layout's)
 //   logmark                   the log's end now: the "new" log steps below look only at what comes after the last mark
 //   expectnewlog <text>       require <text> in ei-rebuild.log after the last mark (then the mark moves to the end)

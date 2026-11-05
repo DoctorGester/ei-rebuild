@@ -431,6 +431,10 @@ std::uint8_t g_recordingFrames = /*0079BC54*/ {};
 int g_showClientSpeed = /*0079BC60*/ {};
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
+void StepMusic() {
+    if (g_clientWorld.sounds != nullptr) g_clientWorld.sounds->FollowClock(platform::FrameClock());
+}
+
 void StartVideo() {
     // The one-instance check first: a second game ends here, before it has a device thread to stop.
     ExitIfGameRuns();
@@ -470,6 +474,7 @@ int GameMain(char* commandLine) {
                                               options->fullScreen != 0);
     if (!g_mainWindow) return 0;
     platform::ShowGameWindow(g_mainWindow);
+    platform::SetModalLoopStep(StepMusic);
     platform::SetCursor(nullptr);
 
     // What needs no device is done first: the renderer's start (CreateRenderer) takes the device from its thread, which

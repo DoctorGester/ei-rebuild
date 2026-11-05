@@ -226,10 +226,6 @@ private:
 
 // Threads are std::thread, locks std::mutex (std::recursive_mutex where a critical section was entered again).
 
-// Gives the calling thread the highest priority (the music stream's thread: its buffers must be filled in time).
-// std::thread has no priorities.
-void MakeThreadTimeCritical();
-
 // ==== Key codes ======================================================================================================
 
 // A key event's key: what the active layout makes the key (layouts move the letters, the digits and the punctuation:
@@ -397,6 +393,10 @@ Event NextEvent();
 std::optional<Event> TakeEvent();
 // Asks the loop to end: NextEvent gives a Quit event with `code` once the waiting events are taken.
 void PostQuit(int code);
+// `step` called on the main thread every 10 to 17 ms while a modal loop of the system holds the main loop (Windows'
+// and macOS's moving or sizing of the window: SDL's live-resize redraws); null: none. The harness's backend has no
+// such loop.
+void SetModalLoopStep(void (*step)());
 
 // ==== The cursor =====================================================================================================
 

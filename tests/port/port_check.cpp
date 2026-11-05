@@ -19,7 +19,6 @@
 #include <string>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <thread>
 #include <unistd.h>
 #include <vector>
 
@@ -175,13 +174,6 @@ int main() {
     Check(Select(&ready, nullptr, nullptr, 1000) == 0 && ready.count == 0, "select clears nonready sockets");
     Close(receiver);
     Close(sender);
-    int value = 0;
-    std::thread thread([&value] {
-        platform::MakeThreadTimeCritical();
-        value = 42;
-    });
-    thread.join();
-    Check(value == 42, "a thread at the highest priority runs");
     fs::current_path(old);
     // This tree is freshly made by this process and contains no links or game data.
     fs::remove_all(temp);

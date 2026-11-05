@@ -10,7 +10,7 @@
 //                                  rebuild's for its WideScreen flag)
 //   fullscreen 0|1                 the game's FullScreen
 //   music <volume>                 the game's AudioStreaming (the streamed music's volume, 0..100); 0: no
-//                                  streamed music. The stream thread plays in real time, and the music
+//                                  streamed music. With a device the stream plays in real time, and the music
 //                                  system's random draws follow the track it reports (SV5d5: a fight's
 //                                  combat track is picked only when the playing one is not it), so a run
 //                                  whose fights must draw the same everywhere plays without it

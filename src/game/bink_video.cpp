@@ -137,6 +137,7 @@ bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loa
 // up to that frame and stretched over the screen. Nothing when the off switch is set.
 void ShowLoadingMovie(int progress) {
     net::Pump();
+    app::StepMusic();
     if (g_loadingMovieOff) return;
     g_cursor.ShowImage(0);
     if (!g_loadingMovie) {

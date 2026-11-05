@@ -1,7 +1,7 @@
 #pragma once
 
-// Sound and music: the sound manager on our audio output (audio/audio.h), its MP3 music stream thread, and the music
-// state machine. See docs/notes/sound.md.
+// Sound and music: the sound manager on our audio output (audio/audio.h), its MP3 music stream, and the music state
+// machine. See docs/notes/sound.md.
 
 #include "engine_object.h"
 #include "registry.h"
@@ -13,14 +13,11 @@
 #include "lib/vecmath.h"
 #include "platform/platform.h"
 
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <list>
 #include <memory>
-#include <mutex>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -134,16 +131,6 @@ struct SoundSequence {
     bool PlayNext(struct SoundManager* manager);
 };
 
-// A music request of the game thread (SoundManager::RequestStream, StopStream, PlayStreamOnce, FadeOutStream,
-// FadeInStream, SetMusicVolume): made at once, or kept while the stream thread fills a buffer (lateRequests).
-struct StreamRequest {
-    enum class Kind { Switch, Stop, PlayOnce, FadeOut, FadeIn, Volume };
-    Kind kind = Kind::Switch;
-    StreamSwitch mode = StreamSwitch::Now;   // Switch, Stop
-    std::int32_t volume = 0;                 // Volume
-    std::string name;                        // Switch, PlayOnce
-};
-
 // How Play2D plays a sound.
 struct Play2DOptions {
     bool loop = false;          // endlessly
@@ -177,14 +164,7 @@ struct SoundManager : EngineObject {
     std::string soundPath;             // ending in a backslash
     FileRegistry soundRegistry;
     std::vector<MappedResource*> waveSources;   // the archives LoadSample looks in
-    // The MP3 music stream, filled on the stream thread. Its state below is guarded by streamLock, except while the
-    // stream thread fills the spare buffer (streamBusy): the thread then owns it without the lock (decoding, opening
-    // the next file), taking the lock only to change what the game thread reads (streamState, streamName,
-    // endAfterSwitch), and the game thread's requests wait in lateRequests, made in order as it hands the state back,
-    // so the game thread never waits for MP3 work.
-    std::mutex streamLock;
-    bool streamBusy = false;
-    std::vector<StreamRequest> lateRequests;
+    // The MP3 music stream, stepped on the main thread (FollowClock).
     StreamState streamState = StreamState::Idle;   // Switching: to nextName
     audio::Stream* streamSample = nullptr;
     audio::Mp3Stream* streamFile = nullptr;   // the playing file's decoder
@@ -205,14 +185,10 @@ struct SoundManager : EngineObject {
     std::vector<std::int32_t> markers;      // switch points ("Markers1/2" in the file)
     std::vector<std::int32_t> markers2;
     StreamSwitch switchMode = StreamSwitch::Now;   // RequestStream's mode
-    // PlayStreamOnce's file waits for the stream thread, which asks for silence after it as it switches to it
+    // PlayStreamOnce's file waits for the stream's next step, which asks for silence after it as it switches to it
     // (StopStream(AtEnd)); any other request clears it.
     bool endAfterSwitch = false;
-    std::thread streamThread;               // started when the MP3 stream opened with a device, joined by Close
-    // Without a device the main loop steps the stream (FollowClock); the last step's time.
-    bool streamOnMainLoop = false;
-    std::uint32_t streamSteppedAt = 0;
-    std::atomic<bool> threadsQuit{false};   // set by Close; the stream thread ends on it
+    std::uint32_t streamSteppedAt = 0;      // the last stream step's time (FollowClock)
     std::unique_ptr<SoundSlot[]> slots;     // kVoiceCount voices while open
     Vector3 listener{};                     // listener position (z: camera height)
     Vector3 listenerAxis{};                 // listener direction, unit length in x/y
@@ -268,10 +244,10 @@ struct SoundManager : EngineObject {
     void RequestStream(std::string_view name, StreamSwitch mode);
     void StopStream(StreamSwitch mode);
     // `name` from the current position (RequestStream mode 4), then silence once it has played (StopStream(1)): the
-    // stream thread makes the second request when it switches to the file, so the caller never waits for the device.
+    // stream's step makes the second request when it switches to the file.
     void PlayStreamOnce(std::string_view name);
-    // A PlayStreamOnce file the stream thread has not switched to yet (also one waiting in lateRequests).
-    bool StreamSwitchPending();
+    // A PlayStreamOnce file the stream has not switched to yet.
+    bool StreamSwitchPending() const { return endAfterSwitch; }
 
     // Handles restart at 0; with `stopStream` the stream stops too.
     void StopAll(bool stopStream);
@@ -294,17 +270,9 @@ struct SoundManager : EngineObject {
     SoundSlot* SlotForHandle(int handle) const;
 
     // Empty unless the stream plays or switches.
-    std::string CurrentStreamName();
-
-    // The music requests' bodies, on the stream's state: under streamLock, or on the stream thread while it is busy.
-    void MakeRequest(const StreamRequest& request);
-    void MakeSwitch(std::string_view name, StreamSwitch mode);
-    void MakeStop(StreamSwitch mode);
-    void MakePlayOnce(std::string_view name);
-    void MakeFade(FadeMode mode);
-    void MakeVolume(int volume);
-    // `request` made now, or kept in lateRequests while the stream thread is busy.
-    void Submit(StreamRequest request);
+    std::string CurrentStreamName() const;
+    // The music fader starts a fade (none held).
+    void StartFade(FadeMode mode);
 
     // Switch mode Now, the music fader at volume 100 with no fade.
     void ResetStream();
@@ -312,10 +280,8 @@ struct SoundManager : EngineObject {
     bool OpenStream();
     // Frees what OpenStream made.
     void CloseStream();
-    // With a device: a step every 100 ms of real time until Close sets threadsQuit. The thread ends when it returns.
-    void StreamThread();
-    // Without a device (no stream thread), from the main loop with the frame's time: the steps due by `now`, each at
-    // its time 100 ms after the last, as the thread would have made them.
+    // The stream's steps due by `now` (the frame's time), each at its time 100 ms after the last: from the main loop
+    // and from the passes that hold it longer than a half plays (loads, the system's modal loops; app::StepMusic).
     void FollowClock(std::uint32_t now);
     // A step at `now`: a fader step, and every half the output has played out by then gets the spare buffer.
     void StepStream(std::uint32_t now);
@@ -330,7 +296,7 @@ struct SoundManager : EngineObject {
 
     // The output at `rate` (at most 44100), the voices in the cave's reverb when `useReverb`.
     void Open(bool useReverb, unsigned rate);
-    // Waits for the threads to quit and frees everything Open made, then Reset.
+    // Frees everything Open made, then Reset.
     void Close();
     // Volumes 100, sound off.
     void Reset();
