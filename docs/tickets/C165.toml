@@ -1,0 +1,8 @@
+id = "C165"
+title = "Const string/vector pointer parameters, string-literal functions, scope blocks to zero"
+group = "cleanup"
+size = 2
+model = "sonnet"
+depends = ["C164"]
+note = "check_cleanup counts: 102 'const string or vector pointer parameter' (take const std::string& / std::string_view / std::span instead of const std::string* or const std::vector<T>*; nullable ones say why), 74 'function returning only a string literal' (a constant or a lookup table; a virtual answering its class's name may stay: say so in the check), 29 'scope block around a temporary' (drop the braces or give the part a function). Ratchets to 0 or a reason. Goldens the same; verify+release 0 warnings; WSL warning compile."
+order = 1207
