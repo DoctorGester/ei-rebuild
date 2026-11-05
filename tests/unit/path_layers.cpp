@@ -90,7 +90,9 @@ int RunPathLayersChecks() {
         std::string names;
         for (const platform::FolderEntry& entry : platform::FolderEntries(".\\maps\\*.mob")) {
             if (entry.IsDots()) continue;
-            names += entry.name + (entry.path == g + "\\maps\\" + entry.name ? "" : "(" + entry.path + ")") + " ";
+            // POSIX's entries keep the pattern's "." (game\.\maps\...): the same file.
+            const std::string path = platform::FullGamePath(entry.path);
+            names += entry.name + (path == g + "\\maps\\" + entry.name ? "" : "(" + path + ")") + " ";
             if (entry.name == "zone2.mob" && entry.size != 3) names += "(not the mod's) ";
         }
         Expect("the merged search", names, "bz1h.mob zone1.mob zone2.mob ");
