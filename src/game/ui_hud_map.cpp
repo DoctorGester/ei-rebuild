@@ -501,13 +501,9 @@ void HudMap::UpdateView() {
 // --- The zoom factor ----------------------------------------------------------------------------------
 
 void HudMap::Wheel(float notches, Point point) {
-    int region = RegionAt(point);
-    if (region < 0) return;
-    if (region == 0) {
-        float newZoom = WheelZoomFactor(notches) * zoom;
-        zoom = newZoom;
-        if (newZoom > zoomMax) zoom = zoomMax;
-        zoom = MaxKeepB(zoom, 1.0f);
-    }
-    handled = true;
+    if (HitRegion(point) != 0) return;
+    float newZoom = WheelZoomFactor(notches) * zoom;
+    zoom = newZoom;
+    if (newZoom > zoomMax) zoom = zoomMax;
+    zoom = MaxKeepB(zoom, 1.0f);
 }

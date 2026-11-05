@@ -35,7 +35,6 @@
 
 namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
-constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
 // Scene objects of the panels (sprites, UiMesh) are tinted through their three tint floats (the
@@ -83,31 +82,23 @@ bool IsZero(float value) {
 
 // --- Weapon bar --------------------------------------------------------------------------------
 
-void HudWeaponBar::LeftDown(Point point) {
-    int region = RegionAt(point);
-    if (region < 0 || region >= count) return;
-    handled = true;
-    CaptureMouse();
-}
+void HudWeaponBar::LeftDown(Point point) { PressRegion(point, count); }
 
 void HudWeaponBar::LeftUp(Point point) {
-    if (!ReleaseMouse()) return;
-    int region = RegionAt(point);
-    if (region < 0 || region >= count) return;
-    handled = true;
-    int previous = selected;
-    if (previous == region) return;
-    if (previous >= 0 && previous < count) Highlight(previous, false);
-    Highlight(region, true);
-    selected = region;
-    ui->PlayInterfaceSound(kSoundWeapon);
-    // No check for a missing local view here (like the original).
-    if (Unit* currentUnit = unit) g_clientWorld.LocalView()->SetWeapon(currentUnit, region);
+    if (const int slot = PressedRegion(point, count); slot >= 0) Choose(slot);
 }
 
-void HudWeaponBar::MouseMove(Point point) {
-    int region = RegionAt(point);
-    if (region >= 0 && region < count) handled = true;
+void HudWeaponBar::MouseMove(Point point) { HitRegion(point, count); }
+
+void HudWeaponBar::Choose(int slot) {
+    const int previous = selected;
+    if (slot >= count || slot == previous) return;
+    if (previous >= 0 && previous < count) Highlight(previous, false);
+    Highlight(slot, true);
+    selected = slot;
+    ui->PlayInterfaceSound(kSoundWeapon);
+    // No check for a missing local view here (like the original).
+    if (unit) g_clientWorld.LocalView()->SetWeapon(unit, slot);
 }
 
 void HudWeaponBar::Update() {
@@ -145,12 +136,6 @@ void HudQuickItems::LeftDown(Point point) {
     CaptureMouse();
 }
 
-void HudQuickItems::LeftDouble(Point point) {
-    if (RegionItem(RegionAt(point)) < 0) return;
-    handled = true;
-    CaptureMouse();
-}
-
 void HudQuickItems::MouseMove(Point point) {
     if (RegionItem(RegionAt(point)) >= 0) handled = true;
 }
@@ -166,50 +151,28 @@ void HudQuickItems::Update() {
 
 // --- Spell column ------------------------------------------------------------------------------
 
-void HudSpellColumn::LeftDown(Point point) {
-    int region = RegionAt(point);
-    if (region < 0 || region >= count) return;
-    handled = true;
-    CaptureMouse();
-}
+void HudSpellColumn::LeftDown(Point point) { PressRegion(point, count); }
 
 void HudSpellColumn::LeftUp(Point point) {
-    if (!ReleaseMouse()) return;
-    int region = RegionAt(point);
-    if (region < 0 || region >= count) return;
-    handled = true;
+    const int index = PressedRegion(point, count);
+    if (index < 0) return;
     if (ui->doubleClick)
-        ClickAlternate(region);
+        ClickAlternate(index);
     else
-        Click(region);
+        Click(index);
 }
 
-void HudSpellColumn::MouseMove(Point point) {
-    int region = RegionAt(point);
-    if (region >= 0 && region < count) handled = true;
-}
+void HudSpellColumn::MouseMove(Point point) { HitRegion(point, count); }
 
 // --- Action column -----------------------------------------------------------------------------
 
-void HudActionColumn::LeftDown(Point point) {
-    int region = RegionAt(point);
-    if (region < 0 || region >= count) return;
-    handled = true;
-    CaptureMouse();
-}
+void HudActionColumn::LeftDown(Point point) { PressRegion(point, count); }
 
 void HudActionColumn::LeftUp(Point point) {
-    if (!ReleaseMouse()) return;
-    int region = RegionAt(point);
-    if (region < 0 || region >= count) return;
-    handled = true;
-    Select(region);
+    if (const int index = PressedRegion(point, count); index >= 0) Select(index);
 }
 
-void HudActionColumn::MouseMove(Point point) {
-    int region = RegionAt(point);
-    if (region >= 0 && region < count) handled = true;
-}
+void HudActionColumn::MouseMove(Point point) { HitRegion(point, count); }
 
 // --- Portraits ---------------------------------------------------------------------------------
 
@@ -217,14 +180,13 @@ void HudActionColumn::MouseMove(Point point) {
 // screen: the battle screen while they get input).
 
 void HudPortraits::LeftDown(Point point) {
-    int region = RegionAt(point);
     const int mode = owner->portraitMode;
     if (mode == 0) {
-        if (region < 0) return;
-        handled = true;
-        if (region < std::ssize(owner->party)) CaptureMouse();
+        // Any portrait region takes the event; only a party member's takes the mouse.
+        if (const int region = HitRegion(point); region >= 0 && region < std::ssize(owner->party)) CaptureMouse();
         return;
     }
+    const int region = RegionAt(point);
     if (region < 0 || region >= count) return;
     // Picking a player for a server command: the player id of the slot, or of the session
     // player whose unit is the portrait's unit.
@@ -254,58 +216,47 @@ void HudPortraits::LeftDown(Point point) {
 
 void HudPortraits::LeftUp(Point point) {
     if (owner->portraitMode != 0) return;
-    if (!ReleaseMouse()) return;
-    int region = RegionAt(point);
-    if (region < 0) return;
-    handled = true;
-    BattleScreen* currentOwner = owner;
+    const int region = PressedRegion(point);
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
-    if (region < std::ssize(currentOwner->party)) currentOwner->SelectUnit(currentOwner->party[region], {});
+    if (region >= 0 && region < std::ssize(owner->party)) owner->SelectUnit(owner->party[region], {});
 }
 
 void HudPortraits::MouseMove(Point point) {
-    int region = RegionAt(point);
     if (owner->portraitMode == 0) {
-        if (region < 0) return;
-        handled = true;
-        BattleScreen* currentOwner = owner;
-        if (region < std::ssize(currentOwner->party)) currentOwner->HoverUnit(currentOwner->party[region], {});
+        const int region = HitRegion(point);
+        if (region >= 0 && region < std::ssize(owner->party)) owner->HoverUnit(owner->party[region], {});
         return;
     }
+    const int region = RegionAt(point);
     if (region >= 0 && region < count) g_cursor.SetShape(CursorShape::Default);
 }
 
 // --- Map ---------------------------------------------------------------------------------------
 
 void HudMap::LeftDown(Point point) {
-    int region = RegionAt(point);
-    if (region >= 0) {
-        handled = true;
-        CaptureMouse();
-    }
+    const int region = PressRegion(point);
     if (region != 3 && region != 4) return;
     ui->PlayInterfaceSound(kSoundClick);
     view = region == 3 ? 1 : 2;
-    // Scene objects 6 and 7 are the buttons of views 1 and 2.
-    for (int i = 0; i < 2; ++i)
-        SetTint(sceneObjects[6 + i], view == i + 1 ? kTintOn : kTintOff);
+    ShowView();
+}
+
+void HudMap::ShowView() {
+    for (int i = 0; i < 2; ++i) SetTint(sceneObjects[6 + i], view == i + 1 ? kTintOn : kTintOff);
 }
 
 void HudMap::LeftUp(Point point) {
     if (!ReleaseMouse()) return;
     if (view != 0) {
-        // A view button was held: the zoom stops and both buttons go dim.
+        // A view button was held: the zoom stops and both buttons go dim (the event is not marked used).
         view = 0;
-        for (int i = 0; i < 2; ++i) SetTint(sceneObjects[6 + i], view == i + 1 ? kTintOn : kTintOff);
+        ShowView();
         return;
     }
-    const int region = RegionAt(point);
+    const int region = HitRegion(point);
     switch (region) {
     case 0:     // the sling button
-        ui->PlayInterfaceSound(kSoundSling);
-        slide.direction = -slide.direction;
-        slide.moving = true;
-        handled = true;
+        slide.Toggle(ui);
         return;
     case 1:     // the round map (zoomed)
     case 2: {   // the map area
@@ -327,87 +278,61 @@ void HudMap::LeftUp(Point point) {
             camera->SetTargetId(-1);
             camera->SetFocus(WithZ(Vector2{worldX, worldY}, camera->focus.z));
         }
-        handled = true;
         return;
     }
-    case 5:     // "camera north"
-        ui->PlayInterfaceSound(kSoundClick);
-        g_camera.SetHeading(0.0f);
-        northTime = 0.5f;
-        handled = true;
+    case 5:
+        FaceNorth();
         return;
     default:
-        if (region >= 0) handled = true;
         return;
     }
 }
 
-void HudMap::MouseMove(Point point) {
-    if (RegionAt(point) >= 0) handled = true;
+void HudMap::MouseMove(Point point) { HitRegion(point); }
+
+void HudMap::FaceNorth() {
+    ui->PlayInterfaceSound(kSoundClick);
+    g_camera.SetHeading(0.0f);
+    northTime = 0.5f;
 }
 
 // --- Unit panel --------------------------------------------------------------------------------
 
-void HudUnitPanel::LeftDown(Point point) {
-    if (RegionAt(point) < 0) return;
-    handled = true;
-    CaptureMouse();
-}
+void HudUnitPanel::LeftDown(Point point) { PressRegion(point); }
 
 void HudUnitPanel::LeftUp(Point point) {
-    if (!ReleaseMouse()) return;
-    int region = RegionAt(point);
+    const int region = PressedRegion(point);
     if (region == 0) {
-        ui->PlayInterfaceSound(kSoundSling);
-        slide.moving = true;
-        slide.direction = -slide.direction;
-        handled = true;
-        return;
-    }
-    if (region > 0 && region <= 4) {
+        slide.Toggle(ui);
+    } else if (region > 0 && region <= 4) {
         ui->PlayInterfaceSound(kSoundClick);
         bodyPart = region - 1;
-        // Scene objects 3-6 are the body parts.
-        for (int i = 0; i < 4; ++i) SetTint(sceneObjects[3 + i], bodyPart == i ? kTintOn : kTintOff);
+        ShowBodyPart();
     }
-    if (region >= 0) handled = true;
 }
 
-void HudUnitPanel::MouseMove(Point point) {
-    if (RegionAt(point) >= 0) handled = true;
-}
+void HudUnitPanel::MouseMove(Point point) { HitRegion(point); }
 
-void HudUnitPanel::Wheel(float, Point point) {
-    if (RegionAt(point) >= 0) handled = true;
-}
+void HudUnitPanel::Wheel(float, Point point) { HitRegion(point); }
 
 // --- Clock -------------------------------------------------------------------------------------
 
-void HudClock::LeftDown(Point point) {
-    if (RegionAt(point) < 0) return;
-    handled = true;
-    CaptureMouse();
-}
+void HudClock::LeftDown(Point point) { PressRegion(point); }
 
 void HudClock::LeftUp(Point point) {
-    if (!ReleaseMouse()) return;
-    const int region = RegionAt(point);
+    const int region = PressedRegion(point);
     switch (region) {
-    case 0: {   // the pause button
-        handled = true;
+    case 0:     // the pause button
         TogglePause();
         return;
-    }
     case 1:     // the normal speed
     case 2:     // the fast speed
-        handled = true;
         // A network client too (Rebirth's MPSpeedControl; the original ignored the buttons there): the host's sets
         // the server's speed, everyone's game.
         if (g_clientWorld.paused) g_clientWorld.SendPause(0);
         SetSpeed(region == 2);
         return;
     case 3:     // the objectives
-        handled = true;
         OpenObjectives();
         return;
     default:
@@ -415,9 +340,7 @@ void HudClock::LeftUp(Point point) {
     }
 }
 
-void HudClock::MouseMove(Point point) {
-    if (RegionAt(point) >= 0) handled = true;
-}
+void HudClock::MouseMove(Point point) { HitRegion(point); }
 
 void HudClock::TogglePause() {
     ui->PlayInterfaceSound(kSoundClock);
@@ -442,22 +365,14 @@ void HudClock::OpenObjectives() {
 
 // --- Movement panel ----------------------------------------------------------------------------
 
-void HudMovePanel::LeftDown(Point point) {
-    if (RegionAt(point) < 0) return;
-    handled = true;
-    CaptureMouse();
-}
+void HudMovePanel::LeftDown(Point point) { PressRegion(point); }
 
 void HudMovePanel::LeftUp(Point point) {
-    if (!ReleaseMouse()) return;
-    int region = RegionAt(point);
-    if (region == -1) return;
-    handled = true;
-    if (region == 0) {
+    const int region = PressedRegion(point);
+    if (region == 0)
         ToggleFlag();
-        return;
-    }
-    SetMode(region - 1);
+    else if (region > 0)
+        SetMode(region - 1);
 }
 
 void HudMovePanel::SetMode(int newMode) {
@@ -472,9 +387,7 @@ void HudMovePanel::SetMode(int newMode) {
     ShowMode(newMode);
 }
 
-void HudMovePanel::MouseMove(Point point) {
-    if (RegionAt(point) >= 0) handled = true;
-}
+void HudMovePanel::MouseMove(Point point) { HitRegion(point); }
 
 void HudMovePanel::ShowMode(int newMode) {
     screen_layout::EnterLeftPanel();    // addon's handler; another at the end
@@ -527,42 +440,22 @@ void HudMovePanel::Update() {
 
 // --- Top panel ---------------------------------------------------------------------------------
 
-void HudTopPanel::LeftDown(Point point) {
-    if (RegionAt(point) < 0) return;
-    handled = true;
-    CaptureMouse();
-}
+void HudTopPanel::LeftDown(Point point) { PressRegion(point); }
 
 void HudTopPanel::LeftUp(Point point) {
-    if (!ReleaseMouse()) return;
-    int region = RegionAt(point);
-    switch (region) {
-    case 0:
-        ui->PlayInterfaceSound(kSoundSling);
-        slide.moving = true;
-        slide.direction = -slide.direction;
-        handled = true;
-        return;
-    case 1:
-    case 2:
+    const int region = PressedRegion(point);
+    if (region == 0) {
+        slide.Toggle(ui);
+    } else if (region == 1 || region == 2) {
         page = region - 1;
         ShowPage();
         ui->PlayInterfaceSound(kSoundClick);
-        handled = true;
-        return;
-    default:
-        if (region >= 0) handled = true;
-        return;
     }
 }
 
-void HudTopPanel::MouseMove(Point point) {
-    if (RegionAt(point) >= 0) handled = true;
-}
+void HudTopPanel::MouseMove(Point point) { HitRegion(point); }
 
-void HudTopPanel::Wheel(float, Point point) {
-    if (RegionAt(point) >= 0) handled = true;
-}
+void HudTopPanel::Wheel(float, Point point) { HitRegion(point); }
 
 // --- BattleScreen::SelectUnit --------------------------------------------------------
 

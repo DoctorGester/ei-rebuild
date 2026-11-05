@@ -18,6 +18,7 @@
 #include "lib/rect.h"
 #include "render/text_format.h"
 
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -583,6 +584,13 @@ public:
         ui->mouseCapture = nullptr;
         return true;
     }
+    // A button's mouse handling (like ImGui's ButtonBehavior) over the window's first `count` regions:
+    // HitRegion gives the region under the point, the event marked used, or -1 (a move, a wheel turn);
+    // PressRegion also takes the mouse (a button down); PressedRegion is the release: -1 without the
+    // mouse taken here, which it releases first.
+    int HitRegion(Point point, int count = INT_MAX);
+    int PressRegion(Point point, int count = INT_MAX);
+    int PressedRegion(Point point, int count = INT_MAX);
     // The scene objects, then the models.
     void DrawBase(SceneRenderer* pass);
     // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`
@@ -700,6 +708,9 @@ public:
     // Rebirth-patched (WideScreen: the bar at the screen's left edge, from 80 - shift with
     // more regions up to x 240).
     HudWeaponBar(Interface3D* ui, BattleScreen* owner);
+    // Weapon `slot` (its button or key), unless it is the one shown or not in use: highlighted, the weapon
+    // sound, and the unit's weapon set.
+    void Choose(int slot);
     // WideScreen: with the left panels' offset.
     void Highlight(int index, bool on);
     // The next slot's sprite: `image` copied into the bar's texture, the model `model` turned to face the
@@ -719,7 +730,6 @@ public:
 class HudQuickItems : public UiWindow {
 public:
     void LeftDown(Point point) override;
-    void LeftDouble(Point point) override;
     void MouseMove(Point point) override;
     // A unit's quick item (bottom row) is picked or, with a double click, used at once; a player's item
     // (top row) starts mode 6, or cancels when it is the highlighted one.
@@ -981,6 +991,8 @@ struct PanelSlide {
     void Step();
     // The panel's offset in pixels: `travel` eased (2 t^2 up to half way, 1 - 2 (1 - t)^2 after), truncated.
     int Offset() const;
+    // The sling button (or the map's key): the sling sound, then the slide turned round and started.
+    void Toggle(Interface3D* ui);
 
     float t = 0.0f;                  // 0..1: how far the panel has slid
     float direction = 0.0f;          // +1 / -1
@@ -1001,6 +1013,10 @@ public:
     void MouseMove(Point point) override;
     // Over region 0 the wheel zooms the map by 2.5^(notches / 10).
     void Wheel(float notches, Point point) override;
+    // "Camera north" (region 5 and its key): the click sound, the camera turned north, northTime 0.5.
+    void FaceNorth();
+    // The view buttons (scene objects 6 and 7) lit by `view`.
+    void ShowView();
     // Every frame: the marker mesh (scene object 2) of the units, marked objects, zone exits and players.
     void BuildMarkers();
     // Every frame, before BuildMarkers: follows the camera and builds the visible-area mesh (scene object 1)
@@ -1057,7 +1073,7 @@ public:
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
     void Wheel(float notches, Point point) override;
-    // The battle screen's keys call it after setting bodyPart.
+    // The body part buttons (scene objects 3-6) lit by bodyPart.
     void ShowBodyPart();
     // The pictures of the first six effects on `unit`; scene object 9 shows when there are more. PaintEffects their
     // names and times left.

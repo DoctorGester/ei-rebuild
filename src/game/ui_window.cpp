@@ -135,6 +135,24 @@ bool UiWindow::ContainsPoint(Point point) const {
     return rect.Contains(point);
 }
 
+int UiWindow::HitRegion(Point point, int count) {
+    const int region = RegionAt(point);
+    if (region < 0 || region >= count) return -1;
+    handled = true;
+    return region;
+}
+
+int UiWindow::PressRegion(Point point, int count) {
+    const int region = HitRegion(point, count);
+    if (region >= 0) CaptureMouse();
+    return region;
+}
+
+int UiWindow::PressedRegion(Point point, int count) {
+    if (!ReleaseMouse()) return -1;
+    return HitRegion(point, count);
+}
+
 void UiWindow::DrawTips() {
     Point mouse = ui->mouse;
     ui->ScalePointFromScreen(&mouse);
