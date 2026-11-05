@@ -56,7 +56,6 @@ src/game/object.h,0,0,1,0,0,0,1
 src/game/object3d_client.cpp,0,0,1,0,0,0,0
 src/game/object_diplomacy.h,0,0,2,0,0,0,0
 src/game/object_tables.h,0,0,3,0,0,0,1
-src/game/particle_callbacks.cpp,0,0,1,0,0,0,0
 src/game/party_manager.cpp,0,0,1,0,0,0,0
 src/game/party_manager.h,0,0,0,0,0,0,1
 src/game/party_records.h,0,0,1,0,0,0,0
