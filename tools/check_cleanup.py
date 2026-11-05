@@ -457,6 +457,8 @@ def count_double_start_states(text, inits=None):
                      if f in fields and not parameters & set(re.findall(r'\w+', v)))
         body = text[m.end():_closing_brace(text, m.end() - 1)]
         for a in _ASSIGN.finditer(body):
+            if fields.get(a.group(1)) == 'nullptr' and '(' in a.group(2):
+                continue                                 # a null pointer the constructor fills with a built object (C96)
             if a.group(1) in fields and not parameters & set(re.findall(r'\w+', a.group(2))) and (
                     constructor or _value(a.group(2)) != fields[a.group(1)]):
                 n += 1
