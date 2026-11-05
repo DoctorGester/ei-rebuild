@@ -47,7 +47,7 @@ clickregion 29
 frames 3
 clickregion 0
 waitwindow 25 briefing
-checkplayers 8
+checklimit 8
 peersignal hosted
 
 # The peer joins; no exchange.

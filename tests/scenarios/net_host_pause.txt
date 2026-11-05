@@ -37,7 +37,7 @@ clickregion 29
 frames 3
 clickregion 0
 waitwindow 25 briefing
-checkplayers 6
+checklimit 6
 frames 20
 
 # The sheriff's second topic (z3q2_1: four phrases, then the end).

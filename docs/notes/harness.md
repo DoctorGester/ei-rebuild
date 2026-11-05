@@ -132,7 +132,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
 - `plugin SecondMaster=<host[:port]> DisableExitOnCrashReport=0|1` sets Rebirth's values for the run, over the
   install folder's (rebirth.md, "Settings"). A game's player limit and pause mode are the host's create-server choices:
   a scenario drags the player slider (`layout ldown` / `move` / `lup`, `net_pair_portraits`) or clicks the pause
-  mode's region (29) with the new game's row selected. `folderprofile` checks the drop-in start-up (harness_folder_profile.h,
+  mode's region (29) with the new game's row selected; `checklimit <n>` requires the client session's player limit
+  (`ClientSession::PlayerLimit`), `checkpaused 0|1` the server world's pause flag. `folderprofile` checks the drop-in start-up (harness_folder_profile.h,
   `dropin_profile.txt`).
 - Mod folders (S19d; standalone.md, "Mod folders"): `mod <folder>` answers the settings' `[game] Mod` with a mod folder
   of the install (relative to the game folder, `starter\Mods\LostInAstral`), in full, or `harness_saves\<folder>` for

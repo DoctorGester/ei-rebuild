@@ -221,7 +221,7 @@
 //   speed <ms>                run one world update per <ms> of real time (game default 55, its own
 //                             speed-up key 27; smaller is faster); 0 leaves it to the game
 //   checktick <ms>            require the world update period to be <ms> now (the speed keys' effect)
-//   checkplayers <n>          require the client session's player limit (ClientSession::PlayerLimit) to be <n>
+//   checklimit <n>            require the client session's player limit (ClientSession::PlayerLimit) to be <n>
 //   checkpaused 0|1           require the server world's pause flag to be off / on (the host's pause mode)
 //   waitfor <seconds> <expression>
 //                             evaluate the expression every 250 ms until it is nonzero; fail if
@@ -3046,12 +3046,12 @@ void RunSteps() {
             if (TickLength() != want)
                 g_failures.push_back("checktick: the update period is " + std::to_string(TickLength()) + " ms, not " +
                                      std::to_string(want));
-        } else if (s.verb == "checkplayers") {
+        } else if (s.verb == "checklimit") {
             const int want = std::atoi(s.argument.c_str());
             const int limit = image::SessionPlayerLimit();
-            Log("harness: checkplayers: the session's player limit is %d (wanted %d)", limit, want);
+            Log("harness: checklimit: the session's player limit is %d (wanted %d)", limit, want);
             if (limit != want)
-                g_failures.push_back("checkplayers: the session's player limit is " + std::to_string(limit) + ", not " +
+                g_failures.push_back("checklimit: the session's player limit is " + std::to_string(limit) + ", not " +
                                      std::to_string(want));
         } else if (s.verb == "checkpaused") {
             const bool want = std::atoi(s.argument.c_str()) != 0;

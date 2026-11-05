@@ -32,7 +32,7 @@ clickregion 15
 frames 5
 clickregion 0
 waitwindow 40 briefing
-checkplayers 8
+checklimit 8
 peersignal joined
 frames 40
 
