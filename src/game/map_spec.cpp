@@ -6,6 +6,7 @@
 #include "game/base_manager.h"
 #include "game/core_transform.h"
 #include "game/game_singletons.h"
+#include "game/light.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_spec.h"

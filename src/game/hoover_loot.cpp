@@ -9,7 +9,7 @@
 #include "game/figure_mesh.h"
 #include "game/item_manager.h"
 #include "game/object.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/random.h"
 #include "game/unit.h"
 #include "game/unit_db.h"

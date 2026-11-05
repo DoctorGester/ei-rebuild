@@ -115,6 +115,16 @@ net_connection_life, world_effect_sequence, resource_stream.cpp, hoover_loot, ui
 | address_order.{h,cpp} | orders without addresses | world/object_order.*, namespace object_order |
 | bink_video.{h,cpp} | the game's movie players (src/video/bink_video.cpp is the decoder) | app/movies.* |
 
+C168b split these on the flat tree (all but model.h and texture.h, C168c's): the new files are flat under their final
+names (named_floats.{h,cpp}, water_tweens.cpp, light.h) and the code went into the files the table names by their flat
+names (text keys into text_manager, the key tables into key_bindings, DepthLess into world_client_maps.cpp, the database
+globals and prints.db's and acks.db's loads into their databases' files, the container draws into their windows' files
+with the screens' shared draw as DrawScreen in ui_container.cpp, TorchObjectSpec into torch.h / torch_object.cpp).
+misc_400.cpp is folded into server_specific_manager.cpp already (`layout.py check` takes a fold made before its owner
+moved). object_tables.h (now the map records alone), world_rules.cpp (the local player's queries) and
+server_specific_manager.* (both side managers) keep their names until their move batches rename them; hash_tables_400.h's
+namespace is `idtable`, address_order.h's `object_order`.
+
 `*_internal.h` (combat, spell effects, world effects) and `script_parse.h` are private headers of one family: they
 stay (combat_plan.h joins combat's). ui_float.h (FloatFromBits for constants written as raw bits, Truncate) moves as
 ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be float literals), not a move.
@@ -175,8 +185,8 @@ ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be 
 The rest of src:
 - `src/render` (37 sources, all but seven named `render_*`): names keep their folder word, so it has nothing to
   change (C168j dropped).
-- `src/lib`: core_maths.cpp defines Quaternion's members that lib/vecmath.h declares; they move to a new
-  src/lib/vecmath.cpp (C168b) so the class lives in one place. Nothing else.
+- `src/lib`: Quaternion's out-of-line members are in src/lib/vecmath.cpp beside lib/vecmath.h (C168b; they were in
+  core_maths.cpp and projection.cpp). Nothing else.
 - `src/platform` is by backend already; `src/audio` and `src/video` are fine (the game's bink_video.* becomes
   app/movies.*, so the two files of that name go). `tests/verify` (the harness) stays flat: out of scope.
 
@@ -263,29 +273,29 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 10598 | C168f |
-| `app/` | 25 | 5203 | C168e |
+| `app/` | 25 | 5234 | C168e |
 | `combat/` | 13 | 5168 | C168f |
-| `console/` | 5 | 1652 | C168e |
-| `core/` | 27 | 3574 | C168d |
-| `data/` | 13 | 2339 | C168d |
-| `effects/` | 23 | 10243 | C168g |
-| `items/` | 10 | 2807 | C168g |
-| `map/` | 11 | 1784 | C168e |
-| `models/` | 20 | 4504 | C168g |
+| `console/` | 5 | 1653 | C168e |
+| `core/` | 27 | 3504 | C168d |
+| `data/` | 13 | 2266 | C168d |
+| `effects/` | 23 | 10247 | C168g |
+| `items/` | 10 | 2810 | C168g |
+| `map/` | 11 | 1732 | C168e |
+| `models/` | 20 | 4523 | C168g |
 | `mods/` | 6 | 605 | C168d |
 | `net/` | 21 | 6203 | C168h |
-| `objects/` | 22 | 5525 | C168f |
-| `players/` | 23 | 5158 | C168e |
+| `objects/` | 22 | 5520 | C168f |
+| `players/` | 23 | 5161 | C168e |
 | `saves/` | 7 | 811 | C168d |
-| `scene/` | 30 | 4853 | C168g |
-| `script/` | 20 | 6525 | C168h |
+| `scene/` | 30 | 4836 | C168g |
+| `script/` | 20 | 6526 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 7 | 2544 | C168g |
-| `terrain/` | 12 | 3124 | C168g |
-| `ui/` | 94 | 30726 | C168h |
-| `units/` | 27 | 8717 | C168f |
-| `world/` | 35 | 8903 | C168e |
-| all | 482 | 133245 | |
+| `spells/` | 7 | 2467 | C168g |
+| `terrain/` | 12 | 2965 | C168g |
+| `ui/` | 94 | 30724 | C168h |
+| `units/` | 27 | 8821 | C168f |
+| `world/` | 35 | 8908 | C168e |
+| all | 482 | 132961 | |
 
 533 files today; 55 fold into an owner, 10 split by meaning, 8 new files come out of the splits, 36 moves rename for meaning.
 
@@ -423,7 +433,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | core_transform.h | core/core_transform.h |  |  |
 | engine_object.cpp | core/engine_object.cpp |  |  |
 | engine_object.h | core/engine_object.h |  |  |
-| hash_tables_400.h | core/id_tables.h |  | address-named: the id tables' map members (namespace hash400 -> idtable in C168b) |
+| hash_tables_400.h | core/id_tables.h |  | address-named: the id tables' map members (namespace idtable since C168b) |
 | manager_context.cpp | core/manager_context.cpp |  |  |
 | manager_context.h | core/manager_context.h |  |  |
 | named_floats.cpp | core/named_floats.cpp | new | NamedFloatTable's members, out of object_tables.cpp |
@@ -614,7 +624,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | map_object_figures.h | objects/object3d.h |  | holds Object3D (and its halves' bases), the 3D object under MapObject |
 | object3d_client.cpp | objects/object3d_client.cpp |  |  |
 | map_object_parts.cpp | objects/object3d_parts.cpp |  | Object3D's parts |
-| misc_400.cpp | objects/side_managers.cpp | fold | address-named: holds only ClientSpecificManager, the client halves' factory (C168b; its header comment is stale) |
+| misc_400.cpp | objects/side_managers.cpp | fold | address-named: held only ClientSpecificManager, the client halves' factory (folded into server_specific_manager.cpp by C168b) |
 | server_specific_manager.cpp | objects/side_managers.cpp | split | TorchObjectSpec -> objects/torch.cpp (C168b) |
 | server_specific_manager.h | objects/side_managers.h | split | ServerSpecificManager beside ClientSpecificManager (from base_manager.h); TorchObjectSpec -> objects/torch.h (C168b) |
 | torch_object.cpp | objects/torch.cpp |  | TorchObject's members, named for torch.h |
@@ -916,7 +926,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | object.h | world/hoover.h |  | grab-bag name: holds only Hoover |
 | world_rules.cpp | world/local_player.cpp | split | "rules" holds the local player's queries (GameTime, LocalPlayerData ...); DepthLess -> world/world_client_maps.cpp, its only user (C168b) |
 | address_order.cpp | world/object_order.cpp |  | with world/object_order.h |
-| address_order.h | world/object_order.h |  | orders without addresses (namespace address_order -> object_order in C168b) |
+| address_order.h | world/object_order.h |  | orders without addresses (namespace object_order since C168b) |
 | quest_database.cpp | world/quest_database.cpp |  |  |
 | quest_records.cpp | world/quest_database.cpp | fold | the quest database's records' Serialize (50 lines) |
 | quest_records.h | world/quest_records.h |  |  |

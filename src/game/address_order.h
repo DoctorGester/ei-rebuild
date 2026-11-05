@@ -9,7 +9,7 @@
 class EngineObject;
 class Object3D;
 
-namespace address_order {
+namespace object_order {
 
 // Whether the object set element `a` sorts before `b` (two object pointers as the sets keep them):
 // the object's id (signed), then the address.
@@ -20,4 +20,4 @@ bool ObjectBefore(const EngineObject* a, const EngineObject* b);
 // Objects with the same keys keep the sort's own order.
 bool DrawBefore(Object3D* a, Object3D* b);
 
-} // namespace address_order
+} // namespace object_order

@@ -11,6 +11,7 @@
 #include "game/ui.h"
 #include "game/ui_cursor.h"
 #include "game/screen_layout.h"
+#include "game/key_bindings.h"
 #include "lib/vecmath.h"
 #include "platform/platform.h"
 

@@ -11,12 +11,14 @@
 #include "game/ground_print.h"
 #include "lib/vecmath.h"
 #include "game/object_diplomacy.h"
+#include "game/object_tables.h"
 #include "game/party.h"
 #include "game/player_messages.h"
 #include "game/player_source.h"
 #include "game/registry.h"
 #include "game/unit_ai.h"   // AIEventTable (the server world's AI events)
 #include "game/unit_looks.h"
+#include "game/named_floats.h"
 
 #include "lib/bit_flags.h"
 #include "lib/hash_map.h"

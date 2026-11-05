@@ -15,6 +15,7 @@
 #include "game/hash_tables_400.h"
 #include "game/item.h"
 #include "game/item_manager.h"
+#include "game/light.h"
 #include "game/lightning.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
@@ -28,6 +29,7 @@
 #include "game/player_client.h"
 #include "game/player_manager.h"
 #include "game/player_messages.h"
+#include "game/server_specific_manager.h"
 #include "game/sky_object.h"
 #include "game/sound.h"
 #include "game/spell.h"
@@ -187,7 +189,7 @@ void WorldClient::AddObject(MapObject* object) {
     if (entry == dynamicNodes.end() && object->IsSynchronised()) {
         auto node = dynamicObjects.insert(dynamicObjects.end(), object);
         int key = object->id;
-        hash400::Entry(dynamicNodes, dynamicMaxId, key) = node;
+        idtable::Entry(dynamicNodes, dynamicMaxId, key) = node;
     }
     ClassId kind = object->GetClassId();
     if (kind == ClassId::Building || object->GetClassId() == ClassId::Lever) {
@@ -228,7 +230,7 @@ bool WorldClient::QueueSynchronised(MapObject* object) {
     if (dynamicNodes.contains(static_cast<std::uint32_t>(object->id))) return false;
     auto node = dynamicObjects.insert(dynamicObjects.end(), object);
     int key = object->id;
-    hash400::Entry(dynamicNodes, dynamicMaxId, key) = node;
+    idtable::Entry(dynamicNodes, dynamicMaxId, key) = node;
     return true;
 }
 
@@ -347,6 +349,24 @@ void WorldClient::ClearMaps() {
     figureManager->FreeSpares();
     objectManager->FreeSpares();
     specificManager->FreeSpares();
+}
+
+bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
+    MapObject* first = manager->FindMapObject(a->objectId);
+    MapObject* second = manager->FindMapObject(b->objectId);
+    if (!first || !second) return false;
+    // The matrix's row 2: the depth axis and its offset.
+    const Vector3 normal{view[8], view[9], view[10]};
+    float offset = view[11];
+    float da = Dot(first->localPosition, normal) + offset;
+    float db = Dot(second->localPosition, normal) + offset;
+    // Living objects come before dead ones; within each kind, by depth. The game asks each object again at
+    // every step, so the calls are repeated here in the same order.
+    if ((first->IsDead() == 0 && second->IsDead() == 0) ||
+        (first->IsDead() != 0 && second->IsDead() != 0)) {
+        return da < db;
+    }
+    return first->IsDead() == 0;
 }
 
 MapObject* WorldClient::Pick(const Point& point, HitTest test) {

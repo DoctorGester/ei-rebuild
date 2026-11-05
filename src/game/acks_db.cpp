@@ -1,19 +1,23 @@
 // Unit acknowledgements from acks.db: which speech a unit says for an ack kind.
-// The database's loading is in model_db.cpp and the vector serialisers in model_db.cpp;
-// the records' Serialize functions are at the end.
+// The records' Serialize functions and acks.db's load from database.res are at the end.
 #include "game/acks_db.h"
 
 #include "game/chunk_archive.h"
 #include "game/game_singletons.h"
 #include "game/map_object_figures.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/sound.h"
 #include "game/unit.h"
 #include "game/unit_db.h"
 #include "game/world.h"
 #include "game/random.h"
+#include "game/database_file.h"
+#include "lib/crt.h"
 
 #include <cstring>
+
+// The database of the speeches: built empty by the C++ runtime, loaded at start.
+acks::AckDatabase g_ackDatabase;
 
 namespace acks {
 
@@ -79,7 +83,7 @@ template <typename Record>
 Record* AckTable<Record>::RecordAt(std::uint32_t index) {
     return index < records.size() ? &records[index] : nullptr;
 }
-// model_db.cpp's AckDatabase::Load reads the extra acks by index.
+// AckDatabase::Load reads the extra acks by index.
 template ExtraAcks* AckTable<ExtraAcks>::RecordAt(std::uint32_t);
 
 // Counts the eligible entries and takes the chosen one by index: the same speech and the same
@@ -210,6 +214,16 @@ void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* lis
     });
 }
 
+void ChunkArchive::SerializeUnitAcks(int id, std::vector<acks::UnitAcks>* records) {
+    RecordChunks(this, id, records, &acks::UnitAcks::Serialize);
+}
+void ChunkArchive::SerializeModelAcks(int id, std::vector<acks::ModelAcks>* records) {
+    RecordChunks(this, id, records, &acks::ModelAcks::Serialize);
+}
+void ChunkArchive::SerializeExtraAcks(int id, std::vector<acks::ExtraAcks>* records) {
+    RecordChunks(this, id, records, &acks::ExtraAcks::Serialize);
+}
+
 namespace acks {
 
 void UnitAcks::Serialize(ChunkArchive* ar) {
@@ -229,6 +243,96 @@ void ModelAcks::Serialize(ChunkArchive* ar) {
 void ExtraAcks::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &head.name);
     Lists(ar, lists);
+}
+
+} // namespace acks
+
+// ---- acks.db's load ------------------------------------------------------------------------------
+
+// The load of acks.db from database.res, once at startup (as unit_db.cpp; docs/notes/models.md).
+
+namespace {
+
+using dbfile::LoadTable;
+using dbfile::OpenDatabase;
+
+// The chunks of acks.db.
+constexpr int kUnitAcksChunk = 1;
+constexpr int kModelAcksChunk = 2;
+constexpr int kExtraAcksChunk = 3;
+
+// Every record of `records` filed in `index` under its name (the index's operator[]: a record of
+// a name seen before replaces the earlier one).
+template <typename Record, typename Index, typename Name>
+void FileRecords(std::vector<Record>& records, Index& index, Name name) {
+    for (Record& record : records) index[name(record)] = &record;
+}
+
+// The speech lists of a unit's record by ack kind, in the order they are entered: the
+// list's index, the named speeches, or no list at all.
+constexpr int kNamedSpeeches = -1;
+constexpr int kNoList = -2;
+struct KindEntry {
+    std::uint8_t kind = 0;
+    std::int8_t list = 0;
+};
+constexpr KindEntry kUnitKinds[] = {
+    {0x00, 0},  {0x01, 1},  {0x02, 2},  {0x03, 3},  {0x04, 4},  {0x05, 5},  {0x06, 6},  {0x07, 7},
+    {0x08, 8},  {0x09, 9},  {0x0A, 10}, {0x0B, 11}, {0x0C, 12}, {0x0D, 13}, {0x0E, 14}, {0x0F, 15},
+    {0x10, 16}, {0x11, 17}, {0x12, 18}, {0x13, 19}, {0x14, 20}, {0x15, 21},
+    {0x16, kNoList}, {0x17, kNoList}, {0x18, kNoList}, {0x19, kNoList}, {0x1A, kNoList}, {0x1B, kNoList},
+    {0x1C, 22}, {0x1D, 23}, {0x1E, 24}, {0x1F, 25},
+    {0x20, 28}, {0x21, 29}, {0x22, 30}, {0x23, 26}, {0x24, 27},
+    {0x27, 31}, {0x28, 32}, {0x2A, kNamedSpeeches},
+};
+constexpr int kFirstModelKind = 0x2E;
+constexpr int kFirstExtraKind = 0x2C;
+
+acks::Speeches* SpeechListOf(acks::UnitAcks& record, int list) {
+    if (list == kNoList) return nullptr;
+    return list == kNamedSpeeches ? &record.namedSpeeches : &record.lists[list];
+}
+
+} // namespace
+
+namespace acks {
+
+int AckDatabase::Load(const std::string& folder) {
+    std::string base = folder;
+    MappedResource resource;
+    OpenDatabase(resource, base);
+    std::uint32_t size;
+    void* data = resource.GetFile("acks.db", &size);
+    if (!data) game::FatalExit("Can't open acks database\n");
+
+    MemoryStream stream;
+    stream.Fill(data, size);
+
+    const auto name = [](auto& record) -> const std::string& { return record.head.name; };
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeUnitAcks(kUnitAcksChunk, &units.records); });
+    FileRecords(units.records, units.byName, name);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeModelAcks(kModelAcksChunk, &models.records); });
+    FileRecords(models.records, models.byName, name);
+    LoadTable(&stream, [&](ChunkArchive& archive) { archive.SerializeExtraAcks(kExtraAcksChunk, &extras.records); });
+    FileRecords(extras.records, extras.byName, name);
+
+    resource.CloseFile(data);
+    resource.CloseResource();
+
+    // Every record's map from the ack kind to the list it says it from.
+    for (std::size_t i = 0; i < units.records.size(); ++i) {
+        UnitAcks& record = units.records[i];
+        for (const KindEntry& entry : kUnitKinds) record.head.speeches[entry.kind] = SpeechListOf(record, entry.list);
+    }
+    for (std::size_t i = 0; i < models.records.size(); ++i) {
+        ModelAcks& record = models.records[i];
+        for (int list = 0; list < 5; ++list) record.head.speeches[kFirstModelKind + list] = &record.lists[list];
+    }
+    for (std::size_t i = 0; i < extras.records.size(); ++i) {
+        ExtraAcks* record = extras.RecordAt(static_cast<std::uint32_t>(i));
+        for (int list = 0; list < 2; ++list) record->head.speeches[kFirstExtraKind + list] = &record->lists[list];
+    }
+    return 1;
 }
 
 } // namespace acks

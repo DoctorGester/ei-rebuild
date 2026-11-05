@@ -1,7 +1,7 @@
 // Lights and the light manager: Light's lifetime and setters, LightFactory ("CLightManager")
-// lifetime and object creation. See spell.h and docs/notes/items_spells.md.
+// lifetime and object creation. See light.h and docs/notes/items_spells.md.
 #include "game/core_transform.h"
-#include "game/spell.h"
+#include "game/light.h"
 
 #include "lib/crt.h"
 #include "lib/vecmath.h"

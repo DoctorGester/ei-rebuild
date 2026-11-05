@@ -11,7 +11,7 @@
 #include "game/options.h"
 #include "render/render.h"
 #include "render/render_checks.h"
-#include "game/spell.h"                // Light
+#include "game/light.h"
 #include "game/unit.h"                 // Unit
 #include "game/unit_client_models.h"   // UnitClientSpecific
 #include "game/world.h"   // g_clientWorld

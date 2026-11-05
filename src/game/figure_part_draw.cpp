@@ -4,6 +4,7 @@
 #include "game/figure_mesh.h"
 
 #include "game/engine_object.h"
+#include "game/light.h"
 #include "game/manager_context.h"
 #include "game/game_singletons.h"
 #include "game/link_figure.h"

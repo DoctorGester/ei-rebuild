@@ -5,7 +5,6 @@
 #include "game/map_object_figures.h"
 #include "game/net_delta.h"
 #include "game/save_versions.h"
-#include "game/server_specific_manager.h"   // TorchObjectSpec
 #include "game/spell.h"    // SpellType
 #include "game/torch.h"
 #include "game/unit.h"     // MapObjectServer

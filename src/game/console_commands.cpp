@@ -16,6 +16,7 @@
 #include "game/ui_camp.h"
 #include "game/unit.h"
 #include "game/world.h"
+#include "game/named_floats.h"
 
 #include "lib/containers.h"
 #include "platform/platform.h"

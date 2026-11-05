@@ -1,21 +1,11 @@
 #pragma once
 
-// The world server's manager of server-side state objects: ServerSpecificManager
-// (class id 0x31; created by the world server) and the torch state object it makes for
-// SideObjectType::Torch, TorchObjectSpec (0x58 bytes, class id 0x42). Both are real virtual classes: the
-// compiler makes their vtables).
-// server_specific_manager.cpp. Names from the classes' own ClassName strings.
+// The side-specific managers: the factories of the objects' server and client halves (SideObjectType).
+// ServerSpecificManager (class id 0x31) is created by the world server, ClientSpecificManager (0x30) by the client
+// world. server_specific_manager.cpp. Names from the classes' own ClassName strings.
 
 #include "game/base_manager.h"
 #include "game/engine_object.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <string>
-
-class ByteStream;
-class MapObject;
-class DeltaReader;
 
 class ServerSpecificManager : public BaseManager {
 public:
@@ -33,52 +23,12 @@ public:
     EngineObject* NewObject(int type) override;
 };
 
-class TorchObjectSpec : public EngineObject {
+class ClientSpecificManager : public BaseManager {
 public:
-    TorchObjectSpec();
-    ~TorchObjectSpec() override;
-
-    void Create() override { CreateSpec(); }
-    void Destroy() override { DestroySpec(); }
-    bool RunTick() override;                          // true
-    void Load(ByteStream* stream) override;                // LoadSpec
-    void Save(ByteStream* stream) override;                // SaveSpec
-    // "TorchObjectSpec". 12: 0x42.
+    ClientSpecificManager();
+    ~ClientSpecificManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    // 13-15: empty here; the client half (torch_client_spec.h) shows its
-    // effects, hides them and warms its particles up.
-    virtual void ShowEffectsSlot() {}
-    virtual void HideEffectsSlot() {}
-    virtual void WarmUpParticlesSlot() {}
-    // 16-18: the setters below; the client half rebuilds its effects there. Callers reach them
-    // through the vtable (the network read, the world server's CreateObject).
-    virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) { SetLight(kind, colour, value); }
-    virtual void SetFlameSlot(const float* colour, float value, const float* newValues) { SetFlame(colour, value, newValues); }
-    virtual void SetNameSlot(const char* newName) { SetName(newName); }
-
-    // torch_object.cpp. Create / Destroy (other names so they are no
-    // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
-    // the default colour (black), returns 1; Destroy clears +0x1C and the name. Load / Save:
-    // +0x20, the name (written with its terminator), +0x28, +0x2C, the
-    // four values +0x30 and both colours. The setters: set +0x20, the first
-    // colour and +0x28; the second colour, +0x2C and the four values; the name.
-    void CreateSpec();
-    void DestroySpec();
-    void LoadSpec(ByteStream* stream);
-    void SaveSpec(ByteStream* stream);
-    void SetLight(std::uint32_t kind, const float* colour, float value);
-    void SetFlame(const float* colour, float value, const float* values);
-    void SetName(const char* name);
-    // torch_object.cpp: the torch's network read. Reads the kind,
-    // values[0], values[1], values[2..5], both vectors and the name from `field`, then applies them
-    // through the virtual setters (a client half rebuilds its effects there), shows the
-    // effects and warms the particles up.
-    void ReadNetState(DeltaReader& field);
-
-    MapObject* torch = nullptr;  // the torch it belongs to (set by the torch's attach); null when constructed
-    std::uint32_t lightKind = 0;  // the light's kind (SetLight; saved and sent)
-    std::string name;
-    float values[6] = {};       // Create: 1, 10, 1, 1, 1, 1
-    float colours[2][3] = {};   // Create: both black
+    // A new object of a SideObjectType `type`, or null for any other type or a failed allocation.
+    EngineObject* NewObject(int type) override;
 };

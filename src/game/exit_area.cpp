@@ -13,6 +13,7 @@
 
 #include "lib/maths.h"
 #include "game/save_versions.h"
+#include "game/object_tables.h"
 
 #include <memory>
 

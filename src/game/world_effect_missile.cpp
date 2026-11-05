@@ -5,6 +5,7 @@
 #include "game/camera.h"
 #include "game/core_streams.h"
 #include "game/game_singletons.h"
+#include "game/light.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"

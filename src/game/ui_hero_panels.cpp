@@ -15,6 +15,9 @@
 #include "game/ui_screens.h"
 #include "game/unit.h"
 #include "game/world.h"
+#include "game/screen_layout.h"
+#include "game/texture.h"
+#include "game/ui_item_info.h"
 
 #include <cstdint>
 #include <cstring>
@@ -530,4 +533,55 @@ ItemUnder ConstructorPage::ItemAt(Point point) {
     if (const int cell = RegionIndex(gridCells, region); cell >= 0)
         return {NthSlot(slots, cell, IsMaterial), kTopicMaterial};
     return {};
+}
+
+// The hero's weapons (the strip's left part), quick items (from the right) and worn armour, with the frames of
+// the shown weapon and the selected quick item.
+void HeroEquipPanel::DrawSprites(SceneRenderer* pass) {
+    PartyUnitRecord* hero = owner->HeroRecord();
+    std::uint32_t shown = hero->weaponIndex;
+    if (shown < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
+        weaponFrame->visible = true;
+        weaponFrame->Place(static_cast<float>(shown * 100u + 50u), 50.0f, 3.0f);
+    } else {
+        weaponFrame->visible = false;
+    }
+    int currentSelected = selected;
+    if (currentSelected >= 0 && currentSelected < std::ssize(hero->quickItems)) {
+        quickItemFrame->visible = true;
+        quickItemFrame->Place(static_cast<float>(750 - currentSelected * 100), 50.0f, 3.0f);
+    } else {
+        quickItemFrame->visible = false;
+    }
+    DrawBase(pass);
+    ItemScreen* currentOwner = owner;
+    for (int i = 0; i < std::ssize(hero->weapons); ++i) {
+        ItemCell cell{hero->weapons[i], static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
+                      mode};
+        currentOwner->DrawItem(pass, cell);
+    }
+    for (int i = 0; i < std::ssize(hero->quickItems); ++i) {
+        ItemCell cell{hero->quickItems[i], static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
+                      mode};
+        currentOwner->DrawItem(pass, cell);
+    }
+    if (!body) return;
+
+    // The seven body slots' rectangles: 70 x 70 around their centres.
+    const int* centreX = kBodySlotX;
+    const int* centreY = kBodySlotY;
+    Rect slots[7];
+    for (int i = 0; i < 7; ++i) {
+        Rect r = screen_layout::ToScreen(Rect{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35});
+        slots[i] = r;
+    }
+    ClearUiDepth(0.0f);
+    ClearUiDepth(1.0f, slots, 7);
+    for (Item* item : hero->armor) {
+        int armorType = static_cast<int>(item->AsArmor()->GetType());
+        ItemCell cell{item, static_cast<float>(centreX[armorType]), static_cast<float>(centreY[armorType]), 6.0f, 100.0f,
+                      mode};
+        currentOwner->DrawItem(pass, cell);
+    }
+    ClearUiDepth(1.0f);
 }

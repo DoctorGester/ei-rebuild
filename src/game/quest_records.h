@@ -86,7 +86,7 @@ struct QuestDatabase {
     std::unordered_map<std::string, QuestRecord*> questsByName;
     QuestBriefingTable briefings;
 };
-extern QuestDatabase g_questDatabase;   // database_globals.cpp
+extern QuestDatabase g_questDatabase;
 
 
 class FileRegistry;

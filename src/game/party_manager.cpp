@@ -9,7 +9,7 @@
 #include "game/game_singletons.h"
 #include "game/item_manager.h"
 #include "game/mod_plugins.h"
-#include "game/object_tables.h"
+#include "game/named_floats.h"
 #include "game/party.h"
 #include "game/party_manager.h"
 #include "game/party_records.h"

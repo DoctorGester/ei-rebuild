@@ -1,6 +1,6 @@
 #pragma once
 
-// The world's water level changes (World::countdowns; model_db.cpp).
+// The world's water level changes (World::countdowns; water_tweens.cpp).
 
 #include "lib/bytes.h"
 

@@ -18,6 +18,17 @@
 #include <string>
 #include <unordered_map>
 
+int TextKeyFromName(std::string_view name) {
+    std::uint32_t h = 0;
+    for (char c : name.substr(0, name.find('\0')))
+        h = static_cast<std::uint32_t>(text::ToUpper(static_cast<unsigned char>(c))) + h * 5;
+    return static_cast<int>(h % 1000000000u + 1000000000u);
+}
+
+bool IsTextKey(int id) {
+    return id >= 1000000000 && id < 2000000000;
+}
+
 using namespace itemdb;
 
 namespace {

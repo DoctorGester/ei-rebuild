@@ -197,11 +197,11 @@ void WorldServer::SendFreshObjects() {
     std::vector<MapObject*> newObjects;
     for (MapObject* object : fresh) {
         unsigned objectId = static_cast<unsigned>(object->id);
-        hash400::RemoveKey(mapObjects.map, objectId);
+        idtable::RemoveKey(mapObjects.map, objectId);
         objectId = static_cast<unsigned>(object->id);
-        if (hash400::Find(otherMapObjects.map, objectId)) {
+        if (idtable::Find(otherMapObjects.map, objectId)) {
             objectId = static_cast<unsigned>(object->id);
-            hash400::RemoveKey(otherMapObjects.map, objectId);
+            idtable::RemoveKey(otherMapObjects.map, objectId);
         }
         newObjects.push_back(object);
     }

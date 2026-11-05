@@ -11,7 +11,7 @@
 #include "game/net_classes.h"
 #include "game/object.h"
 #include "game/object_diplomacy.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/party.h"
 #include "game/player_messages.h"
 #include "game/random.h"

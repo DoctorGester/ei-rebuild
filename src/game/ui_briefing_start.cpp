@@ -8,7 +8,6 @@
 #include "game/core_maths.h"
 #include "game/game_singletons.h"
 #include "game/text_manager.h"
-#include "game/object_tables.h"
 #include "game/party_manager.h"
 #include "game/player_messages.h"
 #include "game/sound.h"

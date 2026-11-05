@@ -170,7 +170,7 @@ terrain first pass, `DrawPass`, terrain second pass, effects / particles / light
 `DrawPass` clears eleven frame lists (`FrameObjects(list)`: objects whose model stays loaded; visible lists by class:
 0x52, units 0x50, 0x5D, other, 0x54; shadow lists), walks the sector grid calling `CollectVisible` (units are queued on
 the deferred list on the first pass, then it runs for that list and for the text-key heroes), sorts the loaded list by
-model use clearing flag 0x400 on the first max(10, n/8), sorts visible and shadow lists by model (`address_order::
+model use clearing flag 0x400 on the first max(10, n/8), sorts visible and shadow lists by model (`object_order::
 DrawBefore`) and draws them. `CollectVisible`: heroes with a text-key id are skipped unless `withScripted`; the object
 matrix is pushed and the bounding volume clip-tested (2 = outside); in view: flag 0x20, the view-space position (3x3
 part of the view matrix only), class and touched-model lists; out of view: flag cleared and, when the shadow volume is

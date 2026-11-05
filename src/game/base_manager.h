@@ -141,15 +141,6 @@ enum class SideObjectType : int {
 // type of a side-specific half.
 inline SideObjectType SideTypeOf(const EngineObject* object) { return static_cast<SideObjectType>(object->type); }
 
-class ClientSpecificManager : public BaseManager {
-public:
-    ClientSpecificManager();
-    ~ClientSpecificManager() override;
-    const char* ClassName() override;
-    ClassId GetClassId() override;
-    // A new object of a SideObjectType `type`, or null for any other type or a failed allocation.
-    EngineObject* NewObject(int type) override;
-};
 class EffectManager : public BaseManager {
 public:
     EffectManager();

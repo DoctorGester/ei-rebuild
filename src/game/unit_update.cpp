@@ -8,7 +8,7 @@
 #include "game/item_db.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/unit.h"
 #include "game/unit_create.h"
 #include "game/unit_db.h"

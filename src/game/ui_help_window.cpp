@@ -7,7 +7,7 @@
 // ("Pass state").
 #include "game/ui_help_window.h"
 #include "game/game_singletons.h"
-#include "game/object_tables.h"      // FindCommandByKey
+#include "game/key_bindings.h"
 #include "game/screen_layout.h"
 #include "game/text_manager.h"
 #include "game/ui.h"

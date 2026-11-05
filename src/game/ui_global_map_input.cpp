@@ -16,6 +16,7 @@
 #include "platform/platform.h"
 #include "lib/vecmath.h"
 #include "game/game_singletons.h"
+#include "game/key_bindings.h"
 #include "lib/str.h"
 
 #include <cmath>

@@ -21,6 +21,8 @@
 #include "lib/text_case.h"
 #include "platform/platform.h"
 #include "game/screen_layout.h"
+#include "game/object_tables.h"
+#include "game/key_bindings.h"
 
 #include <algorithm>
 #include <bit>

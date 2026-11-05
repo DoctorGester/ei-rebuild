@@ -15,7 +15,7 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/random.h"
 #include "game/sound.h"
 #include "game/texture.h"

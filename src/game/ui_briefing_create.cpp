@@ -9,6 +9,7 @@
 #include "game/game_flow.h"
 #include "game/game_singletons.h"
 #include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/options.h"
 #include "game/party.h"
 #include "game/player_client.h"

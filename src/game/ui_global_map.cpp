@@ -9,6 +9,7 @@
 #include "lib/maths.h"
 #include "lib/vecmath.h"
 #include "game/model.h"
+#include "game/named_floats.h"
 #include "game/object_tables.h"
 #include "game/options.h"
 #include "game/player_client.h"

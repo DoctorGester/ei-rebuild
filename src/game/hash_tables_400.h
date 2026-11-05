@@ -6,7 +6,7 @@
 #include "game/net_classes.h"
 
 
-namespace hash400 {
+namespace idtable {
 
 // The id tables: an owner's hash_map of a one-dword key, the highest key inserted kept by the owner in the member
 // after it (BaseManager's tables, the worlds' object maps, the client world's dynamic nodes), with the map-style
@@ -47,4 +47,4 @@ typename Map::mapped_type* Find(Map& map, typename Map::key_type key) {
 }
 
 
-} // namespace hash400
+} // namespace idtable

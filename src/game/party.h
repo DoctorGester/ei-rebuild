@@ -8,7 +8,7 @@
 #include "game/engine_object.h"
 #include "game/manager_context.h"
 #include "game/map_object_figures.h"
-#include "game/object_tables.h"
+#include "game/named_floats.h"
 
 #include <cstddef>
 #include <cstdint>

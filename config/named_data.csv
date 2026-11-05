@@ -119,7 +119,7 @@ address,size,name,file
 0079BC58,4,g_movieFrame,src/game/app_frame.cpp
 0079BC5C,1,g_active,src/game/app_main.cpp
 0079BC60,4,g_showClientSpeed,src/game/app_main.cpp
-0079BF70,512,g_keyActions,src/game/object_tables.h
+0079BF70,512,g_keyActions,src/game/key_bindings.h
 0079C1F8,1600,g_noiseSide,src/game/lightning.cpp
 0079C838,1600,g_noiseUp,src/game/lightning.cpp
 007A9BF8,4,kSpinAngle,src/game/particle_marks.cpp

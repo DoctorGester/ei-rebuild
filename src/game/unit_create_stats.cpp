@@ -10,7 +10,7 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_kinds.h"
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/torch.h"
 #include "game/trap_object.h"
 #include "game/unit.h"

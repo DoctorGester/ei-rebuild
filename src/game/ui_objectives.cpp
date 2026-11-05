@@ -6,6 +6,8 @@
 #include "game/console.h"
 #include "game/game_flow.h"
 #include "game/game_singletons.h"
+#include "game/key_bindings.h"
+#include "game/named_floats.h"
 #include "game/object_tables.h"
 #include "game/player_client.h"
 #include "game/quest_records.h"

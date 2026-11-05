@@ -11,6 +11,7 @@
 #include "game/model.h"
 #include "game/net_classes.h"
 #include "game/net_link.h"
+#include "game/named_floats.h"
 #include "game/object_tables.h"
 #include "game/options.h"
 #include "game/party.h"
@@ -338,7 +339,7 @@ bool WorldClient::RunTick() {
             auto key = static_cast<std::uint32_t>(object->id);
             if (auto found = dynamicNodes.find(key); found != dynamicNodes.end()) {
                 dynamicObjects.erase(found->second);
-                hash400::RemoveKey(dynamicNodes, key);
+                idtable::RemoveKey(dynamicNodes, key);
             }
         }
         ObjectListIterator timed;

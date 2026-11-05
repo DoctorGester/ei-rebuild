@@ -274,7 +274,7 @@ back. Reload: made again from the new mod's files. The list to check when a swit
 | App and loop (app_main, app_frame, main_loop.h, bink_video, `g_camera`, screen_layout, ui_cursor.h sizes) | ~27 | keep | the camera `Init` again and attached to the new client world; the loop's clock reset |
 | Settings, options, EI_Plugin's values, console, crt, random generators | ~19 | keep | `g_random` / `g_clientRandom` unseeded by `StartGame`, seeded again by `World::Create` |
 | `g_logicSettings` (config\ai.reg) | 1 | reload | `Load` starts from the defaults |
-| Databases (database_globals, unit_db, lever_table) and `g_mapDatabase` | 9 | reload | `LoadDatabases` empties each; `LoadAll` empties the map list |
+| Databases (spell_db, item_db, quest_database, ground_print, acks_db, unit_db, lever_table) and `g_mapDatabase` | 9 | reload | `LoadDatabases` empties each; `LoadAll` empties the map list |
 | Mod-folder layer (`g_mapsInMod` and mod_folders.cpp's state) | 1 + 2 | reload | `modfolders::Reset` |
 | Worlds (`g_clientWorld`, `g_serverWorld`: every manager and its archives, texts, sounds, music, the lightning noise) | 2 | reload | `Destroy` then `Create` and `SetUpGraphics` |
 | Game flow and world state (world_game: `g_gameFlow`, `g_zoneTable`, `g_saveStream`, the stamps; world_briefing's quest folders and files; world_weather, world.h; party_manager, party, player_client, player_server_handlers) | ~15 | reset | `GameFlow::Restart`; counters may keep counting |

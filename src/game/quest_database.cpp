@@ -21,6 +21,9 @@
 #include <string>
 #include <vector>
 
+// The database of the quests: built empty by the C++ runtime, loaded at start.
+QuestDatabase g_questDatabase;
+
 namespace {
 
 // The keys of a briefing's six string lists (QuestBriefingRecord::lists, in order).

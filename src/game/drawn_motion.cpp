@@ -1,6 +1,7 @@
 // The drawn motion of map objects between client ticks (drawn_motion.h; docs/notes/renderer.md section 14).
 #include "game/drawn_motion.h"
 
+#include "game/light.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/spell.h"

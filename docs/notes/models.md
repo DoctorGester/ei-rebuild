@@ -1,8 +1,8 @@
 # Models, resources, the draw layer, terrain and ground prints
 
-Code: `model.h/.cpp`, `model_db.cpp` (databases, water level changes), `figure_*.cpp`, `link_figure.cpp`,
+Code: `model.h/.cpp`, `figure_*.cpp`, `link_figure.cpp`,
 `link_loader.cpp`, `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `renderer_lines.cpp`,
-`device_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `ground_print.cpp`, `ground_decal.cpp`, `acks_db.cpp`, `dib.cpp`,
+`device_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `ground_print.cpp` (with prints.db's load), `ground_decal.cpp`, `acks_db.cpp` (with acks.db's load), `water_tweens.cpp`, `dib.cpp`,
 `resource*.cpp`. Algorithms are described in each file's header comment. Scenario: `tests/scenarios/models.txt` (the
 draw functions run in every scenario; ribbons and sprites in `spells` / `spells_cast`).
 

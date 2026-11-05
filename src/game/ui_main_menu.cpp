@@ -220,3 +220,5 @@ void MainMenu::KeyDown(UiEvent& event) {
     if (event.key != platform::Key::Escape) return;
     g_interface.PushWindow(std::make_unique<MessageWindow>(kQuitTitle, kQuitText, MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }
+
+void MainMenu::DrawSprites(SceneRenderer* pass) { DrawScreen(this, pass, false); }

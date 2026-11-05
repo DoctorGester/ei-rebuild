@@ -24,6 +24,7 @@
 #include "game/unit.h"
 #include "game/world.h"
 #include "game/world_effect.h"
+#include "game/object_tables.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
@@ -202,7 +203,7 @@ void WorldServer::RemoveObject(unsigned objectId) {
     if (!object) return;
     if (object->GetClassId() != ClassId::MagicTrap) aiMap.sectorMap.Remove(*slot);    // magic traps are not in it
 
-    hash400::RemoveKey(updateMap.map, objectId);
+    idtable::RemoveKey(updateMap.map, objectId);
     EraseId(objects, objectId);
     if (namedObjects.map.contains(objectId)) EraseId(namedObjects, objectId);
     if (sentObjects.map.contains(objectId)) {

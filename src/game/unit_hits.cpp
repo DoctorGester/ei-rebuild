@@ -7,7 +7,7 @@
 #include "game/options.h"
 #include "game/unit.h"
 
-#include "game/object_tables.h"
+#include "game/text_manager.h"
 #include "game/party.h"
 #include "game/player_messages.h"
 #include "game/item.h"

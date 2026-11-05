@@ -623,18 +623,18 @@ no arrow tips), the trade grid over both offers (mode 5) and the money field (0.
 
 ## Container draws
 
-`ui_container_draws.cpp`:
-- the container windows' base draw (UiContainer): stage 0 set to `kAlphaPassStage`, then the window's own sprites and models
-  and its enabled children;
-- the base / briefing screen's and screen 2's draws: the menu frame step, (screen 3) a mouse move to the window itself, a
-  depth clear, then the children;
-- the hero equipment panel's draw (HeroEquipPanel): the two highlight frames placed (the shown weapon, the selected quick
+Each in its window's file:
+- the container windows' base draw (UiContainer, ui_container.cpp): stage 0 set to `kAlphaPassStage`, then the window's own
+  sprites and models and its enabled children;
+- the briefing screen's and the main menu's draws (`DrawScreen`, ui_container.cpp; ui_briefing.cpp, ui_main_menu.cpp): the
+  client world's frame, (the briefing screen) a mouse move to the window itself, a depth clear, then the children;
+- the hero equipment panel's draw (HeroEquipPanel, ui_hero_panels.cpp): the two highlight frames placed (the shown weapon, the selected quick
   item), the weapons' (left) and quick items' (from the right) item models, and with the body (the camp) the seven equipment
   slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1 afterwards), as the hero preview and the
   trade grid do;
 - the alpha reference set to the window's value.
 
-Every state set goes to render::g_renderState; every depth clear to render::ClearDepth through `ClearUiDepth` (ui.h).
+Every state set goes to render::g_renderState; every depth clear to render::ClearDepth through `ClearUiDepth` (ui.h; ui_interface.cpp).
 
 ## Cursor in the frame
 
