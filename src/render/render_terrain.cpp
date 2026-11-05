@@ -542,8 +542,6 @@ static GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
 
 // --- GPU side ------------------------------------------------------------------------------------------
 
-static std::unordered_map<std::uint32_t, gpu::Pipeline> g_pipelines;   // by PassState::PipelineKey
-
 // The pipeline drawing terrain as the old device does with `s`: culling, depth and blending from the
 // state the old path draws the page with. The ground pass runs under the terrain's state
 // block with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw), the
@@ -571,19 +569,25 @@ static gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     return p;
 }
 
-// TerrainDesc's pipeline, kept by the state and the sample count.
+// TerrainDesc's pipeline (gpu.h keeps them by description).
 static gpu::Pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
-    int samples = PassSampleCount();
-    std::uint32_t key = s.PipelineKey() | (static_cast<std::uint32_t>(samples) << 24);
-    auto it = g_pipelines.find(key);
-    if (it != g_pipelines.end()) return it->second;
-    gpu::Pipeline pipeline = gpu::MakePipeline(TerrainDesc(s, samples), "ei-terrain");
-    if (!pipeline) ei::Log("render: a terrain pipeline could not be created (state key %08X; see the gpu messages above)", key);
+    const int samples = PassSampleCount();
 #if defined(EI_RENDER_VALIDATION)
-    ei::Log("render: terrain pipeline (first for a %s page): blend %d (%u, %u), depth test %d write %d func %u, cull %u",
-            water ? "water" : "ground", s.blend ? 1 : 0, s.sourceBlend, s.destBlend, s.depthTest ? 1 : 0, s.depthWrite ? 1 : 0, s.depthFunc, s.cull);
+    const int known = gpu::PipelineCount();
 #endif
-    g_pipelines.emplace(key, pipeline);
+    gpu::Pipeline pipeline = gpu::MakePipeline(TerrainDesc(s, samples), "ei-terrain");
+    static int failures = 0;
+    if (!pipeline)
+        LogFirst(failures, 10,
+                 "render: a terrain pipeline could not be created (state key %08X; see the gpu messages above)",
+                 s.PipelineKey());
+#if defined(EI_RENDER_VALIDATION)
+    if (gpu::PipelineCount() != known)
+        ei::Log("render: terrain pipeline (first for a %s page): blend %d (%u, %u), depth test %d write %d func %u, "
+                "cull %u",
+                water ? "water" : "ground", s.blend ? 1 : 0, s.sourceBlend, s.destBlend, s.depthTest ? 1 : 0,
+                s.depthWrite ? 1 : 0, s.depthFunc, s.cull);
+#endif
     return pipeline;
 }
 
@@ -908,9 +912,15 @@ void TerrainChanged(const terrain::SectorData* sector, TerrainChange change) {
     if (!sector) return;
     SectorChanges& c = g_changes[sector];
     switch (change) {
-    case TerrainChange::Rebuilt: ++c.rebuilt; break;
-    case TerrainChange::Moved: ++c.moved; break;
-    default: ++c.waterMoved; break;
+    case TerrainChange::Rebuilt:
+        ++c.rebuilt;
+        break;
+    case TerrainChange::Moved:
+        ++c.moved;
+        break;
+    default:
+        ++c.waterMoved;
+        break;
     }
 }
 
@@ -981,8 +991,8 @@ void TerrainPage(const SectorData* s, const SceneRenderer* renderer, int page) {
     } else if (FrameNumber() % kCheckEvery == 0) {
         ++g_checks;
         if (BuildAgain(s, page, p, occluded)) {
-            LogFirst(g_stale, 20, "render: a terrain page kept on the GPU was stale: sector (%d, %d) page %d",
-                        s->sx, s->sy, page);
+            LogFirst(g_stale, 20, "render: a terrain page kept on the GPU was stale: sector (%d, %d) page %d", s->sx,
+                     s->sy, page);
             moved = upload = true;
         }
 #endif

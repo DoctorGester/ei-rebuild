@@ -1,10 +1,9 @@
 // The image blits: the movies' frames (MovieFrame / MovieBlit: an RGBA8 image updated in place, drawn as a screen
 // rectangle that copies texels one to one, a stretch when the sizes differ). Also here: the
 // solid rectangles, the depth clear the game does in the middle of the frame and the movie player's fill (Fill).
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../platform/log.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -73,7 +72,10 @@ static void CheckUpload(const gpu::Texture& image, const std::uint8_t* rgba, int
             same = std::memcmp(texels.Row(y), rgba + static_cast<std::size_t>(y) * w * 4,
                                static_cast<std::size_t>(w) * 4) == 0;
         ++g_uploadChecks;
-        if (!same) LogFirst(g_uploadMismatches, 10, "render: MISMATCH: movie image %dx%d read back from the GPU differs from the pixels written", w, h);
+        if (!same)
+            LogFirst(g_uploadMismatches, 10,
+                     "render: MISMATCH: movie image %dx%d read back from the GPU differs from the pixels written", w,
+                     h);
     }
     gpu::Release(copy);
     if (g_uploadChecks % 20 == 1)
@@ -119,8 +121,7 @@ void DrawBlitBatch(const BlitBatch& b, int width, int height) {
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
-    const gpu::TextureBinding texture{
-        b.texture, gpu::NearestClampSampler()};
+    const gpu::TextureBinding texture{b.texture, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::blit::kSamplerTex, {&texture, 1});
     CountBindings(b.texture);
     ApplyRect(b.destination, width, height);

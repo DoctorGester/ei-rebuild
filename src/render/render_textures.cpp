@@ -2,11 +2,9 @@
 // uploaded as their blocks; RGB of any mask layout decoded; the file's levels only) and textures drawn on the GPU
 // (render_compose.cpp), kept as GPU textures until the holder goes. Also the cursor pictures' pixels as RGBA8
 // (render::PictureFromMmp).
-#include "render_internal.h"
-
-#include "../platform/log.h"
-
 #include "../game/texture.h"
+#include "../platform/log.h"
+#include "render_internal.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -42,7 +40,7 @@ static std::size_t RowPitch(gpu::Format format, int width) {
 // A texture of `format` from `levels` (level 0 first): the levels given only, as the .mmp file has them and the
 // original's texture had them (RGBA8 or the file's DXT blocks).
 static gpu::Texture MakeImage(gpu::Format format, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
-                       const char* label, FrameStats::Upload kind) {
+                              const char* label, FrameStats::Upload kind) {
     std::size_t bytes = 0;
     for (const std::vector<std::uint8_t>& level : levels) bytes += level.size();
     CountUpload(kind, bytes);
@@ -122,7 +120,8 @@ static gpu::Format BlockFormat(std::uint32_t format) {
 }
 
 // One level of an RGB .mmp file as RGBA8.
-static bool DecodeMmpLevel(const MmpHeader& h, const std::uint8_t* pixels, int width, int height, std::vector<std::uint8_t>& out) {
+static bool DecodeMmpLevel(const MmpHeader& h, const std::uint8_t* pixels, int width, int height,
+                           std::vector<std::uint8_t>& out) {
     int bytes = static_cast<int>(h.bitsPerPixel / 8);
     // RGB with its masks in the header; "PNT2" / "PNT3" (item pictures, a packed format the game
     // decodes itself) and anything else are not decoded.
@@ -241,7 +240,8 @@ bool StoreMmp(const void* holder, MmpLevels read, std::uint32_t format) {
     t.composed = false;
     t.mmpFormat = format;
     t.levels = static_cast<int>(read.levels.size());
-    t.image = MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-mmp-texture", FrameStats::Mmp);
+    t.image =
+        MakeImage(read.format, read.width, read.height, std::move(read.levels), "ei-mmp-texture", FrameStats::Mmp);
     t.width = read.width;
     t.height = read.height;
     return static_cast<bool>(t.image);
@@ -301,8 +301,8 @@ bool TextureFromMmpData(const void* holder, const MmpFile& file, unsigned mip, u
     }
     MmpLevels read;
     if (!ReadMmp(h, base, mip, levels, &read)) {
-        LogFirst(g_mmpFailures, 10, "render: .mmp format %08X (%u bits) not decoded",
-                    static_cast<unsigned>(h.format), static_cast<unsigned>(h.bitsPerPixel));
+        LogFirst(g_mmpFailures, 10, "render: .mmp format %08X (%u bits) not decoded", static_cast<unsigned>(h.format),
+                 static_cast<unsigned>(h.bitsPerPixel));
         return false;
     }
     return StoreMmp(holder, std::move(read), h.format);
@@ -316,7 +316,8 @@ bool PictureFromMmpData(const void* holder, const MmpFile& file) {
     p.width = static_cast<int>(h.width);
     p.height = static_cast<int>(h.height);
     if (!DecodeMmpLevel(h, file.Body() + h.MipOffset(0), p.width, p.height, p.rgba)) {
-        LogFirst(g_mmpFailures, 10, "render: picture format %08X not decoded; the cursor draws nothing for it", static_cast<unsigned>(h.format));
+        LogFirst(g_mmpFailures, 10, "render: picture format %08X not decoded; the cursor draws nothing for it",
+                 static_cast<unsigned>(h.format));
         return false;
     }
     g_pictures.emplace(holder, std::move(p));
@@ -339,15 +340,8 @@ gpu::Sampler LinearSampler() {
     return linear;
 }
 
-// The stages' samplers by their filters and addresses (gpu.h keeps them by description; this skips the lookup).
-static std::unordered_map<std::uint32_t, gpu::Sampler> g_samplers;
-
+// The stages' samplers by their filters and addresses (gpu.h keeps them by description).
 gpu::Sampler StageSampler(const StageState& s) {
-    std::uint32_t key = static_cast<std::uint32_t>(s.magFilter & 7) | (static_cast<std::uint32_t>(s.minFilter & 7) << 3) |
-                        (static_cast<std::uint32_t>(s.mipFilter & 7) << 6) | (static_cast<std::uint32_t>(s.addressU & 7) << 9) |
-                        (static_cast<std::uint32_t>(s.addressV & 7) << 12);
-    auto it = g_samplers.find(key);
-    if (it != g_samplers.end()) return it->second;
     gpu::SamplerDesc d;
     d.mag = s.magFilter == 1 ? gpu::Filter::Nearest : gpu::Filter::Linear;   // D3DTFG_POINT
     d.min = s.minFilter == 1 ? gpu::Filter::Nearest : gpu::Filter::Linear;   // D3DTFN_POINT
@@ -355,18 +349,12 @@ gpu::Sampler StageSampler(const StageState& s) {
     if (s.mipFilter <= 1) d.maxLod = 0.0f;   // D3DTFP_NONE: level 0 only
     d.u = Wrap(s.addressU);
     d.v = Wrap(s.addressV);
-    gpu::Sampler sampler = gpu::MakeSampler(d);
-    g_samplers.emplace(key, sampler);
-    return sampler;
+    return gpu::MakeSampler(d);
 }
 
 gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     // Point sampling asked for (the options' Filtering 0): as the stage says.
     if (s.minFilter == 1 || s.magFilter == 1) return StageSampler(s);
-    std::uint32_t key = 0x80000000u | (s.mipFilter <= 1 ? 1u : 0u) | (static_cast<std::uint32_t>(s.addressU & 7) << 9) |
-                        (static_cast<std::uint32_t>(s.addressV & 7) << 12) | ((level & 31u) << 16);
-    auto it = g_samplers.find(key);
-    if (it != g_samplers.end()) return it->second;
     // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose texture
     // coordinates change direction and scale from tile to tile (D3DTFP_POINT's level steps showed as seams;
     // renderer.md section 11). The render quality's anisotropy samples the world's models so too.
@@ -378,11 +366,7 @@ gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     if (s.mipFilter <= 1) d.maxLod = 0.0f;   // D3DTFP_NONE (the options' Mipmapping 0): level 0 only
     d.u = Wrap(s.addressU);
     d.v = Wrap(s.addressV);
-    gpu::Sampler sampler = gpu::MakeSampler(d);
-    ei::Log("render: anisotropic sampler: %u with linear mips%s (the stage's filters %u / %u / %u)", level,
-            s.mipFilter <= 1 ? ", level 0 only" : "", s.magFilter, s.minFilter, s.mipFilter);
-    g_samplers.emplace(key, sampler);
-    return sampler;
+    return gpu::MakeSampler(d);
 }
 
 void ForgetHolder(const void* holder) {
@@ -408,8 +392,9 @@ bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels,
     shape.firstLevel = static_cast<int>(mip);
     shape.levels = static_cast<int>(mip + (levels ? levels : 1));
     if (shape.levels > LevelCount(size, size) || shape.firstLevel >= shape.levels) {
-        LogFirst(g_failures, 10, "render: a composed %dx%d texture from level %u (%u levels) has no such level; it shows nothing", size,
-                    size, mip, levels);
+        LogFirst(g_failures, 10,
+                 "render: a composed %dx%d texture from level %u (%u levels) has no such level; it shows nothing", size,
+                 size, mip, levels);
         ForgetHolder(holder);
         return false;
     }
@@ -471,9 +456,10 @@ void TexturePatch(const void* target, const int to[4], const void* source, const
     Start();
     int tw = 0, th = 0, sw = 0, sh = 0;
     if (!HolderSize(target, &tw, &th) || !HolderSize(source, &sw, &sh) || !Inside(to, tw, th) || !Inside(from, sw, sh)) {
-        LogFirst(g_patchFailures, 10, "render: texture patch (%d,%d)-(%d,%d) of a %dx%d texture from (%d,%d)-(%d,%d) of a %dx%d one: "
-                    "not recorded (a texture without its size, or a rectangle outside it)",
-                    to[0], to[1], to[2], to[3], tw, th, from[0], from[1], from[2], from[3], sw, sh);
+        LogFirst(g_patchFailures, 10,
+                 "render: texture patch (%d,%d)-(%d,%d) of a %dx%d texture from (%d,%d)-(%d,%d) of a %dx%d one: "
+                 "not recorded (a texture without its size, or a rectangle outside it)",
+                 to[0], to[1], to[2], to[3], tw, th, from[0], from[1], from[2], from[3], sw, sh);
         return;
     }
     Patch& p = g_patches[target];
@@ -569,4 +555,4 @@ MmpLevelCheck CheckMmpLevels() {
 }
 #endif
 
-} // namespace render
+}   // namespace render

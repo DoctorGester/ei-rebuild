@@ -157,4 +157,4 @@ void RippleOffsets(float water[4], float swamp[4]) {
     }
 }
 
-} // namespace render
+}   // namespace render

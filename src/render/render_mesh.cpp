@@ -35,8 +35,8 @@ struct Pending {
 };
 static Pending g_pending;
 static int g_dropped = 0;
-static bool g_groundDecals = true;   // SetGroundDecals
-static bool g_weatherParticles = true;   // SetWeatherParticles
+static bool g_groundDecals = true;           // SetGroundDecals
+static bool g_weatherParticles = true;       // SetWeatherParticles
 static bool g_interfaceUnitWeather = true;   // SetInterfaceUnitWeather
 
 // A draw the renderer does not take is lost (there is no other way to draw): each reason logged the first time.
@@ -109,8 +109,6 @@ static bool Build(Frame& f, Pending& p) {
 
 // --- GPU side ------------------------------------------------------------------------------------------------
 
-// The pipelines by their pass state's key (gpu.h keeps them by description; this skips building one per draw).
-static std::unordered_map<std::uint32_t, gpu::Pipeline> g_pipelines;
 static GeometryStream g_geometry("ei-mesh", false);
 
 static gpu::PipelineDesc MeshDesc(const PassState& s, bool lines, bool cached, int samples) {
@@ -125,14 +123,7 @@ static gpu::PipelineDesc MeshDesc(const PassState& s, bool lines, bool cached, i
 }
 
 static gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
-    int samples = PassSampleCount();
-    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (cached ? 1u << 21 : 0u) |
-                        (static_cast<std::uint32_t>(samples) << 24);
-    auto it = g_pipelines.find(key);
-    if (it != g_pipelines.end()) return it->second;
-    gpu::Pipeline pipeline = gpu::MakePipeline(MeshDesc(s, lines, cached, samples), "ei-mesh");
-    g_pipelines.emplace(key, pipeline);
-    return pipeline;
+    return gpu::MakePipeline(MeshDesc(s, lines, cached, PassSampleCount()), "ei-mesh");
 }
 
 // The pass states every battle and menu draws meshes with (the pipelines a run makes, logged; the rare ones are made at

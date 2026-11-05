@@ -1,10 +1,9 @@
 // The new renderer's vertex and index buffers: the streams a frame appends its vertices to
 // (StreamBuffer, GeometryStream) and the pools that keep terrain pages and meshes on the GPU across
 // frames (GpuPool; docs/notes/renderer.md section 13).
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../platform/log.h"
 
 #include <algorithm>
 #include <vector>
@@ -165,4 +164,4 @@ void GpuPool::Drop() {
     ++generation;
 }
 
-} // namespace render
+}   // namespace render

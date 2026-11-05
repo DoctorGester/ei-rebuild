@@ -30,7 +30,8 @@ void NewFrame(int width, int height) {
     gpu::Release(g_targetDepth);
     g_targetWidth = width;
     g_targetHeight = height;
-    g_target = gpu::MakeTexture({width, height, 1, 1, render::kColourFormat, gpu::kColourTarget | gpu::kSampled, "ui-check-target"});
+    g_target = gpu::MakeTexture(
+        {width, height, 1, 1, render::kColourFormat, gpu::kColourTarget | gpu::kSampled, "ui-check-target"});
     g_targetDepth = gpu::MakeTexture({width, height, 1, 1, render::kDepthFormat, gpu::kDepthTarget, "ui-check-depth"});
 }
 
@@ -46,7 +47,8 @@ void DrawFrame() {
     for (std::size_t k = g_drawnCommands; k < render::g_frame.commands.size(); ++k) {
         const render::Command& c = render::g_frame.commands[k];
         const auto i = static_cast<std::size_t>(c.index);
-        if (c.kind == render::Command::Ui) render::DrawUiBatch(render::g_frame.uiBatches[i], g_targetWidth, g_targetHeight);
+        if (c.kind == render::Command::Ui)
+            render::DrawUiBatch(render::g_frame.uiBatches[i], g_targetWidth, g_targetHeight);
         if (c.kind == render::Command::Picture)
             render::DrawPictureBatch(render::g_frame.pictureBatches[i], g_targetWidth, g_targetHeight);
     }

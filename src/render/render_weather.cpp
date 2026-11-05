@@ -2,11 +2,11 @@
 // following the client's weather over time, the rain's rings' clock (shaders/terrain.hlsl, mesh.hlsl), each unit's
 // own wetness and snow under the roofs above it, and the roof map that keeps the ground and the other meshes under a
 // roof dry (shaders/roof.hlsli). See docs/notes/renderer.md, section 13, item 11b.
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
 
 #include "lib/maths.h"
-#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -111,12 +111,14 @@ static float Follow(float now, float target, double step, double rise, double fa
 // A mesh's model-space box (MeshBatch::box) placed by `model`, added to a box in the landscape's space.
 static void ExtendPlaced(Box& box, const float local[6], const Matrix4& model) {
     for (int k = 0; k < 8; ++k)
-        box.Extend(TransformColumn(model, Vector3{local[(k & 1) ? 3 : 0], local[(k & 2) ? 4 : 1], local[(k & 4) ? 5 : 2]}));
+        box.Extend(
+            TransformColumn(model, Vector3{local[(k & 1) ? 3 : 0], local[(k & 2) ? 4 : 1], local[(k & 4) ? 5 : 2]}));
 }
 
 // Of the rays `wanted` (a bit each) from `from[k]` along `along` (the mesh's model space, the same for all), those
 // that meet one of the batch's triangles ahead of them.
-static unsigned RaysMeetMesh(const Frame& f, const MeshBatch& b, const Vector3* from, const Vector3& along, unsigned wanted) {
+static unsigned RaysMeetMesh(const Frame& f, const MeshBatch& b, const Vector3* from, const Vector3& along,
+                             unsigned wanted) {
     auto corner = [&](int k) {
         return b.cached ? CachedCorner(*b.cached, k) : f.meshVertices[f.meshIndices[static_cast<std::size_t>(k)]].position;
     };
@@ -446,4 +448,4 @@ UnitWeather UnitWeatherState(const void* object) {
     return out;
 }
 
-} // namespace render
+}   // namespace render

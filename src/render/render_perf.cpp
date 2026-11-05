@@ -3,10 +3,9 @@
 // off every entry point returns at once.
 #include "render_perf.h"
 
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../platform/log.h"
 
 #include <algorithm>
 #include <chrono>
@@ -42,8 +41,8 @@ enum FrameValue { Interval, SubmitMs, ShadowCpuMs, FrameDraws, FrameValues = Fra
 static std::deque<Sample<FrameValues>> g_frames;
 static long long g_lastPresent = 0;
 static double g_cpu[static_cast<int>(Cpu::Count)] = {};   // this frame's
-static double g_draws[kPasses] = {};                       // this frame's
-static std::uint64_t g_drawsCounted = 0;                   // FrameDrawCount when last given to a pass
+static double g_draws[kPasses] = {};                      // this frame's
+static std::uint64_t g_drawsCounted = 0;                  // FrameDrawCount when last given to a pass
 
 // The GPU: the whole frame's time (gpu::FrameGpuTime), one per frame the GPU finished.
 static std::deque<Sample<1>> g_gpu;
@@ -141,7 +140,7 @@ static const Glyph* FindGlyph(char c) {
 constexpr double kRefreshMs = 250.0;   // the text is made again this often
 
 static gpu::Texture g_image;
-static bool g_imageReady = false;   // Prepare wrote it for this frame's Draw
+static bool g_imageReady = false;            // Prepare wrote it for this frame's Draw
 static std::vector<std::uint8_t> g_pixels;   // the text's image
 static int g_pixelsWidth = 0, g_pixelsHeight = 0;
 static bool g_pixelsChanged = false;

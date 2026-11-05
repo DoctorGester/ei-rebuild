@@ -3,9 +3,8 @@
 // below made by the GPU; and the global map's clouds (render::DrawClouds), their noise frames built by the GPU too.
 // render_textures.cpp keeps the result by holder. See docs/notes/renderer.md, section 7 ("Textures composed on the
 // GPU").
-#include "render_internal.h"
-
 #include "../platform/log.h"
+#include "render_internal.h"
 
 #include <algorithm>
 #include <cstring>
@@ -39,9 +38,13 @@ static gpu::PipelineDesc Desc(int program, gpu::Format format, bool over) {
     return p;
 }
 
-static gpu::PipelineDesc ComposeDesc(bool over) { return Desc(gpu_shaders::texture_compose::kIndex, gpu::Format::Rgba8, over); }
+static gpu::PipelineDesc ComposeDesc(bool over) {
+    return Desc(gpu_shaders::texture_compose::kIndex, gpu::Format::Rgba8, over);
+}
 static gpu::PipelineDesc MipDesc() { return Desc(gpu_shaders::texture_mip::kIndex, gpu::Format::Rgba8, false); }
-static gpu::PipelineDesc CloudFrameDesc() { return Desc(gpu_shaders::texture_clouds_frame::kIndex, gpu::Format::R8, false); }
+static gpu::PipelineDesc CloudFrameDesc() {
+    return Desc(gpu_shaders::texture_clouds_frame::kIndex, gpu::Format::R8, false);
+}
 static gpu::PipelineDesc CloudsDesc() { return Desc(gpu_shaders::texture_clouds::kIndex, gpu::Format::Rgba8, false); }
 
 static gpu::Pipeline ComposePipeline(bool over) {
@@ -157,8 +160,8 @@ static gpu::Texture MakeStepTexture(const ComposeImage& image) {
 // In a pass of its own: level `targetLevel` of `target` (`width` x `height`) drawn from level `level` of `source`,
 // filtered down from it (texture_mip with the linear sampler: `source`'s level twice the size) or texel for texel
 // (the nearest one: the same size).
-static void DrawLevel(const gpu::Texture& source, int level, gpu::Sampler sampler, const gpu::Texture& target, int targetLevel,
-               int width, int height) {
+static void DrawLevel(const gpu::Texture& source, int level, gpu::Sampler sampler, const gpu::Texture& target,
+                      int targetLevel, int width, int height) {
     gpu::PassDesc pass;
     pass.colour.texture = target;
     pass.colour.level = targetLevel;
@@ -196,7 +199,8 @@ static void DrawLevels(const ComposeShape& shape, const gpu::Texture& target) {
     }
 }
 
-static void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, const ComposeStep* steps, std::size_t count, bool clear) {
+static void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, const ComposeStep* steps,
+                      std::size_t count, bool clear) {
     // What the steps draw from, made before the pass (a clouds frame is built in a pass of its own).
     ++g_compositions;
     std::vector<gpu::Texture> textures;
@@ -311,4 +315,4 @@ bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height,
 }
 #endif
 
-} // namespace render
+}   // namespace render

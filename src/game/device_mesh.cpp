@@ -2,13 +2,12 @@
 // the pipeline for the visibility verdict and the screen rectangle picking reads. The new
 // renderer gets the mesh in model space once it is visible and clips it. See docs/notes/models.md ("Renderer").
 #include "device_buffers.h"
-
 #include "device_material.h"
 #include "figure_mesh.h"
 #include "model.h"
+#include "render/render.h"
 #include "settings.h"
 #include "texture.h"
-#include "render/render.h"
 
 #include <cstdint>
 

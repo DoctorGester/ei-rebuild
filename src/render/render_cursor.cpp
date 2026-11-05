@@ -1,13 +1,11 @@
 // The game's cursor as the system's (render::Cursor, docs/notes/renderer.md section 9): at each present the frame's
 // cursor picture is shown as a platform cursor shape, made from the picture's frame at the window's scale and through
 // the gamma ramp, one shape per picture frame kept until the scale or the ramp changes; a frame without one hides it.
-#include "render.h"
-#include "render_internal.h"
-
+#include "../game/surface.h"
 #include "../platform/log.h"
 #include "../platform/platform.h"
-
-#include "../game/surface.h"
+#include "render.h"
+#include "render_internal.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -28,7 +26,7 @@ struct Made {
     platform::CursorShape shape = nullptr;
 };
 static std::vector<Made> g_made;
-static Made g_shown{};   // the shape shown (one of g_made's); none: hidden
+static Made g_shown{};                              // the shape shown (one of g_made's); none: hidden
 static int g_placedWidth = 0, g_placedHeight = 0;   // the scale the last shape was looked up at
 static FrameCursor g_frameCursor{};
 static bool g_wanted = false;   // the frame being built called Cursor
@@ -40,8 +38,8 @@ static int FloorDiv(long long n, long long d) { return static_cast<int>(n >= 0 ?
 // `from` of the picture with its mask as alpha (255 where the mask's pixel, `maskBytes`, is zero: the mask is all ones
 // where the picture is black) scaled to `width` x `height` as the present's linear sampler stretched the frame
 // (texel centres; the filter on texels weighted by their alpha), then through the ramp: R, G, B, A rows from the top.
-static std::vector<std::uint8_t> Pixels(const Picture& picture, const std::uint8_t* mask, int maskBytes, const Rect& from,
-                                 int width, int height, const std::uint8_t* ramp) {
+static std::vector<std::uint8_t> Pixels(const Picture& picture, const std::uint8_t* mask, int maskBytes,
+                                        const Rect& from, int width, int height, const std::uint8_t* ramp) {
     const int sw = from.Width(), sh = from.Height();
     auto texel = [&](int x, int y, std::uint32_t* rgb, std::uint32_t* alpha) {
         const std::size_t i = static_cast<std::size_t>(from.top + y) * picture.width + (from.left + x);
@@ -110,16 +108,17 @@ static const Made* ShapeFor(const FrameCursor& cursor) {
     m.height = std::max(1, (sh * g_placedHeight + frameHeight / 2) / frameHeight);
     m.hotX = std::clamp((cursor.hot.x * m.width + sw / 2) / sw, 0, m.width - 1);
     m.hotY = std::clamp((cursor.hot.y * m.height + sh / 2) / sh, 0, m.height - 1);
-    const std::vector<std::uint8_t> rgba =
-        Pixels(*picture, static_cast<const std::uint8_t*>(cursor.mask), maskBytes, from, m.width, m.height, GammaRampTable());
+    const std::vector<std::uint8_t> rgba = Pixels(*picture, static_cast<const std::uint8_t*>(cursor.mask), maskBytes,
+                                                  from, m.width, m.height, GammaRampTable());
     m.shape = platform::MakeCursor(rgba.data(), m.width, m.height, m.hotX, m.hotY);
     if (!m.shape) {
         LogFirst(g_info.failures, 3, "render: the system cannot make a %dx%d cursor", m.width, m.height);
         return nullptr;
     }
-    LogFirst(g_info.made, 32, "render: cursor made: picture %dx%d, its part %d,%d-%d,%d, %dx%d on the window (hot spot %d, %d)",
-                picture->width, picture->height, from.left, from.top, from.right, from.bottom, m.width, m.height, m.hotX,
-                m.hotY);
+    LogFirst(g_info.made, 32,
+             "render: cursor made: picture %dx%d, its part %d,%d-%d,%d, %dx%d on the window (hot spot %d, %d)",
+             picture->width, picture->height, from.left, from.top, from.right, from.bottom, m.width, m.height, m.hotX,
+             m.hotY);
     g_made.push_back(m);
     return &g_made.back();
 }

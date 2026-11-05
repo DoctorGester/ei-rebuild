@@ -17,4 +17,4 @@ std::span<const unsigned char> FontForFace(std::string_view face) {
     return courier ? std::span<const unsigned char>(kLiberationMono) : std::span<const unsigned char>(kLiberationSerif);
 }
 
-} // namespace render::text
+}   // namespace render::text

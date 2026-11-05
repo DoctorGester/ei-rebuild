@@ -2,11 +2,11 @@
 
 // Internals shared by the renderer's files.
 
+#include "platform/log.h"
 #include "render.h"
 #include "render/gpu.h"
 
 #include "lib/vecmath.h"
-#include "platform/log.h"
 
 // The programs' uniform blocks, slots and vertex inputs (CMakeLists.txt, tools/gen_gpu_shaders.py).
 #include "shaders/gpu_shaders.h"
@@ -14,10 +14,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
-#include <utility>
 #include <span>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 class TextureDevice;
@@ -317,7 +317,8 @@ struct ShadowFrame {
 struct WorldMesh {
     int batch = 0;           // into Frame::meshBatches
     bool additive = false;   // the light added (D3DBLEND_ONE): a receiver and a caster of nothing
-    bool repeat = false;     // another pass of the mesh of the last batch that was not additive (the same kept mesh and first index)
+    bool repeat =
+        false;   // another pass of the mesh of the last batch that was not additive (the same kept mesh and first index)
 };
 
 struct Frame {
@@ -517,7 +518,7 @@ private:
 // TerrainPieceWhole, all of them as one; TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, drops pages not
 // drawn for a long time.
 struct TerrainGroup {
-    Box box;                        // of its positions in the landscape's space
+    Box box;                             // of its positions in the landscape's space
     std::uint32_t first = 0, count = 0;  // its vertices in the page's
 };
 bool CreateTerrainShader();
@@ -881,4 +882,4 @@ void CopyIntoMultisampled(const gpu::Texture& colour, const gpu::Texture& depth)
 // multisampled pass's resolve.
 void CopyDepthFromResolved(const gpu::Texture& depth);
 
-} // namespace render
+}   // namespace render

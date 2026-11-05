@@ -1,17 +1,16 @@
 // The new renderer's frame: the switch, the device (gpu.h), the off-screen target the frame is drawn into (the game's
 // resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
 #include "render.h"
-#include "render_internal.h"
-#include "render_perf.h"
-#include "render_ui.h"
 
-#include "../platform/log.h"
-
-#include "render_state.h"
-#include "../game/texture.h"
 #include "../game/app.h"
 #include "../game/game_singletons.h"
 #include "../game/model.h"
+#include "../game/texture.h"
+#include "../platform/log.h"
+#include "render_internal.h"
+#include "render_perf.h"
+#include "render_state.h"
+#include "render_ui.h"
 
 #if defined(_M_X64) || defined(__x86_64__)
 #include <xmmintrin.h>
@@ -32,10 +31,11 @@ namespace render {
 // --- The switch ------------------------------------------------------------------------------------
 
 static bool g_configured = false;
-static int g_msaa = 1;         // the render quality (SetMsaa, SetAnisotropy); not EI_RENDER's
+static int g_msaa = 1;   // the render quality (SetMsaa, SetAnisotropy); not EI_RENDER's
 static int g_anisotropy = 1;
 #if defined(EI_RENDER_VALIDATION)
-static bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
+static bool g_checkAll =
+    false;   // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
 #endif
 
 // EI_RENDER's words (render.h).
@@ -133,7 +133,8 @@ static void CheckFloatControl() {
     if ((now & 0xFFC0u) == g_mxcsr) return;
 #if defined(EI_RENDER_VALIDATION)
     static int logged = 0;
-    LogFirst(logged, 10, "render: MXCSR's control bits changed (%04X, at the start %04X); set back", now & 0xFFC0u, g_mxcsr);
+    LogFirst(logged, 10, "render: MXCSR's control bits changed (%04X, at the start %04X); set back", now & 0xFFC0u,
+             g_mxcsr);
 #endif
     _mm_setcsr((now & 0x3Fu) | g_mxcsr);
 #endif
@@ -254,7 +255,7 @@ struct GameTimer {
 static GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
 #endif
 
-static FrameStats g_statsSum;      // the presented frames since the last TakeFrameStats
+static FrameStats g_statsSum;                  // the presented frames since the last TakeFrameStats
 static const void* g_lastPipeline = nullptr;   // applied last in this frame
 static const void* g_lastTexture = nullptr;
 #if defined(EI_RENDER_VALIDATION)
@@ -451,7 +452,9 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
             DrawMeshBatch(g_frame, batch, anisotropy);
             break;
         }
-        case Command::Blit: DrawBlitBatch(g_frame.blitBatches[i], width, height); break;
+        case Command::Blit:
+            DrawBlitBatch(g_frame.blitBatches[i], width, height);
+            break;
         case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
         case Command::Fill: DrawFill(g_frame.fills[i], width, height); break;
         case Command::Ui: DrawUiBatch(g_frame.uiBatches[i], width, height); break;

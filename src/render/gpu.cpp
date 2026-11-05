@@ -2,11 +2,9 @@
 #include "gpu.h"
 
 #include "../platform/log.h"
-
 #include "shaders/gpu_shaders.h"
 
 #include <SDL3/SDL.h>
-
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -217,10 +215,10 @@ struct Submission {
 };
 static std::mutex g_fenceLock;
 static std::deque<Submission> g_submissions;
-static std::uint64_t g_serial = 1;      // the open command buffer's: the next submission's
-static std::uint64_t g_doneBefore = 1;  // every submission before this serial is done and dropped
-static double g_lastFinished = 0.0;     // the frame timer's: when the last submission it saw finish did
-static double g_latestGpuMs = -1.0;     // its time, not yet taken by FrameGpuTime
+static std::uint64_t g_serial = 1;       // the open command buffer's: the next submission's
+static std::uint64_t g_doneBefore = 1;   // every submission before this serial is done and dropped
+static double g_lastFinished = 0.0;      // the frame timer's: when the last submission it saw finish did
+static double g_latestGpuMs = -1.0;      // its time, not yet taken by FrameGpuTime
 static std::thread g_timer;
 static std::atomic<bool> g_timing{false};
 
@@ -618,8 +616,8 @@ static const char* PipelineFault(const PipelineDesc& d) {
 
 // `desc`'s pipeline made on `device` with `shaders`' programs; empty when it cannot be (a Problem unless `quiet`).
 // Touches nothing else, so the thread that made the device can run it before Start.
-static Pipeline BuildPipeline(SDL_GPUDevice* device, ShaderPrograms& shaders, const PipelineDesc& desc, const char* label,
-                       bool quiet) {
+static Pipeline BuildPipeline(SDL_GPUDevice* device, ShaderPrograms& shaders, const PipelineDesc& desc,
+                              const char* label, bool quiet) {
     if (const char* fault = PipelineFault(desc)) {
         if (!quiet) Problem("pipeline %s: %s", label ? label : "", fault);
         return {};
@@ -718,7 +716,7 @@ static Prepared g_prepared;
 
 // A device's pipelines and shaders let go (the device's own release does not).
 static void ReleaseMade(SDL_GPUDevice* device, std::unordered_map<PipelineDesc, Pipeline, PipelineHash>& pipelines,
-                 ShaderPrograms& shaders) {
+                        ShaderPrograms& shaders) {
     for (auto& [desc, p] : pipelines) SDL_ReleaseGPUGraphicsPipeline(device, p.pipeline);
     pipelines.clear();
     for (std::vector<SDL_GPUShader*>* list : {&shaders.vertex, &shaders.fragment}) {
@@ -1439,8 +1437,9 @@ void Draw(std::uint32_t first, std::uint32_t count, std::uint32_t instances) {
 
 void DrawIndexed(std::uint32_t first, std::uint32_t count, std::uint32_t instances, std::uint32_t firstInstance) {
     if (!g_pass || !g_bound.pipeline || !g_bound.haveIndex) {
-        Problem("an indexed draw %s",
-                       !g_pass ? "outside a pass" : g_bound.pipeline ? "without indices" : "without a pipeline");
+        Problem("an indexed draw %s", !g_pass            ? "outside a pass"
+                                      : g_bound.pipeline ? "without indices"
+                                                         : "without a pipeline");
         return;
     }
     ++g_counts.draws;

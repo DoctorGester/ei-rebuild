@@ -1,9 +1,8 @@
 // Meshes kept on the GPU, built again only where the game says they changed. See docs/notes/renderer.md,
 // "The renderer's source files".
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../platform/log.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -92,7 +91,7 @@ struct CachedMesh {
 
 static std::unordered_map<const void*, CachedMesh> g_meshes;
 static std::unordered_map<const void*, CachedMesh> g_casterMeshes;   // KeepCasterMesh's, by part (no colours)
-static std::uint32_t g_lastVersion = 0;   // the last CachedMesh::version given
+static std::uint32_t g_lastVersion = 0;                              // the last CachedMesh::version given
 static std::vector<CachedMesh*> g_pending;
 static GpuPool g_pool(sizeof(MeshVertex), 1u << 16, 3u << 16, "ei-mesh");
 // A mesh not drawn for this many frames is dropped (its pool room comes back at the next Restart).
@@ -169,7 +168,8 @@ static MeshVertex CasterCorner(const ShadowMesh& m, int i) {
 }
 
 // The triangles over `cornerCount` corners into `out`; one with a corner out of range is left out.
-static void BuildTriangles(const std::uint16_t* indices, int indexCount, int cornerCount, std::vector<std::uint32_t>& out) {
+static void BuildTriangles(const std::uint16_t* indices, int indexCount, int cornerCount,
+                           std::vector<std::uint32_t>& out) {
     out.clear();
     for (int k = 0; k + 2 < indexCount; k += 3) {
         if (indices[k] >= cornerCount || indices[k + 1] >= cornerCount || indices[k + 2] >= cornerCount) continue;
@@ -289,8 +289,8 @@ static void Check(const MeshDraw& m, CachedMesh& e) {
 static void CheckBox(const MeshDraw& m, CachedMesh& e) {
     float fresh[6];
     if (!e.boxKept || !PositionBox(m, fresh) || std::memcmp(fresh, e.box, sizeof(fresh)) == 0) return;
-    LogFirst(g_stale, 20, "render: a kept mesh's box was stale: figure mesh %p, low %g %g %g, now %g %g %g", g_source.owner,
-                e.box[0], e.box[1], e.box[2], fresh[0], fresh[1], fresh[2]);
+    LogFirst(g_stale, 20, "render: a kept mesh's box was stale: figure mesh %p, low %g %g %g, now %g %g %g",
+             g_source.owner, e.box[0], e.box[1], e.box[2], fresh[0], fresh[1], fresh[2]);
     e.boxKept = false;
 }
 
@@ -301,8 +301,8 @@ static void Check(const ShadowMesh& m, CachedMesh& e) {
     if (g_fresh.vertices.size() == e.vertices.size() && g_fresh.indices == e.indices &&
         std::memcmp(g_fresh.vertices.data(), e.vertices.data(), e.vertices.size() * sizeof(MeshVertex)) == 0)
         return;
-    LogFirst(g_stale, 20, "render: a caster kept on the GPU was stale: figure mesh %p, link figure %p, %d corners%s", m.owner, m.shared,
-                m.cornerCount, m.moved ? ", moved positions" : "");
+    LogFirst(g_stale, 20, "render: a caster kept on the GPU was stale: figure mesh %p, link figure %p, %d corners%s",
+             m.owner, m.shared, m.cornerCount, m.moved ? ", moved positions" : "");
     e.vertices.swap(g_fresh.vertices);
     e.indices.swap(g_fresh.indices);
     e.dirty = true;
@@ -563,9 +563,15 @@ void MeshChanged(const void* object, MeshChange change) {
     if (!object) return;
     MeshChanges& c = g_changes[object];
     switch (change) {
-    case MeshChange::Positions: ++c.positions; break;
-    case MeshChange::Colours: ++c.colours; break;
-    default: ++c.rebuilt; break;
+    case MeshChange::Positions:
+        ++c.positions;
+        break;
+    case MeshChange::Colours:
+        ++c.colours;
+        break;
+    default:
+        ++c.rebuilt;
+        break;
     }
 }
 

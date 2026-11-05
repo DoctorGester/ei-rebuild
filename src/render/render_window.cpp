@@ -3,14 +3,12 @@
 // (the options' brightness / contrast / gamma, SetGammaRamp's table) as a shader step, and presented with the vertical
 // blank. Also where the frame sits in the window, for the game's mouse coordinates (WindowToFrame / FrameToWindow).
 // docs/notes/renderer.md, section 9.
+#include "../game/app.h"
+#include "../platform/log.h"
+#include "../platform/sdl/sdl_window.h"
 #include "render.h"
 #include "render_internal.h"
 #include "render_perf.h"
-
-#include "../platform/log.h"
-#include "../platform/sdl/sdl_window.h"
-
-#include "../game/app.h"
 
 #include <array>
 #include <cmath>
@@ -24,9 +22,9 @@ static platform::NativeWindow GameWindow() { return app::g_mainWindow; }
 // Present waits for the vertical blank unless the settings file's "VSync" is 0 (render::SetVsync: Immediate, which may
 // tear) or the harness's virtual clock runs the game (render::SetWaitForVsync: Mailbox), where a frame's length does
 // not depend on the display.
-static bool g_vsync = true;            // the settings file's
-static bool g_waitForVsync = true;     // the harness's
-static SDL_Window* g_claimed = nullptr;   // the window the device's swap chain is on
+static bool g_vsync = true;                                        // the settings file's
+static bool g_waitForVsync = true;                                 // the harness's
+static SDL_Window* g_claimed = nullptr;                            // the window the device's swap chain is on
 static gpu::PresentMode g_wantedMode = gpu::PresentMode::Vsync;    // the mode asked of it
 static gpu::PresentMode g_presentMode = gpu::PresentMode::Vsync;   // the mode it gave (an unsupported one falls back)
 
@@ -41,12 +39,13 @@ static std::array<std::uint8_t, 256 * 4> IdentityRamp() {
     }
     return entries;
 }
-static std::array<std::uint8_t, 256 * 4> g_ramp = IdentityRamp();   // (kept across devices: the game sets it once, a new device gets it again)
-static bool g_rampDirty = true;     // to be uploaded before the next present
+static std::array<std::uint8_t, 256 * 4> g_ramp =
+    IdentityRamp();               // (kept across devices: the game sets it once, a new device gets it again)
+static bool g_rampDirty = true;   // to be uploaded before the next present
 static bool g_rampIdentity = true;
 static std::uint32_t g_rampChanges = 0;   // SetGammaRamp's calls (the cursor's shapes are made through the ramp)
-static long g_rampsSet = 0;          // verify build: ramps set so far (the ramp check is sampled)
-static bool g_checkRamp = false;     // verify build: compare the next presented frame with the ramp applied
+static long g_rampsSet = 0;               // verify build: ramps set so far (the ramp check is sampled)
+static bool g_checkRamp = false;          // verify build: compare the next presented frame with the ramp applied
 static WindowPresentInfo g_info;
 
 static gpu::PresentMode WantedMode() {

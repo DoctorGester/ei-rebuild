@@ -1504,6 +1504,15 @@ once with the filter off and once on, and reads a frame target back:
 
 ## The renderer's source files
 
+Every file is one \
+amespace render\ block (\ender::text\, \ender::perf\, \ender::ui\, \ender::gpu\ in theirs); what a file
+alone uses is \static\, what the files share is declared in render_internal.h. PrepareShadows lists the world's ground and
+models once a frame (\Frame::worldGround\, \Frame::worldMeshes\: the batches after the first ground batch that have a
+model, additive and repeated passes flagged); the sun's and the point lights' shadows, the ambient occlusion and the roofs
+walk those lists, not the commands. Rate-limited log lines go through \LogFirst\; what the frame's commands still draw is
+released with \ReleaseAfterPresent\. gpu.cpp keeps pipelines and samplers by description; the renderer asks it for them at
+each draw.
+
 ### render_cursor.cpp: the cursor
 
 The game's cursor as the system's (section 9, "The cursor"): render::Cursor keeps the frame's cursor (its picture's frame,

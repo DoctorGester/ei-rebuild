@@ -6,10 +6,9 @@
 // Here: that target on the pipelines, and the two copies between the targets where the frame changes from one
 // to the other (the frame target's colour and depth into every sample before a world run that follows interface
 // draws; the resolved depth copy into the frame target's depth after a world run).
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../platform/log.h"
 
 namespace render {
 

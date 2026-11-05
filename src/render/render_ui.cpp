@@ -1,9 +1,9 @@
 // The interface drawn into the frame (render_ui.h). See docs/notes/ui-native.md, "Source file overviews".
 #include "render_ui.h"
-#include "render_internal.h"
-#include "render_text.h"
 
 #include "../platform/log.h"
+#include "render_internal.h"
+#include "render_text.h"
 
 #include <algorithm>
 #include <cstdlib>

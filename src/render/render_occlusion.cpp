@@ -1,10 +1,9 @@
 // The screen's ambient occlusion: the world's depth at half the frame's size, the occlusion found in it and blurred,
 // which the ground and the meshes lit on the GPU take off their ambient light. See docs/notes/renderer.md, "The
 // renderer's source files".
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -84,8 +83,9 @@ static void DepthMap(const Matrix4& clip, float out[2]) {
 }
 
 // A full-screen pass of `pipeline` into `target` reading `textures`.
-static void FullScreenPass(gpu::Pipeline pipeline, const gpu::Texture& target, std::span<const gpu::TextureBinding> textures,
-                    const void* params, std::uint32_t bytes, const char* label) {
+static void FullScreenPass(gpu::Pipeline pipeline, const gpu::Texture& target,
+                           std::span<const gpu::TextureBinding> textures, const void* params, std::uint32_t bytes,
+                           const char* label) {
     gpu::PassDesc pass;
     pass.colour.texture = target;
     pass.colour.load = gpu::Load::DontCare;
@@ -158,8 +158,8 @@ void DrawOcclusion(Frame& f) {
         const StageState& st = s.stages[0];
         CasterInstance instance{f.matrices[static_cast<std::size_t>(b.matrix)], {b.uOffset, b.vOffset}, {}};
         CasterAlpha(s, instance.alpha);
-        g_depthDraws.Add(g, b.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr), StageSampler(st), first,
-                         b.indexCount, instance);
+        g_depthDraws.Add(g, b.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr), StageSampler(st),
+                         first, b.indexCount, instance);
     }
     g_depthDraws.Sort(0, g_depthDraws.Count());
     const bool drawMeshes = g_depthDraws.Upload();
@@ -227,7 +227,8 @@ void OcclusionUniforms(bool receives, float on[4], float map[4]) {
 
 void BindOcclusion(int slot) {
     const gpu::Texture& none = WhiteView();
-    const gpu::TextureBinding b[2] = {{g_on ? g_occlusion : none, gpu::NearestClampSampler()}, {g_on ? g_depth : none, gpu::NearestClampSampler()}};
+    const gpu::TextureBinding b[2] = {{g_on ? g_occlusion : none, gpu::NearestClampSampler()},
+                                      {g_on ? g_depth : none, gpu::NearestClampSampler()}};
     gpu::BindTextures(gpu::Stage::Fragment, slot, b);
 }
 

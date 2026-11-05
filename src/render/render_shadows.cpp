@@ -1,16 +1,16 @@
 // Object shadows through a sun shadow map. See docs/notes/renderer.md, "The renderer's source files".
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
 #include "render_perf.h"
 
 #include "lib/maths.h"
-#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <unordered_map>
 #include <optional>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace render {
@@ -121,8 +121,8 @@ static bool Invert(const M4& a, M4* out) {
 
 // --- The game's hand-over ---------------------------------------------------------------------------
 
-static const void* g_caster = nullptr;     // BeginCaster .. EndCaster
-static bool g_casterFigure = false;        // ... a unit's draw
+static const void* g_caster = nullptr;   // BeginCaster .. EndCaster
+static bool g_casterFigure = false;      // ... a unit's draw
 static ShadowInfo g_info, g_lastInfo;
 
 // --- Casters outside the view --------------------------------------------------------------------
@@ -142,10 +142,10 @@ static std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
 constexpr std::size_t kMostOutside = 100'000;
 std::unordered_set<const void*> g_drawnParts;   // NoteCasterPart, this frame
-static bool g_outsideOn = true;   // SetOffscreenCasters: not View
-static bool g_walkedOnly = false; // SetOffscreenCasters: Walked
-static bool g_shadowView = false; // SetShadowView
-static int g_shadowShift = 0;     // SetShadowShift: texels
+static bool g_outsideOn = true;                 // SetOffscreenCasters: not View
+static bool g_walkedOnly = false;               // SetOffscreenCasters: Walked
+static bool g_shadowView = false;               // SetShadowView
+static int g_shadowShift = 0;                   // SetShadowShift: texels
 // How the meshes drawn on screen with a texture cut it out (alpha test or blending, and the least alpha
 // kept), by the texture: a caster outside the view with that texture cuts it out the same way;
 // one whose texture was not drawn yet cuts below one half (a texture with alpha is drawn alpha-tested
@@ -171,14 +171,15 @@ constexpr int kInstanceBuffer = 1;
 constexpr int kInstanceAttrs = 5;
 static_assert(sizeof(CasterInstance) == 16 * kInstanceAttrs);
 static CasterDraws g_casterDraws("ei-shadow-casters");   // the sun map's
-static gpu::Pipeline g_casterPipelines[2];   // the frame's stream, the meshes kept on the GPU (MeshLayout)
-static gpu::Pipeline g_terrainCasterPipeline;   // the ground's casters (shaders/shadow_terrain.hlsl)
+static gpu::Pipeline g_casterPipelines[2];               // the frame's stream, the meshes kept on the GPU (MeshLayout)
+static gpu::Pipeline g_terrainCasterPipeline;            // the ground's casters (shaders/shadow_terrain.hlsl)
 static gpu::Pipeline g_reducePipeline, g_dilatePipeline;
 static bool g_pipelinesTried = false;
 static gpu::Texture g_map, g_dummy;
 static bool g_dummyCleared = false;
 static gpu::Texture g_cells, g_range;
-static gpu::Texture g_rangeDummy;   // the range's 1 x 1 stand-in without a map (the receivers' read of the range needs a texture bound)
+static gpu::Texture
+    g_rangeDummy;   // the range's 1 x 1 stand-in without a map (the receivers' read of the range needs a texture bound)
 static int g_cellsAround = 1;   // the dilation of this frame's map (PrepareShadows)
 
 // A depth-only pipeline into the shadow maps (kDepthFormat, nearer or equal kept, the slope's bias 1.5).
@@ -251,7 +252,7 @@ static gpu::Texture MakeRange(int size, const char* label) {
 }
 
 static void RangePass(gpu::Pipeline pipeline, const gpu::Texture& target, const gpu::Texture& source,
-               const ShadowDilateParams* dilate, const char* label) {
+                      const ShadowDilateParams* dilate, const char* label) {
     static_assert(gpu_shaders::shadow_reduce::kSamplerMap == 0 && gpu_shaders::shadow_dilate::kSamplerCells == 0);
     gpu::PassDesc pass;
     pass.colour.texture = target;
@@ -336,7 +337,7 @@ struct Fit {
     Vector3 x{}, y{}, d{};               // the map's axes (FitMap): the ground's x and y, the light's direction (down)
     float x0 = 0.0f, y0 = 0.0f, extent = 0.0f;   // the map's area along x and y
     float groundNear = 0.0f, groundFar = 0.0f;   // the visible ground's depths along d
-    Box ground;                          // the visible ground's box in the landscape's space
+    Box ground;                                  // the visible ground's box in the landscape's space
     // PrepareShadows: the map's depth range (from the nearest caster) and landscape space to its clip space.
     float depth = 0.0f;
     Matrix4 light{};
@@ -419,9 +420,7 @@ static const Fit& FitMap(Frame& f) {
         ++seen;
     };
     static std::vector<Vector3> positions;
-    auto crossedBy = [&](const TerrainGroup& g, int asked) {
-        return CrossedPlanes(g.box, planes, asked);
-    };
+    auto crossedBy = [&](const TerrainGroup& g, int asked) { return CrossedPlanes(g.box, planes, asked); };
     for (const TerrainPiece& piece : f.terrainPieces) {
         const TerrainGroup& whole = TerrainPieceWhole(piece);
         const int pieceCrossed = whole.count != 0 ? crossedBy(whole, kAllPlanes) : -1;
