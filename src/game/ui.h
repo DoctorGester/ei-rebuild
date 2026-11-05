@@ -341,6 +341,18 @@ public:
     UiTooltip* tip = nullptr;
 };
 
+// The place of `region` in `list` (a window's regions, a panel's array of buttons): a list's slot; -1 when the
+// region is null or not there.
+template <typename List>
+int RegionIndex(const List& list, const UiRegion* region) {
+    int index = 0;
+    for (const UiRegion* entry : list) {
+        if (region && entry == region) return index;
+        ++index;
+    }
+    return -1;
+}
+
 enum class SkillAnimation : int;   // map_object_figures.h
 
 // The pale blue the interface draws its texts, rows and numbers in.
@@ -546,8 +558,9 @@ public:
     virtual void DrawTips();
     virtual void Update() {}
 
-    // The first region containing the screen point, or -1.
+    // The first region containing the screen point: its index (-1 for none) or itself (null).
     int RegionAt(Point point) const;
+    UiRegion* RegionUnder(Point point) const;
     bool ContainsPoint(Point point) const;
 
     void SetEnabled(bool enabled);
@@ -562,7 +575,7 @@ public:
     // Replaces scene object `object` (released) at its place with object `name` of the model manager,
     // given the window's texture 0 and the old one's position, orientation, texture and scale; returns the
     // new one or null.
-    EngineObject* ReplaceSceneObject(EngineObject* object, std::string_view name);
+    UiMesh* ReplaceSceneObject(UiMesh* object, std::string_view name);
     void RemoveSceneObjectAt(int index);
     void ClearSceneObjects();
 
@@ -585,12 +598,12 @@ public:
         return true;
     }
     // A button's mouse handling (like ImGui's ButtonBehavior) over the window's first `count` regions:
-    // HitRegion gives the region under the point, the event marked used, or -1 (a move, a wheel turn);
-    // PressRegion also takes the mouse (a button down); PressedRegion is the release: -1 without the
+    // HitRegion gives the region under the point, the event marked used, or null (a move, a wheel turn);
+    // PressRegion also takes the mouse (a button down); PressedRegion is the release: null without the
     // mouse taken here, which it releases first.
-    int HitRegion(Point point, int count = INT_MAX);
-    int PressRegion(Point point, int count = INT_MAX);
-    int PressedRegion(Point point, int count = INT_MAX);
+    UiRegion* HitRegion(Point point, int count = INT_MAX);
+    UiRegion* PressRegion(Point point, int count = INT_MAX);
+    UiRegion* PressedRegion(Point point, int count = INT_MAX);
     // The scene objects, then the models.
     void DrawBase(SceneRenderer* pass);
     // The camp's and the multiplayer hero screen's hero preview, turned by `turn` radians about y; `wide`
@@ -856,6 +869,13 @@ struct HudPortraitSlot {
     float wobbleSpeed = 0.0f;
     bool hasPlayer = false;          // a multiplayer player without a unit here (no bars)
     int playerId = 0;                // that player's serial, else -1
+    // The portrait's sprites, in their drawing order: the face model (or picture), the health and mana bars,
+    // the frame (shown while the unit is selected) and the hit flash.
+    UiMesh* face = nullptr;
+    UiMesh* healthBar = nullptr;
+    UiMesh* manaBar = nullptr;
+    UiMesh* frame = nullptr;
+    UiMesh* hitFlash = nullptr;
 };
 
 // Party portraits (250..550 x 440..600).
@@ -881,7 +901,8 @@ public:
 
     BattleScreen* owner = nullptr;
     int count = 0;
-    std::vector<HudPortraitSlot> slots;    // one per portrait
+    std::vector<HudPortraitSlot> slots;    // one per portrait; region i is portrait i
+    UiMesh* marker = nullptr;              // the camera target's marker, above its portrait
 };
 
 // A sprite's depth in front of the interface camera for the dialog pieces (frames, shades, buttons), the layout
@@ -1000,27 +1021,26 @@ struct PanelSlide {
     bool moving = false;             // set when the sling button (or its key) starts the slide
 };
 
-// Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
-// view buttons, 5 a button above them, 6 the whole panel.
+// Map (615..800 x 0..165).
 class HudMap : public UiWindow {
 public:
     HudMap(Interface3D* ui, BattleScreen* owner);
     void LeftDown(Point point) override;   // the view buttons
     // Rebirth-patched (WideScreen: the map's centre at 700 + shift). A held view button is
-    // let go; otherwise region 0 starts the slide, 1 / 2 focus the camera on the map point (inside the
-    // world), 5 is "camera north".
+    // let go; otherwise the sling button starts the slide, the round map and the map's square focus the
+    // camera on the map point (inside the world), the north button is FaceNorth.
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
-    // Over region 0 the wheel zooms the map by 2.5^(notches / 10).
+    // Over the sling button the wheel zooms the map by 2.5^(notches / 10).
     void Wheel(float notches, Point point) override;
-    // "Camera north" (region 5 and its key): the click sound, the camera turned north, northTime 0.5.
+    // "Camera north" (its button and key): the click sound, the camera turned north, northTime 0.5.
     void FaceNorth();
-    // The view buttons (scene objects 6 and 7) lit by `view`.
+    // The view buttons' icons lit by `view`.
     void ShowView();
-    // Every frame: the marker mesh (scene object 2) of the units, marked objects, zone exits and players.
+    // Every frame: the markers mesh of the units, marked objects, zone exits and players.
     void BuildMarkers();
-    // Every frame, before BuildMarkers: follows the camera and builds the visible-area mesh (scene object 1)
-    // clipped to the world, and the world-bounds quad (scene object 0).
+    // Every frame, before BuildMarkers: follows the camera and builds the visible-area mesh clipped to the
+    // world, and the world-bounds quad.
     void UpdateView();
     // Rebirth-patched (WideScreen). The parts at the current slide offset.
     void Layout();
@@ -1046,11 +1066,30 @@ public:
     std::vector<Vector2> viewPolygon;        // the round map's outline in map units (the disc's corners)
     std::vector<Vector2> visibleArea;        // the outline in world units, clipped to the world
     PanelSlide slide;                // the offset is to the right
-    int view = 0;                   // 1 or 2 while a view button is held (scene objects 6 and 7), else 0
+    int view = 0;                   // 1 or 2 while a view button is held (zoom in, zoom out), else 0
     float northTime = 0.0f;          // 0.5 when "camera north" turns the camera, then counts down
+
+    // The regions, in their hit-test order (the whole panel's last, unnamed).
+    UiRegion* slingButton = nullptr;
+    UiRegion* roundMap = nullptr;          // the round map (zoomed)
+    UiRegion* mapSquare = nullptr;         // the square around it
+    UiRegion* viewButtons[2] = {};         // zoom in, zoom out
+    UiRegion* northButton = nullptr;
+    // The sprites, in their drawing order.
+    UiMesh* bounds = nullptr;              // the world's bounds, in the map's picture
+    UiMesh* visibleDisc = nullptr;         // the visible area's disc, in the picture too
+    UiMesh* markers = nullptr;             // four texels of one colour each
+    UiMesh* mapBack = nullptr;             // the map's and the buttons' plain backgrounds
+    UiMesh* buttonsBack = nullptr;
+    UiMesh* slingArrow = nullptr;
+    UiMesh* viewIcons[2] = {};
+    UiMesh* ring = nullptr;                // round the map
+    UiMesh* frame = nullptr;
+    UiMesh* needle = nullptr;              // the compass needle
+    UiMesh* northIcon = nullptr;
 };
 
-// Unit panel (0..185 x 0..225). Regions: 0 the sling button, 1-4 the body parts, 5 the whole panel.
+// Unit panel (0..185 x 0..225).
 class HudUnitPanel : public UiWindow {
 public:
     HudUnitPanel(Interface3D* ui, BattleScreen* owner);
@@ -1073,10 +1112,10 @@ public:
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
     void Wheel(float notches, Point point) override;
-    // The body part buttons (scene objects 3-6) lit by bodyPart.
+    // The body part buttons lit by bodyPart.
     void ShowBodyPart();
-    // The pictures of the first six effects on `unit`; scene object 9 shows when there are more. PaintEffects their
-    // names and times left.
+    // The pictures of the first six effects on `unit`; the "more" mark shows when there are more. PaintEffects
+    // their names and times left.
     void ShowEffects(Unit* unit);
     void PaintEffects(UiSurface& surface, Unit* unit);
     // Rebirth-patched (WideScreen). The parts at the current slide offset.
@@ -1101,10 +1140,29 @@ public:
     float viewSize[2] = {};          // the model's size: it is drawn 1 / size (times its animation's ratio)
     std::string strings[2];         // the selected and the hover unit's names
     PanelSlide slide;                // the offset is to the left
-    int bodyPart = 0;                // selected body part 0-3 (scene objects 3-6)
+    int bodyPart = 0;                // the selected body part button 0-3: the page shown
     int effectIcons[6] = {};         // the spell pictures in the icon texture's six places
     std::vector<std::string> texts; // "infounit_0".."infounit_17": the info lines' labels
     std::vector<std::string> partLabels;    // four: the shown names of "skull", "torso", "leg", "arm"
+
+    // The regions, in their hit-test order (the whole panel's last, unnamed).
+    UiRegion* slingButton = nullptr;
+    UiRegion* partButtons[4] = {};
+    // The sprites, in their drawing order.
+    UiMesh* background = nullptr;          // drawn alone, before the model
+    UiMesh* edge = nullptr;
+    UiMesh* slingArrow = nullptr;
+    UiMesh* partIcons[4] = {};
+    UiMesh* frame = nullptr;
+    UiMesh* heightBar = nullptr;           // a strip of twenty cells down the edge
+    UiMesh* moreMark = nullptr;            // more effects than places
+    UiMesh* healthBar = nullptr;           // each bar over its frame
+    UiMesh* healthFrame = nullptr;
+    UiMesh* manaBar = nullptr;
+    UiMesh* manaFrame = nullptr;
+    UiMesh* bodyBars[6] = {};              // the six body parts' bars, each over its frame
+    UiMesh* bodyFrames[6] = {};
+    UiMesh* effectSprites[6] = {};         // the effects' pictures, from the panel's icon texture
 };
 
 // Game clock (720..800 x 520..600).
@@ -1112,8 +1170,9 @@ class HudClock : public UiWindow {
 public:
     explicit HudClock(Interface3D* ui) : UiWindow(ui) {}
     void LeftDown(Point point) override;
-    // Rebirth's MPSpeedControl behind its flag. Region 0 toggles the pause; 1 and 2 set the normal / fast
-    // speed (not on a network client: update period 55 / 27 ms); 3 opens the objectives.
+    // Rebirth's MPSpeedControl behind its flag. The pause button toggles the pause; the normal and fast
+    // buttons set the speed (not on a network client: update period 55 / 27 ms); the objectives button opens
+    // the objectives.
     void LeftUp(Point point) override;
     void MouseMove(Point point) override;
     // Every frame: the blink and the dial step on (the dial only while the game runs), then Show.
@@ -1127,17 +1186,29 @@ public:
     void TogglePause();
     // The normal / fast speed (button and keys): the update period 55 / 27 ms and the clock sound.
     void SetSpeed(bool fast);
-    // Rebirth-patched (WideScreen: the clock at the screen's right edge). Regions 0-2 the
-    // pause, normal and fast sectors, 3 the objectives quarter disc.
+    // Rebirth-patched (WideScreen: the clock at the screen's right edge).
     void Setup(bool fast);
 
     float blink = 0.0f;              // 0..1, the pause blink phase
     float dial = 0.0f;               // speed dial angle (wraps at pi / 6)
     bool fast = false;               // fast game speed (copied to Interface3D::fastGame)
-    bool highlight = false;          // the pause button pulses (scene object 6)
+    bool highlight = false;          // the objectives button pulses
+
+    // The regions: the pause, normal and fast sectors and the objectives' quarter disc.
+    UiRegion* pauseButton = nullptr;
+    UiRegion* normalButton = nullptr;
+    UiRegion* fastButton = nullptr;
+    UiRegion* objectivesButton = nullptr;
+    // The sprites, in their drawing order.
+    UiMesh* face = nullptr;               // turned to the time of day
+    UiMesh* hand = nullptr;
+    UiMesh* dialMarks[4] = {};
+    UiMesh* objectivesIcon = nullptr;
+    UiMesh* rim = nullptr;
 };
 
-// Movement panel (0..80 x 520..600). Region 0 toggles the units' flag, regions 1-4 set their movement mode 0-3.
+// Movement panel (0..80 x 520..600): the flag button toggles the units' flag, the four mode buttons set their
+// movement mode 0-3.
 class HudMovePanel : public UiWindow {
 public:
     HudMovePanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
@@ -1146,7 +1217,7 @@ public:
     void MouseMove(Point point) override;
     // Every frame: the selected units' common mode and flag.
     void Update() override;
-    // Region 0 (and its key): the selected party units' flag becomes 0 when all have 1, else 1.
+    // The flag button (and its key): the selected party units' flag becomes 0 when all have 1, else 1.
     void ToggleFlag();
     // WideScreen (the left panels' offset). A negative mode hides the marker.
     void ShowMode(int mode);
@@ -1159,9 +1230,17 @@ public:
     BattleScreen* owner = nullptr;
     int mode = 0;                    // the shown movement mode (-1, -2: none, mixed)
     int flag = 0;                    // the selected units' common flag (-1, -2: none, mixed)
+
+    // The regions: the flag's quarter disc in the corner, then the four modes' sectors.
+    UiRegion* flagButton = nullptr;
+    UiRegion* modeButtons[4] = {};
+    // The sprites, in their drawing order.
+    UiMesh* marker = nullptr;              // the hand pointing at the mode's button
+    UiMesh* modeIcons[4] = {};
+    UiMesh* flagIcon = nullptr;            // shows the flag through its texture offset
 };
 
-// Top panel (180..620 x 0..100). Regions: 0 the sling button, 1 and 2 the two page buttons, 3 the whole panel.
+// Top panel (180..620 x 0..100).
 class HudTopPanel : public UiWindow {
 public:
     HudTopPanel(Interface3D* ui, BattleScreen* newOwner) : UiWindow(ui), owner(newOwner) {}
@@ -1189,6 +1268,16 @@ public:
     PanelSlide slide;                // t 0 (out) .. 1 (in)
     int page = 0;
     std::string pageTexts[2];       // the message log's text of pages 0 and 1
+
+    // The regions, in their hit-test order (the whole panel's last, unnamed).
+    UiRegion* slingButton = nullptr;
+    UiRegion* pageButtons[2] = {};
+    // The sprites, in their drawing order.
+    UiMesh* back = nullptr;
+    UiMesh* bar = nullptr;                 // the strip along the top
+    UiMesh* slingArrow = nullptr;
+    UiMesh* pageIcons[2] = {};
+    UiMesh* frame = nullptr;
 };
 
 // --- Screens with child windows ---
@@ -1432,8 +1521,7 @@ public:
     int portraitMode = 0;            // 1, 2: the next portrait click picks a player for a server command (4, 5)
 };
 
-// A scroll bar (the battle screen's message log derives from it). Regions: 0 the up arrow, 1 the down arrow,
-// 2 the track.
+// A scroll bar (the battle screen's message log derives from it).
 class UiScrollbar : public UiWindow {
 public:
     int Position() const { return position; }
@@ -1450,7 +1538,7 @@ public:
     void LeftUp(Point point) override;
     // Drags the thumb (state 1). The event is used either way.
     void MouseMove(Point point) override;
-    // Over the track (region 2): delta (low 16 bits) * speed / 120 into the accumulated amount.
+    // Over the track: delta (low 16 bits) * speed / 120 into the accumulated amount.
     void Wheel(float notches, Point point) override;
     // Clamped to 0..maximum, moved set.
     virtual void SetPosition(int position);
@@ -1471,10 +1559,19 @@ public:
     bool moved = false;
     int state = 0;                   // 0 idle, 1 dragging the thumb, 2 up, 3 down
     float accumulated = 0.0f;        // scrolled amount not yet applied
+
+    // The regions, in their creation order: the arrows (on the slider: left, right) and the track.
+    UiRegion* upButton = nullptr;
+    UiRegion* downButton = nullptr;
+    UiRegion* trackArea = nullptr;
+    // The sprites, in their drawing order (the slider turns them a quarter: its up arrow on the right).
+    UiMesh* trackSprite = nullptr;
+    UiMesh* thumbSprite = nullptr;
+    UiMesh* upArrow = nullptr;
+    UiMesh* downArrow = nullptr;
 };
 
-// The options window's horizontal slider, laid out along the bottom of its rectangle. Regions 0 the left
-// arrow, 1 the right arrow, 2 the track.
+// The options window's horizontal slider, laid out along the bottom of its rectangle.
 class UiSlider : public UiScrollbar {
 public:
     UiSlider(Interface3D* ui, Rect rect, float depth, int maximum, float speed)
@@ -1965,10 +2062,13 @@ struct OptionRow {
     OptionSetting* setting = nullptr;
 };
 
-// The options window. Regions: 0 OK, 1 cancel, 2-12 the option groups (100..250 x 156..420), 13.. the rows of
-// the shown group.
+// The options window: OK, cancel, the option groups' buttons (100..250 x 156..420) and the rows of the shown group
+// right of them.
 class OptionsWindow : public UiContainer {
 public:
+    static constexpr int kGroups = 11;
+    static constexpr int kRows = 14;
+
     OptionsWindow(Interface3D* ui, bool newSliding) : UiContainer(ui), sliding(newSliding) {}
     void DrawSprites(SceneRenderer* pass) override;                      // slides in
     void DrawSurfaces() override;                            // not while sliding
@@ -2010,14 +2110,12 @@ public:
     // next key is bound (Esc gives up); a key bound to another action asks first. An open list takes every key.
     void KeyDown(platform::Key key, int scan, bool repeat) override;
 
-    OptionRow& RegionRow(int region) { return rows[region - 13]; }
-
     signed char keyOfScan[0x200] = {};  // the key code bound to each scan code
     int selectedRow = 0;
     int group = 0;                   // the option group shown
     std::vector<OptionBinding> bindings;
     std::vector<OptionSetting> settings;
-    OptionRow rows[14];
+    OptionRow rows[kRows];
     bool waitingForKey = false;      // a key binding row waits for the new key
     bool sliding = false;
     float slide = 0.0f;
@@ -2025,6 +2123,14 @@ public:
     bool shadowsChanged = false;     // the shadows switch (setting 7) changed
     const UiKeyName* pressedKey = nullptr;  // the key pressed for a binding row
     std::vector<Size> resolutions;   // the resolution setting's sizes, the screen's among them
+
+    // The regions, in their creation order.
+    UiRegion* okButton = nullptr;
+    UiRegion* cancelButton = nullptr;
+    UiRegion* groupButtons[kGroups] = {};
+    UiRegion* rowAreas[kRows] = {};
+    UiMesh* highlight = nullptr;           // on the selected row
+    UiMesh* groupIcons[kGroups] = {};      // the groups' buttons, lit for the group shown
 };
 
 // The message box's edit field.

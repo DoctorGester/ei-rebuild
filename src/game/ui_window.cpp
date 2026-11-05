@@ -130,26 +130,31 @@ int UiWindow::RegionAt(Point point) const {
     return -1;
 }
 
+UiRegion* UiWindow::RegionUnder(Point point) const {
+    const int index = RegionAt(point);
+    return index < 0 ? nullptr : regions[index];
+}
+
 bool UiWindow::ContainsPoint(Point point) const {
     ui->ScalePointFromScreen(&point);
     return rect.Contains(point);
 }
 
-int UiWindow::HitRegion(Point point, int count) {
-    const int region = RegionAt(point);
-    if (region < 0 || region >= count) return -1;
+UiRegion* UiWindow::HitRegion(Point point, int count) {
+    const int index = RegionAt(point);
+    if (index < 0 || index >= count) return nullptr;
     handled = true;
+    return regions[index];
+}
+
+UiRegion* UiWindow::PressRegion(Point point, int count) {
+    UiRegion* region = HitRegion(point, count);
+    if (region) CaptureMouse();
     return region;
 }
 
-int UiWindow::PressRegion(Point point, int count) {
-    const int region = HitRegion(point, count);
-    if (region >= 0) CaptureMouse();
-    return region;
-}
-
-int UiWindow::PressedRegion(Point point, int count) {
-    if (!ReleaseMouse()) return -1;
+UiRegion* UiWindow::PressedRegion(Point point, int count) {
+    if (!ReleaseMouse()) return nullptr;
     return HitRegion(point, count);
 }
 
@@ -290,7 +295,7 @@ UiModel* UiWindow::AddModel() {
 
 // --- ReplaceSceneObject ----------------------------------------------------------------------------
 
-EngineObject* UiWindow::ReplaceSceneObject(EngineObject* object, std::string_view name) {
+UiMesh* UiWindow::ReplaceSceneObject(UiMesh* object, std::string_view name) {
     for (int i = 0; i < std::ssize(sceneObjects); ++i) {
         if (sceneObjects[i] != object) continue;
         UiMesh* made = NewModelObject(name);

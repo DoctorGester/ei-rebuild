@@ -253,7 +253,6 @@ float SelectedFaceAngle() {
 
 constexpr std::uint32_t kLeaveAnswer = 0x90001;
 constexpr std::uint32_t kLoadWindowClosed = 0x100001;
-constexpr int kPortraitSprites = 5;   // sprites per portrait; the fifth (4) is the selection marker
 
 } // namespace
 
@@ -323,7 +322,7 @@ void BattleScreen::SaveState() {
 
 void BattleScreen::MarkPortrait(int index) {
     auto* currentPortraits = portraits;
-    currentPortraits->sceneObjects[index * kPortraitSprites + 4]->visible = true;
+    currentPortraits->slots[index].frame->visible = true;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     currentPortraits->slots[index].restB = Quaternion::AxisAngle(axis, SelectedFaceAngle());
 }
@@ -708,8 +707,7 @@ void BattleScreen::LeftUp(Point point) {
         }
         if (first >= 0) {
             world->Deselect();
-            // Portrait i's selection marker (scene object 5 i + 4) and face state.
-            auto marker = [&](int i) { return portraits->sceneObjects[i * 5 + 4]; };
+            // Portrait i's frame (shown while selected) and face state.
             auto slot = [&](int i) -> HudPortraitSlot& { return portraits->slots[i]; };
             for (int i = 0; i < std::ssize(*currentParty); ++i) {
                 Unit* unit = unitAt(i);
@@ -718,12 +716,12 @@ void BattleScreen::LeftUp(Point point) {
                     unit->flags = unitFlags & ~MapObjectFlag::BoxMarked;
                     unit->AsObject3D()->attached->SetLit(false);
                 }
-                marker(i)->visible = false;
+                slot(i).frame->visible = false;
                 slot(i).restB = kHudRestRotation;
             }
             for (auto& node : inside) {
                 int i = static_cast<int>(node);
-                marker(i)->visible = true;
+                slot(i).frame->visible = true;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
                                     0.14285715f;   // 1/7

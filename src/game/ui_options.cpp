@@ -44,11 +44,6 @@ constexpr const char* kTextDifficultyEasy = "difficulty_easy";
 constexpr const char* kTextKeySeparator = "  |  ";    // after each key name
 constexpr const char* kTextKeyTrim = " |";         // trimmed from the right
 
-constexpr int kOptionGroups = 11;
-constexpr int kOptionRows = 14;
-constexpr int kFirstRowRegion = 13;     // regions 13-26: the rows
-constexpr int kHighlightSprite = 2;     // scene object 2: the selected row's highlight
-constexpr int kFirstGroupSprite = 3;    // scene objects 3-13: the group buttons
 constexpr int kSliderKind = 0;
 constexpr int kSpinKind = 1;
 constexpr int kResolutionKind = 2;
@@ -197,9 +192,9 @@ void TurnQuarter(UiMesh* sprite) {
 } // namespace
 
 void OptionsWindow::RefreshRows() {
-    sceneObjects[kHighlightSprite]->visible = false;
-    for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
-        UiMesh* button = sceneObjects[kFirstGroupSprite + groupIndex];
+    highlight->visible = false;
+    for (int groupIndex = 0; groupIndex < kGroups; ++groupIndex) {
+        UiMesh* button = groupIcons[groupIndex];
         float tint = groupIndex == group ? 1.0f : 0.5f;
         button->tint[0] = tint;
         button->tint[1] = tint;
@@ -207,7 +202,6 @@ void OptionsWindow::RefreshRows() {
     }
     for (int row = 0, y = 168; y < 504; ++row, y += 24) {
         if (row == selectedRow) {
-            UiMesh* highlight = sceneObjects[kHighlightSprite];
             highlight->visible = true;
             highlight->Place(471.0f, static_cast<float>(y), 3.0f);
         }
@@ -216,7 +210,7 @@ void OptionsWindow::RefreshRows() {
 
 void OptionsWindow::PaintRows(UiSurface& surface) const {
     Rect title = {10, 60, 140, 80};
-    for (int groupIndex = 0; groupIndex < kOptionGroups; ++groupIndex) {
+    for (int groupIndex = 0; groupIndex < kGroups; ++groupIndex) {
         surface.DrawTextIn(groupNames[groupIndex], title, TextStyle{1, groupIndex == group ? kUiTextColour : kColourDim, render::text::kCenter});
         title.Offset(0, 24);
     }
@@ -241,27 +235,27 @@ void OptionsWindow::PaintRows(UiSurface& surface) const {
 void OptionsWindow::ShowGroup(int groupIndex) {
     if (groupIndex < 0)
         groupIndex = 0;
-    else if (groupIndex >= kOptionGroups)
-        groupIndex = kOptionGroups - 1;
+    else if (groupIndex >= kGroups)
+        groupIndex = kGroups - 1;
     group = groupIndex;
 
-    for (int row = 0; row < kOptionRows; ++row) {
+    for (int row = 0; row < kRows; ++row) {
         rows[row].binding = nullptr;
         rows[row].setting = nullptr;
-        regions[kFirstRowRegion + row]->SetTip(0);
+        rowAreas[row]->SetTip(0);
     }
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         const OptionDefinition& definition = kOptionDefinitions[i];
         if (definition.group != groupIndex) continue;
         rows[definition.row].setting = &settings[i];
-        regions[kFirstRowRegion + definition.row]->SetTipString(
+        rowAreas[definition.row]->SetTipString(
             TipText(str::Format(kTextTipOption, definition.name)));
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
         if (action.group != groupIndex) continue;
         rows[action.row].binding = &bindings[i];
-        regions[kFirstRowRegion + action.row]->SetTipString(TipText(str::Format(kTextTipAction, action.name)));
+        rowAreas[action.row]->SetTipString(TipText(str::Format(kTextTipAction, action.name)));
     }
 
     for (const OptionSetting& setting : settings) {
@@ -269,7 +263,7 @@ void OptionsWindow::ShowGroup(int groupIndex) {
         if (setting.spin) setting.spin->SetEnabled(false);
         if (setting.list) setting.list->SetEnabled(false);
     }
-    for (int row = 0; row < kOptionRows; ++row) {
+    for (int row = 0; row < kRows; ++row) {
         OptionSetting* setting = rows[row].setting;
         if (!setting) continue;
         if (setting->bar) setting->bar->SetEnabled(true);
@@ -278,8 +272,8 @@ void OptionsWindow::ShowGroup(int groupIndex) {
     }
 
     int row = 0;
-    while (row < kOptionRows && !rows[row].binding && !rows[row].setting) ++row;
-    selectedRow = row < kOptionRows ? row : 0;
+    while (row < kRows && !rows[row].binding && !rows[row].setting) ++row;
+    selectedRow = row < kRows ? row : 0;
     waitingForKey = false;
     RefreshRows();
 }
@@ -479,30 +473,25 @@ void UiSlider::SetRect(const Rect* newRect) {
     const Rect bar = newRect->BottomStrip(10);   // the arrows at both ends, the track between them
     track = bar.Inset(26, 0);
 
-    UiMesh* trackMesh = sceneObjects[0];
-    trackMesh->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,
-                        0xFC);
-    trackMesh->Place((newRect->right + newRect->left) * 0.5f,
-                 static_cast<float>(newRect->bottom - 5), depth);
-    TurnQuarter(trackMesh);
+    trackSprite->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 6.0f, static_cast<float>(newRect->Width() - 8), 8, 4, 0x20,
+                              0xFC);
+    trackSprite->Place((newRect->right + newRect->left) * 0.5f, static_cast<float>(newRect->bottom - 5), depth);
+    TurnQuarter(trackSprite);
 
-    UiMesh* thumbMesh = sceneObjects[1];
-    thumbMesh->SetRectangle(depth - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
-    TurnQuarter(thumbMesh);
+    thumbSprite->SetRectangle(depth - kThumbLift, 100.0f, 0.0f, 0.0f, 10.0f, 30.0f, 0x28, 8, 0x50, 0x78);
+    TurnQuarter(thumbSprite);
 
-    UiMesh* right = sceneObjects[2];
-    right->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
-    right->Place(static_cast<float>(newRect->right - 6), static_cast<float>(newRect->bottom - 5), depth);
-    TurnQuarter(right);
+    upArrow->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
+    upArrow->Place(static_cast<float>(newRect->right - 6), static_cast<float>(newRect->bottom - 5), depth);
+    TurnQuarter(upArrow);
 
-    UiMesh* left = sceneObjects[3];
-    left->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
-    left->Place(static_cast<float>(newRect->left + 6), static_cast<float>(newRect->bottom - 5), depth);
-    TurnQuarter(left);
+    downArrow->SetRectangle(depth, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
+    downArrow->Place(static_cast<float>(newRect->left + 6), static_cast<float>(newRect->bottom - 5), depth);
+    TurnQuarter(downArrow);
 
-    regions[0]->SetRect(bar.LeftStrip(12));
-    regions[1]->SetRect(bar.RightStrip(12));
-    regions[2]->SetRect(newRect->Inset(0, 0, 0, 10));
+    upButton->SetRect(bar.LeftStrip(12));
+    downButton->SetRect(bar.RightStrip(12));
+    trackArea->SetRect(newRect->Inset(0, 0, 0, 10));
 
     // The position set again (one below first, so the change virtual sees a change).
     int currentPosition = position;

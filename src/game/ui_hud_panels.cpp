@@ -69,14 +69,14 @@ bool BarRatio(int value, int maximum, float* ratio) {
 // --- Unit panel ----------------------------------------------------------------------------------
 
 void HudUnitPanel::ShowHealth(Unit* unit) {
-    sceneObjects[11]->visible = true;
+    healthFrame->visible = true;
     float ratio;
     if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
-        FillBar(sceneObjects[10], ratio, 100.0f, 0.396484375f, 0.376953125f);
+        FillBar(healthBar, ratio, 100.0f, 0.396484375f, 0.376953125f);
     if (!InParty(owner, unit)) return;
-    sceneObjects[13]->visible = true;
+    manaFrame->visible = true;
     if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
-        FillBar(sceneObjects[12], ratio, 100.0f, 0.369140625f, 0.349609375f);
+        FillBar(manaBar, ratio, 100.0f, 0.369140625f, 0.349609375f);
 }
 
 void HudUnitPanel::PaintHealth(UiSurface& surface, Unit* unit) {
@@ -91,8 +91,8 @@ void HudUnitPanel::ShowParts(Unit* unit) {
     for (int i = 0; i < 6; ++i) {
         const UnitParamsSlot& part = unit->params.slots[i];
         if (part.kind == 0) continue;
-        sceneObjects[15 + 2 * i]->visible = true;
-        UiMesh* bar = sceneObjects[14 + 2 * i];
+        bodyFrames[i]->visible = true;
+        UiMesh* bar = bodyBars[i];
         float ratio = 0.0f;
         if (part.kind == 3 && part.maximum != 0 && part.current > 0 &&
             BarRatio(part.current, part.maximum, &ratio))
@@ -147,7 +147,7 @@ void HudMovePanel::ToggleFlag() {
     }
     flag = value;
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).
-    sceneObjects[5]->textureOffsetU = value == 0 ? 0.3359375f : 0.0f;
+    flagIcon->textureOffsetU = value == 0 ? 0.3359375f : 0.0f;
 }
 
 // --- Unit panel: the effects on the unit -----------------------------------------------
@@ -174,8 +174,6 @@ void HudUnitPanel::PaintEffects(UiSurface& surface, Unit* unit) {
 
 void HudUnitPanel::ShowEffects(Unit* unit) {
     constexpr int kPlaces = kEffectPlaces;
-    constexpr int kMoreMark = 9;      // scene object: there are more effects than places
-    constexpr int kFirstIcon = 26;    // scene objects 26..31, one per listed effect
     constexpr int kIconSize = 64;
     // Where each kept picture sits in the panel's 256 x 256 icon texture (its object 1).
     static constexpr int kPlaceX[kPlaces] = {0, 0, 64, 64, 64, 64};
@@ -185,7 +183,7 @@ void HudUnitPanel::ShowEffects(Unit* unit) {
     bool taken[kPlaces] = {};
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
 
-    if (std::ssize(unit->effects) > kPlaces) sceneObjects[kMoreMark]->visible = true;
+    if (std::ssize(unit->effects) > kPlaces) moreMark->visible = true;
     const MapEffect* effects = unit->effects.data();
     for (int i = 0; i < std::ssize(unit->effects) && i < kPlaces; ++i) {
         if (const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type)) icons[i] = static_cast<int>(spell->icon);
@@ -220,7 +218,7 @@ void HudUnitPanel::ShowEffects(Unit* unit) {
             CopyImage(objects[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y);
             effectIcons[free] = icons[i];
         }
-        UiMesh* icon = sceneObjects[kFirstIcon + i];
+        UiMesh* icon = effectSprites[i];
         icon->visible = true;
         icon->textureOffsetU = x * (1.0f / 256.0f);
         icon->textureOffsetV = (y + kIconSize) * (1.0f / 256.0f);
@@ -230,11 +228,9 @@ void HudUnitPanel::ShowEffects(Unit* unit) {
 // --- Unit panel: the body part buttons -------------------------------------------------
 
 void HudUnitPanel::ShowBodyPart() {
-    constexpr int kFirstPartButton = 3;
-    constexpr int kPartButtons = 4;
-    for (int i = 0; i < kPartButtons; ++i) {
+    for (int i = 0; i < 4; ++i) {
         float tint = bodyPart == i ? 1.0f : 0.5f;
-        UiMesh* button = sceneObjects[kFirstPartButton + i];
+        UiMesh* button = partIcons[i];
         button->tint[0] = tint;
         button->tint[1] = tint;
         button->tint[2] = tint;
@@ -246,7 +242,7 @@ void HudUnitPanel::ShowBodyPart() {
 void HudTopPanel::ShowPage() {
     for (int i = 0; i < 2; ++i) {
         float tint = page == i ? 1.0f : 0.5f;
-        UiMesh* button = sceneObjects[3 + i];
+        UiMesh* button = pageIcons[i];
         button->tint[0] = tint;
         button->tint[1] = tint;
         button->tint[2] = tint;
@@ -315,15 +311,17 @@ void HudTopPanel::Layout() {
     // Place is Rebirth-patched.
     const int offset = slide.Offset();
     float slideOffset = static_cast<float>(offset);
-    sceneObjects[0]->Place(400.0f, 57.5f - slideOffset, 20.0f);
-    sceneObjects[1]->Place(400.0f, 10.0f - slideOffset, 20.0f);
-    sceneObjects[3]->Place(200.0f, 10.0f - slideOffset, 10.0f);
-    sceneObjects[4]->Place(230.0f, 10.0f - slideOffset, 10.0f);
-    sceneObjects[5]->Place(400.0f, 47.5f - slideOffset, 18.0f);
+    back->Place(400.0f, 57.5f - slideOffset, 20.0f);
+    bar->Place(400.0f, 10.0f - slideOffset, 20.0f);
+    pageIcons[0]->Place(200.0f, 10.0f - slideOffset, 10.0f);
+    pageIcons[1]->Place(230.0f, 10.0f - slideOffset, 10.0f);
+    frame->Place(400.0f, 47.5f - slideOffset, 18.0f);
     Rect area{190, 25 - offset, 610, 89 - offset};
     owner->messageLog->SetRect(&area);
-    for (int i = 1; i < std::ssize(regions); ++i) {
-        regions[i]->offsetX = 0;
-        regions[i]->offsetY = -offset;
+    // Every region but the sling button moves with the panel.
+    for (UiRegion* region : regions) {
+        if (region == slingButton) continue;
+        region->offsetX = 0;
+        region->offsetY = -offset;
     }
 }

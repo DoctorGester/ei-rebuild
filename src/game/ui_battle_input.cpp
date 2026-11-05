@@ -617,7 +617,7 @@ void BattleScreen::ToggleMember(int index) {
     for (int i = 0; i < std::ssize(*currentParty); ++i) {
         auto* currentPortraits = portraits;
         std::uint32_t value = chosen[i];
-        currentPortraits->sceneObjects[i * 5 + 4]->visible = value != 0;
+        currentPortraits->slots[i].frame->visible = value != 0;
         Quaternion rest = kHudRestRotation;
         if (value != 0) {
             const Vector3 axis = {-1.0f, 0.0f, 0.0f};
