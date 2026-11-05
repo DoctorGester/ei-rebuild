@@ -1,0 +1,7 @@
+id = "H60"
+title = "Linux CI: weather scenarios within limits (own timeouts or own job)"
+group = "harness"
+size = 1
+model = "sonnet"
+note = "From C159 (2026-11-05): on llvmpipe a weather frame costs ~0.2 s of CPU at any resolution, so a smaller CI window won't help (render_weather_roofs ~150 s vs 180 s, render_weather ~430 s). Give the weather scenarios timeout lines that the EI_TIME_SCALE multiplies, or a separate CI job with a longer limit, then take them out of LINUX_SKIP. Confirm with a workflow_dispatch run naming them."
+order = 1170
