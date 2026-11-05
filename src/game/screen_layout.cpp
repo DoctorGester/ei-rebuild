@@ -40,8 +40,6 @@ Layout Compute(int width, int height) {
 
 Layout g_layout = Compute(kLayoutWidth, kLayoutHeight);   // an 800x600 window's until Configure
 
-int g_panelOffset;                 // ours (addon's 100BD0A0)
-
 // Division of the 64-bit product, as addon's multiply and divide do (no 32-bit wrap).
 int MulDiv64(int a, int b, int divisor) {
     return static_cast<int>(static_cast<std::int64_t>(a) * b / divisor);
@@ -73,16 +71,7 @@ void Configure(int width, int height) {
 
 const Layout& Get() { return g_layout; }
 
-int PanelOffset() { return g_panelOffset; }
-void SetPanelOffset(int offset) { g_panelOffset = offset; }
-
 int EdgeShift() { return Get().extra; }
-
-// addon's entry handlers (load the extra into the offset; one negates it first) and exit handlers (zero the
-// offset).
-void EnterLeftPanel() { SetPanelOffset(-Get().extra); }
-void EnterRightPanel() { SetPanelOffset(Get().extra); }
-void LeavePanel() { SetPanelOffset(0); }
 
 // Layout to screen: x by the 4:3 part's width plus its left margin (with `margin`), y by its height plus its top
 // margin (addon's code for x).

@@ -334,10 +334,6 @@ constexpr float kZoomRate = 2.5f;                   // the map's zoom changes 2.
 constexpr float kSlingDepthBits = 8.106086f;   // 8.106: the sling buttons and the needle
 constexpr float kSlingY = 20.0f;
 
-// WideScreen's layout constants (addon's operands, exact integers as floats): moved right for the
-// map, left for the unit panel.
-float RightEdge(float x) { return x + screen_layout::EdgeShift(); }
-float LeftEdge(float x) { return x - screen_layout::EdgeShift(); }
 
 // Every region but the sling button moves with the panel.
 void MoveRegions(UiWindow* window, const UiRegion* sling, int offsetX) {
@@ -512,8 +508,7 @@ void HudMap::LeftUp(UiEvent& event) {
     } else if (region == roundMap || region == mapSquare) {
         // The world point under the click.
         Point at = screen_layout::FromScreen(event.at);
-        // WideScreen: the centre moved right by the shift.
-        float right = static_cast<float>(at.x - (kMapCentreX + screen_layout::EdgeShift())) / halfSide;
+        float right = static_cast<float>(at.x - (kMapCentreX + originX)) / halfSide;
         float down = static_cast<float>(at.y - kMapCentreY) / halfSide;
         if (region == roundMap) {
             right /= zoom;
@@ -789,11 +784,10 @@ void HudMap::Wheel(UiEvent& event) {
 }
 
 void HudMap::Layout() {
-    screen_layout::EnterRightPanel();   // addon's 10023366
     const int offset = slide.Offset();
     const float slideOffset = static_cast<float>(offset);
-    const float middle = slideOffset + kMapMiddleX;
-    const float buttons = slideOffset + kMapButtonsX;
+    const float middle = slideOffset + kMapMiddleX + originX;
+    const float buttons = slideOffset + kMapButtonsX + originX;
     bounds->Place(middle, 80.0f, 18.0f);
     visibleDisc->Place(middle, 80.0f, 14.0f);
     markers->Place(middle, 80.0f, 12.0f);
@@ -802,11 +796,10 @@ void HudMap::Layout() {
     viewIcons[0]->Place(buttons, 115.0f, 10.0f);
     viewIcons[1]->Place(buttons, 145.0f, 10.0f);
     ring->Place(middle, 80.0f, 10.0f);
-    frame->Place(slideOffset + kMapFrameX, 80.0f, 10.0f);
-    needle->Place(slideOffset + kMapNeedleX, 84.0f, kSlingDepthBits);
+    frame->Place(slideOffset + kMapFrameX + originX, 80.0f, 10.0f);
+    needle->Place(slideOffset + kMapNeedleX + originX, 84.0f, kSlingDepthBits);
     northIcon->Place(buttons, 85.0f, 10.0f);
-    surfaces[0]->MoveTo({offset + 700 + screen_layout::EdgeShift(), 80});     // WideScreen
-    screen_layout::LeavePanel();        // addon's 1002337E, before the regions
+    surfaces[0]->MoveTo({offset + 700 + originX, 80});
     MoveRegions(this, slingButton, offset);
 }
 
@@ -828,11 +821,10 @@ void HudMap::Update() {
     if (slide.moving) {
         slide.Step();
         Layout();
-        // WideScreen.
         if (slide.direction == 1.0f)
-            PlaceSling(slingArrow, kHudQuarterTurn, RightEdge(713.0f));
+            PlaceSling(slingArrow, kHudQuarterTurn, 713.0f + originX);
         else
-            PlaceSling(slingArrow, -kHudQuarterTurn, RightEdge(850.0f));
+            PlaceSling(slingArrow, -kHudQuarterTurn, 850.0f + originX);
     }
     ui->hudPanelsIn[2] = slide.direction > 0.0f ? 1 : 0;
 
@@ -841,9 +833,8 @@ void HudMap::Update() {
 }
 
 void HudMap::Setup(float newZoom, bool slid) {
-    screen_layout::EnterRightPanel();   // addon's 10023344
-    const int shift = screen_layout::EdgeShift();
-    rect = Rect{615 + shift, 0, 800 + shift, 165};    // WideScreen
+    originX = screen_layout::EdgeShift();
+    rect = Rect{615 + originX, 0, 800 + originX, 165};
     halfSide = 80.0f;
 
     // The world's extent and the map's picture (referenced object 1), from the zone's record.
@@ -868,7 +859,7 @@ void HudMap::Setup(float newZoom, bool slid) {
     slide.direction = slid ? 1.0f : -1.0f;
 
     slingButton = AddRegion();
-    slingButton->SetRect(780, 0, 800, 30);
+    slingButton->SetRect(780 + originX, 0, 800 + originX, 30);
     slingButton->SetTip(0x283C, 0x34);
     // The round map's outline (a point whose product falls just short of a whole pixel may truncate one
     // pixel lower than the original's, see OnArc).
@@ -879,32 +870,32 @@ void HudMap::Setup(float newZoom, bool slid) {
         const int y = static_cast<int>((down + kOutlineCentreY));
         const float across = lib::Sin(angle) * kOutlineRadius;
         const int x = static_cast<int>((kOutlineCentreX - across));
-        roundMap->AddPoint(x, y);
+        roundMap->AddPoint(x + originX, y);
     }
     mapSquare = AddRegion();
-    mapSquare->SetRect(620, 0, 780, 160);
+    mapSquare->SetRect(620 + originX, 0, 780 + originX, 160);
     viewButtons[0] = AddRegion();
-    viewButtons[0]->SetRect(780, 100, 800, 130);
+    viewButtons[0]->SetRect(780 + originX, 100, 800 + originX, 130);
     viewButtons[0]->SetTip(0x283D);
     viewButtons[1] = AddRegion();
-    viewButtons[1]->SetRect(780, 130, 800, 160);
+    viewButtons[1]->SetRect(780 + originX, 130, 800 + originX, 160);
     viewButtons[1]->SetTip(0x283E);
     northButton = AddRegion();
-    northButton->SetRect(780, 70, 800, 100);
+    northButton->SetRect(780 + originX, 70, 800 + originX, 100);
     northButton->SetTip(0x283F, 0xC);
-    AddRegion()->SetRect(615, 0, 800, 165);
+    AddRegion()->SetRect(615 + originX, 0, 800 + originX, 165);
 
     bounds = AddBlankSprite();
-    bounds->SetRectangle(18.0f, kSpriteScale, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
+    bounds->SetRectangle(18.0f, kSpriteScale, 620.0f + originX, 0.0f, 780.0f + originX, 160.0f, 0, 0, 256, 256);
     bounds->texture = objects[1];
     bounds->tint[0] = bounds->tint[1] = bounds->tint[2] = 0.8f;
     bounds->SetScale((kDepthUnit * halfSide) * kBoundsScale);
     visibleDisc = AddBlankSprite();
-    visibleDisc->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
+    visibleDisc->Disc(14.0f, 80.0f, 700.0f + originX, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
     visibleDisc->texture = objects[1];
     visibleDisc->tint[0] = visibleDisc->tint[1] = visibleDisc->tint[2] = 1.0f;
     markers = AddBlankSprite();
-    markers->Place(700.0f, 80.0f, 12.0f);
+    markers->Place(700.0f + originX, 80.0f, 12.0f);
     markers->SetScale((kDepthUnit * halfSide) * kMarkersScale);
     markers->ResetColours();
     markers->SetUvCount(4);
@@ -912,31 +903,33 @@ void HudMap::Setup(float newZoom, bool slid) {
         {0.9375f, 0.984375f}, {0.953125f, 0.984375f}, {0.96875f, 0.984375f}, {0.984375f, 0.984375f}};
     for (int i = 0; i < 4; ++i) markers->texCoords[i] = markerTexels[i];
     mapBack = AddBlankSprite();
-    mapBack->SetRectangle(20.0f, kSpriteScale, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
+    mapBack->SetRectangle(20.0f, kSpriteScale, 620.0f + originX, 0.0f, 780.0f + originX, 160.0f, 0, 0, 256, 256);
     SetPlain(mapBack, 0x50000000);
     buttonsBack = AddBlankSprite();
-    buttonsBack->SetRectangle(20.0f, kSpriteScale, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
+    buttonsBack->SetRectangle(20.0f, kSpriteScale, 780.0f + originX, 0.0f, 800.0f + originX, 160.0f, 0, 0, 256, 256);
     SetPlain(buttonsBack, 0xB4000000);
     slingArrow = AddSprite(kArrowSprite);
     slingArrow->textureOffsetU = 0.22265625f;
     slingArrow->textureOffsetV = 0.140625f;
-    PlaceSling(slingArrow, kPi * kSlingQuarter, 850.0f);
+    PlaceSling(slingArrow, kPi * kSlingQuarter, 850.0f + originX);
     slingArrow->SetScale(0.8f);
     viewIcons[0] = AddBlankSprite();
-    viewIcons[0]->SetRectangle(10.0f, 80.0f, 780.0f, 100.0f, 800.0f, 130.0f, 0x19, 0x3E, 0x2D, 0x5C);
+    viewIcons[0]->SetRectangle(10.0f, 80.0f, 780.0f + originX, 100.0f, 800.0f + originX, 130.0f, 0x19, 0x3E, 0x2D,
+                               0x5C);
     viewIcons[1] = AddBlankSprite();
-    viewIcons[1]->SetRectangle(10.0f, 80.0f, 780.0f, 130.0f, 800.0f, 160.0f, 3, 0x3E, 0x17, 0x5C);
+    viewIcons[1]->SetRectangle(10.0f, 80.0f, 780.0f + originX, 130.0f, 800.0f + originX, 160.0f, 3, 0x3E, 0x17, 0x5C);
     ring = AddBlankSprite();
+    // At the layout's 700 until the layout below places it (the ring's shape takes no origin).
     ring->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
     frame = AddBlankSprite();
-    frame->SetFrame(10.0f, 80.0f, 615.0f, -5.0f, 805.0f, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
+    frame->SetFrame(10.0f, 80.0f, 615.0f + originX, -5.0f, 805.0f + originX, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     needle = AddSprite(kArrowSprite);
     needle->textureOffsetU = 0.22265625f;
     needle->textureOffsetV = 0.140625f;
-    needle->Place(900.0f, 80.0f, kSlingDepthBits);
+    needle->Place(900.0f + originX, 80.0f, kSlingDepthBits);
     needle->SetScale(0.8f);
     northIcon = AddBlankSprite();
-    northIcon->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
+    northIcon->SetRectangle(10.0f, 80.0f, 780.0f + originX, 70.0f, 800.0f + originX, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
     UiSurface* dot = AddSurface(std::make_unique<UiSurface>(ui, 700, 80, 705, 85, SurfaceBlend::Keyed, true));
     dot->PaintWith([](UiSurface& out) { out.Dot({0, 0}, 0xFFFFFF); });
@@ -952,7 +945,6 @@ void HudMap::Setup(float newZoom, bool slid) {
     for (int i = 0; i < 2; ++i) SetTint(viewIcons[i], view == i + 1 ? 1.0f : 0.5f);
     Layout();
     northTime = 0.0f;
-    screen_layout::LeavePanel();        // addon's 10023359
 }
 
 // --- Unit panel ------------------------------------------------------------------------------------------------------
@@ -1121,45 +1113,42 @@ void HudUnitPanel::ShowBodyPart() {
 }
 
 void HudUnitPanel::Layout() {
-    screen_layout::EnterLeftPanel();    // addon's 100232AF
     const int offset = slide.Offset();
     const float slideOffset = static_cast<float>(offset);
-    const float edgeX = kUnitEdgeX - slideOffset;
-    const float middle = kUnitMiddleX - slideOffset;
-    background->Place(kUnitBackX - slideOffset, 110.0f, 60.0f);
+    const float edgeX = kUnitEdgeX - slideOffset + originX;
+    const float middle = kUnitMiddleX - slideOffset + originX;
+    background->Place(kUnitBackX - slideOffset + originX, 110.0f, 60.0f);
     edge->Place(edgeX, 110.0f, 20.0f);
     partIcons[0]->Place(edgeX, 115.0f, 10.0f);
     partIcons[1]->Place(edgeX, 145.0f, 10.0f);
     partIcons[2]->Place(edgeX, 175.0f, 10.0f);
     partIcons[3]->Place(edgeX, 205.0f, 10.0f);
     frame->Place(middle, 110.0f, 10.0f);
-    moreMark->Place(kUnitMoreX - slideOffset, 212.0f, 4.0f);
+    moreMark->Place(kUnitMoreX - slideOffset + originX, 212.0f, 4.0f);
     healthBar->Place(middle, 192.5f, 4.0f);
     healthFrame->Place(middle, 192.5f, 5.0f);
     manaBar->Place(middle, 207.5f, 4.0f);
     manaFrame->Place(middle, 207.5f, 5.0f);
     for (int i = 0; i < kParts; ++i) {
         const float y = kPartY[i] + kUnitPartDown;
-        const float x = (kPartX[i] + 50) - slideOffset;
+        const float x = (kPartX[i] + 50) - slideOffset + originX;
         bodyBars[i]->Place(x, y, 4.0f);
         bodyFrames[i]->Place(x, y, 5.0f);
     }
     for (int i = 0; i < kEffects; ++i)
-        effectSprites[i]->Place(kUnitEffectX - slideOffset, static_cast<float>(50 + 30 * i), 5.0f);
-    surfaces[0]->MoveTo({20 - screen_layout::EdgeShift() - offset, 0});     // WideScreen
+        effectSprites[i]->Place(kUnitEffectX - slideOffset + originX, static_cast<float>(50 + 30 * i), 5.0f);
+    surfaces[0]->MoveTo({20 + originX - offset, 0});
     MoveRegions(this, slingButton, -offset);
-    screen_layout::LeavePanel();        // addon's 100232E9
 }
 
 void HudUnitPanel::Update() {
     if (slide.moving) {
         slide.Step();
         Layout();
-        // WideScreen.
         if (slide.direction == -1.0f)
-            PlaceSling(slingArrow, kHudQuarterTurn, LeftEdge(-50.0f));
+            PlaceSling(slingArrow, kHudQuarterTurn, -50.0f + originX);
         else
-            PlaceSling(slingArrow, -kHudQuarterTurn, LeftEdge(87.0f));
+            PlaceSling(slingArrow, -kHudQuarterTurn, 87.0f + originX);
     }
     if (hoverUnit && hoverUnit->IsDead() != 0) hoverUnit = nullptr;
     ui->hudPanelsIn[0] = slide.direction > 0.0f ? 1 : 0;
@@ -1169,69 +1158,71 @@ void HudUnitPanel::Update() {
 void HudUnitPanel::Setup(int newBodyPart, bool slid) {
     slide.t = slid ? 1.0f : 0.0f;
     slide.direction = slid ? 1.0f : -1.0f;
-    // The panel offset from here on (addon's handler over the fields' stores) and the original's rectangle moved to the
-    // window's left edge. addon wrote (-133, 0)-(52, 225) and `moving` 0 whatever the margin: its rectangle is this one
-    // at 16:9 but a unit to the right, and without the first update's slide a panel set up slid out kept its sling
-    // button where it was made, turned the other way.
-    screen_layout::EnterLeftPanel();
-    const int shift = screen_layout::EdgeShift();
-    rect = Rect{-shift, 0, 185 - shift, 225};
+    // The original's rectangle moved to the window's left edge. addon wrote (-133, 0)-(52, 225) and `moving` 0
+    // whatever the margin: its rectangle is this one at 16:9 but a unit to the right, and without the first update's
+    // slide a panel set up slid out kept its sling button where it was made, turned the other way.
+    originX = -screen_layout::EdgeShift();
+    rect = Rect{originX, 0, 185 + originX, 225};
     slide.moving = true;
     slide.travel = kUnitTravel;
 
     slingButton = AddRegion();
-    slingButton->SetRect(0, 0, 20, 30);
+    slingButton->SetRect(originX, 0, 20 + originX, 30);
     slingButton->SetTip(0x2774);
     for (int i = 0; i < 4; ++i) {
         partButtons[i] = AddRegion();
-        partButtons[i]->SetRect(0, 100 + 30 * i, 20, 130 + 30 * i);
+        partButtons[i]->SetRect(originX, 100 + 30 * i, 20 + originX, 130 + 30 * i);
         partButtons[i]->SetTip(0x2775 + i, 0x2E + i);
     }
-    AddRegion()->SetRect(0, 0, 185, 225);
+    AddRegion()->SetRect(originX, 0, 185 + originX, 225);
 
     background = AddBlankSprite();
-    background->SetRectangle(60.0f, kSpriteScale, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
+    background->SetRectangle(60.0f, kSpriteScale, 20.0f + originX, 0.0f, 180.0f + originX, 220.0f, 0, 0, 256, 256);
     background->texture = nullptr;
     background->flags |= FigureMeshFlag::Flat;
     background->flatColour = 0x50000000;
     background->visible = false;
     edge = AddBlankSprite();
-    edge->SetRectangle(20.0f, kSpriteScale, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
+    edge->SetRectangle(20.0f, kSpriteScale, 0.0f + originX, 0.0f, 20.0f + originX, 220.0f, 0, 0, 256, 256);
     edge->texture = nullptr;
     edge->flags |= FigureMeshFlag::Flat;
     edge->flatColour = 0xB4000000;
     slingArrow = AddSprite(kArrowSprite);
     slingArrow->textureOffsetU = 0.22265625f;
     slingArrow->textureOffsetV = 0.140625f;
-    PlaceSling(slingArrow, kHudQuarterTurn, -50.0f);
+    PlaceSling(slingArrow, kHudQuarterTurn, -50.0f + originX);
     slingArrow->SetScale(0.8f);
     partIcons[0] = AddBlankSprite();
-    partIcons[0]->SetRectangle(10.0f, 80.0f, 0.0f, 100.0f, 20.0f, 130.0f, 0x2F, 0x3E, 0x43, 0x5C);
+    partIcons[0]->SetRectangle(10.0f, 80.0f, 0.0f + originX, 100.0f, 20.0f + originX, 130.0f, 0x2F, 0x3E, 0x43, 0x5C);
     partIcons[1] = AddBlankSprite();
-    partIcons[1]->SetRectangle(10.0f, 80.0f, 0.0f, 130.0f, 20.0f, 160.0f, 0x45, 0x3E, 0x59, 0x5C);
+    partIcons[1]->SetRectangle(10.0f, 80.0f, 0.0f + originX, 130.0f, 20.0f + originX, 160.0f, 0x45, 0x3E, 0x59, 0x5C);
     partIcons[2] = AddBlankSprite();
-    partIcons[2]->SetRectangle(10.0f, 80.0f, 0.0f, 160.0f, 20.0f, 190.0f, 3, 0x5E, 0x17, 0x7C);
+    partIcons[2]->SetRectangle(10.0f, 80.0f, 0.0f + originX, 160.0f, 20.0f + originX, 190.0f, 3, 0x5E, 0x17, 0x7C);
     partIcons[3] = AddBlankSprite();
-    partIcons[3]->SetRectangle(10.0f, 80.0f, 0.0f, 190.0f, 20.0f, 220.0f, 0xE9, 0x70, 0xFD, 0x8E);
+    partIcons[3]->SetRectangle(10.0f, 80.0f, 0.0f + originX, 190.0f, 20.0f + originX, 220.0f, 0xE9, 0x70, 0xFD, 0x8E);
     frame = AddBlankSprite();
-    frame->SetFrame(10.0f, 80.0f, -5.0f, -5.0f, 185.0f, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
+    frame->SetFrame(10.0f, 80.0f, -5.0f + originX, -5.0f, 185.0f + originX, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     heightBar = AddBlankSprite();
-    heightBar->SetGrid(4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
+    heightBar->SetGrid(4.0f, StripScale(), 20.0f + originX, 0.0f, 25.0f + originX, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
     heightBar->visible = false;
     moreMark = AddBlankSprite();
-    moreMark->SetRectangle(4.0f, kSpriteScale, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
+    moreMark->SetRectangle(4.0f, kSpriteScale, 164.0f + originX, 204.0f, 180.0f + originX, 220.0f, 0xD3, 2, 0xE3, 0x12);
     moreMark->visible = false;
     healthBar = AddBlankSprite();
-    healthBar->SetRectangle(4.0f, kSpriteScale, 40.0f, 190.0f, 140.0f, 195.0f, 0x40, 0x9A, 0xA4, 0x9F);
+    healthBar->SetRectangle(4.0f, kSpriteScale, 40.0f + originX, 190.0f, 140.0f + originX, 195.0f, 0x40, 0x9A, 0xA4,
+                            0x9F);
     healthFrame = AddBlankSprite();
-    healthFrame->SetRectangle(5.0f, kSpriteScale, 35.0f, 190.0f, 145.0f, 195.0f, 0x3B, 0x93, 0xA9, 0x98);
+    healthFrame->SetRectangle(5.0f, kSpriteScale, 35.0f + originX, 190.0f, 145.0f + originX, 195.0f, 0x3B, 0x93, 0xA9,
+                              0x98);
     manaBar = AddBlankSprite();
-    manaBar->SetRectangle(4.0f, kSpriteScale, 40.0f, 205.0f, 140.0f, 210.0f, 0x40, 0xA1, 0xA4, 0xA6);
+    manaBar->SetRectangle(4.0f, kSpriteScale, 40.0f + originX, 205.0f, 140.0f + originX, 210.0f, 0x40, 0xA1, 0xA4,
+                          0xA6);
     manaFrame = AddBlankSprite();
-    manaFrame->SetRectangle(5.0f, kSpriteScale, 35.0f, 205.0f, 145.0f, 210.0f, 0x3B, 0x93, 0xA9, 0x98);
+    manaFrame->SetRectangle(5.0f, kSpriteScale, 35.0f + originX, 205.0f, 145.0f + originX, 210.0f, 0x3B, 0x93, 0xA9,
+                            0x98);
     // The body parts' bars at the tables' places.
     for (int i = 0; i < kParts; ++i) {
-        const int x = kPartX[i];
+        const int x = kPartX[i] + originX;
         const int y = kPartY[i];
         bodyBars[i] = AddBlankSprite();
         bodyBars[i]->SetRectangle(4.0f, 50.0f, static_cast<float>(x + 25), static_cast<float>(y + 15),
@@ -1243,8 +1234,8 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
     for (int i = 0; i < kEffects; ++i) {
         const int top = 38 + 30 * i;
         effectSprites[i] = AddBlankSprite();
-        effectSprites[i]->SetRectangle(5.0f, 30.0f, 28.0f, static_cast<float>(top), 52.0f, static_cast<float>(top + 24),
-                                       0, 0, 64, 64);
+        effectSprites[i]->SetRectangle(5.0f, 30.0f, 28.0f + originX, static_cast<float>(top), 52.0f + originX,
+                                       static_cast<float>(top + 24), 0, 0, 64, 64);
         effectSprites[i]->texture = objects[1];
     }
 
@@ -1272,7 +1263,6 @@ void HudUnitPanel::Setup(int newBodyPart, bool slid) {
         partLabels.push_back(text);
     }
     for (int& icon : effectIcons) icon = -1;
-    screen_layout::LeavePanel();        // addon's 100230E2
 }
 
 void HudUnitPanel::PaintUnitInfo(UiSurface& surface, Unit* unit) {
@@ -1394,7 +1384,6 @@ void HudUnitPanel::PaintTexts(UiSurface& surface) {
 }
 
 void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
-    screen_layout::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
     heightBar->visible = false;
@@ -1445,8 +1434,7 @@ void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
-            // WideScreen: 100 - shift.
-            const float x = ((100 - screen_layout::EdgeShift() - offset) * kLayoutUnit - 1.0f) *
+            const float x = ((100 + originX - offset) * kLayoutUnit - 1.0f) *
                                          kDepthUnit * kModelDepth;
             const float y = height / size - (kDepthUnit * kModelDepth) * kModelDrop;
             model->localPosition = Vector3{x, y, kModelDepth};
@@ -1492,7 +1480,7 @@ void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
             bits = std::bit_cast<std::uint32_t>(barScale);
             heightBar->SetScaleYBits(bits);
             const float barY = kPanelHeight - barScale * kPanelHeight;
-            heightBar->Place(static_cast<float>(20 - offset), barY, 4.0f);
+            heightBar->Place(static_cast<float>(20 - offset) + originX, barY, 4.0f);
             heightBar->visible = true;
             break;
         }
@@ -1512,6 +1500,5 @@ void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
         }
     }
 
-    screen_layout::LeavePanel();        // addon's 10023312, before the base draw
     DrawBase(pass);
 }

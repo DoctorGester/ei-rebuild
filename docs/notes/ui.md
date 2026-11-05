@@ -675,19 +675,20 @@ order, kept.
 
 The game clock (HudClock) and the movement panel (HudMovePanel): their setups make the panels' sprites and regions about
 the layout's bottom corners. The WideScreen layout (screen_layout.h) puts the clock at the screen's right edge and the
-movement panel at its left (the panel offset while they run, their rectangles moved by EdgeShift). See ui_hud.h and rebirth.md ("WideScreen").
+movement panel at its left (each window's origin, `UiWindow::originX`, at +EdgeShift / -EdgeShift). See ui_hud.h and
+rebirth.md ("WideScreen").
 
 ## Battle HUD sliding panels
 
 The two sliding side panels, the map (HudMap) and the unit panel (HudUnitPanel): their layouts at the current slide offset,
 their per-frame updates and their setups. The WideScreen layout (screen_layout.h) puts the map at the screen's right edge
-and the unit panel at its left (the panel offset while the setups and layouts run, their layout constants moved by
-EdgeShift). See ui_hud.h and rebirth.md ("WideScreen").
+and the unit panel at its left (each window's origin, `UiWindow::originX`, at +EdgeShift / -EdgeShift). See ui_hud.h
+and rebirth.md ("WideScreen").
 
 ## Battle HUD unit panel draw
 
-HudUnitPanel's draw. With the WideScreen layout the panel is offset while it draws (until the window's base draw), the
-model's x moved left by EdgeShift, the depth buffer's rectangles scaled without the margin. It clears the renderer's depth
+HudUnitPanel's draw. With the WideScreen layout the height bar and the model are placed from the window's origin
+(left by EdgeShift), the depth buffer's rectangles scaled without the margin. It clears the renderer's depth
 (`ClearUiDepth`) and sets render::g_renderState, as the hero preview does (ui_hero_preview.cpp).
 
 ## Item description drawing

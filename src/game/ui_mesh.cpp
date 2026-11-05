@@ -6,7 +6,6 @@
 #include "figure_mesh.h"
 #include "material.h"
 #include "model.h"
-#include "screen_layout.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
@@ -350,11 +349,8 @@ UiMesh::Placement UiMesh::GetPlacement() const {
     return placement;
 }
 
-// The layout's 1 / 400 and 0.75 with the constants above. Rebirth's WideScreen replaces it (addon's
-// 10023151): x moved by the panel offset first (an integer add; 0 outside its panel builders,
-// screen_layout.h).
+// The layout's 1 / 400 and 0.75 with the constants above.
 void UiMesh::Place(float x, float y, float depth) {
-    x += static_cast<float>(screen_layout::PanelOffset());
     float placedX = (x * 0.0025f - 1.0f) * 0.48157462f * depth;
     float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
     localPosition = {placedX, placedY, depth};
@@ -508,9 +504,7 @@ void UiMesh::SetUvCount(int count) { texCoords.resize(count); }
 
 // --- Shapes ------------------------------------------------------------------------------------------
 
-// The shapes an interface sprite (UiMesh, ui_mesh.h) is given. Rebirth's WideScreen patches each of
-// them (one site: the x of the sprite's position moved by its panel offset, screen_layout.h), which
-// these reproduce for every window. docs/notes/ui.md, section 9.
+// The shapes an interface sprite (UiMesh, ui_mesh.h) is given. docs/notes/ui.md, section 9.
 
 namespace {
 
@@ -590,10 +584,6 @@ void SetLayoutScale(UiMesh* sprite, float depth, float scale) {
     sprite->ScaleZ() = size;
 }
 
-// Rebirth's WideScreen: addon's code at the four sites adds its panel offset (an int, FIADD) to the
-// layout x before the scaling: once to a left edge or a point, twice to a sum of two edges.
-float MovedX(float x) { return x + screen_layout::PanelOffset(); }
-
 } // namespace
 
 void UiMesh::SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0,
@@ -625,9 +615,7 @@ void UiMesh::SetRectangle(float depth, float scale, float left, float top, float
     quad.y()[3] = halfHeight;
     // The centre in front of the interface camera, as Place puts a layout point.
     float y = ((top + bottom) * 0.00125f - 0.75f) * kViewHalfWidth * depth;
-    // WideScreen (addon's handler): both edges moved.
-    const float sumX = MovedX(MovedX(left + right));
-    float x = (sumX * 0.00125f - 1.0f) * kViewHalfWidth * depth;
+    float x = ((left + right) * 0.00125f - 1.0f) * kViewHalfWidth * depth;
     localPosition = {x, y, depth};
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
@@ -678,9 +666,7 @@ void UiMesh::SetGrid(float depth, float scale, float left, float top, float righ
         ++point;
     }
     // The top left corner in front of the interface camera.
-    // WideScreen (addon's handler): the left edge moved.
-    const float gridLeft = MovedX(left);
-    localPosition.x = (gridLeft * 0.0025f - 1.0f) * kViewHalfWidth * depth;
+    localPosition.x = (left * 0.0025f - 1.0f) * kViewHalfWidth * depth;
     localPosition.y = (top * 0.0025f - 0.75f) * kViewHalfWidth * depth;
     localPosition.z = depth;
     SetLayoutScale(this, depth, scale);
@@ -728,9 +714,7 @@ void UiMesh::SetFrame(float depth, float scale, float left, float top, float rig
     lower.y()[2] = outerY;
     lower.x()[3] = -innerX;
     lower.y()[3] = innerY;
-    // WideScreen (addon's handler): both edges moved.
-    const float sumX = MovedX(MovedX(left + right));
-    localPosition.x = (sumX * 0.00125f - 1.0f) * kViewHalfWidth * depth;
+    localPosition.x = ((left + right) * 0.00125f - 1.0f) * kViewHalfWidth * depth;
     localPosition.y = ((top + bottom) * 0.00125f - 0.75f) * kViewHalfWidth * depth;
     localPosition.z = depth;
     SetLayoutScale(this, depth, scale);
@@ -768,9 +752,7 @@ void UiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1,
     points.x()[3] = 0.0f;
     points.y()[3] = 0.0f;
     float y = (y0 * 0.0025f - 0.75f) * kViewHalfWidth * depth;
-    // WideScreen (addon's handler): the first point moved.
-    const float firstX = MovedX(x0);
-    float x = (firstX * 0.0025f - 1.0f) * kViewHalfWidth * depth;
+    float x = (x0 * 0.0025f - 1.0f) * kViewHalfWidth * depth;
     localPosition = {x, y, depth};
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);

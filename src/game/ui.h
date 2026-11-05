@@ -670,6 +670,10 @@ public:
 
     Interface3D* ui = nullptr;
     Rect rect = {};                           // layout coordinates
+    // The layout x the window's own coordinates start at: its code gives its regions and sprites x + originX. The
+    // battle HUD's edge panels sit at -EdgeShift() (the left edge) or +EdgeShift() (the right edge), every other
+    // window at 0 (screen_layout.h).
+    int originX = 0;
     bool enabled = true;
     Material* blackMaterial = nullptr;   // given to every sprite (AddSprite)
     Material* whiteMaterial = nullptr;

@@ -32,7 +32,6 @@ public:
     // Weapon `slot` (its button or key), unless it is the one shown or not in use: highlighted, the weapon
     // sound, and the unit's weapon set.
     void Choose(int slot);
-    // WideScreen: with the left panels' offset.
     void Highlight(int index, bool on);
     // The next slot's sprite: `image` copied into the bar's texture, the model `model` turned to face the
     // screen (a plain rectangle without one); shown not highlighted.
@@ -424,7 +423,7 @@ public:
     void Update() override;
     // The flag button (and its key): the selected party units' flag becomes 0 when all have 1, else 1.
     void ToggleFlag();
-    // WideScreen (the left panels' offset). A negative mode hides the marker.
+    // A negative mode hides the marker.
     void ShowMode(int mode);
     // A mode button and its keys: the click sound and the mode 0-3 for the selected party units (nothing
     // without the local player's view), then the marker moved there.
