@@ -454,6 +454,10 @@ long ModManagerFile(const char* which, const char* name) {
 
 void PlayStream(const char* name) { g_clientWorld.sounds->RequestStream(name, StreamSwitch::Now); }
 
+bool SwitchMod(const char* folder) { return app::RequestModSwitch(folder); }
+
+bool ModSwitchPending() { return app::ModSwitchPending(); }
+
 bool MapsFileExists(const char* name) { return MapFileExists(name); }
 
 void WriteMapBytes(const char* name) {

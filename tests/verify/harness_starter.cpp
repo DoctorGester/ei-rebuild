@@ -144,12 +144,16 @@ bool ParseStep(const std::string& verb, const std::string& argument) {
     return false;
 }
 
+std::string ModStepPath(const std::string& argument) {
+    if (argument.empty() || argument == "none") return {};
+    const bool full = argument[0] == '\\' || argument[0] == '/' || (argument.size() >= 2 && argument[1] == ':');
+    return sys::FullPath(full ? argument : GameFolder() + "\\" + argument);
+}
+
 void Install(const char* savesDir) {
     if (!g_addonFolder.empty()) std::snprintf(g_addonPath, sizeof(g_addonPath), "%s\\%s", savesDir, g_addonFolder.c_str());
     if (!g_modFolder.empty()) {
-        const bool full = g_modFolder[0] == '\\' || g_modFolder[0] == '/' || (g_modFolder.size() >= 2 && g_modFolder[1] == ':');
-        const std::string path = full ? g_modFolder : GameFolder() + "\\" + g_modFolder;
-        sys::CopyText(g_modPath, sys::FullPath(path).c_str());
+        sys::CopyText(g_modPath, ModStepPath(g_modFolder).c_str());
         Log("harness: the settings' Mod: %s", g_modPath);
     }
     const std::string resolution = platform::EnvironmentVariable("EI_RESOLUTION");
