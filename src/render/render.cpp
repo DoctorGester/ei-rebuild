@@ -361,28 +361,28 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
     }
 }
 
-// The frame's first water draw from command `k` on, before which the water's reflections copy the frame as it
-// stands (render_water.cpp); SIZE_MAX: none, or this frame's copy was taken.
-static std::size_t FirstWater(std::size_t k, std::size_t end) {
+// Where the frame is copied for the water's reflections (render_water.cpp): the end of its first world view that
+// draws water (the copy the next frame's water reads), or, when the last frame left no copy (the first frame after a
+// load), before the water's first draw (the copy this frame's water reads); SIZE_MAX: no such point is drawn yet,
+// or this frame's copy was taken.
+static std::size_t WaterCopyPoint() {
     if (WaterCopyTaken()) return SIZE_MAX;
-    for (; k < end; ++k) {
-        const Command& c = g_frame.commands[k];
-        if (c.kind == Command::Terrain && g_frame.terrainBatches[static_cast<std::size_t>(c.index)].water) return k;
+    for (const Frame::Range& r : g_frame.worldRanges) {
+        for (std::size_t k = r.first; k < std::min(r.end, g_frame.commands.size()); ++k) {
+            const Command& c = g_frame.commands[k];
+            if (c.kind != Command::Terrain || !g_frame.terrainBatches[static_cast<std::size_t>(c.index)].water)
+                continue;
+            if (!LastWaterCopyKept()) return k;
+            return r.end <= g_frame.commands.size() ? r.end : SIZE_MAX;
+        }
     }
     return SIZE_MAX;
 }
 
-// The frame as it stands (between passes) into the water's copy: its colour and its depth, which after a multisampled
-// pass is the resolved depth copy.
-static void CopyForWater() {
-    if (g_holder == Holder::None) return;
-    CopyFrameForWater(g_colour, g_holder == Holder::Multisampled ? g_resolvedDepth : g_depth);
-}
-
 // Draws the frame's commands not drawn yet into the off-screen target: one pass, the frame's first clearing
-// it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), before the
-// water's first draw (the copy its reflections read), and with multisampling one pass per run of world and other
-// commands. The copies waiting for the interface's pictures go first.
+// it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), at the end of
+// a world view with water (the copy the next frame's reflections read), and with multisampling one pass per run of
+// world and other commands. The copies waiting for the interface's pictures go first.
 static bool DrawPending() {
     perf::BeginDraws();
     perf::Enter(perf::Pass::Ui);
@@ -426,9 +426,9 @@ static bool DrawPending() {
         std::size_t last = r.end < end ? r.end : end;
         if (last > r.first + 1) split = r.first + (last - r.first) / 2;
     }
-    const std::size_t water = FirstWater(k, end);
+    const std::size_t water = WaterCopyPoint();
+    if (water == k && g_holder != Holder::None) CopyFrameForWater(g_colour);
     do {
-        if (k == water) CopyForWater();
         bool world = multisampling && k < end && InWorld(k);
         std::size_t stop = k;
         while (stop < end && (multisampling && InWorld(stop)) == world && !(world && stop == split && stop > k) &&
@@ -445,6 +445,7 @@ static bool DrawPending() {
         g_passSamples = 1;
         ++g_passes;
         if (world && stop == split) EmptyFramePass();
+        if (stop == water) CopyFrameForWater(g_colour);
         k = stop;
     } while (k < end);
     g_drawnCommands = end;

@@ -719,13 +719,16 @@ gpu::TextureBinding RippleMap();
 void RippleOffsets(float water[4], float swamp[4]);
 // The water's reflections (render_water.cpp; shaders/terrain.hlsl's reflected_sky and screen_reflection).
 // DrawSkyReflection, once a frame before its first pass on the world: the sky dome (the world's meshes before its
-// first ground) drawn mirrored in the water's plane into the sky image. CopyFrameForWater, outside a pass before the
-// water's first draw: the frame's colour and depth (the frame target's, or the resolved depth copy) as they stand,
-// which the water's rays are marched through; WaterCopyTaken: this frame's was. BindWaterReflections: every terrain
-// batch's part of `fs` for them (`view`: its clip matrix) and the three images bound. ListWaterPipelines: the copy's.
+// first ground) drawn mirrored in the water's plane into the sky image. CopyFrameForWater, outside a pass at the end
+// of a world view that drew water (or before the water's first draw when !LastWaterCopyKept: the last frame left
+// none at this size): the frame's colour (resolved) at half size, the colour the water's rays take where they hit
+// the frame's depth (the ambient occlusion's); WaterCopyTaken: this frame's was taken. BindWaterReflections: every
+// terrain batch's part of `fs` for them (`view`: its clip matrix) and the two images bound. ListWaterPipelines: the
+// copy's.
 void DrawSkyReflection(Frame& frame);
-void CopyFrameForWater(const gpu::Texture& colour, const gpu::Texture& depth);
+void CopyFrameForWater(const gpu::Texture& colour);
 bool WaterCopyTaken();
+bool LastWaterCopyKept();
 void BindWaterReflections(const Matrix4& view, TerrainFsParams* fs);
 void ListWaterPipelines(std::vector<gpu::PipelineDesc>& out);
 // A clip matrix's depth (z / w) to its clip w: w = out[1] / (depth - out[0]) (render_occlusion.cpp).

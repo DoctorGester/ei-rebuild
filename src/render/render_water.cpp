@@ -1,5 +1,5 @@
 // The water's small ripples (the map the water's look samples, shaders/terrain.hlsl's Water, and its two layers'
-// motion) and its reflections (the sky dome mirrored in the water's plane, the frame before the water's first draw).
+// motion) and its reflections (the sky dome mirrored in the water's plane, the last frame's world view).
 // See docs/notes/renderer.md, "The renderer's source files".
 #include "render_internal.h"
 
@@ -167,8 +167,9 @@ constexpr int kSkyScale = 4;
 constexpr float kSkyMargin = 1.25f;
 
 static gpu::Texture g_skyImage, g_skyDepth;
-// The frame before the water's first draw at half its size (CopyFrameForWater, shaders/scene_copy.hlsl).
-static gpu::Texture g_sceneColour, g_sceneDepth;
+// The world view at half its size (CopyFrameForWater, shaders/scene_copy.hlsl): the last frame's at its end, or this
+// frame's before the water when the last frame left none.
+static gpu::Texture g_sceneColour;
 static gpu::Pipeline g_copyPipeline;
 static bool g_copyTried = false;
 static int g_copyFailures = 0;
@@ -178,12 +179,13 @@ static Matrix4 g_skyView{};   // the landscape's space to the sky image's clip s
 static Vector3 g_domeCentre{};
 static float g_domeRadius = 1000.0f, g_domeHeight = 1000.0f;
 static std::uint32_t g_copyFrame = ~0u;   // the frame (FrameNumber) CopyFrameForWater last copied
+static Matrix4 g_waterView{};   // the clip matrix of the terrain drawn last (BindWaterReflections)
+static Matrix4 g_copyView{};    // the copied frame's (the landscape's space to its clip space)
 
 static gpu::PipelineDesc CopyDesc() {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::scene_copy::kIndex;
     p.colour = kColourFormat;
-    p.second = kDepthCopyFormat;
     return p;
 }
 
@@ -283,7 +285,7 @@ void DrawSkyReflection(Frame& f) {
     g_domeHeight = std::max(g_domeHeight, 1.0f);
 }
 
-void CopyFrameForWater(const gpu::Texture& colour, const gpu::Texture& depth) {
+void CopyFrameForWater(const gpu::Texture& colour) {
     if (!g_copyTried) {
         g_copyTried = true;
         g_copyPipeline = gpu::MakePipeline(CopyDesc(), "ei-water-scene-copy");
@@ -293,33 +295,41 @@ void CopyFrameForWater(const gpu::Texture& colour, const gpu::Texture& depth) {
         return;
     }
     const int width = (colour.width + 1) / 2, height = (colour.height + 1) / 2;
-    if (!Ensure(g_sceneColour, width, height, kColourFormat, gpu::kColourTarget | gpu::kSampled,
-                "ei-water-scene") ||
-        !Ensure(g_sceneDepth, width, height, kDepthCopyFormat, gpu::kColourTarget | gpu::kSampled,
-                "ei-water-scene-depth"))
+    if (!Ensure(g_sceneColour, width, height, kColourFormat, gpu::kColourTarget | gpu::kSampled, "ei-water-scene"))
         Fatal("Can't draw the frame: the water's copy of the frame could not be made.");
     gpu::PassDesc pass;
     pass.colour.texture = g_sceneColour;
     pass.colour.load = gpu::Load::DontCare;
-    pass.second.texture = g_sceneDepth;
-    pass.second.load = gpu::Load::DontCare;
     pass.label = "ei-water-scene-copy";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the water's frame copy could not begin (%s).", gpu::Error());
     ++g_stats.counts[FrameStats::Passes];
     gpu::ApplyPipeline(g_copyPipeline);
-    const gpu::TextureBinding sources[2] = {{colour, gpu::NearestClampSampler()}, {depth, gpu::NearestClampSampler()}};
-    static_assert(gpu_shaders::scene_copy::kSamplerColour == 0 && gpu_shaders::scene_copy::kSamplerDepth == 1);
-    gpu::BindTextures(gpu::Stage::Fragment, 0, sources);
+    const gpu::TextureBinding source{colour, gpu::NearestClampSampler()};
+    gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::scene_copy::kSamplerColour, {&source, 1});
     gpu::Draw(0, 3);
     gpu::EndPass();
     g_copyFrame = FrameNumber();
+    g_copyView = g_waterView;
 }
 
 bool WaterCopyTaken() { return g_copyFrame == FrameNumber(); }
 
+// The copy has this frame's half size.
+static bool CopyFitsFrame() {
+    const std::optional<Size> frame = FrameSize();
+    return frame && g_sceneColour && g_sceneColour.width == (frame->w + 1) / 2 &&
+           g_sceneColour.height == (frame->h + 1) / 2;
+}
+
+bool LastWaterCopyKept() { return g_copyFrame + 1 == FrameNumber() && CopyFitsFrame(); }
+
 void BindWaterReflections(const Matrix4& view, TerrainFsParams* fs) {
     namespace program = gpu_shaders::terrain;
     fs->view = view;
+    g_waterView = view;
+    // A copy of this frame (before its water) is seen through this frame's camera.
+    if (WaterCopyTaken()) g_copyView = view;
+    fs->sceneView = g_copyView;
     fs->skyView = g_skyView;
     fs->dome[0] = g_domeCentre.x;
     fs->dome[1] = g_domeCentre.y;
@@ -330,19 +340,20 @@ void BindWaterReflections(const Matrix4& view, TerrainFsParams* fs) {
     DepthMap(view, depthMap);
     fs->sceneDepthOffset = depthMap[0];
     fs->sceneDepthScale = depthMap[1];
-    const bool copied = WaterCopyTaken() && g_sceneColour;
+    // The rays are marched through this frame's depth (the ambient occlusion's) and take the colour from the copy,
+    // this frame's or the last one's, at this frame's half size.
+    const std::optional<Size> frame = FrameSize();
+    const int width = frame ? (frame->w + 1) / 2 : 0, height = frame ? (frame->h + 1) / 2 : 0;
+    const bool copied = (WaterCopyTaken() || LastWaterCopyKept()) && CopyFitsFrame() && OcclusionOf(true).on;
     fs->sceneOn = copied ? 1 : 0;
-    fs->sceneSize[0] = static_cast<float>(g_sceneColour.width);
-    fs->sceneSize[1] = static_cast<float>(g_sceneColour.height);
+    fs->sceneSize[0] = static_cast<float>(width);
+    fs->sceneSize[1] = static_cast<float>(height);
     gpu::SamplerDesc clamped;
     clamped.u = clamped.v = gpu::Wrap::Clamp;
     const gpu::Sampler linear = gpu::MakeSampler(clamped);
-    const gpu::TextureBinding textures[3] = {
-        {g_skyImage ? g_skyImage : WhiteView(), linear},
-        {copied ? g_sceneColour : WhiteView(), linear},
-        {copied ? g_sceneDepth : WhiteView(), gpu::NearestClampSampler()}};
-    static_assert(program::kSamplerSceneColour == program::kSamplerSkyImage + 1 &&
-                  program::kSamplerSceneDepth == program::kSamplerSkyImage + 2);
+    const gpu::TextureBinding textures[2] = {{g_skyImage ? g_skyImage : WhiteView(), linear},
+                                             {copied ? g_sceneColour : WhiteView(), linear}};
+    static_assert(program::kSamplerSceneColour == program::kSamplerSkyImage + 1);
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerSkyImage, textures);
 }
 
