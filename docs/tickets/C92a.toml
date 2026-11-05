@@ -5,3 +5,5 @@ model = "opus"
 depends = ["C92"]
 note = "The rest of C92 (style review round 2, item R11). Out-params to returned values: the int* width/height signatures (FrameSize, GameTargetSize, ReadFrame, FrameInWindow, Rasterise, HolderSize, HalveLevel, ReadPicture) to Size (src/lib/rect.h) or a returned struct, render_window.cpp's Placement (5 out-params) to a struct, WorldCamera's clip and eye to a returned struct (it could hand over the CameraInverse too); the harness callers (tests/verify) follow. Function-local state left outside the shadow files: render_text.cpp's font file and font maps, render_rich_text.cpp's fonts, gpu.cpp's PrepareInBackground 'registered' flag (mind exit-time destruction order when moving the font caches). Single-letter names in long scopes in the files C92 did not split (render_mesh.cpp, render_terrain.cpp, render_weather.cpp). Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1181
+status = "running"
+started = "2026-11-05"
