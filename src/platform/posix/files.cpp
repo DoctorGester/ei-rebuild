@@ -148,7 +148,8 @@ std::vector<FolderEntry> SearchFolder(std::string_view systemPattern, std::strin
     const fs::path folder = NativePath(folderOf(mapped));
     const std::string mask = slash == std::string::npos ? mapped : mapped.substr(slash + 1);
     std::error_code e;
-    const std::string root = posix::GamePath(fs::absolute(NativePath(folderOf(pattern)), e));
+    // As Windows' search: the game's folder made full as written (a symbolic link in it kept, CurrentFolder).
+    const std::string root = FullGamePath(folderOf(pattern));
     std::vector<fs::directory_entry> found;
     for (const auto& entry : fs::directory_iterator(folder, e))
         if (Matches(mask, entry.path().filename().string())) found.push_back(entry);
