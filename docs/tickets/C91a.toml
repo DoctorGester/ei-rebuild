@@ -4,3 +4,5 @@ group = "cleanup"
 depends = ["C91"]
 note = "Rest of C91 (style review round 2, R8). ambient_occlusion.hlsli's receiver part still takes two packed float4s (MeshFsParams and TerrainFsParams occlusion: x on, y/z the depth map, w the harness's view; occlusionMap: xy scale, zw texel size), filled by OcclusionUniforms(bool, float on[4], float map[4]); OcclusionParams (size xy/zw, reach x..w, depthMap x..w) and OcclusionBlurParams (step xy/zw, depthMap xyz) likewise. Give each value a member (gen_gpu_shaders.py takes scalars since C91), an int for on and view, and keep the CPU's occlusion state (g_params/g_map in render_occlusion.cpp) in a plain struct that the two receivers' blocks are filled from. Also MeshFsParams::patchMap (uv * xy + zw) into scale and offset if it reads better. Style only: goldens the same, shader float operations unchanged; check render_occlusion, render_occlusion_cave, render_lighting."
 order = 1176
+status = "running"
+started = "2026-11-05"
