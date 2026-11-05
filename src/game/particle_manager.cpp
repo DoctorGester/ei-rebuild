@@ -122,8 +122,7 @@ void ParticleManagerClearQuietStart(ParticleManager* manager) {
 
 namespace {
 
-// The part each attachPoint 1..12 asks for (0 is the unit's effect point). 2 is the head raised
-// by 1; 7 asks for "bd" twice (the fallback part).
+// The part each AttachPoint asks for (EffectPoint none); Body asks for "bd" twice (the fallback part).
 const char* const kPartNames[13] = {nullptr, "hd", "hd", "lh2", "rh2", "ll2", "rl2", "bd",
                                     "body00", "body01", "body02", "body03", "body04"};
 
@@ -147,11 +146,10 @@ Vector3 ParticleSource::PartPoint(Object3D* object, const char* prefix) {
 Vector3 ParticleSource::AttachmentPoint(Object3D* object) {
     if (!object) return {0.0f, 0.0f, 0.0f};
     if (!(flags & ParticleSourceFlag::OnPart)) return object->localPosition;
-    const auto point = static_cast<std::uint32_t>(attachPoint);
-    if (Unit* unit = UnitOrNull(object); unit && point <= 12) {
-        if (point == 0) return unit->EffectPoint();
-        Vector3 at = PartPoint(object, kPartNames[point]);
-        if (point == 2) at.z = at.z + 1.0f;
+    if (Unit* unit = UnitOrNull(object)) {
+        if (attachPoint == AttachPoint::EffectPoint) return unit->EffectPoint();
+        Vector3 at = PartPoint(object, kPartNames[static_cast<int>(attachPoint)]);
+        if (attachPoint == AttachPoint::AboveHead) at.z = at.z + 1.0f;
         return at;
     }
     float rise = lib::Has(object->bounds.flags, BoundsFlag::Sphere) ? object->bounds.radius * 1.6f
@@ -213,8 +211,6 @@ namespace {
 
 // The particles' draw order, reused by every frame.
 std::vector<ParticleDepth> g_drawOrder;
-// The orientation of the camera the frame shows (camera::FrameView).
-const Quaternion& CameraRotation() { return camera::FrameView().rotation; }
 
 // A source attached to a unit is drawn only while the unit has MapObjectFlag::InParty.
 bool AttachedToHiddenUnit(const ParticleSource* s) {
@@ -241,7 +237,7 @@ int ParticleManager::DrawAll(SceneRenderer* renderer) {
     ++refCount;
     std::vector<ParticleDepth>& order = g_drawOrder;
     order.clear();
-    Vector3 axis = CameraRotation().AxisZ();
+    Vector3 axis = camera::FrameView().rotation.AxisZ();
 
     // The manager's objects are its sources.
     for (auto node = objectList.begin(); node != objectList.end() && *node; ++node) {
@@ -303,17 +299,12 @@ int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t
 
 } // namespace
 
-int SceneRenderer::BindLoadedTexture(int stage, Texture* texture) {
-    EnsureTextureLoaded(texture);
-    return SetTexture(stage, texture);
-}
-
 // Off screen (the renderer's clip test on the bounds says outside) only counts the hidden ticks. Otherwise the
 // arrays are reserved for 4096 particles, sized to this source's, filled, and drawn; 0 when the texture cannot be
 // bound.
 int ParticleSource::Draw(SceneRenderer* renderer) {
     if (particles.empty()) return 1;
-    if (renderer->pipeline->ClipTest(&clip) == 2) {
+    if (renderer->pipeline->ClipTest(&clip) == TransformPipeline::kClipOutside) {
         ++hiddenTicks;
         return 1;
     }
@@ -485,7 +476,7 @@ void FinishBounds(ParticleSource& s) {
     s.clip.center = (s.boundsMax + s.boundsMin) * 0.5f;
     s.clip.boxMin = s.boundsMin - s.clip.center;
     s.clip.boxMax = s.boundsMax - s.clip.center;
-    s.clip.flags |= 2;
+    s.clip.flags |= lib::Bits(BoundsFlag::Box);
 }
 
 } // namespace
@@ -514,7 +505,7 @@ void ParticleSource::AddParticle(Particle* p) {
 // Returns 1 while the source is still needed: a free source while it keeps
 // alive (ParticleSourceFlag::KeepAlive) or has particles, an attached one while it emits or has particles.
 bool ParticleSource::RunTick() {
-    if (hiddenTicks > 0x38 && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
+    if (hiddenTicks >= kIdleAfterHidden && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
     const WorldClient* world = &g_clientWorld;
     windDirection = world->windDirection;
     windStrength = world->windStrength;

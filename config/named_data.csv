@@ -132,7 +132,6 @@ address,size,name,file
 0079C838,1600,g_noiseUp,src/game/lightning.cpp
 007A9694,4,g_lightningNoiseLoaded,src/game/lightning.cpp
 007A9BF8,4,kSpinAngle,src/game/particle_callbacks.cpp
-007A9BFC,48,g_bagSizes,src/game/particle_callbacks.cpp
 007A9C30,16,kIdentityRotation,src/game/particle_create.cpp
 007A9D40,2068,g_random,src/game/random.cpp
 007ABA58,256,g_fogTiles,src/game/effects.h

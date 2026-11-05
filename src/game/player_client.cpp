@@ -518,7 +518,7 @@ bool PlayerClient::OnNewObject() {
             g_clientWorld.particleManager->CreateSource(kWispParticles);
         source->Attach(object);
         source->ScaleSize(kWispSize / source->baseSize);
-        source->attachPoint = 0;
+        source->attachPoint = AttachPoint::EffectPoint;
     }
     if (!isUnit) {
         for (int i = 0; i < std::ssize(figure->parts); ++i) figure->parts[i]->flags |= FigureMeshFlag::Stationary;

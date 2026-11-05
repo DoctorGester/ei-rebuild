@@ -15,6 +15,7 @@
 #include "lib/maths.h"
 #include "lib/vecmath.h"
 
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstring>
@@ -23,7 +24,6 @@
 
 namespace {
 
-const char* NoCarrierCasting() { return "Particle effect CastingElemental without carrier\n"; }
 constexpr std::int32_t kCastAlphaByCountdown[7] = /*0078A964*/ {0, 32, 64, 112, 160, 208, 255};
 constexpr std::int32_t kCastAlphaByLifeWide[14] = /*0078A980*/ {0, 32, 64, 112, 160, 208, 255, 255, 224, 192, 128, 64, 32, 16};   // CastingDivination
 constexpr std::int32_t kCastAlphaByLife[14] = /*0078A9BC*/ {0, 255, 255, 255, 255, 255, 255, 255, 224, 192, 128, 64, 32, 16};
@@ -53,7 +53,7 @@ Vector3 RandomInBall() {
 // 0 (and a debug message) without a carrier.
 bool SetUpCasting(ParticleSource* s) {
     if (!s->attachedTo) {
-        game::DebugLog("%s", NoCarrierCasting());
+        game::DebugLog("Particle effect CastingElemental without carrier\n");
         return false;
     }
     auto [offset, radius] = s->AttachmentOffset();
@@ -82,13 +82,11 @@ bool SetUpCasting(ParticleSource* s) {
 
 constexpr float kStillSpeed = 0.01f;   // the carrier's speed below which a sphere is round
 
-const char* NoCarrierSphere() { return "Particle effect Link without carrier\n"; }
-
 // Once per tick (the first emission): the sphere's height and radius ease towards the carrier's
 // figure, the emission rate follows the source's size, and element 1 smooths the carrier's motion.
 bool FollowCarrier(ParticleSource* s) {
     if (!s->attachedTo) {
-        game::DebugLog("%s", NoCarrierSphere());
+        game::DebugLog("Particle effect Link without carrier\n");
         return false;
     }
     auto [offset, radius] = s->AttachmentOffset();
@@ -117,8 +115,6 @@ bool FollowCarrier(ParticleSource* s) {
     return true;
 }
 
-const char* NoCarrierRing() { return "Particle effect Casting without carrier\n"; }
-const char* NoCarrierHealing() { return "Particle effect Healing without carrier\n"; }
 constexpr int kFlameState = 0xFFFF;     // a burning-out flame (the update's last phase)
 
 // The rings around the carrier (emitCount of them, already allocated): stacked from the carrier's feet with a
@@ -224,12 +220,12 @@ int AddOrbiter(ParticleSource* s, Particle* p) {
     float lift = carrier * 0.4f;
     float sign = 1.0f;
     float turn;
-    switch (s->type - static_cast<int>(ParticleType::CastingIllusion)) {
-    case 0:
-    case 2:
+    switch (ParticleTypeOf(s->type)) {
+    case ParticleType::CastingIllusion:
+    case ParticleType::CastingEnchantment:
         turn = 0.3f;
         break;
-    case 1:
+    case ParticleType::CastingDomination:
         turn = 0.5f;
         lift = carrier * 1.6f;
         sign = -1.0f;
@@ -335,34 +331,27 @@ void ChooseShowerRays(ParticleSource* s) {
     }
 }
 
-float g_bagSizes[12] = /*007A9BFC*/ {};   // set by the first emission
-const std::int32_t* BagColours() {   // r, g, b per age
-    static const std::int32_t kValues[36] = {
-        251, 254, 143, 252,
-        227, 149, 252, 201,
-        154, 255, 176, 154,
-        255, 155, 163, 252,
-        152, 176, 250, 150,
-        195, 247, 149, 212,
-        243, 147, 237, 239,
-        144, 249, 239, 144,
-        249, 239, 144, 249,
-    };
-    return kValues;
-}
-const std::int32_t* BagAlpha() {
-    static const std::int32_t kValues[16] = {
-        0, 64, 112, 255,
-        255, 255, 255, 255,
-        255, 255, 255, 255,
-        255, 255, 255, 255,
-    };
-    return kValues;
-}
+// A ball's size factor by its age: 0.93 to the power of the age.
+constexpr std::array<float, 12> kBagSizes = [] {
+    std::array<float, 12> sizes = {};
+    float t = 1.0f;
+    for (float& s : sizes) {
+        s = t;
+        t *= 0.93f;
+    }
+    return sizes;
+}();
+// A ball's r, g, b by its age.
+constexpr std::int32_t kBagColours[36] = {
+    251, 254, 143, 252, 227, 149, 252, 201, 154, 255, 176, 154, 255, 155, 163, 252, 152, 176,
+    250, 150, 195, 247, 149, 212, 243, 147, 237, 239, 144, 249, 239, 144, 249, 239, 144, 249,
+};
+// A spark's alpha by its life; a ball's by its life up to 9.
+constexpr std::int32_t kBagAlpha[16] = {0, 64, 112, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 constexpr int kBagGone = -13;
 
 std::uint32_t BagRgb(int kind) {
-    const std::int32_t* c = BagColours() + kind * 3;
+    const std::int32_t* c = kBagColours + kind * 3;
     return ((static_cast<std::uint32_t>(c[0]) << 8 | static_cast<std::uint32_t>(c[1])) << 8) | static_cast<std::uint32_t>(c[2]);
 }
 
@@ -380,7 +369,7 @@ std::uint32_t ColumnAlpha(int life) { return life < 0 ? 0 : static_cast<std::uin
 // The ring from the carrier's figure (the first emission). False without a carrier.
 bool SetUpColumn(ParticleSource* s) {
     if (!s->attachedTo) {
-        game::DebugLog("%s", NoCarrierCasting());
+        game::DebugLog("Particle effect CastingElemental without carrier\n");
         return false;
     }
     auto [offset, radius] = s->AttachmentOffset();
@@ -395,8 +384,6 @@ bool SetUpColumn(ParticleSource* s) {
     e->ticks = 1;
     return true;
 }
-
-const char* NoCarrierGas() { return "Particle effect Link without carrier\n"; }
 
 constexpr float kFunnelSpans = 5.0f;   // the spans between the six rings
 
@@ -503,12 +490,6 @@ constexpr std::int32_t kFeebleAlpha[24] = /*0078ABB8*/ {0, 32, 64, 128, 255, 255
 constexpr std::int32_t kFeetAlpha[24] = /*0078AC18*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
                                              255, 255, 255, 255, 255, 255, 255};
 
-// A figure part's world position.
-Vector3 FigurePartPosition(Object3D* unit, const FigureMesh* part) {
-    Vector3 at = unit->PartWorldPosition(part);
-    return at;
-}
-
 const char* kLeftFoot = "ll3";
 const char* kRightFoot = "rl3";
 const char* kBody = "bd";
@@ -518,10 +499,6 @@ constexpr std::int32_t kModifierAlphaIn[12] = /*0078A800*/ {0, 128, 255, 255, 25
 constexpr std::int32_t kModifierAlphaOut[12] = /*0078A88C*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 128};
 
 constexpr std::int32_t kLightningAlpha[16] = /*0078A9F8*/ {0, 80, 176, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};   // by life
-
-bool IsZero(float f) {
-    return f == 0.0f;
-}
 
 // By life.
 constexpr std::int32_t kCurseAlpha[24] = /*0078AC98*/ {0, 32, 64, 128, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -534,10 +511,6 @@ float PowInline(float base, int exponent) { return lib::Exp(lib::Log(base) * exp
 // By quadrant.
 constexpr float kDustAxisX[4] = /*0078AAB8*/ {0.707f, -0.707f, -0.707f, 0.707f};
 constexpr float kDustAxisY[4] = /*0078AAC8*/ {0.707f, -0.707f, 0.707f, -0.707f};
-
-bool Same(float a, float b) {
-    return a == b;
-}
 
 } // namespace
 
@@ -720,7 +693,7 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
 int ParticleSource::EmitCastRing(Particle* p, int) {
     if (elements.empty()) {
         if (!attachedTo) {
-            game::DebugLog("%s", NoCarrierRing());
+            game::DebugLog("Particle effect Casting without carrier\n");
             return 0;
         }
         emitCount = 3;
@@ -818,7 +791,7 @@ void ParticleSource::TickCastRing(ParticleElement* e) {
 int ParticleSource::EmitHealing(Particle* p, int) {
     if (elements.empty()) {
         if (!attachedTo) {
-            game::DebugLog("%s", NoCarrierHealing());
+            game::DebugLog("Particle effect Healing without carrier\n");
             return 0;
         }
         emitCount = std::lround(size * 6.0f + 2.0f);
@@ -891,7 +864,7 @@ int ParticleSource::EmitCastSwirl(Particle* p, int) {
     float& riseGrowth = p->aux.y;   // the rise's factor per tick
     if (std::ssize(elements) < lifetime) {
         if (!attachedTo) {
-            game::DebugLog("%s", NoCarrierCasting());
+            game::DebugLog("Particle effect CastingElemental without carrier\n");
             return 0;
         }
         return AddOrbiter(this, p);
@@ -1349,17 +1322,10 @@ void ParticleSource::TickShower(ParticleElement* e) {
 // --- Bag: eighty coloured balls bouncing around the carrier -------------------------------------------
 // A ball's ticks run down to its next throw (-13: no carrier, the ball is gone).
 
-// Bag: the first 80 particles are the balls (state = their index; the first one fills the size table: 0.93 to
-// the power of the age); later ones are sparks along a random ball's last step, in the ball's colour.
-int ParticleSource::EmitBag(Particle* p, int index) {
-    if (std::ssize(particles) < 80) {
-        if (index == 0) {
-            float t = 1.0f;
-            for (int k = 0; k < 12; ++k) {
-                g_bagSizes[k] = t;
-                t *= 0.93f;
-            }
-        }
+// Bag: the first kBagBalls particles are the balls (state = their index); later ones are sparks along a random
+// ball's last step, in the ball's colour.
+int ParticleSource::EmitBag(Particle* p, int) {
+    if (std::ssize(particles) < kBagBalls) {
         std::uint32_t r = g_clientRandom.Next();
         p->state = lib::Count(particles);
         p->color = 0xFFFFFF;
@@ -1369,7 +1335,7 @@ int ParticleSource::EmitBag(Particle* p, int index) {
         p->size = 0.0f;
         return 1;
     }
-    const ParticleElement& ball = elements[g_clientRandom.Next() % 80];
+    const ParticleElement& ball = elements[g_clientRandom.Next() % kBagBalls];
     int age = ball.ball.age;
     p->color = BagRgb(age);
     int life = ball.ticks + 1;
@@ -1379,7 +1345,7 @@ int ParticleSource::EmitBag(Particle* p, int index) {
     p->state = -1;
     float u = g_clientRandom.Range(-1.0f, 0.0f);
     p->pos = u * ball.ball.step + ball.pos;
-    p->size = g_bagSizes[age] * size * 0.1f;
+    p->size = kBagSizes[age] * size * 0.1f;
     return 1;
 }
 
@@ -1392,7 +1358,7 @@ int ParticleSource::UpdateBag(Particle* p) {
         int life = --p->life;
         if (life <= 0) return 0;
         ++p->frame;
-        p->color = (static_cast<std::uint32_t>(BagAlpha()[life]) << 24) + (p->color & 0xFFFFFF);
+        p->color = (static_cast<std::uint32_t>(kBagAlpha[life]) << 24) + (p->color & 0xFFFFFF);
         return 1;
     }
     ParticleElement* ball = &elements[state];
@@ -1400,14 +1366,11 @@ int ParticleSource::UpdateBag(Particle* p) {
     p->frame = (p->frame + 1) & 3;
     p->pos = ball->pos;
     int age = ball->ball.age;
-    p->size = g_bagSizes[age] * size * 0.15f;
+    p->size = kBagSizes[age] * size * 0.15f;
     int fade = p->life > 9 ? 9 : p->life;
-    p->color = (static_cast<std::uint32_t>(BagAlpha()[fade]) << 24) | BagRgb(age);
+    p->color = (static_cast<std::uint32_t>(kBagAlpha[fade]) << 24) | BagRgb(age);
     const Vector3& step = ball->ball.step;
-    auto isZero = [](float f) {
-        return f == 0.0f;
-    };
-    if (isZero(step.x) && isZero(step.y) && isZero(step.z)) {
+    if (step.x == 0.0f && step.y == 0.0f && step.z == 0.0f) {
         std::memcpy(&p->prevPos, &p->pos, sizeof(Vector3) + sizeof(float));
         p->prevColor = p->color;
         p->size = size * 0.15f;
@@ -1570,7 +1533,7 @@ int ParticleSource::EmitStench(Particle* p, int) {
     float& rise = p->drift.z;       // added to around.z per tick
     if (elements.empty()) {
         if (!attachedTo) {
-            game::DebugLog("%s", NoCarrierGas());
+            game::DebugLog("Particle effect Link without carrier\n");
             return 0;
         }
         auto [offset, radius] = AttachmentOffset();
@@ -1818,10 +1781,7 @@ int ParticleSource::EmitCylinder(Particle* p, int) {
     p->life = life;
     if (life < 0) return 0;
     const Vector3& step = e.star.step;
-    auto isZero = [](float f) {
-        return f == 0.0f;
-    };
-    if (isZero(step.x) && isZero(step.y)) return 0;
+    if (step.x == 0.0f && step.y == 0.0f) return 0;
     p->frame = 1;
     p->state = -1;
     float u = g_clientRandom.Range(-1.0f, 0.0f);
@@ -2285,10 +2245,7 @@ void ParticleSource::TickClayRing(ParticleElement* e) {
     float turnedY = direction.x * kClayTurnCos + direction.y * kClayTurnSin;
     direction.x = turnedY;
     direction.y = turnedX;
-    auto isZero = [](float f) {
-        return f == 0.0f;
-    };
-    if (isZero(previous.x) && isZero(previous.y)) e->clay.previous = e->pos;
+    if (previous.x == 0.0f && previous.y == 0.0f) e->clay.previous = e->pos;
 }
 
 // --- Falling1-4: leaves or flakes drifting down from the carrier --------------------------------------
@@ -2607,7 +2564,7 @@ void ParticleSource::TickFeetCloud(ParticleElement* e) {
         FigureMesh* part = unit->FindPartByPrefix(e->ticks ? kLeftFoot : kRightFoot);
         if (!part) part = unit->FindPartByPrefix(kBody);
         if (part) {
-            e->pos = FigurePartPosition(unit, part);
+            e->pos = unit->PartWorldPosition(part);
         } else {
             const Vector3& place = unit->localPosition;
             float raise = unit->bounds.boxMax.z;
@@ -2775,7 +2732,7 @@ int ParticleSource::UpdateLightning(Particle* p) {
     if (p->state != 0) {
         const int& flashes = p->frameTimer;
         if (flashes != 0) {
-            if (IsZero(p->size)) {
+            if (p->size == 0.0f) {
                 emitCount = 50;
                 p->size = sparkSize;
                 return 1;
@@ -3092,7 +3049,7 @@ int ParticleSource::EmitGlow(Particle* p, int index) {
     if (index > typeParam) return 0;
     Vector3 point = unit->PositionAt(index + g_clientWorld.tick);
     Vector3& mark = elements[0].glow.mark;
-    if (Same(mark.x, point.x) && Same(mark.y, point.y) && Same(mark.z, point.z)) return 0;
+    if (mark.x == point.x && mark.y == point.y && mark.z == point.z) return 0;
     elements[0].glow.mark = point;
     Vector3 under = {point.x, point.y, 0.0f};
     float ground = g_clientWorld.RawSurfaceHeightAt(point.x, point.y);
@@ -3115,7 +3072,7 @@ void ParticleSource::TickGlow(ParticleElement*) {
 // --- Stun --------------------------------------------------------------------------------------------
 
 // Stun: a star at a random point of the ball of 0.8 times the carrier figure's radius around the source, for
-// 20 ticks, with a random size factor in velocity.x. A unit carrier in state 3 gets four stars a tick living 5
+// 20 ticks, with a random size factor. A running unit carrier gets four stars a tick living 5
 // ticks, else one; once the carrier is gone (nothing emitted) or it is dead (IsDead) the source stops and lets
 // it go.
 int ParticleSource::EmitStun(Particle* p, int) {

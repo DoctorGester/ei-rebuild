@@ -122,29 +122,28 @@ int EmitSpark(ParticleSource* s, Particle* p) {
 
 // By point 0's fade step; entry 10 (0): the last emitting tick, past the 10 (the original's zero tail).
 constexpr std::int32_t kFadeAlpha[11] = /*0078A774*/ {0, 32, 64, 128, 255, 207, 159, 111, 63, 15, 0};
-const char* NoCarrierMessage() { return "Particle effect Modifier without carrier\n"; }
 
 // The axis the points are spread around (their offsets are perpendicular to it); some types also
 // raise or lower the ring (spreadMin.x holds the height).
 Vector3 ModifierAxis(ParticleSource* s, float twiceRadius) {
     Vector3 axis = {};
-    switch (s->type - static_cast<int>(ParticleType::Modifier1)) {
-    case 0:
+    switch (ParticleTypeOf(s->type)) {
+    case ParticleType::Modifier1:
         axis.z = 1.0f;
         break;
-    case 1:
-    case 2:
+    case ParticleType::Modifier2:
+    case ParticleType::Modifier3:
         s->spreadMin.x = twiceRadius * 0.4f + s->spreadMin.x;
         axis.z = 1.0f;
         break;
-    case 3:
+    case ParticleType::Modifier4:
         s->spreadMin.x -= twiceRadius * 0.4f;
         axis.z = 1.0f;
         break;
-    case 4:
-    case 5:
-    case 6:
-    case 7: {
+    case ParticleType::Modifier5:
+    case ParticleType::Modifier6:
+    case ParticleType::Modifier7:
+    case ParticleType::Modifier8: {
         Vector3 y = s->attachedTo->localRotation.AxisY();
         axis = y;
         break;
@@ -220,7 +219,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
     p->frameTimer = frameDelay;
     if (elements.empty()) {
         if (!attachedTo) {
-            game::DebugLog("%s", NoCarrierMessage());
+            game::DebugLog("Particle effect Modifier without carrier\n");
             return 0;
         }
         int count = static_cast<int>(AbsBits(size) * 10.0f);

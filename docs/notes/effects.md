@@ -23,9 +23,10 @@ Code: `particle_manager.cpp`, `particle_create.cpp`, `particle_emitters.cpp`, `p
   (Shower) and `glowKind` (ShapeChange, set by the path markers). The original kept these three in `frameDelay`,
   `lifetime` and `alpha`.
 - `ParticleManager`: free particles, `held` (sources by id, one reference each), a quiet-start flag that stops
-  0x2001 / 3 / 4. `TickSources` ticks every source (paused: only flag 8; a held source whose tick returned 0 is
-  released); `ReleaseUnheld` releases held sources with no other reference (the client's zone load). `DrawAll` sorts the
-  sources by depth and draws each through the renderer's sprite draw (models.md, "Renderer").
+  CampFire, Fire and Smoke. `TickSources` ticks every source (paused: only `TicksWhilePaused`; a held source whose
+  tick returned 0 is released); `ReleaseUnheld` releases held sources with no other reference (the client's zone
+  load). `DrawAll` sorts the sources by depth and draws each through the renderer's sprite draw (models.md,
+  "Renderer").
 - The world's script particle source (class 0x4A, script `CreateParticleSource`) makes its `ParticleSource` on its
   first tick and every tick copies the position and calls `ScaleSize(size / baseSize)`.
 - Floating point: `double` for values the original kept on the FPU stack, a store to float where it stored one; every
@@ -39,7 +40,7 @@ Kept:
 - `Tick` unlinks and pools a particle the previous update rejected, then still updates it and counts it in the bounds.
 - Tables read past their data where the original read zeros: Modifier markers by their element's tick (to 25),
   AcidRay's spread and size (to 16), ClayRing's alpha at the first ticks (12, 13), Modifier's fade (10), FireBlast's
-  frame (to 16), 0x202F's column alpha in the update after death; the tables carry the zeros or the reads are guarded.
+  frame (to 16), TeleportRing's column alpha in the update after death; the tables carry the zeros or the reads are guarded.
 - An update that counts the life down then reads its life table at index -1 (Shower, Casting, CastSwirl, Orbit,
   ZoneExit; ClayRing its countdown table): the original read the previous table's last entry; `ByLife` (effects.h) gives
   that value. FireBlast's flame frame can step to 16 (read as alpha 0); Link sparks are emitted on a frame up to
@@ -78,7 +79,7 @@ sounds started so far (`SoundSequence::PlayNext`).
 ## Moshka
 
 `EffectMoshka` (100): the client world's bird, told to follow the session's leader. A figure (class 0x38, "unmobi" /
-"bird00", lit, animation 0), a particle source 0x203C (scale 0.5, attached), the followed id, a timer, a circle angle, a
+"bird00", lit, animation 0), a Bag particle source (scale 0.5, attached), the followed id, a timer, a circle angle, a
 perch height and a state (0 perched 200 frames, 1 circling within 5 of the leader for 100, 2 flying to the perch for 150,
 then Reset). Update (from the draw pass with the animation time) steps at most 5 frames, keeps the bird 0.5 above the
 surface (platforms too), moves it at sqrt(sqrt(distance)) * 0.03 + 0.3 per frame and advances its animation. FindPerch
@@ -86,7 +87,7 @@ draws ISAAC angles until the AI map's line of sight is above 0.5. No scenario ma
 
 ## Tornado
 
-`EffectTornado` (0x65): a particle source 0x200A (client), a looping sound "nature\tornado\circle.wav" (near 10, far 40),
+`EffectTornado` (0x65): a Tornado particle source (client), a looping sound "nature\tornado\circle.wav" (near 10, far 40),
 ticks left, the launch tick. Launch (from the server weather) aims at a random speed 0.096..0.216 per tick, ticks =
 lrint(distance / speed). Tick moves it (source and sound follow), stops the source for the last 110 ticks, and on the
 server every 8th tick above 20 hands each player-owned unit within 5 a hit of 5 (weight 1 on type 6) through its

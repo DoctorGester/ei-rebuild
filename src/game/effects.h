@@ -377,13 +377,34 @@ enum class ParticleSourceFlag : std::uint32_t {
     KeepAlive = 0x4,        // a detached source stays while it has it (else while it has particles)
     TicksWhilePaused = 0x8, // ticked while the game is paused
     OnPart = 0x10,          // sits on a unit's part chosen by attachPoint (else on the top of the object's bounds)
-    IdlesOffScreen = 0x20,  // the tick idles once the draws were skipped off screen more than 56 times
+    IdlesOffScreen = 0x20,  // the tick idles once the draws were skipped off screen kIdleAfterHidden times
     NotDrawn = 0x40,        // the draw skips it; nothing sets it
 };
 template <> inline constexpr bool lib::kBitFlags<ParticleSourceFlag> = true;
 
 // The colour of a ShapeChange glow (the path markers; player_client.cpp picks it by the marker's kind).
 enum class GlowKind : std::uint8_t { Grey, Green, Orange };
+
+// Where a source with ParticleSourceFlag::OnPart sits on a unit (ParticleSource::AttachmentPoint): the unit's effect
+// point or a part of its figure (the part's name; a figure without it gives "bd", then the top of its bounds).
+enum class AttachPoint : std::uint8_t {
+    EffectPoint,    // Unit::EffectPoint
+    Head,           // "hd"
+    AboveHead,      // "hd", 1 higher
+    LeftHand,       // "lh2"
+    RightHand,      // "rh2"
+    LeftLeg,        // "ll2"
+    RightLeg,       // "rl2"
+    Body,           // "bd"
+    Body00,         // "body00" ... "body04"
+    Body01,
+    Body02,
+    Body03,
+    Body04,
+};
+
+// The draws a source with ParticleSourceFlag::IdlesOffScreen skips off screen before its tick idles.
+inline constexpr int kIdleAfterHidden = 57;
 
 // A particle source: localPosition is where it emits relative to what it is attached to, localRotation the
 // identity after Reset.
@@ -557,9 +578,8 @@ public:
     // drops the source (its point is folded into the local position), the new one adds it, and
     // the emission point becomes the new attachment point (or the local position).
     void Attach(MapObject* object);
-    // Where the source sits on `object`: with OnPart a unit's part chosen by attachPoint (0 the effect
-    // point, 1-7 head / hands / legs / body, 8-12 body00-04), else the top of its bounds; without OnPart its
-    // position.
+    // Where the source sits on `object`: with OnPart a unit's attachPoint, else the top of its bounds; without
+    // OnPart its position.
     Vector3 AttachmentPoint(Object3D* object);
     // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else its position
     // raised by the bounds' upper z extent.
@@ -582,7 +602,7 @@ public:
     int frameCount = 0;
     int frameColumns = 0;           // columns of the texture's frame grid
     int frameDelay = 0;             // ticks per texture frame
-    int hiddenTicks = 0;            // draws skipped off screen (the tick idles past 56 with IdlesOffScreen)
+    int hiddenTicks = 0;            // draws skipped off screen in a row (IdlesOffScreen)
     int lifetime = 0;
     Vector3 spreadMin;
     Vector3 spreadMax;
@@ -596,7 +616,7 @@ public:
     float baseSize = 0.0f;
     int emitState = 0;              // per type: the emitted count or a one-shot flag
     Vector3 extent;
-    int attachPoint = 0;
+    AttachPoint attachPoint = AttachPoint::EffectPoint;
     Vector3 windDirection;          // copied from the world every tick
     float windStrength = 0.0f;
     bool additiveBlend = false;     // drawn with additive blending
