@@ -174,7 +174,7 @@ std::optional<int> WorldClient::FindExitAt(const Vector3& point) {
 
 namespace {
 
-constexpr int kExitParticles = static_cast<int>(ParticleType::ZoneExit);   // "ZoneExit" (particle_emitters.cpp EmitZoneExit)
+constexpr int kExitParticles = static_cast<int>(ParticleType::ZoneExit);   // "ZoneExit" (particle_world.cpp EmitZoneExit)
 constexpr int kExitWarmUpTicks = 20;
 constexpr float kOneHalf = 0.5f;
 const char* DotText() { return "."; }

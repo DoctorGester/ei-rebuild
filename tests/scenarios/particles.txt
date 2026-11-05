@@ -1,6 +1,6 @@
-# Particles (range 0x490000-0x4B0000): sources whose callbacks are rewritten in
-# particle_emitters.cpp and particle_callbacks.cpp, placed around the hero, and a few buffs on the hero (spell modifiers
-# carry Modifier particles), then deleted. Every source runs CParticleSource::Tick, AddParticle
+# Particles: sources of the types in particle_casting.cpp, particle_marks.cpp, particle_blasts.cpp and
+# particle_world.cpp, placed around the hero, and a few buffs on the hero (spell modifiers carry Modifier particles),
+# then deleted. Every source runs CParticleSource::Tick, AddParticle
 # and the particle pool (particle_manager.cpp) each world update; the camera and units use the
 # quaternion helpers (core_maths.cpp); the new game seeds the generator (IsaacRandom::Init).
 # CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show what ran.
@@ -37,7 +37,7 @@ console @DeleteParticleSource(27)
 console @DeleteParticleSource(28)
 console @DeleteParticleSource(29)
 
-# Second batch: the other source types whose callbacks are rewritten (particle_callbacks.cpp).
+# Second batch: the other source types (particle_*.cpp).
 console @CreateParticleSource(30,Add(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"Fire")
 console @CreateParticleSource(31,Sub(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"VulcanSmoke")
 console @CreateParticleSource(32,GetX(GetLeader()),Add(GetY(GetLeader()),6),GetZ(GetLeader()),1,"Healing")

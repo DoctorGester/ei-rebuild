@@ -1,25 +1,30 @@
 # Particles and world effects
 
-Code: `particle_manager.cpp`, `particle_create.cpp`, `particle_emitters.cpp`, `particle_callbacks.cpp`,
-`particle_common.h`, `effects.h` / `effects.cpp`, `effects_weather.cpp`, `world_effect*.cpp`. Scenarios:
+Code: `particle_manager.cpp` (the manager, attach, draw, tick), `particle_create.cpp` (the spec table, Create), the
+effects by family (`particle_casting.cpp`, `particle_marks.cpp`, `particle_blasts.cpp`, `particle_world.cpp`),
+`particle_common.h`, `effects.h`, `effects_weather.cpp`, `world_effect*.cpp`. Scenarios:
 `particles.txt` (every source type it can make), `effects.txt`, `spells*`, `effects_bow`.
 
 ## Particle sources
 
-- `ParticleSource` (class id 0xC, an engine object; made by `NewParticleSource`). `Create` resets the source, then fills
-  the per-type parameters by `type` (0x2000-0x2052; the script names are a table in the game's data: name, type,
-  lifetime): emission rates, lifetime, spread, sizes, the element array some types keep, the texture (kind 6, by name,
-  one UV rectangle per frame of a grid of `frameColumns` columns) and three callbacks, member pointers to our code:
-  `EmitCallback` (emit one particle), `UpdateCallback` (update one particle; 0 drops it), `ElementCallback` (update one
-  element of the source's array). Callbacks of ~50 effects live in `particle_callbacks.cpp` / `particle_emitters.cpp`;
-  the no-op element callbacks are one member, `TickNone`.
-- `Tick` computes the source motion, runs the element callback per element and the update callback per particle
-  (saving / restoring the "prev" fields), tracks the bounding box and emits up to `max(emitCount, distance moved /
+- `ParticleSource` (class id 0xC, an engine object; made by `NewParticleSource`). `Create` resets the source, then
+  takes its type's entry of `kSpecs` (particle_create.cpp; `type` 0x2000-0x2052, one entry each; the script names are
+  a table in the game's data: name, type, lifetime): flags, emission rates, lifetime, spread, sizes, the count of
+  elements (made zeroed) and the texture (kind 6, by name, one UV rectangle per frame of a grid of `frameColumns`
+  columns). Code runs only for the types whose elements start other than zero or whose set-up draws (`Setup*`,
+  `SetupElements`).
+- Each effect is a section of its family's file: its set-up, `Emit*` (fill one particle; 0 returns it to the pool),
+  `Update*` (move one; 0 drops it) and `Tick*` (one element of the source's array, or the whole array for Tornado,
+  Casting*, Cylinder*, Tendril, Portal and ShapeChange), free functions over the source declared in
+  `particle_common.h`. The tick picks them by type in `EmitParticle`, `UpdateParticle` and `TickSource`
+  (particle_manager.cpp); a type without an element tick has none.
+- `Tick` computes the source motion, runs the type's element tick and its update per particle (saving / restoring
+  the "prev" fields), tracks the bounding box and emits up to `max(emitCount, distance moved /
   emitSpacing)` particles with `emitChance`% each. Particles are pooled.
 - The types are `ParticleType` (effects.h): the script table's names, and descriptive ones for the types it lacks.
 - Per-type data has one name per meaning: an element's fields through its type's view of `ParticleElement` (the views
   carry no padding and never alias each other), a particle's `velocity` / `aux` / `drift` parts through local references
-  at the top of each callback, and the source's own `tint` (Tornado, CurseHolder ARGB; FeetCloud RGB), `rayCount`
+  at the top of each function, and the source's own `tint` (Tornado, CurseHolder ARGB; FeetCloud RGB), `rayCount`
   (Shower) and `glowKind` (ShapeChange, set by the path markers). The original kept these three in `frameDelay`,
   `lifetime` and `alpha`.
 - `ParticleManager`: free particles, `held` (sources by id, one reference each), a quiet-start flag that stops
