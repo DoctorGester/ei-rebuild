@@ -8,6 +8,9 @@ resolution 3840x2009
 msaa 8
 anisotropy 16
 reject Script error
+# 188 s of virtual waits with every frame in them drawn: 755 s on llvmpipe with 4 cores (H60), about twice that
+# on CI's runner; CI multiplies this limit by EI_TIME_SCALE (linux.md, "The CI job").
+timeout 650
 waitmenu
 console thingamabob
 newgame

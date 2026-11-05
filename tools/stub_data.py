@@ -54,12 +54,17 @@ KEPT = (
     ('*mouth*.mmp', "render_blink: the faces' open and closed rectangles (the briefing speakers', the heroes')"),
     ('basegipat00[01].mmp', "render_shadows_outside: bz1g's ground under most of the gate's shadow (000 and 001 "
                             'take 85% of it; the shadow must lie on lit ground)'),
+    ('basegipat005.mmp', "render_weather_roofs: bz1g's ground under the gateway's floor (wet against dry needs lit ground: "
+                         '72.7% of the rectangle differs against at least 80% with the page blank, 95.5% with it kept; of the '
+                         "other pages 002 and 003 raise it to 74.7%, 004, 006 and 007 change nothing). Rebirth's is 2.8 MB"),
     ('dgunbirdruins00.mmp', "render_smooth: the ruins in view at zone1's start (the msaa and anisotropy checks want "
                             'pixels that change with the filter: blank ones give 0.03% against at least 0.2%)'),
     ('dguntorchruins01.mmp', 'render_smooth: the same, the torch among the ruins'),
     ('ruins00.mmp', 'render_smooth: the same, the ruins themselves'),
     ('tree02.mmp', "render_smooth: the tree in view (Rebirth's is 2048 x 2048 DXT5, 5.4 MB; with the ruins alone Rebirth's "
                    'anisotropy check reaches 0.47% against at least 0.5%, with the tree alone msaa 2 0.13% against 0.2%)'),
+    ('rainsnow.mmp', "render_weather: the rain's and snow's particle texture (effects_weather.cpp WeatherTextureName); "
+                     'blank, the particles are clear and the frame with them equals the frame without'),
 )
 
 # Kept in the vanilla install's stub set only (C159): for scenarios that run on the vanilla install alone, where Rebirth's
