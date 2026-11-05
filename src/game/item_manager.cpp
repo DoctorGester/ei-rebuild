@@ -6,6 +6,7 @@
 #include "console.h"
 #include "item.h"
 #include "manager_context.h"
+#include "map_object.h"   // MapObjectFlag
 #include "spell.h"
 #include "text_split.h"
 
@@ -20,8 +21,6 @@
 using namespace itemdb;
 
 namespace {
-
-constexpr std::uint32_t kFlagConstructing = 8;
 
 const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 
@@ -40,11 +39,6 @@ std::unique_ptr<ItemRecordHead> NewRecord(ItemKind kind) {
     case ItemKind::Loot: return std::make_unique<LootItemRecord>();
     default: return nullptr;
     }
-}
-
-template <typename Record>
-std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHead* record) {
-    return static_cast<std::uint32_t>(table.IndexOf(RecordAs<Record>(record)));
 }
 
 // FillItem's common part: price, values and charge of the record, from the prototype alone or scaled by the
@@ -71,8 +65,8 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
 }
 
 // FillItem's per-kind part; returns the prototype's index in its table.
-std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHead* prototype,
-                       const MaterialRecordHead* material) {
+int FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHead* prototype,
+             const MaterialRecordHead* material) {
     switch (kind) {
     case ItemKind::Weapon: {
         auto* to = RecordAs<WeaponRecord>(record);
@@ -80,7 +74,7 @@ std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHe
         to->reach = from->reach;
         to->damage = from->damage * material->damageFactor;
         to->damageSpread = from->damageSpread * material->damageFactor;
-        return IndexIn(g_itemDatabase.weapons, prototype);
+        return g_itemDatabase.weapons.IndexOf(from);
     }
     case ItemKind::Armor: {
         auto* to = RecordAs<ArmorRecord>(record);
@@ -92,15 +86,17 @@ std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHe
             to->absorbFirst[k] = from->absorbFirst[k] * material->absorbFactors[k] * from->firstFactor;
             to->absorbOthers[k] = from->absorbOthers[k] * material->absorbFactors[k] * from->othersFactor;
         }
-        return IndexIn(g_itemDatabase.armors, prototype);
+        return g_itemDatabase.armors.IndexOf(from);
     }
     case ItemKind::Quick:
-    case ItemKind::Scroll:
-        RecordAs<QuickItemRecord>(record)->actionValue = RecordAs<QuickItemRecord>(prototype)->actionValue;
-        return IndexIn(g_itemDatabase.quickItems, prototype);
+    case ItemKind::Scroll: {
+        auto* from = RecordAs<QuickItemRecord>(prototype);
+        RecordAs<QuickItemRecord>(record)->actionValue = from->actionValue;
+        return g_itemDatabase.quickItems.IndexOf(from);
+    }
     case ItemKind::Quest:
         record->category = prototype->category;
-        return IndexIn(g_itemDatabase.questItems, prototype);
+        return g_itemDatabase.questItems.IndexOf(RecordAs<QuestItemRecord>(prototype));
     case ItemKind::Loot: {
         auto* to = RecordAs<LootItemRecord>(record);
         auto* from = RecordAs<LootItemRecord>(prototype);
@@ -111,7 +107,7 @@ std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHe
             to->index = material->number;
         else
             to->index = from->index;
-        return IndexIn(g_itemDatabase.loot, prototype);
+        return g_itemDatabase.loot.IndexOf(from);
     }
     default:
         return 0;   // not reached: FillItem makes no item of an unknown kind
@@ -120,34 +116,30 @@ std::uint32_t FillKind(ItemKind kind, ItemRecordHead* record, const ItemRecordHe
 
 bool NeedsMaterial(ItemKind kind) { return kind == ItemKind::Weapon || kind == ItemKind::Armor; }
 
-const char* const kSpellContainer = "spell container";
-const char* const kMaterialType = "material";
-
-// Index of `record` in `table`, -1 for no record.
-template <typename Table, typename Record>
-int TableIndex(const Table& table, const Record* record) {
-    return record ? table.IndexOf(record) : -1;
+// The index of `name` in `table`: -1 for an unknown name (which the lookup files in the table's map as null).
+template <typename Record>
+int IndexNamed(RecordTable<Record>& table, std::string_view name) {
+    return table.IndexOf(table.Named(name));
 }
 
-// The table index of a loot item's second name part (an unknown name is filed in the table's map as null).
+// The table index of a loot item's second name part.
 int LootTableIndex(LootRecordType which, const std::string& name) {
-    ItemDatabase& items = g_itemDatabase;
-    SpellDatabase& spells = g_spellDatabase;
     switch (which) {
-    case LootRecordType::Weapon: return TableIndex(items.weapons, items.weapons.names[name]);
-    case LootRecordType::Armor: return TableIndex(items.armors, items.armors.names[name]);
-    case LootRecordType::Quick: return TableIndex(items.quickItems, items.quickItems.names[name]);
-    case LootRecordType::Spell: return TableIndex(spells.spells, spells.spells.byCode[name]);
-    case LootRecordType::Modifier: return TableIndex(spells.modifiers, spells.modifiers.byCode[name]);
+    case LootRecordType::Weapon: return IndexNamed(g_itemDatabase.weapons, name);
+    case LootRecordType::Armor: return IndexNamed(g_itemDatabase.armors, name);
+    case LootRecordType::Quick: return IndexNamed(g_itemDatabase.quickItems, name);
+    case LootRecordType::Spell: return IndexNamed(g_spellDatabase.spells, name);
+    case LootRecordType::Modifier: return IndexNamed(g_spellDatabase.modifiers, name);
     default: return 0;
     }
 }
 
+// Each record's IndexKey, in table order.
 template <typename Record>
-std::vector<std::string> RecordNames(const NamedRecordTable<Record>& table) {
+std::vector<std::string> RecordNames(const RecordTable<Record>& table) {
     std::vector<std::string> names;
     names.reserve(table.records.size());
-    for (const Record& record : table.records) names.push_back(record.name);
+    for (const Record& record : table.records) names.emplace_back(IndexKey(record));
     return names;
 }
 
@@ -212,7 +204,7 @@ bool ItemConstructor::BeginCreateItem(ItemKind kind) {
     material = nullptr;
     prototype = nullptr;
     count = 1;
-    flags |= kFlagConstructing;
+    flags |= MapObjectFlag::Constructing;
     return true;
 }
 
@@ -221,7 +213,7 @@ Item* ItemConstructor::EndCreateItem() {
         item.Reset();
         return nullptr;
     }
-    flags &= ~kFlagConstructing;
+    flags &= ~MapObjectFlag::Constructing;
     Item* newItem = item.Take();
     newItem->ForgetReference();
     spell = nullptr;
@@ -242,7 +234,7 @@ bool ItemConstructor::FillItem() {
     if (!prototype || !record || (NeedsMaterial(kind) && !material)) return false;
 
     FillCommon(record.get(), prototype, material);
-    std::uint32_t index = FillKind(kind, record.get(), prototype, material);
+    int index = FillKind(kind, record.get(), prototype, material);
 
     item->InitFromRecord(record.get());
     if (kind == ItemKind::Quick && static_cast<QuickItemCategory>(prototype->category) == QuickItemCategory::Potion) {
@@ -255,7 +247,7 @@ bool ItemConstructor::FillItem() {
         item->AttachSpell(spell);
     }
 
-    item->prototypeId = PackItemId(index, material ? material->number : 0);
+    item->prototypeId = PackItemId(static_cast<std::uint32_t>(index), material ? material->number : 0);
     item->count = static_cast<std::uint32_t>(count);
     return true;
 }
@@ -319,24 +311,18 @@ Item* ItemManager::MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t ma
     return context->GetItemConstructor()->BuildItem(this, kind, PrototypeAt(kind, index), materialRecord);
 }
 
-// The "spell container" record is looked up by name each time; without one the index is that of a
-// null record (kept: MakeItem then finds no prototype).
+// The "spell container" record is looked up by name each time. A database without one gives index -1, which MakeItem
+// takes as 0 (the original computed an index from the null record's address).
 Item* ItemManager::CreateSpellItem(std::string_view spellText, SpellManager* spells) {
     Spell* spell = spells->CreateSpellFromText(spellText);
     if (!spell) return nullptr;
-    QuickItemTable& quickItems = g_itemDatabase.quickItems;
-    int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
+    int index = IndexNamed(g_itemDatabase.quickItems, kSpellContainer);
     Item* item = MakeItem(ItemKind::Scroll, index, 0);
     if (item) item->AttachSpell(spell);
     return item;
 }
 
-std::vector<std::string> ItemManager::ListMaterialNames() {
-    std::vector<std::string> names;
-    names.reserve(g_itemDatabase.materials.records.size());
-    for (const MaterialRecordHead& record : g_itemDatabase.materials.records) names.push_back(record.key);
-    return names;
-}
+std::vector<std::string> ItemManager::ListMaterialNames() { return RecordNames(g_itemDatabase.materials); }
 std::vector<std::string> ItemManager::ListWeaponNames() { return RecordNames(g_itemDatabase.weapons); }
 std::vector<std::string> ItemManager::ListArmorNames() { return RecordNames(g_itemDatabase.armors); }
 std::vector<std::string> ItemManager::ListQuickItemNames() { return RecordNames(g_itemDatabase.quickItems); }

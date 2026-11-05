@@ -14,7 +14,6 @@
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 #include "lib/str.h"
-#include "lib/text_case.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -90,7 +89,7 @@ RolledSpell RollItemSpell(ItemStock* stock, ItemKind kind, const itemdb::ItemRec
 
 // The table index of each record (none of the family `skip`).
 template <typename Record>
-std::vector<int> ItemIndices(const std::vector<Record*>& records, const itemdb::NamedRecordTable<Record>& table,
+std::vector<int> ItemIndices(const std::vector<Record*>& records, const itemdb::RecordTable<Record>& table,
                              const char* skip = nullptr) {
     std::vector<int> indices;
     for (const Record* record : records) {
@@ -102,11 +101,11 @@ std::vector<int> ItemIndices(const std::vector<Record*>& records, const itemdb::
 
 int SpellIndex(const itemdb::SpellRecord* record) {
     itemdb::SpellTable& spells = g_spellDatabase.spells;
-    return spells.IndexOf(spells.FindByCode(record->code));
+    return spells.IndexOf(spells.Named(record->code));
 }
 int ModifierIndex(const itemdb::SpellModifierRecord* record) {
     itemdb::SpellModifierTable& modifiers = g_spellDatabase.modifiers;
-    return modifiers.IndexOf(modifiers.FindByCode(record->code));
+    return modifiers.IndexOf(modifiers.Named(record->code));
 }
 
 template <typename Record>
@@ -140,7 +139,7 @@ void AddUnique(std::vector<T*>& list, T* record) {
 
 // A record section: a count, then names lower-cased and looked up in `table`.
 template <typename Record>
-void LoadRecords(ByteStream* stream, itemdb::NamedRecordTable<Record>& table, std::vector<Record*>& list) {
+void LoadRecords(ByteStream* stream, itemdb::RecordTable<Record>& table, std::vector<Record*>& list) {
     for (int count = stream->ReadCount(); count > 0; --count) {
         std::string name = stream->ReadString();
         str::MakeLower(name);
@@ -188,14 +187,14 @@ void ItemStock::GenerateItems(std::vector<Record*>* prototypes, int minCount, in
 
     std::vector<StockMaterial*> candidates;
     for (Record* prototype : taken) {
-        if (prototype->family == "wand") continue;
+        if (prototype->family == itemdb::kWandFamily) continue;
         ctor->SetManager(manager);
         if (!ctor->BeginCreateItem(prototype->Kind())) {
             ctor->SetManager(nullptr);
             continue;
         }
         ctor->prototype = prototype;
-        bool needsMaterial = text::CompareIgnoringCase(prototype->materialClass.c_str(), "none") != 0;
+        bool needsMaterial = prototype->HasMaterial();
         candidates.clear();
         if (needsMaterial) {
             for (StockMaterial& e : materials) {
@@ -258,7 +257,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::vector<Item*>
     } else {
         taken = materials;
     }
-    itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named("material");
+    itemdb::LootItemRecord* prototype = g_itemDatabase.loot.Named(itemdb::kMaterialType);
     for (const StockMaterial& e : taken) {
         int stackSize = libcrt::RandBelow(e.maxCount - e.minCount + 1) + e.minCount;
         Item* item = ctor->BuildItem(manager, ItemKind::Loot, prototype, e.record, nullptr, stackSize);
@@ -279,7 +278,7 @@ void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, std::vecto
 
 void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, std::vector<Item*>* out) {
     GenerateInstructions(this, "instruction quick item",
-                         ItemIndices(quickItems, g_itemDatabase.quickItems, "scroll"), minCount, maxCount,
+                         ItemIndices(quickItems, g_itemDatabase.quickItems, itemdb::kScrollFamily), minCount, maxCount,
                          out);
 }
 
@@ -297,7 +296,7 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>& recipe
     modifierMap.clear();
     for (const itemdb::SpellListRecord& recipe : recipes) {
         if (!(recipe.classMask & (1u << (classIndex & 31)))) continue;
-        itemdb::SpellRecord* spell = g_spellDatabase.spells.byCode[recipe.spell];   // keyed by the recipe's spell name
+        itemdb::SpellRecord* spell = g_spellDatabase.spells.names[recipe.spell];   // keyed by the recipe's spell name
         if (!spell || std::find(spells.begin(), spells.end(), spell) == spells.end()) continue;
         spellMap[recipe.spell].push_back(&recipe);
     }
@@ -331,7 +330,7 @@ std::vector<HeldRef<Spell>> ItemStock::GenerateSpells(const float* levels, unsig
             int count = 0;
             itemdb::SpellRecord* prototype = g_spellDatabase.spells.Named(recipe->spell);
             int level = prototype->skill;
-            int budget = lib::RoundEven(levels[prototype->school]);
+            int budget = lib::RoundEven(levels[static_cast<int>(prototype->school)]);
             float cost = prototype->mana;
             for (const std::string& name : recipe->required) {
                 itemdb::SpellModifierRecord* m = modifierMap[name];
@@ -391,8 +390,8 @@ void ItemStock::LoadLists(ByteStream* stream) {
         materials.push_back(StockMaterial{items.materials.Named(name), minCount, maxCount, left});
     }
 
-    LoadMapped(stream, g_spellDatabase.spells.byCode, spells);
-    LoadMapped(stream, g_spellDatabase.modifiers.byCode, modifiers);
+    LoadMapped(stream, g_spellDatabase.spells.names, spells);
+    LoadMapped(stream, g_spellDatabase.modifiers.names, modifiers);
 }
 
 void ItemStock::SaveLists(ByteStream* out) {
@@ -437,7 +436,7 @@ void ItemStock::GenerateScrolls(std::vector<Item*>* out) {
         list = GenerateSpells(scrollLevels, 50);
         if (list.size() >= spells.size()) break;
     }
-    itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named("spell container");
+    itemdb::QuickItemRecord* prototype = g_itemDatabase.quickItems.Named(itemdb::kSpellContainer);
     for (Spell* spell : list) {
         Item* item = ctor->BuildItem(manager, ItemKind::Scroll, prototype, nullptr, spell);
         if (!item) continue;

@@ -49,7 +49,7 @@ void RecordKeys(const ItemLoot* loot, std::string* key, const char** kindKey) {
     case LootRecordType::Armor: {
         const ArmorRecord* armor = ArmorAt(loot->index);
         *key = "instr " + KeyName(armor->name);
-        *kindKey = IsUpperBodyArmor(armor->type) ? "item_armor_shape_upper" : "item_armor_shape_lower";
+        *kindKey = IsUpperBodyArmor(static_cast<ArmorType>(armor->type)) ? "item_armor_shape_upper" : "item_armor_shape_lower";
         break;
     }
     case LootRecordType::Quick:
@@ -109,14 +109,14 @@ ItemTexts TextManager::GetItemTexts(Item* item) {
     case ItemKind::Armor: {
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
         key = "armor " + KeyName(armor->name) + " " + KeyName(MaterialAt(materialIndex)->key);
-        kindKey = IsUpperBodyArmor(armor->type) ? "item_armor_upper" : "item_armor_lower";
+        kindKey = IsUpperBodyArmor(static_cast<ArmorType>(armor->type)) ? "item_armor_upper" : "item_armor_lower";
         break;
     }
     case ItemKind::Quick: {
         key = "qitem " + KeyName(QuickItemAt(prototypeIndex)->name);
         // A quick item whose prototype has no material is a potion.
         const ItemRecordHead* prototype = item->GetPrototype();
-        if (prototype && text::CompareIgnoringCase(prototype->materialClass, "none") == 0) {
+        if (prototype && !prototype->HasMaterial()) {
             kindKey = "item_potion";
             break;
         }

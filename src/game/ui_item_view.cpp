@@ -186,7 +186,7 @@ void ItemScreen::DrawItem(SceneRenderer* pass, const ItemCell& cell) {
         ItemKind kind = item->Kind();
         Spell* spell = item->spell;
         if (spell && (kind == ItemKind::Weapon || kind == ItemKind::Armor)) {
-            int school = spell->GetPrototype()->school;
+            int school = static_cast<int>(spell->GetPrototype()->school);
             if (school < 8)
                 model->flatSpecular = Glow(dt, turn, kSchoolGlow[school]);
             else

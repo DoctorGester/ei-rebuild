@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -46,6 +47,24 @@ enum class WeaponType : int {
     NoWeapon = 8,
     SpellsOnly = 0x10,
 };
+// The armour types (ArmorRecord::type, ItemArmor::GetType; the unit's armour slot of the piece), by the item codes
+// "hl", "pl", "lg", "sh", "pt", "bt", "gl". The first three are the pieces with models (the figure's helmet, body
+// and trousers rows, layer group 2); the other four go under them (layer group 1) and have no model parts. The
+// names of 3 and 4 are read from their codes and the body slots they cover (body and arms; legs).
+enum class ArmorType : int {
+    Helmet = 0,
+    BodyArmor = 1,
+    Leggings = 2,
+    Shirt = 3,
+    Pants = 4,
+    Boots = 5,
+    Gloves = 6,
+};
+// The pieces with models (the text keys' "upper" armour).
+constexpr bool IsUpperBodyArmor(ArmorType type) {
+    return type == ArmorType::Helmet || type == ArmorType::BodyArmor || type == ArmorType::Leggings;
+}
+
 // A weapon type that shoots (no defence bonus, no backstab).
 constexpr bool IsRanged(WeaponType type) { return type == WeaponType::Bow || type == WeaponType::Crossbow; }
 // The natural weapon types below this one have an animation bit (AnimationWeaponBit).
@@ -103,7 +122,7 @@ struct SpellRecord {
     std::string unreadText;             // archive field 2; nothing reads it
     float price = 0.0f;                 // a loot item's price when it stands for the spell (ItemLoot::GetPrice)
     int castType = 0;                   // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
-    int school = 0;
+    SpellSchool school = SpellSchool::Fire;
     float mana = 0.0f;
     // fields 6-14: what Spell::InitFromPrototype / SpellContainer::Build copy into the spell, and the item
     // info shows.
@@ -176,10 +195,13 @@ public:
 
     void SerializeHead(ChunkArchive* ar);
 
+    // materialClass is not kNoMaterialClass (any case).
+    bool HasMaterial() const;
+
     std::string name;                   // the name the tables file the record under
-    std::string family;                 // the item's family ("wand", "scroll"; what the trader stock skips by)
-    int type = 0;                       // weapon / armour class
-    // the class of material it is made of ("none": a potion, without a material).
+    std::string family;                 // the item's family (kWandFamily, kScrollFamily; what the trader stock skips by)
+    int type = 0;                       // WeaponType / ArmorType
+    // the class of material it is made of (kNoMaterialClass: a potion, without a material).
     std::string materialClass;
     std::uint32_t unreadHeadField = 0;  // archive field 4 (4 bytes); nothing reads it
     int number = 0;                     // the number in the item's text keys and names ("item%04d")
@@ -205,6 +227,16 @@ protected:
     ItemRecordHead(const ItemRecordHead&) = default;
     ItemRecordHead& operator=(const ItemRecordHead&) = default;
 };
+
+// Record names the game looks up: the scrolls' quick item prototype, and the loot prototype of a material
+// ("material.<key>", its count in brackets).
+inline constexpr const char* kSpellContainer = "spell container";
+inline constexpr const char* kMaterialType = "material";
+// The material class of a prototype without a material (ItemRecordHead::HasMaterial).
+inline constexpr const char* kNoMaterialClass = "none";
+// The item families the trader stock skips: wands among its quick items, scrolls among its quick item instructions.
+inline constexpr const char* kWandFamily = "wand";
+inline constexpr const char* kScrollFamily = "scroll";
 
 // A record (or null) as the kind's record it is (WeaponRecord, ArmorRecord, QuickItemRecord,
 // QuestItemRecord, LootItemRecord): the item's class id or the table it came from says which.
@@ -319,48 +351,20 @@ inline const char* TypeCode(const char* const (&codes)[kItemTypeCodeCount], int 
     return type >= 0 && type < kItemTypeCodeCount ? codes[type] : "";
 }
 
-// A table of the item database (materials, weapons, armors, quick items, quest items, loot): the records and
-// the name index (records with the same name: the last one). Rebirth patches the load.
+// The text a table files a record under (and the item manager's name lists give): a material's key, an item
+// prototype's name, a spell's or a modifier's code (the modifier's four chars read as a C string).
+inline std::string_view IndexKey(const MaterialRecordHead& record) { return record.key; }
+inline std::string_view IndexKey(const ItemRecordHead& record) { return record.name; }
+inline std::string_view IndexKey(const SpellRecord& record) { return record.code; }
+inline std::string_view IndexKey(const SpellModifierRecord& record) { return record.code; }
+
+// A table of the item or the spell database: the records and the index by IndexKey (records with the same key: the
+// last one).
 template <typename Record>
-struct NamedRecordTable {
+struct RecordTable {
     // The records of chunk `chunk` read from `source` through an archive of their own, then every record filed in
-    // the index under its name (a material under its key).
+    // the index under its key.
     void Load(ByteStream* source, int chunk);
-
-    std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
-    // The record at `index`, or nullptr when out of range.
-    Record* At(std::uint32_t index) { return index < Count() ? &records[index] : nullptr; }
-    const Record* At(std::uint32_t index) const { return index < Count() ? &records[index] : nullptr; }
-    // The index of `record`: the byte offset from the first record divided by the record size, signed (a null
-    // record gives an index too).
-    int IndexOf(const Record* record) const {
-        return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(records.data())) /
-               static_cast<int>(sizeof(Record));
-    }
-    // Null when there is none (a null record is filed under a new name).
-    Record* Named(std::string_view name) { return names[std::string(name)]; }
-
-    std::vector<Record> records;
-    // The materials are filed under their key.
-    std::unordered_map<std::string, Record*> names;
-};
-// Kept: the item database's tables are named instances of the table templates, used by name across the game.
-using MaterialTable = NamedRecordTable<MaterialRecordHead>;
-using WeaponTable = NamedRecordTable<WeaponRecord>;
-using ArmorTable = NamedRecordTable<ArmorRecord>;
-using QuickItemTable = NamedRecordTable<QuickItemRecord>;
-using QuestItemTable = NamedRecordTable<QuestItemRecord>;
-using LootItemTable = NamedRecordTable<LootItemRecord>;
-
-// The spell and spell modifier tables: the records and the index by code (Rebirth patches the load).
-template <typename Record>
-struct CodeIndexedTable {
-    // The records of chunk `chunk` read from `source` through an archive of their own, then every record filed in
-    // the index under its code.
-    void Load(ByteStream* source, int chunk);
-    // The record filed under `code`: the index's operator[] with a copy of the key, so an unknown code is
-    // filed with null.
-    Record* FindByCode(std::string_view code);
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
@@ -368,15 +372,22 @@ struct CodeIndexedTable {
     const Record* At(std::uint32_t index) const { return index < Count() ? &records[index] : nullptr; }
     // The index of `record` in the table, -1 for null.
     int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.data()) : -1; }
-    // Null when there is none (a null record is filed under a new code).
-    Record* Named(std::string_view code) { return byCode[std::string(code)]; }
+    // The record filed under `key`: the index's operator[] with a copy of the key, so an unknown key is filed with
+    // null.
+    Record* Named(std::string_view key) { return names[std::string(key)]; }
 
     std::vector<Record> records;
-    std::unordered_map<std::string, Record*> byCode;
+    std::unordered_map<std::string, Record*> names;
 };
-// Kept: named instances of the table template, as the item tables above.
-using SpellTable = CodeIndexedTable<SpellRecord>;
-using SpellModifierTable = CodeIndexedTable<SpellModifierRecord>;
+// Kept: the databases' tables are named instances of the table template, used by name across the game.
+using MaterialTable = RecordTable<MaterialRecordHead>;
+using WeaponTable = RecordTable<WeaponRecord>;
+using ArmorTable = RecordTable<ArmorRecord>;
+using QuickItemTable = RecordTable<QuickItemRecord>;
+using QuestItemTable = RecordTable<QuestItemRecord>;
+using LootItemTable = RecordTable<LootItemRecord>;
+using SpellTable = RecordTable<SpellRecord>;
+using SpellModifierTable = RecordTable<SpellModifierRecord>;
 
 // The spell database: the spells and the modifiers by code, and the three lists of spells.sdb's chunks 3-5.
 struct SpellDatabase {

@@ -54,12 +54,13 @@ struct UnitVitalsPacked {
 };
 static_assert(sizeof(UnitVitalsPacked) == 0x18);   // sent as its 24 bytes
 
-// The bits of EngineObject::flags on the map objects (the word is saved and sent as the number). Bits that mean
-// something else per class have one name each (the same number).
+// The bits of EngineObject::flags on the map objects (the word is saved and sent as the number) and the item
+// constructor. Bits that mean something else per class have one name each (the same number).
 enum class MapObjectFlag : std::uint32_t {
     Removed = 0x1,              // gone from the world: its id is sent on
     Changed = 0x2,              // MarkChanged: the network state is not written yet
     Hidden = 0x8,               // not drawn (a spec with visible 0; the client's draw test sets and clears it)
+    Constructing = 0x8,         // the item constructor: from BeginCreateItem to EndCreateItem (nothing reads it)
     Selected = 0x10,            // client: selected (WorldClient::Select; its figure lit and highlighted)
     Shown = 0x20,               // client: in view this frame (the view pass), a part drawn through its drawer (the
                                 // draw); screen picking takes only such objects

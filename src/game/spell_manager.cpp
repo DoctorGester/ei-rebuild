@@ -28,7 +28,7 @@ constexpr const char* kSpellManagerClassName = "CSpellManager";
 constexpr const char* kSpellManagerFolder = "spells";
 
 template <typename Record>
-std::vector<std::string> ListRecordNames(const itemdb::CodeIndexedTable<Record>& table) {
+std::vector<std::string> ListRecordNames(const itemdb::RecordTable<Record>& table) {
     std::vector<std::string> names(table.Count());
     for (std::uint32_t i = 0; i < table.Count(); ++i) names[i] = table.At(i)->name;
     return names;
@@ -156,7 +156,7 @@ bool SpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier)
 void SpellContainer::Build() {
     Spell* currentSpell = &spell;
     itemdb::SpellTable& spells = g_spellDatabase.spells;
-    int index = spells.IndexOf(spells.FindByCode(prototype->code));
+    int index = spells.IndexOf(spells.Named(prototype->code));
     currentSpell->prototypeId = static_cast<std::uint32_t>(index & 0xFF) << 16;
     currentSpell->InitFromPrototype(prototype);
 
@@ -212,7 +212,7 @@ void SpellContainer::Build() {
         currentSpell->price = modifier->price + currentSpell->price;
 
         itemdb::SpellModifierTable& spellDatabaseModifiers = g_spellDatabase.modifiers;
-        int modifierIndex = spellDatabaseModifiers.IndexOf(spellDatabaseModifiers.FindByCode(modifier->code));
+        int modifierIndex = spellDatabaseModifiers.IndexOf(spellDatabaseModifiers.Named(modifier->code));
         char code = static_cast<char>(modifierIndex + 1);
         codes.push_back(code);
     }
@@ -318,8 +318,8 @@ bool SpellConstructor::AddModifier(itemdb::SpellModifierRecord* modifier) {
 namespace {
 
 // The spells and modifiers by name; operator[] files a missing name with a null record.
-std::unordered_map<std::string, itemdb::SpellRecord*>& SpellNameMap() { return g_spellDatabase.spells.byCode; }
-std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifierNameMap() { return g_spellDatabase.modifiers.byCode; }
+std::unordered_map<std::string, itemdb::SpellRecord*>& SpellNameMap() { return g_spellDatabase.spells.names; }
+std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifierNameMap() { return g_spellDatabase.modifiers.names; }
 
 // Splits "name{a;b}" into the trimmed name (in `text`) and the modifier names (in `codes`).
 void ParseSpellText(std::string& text, std::vector<std::string>& codes) {

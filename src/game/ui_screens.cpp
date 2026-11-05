@@ -19,7 +19,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
-#include "lib/text_case.h"
 #include "platform/platform.h"
 
 #include <algorithm>
@@ -77,8 +76,7 @@ bool IsBuildable(const Item* item) {
     if (type == ItemKind::Weapon || type == ItemKind::Armor) return true;
     if (type != ItemKind::Quick) return false;
     prototype = object->GetPrototype();
-    return prototype &&
-           text::CompareIgnoringCase(prototype->materialClass, "none") != 0;
+    return prototype && prototype->HasMaterial();
 }
 
 // --- UiItemStrip -----------------------------------------------------------------------------
@@ -334,7 +332,7 @@ int HeroManaUnits(UnitStats* stats) {
 bool HeroCanUseSpell(UnitStats* stats, Spell* spell) {
     bool ok = true;
     int required = static_cast<int>(spell->skillNeeded);
-    if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
+    if (HeroSchoolSkill(stats, static_cast<int>(spell->GetPrototype()->school)) < required) ok = false;
     float cost = spell->manaCost;
     int units = HeroManaUnits(stats);
     if (units < static_cast<int>(cost)) ok = false;

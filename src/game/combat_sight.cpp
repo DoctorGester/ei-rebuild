@@ -110,7 +110,7 @@ void FillCastKind(OrderPlan* plan, Spell* spell) {
     // Rick magic (a fire arrow) casts as lightning and curse magic (lightning) as fire: kept as is, it may be a swap.
     if (type == SpellType::RickMagic) plan->castKind = SpellSchool::Lightning;
     else if (type == SpellType::CurseMagic) plan->castKind = SpellSchool::Fire;
-    else plan->castKind = static_cast<SpellSchool>(spell->GetPrototype()->school);
+    else plan->castKind = spell->GetPrototype()->school;
 }
 
 } // namespace

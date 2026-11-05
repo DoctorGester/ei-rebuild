@@ -19,13 +19,15 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 ## Databases and naming
 
 - Eight tables of fixed-size records (materials, weapons, armors, quick items and spell containers, quest items, loot
-  items, spells, spell modifiers), each an `itemdb::NamedRecordTable<Record>` (a vector plus a name index) or a
-  `CodeIndexedTable` (spells and modifiers by code). `At` checks `index < (end - begin) / stride` (signed division,
-  unsigned compare), else null. The original's callers read fields of the null record and faulted; the items area
-  tests it: the packed-id weapon stats give 0 (type NoWeapon, damage type 6), the names are empty, a loot's price -1,
-  and FillItem makes no item without a prototype. Callers elsewhere (item texts, UI, unit skins) and the
-  `ItemWeapon` / `ItemArmor::GetType` still read the record untested (C154a). `IndexOf` is the byte offset over
-  the record size, signed, also for a null record. `Named` files a null record under an unknown name.
+  items, spells, spell modifiers), each an `itemdb::RecordTable<Record>`: a vector plus an index by `IndexKey` (a
+  material's key, an item prototype's name, a spell's or a modifier's code). `At` checks `index < (end - begin) /
+  stride` (signed division, unsigned compare), else null. The original's callers read fields of the null record and
+  faulted; the items area tests it: the packed-id weapon stats give 0 (type NoWeapon, damage type 6), the names are
+  empty, a loot's price -1, and FillItem makes no item without a prototype. Callers elsewhere (item texts, UI, unit
+  skins) and the `ItemWeapon` / `ItemArmor::GetType` still read the record untested (C154a). `Named` files a null
+  record under an unknown key. `IndexOf` is -1 for a null record (the original divided the null record's address
+  offset by the record size): only a database without a "spell container" quick item reaches it, and the scroll
+  makers (CreateSpellItem, the camp's) then pass -1 to MakeItem, which takes it as index 0.
 - Loading (startup and each switch of the resource database): "items.idb" (materials, weapons, armors, quick items,
   quest items, loot) and "spells.sdb" (spells, modifiers, three recipe lists) from database.res, each table through a
   ChunkArchive over the file's memory stream; each record filed in the index (a material under its key, an item
@@ -40,6 +42,10 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
   category, so `Item::GetCategory` of an armour read them; ours leaves the category 0. No category test can tell: the
   callers compare with 2, 5 and 8, and no install's or mod's items.idb (192-215 rows, factors 0.63 and up) has a
   factor with those bits.
+- Armour types (`ArmorType`, the codes "hl", "pl", "lg", "sh", "pt", "bt", "gl"; also the unit's armour slot):
+  Helmet, BodyArmor and Leggings have models (the figure's helmet, body and trousers rows), layer group 2 and the
+  "upper" text keys (`IsUpperBodyArmor`); Shirt, Pants, Boots and Gloves go under them (group 1, no model parts).
+  Shirt and Pants are read from their codes and covered body slots (body and arms; legs), not from a game text.
 - Naming: 0x3007 is the loot item ("litem", ItemLoot) and 0x3009 the quest item ("questitem", ItemQuest).
 - Weapon stats: min damage = weapon damage x material damage, max = (spread + damage) x material damage, attack =
   weapon attack x material attack, damage type = the first non-zero weight (6 if none).
@@ -61,8 +67,9 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 - Clone = the owning manager's CreateObject(kind, -1), then the source's CopyTo, which gives the target the packed id,
   condition..magicLevel (bit for bit), a clone of the attached spell and count 1.
 - Kept: the loot's Load reads kind / recordType through its stream argument's slot, Item's the spell id likewise.
-- The classes are told apart by the item's virtual `AsWeapon` / `AsArmor` / `AsLoot` / `AsQuick` / `AsQuest` (null for
-  another class); an item's two link records are typed fields: `serverLink` (the world server's `ItemLink`) and `turn`
+- The classes are told apart by `AsWeapon` / `AsArmor` / `AsLoot` / `AsQuick` / `AsQuest`, which test `Kind()` (null
+  for another kind; a scroll is a quick item): the item manager makes each kind's class, and the kind never changes.
+  `GetUse` is the quest item's key by kind too; an item's two link records are typed fields: `serverLink` (the world server's `ItemLink`) and `turn`
   (the item views' `ItemTurn`).
 - Original bug kept: `Player::HasLoot` (over a unit's carried items) and the script's `RemoveQuestItem` compare the
   quest item id's word of every carried item without a class test: a weapon's or quick item's actionValue, the

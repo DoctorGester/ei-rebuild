@@ -8,11 +8,11 @@
 #include "spell.h"
 
 #include "lib/str.h"
-#include "lib/text_case.h"
 
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -63,7 +63,7 @@ struct PartSpan {
 
 template <int N> constexpr PartSpan List(const PartName (&parts)[N]) { return {parts, N}; }
 
-// By weapon type; other types have no parts.
+// By WeaponType; other types have no parts.
 constexpr PartSpan kPartsByType[] = {List(kSword), List(kAxe),  List(kDagger),  List(kPike),
                                      List(kClub),  List(kBow),  List(kCrossbow)};
 
@@ -72,7 +72,7 @@ template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
     char number[8];
     std::snprintf(number, sizeof(number), "%.2d", head->number);
     std::uint32_t type = static_cast<std::uint32_t>(head->type);
-    if (type >= sizeof(kPartsByType) / sizeof(kPartsByType[0])) return;
+    if (type >= std::size(kPartsByType)) return;
     const PartSpan& list = kPartsByType[type];
     for (int i = 0; i < list.count; ++i) {
         const PartName& part = list.parts[i];
@@ -124,7 +124,7 @@ std::string ItemArmor::PictureName() { return WeaponOrArmorPicture(false, ArmorA
 
 std::string ItemQuick::FigureName() {
     const ItemRecordHead* prototype = GetPrototype();
-    if (prototype && text::CompareIgnoringCase(prototype->materialClass, "none") != 0) {
+    if (prototype && prototype->HasMaterial()) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId));
         return str::Format("qitem%04d.%s", prototype->number, material ? material->name.c_str() : "uq");
     }
@@ -210,12 +210,19 @@ std::string WeaponModelName(std::uint32_t weaponIndex, std::uint32_t materialInd
 std::string WeaponBaseFigure(std::uint32_t index) {
     const WeaponRecord* weapon = WeaponAt(index);
     if (!weapon) return {};
-    static const char* const kBases[5] = {"basesword", "baseaxe", "basedagger", "basepike", "baseclub"};
-    std::uint32_t type = static_cast<std::uint32_t>(weapon->type);
-    if (type < 5) return kBases[type] + str::Format("%.2d", weapon->number);
-    if (type == 5) return "basearrow00";
-    if (type == 6) return "basearrow01";
-    return "baser_hand3";
+    // By WeaponType, Sword to Club.
+    static const char* const kBases[] = {"basesword", "baseaxe", "basedagger", "basepike", "baseclub"};
+    auto type = static_cast<WeaponType>(weapon->type);
+    switch (type) {
+    case WeaponType::Sword:
+    case WeaponType::Axe:
+    case WeaponType::Dagger:
+    case WeaponType::Spear:
+    case WeaponType::Club: return kBases[static_cast<int>(type)] + str::Format("%.2d", weapon->number);
+    case WeaponType::Bow: return "basearrow00";
+    case WeaponType::Crossbow: return "basearrow01";
+    default: return "baser_hand3";
+    }
 }
 
 std::vector<std::string> WeaponModelParts(std::uint32_t index) {

@@ -154,7 +154,7 @@ void SpellMakerPage::DrawSprites(SceneRenderer* pass) {
             needed += spell->skill;
             manaSum += spell->mana;
             lastMana = spell->mana;
-            school = spell->school;
+            school = static_cast<int>(spell->school);
             cell.x = 350.0f;
             cell.y = 300.0f;
             owner->DrawItem(pass, cell);

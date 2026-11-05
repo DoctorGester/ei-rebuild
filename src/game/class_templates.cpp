@@ -78,7 +78,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     for (const std::string& name : names) {
         const char* code = SpellCodeByName(name);
         std::string key(code);
-        itemdb::SpellRecord* record = g_spellDatabase.spells.byCode[key];
+        itemdb::SpellRecord* record = g_spellDatabase.spells.names[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddSpell(record);
             AllList(t)->AddSpell(record);
@@ -88,7 +88,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     for (const std::string& name : names) {
         const char* code = SpellModifierCodeByName(name);
         std::string key(code);
-        auto* record = g_spellDatabase.modifiers.byCode[key];
+        auto* record = g_spellDatabase.modifiers.names[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddModifier(record);
             AllList(t)->AddModifier(record);

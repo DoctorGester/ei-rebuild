@@ -1,4 +1,4 @@
-// The spell database: its records' Serialize, the code-indexed tables and SpellDatabase::Load ("spells.sdb", at
+// The spell database: its records' Serialize and SpellDatabase::Load ("spells.sdb", at
 // startup and at every switch of the resource database). See item_db.h and docs/notes/items_spells.md
 // ("Databases and naming").
 #include "item_db.h"
@@ -97,25 +97,6 @@ void SpellListRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(4, &repeated);
     ar->Field(5, &classMask);
 }
-
-// --- Tables --------------------------------------------------------------------------------------
-
-template <typename Record>
-void CodeIndexedTable<Record>::Load(ByteStream* source, int chunk) {
-    ChunkArchive archive;
-    archive.Open(source, 1, 1);
-    RecordChunks(&archive, chunk, &records, &Record::Serialize);
-    archive.Close(source);
-    // A modifier's code is four chars, read as a C string.
-    for (Record& record : records) byCode[std::string(record.code)] = &record;
-}
-
-template <typename Record>
-Record* CodeIndexedTable<Record>::FindByCode(std::string_view code) {
-    return byCode[std::string(code)];
-}
-template SpellRecord* SpellTable::FindByCode(std::string_view);
-template SpellModifierRecord* SpellModifierTable::FindByCode(std::string_view);
 
 int SpellDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
