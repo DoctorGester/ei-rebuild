@@ -3,3 +3,5 @@ title = "GameBuffer::ReadString bounded by the high mark"
 group = "cleanup"
 note = "C111 bounded every BufferCursor read by its limit; GameBuffer::ReadString (the master server list's GameInfoRecord texts, net_game_info.cpp) still takes its length from the packet and reads that many bytes in place, past the high mark (Reserve grows a growing buffer, a view reads past its end). Stop at the high mark with readPastEnd set, as GameBuffer::Read does; add the case to tests/unit/game_buffer.cpp. Also: GameFlow::StartServer and JoinServer (world_game.cpp) build the same 20-byte password hello twice."
 order = 1076
+status = "running"
+started = "2026-11-05"
