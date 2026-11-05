@@ -168,6 +168,7 @@ void GroundDecalLight(const Frame& frame, const float box[6], MeshLightParams* p
         for (int i = 0; i < 4; ++i) p.pointAt[j][i] = scene.pointAt[k][i];
         for (int i = 0; i < 3; ++i) p.pointColour[j][i] = scene.pointColour[k][i];
         p.pointColour[j][3] = static_cast<float>(PointShadowSlot(frame, k) + 1);
+        p.pointSpecular[j / 4][j % 4] = scene.pointColour[k][3];
     }
     p.on[2] = static_cast<float>(count);
     *params = p;
