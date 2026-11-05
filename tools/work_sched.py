@@ -37,6 +37,7 @@ TICK = 0.5           # seconds between scheduling passes at most (a finished gam
 CHECK_EVERY = 5      # seconds between heartbeats and submitter checks
 CODE_FILES = ('work_sched.py', 'run_all.py', 'work.py')    # in the main checkout's tools: a change restarts the scheduler
 UNKNOWN_SECONDS = 1000   # expected time of a run run_times.json does not have (as run_all: new ones first)
+FINISHED_BATCHES_KEPT = 100   # finished batches looked at for a submitter still comparing (reserved_folders)
 AFTER_GAME_MAX = 16      # runs past their game (packing frames) before no new game starts
 
 
@@ -407,6 +408,7 @@ class Scheduler:
                                  "WHERE run.state = 'queued' AND batch.state IN ('queued', 'running')"):
             queued[r['batch']].append(r)
         busy = {g['folder'] for g in self.games.values()}   # never two games in one run folder
+        reserved = self.reserved_folders()                   # nor one an earlier batch still needs
         # Only the earliest batch with runs left gathers the machine for an alone run; plain runs go
         # smallest remaining work first (batch_priority).
         head = next((b['id'] for b in batches if queued[b['id']]), None)
@@ -424,7 +426,7 @@ class Scheduler:
                 continue
             plain = [r for r in runs if not r['alone']]
             for r in plain:
-                if r['folder'] in busy:
+                if r['folder'] in busy or reserved.get(r['folder'], b['id']) < b['id']:
                     continue
                 if not self.pool.gate_free():
                     return False                             # a plain run_all gathers for a display-mode game
@@ -445,6 +447,27 @@ class Scheduler:
                 self.start(b, alone[0], args, list(self.pool.held))
                 return False
         return False
+
+    def reserved_folders(self):
+        """{run folder: the lowest id of the batches that still need what its last game wrote}: the folders of the runs
+        of every batch not finished, and of a finished batch while its work.py test is still alive (its --golden
+        comparison and summary read the run folders after the last game, H54: a rerun by name of a scenario of a
+        suite in the same build emptied the folder under the suite's comparison, which then counted a passing run as
+        differing). A batch starts no run in a folder an earlier batch holds; waiting only on earlier batches
+        cannot deadlock."""
+        newest = self.db.execute('SELECT max(id) FROM batch').fetchone()[0] or 0
+        alive = {}
+        held = {}
+        for r in self.db.execute("SELECT run.folder, batch.id, batch.state, batch.submitter FROM run JOIN batch ON batch.id = run.batch "
+                                 "WHERE run.state != 'cancelled' AND (batch.state IN ('queued', 'running') "
+                                 "OR (batch.state = 'finished' AND batch.id > ?))", (newest - FINISHED_BATCHES_KEPT,)):
+            if r['state'] == 'finished':
+                if r['id'] not in alive:
+                    alive[r['id']] = pid_alive(r['submitter'])
+                if not alive[r['id']]:
+                    continue
+            held[r['folder']] = min(r['id'], held.get(r['folder'], r['id']))
+        return held
 
     def grant(self):
         """Slots for the runs whose retry waits for them (GameSlots.acquire): those gathered for an alone run first,

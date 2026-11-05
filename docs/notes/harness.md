@@ -16,7 +16,7 @@ checks. Scenarios live in `tests/scenarios/`; the steps are listed at the top of
 default 16; the whole suite takes about 2 minutes); workers run it through `python tools/work.py test <ID> [run_all
 args]` (work-board.md). Each run writes to its own folder, `build\verify\runs\<scenario>-<install>` (`EI_OUT_DIR`): its
 `ei-rebuild.log`, report and `harness_saves`, emptied first. A folder that cannot be emptied (a file in it still open) fails the run; a run that passes in digest mode
-(`EI_DIGEST`, `--golden`) without a `digest.txt` fails too, and a digest the game cannot create fails its report (H54). Installs: `standalone` (the vanilla data) and
+(`EI_DIGEST`, `--golden`) without a `digest.txt` fails too, and a digest the game cannot create fails its report (H54; a rerun by name that empties a suite's run folder before the suite's comparison waits in the scheduler, work-board.md). Installs: `standalone` (the vanilla data) and
 `standalone-rebirth` (the Rebirth data and goldens; only on demand: `--rebirth` adds the Rebirth set,
 `--rebirth-only` runs it alone, `--all-rebirth` every scenario). The Rebirth set is config/rebirth_scenarios.csv's
 marks, the scenarios with Rebirth-specific steps and every scenario with a Rebirth golden (run_all.rebirth_scenarios),
