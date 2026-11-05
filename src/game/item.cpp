@@ -120,7 +120,6 @@ Item* Item::Clone(SpellManager* spells) {
 
 void Item::Load(ByteStream* stream) {
     stream->ReadValue(prototypeId);
-    RequirePrototype();
     stream->ReadValue(condition);
     stream->ReadValue(conditionMax);
     stream->ReadValue(charge);
@@ -157,8 +156,10 @@ ItemRecordHead* Item::GetPrototype() {
     return PrototypeAt(Kind(), PrototypeIndex(prototypeId));
 }
 
+bool Item::HasPrototype() { return PrototypeAt(Kind(), PrototypeIndex(prototypeId)) != nullptr; }
+
 void Item::RequirePrototype() {
-    if (PrototypeAt(Kind(), PrototypeIndex(prototypeId))) return;
+    if (HasPrototype()) return;
     game::FatalExit("Item %d of kind 0x%X names prototype %u, which the item database does not have: the save or "
                     "the other player uses another database.",
                     id, static_cast<unsigned>(type), PrototypeIndex(prototypeId));

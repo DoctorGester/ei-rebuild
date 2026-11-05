@@ -3,6 +3,7 @@
 #include "core_streams.h"
 #include "map_object.h"
 #include "unit.h"
+#include "lib/crt.h"
 #include "lib/text_case.h"
 
 #include <cfloat>
@@ -65,6 +66,21 @@ itemdb::SpellRecord* Spell::GetPrototype() {
     return SpellAt(prototypeId >> 16);
 }
 
+bool Spell::HasRecords() {
+    if (!GetPrototype()) return false;
+    for (int i = 0; i < GetModifierCount(); ++i) {
+        if (!SpellModifierAt(static_cast<std::uint32_t>(modifiers[i] - 1))) return false;
+    }
+    return true;
+}
+
+void Spell::RequireRecords() {
+    if (HasRecords()) return;
+    game::FatalExit("Spell %d names spell %u or a modifier which the spell database does not have: the save or the "
+                    "other player uses another database.",
+                    id, prototypeId >> 16);
+}
+
 int Spell::GetModifierCount() {
     for (int i = 0; i < 8; ++i) {
         if (modifiers[i] == 0) return i;
@@ -76,9 +92,7 @@ bool Spell::HasCastFlagModifier() {
     for (int i = 0; i < 8; ++i) {
         std::int8_t entry = modifiers[i];
         if (entry == 0) break;
-        // Modifier index = entry - 1, sign-extended then compared unsigned; one out of range is skipped.
-        SpellModifierRecord* modifier = SpellModifierAt(static_cast<std::uint32_t>(entry - 1));
-        if (!modifier) continue;
+        const SpellModifierRecord* modifier = SpellModifierAt(static_cast<std::uint32_t>(entry - 1));
         // "ic" or "it", then 0 0.
         const char* code = modifier->code;
         if (code[0] == 'i' && (code[1] == 'c' || code[1] == 't') && code[2] == 0 && code[3] == 0) return true;
@@ -205,7 +219,7 @@ void Spell::CopyTo(Spell* target) {
 }
 
 Spell* Spell::Clone(SpellManager* manager) {
-    Spell* spell = manager->CreateSpellObject(-1);
+    Spell* spell = manager->CreateSpellObject();
     CopyTo(spell);
     return spell;
 }

@@ -23,16 +23,25 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
   material's key, an item prototype's name, a spell's or a modifier's code). `At` checks `index < (end - begin) /
   stride` (signed division, unsigned compare), else null. The original's callers read fields of the null record and
   faulted. Ours, one rule:
-  - **An item's prototype is always there.** Every item comes from FillItem (which makes none without a prototype),
-    CopyTo (a copy of one that has it) or `Item::Load`, the one reader of a saved, sent or traded item's packed id:
-    `Item::RequirePrototype` ends the game (`game::FatalExit`: the error box and exit, also with Rebirth's
-    DisableExitOnCrashReport) when the packed id names no record of the item's kind, i.e. a save, a party file or a
-    player of another item database. `ItemManager::Load` checks the identity records too, since the world's save
-    loads the map objects (a unit's load reads its weapon's type) before the items' own Load. So `GetType`,
-    `GetTypeGroup`, `GetPrototype` (null only for scrolls) and the texts read the prototype unchecked. Why there and
-    not a failed load: the item loaders (world save, party files, the client's item blocks, a partner's offer, the
-    party messages) mostly ignore a failed stream, and refusing in each would mean undoing half-loaded worlds and
-    parties; an item the database cannot name cannot be worn, shown or priced, and the original crashed on it.
+  - **An item's prototype, and a spell's prototype and modifiers, are always there.** Every item comes from
+    FillItem (which makes none without a prototype), CopyTo (a copy of one that has it) or a loader; every spell
+    from the spell constructor (database records), CopyTo or a loader. The loaders test what they loaded
+    (`HasEveryRecord(context)`: each item's `Item::HasPrototype`, each spell's `Spell::HasRecords`, the prototype
+    and every modifier code; `Spell::Load` reads the modifiers, the identity records or the sender the packed id).
+    An item or spell without its records comes from a save, a party file or a player of another items.idb or
+    spells.sdb. So `GetType`, `GetTypeGroup`, both `GetPrototype`s (the item's null only for scrolls), the modifier
+    readers and the texts read the records unchecked.
+    - Our own data ends the game (`RequireEveryRecord`: `game::FatalExit`, the error box and exit, also with
+      Rebirth's DisableExitOnCrashReport): the world save (after the identity records, before the map objects load,
+      since a unit's load reads its weapon's type; again after the objects' own data), a saved spell effect's
+      spell, the party files, the save's party records and trader stocks, the players' parties in a save.
+    - A peer's data is refused where the loader can undo it: the world server drops a player whose party
+      (`OnNewParty`, `OnPartyUpdate`) names records it lacks (message 0x11 with the reason, which our client shows
+      before it refuses the message; the player leaves), and a trade partner's offer naming them leaves the
+      partner's party empty with a chat line (`ClientSession::ApplyParty`).
+    - A client's blocks from the world server (`LoadItemsAndSpells`, `LoadNewItemsAndSpells`, the party messages)
+      still end the game: a client has no way to leave the server's zone from inside a message handler (a
+      refusing handler is the dispatcher's FatalError, which exits without Rebirth's flag); C154c.
   - **Every other index is tested where it is read**: a packed id's material half, the record a loot item stands for
     (`ItemLoot::HasRecord`), the packed ids a unit's figure gets (unit skins, the client's armour and weapon ids).
     Without the record: the packed-id weapon stats give 0 (type NoWeapon, damage type 6), names and text keys are
@@ -40,8 +49,7 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
     `IsSpell`, `IsModifier`) and the item info's dispatch hold only with the record, so a loot item without one is
     plain loot there and the code behind them reads the record unchecked. A script's unknown name ("Instruction
     Weapon.nosuch") makes such a loot item too.
-  - Not yet: a spell's prototype (`Spell::GetPrototype`, read unchecked by the texts, the item info and the spell
-    code); see C154b. Open: a weapon's or armour's `type` is not checked at database load, and the armour type
+  - Open: a weapon's or armour's `type` is not checked at database load, and the armour type
     indexes the unit's seven slots (every install's and mod's items.idb has 0-6). `Named` files a null record
     under an unknown key. `IndexOf` is -1 for a null record (the original divided the null record's address
   offset by the record size): only a database without a "spell container" quick item reaches it, and the scroll

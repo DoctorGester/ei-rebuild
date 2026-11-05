@@ -50,7 +50,7 @@ enum class ServerMessage : std::uint8_t {
     Jingle = 0x0D,
     PathMarker = 0x0E,
     FreeCamera = 0x0F,
-    Error = 0x11,               // a text; the client has no handler (it drops the link)
+    Error = 0x11,               // a text, the reason the server drops the player; the client shows it and refuses
     WorldValue = 0x12,
     StringEvent = 0x13,
     ItemValue = 0x14,
@@ -262,7 +262,8 @@ public:
     bool OnBriefingDone();      // Message 0x07: briefing name -> CompleteBriefing(player id)
     // Message 0x08: a party (LoadParty with variables); one of a single record gets a fresh party id
     // (PartyNextId into partyId), its record the next free object id (from 1000000013), and is stored in
-    // the party manager's map. 0 for any other record count.
+    // the party manager's map. 0 for any other record count. A party naming items or spells this game's
+    // databases lack (HasEveryRecord) is not stored: the client gets message 0x11 and the player leaves.
     bool OnNewParty();
     bool OnResume();            // Message 0x09: Disconnected -> Joined; Redeploy (no placements) unless deployed
     // Messages 0x30 / 0x3A: unit ids (missing or blocked ones left out), a run flag and a point; each unit's
@@ -271,7 +272,9 @@ public:
     bool OnGoTo();
     // Message 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
     bool OnAttack();
-    bool OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
+    // Message 0x50: a sized block loaded into the party (no variables); one naming items or spells this game's
+    // databases lack empties the party, and the player leaves as for OnNewParty.
+    bool OnPartyUpdate();
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
     bool OnLeave();             // Message 0x01: the connection's Leave
     // Message 0x04 (joined players, else false): the game state into sessionKind, the party collected

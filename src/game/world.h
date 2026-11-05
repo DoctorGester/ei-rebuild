@@ -917,7 +917,8 @@ public:
     // The reverse, used by the teardown: every item and spell released, each manager emptied.
     void ReleaseItemsAndSpells();
     // The items and spells replaced: all released, then (a block with data) the managers loaded and referenced again.
-    // Returns 1.
+    // Returns 1. Both block loaders end the game when an item or spell of the server names a record this game's
+    // databases lack (RequireEveryRecord): a client has no way yet to leave the server's zone from here.
     int LoadItemsAndSpells(ByteStream* block);
     // The block read from its start: the spells and then the items it lists (LoadManagerObjects). 0 when
     // the block fails.

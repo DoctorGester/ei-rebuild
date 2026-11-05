@@ -9,6 +9,7 @@
 #include "core_maths.h"
 #include "core_streams.h"
 #include "game_singletons.h"
+#include "item_manager.h"
 #include "logic_settings.h"
 #include "map_object.h"
 #include "party.h"
@@ -60,6 +61,22 @@ void ReadUnits(MemoryStream& in, std::vector<Unit*>* units) {
         Unit* unit = g_serverWorld.FindUnit(in.ReadId());
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) lib::SetAtGrow(*units, lib::Count(*units), unit);
     }
+}
+
+constexpr const char* kOtherDatabaseText =
+    "The server refused your party: it holds items or spells that the server's item and spell databases do not "
+    "have.";
+
+// A party from the client that names records this game's databases lack (a player with another items.idb or
+// spells.sdb): the client gets message 0x11 with the reason and the player leaves (Receive then returns 0, and the
+// world server drops the player), so the party is never deployed or stored. Returns true: the message was read.
+bool DropForOtherDatabase(PlayerServer* server) {
+    console::EndLine(console::g_netLogOut << "player " << server->player->playerId
+                                          << ": the party names items or spells this game's databases lack, dropped");
+    WriteType(&server->out, ServerMessage::Error);
+    server->out.WriteString(kOtherDatabaseText);
+    server->state = PlayerServer::State::Leaving;
+    return true;
 }
 
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3&, bool, bool, const Vector3&);
@@ -335,6 +352,7 @@ bool PlayerServer::OnNewParty() {
     Party local;
     Party* party = &local;
     party->LoadParty(&in, true);
+    if (!HasEveryRecord(party)) return DropForOtherDatabase(this);
     if (std::ssize(party->members) != 1) return false;
     player->partyId = PartyNextId();
     int& next = g_nextRecordObjectId;
@@ -385,8 +403,12 @@ bool PlayerServer::OnPartyUpdate() {
     MemoryStream block;
     in.ReadSized(&block);
     block.MemoryStream::Seek(0);
-    if (in.ok) player->GetParty()->LoadParty(&block, false);
-    return true;
+    if (!in.ok) return true;
+    Party* party = player->GetParty();
+    party->LoadParty(&block, false);
+    if (HasEveryRecord(party)) return true;
+    party->Clear(false, false);
+    return DropForOtherDatabase(this);
 }
 
 // --- The login -----------------------------------------------------------------------------

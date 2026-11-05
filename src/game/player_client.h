@@ -154,6 +154,9 @@ public:
     bool OnLoginAccepted();
     // Message 0x01. The player disconnects (Player::Disconnect).
     bool OnDisconnect();
+    // Message 0x11. The server's reason for dropping the player (a text): the fatal error shows it, then the
+    // handler refuses, as a message without a handler did (the original had none).
+    bool OnError();
     // Message 0x04. A point and two dwords (heading, mode): the client world centres on the point; in the
     // party's zone "gz20g" the camera takes distance 23 and a 30-degree pitch (SetDistancePitch), elsewhere
     // view 6 (mode 3) or 7 (RestoreView); then SetHeading. False when the mode could not be read.

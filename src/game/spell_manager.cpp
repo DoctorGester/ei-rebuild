@@ -23,7 +23,6 @@
 
 namespace {
 
-constexpr const char* kNoSequenceMessage = "Can't find spell sequence to create child spell.\n";
 constexpr const char* kSpellManagerClassName = "CSpellManager";
 constexpr const char* kSpellManagerFolder = "spells";
 
@@ -36,19 +35,7 @@ std::vector<std::string> ListRecordNames(const itemdb::RecordTable<Record>& tabl
 
 } // namespace
 
-Spell* SpellManager::CreateSpellObject(int newId) {
-    auto* spell = CreateObjectAs<Spell>(SpellObjectType::Spell, -1);
-    if (newId == -1) return spell;
-    const auto packed = static_cast<std::uint32_t>(newId);
-    spell->prototypeId = packed;
-    if ((packed & 0xFFFF) == 0) {
-        spell->InitFromPrototype(itemdb::SpellAt(packed >> 16));
-        return spell;
-    }
-    // The low half would name a spell sequence, which nothing in the game ever fills.
-    game::FatalError(kNoSequenceMessage);
-    return spell;
-}
+Spell* SpellManager::CreateSpellObject() { return CreateObjectAs<Spell>(SpellObjectType::Spell, -1); }
 
 EngineObject* SpellManager::NewObject(int objectType) {
     switch (static_cast<SpellObjectType>(objectType)) {

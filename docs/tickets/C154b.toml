@@ -4,5 +4,5 @@ group = "cleanup"
 depends = ["C154a"]
 note = "C154a made every item's prototype certain (Item::RequirePrototype ends the game at Item::Load / ItemManager::Load for a packed id of another item database). Spells have the same hole: a spell's prototypeId comes from the spell manager's identity records (BaseManager::Load) or CreateSpellObject, and Spell::GetPrototype (SpellAt(prototypeId >> 16)) is read unchecked by the item texts (scroll and wand names), the item info (DescribeQuickItem, DescribeCarriedSpell, the general description's spell line), ui_camp's StockSpells and the spell code. Same decision as items: a SpellManager::Load override calling a Spell::RequirePrototype (game::FatalExit), so the readers stay unchecked; check CreateSpellObject's callers pass valid indices. Also the spells' modifier codes (Spell::modifiers - 1 into SpellModifierAt; the item info already tests it). Goldens the same. Coordinator 2026-11-05: C154a ends the game (game::FatalExit) when a network peer sends an item from another database; for peers, prefer dropping the peer with a message over exiting, where the client's item-block loaders can refuse cleanly."
 order = 1178
-status = "running"
+status = "review"
 started = "2026-11-05"

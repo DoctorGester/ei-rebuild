@@ -7,6 +7,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "game_singletons.h"
+#include "item_manager.h"
 #include "object_tables.h"
 #include "party.h"
 #include "party_manager.h"
@@ -164,6 +165,8 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
         [&](MemoryStream* stream) {
             itemsParty->LoadParty(stream, false);
             spellsParty->LoadParty(stream, false);
+            RequireEveryRecord(itemsParty);
+            RequireEveryRecord(spellsParty);
             allowed.LoadLists(stream);
             magic.LoadLists(stream);
         });

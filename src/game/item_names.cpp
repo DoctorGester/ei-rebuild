@@ -103,8 +103,7 @@ std::string ItemQuest::FigureName() { return str::Format("quitem%04d", Number(Ge
 std::string ItemQuest::PictureName() { return str::Format("initqu%ditem", Number(GetPrototype())); }
 
 std::string ItemScroll::FigureName() {
-    const SpellRecord* record = spell ? SpellAt(PrototypeIndex(spell->prototypeId)) : nullptr;
-    return record ? str::Format("spell%04d", record->icon) : std::string();
+    return spell ? str::Format("spell%04d", spell->GetPrototype()->icon) : std::string();
 }
 
 std::string ItemScroll::PictureName() { return "initqi1item"; }
