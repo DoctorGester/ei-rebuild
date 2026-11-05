@@ -1107,7 +1107,8 @@ option). Client side only: driven by the weather the world's light hands over (`
   once (R53). Only a zone's landscape loaded (`render::LandscapeLoaded`, from Terrain::LoadMap; a save's load goes
   through it too) starts again: for the first 32 ticks after it the state is the settled weather as it is (the weather
   message comes a tick or more after the zone's; a zone entered or loaded in snow is covered at once, in rain wet), then
-  it follows. The world's time goes on over a zone change (8 ticks), so without the landscape's call the ground of
+  it follows; after a save's load with its side file (11c) the surfaces hold the kept state over those 32 ticks
+  instead. The world's time goes on over a zone change (8 ticks), so without the landscape's call the ground of
   gz11k stayed as wet as zone1's. The client's rain layer itself restarts from density 0 after a load (Clear) and fades
   in over the message's 20 / 40 ticks (one or two seconds): nothing of it needs saving (the world saves `weather` and
   `weatherStrength` and sends them with the zone). The rain falling now (the layer's density, none in snow) drives the
@@ -1156,7 +1157,8 @@ option). Client side only: driven by the weather the world's light hands over (`
   ticks: about 50 s and 100 s; in rain its snow melts as the ground's, 900), and under a roof the weather on it is
   scaled by its exposure (1 less its shelter). A unit first met, not met for over 64 ticks (`kUnitForgetTicks`), or
   met while the ground settles after a zone's landscape was loaded (its first 32 ticks) starts from the ground's state
-  times its exposure; no step of the time back restarts it. Client-side only: no random, nothing the
+  times its exposure; no step of the time back restarts it. After a save's load the units of its side file (11c) take
+  their kept state at the first frame, and every unit holds its state while the ground holds the kept one. Client-side only: no random, nothing the
   game simulates reads it.
   The HUD unit panel's figure takes its unit's own value too (R53a): `HudUnitPanel::DrawSprites` hands its meshes over between
   `render::BeginInterfaceUnit(unit as a MapObject)` and `EndInterfaceUnit` (the object the world's draw gave
@@ -1220,6 +1222,54 @@ option). Client side only: driven by the weather the world's light hands over (`
 - Cost (R17c, RTX 4070 Ti SUPER, Direct3D 12, 3840x2009 msaa 8 anisotropy 16, zone1 a minute into rain, a frozen
   frame; the uniforms zeroed and set again in turn, 150 frames each): the frame's GPU time 2.59 .. 2.61 ms with the
   weather and 2.59 .. 2.63 ms without, at the start and at the shore; no difference above the noise.
+
+**11c. What a save keeps of the picture** (src/game/client_visuals.{h,cpp}, `render::WeatherToKeep` / `RestoreWeather`
+/ `UnitWeatherToKeep` / `RestoreUnitWeather`, render/kept_weather.h; R57). The user (2026-11-05): a loaded save shows
+the weather and the marks it was saved with, through a side file beside the save; the original's files stay as they
+are, and a save without the side file starts from the defaults.
+- **What the original's save keeps** (mission.sav, WorldServer::SaveWorld): the world's tick, which the client takes
+  with the zone (WorldClient::LoadZone), so every clock on the client's time goes on after a load: the day's light and
+  the sun, the sky dome's turn, the rain rings' clock and the water's ripples (`clientTicks`), the animations. The
+  weather (`weather`, `weatherStrength`: sent with the zone, so the settled weather comes back), the wind, the night
+  level, the clock and its speed, the last rain bolt's tick; the water levels a script is still changing (the
+  countdowns); the scripts' FX sources, particles, point lights and lightning; the timed effects and the missiles in
+  flight, which the client then shows again.
+- **What a load loses** (without the side file):
+  - The ground prints: blood, footprints and scorch marks. `GroundPrint::Save` / `Load` (and Footprint's and
+    BloodPrint's) exist from the original with no caller; WorldClient::LoadZone clears the three vectors.
+  - The client's rain or snow layer: it restarts from density 0 and fades in over the weather message's 20 / 40 ticks
+    (`RainSnow::Clear`, then `Start`), with its sound.
+  - The landscape's wave phase (`terrain::Terrain::wavePhase`, the water vertices' waves, SectorData::AnimateWaves):
+    back to 2 pi at every map load; the tiles' animation frame (`Terrain::frame`) back to 1.
+  - The client generator (`g_clientRandom`, R34a): seeded once per process (World::Create), never saved, so the
+    client's draws after a load depend on the session before it (the harness's record and replay reseed it at a
+    load, `image::ReseedRandom`). The game's own ISAAC and rand() are not saved either (game state, not the picture).
+  - Ours: the surfaces' wetness, puddles and snow and each unit's (11b) started again from the settled weather (a
+    save loaded in rain was soaked at once, one loaded in snow covered at once); the clouds' drift (a new process starts
+    at 0) and their cover (from the target of the rain falling at the first frame, which after a load is none: 0.4).
+  - Transient and not kept: the particles of effects in flight start again, the bird, the flying hit points.
+- **The side file**: saves\<slot>\visuals.sav, written by GameFlow::SaveGame after scenario.sav (every save: the slots,
+  the quick save, the autosave) and read by GameFlow::LoadGame into `WorldClient::keptVisuals`. SaveFileWrite's frame
+  (magic 0x157, the save version 0x74, checksum, compressed), then sections: a u32 kind, a u32 version and a u32 size,
+  then the section's bytes; kind 0 ends the list. A load takes a section only at the version it knows (and only when
+  its values are numbers and its size is right) and skips any other, so a section whose contents change takes the next
+  version and an older file gives the defaults for that part. Sections (version 1 each):
+  - Weather (1): wetness, puddles, snow (f32), the clouds' two layers' drift (x, y in f64 each) and cover (f32).
+  - Waves (2): the landscape's wave phase (f32).
+  - Units (3): a u32 count, then per unit drawn lately its object id (i32), wetness and snow (f32), by ascending id.
+- **The restore**: the end of WorldClient::LoadZone (after the landscape's LandscapeLoaded) restores the surfaces and
+  the clouds (`RestoreWeather`: the surfaces hold the kept state while they would settle, 32 ticks; the clouds go on
+  from the kept drift and cover) and the wave phase, and hands the units to the next frame's light
+  (WorldClient::UpdateLighting, `ClientVisuals::RestoreUnits`): each kept unit present among the client's objects takes
+  its kept wetness and snow (`RestoreUnitWeather`), and holds it while the ground holds. Everything kept is used once,
+  so a later zone change starts from the defaults.
+- **Left**: the cloud cover dips after a load (0.74 to 0.70 in render_weather_save) while the client's rain layer fades
+  in again, as its density drives the cover's target. Not kept yet: the ground prints (R57a), the client generator
+  (R57b), the visited zones' saves\current\<zone>.sav and the multiplayer clients (R57c).
+- **Checks**: render_weather_save (zone1 by day: 15 s of rain, F5, 20 s of drying, F8): `weathercheck` and `unitweather`
+  read the ground and the hero exactly as saved (0.759 both; from the settled rain they would be 1) and `cloudcheck`
+  the cover near the saved one. Every golden with saves holds its visuals.sav decoded (tools/savefile.py's
+  `read_visuals`, field by field in saves.txt), not left out of the comparison.
 
 **12. Profiling the heaviest scenes.** The user's play settings: 3840 x 2160 windowed, msaa 8, anisotropy 16, flora
 shadows on, Rebirth's draw radii, `frametime 8`; zone1, zone7 (forest), zone11 (snow forest), zone19, the town bz1g, the

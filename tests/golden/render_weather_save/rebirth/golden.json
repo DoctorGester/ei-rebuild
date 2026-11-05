@@ -1,0 +1,13 @@
+{
+  "scenario": "render_weather_save",
+  "install": "rebirth",
+  "recorded": "2026-11-05",
+  "commit": "9a5be70b9",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "R57: new scenario render_weather_save (a save's side file visuals.sav restores the ground's, the clouds' and the hero's weather)",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+}

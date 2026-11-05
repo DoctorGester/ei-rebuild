@@ -9,5 +9,5 @@
   "repeated_in": 2,
   "reason": "New H43c1/H43e1 gap scenarios: a hosted hero's death with the zone saved and loaded, a blow while turning, a healing guard.",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

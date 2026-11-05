@@ -887,6 +887,7 @@ int WorldClient::LoadZone(ByteStream* block) {
     ticksRun = 0;
     BuildUnitSkins(&looks.figured, &looks.dressed);
     terrain->SetWaveStrength(options::kDefaultWindForce);
+    keptVisuals.Restore(*this);
     ShowLoadingMovie(kProgressZoneReady);
     LocalView()->SendResume();
     CloseLoadingMovie();

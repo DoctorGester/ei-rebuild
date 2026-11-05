@@ -12,6 +12,7 @@ inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 0x64;   // abov
 inline constexpr unsigned kMagicScenario = 0xDEAD;       // scenario.sav
 inline constexpr unsigned kMagicMission = 0x102;         // mission.sav
 inline constexpr unsigned kMagicParty = 0x114;           // a multiplayer party's .mp file
+inline constexpr unsigned kMagicVisuals = 0x157;         // visuals.sav, ours: the client's picture beside a save
 
 inline constexpr int kVersionMissileCaster = 0x43;       // a missile's caster id and from-caster flag
 inline constexpr int kVersionEffectUnitId = 0x43;        // a visual effect's unit id

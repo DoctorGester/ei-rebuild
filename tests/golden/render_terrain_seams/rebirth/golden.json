@@ -9,9 +9,9 @@
   "repeated_in": 2,
   "reason": "C84d: move orders keep their point's z (saves: action.point.z), the bored remark no longer draws the game's dice (later draws shift), RaiseStrength keeps health in step, Player mode casts spell choices, the noticed level stops at -1000, one allied corpse entry",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
     "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

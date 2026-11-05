@@ -9,6 +9,7 @@
 
 #include "lib/rect.h"
 #include "lib/vecmath.h"
+#include "render/kept_weather.h"
 #include "render/mesh_records.h"
 
 #include <cstdint>
@@ -78,9 +79,17 @@ struct CloudWeather {
 };
 void CloudShadows(const CloudWeather& weather);
 // A zone's landscape was loaded (terrain::Terrain::LoadMap; a save's load too): the weather on the surfaces starts again
-// from the settled weather of the next hand-overs, so the ground of a zone does not stay wet or snowy from the one
-// before (the world's time goes on) and a zone entered or loaded in snow is covered at once.
+// from the settled weather of the next hand-overs (unless RestoreWeather follows), so the ground of a zone does not stay
+// wet or snowy from the one before (the world's time goes on) and a zone entered in snow is covered at once.
 void LandscapeLoaded();
+// The weather a save's side file keeps (kept_weather.h): WeatherToKeep takes it; RestoreWeather, after the loaded
+// zone's LandscapeLoaded, starts the surfaces and the clouds from it instead of from the settled weather.
+KeptWeather WeatherToKeep();
+void RestoreWeather(const KeptWeather& weather);
+// A unit's own wetness and snow: none for a unit not drawn lately. RestoreUnitWeather, after the loaded zone's
+// LandscapeLoaded, gives a unit the state it had (taken as it is at its next frame).
+std::optional<UnitWeatherLevels> UnitWeatherToKeep(const Object3D* object);
+void RestoreUnitWeather(const Object3D* object, const UnitWeatherLevels& levels);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
 // until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
 // with (the nearest kMostSceneLights), the camera and the client's time (the water's ripples move by it). The terrain

@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "console: differs from line 125: the old golden 'Unit 1804 was attacked by 1000011214 skill=3.40282e+038 damage=11.5929 destHL=RLeg', the new run 'Unit 1804 was attacked by 1000011214 skill=3.40282e+038 damage=10.7726 destHL=RHand'",
     "digest: 12 of 50 records differ, first at record 38 (world update 780, tick 780, frame 155, zone gz1g); outcomes CHANGED: deaths, quest variables, party and items, script; max unit move 8.7 (obj1937, record 49)",
@@ -24,5 +23,6 @@
     "  random: 1 of 1 differ",
     "    isaac: 1 generator, 12 records, from 38; max |d| 163 at random isaac.count, record 48: 35 -> 198",
     "... 24 more lines"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

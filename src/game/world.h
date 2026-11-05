@@ -3,6 +3,7 @@
 // The world: the server side that runs the game rules (WorldServer) and the client side that draws it and answers
 // terrain queries (WorldClient), both derived from a common base. Class names come from the game's error strings.
 
+#include "client_visuals.h"
 #include "core_refcount.h"
 #include "effects.h"   // RainSnow
 #include "engine_object.h"
@@ -1030,6 +1031,8 @@ public:
     std::vector<BloodPrint> bloodPrints;
     std::vector<Footprint> footprints;
     std::vector<GroundPrint> scorchMarks;
+    // What a load read beside the save (GameFlow::LoadGame, client_visuals.h): the next LoadZone restores it.
+    ClientVisuals keptVisuals;
     Ref<ClientHandle> handle;       // the client's player source
     std::unique_ptr<SoundManager> sounds;   // the client controller's hit sounds too
     std::unique_ptr<TextManager> texts;     // the text resources

@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "client-only effect draws moved to g_clientRandom (sound sequence choosers, scorch angle of FireBlast and LightningBlast particles, Moshka's perch search, main menu bolt picks): the game's ISAAC stream no longer holds those draws, so every later server draw (AI, weather) differs from the first affected tick",
   "source": "image",
-  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 186 of 521 records differ, first at record 335 (world update 6720, tick 6472, frame 1343, zone z9q2); outcomes CHANGED: zone, deaths, spawns, quest variables, party and items, game result, script; max unit move 404 (obj1574, record 488); the digests have different numbers of records",
     "  digest: the old golden has more records; the other ends before its record 521 (world update 10440, frame 2087, tick 10192, zone bz1mpg)",
@@ -24,5 +23,6 @@
     "    game result: world gameResult: 2 in the old golden, 1 in the new run, from record 485 (+3 more)",
     "    script: script #files differs (hashes only), from record 485 (+155 more)",
     "... 35 more lines"
-  ]
+  ],
+  "saves": "1 decoded saves (tools/savefile.py), the same in 2 runs"
 }

@@ -9,8 +9,8 @@
   "repeated_in": 2,
   "reason": "C162: the mod-folder patches apply whenever a mod is played, on both installs; the S19 mods are chosen by 'mod harness_saves\\...' and their saves go to harness_saves\\<mod>",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "saves: the old golden has savea/info.sav, savea/mission.sav, savea/scenario.sav, the new run s19d_mod/savea/info.sav, s19d_mod/savea/mission.sav, s19d_mod/savea/scenario.sav"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

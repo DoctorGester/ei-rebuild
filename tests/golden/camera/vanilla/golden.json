@@ -9,8 +9,8 @@
   "repeated_in": 2,
   "reason": "C143a: the console no longer prints a released system key's number and rebuilt WM_KEYUP data (the original's debug line); nothing else changed",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "console: differs from line 26: the old golden '121:-1069285375', the new run '0'"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

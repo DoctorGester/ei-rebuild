@@ -9,5 +9,5 @@
   "repeated_in": 2,
   "reason": "H43e/H43f: new scenarios unit_ai_bridge, unit_ai_flight, party_leader_switch, magic_traps_fire, unit_steal_item recorded (two agreeing passes)",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

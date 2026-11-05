@@ -9,5 +9,5 @@
   "repeated_in": 2,
   "reason": "New scenario: the cursor confined while the camera's edge pan is available (R15b), replacing ui_options_confine",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

@@ -830,6 +830,9 @@ void BindShadowMap(const Frame& frame, int mapSlot);
 // for the map's fit (the landscape's x0, y0 at its clip space's -1, its extent). BindCloudMap: the map at `slot`.
 float PrepareClouds(const ShadowFrame& shadow);
 float CloudCover();
+// The clouds' part of the weather a save's side file keeps (render.h, KeptWeather), and its restore.
+void CloudsToKeep(KeptWeather* weather);
+void RestoreClouds(const KeptWeather& weather);
 void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* params);
 void BindCloudMap(int slot);
 // The weather on the surfaces (render_weather.cpp; section 13, item 11b). PrepareSurfaces, from PrepareShadows once a

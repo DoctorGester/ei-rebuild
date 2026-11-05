@@ -3,7 +3,8 @@ r"""Saved games decoded field by field (docs/notes/standalone-verification.md, S
 The game writes a save (GameFlow::SaveGame 0057B3B0) as files in saves\<slot>\: scenario.sav (the party, the
 input state, the scripts, the globals; magic 0xDEAD), mission.sav (the world, CWorldServer::SaveWorld 00597BD0;
 magic 0x102), info.sav (the slot's title, raw) and shot.sav (the thumbnail). Visited zones are kept as
-saves\current\<zone>.sav (SaveWorld too). Every .sav but info.sav and shot.sav is SaveFileWrite's (00579B80) frame:
+saves\current\<zone>.sav (SaveWorld too). Ours adds visuals.sav beside them (the client's picture: magic 0x157,
+src/game/client_visuals.h). Every .sav but info.sav and shot.sav is SaveFileWrite's (00579B80) frame:
 magic, version, checksum of the plain data, a compressed flag and the LZ coder's output (net_coder.cpp).
 
 decode(path) gives the save as entities keyed by object id rather than by memory: [(key, description, [(field,
@@ -31,6 +32,7 @@ MAGIC_SCENARIO = 0xDEAD
 MAGIC_MISSION = 0x102
 MAGIC_INFO = 0x111
 MAGIC_PARTY = 0x114   # a multiplayer hero, mp\<n>.mp (MpHeroRecord::WriteFile 00662AC0)
+MAGIC_VISUALS = 0x157   # ours: visuals.sav, the client's picture beside a save (ClientVisuals::Save)
 
 
 class DecodeError(Exception):
@@ -275,6 +277,12 @@ class Reader:
             self.put(name, fmt_float(bits))
         return struct.unpack('<f', struct.pack('<I', bits))[0]
 
+    def f64(self, name):
+        v = struct.unpack('<d', self.take(8))[0]
+        if name is not None:
+            self.put(name, repr(v))
+        return v
+
     def vec(self, name, n=3):
         with self.scope(name):
             return [self.f32('xyzw'[i] if n <= 4 else i) for i in range(n)]
@@ -518,6 +526,47 @@ def read_info(r):
     r.raw('rest', len(r.d) - r.p)
 
 
+def read_visuals(r):
+    """visuals.sav (ClientVisuals::Save): sections of a u32 kind, a u32 version and a u32 size until kind 0. The
+    versions this decoder knows are read field by field; any other is kept as its bytes."""
+    known = {(1, 1): 'weather', (2, 1): 'waves', (3, 1): 'units'}
+    while True:
+        kind = r.u32(None)
+        version = r.u32(None)
+        size = r.u32(None)
+        if kind == 0:
+            r.entity('visuals.end', 'the end of the sections')
+            r.put('version', str(version))
+            r.put('size', str(size))
+            return
+        name = known.get((kind, version))
+        r.entity(f'visuals.{name or kind}', f'section {kind} version {version}, {size} bytes')
+        end = r.p + size
+        r.limit = end
+        if name == 'weather':
+            r.f32('wet')
+            r.f32('puddles')
+            r.f32('snow')
+            for layer in ('cloudDriftA', 'cloudDriftB'):
+                with r.scope(layer):
+                    r.f64('x')
+                    r.f64('y')
+            r.f32('cloudCover')
+        elif name == 'waves':
+            r.f32('wavePhase')
+        elif name == 'units':
+            for i in range(r.u32('count')):
+                with r.scope(f'unit{i}'):
+                    r.i32('id')
+                    r.f32('wet')
+                    r.f32('snow')
+        else:
+            r.raw('bytes', size)
+        if r.p != end:
+            r.fail(f'section {kind} ends at {r.p:#x}, its size says {end:#x}')
+        r.limit = None
+
+
 # ---- whole files ----------------------------------------------------------------------------------------
 
 def decode_data(data, name=''):
@@ -533,6 +582,8 @@ def decode_data(data, name=''):
         savefile_scenario.read_scenario(r)
     elif magic == MAGIC_INFO:
         read_info(r)
+    elif magic == MAGIC_VISUALS:
+        read_visuals(r)
     elif magic == MAGIC_PARTY:
         import savefile_scenario
         savefile_scenario.read_party(r, 'party', "the hero's party (CParty::SaveParty with variables)")

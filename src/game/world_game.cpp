@@ -72,6 +72,7 @@ constexpr const char* kAlwaysCopied = "bz7g";
 constexpr const char* kSaveExtension = ".sav";
 constexpr const char* kScenarioFile = "scenario.sav";
 constexpr const char* kMissionFile = "mission.sav";
+constexpr const char* kVisualsFile = "visuals.sav";   // ours: the client's picture (client_visuals.h)
 constexpr const char* kMainMenu = "MainMenu";
 constexpr const char* kSaved = "Saved ";
 
@@ -354,6 +355,7 @@ int GameFlow::SaveGame(const std::string& slot) {
     g_camera.Save(&scenario);
     SaveFileWrite(&file, kMagicScenario, &scenario);
     file.Close();
+    ClientVisuals::Take(g_clientWorld).Write(slotFolder + kVisualsFile);
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
     int kind = g_mapDatabase.FindMap(records.zone)->kind;
@@ -1059,7 +1061,9 @@ int GameFlow::LoadGame(const std::string& slot) {
     CopyVisitedZones(slotFolder, currentFolder, currentMap, &records.variables);
     g_partyManager.records.BeginRedeploy(&records);
 
-    // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
+    // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh; the client's picture comes back
+    // from visuals.sav when the zone's landscape is loaded.
+    g_clientWorld.keptVisuals = ClientVisuals::Read(slotFolder + kVisualsFile);
     MapRecord* zoneRecord = g_mapDatabase.FindMap(records.zone);
     int kind = zoneRecord->kind;
     if (kind != 0 && kind != 2) {

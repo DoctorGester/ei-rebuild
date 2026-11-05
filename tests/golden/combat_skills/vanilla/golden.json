@@ -9,5 +9,5 @@
   "repeated_in": 2,
   "reason": "New scenarios combat_skills, spells_more and zone_gz15h_tornado_client (H43a, H43b): first goldens.",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

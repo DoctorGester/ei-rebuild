@@ -9,9 +9,9 @@
   "repeated_in": 2,
   "reason": "H51a: Rebirth goldens outside the old Rebirth set had gone stale behind golden-moving merges (C84d's no-point z 0 instead of 1e6 and its other fixes, H47c's game maths, C81's settings, and PL20/C84/C84b before them); main's runs are the same as a build of d31120f0e (C84d's goldens) and every vanilla twin moved at those merges",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
     "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

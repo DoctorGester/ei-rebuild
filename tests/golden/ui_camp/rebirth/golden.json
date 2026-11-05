@@ -9,10 +9,10 @@
   "repeated_in": 2,
   "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
   "source": "image",
-  "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "save savea/mission.sav: 6 fields in 3 records differ: obj 6",
     "  obj: 6 fields in 3 records; first obj1804 controller.action.point.z: 1000000.0 in the old golden, 0.0 in the new run (d 1e+06)",
     "save saveb/mission.sav: differs (decoded b53a2e823fa1e405 in the old golden, 70ed9ee0115a2c84 in the new run; the store has no copy of b53a2e823fa1e405)"
-  ]
+  ],
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
 }

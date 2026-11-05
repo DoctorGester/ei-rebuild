@@ -9,8 +9,8 @@
   "repeated_in": 2,
   "reason": "C162: AddonPath folded into the mod step: the mod's saves go to harness_saves\\<mod> (contents the same)",
   "source": "image",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "saves: the old golden has savea/info.sav, savea/mission.sav, savea/scenario.sav, the new run s19b_mod/savea/info.sav, s19b_mod/savea/mission.sav, s19b_mod/savea/scenario.sav"
-  ]
+  ],
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }

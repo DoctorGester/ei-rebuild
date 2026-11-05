@@ -9,7 +9,6 @@
   "repeated_in": 2,
   "reason": "C84d: original-bug fixes (move orders keep their point's z and finish on the plane; strength rise keeps health in step; bored remark without the game's dice; console cheat word / fps), recorded on top of H47c's maths",
   "source": "image",
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 144 of 192 records differ, first at record 48 (world update 980, tick 980, frame 195, zone gz1g); outcomes the same; unit place differs (hash only: no numbers)",
     "  first difference at record 48 (world update 980, tick 980, frame 195, zone gz1g): 2 fields",
@@ -24,5 +23,6 @@
     "    #place: 1 unit, 32 records, from 160; hash only (no numbers kept)",
     "  client units: 11 of 39 differ",
     "... 2 more lines"
-  ]
+  ],
+  "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs"
 }
