@@ -6,5 +6,6 @@ model = "sonnet"
 depends = ["C160"]
 note = "User 2026-11-05: value-named constants (kOne, kHalf ...) are still on the progress board. check_cleanup counts with no open ticket, all to 0 with the ratchet lowered as each falls: 27 value-named constant (name the meaning: kRateBase, kStandingHeight; or the plain literal where it reads better), 1 #define EI_ number, 11 copied small helper, 9 flag bit under a second name, 12 constant defined twice with another value, 10 virtual never called (delete unless gameplay code: memory keep-gameplay-code), 8 empty namespace, 5 printf-like function without format annotation, 4 pointer to member function, 4 x87 store residue, 3 raw float / vector copy, 7 system maths function (only where behaviour allows; say why for any left), 1 own integer reader, 13 downcast virtual with one override, 21 member body copied in a family file, 25 random word scaled by hand. 'enum never used as a type' (18) is C160's. Where a count cannot reach 0 without changing behaviour, leave it with a one-line reason in the check's comment and say so. Goldens the same; verify+release 0 warnings; WSL warning compile. The large ones (291 fields with two start values, 102 const string/vector pointer parameters, 76 functions returning only a string literal, 29 scope blocks) get their own tickets after."
 order = 1193
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
