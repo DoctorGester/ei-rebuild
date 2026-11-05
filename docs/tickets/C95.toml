@@ -5,4 +5,5 @@ model = "opus"
 depends = ["C94"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item U3. UiWindow::PressedRegion(Point, count) does the hit test, capture/release and handled (like ImGui's ButtonBehavior); the ~30 LeftDown/LeftUp/MouseMove triplets shrink to 2-3 lines; one verb per action called from both the click and the key (HudWeaponBar::Choose(slot) used by BattleScreen::KeyDown, HudMap::ToggleSlide for the sling), matching the spell column's Click/ClickAlternate. Same order of sounds and messages as now. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1025
-status = "queued"
+status = "running"
+started = "2026-11-05"
