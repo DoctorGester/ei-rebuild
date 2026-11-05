@@ -449,9 +449,12 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   with the warnings and build checks included. The verify job uploads `build/verify/ei-rebuild.exe` and its `.map` (so
   run_all names a crashed run's stack; the stub data's game.exe is empty, which resolve_crash.py leaves out); a failed
   build check with the exe linked is a warning, so the suites still run.
-- **Suites**: eight jobs (input `shards`), each its share of the sorted scenarios, image suite then Rebirth's, one game
-  at a time, `--golden`; the stub set fetched and unpacked as in the Linux job (same variable and secrets). Inputs:
-  `scenarios` (a few names: also give `shards` 1), `suites` (full, image, builds). After each suite a folded group in
+- **Suites**: eight jobs (input `shards`), each its share of the sorted scenarios, image suite then Rebirth's,
+  `--golden`; the stub set fetched and unpacked as in the Linux job (same variable and secrets). Inputs: `scenarios` (a
+  few names: also give `shards` 1; the names given run even when skipped), `suites` (full, image, builds), `jobs`
+  (games at once in a job, default 1) and `retries` (run_all's, default 0: in run 42016421240, with run_all's default
+  of 1, the reruns of runs that had timed out took a third of each job's time, 1220 of 3678 s in one, and three of the
+  eight jobs were cut at their 120 minutes). After each suite a folded group in
   the step's log holds `tools/ci_details.py`'s lines for every run that did not pass or differs (as the macOS job's
   "Differences in detail" below): the job keeps no run folders.
 - **WARP**: SDL's D3D12 driver takes the high-performance adapter (`EnumAdapterByGpuPreference`), which on the GPU-less
@@ -461,8 +464,16 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   locally (`gpu: direct3d12 device (Microsoft Basic Render Driver)` in the run's log tells it took effect; `work.py test`
   carries every EI_* variable to the games).
 - **Skipped**: `WINDOWS_SKIP`: the scenarios that say `resolution desktop` (the five ui_widescreen ones and the net pair /
-  zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small. Anything else
-  is added only for a measured reason.
+  zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small; and the 36 that ran past
+  a real-time limit on WARP at scale 3, one game at a time (run 42016421240, four of them in 41998203418): their
+  `timeout` or a frames step's ("N frames still to go after 48 s": WARP draws a heavy frame in up to 3 s on 4 vCPUs),
+  after which the scenario goes on early and its digest differs. They are the drawn-frame, weather, camera and
+  shadow-view ones, every two-game net_pair one that ran, the recordings app_record and rec_menu_newgame, and others
+  that draw many frames (the workflow lists them). A scenario that passes on one install and times out on the other
+  (levers_key, render_shadows_shimmer, render_unit_skin and zone_gz15h_tornado on Rebirth's) is skipped on both. Anything
+  else is added only for a measured reason. Of the rest, 182 of 220 runs passed in that run (the slowest:
+  render_weather_shelter 438 s, net_pair_kick 185 to 303 s, net_host_death 258 s, camera_drawn 202 s; most take 10 to
+  120 s).
 
 
 ## The macOS CI job

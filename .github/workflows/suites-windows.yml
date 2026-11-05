@@ -8,7 +8,7 @@
 # only, no game data) for the suites jobs; the map names a crashed run's stack (tools/resolve_crash.py). A failed build check on verify is a warning when the exe was built, so the suites still run.
 #
 # suites: the suites-linux.yml job's way: the stub game data (H41) fetched from the private repository with the
-# read-only token, both suites, the scenarios dealt round the SHARDS jobs, one game at a time each. EI_GPU_D3D12_WARP=1
+# read-only token, both suites, the scenarios dealt round the SHARDS jobs, `jobs` games at once each. EI_GPU_D3D12_WARP=1
 # makes the vendored SDL pick the WARP adapter (third_party/SDL/README.txt); with no GPU on the runner it is the
 # only adapter anyway, and the variable makes a local run on a GPU machine use the same path.
 #
@@ -32,6 +32,14 @@ on:
         type: choice
         options: [full, image, builds]
         default: full
+      jobs:
+        description: "Games at once in each suites job (run_all --jobs; WARP draws on the runner's 4 vCPUs)"
+        required: false
+        default: "1"
+      retries:
+        description: "Reruns of a failed scenario (run_all --retries; on WARP a rerun repeats a timeout)"
+        required: false
+        default: "0"
 
 concurrency:
   group: windows-${{ github.ref }}
@@ -135,11 +143,22 @@ jobs:
       # Linux's factor (suites-linux.yml; linux.md, "The CI job"); the WARP measurement of the first run decides it.
       EI_TIME_SCALE: 3
       # Scenarios that need a 3840x2160 desktop (they say `resolution desktop`: ui_widescreen*, whose layout and clicks
-      # follow the screen; the pair scenarios among the net ones) and that the runner's small screen cannot give. Nothing
-      # else is skipped until a run measures it.
+      # follow the screen; the pair scenarios among the net ones) and that the runner's small screen cannot give (first
+      # two lines). Then the ones that ran past a real-time limit at scale 3 on WARP, one game at a time: their own
+      # `timeout` (TIMEOUT) or a step's (a frames step's "N frames still to go"), measured in run 42016421240
+      # (2026-11-05; render_weather_units, ui_hud, unit_ai_corpse and zone_gz15h_tornado in 41998203418, whose shards
+      # were cut at 120 min before reaching them in the later run): a scenario past a limit goes on early and differs
+      # (docs/notes/harness.md, "The Windows CI job").
       WINDOWS_SKIP: >-
         net_pair_leave net_pair_quest net_pair_speed net_pair_zone net_zone_leader net_zone_vars
         ui_widescreen ui_widescreen_dialogue ui_widescreen_hud ui_widescreen_more ui_widescreen_screens
+        app_record camera_drag_rate camera_smooth camera_spin levers_key
+        net_pair_database net_pair_join net_pair_lobby net_pair_master net_pair_party net_pair_password net_pair_portraits
+        party_leader_switch rec_menu_newgame render_cursor_present render_drawn_lights render_drawn_motion
+        render_preview_blend render_shadows_outside render_shadows_shimmer render_stats render_unit_skin
+        render_water_looks render_weather render_weather_panel render_weather_roofs render_weather_units spells_more
+        terrain_water_waves ui_hud ui_minimap_edges ui_options_remap_load unit_ai_bridge unit_ai_corpse
+        zone_gz15h_tornado zone_gz15h_tornado_client
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5
@@ -183,6 +202,8 @@ jobs:
           SHARD: ${{ matrix.shard }}
           SHARDS: ${{ inputs.shards || '8' }}
           SUITES: ${{ inputs.suites || 'full' }}
+          JOBS: ${{ inputs.jobs || '1' }}
+          RETRIES: ${{ inputs.retries || '0' }}
         run: |
           # fewer shards than jobs: the jobs past the last shard have nothing to do
           [ "$SHARD" -lt "$SHARDS" ] || { echo "shard $SHARD: not used (shards=$SHARDS)"; exit 0; }
@@ -195,14 +216,14 @@ jobs:
           echo "shard $SHARD of $SHARDS: $names"
           : > suite_image.txt; : > suite_rebirth.txt
           if [ -n "${names// }" ]; then
-            PYTHONUNBUFFERED=1 python tools/run_all.py --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
+            PYTHONUNBUFFERED=1 python tools/run_all.py --golden --jobs "$JOBS" --retries "$RETRIES" $names 2>&1 | tee suite_image.txt || true
             echo "::group::Image suite: the runs that did not pass or differ, in detail (tools/ci_details.py)"
             python tools/ci_details.py build/verify/runs $names || true
             echo "::endgroup::"
             if [ "$SUITES" = full ]; then
               rebirth=$(python -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:], goldens=False)))" $names)
               if [ -n "${rebirth// }" ]; then
-                PYTHONUNBUFFERED=1 python tools/run_all.py --rebirth-only --golden --jobs 1 $rebirth 2>&1 | tee suite_rebirth.txt || true
+                PYTHONUNBUFFERED=1 python tools/run_all.py --rebirth-only --golden --jobs "$JOBS" --retries "$RETRIES" $rebirth 2>&1 | tee suite_rebirth.txt || true
                 echo "::group::Rebirth suite: the runs that did not pass or differ, in detail (tools/ci_details.py)"
                 python tools/ci_details.py build/verify/runs --install rebirth $rebirth || true
                 echo "::endgroup::"
