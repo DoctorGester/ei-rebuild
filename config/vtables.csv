@@ -476,9 +476,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00742E9C,27,,game,0065CC00 0065CE20,0065CE00,UiScrollText,src/game/ui.h,the scrolling text (CUiScrollText)
 00742F08,3,,game,0065CC00 0065CE20 0065DE20,007005E3,LinePtrArrayClass,-,CArray (the scroll text's line pointers); stored only by game.exe (ours is a std::vector)
 00742F14,3,,game,0065CC00 0065CE20 0065DC70,007005E3,TokenPtrArrayClass,-,CArray (the scroll text's token pointers); stored only by game.exe (ours is a std::vector)
-00742F20,1,,game,0065D4B0 0065D910,0065D8F0,UiWordToken,src/game/ui.h,a scrolling text's word (UiWordToken)
-00742F24,1,,game,0065D4B0 0065D8A0 0065D8E0 0065D910 0065D960,0065D8A0,UiTextToken,src/game/ui.h,a scrolling text's base token (UiTextToken)
-00742F28,1,,game,0065D4B0,0065D8C0,UiFormatToken,src/game/ui.h,a scrolling text's format token (UiFormatToken)
+00742F20,1,,game,0065D4B0 0065D910,0065D8F0,UiWordToken,-,a scrolling text's word (UiWordToken); stored only by game.exe (ours is a TextToken value of TokenKind::Word)
+00742F24,1,,game,0065D4B0 0065D8A0 0065D8E0 0065D910 0065D960,0065D8A0,UiTextToken,-,a scrolling text's base token (UiTextToken); stored only by game.exe (ours is a TextToken value)
+00742F28,1,,game,0065D4B0,0065D8C0,UiFormatToken,-,a scrolling text's format token (UiFormatToken); stored only by game.exe (ours is a TextToken value of TokenKind::Format)
 00742F30,13,,game,0065E320,0065EAC0,UiTooltip,src/game/ui.h,a region tooltip's input side
 00742F64,25,,game,0065E320,0065E4D0,UiTooltip,src/game/ui.h,a region's tooltip (CUiTooltip)
 00742FD8,2,,game,0065ED30 0065EDE0,0065F170,UiScrollingSurface,src/game/ui_screens.h,the titles' scrolling text surface (CUiScrollingSurface)
