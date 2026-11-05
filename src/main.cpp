@@ -13,6 +13,7 @@
 #include "platform/platform.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -55,6 +56,7 @@ int main(int argc, char** argv) {
     const std::string settingsFile = platform::EnvironmentVariable("EI_SETTINGS_PATH");
     if (!settingsFile.empty()) settings::Pin(settingsFile.c_str(), nullptr, false);
     std::string arguments = platform::ArgumentsAfterSeparator(argc, argv);
+    std::atexit([] { ei::Log("exit: the exit functions done"); });
     ei::Log("ei-rebuild started in %s, arguments '%s'", folder.c_str(), arguments.c_str());
     // The one-instance check, SDL's video and the renderer's device (~290 ms on a thread of its own): GameMain's
     // start-up runs beside it.
@@ -62,5 +64,7 @@ int main(int argc, char** argv) {
     ei::rebirth_profile::Load(folder);
     // The settings' [game] Mod: its files then stand over the game folder's and its saves keep apart.
     app::UseMod(folder, settings::GetString(settings::kGame, "Mod", ""));
-    return app::GameMain(arguments.data());
+    const int result = app::GameMain(arguments.data());
+    ei::Log("exit: the game's main returned");
+    return result;
 }

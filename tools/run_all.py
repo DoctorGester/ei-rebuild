@@ -251,6 +251,9 @@ UNKILLABLE_EXIT = 5
 LIMIT_MARGIN_S = 20
 HARNESS_START_S = 30         # the harness writes its report as it loads: none by then means it never started
 EXIT_HANG_S = 3              # a game still running this long after its scenario quit is hung on exit
+EXIT_SLOW_S = 2.0            # a game's own part of the quit (the log's "exit: the quit request" to "exit: the exit functions
+                             # done") over this fails the run (PL22: quitting was instant; the process's end itself
+                             # took 2-3 s under 16 games at once: the system tearing down the GPU's memory, only a note)
 IN_GAME_TIMEOUT = 'scenario exceeded its'
 EXPECT_PREFIX = '# expect:'
 
@@ -416,6 +419,8 @@ class Game:
         self.quit = os.path.join(out, 'harness_quit')   # the harness writes it when its scenario quits, after the report
         self.proc = None
         self.quit_seen = None
+        self.exit_s = None   # seconds from the quit file to the process's end, seen while polling (watch)
+        self.hung = False    # ended by watch after EXIT_HANG_S (a note of its own, not a slow exit)
 
 
 def launch(scenario, out, data, build, env=None, command=None):
@@ -508,11 +513,14 @@ def watch(games, group, say):
     while any(g.proc.poll() is None for g in games):
         running = next((g for g in games if g.proc.poll() is None), None)    # none: the last one ended just now
         if running:
+            quitting = any(os.path.exists(g.quit) for g in games)     # after a quit the end is timed: poll closely
             with contextlib.suppress(subprocess.TimeoutExpired):
-                running.proc.wait(0.5)
+                running.proc.wait(0.02 if quitting else 0.5)
         elapsed = time.monotonic() - started
         for game in games:
             if game.proc.poll() is not None:
+                if game.exit_s is None and os.path.exists(game.quit):
+                    game.exit_s = max(0.0, time.time() - os.path.getmtime(game.quit))
                 continue
             if elapsed >= game.limit + LIMIT_MARGIN_S:
                 say(f"TIMEOUT: the {game.label}game is still running {elapsed:.0f} s after its start (the scenario's time "
@@ -528,6 +536,7 @@ def watch(games, group, say):
                 continue
             game.quit_seen = game.quit_seen or time.monotonic()
             if time.monotonic() - game.quit_seen >= EXIT_HANG_S:
+                game.hung = True
                 with contextlib.suppress(OSError), open(os.path.join(game.out, 'exit_hang.txt'), 'w') as f:
                     f.write(game_process.thread_stacks(game.proc))
                 say(f'{game.label}game still running {EXIT_HANG_S} s after the scenario quit (its threads: exit_hang.txt); '
@@ -560,6 +569,37 @@ def add_failures(report, failures):
     write_lines(report, lines + added if at is None else lines[:at] + added + lines[at + 1:])
 
 
+EXIT_STAMP = re.compile(r'^\[(\d\d):(\d\d):(\d\d)\.(\d\d\d)\] exit: (the quit request|the exit functions done)')
+
+
+def exit_failures(game, say):
+    """PL22: how the game's quit went, for a game that ended by itself after its scenario quit. A game that took a
+    crash's way out (an abort at exit: the exit code 0xC0000409) or whose own stages took over EXIT_SLOW_S fails; the
+    time from the quit to the process's end is a note only (it is the system's, and grows with the games at once)."""
+    failures = []
+    if game.hung or game.proc is None or not os.path.exists(game.quit):
+        return failures
+    code = game.proc.returncode
+    if code not in (0, None):
+        failures.append(f'{game.label}the game ended with exit code {code & 0xFFFFFFFF:08X} after its scenario quit')
+    stamps = {}
+    for line in read_lines(os.path.join(game.out, 'ei-rebuild.log')) or []:
+        m = EXIT_STAMP.match(line.decode('utf8', 'replace'))
+        if m:
+            h, mi, s, ms = (int(v) for v in m.groups()[:4])
+            stamps[m.group(5)] = h * 3600 + mi * 60 + s + ms / 1000
+    if len(stamps) == 2:
+        took = stamps['the exit functions done'] - stamps['the quit request']
+        if took < 0:
+            took += 86400
+        if took > EXIT_SLOW_S:
+            failures.append(f'{game.label}the game took {took:.1f} s from the quit request to the end of its exit functions '
+                            f'(limit {EXIT_SLOW_S:g} s)')
+    if game.exit_s is not None and game.exit_s > EXIT_SLOW_S:
+        say(f'{game.label}game ended {game.exit_s:.1f} s after the scenario quit')
+    return failures
+
+
 def finish(games, game_root, data, timed_out, unkillable, say):
     """The run's result code once its games have ended, the report completed: a game that died before its harness wrote
     a result, the peer's result, the settings file the scenario expects."""
@@ -568,6 +608,8 @@ def finish(games, game_root, data, timed_out, unkillable, say):
             if game.proc is not None and not game.quit_seen:
                 report_silent_end(game, say)
     main = games[0]
+    if not timed_out and not unkillable and os.path.exists(main.report):
+        add_failures(main.report, [f for g in games for f in exit_failures(g, say)])
     if not os.path.exists(main.report):
         if main.proc is not None:
             say(f'the game exited (code {main.proc.returncode}) without a harness report')

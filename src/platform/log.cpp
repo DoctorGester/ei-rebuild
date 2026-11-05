@@ -35,7 +35,7 @@ std::string OutputFolder() {
 // nothing). Opening and closing it per line made the antivirus scan it on every close: about 10,000
 // scans per harness run, most of its scanning during the suite.
 std::ofstream& LogFile() {
-    static std::ofstream file(SystemPath(OutputPath("ei-rebuild.log")), std::ios::app);
+    static std::ofstream& file = *new std::ofstream(SystemPath(OutputPath("ei-rebuild.log")), std::ios::app);
     return file;
 }
 
