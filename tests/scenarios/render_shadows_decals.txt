@@ -106,7 +106,11 @@ printlight lamp lamp_bare 0.95 1.2
 # texture (terrain.hlsl: t x max(other, spec) + spec); a print takes the same added light over its colour, so it is
 # not darker than its ground by that light times its alpha. The lamp goes; a wolf by the hero dies (its blood), then
 # lightning strikes a second wolf next to it and leaves a light at its eyes for 7 updates. printlight: 1.06 (the
-# blood under the light without the added light: 1.03).
+# blood under the light without the added light: 1.03). The ratio is over every pixel that differs between the two
+# frames, which holds the lightning bolt (it is not frozen: it differs between the captures) and the blood far from the
+# light, so it is a bound on the whole, not on the lit print. Rebirth's gz2g gives 1.03 with the added light and 1.00
+# without it (R16j3a: the same gain of 0.036 as vanilla's 1.06 over 1.03; its lit ground is brighter, 123 against 111,
+# and its bolt differs less between the frames), so its floor is lower.
 console @DeletePointLight(7)
 console @AddUnitToServer("S1","WolfTutor","S1",Add(GSGetVar(0,"hx"),2),Add(GSGetVar(0,"hy"),1),0)
 waitfor 10 IsAlive(GetObjectByName("S1"))
@@ -123,6 +127,7 @@ decals off
 capture spell_bare
 decals on
 unfreeze
-printlight spell spell_bare 1.04 1.2
+vanilla printlight spell spell_bare 1.04 1.2
+rebirth printlight spell spell_bare 1.015 1.2
 report
 quit

@@ -892,7 +892,10 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   after the shadows; it is a mark of the interface). Check: render_shadows_decals (shadowcheck: every print samples
   the map; with `shadowview on` the frame with the prints matches it without them, `decals off`, while the frames
   differ; then at night under a point light and under a lightning spell's light; `printlight`: the prints'
-  brightness over the ground's under them, by day, at night and under each light).
+  brightness over the ground's under them, by day, at night and under each light; the spell step's floor is 1.04 on vanilla
+  and 1.015 on Rebirth, the same gain of 0.036 from the added light on both: the ratio is over every pixel that differs
+  between the two frames, which holds the lightning bolt and the blood far from the light, and Rebirth's gz2g weighs
+  them differently; R16j3a; the scenario runs in the Rebirth set through its `rebirth` step).
 - **Soft edges** (PCSS, contact-hardening; the user wanted the old decals' softness). After the casters two small passes
   make the map's depth range per 16 x 16-texel cell (`shaders/shadow_reduce.hlsl`: nearest and farthest texel;
   `shadow_dilate.hlsl`: the same over the cells within the widest filter's reach and one cell more, plus the cell's own
