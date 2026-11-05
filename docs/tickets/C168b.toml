@@ -7,4 +7,5 @@ depends = ["C168a"]
 files = ["src/game/object_tables.h", "src/game/object_tables.cpp", "src/game/world_rules.cpp", "src/game/misc_400.cpp", "src/game/server_specific_manager.h", "src/game/model_db.cpp", "src/game/database_globals.cpp", "src/game/ui_container_draws.cpp", "src/game/spell.h", "src/game/hash_tables_400.h", "src/game/address_order.h", "src/lib/vecmath.h"]
 note = "Plan: docs/notes/file-layout.md (Address-named and grab-bag files). On the flat tree, new files under their final names (named_floats, water_tweens.cpp, light.h): object_tables.{h,cpp} to map records / NamedFloatTable / text keys / key names; world_rules.cpp to local_player with DepthLess in world_client_maps.cpp; ClientSpecificManager (misc_400.cpp, base_manager.h) beside ServerSpecificManager, TorchObjectSpec to the torch; model_db.cpp to prints / acks / water tweens / figure manager; database_globals.cpp's globals to their databases (check that no static initialiser reads them); ui_container_draws.cpp's draws to their windows; Light and LightFactory out of spell.h; hash400 -> idtable, address_order -> object_order; Quaternion's members from core_maths.cpp to src/lib/vecmath.cpp. All goldens the same."
 order = 1230
-status = "later"
+status = "running"
+started = "2026-11-06"

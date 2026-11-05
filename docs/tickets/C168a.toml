@@ -7,5 +7,6 @@ depends = ["C168"]
 files = ["tools/layout.py", "tools/layout_map.txt", "CMakeLists.txt", "tools/coverage.py", "tools/check_cleanup.py", "src/game"]
 note = "User 2026-11-05 decisions: (1) names KEEP their folder word (ui/ui_battle.cpp, not ui/battle.cpp): update tools/layout_map.txt, layout.py's rule and file-layout.md first; (2) ui/ stays one level; (3) scene/ and models/ stay two folders; C168j dropped, C168i only the misplaced classes. Start after R59 merges (quiet src/game). Plan: Plan: docs/notes/file-layout.md (The batches). tools/layout.py apply <batch> (git mv, include and reference rewrite by tools/layout_map.txt, CMake lists) and rewrite (idempotent, for a branch that merged a batch); CMake's game glob for src/game/*/*.cpp beside src/game/*.cpp; coverage.py areas by folder; check_cleanup.py path lists by the map and its family = folder + first word; every game include rooted at src (#include \"game/unit.h\"), no move yet (~3,470 include lines). All goldens the same."
 order = 1229
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-06"
