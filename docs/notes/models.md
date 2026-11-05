@@ -117,9 +117,13 @@ terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`,
   (`g_clientRandom`, core.md "Random generators"). Animate's sine index uses 256 / pi as a double.
 - Ambience: sixteen sound classes (name, variants, weight, pan limit, chance %); the class votes are sorted by the
   game's qsort (`ByWeight`).
-- Kept: Load passes the error message to FatalError as its format string; Build compares the texture class index
-  against perPage * pages (not 16) before falling back to 15; Load picks a vertex's water material by lowest priority,
-  Build the first found; RemoveLight / MoveLight / AddLight do nothing before a map is loaded.
+- The original's faults, fixed: HeightAt with only a cell's diagonal corners (v00, v11) gives their mean height
+  (the original retried the same cell forever); a tile word without a texture (kNoTile, or past the pages and class
+  table) is skipped by both tile passes and gives `SurfaceClass` 8 (the original counted it into its tables past
+  their end); a texture class outside 0..15 falls back to 15 like one not below perPage * pages, the original's test
+  (LostInAstral's maps have class 16); an archive without a map file fails as a missing one.
+- Kept: Load picks a vertex's water material by lowest priority, Build the first found; RemoveLight / MoveLight /
+  AddLight do nothing before a map is loaded.
 
 ## Ground prints
 

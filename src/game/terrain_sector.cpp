@@ -57,14 +57,28 @@ int QuarterOf(int column, int row) { return column / (kSectorTiles / 2) + row / 
 constexpr int kAnimationSpeeds[kTextureClasses] = {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
                                                    1000, 1000, 1000, 1000, 1000, 1000, 5,    9};
 
+// The texture's class; kFallbackClass for a class outside the 16 (LostInAstral's maps have class 16: the original
+// counted it and read its animation speed past its tables) or not below the page textures' count (the original's
+// test).
 int ClassOf(const Terrain* owner, int texture) {
-    int textureClass = owner->textureClass[texture];
-    if (textureClass >= owner->perPage * owner->pages) textureClass = kFallbackClass;
+    const int textureClass = owner->textureClass[texture];
+    if (textureClass < 0 || textureClass >= kTextureClasses || textureClass >= owner->perPage * owner->pages)
+        return kFallbackClass;
     return textureClass;
 }
 
+// The texture of a tile word, -1 for none: kNoTile, or a texture past the pages or the class table (no map has
+// one; the original counted such a word into its tables past their end).
+int TileTexture(const Terrain* owner, std::uint16_t word) {
+    const int texture = word & kTileTextureMask;
+    const int textures = std::min(owner->perPage * owner->pages + kExtraPages * kExtraPageTextures,
+                                  static_cast<int>(owner->textureClass.size()));
+    return word == kNoTile || texture >= textures ? -1 : texture;
+}
+
 bool IsAnimated(const Terrain* owner, int texture) {
-    return texture < owner->perPage * owner->pages && owner->textureFrames[texture] != 0;
+    return texture < owner->perPage * owner->pages && texture < static_cast<int>(owner->textureFrames.size()) &&
+           owner->textureFrames[texture] != 0;
 }
 
 // The water material a water vertex's record keeps: the first among its tiles' (-1 none).
@@ -127,9 +141,9 @@ const std::uint8_t* BuildRecords(SectorData& s) {
 // Tiles per quarter and page (ground pages, then the water tiles' pages after them).
 using TileCounts = int[4][kMaxPages];
 
-// Counts the tiles per quarter and texture page, stores the tile textures (a water tile layer's -1 where the
-// tile has no water) and the ground rotations and the texture class counts. Returns the number of animated
-// tiles.
+// Counts the tiles per quarter and texture page, stores the tile textures (-1 where a tile has none: no water,
+// or a word without a texture) and the ground rotations and the texture class counts. Returns the number of
+// animated tiles.
 int CountTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
     const Terrain* owner = s.owner;
     int animated = 0;
@@ -148,9 +162,10 @@ int CountTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                 }
                 std::uint16_t word = lib::Load<std::uint16_t>(source);
                 if (layer == 0) s.tileRotation[tile] = static_cast<std::uint8_t>(word >> kTileRotationShift);
-                int texture = word & kTileTextureMask;
-                int page = SlotOf(texture, owner->perPage, owner->pages).page + layer * s.LayerPages();
+                const int texture = TileTexture(owner, word);
                 *out = texture;
+                if (texture < 0) continue;
+                int page = SlotOf(texture, owner->perPage, owner->pages).page + layer * s.LayerPages();
                 if (IsAnimated(owner, texture)) ++animated;
                 ++counts[QuarterOf(column, row)][page];
                 ++s.classCounts[ClassOf(owner, texture)];
@@ -171,8 +186,8 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
             for (int column = 0; column < kSectorTiles; ++column, source += 2) {
                 if (layer == 1 && s.waterTiles[row * kSectorTiles + column] == -1) continue;
                 std::uint16_t word = lib::Load<std::uint16_t>(source);
-                if (word == kNoTile) continue;
-                int texture = word & kTileTextureMask;
+                const int texture = TileTexture(owner, word);
+                if (texture < 0) continue;
                 int rotation = word >> kTileRotationShift;
                 PageSlot slot = SlotOf(texture, owner->perPage, owner->pages);
                 int page = slot.page + layer * s.LayerPages();
@@ -182,19 +197,17 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                 int& count = counts[quarter][page];
                 TileVertex* entry = s.tiles[quarter][page].data() + count * kTileEntries;
                 SectorVertex* record = s.records.data() + layer * kSectorVertices + 2 * (column + kSectorRow * row);
-                if (texture < owner->perPage * owner->pages) {
-                    int frames = owner->textureFrames[texture];
-                    if (frames != 0) {
-                        AnimatedTile& tile = s.animated[animatedIndex++];
-                        tile.frameBase = slot.index;
-                        tile.vertices = entry;
-                        tile.rotation = rotation;
-                        std::uint32_t draw = g_clientRandom.Next();
-                        tile.frames = frames;
-                        tile.frame = static_cast<int>(draw % static_cast<std::uint32_t>(frames));
-                        tile.speed = kAnimationSpeeds[ClassOf(owner, texture)];
-                        uv = &owner->TileUvAt(rotation, tile.frame + slot.index, 0);
-                    }
+                if (IsAnimated(owner, texture)) {
+                    const int frames = owner->textureFrames[texture];
+                    AnimatedTile& tile = s.animated[animatedIndex++];
+                    tile.frameBase = slot.index;
+                    tile.vertices = entry;
+                    tile.rotation = rotation;
+                    std::uint32_t draw = g_clientRandom.Next();
+                    tile.frames = frames;
+                    tile.frame = static_cast<int>(draw % static_cast<std::uint32_t>(frames));
+                    tile.speed = kAnimationSpeeds[ClassOf(owner, texture)];
+                    uv = &owner->TileUvAt(rotation, tile.frame + slot.index, 0);
                 }
                 for (int entryRow = 0; entryRow < 3; ++entryRow, record += kSectorRow) {
                     for (int entryColumn = 0; entryColumn < 3; ++entryColumn, ++entry) {
@@ -249,7 +262,6 @@ int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const ch
     const std::uint8_t* file = static_cast<const std::uint8_t*>(archive->GetFile(name, &size));
     data = file;
 
-    // The message is passed to FatalError as its format string.
     auto fail = [&](const char* text) { return game::FatalError(text + std::string(name)); };
     if (!file) return fail("Unable to locate resource: ");
     if (size < kSectorHeaderBytes) return fail("Wrong format resource: ");
