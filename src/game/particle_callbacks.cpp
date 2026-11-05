@@ -73,11 +73,9 @@ bool SetUpCasting(ParticleSource* s) {
         e->cast.size = 0.08f;
         e->cast.growth = 1.07f;
     }
-    e->pos.x = 1.0f;
     for (int i = 1; i <= s->lifetime; ++i) {
         s->elements[i].swirl.position = RandomInBall() * 10.0f;
         s->elements[i].swirl.velocity = RandomInBall() * 0.1f;
-        s->elements[i].pos.x = 0.0f;
     }
     return true;
 }
@@ -140,7 +138,6 @@ void PlaceRings(ParticleSource* s, int countdown) {
         float high = diameter * 0.1f;
         for (int i = 0; i < s->emitCount; ++i) {
             ParticleElement* e = &s->elements[i];
-            e->word[9] = 0;
             e->ticks = countdown;
             float lift = g_clientRandom.Range(low, high);
             e->flames.centre = offset;
@@ -243,7 +240,6 @@ int AddOrbiter(ParticleSource* s, Particle* p) {
     }
     Vector3& relative = e->orbiter.relative;
     relative.x = lib::Cos(angle) * orbit;
-    e->word[9] = 0;
     e->ticks = 1;
     relative.y = lib::Sin(angle) * orbit;
     relative.z = lift;
@@ -297,9 +293,11 @@ constexpr std::int32_t kBlastAlpha[14] = /*0078A5DC*/ {255, 255, 207, 175, 128, 
 
 // A flame's size and frame timing: the size from the fragments' radius, the frame step random.
 void BlastFlameTiming(ParticleSource* s, Particle* p) {
+    float& flameSize = p->aux.x;
+    float& framePosition = p->aux.y;
     float jitter = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f;
-    p->aux.x = s->elements[0].fragment.radius * s->size * jitter * 0.6f;
-    p->aux.y = static_cast<float>(p->frame);
+    flameSize = s->elements[0].fragment.radius * s->size * jitter * 0.6f;
+    framePosition = static_cast<float>(p->frame);
 }
 
 constexpr float kFogCell = 1.0f;   // the spacing of the puffs
@@ -324,12 +322,12 @@ constexpr std::int32_t kShowerAlpha[16] = /*0078A6B4*/ {0, 64, 128, 192, 255, 25
 
 // alpha * 8 random unit directions (at least one) in the elements.
 void ChooseShowerRays(ParticleSource* s) {
-    s->frameDelay = std::lround(s->alpha * 8.0f);
-    if (s->frameDelay < 1) s->frameDelay = 1;
-    int rays = s->frameDelay;
+    s->rayCount = std::lround(s->alpha * 8.0f);
+    if (s->rayCount < 1) s->rayCount = 1;
+    int rays = s->rayCount;
     s->emitCount = rays * 10;
     s->elements.resize(rays);
-    for (int i = 0; i < s->frameDelay; ++i) {
+    for (int i = 0; i < s->rayCount; ++i) {
         float lengthSquared;
         Vector3 v = RandomInBall(lengthSquared);
         s->elements[i].pos = v / std::sqrt(lengthSquared);
@@ -391,12 +389,8 @@ bool SetUpColumn(ParticleSource* s) {
     float ring = s->attachedTo->GetClassId() == ClassId::Unit ? s->attachedTo->Radius() : radius * 0.8f;
     s->elements.resize(1);
     ParticleElement* e = s->elements.data();
-    e->word[9] = 0;
     e->column.radius = ring + ring;
-    e->value[4] = 0.0f;
     e->column.height = height;
-    e->value[6] = 0.0f;
-    e->value[7] = 0.0f;
     e->column.foot = foot;
     e->ticks = 1;
     return true;
@@ -467,9 +461,11 @@ constexpr float kAcidSpread[17] = /*0078A61C*/ {0.0f, 0.85f, 0.93f, 1.0f, 0.97f,
 constexpr float kAcidSize[17] = /*0078A668*/ {1.1f, 0.85f, 0.93f, 1.0f, 0.97f, 0.93f, 0.87f, 0.8f, 0.73f, 0.65f, 0.55f, 0.43f,
                                            0.3f, 0.2f, 0.0f, 0.0f, 0.0f};
 
-// Position: the start (drift) plus the velocity scaled by the source's size and the spread table.
+// Position: the drop's start plus its direction scaled by the source's size and the spread table.
 void PlaceAcid(ParticleSource* s, Particle* p, int age, Vector3& out) {
-    out = s->size * p->velocity * kAcidSpread[age] + p->drift;
+    const Vector3& direction = p->velocity;
+    const Vector3& launch = p->drift;
+    out = s->size * direction * kAcidSpread[age] + launch;
 }
 
 // By the countdown; entries 12 and 13 (0): the first ticks (it starts at 13), past the 12 (the original's zero tail).
@@ -560,6 +556,10 @@ int ParticleSource::EmitCasting(Particle* p, int) {
             return 1;
         }
     }
+    Vector3& direction = p->velocity;
+    float& away = p->aux.x;     // the distance from the source
+    float& inward = p->aux.y;   // its step in per tick
+    float& swell = p->aux.z;    // the size's factor per tick
     p->color = 0xFFFFFF;
     p->frame = 14;
     p->life = 13;
@@ -575,22 +575,24 @@ int ParticleSource::EmitCasting(Particle* p, int) {
         if (lengthSquared <= 0.0f) continue;   // random: never NaN
         break;
     }
+    ParticleElement* state = elements.data();
     std::uint32_t span = static_cast<std::uint32_t>(frameDelay * lifetime + 1);
     int pick = static_cast<int>(g_clientRandom.Next() % span);
     if (pick > 0) {
-        v += elements[(pick - 1) % lifetime].swirl.position;
+        // Swirls 0 .. lifetime - 1: swirl 0 is element 0, the effect's state, whose radius and size the original
+        // read as a swirl's x and y (z 0).
+        const int swirl = (pick - 1) % lifetime;
+        v += swirl == 0 ? Vector3{state->cast.radius, state->cast.size, 0.0f} : elements[swirl].swirl.position;
         lengthSquared = LengthSquared(v);
     }
     float inverse = 1.0f / std::sqrt(lengthSquared);
-    p->velocity = inverse * v;
-    ParticleElement* state = elements.data();
+    direction = inverse * v;
     float reach = state->cast.radius * 0.6f;
-    p->aux.x = reach;
-    p->aux.y = reach * (ParticleTypeOf(type) == ParticleType::CastingDivination ? 0.03846154f : 0.07692308f);   // 1/26, 1/13
-    p->aux.z = state->cast.growth;
-    p->pos = p->aux.x * p->velocity + origin;
-    p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_8 + 0.6f) * state->cast.size *
-                    p->aux.x;
+    away = reach;
+    inward = reach * (ParticleTypeOf(type) == ParticleType::CastingDivination ? 0.03846154f : 0.07692308f);   // 1/26, 1/13
+    swell = state->cast.growth;
+    p->pos = away * direction + origin;
+    p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_8 + 0.6f) * state->cast.size * away;
     return 1;
 }
 
@@ -598,6 +600,10 @@ int ParticleSource::EmitCasting(Particle* p, int) {
 // source with a random size; the others fade by their life (capped by the effect's alpha), run
 // their frames backwards (0x2027: every fourth tick held) and spiral in towards the source.
 int ParticleSource::UpdateCasting(Particle* p) {
+    const Vector3& direction = p->velocity;
+    float& away = p->aux.x;
+    const float& inward = p->aux.y;
+    const float& swell = p->aux.z;
     ParticleElement* state = elements.data();
     if (state->cast.alpha == 0) return 0;
     if (p->state) {
@@ -617,19 +623,19 @@ int ParticleSource::UpdateCasting(Particle* p) {
     p->color = (static_cast<std::uint32_t>(fade) << 24) | 0xFFFFFF;
     if (ParticleTypeOf(type) == ParticleType::CastingFire && (life & 3) == 0) ++p->frame;
     float oldSize = p->size;
-    float reach = p->aux.x - p->aux.y;
+    float reach = away - inward;
     --p->frame;
-    p->aux.x = reach;
-    p->pos = reach * p->velocity + origin;
-    p->size = oldSize * p->aux.z;
+    away = reach;
+    p->pos = reach * direction + origin;
+    p->size = oldSize * swell;
     return 1;
 }
 
-// Casting elements: element 0 (pos.x nonzero) counts down and takes its alpha from the
-// table (frozen while an emitting source is attached); the swirls (pos.x zero, or NaN) move by
-// their velocity, which gets a random kick in [-k, k), damping and a pull back to the centre.
+// Casting elements: element 0 counts down and takes its alpha from the table (frozen while an emitting source is
+// attached); the swirls move by their velocity, which gets a random kick in [-k, k), damping and a pull back to the
+// centre.
 void ParticleSource::TickCasting(ParticleElement* e) {
-    if (e->pos.x != 0.0f) {
+    if (e == elements.data()) {
         if ((flags & ParticleSourceFlag::Emitting) && attachedTo) return;
         if (e->ticks > 0) --e->ticks;
         e->cast.alpha = kCastAlphaByCountdown[elements[0].ticks];
@@ -655,6 +661,8 @@ void ParticleSource::TickCasting(ParticleElement* e) {
 // the radius), flattened against the carrier's motion when it moves; one in eleven is larger. The
 // size follows the life table of the kind.
 int ParticleSource::EmitOrbit(Particle* p, int index) {
+    Vector3& onSphere = p->velocity;   // the offset from the sphere's centre
+    float& sizeFactor = p->drift.x;
     if (index == 0 && !FollowCarrier(this)) return 0;
     float radius = elements[0].sphere.radius;
     float big;
@@ -664,12 +672,12 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     } else {
         big = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f;
     }
-    p->drift.x = big;
+    sizeFactor = big;
 
-    p->velocity = RandomInBall();
+    onSphere = RandomInBall();
     float shell = radius * 0.65f;
-    float scale = shell / std::sqrt(LengthSquared(p->velocity));
-    p->velocity *= scale;
+    float scale = shell / std::sqrt(LengthSquared(onSphere));
+    onSphere *= scale;
     p->color = 0xFFFFFFFF;
     p->frame = static_cast<int>(g_clientRandom.Next() % 11);
     p->life = lifetime;
@@ -681,23 +689,23 @@ int ParticleSource::EmitOrbit(Particle* p, int index) {
     float speed = elements[0].sphere.speed;
     if (speed > kStillSpeed) {
         const Vector3& m = elements[1].pos;
-        float t = -(Dot(m, p->velocity) / speed);
+        float t = -(Dot(m, onSphere) / speed);
         t = MinKeepA(t, 1.0f);
         t = MaxKeepB(t, 0.0f);
-        offset = p->velocity - m * t;
+        offset = onSphere - m * t;
     } else {
-        offset = p->velocity;
+        offset = onSphere;
     }
     p->pos = origin + elements[0].pos + offset;
     if (ParticleTypeOf(type) == ParticleType::SphereFire) {
-        float s = kSphereSizeByLife[p->life] * p->drift.x * radius;
+        float s = kSphereSizeByLife[p->life] * sizeFactor * radius;
         p->size = s + s;
     } else if (ParticleTypeOf(type) == ParticleType::Antimagic) {
-        p->size = kAntimagicSizeByLife[p->life] * p->drift.x * radius;
+        p->size = kAntimagicSizeByLife[p->life] * sizeFactor * radius;
     } else if (ParticleTypeOf(type) == ParticleType::SphereElectricity) {
-        p->size = kSphereSizeByLife[p->life] * p->drift.x * radius;
+        p->size = kSphereSizeByLife[p->life] * sizeFactor * radius;
     } else {
-        p->size = kSphereSizeByLife[p->life] * p->drift.x * radius * 1.6f;
+        p->size = kSphereSizeByLife[p->life] * sizeFactor * radius * 1.6f;
     }
     return 1;
 }
@@ -878,6 +886,9 @@ void ParticleSource::TickHealing(ParticleElement* e) {
 // Until all orbiters exist each emission adds one (needs a carrier); then sparks start at a random point
 // between an orbiter's previous and current position and fly off with a random velocity from the spread box.
 int ParticleSource::EmitCastSwirl(Particle* p, int) {
+    Vector3& ahead = p->velocity;   // where the spark is next
+    float& rise = p->aux.z;         // added to ahead.z per tick
+    float& riseGrowth = p->aux.y;   // the rise's factor per tick
     if (std::ssize(elements) < lifetime) {
         if (!attachedTo) {
             game::DebugLog("%s", NoCarrierCasting());
@@ -893,14 +904,13 @@ int ParticleSource::EmitCastSwirl(Particle* p, int) {
     p->life = 28;
     p->frameTimer = 1;
     p->state = j;
-    p->aux.z = (WordToFloat(g_clientRandom.Next()) * kWordTo0_35 + 0.85f) *
-                                    e->orbiter.scale * 0.03f;
-    p->aux.y = 1.03f;     // 1.03
-    p->velocity = RandomInBox(spreadMin, spreadMax);
+    rise = (WordToFloat(g_clientRandom.Next()) * kWordTo0_35 + 0.85f) * e->orbiter.scale * 0.03f;
+    riseGrowth = 1.03f;
+    ahead = RandomInBox(spreadMin, spreadMax);
     const Vector3& previous = e->orbiter.previous;
-    p->pos = previous + p->velocity;
+    p->pos = previous + ahead;
     float u = 1.0f - t;
-    p->velocity += t * previous + u * e->pos;
+    ahead += t * previous + u * e->pos;
     p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_8 + 0.6f) * size * 0.2f;
     return 1;
 }
@@ -909,6 +919,9 @@ int ParticleSource::EmitCastSwirl(Particle* p, int) {
 // loses its carrier), fades by the table and dies. A spark fades over its last 7 ticks, cycles frames 12..15,
 // shrinks, and moves by its velocity, whose z changes by a growing step.
 int ParticleSource::UpdateCastSwirl(Particle* p) {
+    Vector3& ahead = p->velocity;
+    float& rise = p->aux.z;
+    const float& riseGrowth = p->aux.y;
     int state = p->state;
     if (state < 0) {
         const ParticleElement& e = elements[-(state + 1)];
@@ -926,11 +939,10 @@ int ParticleSource::UpdateCastSwirl(Particle* p) {
     if (life < 7) p->color = (static_cast<std::uint32_t>(ByLife(kRiseFallAlpha, life, 0)) << 24) | 0xFFFFFF;
     if (++p->frame == 16) p->frame = 12;
     float shrunk = p->size * 0.97f;
-    p->pos = p->velocity;
+    p->pos = ahead;
     p->size = shrunk;
-    float& step = p->aux.z;
-    p->velocity.z += step;
-    step = p->aux.y * step;
+    ahead.z += rise;
+    rise = riseGrowth * rise;
     return 1;
 }
 
@@ -953,31 +965,37 @@ void ParticleSource::TickCastSwirl(ParticleElement* e) {
 // box), a twist rate from its distance to the axis and a random speed along the beam (fast and
 // large sparks near the axis now and then).
 int ParticleSource::EmitLink(Particle* p, int) {
+    Vector3& offset = p->velocity;  // across the beam (x, y) and along it (z)
+    float& twistCos = p->aux.x;     // the offset's turn per tick
+    float& twistSin = p->aux.y;
+    float& covered = p->drift.x;    // the way along the beam
+    float& speed = p->drift.y;
+    float& sparkSize = p->drift.z;
     if (elements.empty()) SetUpLink(this);
     p->color = 0xFFFFFF;
     float a = g_clientRandom.Range(-1.0f, 1.0f);
     float b = g_clientRandom.Range(-1.0f, 1.0f);
     float c = g_clientRandom.Range(spreadMin.z, spreadMax.z);
-    p->velocity.x = a * spreadMin.x;
-    p->velocity.y = b * spreadMin.y;
-    p->velocity.z = c;
+    offset.x = a * spreadMin.x;
+    offset.y = b * spreadMin.y;
+    offset.z = c;
     float reach = std::sqrt(b * b + a * a);
     float twist = reach * 0.2f;
-    p->aux.x = lib::Cos(twist);
-    p->aux.y = lib::Sin(twist);
-    Vector3 start = p->velocity + origin;
+    twistCos = lib::Cos(twist);
+    twistSin = lib::Sin(twist);
+    Vector3 start = offset + origin;
     p->pos = start;
     float factor;
     if ((g_clientRandom.Next() & 3) == 0 && reach < 0.5f) {
-        p->drift.y = g_clientRandom.Range(0.1f, 0.12f);
+        speed = g_clientRandom.Range(0.1f, 0.12f);
         factor = g_clientRandom.Range(0.13f, 0.16f);
     } else {
-        p->drift.y = g_clientRandom.Range(0.17f, 0.25f);
+        speed = g_clientRandom.Range(0.17f, 0.25f);
         factor = g_clientRandom.Range(0.03f, 0.05f);
     }
-    p->drift.z = factor * size;
-    p->drift.x = 0.0f;
-    p->size = p->drift.z;
+    sparkSize = factor * size;
+    covered = 0.0f;
+    p->size = sparkSize;
     p->frame = static_cast<int>(g_clientRandom.Next() % static_cast<std::uint32_t>(frameCount + 1));
     return 1;
 }
@@ -985,27 +1003,33 @@ int ParticleSource::EmitLink(Particle* p, int) {
 // Link sparks run along the beam (drift.x the distance travelled, drift.y the speed), spinning around the axis;
 // the beam bulges in the middle and the alpha peaks there (capped by element 0). Dropped past the beam's end.
 int ParticleSource::UpdateLink(Particle* p) {
+    Vector3& offset = p->velocity;
+    const float& twistCos = p->aux.x;
+    const float& twistSin = p->aux.y;
+    float& covered = p->drift.x;
+    const float& speed = p->drift.y;
+    const float& sparkSize = p->drift.z;
     p->frame = (p->frame + 1) % frameCount;
-    float travelled = p->drift.y + p->drift.x;
-    p->drift.x = travelled;
+    float travelled = speed + covered;
+    covered = travelled;
     ParticleElement* e = elements.data();
     float along = travelled * e->link.inverseLength;
     if (travelled > e->link.length) return 0;
 
-    float c = p->aux.x;
-    float s = p->aux.y;
-    float turnedY = p->velocity.y * c + p->velocity.x * s;
-    float turnedX = c * p->velocity.x - p->velocity.y * s;
-    p->velocity.x = turnedX;
-    p->velocity.y = turnedY;
+    float c = twistCos;
+    float s = twistSin;
+    float turnedY = offset.y * c + offset.x * s;
+    float turnedX = c * offset.x - offset.y * s;
+    offset.x = turnedX;
+    offset.y = turnedY;
     const Vector3& direction = elements[1].linkAxis.axis;
     const Vector3& sideAxis = elements[2].linkAxis.axis;
     const Vector3& cross = elements[3].linkAxis.axis;
-    Vector3 p3 = turnedX * sideAxis + origin + turnedY * cross + p->velocity.z * direction + along * extent;
+    Vector3 p3 = turnedX * sideAxis + origin + turnedY * cross + offset.z * direction + along * extent;
     p->pos = p3;
 
     float h = along - 0.5f;
-    p->size = p->drift.z;
+    p->size = sparkSize;
     p->pos.z = (0.25f - h * h) * elements[0].link.length * 0.9f + p3.z;
     // Negative away from the middle: as an unsigned word above any cap.
     std::uint32_t fade = static_cast<std::uint32_t>(static_cast<int>((0.5f - std::fabs(h)) * 1000.0f));
@@ -1030,6 +1054,7 @@ void ParticleSource::TickLink(ParticleElement* e) {
 // (a random point in the ball scaled by the radius, moving outwards; the earlier in the blast and
 // the further out the more frames they skip); the others are smoke along fragment `state`'s path.
 int ParticleSource::EmitBlast(Particle* p, int) {
+    float& frameStep = p->aux.z;    // a flame's: added to its frame position per tick
     ParticleElement* fragments = elements.data();
     int kind = static_cast<int>(g_clientRandom.Next() % 29) - 14;
     p->color = 0xFFFFFFFF;
@@ -1054,13 +1079,12 @@ int ParticleSource::EmitBlast(Particle* p, int) {
         if (outside < threshold) {
             p->frame = 8;
             BlastFlameTiming(this, p);
-            p->aux.z = g_clientRandom.Range(0.35f, 0.7f);
+            frameStep = g_clientRandom.Range(0.35f, 0.7f);
         } else {
             p->frame = static_cast<int>(g_clientRandom.Next() % 3);
             BlastFlameTiming(this, p);
             float t = g_clientRandom.Range(0.0f, 0.35f) * 0.5f;
-            p->aux.z =
-                t + outside * 0.35f / threshold + 0.175f;
+            frameStep = t + outside * 0.35f / threshold + 0.175f;
         }
         return 1;
     }
@@ -1083,6 +1107,9 @@ int ParticleSource::EmitBlast(Particle* p, int) {
 // keeps the source alive while the fragments are younger than 3 ticks. Flames move by their velocity (slowing
 // with the fragments' drag), swell, step through frames at an accelerating rate and fade by the frame.
 int ParticleSource::UpdateBlast(Particle* p) {
+    float& flameSize = p->aux.x;
+    float& framePosition = p->aux.y;
+    float& frameStep = p->aux.z;
     ParticleElement* fragments = elements.data();
     int state = p->state;
     if (state >= 0) {
@@ -1103,14 +1130,12 @@ int ParticleSource::UpdateBlast(Particle* p) {
     }
     p->pos += p->velocity;
     ++p->life;
-    float flameSize = p->aux.x;
     p->size = flameSize;
     p->size = flameSize * (frame > 7 ? 1.03f : 1.01f);
-    float& step = p->aux.z;
-    p->aux.y += step;
-    step *= 1.02f;
-    p->frame = std::lround(p->aux.y);
-    p->aux.x = p->size;
+    framePosition += frameStep;
+    frameStep *= 1.02f;
+    p->frame = std::lround(framePosition);
+    flameSize = p->size;
     float drag = elements[0].fragment.decay - 0.03f;
     p->velocity *= drag;
     // A flame's frame can step past the table, up to 16: alpha 0 (the original read its block's zero tail, then
@@ -1180,12 +1205,12 @@ int ParticleSource::EmitPoisonFog(Particle*, int) {
 }
 
 // --- Geyser (0x2009): three vents that erupt in turn -----------------------------------------------
-// A vent's pos: the jet's two direction angles (degrees off vertical, turned to radians) and its strength.
 
 // Geyser: the first particle marks the source. Then a drop from a random vent: while
 // the vent erupts it flies along the vent's direction (jittered by up to 20 / 10 degrees) with the
 // vent's strength; otherwise a short-lived puff of mist near the source.
 int ParticleSource::EmitGeyser(Particle* p, int) {
+    float& dropSize = p->velocity.x;
     int vent = static_cast<int>(g_clientRandom.Next() % static_cast<std::uint32_t>(std::ssize(elements)));
     p->color = 0xFFFFFFFF;
     p->pos = origin;
@@ -1204,16 +1229,16 @@ int ParticleSource::EmitGeyser(Particle* p, int) {
     if (e.ticks > 0) {
         p->life = 0x7FFFFFFF;
         float radian = ei::kRadiansPerDegree;
-        float yaw = g_clientRandom.Range(-20.0f, 20.0f) * radian + e.pos.x;
-        float tilt = g_clientRandom.Range(-10.0f, 10.0f) * radian + e.pos.y;
-        float power = g_clientRandom.Range(0.0f, 0.2f) + e.pos.z - 0.1f;
+        float yaw = g_clientRandom.Range(-20.0f, 20.0f) * radian + e.vent.yaw;
+        float tilt = g_clientRandom.Range(-10.0f, 10.0f) * radian + e.vent.tilt;
+        float power = g_clientRandom.Range(0.0f, 0.2f) + e.vent.power - 0.1f;
         float sinTilt = lib::Sin(tilt);
         p->drift.x = lib::Sin(yaw) * sinTilt * power * height;
         p->drift.y = lib::Cos(yaw) * sinTilt * power * height;
         p->drift.z = lib::Cos(tilt) * power * height;
         p->pos = SpreadAround(p->pos, spreadMin, spreadMax);
         p->size = 0.0f;
-        p->velocity.x = drop;
+        dropSize = drop;
         return 1;
     }
     p->life = 1;
@@ -1230,8 +1255,9 @@ int ParticleSource::EmitGeyser(Particle* p, int) {
 
 // Geyser: the marker flickers while the source emits (dropped once it stops); drops fly by drift
 // (gravity pulling drift.z down by 0.06 height per tick), fade 8 alpha per tick (dropped below 10),
-// shrink by 0.9 (velocity.x holds the size) and cycle 4 frames.
+// shrink by 0.9 and cycle 4 frames.
 int ParticleSource::UpdateGeyser(Particle* p) {
+    float& dropSize = p->velocity.x;
     if (p->state != 0) {
         if (!(flags & ParticleSourceFlag::Emitting)) return 0;
         p->size = g_clientRandom.Range(0.03f, 0.3f) * size;
@@ -1240,8 +1266,8 @@ int ParticleSource::UpdateGeyser(Particle* p) {
     std::uint32_t a = p->color >> 24;
     if (a <= 9) return 0;
     if (--p->life <= 0) return 0;
-    float shrunk = p->velocity.x * 0.9f;
-    p->velocity.x = shrunk;
+    float shrunk = dropSize * 0.9f;
+    dropSize = shrunk;
     p->pos += p->drift;
     int frame = p->frame;
     p->frame = (frame & ~3) | ((frame + 1) & 3);
@@ -1264,9 +1290,9 @@ void ParticleSource::TickGeyser(ParticleElement* e) {
     float yaw = g_clientRandom.Range(0.0f, 360.0f) * radian;
     float tilt = g_clientRandom.Range(0.0f, 10.0f) * radian;
     float power = g_clientRandom.Range(0.4f, 1.0f);
-    e->pos.x = yaw;
-    e->pos.y = tilt;
-    e->pos.z = power;
+    e->vent.yaw = yaw;
+    e->vent.tilt = tilt;
+    e->vent.power = power;
 }
 
 // --- Shower (0x200F, 0x2031-0x2033): sparks thrown out in a few random directions ---------------
@@ -1275,35 +1301,38 @@ void ParticleSource::TickGeyser(ParticleElement* e) {
 // random direction (jittered by +-0.03, scaled to the source's size and 1/6 of it per tick, one in
 // eight half as fast again), already a random part of its first step out.
 int ParticleSource::EmitShower(Particle* p, int) {
+    float& speedKept = p->velocity.x;   // the speed's factor per tick
+    float& sizeKept = p->velocity.y;    // the size's factor per tick
     if (elements[0].ray.age < 0) ChooseShowerRays(this);
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
     p->frame = elements[0].ticks;
     Vector3 jitter = {g_clientRandom.Range(-0.03f, 0.03f), g_clientRandom.Range(-0.03f, 0.03f),
                       g_clientRandom.Range(-0.03f, 0.03f)};
-    const ParticleElement& ray = elements[g_clientRandom.Next() % static_cast<std::uint32_t>(frameDelay)];
+    const ParticleElement& ray = elements[g_clientRandom.Next() % static_cast<std::uint32_t>(rayCount)];
     p->pos = origin;
     p->size = typeParam;
     Vector3 d = size * (jitter + ray.pos);
     float speed = 1.0f / std::sqrt(LengthSquared(d)) * size * 0.16666667f;   // 1/6
     if ((g_clientRandom.Next() & 7) == 0) speed = speed * 1.5f;
     p->drift = speed * d;
-    p->velocity.x = 0.9f;     // 0.9: the speed kept per tick
-    p->velocity.y = 0.8f;     // 0.8: the size kept per tick
+    speedKept = 0.9f;
+    sizeKept = 0.8f;
     float t = g_clientRandom.Range(0.0f, 1.0f);
     p->pos += t * p->drift;
     return 1;
 }
 
-// Shower sparks move, slow down (by velocity.x), fall by 0.05 size per tick, shrink (by velocity.y)
-// and fade by the life table.
+// Shower sparks move, slow down, fall by 0.05 size per tick, shrink and fade by the life table.
 int ParticleSource::UpdateShower(Particle* p) {
+    const float& speedKept = p->velocity.x;
+    const float& sizeKept = p->velocity.y;
     int life = --p->life;
     if (life == 0) return 0;
     p->pos += p->drift;
     p->color = (static_cast<std::uint32_t>(ByLife(kShowerAlpha, life, 0)) << 24) | 0xFFFFFF;   // before: kAcidSize's zero tail
-    p->size = p->velocity.y * p->size;
-    float keep = p->velocity.x;
+    p->size = sizeKept * p->size;
+    float keep = speedKept;
     p->drift *= keep;
     p->drift.z -= size * 0.05f;
     return 1;
@@ -1423,21 +1452,22 @@ void ParticleSource::TickBag(ParticleElement* e) {
 // 0x202F: a spark on a ring of random radius around the carrier (0.9-1.1 of the ring),
 // at a random height of the spread box above the ring's foot, rising faster and faster.
 int ParticleSource::EmitColumn(Particle* p, int) {
+    Vector3& offset = p->velocity;  // from the source
+    float& rise = p->aux.z;         // added to offset.z per tick
     if (elements.empty() && !SetUpColumn(this)) return 0;
     p->color = 0xFFFFFFFF;
     p->frame = 1;
     p->life = 13;
     p->frameTimer = 1;
-    p->aux.z = (WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f) *
-                                    elements[0].column.height * 0.1f;
+    rise = (WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f) * elements[0].column.height * 0.1f;
     float ring = WordToFloat(g_clientRandom.Next()) * kWordTo0_2 + 0.9f;
     float angle = g_clientRandom.Range(0.0f, 6.28318f);
-    p->velocity.x = lib::Sin(angle) * ring;
-    p->velocity.y = lib::Cos(angle) * ring;
+    offset.x = lib::Sin(angle) * ring;
+    offset.y = lib::Cos(angle) * ring;
     float z = g_clientRandom.Range(spreadMin.z, spreadMax.z);
-    p->velocity.z = z;
-    p->velocity.z = z + elements[0].column.foot;
-    p->pos = origin + p->velocity;
+    offset.z = z;
+    offset.z = z + elements[0].column.foot;
+    p->pos = origin + offset;
     p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_8 + 0.6f) * size * 0.25f;
     return 1;
 }
@@ -1445,15 +1475,16 @@ int ParticleSource::EmitColumn(Particle* p, int) {
 // 0x202F sparks: fade by life, step a frame, follow the source at their offset, shrink
 // to 0.97 per tick and rise (the rise growing by 5% per tick).
 int ParticleSource::UpdateColumn(Particle* p) {
+    Vector3& offset = p->velocity;
+    float& rise = p->aux.z;
     int life = --p->life;
     if (life == 0) return 0;
     float oldSize = p->size;
     p->color = (ColumnAlpha(life) << 24) | 0xFFFFFF;
     ++p->frame;
-    p->pos = origin + p->velocity;
+    p->pos = origin + offset;
     p->size = oldSize * 0.97f;
-    float& rise = p->aux.z;
-    p->velocity.z += rise;
+    offset.z += rise;
     rise *= 1.05f;
     return 1;
 }
@@ -1469,16 +1500,16 @@ int ParticleSource::EmitMushroom(Particle* p, int) {
         elements.resize(1);
         ParticleElement* e = elements.data();
         e->ticks = 0;
-        e->pos.x = lib::Log(1.0f) * 0.2f * size;
-        elements[0].pos.z = 0.0f;
-        elements[0].mushroom.stem = origin;
+        e->mushroom.spread = lib::Log(1.0f) * 0.2f * size;
+        e->mushroom.capHeight = 0.0f;
+        e->mushroom.stem = origin;
     }
-    float spread = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * elements[0].pos.x;
+    float spread = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * elements[0].mushroom.spread;
     Vector3 d = {g_clientRandom.Range(-1.0f, 1.0f), g_clientRandom.Range(-1.0f, 1.0f), g_clientRandom.Range(0.1f, 1.0f)};
     d = 1.0f / std::sqrt(LengthSquared(d)) * d;
     d.z += 0.12f;
     p->pos = d * spread + origin;
-    p->pos.z += elements[0].pos.z;
+    p->pos.z += elements[0].mushroom.capHeight;
     p->size = elements[0].ticks * 0.008f + 0.1f;
     p->drift = d * size * 0.06f;
     p->size = size * p->size;
@@ -1521,7 +1552,7 @@ int ParticleSource::UpdateMushroom(Particle* p) {
     float dy = p->pos.y - stem.y;
     float reach = std::sqrt(LengthSquared2D(dy, dx));
     float dz = p->pos.z - stem.z;
-    if (elements[0].pos.z > dz) {
+    if (elements[0].mushroom.capHeight > dz) {
         p->drift.x -= dx * size * 0.02f / reach;
         p->drift.y -= dy * size * 0.02f / reach;
     }
@@ -1533,6 +1564,10 @@ int ParticleSource::UpdateMushroom(Particle* p) {
 // BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff starts at a random
 // point of the disc around the carrier's figure, turning about the axis faster the nearer it is, and rising.
 int ParticleSource::EmitStench(Particle* p, int) {
+    Vector3& around = p->velocity;  // the offset from the carrier's axis
+    float& spinSin = p->drift.x;    // the offset's turn per tick
+    float& spinCos = p->drift.y;
+    float& rise = p->drift.z;       // added to around.z per tick
     if (elements.empty()) {
         if (!attachedTo) {
             game::DebugLog("%s", NoCarrierGas());
@@ -1560,12 +1595,12 @@ int ParticleSource::EmitStench(Particle* p, int) {
     float vx = lib::Sin(angle) * t;
     float vy = lib::Cos(angle) * t;
     float vz = g_clientRandom.Range(low, radius * 0.3f);
-    p->velocity = {vx, vy, vz};
+    around = {vx, vy, vz};
     float riseLow = carrierHeight * 0.02f;
-    p->drift.x = lib::Sin(turn);
-    p->drift.y = lib::Cos(turn);
-    p->drift.z = g_clientRandom.Range(riseLow, carrierHeight * 0.03f);
-    p->pos = origin + elements[0].pos + p->velocity;
+    spinSin = lib::Sin(turn);
+    spinCos = lib::Cos(turn);
+    rise = g_clientRandom.Range(riseLow, carrierHeight * 0.03f);
+    p->pos = origin + elements[0].pos + around;
     p->size = radius * 0.7f;
     return 1;
 }
@@ -1573,36 +1608,46 @@ int ParticleSource::EmitStench(Particle* p, int) {
 // BlueGas puffs: step through the frames (dropped after the last), turn their offset
 // about the axis, rise faster and faster, swell, and fade over the last 8 ticks.
 int ParticleSource::UpdateStench(Particle* p) {
+    Vector3& around = p->velocity;
+    const float& spinSin = p->drift.x;
+    const float& spinCos = p->drift.y;
+    float& rise = p->drift.z;
     int life = --p->life;
     if (life == 0) return 0;
     if (--p->frameTimer == 0) {
         if (++p->frame >= frameCount) return 0;
         p->frameTimer = frameDelay;
     }
-    p->pos -= p->velocity;
-    float turnedY = Dot2D(p->velocity.x, p->velocity.y, p->drift.x, p->drift.y);
-    float turnedX = p->drift.y * p->velocity.x - p->velocity.y * p->drift.x;
-    p->velocity.x = turnedX;
-    p->velocity.y = turnedY;
-    p->velocity.z = p->drift.z + p->velocity.z;
-    p->drift.z *= 1.02f;
-    p->pos += p->velocity;
+    p->pos -= around;
+    float turnedY = Dot2D(around.x, around.y, spinSin, spinCos);
+    float turnedX = spinCos * around.x - around.y * spinSin;
+    around.x = turnedX;
+    around.y = turnedY;
+    around.z = rise + around.z;
+    rise *= 1.02f;
+    p->pos += around;
     p->size *= 1.01f;
     if (life < 8) p->color = ((p->color & 0xFF000000u) - 0x1F000001u) | 0xFFFFFF;
     return 1;
 }
 
 // --- Tornado (0x200A) and CurseHolder (0x2050): a funnel of rings ---------------------------------
-// The rings run bottom to top. A particle: velocity.x / .y its angle and radius, aux.x its height (0..1),
-// aux.y its alpha, drift.x / .y / .z its turn, radius factor and rise per tick.
+// The rings run bottom to top.
 
 // Tornado: a particle at a random height of the funnel (around the ring centres there),
 // with a radius growing towards the top and a turn rate larger near the bottom; one in three is
 // dust (state 0, frames 12-15), the others debris sized by their radius.
 int ParticleSource::EmitTornado(Particle* p, int) {
+    float& orbitAngle = p->velocity.x;      // around the funnel's centre
+    float& orbitRadius = p->velocity.y;
+    float& level = p->aux.x;                // the height up the funnel (0..1)
+    float& opacity = p->aux.y;
+    float& spin = p->drift.x;               // added to orbitAngle per tick
+    float& radiusFactor = p->drift.y;       // orbitRadius's factor per tick
+    float& climb = p->drift.z;              // added to level per tick
     float height01 = g_clientRandom.Range(0.0f, 1.0f);
     p->state = static_cast<int>(g_clientRandom.Next() % 3);
-    p->color = static_cast<std::uint32_t>(frameDelay);
+    p->color = tint;
     std::memcpy(&p->pos, &origin, 2 * sizeof(float));
     p->pos.z = origin.z + elements[0].pos.z;
     p->life = static_cast<int>(g_clientRandom.Next() % 9) + 100;
@@ -1619,20 +1664,20 @@ int ParticleSource::EmitTornado(Particle* p, int) {
     float high = kPi;
     float low = -kPi;
     float angle = g_clientRandom.Range(low, high);
-    p->aux.y = 0.1f;     // 0.1
-    p->aux.x = height01;
+    opacity = 0.1f;
+    level = height01;
     float w = 1.0f - height01;
     float w2 = w * w;
     float w4 = w2 * w2;
-    p->velocity.x = angle;
+    orbitAngle = angle;
     float radius = g_clientRandom.Range(0.8f, 2.0f) * (w4 + 0.2f) * 2.0f;
-    p->velocity.y = radius;
+    orbitRadius = radius;
     float turnHigh = kPi * 0.07f;
     float turnLow = kPi * 0.06f;
     float turn = g_clientRandom.Range(turnLow, turnHigh);
-    p->drift.x = turn * (1.1f - w * w) * 1.5f;
-    p->drift.z = 0.0f;
-    p->drift.y = elements[0].funnel.damping;
+    spin = turn * (1.1f - w * w) * 1.5f;
+    climb = 0.0f;
+    radiusFactor = elements[0].funnel.damping;
     p->pos.x = lib::Sin(angle) * radius + p->pos.x + cx;
     p->pos.y = lib::Cos(angle) * radius + cy + p->pos.y;
     p->pos.z = height01 * elements[0].funnel.height + p->pos.z;
@@ -1649,25 +1694,32 @@ int ParticleSource::EmitTornado(Particle* p, int) {
 // Tornado particles rise (dropped above the top), turn around the funnel's centre at
 // their height (faster and faster), fade in, fade by the height, and animate.
 int ParticleSource::UpdateTornado(Particle* p) {
+    float& orbitAngle = p->velocity.x;
+    float& orbitRadius = p->velocity.y;
+    float& level = p->aux.x;
+    float& opacity = p->aux.y;
+    float& spin = p->drift.x;
+    const float& radiusFactor = p->drift.y;
+    float& climb = p->drift.z;
     if (--p->life == 0) return 0;
-    p->aux.x += p->drift.z;
-    p->drift.z += 0.0001f;
-    if (p->aux.x > 1.0f) return 0;
-    float scaled = p->aux.x * kFunnelSpans;
+    level += climb;
+    climb += 0.0001f;
+    if (level > 1.0f) return 0;
+    float scaled = level * kFunnelSpans;
     const Vector2 centre = FunnelCentre(this, scaled);
-    p->velocity.x += p->drift.x;
-    p->drift.x *= 1.01f;
-    float angle = p->velocity.x;
-    p->velocity.y = p->drift.y * p->velocity.y;
-    float radius = p->velocity.y;
+    orbitAngle += spin;
+    spin *= 1.01f;
+    float angle = orbitAngle;
+    orbitRadius = radiusFactor * orbitRadius;
+    float radius = orbitRadius;
     p->pos.x = lib::Sin(angle) * radius + origin.x + centre.x;
     p->pos.y = lib::Cos(angle) * radius + origin.y + centre.y;
     float base = elements[0].pos.z + origin.z;
     p->pos.z = base;
-    p->pos.z = elements[0].funnel.height * p->aux.x + base;
-    if (p->life > 8) p->aux.y = MinKeepA(p->aux.y + 0.1f, 1.0f);
-    else p->aux.y = MaxKeepB(0.1f, p->aux.y);
-    int a = std::lround(std::sqrt(1.0f - p->aux.x) * p->aux.y * 255.0f);
+    p->pos.z = elements[0].funnel.height * level + base;
+    if (p->life > 8) opacity = MinKeepA(opacity + 0.1f, 1.0f);
+    else opacity = MaxKeepB(0.1f, opacity);
+    int a = std::lround(std::sqrt(1.0f - level) * opacity * 255.0f);
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(a) << 24);
     if (p->state != 0) {
         p->frame = (p->frame + 1) % 12;
@@ -1745,6 +1797,8 @@ int ParticleSource::UpdatePortalStar(Particle* p) {
 // Cylinder: the first particles are the stars (state = their index; the first one
 // places them around the carrier); later ones are sparks along a random star's last step.
 int ParticleSource::EmitCylinder(Particle* p, int) {
+    Vector3& relative = p->velocity;    // a spark's position relative to the source
+    Vector3& spiral = p->aux;           // a spark's step
     p->color = 0xFFFFFF;
     int count = lib::Count(particles);
     int stars = lib::Count(elements);
@@ -1771,16 +1825,18 @@ int ParticleSource::EmitCylinder(Particle* p, int) {
     p->frame = 1;
     p->state = -1;
     float u = g_clientRandom.Range(-1.0f, 0.0f);
-    p->velocity = u * step + e.pos;
-    p->aux = step;
+    relative = u * step + e.pos;
+    spiral = step;
     p->size = 0.1f;     // 0.1
-    p->pos = p->velocity + origin;
+    p->pos = relative + origin;
     return 1;
 }
 
 // Cylinder: a star follows its element and fades by its countdown (dropped once the source stops); a spark
 // fades by its life, drifts by its step, is held on its star's orbit radius and spirals round it, shrinking.
 int ParticleSource::UpdateCylinder(Particle* p) {
+    Vector3& relative = p->velocity;
+    Vector3& spiral = p->aux;
     int state = p->state;
     if (state >= 0) {
         if (!(flags & ParticleSourceFlag::Emitting)) return 0;
@@ -1794,16 +1850,15 @@ int ParticleSource::UpdateCylinder(Particle* p) {
     int life = --p->life;
     if (life <= 0) return 0;
     p->color = (static_cast<std::uint32_t>(kCylinderAlpha[life]) << 24) | 0xFFFFFF;
-    Vector3& step = p->aux;
-    p->velocity += step;
-    float k = elements[0].star.orbit / std::sqrt(LengthSquared2D(p->velocity.x, p->velocity.y));
-    float kx = k * p->velocity.x;
-    p->velocity.x = kx;
-    float ky = k * p->velocity.y;
-    p->velocity.y = ky;
-    float reach = std::sqrt(LengthSquared(step)) * elements[0].star.inverseOrbit;
-    step = Vector3{ky * reach, -kx * reach, step.z} * 0.6f;
-    p->pos = p->velocity + origin;
+    relative += spiral;
+    float k = elements[0].star.orbit / std::sqrt(LengthSquared2D(relative.x, relative.y));
+    float kx = k * relative.x;
+    relative.x = kx;
+    float ky = k * relative.y;
+    relative.y = ky;
+    float reach = std::sqrt(LengthSquared(spiral)) * elements[0].star.inverseOrbit;
+    spiral = Vector3{ky * reach, -kx * reach, spiral.z} * 0.6f;
+    p->pos = relative + origin;
     p->size *= 0.9f;
     return 1;
 }
@@ -1972,7 +2027,7 @@ int ParticleSource::EmitBanshee(Particle* p, int) {
         float widen = radius * 0.027777778f;   // 1/36
         height = widen + widen;
         elements[0].ticks = 8;
-        elements[0].pos.z = tall * 0.5f;
+        elements[0].banshee.height = tall * 0.5f;
         elements[0].banshee.radius = 0.0f;
         emitCount = 72;
         return 0;
@@ -1992,7 +2047,7 @@ int ParticleSource::EmitBanshee(Particle* p, int) {
                       : g_clientRandom.Range(inner, ringRadius);   // also NaN
     p->pos.x = lib::Sin(angle) * reach + origin.x;
     p->pos.y = lib::Cos(angle) * reach + origin.y;
-    p->pos.z = origin.z + elements[0].pos.z;
+    p->pos.z = origin.z + elements[0].banshee.height;
     p->size = size * 0.15f;
     return 1;
 }
@@ -2024,6 +2079,12 @@ void ParticleSource::TickBanshee(ParticleElement* e) {
 // at a random point of the disc (denser near the edge), spin round it (four in eleven or so the
 // other way, with a different frame range) and rise.
 int ParticleSource::EmitPortal(Particle* p, int) {
+    float& spinCos = p->velocity.x;     // the offset's turn per tick
+    float& spinSin = p->velocity.y;
+    float& riseRate = p->velocity.z;    // times the source's size: the rise per tick
+    float& offsetX = p->aux.x;          // from the portal's centre
+    float& offsetY = p->aux.y;
+    float& sparkSize = p->aux.z;
     if (particles.empty()) {
         p->pos = origin;
         p->size = 0.0f;
@@ -2048,9 +2109,9 @@ int ParticleSource::EmitPortal(Particle* p, int) {
     p->pos.y = y + origin.y;
     p->pos.z = origin.z;
     p->size = 0.0f;
-    p->aux.y = y;
-    p->aux.z = (2.0f - spread) * 0.3f;
-    p->aux.x = x;
+    offsetY = y;
+    sparkSize = (2.0f - spread) * 0.3f;
+    offsetX = x;
     float spin = radius / 2.5f * 0.1f;
     if (g_clientRandom.Range(0.0f, 1.0f) > spread) {
         p->frame = static_cast<int>(g_clientRandom.Next() % 11) + 4;
@@ -2058,10 +2119,10 @@ int ParticleSource::EmitPortal(Particle* p, int) {
         p->frame = static_cast<int>(g_clientRandom.Next() & 3);
         spin = -spin;
     }
-    p->velocity.x = lib::Cos(spin);
-    p->velocity.y = lib::Sin(spin);
-    p->velocity.z = (1.0f - spread + 3.0f) * radius * 0.015f;
-    p->pos.z = g_clientRandom.Range(-0.5f, 0.5f) * p->velocity.z + p->pos.z;
+    spinCos = lib::Cos(spin);
+    spinSin = lib::Sin(spin);
+    riseRate = (1.0f - spread + 3.0f) * radius * 0.015f;
+    p->pos.z = g_clientRandom.Range(-0.5f, 0.5f) * riseRate + p->pos.z;
     return 1;
 }
 
@@ -2070,6 +2131,8 @@ int ParticleSource::EmitPortal(Particle* p, int) {
 // AcidRay: a drop at a random point of the last step (when moving), flying sideways by
 // the spread box along the side and up axes (or standing).
 int ParticleSource::EmitAcidRay(Particle* p, int) {
+    Vector3& direction = p->velocity;
+    Vector3& launch = p->drift;     // the drop's start
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
     p->frameTimer = frameDelay;
@@ -2079,14 +2142,14 @@ int ParticleSource::EmitAcidRay(Particle* p, int) {
     p->frame = static_cast<int>(g_clientRandom.Next() & 1);
     if (distance > kTrailMoving) {
         p->pos += t * motion;
-        p->drift = p->pos;
+        launch = p->pos;
         float q = g_clientRandom.Range(-1.0f, 1.0f);
-        p->velocity = q * side;
+        direction = q * side;
         float q2 = g_clientRandom.Range(-1.0f, 1.0f);
-        p->velocity += q2 * up;
+        direction += q2 * up;
     } else {
-        p->velocity = {};
-        p->drift = origin;
+        direction = {};
+        launch = origin;
     }
     Vector3 start;
     PlaceAcid(this, p, lifetime - p->life, start);
@@ -2145,12 +2208,14 @@ int ParticleSource::EmitSparks(Particle* p, int) {
 // ClayRing: in the first tick (countdown 13) one marker per point; then clods between a
 // random point's previous and current position, flying off at random.
 int ParticleSource::EmitClayRing(Particle* p, int index) {
+    Vector3& base = p->velocity;    // a clod's point on its path
+    Vector3& scatter = p->aux;      // added to base, slowing
     p->color = (static_cast<std::uint32_t>(ByLife(kClayAlpha, elements[0].ticks, kClayBefore)) << 24) | 0xFFFFFF;
     p->life = lifetime;
     p->frame = 1;
     p->frameTimer = frameDelay;
     if (elements[0].ticks == 13 && index < std::ssize(elements)) {
-        p->velocity = {};
+        base = {};
         p->pos = elements[index].pos;
         p->size = 0.2f;     // 0.2
         p->frame = 0;
@@ -2163,13 +2228,13 @@ int ParticleSource::EmitClayRing(Particle* p, int index) {
     const ParticleElement& e = elements[j];
     const Vector3& previous = e.clay.previous;
     float u = 1.0f - t;
-    p->velocity = t * e.pos + u * previous;
+    base = t * e.pos + u * previous;
     float sx = g_clientRandom.Range(-0.1f, 0.1f);
     float sy = g_clientRandom.Range(-0.1f, 0.1f);
     float sz = g_clientRandom.Range(-0.1f, 0.1f);
-    p->aux.x = sy;
-    p->aux.y = sx;
-    p->aux.z = sz;
+    scatter.x = sy;
+    scatter.y = sx;
+    scatter.z = sz;
     std::memcpy(&p->pos, &previous, sizeof(Vector3));
     p->size = 0.1f;     // 0.1
     return 1;
@@ -2178,6 +2243,8 @@ int ParticleSource::EmitClayRing(Particle* p, int index) {
 // ClayRing: markers stay on their point (alpha by the countdown); clods step through the
 // frames, fly out (their scatter slowing by 0.9), fade by 48 per tick and shrink.
 int ParticleSource::UpdateClayRing(Particle* p) {
+    const Vector3& base = p->velocity;
+    Vector3& scatter = p->aux;
     if (--p->life == 0) return 0;
     if (p->frame == 0) {
         p->color = (static_cast<std::uint32_t>(ByLife(kClayAlpha, elements[0].ticks, kClayBefore)) << 24) | 0xFFFFFF;
@@ -2189,9 +2256,9 @@ int ParticleSource::UpdateClayRing(Particle* p) {
         if (++p->frame >= frameCount) return 0;
         p->frameTimer = frameDelay;
     }
-    p->aux *= 0.9f;
+    scatter *= 0.9f;
     float oldSize = p->size;
-    p->pos = p->velocity + p->aux;
+    p->pos = base + scatter;
     std::int32_t a = static_cast<std::int32_t>(p->color >> 24) - 0x30;
     if (a < 0) a = 0;
     p->size = oldSize * 0.9f;
@@ -2229,6 +2296,9 @@ void ParticleSource::TickClayRing(ParticleElement* e) {
 // Falling: a leaf at the source blown by a random gust (a random reach up to the gust's, a random direction
 // around it (the original's spread is ftol(10 degrees) = 0)), falling and spinning at random rates.
 int ParticleSource::EmitFalling(Particle* p, int) {
+    float& sizeFactor = p->velocity.x;  // per tick
+    float& terminal = p->velocity.y;    // the lowest drift.z
+    float& gravity = p->velocity.z;     // added to drift.z per tick
     p->color = 0xFFFFFFFF;
     p->frame = 12;
     p->pos = origin;
@@ -2241,13 +2311,13 @@ int ParticleSource::EmitFalling(Particle* p, int) {
     float x = g_clientRandom.Range(0.0f, reach - lowReach) + gust.wind.reach + lowReach;
     float lowTurn = -turn;
     float angle = g_clientRandom.Range(0.0f, turn - lowTurn) + gust.wind.direction + lowTurn;
-    p->velocity.x = 1.0f;
-    p->velocity.z = -0.12f;     // -0.12
+    sizeFactor = 1.0f;
+    gravity = -0.12f;
     p->drift.x = lib::Sin(angle) * x;
     p->drift.y = lib::Cos(angle) * x;
     p->drift.z = 0.0f;
-    p->velocity.z = g_clientRandom.Range(0.0f, 0.12f) + p->velocity.z - 0.06f;
-    p->velocity.y = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 - 0.6f;
+    gravity = g_clientRandom.Range(0.0f, 0.12f) + gravity - 0.06f;
+    terminal = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 - 0.6f;
     return 1;
 }
 
@@ -2273,6 +2343,8 @@ void ParticleSource::TickFalling(ParticleElement* e) {
 // VulcanSmoke: three in five are drops (state 8: 8 ticks per frame) thrown up at a random height in a random
 // direction; the others smoke (state 4) at a random point of the vent, rising by the source's height.
 int ParticleSource::EmitVulkan(Particle* p, int) {
+    float& sizeFactor = p->velocity.x;  // per tick
+    float& slowing = p->velocity.y;     // the drift's factor per tick
     p->color = 0xFFFFFFFF;
     p->frame = 0;
     float radian = ei::kRadiansPerDegree * 360.0f;
@@ -2285,8 +2357,8 @@ int ParticleSource::EmitVulkan(Particle* p, int) {
         float high = spreadMin.y * 0.5f;
         p->pos.z = g_clientRandom.Range(0.0f, high - low) + spreadMax.y + origin.z + low;
         p->size = size;
-        p->velocity.x = growth;
-        p->velocity.y = 0.965f;     // 0.965
+        sizeFactor = growth;
+        slowing = 0.965f;
         float reach = spreadMin.x;
         p->drift.z = 0.0f;
         float angle = g_clientRandom.Range(0.0f, radian);
@@ -2303,63 +2375,67 @@ int ParticleSource::EmitVulkan(Particle* p, int) {
     p->pos.y = lib::Cos(angle) * reach + origin.y;
     p->pos.z = origin.z;
     p->size = size * 0.3f;
-    p->velocity.x = 1.02f;     // 1.02
-    p->velocity.y = 1.0f;
+    sizeFactor = 1.02f;
+    slowing = 1.0f;
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
     p->drift.z = height;
     return 1;
 }
 
-// VulcanSmoke: frames at the particle's own pace (state ticks per frame; dropped after
-// the last), moving by drift, growing by velocity.x and slowing by velocity.y.
+// VulcanSmoke: frames at the particle's own pace (state ticks per frame; dropped after the last), moving by drift,
+// growing and slowing.
 int ParticleSource::UpdateVulkan(Particle* p) {
+    const float& sizeFactor = p->velocity.x;
+    const float& slowing = p->velocity.y;
     if (--p->life == 0) return 0;
     if (--p->frameTimer == 0) {
         if (++p->frame >= frameCount) return 0;
         p->frameTimer = p->state;
     }
     p->pos += p->drift;
-    p->size = p->velocity.x * p->size;
-    float keep = p->velocity.y;
+    p->size = sizeFactor * p->size;
+    float keep = slowing;
     p->drift *= keep;
     return 1;
 }
 
 // --- FireStar / AcidStar (0x2042-ish), Regeneration, VisionStar and ZoneExit ----------------------
 
-// FireStar: a single flash at the source (the source stops emitting at once) with the
-// source's lifetime as its frame and its size kept in velocity.x.
+// FireStar: a single flash at the source (the source stops emitting at once) with the source's lifetime as its
+// frame.
 int ParticleSource::EmitFireStar(Particle* p, int) {
+    float& flashSize = p->velocity.x;
     flags &= ~ParticleSourceFlag::Emitting;
     p->color = 0xFFFFFF;
     p->life = 3;
     p->frame = lifetime;
     p->pos = origin;
     p->size = 0.0f;
-    p->velocity.x = size;
+    flashSize = size;
     return 1;
 }
 
 // FireStar: shown for two ticks at the kept size (shrinking it by 0.9 each time), then dropped.
 int ParticleSource::UpdateFireStar(Particle* p) {
+    float& flashSize = p->velocity.x;
     if (--p->life <= 0) return 0;
-    float shrunk = p->velocity.x * 0.9f;
+    float shrunk = flashSize * 0.9f;
     p->color = 0xFFFFFFFF;
-    p->size = p->velocity.x;
-    p->velocity.x = shrunk;
+    p->size = flashSize;
+    flashSize = shrunk;
     return 1;
 }
 
-// Regeneration: two particles at the source, velocity.x -1 for the first and 1 for the
-// second (the sides they circle on).
+// Regeneration: two particles at the source, the first on the carrier's left (-1), the second on its right (1).
 int ParticleSource::EmitRegeneration(Particle* p, int) {
+    float& sideSign = p->velocity.x;
     if (std::ssize(particles) > 1) return 0;
     p->color = 0xFFFFFF;
     p->frame = 3;
     p->pos = origin;
     p->size = 0.0f;
-    p->velocity.x = static_cast<float>(!particles.empty() ? 1 : -1);
+    sideSign = static_cast<float>(!particles.empty() ? 1 : -1);
     return 1;
 }
 
@@ -2368,6 +2444,7 @@ int ParticleSource::EmitRegeneration(Particle* p, int) {
 // point beside the carrier: its own x axis (from localRotation) scaled by the carrier's radius, the
 // particle's side and 0.65; a little above, by 0.4 of the source's size. Its size flickers at random.
 int ParticleSource::UpdateRegeneration(Particle* p) {
+    const float& sideSign = p->velocity.x;
     if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
         float shrunk = size * 0.75f;
         size = shrunk;
@@ -2377,7 +2454,7 @@ int ParticleSource::UpdateRegeneration(Particle* p) {
     Vector3 target = origin;
     if (attachedTo) {
         const Object3D* carrier = attachedTo;
-        float scale = carrier->bounds.radius * p->velocity.x * 0.65f;
+        float scale = carrier->bounds.radius * sideSign * 0.65f;
         target += carrier->localRotation.AxisX() * scale;
     }
     p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * size * 0.25f;
@@ -2393,6 +2470,7 @@ int ParticleSource::UpdateRegeneration(Particle* p) {
 // source and four satellites half a unit out, at the angles 2 pi times 0.2, 0.4, 0.6 and 0.8 (the
 // first at angle 0); with another lifetime (used as the frame) just the one particle.
 int ParticleSource::EmitVisionStar(Particle* p, int) {
+    Vector3& offset = p->velocity;  // a satellite's, from the source
     int count = lib::Count(particles);
     if (count > 4) return 0;
     if (count > 0 && lifetime != 1) return 0;
@@ -2402,18 +2480,18 @@ int ParticleSource::EmitVisionStar(Particle* p, int) {
     p->size = 0.0f;
     if (lifetime != 1) return 1;
     if (count == 0) {
-        p->velocity.x = lib::Cos(0.0f);
-        p->velocity.y = lib::Sin(0.0f);
-        p->velocity.z = 0.0f;
+        offset.x = lib::Cos(0.0f);
+        offset.y = lib::Sin(0.0f);
+        offset.z = 0.0f;
     } else {
         float angle = kSpinAngle * SpinRate(count);
-        p->velocity.x = lib::Cos(angle);
-        p->velocity.y = lib::Sin(angle);
-        p->velocity.z = 0.0f;
+        offset.x = lib::Cos(angle);
+        offset.y = lib::Sin(angle);
+        offset.z = 0.0f;
     }
     float half = 0.5f;
-    p->velocity *= half;
-    p->pos += p->velocity;
+    offset *= half;
+    p->pos += offset;
     return 1;
 }
 
@@ -2422,6 +2500,7 @@ int ParticleSource::EmitVisionStar(Particle* p, int) {
 // eases (0.95) towards a random flicker of the source's size; once the source stops emitting (or
 // loses its carrier) the source's size is zeroed and the particles fade, dropped below 0.03.
 int ParticleSource::UpdateVisionStar(Particle* p) {
+    Vector3& offset = p->velocity;
     float oldSize = p->size;
     p->color = 0xFFFFFFFF;
     p->pos = origin;
@@ -2430,11 +2509,11 @@ int ParticleSource::UpdateVisionStar(Particle* p) {
         float c = lib::Cos(0.07f);
         flicker = 0.17f;     // 0.17
         float s = lib::Sin(0.07f);
-        float turnedY = p->velocity.y * c - p->velocity.x * s;
-        float turnedX = c * p->velocity.x + p->velocity.y * s;
-        p->velocity.y = turnedY;
-        p->velocity.x = turnedX;
-        p->pos += p->velocity;
+        float turnedY = offset.y * c - offset.x * s;
+        float turnedX = c * offset.x + offset.y * s;
+        offset.y = turnedY;
+        offset.x = turnedX;
+        p->pos += offset;
     }
     if (ParticleTypeOf(type) == ParticleType::VisionStar4) p->pos.z = p->pos.z + 0.7f;
     float eased = g_clientRandom.Range(0.1f, 1.9f) * size * flicker * 0.05f + oldSize * 0.95f;
@@ -2446,9 +2525,10 @@ int ParticleSource::UpdateVisionStar(Particle* p) {
     return 1;
 }
 
-// ZoneExit: alpha by the life left (kZoneExitAlpha), dropped past 0; rising 0.05
-// per tick, aux.x slowing by 0.9, cycling through four frames, sized by velocity.x.
+// ZoneExit: alpha by the life left (kZoneExitAlpha), dropped past 0; rising 0.05 per tick, aux.x (0, never set)
+// slowing by 0.9, cycling through four frames.
 int ParticleSource::UpdateZoneExit(Particle* p) {
+    const float& sparkSize = p->velocity.x;
     int life = p->life;
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(ByLife(kZoneExitAlpha, life, 255)) << 24);
     p->life = --life;
@@ -2456,60 +2536,66 @@ int ParticleSource::UpdateZoneExit(Particle* p) {
     p->pos.z += 0.05f;
     p->aux.x *= 0.9f;
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
-    p->size = p->velocity.x;
+    p->size = sparkSize;
     return 1;
 }
 
 // --- FeebleMind (0x2049) update ----------------------------------------------------------------
 
-// FeebleMind: alpha by the life left (dropped past 0); the particle circles: its offset
-// (velocity) is taken off, turned by 0.07 radians and grown by 1.1, then put back with a rise of
-// 0.05. The size is aux.z (growing by 1.04 per tick), the frame cycles through 16.
+// FeebleMind: alpha by the life left (dropped past 0); the particle circles: its offset is taken off, turned by 0.07
+// radians and grown by 1.1, then put back with a rise of 0.05. The size grows by 1.04 per tick, the frame cycles
+// through 16.
 int ParticleSource::UpdateFeebleMind(Particle* p) {
+    Vector3& offset = p->velocity;
+    float& growingSize = p->aux.z;
     int life = --p->life;
     if (life < 0) return 0;
-    float nextSize = p->aux.z;
+    float nextSize = growingSize;
     p->color = (static_cast<std::uint32_t>(kFeebleAlpha[life]) << 24) | 0xFFFFFF;
     int frame = (p->frame + 1) & 15;
-    p->pos -= p->velocity;
+    p->pos -= offset;
     float c = lib::Cos(0.07f);
     float s = lib::Sin(0.07f);
-    float turnedY = p->velocity.y * c - p->velocity.x * s;
-    float turnedX = c * p->velocity.x + p->velocity.y * s;
+    float turnedY = offset.y * c - offset.x * s;
+    float turnedX = c * offset.x + offset.y * s;
     float grow = 1.1f;
-    p->velocity.x = turnedX * grow;
-    p->velocity.y = turnedY * grow;
-    p->pos += p->velocity;
+    offset.x = turnedX * grow;
+    offset.y = turnedY * grow;
+    p->pos += offset;
     p->size = nextSize;
     p->frame = frame;
     p->pos.z += 0.05f;
-    p->aux.z *= 1.04f;
+    growingSize *= 1.04f;
     return 1;
 }
 
 // --- FeetCloud (0x2047): puffs at the carrier's feet; the emission is EmitFeetCloud --------------
 
 // FeetCloud puffs: alpha by the life left (capped at 8 once the source stops emitting or loses its carrier;
-// dropped past 0), the source's lifetime as the colour. The puff's offset (aux) grows by its speed
-// (drift, slowing by 0.9) and the puff eases (velocity.y of the way, which shrinks by 0.98) towards its foot
-// (element `state`) plus the offset; its size is velocity.x (shrinking by 0.8).
+// dropped past 0), the source's tint as the colour. The puff's offset grows by its spread (slowing by 0.9) and the
+// puff eases (part of the way, which shrinks by 0.98) towards its foot (element `state`) plus the offset; its size
+// shrinks by 0.8.
 int ParticleSource::UpdateFeetCloud(Particle* p) {
+    float& puffSize = p->velocity.x;
+    float& ease = p->velocity.y;    // the part of the way to the target per tick
+    Vector3& offset = p->aux;       // from the foot
+    Vector3& spread = p->drift;     // added to the offset per tick
     int life = --p->life;
     if (life < 0) return 0;
     if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
         if (life > 8) life = 8;
         p->life = life;
     }
-    p->color = (static_cast<std::uint32_t>(kFeetAlpha[life]) << 24) + static_cast<std::uint32_t>(lifetime);
-    p->aux += p->drift;
-    float pull = p->velocity.y;
-    Vector3 toward = (p->aux + elements[p->state].pos) * pull;
+    p->color = (static_cast<std::uint32_t>(kFeetAlpha[life]) << 24) + tint;
+    offset += spread;
+    float pull = ease;
+    Vector3 toward = (offset + elements[p->state].pos) * pull;
     p->pos = p->pos * (1.0f - pull) + toward;
-    p->size = p->velocity.x;
-    p->velocity.x *= 0.8f;
-    p->velocity.y *= 0.98f;
+    p->size = puffSize;
+    puffSize *= 0.8f;
+    ease *= 0.98f;
     float slow = 0.9f;
-    p->drift *= slow;
+    spread *= slow;
     return 1;
 }
 
@@ -2537,25 +2623,30 @@ void ParticleSource::TickFeetCloud(ParticleElement* e) {
 
 // --- Silence (0x2048) ----------------------------------------------------------------------------
 
-// Silence: the first two particles are orbs at the source (state 1) circling in step
-// (velocity.x the angle, velocity.y its step; aux.x the tilt, aux.y its step; the second starts at pi).
-// Further ones are wisps (state 0) somewhere along a random orb's last step, thrown out in a
-// random direction (inside the unit ball, normalised) by 0.8 of the orb's size.
+// Silence: the first two particles are orbs at the source (state 1) circling in step (the second starts at pi).
+// Further ones are wisps (state 0) somewhere along a random orb's last step, thrown out in a random direction
+// (inside the unit ball, normalised) by 0.8 of the orb's size.
 int ParticleSource::EmitSilence(Particle* p, int) {
     if (std::ssize(particles) <= 1) {
+        float& angle = p->velocity.x;       // around the source
+        float& angleStep = p->velocity.y;
+        float& tilt = p->aux.x;             // of the circle
+        float& tiltStep = p->aux.y;
+        float& orbitRadius = p->aux.z;      // kept while the carrier is gone
         p->color = 0xFFFFFF;
         p->frame = 6;
         p->pos = origin;
         p->size = 0.0f;
         float start = !particles.empty() ? 0.0f : 3.1416f;    // 0 / pi
-        p->velocity.x = start;
-        p->aux.x = start;
-        p->velocity.y = 0.1f;     // 0.1
-        p->aux.y = 0.12f;     // 0.12
-        p->aux.z = 1.0f;
+        angle = start;
+        tilt = start;
+        angleStep = 0.1f;
+        tiltStep = 0.12f;
+        orbitRadius = 1.0f;
         p->state = 1;
         return 1;
     }
+    float& wispSize = p->velocity.x;
     auto node = particles.begin();
     if (g_clientRandom.Next() & 1) ++node;
     const Particle* orb = *node;
@@ -2564,7 +2655,7 @@ int ParticleSource::EmitSilence(Particle* p, int) {
     Vector3 v = RandomInBall();
     p->size = 0.0f;
     p->pos = v * orb->size * 0.8f + start;
-    p->velocity.x = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * size * 0.08f;
+    wispSize = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * size * 0.08f;
     p->color = 0xFFFFFFFF;
     p->frame = 6;
     p->state = 0;
@@ -2572,41 +2663,44 @@ int ParticleSource::EmitSilence(Particle* p, int) {
     return 1;
 }
 
-// Silence: once the source stops emitting (or loses its carrier) the orbs
-// shrink the source by 0.85 per tick, everything going below 0.02. An orb circles the source on a
-// tilted circle (radius: half the carrier's, kept in aux.z), half a radius up, keeping its step in
-// drift and flickering in size. A wisp shows velocity.x (shrinking by 0.8) for its life.
+// Silence: once the source stops emitting (or loses its carrier) the orbs shrink the source by 0.85 per tick,
+// everything going below 0.02. An orb circles the source on a tilted circle (radius: half the carrier's), half a
+// radius up, keeping its step in drift and flickering in size. A wisp shows its size (shrinking by 0.8) for its life.
 int ParticleSource::UpdateSilence(Particle* p) {
     if (!(flags & ParticleSourceFlag::Emitting) || !attachedTo) {
         if (p->state) size = size * 0.85f;
         if (size < 0.02f) return 0;
     }
     if (!p->state) {
+        float& wispSize = p->velocity.x;
         if (--p->life <= 0) return 0;
-        float shrunk = p->velocity.x * 0.8f;
-        p->size = p->velocity.x;
-        p->velocity.x = shrunk;
+        float shrunk = wispSize * 0.8f;
+        p->size = wispSize;
+        wispSize = shrunk;
         return 1;
     }
+    float& angle = p->velocity.x;
+    const float& angleStep = p->velocity.y;
+    float& tilt = p->aux.x;
+    const float& tiltStep = p->aux.y;
+    float& orbitRadius = p->aux.z;
     float radius;
-    float& kept = p->aux.z;
     if (attachedTo) {
-        radius = attachedTo->bounds.radius *
-                 0.5f;
-        kept = radius;
+        radius = attachedTo->bounds.radius * 0.5f;
+        orbitRadius = radius;
     } else {
-        radius = kept;
+        radius = orbitRadius;
     }
-    float c = lib::Cos(p->velocity.x);
+    float c = lib::Cos(angle);
     p->color = 0xFFFFFFFF;
-    float sn = lib::Sin(p->velocity.x);
-    Vector3 circle = {c, sn, lib::Sin(p->aux.x) * 0.5f};
+    float sn = lib::Sin(angle);
+    Vector3 circle = {c, sn, lib::Sin(tilt) * 0.5f};
     Vector3 next = circle * (radius / std::sqrt(LengthSquared(circle))) + origin;
     next.z = radius * 0.5f + next.z;
     p->drift = next - p->pos;
     p->pos = next;
-    p->velocity.x = p->velocity.y + p->velocity.x;
-    p->aux.x = p->aux.y + p->aux.x;
+    angle = angleStep + angle;
+    tilt = tiltStep + tilt;
     p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_2 + 0.9f) * size * 0.22f;
     return 1;
 }
@@ -2616,8 +2710,10 @@ int ParticleSource::UpdateSilence(Particle* p) {
 // Modifier: the first twelve frames are the marker riding its element (state), its size
 // shrinking (negative source size) or growing, alpha by the element's tick. Later frames are
 // sparks stepping through the frames (back to 12 past the last), flying out by velocity plus their
-// spread (aux, slowing by 0.9), fading by 48 per tick and shrinking by 0.9.
+// spread (slowing by 0.9), fading by 48 per tick and shrinking by 0.9.
 int ParticleSource::UpdateModifier(Particle* p) {
+    const Vector3& base = p->velocity;  // a spark's point between its element's places
+    Vector3& scatter = p->aux;          // added to base, slowing
     if (--p->life == 0) return 0;
     if (p->frame < 12) {
         float oldSize = p->size;
@@ -2641,9 +2737,9 @@ int ParticleSource::UpdateModifier(Particle* p) {
         p->frameTimer = frameDelay;
     }
     float slow = 0.9f;
-    p->aux *= slow;
+    scatter *= slow;
     float oldSize = p->size;
-    p->pos = p->aux + p->velocity;
+    p->pos = scatter + base;
     std::int32_t a = static_cast<std::int32_t>(p->color >> 24) - 0x30;
     if (a < 0) a = 0;
     p->size = oldSize * slow;
@@ -2668,39 +2764,43 @@ void ParticleSource::TickModifier(ParticleElement* e) {
 
 // --- LightningBlast (0x2030): update and element tick ------------------------------------------------
 
-// LightningBlast: bolts (state n) ride element n-1; a flash (state and frameTimer set) shows once (and makes
-// the source emit 50 per tick), then goes. Sparks (state 0): alpha by the life left (the table shifted by 22,
-// a quirk kept), size aux.x (shrinking by 0.9); with frameTimer set they jump to velocity and step a frame,
-// else cycle four frames flying by drift (slowing by 0.6).
+// LightningBlast: bolts (state n) ride element n-1; a flash (state set, flashes) shows once (and makes the source
+// emit 50 per tick), then goes. Sparks (state 0): alpha by the life left (the table shifted by 22, a quirk kept),
+// shrinking by 0.9; the jumping ones go to their target and step a frame, the others cycle four frames flying by
+// drift (slowing by 0.6).
 int ParticleSource::UpdateLightning(Particle* p) {
+    float& sparkSize = p->aux.x;
     int life = --p->life;
     if (life < 0) return 0;
     if (p->state != 0) {
-        if (p->frameTimer != 0) {
+        const int& flashes = p->frameTimer;
+        if (flashes != 0) {
             if (IsZero(p->size)) {
                 emitCount = 50;
-                p->size = p->aux.x;
+                p->size = sparkSize;
                 return 1;
             }
             return 0;
         }
         p->pos = elements[p->state - 1].pos;
-        p->size = p->aux.x;
+        p->size = sparkSize;
         return 1;
     }
+    const int& jumps = p->frameTimer;
+    const Vector3& target = p->velocity;
     p->color = (static_cast<std::uint32_t>(kLightningAlpha[life]) << 22) | 0xFFFFFF;
-    if (p->frameTimer != 0) {
-        float shrunk = p->aux.x * 0.9f;
+    if (jumps != 0) {
+        float shrunk = sparkSize * 0.9f;
         ++p->frame;
-        p->pos = p->velocity;
-        p->size = p->aux.x;
-        p->aux.x = shrunk;
+        p->pos = target;
+        p->size = sparkSize;
+        sparkSize = shrunk;
         return 1;
     }
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
     p->pos += p->drift;
-    p->size = p->aux.x;
-    p->aux.x *= 0.9f;
+    p->size = sparkSize;
+    sparkSize *= 0.9f;
     float slow = 0.6f;
     p->drift *= slow;
     return 1;
@@ -2724,6 +2824,9 @@ void ParticleSource::TickLightning(ParticleElement* e) {
 // opaque and fades out (state -19 per tick) while its step grows by 1.2; else it starts clear and
 // fades in (state 19) while its step shrinks by 1/1.2.
 int ParticleSource::EmitTeleport(Particle* p, int) {
+    float& stepFactor = p->velocity.x;  // climb's factor per tick
+    float& climb = p->velocity.z;       // the rise per tick
+    float& sparkSize = p->aux.x;
     p->color = 0xFFFFFFFF;
     p->frame = 0;
     p->life = lifetime;
@@ -2740,7 +2843,7 @@ int ParticleSource::EmitTeleport(Particle* p, int) {
     p->pos.z = origin.z;
     p->size = 0.0f;
     p->pos.z = g_clientRandom.Range(-0.4f, -0.2f) * magnitude + p->pos.z;
-    p->aux.x = (2.0f - spread) * 0.2f;    // (2 - spread) / 5
+    sparkSize = (2.0f - spread) * 0.2f;    // (2 - spread) / 5
     if (g_clientRandom.Range(0.0f, 1.0f) > spread) {
         p->frame = static_cast<int>(g_clientRandom.Next() % 12) + 4;
     } else {
@@ -2748,23 +2851,26 @@ int ParticleSource::EmitTeleport(Particle* p, int) {
     }
     float rise = 1.0f - spread + 3.0f;
     if (size > 0.0f) {
-        p->velocity.x = 1.2f;     // 1.2
+        stepFactor = 1.2f;
         p->state = -19;
-        p->velocity.z = rise * magnitude * 0.15f;
+        climb = rise * magnitude * 0.15f;
     } else {
         p->color = 0xFFFFFF;
-        p->velocity.x = 0.8333333f;     // 1 / 1.2
+        stepFactor = 0.8333333f;     // 1 / 1.2
         p->state = 19;
-        p->velocity.z = rise * magnitude * 2.25f;
+        climb = rise * magnitude * 2.25f;
     }
-    p->pos.z = p->velocity.z + p->pos.z;
+    p->pos.z = climb + p->pos.z;
     return 1;
 }
 
-// Teleport sparks: frames 0-3 cycle (and 4-15 run on back to 4); the z step (velocity.z) is redone scaled
-// by velocity.x; shown at size aux.x (hidden in the last tick); alpha moves by the state per tick, an
-// unsigned sum capped at 255 (a quirk kept: a fade out below 19 jumps back to 255).
+// Teleport sparks: frames 0-3 cycle (and 4-15 run on back to 4); the z step is redone scaled by its factor; shown at
+// the spark's size (hidden in the last tick); alpha moves by the state per tick, an unsigned sum capped at 255 (a
+// quirk kept: a fade out below 19 jumps back to 255).
 int ParticleSource::UpdateTeleport(Particle* p) {
+    const float& stepFactor = p->velocity.x;
+    float& climb = p->velocity.z;
+    const float& sparkSize = p->aux.x;
     int life = --p->life;
     if (life == 0) return 0;
     if (--p->frameTimer == 0) {
@@ -2772,14 +2878,14 @@ int ParticleSource::UpdateTeleport(Particle* p) {
         if (p->frame == 16) p->frame = 4;
         p->frameTimer = frameDelay;
     }
-    p->pos.z -= p->velocity.z;
-    float step = p->velocity.x * p->velocity.z;
-    p->velocity.z = step;
+    p->pos.z -= climb;
+    float step = stepFactor * climb;
+    climb = step;
     p->pos.z = step + p->pos.z;
     if (life == 1) {
         p->size = 0.0f;
     } else {
-        p->size = p->aux.x;
+        p->size = sparkSize;
     }
     std::uint32_t a = (p->color >> 24) + static_cast<std::uint32_t>(p->state);
     if (a >= 0xFF) a = 0xFF;
@@ -2844,21 +2950,23 @@ int ParticleSource::EmitStartTrans(Particle* p, int) {
         p->life = 15;
         p->state = 0;
         p->frame = static_cast<int>(g_clientRandom.Next() % 12);
+        Vector3& offset = p->velocity;  // the start, from the source
+        float& sparkSize = p->aux.x;
         float lengthSquared;
         Vector3 v = RandomInBall(lengthSquared);
-        p->velocity = v / std::sqrt(lengthSquared) * size;
-        p->pos = p->velocity + origin;
-        p->drift = -p->velocity / static_cast<float>(p->life + 3);
-        p->aux.x = size * 0.05f;
+        offset = v / std::sqrt(lengthSquared) * size;
+        p->pos = offset + origin;
+        p->drift = -offset / static_cast<float>(p->life + 3);
+        sparkSize = size * 0.05f;
     }
     p->color = 0xFFFFFF;
     p->size = 0.0f;
     return 1;
 }
 
-// StartTrans: the glow flickers at trans.scale while carried, then fades (by the
-// life table, size times 0.6); the others come in, cycling four frames at size aux.x, fading out over
-// their last ticks (capped at 4 once the carrier is gone).
+// StartTrans: the glow flickers at trans.scale while carried, then fades (by the life table, size times 0.6); the
+// others come in, cycling four frames at their size, fading out over their last ticks (capped at 4 once the carrier
+// is gone).
 int ParticleSource::UpdateStartTrans(Particle* p) {
     if (p->state != 0) {
         if (!attachedTo) {
@@ -2878,9 +2986,10 @@ int ParticleSource::UpdateStartTrans(Particle* p) {
         if (life >= 4) life = 4;
         p->life = life;
     }
+    const float& sparkSize = p->aux.x;
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
     p->pos += p->drift;
-    p->size = p->aux.x;
+    p->size = sparkSize;
     p->color = (static_cast<std::uint32_t>(kTransAlpha[p->life]) << 24) | 0xFFFFFF;
     return 1;
 }
@@ -2937,6 +3046,8 @@ int ParticleSource::EmitTendril(Particle* p, int index) {
 // radians, step 0.1); the others along the four diagonals (by 32, step index * 1/310). All at the
 // source, in element 0's colour, 6 ticks.
 int ParticleSource::EmitGroundDust(Particle* p, int index) {
+    float& dustSize = p->aux.x;
+    float& swell = p->aux.y;    // the size's factor per tick
     if (index >= 128) {
         int j = index - 128;
         int diagonal = j / 32;
@@ -2953,9 +3064,9 @@ int ParticleSource::EmitGroundDust(Particle* p, int index) {
     p->life = 6;
     p->frame = 15;
     p->velocity.z = 0.0f;
-    p->aux.x = 0.07f;     // 0.07
+    dustSize = 0.07f;
     p->color = elements[0].plane.color;
-    p->aux.y = 1.0f;
+    swell = 1.0f;
     return 1;
 }
 
@@ -2966,16 +3077,15 @@ int ParticleSource::EmitGroundDust(Particle* p, int index) {
 // the client tick), on the ground or platform under it, unless the point is where the last one was; the
 // point's index goes in frameTimer and the life is -10 (set by UpdateGlow).
 int ParticleSource::EmitGlow(Particle* p, int index) {
+    int& order = p->frameTimer;     // the point's index in the emission
     MapObject* unit = attachedTo;
     if (elements.empty()) {
         elements.resize(1);
         elements[0].glow.mark = {-1.0f, -1.0f, -1.0f};
-        if (alpha == 0.0f) {
-            elements[0].glow.color = 0xB0B0B0;
-        } else if (alpha == 1.0f) {
-            elements[0].glow.color = 0x40FF40;
-        } else if (alpha == 2.0f) {
-            elements[0].glow.color = 0xFF8028;
+        switch (glowKind) {
+        case GlowKind::Grey: elements[0].glow.color = 0xB0B0B0; break;
+        case GlowKind::Green: elements[0].glow.color = 0x40FF40; break;
+        case GlowKind::Orange: elements[0].glow.color = 0xFF8028; break;
         }
     }
     if (!unit) return 0;
@@ -2993,7 +3103,7 @@ int ParticleSource::EmitGlow(Particle* p, int index) {
     p->frame = 15;
     p->life = -10;
     p->pos.z = top + 0.15f;
-    p->frameTimer = index;
+    order = index;
     p->color = elements[0].glow.color;
     return 1;
 }
@@ -3009,6 +3119,7 @@ void ParticleSource::TickGlow(ParticleElement*) {
 // ticks, else one; once the carrier is gone (nothing emitted) or it is dead (IsDead) the source stops and lets
 // it go.
 int ParticleSource::EmitStun(Particle* p, int) {
+    float& sizeFactor = p->velocity.x;
     auto [offset, radius] = AttachmentOffset();
     p->color = 0xFFFFFF;
     p->frame = 3;
@@ -3016,7 +3127,7 @@ int ParticleSource::EmitStun(Particle* p, int) {
     p->size = 0.0f;
     p->pos = v * (radius * 0.8f) + origin;
     p->life = 20;
-    p->velocity.x = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f;
+    sizeFactor = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f;
     Unit* unit = UnitOrNull(attachedTo);   // stun rides units (the game reads any carrier as one)
     if (!unit) {
         Stop();
@@ -3034,12 +3145,13 @@ int ParticleSource::EmitStun(Particle* p, int) {
     return 1;
 }
 
-// Stun stars: dropped past their life; else flickering at a random size of
-// the source's times velocity.x. Without a carrier the source stops and is let go.
+// Stun stars: dropped past their life; else flickering at a random size of the source's times the star's factor.
+// Without a carrier the source stops and is let go.
 int ParticleSource::UpdateStun(Particle* p) {
+    const float& sizeFactor = p->velocity.x;
     if (--p->life < 0) return 0;
     p->color = 0xFFFFFFFF;
-    p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * size * p->velocity.x;
+    p->size = (WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f) * size * sizeFactor;
     if (!attachedTo) {
         Stop();
     }

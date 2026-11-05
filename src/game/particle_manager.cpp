@@ -518,8 +518,8 @@ void ParticleSource::AddParticle(Particle* p) {
 bool ParticleSource::RunTick() {
     if (hiddenTicks > 0x38 && (flags & ParticleSourceFlag::IdlesOffScreen)) return true;
     const WorldClient* world = &g_clientWorld;
-    windDirection = lib::Load<Vector3>(world->windDirection);
-    windStrength = std::bit_cast<float>(world->windStrength);
+    windDirection = world->windDirection;
+    windStrength = world->windStrength;
     boundsMin = {kFar, kFar, kFar};
     boundsMax = {kNear, kNear, kNear};
     if (attachedTo && (attachedTo->flags & MapObjectFlag::Removed)) Attach(nullptr);

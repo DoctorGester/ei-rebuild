@@ -128,10 +128,8 @@ void SetupTornadoRings(ParticleSource* s) {
     s->elements.resize(6);
     for (int i = 0; i < std::ssize(s->elements); ++i) {
         ParticleElement& e = s->elements[i];
-        std::memset(&e.pos, 0, 2 * sizeof(float));
-        e.pos.z = i * 12.0f * 0.2f;
+        e.pos = {0.0f, 0.0f, i * 12.0f * 0.2f};
         e.ticks = 0;
-        e.word[9] = 0;
     }
 }
 
@@ -141,14 +139,14 @@ void SetupTornado(ParticleSource* s) {
     s->maxParticles = 800;
     s->frameDelay = 1;
     s->height = 0.2f;
-    // The particle colour: 0x19 alpha, then the scene light's r, g, b (the delay field holds it).
+    // The particle colour: 0x19 alpha, then the scene light's r, g, b.
     const float* light = SceneLightColor();
     std::uint32_t color = static_cast<std::uint32_t>(light[0] * 255.0f);
     color = (color | 0x1900) << 8;
     color |= static_cast<std::uint32_t>(light[1] * 255.0f);
     color <<= 8;
     color |= static_cast<std::uint32_t>(light[2] * 255.0f);
-    lib::Store(&s->frameDelay, color);
+    s->tint = color;
     SetupTornadoRings(s);
     s->elements[0].funnel.height = 12.0f;  // 12.0
     s->elements[0].funnel.bend = 0.5f;
@@ -163,7 +161,7 @@ void SetupCurseHolder(ParticleSource* s) {
     s->attachPoint = 7;
     s->maxParticles = 800;
     s->height = 0.2f;
-    lib::Store(&s->frameDelay, 0x19000000);
+    s->tint = 0x19000000;
     SetupTornadoRings(s);
     s->elements[0].funnel.height = 12.0f * 0.4f;
     s->elements[0].funnel.bend = 0.0f;
@@ -313,8 +311,8 @@ void SetupFeetCloud(ParticleSource* s) {
         s->elements[i].foot.radius = 0.0f;
     }
     SetCallbacks(s, &ParticleSource::EmitFeetCloud, &ParticleSource::UpdateFeetCloud, &ParticleSource::TickFeetCloud);
-    if (ParticleTypeOf(s->type) == ParticleType::FeetCloud1) s->lifetime = 0xFF;
-    else if (ParticleTypeOf(s->type) == ParticleType::FeetCloud2) s->lifetime = 0xFF0000;
+    if (ParticleTypeOf(s->type) == ParticleType::FeetCloud1) s->tint = 0xFF;
+    else if (ParticleTypeOf(s->type) == ParticleType::FeetCloud2) s->tint = 0xFF0000;
 }
 
 // StartTrans (0x2051): one element with a 30-tick countdown.
@@ -705,6 +703,9 @@ void ParticleSource::Reset() {
     elementFn = nullptr;
     windStrength = 0.0f;
     additiveBlend = false;
+    tint = 0;
+    rayCount = 0;
+    glowKind = GlowKind::Green;
     lib::FreeStorage(elements);
     alpha = 1.0f;
     typeParam = 1.0f;

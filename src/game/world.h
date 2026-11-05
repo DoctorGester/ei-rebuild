@@ -181,8 +181,8 @@ public:
 
     float timeBase = 0.0f;
     float secondsPerTick = 0.0f;
-    std::uint8_t windDirection[12] = {};  // three floats; saved and loaded as they are
-    std::uint32_t windStrength = 0;       // float bits, 0..1; saved and loaded
+    Vector3 windDirection;                // saved and loaded
+    float windStrength = 0.0f;            // 0..1; saved and loaded
     Ref<LinkFigureLoader> figureLoader;    // the client's from SetUpGraphics; FigureLoader returns it
     // The managers (Create makes them, Destroy deletes them in its order).
     std::unique_ptr<PlayerManager> players;

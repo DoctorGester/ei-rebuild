@@ -42,29 +42,33 @@ void PlaceBoltPoint(ParticleSource* s, int i, Vector3& dir) {
     points[i].ticks = 0;   // bursts
 }
 
-// Particles along the bolt: two per point (the odd ones flicker with a random size and frame).
+// Particles along the bolt: two per point (the odd ones flash with a random size and frame).
 int EmitAlongBolt(ParticleSource* s, Particle* p, ParticleElement* points) {
+    int& flashes = p->frameTimer;
+    float& sparkSize = p->aux.x;
     int emitted = points[0].bolt.emitted;
     p->frame = 0;
     p->life = 10;
     int index = emitted / 2;
-    p->frameTimer = points[0].bolt.emitted & 1;
+    flashes = points[0].bolt.emitted & 1;
     p->state = index + 1;
     p->pos = points[index].pos;
     p->size = 0.0f;
-    p->aux.x = 0.1f;     // 0.1
+    sparkSize = 0.1f;
     ++points[0].bolt.emitted;
-    if (p->frameTimer == 0) return 1;
-    p->aux.x = g_clientRandom.Range(0.5f, 1.4f) * s->size * 0.2f;
+    if (flashes == 0) return 1;
+    sparkSize = g_clientRandom.Range(0.5f, 1.4f) * s->size * 0.2f;
     p->frame = static_cast<int>((g_clientRandom.Next() & 3) + 12);
-    if (index == 0) p->aux.x = s->size * 0.4f;
-    p->size = p->aux.x;
+    if (index == 0) sparkSize = s->size * 0.4f;
+    p->size = sparkSize;
     return 1;
 }
 
 // A burst at the impact point: a random direction inside the unit disc (ten tries), spread by a
 // random angle and distance.
 int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
+    int& jumps = p->frameTimer;
+    float& sparkSize = p->aux.x;
     p->color = 0x40FFFFFF;
     p->frame = 8;
     g_clientRandom.Next();   // draw kept
@@ -86,28 +90,31 @@ int EmitBurst(ParticleSource* s, Particle* p, ParticleElement* points) {
     float rise = (1.0f - spread) * s->size * 0.1f + points[0].pos.z;
     p->size = 0.0f;
     p->pos.z = rise;
-    p->frameTimer = 0;
+    jumps = 0;
     p->life = std::lround(9.0f - spread * 3.0f);
     float roll = g_clientRandom.Range(0.1f, 0.14f);
-    p->aux.x = roll * (2.0f - spread) * s->size;
+    sparkSize = roll * (2.0f - spread) * s->size;
     return 1;
 }
 
-// A spark between a random point and its base, at a random fraction of the way.
+// A spark between a random point and its base, at a random fraction of the way, that jumps there.
 int EmitSpark(ParticleSource* s, Particle* p) {
+    int& jumps = p->frameTimer;
+    float& sparkSize = p->aux.x;
+    Vector3& target = p->velocity;
     std::uint32_t count = static_cast<std::uint32_t>(std::ssize(s->elements));
     std::uint32_t index = g_clientRandom.Next() % count;
     p->frame = 1;
-    p->aux.x = g_clientRandom.Range(0.0f, 0.01f) * 3.0f + 0.06f;
+    sparkSize = g_clientRandom.Range(0.0f, 0.01f) * 3.0f + 0.06f;
     p->life = 6;
-    p->frameTimer = 1;
+    jumps = 1;
     float u = g_clientRandom.Range(0.0f, 1.0f);
     float w = 1.0f - u;
     ParticleElement* points = s->elements.data();
     p->pos = points[index].pos;
     p->size = 0.0f;
     const ParticleElement& n = s->elements[index];
-    p->velocity = u * n.pos + w * n.bolt.base;
+    target = u * n.pos + w * n.bolt.base;
     return 1;
 }
 
@@ -206,6 +213,8 @@ int ParticleSource::EmitLightning(Particle* p, int) {
 // ring around the carrier. Then one particle per point while the fade has not started (frame = the modifier's
 // number), then drifting sparks between a random point and its starting place.
 int ParticleSource::EmitModifier(Particle* p, int index) {
+    Vector3& base = p->velocity;    // a spark's point between its element's places
+    Vector3& scatter = p->aux;      // added to base, slowing
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
     p->frameTimer = frameDelay;
@@ -240,11 +249,11 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
     p->life = 5;
     p->frame = static_cast<int>((frameRoll & 3) + 12);
     const ParticleElement& e = elements[pick];
-    p->velocity = u * e.pos + w * e.ring.start;
+    base = u * e.pos + w * e.ring.start;
     float jz = g_clientRandom.Range(-0.04f, 0.04f);
     float jy = g_clientRandom.Range(-0.04f, 0.04f);
     float jx = g_clientRandom.Range(-0.04f, 0.04f);
-    p->aux = {jx, jy, jz};
+    scatter = {jx, jy, jz};
     p->pos = elements[pick].ring.start;
     p->size = 0.06f;   // 0.06
     return 1;
@@ -256,6 +265,7 @@ int ParticleSource::EmitModifier(Particle* p, int index) {
 // turned ellipse (radii alpha and typeParam) around the source on the ground, red-tinted when extent.x is set,
 // rising by an amount that is larger near the centre.
 int ParticleSource::EmitZoneExit(Particle* p, int) {
+    float& sparkSize = p->velocity.x;
     int count = std::lround(alpha * typeParam);
     if (count > 40) count = 40;
     emitCount = count;
@@ -275,14 +285,15 @@ int ParticleSource::EmitZoneExit(Particle* p, int) {
     p->size = 0.0f;
     p->pos.z = ground + 0.1f;
     float roll = WordToFloat(g_clientRandom.Next()) * kWordTo0_6 + 0.7f;
-    p->velocity.x = roll * falloff * 0.05f;
+    sparkSize = roll * falloff * 0.05f;
     return 1;
 }
 
 // 0x2039: on its first update (life -10) the particle's lifetime is set from its
-// position in the emission (frameTimer * 8 / particle count + 7); the alpha follows kGlowAlpha.
+// position in the emission (order * 8 / particle count + 7); the alpha follows kGlowAlpha.
 int ParticleSource::UpdateGlow(Particle* p) {
-    if (p->life == -10) p->life = p->frameTimer * 8 / lib::Count(particles) + 7;
+    const int& order = p->frameTimer;
+    if (p->life == -10) p->life = order * 8 / lib::Count(particles) + 7;
     if (--p->life < 0) return 0;
     int opacity = std::lround(kGlowAlpha[p->life] * 255.0f);
     p->color = (p->color & 0xFFFFFF) + (static_cast<std::uint32_t>(opacity) << 24);
@@ -292,6 +303,8 @@ int ParticleSource::UpdateGlow(Particle* p) {
 // 0x203A/0x203B: dust moving along the ground, never below the plane the source measured (element 0),
 // growing and slowing down.
 int ParticleSource::UpdateGroundDust(Particle* p) {
+    float& dustSize = p->aux.x;
+    const float& swell = p->aux.y;
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(kDustAlpha[p->life]) << 24) + (p->color & 0xFFFFFF);
     p->pos += p->velocity;
@@ -300,9 +313,9 @@ int ParticleSource::UpdateGroundDust(Particle* p) {
     float along = (p->pos.x - origin.x) * plane.normal.x + (p->pos.y - origin.y) * plane.normal.y;
     float onPlane = plane.height - along * plane.normal.z + 0.1f;
     p->pos.z = SelectLess(lifted, onPlane, onPlane, lifted);
-    p->size = p->aux.x;
+    p->size = dustSize;
     p->velocity *= 1.05f;
-    p->aux.x = p->aux.y * p->aux.x;
+    dustSize = swell * dustSize;
     return 1;
 }
 
@@ -319,9 +332,15 @@ void ParticleSource::TickGroundPlane(ParticleElement* e) {
     if (++e->ticks > 1) flags &= ~ParticleSourceFlag::Emitting;
 }
 
-// Portal: particles spiral up (their offset rotated by the turn in velocity.x/y each tick) and fade above 8
-// units; the spare ones (state set) flicker in size while the portal is on.
+// Portal: particles spiral up (their offset turned each tick) and fade above 8 units; the spare ones (state set)
+// flicker in size while the portal is on.
 int ParticleSource::UpdatePortal(Particle* p) {
+    const float& spinCos = p->velocity.x;
+    const float& spinSin = p->velocity.y;
+    float& riseRate = p->velocity.z;
+    float& offsetX = p->aux.x;
+    float& offsetY = p->aux.y;
+    const float& sparkSize = p->aux.z;
     if (p->state != 0) {
         if (!(flags & ParticleSourceFlag::Emitting)) return 0;
         if (size < 1.0f) {
@@ -332,18 +351,18 @@ int ParticleSource::UpdatePortal(Particle* p) {
         return 1;
     }
     if (p->life == 0) return 0;
-    float c = p->velocity.x, s = p->velocity.y;
-    float nx = p->aux.y * s + c * p->aux.x;
+    float c = spinCos, s = spinSin;
+    float nx = offsetY * s + c * offsetX;
     int timer = p->frameTimer - 1;
-    float ny = p->aux.y * c - p->aux.x * s;
-    p->aux.x = nx;
-    p->aux.y = ny;
+    float ny = offsetY * c - offsetX * s;
+    offsetX = nx;
+    offsetY = ny;
     p->pos.x = nx + origin.x;
     p->pos.y = ny + origin.y;
-    float rise = size * p->velocity.z;
+    float rise = size * riseRate;
     p->frameTimer = timer;
     p->pos.z = rise + p->pos.z;
-    p->velocity.z *= 1.03f;
+    riseRate *= 1.03f;
     if (timer == 0) {
         if (++p->frame == 4) p->frame = 0;
         if (p->frame == 15) p->frame = 4;
@@ -356,7 +375,7 @@ int ParticleSource::UpdatePortal(Particle* p) {
         p->color = 0x00FFFFFF;
         return 1;
     }
-    p->size = p->aux.z;
+    p->size = sparkSize;
     float fade = (8.0f - climb) * (200.0f / 8.0f);
     int opacity = (std::lround(fade) + 0x37) >> 2;
     if (opacity >= 0x40) opacity = 0x40;
@@ -387,6 +406,8 @@ int ParticleSource::UpdateSparks(Particle* p) {
 // FeebleMind: size * 2 tries per tick; each particle starts one step out from the
 // source in a random horizontal direction.
 int ParticleSource::EmitFeebleMind(Particle* p, int) {
+    Vector3& offset = p->velocity;  // from the circle's centre
+    float& growingSize = p->aux.z;
     emitCount = std::lround(size + size);
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(g_clientRandom.Next() & 15);
@@ -394,19 +415,23 @@ int ParticleSource::EmitFeebleMind(Particle* p, int) {
     p->size = 0.0f;
     p->life = 20;
     float twoPi = kPi + kPi;
-    p->velocity.z = 0.0f;
+    offset.z = 0.0f;
     float angle = g_clientRandom.Range(0.0f, twoPi);
-    p->velocity.x = lib::Cos(angle) * 0.05f;
-    p->velocity.y = lib::Sin(angle) * 0.05f;
-    p->pos += p->velocity;
+    offset.x = lib::Cos(angle) * 0.05f;
+    offset.y = lib::Sin(angle) * 0.05f;
+    p->pos += offset;
     float grow = (WordToFloat(g_clientRandom.Next()) * kWordTo0_2 + 0.9f) * size * 0.035f;
-    p->aux.z = grow;
+    growingSize = grow;
     return 1;
 }
 
 // FeetCloud: size * 8 tries per tick; a puff at one of the two feet (the element's position once it is
 // tracked, else the source), drifting in a random direction inside the unit disc, rising.
 int ParticleSource::EmitFeetCloud(Particle* p, int) {
+    float& puffSize = p->velocity.x;
+    float& ease = p->velocity.y;    // the part of the way to the target per tick
+    Vector3& offset = p->aux;       // from the foot
+    Vector3& spread = p->drift;     // added to the offset per tick
     emitCount = std::lround(size * 8.0f);
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(g_clientRandom.Next() & 15);
@@ -424,12 +449,12 @@ int ParticleSource::EmitFeetCloud(Particle* p, int) {
         if (!(--tries > 0)) break;
     }
     float scale = e.foot.radius;
-    p->drift = Vector3{x, y, 0.0f} * 0.1f * scale * size;
-    p->aux = {};
-    p->velocity.y = 1.0f;
+    spread = Vector3{x, y, 0.0f} * 0.1f * scale * size;
+    offset = {};
+    ease = 1.0f;
     p->life = 10;
-    p->velocity.x = size * e.foot.radius * 0.4f;
-    p->pos.z = p->velocity.x * 1.2f + p->pos.z;
+    puffSize = size * e.foot.radius * 0.4f;
+    p->pos.z = puffSize * 1.2f + p->pos.z;
     return 1;
 }
 

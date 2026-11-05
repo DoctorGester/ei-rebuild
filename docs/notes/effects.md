@@ -16,8 +16,12 @@ Code: `particle_manager.cpp`, `particle_create.cpp`, `particle_emitters.cpp`, `p
 - `Tick` computes the source motion, runs the element callback per element and the update callback per particle
   (saving / restoring the "prev" fields), tracks the bounding box and emits up to `max(emitCount, distance moved /
   emitSpacing)` particles with `emitChance`% each. Particles are pooled.
-- Named types: 0x201B-0x2026 Modifier1-12, 0x2030 LightningBlast, 0x2038 ZoneExit, 0x203E Portal, 0x2043 Sparks,
-  0x2049 FeebleMind, 0x204A / B FeetCloud, 0x2051 StartTrans; 0x2039-0x203B are unnamed.
+- The types are `ParticleType` (effects.h): the script table's names, and descriptive ones for the types it lacks.
+- Per-type data has one name per meaning: an element's fields through its type's view of `ParticleElement` (the views
+  carry no padding and never alias each other), a particle's `velocity` / `aux` / `drift` parts through local references
+  at the top of each callback, and the source's own `tint` (Tornado, CurseHolder ARGB; FeetCloud RGB), `rayCount`
+  (Shower) and `glowKind` (ShapeChange, set by the path markers). The original kept these three in `frameDelay`,
+  `lifetime` and `alpha`.
 - `ParticleManager`: free particles, `held` (sources by id, one reference each), a quiet-start flag that stops
   0x2001 / 3 / 4. `TickSources` ticks every source (paused: only flag 8; a held source whose tick returned 0 is
   released); `ReleaseUnheld` releases held sources with no other reference (the client's zone load). `DrawAll` sorts the
@@ -43,8 +47,8 @@ Kept:
 - `EmitLightning` never counts its bursts; CastSwirl reads its locals one slot off (an element gets sign * carrier
   radius instead of the size); Mushroom's spread is ln(1) = 0; Falling's direction spread is ftol(10 degrees) = 0;
   Teleport adds its alpha step as an unsigned sum capped at 255 (a fade out below 19 jumps back to opaque);
-  LightningBlast sparks shift the alpha table by 22, not 24; FeetCloud uses the source's lifetime as the particles'
-  RGB; Shower and FireBlast keep odd counters (see the code).
+  LightningBlast sparks shift the alpha table by 22, not 24; Shower and FireBlast keep odd counters (see the code);
+  Casting's swirl pick 0 is element 0, the effect's state, read as a swirl (its radius and size as x and y, z 0).
 
 ## Missiles and visibility
 

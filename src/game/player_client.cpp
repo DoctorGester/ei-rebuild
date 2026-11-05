@@ -420,9 +420,9 @@ bool PlayerClient::OnPathMarker() {
             pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
-            if (kind == 0) source->alpha = 1.0f;
-            else if (kind == 1) source->alpha = 0.0f;
-            else if (kind == 2) source->alpha = 2.0f;
+            if (kind == 0) source->glowKind = GlowKind::Green;
+            else if (kind == 1) source->glowKind = GlowKind::Grey;
+            else if (kind == 2) source->glowKind = GlowKind::Orange;
             pathSource->RunTick();
             source->Attach(nullptr);
         }
