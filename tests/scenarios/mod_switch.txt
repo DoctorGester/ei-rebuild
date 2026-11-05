@@ -2,12 +2,17 @@
 # again with Rebirth's Lost in Astral (starter\Mods\LostInAstral: the mod's main menu zone read from its Maps\), then
 # again without a mod, and a new game follows. Starting twice gives the state of one start: the new game's dump is the
 # same as mod_switch_plain's, the same steps without the switches (tools/golden.py diff of the two dumps). The vanilla
-# data has no such folder: the switch logs it and starts the game again without a mod.
+# data has no such folder: the switch logs it and starts the game again without a mod. Each switch draws the game's
+# loading picture (MOD3c; the log's "loading screen step" lines: the harness cannot capture inside a pass).
 reject Script error
 waitmenu
 mod starter\Mods\LostInAstral
 waitmenu
 rebirth read mod Maps\ZoneMainMenuNew.mob yes
+expectlog mod: loading screen step 0 drawn
+expectlog mod: loading screen step 1 drawn
+expectlog mod: loading screen step 5 drawn
+expectlog mod: the reload took
 mod none
 waitmenu
 console thingamabob

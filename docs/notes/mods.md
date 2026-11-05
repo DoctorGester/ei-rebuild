@@ -155,6 +155,22 @@ read again at their next use, the maps folder the game's), `app::UseMod` (`platf
 deleted, other threads may still map a path through it), the settings' `Mod` written, the loop's clock as at the start.
 The renderer, the window, the audio device (a new `SoundManager` closes and opens the output) and the settings stay.
 
+### The loading screen (MOD3c)
+
+A switch draws the game's own loading picture, the progress movie a level's load draws (`ShowLoadingMovie`, progres.bik
+from the mod's `Movies\` with Rebirth's MoviesPatch), instead of the menu's last frame standing still: `LoadingStep`
+(app_main.cpp) before the stop (step 0, while the worlds still draw), then in `StartGame(..., showLoading)` after the
+sound is open (1), the databases (2), the map list (3), the world's graphics (4) and the interface (5); the first
+zone's own load steps (8 to 11) follow. Nothing can be drawn between the stop and the new worlds (the draw reads them),
+so that part (the stop, `Reset`, the files of the new mod's settings) shows the last picture. Each step opens the movie,
+presents its frame and closes it again: an open movie holds a stream of the audio device, which the stop and `OpenSound`
+close and open (a movie kept across them crashed in its destructor). `ShowLoadingMovie` takes the window's messages
+first (`platform::PumpEvents`: the events stay queued, the system's messages are answered), so a long reload is not
+marked hung; the harness's backend does nothing there. The log says `mod: loading screen step N drawn` and, at the end,
+`mod: the reload took N ms`: about 125 ms on the test machine (Rebirth's install too), which is the gap in the music (the
+menu's zone starts it again). The harness cannot capture a frame inside a pass (its capture hook is in the frame step),
+so `mod_switch` and `mod_menu_list` check the log lines (`expectlog`).
+
 Made safe to run again: `WorldClient::Destroy` empties both grids, the dynamic objects, the frame's entries and the
 exits (Create starts from none; the destructor freed the second grid's objects before); the lightning noise is read at
 every `LightningManager::Create` (the client world's one); `UseResources` keeps its last choice in
@@ -199,7 +215,7 @@ back. Reload: made again from the new mod's files. The list to check when a swit
 ### Checks
 
 - `tests/unit/path_layers.cpp`: a switch to no mod, a refused folder, and back.
-- `mod_switch` (both installs): in the main menu a switch to Lost in Astral (Rebirth's data: the mod's
+- `mod_switch` (both installs; the log's loading screen steps 0, 1 and 5 drawn and the reload's line): in the main menu a switch to Lost in Astral (Rebirth's data: the mod's
   ZoneMainMenuNew read; the vanilla data has no such folder, logged, the game started again without a mod), then to
   none, then a new game with a dump. `mod_switch_plain` is the same new game from the start: the two dumps must be equal
   (`python tools/golden.py diff` of the two runs' `dump_newgame.txt`), so starting twice gives the state of one start.

@@ -24,6 +24,8 @@ rebirth droplist pick 3
 rebirth frames 20
 rebirth expectlog starter\Mods\LostInAstral"
 rebirth expectlog (its saves in saves\LostInAstral)
+rebirth expectlog mod: loading screen step 0 drawn
+rebirth expectlog mod: loading screen step 5 drawn
 waitmenu
 rebirth droplist expect Lost in Astral (single player)
 rebirth droplist isopen 0

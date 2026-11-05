@@ -13,7 +13,9 @@
 // Set while a .mob file loads: the loading screen's movie stays as it is.
 extern std::uint8_t g_loadingMovieOff;
 
-void ShowLoadingMovie(int progress);
+// The loading screen at `progress` presented (the window's messages taken first); false when it drew nothing (the movie
+// is off or missing).
+bool ShowLoadingMovie(int progress);
 // Plays a movie at its own rate in a message loop of its own (name, Esc / Space end it, the screen cleared first, a
 // loading screen step first). Returns false when Esc ended it.
 bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loadingStep);

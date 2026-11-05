@@ -445,6 +445,8 @@ bool EventWaits() {
     return !hp::g_waiting.empty() || hp::g_quitPosted;
 }
 
+void PumpEvents() {}
+
 Event NextEvent() {
     for (;;) {
         hp::Pump();
