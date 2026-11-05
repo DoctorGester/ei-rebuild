@@ -165,7 +165,7 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
 - Over 60 s on llvmpipe, left out: camera_smooth, camera_spin, render_stats, zone_gz15h_tornado (not run in H47d). On
   dzn they take 7 to 22 s and are the same as their goldens. CI run 41857898300 (8 shards, 2026-11-04) also cut
   camera_drawn and render_shadows_outside (frame waits), spells_more and levers_key (Rebirth) at their limit: all
-  six are in LINUX_SKIP. render_stats's run there also differed from record 63 on (an attack's skill +3.4e38 against
+  six were in LINUX_SKIP (H58 took them out under EI_TIME_SCALE). render_stats's run there also differed from record 63 on (an attack's skill +3.4e38 against
   -3.4e38): only a consequence of its cut (H56). A `frames` step has a real-time limit, 10 s plus 100 ms a frame (16 s
   for 60); past it the step fails and the scenario goes on with frames still to go, and as each frame is five world
   updates, the steps after it (here the fight's spawns) land on earlier world updates and the world takes another
@@ -173,8 +173,8 @@ lib/maths.h (float-maths.md, "Maths functions"). What still differs, and why:
   kMissMark), so a sign follows the roll. In WSL on lavapipe render_stats is the same as its golden with all 32 CPUs
   (62 s) and pinned to 4 (`taskset -c 0-3` on run_all, 106 s); pinned to 2 it is cut like the runner's (a frames step 18
   frames short after 16 s, then its 120 s limit) and differs from the cut on; pinned to 2 with both limits raised in
-  the clone only (frames 10 min, the scenario 20 min) it is the same again in 173 s. It stays in LINUX_SKIP and
-  `LINUX_LEFT_OUT`: the runner draws too slowly for its 120 s, and alone on 32 CPUs it is just over 60 s.
+  the clone only (frames 10 min, the scenario 20 min) it is the same again in 173 s. It stays in `LINUX_LEFT_OUT`
+  (CI runs it under EI_TIME_SCALE): the runner draws too slowly for its 120 s, and alone on 32 CPUs it is just over 60 s.
 - The time zone. A save's info.sav keeps mktime of the harness's fixed date (2001-03-26 12:00), so it followed the
   machine's zone: the build machine's Europe/Prague (summer time that day, UTC+2) gave the goldens' 985600800, GitHub's
   runner (UTC) 985608000 in every save (H51). The harness sets the process's zone to a fixed UTC+2 (`TZ=EET-2`) with
@@ -375,12 +375,28 @@ a job fails when a golden differs. It runs on pushes to main and `claude/**` (no
 from this repository's own branches (a fork's gets no secrets and the suites are skipped) and by hand; it uploads
 nothing, and the data is outside every cached path. The suites are off until the variable below is set.
 
-`LINUX_SKIP` holds what cannot match on llvmpipe yet: every two-game scenario (net_pair_*, net_zone_leader,
-net_zone_vars: their frames stall past the harness's 16 s frame wait), those that draw too much to finish in their
-time limit on the runner's 4 cores (the camera ones, render_terrain_seams, render_drawn_*, the ui_widescreen ones,
-ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client) and render_smooth (llvmpipe gives 4 samples whatever is
-asked). Before the split (2026-11-04) one job played the image suite in 83 minutes and the Rebirth set in 39, and
-those scenarios made all its 18 failures (14 timeouts, 4 pair frame stalls).
+`EI_TIME_SCALE` (3 in the workflow; default 1, never below 1) multiplies the harness's real-time limits: a `frames` step's
+(10 s plus 100 ms a frame), the real-time safety limit of the other waits (four times the wait plus 10 s) and the
+scenario's (60 s or its `timeout`). The game reads it (harness.cpp, `TimeScale`) and so does run_all.py (`time_scale`,
+for the limit it reports and enforces); nothing that counts the world's clock changes, so a run that is not cut is the
+same at any scale. The reason (H58, CI run 113628906828, 2026-11-04): 14 failures over 8 shards, none a Linux
+difference, all real-time limits of a slow runner (a cut frames step: render_preview_blend, render_cursor_present,
+render_weather_units, net_host_death, terrain_water_waves in Rebirth; the 60 s limit: render_water_looks, render_weather*,
+unit_ai_corpse, party_leader_switch). A cut frames step also changes the digest after it (H56: the later steps land on
+earlier world updates). The same 202 scenarios took 9% longer than in the run before, and some 40 to 90% longer
+(world_load 6 s to 11 s), so the runner's speed varies and adding each victim to `LINUX_SKIP` never converged.
+
+`LINUX_SKIP` holds what cannot match on llvmpipe for reasons other than speed: every two-game scenario (net_pair_*,
+net_zone_leader, net_zone_vars: their frames stall past the harness's 16 s frame wait), render_terrain_seams (its level
+steps differ on lavapipe) and render_smooth (llvmpipe gives 4 samples whatever is asked). Until H58 it also held the
+slow ones, which were taken out when the scale came: camera_drag_rate, camera_smooth, camera_spin, camera_drawn,
+render_drawn_lights, render_drawn_motion, render_shadows_outside, render_stats, spells_more, levers_key, ui_minimap_edges,
+the five ui_widescreen ones, unit_ai_bridge, zone_gz15h_tornado and zone_gz15h_tornado_client. Whether they finish on
+the runner at a scale of 3 is open until one check run (`workflow_dispatch` with these names); the ones that still fail
+for speed go back with a higher scale or into the list. Before the split (2026-11-04) one job played the image suite in
+83 minutes and the Rebirth set in 39, and the slow scenarios made all its 18 failures (14 timeouts, 4 pair frame
+stalls). Local Linux runs without names leave out `LINUX_LEFT_OUT` (run_all.py) instead; `EI_TIME_SCALE=3` on a local
+run takes them as well, as far as the machine has the cores.
 
 One-time setup (the user's; nothing here creates repositories or tokens):
 1. Build and pack on the machine with the installs:

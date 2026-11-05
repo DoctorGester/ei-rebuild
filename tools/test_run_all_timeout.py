@@ -25,6 +25,13 @@ class Limits(unittest.TestCase):
             self.assertEqual(run_all.scenario_limit(scenario_file(d, 'timeout 5\ntimeout 7\n')), 7)
             self.assertEqual(run_all.scenario_limit(os.path.join(d, 'missing.txt')), 60)
 
+    def test_time_scale(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = scenario_file(d, 'timeout 7\n')
+            for value, limit in (('3', 21), ('1.5', 10), ('', 7), ('0.5', 7), ('x', 7)):
+                with mock.patch.dict(os.environ, {'EI_TIME_SCALE': value}):
+                    self.assertEqual(run_all.scenario_limit(path), limit, value)
+
     def test_expected_result(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertIsNone(run_all.expected_result(scenario_file(d, 'quit\n')))

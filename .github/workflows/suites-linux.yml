@@ -100,24 +100,21 @@ jobs:
         shard: [0, 1, 2, 3, 4, 5, 6, 7]
     env:
       SHARDS: 8
-      # Scenarios that cannot match on llvmpipe yet (linux.md, "The harness"; H47b):
+      # The harness's real-time limits (a frames step's, the scenario's) times 3: the runner draws 4K frames in software
+      # on 4 cores and some scenarios take 2 to 3 times a desktop's time (linux.md, "The CI job"; H58). The world's
+      # clock is not scaled.
+      EI_TIME_SCALE: 3
+      # Scenarios that cannot match on llvmpipe, for reasons other than speed (linux.md, "The harness"; H47b):
       # - every net_pair_* (two games at once: their frames stall past the harness's 16 s wait) and the two-game zone
       #   scenarios net_zone_leader / net_zone_vars;
-      # - those that draw too much to finish inside their time limit on software rendering: render_terrain_seams (its
-      #   level steps), the camera ones (hundreds of 8 ms frames at 4K), the drawn-frame and widescreen ones,
-      #   ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client (all cut at their limit on 2026-11-04), and
-      #   camera_drawn, render_shadows_outside, render_stats, spells_more, levers_key, zone_gz15h_tornado (frame waits
-      #   or the time limit ran out in run 41857898300; render_stats's console and digest differ only from its cut frame
-      #   wait on, H56);
+      # - render_terrain_seams (its level steps differ on lavapipe, which a GPU does not);
       # - render_smooth (llvmpipe's multisampling gives 4 samples whatever is asked, and edges too few pixels).
+      # The slow ones (the camera and widescreen ones, render_drawn_*, render_stats, ...) ran with this list until H58;
+      # they are run again under EI_TIME_SCALE.
       LINUX_SKIP: >-
         net_pair_join net_pair_kick net_pair_leave net_pair_lobby net_pair_master net_pair_party net_pair_password
         net_pair_quest net_pair_speed net_pair_zone net_zone_leader net_zone_vars
-        render_terrain_seams camera_drag_rate camera_smooth camera_spin
-        render_drawn_lights render_drawn_motion render_smooth
-        ui_minimap_edges ui_widescreen ui_widescreen_dialogue ui_widescreen_hud ui_widescreen_more ui_widescreen_screens
-        unit_ai_bridge zone_gz15h_tornado_client
-        camera_drawn render_shadows_outside render_stats spells_more levers_key zone_gz15h_tornado
+        render_terrain_seams render_smooth
     steps:
       - uses: actions/checkout@v5
       - name: Packages
