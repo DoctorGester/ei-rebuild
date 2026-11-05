@@ -459,13 +459,15 @@ RichText ReadRtf(std::string_view rtf) { return RtfReader(rtf).Read(); }
 
 int TwipsToPixels(int twips, int dpi) { return MulDivRounded(twips, dpi, kTwipsPerInch); }
 
+// BoldFont's fonts by face, size and smoothing, kept for the process like GetTextFont's (render_text.cpp).
+static std::map<std::string, std::unique_ptr<TextFont>> g_boldFonts;
+
 TextFont* BoldFont(std::string_view face, int pixels, bool smoothing) {
-    static std::map<std::string, std::unique_ptr<TextFont>> fonts;
     std::string key(face);
     key += '|' + std::to_string(pixels) + (smoothing ? "|1" : "|0");
-    auto found = fonts.find(key);
-    if (found != fonts.end()) return found->second.get();
-    std::unique_ptr<TextFont>& slot = fonts[key];
+    auto found = g_boldFonts.find(key);
+    if (found != g_boldFonts.end()) return found->second.get();
+    std::unique_ptr<TextFont>& slot = g_boldFonts[key];
     if (auto font = LoadFont(FontForFace(face), pixels))
         slot = std::make_unique<TextFont>(std::make_unique<EmboldenedFont>(std::move(font), std::max(1, (pixels + 10) / 20)), smoothing);
     return slot.get();

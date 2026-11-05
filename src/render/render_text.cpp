@@ -75,13 +75,15 @@ struct FontFile {
     }
 };
 
+// The parsed font files by their data (FontForFace's), each shared by the fonts made from it while one lives.
+static std::map<const unsigned char*, std::weak_ptr<FontFile>> g_fontFiles;
+
 static std::shared_ptr<FontFile> ParseFontFile(std::span<const unsigned char> data) {
-    static std::map<const unsigned char*, std::weak_ptr<FontFile>> files;
-    if (auto parsed = files[data.data()].lock()) return parsed;
+    if (auto parsed = g_fontFiles[data.data()].lock()) return parsed;
     auto font = std::make_shared<FontFile>();
     font->data = data;
     if (font->data.empty() || !font->Parse()) return nullptr;
-    files[data.data()] = font;
+    g_fontFiles[data.data()] = font;
     return font;
 }
 
@@ -377,13 +379,16 @@ int TextFont::Advance(char32_t ch) {
     return advance;
 }
 
+// GetTextFont's fonts by face, size and smoothing (null: the face could not be loaded), kept for the process. Built
+// before main, so destroyed after the exit functions the game registers; the fonts hold only memory.
+static std::map<std::string, std::unique_ptr<TextFont>> g_textFonts;
+
 TextFont* GetTextFont(std::string_view face, int pixels, bool smoothing) {
-    static std::map<std::string, std::unique_ptr<TextFont>> fonts;
     std::string key(face);
     key += '|' + std::to_string(pixels) + (smoothing ? "|1" : "|0");
-    auto found = fonts.find(key);
-    if (found != fonts.end()) return found->second.get();
-    std::unique_ptr<TextFont>& slot = fonts[key];
+    auto found = g_textFonts.find(key);
+    if (found != g_textFonts.end()) return found->second.get();
+    std::unique_ptr<TextFont>& slot = g_textFonts[key];
     if (auto font = LoadFont(FontForFace(face), pixels))
         slot = std::make_unique<TextFont>(std::move(font), smoothing);
     return slot.get();
