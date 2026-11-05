@@ -1,0 +1,10 @@
+id = "R59a"
+title = "Snow: the game's own flake frames back as textured quads, and the snow's per-frame cost cut (120 to 80 fps on the user's machine)"
+group = "renderer"
+size = 2
+model = "opus"
+files = ["src/game/weather_particles.cpp", "src/game/weather_field.cpp"]
+note = "User 2026-11-05 after R59: flakes no longer look like snowflakes (R59 drew 12-corner vertex-colour discs over the white texture; the old draw used the weather texture's snow row, 4 frames at kSnowTop 0.5..0.74). Snow costs 120->80 fps: 26000 particles, Place + RawSurfaceHeightAt + 25 vertices each, every frame on the CPU. Keep R59's field (no stretch, no jumps, fades). Measure before/after frame time at 1080p and 4K, one game at a time."
+order = 1241
+status = "running"
+started = "2026-11-05"
