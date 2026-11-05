@@ -7,7 +7,7 @@ Counts may only go down; run with --update after a cleanup to lower the baseline
 
 usage: python tools/check_cleanup.py [--update]
 """
-import csv, glob, os, re, sys
+import collections, csv, glob, os, re, sys
 
 # Hand-written vector maths (docs/notes/float-maths.md, "Vector helpers"; the helpers are in src/lib/vecmath.h).
 # 1. A two-product sum `P * Q + R * S` whose operand pairs are the same expression on another axis:
@@ -196,6 +196,48 @@ def count_uninitialised_fields(text):
     return n
 
 
+# An enum never used as a type (style round 3, rule Y3): its name appears once in all of src/, in its definition. A field
+# or parameter that holds a kind takes the enum, so a literal does not compile; an enum that no declaration names is
+# dead or the code still passes ints and writes the codes as literals (its enumerators may be used one by one).
+_ENUM = re.compile(r'\benum\s+(class\s+|struct\s+)?(\w+)\s*(?::\s*[\w:\s]+?)?\s*\{([^{}]*)\}')
+_IDENTIFIER = re.compile(r'[A-Za-z_]\w*')
+_words = None   # every identifier of src/ (comments and strings left out) with how often it occurs
+
+
+def _word_counts():
+    global _words
+    if _words is None:
+        _words = collections.Counter()
+        for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.*'), recursive=True):
+            if path.endswith(('.cpp', '.h', '.inc')):
+                with open(path, encoding='utf-8', errors='replace') as f:
+                    text = strip_comments(f.read())
+                _words.update(_IDENTIFIER.findall(re.sub(r'"(?:\\.|[^"\\\n])*"', '""', text)))
+    return _words
+
+
+def count_unused_enums(text):
+    words = _word_counts()
+    return sum(1 for m in _ENUM.finditer(_DIRECTIVE.sub('', text)) if words[m.group(2)] <= 1)
+
+
+# A scope block that copies the original's temporaries (rule Y9): `{` on a line of its own after a statement, a local
+# of a value type (std::string, a class, auto) initialised from an expression, then at most three statements, no
+# nested block and no return. { std::string path = folder + "x.res"; opened = resource.Open(path); } is
+# `opened = resource.Open(folder + "x.res");`. Where the local is an RAII object (a lock, a stream: declared without
+# `=`) or the block ends a lifetime on purpose, it is not counted.
+_TEMPORARY_BLOCK = re.compile(
+    r'^[ \t]*\{[ \t]*\n'
+    r'[ \t]*(?:const[ \t]+)?(?:std::string(?:_view)?|[A-Z]\w*(?:::\w+)*|auto)[ \t]+\w+[ \t]*=[^;{}\n]*;[ \t]*\n'
+    r'(?:[ \t]*[^{}\n]*;[ \t]*\n){0,3}'
+    r'[ \t]*\}', re.M)
+
+
+def count_temporary_blocks(text):
+    return sum(1 for m in _TEMPORARY_BLOCK.finditer(text)
+               if text[:m.start()].rstrip()[-1:] in (';', '{', '}') and 'return' not in m.group(0))
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = os.path.join(ROOT, 'config', 'cleanup_baseline.csv')
 PATTERNS = {
@@ -250,6 +292,33 @@ PATTERNS = {
     # (round 2, rule X1): name the meaning (kRateBase, kStandingHeight). Definitions only.
     'value-named constant': re.compile(
         r'\bk(?:Zero|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Half|Quarter|MinusOne|Hundred|Thousand)\s*[={]'),
+    # Style round 3 (docs/rewrite-guide.md, "Style rules"):
+    # An enum never used as a type (count_unused_enums above).
+    'enum never used as a type': count_unused_enums,
+    # A method named after a message's hex id (SendState02, SendObject0A, OnMessage37): name what it means.
+    'hex-named message method': re.compile(r'\b(?:Send|On)\w*[0-9A-F]{2}\b'),
+    # The same small helper written again in a file: IsZero(float), the 1/255 colour scale (0.003921569f), a function
+    # that asks whether the game server runs. Each lives once, in its owner's header.
+    'copied small helper (IsZero, 1/255, server running)': re.compile(
+        r'\bbool\s+IsZero\s*\('
+        r'|\b1(?:\.0f?)?\s*/\s*255(?:\.0f?)?\b|\b0\.003921569f?\b'
+        r'|\bbool\s+\w+\s*\(\s*\)\s*(?:const\s*)?\{[^{}]{0,200}?g_gameServer[^{}]{0,200}?\}'),
+    # A function whose whole body is `return "text";` (a table of names as code): a constant or a lookup. A virtual that
+    # answers its class's name is the one place it reads as the shortest form.
+    'function returning only a string literal': re.compile(
+        r'\)\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?\{\s*return\s+"[^"\n]*"\s*;\s*\}'),
+    # A scope block around a temporary (count_temporary_blocks above).
+    'scope block around a temporary': count_temporary_blocks,
+    # A buffer read or written by hand: memcpy of N bytes then the cursor moved on (`p += N`). The stream and buffer
+    # classes own their cursors; everything else calls their Put/Get/Read members.
+    'cursor moved by hand after memcpy': re.compile(r'\bmemcpy\s*\([^;]*\)\s*;\s*\w+\s*\+=\s*[^;]+;'),
+    # A file's own little-endian reader (U32, Get32, ReadWord, Load16 ...): the shared one is lib::Load<T> / the streams'.
+    'own integer reader': re.compile(
+        r'^[ \t]*(?:(?:static|inline|constexpr)\s+)*(?:std::)?u?int(?:8|16|32|64)_t\s+'
+        r'(?:U|Get|Read|Load)(?:16|32|64|Word|Dword|LE\d*)\s*\(', re.M),
+    # A pointer to a member function, `bool (Connection::*)(Message*)`: handlers and callbacks are virtuals, a switch
+    # or a std::function.
+    'pointer to member function': re.compile(r'\(\s*[A-Za-z_][\w:]*::\*\s*\w*\s*\)\s*\('),
 }
 # Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
@@ -260,7 +329,11 @@ PATTERNS = {
 NOT_CONTAINERS = {'FootprintCellSet', 'EffectIdMap', 'MapObjectIdMap', 'UnitSet', 'RegionMap', 'PlatformSet'}
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
           'hand-written vector maths': ('src/lib/vecmath.h', 'src/lib/maths.h'),   # maths.h: Hypot's doubles
-          'system maths function': 'src/lib/maths.h'}
+          'system maths function': 'src/lib/maths.h',
+          'copied small helper (IsZero, 1/255, server running)': 'src/lib/', 'own integer reader': 'src/lib/',
+          # The streams and buffers own their cursors; src/lib's readers are the shared ones.
+          'cursor moved by hand after memcpy': ('src/lib/', 'src/game/core_streams.cpp', 'src/game/game_buffer',
+                                                'src/game/net_coder.cpp')}
 
 
 def strip_comments(text):

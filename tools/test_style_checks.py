@@ -25,7 +25,55 @@ class CleanupPatternTest(unittest.TestCase):
         self.assertEqual(pattern_count(name, 'constexpr int kOnesCount = 4;\nconstexpr int kPlayerOne = 1;\n'), 0)
 
 
+class RoundThreePatternTest(unittest.TestCase):
+    def test_hex_named_message_method(self):
+        name = 'hex-named message method'
+        self.assertEqual(pattern_count(name, 'void SendState02(); void SendObject0A(); void OnMessage37();'), 3)
+        self.assertEqual(pattern_count(name, 'void SendWeather(); void OnMessage(); void OnDeath();'), 0)
+
+    def test_copied_small_helper(self):
+        name = 'copied small helper (IsZero, 1/255, server running)'
+        self.assertEqual(pattern_count(name, 'bool IsZero(float value) { return value == 0.0f; }'), 1)
+        self.assertEqual(pattern_count(name, 'float s = width * (1.0f / 255.0f); constexpr float k = 0.003921569f;'), 2)
+        self.assertEqual(pattern_count(name, 'bool ServerRuns() { return IsLive(net::g_gameServer); }'), 1)
+        self.assertEqual(pattern_count(name, 'float s = 1.0f / 2550.0f; bool ServerRuns(int x) { return x; }'), 0)
+
+    def test_literal_function(self):
+        name = 'function returning only a string literal'
+        self.assertEqual(pattern_count(name, 'const char* Name() const { return "Zone"; }'), 1)
+        self.assertEqual(pattern_count(name, 'const char* Name() const { return name.c_str(); }'), 0)
+
+    def test_cursor_after_memcpy(self):
+        name = 'cursor moved by hand after memcpy'
+        self.assertEqual(pattern_count(name, 'std::memcpy(p, &v, sizeof v); p += sizeof v;'), 1)
+        self.assertEqual(pattern_count(name, 'std::memcpy(&v, p, 4); other = 1;'), 0)
+
+    def test_pointer_to_member(self):
+        name = 'pointer to member function'
+        self.assertEqual(pattern_count(name, 'using Handler = bool (Connection::*)(Message*);'), 1)
+        self.assertEqual(pattern_count(name, 'bool (*callback)(Message*);'), 0)
+
+    def test_scope_block_around_temporary(self):
+        block = '    open();\n    {\n        std::string path = folder + "a.res";\n        opened = resource.Open(path);\n    }\n'
+        self.assertEqual(check_cleanup.count_temporary_blocks(block), 1)
+        raii = '    open();\n    {\n        Lock lock;\n        opened = resource.Open(path);\n    }\n'
+        self.assertEqual(check_cleanup.count_temporary_blocks(raii), 0)
+        branch = '    if (ok)\n    {\n        std::string path = folder;\n        Use(path);\n    }\n'
+        self.assertEqual(check_cleanup.count_temporary_blocks(branch), 0)
+
+    def test_enum_never_used_as_a_type(self):
+        self.assertEqual(check_cleanup.count_unused_enums('enum class ZzNoSuchKind { A, B };'), 1)
+        self.assertEqual(check_cleanup.count_unused_enums('enum class ClassId : std::uint8_t { A, B };'), 0)
+
+
 class CommentTest(unittest.TestCase):
+    def test_banned_round_three(self):
+        banned = lambda text: comments.count(text, 'src/game/x.cpp')['banned words']
+        for phrase in ('installs in the vanilla launch only', 'is called through its address', 'their verify wrappers',
+                       'the scalar deleting destructor', 'the result in EAX', 'SHR by CL', 'the new renderer draws'):
+            self.assertEqual(banned(f'// {phrase}\n'), 1, phrase)
+        self.assertEqual(banned('// the renderer draws; EAXAMPLE is no register\n'), 0)
+
     def test_addon_address(self):
         count = lambda text: comments.count(text)['addon addresses']
         self.assertEqual(count("// addon's 10025C9D: a '\\' added to a path\n"), 1)

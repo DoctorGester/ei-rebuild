@@ -119,6 +119,44 @@ writer and the reviewer.
   around (`std::int32_t` for a saved id, `std::size_t` for a container index); no converting back and forth at each
   call, no `int` that is compared with an unsigned size.
 
+From round 3 (networking, scripts, saves, sound; 2026-11-04):
+- **Documented undefined behaviour is not a fix** (rule 9). A comment that says a read is uninitialised, a pointer may
+  be null or a copy is unbounded, and keeps it, is a bug listed: fix it, or, if only a player can see it, list it under
+  "Original bugs kept" in the area's notes. `volatile` is not a thread flag (`std::atomic`).
+- **One little-endian reader, one stream vocabulary.** Integers come out of bytes through `lib::Load<T>` /
+  `lib::Store`, and through the streams' and buffers' own members (`ReadAs<T>`, `ReadCount`, `ReadId`, `Put<T>`,
+  `Get<T>`); a file does not define its own `U32` / `Get32` / `ReadWord`, and nothing but a buffer's own file moves a
+  cursor by hand (`memcpy(...); p += N`). Checked: "own integer reader" and "cursor moved by hand after memcpy".
+- **A field or parameter that holds a kind takes the enum**, so a literal does not compile; message ids, connection
+  states, packet and award kinds, music modes, image formats and the like are enumerators, and a method is named by
+  what it means (`SendWeather`), never by its id (`SendState71`). A version test follows `save_versions.h`'s
+  convention. Checked: "enum never used as a type", "hex-named message method".
+- **Every field is initialised, a reset assigns.** All fields have default initialisers ("field without a default
+  initialiser"); a reset is `Reset()` that assigns the fields, never `OnShutdown` destroying members by hand and
+  `new (this)`. A counted object's count starts in its constructor.
+- **A saved type pairs `Load` and `Save`**, members declared side by side, reading and writing the same fields in the
+  same order (`UnitServer::Load` / `Save` are the model); one name pair (`Load` / `Save`, not `ReadFrom` / `WriteTo`).
+  Positional records (script arguments) are read through one cursor in declaration order.
+- **When a library is replaced, justify every parameter again.** A parameter that every caller passes as the same
+  constant, or that the callee ignores, goes; so does a scale, a callback or a buffer-ownership rule the old library
+  needed (sound's `OpenOutput` ignoring three of its four parameters is the example).
+- **No current-object globals.** Pass the object or make it a member. Where a global cannot be avoided (a load in
+  progress), a scope guard sets it and restores it on every exit; nothing resets it by hand before each `return`.
+- **Rebirth's behaviour is named by its flag or "always on"** in comments (see the comment guide); a comment never
+  claims a flag that does not exist.
+- **One helper per owner; names are unique within a subsystem; declare where initialised.** `IsZero`, the 1/255 colour
+  scale and "does the game server run" live once, in their owner's header. Two functions or types of one subsystem
+  never share a name with different meanings (`Arg`, `Drop`). No scope block that exists only to copy a temporary
+  (`{ std::string tmp = ...; x = tmp; }`): `x = f(...)`. A function that only returns a string literal is a constant
+  or a lookup table. Checked: "copied small helper", "function returning only a string literal", "scope block around a
+  temporary".
+- **Never key on a code address.** A class that needs an id carries an enum `Type()`; dispatch is a `switch` or a
+  virtual, not a table of member-function pointers (the exe links with `/OPT:ICF`: two functions can share an
+  address). Checked: "pointer to member function" (also the round-2 rule on callbacks).
+
+The ratchet columns are listed by `python tools/check_cleanup.py` (counts) and `python tools/comments.py check`. A
+column's pattern is narrow on purpose: it finds the plain cases; the rule is wider than the count.
+
 ## Names and files
 
 - Members have plain names, no trailing `_`; where a member and a parameter would share a name, rename the parameter

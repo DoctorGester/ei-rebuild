@@ -54,7 +54,9 @@ one-line pointer; move, don't lose.
   Two more columns are ratcheted (style round 2): "addon addresses" (addon.dll's 8-hex-digit addresses in a comment;
   say what the code does) and "unnamed Rebirth patches" (a comment line that says "Rebirth-patched" without a
   `Patch::` flag name from `src/lib/rebirth_patches.inc` or "always on"). The scan includes the shaders (`.hlsl`,
-  `.hlsli`).
+  `.hlsli`). The banned words also hold hook-era and decompiler narration (style round 3): "installs in the vanilla
+  launch", "called through its address", "verify wrapper", "scalar deleting destructor", "SHR by CL", the registers
+  (`EAX`, `ECX`, ...) and "the new renderer" (it is the renderer).
 - `stats [--files] [--kinds] [PATH... | --batch ID]`: counts per area or file; `--kinds` the removal candidates
   (offset trailers, slot mentions, registers, stale claims, long blocks, rewrap savings).
 - `list [PATH...]`: every comment line still holding an address or a ticket id.

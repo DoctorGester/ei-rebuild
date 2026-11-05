@@ -71,7 +71,11 @@ BANNED_COMMON = re.compile(
     r"|\bvtable slots?\b|\bvirtual slots?\b"
     r"|\b(?:its|their|the|renderer|input|stream|world's|context's|loader's|helper's|DLL's|connection's|manager's|"
     r"Spell|CItem|UnitClientSpecific|FigureManager's) [Ss]lots? [0-9]|\b(?:through|via|calls?) slot [0-9]"
-    r"|\([Ss]lots? [0-9]|^//\s*[Ss]lots? [0-9]+(?: [/-] [0-9]+)*[:.]")
+    r"|\([Ss]lots? [0-9]|^//\s*[Ss]lots? [0-9]+(?: [/-] [0-9]+)*[:.]"
+    # Hook-era and decompiler narration (style round 3): where the code once ran, what the registers held, the renderer
+    # that is simply the renderer now.
+    r"|\b[Ii]nstalls? in the vanilla launch|\bcalled through (?:its|their) address\b|\bverify wrappers?\b"
+    r"|\b[Ss]calar deleting destructors?\b|\bE(?:AX|BX|CX|DX|SI|DI|BP|SP)\b|\bSHR by CL\b|\b[Tt]he new renderer\b")
 BANNED_GAME = re.compile(
     r"\b(?:CList|CPtrList|CObList|CTypedPtrList|CArrays?|CByteArray|CWordArray|CDWordArray|CObArray|CPtrArray|"
     r"CStrings?|RemoveAll|AddHead|RemoveHead|RemoveTail|InsertAt)\b|\bMFC\b")
