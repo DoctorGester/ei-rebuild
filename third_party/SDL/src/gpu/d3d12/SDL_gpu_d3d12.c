@@ -4701,6 +4701,11 @@ static void D3D12_INTERNAL_PushUniformData(
         return;
     }
 
+    // None when it could not be mapped or made (a removed device): the data is dropped.
+    if (uniformBuffer == NULL) {
+        return;
+    }
+
     blockSize =
         D3D12_INTERNAL_Align(
             length,
@@ -4716,9 +4721,6 @@ static void D3D12_INTERNAL_PushUniformData(
 
         uniformBuffer = D3D12_INTERNAL_AcquireUniformBufferFromPool(commandBuffer);
 
-        uniformBuffer->drawOffset = 0;
-        uniformBuffer->writeOffset = 0;
-
         if (shaderStage == SDL_GPU_SHADERSTAGE_VERTEX) {
             commandBuffer->vertexUniformBuffers[slotIndex] = uniformBuffer;
         } else if (shaderStage == SDL_GPU_SHADERSTAGE_FRAGMENT) {
@@ -4728,6 +4730,13 @@ static void D3D12_INTERNAL_PushUniformData(
         } else {
             SDL_LogError(SDL_LOG_CATEGORY_GPU, "Unrecognized shader stage!");
         }
+
+        if (uniformBuffer == NULL) {
+            return;
+        }
+
+        uniformBuffer->drawOffset = 0;
+        uniformBuffer->writeOffset = 0;
     }
 
     uniformBuffer->drawOffset = uniformBuffer->writeOffset;
@@ -5191,7 +5200,7 @@ static void D3D12_INTERNAL_BindGraphicsResources(
 
     for (Uint32 i = 0; i < MAX_UNIFORM_BUFFERS_PER_STAGE; i += 1) {
         if (commandBuffer->needVertexUniformBufferBind[i]) {
-            if (graphicsPipeline->header.num_vertex_uniform_buffers > i) {
+            if (graphicsPipeline->header.num_vertex_uniform_buffers > i && commandBuffer->vertexUniformBuffers[i] != NULL) {
                 ID3D12GraphicsCommandList_SetGraphicsRootConstantBufferView(
                     commandBuffer->graphicsCommandList,
                     graphicsPipeline->rootSignature->vertexUniformBufferRootIndex[i],
@@ -5282,7 +5291,7 @@ static void D3D12_INTERNAL_BindGraphicsResources(
 
     for (Uint32 i = 0; i < MAX_UNIFORM_BUFFERS_PER_STAGE; i += 1) {
         if (commandBuffer->needFragmentUniformBufferBind[i]) {
-            if (graphicsPipeline->header.num_fragment_uniform_buffers > i) {
+            if (graphicsPipeline->header.num_fragment_uniform_buffers > i && commandBuffer->fragmentUniformBuffers[i] != NULL) {
                 ID3D12GraphicsCommandList_SetGraphicsRootConstantBufferView(
                     commandBuffer->graphicsCommandList,
                     graphicsPipeline->rootSignature->fragmentUniformBufferRootIndex[i],
@@ -5814,7 +5823,7 @@ static void D3D12_INTERNAL_BindComputeResources(
 
     for (Uint32 i = 0; i < MAX_UNIFORM_BUFFERS_PER_STAGE; i += 1) {
         if (commandBuffer->needComputeUniformBufferBind[i]) {
-            if (computePipeline->header.numUniformBuffers > i) {
+            if (computePipeline->header.numUniformBuffers > i && commandBuffer->computeUniformBuffers[i] != NULL) {
                 ID3D12GraphicsCommandList_SetComputeRootConstantBufferView(
                     commandBuffer->graphicsCommandList,
                     computePipeline->rootSignature->uniformBufferRootIndex[i],

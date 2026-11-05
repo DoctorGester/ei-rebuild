@@ -231,9 +231,9 @@
 //   report                    write the verify totals to harness_report.txt
 //   diskfull <text>           TEST ONLY (harness_disk_full.txt): writes to files whose path contains
 //                             <text> fail with ERROR_DISK_FULL from now on (harness_crash.h)
-//   expectcrash <text>        the run passes when the game crashes with a failure line containing
-//                             <text> (or one of "<text> | <text> ..."), and fails at "quit" when it has not
-//                             crashed
+//   expectcrash <text>        the run passes when the game crashes, or ends on a message box (a fatal error's),
+//                             with a failure line containing <text> (or one of "<text> | <text> ..."), and
+//                             fails at "quit" when it has not
 //   quit                      write the report and exit the game through the console
 //   realtime, deterministic   the game on real time, or (the default) on the virtual game clock
 //                             with fixed seeds, where runs repeat exactly (see below)
@@ -393,6 +393,10 @@
 //   unitweather <unit> <least wet> <most wet> [<least snow> <most snow> [<least shelter> <most shelter>]]
 //                             require the unit ("leader", #id or a name) drawn lately with its own wetness, snow and share
 //                             under a roof in those ranges (render::UnitWeatherState, R17c3)
+//   losedevice <point>        the renderer's Direct3D 12 device removed for real (as a hang or a driver's reset
+//                             removes it) just before its next call at <point>: commands (a new command buffer),
+//                             pass, uniforms, acquire (the swap chain's texture), submit, write or wait (a
+//                             download's); gpu::LoseDeviceAt. With "expectcrash" (render_device_lost_*)
 //   shadowview on|off         with the shadow map, the receivers show only the sun the map and the clouds hide
 //                             (white lit, black fully shadowed; render::SetShadowView, R25), from the next frame
 //   decals on|off             the ground prints (blood, footprints, scorch marks) drawn (the default) or left
@@ -2147,7 +2151,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "decals" || verb == "weatherparticles" || verb == "panelweather" || verb == "roofs" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "unitweather" || verb == "occlusion" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "msaa" || verb == "anisotropy" || verb == "smoothcheck" || verb == "smoothedges" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "decals" || verb == "weatherparticles" || verb == "panelweather" || verb == "roofs" || verb == "terraincache" || verb == "meshcache" || verb == "shadowcheck" || verb == "cloudcheck" || verb == "weathercheck" || verb == "unitweather" || verb == "occlusion" || verb == "renderstats" || verb == "losedevice";
 }
 
 // The steps that post input messages to the game window.
@@ -2217,6 +2221,12 @@ void EndRunOnMessageBox(const std::string& caption, const std::string& text) {
     Log("harness: %s", what.c_str());
     LogModuleOf(reinterpret_cast<std::uintptr_t>(EI_HARNESS_CALLER()));
     LogStack(sys::StackHere(), 256);
+    if (!g_expectedCrash.empty() && ExpectedCrash(what)) {
+        Log("harness: the end the scenario expects (expectcrash %s)", g_expectedCrash.c_str());
+        g_expectedCrash.clear();
+        WriteReport();
+        sys::Terminate(4);
+    }
     if (g_quitting) {
         if (FILE* f = sys::OpenFile(g_reportPath, "a")) {
             std::fprintf(f, "EXIT: %s (stack in ei-rebuild.log)\n", what.c_str());

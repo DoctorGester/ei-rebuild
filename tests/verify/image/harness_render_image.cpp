@@ -8,6 +8,7 @@
 #include "platform/log.h"
 #include "system/harness_system.h"
 
+#include "render/gpu.h"
 #include "render/render.h"
 #include "render/render_checks.h"
 
@@ -74,6 +75,13 @@ std::optional<FrameImage> ReadFrame() {
     std::optional<render::FrameImage> frame = render::ReadFrame();
     if (!frame) return std::nullopt;
     return FrameImage{frame->width, frame->height, std::move(frame->bgr)};
+}
+
+// "losedevice": the device removed just before the renderer's next call at the step's point (gpu.h, LoseDeviceAt).
+static void LoseDevice() {
+    std::string error;
+    if (sys::RemoveGraphicsDevice(render::gpu::DeviceName(), &error)) Log("harness: losedevice: the device removed");
+    else Log("harness: losedevice: %s", error.c_str());
 }
 
 bool RenderStep(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,
@@ -413,6 +421,15 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (!info.made || info.terrainDraws < 1 || info.meshDraws < 1 || info.receivingTerrain < 1 ||
             info.receivingMeshes < 1 || info.groundSectors < 1)
             failures->push_back(text);
+    } else if (verb == "losedevice") {
+        // gpu::LossPoint's order.
+        static const char* const kPoints[] = {"commands", "pass", "uniforms", "acquire", "submit", "write", "wait"};
+        int point = 0;
+        while (point < 7 && argument != kPoints[point]) ++point;
+        const std::string driver = render::gpu::DriverName();
+        if (point == 7) failures->push_back("losedevice needs commands, pass, uniforms, acquire, submit, write or wait");
+        else if (driver != "direct3d12") failures->push_back("losedevice: Direct3D 12 only, not " + driver);
+        else render::gpu::LoseDeviceAt(static_cast<render::gpu::LossPoint>(point), LoseDevice);
     } else if (verb == "renderstats") {
         render::FrameStats t = render::TakeFrameStats();
         // The main thread's CPU time (its cycles, in milliseconds by the thread's CPU time so far, as the

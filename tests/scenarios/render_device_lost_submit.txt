@@ -1,0 +1,9 @@
+# A lost device ends the game with the renderer's fatal message (render_device_lost_commands.txt). Here: submit.
+timeout 40
+reject Script error
+waitmenu
+wait 500
+expectcrash The renderer cannot draw the frame: the GPU refused
+losedevice submit
+frames 60
+quit
