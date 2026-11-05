@@ -343,3 +343,11 @@ EngineObject* ItemManager::NewObject(int kind) {
     object->type = kind;
     return object;
 }
+
+// The world's save loads the map objects between the identity records and the items' own Load, and a unit's
+// load reads its weapon's type: the packed ids are checked here already.
+void ItemManager::Load(ByteStream* stream) {
+    ResourceManager::Load(stream);
+    ObjectListIteratorOf<Item> items;
+    for (Item* item = items.First(this); item; item = items.Next()) item->RequirePrototype();
+}

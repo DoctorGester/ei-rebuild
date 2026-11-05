@@ -120,6 +120,7 @@ Item* Item::Clone(SpellManager* spells) {
 
 void Item::Load(ByteStream* stream) {
     stream->ReadValue(prototypeId);
+    RequirePrototype();
     stream->ReadValue(condition);
     stream->ReadValue(conditionMax);
     stream->ReadValue(charge);
@@ -154,6 +155,13 @@ void Item::Save(ByteStream* stream) {
 ItemRecordHead* Item::GetPrototype() {
     if (Kind() == ItemKind::Scroll) return nullptr;
     return PrototypeAt(Kind(), PrototypeIndex(prototypeId));
+}
+
+void Item::RequirePrototype() {
+    if (PrototypeAt(Kind(), PrototypeIndex(prototypeId))) return;
+    game::FatalExit("Item %d of kind 0x%X names prototype %u, which the item database does not have: the save or "
+                    "the other player uses another database.",
+                    id, static_cast<unsigned>(type), PrototypeIndex(prototypeId));
 }
 
 QuickItemCategory Item::GetCategory() {
@@ -364,6 +372,23 @@ void ItemQuest::Save(ByteStream* stream) {
 const char* ItemLoot::ClassName() { return "CItemLoot"; }
 
 ClassId ItemLoot::GetClassId() { return ClassId::ItemLoot; }
+
+bool ItemLoot::HasRecord() const {
+    switch (kind) {
+    case LootKind::Self: return true;
+    case LootKind::Material: return MaterialAt(index) != nullptr;
+    case LootKind::Record: break;
+    default: return false;
+    }
+    switch (recordType) {
+    case LootRecordType::Weapon: return WeaponAt(index) != nullptr;
+    case LootRecordType::Armor: return ArmorAt(index) != nullptr;
+    case LootRecordType::Quick: return QuickItemAt(index) != nullptr;
+    case LootRecordType::Spell: return SpellAt(index) != nullptr;
+    case LootRecordType::Modifier: return SpellModifierAt(index) != nullptr;
+    default: return false;
+    }
+}
 
 namespace {
 

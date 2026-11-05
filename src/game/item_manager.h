@@ -89,6 +89,8 @@ struct ItemManager : ResourceManager {
     // The item factory: a new constructed item for kind ItemKind::Weapon weapon, ItemKind::Armor armour, ItemKind::Quick quick, ItemKind::Loot
     // loot, ItemKind::Scroll scroll, ItemKind::Quest quest, its type set to the kind; null for another kind or without memory.
     EngineObject* NewObject(int kind) override;
+    // BaseManager's (the identity records), then every item's RequirePrototype.
+    void Load(ByteStream* stream) override;
 
     // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind`)
     // from prototype record `index` of the kind's table (an index whose low 16 bits are 0xFFFF: 0) and, for

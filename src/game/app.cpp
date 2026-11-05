@@ -221,3 +221,15 @@ int game::FatalError(const char* format, ...) {
     }
     return 0;
 }
+
+// Logs the error, shows it in the error box and exits (exit(-1)) whatever the Rebirth flags.
+void game::FatalExit(const char* format, ...) {
+    char text[0x400];
+    va_list args;
+    va_start(args, format);
+    std::vsnprintf(text, sizeof(text), format, args);
+    va_end(args);
+    ei::Log("fatal: %s", text);
+    app::ShowMessageBox(text);
+    std::exit(-1);
+}

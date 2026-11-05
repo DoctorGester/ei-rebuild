@@ -22,8 +22,7 @@ using namespace itemdb;
 
 namespace {
 
-// The record's name as used in keys: spaces become '_', lower case. `name` is a string field of a database record
-// that may be null (reading it then faults).
+// The record's name as used in keys: spaces become '_', lower case.
 std::string KeyName(const std::string& name) {
     std::string key = name;
     text::ReplaceChar(&key, ' ', '_');
@@ -39,7 +38,7 @@ void ReadItemText(TextManager* texts, const std::string& key, ItemTexts* out) {
     }
 }
 
-// The text key and kind key of a loot item standing for a record.
+// The text key and kind key of a loot item standing for a record (one with the record: ItemLoot::HasRecord).
 void RecordKeys(const ItemLoot* loot, std::string* key, const char** kindKey) {
     switch (loot->recordType) {
     case LootRecordType::Weapon:
@@ -95,32 +94,34 @@ std::string TextManager::GetString(std::string_view name) {
     return line ? std::move(*line) : std::string(name);
 }
 
+// The item's prototype is there (Item::RequirePrototype); the material and the record a loot item stands for are
+// tested: without one the item has no text key (no name and description).
 ItemTexts TextManager::GetItemTexts(Item* item) {
-    std::uint32_t materialIndex = MaterialIndex(item->prototypeId);
+    const MaterialRecordHead* material = MaterialAt(MaterialIndex(item->prototypeId));
     std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId);
     std::string key;                 // the item's text; none: no name and description
     const char* kindKey = nullptr;   // the kind's string; none: no kind
     bool wand = false;
     switch (item->Kind()) {
     case ItemKind::Weapon:
-        key = "weapon " + KeyName(WeaponAt(prototypeIndex)->name) + " " + KeyName(MaterialAt(materialIndex)->key);
+        if (material) key = "weapon " + KeyName(WeaponAt(prototypeIndex)->name) + " " + KeyName(material->key);
         kindKey = "item_weapon";
         break;
     case ItemKind::Armor: {
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
-        key = "armor " + KeyName(armor->name) + " " + KeyName(MaterialAt(materialIndex)->key);
+        if (material) key = "armor " + KeyName(armor->name) + " " + KeyName(material->key);
         kindKey = IsUpperBodyArmor(static_cast<ArmorType>(armor->type)) ? "item_armor_upper" : "item_armor_lower";
         break;
     }
     case ItemKind::Quick: {
-        key = "qitem " + KeyName(QuickItemAt(prototypeIndex)->name);
         // A quick item whose prototype has no material is a potion.
         const ItemRecordHead* prototype = item->GetPrototype();
-        if (prototype && !prototype->HasMaterial()) {
+        if (!prototype->HasMaterial()) {
+            key = "qitem " + KeyName(prototype->name);
             kindKey = "item_potion";
             break;
         }
-        key += " " + KeyName(MaterialAt(materialIndex)->key);
+        if (material) key = "qitem " + KeyName(prototype->name) + " " + KeyName(material->key);
         // Only wands get a kind; their name is followed by the spell's name.
         wand = item->GetCategory() == QuickItemCategory::Wand;
         if (wand) kindKey = "item_wand";
@@ -128,6 +129,7 @@ ItemTexts TextManager::GetItemTexts(Item* item) {
     }
     case ItemKind::Loot: {
         auto* loot = item->AsLoot();
+        if (!loot->HasRecord()) break;
         if (loot->kind == LootKind::Self) {
             key = "litem " + KeyName(LootAt(prototypeIndex)->name);
             kindKey = "item_loot";

@@ -318,27 +318,25 @@ void ItemInfoPanel::DescribeItem() {
     labels.clear();
     if (!item) return;
 
-    ItemKind kind = item->Kind();
-    if (kind == ItemKind::Loot) {
-        LootKind sort = item->AsLoot()->kind;
-        LootRecordType sub = item->AsLoot()->recordType;
-        if (sort == LootKind::Material) {
-            DescribeMaterial();
-            return;
-        }
-        if (sort == LootKind::Record && (sub == LootRecordType::Weapon || sub == LootRecordType::Armor || sub == LootRecordType::Quick)) {
-            DescribeBlueprint();
-            return;
-        }
-        if (sort == LootKind::Record && sub == LootRecordType::Spell) {
-            DescribeSpellRecord();
-            return;
-        }
-        if (sort == LootKind::Record && sub == LootRecordType::Modifier) {
-            DescribeModifierRecord();
-            return;
-        }
+    // A loot item standing for a material or a record, when the record exists (the predicates test it; one
+    // without is described as plain loot).
+    if (IsMaterial(item)) {
+        DescribeMaterial();
+        return;
     }
+    if (IsPart(item)) {
+        DescribeBlueprint();
+        return;
+    }
+    if (IsSpell(item)) {
+        DescribeSpellRecord();
+        return;
+    }
+    if (IsModifier(item)) {
+        DescribeModifierRecord();
+        return;
+    }
+    ItemKind kind = item->Kind();
     if (kind == ItemKind::Quick && item->GetCategory() == QuickItemCategory::Potion) {
         DescribeQuickItem();
         return;
@@ -349,8 +347,10 @@ void ItemInfoPanel::DescribeItem() {
     }
 
     TextManager* texts = g_clientWorld.texts.get();
-    // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
-    std::string material = itemdb::MaterialAt(MaterialIndex(item->prototypeId))->key;
+    // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case; empty without the
+    // record (an item of another database: "Unknown").
+    const itemdb::MaterialRecordHead* materialRecord = itemdb::MaterialAt(MaterialIndex(item->prototypeId));
+    std::string material = materialRecord ? materialRecord->key : std::string();
     text::ReplaceChar(&material, ' ', '_');
     str::MakeLower(material);
     auto [name, description, kindText] = texts->GetItemTexts(item);
@@ -456,7 +456,6 @@ void ItemInfoPanel::DescribeMaterial() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts.get();
     const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(item->AsLoot()->index);
-    if (!material) return;
     auto [name, description, kindText] = texts->GetItemTexts(item);
     Writer w(this);
     w.Head(name, kindText);
@@ -482,9 +481,8 @@ void ItemInfoPanel::DescribeMaterial() {
 void ItemInfoPanel::DescribeBlueprint() {
     Item* item = FirstItem();
     TextManager* texts = g_clientWorld.texts.get();
-    // The record by the blueprint's kind: weapons, armour, quick items. The dispatcher calls this only
-    // for kinds 0-2; the original leaves the record and kind uninitialised otherwise (here: none, and it
-    // faults reading the record like a missing one).
+    // The record by the blueprint's kind: weapons, armour, quick items (the dispatcher's IsPart: one of them, and
+    // the record exists).
     int sort = 3;
     const itemdb::ItemRecordHead* head = nullptr;
     std::uint32_t index = item->AsLoot()->index;
@@ -664,16 +662,14 @@ void ItemInfoPanel::DescribeCarriedSpell() {
     w.Down();
     if (spell->GetModifierCount() > 0) {
         // "<infoitem_19> name, name, ...": each modifier's third text line ("modifier <code>"),
-        // "?" without one.
+        // "?" without one (or without the modifier's record).
         w.line = w.T(19);
         for (int i = 0; i < spell->GetModifierCount(); ++i) {
             w.line += " ";
             text = "?";
             std::uint32_t index = static_cast<std::uint32_t>(spell->modifiers[i] - 1);
             const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(index);
-            std::string key("modifier ");
-            key += modifier->code;
-            if (texts->Open(key)) {
+            if (modifier && texts->Open(std::string("modifier ") + modifier->code)) {
                 texts->NextLine();
                 texts->NextLine();
                 text = texts->ReadLine(true);
