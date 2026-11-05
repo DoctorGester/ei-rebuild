@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash E8A81067 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
 + world world
 world tick 20
 world updates 20
@@ -1293,7 +1293,7 @@ client units 5
 client synchronised 6
 + cunit2 80 unmoco2 ""
 cunit2 #place 40E7E427
-cunit2 #unit CA7CD47D
+cunit2 #unit 0370F4FB
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place CC95DED6
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone - hash 8EC00B30 n 172
+@ 1 update 40 frame 7 tick 40 zone - hash AE52189F n 172
 world tick 40
 world updates 40
 random isaac.count 51
@@ -1340,7 +1340,7 @@ cunit148 #place 1A98376A
 cunit148 #unit D6FFF600
 cunit187 #place 8FD72F05
 cunit388 #place CC64C5DC
-@ 2 update 60 frame 11 tick 60 zone - hash 32268AC0 n 172
+@ 2 update 60 frame 11 tick 60 zone - hash 12B4996F n 172
 world tick 60
 world updates 60
 random isaac.count 223
@@ -1372,7 +1372,7 @@ cunit129 #place DA264953
 cunit129 #unit 91F197F1
 cunit148 #place 8CDC6001
 cunit148 #unit A13719CF
-@ 3 update 80 frame 15 tick 80 zone - hash 7C86D9EA n 172
+@ 3 update 80 frame 15 tick 80 zone - hash 5C14CA45 n 172
 world tick 80
 world updates 80
 random isaac.count 143
@@ -1398,7 +1398,7 @@ client ticksRun 77
 cunit129 #place 33D6DA74
 cunit148 #place 6821C465
 cunit148 #unit C73DF77E
-@ 4 update 100 frame 19 tick 100 zone - hash 394974B6 n 172
+@ 4 update 100 frame 19 tick 100 zone - hash 19DB6719 n 172
 world tick 100
 world updates 100
 random isaac.count 63
@@ -1426,7 +1426,7 @@ cunit129 #place 74E0A3BC
 cunit129 #unit 9ABF5A88
 cunit148 #place B520CA3E
 cunit148 #unit FEF293E2
-@ 5 update 120 frame 23 tick 115 zone - hash 8A40F66A n 173
+@ 5 update 120 frame 23 tick 115 zone - hash E2D12A22 n 173
 world tick 115
 world updates 120
 world paused 1
@@ -1461,28 +1461,28 @@ cunit148 #unit DC1197FA
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 4BDACAB7
 cunit1000011214 #vitals 68D49C6E
-@ 6 update 140 frame 27 tick 115 zone - hash 3A213A17 n 173
+@ 6 update 140 frame 27 tick 115 zone - hash 52B0E65F n 173
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 115 zone - hash 22C67A58 n 173
+@ 7 update 160 frame 31 tick 115 zone - hash 4A57A610 n 173
 world updates 160
 client ticksRun 157
 + cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 6F6B86E3
 cunit1000011214 #vitals A7CF3098
-@ 8 update 180 frame 35 tick 115 zone - hash 0BDEA790 n 173
+@ 8 update 180 frame 35 tick 115 zone - hash 634F7BD8 n 173
 world updates 180
 client ticksRun 177
 cunit1000011214 #unit 969FEC80
-@ 9 update 200 frame 42 tick 115 zone - hash 46896CAC n 173
+@ 9 update 200 frame 42 tick 115 zone - hash 2E18B0E4 n 173
 world updates 200
 client ticksRun 197
-@ 10 update 220 frame 49 tick 115 zone - hash 7B8A05AA n 173
+@ 10 update 220 frame 49 tick 115 zone - hash 131BD9E2 n 173
 world updates 220
 client ticksRun 217
 cunit1000011214 #unit 3567ED44
-@ 11 update 240 frame 53 tick 115 zone - hash 01DC6EED n 173
+@ 11 update 240 frame 53 tick 115 zone - hash 694DB2A5 n 173
 world updates 240
 client ticksRun 237
 @ 12 update 260 frame 57 tick 130 zone - hash C8278D29 n 172
@@ -1505,7 +1505,6 @@ client ticksRun 257
 client objects 150
 client units 5
 client synchronised 6
-cunit2 #unit 0370F4FB
 cunit129 #place DA48FE5F
 cunit129 #unit F0D31922
 cunit148 #place D7A24B3C

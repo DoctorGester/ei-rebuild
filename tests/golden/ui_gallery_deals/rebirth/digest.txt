@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash E8A81067 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
 + world world
 world tick 20
 world updates 20
@@ -1293,7 +1293,7 @@ client units 5
 client synchronised 6
 + cunit2 80 unmoco2 ""
 cunit2 #place 40E7E427
-cunit2 #unit CA7CD47D
+cunit2 #unit 0370F4FB
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place CC95DED6
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 20 zone - hash 9FB21350 n 173
+@ 1 update 40 frame 7 tick 20 zone - hash F723CF18 n 173
 world updates 40
 world paused 1
 client tick 21
@@ -1331,19 +1331,19 @@ cunit388 #place C2155DED
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit EF088401
 cunit1000011214 #vitals 68D49C6E
-@ 2 update 60 frame 11 tick 20 zone - hash 2CF615F5 n 173
+@ 2 update 60 frame 11 tick 20 zone - hash 4467C9BD n 173
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash 9D661AB9 n 173
+@ 3 update 80 frame 15 tick 20 zone - hash F5F7C6F1 n 173
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash E81A62E3 n 173
+@ 4 update 100 frame 19 tick 20 zone - hash 808BBEAB n 173
 world updates 100
 client ticksRun 97
-@ 5 update 120 frame 23 tick 20 zone - hash 51E15021 n 173
+@ 5 update 120 frame 23 tick 20 zone - hash 39708C69 n 173
 world updates 120
 client ticksRun 117
-@ 6 update 140 frame 27 tick 20 zone - hash EC7A5A36 n 173
+@ 6 update 140 frame 27 tick 20 zone - hash 84EB867E n 173
 world updates 140
 client ticksRun 137
 @ 7 update 160 frame 34 tick 35 zone - hash 322080D2 n 172
@@ -1369,7 +1369,6 @@ client ticksRun 157
 client objects 150
 client units 5
 client synchronised 6
-cunit2 #unit 0370F4FB
 cunit129 #place F0D21162
 cunit129 #unit F0D31922
 cunit148 #place 2957C1F8

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash E8A81067 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
 + world world
 world tick 20
 world updates 20
@@ -1293,7 +1293,7 @@ client units 5
 client synchronised 6
 + cunit2 80 unmoco2 ""
 cunit2 #place 40E7E427
-cunit2 #unit CA7CD47D
+cunit2 #unit 0370F4FB
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place CC95DED6
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone - hash 8EC00B30 n 172
+@ 1 update 40 frame 7 tick 40 zone - hash AE52189F n 172
 world tick 40
 world updates 40
 random isaac.count 51
@@ -1340,7 +1340,7 @@ cunit148 #place 1A98376A
 cunit148 #unit D6FFF600
 cunit187 #place 8FD72F05
 cunit388 #place CC64C5DC
-@ 2 update 60 frame 11 tick 60 zone - hash 32268AC0 n 172
+@ 2 update 60 frame 11 tick 60 zone - hash 12B4996F n 172
 world tick 60
 world updates 60
 random isaac.count 223
@@ -1372,7 +1372,7 @@ cunit129 #place DA264953
 cunit129 #unit 91F197F1
 cunit148 #place 8CDC6001
 cunit148 #unit A13719CF
-@ 3 update 80 frame 15 tick 80 zone - hash 7C86D9EA n 172
+@ 3 update 80 frame 15 tick 80 zone - hash 5C14CA45 n 172
 world tick 80
 world updates 80
 random isaac.count 143
@@ -1398,7 +1398,7 @@ client ticksRun 77
 cunit129 #place 33D6DA74
 cunit148 #place 6821C465
 cunit148 #unit C73DF77E
-@ 4 update 100 frame 19 tick 100 zone - hash 394974B6 n 172
+@ 4 update 100 frame 19 tick 100 zone - hash 19DB6719 n 172
 world tick 100
 world updates 100
 random isaac.count 63
@@ -1426,7 +1426,7 @@ cunit129 #place 74E0A3BC
 cunit129 #unit 9ABF5A88
 cunit148 #place B520CA3E
 cunit148 #unit FEF293E2
-@ 5 update 120 frame 23 tick 120 zone - hash B9EA7D0C n 172
+@ 5 update 120 frame 23 tick 120 zone - hash 99786EA3 n 172
 world tick 120
 world updates 120
 random isaac.count 215

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash E8A81067 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 4F87D5C9 n 172
 + world world
 world tick 20
 world updates 20
@@ -1293,7 +1293,7 @@ client units 5
 client synchronised 6
 + cunit2 80 unmoco2 ""
 cunit2 #place 40E7E427
-cunit2 #unit CA7CD47D
+cunit2 #unit 0370F4FB
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place CC95DED6
@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone - hash 8EC00B30 n 172
+@ 1 update 40 frame 7 tick 40 zone - hash AE52189F n 172
 world tick 40
 world updates 40
 random isaac.count 51
@@ -1340,7 +1340,7 @@ cunit148 #place 1A98376A
 cunit148 #unit D6FFF600
 cunit187 #place 8FD72F05
 cunit388 #place CC64C5DC
-@ 2 update 60 frame 11 tick 60 zone - hash 32268AC0 n 172
+@ 2 update 60 frame 11 tick 60 zone - hash 12B4996F n 172
 world tick 60
 world updates 60
 random isaac.count 223
@@ -1372,7 +1372,7 @@ cunit129 #place DA264953
 cunit129 #unit 91F197F1
 cunit148 #place 8CDC6001
 cunit148 #unit A13719CF
-@ 3 update 80 frame 15 tick 80 zone - hash 7C86D9EA n 172
+@ 3 update 80 frame 15 tick 80 zone - hash 5C14CA45 n 172
 world tick 80
 world updates 80
 random isaac.count 143
@@ -1398,7 +1398,7 @@ client ticksRun 77
 cunit129 #place 33D6DA74
 cunit148 #place 6821C465
 cunit148 #unit C73DF77E
-@ 4 update 100 frame 19 tick 100 zone - hash 394974B6 n 172
+@ 4 update 100 frame 19 tick 100 zone - hash 19DB6719 n 172
 world tick 100
 world updates 100
 random isaac.count 63
@@ -1426,7 +1426,7 @@ cunit129 #place 74E0A3BC
 cunit129 #unit 9ABF5A88
 cunit148 #place B520CA3E
 cunit148 #unit FEF293E2
-@ 5 update 120 frame 23 tick 120 zone - hash B9EA7D0C n 172
+@ 5 update 120 frame 23 tick 120 zone - hash 99786EA3 n 172
 world tick 120
 world updates 120
 random isaac.count 215
@@ -1457,7 +1457,7 @@ cunit129 #place 155C0613
 cunit129 #unit F0D31922
 cunit148 #place 5EA7F608
 cunit148 #unit DC1197FA
-@ 6 update 140 frame 27 tick 140 zone - hash A55DC01D n 172
+@ 6 update 140 frame 27 tick 140 zone - hash 85CFD3B2 n 172
 world tick 140
 world updates 140
 random isaac.count 115
@@ -1479,7 +1479,7 @@ client tick 140
 client ticksRun 137
 cunit129 #place 158137C1
 cunit148 #place F80E2E65
-@ 7 update 160 frame 31 tick 160 zone - hash F3C4D38D n 172
+@ 7 update 160 frame 31 tick 160 zone - hash D356C022 n 172
 world tick 160
 world updates 160
 random isaac.count 15
@@ -1501,7 +1501,7 @@ client tick 160
 client ticksRun 157
 cunit129 #place D13B40D0
 cunit148 #place D4F91C82
-@ 8 update 180 frame 35 tick 170 zone - hash 65869214 n 172
+@ 8 update 180 frame 35 tick 170 zone - hash 451481BB n 172
 world tick 170
 world updates 180
 world paused 1
@@ -1530,7 +1530,7 @@ client paused 1
 client ticksRun 177
 cunit129 #place 741FA3F8
 cunit129 #unit DDF1CA86
-@ 9 update 200 frame 39 tick 180 zone - hash BA65E546 n 172
+@ 9 update 200 frame 39 tick 180 zone - hash 9AF7F6E9 n 172
 world tick 180
 world updates 200
 world paused 0
@@ -1554,7 +1554,7 @@ client paused 0
 client ticksRun 197
 cunit129 #place CEAEDDA6
 cunit129 #unit F0D31922
-@ 10 update 220 frame 43 tick 180 zone - hash 9501CD3E n 172
+@ 10 update 220 frame 43 tick 180 zone - hash B593DE91 n 172
 world updates 220
 world paused 1
 client tick 181
@@ -1562,10 +1562,10 @@ client paused 1
 client ticksRun 217
 cunit129 #place 6D26E37F
 cunit129 #unit 91F197F1
-@ 11 update 240 frame 47 tick 180 zone - hash B53F3B57 n 172
+@ 11 update 240 frame 47 tick 180 zone - hash 95AD28F8 n 172
 world updates 240
 client ticksRun 237
-@ 12 update 260 frame 51 tick 180 zone - hash A3E5EB3E n 172
+@ 12 update 260 frame 51 tick 180 zone - hash 8377F891 n 172
 world updates 260
 client ticksRun 257
 @ 13 update 280 frame 55 tick 190 zone - hash 7367664D n 172
@@ -1590,7 +1590,6 @@ aievents tick 190
 client tick 190
 client paused 0
 client ticksRun 277
-cunit2 #unit 0370F4FB
 cunit129 #place 0B9B14B1
 @ 14 update 300 frame 59 tick 210 zone gz1g hash 8B914E0E n 832
 world tick 210

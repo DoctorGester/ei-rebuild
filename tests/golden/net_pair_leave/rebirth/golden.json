@@ -1,27 +1,20 @@
 {
   "scenario": "net_pair_leave",
   "install": "rebirth",
-  "recorded": "2026-11-04",
-  "commit": "e72156590",
+  "recorded": "2026-11-05",
+  "commit": "a4ca9ca88",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "H53: net_pair_quest / leave / kick play with fewer frames (walkto, waitdialogue / talk, waitaward served, peer signals instead of fixed waits): the same course on a shorter timeline",
+  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
   "source": "image",
   "change": [
-    "digest: 220 of 264 records differ, first at record 44 (world update 900, tick 582, frame 179, zone bz1mpg); outcomes CHANGED: zone, spawns, quest variables, party and items, game result, script (deaths unknown: hash only); max unit move 101 (obj1000011214, record 207); the digests have different numbers of records",
-    "  digest: the old golden has more records; the other ends before its record 264 (world update 5300, frame 1059, tick 4982, zone bz1mpg)",
-    "  first difference at record 44 (world update 900, tick 582, frame 179, zone bz1mpg): 8 fields",
-    "    obj686200 (80 unhuma \"\") #ai: 287B0C78 in the old golden, 4EF3305C in the new run",
-    "    obj1000011214 (80 unhuma \"host\") pos.x: 62.7302475 in the old golden, 62.8300476 in the new run (d 0.0998)",
-    "    obj1000011214 (80 unhuma \"host\") pos.y: 63.7029839 in the old golden, 64.7377853 in the new run (d 1.03)",
-    "    ... 5 more",
-    "  outcomes: CHANGED zone, spawns, quest variables, party and items, game result, script (deaths unknown: vitals differ, only a hash is kept); same: money",
-    "    zone: record 66: bz1mpg in the old golden, z3q2 in the new run (+41 more)",
-    "    spawns: obj1 (84 stst001) only in the new run, from record 66 (+64413 more)",
-    "    quest variables: 8 variables differ (b.Nsheriff.intro_1q, b.Nsheriff.z3q2_2, b.Smith.intro_1k, b.smith.constr_1, gtime, q.z3q2.z3q2, ...); first from record 66: player0 z.MPGame1: 1.0 in the old golden, (none) in the new run",
-    "    party and items: player0 objects: 12 in the old golden, 10 in the new run, from record 66 (+162 more)",
-    "... 33 more lines"
+    "digest: 16 of 264 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
+    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  client units: 1 of 37 differ",
+    "    #unit: 1 client unit, 16 records, from 0; hash only (no numbers kept)"
   ]
 }
