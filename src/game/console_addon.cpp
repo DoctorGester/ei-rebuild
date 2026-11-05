@@ -4,6 +4,7 @@
 // addon's; its own state (the two log levels, the GUI flags) lives here.
 #include "console.h"
 #include "game_singletons.h"
+#include "mod_plugin_ironmod.h"
 #include "options.h"
 #include "script.h"
 #include "settings.h"
@@ -122,6 +123,7 @@ void Addon(const CommandArgs& args) {
 // execs file: loads a script file into the script loader and runs it.
 void Execs(const CommandArgs& args) {
     if (args.empty()) return;
+    modplugins::ConsoleScript console;
     if (TheMissionScript()->LoadFile(args[0])) {
         TheMissionScript()->Tick();
         return;

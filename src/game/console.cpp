@@ -4,6 +4,7 @@
 
 #include "app.h"
 #include "game_singletons.h"
+#include "mod_plugin_ironmod.h"
 #include "ui.h"
 #include "world.h"
 #include "lib/str.h"
@@ -192,7 +193,7 @@ void Execute(const std::string& text) {
         for (char& c : command) c ^= 0x66;
         if (command == "\022\016\017\010\001\007\013\007\004\t\004") {
             g_cheatEnabled = true;
-            PrintLine("Activated!");
+            PrintLine(modplugins::CheatWordReply());
             return;
         }
     } else if (CommandHandler handler = FindCommand(Maps().cheatCommands, command)) {
@@ -241,6 +242,7 @@ void RunScriptLine(const std::string& text, const std::vector<std::string>& args
         line += arg;
     }
     line += suffix;
+    modplugins::ConsoleScript console;
     if (!g_serverWorld.RunCommandScript(line, true, &error))
         EndLine(g_consoleOut << "Script error: " << error.text);
 }

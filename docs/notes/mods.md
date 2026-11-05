@@ -21,6 +21,8 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_lost_in_astral.txt` | a new game in Lost in Astral (Rebirth's data) |
 | `tests/scenarios/mod_switch.txt`, `mod_switch_plain.txt` | a switch to Lost in Astral and back, then a new game; the same new game from the start |
 | `tests/scenarios/mod_menu_list.txt` | the menu's list picked through the UI, and the settings file written |
+| `src/game/mod_plugin_ironmod.h`, `.cpp` | IronMod's fixfslpatei.plg as code ("IronMod's fixfslpatei.plg") |
+| `tests/scenarios/mod_ironmod.txt` | IronMod's plugin: the cheat word's reply, the console's commands, no quick saves |
 
 ## Choosing a mod
 
@@ -92,6 +94,55 @@ The game's registry format (src/game/registry.h). Sections in Rebirth's mods:
 
 Rebirth's own Maps, CameraPatch, MoviesPatch and StreamPatch look in `ModPath()` too; with the layer they find the
 same files.
+
+### IronMod's fixfslpatei.plg (MOD1b)
+
+How Rebirth loads a plugin (addon.dll): it reads `[DEV] Plugin` from the mod's config.reg whenever the value is not
+empty, loads the DLL, calls its `EntryBeforePatch` before addon's own patches and `EntryAfterPatch` after them.
+fixfslpatei.plg ("Game patcher plugin for addon.dll" 1.0.0.0, read with Ghidra 12.1.4 headless) is a generic patcher,
+not IronMod's own code: its `EntryBeforePatch` makes game.exe's .text (0x401000, 0x33A000 bytes) and .rdata (0x73B000,
+0x48000 bytes) writable, reads `patches.txt` from the plugin's own folder (the mod's), and for each line
+`<file offset> = <hex bytes>` (`#` starts a comment, spaces are dropped) turns the file offset into an address through
+game.exe's section table and copies the bytes there; then it protects the sections again and flushes the instruction
+cache. IronMod's patches.txt (mod 1.0.8) has 21 lines, all on strings in game.exe's .data:
+
+- `config\keyboard.ini` (0x787C04) becomes `config\kbdinput.ini`: the key bindings file, read at the interface's
+  start and written at its shutdown. Rebirth ships `Config\kbdinput.ini`: its keyboard.ini without the `F5 quicksave`
+  and `F8 quickload` lines. Carried: `modplugins::KeyBindingsFile()` (key_bindings.cpp).
+- `saveq` (0x7933AC) becomes `save:`: the one string every quick-save site shares (16 references: the battle screen's,
+  the briefing's and the global map's keys, and the save list's titles and reserved names). On Windows `saves\save:`
+  cannot be made, so the quick load finds no folder and does nothing, and the quick save's `GameFlow::SaveGame` cannot
+  open scenario.sav and starts the main menu's zone: in Rebirth the quick-save key leaves the game for the main menu
+  (the play since the last save lost). Carried: `QuickSave` and `QuickLoad` of the quick slot do nothing under the
+  plugin and log `mod: no quick save (IronMod's fixfslpatei.plg)` (or `quick load`); the drop to the main menu is not
+  carried (the side effect of a name Windows refuses, and "save:" is a valid name on Linux and macOS).
+- `Activated!` (0x792388) becomes `NoCheating`: only the cheat word's reply changes; the word still unlocks the cheat
+  commands and the script lines. Carried: `modplugins::CheatWordReply()` (console.cpp).
+- Eighteen names in the script keyword table's strings (0x78D010 to 0x78D680, `kScriptKeywords`) get a letter or more
+  made '0' (GiveMoney becomes GiveM0ne0): SetPlayer, SetDiplomacy, RemoveUnitFromServer, KillUnit, InflictDamage,
+  GodMode, GiveUnitSpell, GiveUnitQuestItem, GiveStrength, GiveSkill, GiveQuestItem, GiveMoney, GiveItem,
+  GiveIntelligence, GiveDexterity, CastSpellUnit, CastSpellPoint, AddMob. Addon's AddNewScriptCommands copies the
+  game's table entries (the name pointers) into its own, so every parse sees the renamed names: Rebirth with IronMod
+  knows none of the eighteen, in the console's lines and in the zones' own scripts alike. The game's maps call them in
+  57 of their .mob files (zone2.mob's traps call InflictDamage from line 71, its quests GiveQuestItem and
+  RemoveUnitFromServer), so there each zone's scripts stop loading at the first such call. Carried as its evident aim,
+  no cheating: the eighteen are hidden only from the script text the console runs (`@`, `#` and `$` lines and
+  `execs`: `modplugins::ConsoleScript` around the parse, `modplugins::HidesKeyword` in `ClassifyToken`), and the
+  zones' scripts keep them. Rebirth's literal effect would be the same check without the console condition.
+
+All four are on while the mod's config.reg names fixfslpatei.plg (`src/game/mod_plugin_ironmod.cpp`; the config.reg
+read at each question). A mod with another patches.txt beside the same plugin would need its own lines read; IronMod
+is the only one shipped.
+
+Lost in Astral's fixshops.plg read the same way agrees with MOD2a's reading: it writes a call (`E8` and a rel32 into
+the plugin) over 0x4A84F3, the call of the list clear 0x4A9650 near the end of `PartyManager::Load`, to a stub that
+makes that call and then `TemplateTable::Build(this + 0x38, 1)`; and the byte 0x4A88AC, the `push 0` before
+`PartyManagerNewGame`'s Build call, becomes 1.
+
+Check: `mod_ironmod` (both installs; IronMod on Rebirth's data): the cheat word's reply, `@GiveMoney` a script error,
+F5 and F8 doing nothing (the log lines; no `IronMod\saveq\`) with the overlay's kbdinput.ini binding them (the prepare
+tool `make_keyboard_ini.py kbdinput.ini`, read in place of keyboard.ini), then gz2g (zone2.mob) loaded without a script
+error. On the vanilla data the folder is missing and the same steps show the game without a mod.
 
 ## Checks
 
