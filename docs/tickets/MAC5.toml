@@ -3,5 +3,6 @@ title = "macOS: the mod's path map misses a game folder under a symbolic link (v
 group = "port"
 note = "Release run 42072168975 (job 127411505496): port_platform failed in tests/unit/path_layers.cpp. macOS's /var is /private/var; POSIX CurrentFolder returned getcwd's resolved path, so relative paths fell outside the mod's base (the game folder as named) and the mod layer, its saves and merged searches were skipped. A player's game folder under any link hit it (Linux too). Fix: POSIX keeps the current folder as SetCurrentFolder was given it (as Windows does); the unit check reaches its game folder through a symlink."
 order = 1224
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
