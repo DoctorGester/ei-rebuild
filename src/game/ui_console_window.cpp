@@ -58,7 +58,7 @@ void ConsoleWindow::Show(bool newShown) {
     shown = newShown;
     if (newShown) {
         if (!surface) {
-            surface = new UiSurface(screen, &rect, SurfaceBlend::Opaque);
+            surface = new UiSurface(&rect, SurfaceBlend::Opaque);
             surface->PaintWith([this](UiSurface& out) {
                 PaintLines(out);
                 PaintInput(out);

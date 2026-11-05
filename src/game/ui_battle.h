@@ -138,8 +138,6 @@ public:
     void GameOver(bool won) override;
     // A portrait click picks a player while it is not 0.
     void PlayerList(int mode) override { portraitMode = mode; }
-    explicit BattleScreen(Interface3D* ui);
-
     struct PartyIds {
         // Both id vectors hold the same ids in the same order (the camera's id is not compared).
         bool Equals(const PartyIds& other) const;

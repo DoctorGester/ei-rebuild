@@ -60,12 +60,12 @@ void MessageWindow::LeftDown(UiEvent& event) {
             PlayExitMovieAndQuit();
             return;
         }
-        ui->PlayInterfaceSound(kMessageBoxOkSound);
+        g_interface.PlayInterfaceSound(kMessageBoxOkSound);
         if (buttons == MessageButtons::OkCancelEdit) CopyEditText();
     } else {
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
     }
-    ui->SetPendingValue(BoxResult(question, ok ? MessageAnswer::Ok : MessageAnswer::Cancel));
+    g_interface.SetPendingValue(BoxResult(question, ok ? MessageAnswer::Ok : MessageAnswer::Cancel));
 }
 
 void MessageWindow::KeyDown(UiEvent& event) {
@@ -76,12 +76,12 @@ void MessageWindow::KeyDown(UiEvent& event) {
             PlayExitMovieAndQuit();
         } else {
             if (buttons == MessageButtons::OkCancelEdit) CopyEditText();
-            ui->PlayInterfaceSound(kMessageBoxOkSound);
-            ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
+            g_interface.PlayInterfaceSound(kMessageBoxOkSound);
+            g_interface.SetPendingValue(BoxResult(question, MessageAnswer::Ok));
         }
     } else if (event.key == platform::Key::Escape) {
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
-        ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
         return;
     }
@@ -103,11 +103,11 @@ void DifficultyBox::LeftDown(UiEvent& event) {
     if (!region) return;
     if (region == okButton) {
         options::g_options.difficulty = easy;
-        ui->PlayInterfaceSound(kMessageBoxOkSound);
-        ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
+        g_interface.PlayInterfaceSound(kMessageBoxOkSound);
+        g_interface.SetPendingValue(BoxResult(question, MessageAnswer::Ok));
     } else if (region == cancelButton) {
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
-        ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else if (region == easyArea) {
         easyBox->textureOffsetU = kCheckedOffset;
         hardBox->textureOffsetU = 0.0f;
@@ -124,11 +124,11 @@ void DifficultyBox::KeyDown(UiEvent& event) {
     if (event.handled) return;
     if (event.key == platform::Key::Return) {
         options::g_options.difficulty = easy;
-        ui->PlayInterfaceSound(kMessageBoxOkSound);
-        ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
+        g_interface.PlayInterfaceSound(kMessageBoxOkSound);
+        g_interface.SetPendingValue(BoxResult(question, MessageAnswer::Ok));
     } else if (event.key == platform::Key::Escape) {
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
-        ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
     } else {
         return;
     }

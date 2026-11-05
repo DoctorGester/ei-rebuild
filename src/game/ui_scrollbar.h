@@ -13,7 +13,7 @@ public:
     // The position, the moved flag cleared unread.
     int TakePosition();
     // `speed` in lines per second; position 0.
-    UiScrollbar(Interface3D* ui, Rect rect, float depth, int maximum, float speed);
+    UiScrollbar(Rect rect, float depth, int maximum, float speed);
     ~UiScrollbar() override;
     // Scrolls while an arrow is held: whole steps of the accumulated amount move the position.
     void Update() override;
@@ -58,8 +58,8 @@ public:
 // The options window's horizontal slider, laid out along the bottom of its rectangle.
 class UiSlider : public UiScrollbar {
 public:
-    UiSlider(Interface3D* ui, Rect rect, float depth, int maximum, float speed)
-        : UiScrollbar(ui, rect, depth, maximum, speed) {}
+    UiSlider(Rect rect, float depth, int maximum, float speed)
+        : UiScrollbar(rect, depth, maximum, speed) {}
     // Along the track's width; the thumb 28 wide and 10 high.
     void SetPosition(int position) override;
     void OnEvent(UiEvent& event) override;

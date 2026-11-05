@@ -70,7 +70,8 @@ in the key table (`config\keyboard.ini`, `key_bindings.cpp`); a zone has no inve
 
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 
-`Interface3D` (`g_interface`) owns the active windows in a vector (`unique_ptr`; `PushWindow` and `Activate` take the
+`Interface3D` (`g_interface`, the only one: windows, surfaces, regions and inputs name it, they keep no pointer to it)
+owns the active windows in a vector (`unique_ptr`; `PushWindow` and `Activate` take the
 new window's), the top one receives input; it owns its backdrops, screen copy, frame rate and status surfaces the same
 way. A `UiWindow` holds five
 arrays: referenced engine objects and scene objects (counted: released in ~UiWindow), and the surfaces, regions and
@@ -258,7 +259,11 @@ gives "Prototype" and a "Rune" per modifier; `DeconstructItem` "Instruction Weap
 - Item strip (`UiItemStrip`, the forwarding strip of camp and exchange): a held arrow's repeat counts whole milliseconds
   (`scrollTicks`: one slot at once, then one per 100 ms past the first millisecond). The click (`SlotAt`, both
   `ForwardingStrip::ItemAt` and `FigureStrip::LeftDown`) is integer: `(x - 50 + floor(position * 100)) / 100`, where the
-  original truncated `(x - 50) * 0.01f + position`; only a pixel exactly on a cell edge can differ. `SetTab` settles the old
+  original truncated `(x - 50) * 0.01f + position`; only a pixel exactly on a cell edge can differ. `UiItemPanel::ItemAt`
+  returns `ItemUnder`: the item and the help topic of the place ("camphelp <topic>"); the camp, exchange and hero
+  screen hover show the first panel's item, else its topic. The forwarding strip's topic is its mode's (equip 0x16,
+  spell parts 0x18, item parts 0x17) over every cell, empty or not; the original wrote it into the topic out-parameter
+  as a cursor value, so an empty strip cell shows that help text, kept. `SetTab` settles the old
   tab at the truncated `pending + position`; releasing an arrow keeps the fraction of the pending scroll and adds or removes
   a whole slot when the fraction is under half. Filter 0 puts quick items in tab 2 with weapons, armour and spell
   containers; tab 3 holds class 0x3007, so clicking tab 3 never equips quick items.

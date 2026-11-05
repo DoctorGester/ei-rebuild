@@ -61,7 +61,7 @@ void HeroEquipPanel::RightDown(UiEvent& event) {
     PartyUnitRecord* hero = owner->HeroRecord();
     const int cell = RegionIndex(cells, region);
     if (cell >= 0 && cell < std::ssize(hero->weapons) && cell < kWeaponSlots) {
-        ui->PlayInterfaceSound(kChangeSound);
+        g_interface.PlayInterfaceSound(kChangeSound);
         hero->weaponIndex = static_cast<std::uint32_t>(cell);
     }
     if (camp) camp->RefreshWeapons();
@@ -69,40 +69,29 @@ void HeroEquipPanel::RightDown(UiEvent& event) {
 
 // --- the item under a point ----------------------------------------------------------------------
 
-Item* HeroEquipPanel::ItemAt(Point point, int* topic) {
-    *topic = 0;
-    if (!enabled) return nullptr;
+ItemUnder HeroEquipPanel::ItemAt(Point point) {
+    if (!enabled) return {};
     const UiRegion* region = RegionUnder(point);
-    if (!region) return nullptr;
+    if (!region) return {};
     PartyUnitRecord* hero = owner->HeroRecord();
     if (const int cell = RegionIndex(cells, region); cell >= 0) {
-        if (cell < kWeaponSlots) {
-            *topic = kTopicWeapon;
-            if (cell < std::ssize(hero->weapons)) return hero->weapons[cell];
-        } else {
-            *topic = kTopicQuickItem;
-            int fromEnd = kCells - 1 - cell;
-            if (fromEnd < std::ssize(hero->quickItems)) return hero->quickItems[fromEnd];
-        }
-        return nullptr;
+        if (cell < kWeaponSlots) return {cell < std::ssize(hero->weapons) ? hero->weapons[cell] : nullptr, kTopicWeapon};
+        const int fromEnd = kCells - 1 - cell;
+        return {fromEnd < std::ssize(hero->quickItems) ? hero->quickItems[fromEnd] : nullptr, kTopicQuickItem};
     }
     const int part = RegionIndex(bodySlots, region);
-    if (!body || part < 0) return nullptr;
-    *topic = kTopicFirstBodyPart + part;
+    if (!body || part < 0) return {};
     for (Item* worn : hero->armor) {
         ItemArmor* armour = worn->AsArmor();
-        if (static_cast<int>(armour->GetType()) == part) return armour;
+        if (static_cast<int>(armour->GetType()) == part) return {armour, kTopicFirstBodyPart + part};
     }
-    return nullptr;
+    return {nullptr, kTopicFirstBodyPart + part};
 }
 
-Item* HeroQuickStrip::ItemAt(Point point, int* topic) {
-    *topic = 0;
-    if (!enabled) return nullptr;
+ItemUnder HeroQuickStrip::ItemAt(Point point) {
+    if (!enabled) return {};
     const int cell = RegionIndex(cells, RegionUnder(point));
     PartyUnitRecord* hero = owner->HeroRecord();
-    if (cell < 0) return nullptr;
-    *topic = kTopicEntry;
-    if (cell >= std::ssize(hero->spells)) return nullptr;
-    return hero->spells[cell];
+    if (cell < 0) return {};
+    return {cell < std::ssize(hero->spells) ? hero->spells[cell] : nullptr, kTopicEntry};
 }

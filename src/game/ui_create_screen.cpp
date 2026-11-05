@@ -28,36 +28,34 @@
 #include <new>
 #include <string>
 
-BriefingScreen::BriefingScreen(Interface3D* ui) : UiContainer(ui) {}
-
 void Interface3D::CreateScreen(int id) {
     std::unique_ptr<UiContainer> screen;
     switch (id) {
     case 0:
         return;
     case 1:   // the in-game screen
-        screen = std::make_unique<BattleScreen>(this);
+        screen = std::make_unique<BattleScreen>();
         break;
     case 2:   // the main menu
-        screen = std::make_unique<MainMenu>(this);
+        screen = std::make_unique<MainMenu>();
         break;
     case 3:   // the base / briefing screen
-        screen = std::make_unique<BriefingScreen>(this);
+        screen = std::make_unique<BriefingScreen>();
         break;
     case 4:
-        screen = std::make_unique<GlobalMap>(this);
+        screen = std::make_unique<GlobalMap>();
         break;
     case 5:
-        screen = std::make_unique<CampPages>(this, false);
+        screen = std::make_unique<CampPages>(false);
         break;
     case 7:
-        screen = std::make_unique<ViewScreen>(this);
+        screen = std::make_unique<ViewScreen>();
         break;
     case 8:   // the titles
-        screen = std::make_unique<CreditsScreen>(this, false, "Crdt");
+        screen = std::make_unique<CreditsScreen>(false, "Crdt");
         break;
     case 9:
-        screen = std::make_unique<ExchangeScreen>(this);
+        screen = std::make_unique<ExchangeScreen>();
         break;
     default:   // 6 and above 9: the original activates the id itself as a window pointer (a crash), here the
                // fatal error of a missing screen
@@ -73,9 +71,9 @@ namespace {
 // The end both PushWindow and Activate share: the window pushed on the stack, the render state the
 // interface draws with (blending by source alpha, the alpha test against 0x80), the window created, the messages
 // pumped, the mouse released.
-void OpenOnTop(Interface3D* ui, std::unique_ptr<UiContainer> window) {
+void OpenOnTop(std::unique_ptr<UiContainer> window) {
     UiContainer* opened = window.get();
-    ui->stack.push_back(std::move(window));
+    g_interface.stack.push_back(std::move(window));
     render::RenderState& state = render::g_renderState;
     state.blend = true;
     state.alphaTest = true;
@@ -85,7 +83,7 @@ void OpenOnTop(Interface3D* ui, std::unique_ptr<UiContainer> window) {
     app::g_interfaceHasScreen = 1;
     opened->CreateScreen();
     app::PumpMessages();
-    ui->mouseCapture = nullptr;
+    g_interface.mouseCapture = nullptr;
     g_cursor.SetShape(CursorShape::Default);
 }
 } // namespace
@@ -107,7 +105,7 @@ void Interface3D::PushWindow(std::unique_ptr<UiContainer> window, WindowBackdrop
     }
     ResetInput();
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
-    OpenOnTop(this, std::move(window));
+    OpenOnTop(std::move(window));
 }
 
 // --- Activate ------------------------------------------------------------------------------------
@@ -125,7 +123,7 @@ void Interface3D::Activate(std::unique_ptr<UiContainer> window) {
         game::FatalError("Cannot activate NULL interface screen\n");
         return;
     }
-    OpenOnTop(this, std::move(window));
+    OpenOnTop(std::move(window));
 }
 
 // --- the message window --------------------------------------------------------------------------
@@ -140,7 +138,7 @@ void Interface3D::ShowMessage(bool forced) {
     }
     if (messageText.size() == 0) return;
     if (options::g_options.showTutorial == 0 && !forced) return;
-    PushWindow(std::make_unique<HelpWindow>(this, true, messageText, messageFlag), WindowBackdrop::Screen);
+    PushWindow(std::make_unique<HelpWindow>(true, messageText, messageFlag), WindowBackdrop::Screen);
 }
 
 // --- the help window -----------------------------------------------------------------------------
@@ -160,21 +158,19 @@ void Interface3D::OpenHelp(bool forced) {
     } else if (!forced) {
         return;
     }
-    PushWindow(std::make_unique<HelpWindow>(this, false, topic, seen), WindowBackdrop::Screen);
+    PushWindow(std::make_unique<HelpWindow>(false, topic, seen), WindowBackdrop::Screen);
 }
 
 // --- Screens 8 and 9: constructors -------------------------------------------------------------------
 
-ExchangeScreen::ExchangeScreen(Interface3D* ui) : ItemScreen(ui) {}
-
-CreditsScreen::CreditsScreen(Interface3D* ui, bool newFromGame, const char* newName)
-    : UiContainer(ui), name(newName), fromGame(newFromGame) {}
+CreditsScreen::CreditsScreen(bool newFromGame, const char* newName)
+    : name(newName), fromGame(newFromGame) {}
 
 // --- The message box ----------------------------------------------------------------------------------
 
-MessageWindow::MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion newQuestion,
+MessageWindow::MessageWindow(std::string_view titleKey, const char* textKey, MessageQuestion newQuestion,
                              MessageButtons newButtons)
-    : UiContainer(ui), question(newQuestion), buttons(newButtons) {
+    : question(newQuestion), buttons(newButtons) {
     std::string line;
     TextManager* texts = g_clientWorld.texts.get();
     line = texts->GetString(titleKey);

@@ -38,8 +38,8 @@ void ConsoleWindow::SetScale() {
 // that fit below the 24-pixel margin, less one; the clamped rectangle back in 800x600 coordinates. A shown window gets
 // a new surface. The requested rectangle is kept, so a resolution change places it again (OnResize).
 void ConsoleWindow::SetRect(const Rect& newRect) {
-    int screenWidth = screen->width;
-    int screenHeight = screen->height;
+    int screenWidth = g_interface.width;
+    int screenHeight = g_interface.height;
     requestedRect = newRect;
     SetScale();
     // The 3D interface's 800x600 layout to pixels.
@@ -102,8 +102,7 @@ constexpr int kHistory = 0x100;
 constexpr int kNoCommand = -1;
 } // namespace
 
-ConsoleWindow::ConsoleWindow(Interface3D* newScreen) {
-    screen = newScreen;
+ConsoleWindow::ConsoleWindow() {
     surface = nullptr;
     commandIndex = kNoCommand;
     caret = 0;

@@ -15,7 +15,7 @@ void UiContainer::Update() {
 }
 
 void UiContainer::DrawSurfaces() {
-    if (!ui->drawing) return;
+    if (!g_interface.drawing) return;
     UiWindow::DrawSurfaces();
     for (const auto& child : children) {
         if (child->enabled) child->DrawSurfaces();
@@ -23,7 +23,7 @@ void UiContainer::DrawSurfaces() {
 }
 
 void UiContainer::DrawTips() {
-    if (!ui->drawing) return;
+    if (!g_interface.drawing) return;
     UiWindow::DrawTips();
     for (const auto& child : children) {
         if (child->enabled) child->DrawTips();

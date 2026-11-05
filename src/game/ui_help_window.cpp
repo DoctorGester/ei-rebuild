@@ -125,7 +125,7 @@ void HelpWindow::CreateScreen() {
     CreateTexture(0x100, 0x100, TextureKind::Blank1555);
     TextManager* texts = g_clientWorld.texts.get();
     if (!texts->Open(std::string(kTutorialSection) + text)) {
-        ui->SetPendingValue(0);
+        g_interface.SetPendingValue(0);
         return;
     }
     std::string line = texts->ReadLine(true);
@@ -136,7 +136,7 @@ void HelpWindow::CreateScreen() {
         lines.push_back(line);
     }
     if (lines.empty()) {
-        ui->SetPendingValue(0);
+        g_interface.SetPendingValue(0);
         return;
     }
     ReadTutorText(texts, title, &title);
@@ -177,12 +177,12 @@ void HelpWindow::Update() {
 }
 
 void HelpWindow::Finish() {
-    ui->PlayInterfaceSound(kOkSound);
+    g_interface.PlayInterfaceSound(kOkSound);
     if (!message)
-        ui->helpTopics[text] = page;
+        g_interface.helpTopics[text] = page;
     else
-        ui->messageFlag = page;
-    ui->SetPendingValue(0);
+        g_interface.messageFlag = page;
+    g_interface.SetPendingValue(0);
 }
 
 void HelpWindow::OnEvent(UiEvent& event) {
@@ -199,7 +199,7 @@ void HelpWindow::LeftDown(UiEvent& event) {
     if (!region) return;
     if (region == previousButton) {
         if (page > 0) {
-            ui->PlayInterfaceSound(kNextSound);
+            g_interface.PlayInterfaceSound(kNextSound);
             --page;
             ShowPage();
         }
@@ -207,7 +207,7 @@ void HelpWindow::LeftDown(UiEvent& event) {
         Finish();
     } else if (region == nextButton) {
         if (page < static_cast<int>(lines.size()) - 1) {
-            ui->PlayInterfaceSound(kNextSound);
+            g_interface.PlayInterfaceSound(kNextSound);
             ++page;
             ShowPage();
         }
@@ -217,7 +217,7 @@ void HelpWindow::LeftDown(UiEvent& event) {
 void HelpWindow::KeyDown(UiEvent& event) {
     UiContainer::OnEvent(event);
     if (event.key == platform::Key::Return && page < static_cast<int>(lines.size()) - 1) {
-        ui->PlayInterfaceSound(kNextSound);
+        g_interface.PlayInterfaceSound(kNextSound);
         ++page;
         ShowPage();
         event.handled = true;
@@ -240,13 +240,13 @@ void HelpWindow::ShowPage() {
     TextManager* texts = g_clientWorld.texts.get();
     std::vector<std::string> words;
     if (!texts->Open(std::string(kTutorialSection) + text)) {
-        ui->SetPendingValue(0);
+        g_interface.SetPendingValue(0);
         return;
     }
     // The page's "#screen" line; the line after it is the page's title key.
     for (int i = page + 1; i != 0; --i) {
         if (!texts->FindLine(kScreenLine)) {
-            ui->SetPendingValue(0);
+            g_interface.SetPendingValue(0);
             return;
         }
         texts->NextLine();
@@ -292,7 +292,7 @@ void HelpWindow::ShowPage() {
     // Surface 0: the page's title and the topic's with the page's number.
     const int width = pageArea.Width();
     pageWidth = width;
-    AddSurface(NewSurface(ui, pageArea.TopStrip(kStripHeight)))->PaintWith([this](UiSurface& out) { PaintHeader(out); });
+    AddSurface(NewSurface(pageArea.TopStrip(kStripHeight)))->PaintWith([this](UiSurface& out) { PaintHeader(out); });
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     std::vector<PageEntry> entries;
@@ -335,9 +335,9 @@ void HelpWindow::ShowPage() {
     int block = 0;
     for (const PageEntry& entry : entries) {
         const int left = entry.picture.size() != 0 && madePictures < kMaxPictures ? kPictureTextLeft : kTextLeft;
-        for (std::string wrapped : ui->WrapText(entry.text, width - kTextRightMargin - left, 1)) {
+        for (std::string wrapped : g_interface.WrapText(entry.text, width - kTextRightMargin - left, 1)) {
             str::TrimRight(wrapped, ' ');
-            block = (std::max)(block, left - kTextLeft + static_cast<int>(ui->TextExtent(wrapped, 1).w));
+            block = (std::max)(block, left - kTextLeft + static_cast<int>(g_interface.TextExtent(wrapped, 1).w));
         }
     }
     const int shift = (std::max)(0, (width - block) / 2 - kTextLeft);
@@ -379,14 +379,14 @@ void HelpWindow::ShowPage() {
             row.top = y;
             row.bottom = y + kRowHeight;
             bodyTexts.push_back({entry.text, row});
-            int height = static_cast<int>(ui->WrapText(entry.text, row.Width(), 1).size()) * kRowHeight;
+            int height = static_cast<int>(g_interface.WrapText(entry.text, row.Width(), 1).size()) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
             if (withPicture && height <= 80) height = 80;
             y += height;
         }
         if (pass == 0) pageArea.bottom = y + pageArea.top + 2 * kStripHeight;
     }
-    AddSurface(NewSurface(ui, pageArea.Inset(0, kStripHeight)))->PaintWith([this](UiSurface& out) { PaintBody(out); });
+    AddSurface(NewSurface(pageArea.Inset(0, kStripHeight)))->PaintWith([this](UiSurface& out) { PaintBody(out); });
 
     SetRectangle(back, pageArea, 0, 0, 256, 256);
     frame->SetFrame(3.0f, 100.0f, pageArea.Inset(-5), 5.0f, 2, 0xF5, 0xB4, 0xF0);
@@ -410,7 +410,7 @@ void HelpWindow::ShowPage() {
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.
-    AddSurface(NewSurface(ui, pageArea.BottomStrip(kStripHeight)))->PaintWith([this](UiSurface& out) { PaintFooter(out); });
+    AddSurface(NewSurface(pageArea.BottomStrip(kStripHeight)))->PaintWith([this](UiSurface& out) { PaintFooter(out); });
     if (page > 0) previousButton->SetTip(0x7595);
     keyHint.clear();
     if (const char* key = FindCommandByKey(kHelpAction)) {

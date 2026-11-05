@@ -118,8 +118,8 @@ constexpr const char* kFolderFormat = "%ssaves\\%s";
 constexpr const char* kEveryFile = "\\*.*";
 
 // A message box `name` / `text` on top of the interface.
-void Ask(Interface3D* ui, const char* name, const char* text, MessageQuestion question) {
-    ui->PushWindow(std::make_unique<MessageWindow>(ui, name, text, question, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
+void Ask(const char* name, const char* text, MessageQuestion question) {
+    g_interface.PushWindow(std::make_unique<MessageWindow>(name, text, question, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }
 
 constexpr const char* kDateFormat = "%d/%m, %H:%M";
@@ -214,7 +214,7 @@ void SaveLoadWindow::SaveGame() {
     if (space != 0.0) {
         int needed = CurrentSaveSize();
         if (static_cast<double>(needed) > space) {
-            ui->PushWindow(std::make_unique<MessageWindow>(ui, "no_disc_space", "no_disc_space_msg", MessageQuestion::Third, MessageButtons::Ok), WindowBackdrop::FirstWindow);
+            g_interface.PushWindow(std::make_unique<MessageWindow>("no_disc_space", "no_disc_space_msg", MessageQuestion::Third, MessageButtons::Ok), WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -259,7 +259,7 @@ void SaveLoadWindow::SaveGame() {
         shot.Close();
     }
     g_cursor.SetShape(CursorShape::Default);
-    ui->SetPendingValue(kClosed);
+    g_interface.SetPendingValue(kClosed);
 }
 
 void SaveLoadWindow::FillEntries() {
@@ -319,8 +319,8 @@ void SaveLoadWindow::FillEntries() {
         // The game's picture: the new save's shot.sav made from the escape menu's copy of the screen, and its texture.
         if (dialog) dialog->Release();
         dialog = nullptr;
-        if (ui->screenCopy) {
-            newPicture = ShotOf(*ui->screenCopy);
+        if (g_interface.screenCopy) {
+            newPicture = ShotOf(*g_interface.screenCopy);
             dialog = PictureTexture(save_picture::ReadShot(newPicture.data(), newPicture.size()));
         }
     }
@@ -343,7 +343,7 @@ void QuickSave(const char* slot, bool stepFrame) {
     // 0 means unknown: no check.
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false);
-    UiSurface surface(&g_interface, 0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
+    UiSurface surface(0, 0, kScreenWidth, kScreenHeight, SurfaceBlend::Opaque, true);
     surface.CaptureScreen();
     g_cursor.SetShape(CursorShape::Wait);
     g_interface.serverFlag = static_cast<std::uint8_t>(g_serverWorld.paused);
@@ -409,18 +409,18 @@ void SaveLoadWindow::Confirm() {
         LoadSelected();
         return;
     }
-    ui->PlayInterfaceSound(kMessageBoxOkSound);
+    g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     if (selected == 0) {
         SaveGame();
         return;
     }
-    Ask(ui, "overwrite", "overwrite_msg", kAskOverwrite);
+    Ask("overwrite", "overwrite_msg", kAskOverwrite);
 }
 
 void SaveLoadWindow::AskDelete() {
     if (selected < 0 || (isSave && selected == 0)) return;
-    ui->PlayInterfaceSound(kSoundDelete);
-    Ask(ui, "delete", "delete_msg", kAskDelete);
+    g_interface.PlayInterfaceSound(kSoundDelete);
+    Ask("delete", "delete_msg", kAskDelete);
 }
 
 void SaveLoadWindow::LoadSelected() {
@@ -430,7 +430,7 @@ void SaveLoadWindow::LoadSelected() {
     std::string notice = g_clientWorld.texts->GetString(kNotifyLoading);
     g_interface.ShowStatusText(notice);
     g_clientWorld.sounds->StopAll(true);
-    ui->PlayInterfaceSound(kMessageBoxOkSound);
+    g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     g_gameFlow.RequestLoad(entries.data()[selected].folder);
 }
 
@@ -478,7 +478,7 @@ void SaveLoadWindow::PaintList(UiSurface& surface) const {
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave && !SameFolder(entry.folder, kQuickFolder) && !SameFolder(entry.folder, kAutoFolderA) &&
                 !SameFolder(entry.folder, kAutoFolderB)) {
-                const int width = ui->TextExtent(str::Left(name, cursor), kFont).w;
+                const int width = g_interface.TextExtent(str::Left(name, cursor), kFont).w;
                 if (width < titleRect.Width()) {
                     Point top{titleRect.left + width, titleRect.top};
                     Point bottom{titleRect.left + width, titleRect.bottom - 3};
@@ -562,9 +562,9 @@ void SaveLoadWindow::CreateScreen() {
 
     for (int row = 0, top = 108; row < kVisibleRows; ++row, top += 24) rows[row] = AddRect(this, 108, top, 370, top + 24);
 
-    UiSurface* list = AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}));
+    UiSurface* list = AddSurface(NewSurface(Rect{100, 100, 700, 500}));
     list->PaintWith([this](UiSurface& out) { PaintList(out); });
-    scrollbar = AddChild(std::make_unique<UiScrollbar>(ui, Rect{108, 108, 384, 492}, 3.0f, 0, 1.0f));
+    scrollbar = AddChild(std::make_unique<UiScrollbar>(Rect{108, 108, 384, 492}, 3.0f, 0, 1.0f));
 
     UiModel* model = AddMenuModel(this, kSaveLoadTilt);
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
@@ -594,7 +594,7 @@ void SaveLoadWindow::CreateScreen() {
     }
     RefreshListVanilla();
     ShowPicture();
-    if (!sliding) ui->OpenHelp(false);
+    if (!sliding) g_interface.OpenHelp(false);
 }
 
 // --- Save/load window --------------------------------------------------------------------------
@@ -614,14 +614,14 @@ void SaveLoadWindow::LeftDown(UiEvent& event) {
     if (region == okButton) {
         Confirm();
     } else if (region == cancelButton) {
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
-        ui->SetPendingValue(kCloseSaveLoad);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.SetPendingValue(kCloseSaveLoad);
     } else if (region == deleteButton) {
         AskDelete();
     } else if (row >= 0) {
         unsigned index = static_cast<unsigned>(firstVisible + row);
         if (index < static_cast<unsigned>(EntryCount())) {
-            ui->PlayInterfaceSound(kSaveSelectSound);
+            g_interface.PlayInterfaceSound(kSaveSelectSound);
             if (static_cast<int>(index) != selected) {
                 selected = static_cast<int>(index);
                 TakeSelectedTitle();
@@ -672,7 +672,7 @@ void SaveLoadWindow::Update() {
         slide = slideAt;
         if (slideAt > 1.0f) {
             sliding = false;
-            ui->OpenHelp(false);
+            g_interface.OpenHelp(false);
         }
     }
     if (scrollbar->TakeMoved()) {
@@ -694,7 +694,7 @@ void SaveLoadWindow::MessageResult(std::uint32_t result) {
     else if (result == kResultOverwrite)
         SaveGame();
     else if (result == kResultNoSpace)
-        ui->SetPendingValue(kCloseSaveLoadLoad);
+        g_interface.SetPendingValue(kCloseSaveLoadLoad);
 }
 
 // --- Save/load window ----------------------------------------------------------------------------
@@ -740,8 +740,8 @@ void SaveLoadWindow::KeyDown(UiEvent& event) {
         event.handled = true;
         break;
     case platform::Key::Escape:
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
-        ui->SetPendingValue(kCloseSaveLoad);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.SetPendingValue(kCloseSaveLoad);
         event.handled = true;
         break;
     case platform::Key::PageUp: step = -kListRows; break;
@@ -751,7 +751,7 @@ void SaveLoadWindow::KeyDown(UiEvent& event) {
     default: break;
     }
     if (step != 0) {
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         selected += step;
         ShowSelection();
         event.handled = true;
@@ -828,14 +828,14 @@ void SaveLoadWindow::Char(UiEvent& event) {
             cursor = 0;
         }
         auto& currentName = name;
-        if (!ui->ctrlDown && text::CharacterCount(currentName) < kMaxNameLength) {
+        if (!g_interface.ctrlDown && text::CharacterCount(currentName) < kMaxNameLength) {
             std::string tail = str::Mid(currentName, cursor);
             std::string typed;
             {
                 std::string head = str::Left(currentName, cursor);
                 typed = text::Typed(head, event.character) + tail;   // the character's UTF-8 bytes
             }
-            if (ui->TextExtent(typed, 1).w < kMaxNameWidth) {
+            if (g_interface.TextExtent(typed, 1).w < kMaxNameWidth) {
                 currentName = typed;
                 cursor += text::TypedLength(event.character);
             }

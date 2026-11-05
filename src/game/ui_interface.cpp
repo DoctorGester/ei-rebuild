@@ -97,8 +97,8 @@ void Interface3D::Create(TextureDevice* device) {
 
     platform::ActivateKeyboardLayout(kEnglish, kEnglish);
     keybind::LoadKeyBindings();
-    console = new console::ConsoleWindow(this);
-    root = new ChatOverlay(this);
+    console = new console::ConsoleWindow();
+    root = new ChatOverlay();
     drawing = true;
     fade = new ScreenFade();
 

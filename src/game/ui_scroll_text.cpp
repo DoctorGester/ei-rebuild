@@ -99,7 +99,7 @@ void UiScrollText::Tokenize(const std::string& text) {
             pos = NextToken(text, pos, &token);
         }
         if (format) tokens.push_back(std::move(*format));
-        if (word) tokens.push_back(TextToken{.text = token, .width = ui->TextExtent(token, font).w});
+        if (word) tokens.push_back(TextToken{.text = token, .width = g_interface.TextExtent(token, font).w});
     } while (pos < static_cast<int>(text.size()));
 }
 
@@ -123,7 +123,7 @@ void UiScrollText::PlaceWords(int scroll) {
     int heights[kMeasuredFonts];
     for (int font = 0; font < kMeasuredFonts; ++font) {
         std::string sample = FontSampleText();
-        heights[font] = ui->TextExtent(sample, font).h;
+        heights[font] = g_interface.TextExtent(sample, font).h;
     }
 
     // The format in effect at the line: the last format token before it (the first token
@@ -202,10 +202,10 @@ void UiScrollText::PaintWords(UiSurface& surface) const {
 
 // --- Construction, texts, layout ----------------------------------------------------------
 
-UiScrollText::UiScrollText(Interface3D* ownerUi, const char* text, Rect area, float depth)
-    : UiWindow(ownerUi), bar(ownerUi, area, depth, 0, kScrollSpeed) {
+UiScrollText::UiScrollText(const char* text, Rect area, float depth)
+    : bar(area, depth, 0, kScrollSpeed) {
     rect = area;
-    AddSurface(std::make_unique<UiSurface>(ui, &area, SurfaceBlend::Keyed))
+    AddSurface(std::make_unique<UiSurface>(&area, SurfaceBlend::Keyed))
         ->PaintWith([this](UiSurface& out) { PaintWords(out); });
     bar.SetRect(area);
     PlaceText(area);
@@ -263,7 +263,7 @@ void UiScrollText::Layout() {
     int heights[kFontSlots] = {};
     for (int f = 0; f < kMeasuredFonts; ++f) {
         std::string sample = FontSampleText();
-        heights[f] = ui->TextExtent(sample, f).h;
+        heights[f] = g_interface.TextExtent(sample, f).h;
     }
     lines.clear();
 

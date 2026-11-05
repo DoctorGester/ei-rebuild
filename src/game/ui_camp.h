@@ -286,7 +286,7 @@ public:
 // spell constructor, 3 its second page, 4 item constructor, 5 and 6 its other pages, 7 leave the camp.
 class CampPages : public ItemScreen {
 public:
-    CampPages(Interface3D* ui, bool newFromHeroScreen) : ItemScreen(ui), fromHeroScreen(newFromHeroScreen) {}
+    CampPages(bool newFromHeroScreen) : fromHeroScreen(newFromHeroScreen) {}
     // Hands the local player's unit records back (their ids were raised by 100000000 for the call) and
     // deletes the constructors' part lists except the first of each.
     void CloseScreen() override;
@@ -496,7 +496,7 @@ public:
     void RightDown(UiEvent& event);
     // Cells 0-3 the weapons (topic 2), 4-7 the quick items from the right (3), a body slot the armour worn
     // at that body part (topic the part + 4).
-    Item* ItemAt(Point point, int* topic) override;
+    ItemUnder ItemAt(Point point) override;
 
     bool body = false;
     int selected = -1;
@@ -517,7 +517,7 @@ public:
     void Build(std::vector<Item*>* bought, std::vector<Item*>* sold, bool spells, bool exchange);
     // Cells 0-7 the bought list (topic 0x1C on the exchange window, else 0x0B for the item constructor,
     // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12).
-    Item* ItemAt(Point point, int* topic) override;
+    ItemUnder ItemAt(Point point) override;
 
     UiRegion* cells[16] = {};       // row by row
     std::vector<Item*>* bought = nullptr;
@@ -536,7 +536,7 @@ public:
     // Each item's model in its cell (depth 2^(3 - row) * 6), its count and its repair price.
     void DrawSprites(SceneRenderer* pass) override;
     // Topic 0x19 on the 16 cells.
-    Item* ItemAt(Point point, int* topic) override;
+    ItemUnder ItemAt(Point point) override;
 
     std::vector<Item*>* items = nullptr;
     std::vector<UiLabel> labels;     // the surface's paint: the counts and prices of the last Draw
@@ -552,7 +552,7 @@ public:
     // The place in the hero's spell list, or -1.
     void ShowEntry(Item* item);
     // The hero's spell list entry (topic 1).
-    Item* ItemAt(Point point, int* topic) override;
+    ItemUnder ItemAt(Point point) override;
     void DrawSprites(SceneRenderer* pass) override;
 
     int y = 0;
@@ -571,7 +571,7 @@ public:
     void DrawSprites(SceneRenderer* pass) override;
     // The blueprint slot the first item that can be taken apart (0xD), the part slot the first part (0xE),
     // the container slot the first spell container (0x10), grid cell n material n (0xF).
-    Item* ItemAt(Point point, int* topic) override;
+    ItemUnder ItemAt(Point point) override;
 
     Party* slots = nullptr;
     float pulse = 0.0f;              // the highlight's time
@@ -586,7 +586,7 @@ public:
     using ConstructorPage::ConstructorPage;
     // The container slot the first spell container (topic 0x13), the spell slot the first spell (0x14),
     // grid cell n modifier n (0x15), the cost lines (0x1A / 0x1B, no item).
-    Item* ItemAt(Point point, int* topic) override;
+    ItemUnder ItemAt(Point point) override;
     void BuildSpellMaker(Party* slots);
     // The cost lines: "<text 0> <best skill> (<needed>)" and "<text 1> <most mana> (<the larger of the summed
     // and the last spell's mana>)" with a spell. Without a container, a pulsing highlight shows where the

@@ -81,7 +81,7 @@ void Interface3D::ResetSavedState() {
 // --- The version line --------------------------------------------------------------
 
 void MainMenu::AddVersionLine() {
-    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(ui, 100, 480, 780, 600, SurfaceBlend::Keyed, true));
+    UiSurface* surface = AddSurface(std::make_unique<UiSurface>(100, 480, 780, 600, SurfaceBlend::Keyed, true));
     surface->PaintWith([text = g_clientWorld.texts->TextManager::GetString(kVersionKey)](UiSurface& out) {
         Rect area = {0, 0, 675, 120};
         out.DrawTextIn(text, area, TextStyle{2, kUiTextColour, render::text::kRight});
@@ -91,7 +91,7 @@ void MainMenu::AddVersionLine() {
 // --- Create ----------------------------------------------------------------
 
 void MainMenu::CreateScreen() {
-    ui->ResetSavedState();
+    g_interface.ResetSavedState();
     g_gameFlow.UseResources(false);
     hovered = -1;
     rect = Rect{0, 0, 800, 600};
@@ -185,7 +185,7 @@ void MainMenu::MouseMove(UiEvent& event) {
             else
                 animation = g_clientWorld.objectManager->FindAnimation(stones->name, kRestPoseKind);
             stones->PlayAnimation(animation);
-            ui->PlayInterfaceSound(kStoneSound);
+            g_interface.PlayInterfaceSound(kStoneSound);
         }
         hovered = button;
     }
@@ -195,5 +195,5 @@ void MainMenu::MouseMove(UiEvent& event) {
 void MainMenu::KeyDown(UiEvent& event) {
     UiContainer::OnEvent(event);
     if (event.key != platform::Key::Escape) return;
-    ui->PushWindow(std::make_unique<MessageWindow>(ui, kQuitTitle, kQuitText, MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
+    g_interface.PushWindow(std::make_unique<MessageWindow>(kQuitTitle, kQuitText, MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }

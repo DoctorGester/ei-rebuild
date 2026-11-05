@@ -35,7 +35,7 @@ void TurnQuarter(UiMesh* sprite) {
 
 // The virtuals of the scroll bar and of the slider (the slider's create / update virtuals and the drag along
 // x are its own).
-UiScrollbar::UiScrollbar(Interface3D* ui, Rect rect, float newDepth, int maximum, float newSpeed) : UiWindow(ui) {
+UiScrollbar::UiScrollbar(Rect rect, float newDepth, int maximum, float newSpeed) {
     maxPosition = maximum;
     speed = newSpeed;
     depth = newDepth;
@@ -227,7 +227,7 @@ void UiScrollbar::LeftDown(UiEvent& event) {
 
 void UiScrollbar::LeftUp(UiEvent& event) {
     state = 0;
-    ui->mouseCapture = nullptr;
+    g_interface.mouseCapture = nullptr;
     accumulated = 0.0f;
     event.handled = true;
 }

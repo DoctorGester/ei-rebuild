@@ -113,7 +113,7 @@ void GlobalMap::MouseMove(UiEvent& event) {
     }
     std::string text;
     text = isLink ? links[index].name : zones[index].name;
-    if (str::Compare(shownName, text) != 0) ui->PlayInterfaceSound(kZoneSound);
+    if (str::Compare(shownName, text) != 0) g_interface.PlayInterfaceSound(kZoneSound);
     shownName = text;
     tipTitle = isLink ? links[index].title : zones[index].title;
     surfaces[0]->Show();
@@ -153,7 +153,7 @@ void GlobalMap::PaintTitle(UiSurface& surface) const {
 void GlobalMap::KeyDown(UiEvent& event) {
     UiContainer::OnEvent(event);
     if (event.key == platform::Key::Escape) {
-        ui->PushWindow(std::make_unique<EscMenu>(ui), WindowBackdrop::FirstWindow);
+        g_interface.PushWindow(std::make_unique<EscMenu>(), WindowBackdrop::FirstWindow);
         event.handled = true;
     }
     if (event.handled) return;
@@ -180,7 +180,7 @@ void GlobalMap::LeftUp(UiEvent&) {
 void GlobalMap::CloseScreen() {
     delete weather;
     weather = nullptr;
-    ui->StopSound(windSound);
+    g_interface.StopSound(windSound);
 }
 
 // The briefing screen's SaveState, byte for byte.

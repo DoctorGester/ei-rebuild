@@ -58,7 +58,7 @@ void BriefingScreen::CloseScreen() {
     g_clientWorld.terrain->StopAmbience();
     std::uint32_t& cameraFlags = g_camera.flags;
     cameraFlags = (cameraFlags & ~(Camera::kBounded | Camera::kAlternate)) | Camera::kFree;
-    ui->briefing = nullptr;
+    g_interface.briefing = nullptr;
 }
 
 void BriefingScreen::MessageResult(std::uint32_t result) {
@@ -67,13 +67,13 @@ void BriefingScreen::MessageResult(std::uint32_t result) {
         g_gameFlow.LeaveThroughExit(exit);
         break;
     case kGameOverLoad: {
-        ui->PushWindow(std::make_unique<SaveLoadWindow>(ui, false, false), WindowBackdrop::FirstWindow);
+        g_interface.PushWindow(std::make_unique<SaveLoadWindow>(false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kGameOverQuit:
     case kLeaveAnswer:
     case kLoadWindowClosed:
-        ui->closeAll = true;
+        g_interface.closeAll = true;
         g_gameFlow.DropSessions();
         g_gameFlow.CloseSessions();
         break;
@@ -130,18 +130,13 @@ void BriefingScreen::UnitJoined(Unit* unit) {
 
 void BriefingScreen::UnitLeft(Unit* unit) {
     if (unit == leader) leader = nullptr;
-    int count = lib::Count(party);
-    int index = 0;
-    while (index < count && party[index]->id != unit->id) ++index;
-    if (index >= count) return;
-    int after = count - index - 1;
-    if (after != 0) std::memmove(&party[index], &party[index + 1], after * sizeof(party[0]));
-    party.pop_back();
+    const auto member = std::find_if(party.begin(), party.end(), [unit](const Unit* other) { return other->id == unit->id; });
+    if (member != party.end()) party.erase(member);
 }
 
 void BriefingScreen::GameOver(bool) {
-    ui->PlayInterfaceSound("buttons\\gameover.wav");
-    ui->PushWindow(std::make_unique<MessageWindow>(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
+    g_interface.PlayInterfaceSound("buttons\\gameover.wav");
+    g_interface.PushWindow(std::make_unique<MessageWindow>("game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }
 
 void BriefingScreen::ShowBriefing(std::string_view name) {

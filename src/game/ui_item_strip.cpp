@@ -295,9 +295,9 @@ void UiItemStrip::Setup(std::vector<Item*>* newSource, bool newTop) {
     Build(newTop);
     scrollButtons[0]->SetTip(0x4FB0);
     scrollButtons[1]->SetTip(0x4FB1);
-    AddSurface(std::make_unique<UiSurface>(ui, 50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(50, top + 15, 750, top + 35, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintCounts(out); });
-    AddSurface(std::make_unique<UiSurface>(ui, 50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true))
+    AddSurface(std::make_unique<UiSurface>(50, top + 65, 750, top + 85, SurfaceBlend::Keyed, true))
         ->PaintWith([this](UiSurface& out) { PaintPrices(out); });
     priceKind = PriceKind::None;
     source = newSource;
@@ -362,8 +362,7 @@ void FigureStrip::LeftDown(UiEvent& event) {
     Point at = screen_layout::FromScreen(event.at);
     int index = SlotAt(at.x);
     if (index < 0 || index >= count) return;
-    ui->PlayInterfaceSound(kOnOffSound);
+    g_interface.PlayInterfaceSound(kOnOffSound);
     if (heroScreen) heroScreen->ChooseFigure((*figures)[index]);     // the new hero's figure
 }
 
-Item* FigureStrip::ItemAt(Point, int*) { return nullptr; }

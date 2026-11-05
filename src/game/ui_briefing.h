@@ -56,7 +56,7 @@ struct BriefingShownItem {
 // them with each one's status and offer. Multiplayer only.
 class ChatWindow : public UiWindow {
 public:
-    ChatWindow(Interface3D* ui, BriefingScreen* briefing);
+    ChatWindow(BriefingScreen* briefing);
     ~ChatWindow() override;  // in ui_chat_window.cpp, where the players' message class is complete
     // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
     // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle. Returns the face's
@@ -96,7 +96,6 @@ public:
 
 class BriefingScreen : public UiContainer {
 public:
-    explicit BriefingScreen(Interface3D* ui);
     void DrawSprites(SceneRenderer* pass) override;
     // The camera free again (flag 0x40, flags 0x100 / 0x200 cleared).
     void CloseScreen() override;

@@ -45,12 +45,12 @@ bool IsHero(int index) { return index >= 0 && index < g_savedParties.Count(); }
 Item* FirstOf(const std::vector<Item*>& list) { return !list.empty() ? list[0] : nullptr; }
 
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
-void BackToMainMenu(Interface3D* ui) {
+void BackToMainMenu() {
     std::string text = g_clientWorld.texts->TextManager::GetString("reserved_04");
     g_interface.ShowStatusText(text);
-    ui->PlayInterfaceSound(kMessageBoxCancelSound);
+    g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
     g_gameFlow.EndSession();
-    ui->SetPendingValue(0);
+    g_interface.SetPendingValue(0);
 }
 
 // A multiplayer hero's name: the scriptName of its party's first member record (read through the members'
@@ -93,7 +93,7 @@ void MpHeroScreen::CloseRenameEdit() {
 }
 
 void MpHeroScreen::BackToNewHero() {
-    ui->PlayInterfaceSound(kMessageBoxCancelSound);
+    g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
     statsPanel->SetHero(0, "");
     labels[0].clear();
     tradePanel->Settle(false, false);
@@ -155,11 +155,11 @@ void MpHeroScreen::KeyDown(UiEvent& event) {
             CloseRenameEdit();
             DrawHeroList();
         } else if (mode == kModeList) {
-            BackToMainMenu(ui);
+            BackToMainMenu();
         } else if (mode == kModeStats) {
             BackToNewHero();
         } else if (mode == kModeNewHero) {
-            ui->PlayInterfaceSound(kMessageBoxCancelSound);
+            g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
             SetMode(kModeList);
         }
         event.handled = true;
@@ -184,11 +184,11 @@ void MpHeroScreen::KeyDown(UiEvent& event) {
         return;
     }
     if (mode == kModeList) {
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         heroIndex += heroStep;
         ClampHeroSelection();
     } else if (mode == kModeNewHero) {
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         voiceIndex += voiceStep;
         ClampVoiceSelection();
         PlayVoice();
@@ -204,7 +204,7 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
     if (event.handled) return;
     const UiRegion* region = RegionUnder(event.at);
     auto rotate = [&](int direction) {
-        ui->PlayInterfaceSound("buttons\\camp\\move.wav");
+        g_interface.PlayInterfaceSound("buttons\\camp\\move.wav");
         rotating = direction;
         CaptureMouse();
     };
@@ -212,7 +212,7 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
     if (mode == kModeNewHero) {
         // The new hero.
         if (region == backButton) {
-            ui->PlayInterfaceSound(kMessageBoxCancelSound);
+            g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
             SetMode(kModeList);
             return;
         }
@@ -230,7 +230,7 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
         }
         if (region == resetButton) {
             // Back to the defaults: the attributes 25, the speed factor 0.7.
-            ui->PlayInterfaceSound(kMessageBoxCancelSound);
+            g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
             ChooseFigure(defaults[0]);
             PartyUnitRecord* hero = HeroRecord();
             auto* stats = &hero->stats;
@@ -253,7 +253,7 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
         if (index < 0) return;
         std::vector<MpVoiceEntry>& currentVoices = *voices;
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(currentVoices.end() - currentVoices.begin())) return;
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         voiceIndex = index;
         const std::string& file = currentVoices.begin()[index].file;
         HeroRecord()->secondPrototype = file;
@@ -270,7 +270,7 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
             AddNewHero();
         } else if (region == resetButton) {
             // Take the equipment back.
-            ui->PlayInterfaceSound(kMessageBoxCancelSound);
+            g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
             tradePanel->Settle(false, false);
             ShowFirstEquipment();
         }
@@ -282,7 +282,7 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
     // when the base handler started it: the handler returns at once while renaming).
     if (region && renameEdit->focused) CloseRenameEdit();
     if (region == backButton) {
-        BackToMainMenu(ui);
+        BackToMainMenu();
         return;
     }
     if (region == forwardButton) {
@@ -298,7 +298,7 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
         return;
     }
     if (region == newHeroButton) {
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         ChooseFigure(defaults[0]);
         statsPanel->SetHero(0, "");
         labels[0].clear();
@@ -308,29 +308,29 @@ void MpHeroScreen::LeftDown(UiEvent& event) {
         return;
     }
     if (region == renameButton) {
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         Rename();
         return;
     }
     if (region == deleteButton) {
         // Delete: asks first ("lmp_deletepers").
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         if (!IsHero(heroIndex)) return;
-        ui->PushWindow(std::make_unique<MessageWindow>(ui, "lmp_deletepers", "lmp_deletepers_msg", MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
+        g_interface.PushWindow(std::make_unique<MessageWindow>("lmp_deletepers", "lmp_deletepers_msg", MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
         return;
     }
     if (region == inventoryButton) {
         // The hero's inventory: the camp screen.
-        ui->PlayInterfaceSound(kSaveSelectSound);
+        g_interface.PlayInterfaceSound(kSaveSelectSound);
         if (!IsHero(heroIndex)) return;
-        ui->PushWindow(std::make_unique<CampPages>(ui, true), WindowBackdrop::None);
+        g_interface.PushWindow(std::make_unique<CampPages>(true), WindowBackdrop::None);
         return;
     }
     const int row = ListRow(region);
     if (row < 0 || row >= kHeroRows) return;
     int index = heroTop + row;
     if (!IsHero(index)) return;
-    ui->PlayInterfaceSound(kSaveSelectSound);
+    g_interface.PlayInterfaceSound(kSaveSelectSound);
     ShowHero(index);
 }
 
@@ -358,7 +358,7 @@ void MpHeroScreen::Rename() {
 // --- The voice's sound ----------------------------------------------------------------
 
 void MpHeroScreen::PlayVoice() {
-    ui->StopSound(voiceSound);
+    g_interface.StopSound(voiceSound);
     voiceSound = -1;
     auto* hero = HeroRecord();
     UnitPrototypeRecord* prototype;
@@ -387,7 +387,7 @@ void MpHeroScreen::PlayVoice() {
     };
     int index = ClientRandBelow(count);
     for (int tries = 0; tries < count && voiceSound == -1; ++tries) {
-        voiceSound = ui->PlayInterfaceSound(nth(index)->speech.sound.c_str());
+        voiceSound = g_interface.PlayInterfaceSound(nth(index)->speech.sound.c_str());
         index = (index + 1) % count;
     }
 }
@@ -395,13 +395,13 @@ void MpHeroScreen::PlayVoice() {
 // --- Continue -------------------------------------------------------------------------
 
 void MpHeroScreen::Continue() {
-    ui->PlayInterfaceSound(kMessageBoxOkSound);
+    g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     if (IsHero(heroIndex)) {
         g_savedParties.SaveAll();
-        ui->PushWindow(std::make_unique<MpConnectScreen>(ui), WindowBackdrop::FirstWindow);
+        g_interface.PushWindow(std::make_unique<MpConnectScreen>(), WindowBackdrop::FirstWindow);
         return;
     }
-    ui->PushWindow(std::make_unique<MessageWindow>(ui, "lmp_no_pers", "lmp_no_pers_msg", MessageQuestion::Second, MessageButtons::Ok), WindowBackdrop::FirstWindow);
+    g_interface.PushWindow(std::make_unique<MessageWindow>("lmp_no_pers", "lmp_no_pers_msg", MessageQuestion::Second, MessageButtons::Ok), WindowBackdrop::FirstWindow);
 }
 
 // --- The new hero's statistics and its creation --------------------------------------
@@ -429,10 +429,10 @@ void MpHeroScreen::CreateHero() {
     float sum = stats->intelligenceBase + stats->dexterityBase + stats->strengthBase;
     float points = kAttributePoints;
     if (sum != points || static_cast<int>(name.size()) == 0) {
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
         return;
     }
-    ui->PlayInterfaceSound(kMessageBoxOkSound);
+    g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     ShowFirstEquipment();
     hero->scriptName = name;
     statsPanel->SetHero(0, name);
@@ -499,7 +499,7 @@ void MpHeroScreen::MessageResult(std::uint32_t result) {
 // --- The new hero added to the list --------------------------------------------------
 
 void MpHeroScreen::AddNewHero() {
-    ui->PlayInterfaceSound(kMessageBoxOkSound);
+    g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = lib::Count(hero->weapons) - 1; i >= 0; --i)

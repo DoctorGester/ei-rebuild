@@ -127,7 +127,7 @@ void HeroStatsPanel::Update() {
     bool stepped = StepPoint(heldButton);
     owner->RefreshStats();
     if (!stepped) {
-        ui->mouseCapture = nullptr;
+        g_interface.mouseCapture = nullptr;
         heldButton = -1;
         holdTicks = 0;
     }
@@ -151,7 +151,7 @@ void HeroStatsPanel::LeftDown(UiEvent& event) {
         heldButton = -1;
         if (StepPoint(button)) heldButton = button;
         if (button >= 0) {
-            ui->PlayInterfaceSound(kPerkSound);
+            g_interface.PlayInterfaceSound(kPerkSound);
             owner->RefreshStats();
         }
         if (heldButton >= 0) {
@@ -161,16 +161,16 @@ void HeroStatsPanel::LeftDown(UiEvent& event) {
         return;
     }
     if (region == previousButton) {
-        ui->PlayInterfaceSound(kHeroSound);
+        g_interface.PlayInterfaceSound(kHeroSound);
         if (camp) camp->PreviousHero();
     } else if (region == nextButton) {
-        ui->PlayInterfaceSound(kHeroSound);
+        g_interface.PlayInterfaceSound(kHeroSound);
         if (camp) camp->NextHero();
     }
 }
 
 void HeroStatsPanel::LeftUp(UiEvent&) {
-    ui->mouseCapture = nullptr;
+    g_interface.mouseCapture = nullptr;
     heldButton = -1;
     holdTicks = 0;
 }

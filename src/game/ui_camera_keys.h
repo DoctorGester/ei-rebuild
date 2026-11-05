@@ -13,8 +13,6 @@ inline float KeyboardSpeed(const options::CameraMotionOptions& motion) { return 
 // x / y / z (set by the key-down, cleared by the key-up); the right button turns the view while held.
 class CameraInput final : public UiInput {
 public:
-    explicit CameraInput(Interface3D* ui) : UiInput(ui) {}
-
     void OnEvent(UiEvent& event) override;
     // A direction key (actions 5-10 of g_keyActions) sets its axis; actions 13-16 restore camera view 0-3,
     // or save it with Ctrl / Alt. Then, when used, the camera's motion is set from the axes as KeyUp does.

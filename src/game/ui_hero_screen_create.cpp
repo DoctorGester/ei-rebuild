@@ -153,29 +153,29 @@ void MpHeroScreen::CreateScreen() {
     }
 
     // The description panel on the right (its item list and text arrays constructed in place).
-    descPanel = AddChild(std::make_unique<ItemInfoPanel>(ui, this));
+    descPanel = AddChild(std::make_unique<ItemInfoPanel>(this));
     descPanel->Build(600, 100);
 
     // The hero's statistics.
-    statsPanel = AddChild(std::make_unique<HeroStatsPanel>(ui, this));
+    statsPanel = AddChild(std::make_unique<HeroStatsPanel>(this));
     statsPanel->AddObject(texture(kPanelTexture));
     statsPanel->Build();
 
     // The equipment (without the body) and the quick items.
-    weaponPanel = AddChild(std::make_unique<HeroEquipPanel>(ui, this));
+    weaponPanel = AddChild(std::make_unique<HeroEquipPanel>(this));
     weaponPanel->AddObject(texture(kItemTexture));
     weaponPanel->Build(false);
 
-    spellPanel = AddChild(std::make_unique<HeroQuickStrip>(ui, this));
+    spellPanel = AddChild(std::make_unique<HeroQuickStrip>(this));
     spellPanel->AddObject(texture(kItemTexture));
     spellPanel->Build(false);
 
     // The skills for experience.
-    tradePanel = AddChild(std::make_unique<TradePanel>(ui, this));
+    tradePanel = AddChild(std::make_unique<TradePanel>(this));
     tradePanel->AddObject(texture(kPanelTexture));
     tradePanel->Build();
 
-    heroScroll = AddChild(std::make_unique<UiScrollbar>(ui, Rect{110, 250, 384, 490}, 3.0f, 0, 1.0f));
+    heroScroll = AddChild(std::make_unique<UiScrollbar>(Rect{110, 250, 384, 490}, 3.0f, 0, 1.0f));
 
     // The figures a new hero can take, men (model "unhuma") and women ("unhufe"): every creature
     // record whose unit prototype has one of the two models, with a numbered voice when the
@@ -239,22 +239,22 @@ void MpHeroScreen::CreateScreen() {
 
     // The two figure strips: the men on top, the women below.
     auto figureStrip = [this](int index, std::vector<std::string>& names, bool top) {
-        figureStrips[index] = AddChild(std::make_unique<FigureStrip>(ui, this));
+        figureStrips[index] = AddChild(std::make_unique<FigureStrip>(this));
         figureStrips[index]->SetupFigures(&names, top, false);
     };
     figureStrip(0, men, true);
     figureStrip(1, women, false);
 
     // The edit windows: a listed hero's new name, and the new hero's name.
-    renameEdit = AddChild(std::make_unique<UiEditField>(ui, Rect{558, 110, 695, 126}));
+    renameEdit = AddChild(std::make_unique<UiEditField>(Rect{558, 110, 695, 126}));
     renameEdit->SetLook(3, 0, 1, kNameLength, kUiTextColour, kCaretColour);
     renameEdit->SetEnabled(false);
     renameEdit->SetFocused(false);
-    nameEdit = AddChild(std::make_unique<UiEditField>(ui, Rect{0, 127, 200, 143}));
+    nameEdit = AddChild(std::make_unique<UiEditField>(Rect{0, 127, 200, 143}));
     nameEdit->SetLook(3, 1, 1, kNameLength, kWhite, kCaretColour);
     nameEdit->SetEnabled(false);
     nameEdit->SetFocused(false);
-    voiceScroll = AddChild(std::make_unique<UiScrollbar>(ui, Rect{10, 325, 190, 490}, 3.0f, 0, 1.0f));
+    voiceScroll = AddChild(std::make_unique<UiScrollbar>(Rect{10, 325, 190, 490}, 3.0f, 0, 1.0f));
     voiceScroll->SetEnabled(false);
     voiceSound = -1;
     voiceTop = 0;
@@ -265,7 +265,7 @@ void MpHeroScreen::CreateScreen() {
 
     const Rect areas[4] = {{100, 240, 390, 500}, {100, 100, 390, 220}, {0, 300, 200, 500}, {425, 110, 555, 126}};
     for (int i = 0; i < 4; ++i)
-        AddSurface(std::make_unique<UiSurface>(ui, areas[i], SurfaceBlend::Keyed, true))
+        AddSurface(std::make_unique<UiSurface>(areas[i], SurfaceBlend::Keyed, true))
             ->PaintWith([this, i](UiSurface& out) { PaintLabels(out, labels[i]); });
     surfaces[kSurfaceRename]->Hide();
 

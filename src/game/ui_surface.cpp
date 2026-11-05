@@ -41,11 +41,11 @@ UiSurface::~UiSurface() {
     render::ui::DropPicture(this);
 }
 
-UiSurface::UiSurface(Interface3D* ui, int left, int top, int right, int bottom, SurfaceBlend blend, bool scale)
-    : UiSurface(ui, Rect{left, top, right, bottom}, blend, scale) {}
+UiSurface::UiSurface(int left, int top, int right, int bottom, SurfaceBlend blend, bool scale)
+    : UiSurface(Rect{left, top, right, bottom}, blend, scale) {}
 
-UiSurface::UiSurface(Interface3D* ownerUi, const Rect& area, SurfaceBlend newBlend, bool scale)
-    : ui(ownerUi), blend(newBlend), rect(area), layoutRect(area), scaled(scale) {
+UiSurface::UiSurface(const Rect& area, SurfaceBlend newBlend, bool scale)
+    : blend(newBlend), rect(area), layoutRect(area), scaled(scale) {
     g_surfaces.push_back(this);
     if (scale) rect = screen_layout::ToScreen(rect);
     width = rect.Width();
@@ -53,8 +53,8 @@ UiSurface::UiSurface(Interface3D* ownerUi, const Rect& area, SurfaceBlend newBle
     if (width <= 0 || height <= 0) ThrowSurfaceNotMade(width, height);
 }
 
-UiSurface::UiSurface(Interface3D* ui, const Rect* rect, SurfaceBlend blend)
-    : UiSurface(ui, *rect, blend, true) {}
+UiSurface::UiSurface(const Rect* rect, SurfaceBlend blend)
+    : UiSurface(*rect, blend, true) {}
 
 void UiSurface::MoveTo(Point at) {
     if (scaled) layoutRect.Offset(at - layoutRect.TopLeft());
@@ -129,7 +129,7 @@ int UiSurface::DrawTextIn(std::string_view text, const Rect& area, const TextSty
         frame.bottom += kRectSlack;
     }
     // The original scales a point whose x is an unwritten local; only y is used.
-    const int textHeight = DrawTextFrame(ui->fonts[style.font], text, frame, style.format, style.colour, style.shadow);
+    const int textHeight = DrawTextFrame(g_interface.fonts[style.font], text, frame, style.format, style.colour, style.shadow);
     return screen_layout::FromScreenNoMargin(Point{0, textHeight}).y;
 }
 
@@ -179,7 +179,7 @@ void PaintLabels(UiSurface& surface, const std::vector<UiLabel>& labels) {
 // background colour (a text's antialiased edges blend over the frame). See docs/notes/ui.md, "Surface blit".
 void UiSurface::Blit() {
     if (!shown) return;
-    const Rect clip = Rect{0, 0, ui->width, ui->height}.Intersection(rect);
+    const Rect clip = Rect{0, 0, g_interface.width, g_interface.height}.Intersection(rect);
     if (clip.IsEmpty()) return;
     if (render::ui::HasPicture(this)) render::ui::DrawPicture(this, rect, greyed);
     if (!paint) return;

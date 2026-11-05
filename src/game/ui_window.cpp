@@ -147,7 +147,7 @@ UiRegion* UiWindow::PressedRegion(UiEvent& event, int count) {
 }
 
 void UiWindow::DrawTips() {
-    Point mouse = screen_layout::FromScreen(ui->mouse);
+    Point mouse = screen_layout::FromScreen(g_interface.mouse);
     for (const auto& region : regions) {
         if (!region->tip) continue;
         region->OnMouseMove(mouse);
@@ -237,7 +237,7 @@ Texture* UiWindow::CreateTexture(int width, int height, TextureKind kind) {
     return texture;
 }
 
-UiRegion* UiWindow::AddRegion() { return regions.emplace_back(std::make_unique<UiRegion>(ui)).get(); }
+UiRegion* UiWindow::AddRegion() { return regions.emplace_back(std::make_unique<UiRegion>()).get(); }
 
 void UiWindow::RemoveRegion(UiRegion* region) {
     const int index = RegionIndex(regions, region);
@@ -301,7 +301,7 @@ UiMesh* UiWindow::AddSceneObject(UiMesh* object) {
 
 // --- The constructor ---------------------------------------------------------------------------------
 
-UiWindow::UiWindow(Interface3D* ownerUi) : ui(ownerUi) {
+UiWindow::UiWindow() {
     localRotation = kIdentityRotation;
     worldRotation.SetIdentity();
     localPosition = Vector3{0.0f, 0.0f, 0.0f};
@@ -322,5 +322,5 @@ UiWindow::~UiWindow() {
     }
     ReleaseAndClear(sceneObjects);
     ReleaseAndClear(objects);
-    if (ui->mouseCapture == this) ui->mouseCapture = nullptr;
+    if (g_interface.mouseCapture == this) g_interface.mouseCapture = nullptr;
 }

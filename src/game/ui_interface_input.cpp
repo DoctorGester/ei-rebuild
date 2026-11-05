@@ -181,7 +181,7 @@ void Interface3D::Update() {
         disconnected = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
                 static_cast<unsigned>(net::g_gameClient->joinState));
-        PushWindow(std::make_unique<MessageWindow>(this, "disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok), WindowBackdrop::FirstWindow);
+        PushWindow(std::make_unique<MessageWindow>("disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok), WindowBackdrop::FirstWindow);
     } else if (!stack.empty()) {
         stack.back()->Update();
     }
@@ -202,7 +202,7 @@ void Interface3D::OnStringEvent(std::string_view event) {
         PlayInterfaceSound("buttons\\gameover.wav");
         const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
         const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
-        PushWindow(std::make_unique<MessageWindow>(this, title, message, MessageQuestion::Second, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
+        PushWindow(std::make_unique<MessageWindow>(title, message, MessageQuestion::Second, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
         return;
     }
     if (str::Compare(words[0], "say") == 0 || str::Compare(words[0], "say_block") == 0) {
@@ -273,7 +273,7 @@ void Interface3D::ShowFps(bool on) {
         return;
     }
     if (fpsSurface) return;
-    fpsSurface = std::make_unique<UiSurface>(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, SurfaceBlend::Keyed, true);
+    fpsSurface = std::make_unique<UiSurface>(kFpsLeft, kFpsTop, kFpsRight, kFpsBottom, SurfaceBlend::Keyed, true);
     fpsText.clear();
     fpsSurface->PaintWith([this](UiSurface& out) { PaintFps(out); });
 }
@@ -326,7 +326,7 @@ void Interface3D::SaveWindowState() {
 }
 
 void Interface3D::ShowStatusText(std::string_view text) {
-    statusSurface = std::make_unique<UiSurface>(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
+    statusSurface = std::make_unique<UiSurface>(0, kStatusTop, kLayoutWidth, kStatusBottom, SurfaceBlend::Keyed, true);
     statusSurface->PaintWith([text](UiSurface& out) {
         Rect rect = {0, 0, kLayoutWidth, kStatusTextHeight};
         out.DrawTextIn(text, rect, TextStyle{kStatusFont, kStatusColour, render::text::kCenter});    // Rebirth-patched
@@ -368,12 +368,6 @@ Rect ScreenOf(const SceneRenderer* renderer) {
 constexpr std::uint32_t kFpsPeriod = 400;
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kFpsFont = 1;
-
-// A new surface for the screen's picture, as the interface's backdrop: the whole window in pixels, unscaled
-// (Rebirth's WideScreen; the original's 800 x 600 layout rectangle scaled is the same on a 4:3 window).
-void MakeBackdrop(Interface3D* ui) {
-    ui->backdrop = std::make_unique<UiSurface>(ui, 0, 0, ui->width, ui->height, SurfaceBlend::Opaque, false);
-}
 
 } // namespace
 
@@ -444,16 +438,18 @@ void Interface3D::DrawOverlays() {
 
     if (backdropMode == Backdrop::TakeFirst) {
         // A window opens over the screen: the screen greyed behind it.
-        if (!backdrop) MakeBackdrop(this);
+        // The backdrop is the whole window in pixels, unscaled (Rebirth's WideScreen; the original's 800 x 600 layout
+        // rectangle scaled is the same on a 4:3 window).
+        if (!backdrop) backdrop = std::make_unique<UiSurface>(0, 0, width, height, SurfaceBlend::Opaque, false);
         backdrop->CaptureScreen();
-        if (!screenCopy) screenCopy = std::make_unique<UiSurface>(this, 0, 0, width, height, SurfaceBlend::Opaque, false);
+        if (!screenCopy) screenCopy = std::make_unique<UiSurface>(0, 0, width, height, SurfaceBlend::Opaque, false);
         screenCopy->CaptureScreen();
         backdrop->Greyscale();
         backdropMode = Backdrop::First;
     } else if (backdropMode == Backdrop::TakeSecond) {
         // A window opens over a window: the screen as it is, the old backdrop put aside.
         secondBackdrop = std::move(backdrop);
-        MakeBackdrop(this);
+        backdrop = std::make_unique<UiSurface>(0, 0, width, height, SurfaceBlend::Opaque, false);
         backdrop->CaptureScreen();
         backdropMode = Backdrop::Both;
     }

@@ -75,7 +75,7 @@ void ItemIconWindow::PlaceBars(int y) {
 // --- The item screens' base Create ------------------------------------------------------
 
 void ItemScreen::CreateBase() {
-    ItemIconWindow* icons = AddChild(std::make_unique<ItemIconWindow>(ui));
+    ItemIconWindow* icons = AddChild(std::make_unique<ItemIconWindow>());
     iconWindow = icons;
     iconWindow->AddObject(objects[0]);
     iconWindow->Build();
@@ -112,7 +112,7 @@ ItemTurn* ItemTurn::Clone() {
 // --- Moving items between lists ----------------------------------------------------
 
 Item* ItemScreen::MoveItem(Item* item, Party* to, Party* from, int limit, bool merge, bool turning) {
-    bool whole = merge && ui->shiftDown != 0;
+    bool whole = merge && g_interface.shiftDown != 0;
     if (limit > 0 && std::ssize(to->items) >= limit) {
         for (int i = 0; i < limit; ++i) {
             if (!item->IsSameAs(to->items[i])) continue;
@@ -149,10 +149,10 @@ bool ItemScreen::CanEquip(Item*, int) { return false; }
 
 // --- The item panels' owners ------------------------------------------------------------------------
 
-UiItemPanel::UiItemPanel(Interface3D* ui, CampPages* newCamp) : UiWindow(ui), owner(newCamp), camp(newCamp) {}
+UiItemPanel::UiItemPanel(CampPages* newCamp) : owner(newCamp), camp(newCamp) {}
 
-UiItemPanel::UiItemPanel(Interface3D* ui, MpHeroScreen* newHeroScreen)
-    : UiWindow(ui), owner(newHeroScreen), heroScreen(newHeroScreen) {}
+UiItemPanel::UiItemPanel(MpHeroScreen* newHeroScreen)
+    : owner(newHeroScreen), heroScreen(newHeroScreen) {}
 
 // --- Ui item model -----------------------------------------------------------------------------------
 
@@ -197,16 +197,12 @@ void UiItemPanel::OnEvent(UiEvent& event) {
 }
 
 void UiItemPanel::LeftDown(UiEvent& event) {
-    // The address of the x argument is the topic out-parameter, like the original.
-    int topic = event.at.x;
-    if (Item* item = ItemAt(event.at, &topic)) {
-        owner->TakeItem(item, mode);
+    const ItemUnder under = ItemAt(event.at);
+    if (under.item) {
+        owner->TakeItem(under.item, mode);
         return;
     }
-    if (topic && camp) camp->TopicClicked(topic);
+    if (under.topic && camp) camp->TopicClicked(under.topic);
 }
 
-Item* UiItemPanel::ItemAt(Point, int* topic) {
-    *topic = 0;
-    return nullptr;
-}
+ItemUnder UiItemPanel::ItemAt(Point) { return {}; }

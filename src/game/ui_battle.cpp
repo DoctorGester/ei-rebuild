@@ -124,16 +124,7 @@ void RebuildClientParty(BattleScreen* screen) {
             if (!unit) continue;
             if (unitId == ids.camera) {
                 g_clientWorld.Select(unit);
-                // Insert at the front.
-                int n = lib::Count(*party);
-                if (n <= 0) {
-                    party->resize(1);
-                } else {
-                    party->resize(n + 1);
-                    std::memmove(party->data() + 1, party->data(), static_cast<std::size_t>(n) * sizeof((*party)[0]));
-
-                }
-                (*party)[0] = unit;
+                party->insert(party->begin(), unit);
                 cameraFirst = true;
             } else {
                 party->push_back(unit);
@@ -207,7 +198,7 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
         panel->slide.moving = true;
         panel->slide.direction = 1.0f;
     }
-    panel->ui->PlayInterfaceSound(kSoundSling);
+    g_interface.PlayInterfaceSound(kSoundSling);
     show(panel);
 }
 constexpr const char* kUnitTextPrefix = "unit ";
@@ -225,7 +216,7 @@ constexpr int kWobbleShake = 2;
 } // namespace
 
 void BattleScreen::CreateScreen() {
-    ui->battle = this;
+    g_interface.battle = this;
     float mapZoom = 1.0f;
     portraitMode = 0;
     std::string savedText;
@@ -277,7 +268,7 @@ void BattleScreen::CreateScreen() {
     if (topPanel->page == 0) messageLog->AddText(savedText);
     topPanel->ShowItems();
 
-    AddInput(std::make_unique<CameraInput>(ui));
+    AddInput(std::make_unique<CameraInput>());
 
     g_camera.flags &= ~0x40u;
     pendingAction = kPendingNone;
@@ -297,45 +288,45 @@ void BattleScreen::CreateScreen() {
 
 void BattleScreen::BuildPanels(float mapZoom) {
     // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
-    weaponBar = AddChild(std::make_unique<HudWeaponBar>(ui, this));
+    weaponBar = AddChild(std::make_unique<HudWeaponBar>(this));
     weaponBar->AddObject(objects[0]);
 
-    quickItems = AddChild(std::make_unique<HudQuickItems>(ui, this));
+    quickItems = AddChild(std::make_unique<HudQuickItems>(this));
     quickItems->AddObject(objects[0]);
 
-    spellColumn = AddChild(std::make_unique<HudSpellColumn>(ui, this));
+    spellColumn = AddChild(std::make_unique<HudSpellColumn>(this));
     spellColumn->AddObject(objects[1]);
 
-    actionColumn = AddChild(std::make_unique<HudActionColumn>(ui, this));
+    actionColumn = AddChild(std::make_unique<HudActionColumn>(this));
     actionColumn->AddObject(objects[1]);
 
-    portraits = AddChild(std::make_unique<HudPortraits>(ui, this));
+    portraits = AddChild(std::make_unique<HudPortraits>(this));
     portraits->AddObject(objects[2]);
 
-    unitPanel = AddChild(std::make_unique<HudUnitPanel>(ui, this));
+    unitPanel = AddChild(std::make_unique<HudUnitPanel>(this));
     unitPanel->AddObject(objects[2]);
     unitPanel->AddObject(objects[1]);
-    unitPanel->Setup(ui->hudBodyPart, ui->hudPanelsIn[0] != 0);
+    unitPanel->Setup(g_interface.hudBodyPart, g_interface.hudPanelsIn[0] != 0);
 
-    map = AddChild(std::make_unique<HudMap>(ui, this));
+    map = AddChild(std::make_unique<HudMap>(this));
     map->AddObject(objects[2]);
-    map->Setup(mapZoom, ui->hudPanelsIn[2] != 0);
+    map->Setup(mapZoom, g_interface.hudPanelsIn[2] != 0);
 
-    clock = AddChild(std::make_unique<HudClock>(ui));
+    clock = AddChild(std::make_unique<HudClock>());
     clock->AddObject(objects[2]);
-    clock->Setup(ui->fastGame != 0);
+    clock->Setup(g_interface.fastGame != 0);
 
-    movePanel = AddChild(std::make_unique<HudMovePanel>(ui, this));
+    movePanel = AddChild(std::make_unique<HudMovePanel>(this));
     movePanel->AddObject(objects[2]);
     movePanel->Build();
 
     // The message log.
-    messageLog = AddChild(std::make_unique<UiScrollText>(ui, "", Rect{0xBE, 0x19, 0x262, 0x59}, 3.0f));
+    messageLog = AddChild(std::make_unique<UiScrollText>("", Rect{0xBE, 0x19, 0x262, 0x59}, 3.0f));
     messageLog->align = 1;
 
-    topPanel = AddChild(std::make_unique<HudTopPanel>(ui, this));
+    topPanel = AddChild(std::make_unique<HudTopPanel>(this));
     topPanel->AddObject(objects[2]);
-    topPanel->Setup(ui->hudTopPage, ui->hudPanelsIn[1] != 0);
+    topPanel->Setup(g_interface.hudTopPage, g_interface.hudPanelsIn[1] != 0);
 }
 
 void BattleScreen::LayoutChanged() {
@@ -390,7 +381,7 @@ void BattleScreen::CloseScreen() {
     g_clientWorld.sounds->StopAll(true);
     g_clientWorld.terrain->StopAmbience();
     party.clear();
-    ui->battle = nullptr;
+    g_interface.battle = nullptr;
 }
 
 bool BattleScreen::ReadyToStopPolling() {
@@ -399,7 +390,7 @@ bool BattleScreen::ReadyToStopPolling() {
         if (!currentParty.empty()) g_camera.SetTarget(currentParty[0]);
         if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), true);
         hasHero = false;
-        ui->OpenHelp(false);
+        g_interface.OpenHelp(false);
     }
     return true;
 }
@@ -418,12 +409,9 @@ void BattleScreen::UnitLeft(Unit* unit) {
         return;
     }
     auto& currentParty = party;
-    int index = 0;
-    while (index < std::ssize(currentParty) && currentParty[index] != unit) ++index;
-    if (index >= std::ssize(currentParty)) return;
-    int after = lib::Count(currentParty) - index - 1;
-    if (after != 0) std::memmove(&currentParty[index], &currentParty[index + 1], after * sizeof(currentParty[0]));
-    currentParty.pop_back();
+    const auto member = std::find(currentParty.begin(), currentParty.end(), unit);
+    if (member == currentParty.end()) return;
+    currentParty.erase(member);
     portraits->Rebuild(false);
     RefreshSelection();
 }
@@ -440,7 +428,7 @@ void BattleScreen::SaveState() {
         if (unit->flags & MapObjectFlag::Selected) stream->WriteId(unit);
     }
     stream->WriteValue(map->zoom);
-    stream->WriteValue(ui->serverFlag);
+    stream->WriteValue(g_interface.serverFlag);
     stream->WriteValue(LocalPlayerData()->money);    // the party's +0x50 (Create reads it back and drops it)
     stream->WriteString(topPanel->pageTexts[0]);
     stream->WriteValue(exitPending);
@@ -476,19 +464,10 @@ void BattleScreen::UnitJoined(Unit* unit) {
     }
     bool selected = false;
     if (found) {
-        int count = lib::Count(currentParty);
-        if (place >= count) {
-            currentParty.resize(place + 1);
-        } else {
-            currentParty.resize(count + 1);
-            std::memmove(&currentParty[place + 1], &currentParty[place], (count - place) * sizeof(currentParty[0]));
-        }
-        currentParty[place] = unit;
+        currentParty.insert(currentParty.begin() + place, unit);
         selected = player->members[record].selected != 0;
     } else {
-        int count = lib::Count(currentParty);
-        currentParty.resize(count + 1);
-        currentParty[count] = unit;
+        currentParty.push_back(unit);
     }
     portraits->Rebuild(false);
     if (selected) {
@@ -498,9 +477,7 @@ void BattleScreen::UnitJoined(Unit* unit) {
     // A hero the save had selected.
     for (int i = 0; i < std::ssize(heroes); ++i) {
         if (static_cast<int>(heroes[i]) != unit->id) continue;
-        int after = lib::Count(heroes) - i - 1;
-        if (after != 0) std::memmove(&heroes[i], &heroes[i + 1], after * sizeof(heroes[0]));
-        heroes.pop_back();
+        heroes.erase(heroes.begin() + i);
         g_clientWorld.Select(unit);
         MarkPortrait(place);
         break;
@@ -514,13 +491,13 @@ void BattleScreen::MessageResult(std::uint32_t result) {
         g_gameFlow.LeaveThroughExit(pendingExit);
         break;
     case kGameOverLoad: {
-        ui->PushWindow(std::make_unique<SaveLoadWindow>(ui, false, false), WindowBackdrop::FirstWindow);
+        g_interface.PushWindow(std::make_unique<SaveLoadWindow>(false, false), WindowBackdrop::FirstWindow);
         break;
     }
     case kGameOverQuit:
     case kLeaveAnswer:
     case kLoadWindowClosed:
-        ui->closeAll = true;
+        g_interface.closeAll = true;
         g_gameFlow.DropSessions();
         g_gameFlow.CloseSessions();
         break;
@@ -534,12 +511,12 @@ void BattleScreen::GameOver(bool won) {
     g_clientWorld.terrain->StopAmbience();
     std::unique_ptr<MessageWindow> box;
     if (!won) {
-        ui->PlayInterfaceSound("buttons\\gameover.wav");
-        box = std::make_unique<MessageWindow>(ui, "game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel);
+        g_interface.PlayInterfaceSound("buttons\\gameover.wav");
+        box = std::make_unique<MessageWindow>("game_over", "game_over_msg", MessageQuestion::Second, MessageButtons::OkCancel);
     } else {
-        box = std::make_unique<MessageWindow>(ui, "end_of_game", "end_of_game_msg", MessageQuestion::Exit, MessageButtons::OkCancel);
+        box = std::make_unique<MessageWindow>("end_of_game", "end_of_game_msg", MessageQuestion::Exit, MessageButtons::OkCancel);
     }
-    ui->PushWindow(std::move(box), WindowBackdrop::FirstWindow);
+    g_interface.PushWindow(std::move(box), WindowBackdrop::FirstWindow);
 }
 
 // --- the battle screen's update ------------------------------------------------------------------
@@ -574,7 +551,7 @@ void BattleScreen::Update() {
     if (IsMultiplayerClient()) RebuildClientParty(this);
 
     UiContainer::Update();
-    ui->ShowMessage(false);
+    g_interface.ShowMessage(false);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending) {
@@ -585,7 +562,7 @@ void BattleScreen::Update() {
         for (auto& member : data->members)
             records.push_back(&member);
         if (g_clientWorld.PartyInExit(&records, pendingExit, &second)) {
-            ui->PushWindow(std::make_unique<MessageWindow>(ui, "leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
+            g_interface.PushWindow(std::make_unique<MessageWindow>("leave_zone", "leave_zone_msg", MessageQuestion::First, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
             exitPending = false;
         }
     }
@@ -628,7 +605,7 @@ void BattleScreen::Update() {
         case 2: sound = "buttons\\subcomplete.wav"; break;
         case 3: sound = "buttons\\complete.wav"; break;
         }
-        if (sound) ui->PlayInterfaceSound(sound);
+        if (sound) g_interface.PlayInterfaceSound(sound);
         questSound = 0;
     }
 }
@@ -880,13 +857,13 @@ void BattleScreen::KeyDown(UiEvent& event) {
     }
     if (event.key == platform::Key::Return) {
         if (IsMultiplayerClient()) {
-            ui->ChatKeyEnter();
+            g_interface.ChatKeyEnter();
             event.handled = true;
             return;
         }
     } else if (event.key == platform::Key::Backspace) {
         if (IsMultiplayerClient()) {
-            ui->ChatKeyBackspace();
+            g_interface.ChatKeyBackspace();
             event.handled = true;
             return;
         }
@@ -901,7 +878,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
             SetPendingAction(kPendingNone, -1, -1);
             return;
         }
-        ui->PushWindow(std::make_unique<EscMenu>(ui), WindowBackdrop::FirstWindow);
+        g_interface.PushWindow(std::make_unique<EscMenu>(), WindowBackdrop::FirstWindow);
         event.handled = true;
         return;
     }
@@ -972,7 +949,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
     case kActionSpell + 6:
     case kActionSpell + 7:
         // With Ctrl or Alt the spell is cast at once.
-        if (!ui->ctrlDown && !ui->altDown)
+        if (!g_interface.ctrlDown && !g_interface.altDown)
             spellColumn->Click(action - kActionSpell);
         else
             spellColumn->ClickAlternate(action - kActionSpell);
@@ -988,7 +965,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
     case kActionQuickItem + 2:
     case kActionQuickItem + 3:
         // With Ctrl or Alt the item is used at once.
-        if (!ui->ctrlDown && !ui->altDown)
+        if (!g_interface.ctrlDown && !g_interface.altDown)
             quickItems->Pick(action - kActionQuickItem);
         else
             quickItems->UseNow(action - kActionQuickItem);
@@ -1009,7 +986,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
         return;
     }
     case kActionMapSlide:
-        map->slide.Toggle(ui);
+        map->slide.Toggle();
         return;
     case kActionQuickSave:
         ::QuickSave(kQuickSaveName, false);
@@ -1021,16 +998,16 @@ void BattleScreen::KeyDown(UiEvent& event) {
     case kActionMember + 1:
     case kActionMember + 2: {
         const int member = action - kActionMember;
-        ui->PlayInterfaceSound(kSoundOnOff);
+        g_interface.PlayInterfaceSound(kSoundOnOff);
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
-        if ((ui->ctrlDown || ui->altDown) && std::ssize(party) > member)
+        if ((g_interface.ctrlDown || g_interface.altDown) && std::ssize(party) > member)
             camera->SetTarget(party[member]);
         return;
     }
     case kActionSelectAll:
         if (IsMultiplayerClient()) return;
-        ui->PlayInterfaceSound(kSoundOnOff);
+        g_interface.PlayInterfaceSound(kSoundOnOff);
         for (int i = 0; i < std::ssize(party); ++i) {
             MarkPortrait(i);
             if (Unit* unit = party[i]) g_clientWorld.Select(unit);
@@ -1039,7 +1016,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
         RefreshSelection();
         return;
     case kActionMessage:
-        ui->ShowMessage(true);
+        g_interface.ShowMessage(true);
         event.handled = true;
         return;
     default:
@@ -1157,7 +1134,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
     if (selected == 0) return;
 
     CursorShape shape = CursorShape::Default;
-    if (ui->altDown) {
+    if (g_interface.altDown) {
         Vector3 at = pick();
         if (!g_clientWorld.FindExitAt(at)) return;
         g_cursor.SetShape(CursorShape::Move);
@@ -1169,7 +1146,7 @@ void BattleScreen::HoverUnit(Unit* unit, Point mouse) {
             return;
         }
     }
-    if (ui->ctrlDown) {
+    if (g_interface.ctrlDown) {
         g_cursor.SetShape(CursorShape::Attack);
         return;
     }
@@ -1296,7 +1273,7 @@ void BattleScreen::ToggleMember(int index) {
         Unit* member = unitAt(i);
         chosen.push_back(static_cast<std::uint32_t>(member ? (member->flags & MapObjectFlag::Selected) : 0));
     }
-    if (ui->shiftDown) {
+    if (g_interface.shiftDown) {
         chosen[index] = chosen[index] == 0 ? 1u : 0u;
     } else {
         for (auto& flag : chosen)
@@ -1463,7 +1440,7 @@ void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
 // --- BattleScreen::SelectUnit --------------------------------------------------------
 
 void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
-    const bool ctrl = ui->doubleClick;
+    const bool ctrl = g_interface.doubleClick;
     auto unitDead = [](Unit* u) { return u->IsDead(); };
     auto pick = [mouse]() { return g_clientWorld.PickSurface(mouse.x, mouse.y); };
     auto unitPosition = [](Unit* u) { return u->localPosition; };
@@ -1494,8 +1471,8 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
         if (count <= 0) return;
         for (int i = 0; i < std::ssize(party); ++i) {
             if (unit != party[i]) continue;
-            ui->PlayInterfaceSound("buttons\\battle\\on_off.wav");
-            if (ui->doubleClick) {
+            g_interface.PlayInterfaceSound("buttons\\battle\\on_off.wav");
+            if (g_interface.doubleClick) {
                 if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
             } else {
                 ToggleMember(i);
@@ -1504,13 +1481,13 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
         return;
     }
 
-    if (ui->altDown) {
+    if (g_interface.altDown) {
         OrderAt(unit ? unitPosition(unit) : pick(), false, ctrl);
         return;
     }
     bool anyFlag = false;
     for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = orderKeys[i] != 0;
-    if (anyFlag || ui->ctrlDown) {
+    if (anyFlag || g_interface.ctrlDown) {
         if (unit && !unitDead(unit)) {
             AttackUnit(unit, ctrl);
             return;
@@ -1529,8 +1506,8 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
             int members = lib::Count(party);
             for (int i = 0; i < members; ++i) {
                 if (unit != party[i]) continue;
-                ui->PlayInterfaceSound("buttons\\battle\\on_off.wav");
-                if (ui->doubleClick) {
+                g_interface.PlayInterfaceSound("buttons\\battle\\on_off.wav");
+                if (g_interface.doubleClick) {
                     if (i < std::ssize(party)) g_camera.SetTarget(party[i]);
                 } else {
                     ToggleMember(i);
@@ -1694,6 +1671,3 @@ void BattleScreen::SetPendingAction(PendingAction mode, int slot, int item) {
         break;
     }
 }
-
-// The screens CreateScreen builds inline (screens 1 and 3; 2 and 7 have only the container's).
-BattleScreen::BattleScreen(Interface3D* ui) : UiContainer(ui) {}

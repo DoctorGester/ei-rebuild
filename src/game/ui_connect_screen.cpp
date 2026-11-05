@@ -82,8 +82,8 @@ constexpr std::uint32_t kBarColour = 0xFFA06800;
 
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
-void OpenBox(Interface3D* ui, std::string_view title, const char* text, MessageQuestion question, MessageButtons buttons) {
-    ui->PushWindow(std::make_unique<MessageWindow>(ui, title, text, question, buttons), WindowBackdrop::FirstWindow);
+void OpenBox(std::string_view title, const char* text, MessageQuestion question, MessageButtons buttons) {
+    g_interface.PushWindow(std::make_unique<MessageWindow>(title, text, question, buttons), WindowBackdrop::FirstWindow);
 }
 
 
@@ -123,7 +123,7 @@ void MpConnectScreen::Update() {
             joining = false;
             std::string key = RefusalKey(client->refusal);
             std::string text = key + kMessageSuffix;
-            ui->PushWindow(std::make_unique<MessageWindow>(ui, key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
+            g_interface.PushWindow(std::make_unique<MessageWindow>(key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -196,10 +196,10 @@ void MpConnectScreen::LeftDown(UiEvent& event) {
     if (region == connectButton) {
         Connect();
     } else if (region == backButton) {
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
         SaveAddressBook();
         g_gameFlow.DropSessions();
-        ui->SetPendingValue(kLeaveScreen);
+        g_interface.SetPendingValue(kLeaveScreen);
     } else if (region == masterButton) {
         MasterRequest();
     } else if (region == addressButton) {
@@ -210,7 +210,7 @@ void MpConnectScreen::LeftDown(UiEvent& event) {
     } else if (region == passwordSwitch) {
         if (hostPassword.size() == 0) {
             CopyText(boxText, hostPassword.c_str());
-            OpenBox(ui, texts[kTextPassword], boxText, kBoxPassword, MessageButtons::OkCancelEdit);
+            OpenBox(texts[kTextPassword], boxText, kBoxPassword, MessageButtons::OkCancelEdit);
         } else {
             hostPassword.clear();
             passwordBox->textureOffsetU = 0.0f;
@@ -230,7 +230,7 @@ void MpConnectScreen::LeftDown(UiEvent& event) {
     } else if (shownRow >= 0) {
         unsigned row = static_cast<unsigned>(scrollTop + shownRow);
         if (row < entries.size()) {
-            ui->PlayInterfaceSound(kSaveSelectSound);
+            g_interface.PlayInterfaceSound(kSaveSelectSound);
             selected = static_cast<int>(row);
             selectedAddress = entries[row].address;
             DrawListVanilla();
@@ -261,9 +261,9 @@ void MpConnectScreen::KeyDown(UiEvent& event) {
         event.handled = true;
         return;
     case platform::Key::Escape:
-        ui->PlayInterfaceSound(kMessageBoxCancelSound);
+        g_interface.PlayInterfaceSound(kMessageBoxCancelSound);
         g_gameFlow.DropSessions();
-        ui->SetPendingValue(kLeaveScreen);
+        g_interface.SetPendingValue(kLeaveScreen);
         event.handled = true;
         return;
     case platform::Key::Up: step = -1; break;
@@ -272,7 +272,7 @@ void MpConnectScreen::KeyDown(UiEvent& event) {
     case platform::Key::PageDown: step = kRows; break;
     default: return;
     }
-    ui->PlayInterfaceSound(kSaveSelectSound);
+    g_interface.PlayInterfaceSound(kSaveSelectSound);
     selected += step;
     SelectAndScroll();
     event.handled = true;
@@ -291,7 +291,7 @@ void MpConnectScreen::SelectAndScroll() {
 }
 
 void MpConnectScreen::Connect() {
-    ui->PlayInterfaceSound(kMessageBoxOkSound);
+    g_interface.PlayInterfaceSound(kMessageBoxOkSound);
     int row = selected;
     if (row == 0) {
         const int players = playersSlider->TakePosition() + 1;
@@ -304,13 +304,13 @@ void MpConnectScreen::Connect() {
     }
     if (row < 0 || static_cast<unsigned>(row) >= entries.size()) return;
     if (entries[row].foreign) {
-        OpenBox(ui, kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, MessageButtons::Ok);
+        OpenBox(kWrongProtocolKey, kWrongProtocolTextKey, kBoxNotice, MessageButtons::Ok);
         return;
     }
     SaveAddressBook();
     if (entries[selected].password) {
         boxText[0] = '\0';
-        OpenBox(ui, texts[kTextPassword], boxText, kBoxJoinPassword, MessageButtons::OkCancelEdit);
+        OpenBox(texts[kTextPassword], boxText, kBoxJoinPassword, MessageButtons::OkCancelEdit);
     }
     g_gameFlow.JoinServer(&entries[selected].address, "");
     net::g_gameClient->gameType = entries[selected].gameType;
@@ -330,7 +330,7 @@ void MpConnectScreen::EditAddress() {
         std::string text = entry.address.ToString();
         CopyText(boxText, text.data());
     }
-    OpenBox(ui, texts[kTextAddress], boxText, kBoxAddress, MessageButtons::OkCancelEdit);
+    OpenBox(texts[kTextAddress], boxText, kBoxAddress, MessageButtons::OkCancelEdit);
 }
 
 void MpConnectScreen::MasterRequest() {
@@ -343,7 +343,7 @@ void MpConnectScreen::MasterRequest() {
         master.Parse(options::g_options.masterServerName.c_str(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries.extra : 0;
-    ui->PushWindow(std::make_unique<MasterRequestBox>(ui, texts[kTextMaster], boxText, kBoxMaster, &master, extra),
+    g_interface.PushWindow(std::make_unique<MasterRequestBox>(texts[kTextMaster], boxText, kBoxMaster, &master, extra),
                    WindowBackdrop::FirstWindow);
 }
 
@@ -503,9 +503,9 @@ void MpConnectScreen::CreateScreen() {
     plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     for (int row = 0, top = 132; row < kRows; ++row, top += 24) rows[row] = region(108, top, 370, top + 24, 0);
 
-    AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
+    AddSurface(NewSurface(Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
     {
-        scroll = AddChild(std::make_unique<UiScrollbar>(ui, Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f));
+        scroll = AddChild(std::make_unique<UiScrollbar>(Rect{108, 132, 384, 492}, 3.0f, 0, 1.0f));
     }
     {
         // EI_Plugin's NPlayers: the slider's maximum is max(players, 7) - 1 and its
@@ -516,14 +516,14 @@ void MpConnectScreen::CreateScreen() {
         const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
         const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
         const int right = kExtendedFieldRight;
-        playersSlider = AddChild(std::make_unique<UiSlider>(ui, Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f));
+        playersSlider = AddChild(std::make_unique<UiSlider>(Rect{450, 196, 650, 206}, 3.0f, maximum, 1.0f));
         Rect area{450, 196, right, 206};
         playersSlider->SetRect(area);
         playersSlider->SetPosition(position);
         maxPlayers = 6;
     }
     {
-        nameEdit = AddChild(std::make_unique<UiEditField>(ui, Rect{450, 144, kExtendedFieldRight, 160}));
+        nameEdit = AddChild(std::make_unique<UiEditField>(Rect{450, 144, kExtendedFieldRight, 160}));
         // The classes 15, font 0, at most 50 characters (Rebirth's ExtendedServerName; the original's 3, 1, 10). The
         // name taken from the hero below still stops at 10.
         nameEdit->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
@@ -572,9 +572,9 @@ void MpConnectScreen::CreateScreen() {
     selectedAddress = net::NetAddress{};
     RebuildList();
     DrawListVanilla();
-    ui->OpenHelp(false);
+    g_interface.OpenHelp(false);
     refreshTimer = 0.0f;
-    UiSurface* note = AddSurface(NewSurface(ui, Rect{0, 0, 300, 20}));
+    UiSurface* note = AddSurface(NewSurface(Rect{0, 0, 300, 20}));
     note->PaintWith([this](UiSurface& out) {
         Rect area{0, 0, 300, 20};
         out.DrawTextIn(texts[kTextConnecting], area, TextStyle{2, g_connectTextColour});
@@ -583,9 +583,9 @@ void MpConnectScreen::CreateScreen() {
 
 // --- the master request box ----------------------------------------------------------------------
 
-MasterRequestBox::MasterRequestBox(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question,
+MasterRequestBox::MasterRequestBox(std::string_view titleKey, const char* textKey, MessageQuestion question,
                                      const net::NetAddress* address, std::uint32_t extra)
-    : MessageWindow(ui, titleKey, textKey, question, MessageButtons::Cancel), link(address) {
+    : MessageWindow(titleKey, textKey, question, MessageButtons::Cancel), link(address) {
     bar = AddBlankSprite();
     bar->texture = nullptr;
     bar->flags |= FigureMeshFlag::Flat;
@@ -598,5 +598,5 @@ void MasterRequestBox::Update() {
     bar->SetRectangle(2.5f, kSpriteScale, 220.0f, 280.0f, right, 300.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link.in);
     if (net::MasterLinkTick(&link) == net::MasterLink::kDone || net::MasterLinkTick(&link) == net::MasterLink::kClosed)
-        ui->SetPendingValue(BoxResult(MpConnectScreen::kBoxMaster, MessageAnswer::Cancel));
+        g_interface.SetPendingValue(BoxResult(MpConnectScreen::kBoxMaster, MessageAnswer::Cancel));
 }
