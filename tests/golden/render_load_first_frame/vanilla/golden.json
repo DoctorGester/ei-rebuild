@@ -1,0 +1,13 @@
+{
+  "scenario": "render_load_first_frame",
+  "install": "vanilla",
+  "recorded": "2026-11-05",
+  "commit": "de5153b04",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenario (R56): the first frames after six kinds of load against a later frozen frame.",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+}
