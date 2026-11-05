@@ -17,7 +17,7 @@ namespace render {
 FrameStats g_stats;   // the frame being built
 
 // The game's timed work (BeginDeviceMeshTime and the others), at most one of each kind running.
-static Timer g_deviceMeshTimer, g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
+static Timer g_deviceMeshTimer, g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer, g_weatherTimer;
 
 static FrameStats g_statsSum;                  // the presented frames since the last TakeFrameStats
 static const void* g_lastPipeline = nullptr;   // applied last in this frame
@@ -176,6 +176,14 @@ void BeginFlatDrawTime(int vertices) {
 }
 
 void EndFlatDrawTime() { g_flatDrawTimer.End(); }
+
+void BeginWeatherTime() { g_weatherTimer.Begin(FrameStats::Time::WeatherMs); }
+
+void EndWeatherTime(int vertices) {
+    if (!g_weatherTimer.Running()) return;
+    g_weatherTimer.End();
+    g_stats.counts[FrameStats::Count::WeatherVertices] += static_cast<std::uint64_t>(vertices);
+}
 
 void BeginShadowBuildTime() {
     if (g_shadowBuildTimer.Running()) return;

@@ -124,14 +124,18 @@ struct FrameStats {
         ShadowDraws,
         // Meshes handed over with per-vertex offsets (an animation's morph) and their corners.
         MorphMeshes, MorphCorners,
+        // The rain's or the snow's vertices (RainSnow::Draw).
+        WeatherVertices,
         Kinds
     };
     // CPU times (ms). Each leaves out the times measured inside it: StatsMs (these counts' own hashing and checks),
     // TerrainMs (the terrain pages' hand-over and uploads), ShadowMs (the shadow map's work) and the rest.
     // DeviceMeshMs: the game device's mesh draws (device_mesh.cpp's DrawMesh); DecalPrintMs: ProjectDecal for ground
-    // prints; FlatMs: the device's flat draws; ShadowBuildMs: RenderShadow.
+    // prints; FlatMs: the device's flat draws; ShadowBuildMs: RenderShadow; WeatherMs: the rain's or the snow's build
+    // (RainSnow::DrawParticles, its draws' hand-over left out).
     enum class Time : int {
         TerrainMs, HandOverMs, TextureMs, EndFrameMs, StatsMs, DeviceMeshMs, DecalPrintMs, FlatMs, ShadowBuildMs, ShadowMs,
+        WeatherMs,
         Kinds
     };
     // Images made (or updated in place) per kind.
@@ -157,6 +161,9 @@ void BeginFlatDrawTime(int vertices);
 void EndFlatDrawTime();
 void BeginShadowBuildTime();
 void EndShadowBuildTime();
+// The rain's or the snow's draw (WeatherMs) and its vertices.
+void BeginWeatherTime();
+void EndWeatherTime(int vertices);
 
 // ---- Data kept on the GPU ---------------------------------------------------------------------------------------
 

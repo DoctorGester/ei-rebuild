@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <limits>
 #include <vector>
 
 namespace weather {
@@ -540,17 +541,32 @@ public:
     // messages.
     void Start(int newMode, float duration);
     // The rain's or the snow's particles drawn (weather_particles.cpp): the field of weather_field.h around the view,
-    // `density` of 64 of them shown, each built on the screen (a raindrop a streak along its motion, a snowflake a
-    // soft dot) and drawn as pre-transformed triangles with the device's current state.
+    // `density` of 64 of them shown, each built on the screen (a raindrop a streak along its motion on the white
+    // texture, a snowflake a square of one of `texture`'s flake pictures) and drawn as pre-transformed triangles with
+    // the device's current state.
     void DrawParticles(SceneRenderer* renderer, weather::Kind kind);
     // The vertices built so far drawn (unless the harness leaves the particles out) and emptied.
     void Flush(SceneRenderer* renderer);
+    // The terrain's ground or water height at (x, y) for the particles: between the heights at the whole units around
+    // it, kept in `ground` (weather_particles.cpp).
+    float GroundAt(float x, float y);
 
+    Ref<Texture> texture;          // "RainSnow": the snowflakes' pictures (taken at the first snow drawn)
     class WorldClient* world;      // the client world (set after construction)
     int sound = 0;                  // rain loop handle in the sound manager (0: none)
     // The draw's work arrays: a batch of particles' vertices and their triangles.
     std::vector<TLVertex> vertices;
     std::vector<std::uint16_t> indices;
+    int flushed = 0;   // the vertices drawn so far by this draw
+    // The terrain's surface heights at whole units around the view, kept from frame to frame: a point's slot is its
+    // place modulo the table's side (GroundAt). Emptied when the world's terrain changes.
+    struct GroundPoint {
+        int x = std::numeric_limits<int>::min();   // the unit the height is of (none yet)
+        int y = 0;
+        float height = 0.0f;
+    };
+    std::vector<GroundPoint> ground;
+    const void* groundOf = nullptr;   // the terrain `ground` holds heights of
     // Where the wind has carried the particles (weather::FieldView::carry), up to the world time `carriedTo`.
     Vector3 carry;
     double carriedTo = 0.0;

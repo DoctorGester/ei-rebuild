@@ -471,7 +471,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "decals projected: %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
             "(%.0f vertices); shadow builds %.1f, %.3f ms; "
             "shadow map %.1f draws, CPU ms %.3f; morphed meshes %.1f "
-            "(%.0f corners); main thread ms CPU %.2f / wall %.2f; quality: msaa %d (%d samples, the device gives %d), "
+            "(%.0f corners); weather %.3f ms (%.0f vertices); main thread ms CPU %.2f / wall %.2f; quality: msaa %d (%d samples, the device gives %d), "
             "anisotropy %d",
             argument.c_str(), t.frames, t.width, t.height, count(F::Count::TerrainPages), count(F::Count::TerrainBatches), count(F::Count::Meshes),
             count(F::Count::MeshPasses), count(F::Count::FlatMeshes), countKb(F::Count::FlatVertexBytes),
@@ -487,7 +487,8 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             ms(F::Time::TerrainMs), ms(F::Time::HandOverMs), ms(F::Time::TextureMs), ms(F::Time::EndFrameMs), ms(F::Time::StatsMs), ms(F::Time::DeviceMeshMs),
             count(F::Count::DecalPrints), ms(F::Time::DecalPrintMs), count(F::Count::DecalVertices),
             count(F::Count::FlatDraws), ms(F::Time::FlatMs), count(F::Count::FlatDrawVertices), count(F::Count::ShadowBuilds), ms(F::Time::ShadowBuildMs),
-            count(F::Count::ShadowDraws), ms(F::Time::ShadowMs), count(F::Count::MorphMeshes), count(F::Count::MorphCorners), frameCpuMs / n,
+            count(F::Count::ShadowDraws), ms(F::Time::ShadowMs), count(F::Count::MorphMeshes), count(F::Count::MorphCorners),
+            ms(F::Time::WeatherMs), count(F::Count::WeatherVertices), frameCpuMs / n,
             frameWallMs / n, quality.msaa, quality.targetSamples, quality.deviceSamples, quality.anisotropy);
         Log("harness: %s", text);
         frames->push_back(text);

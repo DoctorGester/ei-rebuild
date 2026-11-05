@@ -35,6 +35,8 @@ constexpr float kDensityScale = 64.0f;
 constexpr float kFogMinAlpha = 0.01f;
 constexpr float kFar = 1e30f;
 
+constexpr int kWeatherTextureKind = static_cast<int>(TextureKind::Effects);
+constexpr const char* kWeatherTextureName = "RainSnow";
 constexpr int kRainPriority = 1000;
 constexpr int kFullDensity = 64;
 constexpr const char* kRainSoundName = "nature\\rain\\circle.wav";
@@ -77,6 +79,9 @@ void RainSnow::Clear() {
         g_clientWorld.sounds->StopSound(sound);
         sound = 0;
     }
+    texture.Reset();
+    ground.clear();
+    groundOf = nullptr;
     wind = Vector3{0.0f, 0.0f, 0.0f};
     world = nullptr;
     carry = Vector3{0.0f, 0.0f, 0.0f};
@@ -258,8 +263,8 @@ int VisibilityFog::Draw(SceneRenderer* renderer) {
 // --- Weather draw ------------------------------------------------------------------------------------
 
 // The weather's draw (called by the world view's effects pass with the renderer). Mode (0 none, 1 rain, 2 snow):
-// the weather is stepped (with the world's tick) and the rain or snow drawn on the white texture
-// (weather_particles.cpp). See docs/notes/effects.md and docs/notes/renderer.md. Returns 1 (also when there is
+// the weather is stepped (with the world's tick) and the rain drawn on the white texture or the snow on the
+// "RainSnow" texture's flake pictures (weather_particles.cpp). See docs/notes/effects.md and docs/notes/renderer.md. Returns 1 (also when there is
 // nothing to draw), 0 without a world or with an unknown mode.
 int RainSnow::Draw(SceneRenderer* renderer) {
     if (!world) return 0;
@@ -267,7 +272,13 @@ int RainSnow::Draw(SceneRenderer* renderer) {
     UpdateFade(static_cast<float>(world->tick));
     if (mode == 0) return 1;
     if (mode != 1 && mode != 2) return 0;
-    renderer->SetTexture(0, nullptr);
+    if (mode == 2) {
+        if (!texture) LoadNamedTexture(texture, kWeatherTextureKind, kWeatherTextureName);
+        EnsureTextureLoaded(texture);
+        renderer->SetTexture(0, texture);
+    } else {
+        renderer->SetTexture(0, nullptr);
+    }
     DrawParticles(renderer, mode == 1 ? weather::Kind::Rain : weather::Kind::Snow);
     return 1;
 }
