@@ -6,5 +6,6 @@ model = "sonnet"
 depends = ["PL19a"]
 note = "User 2026-11-05: a smoke run is acceptable. macos-latest (Apple silicon VM, 3 cores, 7 GB; GPU acceleration not documented): a build-only workflow (not Release, which publishes), then 3-5 short scenarios (a menu, a zone load, one render capture) with the stub data, to prove the Metal path draws and PL19a's folder rule works with EI_GAME_ROOT unset where testable. Report frame time; if Metal does not draw in the VM, document it and stop. Workflow written, not run (no push from the worker): .github/workflows/suites-macos.yml, docs/notes/harness.md 'The macOS CI job'. Dispatch Actions > macOS > Run workflow, scenarios empty; first run answers whether macos-latest has a Metal device (boot gate)."
 order = 1180
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
