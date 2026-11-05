@@ -6,3 +6,5 @@ model = "sonnet"
 depends = ["C92a"]
 note = "C92a's leftovers, each held back to stay off a branch in flight. After C89a: HalveLevel(src, int* width, int* height) in render_checks.cpp returns the level with its Size. After C91a: DrawMeshBatch's `s` (the PassState, render_mesh.cpp; C91a edits its patch lines) becomes `state`. After R56: the harness's image::ReadFrame(int*, int*, vector*) (tests/verify/image, used by harness_capture.cpp's Capture and harness.cpp's WriteCursorFrame) returns an optional image like render::ReadFrame. Also out-parameters C92a's list did not name: SurfaceState(float*, float*, float*), GroundOcclusionCounts(int*, int*), MapLightDirection(sun, Vector3*), InvertMatrix(m, Matrix4*), VisibleGround(f, Box*), WindowToFrame / FrameToWindow(int*, int*) (a Point in, a Point out). Style only: goldens the same."
 order = 1185
+status = "running"
+started = "2026-11-05"
