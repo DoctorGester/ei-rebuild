@@ -101,6 +101,9 @@ void* LocalWorldPlayer(int player);             // WorldServer::GetPlayer
 // The "hit" step: the server world's unit `target` takes `amount` damage from unit `attacker` (0: none) as a blow lands
 // (Unit::ReceiveHit with the attacker as its source; the hit as InflictDamage's). "" or the error.
 std::string HitUnit(int target, int attacker, float amount);
+// The "giveitem" step: the server world's player `player` is given a new item named `name` (WorldServer::CreateItemNamed,
+// Player::GiveItems), as the script's GiveItem. "" or the error.
+std::string GiveItem(int player, const char* name);
 void* WorldHandle();                          // the server world's worldHandle
 const char* ServerZoneName();                   // the server world's zone, may be null
 const char* LoadingMovieName();                 // app::g_loadingMovieName: the loading screen's movie file

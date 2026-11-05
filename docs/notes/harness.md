@@ -69,7 +69,10 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   earlier `awardfrom`; `net_pair_quest.txt`; `served`: instead until the game server's queued awards, each kept 60 s, are
   gone, `net_pair_leave.txt`). `hit <target> <attacker> <amount>` deals a server world unit a blow from another
   (`leader`, `#<id>` or a script name; attacker `none` for none) through Unit::ReceiveHit, so the blow has a side and
-  works in a network game, where `@` commands do nothing (`net_host_death.txt`, `unit_hit_turning.txt`). On the base screen: `waitdialogue <seconds> <state>` waits for its
+  works in a network game, where `@` commands do nothing (`net_host_death.txt`, `unit_hit_turning.txt`). `giveitem
+  <player> <item>` gives the server world's player (its id: 0 the host's own, 1 a pair's peer once it is in the game
+  zone; the multiplayer bases are each game's own) a new item by its database name, as a script's GiveItem
+  (`net_pair_database.txt`). On the base screen: `waitdialogue <seconds> <state>` waits for its
   dialogue state (1 a person's topics open: `clickregion` picks one), `talk <seconds>` clicks through the dialogue's
   phrases and rewards until it is over (`net_pair_leave.txt`).
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window (coordinates in the
@@ -123,7 +126,9 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   first's hosted game over virtual UDP ports); `peersignal <tag>` / `peerwait <seconds> <tag>` order the two scenarios.
   The peer's report and logs are in the run folder's `peer\`; a pair takes two of run_all's slots. `netcut` cuts one
   game's network (`net_pair_leave.txt`); `hidefile <path>` makes an install file read as missing in that game until it
-  writes the file itself.
+  writes the file itself. A file a `# prepare:` tool writes into `harness_saves\<install path>` is read in place of the
+  install's by the scenario's own game (the overlay), not by its peer: `net_pair_database.txt`'s host plays with a
+  network item database of one item more (`tools/make_extra_item_db.py`).
 - `rebirthflags <names>` turns on Rebirth patch flags for the run, on top of the install folder's profile (rebirth.md).
   `folderprofile` checks that profile itself (harness_folder_profile.h, `dropin_profile.txt`).
 - Mod folders (S19d; standalone.md, "Mod folders"): `addonpath <folder>` selects a mod the scenario's `# prepare:` tool

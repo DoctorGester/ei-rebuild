@@ -1,0 +1,13 @@
+{
+  "scenario": "net_pair_database",
+  "install": "rebirth",
+  "recorded": "2026-11-05",
+  "commit": "94c6f28e5",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "C154c: new pair, a client leaves a server with another item database",
+  "side": "peer",
+  "source": "image"
+}

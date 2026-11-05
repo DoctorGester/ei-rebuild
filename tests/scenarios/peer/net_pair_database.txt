@@ -1,0 +1,53 @@
+# The peer of net_pair_database: joins the host's game (as in net_pair_party) with the install's network item
+# database, follows the host into the game zone (as in net_pair_leave), is given the host's extra quest item, which
+# its database lacks, and leaves the server: the disconnect box (with the reason) and, after its Enter, the main menu.
+rebirth resolution desktop
+timeout 180
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+peerwait 90 hosted
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 40 briefing
+peersignal joined
+
+peerwait 200 entered
+frames 20
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitwindow 60 battle
+frames 20
+peersignal peerin
+waitwindow 60 msgbox
+expectlog the disconnect box: The server's items or spells are not in this game's item and spell databases
+frames 10
+key enter
+waitmenu 30
+peersignal left
+report
+quit

@@ -694,17 +694,16 @@ void WorldClient::ReleaseItemsAndSpells() {
     }
 }
 
-int WorldClient::LoadItemsAndSpells(ByteStream* block) {
+bool WorldClient::LoadItemsAndSpells(ByteStream* block) {
     ReleaseItemsAndSpells();
     if (block->Size() != 0) {
         spellManager->Load(block);
         itemManager->Load(block);
         spellManager->LoadObjects(block);
         itemManager->LoadObjects(block);
-        RequireEveryRecord(this);
         ReferenceItemsAndSpells();
     }
-    return 1;
+    return KeepItemsAndSpells();
 }
 
 int LoadManagerObjects(BaseManager* manager, ByteStream* stream) {
@@ -730,12 +729,17 @@ int LoadManagerObjects(BaseManager* manager, ByteStream* stream) {
     }
 }
 
-int WorldClient::LoadNewItemsAndSpells(ByteStream* block) {
+bool WorldClient::LoadNewItemsAndSpells(ByteStream* block) {
     block->Seek(0);
     block->ok = true;
-    const bool loaded = LoadManagerObjects(GetSpellManager(), block) && LoadManagerObjects(ItemFactory(), block);
-    RequireEveryRecord(this);
-    return loaded;
+    if (LoadManagerObjects(GetSpellManager(), block)) LoadManagerObjects(ItemFactory(), block);
+    return KeepItemsAndSpells();
+}
+
+bool WorldClient::KeepItemsAndSpells() {
+    if (HasEveryRecord(this)) return true;
+    ReleaseItemsAndSpells();
+    return false;
 }
 
 void PlatformSet::Create() {

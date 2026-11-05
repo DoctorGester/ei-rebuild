@@ -581,6 +581,7 @@ void RequestZone(std::string_view zone, int entrance) {
 
 void GameFlow::DropSessions() {
     g_interface.disconnected = 0;
+    g_interface.disconnectReason.clear();
     net::g_gameServer.Reset();
     net::g_gameClient.Reset();
 }

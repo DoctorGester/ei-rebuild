@@ -119,8 +119,7 @@ struct ItemManager : ResourceManager {
 // manager its records (Spell::HasRecords). An item or spell of another database fails it: a save, party file or
 // player made with another items.idb or spells.sdb. The loaders test what they load, so the readers of the
 // records need not: the world server refuses a player's party (the player is dropped), a client a trade
-// partner's offer.
+// partner's offer and the world server's item blocks and parties (it leaves the server).
 bool HasEveryRecord(ManagerContext* context);
-// HasEveryRecord, or the game ends (game::FatalExit naming the item or spell): the loaders of saves, party files
-// and the world server's blocks on a client.
+// HasEveryRecord, or the game ends (game::FatalExit naming the item or spell): the loaders of saves and party files.
 void RequireEveryRecord(ManagerContext* context);

@@ -19,7 +19,6 @@
 #include "world.h"
 #include "world_effect.h"
 #include "lib/bytes.h"
-#include "lib/crt.h"
 #include "lib/vecmath.h"
 
 #include "game_singletons.h"
@@ -57,11 +56,7 @@ bool PlayerClient::OnDisconnect() {
     return true;
 }
 
-bool PlayerClient::OnError() {
-    const std::string text = in.ReadString();
-    game::FatalError("%s", text.c_str());
-    return false;
-}
+bool PlayerClient::OnError() { return LeaveAfterTick(in.ReadString()); }
 
 bool PlayerClient::OnCameraPlacement() {
     Vector3 point;

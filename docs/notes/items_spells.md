@@ -36,12 +36,14 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
       since a unit's load reads its weapon's type; again after the objects' own data), a saved spell effect's
       spell, the party files, the save's party records and trader stocks, the players' parties in a save.
     - A peer's data is refused where the loader can undo it: the world server drops a player whose party
-      (`OnNewParty`, `OnPartyUpdate`) names records it lacks (message 0x11 with the reason, which our client shows
-      before it refuses the message; the player leaves), and a trade partner's offer naming them leaves the
-      partner's party empty with a chat line (`ClientSession::ApplyParty`).
-    - A client's blocks from the world server (`LoadItemsAndSpells`, `LoadNewItemsAndSpells`, the party messages)
-      still end the game: a client has no way to leave the server's zone from inside a message handler (a
-      refusing handler is the dispatcher's FatalError, which exits without Rebirth's flag); C154c.
+      (`OnNewParty`, `OnPartyUpdate`) names records it lacks (message 0x11 with the reason; the player leaves),
+      and a trade partner's offer naming them leaves the partner's party empty with a chat line
+      (`ClientSession::ApplyParty`).
+    - A client refuses the world server's blocks naming them: `WorldClient::LoadItemsAndSpells` /
+      `LoadNewItemsAndSpells` empty the client world's item and spell managers (`KeepItemsAndSpells`), the party
+      messages 0x80 / 0x83 the party (`PlayerClient::KeepParty`; the heroes' folder is not written), and the
+      handler makes the session leave (`LeaveAfterTick`), as message 0x11 does: one path, `objects.md`
+      ("Leaving the server"). `net_pair_database` checks it (a host with one quest item more).
   - **Every other index is tested where it is read**: a packed id's material half, the record a loot item stands for
     (`ItemLoot::HasRecord`), the packed ids a unit's figure gets (unit skins, the client's armour and weapon ids).
     Without the record: the packed-id weapon stats give 0 (type NoWeapon, damage type 6), names and text keys are

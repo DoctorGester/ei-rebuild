@@ -37,6 +37,7 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 UiWindow* Interface3D::MouseTarget() const {
@@ -179,9 +180,11 @@ void Interface3D::Update() {
     mouse = g_cursor.position;
     if (disconnected && IsMultiplayerClient() && net::g_gameClient->joinState != 2) {
         disconnected = false;
-        ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's
-                static_cast<unsigned>(net::g_gameClient->joinState));
-        PushWindow(std::make_unique<MessageWindow>(this, "disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok), WindowBackdrop::FirstWindow);
+        auto box = std::make_unique<MessageWindow>(this, "disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok);
+        if (!disconnectReason.empty()) box->text = std::exchange(disconnectReason, std::string());
+        ei::Log("interface: the network client is not joined (state %u): the disconnect box: %s",   // not the game's
+                static_cast<unsigned>(net::g_gameClient->joinState), box->text.c_str());
+        PushWindow(std::move(box), WindowBackdrop::FirstWindow);
     } else if (!stack.empty()) {
         stack.back()->Update();
     }
