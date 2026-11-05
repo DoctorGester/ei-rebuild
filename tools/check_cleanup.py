@@ -243,6 +243,13 @@ PATTERNS = {
         r'\s*\('),
     # A field that starts out indeterminate (count_uninitialised_fields above).
     'field without a default initialiser': count_uninitialised_fields,
+    # A number or a string behind a `#define EI_...` (style round 2, rule X1): a meaning-named constexpr in the owning
+    # header instead. Function-like macros, include guards and the x-macro lists are not numbers and not counted.
+    '#define EI_ number': re.compile(r'^[ \t]*#[ \t]*define[ \t]+EI_\w+[ \t]+(?:\(?[ \t]*-?[0-9]|")', re.M),
+    # A constant named after its value (kOne, kHalf, kTwo, kZero, kMinusOne ...) says nothing about what it is for
+    # (round 2, rule X1): name the meaning (kRateBase, kStandingHeight). Definitions only.
+    'value-named constant': re.compile(
+        r'\bk(?:Zero|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Half|Quarter|MinusOne|Hundred|Thousand)\s*[={]'),
 }
 # Patterns not counted under these directories (or files).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked

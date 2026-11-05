@@ -83,6 +83,42 @@ compare function pointers for identity.
   destroys it, and the member order gives the teardown order (no constructor or destructor called by hand). A
   reset assigns the fields (`Reset()`), never destroys and builds the object again in place.
 
+## Style rules
+
+From the style review rounds (2026-11-04). Checks are named where a pattern can be counted; the others are for the
+writer and the reviewer.
+- **Numbers have meaning names.** No `#define` for a number or a string (`#define EI_ASSET_CODEPAGE 1251`): a
+  `constexpr` in the owning header. A constant is named by what it is for (`kStandingHeight`, `kRateBase`), never by
+  its value (`kOne`, `kHalf`, `kTwo`, `kZero`). Checked: `check_cleanup.py` counts "#define EI_ number" and
+  "value-named constant" (ratchet; the dashboard charts both).
+- **A code has its enum.** The codes of a kind (message ids, states, modes, results) are one `enum` or `enum class` in
+  the header of the type that owns them; a function that takes or returns a kind says the enum, not `int`. No
+  second list of the same codes in another file.
+- **One comment per declaration**, a full sentence that says what it is for and what a caller must know. No hex ids
+  in comments: not addon.dll's or EI_Plugin's addresses ("addon's 10025C9D"), not a patch's code location. Say what the
+  code does. A format's own ids (a chunk id, a field id) stay where the format is described. Checked:
+  `comments.py check` counts "addon addresses" (8 hex digits from 10 to 1F with a letter) in comments, shaders
+  included.
+- **Rebirth's patch is named.** A comment that says "Rebirth-patched" names the flag (`Patch::CameraPatch`) or says
+  "always on" (a fix that has no flag, rule 8). Checked: "unnamed Rebirth patches" per comment line.
+- **In-memory structs are typed.** Members have their real types (an enum, a `Ref<T>`, a `Vector3`), not the bytes they
+  were read from. A byte layout (fixed-width members, padding, `static_assert` on the size) belongs to the structs
+  that cross the process: a file, a save, a packet, a GPU buffer; and says so.
+- **A virtual needs two real overrides.** A class with one implementation is a plain class; a callback is a virtual
+  interface or a `std::function`, never a pointer-to-member plus an object pointer passed together.
+- **A feature's code shares a file.** The members of one feature (a window, a tool, a message group) live in the
+  feature's files, not spread by the order they were decompiled in. The checks that look at game state (digests,
+  consistency, debug dumps) go to `*_checks` files and are not mixed into the code they check.
+- **State is taken or read, never both.** A function that receives the state it works on (a reference to the world,
+  the player) does not also read the global that names the same object; one path chooses. No function-local `static`
+  state: a counter or a cache that outlives the call is a member of its owner (Reset() clears it).
+- **Inputs are `const T&`, results are returned.** An input too big to copy is `const T&` (`std::string_view` for
+  text); a result is the return value (a struct or `std::optional` for several or none), not an out-parameter, unless
+  the caller supplies the storage (a buffer it reuses).
+- **One integer type per quantity.** A count, an index, an id or a size has one type through the code that passes it
+  around (`std::int32_t` for a saved id, `std::size_t` for a container index); no converting back and forth at each
+  call, no `int` that is compared with an unsigned size.
+
 ## Names and files
 
 - Members have plain names, no trailing `_`; where a member and a parameter would share a name, rename the parameter
