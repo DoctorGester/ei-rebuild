@@ -336,6 +336,21 @@ What of them reaches game state, and so what the stubs keep:
   against 1.0 to 1.13) and the thirteen layers the hero's skin is composed of (`unhuma*`; a wet black figure is as
   black as a dry one). Not a driver gap: the install passes on lavapipe and dzn, the old stub set fails on both, the
   new one passes on both. A layer's name: log `FindLayers`' `found` (texture_load.cpp).
+  render_water (H51d): its diffcapture of the beach (the ripples moving between two frozen moments, at least 1.0% of the
+  pixels) reached 0.9907% on GitHub's runner with the vanilla stubs; the water layer draws the same page textures as the
+  ground (Terrain::DrawWater binds `pageTextures` again), so black pages leave the sand and the water over it dark and the
+  ripples' shading changes small. Kept (vanilla only): zone1's three pages `zone1000`-`zone1002` (512 x 512, 0.5 MB;
+  zone10's start with `zone10`, the pattern `zone100[0-2]` leaves them out). WSL on lavapipe, 4 cores: the old stubs 2.26%,
+  with the pages 3.79%, the install 4.21%; Rebirth's old stubs 2.47% (no failure in CI), with `basegipat005` (below) 3.26%.
+  The runner's lavapipe gave 0.99 where WSL's gives 2.26, so the margin on the runner is the open question: the kept
+  pages bring the stubs to 90% of the install's figure, 1.8 times what they gave.
+  The weather scenarios (H60), found by running them on the stub set in WSL on lavapipe: `rainsnow.mmp` (both installs,
+  KEPT: the rain and snow particles' texture, 21 KB and 87 KB; blank, the particles are clear and render_weather's
+  weatherparticles on / off frames are the same, 0.0000% against at least 0.1%) and `basegipat005.mmp` (both, KEPT, 0.2 MB
+  and Rebirth's 2.8 MB: the ground of bz1g under the gateway's floor; render_weather_roofs' rain and snow captures
+  differed in 72.7% of the rectangle against at least 80% on blank ground, 95.5% and 97.4% with the page: each of
+  `basegipat00x` painted in turn, 002 and 003 together 74.7%, 004, 006 and 007 nothing). The pack: 85.6 MB (79.3 before),
+  both installs, level 22.
 - Sounds (.wav): every chunk; the samples 0. A voice ends by its data's bytes over its byte rate (sound.md).
 - MP3 (speech, music): every frame header (the game counts frames: ScanMp3), the frames' data 0, an info frame whole.
 - Movies (.bik): header and frame index (frame count, size, rate, keyframes); every frame emptied (no sound packet, no
@@ -351,8 +366,8 @@ data, not the renderer. With `KEPT` (2026-11-04, H51b) the three pass on both st
 stub set are the same as on the installs: image 195 the same / 8 without a golden, Rebirth 111 / 1 (306 / 9 together),
 render_smooth the one scenario that failed its own check. With H51c's textures (above) it passes too, and the suites on
 the stub set (2026-11-04): image 195 the same / 14 without a golden, Rebirth 111 / 4, every run passing but render_water
-(new since R17a: its diffcapture of the shore reaches 0.989% on the stubs against at least 1.0%; it passes on the
-install; H51d). `stub_data.py check <stub> <install> <runs>` confirms every file the runs read is in the stub set at
+(new since R17a: its diffcapture of the shore reached 0.989% on the stubs against at least 1.0%; it passes on the
+install; kept zone1 pages, H51d). `stub_data.py check <stub> <install> <runs>` confirms every file the runs read is in the stub set at
 the install's size (the movies aside). In WSL (the packed set unpacked as the CI job does)
 each run on the stub set against the same run on the install copies, digest for digest (golden.py diff): the image
 suite less the pairs 142 of 142 comparable runs the same (4 of them only once rerun on a quiet machine: under load
@@ -401,7 +416,23 @@ render_drawn_lights, render_drawn_motion, render_shadows_outside, render_stats, 
 the five ui_widescreen ones, unit_ai_bridge, zone_gz15h_tornado and zone_gz15h_tornado_client. Run 41953378949 (scale 3)
 cut the weather scenarios, the drawn-frame ones, Rebirth's widescreen set, unit_ai_bridge, the tornado client and
 camera_smooth, which are back in the list; render_shadows_decals and render_weather_panel are out of it again (C159,
-"The stub data": blank ground prints, ground and hero skin, not the driver; they need the repacked stub set).
+"The stub data": blank ground prints, ground and hero skin, not the driver; they need the repacked stub set). The four
+render_weather* scenarios (not _panel) are out of it too (H60), each with a `timeout` line the scale multiplies, set from
+WSL on lavapipe with `taskset -c 0-3` and the factor of two the runner seems to be slower by (camera_spin: 207 s here, cut
+at its 360 s, step 31 of 51, twice on CI's runner in run 41971981364 and through the next run, 41972714191):
+
+| scenario | virtual waits | WSL, 4 cores (vanilla) | Rebirth, 4 games at once | `timeout` x 3 |
+| --- | --- | --- | --- | --- |
+| render_weather_shelter | 93 s | 127 s | 274 s | 150 x 3 = 450 s |
+| render_weather_roofs | 180 s | 218 s | 303 s | 200 x 3 = 600 s |
+| render_weather | 618 s | 586 s | 1071 s | 550 x 3 = 1650 s |
+| render_weather_units (3840x2009, msaa 8) | 188 s | 755 s | 1098 s | 650 x 3 = 1950 s |
+| camera_spin (1480 frames) | | 207 s | | 200 x 3 = 600 s |
+
+(The Rebirth column ran four games at once on four cores each, which costs 1.5 to 2 times: a bound, not a comparison.) The
+first four sit in four different shards (the names sorted, every eighth); camera_spin shares shard 7 with the units one,
+about 40 minutes of the runner's time between them. The retry a failed run gets (run_all) doubles a cut run's time.
+A separate job would only move them; the shard job's 90 minutes are the limit to watch.
 
 Why the weather scenarios are slow (C159, WSL on lavapipe pinned to 4 cores with `taskset -c 0-3` as the runner has:
 render_weather_roofs stopped at step 53 of 72 against the runner's 51, so it is the same). A virtual `wait` costs real

@@ -6,6 +6,9 @@
 render checkall
 resolution 1440x1080
 reject Script error
+# 180 s of virtual waits with every frame in them drawn: 218 s on llvmpipe with 4 cores (H60), about twice that
+# on CI's runner; CI multiplies this limit by EI_TIME_SCALE (linux.md, "The CI job").
+timeout 200
 waitmenu
 console thingamabob
 newgame

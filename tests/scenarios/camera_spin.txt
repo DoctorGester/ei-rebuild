@@ -8,7 +8,9 @@
 # (0.4 rad or 8 units a tick, shown at once): the drawn view still turns without jumps, and along the arc: its
 # distance from the focus (reach) changes only as the camera's own does (spread along the chord, it pulled in and out
 # at every tick: 144.6 units of change against the camera's 6.0, R35c).
-timeout 120
+# 1480 frames: 207 s on llvmpipe with 4 cores, and cut at 360 s (step 31 of 51) on CI's runner twice (H60; CI
+# multiplies this by EI_TIME_SCALE).
+timeout 200
 reject Script error
 waitmenu
 console thingamabob
