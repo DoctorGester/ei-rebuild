@@ -4,6 +4,8 @@
 // types are aggregates without constructors, so `{x, y, z}` initialisation works. Sums of products add left to right
 // (x first); the build is /fp:precise, so what is written here is what runs.
 
+#include "bytes.h"
+
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -19,17 +21,22 @@ struct Vector2 {
     float x = 0.0f, y = 0.0f;
 };
 static_assert(sizeof(Vector2) == 8);
+constexpr bool NoPadding(const Vector2*) { return lib::FieldsFill<&Vector2::x, &Vector2::y>(); }
 
 struct Vector3 {
     float x = 0.0f, y = 0.0f, z = 0.0f;
 };
 static_assert(sizeof(Vector3) == 12);
+constexpr bool NoPadding(const Vector3*) { return lib::FieldsFill<&Vector3::x, &Vector3::y, &Vector3::z>(); }
 
 // A homogeneous point (x, y, z, w).
 struct Vector4 {
     float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
 };
 static_assert(sizeof(Vector4) == 16);
+constexpr bool NoPadding(const Vector4*) {
+    return lib::FieldsFill<&Vector4::x, &Vector4::y, &Vector4::z, &Vector4::w>();
+}
 
 // Rotation quaternion, stored w first.
 struct Quaternion {
@@ -54,6 +61,9 @@ struct Quaternion {
     Vector3 Rotate(const Vector3& v) const;
 };
 static_assert(sizeof(Quaternion) == 16);
+constexpr bool NoPadding(const Quaternion*) {
+    return lib::FieldsFill<&Quaternion::w, &Quaternion::x, &Quaternion::y, &Quaternion::z>();
+}
 
 // Row-major 4x4 matrix (the transform library's and Direct3D's layout). Two conventions use it:
 // row vectors (v * M, translation in m[12..14]: TransformObject::WorldMatrix, figures) and column

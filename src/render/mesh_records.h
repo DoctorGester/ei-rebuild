@@ -2,6 +2,8 @@
 
 // The records a mesh draw reads (MeshDraw, ShadowMesh). The game's meshes hold them as their files do (.fig, .lnk).
 
+#include "lib/bytes.h"
+
 #include <cstdint>
 
 namespace render {
@@ -42,5 +44,8 @@ struct MeshCorner {
 
 static_assert(sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6 && sizeof(VertexPacket) == 0x40 &&
               sizeof(NormalPacket) == 0x40);   // as the files hold them
+constexpr bool NoPadding(const VertexPacket*) { return lib::FieldsFill<&VertexPacket::block>(); }
+constexpr bool NoPadding(const NormalPacket*) { return lib::FieldsFill<&NormalPacket::block>(); }
+constexpr bool NoPadding(const TexCoord*) { return lib::FieldsFill<&TexCoord::u, &TexCoord::v>(); }
 
 } // namespace render

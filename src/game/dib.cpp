@@ -112,7 +112,7 @@ int Dib::Read(platform::File* input) {
     Empty();
     try {
         DibFileHeader fileHeader;
-        if (input->Read(&fileHeader, sizeof(fileHeader)) != sizeof(fileHeader)) {
+        if (input->ReadValue(fileHeader) != sizeof(fileHeader)) {
             app::ShowLibraryMessageBox("read error 1");
             return 0;
         }

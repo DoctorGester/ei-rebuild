@@ -98,8 +98,17 @@ check (`app.md`).
 ## Values read and written as bytes
 
 Every Windows build is x64; formats are 32-bit.
-- A value read or written as its bytes is a format value (`lib::kFormatValue`, src/lib/bytes.h): plain, no pointer,
-  no integer wider than 32 bits. `ReadValue / WriteValue`, `platform::File`'s and `ChunkArchive::Field<T>` assert it.
+- A value read or written as its bytes is a format value (`lib::kFormatValue`, src/lib/bytes.h): plain, no padding,
+  no pointer, no integer wider than 32 bits. `ReadValue / WriteValue`, `platform::File`'s, `ChunkArchive::Field<T>`,
+  `lib::Load / Store`, the network cursors' `Put / Get / Take` and the figure readers assert it.
+- No padding (`lib::kNoPadding`): a struct copied whole writes every byte, and padding holds whatever the memory held
+  (C158: MoveModeState's two padding bytes differed in mission.sav between Linux and Windows once allocations were
+  no longer zeroed). Integer-only structs pass the standard `has_unique_object_representations`; a struct with a
+  float (which that trait rejects) declares its fields beside its definition, in its own namespace:
+  `constexpr bool NoPadding(const Vector3*) { return lib::FieldsFill<&Vector3::x, &Vector3::y, &Vector3::z>(); }`.
+  FieldsFill fails to compile unless the listed fields (each once, each padding-free) add up to the struct's size, so
+  a new member or a gap breaks the build. Padding found is named as a zero field (`std::uint16_t unused = 0;`), which
+  writes the zeros the goldens hold. A raw `Write(&x, sizeof(x))` of a struct goes through `WriteValue` instead.
   A count goes in as `static_cast<std::int32_t>(...)` (`std::ssize` and `size_t` are 64-bit; the armour spells', item
   ids' and recharging ids' counts once went out as 8 bytes).
 - A struct read or written whole has a `static_assert(sizeof(...) == n)` beside it; no pointer, `long`, `size_t`,

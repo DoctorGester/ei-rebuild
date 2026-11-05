@@ -5,6 +5,7 @@
 // presented the frame by then, and the capture is its frame (image::ReadFrame).
 #include "harness_capture.h"
 
+#include "lib/bytes.h"
 #include "platform/log.h"
 #include "system/harness_system.h"
 #include "game/main_loop.h"
@@ -41,6 +42,7 @@ struct BmpInfoHeader {
     std::uint32_t biClrUsed = 0, biClrImportant = 0;
 };
 static_assert(sizeof(BmpFileHeader) == 14 && sizeof(BmpInfoHeader) == 40);
+static_assert(lib::kNoPadding<BmpFileHeader> && lib::kNoPadding<BmpInfoHeader>);   // written whole
 constexpr std::uint32_t kBmpRgb = 0, kBmpBitFields = 3;   // biCompression
 
 volatile unsigned g_frames = 0;

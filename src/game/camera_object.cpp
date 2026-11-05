@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -155,8 +156,11 @@ void Camera::Load(ByteStream* stream) {
     stream->ReadValue(savedFlags);
     int target = 0;
     stream->ReadValue(target);
-    if (stream->version < kVersionCameraViews) stream->ReadValue(views);
-    else stream->Read(&views[4], kSavedViews * sizeof(CameraView));
+    if (stream->version < kVersionCameraViews) {
+        stream->ReadValue(views);
+    } else {
+        for (CameraView& view : std::span(views).last<kSavedViews>()) stream->ReadValue(view);
+    }
     if (static_cast<std::uint8_t>(savedFlags) & kFollowing) {
         if (target != -1) flags |= kFollowing;
         else flags &= ~kFollowing;
@@ -189,7 +193,7 @@ void Camera::Save(ByteStream* stream) {
     stream->WriteValue(zoomResponse);
     stream->WriteValue(flags);
     stream->WriteValue(targetId);
-    stream->Write(&views[4], kSavedViews * sizeof(CameraView));
+    for (const CameraView& view : std::span(views).last<kSavedViews>()) stream->WriteValue(view);
 }
 
 // --- Camera motion -----------------------------------------------------------------------------------

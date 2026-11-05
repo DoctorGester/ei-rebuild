@@ -1,7 +1,9 @@
 // ByteStream::ReadTagged (src/game/core_streams.cpp): a block is its tag, its size (counting the tag and the size) and
 // its bytes; a size below 8 is a corrupt block and ends the read before anything is allocated.
 #include "../../src/game/core_streams.h"
+#include "../../src/lib/vecmath.h"
 
+#include <array>
 #include <cstdint>
 #include <cstdio>
 
@@ -16,6 +18,29 @@ void Check(bool ok, const char* what) {
     ++failures;
     std::printf("ei_unit_check: tagged stream: %s\n", what);
 }
+
+// The padding check on values written whole (lib::kNoPadding): a gap after a byte, an undeclared float struct and a
+// declared one.
+struct ByteThenInt {
+    std::uint8_t flag = 0;
+    std::int32_t value = 0;
+};
+struct NamedGap {
+    std::uint8_t flag = 0;
+    std::uint8_t unused[3] = {};
+    std::int32_t value = 0;
+};
+struct FloatPair {
+    float a = 0.0f, b = 0.0f;
+};
+struct DeclaredPair {
+    float a = 0.0f;
+    std::int32_t b = 0;
+};
+constexpr bool NoPadding(const DeclaredPair*) { return lib::FieldsFill<&DeclaredPair::a, &DeclaredPair::b>(); }
+static_assert(!lib::kFormatValue<ByteThenInt> && lib::kFormatValue<NamedGap>);
+static_assert(!lib::kFormatValue<FloatPair> && lib::kFormatValue<DeclaredPair> && lib::kFormatValue<DeclaredPair[2]>);
+static_assert(lib::kFormatValue<float> && lib::kFormatValue<std::array<float, 3>> && lib::kFormatValue<Vector3>);
 
 void PutBlock(MemoryStream* stream, std::uint32_t tag, std::uint32_t size, const char* bytes, std::uint32_t count) {
     stream->Write(&tag, 4);

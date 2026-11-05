@@ -24,8 +24,7 @@ namespace {
 
 template <typename T>
 T Read(char*& p) {
-    T v;
-    std::memcpy(&v, p, sizeof(T));
+    const T v = lib::Load<T>(p);
     p += sizeof(T);
     return v;
 }
@@ -33,6 +32,7 @@ T Read(char*& p) {
 // Reads the first of `versions` copies of a value at the cursor (a byte copy, floats too) and moves past all of them.
 template <typename T>
 void ReadFirstVersion(T& value, char** cursor, int versions) {
+    static_assert(lib::kFormatValue<T>, "plain bytes without padding, one size in every build");
     std::memcpy(&value, *cursor, sizeof(T));
     *cursor += static_cast<int>(sizeof(T)) * versions;
 }
@@ -48,6 +48,7 @@ void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, int versio
 
 template <typename T>
 void LoadArray(std::vector<T>& array, char** cursor, int count) {
+    static_assert(lib::kFormatValue<T>, "plain bytes without padding, one size in every build");
     array.resize(static_cast<std::size_t>(count));
     if (count != 0) {
         std::memcpy(array.data(), *cursor, static_cast<std::size_t>(count) * sizeof(T));

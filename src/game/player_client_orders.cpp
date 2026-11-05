@@ -38,6 +38,9 @@ struct UnitByteBlock {      // 5 bytes
 };
 #pragma pack(pop)
 static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(UnitByteBlock) == 5);   // sent as these bytes
+constexpr bool NoPadding(const AtPointBlock*) {
+    return lib::FieldsFill<&AtPointBlock::slot, &AtPointBlock::caster, &AtPointBlock::point, &AtPointBlock::ctrl>();
+}
 
 void WriteUnits(MemoryStream& out, const std::vector<Unit*>* units) {
     out.WriteCount(units->size());
@@ -48,7 +51,7 @@ void SendMove(MemoryStream* out, ClientMessage type, const std::vector<Unit*>* u
     WriteType(out, type);
     WriteUnits(*out, units);
     out->WriteValue(run);
-    out->Write(&to, sizeof(Vector3));
+    out->WriteValue(to);
 }
 
 // A potion used from a quick slot is counted off at once.

@@ -25,6 +25,9 @@ struct MotionPoint {
     Point cell;         // path cell the point belongs to (-1, -1 none)
 };
 static_assert(sizeof(MotionPoint) == 0x1C);   // saved as its 28 bytes
+constexpr bool NoPadding(const MotionPoint*) {
+    return lib::FieldsFill<&MotionPoint::position, &MotionPoint::direction, &MotionPoint::speed, &MotionPoint::cell>();
+}
 
 // A corner of the path the trajectory is built from: `cells` path cells lead to it.
 struct MotionWaypoint {
@@ -32,6 +35,9 @@ struct MotionWaypoint {
     int cells = 0;
 };
 static_assert(sizeof(MotionWaypoint) == 0x0C);   // saved as its 12 bytes
+constexpr bool NoPadding(const MotionWaypoint*) {
+    return lib::FieldsFill<&MotionWaypoint::position, &MotionWaypoint::cells>();
+}
 
 // c0 + c1 u + c2 u^2 + c3 u^3: one coordinate of a trajectory segment.
 struct MotionCubic {

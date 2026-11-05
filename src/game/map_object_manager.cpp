@@ -91,6 +91,10 @@ struct AdbHeader {
     float end = 0.0f;
 };
 static_assert(sizeof(AdbHeader) == 0x2C);
+constexpr bool NoPadding(const AdbHeader*) {
+    return lib::FieldsFill<&AdbHeader::magic, &AdbHeader::count, &AdbHeader::unreadName, &AdbHeader::start,
+                           &AdbHeader::length, &AdbHeader::end>();
+}
 
 // `out` from the file's bytes at `offset`; what lies beyond the file's `size` reads as zero.
 template <class T>

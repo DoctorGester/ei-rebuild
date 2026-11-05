@@ -2,6 +2,7 @@
 #include "gpu.h"
 
 #include "../platform/log.h"
+#include "lib/bytes.h"
 #include "shaders/gpu_shaders.h"
 
 #include <SDL3/SDL.h>
@@ -562,6 +563,7 @@ struct Hasher {
     std::size_t h = 1469598103934665603ull;
     template <class T>
     void Add(T value) {
+        static_assert(lib::kNoPadding<T>, "no padding bytes in the hash");
         unsigned char bytes[sizeof(T)];
         std::memcpy(bytes, &value, sizeof(T));
         for (unsigned char b : bytes) h = (h ^ b) * 1099511628211ull;

@@ -28,6 +28,9 @@ struct TrapCircle {
     float radius = 0.0f;
 };
 static_assert(sizeof(TrapCircle) == 0xC);   // saved as its 12 bytes
+constexpr bool NoPadding(const TrapCircle*) {
+    return lib::FieldsFill<&TrapCircle::x, &TrapCircle::y, &TrapCircle::radius>();
+}
 
 
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; passed to MagicTrap::SetUp).

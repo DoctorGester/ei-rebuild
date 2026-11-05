@@ -50,6 +50,9 @@ struct UnitByte {
 };
 #pragma pack(pop)
 static_assert(sizeof(CastAtObject) == 0xD && sizeof(CastAtPoint) == 0x15 && sizeof(UnitByte) == 5);   // received as these bytes
+constexpr bool NoPadding(const CastAtPoint*) {
+    return lib::FieldsFill<&CastAtPoint::spell, &CastAtPoint::unitId, &CastAtPoint::point, &CastAtPoint::flag>();
+}
 
 } // namespace
 

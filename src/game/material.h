@@ -23,6 +23,10 @@ struct MaterialColors {
     Vector4 emissive;
     float power = 0.0f;
 };
+constexpr bool NoPadding(const MaterialColors*) {
+    return lib::FieldsFill<&MaterialColors::diffuse, &MaterialColors::ambient, &MaterialColors::specular,
+                           &MaterialColors::emissive, &MaterialColors::power>();
+}
 
 // An element of the material's entries (16 bytes): an emissive colour kept while the object's light
 // is on (Object3DClientSpecific::SetLit pushes and pops them).

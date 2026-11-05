@@ -27,6 +27,11 @@ struct MapHeader {
 };
 #pragma pack(pop)
 static_assert(sizeof(MapHeader) == 0x26);
+constexpr bool NoPadding(const MapHeader*) {
+    return lib::FieldsFill<&MapHeader::magic, &MapHeader::heightRange, &MapHeader::sectorsX, &MapHeader::sectorsY,
+                           &MapHeader::pages, &MapHeader::pageSize, &MapHeader::textures, &MapHeader::tileSize,
+                           &MapHeader::materials, &MapHeader::animated>();
+}
 
 // A material: water when its kind is 2 or 3.
 struct MapMaterial {
@@ -39,5 +44,9 @@ struct MapMaterial {
     std::uint8_t reserved[0xC] = {};  // not read
 };
 static_assert(sizeof(MapMaterial) == 0x2C);
+constexpr bool NoPadding(const MapMaterial*) {
+    return lib::FieldsFill<&MapMaterial::kind, &MapMaterial::colour, &MapMaterial::opacity, &MapMaterial::light,
+                           &MapMaterial::priority, &MapMaterial::warpSpeed, &MapMaterial::reserved>();
+}
 
 } // namespace terrain

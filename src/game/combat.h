@@ -114,6 +114,7 @@ struct MoveModeState {
     // cannot be backstabbed and does not fall asleep (moveMode2's, read by the hit code and the world update).
     std::uint8_t onGuard = 0;
     std::uint8_t wasMode3 = 0;
+    std::uint16_t unused = 0;   // saved: the state is written whole
 };
 
 // AttackParams::damageType of a natural attack whose damage weights are all zero.

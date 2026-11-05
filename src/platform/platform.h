@@ -166,12 +166,12 @@ public:
     // One value as its bytes (sizeof(T)).
     template <class T>
     unsigned ReadValue(T& value) {
-        static_assert(lib::kFormatValue<T>, "a file value is plain bytes of one size in every build");
+        static_assert(lib::kFormatValue<T>, "a file value: plain bytes without padding, one size in every build");
         return Read(&value, sizeof(T));
     }
     template <class T>
     void WriteValue(const T& value) {
-        static_assert(lib::kFormatValue<T>, "a file value is plain bytes of one size in every build");
+        static_assert(lib::kFormatValue<T>, "a file value: plain bytes without padding, one size in every build");
         Write(&value, sizeof(T));
     }
     // `line` and "\r\n" (a text file's line end on disk).

@@ -32,6 +32,9 @@ struct CameraView {
     Quaternion rotation;
     float pitch = 0.0f;
 };
+constexpr bool NoPadding(const CameraView*) {
+    return lib::FieldsFill<&CameraView::distance, &CameraView::rotation, &CameraView::pitch>();
+}
 
 // A shake of the camera (Camera::shakes).
 struct CameraShake {
@@ -50,6 +53,9 @@ struct CameraKey {
     Quaternion rotation;
 };
 static_assert(sizeof(CameraKey) == 0x24);   // read as the camera file's records
+constexpr bool NoPadding(const CameraKey*) {
+    return lib::FieldsFill<&CameraKey::time, &CameraKey::reserved, &CameraKey::position, &CameraKey::rotation>();
+}
 
 // Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre

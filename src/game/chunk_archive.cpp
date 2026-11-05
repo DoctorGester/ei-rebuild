@@ -23,10 +23,7 @@ namespace {
 // The archive's bytes at `p`: a field's value (unaligned), or the text stored with its terminator.
 template <typename T>
 T ValueAt(const std::uint8_t* p) {
-    static_assert(lib::kFormatValue<T>);
-    T value;
-    std::memcpy(&value, p, sizeof(T));
-    return value;
+    return lib::Load<T>(p);
 }
 const char* TextAt(const std::uint8_t* p) { return reinterpret_cast<const char*>(p); }
 
