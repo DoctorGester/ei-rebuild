@@ -5,5 +5,6 @@ model = "opus"
 depends = ["C87"]
 note = "Style review round 2 (2026-11-04, https://claude.ai/artifact/14F6FPem4ZRbaKD4Byu3yu; user: schedule all items). Item R8. tools/gen_gpu_shaders.py accepts float/float2/float3/int members with HLSL packing; every packed value gets a name (shadow_receiver.hlsli on.xyzw, mesh.hlsl distanceFog.w and shift.z, ui_params.hlsli, TerrainFsParams flags[0] as an int mode); CPU logic stops reading uniforms back (scene.counts[0], on[0] > 0.5f, pointColour.w turned from light+1 to shadow slot+1): plain structs for the kept lights, packed only when pushed. Shaders build on every backend. Style only: goldens the same, float operation order untouched, no new forwarders."
 order = 1021
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-05"
