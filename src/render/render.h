@@ -12,6 +12,7 @@
 #include "render/mesh_records.h"
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 class FigureMesh;
@@ -172,6 +173,11 @@ void HolderGone(const Surface* holder);
 // A holder loaded from an 8888 .mmp picture (the software cursor's images): the renderer keeps the
 // picture's pixels from the file data.
 void PictureFromMmp(const Surface* holder, const MmpFile& file);
+// RGBA8 pixels, rows from the top.
+struct Picture {
+    int width = 0, height = 0;
+    std::vector<std::uint8_t> rgba;
+};
 
 // The device object is being built: the renderer starts (it presents through its own swap chain). When it cannot
 // start the game ends here.
@@ -380,17 +386,26 @@ void EndFrame();
 // EndFrame if not done yet, then a new frame begins.
 void Present();
 
-// The last frame EndFrame drew, 24-bit BGR rows from the top. False without a frame.
-bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
+// 24-bit BGR pixels, rows from the top.
+struct FrameImage {
+    int width = 0, height = 0;
+    std::vector<std::uint8_t> bgr;
+};
+// The last frame EndFrame drew; none without a frame.
+std::optional<FrameImage> ReadFrame();
 
 // The display's gamma ramp (three 256-entry ramps, full scale 65280; null channels identity), applied as
 // the frame goes to the window; captures read the frame before it.
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue);
 // The ramp the present applies: 256 RGBA8 entries (the harness checks the cursor's shapes against it).
 const std::uint8_t* GammaRampTable();
-// Where the frame shows in the window's client area (aspect kept, centred). False when the renderer does
-// not present itself.
-bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);
+// The frame's size and where it shows in the window's client area (aspect kept, centred).
+struct FramePlacement {
+    Size frame;
+    Rect placed;
+};
+// Where the frame shows now; none when there is no frame or window.
+std::optional<FramePlacement> FrameInWindow();
 // Client-area point to frame pixel (outside the frame: beyond its edges) and back (the centre of the frame
 // pixel's window pixels).
 void WindowToFrame(int* x, int* y);

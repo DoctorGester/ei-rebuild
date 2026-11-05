@@ -76,6 +76,8 @@ the scene (the original's edges were composited against black and keyed: a dark 
 - `GlyphAtlas`: one per font, pixel size and smoothing state; shelf packing with 1 px padding, grows by doubling its height
   (`Generation()` changes when it grows, so upload after `Layout`). Smoothing off thresholds coverage at one half.
 - `GetTextFont(face, pixels, smoothing)` is the process-wide cache (not thread-safe); a font must outlive its queued runs.
+  The caches (render_text.cpp's fonts and parsed files, render_rich_text.cpp's bold fonts) are file statics built
+  before main, so they outlive the exit functions the game registers; destroying them only frees memory.
 - `Layout(font, text, rect, format, out)` gives the return value, the CALCRECT rectangle, the lines, the glyph quads (in
   rectangle pixels, still to be clipped to `clip`), the underline rectangles and the clip rectangle.
 - `ComposeAgainstBlack`: the CPU reference of the keyed look (colour x coverage over black, alpha 0xFF wherever the coverage

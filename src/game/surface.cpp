@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -153,9 +154,8 @@ Surface::~Surface() {
 // (ScreenFormat), rows bottom-up, the part of the screen outside the frame black. Null (logged) when the new renderer
 // has no frame.
 Dib* CaptureScreen(const TextureDevice* device) {
-    int frameWidth = 0, frameHeight = 0;
-    std::vector<std::uint8_t> frame;
-    if (!render::ReadFrame(&frameWidth, &frameHeight, &frame)) {
+    const std::optional<render::FrameImage> frame = render::ReadFrame();
+    if (!frame) {
         static bool logged = false;
         if (!logged) ei::Log("capture: the new renderer has no frame: no bitmap");
         logged = true;
@@ -169,9 +169,9 @@ Dib* CaptureScreen(const TextureDevice* device) {
     const std::size_t rowBytes = DibRowBytes(*dib->header);
     for (int row = height - 1; row >= 0; --row, out += rowBytes) {
         std::memset(out, 0, rowBytes);
-        if (row >= frameHeight) continue;
-        for (int x = 0; x < width && x < frameWidth; ++x) {
-            const std::uint8_t* bgr = &frame[(static_cast<std::size_t>(row) * frameWidth + x) * 3];
+        if (row >= frame->height) continue;
+        for (int x = 0; x < width && x < frame->width; ++x) {
+            const std::uint8_t* bgr = &frame->bgr[(static_cast<std::size_t>(row) * frame->width + x) * 3];
             const std::uint32_t pixel = (static_cast<std::uint32_t>(bgr[2]) << 16) | (static_cast<std::uint32_t>(bgr[1]) << 8) | bgr[0];
             lib::Store(out + x * 4, pixel);
         }

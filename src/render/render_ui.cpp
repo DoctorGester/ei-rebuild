@@ -154,12 +154,11 @@ static bool BeginTargetPass(const gpu::Texture& target, bool clear, const char* 
 static void RunCopies() {
     if (g_copies.empty()) return;
     const gpu::Texture& frame = FrameTexture();
-    int fw = 0, fh = 0;
-    const bool haveFrame = frame && FrameSize(&fw, &fh);
+    const std::optional<Size> frameSize = FrameSize();
     const gpu::Pipeline pipeline = gpu::MakePipeline(TargetDesc(gpu_shaders::ui_copy::kIndex, gpu::Format::Rgba8), "ei-ui-copy");
     for (const UiCopy& copy : g_copies) {
         if (!BeginTargetPass(copy.image, true, "ei-ui-copy")) continue;
-        const Rect r = haveFrame ? copy.source.Intersection(Rect{0, 0, fw, fh}) : Rect{};
+        const Rect r = frameSize ? copy.source.Intersection(Rect::Sized({}, *frameSize)) : Rect{};
         if (!r.IsEmpty() && pipeline) {
             gpu::ApplyPipeline(pipeline);
             BindTexture(frame);
@@ -308,21 +307,21 @@ void DropPicture(const void* key) {
     g_uiPictures.erase(it);
 }
 
-bool ReadPicture(const void* key, int* width, int* height, std::vector<std::uint8_t>* rgba) {
+std::optional<Picture> ReadPicture(const void* key) {
     const UiPicture* p = UiPictureOf(key);
-    if (!p) return false;
+    if (!p) return std::nullopt;
     gpu::Ticket ticket;
     gpu::Texels texels;
-    const bool read = ReadBack(p->image, Rect{0, 0, p->width, p->height}, &ticket, &texels);
-    if (read) {
+    std::optional<Picture> picture;
+    if (ReadBack(p->image, Rect{0, 0, p->width, p->height}, &ticket, &texels)) {
         const std::size_t row = static_cast<std::size_t>(p->width) * 4;
-        rgba->resize(row * static_cast<std::size_t>(p->height));
-        for (int y = 0; y < p->height; ++y) std::memcpy(rgba->data() + row * static_cast<std::size_t>(y), texels.Row(y), row);
-        *width = p->width;
-        *height = p->height;
+        picture.emplace(
+            Picture{p->width, p->height, std::vector<std::uint8_t>(row * static_cast<std::size_t>(p->height))});
+        for (int y = 0; y < p->height; ++y)
+            std::memcpy(picture->rgba.data() + row * static_cast<std::size_t>(y), texels.Row(y), row);
     }
     gpu::Release(ticket);
-    return read;
+    return picture;
 }
 
 } // namespace ui

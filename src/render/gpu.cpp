@@ -718,6 +718,7 @@ struct Prepared {
     double madeMs = 0;   // the time the pipelines took
 };
 static Prepared g_prepared;
+static bool g_releaseAtExit = false;   // PrepareInBackground registered ReleasePrepared with std::atexit
 
 // A device's pipelines and shaders let go (the device's own release does not).
 static void ReleaseMade(SDL_GPUDevice* device, std::unordered_map<PipelineDesc, Pipeline, PipelineHash>& pipelines,
@@ -809,10 +810,9 @@ void ReleasePrepared() {
 
 void PrepareInBackground(const DeviceOptions& options, PipelineLister lister) {
     if (g_device || g_prepared.thread.joinable()) return;
-    static bool registered = false;
-    if (!registered) {
+    if (!g_releaseAtExit) {
         std::atexit(ReleasePrepared);
-        registered = true;
+        g_releaseAtExit = true;
     }
     g_prepared.driver = options.driver ? options.driver : "";
     g_prepared.debug = options.debug;

@@ -8,6 +8,7 @@
 #include "render_state.h"
 
 #include <cstring>
+#include <optional>
 #include <unordered_map>
 
 namespace render {
@@ -51,9 +52,9 @@ static void Refuse(Refusal reason, const char* what) {
 
 // A matrix giving screen pixels after the divide (sx = row0.p / row3.p, sy = row1.p / row3.p) as a
 // clip-space one: ndc x = 2 sx / width - 1, ndc y = 1 - 2 sy / height; z and w unchanged.
-static Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
-    float kx = 2.0f / width;
-    float ky = 2.0f / height;
+static Matrix4 ScreenToClip(const Matrix4& screen, Size target) {
+    float kx = 2.0f / target.w;
+    float ky = 2.0f / target.h;
     const float* s = screen.m;
     Matrix4 clip;
     float* c = clip.m;
@@ -69,34 +70,34 @@ static Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
 static const Matrix4 kIdentity = {{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}};
 
 // The mesh's corners as vertices and its triangles, once per mesh (the passes share them).
-static bool Build(Frame& f, Pending& p) {
-    const MeshDraw& m = p.mesh;
+static bool Build(Frame& f, Pending& pending) {
+    const MeshDraw& mesh = pending.mesh;
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
-    for (int i = 0; i < m.cornerCount; ++i) {
+    for (int i = 0; i < mesh.cornerCount; ++i) {
         // Without corners (the flat geometry): vertex i, one colour pair for all.
         const MeshCorner flat{static_cast<std::uint16_t>(i), 0, static_cast<std::uint16_t>(i)};
-        const MeshCorner& c = m.corners ? m.corners[i] : flat;
-        int position = c.position;
-        if (position >= m.positionCount) {
+        const MeshCorner& corner = mesh.corners ? mesh.corners[i] : flat;
+        int position = corner.position;
+        if (position >= mesh.positionCount) {
             f.meshVertices.resize(base);
             return false;
         }
-        Vertex v{};
-        v.position = PacketVertex(m.positions, position);
-        v.colour = m.colours[c.normal];
-        v.specular = m.speculars[c.normal];
-        v.normal = CornerNormal(m, c.normal);
-        v.u = m.uvs[c.texCoord].u;
-        v.v = m.uvs[c.texCoord].v;
-        if (m.moveUv) {
-            v.u = m.uOffset + v.u;
-            v.v = m.vOffset + v.v;
+        Vertex vertex{};
+        vertex.position = PacketVertex(mesh.positions, position);
+        vertex.colour = mesh.colours[corner.normal];
+        vertex.specular = mesh.speculars[corner.normal];
+        vertex.normal = CornerNormal(mesh, corner.normal);
+        vertex.u = mesh.uvs[corner.texCoord].u;
+        vertex.v = mesh.uvs[corner.texCoord].v;
+        if (mesh.moveUv) {
+            vertex.u = mesh.uOffset + vertex.u;
+            vertex.v = mesh.vOffset + vertex.v;
         }
-        f.meshVertices.push_back(v);
+        f.meshVertices.push_back(vertex);
     }
-    p.firstIndex = static_cast<int>(f.meshIndices.size());
-    AppendTriangles(m.indices, m.indexCount, m.cornerCount, base, f.meshIndices);
-    p.indexCount = static_cast<int>(f.meshIndices.size()) - p.firstIndex;
+    pending.firstIndex = static_cast<int>(f.meshIndices.size());
+    AppendTriangles(mesh.indices, mesh.indexCount, mesh.cornerCount, base, f.meshIndices);
+    pending.indexCount = static_cast<int>(f.meshIndices.size()) - pending.firstIndex;
     return true;
 }
 
@@ -162,41 +163,41 @@ void ListMeshPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
 }
 
 PassState ReadPassState(const TextureDevice* device) {
-    const RenderState& d = g_renderState;
-    PassState s;
-    s.blend = d.blend;
-    s.sourceBlend = d.sourceBlend;
-    s.destBlend = d.destBlend;
-    s.alphaTest = d.alphaTest;
-    s.alphaFunc = d.alphaFunc;
-    s.alphaReference = d.alphaReference;
-    s.depthTest = d.depthTest;
-    s.depthWrite = d.depthWrite;
-    s.depthFunc = d.depthFunc;
-    s.cull = d.cull;
-    s.specular = d.specular;
-    s.fog = d.fog;
-    s.fogColour = d.fogColour;
-    s.textureFactor = d.textureFactor;
+    const RenderState& current = g_renderState;
+    PassState pass;
+    pass.blend = current.blend;
+    pass.sourceBlend = current.sourceBlend;
+    pass.destBlend = current.destBlend;
+    pass.alphaTest = current.alphaTest;
+    pass.alphaFunc = current.alphaFunc;
+    pass.alphaReference = current.alphaReference;
+    pass.depthTest = current.depthTest;
+    pass.depthWrite = current.depthWrite;
+    pass.depthFunc = current.depthFunc;
+    pass.cull = current.cull;
+    pass.specular = current.specular;
+    pass.fog = current.fog;
+    pass.fogColour = current.fogColour;
+    pass.textureFactor = current.textureFactor;
     for (int stage = 0; stage < 2; ++stage) {
-        const TextureStage& from = d.stages[stage];
-        StageState& st = s.stages[stage];
+        const TextureStage& from = current.stages[stage];
+        StageState& to = pass.stages[stage];
         if (stage == 1 && from.combiner.colourOp == TextureOp::Disable) break;   // stage 1 unused
-        st.combiner = from.combiner;
-        st.magFilter = from.magFilter;
-        st.minFilter = from.minFilter;
-        st.mipFilter = from.mipFilter;
-        st.addressU = from.addressU;
-        st.addressV = from.addressV;
+        to.combiner = from.combiner;
+        to.magFilter = from.magFilter;
+        to.minFilter = from.minFilter;
+        to.mipFilter = from.mipFilter;
+        to.addressU = from.addressU;
+        to.addressV = from.addressV;
         // The surface holder the game bound to the stage.
         if (!device) continue;
         const Surface* holder = device->stageSurfaces[stage];
-        st.hasTexture = holder != nullptr;
-        st.texture = SurfaceView(holder);
-        if (stage == 0) s.patch = PatchOf(holder);
+        to.hasTexture = holder != nullptr;
+        to.texture = SurfaceView(holder);
+        if (stage == 0) pass.patch = PatchOf(holder);
     }
     ++g_stats.counts[FrameStats::StateReads];
-    return s;
+    return pass;
 }
 
 static gpu::BlendFactor ToGpu(Blend factor) {
@@ -229,37 +230,37 @@ static gpu::Compare ToGpu(Compare function) {
     }
 }
 
-void ApplyPassState(gpu::PipelineDesc& p, const PassState& s) {
+void ApplyPassState(gpu::PipelineDesc& desc, const PassState& state) {
     // D3DCULL_CW culls triangles clockwise on screen, D3DCULL_CCW counter-clockwise ones (screen y
     // down in both APIs).
-    switch (s.cull) {
+    switch (state.cull) {
     case Cull::Clockwise:
-        p.cull = gpu::CullFace::Back;
-        p.front = gpu::Winding::CounterClockwise;
+        desc.cull = gpu::CullFace::Back;
+        desc.front = gpu::Winding::CounterClockwise;
         break;
     case Cull::CounterClockwise:
-        p.cull = gpu::CullFace::Back;
-        p.front = gpu::Winding::Clockwise;
+        desc.cull = gpu::CullFace::Back;
+        desc.front = gpu::Winding::Clockwise;
         break;
-    default: p.cull = gpu::CullFace::None; break;
+    default: desc.cull = gpu::CullFace::None; break;
     }
-    p.depth = kDepthFormat;
-    p.depthCompare = s.depthTest ? ToGpu(s.depthFunc) : gpu::Compare::Always;
-    p.depthWrite = s.depthTest && s.depthWrite;
-    p.colour = kColourFormat;
+    desc.depth = kDepthFormat;
+    desc.depthCompare = state.depthTest ? ToGpu(state.depthFunc) : gpu::Compare::Always;
+    desc.depthWrite = state.depthTest && state.depthWrite;
+    desc.colour = kColourFormat;
     // The old render target has no alpha channel: destination alpha reads as one, so the new
     // target's alpha stays at the clear value.
-    p.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
-    if (s.blend) {
-        gpu::BlendFactor source = ToGpu(s.sourceBlend), dest = ToGpu(s.destBlend);
-        if (s.sourceBlend == Blend::BothSourceAlpha) {
+    desc.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
+    if (state.blend) {
+        gpu::BlendFactor source = ToGpu(state.sourceBlend), dest = ToGpu(state.destBlend);
+        if (state.sourceBlend == Blend::BothSourceAlpha) {
             source = gpu::BlendFactor::SourceAlpha;
             dest = gpu::BlendFactor::OneMinusSourceAlpha;
-        } else if (s.sourceBlend == Blend::BothInvSourceAlpha) {
+        } else if (state.sourceBlend == Blend::BothInvSourceAlpha) {
             source = gpu::BlendFactor::OneMinusSourceAlpha;
             dest = gpu::BlendFactor::SourceAlpha;
         }
-        p.blend = {true, source, dest, source, dest};
+        desc.blend = {true, source, dest, source, dest};
     }
 }
 
@@ -269,7 +270,7 @@ bool CreateMeshShader() {
     return ok;
 }
 
-void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly) {
+void MeshLayout(gpu::PipelineDesc& desc, bool cached, bool positionsOnly) {
     // The frame's stream: Vertex (position, colour, specular, texture coordinates, normal) in buffer 0. A
     // mesh kept on the GPU: position, texture coordinates and normal in buffer 0, colour and specular in
     // buffer 1. The locations are the mesh program's (the casters': position 0, texture coordinates 1).
@@ -279,18 +280,21 @@ void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly) {
     const std::uint8_t uv = positionsOnly ? 1 : 3;
     // A member's offset: in MeshVertex (or ColourPair, buffer 1) when kept, else in Vertex.
     auto at = [cached](std::size_t kept, std::size_t streamed) { return static_cast<std::uint16_t>(cached ? kept : streamed); };
-    p.bufferCount = cached && !positionsOnly ? 2 : 1;
-    p.buffers[0].stride = at(sizeof(MeshVertex), sizeof(Vertex));
-    p.attributes[0] = {0, 0, gpu::VertexFormat::Float3, at(offsetof(MeshVertex, position), offsetof(Vertex, position))};
-    p.attributes[1] = {uv, 0, gpu::VertexFormat::Float2, at(offsetof(MeshVertex, u), offsetof(Vertex, u))};
-    p.attributeCount = 2;
+    desc.bufferCount = cached && !positionsOnly ? 2 : 1;
+    desc.buffers[0].stride = at(sizeof(MeshVertex), sizeof(Vertex));
+    desc.attributes[0] = {0, 0, gpu::VertexFormat::Float3,
+                          at(offsetof(MeshVertex, position), offsetof(Vertex, position))};
+    desc.attributes[1] = {uv, 0, gpu::VertexFormat::Float2, at(offsetof(MeshVertex, u), offsetof(Vertex, u))};
+    desc.attributeCount = 2;
     if (positionsOnly) return;
     const std::uint8_t colours = cached ? 1 : 0;
-    p.attributes[2] = {4, 0, gpu::VertexFormat::Float3, at(offsetof(MeshVertex, normal), offsetof(Vertex, normal))};
-    p.attributes[3] = {1, colours, gpu::VertexFormat::UByte4Norm, at(offsetof(ColourPair, colour), offsetof(Vertex, colour))};
-    p.attributes[4] = {2, colours, gpu::VertexFormat::UByte4Norm, at(offsetof(ColourPair, specular), offsetof(Vertex, specular))};
-    p.attributeCount = 5;
-    if (cached) p.buffers[1].stride = sizeof(ColourPair);
+    desc.attributes[2] = {4, 0, gpu::VertexFormat::Float3, at(offsetof(MeshVertex, normal), offsetof(Vertex, normal))};
+    desc.attributes[3] = {1, colours, gpu::VertexFormat::UByte4Norm,
+                          at(offsetof(ColourPair, colour), offsetof(Vertex, colour))};
+    desc.attributes[4] = {2, colours, gpu::VertexFormat::UByte4Norm,
+                          at(offsetof(ColourPair, specular), offsetof(Vertex, specular))};
+    desc.attributeCount = 5;
+    if (cached) desc.buffers[1].stride = sizeof(ColourPair);
 }
 
 void UploadMeshes(const Frame& f) {
@@ -311,15 +315,16 @@ bool BindMeshBatch(const MeshBatch& batch, Geometry& g, int* firstIndex) {
 
 void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     namespace program = gpu_shaders::mesh;
-    Geometry g;
+    Geometry geometry;
     int first = 0;
-    if (batch.indexCount <= 0 || (batch.decal && !GroundDecalsDrawn()) || !BindMeshBatch(batch, g, &first)) return;
+    if (batch.indexCount <= 0 || (batch.decal && !GroundDecalsDrawn()) || !BindMeshBatch(batch, geometry, &first))
+        return;
     const PassState& s = batch.state;
     gpu::Pipeline pipeline = Pipeline(s, batch.lines, batch.cached != nullptr);
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
-    g.Bind();
+    geometry.Bind();
     gpu::TextureBinding textures[3];
     for (int t = 0; t < 2; ++t) {
         const StageState& st = s.stages[t];
@@ -445,12 +450,12 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     }
     Matrix4 clip;
     if (mesh.screenMatrix) {
-        int width = 0, height = 0;
-        if (!GameTargetSize(&width, &height)) {
+        const std::optional<Size> target = GameTargetSize();
+        if (!target) {
             Refuse(NoTargetSize, "a mesh draw with no render target size");
             return;
         }
-        clip = ScreenToClip(*mesh.matrix, width, height);
+        clip = ScreenToClip(*mesh.matrix, *target);
     } else {
         clip = *mesh.matrix;
     }
@@ -575,8 +580,8 @@ void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vert
     }
     Timer timer(FrameStats::HandOverMs);
     ++g_stats.counts[FrameStats::TransformedDraws];
-    int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height)) {
+    const std::optional<Size> target = GameTargetSize();
+    if (!target) {
         Refuse(NoTargetSize, "a pre-transformed draw with no render target size");
         return;
     }
@@ -585,7 +590,7 @@ void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vert
         Refuse(VertexLimit, "too many pre-transformed vertices in one frame");
         return;
     }
-    Matrix4 clip = ScreenToClip(kIdentity, width, height);
+    Matrix4 clip = ScreenToClip(kIdentity, *target);
     // kFvfUntextured's vertex is a ScreenVertex; kFvfTextured's has the texture coordinates after it.
     struct TexturedVertex {
         ScreenVertex screen;
@@ -634,13 +639,13 @@ void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int c
     Start();
     Timer timer(FrameStats::HandOverMs);
     ++g_stats.counts[FrameStats::TransformedDraws];
-    int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height)) {
+    const std::optional<Size> target = GameTargetSize();
+    if (!target) {
         Refuse(NoTargetSize, "a screen draw with no render target size");
         return;
     }
     Frame& f = g_frame;
-    Matrix4 clip = ScreenToClip(kIdentity, width, height);
+    Matrix4 clip = ScreenToClip(kIdentity, *target);
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < count; ++i) {
         const ScreenVertex& s = vertices[i];

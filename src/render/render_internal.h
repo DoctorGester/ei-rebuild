@@ -154,7 +154,7 @@ inline void CasterAlpha(const PassState& s, float* alpha) {
 // The render state the game set for the pass about to be drawn (render_state.h). `device`'s bound surfaces
 // become the stages' textures; null: no textures.
 PassState ReadPassState(const TextureDevice* device);
-void ApplyPassState(gpu::PipelineDesc& p, const PassState& s);
+void ApplyPassState(gpu::PipelineDesc& desc, const PassState& state);
 
 // A terrain page kept on the GPU and one quarter of it drawn in a frame.
 struct CachedPage;
@@ -470,7 +470,8 @@ int AddMatrix(const Matrix4& m);
 // The game's fog switch and colour (render_state.h), read once per frame.
 void ReadFog(Frame& f);
 TextureDevice* DeviceObject();
-bool GameTargetSize(int* width, int* height);
+// The size of the game's screen (the device object's); none without a device or beyond the frame target's limit.
+std::optional<Size> GameTargetSize();
 // The device is started: the device and the pipelines made at the first use (a failure ends the game: Fatal).
 void Start();
 // The renderer cannot go on (no device, no swap chain): the reason is logged and shown in the game's error box, and
@@ -520,7 +521,8 @@ struct Channel {
 };
 
 const gpu::Texture& FrameTexture();
-bool FrameSize(int* width, int* height);
+// The frame target's size; none without the target.
+std::optional<Size> FrameSize();
 // The frame into the swap chain's texture through the gamma ramp; PresentWindow, after the frame's submission (which
 // presents it), counts it. False: nothing to present into / nothing presented.
 bool DrawToWindow();
@@ -748,7 +750,7 @@ void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, int anisotropy);
 // The buffers a mesh batch draws from (the frame's stream, or the kept meshes' pool) and its first index;
 // false when it has none. MeshLayout `positionsOnly`: position and texture coordinates alone (the casters).
 bool BindMeshBatch(const MeshBatch& batch, Geometry& g, int* firstIndex);
-void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly);
+void MeshLayout(gpu::PipelineDesc& desc, bool cached, bool positionsOnly);
 
 // Appends the triangles of `indices` (three a triangle) over `cornerCount` corners to `out`, each index plus `base`; a
 // triangle with a corner out of range is left out.
@@ -841,9 +843,15 @@ int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip);
 inline float ShadowNormalOffset(const Frame& frame, bool receives) {
     return receives && frame.shadow.on ? frame.shadow.normalOffset : 0.0f;
 }
-// The clip matrix of the frame's first ground batch and the camera in the landscape's space; false without
-// ground drawn.
-bool WorldCamera(const Frame& frame, Matrix4* clip, Vector3* eye);
+// The world's camera this frame: the clip matrix of the frame's first ground batch, the eye in the landscape's space
+// and the clip matrix's inverse.
+struct WorldView {
+    Matrix4 clip;
+    Vector3 eye;
+    CameraInverse inverse;
+};
+// None without ground drawn, or when its clip matrix has no inverse or puts the eye at infinity.
+std::optional<WorldView> WorldCamera(const Frame& frame);
 // NoShadowTexture: 1 x 1 at the far plane, for a receiver drawn without a map.
 gpu::Texture MakeShadowDepth(int width, int height, const char* label);
 gpu::Sampler ShadowCompareSampler();
@@ -1028,11 +1036,7 @@ const gpu::Texture& SurfaceView(const Surface* holder);
 // render::TextureFromMmp: kept until the holder goes.
 bool TextureFromMmpData(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels);
 void ForgetHolder(const Surface* holder);
-// render::PictureFromMmp: level 0 as RGBA8, kept until the holder goes.
-struct Picture {
-    int width = 0, height = 0;
-    std::vector<std::uint8_t> rgba;
-};
+// render::PictureFromMmp: level 0, kept until the holder goes.
 bool PictureFromMmpData(const Surface* holder, const MmpFile& file);
 // The held .mmp textures (not the composed ones): the image, its first level's size, the levels uploaded and the
 // file's format id (render::CheckMmpLevels reads them).

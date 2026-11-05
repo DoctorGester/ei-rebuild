@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -196,9 +197,10 @@ CursorPresents CursorPresentCounts();
 // The gamma ramp the present applies: 256 RGBA8 entries (render::GammaRampTable).
 const std::uint8_t* GammaRampEntries();
 WindowPresents WindowPresentCounts();
-bool FrameInWindow(int* width, int* height);
+// The frame's size (render::FrameInWindow); none when the renderer has no frame or window.
+std::optional<Size> FrameInWindow();
 // The frame's size in the window (render::FrameInWindow's placed rectangle).
-bool FramePlaced(int* width, int* height);
+std::optional<Size> FramePlaced();
 void FrameToWindow(int* x, int* y);
 void WindowToFrame(int* x, int* y);
 void ConfigureRenderer(const char* spec);

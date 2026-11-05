@@ -490,19 +490,18 @@ static void UnitFronts(const PointShadowFrame& ps, LastSphere& spheres) {
 void PreparePointShadows(Frame& f) {
     PointShadowFrame& ps = f.shadow.point;
     const KeptScene& scene = KeptSceneLight();
-    Matrix4 clip;
-    Vector3 eye;
-    CameraInverse camera;
-    if (scene.count == 0 || f.worldRanges.empty() || !WorldCamera(f, &clip, &eye) || !camera.Invert(clip)) return;
+    if (scene.count == 0 || f.worldRanges.empty()) return;
+    const std::optional<WorldView> view = WorldCamera(f);
+    if (!view) return;
     Timer timer(FrameStats::ShadowMs);
-    if (!ListCandidates(scene, clip)) return;
+    if (!ListCandidates(scene, view->clip)) return;
     LastSphere spheres;
-    ListCasters(f, camera, spheres);
+    ListCasters(f, view->inverse, spheres);
     if (g_casters.empty()) return;
     ps.mapped = MapLights();
     if (ps.mapped == 0) return;
     GiveRows(ps.mapped);
-    WriteParams(ps, eye);
+    WriteParams(ps, view->eye);
     UnitFronts(ps, spheres);
 }
 

@@ -71,8 +71,13 @@ std::vector<std::string> Lines(const Numbers& n);
 constexpr int kGlyphWidth = 5, kGlyphHeight = 7, kCellWidth = 6, kCellHeight = 9, kBorder = 3;
 // Brightness in the image: the box 0, letters and signs kLabel, digits and the point kValue.
 constexpr std::uint8_t kLabel = 176, kValue = 255;
-// `lines` drawn into a one-channel image (`width` x `height`, rows top down).
-void Rasterise(const std::vector<std::string>& lines, std::vector<std::uint8_t>* pixels, int* width, int* height);
+// A one-channel image, rows top down.
+struct TextImage {
+    int width = 0, height = 0;
+    std::vector<std::uint8_t> pixels;
+};
+// `lines` drawn into a one-channel image.
+TextImage Rasterise(const std::vector<std::string>& lines);
 // Whether the font has `c` (lower case drawn as capitals); anything else is a blank.
 bool HasGlyph(char c);
 // The image's screen pixels per pixel for a frame `height` pixels high: one per 540 rows, at least one.

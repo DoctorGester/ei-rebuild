@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iterator>
+#include <optional>
 #include <unordered_map>
 
 namespace render {
@@ -87,12 +88,10 @@ struct Patch {
 static std::unordered_map<const Surface*, Patch> g_patches;
 static int g_patchFailures = 0;
 
-static bool HolderSize(const Surface* holder, int* width, int* height) {
+static std::optional<Size> HolderSize(const Surface* holder) {
     auto decoded = g_textures.find(holder);
-    if (decoded == g_textures.end() || decoded->second.width <= 0) return false;
-    *width = decoded->second.width;
-    *height = decoded->second.height;
-    return true;
+    if (decoded == g_textures.end() || decoded->second.width <= 0) return std::nullopt;
+    return Size{decoded->second.width, decoded->second.height};
 }
 
 static bool Inside(const int r[4], int width, int height) {
@@ -269,8 +268,10 @@ StagePatch PatchOf(const Surface* holder) {
     auto it = g_patches.find(holder);
     if (it == g_patches.end()) return p;
     const Patch& patch = it->second;
-    int tw = 0, th = 0, sw = 0, sh = 0;
-    if (!HolderSize(holder, &tw, &th) || !HolderSize(patch.source, &sw, &sh)) return p;
+    const std::optional<Size> targetSize = HolderSize(holder), sourceSize = HolderSize(patch.source);
+    if (!targetSize || !sourceSize) return p;
+    const auto [tw, th] = *targetSize;
+    const auto [sw, sh] = *sourceSize;
     // Texture coordinates: the target's rectangle; a texel of it at (x, y) takes the source's texel
     // at (x - to + from) scaled by the rectangles' sizes (the same size from the blink).
     float kx = static_cast<float>(patch.from[2] - patch.from[0]) / static_cast<float>(patch.to[2] - patch.to[0]);
@@ -455,8 +456,10 @@ void DrawClouds(const Surface* holder, const CloudFrame& from, const CloudFrame&
 void TexturePatch(const Surface* target, const int to[4], const Surface* source, const int from[4]) {
     if (!target || !source) return;
     Start();
-    int tw = 0, th = 0, sw = 0, sh = 0;
-    if (!HolderSize(target, &tw, &th) || !HolderSize(source, &sw, &sh) || !Inside(to, tw, th) || !Inside(from, sw, sh)) {
+    const std::optional<Size> targetSize = HolderSize(target), sourceSize = HolderSize(source);
+    const auto [tw, th] = targetSize.value_or(Size{});
+    const auto [sw, sh] = sourceSize.value_or(Size{});
+    if (!targetSize || !sourceSize || !Inside(to, tw, th) || !Inside(from, sw, sh)) {
         LogFirst(g_patchFailures, 10,
                  "render: texture patch (%d,%d)-(%d,%d) of a %dx%d texture from (%d,%d)-(%d,%d) of a %dx%d one: "
                  "not recorded (a texture without its size, or a rectangle outside it)",

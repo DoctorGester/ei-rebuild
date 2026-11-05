@@ -550,13 +550,16 @@ void ListShadowPipelines(std::vector<gpu::PipelineDesc>& out) {
     out.push_back(PointShadowClearDesc());
 }
 
-bool WorldCamera(const Frame& f, Matrix4* clip, Vector3* eye) {
+std::optional<WorldView> WorldCamera(const Frame& f) {
     const std::size_t firstGround = FirstGround(f);
-    if (firstGround == SIZE_MAX) return false;
+    if (firstGround == SIZE_MAX) return std::nullopt;
     const TerrainBatch& ground = f.terrainBatches[static_cast<std::size_t>(f.commands[firstGround].index)];
-    *clip = f.matrices[static_cast<std::size_t>(ground.matrix)];
+    WorldView view;
+    view.clip = f.matrices[static_cast<std::size_t>(ground.matrix)];
     M4 fromClip;
-    return Invert(FromMatrix(*clip), &fromClip) && CameraEye(fromClip, eye);
+    if (!Invert(FromMatrix(view.clip), &fromClip) || !CameraEye(fromClip, &view.eye) || !view.inverse.Invert(view.clip))
+        return std::nullopt;
+    return view;
 }
 
 gpu::Texture MakeShadowDepth(int width, int height, const char* label) {

@@ -120,10 +120,13 @@ void DrawOcclusion(Frame& f) {
     g_receiver = OcclusionReceiver{};
     g_info = OcclusionInfo{};
     if (g_mode == OcclusionMode::Off || f.worldRanges.empty()) return;
-    Matrix4 camera, fromClip;
-    Vector3 eye;
-    int width = 0, height = 0;
-    if (!WorldCamera(f, &camera, &eye) || !InvertMatrix(camera, &fromClip) || !FrameSize(&width, &height)) return;
+    const std::optional<WorldView> view = WorldCamera(f);
+    const std::optional<Size> frameSize = FrameSize();
+    Matrix4 fromClip;
+    if (!view || !InvertMatrix(view->clip, &fromClip) || !frameSize) return;
+    const Matrix4& camera = view->clip;
+    const Vector3& eye = view->eye;
+    const int width = frameSize->w, height = frameSize->h;
     if (!MakePipelines() || !EnsureTextures(width, height)) return;
 
     // The depth: the world's ground (not the water) and its models after it that write the depth (not the sky,
