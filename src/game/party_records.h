@@ -21,7 +21,8 @@ public:
     // Serialize: the name as string field 1, the party (SaveParty / LoadParty with variables) as stream
     // field 2.
     void Serialize(ChunkArchive* ar) override;
-    ArchiveClass ArchiveType() const override { return ArchiveClass::PartyRecord; }
+    static constexpr ArchiveClass kArchiveClass = ArchiveClass::PartyRecord;
+    ArchiveClass ArchiveType() const override { return kArchiveClass; }
 
     std::string name;           // "" for the unnamed record
     Party party;               // destroyed before the name

@@ -260,6 +260,7 @@ int FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>* 
     FigureMesh* currentMesh = mesh;
     currentMesh->flags &= ~FigureMeshFlag::Drawn;
     if (mesh->flags & FigureMeshFlag::Hidden) return 1;
+    // Only the scene's parts reach here (the owner is an Object3D: map_object_draw, also for the interface's previews); the other meshes draw plain.
     TransformObject* ownerObject = mesh->object;
     Part part{this, device, lights, material, alpha, rect, textureA, textureB,
               ownerObject ? static_cast<Object3D*>(ownerObject)->figure.Get() : nullptr, 0};

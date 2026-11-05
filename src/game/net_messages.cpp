@@ -26,7 +26,8 @@ void PutObject(Connection* connection, BufferCursor* cursor, const Ref<T>& ref) 
 }
 template <typename T>
 void TakeObject(Connection* connection, BufferCursor* cursor, Ref<T>& ref) {
-    ref.Assign(static_cast<T*>(connection->ReadObjectRef(cursor)));
+    Message* object = connection->ReadObjectRef(cursor);
+    ref.Assign(object && object->Type() == T::kType ? static_cast<T*>(object) : nullptr);   // a stream naming another class reads as none
 }
 
 } // namespace
