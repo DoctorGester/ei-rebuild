@@ -9,7 +9,7 @@ SamplerState to_smp : FS_SAMPLER(1);
 uint Grey(Texture2D<float> frame, int3 t) { return uint(round(frame.Load(t) * 255.0)); }
 float4 ps_main(float4 pos : SV_Position) : SV_Target0 {
     int3 t = int3(int2(pos.xy), 0);
-    uint weight = uint(clouds.blend.x);
+    uint weight = uint(clouds.blend);
     uint g = (Grey(to_frame, t) * weight + Grey(from_frame, t) * (256u - weight)) >> 8;
     int4 four = clouds.ramp[g >> 2];
     return float4(1.0, 1.0, 1.0, float(four[g & 3u]) / 255.0);

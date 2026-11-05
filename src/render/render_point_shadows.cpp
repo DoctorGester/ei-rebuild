@@ -572,7 +572,7 @@ void DrawPointShadows(Frame& f) {
         }
         gpu::SetViewport({r.x, r.y, r.x + kPointFaceTexels, r.y + kPointFaceTexels});
         const auto side = static_cast<float>(kPointFaceTexels);
-        SolidParams vs{{0.0f, 0.0f, side, side}, {side, side, 1.0f, 0.0f}, {}};
+        SolidParams vs{{0.0f, 0.0f, side, side}, {}, {side, side}, 1.0f};
         gpu::PushUniforms(gpu::Stage::Vertex, gpu_shaders::solid::kBlockSolidParams, vs);
         gpu::Draw(0, 6);
     }

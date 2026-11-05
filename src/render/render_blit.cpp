@@ -40,7 +40,7 @@ static void DrawSolid(PipelineKind kind, const Rect& r, float z, std::uint32_t c
     if (!pipeline) return;
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
-    SolidParams vs{{}, {static_cast<float>(width), static_cast<float>(height), z, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}};
+    SolidParams vs{{}, {0.0f, 0.0f, 0.0f, 1.0f}, {static_cast<float>(width), static_cast<float>(height)}, z};
     UnpackColour(colour, vs.colour);
     StoreRect(r, vs.rect);
     gpu::PushUniforms(gpu::Stage::Vertex, gpu_shaders::solid::kBlockSolidParams, vs);
@@ -120,10 +120,10 @@ void DrawBlitBatch(const BlitBatch& b, int width, int height) {
     gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::blit::kSamplerTex, {&texture, 1});
     CountBindings(b.texture);
     ApplyRect(b.destination, width, height);
-    const BlitParams fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top),
-                         static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
-                        {static_cast<float>(b.source.left), static_cast<float>(b.source.top),
-                         static_cast<float>(b.textureWidth), static_cast<float>(b.textureHeight)}};
+    const BlitParams fs{{static_cast<float>(b.destination.left), static_cast<float>(b.destination.top)},
+                        {static_cast<float>(sw) / static_cast<float>(dw), static_cast<float>(sh) / static_cast<float>(dh)},
+                        {static_cast<float>(b.source.left), static_cast<float>(b.source.top)},
+                        {static_cast<float>(b.textureWidth), static_cast<float>(b.textureHeight)}};
     gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::blit::kBlockBlitParams, fs);
     gpu::Draw(0, 6);
     CountDraw(sizeof(RectParams) + sizeof(fs));

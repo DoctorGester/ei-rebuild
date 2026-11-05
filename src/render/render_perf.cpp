@@ -250,9 +250,9 @@ void Draw(gpu::Format format, int width, int height, const Rect& placed) {
     gpu::ApplyPipeline(pipeline);
     const gpu::TextureBinding text{g_image, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, {&text, 1});
-    const RectParams vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    const RectParams vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height)}};
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockRectParams, vs);
-    const PerfOverlayParams fs{{left, top, static_cast<float>(scale), 0.0f}};
+    const PerfOverlayParams fs{{left, top}, static_cast<float>(scale)};
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPerfOverlayParams, fs);
     gpu::Draw(0, 6);
 }

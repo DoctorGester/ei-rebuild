@@ -129,9 +129,9 @@ void Solid(const Rect& r, int width, int height, float z, float red, float green
     const float rect[4] = {static_cast<float>(r.left), static_cast<float>(r.top), static_cast<float>(r.right),
                            static_cast<float>(r.bottom)};
     std::memcpy(p.rect, rect, sizeof(rect));
-    p.target[0] = static_cast<float>(width);
-    p.target[1] = static_cast<float>(height);
-    p.target[2] = z;
+    p.targetSize[0] = static_cast<float>(width);
+    p.targetSize[1] = static_cast<float>(height);
+    p.depth = z;
     p.colour[0] = red;
     p.colour[1] = green;
     p.colour[2] = blue;
@@ -419,8 +419,8 @@ void CheckBindings() {
     const g::TextureBinding tex[1] = {{source, g::MakeSampler({g::Filter::Nearest, g::Filter::Nearest})}};
     g::BindTextures(g::Stage::Fragment, gpu_shaders::blit::kSamplerTex, tex);
     const gpu_shaders::RectParams rect{{0, 0, static_cast<float>(w), static_cast<float>(h)},
-                                       {static_cast<float>(w), static_cast<float>(h), 0, 0}};
-    const gpu_shaders::BlitParams blit{{0, 0, 1, 1}, {0, 0, static_cast<float>(w), static_cast<float>(h)}};
+                                       {static_cast<float>(w), static_cast<float>(h)}};
+    const gpu_shaders::BlitParams blit{{0, 0}, {1, 1}, {0, 0}, {static_cast<float>(w), static_cast<float>(h)}};
     g::PushUniforms(g::Stage::Vertex, gpu_shaders::blit::kBlockRectParams, rect);
     g::PushUniforms(g::Stage::Fragment, gpu_shaders::blit::kBlockBlitParams, blit);
     g::Draw(0, 6);

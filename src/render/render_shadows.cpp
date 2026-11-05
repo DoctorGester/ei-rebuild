@@ -1011,7 +1011,7 @@ void DrawShadowMap(Frame& f) {
             }
             gpu::EndPass();
             RangePass(g_reducePipeline, g_cells, g_map, nullptr, "ei-shadow-cells");
-            const ShadowDilateParams around{{g_cellsAround, kRangeSize - 1, 0, 0}};
+            const ShadowDilateParams around{g_cellsAround, kRangeSize - 1};
             RangePass(g_dilatePipeline, g_range, g_cells, &around, "ei-shadow-range");
             g_info.casters = static_cast<int>(counted.size());
             // The objects the game shadows that cast nothing: not drawn at all, or drawn but lost here.

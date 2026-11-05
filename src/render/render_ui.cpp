@@ -359,7 +359,7 @@ void DrawUiBatch(const UiBatch& batch, int width, int height) {
     const gpu::BufferBinding vertices{g_vertices.Buffer(), static_cast<std::uint32_t>(g_offset)};
     gpu::BindVertexBuffers(0, {&vertices, 1});
     BindTexture(atlas);
-    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height)}};
     gpu::PushUniforms(gpu::Stage::Vertex, 0, vs);
     gpu::SetScissor(batch.scissor.Intersection(Rect{0, 0, width, height}));
     gpu::Draw(batch.first, batch.count);

@@ -172,7 +172,7 @@ static void DrawLevel(const gpu::Texture& source, int level, gpu::Sampler sample
     const gpu::TextureBinding b{source, sampler};
     gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::texture_mip::kSamplerTex0, {&b, 1});
     ApplyRect(Rect{0, 0, width, height}, width, height);
-    const gpu_shaders::TextureMipParams fs{{static_cast<float>(level), static_cast<float>(width), static_cast<float>(height), 0.0f}};
+    const gpu_shaders::TextureMipParams fs{static_cast<float>(level), {static_cast<float>(width), static_cast<float>(height)}};
     gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::texture_mip::kBlockTextureMipParams, fs);
     gpu::Draw(0, 6);
     gpu::EndPass();
@@ -227,7 +227,7 @@ static void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, con
                 gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::texture_clouds::kSamplerFromFrame, b);
                 ApplyRect(step.to, shape.width, shape.height);
                 CloudParams params{};
-                params.blend[0] = static_cast<int>(step.clouds->blend);
+                params.blend = static_cast<int>(step.clouds->blend);
                 for (int g = 0; g < 256; ++g) params.ramp[g / 4][g % 4] = step.clouds->ramp[g];
                 gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::texture_clouds::kBlockCloudParams, params);
                 gpu::Draw(0, 6);
@@ -239,9 +239,8 @@ static void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, con
             const gpu::TextureBinding b{fill ? WhiteView() : textures[k], nearest};
             gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::texture_compose::kSamplerTex0, {&b, 1});
             ApplyRect(step.to, shape.width, shape.height);
-            const TextureComposeParams fs{
-                {step.fromX - step.to.left, step.fromY - step.to.top, fill ? 1 : 0, static_cast<int>(shape.alpha)},
-                {1.0f, 1.0f, 1.0f, 1.0f}};
+            const TextureComposeParams fs{{step.fromX - step.to.left, step.fromY - step.to.top}, fill ? 1 : 0,
+                                          static_cast<int>(shape.alpha), {1.0f, 1.0f, 1.0f, 1.0f}};
             gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::texture_compose::kBlockTextureComposeParams, fs);
             gpu::Draw(0, 6);
         }

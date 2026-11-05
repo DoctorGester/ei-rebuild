@@ -429,7 +429,7 @@ static_assert(gpu_shaders::blit::kBlockRectParams == 0 && gpu_shaders::ui_pictur
               gpu_shaders::ui_quad::kBlockRectParams == 0 &&
               gpu_shaders::texture_compose::kBlockRectParams == 0 && gpu_shaders::texture_mip::kBlockRectParams == 0);
 inline void ApplyRect(const Rect& r, int width, int height) {
-    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
+    RectParams vs{{}, {static_cast<float>(width), static_cast<float>(height)}};
     StoreRect(r, vs.rect);
     gpu::PushUniforms(gpu::Stage::Vertex, 0, vs);
 }
