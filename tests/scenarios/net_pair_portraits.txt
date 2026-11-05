@@ -1,0 +1,74 @@
+# W4c: EI_Plugin's NPlayers above 7 (EI_Plugin.ini NPlayers=8; rebirth.md, "EI_Plugin.asi"): the battle screen's portraits
+# are 20 wide at a pitch of 20 with the face models at depth 9.1875 (AddPortrait's six extra sites; HudPortraits::AddPortrait),
+# the host screen's slider runs to 7 and the chat window starts at 0. A pair as net_pair_zone (without its exchange):
+# the peer, a network client, captures its battle screen in the zone, the host its own.
+rebirthflags EiPluginNPlayers NPlayers=8
+rebirth resolution desktop
+timeout 180
+peer net_pair_portraits
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 mpconnect
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+# The peer joins; no exchange.
+peerwait 90 joined
+frames 20
+
+# The sheriff's second topic (z3q2_1: four phrases, then the end).
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+frames 10
+clickregion 1
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+frames 40
+
+# Out through the gate into exit 1 (remove rectangle 56 39 62.5 45).
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 20
+capture portraits_host
+peersignal entered
+peerwait 120 peerin
+frames 100
+peersignal done
+frames 100
+report
+quit

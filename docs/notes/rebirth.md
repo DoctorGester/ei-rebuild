@@ -137,8 +137,13 @@ PK, AutoAim, GraphGen, Test and Scripts are not.
   "Human", "Orc", "Undead", "Male", "Female" in it (`FallbackPrototype`); item damage lists always print "%.1f"; every
   unit's skins are refreshed, not only the hero's. Nothing in the shipped data reaches the fallback.
 - **NPlayers** (`PluginNPlayers()`, 7 by default): the host screen's player slider maximum `max(n, 7) - 1`; the HUD
-  portraits' column is `count % max(n, 7)`; the chat window's left edge 0 and its first status column 0x2E8. More than 7
-  is treated as 7 in the portraits.
+  portraits' column is `count % max(n, 7)`; the chat window's left edge 0 and its first status column 0x2E8. Above 7 the plugin's six extra sites of AddPortrait
+  (00640060) apply as well: in a network client's row the faces are 20 wide at a pitch of 20 instead of 0x28 / 0x38
+  and 40 (`pitch`: the row's first x is `400 - (width + players * pitch - pitch) / 2`, the next faces' `x += width +
+  column * pitch - pitch`), and every face model sits at depth 9.1875 instead of 7 (`crowded` in
+  `HudPortraits::AddPortrait`). Scenario `net_pair_portraits` (`rebirthflags EiPluginNPlayers NPlayers=8`, a pair: the
+  captures `portraits_host` / `portraits_peer` show the narrow faces; a pair has two players, the wrap at the 8th
+  portrait is not reached). NPlayers 6 would leave the original (the plugin skips it); the rebuild treats it as 7.
 
 ## FPU precision
 
