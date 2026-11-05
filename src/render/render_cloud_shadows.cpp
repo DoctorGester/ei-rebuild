@@ -160,8 +160,7 @@ void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* 
 }
 
 void BindCloudMap(int slot) {
-    static const gpu::Sampler sampler = gpu::MakeSampler(gpu::SamplerDesc{});
-    const gpu::TextureBinding b{g_cloudMap, sampler};
+    const gpu::TextureBinding b{g_cloudMap, gpu::MakeSampler(gpu::SamplerDesc{})};
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }
 

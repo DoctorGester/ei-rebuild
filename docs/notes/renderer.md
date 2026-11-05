@@ -905,7 +905,7 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   crawled as the sun turned (the user's shimmer). So
   the range is read bilinearly between the four cells around the pixel (`range_at`: four `texelFetch` / `Load` and a lerp, clamped
   at the map's edges; no filtered RGBA32F read, which Vulkan does not promise), and the
-  dilation reaches one cell more (`g_cellsAround`), so each of those four cells' bounds holds for all the pixel's taps and
+  dilation reaches one cell more (`ShadowFrame::cellsAround`), so each of those four cells' bounds holds for all the pixel's taps and
   their weighted mean is still a bound; the search taps read the cells' own nearest filtered too; the searched radius is
   blended in from the bound between half a cell and a cell. The widest radius is capped to what `kMostCellsAround` cells
   reach. Without a map a 1 x 1 RGBA32F stand-in is bound for the range.
@@ -1097,7 +1097,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   or ambient light there). The camp's and the hero screen's previews and UiModel do not call it: they stay dry.
 - **The roof test**: a ray straight up on the CPU against the triangles of the frame's other drawn objects (the world's
   model meshes after the ground with a caster object that is not a unit; not the added light), the meshes' boxes
-  placed in the landscape's space first (`UnderCamera`), then the ray taken into a mesh's model space and tested
+  placed in the landscape's space first (`CameraInverse`), then the ray taken into a mesh's model space and tested
   against its triangles (the kept mesh's corners, `CachedCorner`, or the frame's stream) only where it lies under the
   box. Five rays per unit from its box (the middle and four points a quarter of its width and depth out, at 3/4 of its
   height); the shelter is the share that meets a triangle. Chosen over a top-down depth map: the data is on the CPU
@@ -1532,6 +1532,11 @@ walk those lists, not the commands. Rate-limited log lines go through `LogFirst`
 released with `ReleaseAfterPresent`. gpu.cpp keeps pipelines and samplers by description; the renderer asks it for them at
 each draw.
 
+The frame's state is in sight: the game's hand-over entry points (render.h) read `g_frame`, everything below them takes
+the `Frame` (a function does one or the other, never both). No function keeps a local `static` (state, scratch or a
+counter): a file's state and the scratch kept for its room are file statics named for what they hold. `Frame::Clear`
+(with `ShadowFrame`'s and `PointShadowFrame`'s) empties the frame at its present, the one place it is reset.
+
 ### render_cursor.cpp: the cursor
 
 The game's cursor as the system's (section 9, "The cursor"): render::Cursor keeps the frame's cursor (its picture's frame,
@@ -1590,8 +1595,9 @@ Section 13, item 10. Once a frame, before the world draws, PrepareShadows fits a
 the visible ground and gives every receiving batch the matrix from its model space to the map; DrawShadowMap draws the
 casters' meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's alpha), then the
 map's depth range per cell. Objects the game does not draw whose shadow can reach the visible ground cast too
-(ShadowCasterMesh, tested against the map's fit made right then). The point lights' shadows (render_point_shadows.cpp) are
-prepared and drawn from here, inside the shadow map's time. Space: the meshes' matrices are clip matrices, the terrain's
+(ShadowCasterMesh, tested against the map's fit made right then). PrepareShadows prepares the point lights' shadows
+(render_point_shadows.cpp); the frame's draw (render.cpp's DrawPending) draws the sun map, the roof map and the point
+lights' faces in that order. Space: the meshes' matrices are clip matrices, the terrain's
 the same for the landscape's space, in which the map is fitted.
 
 ### render_cloud_shadows.cpp: cloud shadows

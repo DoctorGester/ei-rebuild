@@ -14,6 +14,11 @@
 namespace render {
 
 static KeptScene g_scene;
+// The lights in the order SceneLighting, FigureLight and GroundDecalLight take them (by distance, then index),
+// kept for its room.
+static std::vector<std::pair<float, int>> g_order;
+// FigureLight's: the parts' camera (one per frame in the world's draw), inverted once.
+static CameraInverse g_partCamera;
 
 void SceneLighting(const SceneLights& lights) {
     KeptScene s;
@@ -29,7 +34,7 @@ void SceneLighting(const SceneLights& lights) {
     s.camera = lights.camera;
     s.clientTicks = lights.clientTicks;
     // The nearest point lights: by how far the camera is outside each one's reach.
-    static std::vector<std::pair<float, int>> order;
+    std::vector<std::pair<float, int>>& order = g_order;
     order.clear();
     for (int i = 0; i < lights.pointCount && lights.points; ++i) {
         const ScenePointLight& l = lights.points[i];
@@ -53,17 +58,16 @@ void SceneLighting(const SceneLights& lights) {
 }
 
 // The direction the shadow map's light travels: the frame's sun as the map takes it, else the scene's.
-static Vector3 MapSun() {
+static Vector3 MapSun(const ShadowFrame& shadow) {
     Vector3 travel = g_scene.sun;
-    const ShadowFrame& sh = g_frame.shadow;
-    if (sh.haveSun) MapLightDirection(sh.sun, &travel);
+    if (shadow.haveSun) MapLightDirection(shadow.sun, &travel);
     return travel;
 }
 
-SceneLightParams SceneLightUniforms() {
+SceneLightParams SceneLightUniforms(const Frame& f) {
     const KeptScene& s = g_scene;
     SceneLightParams p{};
-    const Vector3 mapSun = MapSun();
+    const Vector3 mapSun = MapSun(f.shadow);
     const float sun[3] = {s.sun.x, s.sun.y, s.sun.z};
     const float map[3] = {mapSun.x, mapSun.y, mapSun.z};
     const float camera[3] = {s.camera.x, s.camera.y, s.camera.z};
@@ -84,14 +88,14 @@ SceneLightParams SceneLightUniforms() {
         for (int j = 0; j < 3; ++j) p.pointColour[k][j] = l.colour[j];
         p.pointSpecular[k / 4][k % 4] = l.specular ? 1 : 0;
     }
-    for (int k = 0; k < kMostSceneLights; ++k) p.pointShadows[k / 4][k % 4] = PointShadowSlot(g_frame, k);
+    for (int k = 0; k < kMostSceneLights; ++k) p.pointShadows[k / 4][k % 4] = PointShadowSlot(f, k);
     return p;
 }
 
 MeshLight FigureLight(const MeshLighting& l) {
     MeshLight light;
     Matrix4 model = l.model;
-    if (l.camera && !UnderCamera(*l.camera, l.model, &model)) model = Matrix4{};
+    if (l.camera) model = g_partCamera.Invert(*l.camera) ? g_partCamera.Under(l.model) : Matrix4{};
     // The model matrix's inverse: rows of its upper 3 x 3's inverse (the cross products of its columns
     // over the determinant); the translation `at` taken off first.
     const float* m = model.m;
@@ -121,7 +125,7 @@ MeshLight FigureLight(const MeshLighting& l) {
         light.emissiveColour[k] = l.emissiveColour[k];
     }
     // The lights nearest the part's origin.
-    static std::vector<std::pair<float, int>> order;
+    std::vector<std::pair<float, int>>& order = g_order;
     order.clear();
     for (int i = 0; i < l.lightCount && l.lights; ++i)
         order.emplace_back(LengthSquared(l.lights[i].position - at), i);
@@ -138,12 +142,12 @@ MeshLight FigureLight(const MeshLighting& l) {
     return light;
 }
 
-MeshLight GroundDecalLight(const float box[6]) {
+MeshLight GroundDecalLight(const Frame& f, const float box[6]) {
     const KeptScene& scene = g_scene;
     MeshLight light;
     light.groundPrint = true;
     light.sun = -scene.sun;
-    light.mapSun = MapSun();
+    light.mapSun = MapSun(f.shadow);
     for (int k = 0; k < 3; ++k) {
         light.sunColour[k] = scene.sunColour[k];
         light.ambientColour[k] = scene.ambientColour[k];
@@ -154,7 +158,7 @@ MeshLight GroundDecalLight(const float box[6]) {
     const Vector3 low{box[0], box[1], box[2]}, high{box[3], box[4], box[5]};
     const Vector3 centre = (low + high) * 0.5f;
     const float radius = std::sqrt(LengthSquared(high - low)) * 0.5f;
-    static std::vector<std::pair<float, int>> order;
+    std::vector<std::pair<float, int>>& order = g_order;
     order.clear();
     for (int k = 0; k < scene.count; ++k) {
         const KeptLight& l = scene.lights[k];

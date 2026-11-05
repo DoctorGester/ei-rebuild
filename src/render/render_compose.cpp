@@ -54,13 +54,17 @@ static gpu::Pipeline MipPipeline() { return gpu::MakePipeline(MipDesc(), "ei-tex
 static gpu::Pipeline CloudFramePipeline() { return gpu::MakePipeline(CloudFrameDesc(), "ei-cloud-frame"); }
 static gpu::Pipeline CloudsPipeline() { return gpu::MakePipeline(CloudsDesc(), "ei-clouds"); }
 
+// EnsurePipelines' first try and whether it made them all.
+static bool g_pipelinesTried = false, g_pipelinesMade = false;
+
 static bool EnsurePipelines() {
-    static bool tried = false, made = false;
-    if (tried) return made;
-    tried = true;
-    made = ComposePipeline(true) && ComposePipeline(false) && MipPipeline() && CloudFramePipeline() && CloudsPipeline();
-    if (!made) ei::Log("render: the texture composition pipelines could not be made (see the gpu messages above)");
-    return made;
+    if (g_pipelinesTried) return g_pipelinesMade;
+    g_pipelinesTried = true;
+    g_pipelinesMade =
+        ComposePipeline(true) && ComposePipeline(false) && MipPipeline() && CloudFramePipeline() && CloudsPipeline();
+    if (!g_pipelinesMade)
+        ei::Log("render: the texture composition pipelines could not be made (see the gpu messages above)");
+    return g_pipelinesMade;
 }
 
 static gpu::Sampler Linear() {

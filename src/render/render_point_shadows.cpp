@@ -51,7 +51,7 @@ struct Caster {
     float distance = 0.0f;  // squared, to the light being mapped
 };
 
-// A unit's mesh this frame, its model matrix (-1: none under the camera) and its sphere once made.
+// A unit's mesh this frame, its model matrix and its sphere once made.
 struct UnitMesh {
     MeshBatch* batch = nullptr;
     int object = 0;  // into g_objects
@@ -86,17 +86,16 @@ struct MappedLight {
     std::vector<int> faces[kFaces];   // indices into g_casters
 };
 
-constexpr int kModelUnknown = -2;
+constexpr int kModelUnknown = -1;
 
 // The frame's working lists, kept across frames for their room.
 static std::vector<Candidate> g_candidates;
 static std::unordered_map<const Object3D*, int> g_objectIndex;   // object -> g_objects
 static std::vector<FrameObject> g_objects;
-static std::vector<int> g_modelOf;   // per frame matrix its PointShadowFrame::models (-1 none), kModelUnknown: not yet
+static std::vector<int> g_modelOf;   // per frame matrix its PointShadowFrame::models, kModelUnknown: not yet
 static std::vector<Caster> g_casters;
 static std::vector<UnitMesh> g_units;
-static MappedLight g_mapped[kMostPointShadows];
-static int g_mappedCount = 0;
+static MappedLight g_mapped[kMostPointShadows];   // PointShadowFrame::mapped of them
 
 // A caster as drawn into a face: what its depth there depends on besides the face's light.
 struct FaceCaster {
@@ -111,7 +110,7 @@ struct FaceCaster {
 };
 
 // A model matrix into the landscape's space is the camera's inverse times the game's matrix under the camera
-// (UnderCamera): an object that stays where it is still moves by the rounding as the camera does, up to about
+// (CameraInverse): an object that stays where it is still moves by the rounding as the camera does, up to about
 // 0.0015 units measured in the town. Within these a kept face is not drawn again: its place differs by
 // less than a tenth of a face texel at a range of 5 units (a texel there is 0.02 units), well under the
 // receivers' one-texel depth bias.
@@ -155,9 +154,9 @@ static std::vector<char> g_drawMade;
 
 // Each light mapped takes a row: the one it had (the same place and range), else one no light mapped this frame
 // has, first one never given. A row given another light keeps only its empty faces.
-static void GiveRows() {
+static void GiveRows(int mapped) {
     bool taken[kMostPointShadows] = {};
-    for (int i = 0; i < g_mappedCount; ++i) {
+    for (int i = 0; i < mapped; ++i) {
         MappedLight& m = g_mapped[i];
         m.row = -1;
         for (int r = 0; r < kMostPointShadows && m.row < 0; ++r) {
@@ -169,7 +168,7 @@ static void GiveRows() {
             }
         }
     }
-    for (int i = 0; i < g_mappedCount; ++i) {
+    for (int i = 0; i < mapped; ++i) {
         MappedLight& m = g_mapped[i];
         if (m.row >= 0) continue;
         for (int r = 0; r < kMostPointShadows && m.row < 0; ++r)
@@ -322,23 +321,11 @@ gpu::PipelineDesc PointShadowClearDesc() {
     return p;
 }
 
-void PreparePointShadows(Frame& f) {
-    PointShadowFrame& ps = f.shadow.point;
-    ps = PointShadowFrame{};
-    g_casters.clear();
-    g_units.clear();
-    g_mappedCount = 0;
-    const KeptScene& scene = KeptSceneLight();
-    const int sceneCount = scene.count;
-    Matrix4 camera;
-    Vector3 eye;
-    if (sceneCount == 0 || f.worldRanges.empty() || !WorldCamera(f, &camera, &eye)) return;
-    Timer timer(FrameStats::ShadowMs);
-
-    // The lights in view that cast (not an object's own), strongest first (colour times reach; equals in
-    // the scene's order).
+// The lights in view that cast (not an object's own), strongest first (colour times reach; equals in the scene's
+// order), into g_candidates; false when there are none.
+static bool ListCandidates(const KeptScene& scene, const Matrix4& camera) {
     g_candidates.clear();
-    for (int k = 0; k < sceneCount; ++k) {
+    for (int k = 0; k < scene.count; ++k) {
         const KeptLight& l = scene.lights[k];
         const float brightest = std::max({l.colour[0], l.colour[1], l.colour[2]});
         if (!l.shadows || !(l.inverseRangeSquared > 0.0f) || brightest < kLeastColour) continue;
@@ -346,12 +333,34 @@ void PreparePointShadows(Frame& f) {
         if (range <= kNear * 4.0f || !InView(camera, l.at, range)) continue;
         g_candidates.push_back(Candidate{k, l.at, range, brightest * range});
     }
-    if (g_candidates.empty()) return;
+    if (g_candidates.empty()) return false;
     std::sort(g_candidates.begin(), g_candidates.end(), [](const Candidate& a, const Candidate& b) {
         return a.strength > b.strength || (a.strength == b.strength && a.scene < b.scene);
     });
+    return true;
+}
 
-    // The objects handed over as casters, then the others met.
+// BoxSphere of a batch's box under its model, made again only when the batch differs from the last one asked in its
+// matrix or its box (a mesh's passes in a row).
+struct LastSphere {
+    const MeshBatch* batch = nullptr;
+    Sphere sphere;
+    const Sphere& Of(const PointShadowFrame& ps, const MeshBatch& b, int model) {
+        if (!batch || batch->matrix != b.matrix || std::memcmp(batch->box, b.box, sizeof(b.box)) != 0) {
+            sphere = BoxSphere(b.box, ps.models[static_cast<std::size_t>(model)]);
+            batch = &b;
+        }
+        return sphere;
+    }
+};
+
+// The world's meshes after the ground into g_casters and g_units: the GPU-lit ones get their model matrix into the
+// landscape's space; the casters' meshes (the objects the game shadows this frame) and the units' their spheres, one
+// for all passes of a mesh. g_objects lists the objects handed over as casters, then the others met.
+static void ListCasters(Frame& f, const CameraInverse& camera, LastSphere& spheres) {
+    PointShadowFrame& ps = f.shadow.point;
+    g_casters.clear();
+    g_units.clear();
     g_objectIndex.clear();
     g_objects.clear();
     for (const auto& [object, strength] : f.shadow.casters) {
@@ -368,65 +377,50 @@ void PreparePointShadows(Frame& f) {
         lastObjectIndex = it->second;
         return lastObjectIndex;
     };
-
-    // The world's meshes after the ground: the GPU-lit ones get their model matrix into the landscape's
-    // space; the casters' meshes (the objects the game shadows this frame) and the units' their spheres, one
-    // for all passes of a mesh.
     g_modelOf.assign(f.matrices.size(), kModelUnknown);
     auto modelOf = [&](const MeshBatch& b) {
         int& index = g_modelOf[static_cast<std::size_t>(b.matrix)];
-        if (index != kModelUnknown) return index;
-        Matrix4 model;
-        index = -1;
-        if (UnderCamera(camera, f.matrices[static_cast<std::size_t>(b.matrix)], &model)) {
-            ps.models.push_back(model);
+        if (index == kModelUnknown) {
+            ps.models.push_back(camera.Under(f.matrices[static_cast<std::size_t>(b.matrix)]));
             index = static_cast<int>(ps.models.size()) - 1;
         }
         return index;
     };
-    const MeshBatch* lastSphereOf = nullptr;
-    Sphere lastSphere{};
-    auto sphereOf = [&](const MeshBatch& b, int model) {
-        if (!lastSphereOf || lastSphereOf->matrix != b.matrix || std::memcmp(lastSphereOf->box, b.box, sizeof(b.box)) != 0) {
-            lastSphere = BoxSphere(b.box, ps.models[static_cast<std::size_t>(model)]);
-            lastSphereOf = &b;
-        }
-        return lastSphere;
-    };
     for (const WorldMesh& w : f.worldMeshes) {
-        MeshBatch& b = f.meshBatches[static_cast<std::size_t>(w.batch)];
-        if (b.flat) continue;
-        if (b.lighting >= 0) b.landscape = modelOf(b);
-        if (!b.caster || !b.boxed) continue;
-        const int object = objectOf(b.caster);
-        if (b.figure) g_units.push_back(UnitMesh{&b, object, modelOf(b), false, Sphere{}});
+        MeshBatch& batch = f.meshBatches[static_cast<std::size_t>(w.batch)];
+        if (batch.flat) continue;
+        if (batch.lighting >= 0) batch.landscape = modelOf(batch);
+        if (!batch.caster || !batch.boxed) continue;
+        const int object = objectOf(batch.caster);
+        if (batch.figure) g_units.push_back(UnitMesh{&batch, object, modelOf(batch), false, Sphere{}});
         if (w.additive) continue;
         if (g_objects[static_cast<std::size_t>(object)].strength < kLeastStrength) continue;
         if (w.repeat) continue;   // a later pass of the same mesh
-        const int model = modelOf(b);
-        if (model < 0) continue;
-        g_casters.push_back(Caster{&b, object, sphereOf(b, model), model, 0.0f});
-        if (b.figure) {
+        const int model = modelOf(batch);
+        g_casters.push_back(Caster{&batch, object, spheres.Of(ps, batch, model), model, 0.0f});
+        if (batch.figure) {
             g_units.back().haveSphere = true;
             g_units.back().sphere = g_casters.back().sphere;
         }
     }
-    if (g_casters.empty()) return;
+}
 
-    // Each light, strongest first, while there is room: the casters in its reach, less the objects
-    // holding it; a light that nothing shadows gets no map.
+// Each light, strongest first, while there is room, into g_mapped: the casters in its reach, less the objects
+// holding it; a light that nothing shadows gets no map. The count mapped.
+static int MapLights() {
+    int mapped = 0;
     for (const Candidate& light : g_candidates) {
-        if (g_mappedCount == kMostPointShadows) break;
+        if (mapped == kMostPointShadows) break;
         for (Caster& c : g_casters) {
             c.distance = DistanceSquared(c.sphere.centre, light.at);
             g_objects[static_cast<std::size_t>(c.object)].holds = false;
         }
         for (const Caster& c : g_casters)
             if (NotFurther(c.distance, c.sphere.radius + kHoldMargin)) g_objects[static_cast<std::size_t>(c.object)].holds = true;
-        MappedLight& m = g_mapped[g_mappedCount];
-        m.at = light.at;
-        m.range = light.range;
-        for (std::vector<int>& face : m.faces) face.clear();
+        MappedLight& map = g_mapped[mapped];
+        map.at = light.at;
+        map.range = light.range;
+        for (std::vector<int>& face : map.faces) face.clear();
         bool any = false;
         for (std::size_t i = 0; i < g_casters.size(); ++i) {
             const Caster& c = g_casters[i];
@@ -435,17 +429,20 @@ void PreparePointShadows(Frame& f) {
             const Vector3 relative = c.sphere.centre - light.at;
             for (int face = 0; face < kFaces; ++face)
                 if (InFace(kCubeFaces[face], relative, c.sphere.radius)) {
-                    m.faces[face].push_back(static_cast<int>(i));
+                    map.faces[face].push_back(static_cast<int>(i));
                     any = true;
                 }
         }
         if (!any) continue;
-        m.scene = light.scene;
-        ++g_mappedCount;
+        map.scene = light.scene;
+        ++mapped;
     }
-    if (g_mappedCount == 0) return;
-    GiveRows();
-    for (int i = 0; i < g_mappedCount; ++i) {
+    return mapped;
+}
+
+// The receivers' uniforms: each mapped light's place and its row's depth, the scene lights' rows, the eye.
+static void WriteParams(PointShadowFrame& ps, const Vector3& eye) {
+    for (int i = 0; i < ps.mapped; ++i) {
         const MappedLight& m = g_mapped[i];
         ps.sceneSlots[m.scene] = m.row + 1;
         float a = 0.0f, b = 0.0f;
@@ -457,18 +454,18 @@ void PreparePointShadows(Frame& f) {
         ps.params.depth[m.row][0] = a;
         ps.params.depth[m.row][1] = b;
     }
-    ps.mapped = g_mappedCount;
-    ps.params.count = g_mappedCount;
+    ps.params.count = ps.mapped;
     ps.params.texels = static_cast<float>(kPointFaceTexels);
     ps.params.eye[0] = eye.x;
     ps.params.eye[1] = eye.y;
     ps.params.eye[2] = eye.z;
+}
 
-    // A unit's meshes compare from its nearest distance to each light (its meshes' spheres).
+// A unit's meshes compare from its nearest distance to each light (its meshes' spheres): MeshBatch::pointFront.
+static void UnitFronts(const PointShadowFrame& ps, LastSphere& spheres) {
     for (UnitMesh& u : g_units) {
-        if (u.model < 0) continue;
         if (!u.haveSphere) {
-            u.sphere = sphereOf(*u.batch, u.model);
+            u.sphere = spheres.Of(ps, *u.batch, u.model);
             u.haveSphere = true;
         }
         FrameObject& o = g_objects[static_cast<std::size_t>(u.object)];
@@ -476,7 +473,7 @@ void PreparePointShadows(Frame& f) {
             o.hasFront = true;
             for (float& d : o.front) d = kNoFront;
         }
-        for (int slot = 0; slot < g_mappedCount; ++slot) {
+        for (int slot = 0; slot < ps.mapped; ++slot) {
             const float squared = DistanceSquared(u.sphere.centre, g_mapped[slot].at);
             if (o.front[slot] != kNoFront && !NotFurther(squared, o.front[slot] + u.sphere.radius)) continue;
             const float d = std::sqrt(squared) - u.sphere.radius;
@@ -486,42 +483,37 @@ void PreparePointShadows(Frame& f) {
     for (const UnitMesh& u : g_units) {
         const FrameObject& o = g_objects[static_cast<std::size_t>(u.object)];
         if (!o.hasFront) continue;
-        for (int slot = 0; slot < g_mappedCount; ++slot) u.batch->pointFront[g_mapped[slot].row] = o.front[slot];
+        for (int slot = 0; slot < ps.mapped; ++slot) u.batch->pointFront[g_mapped[slot].row] = o.front[slot];
     }
 }
 
-void DrawPointShadows(Frame& f) {
-    if (g_mappedCount == 0) return;
-    Timer timer(FrameStats::ShadowMs);
+void PreparePointShadows(Frame& f) {
     PointShadowFrame& ps = f.shadow.point;
-    if (!g_atlas) {
-        g_atlasKnown = false;
-        g_atlas = MakeShadowDepth(kAtlasWidth, kAtlasHeight, "ei-point-shadows");
-    }
-    const bool ok = MakePipelines() && g_atlas;
-    if (!ok) {
-        ps.mapped = 0;
-        ps.params.count = 0;
-        for (int& s : ps.sceneSlots) s = 0;
-        g_mappedCount = 0;
-        return;
-    }
-    // A new atlas is cleared whole, its faces then known empty.
-    const bool fresh = !g_atlasKnown;
-    if (fresh) {
-        for (AtlasRow& row : g_rows)
-            for (AtlasFace& face : row.faces) {
-                face.known = true;
-                face.casters.clear();
-            }
-        g_atlasKnown = true;
-    }
+    const KeptScene& scene = KeptSceneLight();
+    Matrix4 clip;
+    Vector3 eye;
+    CameraInverse camera;
+    if (scene.count == 0 || f.worldRanges.empty() || !WorldCamera(f, &clip, &eye) || !camera.Invert(clip)) return;
+    Timer timer(FrameStats::ShadowMs);
+    if (!ListCandidates(scene, clip)) return;
+    LastSphere spheres;
+    ListCasters(f, camera, spheres);
+    if (g_casters.empty()) return;
+    ps.mapped = MapLights();
+    if (ps.mapped == 0) return;
+    GiveRows(ps.mapped);
+    WriteParams(ps, eye);
+    UnitFronts(ps, spheres);
+}
+
+// The faces to draw again (whose light or casters changed; all of them in a fresh atlas) into g_redrawn, their
+// casters into g_faceDraws.
+static void ListRedrawnFaces(const PointShadowFrame& ps) {
     g_draws.resize(g_casters.size());
     g_drawMade.assign(g_casters.size(), 0);
-    std::vector<RedrawnFace>& redrawn = g_redrawn;
-    redrawn.clear();
+    g_redrawn.clear();
     g_faceDraws.Clear();
-    for (int i = 0; i < g_mappedCount; ++i) {
+    for (int i = 0; i < ps.mapped; ++i) {
         const MappedLight& light = g_mapped[i];
         AtlasRow& row = g_rows[light.row];
         for (int face = 0; face < kFaces; ++face) {
@@ -549,22 +541,25 @@ void DrawPointShadows(Frame& f) {
             }
             r.to = g_faceDraws.Count();
             g_faceDraws.Sort(r.from, r.to);
-            redrawn.push_back(r);
+            g_redrawn.push_back(r);
         }
     }
-    if (redrawn.empty()) return;
+}
+
+// One pass on the atlas (cleared whole when `fresh`): the redrawn faces' clears first (the faces do not overlap),
+// then their casters.
+static void DrawRedrawnFaces(bool fresh) {
     const bool haveDraws = g_faceDraws.Upload();
     if (!haveDraws)
-        for (const RedrawnFace& r : redrawn)
+        for (const RedrawnFace& r : g_redrawn)
             if (r.from != r.to) r.face->known = false;   // cleared only: drawn again next frame
     gpu::PassDesc pass;
     pass.depth = {g_atlas, 0, fresh ? gpu::Load::Clear : gpu::Load::Keep, 1.0f, true};
     pass.label = "ei-point-shadows";
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the point shadows' pass could not begin (%s).", gpu::Error());
     ++g_stats.counts[FrameStats::Passes];
-    // The faces' clears first (the faces do not overlap), then their casters.
     bool clearApplied = false;
-    for (const RedrawnFace& r : redrawn) {
+    for (const RedrawnFace& r : g_redrawn) {
         if (!r.clear) continue;
         if (!clearApplied) {
             gpu::ApplyPipeline(g_clearPipeline);
@@ -577,7 +572,7 @@ void DrawPointShadows(Frame& f) {
         gpu::Draw(0, 6);
     }
     if (haveDraws)
-        for (const RedrawnFace& r : redrawn) {
+        for (const RedrawnFace& r : g_redrawn) {
             if (r.from == r.to) continue;
             gpu::SetViewport({r.x, r.y, r.x + kPointFaceTexels, r.y + kPointFaceTexels});
             g_faceDraws.Draw(r.from, r.to);
@@ -585,13 +580,41 @@ void DrawPointShadows(Frame& f) {
     gpu::EndPass();
 }
 
+void DrawPointShadows(Frame& f) {
+    PointShadowFrame& ps = f.shadow.point;
+    if (ps.mapped == 0) return;
+    Timer timer(FrameStats::ShadowMs);
+    if (!g_atlas) {
+        g_atlasKnown = false;
+        g_atlas = MakeShadowDepth(kAtlasWidth, kAtlasHeight, "ei-point-shadows");
+    }
+    if (!MakePipelines() || !g_atlas) {
+        ps.mapped = 0;
+        ps.params.count = 0;
+        for (int& s : ps.sceneSlots) s = 0;
+        return;
+    }
+    // A new atlas is cleared whole, its faces then known empty.
+    const bool fresh = !g_atlasKnown;
+    if (fresh) {
+        for (AtlasRow& row : g_rows)
+            for (AtlasFace& face : row.faces) {
+                face.known = true;
+                face.casters.clear();
+            }
+        g_atlasKnown = true;
+    }
+    ListRedrawnFaces(ps);
+    if (!g_redrawn.empty()) DrawRedrawnFaces(fresh);
+}
+
 int PointShadowSlot(const Frame& f, int sceneLight) {
     if (sceneLight < 0 || sceneLight >= kMostSceneLights) return -1;
     return f.shadow.point.sceneSlots[sceneLight] - 1;
 }
 
-void BindPointShadows(int slot) {
-    const bool on = g_atlas && g_frame.shadow.point.mapped > 0;
+void BindPointShadows(const Frame& f, int slot) {
+    const bool on = g_atlas && f.shadow.point.mapped > 0;
     const gpu::TextureBinding b{on ? g_atlas : NoShadowTexture(), ShadowCompareSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }

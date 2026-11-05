@@ -298,8 +298,7 @@ static void WorkOutOcclusion(const SectorData* s, SectorOcclusion& o) {
         return;
     }
     // The heights from kReach cells before the sector's first vertex to kReach after its last.
-    static std::vector<float> heights;
-    heights.assign(static_cast<std::size_t>(kRow) * kRow, 0.0f);
+    std::vector<float> heights(static_cast<std::size_t>(kRow) * kRow, 0.0f);
     const SectorPosition* own = s->vertices.data();
     const SectorPosition* around[8];
     for (int k = 0; k < 8; ++k) around[k] = (o.neighbours >> k) & 1 ? NeighbourVertices(s, k) : nullptr;
@@ -413,8 +412,7 @@ static void BuildPage(const SectorData* s, int page, CachedPage& out, const floa
     out.indices.clear();
     out.animatedTiles = false;
     // The sector's animated tiles (their 9 entries in the tile lists), for animatedTiles.
-    static std::vector<const TileVertex*> animated;
-    animated.clear();
+    std::vector<const TileVertex*> animated;
     for (int i = 0; i < std::ssize(s->animated); ++i) animated.push_back(s->animated[i].vertices);
     std::sort(animated.begin(), animated.end());
     for (int quarter = 0; quarter < 4; ++quarter) {
@@ -551,16 +549,16 @@ static gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     return p;
 }
 
-// TerrainDesc's pipeline (gpu.h keeps them by description).
+// TerrainDesc's pipeline (gpu.h keeps them by description); the pipelines that could not be made, logged.
+static int g_pipelineFailures = 0;
 static gpu::Pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
     const int samples = PassSampleCount();
 #if defined(EI_RENDER_VALIDATION)
     const int known = gpu::PipelineCount();
 #endif
     gpu::Pipeline pipeline = gpu::MakePipeline(TerrainDesc(s, samples), "ei-terrain");
-    static int failures = 0;
     if (!pipeline)
-        LogFirst(failures, 10,
+        LogFirst(g_pipelineFailures, 10,
                  "render: a terrain pipeline could not be created (state key %08X; see the gpu messages above)",
                  s.PipelineKey());
 #if defined(EI_RENDER_VALIDATION)
@@ -694,8 +692,8 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
         }
     }
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
-    BindShadowMap(program::kSamplerShadowMap);
-    BindPointShadows(program::kSamplerPointShadowMap);
+    BindShadowMap(f, program::kSamplerShadowMap);
+    BindPointShadows(f, program::kSamplerPointShadowMap);
     const gpu::TextureBinding ripples = RippleMap();
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerRipples, {&ripples, 1});
     BindCloudMap(program::kSamplerCloudMap);
@@ -719,7 +717,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     RippleOffsets(fs.ripples, fs.slowRipples);
     SurfaceUniforms(&fs);
     OcclusionUniforms(batch.occluded && mode != kLevels, fs.occlusion, fs.occlusionMap);
-    const SceneLightParams light = SceneLightUniforms();
+    const SceneLightParams light = SceneLightUniforms(f);
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainVsParams, vs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainFsParams, fs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);

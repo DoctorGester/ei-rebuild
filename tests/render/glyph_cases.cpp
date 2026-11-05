@@ -58,10 +58,7 @@ void DrawFrame() {
 }
 
 void EndFrame() {
-    render::g_frame.uiVertices.clear();
-    render::g_frame.uiBatches.clear();
-    render::g_frame.pictureBatches.clear();
-    render::g_frame.commands.clear();
+    render::g_frame.Clear();
     render::UiFrameDone();
     render::ReleaseRetired();
     g_drawnCommands = 0;
