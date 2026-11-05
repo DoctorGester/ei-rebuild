@@ -606,7 +606,9 @@ with its own level.
   unchanged (a 3D draw's edges run through pixel centres: multisampled, every sprite would get half-covered border pixels).
   Between runs (render_smooth.cpp): after a world run the frame target's depth is set from the resolved depth copy;
   before a world run that follows other draws the frame target's colour and depth go into every sample (a pass of its
-  own). The frame target is what every reader takes, always resolved.
+  own). The frame target is what every reader takes, always resolved. A pass also ends before the water's first draw
+  (render.cpp's FirstWater), which copies the frame as it stands for the water's reflections (render_water.cpp's
+  CopyFrameForWater); with msaa that is one more resolve of the world's target (about 0.25-0.3 ms at 3840x2009, msaa 8).
 - **The depth copy.** A multisampled depth is never read back: SDL_GPU samples no multisampled texture and resolves
   only colour. So a multisampled pass has a second colour attachment, R32F (`kDepthCopyFormat`), and every pipeline
   made for more than one sample has it (`AddDepthCopy`): written (red only, no blending) when the pipeline writes the
@@ -1075,8 +1077,8 @@ option). Client side only: driven by the weather the world's light hands over (`
   0.72 .. 1.08 of it by the texture's light, so the texture shows through. Wet
   ground: the albedo down to 0.6 and a sheen of the sun (Blinn-Phong 40, 0.12). Puddles: on flat ground (n.z 0.86 ..
   0.96), where the cloud map at 1/7 a unit and the ground's own occlusion (low ground: valleys, the foot of slopes) sum
-  above an edge falling with the puddles' share; the ground under them darker again (0.55), the sky reflected (the fog's
-  colour as on the water, Schlick's term plus 0.15) and a sharp glint, on the normal the rain's rings turn.
+  above an edge falling with the puddles' share; the ground under them darker again (0.55), the sky reflected (the sky
+  dome as on the water, Schlick's term plus 0.15) and a sharp glint, on the normal the rain's rings turn.
 - **Rings and splashes** (`rain_rings`): two layers of cells 0.8 units across, a drop in the share of the cells the rain's
   strength gives, each cell's ring at its own place and phase on the client's clock (`TerrainFsParams::rain`, the client
   ticks modulo a whole number of both periods: 16 and 21 ticks), its centre anywhere in the middle half of the cell,
@@ -1641,7 +1643,7 @@ nine vertices and eight triangles, the full detail at any distance), with the ve
 colours, the tile texture coordinates and the page's texture; the clip matrix is the pipeline's. The GPU clips. The pages
 stay on the GPU (section 13, item 3).
 
-### render_water.cpp: the ripple map
+### render_water.cpp: the ripple map and the reflections
 
 The water's small ripples (R17a): a 256 x 256 RGBA8 map with its levels down to 1 x 1, made at the start (section 1) from
 a fixed generator of its own (the same map on every run and system, nothing drawn from the game's): r, g the slopes of
@@ -1650,6 +1652,29 @@ the map so it repeats without a seam. The terrain batches bind it with a repeati
 (anisotropy 8); RippleOffsets gives its two layers' offsets at the client's time (SceneLights::clientTicks: the client
 world's tick and the fraction of the next one it has had), and the swamps' a fifth as fast, so the ripples hold still
 under `freeze` and move with the game's clock.
+
+The reflections (R17a1), read by shaders/terrain.hlsl's `reflected_sky` and `screen_reflection`:
+- **The sky image** (DrawSkyReflection, once a frame before the first pass, after the ambient occlusion): the world's
+  meshes before its first ground (the sky dome: WorldClient::Render draws the sky first) drawn again into a quarter-size
+  image, mirrored in the plane at the mean level of the water's pieces, their faces' cull turned, no depth test, over
+  1.25 times the frame's extent (a ripple turns a ray past the frame's edge); cleared to the fog's colour. Their corners
+  give the dome's centre, radius across and height. The shader meets the reflected ray with the dome (an ellipsoid)
+  and looks the hit up in the image through its matrix, so water at any level reads it right: the plane only keeps the
+  dome in view. About 0.02 ms.
+- **The frame copy** (CopyFrameForWater, shaders/scene_copy.hlsl): before the water's first draw the frame as it stands
+  (the frame target's colour, and its depth or after a multisampled pass the resolved depth copy) at half size: per 2 x 2
+  pixels the mean colour and the nearest depth (a thin object stays in it). The water's rays are marched through it.
+- **BindWaterReflections**: every terrain batch's part of TerrainFsParams (the camera's clip matrix, the sky image's,
+  the dome, the depth's map to clip w: render_occlusion.cpp's DepthMap, whether this frame was copied) and the three
+  images at terrain slots 9..11 (a white image where one is missing). The fields sit in TerrainFsParams because a stage
+  has at most four uniform blocks (section 15b).
+
+Why this way (measured at 3840x2009, msaa 8): the water lies at several levels (sea, lake, river, swamps), so drawing the
+objects again mirrored in one plane is wrong for all but one level and costs the scene's draws again; the sky alone is
+smooth and needs one plane only as a view. The objects come by screen-space marching from the copy instead: right at
+every level, no extra mesh draws, but only what the frame shows (an object off the screen or behind another reflects
+nothing; the sky shows there). A full-size copy and 16 + 4 steps cost about 0.9 ms of marching on a screen of water;
+half size and 10 + 3 steps about 0.1-0.2 ms, with no visible loss under the ripples.
 
 ### shaders/terrain.hlsl: the water
 
@@ -1667,11 +1692,18 @@ then, per pixel:
 - **Depth** (`depth`, PageVertex's: the water's depth over the ground at the vertex, from the ground record,
   interpolated): the share 1 - e^(-0.5 depth) of the depth's look: from half the material's opacity at the shore to 1.15
   times it in deep water, and up to 15% darker.
-- **Reflection**: Schlick's Fresnel term (0.02 head-on) of the rippled normal towards the camera (SceneLightParams::camera)
-  blends in the sky, taken as the fog's colour at the horizon and 0.75 of it overhead (no sky texture or screen-space
-  reflection yet); the reflected part is opaque, so the water hides more of the ground at a grazing view.
+- **Reflection** (R17a1): Schlick's Fresnel term (0.02 head-on, but at least 0.12, kLeastReflection: the game's lit
+  layer is far brighter than deep water, so 2% of the sky did not show) of the rippled normal towards the camera
+  (SceneLightParams::camera) blends in what the reflected ray (turned up to just above the horizon where a ripple tips
+  it down) meets: the sky dome (`reflected_sky`, render_water.cpp's sky image), and over it what the frame showed before
+  the water where the ray passes behind it (`screen_reflection`: 10 steps over 12 landscape units from a start
+  jittered per pixel, 3 halvings, a hit within 2 units behind the surface; faded towards the frame's edges and the
+  ray's end): the shore, the banks, trees and cliffs. The reflected part is opaque, so the water hides more of the
+  ground at a grazing view. At the game's 45-degree camera the reflections of objects are short (the ray leaves the
+  frame soon); low views show them whole. In shadow the reflection loses up to 0.3 (kShadedReflection).
 - **Sun glints**: a sharp (0.25) and a broad Blinn-Phong lobe of the sun's colour on the rippled normal, gone as the sun
-  sets and under a cloud (the clouds' share hidden, cloud_hidden: the water's ShadowParams are the clouds alone).
+  sets and in a shadow: the water receives the objects' shadows from the sun's map and the clouds' as the ground does
+  (R17a1; before, the clouds' only, and glints showed in a tree's shadow), and its layer is lit by that shade.
 - **Foam**: within half a unit of the shore, the ripple map's foam pattern above a threshold, lit by the ambient and sun
   light, at most 0.35 opaque.
 - **The shore line**: the water fades in over the first 0.25 units of depth, so where its surface meets the ground there
@@ -1728,11 +1760,14 @@ then, per pixel:
   shores) are the same to the pixel.
 - **Lava** keeps the game's look (its texture lit by its own colour, the material's opacity).
 
-The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. The water still
-receives no sun shadows (the ground under it does), so glints show in a shadow too. Cost (R17a, 3840x2009, msaa 8,
-frame GPU time on a quiet machine, frozen frames of render_water's scenes): the water pass takes 0.07-0.95 ms (river,
-sea shore, lake by day, lake at night: frames without its draws against with them), and the look above adds nothing
-measurable to it (within 0.03 ms of the game's plain water shading). Check: scenario `render_water`
+The depth is per vertex (one unit apart), so the foam's band follows the triangles near the shore. Cost (3840x2009,
+msaa 8, frame GPU time on a quiet machine by the fence probe of section 13 item 1, frozen frames of render_water's
+scenes; the water's part: frames with its draws against frames without them, medians), before R17a1 / after:
+the shore 1.06 / 1.35 ms, the sea 1.18 / 1.33, the lake 0.09 / 0.40, the river 0.10 / 0.48, the river at night
+0.24 / 0.44, the lake at night 0.18 / 0.45. Of the 0.15-0.38 ms added, the extra resolve before the copy is about
+0.25-0.3 (so it dominates where the water is small), the march 0.1-0.2 on a screen of water, the sky image 0.02, the
+shadow map on the water little. R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
+plain water shading. Check: scenario `render_water`
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
 and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and
 `render_water_looks` (1440x1080 by day: the beach, a shore across a sector border, the sea, the lake, the swamp, its
