@@ -14,7 +14,7 @@
 // takes no real input and shows no box, its window is never activated (and kept out of sight where the system can),
 // its events are the harness's, its clocks, mouse and message boxes the harness's answers. game_answers.cpp answers the
 // platform's seams in place of seams.cpp: the file paths mapped onto the run's overlay, the game's file writes watched,
-// the run isolated from the desktop (no font smoothing, no other game). game_sockets.cpp takes the sockets' place:
+// the run isolated from the desktop (no other game). game_sockets.cpp takes the sockets' place:
 // the game's sockets on 127.0.0.1. Each is the game's answer while the harness is not answering (a harness's build
 // started without a scenario).
 

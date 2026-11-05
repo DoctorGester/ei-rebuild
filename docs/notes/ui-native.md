@@ -51,7 +51,8 @@ and drawing use one set of metrics.
 - The text extent feeds word wrap in `DrawWrappedText`, `UiScrollText`'s tokens (sample "W" for each font's height), tooltip
   sizes, the chat (wrap at 780), the message box and the console's prompt width. `DrawTextIn`'s return value (the text's
   height scaled back) and DT_CALCRECT measurements decide layout.
-- **Smoothing.** Text is smoothed unless SPI_GETFONTSMOOTHING says off (the harness reports it off); the atlas is grey
+- **Smoothing.** Text is always smoothed, whatever the desktop's setting and in harness runs too (user 2026-11-05: no
+  option; our rasteriser is deterministic, so captures stay the same run to run); the atlas is grey
   coverage, never ClearType's colour fringes. The original's credits switched the system's font smoothing off for the
   session (and never restored it); ours changes no system setting: the titles' text is unsmoothed by its own layout and
   the header is drawn in an unsmoothed font (`UiFont::unsmoothed`).

@@ -1,20 +1,11 @@
-// The platform's machine on Windows (platform.h, "The machine"): the desktop's text smoothing, the primary monitor's
-// size and the environment.
+// The platform's machine on Windows (platform.h, "The machine"): the primary monitor's size and the environment.
 #include "platform/platform.h"
 
-#include "platform/seams.h"
 #include "platform/win32/platform_win32.h"
 
 #include <string>
 
 namespace platform {
-
-bool FontSmoothing() {
-    if (IsolatedRun()) return false;
-    BOOL smoothing = FALSE;
-    if (!SystemParametersInfoW(SPI_GETFONTSMOOTHING, 0, &smoothing, 0)) return true;
-    return smoothing != FALSE;
-}
 
 std::optional<Size> PrimaryDesktopSize() {
     MONITORINFOEXW monitor{};

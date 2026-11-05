@@ -3,7 +3,6 @@
 
 #include "asset_text.h"
 
-#include "platform/platform.h"
 #include "render/render_text.h"
 
 namespace {
@@ -14,8 +13,7 @@ UiFont PointFont(int tenths, const char* face) { return UiFont{face, render::tex
 
 render::text::TextFont* TextFontOf(const UiFont& font) {
     if (!font) return nullptr;
-    const bool smoothing = !font.unsmoothed && platform::FontSmoothing();
-    return render::text::GetTextFont(font.face, font.pixels, smoothing);
+    return render::text::GetTextFont(font.face, font.pixels, !font.unsmoothed);
 }
 
 Size TextExtent(const UiFont& font, std::string_view text) {
