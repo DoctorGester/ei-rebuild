@@ -1,6 +1,7 @@
 // The particle manager's own members: create / destroy, making sources it holds, ticking every source and
 // letting go of the held ones. See effects.h (ParticleManager) and docs/notes/effects.md, "Particle sources".
 #include "effects.h"
+#include "particle_common.h"
 
 #include "camera.h"
 #include "engine_object.h"
@@ -201,6 +202,24 @@ void ParticleSource::StopAndClear() {
     Stop();
 }
 
+void ParticleSource::ScaleSize(float factor) {
+    spreadMin *= factor;
+    spreadMax *= factor;
+    size = factor * size;
+    baseSize = factor * baseSize;
+    height = factor * height;
+    emitSpacing = factor * emitSpacing;
+}
+
+void ParticleSource::StopEmitting() { flags = (flags & ~ParticleSourceFlag::Emitting) | ParticleSourceFlag::KeepAlive; }
+
+void ParticleSource::StartEmitting() { flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive; }
+
+void ParticleSource::Stop() {
+    flags &= ~(ParticleSourceFlag::Emitting | ParticleSourceFlag::KeepAlive);
+    Attach(nullptr);
+}
+
 // --- Particle draw -----------------------------------------------------------------------------------
 
 // The particle manager's draw pass and its draw order: every source's depth along the camera's view axis goes
@@ -339,15 +358,10 @@ int ParticleSource::Draw(SceneRenderer* renderer) {
 
 // ParticleSource's per-frame tick and the particle pool. Each tick: copy the world's wind, follow the attachment
 // (or the source's own position) and derive the motion since the last tick with a basis (side, up) around it,
-// run the element callback on every element, the update callback on every particle (rebuilding the bounding
-// box), then emit new particles.
+// run the type's element tick, its update on every particle (rebuilding the bounding box), then emit new particles.
+// The type picks its functions (particle_common.h) in EmitParticle, UpdateParticle and TickSource.
 
 namespace {
-
-constexpr float kFar = 100000.0f;
-constexpr float kNear = -100000.0f;
-
-void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 
 // v *= 1 / length.
 void Normalize(Vector3& v, float length) {
@@ -362,7 +376,7 @@ void GrowBounds(Vector3& low, Vector3& high, const Vector3& p) {
     high = MaxKeepB(high, p);
 }
 
-// Saves the fields the update callback may change, so a rejected update can be undone.
+// Saves the fields the type's update may change, so a rejected update can be undone.
 void SavePrevious(Particle* p) {
     p->prevPos = p->pos;
     p->prevColor = p->color;
@@ -415,9 +429,190 @@ void BuildBasis(ParticleSource& s) {
     Normalize(s.up, Length(s.up));
 }
 
-void RunElements(ParticleSource& s) {
-    for (int i = 0; i < std::ssize(s.elements); ++i)
-        (s.*s.elementFn)(s.elements.data() + i);
+// Emits one particle of the source's type into `p` (0: the pool takes it back).
+int EmitParticle(ParticleSource& s, Particle& p, int index) {
+    switch (ParticleTypeOf(s.type)) {
+    case ParticleType::FireBall: return EmitFireBall(s, p, index);
+    case ParticleType::CampFire: case ParticleType::Fire: case ParticleType::Smoke: return EmitSmoke(s, p, index);
+    case ParticleType::Tendril: return EmitTendril(s, p, index);
+    case ParticleType::FireBlast: return EmitBlast(s, p, index);
+    case ParticleType::VulcanSmoke: return EmitVulkan(s, p, index);
+    case ParticleType::Healing: return EmitHealing(s, p, index);
+    case ParticleType::PoisonFog: case ParticleType::PoisonCloud: return EmitPoisonFog(s, p, index);
+    case ParticleType::Geyser: return EmitGeyser(s, p, index);
+    case ParticleType::Tornado: case ParticleType::CurseHolder: return EmitTornado(s, p, index);
+    case ParticleType::Casting: return EmitCastRing(s, p, index);
+    case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid:
+    case ParticleType::CastingDivination:
+        return EmitCasting(s, p, index);
+    case ParticleType::Nuke: return EmitNuke(s, p, index);
+    case ParticleType::Banshee: return EmitBanshee(s, p, index);
+    case ParticleType::Mushroom: case ParticleType::Transform: return EmitMushroom(s, p, index);
+    case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
+        return EmitShower(s, p, index);
+    case ParticleType::FireArrow: case ParticleType::RikArrowSmoke: return EmitArrowSmoke(s, p, index);
+    case ParticleType::AcidRay: return EmitAcidRay(s, p, index);
+    case ParticleType::BlueGas: return EmitStench(s, p, index);
+    case ParticleType::Link: return EmitLink(s, p, index);
+    case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire:
+    case ParticleType::Antimagic:
+        return EmitOrbit(s, p, index);
+    case ParticleType::ClayRing: return EmitClayRing(s, p, index);
+    case ParticleType::Teleport: return EmitTeleport(s, p, index);
+    case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
+    case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
+    case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9:
+    case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
+        return EmitModifier(s, p, index);
+    case ParticleType::TeleportRing: return EmitColumn(s, p, index);
+    case ParticleType::LightningBlast: return EmitLightning(s, p, index);
+    case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
+    case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
+        return EmitCastSwirl(s, p, index);
+    case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3:
+    case ParticleType::Falling4:
+        return EmitFalling(s, p, index);
+    case ParticleType::ZoneExit: return EmitZoneExit(s, p, index);
+    case ParticleType::ShapeChange: return EmitGlow(s, p, index);
+    case ParticleType::GroundDust1: case ParticleType::GroundDust2: return EmitGroundDust(s, p, index);
+    case ParticleType::Bag: return EmitBag(s, p, index);
+    case ParticleType::PortalStar: return EmitPortalStar(s, p, index);
+    case ParticleType::Portal: return EmitPortal(s, p, index);
+    case ParticleType::Cylinder1: case ParticleType::Cylinder2: return EmitCylinder(s, p, index);
+    case ParticleType::FireStar: case ParticleType::AcidStar: return EmitFireStar(s, p, index);
+    case ParticleType::Sparks: return EmitSparks(s, p, index);
+    case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3:
+    case ParticleType::VisionStar4:
+        return EmitVisionStar(s, p, index);
+    case ParticleType::Regeneration: return EmitRegeneration(s, p, index);
+    case ParticleType::Silence: return EmitSilence(s, p, index);
+    case ParticleType::FeebleMind: return EmitFeebleMind(s, p, index);
+    case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: return EmitFeetCloud(s, p, index);
+    case ParticleType::Stun: return EmitStun(s, p, index);
+    case ParticleType::CurseStars: return EmitCurseStars(s, p, index);
+    case ParticleType::StartTrans: return EmitStartTrans(s, p, index);
+    }
+    return 0;
+}
+
+// Moves one particle of the source's type (0 drops it).
+int UpdateParticle(ParticleSource& s, Particle& p) {
+    switch (ParticleTypeOf(s.type)) {
+    case ParticleType::FireBall: return UpdateFireBall(s, p);
+    case ParticleType::CampFire: case ParticleType::Fire: case ParticleType::Smoke: case ParticleType::Tendril:
+        return UpdateSmoke(s, p);
+    case ParticleType::FireBlast: return UpdateBlast(s, p);
+    case ParticleType::VulcanSmoke: return UpdateVulkan(s, p);
+    case ParticleType::Healing: return UpdateHealing(s, p);
+    case ParticleType::PoisonFog: case ParticleType::PoisonCloud: return UpdateCloud(s, p);
+    case ParticleType::Geyser: return UpdateGeyser(s, p);
+    case ParticleType::Tornado: case ParticleType::CurseHolder: return UpdateTornado(s, p);
+    case ParticleType::Casting: return UpdateCastRing(s, p);
+    case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid:
+    case ParticleType::CastingDivination:
+        return UpdateCasting(s, p);
+    case ParticleType::Nuke: return UpdateDebris(s, p);
+    case ParticleType::Banshee: return UpdateBanshee(s, p);
+    case ParticleType::Mushroom: case ParticleType::Transform: return UpdateMushroom(s, p);
+    case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
+        return UpdateShower(s, p);
+    case ParticleType::FireArrow: case ParticleType::RikArrowSmoke: return UpdateArrowSmoke(s, p);
+    case ParticleType::AcidRay: return UpdateAcidRay(s, p);
+    case ParticleType::BlueGas: return UpdateStench(s, p);
+    case ParticleType::Link: return UpdateLink(s, p);
+    case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire:
+    case ParticleType::Antimagic:
+        return UpdateOrbit(s, p);
+    case ParticleType::ClayRing: return UpdateClayRing(s, p);
+    case ParticleType::Teleport: return UpdateTeleport(s, p);
+    case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
+    case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
+    case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9:
+    case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
+        return UpdateModifier(s, p);
+    case ParticleType::TeleportRing: return UpdateColumn(s, p);
+    case ParticleType::LightningBlast: return UpdateLightning(s, p);
+    case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
+    case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
+        return UpdateCastSwirl(s, p);
+    case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3:
+    case ParticleType::Falling4:
+        return UpdateFalling(s, p);
+    case ParticleType::ZoneExit: return UpdateZoneExit(s, p);
+    case ParticleType::ShapeChange: return UpdateGlow(s, p);
+    case ParticleType::GroundDust1: case ParticleType::GroundDust2: return UpdateGroundDust(s, p);
+    case ParticleType::Bag: return UpdateBag(s, p);
+    case ParticleType::PortalStar: return UpdatePortalStar(s, p);
+    case ParticleType::Portal: return UpdatePortal(s, p);
+    case ParticleType::Cylinder1: case ParticleType::Cylinder2: return UpdateCylinder(s, p);
+    case ParticleType::FireStar: case ParticleType::AcidStar: return UpdateFireStar(s, p);
+    case ParticleType::Sparks: return UpdateSparks(s, p);
+    case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3:
+    case ParticleType::VisionStar4:
+        return UpdateVisionStar(s, p);
+    case ParticleType::Regeneration: return UpdateRegeneration(s, p);
+    case ParticleType::Silence: return UpdateSilence(s, p);
+    case ParticleType::FeebleMind: return UpdateFeebleMind(s, p);
+    case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: return UpdateFeetCloud(s, p);
+    case ParticleType::Stun: return UpdateStun(s, p);
+    case ParticleType::CurseStars: return UpdateCurseStars(s, p);
+    case ParticleType::StartTrans: return UpdateStartTrans(s, p);
+    }
+    return 0;
+}
+
+// Runs `tick` on every element in order (the count read again after each).
+void EachElement(ParticleSource& s, void (*tick)(ParticleSource&, ParticleElement&)) {
+    for (int i = 0; i < std::ssize(s.elements); ++i) tick(s, s.elements[i]);
+}
+
+// The type's work on its elements before the particles move; the other types have none.
+void TickSource(ParticleSource& s) {
+    switch (ParticleTypeOf(s.type)) {
+    case ParticleType::Tendril: TickTendril(s); break;
+    case ParticleType::FireBlast: EachElement(s, TickBlast); break;
+    case ParticleType::Healing: EachElement(s, TickHealing); break;
+    case ParticleType::Geyser: EachElement(s, TickGeyser); break;
+    case ParticleType::Tornado: case ParticleType::CurseHolder: TickTornado(s); break;
+    case ParticleType::Casting: EachElement(s, TickCastRing); break;
+    case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid:
+    case ParticleType::CastingDivination:
+        TickCasting(s);
+        break;
+    case ParticleType::Nuke: EachElement(s, TickNuke); break;
+    case ParticleType::Banshee: EachElement(s, TickBanshee); break;
+    case ParticleType::Mushroom: case ParticleType::Transform: EachElement(s, TickMushroom); break;
+    case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
+        EachElement(s, TickShower);
+        break;
+    case ParticleType::Link: EachElement(s, TickLink); break;
+    case ParticleType::ClayRing: EachElement(s, TickClayRing); break;
+    case ParticleType::Teleport: EachElement(s, TickTeleport); break;
+    case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3:
+    case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
+    case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9:
+    case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
+        EachElement(s, TickModifier);
+        break;
+    case ParticleType::TeleportRing: EachElement(s, TickColumn); break;
+    case ParticleType::LightningBlast: EachElement(s, TickLightning); break;
+    case ParticleType::CastingIllusion: case ParticleType::CastingDomination:
+    case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
+        EachElement(s, TickCastSwirl);
+        break;
+    case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3:
+    case ParticleType::Falling4:
+        EachElement(s, TickFalling);
+        break;
+    case ParticleType::ShapeChange: TickGlow(s); break;
+    case ParticleType::GroundDust1: case ParticleType::GroundDust2: EachElement(s, TickGroundPlane); break;
+    case ParticleType::Bag: EachElement(s, TickBag); break;
+    case ParticleType::Portal: TickPortal(s); break;
+    case ParticleType::Cylinder1: case ParticleType::Cylinder2: TickCylinder(s); break;
+    case ParticleType::FeetCloud1: case ParticleType::FeetCloud2: EachElement(s, TickFeetCloud); break;
+    case ParticleType::StartTrans: EachElement(s, TickStartTrans); break;
+    default: break;
+    }
 }
 
 // Updates every particle. A particle the previous tick rejected is erased and returned to the
@@ -435,7 +630,7 @@ void UpdateParticles(ParticleSource& s) {
             ++node;
         }
         SavePrevious(p);
-        if (!(s.*s.updateFn)(p)) {
+        if (!UpdateParticle(s, *p)) {
             p->dead = 1;
             RestorePrevious(p);
         }
@@ -443,12 +638,12 @@ void UpdateParticles(ParticleSource& s) {
     }
 }
 
-// One emission attempt: a particle from the pool, kept when the emit callback accepts it.
+// One emission attempt: a particle from the pool, kept when the type's emission accepts it.
 void EmitOne(ParticleSource& s, int index) {
     ParticleManager* pool = s.Manager();
     Particle* p = pool->AcquireParticle();
     if (!p) return;
-    if ((s.*s.emitFn)(p, index)) s.AddParticle(p);
+    if (EmitParticle(s, *p, index)) s.AddParticle(p);
     else pool->ReleaseParticle(p);
 }
 
@@ -509,13 +704,13 @@ bool ParticleSource::RunTick() {
     const WorldClient* world = &g_clientWorld;
     windDirection = world->windDirection;
     windStrength = world->windStrength;
-    boundsMin = {kFar, kFar, kFar};
-    boundsMax = {kNear, kNear, kNear};
+    boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};
+    boundsMax = {-kBoundsFar, -kBoundsFar, -kBoundsFar};
     if (attachedTo && (attachedTo->flags & MapObjectFlag::Removed)) Attach(nullptr);
 
     Follow(*this);
     BuildBasis(*this);
-    RunElements(*this);
+    TickSource(*this);
     UpdateParticles(*this);
     Emit(*this);
     FinishBounds(*this);

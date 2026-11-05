@@ -1,22 +1,17 @@
-// ParticleSource set-up: Create, Reset and Clear.
+// ParticleSource set-up: the per-type spec table, Create, Reset and Clear.
 // More: docs/notes/effects.md, "Particle sources".
 #include "core_transform.h"
 #include "effects.h"
 #include "game_singletons.h"
 #include "map_object_figures.h"
 #include "particle_common.h"
-#include "random.h"
-#include "spell.h"
 #include "texture.h"
 #include "world.h"
 
-#include "lib/bytes.h"
 #include "lib/containers.h"
-#include "lib/crt.h"
-#include "lib/maths.h"
 
-#include <cmath>
-#include <cstring>
+#include <cstdint>
+#include <iterator>
 
 namespace {
 
@@ -25,641 +20,276 @@ constexpr float kFrameInset = 0.001953125f;   // the frame rectangles are inset 
 // The rotation Reset gives a source: the identity (a static initialiser's stores).
 constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
-// The spread box particles start in, relative to the emission point.
-void SetSpread(ParticleSource* s, float x0, float y0, float z0, float x1, float y1, float z1) {
-    s->spreadMin = {x0, y0, z0};
-    s->spreadMax = {x1, y1, z1};
+// A source type's parameters: Create starts every source from the defaults here (Reset's, with Create's own
+// emission chance, particle limit and 16 frames) and takes its type's entry.
+struct ParticleSpec {
+    ParticleType type = ParticleType::FireBall;
+    const char* texture = nullptr;          // kind 6 (TextureKind::Effects), by name
+    ParticleSourceFlag flags = {};          // beside Emitting
+    AttachPoint attachPoint = AttachPoint::EffectPoint;
+    bool additiveBlend = false;
+    int emitChance = 100;
+    int emitCount = 0;
+    int maxParticles = 500;
+    int lifetime = -1;
+    int frameCount = 16;
+    int frameDelay = 10000;
+    float emitSpacing = 1000.0f;
+    float size = 1.0f;
+    float height = 0.0f;
+    float growth = 0.0f;
+    float alpha = 1.0f;
+    float typeParam = 1.0f;
+    std::uint32_t tint = 0;
+    int elementCount = 0;                   // made zeroed; the type's Setup fills them
+    Vector3 spreadMin;
+    Vector3 spreadMax;
+    Vector3 extent;
+};
+
+constexpr ParticleSourceFlag kCarried = ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
+constexpr ParticleSourceFlag kOnPart = ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
+constexpr ParticleSourceFlag kCarriedOnPart = kCarried | ParticleSourceFlag::OnPart;
+constexpr ParticleSourceFlag kPausedToo = ParticleSourceFlag::Emitting | ParticleSourceFlag::TicksWhilePaused;
+constexpr int kEndless = 0x7FFFFFFF;    // an emission or particle count without a limit
+
+using enum ParticleType;
+
+constexpr ParticleSpec kSmoke = {.texture = "TendriSmoke", .emitChance = 88, .emitCount = 6, .lifetime = 32,
+                                 .frameCount = 15, .frameDelay = 1, .size = 0.8f, .height = 0.3f, .growth = 0.85f,
+                                 .spreadMin = {-0.2f, -0.2f, 0.0f}, .spreadMax = {0.2f, 0.2f, 0.0f}};
+constexpr ParticleSpec kPoison = {.texture = "PoisonCloud", .emitChance = 50, .emitCount = 1,
+                                  .maxParticles = kEndless, .lifetime = 0xCA4, .frameCount = 15, .frameDelay = 1};
+constexpr ParticleSpec kMushroom = {.texture = "ChangeHero", .emitCount = 10, .maxParticles = 4000, .frameDelay = 1,
+                                    .height = 1.0f};
+constexpr ParticleSpec kShower = {.texture = "RainSnow", .flags = kOnPart, .attachPoint = AttachPoint::Body,
+                                  .emitCount = 10, .maxParticles = 300, .lifetime = 6, .frameDelay = 15,
+                                  .elementCount = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
+                                  .spreadMax = {0.2f, 0.2f, 0.2f}};
+constexpr ParticleSpec kFalling = {.texture = "RainSnow", .flags = kOnPart, .attachPoint = AttachPoint::Body,
+                                   .emitCount = 45, .maxParticles = 300, .lifetime = 6, .frameDelay = 15,
+                                   .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f}};
+constexpr ParticleSpec kArrowSmoke = {.texture = "FireArrowSmoke", .emitCount = 1, .lifetime = 15, .frameCount = 15,
+                                      .frameDelay = 1, .emitSpacing = 0.06f, .size = 0.3f, .growth = 1.03f,
+                                      .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f}};
+constexpr ParticleSpec kSphere = {.texture = "ProtectionA", .flags = ParticleSourceFlag::AttachedOnly,
+                                  .additiveBlend = true, .emitChance = 90, .emitCount = 1, .lifetime = 15,
+                                  .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -1.0f},
+                                  .spreadMax = {0.2f, 0.2f, 0.0f}};
+constexpr ParticleSpec kModifier = {.texture = "Stun", .flags = kCarried, .emitCount = 80, .lifetime = 14,
+                                    .frameDelay = 2};
+constexpr ParticleSpec kCasting = {.texture = "FireSmoke", .flags = kCarriedOnPart, .emitCount = 20, .lifetime = 5,
+                                   .frameDelay = 5};
+constexpr ParticleSpec kCastSwirl = {.texture = "Casting2", .flags = kCarried, .emitCount = 10, .maxParticles = 600,
+                                     .lifetime = 2, .frameDelay = 1, .spreadMin = {-0.04f, -0.04f, -0.04f},
+                                     .spreadMax = {0.04f, 0.04f, 0.04f}};
+constexpr ParticleSpec kCylinder = {.texture = "Casting2", .flags = kCarried, .emitCount = 30, .maxParticles = 600,
+                                    .frameDelay = 1, .elementCount = 2};
+constexpr ParticleSpec kStar = {.texture = "FireArrowSmoke", .flags = kCarriedOnPart,
+                                .attachPoint = AttachPoint::Body, .emitCount = 1, .lifetime = 15};
+constexpr ParticleSpec kVisionStar = {.texture = "Stun", .flags = kCarriedOnPart, .attachPoint = AttachPoint::AboveHead,
+                                      .additiveBlend = true, .emitCount = 3, .lifetime = 0};
+constexpr ParticleSpec kFeetCloud = {.texture = "VisionFog", .flags = kCarried, .additiveBlend = true, .emitCount = 8,
+                                     .maxParticles = 300, .tint = 0xFF, .elementCount = 2};
+constexpr ParticleSpec kGroundDust = {.texture = "ShapeChange", .flags = kPausedToo, .emitCount = 128,
+                                      .maxParticles = 128, .elementCount = 1};
+constexpr ParticleSpec kMark = {.texture = "Stun", .flags = kCarriedOnPart, .attachPoint = AttachPoint::Body,
+                                .additiveBlend = true, .emitCount = 1, .maxParticles = 300};
+
+// The entry of `base` for `type`, with `change` applied to it.
+template <class Change>
+constexpr ParticleSpec Like(const ParticleSpec& base, ParticleType type, Change change) {
+    ParticleSpec spec = base;
+    spec.type = type;
+    change(spec);
+    return spec;
 }
 
-// A null element callback keeps the one Reset left (null).
-void SetCallbacks(ParticleSource* s, ParticleSource::EmitCallback emit, ParticleSource::UpdateCallback update,
-                  ParticleSource::ElementCallback element) {
-    s->emitFn = emit;
-    s->updateFn = update;
-    if (element) s->elementFn = element;
+constexpr ParticleSpec Like(const ParticleSpec& base, ParticleType type) {
+    return Like(base, type, [](ParticleSpec&) {});
 }
 
-// --- Types with their own set-up code ------------------------------------------------------------
+// One entry per type, in the order of ParticleType from FireBall.
+constexpr ParticleSpec kSpecs[] = {
+    {.type = FireBall, .texture = "FireSmoke", .emitChance = 88, .emitCount = 1, .lifetime = 15, .frameCount = 15,
+     .frameDelay = 1, .emitSpacing = 0.09f, .size = 0.8f, .growth = 0.94f, .spreadMin = {-0.2f, -0.2f, -1.0f},
+     .spreadMax = {0.2f, 0.2f, 0.0f}},
+    Like(kSmoke, CampFire),
+    {.type = FireBlast, .texture = "Explosion", .emitCount = 60, .maxParticles = 600, .lifetime = 15,
+     .frameDelay = 1, .size = 0.6f, .height = 1.0f, .growth = 0.8f, .elementCount = 15,
+     .spreadMin = {-0.02f, -0.02f, -0.02f}, .spreadMax = {0.02f, 0.02f, 0.02f}},
+    Like(kSmoke, Fire),
+    Like(kSmoke, Smoke),
+    // The height is the spread's top y (4) / 64.
+    {.type = VulcanSmoke, .texture = "Vulkan", .emitChance = 88, .emitCount = 2, .maxParticles = 400, .lifetime = 16,
+     .frameDelay = 1, .size = 2.5f, .height = 0.0625f, .growth = 0.99f, .spreadMin = {0.2f, 0.5f, 0.0f},
+     .spreadMax = {0.3f, 4.0f, 0.0f}},
+    {.type = Healing, .texture = "Healing", .flags = ParticleSourceFlag::AttachedOnly, .additiveBlend = true,
+     .emitCount = kEndless, .lifetime = 8, .frameDelay = 1, .size = 0.5f},
+    Like(kPoison, PoisonFog),
+    Like(kPoison, PoisonCloud),
+    {.type = Geyser, .texture = "Fireworks", .additiveBlend = true, .emitChance = 88, .emitCount = 20,
+     .frameDelay = 100, .height = 0.3f, .elementCount = 3, .spreadMin = {-0.1f, -0.1f, -0.02f},
+     .spreadMax = {0.1f, 0.1f, 0.02f}},
+    {.type = Tornado, .texture = "Tornado", .emitCount = 4, .maxParticles = 800, .frameDelay = 1, .height = 0.2f,
+     .elementCount = 6},
+    {.type = Casting, .texture = "FireSmoke", .flags = kCarried, .emitCount = kEndless, .frameDelay = 1},
+    {.type = Nuke, .texture = "AcidRay", .emitCount = 128, .maxParticles = 400, .frameDelay = 1, .height = 1.0f,
+     .elementCount = 1},
+    {.type = Banshee, .texture = "Banshee", .flags = kCarried, .emitCount = kEndless, .frameDelay = 1},
+    Like(kMushroom, Mushroom),
+    Like(kShower, Shower1),
+    Like(kSmoke, Tendril, [](ParticleSpec& spec) {
+        spec.emitCount = 20;
+        spec.maxParticles = 1500;
+        spec.elementCount = 1;
+    }),
+    Like(kArrowSmoke, FireArrow),
+    {.type = AcidRay, .texture = "AcidRay", .emitCount = 1, .lifetime = 15, .frameCount = 15, .frameDelay = 1,
+     .emitSpacing = 0.06f, .size = 0.3f, .spreadMin = {-1.0f, -1.0f, -1.0f}, .spreadMax = {1.0f, 1.0f, 1.0f}},
+    {.type = BlueGas, .texture = "Stench", .flags = ParticleSourceFlag::AttachedOnly, .emitChance = 80,
+     .emitCount = 5, .lifetime = 45, .frameCount = 15, .frameDelay = 3, .spreadMin = {-1.0f, -1.0f, -1.0f},
+     .spreadMax = {1.0f, 1.0f, 1.0f}},
+    {.type = Link, .texture = "Link", .emitChance = 80, .emitCount = 10, .lifetime = 45, .frameCount = 15,
+     .frameDelay = 3, .spreadMin = {-0.2f, -0.2f, -0.2f}, .spreadMax = {0.2f, 0.2f, 0.2f},
+     .extent = {-10.0f, 0.0f, 0.0f}},
+    Like(kSphere, SphereAcid),
+    Like(kSphere, SphereElectricity, [](ParticleSpec& spec) { spec.texture = "ProtectionE"; }),
+    Like(kSphere, SphereFire, [](ParticleSpec& spec) { spec.texture = "ProtectionF"; }),
+    {.type = ClayRing, .texture = "ClayRing", .additiveBlend = true, .emitCount = 80, .lifetime = 15,
+     .frameDelay = 2, .elementCount = 10},
+    {.type = Teleport, .texture = "Teleport", .emitCount = 20, .maxParticles = 320, .lifetime = 14, .frameDelay = 1,
+     .elementCount = 1},
+    Like(kSphere, Antimagic, [](ParticleSpec& spec) {
+        spec.texture = "AntiMagic";
+        spec.lifetime = 4;
+    }),
+    Like(kModifier, Modifier1),
+    Like(kModifier, Modifier2),
+    Like(kModifier, Modifier3),
+    Like(kModifier, Modifier4),
+    Like(kModifier, Modifier5),
+    Like(kModifier, Modifier6),
+    Like(kModifier, Modifier7),
+    Like(kModifier, Modifier8),
+    Like(kModifier, Modifier9),
+    Like(kModifier, Modifier10),
+    Like(kModifier, Modifier11),
+    Like(kModifier, Modifier12),
+    Like(kCasting, CastingFire),
+    Like(kCasting, CastingElectricity, [](ParticleSpec& spec) {
+        spec.texture = "Casting8";
+        spec.frameDelay = 1;
+    }),
+    Like(kCasting, CastingAcid, [](ParticleSpec& spec) { spec.texture = "Casting7"; }),
+    Like(kCasting, CastingDivination, [](ParticleSpec& spec) {
+        spec.texture = "Casting4";
+        spec.attachPoint = AttachPoint::AboveHead;
+        spec.additiveBlend = true;
+        spec.emitCount = 6;
+        spec.frameDelay = 1;
+    }),
+    Like(kCastSwirl, CastingIllusion),
+    Like(kCastSwirl, CastingDomination, [](ParticleSpec& spec) {
+        spec.texture = "Casting3";
+        spec.lifetime = 1;
+    }),
+    Like(kCastSwirl, CastingEnchantment, [](ParticleSpec& spec) { spec.texture = "Casting6"; }),
+    Like(kCastSwirl, CastingHealing, [](ParticleSpec& spec) {
+        spec.texture = "Casting1";
+        spec.lifetime = 1;
+    }),
+    {.type = TeleportRing, .texture = "Teleport", .flags = kCarried, .emitCount = 25, .lifetime = 14,
+     .frameDelay = 1},
+    {.type = LightningBlast, .texture = "TendriLight", .additiveBlend = true, .emitChance = 88, .emitCount = 250,
+     .maxParticles = 600, .lifetime = 15, .frameCount = 15, .frameDelay = 1, .spreadMin = {-0.2f, -0.2f, -0.2f},
+     .spreadMax = {0.2f, 0.2f, 0.2f}},
+    Like(kShower, Shower2),
+    Like(kShower, Shower3),
+    Like(kShower, Shower4),
+    Like(kFalling, Falling1),
+    Like(kFalling, Falling2),
+    Like(kFalling, Falling3),
+    Like(kFalling, Falling4),
+    {.type = ZoneExit, .texture = "ZoneExit",
+     .flags = ParticleSourceFlag::Emitting | ParticleSourceFlag::IdlesOffScreen, .emitCount = 10, .maxParticles = 600, .alpha = 5.0f, .typeParam = 5.0f},
+    {.type = ShapeChange, .texture = "ShapeChange", .flags = kPausedToo, .emitCount = 2500, .maxParticles = 2500},
+    Like(kGroundDust, GroundDust1),
+    Like(kGroundDust, GroundDust2, [](ParticleSpec& spec) {
+        spec.emitCount = 256;
+        spec.maxParticles = 256;
+    }),
+    {.type = Bag, .texture = "Bag", .flags = kCarried, .emitCount = 100, .maxParticles = 800,
+     .elementCount = kBagBalls},
+    {.type = PortalStar, .texture = "Casting6", .emitCount = 1, .maxParticles = 1},
+    {.type = Portal, .texture = "Teleport", .additiveBlend = true, .emitCount = 50, .maxParticles = 800,
+     .lifetime = 10, .frameDelay = 3, .elementCount = 1},
+    Like(kCylinder, Cylinder1),
+    Like(kCylinder, Cylinder2, [](ParticleSpec& spec) { spec.texture = "Casting1"; }),
+    Like(kStar, FireStar),
+    Like(kStar, AcidStar, [](ParticleSpec& spec) { spec.texture = "AcidRay"; }),
+    Like(kMark, Sparks, [](ParticleSpec& spec) {
+        spec.texture = "Casting6";
+        spec.emitCount = 10;
+    }),
+    Like(kVisionStar, VisionStar1),
+    Like(kVisionStar, VisionStar2, [](ParticleSpec& spec) { spec.lifetime = 1; }),
+    Like(kVisionStar, VisionStar3, [](ParticleSpec& spec) { spec.lifetime = 2; }),
+    Like(kMark, Regeneration, [](ParticleSpec& spec) {
+        spec.emitCount = 2;
+        spec.maxParticles = 500;
+    }),
+    Like(kMark, Silence, [](ParticleSpec& spec) { spec.emitCount = 4; }),
+    Like(kMark, FeebleMind, [](ParticleSpec& spec) {
+        spec.texture = "Link";
+        spec.attachPoint = AttachPoint::Head;
+        spec.emitCount = 5;
+    }),
+    Like(kFeetCloud, FeetCloud1),
+    Like(kFeetCloud, FeetCloud2, [](ParticleSpec& spec) { spec.tint = 0xFF0000; }),
+    Like(kVisionStar, VisionStar4, [](ParticleSpec& spec) { spec.lifetime = 3; }),
+    Like(kMark, Stun, [](ParticleSpec& spec) { spec.attachPoint = AttachPoint::EffectPoint; }),
+    Like(kArrowSmoke, RikArrowSmoke, [](ParticleSpec& spec) { spec.texture = "RikArrowSmoke"; }),
+    Like(kMark, CurseStars, [](ParticleSpec& spec) {
+        spec.texture = "Healing";
+        spec.emitCount = 8;
+    }),
+    {.type = CurseHolder, .texture = "Tornado", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 4,
+     .maxParticles = 800, .height = 0.2f, .tint = 0x19000000, .elementCount = 6},
+    {.type = StartTrans, .texture = "ZoneExit", .flags = kOnPart, .attachPoint = AttachPoint::Body, .emitCount = 1,
+     .maxParticles = 300, .elementCount = 1},
+    Like(kMushroom, Transform),
+};
 
-// CampFire, Fire, Smoke and Tendril, which also keeps one element.
-void SetupSmoke(ParticleSource* s) {
-    SetSpread(s, -0.2f, -0.2f, 0.0f, 0.2f, 0.2f, 0.0f);
-    s->emitChance = 88;
-    s->emitCount = 6;
-    s->lifetime = 32;
-    s->frameCount = 15;
-    s->frameDelay = 1;
-    s->size = 0.8f;
-    s->height = 0.3f;
-    s->growth = 0.85f;
-    SetCallbacks(s, &ParticleSource::EmitSmoke, &ParticleSource::UpdateSmoke, nullptr);
-    if (ParticleTypeOf(s->type) == ParticleType::Tendril) {
-        s->emitCount = 20;
-        s->maxParticles = 1500;
-        s->elements.resize(1);
-        s->emitFn = &ParticleSource::EmitTendril;
-        s->elementFn = &ParticleSource::TickTendril;
+constexpr bool SpecsInTypeOrder() {
+    for (int i = 0; i < std::ssize(kSpecs); ++i) {
+        if (static_cast<int>(kSpecs[i].type) != static_cast<int>(FireBall) + i) return false;
     }
+    return true;
+}
+static_assert(SpecsInTypeOrder() && std::ssize(kSpecs) == static_cast<int>(Transform) - static_cast<int>(FireBall) + 1);
+
+// The spec of `type`, or null for an unknown type.
+const ParticleSpec* FindSpec(int type) {
+    const int index = type - static_cast<int>(FireBall);
+    if (index < 0 || index >= std::ssize(kSpecs)) return nullptr;
+    return &kSpecs[index];
 }
 
-// FireBlast: fifteen fragments, each flying in a random direction (a point in the unit
-// ball shifted up by 0.7, ten tries) with a random speed.
-void SetupExplosion(ParticleSource* s) {
-    SetSpread(s, -0.02f, -0.02f, -0.02f, 0.02f, 0.02f, 0.02f);
-    s->emitChance = 100;
-    s->emitCount = 60;
-    s->maxParticles = 600;
-    s->lifetime = 15;
-    s->frameDelay = 1;
-    s->size = 0.6f;
-    s->height = 1.0f;
-    s->growth = 0.8f;
-    SetCallbacks(s, &ParticleSource::EmitBlast, &ParticleSource::UpdateBlast, &ParticleSource::TickBlast);
-    s->elements.resize(15);
-    for (int i = 0; i < std::ssize(s->elements); ++i) {
-        s->elements[i].pos = {};
-        float x, y, z;
-        float lengthSquared;
-        for (int tries = 10;;) {
-            x = g_clientRandom.Range(-1.0f, 1.0f);
-            y = g_clientRandom.Range(-1.0f, 1.0f);
-            z = g_clientRandom.Range(-1.0f, 1.0f) + 0.7f;
-            lengthSquared = LengthSquared(Vector3{x, y, z});
-            if (lengthSquared < 1.0f) break;   // random: never NaN
-            if (!(--tries > 0)) break;
-        }
-        float length = std::sqrt(lengthSquared);
-        Vector3 v = {x, y, z};
-        Vector3 direction = v / length;
-        float speed = WordToFloat(g_clientRandom.Next()) * kWordTo0_4 + 0.8f;
-        const Vector3 velocity = direction * speed;
-        auto& fragment = s->elements[i].fragment;
-        fragment.velocity = velocity * 0.8f;
-        fragment.age = 0;
-        fragment.radius = 0.0f;
-        fragment.growth = 0.4f;
-        fragment.decay = 0.7f;
-        fragment.frame = WordToFloat(g_clientRandom.Next() % 6);
-        fragment.sizeFactor = WordToFloat(g_clientRandom.Next() & 1);
-    }
-}
-
-// Geyser (the Fireworks texture): three rockets.
-void SetupFireworks(ParticleSource* s) {
-    SetSpread(s, -0.1f, -0.1f, -0.02f, 0.1f, 0.1f, 0.02f);
-    s->emitChance = 88;
-    s->emitCount = 20;
-    s->frameDelay = 100;
-    s->height = 0.3f;
-    s->elements.resize(3);
-    for (int i = 0; i < std::ssize(s->elements); ++i) {
-        s->elements[i].ticks = 0;
-        s->elements[i].vent.pause = 0;
-    }
-    SetCallbacks(s, &ParticleSource::EmitGeyser, &ParticleSource::UpdateGeyser, &ParticleSource::TickGeyser);
-    s->additiveBlend = true;
-}
-
-// Tornado and CurseHolder: six rings stacked 2.4 apart.
-void SetupTornadoRings(ParticleSource* s) {
-    s->elements.resize(6);
-    for (int i = 0; i < std::ssize(s->elements); ++i) {
-        ParticleElement& e = s->elements[i];
-        e.pos = {0.0f, 0.0f, i * 12.0f * 0.2f};
-        e.ticks = 0;
-    }
-}
-
-void SetupTornado(ParticleSource* s) {
-    s->emitChance = 100;
-    s->emitCount = 4;
-    s->maxParticles = 800;
-    s->frameDelay = 1;
-    s->height = 0.2f;
-    // The particle colour: 0x19 alpha, then the scene light's (the sun's) r, g, b.
-    const float* light = g_sceneRenderer.sun->color;
-    std::uint32_t color = static_cast<std::uint32_t>(light[0] * 255.0f);
-    color = (color | 0x1900) << 8;
-    color |= static_cast<std::uint32_t>(light[1] * 255.0f);
-    color <<= 8;
-    color |= static_cast<std::uint32_t>(light[2] * 255.0f);
-    s->tint = color;
-    SetupTornadoRings(s);
-    s->elements[0].funnel.height = 12.0f;
-    s->elements[0].funnel.bend = 0.5f;
-    s->elements[0].funnel.damping = 0.99f;
-    SetCallbacks(s, &ParticleSource::EmitTornado, &ParticleSource::UpdateTornado, &ParticleSource::TickTornado);
-}
-
-void SetupCurseHolder(ParticleSource* s) {
-    s->flags |= ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-    s->emitChance = 100;
-    s->emitCount = 4;
-    s->attachPoint = AttachPoint::Body;
-    s->maxParticles = 800;
-    s->height = 0.2f;
-    s->tint = 0x19000000;
-    SetupTornadoRings(s);
-    s->elements[0].funnel.height = 12.0f * 0.4f;
-    s->elements[0].funnel.bend = 0.0f;
-    s->elements[0].funnel.damping = 0.997f;
-    SetCallbacks(s, &ParticleSource::EmitTornado, &ParticleSource::UpdateTornado, &ParticleSource::TickTornado);
-}
-
-// Nuke: one element (the mushroom's state).
-void SetupNuke(ParticleSource* s) {
-    s->emitCount = 128;
-    s->maxParticles = 400;
-    s->lifetime = -1;
-    s->frameDelay = 1;
-    s->height = 1.0f;
-    SetCallbacks(s, &ParticleSource::EmitNuke, &ParticleSource::UpdateDebris, &ParticleSource::TickNuke);
-    s->elements.resize(1);
-    s->elements[0].ticks = 0;
-}
-
-// Shower1-4 (the RainSnow texture): one element, whose ticks pick the frame.
-void SetupWeather(ParticleSource* s) {
-    s->attachPoint = AttachPoint::Body;
-    s->flags |= ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-    SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
-    s->emitCount = 10;
-    s->maxParticles = 300;
-    s->lifetime = 6;
-    s->frameDelay = 15;
-    SetCallbacks(s, &ParticleSource::EmitShower, &ParticleSource::UpdateShower, &ParticleSource::TickShower);
-    s->elements.resize(1);
-    s->elements[0].ray.age = -100;
-    switch (ParticleTypeOf(s->type)) {
-    case ParticleType::Shower1: s->elements[0].ticks = 12; break;
-    case ParticleType::Shower2: s->elements[0].ticks = 13; break;
-    case ParticleType::Shower3: s->elements[0].ticks = 14; break;
-    case ParticleType::Shower4: s->elements[0].ticks = 15; break;
-    default: break;   // the other weather kinds keep their ticks
-    }
-}
-
-// Falling1-4 (leaves and the like): four to eight elements.
-void SetupFalling(ParticleSource* s) {
-    s->attachPoint = AttachPoint::Body;
-    s->flags |= ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-    SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
-    s->emitCount = 45;
-    s->maxParticles = 300;
-    s->lifetime = 6;
-    s->frameDelay = 15;
-    SetCallbacks(s, &ParticleSource::EmitFalling, &ParticleSource::UpdateFalling, &ParticleSource::TickFalling);
-    s->elements.resize(static_cast<int>(g_clientRandom.Next() % 5 + 4));
-    for (int i = 0; i < std::ssize(s->elements); ++i) s->elements[i].wind.age = 0;
-}
-
-// ClayRing: ten points on a circle around the source's (reset) position.
-void SetupClayRing(ParticleSource* s) {
-    s->additiveBlend = true;
-    s->emitCount = 80;
-    s->lifetime = 15;
-    s->frameDelay = 2;
-    SetCallbacks(s, &ParticleSource::EmitClayRing, &ParticleSource::UpdateClayRing, &ParticleSource::TickClayRing);
-    s->elements.resize(10);
-    for (int i = 0; i < std::ssize(s->elements); ++i) {
-        float angle = i * 0.62832f;   // 2 pi / 10
-        Vector3& direction = s->elements[i].clay.direction;
-        direction.x = lib::Sin(angle);
-        direction.y = lib::Cos(angle);
-        direction.z = 0.0f;
-        s->elements[i].pos = s->localPosition;
-        s->elements[i].clay.previous = s->localPosition;
-        s->elements[i].ticks = 14;
-    }
-}
-
-// Teleport: one element with ticks 0, as the Nuke's.
-void SetupTeleport(ParticleSource* s) {
-    s->emitCount = 20;
-    s->maxParticles = 320;
-    s->lifetime = 14;
-    s->frameDelay = 1;
-    SetCallbacks(s, &ParticleSource::EmitTeleport, &ParticleSource::UpdateTeleport, &ParticleSource::TickTeleport);
-    s->elements.resize(1);
-    s->elements[0].ticks = 0;
-}
-
-// GroundDust1 (green) / GroundDust2 (red): one element holding the colour and the ground plane.
-void SetupGroundPlane(ParticleSource* s) {
-    s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::TicksWhilePaused;
-    s->elements.resize(1);
-    s->elements[0].ticks = 0;
-    if (ParticleTypeOf(s->type) == ParticleType::GroundDust1) {
-        s->emitCount = 128;
-        s->elements[0].plane.color = 0x40FF40;
-    } else if (ParticleTypeOf(s->type) == ParticleType::GroundDust2) {
-        s->emitCount = 256;
-        s->elements[0].plane.color = 0xFF4040;
-    }
-    s->emitFn = &ParticleSource::EmitGroundDust;
-    s->maxParticles = s->emitCount;
-    s->updateFn = &ParticleSource::UpdateGroundDust;
-    s->elementFn = &ParticleSource::TickGroundPlane;
-}
-
-// Bag: eighty elements.
-void SetupBag(ParticleSource* s) {
-    s->emitCount = 100;
-    s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
-    s->maxParticles = 800;
-    SetCallbacks(s, &ParticleSource::EmitBag, &ParticleSource::UpdateBag, &ParticleSource::TickBag);
-    s->elements.resize(kBagBalls);
-    for (int i = 0; i < kBagBalls; ++i) s->elements[i].ticks = 0;
-}
-
-// Portal: one element.
-void SetupPortal(ParticleSource* s) {
-    s->emitCount = 50;
-    s->maxParticles = 800;
-    s->lifetime = 10;
-    s->frameDelay = 3;
-    SetCallbacks(s, &ParticleSource::EmitPortal, &ParticleSource::UpdatePortal, &ParticleSource::TickPortal);
-    s->elements.resize(1);
-    s->additiveBlend = true;
-}
-
-// Cylinder1 / 2 (the casting circles): two elements with a countdown of 100.
-void SetupCastingCircle(ParticleSource* s) {
-    s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
-    s->emitCount = 30;
-    s->frameDelay = 1;
-    s->maxParticles = 600;
-    SetCallbacks(s, &ParticleSource::EmitCylinder, &ParticleSource::UpdateCylinder, &ParticleSource::TickCylinder);
-    s->elements.resize(2);
-    for (int i = 0; i < std::ssize(s->elements); ++i) s->elements[i].ticks = 100;
-}
-
-// FeetCloud1 (blue) / FeetCloud2 (red): two elements, one per foot.
-void SetupFeetCloud(ParticleSource* s) {
-    s->additiveBlend = true;
-    s->emitCount = 8;
-    s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
-    s->maxParticles = 300;
-    s->elements.resize(2);
-    for (int i = 0; i < 2; ++i) {
-        s->elements[i].foot.countdown = -1;
-        s->elements[i].ticks = i;
-        s->elements[i].pos = {};
-        s->elements[i].foot.radius = 0.0f;
-    }
-    SetCallbacks(s, &ParticleSource::EmitFeetCloud, &ParticleSource::UpdateFeetCloud, &ParticleSource::TickFeetCloud);
-    if (ParticleTypeOf(s->type) == ParticleType::FeetCloud1) s->tint = 0xFF;
-    else if (ParticleTypeOf(s->type) == ParticleType::FeetCloud2) s->tint = 0xFF0000;
-}
-
-// StartTrans: one element with a 30-tick countdown.
-void SetupStartTrans(ParticleSource* s) {
-    s->attachPoint = AttachPoint::Body;
-    s->flags |= ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-    s->emitCount = 1;
-    s->maxParticles = 300;
-    SetCallbacks(s, &ParticleSource::EmitStartTrans, &ParticleSource::UpdateStartTrans, &ParticleSource::TickStartTrans);
-    s->elements.resize(1);
-    s->elements[0].ticks = 30;
-    s->elements[0].trans.scale = 0.0f;
-    s->elements[0].trans.count = 1.0f;
-}
-
-// Fills the type's parameters; returns the texture name, or null for an unknown type.
-const char* SetupType(ParticleSource* s) {
-    const ParticleType type = ParticleTypeOf(s->type);
-    switch (type) {
-    case ParticleType::FireBall:
-        s->lifetime = 15;
-        s->frameCount = 15;
-        SetSpread(s, -0.2f, -0.2f, -1.0f, 0.2f, 0.2f, 0.0f);
-        s->emitChance = 88;
-        s->emitCount = 1;
-        s->emitSpacing = 0.09f;
-        s->frameDelay = 1;
-        s->size = 0.8f;
-        s->growth = 0.94f;
-        SetCallbacks(s, &ParticleSource::EmitFireBall, &ParticleSource::UpdateFireBall, nullptr);
-        return "FireSmoke";
-    case ParticleType::CampFire: case ParticleType::Fire: case ParticleType::Smoke: case ParticleType::Tendril:
-        SetupSmoke(s);
-        return "TendriSmoke";
-    case ParticleType::FireBlast:
-        SetupExplosion(s);
-        return "Explosion";
-    case ParticleType::VulcanSmoke:
-        SetSpread(s, 0.2f, 0.5f, 0.0f, 0.3f, 4.0f, 0.0f);
-        s->emitChance = 88;
-        s->emitCount = 2;
-        s->maxParticles = 400;
-        s->lifetime = 16;
-        s->frameDelay = 1;
-        s->size = 2.5f;
-        s->height = s->spreadMax.y * 0.015625f;
-        s->growth = 0.99f;
-        SetCallbacks(s, &ParticleSource::EmitVulkan, &ParticleSource::UpdateVulkan, nullptr);
-        return "Vulkan";
-    case ParticleType::Healing:
-        s->flags |= ParticleSourceFlag::AttachedOnly;
-        s->additiveBlend = true;
-        s->emitCount = 0x7FFFFFFF;
-        s->lifetime = 8;
-        s->frameDelay = 1;
-        s->size = 0.5f;
-        SetCallbacks(s, &ParticleSource::EmitHealing, &ParticleSource::UpdateHealing, &ParticleSource::TickHealing);
-        return "Healing";
-    case ParticleType::PoisonFog: case ParticleType::PoisonCloud:
-        s->emitChance = 50;
-        s->emitCount = 1;
-        s->maxParticles = 0x7FFFFFFF;
-        s->lifetime = 0xCA4;
-        s->frameCount = 15;
-        s->frameDelay = 1;
-        SetCallbacks(s, &ParticleSource::EmitPoisonFog, &ParticleSource::UpdateCloud, nullptr);
-        return "PoisonCloud";
-    case ParticleType::Geyser:
-        SetupFireworks(s);
-        return "Fireworks";
-    case ParticleType::Tornado:
-        SetupTornado(s);
-        return "Tornado";
-    case ParticleType::Casting:
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
-        s->emitCount = 0x7FFFFFFF;
-        s->lifetime = -1;
-        s->frameDelay = 1;
-        SetCallbacks(s, &ParticleSource::EmitCastRing, &ParticleSource::UpdateCastRing, &ParticleSource::TickCastRing);
-        return "FireSmoke";
-    case ParticleType::Nuke:
-        SetupNuke(s);
-        return "AcidRay";
-    case ParticleType::Banshee:
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
-        s->emitCount = 0x7FFFFFFF;
-        s->lifetime = -1;
-        s->frameDelay = 1;
-        SetCallbacks(s, &ParticleSource::EmitBanshee, &ParticleSource::UpdateBanshee, &ParticleSource::TickBanshee);
-        s->elements.resize(0);
-        return "Banshee";
-    case ParticleType::Mushroom: case ParticleType::Transform:
-        s->emitCount = 10;
-        s->maxParticles = 4000;
-        s->lifetime = -1;
-        s->frameDelay = 1;
-        s->height = 1.0f;
-        SetCallbacks(s, &ParticleSource::EmitMushroom, &ParticleSource::UpdateMushroom, &ParticleSource::TickMushroom);
-        return type == ParticleType::FireBlast ? "Explosion" : "ChangeHero";   // the test never holds here
-    case ParticleType::Shower1: case ParticleType::Shower2: case ParticleType::Shower3: case ParticleType::Shower4:
-        SetupWeather(s);
-        return "RainSnow";
-    case ParticleType::FireArrow: case ParticleType::RikArrowSmoke:   // arrow smoke
-        s->lifetime = 15;
-        s->frameCount = 15;
-        SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
-        s->emitCount = 1;
-        s->emitSpacing = 0.06f;
-        s->frameDelay = 1;
-        s->size = 0.3f;
-        s->growth = 1.03f;
-        s->emitState = 0;
-        SetCallbacks(s, &ParticleSource::EmitArrowSmoke, &ParticleSource::UpdateArrowSmoke, nullptr);
-        return type == ParticleType::RikArrowSmoke ? "RikArrowSmoke" : "FireArrowSmoke";
-    case ParticleType::AcidRay:
-        s->lifetime = 15;
-        s->frameCount = 15;
-        SetSpread(s, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f);
-        s->emitCount = 1;
-        s->emitSpacing = 0.06f;
-        s->frameDelay = 1;
-        s->size = 0.3f;
-        SetCallbacks(s, &ParticleSource::EmitAcidRay, &ParticleSource::UpdateAcidRay, nullptr);
-        return "AcidRay";
-    case ParticleType::BlueGas:
-        s->flags |= ParticleSourceFlag::AttachedOnly;
-        SetSpread(s, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f);
-        s->emitChance = 80;
-        s->emitCount = 5;
-        s->lifetime = 45;
-        s->frameCount = 15;
-        s->frameDelay = 3;
-        s->size = 1.0f;
-        SetCallbacks(s, &ParticleSource::EmitStench, &ParticleSource::UpdateStench, &ParticleSource::TickNone);
-        return "Stench";
-    case ParticleType::Link:
-        SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
-        s->emitChance = 80;
-        s->extent = {-10.0f, 0.0f, 0.0f};
-        s->emitCount = 10;
-        s->lifetime = 45;
-        s->frameCount = 15;
-        s->frameDelay = 3;
-        s->size = 1.0f;
-        SetCallbacks(s, &ParticleSource::EmitLink, &ParticleSource::UpdateLink, &ParticleSource::TickLink);
-        return "Link";
-    case ParticleType::SphereAcid: case ParticleType::SphereElectricity: case ParticleType::SphereFire: case ParticleType::Antimagic:
-        s->flags |= ParticleSourceFlag::AttachedOnly;
-        s->additiveBlend = true;
-        s->emitChance = 90;
-        s->emitCount = 1;
-        s->lifetime = type == ParticleType::Antimagic ? 4 : 15;
-        s->frameCount = 15;
-        SetSpread(s, -0.2f, -0.2f, -1.0f, 0.2f, 0.2f, 0.0f);
-        s->frameDelay = 1;
-        s->size = 1.0f;
-        SetCallbacks(s, &ParticleSource::EmitOrbit, &ParticleSource::UpdateOrbit, &ParticleSource::TickNone);
-        if (type == ParticleType::SphereFire) return "ProtectionF";
-        if (type == ParticleType::SphereElectricity) return "ProtectionE";
-        if (type == ParticleType::Antimagic) return "AntiMagic";
-        return "ProtectionA";
-    case ParticleType::ClayRing:
-        SetupClayRing(s);
-        return "ClayRing";
-    case ParticleType::Teleport:
-        SetupTeleport(s);
-        return "Teleport";
-    case ParticleType::Modifier1: case ParticleType::Modifier2: case ParticleType::Modifier3: case ParticleType::Modifier4: case ParticleType::Modifier5: case ParticleType::Modifier6:
-    case ParticleType::Modifier7: case ParticleType::Modifier8: case ParticleType::Modifier9: case ParticleType::Modifier10: case ParticleType::Modifier11: case ParticleType::Modifier12:
-        s->emitCount = 80;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
-        s->lifetime = 14;
-        s->frameDelay = 2;
-        SetCallbacks(s, &ParticleSource::EmitModifier, &ParticleSource::UpdateModifier, &ParticleSource::TickModifier);
-        return "Stun";
-    case ParticleType::CastingFire: case ParticleType::CastingElectricity: case ParticleType::CastingAcid: case ParticleType::CastingDivination:
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->attachPoint = AttachPoint::EffectPoint;
-        SetCallbacks(s, &ParticleSource::EmitCasting, &ParticleSource::UpdateCasting, &ParticleSource::TickCasting);
-        s->lifetime = 5;
-        s->emitCount = 20;
-        if (type == ParticleType::CastingFire) {
-            s->frameDelay = 5;
-            return "FireSmoke";
-        }
-        if (type == ParticleType::CastingElectricity) {
-            s->frameDelay = 1;
-            return "Casting8";
-        }
-        if (type == ParticleType::CastingAcid) {
-            s->frameDelay = 5;
-            return "Casting7";
-        }
-        s->emitCount = 6;
-        s->frameDelay = 1;
-        s->attachPoint = AttachPoint::AboveHead;
-        s->additiveBlend = true;
-        return "Casting4";
-    case ParticleType::CastingIllusion: case ParticleType::CastingDomination: case ParticleType::CastingEnchantment: case ParticleType::CastingHealing:
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
-        SetSpread(s, -0.04f, -0.04f, -0.04f, 0.04f, 0.04f, 0.04f);
-        s->emitCount = 10;
-        s->frameDelay = 1;
-        s->maxParticles = 600;
-        SetCallbacks(s, &ParticleSource::EmitCastSwirl, &ParticleSource::UpdateCastSwirl, &ParticleSource::TickCastSwirl);
-        if (type == ParticleType::CastingIllusion) {
-            s->lifetime = 2;
-            return "Casting2";
-        }
-        if (type == ParticleType::CastingDomination) {
-            s->lifetime = 1;
-            return "Casting3";
-        }
-        if (type == ParticleType::CastingEnchantment) {
-            s->lifetime = 2;
-            return "Casting6";
-        }
-        s->lifetime = 1;
-        return "Casting1";
-    case ParticleType::TeleportRing:
-        s->emitCount = 25;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly;
-        s->lifetime = 14;
-        s->frameDelay = 1;
-        SetCallbacks(s, &ParticleSource::EmitColumn, &ParticleSource::UpdateColumn, &ParticleSource::TickColumn);
-        return "Teleport";
-    case ParticleType::LightningBlast:
-        s->lifetime = 15;
-        s->frameCount = 15;
-        SetSpread(s, -0.2f, -0.2f, -0.2f, 0.2f, 0.2f, 0.2f);
-        s->emitChance = 88;
-        s->emitCount = 250;
-        s->maxParticles = 600;
-        s->frameDelay = 1;
-        s->size = 1.0f;
-        SetCallbacks(s, &ParticleSource::EmitLightning, &ParticleSource::UpdateLightning, &ParticleSource::TickLightning);
-        s->additiveBlend = true;
-        return "TendriLight";
-    case ParticleType::Falling1: case ParticleType::Falling2: case ParticleType::Falling3: case ParticleType::Falling4:
-        SetupFalling(s);
-        return "RainSnow";
-    case ParticleType::ZoneExit:
-        s->emitCount = 10;
-        s->maxParticles = 600;
-        s->alpha = 5.0f;
-        s->typeParam = 5.0f;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::IdlesOffScreen;
-        SetCallbacks(s, &ParticleSource::EmitZoneExit, &ParticleSource::UpdateZoneExit, &ParticleSource::TickNone);
-        return "ZoneExit";
-    case ParticleType::ShapeChange:
-        s->emitFn = &ParticleSource::EmitGlow;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::TicksWhilePaused;
-        s->emitCount = 2500;
-        s->maxParticles = 2500;
-        s->updateFn = &ParticleSource::UpdateGlow;
-        s->elementFn = &ParticleSource::TickGlow;
-        return "ShapeChange";
-    case ParticleType::GroundDust1: case ParticleType::GroundDust2:
-        SetupGroundPlane(s);
-        return "ShapeChange";
-    case ParticleType::Bag:
-        SetupBag(s);
-        return "Bag";
-    case ParticleType::PortalStar:
-        s->emitCount = 1;
-        s->maxParticles = 1;
-        SetCallbacks(s, &ParticleSource::EmitPortalStar, &ParticleSource::UpdatePortalStar, &ParticleSource::TickNone);
-        return "Casting6";
-    case ParticleType::Portal:
-        SetupPortal(s);
-        return "Teleport";
-    case ParticleType::Cylinder1: case ParticleType::Cylinder2:
-        SetupCastingCircle(s);
-        return type == ParticleType::Cylinder1 ? "Casting2" : "Casting1";
-    case ParticleType::FireStar: case ParticleType::AcidStar:
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->attachPoint = AttachPoint::Body;
-        s->emitCount = 1;
-        SetCallbacks(s, &ParticleSource::EmitFireStar, &ParticleSource::UpdateFireStar, &ParticleSource::TickNone);
-        s->lifetime = 15;
-        return type == ParticleType::FireStar ? "FireArrowSmoke" : "AcidRay";
-    case ParticleType::Sparks:
-        s->additiveBlend = true;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->attachPoint = AttachPoint::Body;
-        s->emitCount = 10;
-        s->maxParticles = 300;
-        SetCallbacks(s, &ParticleSource::EmitSparks, &ParticleSource::UpdateSparks, &ParticleSource::TickNone);
-        return "Casting6";
-    case ParticleType::VisionStar1: case ParticleType::VisionStar2: case ParticleType::VisionStar3: case ParticleType::VisionStar4:
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->additiveBlend = true;
-        s->attachPoint = AttachPoint::AboveHead;
-        s->emitCount = 3;
-        SetCallbacks(s, &ParticleSource::EmitVisionStar, &ParticleSource::UpdateVisionStar, &ParticleSource::TickNone);
-        if (type == ParticleType::VisionStar1) s->lifetime = 0;
-        else if (type == ParticleType::VisionStar2) s->lifetime = 1;
-        else if (type == ParticleType::VisionStar3) s->lifetime = 2;
-        else s->lifetime = 3;
-        return "Stun";
-    case ParticleType::Regeneration:
-        s->additiveBlend = true;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->attachPoint = AttachPoint::Body;
-        s->emitCount = 2;
-        SetCallbacks(s, &ParticleSource::EmitRegeneration, &ParticleSource::UpdateRegeneration, &ParticleSource::TickNone);
-        return "Stun";
-    case ParticleType::Silence:
-        s->additiveBlend = true;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->attachPoint = AttachPoint::Body;
-        s->emitCount = 4;
-        s->maxParticles = 300;
-        SetCallbacks(s, &ParticleSource::EmitSilence, &ParticleSource::UpdateSilence, &ParticleSource::TickNone);
-        return "Stun";
-    case ParticleType::FeebleMind:
-        s->additiveBlend = true;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->attachPoint = AttachPoint::Head;
-        s->emitCount = 5;
-        s->maxParticles = 300;
-        SetCallbacks(s, &ParticleSource::EmitFeebleMind, &ParticleSource::UpdateFeebleMind, &ParticleSource::TickNone);
-        return "Link";
-    case ParticleType::FeetCloud1: case ParticleType::FeetCloud2:
-        SetupFeetCloud(s);
-        return "VisionFog";
-    case ParticleType::Stun:
-        s->additiveBlend = true;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->attachPoint = AttachPoint::EffectPoint;
-        s->emitCount = 1;
-        s->maxParticles = 300;
-        SetCallbacks(s, &ParticleSource::EmitStun, &ParticleSource::UpdateStun, &ParticleSource::TickNone);
-        return "Stun";
-    case ParticleType::CurseStars:
-        s->additiveBlend = true;
-        s->flags |= ParticleSourceFlag::Emitting | ParticleSourceFlag::AttachedOnly | ParticleSourceFlag::OnPart;
-        s->attachPoint = AttachPoint::Body;
-        s->emitCount = 8;
-        s->maxParticles = 300;
-        SetCallbacks(s, &ParticleSource::EmitCurseStars, &ParticleSource::UpdateCurseStars, &ParticleSource::TickNone);
-        return "Healing";
-    case ParticleType::CurseHolder:
-        SetupCurseHolder(s);
-        return "Tornado";
-    case ParticleType::StartTrans:
-        SetupStartTrans(s);
-        return "ZoneExit";
-    default:
-        return nullptr;
+// The types whose elements start other than zeroed, or whose set-up draws.
+void SetupElements(ParticleSource& s) {
+    switch (ParticleTypeOf(s.type)) {
+    case FireBlast: SetupFireBlast(s); break;
+    case Tornado: SetupTornado(s); break;
+    case CurseHolder: SetupCurseHolder(s); break;
+    case Shower1: case Shower2: case Shower3: case Shower4: SetupShower(s); break;
+    case Falling1: case Falling2: case Falling3: case Falling4: SetupFalling(s); break;
+    case ClayRing: SetupClayRing(s); break;
+    case GroundDust1: case GroundDust2: SetupGroundDust(s); break;
+    case Cylinder1: case Cylinder2: SetupCylinder(s); break;
+    case FeetCloud1: case FeetCloud2: SetupFeetCloud(s); break;
+    case StartTrans: SetupStartTrans(s); break;
+    default: break;
     }
 }
 
@@ -680,8 +310,8 @@ void BuildFrames(ParticleSource* s) {
 
 } // namespace
 
-// Back to the defaults: no position, attachment, callbacks or elements; the texture
-// released; unit sizes, a 1000 emission spacing, 10000 frame delay, a one-frame grid.
+// Back to the defaults: no position, attachment or elements; the texture released; unit sizes, a 1000 emission
+// spacing, 10000 frame delay, a one-frame grid.
 void ParticleSource::Reset() {
     localPosition = {};
     localRotation = kIdentityRotation;
@@ -695,9 +325,6 @@ void ParticleSource::Reset() {
     texture.Reset();
     windDirection = {};
     extent = {};
-    emitFn = nullptr;
-    updateFn = nullptr;
-    elementFn = nullptr;
     windStrength = 0.0f;
     additiveBlend = false;
     tint = 0;
@@ -730,28 +357,40 @@ void ParticleSource::Clear() {
     Reset();
 }
 
-// Create. Sets the source up for its type; 1, or for an unknown type the fatal error report's result.
+// Create. Sets the source up for its type from its spec; for an unknown type the fatal error report.
 void ParticleSource::Create() {
     Reset();
-    float farBound = 100000.0f;
-    boundsMin = {farBound, farBound, farBound};
-    Vector3 nearBound = {-100000.0f, -100000.0f, -100000.0f};
-    boundsMax = nearBound;
-    frameColumns = 4;
-    emitChance = 100;
-    flags = (flags & ~(ParticleSourceFlag::TicksWhilePaused | ParticleSourceFlag::OnPart)) | ParticleSourceFlag::Emitting;
-    maxParticles = 500;
-    frameCount = 16;
-
-    const char* textureName = SetupType(this);
-    if (!textureName) {
+    boundsMin = {kBoundsFar, kBoundsFar, kBoundsFar};
+    boundsMax = {-kBoundsFar, -kBoundsFar, -kBoundsFar};
+    const ParticleSpec* spec = FindSpec(type);
+    if (!spec) {
         game::FatalError("CParticle::Create().\nUnknown ETypeID.\n");
         return;
     }
-
-    char name[268];
-    std::memcpy(name, textureName, std::strlen(textureName) + 1);
-    LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), name);
+    flags = (flags & ~(ParticleSourceFlag::TicksWhilePaused | ParticleSourceFlag::OnPart)) |
+            ParticleSourceFlag::Emitting | spec->flags;
+    attachPoint = spec->attachPoint;
+    additiveBlend = spec->additiveBlend;
+    emitChance = spec->emitChance;
+    emitCount = spec->emitCount;
+    maxParticles = spec->maxParticles;
+    lifetime = spec->lifetime;
+    frameCount = spec->frameCount;
+    frameColumns = 4;
+    frameDelay = spec->frameDelay;
+    emitSpacing = spec->emitSpacing;
+    size = spec->size;
+    height = spec->height;
+    growth = spec->growth;
+    alpha = spec->alpha;
+    typeParam = spec->typeParam;
+    tint = spec->tint;
+    spreadMin = spec->spreadMin;
+    spreadMax = spec->spreadMax;
+    extent = spec->extent;
+    elements.resize(spec->elementCount);
+    SetupElements(*this);
+    LoadNamedTexture(texture, static_cast<int>(TextureKind::Effects), spec->texture);
     BuildFrames(this);
 }
 
@@ -774,15 +413,7 @@ EngineObject* ParticleManager::NewObject(int objectType) {
     return NewParticleSource(objectType);
 }
 
-ParticleSource::~ParticleSource() {
-    Clear();
-    texture.Reset();
-    particles.clear();
-}
+ParticleSource::~ParticleSource() { Clear(); }
 
 const char* ParticleSource::ClassName() { return "CParticle"; }
 ClassId ParticleSource::GetClassId() { return ClassId::ParticleSource; }
-
-// The element callbacks that do nothing one per type that stores one (Stench and the spheres,
-// ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration, Silence, FeebleMind, Stun, CurseStars).
-void ParticleSource::TickNone(ParticleElement*) {}
