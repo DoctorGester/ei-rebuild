@@ -1,0 +1,9 @@
+id = "C168"
+title = "File organisation: survey src/game and plan subsystem folders, merged splits and real names"
+group = "cleanup"
+size = 2
+model = "opus"
+note = "User 2026-11-05: some file splits (ai_map_construct.cpp, 38 lines) and files (misc_400.cpp, hash_tables_400.h: address-named) are questionable; do a large sweep and group things properly. src/game is one flat folder of 533 files (ui_* 94, world_* 40, unit_* 34, net_* 27, ai_* 27 ...), with ~40 files under 65 lines. This ticket: the plan only, in docs/notes/file-layout.md: the target folder tree (subsystem folders under src/game), every file's destination, the thin splits to fold into their owners (named), the address- or grab-bag-named files to split by meaning and rename, and the batches (C168a...) as whole-tree scripted moves (git mv + include rewrite + CMake), each one build-and-suite green. No moves in this ticket. The user reviews the plan before the batches start."
+order = 1228
+status = "running"
+started = "2026-11-05"
