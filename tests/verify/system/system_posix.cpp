@@ -13,7 +13,6 @@
 #include <execinfo.h>
 #include <fcntl.h>
 #if defined(__APPLE__)
-#include <CoreGraphics/CGGeometry.h>
 #include <libproc.h>
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
@@ -661,8 +660,13 @@ std::string WindowClass(void*) { return {}; }
 
 #if defined(__APPLE__)
 namespace {
+// CGRect's layout (four CGFloat, i.e. double), without CoreGraphics' headers: their MacTypes.h declares a global Point,
+// Rect and Size, as src/lib/rect.h does.
+struct Frame {
+    double x, y, width, height;
+};
 // NSWindow's constrainFrameRect:toScreen:, which AppKit asks when a window is ordered in or framed: the frame as given.
-CGRect FrameAsGiven(id, SEL, CGRect frame, id) { return frame; }
+Frame FrameAsGiven(id, SEL, Frame frame, id) { return frame; }
 } // namespace
 
 // The window's class (SDL's NSWindow subclass, or the one key-value observing made of it) answers
