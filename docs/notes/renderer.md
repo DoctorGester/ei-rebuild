@@ -81,7 +81,8 @@ Rules (SDL_GPU's, or the generator's):
   including program's `SHADOW_*_SLOT` / `POINT_*_SLOT` / `SCENE_BLOCK_SLOT`.
 - **The depth copy.** The programs that write the depth (`mesh`, `terrain`, `solid`, `into_multisampled`) also
   output it at `SV_Target1` (`depth_copy.hlsli`: the fragment's `SV_Position.z`). Only a
-  multisampled pass's pipelines have that target (the smooth option); with one target it is dropped. The check's
+  multisampled pass's pipelines have that target (the smooth option, and only in frames where a draw takes the copy:
+  section 11); with one target it is dropped. The check's
   `kDraws` marks those draws `depthCopy`, and a second output must be one float.
 
 A new program is its `.hlsl` file, which the build finds by itself, and a line in the check's `kDraws`.
@@ -623,10 +624,25 @@ with its own level.
   covered). The copy's target is never blended (`PipelineDesc::second`), so a blended draw stores its own depth there. Its
   output has four components with alpha 1 (R32F keeps the red): lavapipe blends the second target with the first's state
   whatever the pipeline says, and a one-component output has alpha 0 there (docs/notes/linux.md, "The harness").
-  Its cost is the writes: at 3840x2009, msaa 8, the frame is 0.55-1.2 ms cheaper with no pipeline writing it (R17a4,
-  render_water's views; without its resolve 0.05-0.5 ms). The battle screen and the container screens clear the depth
-  (ClearUiDepth) right after the world (the battle's selection box between them lies at depth 0), so there nothing
-  reads it (R17a4a).
+  **Only in frames that read it** (render.cpp's `DepthCopyRead`, taken at the frame's first multisampled pass from the
+  recorded commands): a draw that tests the depth (a mesh or terrain batch with the depth test on) after a world run
+  before a depth clear of the whole frame, or a world run after such a frame pass (its copy into every sample takes
+  the frame target's depth), or a frame not recorded to its end yet (SplitFrame: an interface picture taken in its
+  middle), or the harness's `smoothorder split`. Any other frame draws its multisampled passes without the second
+  target (no writes, clear or resolve) and leaves the frame target's depth undefined after the world (no
+  `depth_from_resolved`): the battle screen and the container screens clear the depth (ClearUiDepth) right after the
+  world, so the game's frames there go without it (the battle's selection box, drawn between the two while dragged,
+  is a mesh batch with the game's depth state: with the depth test on those frames keep the copy). The pipelines take it by the pass (`MakePassPipeline`,
+  `PassDepthCopy`); `ListPipelines` lists the multisampled ones both ways. Its cost was the writes: at 3840x2009,
+  msaa 8, render_water's views (the R17a4 kit's frame GPU times, lowest of 6-7 runs on a shared machine) went
+  from shore 2.63 / sea 2.66 / lake 3.35 / river 2.55 / river at night 3.19 / lake at night 3.31 ms to 1.92 / 1.88 /
+  2.26 / 1.94 / 1.98 / 2.27, 0.6-1.2 ms less; R17a4's bound (the copy written nowhere but still resolved) 2.04-2.40,
+  the target kept with its writes masked instead of left out the same as without it. **Not bit-identical**: without
+  the copy's output the driver compiles the world's pipelines differently, and an alpha-tested edge sample can
+  flip: render_smooth's 960x720 frame (Direct3D 12, NVIDIA) has 2 pixels 3 levels off the frame drawn with the copy
+  (masking the writes instead gives the same 2; writing them with no resolve and no `depth_from_resolved` gives none).
+  So the frames a check compares are drawn the same way: `smoothorder before` goes without the copy like the game's
+  order, and only `split` (tolerance 8) mixes the two.
 - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`): a pipeline's
   count must match its pass's targets. A change of the sample count remakes the targets at a frame's first pass.
 - Check (scenario `render_smooth`, vanilla and Rebirth): in zone1 at one frozen moment the frame with msaa 8 and
@@ -634,7 +650,9 @@ with its own level.
   requires the levels drawn and the frames to differ in 0.2% .. 20% of the pixels; the quick save's picture matches the
   smooth frame; the lower levels each against `plain`. The game never reaches the copy into every sample (its world view
   is a frame's first draw), so the harness build's `smoothorder before|split|check` draws the frozen frame's passes in
-  other orders and requires the copies counted.
+  other orders and requires the copies counted. The battle frame in the game's order and in `before` is drawn without
+  the depth copy and without `depth_from_resolved` (`smoothorder check` requires it); `split` reads the copy back after
+  the world's first half, so every multisampled pass writes it.
 - **Edge pixels shaded wrongly** (`smoothedges <plain> <smooth> <tolerance> <most> [<rectangle>]`): a multisampled
   pixel mixes what its neighbours show at their centres, so it lies within the range of its 3 x 3 neighbourhood in the
   same frozen moment drawn without multisampling; the step counts the pixels outside it by more than the tolerance.
@@ -1836,7 +1854,7 @@ the lakes. Most of it is the depth copy (section 11, "The depth copy": an R32F t
 world writes at each sample): with no pipeline writing it the frame is 0.55-1.2 ms cheaper in every view (three rounds,
 medians: the shore 2.63 / 2.08 ms, the sea 2.67 / 2.10, the lake 3.46 / 2.42, the river 2.58 / 2.11, the river at night
 3.32 / 2.15, the lake at night 3.38 / 2.41), and the lakes' water then costs 0.25 ms. Its resolve is a smaller part (without it 0.05-0.5 ms
-less, a noisier round). The copy is general, not the water's: R17a4a. R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
+less, a noisier round). The copy is general, not the water's: since R17a4a only frames that read it write it (section 11). R17a's look (ripples, depth, glints, foam) added nothing measurable over the game's
 plain water shading. Check: scenario `render_water`
 (frozen moments on zone1: the beach at the west sea, the sea, the lake in the middle, the river with stones, the river
 and the lake at night; samecapture of a frozen moment drawn twice, diffcapture that the ripples move) and

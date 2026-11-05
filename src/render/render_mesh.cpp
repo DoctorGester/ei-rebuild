@@ -125,7 +125,7 @@ static gpu::PipelineDesc MeshDesc(const PassState& s, bool lines, bool cached, i
 }
 
 static gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
-    return gpu::MakePipeline(MeshDesc(s, lines, cached, PassSampleCount()), "ei-mesh");
+    return MakePassPipeline(MeshDesc(s, lines, cached, PassSampleCount()), "ei-mesh");
 }
 
 // The pass states every battle and menu draws meshes with (the pipelines a run makes, logged; the rare ones are made at

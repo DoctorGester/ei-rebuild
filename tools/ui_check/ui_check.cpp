@@ -69,6 +69,7 @@ std::optional<Size> FrameSize() {
     return glyph_cases::TargetSize();
 }
 int PassSampleCount() { return 1; }
+bool PassDepthCopy() { return false; }
 std::uint32_t CommitNumber() { return glyph_cases::Commits(); }
 std::uint32_t FrameNumber() { return glyph_cases::Commits(); }
 void SplitFrame() {

@@ -22,6 +22,7 @@ struct SmoothInfo {
     int deviceSamples = 1, targetSamples = 1;
     int multisampledPasses = 0;
     int copiesInto = 0, depthCopiesBack = 0;
+    int depthCopyPasses = 0;   // the multisampled passes that wrote the depth copy (none in a frame without a draw taking it)
     int anisotropicModels = 0, plainModels = 0;
 };
 SmoothInfo SmoothState();

@@ -223,18 +223,26 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             return true;
         }
         render::SmoothInfo info = render::SmoothState();
-        char text[240];
+        char text[280];
         std::snprintf(text, sizeof(text),
-                      "smoothorder check (%s): msaa %d, %d samples, last frame %d multisampled passes, %d copies into "
-                      "them, %d depth copies back",
+                      "smoothorder check (%s): msaa %d, %d samples, last frame %d multisampled passes (%d writing the "
+                      "depth copy), %d copies into them, %d depth copies back",
                       order == render::SmoothOrder::Game ? "game" : order == render::SmoothOrder::Before ? "before" : "split",
-                      info.msaa, info.targetSamples, info.multisampledPasses, info.copiesInto, info.depthCopiesBack);
+                      info.msaa, info.targetSamples, info.multisampledPasses, info.depthCopyPasses, info.copiesInto,
+                      info.depthCopiesBack);
         Log("harness: %s", text);
         frames->push_back(text);
         bool ok = info.msaa > 1 && info.targetSamples >= 2;
-        if (order == render::SmoothOrder::Game) ok = ok && info.multisampledPasses >= 1 && info.copiesInto == 0;
-        else if (order == render::SmoothOrder::Before) ok = ok && info.multisampledPasses >= 1 && info.copiesInto >= 1;
-        else ok = ok && info.multisampledPasses >= 2 && info.copiesInto >= 1 && info.depthCopiesBack >= 2;
+        // The battle frame in the game's order and with the pass before: nothing after the world reads the depth copy
+        // (the depth cleared right after it); split, the pass after the world's first half does.
+        const bool withoutCopy = info.depthCopyPasses == 0 && info.depthCopiesBack == 0;
+        if (order == render::SmoothOrder::Game)
+            ok = ok && info.multisampledPasses >= 1 && info.copiesInto == 0 && withoutCopy;
+        else if (order == render::SmoothOrder::Before)
+            ok = ok && info.multisampledPasses >= 1 && info.copiesInto >= 1 && withoutCopy;
+        else
+            ok = ok && info.multisampledPasses >= 2 && info.copiesInto >= 1 && info.depthCopiesBack >= 2 &&
+                 info.depthCopyPasses == info.multisampledPasses;
         if (!ok) failures->push_back(text);
     } else if (verb == "shadowcasters") {
         if (argument == "view") render::SetOffscreenCasters(render::OffscreenCasters::View);

@@ -5,14 +5,15 @@
 // such a pass also writes each fragment's depth into a second, R32F, colour target, resolved with the colour.
 // Here: that target on the pipelines, and the two copies between the targets where the frame changes from one
 // to the other (the frame target's colour and depth into every sample before a world run that follows interface
-// draws; the resolved depth copy into the frame target's depth after a world run).
+// draws; the resolved depth copy into the frame target's depth after a world run). A frame where no draw takes the
+// copy draws its multisampled passes without it (render.cpp's DepthCopyRead).
 #include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
 
 namespace render {
 
-static gpu::Pipeline g_into, g_from;
+static gpu::Pipeline g_into, g_intoWithoutCopy, g_from;
 static int g_copySamples = 0;   // the sample count the copies were made for
 
 // Depth always written, colour as `writeColour`, for `samples`.
@@ -44,8 +45,26 @@ void AddDepthCopy(gpu::PipelineDesc& p) {
     p.secondMask = p.depthWrite ? gpu::ColourMask::Red : gpu::ColourMask::None;
 }
 
+void DropDepthCopy(gpu::PipelineDesc& p) {
+    p.second = gpu::Format::None;
+    p.secondMask = gpu::ColourMask::All;
+}
+
+gpu::Pipeline MakePassPipeline(gpu::PipelineDesc desc, const char* label) {
+    if (!PassDepthCopy()) DropDepthCopy(desc);
+    return gpu::MakePipeline(desc, label);
+}
+
+// The copy into every sample for a pass without the depth copy.
+static gpu::PipelineDesc IntoWithoutCopyDesc(int samples) {
+    gpu::PipelineDesc p = CopyDesc(gpu_shaders::into_multisampled::kIndex, samples, true);
+    DropDepthCopy(p);
+    return p;
+}
+
 void ListSmoothPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
     out.push_back(CopyDesc(gpu_shaders::into_multisampled::kIndex, samples, true));
+    out.push_back(IntoWithoutCopyDesc(samples));
     out.push_back(CopyDesc(gpu_shaders::depth_from_resolved::kIndex, 1, false));
 }
 
@@ -53,8 +72,9 @@ bool PrepareSmoothCopies(int samples) {
     if (g_copySamples == samples) return true;
     g_copySamples = 0;
     g_into = gpu::MakePipeline(CopyDesc(gpu_shaders::into_multisampled::kIndex, samples, true), "ei-into-multisampled");
+    g_intoWithoutCopy = gpu::MakePipeline(IntoWithoutCopyDesc(samples), "ei-into-multisampled");
     g_from = gpu::MakePipeline(CopyDesc(gpu_shaders::depth_from_resolved::kIndex, 1, false), "ei-depth-from-resolved");
-    if (!g_into || !g_from) {
+    if (!g_into || !g_intoWithoutCopy || !g_from) {
         ei::Log("render: msaa: the copies between the targets could not be made (see the gpu messages above)");
         return false;
     }
@@ -67,7 +87,7 @@ static_assert(gpu_shaders::into_multisampled::kSamplerColour == 0 && gpu_shaders
 
 void CopyIntoMultisampled(const gpu::Texture& colour, const gpu::Texture& depth) {
     const gpu::Texture textures[2] = {colour, depth};
-    Draw(g_into, textures, 2);
+    Draw(PassDepthCopy() ? g_into : g_intoWithoutCopy, textures, 2);
 }
 
 void CopyDepthFromResolved(const gpu::Texture& depth) { Draw(g_from, &depth, 1); }

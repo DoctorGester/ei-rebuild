@@ -232,6 +232,9 @@ void Start() {
 static std::size_t g_drawnCommands = 0;   // commands of this frame already drawn into the target
 static int g_passes = 0;                  // passes drawn this frame
 static int g_passSamples = 1;             // the sample count of the pass being drawn (PassSampleCount)
+static bool g_passDepthCopy = false;      // the pass being drawn has the depth copy (PassDepthCopy)
+// Whether this frame's multisampled passes write the depth copy (DepthCopyRead), taken at its first one.
+static std::optional<bool> g_frameDepthCopy;
 
 // Which target holds the frame's latest pixels: none yet (the frame's first pass clears), the frame
 // target, or the multisampled one (its colour also resolved into the frame target).
@@ -248,8 +251,48 @@ static bool InWorld(std::size_t k) {
     return false;
 }
 
+// Whether command `c` tests the depth.
+static bool TestsDepth(const Command& c) {
+    const auto i = static_cast<std::size_t>(c.index);
+    if (c.kind == Command::Kind::Mesh) return g_frame.meshBatches[i].state.depthTest;
+    if (c.kind == Command::Kind::Terrain) return g_frame.terrainBatches[i].state.depthTest;
+    return false;   // the blits, fills, depth clears and interface draws draw with the depth ignored
+}
+
+// Whether command `c` sets the depth of the whole frame (DrawClearDepth's rectangle).
+static bool ClearsWholeDepth(const Command& c) {
+    if (c.kind != Command::Kind::ClearDepth) return false;
+    const Rect& r = g_frame.clears[static_cast<std::size_t>(c.index)].rect;
+    return r.right <= r.left || (r.left <= 0 && r.top <= 0 && r.right >= g_width && r.bottom >= g_height);
+}
+
+// Whether a draw of this frame reads the world's depth copy (renderer.md section 11, "The depth copy"): after a world
+// run the frame target's depth is set from it for the draws that test the depth, and a world run that follows copies
+// that depth into its samples; a depth clear of the whole frame ends both. True while the frame's later commands are
+// not recorded yet (a copy of the frame in its middle: SplitFrame) and in the harness's split order (a pass on the frame
+// target after the world's first half). The battle and container screens clear the depth right after the world: their
+// frames are drawn without the copy.
+static bool DepthCopyRead() {
+    if (!g_frameDrawn || g_smoothOrder == SmoothOrder::Split) return true;
+    bool world = false, afterWorld = false;
+    for (std::size_t k = 0; k < g_frame.commands.size(); ++k) {
+        if (InWorld(k)) {
+            if (afterWorld) return true;
+            world = true;
+            continue;
+        }
+        if (world) afterWorld = true;
+        world = false;
+        if (!afterWorld) continue;
+        const Command& c = g_frame.commands[k];
+        if (ClearsWholeDepth(c)) afterWorld = false;
+        else if (TestsDepth(c)) return true;
+    }
+    return false;
+}
+
 // A pass on the frame target. After a multisampled run its colour is the resolve's; its depth is
-// set from the resolved depth copy.
+// set from the resolved depth copy (left undefined in a frame without the copy, DepthCopyRead).
 static void BeginFramePass() {
     bool first = g_holder == Holder::None;
     bool afterWorld = g_holder == Holder::Multisampled;
@@ -264,7 +307,8 @@ static void BeginFramePass() {
     if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
     ++g_stats.counts[FrameStats::Count::Passes];
     g_passSamples = 1;
-    if (afterWorld) {
+    g_passDepthCopy = false;
+    if (afterWorld && g_frameDepthCopy.value_or(true)) {
         CopyDepthFromResolved(g_resolvedDepth);
         ++g_counts.depthCopiesBack;
     }
@@ -276,18 +320,23 @@ static void BeginFramePass() {
 // is the resolve's destination and cannot be read in that pass).
 static void BeginMultisampledPass() {
     bool first = g_holder == Holder::None;
+    if (!g_frameDepthCopy) g_frameDepthCopy = DepthCopyRead();
+    const bool depthCopy = *g_frameDepthCopy;
     if (g_holder == Holder::Frame) {
         gpu::PassDesc copy;
         copy.colour.texture = g_multiColour;
         copy.colour.load = gpu::Load::DontCare;
-        copy.second.texture = g_multiDepthCopy;
-        copy.second.load = gpu::Load::DontCare;
+        if (depthCopy) {
+            copy.second.texture = g_multiDepthCopy;
+            copy.second.load = gpu::Load::DontCare;
+        }
         copy.depth.texture = g_multiDepth;
         copy.depth.load = gpu::Load::DontCare;
         copy.label = "ei-frame-into-multisampled";
         if (!gpu::BeginPass(copy)) Fatal("The renderer cannot draw the frame.");
         ++g_stats.counts[FrameStats::Count::Passes];
         g_passSamples = g_targetSamples;
+        g_passDepthCopy = depthCopy;
         CopyIntoMultisampled(g_colour, g_depth);
         gpu::EndPass();
         ++g_counts.copiesInto;
@@ -297,10 +346,12 @@ static void BeginMultisampledPass() {
     pass.colour.load = first ? gpu::Load::Clear : gpu::Load::Keep;
     SetClear(pass.colour.clear, GameClearColour());
     pass.colour.resolve = g_colour;
-    pass.second.texture = g_multiDepthCopy;
-    pass.second.load = pass.colour.load;
-    pass.second.clear[0] = 1.0f;   // the depth's clear
-    pass.second.resolve = g_resolvedDepth;
+    if (depthCopy) {
+        pass.second.texture = g_multiDepthCopy;
+        pass.second.load = pass.colour.load;
+        pass.second.clear[0] = 1.0f;   // the depth's clear
+        pass.second.resolve = g_resolvedDepth;
+    }
     pass.depth.texture = g_multiDepth;
     pass.depth.load = first ? gpu::Load::Clear : gpu::Load::Keep;
     pass.depth.clear = 1.0f;
@@ -308,8 +359,10 @@ static void BeginMultisampledPass() {
     if (!gpu::BeginPass(pass)) Fatal("The renderer cannot draw the frame.");
     ++g_stats.counts[FrameStats::Count::Passes];
     g_passSamples = g_targetSamples;
+    g_passDepthCopy = depthCopy;
     g_holder = Holder::Multisampled;
     ++g_counts.multisampledPasses;
+    if (depthCopy) ++g_counts.depthCopyPasses;
 }
 
 // An empty pass on the frame target (render::SetSmoothOrder's orders): the frame's first clears it;
@@ -443,6 +496,7 @@ static bool DrawPending() {
         if (world) perf::Enter(perf::Pass::Other);
         gpu::EndPass();
         g_passSamples = 1;
+        g_passDepthCopy = false;
         ++g_passes;
         if (world && stop == split) EmptyFramePass();
         if (stop == water) CopyFrameForWater(g_colour);
@@ -528,8 +582,16 @@ void ListPipelines(const gpu::DeviceLimits& limits, int msaa, std::vector<gpu::P
         return limits.SupportsSamples(colour, depth, count);
     });
     if (samples > 1) {
+        // Each with the depth copy and without it (DepthCopyRead).
+        const std::size_t first = out.size();
         ListMeshPipelines(out, samples);
         ListTerrainPipelines(out, samples);
+        const std::size_t last = out.size();
+        for (std::size_t k = first; k < last; ++k) {
+            gpu::PipelineDesc without = out[k];
+            DropDepthCopy(without);
+            out.push_back(without);
+        }
         ListSmoothPipelines(out, samples);
     }
 }
@@ -640,6 +702,7 @@ void Present() {
     OcclusionFrameDone();
     g_frameDrawn = false;
     g_holder = Holder::None;
+    g_frameDepthCopy.reset();
     g_lastCounts = g_counts;
     g_counts = SmoothInfo{};
     if (g_started) {
@@ -650,6 +713,7 @@ void Present() {
 }
 
 int PassSampleCount() { return g_passSamples; }
+bool PassDepthCopy() { return g_passDepthCopy; }
 
 void SetSmoothOrder(SmoothOrder order) {
     static const char* const kNames[] = {"as the game draws", "an empty pass on the frame target before the world",
