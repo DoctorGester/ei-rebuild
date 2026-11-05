@@ -3,7 +3,7 @@
 #
 # A line: OLD NEW [OP] [# why]. OLD is a file name in src/game today (or, for `new`, the flat name a split batch
 # gives a new file); NEW its path under src/game after the moves. OP:
-#   (none)  moved; a name change is the folder rule's (the folder's word dropped) unless the line says why
+#   (none)  moved under the same name; a name change says why (a meaning rename)
 #   fold    OLD's content joins NEW, which another line moves there (thin split of one class or subject)
 #   split   OLD is divided by meaning in a split batch (C168b, C168c); NEW keeps OLD's main part, `# ->` the rest
 #   new     a file a split batch creates (flat, under OLD), moved to NEW with its folder
@@ -24,23 +24,23 @@ base_manager.cpp            core/base_manager.cpp
 manager_context.h           core/manager_context.h
 manager_context.cpp         core/manager_context.cpp
 ref.h                       core/ref.h
-core_refcount.h             core/refcount.h
+core_refcount.h             core/core_refcount.h
 core_refcount.cpp           core/ref.cpp                fold  # RefObject's two members (13 lines) beside the references' save and load
 counted_ref.cpp             core/ref.cpp                      # the counted references' out-of-line code (Ref<T> by id, the unit lists): named for ref.h
 hash_tables_400.h           core/id_tables.h                  # address-named: the id tables' map members (namespace hash400 -> idtable in C168b)
-core_streams.h              core/streams.h
-core_streams.cpp            core/streams.cpp
+core_streams.h              core/core_streams.h
+core_streams.cpp            core/core_streams.cpp
 net_coder.h                 core/coder.h                      # the byte buffers, bit cursors and LZ coder of saves and messages alike (not network-only)
 net_coder.cpp               core/coder.cpp                  # with core/coder.h
 game_buffer.cpp             core/buffer.cpp                   # GameBuffer / GrowingBuffer members
 game_buffer_strings.cpp     core/buffer.cpp             fold  # GameBuffer's and BufferCursor's string members (58 lines): same classes
 named_floats.h              core/named_floats.h         new   # NamedFloatTable, out of object_tables.h
 named_floats.cpp            core/named_floats.cpp       new   # NamedFloatTable's members, out of object_tables.cpp
-core_maths.h                core/maths.h
-core_maths.cpp              core/maths.cpp
-angles.h                    core/maths.h                fold  # one constant (kRadiansPerDegree)
-core_transform.h            core/transform.h
-core_transform.cpp          core/transform.cpp
+core_maths.h                core/core_maths.h
+core_maths.cpp              core/core_maths.cpp
+angles.h                    core/core_maths.h           fold  # one constant (kRadiansPerDegree)
+core_transform.h            core/core_transform.h
+core_transform.cpp          core/core_transform.cpp
 random.h                    core/random.h
 random.cpp                  core/random.cpp
 asset_text.h                core/asset_text.h
@@ -63,24 +63,24 @@ ini_file.cpp                data/ini_file.cpp
 chunk_archive.h             data/chunk_archive.h
 chunk_archive.cpp           data/chunk_archive.cpp
 database_file.h             data/database_file.h
-database_globals.cpp        data/database_file.h        split # each database's global to its database's file: spells/db.cpp, items/db.cpp, world/quest_database.cpp, terrain/ground_print.cpp, units/acks_db.cpp (C168b; the file goes)
+database_globals.cpp        data/database_file.h        split # each database's global to its database's file: spells/spell_db.cpp, items/item_db.cpp, world/quest_database.cpp, terrain/ground_print.cpp, units/acks_db.cpp (C168b; the file goes)
 text_manager.h              data/text_manager.h
 text_manager.cpp            data/text_manager.cpp
 
 # ---- mods: Rebirth's mod layer (the mod folders, the menu's list, the mods' plugins) ------------------------------
-mod_folders.h               mods/folders.h
-mod_folders.cpp             mods/folders.cpp
-mod_list.h                  mods/list.h
-mod_list.cpp                mods/list.cpp
-mod_plugins.h               mods/plugins.h
-mod_plugins.cpp             mods/plugins.cpp
+mod_folders.h               mods/mod_folders.h
+mod_folders.cpp             mods/mod_folders.cpp
+mod_list.h                  mods/mod_list.h
+mod_list.cpp                mods/mod_list.cpp
+mod_plugins.h               mods/mod_plugins.h
+mod_plugins.cpp             mods/mod_plugins.cpp
 
 # ---- saves: the save files' container, versions, pictures and the client's kept picture --------------------------
 save_file.h                 saves/save_file.h               # kept whole: saves/file.h would not say which file
 world_savefile.cpp          saves/save_file.cpp               # the save file container (SaveFileWrite / Read); named for its header
-save_versions.h             saves/versions.h
-save_picture.h              saves/picture.h
-save_picture.cpp            saves/picture.cpp
+save_versions.h             saves/save_versions.h
+save_picture.h              saves/save_picture.h
+save_picture.cpp            saves/save_picture.cpp
 client_visuals.h            saves/client_visuals.h
 client_visuals.cpp          saves/client_visuals.cpp
 
@@ -118,71 +118,71 @@ bink_video.cpp              app/movies.cpp                  # with app/movies.h
 # ---- console ----------------------------------------------------------------------------------------------------
 console.h                   console/console.h
 console.cpp                 console/console.cpp
-console_addon.cpp           console/addon.cpp
-console_commands.cpp        console/commands.cpp
-console_window.cpp          console/window.cpp
-ui_console_window.cpp       console/window.cpp          fold  # one class (ConsoleWindow) in two files: its text side and its surface
+console_addon.cpp           console/console_addon.cpp
+console_commands.cpp        console/console_commands.cpp
+console_window.cpp          console/console_window.cpp
+ui_console_window.cpp       console/console_window.cpp  fold  # one class (ConsoleWindow) in two files: its text side and its surface
 
 # ---- sound ------------------------------------------------------------------------------------------------------
 sound.h                     sound/sound.h
-sound_manager.cpp           sound/manager.cpp
-sound_music.cpp             sound/music.cpp
+sound_manager.cpp           sound/sound_manager.cpp
+sound_music.cpp             sound/sound_music.cpp
 
 # ---- world: World, WorldServer and WorldClient, zones, quests, diplomacy ------------------------------------------
 world.h                     world/world.h
-world_create.cpp            world/create.cpp
-world_server.cpp            world/server.cpp
-object_id_map.cpp           world/server.cpp            fold  # EffectIdMap::Set (7 lines): the server file keeps the id maps
-world_tick.cpp              world/tick.cpp
-world_time.cpp              world/time.cpp
-world_sync.cpp              world/sync.cpp
-world_object_sets.cpp       world/object_sets.cpp
+world_create.cpp            world/world_create.cpp
+world_server.cpp            world/world_server.cpp
+object_id_map.cpp           world/world_server.cpp      fold  # EffectIdMap::Set (7 lines): the server file keeps the id maps
+world_tick.cpp              world/world_tick.cpp
+world_time.cpp              world/world_time.cpp
+world_sync.cpp              world/world_sync.cpp
+world_object_sets.cpp       world/world_object_sets.cpp
 address_order.h             world/object_order.h              # orders without addresses (namespace address_order -> object_order in C168b)
 address_order.cpp           world/object_order.cpp          # with world/object_order.h
-world_map.cpp               world/map.cpp
-world_zone.cpp              world/zone.cpp
-world_units.cpp             world/units.cpp
-world_unit_set.cpp          world/unit_set.cpp
-world_party.cpp             world/party.cpp
-world_spells.cpp            world/spells.cpp
-world_loot.cpp              world/loot.cpp
-hoover_loot.cpp             world/loot.cpp              fold  # Hoover::CollectLoot, which WorldServer::Loot calls
+world_map.cpp               world/world_map.cpp
+world_zone.cpp              world/world_zone.cpp
+world_units.cpp             world/world_units.cpp
+world_unit_set.cpp          world/world_unit_set.cpp
+world_party.cpp             world/world_party.cpp
+world_spells.cpp            world/world_spells.cpp
+world_loot.cpp              world/world_loot.cpp
+hoover_loot.cpp             world/world_loot.cpp        fold  # Hoover::CollectLoot, which WorldServer::Loot calls
 object.h                    world/hoover.h                    # grab-bag name: holds only Hoover
-world_weather.cpp           world/weather.cpp
-world_save.cpp              world/save.cpp
-world_guard.cpp             world/guard.cpp
-world_quests.cpp            world/quests.cpp
+world_weather.cpp           world/world_weather.cpp
+world_save.cpp              world/world_save.cpp
+world_guard.cpp             world/world_guard.cpp
+world_quests.cpp            world/world_quests.cpp
 quest_database.cpp          world/quest_database.cpp
 quest_records.h             world/quest_records.h
 quest_records.cpp           world/quest_database.cpp    fold  # the quest database's records' Serialize (50 lines)
-world_rules.cpp             world/local_player.cpp      split # "rules" holds the local player's queries (GameTime, LocalPlayerData ...); DepthLess -> world/client_maps.cpp, its only user (C168b)
+world_rules.cpp             world/local_player.cpp      split # "rules" holds the local player's queries (GameTime, LocalPlayerData ...); DepthLess -> world/world_client_maps.cpp, its only user (C168b)
 object_diplomacy.h          world/diplomacy.h               # the diplomacy table between the players (world-wide, not an object)
 object_diplomacy.cpp        world/diplomacy.cpp             # with world/diplomacy.h
-world_client.cpp            world/client.cpp
-world_client_setup.cpp      world/client_setup.cpp
-world_client_maps.cpp       world/client_maps.cpp
-world_client_view.cpp       world/client_view.cpp
-world_client_draw.cpp       world/client_draw.cpp
-world_client_lights.cpp     world/client_lights.cpp
-world_client_shadow_casters.h world/client_shadow_casters.h
-world_client_shadow_casters.cpp world/client_shadow_casters.cpp
+world_client.cpp            world/world_client.cpp
+world_client_setup.cpp      world/world_client_setup.cpp
+world_client_maps.cpp       world/world_client_maps.cpp
+world_client_view.cpp       world/world_client_view.cpp
+world_client_draw.cpp       world/world_client_draw.cpp
+world_client_lights.cpp     world/world_client_lights.cpp
+world_client_shadow_casters.h world/world_client_shadow_casters.h
+world_client_shadow_casters.cpp world/world_client_shadow_casters.cpp
 frame_lists.h               world/frame_lists.h
 
 # ---- players: a player, its party, its connection's halves (PlayerServer, PlayerClient), class templates -----------
 player.cpp                  players/player.cpp
-player_manager.h            players/manager.h
-player_manager.cpp          players/manager.cpp
-player_messages.h           players/messages.h
-player_messages.cpp         players/messages.cpp
-player_server_handlers.cpp  players/server_handlers.cpp
-player_server_orders.cpp    players/server_orders.cpp
-player_sync.cpp             players/sync.cpp
-player_client.h             players/client.h
-player_client.cpp           players/client.cpp
-player_client_handlers.cpp  players/client_handlers.cpp
-player_client_orders.cpp    players/client_orders.cpp
-player_source.h             players/source.h
-player_sources.cpp          players/source.cpp                # named for its header
+player_manager.h            players/player_manager.h
+player_manager.cpp          players/player_manager.cpp
+player_messages.h           players/player_messages.h
+player_messages.cpp         players/player_messages.cpp
+player_server_handlers.cpp  players/player_server_handlers.cpp
+player_server_orders.cpp    players/player_server_orders.cpp
+player_sync.cpp             players/player_sync.cpp
+player_client.h             players/player_client.h
+player_client.cpp           players/player_client.cpp
+player_client_handlers.cpp  players/player_client_handlers.cpp
+player_client_orders.cpp    players/player_client_orders.cpp
+player_source.h             players/player_source.h
+player_sources.cpp          players/player_source.cpp         # named for its header
 party.h                     players/party.h
 party.cpp                   players/party.cpp
 party_manager.h             players/party_manager.h
@@ -195,48 +195,48 @@ class_template_stock.cpp    players/class_templates.cpp fold  # ClassTemplate's 
 plugin_fixes.h              players/faces.h                   # named for its origin: holds the player faces' rules (sex by model name, the fallback prototype)
 
 # ---- map: zone files (.mob), the map database, the .MP header, the maps folder ------------------------------------
-map_spec.h                  map/spec.h
-map_spec.cpp                map/spec.cpp
-map_spec_unit.cpp           map/spec_unit.cpp
+map_spec.h                  map/map_spec.h
+map_spec.cpp                map/map_spec.cpp
+map_spec_unit.cpp           map/map_spec_unit.cpp
 mob_reader.cpp              map/mob_reader.cpp
 mob_script_decoder.h        map/mob_script_decoder.h
 chunk_stream.h              map/chunk_stream.h                # the chunked .mob files and editor specs
 chunk_stream.cpp            map/chunk_stream.cpp
-map_database.cpp            map/database.cpp
-exit_area.cpp               map/database.cpp            fold  # ZoneExit's members (78 lines): a map database record
-object_tables.h             map/database.h              split # grab-bag: map records stay; NamedFloatTable -> core/named_floats.h, text keys -> data/text_manager.h, key names -> app/key_bindings.h (C168b)
+map_database.cpp            map/map_database.cpp
+exit_area.cpp               map/map_database.cpp        fold  # ZoneExit's members (78 lines): a map database record
+object_tables.h             map/map_database.h          split # grab-bag: the map database's records stay (named for map_database.cpp); NamedFloatTable -> core/named_floats.h, text keys -> data/text_manager.h, key names -> app/key_bindings.h (C168b)
 object_tables.cpp           data/text_manager.cpp       split # text keys -> data/text_manager.cpp, NamedFloatTable -> core/named_floats.cpp (C168b; the file goes)
 map_file.h                  map/map_file.h                    # kept whole: map/file.h would not say which file
 world_map_files.h           map/folder.h                      # the maps folder and its files
 
 # ---- ai: the AI map, searches, paths and motion; the brain and its modes ------------------------------------------
-ai_map.h                    ai/map.h
-ai_map.cpp                  ai/map.cpp
-ai_map_construct.cpp        ai/map.cpp                  fold  # AIMap's constructor and Reset (38 lines)
-ai_map_load.cpp             ai/map_load.cpp
-ai_refresh.cpp              ai/refresh.cpp
-ai_footprint.cpp            ai/footprint.cpp
-ai_occluders.cpp            ai/footprint.cpp            fold  # one footprint cell's occluder word (83 lines): the footprint stamps them
-ai_bridges.cpp              ai/footprint.cpp            fold  # a footprint's bridge decks (86 lines)
-ai_movement.cpp             ai/movement.cpp
-ai_unit_layer.cpp           ai/unit_layer.cpp
-ai_water_patch.cpp          ai/unit_layer.cpp           fold  # AIMap::StampWaterPatch (33 lines): a shape on the small-unit layer
+ai_map.h                    ai/ai_map.h
+ai_map.cpp                  ai/ai_map.cpp
+ai_map_construct.cpp        ai/ai_map.cpp               fold  # AIMap's constructor and Reset (38 lines)
+ai_map_load.cpp             ai/ai_map_load.cpp
+ai_refresh.cpp              ai/ai_refresh.cpp
+ai_footprint.cpp            ai/ai_footprint.cpp
+ai_occluders.cpp            ai/ai_footprint.cpp         fold  # one footprint cell's occluder word (83 lines): the footprint stamps them
+ai_bridges.cpp              ai/ai_footprint.cpp         fold  # a footprint's bridge decks (86 lines)
+ai_movement.cpp             ai/ai_movement.cpp
+ai_unit_layer.cpp           ai/ai_unit_layer.cpp
+ai_water_patch.cpp          ai/ai_unit_layer.cpp        fold  # AIMap::StampWaterPatch (33 lines): a shape on the small-unit layer
 ai_shape_cache.h            ai/unit_shape.h                   # UnitShape and its cache: named for the shape
 ai_unit_layer.h             ai/unit_shape.h             fold  # the shape cache's creator and the block hash (17 lines)
-ai_unit_shape.cpp           ai/unit_shape.cpp
-ai_local_search.cpp         ai/local_search.cpp
-ai_block_search.cpp         ai/block_search.cpp
-ai_region_reach.cpp         ai/region_reach.cpp
-ai_path.cpp                 ai/path.cpp
-ai_path_smooth.cpp          ai/path_smooth.cpp
-ai_path_state.cpp           ai/path_state.cpp
-ai_path_save.cpp            ai/path_state.cpp           fold  # a path in the save stream (80 lines) beside its network state: one subject
-unit_motion.h               ai/motion.h                       # UnitMotion, whose code is ai_motion.cpp
-ai_motion.h                 ai/motion.h                 fold  # OrderOf (11 lines)
-ai_motion.cpp               ai/motion.cpp
-ai_event_table.h            ai/events.h                       # named for ai_events.cpp, its code
-ai_events.cpp               ai/events.cpp
-ai_alarm.h                  ai/alarm.h
+ai_unit_shape.cpp           ai/ai_unit_shape.cpp
+ai_local_search.cpp         ai/ai_local_search.cpp
+ai_block_search.cpp         ai/ai_block_search.cpp
+ai_region_reach.cpp         ai/ai_region_reach.cpp
+ai_path.cpp                 ai/ai_path.cpp
+ai_path_smooth.cpp          ai/ai_path_smooth.cpp
+ai_path_state.cpp           ai/ai_path_state.cpp
+ai_path_save.cpp            ai/ai_path_state.cpp        fold  # a path in the save stream (80 lines) beside its network state: one subject
+unit_motion.h               ai/ai_motion.h                    # UnitMotion, whose code is ai_motion.cpp
+ai_motion.h                 ai/ai_motion.h              fold  # OrderOf (11 lines)
+ai_motion.cpp               ai/ai_motion.cpp
+ai_event_table.h            ai/ai_events.h                    # named for ai_events.cpp, its code
+ai_events.cpp               ai/ai_events.cpp
+ai_alarm.h                  ai/ai_alarm.h
 search_grid.h               ai/search_grid.h
 sector_map.h                ai/sector_map.h
 sector_map.cpp              ai/sector_map.cpp
@@ -249,21 +249,21 @@ unit_ai_targets.cpp         ai/unit_ai_targets.cpp
 # ---- combat: the server unit controller (UnitServer) ---------------------------------------------------------------
 combat.h                    combat/combat.h
 combat.cpp                  combat/combat.cpp
-combat_internal.h           combat/internal.h
-combat_plan.h               combat/internal.h           fold  # the planner's structures (20 lines), shared by the same combat files
-combat_actions.cpp          combat/actions.cpp
-combat_motion.cpp           combat/motion.cpp
-combat_orders.cpp           combat/orders.cpp
-combat_order_setters.cpp    combat/orders.cpp           fold  # "the rest of the setters" (140 lines): one subject split at an arbitrary line
-combat_planning.cpp         combat/planning.cpp
-combat_save.cpp             combat/save.cpp
-combat_sight.cpp            combat/sight.cpp
-combat_spell_sight.cpp      combat/sight.cpp            fold  # the spell's line of sight (37 lines)
-combat_steps.cpp            combat/steps.cpp
-combat_step_lists.cpp       combat/steps.cpp            fold  # AnimationSteps' members (60 lines): the steps' own list
-combat_taming.cpp           combat/taming.cpp
-combat_tick.cpp             combat/tick.cpp
-combat_update.cpp           combat/update.cpp
+combat_internal.h           combat/combat_internal.h
+combat_plan.h               combat/combat_internal.h    fold  # the planner's structures (20 lines), shared by the same combat files
+combat_actions.cpp          combat/combat_actions.cpp
+combat_motion.cpp           combat/combat_motion.cpp
+combat_orders.cpp           combat/combat_orders.cpp
+combat_order_setters.cpp    combat/combat_orders.cpp    fold  # "the rest of the setters" (140 lines): one subject split at an arbitrary line
+combat_planning.cpp         combat/combat_planning.cpp
+combat_save.cpp             combat/combat_save.cpp
+combat_sight.cpp            combat/combat_sight.cpp
+combat_spell_sight.cpp      combat/combat_sight.cpp     fold  # the spell's line of sight (37 lines)
+combat_steps.cpp            combat/combat_steps.cpp
+combat_step_lists.cpp       combat/combat_steps.cpp     fold  # AnimationSteps' members (60 lines): the steps' own list
+combat_taming.cpp           combat/combat_taming.cpp
+combat_tick.cpp             combat/combat_tick.cpp
+combat_update.cpp           combat/combat_update.cpp
 
 # ---- objects: map objects, their halves and side managers, levers, torches, traps --------------------------------
 map_object.h                objects/map_object.h
@@ -300,30 +300,30 @@ lock_key.h                  objects/lock_key.h
 unit.h                      units/unit.h
 unit.cpp                    units/unit.cpp
 unit_figure_queries.cpp     units/unit.cpp              fold  # Unit's figure queries (94 lines)
-unit_update.cpp             units/update.cpp
-unit_controller.cpp         units/controller.cpp
-unit_items.cpp              units/items.cpp
-unit_save.cpp               units/save.cpp
-unit_motion_tick.cpp        units/motion_tick.cpp
-unit_create.h               units/create.h
-unit_create.cpp             units/create.cpp
-unit_equipment.cpp          units/create.cpp            fold  # a new unit's starting equipment (73 lines): a creation helper of the same header
-unit_create_stats.cpp       units/create_stats.cpp
-unit_record.h               units/record.h
-unit_record.cpp             units/record.cpp
-unit_db.h                   units/db.h
-unit_db.cpp                 units/db.cpp
-unit_stats.cpp              units/stats.cpp
-unit_armour_layers.cpp      units/stats.cpp             fold  # UnitStats' armour layers (101 lines)
-unit_vitals.cpp             units/vitals.cpp
-unit_params.cpp             units/params.cpp
-unit_hits.cpp               units/hits.cpp
-unit_looks.h                units/looks.h
-unit_skins.cpp              units/skins.cpp
-unit_client_models.h        units/client_models.h
-unit_client_models.cpp      units/client_models.cpp
-unit_client_effects.cpp     units/client_effects.cpp
-unit_client_update.cpp      units/client_update.cpp
+unit_update.cpp             units/unit_update.cpp
+unit_controller.cpp         units/unit_controller.cpp
+unit_items.cpp              units/unit_items.cpp
+unit_save.cpp               units/unit_save.cpp
+unit_motion_tick.cpp        units/unit_motion_tick.cpp
+unit_create.h               units/unit_create.h
+unit_create.cpp             units/unit_create.cpp
+unit_equipment.cpp          units/unit_create.cpp       fold  # a new unit's starting equipment (73 lines): a creation helper of the same header
+unit_create_stats.cpp       units/unit_create_stats.cpp
+unit_record.h               units/unit_record.h
+unit_record.cpp             units/unit_record.cpp
+unit_db.h                   units/unit_db.h
+unit_db.cpp                 units/unit_db.cpp
+unit_stats.cpp              units/unit_stats.cpp
+unit_armour_layers.cpp      units/unit_stats.cpp        fold  # UnitStats' armour layers (101 lines)
+unit_vitals.cpp             units/unit_vitals.cpp
+unit_params.cpp             units/unit_params.cpp
+unit_hits.cpp               units/unit_hits.cpp
+unit_looks.h                units/unit_looks.h
+unit_skins.cpp              units/unit_skins.cpp
+unit_client_models.h        units/unit_client_models.h
+unit_client_models.cpp      units/unit_client_models.cpp
+unit_client_effects.cpp     units/unit_client_effects.cpp
+unit_client_update.cpp      units/unit_client_update.cpp
 ack_kind.h                  units/ack_kind.h
 acks_db.h                   units/acks_db.h
 acks_db.cpp                 units/acks_db.cpp                 # gains acks.db's load from model_db.cpp (C168b)
@@ -331,30 +331,30 @@ acks_db.cpp                 units/acks_db.cpp                 # gains acks.db's 
 # ---- items ------------------------------------------------------------------------------------------------------
 item.h                      items/item.h
 item.cpp                    items/item.cpp
-item_db.h                   items/db.h
-item_db.cpp                 items/db.cpp
-item_manager.h              items/manager.h
-item_manager.cpp            items/manager.cpp
-item_names.h                items/names.h
-item_names.cpp              items/names.cpp
-item_stock.h                items/stock.h
-item_stock.cpp              items/stock.cpp
+item_db.h                   items/item_db.h
+item_db.cpp                 items/item_db.cpp
+item_manager.h              items/item_manager.h
+item_manager.cpp            items/item_manager.cpp
+item_names.h                items/item_names.h
+item_names.cpp              items/item_names.cpp
+item_stock.h                items/item_stock.h
+item_stock.cpp              items/item_stock.cpp
 
 # ---- spells -----------------------------------------------------------------------------------------------------
 spell.h                     spells/spell.h                    # Light and LightFactory leave for scene/light.h (C168b)
 spell.cpp                   spells/spell.cpp
-spell_db.cpp                spells/db.cpp
-spell_manager.cpp           spells/manager.cpp
-spell_effect.cpp            spells/effect.cpp
-spell_effect_update.cpp     spells/effect_update.cpp
-spell_effect_internal.h     spells/effect_internal.h
+spell_db.cpp                spells/spell_db.cpp
+spell_manager.cpp           spells/spell_manager.cpp
+spell_effect.cpp            spells/spell_effect.cpp
+spell_effect_update.cpp     spells/spell_effect_update.cpp
+spell_effect_internal.h     spells/spell_effect_internal.h
 
 # ---- effects: particles, the world's effect objects, lightning, weather, the visibility fog ------------------------
 effects.h                   effects/effects.h
-effects_weather.cpp         effects/weather.cpp
+effects_weather.cpp         effects/effects_weather.cpp
 weather_particles.cpp       effects/weather_particles.cpp
-weather_noise.h             effects/weather_noise.h
-weather_noise.cpp           effects/weather_noise.cpp
+weather_field.h             effects/weather_field.h
+weather_field.cpp           effects/weather_field.cpp
 vis_fog_manager.cpp         effects/vis_fog_manager.cpp
 particle_common.h           effects/particle_common.h
 particle_create.cpp         effects/particle_create.cpp
@@ -379,10 +379,10 @@ ai_fog_grid.cpp             effects/world_effect_visibility.cpp fold # FogGrid (
 # ---- terrain: the landscape, its sectors and sounds, ground prints and decals, water levels -----------------------
 terrain.h                   terrain/terrain.h
 terrain.cpp                 terrain/terrain.cpp
-terrain_landscape.cpp       terrain/landscape.cpp
-terrain_sector.h            terrain/sector.h
-terrain_sector.cpp          terrain/sector.cpp
-terrain_ambience.cpp        terrain/ambience.cpp
+terrain_landscape.cpp       terrain/terrain_landscape.cpp
+terrain_sector.h            terrain/terrain_sector.h
+terrain_sector.cpp          terrain/terrain_sector.cpp
+terrain_ambience.cpp        terrain/terrain_ambience.cpp
 ground_print.h              terrain/ground_print.h            # gains prints.db's records from model.h (C168c)
 ground_print.cpp            terrain/ground_print.cpp          # gains prints.db's load from model_db.cpp (C168b)
 ground_decal.h              terrain/ground_decal.h
@@ -452,151 +452,151 @@ drawn_motion.cpp            scene/drawn_motion.cpp
 
 # ---- script: the mission script engine and Rebirth's commands ----------------------------------------------------
 script.h                    script/script.h
-script_parse.h              script/parse.h
-script_parse.cpp            script/parse.cpp
-script_parse_load.cpp       script/parse_load.cpp
-script_blocks.cpp           script/blocks.cpp
-script_vars.cpp             script/vars.cpp
-script_group.cpp            script/group.cpp
-script_eval.cpp             script/eval.cpp
-script_exec.cpp             script/exec.cpp
-script_exec_helpers.cpp     script/exec_helpers.cpp
-script_exec_run.cpp         script/exec_run.cpp
-script_cleanup.cpp          script/exec_run.cpp         fold  # Script's runtime resets (39 lines): instances and runs, beside where they start
-script_effects.cpp          script/effects.cpp
-script_load.cpp             script/load.cpp
-script_save.cpp             script/save.cpp
-script_addon.h              script/addon.h
-script_addon.cpp            script/addon.cpp
-script_addon_handlers.h     script/addon_handlers.h
-script_addon_commands.cpp   script/addon_commands.cpp
-script_addon_math.cpp       script/addon_math.cpp
-script_addon_units.cpp      script/addon_units.cpp
+script_parse.h              script/script_parse.h
+script_parse.cpp            script/script_parse.cpp
+script_parse_load.cpp       script/script_parse_load.cpp
+script_blocks.cpp           script/script_blocks.cpp
+script_vars.cpp             script/script_vars.cpp
+script_group.cpp            script/script_group.cpp
+script_eval.cpp             script/script_eval.cpp
+script_exec.cpp             script/script_exec.cpp
+script_exec_helpers.cpp     script/script_exec_helpers.cpp
+script_exec_run.cpp         script/script_exec_run.cpp
+script_cleanup.cpp          script/script_exec_run.cpp  fold  # Script's runtime resets (39 lines): instances and runs, beside where they start
+script_effects.cpp          script/script_effects.cpp
+script_load.cpp             script/script_load.cpp
+script_save.cpp             script/script_save.cpp
+script_addon.h              script/script_addon.h
+script_addon.cpp            script/script_addon.cpp
+script_addon_handlers.h     script/script_addon_handlers.h
+script_addon_commands.cpp   script/script_addon_commands.cpp
+script_addon_math.cpp       script/script_addon_math.cpp
+script_addon_units.cpp      script/script_addon_units.cpp
 
 # ---- net: sessions, connections, links, messages, the lobby, delta replication -----------------------------------
-net_classes.h               net/session.h                     # "classes": the sessions' classes (SessionBase, ServerBase, ClientBase ...) and the message base
-net_session.h               net/session.h               fold  # the network pump's two functions (19 lines)
-net_session.cpp             net/session.cpp
-net_socket_driver.cpp       net/socket_driver.cpp
-net_connection.h            net/connection.h
-net_connection.cpp          net/connection.cpp
-net_connection_life.cpp     net/connection.cpp          fold  # Connection's state, reset and tick (98 lines): the same class
-net_link.h                  net/link.h
-net_link.cpp                net/link.cpp
-net_messages.h              net/messages.h
-net_messages.cpp            net/messages.cpp
-net_delta.h                 net/delta.h
-net_delta.cpp               net/delta.cpp
-net_lobby.cpp               net/lobby.cpp
-net_game_info.cpp           net/lobby.cpp               fold  # the game announcement record (48 lines) the lobby sends
-net_second_master.h         net/second_master.h
-net_second_master.cpp       net/second_master.cpp
-net_server.cpp              net/server.cpp
-net_server_map.cpp          net/server_map.cpp
-net_server_players.cpp      net/server_players.cpp
-net_server_trade.cpp        net/server_trade.cpp
-net_client.cpp              net/client.cpp
-net_client_handlers.cpp     net/client_handlers.cpp
-net_client_party.cpp        net/client_party.cpp
+net_classes.h               net/net_session.h                 # "classes": the sessions' classes (SessionBase, ServerBase, ClientBase ...) and the message base
+net_session.h               net/net_session.h           fold  # the network pump's two functions (19 lines)
+net_session.cpp             net/net_session.cpp
+net_socket_driver.cpp       net/net_socket_driver.cpp
+net_connection.h            net/net_connection.h
+net_connection.cpp          net/net_connection.cpp
+net_connection_life.cpp     net/net_connection.cpp      fold  # Connection's state, reset and tick (98 lines): the same class
+net_link.h                  net/net_link.h
+net_link.cpp                net/net_link.cpp
+net_messages.h              net/net_messages.h
+net_messages.cpp            net/net_messages.cpp
+net_delta.h                 net/net_delta.h
+net_delta.cpp               net/net_delta.cpp
+net_lobby.cpp               net/net_lobby.cpp
+net_game_info.cpp           net/net_lobby.cpp           fold  # the game announcement record (48 lines) the lobby sends
+net_second_master.h         net/net_second_master.h
+net_second_master.cpp       net/net_second_master.cpp
+net_server.cpp              net/net_server.cpp
+net_server_map.cpp          net/net_server_map.cpp
+net_server_players.cpp      net/net_server_players.cpp
+net_server_trade.cpp        net/net_server_trade.cpp
+net_client.cpp              net/net_client.cpp
+net_client_handlers.cpp     net/net_client_handlers.cpp
+net_client_party.cpp        net/net_client_party.cpp
 
 # ---- ui: the interface: manager, windows and controls, screens, the HUD, the camp, the cursor, layout -------------
 ui.h                        ui/ui.h
-ui_interface.cpp            ui/interface.cpp
-ui_text.cpp                 ui/interface.cpp            fold  # Interface3D's text layout (69 lines)
-ui_interface_input.cpp      ui/interface_input.cpp
-ui_create_screen.cpp        ui/create_screen.cpp
-ui_window.cpp               ui/window.cpp
-ui_region_tips.cpp          ui/window.cpp               fold  # UiRegion's tooltip setters (38 lines): UiRegion's other members are there
-ui_container.cpp            ui/container.cpp
-ui_container_draws.cpp      ui/container.cpp            split # draws by kind: UiContainer's -> ui/container.cpp, the briefing screen's -> ui/briefing.cpp, the menu's -> ui/main_menu.cpp, the equipment panel's -> ui/hero_panels.cpp, ClearUiDepth -> ui/interface.cpp (C168b; the file goes)
-ui_surface.cpp              ui/surface.cpp
-ui_tooltip.cpp              ui/tooltip.cpp
-ui_font.h                   ui/font.h
-ui_font.cpp                 ui/font.cpp
-ui_float.h                  ui/float.h
-ui_mesh.h                   ui/mesh.h
-ui_mesh.cpp                 ui/mesh.cpp
-ui_model.cpp                ui/model.cpp
-ui_scrollbar.h              ui/scrollbar.h
-ui_scrollbar.cpp            ui/scrollbar.cpp
-ui_scroll_text.h            ui/scroll_text.h
-ui_scroll_text.cpp          ui/scroll_text.cpp
-ui_scrolling_surface.cpp    ui/scrolling_surface.cpp
-ui_spin.h                   ui/spin.h
-ui_spin.cpp                 ui/spin.cpp
-ui_drop_list.h              ui/drop_list.h
-ui_drop_list.cpp            ui/drop_list.cpp
-ui_edit_field.h             ui/edit_field.h
-ui_edit_field.cpp           ui/edit_field.cpp
-ui_cursor.h                 ui/cursor.h
-ui_cursor.cpp               ui/cursor.cpp
-cursor_setup.cpp            ui/cursor.cpp               fold  # the cursor's set-up and its 25 shapes (59 lines)
+ui_interface.cpp            ui/ui_interface.cpp
+ui_text.cpp                 ui/ui_interface.cpp         fold  # Interface3D's text layout (69 lines)
+ui_interface_input.cpp      ui/ui_interface_input.cpp
+ui_create_screen.cpp        ui/ui_create_screen.cpp
+ui_window.cpp               ui/ui_window.cpp
+ui_region_tips.cpp          ui/ui_window.cpp            fold  # UiRegion's tooltip setters (38 lines): UiRegion's other members are there
+ui_container.cpp            ui/ui_container.cpp
+ui_container_draws.cpp      ui/ui_container.cpp         split # draws by kind: UiContainer's -> ui/ui_container.cpp, the briefing screen's -> ui/ui_briefing.cpp, the menu's -> ui/ui_main_menu.cpp, the equipment panel's -> ui/ui_hero_panels.cpp, ClearUiDepth -> ui/ui_interface.cpp (C168b; the file goes)
+ui_surface.cpp              ui/ui_surface.cpp
+ui_tooltip.cpp              ui/ui_tooltip.cpp
+ui_font.h                   ui/ui_font.h
+ui_font.cpp                 ui/ui_font.cpp
+ui_float.h                  ui/ui_float.h
+ui_mesh.h                   ui/ui_mesh.h
+ui_mesh.cpp                 ui/ui_mesh.cpp
+ui_model.cpp                ui/ui_model.cpp
+ui_scrollbar.h              ui/ui_scrollbar.h
+ui_scrollbar.cpp            ui/ui_scrollbar.cpp
+ui_scroll_text.h            ui/ui_scroll_text.h
+ui_scroll_text.cpp          ui/ui_scroll_text.cpp
+ui_scrolling_surface.cpp    ui/ui_scrolling_surface.cpp
+ui_spin.h                   ui/ui_spin.h
+ui_spin.cpp                 ui/ui_spin.cpp
+ui_drop_list.h              ui/ui_drop_list.h
+ui_drop_list.cpp            ui/ui_drop_list.cpp
+ui_edit_field.h             ui/ui_edit_field.h
+ui_edit_field.cpp           ui/ui_edit_field.cpp
+ui_cursor.h                 ui/ui_cursor.h
+ui_cursor.cpp               ui/ui_cursor.cpp
+cursor_setup.cpp            ui/ui_cursor.cpp            fold  # the cursor's set-up and its 25 shapes (59 lines)
 screen_layout.h             ui/screen_layout.h
 screen_layout.cpp           ui/screen_layout.cpp
-ui_layouts.cpp              ui/layouts.cpp
-ui_menu_pieces.h            ui/menu_pieces.h
-ui_main_menu.cpp            ui/main_menu.cpp
-ui_credits.cpp              ui/credits.cpp
-ui_message_box.h            ui/message_box.h
-ui_message_box.cpp          ui/message_box.cpp
-ui_help_window.h            ui/help_window.h
-ui_help_window.cpp          ui/help_window.cpp
-ui_options.h                ui/options.h
-ui_options.cpp              ui/options.cpp
-ui_saveload.h               ui/saveload.h
-ui_saveload.cpp             ui/saveload.cpp
-ui_objectives.h             ui/objectives.h
-ui_objectives.cpp           ui/objectives.cpp
-ui_screens.h                ui/screens.h
-ui_screens.cpp              ui/screens.cpp
-ui_view_screen.h            ui/view_screen.h
-ui_view_screen.cpp          ui/view_screen.cpp
-ui_connect_screen.cpp       ui/connect_screen.cpp
-ui_connect_list.cpp         ui/connect_list.cpp
-ui_exchange.cpp             ui/exchange.cpp
-ui_chat_overlay.h           ui/chat_overlay.h
-ui_chat_overlay.cpp         ui/chat_overlay.cpp
-ui_chat_window.cpp          ui/chat_window.cpp
-ui_flying_hit_points.h      ui/flying_hit_points.h
-ui_flying_hit_points.cpp    ui/flying_hit_points.cpp
-ui_camera_keys.h            ui/camera_input.h                 # CameraInput's header, named for its code
-ui_camera_input.cpp         ui/camera_input.cpp
+ui_layouts.cpp              ui/ui_layouts.cpp
+ui_menu_pieces.h            ui/ui_menu_pieces.h
+ui_main_menu.cpp            ui/ui_main_menu.cpp
+ui_credits.cpp              ui/ui_credits.cpp
+ui_message_box.h            ui/ui_message_box.h
+ui_message_box.cpp          ui/ui_message_box.cpp
+ui_help_window.h            ui/ui_help_window.h
+ui_help_window.cpp          ui/ui_help_window.cpp
+ui_options.h                ui/ui_options.h
+ui_options.cpp              ui/ui_options.cpp
+ui_saveload.h               ui/ui_saveload.h
+ui_saveload.cpp             ui/ui_saveload.cpp
+ui_objectives.h             ui/ui_objectives.h
+ui_objectives.cpp           ui/ui_objectives.cpp
+ui_screens.h                ui/ui_screens.h
+ui_screens.cpp              ui/ui_screens.cpp
+ui_view_screen.h            ui/ui_view_screen.h
+ui_view_screen.cpp          ui/ui_view_screen.cpp
+ui_connect_screen.cpp       ui/ui_connect_screen.cpp
+ui_connect_list.cpp         ui/ui_connect_list.cpp
+ui_exchange.cpp             ui/ui_exchange.cpp
+ui_chat_overlay.h           ui/ui_chat_overlay.h
+ui_chat_overlay.cpp         ui/ui_chat_overlay.cpp
+ui_chat_window.cpp          ui/ui_chat_window.cpp
+ui_flying_hit_points.h      ui/ui_flying_hit_points.h
+ui_flying_hit_points.cpp    ui/ui_flying_hit_points.cpp
+ui_camera_keys.h            ui/ui_camera_input.h              # CameraInput's header, named for its code
+ui_camera_input.cpp         ui/ui_camera_input.cpp
 camera_trace.h              ui/camera_trace.h
 camera_trace.cpp            ui/camera_trace.cpp
-ui_battle.h                 ui/battle.h
-ui_battle.cpp               ui/battle.cpp
-ui_hud.h                    ui/hud.h
-ui_hud_pieces.h             ui/hud_pieces.h
-ui_hud_corner.cpp           ui/hud_corner.cpp
-ui_hud_portraits.cpp        ui/hud_portraits.cpp
-ui_hud_side.cpp             ui/hud_side.cpp
-ui_hud_slots.cpp            ui/hud_slots.cpp
-ui_briefing.h               ui/briefing.h
-ui_briefing.cpp             ui/briefing.cpp
-ui_person_texts.cpp         ui/briefing.cpp             fold  # LoadPersonTexts (30 lines): the briefing screen reads them (the battle screen inline)
-ui_briefing_create.cpp      ui/briefing_create.cpp
-ui_briefing_dialogue.cpp    ui/briefing_dialogue.cpp
-ui_briefing_input.cpp       ui/briefing_input.cpp
-ui_briefing_phrases.cpp     ui/briefing_phrases.cpp
-ui_briefing_start.cpp       ui/briefing_start.cpp
-ui_camp.h                   ui/camp.h
-ui_camp.cpp                 ui/camp.cpp
-ui_global_map.cpp           ui/global_map.cpp
-ui_global_map_input.cpp     ui/global_map_input.cpp
-ui_global_map_paths.cpp     ui/global_map_paths.cpp
+ui_battle.h                 ui/ui_battle.h
+ui_battle.cpp               ui/ui_battle.cpp
+ui_hud.h                    ui/ui_hud.h
+ui_hud_pieces.h             ui/ui_hud_pieces.h
+ui_hud_corner.cpp           ui/ui_hud_corner.cpp
+ui_hud_portraits.cpp        ui/ui_hud_portraits.cpp
+ui_hud_side.cpp             ui/ui_hud_side.cpp
+ui_hud_slots.cpp            ui/ui_hud_slots.cpp
+ui_briefing.h               ui/ui_briefing.h
+ui_briefing.cpp             ui/ui_briefing.cpp
+ui_person_texts.cpp         ui/ui_briefing.cpp          fold  # LoadPersonTexts (30 lines): the briefing screen reads them (the battle screen inline)
+ui_briefing_create.cpp      ui/ui_briefing_create.cpp
+ui_briefing_dialogue.cpp    ui/ui_briefing_dialogue.cpp
+ui_briefing_input.cpp       ui/ui_briefing_input.cpp
+ui_briefing_phrases.cpp     ui/ui_briefing_phrases.cpp
+ui_briefing_start.cpp       ui/ui_briefing_start.cpp
+ui_camp.h                   ui/ui_camp.h
+ui_camp.cpp                 ui/ui_camp.cpp
+ui_global_map.cpp           ui/ui_global_map.cpp
+ui_global_map_input.cpp     ui/ui_global_map_input.cpp
+ui_global_map_paths.cpp     ui/ui_global_map_paths.cpp
 global_map_clouds.h         ui/global_map_clouds.h
 global_map_clouds.cpp       ui/global_map_clouds.cpp
-ui_hero_panels.cpp          ui/hero_panels.cpp
-ui_equip_panels.cpp         ui/hero_panels.cpp          fold  # "the hero panels' small methods" (98 lines)
-ui_hero_preview.cpp         ui/hero_preview.cpp
-ui_hero_screen.cpp          ui/hero_screen.cpp
-ui_hero_screen_click.cpp    ui/hero_screen_click.cpp
-ui_hero_screen_create.cpp   ui/hero_screen_create.cpp
-ui_stats.cpp                ui/stats.cpp
-ui_trade_panel.cpp          ui/trade_panel.cpp
-ui_panel_draws.cpp          ui/panel_draws.cpp
-ui_item_info.h              ui/item_info.h
-ui_item_info.cpp            ui/item_info.cpp
-ui_item_screen.cpp          ui/item_screen.cpp
-ui_item_strip.cpp           ui/item_strip.cpp
-ui_item_view.cpp            ui/item_view.cpp
+ui_hero_panels.cpp          ui/ui_hero_panels.cpp
+ui_equip_panels.cpp         ui/ui_hero_panels.cpp       fold  # "the hero panels' small methods" (98 lines)
+ui_hero_preview.cpp         ui/ui_hero_preview.cpp
+ui_hero_screen.cpp          ui/ui_hero_screen.cpp
+ui_hero_screen_click.cpp    ui/ui_hero_screen_click.cpp
+ui_hero_screen_create.cpp   ui/ui_hero_screen_create.cpp
+ui_stats.cpp                ui/ui_stats.cpp
+ui_trade_panel.cpp          ui/ui_trade_panel.cpp
+ui_panel_draws.cpp          ui/ui_panel_draws.cpp
+ui_item_info.h              ui/ui_item_info.h
+ui_item_info.cpp            ui/ui_item_info.cpp
+ui_item_screen.cpp          ui/ui_item_screen.cpp
+ui_item_strip.cpp           ui/ui_item_strip.cpp
+ui_item_view.cpp            ui/ui_item_view.cpp
