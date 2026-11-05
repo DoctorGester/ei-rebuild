@@ -817,8 +817,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     // Only enemies that could notice the unit (1.1 x the larger of their sight and hearing).
     std::erase_if(candidates, [unit](Unit* other) {
         UnitServer* control = other->ServerController();
-        float sight = control->moveFactors[3] * control->stats.perception[0].current;
-        float hearing = control->stats.perception[2].current;
+        float sight = control->moveFactors[kFactorSight] * control->stats.perception[kSenseSight].current;
+        float hearing = control->stats.perception[kSenseNear].current;
         float reach = sight < hearing ? hearing : sight;
         float limit = reach * kReachScale;
         return limit * limit < DistanceSquaredXY(other->localPosition, unit->localPosition);

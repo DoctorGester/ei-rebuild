@@ -105,9 +105,9 @@ Then noticedLevel / 6 when it is above 50 and the mode is in charge or the notic
 ## AIBrain::ApplyBehaviour
 
 The modes of behaviour `record`: the list emptied, the call radius (the default one becomes [Logic] CallForHelpRadius)
-and alert mode taken; type Guard guards the record's point, GuardAlarm the point of world alarm `slot`, 3 a sentry there, 2 patrols
+and alert mode taken; type Guard guards the record's point, GuardAlarm the point of world alarm `slot`, Sentry a sentry there, Patrol patrols
 (each patrol's start on its half-cell's middle, its waypoints as looks from there; without `loop` the points are walked
-back too), 4 the party's Player mode. Except for types 0 and 4 the reaction (`alarm`) adds Aggression (0) or Revenge (1)
-with Suspection, CorpseWatcher and Fear(0); 2 CorpseWatcher and Fear(0); 3 CorpseWatcher and Fear(1). Then the alarm
+back too), Party the party's Player mode. Except for types None and Party the reaction (`alarm`) adds Aggression (Fight) or
+Revenge with Suspection, CorpseWatcher and Fear(0); Watch CorpseWatcher and Fear(0); WatchFearful CorpseWatcher and Fear(1). Then the alarm
 (kind, `slot`, countdown at least 1, not alerted), no action or target, the attack options rebuilt, and with flag bit 3
 the unit joins the world's update map.

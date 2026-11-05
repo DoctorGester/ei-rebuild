@@ -158,6 +158,16 @@ enum class UnitState : int {
     Stopped = 6,     // the unit stands: the order ended or was dropped, ready for the next one
 };
 
+// The slots of UnitServer::moveFactors: what the light, the weather and the unit's pose make of its senses. Each
+// multiplies one Sense of the unit: noise its conspicuity[kSenseHearing], hearing its perception[kSenseHearing],
+// visibility its conspicuity[kSenseSight], sight its perception[kSenseSight].
+enum MoveFactor {
+    kFactorNoise = 0,
+    kFactorHearing = 1,
+    kFactorVisibility = 2,
+    kFactorSight = 3,
+};
+
 class UnitServer : public UnitController {
 public:
     UnitServer();
@@ -569,7 +579,7 @@ public:
     DamageWords protection{};       // [0] the defence value, [1..7] the body's protection
                                     // per damage type (UnitStats::PackBodyProtection)
     float sinkSpeed = 0.0f;         // a dead unit's body sinks this much a tick (accelerating)
-    float moveFactors[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    float moveFactors[4] = {1.0f, 1.0f, 1.0f, 1.0f};    // by MoveFactor (UpdateMoveFactors)
     int tameStage = 0;              // 0..3 (TryTame)
     int ownSide = -1;               // the unit's own side while tamed (TryTame)
     int tamerSide = -1;             // the tamer's side (TryTame)

@@ -535,31 +535,31 @@ void UnitServer::UpdateSizeClasses() {
 void UnitServer::UpdateMoveFactors() {
     const WorldServer* world = ServerWorld();
     float factor = world->nightLevel;
-    float scaled = (factor * stats.perception[1].current) * kWorldFactorScale;
-    moveFactors[0] = 1.0f;
-    moveFactors[2] = 1.0f;
-    moveFactors[1] = 1.0f;
+    float scaled = (factor * stats.perception[kSenseDaySight].current) * kWorldFactorScale;
+    moveFactors[kFactorNoise] = 1.0f;
+    moveFactors[kFactorVisibility] = 1.0f;
+    moveFactors[kFactorHearing] = 1.0f;
     float sum = scaled + (1.0f - factor);
-    moveFactors[3] = world->weatherFactor * sum;
+    moveFactors[kFactorSight] = world->weatherFactor * sum;
     if (unit->moveMode == MoveMode::Lie) {
-        moveFactors[2] = kMode0Factor2;
+        moveFactors[kFactorVisibility] = kMode0Factor2;
     } else if (unit->moveMode == MoveMode::Crawl) {
-        moveFactors[2] = kMode1Factor2;
+        moveFactors[kFactorVisibility] = kMode1Factor2;
     }
     if (state == UnitState::Idle) {
-        if (unit->moveMode == MoveMode::Lie) moveFactors[0] = kIdleMode0Factor0;
-        else if (unit->moveMode == MoveMode::Crawl) moveFactors[0] = kIdleMode1Factor0;
+        if (unit->moveMode == MoveMode::Lie) moveFactors[kFactorNoise] = kIdleMode0Factor0;
+        else if (unit->moveMode == MoveMode::Crawl) moveFactors[kFactorNoise] = kIdleMode1Factor0;
         if (unit->moveMode == MoveMode::Run) {
-            moveFactors[0] = kIdleMode3Scale * moveFactors[0];
-            moveFactors[1] = kIdleMode3Factor1;
+            moveFactors[kFactorNoise] = kIdleMode3Scale * moveFactors[kFactorNoise];
+            moveFactors[kFactorHearing] = kIdleMode3Factor1;
         }
     } else {
-        moveFactors[0] = 0.0f;
+        moveFactors[kFactorNoise] = 0.0f;
     }
     if (state == UnitState::Acting && (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn)) {
         Spell* spell = SpellOfSource(action.source);
         if (spell && spell->GetPrototype()->castType != 1)
-            moveFactors[2] = kCastingFactor2 * moveFactors[2];
+            moveFactors[kFactorVisibility] = kCastingFactor2 * moveFactors[kFactorVisibility];
     }
     if (state != UnitState::Idle) {
         speedClass = 15;

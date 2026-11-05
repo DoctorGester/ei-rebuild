@@ -331,9 +331,9 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     float bonus = 0.0f;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         float level = record->Value();
-        if (level != 0.0f) bonus = level * perception[1].current * kPercentB;
+        if (level != 0.0f) bonus = level * perception[kSenseDaySight].current * kPercentB;
     }
-    perception[1].current = bonus + perception[1].current;
+    perception[kSenseDaySight].current = bonus + perception[kSenseDaySight].current;
     const ::SkillLevelRecord* record = SkillLevelRecord(kSkillStat10);
     strength = (record ? record->Value() : 0.0f) + strength;
     record = SkillLevelRecord(kSkillStat18);
@@ -354,19 +354,19 @@ void UnitStats::Recompute(UnitVitals* vitals, Unit* unit) {
     vitals->protection[3].current = SelectLess(strongest[9], general, general, strongest[9]) + vitals->protection[3].current;
     vitals->protection[5].current = SelectLess(strongest[10], general, general, strongest[10]) + vitals->protection[5].current;
     vitals->protection[4].current = SelectLess(strongest[11], general, general, strongest[11]) + vitals->protection[4].current;
-    perception[0].current = strongest[12] + perception[0].current;
-    perception[1].current = strongest[13] + perception[1].current;
-    perception[2].current = strongest[14] + perception[2].current;
-    float lowered = conspicuity[0].current - strongest[15] * kPercentB;
+    perception[kSenseSight].current = strongest[12] + perception[kSenseSight].current;
+    perception[kSenseDaySight].current = strongest[13] + perception[kSenseDaySight].current;
+    perception[kSenseNear].current = strongest[14] + perception[kSenseNear].current;
+    float lowered = conspicuity[kSenseSight].current - strongest[15] * kPercentB;
     float l = lowered;
-    conspicuity[0].current = SelectLess(0.0f, l, l, 0.0f);
-    lowered = conspicuity[3].current - strongest[16];
+    conspicuity[kSenseSight].current = SelectLess(0.0f, l, l, 0.0f);
+    lowered = conspicuity[kSenseHearing].current - strongest[16];
     l = lowered;
-    conspicuity[3].current = SelectLess(0.0f, l, l, 0.0f);
-    lowered = conspicuity[2].current - strongest[17];
+    conspicuity[kSenseHearing].current = SelectLess(0.0f, l, l, 0.0f);
+    lowered = conspicuity[kSenseNear].current - strongest[17];
     l = lowered;
-    conspicuity[2].current = SelectLess(0.0f, l, l, 0.0f);
-    conspicuity[4].current = strongest[19] + conspicuity[4].current;
+    conspicuity[kSenseNear].current = SelectLess(0.0f, l, l, 0.0f);
+    conspicuity[kSenseSlot4].current = strongest[19] + conspicuity[kSenseSlot4].current;
     float hasteDelta = strongest[0x21] - strongest[0x22];
 
     if (keyed) {
