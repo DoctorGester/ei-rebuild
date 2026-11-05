@@ -197,11 +197,6 @@ constexpr float kTurnAboutX = 1.15f;
 constexpr float kSecondTurnAboutZ = 0.4f;
 constexpr float kBarHeight = 15.0f;
 constexpr float kPanelHeight = 220.0f;
-constexpr int kBackground = 0;        // scene objects
-constexpr int kHeightBar = 8;
-constexpr int kMoreMark = 9;
-constexpr int kFirstDisplay = 10;     // 10..31: the bars, the body parts and the effects' pictures
-constexpr int kDisplaysEnd = 32;
 constexpr int kInfoPage = 2;          // bodyPart: the page of texts, without the model
 
 } // namespace
@@ -239,12 +234,12 @@ void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
     screen_layout::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
-    sceneObjects[kHeightBar]->visible = false;
-    sceneObjects[kMoreMark]->visible = false;
+    heightBar->visible = false;
+    moreMark->visible = false;
     // The background alone, before anything else.
-    sceneObjects[kBackground]->visible = true;
-    sceneObjects[kBackground]->Draw(pass);
-    sceneObjects[kBackground]->visible = false;
+    background->visible = true;
+    background->Draw(pass);
+    background->visible = false;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
     Unit* unit = nullptr;
@@ -259,7 +254,13 @@ void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
         if (unit) size = unit->AnimationRatio() * size;
     }
 
-    for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) sceneObjects[i]->visible = false;
+    // The bars and the effects' pictures show only what this frame's page sets.
+    healthBar->visible = healthFrame->visible = manaBar->visible = manaFrame->visible = false;
+    for (int i = 0; i < 6; ++i) {
+        bodyBars[i]->visible = false;
+        bodyFrames[i]->visible = false;
+        effectSprites[i]->visible = false;
+    }
 
     if (unit && unit->AsObject3D()->attached) {
         Object3D* model = unit->AsObject3D();
@@ -325,15 +326,14 @@ void HudUnitPanel::DrawSprites(SceneRenderer* pass) {
         switch (bodyPart) {
         case 0: {
             ShowHealth(unit);
-            // The height bar (scene object 8): the model's fifteen layout units, from the panel's
-            // bottom.
+            // The height bar: the model's fifteen layout units, from the panel's bottom.
             const float barScale = kBarHeight / size;
             std::uint32_t bits;
             bits = std::bit_cast<std::uint32_t>(barScale);
-            sceneObjects[kHeightBar]->SetScaleYBits(bits);
+            heightBar->SetScaleYBits(bits);
             const float barY = kPanelHeight - barScale * kPanelHeight;
-            sceneObjects[kHeightBar]->Place(static_cast<float>(20 - offset), barY, 4.0f);
-            sceneObjects[kHeightBar]->visible = true;
+            heightBar->Place(static_cast<float>(20 - offset), barY, 4.0f);
+            heightBar->visible = true;
             break;
         }
         case 1:

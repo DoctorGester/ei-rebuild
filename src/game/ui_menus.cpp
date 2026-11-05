@@ -170,10 +170,10 @@ void OptionsWindow::LeftDown(Point point) {
         UiContainer::LeftDown(point);
         return;
     }
-    int region = RegionAt(point);
-    if (region == 0 || region == 1) {
+    const UiRegion* region = RegionUnder(point);
+    if (region == okButton || region == cancelButton) {
         const char* sound;
-        if (region == 0) {
+        if (region == okButton) {
             Apply();
             sound = kMessageBoxOkSound;
         } else {
@@ -183,16 +183,16 @@ void OptionsWindow::LeftDown(Point point) {
         ui->PlayInterfaceSound(sound);
         ui->SetPendingValue(kCloseOptions);
     } else {
-        if (region >= 2 && region < 13) {
+        if (const int groupIndex = RegionIndex(groupButtons, region); groupIndex >= 0) {
             ui->PlayInterfaceSound(kSaveSelectSound);
             waitingForKey = false;
-            ShowGroup(region - 2);
+            ShowGroup(groupIndex);
         }
-        if (region >= 13) {
-            OptionRow& row = RegionRow(region);
+        if (const int rowIndex = RegionIndex(rowAreas, region); rowIndex >= 0) {
+            const OptionRow& row = rows[rowIndex];
             if (row.binding || row.setting) {
                 ui->PlayInterfaceSound(kSaveSelectSound);
-                selectedRow = region - 13;
+                selectedRow = rowIndex;
                 waitingForKey = false;
                 RefreshRows();
             }
@@ -207,12 +207,11 @@ void OptionsWindow::LeftDouble(Point point) {
         UiContainer::LeftDouble(point);
         return;
     }
-    int region = RegionAt(point);
-    if (region >= 13) {
-        OptionRow& row = RegionRow(region);
+    if (const int rowIndex = RegionIndex(rowAreas, RegionUnder(point)); rowIndex >= 0) {
+        const OptionRow& row = rows[rowIndex];
         if (row.binding) {
             ui->PlayInterfaceSound(kSaveSelectSound);
-            selectedRow = region - 13;
+            selectedRow = rowIndex;
             waitingForKey = true;
             RefreshRows();
         } else if (row.setting && row.setting->list) {
@@ -220,7 +219,7 @@ void OptionsWindow::LeftDouble(Point point) {
             row.setting->list->Open();
         } else if (row.setting && row.setting->spin) {
             const int value = row.setting->spin->TakeValue();
-            RegionRow(region).setting->spin->SetValue(value + 1);
+            row.setting->spin->SetValue(value + 1);
             ui->PlayInterfaceSound(kMessageBoxOkSound);
             RefreshRows();
         }
@@ -344,7 +343,7 @@ void UiScrollbar::Update() {
 void UiScrollbar::LeftDown(Point point) {
     // The arrows' region from the screen point (the original tested the point scaled twice: no arrow took a click at
     // any size but 800x600).
-    const int region = RegionAt(point);
+    const UiRegion* region = RegionUnder(point);
     ui->ScalePointFromScreen(&point);
     if (thumb.Contains(point)) {
         CaptureMouse();
@@ -354,9 +353,9 @@ void UiScrollbar::LeftDown(Point point) {
         handled = true;
         return;
     }
-    if (region != 0 && region != 1) return;
+    if (region != upButton && region != downButton) return;
     CaptureMouse();
-    state = region == 0 ? 2 : 3;
+    state = region == upButton ? 2 : 3;
     accumulated = 0.0f;
     handled = true;
 }

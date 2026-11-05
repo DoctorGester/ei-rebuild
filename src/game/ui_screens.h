@@ -176,6 +176,10 @@ public:
     static constexpr int kModeStats = 11;
     // The points a new hero's three attributes must add up to before it can be created (a float in the exe's data).
     static constexpr float kAttributePoints = 75.0f;
+    // The regions before the shown list's rows, and the rows of the hero list and of the voices.
+    static constexpr int kFixedRegions = 9;
+    static constexpr int kHeroRows = 10;
+    static constexpr int kVoiceRows = 11;
 
     // Built inline by the main menu's Multiplayer click.
     explicit MpHeroScreen(Interface3D* ui) : ItemScreen(ui) {}
@@ -237,18 +241,18 @@ public:
     // attribute points and the name is not empty.
     void Update() override;
     void DrawExperience();
-    // Region 6 of the list: the rename edit window enabled and editing; its text is the selected hero's name after its "|",
-    // surface 3 shows the name before it plus " | ". Nothing without a selection.
+    // The list's rename button: the rename edit window enabled and editing; its text is the selected hero's name after
+    // its "|", surface 3 shows the name before it plus " | ". Nothing without a selection.
     void Rename();
     // The hero's voice: the sound playing stopped, then one of the voice's sound-set entries with flags 0x2282 and a name, from
     // a random one on, played (voiceSound).
     void PlayVoice();
-    // Enter / region 1 of the list: with a hero selected the heroes are saved and the connection screen opened; otherwise a
-    // message box.
+    // Enter / the list's forward button: with a hero selected the heroes are saved and the connection screen opened;
+    // otherwise a message box.
     void Continue();
-    // Region 1 / Enter of the new hero: when the three attributes add up to the attribute points and a name is typed, the
-    // first weapon, one more entry and the spell entry shown, the name given to the hero and the statistics panel, mode 11;
-    // otherwise the cancel sound.
+    // The forward button / Enter of the new hero: when the three attributes add up to the attribute points and a name
+    // is typed, the first weapon, one more entry and the spell entry shown, the name given to the hero and the
+    // statistics panel, mode 11; otherwise the cancel sound.
     void CreateHero();
     // The selected hero deleted: its file removed, later records moved down, the selection kept, the list's scroll range and
     // list redrawn. Nothing without a selection.
@@ -256,8 +260,8 @@ public:
     // A message box answered: 0x10001 (the "lmp_deletepers" OK) deletes the hero; then the selected hero's record takes the
     // local player's party and sends the transfer; mode 9.
     void MessageResult(std::uint32_t result) override;
-    // Region 1 / Enter of the statistics page: the new hero is kept and saved as a record: see docs/notes/ui.md,
-    // "MpHeroScreen::AddNewHero".
+    // The forward button / Enter of the statistics page: the new hero is kept and saved as a record: see
+    // docs/notes/ui.md, "MpHeroScreen::AddNewHero".
     void AddNewHero();
     // The screen laid out for `mode` (9 list, 10 new hero, 11 statistics): see docs/notes/ui.md, "MpHeroScreen::SetMode".
     // Rebirth's WideScreen shows the curtains (sprites 19 and 20) in modes 10 and 11 and hides them in 9.
@@ -268,6 +272,8 @@ public:
     // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
+    // The shown list's row of `region` (negative for a button or none).
+    int ListRow(const UiRegion* region) const { return RegionIndex(regions, region) - kFixedRegions; }
 
     int mode = 0;               // 9, 10, 11
     int heroIndex = 0;          // selected hero
@@ -298,6 +304,22 @@ public:
     // The four surfaces' paints: 0 the hero list, 1 the list's commands, 2 the voices or the experience lines, 3 the
     // renamed hero's name.
     std::vector<UiLabel> labels[4];
+
+    // The regions every mode keeps, in their order (SetMode places the first four and gives the tips).
+    UiRegion* backButton = nullptr;        // the list: the main menu; the new hero: cancel; its statistics: back
+    UiRegion* forwardButton = nullptr;     // the list: continue; the new hero: create; its statistics: add the hero
+    UiRegion* turnButtons[2] = {};         // the preview turned one way (rotating 1) or the other (2)
+    UiRegion* resetButton = nullptr;       // the new hero's defaults; its statistics: the equipment taken back
+    UiRegion* newHeroButton = nullptr;     // the list's four commands
+    UiRegion* renameButton = nullptr;
+    UiRegion* deleteButton = nullptr;
+    UiRegion* inventoryButton = nullptr;
+    // The sprites SetMode shows and places by mode.
+    UiMesh* selectionFrame = nullptr;      // on the selected hero or voice
+    UiMesh* quarters[4] = {};              // the frame around the figure
+    UiMesh* resetIcon = nullptr;           // the new hero's buttons; createIcon lit when the hero can be made
+    UiMesh* cancelIcon = nullptr;
+    UiMesh* createIcon = nullptr;
 };
 
 // --- Multiplayer connection screen --------------------------------------------------------------

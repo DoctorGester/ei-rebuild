@@ -311,7 +311,12 @@ Rebuild every new game, ShowFace for low mana and hits), `HudMap`, `HudUnitPanel
 
 A panel's buttons go through `UiWindow::PressRegion` (button down: the region, the event used, the mouse taken),
 `PressedRegion` (button up: only with the mouse taken here) and `HitRegion` (move, wheel), over its first `count` regions
-(weapon bar, spell and action columns) or all of them. Each action is one function the click and its key both call: the
+(weapon bar, spell and action columns) or all of them; each returns the `UiRegion*` (null for none). A panel keeps the
+regions and sprites it uses again in named members (`HudMap::slingButton`, `viewButtons[2]`, `viewIcons[2]`, ...; a
+portrait's sprites in its `HudPortraitSlot`) and compares the region it gets with them; the slot lists (weapons, quick
+items, spells, actions, portraits) stay indexed, their slot `RegionIndex(regions, region)`. The creation order still decides
+the hit test (the first region holding the point; a panel's whole-area region comes last), the drawing order and the
+harness's `region <n>` steps. Each action is one function the click and its key both call: the
 weapon `HudWeaponBar::Choose`, the slings `PanelSlide::Toggle`, "camera north" `HudMap::FaceNorth`, the clock's
 `TogglePause` / `SetSpeed` / `OpenObjectives`, the movement panel's `SetMode` / `ToggleFlag`, the spell column's `Click` /
 `ClickAlternate`, the quick items' `Pick` / `UseNow`, the action column's `Select`. A held view button's release on the map
@@ -325,7 +330,8 @@ is not marked used.
   multiple of four with its first point and fans it; the needle angle is atan2(-x, -y) of the facing.
 - The clock's x centre is the layout constant 800 that WideScreen moves. Time of day = (ticks * rate + start) mod 24 (as
   `WorldTimeOfDay` in script_eval.cpp).
-- Portraits (`HudPortraitSlot`): replacing the scene object reallocates the object array, so it is re-read after; three
+- Portraits (`HudPortraitSlot`): a face model replaced for a new build takes the old one's place in the sprite list and in
+  its slot (`face`); three
   quaternion products each keep their own operand order; the random scales are the exe's doubles, not exact powers of two.
   The orders' nods and the speech shakes are `HudPortraits::Wobble(index, kind)`. Kept: the sex letter ("m" / "f") keeps the
   previous portrait's value for a figure that is neither "unhuma" nor "unhufe"; AddPortrait indexes the column's frame by
@@ -368,8 +374,8 @@ F1. `UiEditField::KeyDown` has no scenario that types into one. The titles' RTF 
   0-20 the original's, 21 our resolution row, a drop-down list: renderer.md, "Resolution changes"; 22-26 our graphics
   rows in the display group's free rows 8 and 10-13, kind 3 a spin control over a list of choices: renderer.md, "The
   graphics rows"; their labels and tips are added texts, Russian where the game's are),
-  59 key actions; 14 rows, 11 groups. The slider (`UiSlider : UiScrollbar`): regions 0 (left, bottom - 10, left + 12,
-  bottom), 1 (right - 12, bottom - 10, right, bottom), 2 (left, top, right, bottom - 10); the scroll bar's depth is 3.0. The
+  59 key actions; 14 rows, 11 groups. The slider (`UiSlider : UiScrollbar`): `upButton` (left, bottom - 10, left + 12,
+  bottom), `downButton` (right - 12, bottom - 10, right, bottom), `trackArea` (left, top, right, bottom - 10); the scroll bar's depth is 3.0. The
   edit field's keys: Backspace, End, Home, Left, Right, Delete. Key names are followed by "  |  ".
 - **Objectives window**: TAB (keyboard.ini `obj`) opens it, Esc or Enter closes it; OK asks for the zone at the nearest exit.
   Build shows the current zone's page, or the zones of the allod in which the player holds quests ("q.<zone>.<quest>" = 1;

@@ -93,21 +93,19 @@ void HudPortraits::Wobble(int index, int kind) {
 
 void HudPortraits::Update() {
     float dt = GamePaused() ? 0.0f : UiContainer::FrameTime();
-    sceneObjects[0]->visible = false;    // the selection marker
+    marker->visible = false;
 
     for (int i = 0; i < std::ssize(owner->party); ++i) {
         if (i >= count) continue;
-        // Objects 5i+1 .. 5i+5, read afresh each time (replacing the face model may move the array).
-        auto object = [this, i](int k) { return sceneObjects[i * 5 + k]; };
         HudPortraitSlot& slot = slots[i];
         Unit* unit = owner->party[i];
 
-        // Health bar (object 5i+2) and mana bar (5i+3).
+        // Health bar and mana bar.
         int hitPoints = unit->packedVitals.hitPoints < 0 ? 0 : unit->packedVitals.hitPoints;
         float health = unit->packedVitals.maxHitPoints > 0
                             ? static_cast<float>(hitPoints) / static_cast<float>(unit->packedVitals.maxHitPoints)
                             : 0.0f;
-        SetBar(object(2), health, kHealthV0, kHealthV1);
+        SetBar(slot.healthBar, health, kHealthV0, kHealthV1);
         std::uint16_t maxMana = unit->packedVitals.maxMana;
         float mana = 0.0f;
         if (maxMana != 0) {
@@ -115,9 +113,9 @@ void HudPortraits::Update() {
             float positive = 0.0f < current ? current : 0.0f;
             mana = positive / static_cast<int>(maxMana);
         }
-        SetBar(object(3), mana, kManaV0, kManaV1);
+        SetBar(slot.manaBar, mana, kManaV0, kManaV1);
 
-        // A drop in hit points flashes the portrait (object 5i+5) and shows the hit picture.
+        // A drop in hit points flashes the portrait and shows the hit picture.
         if (slot.lastHitPoints > hitPoints) {
             slot.flash = 1.0f;
             slot.lastHitPoints = hitPoints;
@@ -127,7 +125,7 @@ void HudPortraits::Update() {
             slot.flash -= dt;
         }
         slot.flash = MaxKeepB(slot.flash, 0.0f);
-        UiMesh* flash = object(5);
+        UiMesh* flash = slot.hitFlash;
         if (slot.flash > 0.0f) {
             flash->visible = true;
             int alpha = static_cast<int>(slot.flash * kFlashAlpha);
@@ -176,7 +174,7 @@ void HudPortraits::Update() {
                 std::string full = withPrefix + suffix;
                 name = full;
             }
-            ReplaceSceneObject(object(1), name);
+            if (UiMesh* made = ReplaceSceneObject(slot.face, name)) slot.face = made;
         }
 
         // Now and then (a third of the time per second) a wobble starts after a random delay:
@@ -238,13 +236,13 @@ void HudPortraits::Update() {
             face = rest;
         slot.current = face;
         if (slot.wobbleKind != 0) face = face * wobble;
-        object(1)->localRotation = face;
+        slot.face->localRotation = face;
 
-        // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).
+        // The marker sits above the camera target's portrait.
         if (g_camera.targetId == unit->id) {
-            sceneObjects[0]->visible = true;
-            const UiMesh::Placement placed = object(4)->GetPlacement();
-            sceneObjects[0]->Place(placed.x, placed.y - kMarkerRise, kMarkerDepth);
+            marker->visible = true;
+            const UiMesh::Placement placed = slot.frame->GetPlacement();
+            marker->Place(placed.x, placed.y - kMarkerRise, kMarkerDepth);
         }
     }
 }
@@ -375,8 +373,13 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
     flash->texture = nullptr;
     flash->flags |= FigureMeshFlag::Flat;
     flash->visible = false;
+    slot.face = face;
+    slot.healthBar = health;
+    slot.manaBar = mana;
+    slot.frame = frame;
+    slot.hitFlash = flash;
 
-    sceneObjects[column * 5 + 4]->visible = false;     // the column's frame
+    slots[column].frame->visible = false;     // the column's frame
     slots[column].restB = kHudRestRotation;
     ++count;
     AddRegion()->SetRect(x, 510, right, 600);
@@ -386,7 +389,8 @@ void HudPortraits::Rebuild(bool wide) {
     ClearSceneObjects();
     ClearRegions();
     while (std::ssize(objects) > 1) RemoveObjectAt(1);
-    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);   // the marker
+    marker = AddBlankSprite();
+    marker->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
     count = 0;
 
     std::string build;     // "th", "me" or "fa"
@@ -413,7 +417,7 @@ void HudPortraits::Rebuild(bool wide) {
         AddPortrait(model, picture, wide, false);
 
         if (owner->party[i]->flags & MapObjectFlag::Selected) {
-            sceneObjects[i * 5 + 4]->visible = true;
+            slots[i].frame->visible = true;
             slots[i].restB = Quaternion::AxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, kHudQuarterTurn * kSeventh);
         }
         slots[i].flash = 0.0f;

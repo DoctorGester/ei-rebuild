@@ -1,5 +1,5 @@
 // The battle HUD's minimap markers (HudMap::BuildMarkers): every frame the map panel
-// rebuilds one mesh (its scene object 2) with a marker per party member and visible unit, per
+// rebuilds one mesh (its markers sprite) with a marker per party member and visible unit, per
 // marked object, per zone exit and, in multiplayer, per other player. See docs/notes/ui.md.
 #include "ui.h"
 #include "ui_screens.h"
@@ -253,24 +253,23 @@ float WheelZoomFactor(float notches) {
 } // namespace
 
 void HudMap::BuildMarkers() {
-    UiMesh* mesh = sceneObjects[2];
     BaseManager* objectManager = g_clientWorld.objectManager.get();
     // The local view: the ids of the units shown on the map (partyUnitIds) and, in multiplayer, of the other
     // players' units (otherUnitIds).
     PlayerClient* localView = g_clientWorld.LocalView();
     int unitCount = localView ? lib::Count(localView->partyUnitIds) : 0;
-    LightFactory* markers = g_clientWorld.lightFactory.get();
-    const std::vector<int>& marked = markers->litIds;
+    LightFactory* lightFactory = g_clientWorld.lightFactory.get();
+    const std::vector<int>& marked = lightFactory->litIds;
     const int markedCount = static_cast<int>(marked.size());
     int exitCount = static_cast<int>(std::ssize(g_clientWorld.exits));
     int playerCount = IsMultiplayerClient() ? lib::Count(localView->otherUnitIds) : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each
-    mesh->SetQuadCount(quads + unitCount);
-    mesh->SetVertexCount((quads + unitCount) * 4);
-    mesh->SetIndexCount((unitCount + quads * 2) * 3);
+    markers->SetQuadCount(quads + unitCount);
+    markers->SetVertexCount((quads + unitCount) * 4);
+    markers->SetIndexCount((unitCount + quads * 2) * 3);
 
-    MarkerWriter out(mesh, this);
+    MarkerWriter out(markers, this);
 
     for (int i = 0; i < unitCount; ++i) {
         out.BeginUnit();
@@ -286,22 +285,22 @@ void HudMap::BuildMarkers() {
             continue;
         }
         PutArrow(out.Block(), unit, x, y);
-        std::int16_t frame = UnitFrame(unit);
+        std::int16_t picture = UnitFrame(unit);
         BattleScreen* currentOwner = owner;
         for (int k = 0; k < std::ssize(currentOwner->party); ++k) {
             if (currentOwner->party[k] == unit) {
-                frame = kFrameParty;
+                picture = kFrameParty;
                 break;
             }
         }
-        out.Show(frame);
+        out.Show(picture);
     }
 
     auto node = marked.begin();
     for (int i = 0; i < markedCount; ++i, ++node) {
         if (node == marked.end()) break;
         out.BeginQuad();
-        Light* light = markers->LightWithId(static_cast<unsigned>(*node));
+        Light* light = lightFactory->LightWithId(static_cast<unsigned>(*node));
         float x, y;
         if (light && out.Place(light->localPosition.x, light->localPosition.y, &x, &y)) {
             out.PutSquare(x, y);
@@ -342,7 +341,7 @@ void HudMap::BuildMarkers() {
         }
     }
 
-    mesh->RefreshBuffers();
+    markers->RefreshBuffers();
 }
 
 // --- The map's polygon clipping ----------------------------------------------------------------------------------
@@ -361,9 +360,8 @@ void HudMap::UpdateView() {
     float angle = lib::Atan2(-facing.x, -facing.y);
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn = Quaternion::AxisAngle(up, angle);
-    sceneObjects[10]->localRotation = turn;
+    needle->localRotation = turn;
 
-    auto* area = sceneObjects[1];
     std::vector<Vector2>& points = visibleArea;
     int count = lib::Count(viewPolygon);
     points.resize(count);   // the original inlines the same code
@@ -417,25 +415,25 @@ void HudMap::UpdateView() {
 
     // The visible-area mesh: a fan over the clipped polygon, textured by world position.
     count = lib::Count(points);
-    area->SetVertexCount(count);
+    visibleDisc->SetVertexCount(count);
     for (int i = 0; i < count; ++i) {
-        area->corners[i].position = static_cast<std::uint16_t>(i);
-        area->corners[i].texCoord = static_cast<std::uint16_t>(i);
+        visibleDisc->corners[i].position = static_cast<std::uint16_t>(i);
+        visibleDisc->corners[i].texCoord = static_cast<std::uint16_t>(i);
     }
-    area->SetUvCount(count);
+    visibleDisc->SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        area->texCoords[i].u = points[i].x / textureSize;
-        area->texCoords[i].v = points[i].y / textureSize;
+        visibleDisc->texCoords[i].u = points[i].x / textureSize;
+        visibleDisc->texCoords[i].v = points[i].y / textureSize;
     }
     if (count > 2) {
-        area->SetIndexCount((count - 2) * 3);
+        visibleDisc->SetIndexCount((count - 2) * 3);
         for (int k = 0; k < count - 2; ++k) {
-            area->indices[k * 3] = 0;
-            area->indices[k * 3 + 1] = static_cast<std::uint16_t>(k + 2);
-            area->indices[k * 3 + 2] = static_cast<std::uint16_t>(k + 1);
+            visibleDisc->indices[k * 3] = 0;
+            visibleDisc->indices[k * 3 + 1] = static_cast<std::uint16_t>(k + 2);
+            visibleDisc->indices[k * 3 + 2] = static_cast<std::uint16_t>(k + 1);
         }
     } else {
-        area->SetIndexCount(0);
+        visibleDisc->SetIndexCount(0);
     }
     // Positions go in blocks of four: the polygon is padded with copies of its first point.
     int quads = count / 4;
@@ -448,19 +446,18 @@ void HudMap::UpdateView() {
             points[size] = first;
         }
     }
-    area->SetQuadCount(quads);
+    visibleDisc->SetQuadCount(quads);
     for (int q = 0; q < quads; ++q) {
         for (int k = 0; k < 4; ++k) {
             const Vector2& v = points[q * 4 + k];
             float x = (v.x - centre.x) * scale;
             float y = -((v.y - centre.y) * scale);
-            area->vertices[q].x()[k] = x * zoom;
-            area->vertices[q].y()[k] = y * zoom;
+            visibleDisc->vertices[q].x()[k] = x * zoom;
+            visibleDisc->vertices[q].y()[k] = y * zoom;
         }
     }
-    area->RefreshBuffers();
+    visibleDisc->RefreshBuffers();
 
-    auto* bounds = sceneObjects[0];
     float left = -centre.x * scale;
     float top = -(-centre.y * scale);
     float right = (worldWidth - centre.x) * scale;
@@ -501,7 +498,7 @@ void HudMap::UpdateView() {
 // --- The zoom factor ----------------------------------------------------------------------------------
 
 void HudMap::Wheel(float notches, Point point) {
-    if (HitRegion(point) != 0) return;
+    if (HitRegion(point) != slingButton) return;
     float newZoom = WheelZoomFactor(notches) * zoom;
     zoom = newZoom;
     if (newZoom > zoomMax) zoom = zoomMax;

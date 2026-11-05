@@ -191,7 +191,7 @@ void MpHeroScreen::LeftDown(Point point) {
     if (renameEdit->focused) return;
     UiContainer::LeftDown(point);
     if (handled) return;
-    int region = RegionAt(point);
+    const UiRegion* region = RegionUnder(point);
     auto rotate = [&](int direction) {
         ui->PlayInterfaceSound("buttons\\camp\\move.wav");
         rotating = direction;
@@ -200,21 +200,24 @@ void MpHeroScreen::LeftDown(Point point) {
 
     if (mode == kModeNewHero) {
         // The new hero.
-        switch (region) {
-        case 0:
+        if (region == backButton) {
             ui->PlayInterfaceSound(kMessageBoxCancelSound);
             SetMode(kModeList);
             return;
-        case 1:
+        }
+        if (region == forwardButton) {
             CreateHero();
             return;
-        case 2:
+        }
+        if (region == turnButtons[0]) {
             rotate(1);
             return;
-        case 3:
+        }
+        if (region == turnButtons[1]) {
             rotate(2);
             return;
-        case 4: {
+        }
+        if (region == resetButton) {
             // Back to the defaults: the attributes 25, the speed factor 0.7.
             ui->PlayInterfaceSound(kMessageBoxCancelSound);
             ChooseFigure(defaults[0]);
@@ -232,12 +235,10 @@ void MpHeroScreen::LeftDown(Point point) {
             RefreshStats();
             return;
         }
-        default:
-            break;
-        }
-        if (region < 9 || region >= 20) return;
+        const int row = ListRow(region);
+        if (row < 0 || row >= kVoiceRows) return;
         // A voice row: the hero takes its file.
-        int index = voiceTop + region - 9;
+        int index = voiceTop + row;
         if (index < 0) return;
         std::vector<MpVoiceEntry>& currentVoices = *voices;
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(currentVoices.end() - currentVoices.begin())) return;
@@ -252,11 +253,11 @@ void MpHeroScreen::LeftDown(Point point) {
 
     if (mode == kModeStats) {
         // The new hero's statistics page.
-        if (region == 0) {
+        if (region == backButton) {
             BackToNewHero();
-        } else if (region == 1) {
+        } else if (region == forwardButton) {
             AddNewHero();
-        } else if (region == 4) {
+        } else if (region == resetButton) {
             // Take the equipment back.
             ui->PlayInterfaceSound(kMessageBoxCancelSound);
             tradePanel->Settle(false, false);
@@ -268,22 +269,24 @@ void MpHeroScreen::LeftDown(Point point) {
     if (mode != kModeList) return;
     // The hero list. A click while a hero is being renamed ends the renaming first (only reached
     // when the base handler started it: the handler returns at once while renaming).
-    if (region >= 0 && renameEdit->focused) CloseRenameEdit();
-    switch (region) {
-    case 0:
+    if (region && renameEdit->focused) CloseRenameEdit();
+    if (region == backButton) {
         BackToMainMenu(ui);
         return;
-    case 1:
+    }
+    if (region == forwardButton) {
         Continue();
         return;
-    case 2:
+    }
+    if (region == turnButtons[0]) {
         rotate(1);
         return;
-    case 3:
+    }
+    if (region == turnButtons[1]) {
         rotate(2);
         return;
-    case 5:
-        // A new hero.
+    }
+    if (region == newHeroButton) {
         ui->PlayInterfaceSound(kSaveSelectSound);
         ChooseFigure(defaults[0]);
         statsPanel->SetHero(0, "");
@@ -292,11 +295,13 @@ void MpHeroScreen::LeftDown(Point point) {
         SetMode(kModeNewHero);
         nameEdit->SetText("");
         return;
-    case 6:
+    }
+    if (region == renameButton) {
         ui->PlayInterfaceSound(kSaveSelectSound);
         Rename();
         return;
-    case 7: {
+    }
+    if (region == deleteButton) {
         // Delete: asks first ("lmp_deletepers").
         ui->PlayInterfaceSound(kSaveSelectSound);
         if (!IsHero(heroIndex)) return;
@@ -304,18 +309,16 @@ void MpHeroScreen::LeftDown(Point point) {
         ui->PushWindow(box, WindowBackdrop::FirstWindow);
         return;
     }
-    case 8: {
+    if (region == inventoryButton) {
         // The hero's inventory: the camp screen.
         ui->PlayInterfaceSound(kSaveSelectSound);
         if (!IsHero(heroIndex)) return;
         ui->PushWindow(new CampPages(ui, true), WindowBackdrop::None);
         return;
     }
-    default:
-        break;
-    }
-    if (region < 9 || region >= 19) return;
-    int index = heroTop + region - 9;
+    const int row = ListRow(region);
+    if (row < 0 || row >= kHeroRows) return;
+    int index = heroTop + row;
     if (!IsHero(index)) return;
     ui->PlayInterfaceSound(kSaveSelectSound);
     ShowHero(index);

@@ -77,7 +77,6 @@ UiModel* AddMenuModel(UiWindow* window, float angle) {
     return model;
 }
 
-constexpr int kOptionGroups = 11;
 const char* OptionGroupName(int index) {
     static constexpr const char* kNames[13] = /*007947A8*/ {"video",  "sound",  "sens",   "game",    "select",
                                                             "actions", "camera", "items",  "spells",  "cshots",
@@ -170,23 +169,26 @@ void OptionsWindow::CreateScreen() {
 
     AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    AddRect(this, 213, 526, 287, 574)->SetTip(0x111D4);
-    AddRect(this, 513, 526, 587, 574)->SetTip(0x111D5);
-    UiMesh* highlight = AddBlankSprite();
+    okButton = AddRect(this, 213, 526, 287, 574);
+    okButton->SetTip(0x111D4);
+    cancelButton = AddRect(this, 513, 526, 587, 574);
+    cancelButton->SetTip(0x111D5);
+    highlight = AddBlankSprite();
     highlight->SetRectangle(kDialogDepth, kSpriteScale, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     highlight->texture = nullptr;
     highlight->flatColour = 0xC8A06800;
     highlight->flags |= FigureMeshFlag::Flat;
 
-    // Regions 2-12: the option groups, each with its button sprite, tooltip and title.
+    // The option groups, each with its button sprite, tooltip and title.
     std::string text;
-    for (int k = 0, top = 156; k < kOptionGroups; ++k, top += 24) {
-        UiRegion* region = AddRect(this, 100, top, 250, top + 24);
-        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 110.0f, static_cast<float>(top + 2), 240.0f,
-                                   static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
+    for (int k = 0, top = 156; k < kGroups; ++k, top += 24) {
+        groupButtons[k] = AddRect(this, 100, top, 250, top + 24);
+        groupIcons[k] = AddBlankSprite();
+        groupIcons[k]->SetRectangle(kDialogDepth, kSpriteScale, 110.0f, static_cast<float>(top + 2), 240.0f,
+                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = std::format("tip option_group_{}", OptionGroupName(k));
         if (g_clientWorld.texts->Open(text) != 0) text = g_clientWorld.texts->ReadToHash();
-        region->SetTipString(text);
+        groupButtons[k]->SetTipString(text);
         {
             std::string prefix("option_group_");
             std::string key = prefix + OptionGroupName(k);
@@ -197,7 +199,7 @@ void OptionsWindow::CreateScreen() {
 
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
     Shade(this, 5.0f, 100.0f, 100.0f, 700.0f, 500.0f);
-    for (int top = 156; top < 492; top += 24) AddRect(this, 250, top, 520, top + 24);
+    for (int row = 0, top = 156; row < kRows; ++row, top += 24) rowAreas[row] = AddRect(this, 250, top, 520, top + 24);
     UiSurface* surface = NewSurface(ui, Rect{100, 100, 700, 500});
     AddSurface(surface);
     surface->PaintWith([this](UiSurface& out) { PaintRows(out); });

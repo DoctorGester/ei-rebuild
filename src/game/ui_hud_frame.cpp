@@ -109,35 +109,32 @@ void HudClock::Update() {
 
 void HudClock::Show() {
     float hours = TimeOfDay();
-    UiMesh** scene = sceneObjects.data();
-    UiMesh* face = scene[0];
     float pulse = lib::Cos(kHudFullTurn * blink) * kPulseAmplitude + kPulseMiddle;
 
     float handAngle;
     if (GamePaused()) {
         SetTint(face, kBlinkBase - pulse);
         handAngle = kPi * kPausedHand;
-        scene[1]->visible = blink > 0.5f;
+        hand->visible = blink > 0.5f;
     } else {
         SetTint(face, 1.0f);
         handAngle = fast != 0 ? kPi * kFastHand : kPi * kNormalHand;
-        scene[1]->visible = true;
+        hand->visible = true;
     }
 
-    // The hand (object 1) about -z, placed on its circle.
-    Turn(scene[1], -1.0f, handAngle);
+    // The hand about -z, placed on its circle.
+    Turn(hand, -1.0f, handAngle);
     float handSin = lib::Sin(handAngle);
     float handY = kCentreY - handSin * kHandRadius;
     float handX = lib::Cos(handAngle) * kHandRadius + screen_layout::g_layoutWidth;
-    scene[1]->Place(handX, handY, kHandDepth);
+    hand->Place(handX, handY, kHandDepth);
 
     // The face turns with the time of day.
     Turn(face, 1.0f, (hours + kFaceOffset) * kPi * kFaceStep);
 
-    // The four dial marks (objects 2-5), a notch apart.
+    // The four dial marks, a notch apart.
     float angle = dial - (kPi * kFaceStep);
-    for (int k = 2; k < 6; ++k) {
-        UiMesh* mark = scene[k];
+    for (UiMesh* mark : dialMarks) {
         Turn(mark, 1.0f, angle);
         float c = lib::Cos(angle);
         float y = kCentreY - c * kDialRadius;
@@ -146,7 +143,7 @@ void HudClock::Show() {
         angle -= kPi * kDialStep;
     }
 
-    SetTint(scene[6], highlight ? pulse : 1.0f);
+    SetTint(objectivesIcon, highlight ? pulse : 1.0f);
 }
 
 // --- Top panel ---------------------------------------------------------------------------------
@@ -155,16 +152,15 @@ void HudTopPanel::Update() {
     if (slide.moving) {
         slide.Step();
         Layout();
-        UiMesh* sling = sceneObjects[2];
         float y;
         if (slide.direction == -1.0f) {    // sliding out
-            Turn(sling, 1.0f, kPi);
+            Turn(slingArrow, 1.0f, kPi);
             y = kSlingInY;
         } else {
-            sling->localRotation = kHudRestRotation;
+            slingArrow->localRotation = kHudRestRotation;
             y = kSlingOutY;
         }
-        sling->Place(kSlingX, y, kSpriteDepth);
+        slingArrow->Place(kSlingX, y, kSpriteDepth);
     }
     ui->hudPanelsIn[1] = slide.direction > 0.0f ? 1 : 0;             // the panel is (coming) in
     ui->hudTopPage = page;
@@ -186,38 +182,41 @@ void HudTopPanel::Setup(int newPage, bool shown) {
     slide.travel = 0x5F;
     slide.direction = shown ? 1.0f : -1.0f;
 
-    UiRegion* region = AddRegion();
-    region->SetRect(0x181, 0, 0x19F, 0x14);   // the slide button
-    region->SetTip(0x27D8);
-    region = AddRegion();
-    region->SetRect(0xB9, 0, 0xD7, 0x14);     // page 0
-    region->SetTip(0x27D9, 0x32);
-    region = AddRegion();
-    region->SetRect(0xD7, 0, 0xF5, 0x14);     // page 1
-    region->SetTip(0x27DA, 0x33);
+    slingButton = AddRegion();
+    slingButton->SetRect(0x181, 0, 0x19F, 0x14);
+    slingButton->SetTip(0x27D8);
+    pageButtons[0] = AddRegion();
+    pageButtons[0]->SetRect(0xB9, 0, 0xD7, 0x14);
+    pageButtons[0]->SetTip(0x27D9, 0x32);
+    pageButtons[1] = AddRegion();
+    pageButtons[1]->SetRect(0xD7, 0, 0xF5, 0x14);
+    pageButtons[1]->SetTip(0x27DA, 0x33);
     AddRegion()->SetRect(0xB4, 0, 0x26C, 100);
 
-    UiMesh* back = AddBlankSprite();
+    back = AddBlankSprite();
     back->SetRectangle(20.0f, kSpriteScale, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     back->texture = nullptr;
     back->flags |= FigureMeshFlag::Flat;
     back->flatColour = 0x50000000;
-    UiMesh* bar = AddBlankSprite();
+    bar = AddBlankSprite();
     bar->SetRectangle(20.0f, kSpriteScale, 180.0f, 0.0f, 620.0f, 20.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     bar->texture = nullptr;
     bar->flags |= FigureMeshFlag::Flat;
     bar->flatColour = 0xB4000000;
 
-    UiMesh* arrow = AddSprite("in25arrow");
-    arrow->textureOffsetU = 0.22265625f;
-    arrow->textureOffsetV = 0.140625f;
-    arrow->localRotation = Quaternion::AxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
-    arrow->Place(400.0f, -52.0f, 8.106086f);
-    arrow->SetScale(0.8f);
+    slingArrow = AddSprite("in25arrow");
+    slingArrow->textureOffsetU = 0.22265625f;
+    slingArrow->textureOffsetV = 0.140625f;
+    slingArrow->localRotation = Quaternion::AxisAngle(Vector3{0.0f, 0.0f, 1.0f}, kPi);
+    slingArrow->Place(400.0f, -52.0f, 8.106086f);
+    slingArrow->SetScale(0.8f);
 
-    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 185.0f, 0.0f, 215.0f, 20.0f, 2, 0x80, 0x20, 0x94);
-    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 215.0f, 0.0f, 245.0f, 20.0f, 2, 0x96, 0x20, 0xAA);
-    AddBlankSprite()->SetFrame(18.0f, 80.0f, 180.0f, -5.0f, 620.0f, 100.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
+    pageIcons[0] = AddBlankSprite();
+    pageIcons[0]->SetRectangle(10.0f, 80.0f, 185.0f, 0.0f, 215.0f, 20.0f, 2, 0x80, 0x20, 0x94);
+    pageIcons[1] = AddBlankSprite();
+    pageIcons[1]->SetRectangle(10.0f, 80.0f, 215.0f, 0.0f, 245.0f, 20.0f, 2, 0x96, 0x20, 0xAA);
+    frame = AddBlankSprite();
+    frame->SetFrame(18.0f, 80.0f, 180.0f, -5.0f, 620.0f, 100.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
 
     page = newPage;
     ShowPage();
@@ -314,38 +313,46 @@ void HudClock::Setup(bool newFast) {
     screen_layout::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
     const int shift = screen_layout::EdgeShift();
     rect = Rect{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};    // WideScreen
-    AddBlankSprite()->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
-    SetHand(AddBlankSprite());
-    for (int i = 0; i < 4; ++i) {
-        UiMesh* arrow = AddSprite(kArrowSprite);
-        arrow->textureOffsetU = 0.22265625f;
-        arrow->textureOffsetV = 0.140625f;
-        arrow->Place(1000.0f, 1000.0f, kArrowDepth);
-        arrow->SetScale(0.4f);
+    face = AddBlankSprite();
+    face->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
+    hand = AddBlankSprite();
+    SetHand(hand);
+    for (UiMesh*& mark : dialMarks) {
+        mark = AddSprite(kArrowSprite);
+        mark->textureOffsetU = 0.22265625f;
+        mark->textureOffsetV = 0.140625f;
+        mark->Place(1000.0f, 1000.0f, kArrowDepth);
+        mark->SetScale(0.4f);
     }
-    AddBlankSprite()->Disc(8.0f, 80.0f, 800.0f, 600.0f, 32.0f, kDiscPoints, 0xAE, 0x51, 0x20);
-    AddBlankSprite()->Disc(12.0f, 80.0f, 800.0f, 600.0f, 80.0f, kDiscPoints, 0xAE, 0x51, 0x50);
+    objectivesIcon = AddBlankSprite();
+    objectivesIcon->Disc(8.0f, 80.0f, 800.0f, 600.0f, 32.0f, kDiscPoints, 0xAE, 0x51, 0x20);
+    rim = AddBlankSprite();
+    rim->Disc(12.0f, 80.0f, 800.0f, 600.0f, 80.0f, kDiscPoints, 0xAE, 0x51, 0x50);
 
     // The pause, normal and fast sectors, each between two radii of the corner.
-    for (int i = 0; i < 3; ++i) {
+    auto addSector = [this](int i) {
         UiRegion* sector = AddRegion();
         const ArcPoint corners[4] = {OnArc(i + 1, kSixth, kInnerRadius), OnArc(i, kSixth, kInnerRadius),
                                      OnArc(i, kSixth, kOuterRadius), OnArc(i + 1, kSixth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
-    }
-    regions[0]->SetTip(0x28A0, 1);
+        return sector;
+    };
+    pauseButton = addSector(0);
+    normalButton = addSector(1);
+    fastButton = addSector(2);
+    pauseButton->SetTip(0x28A0, 1);
     if (!IsMultiplayerClient()) {
-        regions[1]->SetTip(0x28A2, 2);
-        regions[2]->SetTip(0x28A3, 3);
+        normalButton->SetTip(0x28A2, 2);
+        fastButton->SetTip(0x28A3, 3);
     }
     // The objectives button: the quarter disc in the corner.
-    UiRegion* middle = AddRegion();
-    middle->AddPoint(kLayoutRight, kLayoutBottom);
+    objectivesButton = AddRegion();
+    objectivesButton->AddPoint(kLayoutRight, kLayoutBottom);
     for (int turn = 0; turn <= 3; ++turn) {
         const ArcPoint point = OnArc(turn, kSixth, kMiddleRadius);
-        middle->AddPoint(kLayoutRight - point.across, kLayoutBottom - point.up);
+        objectivesButton->AddPoint(kLayoutRight - point.across, kLayoutBottom - point.up);
     }
-    middle->SetTip(0x28A1, 4);
+    objectivesButton->SetTip(0x28A1, 4);
 
     fast = newFast;
     blink = 0.0f;
@@ -363,13 +370,13 @@ void HudMovePanel::Build() {
     const int shift = screen_layout::EdgeShift();
     rect = Rect{-shift, 520, 80 - shift, kLayoutBottom};    // WideScreen
     // The flag button: the quarter disc in the corner.
-    UiRegion* middle = AddRegion();
-    middle->AddPoint(0, kLayoutBottom);
+    flagButton = AddRegion();
+    flagButton->AddPoint(0, kLayoutBottom);
     for (int turn = 4; turn >= 0; --turn) {
         const ArcPoint point = OnArc(turn, kEighth, kMiddleRadius);
-        middle->AddPoint(point.across, kLayoutBottom - point.up);
+        flagButton->AddPoint(point.across, kLayoutBottom - point.up);
     }
-    middle->SetTip(0x2904, 0x1B);
+    flagButton->SetTip(0x2904, 0x1B);
     // The four movement modes' sectors.
     for (int moveMode = 0; moveMode < 4; ++moveMode) {
         UiRegion* sector = AddRegion();
@@ -377,12 +384,15 @@ void HudMovePanel::Build() {
                                      OnArc(moveMode + 1, kEighth, kOuterRadius), OnArc(moveMode, kEighth, kOuterRadius)};
         for (const ArcPoint& corner : corners) sector->AddPoint(corner.across, kLayoutBottom - corner.up);
         sector->SetTip(0x2905 + moveMode, 0x17 + moveMode);
+        modeButtons[moveMode] = sector;
     }
 
-    SetHand(AddBlankSprite());
+    marker = AddBlankSprite();
+    SetHand(marker);
     // The sectors' pictures: triangles from the corner, the texels following the layout points.
     for (int moveMode = 0; moveMode < 4; ++moveMode) {
         UiMesh* sector = AddBlankSprite();
+        modeIcons[moveMode] = sector;
         const float endAngle = ArcAngle(moveMode + 1, kEighth);
         const float endUp = ArcSin(endAngle) * kSectorRadius;
         const float endAcross = ArcCos(endAngle) * kSectorRadius;
@@ -397,9 +407,10 @@ void HudMovePanel::Build() {
         sector->tint[1] = kSectorTint;
         sector->tint[2] = kSectorTint;
     }
-    AddBlankSprite()->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
+    flagIcon = AddBlankSprite();
+    flagIcon->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
     ShowMode(-1);
     flag = -1;
-    sceneObjects[5]->textureOffsetU = 0.48046875f;
+    flagIcon->textureOffsetU = 0.48046875f;
     screen_layout::LeavePanel();
 }

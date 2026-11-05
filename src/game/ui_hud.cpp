@@ -85,7 +85,7 @@ bool IsZero(float value) {
 void HudWeaponBar::LeftDown(Point point) { PressRegion(point, count); }
 
 void HudWeaponBar::LeftUp(Point point) {
-    if (const int slot = PressedRegion(point, count); slot >= 0) Choose(slot);
+    if (const int slot = RegionIndex(regions, PressedRegion(point, count)); slot >= 0) Choose(slot);
 }
 
 void HudWeaponBar::MouseMove(Point point) { HitRegion(point, count); }
@@ -154,7 +154,7 @@ void HudQuickItems::Update() {
 void HudSpellColumn::LeftDown(Point point) { PressRegion(point, count); }
 
 void HudSpellColumn::LeftUp(Point point) {
-    const int index = PressedRegion(point, count);
+    const int index = RegionIndex(regions, PressedRegion(point, count));
     if (index < 0) return;
     if (ui->doubleClick)
         ClickAlternate(index);
@@ -169,7 +169,7 @@ void HudSpellColumn::MouseMove(Point point) { HitRegion(point, count); }
 void HudActionColumn::LeftDown(Point point) { PressRegion(point, count); }
 
 void HudActionColumn::LeftUp(Point point) {
-    if (const int index = PressedRegion(point, count); index >= 0) Select(index);
+    if (const int index = RegionIndex(regions, PressedRegion(point, count)); index >= 0) Select(index);
 }
 
 void HudActionColumn::MouseMove(Point point) { HitRegion(point, count); }
@@ -183,7 +183,8 @@ void HudPortraits::LeftDown(Point point) {
     const int mode = owner->portraitMode;
     if (mode == 0) {
         // Any portrait region takes the event; only a party member's takes the mouse.
-        if (const int region = HitRegion(point); region >= 0 && region < std::ssize(owner->party)) CaptureMouse();
+        if (const int region = RegionIndex(regions, HitRegion(point)); region >= 0 && region < std::ssize(owner->party))
+            CaptureMouse();
         return;
     }
     const int region = RegionAt(point);
@@ -216,14 +217,14 @@ void HudPortraits::LeftDown(Point point) {
 
 void HudPortraits::LeftUp(Point point) {
     if (owner->portraitMode != 0) return;
-    const int region = PressedRegion(point);
+    const int region = RegionIndex(regions, PressedRegion(point));
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
     if (region >= 0 && region < std::ssize(owner->party)) owner->SelectUnit(owner->party[region], {});
 }
 
 void HudPortraits::MouseMove(Point point) {
     if (owner->portraitMode == 0) {
-        const int region = HitRegion(point);
+        const int region = RegionIndex(regions, HitRegion(point));
         if (region >= 0 && region < std::ssize(owner->party)) owner->HoverUnit(owner->party[region], {});
         return;
     }
@@ -234,15 +235,15 @@ void HudPortraits::MouseMove(Point point) {
 // --- Map ---------------------------------------------------------------------------------------
 
 void HudMap::LeftDown(Point point) {
-    const int region = PressRegion(point);
-    if (region != 3 && region != 4) return;
+    const UiRegion* region = PressRegion(point);
+    if (region != viewButtons[0] && region != viewButtons[1]) return;
     ui->PlayInterfaceSound(kSoundClick);
-    view = region == 3 ? 1 : 2;
+    view = region == viewButtons[0] ? 1 : 2;
     ShowView();
 }
 
 void HudMap::ShowView() {
-    for (int i = 0; i < 2; ++i) SetTint(sceneObjects[6 + i], view == i + 1 ? kTintOn : kTintOff);
+    for (int i = 0; i < 2; ++i) SetTint(viewIcons[i], view == i + 1 ? kTintOn : kTintOff);
 }
 
 void HudMap::LeftUp(Point point) {
@@ -253,19 +254,16 @@ void HudMap::LeftUp(Point point) {
         ShowView();
         return;
     }
-    const int region = HitRegion(point);
-    switch (region) {
-    case 0:     // the sling button
+    const UiRegion* region = HitRegion(point);
+    if (region == slingButton) {
         slide.Toggle(ui);
-        return;
-    case 1:     // the round map (zoomed)
-    case 2: {   // the map area
+    } else if (region == roundMap || region == mapSquare) {
         // The world point under the click.
         ui->ScalePointFromScreen(&point);
         // WideScreen: the centre moved right by the shift.
         float right = static_cast<float>(point.x - (kMapCentreX + screen_layout::EdgeShift())) / halfSide;
         float down = static_cast<float>(point.y - kMapCentreY) / halfSide;
-        if (region == 1) {
+        if (region == roundMap) {
             right /= zoom;
             down /= zoom;
         }
@@ -278,13 +276,8 @@ void HudMap::LeftUp(Point point) {
             camera->SetTargetId(-1);
             camera->SetFocus(WithZ(Vector2{worldX, worldY}, camera->focus.z));
         }
-        return;
-    }
-    case 5:
+    } else if (region == northButton) {
         FaceNorth();
-        return;
-    default:
-        return;
     }
 }
 
@@ -301,12 +294,14 @@ void HudMap::FaceNorth() {
 void HudUnitPanel::LeftDown(Point point) { PressRegion(point); }
 
 void HudUnitPanel::LeftUp(Point point) {
-    const int region = PressedRegion(point);
-    if (region == 0) {
+    const UiRegion* region = PressedRegion(point);
+    if (region == slingButton) {
         slide.Toggle(ui);
-    } else if (region > 0 && region <= 4) {
+        return;
+    }
+    if (const int part = RegionIndex(partButtons, region); part >= 0) {
         ui->PlayInterfaceSound(kSoundClick);
-        bodyPart = region - 1;
+        bodyPart = part;
         ShowBodyPart();
     }
 }
@@ -320,23 +315,16 @@ void HudUnitPanel::Wheel(float, Point point) { HitRegion(point); }
 void HudClock::LeftDown(Point point) { PressRegion(point); }
 
 void HudClock::LeftUp(Point point) {
-    const int region = PressedRegion(point);
-    switch (region) {
-    case 0:     // the pause button
+    const UiRegion* region = PressedRegion(point);
+    if (region == pauseButton) {
         TogglePause();
-        return;
-    case 1:     // the normal speed
-    case 2:     // the fast speed
+    } else if (region == normalButton || region == fastButton) {
         // A network client too (Rebirth's MPSpeedControl; the original ignored the buttons there): the host's sets
         // the server's speed, everyone's game.
         if (g_clientWorld.paused) g_clientWorld.SendPause(0);
-        SetSpeed(region == 2);
-        return;
-    case 3:     // the objectives
+        SetSpeed(region == fastButton);
+    } else if (region == objectivesButton) {
         OpenObjectives();
-        return;
-    default:
-        return;
     }
 }
 
@@ -368,11 +356,11 @@ void HudClock::OpenObjectives() {
 void HudMovePanel::LeftDown(Point point) { PressRegion(point); }
 
 void HudMovePanel::LeftUp(Point point) {
-    const int region = PressedRegion(point);
-    if (region == 0)
+    const UiRegion* region = PressedRegion(point);
+    if (region == flagButton)
         ToggleFlag();
-    else if (region > 0)
-        SetMode(region - 1);
+    else if (const int moveMode = RegionIndex(modeButtons, region); moveMode >= 0)
+        SetMode(moveMode);
 }
 
 void HudMovePanel::SetMode(int newMode) {
@@ -392,10 +380,9 @@ void HudMovePanel::MouseMove(Point point) { HitRegion(point); }
 void HudMovePanel::ShowMode(int newMode) {
     screen_layout::EnterLeftPanel();    // addon's handler; another at the end
     mode = newMode;
-    auto* marker = sceneObjects[0];
     marker->visible = newMode >= 0;
     for (int i = 0; i < 4; ++i) {
-        UiMesh* button = sceneObjects[1 + i];
+        UiMesh* button = modeIcons[i];
         if (mode != i) {
             SetTint(button, kTintDim);
             continue;
@@ -406,7 +393,7 @@ void HudMovePanel::ShowMode(int newMode) {
         marker->localRotation = Quaternion::AxisAngle(axis, angle);
         const float y = kMarkerCentreY - (lib::Sin(angle) * kMarkerRadius);
         const float x = lib::Cos(angle) * kMarkerRadius;
-        sceneObjects[0]->Place(x, y, kMarkerDepth);
+        marker->Place(x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
     screen_layout::LeavePanel();
@@ -433,9 +420,8 @@ void HudMovePanel::Update() {
     }
     ShowMode(newMode);
     flag = newFlag;
-    // Scene object 5 shows the flag through its texture offset (textureOffsetU).
     std::uint32_t bits = newFlag == 0 ? 0x3EAC0000u : newFlag == 1 ? 0u : 0x3EF60000u;
-    sceneObjects[5]->textureOffsetU = std::bit_cast<float>(bits);
+    flagIcon->textureOffsetU = std::bit_cast<float>(bits);
 }
 
 // --- Top panel ---------------------------------------------------------------------------------
@@ -443,11 +429,11 @@ void HudMovePanel::Update() {
 void HudTopPanel::LeftDown(Point point) { PressRegion(point); }
 
 void HudTopPanel::LeftUp(Point point) {
-    const int region = PressedRegion(point);
-    if (region == 0) {
+    const UiRegion* region = PressedRegion(point);
+    if (region == slingButton) {
         slide.Toggle(ui);
-    } else if (region == 1 || region == 2) {
-        page = region - 1;
+    } else if (const int newPage = RegionIndex(pageButtons, region); newPage >= 0) {
+        page = newPage;
         ShowPage();
         ui->PlayInterfaceSound(kSoundClick);
     }

@@ -29,7 +29,6 @@ constexpr int kScanEsc = 1;              // the scan code that gives up a key bi
 constexpr std::uint32_t kCloseSaveLoad = 0x100001;
 constexpr std::uint32_t kCloseOptions = 0x110001;
 constexpr int kListRows = 16;            // visible rows of the save list
-constexpr int kOptionRows = 14;
 
 // The end of the key name table (88 entries of 0x48 bytes).
 const UiKeyName* KeyNamesEnd() { return g_keyNames + kUiKeyNameCount; }
@@ -296,7 +295,7 @@ void OptionsWindow::KeyDown(platform::Key key, int scan, bool repeat) {
         break;
     case platform::Key::Down:
         ui->PlayInterfaceSound(kSaveSelectSound);
-        for (int i = selectedRow + 1; i < kOptionRows; ++i) {
+        for (int i = selectedRow + 1; i < kRows; ++i) {
             if (rows[i].binding || rows[i].setting) {
                 selectedRow = i;
                 RefreshRows();

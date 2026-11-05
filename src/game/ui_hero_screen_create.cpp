@@ -85,17 +85,19 @@ void MpHeroScreen::CreateScreen() {
 
     // The nine regions every mode keeps (the mode function places the first four and gives the tips).
     auto region = [this](int left, int top, int right, int bottom) {
-        AddRegion()->SetRect(left, top, right, bottom);
+        UiRegion* added = AddRegion();
+        added->SetRect(left, top, right, bottom);
+        return added;
     };
-    region(600, 400, 680, 500);
-    region(720, 400, 800, 500);
-    region(300, 470, 330, 500);
-    region(470, 470, 500, 500);
-    region(680, 430, 720, 470);
-    region(180, 112, 310, 136);
-    region(180, 136, 310, 160);
-    region(180, 160, 310, 184);
-    region(180, 184, 310, 208);
+    backButton = region(600, 400, 680, 500);
+    forwardButton = region(720, 400, 800, 500);
+    turnButtons[0] = region(300, 470, 330, 500);
+    turnButtons[1] = region(470, 470, 500, 500);
+    resetButton = region(680, 430, 720, 470);
+    newHeroButton = region(180, 112, 310, 136);
+    renameButton = region(180, 136, 310, 160);
+    deleteButton = region(180, 160, 310, 184);
+    inventoryButton = region(180, 184, 310, 208);
 
     CreateBase();
     LoadTexture("saveload", TextureKind::Interface);
@@ -111,28 +113,25 @@ void MpHeroScreen::CreateScreen() {
         mesh->flatColour = colour;
     };
     auto texture = [this](int index) { return objects[index]; };
-    // 0, 1: the two buttons under the list; 2: the selection frame.
+    // The two buttons under the list.
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32)->texture = texture(kSaveLoadTexture);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32)->texture = texture(kSaveLoadTexture);
-    {
-        UiMesh* frame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-        plain(frame, kSelectionColour);
-        frame->visible = false;
-    }
-    // 3-6: the quarters of the frame around the figure.
+    selectionFrame = sprite(3.0f, 110.0f, 250.0f, 370.0f, 274.0f, 0, 0, kUiTextureSize, kUiTextureSize);
+    plain(selectionFrame, kSelectionColour);
+    selectionFrame->visible = false;
     LoadTexture("campm1", TextureKind::Interface);
     LoadTexture("campm2", TextureKind::Interface);
     LoadTexture("campm3", TextureKind::Interface);
     LoadTexture("campm4", TextureKind::Interface);
-    sprite(7.0f, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture = texture(kFirstQuarterTexture);
-    sprite(7.0f, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture = texture(kFirstQuarterTexture + 1);
-    sprite(7.0f, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture = texture(kFirstQuarterTexture + 2);
-    sprite(7.0f, 400.0f, 300.0f, 600.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture = texture(kFirstQuarterTexture + 3);
-    // 7-9: the new hero's buttons.
-    sprite(3.0f, 680.0f, 430.0f, 720.0f, 470.0f, 0x54, 0x98, 0x7C, 0xC0);
-    sprite(3.0f, 620.0f, 430.0f, 660.0f, 470.0f, 0x02, 0x98, 0x2A, 0xC0);
-    sprite(3.0f, 740.0f, 430.0f, 780.0f, 470.0f, 0x2B, 0x98, 0x53, 0xC0);
-    // 10-12: the frames; 13, 14: the backgrounds of the commands and of the list.
+    quarters[0] = sprite(7.0f, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4);
+    quarters[1] = sprite(7.0f, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4);
+    quarters[2] = sprite(7.0f, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4);
+    quarters[3] = sprite(7.0f, 400.0f, 300.0f, 600.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4);
+    for (int i = 0; i < 4; ++i) quarters[i]->texture = texture(kFirstQuarterTexture + i);
+    resetIcon = sprite(3.0f, 680.0f, 430.0f, 720.0f, 470.0f, 0x54, 0x98, 0x7C, 0xC0);
+    cancelIcon = sprite(3.0f, 620.0f, 430.0f, 660.0f, 470.0f, 0x02, 0x98, 0x2A, 0xC0);
+    createIcon = sprite(3.0f, 740.0f, 430.0f, 780.0f, 470.0f, 0x2B, 0x98, 0x53, 0xC0);
+    // The frames, then the backgrounds of the commands and of the list.
     auto frame = [this, &texture](float left, float top, float right, float bottom) {
         UiMesh* added = AddBlankSprite();
         added->SetFrame(2.0f, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
@@ -143,7 +142,7 @@ void MpHeroScreen::CreateScreen() {
     frame(405.0f, 95.0f, 705.0f, 505.0f);
     plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 220.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     plain(sprite(5.0f, 100.0f, 240.0f, 390.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
-    // 15-18: the four commands' buttons.
+    // The four commands' buttons.
     for (int top = 115; top < 211; top += 24) {
         UiMesh* button = sprite(3.0f, 180.0f, static_cast<float>(top), 310.0f, static_cast<float>(top + 19), 0x7A, 0x6C,
                                  0xFC, 0x7F);
