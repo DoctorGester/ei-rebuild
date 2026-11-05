@@ -4,6 +4,7 @@
 #include "lib/text_case.h"
 #include "platform/platform.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -79,6 +80,10 @@ bool ApplySpec(const char* spec) {
         token[n] = 0;
         if (text::CompareIgnoringCase(token, "SecondMaster=", 13) == 0) {
             SetPluginSecondMaster(token + 13);
+            continue;
+        }
+        if (text::CompareIgnoringCase(token, "NPlayers=", 9) == 0) {
+            SetPluginNPlayers(std::atoi(token + 9));
             continue;
         }
         bool on = true;

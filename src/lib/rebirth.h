@@ -73,6 +73,7 @@ const char* Name(Patch p);
 bool FromName(const char* name, Patch* out);
 
 // "all", "none", "defaults", or patch names separated by commas or spaces, each optionally "=0" / "=1".
+// "NPlayers=<n>" sets EI_Plugin's player count (PluginNPlayers).
 // Unknown names are skipped; returns false if there was one.
 bool ApplySpec(const char* spec);
 

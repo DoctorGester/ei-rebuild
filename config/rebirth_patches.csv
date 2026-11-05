@@ -274,12 +274,12 @@ EiPluginNPlayers,EI_Plugin,00640069,4,00640060+9,multiplayer,no,,bytes,flag,acti
 EiPluginNPlayers,EI_Plugin,00608D9D,4,00608D20+7D,multiplayer,no,,0,flag,active here; implemented: CChatWindow::Construct 00608D20 (src/game/ui_chat_window.cpp; W4b),always
 EiPluginNPlayers,EI_Plugin,00608DE4,4,00608D20+C4,multiplayer,no,,0,flag,active here; implemented: CChatWindow::Construct 00608D20 (src/game/ui_chat_window.cpp; W4b),always
 EiPluginNPlayers,EI_Plugin,006095FB,4,006095A0+5B,multiplayer,no,,0x2E8,flag,active here; implemented: CChatWindow::Update 006095A0 (src/game/ui_chat_window.cpp; W4b),always
-EiPluginNPlayers,EI_Plugin,0064016B,27,00640060+10B,multiplayer,no,,bytes (more than 7 players),flag,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
-EiPluginNPlayers,EI_Plugin,006401C0,4,00640060+160,multiplayer,no,,bytes,flag,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
-EiPluginNPlayers,EI_Plugin,006401D7,8,00640060+177,multiplayer,no,,bytes,flag,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
-EiPluginNPlayers,EI_Plugin,006401DF,3,00640060+17F,multiplayer,no,,bytes,flag,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
-EiPluginNPlayers,EI_Plugin,006401E2,4,00640060+182,multiplayer,no,,bytes,flag,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
-EiPluginNPlayers,EI_Plugin,00640240,4,00640060+1E0,multiplayer,no,,bytes,flag,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
+EiPluginNPlayers,EI_Plugin,0064016B,27,00640060+10B,multiplayer,no,,bytes (more than 7 players),flag,active here when NPlayers > 7; implemented: CHudPortraits::AddPortrait 00640060 (src/game/ui_hud_portraits.cpp; W4c),nplayers>7
+EiPluginNPlayers,EI_Plugin,006401C0,4,00640060+160,multiplayer,no,,bytes,flag,active here when NPlayers > 7; implemented: CHudPortraits::AddPortrait 00640060 (src/game/ui_hud_portraits.cpp; W4c),nplayers>7
+EiPluginNPlayers,EI_Plugin,006401D7,8,00640060+177,multiplayer,no,,bytes,flag,active here when NPlayers > 7; implemented: CHudPortraits::AddPortrait 00640060 (src/game/ui_hud_portraits.cpp; W4c),nplayers>7
+EiPluginNPlayers,EI_Plugin,006401DF,3,00640060+17F,multiplayer,no,,bytes,flag,active here when NPlayers > 7; implemented: CHudPortraits::AddPortrait 00640060 (src/game/ui_hud_portraits.cpp; W4c),nplayers>7
+EiPluginNPlayers,EI_Plugin,006401E2,4,00640060+182,multiplayer,no,,bytes,flag,active here when NPlayers > 7; implemented: CHudPortraits::AddPortrait 00640060 (src/game/ui_hud_portraits.cpp; W4c),nplayers>7
+EiPluginNPlayers,EI_Plugin,00640240,4,00640060+1E0,multiplayer,no,,bytes,flag,active here when NPlayers > 7; implemented: CHudPortraits::AddPortrait 00640060 (src/game/ui_hud_portraits.cpp; W4c),nplayers>7
 EiPluginPause,EI_Plugin,0066FAFE,4,0066FAC0+3E,multiplayer,no,,"JMP +0x62, NOPs",flag,active here; implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp; mode rebirth::PluginPause),pause12
 EiPluginPause,EI_Plugin,0066FB62,14,data,multiplayer,no,,bytes,flag,active here; implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause12
 EiPluginPause,EI_Plugin,0066FB10,5,0066FAC0+50,multiplayer,no,,"Pause=2 only: mov eax,[edx+0x1C]; nop",flag,active here (written with Pause=2 only); implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause12

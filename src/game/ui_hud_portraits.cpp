@@ -358,10 +358,12 @@ void HudPortraits::ShowFace(int index, int state) {
 }
 
 void HudPortraits::AddPortrait(const std::string& model, std::string_view picture, bool wide, bool hasPlayer) {
-    // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6.
-    const int perRow = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers)
-                           ? (ei::rebirth::PluginNPlayers() < 7 ? 7 : ei::rebirth::PluginNPlayers())
-                           : 6;
+    // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6; above 7 the faces are 20 wide at a pitch of
+    // 20 instead of 40 and the face model sits at depth 9.1875 instead of 7 (EI_Plugin's six extra sites).
+    const bool plugin = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers);
+    const int perRow = plugin ? (ei::rebirth::PluginNPlayers() < 7 ? 7 : ei::rebirth::PluginNPlayers()) : 6;
+    const bool crowded = plugin && ei::rebirth::PluginNPlayers() > 7;
+    const int pitch = crowded ? 20 : 40;
     const int column = count % perRow;
     int u = 0;
     int v = 0;
@@ -380,12 +382,12 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
     int x;
     int width;
     if (IsMultiplayerClient()) {
-        width = wide ? 0x38 : 0x28;
+        width = crowded ? pitch : wide ? 0x38 : 0x28;
         int players = static_cast<int>(net::g_gameClient->players.size());
-        x = 400 - static_cast<int>(static_cast<unsigned>(width + players * 40 - 40) >> 1);
+        x = 400 - static_cast<int>(static_cast<unsigned>(width + players * pitch - pitch) >> 1);
         if (column > 0) {
-            x += width + column * 40 - 40;
-            width = 40;
+            x += width + column * pitch - pitch;
+            width = pitch;
         }
     } else {
         width = 0x38;
@@ -394,7 +396,7 @@ void HudPortraits::AddPortrait(const std::string& model, std::string_view pictur
     const int right = x + width;
 
     if (face) {
-        face->Place((x + right) * 0.5f, 548.0f, 7.0f);
+        face->Place((x + right) * 0.5f, 548.0f, crowded ? 9.1875f : 7.0f);
         face->SetScale(width < 0x32 ? 0.22f : 0.3f);
         slots[count].restA = Quaternion::AxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kPi);
         face->localRotation = slots[count].restA;
