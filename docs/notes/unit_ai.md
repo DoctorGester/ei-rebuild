@@ -1,7 +1,7 @@
 # Unit AI: brain, modes and actions
 
 Code: `src/game/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (in unit_ai.cpp
-the brain's Think, lookups, AIOrder's members, actions and movement, resets, calls, memory, behaviour records and save;
+the brain's Think, lookups, actions and movement, resets, calls, memory, behaviour records and save;
 modes, senses, targets). Scenarios: `unit_ai.txt`, `unit_ai_fear.txt`,
 `unit_ai_attack_removed`, `script_exec` (UMClear, UM*, UMAg, Guard / Sentry), `combat_more` (a death), `world_load`,
 every spawn; `unit_ai_flight` (an archer in Fear mode steps away from the hero: FindFlightPoint), `party_leader_switch`

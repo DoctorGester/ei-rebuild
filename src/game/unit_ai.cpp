@@ -1,4 +1,4 @@
-// The unit AI brain: the per-tick mode selection, AIOrder's members, the actions and the movement (the looks of a
+// The unit AI brain: the per-tick mode selection, the actions and the movement (the looks of a
 // move, a place to stand, following a leader), the mode list and resets, calls for help, the perception memory's
 // bookkeeping, the attention, the behaviour (alarm) records and the save games. See unit_ai.h and
 // docs/notes/unit_ai.md.
@@ -221,40 +221,6 @@ void AIBrain::OnObjectDeleted(EngineObject* object) {
     if (target == object) target.Reset();
     if (seen == object) seen.Reset();
     memory.Forget(object);
-}
-
-// --- Orders for the controller's checks -------------------------------------------------------------------
-
-void AIOrder::Clear() {
-    kind = UnitOrderKind::None;
-    target.Reset();
-    pointIsUseSpot = false;
-}
-
-void AIOrder::MakeAttack(MapObject* object) {
-    Clear();
-    kind = UnitOrderKind::Attack;
-    source = kAttackAllParts;
-    target.Assign(object);
-}
-
-void AIOrder::MakeCast(int spell, MapObject* object) {
-    Clear();
-    kind = UnitOrderKind::CastOn;
-    target.Assign(object);
-    source = static_cast<std::uint32_t>(spell);
-}
-
-void AIOrder::MakeUse(MapObject* object, UseSource use) {
-    Clear();
-    kind = UnitOrderKind::Use;
-    target.Assign(object);
-    source = static_cast<std::uint32_t>(use);
-}
-
-Vector3 AIOrder::AimPoint() const {
-    if (target == nullptr) return point;
-    return target->AimPoint();
 }
 
 // --- Actions -------------------------------------------------------------------------------------
