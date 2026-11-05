@@ -365,3 +365,9 @@ What the expansion's data asks of the game that the base game's never did, and h
 - On Linux CI the stub data keeps the Rebirth mods whole (linux.md, "The stub data"): starter\Mods\LostInAstral's
   Camera, Config, Maps, Movies, Res, Stream, config.reg, fixshops.plg and readme.txt are all in the pack, so the
   mod's scenarios run there as on Windows.
+- "Very dangerous" enemies from the start (H63): the mod's NPC record "Human Hero" has experience 1 (the base game's
+  271), so the leader's level is round(ln(1/200) / ln(1.61)) = -11 against 1 for the first map's plain monsters
+  (zonezero Rat, Scrab, Skeleton (8 HP), Toad; Succub 13, Fighters 15-20); the panel's gap is 12 (consider_more12) and
+  the ack fires over 5. Our `Unit::Level`, `UnitClientSpecific::Level` and the panel arithmetic read the same fields as
+  the original (the NPC experience goes into the stats, `Pack` rounds it into the params the client level reads); this
+  is the mod's data. The hero's experience grows with play, so the gap closes.
