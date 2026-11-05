@@ -614,7 +614,7 @@ bool CampPages::CanMakeSpell() {
     Spell* made = maker->container->spell.Clone(manager);
     maker->SetManager(nullptr);
     itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
-    int index = quickItems.IndexOf(quickItems.Named("spell container"));
+    int index = quickItems.IndexOf(quickItems.Named(itemdb::kSpellContainer));
     Item* container = factory->MakeItem(ItemKind::Scroll, index, 0);
     if (container) container->AttachSpell(made);
     spellMade.Assign(container);

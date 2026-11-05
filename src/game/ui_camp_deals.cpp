@@ -171,7 +171,7 @@ void CampPages::DeconstructItem() {
     }
     if (copy->spell) {
         itemdb::QuickItemTable& quickItems = g_itemDatabase.quickItems;
-        int index = quickItems.IndexOf(quickItems.Named("spell container"));
+        int index = quickItems.IndexOf(quickItems.Named(itemdb::kSpellContainer));
         Ref<Item> container;
         container.Assign(results->ItemFactory()->MakeItem(ItemKind::Scroll, index, 0));
         if (container) {

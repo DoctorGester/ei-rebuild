@@ -19,11 +19,13 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 ## Databases and naming
 
 - Eight tables of fixed-size records (materials, weapons, armors, quick items and spell containers, quest items, loot
-  items, spells, spell modifiers), each an `itemdb::NamedRecordTable<Record>` (a vector plus a name index) or a
-  `CodeIndexedTable` (spells and modifiers by code). `At` checks `index < (end - begin) / stride` (signed division,
-  unsigned compare), else null; callers then read fields of the null record, so an index out of range faults (kept:
-  `Field<T>()`). `IndexOf` is the byte offset over the record size, signed, also for a null record. `Named` files a
-  null record under an unknown name.
+  items, spells, spell modifiers), each an `itemdb::RecordTable<Record>`: a vector plus an index by `IndexKey` (a
+  material's key, an item prototype's name, a spell's or a modifier's code). `At` checks `index < (end - begin) /
+  stride` (signed division, unsigned compare), else null; callers then read fields of the null record, so an index out
+  of range faults (kept: `Field<T>()`). `Named` files a null record under an unknown key. `IndexOf` is -1 for a null
+  record (the original divided the null record's address offset by the record size): only a database without a "spell
+  container" quick item reaches it, and the scroll makers (CreateSpellItem, the camp's) then pass -1 to MakeItem, which
+  takes it as index 0.
 - Loading (startup and each switch of the resource database): "items.idb" (materials, weapons, armors, quick items,
   quest items, loot) and "spells.sdb" (spells, modifiers, three recipe lists) from database.res, each table through a
   ChunkArchive over the file's memory stream; each record filed in the index (a material under its key, an item

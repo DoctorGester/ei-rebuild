@@ -25,10 +25,6 @@ constexpr int kQuickItemsChunk = 4;
 constexpr int kQuestItemsChunk = 5;
 constexpr int kLootChunk = 6;
 
-// The text a table files a record under: a material's key, an item prototype's name.
-const std::string& IndexKey(const itemdb::MaterialRecordHead& record) { return record.key; }
-const std::string& IndexKey(const itemdb::ItemRecordHead& record) { return record.name; }
-
 // An armour's absorption row as items.idb holds it (fields 0x15 and 0x16): the factor, the absorption per damage type
 // and the flags.
 struct AbsorbRow {
@@ -146,13 +142,16 @@ void LootItemRecord::Serialize(ChunkArchive* ar) {
 // --- Tables --------------------------------------------------------------------------------------
 
 template <typename Record>
-void NamedRecordTable<Record>::Load(ByteStream* source, int chunk) {
+void RecordTable<Record>::Load(ByteStream* source, int chunk) {
     ChunkArchive archive;
     archive.Open(source, 1, 1);
     RecordChunks(&archive, chunk, &records, &Record::Serialize);
     archive.Close(source);
-    for (Record& record : records) names[IndexKey(record)] = &record;
+    for (Record& record : records) names[std::string(IndexKey(record))] = &record;
 }
+// SpellDatabase::Load (spell_db.cpp) loads these two.
+template void SpellTable::Load(ByteStream*, int);
+template void SpellModifierTable::Load(ByteStream*, int);
 
 int ItemDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
