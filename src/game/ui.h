@@ -584,6 +584,8 @@ public:
 
     UiRegion* AddRegion();
     void RemoveRegionAt(int index);
+    // Deletes `region` and drops it from the list (nothing when it is not listed).
+    void RemoveRegion(UiRegion* region);
     void ClearRegions();
 
     UiModel* AddModel();
@@ -1780,7 +1782,7 @@ void QuickSave(const char* slot, bool stepFrame);
 // Not for a multiplayer client; only when saves\<slot>\ exists.
 void QuickLoad(const char* slot);
 
-// The save/load window (opened from the Esc menu). Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible rows.
+// The save/load window (opened from the Esc menu).
 class SaveLoadWindow : public UiContainer {
 public:
     SaveLoadWindow(Interface3D* ui, bool newIsSave, bool newSliding)
@@ -1834,6 +1836,13 @@ public:
     // "saveq", "savea" or "saveb"; no bound check.
     bool IsReservedSave(int index);
 
+    static constexpr int kVisibleRows = 16;
+    UiRegion* okButton = nullptr;
+    UiRegion* cancelButton = nullptr;
+    UiRegion* deleteButton = nullptr;
+    UiRegion* rows[kVisibleRows] = {};   // the visible rows, from firstVisible
+    UiMesh* pictureSprite = nullptr;     // the selected save's picture
+    UiMesh* marker = nullptr;            // the selected row's marker
     std::vector<SaveEntry> entries;
     int selected = 0;
     int firstVisible = 0;            // list scroll position
@@ -2002,10 +2011,10 @@ public:
     // Surface 0's and surface 1's paints: questTitles; the zone's title and description.
     void PaintQuestList(UiSurface& surface) const;
     void PaintZone(UiSurface& surface) const;
-    // Region 0 OK (with two buttons the time to the nearest exit passes and that zone is requested), 1
-    // cancel, 2 / 3 the previous / next listed zone, 4-8 a quest row, from 9 an exit.
+    // OK (with two buttons the time to the nearest exit passes and that zone is requested), cancel, the previous /
+    // next listed zone, a quest row or an exit.
     void LeftDown(Point point) override;
-    // Enter as the OK region, Esc closes, PgUp / PgDn / Up / Down move the selected quest by 5 / 1. A key
+    // Enter as OK, Esc closes, PgUp / PgDn / Up / Down move the selected quest by 5 / 1. A key
     // left unused that is bound to the objectives action closes a window with one button.
     void KeyDown(platform::Key key, int scan, bool repeat) override;
     // A multiplayer client takes them from the quest database's record, otherwise from map.txt's "#quest
@@ -2046,6 +2055,26 @@ public:
     std::string zoneTitle;          // the last zone with a text: its title and description (ShowZone)
     std::string zoneText;
     std::uint8_t savedAlphaRef = 0;
+
+    static constexpr int kVisibleRows = 5;
+    UiRegion* okButton = nullptr;
+    UiRegion* cancelButton = nullptr;        // the second button (no tip with one button)
+    UiRegion* previousZoneButton = nullptr;
+    UiRegion* nextZoneButton = nullptr;
+    UiRegion* rows[kVisibleRows] = {};       // the quest rows, from firstRow
+    UiMesh* okIcon = nullptr;
+    UiMesh* selectionMarker = nullptr;       // on the selected quest's row
+    UiMesh* zonePicture = nullptr;           // ShowZone's picture
+    UiMesh* bottomShade = nullptr;           // the strip under the buttons; selecting an exit hides it
+    UiMesh* bottomFrame = nullptr;
+    UiMesh* previousZoneArrow = nullptr;
+    UiMesh* nextZoneArrow = nullptr;
+    UiMesh* questMarks[kVisibleRows] = {};   // a shown row's done / failed mark
+    // ShowZone's exits and ShowQuest's places: a marker and a region each, made after the window's own.
+    std::vector<UiMesh*> exitMarkers;
+    std::vector<UiRegion*> exitAreas;
+    std::vector<UiMesh*> placeMarkers;
+    std::vector<UiRegion*> placeAreas;
 };
 
 // A key binding row of the options window.
@@ -2209,10 +2238,10 @@ public:
     // A missing text gives its key. The text is centred and word-wrapped.
     MessageWindow(Interface3D* ui, std::string_view titleKey, const char* textKey, MessageQuestion question, MessageButtons buttons);
     void CreateScreen() override;
-    // Region 0 OK: for the exit question the exit movie and the game quits; otherwise
-    // the edit field's text into editText. The region n pressed then leaves BoxResult(question, n + 1) pending.
+    // OK: for the exit question the exit movie and the game quits; otherwise the edit field's text into editText.
+    // OK or cancel then leaves BoxResult(question, Ok / Cancel) pending.
     void LeftDown(Point point) override;
-    // Unless a child used the key, Enter answers as region 0 and Esc as region 1.
+    // Unless a child used the key, Enter answers as OK and Esc as cancel.
     void KeyDown(platform::Key key, int scan, bool repeat) override;
     // Into the caller's buffer.
     void CopyEditText();
@@ -2226,6 +2255,8 @@ public:
     std::vector<UiLabel> labels;     // the surface's paint: the title and the text (CreateScreen measures and places them)
     UiEditField* edit = nullptr;    // the edit field (OkCancelEdit)
     char* editText = nullptr;        // the edit field's first text; OK copies the typed one here
+    UiRegion* okButton = nullptr;    // null in a cancel-only box
+    UiRegion* cancelButton = nullptr;   // null in an OK-only box
 };
 
 // The help / message window (Interface3D::ShowMessage and OpenHelp). Its pages come from the texts:
@@ -2241,7 +2272,7 @@ public:
     void CreateScreen() override;
     // The pulse: v = (cos(5 t) + 1) / 2 gives alpha 255 * v and the colour 80 * (1 - v).
     void Update() override;
-    // Region 0 the previous page, 1 OK (Finish), 2 the next page.
+    // The previous page, OK (Finish) or the next page.
     void LeftDown(Point point) override;
     // Enter the next page (Finish on the last), Esc or the help key Finish.
     void KeyDown(platform::Key key, int scan, bool repeat) override;
@@ -2264,6 +2295,9 @@ public:
     int page = 0;                        // the page shown (the topic's or message's saved page)
     std::vector<UiMesh*> pulsing;      // sprites whose plain colour pulses (Update)
     std::vector<UiMesh*> pictures;     // the entries' picture sprites
+    UiRegion* previousButton = nullptr;   // the page's buttons (ShowPage; null while none is built)
+    UiRegion* okButton = nullptr;
+    UiRegion* nextButton = nullptr;
     float pulseTime = 0.0f;
     // What ShowPage keeps for the paints: the page's width (layout), the texts with their first rows, and the help
     // key's hint ("<show_tutorial_key> <key>"; empty without a key).
@@ -2320,19 +2354,16 @@ public:
     int caret = 0;                   // in the typed line (a byte offset at a character's start: U4)
 };
 
-// The new game's difficulty question (the main menu's region 0): a message box ("option_difficulty", OK and
-// cancel) with two check boxes. Its button handler sets easy from the boxes (regions 2 / 3) and copies it to
+// The new game's difficulty question (the main menu's new game button): a message box ("option_difficulty", OK and
+// cancel) with two check boxes. Its button handler sets easy from the boxes and copies it to
 // options::g_options.difficulty on OK.
 class DifficultyBox : public MessageWindow {
 public:
     explicit DifficultyBox(Interface3D* ui) : MessageWindow(ui, "option_difficulty", "", MessageQuestion::Second, MessageButtons::OkCancel) {}
-    // No container handler. Region 0 OK (easy to options::g_options.difficulty), 1 cancel, 2 / 3 check easy / hard.
+    // No container handler. OK (easy to options::g_options.difficulty), cancel, or a check box checked.
     void LeftDown(Point point) override;
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
     void KeyDown(platform::Key key, int scan, bool repeat) override;
-    // CreateScreen adds them first.
-    UiMesh* EasyBox() const { return sceneObjects[0]; }
-    UiMesh* HardBox() const { return sceneObjects[1]; }
     // The texture shift of a checked box (0xBDB80000).
     static constexpr float kCheckedOffset = -0.08984375f;
 
@@ -2340,6 +2371,10 @@ public:
     void CreateScreen() override;
 
     int easy = 0;                    // 1 easy, 0 hard (the default)
+    UiMesh* easyBox = nullptr;       // the check boxes' sprites and regions
+    UiMesh* hardBox = nullptr;
+    UiRegion* easyArea = nullptr;
+    UiRegion* hardArea = nullptr;
 };
 
 // config\keyboard.ini.

@@ -372,14 +372,14 @@ public:
     // game's password (0x30001 / 0x30002) is kept and its switch shows whether there is one; a join password
     // (0x50001) joins the selected server with it and sets the client's game type from the row.
     void MessageResult(std::uint32_t result) override;
-    // By region (above): 0 Connect, 1 back (the cancel sound, the address book written, the network sessions dropped, the
-    // screen closed with 0x1000001), 2 MasterRequest, 3 EditAddress, 4 the unlisted switch, 5 the password (none: a box for
-    // one; else it is dropped), 6-9 the sort column (a second click reverses it), 10-13 the game type (only with row 0
-    // selected), 14 and up a row (the select sound, it and its address selected); then the container's handler.
+    // By region: Connect, back (the cancel sound, the address book written, the network sessions dropped, the screen
+    // closed with 0x1000001), MasterRequest, EditAddress, the unlisted switch, the password (none: a box for one; else it
+    // is dropped), a sort column (a second click reverses it), a game type tab (only with row 0 selected), a row (the
+    // select sound, it and its address selected); then the container's handler.
     void LeftDown(Point point) override;
     // A row double-clicked is selected (no sound, no drawing) and Connect follows; then the container's handler.
     void LeftDouble(Point point) override;
-    // The container's handler first; then Enter connects, Esc leaves (as region 1 without the address book), Up / Down / PgUp /
+    // The container's handler first; then Enter connects, Esc leaves (as back without the address book), Up / Down / PgUp /
     // PgDn move the selection by 1 / 15 with the select sound (SelectAndScroll); those keys are marked used.
     void KeyDown(platform::Key key, int scan, bool repeat) override;
     // The selection clamped to the list (an empty list gives -1 and reads the entry before it), its address kept, the list
@@ -410,6 +410,22 @@ public:
     // the rows past 15 and its position set again; scrollTop 0.
     void RebuildList();
 
+    static constexpr int kSortColumns = 4;
+    static constexpr int kTabs = 4;
+    UiRegion* connectButton = nullptr;
+    UiRegion* backButton = nullptr;
+    UiRegion* masterButton = nullptr;
+    UiRegion* addressButton = nullptr;
+    UiRegion* unlistedSwitch = nullptr;
+    UiRegion* passwordSwitch = nullptr;
+    UiRegion* sortColumns[kSortColumns] = {};
+    UiRegion* tabAreas[kTabs] = {};          // the new game's type tabs
+    UiRegion* rows[kRows] = {};              // the visible rows, from scrollTop
+    UiMesh* selectionMarker = nullptr;
+    UiMesh* sortArrow = nullptr;
+    UiMesh* unlistedBox = nullptr;           // the switches' check boxes
+    UiMesh* passwordBox = nullptr;
+    UiMesh* tabBoxes[kTabs] = {};
     float refreshTimer = 0.0f;     // seconds since the last refresh (0.5 s period)
     std::vector<MpAddressEntry> entries;
     int selected = 0;              // row
@@ -449,8 +465,7 @@ public:
 };
 
 // --- In-game escape menu ----------------------------------------------------------------------
-// Opened by Esc during a game. Regions, built from the EscMenu layout: 0 save, 1 load, 2 resume, 3 quit
-// (message box), 4 options.
+// Opened by Esc during a game: five stones over the stone menu model.
 class EscMenu : public UiContainer {
 public:
     explicit EscMenu(Interface3D* ui) : UiContainer(ui) {}
@@ -459,13 +474,15 @@ public:
     void MessageResult(std::uint32_t result) override;
     // The stone model and the five regions, whose rectangles come from menus.reg.
     void CreateScreen() override;
-    // Opens the save window (region 0), the load window (1; neither in multiplayer), resumes (2), asks to quit (3) or opens the
-    // options (4).
+    // Opens the save window, the load window (neither in multiplayer), resumes, asks to quit or opens the options.
     void LeftDown(Point point) override;
     // The menu closes: its stone model (models[0]) plays animation 0.
     void CloseScreen() override;
 
-    int hovered = 0;            // region under the mouse, -1 for none
+    // The stones, in their creation order.
+    static constexpr int kSave = 0, kLoad = 1, kResume = 2, kQuit = 3, kOptions = 4, kStones = 5;
+    UiRegion* stones[kStones] = {};
+    int hovered = 0;            // the stone under the mouse, -1 for none
 };
 
 // --- Credits ------------------------------------------------------------------------------------
@@ -549,7 +566,7 @@ public:
 };
 
 // --- Main menu ----------------------------------------------------------------------------------
-// The main menu (CreateScreen id 2). Regions 0-5 from the menus.reg "MainMenu" rectangles; the stones are the object
+// The main menu (CreateScreen id 2). Its buttons are the menus.reg "MainMenu" rectangles; the stones are the object
 // manager's object 2; the world behind it runs the "MainMenu.cam" camera path with rain at night.
 class MainMenu : public UiContainer {
 public:
@@ -557,12 +574,12 @@ public:
     void DrawSprites(SceneRenderer* pass) override;
     // The map edge fade put back, the sounds and the ambience stopped.
     void CloseScreen() override;
-    // By region: 0 the difficulty question (a message box), 1 load (the save/load window), 2 the exit movie and quit, 3
-    // options, 4 the titles (surfaces cleared, opened over the menu), 5 multiplayer (status "reserved_04", the server flag, the
-    // hero screen). Then the container's handler.
+    // By button: new game the difficulty question (a message box), load the save/load window, exit the exit movie and
+    // quit, options, the titles (surfaces cleared, opened over the menu), multiplayer (status "reserved_04", the server
+    // flag, the hero screen). Then the container's handler.
     void LeftDown(Point point) override;
     // The interface's saved state cleared, the flow's party step 0, an inert extra input side (UiInertInput),
-    // the full-screen rectangle, the version line, the six regions; the default music, the map edge fade kept
+    // the full-screen rectangle, the version line, the six buttons; the default music, the map edge fade kept
     // and set to 6, rain by a coin toss, daylight between 7 and 21, the rain started before 7; the camera
     // path "MainMenu.cam" and the menu music.
     void CreateScreen() override;
@@ -576,13 +593,16 @@ public:
     // box's yes) the exit movie and quit, 0x20001 the intro movie and the flow's state 3, 0xCCCCCCCC (the
     // titles closed) the version line again.
     void MessageResult(std::uint32_t result) override;
-    // Hovering a region plays its stone's animation (regions 0-5: 1, 3, 5, 7, 11, 9; off them the rest pose) with the stone
-    // sound, once per region; then the container's handler.
+    // Hovering a button plays its stone's animation (kStoneAnimation; off them the rest pose) with the stone sound, once
+    // per button; then the container's handler.
     void MouseMove(Point point) override;
     // The container's handler, then Esc asks to quit (a message box "quit" / "quit_msg", flags 0x10000).
     void KeyDown(platform::Key key, int scan, bool repeat) override;
 
-    int hovered = -1;                     // the region under the mouse (-1 none)
+    // The buttons, in their creation order.
+    static constexpr int kNewGame = 0, kLoad = 1, kExit = 2, kOptions = 3, kTitles = 4, kMultiplayer = 5, kButtons = 6;
+    UiRegion* buttons[kButtons] = {};
+    int hovered = -1;                     // the button under the mouse (-1 none)
     bool rain = false;
     bool daylight = false;                   // the hour was between 7 and 21 when the menu opened
     float hour = 0.0f;                      // the time of day at the last update
@@ -607,7 +627,7 @@ public:
     void TakeItem(Item* item, int mode) override;
     // Every item may move.
     bool CanEquip(Item*, int) override { return true; }
-    // Builds the window (texture "campinfo", regions 0 accept, 1 take back, 2 leave): see docs/notes/ui.md,
+    // Builds the window (texture "campinfo", the accept, take back and leave buttons): see docs/notes/ui.md,
     // "ExchangeScreen::CreateScreen".
     void CreateScreen() override;
     // The item (or help topic) under the mouse from the strip, else the grid, goes to the description panel;
@@ -621,10 +641,10 @@ public:
     // the local party and the client returns to the world; else a changed money field (its changed cleared)
     // becomes our offer's money (atoi) and the offer is published.
     void Update() override;
-    // The container's handler, then by region: 0 accept (the buy sound and the trade recorded with the local
+    // The container's handler, then by button: accept (the buy sound and the trade recorded with the local
     // party, when our offer is live and not accepted and its money is within the local party's; else the
-    // cancel sound), 1 take the acceptance back (cancel sound and the recorded take-back, when it is
-    // accepted), 2 leave (the transit sound and the recorded leave). The event is not marked used.
+    // cancel sound), take the acceptance back (cancel sound and the recorded take-back, when it is
+    // accepted), leave (the transit sound and the recorded leave). The event is not marked used.
     void LeftDown(Point point) override;
 
     Party* scratch = nullptr;       // a party of the screen's own (made by Create, deleted by Close)
@@ -634,6 +654,12 @@ public:
     FigureStrip* figures = nullptr;  // the players (figure strip)
     TradeGrid* grid = nullptr;      // the two offers (mode 5)
     UiEditField* moneyField = nullptr;  // the money offered
+    UiRegion* acceptButton = nullptr;
+    UiRegion* takeBackButton = nullptr;
+    UiRegion* leaveButton = nullptr;
+    UiMesh* acceptIcon = nullptr;      // the buttons' sprites; partnerIcon lit while the partner accepted
+    UiMesh* takeBackIcon = nullptr;
+    UiMesh* partnerIcon = nullptr;
     std::vector<std::string> names;            // the figure strip's names
     std::vector<UiLabel> labels[4];            // the four surfaces' paints: what Draw found
 };

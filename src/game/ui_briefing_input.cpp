@@ -19,6 +19,7 @@
 #include "lib/text_case.h"
 #include "platform/platform.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <string>
@@ -30,14 +31,14 @@ constexpr const char* kTopicPrefixKey = "topic_prefix";
 constexpr const char* kGoodbyeTopic = "goodbye";
 constexpr const char* kTopicSeparator = " ";
 
-constexpr int kTopicRows = 5;
+
 
 // The topic rows (layout): regions at x 210..570 from y 440, 24 high; text rows on surface 0 at
 // x 15..380 with their bottoms from 34, 24 apart, up to 154.
 constexpr int kRowRegionLeft = 0xD2;
 constexpr int kRowRegionRight = 0x23A;
 constexpr int kRowRegionTop = 0x1B8;
-constexpr int kRowRegionEnd = 0x230;
+
 constexpr int kRowHeight = 0x18;
 constexpr int kRowTextLeft = 0xF;
 constexpr int kRowTextRight = 0x17C;
@@ -100,11 +101,12 @@ void BriefingScreen::LeftDown(Point point) {
         return;
     }
     case 1: {
-        int region = RegionAt(point);
-        if (region < 0 || region >= kTopicRows || region + topicTop >= std::ssize(topics)) return;
+        const int row = RegionIndex(topicRows, RegionUnder(point));
+        if (row < 0 || row + topicTop >= std::ssize(topics)) return;
         ui->PlayInterfaceSound(kClickSound);
-        topic = topics[region + topicTop];
+        topic = topics[row + topicTop];
         ClearRegions();
+        std::ranges::fill(topicRows, nullptr);
         StartDialogue(false, true);
         return;
     }
@@ -130,9 +132,9 @@ void BriefingScreen::MouseMove(Point point) {
     g_cursor.SetShape(CursorShape::Default);
     UiContainer::MouseMove(point);
     if (state == 1) {
-        int region = RegionAt(point);
+        const int row = RegionIndex(topicRows, RegionUnder(point));
         int hovered = -1;
-        if (region >= 0 && region < kTopicRows && region + topicTop < std::ssize(topics)) hovered = region + topicTop;
+        if (row >= 0 && row + topicTop < std::ssize(topics)) hovered = row + topicTop;
         if (hovered != hoveredTopic) {
             hoveredTopic = hovered;
             DrawTopics();
@@ -201,8 +203,10 @@ void BriefingScreen::OpenTopics(EngineObject* speaker) {
         Unit* unit = g_serverWorld.FindUnit(leader->id);
         if (unit && !(unit->flags & MapObjectFlag::Blocked)) unit->ServerController()->brain.StopAction();
     }
-    for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
-        AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
+    for (int row = 0, top = kRowRegionTop; row < kTopicRows; ++row, top += kRowHeight) {
+        topicRows[row] = AddRegion();
+        topicRows[row]->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
+    }
     topics.push_back(kGoodbyeTopic);
     const int count = lib::Count(topics);
     topicBar->SetMaximum(count > kTopicRows ? count - kTopicRows : 0);

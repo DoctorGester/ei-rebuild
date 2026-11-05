@@ -68,9 +68,6 @@ constexpr float kBarWidth = 355.0f;
 constexpr float kBarLeft = 225.0f;
 constexpr float kTabSelected = 0.08984375f;               // 0x3DB80000
 
-constexpr int kRegionConnect = 0, kRegionBack = 1, kRegionMaster = 2, kRegionAddress = 3, kRegionUnlisted = 4,
-              kRegionPassword = 5, kRegionSortFirst = 6, kRegionTabFirst = 10, kRegionRowFirst = 14;
-constexpr int kSpriteUnlisted = 4, kSpritePassword = 5, kSpriteTabFirst = 6, kTabs = 4;
 constexpr int kSurfaceConnecting = 1;
 constexpr int kTextPassword = 18, kTextAddress = 19, kTextMaster = 20;
 constexpr std::uint32_t kLeaveScreen = 0x1000001;
@@ -170,8 +167,7 @@ void MpConnectScreen::MessageResult(std::uint32_t result) {
         DrawListVanilla();
     } else if (result == BoxResult(kBoxPassword, MessageAnswer::Ok) || result == BoxResult(kBoxPassword, MessageAnswer::Cancel)) {
         hostPassword = boxText;
-        auto* sprite = sceneObjects[kSpritePassword];
-        sprite->textureOffsetU = hostPassword.size() == 0 ? kFrameOff : kFrameOn;
+        passwordBox->textureOffsetU = hostPassword.size() == 0 ? kFrameOff : kFrameOn;
     } else if (result == BoxResult(kBoxJoinPassword, MessageAnswer::Ok)) {
         g_gameFlow.JoinServer(&entries[selected].address, boxText);
         net::g_gameClient->gameType = entries[selected].gameType;
@@ -181,75 +177,60 @@ void MpConnectScreen::MessageResult(std::uint32_t result) {
 // --- input ---------------------------------------------------------------------------------------
 
 void MpConnectScreen::LeftDown(Point point) {
-    int region = RegionAt(point);
-    switch (region) {
-    case kRegionConnect:
+    UiRegion* region = RegionUnder(point);
+    const int column = RegionIndex(sortColumns, region);
+    const int tab = RegionIndex(tabAreas, region);
+    const int shownRow = RegionIndex(rows, region);
+    if (region == connectButton) {
         Connect();
-        break;
-    case kRegionBack:
+    } else if (region == backButton) {
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
         SaveAddressBook();
         g_gameFlow.DropSessions();
         ui->SetPendingValue(kLeaveScreen);
-        break;
-    case kRegionMaster:
+    } else if (region == masterButton) {
         MasterRequest();
-        break;
-    case kRegionAddress:
+    } else if (region == addressButton) {
         EditAddress();
-        break;
-    case kRegionUnlisted: {
+    } else if (region == unlistedSwitch) {
         unlisted = !unlisted;
-        auto* sprite = sceneObjects[kSpriteUnlisted];
-        sprite->textureOffsetU = unlisted ? kFrameOn : kFrameOff;
-        break;
-    }
-    case kRegionPassword:
+        unlistedBox->textureOffsetU = unlisted ? kFrameOn : kFrameOff;
+    } else if (region == passwordSwitch) {
         if (hostPassword.size() == 0) {
             CopyText(boxText, hostPassword.c_str());
             OpenBox(ui, texts[kTextPassword], boxText, kBoxPassword, MessageButtons::OkCancelEdit);
         } else {
             hostPassword.clear();
-            sceneObjects[kSpritePassword]->textureOffsetU = 0.0f;
+            passwordBox->textureOffsetU = 0.0f;
         }
-        break;
-    case kRegionSortFirst:
-    case kRegionSortFirst + 1:
-    case kRegionSortFirst + 2:
-    case kRegionSortFirst + 3: {
+    } else if (column >= 0) {
         // Column c sorts by key 2c + 1, a second click by 2c + 2.
-        int ascending = 2 * (region - kRegionSortFirst) + 1;
+        int ascending = 2 * column + 1;
         sortKey = sortKey == ascending ? ascending + 1 : ascending;
         RebuildList();
         DrawListVanilla();
-        break;
-    }
-    default:
-        if (region >= kRegionTabFirst && region < kRegionRowFirst) {
-            if (selected == 0) {
-                gameType = region - kRegionTabFirst;
-                for (int i = 0; i < kTabs; ++i)
-                    sceneObjects[kSpriteTabFirst + i]->textureOffsetU = 0.0f;
-                sceneObjects[kSpriteTabFirst + gameType]->textureOffsetU = kTabSelected;
-            }
-        } else if (region >= kRegionRowFirst) {
-            unsigned row = static_cast<unsigned>(scrollTop + region - kRegionRowFirst);
-            if (row < entries.size()) {
-                ui->PlayInterfaceSound(kSaveSelectSound);
-                selected = static_cast<int>(row);
-                selectedAddress = entries[row].address;
-                DrawListVanilla();
-            }
+    } else if (tab >= 0) {
+        if (selected == 0) {
+            gameType = tab;
+            for (UiMesh* box : tabBoxes) box->textureOffsetU = 0.0f;
+            tabBoxes[gameType]->textureOffsetU = kTabSelected;
         }
-        break;
+    } else if (shownRow >= 0) {
+        unsigned row = static_cast<unsigned>(scrollTop + shownRow);
+        if (row < entries.size()) {
+            ui->PlayInterfaceSound(kSaveSelectSound);
+            selected = static_cast<int>(row);
+            selectedAddress = entries[row].address;
+            DrawListVanilla();
+        }
     }
     UiContainer::LeftDown(point);
 }
 
 void MpConnectScreen::LeftDouble(Point point) {
-    int region = RegionAt(point);
-    if (region >= kRegionRowFirst) {
-        unsigned row = static_cast<unsigned>(scrollTop + region - kRegionRowFirst);
+    const int shownRow = RegionIndex(rows, RegionUnder(point));
+    if (shownRow >= 0) {
+        unsigned row = static_cast<unsigned>(scrollTop + shownRow);
         if (row < entries.size()) {
             selected = static_cast<int>(row);
             selectedAddress = entries[row].address;
@@ -420,8 +401,8 @@ void MpConnectScreen::RebuildList() {
             selected = static_cast<int>(row);
     if (selected == 0) selectedAddress = net::NetAddress{};
 
-    unsigned rows = static_cast<unsigned>(entries.size());
-    if (rows > static_cast<unsigned>(kRows)) {
+    unsigned count = static_cast<unsigned>(entries.size());
+    if (count > static_cast<unsigned>(kRows)) {
         const int position = scroll->TakePosition();
         scroll->SetMaximum(static_cast<int>(entries.size()) - kRows);
         scroll->SetPosition(position);
@@ -450,17 +431,18 @@ void MpConnectScreen::CreateScreen() {
         UiRegion* added = AddRegion();
         added->SetRect(left, top, right, bottom);
         if (tip) added->SetTip(tip);
+        return added;
     };
-    region(163, 526, 237, 574, 0x9E98);   // connect
-    region(563, 526, 637, 574, 0x9E99);   // back
-    region(490, 441, 620, 465, 0x9EA2);   // the master server
-    region(490, 465, 620, 489, 0x9EA3);   // an address
-    region(440, 346, 670, 367, 0);        // unlisted
-    region(440, 370, 670, 391, 0);        // the password
-    region(106, 106, 236, 127, 0);        // the four columns
-    region(236, 106, 264, 127, 0);
-    region(264, 106, 334, 127, 0);
-    region(334, 106, 375, 127, 0);
+    connectButton = region(163, 526, 237, 574, 0x9E98);
+    backButton = region(563, 526, 637, 574, 0x9E99);
+    masterButton = region(490, 441, 620, 465, 0x9EA2);
+    addressButton = region(490, 465, 620, 489, 0x9EA3);
+    unlistedSwitch = region(440, 346, 670, 367, 0);
+    passwordSwitch = region(440, 370, 670, 391, 0);
+    sortColumns[0] = region(106, 106, 236, 127, 0);
+    sortColumns[1] = region(236, 106, 264, 127, 0);
+    sortColumns[2] = region(264, 106, 334, 127, 0);
+    sortColumns[3] = region(334, 106, 375, 127, 0);
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         UiMesh* added = AddBlankSprite();
@@ -475,16 +457,15 @@ void MpConnectScreen::CreateScreen() {
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     // The selection's right edge (Rebirth's ExtendedServerName; the original's 370).
-    plain(sprite(3.0f, 108.0f, 108.0f, kExtendedSelectionRight, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize),
-          kSelectionColour);
-    {
-        UiMesh* arrow = AddBlankSprite();
-        arrow->texture = objects[kScrollbarObject];
-        arrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
-        arrow->visible = false;
-    }
-    sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU = -kTabSelected;
-    sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
+    selectionMarker = sprite(3.0f, 108.0f, 108.0f, kExtendedSelectionRight, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
+    plain(selectionMarker, kSelectionColour);
+    sortArrow = AddBlankSprite();
+    sortArrow->texture = objects[kScrollbarObject];
+    sortArrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
+    sortArrow->visible = false;
+    unlistedBox = sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C);
+    unlistedBox->textureOffsetU = -kTabSelected;
+    passwordBox = sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
     TextManager* clientWorldTexts = g_clientWorld.texts.get();
     std::string text;
@@ -493,10 +474,10 @@ void MpConnectScreen::CreateScreen() {
         text = clientWorldTexts->TextManager::GetString(text);
         allodNames.push_back(text);
         const int bottom = top + 21;
-        sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
-        region(460, top, 670, bottom, 0);
+        tabBoxes[i] = sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
+        tabAreas[i] = region(460, top, 670, bottom, 0);
     }
-    sceneObjects[kSpriteTabFirst]->textureOffsetU = kTabSelected;
+    tabBoxes[0]->textureOffsetU = kTabSelected;
     gameType = 0;
     unlisted = true;
     hostPassword.clear();
@@ -508,7 +489,7 @@ void MpConnectScreen::CreateScreen() {
     plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 410.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
     plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, kUiTextureSize, kUiTextureSize), kBackColour);
-    for (int top = 132; top < 492; top += 24) region(108, top, 370, top + 24, 0);   // the rows
+    for (int row = 0, top = 132; row < kRows; ++row, top += 24) rows[row] = region(108, top, 370, top + 24, 0);
 
     AddSurface(NewSurface(ui, Rect{100, 100, 700, 500}))->PaintWith([this](UiSurface& out) { PaintList(out); });
     {

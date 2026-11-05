@@ -101,19 +101,22 @@ void SaveLoadWindow::CreateScreen() {
     AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
-    AddRect(this, 163, 526, 237, 574)->SetTip(isSave ? 0xEAC4 : 0xEAC5);
-    AddRect(this, 563, 526, 637, 574)->SetTip(0xEAC7);
-    AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6);
+    okButton = AddRect(this, 163, 526, 237, 574);
+    okButton->SetTip(isSave ? 0xEAC4 : 0xEAC5);
+    cancelButton = AddRect(this, 563, 526, 637, 574);
+    cancelButton->SetTip(0xEAC7);
+    deleteButton = AddRect(this, 363, 526, 437, 574);
+    deleteButton->SetTip(0xEAC6);
 
     // The picture of the selected save (ShowPicture gives it its texture and texels).
-    UiMesh* pictureSprite = AddBlankSprite();
+    pictureSprite = AddBlankSprite();
     pictureSprite->SetRectangle(kDialogDepth, kSpriteScale, kPictureRect, 0, 0x100, 0x100, 0);
     pictureSprite->texture = nullptr;
-    UiMesh* highlight = AddBlankSprite();
-    highlight->SetRectangle(kDialogDepth, kSpriteScale, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-    highlight->texture = nullptr;
-    highlight->flatColour = 0xC8A06800;
-    highlight->flags |= FigureMeshFlag::Flat;
+    marker = AddBlankSprite();
+    marker->SetRectangle(kDialogDepth, kSpriteScale, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, kUiTextureSize, kUiTextureSize);
+    marker->texture = nullptr;
+    marker->flatColour = 0xC8A06800;
+    marker->flags |= FigureMeshFlag::Flat;
     Frame(this, 2.0f, 95.0f, 95.0f, 395.0f, 505.0f);     // the list
     Frame(this, 2.0f, 405.0f, 95.0f, 705.0f, 325.0f);    // the picture
     Frame(this, 2.0f, 405.0f, 335.0f, 705.0f, 505.0f);   // the description
@@ -121,7 +124,7 @@ void SaveLoadWindow::CreateScreen() {
     Shade(this, 5.0f, 410.0f, 100.0f, 700.0f, 320.0f);
     Shade(this, 5.0f, 410.0f, 340.0f, 700.0f, 500.0f);
 
-    for (int top = 108; top < 492; top += 24) AddRect(this, 108, top, 370, top + 24);
+    for (int row = 0, top = 108; row < kVisibleRows; ++row, top += 24) rows[row] = AddRect(this, 108, top, 370, top + 24);
 
     UiSurface* list = NewSurface(ui, Rect{100, 100, 700, 500});
     AddSurface(list);
@@ -232,12 +235,11 @@ void EscMenu::CreateScreen() {
     Quaternion turn = Quaternion::AxisAngle(axis, kEscMenuTilt);
     model->object->localRotation = turn;
 
-    // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
-    // original goes through SetRect with a RECT by value.
+    // The stones from the menus.reg rectangles; the original goes through SetRect with a RECT by value.
     const Rect* rects = g_menuRects + kMainMenuRects;
-    for (const Rect* source = rects; source < rects + 5; ++source) {
-        UiRegion* region = AddRegion();
-        region->SetRect(*source);
+    for (int stone = 0; stone < kStones; ++stone) {
+        stones[stone] = AddRegion();
+        stones[stone]->SetRect(rects[stone]);
     }
     models[0]->Play(SkillAnimation::Briefing02);
     ui->PlayInterfaceSound("buttons\\menu\\shift.wav");
@@ -246,32 +248,32 @@ void EscMenu::CreateScreen() {
 // --- Esc menu clicks -------------------------------------------------------------------
 
 void EscMenu::LeftDown(Point point) {
-    int region = RegionAt(point);
-    if (region >= 0) {
+    const int stone = RegionIndex(stones, RegionUnder(point));
+    if (stone >= 0) {
         ui->PlayInterfaceSound("buttons\\menu\\ok.wav");
         handled = true;
     }
     UiContainer* opened = nullptr;
     bool open = true;
-    switch (region) {
-    case 0:   // save
-    case 1: { // load
+    switch (stone) {
+    case kSave:
+    case kLoad: {
         if (IsMultiplayerClient()) {
             open = false;
             break;
         }
-        opened = new SaveLoadWindow(ui, region == 0, true);
+        opened = new SaveLoadWindow(ui, stone == kSave, true);
         break;
     }
-    case 2:   // resume
+    case kResume:
         ui->SetPendingValue(0);
         open = false;
         break;
-    case 3: { // quit: the message box
+    case kQuit: {
         opened = new MessageWindow(ui, "quit", "quit_msg", MessageQuestion::First, MessageButtons::OkCancel);
         break;
     }
-    case 4: { // options
+    case kOptions: {
         opened = new OptionsWindow(ui, true);
         break;
     }
@@ -287,19 +289,19 @@ void EscMenu::LeftDown(Point point) {
 
 void MainMenu::LeftDown(Point point) {
     const char* okSound = "buttons\\menu\\ok.wav";
-    switch (RegionAt(point)) {
-    case 0: {
+    switch (RegionIndex(buttons, RegionUnder(point))) {
+    case kNewGame: {
         // A new game: the difficulty question (a message box with its own vtables).
         ui->PlayInterfaceSound(okSound);
         ui->PushWindow(new DifficultyBox(ui), WindowBackdrop::FirstWindow);
         break;
     }
-    case 1: {
+    case kLoad: {
         ui->PlayInterfaceSound(okSound);
         ui->PushWindow(new SaveLoadWindow(ui, false, false), WindowBackdrop::FirstWindow);
         break;
     }
-    case 2: {
+    case kExit: {
         {
             std::string path = g_dataFolder + "Movies\\Exit.bik";
             PlayMovie(path, false, true, true);
@@ -307,12 +309,12 @@ void MainMenu::LeftDown(Point point) {
         platform::PostQuit(0);
         break;
     }
-    case 3: {
+    case kOptions: {
         ui->PlayInterfaceSound(okSound);
         ui->PushWindow(new OptionsWindow(ui, false), WindowBackdrop::FirstWindow);
         break;
     }
-    case 4: {
+    case kTitles: {
         // The titles (opened over a cleared menu, not as a dialog).
         g_clientWorld.sounds->StopAll(false);
         g_clientWorld.terrain->StopAmbience();
@@ -321,7 +323,7 @@ void MainMenu::LeftDown(Point point) {
         ui->PushWindow(new CreditsScreen(ui, true, "Titles"), WindowBackdrop::None);
         break;
     }
-    case 5: {
+    case kMultiplayer: {
         // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up its
         // second master server.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
@@ -376,16 +378,21 @@ void MessageWindow::CreateScreen() {
     if (buttons == MessageButtons::OkCancel || editing) {
         AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
         AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
-        AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4);
-        AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5);
+        okButton = AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A);
+        okButton->SetTip(0xC3B4);
+        cancelButton = AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A);
+        cancelButton->SetTip(0xC3B5);
     } else if (buttons == MessageButtons::Ok) {
         AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, buttonTop, 437.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
-        AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B4);
+        okButton = AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A);
+        okButton->SetTip(0xC3B4);
     } else {
-        // Cancel only: region 0 stays empty, so the button is region 1 as with two buttons.
+        // Cancel only: an empty region first, so the button is the second region as with two buttons (the
+        // harness's region steps count regions).
         AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, buttonTop, 437.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
         AddRegion();
-        AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B5);
+        cancelButton = AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A);
+        cancelButton->SetTip(0xC3B5);
     }
 }
 
@@ -429,9 +436,10 @@ void DifficultyBox::CreateScreen() {
     // the sprite's U offset, as the button handler does).
     int boxLeft = 400 - half;
     int boxRight = 0x1A5 - half;
-    AddBlankSprite()->SetRectangle(2.5f, kSpriteScale, static_cast<float>(boxLeft), static_cast<float>(row),
-                               static_cast<float>(boxRight), static_cast<float>(row + 0x15), 0xD1, 0x37, 0xE6, 0x4C);
-    UiMesh* hardBox = AddBlankSprite();
+    easyBox = AddBlankSprite();
+    easyBox->SetRectangle(2.5f, kSpriteScale, static_cast<float>(boxLeft), static_cast<float>(row),
+                          static_cast<float>(boxRight), static_cast<float>(row + 0x15), 0xD1, 0x37, 0xE6, 0x4C);
+    hardBox = AddBlankSprite();
     hardBox->SetRectangle(2.5f, kSpriteScale, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
                           static_cast<float>(boxRight), static_cast<float>(row + 0x2D), 0xD1, 0x37, 0xE6, 0x4C);
     hardBox->textureOffsetU = kCheckedOffset;
@@ -443,10 +451,12 @@ void DifficultyBox::CreateScreen() {
     float buttonBottom = static_cast<float>(bottom + 0x4A);
     AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
     AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
-    AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4);
-    AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5);
-    AddRect(this, boxLeft, row, boxRight, row + 0x15);
-    AddRect(this, boxLeft, row + 0x18, boxRight, row + 0x2D);
+    okButton = AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A);
+    okButton->SetTip(0xC3B4);
+    cancelButton = AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A);
+    cancelButton->SetTip(0xC3B5);
+    easyArea = AddRect(this, boxLeft, row, boxRight, row + 0x15);
+    hardArea = AddRect(this, boxLeft, row + 0x18, boxRight, row + 0x2D);
 }
 
 // --- Titles ----------------------------------------------------------------------------

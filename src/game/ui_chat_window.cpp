@@ -66,7 +66,7 @@ ChatWindow::ChatWindow(Interface3D* ownerUi, BriefingScreen* screen) : UiWindow(
 
 // --- a face --------------------------------------------------------------------------------------
 
-void ChatWindow::AddPortrait(const std::string& model, std::string_view texture) {
+UiRegion* ChatWindow::AddPortrait(const std::string& model, std::string_view texture) {
     // Four faces share a 256 x 256 texture, one quarter each.
     int u = 0, v = 0;
     switch (portraits % 4) {
@@ -97,7 +97,9 @@ void ChatWindow::AddPortrait(const std::string& model, std::string_view texture)
     sprite->textureOffsetV = (v + 0x80) * 0.00390625f;
     sprite->texture = objects[std::ssize(objects) - 1];
     ++portraits;
-    AddRegion()->SetRect(left, 0, right, 0x50);
+    UiRegion* region = AddRegion();
+    region->SetRect(left, 0, right, 0x50);
+    return region;
 }
 
 // --- the players' faces --------------------------------------------------------------------------
@@ -149,8 +151,7 @@ void ChatWindow::ShowPlayers() {
         build = "me";
         model = std::format("infa{}{}{}face", figure->figureName, build, prototype->hair + 1);
         picture = std::format("face{}{:02}", sex, prototype->skin);
-        AddPortrait(model, picture);
-        regions[portraits - 1]->SetTipString(player->name.data());
+        AddPortrait(model, picture)->SetTipString(player->name.data());
     }
 }
 
@@ -207,7 +208,7 @@ void ChatWindow::PaintStatus(UiSurface& surface) const {
 // --- the input side's left button and mouse move -------------------------------------------------
 
 void ChatWindow::LeftDown(Point point) {
-    int index = RegionAt(point);
+    const int index = RegionIndex(regions, RegionUnder(point));
     if (index < 0 || static_cast<unsigned>(index) >= players.size()) return;
     handled = true;
     // The game reads the active screen: the briefing, whose child this is, while the chat gets input.
@@ -236,7 +237,7 @@ void ChatWindow::LeftDown(Point point) {
 }
 
 void ChatWindow::MouseMove(Point point) {
-    int index = RegionAt(point);
+    const int index = RegionIndex(regions, RegionUnder(point));
     int pick = briefing->chatActive;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players.size()) g_cursor.SetShape(CursorShape::Default);
 }

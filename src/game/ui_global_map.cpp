@@ -101,10 +101,11 @@ private:
     GlobalMap* map = nullptr;
 };
 
-void AddTipRegion(UiWindow* window, int left, int top, int right, int bottom, int tip) {
+UiRegion* AddTipRegion(UiWindow* window, int left, int top, int right, int bottom, int tip) {
     UiRegion* region = window->AddRegion();
     region->SetRect(left, top, right, bottom);
     region->SetTip(tip);
+    return region;
 }
 
 // A link marker's region: 40 x 35 round the marker's place on the screen.
@@ -157,18 +158,17 @@ void GlobalMap::CreateScreen() {
     // The current zone: its arrow above it, its base on it, the island.
     {
         Vector3 above = {position.x, position.y, position.z + 2.0f};
-        builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
-        builder.Marker(allod->otherNames[kAllodBall], position, 0.8f);
-        UiMesh* island = AddSprite(allod->otherNames[kAllodIsland]);
+        arrow = builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
+        ball = builder.Marker(allod->otherNames[kAllodBall], position, 0.8f);
+        island = AddSprite(allod->otherNames[kAllodIsland]);
         island->texture = builder.MapTexture(2);
         island->Place(centreX, centreY, depth);
         builder.Turn(island);
     }
 
-    // Regions 0-2: turn left, turn right, the camp.
-    AddTipRegion(this, 0x2E1, 0x219, 0x311, 0x249, 0x15FF6);
-    AddTipRegion(this, 0x2B1, 0x219, 0x2E1, 0x249, 0x15FF5);
-    AddTipRegion(this, 0xF, 0x20D, 0x6B, 0x249, 0x15FF4);
+    turnLeftButton = AddTipRegion(this, 0x2E1, 0x219, 0x311, 0x249, 0x15FF6);
+    turnRightButton = AddTipRegion(this, 0x2B1, 0x219, 0x2E1, 0x249, 0x15FF5);
+    campButton = AddTipRegion(this, 0xF, 0x20D, 0x6B, 0x249, 0x15FF4);
 
     std::string variable;
     std::vector<std::string> parts;
@@ -185,6 +185,7 @@ void GlobalMap::CreateScreen() {
         entry.name = zone->name;
         entry.title = PlaceTitle("zone ", zone->name);
         UiMesh* sprite = AddSprite(zone->figure);
+        zoneMarkers.push_back(sprite);
         sprite->Place(centreX, centreY, depth);
         builder.Turn(sprite);
     }
@@ -203,6 +204,7 @@ void GlobalMap::CreateScreen() {
             quest.title = PlaceTitle("quest ", parts[2]);
             quest.position = MapPosition("#quest ", parts[2], false).value_or(Vector3{});
             UiMesh* sprite = AddSprite(allod->otherNames[kAllodQuestMarker]);
+            questMarkers.push_back(sprite);
             sprite->localPosition = builder.ModelPoint(quest.position);
             sprite->texture = builder.MapTexture(1);
             sprite->SetScale(0.3f);
@@ -229,41 +231,43 @@ void GlobalMap::CreateScreen() {
             link.title = PlaceTitle("zone ", way->name);
             link.position = MapPosition("#zone ", way->name, true).value_or(Vector3{});
             UiMesh* sprite = AddSprite(way->figure);
+            linkMarkers.push_back(sprite);
             sprite->localPosition = builder.ModelPoint(link.position);
             sprite->texture = builder.MapTexture(1);
             sprite->SetScale(0.3f);
             builder.Turn(sprite);
             SetWhite(sprite);
-            SetMarkerRegion(AddRegion(), sprite);
+            linkAreas.push_back(AddRegion());
+            SetMarkerRegion(linkAreas.back(), sprite);
         }
     }
 
     // Three plain layers over the model (shadow, haze, glow), in the weather's colours (the original first gave
     // them 0xA08200C8, 0xF0B400FF and 0x4BFFFFFF; its weather table replaced them before the first frame).
     {
-        UiMesh* shadow = builder.Layer(0x100, 0x100, 0, -0.5f);
+        UiMesh* shadow = layers[0] = builder.Layer(0x100, 0x100, 0, -0.5f);
         shadow->flatColour = 0x649B00E1;
         shadow->textureOffsetV = 0.3f;
         shadow->flags |= FigureMeshFlag::Flat;
-        UiMesh* haze = builder.Layer(0, 0x100, 0x100, 0.7f);
+        UiMesh* haze = layers[1] = builder.Layer(0, 0x100, 0x100, 0.7f);
         haze->flatColour = 0x6E9B007D;
         haze->textureOffsetV = 0.6f;
         haze->flags |= FigureMeshFlag::Flat;
-        UiMesh* glow = builder.Layer(0, 0x100, 0x100, 2.0f);
+        UiMesh* glow = layers[2] = builder.Layer(0, 0x100, 0x100, 2.0f);
         glow->flatColour = 0xB9690AC3;
         glow->visible = false;
         glow->flags |= FigureMeshFlag::Flat;
     }
 
     {
-        UiMesh* shade = AddBlankSprite();
-        shade->texture = nullptr;
-        shade->flags |= FigureMeshFlag::Flat;
-        shade->flatColour = 0xA0000000;
-        shade->visible = false;
-        UiMesh* picture = AddBlankSprite();
-        picture->visible = false;
-        picture->texture = builder.MapTexture(3);
+        tipBack = AddBlankSprite();
+        tipBack->texture = nullptr;
+        tipBack->flags |= FigureMeshFlag::Flat;
+        tipBack->flatColour = 0xA0000000;
+        tipBack->visible = false;
+        tipFrame = AddBlankSprite();
+        tipFrame->visible = false;
+        tipFrame->texture = builder.MapTexture(3);
     }
     {
         UiSurface* info = new UiSurface(ui, 400, 20, 780, 300, SurfaceBlend::Keyed, true);
@@ -356,21 +360,21 @@ void GlobalMap::Update() {
             turn.y = -turn.y;
             turn.z = -turn.z;
         }
-        sceneObjects[1]->localPosition = builder.ModelPoint(position);
-        builder.Turn(sceneObjects[1]);
-        builder.Turn(sceneObjects[2]);
-        for (int k = 3; k < 6; ++k) builder.Turn(sceneObjects[MarkerCount() + k]);
-        for (int i = 0; i < std::ssize(zones); ++i) builder.Turn(Marker(i));
+        ball->localPosition = builder.ModelPoint(position);
+        builder.Turn(ball);
+        builder.Turn(island);
+        for (UiMesh* layer : layers) builder.Turn(layer);
+        for (UiMesh* marker : zoneMarkers) builder.Turn(marker);
         for (int i = 0; i < std::ssize(quests); ++i) {
-            UiMesh* sprite = Marker(lib::Count(zones) + i);
+            UiMesh* sprite = questMarkers[i];
             sprite->localPosition = builder.ModelPoint(quests[i].position);
             builder.Turn(sprite);
         }
         for (int i = 0; i < std::ssize(links); ++i) {
-            UiMesh* sprite = Marker(lib::Count(zones) + lib::Count(quests) + i);
+            UiMesh* sprite = linkMarkers[i];
             sprite->localPosition = builder.ModelPoint(links[i].position);
             builder.Turn(sprite);
-            SetMarkerRegion(regions[3 + i], sprite);
+            SetMarkerRegion(linkAreas[i], sprite);
         }
     }
 
@@ -378,10 +382,10 @@ void GlobalMap::Update() {
     bobTime = time;
     float bob = 0.5f - (lib::Cos(time * 5.0f) * 0.2f);
     Vector3 above = {position.x, position.y, bob + position.z};
-    sceneObjects[0]->localPosition = builder.ModelPoint(above);
-    SetFrameFraction(sceneObjects[MarkerCount() + 3], bobTime, 0.01f);
-    SetFrameFraction(sceneObjects[MarkerCount() + 4], bobTime, 0.016666668f);
-    SetFrameFraction(sceneObjects[MarkerCount() + 5], bobTime, 0.033333335f);
+    arrow->localPosition = builder.ModelPoint(above);
+    SetFrameFraction(layers[0], bobTime, 0.01f);
+    SetFrameFraction(layers[1], bobTime, 0.016666668f);
+    SetFrameFraction(layers[2], bobTime, 0.033333335f);
 
     if (selectPending) RefreshSelection();
     selectPending = false;
@@ -410,7 +414,7 @@ int GlobalMap::ZoneAt(Point point) const {
     int zone = -1;
     float nearest = 0.0f;
     for (int i = 0; i < std::ssize(zones); ++i) {
-        const std::optional<float> faceDepth = Marker(i)->DepthAt(*markerCamera, point);
+        const std::optional<float> faceDepth = zoneMarkers[i]->DepthAt(*markerCamera, point);
         if (faceDepth && (zone < 0 || *faceDepth <= nearest)) {
             zone = i;
             nearest = *faceDepth;

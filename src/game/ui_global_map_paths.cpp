@@ -36,10 +36,6 @@ constexpr const char* kMoveSound = "buttons\\globalmap\\move.wav";
 constexpr const char* kTransitSound = "buttons\\globalmap\\transit.wav";
 constexpr const char* kOkSound = "buttons\\globalmap\\ok.wav";
 
-constexpr int kRegionTurnLeft = 0;
-constexpr int kRegionTurnRight = 1;
-constexpr int kRegionCamp = 2;
-constexpr int kFirstLinkRegion = 3;
 constexpr int kCampScreen = 5;
 
 } // namespace
@@ -97,13 +93,13 @@ void GlobalMap::FindPaths(MapRecord* from) {
 
 void GlobalMap::LeftDown(Point point) {
     if (dragging) return;
-    const int region = RegionAt(point);
-    if (region == kRegionTurnLeft || region == kRegionTurnRight) {
-        turning = region == kRegionTurnLeft ? -1 : 1;
+    UiRegion* region = RegionUnder(point);
+    if (region == turnLeftButton || region == turnRightButton) {
+        turning = region == turnLeftButton ? -1 : 1;
         ui->PlayInterfaceSound(kMoveSound);
         return;
     }
-    if (region == kRegionCamp) {
+    if (region == campButton) {
         if (noCamp) return;
         ui->PlayInterfaceSound(kTransitSound);
         g_serverWorld.SetConstructionVariable(0.0f);
@@ -111,10 +107,9 @@ void GlobalMap::LeftDown(Point point) {
         g_clientWorld.LocalView()->RequestGameState(kCampScreen);
         return;
     }
-    int link;
-    if (region >= kFirstLinkRegion) {
+    int link = RegionIndex(linkAreas, region);
+    if (link >= 0) {
         ui->PlayInterfaceSound(kOkSound);
-        link = region - kFirstLinkRegion;
     } else {
         const int index = ZoneAt(point);
         if (index < 0 || zones[index].state == 0) return;
@@ -196,7 +191,7 @@ void GlobalMap::SelectZone(int index, bool isLink) {
         if (gipat && index >= 0 && links[index].zone >= 0) zone = links[index].zone;
     }
     for (int i = 0; i < std::ssize(zones); ++i) {
-        UiMesh* marker = Marker(i);
+        UiMesh* marker = zoneMarkers[i];
         int state = zones[i].state;
         if (state == 0) {
             marker->texture = objects[2];
@@ -210,7 +205,7 @@ void GlobalMap::SelectZone(int index, bool isLink) {
         marker->flags &= ~FigureMeshFlag::Flat;
     }
     for (int i = 0; i < std::ssize(links); ++i) {
-        UiMesh* marker = Marker(lib::Count(zones) + lib::Count(quests) + i);
+        UiMesh* marker = linkMarkers[i];
         for (int k = 0; k < 3; ++k) marker->tint[k] = i == link ? fog[k] : 1.0f;
     }
 }
@@ -218,15 +213,14 @@ void GlobalMap::SelectZone(int index, bool isLink) {
 // --- the refresh ---------------------------------------------------------------------------------
 
 // What the original's pick picture step left behind (the click now finds the zone by its marker's faces, ZoneAt):
-// the tip hidden, the title shown, scene objects 0..2 (arrow, base, island) and everything after the zone markers
-// (quests, links, layers and the rest) shown (the glow layer and a hidden camp button
+// the tip hidden, the title shown, every sprite but the zone markers shown (the glow layer and a hidden camp button
 // too, as there), the tip's two sprites hidden, nothing selected.
 void GlobalMap::RefreshSelection() {
     surfaces[0]->Hide();
     surfaces[1]->Show();
-    for (int i = 0; i < 3; ++i) sceneObjects[i]->visible = true;
-    for (int i = lib::Count(zones) + 3; i < lib::Count(sceneObjects); ++i) sceneObjects[i]->visible = true;
-    sceneObjects[MarkerCount() + 6]->visible = false;
-    sceneObjects[MarkerCount() + 7]->visible = false;
+    for (UiMesh* sprite : sceneObjects)
+        if (std::ranges::find(zoneMarkers, sprite) == zoneMarkers.end()) sprite->visible = true;
+    tipBack->visible = false;
+    tipFrame->visible = false;
     SelectZone(-1, false);
 }

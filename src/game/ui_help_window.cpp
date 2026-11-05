@@ -110,26 +110,22 @@ void HelpWindow::Finish() {
 
 void HelpWindow::LeftDown(Point point) {
     UiContainer::LeftDown(point);
-    switch (RegionAt(point)) {
-    case 0:
+    UiRegion* region = RegionUnder(point);
+    if (!region) return;
+    if (region == previousButton) {
         if (page > 0) {
             ui->PlayInterfaceSound(kNextSound);
             --page;
             ShowPage();
         }
-        break;
-    case 1:
+    } else if (region == okButton) {
         Finish();
-        break;
-    case 2:
+    } else if (region == nextButton) {
         if (page < static_cast<int>(lines.size()) - 1) {
             ui->PlayInterfaceSound(kNextSound);
             ++page;
             ShowPage();
         }
-        break;
-    default:
-        break;
     }
 }
 

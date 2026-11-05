@@ -29,17 +29,8 @@ constexpr const char* kEnterSound = "buttons\\objectives\\enter.wav";
 constexpr const char* kMapText = "map.txt";
 constexpr const char* kQuestHeader = "#quest %s";
 
-constexpr int kRegionOk = 0;
-constexpr int kRegionCancel = 1;
-constexpr int kRegionPreviousZone = 2;
-constexpr int kRegionNextZone = 3;
-constexpr int kRegionFirstRow = 4;
-constexpr int kRegionFirstExit = 9;
-
 constexpr int kActionObjectives = 4;   // "obj" in the key table
 
-constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest places'
-constexpr int kVisibleRows = 5;
 constexpr float kNearestScale = 1.2f;
 constexpr float kOtherExitU = -0.125f;   // 0xBE000000
 // The blink: (cos(rate x t) x amplitude + base) x 255 (2.5, 0.3, 0.5;
@@ -52,10 +43,9 @@ constexpr float kAlphaScale = 255.0f;
 
 void ObjectivesWindow::LeftDown(Point point) {
     UiContainer::LeftDown(point);
-    int region = RegionAt(point);
+    UiRegion* region = RegionUnder(point);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones.end() - zones.begin());
-    switch (region) {
-    case kRegionOk:
+    if (region == okButton) {
         ui->PlayInterfaceSound(kOkSound);
         if (!twoButtons) {
             ui->SetPendingValue(0);
@@ -66,28 +56,28 @@ void ObjectivesWindow::LeftDown(Point point) {
             RequestZone(shownZone, index);
         }
         return;
-    case kRegionCancel:
+    }
+    if (region == cancelButton) {
         if (twoButtons) {
             ui->PlayInterfaceSound(kMessageBoxCancelSound);
             ui->SetPendingValue(0);
         }
         return;
-    case kRegionPreviousZone:
+    }
+    if (region == previousZoneButton) {
         if (!listZones || zoneCount <= 1) return;
         if (--zoneIndex < 0) zoneIndex = static_cast<int>(zoneCount) - 1;
         ShowZone(zones[zoneIndex]);
         return;
-    case kRegionNextZone:
+    }
+    if (region == nextZoneButton) {
         if (!listZones || zoneCount <= 1) return;
         if (static_cast<std::uint32_t>(++zoneIndex) >= zoneCount) zoneIndex = 0;
         ShowZone(zones[zoneIndex]);
         return;
-    default:
-        break;
     }
-    if (region < kRegionFirstRow) return;
-    if (region < kRegionFirstExit) {
-        int row = firstRow + region - kRegionFirstRow;
+    if (const int shownRow = RegionIndex(rows, region); shownRow >= 0) {
+        int row = firstRow + shownRow;
         if (row >= 0 && row < static_cast<int>(quests.size())) {
             ui->PlayInterfaceSound(kSelectSound);
             selectedQuest = row;
@@ -96,8 +86,8 @@ void ObjectivesWindow::LeftDown(Point point) {
         }
         return;
     }
-    if (region >= std::ssize(exits) + kRegionFirstExit) return;
-    int exit = region - kRegionFirstExit;
+    const int exit = RegionIndex(exitAreas, region);
+    if (exit < 0) return;
     if (twoButtons && exits[exit].flag) {
         ui->PlayInterfaceSound(kEnterSound);
         SelectExit(exit);
@@ -182,7 +172,7 @@ void ObjectivesWindow::LoadQuestPlaces(std::string_view name) {
 void ObjectivesWindow::SelectExit(int index) {
     nearestExit = index;
     for (int i = 0; i < std::ssize(exits); ++i) {
-        UiMesh* marker = sceneObjects[kFirstExitSprite + i];
+        UiMesh* marker = exitMarkers[i];
         if (i == index) {
             marker->SetScale(markerScale * kNearestScale);
             marker->textureOffsetU = 0.0f;
@@ -192,8 +182,8 @@ void ObjectivesWindow::SelectExit(int index) {
             marker->textureOffsetU = exits[i].flag ? 0.0f : kOtherExitU;
         }
     }
-    sceneObjects[4]->visible = false;
-    sceneObjects[5]->visible = false;
+    bottomShade->visible = false;
+    bottomFrame->visible = false;
 }
 
 void ObjectivesWindow::RefreshQuests() {
@@ -221,13 +211,12 @@ void ObjectivesWindow::Update() {
         static_cast<std::uint32_t>((lib::Cos(blinkTime * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast =
         static_cast<std::uint32_t>((lib::Cos(blinkTime * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
-    for (int i = lib::Count(exits) + kFirstExitSprite; i < lib::Count(sceneObjects); ++i) {
-        UiMesh* place = sceneObjects[i];
+    for (UiMesh* place : placeMarkers) {
         place->flags |= FigureMeshFlag::Flat;
         place->flatColour = fast << 24 | 0xFF0000u;
     }
-    for (int i = 0; i < std::ssize(exits); ++i) {
-        UiMesh* marker = sceneObjects[kFirstExitSprite + i];
+    for (int i = 0; i < std::ssize(exitMarkers); ++i) {
+        UiMesh* marker = exitMarkers[i];
         marker->flags |= FigureMeshFlag::Flat;
         marker->flatColour = i == nearestExit ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }
