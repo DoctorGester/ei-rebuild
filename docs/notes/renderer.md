@@ -1629,18 +1629,31 @@ then, per pixel:
   an attribute against a value its vertices sit at (0, -1) goes wrong the same way. Check: scenario `render_shore_seams`
   (the user's save on zone 1's beach, msaa 8 against 1, `smoothedges`).
 - **A swamp** is standing water, distinct from the sea and darker than the grass around it: the ripples at 0.2 of the
-  slope, drifting at a fifth of the speed (TerrainFsParams::slowRipples); a dark olive-brown body (half the lit texture
-  blended 0.6 towards (0.13, 0.115, 0.05) of the light on it); a sheen of the sky whatever the angle (0.045 plus 0.75 of
-  Schlick's term, the sky at 0.85) and a glossy lobe of the sun (Blinn-Phong 150, 0.12) in place of the sharp glint; no
-  foam, but sparse scum: patches of dull olive (at most 0.45 opaque) where the cloud map at 1/17 a unit and the ripple
-  pattern sum above a threshold, a little more within 1.5 units of the shore. Its edge goes by the distance from the
-  shore line (`shore_distance`: the depth over its slope across the landscape, from the pixel's derivatives), not by
-  the depth: it fades in over 0.25 units, is 0.35 opaque there and fully opaque 1.2 units in (or half a unit deep).
-  The swamps are shallow and their shores flat, so the water's fade by 0.25 of depth (R17a2's first try) faded whole
-  pools out and left them the grass's green. On the ground a muddy wet rim: the ground layer's `depth` is the swamp's
-  depth over it (render_terrain.cpp's SwampDepth; -1 where the record's water is not a swamp), and within 0.6 units of
-  its shore line (and under it) the ground is tinted brown (kMud), darkened and wet (ground_weather's `mud`, which
-  counts as wet ground whatever the weather: wet_ground's sheen).
+  slope, drifting at a fifth of the speed (TerrainFsParams::slowRipples); a deep green body, the game's green kept:
+  0.8 of the lit layer (the game's swamp, its texture lit by the material's green) blended 0.35 towards a murk of
+  (0.07, 0.12, 0.03) of the light on it (kSwampLayer, kSwampMurk, kSwampBody); a faint sheen of the sky whatever the
+  angle (0.03 plus 0.6 of Schlick's term, the sky at 0.7) and a glossy lobe of the sun (Blinn-Phong 300, 0.15; the
+  water's broad lobe at 0.3) in place of the sharp glint; no foam, but sparse scum: patches of dull olive (at most 0.45
+  opaque) where the cloud map at 1/17 a unit and the ripple pattern sum above a threshold, a little more within 1.5
+  units of the shore. Its edge goes by the distance from the shore line, not by the depth: it fades in over 0.25
+  units, is 0.35 opaque there and fully opaque 1.2 units in (or half a unit deep). The swamps are shallow and their
+  shores flat, so the water's fade by 0.25 of depth (R17a2's first try) faded whole pools out and left them the
+  grass's green. On the ground a muddy wet rim: the ground layer's `depth` is the swamp's depth over it
+  (render_terrain.cpp's SwampDepth; -1 where the record's water is not a swamp), and within 0.6 units of its shore
+  line and 0.3 under it the ground turns 0.45 of the way to an earthy tint of its own luminance (kMud) and is half wet
+  (ground_weather's `mud`, which counts as wet ground whatever the weather: wet_ground's sheen).
+  **The shore distance** (`shore_distance`) is the depth over the ground's slope, and the slope comes from the map's
+  vertex normals, interpolated: on the water layer the ground record's (render_terrain.cpp's GroundSlope, in the
+  vertex's second depth value, `shore`), on the ground its own interpolated normal. Taken from the depth's pixel
+  derivatives (until R17c4b) the slope was the triangle's own, so the distance jumped at every triangle edge where the
+  ground bent: the swamp's fade and the mud rim stepped in straight lines and notches along the triangles (a sharp
+  vertical edge and diagonal steps by the grass tongue in render_swamp_shore's swamp_near), and the rim, which ran
+  under the whole swamp, mixed brown into the bed, which the game's lighting tints by the water's green: near black
+  (R17c4b; swamp_view's body (23, 25, 12) at the save's hour and (37, 45, 29) at noon against the game's look
+  (16, 29, 2) and (26, 48, 4); now (16, 27, 7) and (29, 48, 17); swamp_near_noon's shore, 800 x 500 at (300, 300):
+  the darkest 5% under luminance 20.9, now 27.7, the game's 30.0; the step by the tongue, a column's mean jump over
+  120 rows at x 878: 7.5, now 1.5, the game's 1.8). The game's look for such a comparison: Water returning `game` with
+  the material's opacity for the swamps too (as for lava) and no mud.
   Where a swamp meets other water (zone1: material 1 against material 0 at (147, 87), (172, 94) and (122, 69), both
   under water; the swamp's priority 0.5 is the lower, so the shared vertices are the swamp's) the ground's `depth`
   runs from the swamp's depth to -1 across the triangle and crosses 0 under the water: a false shore line. No one
