@@ -670,7 +670,7 @@ CGRect FrameAsGiven(id, SEL, CGRect frame, id) { return frame; }
 void KeepClientSize(void* window) {
     if (!window) return;
     class_replaceMethod(object_getClass(static_cast<id>(window)), sel_registerName("constrainFrameRect:toScreen:"),
-                        reinterpret_cast<IMP>(&FrameAsGiven),
+                        reinterpret_cast<IMP>(reinterpret_cast<void (*)()>(&FrameAsGiven)),
                         "{CGRect={CGPoint=dd}{CGSize=dd}}@:{CGRect={CGPoint=dd}{CGSize=dd}}@");
 }
 #else
