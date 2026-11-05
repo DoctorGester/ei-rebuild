@@ -72,7 +72,7 @@ void CampPages::CreateScreen() {
     curtains = screen_layout::AddCurtains(this, 1);
 }
 
-void CampPages::LayoutChanged() { screen_layout::PlaceCurtains(this, curtains); }
+void CampPages::LayoutChanged() { screen_layout::PlaceCurtains(curtains); }
 
 void CampPages::BuildPages() {
     spellConstructor = false;
@@ -108,19 +108,20 @@ void CampPages::BuildPages() {
         UiRegion* added = AddRegion();
         added->SetRect(left, top, right, bottom);
         if (tip) added->SetTip(tip);
+        return added;
     };
-    region(12, 450, 52, 490, 0x4EE8);
-    region(148, 450, 188, 490, 0x4EE9);
-    region(300, 470, 330, 500, 0);
-    region(470, 470, 500, 500, 0);
-    region(620, 430, 660, 460, 0x4E84);
-    region(620, 460, 660, 490, 0x4E85);
-    region(660, 460, 700, 490, spellConstructor ? 0x4E89 : 0);
-    region(700, 460, 740, 490, spellConstructor && !noConstructor ? 0x4E8A : 0);
-    region(660, 430, 700, 460, itemConstructor ? 0x4E86 : 0);
-    region(700, 430, 740, 460, itemConstructor && !noConstructor ? 0x4E87 : 0);
-    region(740, 430, 780, 460, itemConstructor ? 0x4E88 : 0);
-    region(740, 460, 780, 490, 0x4E8B);
+    actionButton = region(12, 450, 52, 490, 0x4EE8);
+    secondActionButton = region(148, 450, 188, 490, 0x4EE9);
+    turnLeftArea = region(300, 470, 330, 500, 0);
+    turnRightArea = region(470, 470, 500, 500, 0);
+    pageButtons[0] = region(620, 430, 660, 460, 0x4E84);
+    pageButtons[1] = region(620, 460, 660, 490, 0x4E85);
+    pageButtons[2] = region(660, 460, 700, 490, spellConstructor ? 0x4E89 : 0);
+    pageButtons[3] = region(700, 460, 740, 490, spellConstructor && !noConstructor ? 0x4E8A : 0);
+    pageButtons[4] = region(660, 430, 700, 460, itemConstructor ? 0x4E86 : 0);
+    pageButtons[5] = region(700, 430, 740, 460, itemConstructor && !noConstructor ? 0x4E87 : 0);
+    pageButtons[6] = region(740, 430, 780, 460, itemConstructor ? 0x4E88 : 0);
+    pageButtons[7] = region(740, 460, 780, 490, 0x4E8B);
 
     // The buttons' sprites, in the regions' order without the turn areas.
     auto button = [this](float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
@@ -128,26 +129,26 @@ void CampPages::BuildPages() {
         sprite->SetRectangle(kDialogDepth, kSpriteScale, left, top, right, bottom, u0, v0, u1, v1);
         return sprite;
     };
-    button(12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
-    button(148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
-    button(620.0f, 430.0f, 660.0f, 460.0f, 0x02, 0xC1, 0x2A, 0xDF);
-    button(620.0f, 460.0f, 660.0f, 490.0f, 0x02, 0xE0, 0x2A, 0xFE);
-    UiMesh* sprite = button(660.0f, 460.0f, 700.0f, 490.0f, 0x2B, 0xE0, 0x53, 0xFE);
-    sprite->visible = spellConstructor;
-    sprite = button(700.0f, 460.0f, 740.0f, 490.0f, 0x54, 0xE0, 0x7C, 0xFE);
-    sprite->visible = spellConstructor;
-    if (noConstructor) sprite->visible = false;
-    sprite = button(660.0f, 430.0f, 700.0f, 460.0f, 0x2B, 0xC1, 0x53, 0xDF);
-    sprite->visible = itemConstructor;
-    sprite = button(700.0f, 430.0f, 740.0f, 460.0f, 0x54, 0xC1, 0x7C, 0xDF);
-    sprite->visible = itemConstructor;
-    if (noConstructor) sprite->visible = false;
-    sprite = button(740.0f, 430.0f, 780.0f, 460.0f, 0x7D, 0xC1, 0xA5, 0xDF);
-    sprite->visible = itemConstructor;
-    sprite = button(740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
-    sprite->tint[0] = 0.5f;
-    sprite->tint[1] = 0.5f;
-    sprite->tint[2] = 0.5f;
+    actionIcon = button(12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
+    secondActionIcon = button(148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
+    pageIcons[0] = button(620.0f, 430.0f, 660.0f, 460.0f, 0x02, 0xC1, 0x2A, 0xDF);
+    pageIcons[1] = button(620.0f, 460.0f, 660.0f, 490.0f, 0x02, 0xE0, 0x2A, 0xFE);
+    pageIcons[2] = button(660.0f, 460.0f, 700.0f, 490.0f, 0x2B, 0xE0, 0x53, 0xFE);
+    pageIcons[2]->visible = spellConstructor;
+    pageIcons[3] = button(700.0f, 460.0f, 740.0f, 490.0f, 0x54, 0xE0, 0x7C, 0xFE);
+    pageIcons[3]->visible = spellConstructor;
+    if (noConstructor) pageIcons[3]->visible = false;
+    pageIcons[4] = button(660.0f, 430.0f, 700.0f, 460.0f, 0x2B, 0xC1, 0x53, 0xDF);
+    pageIcons[4]->visible = itemConstructor;
+    pageIcons[5] = button(700.0f, 430.0f, 740.0f, 460.0f, 0x54, 0xC1, 0x7C, 0xDF);
+    pageIcons[5]->visible = itemConstructor;
+    if (noConstructor) pageIcons[5]->visible = false;
+    pageIcons[6] = button(740.0f, 430.0f, 780.0f, 460.0f, 0x7D, 0xC1, 0xA5, 0xDF);
+    pageIcons[6]->visible = itemConstructor;
+    pageIcons[7] = button(740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
+    pageIcons[7]->tint[0] = 0.5f;
+    pageIcons[7]->tint[1] = 0.5f;
+    pageIcons[7]->tint[2] = 0.5f;
 
     CreateBase();
     AddSurface(NewSurface(ui, Rect{0, 400, 200, 500}))->PaintWith([this](UiSurface& out) { PaintLabels(out, actionLabels); });

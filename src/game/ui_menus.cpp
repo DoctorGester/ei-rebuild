@@ -59,41 +59,35 @@ void SaveLoadWindow::TakeSelectedTitle() {
 
 void SaveLoadWindow::LeftDown(Point point) {
     if (sliding) return;
-    int region = RegionAt(point);
-    switch (region) {
-    case 0:
+    UiRegion* region = RegionUnder(point);
+    const int row = RegionIndex(rows, region);
+    if (region == okButton) {
         Confirm();
-        break;
-    case 1:
+    } else if (region == cancelButton) {
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(kCloseSaveLoad);
-        break;
-    case 2:
+    } else if (region == deleteButton) {
         AskDelete();
-        break;
-    default:
-        if (region >= 3) {
-            unsigned index = static_cast<unsigned>(firstVisible + region - 3);
-            if (index < static_cast<unsigned>(EntryCount())) {
-                ui->PlayInterfaceSound(kSaveSelectSound);
-                if (static_cast<int>(index) != selected) {
-                    selected = static_cast<int>(index);
-                    TakeSelectedTitle();
-                }
-                RefreshListVanilla();
-                ShowPicture();
+    } else if (row >= 0) {
+        unsigned index = static_cast<unsigned>(firstVisible + row);
+        if (index < static_cast<unsigned>(EntryCount())) {
+            ui->PlayInterfaceSound(kSaveSelectSound);
+            if (static_cast<int>(index) != selected) {
+                selected = static_cast<int>(index);
+                TakeSelectedTitle();
             }
+            RefreshListVanilla();
+            ShowPicture();
         }
-        break;
     }
     UiContainer::LeftDown(point);
 }
 
 void SaveLoadWindow::LeftDouble(Point point) {
     if (sliding) return;
-    int region = RegionAt(point);
-    if (region >= 3) {
-        unsigned index = static_cast<unsigned>(firstVisible + region - 3);
+    const int row = RegionIndex(rows, RegionUnder(point));
+    if (row >= 0) {
+        unsigned index = static_cast<unsigned>(firstVisible + row);
         if (index < static_cast<unsigned>(EntryCount())) {
             if (static_cast<int>(index) != selected) {
                 selected = static_cast<int>(index);

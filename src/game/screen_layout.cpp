@@ -46,7 +46,6 @@ int MulDiv64(int a, int b, int divisor) {
     return static_cast<int>(static_cast<std::int64_t>(a) * b / divisor);
 }
 
-constexpr int kHeroScreenSprites = 21;   // the hero screen's 19 and the two curtains
 constexpr int kHeroListMode = 9;
 
 void SetCurtainLook(UiMesh* curtain, int visible) {
@@ -134,31 +133,27 @@ void ShapeCurtains(UiMesh* left, UiMesh* right) {
 
 } // namespace
 
-int AddCurtains(UiWindow* window, int visible) {
-    const int first = static_cast<int>(std::ssize(window->sceneObjects));
-    UiMesh* left = window->AddBlankSprite();
-    UiMesh* right = window->AddBlankSprite();
-    ShapeCurtains(left, right);
-    SetCurtainLook(left, visible);
-    SetCurtainLook(right, visible);
-    return first;
+Curtains AddCurtains(UiWindow* window, int visible) {
+    const Curtains curtains{window->AddBlankSprite(), window->AddBlankSprite()};
+    ShapeCurtains(curtains.left, curtains.right);
+    SetCurtainLook(curtains.left, visible);
+    SetCurtainLook(curtains.right, visible);
+    return curtains;
 }
 
-void PlaceCurtains(UiWindow* window, int first) {
-    if (first < 0 || first + 1 >= std::ssize(window->sceneObjects)) return;
-    UiMesh* left = window->sceneObjects[first];
-    UiMesh* right = window->sceneObjects[first + 1];
-    const int visible = left->visible;
-    ShapeCurtains(left, right);
-    SetCurtainLook(left, visible);
-    SetCurtainLook(right, visible);
+void PlaceCurtains(const Curtains& curtains) {
+    if (!curtains.left) return;
+    const int visible = curtains.left->visible;
+    ShapeCurtains(curtains.left, curtains.right);
+    SetCurtainLook(curtains.left, visible);
+    SetCurtainLook(curtains.right, visible);
 }
 
-void ShowHeroCurtains(UiWindow* window, int mode) {
-    if (std::ssize(window->sceneObjects) != kHeroScreenSprites) return;
+void ShowHeroCurtains(const Curtains& curtains, int mode) {
+    if (!curtains.left) return;
     const int shown = mode != kHeroListMode ? 1 : 0;
-    window->sceneObjects[kHeroCurtains]->visible = shown;
-    window->sceneObjects[kHeroCurtains + 1]->visible = shown;
+    curtains.left->visible = shown;
+    curtains.right->visible = shown;
 }
 
 // addon's apply function: 0x320 + extra written at one operand, -0x320 - extra at the other.

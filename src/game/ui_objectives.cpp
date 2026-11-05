@@ -66,6 +66,14 @@ UiRegion* AddRect(UiWindow* window, int left, int top, int right, int bottom) {
     return region;
 }
 
+// The exits' or the places' markers and regions released and forgotten.
+void RemoveMarkers(UiWindow* window, std::vector<UiMesh*>* markers, std::vector<UiRegion*>* areas) {
+    for (UiMesh* marker : *markers) window->RemoveSceneObject(marker);
+    for (UiRegion* area : *areas) window->RemoveRegion(area);
+    markers->clear();
+    areas->clear();
+}
+
 
 // Layout constants (zone picture centre and size on the right half of the window).
 constexpr float kPictureCentreX = 580.0f;
@@ -93,8 +101,8 @@ const char* const kMissionTopic = "quest_mission";
 void ObjectivesWindow::ShowZone(std::string_view zone) {
     shownZone = zone;
     while (std::ssize(objects) > 2) RemoveObjectAt(2);
-    while (std::ssize(sceneObjects) > 0x15) RemoveSceneObjectAt(0x15);
-    while (std::ssize(regions) > 9) RemoveRegionAt(9);
+    RemoveMarkers(this, &exitMarkers, &exitAreas);
+    RemoveMarkers(this, &placeMarkers, &placeAreas);
 
     // The zone's picture (picture2), its size in map cells and its exits (the deploy rectangle x1, y1, x2, y2 and the
     // target zone, "none" when it leads nowhere).
@@ -114,11 +122,9 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     float halfWidth = widthShare * kPictureHalf;
     int u1 = static_cast<int>(widthShare * kTexels);
     int v0 = static_cast<int>((1.0f - heightShare) * kTexels);
-    UiMesh* picture = sceneObjects[3];
-    picture->SetRectangle(10.0f, kSpriteScale, kPictureCentreX - halfWidth, kPictureCentreY - halfHeight,
-                          halfWidth + kPictureCentreX, halfHeight + kPictureCentreY, 0, v0, u1,
-                          0x100);
-    picture->texture = objects[2];
+    zonePicture->SetRectangle(10.0f, kSpriteScale, kPictureCentreX - halfWidth, kPictureCentreY - halfHeight,
+                              halfWidth + kPictureCentreX, halfHeight + kPictureCentreY, 0, v0, u1, 0x100);
+    zonePicture->texture = objects[2];
 
     // The exits that lead somewhere: a marker (triangle pointing out of the picture) and a region.
     float nearest = FloatFromBits(kFarAway);
@@ -171,6 +177,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         exit->mapY = y;
 
         UiMesh* marker = AddBlankSprite();
+        exitMarkers.push_back(marker);
         float base = y + kMarkerHeight;
         marker->SetTriangle(5.0f, 100.0f, x, y, x - kMarkerHalfWidth, base, x + kMarkerHalfWidth,
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
@@ -178,6 +185,7 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
         Rect area;
         area = {static_cast<int>(x - kExitHalf), static_cast<int>(y - kExitHalf), static_cast<int>(x + kExitHalf), static_cast<int>(y + kExitHalf)};
         UiRegion* region = AddRegion();
+        exitAreas.push_back(region);
         region->SetTip(0x138EE);
         // The marker points away from the picture's centre: sideways or up/down by the larger
         // offset, and the region moves 10 pixels the same way.
@@ -199,8 +207,8 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
     }
     SelectExit(nearestExit);
     if (twoButtons && !anyKnown) {
-        sceneObjects[0]->visible = false;
-        regions[0]->SetTip(0);
+        okIcon->visible = false;
+        okButton->SetTip(0);
     }
 
     std::vector<std::string>& currentQuests = quests;
@@ -231,8 +239,8 @@ void ObjectivesWindow::ShowZone(std::string_view zone) {
             }
             g_lastQuest = currentQuests[selectedQuest];
         }
-        int rows = static_cast<int>(currentQuests.size());
-        bar->SetMaximum(rows > 5 ? rows - 5 : 0);
+        int count = static_cast<int>(currentQuests.size());
+        bar->SetMaximum(count > kVisibleRows ? count - kVisibleRows : 0);
         bar->SetPosition(0);
         firstRow = 0;
         RefreshQuests();
@@ -341,8 +349,7 @@ void ObjectivesWindow::ShowQuest() {
     MapRecord* map = g_mapDatabase.FindMap(shownZone);
     if (!map) return;
     LoadQuestPlaces(currentQuests[selectedQuest]);
-    while (lib::Count(sceneObjects) > lib::Count(exits) + 0x15) RemoveSceneObjectAt(lib::Count(exits) + 0x15);
-    while (lib::Count(regions) > lib::Count(exits) + 9) RemoveRegionAt(lib::Count(exits) + 9);
+    RemoveMarkers(this, &placeMarkers, &placeAreas);
     const float red[3] = {1.0f, 0.0f, 0.0f};
     for (unsigned i = 0; i < static_cast<unsigned>(questPlaces.end() - questPlaces.begin()); ++i) {
         float worldWidth = static_cast<float>(map->sizeX << 5);
@@ -352,6 +359,7 @@ void ObjectivesWindow::ShowQuest() {
         float x = (place.x - worldWidth * 0.5f) * kPictureSpan / span + kPictureCentreX;
         float y = kPictureCentreY - (place.y - worldHeight * 0.5f) * kPictureSpan / span;
         UiMesh* marker = AddBlankSprite();
+        placeMarkers.push_back(marker);
         float bottom = y + kMarkerHalfWidth;
         float right = x + kMarkerHalfWidth;
         float top = y - kMarkerHalfWidth;
@@ -360,6 +368,7 @@ void ObjectivesWindow::ShowQuest() {
         marker->texture = objects[1];
         std::memcpy(marker->tint, red, sizeof(red));
         UiRegion* region = AddRegion();
+        placeAreas.push_back(region);
         int bottomPixel = static_cast<int>(bottom);
         int rightPixel = static_cast<int>(right);
         int topPixel = static_cast<int>(top);
@@ -397,26 +406,29 @@ void ObjectivesWindow::CreateScreen() {
     AddSurface(NewSurface(ui, Rect{410, 380, 750, 520}))->PaintWith([this](UiSurface& out) { PaintZone(out); });
     AddSurface(NewSurface(ui, Rect{280, 540, 520, 580}));
 
+    okIcon = AddBlankSprite();
     if (twoButtons)
-        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
+        okIcon->SetRectangle(kDialogDepth, kSpriteScale, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
     else
-        AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, 536.0f, 437.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
+        okIcon->SetRectangle(kDialogDepth, kSpriteScale, 363.0f, 536.0f, 437.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
     UiMesh* second = AddBlankSprite();
     second->SetRectangle(kDialogDepth, kSpriteScale, 563.0f, 536.0f, 637.0f, 584.0f, 0xA0, 2, 0xEA, 0x32);
     if (!twoButtons) second->visible = false;
-    UiMesh* highlight = AddBlankSprite();
-    highlight->SetRectangle(kDialogDepth, kSpriteScale, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-    highlight->texture = nullptr;
-    highlight->flatColour = 0xC8A06800;
-    highlight->flags |= FigureMeshFlag::Flat;
-    highlight->visible = false;
-    AddBlankSprite();   // object 3: the zone picture, set up by the zone page
-    UiMesh* bottomShade = AddBlankSprite();
+    selectionMarker = AddBlankSprite();
+    selectionMarker->SetRectangle(kDialogDepth, kSpriteScale, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, kUiTextureSize,
+                                  kUiTextureSize);
+    selectionMarker->texture = nullptr;
+    selectionMarker->flatColour = 0xC8A06800;
+    selectionMarker->flags |= FigureMeshFlag::Flat;
+    selectionMarker->visible = false;
+    zonePicture = AddBlankSprite();   // set up by the zone page
+    bottomShade = AddBlankSprite();
     bottomShade->SetRectangle(15.0f, kSpriteScale, 285.0f, 541.0f, 515.0f, 579.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     bottomShade->texture = nullptr;
     bottomShade->flags |= FigureMeshFlag::Flat;
     bottomShade->flatColour = 0xA0000000;
-    AddBlankSprite()->SetFrame(3.0f, 100.0f, 280.0f, 536.0f, 520.0f, 584.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    bottomFrame = AddBlankSprite();
+    bottomFrame->SetFrame(3.0f, 100.0f, 280.0f, 536.0f, 520.0f, 584.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     const float shades[4][4] = {{50.0f, 20.0f, 390.0f, 160.0f},
                                 {50.0f, 180.0f, 390.0f, 520.0f},
                                 {410.0f, 20.0f, 750.0f, 360.0f},
@@ -434,29 +446,36 @@ void ObjectivesWindow::CreateScreen() {
                                 {405.0f, 375.0f, 755.0f, 525.0f}};
     for (const auto& f : frames)
         AddBlankSprite()->SetFrame(3.0f, 100.0f, f[0], f[1], f[2], f[3], 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    UiMesh* left = AddBlankSprite();
-    left->SetRectangle(kDialogDepth, kSpriteScale, 414.0f, 384.0f, 443.0f, 404.0f, 2, 0x72, 0x1F, 0x86);
-    left->visible = false;
-    UiMesh* right = AddBlankSprite();
-    right->SetRectangle(kDialogDepth, kSpriteScale, 717.0f, 384.0f, 746.0f, 404.0f, 0x21, 0x72, 0x3E, 0x86);
-    right->visible = false;
-    for (int top = 31; top < 151; top += 24) {
+    previousZoneArrow = AddBlankSprite();
+    previousZoneArrow->SetRectangle(kDialogDepth, kSpriteScale, 414.0f, 384.0f, 443.0f, 404.0f, 2, 0x72, 0x1F, 0x86);
+    previousZoneArrow->visible = false;
+    nextZoneArrow = AddBlankSprite();
+    nextZoneArrow->SetRectangle(kDialogDepth, kSpriteScale, 717.0f, 384.0f, 746.0f, 404.0f, 0x21, 0x72, 0x3E, 0x86);
+    nextZoneArrow->visible = false;
+    for (int row = 0, top = 31; row < kVisibleRows; ++row, top += 24) {
         UiMesh* mark = AddBlankSprite();
+        questMarks[row] = mark;
         mark->SetRectangle(2.8f, kSpriteScale, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
                            0xA4, 0x48, 0xFC);
         mark->visible = false;
         mark->texture = objects[1];
     }
 
-    // Regions 0-3: the buttons and the two arrows; 4-8: the list rows.
-    if (twoButtons)
-        AddRect(this, 163, 536, 237, 584)->SetTip(0x138E4);
-    else
-        AddRect(this, 363, 536, 437, 584)->SetTip(0x138E6);
-    AddRect(this, 563, 536, 637, 584)->SetTip(twoButtons ? 0x138E5 : 0);
-    AddRect(this, 414, 384, 443, 404);
-    AddRect(this, 717, 384, 746, 404);
-    for (int top = 30; top < 150; top += 24) AddRect(this, 60, top, 360, top + 24)->SetTip(0x138EF);
+    if (twoButtons) {
+        okButton = AddRect(this, 163, 536, 237, 584);
+        okButton->SetTip(0x138E4);
+    } else {
+        okButton = AddRect(this, 363, 536, 437, 584);
+        okButton->SetTip(0x138E6);
+    }
+    cancelButton = AddRect(this, 563, 536, 637, 584);
+    cancelButton->SetTip(twoButtons ? 0x138E5 : 0);
+    previousZoneButton = AddRect(this, 414, 384, 443, 404);
+    nextZoneButton = AddRect(this, 717, 384, 746, 404);
+    for (int row = 0, top = 30; row < kVisibleRows; ++row, top += 24) {
+        rows[row] = AddRect(this, 60, top, 360, top + 24);
+        rows[row]->SetTip(0x138EF);
+    }
     blinkTime = 0.0f;
 
     if (!listZones) {
@@ -509,10 +528,10 @@ void ObjectivesWindow::CreateScreen() {
                 break;
             }
         if (std::ssize(zones) > 1) {
-            sceneObjects[14]->visible = true;
-            sceneObjects[15]->visible = true;
-            regions[2]->SetTip(0x13948);
-            regions[3]->SetTip(0x13949);
+            previousZoneArrow->visible = true;
+            nextZoneArrow->visible = true;
+            previousZoneButton->SetTip(0x13948);
+            nextZoneButton->SetTip(0x13949);
         }
         ShowZone(zones[zoneIndex]);
     }
@@ -522,15 +541,14 @@ void ObjectivesWindow::DrawQuestList() {
     TextManager* texts = g_clientWorld.texts.get();
     std::string title;
     std::string variable;
-    auto mesh = [this](int index) { return sceneObjects[index]; };
-    mesh(2)->visible = false;
+    selectionMarker->visible = false;
     questTitles.clear();
-    for (int i = 16; i < 21; ++i) mesh(i)->visible = false;
+    for (UiMesh* mark : questMarks) mark->visible = false;
     std::vector<std::string>& currentQuests = quests;
     int row = firstRow;
     int y = 13;
-    for (int i = 16; i < 21 && row < static_cast<int>(currentQuests.size()); ++i, ++row, y += 24) {
-        UiMesh* mark = mesh(i);
+    for (int i = 0; i < kVisibleRows && row < static_cast<int>(currentQuests.size()); ++i, ++row, y += 24) {
+        UiMesh* mark = questMarks[i];
         mark->visible = true;
         bool found;
         {
@@ -546,8 +564,8 @@ void ObjectivesWindow::DrawQuestList() {
         else if (state == 3) mark->textureOffsetU = 0.0f;
         else mark->visible = false;
         if (row == selectedQuest) {
-            mesh(2)->Place(215.0f, static_cast<float>(y + 29), 3.0f);
-            mesh(2)->visible = true;
+            selectionMarker->Place(215.0f, static_cast<float>(y + 29), 3.0f);
+            selectionMarker->visible = true;
         }
         questTitles.push_back(title);
     }

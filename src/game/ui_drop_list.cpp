@@ -42,7 +42,7 @@ constexpr float kActiveDepth = 2.5f;
 constexpr float kFrameDepth = 2.4f;
 constexpr float kBarDepth = 2.3f;
 
-enum Sprite { kArrow, kShade, kChosenMark, kActiveMark, kFrame };
+
 
 // A flat sprite (no texture) of `colour` over `area`.
 void Flat(UiMesh* sprite, float depth, const Rect& area, std::uint32_t colour) {
@@ -58,13 +58,16 @@ UiDropList::UiDropList(Interface3D* ui, UiContainer* newOwner, Rect newRow) : Ui
     rect = row;
     LoadTexture("Scrollbar", TextureKind::Interface);
     LoadTexture("saveload", TextureKind::Interface);
-    for (int i = 0; i <= kFrame; ++i) AddBlankSprite();
+    rowArrow = AddBlankSprite();
+    listShade = AddBlankSprite();
+    chosenMark = AddBlankSprite();
+    activeMark = AddBlankSprite();
+    listFrame = AddBlankSprite();
     const int middle = (row.top + row.bottom) / 2;
-    sceneObjects[kArrow]->SetRectangle(kRowDepth, kSpriteScale,
-                                    Rect{row.right - kArrowWidth, middle - kArrowHeight / 2, row.right,
-                                         middle + kArrowHeight / 2},
-                                    0x28, 0x80, 0x50, 0xB0);
-    for (int i = kShade; i <= kFrame; ++i) sceneObjects[i]->visible = false;
+    rowArrow->SetRectangle(kRowDepth, kSpriteScale,
+                           Rect{row.right - kArrowWidth, middle - kArrowHeight / 2, row.right, middle + kArrowHeight / 2},
+                           0x28, 0x80, 0x50, 0xB0);
+    for (UiMesh* sprite : {listShade, chosenMark, activeMark, listFrame}) sprite->visible = false;
 
     UiSurface* surface = AddSurface(new UiSurface(ui, Rect{0, 0, 800, kLayoutHeight}, SurfaceBlend::Keyed, true));
     surface->PaintWith([this](UiSurface& out) {
@@ -116,13 +119,13 @@ void UiDropList::Open() {
     scroll->SetMaximum(count - shown);
     scroll->SetEnabled(bar);
     const Rect mark{entries.left, 0, entries.right - (bar ? kBarWidth : 0), kEntryHeight};   // placed by PlaceMarks
-    Flat(sceneObjects[kShade], kShadeDepth, entries, kShadeColour);
-    Flat(sceneObjects[kChosenMark], kChosenDepth, mark, kChosenColour);
-    Flat(sceneObjects[kActiveMark], kActiveDepth, mark, kActiveColour);
-    sceneObjects[kFrame]->texture = objects.size() > 1 ? objects[1] : nullptr;
-    sceneObjects[kFrame]->SetFrame(kFrameDepth, 100.0f, frame, static_cast<float>(kBorder), 2, 0xFE, 0xB4, 0xF9);
-    sceneObjects[kShade]->visible = true;
-    sceneObjects[kFrame]->visible = true;
+    Flat(listShade, kShadeDepth, entries, kShadeColour);
+    Flat(chosenMark, kChosenDepth, mark, kChosenColour);
+    Flat(activeMark, kActiveDepth, mark, kActiveColour);
+    listFrame->texture = objects.size() > 1 ? objects[1] : nullptr;
+    listFrame->SetFrame(kFrameDepth, 100.0f, frame, static_cast<float>(kBorder), 2, 0xFE, 0xB4, 0xF9);
+    listShade->visible = true;
+    listFrame->visible = true;
 
     // The owner's children under the list are left out while it is open.
     covered.clear();
@@ -145,7 +148,7 @@ void UiDropList::Close() {
     for (UiWindow* child : covered) child->SetEnabled(true);
     covered.clear();
     scroll->SetEnabled(false);
-    for (int i = kShade; i <= kFrame; ++i) sceneObjects[i]->visible = false;
+    for (UiMesh* sprite : {listShade, chosenMark, activeMark, listFrame}) sprite->visible = false;
 }
 
 // --- Entries ----------------------------------------------------------------------------------------
@@ -186,14 +189,13 @@ void UiDropList::Choose(int index) {
 }
 
 void UiDropList::PlaceMarks() {
-    auto place = [this](int sprite, int index, float depth) {
+    auto place = [this](UiMesh* mark, int index, float depth) {
         const Rect entry = EntryRect(index);
-        UiMesh* mark = sceneObjects[sprite];
         mark->visible = !entry.IsEmpty();
         if (mark->visible) mark->Place((entry.left + entry.right) * 0.5f, (entry.top + entry.bottom) * 0.5f, depth);
     };
-    place(kChosenMark, value, kChosenDepth);
-    place(kActiveMark, active, kActiveDepth);
+    place(chosenMark, value, kChosenDepth);
+    place(activeMark, active, kActiveDepth);
 }
 
 // --- Drawing --------------------------------------------------------------------------------------

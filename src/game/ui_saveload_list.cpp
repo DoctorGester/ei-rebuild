@@ -43,7 +43,6 @@ constexpr std::uint32_t kCaretColour = 0x31B3FF;
 constexpr int kRowHeight = 24;
 constexpr int kFirstRowY = 120;          // the marker's layout y for the first row
 constexpr int kRowsEndY = 504;           // sixteen rows
-constexpr int kMarkerSprite = 4;
 constexpr int kMinutesPerDay = 1440;
 
 
@@ -57,7 +56,6 @@ bool SameFolder(std::string_view folder, std::string_view name) {
 void SaveLoadWindow::RefreshListVanilla() {
     if (cursor > static_cast<int>(name.size())) cursor = lib::Count(name);
     if (cursor < 0) cursor = 0;
-    UiMesh* marker = sceneObjects[kMarkerSprite];
     marker->visible = false;
     int y = kFirstRowY;
     for (unsigned index = static_cast<unsigned>(firstVisible); index < static_cast<unsigned>(EntryCount()); ++index) {

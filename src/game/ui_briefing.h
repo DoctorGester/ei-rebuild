@@ -55,9 +55,11 @@ class ChatWindow : public UiWindow {
 public:
     ChatWindow(Interface3D* ui, BriefingScreen* briefing);
     // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
-    // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle.
-    void AddPortrait(const std::string& model, std::string_view texture);
-    // The client's players (only while its binding is live; its own player first), each with a face from its
+    // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle. Returns the face's
+    // region.
+    UiRegion* AddPortrait(const std::string& model, std::string_view texture);
+    // The client's players (only while its binding is live; its own player first; the window's regions in their
+    // order), each with a face from its
     // unit prototype ("infa<model>me<hair+1>face", "face<m|f><skin, 2 digits>") and its name as the region's
     // tip. The sex letter carries over from the previous player when the model is neither "unhuma" nor
     // "unhufe".
@@ -216,6 +218,10 @@ public:
     UiScrollText* text = nullptr;
     UiScrollbar* topicBar = nullptr;
     int topicTop = 0;                    // first topic row shown
+    static constexpr int kTopicRows = 5;
+    UiRegion* topicRows[kTopicRows] = {};   // the shown topics' rows while choosing (null otherwise)
+    UiMesh* topicBackdrop = nullptr;     // behind the topics, with its frame
+    UiMesh* topicFrame = nullptr;
     float savedEdgeFade = 0.0f;             // the map edge fade Create replaced
     std::map<int, std::string> personTexts;       // "pers" texts by text key
     std::vector<UiLabel> topicLabels;   // surface 0's paint: the topic rows

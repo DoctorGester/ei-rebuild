@@ -395,5 +395,5 @@ void MpHeroScreen::SetMode(int newMode) {
     statsPanel->ShowStats(newMode);
     mode = newMode;
     // Rebirth's WideScreen: the curtains shown but on the list.
-    screen_layout::ShowHeroCurtains(this, newMode);
+    screen_layout::ShowHeroCurtains(curtains, newMode);
 }

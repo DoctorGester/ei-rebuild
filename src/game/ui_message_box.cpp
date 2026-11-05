@@ -43,20 +43,20 @@ void MessageWindow::CopyEditText() {
 
 void MessageWindow::LeftDown(Point point) {
     UiContainer::LeftDown(point);
-    int region = RegionAt(point);
-    if (region == 0) {
+    UiRegion* region = RegionUnder(point);
+    if (!region) return;
+    const bool ok = region == okButton;
+    if (ok) {
         if (question == MessageQuestion::Exit) {
             PlayExitMovieAndQuit();
             return;
         }
         ui->PlayInterfaceSound(kMessageBoxOkSound);
         if (buttons == MessageButtons::OkCancelEdit) CopyEditText();
-    } else if (region == 1) {
+    } else {
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
-    } else if (region < 0) {
-        return;
     }
-    ui->SetPendingValue(BoxResult(question, static_cast<MessageAnswer>(region + 1)));
+    ui->SetPendingValue(BoxResult(question, ok ? MessageAnswer::Ok : MessageAnswer::Cancel));
 }
 
 void MessageWindow::KeyDown(platform::Key key, int scan, bool repeat) {
@@ -82,28 +82,23 @@ void MessageWindow::KeyDown(platform::Key key, int scan, bool repeat) {
 // --- DifficultyBox ------------------------------------------------------------------------------
 
 void DifficultyBox::LeftDown(Point point) {
-    switch (RegionAt(point)) {
-    case 0:
+    UiRegion* region = RegionUnder(point);
+    if (!region) return;
+    if (region == okButton) {
         options::g_options.difficulty = easy;
         ui->PlayInterfaceSound(kMessageBoxOkSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Ok));
-        break;
-    case 1:
+    } else if (region == cancelButton) {
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
         ui->SetPendingValue(BoxResult(question, MessageAnswer::Cancel));
-        break;
-    case 2:
-        EasyBox()->textureOffsetU = kCheckedOffset;
-        HardBox()->textureOffsetU = 0.0f;
+    } else if (region == easyArea) {
+        easyBox->textureOffsetU = kCheckedOffset;
+        hardBox->textureOffsetU = 0.0f;
         easy = 1;
-        break;
-    case 3:
-        HardBox()->textureOffsetU = kCheckedOffset;
-        EasyBox()->textureOffsetU = 0.0f;
+    } else if (region == hardArea) {
+        hardBox->textureOffsetU = kCheckedOffset;
+        easyBox->textureOffsetU = 0.0f;
         easy = 0;
-        break;
-    default:
-        break;
     }
 }
 

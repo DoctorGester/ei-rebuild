@@ -41,7 +41,6 @@ namespace {
 constexpr unsigned kInfoMagic = 0x111;
 constexpr unsigned kInfoVersion = 3;
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
-constexpr int kVisibleRows = 16;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
@@ -124,14 +123,14 @@ void Ask(Interface3D* ui, const char* name, const char* text, MessageQuestion qu
 
 
 void SaveLoadWindow::ShowPicture() {
-    sceneObjects[3]->visible = false;
+    pictureSprite->visible = false;
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entries.data() + currentSelected;
     if (entry->broken) return;
     if (isSave && currentSelected == 0) {
         // The new save: the game's picture.
-        if (dialog) ShowTexture(sceneObjects[3], dialog);
+        if (dialog) ShowTexture(pictureSprite, dialog);
         return;
     }
     // The file's picture, no larger than shown here.
@@ -144,7 +143,7 @@ void SaveLoadWindow::ShowPicture() {
     if (!made) return;
     if (picture) picture->Release();
     picture = made;
-    ShowTexture(sceneObjects[3], picture);
+    ShowTexture(pictureSprite, picture);
 }
 
 void SaveEntry::MakeTitle() {

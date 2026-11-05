@@ -89,8 +89,7 @@ public:
     static std::optional<Vector3> MapPosition(std::string_view prefix, std::string_view name, bool positionLine);
     // On gipat a zone and its link are selected together. -1 selects nothing.
     void SelectZone(int index, bool isLink);
-    // The tip hidden, the title, scene objects 0..2 and those after the zone markers shown but the tip's two sprites,
-    // nothing selected.
+    // The tip hidden, the title and every sprite but the zone markers and the tip's two shown, nothing selected.
     void RefreshSelection();
     // The way search, recursive: arrivals keeps the shortest time per exit into target; the way goes on
     // through a zone the player may pass ("z.<zone>" 2 for a game zone, not 1 for an edge, not 0 for a brief
@@ -117,16 +116,12 @@ public:
     const char* HelpTopic() override { return noCamp ? "global_map_nocamp" : "global_map"; }
     // Ends a turn by a turn button.
     void LeftUp(Point point) override;
-    // Zones, then quests, then links, then the three layers.
-    UiMesh* Marker(int index) const { return sceneObjects[3 + index]; }
     // The surfaces' paints: the zone tip; the allod's title and the clock.
     void PaintTip(UiSurface& surface) const;
     void PaintTitle(UiSurface& surface) const;
     // The zone whose marker is drawn at screen point `point`: the nearest marker face there, of equal ones the later
     // marker's (the depth test's LessEqual), state 0 zones included; -1 for none or before the first draw.
     int ZoneAt(Point point) const;
-    // Zones + quests + links: the layers and the rest follow them.
-    int MarkerCount() const { return static_cast<int>(zones.size() + quests.size() + links.size()); }
 
     int turning = 0;                 // -1 / +1 while a turn button is held
     float bobTime = 0.0f;            // seconds, for the arrow's bobbing and the layers' frames
@@ -164,6 +159,24 @@ public:
     bool noCamp = false;             // the player's "i.nocamp" is 1: no camp button
     float fog[3] = {0.0f, 1.0f, 0.0f};    // the selected zone's tint, by allod
     int windSound = 0;
+
+    // The sprites, in their creation order: the current zone's arrow and base, the island, the markers of the zones,
+    // quests and links (one per entry of zones, quests, links), the three layers (shadow, haze, glow), the tip's back
+    // and frame; the title's shade and frame and the buttons after them.
+    UiMesh* arrow = nullptr;
+    UiMesh* ball = nullptr;
+    UiMesh* island = nullptr;
+    std::vector<UiMesh*> zoneMarkers;
+    std::vector<UiMesh*> questMarkers;
+    std::vector<UiMesh*> linkMarkers;
+    UiMesh* layers[3] = {};
+    UiMesh* tipBack = nullptr;
+    UiMesh* tipFrame = nullptr;
+    // The regions: the turn buttons, the camp button, then one per link.
+    UiRegion* turnLeftButton = nullptr;
+    UiRegion* turnRightButton = nullptr;
+    UiRegion* campButton = nullptr;
+    std::vector<UiRegion*> linkAreas;
 };
 
 // --- Camp trade panel (the level-up page) ---
@@ -318,7 +331,7 @@ public:
     void PreviousHero() override;
     // The unit's own name, else the text of "pers <record name>".
     void ShowHero();
-    // Regions 0 / 1 the deals, 2 / 3 turn the hero on the equipment page, 4-11 show page region - 4.
+    // The deal buttons, the turn areas (the hero, on the equipment page) and the page buttons.
     void LeftDown(Point point) override;
     void LeftUp(Point point) override;
     // Esc shows page 7 (leaves); on a network client Backspace and Enter go to the chat line.
@@ -342,7 +355,16 @@ public:
 
     int page = 0;
     bool fromHeroScreen = false;     // opened from the multiplayer hero screen (closes with a pending value)
-    int curtains = -1;               // the curtains' first sprite (screen_layout::AddCurtains)
+    screen_layout::Curtains curtains;    // over the screen's margins
+    static constexpr int kPages = 8;
+    UiRegion* actionButton = nullptr;    // the page's deal and its undo (on page 0 the hero arrows)
+    UiRegion* secondActionButton = nullptr;
+    UiRegion* turnLeftArea = nullptr;    // the hero preview's turn areas
+    UiRegion* turnRightArea = nullptr;
+    UiRegion* pageButtons[kPages] = {};
+    UiMesh* actionIcon = nullptr;
+    UiMesh* secondActionIcon = nullptr;
+    UiMesh* pageIcons[kPages] = {};
     bool spellConstructor = false;   // the spell constructor's pages are offered
     bool itemConstructor = false;    // the item constructor's pages are offered
     ClassTemplate* constructor = nullptr;    // the constructor's class template ("constr.current"), or null

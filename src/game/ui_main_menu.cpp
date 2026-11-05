@@ -55,8 +55,8 @@ const char* const kCameraPath = "MainMenu.cam";
 const char* const kExitMovie = "Movies\\Exit.bik";
 const char* const kIntroMovie = "Movies\\Intro.bik";
 
-// The stone animation each region plays while hovered.
-constexpr SkillAnimation kStoneAnimation[6] = {SkillAnimation::Briefing01, SkillAnimation::Briefing03,
+// The stone animation each button plays while hovered.
+constexpr SkillAnimation kStoneAnimation[MainMenu::kButtons] = {SkillAnimation::Briefing01, SkillAnimation::Briefing03,
                                                SkillAnimation::Briefing05, SkillAnimation::Briefing07,
                                                SkillAnimation::Briefing11, SkillAnimation::Briefing09};
 
@@ -97,11 +97,9 @@ void MainMenu::CreateScreen() {
     hovered = -1;
     rect = Rect{0, 0, 800, 600};
     AddVersionLine();
-    for (int i = 0; i < 6; ++i) {
-        UiRegion* region = AddRegion();
-        Rect area;
-        area = g_menuRects[i];
-        region->SetRect(area);
+    for (int i = 0; i < kButtons; ++i) {
+        buttons[i] = AddRegion();
+        buttons[i]->SetRect(g_menuRects[i]);
     }
     g_clientWorld.sounds->RequestStream(options::kDefaultStreamingSound, StreamSwitch::Now);
     savedEdgeFade = options::g_options.borderFogDistance;
@@ -180,17 +178,17 @@ void MainMenu::MessageResult(std::uint32_t result) {
 
 void MainMenu::MouseMove(Point point) {
     if (auto* stones = g_clientWorld.objectManager->FindObjectAs<Object3D>(kStonesObject)) {
-        int region = RegionAt(point);
-        if (region != hovered) {
+        const int button = RegionIndex(buttons, RegionUnder(point));
+        if (button != hovered) {
             FigureAnimation* animation;
-            if (region >= 0 && region < 6)
-                animation = stones->FindSkillAnimation(kStoneAnimation[region]);
+            if (button >= 0)
+                animation = stones->FindSkillAnimation(kStoneAnimation[button]);
             else
                 animation = g_clientWorld.objectManager->FindAnimation(stones->name, kRestPoseKind);
             stones->PlayAnimation(animation);
             ui->PlayInterfaceSound(kStoneSound);
         }
-        hovered = region;
+        hovered = button;
     }
     UiContainer::MouseMove(point);
 }

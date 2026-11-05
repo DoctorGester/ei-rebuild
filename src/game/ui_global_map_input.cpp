@@ -28,13 +28,9 @@ constexpr const char* kQuickSaveSlot = "saveq";
 constexpr int kActionQuickSave = '5';
 constexpr int kActionQuickLoad = '6';
 
-// The tip of the zone under the mouse: regions 3.. are the links; the text's font, colour and
-// DrawText format; the two sprites behind it follow the markers and the three layers.
-constexpr int kFirstLinkRegion = 3;
+// The tip of the zone under the mouse: the text's font, colour and DrawText format.
 constexpr int kTipFont = 2;
 constexpr std::uint32_t kTipFormat = render::text::kVCenter;
-constexpr int kTipBack = 6;
-constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
 constexpr const char* kZoneSound = "buttons\\globalmap\\zone.wav";
 
@@ -79,14 +75,13 @@ void GlobalMap::MouseMove(Point point) {
     }
     bool isLink = false;
     int index = -1;
-    int region = RegionAt(point);
-    if (region >= std::ssize(links) + kFirstLinkRegion) return;
+    UiRegion* region = RegionUnder(point);
     if (turning == 0) {
-        if (region >= kFirstLinkRegion) {
-            index = region - kFirstLinkRegion;
+        if (const int link = RegionIndex(linkAreas, region); link >= 0) {
+            index = link;
             isLink = true;
         }
-        if (region < 0) {
+        if (!region) {
             index = ZoneAt(point);
             if (gipat && index >= 0 && zones[index].link >= 0) {
                 isLink = true;
@@ -97,8 +92,8 @@ void GlobalMap::MouseMove(Point point) {
     SelectZone(index, isLink);
     if (index == -1 || (!isLink && zones[index].state == 0)) {
         surfaces[0]->Hide();
-        sceneObjects[MarkerCount() + kTipBack]->visible = false;
-        sceneObjects[MarkerCount() + kTipFrame]->visible = false;
+        tipBack->visible = false;
+        tipFrame->visible = false;
         shownName.clear();
         return;
     }
@@ -115,13 +110,12 @@ void GlobalMap::MouseMove(Point point) {
             if (quest.zone == index) tipQuests.push_back(quest.title);
     }
     const int lines = static_cast<int>(tipQuests.size());
-    UiMesh* back = sceneObjects[MarkerCount() + kTipBack];
-    back->SetRectangle(kDialogDepth, kSpriteScale, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, kUiTextureSize, kUiTextureSize);
-    back->visible = true;
-    UiMesh* frame = sceneObjects[MarkerCount() + kTipFrame];
-    frame->SetFrame(3.0f, 100.0f, 395.0f, 15.0f, 785.0f, static_cast<float>((lines * 5 + 20) * 4), 5.0f, 2, 0xFE, 0xB4,
-                    0xF9);
-    frame->visible = true;
+    tipBack->SetRectangle(kDialogDepth, kSpriteScale, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0,
+                          0, kUiTextureSize, kUiTextureSize);
+    tipBack->visible = true;
+    tipFrame->SetFrame(3.0f, 100.0f, 395.0f, 15.0f, 785.0f, static_cast<float>((lines * 5 + 20) * 4), 5.0f, 2, 0xFE,
+                       0xB4, 0xF9);
+    tipFrame->visible = true;
 }
 
 void GlobalMap::PaintTip(UiSurface& surface) const {

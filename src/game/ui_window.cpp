@@ -280,6 +280,11 @@ void UiWindow::RemoveRegionAt(int index) {
     regions.erase(regions.begin() + index);
 }
 
+void UiWindow::RemoveRegion(UiRegion* region) {
+    const int index = RegionIndex(regions, region);
+    if (index >= 0) RemoveRegionAt(index);
+}
+
 void UiWindow::ClearRegions() {
     for (int i = 0; i < std::ssize(regions); ++i) {
         delete regions[i];

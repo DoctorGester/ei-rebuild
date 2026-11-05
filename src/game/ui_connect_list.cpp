@@ -28,9 +28,6 @@ constexpr int kFont = 1;
 constexpr int kRowHeight = 24;
 constexpr int kRowsTop = 144;
 constexpr int kRowsBottom = 504;
-constexpr int kSpriteSelection = 2, kSpriteSortArrow = 3, kSpriteUnlisted = 4, kSpritePassword = 5, kSpriteTabFirst = 6,
-              kSpriteTabEnd = 10;
-constexpr int kRegionUnlisted = 4, kRegionPassword = 5;
 constexpr int kTipUnlisted = 0x9EA4, kTipPassword = 0x9EA5;
 constexpr int kNewGameType = 4;
 constexpr int kGameTypes = 4;
@@ -77,7 +74,6 @@ void Down(Rect* rect, int dy = kRowHeight) { rect->Offset(0, dy); }
 } // namespace
 
 void MpConnectScreen::DrawListVanilla() {
-    auto sprite = [this](int index) { return sceneObjects[index]; };
     titleColour = g_connectTextColour;   // what the last drawing left
 
     const bool newGame = selected == 0;
@@ -85,27 +81,26 @@ void MpConnectScreen::DrawListVanilla() {
     playersSlider->SetEnabled(show);
     nameEdit->SetEnabled(show);
     nameEdit->SetFocused(show != 0);
-    sprite(kSpriteUnlisted)->visible = show;
-    sprite(kSpritePassword)->visible = show;
+    unlistedBox->visible = show;
+    passwordBox->visible = show;
     if (!newGame) {
-        regions[kRegionUnlisted]->SetTip(0);
-        regions[kRegionPassword]->SetTip(0);
+        unlistedSwitch->SetTip(0);
+        passwordSwitch->SetTip(0);
     } else if (!newGameTips) {
-        regions[kRegionUnlisted]->SetTip(kTipUnlisted);
-        regions[kRegionPassword]->SetTip(kTipPassword);
+        unlistedSwitch->SetTip(kTipUnlisted);
+        passwordSwitch->SetTip(kTipPassword);
     }
     newGameTips = newGame;
 
     const Layout& layout = kLayout;
-    sprite(kSpriteSelection)->visible = false;
-    UiMesh* arrow = sprite(kSpriteSortArrow);
+    selectionMarker->visible = false;
     if (sortKey % 2 == 0)
-        arrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
+        sortArrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
     else
-        arrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
+        sortArrow->SetRectangle(4.0f, kSpriteScale, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0xB0, 0x50, 0x80);
     if (sortKey != 0) {
-        arrow->visible = true;
-        arrow->Place(SortArrowX((sortKey - 1) / 2), 116.0f, 4.0f);
+        sortArrow->visible = true;
+        sortArrow->Place(SortArrowX((sortKey - 1) / 2), 116.0f, 4.0f);
     }
 
     // The selection's marker. The text colour is left as the drawing left it: the last shown row's, or the plain one
@@ -114,17 +109,17 @@ void MpConnectScreen::DrawListVanilla() {
     for (int y = kRowsTop; y < kRowsBottom; y += kRowHeight, ++index) {
         if (index >= static_cast<unsigned>(entries.size())) break;
         if (index == static_cast<unsigned>(selected)) {
-            sprite(kSpriteSelection)->visible = true;
-            sprite(kSpriteSelection)->Place(layout.selectionX, static_cast<float>(y), 3.0f);
+            selectionMarker->visible = true;
+            selectionMarker->Place(layout.selectionX, static_cast<float>(y), 3.0f);
         }
         g_connectTextColour = RowColour(entries[index]);
     }
 
-    for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible = false;
+    for (UiMesh* box : tabBoxes) box->visible = false;
     if (selected >= 0 && static_cast<unsigned>(selected) < static_cast<unsigned>(entries.size())) {
         g_connectTextColour = kUiTextColour;
         if (selected == 0)
-            for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible = true;
+            for (UiMesh* box : tabBoxes) box->visible = true;
     }
 }
 

@@ -51,9 +51,7 @@ constexpr std::uint32_t kTextBackdrop = 0xA0000000;
 constexpr int kTopicBarChild = 0;
 constexpr int kTextChild = 1;
 constexpr int kTopicsSurface = 0;
-constexpr int kTopicBackdrop = 0;
-constexpr int kTopicFrame = 1;
-constexpr int kTextBackdropMesh = 2;   // the text's backdrop, its frame and the people's slots after it
+
 
 // The states (BriefingScreen::state).
 constexpr int kWalking = 0;
@@ -101,10 +99,10 @@ void StepTurning(BriefingMover* node) {
     node->state = BriefingMover::kDone;
 }
 
-// Meshes `first` onwards shown or hidden.
-void SetMeshesVisible(UiWindow* window, int visible, int first = 0) {
-    for (int i = first; i < std::ssize(window->sceneObjects); ++i)
-        window->sceneObjects[i]->visible = visible;
+// The meshes shown or hidden, but those in `keep`.
+void SetMeshesVisible(UiWindow* window, int visible, std::initializer_list<const UiMesh*> keep = {}) {
+    for (UiMesh* mesh : window->sceneObjects)
+        if (std::ranges::find(keep, mesh) == keep.end()) mesh->visible = visible;
 }
 
 // The speaker's lips stop (UnitClientSpecific's blink: eyes open).
@@ -129,13 +127,15 @@ void BriefingScreen::CreateScreen() {
 
     // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
     // with a frame.
+    topicBackdrop = AddBlankSprite();
+    topicBackdrop->SetRectangle(20.0f, kSpriteScale, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, kUiTextureSize,
+                                kUiTextureSize);
+    topicBackdrop->texture = nullptr;
+    topicBackdrop->flags |= FigureMeshFlag::Flat;
+    topicBackdrop->flatColour = kDarkBackdrop;
+    topicFrame = AddBlankSprite();
+    topicFrame->SetFrame(10.0f, 100.0f, 195.0f, 425.0f, 605.0f, 575.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     UiMesh* sprite = AddBlankSprite();
-    sprite->SetRectangle(20.0f, kSpriteScale, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, kUiTextureSize, kUiTextureSize);
-    sprite->texture = nullptr;
-    sprite->flags |= FigureMeshFlag::Flat;
-    sprite->flatColour = kDarkBackdrop;
-    AddBlankSprite()->SetFrame(10.0f, 100.0f, 195.0f, 425.0f, 605.0f, 575.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    sprite = AddBlankSprite();
     sprite->SetRectangle(20.0f, kSpriteScale, 155.0f, 416.0f, 645.0f, 580.0f, 0, 0, kUiTextureSize, kUiTextureSize);
     sprite->texture = nullptr;
     sprite->flatColour = kTextBackdrop;
@@ -235,8 +235,8 @@ void BriefingScreen::Update() {
     switch (state) {
     case kChoosing: {
         surfaces[kTopicsSurface]->Show();
-        sceneObjects[kTopicBackdrop]->visible = true;
-        sceneObjects[kTopicFrame]->visible = true;
+        topicBackdrop->visible = true;
+        topicFrame->visible = true;
         topicBar->SetEnabled(true);
         if (topicBar->TakeMoved()) {
             topicTop = topicBar->Position();
@@ -261,8 +261,8 @@ void BriefingScreen::Update() {
         if (state == kPhrases) StartPhrases();
         break;
     case kPhrases:
-        // The text's meshes; the topics' backdrop and frame stay hidden.
-        SetMeshesVisible(this, 1, kTextBackdropMesh);
+        // The text's meshes and the people's slots; the topics' backdrop and frame stay hidden.
+        SetMeshesVisible(this, 1, {topicBackdrop, topicFrame});
         text->SetEnabled(true);
         if (voice != -1) {
             if (!g_clientWorld.sounds->IsPlaying(voice)) NextPhrase(false);
@@ -272,8 +272,8 @@ void BriefingScreen::Update() {
         }
         break;
     case kRewards:
-        // The text's meshes; the topics' backdrop and frame stay hidden.
-        SetMeshesVisible(this, 1, kTextBackdropMesh);
+        // The text's meshes and the people's slots; the topics' backdrop and frame stay hidden.
+        SetMeshesVisible(this, 1, {topicBackdrop, topicFrame});
         text->SetEnabled(true);
         if (voice != -1) {
             if (speaking && !g_clientWorld.sounds->IsPlaying(voice)) StopTalking(speaking);

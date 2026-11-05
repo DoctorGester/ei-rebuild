@@ -472,34 +472,34 @@ void MpHeroScreen::LeftUp(Point point) {
 
 void EscMenu::MouseMove(Point point) {
     UiModel* model = models[0];
-    int region = RegionAt(point);
-    // Hovering a stone plays its animation (the first two only in single player).
-    switch (region) {
-    case 0:
-        if (hovered != 0 && !IsMultiplayerClient()) {
+    const int stone = RegionIndex(stones, RegionUnder(point));
+    // Hovering a stone plays its animation (save and load only in single player).
+    switch (stone) {
+    case kSave:
+        if (hovered != kSave && !IsMultiplayerClient()) {
             ui->PlayInterfaceSound(kSoundMenuStone);
             model->Play(SkillAnimation::Briefing03);
         }
-        hovered = 0;
+        hovered = kSave;
         break;
-    case 1:
-        if (hovered != 1 && !IsMultiplayerClient()) {
+    case kLoad:
+        if (hovered != kLoad && !IsMultiplayerClient()) {
             ui->PlayInterfaceSound(kSoundMenuStone);
             model->Play(SkillAnimation::Briefing04);
         }
-        hovered = 1;
+        hovered = kLoad;
         break;
-    case 2:
-    case 3:
-    case 4: {
-        static const SkillAnimation kAnimation[5] = {SkillAnimation::Briefing01, SkillAnimation::Briefing01,
-                                                 SkillAnimation::Briefing06, SkillAnimation::Briefing07,
-                                                 SkillAnimation::Briefing05};
-        if (hovered != region) {
+    case kResume:
+    case kQuit:
+    case kOptions: {
+        static const SkillAnimation kAnimation[kStones] = {SkillAnimation::Briefing01, SkillAnimation::Briefing01,
+                                                           SkillAnimation::Briefing06, SkillAnimation::Briefing07,
+                                                           SkillAnimation::Briefing05};
+        if (hovered != stone) {
             ui->PlayInterfaceSound(kSoundMenuStone);
-            model->Play(kAnimation[region]);
+            model->Play(kAnimation[stone]);
         }
-        hovered = region;
+        hovered = stone;
         break;
     }
     default:

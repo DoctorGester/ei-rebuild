@@ -108,6 +108,7 @@ void HelpWindow::ShowPage() {
     pictures.clear();
     ClearSurfaces();
     ClearRegions();
+    previousButton = okButton = nextButton = nullptr;
     ClearSceneObjects();
 
     TextManager* texts = g_clientWorld.texts.get();
@@ -149,7 +150,7 @@ void HelpWindow::ShowPage() {
     }
     texts->cursor = resume;
 
-    // Scene objects 0 the background, 1 the frame, 2-4 the previous, OK and next buttons.
+    // The background, the frame, the previous, OK and next buttons.
     UiMesh* back = AddBlankSprite();
     SetPlain(back, message ? 0xFF282313 : 0xFF211B11);
     UiMesh* frame = AddBlankSprite();
@@ -269,27 +270,29 @@ void HelpWindow::ShowPage() {
     const int gap = (width - 150) / 6;
     button.Offset(gap + pageArea.left, 0);
     const int step = 2 * gap - button.left + button.right;
-    AddRegion()->SetRect(button);
+    previousButton = AddRegion();
+    previousButton->SetRect(button);
     SetRectangle(previous, button, 2, 0x33, 0x34, 0x47);
     button.Offset(step, 0);
-    UiRegion* okRegion = AddRegion();
-    okRegion->SetRect(button);
-    okRegion->SetTip(0x7594);
+    okButton = AddRegion();
+    okButton->SetRect(button);
+    okButton->SetTip(0x7594);
     SetRectangle(ok, button, 2, 0x5D, 0x34, 0x71);
     button.Offset(step, 0);
-    AddRegion()->SetRect(button);
+    nextButton = AddRegion();
+    nextButton->SetRect(button);
     SetRectangle(next, button, 2, 0x48, 0x34, 0x5C);
 
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.
     AddSurface(NewSurface(ui, pageArea.BottomStrip(kStripHeight)))->PaintWith([this](UiSurface& out) { PaintFooter(out); });
-    if (page > 0) regions[0]->SetTip(0x7595);
+    if (page > 0) previousButton->SetTip(0x7595);
     keyHint.clear();
     if (const char* key = FindCommandByKey(kHelpAction)) {
         keyHint = texts->GetString(kHelpKeyText);
         keyHint += kSpace;
         keyHint += key;
     }
-    if (page < static_cast<int>(lines.size()) - 1) regions[2]->SetTip(0x7596);
+    if (page < static_cast<int>(lines.size()) - 1) nextButton->SetTip(0x7596);
 
     entries.clear();
 }

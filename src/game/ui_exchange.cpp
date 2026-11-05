@@ -23,7 +23,7 @@
 namespace {
 const char* const kBuySound = "buttons\\camp\\buy.wav";
 const char* const kTransitSound = "buttons\\globalmap\\transit.wav";
-constexpr int kAcceptRegion = 0, kTakeBackRegion = 1, kLeaveRegion = 2;
+
 
 // The client's own offer while it is live (not detached), else null.
 net::PartyMessage* LiveOffer() {
@@ -80,8 +80,8 @@ void ExchangeScreen::Update() {
 
 void ExchangeScreen::LeftDown(Point point) {
     UiContainer::LeftDown(point);
-    switch (RegionAt(point)) {
-    case kAcceptRegion: {
+    UiRegion* region = RegionUnder(point);
+    if (region == acceptButton) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && !offer->accepted && ownOffer->money <= LocalPlayerData()->money) {
             ui->PlayInterfaceSound(kBuySound);
@@ -89,22 +89,15 @@ void ExchangeScreen::LeftDown(Point point) {
             return;
         }
         ui->PlayInterfaceSound(kMessageBoxCancelSound);
-        return;
-    }
-    case kTakeBackRegion: {
+    } else if (region == takeBackButton) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted) {
             ui->PlayInterfaceSound(kMessageBoxCancelSound);
             net::g_gameClient->CommitParty();
         }
-        return;
-    }
-    case kLeaveRegion:
+    } else if (region == leaveButton) {
         ui->PlayInterfaceSound(kTransitSound);
         net::g_gameClient->DropParty();
-        return;
-    default:
-        return;
     }
 }
 
@@ -124,22 +117,24 @@ void ExchangeScreen::ExchangeDone(Party* partyB, Party* partyA, Party* partyC) {
 
 void ExchangeScreen::CreateScreen() {
     LoadTexture("campinfo", TextureKind::Interface);
-    UiRegion* region = AddRegion();
-    region->SetRect(12, 450, 52, 490);
-    region->SetTip(0xA028);
-    region = AddRegion();
-    region->SetRect(148, 450, 188, 490);
-    region->SetTip(0xA029);
-    region = AddRegion();
-    region->SetRect(740, 460, 780, 490);
-    region->SetTip(0xA02B);
-    // The buttons: accept, take back, a hidden one, leave (shaded).
-    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
-    AddBlankSprite()->SetRectangle(kDialogDepth, kSpriteScale, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
+    acceptButton = AddRegion();
+    acceptButton->SetRect(12, 450, 52, 490);
+    acceptButton->SetTip(0xA028);
+    takeBackButton = AddRegion();
+    takeBackButton->SetRect(148, 450, 188, 490);
+    takeBackButton->SetTip(0xA029);
+    leaveButton = AddRegion();
+    leaveButton->SetRect(740, 460, 780, 490);
+    leaveButton->SetTip(0xA02B);
+    // The buttons: accept, take back, the partner's (hidden), leave (shaded).
+    acceptIcon = AddBlankSprite();
+    acceptIcon->SetRectangle(kDialogDepth, kSpriteScale, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
+    takeBackIcon = AddBlankSprite();
+    takeBackIcon->SetRectangle(kDialogDepth, kSpriteScale, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
+    partnerIcon = AddBlankSprite();
+    partnerIcon->SetRectangle(kDialogDepth, kSpriteScale, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
+    partnerIcon->visible = false;
     UiMesh* sprite = AddBlankSprite();
-    sprite->SetRectangle(kDialogDepth, kSpriteScale, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
-    sprite->visible = false;
-    sprite = AddBlankSprite();
     sprite->SetRectangle(kDialogDepth, kSpriteScale, 740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
     sprite->tint[0] = 0.5f;
     sprite->tint[1] = 0.5f;
@@ -244,10 +239,10 @@ void ExchangeScreen::DrawSprites(SceneRenderer* pass) {
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;
     // the third one lit while the partner accepted.
     bool accepted = LiveAccepted(client->party.Get());
-    SetTint(sceneObjects[0], accepted ? 0.5f : 1.0f);
-    SetTint(sceneObjects[1], accepted ? 1.0f : 0.5f);
+    SetTint(acceptIcon, accepted ? 0.5f : 1.0f);
+    SetTint(takeBackIcon, accepted ? 1.0f : 0.5f);
     bool partnerAccepted = LiveAccepted(client->FindParty());
-    SetTint(sceneObjects[2], partnerAccepted ? 0.5f : 1.0f);
+    SetTint(partnerIcon, partnerAccepted ? 0.5f : 1.0f);
 
     UiContainer::DrawSprites(pass);
 }
