@@ -14,7 +14,6 @@ namespace glyph_cases {
 
 namespace ui = render::ui;
 namespace text = render::text;
-namespace detail = render::detail;
 namespace gpu = render::gpu;
 
 namespace {
@@ -31,37 +30,40 @@ void NewFrame(int width, int height) {
     gpu::Release(g_targetDepth);
     g_targetWidth = width;
     g_targetHeight = height;
-    g_target = gpu::MakeTexture({width, height, 1, 1, detail::kColourFormat, gpu::kColourTarget | gpu::kSampled, "ui-check-target"});
-    g_targetDepth = gpu::MakeTexture({width, height, 1, 1, detail::kDepthFormat, gpu::kDepthTarget, "ui-check-depth"});
+    g_target = gpu::MakeTexture(
+        {width, height, 1, 1, render::kColourFormat, gpu::kColourTarget | gpu::kSampled, "ui-check-target"});
+    g_targetDepth = gpu::MakeTexture({width, height, 1, 1, render::kDepthFormat, gpu::kDepthTarget, "ui-check-depth"});
 }
 
 void DrawFrame() {
-    detail::RunCanvasCommands();
-    detail::UploadUi(detail::g_frame);
-    if (g_passes > 0 && g_drawnCommands == detail::g_frame.commands.size()) return;
+    render::RunCanvasCommands();
+    render::UploadUi(render::g_frame);
+    if (g_passes > 0 && g_drawnCommands == render::g_frame.commands.size()) return;
     gpu::PassDesc pass;
     pass.colour.texture = g_target;
     pass.colour.load = g_passes == 0 ? gpu::Load::Clear : gpu::Load::Keep;
     pass.depth = {g_targetDepth, 0, g_passes == 0 ? gpu::Load::Clear : gpu::Load::Keep, 1.0f, true};
     if (!gpu::BeginPass(pass)) return;
-    for (std::size_t k = g_drawnCommands; k < detail::g_frame.commands.size(); ++k) {
-        const detail::Command& c = detail::g_frame.commands[k];
+    for (std::size_t k = g_drawnCommands; k < render::g_frame.commands.size(); ++k) {
+        const render::Command& c = render::g_frame.commands[k];
         const auto i = static_cast<std::size_t>(c.index);
-        if (c.kind == detail::Command::Ui) detail::DrawUiBatch(detail::g_frame.uiBatches[i], g_targetWidth, g_targetHeight);
-        if (c.kind == detail::Command::Picture)
-            detail::DrawPictureBatch(detail::g_frame.pictureBatches[i], g_targetWidth, g_targetHeight);
+        if (c.kind == render::Command::Ui)
+            render::DrawUiBatch(render::g_frame.uiBatches[i], g_targetWidth, g_targetHeight);
+        if (c.kind == render::Command::Picture)
+            render::DrawPictureBatch(render::g_frame.pictureBatches[i], g_targetWidth, g_targetHeight);
     }
     gpu::EndPass();
     ++g_passes;
-    g_drawnCommands = detail::g_frame.commands.size();
+    g_drawnCommands = render::g_frame.commands.size();
 }
 
 void EndFrame() {
-    detail::g_frame.uiVertices.clear();
-    detail::g_frame.uiBatches.clear();
-    detail::g_frame.pictureBatches.clear();
-    detail::g_frame.commands.clear();
-    detail::UiFrameDone();
+    render::g_frame.uiVertices.clear();
+    render::g_frame.uiBatches.clear();
+    render::g_frame.pictureBatches.clear();
+    render::g_frame.commands.clear();
+    render::UiFrameDone();
+    render::ReleaseRetired();
     g_drawnCommands = 0;
     g_passes = 0;
     gpu::Submit();

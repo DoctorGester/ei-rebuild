@@ -1,9 +1,9 @@
 // The interface drawn into the frame (render_ui.h). See docs/notes/ui-native.md, "Source file overviews".
 #include "render_ui.h"
-#include "render_internal.h"
-#include "render_text.h"
 
 #include "../platform/log.h"
+#include "render_internal.h"
+#include "render_text.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -13,22 +13,14 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 constexpr int kMostPicture = 8192;
 
 // 0x00BBGGRR (a COLORREF) as the vertex colour's bytes R, G, B, A (opaque).
-std::uint32_t VertexColour(std::uint32_t colour) { return (colour & 0xFFFFFF) | 0xFF000000u; }
-
-gpu::Sampler Nearest() {
-    return gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp});
-}
+static std::uint32_t VertexColour(std::uint32_t colour) { return (colour & 0xFFFFFF) | 0xFF000000u; }
 
 // One texture with the nearest sampler at slot 0 of the fragment stage.
-void BindTexture(const gpu::Texture& texture) {
-    const gpu::TextureBinding b{texture, Nearest()};
+static void BindTexture(const gpu::Texture& texture) {
+    const gpu::TextureBinding b{texture, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, 0, {&b, 1});
 }
 
@@ -38,15 +30,15 @@ struct AtlasTexture {
     unsigned generation = 0;
     gpu::Texture image;
 };
-std::unordered_map<const text::GlyphAtlas*, AtlasTexture> g_atlases;
-gpu::Texture g_noAtlas;   // bound for batches of solids only
+static std::unordered_map<const text::GlyphAtlas*, AtlasTexture> g_atlases;
+static gpu::Texture g_noAtlas;   // bound for batches of solids only
 
-StreamBuffer g_vertices(false, "ei-ui-quads");
-std::size_t g_uploaded = 0;   // g_frame.uiVertices on the GPU from g_offset
-int g_offset = -1;
+static StreamBuffer g_vertices(false, "ei-ui-quads");
+static std::size_t g_uploaded = 0;   // g_frame.uiVertices on the GPU from g_offset
+static int g_offset = -1;
 
 // The quads' pipeline for the pass's sample count: alpha-blended over the frame, the depth ignored and kept.
-gpu::PipelineDesc QuadDesc(int samples) {
+static gpu::PipelineDesc QuadDesc(int samples) {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::ui_quad::kIndex;
     p.bufferCount = 1;
@@ -65,7 +57,7 @@ gpu::PipelineDesc QuadDesc(int samples) {
 }
 
 // The atlas as an R8 texture, made again when it changed.
-gpu::Texture AtlasImage(const text::GlyphAtlas* atlas) {
+static gpu::Texture AtlasImage(const text::GlyphAtlas* atlas) {
     if (!atlas) {
         if (!g_noAtlas) {
             g_noAtlas = gpu::MakeTexture({1, 1, 1, 1, gpu::Format::R8, gpu::kSampled, "ei-ui-no-atlas"});
@@ -88,7 +80,7 @@ gpu::Texture AtlasImage(const text::GlyphAtlas* atlas) {
 
 // The batch to append quads of `atlas` clipped to `scissor` to: the frame's last command when it is such a batch
 // (solids join any batch: their texture coordinates read no atlas), else a new one.
-UiBatch& BatchFor(const text::GlyphAtlas* atlas, const Rect& scissor) {
+static UiBatch& BatchFor(const text::GlyphAtlas* atlas, const Rect& scissor) {
     Frame& f = g_frame;
     if (!f.commands.empty() && f.commands.back().kind == Command::Ui) {
         UiBatch& last = f.uiBatches[static_cast<std::size_t>(f.commands.back().index)];
@@ -103,7 +95,7 @@ UiBatch& BatchFor(const text::GlyphAtlas* atlas, const Rect& scissor) {
 }
 
 // A quad of `batch` over [x, x + w) x [y, y + h), its atlas texels from (u, v) (u < 0: full coverage).
-void AddQuad(UiBatch& batch, int x, int y, int w, int h, float u, float v, std::uint32_t colour) {
+static void AddQuad(UiBatch& batch, int x, int y, int w, int h, float u, float v, std::uint32_t colour) {
     if (w <= 0 || h <= 0) return;
     const float x0 = static_cast<float>(x), y0 = static_cast<float>(y);
     const float x1 = static_cast<float>(x + w), y1 = static_cast<float>(y + h);
@@ -120,28 +112,26 @@ struct UiPicture {
     gpu::Texture image;
     int width = 0, height = 0;
 };
-std::unordered_map<const void*, UiPicture> g_uiPictures;
-// Pictures given up: released once the frames that drew them are done.
-std::vector<gpu::Texture> g_retired;
+static std::unordered_map<const void*, UiPicture> g_uiPictures;
 
 struct UiCopy {
     gpu::Texture image;
     int width = 0, height = 0;
     Rect source;
 };
-std::vector<UiCopy> g_copies;   // frame copies waiting for the next DrawPending (or a read)
+static std::vector<UiCopy> g_copies;   // frame copies waiting for the next DrawPending (or a read)
 
 static_assert(gpu_shaders::ui_picture::kBlockUiParams == 0 && gpu_shaders::ui_copy::kBlockUiParams == 0);
-void ApplyFs(const UiParams& fs) { gpu::PushUniforms(gpu::Stage::Fragment, 0, fs); }
+static void ApplyFs(const UiParams& fs) { gpu::PushUniforms(gpu::Stage::Fragment, 0, fs); }
 
-gpu::PipelineDesc TargetDesc(int program, gpu::Format format) {
+static gpu::PipelineDesc TargetDesc(int program, gpu::Format format) {
     gpu::PipelineDesc p;
     p.program = program;
     p.colour = format;
     return p;
 }
 
-gpu::PipelineDesc PictureDesc(int samples) {
+static gpu::PipelineDesc PictureDesc(int samples) {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::ui_picture::kIndex;
     p.depth = kDepthFormat;
@@ -152,7 +142,7 @@ gpu::PipelineDesc PictureDesc(int samples) {
     return p;
 }
 
-bool BeginTargetPass(const gpu::Texture& target, bool clear, const char* label) {
+static bool BeginTargetPass(const gpu::Texture& target, bool clear, const char* label) {
     gpu::PassDesc pass;
     pass.colour.texture = target;
     pass.colour.load = clear ? gpu::Load::Clear : gpu::Load::Keep;
@@ -161,7 +151,7 @@ bool BeginTargetPass(const gpu::Texture& target, bool clear, const char* label) 
 }
 
 // The copies waiting drawn from the frame target as it is now.
-void RunCopies() {
+static void RunCopies() {
     if (g_copies.empty()) return;
     const gpu::Texture& frame = FrameTexture();
     int fw = 0, fh = 0;
@@ -190,18 +180,16 @@ void RunCopies() {
 }
 
 // `region` of `texture` read back now (a stall), into `texels` until `ticket` is released.
-bool ReadBack(const gpu::Texture& texture, const Rect& region, gpu::Ticket* ticket, gpu::Texels* texels) {
+static bool ReadBack(const gpu::Texture& texture, const Rect& region, gpu::Ticket* ticket, gpu::Texels* texels) {
     *ticket = gpu::Download(texture, 0, region);
     return gpu::Wait(*ticket) && gpu::Read(*ticket, texels);
 }
 
-const UiPicture* UiPictureOf(const void* key) {
+static const UiPicture* UiPictureOf(const void* key) {
     RunCanvasesNow();
     auto it = g_uiPictures.find(key);
     return it != g_uiPictures.end() && it->second.image ? &it->second : nullptr;
 }
-
-} // namespace
 
 // ---- The public calls --------------------------------------------------------------------------------------
 
@@ -283,8 +271,7 @@ void CapturePicture(const void* key, const Rect& source, int width, int height) 
     if (!key || width < 1 || height < 1 || width > kMostPicture || height > kMostPicture || source.IsEmpty()) return;
     UiPicture& p = g_uiPictures[key];
     if (!p.image || p.width != width || p.height != height) {
-        // A picture the frame still draws is released after it.
-        if (p.image) g_retired.push_back(p.image);
+        ReleaseAfterPresent(p.image);   // a picture the frame still draws is released after it
         p.image = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget | gpu::kSampled, "ei-ui-picture"});
         p.width = width;
         p.height = height;
@@ -295,7 +282,7 @@ void CapturePicture(const void* key, const Rect& source, int width, int height) 
     } else if (std::any_of(g_frame.pictureBatches.begin(), g_frame.pictureBatches.end(),
                            [&](const PictureBatch& b) { return b.texture.texture == p.image.texture; })) {
         // Drawn in this frame and not replaced under that draw: a new image.
-        g_retired.push_back(p.image);
+        ReleaseAfterPresent(p.image);
         p.image = gpu::MakeTexture({width, height, 1, 1, gpu::Format::Rgba8, gpu::kColourTarget | gpu::kSampled, "ei-ui-picture"});
         if (!p.image) return;
     }
@@ -317,7 +304,7 @@ void DrawPicture(const void* key, const Rect& destination, bool grey) {
 void DropPicture(const void* key) {
     auto it = g_uiPictures.find(key);
     if (it == g_uiPictures.end()) return;
-    g_retired.push_back(it->second.image);
+    ReleaseAfterPresent(it->second.image);
     g_uiPictures.erase(it);
 }
 
@@ -342,8 +329,6 @@ bool ReadPicture(const void* key, int* width, int* height, std::vector<std::uint
 
 // ---- render.cpp's side ------------------------------------------------------------------------------------
 
-namespace detail {
-
 void ListUiPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
     out.push_back(QuadDesc(samples));
     out.push_back(PictureDesc(samples));
@@ -363,8 +348,6 @@ void UploadUi(const Frame& f) {
 void UiFrameDone() {
     g_uploaded = 0;
     g_offset = -1;
-    for (gpu::Texture& t : g_retired) gpu::Release(t);
-    g_retired.clear();
 }
 
 void DrawUiBatch(const UiBatch& batch, int width, int height) {
@@ -402,7 +385,5 @@ void DrawPictureBatch(const PictureBatch& batch, int width, int height) {
     ApplyFs(fs);
     gpu::Draw(0, 6);
 }
-
-} // namespace detail
 
 } // namespace render

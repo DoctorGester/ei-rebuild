@@ -2,20 +2,18 @@
 // following the client's weather over time, the rain's rings' clock (shaders/terrain.hlsl, mesh.hlsl), each unit's
 // own wetness and snow under the roofs above it, and the roof map that keeps the ground and the other meshes under a
 // roof dry (shaders/roof.hlsli). See docs/notes/renderer.md, section 13, item 11b.
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
 
 #include "lib/maths.h"
-#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
 #include <unordered_map>
 #include <vector>
 
-namespace render::detail {
-
-namespace {
+namespace render {
 
 // How fast each follows the weather, in world ticks (about 18 a second) for 1 - 1/e of the way: the ground is wet
 // within half a minute of rain and dries over a few; the puddles fill and dry slower; snow settles over minutes (about
@@ -73,12 +71,8 @@ struct UnitSurface {
     float wet = 0.0f, snow = 0.0f, shelter = 0.0f;
     Vector3 at{};   // the middle of its box's foot (the harness's)
 };
-std::unordered_map<const void*, UnitSurface> g_units;
-const void* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
-
-struct Box {
-    Vector3 low{1e30f, 1e30f, 1e30f}, high{-1e30f, -1e30f, -1e30f};
-};
+static std::unordered_map<const void*, UnitSurface> g_units;
+static const void* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
 
 // A mesh that can roof a unit this frame: an object's (not a unit's) mesh drawn in the world, its model matrix into
 // the landscape's space and its box there; the matrix is inverted when a point first lies under the box.
@@ -92,42 +86,39 @@ struct Roof {
 };
 
 // The frame's lists, kept for their room.
-std::vector<Roof> g_roofs;
-std::unordered_map<const void*, Box> g_unitBoxes;
+static std::vector<Roof> g_roofs;
+static std::unordered_map<const void*, Box> g_unitBoxes;
 // The frame's roof map (PrepareRoofs): its area and depth range, the landscape's space to its clip space.
 struct RoofFit {
     bool on = false;
     float extent = 0.0f, range = 0.0f;
     Matrix4 clip{};
 } g_roofFit;
-CasterDraws g_roofDraws("ei-roof-casters");
-gpu::Texture g_roofTexture;
-bool g_roofShelter = true;   // SetRoofShelter
-RoofInfo g_roofInfo;
+static CasterDraws g_roofDraws("ei-roof-casters");
+static gpu::Texture g_roofTexture;
+static bool g_roofShelter = true;   // SetRoofShelter
+static RoofInfo g_roofInfo;
 constexpr int kModelUnknown = -2;
-std::vector<int> g_modelOf;   // per frame matrix: into g_models, -1 none, kModelUnknown not yet
-std::vector<Matrix4> g_models;
+static std::vector<int> g_modelOf;   // per frame matrix: into g_models, -1 none, kModelUnknown not yet
+static std::vector<Matrix4> g_models;
 
 // `now` moved towards `target` over `step` ticks: rising with `rise`, falling with `fall` as its time constant.
-float Follow(float now, float target, double step, double rise, double fall) {
+static float Follow(float now, float target, double step, double rise, double fall) {
     const double ticks = target > now ? rise : fall;
     return now + (target - now) * (1.0f - lib::Exp(static_cast<float>(-step / ticks)));
 }
 
-void Extend(Box& box, const Vector3& p) {
-    box.low = Vector3{std::min(box.low.x, p.x), std::min(box.low.y, p.y), std::min(box.low.z, p.z)};
-    box.high = Vector3{std::max(box.high.x, p.x), std::max(box.high.y, p.y), std::max(box.high.z, p.z)};
-}
-
 // A mesh's model-space box (MeshBatch::box) placed by `model`, added to a box in the landscape's space.
-void ExtendPlaced(Box& box, const float local[6], const Matrix4& model) {
+static void ExtendPlaced(Box& box, const float local[6], const Matrix4& model) {
     for (int k = 0; k < 8; ++k)
-        Extend(box, TransformColumn(model, Vector3{local[(k & 1) ? 3 : 0], local[(k & 2) ? 4 : 1], local[(k & 4) ? 5 : 2]}));
+        box.Extend(
+            TransformColumn(model, Vector3{local[(k & 1) ? 3 : 0], local[(k & 2) ? 4 : 1], local[(k & 4) ? 5 : 2]}));
 }
 
 // Of the rays `wanted` (a bit each) from `from[k]` along `along` (the mesh's model space, the same for all), those
 // that meet one of the batch's triangles ahead of them.
-unsigned RaysMeetMesh(const Frame& f, const MeshBatch& b, const Vector3* from, const Vector3& along, unsigned wanted) {
+static unsigned RaysMeetMesh(const Frame& f, const MeshBatch& b, const Vector3* from, const Vector3& along,
+                             unsigned wanted) {
     auto corner = [&](int k) {
         return b.cached ? CachedCorner(*b.cached, k) : f.meshVertices[f.meshIndices[static_cast<std::size_t>(k)]].position;
     };
@@ -157,7 +148,7 @@ unsigned RaysMeetMesh(const Frame& f, const MeshBatch& b, const Vector3* from, c
 
 // The share of a unit's top under a roof: of kRoofPoints points of its box at kRoofLook of its height, those with a
 // roof's triangle straight above (the rays under a roof's box tested together against its triangles).
-float Shelter(const Frame& f, const Box& unit) {
+static float Shelter(const Frame& f, const Box& unit) {
     const float cx = (unit.low.x + unit.high.x) * 0.5f, cy = (unit.low.y + unit.high.y) * 0.5f;
     const float dx = (unit.high.x - unit.low.x) * kRoofSpread, dy = (unit.high.y - unit.low.y) * kRoofSpread;
     const float z = unit.low.z + (unit.high.z - unit.low.z) * kRoofLook;
@@ -193,7 +184,7 @@ float Shelter(const Frame& f, const Box& unit) {
 
 // The world's model meshes after the ground: the units' boxes (by object), and the other objects' meshes as roofs (one
 // for all passes of a mesh; not the light added).
-void CollectUnitsAndRoofs(const Frame& f) {
+static void CollectUnitsAndRoofs(const Frame& f) {
     g_roofs.clear();
     g_unitBoxes.clear();
     g_models.clear();
@@ -213,32 +204,22 @@ void CollectUnitsAndRoofs(const Frame& f) {
         return index;
     };
     const MeshBatch* last = nullptr;
-    bool started = false;
-    for (const Frame::Range& r : f.worldRanges) {
-        const std::size_t end = std::min(r.end, f.commands.size());
-        for (std::size_t k = r.first; k < end; ++k) {
-            const Command& c = f.commands[k];
-            if (c.kind == Command::Terrain) started = started || !f.terrainBatches[static_cast<std::size_t>(c.index)].water;
-            if (!started || c.kind != Command::Mesh) continue;
-            const MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
-            if (!b.model || b.flat || b.lines || b.indexCount <= 0 || !b.caster || !b.boxed) continue;
-            if (b.state.blend && b.state.destBlend == 2) continue;   // D3DBLEND_ONE: light added
-            if (last && b.cached == last->cached && b.firstIndex == last->firstIndex && b.matrix == last->matrix) continue;
-            last = &b;
-            const int model = modelOf(b);
-            if (model < 0) continue;
-            const Matrix4& placed = g_models[static_cast<std::size_t>(model)];
-            if (b.figure) {
-                ExtendPlaced(g_unitBoxes[b.caster], b.box, placed);
-            } else {
-                g_roofs.push_back(Roof{&b, placed, Box{}});
-                ExtendPlaced(g_roofs.back().box, b.box, placed);
-            }
+    for (const WorldMesh& w : f.worldMeshes) {
+        const MeshBatch& b = f.meshBatches[static_cast<std::size_t>(w.batch)];
+        if (b.flat || b.lines || !b.caster || !b.boxed || w.additive) continue;
+        if (last && w.repeat && b.matrix == last->matrix) continue;
+        last = &b;
+        const int model = modelOf(b);
+        if (model < 0) continue;
+        const Matrix4& placed = g_models[static_cast<std::size_t>(model)];
+        if (b.figure) {
+            ExtendPlaced(g_unitBoxes[b.caster], b.box, placed);
+        } else {
+            g_roofs.push_back(Roof{&b, placed, Box{}});
+            ExtendPlaced(g_roofs.back().box, b.box, placed);
         }
     }
 }
-
-} // namespace
 
 // The wetness and the puddles follow the settled rain, the snow cover the settled snow (not the layer's fade, which
 // lasts the weather message's 20 or 40 ticks, nor its mode, which stays snow through a fade from snow to rain). The
@@ -316,8 +297,9 @@ void PrepareRoofs(Frame& f) {
     g_roofInfo = RoofInfo{};
     const Surfaces& s = g_surfaces;
     if (!g_roofShelter || std::max(std::max(s.wet, s.puddles), std::max(s.snow, s.rain)) <= kWeatherShown) return;
-    Vector3 low, high;
-    if (!VisibleGround(f, &low, &high)) return;
+    Box ground;
+    if (!VisibleGround(f, &ground)) return;
+    const Vector3 &low = ground.low, &high = ground.high;
     StatsTimer timer(&FrameStats::shadowMs);
     float extent = std::max(high.x - low.x, high.y - low.y) + 2.0f * kRoofMargin;
     extent = std::ceil(extent / kRoofStep) * kRoofStep;
@@ -364,10 +346,11 @@ void RoofUniforms(const Matrix4& light, ShadowParams* p) {
 }
 
 // The roofs straight down into the roof map (depth only; cut out by their texture's alpha as in the sun map).
-void DrawRoofMap(Frame&) {
+void DrawRoofMap() {
     if (!g_roofFit.on) return;
     StatsTimer timer(&FrameStats::shadowMs);
-    if (!g_roofTexture && !(g_roofTexture = MakeShadowDepth(kRoofMapSize, kRoofMapSize, "ei-roof-map"))) {
+    if (!g_roofTexture) g_roofTexture = MakeShadowDepth(kRoofMapSize, kRoofMapSize, "ei-roof-map");
+    if (!g_roofTexture) {
         g_roofFit.on = false;
         g_roofInfo.made = false;
         return;
@@ -381,10 +364,7 @@ void DrawRoofMap(Frame&) {
         const PassState& s = batch.state;
         const StageState& st = s.stages[0];
         CasterInstance instance{Product(g_roofFit.clip, r.model), {batch.uOffset, batch.vOffset}, {}};
-        if ((s.alphaTest || s.blend) && st.hasTexture) {
-            instance.alpha[0] = 1.0f;
-            instance.alpha[1] = s.alphaTest ? (s.alphaReference + 0.5f) / 255.0f : 0.5f;
-        }
+        CasterAlpha(s, instance.alpha);
         g_roofDraws.Add(g, batch.cached != nullptr, st.texture ? st.texture : SurfaceView(nullptr), StageSampler(st),
                         first, batch.indexCount, instance);
     }
@@ -437,33 +417,29 @@ void SurfaceState(float* wet, float* puddles, float* snow) {
     *snow = g_surfaces.snow;
 }
 
-} // namespace render::detail
-
-namespace render {
-
-void BeginInterfaceUnit(const void* object) { detail::g_interfaceUnit = object; }
-void EndInterfaceUnit() { detail::g_interfaceUnit = nullptr; }
+void BeginInterfaceUnit(const void* object) { g_interfaceUnit = object; }
+void EndInterfaceUnit() { g_interfaceUnit = nullptr; }
 
 void SetRoofShelter(bool on) {
 #if defined(EI_RENDER_VALIDATION)
-    if (on != detail::g_roofShelter) ei::Log("render: the roofs' shelter from the weather %s", on ? "on" : "off");
-    detail::g_roofShelter = on;
+    if (on != g_roofShelter) ei::Log("render: the roofs' shelter from the weather %s", on ? "on" : "off");
+    g_roofShelter = on;
 #else
     (void)on;
 #endif
 }
 
-RoofInfo RoofState() { return detail::g_roofInfo; }
+RoofInfo RoofState() { return g_roofInfo; }
 
 void LandscapeLoaded() {
-    detail::g_surfaces.started = false;
-    detail::g_units.clear();
+    g_surfaces.started = false;
+    g_units.clear();
 }
 
 UnitWeather UnitWeatherState(const void* object) {
     UnitWeather out;
-    auto it = detail::g_units.find(object);
-    if (it == detail::g_units.end()) return out;
+    auto it = g_units.find(object);
+    if (it == g_units.end()) return out;
     out.known = true;
     out.wet = it->second.wet;
     out.snow = it->second.snow;
@@ -472,4 +448,4 @@ UnitWeather UnitWeatherState(const void* object) {
     return out;
 }
 
-} // namespace render
+}   // namespace render

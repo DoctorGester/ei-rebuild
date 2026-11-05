@@ -6,22 +6,17 @@
 // Here: that target on the pipelines, and the two copies between the targets where the frame changes from one
 // to the other (the frame target's colour and depth into every sample before a world run that follows interface
 // draws; the resolved depth copy into the frame target's depth after a world run).
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
 
-#include "../platform/log.h"
-
 namespace render {
 
-namespace {
-
-using namespace detail;
-
-gpu::Pipeline g_into, g_from;
-int g_copySamples = 0;   // the sample count the copies were made for
+static gpu::Pipeline g_into, g_from;
+static int g_copySamples = 0;   // the sample count the copies were made for
 
 // Depth always written, colour as `writeColour`, for `samples`.
-gpu::PipelineDesc CopyDesc(int program, int samples, bool writeColour) {
+static gpu::PipelineDesc CopyDesc(int program, int samples, bool writeColour) {
     gpu::PipelineDesc p;
     p.program = program;
     p.depth = kDepthFormat;
@@ -34,7 +29,7 @@ gpu::PipelineDesc CopyDesc(int program, int samples, bool writeColour) {
     return p;
 }
 
-void Draw(gpu::Pipeline pipeline, const gpu::Texture* textures, int count) {
+static void Draw(gpu::Pipeline pipeline, const gpu::Texture* textures, int count) {
     gpu::ApplyPipeline(pipeline);
     const gpu::Sampler point = gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest});
     gpu::TextureBinding b[2];
@@ -42,10 +37,6 @@ void Draw(gpu::Pipeline pipeline, const gpu::Texture* textures, int count) {
     gpu::BindTextures(gpu::Stage::Fragment, 0, {b, static_cast<std::size_t>(count)});
     gpu::Draw(0, 3);
 }
-
-} // namespace
-
-namespace detail {
 
 void AddDepthCopy(gpu::PipelineDesc& p) {
     if (p.samples <= 1) return;
@@ -80,7 +71,5 @@ void CopyIntoMultisampled(const gpu::Texture& colour, const gpu::Texture& depth)
 }
 
 void CopyDepthFromResolved(const gpu::Texture& depth) { Draw(g_from, &depth, 1); }
-
-} // namespace detail
 
 } // namespace render

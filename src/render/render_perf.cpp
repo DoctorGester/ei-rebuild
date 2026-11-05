@@ -3,10 +3,9 @@
 // off every entry point returns at once.
 #include "render_perf.h"
 
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../platform/log.h"
 
 #include <algorithm>
 #include <chrono>
@@ -15,21 +14,13 @@
 
 namespace render {
 
-namespace detail {
-
 static_assert(std::chrono::steady_clock::period::num == 1 && std::chrono::steady_clock::period::den == 1'000'000'000,
               "kMsPerTick is for a nanosecond clock");
 long long Ticks() { return std::chrono::steady_clock::now().time_since_epoch().count(); }
 
-} // namespace detail
-
 namespace perf {
 
-namespace {
-
-using namespace detail;
-
-bool g_on = false;
+static bool g_on = false;
 
 // One second of samples: each with the time it was taken (Ticks).
 template <int N>
@@ -39,7 +30,7 @@ struct Sample {
 };
 
 template <int N>
-void Keep(std::deque<Sample<N>>& samples, const Sample<N>& s) {
+static void Keep(std::deque<Sample<N>>& samples, const Sample<N>& s) {
     samples.push_back(s);
     constexpr long long second = static_cast<long long>(1000.0 / kMsPerTick);
     while (!samples.empty() && s.when - samples.front().when > second) samples.pop_front();
@@ -47,29 +38,29 @@ void Keep(std::deque<Sample<N>>& samples, const Sample<N>& s) {
 
 // The frames: their interval since the last present, the CPU times, each pass's draws (FrameDraws + pass).
 enum FrameValue { Interval, SubmitMs, ShadowCpuMs, FrameDraws, FrameValues = FrameDraws + kPasses };
-std::deque<Sample<FrameValues>> g_frames;
-long long g_lastPresent = 0;
-double g_cpu[static_cast<int>(Cpu::Count)] = {};   // this frame's
-double g_draws[kPasses] = {};                       // this frame's
-std::uint64_t g_drawsCounted = 0;                   // FrameDrawCount when last given to a pass
+static std::deque<Sample<FrameValues>> g_frames;
+static long long g_lastPresent = 0;
+static double g_cpu[static_cast<int>(Cpu::Count)] = {};   // this frame's
+static double g_draws[kPasses] = {};                      // this frame's
+static std::uint64_t g_drawsCounted = 0;                  // FrameDrawCount when last given to a pass
 
 // The GPU: the whole frame's time (gpu::FrameGpuTime), one per frame the GPU finished.
-std::deque<Sample<1>> g_gpu;
-bool g_timing = false;   // gpu::SetFrameTiming on
+static std::deque<Sample<1>> g_gpu;
+static bool g_timing = false;   // gpu::SetFrameTiming on
 
 // The frame's pass (between BeginDraws and EndDraws).
-bool g_inFrame = false;
-Pass g_pass = Pass::Ui;
+static bool g_inFrame = false;
+static Pass g_pass = Pass::Ui;
 
 // The draws since the last change, to the pass they were made in.
-void CountDraws() {
+static void CountDraws() {
     const std::uint64_t now = FrameDrawCount();
     if (now >= g_drawsCounted) g_draws[static_cast<int>(g_pass)] += static_cast<double>(now - g_drawsCounted);
     g_drawsCounted = now;
 }
 
 // The latest frame the GPU finished, into the samples (never waiting); the frame timing on while the overlay is.
-void Collect() {
+static void Collect() {
     if (g_timing != g_on && gpu::Started()) {
         gpu::SetFrameTiming(g_on);
         g_timing = g_on;
@@ -89,7 +80,7 @@ struct Glyph {
     const char* rows[kGlyphHeight] = {};
 };
 // clang-format off
-const Glyph kFont[] = {
+static const Glyph kFont[] = {
     {'0', {".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."}},
     {'1', {"..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."}},
     {'2', {".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"}},
@@ -137,7 +128,7 @@ const Glyph kFont[] = {
 };
 // clang-format on
 
-const Glyph* FindGlyph(char c) {
+static const Glyph* FindGlyph(char c) {
     if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
     for (const Glyph& g : kFont)
         if (g.c == c) return &g;
@@ -148,16 +139,16 @@ const Glyph* FindGlyph(char c) {
 
 constexpr double kRefreshMs = 250.0;   // the text is made again this often
 
-gpu::Texture g_image;
-bool g_imageReady = false;   // Prepare wrote it for this frame's Draw
-std::vector<std::uint8_t> g_pixels;   // the text's image
-int g_pixelsWidth = 0, g_pixelsHeight = 0;
-bool g_pixelsChanged = false;
-long long g_lastText = 0;
-std::vector<std::string> g_lines;
+static gpu::Texture g_image;
+static bool g_imageReady = false;            // Prepare wrote it for this frame's Draw
+static std::vector<std::uint8_t> g_pixels;   // the text's image
+static int g_pixelsWidth = 0, g_pixelsHeight = 0;
+static bool g_pixelsChanged = false;
+static long long g_lastText = 0;
+static std::vector<std::string> g_lines;
 
 // The text's image on the GPU, made again when its size changed.
-bool UploadText() {
+static bool UploadText() {
     if (g_pixels.empty()) return false;
     if (g_image.width != g_pixelsWidth || g_image.height != g_pixelsHeight) {
         gpu::Release(g_image);
@@ -175,7 +166,7 @@ bool UploadText() {
 }
 
 // The text made again from the last second's numbers (every kRefreshMs: readable, and cheap).
-void RefreshText() {
+static void RefreshText() {
     long long now = Ticks();
     if (!g_pixels.empty() && static_cast<double>(now - g_lastText) * kMsPerTick < kRefreshMs) return;
     g_lastText = now;
@@ -185,8 +176,6 @@ void RefreshText() {
     Rasterise(g_lines, &g_pixels, &g_pixelsWidth, &g_pixelsHeight);
     g_pixelsChanged = true;
 }
-
-} // namespace
 
 bool On() { return g_on; }
 
@@ -265,8 +254,7 @@ void Draw(gpu::Format format, int width, int height, const Rect& placed) {
     float right = left + static_cast<float>(g_image.width * scale), bottom = top + static_cast<float>(g_image.height * scale);
     gpu::SetViewport({0, 0, width, height});
     gpu::ApplyPipeline(pipeline);
-    const gpu::TextureBinding text{g_image, gpu::MakeSampler({gpu::Filter::Nearest, gpu::Filter::Nearest,
-                                                              gpu::Filter::Nearest, gpu::Wrap::Clamp, gpu::Wrap::Clamp})};
+    const gpu::TextureBinding text{g_image, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, {&text, 1});
     const RectParams vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height), 0.0f, 0.0f}};
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockRectParams, vs);

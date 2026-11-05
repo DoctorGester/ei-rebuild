@@ -1,17 +1,16 @@
 // The new renderer's frame: the switch, the device (gpu.h), the off-screen target the frame is drawn into (the game's
 // resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
 #include "render.h"
-#include "render_internal.h"
-#include "render_perf.h"
-#include "render_ui.h"
 
-#include "../platform/log.h"
-
-#include "render_state.h"
-#include "../game/texture.h"
 #include "../game/app.h"
 #include "../game/game_singletons.h"
 #include "../game/model.h"
+#include "../game/texture.h"
+#include "../platform/log.h"
+#include "render_internal.h"
+#include "render_perf.h"
+#include "render_state.h"
+#include "render_ui.h"
 
 #if defined(_M_X64) || defined(__x86_64__)
 #include <xmmintrin.h>
@@ -29,21 +28,18 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 // --- The switch ------------------------------------------------------------------------------------
 
-bool g_configured = false;
-int g_msaa = 1;         // the render quality (SetMsaa, SetAnisotropy); not EI_RENDER's
-int g_anisotropy = 1;
+static bool g_configured = false;
+static int g_msaa = 1;   // the render quality (SetMsaa, SetAnisotropy); not EI_RENDER's
+static int g_anisotropy = 1;
 #if defined(EI_RENDER_VALIDATION)
-bool g_checkAll = false;    // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
+static bool g_checkAll =
+    false;   // "checkall" (harness build only): every read-back check runs; else the first few of each kind, then every 16th
 #endif
 
 // EI_RENDER's words (render.h).
-void ParseSpec(const char* spec) {
+static void ParseSpec(const char* spec) {
 #if defined(EI_RENDER_VALIDATION)
     g_checkAll = false;
 #endif
@@ -56,7 +52,10 @@ void ParseSpec(const char* spec) {
         while (!word.empty() && word.back() == ' ') word.pop_back();
         bool known = false;
 #if defined(EI_RENDER_VALIDATION)
-        if (word == "checkall") g_checkAll = known = true;
+        if (word == "checkall") {
+            g_checkAll = true;
+            known = true;
+        }
 #endif
         if (!known && !word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
@@ -65,32 +64,30 @@ void ParseSpec(const char* spec) {
     g_configured = true;
 }
 
-void EnsureConfigured() {
+static void EnsureConfigured() {
     if (g_configured) return;
     ParseSpec(platform::EnvironmentVariable("EI_RENDER").c_str());
 }
 
 // --- Game memory -----------------------------------------------------------------------------------
 
-std::uint32_t GameClearColour() { return g_sceneRenderer.fogColour; }
+static std::uint32_t GameClearColour() { return g_sceneRenderer.fogColour; }
 
-void SetClear(float out[4], std::uint32_t c) {
-    out[0] = ((c >> 16) & 0xFF) / 255.0f;
-    out[1] = ((c >> 8) & 0xFF) / 255.0f;
-    out[2] = (c & 0xFF) / 255.0f;
+static void SetClear(float out[4], std::uint32_t c) {
+    UnpackColour(c, out);
     out[3] = 1.0f;
 }
 
-int g_deviceSamples = 1;   // the most samples up to kSmoothSamples the device draws the frame with
+static int g_deviceSamples = 1;   // the most samples up to kSmoothSamples the device draws the frame with
 
 #if defined(_M_X64) || defined(__x86_64__)
 // The SSE control bits (rounding, flush-to-zero, denormals-are-zero, the exception masks) the renderer started with.
 // The game's code does not change them; a driver or library that did would change every float of the frame.
-unsigned g_mxcsr = 0;
+static unsigned g_mxcsr = 0;
 #endif
 
 // The largest power of two up to `samples`, at most kSmoothSamples.
-int MsaaLevel(int samples) {
+static int MsaaLevel(int samples) {
     int level = 1;
     while (level * 2 <= samples && level * 2 <= kSmoothSamples) level *= 2;
     return level;
@@ -99,7 +96,7 @@ int MsaaLevel(int samples) {
 // The most samples up to kSmoothSamples the device draws the frame with: the frame's formats and the depth copy's.
 // `maxSamples(colour, depth)`: the most a target of those formats takes (gpu::MaxSamples, or a DeviceLimits').
 template <class MaxSamples>
-int DeviceSamples(MaxSamples maxSamples) {
+static int DeviceSamples(MaxSamples maxSamples) {
     return (std::min)(maxSamples(kColourFormat, kDepthFormat), maxSamples(kDepthCopyFormat, gpu::Format::None));
 }
 
@@ -108,7 +105,7 @@ int DeviceSamples(MaxSamples maxSamples) {
 // and 4, no 2): a pass with another count is invalid and draws nothing right. `supports(colour, depth, samples)`: the
 // device draws exactly those samples into a target of those formats (gpu::SupportsSamples, or a DeviceLimits').
 template <class Supports>
-int SamplesFor(int asked, Supports supports) {
+static int SamplesFor(int asked, Supports supports) {
     auto takes = [&supports](int samples) {
         return supports(kColourFormat, kDepthFormat, samples) && supports(kDepthCopyFormat, gpu::Format::None, samples);
     };
@@ -119,7 +116,7 @@ int SamplesFor(int asked, Supports supports) {
     return 1;
 }
 
-bool CreateDevice() {
+static bool CreateDevice() {
     if (!gpu::Start()) return false;
     g_deviceSamples = DeviceSamples(
         [](gpu::Format colour, gpu::Format depth) { return gpu::MaxSamples(colour, depth, kSmoothSamples); });
@@ -130,13 +127,14 @@ bool CreateDevice() {
 }
 
 // Once a frame on the main thread: the SSE control bits as at the start, else logged (verify builds) and set back.
-void CheckFloatControl() {
+static void CheckFloatControl() {
 #if defined(_M_X64) || defined(__x86_64__)
     const unsigned now = _mm_getcsr();
     if ((now & 0xFFC0u) == g_mxcsr) return;
 #if defined(EI_RENDER_VALIDATION)
     static int logged = 0;
-    if (logged++ < 10) ei::Log("render: MXCSR's control bits changed (%04X, at the start %04X); set back", now & 0xFFC0u, g_mxcsr);
+    LogFirst(logged, 10, "render: MXCSR's control bits changed (%04X, at the start %04X); set back", now & 0xFFC0u,
+             g_mxcsr);
 #endif
     _mm_setcsr((now & 0x3Fu) | g_mxcsr);
 #endif
@@ -144,22 +142,22 @@ void CheckFloatControl() {
 
 // --- The off-screen target ---------------------------------------------------------------------------
 
-int g_width = 0, g_height = 0;
-gpu::Texture g_colour, g_depth;
-bool g_haveFrame = false;
+static int g_width = 0, g_height = 0;
+static gpu::Texture g_colour, g_depth;
+static bool g_haveFrame = false;
 // With multisampling (SetMsaa) the world's runs of commands draw into a multisampled target of
 // g_targetSamples (render_smooth.cpp) whose colour each such pass resolves into g_colour and whose depth copy
 // (kDepthCopyFormat) into g_resolvedDepth; the frame target's depth is sampled then (copied into the multisampled
 // one before a world run).
-int g_targetSamples = 1;
-gpu::Texture g_multiColour, g_multiDepth, g_multiDepthCopy, g_resolvedDepth;
+static int g_targetSamples = 1;
+static gpu::Texture g_multiColour, g_multiDepth, g_multiDepthCopy, g_resolvedDepth;
 
-void DestroyMultisampled() {
+static void DestroyMultisampled() {
     for (gpu::Texture* t : {&g_multiColour, &g_multiDepth, &g_multiDepthCopy, &g_resolvedDepth}) gpu::Release(*t);
     g_targetSamples = 1;
 }
 
-void DestroyTarget() {
+static void DestroyTarget() {
     DestroyMultisampled();
     gpu::Release(g_colour);
     gpu::Release(g_depth);
@@ -169,7 +167,7 @@ void DestroyTarget() {
 
 // The multisampled colour, depth and depth copy of `samples` and the copy's resolve; false when the device
 // refused them.
-bool MakeMultisampled(int width, int height, int samples) {
+static bool MakeMultisampled(int width, int height, int samples) {
     g_multiColour = gpu::MakeTexture({width, height, 1, samples, kColourFormat, gpu::kColourTarget, "ei-frame-colour-multisampled"});
     g_multiDepthCopy =
         gpu::MakeTexture({width, height, 1, samples, kDepthCopyFormat, gpu::kColourTarget, "ei-frame-depth-copy-multisampled"});
@@ -188,7 +186,7 @@ bool MakeMultisampled(int width, int height, int samples) {
 // The frame target of the game's size; the multisampled one beside it when the render quality asks for
 // multisampling (SetMsaa: the device's nearest count, SamplesFor). A change takes effect at a frame's first pass
 // (`mayChange`).
-bool EnsureTarget(int width, int height, bool mayChange) {
+static bool EnsureTarget(int width, int height, bool mayChange) {
     const int samples = g_deviceSamples > 1 ? SamplesFor(g_msaa, gpu::SupportsSamples) : 1;
     if (width == g_width && height == g_height && g_colour && (samples == g_targetSamples || !mayChange)) return true;
     DestroyTarget();
@@ -213,16 +211,14 @@ bool EnsureTarget(int width, int height, bool mayChange) {
 
 // --- The frame -----------------------------------------------------------------------------------------
 
-bool g_frameDrawn = false;
-bool g_started = false;
-std::uint32_t g_frameNumber = 0;
-std::uint32_t g_commits = 0;
-
-} // namespace
+static bool g_frameDrawn = false;
+static bool g_started = false;
+static std::uint32_t g_frameNumber = 0;
+static std::uint32_t g_commits = 0;
 
 // The device, the first pipelines, the white texture and the water's ripple map (written here, outside any pass) at the
 // first use. The game cannot run without them: a failure ends it.
-void detail::Start() {
+void Start() {
     EnsureConfigured();
     if (g_started) return;
     if (!CreateDevice()) Fatal("Can't start the renderer: %s.", gpu::Error());
@@ -234,47 +230,45 @@ void detail::Start() {
     g_started = true;
 }
 
-namespace {
-
 #if defined(EI_RENDER_VALIDATION)
 // The timer of the device mesh draw running (at most one), made in place so no static destructor comes with it.
-alignas(detail::StatsTimer) unsigned char g_deviceMeshTimer[sizeof(detail::StatsTimer)];
-bool g_deviceMeshTiming = false;
+static alignas(StatsTimer) unsigned char g_deviceMeshTimer[sizeof(StatsTimer)];
+static bool g_deviceMeshTiming = false;
 #endif
 
 #if defined(EI_RENDER_VALIDATION)
 struct GameTimer {
-    alignas(detail::StatsTimer) unsigned char storage[sizeof(detail::StatsTimer)];
+    alignas(StatsTimer) unsigned char storage[sizeof(StatsTimer)];
     bool running = false;
     void Begin(double FrameStats::* field) {
         if (running) return;
-        new (storage) detail::StatsTimer(field);
+        new (storage) StatsTimer(field);
         running = true;
     }
     bool End() {
         if (!running) return false;
-        std::launder(reinterpret_cast<detail::StatsTimer*>(storage))->~StatsTimer();
+        std::launder(reinterpret_cast<StatsTimer*>(storage))->~StatsTimer();
         running = false;
         return true;
     }
 };
-GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
+static GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
 #endif
 
-FrameStats g_statsSum;      // the presented frames since the last TakeFrameStats
-const void* g_lastPipeline = nullptr;   // applied last in this frame
-const void* g_lastTexture = nullptr;
+static FrameStats g_statsSum;                  // the presented frames since the last TakeFrameStats
+static const void* g_lastPipeline = nullptr;   // applied last in this frame
+static const void* g_lastTexture = nullptr;
 #if defined(EI_RENDER_VALIDATION)
-StatsTimer* g_innerTimer = nullptr;
+static StatsTimer* g_innerTimer = nullptr;
 // CountReuse: per key the hashes of the vertices' geometry (positions, texture coordinates) and
 // colours, this frame's and the last; this frame's mesh geometry hashes.
 struct VertexHashes {
     std::uint64_t geometry = 0, colours = 0;
 };
-std::unordered_map<std::uint64_t, VertexHashes> g_hashes, g_lastHashes;
-std::unordered_set<std::uint64_t> g_frameGeometry;
+static std::unordered_map<std::uint64_t, VertexHashes> g_hashes, g_lastHashes;
+static std::unordered_set<std::uint64_t> g_frameGeometry;
 
-std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
+static std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
     const auto* p = static_cast<const std::uint8_t*>(data);
     for (std::size_t i = 0; i + 4 <= bytes; i += 4) {
         std::uint32_t word;
@@ -285,7 +279,7 @@ std::uint64_t Fnv(std::uint64_t h, const void* data, std::size_t bytes) {
 }
 #endif
 
-void AddFrameStats() {
+static void AddFrameStats() {
     g_stats.matrices = g_frame.matrices.size();
     if (g_width > 0) {
         g_statsSum.width = g_width;
@@ -333,22 +327,22 @@ void AddFrameStats() {
 #endif
 }
 
-std::size_t g_drawnCommands = 0;   // commands of this frame already drawn into the target
-int g_passes = 0;                  // passes drawn this frame
-int g_passSamples = 1;             // the sample count of the pass being drawn (PassSampleCount)
+static std::size_t g_drawnCommands = 0;   // commands of this frame already drawn into the target
+static int g_passes = 0;                  // passes drawn this frame
+static int g_passSamples = 1;             // the sample count of the pass being drawn (PassSampleCount)
 
 // Which target holds the frame's latest pixels: none yet (the frame's first pass clears), the frame
 // target, or the multisampled one (its colour also resolved into the frame target).
 enum class Holder : std::uint8_t { None, Frame, Multisampled };
-Holder g_holder = Holder::None;
+static Holder g_holder = Holder::None;
 
-SmoothInfo g_counts, g_lastCounts;
+static SmoothInfo g_counts, g_lastCounts;
 
 #if defined(EI_RENDER_VALIDATION)
-SmoothOrder g_smoothOrder = SmoothOrder::Game;
+static SmoothOrder g_smoothOrder = SmoothOrder::Game;
 #endif
 
-bool InWorld(std::size_t k) {
+static bool InWorld(std::size_t k) {
     for (const Frame::Range& r : g_frame.worldRanges)
         if (k >= r.first && k < r.end) return true;
     return false;
@@ -356,7 +350,7 @@ bool InWorld(std::size_t k) {
 
 // A pass on the frame target. After a multisampled run its colour is the resolve's; its depth is
 // set from the resolved depth copy.
-void BeginFramePass() {
+static void BeginFramePass() {
     bool first = g_holder == Holder::None;
     bool afterWorld = g_holder == Holder::Multisampled;
     gpu::PassDesc pass;
@@ -380,7 +374,7 @@ void BeginFramePass() {
 // A pass on the multisampled target, resolved into the frame target at its end. After draws into the
 // frame target their colour and depth are copied into it first (a pass of its own: the frame target
 // is the resolve's destination and cannot be read in that pass).
-void BeginMultisampledPass() {
+static void BeginMultisampledPass() {
     bool first = g_holder == Holder::None;
     if (g_holder == Holder::Frame) {
         gpu::PassDesc copy;
@@ -421,7 +415,7 @@ void BeginMultisampledPass() {
 #if defined(EI_RENDER_VALIDATION)
 // An empty pass on the frame target (render::SetSmoothOrder's orders): the frame's first clears it;
 // after a world run it takes the depth back from sample 0.
-void EmptyFramePass() {
+static void EmptyFramePass() {
     BeginFramePass();
     gpu::EndPass();
     ++g_passes;
@@ -429,7 +423,7 @@ void EmptyFramePass() {
 #endif
 
 // The performance overlay's pass of command `k` (render_perf.h).
-perf::Pass OverlayPass(const Command& c, std::size_t k) {
+static perf::Pass OverlayPass(const Command& c, std::size_t k) {
     if (!InWorld(k)) return perf::Pass::Ui;
     if (c.kind == Command::Terrain) return perf::Pass::Terrain;
     if (c.kind == Command::Mesh) {
@@ -439,7 +433,7 @@ perf::Pass OverlayPass(const Command& c, std::size_t k) {
     return perf::Pass::Other;
 }
 
-void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
+static void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
     for (std::size_t k = from; k < to; ++k) {
         const Command& c = g_frame.commands[k];
         auto i = static_cast<std::size_t>(c.index);
@@ -451,11 +445,16 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
             // The render quality's anisotropy: the world's models sampled anisotropically at its level; the
             // interface's sprites and previews and the pre-transformed draws as the stage says.
             int anisotropy = batch.model && InWorld(k) ? g_anisotropy : 1;
-            if (batch.model) ++(anisotropy > 1 ? g_counts.anisotropicModels : g_counts.plainModels);
+            if (batch.model) {
+                int& models = anisotropy > 1 ? g_counts.anisotropicModels : g_counts.plainModels;
+                ++models;
+            }
             DrawMeshBatch(g_frame, batch, anisotropy);
             break;
         }
-        case Command::Blit: DrawBlitBatch(g_frame, g_frame.blitBatches[i], width, height); break;
+        case Command::Blit:
+            DrawBlitBatch(g_frame.blitBatches[i], width, height);
+            break;
         case Command::ClearDepth: DrawClearDepth(g_frame.clears[i], width, height); break;
         case Command::Fill: DrawFill(g_frame.fills[i], width, height); break;
         case Command::Ui: DrawUiBatch(g_frame.uiBatches[i], width, height); break;
@@ -468,7 +467,7 @@ void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
 // it. A frame is drawn in more than one pass when a copy of it is taken in its middle (CopyFrameTo), and with
 // multisampling one pass per run of world and other commands. The copies waiting for the interface's
 // pictures go first.
-bool DrawPending() {
+static bool DrawPending() {
     perf::BeginDraws();
     perf::Enter(perf::Pass::Ui);
     RunCanvasCommands();
@@ -531,11 +530,7 @@ bool DrawPending() {
 
 // Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key): the target still
 // holds the last frame, as the original's render target did. A pass now would clear it first.
-bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.empty(); }
-
-} // namespace
-
-namespace detail {
+static bool BetweenFrames() { return g_haveFrame && g_passes == 0 && g_frame.commands.empty(); }
 
 void Fatal(const char* format, ...) {
     char text[512];
@@ -584,12 +579,8 @@ void ReadFog(Frame& f) {
     f.fogColour = g_renderState.fogColour;
 }
 
-} // namespace detail
-
 #if defined(EI_RENDER_VALIDATION)
-namespace detail {
 bool ReadBackDue(long count) { return g_checkAll || count < kReadBackAlways || count % 16 == 0; }
-} // namespace detail
 #endif
 
 void Configure(const char* spec) {
@@ -632,27 +623,27 @@ void PrepareDevice(int msaa) {
 void BeginDeviceMeshTime() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_deviceMeshTiming) return;
-    new (g_deviceMeshTimer) detail::StatsTimer(&FrameStats::deviceMeshMs);
+    new (g_deviceMeshTimer) StatsTimer(&FrameStats::deviceMeshMs);
     g_deviceMeshTiming = true;
 #endif
 }
 void EndDeviceMeshTime() {
 #if defined(EI_RENDER_VALIDATION)
     if (!g_deviceMeshTiming) return;
-    std::launder(reinterpret_cast<detail::StatsTimer*>(g_deviceMeshTimer))->~StatsTimer();
+    std::launder(reinterpret_cast<StatsTimer*>(g_deviceMeshTimer))->~StatsTimer();
     g_deviceMeshTiming = false;
 #endif
 }
 void BeginDecalTime() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_decalTimer.running) return;
-    ++detail::g_stats.decalPrints;
+    ++g_stats.decalPrints;
     g_decalTimer.Begin(&FrameStats::decalPrintMs);
 #endif
 }
 void EndDecalTime(int vertices) {
 #if defined(EI_RENDER_VALIDATION)
-    if (g_decalTimer.End()) detail::g_stats.decalVertices += static_cast<std::uint64_t>(vertices);
+    if (g_decalTimer.End()) g_stats.decalVertices += static_cast<std::uint64_t>(vertices);
 #else
     (void)vertices;
 #endif
@@ -660,8 +651,8 @@ void EndDecalTime(int vertices) {
 void BeginFlatDrawTime(int vertices) {
 #if defined(EI_RENDER_VALIDATION)
     if (g_flatDrawTimer.running) return;
-    ++detail::g_stats.flatDraws;
-    detail::g_stats.flatDrawVertices += static_cast<std::uint64_t>(vertices);
+    ++g_stats.flatDraws;
+    g_stats.flatDrawVertices += static_cast<std::uint64_t>(vertices);
     g_flatDrawTimer.Begin(&FrameStats::flatMs);
 #else
     (void)vertices;
@@ -675,7 +666,7 @@ void EndFlatDrawTime() {
 void BeginShadowBuildTime() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_shadowBuildTimer.running) return;
-    ++detail::g_stats.shadowBuilds;
+    ++g_stats.shadowBuilds;
     g_shadowBuildTimer.Begin(&FrameStats::shadowBuildMs);
 #endif
 }
@@ -737,8 +728,6 @@ void ClearDepth(float z, const Rect* rects, int count) {
 
 // --- Frame statistics ----------------------------------------------------------------------------
 
-namespace detail {
-
 FrameStats g_stats;   // the frame being built
 
 StatsTimer::StatsTimer(double FrameStats::* newField) : field(newField), start(0), outer(nullptr) {
@@ -793,7 +782,8 @@ void CountReuse([[maybe_unused]] bool terrain, [[maybe_unused]] const void* key,
                           : last->second.geometry != h.geometry ? FrameStats::Moved
                           : last->second.colours != h.colours   ? FrameStats::Relit
                                                                 : FrameStats::Same;
-    ++(terrain ? g_stats.terrainReuse : g_stats.meshReuse)[r];
+    auto& reuse = terrain ? g_stats.terrainReuse : g_stats.meshReuse;
+    ++reuse[r];
     g_hashes[id] = h;
     if (!terrain && !g_frameGeometry.insert(h.geometry ^ count).second) ++g_stats.sharedMeshes;
 #endif
@@ -804,15 +794,11 @@ void CountUpload(FrameStats::Upload kind, std::size_t bytes) {
     g_stats.uploadBytes[kind] += bytes;
 }
 
-} // namespace detail
-
 FrameStats TakeFrameStats() {
     FrameStats s = g_statsSum;
     g_statsSum = FrameStats{};
     return s;
 }
-
-namespace detail {
 
 void SplitFrame() {
     if (!g_started || g_frameDrawn || BetweenFrames()) return;
@@ -823,8 +809,6 @@ void RunCanvasesNow() {
     Start();
     RunCanvasCommands();
 }
-
-} // namespace detail
 
 std::uint64_t perf::FrameDrawCount() { return g_stats.draws + g_stats.shadowDraws; }
 
@@ -871,6 +855,8 @@ void Present() {
     UiFrameDone();
     g_frame.commands.clear();
     g_frame.worldRanges.clear();
+    g_frame.worldGround.clear();
+    g_frame.worldMeshes.clear();
     g_frame.shadow.haveSun = false;
     g_frame.shadow.haveClouds = false;
     g_frame.shadow.clouds = false;
@@ -886,15 +872,13 @@ void Present() {
     g_lastCounts = g_counts;
     g_counts = SmoothInfo{};
     if (g_started) {
-        RetireTextures();
+        ReleaseRetired();
         CheckFloatControl();
     }
     ++g_frameNumber;
 }
 
-namespace detail {
 int PassSampleCount() { return g_passSamples; }
-} // namespace detail
 
 #if defined(EI_RENDER_VALIDATION)
 void SetSmoothOrder(SmoothOrder order) {

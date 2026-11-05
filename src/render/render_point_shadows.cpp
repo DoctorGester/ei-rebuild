@@ -1,9 +1,8 @@
 // Point-light shadows: a cube of six depth faces for each of the few strongest point lights in view. See
 // docs/notes/renderer.md, "The renderer's source files".
+#include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
-
-#include "../platform/log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -13,19 +12,13 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 constexpr int kFaces = 6;
 constexpr int kAtlasWidth = kFaces * kPointFaceTexels;
 constexpr int kAtlasHeight = kMostPointShadows * kPointFaceTexels;
 // The faces' near distance (world units): nearer geometry is drawn at it (shaders/shadow_caster.hlsl).
 constexpr float kNear = 0.05f;
-// A light dimmer than this in every channel casts no shadow; casters weaker than kLeastStrength (units
-// fading in) cast none, as for the sun.
+// A light dimmer than this in every channel casts no shadow; casters weaker than kLeastStrength cast none, as for the sun.
 constexpr float kLeastColour = 0.02f;
-constexpr float kLeastStrength = 0.5f;
 // An object holds a light (and casts nothing for it) when the light lies within this far of one of its
 // meshes' spheres: a lamp's post, the campfire's spit.
 constexpr float kHoldMargin = 0.5f;
@@ -35,7 +28,7 @@ constexpr float kHoldMargin = 0.5f;
 struct CubeFace {
     Vector3 forward, right, up;
 };
-const CubeFace kCubeFaces[kFaces] = {
+static const CubeFace kCubeFaces[kFaces] = {
     {{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
     {{-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
     {{0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
@@ -96,14 +89,14 @@ struct MappedLight {
 constexpr int kModelUnknown = -2;
 
 // The frame's working lists, kept across frames for their room.
-std::vector<Candidate> g_candidates;
-std::unordered_map<const void*, int> g_objectIndex;   // object -> g_objects
-std::vector<FrameObject> g_objects;
-std::vector<int> g_modelOf;   // per frame matrix its PointShadowFrame::models (-1 none), kModelUnknown: not yet
-std::vector<Caster> g_casters;
-std::vector<UnitMesh> g_units;
-MappedLight g_mapped[kMostPointShadows];
-int g_mappedCount = 0;
+static std::vector<Candidate> g_candidates;
+static std::unordered_map<const void*, int> g_objectIndex;   // object -> g_objects
+static std::vector<FrameObject> g_objects;
+static std::vector<int> g_modelOf;   // per frame matrix its PointShadowFrame::models (-1 none), kModelUnknown: not yet
+static std::vector<Caster> g_casters;
+static std::vector<UnitMesh> g_units;
+static MappedLight g_mapped[kMostPointShadows];
+static int g_mappedCount = 0;
 
 // A caster as drawn into a face: what its depth there depends on besides the face's light.
 struct FaceCaster {
@@ -125,7 +118,7 @@ struct FaceCaster {
 constexpr float kKeptPlace = 0.002f;   // the translation, units
 constexpr float kKeptTurn = 1e-4f;     // the other entries, relative
 
-bool CloseModel(const Matrix4& a, const Matrix4& b) {
+static bool CloseModel(const Matrix4& a, const Matrix4& b) {
     for (int k = 0; k < 16; ++k) {
         const float x = a.m[k], y = b.m[k];
         const bool place = k == 3 || k == 7 || k == 11;
@@ -134,7 +127,7 @@ bool CloseModel(const Matrix4& a, const Matrix4& b) {
     return true;
 }
 
-bool SameCaster(const FaceCaster& a, const FaceCaster& b) {
+static bool SameCaster(const FaceCaster& a, const FaceCaster& b) {
     return a.mesh && a.mesh == b.mesh && a.version == b.version && a.firstIndex == b.firstIndex &&
            a.indexCount == b.indexCount && a.texture.texture == b.texture.texture && a.sampler.sampler == b.sampler.sampler &&
            CloseModel(a.model, b.model) &&
@@ -154,15 +147,15 @@ struct AtlasRow {
     float range = 0.0f;
     AtlasFace faces[kFaces];
 };
-AtlasRow g_rows[kMostPointShadows];
-bool g_atlasKnown = false;   // the faces hold what g_rows says (the atlas cleared once since it was made)
+static AtlasRow g_rows[kMostPointShadows];
+static bool g_atlasKnown = false;   // the faces hold what g_rows says (the atlas cleared once since it was made)
 // Per g_casters entry its draw, made when a face compares or draws it (g_drawMade).
-std::vector<FaceCaster> g_draws;
-std::vector<char> g_drawMade;
+static std::vector<FaceCaster> g_draws;
+static std::vector<char> g_drawMade;
 
 // Each light mapped takes a row: the one it had (the same place and range), else one no light mapped this frame
 // has, first one never given. A row given another light keeps only its empty faces.
-void GiveRows() {
+static void GiveRows() {
     bool taken[kMostPointShadows] = {};
     for (int i = 0; i < g_mappedCount; ++i) {
         MappedLight& m = g_mapped[i];
@@ -194,7 +187,7 @@ void GiveRows() {
 }
 
 // The draw of g_casters[index] into the point shadows.
-const FaceCaster& DrawOf(const PointShadowFrame& ps, int index) {
+static const FaceCaster& DrawOf(const PointShadowFrame& ps, int index) {
     const auto k = static_cast<std::size_t>(index);
     if (g_drawMade[k]) return g_draws[k];
     const Caster& c = g_casters[k];
@@ -210,11 +203,7 @@ const FaceCaster& DrawOf(const PointShadowFrame& ps, int index) {
     d.model = ps.models[static_cast<std::size_t>(c.model)];
     d.texture = st.texture ? st.texture : SurfaceView(nullptr);
     d.sampler = StageSampler(st);
-    d.alpha[0] = d.alpha[1] = 0.0f;
-    if ((s.alphaTest || s.blend) && st.hasTexture) {
-        d.alpha[0] = 1.0f;
-        d.alpha[1] = s.alphaTest ? (static_cast<float>(s.alphaReference) + 0.5f) / 255.0f : 0.5f;
-    }
+    CasterAlpha(s, d.alpha);
     d.uv[0] = batch.uOffset;
     d.uv[1] = batch.vOffset;
     g_drawMade[k] = 1;
@@ -222,7 +211,7 @@ const FaceCaster& DrawOf(const PointShadowFrame& ps, int index) {
 }
 
 // The face holds what it would be drawn with.
-bool Unchanged(const PointShadowFrame& ps, const AtlasFace& face, const std::vector<int>& casters) {
+static bool Unchanged(const PointShadowFrame& ps, const AtlasFace& face, const std::vector<int>& casters) {
     if (!face.known || face.casters.size() != casters.size()) return false;
     for (std::size_t k = 0; k < casters.size(); ++k)
         if (!SameCaster(face.casters[k], DrawOf(ps, casters[k]))) return false;
@@ -231,20 +220,20 @@ bool Unchanged(const PointShadowFrame& ps, const AtlasFace& face, const std::vec
 
 // The casters drawn into the faces (with the sun map's pipelines), a face's draws one range of them; the faces
 // drawn again this frame: each one's place in the atlas, whether it is cleared first, and its range.
-CasterDraws g_faceDraws("ei-point-shadow-casters");
+static CasterDraws g_faceDraws("ei-point-shadow-casters");
 struct RedrawnFace {
     AtlasFace* face = nullptr;
     int x = 0, y = 0;
     bool clear = false;
     std::size_t from = 0, to = 0;
 };
-std::vector<RedrawnFace> g_redrawn;   // kept across frames for its room
+static std::vector<RedrawnFace> g_redrawn;   // kept across frames for its room
 // A face cleared alone (shaders/solid.hlsl: a rectangle at a depth, written whatever is there).
-gpu::Pipeline g_clearPipeline;
-bool g_clearTried = false;
-gpu::Texture g_atlas;
+static gpu::Pipeline g_clearPipeline;
+static bool g_clearTried = false;
+static gpu::Texture g_atlas;
 
-bool MakePipelines() {
+static bool MakePipelines() {
     if (!g_clearTried) {
         g_clearTried = true;
         g_clearPipeline = gpu::MakePipeline(PointShadowClearDesc(), "ei-point-shadow-clear");
@@ -254,7 +243,7 @@ bool MakePipelines() {
 }
 
 // sqrt(squared) <= limit, decided as with the root, which is taken only where the two lie too close to tell.
-bool NotFurther(float squared, float limit) {
+static bool NotFurther(float squared, float limit) {
     if (!(limit >= 0.0f)) return std::sqrt(squared) <= limit;
     const float edge = limit * limit;
     if (squared < edge * (1.0f - 1e-6f)) return true;
@@ -263,13 +252,13 @@ bool NotFurther(float squared, float limit) {
 }
 
 // A face's depth for a distance d along its axis is a + b / d: 0 at kNear, 1 at `range`.
-void FaceDepth(float range, float* a, float* b) {
+static void FaceDepth(float range, float* a, float* b) {
     *a = range / (range - kNear);
     *b = -range * kNear / (range - kNear);
 }
 
 // The landscape's space to a face's clip space (x across `right`, y along `up`, w along `forward`).
-Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, float range) {
+static Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, float range) {
     float a = 0.0f, b = 0.0f;
     FaceDepth(range, &a, &b);
     const Vector3* rows[3] = {&face.right, &face.up, &face.forward};
@@ -288,7 +277,7 @@ Matrix4 FaceMatrix(const CubeFace& face, const Vector3& at, float range) {
 
 // The sphere (relative to the light) reaches into the face's view: in front of it and inside its four
 // sides (planes at 45 degrees through the light).
-bool InFace(const CubeFace& face, const Vector3& c, float radius) {
+static bool InFace(const CubeFace& face, const Vector3& c, float radius) {
     const float f = Dot(face.forward, c), x = Dot(face.right, c),
                 y = Dot(face.up, c);
     const float r = radius * 1.41421356f;
@@ -297,7 +286,7 @@ bool InFace(const CubeFace& face, const Vector3& c, float radius) {
 
 // The sphere around a model-space box placed by `model`: its centre and the farthest corner's distance (the root
 // of the largest square: the root keeps the order).
-Sphere BoxSphere(const float box[6], const Matrix4& model) {
+static Sphere BoxSphere(const float box[6], const Matrix4& model) {
     const Vector3 centre = TransformColumn(model, Vector3{(box[0] + box[3]) * 0.5f, (box[1] + box[4]) * 0.5f, (box[2] + box[5]) * 0.5f});
     float farthest = 0.0f;
     for (int k = 0; k < 8; ++k) {
@@ -308,7 +297,7 @@ Sphere BoxSphere(const float box[6], const Matrix4& model) {
 }
 
 // The sphere lies inside the camera's view (the clip matrix's six planes).
-bool InView(const Matrix4& clip, const Vector3& c, float radius) {
+static bool InView(const Matrix4& clip, const Vector3& c, float radius) {
     // Row k of the matrix: its normal (the first three) and its constant.
     auto row = [&](int k) { return Vector3{clip.m[k * 4], clip.m[k * 4 + 1], clip.m[k * 4 + 2]}; };
     auto constant = [&](int k) { return clip.m[k * 4 + 3]; };
@@ -322,10 +311,6 @@ bool InView(const Matrix4& clip, const Vector3& c, float radius) {
             return false;
     return inside(row(2), constant(2)) && inside(row(3) - row(2), constant(3) - constant(2));
 }
-
-} // namespace
-
-namespace detail {
 
 gpu::PipelineDesc PointShadowClearDesc() {
     gpu::PipelineDesc p;
@@ -368,13 +353,12 @@ void PreparePointShadows(Frame& f) {
         return a.strength > b.strength || (a.strength == b.strength && a.scene < b.scene);
     });
 
-    // The objects handed over as casters (a later entry of the same object wins), then the others met.
+    // The objects handed over as casters, then the others met.
     g_objectIndex.clear();
     g_objects.clear();
-    for (const auto& c : f.shadow.casters) {
-        auto [it, added] = g_objectIndex.try_emplace(c.first, static_cast<int>(g_objects.size()));
-        if (added) g_objects.push_back(FrameObject{c.second});
-        else g_objects[static_cast<std::size_t>(it->second)].strength = c.second;
+    for (const auto& [object, strength] : f.shadow.casters) {
+        g_objectIndex.emplace(object, static_cast<int>(g_objects.size()));
+        g_objects.push_back(FrameObject{strength});
     }
     const void* lastObject = nullptr;
     int lastObjectIndex = -1;
@@ -411,33 +395,22 @@ void PreparePointShadows(Frame& f) {
         }
         return lastSphere;
     };
-    const CachedMesh* lastMesh = nullptr;
-    int lastFirst = -1;
-    bool started = false;
-    for (const Frame::Range& r : f.worldRanges) {
-        const std::size_t end = std::min(r.end, f.commands.size());
-        for (std::size_t k = r.first; k < end; ++k) {
-            const Command& c = f.commands[k];
-            if (c.kind == Command::Terrain) started = started || !f.terrainBatches[static_cast<std::size_t>(c.index)].water;
-            if (!started || c.kind != Command::Mesh) continue;
-            MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
-            if (!b.model || b.flat || b.indexCount <= 0) continue;
-            if (b.lighting >= 0) b.landscape = modelOf(b);
-            if (!b.caster || !b.boxed) continue;
-            const int object = objectOf(b.caster);
-            if (b.figure) g_units.push_back(UnitMesh{&b, object, modelOf(b), false, Sphere{}});
-            if (b.state.blend && b.state.destBlend == 2) continue;
-            if (g_objects[static_cast<std::size_t>(object)].strength < kLeastStrength) continue;
-            if (b.cached == lastMesh && b.firstIndex == lastFirst) continue;   // a later pass of the same mesh
-            lastMesh = b.cached;
-            lastFirst = b.firstIndex;
-            const int model = modelOf(b);
-            if (model < 0) continue;
-            g_casters.push_back(Caster{&b, object, sphereOf(b, model), model, 0.0f});
-            if (b.figure) {
-                g_units.back().haveSphere = true;
-                g_units.back().sphere = g_casters.back().sphere;
-            }
+    for (const WorldMesh& w : f.worldMeshes) {
+        MeshBatch& b = f.meshBatches[static_cast<std::size_t>(w.batch)];
+        if (b.flat) continue;
+        if (b.lighting >= 0) b.landscape = modelOf(b);
+        if (!b.caster || !b.boxed) continue;
+        const int object = objectOf(b.caster);
+        if (b.figure) g_units.push_back(UnitMesh{&b, object, modelOf(b), false, Sphere{}});
+        if (w.additive) continue;
+        if (g_objects[static_cast<std::size_t>(object)].strength < kLeastStrength) continue;
+        if (w.repeat) continue;   // a later pass of the same mesh
+        const int model = modelOf(b);
+        if (model < 0) continue;
+        g_casters.push_back(Caster{&b, object, sphereOf(b, model), model, 0.0f});
+        if (b.figure) {
+            g_units.back().haveSphere = true;
+            g_units.back().sphere = g_casters.back().sphere;
         }
     }
     if (g_casters.empty()) return;
@@ -622,7 +595,5 @@ void BindPointShadows(int slot) {
     const gpu::TextureBinding b{on ? g_atlas : NoShadowTexture(), ShadowCompareSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }
-
-} // namespace detail
 
 } // namespace render

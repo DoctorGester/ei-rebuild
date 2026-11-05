@@ -88,7 +88,7 @@ presents it through its own swap chain on the game window (section 9); captures 
 `frames\<name>.bmp`.
 
 **When the renderer fails** (the user's rule: no fallbacks). When it cannot start or cannot go on, the game ends.
-`render::detail::Fatal` (render.cpp) logs "render: fatal: <reason>" to ei-rebuild.log, shows the reason in the game's
+`render::Fatal` (render.cpp) logs "render: fatal: <reason>" to ei-rebuild.log, shows the reason in the game's
 error box (`app::ShowMessageBox`; the harness ends the run on it) and exits with -1, also with Rebirth's
 DisableExitOnCrashReport. The cases:
 - no device at the start (the first use): "Can't start the renderer: <gpu::Error()>." (no Direct3D 12 or Vulkan
@@ -1503,6 +1503,15 @@ once with the filter off and once on, and reads a frame target back:
 - frame GPU times from the fences; the misuses refused, each logged once, and nothing else logged.
 
 ## The renderer's source files
+
+Every file is one \
+amespace render\ block (\ender::text\, \ender::perf\, \ender::ui\, \ender::gpu\ in theirs); what a file
+alone uses is \static\, what the files share is declared in render_internal.h. PrepareShadows lists the world's ground and
+models once a frame (\Frame::worldGround\, \Frame::worldMeshes\: the batches after the first ground batch that have a
+model, additive and repeated passes flagged); the sun's and the point lights' shadows, the ambient occlusion and the roofs
+walk those lists, not the commands. Rate-limited log lines go through \LogFirst\; what the frame's commands still draw is
+released with \ReleaseAfterPresent\. gpu.cpp keeps pipelines and samplers by description; the renderer asks it for them at
+each draw.
 
 ### render_cursor.cpp: the cursor
 

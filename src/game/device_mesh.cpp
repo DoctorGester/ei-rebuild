@@ -2,13 +2,12 @@
 // the pipeline for the visibility verdict and the screen rectangle picking reads. The new
 // renderer gets the mesh in model space once it is visible and clips it. See docs/notes/models.md ("Renderer").
 #include "device_buffers.h"
-
 #include "device_material.h"
 #include "figure_mesh.h"
 #include "model.h"
+#include "render/render.h"
 #include "settings.h"
 #include "texture.h"
-#include "render/render.h"
 
 #include <cstdint>
 
@@ -164,7 +163,7 @@ int QualitySetting(const char* name, int fallback) {
 TextureDevice::TextureDevice(platform::NativeWindow newWindow, bool newFullScreen, int width, int height)
     : fullScreen(newFullScreen), screen{0, 0, width, height}, window(newWindow) {
     // (The original required MMX and loaded 2DintMMX.dll, its pixel converter, here; nothing needs it now.)
-    // The new renderer presents; when it cannot start, the game ends there (render::detail::Fatal).
+    // The new renderer presents; when it cannot start, the game ends there (render::Fatal).
     render::StartPresenting();
     render::SetPerfOverlay(PerfOverlaySetting());
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());

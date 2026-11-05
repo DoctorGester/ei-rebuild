@@ -1,13 +1,11 @@
 // The game's cursor as the system's (render::Cursor, docs/notes/renderer.md section 9): at each present the frame's
 // cursor picture is shown as a platform cursor shape, made from the picture's frame at the window's scale and through
 // the gamma ramp, one shape per picture frame kept until the scale or the ramp changes; a frame without one hides it.
-#include "render.h"
-#include "render_internal.h"
-
+#include "../game/surface.h"
 #include "../platform/log.h"
 #include "../platform/platform.h"
-
-#include "../game/surface.h"
+#include "render.h"
+#include "render_internal.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -15,10 +13,6 @@
 #include <vector>
 
 namespace render {
-
-namespace {
-
-using namespace detail;
 
 // A shape made: `from` of the picture `holder` with `mask`, at `scale` (the frame's placed size) through ramp
 // `ramp` (GammaRampChanges).
@@ -31,21 +25,21 @@ struct Made {
     int width = 0, height = 0, hotX = 0, hotY = 0;
     platform::CursorShape shape = nullptr;
 };
-std::vector<Made> g_made;
-Made g_shown{};   // the shape shown (one of g_made's); none: hidden
-int g_placedWidth = 0, g_placedHeight = 0;   // the scale the last shape was looked up at
-FrameCursor g_frameCursor{};
-bool g_wanted = false;   // the frame being built called Cursor
-CursorInfo g_info;
+static std::vector<Made> g_made;
+static Made g_shown{};                              // the shape shown (one of g_made's); none: hidden
+static int g_placedWidth = 0, g_placedHeight = 0;   // the scale the last shape was looked up at
+static FrameCursor g_frameCursor{};
+static bool g_wanted = false;   // the frame being built called Cursor
+static CursorInfo g_info;
 
 // Floor division by a positive `d`.
-int FloorDiv(long long n, long long d) { return static_cast<int>(n >= 0 ? n / d : -((-n + d - 1) / d)); }
+static int FloorDiv(long long n, long long d) { return static_cast<int>(n >= 0 ? n / d : -((-n + d - 1) / d)); }
 
 // `from` of the picture with its mask as alpha (255 where the mask's pixel, `maskBytes`, is zero: the mask is all ones
 // where the picture is black) scaled to `width` x `height` as the present's linear sampler stretched the frame
 // (texel centres; the filter on texels weighted by their alpha), then through the ramp: R, G, B, A rows from the top.
-std::vector<std::uint8_t> Pixels(const Picture& picture, const std::uint8_t* mask, int maskBytes, const Rect& from,
-                                 int width, int height, const std::uint8_t* ramp) {
+static std::vector<std::uint8_t> Pixels(const Picture& picture, const std::uint8_t* mask, int maskBytes,
+                                        const Rect& from, int width, int height, const std::uint8_t* ramp) {
     const int sw = from.Width(), sh = from.Height();
     auto texel = [&](int x, int y, std::uint32_t* rgb, std::uint32_t* alpha) {
         const std::size_t i = static_cast<std::size_t>(from.top + y) * picture.width + (from.left + x);
@@ -89,7 +83,7 @@ std::vector<std::uint8_t> Pixels(const Picture& picture, const std::uint8_t* mas
 
 // The shape for the frame's cursor at the window's scale and the current ramp, made at its first use; null when there
 // is no picture or no window.
-const Made* ShapeFor(const FrameCursor& cursor) {
+static const Made* ShapeFor(const FrameCursor& cursor) {
     int frameWidth = 0, frameHeight = 0;
     Rect placed{};
     if (!FrameInWindow(&frameWidth, &frameHeight, &placed) || frameWidth <= 0 || frameHeight <= 0) return nullptr;
@@ -114,23 +108,23 @@ const Made* ShapeFor(const FrameCursor& cursor) {
     m.height = std::max(1, (sh * g_placedHeight + frameHeight / 2) / frameHeight);
     m.hotX = std::clamp((cursor.hot.x * m.width + sw / 2) / sw, 0, m.width - 1);
     m.hotY = std::clamp((cursor.hot.y * m.height + sh / 2) / sh, 0, m.height - 1);
-    const std::vector<std::uint8_t> rgba =
-        Pixels(*picture, static_cast<const std::uint8_t*>(cursor.mask), maskBytes, from, m.width, m.height, GammaRamp());
+    const std::vector<std::uint8_t> rgba = Pixels(*picture, static_cast<const std::uint8_t*>(cursor.mask), maskBytes,
+                                                  from, m.width, m.height, GammaRampTable());
     m.shape = platform::MakeCursor(rgba.data(), m.width, m.height, m.hotX, m.hotY);
     if (!m.shape) {
-        if (g_info.failures++ < 3) ei::Log("render: the system cannot make a %dx%d cursor", m.width, m.height);
+        LogFirst(g_info.failures, 3, "render: the system cannot make a %dx%d cursor", m.width, m.height);
         return nullptr;
     }
-    if (g_info.made++ < 32)
-        ei::Log("render: cursor made: picture %dx%d, its part %d,%d-%d,%d, %dx%d on the window (hot spot %d, %d)",
-                picture->width, picture->height, from.left, from.top, from.right, from.bottom, m.width, m.height, m.hotX,
-                m.hotY);
+    LogFirst(g_info.made, 32,
+             "render: cursor made: picture %dx%d, its part %d,%d-%d,%d, %dx%d on the window (hot spot %d, %d)",
+             picture->width, picture->height, from.left, from.top, from.right, from.bottom, m.width, m.height, m.hotX,
+             m.hotY);
     g_made.push_back(m);
     return &g_made.back();
 }
 
 // The shapes made for another scale or ramp let go, unless shown.
-void DropStale() {
+static void DropStale() {
     const std::uint32_t ramp = GammaRampChanges();
     std::erase_if(g_made, [&](const Made& m) {
         if (m.shape == g_shown.shape || (m.placedWidth == g_placedWidth && m.placedHeight == g_placedHeight && m.ramp == ramp))
@@ -141,7 +135,7 @@ void DropStale() {
 }
 
 // `made` (null: none) shown in place of the shape shown.
-void Show(const Made* made) {
+static void Show(const Made* made) {
     const Made next = made ? *made : Made{};
     if (next.shape == g_shown.shape) return;
     if (next.shape && g_shown.shape && next.holder == g_shown.holder && next.mask == g_shown.mask) ++g_info.frameChanges;
@@ -150,15 +144,11 @@ void Show(const Made* made) {
     g_shown = next;
 }
 
-} // namespace
-
 void Cursor(const FrameCursor& cursor) {
     if (!cursor.imageHolder || !cursor.mask) return;
     g_frameCursor = cursor;
     g_wanted = true;
 }
-
-namespace detail {
 
 void ShowFrameCursor() {
     const Made* made = g_wanted ? ShapeFor(g_frameCursor) : nullptr;
@@ -181,8 +171,6 @@ void ForgetCursor(const void* holder) {
         return true;
     });
 }
-
-} // namespace detail
 
 CursorInfo CursorState() {
     CursorInfo info = g_info;

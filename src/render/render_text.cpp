@@ -17,12 +17,10 @@ namespace render::text {
 
 // ---- Fonts --------------------------------------------------------------------------------------------
 
-namespace {
+static int RoundToInt(float value) { return static_cast<int>(std::floor(value + 0.5f)); }
 
-int RoundToInt(float value) { return static_cast<int>(std::floor(value + 0.5f)); }
-
-int ReadU16(const unsigned char* p) { return (p[0] << 8) | p[1]; }
-int ReadS16(const unsigned char* p) { return static_cast<std::int16_t>(ReadU16(p)); }
+static int ReadU16(const unsigned char* p) { return (p[0] << 8) | p[1]; }
+static int ReadS16(const unsigned char* p) { return static_cast<std::int16_t>(ReadU16(p)); }
 
 // A parsed font with the table values GDI's metrics come from.
 struct FontFile {
@@ -77,7 +75,7 @@ struct FontFile {
     }
 };
 
-std::shared_ptr<FontFile> ParseFontFile(std::span<const unsigned char> data) {
+static std::shared_ptr<FontFile> ParseFontFile(std::span<const unsigned char> data) {
     static std::map<const unsigned char*, std::weak_ptr<FontFile>> files;
     if (auto parsed = files[data.data()].lock()) return parsed;
     auto font = std::make_shared<FontFile>();
@@ -143,7 +141,7 @@ private:
 };
 
 constexpr int kAtlasPadding = 1;   // empty pixels between glyphs, so bilinear sampling would not bleed
-int AtlasWidthFor(const Font& font) {
+static int AtlasWidthFor(const Font& font) {
     const int wanted = font.Metrics().height * 16;
     int width = 256;
     while (width < wanted && width < 4096) width *= 2;
@@ -152,12 +150,12 @@ int AtlasWidthFor(const Font& font) {
 
 constexpr char32_t kLowCharacters = 0x500;   // Latin, Greek and Cyrillic: advances in a flat table
 
-bool IsLineBreak(char32_t ch) { return ch == U'\r' || ch == U'\n'; }
-bool IsWhite(char32_t ch) { return ch == U' ' || ch == U'\t'; }
+static bool IsLineBreak(char32_t ch) { return ch == U'\r' || ch == U'\n'; }
+static bool IsWhite(char32_t ch) { return ch == U' ' || ch == U'\t'; }
 
 // Uniscribe splits text into runs by script and kerns only within a run; characters of no script
 // (spaces, digits, punctuation) join the run before them. 1 Latin, 2 Cyrillic, 0 none.
-int Script(char32_t ch) {
+static int Script(char32_t ch) {
     if ((ch >= U'A' && ch <= U'Z') || (ch >= U'a' && ch <= U'z')) return 1;
     if (ch >= 0xC0 && ch <= 0x24F && ch != 0xD7 && ch != 0xF7) return 1;
     if (ch >= 0x400 && ch <= 0x52F) return 2;
@@ -165,7 +163,7 @@ int Script(char32_t ch) {
 }
 
 // The width of "..." (DT_END_ELLIPSIS).
-int EllipsisWidth(TextFont& font) { return 3 * font.Advance(U'.') + 2 * font.Kerning(U'.', U'.'); }
+static int EllipsisWidth(TextFont& font) { return 3 * font.Advance(U'.') + 2 * font.Kerning(U'.', U'.'); }
 
 class LineMaker {
 public:
@@ -293,8 +291,6 @@ private:
     bool prefixes = false, expandTabs = false;
     int tabLength = 0;
 };
-
-} // namespace
 
 std::unique_ptr<Font> LoadFont(std::span<const unsigned char> data, int pixels) {
     if (pixels <= 0) return nullptr;

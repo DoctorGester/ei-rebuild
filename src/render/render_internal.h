@@ -2,6 +2,7 @@
 
 // Internals shared by the renderer's files.
 
+#include "platform/log.h"
 #include "render.h"
 #include "render/gpu.h"
 
@@ -10,11 +11,13 @@
 // The programs' uniform blocks, slots and vertex inputs (CMakeLists.txt, tools/gen_gpu_shaders.py).
 #include "shaders/gpu_shaders.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
-#include <utility>
 #include <span>
 #include <tuple>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 class TextureDevice;
@@ -24,7 +27,7 @@ namespace render::text {
 class GlyphAtlas;
 } // namespace render::text
 
-namespace render::detail {
+namespace render {
 
 using gpu_shaders::BlitParams;
 using gpu_shaders::CloudParams;
@@ -50,6 +53,21 @@ using gpu_shaders::UiParams;
 
 // The game's transform pipeline matrices are Matrix4: row-major, out = M * (x, y, z, 1), Direct3D clip
 // space (-w <= x, y <= w, 0 <= z <= w).
+
+// Logs a line the first most times it is asked for; count counts the asks.
+template <class Count, class... Args>
+void LogFirst(Count& count, int most, const char* format, Args... args) {
+    if (count++ >= static_cast<Count>(most)) return;
+    if constexpr (sizeof...(Args) == 0) ei::Log("%s", format);
+    else ei::Log(format, args...);
+}
+
+// A D3DCOLOR's red, green and blue as 0..1 (the alpha is left to the caller).
+inline void UnpackColour(std::uint32_t colour, float* rgb) {
+    rgb[0] = ((colour >> 16) & 0xFF) / 255.0f;
+    rgb[1] = ((colour >> 8) & 0xFF) / 255.0f;
+    rgb[2] = (colour & 0xFF) / 255.0f;
+}
 
 // A vertex: world (terrain) or model (meshes) position.
 struct Vertex {
@@ -106,6 +124,25 @@ struct PassState {
                (static_cast<std::uint32_t>(cull & 3) << 15);
     }
 };
+
+// A box in the landscape's space: empty (low above high) until points are added.
+struct Box {
+    Vector3 low{1e30f, 1e30f, 1e30f}, high{-1e30f, -1e30f, -1e30f};
+    void Extend(const Vector3& p) {
+        low = Min(low, p);
+        high = Max(high, p);
+    }
+};
+
+// A caster's cut-out for its stage 0 texture: alpha[0] 1 (cut out), where its alpha is below alpha[1]; none (0) for a
+// pass that is neither alpha tested nor blended, or without a texture.
+inline void CasterAlpha(const PassState& s, float* alpha) {
+    alpha[0] = alpha[1] = 0.0f;
+    if ((s.alphaTest || s.blend) && s.stages[0].hasTexture) {
+        alpha[0] = 1.0f;
+        alpha[1] = s.alphaTest ? (static_cast<float>(s.alphaReference) + 0.5f) / 255.0f : 0.5f;
+    }
+}
 
 // The render state the game set for the pass about to be drawn (render_state.h). `device`'s bound surfaces
 // become the stages' textures; null: no textures.
@@ -255,11 +292,14 @@ struct PointShadowFrame {
     PointShadowParams params{};
 };
 
+// Casters weaker than this (units fading in) cast no shadow.
+constexpr float kLeastStrength = 0.5f;
+
 // A frame's object shadows: the sun and casters handed over, and what PrepareShadows made of them.
 struct ShadowFrame {
     bool haveSun = false;
     Vector3 sun{};
-    std::vector<std::pair<const void*, float>> casters;   // object, strength (render::CastsShadow)
+    std::unordered_map<const void*, float> casters;   // object -> strength (render::CastsShadow; the last wins)
     bool prepared = false;
     bool on = false;          // the map is made this frame: receivers sample it
     bool haveClouds = false;  // render::CloudShadows handed over
@@ -269,6 +309,16 @@ struct ShadowFrame {
     ShadowParams params{};
     ShadowParams cloudParams{};    // the clouds alone (on[0] 0): for the water, and when no map is drawn
     PointShadowFrame point;
+};
+
+// A mesh batch the world draws after its first ground batch that has a model (the flat geometry only as a ground
+// print: MeshBatch::decal), as PrepareShadows lists them for the walks of the sun's and the point lights' shadows,
+// the ambient occlusion and the roofs.
+struct WorldMesh {
+    int batch = 0;           // into Frame::meshBatches
+    bool additive = false;   // the light added (D3DBLEND_ONE): a receiver and a caster of nothing
+    bool repeat =
+        false;   // another pass of the mesh of the last batch that was not additive (the same kept mesh and first index)
 };
 
 struct Frame {
@@ -292,6 +342,10 @@ struct Frame {
         std::size_t first = 0, end = 0;
     };
     std::vector<Range> worldRanges;
+    // PrepareShadows' lists for the walks that follow it: the non-water terrain batches of the world ranges (indices
+    // into terrainBatches) and the world's models drawn after the first of them (WorldMesh).
+    std::vector<int> worldGround;
+    std::vector<WorldMesh> worldMeshes;
     bool haveFog = false;
     bool fogEnabled = false;
     std::uint32_t fogColour = 0;   // D3DCOLOR
@@ -365,9 +419,8 @@ bool FrameSize(int* width, int* height);
 // The frame into the swap chain's texture through the gamma ramp; PresentWindow, after the frame's submission (which
 // presents it), counts it. False: nothing to present into / nothing presented.
 bool DrawToWindow();
-bool PresentWindow();
-// The gamma ramp the present applies (256 RGBA8 entries) and how often SetGammaRamp changed it.
-const std::uint8_t* GammaRamp();
+void PresentWindow();
+// How often SetGammaRamp changed the gamma ramp the present applies (render.h's GammaRampTable).
 std::uint32_t GammaRampChanges();
 #if defined(EI_RENDER_VALIDATION)
 // Whether the verify build's GPU read-backs (a stall each) run for the `count`th of their kind: the first
@@ -465,7 +518,7 @@ private:
 // TerrainPieceWhole, all of them as one; TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, drops pages not
 // drawn for a long time.
 struct TerrainGroup {
-    Vector3 low, high;              // the box of its positions in the landscape's space
+    Box box;                             // of its positions in the landscape's space
     std::uint32_t first = 0, count = 0;  // its vertices in the page's
 };
 bool CreateTerrainShader();
@@ -575,12 +628,12 @@ void SurfaceState(float* wet, float* puddles, float* snow);
 // DrawRoofMap draws it (outside a pass); BindRoofMap binds it (or the 1 x 1 stand-in) at `slot`.
 void PrepareRoofs(Frame& frame);
 void RoofUniforms(const Matrix4& light, ShadowParams* params);
-void DrawRoofMap(Frame& frame);
+void DrawRoofMap();
 void BindRoofMap(int slot);
 // The visible ground's box in the landscape's space, by the sun map's fit of this frame; false without one.
 // AddOutsideRoofs: the sun map's casters outside the view that are not units (render::ShadowCasterMesh) into `draws`
 // through `clip` (the landscape's space to the roof map's), after the sun map's draws were listed; the count added.
-bool VisibleGround(Frame& frame, Vector3* low, Vector3* high);
+bool VisibleGround(Frame& frame, Box* box);
 class CasterDraws;
 int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip);
 // How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
@@ -675,7 +728,7 @@ void OcclusionFrameDone();
 
 // The movies' blits, the depth clear in the middle of the pass and the movie player's fill.
 bool CreateBlitPipeline();
-void DrawBlitBatch(const Frame& frame, const BlitBatch& batch, int width, int height);
+void DrawBlitBatch(const BlitBatch& batch, int width, int height);
 void DrawClearDepth(const ClearBatch& clear, int width, int height);
 void DrawFill(const FillBatch& fill, int width, int height);
 // At the frame's present: the frame's cursor (render::Cursor) shown, or none (render_cursor.cpp).
@@ -724,12 +777,6 @@ void DrawPictureBatch(const PictureBatch& batch, int width, int height);
 // RunCanvasCommands at once.
 void SplitFrame();
 void RunCanvasesNow();
-
-// Images made and updated in place by purpose, logged in the verify build.
-enum class ImageUse { Movie, Texture, Count };
-void CountImage(ImageUse use, bool made);
-void CountImageRequest(ImageUse use);
-void LogImageCounts(const char* when);
 
 // A Texture or a texture's holder (Surface) as a texture with its mip levels: what was decoded or drawn for it; white
 // when there is none. Valid until the next Present.
@@ -795,8 +842,9 @@ gpu::Sampler StageSampler(const StageState& stage);
 // quality's anisotropy for the world's models when it is above 1.
 constexpr std::uint32_t kMostAnisotropy = 16;
 gpu::Sampler AnisotropicSampler(const StageState& stage, std::uint32_t level);
-// After a present: textures replaced during the frame released, entries unused for a long time dropped.
-void RetireTextures();
+// An image the frame's recorded commands still draw: released by ReleaseRetired, after the present.
+void ReleaseAfterPresent(const gpu::Texture& image);
+void ReleaseRetired();
 
 constexpr gpu::Format kColourFormat = gpu::Format::Rgba8;
 constexpr gpu::Format kDepthFormat = gpu::Format::Depth32Float;
@@ -834,4 +882,4 @@ void CopyIntoMultisampled(const gpu::Texture& colour, const gpu::Texture& depth)
 // multisampled pass's resolve.
 void CopyDepthFromResolved(const gpu::Texture& depth);
 
-} // namespace render::detail
+}   // namespace render

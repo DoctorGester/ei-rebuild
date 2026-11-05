@@ -3,65 +3,59 @@
 // (the options' brightness / contrast / gamma, SetGammaRamp's table) as a shader step, and presented with the vertical
 // blank. Also where the frame sits in the window, for the game's mouse coordinates (WindowToFrame / FrameToWindow).
 // docs/notes/renderer.md, section 9.
+#include "../game/app.h"
+#include "../platform/log.h"
+#include "../platform/sdl/sdl_window.h"
 #include "render.h"
 #include "render_internal.h"
 #include "render_perf.h"
 
-#include "../platform/log.h"
-#include "../platform/sdl/sdl_window.h"
-
-#include "../game/app.h"
-
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <utility>
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
-platform::NativeWindow GameWindow() { return app::g_mainWindow; }
+static platform::NativeWindow GameWindow() { return app::g_mainWindow; }
 
 // Present waits for the vertical blank unless the settings file's "VSync" is 0 (render::SetVsync: Immediate, which may
 // tear) or the harness's virtual clock runs the game (render::SetWaitForVsync: Mailbox), where a frame's length does
 // not depend on the display.
-bool g_vsync = true;            // the settings file's
-bool g_waitForVsync = true;     // the harness's
-SDL_Window* g_claimed = nullptr;   // the window the device's swap chain is on
-gpu::PresentMode g_wantedMode = gpu::PresentMode::Vsync;    // the mode asked of it
-gpu::PresentMode g_presentMode = gpu::PresentMode::Vsync;   // the mode it gave (an unsupported one falls back)
+static bool g_vsync = true;                                        // the settings file's
+static bool g_waitForVsync = true;                                 // the harness's
+static SDL_Window* g_claimed = nullptr;                            // the window the device's swap chain is on
+static gpu::PresentMode g_wantedMode = gpu::PresentMode::Vsync;    // the mode asked of it
+static gpu::PresentMode g_presentMode = gpu::PresentMode::Vsync;   // the mode it gave (an unsupported one falls back)
 
 // The gamma ramp as a 256 x 1 lookup (RGBA8: the red, green and blue ramps' entries scaled to 255),
 // identity until the game sets one.
-gpu::Texture g_rampImage;
-struct Ramp {
-    std::uint8_t entries[256 * 4] = {};
-    Ramp() {
-        for (int i = 0; i < 256; ++i) {
-            entries[i * 4 + 0] = entries[i * 4 + 1] = entries[i * 4 + 2] = static_cast<std::uint8_t>(i);
-            entries[i * 4 + 3] = 255;
-        }
+static gpu::Texture g_rampImage;
+static std::array<std::uint8_t, 256 * 4> IdentityRamp() {
+    std::array<std::uint8_t, 256 * 4> entries{};
+    for (int i = 0; i < 256; ++i) {
+        entries[i * 4 + 0] = entries[i * 4 + 1] = entries[i * 4 + 2] = static_cast<std::uint8_t>(i);
+        entries[i * 4 + 3] = 255;
     }
-};
-Ramp g_rampTable;   // (kept across devices: the game sets it once, a new device gets it again)
-std::uint8_t (&g_ramp)[256 * 4] = g_rampTable.entries;
-bool g_rampDirty = true;     // to be uploaded before the next present
-bool g_rampIdentity = true;
-std::uint32_t g_rampChanges = 0;   // SetGammaRamp's calls (the cursor's shapes are made through the ramp)
-long g_rampsSet = 0;          // verify build: ramps set so far (the ramp check is sampled)
-bool g_checkRamp = false;     // verify build: compare the next presented frame with the ramp applied
-WindowPresentInfo g_info;
+    return entries;
+}
+static std::array<std::uint8_t, 256 * 4> g_ramp =
+    IdentityRamp();               // (kept across devices: the game sets it once, a new device gets it again)
+static bool g_rampDirty = true;   // to be uploaded before the next present
+static bool g_rampIdentity = true;
+static std::uint32_t g_rampChanges = 0;   // SetGammaRamp's calls (the cursor's shapes are made through the ramp)
+static long g_rampsSet = 0;               // verify build: ramps set so far (the ramp check is sampled)
+static bool g_checkRamp = false;          // verify build: compare the next presented frame with the ramp applied
+static WindowPresentInfo g_info;
 
-gpu::PresentMode WantedMode() {
+static gpu::PresentMode WantedMode() {
     if (!g_vsync) return gpu::PresentMode::Immediate;
     if (!g_waitForVsync) return gpu::PresentMode::Mailbox;
     return gpu::PresentMode::Vsync;
 }
 
 // The swap chain on the game window, in the present mode asked for; false when the window cannot have one.
-bool ClaimGameWindow() {
+static bool ClaimGameWindow() {
     SDL_Window* window = platform::SdlWindow(GameWindow());
     if (!window) return false;
     const bool claimed = window != g_claimed;
@@ -80,7 +74,7 @@ bool ClaimGameWindow() {
     return true;
 }
 
-gpu::PipelineDesc PresentDesc(gpu::Format format) {
+static gpu::PipelineDesc PresentDesc(gpu::Format format) {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::present::kIndex;
     p.colour = format;
@@ -88,7 +82,7 @@ gpu::PipelineDesc PresentDesc(gpu::Format format) {
 }
 
 // The frame through the ramp into `placed` of the bound target (inside its pass).
-void DrawFrame(gpu::Format format, const Rect& placed) {
+static void DrawFrame(gpu::Format format, const Rect& placed) {
     const gpu::Pipeline pipeline = gpu::MakePipeline(PresentDesc(format), "ei-present");
     if (!pipeline) Fatal("The renderer cannot present on the game window: no present pipeline.");
     gpu::SetViewport(placed);
@@ -101,7 +95,7 @@ void DrawFrame(gpu::Format format, const Rect& placed) {
 }
 
 // The frame's place in a client area: its aspect kept, as large as fits, centred.
-Rect Placed(int clientWidth, int clientHeight, int frameWidth, int frameHeight) {
+static Rect Placed(int clientWidth, int clientHeight, int frameWidth, int frameHeight) {
     long long a = static_cast<long long>(clientWidth) * frameHeight;
     long long b = static_cast<long long>(clientHeight) * frameWidth;
     int w = clientWidth, h = clientHeight;
@@ -112,7 +106,7 @@ Rect Placed(int clientWidth, int clientHeight, int frameWidth, int frameHeight) 
 }
 
 // The client area, the frame's size and its place; false when there is no frame or window.
-bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameHeight, Rect* placed) {
+static bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameHeight, Rect* placed) {
     const std::optional<Size> client = platform::WindowPixelSize(GameWindow());
     if (!client || !GameTargetSize(frameWidth, frameHeight)) return false;
     *clientWidth = client->w;
@@ -124,13 +118,13 @@ bool Placement(int* clientWidth, int* clientHeight, int* frameWidth, int* frameH
 #if defined(EI_RENDER_VALIDATION)
 // The ramp check's copy of the present (the swap chain's texture is never read back): the same draw into a texture of
 // the drawable's size and format, and the downloads of it and of the frame, read after the frame's submission.
-gpu::Texture g_rampCheck;
-gpu::Ticket g_backCopy, g_frameCopy;
-int g_checkWidth = 0, g_checkHeight = 0;
+static gpu::Texture g_rampCheck;
+static gpu::Ticket g_backCopy, g_frameCopy;
+static int g_checkWidth = 0, g_checkHeight = 0;
 
 // Before the present's pass: the present drawn into the check's texture too, when a check is due and the frame is
 // placed one to one.
-void DrawRampCheck(gpu::Format format, int width, int height, const Rect& placed) {
+static void DrawRampCheck(gpu::Format format, int width, int height, const Rect& placed) {
     int fw = 0, fh = 0;
     if (!g_checkRamp || !FrameSize(&fw, &fh) || fw != width || fh != height || placed.left != 0 || placed.top != 0 ||
         (format != gpu::Format::Bgra8 && format != gpu::Format::Rgba8)) {
@@ -157,7 +151,7 @@ void DrawRampCheck(gpu::Format format, int width, int height, const Rect& placed
 }
 
 // Verify build: the present just drawn against the frame through the ramp, at a grid of points. Logged once per ramp.
-void CheckRamp() {
+static void CheckRamp() {
     g_checkRamp = false;
     const int width = g_checkWidth, height = g_checkHeight;
     gpu::Texels back, frame;
@@ -194,10 +188,6 @@ void CheckRamp() {
 
 #endif
 
-} // namespace
-
-namespace detail {
-
 void ListPresentPipelines(std::vector<gpu::PipelineDesc>& out) {
     out.push_back(PresentDesc(gpu::Format::Bgra8));   // the swap chain's format on Direct3D 12 and Vulkan
 }
@@ -212,7 +202,7 @@ bool DrawToWindow() {
         g_rampDirty = true;
     }
     if (g_rampDirty) {
-        gpu::Write(g_rampImage, 0, {0, 0, 256, 1}, g_ramp, sizeof(g_ramp), gpu::Contents::Discard);
+        gpu::Write(g_rampImage, 0, {0, 0, 256, 1}, g_ramp.data(), g_ramp.size(), gpu::Contents::Discard);
         g_rampDirty = false;
     }
     perf::Prepare();
@@ -235,18 +225,14 @@ bool DrawToWindow() {
     return true;
 }
 
-bool PresentWindow() {
+void PresentWindow() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_checkRamp) CheckRamp();
 #endif
     ++g_info.presents;
-    return true;
 }
 
-const std::uint8_t* GammaRamp() { return g_ramp; }
 std::uint32_t GammaRampChanges() { return g_rampChanges; }
-
-} // namespace detail
 
 void SetWaitForVsync(bool on) { g_waitForVsync = on; }
 
@@ -266,7 +252,7 @@ bool VsyncSwitchSupported() {
 #endif
 }
 
-const std::uint8_t* GammaRampTable() { return g_ramp; }
+const std::uint8_t* GammaRampTable() { return g_ramp.data(); }
 
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue) {
     // The ramp's full scale is the game's 65280 (255 * 256); entries are
@@ -290,7 +276,7 @@ void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const st
     ++g_rampChanges;
 #if defined(EI_RENDER_VALIDATION)
     // Reading the presented frame back stalls on the GPU: sampled (ReadBackDue).
-    g_checkRamp = detail::ReadBackDue(g_rampsSet);
+    g_checkRamp = ReadBackDue(g_rampsSet);
     ++g_rampsSet;
 #else
     g_checkRamp = true;

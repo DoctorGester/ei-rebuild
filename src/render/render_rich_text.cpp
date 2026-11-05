@@ -8,8 +8,6 @@
 
 namespace render::text {
 
-namespace {
-
 // ---- Reading -----------------------------------------------------------------------------------------
 
 // Windows-1252's 0x80..0x9F; the rest of its upper half is Latin-1.
@@ -21,7 +19,7 @@ constexpr int kCyrillicCodePage = 1251;
 constexpr int kWesternCodePage = 1252;
 
 // A byte of text in `codePage` (1251, else 1252) as a code point.
-char32_t DecodeByte(unsigned char byte, int codePage) {
+static char32_t DecodeByte(unsigned char byte, int codePage) {
     if (byte < 0x80) return byte;
     if (codePage == kCyrillicCodePage) {
         const char c = static_cast<char>(byte);
@@ -32,7 +30,7 @@ char32_t DecodeByte(unsigned char byte, int codePage) {
 }
 
 // \fcharset to a code page: 204 Cyrillic, 0 Western, the document's \ansicpg for the rest.
-int CodePageOfCharset(int charset, int ansi) {
+static int CodePageOfCharset(int charset, int ansi) {
     if (charset == 204) return kCyrillicCodePage;
     if (charset == 0) return kWesternCodePage;
     return ansi;
@@ -57,13 +55,13 @@ struct GroupState {
     int unicodeSkip = 1;         // \uc
 };
 
-bool SameStyle(const RichStyle& a, const RichStyle& b) {
+static bool SameStyle(const RichStyle& a, const RichStyle& b) {
     return a.face == b.face && a.halfPoints == b.halfPoints && a.bold == b.bold && a.italic == b.italic && a.colour == b.colour;
 }
 
-bool IsLetter(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
+static bool IsLetter(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
 
-int HexValue(char c) {
+static int HexValue(char c) {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
     if (c >= 'A' && c <= 'F') return c - 'A' + 10;
@@ -328,7 +326,7 @@ private:
 // ---- Layout ------------------------------------------------------------------------------------------
 
 // MulDiv(value, multiplier, divisor) for a positive divisor: rounded, halves away from zero.
-int MulDivRounded(int value, int multiplier, int divisor) {
+static int MulDivRounded(int value, int multiplier, int divisor) {
     const long long product = static_cast<long long>(value) * multiplier;
     const long long half = divisor / 2;
     return static_cast<int>(product >= 0 ? (product + half) / divisor : -((-product + half) / divisor));
@@ -345,7 +343,7 @@ struct Item {
     int advance = 0;             // without tabs (theirs depends on the pen)
 };
 
-bool IsBlank(char32_t ch) { return ch == U' ' || ch == U'\t'; }
+static bool IsBlank(char32_t ch) { return ch == U' ' || ch == U'\t'; }
 
 class ParagraphLayout {
 public:
@@ -456,8 +454,6 @@ private:
     bool smoothing = false;
     std::vector<Item> items;
 };
-
-} // namespace
 
 RichText ReadRtf(std::string_view rtf) { return RtfReader(rtf).Read(); }
 

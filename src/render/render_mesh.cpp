@@ -12,10 +12,6 @@
 
 namespace render {
 
-namespace {
-
-using namespace detail;
-
 // --- The pending mesh ------------------------------------------------------------------------------------
 
 struct Pending {
@@ -37,17 +33,17 @@ struct Pending {
     CachedMesh* cached = nullptr;   // kept on the GPU, else built into the frame's stream
     int lighting = -1;              // Frame::meshLights
 };
-Pending g_pending;
-int g_dropped = 0;
-bool g_groundDecals = true;   // SetGroundDecals
-bool g_weatherParticles = true;   // SetWeatherParticles
-bool g_interfaceUnitWeather = true;   // SetInterfaceUnitWeather
+static Pending g_pending;
+static int g_dropped = 0;
+static bool g_groundDecals = true;           // SetGroundDecals
+static bool g_weatherParticles = true;       // SetWeatherParticles
+static bool g_interfaceUnitWeather = true;   // SetInterfaceUnitWeather
 
 // A draw the renderer does not take is lost (there is no other way to draw): each reason logged the first time.
 enum Refusal { NoTargetSize, BadCorner, OtherFvf, VertexLimit, RefusalCount };
-bool g_refused[RefusalCount] = {};
+static bool g_refused[RefusalCount] = {};
 
-void Refuse(Refusal reason, const char* what) {
+static void Refuse(Refusal reason, const char* what) {
     if (g_refused[reason]) return;
     g_refused[reason] = true;
     ei::Log("render: %s; the draw is lost", what);
@@ -55,7 +51,7 @@ void Refuse(Refusal reason, const char* what) {
 
 // A matrix giving screen pixels after the divide (sx = row0.p / row3.p, sy = row1.p / row3.p) as a
 // clip-space one: ndc x = 2 sx / width - 1, ndc y = 1 - 2 sy / height; z and w unchanged.
-Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
+static Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
     float kx = 2.0f / width;
     float ky = 2.0f / height;
     const float* s = screen.m;
@@ -70,10 +66,10 @@ Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
     return clip;
 }
 
-const Matrix4 kIdentity = {{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}};
+static const Matrix4 kIdentity = {{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}};
 
 // The mesh's corners as vertices and its triangles, once per mesh (the passes share them).
-bool Build(Frame& f, Pending& p) {
+static bool Build(Frame& f, Pending& p) {
     const MeshDraw& m = p.mesh;
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < m.cornerCount; ++i) {
@@ -113,11 +109,9 @@ bool Build(Frame& f, Pending& p) {
 
 // --- GPU side ------------------------------------------------------------------------------------------------
 
-// The pipelines by their pass state's key (gpu.h keeps them by description; this skips building one per draw).
-std::unordered_map<std::uint32_t, gpu::Pipeline> g_pipelines;
-GeometryStream g_geometry("ei-mesh", false);
+static GeometryStream g_geometry("ei-mesh", false);
 
-gpu::PipelineDesc MeshDesc(const PassState& s, bool lines, bool cached, int samples) {
+static gpu::PipelineDesc MeshDesc(const PassState& s, bool lines, bool cached, int samples) {
     gpu::PipelineDesc p;
     p.program = gpu_shaders::mesh::kIndex;
     MeshLayout(p, cached, false);
@@ -128,20 +122,9 @@ gpu::PipelineDesc MeshDesc(const PassState& s, bool lines, bool cached, int samp
     return p;
 }
 
-gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
-    int samples = PassSampleCount();
-    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (cached ? 1u << 21 : 0u) |
-                        (static_cast<std::uint32_t>(samples) << 24);
-    auto it = g_pipelines.find(key);
-    if (it != g_pipelines.end()) return it->second;
-    gpu::Pipeline pipeline = gpu::MakePipeline(MeshDesc(s, lines, cached, samples), "ei-mesh");
-    g_pipelines.emplace(key, pipeline);
-    return pipeline;
+static gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
+    return gpu::MakePipeline(MeshDesc(s, lines, cached, PassSampleCount()), "ei-mesh");
 }
-
-} // namespace
-
-namespace detail {
 
 // The pass states every battle and menu draws meshes with (the pipelines a run makes, logged; the rare ones are made at
 // their first draw): D3DCULL, D3DBLEND, D3DCMP numbers as PassState keeps them.
@@ -167,7 +150,10 @@ void ListMeshPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
         PassState s;
         s.cull = w.cull;
         s.blend = w.sourceBlend != 0;
-        if (s.blend) s.sourceBlend = w.sourceBlend, s.destBlend = w.destBlend;
+        if (s.blend) {
+            s.sourceBlend = w.sourceBlend;
+            s.destBlend = w.destBlend;
+        }
         s.depthTest = w.depthTest;
         s.depthWrite = w.depthWrite;
         out.push_back(MeshDesc(s, false, w.cached, samples));
@@ -217,9 +203,7 @@ PassState ReadPassState(const TextureDevice* device) {
     return s;
 }
 
-namespace {
-
-gpu::BlendFactor Factor(std::uint8_t d3d) {
+static gpu::BlendFactor Factor(std::uint8_t d3d) {
     switch (d3d) {   // D3DBLEND
     case 1: return gpu::BlendFactor::Zero;
     case 2: return gpu::BlendFactor::One;
@@ -236,7 +220,7 @@ gpu::BlendFactor Factor(std::uint8_t d3d) {
     }
 }
 
-gpu::Compare Compare(std::uint8_t d3d) {
+static gpu::Compare Compare(std::uint8_t d3d) {
     switch (d3d) {   // D3DCMPFUNC
     case 1: return gpu::Compare::Never;
     case 2: return gpu::Compare::Less;
@@ -248,8 +232,6 @@ gpu::Compare Compare(std::uint8_t d3d) {
     default: return gpu::Compare::Always;
     }
 }
-
-} // namespace
 
 void ApplyPassState(gpu::PipelineDesc& p, const PassState& s) {
     // D3DCULL_CW culls triangles clockwise on screen, D3DCULL_CCW counter-clockwise ones (screen y
@@ -411,12 +393,8 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
         fs.weather[1] = batch.weather[1];
         fs.weather[2] = 2.0f;
     }
-    fs.fogColour[0] = ((s.fogColour >> 16) & 0xFF) / 255.0f;
-    fs.fogColour[1] = ((s.fogColour >> 8) & 0xFF) / 255.0f;
-    fs.fogColour[2] = (s.fogColour & 0xFF) / 255.0f;
-    fs.factor[0] = ((s.textureFactor >> 16) & 0xFF) / 255.0f;
-    fs.factor[1] = ((s.textureFactor >> 8) & 0xFF) / 255.0f;
-    fs.factor[2] = (s.textureFactor & 0xFF) / 255.0f;
+    UnpackColour(s.fogColour, fs.fogColour);
+    UnpackColour(s.textureFactor, fs.factor);
     fs.factor[3] = ((s.textureFactor >> 24) & 0xFF) / 255.0f;
     const StageState& s0 = s.stages[0];
     const StageState& s1 = s.stages[1];
@@ -452,8 +430,6 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(lighting) + sizeof(f.shadow.point.params));
 }
 
-} // namespace detail
-
 void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     g_pending = Pending{};
     NoteMeshDraw(mesh);
@@ -462,7 +438,7 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = g_frame;
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
-        if (g_dropped++ == 0) ei::Log("render: too many meshes in one frame; the rest are dropped");
+        LogFirst(g_dropped, 1, "render: too many meshes in one frame; the rest are dropped");
         return;
     }
     Matrix4 clip;
@@ -578,9 +554,7 @@ void SetGroundDecals(bool on) {
     g_groundDecals = on;
 }
 
-namespace detail {
 bool GroundDecalsDrawn() { return g_groundDecals; }
-} // namespace detail
 
 void SetWeatherParticles(bool on) {
     if (on != g_weatherParticles) ei::Log("render: rain and snow particles %s", on ? "drawn" : "left out");
