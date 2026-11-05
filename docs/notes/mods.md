@@ -8,20 +8,22 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 
 | File | What |
 |---|---|
-| `src/platform/path_layers.h`, `.cpp` | the layered path map (`PathLayers`, `PathLayer`), `FullGamePath`, `PathBelow`; the mod (`platform::UseMod`, `ModFolder`, `CurrentMod`) |
+| `src/platform/path_layers.h`, `.cpp` | the layered path map (`PathLayers`, `PathLayer`), `FullGamePath`, `PathBelow`; the mod (`platform::SwitchMod`, `ModFolder`, `CurrentMod`) |
 | `src/platform/seams.cpp` | the game's `SystemPath` / `SystemSearches`: the mod's map, the path itself without a mod |
 | `src/platform/files.cpp` | `FolderEntries`: each layer's search (the backends' `SearchFolder`) merged |
-| `src/main.cpp` | reads `[game] Mod` after the Rebirth profile, calls `platform::UseMod` |
-| `src/game/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"): `ModPath()` is the Mod folder, else `[rebirth] AddonPath` |
+| `src/main.cpp` | reads `[game] Mod` after the Rebirth profile, calls `app::UseMod` (app_main.cpp: the folder in full, `platform::SwitchMod`, the log) |
+| `src/game/app_main.cpp` | `StartGame` / `StopGame` (the game's half of the start and the stop), `app::RequestModSwitch` and the switch (`TakeModSwitch`) |
+| `src/game/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"): `ModPath()` is the Mod folder, else `[rebirth] AddonPath`; `Reset` at a switch |
 | `tests/verify/harness.cpp` | `Layers` / `MapPath` / `MapSearches`: the run's overlay as the map's top layer |
 | `tests/unit/path_layers.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_lost_in_astral.txt` | a new game in Lost in Astral (Rebirth's data) |
+| `tests/scenarios/mod_switch.txt`, `mod_switch_plain.txt` | a switch to Lost in Astral and back, then a new game; the same new game from the start |
 
 ## Choosing a mod
 
 `ei_settings.ini`, `[game] Mod = starter\Mods\LostInAstral`: the mod's folder relative to the exe's folder (the game
-folder for a dropped-in exe; on macOS the app's MacOS folder, so give it in full there), or in full. Read once at the
-start, after the Rebirth profile (the settings' first use writes the profile's defaults). A folder that is not there
+folder for a dropped-in exe; on macOS the app's MacOS folder, so give it in full there), or in full. Read at the start,
+after the Rebirth profile (the settings' first use writes the profile's defaults); a switch of mods writes it. A folder that is not there
 is logged ("mod: no folder ...") and the game runs without a mod. The log names the mod and its saves' folder.
 
 ## The layered path map
@@ -67,7 +69,10 @@ files; writes go there, copied up unless a log or over 16 MB), the pinned key bi
 `harness_saves\<mod>\`). Around the map MapPath keeps its own rules: `config\movie.ini` and recorded play's movies
 read as missing, `config\tutorial.ini` in `harness_saves\`, a write left in an install refused, the traces. The
 scenario line `mod <folder>` answers `Mod` in the run's settings file with the folder in full (relative to the game
-folder); the snapshot (config/harness/registry.reg) marks `Mod` absent otherwise.
+folder); the snapshot (config/harness/registry.reg) marks `Mod` absent otherwise. After a `waitmenu` or
+`waitwindow` line, `mod <folder>` (or `mod none`) is a step instead: a switch of mods in the main menu
+(`app::RequestModSwitch`, refused elsewhere: the run fails), the next step once the switch is made; the `read mod` /
+`wrote mod` checks then look in that folder. The overlay's map is made once for each mod the run plays (`Layers`).
 
 ## A mod's config.reg
 
@@ -97,127 +102,85 @@ same files.
 
 ## Switching mods
 
-MOD3: the menu changes the mod without a restart. This section is the survey of what start-up loads and keeps, and the
-plan; nothing is built yet (the user picks (a) or (b)).
+The main menu changes the mod without a restart (MOD3; the user chose a switch in the process, 2026-11-05).
+`app::RequestModSwitch(setting)` (the setting as `[game] Mod`'s, empty for none) is taken only in the main menu (its
+window on top, no flow request pending) with no network session; at the main loop's next pass (`TakeModSwitch`, before
+anything else of the pass) the game stops and starts again with the new mod. The menu's list of mods is MOD3b.
 
-### What start-up does once
+### Start and stop
 
-`main` (main.cpp): the game folder, the settings, `StartVideo` (the one-instance check, SDL's video, the renderer's
-device and pipelines on a thread), the Rebirth profile, `UseMod` (the path map). `app::GameMain` (app_main.cpp), in
-order:
-- the static initialisers' work (net and code tables, the weather noise: computed, no files);
-- the command line; `g_startFolder`; `g_logicSettings.Load("config\ai.reg")`, a mod file (Lost in Astral's
-  `[CONFIG] ai.reg`); `options->Load()` (the settings); the screen layout;
-- `g_clientWorld.Create()` and `g_serverWorld.Create()` (`World::Create` reseeds `g_random` and `g_clientRandom` and
-  sets `g_dataFolder` / `g_textFolder` from the options). The managers both worlds hold: players, map objects,
-  figures (figures.res, menus.res and the mod's `[RES]` figure archives; its Create reads menus.reg into `g_menuRects`),
-  effects, spells, items. The server adds the messages text and its specific manager. The client adds its specific
-  manager, textures (textures.res, redress.res, menus.res and the mod's `[RES]` texture archives), materials
-  (materials.res), lights, particles, lightning, fog (and its texture), the terrain, `TextManager` (texts.res,
-  textsLmp.res), `SoundManager`, `MusicSystem` (music.reg, a mod file) and LightsGipat.ini;
-- the camera; the disk-space check; the saves, mp and textures folders; the window;
-- `OpenSound`: the audio output, streamsn.reg, the stream folder, sfx.res and speech.res as wave sources, volumes;
-- `LoadDatabases` from database.res: skills, quests, units, spells, items, levers (Levers.ldb), acks, prints;
-  `g_mapDatabase.LoadAll()` (map.txt, map-LMP.txt; `Load` appends);
-- the renderer (`CreateRenderer`) and its gamma; the "Start" movies; the loading screen;
-- `SetUpGraphics`: the sky, the damage numbers' texture, the link figure loader, the units' sound file counts;
-- `SetUpCursors` (the cursor shapes through the texture manager); `g_interface.Create`: the three fonts, the keyboard
-  layout, `LoadKeyBindings` (config\keyboard.ini into `g_keyActions`, a mod file), the console window, the chat
-  overlay, the fade, the help topics seen (config\tutorial.ini, a mod file);
-- `StartFirstMap`, then the loop.
+GameMain's game half is two functions that the program's start, its exit and a switch all run:
+- `StartGame(openDisplay)`: `GameFlow::Restart` (the zone table, the quest folders and quest text files forgotten, the
+  databases "database.res"), `g_logicSettings.Load` (the defaults, then config\ai.reg), both worlds' `Create`, the
+  camera's `Init`, the saves, mp and textures folders, `OpenSound`, `LoadDatabases` (each database emptied, then
+  loaded), `g_mapDatabase.LoadAll` (emptied first), then `openDisplay` (the program's start only: the disk-space check,
+  the window, the renderer, its gamma and the start movies), the sun (`SceneRenderer::AddDefaultLight`: a light of the
+  client world's light factory, so made with each world, no longer by `CreateRenderer`), `SetUpGraphics`,
+  `SetUpCursors`, `g_interface.Create` and `StartFirstMap`. The window is made after the files (before: after the
+  worlds); the device is still taken last.
+- `StopGame()`: the composed textures, `g_interface.Shutdown` (tutorial.ini and keyboard.ini written, the help topics
+  forgotten), `g_cursor.Shutdown`, the scene renderer's sun, the device's stage textures and material let go (the
+  renderer keeps no pointer into a world: the sun's release after the lights were gone crashed), both worlds' `Destroy`.
+  The exit then sets the gamma back, destroys the renderer and saves the options.
 
-Loaded once by their first use, and kept:
-- the mod-folder layer (mod_folders.cpp, function statics): `ModPath()`, the mod's `[RES]` config (`Config()`), the
-  open mod archives (`Tables()`, `loaded`), the Maps listing (`Maps()`), `MapsRoot`'s and the stream folder's copies
-  of `ModPath()`; `g_mapsInMod`;
-- the path map: `platform::UseMod` publishes the mod once and refuses a second call (path_layers.cpp `g_mod`);
-- the zone table (`GameFlow::BuildZoneTable`, the Maps folder's `*.mq` files: returns at once when not empty);
-- the lightning noise (`LightningManager::Create`, gfx.res, `g_lightningNoiseLoaded`);
-- `UseResources`' last resources (a function static: "database.res" or "databaseLMP.res");
-- the AutoExec lines (`AutoExecLines`: the settings and 2utoexec.cfg in the root; no mod changes them).
+A switch, between the two: `modfolders::Reset` (the mod's archives closed, its folder, `[RES]` lists and Maps\ listing
+read again at their next use, the maps folder the game's), `app::UseMod` (`platform::SwitchMod`: the old `Mod` is never
+deleted, other threads may still map a path through it), the settings' `Mod` written, the loop's clock as at the start.
+The renderer, the window, the audio device (a new `SoundManager` closes and opens the output) and the settings stay.
 
-### What a return to the main menu already does
+Made safe to run again: `WorldClient::Destroy` empties both grids, the dynamic objects, the frame's entries and the
+exits (Create starts from none; the destructor freed the second grid's objects before); the lightning noise is read at
+every `LightningManager::Create` (the client world's one); `UseResources` keeps its last choice in
+`GameFlow::networkResources`; `Interface3D::Shutdown` clears the fade pointer; `WorldServer::Destroy` makes its object
+maps fresh (a cleared `lib::HashMap` keeps the buckets it grew to, and the order of its walk with them: on Rebirth's
+data the menu's units thought in another order after a switch); `StartGame` sets `g_random` and `g_clientRandom` back to
+unseeded, so `World::Create` seeds them (and the CRT's rand) as at the program's start.
 
-`GameFlow::ProcessRequest` with the main menu's request: the zone left is saved (a single player game),
-`g_interface.CloseAll()`, `g_serverWorld.TeardownZone()` (players, shared objects, mob files, both scripts,
-diplomacy, map objects, missiles, timed objects, the session), `UseResources` (the unit, skill, spell and item
-databases built again in place when the game changes between single player and network: `SwitchResourceDatabases`,
-the one reload of databases there is), then `StartZone` of the menu map: the client's `ClearMaps` (objects, grids,
-platforms, the figure loader's cache, the managers' spares), the zone's map, mob, terrain, AI map (aiinfo.res opened
-for each map, normal.dat into `g_normalTable`), lights .ini of the allod, quest texts (`g_questFiles` removed from
-the text manager), the music theme. A new game resets the party manager (`PartyManagerNewGame`: records and class
-templates); the multiplayer heroes (`g_savedParties`) are read again by `Reload` on use.
+### What start-up still does once
 
-Nothing else is loaded again: the worlds' managers and their archives, the other four databases, the map list, the
-zone table, ai.reg, the lightning noise, `g_menuRects`, the interface's fonts, key bindings and help topics, the
-cursors, the sky, the mod-folder layer and the path map.
+`main` (main.cpp): the game folder, the settings, `StartVideo` (the one-instance check, SDL's video, the renderer's device
+and pipelines on a thread), the Rebirth profile. `GameMain`: the static initialisers' work (net and code tables, the
+weather noise: computed, no files), the command line, `g_startFolder`, the options and the screen layout, then
+`StartGame` with the display. The AutoExec lines (the settings and 2utoexec.cfg in the root) are read at each new game;
+no mod changes them.
 
 ### The globals by owner
 
 About 480 `g_` names in 450 definitions (render 264, game 180, platform 17, audio 15, lib 4, main.cpp 1); the
-other mutable state is the function statics above and a few scratch buffers. Keep: stays as it is. Reset: emptied or
-set back. Reload: made again from the new mod's files.
+other mutable state is the function statics and a few scratch buffers. Keep: stays as it is. Reset: emptied or set
+back. Reload: made again from the new mod's files. The list to check when a switch shows the old mod's data.
 
 | Owner | Globals | Switch | Why |
 |---|---|---|---|
 | Platform: window, events, input, instance lock, log (platform_sdl, other_game, log, main.cpp, present_window, app_confine, app_resolution) | ~22 | keep | no file of a mod |
-| Path map (path_layers.cpp `g_mod`) | 1 | reload | the mod's layer; needs a switch call (UseMod refuses a second) |
+| Path map (path_layers.cpp `g_mod`) | 1 | reload | `platform::SwitchMod` |
 | Renderer (src/render: device, pipelines, frame, caches of textures, meshes, terrain pages, fonts, shadows, water, weather) | 264 | keep | caches key on game objects and forget them: `ForgetHolder` when a texture holder is freed, meshes and terrain pages checked for staleness and dropped after 600 frames unused |
-| The game's draw glue (renderer_scene/sprites/strip/lines, device_draw, figure_part_draw, world_client_draw/lights/shadow_casters/view, effects_weather, particle_manager, lightning's sprites, drawn_motion, camera, camera_trace) | ~50 | keep | per-frame scratch and the drawn view |
+| The game's draw glue (renderer_scene/sprites/strip/lines, device_draw, figure_part_draw, world_client_draw/lights/shadow_casters/view, effects_weather, particle_manager, lightning's sprites, drawn_motion, camera, camera_trace) | ~50 | keep | per-frame scratch and the drawn view; the scene renderer's sun and the device's bindings let go by `StopGame` |
 | Audio device (audio.cpp) | 15 | keep | a new `SoundManager` closes and opens the output again |
-| App and loop (app_main, app_frame, main_loop.h, bink_video, `g_camera`, screen_layout, ui_cursor.h sizes) | ~27 | keep | the camera is attached to the new client world |
-| Settings, options, Rebirth profile and flags, console, crt, random generators | ~19 | keep | `g_random` / `g_clientRandom` reseeded by `World::Create` |
-| `g_logicSettings` (config\ai.reg) | 1 | reload | a mod file |
-| Databases (database_globals, unit_db, lever_table) and `g_mapDatabase` | 9 | reload | database.res and Maps\map.txt are the mod's; the map list cleared first (`Load` appends) |
-| Mod-folder layer (`g_mapsInMod` and mod_folders.cpp's six statics) | 1 + 6 | reload | the mod's archives closed, its config.reg read again |
-| Worlds (`g_clientWorld`, `g_serverWorld`: every manager and its archives, texts, sounds, music) | 2 | reload | `Destroy` then `Create` and `SetUpGraphics` |
-| Game flow and world state (world_game: `g_gameFlow`, `g_zoneTable`, `g_saveStream`, the stamps; world_briefing, world_weather, world.h; party_manager, party, player_client, player_server_handlers) | ~15 | reset | the zone table rebuilt on its next use; counters may keep counting |
-| Interface (`g_interface`, `g_keyActions`, `g_menuRects`, `g_cursor`, texture_load's `g_composed`) | 5 | reload | `Shutdown` / `Create`, `ResetCursors`, `ForgetComposedTextures` |
+| App and loop (app_main, app_frame, main_loop.h, bink_video, `g_camera`, screen_layout, ui_cursor.h sizes) | ~27 | keep | the camera `Init` again and attached to the new client world; the loop's clock reset |
+| Settings, options, Rebirth profile and flags, console, crt, random generators | ~19 | keep | `g_random` / `g_clientRandom` unseeded by `StartGame`, seeded again by `World::Create` |
+| `g_logicSettings` (config\ai.reg) | 1 | reload | `Load` starts from the defaults |
+| Databases (database_globals, unit_db, lever_table) and `g_mapDatabase` | 9 | reload | `LoadDatabases` empties each; `LoadAll` empties the map list |
+| Mod-folder layer (`g_mapsInMod` and mod_folders.cpp's state) | 1 + 2 | reload | `modfolders::Reset` |
+| Worlds (`g_clientWorld`, `g_serverWorld`: every manager and its archives, texts, sounds, music, the lightning noise) | 2 | reload | `Destroy` then `Create` and `SetUpGraphics` |
+| Game flow and world state (world_game: `g_gameFlow`, `g_zoneTable`, `g_saveStream`, the stamps; world_briefing's quest folders and files; world_weather, world.h; party_manager, party, player_client, player_server_handlers) | ~15 | reset | `GameFlow::Restart`; counters may keep counting |
+| Interface (`g_interface`, `g_keyActions`, `g_menuRects`, `g_cursor`, texture_load's `g_composed`) | 5 | reload | `Shutdown` / `Create`, the cursor's `Shutdown` / `SetUpCursors`, `ForgetComposedTextures`; menus.reg read again by the figure manager |
 | Interface scratch (ui_surface's list, ui_main_menu, ui_objectives, ui_interface, ui_screens.h, `g_keyNames`) | ~6 | keep | |
-| Lightning noise (gfx.res) | 2 | reload | the loaded flag cleared |
 | AI pools and tables (ai_block_search, ai_events, ai_footprint, ai_path_smooth, ai_refresh, ai_unit_shape), weather noise, fog tiles, animation blends | ~13 | keep | computed, or loaded for each zone |
 | Network (net_classes, net_coder, net_messages, net_second_master, net_session, net_server_players, world_guard) | ~25 | keep | the switch is offline only |
 
-### (a) Teardown and re-init in the process
+### Checks
 
-GameMain's game half becomes two functions that start-up, exit and the switch all run, so a switch and a start are
-one path: `StartGame()` (ai.reg to `StartFirstMap`, without the window, the renderer and the movies) and `StopGame()`
-(ShutDown without the renderer: the interface, the cursor, the composed textures, both worlds). A switch, allowed
-only in the main menu with no session: `StopGame`, the mod-folder layer reset (mod archives closed, statics made
-resettable), `platform::SwitchMod` (the old `Mod` stays alive: other threads may still map a path), the zone table,
-lightning noise, `UseResources`' last and the map list cleared, the settings' `Mod` written, `StartGame`, the menu.
-The renderer, the window, the audio device and the settings stay.
+- `tests/unit/path_layers.cpp`: a switch to no mod, a refused folder, and back.
+- `mod_switch` (both installs): in the main menu a switch to Lost in Astral (Rebirth's data: the mod's
+  ZoneMainMenuNew read; the vanilla data has no such folder, logged, the game started again without a mod), then to
+  none, then a new game with a dump. `mod_switch_plain` is the same new game from the start: the two dumps must be equal
+  (`python tools/golden.py diff` of the two runs' `dump_newgame.txt`), so starting twice gives the state of one start.
+- The asan build's suite (harness.md, "AddressSanitizer") for the freed archives and managers.
 
-The check that starting twice gives the same state: a harness step that switches the mod mid-run (`mod <folder>`,
-also "none"), and a scenario that switches to Lost in Astral and back, then starts a new game: its state digests and
-golden the same as a plain new game's from start. A suite run on the asan build for the freed archives and managers.
-
-Size: about 500-800 lines over ~20 files, three tickets: the reset functions and `SwitchMod` with the start-twice
-scenario; the menu's list of mods (`starter\Mods\*\config.reg` `[MOD]` Title, `Single` / `Multi`); polish (a
-loading screen during the switch).
-
-Risks: a mod-dependent global missed shows the old mod's data after a switch (the table above is the list to
-check; the start-twice scenario catches state, not stale files); `WorldClient::Create` has only ever run once
-(`WorldServer::Create` already calls `Destroy` first); a fatal error in the new mod's files (a missing music.reg)
-ends the game as it would at start; the sound output closes and opens again (a short gap).
-
-### (b) Self-restart
-
-The exe writes `Mod`, starts itself again and exits: `platform::Relaunch` (Windows CreateProcess, POSIX `execv`, the
-macOS app), the one-instance check told to wait for the old process, the start movies skipped, the window's place
-and size passed on. A window cannot be handed to another process on Windows: the new one opens its own after the
-device and pipelines are made again (the harness's first frame comes about 3 s after the process starts).
-
-Size: about 200-300 lines. Risks: the harness follows one process (run_all's result, the cloaked window, the
-digests), so a switch cannot be tested by a scenario without new harness support; a launcher (GOG Galaxy, Steam)
-sees the game end; the log and stdout restart; every switch costs the full start-up.
-
-### Recommendation
-
-(a): the state is already gathered in a short list of owners (the two worlds hold every archive but the databases',
-which load in place already in `SwitchResourceDatabases`), the renderer, window, audio device and settings keep, and
-running start-up's own code for the switch gives the start-twice check for free. (b) is smaller but slow, shows a
-new window, and is outside what the harness can check.
+Risks: a mod-dependent global missed shows the old mod's data after a switch (the table above; the start-twice check
+catches state, not stale files); a fatal error in the new mod's files (a missing music.reg) ends the game as it would at
+the start.
 
 ## Open questions
 

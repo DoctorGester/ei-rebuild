@@ -18,7 +18,10 @@
 //                                  and the standalone image's mod_folders.h) as harness_saves\<folder>;
 //                                  a "# prepare:" tool writes the mod there (tools/make_test_mod.py)
 //   mod <folder>                   the settings' [game] Mod (docs/notes/mods.md), in full: <folder> relative to
-//                                  the game folder (starter\Mods\LostInAstral) or in full
+//                                  the game folder (starter\Mods\LostInAstral) or in full. After a "waitmenu" or
+//                                  "waitwindow" line the line is a step instead: a switch of mods in the main menu
+//                                  (app::RequestModSwitch; "none": the game's own files), the next step once it is
+//                                  made
 // Without them the environment variables EI_RESOLUTION and EI_WIDESCREEN (same values) apply, and
 // without those the registry snapshot's values (harness_settings.h), but for the resolution: a window (FullScreen 0
 // unless a "fullscreen" line says otherwise; H31) of 960x720 on the vanilla data and 1280x720 on Rebirth's (the shape
@@ -70,6 +73,8 @@ std::string MapFileStep(const std::string& argument);
 std::string AddonPath();
 // The mod folder the scenario's "mod" step names, in full (empty without one).
 std::string ModPath();
+// A "mod" line's folder in full, as ModPath's (empty for "none").
+std::string ModStepPath(const std::string& argument);
 
 // Whether this run plays the Rebirth install: the image runs with Rebirth flags (rebirth_profile::SettingsOnly; S19).
 // Scenario lines "vanilla ..." / "rebirth ..." and the digest's and the UI census's install follow it.

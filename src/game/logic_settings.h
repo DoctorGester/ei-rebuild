@@ -1,19 +1,18 @@
 #pragma once
 
 // The game's logic settings (a global): the defaults below, then what LogicSettings::Load reads from a registry file
-// at startup. Field names are the registry keys.
+// at each start of the game (app_main.cpp, StartGame). Field names are the registry keys.
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
 
 struct LogicSettings {
-    // Reads the keys from the registry at `path` unless `loaded` is set; a key that is missing keeps the
-    // current value. The difficulty arrays start at 1.0 and take up to three values each.
+    // The defaults, then the keys from the registry at `path`; a key that is missing keeps its default. The difficulty
+    // arrays take up to three values each.
     void Load(const std::string& path);
 
     // The defaults Load keeps for a missing key.
-    bool loaded = false;                // never set by Load
     // [Logic]
     float guardStayTime = 10.0f;
     float sentryStayTime = 10.0f;

@@ -122,10 +122,11 @@ double FreeDiskSpace(std::string_view path);
 
 // The mod the game plays (docs/notes/mods.md): from now on a file in `modFolder`'s folders stands for the one of the
 // same path in `gameFolder` (read first, written there when the mod has it; not the mod's .res archives, which its
-// config.reg combines with the game's), and the saves are <gameFolder>\saves\<the mod folder's name>\. Once, at the
-// start, before the game reads its data; false (no mod) when the folder is not there or a mod is set already.
-bool UseMod(std::string_view gameFolder, std::string_view modFolder);
-// The mod's folder in full (UseMod), empty without one.
+// config.reg combines with the game's), and the saves are <gameFolder>\saves\<the mod folder's name>\. An empty
+// `modFolder`: the game's own files from now on. At the start before the game reads its data, and at a switch of mods
+// between the game's stop and its new start (app_main.cpp); false (no mod) when the folder is not there.
+bool SwitchMod(std::string_view gameFolder, std::string_view modFolder);
+// The mod's folder in full (SwitchMod), empty without one.
 std::string ModFolder();
 
 // One entry of a folder search.

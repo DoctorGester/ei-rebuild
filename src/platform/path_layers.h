@@ -70,7 +70,7 @@ private:
     std::string Find(std::string_view relative, std::size_t from) const;
 };
 
-// The mod the game plays (platform.h, UseMod): its folder, its name (the folder's last part: its saves' folder), its
+// The mod the game plays (platform.h, SwitchMod): its folder, its name (the folder's last part: its saves' folder), its
 // layer over the game folder (every file in its folders, not its own root's files such as config.reg, and no .res
 // archive: the mod's config.reg [RES] combines those with the game's inside them) and the game's map with it. Null
 // without one.

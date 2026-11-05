@@ -159,7 +159,6 @@ WorldClient::~WorldClient() {
     scorchMarks.clear();
     footprints.clear();
     bloodPrints.clear();
-    // The second grid still holds its objects: released here, as the original's destructor does.
     secondGrid.Free();
     objectGrid.Free();
     dynamicObjects.clear();

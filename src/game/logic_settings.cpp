@@ -16,7 +16,7 @@ void ReadDifficulties(FileRegistry& reg, const char* key, float* out) {
 } // namespace
 
 void LogicSettings::Load(const std::string& path) {
-    if (loaded) return;
+    *this = LogicSettings{};
     FileRegistry reg;
     reg.Open(path);
     auto read = [&reg](const char* section, const char* key, float& value) {
@@ -63,11 +63,6 @@ void LogicSettings::Load(const std::string& path) {
     questsToRespawn = reg.GetInt("Scenario", "QuestsToRespawn", questsToRespawn);
     read("LMP", "Lost Money", lostMoney);
     read("LMP", "Lost XP", lostXp);
-    for (int i = 0; i < 3; ++i) {
-        absorption[i] = 1.0f;
-        attack[i] = 1.0f;
-        defence[i] = 1.0f;
-    }
     ReadDifficulties(reg, "Absorption", absorption);
     ReadDifficulties(reg, "Attack", attack);
     ReadDifficulties(reg, "Defence", defence);

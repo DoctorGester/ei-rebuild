@@ -31,24 +31,6 @@ std::string GameFolder() {
     return folder;
 }
 
-// The settings' [game] Mod (docs/notes/mods.md): the mod's folder, relative to the exe's folder or in full; its files
-// then stand over the game folder's and its saves keep apart.
-void UseMod(const std::string& gameFolder) {
-    const std::string mod = settings::GetString(settings::kGame, "Mod", "");
-    if (mod.empty()) return;
-    std::string folder = mod;
-    const bool full = mod[0] == '\\' || mod[0] == '/' || (mod.size() >= 2 && mod[1] == ':');
-    if (!full) {
-        const std::string program = platform::ProgramPath();
-        folder = program.substr(0, program.find_last_of("\\/") + 1) + mod;
-    }
-    if (platform::UseMod(gameFolder, folder))
-        ei::Log("mod: %s (its saves in saves\\%s)", platform::ModFolder().c_str(),
-                platform::ModFolder().substr(platform::ModFolder().find_last_of('\\') + 1).c_str());
-    else
-        ei::Log("mod: no folder %s; the game without a mod", folder.c_str());
-}
-
 } // namespace
 
 int main(int argc, char** argv) {
@@ -78,6 +60,7 @@ int main(int argc, char** argv) {
     // start-up runs beside it.
     app::StartVideo();
     ei::rebirth_profile::Load(folder);
-    UseMod(folder);
+    // The settings' [game] Mod: its files then stand over the game folder's and its saves keep apart.
+    app::UseMod(folder, settings::GetString(settings::kGame, "Mod", ""));
     return app::GameMain(arguments.data());
 }

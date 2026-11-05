@@ -322,6 +322,14 @@ void WorldServer::Destroy() {
     ResetState();
     messages.Close();
 
+    // Fresh object maps, as at the program's start: a cleared one keeps the buckets it grew to, and with them the
+    // order its walk takes (which unit thinks first) at the next start (a switch of mods).
+    for (MapObjectIdMap* map : {&objects, &sentObjects, &mapObjects, &otherMapObjects, &updateMap, &namedObjects}) {
+        map->map = decltype(map->map)();
+        map->maxId = 0;
+    }
+    timedObjects.map = decltype(timedObjects.map)();
+    timedObjects.maxId = 0;
     exits = {};
     World::Destroy();
 }

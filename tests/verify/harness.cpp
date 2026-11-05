@@ -694,6 +694,7 @@ bool g_waitLineIsExpect = false;
 // A pending "waitread" (harness_modtrace.h): the folder and the file, and when to give up, in real seconds (a thread
 // opens the file, and the virtual clock runs on much faster than it).
 bool g_waitingRead = false;
+bool g_waitingModSwitch = false;   // a "mod" step's switch asked for, not yet made
 std::string g_waitReadWhere, g_waitReadPath;
 std::uint32_t g_waitReadAt = 0;   // the system's tick count
 // A pending "waitzone": the zone and when to give up.
@@ -967,7 +968,7 @@ bool CopiedForWrite(const char* original) {
 // on top (a read takes its copy when there is one; mp\ and the "hidefile" files read from it alone, missing until the
 // game writes them; every write goes there, a file the write keeps copied there first unless CopiedForWrite says
 // no), the user's key bindings and address book below it (the committed copies, harness_settings.h), the mod's layer
-// under those (the settings' Mod, platform::UseMod); the saves in harness_saves\ (with a mod in harness_saves\<mod>\).
+// under those (the settings' Mod, platform::SwitchMod); the saves in harness_saves\ (with a mod in harness_saves\<mod>\).
 platform::PathLayers MakeLayers(const platform::Mod* mod) {
     platform::PathLayers map;
     for (const char* root : g_rootDirs)
@@ -998,24 +999,34 @@ platform::PathLayers MakeLayers(const platform::Mod* mod) {
 }
 
 // The map for the run's state: the settings' data folder known (it may differ from the game folder) and the mod.
-// Each is made once and kept for the run (the game's threads hold them).
+// Each is made once and kept for the run (the game's threads hold them); a switch of mods asks for another.
 const platform::PathLayers& Layers() {
     const char* folder = image::DataFolder();
     if (folder && *folder && !g_rootDirs[1][0]) sys::CopyText(g_rootDirs[1], sys::FullPath(folder).c_str());
     const platform::Mod* mod = platform::CurrentMod();
-    const int kind = (g_rootDirs[1][0] ? 1 : 0) + (mod ? 2 : 0);
-    static std::atomic<const platform::PathLayers*> maps[4];
+    const bool second = g_rootDirs[1][0] != 0;
+    // The last map asked for, else the one made before for the same folders and mod (a switch of mods makes a new Mod).
+    struct Made {
+        bool second;
+        const platform::Mod* mod;
+        platform::PathLayers map;
+    };
+    static std::atomic<const Made*> last = nullptr;
     static std::mutex lock;
-    const platform::PathLayers* map = maps[kind].load(std::memory_order_acquire);
-    if (!map) {
+    static std::vector<const Made*> made;
+    const Made* found = last.load(std::memory_order_acquire);
+    if (!found || found->second != second || found->mod != mod) {
         std::lock_guard<std::mutex> hold(lock);
-        map = maps[kind].load(std::memory_order_acquire);
-        if (!map) {
-            map = new platform::PathLayers(MakeLayers(mod));
-            maps[kind].store(map, std::memory_order_release);
+        found = nullptr;
+        for (const Made* each : made)
+            if (each->second == second && each->mod == mod) found = each;
+        if (!found) {
+            found = new Made{second, mod, MakeLayers(mod)};
+            made.push_back(found);
         }
+        last.store(found, std::memory_order_release);
     }
-    return *map;
+    return found->map;
 }
 // No run writes into an install (WB17). The game's writes of install files go to the overlay (MapPath), so what is
 // left under an install root (the game folder; EI_INSTALL_ROOTS: run_all's installs, the other one among them) is
@@ -2311,6 +2322,11 @@ void RunSteps() {
             return;
         }
     }
+    if (g_waitingModSwitch) {
+        if (image::ModSwitchPending()) return;
+        Log("harness: mod: the switch made (frame %u)", g_frames);
+        g_waitingModSwitch = false;
+    }
     if (g_waitingRead) {
         std::string error;
         if (modtrace::Seen(g_waitReadWhere, g_waitReadPath, false, &error)) {
@@ -3030,6 +3046,17 @@ void RunSteps() {
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
             if (g_heldTickLength) TickLength() = g_heldTickLength;
+        } else if (s.verb == "mod") {
+            // A switch of mods in the main menu (app::RequestModSwitch); the next step runs once it is made.
+            const std::string folder = starter::ModStepPath(s.argument);
+            if (!image::SwitchMod(folder.c_str())) {
+                g_failures.push_back("mod " + s.argument + ": the switch refused (not in the main menu?)");
+                continue;
+            }
+            Log("harness: mod: a switch to \"%s\" asked for", folder.c_str());
+            modtrace::SetRoots(folder, starter::GameFolder(), g_savesDir);
+            g_waitingModSwitch = true;
+            return;
         } else if (s.verb == "read" || s.verb == "wrote") {
             const std::string error = modtrace::ReadStep(s.verb, s.argument);
             if (!error.empty()) {
@@ -3684,7 +3711,13 @@ bool LoadScenario(const char* path) {
                 continue;
             }
         }
-        if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument) ||
+        // A "mod" line after the game's first window wait is a switch of mods in the run (a step); before it, the
+        // settings' Mod at the start.
+        const bool modStep = g_steps.back().verb == "mod" &&
+                             std::any_of(g_steps.begin(), g_steps.end() - 1, [](const Step& step) {
+                                 return step.verb == "waitmenu" || step.verb == "waitwindow";
+                             });
+        if ((!modStep && ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument)) ||
             settings::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
             TakeLoadLine();
             continue;

@@ -234,6 +234,10 @@ long ModList(const char* path, const char* pattern);
 long ModManagerFile(const char* which, const char* name);
 // The music stream asked for `name` (an .mp3 file of the stream folder), as the main menu and the zone's music ask.
 void PlayStream(const char* name);
+// The "mod" step's switch of mods (app::RequestModSwitch; `folder` in full, empty for none): false when refused.
+bool SwitchMod(const char* folder);
+// Whether the switch asked for is still to be made (at the main loop's next pass).
+bool ModSwitchPending();
 // The maps folder's MapFileExists, and WriteMapFile with five bytes ("S19d" and a line feed).
 bool MapsFileExists(const char* name);
 void WriteMapBytes(const char* name);

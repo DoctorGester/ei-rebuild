@@ -1,0 +1,10 @@
+# mod_switch's steps without the switches of mods (MOD3a): a plain new game from the start, whose dump mod_switch's
+# must equal.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+dump newgame
+report
+quit

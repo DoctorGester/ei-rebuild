@@ -207,6 +207,8 @@ bool MapDatabase::Load(const char* fileName) {
 
 // The map database file names ("map.txt", "map-LMP.txt").
 bool MapDatabase::LoadAll() {
+    allods.clear();
+    maps.clear();
     Load("map.txt");
     return Load("map-LMP.txt");
 }

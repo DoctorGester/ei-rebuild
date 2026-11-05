@@ -131,20 +131,6 @@ void SetRenderState() {
     state.fogColour = 0;
 }
 
-// The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
-// +0x100 = 1e12, +0x104 = 1e-12.
-void AddDefaultLight(SceneRenderer* renderer) {
-    Light* light = g_clientWorld.lightFactory->CreateLight(kLightTypeDefault);
-    Vector3 colour = {1.0f, 1.0f, 1.0f};
-    Vector3 position = {5.0f, 5.0f, -8.0f};
-    light->SetDirectional(colour, position);
-    const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
-    light->range = std::bit_cast<float>(range);
-    light->rangeSquared = std::bit_cast<float>(rangeSquared);
-    light->inverseRangeSquared = std::bit_cast<float>(inverseRangeSquared);
-    renderer->SetSun(light);
-}
-
 // The counted helper object.
 void CreateHelper(SceneRenderer* renderer) {
     renderer->helper.Assign(new RenderHelper());
@@ -160,6 +146,20 @@ void SceneRenderer::ResizeScreen(int width, int height) {
         stacks[stack].count = 0;
     FillScreenStacks(this);
     pipeline->SetViewportSize(static_cast<float>(width), static_cast<float>(height));
+}
+
+// The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
+// +0x100 = 1e12, +0x104 = 1e-12.
+void SceneRenderer::AddDefaultLight() {
+    Light* light = g_clientWorld.lightFactory->CreateLight(kLightTypeDefault);
+    Vector3 lightColour = {1.0f, 1.0f, 1.0f};
+    Vector3 position = {5.0f, 5.0f, -8.0f};
+    light->SetDirectional(lightColour, position);
+    const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
+    light->range = std::bit_cast<float>(range);
+    light->rangeSquared = std::bit_cast<float>(rangeSquared);
+    light->inverseRangeSquared = std::bit_cast<float>(inverseRangeSquared);
+    SetSun(light);
 }
 
 void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
@@ -180,7 +180,6 @@ void SceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
 
     frameTime = 0;
     lastFrameStart = platform::FrameClock();
-    AddDefaultLight(this);
 
     // The ambient colour: grey 50, opaque.
     SetColour(0xFF323232u);

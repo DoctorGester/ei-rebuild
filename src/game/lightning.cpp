@@ -300,17 +300,10 @@ int LightningManager::DrawAll(SceneRenderer* device) {
     return 1;
 }
 
-// --- The manager's Create: the noise table loaded once --------------------------------------------
-
-namespace {
-int g_lightningNoiseLoaded = /*007A9694*/ {};
-} // namespace
+// --- The manager's Create: the noise table loaded (the client world's one manager, made at each start) -----------
 
 void LightningManager::Create() {
-    if (!g_lightningNoiseLoaded) {
-        g_lightningNoiseLoaded = 1;
-        LoadLightningNoise();
-    }
+    LoadLightningNoise();
     BaseManager::Create();
 }
 
