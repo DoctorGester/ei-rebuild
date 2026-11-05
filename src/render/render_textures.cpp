@@ -217,13 +217,15 @@ static void DrawStep(const void* holder, ComposeStep step) {
     DrawComposed(t.shape, t.image, &step, 1);
 }
 
-static gpu::Wrap Wrap(std::uint8_t address) {
+static gpu::Wrap ToGpu(Address address) {
     switch (address) {
-    case 2: return gpu::Wrap::Mirror;
-    case 3: return gpu::Wrap::Clamp;
+    case Address::Mirror: return gpu::Wrap::Mirror;
+    case Address::Clamp: return gpu::Wrap::Clamp;
     default: return gpu::Wrap::Repeat;
     }
 }
+
+static gpu::Filter ToGpu(Filter filter) { return filter == Filter::Point ? gpu::Filter::Nearest : gpu::Filter::Linear; }
 
 const gpu::Texture& SurfaceView(const void* holder) {
     StatsTimer timer(&FrameStats::textureMs);
@@ -343,18 +345,18 @@ gpu::Sampler LinearSampler() {
 // The stages' samplers by their filters and addresses (gpu.h keeps them by description).
 gpu::Sampler StageSampler(const StageState& s) {
     gpu::SamplerDesc d;
-    d.mag = s.magFilter == 1 ? gpu::Filter::Nearest : gpu::Filter::Linear;   // D3DTFG_POINT
-    d.min = s.minFilter == 1 ? gpu::Filter::Nearest : gpu::Filter::Linear;   // D3DTFN_POINT
-    d.mip = s.mipFilter == 3 ? gpu::Filter::Linear : gpu::Filter::Nearest;
-    if (s.mipFilter <= 1) d.maxLod = 0.0f;   // D3DTFP_NONE: level 0 only
-    d.u = Wrap(s.addressU);
-    d.v = Wrap(s.addressV);
+    d.mag = ToGpu(s.magFilter);
+    d.min = ToGpu(s.minFilter);
+    d.mip = s.mipFilter == MipFilter::Linear ? gpu::Filter::Linear : gpu::Filter::Nearest;
+    if (s.mipFilter == MipFilter::None) d.maxLod = 0.0f;   // level 0 only
+    d.u = ToGpu(s.addressU);
+    d.v = ToGpu(s.addressV);
     return gpu::MakeSampler(d);
 }
 
 gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     // Point sampling asked for (the options' Filtering 0): as the stage says.
-    if (s.minFilter == 1 || s.magFilter == 1) return StageSampler(s);
+    if (s.minFilter == Filter::Point || s.magFilter == Filter::Point) return StageSampler(s);
     // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose texture
     // coordinates change direction and scale from tile to tile (D3DTFP_POINT's level steps showed as seams;
     // renderer.md section 11). The render quality's anisotropy samples the world's models so too.
@@ -363,9 +365,9 @@ gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     d.mag = gpu::Filter::Linear;
     d.mip = gpu::Filter::Linear;
     d.anisotropy = static_cast<int>(level);
-    if (s.mipFilter <= 1) d.maxLod = 0.0f;   // D3DTFP_NONE (the options' Mipmapping 0): level 0 only
-    d.u = Wrap(s.addressU);
-    d.v = Wrap(s.addressV);
+    if (s.mipFilter == MipFilter::None) d.maxLod = 0.0f;   // the options' Mipmapping 0: level 0 only
+    d.u = ToGpu(s.addressU);
+    d.v = ToGpu(s.addressV);
     return gpu::MakeSampler(d);
 }
 

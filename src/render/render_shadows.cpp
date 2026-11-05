@@ -214,8 +214,8 @@ static gpu::PipelineDesc TerrainCasterDesc() {
     p.bufferCount = 1;
     p.buffers[0].stride = sizeof(TerrainCasterVertex);
     p.attributeCount = 2;
-    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
-    p.attributes[1] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 12};
+    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, offsetof(TerrainCasterVertex, position)};
+    p.attributes[1] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, offsetof(TerrainCasterVertex, normal)};
     DepthOnly(p);
     return p;
 }
@@ -823,7 +823,7 @@ static void ListWorld(Frame& f) {
             if (f.worldGround.empty() || c.kind != Command::Mesh) continue;
             const MeshBatch& b = f.meshBatches[static_cast<std::size_t>(c.index)];
             if (!b.model || (b.flat && !b.decal)) continue;
-            WorldMesh m{c.index, b.state.blend && b.state.destBlend == 2, false};
+            WorldMesh m{c.index, AddsLight(b.state), false};
             if (!m.additive) {
                 m.repeat = b.cached == lastMesh && b.firstIndex == lastFirst;
                 lastMesh = b.cached;

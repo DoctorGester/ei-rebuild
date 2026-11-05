@@ -413,12 +413,12 @@ void ScreenDraw(const TextureDevice* device, const ScreenVertex* vertices, int c
 inline constexpr int kFvfTextured = 0x1C4;
 inline constexpr int kFvfUntextured = 0xC4;
 // What TlDraw's vertices make.
-enum class Primitive { LineStrip, TriangleList };
+enum class TlPrimitive { LineStrip, TriangleList };
 
 // A draw of pre-transformed vertices, fog already applied: `fvf` kFvfTextured or kFvfUntextured, indexed when
 // `indices`. A draw it refuses is lost (logged).
 void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
-            Primitive primitive);
+            TlPrimitive primitive);
 
 // A pixel format (the screen's, a texture's): 16 or 32 bits a pixel with the channels at their
 // masks (`alphaMask` 0: no alpha). All zero: no format (a compressed texture's).

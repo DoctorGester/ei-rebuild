@@ -127,33 +127,33 @@ static gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
 }
 
 // The pass states every battle and menu draws meshes with (the pipelines a run makes, logged; the rare ones are made at
-// their first draw): D3DCULL, D3DBLEND, D3DCMP numbers as PassState keeps them.
+// their first draw).
 void ListMeshPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
     struct Wanted {
-        std::uint8_t cull = 0;
-        std::uint8_t sourceBlend = 0, destBlend = 0;  // 0: blending off
+        Cull cull = Cull::None;
+        bool blend = false;
+        Blend sourceBlend = Blend::One, destBlend = Blend::Zero;
         bool depthTest = false, depthWrite = false;
         bool cached = false;
     };
-    constexpr std::uint8_t kSourceAlpha = 5, kInvSourceAlpha = 6, kOne = 2;
+    constexpr Cull kCw = Cull::Clockwise, kNone = Cull::None;
+    constexpr Blend kSourceAlpha = Blend::SourceAlpha, kInvSourceAlpha = Blend::InvSourceAlpha, kOne = Blend::One;
     static constexpr Wanted kWanted[] = {
-        {2, kSourceAlpha, kInvSourceAlpha, true, true, true},
-        {2, kSourceAlpha, kInvSourceAlpha, true, true, false},
-        {2, kSourceAlpha, kInvSourceAlpha, true, false, false},
-        {1, kSourceAlpha, kInvSourceAlpha, true, false, true},
-        {1, kSourceAlpha, kInvSourceAlpha, true, false, false},
-        {1, 0, 0, true, true, false},
-        {2, kSourceAlpha, kOne, true, false, false},
-        {2, kSourceAlpha, kInvSourceAlpha, false, false, false},
+        {kCw, true, kSourceAlpha, kInvSourceAlpha, true, true, true},
+        {kCw, true, kSourceAlpha, kInvSourceAlpha, true, true, false},
+        {kCw, true, kSourceAlpha, kInvSourceAlpha, true, false, false},
+        {kNone, true, kSourceAlpha, kInvSourceAlpha, true, false, true},
+        {kNone, true, kSourceAlpha, kInvSourceAlpha, true, false, false},
+        {kNone, false, kOne, Blend::Zero, true, true, false},
+        {kCw, true, kSourceAlpha, kOne, true, false, false},
+        {kCw, true, kSourceAlpha, kInvSourceAlpha, false, false, false},
     };
     for (const Wanted& w : kWanted) {
         PassState s;
         s.cull = w.cull;
-        s.blend = w.sourceBlend != 0;
-        if (s.blend) {
-            s.sourceBlend = w.sourceBlend;
-            s.destBlend = w.destBlend;
-        }
+        s.blend = w.blend;
+        s.sourceBlend = w.sourceBlend;
+        s.destBlend = w.destBlend;
         s.depthTest = w.depthTest;
         s.depthWrite = w.depthWrite;
         out.push_back(MeshDesc(s, false, w.cached, samples));
@@ -164,15 +164,15 @@ PassState ReadPassState(const TextureDevice* device) {
     const RenderState& d = g_renderState;
     PassState s;
     s.blend = d.blend;
-    s.sourceBlend = static_cast<std::uint8_t>(d.sourceBlend);
-    s.destBlend = static_cast<std::uint8_t>(d.destBlend);
+    s.sourceBlend = d.sourceBlend;
+    s.destBlend = d.destBlend;
     s.alphaTest = d.alphaTest;
-    s.alphaFunc = static_cast<std::uint8_t>(d.alphaFunc);
+    s.alphaFunc = d.alphaFunc;
     s.alphaReference = d.alphaReference;
     s.depthTest = d.depthTest;
     s.depthWrite = d.depthWrite;
-    s.depthFunc = static_cast<std::uint8_t>(d.depthFunc);
-    s.cull = static_cast<std::uint8_t>(d.cull);
+    s.depthFunc = d.depthFunc;
+    s.cull = d.cull;
     s.specular = d.specular;
     s.fog = d.fog;
     s.fogColour = d.fogColour;
@@ -180,18 +180,13 @@ PassState ReadPassState(const TextureDevice* device) {
     for (int stage = 0; stage < 2; ++stage) {
         const TextureStage& from = d.stages[stage];
         StageState& st = s.stages[stage];
-        st.colourOp = static_cast<std::uint8_t>(from.combiner.colourOp);
-        if (stage == 1 && st.colourOp <= 1) break;   // TextureOp::Disable: stage 1 unused
-        st.colourArg1 = from.combiner.colourArg1;
-        st.colourArg2 = from.combiner.colourArg2;
-        st.alphaOp = static_cast<std::uint8_t>(from.combiner.alphaOp);
-        st.alphaArg1 = from.combiner.alphaArg1;
-        st.alphaArg2 = from.combiner.alphaArg2;
-        st.magFilter = static_cast<std::uint8_t>(from.magFilter);
-        st.minFilter = static_cast<std::uint8_t>(from.minFilter);
-        st.mipFilter = static_cast<std::uint8_t>(from.mipFilter);
-        st.addressU = static_cast<std::uint8_t>(from.addressU);
-        st.addressV = static_cast<std::uint8_t>(from.addressV);
+        if (stage == 1 && from.combiner.colourOp == TextureOp::Disable) break;   // stage 1 unused
+        st.combiner = from.combiner;
+        st.magFilter = from.magFilter;
+        st.minFilter = from.minFilter;
+        st.mipFilter = from.mipFilter;
+        st.addressU = from.addressU;
+        st.addressV = from.addressV;
         // The surface holder the game bound to the stage.
         if (!device) continue;
         const void* holder = device->stageSurfaces[stage];
@@ -203,32 +198,32 @@ PassState ReadPassState(const TextureDevice* device) {
     return s;
 }
 
-static gpu::BlendFactor Factor(std::uint8_t d3d) {
-    switch (d3d) {   // D3DBLEND
-    case 1: return gpu::BlendFactor::Zero;
-    case 2: return gpu::BlendFactor::One;
-    case 3: return gpu::BlendFactor::SourceColour;
-    case 4: return gpu::BlendFactor::OneMinusSourceColour;
-    case 5: return gpu::BlendFactor::SourceAlpha;
-    case 6: return gpu::BlendFactor::OneMinusSourceAlpha;
-    case 7: return gpu::BlendFactor::DestAlpha;
-    case 8: return gpu::BlendFactor::OneMinusDestAlpha;
-    case 9: return gpu::BlendFactor::DestColour;
-    case 10: return gpu::BlendFactor::OneMinusDestColour;
-    case 11: return gpu::BlendFactor::SourceAlphaSaturate;
-    default: return gpu::BlendFactor::One;
+static gpu::BlendFactor ToGpu(Blend factor) {
+    switch (factor) {
+    case Blend::Zero: return gpu::BlendFactor::Zero;
+    case Blend::One: return gpu::BlendFactor::One;
+    case Blend::SourceColour: return gpu::BlendFactor::SourceColour;
+    case Blend::InvSourceColour: return gpu::BlendFactor::OneMinusSourceColour;
+    case Blend::SourceAlpha: return gpu::BlendFactor::SourceAlpha;
+    case Blend::InvSourceAlpha: return gpu::BlendFactor::OneMinusSourceAlpha;
+    case Blend::DestAlpha: return gpu::BlendFactor::DestAlpha;
+    case Blend::InvDestAlpha: return gpu::BlendFactor::OneMinusDestAlpha;
+    case Blend::DestColour: return gpu::BlendFactor::DestColour;
+    case Blend::InvDestColour: return gpu::BlendFactor::OneMinusDestColour;
+    case Blend::SourceAlphaSaturate: return gpu::BlendFactor::SourceAlphaSaturate;
+    default: return gpu::BlendFactor::One;   // BothSourceAlpha, BothInvSourceAlpha: ApplyPassState sets both factors
     }
 }
 
-static gpu::Compare Compare(std::uint8_t d3d) {
-    switch (d3d) {   // D3DCMPFUNC
-    case 1: return gpu::Compare::Never;
-    case 2: return gpu::Compare::Less;
-    case 3: return gpu::Compare::Equal;
-    case 4: return gpu::Compare::LessEqual;
-    case 5: return gpu::Compare::Greater;
-    case 6: return gpu::Compare::NotEqual;
-    case 7: return gpu::Compare::GreaterEqual;
+static gpu::Compare ToGpu(Compare function) {
+    switch (function) {
+    case Compare::Never: return gpu::Compare::Never;
+    case Compare::Less: return gpu::Compare::Less;
+    case Compare::Equal: return gpu::Compare::Equal;
+    case Compare::LessEqual: return gpu::Compare::LessEqual;
+    case Compare::Greater: return gpu::Compare::Greater;
+    case Compare::NotEqual: return gpu::Compare::NotEqual;
+    case Compare::GreaterEqual: return gpu::Compare::GreaterEqual;
     default: return gpu::Compare::Always;
     }
 }
@@ -236,28 +231,30 @@ static gpu::Compare Compare(std::uint8_t d3d) {
 void ApplyPassState(gpu::PipelineDesc& p, const PassState& s) {
     // D3DCULL_CW culls triangles clockwise on screen, D3DCULL_CCW counter-clockwise ones (screen y
     // down in both APIs).
-    if (s.cull == 2) {
-        p.cull = gpu::Cull::Back;
+    switch (s.cull) {
+    case Cull::Clockwise:
+        p.cull = gpu::CullFace::Back;
         p.front = gpu::Winding::CounterClockwise;
-    } else if (s.cull == 3) {
-        p.cull = gpu::Cull::Back;
+        break;
+    case Cull::CounterClockwise:
+        p.cull = gpu::CullFace::Back;
         p.front = gpu::Winding::Clockwise;
-    } else {
-        p.cull = gpu::Cull::None;
+        break;
+    default: p.cull = gpu::CullFace::None; break;
     }
     p.depth = kDepthFormat;
-    p.depthCompare = s.depthTest ? Compare(s.depthFunc) : gpu::Compare::Always;
+    p.depthCompare = s.depthTest ? ToGpu(s.depthFunc) : gpu::Compare::Always;
     p.depthWrite = s.depthTest && s.depthWrite;
     p.colour = kColourFormat;
     // The old render target has no alpha channel: destination alpha reads as one, so the new
     // target's alpha stays at the clear value.
     p.colourMask = gpu::kWriteRed | gpu::kWriteGreen | gpu::kWriteBlue;
     if (s.blend) {
-        gpu::BlendFactor source = Factor(s.sourceBlend), dest = Factor(s.destBlend);
-        if (s.sourceBlend == 12) {   // D3DBLEND_BOTHSRCALPHA
+        gpu::BlendFactor source = ToGpu(s.sourceBlend), dest = ToGpu(s.destBlend);
+        if (s.sourceBlend == Blend::BothSourceAlpha) {
             source = gpu::BlendFactor::SourceAlpha;
             dest = gpu::BlendFactor::OneMinusSourceAlpha;
-        } else if (s.sourceBlend == 13) {   // D3DBLEND_BOTHINVSRCALPHA
+        } else if (s.sourceBlend == Blend::BothInvSourceAlpha) {
             source = gpu::BlendFactor::OneMinusSourceAlpha;
             dest = gpu::BlendFactor::SourceAlpha;
         }
@@ -279,19 +276,20 @@ void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly) {
                   gpu_shaders::mesh::kAttrUv == 3 && gpu_shaders::mesh::kAttrNormal == 4 &&
                   gpu_shaders::shadow_caster::kAttrPos == 0 && gpu_shaders::shadow_caster::kAttrUv == 1);
     const std::uint8_t uv = positionsOnly ? 1 : 3;
+    // A member's offset: in MeshVertex (or ColourPair, buffer 1) when kept, else in Vertex.
+    auto at = [cached](std::size_t kept, std::size_t streamed) { return static_cast<std::uint16_t>(cached ? kept : streamed); };
     p.bufferCount = cached && !positionsOnly ? 2 : 1;
-    p.buffers[0].stride = cached ? static_cast<std::uint16_t>(kCachedVertexBytes) : static_cast<std::uint16_t>(sizeof(Vertex));
-    p.attributes[0] = {0, 0, gpu::VertexFormat::Float3, 0};
-    p.attributes[1] = {uv, 0, gpu::VertexFormat::Float2, static_cast<std::uint16_t>(cached ? 12 : 20)};
+    p.buffers[0].stride = at(sizeof(MeshVertex), sizeof(Vertex));
+    p.attributes[0] = {0, 0, gpu::VertexFormat::Float3, at(offsetof(MeshVertex, position), offsetof(Vertex, position))};
+    p.attributes[1] = {uv, 0, gpu::VertexFormat::Float2, at(offsetof(MeshVertex, u), offsetof(Vertex, u))};
     p.attributeCount = 2;
     if (positionsOnly) return;
-    p.attributes[2] = {4, 0, gpu::VertexFormat::Float3, static_cast<std::uint16_t>(cached ? 20 : 28)};
-    for (std::uint8_t k = 1; k <= 2; ++k) {
-        p.attributes[2 + k] = {k, static_cast<std::uint8_t>(cached ? 1 : 0), gpu::VertexFormat::UByte4Norm,
-                               static_cast<std::uint16_t>(cached ? (k - 1) * 4 : 12 + (k - 1) * 4)};
-    }
+    const std::uint8_t colours = cached ? 1 : 0;
+    p.attributes[2] = {4, 0, gpu::VertexFormat::Float3, at(offsetof(MeshVertex, normal), offsetof(Vertex, normal))};
+    p.attributes[3] = {1, colours, gpu::VertexFormat::UByte4Norm, at(offsetof(ColourPair, colour), offsetof(Vertex, colour))};
+    p.attributes[4] = {2, colours, gpu::VertexFormat::UByte4Norm, at(offsetof(ColourPair, specular), offsetof(Vertex, specular))};
     p.attributeCount = 5;
-    if (cached) p.buffers[1].stride = static_cast<std::uint16_t>(kColourPairBytes);
+    if (cached) p.buffers[1].stride = sizeof(ColourPair);
 }
 
 void UploadMeshes(const Frame& f) {
@@ -396,23 +394,24 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     UnpackColour(s.fogColour, fs.fogColour);
     UnpackColour(s.textureFactor, fs.factor);
     fs.factor[3] = ((s.textureFactor >> 24) & 0xFF) / 255.0f;
-    const StageState& s0 = s.stages[0];
-    const StageState& s1 = s.stages[1];
-    fs.colourOps[0] = s0.colourOp;
-    fs.colourOps[1] = s0.colourArg1;
-    fs.colourOps[2] = s0.colourArg2;
-    fs.colourOps[3] = s0.colourOp > 1 ? s1.colourOp : 1;
-    fs.colourOps1[0] = s1.colourArg1;
-    fs.colourOps1[1] = s1.colourArg2;
-    fs.alphaOps[0] = s0.alphaOp;
-    fs.alphaOps[1] = s0.alphaArg1;
-    fs.alphaOps[2] = s0.alphaArg2;
-    fs.alphaOps[3] = s1.alphaOp;
-    fs.alphaOps1[0] = s1.alphaArg1;
-    fs.alphaOps1[1] = s1.alphaArg2;
+    // The shader takes render_state.h's values as they are.
+    const StageCombiner& c0 = s.stages[0].combiner;
+    const StageCombiner& c1 = s.stages[1].combiner;
+    fs.colourOps[0] = static_cast<int>(c0.colourOp);
+    fs.colourOps[1] = c0.colourArg1;
+    fs.colourOps[2] = c0.colourArg2;
+    fs.colourOps[3] = static_cast<int>(c0.colourOp != TextureOp::Disable ? c1.colourOp : TextureOp::Disable);
+    fs.colourOps1[0] = c1.colourArg1;
+    fs.colourOps1[1] = c1.colourArg2;
+    fs.alphaOps[0] = static_cast<int>(c0.alphaOp);
+    fs.alphaOps[1] = c0.alphaArg1;
+    fs.alphaOps[2] = c0.alphaArg2;
+    fs.alphaOps[3] = static_cast<int>(c1.alphaOp);
+    fs.alphaOps1[0] = c1.alphaArg1;
+    fs.alphaOps1[1] = c1.alphaArg2;
     fs.switches[0] = s.specular ? 1 : 0;
     fs.switches[1] = s.fog ? 1 : 0;
-    fs.switches[2] = s.alphaTest ? s.alphaFunc : 0;
+    fs.switches[2] = s.alphaTest ? static_cast<int>(s.alphaFunc) : 0;
     fs.switches[3] = s.alphaReference;
     if (s.patch.texture) {
         for (int k = 0; k < 4; ++k) {
@@ -566,7 +565,7 @@ bool WeatherParticlesDrawn() { return g_weatherParticles; }
 void SetInterfaceUnitWeather(bool on) { g_interfaceUnitWeather = on; }
 
 void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
-            Primitive primitive) {
+            TlPrimitive primitive) {
     if (!device || !vertices || vertexCount <= 0) return;   // nothing to draw
     Start();
     if (fvf != kFvfTextured && fvf != kFvfUntextured) {   // not a layout the game uses for these
@@ -586,22 +585,25 @@ void TlDraw(const TextureDevice* device, const void* vertices, int fvf, int vert
         return;
     }
     Matrix4 clip = ScreenToClip(kIdentity, width, height);
-    int stride = fvf == kFvfTextured ? 32 : 24;
+    // kFvfUntextured's vertex is a ScreenVertex; kFvfTextured's has the texture coordinates after it.
+    struct TexturedVertex {
+        ScreenVertex screen;
+        float u = 0.0f, v = 0.0f;
+    };
+    const std::size_t stride = fvf == kFvfTextured ? sizeof(TexturedVertex) : sizeof(ScreenVertex);
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < vertexCount; ++i) {
-        const auto* p = static_cast<const std::uint8_t*>(vertices) + static_cast<std::size_t>(i) * stride;
-        Vertex v{};
-        std::memcpy(&v.position, p, 12);   // x, y, z (rhw taken as 1: affine interpolation)
-        std::memcpy(&v.colour, p + 16, 8);
-        if (stride == 32) std::memcpy(&v.u, p + 24, 8);
-        f.meshVertices.push_back(v);
+        TexturedVertex t;
+        std::memcpy(&t, static_cast<const std::uint8_t*>(vertices) + static_cast<std::size_t>(i) * stride, stride);
+        const ScreenVertex& s = t.screen;   // rhw taken as 1: affine interpolation
+        f.meshVertices.push_back(Vertex{s.x, s.y, s.z, s.colour, s.specular, t.u, t.v});
     }
     // The primitive as a list over absolute indices.
     int count = indices ? indexCount : vertexCount;
     auto at = [&](int k) { return base + (indices ? indices[k] : static_cast<std::uint16_t>(k)); };
     auto valid = [&](int k) { return (indices ? indices[k] : k) < vertexCount; };
     int firstIndex = static_cast<int>(f.meshIndices.size());
-    const bool lines = primitive == Primitive::LineStrip;
+    const bool lines = primitive == TlPrimitive::LineStrip;
     for (int k = 0; k < count; ++k) {
         if (lines) {
             if (k >= 1 && valid(k - 1) && valid(k)) { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k)); }

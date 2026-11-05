@@ -126,7 +126,7 @@ Vector2 StripDirection(int index, int mode, const void* array) {
 int TextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount, const std::uint16_t* indices,
                                     int indexCount) {
     if (distanceFog) pipeline->FogVertices(vertices, vertexCount);
-    render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::Primitive::TriangleList);
+    render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::TlPrimitive::TriangleList);
     return 1;
 }
 

@@ -555,16 +555,16 @@ static gpu::PipelineDesc TerrainDesc(const PassState& s, int samples) {
     p.program = program::kIndex;
     p.bufferCount = 2;
     p.buffers[0].stride = sizeof(PageVertex);
-    p.buffers[1].stride = kColourPairBytes;
+    p.buffers[1].stride = sizeof(ColourPair);
     p.attributeCount = 8;
-    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
-    p.attributes[1] = {program::kAttrCol, 1, gpu::VertexFormat::UByte4Norm, 0};
-    p.attributes[2] = {program::kAttrSpec, 1, gpu::VertexFormat::UByte4Norm, 4};
-    p.attributes[3] = {program::kAttrUv, 0, gpu::VertexFormat::Float2, 12};
-    p.attributes[4] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
-    p.attributes[5] = {program::kAttrLoss, 0, gpu::VertexFormat::Float, 32};
-    p.attributes[6] = {program::kAttrDepth, 0, gpu::VertexFormat::Float2, 36};   // depth, shore
-    p.attributes[7] = {program::kAttrExtra, 0, gpu::VertexFormat::Float, 44};
+    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, offsetof(PageVertex, position)};
+    p.attributes[1] = {program::kAttrCol, 1, gpu::VertexFormat::UByte4Norm, offsetof(ColourPair, colour)};
+    p.attributes[2] = {program::kAttrSpec, 1, gpu::VertexFormat::UByte4Norm, offsetof(ColourPair, specular)};
+    p.attributes[3] = {program::kAttrUv, 0, gpu::VertexFormat::Float2, offsetof(PageVertex, u)};
+    p.attributes[4] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, offsetof(PageVertex, normal)};
+    p.attributes[5] = {program::kAttrLoss, 0, gpu::VertexFormat::Float, offsetof(PageVertex, loss)};
+    p.attributes[6] = {program::kAttrDepth, 0, gpu::VertexFormat::Float2, offsetof(PageVertex, depth)};   // depth, shore
+    p.attributes[7] = {program::kAttrExtra, 0, gpu::VertexFormat::Float, offsetof(PageVertex, extra)};
     ApplyPassState(p, s);
     p.samples = samples;
     AddDepthCopy(p);
@@ -587,8 +587,8 @@ static gpu::Pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {
     if (gpu::PipelineCount() != known)
         ei::Log("render: terrain pipeline (first for a %s page): blend %d (%u, %u), depth test %d write %d func %u, "
                 "cull %u",
-                water ? "water" : "ground", s.blend ? 1 : 0, s.sourceBlend, s.destBlend, s.depthTest ? 1 : 0,
-                s.depthWrite ? 1 : 0, s.depthFunc, s.cull);
+                water ? "water" : "ground", s.blend ? 1 : 0, static_cast<unsigned>(s.sourceBlend), static_cast<unsigned>(s.destBlend),
+                s.depthTest ? 1 : 0, s.depthWrite ? 1 : 0, static_cast<unsigned>(s.depthFunc), static_cast<unsigned>(s.cull));
 #endif
     return pipeline;
 }
@@ -687,7 +687,7 @@ static void Write(CachedPage& p) {
         g_pool.WriteGeometry(p.place, 0, count, p.vertices.data());
         g_pool.WriteColours(p.place, 0, count, p.colours.data());
         g_pool.WriteIndices(p.place, p.indices.data(), p.indices.size());
-        stats.terrainVertexBytes += p.vertices.size() * (sizeof(PageVertex) + kColourPairBytes);
+        stats.terrainVertexBytes += p.vertices.size() * (sizeof(PageVertex) + sizeof(ColourPair));
         stats.terrainIndexBytes += p.indices.size() * sizeof(std::uint32_t);
     } else {
         if (p.vertexTo > p.vertexFrom) {
@@ -697,7 +697,7 @@ static void Write(CachedPage& p) {
         if (p.colourTo > p.colourFrom) {
             g_pool.WriteColours(p.place, p.colourFrom, p.colourTo - p.colourFrom,
                                 &p.colours[2 * static_cast<std::size_t>(p.colourFrom)]);
-            stats.terrainVertexBytes += (p.colourTo - p.colourFrom) * kColourPairBytes;
+            stats.terrainVertexBytes += (p.colourTo - p.colourFrom) * sizeof(ColourPair);
         }
     }
     p.geometryDirty = false;
@@ -723,10 +723,10 @@ static bool BuildAgain(const SectorData* s, int page, CachedPage& p, const float
 // The pass states the ground and the water pages are drawn with in every battle (the pipelines a run makes, logged).
 void ListTerrainPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
     PassState ground;   // alpha-blended, clockwise triangles culled
-    ground.cull = 2;
+    ground.cull = Cull::Clockwise;
     ground.blend = true;
-    ground.sourceBlend = 5;   // D3DBLEND_SRCALPHA
-    ground.destBlend = 6;     // D3DBLEND_INVSRCALPHA
+    ground.sourceBlend = Blend::SourceAlpha;
+    ground.destBlend = Blend::InvSourceAlpha;
     out.push_back(TerrainDesc(ground, samples));
     PassState water;   // opaque, nothing culled
     water.blend = false;
@@ -838,8 +838,8 @@ gpu::PipelineDesc TerrainDepthDesc() {
     p.bufferCount = 1;
     p.buffers[0].stride = sizeof(PageVertex);
     p.attributeCount = 2;
-    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, 0};
-    p.attributes[1] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, 20};
+    p.attributes[0] = {program::kAttrPos, 0, gpu::VertexFormat::Float3, offsetof(PageVertex, position)};
+    p.attributes[1] = {program::kAttrNormal, 0, gpu::VertexFormat::Float3, offsetof(PageVertex, normal)};
     p.colour = gpu::Format::None;
     p.depth = kDepthFormat;
     p.depthCompare = gpu::Compare::LessEqual;

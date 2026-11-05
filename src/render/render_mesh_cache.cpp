@@ -10,13 +10,6 @@
 namespace render {
 
 // A corner's geometry; its colours (colour, specular) are a stream of their own.
-struct MeshVertex {
-    Vector3 position;
-    float u = 0.0f, v = 0.0f;
-    Vector3 normal;   // CornerNormal
-};
-static_assert(sizeof(MeshVertex) == kCachedVertexBytes);
-
 struct MeshChanges {
     std::uint32_t positions = 0, colours = 0, rebuilt = 0;
 };
@@ -363,7 +356,7 @@ static void Write(CachedMesh& e) {
         if (e.colourTo > e.colourFrom) {
             g_pool.WriteColours(e.place, e.colourFrom, e.colourTo - e.colourFrom,
                                 &e.colours[2 * static_cast<std::size_t>(e.colourFrom)]);
-            stats.meshVertexBytes += (e.colourTo - e.colourFrom) * kColourPairBytes;
+            stats.meshVertexBytes += (e.colourTo - e.colourFrom) * sizeof(ColourPair);
         }
     }
     e.dirty = false;

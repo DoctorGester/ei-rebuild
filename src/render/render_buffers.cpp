@@ -120,7 +120,7 @@ void GpuPool::Restart(std::uint64_t vertexCount, std::uint64_t indexCount) {
         Drop();
         if (needVertices > 0x1000000 || needIndices > 0x3000000 ||
             !geometry.Make(static_cast<std::size_t>(needVertices) * geometryStride, false, label) ||
-            !colours.Make(static_cast<std::size_t>(needVertices) * kColourPairBytes, false, label) ||
+            !colours.Make(static_cast<std::size_t>(needVertices) * sizeof(ColourPair), false, label) ||
             !indices.Make(static_cast<std::size_t>(needIndices) * sizeof(std::uint32_t), true, label)) {
             ei::Log("render: the %s pool (%llu vertices, %llu indices) could not be made", label,
                     static_cast<unsigned long long>(needVertices), static_cast<unsigned long long>(needIndices));
@@ -139,7 +139,7 @@ void GpuPool::WriteGeometry(const PoolPlace& p, std::uint32_t first, std::uint32
 }
 
 void GpuPool::WriteColours(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const std::uint32_t* pairs) const {
-    colours.Write((p.firstVertex + first) * kColourPairBytes, pairs, count * kColourPairBytes);
+    colours.Write((p.firstVertex + first) * sizeof(ColourPair), pairs, count * sizeof(ColourPair));
 }
 
 void GpuPool::WriteIndices(const PoolPlace& p, const std::uint32_t* relative, std::size_t count) {

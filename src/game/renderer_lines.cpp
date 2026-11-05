@@ -20,7 +20,7 @@ namespace {
 
 // The draw itself, to the new renderer.
 void DrawStrip(TextureDevice* device, LineVertex* vertices, int count) {
-    render::TlDraw(device, vertices, render::kFvfUntextured, count, nullptr, 0, render::Primitive::LineStrip);
+    render::TlDraw(device, vertices, render::kFvfUntextured, count, nullptr, 0, render::TlPrimitive::LineStrip);
 }
 
 void SetStage0Ops(render::TextureOp op) {

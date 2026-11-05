@@ -118,7 +118,7 @@ g::PipelineDesc MeshDesc(bool blend) {
     d.attributes[2] = {m::kAttrSpec, 0, g::VertexFormat::UByte4Norm, 16};
     d.attributes[3] = {m::kAttrUv, 0, g::VertexFormat::Float2, 20};
     d.attributes[4] = {m::kAttrNormal, 0, g::VertexFormat::Float3, 28};
-    d.cull = g::Cull::Back;
+    d.cull = g::CullFace::Back;
     d.colour = g::Format::Rgba8;
     d.depth = g::Format::Depth32Float;
     d.depthCompare = g::Compare::LessEqual;

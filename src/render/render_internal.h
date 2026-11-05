@@ -5,6 +5,7 @@
 #include "platform/log.h"
 #include "render.h"
 #include "render/gpu.h"
+#include "render_state.h"
 
 #include "lib/vecmath.h"
 
@@ -12,6 +13,7 @@
 #include "shaders/gpu_shaders.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -79,13 +81,13 @@ struct Vertex {
 };
 static_assert(sizeof(Vertex) == 40);
 
-// One texture stage of a pass (render_state.h's values as numbers).
+// One texture stage of a pass (render_state.h's values). A stage the pass leaves off keeps these.
 struct StageState {
-    std::uint8_t colourOp = 1, colourArg1 = 2, colourArg2 = 1;   // D3DTOP_DISABLE, TEXTURE, CURRENT
-    std::uint8_t alphaOp = 1, alphaArg1 = 2, alphaArg2 = 1;
-    std::uint8_t magFilter = 2, minFilter = 2, mipFilter = 1;     // D3DTFG / D3DTFN / D3DTFP
-    std::uint8_t addressU = 1, addressV = 1;                      // D3DTADDRESS_WRAP
-    gpu::Texture texture;                                         // the bound surface, read at the pass
+    StageCombiner combiner = {TextureOp::Disable, kArgTexture, kArgCurrent, TextureOp::Disable, kArgTexture, kArgCurrent};
+    Filter magFilter = Filter::Linear, minFilter = Filter::Linear;
+    MipFilter mipFilter = MipFilter::None;
+    Address addressU = Address::Wrap, addressV = Address::Wrap;
+    gpu::Texture texture;   // the bound surface, read at the pass
     bool hasTexture = false;
 };
 
@@ -104,12 +106,13 @@ StagePatch PatchOf(const void* holder);
 // goes to the shader.
 struct PassState {
     bool blend = false;
-    std::uint8_t sourceBlend = 2, destBlend = 1;   // D3DBLEND
+    Blend sourceBlend = Blend::One, destBlend = Blend::Zero;
     bool depthTest = true, depthWrite = true;
-    std::uint8_t depthFunc = 4;                    // D3DCMP_LESSEQUAL
-    std::uint8_t cull = 1;                         // D3DCULL: 1 none, 2 clockwise, 3 counter-clockwise
+    Compare depthFunc = Compare::LessEqual;
+    Cull cull = Cull::None;
     bool alphaTest = false;
-    std::uint8_t alphaFunc = 8, alphaReference = 0;
+    Compare alphaFunc = Compare::Always;
+    std::uint8_t alphaReference = 0;
     bool specular = false;
     bool fog = false;
     std::uint32_t fogColour = 0;                   // D3DCOLOR
@@ -118,12 +121,15 @@ struct PassState {
     StagePatch patch;
 
     std::uint32_t PipelineKey() const {
-        return (blend ? 1u : 0u) | (static_cast<std::uint32_t>(sourceBlend & 15) << 1) |
-               (static_cast<std::uint32_t>(destBlend & 15) << 5) | (depthTest ? 1u << 9 : 0u) |
-               (depthWrite ? 1u << 10 : 0u) | (static_cast<std::uint32_t>(depthFunc & 15) << 11) |
-               (static_cast<std::uint32_t>(cull & 3) << 15);
+        auto bits = [](auto value, std::uint32_t mask) { return static_cast<std::uint32_t>(value) & mask; };
+        return (blend ? 1u : 0u) | (bits(sourceBlend, 15) << 1) | (bits(destBlend, 15) << 5) | (depthTest ? 1u << 9 : 0u) |
+               (depthWrite ? 1u << 10 : 0u) | (bits(depthFunc, 15) << 11) | (bits(cull, 3) << 15);
     }
 };
+
+// The pass adds its light to the frame (blended, the destination's factor one): an effect that neither casts a
+// shadow nor receives one.
+inline bool AddsLight(const PassState& s) { return s.blend && s.destBlend == Blend::One; }
 
 // A box in the landscape's space: empty (low above high) until points are added.
 struct Box {
@@ -477,10 +483,12 @@ struct PoolPlace {
 };
 
 // Vertices and indices kept on the GPU across frames (terrain pages, meshes): a geometry stream, a colour
-// stream (kColourPairBytes a vertex) and absolute 32-bit indices, in buffers written in place, only the changed
+// stream (a ColourPair a vertex) and absolute 32-bit indices, in buffers written in place, only the changed
 // ranges. Items are placed one after the other; when one does not fit, the pool starts again (Restart) with the
 // items still needed, larger when they need more than half.
-constexpr std::size_t kColourPairBytes = 2 * sizeof(std::uint32_t);
+struct ColourPair {
+    std::uint32_t colour = 0, specular = 0;   // D3DCOLOR
+};
 class GpuPool {
 public:
     GpuPool(std::size_t newGeometryStride, std::uint32_t newLeastVertices, std::uint32_t newLeastIndices, const char* newLabel)
@@ -566,7 +574,13 @@ void MeshLayout(gpu::PipelineDesc& p, bool cached, bool positionsOnly);
 // to date as kept for render::SetMeshSource's figure mesh, or null: it goes into the frame's stream (no source,
 // no corners, the cache off, or the mesh already drawn this frame with other data). MeshCacheFrameDone drops
 // meshes not drawn for a long time.
-constexpr std::size_t kCachedVertexBytes = 32;   // a kept corner's geometry: position, texture coordinates, normal
+// A kept corner's geometry (its colours in the pool's colour stream).
+struct MeshVertex {
+    Vector3 position;
+    float u = 0.0f, v = 0.0f;
+    Vector3 normal;   // CornerNormal
+};
+static_assert(sizeof(MeshVertex) == 32);
 void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
