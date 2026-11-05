@@ -549,6 +549,7 @@ void ExchangeScreen::KeyDown(UiEvent& event) {
         net::g_gameClient->DropParty();
         event.handled = true;
         break;
+    default: break;
     }
 }
 
