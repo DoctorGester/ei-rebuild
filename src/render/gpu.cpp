@@ -18,6 +18,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace render::gpu {
@@ -597,6 +598,8 @@ struct PipelineHash {
     }
 };
 static std::unordered_map<PipelineDesc, Pipeline, PipelineHash> g_pipelines;
+// The descriptions MakePipeline could not build: tried once (one logged problem), then refused without a try.
+static std::unordered_set<PipelineDesc, PipelineHash> g_failedPipelines;
 
 // A description's fault, or null.
 static const char* PipelineFault(const PipelineDesc& d) {
@@ -896,6 +899,7 @@ void Stop() {
     for (auto& [desc, s] : g_samplers) SDL_ReleaseGPUSampler(g_device, s.sampler);
     g_samplers.clear();
     ReleaseMade(g_device, g_pipelines, g_shaders);
+    g_failedPipelines.clear();
     ReleaseWindow();
     SDL_DestroyGPUDevice(g_device);
     g_device = nullptr;
@@ -1199,8 +1203,10 @@ Pipeline MakePipeline(const PipelineDesc& desc, const char* label) {
     if (!g_device) return {};
     auto it = g_pipelines.find(desc);
     if (it != g_pipelines.end()) return it->second;
+    if (g_failedPipelines.contains(desc)) return {};
     const Pipeline p = BuildPipeline(g_device, g_shaders, desc, label, false);
     if (p) g_pipelines.emplace(desc, p);
+    else g_failedPipelines.insert(desc);
     return p;
 }
 

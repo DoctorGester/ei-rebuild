@@ -432,7 +432,6 @@ void Terrain::AddLight(Light* light) {
 }
 
 void Terrain::RemoveLight(Light* light) {
-    if (!mapLoaded) return;
     lights.erase(light->id);
 }
 

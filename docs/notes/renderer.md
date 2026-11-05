@@ -1413,7 +1413,8 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   copy's extent up on Direct3D 12 alone.
 - **Samplers and pipelines are kept by description** (`MakeSampler`, `MakePipeline`: the pipeline cache). The same
   description gives the same object, made at its first use (or ahead, above) and kept until `Stop`, so callers keep no maps of their own
-  beyond a cheap key if they want one. A `PipelineDesc` is the program, the vertex buffers (0..n-1, no gaps: SDL's
+  beyond a cheap key if they want one. A description that could not be built is kept too (one logged problem, then
+  refused without a try). A `PipelineDesc` is the program, the vertex buffers (0..n-1, no gaps: SDL's
   Direct3D 12 backend looks a layout up by its index) and attributes, primitive, cull and winding, colour format, write
   mask and blend, a second colour target's format and mask (never blended), depth format, compare, write and bias, and
   the sample count. A sampler's `maxLod` 0 samples level 0 only (D3DTFP_NONE, the options' Mipmapping 0), as the
