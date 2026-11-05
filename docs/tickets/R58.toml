@@ -1,0 +1,9 @@
+id = "R58"
+title = "Main menu: the pillar's ground shadow appears only at the first hover over a menu item"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-11-05: the first time the mouse hovers any main-menu item, a shadow appears on the ground under the menu pillar; before that it is missing. Likely the menu scene's sun map / shadow casters only built or marked dirty once something changes (a hover animates the pillar). Fix so the first frame of the menu already has the shadow; check with captures before and after a hover (samecapture)."
+order = 1227
+status = "review"
+started = "2026-11-05"
