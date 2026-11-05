@@ -273,6 +273,7 @@ function render(data) {
     ['reinterpret_cast', 'reinterpret_casts'], ['static_cast to a pointer type', 'pointer_static_casts'],
     ['Struct names defined in several files', 'structs_defined_twice'], ['Anonymous namespaces', 'anonymous_namespaces']]) + peakRows('cleanup', [
     ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
+    ['#define EI_ numbers', 'define_numbers'], ['Constants named by value (kOne, kHalf ...)', 'value_named_constants'],
     ['static_cast<float>', 'float_casts'], ['static_cast<double>', 'double_casts']]);
   document.querySelector('#goals tbody').innerHTML = peakRows('goals', [
     ['pc24:: uses (24-bit-rounded operations on wider operands)', 'pc24_uses'],

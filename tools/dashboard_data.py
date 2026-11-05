@@ -48,7 +48,8 @@ TRACK_PATTERNS = {key: re.compile(pattern, re.M) for label, pattern in progress.
                   for key, name in TRACK.items() if label == name}
 
 # check_cleanup's columns that the dashboard still charts (the others are at 0 and held there by the build check).
-RATCHET = {'vector_map_set_structs': 'per-file vector/map/set struct'}
+RATCHET = {'vector_map_set_structs': 'per-file vector/map/set struct', 'define_numbers': '#define EI_ number',
+           'value_named_constants': 'value-named constant'}
 
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 # The x87 remains (C30): casts that pin a precision.
