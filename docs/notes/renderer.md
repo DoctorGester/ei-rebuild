@@ -965,6 +965,13 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   casts; the decals of overlapping objects stacked and were laid on the terrain under objects standing higher; a decal's
   direction was the sum of the sun and the point lights in reach, the map's is the sun's alone (the point lights have
   their own maps).
+  - Where shadows overlap, the decals each darkened by half (the dirt under the fight's ruin at 21% of its lit
+    brightness); the map hides the sun once (43% there). The user kept the strength at 0.5 with no extra darkening
+    where shadows overlap (2026-10-21: "Color-wise shadows looked about the same").
+  - Near the town bz1g's campfire at night the units' shadows point away from the fire, as the decals' summed
+    direction made them, from the fire's cube map (point-light shadows, item 9), beside the moon's map shadow. A unit
+    carrying its own light (the hero at night) lights the ground where the fire's shadow of it falls, so that shadow
+    hardly shows.
 - Check: scenario render_shadows (zone1's start, a fight, creatures on a slope, the town bz1g, each frozen with the map
   twice; `shadowcheck`: map made, casters and receivers, and no object the game shadows and drew left out of the map);
   render_shadows_outside (`shadowcasters all|view|walked`: with the outside casters, without them, and with every caster
