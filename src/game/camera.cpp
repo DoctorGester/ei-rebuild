@@ -91,11 +91,12 @@ camera::ViewPose PoseOf(const Camera* c) {
     return camera::ViewPose{c->localPosition + settle, c->localRotation, c->focus + settle, c->viewRotation, c->distance};
 }
 
-Quaternion Conjugate(const Quaternion& q) { return Quaternion{q.w, -q.x, -q.y, -q.z}; }
-
-// The rotation that turns `to` back to `from` (from * to^-1).
+// The rotation that turns `to` back to `from` (from * to^-1). The inverse, not the conjugate: a camera file's key may
+// hold a rotation that is not of unit length (Lost in Astral's mainmenu.cam: 1.16), and with the conjugate a camera
+// standing still undid by a scale of its length squared, which the frames between ticks drew as a zoom in and out.
 Quaternion Undo(const Quaternion& from, const Quaternion& to) {
-    Quaternion undo = Conjugate(to);
+    const float inverse = 1.0f / Dot(to, to);
+    Quaternion undo{to.w * inverse, -to.x * inverse, -to.y * inverse, -to.z * inverse};
     undo.PreMultiply(from);
     return undo;
 }

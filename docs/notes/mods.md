@@ -101,3 +101,11 @@ same files.
   its run.
 - The `.plg` plugins: what fixshops.plg changes in the shops.
 - `[MOD] Single` / `Multi`: a mod for one kind of game only (the menu's list, MOD3).
+
+## Lost in Astral played (MOD2)
+
+What the expansion's data asks of the game that the base game's never did, and how each is checked:
+- The main menu's camera: the mod's `Camera\mainmenu.cam` places it by a first key whose rotation is 1.16 long (the
+  game's own file has unit rotations). The game draws it as it is; the drawn view between ticks once undid it by its
+  length squared and zoomed the menu in and out on every frame (renderer.md section 14, "Rotations of other lengths";
+  scenario `mod_lost_in_astral_menu_camera`).

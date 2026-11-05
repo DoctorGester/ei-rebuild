@@ -1251,6 +1251,11 @@ only the pose the world's draw shows changes (always on, no option; moving the c
   focus keeps the game's glide: it is saved (scenario.sav's camera) and clicks pick through it, and moving it moved 153
   goldens (savea's camera focus, units 1e-5 apart in the recorded and network scenarios). A pan or a lost target drops
   the gap; later targets keep the glide (a click on another hero).
+- **Rotations of other lengths:** a camera file's key may hold a rotation that is not of unit length (Lost in Astral's
+  `Camera\mainmenu.cam`, its first key 1.16 long, which the main menu places the camera by; the game draws it as it is,
+  a stretched view). The rotation that undoes a step is `before * now^-1` with the inverse (the conjugate over the
+  length squared): with the conjugate a camera standing still undid by a scale of 1.35, and the frames between ticks
+  zoomed the menu in and out (scenario mod_lost_in_astral_menu_camera, 16 ms frames).
 - **Following** (flag 8, only from a save that has it; nothing in the game sets it): the camera sits on the target and
   its focus stays where it was, so the drawn position turns about that stale focus. Not reached in play.
 - **Cut:** a tick whose update moved the focus by more than 8 map units, or the camera nearer to its focus or farther
