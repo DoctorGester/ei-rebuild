@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core_transform.h"
+#include "ref.h"
 #include "resource.h"
 
 #include "lib/containers.h"
@@ -11,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <span>
 #include <string>
 #include <vector>
@@ -74,16 +76,16 @@ public:
     void SetWaveStrength(float strength);
     void SetWaves(const Vector3& direction, float strength);
     // The ambient sound set is "Dungeon" when `dungeon`, else "Ingos" / "Suslanger" by `zone`, else "Gipat".
-    // 0 when the archive does not open or a texture does not load; a missing or malformed map file is
-    // FatalError's result after ClearMap.
-    int LoadMap(std::string_view path, std::string_view zone, bool dungeon);
+    // False when the archive does not open or a texture does not load, and after ClearMap and FatalError for a
+    // missing or malformed map file.
+    bool LoadMap(std::string_view path, std::string_view zone, bool dungeon);
     // No map: sizes -1, the ambient loops stopped.
     void ClearMap();
 
     // The shown point lights (`lights`, the GPU lighting's). Nothing happens before a map is loaded.
     // Registers the light by id (held).
     void AddLight(Light* light);
-    // Takes the light off the table and releases it (also one that was not registered, as the game does).
+    // Takes the light off the table, which drops the reference it held (none for a light not registered).
     void RemoveLight(Light* light);
 
     // The change is added to the material and to every sector's level table. Nothing for a material the map
@@ -114,7 +116,7 @@ public:
     bool RunTick() override;
 
     // The sun and the ambient colour (the GPU lighting's).
-    void SetSun(Light* sun, const Vector4* ambient);
+    void SetSun(Light* sun, const Vector4& ambient);
     // Clears LandscapeFlag::Ambience and stops the loops.
     void StopAmbience();
     // Slides the decal quad along the builder's slope until its lowest point meets the lowest ground vertex
@@ -128,7 +130,7 @@ public:
     // freed) and the wanted stages are built.
     SectorData* SectorAt(int sx, int sy, SectorStage wanted, bool create);
     // The cached sector (sx, sy) of the grid, without a lookup's side effects; null when not cached.
-    SectorData* CachedSector(int sx, int sy) const { return sectorGrid[sx * sectorsY + sy]; }
+    SectorData* CachedSector(int sx, int sy) const { return sectorGrid[GridIndex(sx, sy)]; }
     // The texture coordinates of tile texture `index` of a page (the extra pages' table for those).
     const TileUv& TileUvAt(int rotation, int index, int page) const;
     // The texture pages of one tile layer.
@@ -149,17 +151,17 @@ public:
     static constexpr int kSoundClasses = 16;
 
     LandscapeFlag landscapeFlags = {};
-    std::vector<Texture*> pageTextures;     // held
-    std::string mapName;
+    std::vector<HeldRef<Texture>> pageTextures;
+    std::string mapName = "none";
     bool mapLoaded = false;         // nothing is drawn or lit while false
-    int sectorsX = 0;               // map size in sectors
-    int sectorsY = 0;
+    int sectorsX = -1;              // map size in sectors; -1 without a map
+    int sectorsY = -1;
     float width = 0.0f;             // the map's size in cells
     float height = 0.0f;
     float heightRange = 0.0f;       // the highest terrain height (cursor picking starts at half of it)
     int pages = 0;
     int tilesPerRow = 0;
-    int perPage = 0;                // tilesPerRow squared
+    int perPage = -1;               // tilesPerRow squared
     std::vector<TerrainMaterial> materials;   // the water materials
     // Per tile texture: its class 0..15 (sounds, prints), with sixteen entries of class 15 after the map's
     // own; its frame count when animated, else 0.
@@ -169,29 +171,32 @@ public:
     std::vector<TileUv> uvTables[4];       // per rotation, per texture of a page
     std::vector<TileUv> uvTablesLast[4];   // the same for the extra pages
     std::vector<VertexTiles> vertexTiles;   // 33 x 33
-    std::vector<SectorData*> sectorGrid;      // [sx * sectorsY + sy]: the cached sector, or null
-    std::vector<SectorData*> sectorCache;      // most recently used first
-    int frame = 0;
+    std::vector<SectorData*> sectorGrid;      // [GridIndex(sx, sy)]: the cached sector, or null
+    std::vector<std::unique_ptr<SectorData>> sectorCache;   // most recently used first
+    int frame = 1;
     Vector4 ambient;
     Light* sun = nullptr;
-    lib::HashMap<int, Light*> lights;   // by id, held
-    Vector3 waveDirection;          // unit vector; x, y: the waves' travel
+    lib::HashMap<int, HeldRef<Light>> lights;   // by id
+    Vector3 waveDirection = {0.0f, 0.0f, 1.0f};   // unit vector; x, y: the waves' travel
     float waveHeight = 0.0f;
     float waveGlow = 0.0f;          // scales the crests' specular colour
-    float wavePhase = 0.0f;         // advanced by waveSpeed every frame
-    float waveSpeed = 0.0f;
+    float wavePhase = kPi + kPi;    // advanced by waveSpeed every frame
+    float waveSpeed = -0.0f;        // as SetWaveStrength(0) leaves it (a negative scale times 0)
     std::vector<float> wavePhases;   // per water vertex (33 x 33) phase offsets
     float sine[512] = {};           // sin(i * pi / 256)
     SectorRect visible;
     AmbientLoop ambientLoops[kAmbientLoops];
-    std::string ambientSet;           // the ambient sound set (ambient\<set>\...)
+    std::string ambientSet = "none";   // the ambient sound set (ambient\<set>\...)
     // Per sound class, how many one-shots ambient\<set>\<class>\day\1.wav, 2.wav, ... the map's set has.
     int ambientVariants[kSoundClasses] = {};
     std::vector<float> waterLevels;   // per sector (sy * sectorsX + sx), per material
 
 private:
-    // No map, texts "none", frame 1, waves upwards at strength 0, phase 2 pi.
+    // The start values of what ClearMap leaves: no flags, texts "none", frame 1, no sun, waves upwards at
+    // strength 0, phase 2 pi, nothing visible, no ambient loops.
     void Reset();
+    // The index of sector (sx, sy) in sectorGrid.
+    std::size_t GridIndex(int sx, int sy) const { return static_cast<std::size_t>(sx * sectorsY + sy); }
     // Per water vertex of a sector, the phase offsets of 40 random ripples; each edge matches the opposite one,
     // so neighbouring sectors join.
     void BuildWavePhases();
@@ -199,9 +204,9 @@ private:
     void BuildVertexTiles();
     // The sizes, materials, tile texture classes and animated textures of a map file whose header is checked.
     void ReadMap(const MapHeader& header, const std::uint8_t* file);
-    // `count` pages <map>NNN, then up to two extra pages <map>L00 / L01 while their .mmp exists. 0 when a
-    // texture does not load, else 1.
-    int SetupPages(int count);
+    // `count` pages <map>NNN, then up to two extra pages <map>L00 / L01 while their .mmp exists. False when a
+    // texture does not load.
+    bool SetupPages(int count);
     // The tile texture coordinates of every rotation, for tiles `tileSize` pixels wide.
     void BuildUvTables(int tileSize);
     // For every sound class, the one-shots of the ambient set (ambientVariants), counted until the first one

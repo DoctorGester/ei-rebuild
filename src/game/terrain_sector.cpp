@@ -149,7 +149,7 @@ int CountTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                 std::uint16_t word = lib::Load<std::uint16_t>(source);
                 if (layer == 0) s.tileRotation[tile] = static_cast<std::uint8_t>(word >> kTileRotationShift);
                 int texture = word & kTileTextureMask;
-                int page = SlotOf(texture, owner->perPage, owner->pages).page + layer * s.LayerPages();
+                int page = SlotOf(texture, owner->perPage, owner->pages).page + layer * owner->LayerPages();
                 *out = texture;
                 if (IsAnimated(owner, texture)) ++animated;
                 ++counts[QuarterOf(column, row)][page];
@@ -175,7 +175,7 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                 int texture = word & kTileTextureMask;
                 int rotation = word >> kTileRotationShift;
                 PageSlot slot = SlotOf(texture, owner->perPage, owner->pages);
-                int page = slot.page + layer * s.LayerPages();
+                int page = slot.page + layer * owner->LayerPages();
                 int quarter = QuarterOf(column, row);
                 const TileUv* uv = &owner->TileUvAt(rotation, slot.index, page);
 
@@ -238,7 +238,7 @@ void ComputeBounds(SectorData& s) {
 
 // Loading
 
-int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const char* prefix, Terrain* terrain) {
+bool SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const char* prefix, Terrain* terrain) {
     Clear();
     owner = terrain;
     sx = sectorX;
@@ -250,7 +250,10 @@ int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const ch
     data = file;
 
     // The message is passed to FatalError as its format string.
-    auto fail = [&](const char* text) { return game::FatalError(text + std::string(name)); };
+    auto fail = [&](const char* text) {
+        game::FatalError(text + std::string(name));
+        return false;
+    };
     if (!file) return fail("Unable to locate resource: ");
     if (size < kSectorHeaderBytes) return fail("Wrong format resource: ");
 
@@ -318,7 +321,7 @@ int SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const ch
         }
     }
     built |= SectorStage::Loaded;
-    return 1;
+    return true;
 }
 
 // Building
@@ -327,7 +330,7 @@ void SectorData::Build() {
     records.resize(hasWater ? 2 * kSectorVertices : kSectorVertices);
     const std::uint8_t* tileWords = BuildRecords(*this);
 
-    const int pageCount = 2 * LayerPages();
+    const int pageCount = 2 * owner->LayerPages();
     TileCounts counts = {};
     int animatedCount = CountTiles(*this, tileWords, counts);
     for (int quarter = 0; quarter < 4; ++quarter) {
@@ -383,6 +386,6 @@ void SectorData::Ensure(SectorStage wanted) {
     if (wanted >= SectorStage::Built && !lib::Has(built, SectorStage::Built)) Build();
 }
 
-SectorData::~SectorData() { Clear(); }
+SectorData::~SectorData() { render::TerrainChanged(this, render::TerrainChange::Rebuilt); }
 
 } // namespace terrain
