@@ -505,6 +505,7 @@ void TakeModSwitch() {
     modfolders::Reset();
     UseMod(g_gameFolder, mod);
     settings::SetString(settings::kGame, "Mod", mod);
+    settings::Save();
     g_clock = LoopClock{};
     StartGame({});
 }
@@ -542,6 +543,8 @@ bool RequestModSwitch(const std::string& setting) {
 }
 
 bool ModSwitchPending() { return g_modRequest.has_value(); }
+
+const std::string& GameFolder() { return g_gameFolder; }
 
 char g_windowTitle[256] = /*0079BB24*/ {""};
 platform::NativeWindow g_mainWindow = /*0079BC28*/ {};

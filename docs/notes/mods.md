@@ -13,11 +13,14 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/platform/files.cpp` | `FolderEntries`: each layer's search (the backends' `SearchFolder`) merged |
 | `src/main.cpp` | reads `[game] Mod` after the Rebirth profile, calls `app::UseMod` (app_main.cpp: the folder in full, `platform::SwitchMod`, the log) |
 | `src/game/app_main.cpp` | `StartGame` / `StopGame` (the game's half of the start and the stop), `app::RequestModSwitch` and the switch (`TakeModSwitch`) |
+| `src/game/mod_list.h`, `.cpp` | the main menu's list of mods: `Scan` (starter\Mods\*\config.reg), `IndexOf`, `SettingOf` |
+| `src/game/ui_main_menu.cpp` | `MainMenu::AddModList` (the list's drop-down control) and the pick's `RequestModSwitch` (in `Update`) |
 | `src/game/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"): `ModPath()` is the Mod folder, else `[rebirth] AddonPath`; `Reset` at a switch |
 | `tests/verify/harness.cpp` | `Layers` / `MapPath` / `MapSearches`: the run's overlay as the map's top layer |
 | `tests/unit/path_layers.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_lost_in_astral.txt` | a new game in Lost in Astral (Rebirth's data) |
 | `tests/scenarios/mod_switch.txt`, `mod_switch_plain.txt` | a switch to Lost in Astral and back, then a new game; the same new game from the start |
+| `tests/scenarios/mod_menu_list.txt` | the menu's list picked through the UI, and the settings file written |
 
 ## Choosing a mod
 
@@ -105,7 +108,31 @@ same files.
 The main menu changes the mod without a restart (MOD3; the user chose a switch in the process, 2026-11-05).
 `app::RequestModSwitch(setting)` (the setting as `[game] Mod`'s, empty for none) is taken only in the main menu (its
 window on top, no flow request pending) with no network session; at the main loop's next pass (`TakeModSwitch`, before
-anything else of the pass) the game stops and starts again with the new mod. The menu's list of mods is MOD3b.
+anything else of the pass) the game stops and starts again with the new mod. The menu's list of mods is below.
+
+### The menu's list (MOD3b)
+
+The main menu has a drop-down list (`UiDropList`, ui-native.md "The drop-down list") at its bottom left, layout
+(16, 566)-(256, 582), the native interface's own control, no GDI. It is in the main menu rather than the options window
+because the options window is on top of the menu when it is open and a switch is taken only with the menu's window on top
+(`ModSwitchAllowed`), and because the mod decides the menu's own zone and music, so the choice belongs where the
+change shows. `MainMenu::AddModList` makes it at every `CreateScreen` (a switch makes the menu again) from
+`modlist::Scan(app::GameFolder(), platform::ModFolder())`:
+- the entries: "No mod" (the game's own files), then each folder of the game folder's `starter\Mods` with a `config.reg`,
+  by folder name, titled by `[MOD] Title` (the folder's name when it has none; a mod for one kind of game, `Single` 1
+  and `Multi` 0 or the reverse, has " (single player)" or " (multiplayer)" after it: Lost in Astral and the other
+  Rebirth mods are single player; the shipped "Standard" is Nival's title "Без модов", a mod folder of its own with its
+  own saves, not the same as "No mod"). The mod played now that is not in `starter\Mods` is added, titled by its folder.
+- no list (and nothing drawn) when no mod is found and none is played: the vanilla look is unchanged.
+- the entry of the mod played is the chosen one. A pick (`UiDropList::TakeChanged` in `MainMenu::Update`) calls
+  `app::RequestModSwitch(entry.setting)`; the switch writes `[game] Mod` to the settings and `settings::Save` puts it in
+  `ei_settings.ini` at once. The setting is the folder relative to the exe's folder when it is below it
+  (`starter\Mods\LostInAstral` for an exe dropped into the game folder), else in full (the harness's runs: the exe is in
+  the build folder); "No mod" writes an empty `Mod`. A refused request (a network session) puts the list back.
+- while the list is open `MainMenu::OnEvent` sends every event to it (the stones under it and Esc do nothing).
+
+Single / Multi only label the entries: a mod is not kept from a multiplayer game by them (the switch itself is offline
+only).
 
 ### Start and stop
 
@@ -176,6 +203,11 @@ back. Reload: made again from the new mod's files. The list to check when a swit
   ZoneMainMenuNew read; the vanilla data has no such folder, logged, the game started again without a mod), then to
   none, then a new game with a dump. `mod_switch_plain` is the same new game from the start: the two dumps must be equal
   (`python tools/golden.py diff` of the two runs' `dump_newgame.txt`), so starting twice gives the state of one start.
+- `mod_menu_list` (both installs; settings-file check on each): on Rebirth's data the list's entries, the list open (a
+  frame to look at), a pick of Lost in Astral (the log's `mod: switching to` and `its saves in saves\LostInAstral`),
+  the list showing "Lost in Astral (single player)" in the new menu, a pick of "No mod", and Lost in Astral again; the
+  run's `ei_settings.ini` after the exit (`settingsfile writable`) is compared with `settings/mod_menu_list.rebirth.ini`
+  (`Mod = {install}\starter\Mods\LostInAstral`; the vanilla file has no `Mod`: that data has no list).
 - The asan build's suite (harness.md, "AddressSanitizer") for the freed archives and managers.
 
 Risks: a mod-dependent global missed shows the old mod's data after a switch (the table above; the start-twice check
@@ -187,7 +219,8 @@ the start.
 - The stub data (linux.md, "The stub data") has no `starter\Mods`: `mod_lost_in_astral` needs the mod's files read in
   its run.
 - The `.plg` plugins: what fixshops.plg changes in the shops.
-- `[MOD] Single` / `Multi`: a mod for one kind of game only (the menu's list, MOD3).
+- `[MOD] Single` / `Multi`: the menu's list shows them as a label only; whether Rebirth's starter hides or refuses a
+  mod in the other kind of game is not known.
 
 ## Lost in Astral played (MOD2)
 

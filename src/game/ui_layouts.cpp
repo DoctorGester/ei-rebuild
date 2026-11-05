@@ -123,6 +123,11 @@ void EscMenu::LeftDown(UiEvent& event) {
 // --- Main menu clicks ------------------------------------------------------------
 
 void MainMenu::OnEvent(UiEvent& event) {
+    // An open list of mods takes every event.
+    if (popup) {
+        UiContainer::OnEvent(event);
+        return;
+    }
     switch (event.kind) {
     case UiEventKind::LeftDown: LeftDown(event); break;
     case UiEventKind::MouseMove: MouseMove(event); break;

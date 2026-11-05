@@ -3,6 +3,7 @@
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "app.h"
 #include "game_flow.h"
+#include "mod_list.h"
 #include "options.h"
 #include "sound.h"
 #include "ui.h"
@@ -54,6 +55,7 @@ const char* const kQuitTitle = "quit";
 const char* const kQuitText = "quit_msg";
 const char* const kVersionKey = "version_name";
 const char* const kCameraPath = "MainMenu.cam";
+constexpr Rect kModRow = {16, 566, 256, 582};   // the list of mods
 const char* const kExitMovie = "Movies\\Exit.bik";
 const char* const kIntroMovie = "Movies\\Intro.bik";
 
@@ -85,6 +87,19 @@ void MainMenu::AddVersionLine() {
     });
 }
 
+// --- The list of mods ----------------------------------------------------------------
+
+void MainMenu::AddModList() {
+    modList = nullptr;
+    mods = modlist::Scan(app::GameFolder(), platform::ModFolder());
+    if (mods.size() < 2) return;
+    modList = AddChild(std::make_unique<UiDropList>(this, kModRow));
+    for (const modlist::Entry& mod : mods) modList->AddText(mod.title);
+    modShown = modlist::IndexOf(mods, platform::ModFolder());
+    modList->SetValue(modShown);
+    modList->TakeChanged();
+}
+
 // --- Create ----------------------------------------------------------------
 
 void MainMenu::CreateScreen() {
@@ -97,6 +112,7 @@ void MainMenu::CreateScreen() {
         buttons[i] = AddRegion();
         buttons[i]->SetRect(g_menuRects[i]);
     }
+    AddModList();
     g_clientWorld.sounds->RequestStream(options::kDefaultStreamingSound, StreamSwitch::Now);
     savedEdgeFade = options::g_options.borderFogDistance;
     options::g_options.borderFogDistance = kMenuEdgeFade;
@@ -115,6 +131,13 @@ void MainMenu::CreateScreen() {
 
 void MainMenu::Update() {
     UiContainer::Update();
+    if (modList && modList->TakeChanged() && modList->value != modShown) {
+        const int picked = modList->value;
+        // A refused switch (a network session) leaves the list as it was.
+        if (app::RequestModSwitch(mods[picked].setting)) modShown = picked;
+        else modList->SetValue(modShown);
+        modList->TakeChanged();
+    }
     int serverHour = static_cast<int>(g_serverWorld.TimeOfDay());
     if (serverHour != static_cast<int>(hour) && rain) {
         if (serverHour == kRainStartHour) g_serverWorld.SetWeather(kWeatherRain, kWeatherStrength);

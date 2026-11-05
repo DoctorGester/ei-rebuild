@@ -1,0 +1,12 @@
+{
+  "scenario": "mod_menu_list",
+  "install": "vanilla",
+  "recorded": "2026-11-05",
+  "commit": "1230ade49",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MOD3b: the main menu's mod list; the vanilla data has no starter Mods, the run only reaches the menu",
+  "source": "image"
+}

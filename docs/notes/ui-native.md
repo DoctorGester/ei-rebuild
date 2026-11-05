@@ -179,7 +179,7 @@ second player; `net_pair_zone` reaches it). Rebirth's layout is covered by the W
 ### The drop-down list
 
 `UiDropList` (ui_drop_list.cpp; ours) picks one of many texts: the options' resolution row (R45's sizes,
-`platform::DisplaySizes`) uses it, the other rows keep the original's spin and slider. It is drawn in the game's list look,
+`platform::DisplaySizes`) and the main menu's list of mods (mods.md, "The menu's list") use it, the other rows keep the original's spin and slider. It is drawn in the game's list look,
 nothing new: the save list's frame art (`saveload` texels 2, 0xFE - 0xB4, 0xF9, 5 wide) and shade (flat black, denser:
 0xE0000000 where the save list's is 0xA0, so what the list covers hardly shows), the
 rows' highlight (flat 0xC8A06800) on the active entry and a darker one (0xC8503400: a window's
