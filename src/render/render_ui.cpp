@@ -33,7 +33,7 @@ struct AtlasTexture {
 static std::unordered_map<const text::GlyphAtlas*, AtlasTexture> g_atlases;
 static gpu::Texture g_noAtlas;   // bound for batches of solids only
 
-static StreamBuffer g_vertices(false, "ei-ui-quads");
+static StreamBuffer g_vertices(gpu::BufferUse::Vertex, "ei-ui-quads");
 static std::size_t g_uploaded = 0;   // g_frame.uiVertices on the GPU from g_offset
 static int g_offset = -1;
 

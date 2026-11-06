@@ -385,6 +385,7 @@ void DrawRoofMap() {
     if (draw) g_roofDraws.Draw(0, g_roofDraws.Count());
     gpu::EndPass();
     g_stats.counts[FrameStats::Count::ShadowDraws] += g_roofDraws.Count();
+    g_stats.counts[FrameStats::Count::ShadowCalls] += g_roofDraws.Calls();
     g_roofInfo.roofs = static_cast<int>(g_roofDraws.Count());
 }
 
@@ -409,10 +410,10 @@ void SurfaceUniforms(TerrainFsParams* fs) {
     fs->rainClock = static_cast<float>(ticks - std::floor(ticks / kRingWrap) * kRingWrap);
 }
 
-void MeshWeatherUniforms(MeshFsParams* fs) {
+void MeshWeatherUniforms(MeshFsParams* fs, float weather[2]) {
     const Surfaces& surfaces = g_surfaces;
-    fs->wet = surfaces.wet;
-    fs->snow = surfaces.snow;
+    weather[0] = surfaces.wet;
+    weather[1] = surfaces.snow;
     const KeptScene& light = KeptSceneLight();
     fs->weatherSun[0] = -light.sun.x;
     fs->weatherSun[1] = -light.sun.y;

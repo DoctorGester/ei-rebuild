@@ -576,6 +576,7 @@ static void DrawRedrawnFaces(bool fresh) {
             gpu::SetViewport({r.x, r.y, r.x + kPointFaceTexels, r.y + kPointFaceTexels});
             g_faceDraws.Draw(r.from, r.to);
         }
+    g_stats.counts[FrameStats::Count::ShadowCalls] += g_faceDraws.Calls();
     gpu::EndPass();
 }
 

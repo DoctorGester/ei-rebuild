@@ -319,6 +319,8 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
                           info.on ? "on" : "off", info.meshes, static_cast<unsigned long long>(info.checks),
                           static_cast<unsigned long long>(info.stale));
             Log("harness: %s", text);
+            Log("harness: meshcache: %zu copies on the GPU, %llu times a mesh took another's", info.copies,
+                static_cast<unsigned long long>(info.shared));
             frames->push_back(text);
             if (info.stale > 0) failures->push_back(text);
         } else {
@@ -477,13 +479,13 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "passes (%.0f flat, %.1f KB), %.0f pre-transformed, %.0f blits, %.0f depth clears, %.0f state reads, "
             "%.0f matrices; against the last frame (same / relit / moved / new): terrain sectors %.0f / %.0f / %.0f / %.0f, meshes %.0f / %.0f / "
             "%.0f / %.0f, %.0f meshes share another's geometry; upload KB "
-            "terrain %.1f v + %.1f i, meshes %.1f v + %.1f i, uniforms %.1f; %.1f passes, %.0f draws, pipelines %.0f "
+            "terrain %.1f v + %.1f i, meshes %.1f v + %.1f i, uniforms %.1f; %.1f passes, %.0f draws in %.0f calls, pipelines %.0f "
             "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
             "%.1f, movie %.2f / %.1f, small %.2f / %.1f; "
             "CPU ms terrain %.3f, hand-over %.3f, textures %.3f, end of frame %.3f (counting %.3f), device mesh draws %.3f; "
             "decals projected: %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
             "(%.0f vertices); shadow builds %.1f, %.3f ms; "
-            "shadow map %.1f draws, CPU ms %.3f; morphed meshes %.1f "
+            "shadow maps %.1f draws in %.1f calls, CPU ms %.3f; morphed meshes %.1f "
             "(%.0f corners); weather %.3f ms (%.0f vertices); main thread ms CPU %.2f / wall %.2f; quality: msaa %d (%d samples, the device gives %d), "
             "anisotropy %d",
             argument.c_str(), t.frames, t.width, t.height, count(F::Count::TerrainSectors), count(F::Count::TerrainBatches), count(F::Count::Meshes),
@@ -494,13 +496,13 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             per(t.meshReuse[F::Reuse::New]), count(F::Count::SharedMeshes),
             countKb(F::Count::TerrainVertexBytes), countKb(F::Count::TerrainIndexBytes), countKb(F::Count::MeshVertexBytes),
             countKb(F::Count::MeshIndexBytes), countKb(F::Count::UniformBytes),
-            count(F::Count::Passes), count(F::Count::Draws), count(F::Count::PipelineApplies), count(F::Count::PipelineChanges), count(F::Count::Bindings),
+            count(F::Count::Passes), count(F::Count::Draws), count(F::Count::DrawCalls), count(F::Count::PipelineApplies), count(F::Count::PipelineChanges), count(F::Count::Bindings),
             count(F::Count::TextureChanges), per(t.uploads[F::Upload::Mmp]), kb(t.uploadBytes[F::Upload::Mmp]),
             per(t.uploads[F::Upload::Movie]), kb(t.uploadBytes[F::Upload::Movie]), per(t.uploads[F::Upload::Small]), kb(t.uploadBytes[F::Upload::Small]),
             ms(F::Time::TerrainMs), ms(F::Time::HandOverMs), ms(F::Time::TextureMs), ms(F::Time::EndFrameMs), ms(F::Time::StatsMs), ms(F::Time::DeviceMeshMs),
             count(F::Count::DecalPrints), ms(F::Time::DecalPrintMs), count(F::Count::DecalVertices),
             count(F::Count::FlatDraws), ms(F::Time::FlatMs), count(F::Count::FlatDrawVertices), count(F::Count::ShadowBuilds), ms(F::Time::ShadowBuildMs),
-            count(F::Count::ShadowDraws), ms(F::Time::ShadowMs), count(F::Count::MorphMeshes), count(F::Count::MorphCorners),
+            count(F::Count::ShadowDraws), count(F::Count::ShadowCalls), ms(F::Time::ShadowMs), count(F::Count::MorphMeshes), count(F::Count::MorphCorners),
             ms(F::Time::WeatherMs), count(F::Count::WeatherVertices), frameCpuMs / n,
             frameWallMs / n, quality.msaa, quality.targetSamples, quality.deviceSamples, quality.anisotropy);
         Log("harness: %s", text);

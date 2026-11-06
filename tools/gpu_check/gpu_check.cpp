@@ -287,8 +287,8 @@ void CheckAsyncDownload() {
     std::printf("gpu_check: %s: an asynchronous download done after %d polls\n", g_driver.c_str(), polls);
 }
 
-// The casters' draws (vertex, instance and index buffers at offsets), the depth test, the target's orientation and
-// writes between passes, in place and discarding.
+// The casters' draws (vertex, instance and index buffers at offsets; direct and two draws from an indirect buffer), the
+// depth test, the target's orientation and writes between passes, in place and discarding.
 void CheckDrawsAndOrder() {
     const int w = 64, h = 64;
     g::Texture colour = g::MakeTexture({w, h, 1, 1, g::Format::Rgba8, g::TextureUse::ColourTarget | g::TextureUse::Sampled, "colour"});
@@ -308,6 +308,10 @@ void CheckDrawsAndOrder() {
     g::Write(instances, 0, both, sizeof(both), g::Contents::Discard);
     const std::uint32_t index[8] = {7, 7, 0, 1, 2, 0, 2, 3};
     g::Write(indices, 0, index, sizeof(index));
+    // Instance 0 (at 0.9, behind instance 1) and instance 1, as two draws of one indirect call.
+    const g::IndexedIndirect commands[2] = {{6, 1, 0, 0, 0}, {6, 1, 0, 0, 1}};
+    g::Buffer arguments = g::MakeBuffer(g::BufferUse::Indirect, sizeof(commands), "caster arguments");
+    g::Write(arguments, 0, commands, sizeof(commands));
 
     const g::Pipeline caster = g::MakePipeline(CasterDesc(), "caster");
     const g::Pipeline solidLess =
@@ -316,7 +320,7 @@ void CheckDrawsAndOrder() {
         g::MakePipeline(SolidDesc(g::Format::Rgba8, g::Format::Depth32Float, g::Compare::Always));
     Check(caster && solidLess && solidAlways, "the draws' pipelines made");
     const g::Sampler nearest = g::MakeSampler({g::Filter::Nearest, g::Filter::Nearest});
-    auto drawCasters = [&] {
+    auto drawCasters = [&](bool indirect) {
         g::PassDesc p;
         p.depth = {depth, 0, g::Load::Clear, 1.0f, true};
         g::BeginPass(p);
@@ -326,7 +330,10 @@ void CheckDrawsAndOrder() {
         g::BindIndexBuffer({indices, 8});
         const g::TextureBinding tex[1] = {{white, nearest}};
         g::BindTextures(g::Stage::Fragment, 0, tex);
-        g::DrawIndexed(0, 6, 1, 1);   // instance 1 only
+        if (indirect)
+            g::DrawIndexedIndirect(arguments, 0, 2);
+        else
+            g::DrawIndexed(0, 6, 1, 1);   // instance 1 only
         g::EndPass();
     };
     auto colourPass = [&](g::Load load) {
@@ -337,7 +344,7 @@ void CheckDrawsAndOrder() {
         g::BeginPass(p);
     };
     // A: casters on the left at 0.25; red where the depth is beyond 0.5; green over the top-left quarter.
-    drawCasters();
+    drawCasters(false);
     colourPass(g::Load::Clear);
     g::ApplyPipeline(solidLess);
     Solid({0, 0, w, h}, w, h, 0.5f, 1, 0, 0);
@@ -348,7 +355,7 @@ void CheckDrawsAndOrder() {
     // B: the quad moved to the right half (the whole buffer written again, discarding); blue where the depth is beyond.
     HalfQuad(false, quad);
     g::Write(vertices, 0, quad, sizeof(quad), g::Contents::Discard);
-    drawCasters();
+    drawCasters(true);
     colourPass(g::Load::Keep);
     g::ApplyPipeline(solidLess);
     Solid({0, 0, w, h}, w, h, 0.5f, 0, 0, 1);
@@ -357,7 +364,7 @@ void CheckDrawsAndOrder() {
     // C: instance 1 moved to 0.9 in place: white everywhere.
     const CasterInstance far = AtDepth(0.9f);
     g::Write(instances, sizeof(CasterInstance), &far, sizeof(far));
-    drawCasters();
+    drawCasters(false);
     colourPass(g::Load::Keep);
     g::ApplyPipeline(solidLess);
     Solid({0, 0, w, h}, w, h, 0.5f, 1, 1, 1);
@@ -389,6 +396,7 @@ void CheckDrawsAndOrder() {
            "a write in place after a pass (all white)");
     g::Release(vertices);
     g::Release(instances);
+    g::Release(arguments);
     g::Release(indices);
     g::Release(white);
     g::Release(depth);

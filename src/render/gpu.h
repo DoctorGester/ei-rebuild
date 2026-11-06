@@ -152,7 +152,8 @@ inline Sampler NearestClampSampler() {
 
 // ---- Buffers, writes, copies and downloads ------------------------------------------------------------------------
 
-enum class BufferUse : std::uint8_t { Vertex, Index };
+// Storage: read by the shaders' StructuredBuffers (BindStorageBuffers); Indirect: draws' arguments (DrawIndexedIndirect).
+enum class BufferUse : std::uint8_t { Vertex, Index, Storage, Indirect };
 struct Buffer {
     SDL_GPUBuffer* buffer = nullptr;
     std::uint32_t size = 0;
@@ -204,7 +205,7 @@ void Release(Ticket& ticket);
 
 // ---- Pipelines ----------------------------------------------------------------------------------------------------
 
-enum class VertexFormat : std::uint8_t { Float, Float2, Float3, Float4, UByte4Norm };
+enum class VertexFormat : std::uint8_t { Float, Float2, Float3, Float4, UByte4Norm, Uint };
 struct VertexAttribute {
     std::uint8_t location = 0;   // the program's input (gpu_shaders' kAttr...)
     std::uint8_t buffer = 0;     // the vertex buffer it is read from
@@ -323,7 +324,8 @@ struct TextureBinding {
 };
 // What the draws below sent to SDL, and what the filter below left out, since the last ResetCounts.
 struct DrawCounts {
-    std::uint64_t draws = 0;
+    std::uint64_t draws = 0;            // calls, an indirect one once
+    std::uint64_t indirectDraws = 0;    // the draws the indirect calls made
     std::uint64_t pipelinesBound = 0, pipelinesSkipped = 0;
     std::uint64_t vertexBound = 0, vertexSkipped = 0;       // calls (each binds the changed range)
     std::uint64_t indexBound = 0, indexSkipped = 0;
@@ -340,6 +342,8 @@ void SetStateFiltering(bool on);
 void ApplyPipeline(Pipeline pipeline);
 void BindVertexBuffers(int first, std::span<const BufferBinding> buffers);
 void BindIndexBuffer(const BufferBinding& binding);   // 32-bit indices
+// Whole buffers made with BufferUse::Storage from storage slot `first` on (gpu_shaders' kStorage...).
+void BindStorageBuffers(Stage stage, int first, std::span<const Buffer> buffers);
 // Texture and sampler pairs from slot `first` on (gpu_shaders' kSampler...).
 void BindTextures(Stage stage, int first, std::span<const TextureBinding> textures);
 // A uniform block into slot `slot` (gpu_shaders' kBlock...).
@@ -358,6 +362,18 @@ void PushPassUniforms(Stage stage, int slot, const Block& block) {
 void Draw(std::uint32_t first, std::uint32_t count, std::uint32_t instances = 1);
 void DrawIndexed(std::uint32_t first, std::uint32_t count, std::uint32_t instances = 1,
                  std::uint32_t firstInstance = 0);
+// One indexed draw's arguments in a BufferUse::Indirect buffer (SDL_GPUIndexedIndirectDrawCommand). The first
+// instance reaches the shaders only through per-instance vertex buffers (SV_InstanceID starts at 0 on some drivers).
+struct IndexedIndirect {
+    std::uint32_t count = 0;       // indices
+    std::uint32_t instances = 0;
+    std::uint32_t first = 0;       // index
+    std::int32_t vertexOffset = 0;
+    std::uint32_t firstInstance = 0;
+};
+static_assert(sizeof(IndexedIndirect) == 20);
+// `draws` IndexedIndirect records from `offset` in `buffer` (written before the pass), in order, as one call.
+void DrawIndexedIndirect(const Buffer& buffer, std::uint32_t offset, std::uint32_t draws);
 
 // ---- The window ---------------------------------------------------------------------------------------------------
 

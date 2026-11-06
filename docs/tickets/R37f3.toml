@@ -7,3 +7,5 @@ depends = ["R37f2"]
 files = ["src/render/render_mesh_cache.cpp", "src/render/render_mesh.cpp", "src/render/render_shadows.cpp", "src/render/gpu.cpp", "src/render/shaders/mesh.hlsl"]
 note = "docs/notes/frame-plan.md, Fewer draws. Group by whole figure to keep today's order (goldens unchanged) unless the user picks per-part grouping."
 order = 1267
+status = "running"
+started = "2026-11-06"

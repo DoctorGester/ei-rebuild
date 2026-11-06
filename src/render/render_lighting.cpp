@@ -2,8 +2,8 @@
 // over once a frame (render::SceneLighting) kept for the terrain shader's uniforms
 // (shaders/scene_lighting.hlsli). The point lights nearest the camera (by the distance to their reach)
 // are kept, at most kMostSceneLights. A figure part's light (render::MeshLighting) is kept in the part's model space
-// (FigureLight), a ground print's is the scene's (GroundDecalLight); either becomes the mesh shader's uniforms at its
-// draw (MeshLightUniforms).
+// (FigureLight), a ground print's is the scene's (GroundDecalLight); either goes into the mesh's record at its draw
+// (MeshLightRecord).
 #include "render.h"
 #include "render_internal.h"
 
@@ -181,11 +181,10 @@ MeshLight GroundDecalLight(const Frame& f, const float box[6]) {
     return light;
 }
 
-MeshLightParams MeshLightUniforms(const Frame& frame, const MeshLight& light) {
-    MeshLightParams p{};
-    p.lit = light.groundPrint ? 0 : 1;
-    p.groundPrint = light.groundPrint ? 1 : 0;
-    p.lightCount = light.count;
+void MeshLightRecord(const Frame& frame, const MeshLight& light, MeshRecord& p) {
+    p.lit[0] = light.groundPrint ? 0 : 1;
+    p.lit[1] = light.groundPrint ? 1 : 0;
+    p.lit[2] = light.count;
     const float sun[3] = {light.sun.x, light.sun.y, light.sun.z};
     const float mapSun[3] = {light.mapSun.x, light.mapSun.y, light.mapSun.z};
     for (int k = 0; k < 3; ++k) {
@@ -207,7 +206,6 @@ MeshLightParams MeshLightUniforms(const Frame& frame, const MeshLight& light) {
         p.pointShadows[k / 4][k % 4] = PointShadowSlot(frame, point.sceneLight);
         p.pointSpecular[k / 4][k % 4] = point.specular ? 1 : 0;
     }
-    return p;
 }
 
 const KeptScene& KeptSceneLight() { return g_scene; }
