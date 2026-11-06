@@ -4,5 +4,6 @@ group = "renderer"
 depends = ["R37e2"]
 note = "R37e2: in the town at night at 4K, msaa 8 the GPU takes 2.75 ms a frame on Direct3D 12 (2.8 with the crowd), the main thread 1.1 (2.1) ms: a harness frame without a limit waits for the GPU. 2.4 ms of it come after the shadow maps (the world's multisampled pass, its resolve, the composition and the present); D3D11 measured 2.05 for the whole frame. Split it with the submission timing (renderer.md section 13 item 1; probe in build/R37e2 of the main checkout) on a quiet machine, then decide (the user's 120 Hz frame has 8.3 ms, so low value until the GPU limits play). User 2026-11-06: profile with their LiA save build/r37e3/save5 (main's tree; saves\\LostInAstral) - renders a lot, the lowest frame rate they have seen; contrived but a good stress case. User 2026-11-06: also profile CPU time for draw submission (per-frame CPU cost of building and submitting draws: command recording, uniform/buffer uploads, per-draw state, sorting), on the same save5 stress case; break it down by pass/subsystem and name the top costs."
 order = 941
-status = "review"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
