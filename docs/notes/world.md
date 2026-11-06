@@ -178,6 +178,14 @@ part of the view matrix only), class and touched-model lists; out of view: flag 
 in view, a pending figure change applied and the object goes on the shadow list. The view-space depth starts at zero
 (the original's NaN heap leftovers made `Less(x, x)` true and crashed its unguarded partition).
 
+The first pass is `CollectCells` (R37f2): the same verdicts a cell at a time. Every object is placed (its drawn pose,
+steps and light) and keeps its world boxes (the clip volume, the shadow volume, the casters' sphere) until its pose,
+place, bounds or scale change; a cell's union of boxes decides all of its objects when it is wholly out of or inside the
+view's planes by a margin, an object's own box next, and only the undecided ones take the exact `ClipTest`. The cells'
+caster spheres it files (`CasterCell`, frame_lists.h) let the casters' walk outside the view pass over a cell none of whose
+spheres can reach the shadow map. The visible lists sort on 64-bit keys (`object_order::SortForDraw`: the texture's and
+figure's ranks, the depth's bits) to the permutation `DrawBefore`'s sort gives.
+
 **Picking**: `PickGround` / `PickSurface` invert the view for pixel (x, y) giving the ray x = a z + b, y = c z + d,
 iterate z = height(x, y) from half the terrain's height range up to 100 times until |dz| <= 0.01, then up to 100
 bisection steps; x, y clamp at 0. `PickSurface` uses the platforms, `PickGround` `Terrain::HeightAt`. `Pick` (by bounds or by parts)

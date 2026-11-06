@@ -7,3 +7,5 @@ depends = ["R37f1"]
 files = ["src/render/render_mesh.cpp", "src/render/gpu.cpp", "src/game/world/object_order.cpp", "src/game/world/world_client_view.cpp", "src/render/render_mesh_cache.cpp"]
 note = "docs/notes/frame-plan.md, Faster. Same output (goldens unchanged, same sort permutation, visibility bit-identical)."
 order = 1266
+status = "review"
+started = "2026-11-06"
