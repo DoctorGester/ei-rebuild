@@ -125,6 +125,7 @@ static bool Invert(const M4& a, M4* out) {
 // --- The game's hand-over ---------------------------------------------------------------------------
 
 static const Object3D* g_caster = nullptr;   // BeginCaster .. EndCaster
+static int g_casterSlot = -1;                // ... its place in ShadowFrame::casters
 static int g_casterParts = 0;                // ... the parts noted as drawn (NoteCasterPart)
 static std::uint32_t g_casterFrame = 1;      // CasterFrame: one more at each ShadowFrameDone
 static bool g_casterFigure = false;      // ... a unit's draw
@@ -597,29 +598,24 @@ static bool AddOutsideCaster(CasterDraws& draws, const OutsideCaster& e, const M
 // its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
 // none of the unit's own depths, all at or behind it, darkens it, and every caster nearer the sun does.
 static void FigureFronts(Frame& f) {
-    // The units' meshes by object, each object's in the frame's order (the least kept as that order finds it), in a
-    // list kept from frame to frame.
-    static std::vector<std::pair<const Object3D*, std::size_t>> meshes;
-    meshes.clear();
-    for (std::size_t k = 0; k < f.meshBatches.size(); ++k) {
-        const MeshBatch& b = f.meshBatches[k];
-        if (b.figure && b.light >= 0 && b.caster) meshes.emplace_back(b.caster, k);
+    // Each object's least over its units' meshes in the frame's order (the least kept as that order finds it), by its
+    // place in ShadowFrame::casters, in lists kept from frame to frame.
+    static std::vector<float> fronts;
+    static std::vector<char> met;
+    fronts.assign(f.shadow.casters.size(), 0.0f);
+    met.assign(f.shadow.casters.size(), 0);
+    auto takes = [](const MeshBatch& b) { return b.figure && b.light >= 0 && b.caster && b.casterSlot >= 0; };
+    for (const MeshBatch& b : f.meshBatches) {
+        if (!takes(b)) continue;
+        const float* row = f.shadow.lights[static_cast<std::size_t>(b.light)].m + 8;   // the map's depth
+        float z = row[3];
+        for (int k = 0; k < 3; ++k) z += row[k] * (row[k] < 0.0f ? b.box[3 + k] : b.box[k]);
+        const auto slot = static_cast<std::size_t>(b.casterSlot);
+        if (!met[slot] || z < fronts[slot]) fronts[slot] = z;
+        met[slot] = 1;
     }
-    std::sort(meshes.begin(), meshes.end(), [](const auto& a, const auto& b) {
-        if (a.first != b.first) return std::less<const Object3D*>()(a.first, b.first);
-        return a.second < b.second;
-    });
-    for (std::size_t first = 0, end = 0; first < meshes.size(); first = end) {
-        float front = 0.0f;
-        for (end = first; end < meshes.size() && meshes[end].first == meshes[first].first; ++end) {
-            const MeshBatch& b = f.meshBatches[meshes[end].second];
-            const float* row = f.shadow.lights[static_cast<std::size_t>(b.light)].m + 8;   // the map's depth
-            float z = row[3];
-            for (int k = 0; k < 3; ++k) z += row[k] * (row[k] < 0.0f ? b.box[3 + k] : b.box[k]);
-            if (end == first || z < front) front = z;
-        }
-        for (std::size_t k = first; k < end; ++k) f.meshBatches[meshes[k].second].front = front;
-    }
+    for (MeshBatch& b : f.meshBatches)
+        if (takes(b)) b.front = fronts[static_cast<std::size_t>(b.casterSlot)];
 }
 
 // --- The hand-over ----------------------------------------------------------------------------------
@@ -722,22 +718,38 @@ void ShadowSun(const Vector3& direction) {
     s.sun = direction;
 }
 
-void BeginCaster(const Object3D* object, bool figure) {
+// The object's place in ShadowFrame::casters: the one its mark gave it this frame, else a new one (the casters are
+// cleared with each CasterFrame).
+static int CasterSlot(const Object3D* object, CasterMark* mark) {
+    std::vector<FrameCaster>& casters = g_frame.shadow.casters;
+    if (mark && mark->frame == g_casterFrame && mark->slot >= 0 && static_cast<std::size_t>(mark->slot) < casters.size() &&
+        casters[static_cast<std::size_t>(mark->slot)].object == object)
+        return mark->slot;
+    casters.push_back(FrameCaster{object, kNoStrength});
+    const int slot = static_cast<int>(casters.size()) - 1;
+    if (mark) *mark = CasterMark{g_casterFrame, slot};
+    return slot;
+}
+
+void BeginCaster(const Object3D* object, CasterMark* mark, bool figure) {
     g_caster = object;
+    g_casterSlot = object ? CasterSlot(object, mark) : -1;
     g_casterFigure = figure;
     g_casterParts = 0;
 }
 DrawnCasterParts EndCaster() {
     g_caster = nullptr;
+    g_casterSlot = -1;
     g_casterFigure = false;
     return {g_casterFrame, g_casterParts};
 }
 
 std::uint32_t CasterFrame() { return g_casterFrame; }
 
-void CastsShadow(const Object3D* object, float strength) {
+void CastsShadow(const Object3D* object, CasterMark& mark, float strength) {
     if (!object) return;
-    g_frame.shadow.casters[object] = strength;
+    g_frame.shadow.casters[static_cast<std::size_t>(CasterSlot(object, &mark))].strength = strength;
+    g_frame.shadow.shadowed = true;
 }
 
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
@@ -791,10 +803,11 @@ bool CasterPartDrawn(const FigureMesh* part) {
     return std::binary_search(g_drawnParts.begin(), g_drawnParts.end(), part, std::less<const FigureMesh*>());
 }
 
-float CasterStrength(const Object3D* object) {
-    const auto& casters = g_frame.shadow.casters;
-    auto it = casters.find(object);
-    return it == casters.end() ? -1.0f : it->second;
+float CasterStrength(const CasterMark& mark) {
+    const std::vector<FrameCaster>& casters = g_frame.shadow.casters;
+    if (mark.frame != g_casterFrame || mark.slot < 0 || static_cast<std::size_t>(mark.slot) >= casters.size())
+        return kNoStrength;
+    return casters[static_cast<std::size_t>(mark.slot)].strength;
 }
 
 void ShadowCasterMesh(const Object3D* object, const ShadowMesh& m) {
@@ -846,6 +859,7 @@ void SetShadowShift(int texels) {
 ShadowInfo ShadowState() { return g_lastInfo; }
 
 const Object3D* CurrentCaster() { return g_caster; }
+int CurrentCasterSlot() { return g_caster ? g_casterSlot : -1; }
 bool CurrentCasterFigure() { return g_caster && g_casterFigure; }
 
 void NoteCasterPart(const FigureMesh* part) {
@@ -1104,7 +1118,7 @@ void PrepareShadows(Frame& f) {
     g_info.puddles = surfaces.puddles;
     g_info.snowCover = surfaces.snow;
     for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
-    const bool casters = !(sh.casters.empty() && g_outside.empty() && TerrainCasterCount() == 0);
+    const bool casters = sh.shadowed || !g_outside.empty() || TerrainCasterCount() != 0;
     if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;
     Timer timer(FrameStats::Time::ShadowMs);
     if (!FitMap(f).ok) return;
@@ -1140,13 +1154,12 @@ static void CountCaster(const Object3D*) {}
 // The casters the game drew (the batches with a light matrix of the objects it shadows; one for all passes of a mesh)
 // into g_casterDraws, each one's cut noted by its texture for the casters outside the view (g_cuts).
 static void AddDrawnCasters(const Frame& f) {
-    const auto& casters = f.shadow.casters;
+    const std::vector<FrameCaster>& casters = f.shadow.casters;
     const CachedMesh* lastMesh = nullptr;
     int lastFirst = -1;
     for (const MeshBatch& batch : f.meshBatches) {
-        if (batch.light < 0 || !batch.caster || batch.indexCount <= 0) continue;
-        auto it = casters.find(batch.caster);
-        if (it == casters.end() || it->second < kLeastStrength) continue;
+        if (batch.light < 0 || !batch.caster || batch.casterSlot < 0 || batch.indexCount <= 0) continue;
+        if (casters[static_cast<std::size_t>(batch.casterSlot)].strength < kLeastStrength) continue;
         if (batch.cached == lastMesh && batch.firstIndex == lastFirst) continue;   // a later pass of the same mesh
         lastMesh = batch.cached;
         lastFirst = batch.firstIndex;
@@ -1232,9 +1245,9 @@ static void CountCasters([[maybe_unused]] const Frame& f) {
     for (const MeshBatch& batch : f.meshBatches)
         if (batch.caster && batch.indexCount > 0) handedOver.push_back(batch.caster);
     std::sort(handedOver.begin(), handedOver.end(), before);
-    for (const auto& [object, strength] : f.shadow.casters) {
-        if (strength < kLeastStrength || std::binary_search(g_counted.begin(), g_counted.end(), object, before)) continue;
-        if (std::binary_search(handedOver.begin(), handedOver.end(), object, before)) ++g_info.lost;
+    for (const FrameCaster& c : f.shadow.casters) {
+        if (c.strength < kLeastStrength || std::binary_search(g_counted.begin(), g_counted.end(), c.object, before)) continue;
+        if (std::binary_search(handedOver.begin(), handedOver.end(), c.object, before)) ++g_info.lost;
         else ++g_info.offScreen;
     }
     g_counted.clear();

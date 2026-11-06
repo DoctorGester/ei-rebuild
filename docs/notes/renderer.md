@@ -1193,8 +1193,12 @@ colours and ranges); what they light is done per pixel.
   mesh and `CachedMeshVersion`, index range, texture, sampler, cut-out and texture offset are, and its model matrix is
   within `kKeptPlace` / `kKeptTurn` (a building moves by rounding from frame to frame). Only the faces drawn are cleared;
   units' idle animations redraw the faces holding them every frame. PreparePointShadows keeps its working lists across
-  frames, makes one sphere per mesh (`BoxSphere`) and compares squared distances (`NotFurther` takes a root only where a
-  test is too close to tell).
+  frames, makes one sphere per caster mesh (`BoxSphere`) only where the mesh may matter to a candidate light (its placed
+  box's middle within the light's range, or `kHoldMargin`, plus a bound on the radius: `PlaceBox`, the middle and |M|
+  times the half extents, widened past the rounding) and compares squared distances (`NotFurther` takes a root only
+  where a test is too close to tell). The meshes' matrices into the landscape's space are made once a frame matrix
+  (`LandscapeModel`, PointShadowFrame::models) and shared with the roofs; an object's state is found by its place in
+  ShadowFrame::casters (section 10), not looked up.
 - **Units over a kept still layer: measured, not built** (R37a1; SDL_GPU on Direct3D 12, the town bz1g at night at 4K,
   msaa 8, alone and with a crowd of 12; times by submission on a quiet machine, section 13 item 1; the kit, with the
   tried code as a patch, is build/R37a1 in the main checkout). Tried: the faces as layers of two 2D depth arrays, the
@@ -1214,7 +1218,10 @@ colours and ranges); what they light is done per pixel.
 **10. Object shadows from a sun shadow map** (`render_shadows.cpp`). The game hands over the sun (`Terrain::sun`'s
 direction), the object each figure draw's meshes belong to (`BeginCaster` / `EndCaster`) and the objects whose shadow the
 game draws this frame (`CastsShadow` after its option, class switch and visibility tests; a unit only once faded in to
-half). Once a frame before the first pass (`PrepareShadows`): the camera's matrix is the world's first ground batch's; its
+half). An object's place in the frame's casters (`ShadowFrame::casters`, in the order first met) is kept on the object
+(`render::CasterMark`: the frame and the slot, Object3DClientSpecific::casterMark) and carried by its meshes
+(`MeshBatch::casterSlot`): the strength, the units' fronts, their weather boxes and the point shadows' objects are read
+by the slot, with no map of objects. Once a frame before the first pass (`PrepareShadows`): the camera's matrix is the world's first ground batch's; its
 inverse times a mesh's clip matrix gives the mesh in the landscape's space; a view along the sun's light (tilted to at
 least 20 degrees; its x and y the landscape's where a point meets a level plane along the light, an oblique projection) is
 fitted around the visible ground within kShadowReach (section 10, "The view's depth"; in steps of 8 units, the texels' corners on whole texels of the landscape at the plane's
@@ -1495,8 +1502,9 @@ option). Client side only: driven by the weather the world's light hands over (`
   world; the draw keeps the normals the flat colours would drop), and a fixed sheen on the faces turned up (no map, sun
   or ambient light there). The camp's and the hero screen's previews and UiModel do not call it: they stay dry.
 - **The roof test**: a ray straight up on the CPU against the triangles of the frame's other drawn objects (the world's
-  model meshes after the ground with a caster object that is not a unit; not the added light), the meshes' boxes
-  placed in the landscape's space first (`CameraInverse`), then the ray taken into a mesh's model space and tested
+  model meshes after the ground with a caster object that is not a unit; not the added light), a mesh's box placed in
+  the landscape's space (`LandscapeModel`) only where a loose box around it (`PlaceBox`) may lie over a unit's points,
+  then the ray taken into a mesh's model space and tested
   against its triangles (the kept mesh's corners, `CachedCorner`, or the frame's stream) only where it lies under the
   box. Five rays per unit from its box (the middle and four points a quarter of its width and depth out, at 3/4 of its
   height); the shelter is the share that meets a triangle. Chosen over a top-down depth map: the data is on the CPU

@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <unordered_map>
 #include <vector>
 
 namespace render {
@@ -60,9 +59,8 @@ struct UnitMesh {
     Sphere sphere;
 };
 
-// An object with casting or unit meshes this frame: its strength (render::CastsShadow; kNoStrength: not
+// An object of ShadowFrame::casters (by its place there): its strength (render::CastsShadow; kNoStrength: not
 // handed over), whether it holds the light being mapped, and a unit's nearest distance to each light mapped.
-constexpr float kNoStrength = -1.0f;
 struct FrameObject {
     float strength = 0.0f;
     bool holds = false;
@@ -86,13 +84,9 @@ struct MappedLight {
     std::vector<int> faces[kFaces];   // indices into g_casters
 };
 
-constexpr int kModelUnknown = -1;
-
 // The frame's working lists, kept across frames for their room.
 static std::vector<Candidate> g_candidates;
-static std::unordered_map<const Object3D*, int> g_objectIndex;   // object -> g_objects
-static std::vector<FrameObject> g_objects;
-static std::vector<int> g_modelOf;   // per frame matrix its PointShadowFrame::models, kModelUnknown: not yet
+static std::vector<FrameObject> g_objects;   // by place in ShadowFrame::casters
 static std::vector<Caster> g_casters;
 static std::vector<UnitMesh> g_units;
 static MappedLight g_mapped[kMostPointShadows];   // PointShadowFrame::mapped of them
@@ -340,6 +334,33 @@ static bool ListCandidates(const KeptScene& scene, const Matrix4& camera) {
     return true;
 }
 
+int LandscapeModel(Frame& f, const CameraInverse& camera, int matrix) {
+    PointShadowFrame& ps = f.shadow.point;
+    if (ps.modelOf.size() < f.matrices.size()) ps.modelOf.resize(f.matrices.size(), -1);
+    int& index = ps.modelOf[static_cast<std::size_t>(matrix)];
+    if (index < 0) {
+        ps.models.push_back(camera.Under(f.matrices[static_cast<std::size_t>(matrix)]));
+        index = static_cast<int>(ps.models.size()) - 1;
+    }
+    return index;
+}
+
+// A caster's mesh can matter to a candidate light (MapLights' tests on its sphere): its box placed by `model` lies
+// within the light's range of it, or within kHoldMargin (it may hold the light), by its centre and a bound on its
+// sphere's radius, with a margin far over the rounding of either side.
+static bool NearCandidate(const float box[6], const Matrix4& model) {
+    const PlacedBox placed = PlaceBox(box, model);
+    const float radius = Length(placed.half);
+    const Vector3& c = placed.centre;
+    for (const Candidate& light : g_candidates) {
+        const float size = std::fabs(c.x) + std::fabs(c.y) + std::fabs(c.z) + std::fabs(light.at.x) +
+                           std::fabs(light.at.y) + std::fabs(light.at.z);
+        const float reach = std::max(light.range, kHoldMargin) + radius + (size + light.range + radius) * 0x1p-12f;
+        if (DistanceSquared(c, light.at) <= reach * reach) return true;
+    }
+    return false;
+}
+
 // BoxSphere of a batch's box under its model, made again only when the batch differs from the last one asked in its
 // matrix or its box (a mesh's passes in a row).
 struct LastSphere {
@@ -355,48 +376,27 @@ struct LastSphere {
 };
 
 // The world's meshes after the ground into g_casters and g_units: the GPU-lit ones get their model matrix into the
-// landscape's space; the casters' meshes (the objects the game shadows this frame) and the units' their spheres, one
-// for all passes of a mesh. g_objects lists the objects handed over as casters, then the others met.
+// landscape's space; the casters' meshes (the objects the game shadows this frame) that may matter to a candidate
+// light and the units' their spheres, one for all passes of a mesh.
 static void ListCasters(Frame& f, const CameraInverse& camera, LastSphere& spheres) {
     PointShadowFrame& ps = f.shadow.point;
     g_casters.clear();
     g_units.clear();
-    g_objectIndex.clear();
     g_objects.clear();
-    for (const auto& [object, strength] : f.shadow.casters) {
-        g_objectIndex.emplace(object, static_cast<int>(g_objects.size()));
-        g_objects.push_back(FrameObject{strength});
-    }
-    const Object3D* lastObject = nullptr;
-    int lastObjectIndex = -1;
-    auto objectOf = [&](const Object3D* object) {
-        if (object == lastObject) return lastObjectIndex;
-        auto [it, added] = g_objectIndex.try_emplace(object, static_cast<int>(g_objects.size()));
-        if (added) g_objects.push_back(FrameObject{kNoStrength});
-        lastObject = object;
-        lastObjectIndex = it->second;
-        return lastObjectIndex;
-    };
-    g_modelOf.assign(f.matrices.size(), kModelUnknown);
-    auto modelOf = [&](const MeshBatch& b) {
-        int& index = g_modelOf[static_cast<std::size_t>(b.matrix)];
-        if (index == kModelUnknown) {
-            ps.models.push_back(camera.Under(f.matrices[static_cast<std::size_t>(b.matrix)]));
-            index = static_cast<int>(ps.models.size()) - 1;
-        }
-        return index;
-    };
+    for (const FrameCaster& c : f.shadow.casters) g_objects.push_back(FrameObject{c.strength});
+    auto modelOf = [&](const MeshBatch& b) { return LandscapeModel(f, camera, b.matrix); };
     for (const WorldMesh& w : f.worldMeshes) {
         MeshBatch& batch = f.meshBatches[static_cast<std::size_t>(w.batch)];
         if (batch.flat) continue;
         if (batch.lighting >= 0) batch.landscape = modelOf(batch);
-        if (!batch.caster || !batch.boxed) continue;
-        const int object = objectOf(batch.caster);
+        if (!batch.caster || !batch.boxed || batch.casterSlot < 0) continue;
+        const int object = batch.casterSlot;
         if (batch.figure) g_units.push_back(UnitMesh{&batch, object, modelOf(batch), false, Sphere{}});
         if (w.additive) continue;
         if (g_objects[static_cast<std::size_t>(object)].strength < kLeastStrength) continue;
         if (w.repeat) continue;   // a later pass of the same mesh
         const int model = modelOf(batch);
+        if (!NearCandidate(batch.box, ps.models[static_cast<std::size_t>(model)])) continue;
         g_casters.push_back(Caster{&batch, object, spheres.Of(ps, batch, model), model, 0.0f});
         if (batch.figure) {
             g_units.back().haveSphere = true;

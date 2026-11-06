@@ -174,7 +174,7 @@ int Object3DClientSpecific::DrawPartsShadow(SceneRenderer*) {
     // has faded in. No shadow texture or decal is drawn.
     const std::optional<float> strength = ShadowCastStrength(object);
     if (!strength) return 1;
-    render::CastsShadow(object, *strength);
+    render::CastsShadow(object, casterMark, *strength);
 
     // The shadow's sphere decides the object's shadow visibility (ShadowInView). Fitted the first time after
     // Create / ClearShadow, for an object not drawn static and when the half asks (flag 8).

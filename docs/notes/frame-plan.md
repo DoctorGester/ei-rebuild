@@ -195,8 +195,9 @@ at R37f1's merge (the terrain's R37e4b not in either). The main thread is the CP
   bits make one 64-bit key; the same `IntroSort` on keys that order as `DrawBefore` does gives the same permutation
   (checked on every sort of the save).
 - **Mesh slots** save less than planned (about 0.06 ms of the hand-over): the five lookups were in warm tables.
-- Left for later: `ShadowFrame::casters` stays a map rebuilt every frame; the point shadows list their objects in its
-  order, so a frame stamp needs an ordered list beside it to keep their faces' caster lists (and redraws) the same.
+- `ShadowFrame::casters` was a map rebuilt every frame: R37f6 made it a list by a frame stamp kept on the object. The
+  point shadows' faces list their casters in the world meshes' order, not the map's: the map's order fed only the
+  objects' own state (holds, fronts).
   The 1.33 KB of uniforms a draw and the draw count are R37f3's (instancing).
 
 ## Measured after R37f3

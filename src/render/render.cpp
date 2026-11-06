@@ -485,7 +485,7 @@ static bool DrawPending() {
             perf::Enter(perf::Pass::Sun);
             PrepareShadows(g_frame);
             DrawShadowMap(g_frame);
-            DrawRoofMap();
+            DrawRoofMap(g_frame);
             perf::Enter(perf::Pass::Point);
             DrawPointShadows(g_frame);
             perf::AddCpu(perf::Cpu::Shadow, shadowTime.End());

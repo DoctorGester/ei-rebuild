@@ -24,6 +24,7 @@ struct Pending {
     int firstIndex = 0;
     int indexCount = 0;
     const Object3D* caster = nullptr;   // render::BeginCaster's object
+    int casterSlot = -1;                // ... its place in ShadowFrame::casters
     bool figure = false;            // ... a unit's
     const Object3D* interfaceUnit = nullptr;   // render::BeginInterfaceUnit's unit, if any
     bool boxed = false;             // its positions' box in model space taken (a caster's: MeshPass)
@@ -652,6 +653,7 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     g_pending.device = device;
     g_pending.matrix = AddMatrix(clip);
     g_pending.caster = CurrentCaster();
+    g_pending.casterSlot = CurrentCasterSlot();
     // A caster's box (its point shadows), and a unit's: taken in MeshPass (a kept mesh keeps it).
     g_pending.boxed = g_pending.caster && mesh.positions && mesh.positionCount > 0;
     g_pending.figure = CurrentCasterFigure() && g_pending.boxed;
@@ -716,6 +718,7 @@ void MeshPass(const TextureDevice* device) {
         batch.flat = !g_pending.mesh.corners;
         batch.decal = batch.flat && g_pending.mesh.groundDecal;
         batch.caster = g_pending.caster;
+        batch.casterSlot = g_pending.casterSlot;
         batch.figure = g_pending.figure;
         batch.interfaceUnit = g_pending.interfaceUnit;
         batch.boxed = g_pending.boxed;

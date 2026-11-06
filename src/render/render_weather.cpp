@@ -76,19 +76,24 @@ struct UnitSurface {
 static std::unordered_map<const Object3D*, UnitSurface> g_units;
 static const Object3D* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
 
-// A mesh that can roof a unit this frame: an object's (not a unit's) mesh drawn in the world, its model matrix into
-// the landscape's space and its box there; the matrix is inverted when a point first lies under the box.
+// A mesh that can roof a unit this frame: an object's (not a unit's) mesh drawn in the world and its model matrix into
+// the landscape's space (PointShadowFrame::models; -1 not made yet). Its box there is made when its placed box may lie
+// over a unit's look points (g_nearRoofs), the matrix inverted when a point first lies under the box.
 struct Roof {
     const MeshBatch* batch = nullptr;
-    Matrix4 model;
+    int model = -1;
     Box box;
     bool inverted = false;
     std::optional<Matrix4> toModel;   // the model's inverse, none when it has none (once `inverted`)
 };
 
-// The frame's lists, kept for their room.
+// The frame's lists, kept for their room: the roofs, those with their box (into g_roofs), the units' boxes by their
+// place in ShadowFrame::casters and those places in the order met.
 static std::vector<Roof> g_roofs;
-static std::unordered_map<const Object3D*, Box> g_unitBoxes;
+static std::vector<int> g_nearRoofs;
+static std::vector<Box> g_unitBoxes;
+static std::vector<int> g_unitSlots;
+static std::optional<WorldView> g_view;   // the world's camera this frame (CollectUnitsAndRoofs)
 // The frame's roof map (PrepareRoofs): its area and depth range, the landscape's space to its clip space.
 struct RoofFit {
     bool on = false;
@@ -99,9 +104,6 @@ static CasterDraws g_roofDraws("ei-roof-casters");
 static gpu::Texture g_roofTexture;
 static bool g_roofShelter = true;   // SetRoofShelter
 static RoofInfo g_roofInfo;
-constexpr int kModelUnknown = -1;
-static std::vector<int> g_modelOf;   // per frame matrix: into g_models, kModelUnknown not yet
-static std::vector<Matrix4> g_models;
 
 // `now` moved towards `target` over `step` ticks: rising with `rise`, falling with `fall` as its time constant.
 static float Follow(float now, float target, double step, double rise, double fall) {
@@ -148,18 +150,27 @@ static unsigned RaysMeetMesh(const Frame& f, const MeshBatch& batch, const Vecto
     return met;
 }
 
-// The share of a unit's top under a roof: of kRoofPoints points of its box at kRoofLook of its height, those with a
-// roof's triangle straight above (the rays under a roof's box tested together against its triangles).
-static float Shelter(const Frame& f, const Box& unit) {
+// The kRoofPoints points of a unit's box at kRoofLook of its height a roof is looked for above.
+struct LookPoints {
+    Vector3 at[kRoofPoints];
+};
+static LookPoints Look(const Box& unit) {
     const float cx = (unit.low.x + unit.high.x) * 0.5f, cy = (unit.low.y + unit.high.y) * 0.5f;
     const float dx = (unit.high.x - unit.low.x) * kRoofSpread, dy = (unit.high.y - unit.low.y) * kRoofSpread;
     const float z = unit.low.z + (unit.high.z - unit.low.z) * kRoofLook;
-    const Vector3 points[kRoofPoints] = {
-        {cx, cy, z}, {cx - dx, cy - dy, z}, {cx + dx, cy - dy, z}, {cx - dx, cy + dy, z}, {cx + dx, cy + dy, z},
-    };
+    return {{{cx, cy, z}, {cx - dx, cy - dy, z}, {cx + dx, cy - dy, z}, {cx - dx, cy + dy, z}, {cx + dx, cy + dy, z}}};
+}
+
+// The share of a unit's top under a roof: of its look points, those with a roof's triangle straight above (the rays
+// under a roof's box tested together against its triangles).
+static float Shelter(const Frame& f, const Box& unit) {
+    const LookPoints look = Look(unit);
+    const Vector3* points = look.at;
+    const float z = points[0].z;
     constexpr unsigned kAll = (1u << kRoofPoints) - 1;
     unsigned roofed = 0;
-    for (Roof& roof : g_roofs) {
+    for (int index : g_nearRoofs) {
+        Roof& roof = g_roofs[static_cast<std::size_t>(index)];
         if (roof.box.high.z <= z) continue;
         unsigned under = 0;
         for (int k = 0; k < kRoofPoints; ++k) {
@@ -171,7 +182,7 @@ static float Shelter(const Frame& f, const Box& unit) {
         if (!under) continue;
         if (!roof.inverted) {
             roof.inverted = true;
-            roof.toModel = InvertMatrix(roof.model);
+            roof.toModel = InvertMatrix(f.shadow.point.models[static_cast<std::size_t>(roof.model)]);
         }
         if (!roof.toModel) continue;
         Vector3 from[kRoofPoints];
@@ -185,37 +196,69 @@ static float Shelter(const Frame& f, const Box& unit) {
     return static_cast<float>(count) / static_cast<float>(kRoofPoints);
 }
 
+// Shelter passes over a roof for a unit when the roof's box is no higher than the unit's look points or holds none of
+// them across: so it does for a box around the roof's (`roof`) and one around the points (`look`).
+static bool MayRoof(const PlacedBox& roof, const Box& look) {
+    const Vector3 &c = roof.centre, &h = roof.half;
+    return c.z + h.z > look.low.z && c.x - h.x <= look.high.x && c.x + h.x >= look.low.x && c.y - h.y <= look.high.y &&
+           c.y + h.y >= look.low.y;
+}
+
 // The world's model meshes after the ground: the units' boxes (by object), and the other objects' meshes as roofs (one
-// for all passes of a mesh; not the light added).
-static void CollectUnitsAndRoofs(const Frame& f) {
+// for all passes of a mesh; not the light added); a roof gets its box only when it may roof a unit (MayRoof).
+static void CollectUnitsAndRoofs(Frame& f) {
     g_roofs.clear();
-    g_unitBoxes.clear();
-    g_models.clear();
+    g_nearRoofs.clear();
+    g_unitSlots.clear();
+    g_view.reset();
     if (f.worldRanges.empty()) return;
-    const std::optional<WorldView> view = WorldCamera(f);
-    if (!view) return;
-    g_modelOf.assign(f.matrices.size(), kModelUnknown);
-    auto modelOf = [&](const MeshBatch& batch) {
-        int& index = g_modelOf[static_cast<std::size_t>(batch.matrix)];
-        if (index == kModelUnknown) {
-            g_models.push_back(view->inverse.Under(f.matrices[static_cast<std::size_t>(batch.matrix)]));
-            index = static_cast<int>(g_models.size()) - 1;
-        }
-        return index;
-    };
+    g_view = WorldCamera(f);
+    if (!g_view) return;
+    const CameraInverse& camera = g_view->inverse;
+    const std::vector<Matrix4>& models = f.shadow.point.models;
+    static std::vector<char> unitMet;
+    unitMet.assign(f.shadow.casters.size(), 0);
+    if (g_unitBoxes.size() < f.shadow.casters.size()) g_unitBoxes.resize(f.shadow.casters.size());
     const MeshBatch* last = nullptr;
     for (const WorldMesh& mesh : f.worldMeshes) {
         const MeshBatch& batch = f.meshBatches[static_cast<std::size_t>(mesh.batch)];
-        if (batch.flat || batch.lines || !batch.caster || !batch.boxed || mesh.additive) continue;
+        if (batch.flat || batch.lines || batch.casterSlot < 0 || !batch.boxed || mesh.additive) continue;
         if (last && mesh.repeat && batch.matrix == last->matrix) continue;
         last = &batch;
-        const Matrix4& placed = g_models[static_cast<std::size_t>(modelOf(batch))];
-        if (batch.figure) {
-            ExtendPlaced(g_unitBoxes[batch.caster], batch.box, placed);
-        } else {
-            g_roofs.push_back(Roof{&batch, placed, Box{}});
-            ExtendPlaced(g_roofs.back().box, batch.box, placed);
+        if (!batch.figure) {
+            g_roofs.push_back(Roof{&batch});
+            continue;
         }
+        const auto slot = static_cast<std::size_t>(batch.casterSlot);
+        if (!unitMet[slot]) {
+            unitMet[slot] = 1;
+            g_unitBoxes[slot] = Box{};
+            g_unitSlots.push_back(batch.casterSlot);
+        }
+        const int model = LandscapeModel(f, camera, batch.matrix);
+        ExtendPlaced(g_unitBoxes[slot], batch.box, models[static_cast<std::size_t>(model)]);
+    }
+    if (g_unitSlots.empty()) return;
+    // Each unit's look points' box, and the box around them all.
+    static std::vector<Box> looks;
+    looks.clear();
+    Box all;
+    for (int slot : g_unitSlots) {
+        Box look;
+        for (const Vector3& p : Look(g_unitBoxes[static_cast<std::size_t>(slot)]).at) look.Extend(p);
+        looks.push_back(look);
+        all.Extend(look.low);
+        all.Extend(look.high);
+    }
+    for (std::size_t k = 0; k < g_roofs.size(); ++k) {
+        Roof& roof = g_roofs[k];
+        roof.model = LandscapeModel(f, camera, roof.batch->matrix);
+        const Matrix4& placed = models[static_cast<std::size_t>(roof.model)];
+        const PlacedBox loose = PlaceBox(roof.batch->box, placed);
+        if (!MayRoof(loose, all) || std::none_of(looks.begin(), looks.end(), [&](const Box& look) { return MayRoof(loose, look); }))
+            continue;
+        ExtendPlaced(roof.box, roof.batch->box, placed);
+        g_nearRoofs.push_back(static_cast<int>(k));
     }
 }
 
@@ -263,7 +306,9 @@ void PrepareUnitWeather(Frame& f) {
     // only goes forward; a unit first met, not met for longer than kUnitForgetTicks or while the ground settles after a
     // load starts from the ground's state times its exposure. After a save's load the units restored from its side file
     // and those met while the ground holds its kept state hold theirs too.
-    for (const auto& [object, box] : g_unitBoxes) {
+    for (int slot : g_unitSlots) {
+        const Object3D* object = f.shadow.casters[static_cast<std::size_t>(slot)].object;
+        const Box& box = g_unitBoxes[static_cast<std::size_t>(slot)];
         const float shelter = Shelter(f, box), open = 1.0f - shelter;
         auto [it, added] = g_units.try_emplace(object);
         UnitSurface& unit = it->second;
@@ -329,6 +374,8 @@ void PrepareRoofs(Frame& f) {
     g_roofInfo.made = true;
     g_roofInfo.size = kRoofMapSize;
     g_roofInfo.extent = extent;
+    for (Roof& roof : g_roofs)
+        if (roof.model < 0) roof.model = LandscapeModel(f, g_view->inverse, roof.batch->matrix);
 }
 
 void RoofUniforms(const Matrix4& light, ShadowParams* params) {
@@ -352,7 +399,7 @@ void RoofUniforms(const Matrix4& light, ShadowParams* params) {
 }
 
 // The roofs straight down into the roof map (depth only; cut out by their texture's alpha as in the sun map).
-void DrawRoofMap() {
+void DrawRoofMap(const Frame& f) {
     if (!g_roofFit.on) return;
     Timer timer(FrameStats::Time::ShadowMs);
     if (!g_roofTexture) g_roofTexture = MakeShadowDepth(kRoofMapSize, kRoofMapSize, "ei-roof-map");
@@ -369,7 +416,8 @@ void DrawRoofMap() {
         if (!BindMeshBatch(batch, geometry, &first)) continue;
         const PassState& state = batch.state;
         const StageState& stage = state.stages[0];
-        CasterInstance instance{Product(g_roofFit.clip, roof.model), {batch.uOffset, batch.vOffset}, {}};
+        const Matrix4& model = f.shadow.point.models[static_cast<std::size_t>(roof.model)];
+        CasterInstance instance{Product(g_roofFit.clip, model), {batch.uOffset, batch.vOffset}, {}};
         CasterAlpha(state, instance.alpha);
         g_roofDraws.Add(geometry, batch.cached != nullptr, stage.texture ? stage.texture : SurfaceView(nullptr),
                         StageSampler(stage), first, batch.indexCount, instance);
