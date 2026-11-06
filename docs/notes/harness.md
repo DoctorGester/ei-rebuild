@@ -498,8 +498,19 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   water's copies, in that order; the terrain shader cut to its texture still cost half its time and the sun filter's
   taps a sixth, so no one shader part is the cause. One game at a time the 166 runs that passed on both took a median 2.4
   times as long as on Linux's lavapipe (run 42016421240 against 42040984380), hence EI_TIME_SCALE 8 (input
-  `time_scale`) against Linux's 3. Microsoft's current WARP (NuGet Microsoft.Direct3D.WARP: AVX2 codegen, wave size 8,
-  uniform branches as jumps) would likely be faster; using it is H62g, waiting for the user's word.
+  `time_scale`) against Linux's 3.
+- **Microsoft's WARP is slower** (H62g): the workflow's input `warp=true` (default false) fetches NuGet's
+  Microsoft.Direct3D.WARP 1.0.21 (version, SHA512 from nuget.org and SHA256 pinned; cached; only
+  `build/native/bin/x64/d3d10warp.dll` is taken out of it) and puts the dll next to `build/verify/ei-rebuild.exe`, which
+  D3D12 loads instead of the in-box one; the run's `gpu:` line then says `driver 1.0.21.0` (the in-box one:
+  `driver 10.0.26100.33648`). Measured on one commit, both full runs at once (runs 42124917682 in-box and 42124922200
+  with 1.0.21, plus 42103335919 with 1.0.21 on the same code an hour before): the scenarios that passed in both took
+  26374 s with 1.0.21 against 16374 s in-box (1.61 times; the median scenario of 20 s or more 1.63 times; 1.0.21's
+  two runs: 36627 and 32722 s of all runs, in-box 23111 s), and the eight suites jobs took 41 to 77 minutes in-box (after the skips below) and 73 to 143 with 1.0.21. The
+  in-box run reproduced H62d's 42085737374 (same scenarios 0.93 times, median 1.00), so the numbers are not the runner
+  class's noise. So the AVX2 codegen and the uniform jumps do not pay on the runner's 4 vCPUs (their thread pool or
+  wave size 8 may be what costs); the default stays the in-box WARP. A later WARP version is one change of
+  `WARP_VERSION` and the two checksums (nuget.org lists the SHA512; run once and read the SHA256 the step prints).
 - **A lost device** (H62f): WARP 10.0.26100 removed its device in bz1g's scenes (ui_base_dialogue, render_stats in the
   town, net_pair_database on Rebirth's): an access violation in its shader code reading 0xFFF0 bytes past a uniform
   buffer, the point shadows' arrays read at index -1 by lanes that do not use the answer (point_shadow.hlsli's
@@ -512,7 +523,12 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   real-time limit at scale 8, one game at a time, in run 42057942638 (render_drawn_lights, render_drawn_motion,
   render_weather_panel, ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client; net_pair_portraits on Rebirth's
   install), after which a scenario goes on early and differs; and render_weather and render_weather_units, which pass
-  but take 37 to 55 minutes a run. Anything else is added only for a measured reason. In that run at scale 8 the
+  but take 37 to 55 minutes a run; camera_drag_rate, camera_smooth and camera_spin (past their limits at scale 8 in
+  H62d's run and H62g's, 3500 s of a shard for nothing); and the seven render_device_lost_* (`losedevice` on WARP leaves
+  the game running: "the game did not crash", in every run since they exist; the in-box and 1.0.21 alike: a ticket to
+  find why RemoveDevice does not reach SDL's device with the WARP hint). Anything else is added only for a measured
+  reason. Failing in every run and not skipped, since they show a WARP difference in the picture and not a time:
+  render_load_town (unitcolour) and render_resize_windows (samecapture). In that run at scale 8 the
   slowest that passed: camera_spin 1083 s, camera_drag_rate 910 s, camera_smooth 808 s, render_weather_roofs 788 s,
   net_pair_party 473 s (775 s on Rebirth's), render_weather_shelter 458 s. Rebirth's render_shadows_decals had blank
   ground prints in the Rebirth stub set until H62e repacked it (linux.md, "The stub data").

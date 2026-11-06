@@ -41,12 +41,12 @@ on:
         required: false
         default: "0"
       warp:
-        description: "Microsoft's WARP from NuGet next to the exe (false: the runner's in-box WARP, for a comparison on the same commit)"
+        description: "true: Microsoft's WARP from NuGet next to the exe (H62g: 1.0.21 ran 1.6 times as long as the runner's in-box WARP, so the default is false)"
         type: choice
-        options: ["true", "false"]
-        default: "true"
+        options: ["false", "true"]
+        default: "false"
       time_scale:
-        description: "EI_TIME_SCALE: the scenarios' real-time limits times this (WARP runs 2.4 times as long as lavapipe)"
+        description: "EI_TIME_SCALE: the scenarios' real-time limits times this (the runner's WARP runs 2.4 times as long as lavapipe)"
         required: false
         default: "8"
 
@@ -149,7 +149,7 @@ jobs:
       matrix:
         shard: [0, 1, 2, 3, 4, 5, 6, 7]
     env:
-      # Microsoft's WARP (NuGet; H62g): version and the package's checksums.
+      # Microsoft's WARP (NuGet; H62g; only with the input warp=true, it was slower): version and the package's checksums.
       WARP_VERSION: "1.0.21"
       WARP_SHA512: "lSVCC7GxvoyjCE4YmoxaSjAIB/rXsfSuCSiZSbHLgsJvN+7IQ5hTcpyZWU3TWF1onaZqE50EEJ3Tsh78XAKLEA=="
       WARP_SHA256: "ea44b77eb30eec14427193e20f40cdb2e4c31ed11ab39cb880538fdf4bac2681"
@@ -163,13 +163,19 @@ jobs:
       # (2026-11-05): their own `timeout` or a frames step's ("N frames still to go"; net_pair_portraits on Rebirth's
       # install), after which a scenario goes on early and differs; and render_weather / render_weather_units, which pass
       # but take 37 to 55 minutes a run (render_weather 2222 s, 3289 s on Rebirth's), most of a shard's 180 minutes
-      # (docs/notes/harness.md, "The Windows CI job").
+      # (docs/notes/harness.md, "The Windows CI job"). Then, from H62g's runs on one commit (2026-11-06): camera_drag_rate,
+      # camera_smooth, camera_spin, past their limits at scale 8 in every run since H62d (960, 960 and 1600 s spent each
+      # run, 3500 s of a shard), and render_device_lost_*, whose `losedevice` leaves the game running on WARP (the
+      # scenarios expect the renderer's fatal message: "the game did not crash"), in every run.
       WINDOWS_SKIP: >-
         net_pair_leave net_pair_quest net_pair_speed net_pair_zone net_zone_leader net_zone_vars
         ui_widescreen ui_widescreen_dialogue ui_widescreen_hud ui_widescreen_more ui_widescreen_screens
         net_pair_portraits render_drawn_lights render_drawn_motion render_weather_panel ui_minimap_edges unit_ai_bridge
         zone_gz15h_tornado_client
         render_weather render_weather_units
+        camera_drag_rate camera_smooth camera_spin
+        render_device_lost_acquire render_device_lost_commands render_device_lost_pass render_device_lost_submit
+        render_device_lost_uniforms render_device_lost_wait render_device_lost_write
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5
@@ -177,13 +183,13 @@ jobs:
           name: harness-exe
           path: build/verify
       - name: WARP package cache
-        if: inputs.warp != 'false'
+        if: inputs.warp == 'true'
         uses: actions/cache@v5
         with:
           path: warp-cache
           key: warp-nuget-${{ env.WARP_VERSION }}-${{ env.WARP_SHA512 }}
       - name: Microsoft WARP (NuGet)
-        if: inputs.warp != 'false'
+        if: inputs.warp == 'true'
         run: |
           # Microsoft's current WARP next to the harness exe: D3D12 loads d3d10warp.dll from the exe's folder instead of
           # the runner's in-box one (H62g). Pinned by version and checksums (nuget.org lists the package's SHA512; the
