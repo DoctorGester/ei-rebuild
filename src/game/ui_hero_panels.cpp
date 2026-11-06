@@ -16,6 +16,7 @@
 #include "game/unit.h"
 #include "game/world.h"
 #include "game/screen_layout.h"
+#include "game/model.h"
 #include "game/texture.h"
 #include "game/ui_item_info.h"
 

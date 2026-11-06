@@ -4,6 +4,7 @@
 #include "game/game_singletons.h"
 #include "game/light.h"
 #include "game/model.h"
+#include "game/pipeline.h"
 #include "game/options.h"
 #include "game/world.h"
 

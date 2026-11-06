@@ -2,8 +2,8 @@
 // folder. See docs/notes/renderer.md (section 12).
 #include "game/link_figure.h"   // LinkMesh: the cache's entries
 #include "game/mod_folders.h"
-#include "game/model.h"
-#include "game/texture.h"   // TextureDevice
+#include "game/device.h"
+#include "game/link_loader.h"
 
 #include <cstddef>
 #include <string>

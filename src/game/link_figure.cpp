@@ -1,9 +1,8 @@
 // The 3D library's figure meshes and their part loaders; see link_figure.h.
 #include "game/link_figure.h"
 
-#include "game/model.h"
+#include "game/link_loader.h"
 #include "render/render.h"   // MeshChanged
-#include "game/texture.h"         // TextureDevice
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

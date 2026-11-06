@@ -10,6 +10,7 @@
 #include "game/game_singletons.h"
 #include "game/light.h"
 #include "game/map_object_figures.h"
+#include "game/model.h"
 #include "game/random.h"
 #include "game/spell.h"
 #include "game/unit.h"

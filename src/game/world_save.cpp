@@ -13,7 +13,6 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/mod_folders.h"
-#include "game/model.h"
 #include "game/net_delta.h"
 #include "game/net_messages.h"
 #include "game/net_session.h"

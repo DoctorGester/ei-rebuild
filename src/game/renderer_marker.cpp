@@ -4,8 +4,8 @@
 // flat geometry draw projects them with the scene's matrices. See docs/notes/renderer.md.
 #include "game/figure_mesh.h"   // VertexPacket
 
+#include "game/device.h"
 #include "game/model.h"         // SceneRenderer
-#include "game/texture.h"       // TextureDevice
 #include "lib/scales.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"

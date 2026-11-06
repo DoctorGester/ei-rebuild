@@ -7,7 +7,8 @@
 #include "game/mod_folders.h"
 #include "game/net_session.h"
 #include "game/sound.h"
-#include "game/texture.h"
+#include "game/device.h"
+#include "game/model.h"
 
 #include "lib/crt.h"
 #include "lib/rect.h"

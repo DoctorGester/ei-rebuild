@@ -9,11 +9,12 @@
 // depth tested. docs/notes/renderer.md, section 12, "Weather".
 #include "game/camera.h"
 #include "game/clip.h"
+#include "game/device.h"
 #include "game/effects.h"
 #include "game/model.h"
+#include "game/pipeline.h"
 #include "render/render.h"
 #include "render/render_checks.h"
-#include "game/texture.h"
 #include "game/weather_field.h"
 #include "game/world.h"
 

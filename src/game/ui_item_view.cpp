@@ -2,6 +2,7 @@
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "game/app.h"
 #include "game/core_refcount.h"
+#include "game/model.h"
 #include "game/texture.h"
 #include "game/ui_item_info.h"
 #include "game/ui_mesh.h"

@@ -1,3 +1,4 @@
+#include "game/device.h"
 #include "game/texture.h"
 
 #include "game/app.h"

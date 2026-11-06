@@ -43,7 +43,7 @@ public:
     // The side-specific halves' manager (the client's is a ClientSpecificManager).
     BaseManager* SpecificManager();
     virtual SpellManager* GetSpellManager() { return nullptr; }
-    LinkFigureLoader* FigureLoader();                                   // the figure loader (model.h)
+    LinkFigureLoader* FigureLoader();                                   // the figure loader (link_loader.h)
     // A copy of an item: MakeCopyOf (the server's is WorldServer::CopyItem). Not called
     // CopyItem here: WorldServer's plain member of that name would hide it.
     virtual Item* DuplicateItem(Item* item) { return MakeCopyOf(item); }

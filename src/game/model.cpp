@@ -1,10 +1,9 @@
-// The 3D library side of figure loading and drawing: bounding-volume clip
-// test, transform matrices, triangle index buffers and the link-file loader's archive list.
-#include "game/model.h"
+// The transform pipeline's clip test of a part's bounds (ClipBounds, TransformPipeline::ClipTest, BeyondReach,
+// ProjectBlocks) and the viewport and projection matrices. See pipeline.h.
+#include "game/pipeline.h"
 
 #include "game/clip.h"   // ClipOutcode, ClipCodeOf
 #include "game/core_maths.h"
-#include "game/resource.h"
 
 #include "lib/crt.h"
 #include "lib/maths.h"
@@ -187,20 +186,4 @@ Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear) {
     out->m[14] = s;
     out->m[11] = -(s * zNear);
     return out;
-}
-
-int LinkFigureLoader::AddArchive(const std::string& path) {
-    for (const LinkArchive& archive : archives)
-        if (archive.name == path) return 1;
-
-    LinkArchive& archive = archives.emplace_back(path);
-    MappedResource* resource = new MMIOResource();
-    archive.resource = resource;
-    if (resource->OpenResource(path)) return 1;
-
-    // Failure: drop the archive again (the resource object is leaked) and log. (The original passed STLport's
-    // string object by value to "%s": its first word, the text pointer, is what printed.)
-    archives.pop_back();
-    game::DebugLog("Can't open resource file \"%s\"\n", path);
-    return 0;
 }

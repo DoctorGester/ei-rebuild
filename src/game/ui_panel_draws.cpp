@@ -3,7 +3,7 @@
 // ui_trade_panel.cpp.
 #include "game/ui.h"
 #include "game/ui_mesh.h"
-#include "game/texture.h"
+#include "game/model.h"
 #include "game/ui_camp.h"
 #include "game/ui_item_info.h"
 #include "game/item.h"

@@ -176,7 +176,7 @@ can reach command 8 (`KillScript() VTriger#0#n( this )`).
   buffered file stream is a `GameBuffer` whose block is a window onto a file.
 - Stream diff (`WriteDiff`, `ApplyDiff`): `ApplyDiff` patches run headers in place and follows a full run of 255 by an
   empty run of the other kind.
-- Matrices (projection.cpp, view_matrices.h): each product element sums its four terms in the original's order (two
+- Matrices (projection.cpp, pipeline.h): each product element sums its four terms in the original's order (two
   orders: `kProductOrder` / `kPushOrder`), pinned with StoreFloat against /fp:fast regrouping; elements are written in
   memory order, so an output that is also an input behaves as in the original.
 - Text helpers (text_split.h): Split, SplitWords, ReplaceChar, Join.

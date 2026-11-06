@@ -12,7 +12,9 @@
 #include "game/link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "game/map_object.h"
 #include "game/map_object_shadow.h"   // WoundsMaterial: the client half's
-#include "game/model.h"               // RenderPreset: the wounds material's
+#include "game/link_loader.h"
+#include "game/model.h"
+#include "game/pipeline.h"
 #include "game/random.h"
 #include "game/world.h"   // World: the figure manager and cache
 #include "lib/bytes.h"

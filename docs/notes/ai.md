@@ -48,7 +48,7 @@ region (1, 2, ...) flooded from a queue of blocks.
   blocks (right and bottom edges outside, as everywhere `Rect` is used).
 - The packed words have names in ai_map.h: AIMapCell::flags is the water's depth (kCellDepthMask), kCellBridge and
   kCellWater; AIMapCell::Passability reads a size class's nibble; namespace `occluder` reads and writes the occluder word.
-  The occluder kinds (sector_map.h `OccluderKind`) come from the part names (model.h BoundsFlag: "CROWN" kind 2, "BASE"
+  The occluder kinds (sector_map.h `OccluderKind`) come from the part names (pipeline.h BoundsFlag: "CROWN" kind 2, "BASE"
   a bridge, "EMPTY" no footprint), the spells' walls and clouds (kind 3, HasSpellArea) and ApplyBridgeDecks (kind 4); no
   part gives kind 1, whose cost-table entries are unused.
 - `UnitLayer` (small and large): a list of every node ever allocated, 1024 hash buckets by (block x * 17 + block y), 4x4

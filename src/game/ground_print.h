@@ -6,7 +6,8 @@
 // constructors from a stream: client_visuals.h's Prints section). A print is a textured quad
 // around its point, rotated by `angle`, its texture tile picked by the uv offset and scale and turned by
 // `uvAngle`; Draw lays it on the ground once (the decal projector) and draws it with an alpha that fades over
-// the print's life. See docs/notes/models.md.
+// the print's life. prints.db's records (PrintsDatabase, loaded at startup) give each kind of print its alpha and
+// life. See docs/notes/models.md.
 
 #include "game/ground_decal.h"   // DecalBuilder
 
@@ -14,10 +15,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 class ByteStream;
+class ChunkArchive;
 class Texture;
 
 // A texture by name. The device binds it by looking the texture up again by name.
@@ -136,3 +140,59 @@ public:
 };
 
 static_assert(std::is_nothrow_move_constructible_v<Footprint> && std::is_nothrow_move_constructible_v<BloodPrint>);
+
+// What chunks 2 and 3 of both prints.db record types hold: a print's alpha and its life and lifetime in ticks
+// (chunk 3 while it rains or snows).
+struct PrintLook {
+    float alpha = 0.0f;
+    int life = 0;
+    int lifetime = 0;
+};
+
+// A record of prints.db (terrain footprints).
+struct PrintRecord {
+    PrintRecord();
+    PrintRecord(const PrintRecord& from);
+    PrintRecord& operator=(const PrintRecord&) = delete;
+
+    virtual void Serialize(ChunkArchive* ar);
+
+    std::string name;
+    PrintLook dryLook;           // chunk 2
+    PrintLook wetLook;           // chunk 3 (while it rains or snows)
+};
+
+// The second record type of prints.db.
+struct PrintRecord2 {
+    PrintRecord2();
+    PrintRecord2(const PrintRecord2& from);
+    PrintRecord2& operator=(const PrintRecord2&) = delete;
+
+    virtual void Serialize(ChunkArchive* ar);
+
+    std::string name;
+    PrintLook dryLook;           // chunk 2
+    PrintLook wetLook;           // chunk 3 (while it rains or snows)
+    std::uint32_t unreadChunk[3] = {};  // chunk 10
+};
+
+inline const PrintLook& LookOf(const PrintRecord& r, bool second) { return second ? r.wetLook : r.dryLook; }
+inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return second ? r.wetLook : r.dryLook; }
+
+// prints.db (loaded at startup), indexed by the ground's surface class (Terrain::SurfaceClass): chunk 1
+// blood and bloody footprints, chunk 2 footprints, chunk 3 scorch marks; each table is followed by a
+// hash_map by name (filled by the load, never read).
+struct PrintsDatabase {
+    // "prints.db" of `folder` + "database.res" (Rebirth-patched): the three tables, each read through an
+    // archive of its own and filed under its records' names. 1; an archive or file that cannot be opened ends the
+    // game.
+    int Load(const std::string& folder);
+
+    std::vector<PrintRecord> blood;
+    std::unordered_map<std::string, PrintRecord*> bloodByName;
+    std::vector<PrintRecord2> footprints;
+    std::unordered_map<std::string, PrintRecord2*> footprintsByName;
+    std::vector<PrintRecord> scorch;
+    std::unordered_map<std::string, PrintRecord*> scorchByName;
+};
+extern PrintsDatabase g_printsDatabase;

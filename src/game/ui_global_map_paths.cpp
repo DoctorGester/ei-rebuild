@@ -8,7 +8,6 @@
 #include "game/console.h"
 #include "game/game_flow.h"
 #include "game/game_singletons.h"
-#include "game/model.h"
 #include "game/object_tables.h"
 #include "game/text_manager.h"
 #include "game/ui.h"

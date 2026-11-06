@@ -2,6 +2,9 @@
 #include "game/sky_object.h"
 
 #include "render/render.h"   // MeshChanged
+#include "game/device.h"
+#include "game/model.h"
+#include "game/pipeline.h"
 #include "game/texture.h"
 #include "game/world.h"
 

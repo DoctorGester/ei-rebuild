@@ -8,7 +8,7 @@
 #include "game/item.h"
 #include "game/link_figure.h"
 #include "game/manager_context.h"
-#include "game/model.h"
+#include "game/pipeline.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"

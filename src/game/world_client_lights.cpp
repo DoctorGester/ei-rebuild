@@ -10,6 +10,7 @@
 #include "game/map_object.h"           // MapObject (ObjectWithId)
 #include "game/map_object_figures.h"   // Object3D
 #include "game/model.h"
+#include "game/pipeline.h"
 #include "game/named_floats.h"
 #include "game/options.h"
 #include "game/party.h"

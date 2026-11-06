@@ -8,7 +8,7 @@
 #include "game/base_manager.h"
 #include "game/engine_object.h"
 #include "lib/vecmath.h"
-#include "game/model.h"   // ClipBounds
+#include "game/pipeline.h"   // ClipBounds
 
 #include "lib/containers.h"
 
@@ -16,6 +16,8 @@
 #include <cstdint>
 #include <vector>
 
+class SceneRenderer;
+class Texture;
 
 // A random noise key: two rows of the noise table (0..15) and their weights, scaled together to a
 // fixed length.

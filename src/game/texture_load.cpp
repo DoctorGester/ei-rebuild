@@ -1,5 +1,6 @@
 // How a texture gets its pixels (Texture, TextureManager): blank textures the game draws into, .mmp files, loose
 // .bmp files with their alpha and composed textures. See docs/notes/renderer.md (section 7).
+#include "game/device.h"
 #include "game/texture.h"
 
 #include "game/console.h"

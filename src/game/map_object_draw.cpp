@@ -1,6 +1,7 @@
 // Drawing a 3D object on the client (Object3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
 #include "game/drawn_motion.h"
+#include "game/device.h"
 #include "game/engine_object.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
@@ -8,7 +9,8 @@
 #include "game/object.h"
 #include "game/light.h"
 #include "game/terrain.h"
-#include "game/texture.h"              // RenderDeviceObject
+#include "game/model.h"
+#include "game/pipeline.h"
 #include "game/world.h"                // WorldClient
 
 #include "lib/containers.h"

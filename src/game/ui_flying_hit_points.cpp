@@ -14,7 +14,6 @@
 #include "game/map_object_figures.h"
 #include "game/model.h"
 #include "game/screen_layout.h"
-#include "game/texture.h"
 #include "game/ui.h"
 #include "game/unit.h"
 

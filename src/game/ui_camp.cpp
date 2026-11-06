@@ -18,6 +18,7 @@
 #include "game/screen_layout.h"
 #include "game/spell.h"
 #include "game/text_manager.h"
+#include "game/model.h"
 #include "game/texture.h"
 #include "game/ui.h"
 #include "game/sound.h"

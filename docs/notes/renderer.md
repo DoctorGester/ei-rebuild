@@ -183,7 +183,7 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
 
 | Data | Hand-over point | `render::` call |
 |---|---|---|
-| Clip matrix of the current draw | the transform pipeline's stacks (`TransformPipeline`, model.h: clip space = axis swap x projection x view x model; the screen matrix; the view stack) read at hand-over time | with each draw |
+| Clip matrix of the current draw | the transform pipeline's stacks (`TransformPipeline`, pipeline.h: clip space = axis swap x projection x view x model; the screen matrix; the view stack) read at hand-over time | with each draw |
 | Terrain sectors | `SectorData::DrawPage` (terrain_sector.cpp): vertices (33x33 per layer, water after ground), vertex records (normal, material colour, the specular word: edge fade, on the water the crests), tile lists, edge flags, quarter verdicts; `HandOverSceneLights` (world_client_shadow_casters.cpp) | `TerrainPage`, `SceneLighting` |
 | Meshes (figures, objects, sky, interface sprites and previews) | `device_mesh.cpp`'s mesh draws: positions and normals in packets of four, corners and texture coordinates (`render::VertexPacket` / `NormalPacket` / `MeshCorner` / `TexCoord`, mesh_records.h: the game's meshes hold the renderer's records), colours; matrix = the screen stack's top converted back to clip space; the distance fog switch | `BeginMesh` / `EndMesh`; `MeshLighting` for parts lit on the GPU |
 | Pass state | per pass of a mesh (material preset or two textures): `render::g_renderState` (section 5) | `MeshPass`; per terrain page at `TerrainPage` |
@@ -232,7 +232,7 @@ Stage-0 presets (texture.h):
 | `kAlphaPassStage` | texture x diffuse | texture x diffuse |
 | `kSceneStage` | texture x diffuse | diffuse (SELECTARG1) |
 
-A material's preset (`RenderPreset`, model.h; render_helper.cpp) keeps its state list: `ApplyPass(0)` sets the
+A material's preset (`RenderPreset`, render_helper.h / render_helper.cpp) keeps its state list: `ApplyPass(0)` sets the
 combiners of its first `stages` stages (the enabled ones) and turns the next stage off; pass n > 0 sets that state's
 blend factors (device_draw.cpp's multi-pass draw puts the blend back afterwards). `SetBlend` (device_draw.cpp) sets the
 two blend factors (the particles' additive / normal switch). The line strip (`renderer_lines.cpp`) turns stage 0's colour
@@ -567,7 +567,7 @@ picture: `checksave <slot> <frame> [tolerance] [fraction]` (ui_quicksave, sectio
 ## 10. Projections in plain C++
 
 The original transformed, lit, clipped and fogged on the CPU (3DfpFPU) and drew pre-transformed vertices. What the game
-still needs of that is `projection.cpp`, as members of `TransformPipeline` (model.h) and two free functions: `ToClip`
+still needs of that is `projection.cpp`, as members of `TransformPipeline` (pipeline.h) and two free functions: `ToClip`
 (clip space, the translation added first in each row; the decals' TransformPoints is this with the matrix untransposed),
 `ProjectClipped` / `ProjectPointsClipped` (an outcode per point, `clip.h`'s `ClipCodeOf`, and the batch's verdict,
 `ClipVerdict`; on screen the points go on to `ToScreen`), `Project` / `ProjectPoints` (the screen matrix's division),

@@ -5,9 +5,10 @@
 
 #include "game/camera_trace.h"
 #include "game/game_singletons.h"
+#include "game/device.h"
 #include "game/model.h"
-#include "game/surface.h"
 #include "game/texture.h"
+#include "game/surface.h"
 #include "game/world.h"
 #include "lib/crt.h"
 #include "platform/platform.h"

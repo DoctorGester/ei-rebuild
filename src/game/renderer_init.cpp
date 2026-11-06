@@ -6,11 +6,13 @@
 #include "game/app.h"
 #include "game/camera.h"
 #include "game/game_singletons.h"
-#include "game/model.h"   // SceneRenderer, TransformPipeline, RenderHelper
+#include "game/device.h"
+#include "game/model.h"   // SceneRenderer
+#include "game/pipeline.h"
+#include "game/render_helper.h"
 #include "game/options.h"
 #include "render/render_state.h"
 #include "game/light.h"
-#include "game/texture.h"   // TextureDevice
 #include "game/world.h"
 
 #include "lib/crt.h"

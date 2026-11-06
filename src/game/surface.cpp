@@ -5,6 +5,7 @@
 #include "game/surface.h"
 
 #include "game/dib.h"
+#include "game/device.h"
 #include "game/texture.h"
 #include "platform/log.h"
 #include "render/render.h"

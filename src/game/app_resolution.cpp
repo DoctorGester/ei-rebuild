@@ -3,11 +3,11 @@
 #include "game/app.h"
 
 #include "game/game_singletons.h"
+#include "game/device.h"
 #include "game/model.h"
 #include "game/options.h"
 #include "game/present_window.h"
 #include "game/screen_layout.h"
-#include "game/texture.h"
 #include "game/ui.h"
 #include "game/ui_cursor.h"
 

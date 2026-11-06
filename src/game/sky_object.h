@@ -8,11 +8,13 @@
 
 #include "game/core_transform.h"
 #include "game/figure_mesh.h"   // FigureMesh
-#include "game/model.h"         // Matrix4, SceneRenderer
 
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+
+class SceneRenderer;
+class Texture;
 
 // A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.
 struct SkyColour {

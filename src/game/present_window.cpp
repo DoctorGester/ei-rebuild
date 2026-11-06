@@ -1,9 +1,9 @@
 // The game window in the switch-over without DirectDraw (present_window.h).
 #include "game/present_window.h"
 
-#include "game/texture.h"
-#include "game/game_singletons.h"
+#include "game/device.h"
 #include "game/model.h"
+#include "game/game_singletons.h"
 
 #include "game/app.h"
 

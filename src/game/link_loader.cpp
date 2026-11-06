@@ -1,10 +1,10 @@
-// The link figure loader's .lnk reading and mesh cache. See link_figure.h and LinkFigureLoader in model.h.
+// The link figure loader's archive list, .lnk reading and mesh cache. See link_loader.h and link_figure.h.
 #include "game/core_refcount.h"
 #include "game/link_figure.h"
 
-#include "game/model.h"
-#include "game/resource.h"          // MappedResource
-#include "game/texture.h"           // TextureDevice
+#include "game/device.h"            // TextureDevice
+#include "game/link_loader.h"
+#include "game/resource.h"          // MappedResource, MMIOResource
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
@@ -168,4 +168,20 @@ bool LinkFigureLoader::RemorphPart(LinkMesh* mesh, FigureModel* set, const std::
     else
         RemorphOldPart(mesh, name, &cursor, morph);
     return true;
+}
+
+int LinkFigureLoader::AddArchive(const std::string& path) {
+    for (const LinkArchive& archive : archives)
+        if (archive.name == path) return 1;
+
+    LinkArchive& archive = archives.emplace_back(path);
+    MappedResource* resource = new MMIOResource();
+    archive.resource = resource;
+    if (resource->OpenResource(path)) return 1;
+
+    // Failure: drop the archive again (the resource object is leaked) and log. (The original passed STLport's
+    // string object by value to "%s": its first word, the text pointer, is what printed.)
+    archives.pop_back();
+    game::DebugLog("Can't open resource file \"%s\"\n", path);
+    return 0;
 }

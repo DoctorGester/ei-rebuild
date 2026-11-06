@@ -11,7 +11,7 @@
 #include "game/material.h"             // Material
 #include "lib/bit_flags.h"
 #include "lib/vecmath.h"
-#include "game/model.h"   // ClipBounds, SceneRenderer (the draws' context), TransformPipeline
+#include "game/pipeline.h"   // ClipBounds, TransformPipeline
 #include "lib/rect.h"   // RECT
 
 #include <cstddef>
@@ -37,6 +37,7 @@ struct TextureParts {
     std::vector<std::unique_ptr<PartGroup>> groups;
 };
 
+class SceneRenderer;
 struct WoundsMaterial;
 
 // The client half's `flags` bits.

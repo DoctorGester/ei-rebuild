@@ -2,10 +2,11 @@
 // direction at a point).
 // More: docs/notes/models.md, "Renderer".
 #include "game/clip.h"
+#include "game/device.h"
 #include "game/model.h"
+#include "game/pipeline.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "game/texture.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

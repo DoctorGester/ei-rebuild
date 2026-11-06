@@ -6,6 +6,7 @@
 #include "game/figure_mesh.h"   // VertexPacket
 #include "game/ground_decal.h"
 #include "game/model.h"
+#include "game/pipeline.h"
 #include "game/options.h"
 #include "game/spell.h"
 #include "game/terrain_sector.h"
