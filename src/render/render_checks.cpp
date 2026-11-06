@@ -293,5 +293,6 @@ MmpLevelCheck CheckMmpLevels() {
 }
 
 std::uint64_t perf::FrameDrawCount() { return g_stats.counts[FrameStats::Count::Draws] + g_stats.counts[FrameStats::Count::ShadowDraws]; }
+std::uint64_t perf::FrameCallCount() { return g_stats.counts[FrameStats::Count::DrawCalls] + g_stats.counts[FrameStats::Count::ShadowCalls]; }
 
 } // namespace render

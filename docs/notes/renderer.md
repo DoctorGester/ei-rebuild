@@ -1809,25 +1809,31 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
   FPS 144   FRAME 6.96 MS   WORST 9.13
   GPU 2.10 MS   WORST 2.60
   CPU SUBMIT 1.10 MS   SHADOW 0.12
-  DRAWS WORLD 370   SUN 120   POINT 80   UI 25
+  CALLS (DRAWS) WORLD 37 (370)   SUN 12 (120)   POINT 8 (80)   UI 7 (25)
   ```
   `FPS` and the frame time (between presents, so vsync's wait counts) with the worst frame; `GPU` the whole frame's GPU
   time (one submission's work, the present's pass with it; the worst too: section 15c, "The frame's GPU time"). `CPU
   SUBMIT` the main thread's time in EndFrame's draws up to the present; `SHADOW` the shadow maps' fitting and passes
-  (part of SUBMIT) and the world draw's walk of the casters outside the view (before it); `DRAWS` the frame's draws by pass (`perf::Pass`: the sun's map with its range passes, the point lights' faces,
-  the world view, the interface). `GPU -` until a frame's time comes back.
+  (part of SUBMIT) and the world draw's walk of the casters outside the view (before it); `CALLS` the frame's API draw
+  calls by pass (`perf::Pass`: the sun's map with its range passes, the point lights' faces, the world view, the
+  interface), the batches they drew (the logical draws, renderstats' "draws") in brackets: a run of meshes is one call.
+  Calls are `DrawCalls + ShadowCalls`, draws `Draws + ShadowDraws` of `FrameStats` (the same numbers as renderstats'
+  "N draws in M calls" and "shadow maps N draws in M calls"). `GPU -` until a frame's time comes back.
 - **How** (`render_perf.{h,cpp}`, `shaders/perf_overlay.hlsl`): `BeginDraws` at the first DrawPending begins the frame
-  in UI, `Enter(pass)` marks each change of pass for the draw counts, `EndDraws` after DrawToWindow; `FrameDone` at the
-  present takes the latest `gpu::FrameGpuTime` (the frame timing is on while the overlay is). The text is a built-in
-  5 x 7 font of capitals, digits and `.:/-+%()` drawn into an R8 texture, written before the present's pass when the
-  text changed, and drawn as one quad by whole-pixel scale (`Scale`: one per 540 rows of the game image) over a 60%
-  black box, in the present's pass after the frame.
+  in UI, `Enter(pass)` marks each change of pass for the call and draw counts, `EndDraws` after DrawToWindow; `FrameDone` at the
+  present takes the latest `gpu::FrameGpuTime` (the frame timing is on while the overlay is). The text is the
+  interface's (render_text.h: Liberation Mono as "Courier New", laid out by `text::Layout`, composed white on black by
+  `ComposeAgainstBlack`), `FontPixels` = one pixel per 60 rows of the game image (at least 10: 18 px at 1080, 36 at
+  4K), into an R8 coverage texture (`Box`) written before the present's pass when the text or the size changed, and
+  drawn as one quad, 1:1, over the frame's top left corner; the shader blends the coverage over a 60% black backing
+  (the frame's other 40% shows through the letters' edges), in the present's pass after the frame.
 - **Never in the frame target**: captures, frame checks, the screenshot, the movie recorder and the escape menu's / save
   game's pictures read the frame target, which never holds it.
 - **Check**: `ei_perf_check` (tools/perf_check, a build check) on gpu.h's device (hardware Direct3D 12): the lines of
-  known numbers, the font, the image's pixels; the overlay over a cleared BGRA8 target at 720 and 2160 rows against the
-  image scaled up; frames through every pass (each pass's draws, the CPU times and the whole frame's GPU time come
-  back).
+  known numbers, the font's size by height, the box's size and ink; the overlay over a cleared BGRA8 target at 720,
+  1080 and 2160 rows against the box's coverage; frames through every pass (each pass's calls and draws, the CPU times
+  and the whole frame's GPU time come back). `ei_perf_check --dump DIR` also writes the overlay over the cleared
+  target at 1080 and 2160 rows (with the frames' numbers) as DIR/overlay_WxH.ppm, for pictures.
 
 ## 15a. The vertical blank switch
 

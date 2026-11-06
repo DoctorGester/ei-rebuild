@@ -6,6 +6,7 @@
 #include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
+#include "render_text.h"
 
 #include <algorithm>
 #include <chrono>
@@ -36,17 +37,21 @@ static void Keep(std::deque<Sample<N>>& samples, const Sample<N>& s) {
     while (!samples.empty() && s.when - samples.front().when > second) samples.pop_front();
 }
 
-// The frames: their interval since the last present, the CPU times, each pass's draws (kFrameDraws + pass).
+// The frames: their interval since the last present, the CPU times, each pass's draws (kFrameDraws + pass) and API
+// calls (kFrameCalls + pass).
 constexpr int kInterval = 0;
 constexpr int kSubmitMs = 1;
 constexpr int kShadowCpuMs = 2;
 constexpr int kFrameDraws = 3;
-constexpr int kFrameValues = kFrameDraws + kPasses;
+constexpr int kFrameCalls = kFrameDraws + kPasses;
+constexpr int kFrameValues = kFrameCalls + kPasses;
 static std::deque<Sample<kFrameValues>> g_frames;
 static long long g_lastPresent = 0;
 static double g_cpu[static_cast<int>(Cpu::Count)] = {};   // this frame's
 static double g_draws[kPasses] = {};                      // this frame's
+static double g_calls[kPasses] = {};
 static std::uint64_t g_drawsCounted = 0;                  // FrameDrawCount when last given to a pass
+static std::uint64_t g_callsCounted = 0;                  // FrameCallCount
 
 // The GPU: the whole frame's time (gpu::FrameGpuTime), one per frame the GPU finished.
 static std::deque<Sample<1>> g_gpu;
@@ -56,11 +61,13 @@ static bool g_timing = false;   // gpu::SetFrameTiming on
 static bool g_inFrame = false;
 static Pass g_pass = Pass::Ui;
 
-// The draws since the last change, to the pass they were made in.
+// The draws and calls since the last change, to the pass they were made in.
 static void CountDraws() {
-    const std::uint64_t now = FrameDrawCount();
-    if (now >= g_drawsCounted) g_draws[static_cast<int>(g_pass)] += static_cast<double>(now - g_drawsCounted);
-    g_drawsCounted = now;
+    const std::uint64_t draws = FrameDrawCount(), calls = FrameCallCount();
+    if (draws >= g_drawsCounted) g_draws[static_cast<int>(g_pass)] += static_cast<double>(draws - g_drawsCounted);
+    if (calls >= g_callsCounted) g_calls[static_cast<int>(g_pass)] += static_cast<double>(calls - g_callsCounted);
+    g_drawsCounted = draws;
+    g_callsCounted = calls;
 }
 
 // The latest frame the GPU finished, into the samples (never waiting); the frame timing on while the overlay is.
@@ -77,108 +84,77 @@ static void Collect() {
     Keep(g_gpu, s);
 }
 
-// ---- The font ------------------------------------------------------------------------------------------------
-
-struct Glyph {
-    char c = 0;
-    const char* rows[kGlyphHeight] = {};
-};
-// clang-format off
-static const Glyph kFont[] = {
-    {'0', {".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."}},
-    {'1', {"..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."}},
-    {'2', {".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"}},
-    {'3', {"#####", "...#.", "..#..", "...#.", "....#", "#...#", ".###."}},
-    {'4', {"...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."}},
-    {'5', {"#####", "#....", "####.", "....#", "....#", "#...#", ".###."}},
-    {'6', {"..##.", ".#...", "#....", "####.", "#...#", "#...#", ".###."}},
-    {'7', {"#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#..."}},
-    {'8', {".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."}},
-    {'9', {".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##.."}},
-    {'A', {".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"}},
-    {'B', {"####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."}},
-    {'C', {".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."}},
-    {'D', {"###..", "#..#.", "#...#", "#...#", "#...#", "#..#.", "###.."}},
-    {'E', {"#####", "#....", "#....", "####.", "#....", "#....", "#####"}},
-    {'F', {"#####", "#....", "#....", "####.", "#....", "#....", "#...."}},
-    {'G', {".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".####"}},
-    {'H', {"#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"}},
-    {'I', {".###.", "..#..", "..#..", "..#..", "..#..", "..#..", ".###."}},
-    {'J', {"..###", "...#.", "...#.", "...#.", "...#.", "#..#.", ".##.."}},
-    {'K', {"#...#", "#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"}},
-    {'L', {"#....", "#....", "#....", "#....", "#....", "#....", "#####"}},
-    {'M', {"#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#"}},
-    {'N', {"#...#", "#...#", "##..#", "#.#.#", "#..##", "#...#", "#...#"}},
-    {'O', {".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."}},
-    {'P', {"####.", "#...#", "#...#", "####.", "#....", "#....", "#...."}},
-    {'Q', {".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#"}},
-    {'R', {"####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"}},
-    {'S', {".####", "#....", "#....", ".###.", "....#", "....#", "####."}},
-    {'T', {"#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."}},
-    {'U', {"#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."}},
-    {'V', {"#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.."}},
-    {'W', {"#...#", "#...#", "#...#", "#.#.#", "#.#.#", "#.#.#", ".#.#."}},
-    {'X', {"#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#"}},
-    {'Y', {"#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."}},
-    {'Z', {"#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"}},
-    {'.', {".....", ".....", ".....", ".....", ".....", ".##..", ".##.."}},
-    {':', {".....", ".##..", ".##..", ".....", ".##..", ".##..", "....."}},
-    {'/', {".....", "....#", "...#.", "..#..", ".#...", "#....", "....."}},
-    {'-', {".....", ".....", ".....", "#####", ".....", ".....", "....."}},
-    {'+', {".....", "..#..", "..#..", "#####", "..#..", "..#..", "....."}},
-    {'%', {"##...", "##..#", "...#.", "..#..", ".#...", "#..##", "...##"}},
-    {'(', {"...#.", "..#..", ".#...", ".#...", ".#...", "..#..", "...#."}},
-    {')', {".#...", "..#..", "...#.", "...#.", "...#.", "..#..", ".#..."}},
-};
-// clang-format on
-
-static const Glyph* FindGlyph(char c) {
-    if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
-    for (const Glyph& g : kFont)
-        if (g.c == c) return &g;
-    return nullptr;
-}
-
 // ---- Drawing --------------------------------------------------------------------------------------------------
 
 constexpr double kRefreshMs = 250.0;   // the text is made again this often
 
 static gpu::Texture g_image;
 static bool g_imageReady = false;            // Prepare wrote it for this frame's Draw
-static TextImage g_text;   // the text's image
-static bool g_textChanged = false;
+static Box g_box;                            // the text's image
+static bool g_boxChanged = false;
 static long long g_lastText = 0;
+static int g_fontPixels = 0;
 static std::vector<std::string> g_lines;
 
-// The text's image on the GPU, made again when its size changed.
-static bool UploadText() {
-    if (g_text.pixels.empty()) return false;
-    if (g_image.width != g_text.width || g_image.height != g_text.height) {
-        gpu::Release(g_image);
-        g_image =
-            gpu::MakeTexture({g_text.width, g_text.height, 1, 1, gpu::Format::R8, gpu::TextureUse::Sampled, "ei-perf-overlay"});
-        if (!g_image) return false;
-        g_textChanged = true;
+int FontPixels(int frameHeight) { return std::max(kLeastFontPixels, frameHeight / kFrameRowsPerFontPixel); }
+
+Box MakeBox(const std::vector<std::string>& lines, int fontPixels) {
+    text::TextFont* font = text::GetTextFont(kFace, fontPixels);
+    if (!font || lines.empty()) return {};
+    std::u32string all;
+    int widest = 0;
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        const std::u32string line = text::DecodeCp1251(lines[i].c_str());
+        widest = std::max(widest, text::TextExtent(*font, line).w);
+        if (i) all += U'\n';
+        all += line;
     }
-    if (g_textChanged) {
-        if (!gpu::Write(g_image, 0, {0, 0, g_text.width, g_text.height}, g_text.pixels.data(),
-                        static_cast<std::size_t>(g_text.width), gpu::Contents::Discard))
+    const int border = Border(fontPixels), rows = static_cast<int>(lines.size());
+    Box box;
+    box.width = widest + 2 * border;
+    box.height = rows * font->Metrics().height + 2 * border;
+    const Rect inside{border, border, border + widest, box.height - border};
+    text::TextLayout layout;
+    text::Layout(*font, all, inside, text::Format::NoPrefix | text::Format::NoClip, layout);
+    // White on black: the blue channel is the coverage.
+    std::vector<std::uint32_t> pixels(static_cast<std::size_t>(box.width) * static_cast<std::size_t>(box.height), 0);
+    text::ComposeAgainstBlack(*font, layout, 0x00FFFFFF, pixels.data(), box.width, box.height, box.width);
+    box.coverage.resize(pixels.size());
+    for (std::size_t i = 0; i < pixels.size(); ++i) box.coverage[i] = static_cast<std::uint8_t>(pixels[i] & 0xFF);
+    return box;
+}
+
+// The box's image on the GPU, made again when its size changed.
+static bool UploadBox() {
+    if (g_box.coverage.empty()) return false;
+    if (g_image.width != g_box.width || g_image.height != g_box.height) {
+        gpu::Release(g_image);
+        g_image = gpu::MakeTexture({g_box.width, g_box.height, 1, 1, gpu::Format::R8, gpu::TextureUse::Sampled, "ei-perf-overlay"});
+        if (!g_image) return false;
+        g_boxChanged = true;
+    }
+    if (g_boxChanged) {
+        if (!gpu::Write(g_image, 0, {0, 0, g_box.width, g_box.height}, g_box.coverage.data(),
+                        static_cast<std::size_t>(g_box.width), gpu::Contents::Discard))
             return false;
-        g_textChanged = false;
+        g_boxChanged = false;
     }
     return true;
 }
 
-// The text made again from the last second's numbers (every kRefreshMs: readable, and cheap).
-static void RefreshText() {
+// The text made again from the last second's numbers (every kRefreshMs: readable, and cheap) or at once for another
+// size.
+static void RefreshText(int fontPixels) {
     long long now = Ticks();
-    if (!g_text.pixels.empty() && static_cast<double>(now - g_lastText) * kMsPerTick < kRefreshMs) return;
+    const bool sameSize = fontPixels == g_fontPixels;
+    if (sameSize && !g_box.coverage.empty() && static_cast<double>(now - g_lastText) * kMsPerTick < kRefreshMs) return;
     g_lastText = now;
     std::vector<std::string> lines = Lines(Current());
-    if (lines == g_lines && !g_text.pixels.empty()) return;
+    if (sameSize && lines == g_lines && !g_box.coverage.empty()) return;
     g_lines = std::move(lines);
-    g_text = Rasterise(g_lines);
-    g_textChanged = true;
+    g_fontPixels = fontPixels;
+    g_box = MakeBox(g_lines, fontPixels);
+    g_boxChanged = true;
 }
 
 bool On() { return g_on; }
@@ -193,6 +169,7 @@ void BeginDraws() {
     g_inFrame = true;
     g_pass = Pass::Ui;
     g_drawsCounted = FrameDrawCount();
+    g_callsCounted = FrameCallCount();
 }
 
 void Enter(Pass pass) {
@@ -222,19 +199,23 @@ void FrameDone() {
         s.values[kInterval] = static_cast<double>(now - g_lastPresent) * kMsPerTick;
         s.values[kSubmitMs] = g_cpu[static_cast<int>(Cpu::Submit)];
         s.values[kShadowCpuMs] = g_cpu[static_cast<int>(Cpu::Shadow)];
-        for (int p = 0; p < kPasses; ++p) s.values[kFrameDraws + p] = g_draws[p];
+        for (int p = 0; p < kPasses; ++p) {
+            s.values[kFrameDraws + p] = g_draws[p];
+            s.values[kFrameCalls + p] = g_calls[p];
+        }
         Keep(g_frames, s);
     }
     g_lastPresent = now;
     for (double& c : g_cpu) c = 0.0;
     for (double& d : g_draws) d = 0.0;
+    for (double& c : g_calls) c = 0.0;
 }
 
-void Prepare() {
+void Prepare(int frameHeight) {
     g_imageReady = false;
     if (!g_on) return;
-    RefreshText();
-    g_imageReady = UploadText();
+    RefreshText(FontPixels(frameHeight));
+    g_imageReady = UploadBox();
 }
 
 void Draw(gpu::Format format, int width, int height, const Rect& placed) {
@@ -247,16 +228,16 @@ void Draw(gpu::Format format, int width, int height, const Rect& placed) {
                gpu::BlendFactor::OneMinusSourceAlpha};
     const gpu::Pipeline pipeline = gpu::MakePipeline(d, "ei-perf-overlay");
     if (!pipeline) return;
-    int scale = Scale(placed.Height());
-    float left = static_cast<float>(placed.left + Margin(scale)), top = static_cast<float>(placed.top + Margin(scale));
-    float right = left + static_cast<float>(g_image.width * scale), bottom = top + static_cast<float>(g_image.height * scale);
+    const int margin = Margin(FontPixels(placed.Height()));
+    float left = static_cast<float>(placed.left + margin), top = static_cast<float>(placed.top + margin);
+    float right = left + static_cast<float>(g_image.width), bottom = top + static_cast<float>(g_image.height);
     gpu::SetViewport({0, 0, width, height});
     gpu::ApplyPipeline(pipeline);
     const gpu::TextureBinding text{g_image, gpu::NearestClampSampler()};
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, {&text, 1});
     const RectParams vs{{left, top, right, bottom}, {static_cast<float>(width), static_cast<float>(height)}};
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockRectParams, vs);
-    const PerfOverlayParams fs{{left, top}, static_cast<float>(scale)};
+    const PerfOverlayParams fs{{left, top}};
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPerfOverlayParams, fs);
     gpu::Draw(0, 6);
 }
@@ -267,7 +248,7 @@ void Release() {
     g_timing = false;
     gpu::Release(g_image);
     g_imageReady = false;
-    g_textChanged = true;
+    g_boxChanged = true;
 }
 
 Numbers Current() {
@@ -283,7 +264,10 @@ Numbers Current() {
         n.fps = n.frameMs > 0.0 ? 1000.0 / n.frameMs : 0.0;
         n.submitMs = sum[kSubmitMs] / count;
         n.shadowCpuMs = sum[kShadowCpuMs] / count;
-        for (int p = 0; p < kPasses; ++p) n.draws[p] = sum[kFrameDraws + p] / count;
+        for (int p = 0; p < kPasses; ++p) {
+            n.draws[p] = sum[kFrameDraws + p] / count;
+            n.calls[p] = sum[kFrameCalls + p] / count;
+        }
     }
     if (!g_gpu.empty()) {
         double sum = 0.0;
@@ -299,7 +283,7 @@ Numbers Current() {
 
 std::vector<std::string> Lines(const Numbers& n) {
     auto draws = [&](Pass p) { return n.draws[static_cast<int>(p)]; };
-    char line[128];
+    char line[192];
     std::vector<std::string> lines;
     std::snprintf(line, sizeof(line), "FPS %.0f   FRAME %.2f MS   WORST %.2f", n.fps, n.frameMs, n.worstFrameMs);
     lines.emplace_back(line);
@@ -311,42 +295,14 @@ std::vector<std::string> Lines(const Numbers& n) {
     }
     std::snprintf(line, sizeof(line), "CPU SUBMIT %.2f MS   SHADOW %.2f", n.submitMs, n.shadowCpuMs);
     lines.emplace_back(line);
-    std::snprintf(line, sizeof(line), "DRAWS WORLD %.0f   SUN %.0f   POINT %.0f   UI %.0f",
-                  draws(Pass::Terrain) + draws(Pass::Objects) + draws(Pass::Other), draws(Pass::Sun), draws(Pass::Point),
-                  draws(Pass::Ui) + draws(Pass::Present));
+    auto calls = [&](Pass p) { return n.calls[static_cast<int>(p)]; };
+    const double world = calls(Pass::Terrain) + calls(Pass::Objects) + calls(Pass::Other);
+    const double worldDraws = draws(Pass::Terrain) + draws(Pass::Objects) + draws(Pass::Other);
+    const double ui = calls(Pass::Ui) + calls(Pass::Present), uiDraws = draws(Pass::Ui) + draws(Pass::Present);
+    std::snprintf(line, sizeof(line), "CALLS (DRAWS) WORLD %.0f (%.0f)   SUN %.0f (%.0f)   POINT %.0f (%.0f)   UI %.0f (%.0f)", world,
+                  worldDraws, calls(Pass::Sun), draws(Pass::Sun), calls(Pass::Point), draws(Pass::Point), ui, uiDraws);
     lines.emplace_back(line);
     return lines;
-}
-
-TextImage Rasterise(const std::vector<std::string>& lines) {
-    std::size_t columns = 1;
-    for (const std::string& l : lines) columns = std::max(columns, l.size());
-    int rows = static_cast<int>(lines.size());
-    int w = 2 * kBorder + static_cast<int>(columns) * kCellWidth - (kCellWidth - kGlyphWidth);
-    int h = 2 * kBorder + (rows > 0 ? rows * kCellHeight - (kCellHeight - kGlyphHeight) : 0);
-    TextImage image{w, h, std::vector<std::uint8_t>(static_cast<std::size_t>(w) * static_cast<std::size_t>(h), 0)};
-    for (int r = 0; r < rows; ++r) {
-        const std::string& l = lines[static_cast<std::size_t>(r)];
-        for (std::size_t c = 0; c < l.size(); ++c) {
-            const Glyph* g = FindGlyph(l[c]);
-            if (!g) continue;
-            std::uint8_t value = (g->c >= '0' && g->c <= '9') || g->c == '.' ? kValue : kLabel;
-            int x0 = kBorder + static_cast<int>(c) * kCellWidth, y0 = kBorder + r * kCellHeight;
-            for (int y = 0; y < kGlyphHeight; ++y)
-                for (int x = 0; x < kGlyphWidth; ++x)
-                    if (g->rows[y][x] == '#')
-                        image.pixels[static_cast<std::size_t>(y0 + y) * static_cast<std::size_t>(w) +
-                                     static_cast<std::size_t>(x0 + x)] = value;
-        }
-    }
-    return image;
-}
-
-bool HasGlyph(char c) { return FindGlyph(c) != nullptr; }
-
-int Scale(int height) {
-    int scale = (height + 270) / 540;
-    return scale < 1 ? 1 : scale;
 }
 
 } // namespace perf

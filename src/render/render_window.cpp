@@ -196,12 +196,12 @@ bool DrawToWindow() {
         gpu::Write(g_rampImage, 0, {0, 0, 256, 1}, g_ramp.data(), g_ramp.size(), gpu::Contents::Discard);
         g_rampDirty = false;
     }
-    perf::Prepare();
     gpu::Texture target;
     if (!gpu::AcquireSwapchain(&target)) Fatal("The renderer cannot present on the game window: %s.", gpu::Error());
     if (!target) return false;   // minimised or hidden: nothing to draw into
     // The frame's place in the swap chain's texture (the window's pixel size this frame).
     const Rect placed = Placed(Size{target.width, target.height}, *frame);
+    perf::Prepare(placed.Height());
 #if defined(EI_RENDER_VALIDATION)
     DrawRampCheck(target.format, target.width, target.height, placed);
 #endif
