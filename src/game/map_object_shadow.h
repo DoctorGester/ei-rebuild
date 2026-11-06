@@ -94,6 +94,7 @@ public:
     // whether `rect` meets such a part's rectangle.
     int BoundsContainPoint(const std::int32_t* point) override;
     int PartsContainPoint(const std::int32_t* point) override;
+    float PickDepth(const Point& point) override;
     int PartsIntersectRect(const Rect* rect) override;
     FigureMesh* FindPart(std::string_view name) override;
     FigureMesh* FindPartOfType(int type) override;

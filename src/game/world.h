@@ -717,7 +717,7 @@ public:
     void TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) override;
 };
 
-// A window rectangle of the frame (the client's screen list and hit vector).
+// A window rectangle of the frame (the client's screen list).
 struct ScreenEntry {
     ClassId classId = {};
     unsigned objectId = 0;                // the object, in the map object manager
@@ -729,6 +729,14 @@ int QueueScreenEntry(MapObject* object, std::vector<ScreenEntry>* queued);
 
 // What a screen pick tests an object's side half with: its bounds or its drawn parts.
 enum class HitTest { Bounds, Parts };
+
+// An object under a screen pick's point (WorldClient::hits) and what Pick sorts it by: living objects before dead
+// ones, then by depth (Object3DSpecific::PickDepth).
+struct PickHit {
+    unsigned objectId = 0;
+    bool dead = false;
+    float depth = 0.0f;
+};
 
 class LightningManager;
 // The visibility fog's manager ("CVisFogManager", class id 0x60): a counted object and a list.
@@ -941,8 +949,8 @@ public:
     // The local view's owner disconnects. Without a session it reads through null, like the original.
     void DisconnectLocalPlayer();
     // The object at screen point `point`: the screen entries that contain it and whose object passes `test` go to
-    // hits, sorted front to back; the first entry whose object still exists wins (hitCursor is left on it). Null
-    // if none.
+    // hits, sorted front to back by the depth of what is drawn under the point (living objects first); the first
+    // entry whose object still exists wins (hitCursor is left on it). Null if none.
     MapObject* Pick(const Point& point, HitTest test);
     // The unit at screen point `point`: from the picked object on, the first unit among the sorted hits
     // (hitCursor moves past the others and those whose object is gone). Null if none.
@@ -1009,8 +1017,8 @@ public:
     std::unordered_map<std::uint32_t, std::list<MapObject*>::iterator> dynamicNodes;   // id -> its node in dynamicObjects
     int dynamicMaxId = 0;
     std::vector<ScreenEntry> screenEntries;  // the window rectangles of the frame
-    std::vector<ScreenEntry> hits;                      // the entries under the point (Pick)
-    ScreenEntry* hitCursor = nullptr;     // Pick's walk, left on the entry it returns
+    std::vector<PickHit> hits;            // the objects under the point (Pick)
+    PickHit* hitCursor = nullptr;         // Pick's walk, left on the entry it returns
     SectorGrid objectGrid;                // the objects by sector (MoveObject moves them)
     SectorGrid secondGrid;
     // The client's own managers and parts (Create makes them, Destroy deletes them in its order).
@@ -1070,14 +1078,6 @@ public:
     // prints' wet look and an environment flag.
     RainSnow rainSnow;
     std::vector<int> selectedIds;            // the selected objects' ids
-};
-
-// Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and
-// living objects are separated first.
-struct DepthLess {
-    const float* view = nullptr;          // the view matrix (row-major): row 2 the depth axis, its translation the offset
-    MapObjectManager* manager = nullptr;
-    bool Less(const ScreenEntry* a, const ScreenEntry* b) const;
 };
 
 // The scene's camera while the world's draw runs (the scene stack's top it pushes first: projection x

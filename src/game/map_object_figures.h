@@ -272,6 +272,9 @@ public:
     virtual int PartsIntersectRect(const Rect* rect);
     // Whether the point is in the screen rectangle of a part with flag 0x40 (Pick with HitTest::Parts).
     virtual int PartsContainPoint(const std::int32_t* point);
+    // The depth Pick sorts a hit by: the view depth of the object's nearest drawn surface under the point, else of
+    // the front of its nearest drawn part's box. The base (nothing drawn): FLT_MAX.
+    virtual float PickDepth(const Point& point);
     virtual void SetLit(bool) {}                     // the object's light is on / off (client); base: nothing
 
     Object3D* object = nullptr;    // the object it belongs to

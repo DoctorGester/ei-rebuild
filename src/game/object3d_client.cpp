@@ -24,6 +24,7 @@
 #include "lib/text_case.h"
 
 #include <algorithm>
+#include <cfloat>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -259,6 +260,7 @@ int Object3DSpecific::DrawPartsShadow(SceneRenderer*) { return 0; }
 int Object3DSpecific::BoundsContainPoint(const std::int32_t*) { return 0; }
 int Object3DSpecific::PartsIntersectRect(const Rect*) { return 0; }
 int Object3DSpecific::PartsContainPoint(const std::int32_t*) { return 0; }
+float Object3DSpecific::PickDepth(const Point&) { return FLT_MAX; }
 
 // --- The server half ---------------------------------------------------------------------------------
 
@@ -316,6 +318,21 @@ int Object3DClientSpecific::PartsContainPoint(const std::int32_t* point) {
         if (PartRect(part)->Contains(AsPoint(point))) return 1;
     }
     return 0;
+}
+
+// The drawn parts whose rectangle holds the point give their surface's depth there (FigureMeshDrawer::SurfaceDepth);
+// without any surface under the point (the rectangle's empty corners, a hit by the bounds) the front of the parts'
+// boxes counts, so a unit's generous click area still beats what is drawn behind it.
+float Object3DClientSpecific::PickDepth(const Point& point) {
+    float surface = FLT_MAX;
+    float front = FLT_MAX;
+    for (FigureMesh* part : object->parts) {
+        if (!(part->flags & FigureMeshFlag::Drawn)) continue;
+        const FigureMeshDrawer* drawer = part->drawer.Get();
+        front = std::min(front, drawer->FrontDepth());
+        if (PartRect(part)->Contains(point)) surface = std::min(surface, drawer->SurfaceDepth(point));
+    }
+    return surface != FLT_MAX ? surface : front;
 }
 
 int Object3DClientSpecific::PartsIntersectRect(const Rect* rect) {

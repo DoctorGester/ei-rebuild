@@ -337,6 +337,23 @@ What the expansion's data asks of the game that the base game's never did, and h
   for cz4j; cz2j and cz3j make Jigran2 and Jigran5 themselves. Each base's briefing, read to the end, leaves for the
   next zone (`LeaveToZone` from its briefing check, which the harness's `talk` sees as the base left); cz3j's leads to
   gz35j, where merc2 dies in the acid column as the story has it.
+- The gz1d2 lift (MOD9, R64; zone1dun2.mob, the third map, Suslanger's caves): the party enters on an upper floor (z
+  about 33.5) and goes on in the lower cave (z about 4); a lift between them, the static stbr6 2240358, sits in a pit
+  under a fixed landing (stbr6 1014204, its deck at 33.5, covering the lift's centre and half its deck). The script
+  moves the lift with `SetCP` by `GetZ` (the cell's level, the landing's deck, plus the object's z: 33.5254 + z, a
+  constant the script's offsets assume) between z -0.3 (the pit's floor) and 28.654 (level with the landing): the call
+  lever 1369841 on the landing brings it up once (Lift#01 ends itself), the lever on its deck 1357456 takes it down,
+  338779 (also on the deck) up again; each is enabled only at its end of the way. In the AI map a bridge object stands
+  on the ground saved under the bridges (`CollectFootprint`), the pit's floor here, so the lift's deck cells follow it
+  and a unit standing on the part of the deck outside the landing rides with it (GetZ from 33.5 to 4.2); the cells
+  the landing covers stay at its height. The trap was the pick: the original's (00565E40) sorts the objects under the
+  cursor by their origins, and from half the headings round (the user's save: 309) the lift's origin is nearer than
+  the lever's while its deck covers the lever's whole rectangle, so a click on the lever was a walk onto the deck;
+  turning the camera round made the lever clickable there. Ours sorts them by the depth of each one's surface drawn
+  under the cursor (R64, the user's choice; renderer.md section 3, "Picking"), so the lever drawn on the deck wins
+  from every heading, with no special case for platforms. Scenario `mod_lost_in_astral_elevator` (the user's save,
+  tests/saves/lia_elevator, without its picture): the lever clicked from the save's camera, the ride down, the walk
+  on in the lower cave. A lever needs exactly one party member selected, as everywhere.
 - The prison party FPrison (Hero1, merc2: the mod's prototypes name no weapon) is unarmed from gz1d2 on, until a weapon
   is equipped. The original's key for an unarmed unit finds no body search animation, so the original plays none; ours
   plays the melee weapons' search there (MOD12, the user's choice; combat.md, "Animation keys";
