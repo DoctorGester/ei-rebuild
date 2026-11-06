@@ -148,6 +148,10 @@ public:
     std::string secondSkinName;    // the second set's
     float pulseClock = 0.0f;        // frames counted by the invisible / stunned pulses
     std::uint32_t touchTime = 0;    // the frame time the model was last kept loaded (CollectVisible)
+    // The parts the world's draw handed over as shadow casters (render::EndCaster), in the frame casterFrame
+    // (render::CasterFrame): the casters' walk outside the view passes over an object with every part among them.
+    std::uint32_t casterFrame = 0;
+    int casterParts = 0;
     Vector3 figureScale;            // the figure's extra scale (GetScale)
 };
 

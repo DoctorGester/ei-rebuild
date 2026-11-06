@@ -130,3 +130,24 @@ the lanes offline and measured 0.07 ms a ground draw, 0.10 ms of the save's fram
 Not filed: msaa 8 costs the ground 0.26 ms a draw over msaa 4 at 4K (the player's quality setting); the disc table
 and the water's branch (nothing to win); parallel work (no need). Expected after R37e10a-c: the save's ground about
 0.5 ms, the town's about 0.5 ms.
+
+## Measured after R37f1
+
+The save at 3840 x 2160 msaa 8 (R37e3's kit and probe), before and after alternated three times each, medians; the
+machine was busier than in R37e3's run (the same build measured 9.1 ms there, 11.7 here; untouched parts such as the
+ground moved by up to 10% between runs, so differences under about 0.1 ms are noise). Harness: the verify build;
+release-equivalent: the same without `EI_RENDER_VALIDATION`.
+
+| Part of the main thread (ms a frame) | Harness before | after | Release-equivalent before | after |
+|---|---|---|---|---|
+| Whole main thread | 11.73 | 10.29 | 8.01 | 6.44 |
+| Objects' draws (KeepScreen strings and the inside-view projection) | 3.97 | 2.97 | 2.66 | 1.69 |
+| of it the device's mesh draws (the projection; harness timer only) | 1.01 | 0.36 | - | - |
+| The shadow lists (sorts, matrix pushes) | 0.33 | 0.11 | 0.28 | 0.07 |
+| Casters outside the view (76% of the reached objects now passed over) | 0.40 | 0.42 | 0.25 | 0.26 |
+| PrepareShadows (light matrices, units' fronts by lists) | 0.49 | 0.45 | 0.41 | 0.35 |
+| The sun map's CPU side (caster counts only in the harness build) | 0.50 | 0.49 | 0.43 | 0.29 |
+
+The outside walk's skip saves nothing measurable: what it skips (one strength lookup and the parts' drawn-part
+searches) was cheap; the sphere, pose and placement of every object in the area stay (`CollectVisible` cells and
+cached world spheres, R37f2, are where its time is).

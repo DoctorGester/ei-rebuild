@@ -84,6 +84,8 @@ void MorphOldPacket(VertexPacket& packet, const char** cursor, Morph morph) {
 
 LinkMesh::LinkMesh(LinkFigureLoader* newLoader, std::string_view newName, Morph newMorph)
     : name(newName), morph(newMorph) {
+    static std::uint64_t made = 0;
+    serial = ++made;
     loader = newLoader;
 }
 
@@ -222,6 +224,11 @@ bool LinkMesh::SetPartVertices(std::string_view newName, const VertexPacket* new
 // ---- LinkMesh's slots ----------------------------------------------------------------------------
 
 bool LinkMesh::HasPart(std::string_view partName) { return ranges.find(partName) != ranges.end(); }
+
+const LinkPartRanges* LinkMesh::PartRanges(std::string_view partName) const {
+    auto node = ranges.find(partName);
+    return node == ranges.end() ? nullptr : &node->second;
+}
 
 std::vector<std::string> LinkMesh::PartNames() {
     std::vector<std::string> names;

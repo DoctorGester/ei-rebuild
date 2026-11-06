@@ -51,7 +51,10 @@ animation: map_objects.md ("Skeleton").
 packets, normal packets, texture coordinates, 6-byte corners, dwords, words), ranges by name, the loader. The loader
 (`LinkFigureLoader`, link_loader.h; one per world view) has the figure sets, the device object and a cache by name; it opens
 figures.res and menus.res at startup. A .lnk lists the parts; each is a FIG / FIG8 (or older headerless) record morphed
-by three coefficients s, t, u and appended. Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t),
+by three coefficients s, t, u and appended. An object's part drawn through its figure finds its ranges once per figure
+(`FigureMesh::PartIn`, keyed by `LinkMesh::serial`); `LinkMesh::DrawPart` returns whether it drew, the picking
+rectangle is the device's `drawnRect` (the part headers keep no screen rectangle).
+Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t),
 lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u); old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
 Kept: RemorphFigPart reads every record as FIG8; an empty part
 name in a .lnk keeps the previous one; a missing link file gives null; `AddArchive` leaks the archive when opening fails

@@ -63,9 +63,9 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     }
     if (object->animation) object->animation->PlaceForDraw();
 
-    // The lights within reach (the list starts with room for 16).
-    std::vector<Light*> list;
-    list.reserve(0x10);
+    // The lights within reach, in a list every draw reuses (the parts' draws do not draw objects).
+    static std::vector<Light*> list;
+    list.clear();
     ObjectListIteratorOf<Light> lights;
     Light* light = lights.First(g_clientWorld.lightFactory.get());
     for (; light; light = lights.Next()) {

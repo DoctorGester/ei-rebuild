@@ -85,12 +85,6 @@ float TopOf(const Object3D* object, const Vector3& scale) {
     return object->localPosition.z + std::sqrt(LengthSquared(c)) + object->bounds.radius * LargestScale(scale);
 }
 
-// Part `name`'s element ranges in the figure's arrays (LinkMesh::ranges); null when there is none.
-const LinkPartRanges* RangesOf(const LinkMesh* figure, std::string_view name) {
-    auto node = figure->ranges.find(name);
-    return node == figure->ranges.end() ? nullptr : &node->second;
-}
-
 // The part's positions with its per-vertex offsets added (as the draws add them), in `moved`.
 const VertexPacket* MovedPositions(const VertexPacket* positions, int packets, const std::vector<Vector3>& offsets,
                                    std::vector<VertexPacket>& moved) {
@@ -103,6 +97,22 @@ const VertexPacket* MovedPositions(const VertexPacket* positions, int packets, c
         packet.block[2][i & 3] = offsets[i].z + packet.block[2][i & 3];
     }
     return moved.data();
+}
+
+// Whether the world's draw handed over this frame every part HandOverParts would (Object3DClientSpecific::casterParts:
+// it drew no part HandOverParts leaves out, so as many means the same parts).
+bool AllPartsDrawn(const Object3DClientSpecific* half) {
+    if (half->casterFrame != render::CasterFrame()) return false;
+    int parts = 0;
+    for (const std::unique_ptr<TextureParts>& set : half->partSets) {
+        if (!set) continue;
+        for (const auto& group : set->groups)
+            for (const FigureMesh* part : group->parts) {
+                if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
+                if (!(LengthSquared(part->localPosition) > kPartRangeSquared)) ++parts;
+            }
+    }
+    return parts == half->casterParts;
 }
 
 // Hands over the parts of `object` (`unit`: a unit) that were not drawn this frame, placed by `world` (and the
@@ -134,7 +144,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
                 const VertexPacket* positions = nullptr;
                 int packets = 0;
                 if (figure) {
-                    const LinkPartRanges* r = RangesOf(figure, part->GetName());
+                    const LinkPartRanges* r = part->PartIn(figure);
                     if (!r) continue;
                     positions = figure->vertices.data() + r->vertices.start;
                     packets = r->vertices.count;
@@ -309,6 +319,7 @@ void HandOverOutsideCasters(WorldClient* world) {
                 if (!render::ShadowCasterReaches(sphere)) {
                     continue;
                 }
+                if (AllPartsDrawn(half)) continue;
                 // The game's own verdict when it drew the object's shadow this frame, else its tests.
                 float strength = render::CasterStrength(object);
                 if (strength < 0.0f) {

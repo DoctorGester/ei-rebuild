@@ -1030,9 +1030,9 @@ mesh kept on the GPU was stale") in any run of the harness build.
 swept along the light to the ground) for the shadow lists, which ShadowInView tests for objects out of view. The map's
 casters out of view come from the outside walk (item 10).
 
-**6. The device's mesh draws** (`device_mesh.cpp`, `device_draw.cpp`) project (the visibility verdict), override the
-colours (draw flag 4: the hand-over reads them), take the screen rectangle for draw flag 1 (picking, section 3) and hand
-every pass to the renderer. Not made: pre-transformed vertices, the fog, the z scale, the CPU clip of a crossing mesh.
+**6. The device's mesh draws** (`device_mesh.cpp`, `device_draw.cpp`) project a mesh crossing the view's edges (the
+visibility verdict) and one whose rectangle is asked (draw flag 1: picking, section 3; a mesh wholly in view is not
+projected otherwise), override the colours (draw flag 4: the hand-over reads them) and hand every pass to the renderer. Not made: pre-transformed vertices, the fog, the z scale, the CPU clip of a crossing mesh.
 
 **9. GPU lighting** (`render_lighting.cpp`, `shaders/scene_lighting.hlsli`, `render_terrain.cpp`, `shaders/mesh.hlsl`).
 The light objects stay the game's (the sun, its colour and the ambient, the torches and point lights with their positions,
@@ -2018,8 +2018,10 @@ casters' meshes into the map (depth only; alpha-tested and blended passes cut ou
 map's depth range per cell. Objects the game does not draw whose shadow can reach the visible ground cast too
 (ShadowCasterMesh, tested against the map's fit made right then). PrepareShadows prepares the point lights' shadows
 (render_point_shadows.cpp); the frame's draw (render.cpp's DrawPending) draws the sun map, the roof map and the point
-lights' faces in that order. Space: the meshes' matrices are clip matrices, the terrain's
-the same for the landscape's space, in which the map is fitted.
+lights' faces in that order. The per-frame lookups are lists kept from frame to frame (the drawn parts sorted once for
+the walk's searches, the light matrices by the frame's matrix index); ShadowState's caster counts (`casters`, `lost`,
+`offScreen`, `outsideCasters`) are counted only in the harness build. Space: the meshes' matrices are clip matrices,
+the terrain's the same for the landscape's space, in which the map is fitted.
 
 ### render_cloud_shadows.cpp: cloud shadows
 
@@ -2303,5 +2305,7 @@ the map: the map's texels far apart and turned per pixel cost far more.
 The casters of the shadow map that the game does not draw this frame (section 13, item 10). After the world's object
 draws every object standing where such a caster can stand (render::ShadowCasterArea, through the object grid's sectors)
 whose bounding sphere passes the map's test (render::ShadowCasterReaches) hands its undrawn parts to the map
-(render::ShadowCasterMesh), placed as Object3DClientSpecific::DrawParts places them. Everything here only reads the game's
+(render::ShadowCasterMesh), placed as Object3DClientSpecific::DrawParts places them. An object whose draw handed over
+every such part this frame (render::EndCaster's count, kept in `casterParts` with the frame's `casterFrame`) is passed
+over after the sphere test (which still moves the map's near plane). Everything here only reads the game's
 objects, so the game's logic and its goldens are those of a run without it.

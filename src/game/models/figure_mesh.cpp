@@ -300,6 +300,8 @@ void FigureMesh::Create() {
 
 void FigureMesh::Clear() {
     name.clear();
+    figureRanges = nullptr;
+    figureSerial = 0;
     directory.clear();
     BuffersChanged();
     offsets.clear();
