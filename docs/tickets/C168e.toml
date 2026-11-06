@@ -6,5 +6,6 @@ model = "sonnet"
 depends = ["C168d"]
 note = "Plan: docs/notes/file-layout.md. layout.py apply C168e plus 11 folds; 981 include lines, 705 references. Quiet window. All goldens the same."
 order = 1233
-status = "review"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
