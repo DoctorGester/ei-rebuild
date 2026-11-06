@@ -28,14 +28,14 @@ std::string Join(const std::vector<std::string>& parts, char separator);
 struct TextTokenizer {
     int position = 0;                // where the next word starts; -1 at the end
     const std::string* source = nullptr;
-    const char* separator = nullptr;
+    std::string_view separator;
     std::string word;                // the last word returned
 
     // From the start of the text: position 0, then Next.
-    const char* Start();
+    std::string_view Start();
     // The next word: up to the separator (the position moves past it) or the rest of the
-    // text. Returns `word`'s text, or null once the position has reached the end of the text.
-    const char* Next();
+    // text. Returns `word`'s text, or an empty view once the position has reached the end of the text.
+    std::string_view Next();
 };
 
 // Removes every carriage return from `text`; returns the count.

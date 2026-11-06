@@ -192,7 +192,7 @@ std::string CheckChatWrap(const std::string& wanted) {
     ChatOverlay* overlay = g_interface.root;
     if (!overlay) return "chatwrap: the interface has no chat overlay";
     overlay->ClearLines();
-    overlay->AddLine(wanted.c_str());
+    overlay->AddLine(wanted);
     std::string joined;
     int count = 0;
     std::string failure;

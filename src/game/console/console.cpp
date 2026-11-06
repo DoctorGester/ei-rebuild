@@ -74,7 +74,7 @@ void PrintLine(std::string_view text) { EndLine(g_consoleOut << text); }
 
 // ---- Console streambuf --------------------------------------------------------------------------
 
-void (*g_consoleLineObserver)(const char* line) = nullptr;
+void (*g_consoleLineObserver)(std::string_view line) = nullptr;
 
 ConsoleStreambuf::ConsoleStreambuf(LogCategory newCategory) : category(newCategory) {}
 
@@ -98,7 +98,7 @@ void ConsoleStreambuf::Overflow(int c) {
 
 void ConsoleStreambuf::Sync() {
     Overflow(-1);
-    if (g_consoleLineObserver) g_consoleLineObserver(line.c_str());
+    if (g_consoleLineObserver) g_consoleLineObserver(line);
     g_interface.ConsoleAddText(line);
     line.clear();
 }

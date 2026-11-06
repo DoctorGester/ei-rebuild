@@ -105,7 +105,7 @@ struct Movie {
     }
 };
 
-Movie* Open(const char* path, bool sound) {
+Movie* Open(std::string_view path, bool sound) {
     auto movie = std::make_unique<Movie>();
     if (!movie->file.Open(path)) return nullptr;
     movie->video.emplace(movie->file.Width(), movie->file.Height());

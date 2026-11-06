@@ -120,7 +120,7 @@ std::string ProgramPath() {
     _NSGetExecutablePath(nullptr, &size);
     std::string path(size, '\0');
     if (_NSGetExecutablePath(path.data(), &size) != 0) return {};
-    path.resize(std::strlen(path.c_str()));
+    path.resize(std::min(path.find('\0'), path.size()));   // up to the terminator the call wrote
     std::error_code error;
     return fs::canonical(path, error).string();
 #else

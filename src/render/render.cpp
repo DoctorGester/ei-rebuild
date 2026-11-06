@@ -117,7 +117,7 @@ static int SamplesFor(int asked, Supports supports) {
 
 static bool CreateDevice() {
     // A call the device refuses later (a lost device) ends the game here too.
-    gpu::SetFailureHandler([](const char* reason) { Fatal("The renderer cannot draw the frame: %s.", reason); });
+    gpu::SetFailureHandler([](std::string_view reason) { Fatal("The renderer cannot draw the frame: %s.", reason); });
     if (!gpu::Start()) return false;
     g_deviceSamples = DeviceSamples(
         [](gpu::Format colour, gpu::Format depth) { return gpu::MaxSamples(colour, depth, kSmoothSamples); });

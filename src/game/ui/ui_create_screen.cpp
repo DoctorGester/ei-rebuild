@@ -161,15 +161,15 @@ void Interface3D::OpenHelp(bool forced) {
 
 // --- The message box ----------------------------------------------------------------------------------
 
-MessageWindow::MessageWindow(std::string_view titleKey, const char* textKey, MessageQuestion newQuestion,
-                             MessageButtons newButtons)
+MessageWindow::MessageWindow(std::string_view titleKey, std::string_view textKey, MessageQuestion newQuestion,
+                             MessageButtons newButtons, char* editBuffer)
     : question(newQuestion), buttons(newButtons) {
     std::string line;
     TextManager* texts = g_clientWorld.texts.get();
     line = texts->GetString(titleKey);
     title = line;
     if (buttons == MessageButtons::OkCancelEdit) {
-        editText = const_cast<char*>(textKey);    // the caller's buffer: OK copies the answer into it
+        editText = editBuffer;    // the caller's buffer: OK copies the answer into it
     } else {
         line = texts->GetString(textKey);
         text = line;

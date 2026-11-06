@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <vector>
 
 #include "platform/platform.h"
@@ -24,7 +25,7 @@ class File {
 public:
     // False when the file cannot be read or is not a movie this decoder plays (revision i, without alpha, grayscale
     // or scaling).
-    bool Open(const char* path);   // UTF-8
+    bool Open(std::string_view path);   // UTF-8
 
     int Width() const { return width; }
     int Height() const { return height; }

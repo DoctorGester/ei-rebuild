@@ -477,7 +477,7 @@ class MasterRequestBox : public MessageWindow {
 public:
     // The box (one cancel button), the link connecting to `address`, the
     // bar (a plain sprite, colour 0xFFA06800), and `extra` written to the link's outgoing buffer.
-    MasterRequestBox(std::string_view titleKey, const char* textKey, MessageQuestion question,
+    MasterRequestBox(std::string_view titleKey, std::string_view textKey, MessageQuestion question,
                       const net::NetAddress* address, std::uint32_t extra);
     // The bar's right edge at 225 + 355 * the received share; the link steps: done (3) hands the reply to the
     // client's server list; the box closes (0x40002) when the link is done or, stepping again, closed (up to

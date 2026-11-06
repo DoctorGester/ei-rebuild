@@ -12,6 +12,7 @@
 #include "game/world/world.h"
 
 #include "lib/maths.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
 
 #include <cstdint>
@@ -19,17 +20,16 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace mapdb {
 namespace {
 
 // *out = text's degrees in radians.
-void StoreRadians(float* out, const char* text) { *out = ei::kRadiansPerDegree * std::strtof(text, nullptr); }
+void StoreRadians(float* out, std::string_view text) { *out = ei::kRadiansPerDegree * str::ToFloat(text); }
 
-bool Is(const char* word, const char* text) {
-    return std::strcmp(word, text) == 0;
-}
+bool Is(std::string_view word, std::string_view text) { return str::Compare(word, text) == 0; }
 
 class Loader {
 public:
@@ -39,16 +39,16 @@ public:
 
 private:
     void Split() { words = reader->Split(true); }
-    const char* Word(int i) const { return words[i].c_str(); }
+    const std::string& Word(int i) const { return words[i]; }
     int Count() const { return static_cast<int>(words.size()); }
     MapRecord& Map() { return db->maps[map]; }
     ZoneExit& Exit() { return Map().exits[exit]; }
 
     void AddAllod();
     void AddMap();
-    bool MapLine(const char* word);
+    bool MapLine(const std::string& word);
     void AddExit();
-    void ExitLine(const char* word);
+    void ExitLine(const std::string& word);
 
     MapDatabase* db = nullptr;
     TextManager* reader = nullptr;
@@ -95,12 +95,12 @@ void Loader::AddExit() {
     Split();
     if (Count() > 1) {
         Exit().target = words[0];
-        Exit().entrance = std::atoi(Word(1)) - 1;
+        Exit().entrance = str::ToInt(Word(1)) - 1;
     }
 }
 
 // A line of the current map. Returns false if the word is no map directive.
-bool Loader::MapLine(const char* word) {
+bool Loader::MapLine(const std::string& word) {
     if (Is(word, "#res")) {
         Split();
         if (Count() > 1) {
@@ -113,8 +113,8 @@ bool Loader::MapLine(const char* word) {
     } else if (Is(word, "#maps")) {
         Split();
         if (Count() > 1) {
-            Map().sizeX = std::atoi(Word(0));
-            Map().sizeY = std::atoi(Word(1));
+            Map().sizeX = str::ToInt(Word(0));
+            Map().sizeY = str::ToInt(Word(1));
         }
         Split();
         if (Count() > 1) {
@@ -138,9 +138,9 @@ bool Loader::MapLine(const char* word) {
         Split();
         if (Count() > 2) {
             Map().restricted = true;
-            Map().restrictX = std::strtof(Word(0), nullptr);
-            Map().restrictY = std::strtof(Word(1), nullptr);
-            Map().restrictRadius = std::strtof(Word(2), nullptr);
+            Map().restrictX = str::ToFloat(Word(0));
+            Map().restrictY = str::ToFloat(Word(1));
+            Map().restrictRadius = str::ToFloat(Word(2));
         }
     } else if (Is(word, "#sky")) {
         Split();
@@ -154,7 +154,7 @@ bool Loader::MapLine(const char* word) {
 }
 
 // A line of the current exit.
-void Loader::ExitLine(const char* word) {
+void Loader::ExitLine(const std::string& word) {
     bool deploy = Is(word, "#deploy");
     if (deploy || Is(word, "#remove")) {
         // "#deploy" sets both quadruples, "#remove" only the second.
@@ -162,7 +162,7 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 3) {
             // Word i to the area's i-th coordinate (x1, y1, x2, y2), and to deploy[i].
             auto put = [&](int i, float& area) {
-                float v = std::strtof(Word(i), nullptr);
+                float v = str::ToFloat(Word(i));
                 area = v;
                 if (deploy) Exit().deploy[i] = v;
             };
@@ -175,7 +175,7 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 4) StoreRadians(&Exit().angle, Word(4));
     } else if (Is(word, "#passtime")) {
         Split();
-        if (Count() > 0) Exit().passTime = std::strtof(Word(0), nullptr);
+        if (Count() > 0) Exit().passTime = str::ToFloat(Word(0));
     } else if (Is(word, "#view")) {
         Split();
         words.push_back("0");

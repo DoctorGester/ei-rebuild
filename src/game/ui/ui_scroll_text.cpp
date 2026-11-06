@@ -18,8 +18,12 @@ namespace {
 constexpr int kDefaultFont = 1;
 constexpr char kEscape = '\a';
 
-bool IsFormat(const char* token) {
-    return token[0] == '\n' || (token[0] == kEscape && (token[1] == 'C' || token[1] == 'F'));
+// The token's character at `i`, a zero byte past its end (where the C string it was ended).
+char TokenAt(std::string_view token, std::size_t i) { return i < token.size() ? token[i] : '\0'; }
+
+bool IsFormat(std::string_view token) {
+    return TokenAt(token, 0) == '\n' ||
+           (TokenAt(token, 0) == kEscape && (TokenAt(token, 1) == 'C' || TokenAt(token, 1) == 'F'));
 }
 
 constexpr const char* kFontSampleText = "W";   // measured for each font's height
@@ -36,24 +40,25 @@ constexpr int kFontSlots = 10;
 
 int UiScrollText::NextToken(const std::string& text, int pos, std::string* out) {
     int length = lib::Count(text);
-    const char* chars = text.c_str();
-    while (pos < length && (chars[pos] == ' ' || chars[pos] == '\t')) ++pos;
+    while (pos < length && (text[pos] == ' ' || text[pos] == '\t')) ++pos;
     if (pos >= length) return -1;
-    std::string rest = chars + pos;
-    const char* r = rest.c_str();
+    // The rest of the text up to its first NUL, as the C string it was.
+    std::string rest = text.substr(static_cast<std::size_t>(pos));
+    str::CutAtNull(rest);
+    const auto r = [&](std::size_t i) { return TokenAt(rest, i); };
     int count;
-    if (r[0] == kEscape) {
-        if (r[1] == 'F') {
+    if (r(0) == kEscape) {
+        if (r(1) == 'F') {
             count = 3;
-        } else if (r[1] == 'C') {
+        } else if (r(1) == 'C') {
             count = 5;
         } else {
             // An unknown escape (a text's data error): the token is the rest of the text, as with Rebirth (the
             // original read past the end).
-            game::Warning("ScrollText: incorrect special symbol '%c'", static_cast<int>(r[1]));
+            game::Warning("ScrollText: incorrect special symbol '%c'", static_cast<int>(r(1)));
             count = lib::Count(rest);
         }
-    } else if (r[0] == '\n') {
+    } else if (r(0) == '\n') {
         count = 1;
     } else {
         count = str::FindOneOf(rest, " \t\a\n");
@@ -76,23 +81,23 @@ void UiScrollText::Tokenize(const std::string& text) {
         pos = NextToken(text, pos, &token);
         // A run of format tokens shares one format token; the token after it is a word.
         while (pos != -1) {
-            const char* t = token.c_str();
+            const auto t = [&](std::size_t i) { return TokenAt(token, i); };
             if (token.size() == 0) break;
-            if (!IsFormat(t)) {
+            if (!IsFormat(token)) {
                 word = true;
                 break;
             }
             if (!format) format = TextToken{.kind = TokenKind::Format, .font = font, .colour = colour};
-            if (t[0] == '\n') {
+            if (t(0) == '\n') {
                 format->newline = true;
-            } else if (t[1] == 'C') {
-                colour = static_cast<unsigned char>(t[2]) | static_cast<unsigned char>(t[3]) << 8 |
-                         static_cast<unsigned char>(t[4]) << 16;
+            } else if (t(1) == 'C') {
+                colour = static_cast<unsigned char>(t(2)) | static_cast<unsigned char>(t(3)) << 8 |
+                         static_cast<unsigned char>(t(4)) << 16;
                 format->colour = colour;
-            } else if (t[1] == 'F') {
-                format->font = t[2] - '0';
+            } else if (t(1) == 'F') {
+                format->font = t(2) - '0';
                 format->newline = !tokens.empty();
-                font = t[2] - '0';
+                font = t(2) - '0';
             }
             pos = NextToken(text, pos, &token);
         }

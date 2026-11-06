@@ -9,6 +9,7 @@
 #include "game/net/net_messages.h"
 
 #include "lib/ipv4.h"
+#include "lib/str.h"
 
 #include <atomic>
 #include <chrono>
@@ -64,7 +65,7 @@ void SplitSetting() {
     const std::string setting = Setting();
     const std::size_t colon = setting.find(':');
     g_host = setting.substr(0, colon);
-    g_port = colon == std::string::npos ? kDefaultPort : std::atoi(setting.c_str() + colon + 1);
+    g_port = colon == std::string::npos ? kDefaultPort : str::ToInt(std::string_view(setting).substr(colon + 1));
 }
 
 // The look-up thread: the first address of the host, or -1; then the end and the running flag.

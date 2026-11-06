@@ -194,7 +194,7 @@ void RequestGameState(int id) {
     g_clientWorld.LocalView()->RequestGameState(id);
 }
 void SetConstructionVariable(float value) { g_serverWorld.SetConstructionVariable(value); }
-void ObserveConsoleLines(void (*observer)(const char* line)) { console::g_consoleLineObserver = observer; }
+void ObserveConsoleLines(void (*observer)(std::string_view line)) { console::g_consoleLineObserver = observer; }
 unsigned& UpdatePeriod() { return reinterpret_cast<unsigned&>(app::g_updatePeriod); }
 const char* DataFolder() { return g_dataFolder.c_str(); }
 void SetFixedSeed(void (*fill)(std::uint32_t* results)) {

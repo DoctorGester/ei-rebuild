@@ -55,6 +55,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -146,7 +147,7 @@ void ExitIfGameRuns() {
 
 // The player's answer to a warning: false when cancelled.
 bool WarningAccepted(const std::string& text) {
-    return platform::ShowMessageBox(nullptr, text.c_str(), "Warning", platform::MessageButtons::OkCancel,
+    return platform::ShowMessageBox(nullptr, text, "Warning", platform::MessageButtons::OkCancel,
                                     platform::MessageIcon::Warning) != platform::MessageAnswer::Cancel;
 }
 
@@ -664,8 +665,7 @@ void FrameStep(bool draw) {
     CursorDrawFrame(&g_cursor);
     DevicePresent(g_sceneRenderer.device);
     if (!app::g_recordingFrames) return;
-    char path[256];
-    std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", g_movieFolder.c_str(), g_movieFrame);
+    const std::string path = std::format("{}shot{:04}.bmp", g_movieFolder, g_movieFrame);
     platform::File file;
     if (!file.Open(path, platform::FileMode::Create)) {
         // Recording stops; the game goes on.

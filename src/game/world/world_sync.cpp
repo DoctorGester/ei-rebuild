@@ -192,8 +192,8 @@ void WorldServer::SendZone(Player* player) {
     auto write = [&](const void* data, unsigned size) { stream->Write(data, size); };
     int previousTick = tick - 1;
     write(&previousTick, 4);
-    write(mapName.c_str(), static_cast<unsigned>(mapName.size() + 1));
-    write(mobName.c_str(), static_cast<unsigned>(mobName.size() + 1));
+    write(mapName.data(), static_cast<unsigned>(mapName.size() + 1));   // the text and its zero byte
+    write(mobName.data(), static_cast<unsigned>(mobName.size() + 1));
     int exitCount = static_cast<int>(std::ssize(exits));
     write(&exitCount, 4);
     for (const ZoneExit& exit : exits) exit.Write(&message);

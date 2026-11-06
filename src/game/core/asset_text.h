@@ -40,8 +40,8 @@ inline int CharacterCount(const std::string& text) { return CharacterCount(std::
 // --- Lengths and cuts by character -----------------------------------------------------------
 // These count characters and never cut inside a UTF-8 sequence.
 
-// The bytes of the character at `p`.
-int CharacterLength(const char* p);
+// The bytes of the character `text` starts with (at most all of it; 1 for an empty text).
+int CharacterLength(std::string_view text);
 // The bytes of `text`'s first `characters` characters (all of it when it has fewer; 0 for none).
 int CharacterBytes(std::string_view text, int characters);
 inline int CharacterBytes(const std::string& text, int characters) {

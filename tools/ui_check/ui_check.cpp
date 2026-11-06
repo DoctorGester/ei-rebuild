@@ -312,11 +312,11 @@ bool StartDevice() {
     const int problems = g_problems;
     const bool started = gpu::Start();
     if (!started) {
-        std::printf("no device: %s\n", gpu::Error());
+        std::printf("no device: %s\n", gpu::Error().c_str());
         return false;
     }
     g_problems = problems;
-    std::printf("device: %s, %s\n", gpu::DriverName(), gpu::DeviceName());
+    std::printf("device: %s, %s\n", gpu::DriverName().c_str(), gpu::DeviceName().c_str());
     return true;
 }
 

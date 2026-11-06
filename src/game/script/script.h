@@ -10,7 +10,9 @@
 #include <cstdint>
 #include <list>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -664,7 +666,7 @@ public:
     int FindScript(std::string_view name);
     // `signature`: the parameter types (lower-case letters). `syntax`: a parenthesized list, or the one value of
     // `variable = value`.
-    bool LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction id, ScriptVars* locals, const char* signature,
+    bool LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction id, ScriptVars* locals, std::string_view signature,
                       ScriptArgSyntax syntax = ScriptArgSyntax::List);
     // Float functions up to ')'.
     bool LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* tokens, ScriptVars* locals);
@@ -995,10 +997,9 @@ void ApplyDefines(std::string* line, const std::vector<ScriptDefine>& defines);
 
 // *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.
-void ClassifyToken(const char* text, int* id, int* rest);
-inline void ClassifyToken(const std::string& text, int* id, int* rest) { ClassifyToken(text.c_str(), id, rest); }
-// Null unless function `id` returns `type`.
-const char* FunctionSignature(int id, ScriptType type);
+void ClassifyToken(std::string_view text, int* id, int* rest);
+// None unless function `id` returns `type`.
+std::optional<std::string_view> FunctionSignature(int id, ScriptType type);
 // "Unknown command" if none.
 const char* KeywordName(ScriptLexeme id);
 // The keyword table with Rebirth's additions (scriptaddon::Table()).

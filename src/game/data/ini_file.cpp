@@ -68,10 +68,7 @@ std::string IniFile::GetString(std::string_view section, std::string_view key, s
 }
 
 int IniFile::GetInt(std::string_view section, std::string_view key, int defaultValue) const {
-    const std::string value = GetString(section, key, "");
-    char* end = nullptr;
-    const long number = std::strtol(value.c_str(), &end, 10);
-    return end == value.c_str() ? defaultValue : static_cast<int>(number);
+    return str::ParseInt(GetString(section, key, "")).value_or(defaultValue);
 }
 
 std::vector<std::string> IniFile::GetList(std::string_view section, std::string_view key, char separator) const {

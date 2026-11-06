@@ -204,7 +204,7 @@ void Interface3D::OnStringEvent(std::string_view event) {
         g_clientWorld.terrain->StopAmbience();
         PlayInterfaceSound("buttons\\gameover.wav");
         const std::string_view title = words.size() > 1 ? std::string_view(words[1]) : "game_over";
-        const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
+        const std::string_view message = words.size() > 2 ? std::string_view(words[2]) : "game_over_msg";
         PushWindow(std::make_unique<MessageWindow>(title, message, MessageQuestion::Second, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
         return;
     }
@@ -314,7 +314,7 @@ void Interface3D::OnPlayersChanged(int added) {
     if (BriefingScreen* screen = OnTop(briefing)) screen->PlayersChanged(added);
 }
 
-void Interface3D::OnChatLine(const char* text) {
+void Interface3D::OnChatLine(std::string_view text) {
     root->AddLine(text);
 }
 

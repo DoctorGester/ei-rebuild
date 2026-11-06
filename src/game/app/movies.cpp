@@ -31,7 +31,7 @@ namespace {
 // A movie opened with its sound when the sound option is on; the mod's Movies\ copy when there is one (Rebirth's
 // MoviesPatch).
 video::Movie* OpenMovie(std::string_view name) {
-    return video::Open(modfolders::MovieFile(name).c_str(), options::g_options.audio != 0);
+    return video::Open(modfolders::MovieFile(name), options::g_options.audio != 0);
 }
 
 // The loading screen's movie: where it is drawn on the screen and the movie (null until it is opened).

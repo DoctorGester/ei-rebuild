@@ -18,6 +18,7 @@
 #include <functional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -60,9 +61,9 @@ bool Started();
 std::uint32_t DeviceSerial();
 // One more at each BeginPass: what a caller binds once a pass.
 std::uint64_t PassSerial();
-const char* Error();
-const char* DriverName();   // SDL's: "direct3d12", "vulkan"
-const char* DeviceName();   // the adapter's
+const std::string& Error();
+const std::string& DriverName();   // SDL's: "direct3d12", "vulkan"
+const std::string& DeviceName();   // the adapter's
 // Misused calls so far (each logged): a write inside a pass, a draw without a pipeline, a bad description, ...
 int Problems();
 // A call SDL refuses on the frame's commands (a command buffer, a copy or render pass, a mapping, the swap chain's
@@ -70,7 +71,7 @@ int Problems();
 // call does not return. The reason is logged, then given to `handler` (the renderer's ends the game with it in the
 // error box), and the program exits with -1. Misuse (Problems) and a texture, buffer or pipeline that cannot be made
 // (an empty handle) are not failures.
-using FailureHandler = void (*)(const char* reason);
+using FailureHandler = void (*)(std::string_view reason);
 void SetFailureHandler(FailureHandler handler);
 
 // ---- Formats, textures and samplers -------------------------------------------------------------------------------

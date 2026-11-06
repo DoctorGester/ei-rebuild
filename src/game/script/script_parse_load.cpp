@@ -10,7 +10,10 @@
 #include "lib/text_case.h"
 
 #include <cstdarg>
+#include <algorithm>
 #include <cstring>
+#include <optional>
+#include <string_view>
 #include <string>
 
 using namespace scriptparse;
@@ -30,12 +33,7 @@ namespace {
 // *dst = (float)atof(text): the CRT's result stored as a float.
 void StoreAtof(float* dst, const std::string& text) { *dst = str::ToFloat(text); }
 
-int CountChar(const char* text, char c) {
-    int n = 0;
-    for (; *text; ++text)
-        if (*text == c) ++n;
-    return n;
-}
+int CountChar(std::string_view text, char c) { return static_cast<int>(std::count(text.begin(), text.end(), c)); }
 
 // The ScriptType named by a declaration's type word ("float", ...); 0 for none.
 ScriptType TypeOfName(const std::string& name) {
@@ -47,8 +45,11 @@ ScriptType TypeOfName(const std::string& name) {
 } // namespace
 
 
-bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction id, ScriptVars* locals, const char* signature,
+bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction id, ScriptVars* locals, std::string_view signature,
                           ScriptArgSyntax syntax) {
+    // The signature's letter being read (a zero byte past its end, as the C string it was).
+    std::size_t letter = 0;
+    const auto current = [&] { return letter < signature.size() ? signature[letter] : '\0'; };
     const bool assignment = syntax == ScriptArgSyntax::Value;
     int paramIndex = 0;
     int nextArg[lib::Index(ScriptType::Group) + 1] = {};   // the next argument slot of each type (by ScriptType)
@@ -73,9 +74,9 @@ bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction i
         int tokenId;
         token = tokens->Next(&tokenId);
         if (!assignment) {
-            scriptaddon::SignatureStep(cmd, &signature, tokenId);
+            scriptaddon::SignatureStep(cmd, signature, &letter, tokenId);
             if (tokenId == ScriptLexeme::Close) {
-                if (*signature) return Error(this, token.line, ScriptParseError::NotEnoughParameters, "Not enough parameters");
+                if (current()) return Error(this, token.line, ScriptParseError::NotEnoughParameters, "Not enough parameters");
                 return true;
             }
             if (paramIndex == 0) {
@@ -86,7 +87,7 @@ bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction i
             // The parameter (no end-of-tokens check, as in the game).
             token = tokens->Next(&tokenId);
             if (paramIndex == 0 && tokenId == ScriptLexeme::Close) {
-                if (*signature == 0) return true;
+                if (current() == 0) return true;
                 return Error(this, token.line, ScriptParseError::NotEnoughParameters, "Not enough parameters");
             }
         }
@@ -95,15 +96,15 @@ bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction i
 
         // Literal parameters are stored directly; others bind a local or global variable of
         // the same name, or are parsed as a nested function call.
-        if (*signature == 0) return Error(this, token.line, ScriptParseError::TooManyParameters, "Too much parameters");
-        const ScriptType type = ScriptTypeOfLetter(*signature);
+        if (current() == 0) return Error(this, token.line, ScriptParseError::TooManyParameters, "Too much parameters");
+        const ScriptType type = ScriptTypeOfLetter(current());
         if (type == ScriptType::None) game::FatalExit("wrong type char in CScript::LoadFunction");
         const int argIndex = nextArg[lib::Index(type)]++;
         local.type = type;
         global.type = type;
         local.argIndex = argIndex;
         global.argIndex = argIndex;
-        if (*signature == 'O') {
+        if (current() == 'O') {
             // Loop counter of For/ForIf/Every/Any/Sum: must be a global object variable.
             local.varIndex = -1;
             global.varIndex = vars->FindOfType(type, token.text);
@@ -135,15 +136,15 @@ bool Script::LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction i
                 sub.cmd->Clear();
                 sub.argIndex = local.argIndex;
                 sub.type = local.type;
-                const char* nested = FunctionSignature(tokenId, local.type);
+                const std::optional<std::string_view> nested = FunctionSignature(tokenId, local.type);
                 if (!nested) return Error(this, token.line, ScriptParseError::ParameterType, "Parameter of type %s expected", ScriptTypeName(type));
-                if (!LoadFunction(sub.cmd.get(), tokens, static_cast<ScriptFunction>(tokenId), locals, nested)) return false;
+                if (!LoadFunction(sub.cmd.get(), tokens, static_cast<ScriptFunction>(tokenId), locals, *nested)) return false;
                 cmd->subCalls.push_back(sub);
             }
         }
 
         if (assignment) return true;
-        ++signature;
+        ++letter;
         ++paramIndex;
     } while (!tokens->AtEnd());
 
@@ -159,9 +160,9 @@ bool Script::LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* to
         int id;
         const ScriptToken token = tokens->Next(&id);
         if (id == ScriptLexeme::Close) return true;
-        const char* signature = FunctionSignature(id, ScriptType::Float);
+        const std::optional<std::string_view> signature = FunctionSignature(id, ScriptType::Float);
         if (!signature) return Error(this, token.line, ScriptParseError::FloatFunction, "Function returning float expected");
-        if (!LoadFunction(&cmd, tokens, static_cast<ScriptFunction>(id), locals, signature)) return false;
+        if (!LoadFunction(&cmd, tokens, static_cast<ScriptFunction>(id), locals, *signature)) return false;
         conditions->push_back(cmd);
     }
 }
@@ -219,8 +220,8 @@ bool Script::LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars
 
     // The value is the single argument of an Assign command (the caller found the variable).
     const auto [index, type] = globals.FindVariable(name);
-    const char signature[2] = {ScriptTypeLetter(type), 0};
-    bool result = LoadFunction(cmd, tokens, ScriptFunction::Assign, locals, signature, ScriptArgSyntax::Value);
+    const char letter = ScriptTypeLetter(type);
+    bool result = LoadFunction(cmd, tokens, ScriptFunction::Assign, locals, std::string_view(&letter, 1), ScriptArgSyntax::Value);
     cmd->target = index;
     cmd->targetType = type;
     return result;
@@ -285,7 +286,7 @@ bool Script::LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens
                 if (definitions[index].name == text || definitions[index].name == qualified) break;
             if (index < definitions.size()) {
                 // A call to a declared script.
-                if (!LoadFunction(&cmd, tokens, ScriptFunction::CallScript, locals, definitions[index].params.c_str()))
+                if (!LoadFunction(&cmd, tokens, ScriptFunction::CallScript, locals, definitions[index].params))
                     return false;
                 cmd.target = static_cast<int>(index);
                 cmd.targetName = definitions[index].name;

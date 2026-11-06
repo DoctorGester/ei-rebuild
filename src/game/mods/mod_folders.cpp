@@ -6,6 +6,7 @@
 #include "game/data/registry.h"
 #include "game/data/resource.h"
 #include "game/app/settings.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
 
 #include "platform/platform.h"
@@ -17,6 +18,7 @@
 #include <new>
 #include <string>
 
+#include <algorithm>
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -263,9 +265,9 @@ void OnOpenResource(MappedResource* res, const std::string& path) {
     Lock lock;
     LoadModArchives();
     // 100203F0: the path as CharLowerA makes it (addon copies it into 0x104 bytes).
-    char lower[kPathBytes];
-    std::snprintf(lower, sizeof(lower), "%s", path.c_str());
-    text::LowerInPlace(lower);
+    // (kPathBytes - 1 characters at most, up to a zero byte.)
+    std::string lower(path.substr(0, std::min(path.find('\0'), std::size_t{kPathBytes - 1})));
+    str::MakeLower(lower);
     const ResConfig& config = Config();
     ResTables& tables = Tables();
     if (config.ignored.count(lower) != 0) tables.ignored.insert(res);

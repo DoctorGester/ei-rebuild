@@ -99,7 +99,7 @@ Machine UseDefaults(Store& s) {
 void Load(Store& s) {
     if (s.loaded) return;
     s.loaded = true;
-    if (s.prepare) s.prepare(s.file.c_str());
+    if (s.prepare) s.prepare(s.file);
     std::vector<std::string> places;
     if (s.pinned) places.push_back(s.file);
     else {

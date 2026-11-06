@@ -109,7 +109,7 @@ void ClientSession::OnMessage(Connection*, MessageEvent event, Message* message)
         if (event == Created) {
             auto* line = static_cast<LineMessage*>(message);
             Append(lines, line);
-            g_interface.OnChatLine(line->text.data());
+            g_interface.OnChatLine(line->text);
         }
         if (event == Removed) RemoveCounted(lines, message);
         return;

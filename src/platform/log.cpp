@@ -8,6 +8,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <mutex>
 #include <string>
@@ -44,9 +45,7 @@ std::string Stamp() {
     const auto now = std::chrono::system_clock::now().time_since_epoch();
     const long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
     const std::string time = lib::FormatLocalTime(ms / 1000, "%H:%M:%S");
-    char stamp[32];
-    std::snprintf(stamp, sizeof(stamp), "[%s.%03d] ", time.c_str(), static_cast<int>(ms % 1000));
-    return stamp;
+    return std::format("[{}.{:03}] ", time, ms % 1000);
 }
 
 } // namespace

@@ -43,8 +43,10 @@ inline constexpr std::uint32_t kGameOverQuit = BoxResult(MessageQuestion::Second
 // The message box.
 class MessageWindow : public UiContainer {
 public:
-    // A missing text gives its key. The text is centred and word-wrapped.
-    MessageWindow(std::string_view titleKey, const char* textKey, MessageQuestion question, MessageButtons buttons);
+    // A missing text gives its key. The text is centred and word-wrapped. OkCancelEdit: no text, the edit field starts
+    // with `editBuffer`'s text and OK copies the answer into it.
+    MessageWindow(std::string_view titleKey, std::string_view textKey, MessageQuestion question, MessageButtons buttons,
+                  char* editBuffer = nullptr);
     void CreateScreen() override;
     void OnEvent(UiEvent& event) override;
     // OK: for the exit question the exit movie and the game quits; otherwise the edit field's text into editText.

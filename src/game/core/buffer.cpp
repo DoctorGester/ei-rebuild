@@ -154,8 +154,9 @@ void GameBuffer::WriteString(std::string_view text) {
 }
 
 void BufferCursor::PutString(const std::string& s) {
-    const std::string bytes = text::ToAssetText(std::string_view(s.c_str()));
-    WriteBytes(bytes.c_str(), static_cast<std::uint32_t>(bytes.size() + 1));
+    // The text up to its first zero byte, then its terminator (a std::string's data() ends in one).
+    const std::string bytes = text::ToAssetText(std::string_view(s).substr(0, s.find('\0')));
+    WriteBytes(bytes.data(), static_cast<std::uint32_t>(bytes.size() + 1));
 }
 
 void BufferCursor::TakeString(std::string& s) {

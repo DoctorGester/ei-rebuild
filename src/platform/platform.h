@@ -48,8 +48,8 @@ enum class MessageAnswer : std::uint8_t { Ok, Cancel };
 
 // Shows `text` (UTF-8) under `caption` and waits for the player. `owner` is the native window it belongs to (null:
 // none). Cancel only when the player cancelled; a box that could not be shown answers Ok.
-MessageAnswer ShowMessageBox(NativeWindow owner, const char* text, const char* caption, MessageButtons buttons,
-                             MessageIcon icon);
+MessageAnswer ShowMessageBox(NativeWindow owner, std::string_view text, std::string_view caption,
+                             MessageButtons buttons, MessageIcon icon);
 
 // ==== Paths ==========================================================================================================
 

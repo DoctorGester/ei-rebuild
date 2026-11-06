@@ -194,10 +194,10 @@ int main() {
         return 1;
     }
     if (!gpu::Start()) {
-        std::printf("render_check: no device: %s\n", gpu::Error());
+        std::printf("render_check: no device: %s\n", gpu::Error().c_str());
         return 1;
     }
-    std::printf("render_check: %s, %s\n", gpu::DriverName(), gpu::DeviceName());
+    std::printf("render_check: %s, %s\n", gpu::DriverName().c_str(), gpu::DeviceName().c_str());
     platform::StartWindowSystem("ei-render-check");
     platform::NativeWindow window = platform::CreateGameWindow("Render check", 640, 400, false);
     const std::optional<Size> drawable = window ? platform::WindowPixelSize(window) : std::nullopt;

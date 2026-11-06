@@ -1073,16 +1073,17 @@ void BattleScreen::LeftDown(UiEvent& event) {
 std::string BattleScreen::UnitName(Unit* unit) {
     TextManager* texts = g_clientWorld.texts.get();
     std::string name(unit->GetName());
-    if (name.size() != 0) return name.c_str();
+    const auto upToNull = [](const std::string& text) { return text.substr(0, text.find('\0')); };
+    if (name.size() != 0) return upToNull(name);
     if (IsTextKey(unit->id)) {
         auto node = personTexts.find(unit->id);
-        return node == personTexts.end() ? std::string() : std::string(node->second.c_str());
+        return node == personTexts.end() ? std::string() : upToNull(node->second);
     }
     name = unit->GetPrototype()->name;
     text::ReplaceChar(&name, ' ', '_');
     if (!texts->Open(std::string(kUnitTextPrefix) + name)) return {};
     std::string line = texts->ReadLine(true);
-    return line.c_str();
+    return upToNull(line);
 }
 
 // --- Mouse-over --------------------------------------------------------------------------------------

@@ -378,7 +378,7 @@ void Frames(const char* driver, int width, int height, World& world, int count) 
     for (int round = 0; round < 3; ++round) {
         for (int on = 0; on < 2; ++on) {
             g::SetStateFiltering(on != 0);
-            if (!Round(world, t, count, &results[on])) std::printf("gpu_bench: %s: the swap chain failed: %s\n", driver, g::Error());
+            if (!Round(world, t, count, &results[on])) std::printf("gpu_bench: %s: the swap chain failed: %s\n", driver, g::Error().c_str());
         }
     }
     g::SetStateFiltering(true);
@@ -483,10 +483,10 @@ bool Run(const char* driver, int frames) {
     g::DeviceOptions options;
     options.driver = driver;
     if (!g::Start(options)) {
-        std::printf("gpu_bench: %s: no device (%s)\n", driver, g::Error());
+        std::printf("gpu_bench: %s: no device (%s)\n", driver, g::Error().c_str());
         return false;
     }
-    std::printf("gpu_bench: %s (%s)\n", driver, g::DeviceName());
+    std::printf("gpu_bench: %s (%s)\n", driver, g::DeviceName().c_str());
     for (const int width : {960, 2560}) Readbacks(driver, width, width == 960 ? 720 : 1440, std::max(20, frames / 5));
     SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "ei_gpu_bench");
@@ -511,7 +511,7 @@ bool Run(const char* driver, int frames) {
                 Frames(driver, width, height, world, frames);
             }
         } else {
-            std::printf("gpu_bench: %s: the world could not be made (%s)\n", driver, g::Error());
+            std::printf("gpu_bench: %s: the world could not be made (%s)\n", driver, g::Error().c_str());
         }
         ReleaseWorld(&world);
         g::ReleaseWindow();

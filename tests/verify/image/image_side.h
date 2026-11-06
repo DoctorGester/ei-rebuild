@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class Object3D;
@@ -92,7 +93,7 @@ void* SceneDevice();                            // the scene renderer's device, 
 void ConsoleExecute(const char* text);
 void RequestGameState(int id);                       // GameRequestGameState: ask the server for interface screen `id`
 void SetConstructionVariable(float value);           // GameSetConstructionVariable
-void ObserveConsoleLines(void (*observer)(const char* line));
+void ObserveConsoleLines(void (*observer)(std::string_view line));
 unsigned& UpdatePeriod();                       // app::g_updatePeriod
 const char* DataFolder();                       // the data folder's text, may be empty
 // IsaacRandom's seed hook: rand() seeded with 12345 and the generator's results filled by `fill`.
@@ -270,7 +271,7 @@ const char* SettingsFileName();                                      // settings
 std::string SettingsText(const std::vector<SettingsLine>& lines);    // the file's text
 // The file pinned (settings::Pin); and pinned writable without a file, which the first use writes with the defaults
 // for a `width` x `height` desktop (settings::SetDesktopSize), every value absent from them read as absent.
-using SettingsPrepare = void (*)(const char* file);
+using SettingsPrepare = void (*)(std::string_view file);
 void PinSettings(const char* file, SettingsMissing missing, bool readOnly, SettingsPrepare prepare);
 void DefaultSettings(const char* file, int width, int height);
 

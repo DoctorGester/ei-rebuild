@@ -82,18 +82,19 @@ constexpr std::uint32_t kTypedColour = 0xFFFFFF;
 
 // --- a chat line added ---------------------------------------------------------------------------
 
-void ChatOverlay::AddLine(const char* text) {
+void ChatOverlay::AddLine(std::string_view text) {
     const int before = static_cast<int>(lines.size());
     std::vector<std::string> plain;       // the lines without colour codes
     std::vector<std::string> formatted;   // the same lines with them
-    std::string source = text;
+    const std::string_view source = text.substr(0, text.find('\0'));   // up to the first NUL, as a C string
     std::string ch, word, wordFormatted, line, lineFormatted;
     bool mark = false;
     // A character is its whole UTF-8 sequence, so a word wider than a line is broken between characters and
     // measured as text.
-    for (const char* p = source.c_str(); *p != 0; p += text::CharacterLength(p)) {
-        ch.assign(p, static_cast<std::size_t>(text::CharacterLength(p)));
-        const char c = *p;
+    for (std::size_t p = 0, length = 0; p < source.size(); p += length) {
+        length = static_cast<std::size_t>(text::CharacterLength(source.substr(p)));
+        ch.assign(source.substr(p, length));
+        const char c = source[p];
         if (mark) {
             if (c >= '0' && c < '8')
                 wordFormatted += ch;

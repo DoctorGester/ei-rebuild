@@ -123,7 +123,8 @@ std::string Document::Text() const {
 
 void Document::Parse(std::string_view text, std::vector<std::string>* problems) {
     if (text.substr(0, 3) == "\xEF\xBB\xBF") text.remove_prefix(3);   // a UTF-8 BOM
-    const char* section = "";     // the lines' section; null below a section not understood
+    std::string_view section;     // the lines' section; the lines below a section not understood have none (`known`)
+    bool known = true;
     std::string sectionName;
     int number = 0;
     while (!text.empty()) {
@@ -137,23 +138,24 @@ void Document::Parse(std::string_view text, std::vector<std::string>* problems) 
             const std::string_view name = Trimmed(line.substr(1, line.size() - 1 - (line.back() == ']')));
             if (line.back() == ']' && SectionName(name)) {
                 sectionName = name;
-                section = sectionName.c_str();
+                section = sectionName;
+                known = true;
                 AddSection(sectionName);
             } else {
-                section = nullptr;
+                known = false;
                 problems->push_back("line " + std::to_string(number) + " not understood (and the lines below it): " +
                                     std::string(line));
             }
             continue;
         }
-        if (!section) continue;
+        if (!known) continue;
         if (line.front() == ';' || line.front() == '#') {
             AddSection(section).lines.push_back(Line{{}, std::string(line)});
             continue;
         }
         const std::size_t equals = line.find('=');
         const std::string_view name = equals == std::string_view::npos ? std::string_view() : Trimmed(line.substr(0, equals));
-        if (name.empty() || !*section) {
+        if (name.empty() || section.empty()) {
             problems->push_back("line " + std::to_string(number) + " not understood: " + std::string(line));
             continue;
         }

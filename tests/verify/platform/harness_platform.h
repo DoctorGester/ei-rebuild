@@ -78,7 +78,7 @@ bool CollectCursors();
 int TypedCharacter(platform::Key key);
 // The game asked to quit (PostQuit): a recorded scenario's game may quit itself after its last step.
 void GameQuits();
-platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons buttons);
+platform::MessageAnswer AnswerMessageBox(std::string_view text, std::string_view caption, platform::MessageButtons buttons);
 // The harness's mouse's position on the screen (false: none).
 bool MousePosition(Point* at);
 // Whether the harness answers the game's calls (a scenario runs), and the path the system is asked for when the game

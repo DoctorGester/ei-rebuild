@@ -163,7 +163,7 @@ void AddReadFilter(ReadFilter filter);
 // written as in the product (Save, .tmp then moved) and a missing file is written with the defaults. `prepare` (may
 // be null) writes the file at the first use. Before the first use.
 using MissingHandler = void (*)(const char* section, const char* name);
-using PrepareHandler = void (*)(const char* file);
+using PrepareHandler = void (*)(std::string_view file);
 void Pin(std::string_view file, MissingHandler missing, bool readOnly, PrepareHandler prepare = nullptr);
 // Harness runs: the desktop size the defaults take (a missing file's, VideoResolution's), in place of the primary
 // monitor's.

@@ -253,14 +253,14 @@ void TakeResolutionChange() {
 
 // ---- Fatal errors and warnings --------------------------------------------------------
 
-void ShowMessageBox(const char* text) {
+void ShowMessageBox(std::string_view text) {
     platform::CursorShape cursor = platform::CurrentCursor();
-    platform::ShowMessageBox(g_mainWindow, text, g_windowTitle, platform::MessageButtons::Ok, platform::MessageIcon::Error);
+    platform::ShowMessageBox(g_mainWindow, text, std::string_view(g_windowTitle), platform::MessageButtons::Ok, platform::MessageIcon::Error);
     platform::SetCursor(cursor);
 }
 
-void ShowLibraryMessageBox(const char* text) {
-    platform::ShowMessageBox(nullptr, text, platform::ProgramPath().c_str(), platform::MessageButtons::Ok,
+void ShowLibraryMessageBox(std::string_view text) {
+    platform::ShowMessageBox(nullptr, text, platform::ProgramPath(), platform::MessageButtons::Ok,
                              platform::MessageIcon::Warning);
 }
 

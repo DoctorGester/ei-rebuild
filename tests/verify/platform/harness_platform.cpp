@@ -303,7 +303,7 @@ std::int64_t SecondsSince1970() {
     return std::mktime(&at);
 }
 
-MessageAnswer ShowMessageBox(NativeWindow, const char* text, const char* caption, MessageButtons buttons, MessageIcon) {
+MessageAnswer ShowMessageBox(NativeWindow, std::string_view text, std::string_view caption, MessageButtons buttons, MessageIcon) {
     return hp::AnswerMessageBox(text, caption, buttons);
 }
 

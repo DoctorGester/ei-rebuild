@@ -666,7 +666,7 @@ void CheckSwapchain() {
             SDL_PumpEvents();
             g::Texture target;
             if (!g::AcquireSwapchain(&target)) {
-                Fail("the swap chain's texture: %s", g::Error());
+                Fail("the swap chain's texture: %s", g::Error().c_str());
                 break;
             }
             ++frames;
@@ -773,10 +773,10 @@ bool CheckDriver(const char* driver) {
         out.push_back(missing);
     });
     if (!g::Start(options)) {
-        std::printf("gpu_check: %s: no device (%s)\n", driver, g::Error());
+        std::printf("gpu_check: %s: no device (%s)\n", driver, g::Error().c_str());
         return false;
     }
-    Check(std::strcmp(g::DriverName(), driver) == 0, "the driver asked for");
+    Check(g::DriverName() == driver, "the driver asked for");
     const int aheadCount = g::PipelineCount();
     const g::Pipeline ahead = g::MakePipeline(CasterDesc(), "caster");
     Check(aheadCount == 2 && ahead && g::PipelineCount() == 2 && g::Problems() == problemsBefore,
@@ -796,7 +796,7 @@ bool CheckDriver(const char* driver) {
     CheckMisuse();
     Check(g::Problems() - problems == g_misuses && ei::g_logLines - logged == g_misuses,
           "no problem but the misuses, each logged");
-    std::printf("gpu_check: %s (%s): %d checks, %d failed, %d pipelines\n", driver, g::DeviceName(),
+    std::printf("gpu_check: %s (%s): %d checks, %d failed, %d pipelines\n", driver, g::DeviceName().c_str(),
                 g_checks - checks, g_failures - failures, g::PipelineCount());
     g::Texture late = g::MakeTexture({4, 4, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "late"});
     g::Stop();

@@ -229,7 +229,7 @@ std::string DeltaReader::ReadString() { return received->ReadString(); }
 
 void DeltaReader::ReadText(char* text, int size) {
     std::string string = ReadString();
-    if (static_cast<int>(string.size()) < size - 1) std::memcpy(text, string.c_str(), string.size() + 1);
+    if (static_cast<int>(string.size()) < size - 1) std::memcpy(text, string.data(), string.size() + 1);
     else text[0] = '\0';
 }
 

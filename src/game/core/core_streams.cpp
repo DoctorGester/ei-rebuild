@@ -49,7 +49,7 @@ std::string ByteStream::ReadString() {
 
 void ByteStream::WriteString(std::string_view text) {
     const std::string bytes = text::ToAssetText(text.substr(0, text.find('\0')));
-    Write(bytes.c_str(), static_cast<std::uint32_t>(bytes.size() + 1));
+    Write(bytes.data(), static_cast<std::uint32_t>(bytes.size() + 1));   // data() ends in a zero byte
 }
 
 MemoryStream::MemoryStream() = default;
