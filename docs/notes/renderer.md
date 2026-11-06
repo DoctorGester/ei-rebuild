@@ -125,7 +125,7 @@ Per main-loop pass: BeginScene; the interface draws window by window; EndScene; 
 - view setup (the view matrix from the camera pushed on the transform pipeline's stacks), the visible sectors (every
   sector of the map; the view has no far plane: section 10, "The view's depth");
 - sky (a model following the camera, z-write and alpha test off, hazed into the fog's colour towards the horizon);
-- terrain ground pages (`SectorData::DrawPage` per page);
+- terrain ground pages (`Terrain::DrawPages`: one `render::TerrainPass` for the drawn sectors);
 - objects (CollectVisible, sort, figure parts, the shadow lists);
 - terrain water pages, blended;
 - effects: vision fog, particles, lightning, rain and snow; then the line lists and the flying hit points.
@@ -186,8 +186,9 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
     (net_pair_quest's walk searched another body and the quest failed). One rule for every pick: UnitAt, the battle
     screen's use cursor and click, the harness's `clickunit`. CPU-side from what the draw kept (no frame read back),
     so picks stay deterministic and the same under every GPU driver.
-- **One real state change in a draw path:** the terrain page draw applies pending water level changes; the water layer
-  is what height queries read. DrawSectorPage applies them before handing over.
+- **One real state change in a draw path:** the terrain pass applies pending water level changes to the sectors it
+  draws; the water layer is what height queries read. Terrain::DrawPages applies them before handing over (the water
+  mesh's range follows: `WaterMoved`).
 - **Pixels:** the escape menu's background and the save game's 256x192 picture are copied from the frame on the GPU, and
   only the 5:6:5 picture is read back (section 6, "Screen copies on the GPU").
 - **Timing:** up to five world updates per frame; vsync only changes grouping.
@@ -197,9 +198,9 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
 | Data | Hand-over point | `render::` call |
 |---|---|---|
 | Clip matrix of the current draw | the transform pipeline's stacks (`TransformPipeline`, pipeline.h: clip space = axis swap x projection x view x model; the screen matrix; the view stack) read at hand-over time | with each draw |
-| Terrain sectors | `SectorData::DrawPage` (terrain_sector.cpp): vertices (33x33 per layer, water after ground), vertex records (normal, material colour, the specular word: edge fade, on the water the crests), tile lists, edge flags, quarter verdicts; `HandOverSceneLights` (world_client_shadow_casters.cpp) | `TerrainPage`, `SceneLighting` |
+| Terrain sectors | `Terrain::DrawPages` (terrain.cpp): the drawn sectors with their quarter verdicts per pass; the zone's sectors read when built or changed: vertices (33x33 per layer, water after ground), vertex records (normal, material colour, the specular word: edge fade, on the water the crests), tile lists, edge flags (`TerrainChanged`); `HandOverSceneLights` (world_client_shadow_casters.cpp) | `TerrainPass`, `TerrainChanged`, `SceneLighting` |
 | Meshes (figures, objects, sky, interface sprites and previews) | `device_mesh.cpp`'s mesh draws: positions and normals in packets of four, corners and texture coordinates (`render::VertexPacket` / `NormalPacket` / `MeshCorner` / `TexCoord`, mesh_records.h: the game's meshes hold the renderer's records), colours; matrix = the screen stack's top converted back to clip space; the distance fog switch | `BeginMesh` / `EndMesh`; `MeshLighting` for parts lit on the GPU |
-| Pass state | per pass of a mesh (material preset or two textures): `render::g_renderState` (section 5) | `MeshPass`; per terrain page at `TerrainPage` |
+| Pass state | per pass of a mesh (material preset or two textures): `render::g_renderState` (section 5) | `MeshPass`; per terrain pass at `TerrainPass` |
 | Depth clears | the battle screen's panels, the hero preview, the trade grid, the hero equipment, screens 2 / 3 | `ClearDepth` |
 | Shadows | `world_client_draw.cpp` (the sun; `BeginCaster` / `EndCaster` around each object's draws), `map_object_shadow.cpp` (`CastsShadow`), the casters outside the view | `ShadowSun`, `ShadowCasterMesh` (section 13) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites (`renderer_sprites.cpp`), ribbons and triangles (`renderer_strip.cpp`), line strips (`renderer_lines.cpp`) | `TlDraw` with vertices after the distance fog (`FogVertices`) |
@@ -988,26 +989,40 @@ RTX 4070 Ti SUPER, 300 frames, harness (verify) build; beside it R37e2's town bz
   ground's casters into the sun's map one per run of sectors in their pool
   (the save 1894 -> 1875 map draws, the town 487 -> 480); the occlusion's ground depth by pool place whatever the
   texture (103 draws in the save, 28 in the town; the quarters out of view break the runs).
+- **The zone's terrain on the GPU (R37e4b)** (the same save and kit, alone on the machine: `work.py test --quiet`; ms a
+  frame over the 300 measured frames, where R37e4 averaged its run from the start; the release terms a harness build
+  with EI_RENDER_VALIDATION off): the hand-over, the game's walk over the sectors and the two passes' hand-over
+  (`TerrainPass`), 0.41-0.46 -> 0.12 (harness build 0.14), with the writes of what moved (the water's ranges as the waves
+  move them, UploadTerrain) 0.20 (0.23); with the waves (AnimateWaves 0.15, unchanged) 0.35 (0.38) against 0.56-0.61.
+  The main thread's frame: 5.7-5.9 ms in release terms, 7.0 in the harness build (R37e3's 9.0-9.4 was before R37e4 and
+  the other frame tickets). Draws: the ground and the water one each in the world pass (108 ground draws before), the
+  ground one in the occlusion's depth (103) and one in the sun map (1875 -> 1874 map draws). The town at night: the
+  hand-over 0.008 ms.
 
-**3. Terrain pages kept on the GPU** (`render_terrain.cpp`). Each sector page is built once, all four quarters, into a
-pool of buffers written in place, only the changed ranges (gpu.h's `Write` with `Keep`): positions, texture
-coordinates and normals in one stream, the lit colours in another, and absolute indices. A frame keeps the visible
-quarters of each page handed over (`TerrainPiece`); ranges that follow each other in the pool are one draw. A page is
-built again when its tile lists, records or animated tiles moved or the game rebuilt the sector
-(`render::TerrainChanged(s, Rebuilt)` from Build and Clear), its vertices read again when the ground occlusion was worked
-out again. The game moves some in place: texture coordinates (animated tiles: `Moved`), the water layer's positions and
-the wave crests' specular word (waves, water levels: `WaterMoved`); the edge fade's specular word is written only at a
-build. Each quarter keeps the sector's count of those moves it was read at (`MovedStamp`: the water's for a page that
-reads the water layer, the animated tiles' for one that holds some); a quarter drawn with another count reads its
-positions, texture coordinates and specular words again in one loop (`ReadMoving`) and uploads the changed range, so a
-still page costs its lookups (the page, its sector's occlusion) and its pieces. A quarter out of view is read when it
-is drawn again. The ground occlusion's neighbours are looked at once a frame per sector. The pool (at least 128 K vertices) starts again with the frame's pages when full (made larger when they need more than
-half of it); pages not drawn for 600 frames are dropped. Every tile is drawn at full detail at any distance. The shadow
-map's fit reads a piece's vertices in runs of 72 with their boxes (`TerrainPieceGroups`). The circling water waves' sines
-are computed once per Animate call (`CircleSines`: 33 values) instead of per vertex. Check: `terraincache off` builds and
-uploads every page every frame; every harness build (EI_RENDER_VALIDATION) compares every kept page drawn, its vertices
-and colours, with a fresh build every 16th frame (about 0.5 ms a frame on average in the stress save of item 2a, which
-the shipped build does not spend), and `terraincache check` fails a run where one was stale (0 stale); scenario `terrain_water_waves` (the waves are always on; the digest's `water` group).
+**3. The zone's terrain on the GPU** (`render_terrain.cpp`, R37e4b). The whole landscape is two meshes kept on the
+GPU, the ground and the water, each one draw per pass, with the zone's page textures in one Texture2DArray (a vertex
+carries its page's layer with its texture coordinates). Each place of the sector grid (`Slot`) holds a fixed range of
+both meshes: the sector the game holds there, all its tiles of every page and quarter, in the game's list order, in four
+vertex streams (positions; normal, loss, depth, shore and extra; the colour and specular words; u, v and the layer) and
+written only when something in it changed. The indices run page by page, each page's sectors by grid rows, each
+sector's by quarter: the order the game's page passes drew them in (the ground is blended, so the order is kept). A
+range is built again when the grid holds another sector there or the game rebuilt it (`render::TerrainChanged(s,
+Rebuilt)` from Build, `Dropped` from Clear and the destructor), its colours and the rest when its ground occlusion was
+worked out again (a neighbour came); the meshes are laid out again only when a range's size changed. The game moves some
+in place: the animated tiles' texture coordinates (`Moved`: their range of the uv stream written; their frames come from
+the client generator, so no time in the shader can give them) and the water layer's positions and crests (waves and
+water levels: `WaterMoved`, from AnimateWaves and from ApplyWaterLevels when a sector with a pending level change is
+drawn: its water positions and colours written, its boxes worked out again). A pass hands over only the sectors it
+draws with their quarters' clip verdicts (`TerrainPass`: the game's culling decides what the frame's fit, the water's
+mirror level and the batch's presence see; the GPU clips the rest); the page texture of a page is the game's, copied
+into its layer when the texture's image changes (`TextureSerial`). Every tile is drawn at full detail at any distance.
+The shadow map's fit reads a drawn quarter's vertices in runs of 72 with their boxes (`TerrainPieceGroups`). The
+circling water waves' sines are computed once per Animate call (`CircleSines`: 33 values) instead of per vertex. Check:
+`terraincache off` builds and writes the whole zone at every pass (its frames the same as kept: render_scene,
+render_smooth, render_terrain_seams); scenario `terrain_water_waves` (the waves are always on; the digest's `water`
+group). Gameplay reads the waves (client side only): WorldClient::RawSurfaceHeightAt is the terrain's SurfaceHeight with
+the waves, read by water-walking units' shown height, particles, weather, footprints and footstep sounds (SurfaceClass);
+the server's height (the AI map's TopHeightAt) has none, so the AI, the server's unit placement and combat do not.
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
@@ -1057,8 +1072,9 @@ colours and ranges); what they light is done per pixel.
   lamps burn by day too, and their unshadowed light hid the units' shadows). Every other mesh is darkened by (1 - hidden x
   strength) on faces turned to the map's sun by their face normal (`shadow_facing`; not by the smoothed vertex normals,
   which can lean far from their faces). Receivers look up the map at their point moved 1.5 map texels along the normal.
-  The ground casts into the map: each sector's 33 x 33 ground vertices kept in a pool of their own, the sectors that
-  follow each other in it one draw (depth only, so in any order).
+  The ground casts into the map: each grid place's 33 x 33 ground vertices kept in a buffer of their own, one draw for
+  the zone; the vertex shader drops the sectors that do not cast this frame (a bit per sector in a uniform, read by
+  `SV_VertexID / 1089`), so the casters and the map's near plane stay the game's walk's (depth only, so in any order).
 - **Units take no shadow of their own** (a low-poly creature flipped triangle by triangle between shadowed and lit). The
   meshes of a unit's draw (`render::BeginCaster(object, true)`) compare from the unit's nearest depth in the map
   (`FigureFronts`: the least over its meshes of their model-space box corners through their light matrices;
@@ -1281,16 +1297,15 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
 - **The ground's own** (render_terrain.cpp, `GroundOcclusion`): per sector, once, from the height field (a cell a
   unit): per ground vertex in the grid's eight directions the highest rise within 8 cells above the vertex's own
   tangent plane (sines, the plane's taken off, faded by 1 - (d / 8)^2), the mean of the eight; the vertex keeps 1 -
-  0.7 x that (`PageVertex::extra`, an attribute of the page's geometry). The heights around the sector come from the
+  0.7 x that (`VertexRest::extra`, an attribute of the ground mesh). The heights around the sector come from the
   neighbours the landscape holds (`Terrain::CachedSector`, so nothing is loaded for it); a neighbour not held continues
-  the sector's edge, and the sector's occlusion is worked out again when one comes (its version in the page's source:
-  the pages read their vertices again). Large shapes: valleys, the foot of cliffs and walls of rock.
+  the sector's edge, and the sector's occlusion is worked out again when one comes (its range of the
+  ground mesh written again). Large shapes: valleys, the foot of cliffs and walls of rock.
 - **The screen's** (render_occlusion.cpp, once a frame after the shadow maps, `DrawOcclusion`): the world's ground (not
   the water) and its models after it that write the depth (cut out by alpha as the sun map's casters; not the sky, the
   flat geometry or the added light) drawn depth only into a D32F target of half the frame's size, through the casters'
   pipelines (`CasterDraws`, the batch's clip matrix as the instance's) and shadow_terrain.hlsl with the camera's matrix
-  (`DrawTerrainDepth`: the pieces by their place in the pool whatever their texture, those that follow each other one
-  draw); then `occlusion.hlsl` per texel (the depth taken back into the landscape's space through the
+  (`DrawTerrainDepth`: the ground mesh in one draw per clip matrix, its positions and normals streams); then `occlusion.hlsl` per texel (the depth taken back into the landscape's space through the
   camera's inverse; the normal from the nearer neighbour on each axis; in 4 directions on the screen, 4 steps each within
   a radius of 1.5 units, at most 40 texels, the steepest rise above the surface's plane less 0.1, faded by 1 - (d /
   1.5)^2; 1 less the mean), the directions turned and the steps shifted by a 4 x 4 pattern fixed to the screen, and
@@ -2030,11 +2045,11 @@ and mesh programs.
 
 ### render_terrain.cpp: the terrain
 
-The game's terrain passes (ground pages, water pages) call DrawSectorPage (SectorData::DrawPage, src/game/terrain/terrain_sector.cpp) for
-every visible sector page; it hands the page here. The page's tiles are turned into world-space triangles (every tile's
-nine vertices and eight triangles, the full detail at any distance), with the vertex records' normals and material
-colours, the tile texture coordinates and the page's texture; the clip matrix is the pipeline's. The GPU clips. The pages
-stay on the GPU (section 13, item 3).
+The game's terrain passes (ground pages, water pages: Terrain::DrawPages, src/game/terrain/terrain.cpp) clip test the
+sectors in view and hand their list over once a pass (`TerrainPass`). The zone's sectors live on the GPU as two meshes,
+the ground and the water, built from the sectors' tiles (every tile's nine vertices and eight triangles, the full detail
+at any distance), with the vertex records' normals and material colours, the tile texture coordinates and the page's
+layer in the zone's page array; the clip matrix is the pipeline's. The GPU clips. Section 13, item 3.
 
 ### render_water.cpp: the ripple map and the reflections
 
@@ -2091,7 +2106,7 @@ half size and 10 + 3 steps about 0.1-0.2 ms, with no visible loss under the ripp
 
 The water pages keep the game's look underneath: the page texture lit by ground_light from the vertex normal with the
 game's crests (the vertex waves, the water levels and the crests' specular stay the game's: SectorData::AnimateWaves),
-alpha the material's opacity, fog as for the ground. Each water vertex carries its water's kind (PageVertex::extra,
+alpha the material's opacity, fog as for the ground. Each water vertex carries its water's kind (VertexRest::extra,
 render_terrain.cpp's WaterKind): the maps' water materials (kind 3 in the .mp file) tell water, swamps and lava apart only
 by their colour, so blue is water, green (zone1's, zone2's, zone7's swamps: 0.19, 0.54, 0.36, opacity 0.7) a swamp and
 red (0.8, 0, 0, lit by itself) lava; the kind is interpolated, so where a swamp meets water the looks blend. `Water`
@@ -2110,7 +2125,7 @@ then, per pixel:
   time on zone1's sea at 4K, msaa 8 (whole frame, lowest of 4 interleaved runs): 2.38 / 2.24 / 2.45 / 2.39 ms before,
   2.35 / 2.28 / 2.52 / 2.44 after (noon from 45 and 18 degrees, sunset from 45 and 16). The rippled normal lights the layer up to 30% more or 25% less as it turns to the sun or away
   (kRippleShade 2, by the sun's share of the light not under a cloud).
-- **Depth** (`depth`, PageVertex's: the water's depth over the ground at the vertex, from the ground record,
+- **Depth** (`depth`, VertexRest's: the water's depth over the ground at the vertex, from the ground record,
   interpolated): the share 1 - e^(-0.5 depth) of the depth's look: from half the material's opacity at the shore to 1.15
   times it in deep water, and up to 15% darker.
 - **Reflection** (R17a1): Schlick's Fresnel term (0.02 head-on, but at least 0.12, kLeastReflection: the game's lit
@@ -2171,7 +2186,7 @@ then, per pixel:
   under water; the swamp's priority 0.5 is the lower, so the shared vertices are the swamp's) the ground's `depth`
   runs from the swamp's depth to -1 across the triangle and crosses 0 under the water: a false shore line. No one
   scalar per vertex avoids that crossing (a sentinel above the swamps' range only moves it one triangle into the
-  river), so the ground carries a second value, `otherWater` (PageVertex, beside `depth` in one float2 attribute: the
+  river), so the ground carries a second value, `otherWater` (VertexRest, beside `depth` in one float2 attribute: the
   terrain pipeline has all 8 of its attributes): 1 where it lies under water that is not a swamp. The rim fades out
   over its first quarter (kMudOther), so it ends near the swamp's vertices, under the swamp's own near-opaque water;
   only triangles with both a swamp vertex and ground under other water change (every other ground vertex has 0). R17c4a,

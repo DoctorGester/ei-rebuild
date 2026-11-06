@@ -10,7 +10,8 @@ interface 140). Three read-only reviews traced the world objects, the terrain an
 ## First: measure the product, not the harness
 
 `EI_RENDER_VALIDATION` is on in every harness build (CMakeLists.txt:340). It adds work the shipped game never does: a
-full rebuild-and-compare of every kept terrain page every 16th frame (`BuildAgain`, about 0.45 ms a frame), `render::Check`
+full rebuild-and-compare of every kept terrain page every 16th frame (`BuildAgain`, about 0.45 ms a frame; deleted with
+the page pool by R37e4b), `render::Check`
 (3.9%), the reuse hashing and two to four `QueryPerformanceCounter` calls per mesh. Roughly 0.8-1.2 ms of the 9 ms is the
 harness's own. Every ticket below measures the release-equivalent cost (validation off) as well as the harness one.
 
@@ -22,7 +23,7 @@ harness's own. Every ticket below measures the release-equivalent cost (validati
 | CPU projection of every vertex of meshes wholly inside the view | `device_mesh.cpp` | Only `BoundsOfProjected` reads it, and only when a rectangle is asked; the in-view verdict needs it only for meshes crossing the view | 0.35-0.45 ms |
 | Sorting the four shadow lists, and dead shadow matrix pushes | `world_client_draw.cpp` | `DrawPartsShadow` no longer draws; its two calls don't depend on order | 0.2 ms |
 | Re-walking objects already drawn as casters outside the view | `world_client_shadow_casters.cpp` `HandOverOutsideCasters` | Their parts were handed over this frame already | 0.2 ms |
-| Terrain pages read again though unchanged (colours compared every frame, per-page lookups of per-sector facts) | `render_terrain.cpp` | Colours change only at Build and AnimateWaves, both signalled (R37e4, running) | 0.45-0.55 ms |
+| Terrain pages read again though unchanged (colours compared every frame, per-page lookups of per-sector facts) | `render_terrain.cpp` | Colours change only at Build and AnimateWaves, both signalled (R37e4 done; R37e4b: no per-frame page work at all) | 0.45-0.55 ms |
 | Frame-wide uniforms (shadow, point shadow) memcmp'd per draw; frame-wide textures bound per draw | `render_mesh.cpp` `DrawMeshBatch`, `gpu.cpp` | Same for the whole pass | 0.1-0.25 ms |
 | The occlusion's depth pass (1854 draws) | `render_occlusion.cpp` | The world pass already writes depth; use last frame's, reprojected | 0.19 ms CPU, 0.17 ms GPU; **visual change, the user's call** |
 
@@ -49,8 +50,10 @@ palm is its own draw in each of three passes. Palms of one morph already share o
   LRU stay per object on the CPU. **Order choice for the user**: grouping by part draws all trunks then all crowns,
   which can move a few pixels where blended leaves overlap; grouping by whole figure keeps today's order exactly.
 - **Caster passes through multi-draw indirect** (SDL_GPU has it): sun map 1894 to about 60 draws.
-- **Terrain**: sun map one draw per sector and occlusion split by texture though it binds none; both become one draw
-  (R37e4). The world pass's 108 ground draws can become 2 with a texture array; low CPU value, later.
+- **Terrain**: done (R37e4b): the zone's ground and water are two meshes kept on the GPU with the page textures in a
+  Texture2DArray; one draw each in the world pass, one ground draw in the occlusion's depth and one in the sun map. The
+  save's terrain hand-over 0.41-0.46 -> 0.12 ms in release terms (0.20 with the moved water's writes); the main thread
+  5.7-5.9 ms in release terms, 7.0 in the harness build (renderer.md section 13, item 2a).
 
 Expected end state: main thread about 4-5 ms in the save (half of today), about 400-700 draws, no parallelism.
 
@@ -58,7 +61,8 @@ Expected end state: main thread about 4-5 ms in the save (half of today), about 
 
 | Ticket | Scope | Golden change |
 |---|---|---|
-| R37e4 (running) | Terrain and water: skip unchanged pages, water fused loop, `lround`, terrain draws merged in the sun map and occlusion | none |
+| R37e4 (done) | Terrain and water: skip unchanged pages, water fused loop, `lround`, terrain draws merged in the sun map and occlusion | none |
+| R37e4b | The zone's terrain as two GPU meshes, page textures in an array, one draw per pass; the page pool and its checks deleted | none |
 | R37f1 | The deletions: `KeepScreen`, inside-view projection, shadow-list sorts, outside casters re-walk, heap churn | none |
 | R37f2 | Per-draw state once per batch: pipelines, samplers, frame-wide uniforms and textures; sort keys; `CollectVisible` cells; mesh cache handles | none |
 | R37f3 | Instancing: kept meshes by shared figure part, instanced world and caster draws, indirect caster passes | none if grouped by figure |
