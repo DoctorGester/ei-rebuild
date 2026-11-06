@@ -627,6 +627,36 @@ class SchedTest(unittest.TestCase):
         b = work_sched.submit(self.db, 'T1', self.root, f'{self.root}/b', ['q'], runs, None, env=env)
         self.assertEqual(work_sched.batch_env(self.batch(b)), env)
 
+    def test_prepare_tools_get_the_batch_environment(self):
+        """H65: a "# prepare:" tool runs with the batch's game variables and EI_BUILD_DIR=<its build>, not the
+        scheduler daemon's (a deleted batch folder in the daemon's EI_BUILD_DIR broke every later prepare)."""
+        scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
+        tools = os.path.join(self.tmp, 'tools')
+        os.makedirs(scenarios)
+        os.makedirs(tools)
+        open(os.path.join(scenarios, 'x.txt'), 'w').write('# prepare: envdump.py\nwaitmenu\n')
+        open(os.path.join(tools, 'envdump.py'), 'w').write(
+            'import json, os, sys\n'
+            'os.makedirs(sys.argv[1], exist_ok=True)\n'
+            'json.dump({k: v for k, v in os.environ.items() if k.startswith("EI_")}, open(sys.argv[1] + "/env.json", "w"))\n')
+        build = os.path.join(self.tmp, 'bld')
+        folder = build + '/runs/x-standalone'
+        run = {'scenario': 'x', 'install': 'standalone', 'hooks': 1, 'folder': folder}
+        row = {'worktree': self.tmp, 'build': build, 'env': json.dumps({'EI_EXAMPLE': '1'})}
+        daemon = {'EI_BUILD_DIR': 'daemon-gone', 'EI_PROFILE': 'daemon-own'}
+        with mock.patch.object(run_all, 'launch', lambda *a, **k: (0, '')), mock.patch.dict(os.environ, daemon):
+            work_sched.real_runner(row, run, 0, lambda n: None)
+            self.assertEqual({k: os.environ[k] for k in daemon}, daemon)       # the daemon's own, untouched
+        seen = json.load(open(folder + '/harness_saves/env.json'))
+        self.assertEqual(seen['EI_BUILD_DIR'], build)
+        self.assertEqual(seen['EI_EXAMPLE'], '1')
+        self.assertNotIn('EI_PROFILE', seen)
+
+    def test_daemon_environment_has_no_batch_variables(self):
+        got = work_sched.daemon_environment({'EI_BUILD_DIR': 'b', 'EI_PROFILE': '1', 'EI_GAME_VANILLA': 'v',
+                                             'EI_HARNESS_SLOTS': '4', 'PATH': 'p', 'WORK_DB': 'd'})
+        self.assertEqual(got, {'EI_HARNESS_SLOTS': '4', 'PATH': 'p', 'WORK_DB': 'd'})
+
     def test_clock_reaches_the_game(self):
         seen = []
         def fake_launch(scenario, out, data, build, env=None):

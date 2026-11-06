@@ -641,6 +641,14 @@ def scheduler_alive():
     return not f
 
 
+def daemon_environment(environ=None):
+    """The environment the scheduler daemon starts with: the caller's without its EI_* variables (a batch's game
+    settings, EI_BUILD_DIR and the rest are recorded with the batch and given to its runs; the daemon serves other
+    batches than the one that started it, H65), but the machine's EI_HARNESS_SLOTS."""
+    return {k: v for k, v in (os.environ if environ is None else environ).items()
+            if not k.startswith('EI_') or k == 'EI_HARNESS_SLOTS'}
+
+
 def ensure_scheduler():
     """Starts `work.py scheduler` in the background when none is alive: the main checkout's (it outlives
     worktrees), or this checkout's while main has no tools/work_sched.py yet."""
@@ -653,7 +661,7 @@ def ensure_scheduler():
     log = open(os.path.join(live_dir(), 'scheduler.log'), 'a')
     cmd = [sys.executable, os.path.join(tools, 'work.py'), 'scheduler']
     flags = 0x00000200 | 0x08000000      # CREATE_NEW_PROCESS_GROUP (no Ctrl+C from this console), CREATE_NO_WINDOW
-    kw = dict(cwd=os.path.dirname(tools), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, close_fds=True)
+    kw = dict(cwd=os.path.dirname(tools), env=daemon_environment(), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, close_fds=True)
     try:   # out of the caller's job object, so it outlives the shell that ran `work.py test`
         subprocess.Popen(cmd, creationflags=flags | 0x01000000, **kw)   # CREATE_BREAKAWAY_FROM_JOB
     except OSError:
