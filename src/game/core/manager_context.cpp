@@ -4,7 +4,7 @@
 
 #include "game/item.h"
 #include "game/item_manager.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <cstdint>
 

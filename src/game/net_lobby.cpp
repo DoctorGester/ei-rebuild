@@ -2,7 +2,7 @@
 // net_classes.h (ClientBase, ServerBase) for the fields. The packets (first byte): 3 ping (the session time),
 // 4 join (magic, id, rate, extra data), 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7
 // refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md.
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/data/chunk_archive.h"
 #include "game/core/core_refcount.h"
 #include "game/net_classes.h"

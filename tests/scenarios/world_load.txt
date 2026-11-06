@@ -1,4 +1,4 @@
-# World server zone loading, map objects and unit creation (src/game/world_zone.cpp). A new game
+# World server zone loading, map objects and unit creation (src/game/world/world_zone.cpp). A new game
 # loads zone1 (zone exits, the .mob objects through LoadMapObjects, ClearMapObjects on the way) and
 # autosaves into harness_saves\savea (SaveMapObjects). Then many units are created with
 # AddUnitToServer (one name twice: the old unit is removed first) and removed again, and the

@@ -6,7 +6,7 @@ window and input in `platform.md`.
 ## WinMain
 
 `main.cpp` runs `app::StartVideo` (a second instance's hand-over: a running game is brought forward and this one
-exits; then SDL's video and the renderer's device on its thread) and then `app::GameMain` (`app_main.cpp`), one list
+exits; then SDL's video and the renderer's device on its thread) and then `app::GameMain` (`app/main_loop.cpp`), one list
 in order: the original's static initialisers that do more than set values, the chunk archives' classes, the command
 line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr files), the settings (`ei_settings.ini`, `docs/settings.md`),
 the two worlds and the camera (placed at the options' start focus; field of view pi * 2 / 7), the free disk space (a
@@ -37,7 +37,7 @@ fraction, `UpdateClientSpeed`, `UpdateCamera`, `DrawFrame`. The places of the `n
 loading screen's `PumpMessages`) reaches the frame, the cursor, the client's lighting and the main menu's lightning
 only at the next pass.
 
-The harness's hook points (`src/game/main_loop.h`, `g_harnessHooks`, each called as `CallOr(hook, function,
+The harness's hook points (`src/game/app/harness_hooks.h`, `g_harnessHooks`, each called as `CallOr(hook, function,
 arguments...)`) sit at the loop's calls: the frame capture between the interface draw and the cursor blit, "freeze"
 (the camera's update), "speed" (the server and client updates), the frame step, and the loop's message peeks and
 clock reads named in `ei::mainloop::g_site`.
@@ -56,7 +56,7 @@ Ours leave the quit posted (the movie ends on it) and the main loop ends on it.
 of every value the settings file lacks (the original's own defaults function ran before the registry and is gone).
 What stays from the constructor: the "Network Settings" subkey, the CD labels, the font's character set, the keyboard
 layout, both lights' radius; the master server's name is empty (EI_Plugin's NewMaster stopped saving it). Settings
-are `ei_settings.ini` beside the exe, described by `src/game/settings_catalog.inc` (`docs/settings.md` is generated
+are `ei_settings.ini` beside the exe, described by `src/game/app/settings_catalog.inc` (`docs/settings.md` is generated
 from it by `tools/gen_settings_doc.py`, a build check).
 
 ## Small pieces

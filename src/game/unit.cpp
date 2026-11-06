@@ -6,9 +6,9 @@
 #include "lib/scales.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
-#include "game/logic_settings.h"
-#include "game/party.h"
-#include "game/player_messages.h"
+#include "game/app/logic_settings.h"
+#include "game/players/party.h"
+#include "game/players/player_messages.h"
 #include "game/spell.h"
 #include "game/unit_db.h"
 

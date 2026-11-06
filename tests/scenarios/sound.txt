@@ -1,4 +1,4 @@
-# Sound and music (src/game/sound_manager.cpp, sound_music.cpp). A new game enters zone1:
+# Sound and music (src/game/sound/sound_manager.cpp, sound_music.cpp). A new game enters zone1:
 # CMusicSystem::SetZoneMode picks the allod's theme, UpdateMusic and CSoundManager::Tick run every
 # world frame, CCamera::Update hands the listener to SetListener, and loading sets the option
 # volumes. Then:

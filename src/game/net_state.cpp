@@ -6,10 +6,10 @@
 #include "game/ai_map.h"
 #include "game/ai_motion.h"
 #include "game/map_object.h"
-#include "game/player_client.h"
-#include "game/player_messages.h"
+#include "game/players/player_client.h"
+#include "game/players/player_messages.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <array>
 #include <cstdint>

@@ -147,7 +147,7 @@ reads the same.
   `Deactivate`, `Wheel` zooms. Keys map through the scan code to characters: 5-10 set a direction, 13-16 restore camera
   views 0-3 (saved with Ctrl or Alt held); while a direction is held the camera pans (with a modifier turns and tilts) at
   the option speeds.
-- Console window (`ui_console_window.cpp`): `PaintInput`, `PaintLines`, `OnKeyDown`, `OnChar` (Rebirth's ImproveConsole behind
+- Console window (`console/console_window.cpp`): `PaintInput`, `PaintLines`, `OnKeyDown`, `OnChar` (Rebirth's ImproveConsole behind
   its flag); harness key names `grave`, `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`, `enterchar` (Enter plus its
   character, which the console needs); scenario `console.txt`. **Size** (`console_window.cpp`, P11): every size the window draws
   with (the 9-point Courier New, the 15-pixel line pitch, the 8-pixel padding, the 31-pixel input strip, the caret's 2

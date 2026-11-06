@@ -7,7 +7,7 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/sector_map.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <algorithm>
 #include <cstdint>

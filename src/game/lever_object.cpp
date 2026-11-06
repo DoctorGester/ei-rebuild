@@ -2,12 +2,12 @@
 // and the small slots. SetState and UseSpots are in unit_lever.cpp (docs/notes/units.md, "Levers").
 #include "game/core/core_maths.h"
 #include "game/core/core_streams.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/lever.h"
 #include "game/map_object_figures.h"
 #include "game/net_delta.h"
-#include "game/sound.h"
-#include "game/world.h"
+#include "game/sound/sound.h"
+#include "game/world/world.h"
 
 
 #include <initializer_list>

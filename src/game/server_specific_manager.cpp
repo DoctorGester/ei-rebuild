@@ -4,8 +4,8 @@
 #include "game/combat.h"
 #include "game/link_figure.h"
 #include "game/map_object_shadow.h"
-#include "game/player_client.h"
-#include "game/player_messages.h"
+#include "game/players/player_client.h"
+#include "game/players/player_messages.h"
 #include "game/torch_client_spec.h"
 #include "game/unit.h"   // MapObjectServer
 #include "game/unit_client_models.h"

@@ -198,7 +198,7 @@ not carried.
   EF BE AD DE, the number of bindings (a byte) and per binding the player's name as (strlen + 1 as a byte, the name, 0);
   `MpConnectScreen::MasterRequest` tries the parsed master with a nonblocking TCP connect (up to 1 s) and falls back to
   the looked-up address. Checked offline: `net_second_master` with a listener standing in for both masters.
-- **Fixes** (always on; `pluginfixes`, src/game/plugin_fixes.h): a face's sex is "f" when the model's fifth character is 'f', else
+- **Fixes** (always on; `pluginfixes`, src/game/players/faces.h): a face's sex is "f" when the model's fifth character is 'f', else
   "m" (`ModelIsFemale`; the multiplayer hero screen's figure loop: characters 4 and 5 "fe", `ModelNameIsFemale`); an
   unknown unit prototype falls back to the head of the first bucket of the prototype map whose name has none of "NPC",
   "Human", "Orc", "Undead", "Male", "Female" in it (`FallbackPrototype`); item damage lists always print "%.1f"; every
@@ -224,7 +224,7 @@ other threads; Rebirth changed nothing there. The rebuild uses SSE2 floats throu
 ## Settings
 
 No patch has a flag; `src/lib/rebirth.h` holds the one value that stays, the second master server. The start-up sets it
-(`src/game/rebirth_profile.cpp`, from main.cpp before the game starts): none by default; the settings file's `[network]`
+(`src/game/app/rebirth_profile.cpp`, from main.cpp before the game starts): none by default; the settings file's `[network]`
 `SecondMaster`; a scenario's `plugin` line. Every line of `[patches]` (the flags of older builds, `NPlayers` and `Pause`,
 DisableExitOnCrashReport the last) is ignored and named in one log line ("Rebirth: [patches] ... ignored: Rebirth's
 patches are always on, the players and the pause are chosen on the create-server screen, a fatal error always ends the

@@ -4,7 +4,7 @@
 
 #include "game/core/base_manager.h"
 #include "game/core/core_refcount.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/crt.h"
 

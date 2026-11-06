@@ -7,8 +7,8 @@
 
 #include "lib/crt.h"
 #include <string>
-#include "game/game_singletons.h"
-#include "game/world.h"
+#include "game/app/singletons.h"
+#include "game/world/world.h"
 #include "lib/str.h"
 
 

@@ -3,12 +3,12 @@
 #include "game/camera.h"
 
 #include "game/core/core_streams.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object_figures.h"
 #include "game/mods/mod_folders.h"
-#include "game/options.h"
+#include "game/app/options.h"
 #include "game/saves/save_versions.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
@@ -54,7 +54,7 @@ Camera::~Camera() {
 }
 
 // The camera: constructed by the C++ runtime and destroyed after the game's exit functions (the worlds' destructors
-// do not touch it: EmptyWorlds, app_main.cpp, has emptied them by then).
+// do not touch it: EmptyWorlds, app/main_loop.cpp, has emptied them by then).
 Camera g_camera;
 
 const char* Camera::ClassName() { return "CCamera"; }

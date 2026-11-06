@@ -4,7 +4,7 @@
 #include "game/map_object_figures.h"
 #include "game/unit.h"
 #include "game/unit_client_models.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

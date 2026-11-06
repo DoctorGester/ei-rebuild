@@ -8,7 +8,7 @@
 // kUiTextColour, the description text wrapped last.
 
 #include "game/core/core_refcount.h"
-#include "game/party.h"
+#include "game/players/party.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"
 

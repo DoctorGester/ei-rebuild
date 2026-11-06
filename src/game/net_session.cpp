@@ -1,11 +1,11 @@
 // The network pump. See net_session.h.
 #include "game/net_session.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/core/core_refcount.h"
 #include "game/core/core_streams.h"
-#include "game/game_flow.h"
-#include "game/game_singletons.h"
+#include "game/app/game_flow.h"
+#include "game/app/singletons.h"
 #include "game/net_classes.h"
 #include "game/core/coder.h"
 #include "game/net_connection.h"

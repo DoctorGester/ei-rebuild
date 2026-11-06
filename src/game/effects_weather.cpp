@@ -2,14 +2,14 @@
 #include "game/core/core_maths.h"
 #include "game/effects.h"
 #include "game/figure_mesh.h"   // VertexPacket
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/model.h"   // SceneRenderer
 #include "game/pipeline.h"   // TransformPipeline
 #include "game/texture.h"
 #include "game/core/random.h"
-#include "game/sound.h"
+#include "game/sound/sound.h"
 #include "game/weather_field.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

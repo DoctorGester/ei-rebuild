@@ -11,8 +11,8 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/platform/path_layers.h`, `.cpp` | the layered path map (`PathLayers`, `PathLayer`), `FullGamePath`, `PathBelow`; the mod (`platform::SwitchMod`, `ModFolder`, `CurrentMod`) |
 | `src/platform/seams.cpp` | the game's `SystemPath` / `SystemSearches`: the mod's map, the path itself without a mod |
 | `src/platform/files.cpp` | `FolderEntries`: each layer's search (the backends' `SearchFolder`) merged |
-| `src/main.cpp` | reads `[game] Mod` after EI_Plugin's values, calls `app::UseMod` (app_main.cpp: the folder in full, `platform::SwitchMod`, the log) |
-| `src/game/app_main.cpp` | `StartGame` / `StopGame` (the game's half of the start and the stop), `app::RequestModSwitch` and the switch (`TakeModSwitch`) |
+| `src/main.cpp` | reads `[game] Mod` after EI_Plugin's values, calls `app::UseMod` (app/main_loop.cpp: the folder in full, `platform::SwitchMod`, the log) |
+| `src/game/app/main_loop.cpp` | `StartGame` / `StopGame` (the game's half of the start and the stop), `app::RequestModSwitch` and the switch (`TakeModSwitch`) |
 | `src/game/mods/mod_list.h`, `.cpp` | the main menu's list of mods: `Scan` (starter\Mods\*\config.reg), `IndexOf`, `SettingOf` |
 | `src/game/ui_main_menu.cpp` | `MainMenu::AddModList` (the list's drop-down control) and the pick's `RequestModSwitch` (in `Update`) |
 | `src/game/mods/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"), whenever a mod is played: `ModPath()` is the Mod folder, `Active()` whether there is one; `Reset` at a switch |
@@ -230,7 +230,7 @@ The renderer, the window, the audio device (a new `SoundManager` closes and open
 
 A switch draws the game's own loading picture, the progress movie a level's load draws (`ShowLoadingMovie`, progres.bik
 from the mod's `Movies\` with Rebirth's MoviesPatch), instead of the menu's last frame standing still: `LoadingStep`
-(app_main.cpp) before the stop (step 0, while the worlds still draw), then in `StartGame(..., showLoading)` after the
+(app/main_loop.cpp) before the stop (step 0, while the worlds still draw), then in `StartGame(..., showLoading)` after the
 sound is open (1), the databases (2), the map list (3), the world's graphics (4) and the interface (5); the first
 zone's own load steps (8 to 11) follow. Nothing can be drawn between the stop and the new worlds (the draw reads them),
 so that part (the stop, `Reset`, the files of the new mod's settings) shows the last picture. Each step opens the movie,
@@ -271,7 +271,7 @@ back. Reload: made again from the new mod's files. The list to check when a swit
 | Renderer (src/render: device, pipelines, frame, caches of textures, meshes, terrain pages, fonts, shadows, water, weather) | 264 | keep | caches key on game objects and forget them: `ForgetHolder` when a texture holder is freed, meshes and terrain pages checked for staleness and dropped after 600 frames unused |
 | The game's draw glue (renderer_scene/sprites/strip/lines, device_draw, figure_part_draw, world_client_draw/lights/shadow_casters/view, effects_weather, particle_manager, lightning's sprites, drawn_motion, camera, camera_trace) | ~50 | keep | per-frame scratch and the drawn view; the scene renderer's sun and the device's bindings let go by `StopGame` |
 | Audio device (audio.cpp) | 15 | keep | a new `SoundManager` closes and opens the output again |
-| App and loop (app_main, app_frame, main_loop.h, bink_video, `g_camera`, screen_layout, ui_cursor.h sizes) | ~27 | keep | the camera `Init` again and attached to the new client world; the loop's clock reset |
+| App and loop (app_main, app_frame, app/harness_hooks.h, bink_video, `g_camera`, screen_layout, ui_cursor.h sizes) | ~27 | keep | the camera `Init` again and attached to the new client world; the loop's clock reset |
 | Settings, options, EI_Plugin's values, console, crt, random generators | ~19 | keep | `g_random` / `g_clientRandom` unseeded by `StartGame`, seeded again by `World::Create` |
 | `g_logicSettings` (config\ai.reg) | 1 | reload | `Load` starts from the defaults |
 | Databases (spell_db, item_db, quest_database, ground_print, acks_db, unit_db, lever_table) and `g_mapDatabase` | 9 | reload | `LoadDatabases` empties each; `LoadAll` empties the map list |

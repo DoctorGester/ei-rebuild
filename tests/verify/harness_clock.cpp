@@ -2,7 +2,7 @@
 #include "harness_clock.h"
 
 #include "../../src/platform/log.h"
-#include "game/main_loop.h"
+#include "game/app/harness_hooks.h"
 #include "image/image_side.h"
 
 #include <algorithm>
@@ -32,7 +32,7 @@ void FindMainThreadOnce() {
 
 // ---- Virtual clock -------------------------------------------------------------------------------
 
-// As many as the main loop runs in one pass (kLongestPassTicks, app_main.cpp): fewer frames to draw.
+// As many as the main loop runs in one pass (kLongestPassTicks, app/main_loop.cpp): fewer frames to draw.
 constexpr unsigned kUpdatesPerFrame = 5;
 unsigned g_frameMs = 0;   // "frametime": the advance at each frame instead (0: kUpdatesPerFrame updates)
 
@@ -42,7 +42,7 @@ std::atomic<std::uint32_t> g_now{1000000};
 const unsigned* g_tickLength = nullptr;
 bool g_fixedDate = false;
 
-// Whether a timeGetTime call is the main loop's frame time: the rewritten WinMain (src/game/app_main.cpp) names
+// Whether a timeGetTime call is the main loop's frame time: the rewritten WinMain (src/game/app/main_loop.cpp) names
 // its site.
 bool IsMainLoopTime() { return ei::mainloop::g_site == ei::mainloop::Site::FrameTime && OnMainThread(); }
 

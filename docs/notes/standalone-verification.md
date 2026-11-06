@@ -170,7 +170,7 @@ always does the close instead of whichever real message came first.
 - Saves write no padding or leftover bytes (a sound's name tail, the stock's codes, archive keys numbered by first save).
 - A heard claim's point starts at 0,0,0.
 - Script groups and object sets are ordered by object id (the script engine saves groups by id, and ids are unique while
-  referenced; ties cannot happen); draw lists by texture / figure name, then depth (src/game/address_order.h).
+  referenced; ties cannot happen); draw lists by texture / figure name, then depth (src/game/world/object_order.h).
 - A client's player list is refreshed by its binding too (an update's objects come in the server's order; players before
   the binding were listed as nobody: the base screen's faces; the `checkplayers` step).
 - The shadow's turn is undone exactly (no ulp drift per re-render).

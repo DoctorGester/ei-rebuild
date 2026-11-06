@@ -4,14 +4,14 @@
 
 #include "game/combat.h"
 #include "game/data/database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
-#include "game/logic_settings.h"
+#include "game/app/logic_settings.h"
 #include "game/net_delta.h"
-#include "game/options.h"
-#include "game/sound.h"
+#include "game/app/options.h"
+#include "game/sound/sound.h"
 #include "game/unit.h"
 #include "game/unit_create.h"
 #include "game/unit_db.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"

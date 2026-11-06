@@ -5,10 +5,10 @@
 
 #include "game/core/base_manager.h"
 #include "game/core/random.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/world_effect.h"
 
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 
 #include "lib/str.h"
 

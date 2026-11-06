@@ -5,7 +5,7 @@
 
 #include "game/core/core_streams.h"
 #include "game/core/coder.h"
-#include "game/object.h"
+#include "game/world/hoover.h"
 #include "game/saves/save_versions.h"
 #include "lib/bytes.h"
 

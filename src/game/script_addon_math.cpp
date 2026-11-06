@@ -2,10 +2,10 @@
 #include "game/script_addon_handlers.h"
 
 #include "game/core/asset_text.h"
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/net_classes.h"
 #include "game/core/random.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"

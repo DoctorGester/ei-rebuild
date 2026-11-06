@@ -2,7 +2,7 @@
 
 // The battle camera's input (ui_camera_input.cpp, ui_camera_input.cpp).
 
-#include "game/options.h"
+#include "game/app/options.h"
 #include "game/ui.h"
 #include "lib/rect.h"
 

@@ -2,7 +2,7 @@
 // and the painting of the lines; and its showing (Rebirth-patched: its WideScreen is
 // reproduced behind the flag). See ui.h and docs/notes/ui.md, section 2.
 #include "game/ui.h"
-#include "game/options.h"
+#include "game/app/options.h"
 #include "game/screen_layout.h"
 
 #include "lib/crt.h"
@@ -10,7 +10,7 @@
 #include "lib/rect.h"
 #include <string>
 #include "lib/vecmath.h"
-#include "game/key_bindings.h"
+#include "game/app/key_bindings.h"
 
 #include <cstdint>
 #include <cstring>

@@ -5,7 +5,7 @@
 
 #include "game/core/core_refcount.h"
 #include "game/core/engine_object.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/item_db.h"
 #include "lib/vecmath.h"
 #include "game/data/resource_manager.h"

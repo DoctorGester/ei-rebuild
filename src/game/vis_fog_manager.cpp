@@ -6,7 +6,7 @@
 #include "game/effects.h"
 #include "game/model.h"     // SceneRenderer
 #include "game/texture.h"
-#include "game/world.h"     // ClientArrayManager
+#include "game/world/world.h"     // ClientArrayManager
 
 #include <cstddef>
 #include <cstdint>

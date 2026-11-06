@@ -6,12 +6,12 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
-#include "game/object.h"
+#include "game/world/hoover.h"
 #include "game/light.h"
 #include "game/terrain.h"
 #include "game/model.h"
 #include "game/pipeline.h"
-#include "game/world.h"                // WorldClient
+#include "game/world/world.h"                // WorldClient
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -22,7 +22,7 @@
 
 #include <bit>
 #include <cstring>
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 
 namespace {
 constexpr float kLightMargin = 10.0f;

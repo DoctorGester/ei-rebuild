@@ -3,7 +3,7 @@
 
 #include "game/core/engine_object.h"   // EngineObject
 #include "game/figure_mesh.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object_animation.h"
 #include "game/map_object_figures.h"
 #include "game/mods/mod_folders.h"

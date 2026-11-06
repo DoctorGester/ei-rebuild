@@ -7,7 +7,7 @@
 #include "game/core/core_refcount.h"
 #include "game/core/core_streams.h"
 #include "game/net_connection.h"
-#include "game/player_source.h"
+#include "game/players/player_source.h"
 
 #include "platform/platform.h"
 #include <cstdint>

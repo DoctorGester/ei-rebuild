@@ -437,7 +437,7 @@ bytes on zone1.
 ### Resolution changes
 
 The rendering resolution is the device's `screen` (`TextureDevice::screen`): the settings' `VideoResolution` at the start.
-It changes while the game runs through one call, `app::SetResolution(width, height)` (app_resolution.cpp), between
+It changes while the game runs through one call, `app::SetResolution(width, height)` (app/app.cpp), between
 frames; no device is made again and the zone goes on. It sets, in order:
 - the device's screen and the pipeline's viewport and axis swap stacks (`SceneRenderer::ResizeScreen`: stacks 8 and 7
   and their products 0, 1, 2, 5 filled again; the projection, stack 6, is kept, so the camera's near / far / field of
@@ -1453,7 +1453,7 @@ the four hues on 8%..25% of the frame.
 
 ## 14. The drawn view (smooth camera and object motion, animation blends)
 
-The world ticks every 55 ms. The main loop (`RunPass`, src/game/app_main.cpp) moves the camera once a frame by the
+The world ticks every 55 ms. The main loop (`RunPass`, src/game/app/main_loop.cpp) moves the camera once a frame by the
 frame's real time (cut into whole ticks), and `RunWorlds` moves it again by a whole tick after each client tick, so half
 of every pan, turn and zoom arrives in jumps of 55 ms of motion about 18 times a second (the original's behaviour, jerky on
 a 120 Hz screen). The camera (`Camera`: its timing, tracking, height lag, the sound listener) stays as the game has it;
@@ -2184,7 +2184,7 @@ the quad's mean (the neighbours' results moved to the pixel by their gradients, 
 The narrowest filter is the larger of soft.z and half the pixel's footprint. The search reads the small cell image, not
 the map: the map's texels far apart and turned per pixel cost far more.
 
-### game/world_client_shadow_casters.cpp: casters outside the view
+### game/world/world_client_shadow_casters.cpp: casters outside the view
 
 The casters of the shadow map that the game does not draw this frame (section 13, item 10). After the world's object
 draws every object standing where such a caster can stand (render::ShadowCasterArea, through the object grid's sectors)

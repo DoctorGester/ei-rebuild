@@ -3,12 +3,12 @@
 #include "game/world_effect.h"
 #include "game/world_effect_internal.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/core/random.h"
-#include "game/sound.h"
+#include "game/sound/sound.h"
 
-#include "game/game_singletons.h"
-#include "game/world.h"
+#include "game/app/singletons.h"
+#include "game/world/world.h"
 #include "lib/str.h"
 
 #include <cstring>

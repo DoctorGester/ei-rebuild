@@ -4,10 +4,10 @@
 // reproduced for every window (screen_layout.h): the weapon bar and the action column at the screen's left edge, the
 // quick items and the spell column at its right (each window's origin, UiWindow::originX). See docs/notes/ui.md, sections 6 ("Battle screen") and 7.
 #include "game/ui_hud.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/item.h"
-#include "game/player_client.h"
-#include "game/player_messages.h"
+#include "game/players/player_client.h"
+#include "game/players/player_messages.h"
 #include "game/screen_layout.h"
 #include "game/spell.h"
 #include "game/data/text_manager.h"

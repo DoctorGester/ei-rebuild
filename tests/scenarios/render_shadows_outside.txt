@@ -1,6 +1,6 @@
 # Shadows of objects outside the view (R20; docs/notes/renderer.md section 13 item 10): the world's draw
 # hands the shadow map the objects the game does not draw whose bounds, seen from the sun, are in the
-# map's area and in front of the visible ground's far side (src/game/world_client_shadow_casters.cpp).
+# map's area and in front of the visible ground's far side (src/game/world/world_client_shadow_casters.cpp).
 # At frozen moments the frame with them ("shadowcasters all", the default) is captured, and:
 # - with every caster taken from that walk and none from the game's draws ("walked"): the frame
 #   matches, so the walk places, cuts out and selects the meshes as the game's draws do;

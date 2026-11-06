@@ -2,12 +2,12 @@
 // EffectAmbientSound. See world_effect.h for the class map and docs/notes/effects.md.
 #include "game/world_effect.h"
 
-#include "game/console.h"
-#include "game/game_singletons.h"
+#include "game/console/console.h"
+#include "game/app/singletons.h"
 #include "game/net_delta.h"
 #include "game/net_link.h"
 #include "game/saves/save_versions.h"
-#include "game/sound.h"
+#include "game/sound/sound.h"
 #include "game/world_effect_internal.h"
 
 #include <cstdint>

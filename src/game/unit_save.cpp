@@ -5,10 +5,10 @@
 
 #include "game/ai_motion.h"
 #include "game/core/core_streams.h"
-#include "game/player_messages.h"
+#include "game/players/player_messages.h"
 #include "game/unit_create.h"
 #include "game/unit_db.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/crt.h"
 #include "game/saves/save_versions.h"

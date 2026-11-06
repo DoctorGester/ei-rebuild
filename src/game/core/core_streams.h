@@ -205,7 +205,7 @@ public:
     platform::File file;
 };
 
-// The saved game's stream (world_game.cpp).
+// The saved game's stream (app/game_flow.cpp).
 extern MemoryStream g_saveStream;
 
 // The harness's view of the memory streams' writes (verify builds; the save trace): the stream, the size and

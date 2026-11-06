@@ -12,7 +12,7 @@
 #include "game/unit.h"
 #include "game/unit_ai.h"
 #include "game/unit_db.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/world_effect.h"
 
 #include "lib/float_select.h"

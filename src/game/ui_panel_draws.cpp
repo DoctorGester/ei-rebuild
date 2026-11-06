@@ -8,13 +8,13 @@
 #include "game/ui_item_info.h"
 #include "game/item.h"
 #include "game/item_db.h"
-#include "game/party.h"
+#include "game/players/party.h"
 #include "game/unit.h"
 
 #include <cstdint>
 #include <string>
 #include "render/render.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"
 #include "lib/maths.h"

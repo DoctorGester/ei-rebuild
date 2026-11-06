@@ -1,18 +1,18 @@
 // A network client's player list on the base screen (ChatWindow). See
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/data/text_manager.h"
 #include "game/net_classes.h"
 #include "game/net_messages.h"
-#include "game/plugin_fixes.h"
+#include "game/players/faces.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"
 #include "game/ui_briefing.h"
 #include "game/ui_cursor.h"
 #include "game/ui_screens.h"
 #include "game/unit_db.h"
-#include "game/player_client.h"
-#include "game/world.h"
+#include "game/players/player_client.h"
+#include "game/world/world.h"
 
 #include "lib/vecmath.h"
 

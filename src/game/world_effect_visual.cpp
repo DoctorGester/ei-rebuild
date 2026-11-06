@@ -3,7 +3,7 @@
 
 #include "game/camera.h"
 #include "game/effects.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/light.h"
 #include "game/lightning.h"
 #include "game/net_delta.h"
@@ -13,7 +13,7 @@
 #include "game/spell.h"
 #include "game/terrain.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/world_effect_internal.h"
 
 #include "lib/float_select.h"

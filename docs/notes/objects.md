@@ -1,7 +1,7 @@
 # World objects, diplomacy, lightning, map database and players
 
 Code: `object*.cpp`, `object_diplomacy.*`, `object_tables.*`, `lightning*.cpp`, `map_database.*`, `map_spec*.cpp`,
-`unit_record.*`, `hoover_loot.cpp`, `player*.cpp`. Scenarios: `objects_more` (lightning bolts, then the lightning
+`unit_record.*`, `world/world_loot.cpp`, `player*.cpp`. Scenarios: `objects_more` (lightning bolts, then the lightning
 spell on a wolf); every scenario that loads a zone reaches the map database, unit records and the player messages.
 The party is in `items_spells.md`, options and tables in `app.md`.
 
@@ -35,7 +35,7 @@ per call at 100 but leaves the key time behind by the rest.
 
 ## Map database
 
-`MapDatabase` (object_tables.h): allods, maps and exits from map.txt, then map-LMP.txt, read line by line through the
+`MapDatabase` (map/map_database.h): allods, maps and exits from map.txt, then map-LMP.txt, read line by line through the
 text manager and split into words. A directive word sets the current record:
 
     #allod <name>, then 5 lines with one word each (the allod's other names)

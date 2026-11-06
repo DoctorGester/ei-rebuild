@@ -7,7 +7,7 @@
 #include "game/figure_mesh.h"
 #include "render/render.h"
 #include "render/render_checks.h"
-#include "game/settings.h"
+#include "game/app/settings.h"
 
 #include <cstdint>
 

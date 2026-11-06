@@ -3,15 +3,15 @@
 #include "game/core/core_refcount.h"
 
 #include "game/core/core_streams.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/item.h"
 #include "game/item_manager.h"
 #include "game/net_messages.h"
-#include "game/party.h"
-#include "game/player_messages.h"
+#include "game/players/party.h"
+#include "game/players/player_messages.h"
 #include "game/spell.h"
 #include "game/ui.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/crt.h"
 
 #include <bit>

@@ -5,11 +5,11 @@
 
 #include "game/data/text_manager.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include <string>
 #include "lib/str.h"
-#include "game/game_singletons.h"
-#include "game/world.h"
+#include "game/app/singletons.h"
+#include "game/world/world.h"
 
 namespace {
 

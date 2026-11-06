@@ -5,12 +5,12 @@
 
 #include "game/ai_map.h"
 #include "game/combat.h"
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/map_object.h"
 #include "game/light.h"
 #include "game/spell.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/world_effect.h"
 
 #include "lib/crt.h"

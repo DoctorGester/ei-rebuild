@@ -8,7 +8,7 @@
 #include "lib/vecmath.h"
 #include "game/unit.h"
 #include "game/unit_db.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/bytes.h"
 #include "lib/float_select.h"

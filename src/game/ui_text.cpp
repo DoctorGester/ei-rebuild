@@ -2,7 +2,7 @@
 #include "game/ui.h"
 
 #include "game/core/asset_text.h"
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/screen_layout.h"
 #include "platform/log.h"
 #include "lib/rect.h"

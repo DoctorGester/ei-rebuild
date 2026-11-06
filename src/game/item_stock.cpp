@@ -5,7 +5,7 @@
 #include "game/item.h"
 #include "game/item_db.h"
 #include "game/item_manager.h"
-#include "game/party.h"
+#include "game/players/party.h"
 #include "game/core/random.h"
 #include "game/spell.h"
 

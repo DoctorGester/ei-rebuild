@@ -4,7 +4,7 @@
 #include "game/ai_map.h"
 #include "game/core/core_maths.h"
 #include "game/item_db.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 
 #include <bit>

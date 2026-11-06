@@ -1,13 +1,13 @@
 // EffectTornado: a tornado crossing the map in a straight line, hurting the units it passes.
 // See world_effect.h and docs/notes/effects.md ("Tornado").
 #include "game/effects.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object.h"
 #include "game/core/random.h"
 #include "game/sector_map.h"
-#include "game/sound.h"
+#include "game/sound/sound.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/world_effect.h"
 #include "game/world_effect_internal.h"
 

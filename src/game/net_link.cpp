@@ -5,7 +5,7 @@
 #include "game/core/core_streams.h"
 #include "game/net_connection.h"
 #include "game/net_messages.h"
-#include "game/world.h"   // WorldHandle (CreatePair)
+#include "game/world/world.h"   // WorldHandle (CreatePair)
 
 #include "lib/bytes.h"
 #include "platform/platform.h"

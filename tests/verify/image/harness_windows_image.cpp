@@ -1,7 +1,7 @@
 // The interface windows in the image by name (image_side.h, harness_windows.h).
 #include "image_side.h"
 
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/ui.h"
 #include "game/ui_briefing.h"
 #include "game/ui_camp.h"

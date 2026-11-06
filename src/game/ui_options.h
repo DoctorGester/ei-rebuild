@@ -6,7 +6,7 @@
 #include "game/ui_drop_list.h"
 #include "game/ui_scrollbar.h"
 #include "game/ui_spin.h"
-#include "game/key_bindings.h"
+#include "game/app/key_bindings.h"
 
 #include "lib/enum_array.h"
 

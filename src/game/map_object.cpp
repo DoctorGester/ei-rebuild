@@ -9,7 +9,7 @@
 #include "game/torch.h"
 #include "game/unit.h"     // MapObjectServer
 #include "game/unit_create.h"
-#include "game/world.h"    // World
+#include "game/world/world.h"    // World
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"

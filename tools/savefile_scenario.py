@@ -1,4 +1,4 @@
-"""scenario.sav decoded (tools/savefile.py): GameFlow::SaveGame (0057B3B0, world_game.cpp) writes, into one memory
+"""scenario.sav decoded (tools/savefile.py): GameFlow::SaveGame (0057B3B0, app/game_flow.cpp) writes, into one memory
 stream,
   PartyManager::Save (004A8560, party_manager.cpp)   the party manager as a chunk archive, as a sized block
   CInterface3D::SaveState (005F85C0)                  the interface's state

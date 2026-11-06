@@ -2,11 +2,11 @@
 // the clock's hands and arcs, the movement mode and flag button, and the top panel's pages, picked-up items and money
 // lines (the message log's frame). See docs/notes/ui.md, section 7 ("Battle HUD corner panels").
 #include "game/ui_hud.h"
-#include "game/app.h"
-#include "game/game_singletons.h"
+#include "game/app/app.h"
+#include "game/app/singletons.h"
 #include "game/item.h"
 #include "game/map_object.h"
-#include "game/player_client.h"
+#include "game/players/player_client.h"
 #include "game/screen_layout.h"
 #include "game/data/text_manager.h"
 #include "game/ui.h"
@@ -16,7 +16,7 @@
 #include "game/ui_objectives.h"
 #include "game/ui_scroll_text.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/maths.h"

@@ -4,7 +4,7 @@
 
 #include "game/ai_map.h"
 #include "game/ai_motion.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/item_db.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
@@ -12,7 +12,7 @@
 #include "game/unit.h"
 #include "game/unit_create.h"
 #include "game/unit_db.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/vecmath.h"

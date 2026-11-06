@@ -5,12 +5,12 @@
 
 #include "game/camera.h"
 #include "lib/vecmath.h"
-#include "game/player_client.h"
+#include "game/players/player_client.h"
 #include "game/ui_cursor.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <cstdint>
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "lib/containers.h"
 #include "platform/platform.h"
 

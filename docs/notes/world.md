@@ -1,7 +1,7 @@
 # World server, world client and game flow
 
 Files: `world.h` (layouts), `game_flow.h`, `saved_parties.h`, `save_file.h`, `frame_lists.h`, `world_*.cpp` (server, client, tick, zone / map, save, sync, units, game flow in
-`world_game.cpp`, quests, party, briefing, guard, weather, loot, spells), `figure_mesh*.cpp`, `party_manager.cpp`,
+`app/game_flow.cpp`, quests, party, briefing, guard, weather, loot, spells), `figure_mesh*.cpp`, `party_manager.cpp`,
 `class_templates.cpp`. Scenarios: `world`, `world_client`, `world_load` (new game, eight `AddUnitToServer` wolves, one name
 added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `party_records`, `sandbox_*`.
 
@@ -11,7 +11,7 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
   units), IsNight (time of day before 6 or from 22 h), the ground and surface heights (the server from its coarse grid,
   the client from the terrain; slots 29 / 30 combine platforms with them), `worldHandle`, the update count and
   countdowns. Virtual slots are named in world.h (map_objects.md has the low-confidence ones).
-- Globals are declared in game_singletons.h (the game server and multiplayer client session, the game clock,
+- Globals are declared in app/singletons.h (the game server and multiplayer client session, the game clock,
   the server tick, the game flow, the item and effect managers, the briefing texts).
 - `Player::dirty` (`PlayerDirty`): weather-like settings, time, a 0..1 value, countdowns; the named float variables
   ("gtime" ...); units; the party.
@@ -56,7 +56,7 @@ always); `UpdateUnits`. `AddToUpdateMap` is the map insertion of `WakeUnitsAroun
 **Per-player sync** (`SyncPlayer`): zone (`SendZone`), weather, time, wind, countdowns when dirty; then the map objects
 the player should see (camera range, own units, named objects, the units its units can hear: max(perception * factor,
 minimum) * k + c via the sector map) and the timed objects whose reach covers the camera, compared with what it was sent.
-Object sets (`world_object_sets.cpp`) are sorted by id (address_order.h); `DiffObjectSets` gives new objects a reference
+Object sets (`world_object_sets.cpp`) are sorted by id (world/object_order.h); `DiffObjectSets` gives new objects a reference
 and releases gone ones (added / kept / removed).
 
 **The view range** (`world_sync.cpp`): 100 units in the ground plane around the player's `lastPosition`, the camera

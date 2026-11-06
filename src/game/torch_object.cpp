@@ -4,15 +4,15 @@
 
 #include "game/core/core_maths.h"
 #include "game/effects.h"   // ParticleSource, ParticleManager
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object.h"   // MapObject::position
 #include "game/net_delta.h"
-#include "game/sound.h"        // SoundManager
+#include "game/sound/sound.h"        // SoundManager
 #include "game/light.h"
 #include "game/terrain.h"
 #include "game/torch.h"
 #include "game/torch_client_spec.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <bit>
 #include <cstdint>

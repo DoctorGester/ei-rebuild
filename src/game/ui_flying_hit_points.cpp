@@ -3,9 +3,9 @@
 
 #include <algorithm>
 
-#include "game/game_singletons.h"
-#include "game/options.h"
-#include "game/world.h"
+#include "game/app/singletons.h"
+#include "game/app/options.h"
+#include "game/world/world.h"
 
 #include "game/clip.h"
 #include "game/core/core_maths.h"

@@ -4,7 +4,7 @@
 #include "game/effects.h"   // ParticleSource
 #include "lib/crt.h"
 #include "game/map_object.h"
-#include "game/player_messages.h"
+#include "game/players/player_messages.h"
 #include "game/texture.h"
 #include "game/unit.h"
 #include "game/unit_client_models.h"

@@ -11,7 +11,7 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <cstdint>
 #include <string>

@@ -12,7 +12,7 @@
 #include "game/unit_client_models.h"
 #include "game/unit_db.h"
 #include "game/unit_looks.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

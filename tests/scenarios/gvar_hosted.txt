@@ -1,4 +1,4 @@
-# Rebirth's PersistentGlobalVars (src/game/persistent_globals.cpp, H43c): the "gvar." variables survive where the game
+# Rebirth's PersistentGlobalVars (src/game/app/persistent_globals.cpp, H43c): the "gvar." variables survive where the game
 # empties a variable table, and are set again in the order of addon's own container (an MSVC 2010 unordered_map of
 # strings: FNV-1 over every (length / 10 + 1)-th character, eight buckets growing by eight at a load factor above one).
 # The prepared hero (tools/make_mp_hero.py --variables) carries a dozen "gvar." variables of different lengths (the

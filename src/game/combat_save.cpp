@@ -6,14 +6,14 @@
 #include "game/item_manager.h"
 
 #include "game/map_object.h"
-#include "game/object.h"
+#include "game/world/hoover.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <cstdint>
 #include <cstring>
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/saves/save_versions.h"
 
 namespace {

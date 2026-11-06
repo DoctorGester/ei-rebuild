@@ -1,9 +1,9 @@
 // The global map's Create: the island model of the local player's allod, its zones, the quests the player
 // holds and the links to the zones the player may enter, the clock text, the camp and turn buttons, the
 // weather. See docs/notes/ui.md ("Camp, global map, hero screens").
-#include "game/app.h"
-#include "game/console.h"
-#include "game/game_singletons.h"
+#include "game/app/app.h"
+#include "game/console/console.h"
+#include "game/app/singletons.h"
 #include "game/global_map_clouds.h"
 #include "game/data/text_manager.h"
 #include "lib/maths.h"
@@ -12,10 +12,10 @@
 #include "game/pipeline.h"
 #include "game/texture.h"
 #include "game/core/named_floats.h"
-#include "game/object_tables.h"
-#include "game/options.h"
-#include "game/player_client.h"
-#include "game/sound.h"
+#include "game/map/map_database.h"
+#include "game/app/options.h"
+#include "game/players/player_client.h"
+#include "game/sound/sound.h"
 #include "game/surface.h"
 #include "game/core/text_split.h"
 #include "game/ui.h"
@@ -23,7 +23,7 @@
 #include "game/ui_saveload.h"
 #include "game/ui_camp.h"
 #include "game/ui_cursor.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "render/render_state.h"
 

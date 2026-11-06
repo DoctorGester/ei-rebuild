@@ -2,13 +2,13 @@
 // the file format.
 #include "game/terrain_sector.h"
 
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/model.h"
 #include "game/pipeline.h"
 #include "game/core/random.h"
 #include "render/render.h"
 #include "game/terrain.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

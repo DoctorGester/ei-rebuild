@@ -55,7 +55,7 @@ ONLY_REFS = re.compile(r'^//\s*(?:\d+:\s*)?(?:' + REFS + r')(?:\s*\(' + TECHS + 
 HEAD = re.compile(r'^(//\s*)(?:\d+:\s*)?' + ADDR + r'(?:\s*\(' + TECHS + r'\))?\s*[.:;]\s+(?=\S)')
 # 3. A parenthesis holding only addresses / ticket ids, " (0058DAF0)", " (S13)": goes.
 PAREN = re.compile(r'\s*\(\s*(?:see\s+)?' + REFS + r'\s*\)')
-# 4. Ticket ids at the end or start of a parenthesis with other text: "(..., world_rules.cpp; SV7b6)".
+# 4. Ticket ids at the end or start of a parenthesis with other text: "(..., world/local_player.cpp; SV7b6)".
 PAREN_TAIL = re.compile(r'\s*[;,]\s*(?:see\s+)?' + TICKET + r'(?:\s*[,/]\s*' + TICKET + r')*(?=\s*\))')
 PAREN_HEAD = re.compile(r'(?<=\()\s*' + TICKET + r'(?:\s*[,/]\s*' + TICKET + r')*\s*[;,]\s*')
 

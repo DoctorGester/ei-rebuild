@@ -1,7 +1,7 @@
 // Interface windows, their regions and the aligned pointer arrays they keep. See ui.h.
 #include "game/figure_manager.h"
 #include "game/figure_mesh.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/material.h"
 #include "game/model.h"
 #include "game/texture.h"

@@ -7,7 +7,7 @@
 
 #include "game/camera.h"
 #include "game/combat.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object.h"
 #include "lib/vecmath.h"
 #include "game/data/text_manager.h"
@@ -16,13 +16,13 @@
 #include "game/ui_cursor.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/containers.h"
 #include "lib/text_case.h"
 #include "platform/platform.h"
 #include "game/screen_layout.h"
-#include "game/object_tables.h"
-#include "game/key_bindings.h"
+#include "game/map/map_database.h"
+#include "game/app/key_bindings.h"
 
 #include <algorithm>
 #include <bit>

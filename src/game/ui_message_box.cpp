@@ -3,14 +3,14 @@
 #include "game/ui_screens.h"
 #include "game/ui_message_box.h"
 #include "game/core/asset_text.h"
-#include "game/app.h"
+#include "game/app/app.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include "game/bink_video.h"
-#include "game/game_singletons.h"
-#include "game/options.h"
+#include "game/app/movies.h"
+#include "game/app/singletons.h"
+#include "game/app/options.h"
 #include "platform/platform.h"
 
 #include <cstring>

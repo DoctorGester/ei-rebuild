@@ -4,7 +4,7 @@
 #include "game/core/base_manager.h"
 #include "game/camera.h"
 #include "game/core/core_streams.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/light.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
@@ -12,7 +12,7 @@
 #include "game/saves/save_versions.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/world_effect.h"
 
 #include "lib/crt.h"

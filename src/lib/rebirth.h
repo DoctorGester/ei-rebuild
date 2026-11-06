@@ -6,7 +6,7 @@
 // the mod-folder patches whenever a mod is played (mod_folders.h). A GOG install and a Rebirth install run the same
 // code; only the folder's data differs. EI_Plugin's player count and pause mode are the host's choices on the
 // create-server screen (net::kMostPlayers, net::PauseMode). What stays, which the start-up sets before any game code
-// runs (src/game/rebirth_profile.cpp): NewMaster's second master server (the settings file's [network] SecondMaster).
+// runs (src/game/app/rebirth_profile.cpp): NewMaster's second master server (the settings file's [network] SecondMaster).
 #pragma once
 
 #include <string>

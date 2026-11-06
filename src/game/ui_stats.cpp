@@ -1,14 +1,14 @@
 // The statistics panel's -/+ buttons on the new hero's page and its hero
 // arrows. See docs/notes/ui.md, section 5.
 #include "game/ui_camp.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/item.h"
 #include "game/item_db.h"
 #include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_item_info.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/float_select.h"
 #include "lib/str.h"
 

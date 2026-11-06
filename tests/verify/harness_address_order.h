@@ -1,7 +1,7 @@
 #pragma once
 
 // The base screen's player list (verify build; ticket UB1). The game's address orders themselves (ticket T2f,
-// src/game/address_order.h) are ours in every run: by object id and by name.
+// src/game/world/object_order.h) are ours in every run: by object id and by name.
 
 #include <cstdint>
 #include <string>

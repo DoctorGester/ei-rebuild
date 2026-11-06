@@ -1,7 +1,7 @@
 // Unit setup and upkeep around creation: the prototype name index, the server controller's
 // statistics hand-over and remarks, and dropping broken equipment after a hit. See
 // docs/notes/units.md ("Creation, databases, save").
-#include "game/player_messages.h"
+#include "game/players/player_messages.h"
 #include "game/unit_create.h"
 
 #include "game/combat.h"

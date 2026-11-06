@@ -6,7 +6,7 @@
 //
 // Virtual clock ("deterministic"): the game's two clocks (platform::FrameClock, timeGetTime's, and CoarseClock,
 // GetTickCount's) return a counter that only the main thread moves: the main loop's frame-time read (the rewritten
-// loop's, game/main_loop.h) adds five world updates (the most one pass runs), and a sleep of n ms on the main thread
+// loop's, game/app/harness_hooks.h) adds five world updates (the most one pass runs), and a sleep of n ms on the main thread
 // adds n and returns at once. Other threads (the cursor thread, the sound threads) read the counter and never move
 // it; their own sleeps stay real. The date is a fixed one, and the ISAAC seeding (0049F660) a fixed sequence
 // (harness.cpp).

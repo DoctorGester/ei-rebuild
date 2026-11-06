@@ -5,7 +5,7 @@
 
 #include "game/data/registry.h"
 #include "game/data/resource.h"
-#include "game/settings.h"
+#include "game/app/settings.h"
 #include "lib/text_case.h"
 
 #include "platform/platform.h"

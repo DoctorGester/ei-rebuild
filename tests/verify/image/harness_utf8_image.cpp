@@ -4,9 +4,9 @@
 
 #include "platform/log.h"
 
-#include "game/console.h"
-#include "game/game_singletons.h"
-#include "game/player_messages.h"
+#include "game/console/console.h"
+#include "game/app/singletons.h"
+#include "game/players/player_messages.h"
 #include "game/core/asset_text.h"
 #include "platform/harness_platform.h"
 #include "game/ui.h"

@@ -9,7 +9,7 @@
 #include "lib/str.h"
 #include "game/map_object_animation.h"
 #include "game/map_object_figures.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "platform/platform.h"
 
 #include <algorithm>
