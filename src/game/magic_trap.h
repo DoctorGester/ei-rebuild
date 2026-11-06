@@ -4,7 +4,7 @@
 // "armed" (the script's ActivateTrap); the position is the map object's. See docs/notes/units.md ("Magic traps").
 
 #include "game/map_object.h"
-#include "game/map_spec.h"   // MagicTrapRecord, TrapArea, TrapPoints
+#include "game/map/map_spec.h"   // MagicTrapRecord, TrapArea, TrapPoints
 
 #include <cstddef>
 #include <cstdint>

@@ -3,7 +3,7 @@
 // docs/notes/items_spells.md.
 #include "game/spell.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/item.h"
 #include "game/item_db.h"
 #include "game/item_manager.h"

@@ -6,14 +6,14 @@
 // Place, SetRectangle and SetFrame, the regions' SetRect. See docs/notes/ui.md, section 8, and docs/notes/renderer.md
 // ("Pass state").
 #include "game/ui_help_window.h"
-#include "game/game_singletons.h"
-#include "game/key_bindings.h"
+#include "game/app/singletons.h"
+#include "game/app/key_bindings.h"
 #include "game/screen_layout.h"
 #include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"
 #include "game/ui_screens.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/maths.h"
 #include "lib/rect.h"
 #include "lib/str.h"

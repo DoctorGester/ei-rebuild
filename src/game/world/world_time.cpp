@@ -1,0 +1,84 @@
+// The world's time of day, time speed and wind (the base world's and the server's versions).
+#include "game/world/world.h"
+
+#include "game/app/options.h"
+
+#include "lib/float_select.h"
+
+#include <bit>
+#include <cmath>
+#include <cstring>
+
+namespace {
+constexpr float kHoursPerDay = 24.0f;
+constexpr float kHoursPerSecond = 1.0f / 15.0f;  // as the game counts its speed
+} // namespace
+
+float World::Elapsed() const { return static_cast<float>(tick) * secondsPerTick; }
+
+float World::TimeOfDay() const { return std::fmod(Elapsed() + timeBase, kHoursPerDay); }
+
+void World::SetTime(float hours) {
+    float elapsed = std::fmod(Elapsed(), kHoursPerDay);
+    timeBase = hours - elapsed;
+}
+
+void World::SetTimeSpeed(float speed) {
+    // The time of day now, stored as a float before the speed changes.
+    float now = TimeOfDay();
+    if (speed > 0.0f) secondsPerTick = 1.0f / speed;
+    else if (speed < 0.0f) secondsPerTick = 1.0f / static_cast<float>(options::kDefaultTimeScale);
+    else secondsPerTick = 0.0f;      // 0 or NaN (equal or unordered)
+    secondsPerTick *= kHoursPerSecond;
+    SetTime(now);
+}
+
+float World::NightLevel() {
+    float hours = TimeOfDay();
+    if (hours > 20.0f) return (hours - 20.0f) * 0.25f;
+    if (hours >= 8.0f) return 0.0f;
+    return 1.0f;   // also NaN
+}
+
+bool World::IsNight() {
+    float hours = TimeOfDay();
+    if (hours >= 22.0f) return true;
+    if (hours >= 6.0f) return false;
+    return true;   // also NaN
+}
+
+World::Clock World::GetTime() {
+    Clock clock;
+    clock.hours = TimeOfDay();
+    // 1 / (seconds per tick * 15), the product formed first.
+    const float perSecond = secondsPerTick * 15.0f;
+    clock.speed = 1.0f / perSecond;
+    return clock;
+}
+
+void World::SetWind(const Vector3& direction, float strength) {
+    windDirection = direction;
+    windStrength = strength;
+}
+
+void WorldServer::SetTime(float hours) {
+    if (IsSinglePlayerMode(zoneMode)) UpdatePlayerTimes(0.0f);
+    World::SetTime(hours);
+    MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
+    UpdateWeather();
+}
+
+void WorldServer::SetTimeSpeed(float speed) {
+    if (IsSinglePlayerMode(zoneMode)) UpdatePlayerTimes(0.0f);
+    World::SetTimeSpeed(speed);
+    MarkPlayersDirty(lib::Bits(PlayerDirty::Time));
+    UpdateWeather();
+}
+
+void WorldServer::ChangeWind(const Vector3& direction, float strength) {
+    // Below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.
+    float clamped = MaxKeepB(strength, 0.0f);
+    if (1.0f < clamped) clamped = 1.0f;
+    SetWind(direction, clamped);
+    MarkPlayersDirty(lib::Bits(PlayerDirty::Wind));
+}

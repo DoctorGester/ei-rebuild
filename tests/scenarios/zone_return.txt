@@ -1,4 +1,4 @@
-# Back to a zone that was left (src/game/world_game.cpp RestoreZone; H43c). From the new game in zone1 (gz1g) a wolf is
+# Back to a zone that was left (src/game/app/game_flow.cpp RestoreZone; H43c). From the new game in zone1 (gz1g) a wolf is
 # placed and the party leaves for gz2g: the zone is stored in saves\current\gz1g.sav and its "visited" variable set.
 # Time passes in gz2g, then the party goes back to gz1g (exit 0): the zone is read from that file, not made anew from
 # its map (RestoreZone), the units standing in it come back where they were, and the world catches up with the time

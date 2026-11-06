@@ -3,19 +3,19 @@
 // (ShadowInView). See map_object_shadow.h and docs/notes/map_objects.md ("Shadows").
 #include "game/map_object_shadow.h"
 
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/model.h"
 #include "game/pipeline.h"
-#include "game/object.h"
-#include "game/options.h"
+#include "game/world/hoover.h"
+#include "game/app/options.h"
 #include "render/render.h"
 #include "render/render_checks.h"
 #include "game/light.h"
 #include "game/unit.h"                 // Unit
 #include "game/unit_client_models.h"   // UnitClientSpecific
-#include "game/world.h"   // g_clientWorld
+#include "game/world/world.h"   // g_clientWorld
 
 #include "lib/float_select.h"
 #include "lib/maths.h"

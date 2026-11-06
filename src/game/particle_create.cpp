@@ -2,11 +2,11 @@
 // More: docs/notes/effects.md, "Particle sources".
 #include "game/core/core_transform.h"
 #include "game/effects.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object_figures.h"
 #include "game/particle_common.h"
 #include "game/texture.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/containers.h"
 

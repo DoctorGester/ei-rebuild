@@ -535,7 +535,7 @@
 #include "platform/path_layers.h"
 #include "platform/seams.h"
 #include "platform/platform.h"
-#include "game/main_loop.h"
+#include "game/app/harness_hooks.h"
 #include "lib/rebirth.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -1141,7 +1141,7 @@ unsigned& TickLength() { return image::UpdatePeriod(); }
 unsigned g_heldTickLength = 0;
 
 // The main loop's calls of the server's update and the client's tick (false stops the frame): the loop's hooks
-// (app_main.cpp).
+// (app/main_loop.cpp).
 void HeldServerUpdate(::WorldServer* server) {
     {
         timing::Scope scope(timing::Server);
@@ -1597,7 +1597,7 @@ std::string CursorCheck(const std::string& argument) {
 }
 
 // "windowtitle": the game window's title is "Evil Islands" and its class "EIGAME" (the strings game.exe's table held,
-// literals in app_main.cpp since C23). The window class has no icon (C24 adds one).
+// literals in app/main_loop.cpp since C23). The window class has no icon (C24 adds one).
 std::string WindowTitleStep() {
     const std::string title = harnessplatform::WindowTitle(), cls = harnessplatform::WindowClass();
     Log("harness: windowtitle: title \"%s\", class \"%s\"", title.c_str(), cls.c_str());
@@ -3638,7 +3638,7 @@ void KeepGameWindowActive() {
 // PushWindow, closing windows) to discard the input waiting meanwhile: what it removes goes to the
 // window procedure, which ignores keys and mouse. Steps can run inside it, so input steps posted
 // there were lost (the console scenario's keys, when the battle screen opened after its waitfor);
-// they wait for one of these calls instead (the rewritten WinMain, src/game/app_main.cpp, names its two calls
+// they wait for one of these calls instead (the rewritten WinMain, src/game/app/main_loop.cpp, names its two calls
 // through ei::mainloop::g_site).
 bool IsWinMainLoop() {
     using ei::mainloop::Site;
@@ -3931,7 +3931,7 @@ struct Harness {
             Log("harness: the game's clocks can be frozen (fixed date)");
         }
         if (g_clockTrace) clock::InstallTrace();
-        // The main loop's calls: the rewritten loop's hook point (game/main_loop.h) for each one taken.
+        // The main loop's calls: the rewritten loop's hook point (game/app/harness_hooks.h) for each one taken.
         ei::mainloop::HarnessHooks& hooks = ei::mainloop::g_harnessHooks;
         Log("harness: the main loop and the frame step through the rewritten callers' hook points only");
         if (g_freezeUsed || g_cameraTraceUsed) hooks.frameCameraUpdate = &HeldCameraUpdate;

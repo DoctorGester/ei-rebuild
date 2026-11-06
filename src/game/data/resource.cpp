@@ -1,4 +1,4 @@
-#include "game/bink_video.h"
+#include "game/app/movies.h"
 #include "game/core/core_streams.h"
 #include "game/data/resource.h"
 #include "game/mods/mod_folders.h"

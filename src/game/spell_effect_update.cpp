@@ -6,7 +6,7 @@
 #include "game/spell.h"
 #include "game/spell_effect_internal.h"
 #include "game/combat.h"
-#include "game/player_messages.h"
+#include "game/players/player_messages.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
 #include "game/world_effect.h"

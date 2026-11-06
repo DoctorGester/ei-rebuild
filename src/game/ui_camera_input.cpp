@@ -5,13 +5,13 @@
 
 #include "game/camera.h"
 #include "game/camera_trace.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "lib/bit_flags.h"
-#include "game/options.h"
+#include "game/app/options.h"
 #include "game/ui.h"
 #include "game/ui_cursor.h"
 #include "game/screen_layout.h"
-#include "game/key_bindings.h"
+#include "game/app/key_bindings.h"
 #include "lib/vecmath.h"
 #include "platform/platform.h"
 

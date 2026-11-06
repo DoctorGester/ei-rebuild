@@ -3,19 +3,19 @@
 // body slot (or all of them) absorb the rest through its armour layers (DamageSlot), wearing the
 // armour pieces. See unit.h and docs/notes/units.md.
 #include "game/combat.h"
-#include "game/console.h"
-#include "game/options.h"
+#include "game/console/console.h"
+#include "game/app/options.h"
 #include "game/unit.h"
 
 #include "game/data/text_manager.h"
-#include "game/party.h"
-#include "game/player_messages.h"
+#include "game/players/party.h"
+#include "game/players/player_messages.h"
 #include "game/item.h"
 #include "game/spell.h"
 
 #include <cstring>
 #include "lib/rounding.h"
-#include "game/logic_settings.h"
+#include "game/app/logic_settings.h"
 #include "lib/float_select.h"
 
 namespace {

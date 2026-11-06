@@ -7,12 +7,12 @@
 #include "game/core/base_manager.h"
 #include "game/map_object_figures.h"
 #include "game/unit_create.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "platform/platform.h"
 #include <cstdint>
 #include <string>
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 
 #include <vector>
 

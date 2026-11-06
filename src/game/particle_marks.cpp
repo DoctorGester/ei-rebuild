@@ -7,11 +7,11 @@
 #include "game/camera.h"
 #include "game/core/core_maths.h"
 #include "game/effects.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object_figures.h"
 #include "game/core/random.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

@@ -2,11 +2,11 @@
 // the credits: the regions, sprites, surfaces and 3D model each window is made of. Rebirth patches the sprite placement
 // and UiRegion::SetRect for its widescreen layout. The save / load and options windows' are in ui_saveload.cpp and
 // ui_options.cpp. See docs/notes/ui.md.
-#include "game/app.h"
+#include "game/app/app.h"
 #include "game/core/asset_text.h"
-#include "game/options.h"
-#include "game/bink_video.h"
-#include "game/sound.h"
+#include "game/app/options.h"
+#include "game/app/movies.h"
+#include "game/sound/sound.h"
 #include "game/core/text_split.h"
 #include "game/map_object_figures.h"
 #include "game/ui.h"
@@ -18,7 +18,7 @@
 #include "game/ui_options.h"
 #include "game/ui_message_box.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/data/text_manager.h"
 #include "lib/vecmath.h"
 #include "game/model.h"
@@ -27,7 +27,7 @@
 #include "game/data/resource.h"
 #include "game/ui_cursor.h"
 #include "game/ui_screens.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/rect.h"
@@ -37,7 +37,7 @@
 #include <string>
 #include "lib/text_case.h"
 #include "game/terrain.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/figure_manager.h"
 #include "lib/str.h"
 

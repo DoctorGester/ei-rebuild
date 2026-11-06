@@ -3,14 +3,14 @@
 // factory is unit_create_object.cpp's.
 #include "game/core/base_manager.h"
 #include "game/figure_manager.h"   // FigureObjectType
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/data/resource_manager.h"
 #include "game/unit.h"
 #include "game/unit_create.h"
 #include "game/unit_db.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"

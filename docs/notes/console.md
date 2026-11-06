@@ -2,7 +2,7 @@
 
 Code: `console.h` / `console.cpp` (streams, executor, tokenizer, script lines), `console_commands.cpp` (handlers),
 `console_window.cpp` (window text and placement), `console_addon.cpp` (Rebirth's commands and AutoExec, `rebirth.md`).
-The window's drawing and key input are in `ui_console_window.cpp` (`ui.md`). Scenario: `tests/scenarios/console.txt`
+The window's drawing and key input are in `console/console_window.cpp` (`ui.md`). Scenario: `tests/scenarios/console.txt`
 (public commands, the tokenizer's cases, the cheat word, every command's messages and settings, script lines,
 listvar / loadvar through `.\saves\`, give, the window's own input).
 

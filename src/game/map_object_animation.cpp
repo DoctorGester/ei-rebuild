@@ -6,7 +6,7 @@
 #include "game/figure_manager.h"
 #include "game/map_object_figures.h"
 #include "lib/vecmath.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/bytes.h"
 #include "lib/rounding.h"
 #include "platform/platform.h"

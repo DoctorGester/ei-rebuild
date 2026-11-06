@@ -7,7 +7,7 @@
 // Message (below) is the replicated object base, ServerEntry a server as the lobby lists it.
 
 #include "game/core/core_refcount.h"
-#include "game/party.h"
+#include "game/players/party.h"
 #include "game/core/coder.h"
 #include "platform/platform.h"
 
@@ -520,7 +520,7 @@ public:
     std::vector<SharedRef<LineMessage>> lines; // chat and system lines, at most 50
     std::vector<SharedRef<FileMessage>> files;
     std::vector<HeldRef<FileRequestMessage>> fileRequests; // the clients' requests (file requests, connections)
-    // where the game is hosted (a HostMessage; world_game.cpp's AnnounceHost), replicated to everyone when set
+    // where the game is hosted (a HostMessage; app/game_flow.cpp's AnnounceHost), replicated to everyone when set
     Ref<HostMessage> hostInfo;
     std::vector<SharedRef<BindingMessage>> bindings; // player <-> connection
     Ref<MapMessage> map;           // the map message while a map is played

@@ -6,7 +6,7 @@
 #include "game/ui_camp.h"
 
 #include "game/camera_trace.h"
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/core/core_streams.h"
 #include "game/global_map_clouds.h"
 #include "game/ui_cursor.h"
@@ -15,8 +15,8 @@
 
 #include "platform/platform.h"
 #include "lib/vecmath.h"
-#include "game/game_singletons.h"
-#include "game/key_bindings.h"
+#include "game/app/singletons.h"
+#include "game/app/key_bindings.h"
 #include "lib/str.h"
 
 #include <cmath>

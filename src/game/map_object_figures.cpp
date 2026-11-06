@@ -16,7 +16,7 @@
 #include "game/model.h"
 #include "game/pipeline.h"
 #include "game/core/random.h"
-#include "game/world.h"   // World: the figure manager and cache
+#include "game/world/world.h"   // World: the figure manager and cache
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

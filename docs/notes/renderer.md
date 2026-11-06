@@ -348,7 +348,7 @@ go through `ClearUiDepth` (ui.h) to `render::ClearDepth`.
 
 | Function | What ours does |
 |---|---|
-| `PlayMovie` (`bink_video.cpp`): the blocking movie player with its own message loop (Esc / Space end or skip a frame) | each frame to `render::MovieFrame`, then `render::Fill` (black) + `MovieBlit`, presented through the present; result 0 / 1 (1 with movies off) |
+| `PlayMovie` (`app/movies.cpp`): the blocking movie player with its own message loop (Esc / Space end or skip a frame) | each frame to `render::MovieFrame`, then `render::Fill` (black) + `MovieBlit`, presented through the present; result 0 / 1 (1 with movies off) |
 | `ShowLoadingMovie`: the loading movie (progres*.bik per zone) stretched over the screen; hides the cursor on every call and never shows it again | its last frame blitted and presented as above |
 | The cursor | the system's cursor (section 9, "The cursor") |
 
@@ -437,7 +437,7 @@ bytes on zone1.
 ### Resolution changes
 
 The rendering resolution is the device's `screen` (`TextureDevice::screen`): the settings' `VideoResolution` at the start.
-It changes while the game runs through one call, `app::SetResolution(width, height)` (app_resolution.cpp), between
+It changes while the game runs through one call, `app::SetResolution(width, height)` (app/app.cpp), between
 frames; no device is made again and the zone goes on. It sets, in order:
 - the device's screen and the pipeline's viewport and axis swap stacks (`SceneRenderer::ResizeScreen`: stacks 8 and 7
   and their products 0, 1, 2, 5 filled again; the projection, stack 6, is kept, so the camera's near / far / field of
@@ -1221,7 +1221,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   constant (ticks for 1 - 1/e of the way): wet in 200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 /
   2400, the snow 1600 (about half the cover in a minute, three quarters in two) and melting in 2400, in rain 900. The
   time only goes forward: the drawn frame's tick fraction can run past the next tick while the client waits for the
-  server (app_main's backlog), so the time handed over steps back a little now and then. Any step back (or over 64
+  server (app/main_loop.cpp's backlog), so the time handed over steps back a little now and then. Any step back (or over 64
   ticks) used to start the state again from the weather as it was, which in play made the snow and the wetness come at
   once (R53). Only a zone's landscape loaded (`render::LandscapeLoaded`, from Terrain::LoadMap; a save's load goes
   through it too) starts again: for the first 32 ticks after it the state is the settled weather as it is (the weather
@@ -1453,7 +1453,7 @@ the four hues on 8%..25% of the frame.
 
 ## 14. The drawn view (smooth camera and object motion, animation blends)
 
-The world ticks every 55 ms. The main loop (`RunPass`, src/game/app_main.cpp) moves the camera once a frame by the
+The world ticks every 55 ms. The main loop (`RunPass`, src/game/app/main_loop.cpp) moves the camera once a frame by the
 frame's real time (cut into whole ticks), and `RunWorlds` moves it again by a whole tick after each client tick, so half
 of every pan, turn and zoom arrives in jumps of 55 ms of motion about 18 times a second (the original's behaviour, jerky on
 a 120 Hz screen). The camera (`Camera`: its timing, tracking, height lag, the sound listener) stays as the game has it;
@@ -2186,7 +2186,7 @@ the quad's mean (the neighbours' results moved to the pixel by their gradients, 
 The narrowest filter is the larger of soft.z and half the pixel's footprint. The search reads the small cell image, not
 the map: the map's texels far apart and turned per pixel cost far more.
 
-### game/world_client_shadow_casters.cpp: casters outside the view
+### game/world/world_client_shadow_casters.cpp: casters outside the view
 
 The casters of the shadow map that the game does not draw this frame (section 13, item 10). After the world's object
 draws every object standing where such a caster can stand (render::ShadowCasterArea, through the object grid's sectors)

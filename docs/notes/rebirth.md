@@ -129,8 +129,8 @@ kinds below, the same on every install. An old `[patches] DisableExitOnCrashRepo
     (terrain_landscape, terrain_sector, ai_map_load, tileDesc.reg), its .mob (world_zone LoadMapObjects), the AI
     events, a figure's skeleton or link file, lightning.dat, menus.reg, the music registry, the text messages; the
     first map or a save's map (app StartFirstMap, world_save, world_client_maps).
-  - A corrupt save (world_game kCorruptSave; item.cpp / spell.cpp RequireEveryRecord, already exits) or a save that
-    cannot be written (world_game).
+  - A corrupt save (app/game_flow.cpp kCorruptSave; item.cpp / spell.cpp RequireEveryRecord, already exits) or a save that
+    cannot be written (app/game_flow.cpp).
   - Broken internal state: no free object id (base_manager), a clone of a shared object (core_refcount), an item or
     spell the factory cannot make (item_manager, spell_manager: construct, rune, prototype, manager), no figure manager,
     no wounds texture, an unknown particle type, a null texture to draw, a script call of the wrong type or argument
@@ -152,9 +152,9 @@ kinds below, the same on every install. An old `[patches] DisableExitOnCrashRepo
   | sound_music SetZoneMode | no music theme for an allod | the stream stops, the music state stays as it was |
   | unit_ai_modes | a patrol with no points | one point at the unit |
   | world_zone SetZoneExits | an exit's entrance number out of range | that exit is left out |
-  | world_game | a zone change to a zone map.txt lacks | the main menu (sessions closed) |
+  | app/game_flow.cpp | a zone change to a zone map.txt lacks | the main menu (sessions closed) |
   | script_exec | KillScript from the WorldScript | the call is left out |
-  | app_frame | a movie frame file that cannot be written | recording stops |
+  | app/main_loop.cpp | a movie frame file that cannot be written | recording stops |
 
   Real data reaches one: units of prototypes Lost in Astral's database lacks, in its gz8g (the game's "zone8 ..."
   units: "zone8 Ogre", "zone8 Orc Fighter1 M", ...) and gz17g (a leftover map.txt zone no exit leads to: "SpiderF15",
@@ -198,7 +198,7 @@ not carried.
   EF BE AD DE, the number of bindings (a byte) and per binding the player's name as (strlen + 1 as a byte, the name, 0);
   `MpConnectScreen::MasterRequest` tries the parsed master with a nonblocking TCP connect (up to 1 s) and falls back to
   the looked-up address. Checked offline: `net_second_master` with a listener standing in for both masters.
-- **Fixes** (always on; `pluginfixes`, src/game/plugin_fixes.h): a face's sex is "f" when the model's fifth character is 'f', else
+- **Fixes** (always on; `pluginfixes`, src/game/players/faces.h): a face's sex is "f" when the model's fifth character is 'f', else
   "m" (`ModelIsFemale`; the multiplayer hero screen's figure loop: characters 4 and 5 "fe", `ModelNameIsFemale`); an
   unknown unit prototype falls back to the head of the first bucket of the prototype map whose name has none of "NPC",
   "Human", "Orc", "Undead", "Male", "Female" in it (`FallbackPrototype`); item damage lists always print "%.1f"; every
@@ -224,7 +224,7 @@ other threads; Rebirth changed nothing there. The rebuild uses SSE2 floats throu
 ## Settings
 
 No patch has a flag; `src/lib/rebirth.h` holds the one value that stays, the second master server. The start-up sets it
-(`src/game/rebirth_profile.cpp`, from main.cpp before the game starts): none by default; the settings file's `[network]`
+(`src/game/app/rebirth_profile.cpp`, from main.cpp before the game starts): none by default; the settings file's `[network]`
 `SecondMaster`; a scenario's `plugin` line. Every line of `[patches]` (the flags of older builds, `NPlayers` and `Pause`,
 DisableExitOnCrashReport the last) is ignored and named in one log line ("Rebirth: [patches] ... ignored: Rebirth's
 patches are always on, the players and the pause are chosen on the create-server screen, a fatal error always ends the

@@ -4,10 +4,10 @@
 // (WorldClient::AmbienceTimeOfDay).
 #include "game/terrain.h"
 #include "game/terrain_sector.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/core/random.h"
-#include "game/sound.h"
-#include "game/world.h"
+#include "game/sound/sound.h"
+#include "game/world/world.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"

@@ -2,7 +2,7 @@
 #include "game/camera_trace.h"
 
 #include "game/camera.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 
 #include "platform/log.h"
 #include "platform/platform.h"

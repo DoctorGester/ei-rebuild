@@ -5,10 +5,10 @@
 // hero screens").
 #include "game/ui_camp.h"
 
-#include "game/console.h"
-#include "game/game_flow.h"
-#include "game/game_singletons.h"
-#include "game/object_tables.h"
+#include "game/console/console.h"
+#include "game/app/game_flow.h"
+#include "game/app/singletons.h"
+#include "game/map/map_database.h"
 #include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"
@@ -17,8 +17,8 @@
 #include <algorithm>
 #include <memory>
 #include "game/ui_screens.h"
-#include "game/world.h"
-#include "game/player_client.h"
+#include "game/world/world.h"
+#include "game/players/player_client.h"
 #include "lib/containers.h"
 #include "lib/str.h"
 

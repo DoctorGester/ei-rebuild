@@ -1,0 +1,95 @@
+#pragma once
+
+// The quest database's records (quest_database.cpp fills them from the quests' .reg files): the
+// quests and the briefings (0x6C). The database's archive load (Rebirth-
+// patched) writes and reads its two vectors of them through ChunkArchive::SerializeQuests /
+// SerializeBriefings (chunk_archive.h), one chunk 1 per record. world/quest_database.cpp.
+
+#include "game/unit_db.h"   // InlineStrings
+#include "lib/enum_array.h"
+
+
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+class ChunkArchive;
+
+struct QuestRecord {
+    // Reads (archive loading) or writes the record: string field 0 the name, 1 exp, 2 +0x10, 3 the zone,
+    // string field 4 the text, 5 money, 6 the order, chunk 7 the places (one field 1 per float; loading
+    // empties the vector and fills it with that many zeros first).
+    void Serialize(ChunkArchive* ar);
+
+    std::string name;
+    float exp = 0.0f;
+    std::uint32_t unreadField = 0;  // archive field 2 (4 bytes; 0 when loaded from the quests); nothing reads it
+    float money = 0.0f;
+    int zone = 0;                   // the zone index
+    int order = 0;
+    std::vector<float> places;     // x and y in turn
+    std::string text;
+};
+
+struct QuestBriefingRecord {
+    // Reads or writes the record: string field 0 the name, 1 exp, 2 money, chunk 3 the given items, string
+    // field 4 the text, chunks 5-9 the other lists (InlineStrings), 10 +0x68.
+    void Serialize(ChunkArchive* ar);
+
+    // The lists (lists[k]): item names given and taken, quest variables ("a.b.<quest>") given and
+    // completed, zone variables raised to 1 and set to 2 (WorldServer::CompleteBriefing).
+    enum class ListKind : int { GiveItems, RemoveItems, GiveQuests, CompleteQuests, AvailableZones, CompleteZones };
+
+    std::string name;
+    float exp = 0.0f;
+    float money = 0.0f;
+    lib::EnumArray<std::vector<std::string>, ListKind, 6> lists;
+    std::string text;
+    // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
+    // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).
+    std::int32_t specials = 0;
+};
+
+// The quest database's briefings (its +0x20): the records and their index by name.
+struct QuestBriefingTable {
+
+    // QuestBriefingTable::Add (quest_database.cpp; the "reject" and "complete" briefings of a
+    // quest file). Appends a copy of `record` unless its name is indexed with a record; the index
+    // is then emptied and filled again over the whole vector (the push_back may have moved the
+    // records). False for null or a name already there.
+    bool Add(const QuestBriefingRecord* record);
+
+    std::vector<QuestBriefingRecord> records;
+    std::unordered_map<std::string, QuestBriefingRecord*> index;
+};
+
+// The quest database: the quests and the briefings, each with its index by name.
+struct QuestDatabase {
+
+    // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res": the quests
+    // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
+    // records' names. 1; an archive or file that cannot be opened ends the game.
+    int Load(const std::string& folder);
+    // The quests of a registry file in memory (`image`) filed into the database; false when it is not a
+    // registry.
+    bool LoadRegistry(const void* image);
+    // Adds a copy of `quest` unless a record of its name is there.
+    void AddQuest(const QuestRecord& quest);
+    // quest_database.cpp (and a copy of it; the script commands' quest lookup, QuestComplete awards the
+    // record's +0x0C). The record of quest `name`, null if none. The index's operator[] (the game's
+    // find_or_insert on a {name, null} pair) leaves a null entry for a missing name.
+    QuestRecord* FindQuest(std::string_view name);
+
+    std::vector<QuestRecord> quests;
+    std::unordered_map<std::string, QuestRecord*> questsByName;
+    QuestBriefingTable briefings;
+};
+extern QuestDatabase g_questDatabase;
+
+
+class FileRegistry;
+// The registry's string list `section` / `key` into `list`: the list emptied, reserved for
+// the strings' count, then every non-empty string appended (the briefings' lists).
+void ReadStringList(FileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list);

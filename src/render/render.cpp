@@ -2,8 +2,8 @@
 // resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
 #include "render.h"
 
-#include "game/app.h"
-#include "game/game_singletons.h"
+#include "game/app/app.h"
+#include "game/app/singletons.h"
 #include "game/device.h"
 #include "game/model.h"
 #include "../platform/log.h"

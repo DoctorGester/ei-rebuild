@@ -4,8 +4,8 @@
 // tint and whether the game is paused.
 
 #include "game/ui_mesh.h"
-#include "game/game_singletons.h"
-#include "game/world.h"
+#include "game/app/singletons.h"
+#include "game/world/world.h"
 
 inline constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 inline constexpr const char* kArrowSprite = "in25arrow";

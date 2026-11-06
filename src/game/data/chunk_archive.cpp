@@ -2,10 +2,10 @@
 // fields, whole archives over a stream. See docs/notes/core.md.
 #include "game/data/chunk_archive.h"
 
-#include "game/class_templates.h"
+#include "game/players/class_templates.h"
 #include "game/core/core_refcount.h"
 #include "game/core/id_tables.h"
-#include "game/party_records.h"
+#include "game/players/party_records.h"
 
 #include "lib/bytes.h"
 

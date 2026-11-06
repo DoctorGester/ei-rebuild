@@ -2,8 +2,8 @@
 // docs/notes/units.md ("Statistics in play").
 #include "game/item_db.h"
 
-#include "game/logic_settings.h"
-#include "game/options.h"
+#include "game/app/logic_settings.h"
+#include "game/app/options.h"
 #include "game/ui.h"
 #include "game/unit.h"
 #include "game/unit_db.h"

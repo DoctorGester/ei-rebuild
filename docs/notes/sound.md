@@ -1,6 +1,6 @@
 # Sound, music and movies
 
-The game's sound code is `src/game/sound.h`, `sound_manager.cpp`, `sound_music.cpp`; it plays through our own output
+The game's sound code is `src/game/sound/sound.h`, `sound_manager.cpp`, `sound_music.cpp`; it plays through our own output
 (`src/audio/audio.h`: a mixer on an SDL3 audio stream, dr_wav and dr_mp3 of third_party/dr_libs) and our own Bink 1
 decoder (`src/video`). Neither Miles nor Bink is loaded. Scenario: `tests/scenarios/sound.txt` (new game, a jingle,
 a 3D effect, a fight with combat music and the brain's "Delayed sound" lines).

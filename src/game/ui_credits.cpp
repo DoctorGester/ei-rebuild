@@ -1,18 +1,18 @@
 // The titles window's frame and close and its script lines' destructor. The window's Create is in
 // ui_layouts.cpp, its input in ui_screens.cpp. See ui_screens.h (CreditsScreen) and docs/notes/ui.md ("Main
 // menu, dialogs, escape menu, credits").
-#include "game/app.h"
-#include "game/app.h"
-#include "game/bink_video.h"
+#include "game/app/app.h"
+#include "game/app/app.h"
+#include "game/app/movies.h"
 #include "game/model.h"
 #include "game/ui.h"
 #include "game/ui_screens.h"
 
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <cstdint>
 #include "game/ui_cursor.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "render/text_format.h"
 
 #include <memory>

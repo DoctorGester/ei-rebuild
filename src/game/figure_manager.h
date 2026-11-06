@@ -3,7 +3,7 @@
 // The figure manager: makes the figure objects and loads their data from its archives or a cached model
 // (docs/notes/models.md).
 
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/str.h"   // ViewHash
 

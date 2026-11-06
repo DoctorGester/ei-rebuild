@@ -2,9 +2,9 @@
 #include "game/script.h"
 #include "game/unit.h"
 #include "game/combat.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 
 #include <algorithm>
 #include <cstdint>

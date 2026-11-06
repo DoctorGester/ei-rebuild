@@ -1,4 +1,4 @@
-# World server tick (src/game/world_tick.cpp): every world update runs CWorldServer::Tick
+# World server tick (src/game/world/world_tick.cpp): every world update runs CWorldServer::Tick
 # (timed objects, missiles, countdowns, command queues) and wakes the units around each party
 # member (WakeUnitsAround). The scenario adds a timed spell effect and a spawned wolf, raises
 # alarms with InvokeAlarm (alarm slots, the AI units hearing it) and checks that the tick count

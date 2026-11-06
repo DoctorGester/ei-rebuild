@@ -4,7 +4,7 @@
 
 #include "game/core/engine_object.h"
 #include "game/figure_mesh.h"   // FigureMesh
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/link_figure.h"   // FigureMeshDrawer
 #include "game/model.h"     // SceneRenderer
 #include "game/pipeline.h"
@@ -14,7 +14,7 @@
 #include "game/light.h"
 #include "game/ui.h"
 #include "game/screen_layout.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/scales.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"

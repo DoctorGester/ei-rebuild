@@ -5,16 +5,16 @@
 // alpha) with a second one. See docs/notes/models.md ("Material draw").
 #include "game/device_material.h"
 
-#include "game/app.h"
+#include "game/app/app.h"
 #include "game/device.h"
 #include "game/model.h"
 #include "game/render_helper.h"   // RenderPreset
 #include "game/texture.h"
 #include "game/core/engine_object.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/ground_print.h"       // NamedTexture
-#include "game/present_window.h"
-#include "game/world.h"
+#include "game/app/present_window.h"
+#include "game/world/world.h"
 #include "lib/rect.h"
 #include "lib/rounding.h"
 #include "render/render.h"

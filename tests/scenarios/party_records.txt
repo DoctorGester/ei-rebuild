@@ -1,4 +1,4 @@
-# Party records (src/game/party_manager.cpp) through the script commands: CreateParty (004A5E90),
+# Party records (src/game/players/party_manager.cpp) through the script commands: CreateParty (004A5E90),
 # AddLoot / CopyLoot (004A5E10 for both names; an unknown name finds the unnamed record),
 # RemoveParty (004A5FA0, including its skip after an erase: of two adjacent "zxA" records one is
 # left). A new game also runs the reset (004A5BD0) and the class templates (004A7630 / 004A7080).

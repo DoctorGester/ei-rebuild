@@ -1,4 +1,4 @@
-"""docs/settings.md from the settings catalog (src/game/settings_catalog.inc): every setting of ei_settings.ini with
+"""docs/settings.md from the settings catalog (src/game/app/settings_catalog.inc): every setting of ei_settings.ini with
 its default, its values and what it does (C69).
 
 usage: python tools/gen_settings_doc.py            writes docs/settings.md

@@ -3,7 +3,7 @@
 // temporary database record: the prototype's values combined with the material's. See item_manager.h.
 #include "game/item_manager.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/item.h"
 #include "game/core/manager_context.h"
 #include "game/map_object.h"   // MapObjectFlag

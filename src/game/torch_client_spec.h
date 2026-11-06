@@ -13,7 +13,7 @@
 // sound.
 
 #include "game/torch.h"                     // TorchObjectSpec
-#include "game/sound.h"                     // kNoSound
+#include "game/sound/sound.h"                     // kNoSound
 
 #include <cstddef>
 #include <cstdint>

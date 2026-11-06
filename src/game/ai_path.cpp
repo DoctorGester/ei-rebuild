@@ -3,10 +3,10 @@
 #include "game/ai_map.h"
 #include "game/ai_motion.h"
 #include "game/core/core_maths.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/map_object.h"
 #include "game/sector_map.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/float_select.h"
 #include "lib/maths.h"

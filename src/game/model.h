@@ -40,7 +40,7 @@ public:
     void SetFogColourState(std::uint32_t colour);
     void CreateRenderer(void* window, options::GameOptions* settings);
     // The sun: the client world's light factory's default light (white, directional), made at each start of the game
-    // (app_main.cpp, StartGame) after the device.
+    // (app/main_loop.cpp, StartGame) after the device.
     void AddDefaultLight();
     // The device's screen made `width` x `height` (app::SetResolution, between frames): the viewport and the axis swap
     // (the window's 4:3 part, screen_layout.h) on the pipeline's stacks again, the projection kept.

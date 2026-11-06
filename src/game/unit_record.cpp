@@ -7,7 +7,7 @@
 
 #include "game/combat.h"
 #include "lib/crt.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <cstring>
 

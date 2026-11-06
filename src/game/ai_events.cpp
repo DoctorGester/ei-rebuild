@@ -1,15 +1,15 @@
 // The world's AI events: the time wheel and the event grid (Advance, ForgetUnit, Load, Save). See unit_ai.h
 // (AIEventTable) and docs/notes/ai.md.
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/unit_ai.h"
 
 #include "game/ai_alarm.h"
 #include "game/combat.h"
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/core/core_streams.h"
-#include "game/object_diplomacy.h"
+#include "game/world/diplomacy.h"
 #include "game/data/resource.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/crt.h"
 #include "lib/rounding.h"
 

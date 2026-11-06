@@ -1,9 +1,9 @@
 // Interface screens: the camp's item strips, the multiplayer hero screen, the escape menu, the credits and the
 // exchange window. See ui_screens.h and docs/notes/ui.md.
-#include "game/game_flow.h"
-#include "game/saved_parties.h"
+#include "game/app/game_flow.h"
+#include "game/players/saved_parties.h"
 #include "game/spell.h"
-#include "game/options.h"
+#include "game/app/options.h"
 #include "game/map_object_figures.h"
 #include "game/ui.h"
 #include "game/ui_scrollbar.h"
@@ -15,13 +15,13 @@
 #include "game/core/core_maths.h"
 #include "game/item.h"
 #include "game/unit.h"
-#include "game/party.h"
-#include "game/world.h"
+#include "game/players/party.h"
+#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rounding.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "platform/platform.h"
 #include "game/screen_layout.h"
 

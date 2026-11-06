@@ -3,14 +3,14 @@
 #include "game/saves/client_visuals.h"
 
 #include "game/core/core_streams.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/ground_print.h"
 #include "game/core/random.h"
 #include "game/saves/save_file.h"
 #include "game/saves/save_versions.h"
 #include "game/terrain.h"
 #include "game/texture.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/str.h"
 #include "platform/log.h"

@@ -6,7 +6,7 @@
 #include "game/model.h"
 #include "game/pipeline.h"
 #include "game/texture.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

@@ -4,7 +4,7 @@
 // connection screens, the escape menu, the credits, the main menu and the exchange window. Handlers take
 // a UiEvent (ui.h).
 
-#include "game/bink_video.h"
+#include "game/app/movies.h"
 #include "game/ui_item_info.h"
 #include "game/ui_message_box.h"
 #include "game/ui_drop_list.h"

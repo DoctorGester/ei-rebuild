@@ -3,13 +3,13 @@
 #include "game/core/core_streams.h"
 
 #include "game/core/core_refcount.h"
-#include "game/game_flow.h"
+#include "game/app/game_flow.h"
 #include "game/net_classes.h"
 #include "game/core/coder.h"
 #include "game/net_connection.h"
 #include "game/net_messages.h"
 #include "game/net_second_master.h"
-#include "game/options.h"
+#include "game/app/options.h"
 #include "lib/crt.h"
 
 #include <cstdint>

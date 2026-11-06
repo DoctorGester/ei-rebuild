@@ -2,7 +2,7 @@
 // reader and writer are in dib.cpp.
 #include "game/dib.h"
 
-#include "game/app.h"
+#include "game/app/app.h"
 #include "lib/crt.h"
 #include "platform/platform.h"
 

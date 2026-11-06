@@ -222,7 +222,7 @@ static void CollectUnitsAndRoofs(const Frame& f) {
 // The wetness and the puddles follow the settled rain, the snow cover the settled snow (not the layer's fade, which
 // lasts the weather message's 20 or 40 ticks, nor its mode, which stays snow through a fade from snow to rain). The
 // time only goes forward: the drawn frame's fraction of a tick can run past the next tick while the client waits for
-// the server (app_main's backlog), so the time handed over steps back a little now and then; only a landscape's load
+// the server (app/main_loop.cpp's backlog), so the time handed over steps back a little now and then; only a landscape's load
 // starts the state again (a step back taken for a load made the snow and the wetness come at once).
 void PrepareSurfaces(const ShadowFrame& shadow) {
     Surfaces& surfaces = g_surfaces;

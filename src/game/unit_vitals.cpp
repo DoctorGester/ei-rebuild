@@ -9,7 +9,7 @@
 #include "game/data/text_manager.h"
 #include "game/unit_db.h"
 
-#include "game/logic_settings.h"
+#include "game/app/logic_settings.h"
 #include "lib/crt.h"
 #include "lib/maths.h"
 #include "lib/float_select.h"

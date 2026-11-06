@@ -7,7 +7,7 @@
 #include "game/core/core_streams.h"
 #include "game/core/random.h"
 #include "game/spell.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/float_select.h"
 

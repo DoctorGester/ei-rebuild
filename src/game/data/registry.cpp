@@ -2,7 +2,7 @@
 #include "game/data/registry.h"
 #include "game/core/asset_text.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/text_case.h"

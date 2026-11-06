@@ -1,10 +1,10 @@
 // Interface3D::CreateScreen: the screens by id. See ui.h and docs/notes/ui.md.
-#include "game/app.h"
+#include "game/app/app.h"
 
-#include "game/bink_video.h"
-#include "game/console.h"
-#include "game/game_singletons.h"
-#include "game/options.h"
+#include "game/app/movies.h"
+#include "game/console/console.h"
+#include "game/app/singletons.h"
+#include "game/app/options.h"
 #include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_hud.h"
@@ -16,7 +16,7 @@
 #include "game/ui_cursor.h"
 #include "game/ui_screens.h"
 #include "game/ui_view_screen.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "lib/crt.h"
 #include "render/render_state.h"
 

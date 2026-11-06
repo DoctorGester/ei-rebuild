@@ -5,9 +5,9 @@
 
 #include "game/world_effect.h"
 #include "game/map_object.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/net_delta.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 
 #include "lib/float_select.h"
 
@@ -18,7 +18,7 @@ namespace effect {
 
 // --- Globals -------------------------------------------------------------------------------------
 
-// The light and particle managers are g_clientWorld.terrain, g_clientWorld.lightFactory and g_clientWorld.particleManager (game_singletons.h).
+// The light and particle managers are g_clientWorld.terrain, g_clientWorld.lightFactory and g_clientWorld.particleManager (app/singletons.h).
 
 
 inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(g_serverWorld.tick); }

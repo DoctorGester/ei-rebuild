@@ -258,7 +258,7 @@ What SDL's backend does (platform_sdl.cpp):
   `SDL_WarpMouseGlobal`. `HoldCursor`: the window in relative mode with a one-pixel mouse rectangle at the point (the
   hints keep the cursor visible there, not centred, the motion scaled as the pointer's; the motion's fractions are
   carried to the next event); `ConfineCursor`: `SDL_SetWindowMouseGrab` (the harness's backend only logs the request; the game
-  asks every main loop pass and at the focus's changes, when the answer changed, app_confine.cpp: there is no option,
+  asks every main loop pass and at the focus's changes, when the answer changed, app/app.cpp: there is no option,
   the cursor is confined while the window is active and the camera's edge pan is available); `SetCursorPosition` lets it go before it warps, since SDL puts the pointer back where its
   motion went when relative mode ends; `ReleaseCursor` lets a held cursor go.
 - **The clocks**: both are `SDL_GetTicks` plus a day (`kClockStart`), so no read is near 0 (the game keeps 0 as
@@ -269,7 +269,7 @@ What SDL's backend does (platform_sdl.cpp):
 
 ### How the events flow
 
-- `platform::StartWindowSystem("EIGAME")` (app_main.cpp, before the one-instance check). The game's loop (app_main.cpp
+- `platform::StartWindowSystem("EIGAME")` (app/main_loop.cpp, before the one-instance check). The game's loop (app/main_loop.cpp
   RunMainLoop) asks `EventWaits`, takes the next event with `NextEvent` and passes it to `app::DispatchInput` (the
   interface; the focus and the close request go on to `app::HandleWindowEvent` without the interface's close-all) or
   `app::HandleWindowEvent`. `PumpMessages` takes events with `TakeEvent` and gives them to HandleWindowEvent (input

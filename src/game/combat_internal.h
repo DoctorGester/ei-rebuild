@@ -3,7 +3,7 @@
 // Helpers shared by the combat*.cpp files (not used elsewhere).
 
 #include "game/combat.h"
-#include "game/console.h"
+#include "game/console/console.h"
 
 class PlayerServer;
 

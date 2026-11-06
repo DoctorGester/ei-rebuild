@@ -2,9 +2,9 @@
 // address list's vector members. See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only. Its Create
 // reproduces addon's ExtendedServerName sites, as the list draw (ui_connect_list.cpp) does its patches; EI_Plugin's
 // NPlayers and Pause are the new game's player slider and pause mode.
-#include "game/game_flow.h"
+#include "game/app/game_flow.h"
 #include "game/net_classes.h"
-#include "game/options.h"
+#include "game/app/options.h"
 #include "game/core/asset_text.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"
@@ -18,10 +18,10 @@
 #include "game/core/coder.h"
 #include "game/net_link.h"
 #include "game/net_second_master.h"
-#include "game/party.h"
+#include "game/players/party.h"
 #include "game/core/random.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/data/text_manager.h"
 
 #include "lib/crt.h"
@@ -33,7 +33,7 @@
 #include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 
 #include <memory>
 #include <new>

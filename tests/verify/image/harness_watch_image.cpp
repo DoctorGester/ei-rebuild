@@ -1,9 +1,9 @@
 // The orientation watch's unit in the image (image_side.h; system/watch_win32.cpp).
 #include "image_side.h"
 
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 namespace ei::verify::image {
 

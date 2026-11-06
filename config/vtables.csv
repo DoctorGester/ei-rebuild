@@ -39,8 +39,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073BE74,3,,game,0041CD80 00427600 00589ED0 0058AAD0,007005E3,ItemObjectListClass,-,CList (engine objects released through slot 4); stored only by game.exe (ours is a std::list)
 0073BE80,3,,game,0041CD80 00427830 004C98C0 00532AC0 0054F000 005528F0 0058FBF0 00590460 00592090 005942D0 0064A7A0 00664BF0 00664E20 00669290 00669350 00669490,007005E3,ItemListClass,-,CList (the item and object pointer lists (CTypedPtrList)); stored only by game.exe (ours is a std::list)
 0073BE8C,2,,game,0041F5F0 00429110 004410A0,0041F740,OutOfRange,-,"out_of_range (stored only by game.exe's substr and __stl_throw_out_of_range; our ports never throw it)"
-0073BE94,2,,game,0042BEC0 0042BEF0 0042CA20 0042D1C0 0042D270 0046A710,0042BEE0,Chunk,src/game/chunk_stream.h,
-0073BE9C,2,,game,0042D1C0 0042D270,0042BEE0,RootChunk,src/game/chunk_stream.h,
+0073BE94,2,,game,0042BEC0 0042BEF0 0042CA20 0042D1C0 0042D270 0046A710,0042BEE0,Chunk,src/game/map/chunk_stream.h,
+0073BE9C,2,,game,0042D1C0 0042D270,0042BEE0,RootChunk,src/game/map/chunk_stream.h,
 0073BECC,15,,game,0042D690 0042D6F0,0042D6D0,ClientSpecificManager,src/game/server_specific_manager.h,
 0073BF08,10,,game,00613EA0,004034E0,ClientSpecificManager,src/game/server_specific_manager.h,the tail of 0073BECC (a byte match)
 0073BF38,4,,game,00432DA0 00433060 00433320 004334E0,004334C0,Connection,src/game/net_connection.h,a connection (Connection)
@@ -73,7 +73,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C274,18,,game,004545C0,00454810,SceneMesh,-,"CFakeFigure (the scene's meshes); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C2BC,3,,game,00454830 00454A50 00454CE0 0046F1F0 00471B10,007005E3,FaceGroupArrayClass,-,"CArray<FaceGroup> (a scene mesh's face groups); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C350,1,,game,00456440 004578D0,004578B0,DirectInputMouse,-,the DirectInput mouse (CDirectInputMouse); gone (PL16: platform::TakeMouseMotion)
-0073C360,2,,game,00457740 004577E0 004A5BD0 004A5E90,004577C0,PartyRecord,src/game/party_records.h,a named party record (PartyRecord)
+0073C360,2,,game,00457740 004577E0 004A5BD0 004A5E90,004577C0,PartyRecord,src/game/players/party_records.h,a named party record (PartyRecord)
 0073C368,1,,game,004578D0 00457940 00457950 004F2C00 004F2D40 004F2E40 004F69F0 004F6BD0 004FCC40 004FCD50 004FD8A0 004FD8B0 0051C3D0 0051C730,00457950,the plain counted root,-,"a fieldless counted root (slot 0 the deleting destructor 00457950) that game.exe's renderer, figure and mouse destructors leave; their classes do without it"
 0073C37C,3,,game,0045D5B0,007005E3,BehaviourPatrolsArrayClass,-,CArray (a unit record behaviour's patrols; derived from PatrolArrayClass); stored only by game.exe (ours is a std::vector)
 0073C388,3,,game,0045D8B0 0045E020 0045E090 0045E1E0 0045E250 0046C290 0046E680,007005E3,ArrayBaseClass,-,CArray (the base vtable the element arrays' destructors restore (patrols; motion records)); stored only by game.exe (ours is a std::vector)
@@ -84,27 +84,27 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C3E8,3,,game,0041BC40 0045E6F0 0045E820 00460130,007005E3,MapRecordArrayClass,-,CArray<MapRecord> (the map database's maps); stored only by game.exe (ours is a std::vector)
 0073C3F4,3,,game,00460130 00460490 00460970 00460A80 0056FFE0 0057BDF0 0058AAD0,007005E3,ExitArrayClass,-,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores); stored only by game.exe (ours is a std::vector)
 0073C400,3,,game,004607E0 005612F0 0057BDF0 00589ED0,007005E3,MapRecordItemsClass,-,CArray (the array inside a map record; derived from ExitArrayClass); stored only by game.exe (ours is a std::vector)
-0073C434,13,,game,00461C10 00461C80,00461C60,Hoover,src/game/object.h,the loot hoover (CHoover)
+0073C434,13,,game,00461C10 00461C80,00461C60,Hoover,src/game/world/hoover.h,the loot hoover (CHoover)
 0073C474,22,,game,00462250 00462420,00462400,dead class,-,stored only by dead code 00462250 / 00462420 (config/dead_code.csv)
 0073C550,13,,game,00468680 00468810,004687F0,Lightning,src/game/lightning.h,a lightning bolt (CLightning)
 0073C584,3,,game,00468D60 00468D80,007005E3,SpriteArrayClass,-,CArray (the weather and lightning sprites); stored only by game.exe (ours is a std::vector)
-0073C5C4,11,,game,00469CA0 00469E50 0046A710 0046AEB0 0046B120 0046B570 0046BDC0 0046C140 0046D370 0046D5A0 0046DA20 0046DF70,00469E20,Spec,src/game/map_spec.h,the zone records' base record
-0073C5F0,12,,game,0046A5C0 0046AEB0 0046B120 0046B570 0046BDC0 0046C140,0046AB20,ObjectSpec,src/game/map_spec.h,an object record
-0073C620,12,,game,0046B120 0046B210,0046B3C0,FlameSpec,src/game/map_spec.h,a flame record
-0073C650,12,,game,0046B4A0,0046B7D0,TrapSpec,src/game/map_spec.h,a magic trap record
+0073C5C4,11,,game,00469CA0 00469E50 0046A710 0046AEB0 0046B120 0046B570 0046BDC0 0046C140 0046D370 0046D5A0 0046DA20 0046DF70,00469E20,Spec,src/game/map/map_spec.h,the zone records' base record
+0073C5F0,12,,game,0046A5C0 0046AEB0 0046B120 0046B570 0046BDC0 0046C140,0046AB20,ObjectSpec,src/game/map/map_spec.h,an object record
+0073C620,12,,game,0046B120 0046B210,0046B3C0,FlameSpec,src/game/map/map_spec.h,a flame record
+0073C650,12,,game,0046B4A0,0046B7D0,TrapSpec,src/game/map/map_spec.h,a magic trap record
 0073C680,3,,game,0046B4A0 00529DD0,007005E3,TrapTargetsArrayClass,-,CArray (a map trap record's targets; derived from 0073C6A4); stored only by game.exe (ours is a std::vector)
 0073C68C,3,,game,0046B4A0 00529DD0,007005E3,TrapAreasArrayClass,-,CArray (a map trap record's areas; derived from 0073C698); stored only by game.exe (ours is a std::vector)
 0073C698,3,,game,0046B570 0046E910 0046EF40 00529F90,007005E3,TrapCircleArrayClass,-,CArray (a trap's circles); stored only by game.exe (ours is a std::vector)
 0073C6A4,3,,game,0046B570 0046E950 0046EF80 00529F90,007005E3,TrapPointArrayClass,-,CArray (a trap's points); stored only by game.exe (ours is a std::vector)
-0073C6B0,12,,game,0046BD40,0046BF20,LeverSpec,src/game/map_spec.h,a lever record
-0073C6E0,12,,game,0046C010 0046C140 0058EF20,0046D080,UnitSpec,src/game/map_spec.h,a unit record (also the world server's unit creation message)
-0073C710,2,,game,0046C6A0 0046C7F0 0046C900,0046C610,WaypointChunk,src/game/map_spec_unit.cpp,a unit record's waypoint chunk reader
-0073C718,2,,game,0046C900 0046CBC0,0046C7F0,PatrolChunk,src/game/map_spec_unit.cpp,a unit record's patrol chunk reader
-0073C720,2,,game,0046CF10 0046D080,0046CBC0,BehaviourChunk,src/game/map_spec_unit.cpp,a unit record's behaviour chunk reader and writer
-0073C728,12,,game,0046D330 0046DE70,00469E20,EffectSpec,src/game/map_spec.h,the effect records' base
-0073C758,12,,game,0046D520,0046D730,ParticleSpec,src/game/map_spec.h,a particle source record
-0073C788,12,,game,0046D960,0046DBF0,LightSpec,src/game/map_spec.h,a light record
-0073C7B8,12,,game,0046DE70 0046DF70,0046E190,SoundSpec,src/game/map_spec.h,a sound record
+0073C6B0,12,,game,0046BD40,0046BF20,LeverSpec,src/game/map/map_spec.h,a lever record
+0073C6E0,12,,game,0046C010 0046C140 0058EF20,0046D080,UnitSpec,src/game/map/map_spec.h,a unit record (also the world server's unit creation message)
+0073C710,2,,game,0046C6A0 0046C7F0 0046C900,0046C610,WaypointChunk,src/game/map/map_spec_unit.cpp,a unit record's waypoint chunk reader
+0073C718,2,,game,0046C900 0046CBC0,0046C7F0,PatrolChunk,src/game/map/map_spec_unit.cpp,a unit record's patrol chunk reader
+0073C720,2,,game,0046CF10 0046D080,0046CBC0,BehaviourChunk,src/game/map/map_spec_unit.cpp,a unit record's behaviour chunk reader and writer
+0073C728,12,,game,0046D330 0046DE70,00469E20,EffectSpec,src/game/map/map_spec.h,the effect records' base
+0073C758,12,,game,0046D520,0046D730,ParticleSpec,src/game/map/map_spec.h,a particle source record
+0073C788,12,,game,0046D960,0046DBF0,LightSpec,src/game/map/map_spec.h,a light record
+0073C7B8,12,,game,0046DE70 0046DF70,0046E190,SoundSpec,src/game/map/map_spec.h,a sound record
 0073C800,3,,game,0046F1F0 00471B10 00476780,007005E3,IndexArrayClass,-,"CArray (a model or animation file's index arrays); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C80C,3,,game,0046F1F0 00471B10 004763C0,007005E3,SceneObjectArrayClass,-,"CArray (the scene loader's 0x1C-byte CObject elements); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C818,3,,game,0046F1F0 00471B10 00476140 00477380,007005E3,DwordMapClass,-,"CMap (the scene loader's CMap<DWORD; DWORD> (and the maps a node record holds)); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
@@ -134,7 +134,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D018,3,,game,004981B0 00498310 00498CA0 005627C0 0056FD40,007005E3,ClientListClass,-,CList (the client map's lists (world_client_maps 0056FD40)); stored only by game.exe (ours is a std::list)
 0073D024,3,,game,00498E60 00498E80,007005E3,ParticleDepthArrayClass,-,CArray (the particles' draw order 007A9C50); stored only by game.exe (ours is a std::vector)
 0073D030,3,,game,00499DC0 00499E30 00499E90,006E73EB,CCloudNoise,-,the cloud noise base (slots 0 / 1 _purecall); stored only by game.exe (00499DC0 / 00499E30 / 00499E90: its constructor and destructors); ours is the one class CGlobalMapClouds
-0073D0C4,2,,game,004A6580 004A6A90,004A6A70,ClassTemplate,src/game/class_templates.h,a hero class template (ClassTemplate)
+0073D0C4,2,,game,004A6580 004A6A90,004A6A70,ClassTemplate,src/game/players/class_templates.h,a hero class template (ClassTemplate)
 0073D110,3,,game,004B5ED0 004BC870 004C00D0 004C8AF0 004C8F00 004CB7E0 004CBDB0 004CC890 004CC9B0 004CEB80 004CECB0 0058DFF0 00596E70 005D4CD0 0066C540 0066E130 0066E430,007005E3,ScriptGroupClass,-,CArray (a script group (ScriptGroup); its destructor 004BC9A0 stores ObjectRefArrayClass' table); stored only by game.exe (ours is a std::vector)
 0073D11C,3,,game,004B5EF0 004BC8A0 004BC9A0 004BCA20 004BCAE0 004BE090 004BE490 004BEC80 004C1BE0 004C2030 004C2290 004C3B20 004C3DC0 004C81B0 004C8AF0 004C8E20 004C8F00 004CBEF0 0058DFF0 005D4CD0 0066E130 0066E430,007005E3,ObjectRefArrayClass,-,CArray (CArray<ScriptObjectRef> as a script group's base; destructor 004C2290); stored only by game.exe (ours is a std::vector)
 0073D128,13,,game,004BA1C0 004BA250 004BA2D0 005D6300 005D8310,004BA300,GuardMode,src/game/unit_ai.h,the Guard AI mode
@@ -273,25 +273,25 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F0F8,13,,game,00551EC0 00551F50 00552000 005520D0 00552180 005D3760 005D6630 005D8310,005520B0,PlayerMode,src/game/unit_ai.h,the Player AI mode
 0073F12C,3,,game,005528F0 00558470 005942D0,007005E3,LootListClass,-,CList (the loot lists); stored only by game.exe (ours is a std::list)
 0073F140,3,,game,00556830,007005E3,MemoryObjectArrayClass,-,CArray (a unit memory's reports): the constructor's second table with 0073F058's slots; stored only by game.exe (ours is a std::vector)
-0073F18C,42,,game,0055EAB0 0055EC80,0055EC60,World,src/game/world.h,the worlds' base (World)
+0073F18C,42,,game,0055EAB0 0055EC80,0055EC60,World,src/game/world/world.h,the worlds' base (World)
 0073F234,3,,game,0055EAB0 0055EC80 0055EE20 005604B0,007005E3,CountdownArrayClass,-,CArray (the world's countdowns); stored only by game.exe (ours is a std::vector)
-0073F240,7,,game,0055EE40 0055F1A0 0055F1E0 0055F280,0055F260,WorldHandle,src/game/world.h,the server world's counted helper (a player source)
+0073F240,7,,game,0055EE40 0055F1A0 0055F1E0 0055F280,0055F260,WorldHandle,src/game/world/world.h,the server world's counted helper (a player source)
 0073F25C,26,,game,0055EE40 0055F400 006614F0,0055F3E0,ItemManager,src/game/item_manager.h,
 0073F2C4,25,,game,0055EE40 0055F3A0,0055F380,EffectManager,src/game/core/base_manager.h,
-0073F328,25,,game,0055EE40 0055F350,0055F330,PlayerManager,src/game/player_manager.h,
-0073F38C,7,,game,0055F1A0 0055F410 0055F550 0055F6B0,0055F2F0,PlayerSource,src/game/player_source.h,the player sources' base
+0073F328,25,,game,0055EE40 0055F350,0055F330,PlayerManager,src/game/players/player_manager.h,
+0073F38C,7,,game,0055F1A0 0055F410 0055F550 0055F6B0,0055F2F0,PlayerSource,src/game/players/player_source.h,the player sources' base
 0073F3A8,7,,game,0055F410 0055F550 0055F6B0 0055F7B0,0055F790,DriverSession,src/game/net_link.h,the network session (DriverSession)
-0073F41C,43,,game,005612F0 00561B00,00561A00,WorldClient,src/game/world.h,the client world
+0073F41C,43,,game,005612F0 00561B00,00561A00,WorldClient,src/game/world/world.h,the client world
 0073F4C8,8,,game,005612F0 005616C0 00561B00,005617E0,RainSnow,src/game/effects.h,the rain and snow layer (CRainSnow)
 0073F4E8,5,,game,0046F1F0,00402CF0,RainSnow,src/game/effects.h,the rain and snow layer's tail (a byte match in 0046F1F0 split it off)
-0073F4FC,13,,game,005612F0,00561AE0,PlatformSet,src/game/world.h,the client world's platform set (CBridgeManager)
+0073F4FC,13,,game,005612F0,00561AE0,PlatformSet,src/game/world/world.h,the client world's platform set (CBridgeManager)
 0073F530,3,,game,005612F0 00561B00 00570510 005951A0 00596C60 0059DF90 005BFCD0 005C0600,007005E3,ClientObjectListClass,-,CList (the client world's and the sectors' object lists); stored only by game.exe (ours is a std::list)
 0073F53C,3,,game,005612F0 00561B00 00570180,007005E3,ClientObjectPtrArrayClass,-,CArray (the client maps' engine object pointers); stored only by game.exe (ours is a std::vector)
 0073F548,3,,game,00561A60 0056FD70 0056FE40,007005E3,PlatformListClass,-,CList (the client maps' platform lists); stored only by game.exe (ours is a std::list)
-0073F554,25,,game,00561E50 00562DF0,00562DD0,ClientArrayManager,src/game/world.h,
+0073F554,25,,game,00561E50 00562DF0,00562DD0,ClientArrayManager,src/game/world/world.h,
 0073F5B8,25,,game,00561E50,00562EA0,LightningManager,src/game/lightning.h,
 0073F61C,3,,game,00561E50 00562EC0 00571F10,007005E3,ClientObjectList2Class,-,CList (engine objects in the client maps); stored only by game.exe (ours is a std::list)
-0073F628,7,,game,00561E50 005626B0 005626D0,00562750,ClientHandle,src/game/world.h,the client world's player source
+0073F628,7,,game,00561E50 005626B0 005626D0,00562750,ClientHandle,src/game/world/world.h,the client world's player source
 0073F644,25,,game,00561E50 005627C0,005627A0,ParticleManager,src/game/effects.h,
 0073F6A8,16,,game,00561E50 00562B80,00562B60,Terrain,src/game/terrain.h,the client's terrain
 0073F6E8,2,,lib,006E81C2,00401510,Terrain,src/game/terrain.h,the tail of 0073F6A8 (a byte match in 006E81C2)
@@ -307,7 +307,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F7F8,42,,game,005794B0 00579730,00579690,dead class,-,stored only by dead code 005794B0 / 00579730
 0073F8A4,9,,game,005809D0 00580E60,004DAE30,BufferedFile,-,stored only by game.exe (ours reads the quest file whole: platform::ReadFile since PL11a)
 0073F8C8,9,,game,00580DD0 00580DF0 00580E60,004DAE30,BufferedStream,-,stored only by game.exe (BufferedFile's base)
-0073F928,42,,game,00589ED0 0058AAD0,0058A430,WorldServer,src/game/world.h,the server world
+0073F928,42,,game,00589ED0 0058AAD0,0058A430,WorldServer,src/game/world/world.h,the server world
 0073F9D0,3,,game,00589ED0 0058AAD0 00599D60,007005E3,RefListBClass,-,CList (the world server's counted pointers); stored only by game.exe (ours is a std::list)
 0073F9DC,1,,game,0058A450 0058A700 005B3C30 005B5E10 005C02E0,0058A780,SectorMap,src/game/sector_map.h,the sector map
 0073F9E0,3,,game,0058A450 005997A0 005B3C30,007005E3,AreaListClass,-,CArray (the AI map's area lists; after CSectorMap's one-slot table 0073F9DC); stored only by game.exe (ours is a std::list)
@@ -316,13 +316,13 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073FA04,3,,game,0058A960 0058AA60 00599180 005AF3D0 005B3FF0 005BD1E0,007005E3,CellRowArrayClass,-,CArray (the AI map's cell rows); stored only by game.exe (ours is a std::vector)
 0073FA10,3,,game,0058AAD0 0059A340 0059A3C0,007005E3,SharedObjectListClass,-,CList (the world server's shared objects); stored only by game.exe (ours is a std::list)
 0073FA4C,3,,game,0058DAF0 00598F40,007005E3,RefListAClass,-,CList (the world server's new connections; 00598F40); stored only by game.exe (ours is a std::list)
-0073FA58,12,,game,0058ECE0,0046AB20,ObjectSpec,src/game/map_spec.h,"the quick item effect's object record (UseQuickItem): a twin of 0073C5F0 with the same slots (slot 10 0058EDD0, the same body as 0046A6F0)"
+0073FA58,12,,game,0058ECE0,0046AB20,ObjectSpec,src/game/map/map_spec.h,"the quick item effect's object record (UseQuickItem): a twin of 0073C5F0 with the same slots (slot 10 0058EDD0, the same body as 0046A6F0)"
 0073FA88,4,,game,0058EF20 0058FB60 0058FB90 0058FBB0 00590C70 00594CE0 00596E70,0058FBC0,ItemLink,src/game/item.h,an item's link record (the world server's)
 0073FAA4,3,,game,00590700 00590A40 00590C70 005910A0 0059B0B0 00604130 0060C870 0060E6B0 00615850 00616910 00616AC0 00616E20 00638280,007005E3,PartyUnitArrayClass,-,CArray (the server's and interface's party unit arrays); stored only by game.exe (ours is a std::vector)
 0073FAB0,3,,game,005911C0 0059B260,007005E3,ExperienceListClass,-,CList (CWorldServer::AwardExperience's list); stored only by game.exe (ours is a std::list)
 0073FABC,3,,game,005947E0 00594950 005989D0 0059A100 0059A3C0 0059A4A0,007005E3,ObjectPtrArrayBaseClass,-,CArray (an array of object pointers; the base 0059A100 restores); stored only by game.exe (ours is a std::vector)
 0073FAC8,3,,game,005947E0 005985C0 0059A4A0 0059E330,007005E3,ObjectPtrArrayClass,-,CArray (a save's shared object pointers; derived from ObjectPtrArrayBaseClass); stored only by game.exe (ours is a std::vector)
-0073FAD4,2,,game,00596030,0042BEE0,RootChunk,src/game/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
+0073FAD4,2,,game,00596030,0042BEE0,RootChunk,src/game/map/chunk_stream.h,the .mob object file's root (CWorldServer::LoadMapObjects)
 0073FADC,1,,game,0059DF90 005BFCD0 005C0600,0059E080,Sector,src/game/sector_map.h,a world sector
 0073FAE0,3,,game,0059DF90 0059E0A0 005BFCD0 005C0600,007005E3,SectorOccluderArrayClass,-,CArray (a sector's occluders; after the sector's one-slot table 0073FADC); stored only by game.exe (ours is a std::vector)
 0073FB10,13,,game,005A7010,005A7060,FigureMeshDrawer,src/game/link_figure.h,class 0x36 CFigureClientSpecific (the client-specific factory 0042D700)
@@ -483,13 +483,13 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00742F64,25,,game,0065E320,0065E4D0,UiTooltip,src/game/ui.h,a region's tooltip (CUiTooltip)
 00742FD8,2,,game,0065ED30 0065EDE0,0065F170,UiScrollingSurface,src/game/ui_screens.h,the titles' scrolling text surface (CUiScrollingSurface)
 00742FF4,3,,game,0065F2D0 00661050 006611D0 006613C0 00663410 00664160,007005E3,PartyMemberArrayClass,-,CArray (a party's unit records); stored only by game.exe (ours is a std::vector)
-00743000,27,,game,0065F2D0 00661050 006611D0 006613C0 00662FB0 00663410,00661190,Party,src/game/party.h,the party (Party)
+00743000,27,,game,0065F2D0 00661050 006611D0 006613C0 00662FB0 00663410,00661190,Party,src/game/players/party.h,the party (Party)
 0074306C,27,,game,00661050 006613C0,006611B0,ManagerContext,src/game/core/manager_context.h,Party's base (the manager context's getters null)
-00743104,13,,game,00664BF0 00664E20,00664E00,Player,src/game/player_messages.h,a world player (Player)
+00743104,13,,game,00664BF0 00664E20,00664E00,Player,src/game/players/player_messages.h,a world player (Player)
 00743138,3,,game,00664BF0 00664E20 00665FF0,007005E3,PlayerListClass,-,CList (a player's list); stored only by game.exe (ours is a std::list)
-00743180,24,,game,00666D10 00666FD0,00666FB0,PlayerClient,src/game/player_client.h,a player's client side (CPlayerClient)
-007431E0,24,,game,00666D10 00666EC0 00666FD0 0066C540 0066C770,00666F70,PlayerConnection,src/game/player_messages.h,the player connection's base (CPlayerConnection; slots 13 / 23 pure)
-00743280,24,,game,0066C540 0066C770,0066C750,PlayerServer,src/game/player_messages.h,a player's server side (CPlayerServer)
+00743180,24,,game,00666D10 00666FD0,00666FB0,PlayerClient,src/game/players/player_client.h,a player's client side (CPlayerClient)
+007431E0,24,,game,00666D10 00666EC0 00666FD0 0066C540 0066C770,00666F70,PlayerConnection,src/game/players/player_messages.h,the player connection's base (CPlayerConnection; slots 13 / 23 pure)
+00743280,24,,game,0066C540 0066C770,0066C750,PlayerServer,src/game/players/player_messages.h,a player's server side (CPlayerServer)
 007432E0,7,,game,00671280 006714A0 006721D0 006722F0,006713A0,MappedResource,src/game/data/resource.h,
 007432FC,1,,game,006714A0 006722F0,00672040,MappedResource,src/game/data/resource.h,the tail of 007432E0 (its slot 7) and 00743300 (devirtualised calls of FreeAllFiles in 006714A0 / 006722F0)
 00743300,8,,game,006721D0 006722F0,006722D0,MMIOResource,src/game/data/resource.h,
@@ -545,9 +545,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00744060,1,,game,006A5D60 006A63B0 006A85A0 006ABF60 006AC0D0 006AC240 006AC3B0,006E73EB,ItemRecordHead,src/game/item_db.h,the item records' base (_purecall)
 00744064,1,,game,006A5D60 006A8290 006A90B0 006AA630 006ABCD0 006ABE20,006A6440,ArmorRecord,src/game/item_db.h,an armour record
 00744068,1,,game,006A5D60 006A8110 006A8C50 006AA380 006AB9C0 006ABB50,006A6430,WeaponRecord,src/game/item_db.h,a weapon record
-00744098,13,,game,006B4350 006B44B0,006B4490,MusicSystem,src/game/sound.h,
+00744098,13,,game,006B4350 006B44B0,006B4490,MusicSystem,src/game/sound/sound.h,
 007440CC,3,,game,006B4350 006B44B0 006B56C0,007005E3,ThemeArrayClass,-,CArray<MusicTheme> (the music system's themes); stored only by game.exe (ours is a std::vector)
-007440F0,13,,game,006B6040 006B65D0,006B62B0,SoundManager,src/game/sound.h,
+007440F0,13,,game,006B6040 006B65D0,006B62B0,SoundManager,src/game/sound/sound.h,
 00744124,3,,game,006B6040 006B65D0 006BC870,007005E3,WaveListClass,-,CList (the sound cache's wave records); stored only by game.exe (ours is a std::list)
 00744130,3,,game,006B6040 006B65D0 006BC570,007005E3,SoundListClass,-,CList (the sound manager's list); stored only by game.exe (ours is a std::list)
 00744184,3,,game,006BF5F0 006BF8A0 006C4690,007005E3,SectorVertexArrayClass,-,CArray (a terrain sector's vertex records); stored only by game.exe (ours is a std::vector)

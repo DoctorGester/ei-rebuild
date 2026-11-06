@@ -8,7 +8,7 @@
 #include "game/screen_layout.h"
 
 #include "game/data/resource.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/crt.h"
 #include "render/render_rich_text.h"

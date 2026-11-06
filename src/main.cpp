@@ -5,9 +5,9 @@
 //   app or chosen); without one (none chosen) the program ends at once. With EI_GAME_ROOT the
 //   settings file's Work path is read as that folder. What follows "--" is the game's command
 //   line, as typed (WinMain's).
-#include "game/app.h"
-#include "game/rebirth_profile.h"
-#include "game/settings.h"
+#include "game/app/app.h"
+#include "game/app/rebirth_profile.h"
+#include "game/app/settings.h"
 #include "lib/text_case.h"
 #include "platform/log.h"
 #include "platform/platform.h"

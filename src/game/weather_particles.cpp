@@ -16,7 +16,7 @@
 #include "render/render.h"
 #include "render/render_checks.h"
 #include "game/weather_field.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/maths.h"

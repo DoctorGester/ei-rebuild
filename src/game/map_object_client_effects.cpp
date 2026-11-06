@@ -9,20 +9,20 @@
 #include "game/map_object_shadow.h"
 #include "game/core/base_manager.h"
 #include "game/spell.h"
-#include "game/sound.h"
+#include "game/sound/sound.h"
 #include "game/terrain.h"
 #include "game/unit.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <utility>
 
-#include "game/game_singletons.h"
-#include "game/options.h"
-#include "game/world.h"
+#include "game/app/singletons.h"
+#include "game/app/options.h"
+#include "game/world/world.h"
 
 #include <list>
 

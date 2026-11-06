@@ -3,12 +3,12 @@
 // See net_classes.h and docs/notes/network.md.
 #include "game/core/core_refcount.h"
 
-#include "game/game_flow.h"
-#include "game/game_singletons.h"
+#include "game/app/game_flow.h"
+#include "game/app/singletons.h"
 #include "game/core/coder.h"
 #include "game/net_connection.h"
 #include "game/net_messages.h"
-#include "game/quest_records.h"
+#include "game/world/quest_records.h"
 #include "game/ui.h"
 #include "lib/crt.h"
 

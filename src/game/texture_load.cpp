@@ -3,10 +3,10 @@
 #include "game/device.h"
 #include "game/texture.h"
 
-#include "game/console.h"
+#include "game/console/console.h"
 #include "game/dib.h"
-#include "game/game_singletons.h"
-#include "game/options.h"
+#include "game/app/singletons.h"
+#include "game/app/options.h"
 #include "game/surface.h"
 #include "game/core/text_split.h"
 #include "game/unit_client_models.h"

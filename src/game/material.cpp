@@ -2,7 +2,7 @@
 // docs/notes/items_spells.md ("Materials").
 #include "game/material.h"
 
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/mods/mod_folders.h"
 
 #include "lib/bytes.h"

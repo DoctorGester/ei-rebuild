@@ -1,4 +1,4 @@
-# World client view (src/game/world_client_view.cpp). Every frame the client files the objects of
+# World client view (src/game/world/world_client_view.cpp). Every frame the client files the objects of
 # each map sector in view into the frame's draw lists (CWorldClient::CollectVisible), sorts them
 # (IntroSortByModel / FinalSortByModel, IntroSortByModelUse / FinalSortByModelUse), and the
 # interface picks the point under the cursor (PickSurface, PickGround). The scenario spawns wolves

@@ -1,14 +1,14 @@
 // The multiplayer hero screen's left button and keys.
 // See docs/notes/ui.md, section 5.
 #include "game/acks_db.h"
-#include "game/console.h"
-#include "game/game_flow.h"
-#include "game/game_singletons.h"
+#include "game/console/console.h"
+#include "game/app/game_flow.h"
+#include "game/app/singletons.h"
 #include "game/item.h"
-#include "game/saved_parties.h"
+#include "game/players/saved_parties.h"
 #include "game/data/text_manager.h"
 #include "game/map_object_figures.h"
-#include "game/party.h"
+#include "game/players/party.h"
 #include "game/ui.h"
 #include "game/ui_scrollbar.h"
 #include "game/ui_message_box.h"
@@ -17,7 +17,7 @@
 #include "game/unit.h"
 #include "game/unit_create.h"
 #include "game/unit_db.h"
-#include "game/world.h"
+#include "game/world/world.h"
 #include "game/core/random.h"
 
 #include "lib/containers.h"

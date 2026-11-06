@@ -2,7 +2,7 @@
 
 #include "game/lock_key.h"
 #include "game/map_object.h"
-#include "game/map_spec.h"   // LeverSetup
+#include "game/map/map_spec.h"   // LeverSetup
 #include "lib/vecmath.h"
 #include "game/unit.h"
 

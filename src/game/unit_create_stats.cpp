@@ -5,7 +5,7 @@
 #include "game/core/base_manager.h"
 #include "game/item.h"
 #include "game/lever.h"
-#include "game/logic_settings.h"
+#include "game/app/logic_settings.h"
 #include "game/magic_trap.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"

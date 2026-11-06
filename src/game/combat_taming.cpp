@@ -6,11 +6,11 @@
 #include "game/combat.h"
 #include "game/core/engine_object.h"
 #include "game/map_object.h"
-#include "game/object_diplomacy.h"
-#include "game/player_messages.h"
+#include "game/world/diplomacy.h"
+#include "game/players/player_messages.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include <cstdint>
 #include <list>

@@ -1,11 +1,11 @@
 // The main menu (MainMenu, ui_screens.h): its Create, version line, per-frame update, close, message
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
-#include "game/app.h"
-#include "game/game_flow.h"
+#include "game/app/app.h"
+#include "game/app/game_flow.h"
 #include "game/mods/mod_list.h"
-#include "game/options.h"
-#include "game/sound.h"
+#include "game/app/options.h"
+#include "game/sound/sound.h"
 #include "game/ui.h"
 #include "game/ui_message_box.h"
 #include "game/ui_screens.h"
@@ -16,7 +16,7 @@
 #include "game/map_object_figures.h"
 #include "game/core/random.h"
 #include "game/unit_create.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/rect.h"
 #include "platform/platform.h"
@@ -25,8 +25,8 @@
 #include <string>
 #include "game/camera.h"
 #include "game/terrain.h"
-#include "game/bink_video.h"
-#include "game/game_singletons.h"
+#include "game/app/movies.h"
+#include "game/app/singletons.h"
 #include "game/model.h"
 #include "game/figure_manager.h"
 

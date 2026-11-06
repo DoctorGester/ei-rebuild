@@ -8,15 +8,15 @@
 #include "game/combat.h"
 #include "game/combat_internal.h"
 #include "game/combat_plan.h"
-#include "game/game_singletons.h"
+#include "game/app/singletons.h"
 #include "game/item.h"
 #include "game/item_db.h"
 #include "game/map_object.h"
-#include "game/player_messages.h"
+#include "game/players/player_messages.h"
 #include "game/sector_map.h"
 #include "game/spell.h"
 #include "game/unit.h"
-#include "game/world.h"
+#include "game/world/world.h"
 
 #include "lib/bytes.h"
 
