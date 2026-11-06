@@ -704,17 +704,11 @@ struct GameInfoRecord {
     int Read(GameBuffer* buffer);           // 1 unless the buffer ran short
 };
 
-} // namespace net
+// --- The network pump ---------------------------------------------------------------------------
 
-// The network pump: ticks the game server and the game client (net/net_session.h, g_gameServer /
-// g_gameClient). Names provisional; see docs/notes/network.md.
-
-#include "game/net/net_session.h"
-
-namespace net {
-
-// Called from the main loop and from the loading screens : ticks the two sessions with the real time since
-// the last call, then the game's per-frame network step.
+// Ticks the game server and the game client (g_gameServer / g_gameClient). Names provisional; see
+// docs/notes/network.md. Called from the main loop and from the loading screens : ticks the two sessions with the
+// real time since the last call, then the game's per-frame network step.
 void Pump();
 
 } // namespace net

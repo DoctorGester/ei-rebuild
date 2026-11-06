@@ -1,8 +1,10 @@
 // Interface3D coordinate scaling and small accessors, surface placement, model previews and the
-// spell book's record lookups. See ui.h.
+// spell book's record lookups, and the text layout on interface surfaces. See ui.h and docs/notes/ui.md
+// ("Interface base").
 #include "game/ui/ui.h"
 #include "game/ui/ui_chat_overlay.h"
 #include "game/app/key_bindings.h"
+#include "game/core/asset_text.h"
 
 #include "game/app/app.h"
 #include "game/console/console.h"
@@ -19,9 +21,12 @@
 #include "game/ui/screen_layout.h"
 #include "game/world/world.h"
 #include "lib/crt.h"
+#include "lib/rect.h"
 #include "lib/str.h"
+#include "platform/log.h"
 #include "platform/platform.h"
 #include "render/render.h"
+#include "render/render_text.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -32,7 +37,9 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 // --- Interface3D ----------------------------------------------------------------------------
 
@@ -361,20 +368,7 @@ void ClearUiDepth(float z, const Rect* rects, int count) {
     render::ClearDepth(z, rects, !rects ? 0 : count < 8 ? count : 8);
 }
 
-// Text layout on interface surfaces. See docs/notes/ui.md ("Interface base").
-#include "game/ui/ui.h"
-
-#include "game/core/asset_text.h"
-#include "game/console/console.h"
-#include "game/ui/screen_layout.h"
-#include "platform/log.h"
-#include "lib/rect.h"
-#include "render/render_text.h"
-
-#include <cstring>
-#include <string>
-#include <string_view>
-#include <vector>
+// --- Text layout ------------------------------------------------------------------------------------
 
 std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWidth, int font) const {
     std::string ch, word, line;

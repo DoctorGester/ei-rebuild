@@ -43,28 +43,8 @@ EXE = os.path.join(BUILD, 'ei-rebuild.exe')
 MAGIC = b'EICOV1\0\0'
 
 # The areas of the report, gameplay first (the ticket's order: units, combat, spells, AI, scripts, network, saves).
-# A file in a src/game folder goes to its folder's area (GAME_FOLDER_AREAS; docs/notes/file-layout.md); a file still
-# flat in src/game to the first area whose pattern matches its name; the other folders of src are areas of their own.
-GAME_AREAS = [
-    ('saves', r'.*save.*|persistent_globals|chunk_.*'),
-    ('AI', r'unit_ai.*|ai_.*'),
-    ('units', r'unit.*|map_spec_unit|lever.*|lock_key'),
-    ('combat', r'combat.*'),
-    ('spells and items', r'spell.*|world_spells|item.*|world_effect.*|hoover_loot|world_loot|class_template.*'),
-    ('scripts', r'script.*|mob_.*'),
-    ('network', r'net_.*|player_(client|server|sync|messages|source).*|acks?_.*|ack_kind'),
-    ('world', r'world.*|map_object.*|object.*|party.*|quest.*|exit_area|player.*|lightning|map_database|map_file|'
-              r'map_spec|engine_object|game_flow|saved_parties|save_file|frame_lists|persistent.*|sector_map|'
-              r'search_grid'),
-    ('interface', r'ui_.*|ui|cursor_setup|screen_layout|present_window'),
-    ('app', r'app.*|main_loop|options.*|settings.*|console.*|key_bindings|game_folders|mod_folders|rebirth_profile|'
-            r'plugin_fixes|logic_settings'),
-    ('sound and video', r'sound.*|bink_video'),
-    ('game drawing', r'renderer.*|device_.*|figure_.*|model.*|texture.*|terrain.*|particle_.*|effects.*|sky_object|'
-                     r'light|ground_.*|material|surface|link_.*|camera.*|pipeline|device|vis_fog_manager|water_tweens|'
-                     r'weather_.*|torch.*|global_map_clouds|clip|projection|dib|render_helper'),
-    ('game core', r'.*'),
-]
+# A file in a src/game folder goes to its folder's area (GAME_FOLDER_AREAS; docs/notes/file-layout.md); the other
+# folders of src are areas of their own.
 GAME_FOLDER_AREAS = {'saves': 'saves', 'ai': 'AI', 'units': 'units', 'combat': 'combat', 'spells': 'spells and items',
                      'items': 'spells and items', 'script': 'scripts', 'net': 'network', 'world': 'world',
                      'players': 'world', 'map': 'world', 'objects': 'world', 'ui': 'interface', 'app': 'app',
@@ -73,8 +53,8 @@ GAME_FOLDER_AREAS = {'saves': 'saves', 'ai': 'AI', 'units': 'units', 'combat': '
                      'core': 'game core', 'data': 'game core'}
 FOLDER_AREAS = {'render': 'renderer', 'platform': 'platform', 'lib': 'lib', 'audio': 'sound and video',
                 'video': 'sound and video'}
-AREA_ORDER = [a for a, _ in GAME_AREAS[:8]] + ['interface', 'app', 'game drawing', 'sound and video', 'game core',
-                                               'lib', 'renderer', 'platform']
+AREA_ORDER = ['saves', 'AI', 'units', 'combat', 'spells and items', 'scripts', 'network', 'world', 'interface', 'app',
+              'game drawing', 'sound and video', 'game core', 'lib', 'renderer', 'platform']
 GAMEPLAY = set(AREA_ORDER[:8])
 
 
@@ -84,13 +64,7 @@ def area_of(rel):
         return 'app'
     if parts[1] != 'game':
         return FOLDER_AREAS.get(parts[1], 'game core')
-    if len(parts) > 3:   # src/game/units/unit.cpp
-        return GAME_FOLDER_AREAS.get(parts[2], 'game core')
-    name = os.path.splitext(parts[-1])[0]
-    for area, pattern in GAME_AREAS:
-        if re.fullmatch(pattern, name):
-            return area
-    return 'game core'
+    return GAME_FOLDER_AREAS.get(parts[2], 'game core')   # src/game/units/unit.cpp
 
 
 def source_rel(path, cache={}):

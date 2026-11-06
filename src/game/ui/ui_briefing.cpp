@@ -1,7 +1,8 @@
 // The briefing / base screen's main virtuals (BriefingScreen, ui_briefing.h): close, message
 // box answers, a unit leaving the party, game over, the "briefing" command, the chat window and the
-// saved state. See docs/notes/ui.md, "Briefing / base screen".
+// saved state; at the end the "pers <name>" texts. See docs/notes/ui.md, "Briefing / base screen".
 #include "game/ui/ui_briefing.h"
+#include "game/ui/ui_camp.h"
 
 #include "game/scene/camera.h"
 #include "game/combat/combat.h"
@@ -38,6 +39,7 @@
 #include <bit>
 #include <cmath>
 #include <cstring>
+#include <map>
 #include <memory>
 #include <new>
 #include <string>
@@ -49,6 +51,9 @@ constexpr std::uint32_t kLeaveAnswer = 0x90001;
 constexpr std::uint32_t kLoadWindowClosed = 0x100001;
 
 constexpr const char* kZoneTopicFormat = "b.%s";
+
+constexpr const char* kPersonPattern = "pers *";
+constexpr int kPersonPrefixLength = 5;                                               // "pers "
 
 } // namespace
 
@@ -367,26 +372,11 @@ void BriefingScreen::ShowItem(std::string_view name, int index) {
 
 void BriefingScreen::DrawSprites(SceneRenderer* pass) { DrawScreen(this, pass, true); }
 
+// --- The person texts ---------------------------------------------------------------------------
+
 // The "pers <name>" texts of the battle and briefing screens (PersonTextMap, ui_camp.h): one line
 // per person, by the text key of the person's name. Read by the battle screen's setup (inline
 // there) and the briefing screen.
-#include "game/ui/ui_camp.h"
-
-#include "game/data/text_manager.h"
-
-#include "game/console/console.h"
-#include <string>
-#include "lib/str.h"
-#include "game/app/singletons.h"
-#include "game/world/world.h"
-
-namespace {
-
-constexpr const char* kPersonPattern = "pers *";
-constexpr int kPersonPrefixLength = 5;                                               // "pers "
-
-} // namespace
-
 void LoadPersonTexts(std::map<int, std::string>* map) {
     TextManager* texts = g_clientWorld.texts.get();
     std::string line;

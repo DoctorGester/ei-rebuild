@@ -1,5 +1,7 @@
 // The hero panels shared by the camp and the multiplayer hero screen: the statistics column.
-// See docs/notes/ui.md ("Camp, global map, hero screens").
+// See docs/notes/ui.md ("Camp, global map, hero screens"). The panels' small methods, the equipment panel's shown
+// weapon / quick item, its right button and item lookup, and the quick strip's selection and item lookup, are at the
+// end (docs/notes/ui.md, section 5).
 #include "game/combat/combat.h"
 #include "game/console/console.h"
 #include "game/app/singletons.h"
@@ -23,8 +25,10 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
+#include <algorithm>
 #include <initializer_list>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -103,6 +107,44 @@ void AddMakerPictures(ConstructorPage* page) {
     frame->texture = nullptr;
     frame->visible = false;
     page->highlight = frame;
+}
+
+// Help topics.
+constexpr int kTopicSpellContainer = 0x13;
+constexpr int kTopicSpell = 0x14;
+constexpr int kTopicModifier = 0x15;
+constexpr int kTopicSkillLine = 0x1A;
+constexpr int kTopicManaLine = 0x1B;
+constexpr int kTopicBuildable = 0xD;
+constexpr int kTopicPart = 0xE;
+constexpr int kTopicMaterial = 0xF;
+constexpr int kTopicItemContainer = 0x10;
+
+// The `nth` (from 0) of the slots' items that `matches`, or null.
+template <typename Predicate>
+Item* NthSlot(Party* slots, int nth, Predicate matches) {
+    const auto& items = slots->items;
+    int found = 0;
+    for (Item* item : items) {
+        if (!matches(item)) continue;
+        if (found == nth) return item;
+        ++found;
+    }
+    return nullptr;
+}
+
+const char* const kChangeSound = "buttons\\camp\\change.wav";
+
+constexpr int kWeaponSlots = 4;      // the cells before the quick items
+constexpr int kTopicWeapon = 2;
+constexpr int kTopicQuickItem = 3;
+constexpr int kTopicFirstBodyPart = 4;   // plus the body part
+constexpr int kTopicEntry = 1;
+
+// `item`'s place in `list`, or -1.
+int IndexIn(const std::vector<Item*>& list, const Item* item) {
+    auto found = std::ranges::find(list, item);
+    return found == list.end() ? -1 : static_cast<int>(found - list.begin());
 }
 
 } // namespace
@@ -480,36 +522,10 @@ void ConstructorPage::BuildItemMaker(Party* party) {
     AddMakerPictures(this);
 }
 
-// --- The constructors' second pages (ConstructorPage, ui_camp.h): the slot item under a point which the
-// camp's hover and help ask every panel for; the spell maker, the item maker.
+// --- The constructors' item lookup ------------------------------------------------------------------
 
-namespace {
-
-// Help topics.
-constexpr int kTopicSpellContainer = 0x13;
-constexpr int kTopicSpell = 0x14;
-constexpr int kTopicModifier = 0x15;
-constexpr int kTopicSkillLine = 0x1A;
-constexpr int kTopicManaLine = 0x1B;
-constexpr int kTopicBuildable = 0xD;
-constexpr int kTopicPart = 0xE;
-constexpr int kTopicMaterial = 0xF;
-constexpr int kTopicItemContainer = 0x10;
-
-// The `nth` (from 0) of the slots' items that `matches`, or null.
-template <typename Predicate>
-Item* NthSlot(Party* slots, int nth, Predicate matches) {
-    const auto& items = slots->items;
-    int found = 0;
-    for (Item* item : items) {
-        if (!matches(item)) continue;
-        if (found == nth) return item;
-        ++found;
-    }
-    return nullptr;
-}
-
-} // namespace
+// (ConstructorPage, ui_camp.h): the slot item under a point which the camp's hover and help ask every panel for; the
+// spell maker, the item maker.
 
 ItemUnder SpellMakerPage::ItemAt(Point point) {
     if (!enabled) return {};
@@ -586,36 +602,6 @@ void HeroEquipPanel::DrawSprites(SceneRenderer* pass) {
     }
     ClearUiDepth(1.0f);
 }
-
-// The hero panels' small methods: the equipment panel's shown weapon / quick item,
-// its right button and item lookup; the quick strip's selection
-// and item lookup. See docs/notes/ui.md, section 5.
-#include "game/ui/ui_camp.h"
-#include "game/ui/ui_screens.h"
-#include "game/items/item.h"
-#include "game/units/unit.h"
-
-#include <algorithm>
-#include <cstdint>
-#include <vector>
-
-namespace {
-
-const char* const kChangeSound = "buttons\\camp\\change.wav";
-
-constexpr int kWeaponSlots = 4;      // the cells before the quick items
-constexpr int kTopicWeapon = 2;
-constexpr int kTopicQuickItem = 3;
-constexpr int kTopicFirstBodyPart = 4;   // plus the body part
-constexpr int kTopicEntry = 1;
-
-// `item`'s place in `list`, or -1.
-int IndexIn(const std::vector<Item*>& list, const Item* item) {
-    auto found = std::ranges::find(list, item);
-    return found == list.end() ? -1 : static_cast<int>(found - list.begin());
-}
-
-} // namespace
 
 // --- the shown entries ---------------------------------------------------------------------------
 

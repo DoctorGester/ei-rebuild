@@ -170,6 +170,20 @@ link_loader.cpp link_loader_create (the constructor). model.h is scene/scene_ren
 scene/pipeline.cpp. No fold was of a header, so none made an include cycle. Names the batch kept (device_draw.cpp,
 renderer_scene.cpp) stay bare in comments and notes.
 
+C168h moved script/, net/ and ui/ (135 moves, 9 folds into 9 files, 1,338 paths and 35 renamed names rewritten): the
+last batch, so no file is flat in src/game any more. script/script_exec_run.cpp takes script_cleanup (Script's resets;
+its include list joins the file's); net/net_connection.cpp net_connection_life (Connection's state and tick: the
+second anonymous namespace's Age and kRttKeep join the first); net/net_lobby.cpp net_game_info (GameInfoRecord, with
+Sanitize); ui/ui_interface.cpp ui_text (the text layout); ui/ui_window.cpp ui_region_tips (kTipText joins the
+namespace); ui/ui_cursor.cpp cursor_setup (ShapeFiles and kShapes join the file's helpers, which are now one
+anonymous namespace at the top); ui/ui_briefing.cpp ui_person_texts; ui/ui_hero_panels.cpp ui_equip_panels (the three
+anonymous namespaces are one). net/net_session.h took the pump's header (Pump and the two Init...Pointer
+declarations) as a last section inside namespace net (the folded text had included net_session.h again), and
+three files that included it twice (game_flow.cpp, main_loop.cpp, net_session.cpp) have it once. A cycle check over
+every src/game header found only ai/sector_map.h and ai/ai_map.h, which were one by design before (the AI map embeds
+the sector map; sector_map.h ends by including ai_map.h). The plumbing C168a kept for flat files is gone: CMake's glob
+of `src/game/*.cpp`, and coverage.py's name patterns (GAME_AREAS; a file's area is its folder's).
+
 `*_internal.h` (combat, spell effects, world effects) and `script_parse.h` are private headers of one family: they
 stay (combat_plan.h joins combat's). ui_float.h (FloatFromBits for constants written as raw bits, Truncate) moves as
 ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be float literals), not a move.
@@ -287,7 +301,7 @@ Order and running work:
 - The order d-h: the base headers first (core, data: included everywhere, so the later batches' files already name
   them by their final paths), then the subsystems from the world outwards; ui last (the most files, the most
   references).
-- After C168h: `tools/layout.py check` finds no flat file; the map stays as the old-name lookup (`where`) for old
+- Since C168h `tools/layout.py check` finds no flat file; the map stays as the old-name lookup (`where`) for old
   tickets, notes in other branches and memory.
 
 Risks:
@@ -318,7 +332,7 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12554 | C168f |
-| `app/` | 25 | 7034 | C168e |
+| `app/` | 25 | 7031 | C168e |
 | `combat/` | 13 | 6384 | C168f |
 | `console/` | 5 | 2036 | C168e |
 | `core/` | 27 | 3874 | C168d |
@@ -328,19 +342,19 @@ Risks:
 | `map/` | 11 | 2028 | C168e |
 | `models/` | 20 | 5389 | C168g |
 | `mods/` | 6 | 605 | C168d |
-| `net/` | 21 | 6203 | C168h |
+| `net/` | 21 | 7972 | C168h |
 | `objects/` | 22 | 7307 | C168f |
 | `players/` | 23 | 5340 | C168e |
 | `saves/` | 7 | 811 | C168d |
 | `scene/` | 30 | 4684 | C168g |
-| `script/` | 20 | 6526 | C168h |
+| `script/` | 20 | 6739 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 7 | 2467 | C168g |
 | `terrain/` | 12 | 3479 | C168g |
-| `ui/` | 94 | 30730 | C168h |
+| `ui/` | 94 | 32921 | C168h |
 | `units/` | 27 | 10002 | C168f |
 | `world/` | 35 | 9711 | C168e |
-| all | 482 | 145721 | |
+| all | 482 | 149891 | |
 
 533 files today; 55 fold into an owner, 10 split by meaning, 8 new files come out of the splits, 36 moves rename for meaning.
 

@@ -1,22 +1,28 @@
-// Interface windows, their regions and the aligned pointer arrays they keep. See ui.h.
+// Interface windows, their regions and the aligned pointer arrays they keep. A region's tooltip (UiRegion, ui.h) is
+// at the end: made from a text id ("tip <id>" in the texts) or a string, and its text changed. Every screen and HUD
+// panel builder gives its regions tooltips. See ui.h and docs/notes/ui.md ("Interface manager and window base").
 #include "game/models/figure_manager.h"
 #include "game/models/figure_mesh.h"
 #include "game/app/singletons.h"
+#include "game/data/text_manager.h"
 #include "game/models/material.h"
 #include "game/scene/scene_renderer.h"
 #include "game/models/texture.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_mesh.h"
 #include "game/ui/screen_layout.h"
+#include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
+#include "lib/str.h"
 
 #include <bit>
 #include <cstring>
 #include <initializer_list>
 #include <memory>
+#include <string>
 
 namespace {
 // 32-bit wrapping multiply.
@@ -32,6 +38,8 @@ UiMesh* NewModelObject(std::string_view name) {
 constexpr Quaternion kIdentityRotation = /*007C7E58*/ {1.0f, 0.0f, 0.0f, 0.0f};   // a static initialiser
 
 constexpr const char* kClassName = "Sorry, no other way.";
+
+constexpr const char* kTipText = "tip %d";
 
 // A new material of kind 0x16 (filled by the manager) glowing `value` in every channel, referenced.
 Material* NewGlowMaterial(float value) {
@@ -323,24 +331,6 @@ UiWindow::~UiWindow() {
     ReleaseAndClear(objects);
     if (g_interface.mouseCapture == this) g_interface.mouseCapture = nullptr;
 }
-
-// A region's tooltip (UiRegion, ui.h): made from a text id ("tip <id>" in the texts) or a string, and its text
-// changed. Every screen and HUD panel builder gives its regions tooltips. See
-// docs/notes/ui.md ("Interface manager and window base").
-#include "game/ui/ui.h"
-
-#include "game/data/text_manager.h"
-
-#include "lib/crt.h"
-#include <string>
-#include "game/app/singletons.h"
-#include "game/world/world.h"
-#include "lib/str.h"
-
-
-namespace {
-constexpr const char* kTipText = "tip %d";
-} // namespace
 
 // --- A new tooltip --------------------------------------------------------
 

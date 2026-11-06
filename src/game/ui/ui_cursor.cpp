@@ -41,6 +41,59 @@ void BuildMask(const MmpFile& picture, std::uint8_t* mask) {
     }
 }
 
+constexpr std::int32_t kLargeSize = 0x20;
+constexpr std::int32_t kSmallSize = 0x10;
+
+constexpr std::uint32_t kFramePeriod = 125;         // ms per frame of an animated cursor
+
+// A holder pointer emptied, then its old holder released.
+void ReleaseHolder(Surface*& slot) {
+    Surface* old = slot;
+    slot = nullptr;
+    if (old) old->Release();
+}
+
+// The current image's current frame as the part shown.
+void ShowFrame(Cursor* cursor) {
+    const CursorImage* image = cursor->image;
+    const int left = image->frame * image->width;
+    cursor->from = {left, 0, left + image->width, image->height};
+}
+
+struct ShapeFiles {
+    const char* name = nullptr;
+    const char* smallName = nullptr;
+    int hotX = 0, hotY = 0;
+};
+// In the shape order the game selects them by.
+const ShapeFiles kShapes[] = {
+    {"cursor_default", "sm_cursor_default", 0, 0},
+    {"cursor_attack", "sm_cursor_attack", 0, 0},
+    {"cursor_spell", "sm_cursor_spell", 0, 0},
+    {"cursor_wait", "sm_cursor_wait", 0, 0},
+    {"cursor_use", "sm_cursor_use", 0, 0},
+    {"cursor_scroll_u", "sm_cursor_scroll_u", 16, 0},
+    {"cursor_scroll_ur", "sm_cursor_scroll_ur", 32, 0},
+    {"cursor_scroll_r", "sm_cursor_scroll_r", 32, 16},
+    {"cursor_scroll_dr", "sm_cursor_scroll_dr", 32, 32},
+    {"cursor_scroll_d", "sm_cursor_scroll_d", 16, 32},
+    {"cursor_scroll_dl", "sm_cursor_scroll_dl", 0, 32},
+    {"cursor_scroll_l", "sm_cursor_scroll_l", 0, 16},
+    {"cursor_scroll_ul", "sm_cursor_scroll_ul", 0, 0},
+    {"cursor_cancel", "sm_cursor_cancel", 0, 0},
+    {"cursor_talk", "sm_cursor_talk", 0, 0},
+    {"cursor_move", "sm_cursor_move", 0, 0},
+    {"cursor_attack_hd", "sm_cursor_attack_hd", 0, 0},
+    {"cursor_attack_bd", "sm_cursor_attack_bd", 0, 0},
+    {"cursor_attack_lh", "sm_cursor_attack_lh", 0, 0},
+    {"cursor_attack_rh", "sm_cursor_attack_rh", 0, 0},
+    {"cursor_attack_ll", "sm_cursor_attack_ll", 0, 0},
+    {"cursor_attack_rl", "sm_cursor_attack_rl", 0, 0},
+    {"cursor_camera", "sm_cursor_camera", 0, 0},
+    {"cursor_spellcancel", "sm_cursor_spellcancel", 0, 0},
+    {"cursor_steal", "sm_cursor_steal", 0, 0},
+};
+
 } // namespace
 
 CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
@@ -88,34 +141,10 @@ void CursorDrawFrame(Cursor* self) {
     self->drawn = self->rect;
 }
 
-// --- Setup -------------------------------------------------------------------------------------------
+// --- The cursor's own methods ------------------------------------------------------------------------
 
-// The cursor (Cursor, ui_cursor.h): its set-up Init AddShape (called by the cursor set-up, ui/ui_cursor.cpp, at
-// start and after a display reset), its life cycle, shape and the position update each frame runs. See
-// docs/notes/ui.md, section 3.
-
-namespace {
-
-constexpr std::int32_t kLargeSize = 0x20;
-constexpr std::int32_t kSmallSize = 0x10;
-
-constexpr std::uint32_t kFramePeriod = 125;         // ms per frame of an animated cursor
-
-// A holder pointer emptied, then its old holder released.
-void ReleaseHolder(Surface*& slot) {
-    Surface* old = slot;
-    slot = nullptr;
-    if (old) old->Release();
-}
-
-// The current image's current frame as the part shown.
-void ShowFrame(Cursor* cursor) {
-    const CursorImage* image = cursor->image;
-    const int left = image->frame * image->width;
-    cursor->from = {left, 0, left + image->width, image->height};
-}
-
-} // namespace
+// The cursor (Cursor, ui_cursor.h): its set-up Init AddShape (called by SetUpCursors, below, at start and after a
+// display reset), its life cycle, shape and the position update each frame runs. See docs/notes/ui.md, section 3.
 
 void Cursor::Init(TextureDevice* newDevice, bool smallCursors) {
     const std::int32_t size = smallCursors ? kSmallSize : kLargeSize;
@@ -263,52 +292,10 @@ bool Cursor::UpdatePosition() {
     return moved;
 }
 
+// --- The cursors' set-up and reset ----------------------------------------------------------------
+
 // The mouse cursor's set-up and reset: the cursor object is initialised and given its 25 shapes, the "sm_"
 // set when the small cursors are on. The cursor object itself stays the game's own code.
-#include "game/ui/ui_cursor.h"
-#include "game/app/singletons.h"
-#include "game/scene/scene_renderer.h"
-
-#include <cstdint>
-
-namespace {
-// The cursor object and its methods.
-// The device the cursor is drawn on.
-struct ShapeFiles {
-    const char* name = nullptr;
-    const char* smallName = nullptr;
-    int hotX = 0, hotY = 0;
-};
-// In the shape order the game selects them by.
-const ShapeFiles kShapes[] = {
-    {"cursor_default", "sm_cursor_default", 0, 0},
-    {"cursor_attack", "sm_cursor_attack", 0, 0},
-    {"cursor_spell", "sm_cursor_spell", 0, 0},
-    {"cursor_wait", "sm_cursor_wait", 0, 0},
-    {"cursor_use", "sm_cursor_use", 0, 0},
-    {"cursor_scroll_u", "sm_cursor_scroll_u", 16, 0},
-    {"cursor_scroll_ur", "sm_cursor_scroll_ur", 32, 0},
-    {"cursor_scroll_r", "sm_cursor_scroll_r", 32, 16},
-    {"cursor_scroll_dr", "sm_cursor_scroll_dr", 32, 32},
-    {"cursor_scroll_d", "sm_cursor_scroll_d", 16, 32},
-    {"cursor_scroll_dl", "sm_cursor_scroll_dl", 0, 32},
-    {"cursor_scroll_l", "sm_cursor_scroll_l", 0, 16},
-    {"cursor_scroll_ul", "sm_cursor_scroll_ul", 0, 0},
-    {"cursor_cancel", "sm_cursor_cancel", 0, 0},
-    {"cursor_talk", "sm_cursor_talk", 0, 0},
-    {"cursor_move", "sm_cursor_move", 0, 0},
-    {"cursor_attack_hd", "sm_cursor_attack_hd", 0, 0},
-    {"cursor_attack_bd", "sm_cursor_attack_bd", 0, 0},
-    {"cursor_attack_lh", "sm_cursor_attack_lh", 0, 0},
-    {"cursor_attack_rh", "sm_cursor_attack_rh", 0, 0},
-    {"cursor_attack_ll", "sm_cursor_attack_ll", 0, 0},
-    {"cursor_attack_rl", "sm_cursor_attack_rl", 0, 0},
-    {"cursor_camera", "sm_cursor_camera", 0, 0},
-    {"cursor_spellcancel", "sm_cursor_spellcancel", 0, 0},
-    {"cursor_steal", "sm_cursor_steal", 0, 0},
-};
-} // namespace
-
 // Set-up. `smallCursors` (low byte tested) goes to the cursor's Init.
 void SetUpCursors(int smallCursors) {
     const bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;

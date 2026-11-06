@@ -1,4 +1,5 @@
-// Connections of the network sessions: object replication. See net_connection.h.
+// Connections of the network sessions: object replication, then the state and tick of a connection. See
+// net_connection.h.
 #include "game/net/net_connection.h"
 
 #include "game/console/console.h"
@@ -8,11 +9,16 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
+#include "platform/platform.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace net {
@@ -45,7 +51,14 @@ WireId TakeWireId(BufferCursor* cursor) {
     return ref;
 }
 
+// The time from `then` to `now` on a connection's clock (doubles holding float values).
+float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
+
+constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample
+
 } // namespace
+
+// --- Object replication ---------------------------------------------------------------------------
 
 std::uint16_t IdPool::Allocate() {
     if (free.begin() == free.end()) return ++next;
@@ -444,31 +457,10 @@ void Connection::Close() {
     }
 }
 
-} // namespace net
-
+// --- A connection's state and its tick ----------------------------------------------------------
 // A connection's state and reset, its tick (clocks, lost packets, sending, delayed id reuse, the timeout) and what a
 // delivered packet does. See net_connection.h and docs/notes/network.md. The clocks are doubles holding float
 // values: their sums are float sums, as the original's were.
-#include "game/net/net_connection.h"
-
-#include "lib/float_select.h"
-#include "platform/platform.h"
-
-#include <cmath>
-#include <iterator>
-#include <utility>
-#include <vector>
-
-namespace net {
-
-namespace {
-
-// The time from `then` to `now` on a connection's clock (doubles holding float values).
-float Age(double now, double then) { return static_cast<float>(now) - static_cast<float>(then); }
-
-constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample
-
-} // namespace
 
 ConnectionState::ConnectionState(std::uint32_t newId)
     : sendSequence(static_cast<std::uint16_t>(platform::CoarseClock())), id(newId) {}

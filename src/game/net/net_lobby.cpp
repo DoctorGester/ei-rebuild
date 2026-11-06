@@ -1,24 +1,26 @@
 // The client base's lobby: finding servers and joining one, and the server base's half that answers. See
 // net/net_session.h (ClientBase, ServerBase) for the fields. The packets (first byte): 3 ping (the session time),
 // 4 join (magic, id, rate, extra data), 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7
-// refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md.
-#include "game/console/console.h"
-#include "game/data/chunk_archive.h"
-#include "game/core/core_refcount.h"
-#include "game/net/net_session.h"
-#include "game/net/net_messages.h"
-#include "game/core/coder.h"
-#include "lib/crt.h"
+// refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md. The game announcement record
+// (GameInfoRecord) is at the end.
 
+#include "game/console/console.h"
+#include "game/core/coder.h"
+#include "game/core/core_refcount.h"
+#include "game/data/chunk_archive.h"
+#include "game/net/net_messages.h"
+#include "game/net/net_session.h"
+#include "lib/crt.h"
 #include "platform/log.h"
 #include "platform/platform.h"
 
-#include <bit>
 #include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <iterator>
 #include <list>
+#include <string>
 
 namespace net {
 
@@ -63,6 +65,13 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
     b.Put(static_cast<std::uint8_t>(PacketKind::Accepted));
     b.Put(id);
     self->Send(to, &b);
+}
+
+// Control characters (below 0x20) of a received string become '|'.
+void Sanitize(std::string* s) {
+    for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(s->size()); ++i) {
+        if (static_cast<std::uint8_t>((*s)[i]) < 0x20) (*s)[i] = '|';
+    }
 }
 
 } // namespace
@@ -492,25 +501,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
     archive->Field(2, &extra);
 }
 
-} // namespace net
-
-// The game announcement record (GameInfoRecord). See net/net_session.h and docs/notes/network.md.
-#include "game/net/net_session.h"
-
-#include "game/core/coder.h"
-
-namespace net {
-
-namespace {
-
-// Control characters (below 0x20) of a received string become '|'.
-void Sanitize(std::string* s) {
-    for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(s->size()); ++i) {
-        if (static_cast<std::uint8_t>((*s)[i]) < 0x20) (*s)[i] = '|';
-    }
-}
-
-} // namespace
+// --- The game announcement record ---------------------------------------------------------------
 
 void GameInfoRecord::Write(GameBuffer* buffer) const {
     buffer->Put(masterKey);

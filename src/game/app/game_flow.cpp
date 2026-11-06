@@ -19,7 +19,6 @@
 #include "game/net/net_connection.h"
 #include "game/net/net_link.h"
 #include "game/net/net_messages.h"
-#include "game/net/net_session.h"
 #include "game/world/hoover.h"
 #include "game/core/named_floats.h"
 #include "game/map/map_database.h"

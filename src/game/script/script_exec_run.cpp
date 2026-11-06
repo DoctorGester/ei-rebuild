@@ -3,13 +3,11 @@
 // temporaries and the per-tick driver. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
 
+#include "game/app/singletons.h"
 #include "game/core/base_manager.h"
 #include "game/core/random.h"
-#include "game/world/world.h"
 #include "game/effects/world_effect.h"
-
-#include "game/app/singletons.h"
-
+#include "game/world/world.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -83,7 +81,7 @@ void UpdateParticleSources(Script* script) {
 
 } // namespace
 
-// ---- Script instances ---------------------------------------------------------------------------
+// --- Script instances ---------------------------------------------------------------------------
 
 void ScriptDefinition::BindCall(const ScriptCall* call) {
     // The parser checked the call against the script's parameters (LoadFunction with its signature).
@@ -179,12 +177,10 @@ void Script::Tick() {
     FreeTemporaries();
 }
 
-// Clearing parts of a Script while the world runs: dropping references to deleted world objects
-// (after every object removal), and the zone reset when the party enters a zone (instances and runs
-// dropped, effects removed, globals zeroed, the WorldScript blocks started again). See script.h and
-// docs/notes/script.md.
-#include "game/script/script.h"
-#include "game/effects/world_effect.h"
+// --- Clearing parts of a Script ---------------------------------------------------------------
+// Dropping references to deleted world objects (after every object removal), and the zone reset when
+// the party enters a zone (instances and runs dropped, effects removed, globals zeroed, the
+// WorldScript blocks started again). See script.h and docs/notes/script.md.
 
 // Called after every removal of a world object: the runs', the instances' and the global
 // variables drop deleted objects (object variables released, group members removed), then the

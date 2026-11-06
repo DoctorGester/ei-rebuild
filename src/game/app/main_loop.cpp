@@ -26,7 +26,6 @@
 #include "game/scene/scene_renderer.h"
 #include "game/mods/mod_folders.h"
 #include "game/net/net_session.h"
-#include "game/net/net_session.h"
 #include "game/players/class_templates.h"
 #include "game/players/party_records.h"
 #include "game/ui/screen_layout.h"

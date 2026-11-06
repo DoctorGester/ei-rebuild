@@ -6,7 +6,6 @@
 #include "game/core/core_streams.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/net/net_session.h"
 #include "game/core/coder.h"
 #include "game/net/net_connection.h"
 #include "game/net/net_link.h"
