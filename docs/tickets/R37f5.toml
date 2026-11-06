@@ -6,3 +6,5 @@ model = "opus"
 files = ["docs/notes/frame-plan.md"]
 note = "After the deletions, per-draw state, cells, instancing (5524 to 191 calls) and whole-zone terrain, the save's main thread is about 4.3 ms (release terms) and the GPU 2.3 ms. Profile main at the user's settings (Msaa 1, Anisotropy 1, 3840x2160 windowed; one msaa 8 run as worst case) on save5 and the town at night, with work.py test --quiet: the main thread split by part (the R37e3/R37f probes), a sampling profile of the release-equivalent build for anything the probes don't name, and the GPU by pass (gputiming). Known candidates: upload only changed mesh records (R37f3's +0.11 ms GPU copy), caster sort keys, ShadowFrame::casters map, objects' draw hand-over (~1.2 ms), R37e10a-c (ground GPU), R37f4 (occlusion from last frame, user's call). Rank by the user's order: delete, then >2x faster, then parallel; file the top ones."
 order = 1287
+status = "review"
+started = "2026-11-06"

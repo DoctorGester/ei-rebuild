@@ -1,0 +1,8 @@
+id = "R37f8"
+title = "The view test once per object: parts of an object the cells found wholly inside skip ClipTest, crossing meshes projected per vertex only where the verdict is read"
+group = "renderer"
+size = 1
+model = "opus"
+files = ["src/game/objects/map_object_draw.cpp", "src/game/models/figure_part_draw.cpp", "src/game/scene/device_mesh.cpp", "src/game/world/world_client_view.cpp"]
+note = "R37f5 (frame-plan.md, 'Measured after R37f3 and R37e4'): of the save's 1.34 ms of objects' draws (release terms), the per-part TransformPipeline::ClipTest in FigureMeshDrawer::DrawLit is 0.17 ms and the device's per-vertex ProjectClipped of the parts it calls crossing (device_mesh.cpp ProjectAndDraw, DrawFlag::Clipped) 0.19 ms. CollectCells (R37f2) already decides whole cells and objects inside the view by kept world boxes: hand that verdict to the draw (an object wholly inside with the margin: every part inside, if the object's kept box holds its parts' boxes - check, else keep ClipTest for parts outside it) and skip ClipTest and the projection for those. For the crossing parts the per-vertex projection only turns 'crossing' into 'outside' (all vertices beyond one plane) where the box test could not: find who reads that verdict (FigureMeshFlag::Drawn, DrawThroughFigure's result, the drawn rectangle, the caster parts) - if only the picture (the GPU clips anyway), decide by the box; if the game reads it, keep the exact test there. Check as R37f2 did: every verdict compared with the exact tests on every object of the save and the render_ scenarios; goldens the same. Expected 0.36 -> about 0.1 ms."
+order = 1290

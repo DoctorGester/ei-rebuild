@@ -73,6 +73,13 @@ Expected end state: main thread about 4-5 ms in the save (half of today), about 
 | R37f2 | Per-draw state once per batch: pipelines, samplers, frame-wide uniforms and textures; sort keys; `CollectVisible` cells; mesh cache handles | none |
 | R37f3 (done) | Instancing: kept meshes by shared figure part, instanced world and caster draws, indirect caster passes | none (pixels: 1-3 levels on about 0.01%, shader rounding) |
 | R37f4 | Occlusion from last frame's depth, its depth pass deleted | visual, the user's call |
+| R37f6 | PrepareShadows' walks: landscape matrices once, casters by frame stamp, roofs and point casters where they matter | none |
+| R37f7 | Caster draws grouped without a comparison sort | none |
+| R37f8 | The view test once per object: parts of objects wholly inside skip ClipTest and the projection | none (verdicts checked) |
+| R37f9 | Still objects' draws kept across frames (design first) | none |
+| R37f10 (later) | The per-mesh hand-over 2x faster, for what R37f9 leaves | none |
+| R37f11 (later) | The interface in fewer calls (84 of 191) | none |
+| R37f12 (later) | The GPU's other passes, where the town is GPU-bound | to measure |
 
 The older R37e5-R37e9 are folded into these; R37e10 measured the ground's GPU cost (below).
 
@@ -233,3 +240,84 @@ crowd 475 world draws in 37 calls, the sun map 975 in 86, the point faces 420 dr
 - Left: the record copy (upload only what changed since the last frame: most of the save's records are the same each
   frame; costs a compare on the main thread), smaller records (the light matrix's 4th row is unused), the casters' sort by
   a precomputed key, the occlusion's depth pass (R37f4 deletes it).
+
+## Measured after R37f3 and R37e4
+
+R37f5, on main after R37f3 and R37e4b/c (R37e4d's shader split not in it): the save and the town at night at 3840 x 2160
+windowed, msaa 1 and anisotropy 1 (the user's settings), one msaa 8 run of the save as the worst case. Quiet runs
+(`work.py test --quiet`), medians of three runs (the save) and two (the town); the harness build (`EI_RENDER_VALIDATION`)
+beside the release-equivalent one (the same without it). Kit: build/r37f5 in the main checkout (probe_r37f5.patch: R37f3's
+probe, the copy passes counted, a records-twice switch, and a sampling profiler of the main thread in the harness:
+`EI_R37F5_SAMPLE=<path>` suspends the main thread every 250 us between two `renderstats`, unwinds its stack and writes
+exclusive, inclusive and caller > callee counts through dbghelp; kit/: build script, runs, table, scenarios).
+
+**The whole frame.** The save's main thread is 4.02 ms (harness build 4.55; msaa 8, one run: 3.58 / 4.70), of which about
+0.2 ms is the harness's own (its held server update and the state digest, in "game"): the product is about 3.8 ms. The
+GPU is 2.28 ms a frame (msaa 1), so the save is still the main thread's. The town at night is the other way round: the
+main thread 0.78 ms (1.51 with the crowd), frames 2.0-2.3 ms, the main thread waiting in the swap chain's acquire: at 4K
+the GPU limits it.
+
+**The save's main thread by part** (ms a frame, release terms / harness; the probe's parts, then the sampling profile of
+two 2400-frame runs, about 40 000 samples each, shares times 4.02 ms):
+
+| Part | Release | Harness | Inside it (sampling) |
+|---|---|---|---|
+| Objects' draws | 1.34 | 1.80 | the game's part walk about 0.55 (ClipTest 0.17, PushMatrix 0.09, PartLighting 0.05, the matrices); the device's per-vertex projection of crossing parts 0.19; BeginMesh 0.23 (FigureLight 0.13); MeshPass 0.27 (KeepMesh 0.13, ReadPassState 0.06) |
+| PrepareShadows | 0.37 | 0.35 | the point shadows' ListCasters 0.16; PrepareUnitWeather 0.17 (CollectUnitsAndRoofs 0.12: 8 corners of every caster mesh's box); ReceiverMatrices 0.04; CameraInverse::Under 0.13 of it, the same products made twice |
+| Objects' visibility (`CollectCells`) | 0.37 | 0.33 | Place 0.10 (every object's drawn pose), the kept boxes' inputs compared 0.08 |
+| The sun map's CPU side | 0.27 | 0.37 | AddDrawnCasters 0.09 (the casters map found per batch), CasterDraws::Sort 0.05, DrawMap 0.07 |
+| PlanMeshDraws (the world's records and runs) | 0.25 | 0.38 | FillRecord 0.11, BindCachedMesh 0.05 |
+| The casters handed over (ground, outside the view) | 0.23 | 0.24 | the sun map's fit to the visible ground (FitMap's SeeGround) 0.12, the outside walk 0.11 |
+| The occlusion depth's CPU side | 0.21 | 0.19 | CasterDraws::Sort 0.05, BindMeshBatch 0.05 |
+| The game's tick (with the harness's 0.2) | 0.28 | 0.18 | |
+| Submit (the driver) | 0.16 | 0.13 | |
+| The interface and overlays | 0.14 | 0.15 | |
+| The draw lists' sort, the shadow lists | 0.09, 0.06 | 0.09, 0.06 | |
+
+The harness build's extra 0.5 ms is in the objects' draws (0.46: the reuse checks and timers per mesh), the records
+(0.13) and the sun map (0.11). The heap (operator new, RtlAllocateHeap) is about 0.05 ms, memcmp 0.08: no churn left.
+
+**The GPU by pass** (`gputiming pass`, which itself adds about 0.3 ms to the frame; ms):
+
+| Pass | The save, msaa 1 | msaa 8 | The town at night, msaa 1 |
+|---|---|---|---|
+| The world | 1.33 | 1.82 (+ 0.13 the interface's frame pass) | 1.26 |
+| The sun map / its range passes | 0.28 / 0.13 | 0.27 / 0.13 | 0.18 / 0.17 |
+| The occlusion: depth / find / blurs | 0.19 / 0.16 / 0.09 | 0.19 / 0.16 / 0.09 | 0.08 / 0.21 / 0.12 |
+| The uploads (4-5 copy passes a frame) | 0.20 | 0.20 | 0.23 |
+| The present (the gamma ramp's full-screen pass) | 0.13 | 0.13 | 0.14 |
+| The water's sky and scene copies | 0.08 | 0.08 | 0.14 |
+| The point shadows | 0 | 0 | 0.06 |
+
+The record copy R37f3 added costs little in bytes: copying the save's 1.0 MB of records twice (570 KB more) moved the
+GPU frame 2.28 -> 2.32 ms, and the town (GPU-bound, 210 KB uploaded) showed no change beyond its noise. Uploading only
+the changed records would save about 0.05 ms of a GPU that waits on the main thread in the save: not filed. What the
+"upload" pass shows is mostly the copy passes' fixed cost (4 in the save, 5 in the town; R37f12).
+
+**Draw calls a frame**: the save 191 (the sun map 43 for 1874 draws, the occlusion depth 29, the world 33 for 1832
+draws, the interface 84: 61 quad batches, 16 meshes, 7 others; the water's copy and the present 2); the town at night
+131 (the sun map 50, the point shadows' faces 31, the occlusion depth 22, the world 26 for 126 draws), with the crowd
+the sun map 51, the point faces 42, the occlusion 28, the world 37 for 475 draws. The interface is now the largest
+group (R37f11).
+
+**What R37f4 would save** (the occlusion from last frame's depth, the user's call): the save 0.21 ms of main thread and
+0.19 ms of GPU, the town 0.03-0.05 ms and 0.08 ms of GPU.
+
+**Ranked** (the user's order: delete, then more than 2x faster, then parallel; expected gains in the save's release terms):
+
+| Rank | Ticket | Kind | Saves (main thread) | Notes |
+|---|---|---|---|---|
+| 1 | R37f6 | delete | about 0.3 | PrepareShadows 0.40 -> 0.12, AddDrawnCasters 0.09 -> 0.05; ShadowFrame::casters goes |
+| 2 | R37f7 | delete / faster | about 0.09 | caster sorts 0.11 -> 0.02; small, independent |
+| 3 | R37f8 | delete | about 0.25 | ClipTest and projection 0.36 -> 0.1; verdicts checked as R37f2 did |
+| 4 | R37f9 | delete | about 1.0 | still objects re-sent from what was kept: objects' draws 1.34 -> 0.4, records 0.25 -> 0.08; design first, after R37f8 |
+| 5 | R37f4 | delete | 0.21 + 0.19 GPU | waits for the user |
+| 6 | R37f10 (later) | faster | about 0.4 | the per-mesh hand-over 2x; for units and moving objects, or if R37f9 is rejected |
+| - | R37e10a-c | GPU | 0.1-0.3 GPU | the ground; they count where the GPU is the limit (the town at 4K, the save after R37f9) |
+| - | R37f12 (later) | GPU, measure | | the other passes, the town being GPU-bound |
+| - | R37f11 (later) | fewer draws | 84 -> about 25 calls | the interface; no time to speak of |
+
+Not filed: the sun map's fit to the visible ground (FitMap 0.12 ms; a looser fit moves shadow texels: visual), Place for
+still objects in CollectCells (0.10; drawn::Observe needs every object each frame), Submit (the driver's), uploading
+only changed records (above), parallel work (no need: after R37f6-R37f9 the save's main thread should be about 2.3-2.6
+ms, under the GPU's 2.3, and the GPU becomes the limit there too).
