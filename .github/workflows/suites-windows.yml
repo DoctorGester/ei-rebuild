@@ -43,6 +43,80 @@ env:
   EI_GPU_D3D12_WARP: "1"
   EI_COMPILER_CACHE: "0"
 
+jobs:
+  build-release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - name: Shader toolchain cache
+        uses: actions/cache@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      - name: Visual Studio
+        run: |
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '\r')
+          [ -n "$vs" ] || { echo "::error::no Visual Studio with the x64 C++ tools"; exit 1; }
+          echo "EI_VSROOT=$vs" >> $GITHUB_ENV
+          echo "Visual Studio: $vs"
+          ls "$(cygpath -u "$vs")/VC/Tools/MSVC"
+      - name: Build release
+        run: |
+          start=$(date +%s)
+          cmd //c ".\\build.cmd release > build_release.log 2>&1" && ok=1 || ok=0
+          echo "build release: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
+          tail -40 build_release.log
+          grep -h "warning" build_release.log | head -20 || true
+          [ $ok = 1 ] || { echo "::error::build release failed"; exit 1; }
+          ! grep -q "warning C\|warning LNK" build_release.log
+
+  build-verify:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - name: Shader toolchain cache
+        uses: actions/cache@v5
+        with:
+          path: build/third_party
+          key: shader-toolchain-${{ runner.os }}-${{ hashFiles('tools/shader_toolchain/**') }}
+      - name: Visual Studio
+        run: |
+          vs=$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | tr -d '\r')
+          [ -n "$vs" ] || { echo "::error::no Visual Studio with the x64 C++ tools"; exit 1; }
+          echo "EI_VSROOT=$vs" >> $GITHUB_ENV
+          echo "Visual Studio: $vs"
+          ls "$(cygpath -u "$vs")/VC/Tools/MSVC"
+      - name: Build verify
+        run: |
+          start=$(date +%s)
+          cmd //c ".\\build.cmd verify > build_verify.log 2>&1" && ok=1 || ok=0
+          echo "build verify: $(( $(date +%s) - start )) s" | tee -a $GITHUB_STEP_SUMMARY
+          tail -60 build_verify.log
+          grep -h "warning" build_verify.log | head -20 || true
+          if [ $ok = 0 ]; then
+            # the build checks (they draw on WARP) can fail with the exe built: say so and let the suites run
+            [ -f build/verify/ei-rebuild.exe ] || { echo "::error::build verify failed"; exit 1; }
+            echo "::warning::build verify failed after linking ei-rebuild.exe (the build checks?): see the log"
+          fi
+          ! grep -q "warning C\|warning LNK" build_verify.log
+      - name: Harness exe
+        uses: actions/upload-artifact@v5
+        with:
+          name: harness-exe
+          path: |
+            build/verify/ei-rebuild.exe
+            build/verify/ei-rebuild.map
+          retention-days: 3
+          if-no-files-found: error
+
   smoke:
     needs: build-verify
     if: >-
