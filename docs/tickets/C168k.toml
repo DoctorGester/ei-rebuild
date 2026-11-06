@@ -5,4 +5,5 @@ size = 1
 model = "sonnet"
 note = "C168i follow-up 2026-11-06: C168i moved the class to objects/map_object_manager.h but left these definitions in units/unit_create.cpp and unit_create_stats.cpp. Move them; the stats builders are float code, so check goldens (an object-file move may change codegen)."
 order = 1255
-status = "later"
+status = "running"
+started = "2026-11-06"

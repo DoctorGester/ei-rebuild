@@ -6,5 +6,6 @@ model = "opus"
 depends = ["C168h"]
 note = "User 2026-11-05: only the misplaced classes (MapObjectManager out of unit_create.h, Player out of player_messages.h, the spell records out of item_db.h, CreditsScreen gathered into one file); the subject splits of ui_camp.h / ui_screens.h / effects.h are dropped (cosmetic). Original plan: Plan: docs/notes/file-layout.md (C168i). ui/camp.h to global map / camp pages / hero panels; ui/screens.h by screen; effects/effects.h to particles / weather / fog; MapObjectManager out of units/create.h; Player out of players/messages.h; the spell records out of items/db.h; CreditsScreen gathered from three files; ui/panel_draws.cpp into its panels. The user decides whether and when."
 order = 1237
-status = "review"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
