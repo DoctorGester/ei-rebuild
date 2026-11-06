@@ -177,7 +177,7 @@ struct PageSource {
     }
 };
 
-static PageSource SourceOf(const SectorData* sector, int page) {
+static PageSource SourceOf(const SectorData* sector, int page, const SectorChanges& changes) {
     PageSource src;
     src.records = sector->records.data();
     src.recordCount = lib::Count(sector->records);
@@ -191,8 +191,7 @@ static PageSource SourceOf(const SectorData* sector, int page) {
     }
     src.animated = sector->animated.data();
     src.animatedCount = lib::Count(sector->animated);
-    auto it = g_changes.find(sector);
-    if (it != g_changes.end()) src.changes = it->second;
+    src.changes = changes;
     return src;
 }
 
@@ -357,14 +356,15 @@ static void WorkOutOcclusion(const SectorData* sector, SectorOcclusion& entry) {
         }
 }
 
-// The sector's ground occlusion, worked out when it is new for the sector or a neighbour it continued is held now.
-static const SectorOcclusion& GroundOcclusion(const SectorData* sector) {
-    std::uint32_t rebuilt = 0;
-    if (auto it = g_changes.find(sector); it != g_changes.end()) rebuilt = it->second.rebuilt;
+// The sector's ground occlusion, worked out when it is new for the sector or a neighbour it continued is held now
+// (looked at once a frame: the sectors drawn are loaded before their pages). `rebuilt`: the sector's builds.
+static const SectorOcclusion& GroundOcclusion(const SectorData* sector, std::uint32_t rebuilt) {
     SectorOcclusion& entry = g_occlusion[sector];
+    const bool seenNow = entry.seen == FrameNumber();
     entry.seen = FrameNumber();
     const bool same = entry.positions == sector->vertices.data() && entry.sx == sector->sx && entry.sy == sector->sy &&
                       entry.rebuilt == rebuilt && !entry.occlusion.empty();
+    if (same && seenNow) return entry;
     const std::uint8_t held = HeldNeighbours(sector);
     if (same && (held & ~entry.neighbours) == 0) return entry;
     entry.positions = sector->vertices.data();
@@ -388,28 +388,46 @@ struct CachedPage : KeptRanges {
     bool animatedTiles = false;
     QuarterRange quarters[4];
     std::vector<TerrainGroup> groups;      // the quarters' vertices in runs of kGroupVertices, with their boxes
+    // The sector's moves (MovedStamp) each quarter's moving parts were read at (ReadMoving); bit q of `read`: quarter
+    // q's holds.
+    std::uint32_t readAt[4] = {};
+    std::uint8_t read = 0;
+    const SectorChanges* changes = nullptr;   // the sector's (g_changes keeps every entry: its place holds)
 };
+
+// The count of the sector's changes that move a page's vertices or colours in place (the water layer's waves and
+// levels, for a page that reads it; the animated tiles' steps, for a page that holds some): while it is the same, so
+// are they.
+static std::uint32_t MovedStamp(const CachedPage& cached, const SectorChanges& changes) {
+    return (cached.readsWater ? changes.waterMoved : 0) + (cached.animatedTiles ? changes.moved : 0);
+}
 
 // The quarters' vertices in runs with their boxes, after they were built or moved: a run is a few tiles in a row
 // (8 tiles), small enough that its box's top stays close to its ground.
 constexpr std::uint32_t kGroupVertices = 72;
+
+// The boxes of a quarter's runs and of all of it, from its vertices.
+static void QuarterBoxes(CachedPage& cached, QuarterRange& quarter) {
+    quarter.whole.box = Box{};
+    for (std::uint32_t k = quarter.firstGroup; k < quarter.firstGroup + quarter.groupCount; ++k) {
+        TerrainGroup& group = cached.groups[k];
+        group.box = Box{};
+        for (std::uint32_t i = group.first; i < group.first + group.count; ++i) group.box.Extend(cached.vertices[i].position);
+        quarter.whole.box.low = Min(quarter.whole.box.low, group.box.low);
+        quarter.whole.box.high = Max(quarter.whole.box.high, group.box.high);
+    }
+}
+
 static void MakeGroups(CachedPage& cached) {
     cached.groups.clear();
     for (QuarterRange& quarter : cached.quarters) {
         quarter.firstGroup = static_cast<std::uint32_t>(cached.groups.size());
         quarter.whole = TerrainGroup{Box{}, quarter.firstVertex, quarter.vertexCount};
         const std::uint32_t end = quarter.firstVertex + quarter.vertexCount;
-        for (std::uint32_t first = quarter.firstVertex; first < end; first += kGroupVertices) {
-            TerrainGroup group{Box{}, first, (std::min)(kGroupVertices, end - first)};
-            for (std::uint32_t i = first; i < first + group.count; ++i) {
-                const Vector3& at = cached.vertices[i].position;
-                group.box.Extend(at);
-            }
-            cached.groups.push_back(group);
-            quarter.whole.box.low = Min(quarter.whole.box.low, group.box.low);
-            quarter.whole.box.high = Max(quarter.whole.box.high, group.box.high);
-        }
+        for (std::uint32_t first = quarter.firstVertex; first < end; first += kGroupVertices)
+            cached.groups.push_back(TerrainGroup{Box{}, first, (std::min)(kGroupVertices, end - first)});
         quarter.groupCount = static_cast<std::uint32_t>(cached.groups.size()) - quarter.firstGroup;
+        QuarterBoxes(cached, quarter);
     }
 }
 
@@ -473,22 +491,57 @@ static bool SameGeometry(const CachedPage& a, const CachedPage& b) {
            std::memcmp(a.indices.data(), b.indices.data(), a.indices.size() * sizeof(std::uint32_t)) == 0;
 }
 
-// Reads the colours of vertices [from, to) of `cached` from the sector's records; the changed ones are
-// marked for upload. True when any changed.
-static bool ReadColours(const SectorData* sector, CachedPage& cached, std::uint32_t from, std::uint32_t to) {
-    bool changed = false;
-    for (std::uint32_t i = from; i < to; ++i) {
-        // The colour word (the material) is the one the page was built with; the game writes the
-        // specular word (the edge fade; on the water the wave crests).
-        const SectorVertex& record = sector->records[cached.records[i]];
-        std::uint32_t* kept = &cached.colours[2 * static_cast<std::size_t>(i)];
-        if (kept[1] == record.specular) continue;
-        kept[1] = record.specular;
+// Reads what the game moves in place in quarter `q` of `cached` again: the positions (the water layer's waves and
+// levels), the texture coordinates (the animated tiles) and the specular word (the edge fade; on the water the wave
+// crests; the colour word, the material, is the one the page was built with). The changed vertices are marked for
+// upload and the quarter's boxes made again when a position moved; `moved` and `relit` are set when any changed.
+static void ReadMoving(const SectorData* sector, CachedPage& cached, int q, bool& moved, bool& relit) {
+    QuarterRange& quarter = cached.quarters[q];
+    bool positions = false;
+    for (std::uint32_t i = quarter.firstVertex; i < quarter.firstVertex + quarter.vertexCount; ++i) {
+        const std::uint16_t index = cached.records[i];
+        PageVertex& kept = cached.vertices[i];
+        const Vector3& position = sector->vertices[index];
+        const TileVertex& entry = *cached.entries[i];
+        const bool place = std::memcmp(&kept.position, &position, sizeof(Vector3)) != 0;
+        if (place || std::memcmp(&kept.u, &entry.u, sizeof(float)) != 0 ||
+            std::memcmp(&kept.v, &entry.v, sizeof(float)) != 0) {
+            kept.position = position;
+            kept.u = entry.u;
+            kept.v = entry.v;
+            cached.MarkVertex(i);
+            positions = positions || place;
+            moved = true;
+        }
+        std::uint32_t& specular = cached.colours[2 * static_cast<std::size_t>(i) + 1];
+        if (specular == sector->records[index].specular) continue;
+        specular = sector->records[index].specular;
         cached.MarkColour(i);
-        changed = true;
+        relit = true;
     }
-    return changed;
+    if (positions) QuarterBoxes(cached, quarter);
 }
+
+// ReadMoving for quarter `q` unless it was read at the sector's moves `stamp` (MovedStamp).
+static void ReadIfMoved(const SectorData* sector, CachedPage& cached, int q, std::uint32_t stamp, bool& moved,
+                        bool& relit) {
+    const auto bit = static_cast<std::uint8_t>(1u << q);
+    if ((cached.read & bit) != 0 && cached.readAt[q] == stamp) return;
+    ReadMoving(sector, cached, q, moved, relit);
+    cached.readAt[q] = stamp;
+    cached.read |= bit;
+}
+
+#if defined(EI_RENDER_VALIDATION)
+// The kept colours are the records' (the check against a fresh build).
+static bool SameColours(const SectorData* sector, const CachedPage& cached) {
+    for (std::size_t i = 0; i < cached.records.size(); ++i)
+        if (cached.colours[2 * i] != ColourWord(sector, cached.records[i]) ||
+            cached.colours[2 * i + 1] != sector->records[cached.records[i]].specular)
+            return false;
+    return true;
+}
+#endif
 
 // Reads every vertex's position, texture coordinates and occlusion of `cached` again (the game moved some, or the
 // occlusion was worked out again: the tiles are the same); the changed ones are marked for upload. True when any
@@ -777,16 +830,47 @@ int DrawTerrainDepth(const Frame& f, gpu::Pipeline pipeline) {
     gpu::ApplyPipeline(pipeline);
     geometry.Bind();
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowTerrainFsParams, ShadowTerrainFsParams{});
-    int draws = 0;
+    // The occluded batches' pieces by matrix, then by their place in the pool, whatever their texture: those that
+    // follow each other are one draw, one drawn twice is drawn once (the pass takes depth only, so the order does not
+    // matter).
+    struct Range {
+        int matrix = 0;
+        std::uint32_t first = 0, count = 0;
+    };
+    static std::vector<Range> ranges;
+    ranges.clear();
     for (const TerrainBatch& batch : f.terrainBatches) {
         if (!batch.occluded || batch.pieceCount <= 0) continue;
-        gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockShadowTerrainVsParams,
-                          ShadowTerrainVsParams{f.matrices[static_cast<std::size_t>(batch.matrix)]});
-        ForPieceRuns(f, batch, [&](std::uint32_t first, std::uint32_t count) {
-            gpu::DrawIndexed(first, count);
-            ++draws;
-        });
+        ForPieceRuns(f, batch,
+                     [&](std::uint32_t first, std::uint32_t count) { ranges.push_back(Range{batch.matrix, first, count}); });
     }
+    std::sort(ranges.begin(), ranges.end(), [](const Range& a, const Range& b) {
+        return a.matrix != b.matrix ? a.matrix < b.matrix : a.first != b.first ? a.first < b.first : a.count > b.count;
+    });
+    int draws = 0, matrix = -1;
+    std::uint32_t first = 0, end = 0;
+    auto flush = [&] {
+        if (end > first) {
+            gpu::DrawIndexed(first, end - first);
+            ++draws;
+        }
+    };
+    for (const Range& r : ranges) {
+        if (r.matrix != matrix) {
+            flush();
+            matrix = r.matrix;
+            gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockShadowTerrainVsParams,
+                              ShadowTerrainVsParams{f.matrices[static_cast<std::size_t>(matrix)]});
+            first = end = r.first;
+        }
+        if (r.first + r.count <= end) continue;   // within the run already
+        if (r.first != end) {
+            flush();
+            first = r.first;
+        }
+        end = r.first + r.count;
+    }
+    flush();
     return draws;
 }
 
@@ -881,11 +965,14 @@ void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int pa
     PageKey key{sector, page};
     auto [found, made] = g_pages.try_emplace(key);
     CachedPage& cached = found->second;
-    PageSource source = SourceOf(sector, page);
-    const SectorOcclusion& occlusion = GroundOcclusion(sector);
+    if (made) cached.changes = &g_changes[sector];
+    PageSource source = SourceOf(sector, page, *cached.changes);
+    const SectorOcclusion& occlusion = GroundOcclusion(sector, source.changes.rebuilt);
     source.occlusion = occlusion.version;
     const float* occluded = occlusion.occlusion.data();
-    bool moved = false, upload = false;
+    // A page whose tiles, records, occlusion and moves are the ones it was read with is handed over as kept; else
+    // it is built again, or what moved in it read again (ReadVertices; ReadMoving in each quarter drawn).
+    bool moved = false, relit = false, upload = false;
     if (made) {
         BuildPage(sector, page, cached, occluded);
         upload = true;
@@ -894,14 +981,17 @@ void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int pa
         upload = true;
     } else if (!cached.source.SameTiles(source)) {
         moved = upload = BuildAgain(sector, page, cached, occluded);
-    } else if ((cached.animatedTiles && cached.source.changes.moved != source.changes.moved) ||
-               (cached.readsWater && cached.source.changes.waterMoved != source.changes.waterMoved) ||
-               cached.source.occlusion != source.occlusion) {
+        cached.read = 0;
+    } else if (cached.source.occlusion != source.occlusion) {
         moved = ReadVertices(sector, cached, occluded);
+        cached.read = 0;
 #if defined(EI_RENDER_VALIDATION)
     } else if (FrameNumber() % kCheckEvery == 0) {
+        // Every quarter read up to date first (one out of view keeps what it was last read with).
+        const std::uint32_t stamp = MovedStamp(cached, source.changes);
+        for (int q = 0; q < 4; ++q) ReadIfMoved(sector, cached, q, stamp, moved, relit);
         ++g_checks;
-        if (BuildAgain(sector, page, cached, occluded)) {
+        if (BuildAgain(sector, page, cached, occluded) || !SameColours(sector, cached)) {
             LogFirst(g_stale, 20, "render: a terrain page kept on the GPU was stale: sector (%d, %d) page %d",
                      sector->sx, sector->sy, page);
             moved = upload = true;
@@ -909,6 +999,7 @@ void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int pa
 #endif
     }
     cached.source = source;
+    const std::uint32_t stamp = MovedStamp(cached, source.changes);
     if (upload) {
         cached.WriteAll();
         cached.colours.resize(2 * cached.vertices.size());
@@ -916,16 +1007,16 @@ void TerrainPage(const SectorData* sector, const SceneRenderer* renderer, int pa
             cached.colours[2 * i] = ColourWord(sector, cached.records[i]);
             cached.colours[2 * i + 1] = sector->records[cached.records[i]].specular;
         }
+        cached.read = 0xF;
+        for (std::uint32_t& at : cached.readAt) at = stamp;
     }
     if (!g_pool.Placed(cached.place)) cached.dirty = true;
 
-    bool relit = false;
     std::size_t firstPiece = f.terrainPieces.size();
     for (int q = 0; q < 4; ++q) {
         const QuarterRange& range = cached.quarters[q];
         if (sector->quarterMode[q] == TransformPipeline::ClipResult::Outside || range.indexCount == 0) continue;
-        if (!upload && ReadColours(sector, cached, range.firstVertex, range.firstVertex + range.vertexCount))
-            relit = true;
+        ReadIfMoved(sector, cached, q, stamp, moved, relit);
         f.terrainPieces.push_back(TerrainPiece{&cached, q});
     }
     cached.lastUsed = FrameNumber();
@@ -1015,11 +1106,21 @@ int DrawTerrainCasters(gpu::Pipeline pipeline) {
     if (!geometry.vertices[0].buffer) return 0;
     gpu::ApplyPipeline(pipeline);
     geometry.Bind();
+    // The sectors by their place in the pool, those that follow each other one draw (the map takes depth only, so
+    // the order does not matter; the indices are absolute).
+    static std::vector<std::uint32_t> firsts;
+    firsts.clear();
+    for (const SectorCaster* c : g_frameCasters)
+        if (g_casterPool.Placed(c->place)) firsts.push_back(c->place.firstIndex);
+    std::sort(firsts.begin(), firsts.end());
+    const auto indices = static_cast<std::uint32_t>(g_gridIndices.size());
     int draws = 0;
-    for (const SectorCaster* c : g_frameCasters) {
-        if (!g_casterPool.Placed(c->place)) continue;
-        gpu::DrawIndexed(c->place.firstIndex, static_cast<std::uint32_t>(g_gridIndices.size()));
+    for (std::size_t k = 0; k < firsts.size();) {
+        std::size_t end = k + 1;
+        while (end < firsts.size() && firsts[end] == firsts[end - 1] + indices) ++end;
+        gpu::DrawIndexed(firsts[k], indices * static_cast<std::uint32_t>(end - k));
         ++draws;
+        k = end;
     }
     return draws;
 }

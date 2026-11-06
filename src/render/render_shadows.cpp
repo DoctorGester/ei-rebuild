@@ -1098,7 +1098,7 @@ static void DrawMap(const Fit& fit, int cellsAround) {
         gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowTerrainFsParams, fs);
         int draws = DrawTerrainCasters(g_terrainCasterPipeline);
         g_stats.counts[FrameStats::Count::ShadowDraws] += static_cast<std::uint64_t>(draws);
-        g_info.terrainCasters = draws;
+        g_info.terrainCasters = static_cast<int>(TerrainCasterCount());
     }
     gpu::EndPass();
     RangePass(g_reducePipeline, g_cells, g_map, nullptr, "ei-shadow-cells");
