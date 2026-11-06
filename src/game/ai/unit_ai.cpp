@@ -12,7 +12,7 @@
 #include "game/app/singletons.h"
 #include "game/app/logic_settings.h"
 #include "game/map/map_spec.h"
-#include "game/net_classes.h"
+#include "game/net/net_session.h"
 #include "game/world/diplomacy.h"
 #include "game/core/random.h"
 #include "game/saves/save_versions.h"

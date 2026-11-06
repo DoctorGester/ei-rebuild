@@ -11,8 +11,8 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "game/core/text_split.h"
-#include "game/ui.h"
-#include "game/ui_options.h"
+#include "game/ui/ui.h"
+#include "game/ui/ui_options.h"
 #include "game/app/key_bindings.h"
 #include "game/app/singletons.h"
 

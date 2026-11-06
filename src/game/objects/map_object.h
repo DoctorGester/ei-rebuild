@@ -5,7 +5,7 @@
 // MapObjectClientSpecific (0x3A) on the client; both point back at the object.
 
 #include "game/core/engine_object.h"
-#include "game/net_delta.h"          // DeltaState
+#include "game/net/net_delta.h"          // DeltaState
 #include "game/objects/object3d.h"   // Object3D, the base
 
 #include "lib/bit_flags.h"

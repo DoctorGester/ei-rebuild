@@ -5,7 +5,7 @@
 #include "game/ai/ai_map.h"
 #include "game/ai/ai_motion.h"
 #include "game/core/core_streams.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 
 #include <cstdint>
 

@@ -3,8 +3,8 @@
 #include "game/combat/combat.h"
 #include "game/core/core_maths.h"
 #include "game/objects/map_object.h"
-#include "game/net_link.h"   // netlink::DriverSession (SetGameResult)
-#include "game/script.h"
+#include "game/net/net_link.h"   // netlink::DriverSession (SetGameResult)
+#include "game/script/script.h"
 #include "game/ai/sector_map.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"

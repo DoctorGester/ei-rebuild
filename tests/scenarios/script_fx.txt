@@ -1,4 +1,4 @@
-# Script effects (src/game/script_effects.cpp): point lights, particle sources, sound (FX) sources
+# Script effects (src/game/script/script_effects.cpp): point lights, particle sources, sound (FX) sources
 # and lightning bolts made by world script commands, then saved into a new slot through the escape
 # menu (the effect savers, against the original) and loaded back (the loaders, record / replay).
 # The creators' verify wrappers check every new effect.

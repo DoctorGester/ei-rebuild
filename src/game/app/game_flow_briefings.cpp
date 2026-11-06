@@ -6,13 +6,13 @@
 #include "game/app/singletons.h"
 #include "game/data/text_manager.h"
 #include "game/mods/mod_folders.h"
-#include "game/net_classes.h"
-#include "game/net_messages.h"   // MapMessage
+#include "game/net/net_session.h"
+#include "game/net/net_messages.h"   // MapMessage
 #include "game/map/map_database.h"
 #include "game/players/party.h"
 #include "game/players/player_client.h"
 #include "game/world/quest_records.h"
-#include "game/ui.h"
+#include "game/ui/ui.h"
 #include "game/world/world.h"
 #include "game/map/folder.h"
 

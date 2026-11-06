@@ -3,7 +3,7 @@
 // The developer console: the streambuf that collects console output, the command executor with its two
 // command maps, the "@"/"#"/"$" script lines and the command handlers. See docs/notes/console.md.
 
-#include "game/ui_font.h"
+#include "game/ui/ui_font.h"
 #include "platform/platform.h"
 #include "lib/bit_flags.h"
 #include "lib/str.h"

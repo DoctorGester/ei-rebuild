@@ -25,7 +25,7 @@
 #include "game/core/random.h"
 #include "game/ai/sector_map.h"
 #include "game/spells/spell.h"
-#include "game/ui.h"
+#include "game/ui/ui.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/units/unit_db.h"

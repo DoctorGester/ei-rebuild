@@ -3,7 +3,7 @@
 
 #include "../harness_netstate_read.h"
 
-#include "game/net_classes.h"
+#include "game/net/net_session.h"
 
 namespace ei::verify::image {
 

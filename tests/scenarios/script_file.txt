@@ -1,4 +1,4 @@
-# A mission script loaded from a file, and the commands no other scenario runs (H43d; src/game/script_parse_load.cpp
+# A mission script loaded from a file, and the commands no other scenario runs (H43d; src/game/script/script_parse_load.cpp
 # LoadFile, script_parse.cpp AddDefine, script_effects.cpp, script_exec.cpp RedeployParty, script_addon_commands.cpp
 # GameOverMsg and AddMobEx, script_addon_units.cpp GetObjectsOnMap). The console's "@" lines run in the world's second
 # script, which a save does not hold; "execs <file>" (Rebirth's console command) loads the file into the mission

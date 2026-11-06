@@ -8,7 +8,7 @@
 #include "game/core/core_transform.h"
 #include "game/effects/effects.h"
 #include "game/effects/lightning.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/scene/light.h"
 #include "game/spells/spell.h"
 

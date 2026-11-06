@@ -6,7 +6,7 @@
 #include "game/effects/world_effect.h"
 #include "game/objects/map_object.h"
 #include "game/world/world.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/app/singletons.h"
 
 #include "lib/float_select.h"

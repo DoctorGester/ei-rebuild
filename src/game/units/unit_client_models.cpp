@@ -16,7 +16,7 @@
 #include "game/models/link_loader.h"
 #include "game/models/texture.h"
 #include "game/data/resource.h"
-#include "game/ui.h"
+#include "game/ui/ui.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"

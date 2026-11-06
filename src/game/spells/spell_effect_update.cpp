@@ -2,7 +2,7 @@
 // lasting effects (state 2), plus the release helpers. See docs/notes/items_spells.md.
 #include "game/ai/ai_map.h"
 #include "game/objects/map_object.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/spells/spell.h"
 #include "game/spells/spell_effect_internal.h"
 #include "game/combat/combat.h"

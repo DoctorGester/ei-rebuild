@@ -17,7 +17,7 @@
 #include "game/effects/lightning.h"
 #include "game/models/link_loader.h"
 #include "game/models/material.h"
-#include "game/net_link.h"   // netlink::NetLink: the world handle's pending link
+#include "game/net/net_link.h"   // netlink::NetLink: the world handle's pending link
 #include "game/world/hoover.h"     // Hoover
 #include "game/world/diplomacy.h"
 #include "game/app/options.h"
@@ -25,14 +25,14 @@
 #include "game/core/random.h"
 #include "game/data/registry.h"
 #include "game/data/resource_manager.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/ai/sector_map.h"
 #include "game/scene/sky_object.h"
 #include "game/sound/sound.h"
 #include "game/spells/spell.h"
 #include "game/terrain/terrain.h"
 #include "game/data/text_manager.h"
-#include "game/ui_flying_hit_points.h"
+#include "game/ui/ui_flying_hit_points.h"
 #include "game/units/unit.h"
 #include "game/units/unit_create.h"
 #include "game/world/world.h"

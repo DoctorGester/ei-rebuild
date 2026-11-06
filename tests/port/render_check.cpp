@@ -2,7 +2,7 @@
 // the native renderer (render/gpu.h: Vulkan on Linux, lavapipe without a GPU; Metal on macOS), the game window's pixel
 // size and coordinates, and the cursor's hold (Cursor::SetHeld). On Linux then the window's present after resizes: a
 // frame of known rows presented on a window of its own, read back from the X server. Exit code 0 when all pass.
-#include "game/ui_cursor.h"
+#include "game/ui/ui_cursor.h"
 #include "platform/platform.h"
 #include "render/glyph_cases.h"
 #include "render/gpu.h"

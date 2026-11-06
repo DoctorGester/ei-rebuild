@@ -2,8 +2,8 @@
 // player 0's variables. See world.h.
 #include "game/world/world.h"
 
-#include "game/net_classes.h"
-#include "game/net_messages.h"
+#include "game/net/net_session.h"
+#include "game/net/net_messages.h"
 #include "game/players/party.h"
 #include "game/players/player_client.h"
 

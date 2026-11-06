@@ -12,7 +12,7 @@
 #include "game/map/mob_script_decoder.h"
 #include "game/world/diplomacy.h"
 #include "game/app/options.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"

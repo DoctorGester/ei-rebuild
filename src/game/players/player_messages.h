@@ -8,9 +8,9 @@
 #include "game/units/ack_kind.h"
 #include "game/core/engine_object.h"
 #include "lib/vecmath.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/players/party.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/terrain/water_tweens.h"
 
 #include "lib/bit_flags.h"

@@ -1932,7 +1932,7 @@ address,name,library,signature,notes
 0051E400,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0051E520,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
 0051E5D0,"stlp::vector<T>::insert",STLport,,A-U7 review (named library in units.md by A-U5): template instantiation, not game logic
-0051F790,stlp::vector<CString>::_M_insert_overflow,STLport,,"X2 review: grows to size+max(size,n) via the node allocator pool 0079B224 (<=0x80 bytes) or operator new; copies, inserts n copies, destroys and frees the old block; also declared in src/game/ui_objectives.cpp as an original-address call"
+0051F790,stlp::vector<CString>::_M_insert_overflow,STLport,,"X2 review: grows to size+max(size,n) via the node allocator pool 0079B224 (<=0x80 bytes) or operator new; copies, inserts n copies, destroys and frees the old block; also declared in src/game/ui/ui_objectives.cpp as an original-address call"
 00520710,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
 00520760,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 4 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00520EB0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)

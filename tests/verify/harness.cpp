@@ -1608,7 +1608,7 @@ std::string WindowTitleStep() {
 }
 
 // The layout point (x, y) of the 800x600 interface as the mouse steps' share of a window of width x height: the layout
-// fills the window's 4:3 part, the largest one, centred (src/game/screen_layout.h).
+// fills the window's 4:3 part, the largest one, centred (src/game/ui/screen_layout.h).
 void LayoutToWindowShare(int width, int height, int* x, int* y) {
     const double part43Width = width * 3 < height * 4 ? width : height * 4.0 / 3.0;
     const double part43Height = height * 4 < width * 3 ? height : width * 3.0 / 4.0;

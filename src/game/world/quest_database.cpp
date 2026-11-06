@@ -10,7 +10,7 @@
 #include "game/data/chunk_archive.h"
 #include "game/data/database_file.h"
 #include "game/data/registry.h"
-#include "game/script.h"
+#include "game/script/script.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

@@ -1,7 +1,7 @@
 // The network state writers of map objects and units: the virtual that writes an object's dirty fields
 // into its DeltaState for the clients. See docs/notes/units.md ("Network state").
 #include "game/objects/object3d.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 
 #include "game/ai/ai_map.h"
 #include "game/ai/ai_motion.h"

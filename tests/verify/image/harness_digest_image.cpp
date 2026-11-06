@@ -10,7 +10,7 @@
 #include "game/players/player_manager.h"
 #include "game/players/player_messages.h"
 #include "game/core/random.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/spells/spell.h"
 #include "game/terrain/terrain.h"
 #include "game/terrain/terrain_sector.h"

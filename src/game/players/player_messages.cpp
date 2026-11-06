@@ -11,7 +11,7 @@
 #include "game/core/named_floats.h"
 #include "game/players/party.h"
 #include "game/core/random.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"

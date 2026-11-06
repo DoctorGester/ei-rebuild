@@ -5,7 +5,7 @@
 #include "game/core/core_maths.h"
 #include "game/objects/map_object.h"
 #include "game/core/random.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
 

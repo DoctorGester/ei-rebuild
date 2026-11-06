@@ -5,7 +5,7 @@
 #include "lib/bytes.h"
 #include "lib/str.h"
 #include "game/objects/map_object.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/data/text_manager.h"
 #include "game/core/random.h"
 #include "game/sound/sound.h"

@@ -12,8 +12,8 @@
 #include "game/models/texture.h"   // Texture
 #include "game/scene/renderer_lines.h"
 #include "game/scene/light.h"
-#include "game/ui.h"
-#include "game/screen_layout.h"
+#include "game/ui/ui.h"
+#include "game/ui/screen_layout.h"
 #include "game/world/world.h"
 #include "lib/scales.h"
 #include "lib/crt.h"

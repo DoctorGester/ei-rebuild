@@ -4,7 +4,7 @@
 
 #include "game/app/app.h"
 #include "game/app/singletons.h"
-#include "game/ui.h"
+#include "game/ui/ui.h"
 #include "game/world/world.h"
 #include "lib/str.h"
 #include "platform/platform.h"

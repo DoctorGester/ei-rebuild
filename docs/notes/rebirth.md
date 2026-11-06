@@ -192,7 +192,7 @@ not carried.
   (GSSetVar / #OnBriefingComplete) after asking the server.
 - **NewMaster** (always on): the options do not save the Master Server Name; `ServerSession::OnMaster` takes answers from
   any address; `MasterLinkTick` leaves a master link that closed before anything arrived as it is. The second master
-  server (`src/game/net_second_master.cpp`) is opt-in: `SecondMaster = host[:port]` in ei_settings.ini's `[network]`,
+  server (`src/game/net/net_second_master.cpp`) is opt-in: `SecondMaster = host[:port]` in ei_settings.ini's `[network]`,
   empty by default and in harness runs. With an address: the main menu's Multiplayer click starts a look-up thread
   (gethostbyname, at most every 10 s) and waits up to 300 ms; each announcement goes again to it as the same bytes,
   EF BE AD DE, the number of bindings (a byte) and per binding the player's name as (strlen + 1 as a byte, the name, 0);

@@ -3,7 +3,7 @@
 // and docs/notes/objects.md ("Players").
 #include "game/items/item.h"
 #include "game/items/item_manager.h"
-#include "game/net_link.h"
+#include "game/net/net_link.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/units/unit.h"

@@ -15,7 +15,7 @@ enum class ZoneMode;   // world.h
 namespace net {
 struct NetAddress;
 class VariableMessage;
-enum class PauseMode : std::uint8_t;   // net_classes.h
+enum class PauseMode : std::uint8_t;   // net/net_session.h
 }
 
 struct GameFlow {
