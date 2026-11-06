@@ -1,10 +1,8 @@
 id = "R37g"
-title = "The game's frustum test cheaper with the same answers"
+title = "Frame profile again after R37f1-R37f3 and R37e4b-e: where the main thread's ~4.3 ms and the GPU's ~2.3 ms go now, at the user's settings; next tickets ranked"
 group = "renderer"
+size = 1
 model = "opus"
-files = ["src/game/model.cpp"]
-note = "R37 profile: ClipCode (TransformPipeline::ClipTest, model.cpp: 8 corners of the part's cube and 8 of its box, each a full 4x4 transform) is 7.8% of the main thread's samples, 13.7% in the open zones (forests with flora). Test the sphere against the six planes first (inside by a margin: all codes 0; outside one plane by a margin: culled) and compute the corner codes only near an edge, so every answer equals the old one (prove it: a harness-build check comparing old and new on every call over the render and zone scenarios, 0 differences). Expected 0.2-0.5 ms a frame in the forests. Goldens unchanged; ei_vectors. Done: PlaneRanges (model.cpp) decides from each clip plane's range over the cube / box with a 2^-16 margin, corner codes (CubeCorners / BoxCorners) only near a plane or on NaN / infinity. Check (temporary build, old vs new on every call, 46 drawing scenarios x 2 installs): 12.6 M calls, 0 differences; planes decide 99.98% of cubes, 99.5% of boxes. R37 probe, old/new alternating in one game, 2 runs x 3 pairs x 360 frames, Rebirth, pitch 30: zone7 main thread 3.04 -> 2.77 ms (-0.27), zone11 2.18 -> 2.06 ms (-0.12). Suite --golden: 150 runs pass, 122 same / 28 without a golden."
-order = 893
-status = "done"
-started = "2026-10-29"
-done = "2026-10-29"
+files = ["docs/notes/frame-plan.md"]
+note = "After the deletions, per-draw state, cells, instancing (5524 to 191 calls) and whole-zone terrain, the save's main thread is about 4.3 ms (release terms) and the GPU 2.3 ms. Profile main at the user's settings (Msaa 1, Anisotropy 1, 3840x2160 windowed; one msaa 8 run as worst case) on save5 and the town at night, with work.py test --quiet: the main thread split by part (the R37e3/R37f probes), a sampling profile of the release-equivalent build for anything the probes don't name, and the GPU by pass (gputiming). Known candidates: upload only changed mesh records (R37f3's +0.11 ms GPU copy), caster sort keys, ShadowFrame::casters map, objects' draw hand-over (~1.2 ms), R37e10a-c (ground GPU), R37f4 (occlusion from last frame, user's call). Rank by the user's order: delete, then >2x faster, then parallel; file the top ones."
+order = 1287
