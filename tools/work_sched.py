@@ -61,13 +61,44 @@ if _kernel32:
     _kernel32.GetExitCodeProcess.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong))
     _kernel32.GetProcessTimes.argtypes = (ctypes.c_void_p,) + (ctypes.POINTER(ctypes.c_ulonglong),) * 4
     _kernel32.CloseHandle.argtypes = (ctypes.c_void_p,)
+    _kernel32.CreateToolhelp32Snapshot.restype = ctypes.c_void_p
+    _kernel32.CreateToolhelp32Snapshot.argtypes = (ctypes.c_ulong, ctypes.c_ulong)
+
+    class _ProcessEntry(ctypes.Structure):   # PROCESSENTRY32W
+        _fields_ = [('size', ctypes.c_ulong), ('usage', ctypes.c_ulong), ('pid', ctypes.c_ulong),
+                    ('heap', ctypes.c_size_t), ('module', ctypes.c_ulong), ('threads', ctypes.c_ulong),
+                    ('parent', ctypes.c_ulong), ('priority', ctypes.c_long), ('flags', ctypes.c_ulong),
+                    ('exe', ctypes.c_wchar * 260)]
+    _kernel32.Process32FirstW.argtypes = (ctypes.c_void_p, ctypes.POINTER(_ProcessEntry))
+    _kernel32.Process32NextW.argtypes = (ctypes.c_void_p, ctypes.POINTER(_ProcessEntry))
+
+
+def image_name(pid):
+    """The file name of process pid's program (python.exe), from a process list that needs no access to the process;
+    None when it is not running."""
+    snap = _kernel32.CreateToolhelp32Snapshot(0x2, 0)   # TH32CS_SNAPPROCESS
+    if not snap or snap == ctypes.c_void_p(-1).value:
+        return None
+    try:
+        entry = _ProcessEntry(size=ctypes.sizeof(_ProcessEntry))
+        more = _kernel32.Process32FirstW(snap, ctypes.byref(entry))
+        while more:
+            if entry.pid == pid:
+                return entry.exe
+            more = _kernel32.Process32NextW(snap, ctypes.byref(entry))
+        return None
+    finally:
+        _kernel32.CloseHandle(snap)
 
 
 def pid_alive(pid, since=None):
     """True while process pid runs. since (an ISO time, a batch's submitted): the process must have been created by
     then, else it is a later process that Windows gave the same id (R52c1: a finished batch's reused submitter pid held
     its run folders, and the next batch of the same scenario waited on them forever). The stamp has whole seconds, so a
-    process created up to a second after it still counts. Elsewhere only the id is checked."""
+    process created up to a second after it still counts. A process this one may not open has no creation time to
+    look at; with since it counts only when its program is a Python (a work.py test): H66, a finished batch's pid
+    taken by a service's process (a third of the machine's processes deny the query: svchost, the search indexer's
+    hosts) held its run folder for 10 minutes. Elsewhere only the id is checked."""
     if not pid:
         return False
     if not _kernel32:
@@ -78,7 +109,9 @@ def pid_alive(pid, since=None):
             return False
     h = _kernel32.OpenProcess(0x1000, False, pid)   # PROCESS_QUERY_LIMITED_INFORMATION
     if not h:
-        return ctypes.get_last_error() == 5           # access denied: it exists
+        if ctypes.get_last_error() != 5:              # not access denied: no such process
+            return False
+        return since is None or (image_name(pid) or '').lower().startswith('python')
     try:
         code = ctypes.c_ulong()
         if not (_kernel32.GetExitCodeProcess(h, ctypes.byref(code)) and code.value == 259):   # STILL_ACTIVE
@@ -300,6 +333,8 @@ class Scheduler:
         self.db = db
         self.builds = builds or (lambda: build_gate.compiling(os.path.join(live_dir(), 'builds')))
         self.gathering = None      # what the alone run being gathered for waits for, as last logged
+        self.folder_wait = None    # this pass: the quiet head batch's wait for an earlier batch's run folder (H66)
+        self.folder_wait_shown = None   # as last logged and written to the scheduler's process row
         self.code = code if code is not None else code_files()
         self.code_at_start = code_signature(self.code)
         self.stale = False
@@ -403,9 +438,11 @@ class Scheduler:
 
     def schedule(self):
         gathering = False
+        self.folder_wait = None
         try:
             gathering = self._schedule()
         finally:
+            self.show_folder_wait()
             if not gathering:      # let go of slots gathered for an alone run that no longer waits
                 in_use = {i for g in self.games.values() for i in g['slots']}
                 self.pool.release([i for i in self.pool.held if i not in in_use])
@@ -426,7 +463,7 @@ class Scheduler:
         for r in self.db.execute("SELECT run.* FROM run JOIN batch ON batch.id = run.batch "
                                  "WHERE run.state = 'queued' AND batch.state IN ('queued', 'running')"):
             queued[r['batch']].append(r)
-        busy = {g['folder'] for g in self.games.values()}   # never two games in one run folder
+        busy = {g['folder']: g['batch'] for g in self.games.values()}   # never two games in one run folder
         reserved = self.reserved_folders()                   # nor one an earlier batch still needs
         # Only the earliest batch with runs left gathers the machine for an alone run, once its other runs have all
         # started; from then on nothing else starts (H64: a backfill batch ahead of it in batch_priority took the slots
@@ -434,10 +471,16 @@ class Scheduler:
         head = next((b for b in batches if queued[b['id']]), None)
         if head is not None and self.batch_args(head) is not None:
             runs = sorted(queued[head['id']], key=order_key)
-            alone = [r for r in runs if r['alone'] and r['folder'] not in busy
-                     and reserved.get(r['folder'], head['id']) >= head['id']]
-            if alone and all(r['alone'] for r in runs):
-                return self.gather(head, alone[0])
+            if all(r['alone'] for r in runs):
+                holders = [min(busy.get(r['folder'], head['id']), reserved.get(r['folder'], head['id'])) for r in runs]
+                free = [r for r, h in zip(runs, holders) if h >= head['id'] and r['folder'] not in busy]
+                if free:
+                    return self.gather(head, free[0])
+                # H66: every folder it has left is an earlier batch's (one still playing, or one whose work.py test
+                # still compares): it keeps its place and nothing behind it starts (before, the plain batches behind
+                # #9450 took every slot for 10 minutes). The holder is earlier, so it never waits on the head.
+                self.folder_wait = (head['id'], runs[0]['folder'], holders[0])
+                return False
         if sum(not g['slots'] for g in self.games.values()) >= AFTER_GAME_MAX:
             return False                                     # enough runs packing frames
         batches = sorted(batches, key=lambda b: batch_priority(b, queued[b['id']], self.pool.count))
@@ -464,7 +507,7 @@ class Scheduler:
                     self.pool.release(slots)
                     return False                             # the machine is full
                 if self.start(b, r, args, slots):
-                    busy.add(r['folder'])
+                    busy[r['folder']] = b['id']
         return False
 
     def gather(self, batch, run):
@@ -483,6 +526,34 @@ class Scheduler:
                     + (f' ({", ".join(names)})' if names else '')) if waits[0] else 'the alone gate is held by another process'
             self.log(f'batch #{batch["id"]}: {os.path.basename(run["folder"])} (alone) waits: {what}')
         return True
+
+    def show_folder_wait(self):
+        """Logs the quiet head's folder wait when it changes and puts it in the scheduler's process row (info.waits,
+        the work board's quiet panel)."""
+        if self.folder_wait == self.folder_wait_shown:
+            return
+        self.folder_wait_shown = self.folder_wait
+        wait = None
+        if self.folder_wait:
+            batch, folder, holder = self.folder_wait
+            row = self.db.execute('SELECT state, submitter FROM batch WHERE id = ?', (holder,)).fetchone()
+            why = 'its games play' if row is None or row['state'] != 'finished' \
+                else f'its work.py test (pid {row["submitter"]}) still reads it'
+            wait = {'batch': batch, 'folder': os.path.basename(folder), 'holder': holder, 'why': why, 'since': work.now()}
+            self.log(f'batch #{batch}: {wait["folder"]} (alone) waits for batch #{holder}\'s folder ({why}); '
+                     'no later batch starts')
+        with work.transaction(self.db):
+            row = self.db.execute("SELECT info FROM process WHERE name = 'scheduler' AND pid = ?", (os.getpid(),)).fetchone()
+            if row is None:
+                return
+            try:
+                info = json.loads(row['info'] or '{}')
+            except ValueError:
+                info = {}
+            info.pop('waits', None)
+            if wait:
+                info['waits'] = wait
+            self.db.execute("UPDATE process SET info = ? WHERE name = 'scheduler' AND pid = ?", (json.dumps(info), os.getpid()))
 
     def reserved_folders(self):
         """{run folder: the lowest id of the batches that still need what its last game wrote}: the folders of the runs
