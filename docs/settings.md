@@ -8,8 +8,7 @@ written). Each `[section]` holds `name = value` lines; a line starting with `;` 
 comment. When the file is missing or empty the game writes the defaults, each line with its description above
 it; it never adds comments to a file that exists. A value the file lacks takes the default below.
 
-Defaults: the value a new file holds, else the one the game takes when the line is absent. `(install)`: the
-game folder decides (a Rebirth install's EI_Plugin.ini or Rebirth's own setting, else the original's).
+Defaults: what the game takes when the line is absent; a new file holds the lines marked *(new file)*.
 
 The original game's settings this build does not read (a file that holds them keeps the lines; the game
 ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, Dithering, PerspectiveCorrection, ShowParticles, FPSIndependentCursor, AutomaticQuantization, MovieCapturingFPS, DrawingTarget, VideoColorDepthInBits, Specular, TextureQuality, Mipmapping, Filtering, Contrast, [shadows] ShadowQuality, HeroShadow, UnitShadow, BuildingShadow, FloraShadow, OtherShadow, LightingFreq, FloraSpecialLight, [terrain] EnableDynamicLights, ShadowingFreq, EnableWaterWaves, EnableSelfShadowing, EnableFootprints, EnableBloodprints, EnableFireprints, EnableBloodprintsRelight, LightingFreq, [game] Joystick, UseSWCursors, CornerSize, CD1 Label, CD3 Label, Font CharSet, DrawVisibleOnly, Keyboard Layout, ObjectsLightingCoeff, Hero Light R/G/B/Radius, Quest Light R/G/B/Radius, DefaultWindForce, DefaultTimeScale, DefaultMapName, DefaultStreamingSound, FogNightStartDistance, FogDayStartDistance, [statistics] CreateOutputInfo, NumberOfFrames.
@@ -25,9 +24,9 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `VideoResolution` | `(desktop size)` | WxH | The size the game draws at. Full screen, the picture is scaled to the monitor keeping its shape; in a window, the window's size. |
-| `FullScreen` | `true` | true / false | A borderless window covering the monitor; false: a window with a title bar, the resolution's size, centred on the main monitor (it can be moved and resized). The display mode never changes. The options screen's display mode row sets it while the game runs. |
-| `Video` | `2` | 0, 1 or 2 | The game's movies: 0 none, 1 at their own size in the middle of the screen, 2 stretched to the screen's width. Loading screens show either way. |
+| `VideoResolution` | `(desktop size)` *(new file)* | WxH | The size the game draws at. Full screen, the picture is scaled to the monitor keeping its shape; in a window, the window's size. |
+| `FullScreen` | `true` *(new file)* | true / false | A borderless window covering the monitor; false: a window with a title bar, the resolution's size, centred on the main monitor (it can be moved and resized). The display mode never changes. The options screen's display mode row sets it while the game runs. |
+| `Video` | `2` *(new file)* | 0, 1 or 2 | The game's movies: 0 none, 1 at their own size in the middle of the screen, 2 stretched to the screen's width. Loading screens show either way. |
 | `Brightness` | `0` | -1 .. 1 | Brightens (above 0) or darkens (below 0) the whole picture; 0 leaves it as it is. The options screen's slider sets it. |
 | `Gamma` | `0` | -1 .. 1 | Above 0 lightens the mid-tones, below 0 darkens them (black and white stay); 0 leaves the picture as it is. |
 
@@ -35,17 +34,17 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `Audio` | `true` | true / false | Sound on; false: no sound effects, voices, music or movie sound at all. |
-| `AudioStreaming` | `100` | 0 .. 100 | The volume of the music and of the movies' sound; 0 turns the music off. |
-| `AudioSFX` | `100` | 0 .. 100 | The volume of the sound effects. |
-| `AudioSpeech` | `100` | 0 .. 100 | The volume of the characters' voices. |
+| `Audio` | `true` *(new file)* | true / false | Sound on; false: no sound effects, voices, music or movie sound at all. |
+| `AudioStreaming` | `100` *(new file)* | 0 .. 100 | The volume of the music and of the movies' sound; 0 turns the music off. |
+| `AudioSFX` | `100` *(new file)* | 0 .. 100 | The volume of the sound effects. |
+| `AudioSpeech` | `100` *(new file)* | 0 .. 100 | The volume of the characters' voices. |
 | `Reverse Stereo` | `false` | true / false | Swaps the left and right speakers. |
 
 ## [shadows]
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `Shadows` | `true` | true / false | Units, buildings and trees cast shadows, and hills and cliffs cast the sun's shadows across the ground. The options screen's switch sets it. |
+| `Shadows` | `true` *(new file)* | true / false | Units, buildings and trees cast shadows, and hills and cliffs cast the sun's shadows across the ground. The options screen's switch sets it. |
 
 ## [terrain]
 
@@ -57,55 +56,55 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `CameraFlipXAxis` | `false` | true / false | Reverses which way the camera turns when you drag sideways with the right mouse button. The keys are not affected. |
-| `CameraFlipYAxis` | `false` | true / false | Reverses which way the camera tilts when you drag up or down with the right mouse button. The keys are not affected. |
-| `CameraMinHeight` | `3` | world units | The lowest the camera may sit above the ground under it or the tops of nearby trees and buildings; it is pushed up to keep this clearance. |
-| `CameraMaxHeight` | `70` | world units | The most a tall object next to the camera (a tree, a building) can lift it above the ground. It does not limit zooming out. |
-| `CameraDefaultHeight` | `2` | world units | The camera's height when the game launches. The menu scene and every map place the camera themselves right away, so it has no visible effect. |
-| `CameraDefaultXDeploy` | `30` | map X, world units | The camera's map X position when the game launches. The menu scene and every map place the camera themselves right away, so it has no visible effect. |
-| `CameraDefaultYDeploy` | `30` | map Y, world units | The camera's map Y position when the game launches. The menu scene and every map place the camera themselves right away, so it has no visible effect. |
-| `CameraMinDistanceToCarrier` | `10` | world units | The closest you normally zoom in during play: the wheel stops here and a key zoom past it drifts back. Panning speeds up as you zoom out from here. |
-| `CameraMaxDistanceToCarrier` | `50` | world units | The farthest you normally zoom out during play: the wheel stops here and a key zoom past it drifts back. Panning speeds up as you zoom out toward it. |
-| `CameraMinLimitDistanceToCarrier` | `3` | world units | The hard limit on zooming in during play: a key zoom can pass the normal closest distance and drift back, but never gets nearer than this. |
-| `CameraMaxLimitDistanceToCarrier` | `70` | world units | The hard limit on zooming out during play: a key zoom can pass the normal farthest distance and drift back, but never goes beyond this. |
-| `CameraDefaultDistanceToCarrier` | `30` | world units | How far the camera starts from the point it looks at when you first enter a map after launching; later map changes keep your own zoom. |
-| `NearClipDistance` | `2` | world units | Anything closer to the camera than this is cut away and not drawn. Read when the game starts. |
-| `FarClipDistance` | `100` | world units | How far along the view units, levers, particles and lightning are shown. The ground, trees and buildings are drawn to the map's edge whatever this is, under a haze that thickens with distance. |
-| `CameraDefaultMinPitch` | `30` | degrees (0 level, 90 straight down) | The flattest you can tilt the camera during play, in degrees down from level. |
-| `CameraDefaultMaxPitch` | `60` | degrees (0 level, 90 straight down) | The steepest you can tilt the camera during play; 90 would look straight down. |
-| `CameraBriefingMinDistanceToCarrier` | `6` | world units | The closest you normally zoom in on the village screens between missions: the wheel stops here and a key zoom past it drifts back. |
-| `CameraBriefingMaxDistanceToCarrier` | `27` | world units | The farthest you normally zoom out on the village screens between missions: the wheel stops here and a key zoom past it drifts back. |
-| `CameraBriefingMinLimitDistanceToCarrier` | `3` | world units | The hard limit on zooming in on the village screens between missions: the camera never gets nearer than this. |
-| `CameraBriefingMaxLimitDistanceToCarrier` | `30` | world units | The hard limit on zooming out on the village screens between missions: the camera never goes beyond this. |
-| `CameraBriefingMinPitch` | `40` | degrees (0 level, 90 straight down) | The flattest you can tilt the camera on the village screens between missions, in degrees down from level. |
-| `CameraBriefingMaxPitch` | `60` | degrees (0 level, 90 straight down) | The steepest you can tilt the camera on the village screens between missions; 90 would look straight down. |
-| `CameraBorderScrollArea` | `1` | pixels, 0 = off | How close to a screen edge the mouse must be to pan the camera; 0 turns edge scrolling off. Edge panning ignores the scroll speed settings. |
-| `CameraFrameSelectionSensetiveArea` | `30` | pixels, 0 = off | How far the mouse must move with the left button held before it starts a selection box; 0 turns box selection off. |
-| `CameraTerrainSensetiveArea` | `10` | world units, above 0 | The camera's look-at point rides on the average ground height this far around it; larger smooths out bumps. Keep it above 0 (0 hangs the game). |
-| `CameraDefaultScrollSpeed` | `1.5` | multiplier | Base speed of panning with the camera keys and with Ctrl or Alt + right-drag; multiplied by the keyboard or mouse power below. |
-| `CameraDefaultScrollPowerMouse` | `1` | multiplier, 0..2 from the slider | Mouse factor for panning with Ctrl or Alt + right-drag. The options window's mouse speed slider sets all four mouse factors. |
-| `CameraDefaultScrollPowerKeyboard` | `0.46` | multiplier, 0..2 from the slider | Keyboard factor for panning with the camera keys. The options window's keyboard speed slider sets all four keyboard factors. |
-| `CameraDefaultRotateSpeed` | `0.15` | multiplier | Base speed of turning the camera: right-drag sideways, or Ctrl or Alt + the left/right camera keys. |
-| `CameraDefaultRotatePowerMouse` | `1` | multiplier, 0..2 from the slider | Mouse factor for turning the camera with a right-drag. The options window's mouse speed slider sets all four mouse factors. |
-| `CameraDefaultRotatePowerKeyboard` | `0.46` | multiplier, 0..2 from the slider | Keyboard factor for turning the camera with Ctrl or Alt + the left/right camera keys. The keyboard speed slider sets all four. |
-| `CameraDefaultPitchSpeed` | `0.0015` | multiplier | Base speed of tilting the camera: right-drag up or down, or Ctrl or Alt + the up/down camera keys. Small because the game scales it up. |
-| `CameraDefaultPitchPowerMouse` | `1` | multiplier, 0..2 from the slider | Mouse factor for tilting the camera with a right-drag. The options window's mouse speed slider sets all four mouse factors. |
-| `CameraDefaultPitchPowerKeyboard` | `0.46` | multiplier, 0..2 from the slider | Keyboard factor for tilting the camera with Ctrl or Alt + the up/down camera keys. The keyboard speed slider sets all four. |
-| `CameraDefaultZoomSpeed` | `2` | multiplier | Base speed of zooming with the zoom keys and the mouse wheel; at the defaults one wheel notch zooms about 10%. |
-| `CameraDefaultZoomPowerMouse` | `1` | multiplier, 0..2 from the slider | Mouse factor for zooming with the wheel. The options window's mouse speed slider sets all four mouse factors. |
-| `CameraDefaultZoomPowerKeyboard` | `0.46` | multiplier, 0..2 from the slider | Keyboard factor for zooming with the zoom keys. The options window's keyboard speed slider sets all four keyboard factors. |
-| `CameraShortcut <n> AxisX` | `0` | unit axis component | Part of the facing stored with camera view n (Ctrl or Alt + a camera view key saves one); recalling a view does not turn the camera, so it has no effect. |
-| `CameraShortcut <n> AxisY` | `0` | unit axis component | Part of the facing stored with camera view n (Ctrl or Alt + a camera view key saves one); recalling a view does not turn the camera, so it has no effect. |
-| `CameraShortcut <n> AxisZ` | `1` | unit axis component | Part of the facing stored with camera view n (Ctrl or Alt + a camera view key saves one); recalling a view does not turn the camera, so it has no effect. |
-| `CameraShortcut <n> Angle` | `0` | radians | The turn stored with camera view n's facing (Ctrl or Alt + a camera view key saves one); recalling a view does not turn the camera, so it has no effect. |
-| `CameraShortcut <n> Distance` | `30` | world units | The zoom of camera view n (0-3). Ctrl or Alt + camera view key n+1 saves the current zoom and tilt; the key alone brings them back. |
-| `CameraShortcut <n> Pitch` | `45` | radians (a saved view writes radians) | The tilt of camera view n, recalled with its zoom by camera view key n+1. Saved in radians: the default 45 tilts about 58 degrees down. |
+| `CameraFlipXAxis` | `false` *(new file)* | true / false | Reverses which way the camera turns when you drag sideways with the right mouse button. The keys are not affected. |
+| `CameraFlipYAxis` | `false` *(new file)* | true / false | Reverses which way the camera tilts when you drag up or down with the right mouse button. The keys are not affected. |
+| `CameraMinHeight` | `3` *(new file)* | world units | The lowest the camera may sit above the ground under it or the tops of nearby trees and buildings; it is pushed up to keep this clearance. |
+| `CameraMaxHeight` | `70` *(new file)* | world units | The most a tall object next to the camera (a tree, a building) can lift it above the ground. It does not limit zooming out. |
+| `CameraDefaultHeight` | `2` *(new file)* | world units | The camera's height when the game launches. The menu scene and every map place the camera themselves right away, so it has no visible effect. |
+| `CameraDefaultXDeploy` | `30` *(new file)* | map X, world units | The camera's map X position when the game launches. The menu scene and every map place the camera themselves right away, so it has no visible effect. |
+| `CameraDefaultYDeploy` | `30` *(new file)* | map Y, world units | The camera's map Y position when the game launches. The menu scene and every map place the camera themselves right away, so it has no visible effect. |
+| `CameraMinDistanceToCarrier` | `10` *(new file)* | world units | The closest you normally zoom in during play: the wheel stops here and a key zoom past it drifts back. Panning speeds up as you zoom out from here. |
+| `CameraMaxDistanceToCarrier` | `50` *(new file)* | world units | The farthest you normally zoom out during play: the wheel stops here and a key zoom past it drifts back. Panning speeds up as you zoom out toward it. |
+| `CameraMinLimitDistanceToCarrier` | `3` *(new file)* | world units | The hard limit on zooming in during play: a key zoom can pass the normal closest distance and drift back, but never gets nearer than this. |
+| `CameraMaxLimitDistanceToCarrier` | `70` *(new file)* | world units | The hard limit on zooming out during play: a key zoom can pass the normal farthest distance and drift back, but never goes beyond this. |
+| `CameraDefaultDistanceToCarrier` | `30` *(new file)* | world units | How far the camera starts from the point it looks at when you first enter a map after launching; later map changes keep your own zoom. |
+| `NearClipDistance` | `2` *(new file)* | world units | Anything closer to the camera than this is cut away and not drawn. Read when the game starts. |
+| `FarClipDistance` | `100` *(new file)* | world units | How far along the view units, levers, particles and lightning are shown. The ground, trees and buildings are drawn to the map's edge whatever this is, under a haze that thickens with distance. |
+| `CameraDefaultMinPitch` | `30` *(new file)* | degrees (0 level, 90 straight down) | The flattest you can tilt the camera during play, in degrees down from level. |
+| `CameraDefaultMaxPitch` | `60` *(new file)* | degrees (0 level, 90 straight down) | The steepest you can tilt the camera during play; 90 would look straight down. |
+| `CameraBriefingMinDistanceToCarrier` | `6` *(new file)* | world units | The closest you normally zoom in on the village screens between missions: the wheel stops here and a key zoom past it drifts back. |
+| `CameraBriefingMaxDistanceToCarrier` | `27` *(new file)* | world units | The farthest you normally zoom out on the village screens between missions: the wheel stops here and a key zoom past it drifts back. |
+| `CameraBriefingMinLimitDistanceToCarrier` | `3` *(new file)* | world units | The hard limit on zooming in on the village screens between missions: the camera never gets nearer than this. |
+| `CameraBriefingMaxLimitDistanceToCarrier` | `30` *(new file)* | world units | The hard limit on zooming out on the village screens between missions: the camera never goes beyond this. |
+| `CameraBriefingMinPitch` | `40` *(new file)* | degrees (0 level, 90 straight down) | The flattest you can tilt the camera on the village screens between missions, in degrees down from level. |
+| `CameraBriefingMaxPitch` | `60` *(new file)* | degrees (0 level, 90 straight down) | The steepest you can tilt the camera on the village screens between missions; 90 would look straight down. |
+| `CameraTerrainSensetiveArea` | `10` *(new file)* | world units, above 0 | The camera's look-at point rides on the average ground height this far around it; larger smooths out bumps. Keep it above 0 (0 hangs the game). |
+| `CameraDefaultScrollSpeed` | `1.5` *(new file)* | multiplier | Base speed of panning with the camera keys and with Ctrl or Alt + right-drag; multiplied by the keyboard or mouse power below. |
+| `CameraDefaultScrollPowerMouse` | `1` *(new file)* | multiplier, 0..2 from the slider | Mouse factor for panning with Ctrl or Alt + right-drag. The options window's mouse speed slider sets all four mouse factors. |
+| `CameraDefaultScrollPowerKeyboard` | `0.46` *(new file)* | multiplier, 0..2 from the slider | Keyboard factor for panning with the camera keys. The options window's keyboard speed slider sets all four keyboard factors. |
+| `CameraDefaultRotateSpeed` | `0.15` *(new file)* | multiplier | Base speed of turning the camera: right-drag sideways, or Ctrl or Alt + the left/right camera keys. |
+| `CameraDefaultRotatePowerMouse` | `1` *(new file)* | multiplier, 0..2 from the slider | Mouse factor for turning the camera with a right-drag. The options window's mouse speed slider sets all four mouse factors. |
+| `CameraDefaultRotatePowerKeyboard` | `0.46` *(new file)* | multiplier, 0..2 from the slider | Keyboard factor for turning the camera with Ctrl or Alt + the left/right camera keys. The keyboard speed slider sets all four. |
+| `CameraDefaultPitchSpeed` | `0.0015` *(new file)* | multiplier | Base speed of tilting the camera: right-drag up or down, or Ctrl or Alt + the up/down camera keys. Small because the game scales it up. |
+| `CameraDefaultPitchPowerMouse` | `1` *(new file)* | multiplier, 0..2 from the slider | Mouse factor for tilting the camera with a right-drag. The options window's mouse speed slider sets all four mouse factors. |
+| `CameraDefaultPitchPowerKeyboard` | `0.46` *(new file)* | multiplier, 0..2 from the slider | Keyboard factor for tilting the camera with Ctrl or Alt + the up/down camera keys. The keyboard speed slider sets all four. |
+| `CameraDefaultZoomSpeed` | `2` *(new file)* | multiplier | Base speed of zooming with the zoom keys and the mouse wheel; at the defaults one wheel notch zooms about 10%. |
+| `CameraDefaultZoomPowerMouse` | `1` *(new file)* | multiplier, 0..2 from the slider | Mouse factor for zooming with the wheel. The options window's mouse speed slider sets all four mouse factors. |
+| `CameraDefaultZoomPowerKeyboard` | `0.46` *(new file)* | multiplier, 0..2 from the slider | Keyboard factor for zooming with the zoom keys. The options window's keyboard speed slider sets all four keyboard factors. |
+| `CameraBorderScrollArea` | `1` *(new file)* | pixels, 0 = off | How close to a screen edge the mouse must be to pan the camera; 0 turns edge scrolling off. Edge panning ignores the scroll speed settings. |
+| `CameraFrameSelectionSensetiveArea` | `30` *(new file)* | pixels, 0 = off | How far the mouse must move with the left button held before it starts a selection box; 0 turns box selection off. |
+| `CameraShortcut <n> AxisX` | `0` *(new file)* | unit axis component | Part of the facing stored with camera view n (Ctrl or Alt + a camera view key saves one); recalling a view does not turn the camera, so it has no effect. |
+| `CameraShortcut <n> AxisY` | `0` *(new file)* | unit axis component | Part of the facing stored with camera view n (Ctrl or Alt + a camera view key saves one); recalling a view does not turn the camera, so it has no effect. |
+| `CameraShortcut <n> AxisZ` | `1` *(new file)* | unit axis component | Part of the facing stored with camera view n (Ctrl or Alt + a camera view key saves one); recalling a view does not turn the camera, so it has no effect. |
+| `CameraShortcut <n> Angle` | `0` *(new file)* | radians | The turn stored with camera view n's facing (Ctrl or Alt + a camera view key saves one); recalling a view does not turn the camera, so it has no effect. |
+| `CameraShortcut <n> Distance` | `30` *(new file)* | world units | The zoom of camera view n (0-3). Ctrl or Alt + camera view key n+1 saves the current zoom and tilt; the key alone brings them back. |
+| `CameraShortcut <n> Pitch` | `45` *(new file)* | radians (a saved view writes radians) | The tilt of camera view n, recalled with its zoom by camera view key n+1. Saved in radians: the default 45 tilts about 58 degrees down. |
 
 ## [game]
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `SelectionType` | `1` | 0 or 1 | 1: a small arrow on the ground under each selected unit shows where it faces. 0: no arrow, selected units are only highlighted. |
+| `SelectionType` | `1` *(new file)* | 0 or 1 | 1: a small arrow on the ground under each selected unit shows where it faces. 0: no arrow, selected units are only highlighted. |
 | `DrawPath` | `true` | true / false | When you order a move, a trail of particles shows the path and a marker the destination. |
 | `DrawFlyingHP` | `true` | true / false | Damage numbers float up over units your party sees when they are hit. |
 | `ShowTutorial` | `true` | true / false | Tutorial messages and each screen's help open by themselves the first time. Off: help shows only when you ask for it. |
@@ -119,17 +118,17 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `Master Server Name` | `a3master.nival.com` | host[:port] | The server the multiplayer screen asks for games and hosted games announce to (port 28004 unless given). The game reads it but never writes it back. |
+| `Master Server Name` | `a3master.nival.com` *(new file)* | host[:port] | The server the multiplayer screen asks for games and hosted games announce to (port 28004 unless given). The game reads it but never writes it back. |
 | `SecondMaster` |  | host[:port] | A second master server the multiplayer screen also asks for games and hosted games announce to as well (Rebirth's EI_Plugin; port 28004 unless given). Empty: none. |
 
 ## [renderer]
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
-| `VSync` | `true` | true / false | Each frame waits for the monitor's refresh: no tearing. false: frames show as soon as they are drawn. The options screen's vertical sync row sets it. |
-| `Msaa` | `8` | 1, 2, 4 or 8 | Multisampling of the 3D world: smoother edges on models and the ground. 1 is off; more than the graphics card offers takes its best. The options screen's antialiasing row sets it. |
-| `Anisotropy` | `16` | 1 .. 16 | Sharper textures on surfaces seen at a slant, such as the ground into the distance. 1 is off. The options screen's anisotropic filtering row sets it (1, 2, 4, 8 or 16). |
-| `PerfOverlay` | `false` | true / false | Shows frames per second, frame and graphics card times and draw counts over the game. The options screen's performance overlay row sets it. |
+| `VSync` | `true` *(new file)* | true / false | Each frame waits for the monitor's refresh: no tearing. false: frames show as soon as they are drawn. The options screen's vertical sync row sets it. |
+| `Msaa` | `8` *(new file)* | 1, 2, 4 or 8 | Multisampling of the 3D world: smoother edges on models and the ground. 1 is off; more than the graphics card offers takes its best. The options screen's antialiasing row sets it. |
+| `Anisotropy` | `16` *(new file)* | 1 .. 16 | Sharper textures on surfaces seen at a slant, such as the ground into the distance. 1 is off. The options screen's anisotropic filtering row sets it (1, 2, 4, 8 or 16). |
+| `PerfOverlay` | `false` *(new file)* | true / false | Shows frames per second, frame and graphics card times and draw counts over the game. The options screen's performance overlay row sets it. |
 
 ## [autoexec]
 

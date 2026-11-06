@@ -134,23 +134,21 @@ bool TextureDevice::DrawMeshBlocks2(Surface* firstTexture, Surface* secondTextur
 namespace {
 
 // The performance overlay's switch (docs/notes/renderer.md section 15): [renderer] PerfOverlay of ei_settings.ini;
-// off when absent or without the overlay.
+// off without the overlay.
 bool PerfOverlaySetting() {
-    return render::PerfOverlaySupported() && settings::GetBool(settings::kRenderer, "PerfOverlay", false);
+    return render::PerfOverlaySupported() && settings::GetBool(settings::kRenderer, "PerfOverlay");
 }
 
-// The vertical blank's switch (docs/notes/renderer.md section 15): [renderer] VSync, on when absent. Read only in the
-// product, as above.
-bool VsyncSetting() { return settings::GetBool(settings::kRenderer, "VSync", true); }
+// The vertical blank's switch (docs/notes/renderer.md section 15): [renderer] VSync. Read only in the product, as
+// above.
+bool VsyncSetting() { return settings::GetBool(settings::kRenderer, "VSync"); }
 
 // The render quality (docs/notes/renderer.md section 11, "Render quality"): [renderer] Msaa (the world view's samples:
 // 1 off, 2, 4 or 8) and Anisotropy (its models' anisotropic sampling: 1 off .. 16). A value missing (or not a number)
-// is written with its default, the look the user's dgVoodoo setup gave, so the file shows both. Read only in the
-// product, as above (render::QualitySettingsSupported).
-constexpr int kDefaultAnisotropy = 16;
-
-int QualitySetting(const char* name, int fallback) {
-    const int value = settings::GetInt(settings::kRenderer, name, fallback);
+// is written with its catalog default, the look the user's dgVoodoo setup gave, so the file shows both. Read only in
+// the product, as above (render::QualitySettingsSupported).
+int QualitySetting(const char* name) {
+    const int value = settings::GetInt(settings::kRenderer, name);
     settings::SetInt(settings::kRenderer, name, value);
     return value;
 }
@@ -165,8 +163,8 @@ TextureDevice::TextureDevice(platform::NativeWindow newWindow, bool newFullScree
     render::SetPerfOverlay(PerfOverlaySetting());
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());
     if (render::QualitySettingsSupported()) {
-        render::SetMsaa(QualitySetting("Msaa", render::kDefaultMsaa));
-        render::SetAnisotropy(QualitySetting("Anisotropy", kDefaultAnisotropy));
+        render::SetMsaa(QualitySetting("Msaa"));
+        render::SetAnisotropy(QualitySetting("Anisotropy"));
         settings::Save();
     }
 }

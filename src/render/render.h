@@ -38,8 +38,6 @@ void Configure(const char* spec);
 // game always draws with (for the render quality's `msaa`, SetMsaa's argument); the first use takes both (saves
 // 0.15 s of each start, and the pipelines' creation at their first draws).
 void PrepareDevice(int msaa);
-// [renderer] Msaa's default (the look the user's dgVoodoo setup gave).
-constexpr int kDefaultMsaa = 8;
 
 // The render quality (renderer.md section 11, "Render quality"), each from the next frame: the world view
 // multisampled with `samples` (1: off; 2, 4 or 8, fewer when the device draws fewer) and its models sampled

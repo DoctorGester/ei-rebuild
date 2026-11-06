@@ -56,7 +56,7 @@ std::string& Override() {
 
 // The address "host[:port]": the harness's, else the settings file's [network] SecondMaster; empty: none.
 std::string Setting() {
-    return Override().empty() ? ::settings::GetString(::settings::kNetwork, "SecondMaster", "") : Override();
+    return Override().empty() ? ::settings::GetString(::settings::kNetwork, "SecondMaster") : Override();
 }
 
 // The setting split into host and port (the port kDefaultPort when it names none).

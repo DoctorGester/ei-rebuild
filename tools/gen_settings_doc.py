@@ -1,16 +1,17 @@
 """docs/settings.md from the settings catalog (src/game/app/settings_catalog.inc): every setting of ei_settings.ini with
-its default, its values and what it does (C69).
+its default (the text of the row's typed default), its values and what it does (C69, C171).
 
 usage: python tools/gen_settings_doc.py            writes docs/settings.md
        python tools/gen_settings_doc.py --check    fails when docs/settings.md is out of date, or when the catalog and
-                                                   the code disagree: a setting the code reads without a row, or a
-                                                   row nothing reads (build_checks.py runs it)
+                                                   the code disagree: a setting the code reads without a row, a row
+                                                   nothing reads, or a read that passes a default of its own (the
+                                                   row's is the only one; build_checks.py runs it)
 
 The settings the code reads are found by their spelling: options.cpp's tables (section and name, the camera's
 motion values, the shortcuts, the lights), every Get*(section, "name") under src/, the renderer's QualitySetting
 names.
 """
-import os, re, sys
+import decimal, os, re, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import layout   # src/game's files wherever they are now (tools/layout_map.txt)
@@ -54,35 +55,105 @@ def sections():
     return dict(re.findall(r'inline constexpr const char\* (k\w+) = "([^"]*)";', read(SETTINGS_H)))
 
 
+def call_arguments(text, at):
+    """The top-level arguments of the call whose '(' is just before `at`, as source text, and the index past its ')'."""
+    args, depth, start, i = [], 0, at, at
+    while i < len(text):
+        c = text[i]
+        if c == '"':
+            i = re.compile(STRING).match(text, i).end()
+            continue
+        if c == '(':
+            depth += 1
+        elif c == ')' and depth:
+            depth -= 1
+        elif c in ',)' and not depth:
+            args.append(text[start:i].strip())
+            start = i + 1
+            if c == ')':
+                return args, i + 1
+        i += 1
+    raise SystemExit(f'cannot read the call at {text[at - 20:at + 40]!r}')
+
+
+def literals(arg):
+    """One or more adjacent string literals, joined; None when `arg` is not that."""
+    if not re.fullmatch(r'(?:\s*' + STRING + r'\s*)+', arg):
+        return None
+    return ''.join(unescape(m) for m in re.findall(STRING, arg))
+
+
+def float_text(literal):
+    """A float literal as settings::FloatText writes the float (std::to_chars): the fewest digits that read back to the
+    same float, fixed or scientific, whichever is shorter (fixed on a tie)."""
+    single = lambda v: struct.unpack('<f', struct.pack('<f', v))[0]
+    value = single(float(literal.rstrip('fF')))
+    digits = next(d for d in range(1, 10) if single(float(f'{value:.{d - 1}e}')) == value)
+    scientific = f'{value:.{digits - 1}e}'
+    fixed = format(decimal.Decimal(scientific), 'f')
+    return fixed if len(fixed) <= len(scientific) else scientific
+
+
+def default_text(arg):
+    """A row's typed default as the docs show it (settings::DefaultText; the desktop's size in words)."""
+    m = re.fullmatch(r'(Int|Bool|Float|Text|DesktopSize)\((.*)\)', arg, flags=re.S)
+    if not m:
+        return None
+    kind, value = m.groups()
+    value = value.strip()
+    if kind == 'Int' and re.fullmatch(r'-?\d+', value):
+        return value
+    if kind == 'Bool' and value in ('true', 'false'):
+        return value
+    if kind == 'Float' and re.fullmatch(r'-?\d+(?:\.\d*)?[fF]?', value):
+        return float_text(value)
+    if kind == 'Text' and literals(value) is not None:
+        return literals(value)
+    if kind == 'DesktopSize' and not value:
+        return '(desktop size)'
+    return None
+
+
 def catalog():
-    """The rows in order: (constant, name, default, values, description). Each EI_SETTING's arguments: a section
-    constant, then four texts, each one or more adjacent string literals."""
+    """The rows in order: (constant, name, default, values, description, written). Each EI_SETTING's arguments: a
+    section constant, the name, the typed default, kWritten or kLeftOut, then the values and the description, each
+    one or more adjacent string literals."""
     text = re.sub(r'^[ \t]*//.*$', '', read(CATALOG), flags=re.M)   # whole-line comments (the header's example row)
-    token = re.compile(r'\s+|//[^\n]*|' + STRING + r'|(k\w+)|(,)|(\))')
     rows = []
     for m in re.finditer(r'EI_SETTING\(', text):
-        at, args, current, constant = m.end(), [], [], None
-        while True:
-            t = token.match(text, at)
-            if not t:
-                raise SystemExit(f'settings_catalog.inc: cannot read the row at {text[m.start():m.start() + 60]!r}')
-            at = t.end()
-            literal, ident, comma, close = t.groups()
-            if literal is not None:
-                current.append(unescape(literal))
-            elif ident:
-                constant = ident
-            elif comma:
-                if current:
-                    args.append(''.join(current))
-                current = []
-            elif close:
-                args.append(''.join(current))
-                break
-        if not constant or len(args) != 4:
-            raise SystemExit(f'settings_catalog.inc: {constant} {args[:1]}: a section constant and 4 texts expected')
-        rows.append((constant, *args))
+        args, _ = call_arguments(text, m.end())
+        where = text[m.start():m.start() + 70]
+        if len(args) != 6:
+            raise SystemExit(f'settings_catalog.inc: {where!r}: 6 arguments expected')
+        constant, name, default, written, values, description = args
+        name, values, description = literals(name), literals(values), literals(description)
+        default = default_text(default)
+        if (not re.fullmatch(r'k\w+', constant) or None in (name, values, description) or default is None or
+                written not in ('kWritten', 'kLeftOut')):
+            raise SystemExit(f'settings_catalog.inc: {where!r}: a section constant, a name, Int(n) / Bool(b) / '
+                             'Float(f) / Text("...") / DesktopSize(), kWritten or kLeftOut, values and a description '
+                             'expected')
+        rows.append((constant, name, default, values, description, written == 'kWritten'))
     return rows
+
+
+def own_defaults():
+    """Every settings read under src/ that passes a default of its own: (file, line, call)."""
+    found = []
+    call = re.compile(r'\bGet(?:Int|Bool|Float|String)\(\s*(?:(?:::)?settings::)?k[A-Z]\w*\s*,')
+    src = os.path.join(ROOT, 'src')
+    for folder, _, files in os.walk(src):
+        for f in files:
+            if not f.endswith(('.cpp', '.h')):
+                continue
+            path = os.path.join(folder, f)
+            text = read(path)
+            for m in call.finditer(text):
+                args, end = call_arguments(text, text.index('(', m.start()) + 1)
+                if len(args) > 2:
+                    rel = os.path.relpath(path, ROOT).replace(os.sep, '/')
+                    found.append((rel, text.count('\n', 0, m.start()) + 1, ' '.join(text[m.start():end].split())))
+    return found
 
 
 def read_names(names_of):
@@ -127,25 +198,25 @@ def doc(rows, names):
            'comment. When the file is missing or empty the game writes the defaults, each line with its description above',
            'it; it never adds comments to a file that exists. A value the file lacks takes the default below.',
            '',
-           'Defaults: the value a new file holds, else the one the game takes when the line is absent. `(install)`: the',
-           "game folder decides (a Rebirth install's EI_Plugin.ini or Rebirth's own setting, else the original's).",
+           'Defaults: what the game takes when the line is absent; a new file holds the lines marked *(new file)*.',
            '',
            "The original game's settings this build does not read (a file that holds them keeps the lines; the game",
            'ignores them): ' + ', '.join(DROPPED) + '.']
     current = None
-    for constant, name, default, values, description in rows:
+    for constant, name, default, values, description, written in rows:
         section = names[constant]
         if section != current:
             out += ['', f'## [{section}]', '', '| Name | Default | Values | What it does |', '|---|---|---|---|']
             current = section
         cell = lambda t: t.replace('|', '\\|') if t else ''
-        out.append(f'| `{name}` | {cell(default) and "`" + cell(default) + "`"} | {cell(values)} | {cell(description)} |')
+        shown = (cell(default) and '`' + cell(default) + '`') + (' *(new file)*' if written else '')
+        out.append(f'| `{name}` | {shown} | {cell(values)} | {cell(description)} |')
     return '\n'.join(out) + '\n'
 
 
 def description_lines(row):
     """A row's description as the defaults file's comment lines (settings_document.cpp DescriptionLines)."""
-    _, _, _, values, description = row
+    _, _, _, values, description, _ = row
     text = description + ('' if values == 'true / false' else f' ({values})')
     lines, line = [], ''
     for word in text.split(' '):
@@ -210,6 +281,8 @@ def main(argv):
     for constant, name, *_ in rows:
         if (constant, name.lower()) not in read_lower:
             problems.append(f'[{names.get(constant, constant)}] {name}: a catalog row nothing reads')
+    for path, line, call in own_defaults():
+        problems.append(f'{path}:{line}: {call}: a default of its own (the catalog row\'s is the one)')
     text = doc(rows, names)
     expected = read(EXPECTED_DEFAULTS)
     described = described_defaults(rows, names, expected)
