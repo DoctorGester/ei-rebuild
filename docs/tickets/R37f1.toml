@@ -6,3 +6,5 @@ model = "opus"
 files = ["src/game/models/link_mesh_draw.cpp", "src/game/models/figure_part_draw.cpp", "src/game/scene/device_mesh.cpp", "src/game/world/world_client_draw.cpp", "src/game/world/world_client_shadow_casters.cpp", "src/render/render_shadows.cpp"]
 note = "docs/notes/frame-plan.md, Delete. User 2026-11-06: delete work first, then >2x faster, parallel last; fewer draws. Goldens unchanged. Measure release-equivalent (EI_RENDER_VALIDATION off) and harness, R37e3 kit."
 order = 1265
+status = "running"
+started = "2026-11-06"
