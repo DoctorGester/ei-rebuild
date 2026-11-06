@@ -1,7 +1,7 @@
 LostInAstral/current/bz21k.sav b3261563b2c6d1bc
-LostInAstral/current/bz21k.visuals.sav c2f2afbac3a2d039
+LostInAstral/current/bz21k.visuals.sav 08b9b95142a9dcea
 LostInAstral/current/bz23k.sav 1e22ab4493a0f45f
-LostInAstral/current/bz23k.visuals.sav 86ccfc4ad7a27e06
+LostInAstral/current/bz23k.visuals.sav b5bc5bbcfa064fd7
 LostInAstral/current/gz1g.sav 2ec264f693f80119
 LostInAstral/current/gz1g.visuals.sav 0830ea88f5be5f4e
 LostInAstral/current/gz21k.sav 8424aba470c06460
@@ -19,7 +19,7 @@ LostInAstral/current/gz25k.visuals.sav efcf59b1414d3f0a
 LostInAstral/current/gz26k.sav d2005bef342bab42
 LostInAstral/current/gz26k.visuals.sav 4410dfc1667cc9c1
 LostInAstral/savea/bz23k.sav 1e22ab4493a0f45f
-LostInAstral/savea/bz23k.visuals.sav 86ccfc4ad7a27e06
+LostInAstral/savea/bz23k.visuals.sav b5bc5bbcfa064fd7
 LostInAstral/savea/gz21k.sav 8424aba470c06460
 LostInAstral/savea/gz21k.visuals.sav e962aadeed94797d
 LostInAstral/savea/gz22k.sav ccf3b4dd8ec1cae4

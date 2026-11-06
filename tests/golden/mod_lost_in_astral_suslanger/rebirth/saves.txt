@@ -1,5 +1,5 @@
 LostInAstral/current/bz1h.sav 63e441d5e0d52faa
-LostInAstral/current/bz1h.visuals.sav 1bf2ed5233df7716
+LostInAstral/current/bz1h.visuals.sav 76aa5bf22aa946a5
 LostInAstral/current/bz2h.sav 6ddde490f55834ef
 LostInAstral/current/bz2h.visuals.sav 1c09ede52b707947
 LostInAstral/current/bz3h.sav 239188728481cd74
