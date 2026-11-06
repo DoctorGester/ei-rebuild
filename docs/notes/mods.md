@@ -337,6 +337,9 @@ What the expansion's data asks of the game that the base game's never did, and h
   for cz4j; cz2j and cz3j make Jigran2 and Jigran5 themselves. Each base's briefing, read to the end, leaves for the
   next zone (`LeaveToZone` from its briefing check, which the harness's `talk` sees as the base left); cz3j's leads to
   gz35j, where merc2 dies in the acid column as the story has it.
+- The prison party FPrison (Hero1, merc2: the mod's prototypes name no weapon) is unarmed, so on gz1d2 and after, until a
+  weapon is equipped, its members play no pick-up animation when they search a body (the original's key for an unarmed
+  unit finds none; combat.md, "Animation keys"); the first allod's hero ("Human Hero", a dagger) does. The mod's data (MOD10).
 - cz3h and cz4h have no mob in the mod or the game and are reached by nothing: cz3h's exit is commented out in
   zone2's script and cz4h's (zone2's VCheck#6#1) waits for `q24h` equal to 1 and to 0 at once.
 - The later quests (`mod_lost_in_astral_gipat_quests`, `_gipat_necropolis`): gz11g's q11g (areas), gz12g's q27g (the
