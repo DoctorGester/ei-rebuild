@@ -23,7 +23,7 @@ harness's own. Every ticket below measures the release-equivalent cost (validati
 | CPU projection of every vertex of meshes wholly inside the view | `device_mesh.cpp` | Only `BoundsOfProjected` reads it, and only when a rectangle is asked; the in-view verdict needs it only for meshes crossing the view | 0.35-0.45 ms |
 | Sorting the four shadow lists, and dead shadow matrix pushes | `world_client_draw.cpp` | `DrawPartsShadow` no longer draws; its two calls don't depend on order | 0.2 ms |
 | Re-walking objects already drawn as casters outside the view | `world_client_shadow_casters.cpp` `HandOverOutsideCasters` | Their parts were handed over this frame already | 0.2 ms |
-| Terrain pages read again though unchanged (colours compared every frame, per-page lookups of per-sector facts) | `render_terrain.cpp` | Colours change only at Build and AnimateWaves, both signalled (R37e4 done; R37e4b: no per-frame page work at all) | 0.45-0.55 ms |
+| Terrain pages read again though unchanged (colours compared every frame, per-page lookups of per-sector facts) | `render_terrain.cpp` | Colours change only at Build, signalled (R37e4 done; R37e4b: no per-frame page work at all; R37e4c: the waves' crests are the shader's) | 0.45-0.55 ms |
 | Frame-wide uniforms (shadow, point shadow) memcmp'd per draw; frame-wide textures bound per draw | `render_mesh.cpp` `DrawMeshBatch`, `gpu.cpp` | Same for the whole pass | 0.1-0.25 ms |
 | The occlusion's depth pass (1854 draws) | `render_occlusion.cpp` | The world pass already writes depth; use last frame's, reprojected | 0.19 ms CPU, 0.17 ms GPU; **visual change, the user's call** |
 
@@ -36,7 +36,9 @@ harness's own. Every ticket below measures the release-equivalent cost (validati
 - `CollectVisible` by 16-unit cells, cached world spheres for still objects: 0.70 to about 0.3 ms.
 - Mesh cache handles on the mesh instead of five hash lookups per mesh (`render_mesh_cache.cpp`): 0.2-0.3 ms.
 - Water pages: one fused loop over positions and specular instead of full vertex rebuilds; `AnimateWaves` without
-  library `lround` (bit-exact inline): about 0.6 ms (R37e4).
+  library `lround` (bit-exact inline): about 0.6 ms (R37e4). Since R37e4c the waves are the vertex shader's: no
+  per-frame wave pass and no water writes (renderer.md section 13, item 3a): the save's RunTick walk 0.17 -> 0.012 ms,
+  334 KB -> 0 of vertex writes a frame (about 0.08 ms), at msaa 1 the main thread's median 4.79 -> 4.64 ms.
 - Per-frame heap: unordered maps rebuilt each frame replaced by indexed vectors; diagnostics only when asked: 0.2-0.3 ms.
 
 ## Fewer draws: 5754 to about 500
@@ -62,7 +64,8 @@ Expected end state: main thread about 4-5 ms in the save (half of today), about 
 | Ticket | Scope | Golden change |
 |---|---|---|
 | R37e4 (done) | Terrain and water: skip unchanged pages, water fused loop, `lround`, terrain draws merged in the sun map and occlusion | none |
-| R37e4b | The zone's terrain as two GPU meshes, page textures in an array, one draw per pass; the page pool and its checks deleted | none |
+| R37e4b (done) | The zone's terrain as two GPU meshes, page textures in an array, one draw per pass; the page pool and its checks deleted | none |
+| R37e4c | Waves in the vertex shader, water vertices static on the GPU; the CPU works a wave height out where asked; the camera reads the calm water | the waves' digest group; camera-over-water runs |
 | R37f1 | The deletions: `KeepScreen`, inside-view projection, shadow-list sorts, outside casters re-walk, heap churn | none |
 | R37f2 | Per-draw state once per batch: pipelines, samplers, frame-wide uniforms and textures; sort keys; `CollectVisible` cells; mesh cache handles | none |
 | R37f3 | Instancing: kept meshes by shared figure part, instanced world and caster draws, indirect caster passes | none if grouped by figure |
