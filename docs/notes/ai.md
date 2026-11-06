@@ -1,8 +1,8 @@
 # AI map, path search, unit motion
 
-Code (layouts and per-function comments are in `ai_map.h`, `ai_motion.h`, `ai_unit_layer.h`, `sector_map.h`; each
+Code (layouts and per-function comments are in `ai_map.h`, `ai_motion.h`, `ai/unit_shape.h`, `sector_map.h`; each
 file's header says what it does): `ai_map*.cpp` (cell queries, heights, line of sight, construction, load),
-`ai_footprint*.cpp`, `ai_bridges.cpp`, `ai_occluders.cpp`, `ai_refresh.cpp`, `ai_region_reach.cpp`,
+`ai_footprint*.cpp`, `ai/ai_footprint.cpp`, `ai/ai_footprint.cpp`, `ai_refresh.cpp`, `ai_region_reach.cpp`,
 `ai_block_search.cpp`, `ai_local_search.cpp`, `ai_path*.cpp`, `ai_movement.cpp`, `ai_motion.cpp`, `ai_unit_layer.cpp`,
 `ai_events.cpp`, `sector_map.cpp`. Scenario: `tests/scenarios/movement.txt` (the map functions
 also run in every scenario).
@@ -62,7 +62,7 @@ region (1, 2, ...) flooded from a queue of blocks.
   per path cell, speed = step speed * scale / 512, slowed where turning takes longer than the way (`LimitSpeeds`); the
   unit first turns in place unless the first direction is within acos(0.9) of its facing; segments are fitted with two
   Hermite cubics.
-- The AI events (`AIEventTable`, ai_event_table.h, after the map): a time wheel (`Advance`), `ForgetUnit` drops a dead
+- The AI events (`AIEventTable`, ai/ai_events.h, after the map): a time wheel (`Advance`), `ForgetUnit` drops a dead
   unit's events; saved with the map.
 - The smoothing tables and the spiral tables are built on first use (`SmoothTables`, `SectorSpiralTables`).
 

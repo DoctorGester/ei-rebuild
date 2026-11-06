@@ -32,7 +32,7 @@ def read_path_cell(r, name):
 
 
 def read_motion_order(r):
-    """AIPath::SaveOrder (005C8370, ai_path_save.cpp): the MotionOrder, then its steps (8 bytes each)."""
+    """AIPath::SaveOrder (005C8370, ai/ai_path_state.cpp): the MotionOrder, then its steps (8 bytes each)."""
     with r.scope('order'):
         kind = r.i32('kind')
         r.f32('x')
@@ -49,7 +49,7 @@ def read_motion_order(r):
 
 
 def read_path(r, name):
-    """AIPath::SavePath (005B2570, ai_path_save.cpp): the cells, the order, the target, the goal, the flags,
+    """AIPath::SavePath (005B2570, ai/ai_path_state.cpp): the cells, the order, the target, the goal, the flags,
     the excluded blocks and the smoothing value. Returns the order's kind."""
     with r.scope(name):
         count = r.i32('cells')

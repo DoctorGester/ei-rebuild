@@ -1,4 +1,4 @@
-# A blow on a unit that turns on the spot (H43e1): UpdateMotion's HitWhileTurning in src/game/unit_motion_tick.cpp. A
+# A blow on a unit that turns on the spot (H43e1): UpdateMotion's HitWhileTurning in src/game/units/unit_motion_tick.cpp. A
 # unit in the Idle or Moving state whose motion is turning when a blow with a side lands plays the blow's fall
 # (BuildDeathAnimation) when it fits, keeping its queue for after it. A script's InflictDamage has no attacker, so no
 # side, and a fight puts the unit in the Acting state; the harness's "hit" step is a blow with an attacker. The hero

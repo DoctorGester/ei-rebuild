@@ -1,6 +1,6 @@
 // A counted engine object reference (Ref<T>, ref.h; the map objects, the AI, the traps, the effects and the unit
 // controller keep these) saved and loaded by object id, and RefObject's two members.
-#include "game/unit_ai.h"
+#include "game/ai/unit_ai.h"
 
 #include "game/core/base_manager.h"
 #include "game/core/core_refcount.h"

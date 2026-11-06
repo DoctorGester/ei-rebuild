@@ -126,10 +126,10 @@ class RoundFourPatternTest(unittest.TestCase):
     def test_renamed_flag_bit(self):
         saved = check_cleanup._flag_owners
         try:
-            check_cleanup._flag_owners = {0x80000: {'src/game/map_object.h'}}
+            check_cleanup._flag_owners = {0x80000: {'src/game/objects/map_object.h'}}
             code = 'constexpr std::uint32_t kFlagNearbyListed = 0x80000;\nconstexpr int kFlagSmall = 0x10;\n'
-            self.assertEqual(check_cleanup.count_renamed_flag_bits(code, 'src/game/unit_ai.cpp'), 1)
-            self.assertEqual(check_cleanup.count_renamed_flag_bits(code, 'src/game/map_object.h'), 0)   # the owner's own file
+            self.assertEqual(check_cleanup.count_renamed_flag_bits(code, 'src/game/ai/unit_ai.cpp'), 1)
+            self.assertEqual(check_cleanup.count_renamed_flag_bits(code, 'src/game/objects/map_object.h'), 0)   # the owner's own file
         finally:
             check_cleanup._flag_owners = saved
 

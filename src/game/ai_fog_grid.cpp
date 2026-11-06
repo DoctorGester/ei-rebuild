@@ -1,6 +1,6 @@
 // FogGrid (effects.h): the squares a seer sees, rows of bytes (Clear, Read, Write); used by
 // EffectShowVisibility (world_effect_visibility.cpp). See docs/notes/world.md.
-#include "game/ai_map.h"
+#include "game/ai/ai_map.h"
 #include "game/effects.h"
 
 #include "game/core/core_streams.h"

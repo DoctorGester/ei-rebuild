@@ -7,8 +7,8 @@
 #include "game/ground_decal.h"
 #include "game/light.h"
 #include "game/link_figure.h"
-#include "game/map_object.h"           // MapObject (ObjectWithId)
-#include "game/map_object_figures.h"   // Object3D
+#include "game/objects/map_object.h"           // MapObject (ObjectWithId)
+#include "game/objects/object3d.h"   // Object3D
 #include "game/model.h"
 #include "game/pipeline.h"
 #include "game/core/named_floats.h"

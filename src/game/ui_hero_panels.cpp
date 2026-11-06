@@ -1,6 +1,6 @@
 // The hero panels shared by the camp and the multiplayer hero screen: the statistics column.
 // See docs/notes/ui.md ("Camp, global map, hero screens").
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/console/console.h"
 #include "game/app/singletons.h"
 #include "game/item.h"
@@ -13,7 +13,7 @@
 #include "game/ui_mesh.h"
 #include "game/ui_camp.h"
 #include "game/ui_screens.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/screen_layout.h"
 #include "game/model.h"

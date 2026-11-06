@@ -2,12 +2,12 @@
 // statistics are XORed with a random key, and XORed back when it is. See world.h and docs/notes/world.md.
 #include "game/world/world.h"
 
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/players/party.h"
 #include "game/core/random.h"
 #include "game/players/saved_parties.h"
 #include "game/ui_screens.h"   // MpHeroRecord (the party outside a game)
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/players/player_manager.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"

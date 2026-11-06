@@ -1,5 +1,5 @@
 // WinMain: the application's start-up, its main loop and its shutdown. See docs/notes/app.md, "WinMain".
-#include "game/acks_db.h"
+#include "game/units/acks_db.h"
 #include "game/app/app.h"
 #include "game/app/game_flow.h"
 #include "game/app/harness_hooks.h"
@@ -21,7 +21,7 @@
 #include "game/drawn_motion.h"
 #include "game/ground_print.h"
 #include "game/item_db.h"
-#include "game/lever.h"
+#include "game/objects/lever.h"
 #include "game/map/map_database.h"
 #include "game/model.h"
 #include "game/mods/mod_folders.h"
@@ -35,7 +35,7 @@
 #include "game/ui.h"
 #include "game/ui_cursor.h"
 #include "game/ui_screens.h"
-#include "game/unit_db.h"
+#include "game/units/unit_db.h"
 #include "game/world/quest_records.h"
 #include "game/world/world.h"
 

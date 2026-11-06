@@ -1,4 +1,4 @@
-# Map objects (src/game/map_object.cpp, map_object_companion.cpp): the per-tick updates every map
+# Map objects (src/game/objects/map_object.cpp, map_object_companion.cpp): the per-tick updates every map
 # object runs (CMapObject::Update; CMapObjectServer::Update counting effects down and removing
 # expired ones; CMapObjectClientSpecific::Update with effect end sounds and lights), scale effects
 # (RecomputeScale, ResetScale), effects cleared on death (ClearEffects), the invisible flag

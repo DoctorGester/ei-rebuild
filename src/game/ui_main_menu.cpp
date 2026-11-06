@@ -13,9 +13,9 @@
 #include "game/core/base_manager.h"
 #include "game/core/core_maths.h"
 #include "game/data/text_manager.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/core/random.h"
-#include "game/unit_create.h"
+#include "game/units/unit_create.h"
 #include "game/world/world.h"
 
 #include "lib/rect.h"

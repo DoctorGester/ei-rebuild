@@ -6,7 +6,7 @@
 #include "game/app/game_flow.h"
 #include "game/item.h"
 #include "game/players/party.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 
 #include "game/app/singletons.h"

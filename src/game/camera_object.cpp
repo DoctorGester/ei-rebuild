@@ -4,7 +4,7 @@
 
 #include "game/core/core_streams.h"
 #include "game/app/singletons.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/mods/mod_folders.h"
 #include "game/app/options.h"
 #include "game/saves/save_versions.h"

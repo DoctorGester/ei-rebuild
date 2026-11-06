@@ -2,8 +2,8 @@
 #include "game/drawn_motion.h"
 
 #include "game/light.h"
-#include "game/map_object.h"
-#include "game/map_object_figures.h"
+#include "game/objects/map_object.h"
+#include "game/objects/object3d.h"
 #include "game/spell.h"
 #include "platform/platform.h"
 

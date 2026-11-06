@@ -3,7 +3,7 @@
 // See docs/notes/ui.md, "Briefing / base screen".
 #include "game/camera.h"
 #include "game/players/class_templates.h"
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/console/console.h"
 #include "game/core/core_maths.h"
 #include "game/app/singletons.h"
@@ -13,10 +13,10 @@
 #include "game/sound/sound.h"
 #include "game/core/text_split.h"
 #include "game/ui_briefing.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
-#include "game/unit_client_models.h"
-#include "game/unit_db.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
+#include "game/units/unit_client_models.h"
+#include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "game/players/player_client.h"
 

@@ -2,7 +2,7 @@
 #include "image_side.h"
 
 #include "game/app/singletons.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 
 namespace ei::verify::image {

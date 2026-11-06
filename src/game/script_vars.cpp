@@ -1,7 +1,7 @@
 // Script variables (lookups, resets, the loader's appends of a file's GlobalVars to the globals) and the
 // ScriptCall helpers that bind and save call trees. See script.h and docs/notes/script.md.
 #include "game/script.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/core/core_streams.h"
 #include "lib/crt.h"
 

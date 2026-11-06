@@ -5,7 +5,7 @@
 // counted pointer (worldHandle); then the ISAAC generator is seeded and countdowns set up.
 #include "game/item_manager.h"
 
-#include "game/ai_map.h"
+#include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
 #include "game/core/core_refcount.h"
 #include "game/core/core_streams.h"
@@ -26,15 +26,15 @@
 #include "game/data/registry.h"
 #include "game/data/resource_manager.h"
 #include "game/script.h"
-#include "game/sector_map.h"
+#include "game/ai/sector_map.h"
 #include "game/sky_object.h"
 #include "game/sound/sound.h"
 #include "game/spell.h"
 #include "game/terrain.h"
 #include "game/data/text_manager.h"
 #include "game/ui_flying_hit_points.h"
-#include "game/unit.h"
-#include "game/unit_create.h"
+#include "game/units/unit.h"
+#include "game/units/unit_create.h"
 #include "game/world/world.h"
 #include "game/world_effect.h"
 

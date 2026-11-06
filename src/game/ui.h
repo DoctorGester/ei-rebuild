@@ -10,7 +10,7 @@
 #include "game/saves/save_picture.h"
 #include "game/texture.h"   // TextureKind
 #include "game/ui_font.h"
-#include "game/unit.h"   // LockKey
+#include "game/units/unit.h"   // LockKey
 
 #include "lib/containers.h"
 #include "platform/platform.h"
@@ -340,7 +340,7 @@ public:
 
 extern Interface3D g_interface;
 
-enum class SkillAnimation : int;   // map_object_figures.h
+enum class SkillAnimation : int;   // objects/object3d.h
 
 // The pale blue the interface draws its texts, rows and numbers in.
 inline constexpr std::uint32_t kUiTextColour = 0xA7D7E4;

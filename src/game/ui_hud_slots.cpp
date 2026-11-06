@@ -16,7 +16,7 @@
 #include "game/ui_float.h"
 #include "game/ui_hud_pieces.h"
 #include "game/ui_mesh.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "lib/containers.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"

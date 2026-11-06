@@ -1,6 +1,6 @@
 # Combat and the server unit controller
 
-Code (layouts and per-function comments are in `combat.h` and `combat_plan.h`): `combat*.cpp` (queries and the hit in
+Code (layouts and per-function comments are in `combat.h` and `combat/combat_internal.h`): `combat*.cpp` (queries and the hit in
 combat.cpp; actions, orders, order setters, save, sight, steps, step lists, tick, update, motion, planning, taming, stat
 slots, lifetime, spell sight), `unit_motion_tick.cpp`, `world_create.cpp`. Scenarios: `combat.txt`, `combat_more.txt`
 (kill, archer, heal), `combat_skills.txt` (wand, steal, run and paused move orders), `movement.txt`, `unit_ai.txt`; every creature runs the update and animation code each tick.
@@ -32,7 +32,7 @@ and waitFrame keep theirs); the manager destroys every object before deleting it
 
 ## Animation keys
 
-The layout and AnimationKind / BlowSide / SkillAnimation are in map_object_figures.h (names from database.res's *.adb):
+The layout and AnimationKind / BlowSide / SkillAnimation are in objects/object3d.h (names from database.res's *.adb):
 weapon bit (1 << type, natural below 7) | movement bits (0x30000 / 0x20000 / 0x10000 / 0x8000) | action bits (0x90000
 attack with height band 0x1000000 / 0x2000000 / 0x3000000 | 0x800000, 0x40000 skill, 0xC0000 cast, 0x240000 mode
 transition, 0x6000000 death, 0x80580000 idle ...); movement | 0x40000000 once or 0x80000000 looped. An entry's frame

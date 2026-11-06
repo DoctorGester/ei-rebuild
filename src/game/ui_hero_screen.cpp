@@ -7,7 +7,7 @@
 
 #include "game/core/core_maths.h"
 #include "game/app/singletons.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/players/party.h"
 #include "game/core/random.h"
 #include "game/players/saved_parties.h"
@@ -18,7 +18,7 @@
 #include "game/ui_item_info.h"
 #include "game/ui_screens.h"
 #include "game/screen_layout.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 #include "lib/crt.h"
 #include "lib/rect.h"

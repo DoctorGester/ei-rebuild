@@ -6,15 +6,15 @@
 // not reproduced: see docs/notes/script.md.
 #include "game/app/movies.h"
 
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/app/singletons.h"
 #include "game/map/map_spec.h"
 #include "game/map/mob_script_decoder.h"
 #include "game/world/diplomacy.h"
 #include "game/app/options.h"
 #include "game/script.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
 #include "game/world/world.h"
 #include "lib/bytes.h"
 #include "lib/float_select.h"

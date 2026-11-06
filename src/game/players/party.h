@@ -7,7 +7,7 @@
 
 #include "game/core/engine_object.h"
 #include "game/core/manager_context.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/core/named_floats.h"
 
 #include <cstddef>

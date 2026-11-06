@@ -18,7 +18,7 @@
 #include "game/players/player_source.h"
 #include "game/sky_object.h"
 #include "game/ui_flying_hit_points.h"
-#include "game/unit_db.h"
+#include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "lib/scales.h"
 #include "lib/crt.h"

@@ -1,8 +1,8 @@
 # Map objects
 
 Code: `map_object.h/.cpp` (MapObject, MapEffect), `map_object_companion.cpp` (MapObjectServer /
-MapObjectClientSpecific), `map_object_client_effects.cpp`, `map_object_manager.cpp`, `map_object_figures.*`,
-`map_object_parts.cpp` (Object3D parts, scale, bounds), `object3d_client.cpp`, `map_object_shadow.*`,
+MapObjectClientSpecific), `map_object_client_effects.cpp`, `map_object_manager.cpp`, `object3d.*`,
+`object3d_parts.cpp` (Object3D parts, scale, bounds), `object3d_client.cpp`, `map_object_shadow.*`,
 `map_object_draw.cpp`, `map_object_animation*.cpp`, `figure_bones.cpp`. Scenarios: `map_objects.txt`,
 `unit_create.txt` (also world_load, models and every spawn).
 

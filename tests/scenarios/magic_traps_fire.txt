@@ -1,4 +1,4 @@
-# Magic traps with someone inside (src/game/magic_trap.cpp: MagicTrap::RunTick, UpdateVictims, StaysInside,
+# Magic traps with someone inside (src/game/objects/traps.cpp: MagicTrap::RunTick, UpdateVictims, StaysInside,
 # FireAtOccupants, CastAtUnits; docs/notes/units.md, "Magic traps"). magic_traps.txt and magic_traps_victims.txt put
 # a wolf in a circle, but the trap's side mask is 1 (side 0, the hero's) and the wolf walks off to the hero before the
 # first tick, so no trap ever found a victim. Here tools/make_trap_mob.py moves the first circle of zone2's first

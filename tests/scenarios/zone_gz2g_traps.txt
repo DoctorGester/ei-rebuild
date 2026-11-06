@@ -1,4 +1,4 @@
-# Zone change and zone2's own magic traps (ticket X9; src/game/magic_trap.cpp). From the new game in
+# Zone change and zone2's own magic traps (ticket X9; src/game/objects/traps.cpp). From the new game in
 # zone1 (gz1g) the harness's "zone" step calls the server's LeaveToZone (0066F310) as a zone exit
 # does: the party is stored, message 8 makes the client request zone gz2g (game request 4) and the
 # main loop starts it (0057C460 StartZone, 0057A060 EnterZone, NewZone 00595480 loading zone2.mpr /

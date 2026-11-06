@@ -1,8 +1,8 @@
 # Units, creature statistics, levers and magic traps
 
-Code (layouts and per-function comments are in `unit.h`, `unit_db.h`, `magic_trap.h`, `lever.h`,
-`unit_client_models.h`; each file's header says what it does): `unit*.cpp`, `magic_trap.cpp`, `lever_object.cpp`,
-`lever_table.cpp`, `torch_*.cpp`, `map_object_kinds.cpp`, `object3d_*.cpp`, `net_state.cpp`. Scenarios: `units.txt`,
+Code (layouts and per-function comments are in `unit.h`, `unit_db.h`, `objects/traps.h`, `lever.h`,
+`unit_client_models.h`; each file's header says what it does): `unit*.cpp`, `objects/traps.cpp`, `objects/lever.cpp`,
+`objects/lever.cpp`, `torch_*.cpp`, `objects/map_object.cpp`, `object3d_*.cpp`, `net_state.cpp`. Scenarios: `units.txt`,
 `unit_create.txt` (eight prototypes, replace, kill, remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load),
 and every scenario that starts the game.
 
@@ -119,7 +119,7 @@ spec (particle type + offset + scale, point light offset + radius + colour, soun
 
 ## Levers
 
-The lever table (`lever_table.cpp`, records from `Levers.ldb` in database.res: chunk 1, entered into a name index;
+The lever table (`objects/lever.cpp`, records from `Levers.ldb` in database.res: chunk 1, entered into a name index;
 missing: "Can't open Levers database"), found by model name (null for an unknown one). `SetState`: a negative (or
 NaN) duration takes the model's default or 10; a negative state is the next (wraps when cycling); with a live world
 units within radius + 0.5 leave the sector map around the move, the end tick is (tick + duration) + 1, lifted units that
@@ -128,7 +128,7 @@ cannot stay go to a free cell and are resynced. `CollectUseSpots` (from FindUseS
 
 ## Unreached in the shipped game
 
-`TrapObject` (class id 0x55, trap_object.h) stays: the factory makes one for map object kind `Trap`, but no mob record
+`TrapObject` (class id 0x55, objects/traps.h) stays: the factory makes one for map object kind `Trap`, but no mob record
 kind does.
 
 ## Magic traps

@@ -1,6 +1,6 @@
 # Unit AI: brain, modes and actions
 
-Code: `src/game/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (in unit_ai.cpp
+Code: `src/game/ai/unit_ai.h` (layouts and per-function comments: the structure reference), `unit_ai*.cpp` (in unit_ai.cpp
 the brain's Think, lookups, actions and movement, resets, calls, memory, behaviour records and save;
 modes, senses, targets). Scenarios: `unit_ai.txt`, `unit_ai_fear.txt`,
 `unit_ai_attack_removed`, `script_exec` (UMClear, UM*, UMAg, Guard / Sentry), `combat_more` (a death), `world_load`,

@@ -6,7 +6,7 @@
 #include "game/data/chunk_archive.h"
 #include "game/core/core_streams.h"
 #include "game/data/database_file.h"
-#include "game/unit_db.h"   // InlineStrings
+#include "game/units/unit_db.h"   // InlineStrings
 
 #include "lib/crt.h"
 #include "lib/text_case.h"

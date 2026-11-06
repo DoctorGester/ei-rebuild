@@ -3,13 +3,13 @@
 // Shared by the spell effects' start and update: helpers, the original's maths repeated inline, and small
 // accessors. See docs/notes/items_spells.md.
 
-#include "game/ai_map.h"
-#include "game/combat.h"
+#include "game/ai/ai_map.h"
+#include "game/combat/combat.h"
 #include "game/console/console.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/light.h"
 #include "game/spell.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/world_effect.h"
 

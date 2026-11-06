@@ -7,7 +7,7 @@
 #include "game/core/core_refcount.h"
 #include "game/core/engine_object.h"
 #include "game/item_db.h"
-#include "game/lock_key.h"
+#include "game/objects/lock_key.h"
 
 #include <array>
 #include <bit>

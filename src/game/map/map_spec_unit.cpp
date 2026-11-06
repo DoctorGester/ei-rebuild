@@ -1,13 +1,13 @@
 // The zone file's unit records (SpecKind::Unit; map_spec.h) with their five behaviour records (0x4C bytes: patrols of
 // waypoints and the guard settings), the small chunk classes that read those (waypoint, patrol,
 // behaviour) and the patrol array's copy. See docs/notes/objects.md, "Zone files and unit records".
-#include "game/ai_map.h"
-#include "game/map_object.h"
-#include "game/combat.h"
-#include "game/map_object_figures.h"
+#include "game/ai/ai_map.h"
+#include "game/objects/map_object.h"
+#include "game/combat/combat.h"
+#include "game/objects/object3d.h"
 #include "game/map/map_spec.h"
 #include "game/core/core_streams.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

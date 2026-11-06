@@ -8,7 +8,7 @@
 #include "game/app/movies.h"
 #include "game/sound/sound.h"
 #include "game/core/text_split.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/ui.h"
 #include "game/ui_menu_pieces.h"
 #include "game/ui_mesh.h"

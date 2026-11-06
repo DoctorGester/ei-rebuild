@@ -1,17 +1,17 @@
 // Spell effects (SpellEffect, the world server's missiles): hitting units, saving and loading a cast spell, and the
 // casting state with the helpers that create its effect objects (the later states: spell_effect_update.cpp).
 // See docs/notes/items_spells.md.
-#include "game/ai_map.h"
+#include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/core/core_streams.h"
-#include "game/map_object.h"
-#include "game/sector_map.h"
+#include "game/objects/map_object.h"
+#include "game/ai/sector_map.h"
 #include "game/spell.h"
 #include "game/spell_effect_internal.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
-#include "game/unit_db.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
+#include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "game/world_effect.h"
 

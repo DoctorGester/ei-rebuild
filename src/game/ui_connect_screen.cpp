@@ -20,7 +20,7 @@
 #include "game/net_second_master.h"
 #include "game/players/party.h"
 #include "game/core/random.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/data/text_manager.h"
 

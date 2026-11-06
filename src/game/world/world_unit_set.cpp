@@ -4,7 +4,7 @@
 #include "game/core/core_streams.h"
 
 #include "game/item_db.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 
 #include <cstdint>

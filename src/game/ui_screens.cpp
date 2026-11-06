@@ -4,7 +4,7 @@
 #include "game/players/saved_parties.h"
 #include "game/spell.h"
 #include "game/app/options.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/ui.h"
 #include "game/ui_scrollbar.h"
 #include "game/ui_message_box.h"
@@ -14,7 +14,7 @@
 
 #include "game/core/core_maths.h"
 #include "game/item.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/players/party.h"
 #include "game/world/world.h"
 

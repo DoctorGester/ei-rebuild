@@ -2,7 +2,7 @@
 // BriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "game/app/app.h"
 #include "game/camera.h"
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_streams.h"
 #include "game/core/core_transform.h"
@@ -22,9 +22,9 @@
 #include "game/ui_scroll_text.h"
 #include "game/ui_briefing.h"
 #include "game/ui_camera_keys.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
-#include "game/unit_client_models.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
+#include "game/units/unit_client_models.h"
 #include "game/world/world.h"
 #include "game/terrain.h"
 

@@ -6,7 +6,7 @@
 #include "game/core/core_maths.h"
 #include "game/drawn_motion.h"
 #include "game/app/singletons.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/sound/sound.h"
 #include "game/terrain.h"
 #include "game/world/world.h"

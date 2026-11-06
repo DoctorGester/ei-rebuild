@@ -8,7 +8,7 @@
 #include "game/core/manager_context.h"
 #include "game/app/singletons.h"
 #include "game/link_figure.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/material.h"
 #include "game/device.h"
 #include "game/model.h"

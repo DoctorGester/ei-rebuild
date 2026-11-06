@@ -1,17 +1,17 @@
 // PlayerServer: the last client messages: leave, the game state request, pause, casts, weapon and movement
 // style, follow and two small ones. See player_messages.h and docs/notes/objects.md ("Players").
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/core/core_refcount.h"
 #include "game/core/core_streams.h"
 #include "game/app/singletons.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/net_classes.h"
 #include "game/net_messages.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/ui.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
 #include "game/world/world.h"
 
 #include <bit>

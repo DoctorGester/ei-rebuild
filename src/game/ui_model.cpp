@@ -1,12 +1,12 @@
 // A window's 3D model preview (UiModel, ui.h): its object's animations, parts and drawing. The
-// object is a Object3D (map_object_figures.h). See docs/notes/ui.md, section 2.
-#include "game/map_object_shadow.h"
+// object is a Object3D (objects/object3d.h). See docs/notes/ui.md, section 2.
+#include "game/objects/map_object_shadow.h"
 #include "game/model.h"
 #include "game/ui.h"
 
 #include "game/core/base_manager.h"
-#include "game/map_object_figures.h"
-#include "game/unit_create.h"
+#include "game/objects/object3d.h"
+#include "game/units/unit_create.h"
 #include "game/world/world.h"
 
 #include "platform/platform.h"

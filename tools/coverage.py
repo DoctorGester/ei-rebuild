@@ -48,14 +48,14 @@ MAGIC = b'EICOV1\0\0'
 GAME_AREAS = [
     ('saves', r'.*save.*|persistent_globals|chunk_.*'),
     ('AI', r'unit_ai.*|ai_.*'),
-    ('units', r'unit.*|map_spec_unit|lever.*|trap_object|magic_trap|lock_key'),
+    ('units', r'unit.*|map_spec_unit|lever.*|lock_key'),
     ('combat', r'combat.*'),
     ('spells and items', r'spell.*|world_spells|item.*|world_effect.*|hoover_loot|world_loot|class_template.*'),
     ('scripts', r'script.*|mob_.*'),
     ('network', r'net_.*|player_(client|server|sync|messages|source).*|acks?_.*|ack_kind'),
     ('world', r'world.*|map_object.*|object.*|party.*|quest.*|exit_area|player.*|lightning|map_database|map_file|'
               r'map_spec|engine_object|game_flow|saved_parties|save_file|frame_lists|persistent.*|sector_map|'
-              r'search_grid|server_specific_manager'),
+              r'search_grid'),
     ('interface', r'ui_.*|ui|cursor_setup|screen_layout|present_window'),
     ('app', r'app.*|main_loop|options.*|settings.*|console.*|key_bindings|game_folders|mod_folders|rebirth_profile|'
             r'plugin_fixes|logic_settings'),

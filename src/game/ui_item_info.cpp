@@ -10,8 +10,8 @@
 #include "game/item_db.h"
 #include "game/data/text_manager.h"
 #include "game/spell.h"
-#include "game/unit.h"
-#include "game/unit_db.h"
+#include "game/units/unit.h"
+#include "game/units/unit_db.h"
 
 #include "lib/maths.h"
 #include "lib/crt.h"

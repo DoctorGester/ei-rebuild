@@ -5,9 +5,9 @@
 
 #include "game/core/engine_object.h"
 #include "game/link_figure.h"
-#include "game/map_object.h"
-#include "game/map_object_figures.h"
-#include "game/map_object_shadow.h"
+#include "game/objects/map_object.h"
+#include "game/objects/object3d.h"
+#include "game/objects/map_object_shadow.h"
 #include "game/texture.h"
 
 

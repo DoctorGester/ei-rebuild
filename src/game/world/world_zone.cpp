@@ -6,14 +6,14 @@
 #include "game/core/core_refcount.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/map/map_spec.h"
 #include "game/net_delta.h"
 #include "game/map/map_database.h"
 #include "game/players/party.h"
 #include "game/spell.h"         // SpellEffect: the missiles
-#include "game/unit.h"
-#include "game/unit_db.h"
+#include "game/units/unit.h"
+#include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "game/map/folder.h"
 

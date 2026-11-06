@@ -149,6 +149,18 @@ file by a stem without extension (app_main, world_game, app_frame) is not rewrit
 hand; bink_video.* in the notes names either the game's movie player (app/movies.*) or the decoder in src/video, and the
 decoder's references stay.
 
+C168f moved ai/, combat/, objects/ and units/ (90 moves, 20 folds into 18 files, 1,048 paths and 61 renamed names
+rewritten): ai_map.cpp takes ai_map_construct; ai_footprint.cpp ai_occluders and ai_bridges; ai_unit_layer.cpp
+ai_water_patch; unit_shape.h ai_unit_layer.h (the occupancy layers' helpers); ai_path_state.cpp ai_path_save; combat's
+combat_internal.h combat_plan.h; combat_orders.cpp combat_order_setters; combat_sight.cpp combat_spell_sight;
+combat_steps.cpp combat_step_lists; objects/map_object.{h,cpp} map_object_kinds (the plain classes); lever.cpp
+unit_lever and lever_table; torch.h torch_client_spec; traps.h trap_object; units/unit.cpp unit_figure_queries;
+unit_create.cpp unit_equipment; unit_stats.cpp unit_armour_layers. ai/ai_motion.h is the old unit_motion.h (the
+trajectory) with ai_motion.h folded in: its tail included ai_map.h, which includes unit.h, which includes the
+trajectory, so OrderOf (MotionOrder of a PathOrder) moved into ai_map.h after PathOrder. A fold of a header
+is one include list at the top, with the second file's classes and its forward declarations after the first's.
+The include lines the rewrite left twice (a file that included both of a fold's files) are once.
+
 `*_internal.h` (combat, spell effects, world effects) and `script_parse.h` are private headers of one family: they
 stay (combat_plan.h joins combat's). ui_float.h (FloatFromBits for constants written as raw bits, Truncate) moves as
 ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be float literals), not a move.
@@ -296,30 +308,30 @@ Risks:
 
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
-| `ai/` | 28 | 10598 | C168f |
+| `ai/` | 28 | 12554 | C168f |
 | `app/` | 25 | 7034 | C168e |
-| `combat/` | 13 | 5168 | C168f |
+| `combat/` | 13 | 6384 | C168f |
 | `console/` | 5 | 2036 | C168e |
 | `core/` | 27 | 3874 | C168d |
 | `data/` | 13 | 3235 | C168d |
-| `effects/` | 23 | 10254 | C168g |
+| `effects/` | 23 | 10250 | C168g |
 | `items/` | 10 | 2810 | C168g |
 | `map/` | 11 | 2028 | C168e |
-| `models/` | 20 | 4445 | C168g |
+| `models/` | 20 | 4444 | C168g |
 | `mods/` | 6 | 605 | C168d |
 | `net/` | 21 | 6203 | C168h |
-| `objects/` | 22 | 5529 | C168f |
+| `objects/` | 22 | 7287 | C168f |
 | `players/` | 23 | 5340 | C168e |
 | `saves/` | 7 | 811 | C168d |
-| `scene/` | 30 | 4376 | C168g |
+| `scene/` | 30 | 4375 | C168g |
 | `script/` | 20 | 6526 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 7 | 2467 | C168g |
 | `terrain/` | 12 | 3028 | C168g |
-| `ui/` | 94 | 30731 | C168h |
-| `units/` | 27 | 8820 | C168f |
+| `ui/` | 94 | 30730 | C168h |
+| `units/` | 27 | 10002 | C168f |
 | `world/` | 35 | 9727 | C168e |
-| all | 482 | 137324 | |
+| all | 482 | 143429 | |
 
 533 files today; 55 fold into an owner, 10 split by meaning, 8 new files come out of the splits, 36 moves rename for meaning.
 

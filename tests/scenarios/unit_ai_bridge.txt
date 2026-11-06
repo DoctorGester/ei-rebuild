@@ -1,4 +1,4 @@
-# A walk over a bridge, then the bridge removed (src/game/ai_bridges.cpp, AIMap::ApplyBridgeDecks, BridgeHeights,
+# A walk over a bridge, then the bridge removed (src/game/ai/ai_footprint.cpp, AIMap::ApplyBridgeDecks, BridgeHeights,
 # AIMap::BridgeDeckAt; docs/notes/ai.md). Zone1's bridge 299 ("Bridge 00-299", model stbr1, building class) lies
 # at (168.2, 102.9) on the hero's way east, 115 units from the start. Units far from the hero hardly update, so
 # the hero itself walks there (MoveToPoint: the path planner takes the deck cells, 170 s of game time, a few

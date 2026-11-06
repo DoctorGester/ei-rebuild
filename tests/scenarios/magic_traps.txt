@@ -1,4 +1,4 @@
-# Magic traps (src/game/magic_trap.cpp, tickets U3 / U7 / U8). zone1 has none, and AddMob of the
+# Magic traps (src/game/objects/traps.cpp, tickets U3 / U7 / U8). zone1 has none, and AddMob of the
 # whole zone2.mob stalls the original (one of zone2's other objects), so before the run
 # tools/make_trap_mob.py writes traps.mob into the run's harness_saves: zone2's seven magic traps
 # (MTF1..4, MTFW, MTLW, MTPF) and nothing else, renumbered 30001..30007 so they do not take the ids

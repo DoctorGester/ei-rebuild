@@ -1,7 +1,7 @@
 // The skeleton's pose: each bone of a figure takes its place from its parent and its animator, and places the
 // mesh it carries. Called from the root (FigureAnimationState) when the animation changed or the figure was
 // rescaled, with the figure's scaled time factor as the origin. See docs/notes/map_objects.md.
-#include "game/map_object_figures.h"   // FigureBone, AnimationDatabase
+#include "game/objects/object3d.h"   // FigureBone, AnimationDatabase
 
 #include "game/figure_mesh.h"          // FigureMesh
 #include "game/map_object_animation.h" // AnimationTrack

@@ -9,7 +9,7 @@
 #include "game/item.h"
 #include "game/item_db.h"
 #include "game/players/party.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 
 #include <cstdint>
 #include <string>

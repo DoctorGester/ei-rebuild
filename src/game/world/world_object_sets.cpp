@@ -7,7 +7,7 @@
 #include "game/world/object_order.h"
 #include "game/core/core_streams.h"
 #include "game/core/engine_object.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/world_effect.h"
 #include "lib/containers.h"
 
