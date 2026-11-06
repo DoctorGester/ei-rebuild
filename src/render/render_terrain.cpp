@@ -45,8 +45,8 @@ constexpr float kWaterFalloff = 0.06666667f;
 // A vertex is four streams: its position (the water's at rest: terrain_water.hlsl moves it with the waves), the rest of
 // what is built with it, its colour pair (on the water the specular word's colour bytes are its material, column and
 // row in its sector, which the waves read; terrain_water.hlsl puts the crests there) and its texture coordinates with its
-// page's layer in the page textures' array and its animation (the animated tiles that step every time are worked out
-// by the GPU: `base`, `frames`, `phase`, terrain_common.hlsli; the slow ones' coordinates are written when they step).
+// page's layer in the page textures' array and its animation (the GPU works the animated tiles' frames out: `base`,
+// `frames`, `seed`, `rate`, terrain_common.hlsli).
 // The depth-only passes read the first two.
 // `normal` is the record's; `loss` on the ground layer the light lost under the water, on the water layer the vertex's
 // wave phase offset (Terrain::wavePhases); the GPU lights both layers. `depth`: on the water layer the depth over the ground (the ground record's: negative where the
@@ -65,7 +65,7 @@ struct VertexRest {
 static_assert(sizeof(VertexRest) == 28);
 struct VertexUv {
     float u = 0.0f, v = 0.0f, layer = 0.0f;
-    float base = 0.0f, frames = 0.0f, phase = 0.0f;   // an animated tile's first frame in its page, frames, phase; no frames: static
+    float base = 0.0f, frames = 0.0f, seed = 0.0f, rate = 0.0f;   // an animated tile's first frame in its page, frames, seed, rate (1 steps every time); no frames: static
 };
 // The vertex streams (buffer slots) of the meshes.
 constexpr int kPositions = 0, kRest = 1, kColours = 2, kUvs = 3, kStreams = 4;
@@ -272,19 +272,14 @@ struct SlotLayer {
     std::uint32_t first = 0;                 // its first vertex in the mesh
     std::vector<std::uint16_t> records;      // per vertex: the record it reads its position, normal and colours from
     std::vector<VertexUv> uvs;               // per vertex
-    std::vector<std::pair<std::uint32_t, const TileVertex*>> animated;   // the tiles the game steps: vertices and entries
     std::vector<Run> runs;                   // [page * kQuarters + quarter]
     std::vector<TerrainGroup> groups;
     std::uint8_t quarters = 0;               // bit q: quarter q has tiles
-    std::uint32_t uvFrom = 0, uvTo = 0;      // the texture coordinates to write (kWriteGroundUvs, kWriteWaterUvs)
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
 };
 
-// What UploadTerrain writes of a slot: all of it (its meshes' ranges and its caster), the water's positions (a level),
-// a layer's changed texture coordinates.
-constexpr std::uint8_t kWriteAll = 1, kWriteWater = 2, kWriteGroundUvs = 4, kWriteWaterUvs = 8;
-// What the game moved in a sector since it was last read (TerrainChanged).
-constexpr std::uint8_t kTilesMoved = 1, kWaterMoved = 2;
+// What UploadTerrain writes of a slot: all of it (its meshes' ranges and its caster), the water's positions (a level).
+constexpr std::uint8_t kWriteAll = 1, kWriteWater = 2;
 
 // A place of the sector grid (Terrain::GridIndex: sx * sectorsY + sy) in the zone's meshes.
 struct Slot {
@@ -300,7 +295,7 @@ struct Slot {
     std::vector<float> occlusion;   // per ground record
     std::uint8_t neighbours = 0;    // the neighbours whose heights it read (bit k: kNeighbours[k])
     std::uint8_t writes = 0;        // Write
-    std::uint8_t moved = 0;         // Moved
+    bool moved = false;             // WaterMoved: the water level changed since it was read
 };
 
 // A layer's mesh: the slots' vertices one after the other (four streams), the indices page by page, each page's in the
@@ -400,11 +395,9 @@ static void LayerBoxes(const SectorData* sector, SlotLayer& layer) {
 static void BuildLayer(const SectorData* sector, int layer, SlotLayer& out) {
     out.records.clear();
     out.uvs.clear();
-    out.animated.clear();
     out.runs.assign(static_cast<std::size_t>(g_zone.pages * kQuarters), Run{});
     out.groups.clear();
     out.quarters = 0;
-    out.uvFrom = out.uvTo = 0;
     if (!sector) return;
     // The sector's animated tiles (their 9 entries in the tile lists), by their entries.
     static std::vector<const terrain::AnimatedTile*> animated;
@@ -434,13 +427,12 @@ static void BuildLayer(const SectorData* sector, int layer, SlotLayer& out) {
                     const terrain::AnimatedTile* steps = found != animated.end() && (*found)->vertices == tile ? *found : nullptr;
                     for (int k = 0; k < kTileVertices; ++k) {
                         VertexUv uv{tile[k].u, tile[k].v, static_cast<float>(pageInLayer)};
-                        if (steps && steps->onGpu) {
+                        if (steps) {
                             // Its own within the page's first tile and what the shader needs to find its frame.
                             const terrain::TileUv& local = sector->owner->uvLocal[static_cast<std::size_t>(steps->rotation)];
                             uv = VertexUv{local.u[k], local.v[k], uv.layer, static_cast<float>(steps->frameBase),
-                                          static_cast<float>(steps->frames), static_cast<float>(steps->phase)};
-                        } else if (steps) {
-                            out.animated.emplace_back(out.Count(), &tile[k]);
+                                          static_cast<float>(steps->frames), static_cast<float>(steps->seed),
+                                          static_cast<float>(steps->speed) / static_cast<float>(terrain::kAlwaysSteps)};
                         }
                         out.records.push_back(static_cast<std::uint16_t>(tile[k].vertex - sector->records.data()));
                         out.uvs.push_back(uv);
@@ -514,7 +506,7 @@ static void BuildSlot(int k, const SectorData* held) {
         if (!same) g_zone.laid = false;
     }
     BuildCaster(held, slot);
-    slot.moved = 0;
+    slot.moved = false;
     slot.occlusion.clear();
     AddPending(k);
     slot.writes = kWriteAll;
@@ -540,28 +532,13 @@ static void Layout() {
     g_zone.remake = true;
 }
 
-// What the game moved in a slot since it was read: the animated tiles' texture coordinates (the ones the game steps), the
-// water's positions at a new level (the boxes of its runs made again).
+// What the game moved in a slot since it was read: the water's positions at a new level (the boxes of its runs made
+// again).
 static void ReadMoved(int k) {
     Slot& slot = g_zone.slots[static_cast<std::size_t>(k)];
-    const std::uint8_t moved = std::exchange(slot.moved, std::uint8_t{0});
-    if (!slot.sector || moved == 0) return;
-    if (moved & kTilesMoved) {
-        for (int layer = 0; layer < kLayers; ++layer) {
-            SlotLayer& l = slot.layers[layer];
-            if (l.animated.empty()) continue;
-            for (const auto& [i, entry] : l.animated) {
-                l.uvs[i].u = entry->u;
-                l.uvs[i].v = entry->v;
-            }
-            const std::uint32_t from = l.animated.front().first, to = l.animated.back().first + 1;
-            l.uvFrom = l.uvTo > l.uvFrom ? std::min(l.uvFrom, from) : from;
-            l.uvTo = std::max(l.uvTo, to);
-            AddPending(k);
-            slot.writes |= layer == 0 ? kWriteGroundUvs : kWriteWaterUvs;
-        }
-    }
-    if ((moved & kWaterMoved) && slot.layers[1].Count() != 0) {
+    const bool moved = std::exchange(slot.moved, false);
+    if (!slot.sector || !moved) return;
+    if (slot.layers[1].Count() != 0) {
         LayerBoxes(slot.sector, slot.layers[1]);
         AddPending(k);
         slot.writes |= kWriteWater;
@@ -653,7 +630,7 @@ static gpu::PipelineDesc TerrainDesc(const PassState& state, int samples, bool w
     desc.attributes[3] = {program::kAttrCol, kColours, gpu::VertexFormat::UByte4Norm, offsetof(ColourPair, colour)};
     desc.attributes[4] = {program::kAttrSpec, kColours, gpu::VertexFormat::UByte4Norm, offsetof(ColourPair, specular)};
     desc.attributes[5] = {program::kAttrUv, kUvs, gpu::VertexFormat::Float3, offsetof(VertexUv, u)};   // u, v, the page's layer
-    desc.attributes[6] = {program::kAttrAnim, kUvs, gpu::VertexFormat::Float3, offsetof(VertexUv, base)};
+    desc.attributes[6] = {program::kAttrAnim, kUvs, gpu::VertexFormat::Float4, offsetof(VertexUv, base)};
     ApplyPassState(desc, state);
     desc.samples = samples;
     AddDepthCopy(desc);
@@ -783,11 +760,7 @@ static void WriteSlot(int k) {
             for (std::uint32_t i = 0; i < n; ++i) rest[i] = MakeRest(sector, l.records[i], slot.occlusion.data());
             WriteBytes(mesh.streams[kRest], at(kRest, 0), rest.data(), n * sizeof(VertexRest), kBytes);
             WriteBytes(mesh.streams[kUvs], at(kUvs, 0), l.uvs.data(), n * sizeof(VertexUv), kBytes);
-        } else if ((writes & (layer == 0 ? kWriteGroundUvs : kWriteWaterUvs)) && l.uvTo > l.uvFrom) {
-            WriteBytes(mesh.streams[kUvs], at(kUvs, l.uvFrom), l.uvs.data() + l.uvFrom,
-                       (l.uvTo - l.uvFrom) * sizeof(VertexUv), kBytes);
         }
-        l.uvFrom = l.uvTo = 0;
     }
     if ((writes & kWriteAll) && !slot.caster.empty()) {
         WriteBytes(g_zone.casterVertices, std::uint64_t{static_cast<std::uint32_t>(k)} * kWaterRecords * sizeof(TerrainCasterVertex),
@@ -986,10 +959,9 @@ void TerrainChanged(const SectorData* sector, TerrainChange change) {
         slot.stale = true;
         g_zone.slotOf.erase(it);
         break;
-    case TerrainChange::Moved:
     case TerrainChange::WaterMoved:
-        if (slot.moved == 0) g_zone.moved.push_back(k);
-        slot.moved |= change == TerrainChange::Moved ? kTilesMoved : kWaterMoved;
+        if (!slot.moved) g_zone.moved.push_back(k);
+        slot.moved = true;
         break;
     }
 }

@@ -372,10 +372,9 @@ void Terrain::DrawWater(SceneRenderer* renderer) { DrawPass(renderer, LayerPages
 
 // --- Update ------------------------------------------------------------------------------------------
 
-// The landscape's per-frame work: the update (RunTick) and the sun (SetSun); the sectors animate their tiles (the
-// steps are counted here and the GPU works most tiles' frames out from them; SectorData::AnimateTiles,
-// terrain_sector.cpp, steps the slow ones). The waves move nothing here: WaterVertex and the GPU work them out
-// from the phase and the time.
+// The landscape's per-frame work: the update (RunTick) and the sun (SetSun). The animated tiles' steps are counted here
+// and the GPU works every tile's frame out from them (terrain_stages.hlsli's tile_uv). The waves move nothing here:
+// WaterVertex and the GPU work them out from the phase and the time.
 
 void Terrain::SetSun(Light* light, const Vector4& colour) {
     ambient = colour;
@@ -388,14 +387,6 @@ bool Terrain::RunTick() {
     waveTime = (g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale;
     ++frame;
     if (frame % kTileFrameEvery == 0 && lib::Has(landscapeFlags, LandscapeFlag::AnimatedTiles)) ++tileSteps;
-    for (int sy = visible.firstY; sy <= visible.lastY; ++sy) {
-        for (int sx = visible.firstX; sx <= visible.lastX; ++sx) {
-            SectorData* sector = SectorAt(sx, sy, SectorStage::Built, false);
-            // The steps that draw the client generator (which visuals.sav keeps) are made within the game's reach, as
-            // when the view had its far plane there. The tiles that draw none step on the GPU, wherever they are.
-            if (sector && sector->IsDrawn() && sector->inReach) sector->AnimateTiles(frame);
-        }
-    }
     return true;
 }
 

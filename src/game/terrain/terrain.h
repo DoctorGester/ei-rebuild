@@ -196,7 +196,7 @@ public:
     MMIOResource archive;          // the map's sector archive
     std::vector<TileUv> uvTables[4];       // per rotation, per texture of a page
     std::vector<TileUv> uvTablesLast[4];   // the same for the extra pages
-    // The animated tiles the GPU steps (AnimatedTile::onGpu) carry their coordinates within their page's first tile
+    // The animated tiles carry their coordinates within their page's first tile
     // (per rotation: uvTables' without the tile's column and row), `tileSide` the tile's side as a part of the page.
     std::vector<TileUv> uvLocal;           // per rotation
     float tileSide = 0.0f;
