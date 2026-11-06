@@ -1,4 +1,4 @@
-# R57: the client's picture kept beside a save (saves\<slot>\visuals.sav, src/game/client_visuals.h; docs/notes/renderer.md,
+# R57: the client's picture kept beside a save (saves\<slot>\visuals.sav, src/game/saves/client_visuals.h; docs/notes/renderer.md,
 # "What a save keeps of the picture"). Zone1 by day, 15 seconds into rain: the ground half wet, the puddles filling, the
 # clouds closing in, the hero wet. F5 saves; the rain stops and everything dries for 20 seconds; F8 loads the quick save
 # back, and the ground, the clouds and the hero are as they were saved, and so is the rain (the server's weather and the

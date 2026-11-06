@@ -1,5 +1,5 @@
 # R57c: a multiplayer client keeps its own picture of a zone it leaves (saves\current\<zone>.visuals.sav in its own
-# saves folder, src/game/client_visuals.h; docs/notes/renderer.md, "What a save keeps of the picture"). This game hosts
+# saves folder, src/game/saves/client_visuals.h; docs/notes/renderer.md, "What a save keeps of the picture"). This game hosts
 # as net_pair_join does, picks z3q2 (the sheriff's second topic, as net_host_death) and walks into it; the peer
 # (peer/net_pair_zone_visuals.txt) joins it there and walks (footprints), leaves back to its own base through exit 1
 # and comes in again: its prints come back from its own side file, aged by the ticks this game's zone ran on without

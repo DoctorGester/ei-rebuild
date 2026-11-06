@@ -4,7 +4,7 @@
 #include "game/unit_client_models.h"
 
 #include "game/ai_map.h"
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/effects.h"
 #include "game/figure_manager.h"
 #include "game/game_singletons.h"
@@ -15,7 +15,7 @@
 #include "game/map_object_shadow.h"
 #include "game/link_loader.h"
 #include "game/texture.h"
-#include "game/resource.h"
+#include "game/data/resource.h"
 #include "game/ui.h"
 #include "game/unit.h"
 #include "game/unit_db.h"

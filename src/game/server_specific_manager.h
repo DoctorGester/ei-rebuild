@@ -4,8 +4,8 @@
 // ServerSpecificManager (class id 0x31) is created by the world server, ClientSpecificManager (0x30) by the client
 // world. server_specific_manager.cpp. Names from the classes' own ClassName strings.
 
-#include "game/base_manager.h"
-#include "game/engine_object.h"
+#include "game/core/base_manager.h"
+#include "game/core/engine_object.h"
 
 class ServerSpecificManager : public BaseManager {
 public:

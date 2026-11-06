@@ -11,8 +11,8 @@
 #include "game/ui_edit_field.h"
 #include "game/ui_screens.h"
 
-#include "game/core_transform.h"
-#include "game/text_manager.h"
+#include "game/core/core_transform.h"
+#include "game/data/text_manager.h"
 #include "game/ui_camp.h"
 #include "game/ui_item_info.h"
 #include "game/screen_layout.h"

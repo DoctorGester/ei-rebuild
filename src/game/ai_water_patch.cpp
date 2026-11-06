@@ -5,7 +5,7 @@
 // truncated from position * 1 / (cell size * 0.5). See ai_map.h and docs/notes/ai.md.
 #include "game/ai_map.h"
 #include "game/ai_unit_layer.h"
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 
 #include "lib/crt.h"
 

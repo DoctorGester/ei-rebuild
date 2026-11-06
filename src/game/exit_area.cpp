@@ -4,15 +4,15 @@
 // Also the exit's stream form and the stream's string reader.
 #include "game/world.h"
 
-#include "game/core_maths.h"
-#include "game/core_streams.h"
+#include "game/core/core_maths.h"
+#include "game/core/core_streams.h"
 
 #include <cstdint>
 #include <cstring>
 #include <string>
 
 #include "lib/maths.h"
-#include "game/save_versions.h"
+#include "game/saves/save_versions.h"
 #include "game/object_tables.h"
 
 #include <memory>

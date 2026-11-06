@@ -4,7 +4,7 @@
 #include "game/world_effect_internal.h"
 
 #include "game/console.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/sound.h"
 
 #include "game/game_singletons.h"

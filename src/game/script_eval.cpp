@@ -3,7 +3,7 @@
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // old x87 compare counted it as equal and less).
 #include "game/ai_map.h"
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/combat.h"
 #include "game/game_singletons.h"
 #include "game/lever.h"
@@ -11,10 +11,10 @@
 #include "game/net_classes.h"
 #include "game/object.h"
 #include "game/object_diplomacy.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/party.h"
 #include "game/player_messages.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/script.h"
 #include "game/script_addon.h"
 #include "game/unit.h"

@@ -7,7 +7,7 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/spell.h"
 #include "game/sound.h"
 #include "game/terrain.h"

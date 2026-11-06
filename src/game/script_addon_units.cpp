@@ -2,7 +2,7 @@
 #include "game/combat.h"
 #include "game/game_singletons.h"
 #include "game/map_object.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/script_addon_handlers.h"
 #include "game/unit.h"
 #include "game/unit_db.h"

@@ -3,18 +3,18 @@
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "game/app.h"
 #include "game/game_flow.h"
-#include "game/mod_list.h"
+#include "game/mods/mod_list.h"
 #include "game/options.h"
 #include "game/sound.h"
 #include "game/ui.h"
 #include "game/ui_message_box.h"
 #include "game/ui_screens.h"
 
-#include "game/base_manager.h"
-#include "game/core_maths.h"
-#include "game/text_manager.h"
+#include "game/core/base_manager.h"
+#include "game/core/core_maths.h"
+#include "game/data/text_manager.h"
 #include "game/map_object_figures.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/unit_create.h"
 #include "game/world.h"
 

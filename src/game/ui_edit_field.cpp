@@ -2,7 +2,7 @@
 // handler, and its paint (Rebirth's WideScreen). See ui_edit_field.h (UiEditField) and
 // docs/notes/ui.md, section 8.
 #include "game/ui_edit_field.h"
-#include "game/asset_text.h"
+#include "game/core/asset_text.h"
 #include "game/ui.h"
 #include "game/ui_screens.h"
 #include "lib/containers.h"

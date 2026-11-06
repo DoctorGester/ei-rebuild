@@ -3,7 +3,7 @@
 // and loading them with the savegame. See script.h and docs/notes/script.md.
 #include "game/script.h"
 
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/world.h"
 #include "game/world_effect.h"
 #include "game/game_singletons.h"

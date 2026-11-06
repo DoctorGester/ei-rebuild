@@ -12,7 +12,7 @@
 #include "game/ui_camp.h"
 #include "game/net_classes.h"
 
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/item.h"
 #include "game/unit.h"
 #include "game/party.h"

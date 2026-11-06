@@ -4,7 +4,7 @@
 #include "game/net_second_master.h"
 
 #include "game/net_classes.h"
-#include "game/net_coder.h"
+#include "game/core/coder.h"
 #include "game/net_messages.h"
 
 #include "lib/rebirth.h"

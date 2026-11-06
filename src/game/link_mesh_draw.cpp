@@ -3,7 +3,7 @@
 // callers are the figure part draw (figure_part_draw.cpp) and the shadow
 // (map_object_shadow.cpp). The old Direct3D 7 path: the two plain draws
 // turn the device's specular on around the draw for a material that keeps its speculars.
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/light.h"
 #include "game/link_figure.h"
 #include "game/material.h"        // Material

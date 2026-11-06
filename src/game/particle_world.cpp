@@ -3,15 +3,15 @@
 // More: docs/notes/effects.md, "Particle sources".
 #include "game/particle_common.h"
 
-#include "game/angles.h"
+#include "game/core/core_maths.h"
 #include "game/camera.h"
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/effects.h"
 #include "game/game_singletons.h"
 #include "game/light.h"
 #include "game/map_object_figures.h"
 #include "game/model.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/spell.h"
 #include "game/unit.h"
 #include "game/world.h"

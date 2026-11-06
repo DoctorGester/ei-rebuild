@@ -3,10 +3,10 @@
 // The world: the server side that runs the game rules (WorldServer) and the client side that draws it and answers
 // terrain queries (WorldClient), both derived from a common base. Class names come from the game's error strings.
 
-#include "game/client_visuals.h"
-#include "game/core_refcount.h"
+#include "game/saves/client_visuals.h"
+#include "game/core/core_refcount.h"
 #include "game/effects.h"   // RainSnow
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/game_singletons.h"
 #include "game/ground_print.h"
 #include "lib/vecmath.h"
@@ -15,10 +15,10 @@
 #include "game/party.h"
 #include "game/player_messages.h"
 #include "game/player_source.h"
-#include "game/registry.h"
+#include "game/data/registry.h"
 #include "game/unit_ai.h"   // AIEventTable (the server world's AI events)
 #include "game/unit_looks.h"
-#include "game/named_floats.h"
+#include "game/core/named_floats.h"
 
 #include "lib/bit_flags.h"
 #include "lib/hash_map.h"

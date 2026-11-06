@@ -1,7 +1,7 @@
 #pragma once
 
 #include "game/ai_event_table.h"
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/search_grid.h"
 #include "game/sector_map.h"
 #include "game/unit.h"

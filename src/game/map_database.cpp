@@ -1,10 +1,10 @@
 // The map database loader: MapDatabase's allods, maps and exits (object_tables.h) filled from map.txt / map-
 // LMP.txt.
 // More: docs/notes/objects.md, "Map database".
-#include "game/angles.h"
+#include "game/core/core_maths.h"
 #include "game/console.h"
 #include "game/game_singletons.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/object_tables.h"
 #include "game/world.h"
 

@@ -1,7 +1,7 @@
 // Saving the mission script into a savegame (Script::SaveState) and the savers of its parts:
 // command blocks, the four kinds of variables and the areas. See script.h and docs/notes/script.md.
 // Every piece goes through the stream's Write in the save's order and in its pieces.
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/script.h"
 
 #include <cstdint>

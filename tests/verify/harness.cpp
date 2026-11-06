@@ -455,7 +455,7 @@
 //                             samecapture does (16 bits lose the low bits: use tolerance 8 or more)
 //   checksave <slot> <frame> [centre] [tolerance] [fraction]
 //                             require the save <slot>'s pictures (shot.sav: the 256x192 5:6:5 one and
-//                             the full-colour one after it, src/game/save_picture.h) to match
+//                             the full-colour one after it, src/game/saves/save_picture.h) to match
 //                             frames\<frame>.bmp, each as averages of 32x24 matching rectangles (the
 //                             save's stretches sample differently), counted as samecapture does;
 //                             catches a picture of nothing (a cleared frame, R13). "centre": against

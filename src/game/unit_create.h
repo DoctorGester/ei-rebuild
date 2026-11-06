@@ -3,8 +3,8 @@
 // Unit setup helpers around creation and loading: the unit prototype table's name index and the server controller's
 // statistics hand-over. See docs/notes/units.md ("Creation, databases, save").
 
-#include "game/manager_context.h"
-#include "game/resource_manager.h"
+#include "game/core/manager_context.h"
+#include "game/data/resource_manager.h"
 
 #include "lib/hash_map.h"
 

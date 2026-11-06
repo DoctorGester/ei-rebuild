@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/item_db.h"
 #include "lib/hash_map.h"
 

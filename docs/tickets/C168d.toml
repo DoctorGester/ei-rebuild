@@ -6,5 +6,5 @@ model = "sonnet"
 depends = ["C168c"]
 note = "Plan: docs/notes/file-layout.md. python tools/layout.py apply C168d plus its 7 folds by hand (layout.py listing names them); 628 include lines, 350 references. Quiet window: no other src/game branch open; merged before C168e starts. All goldens the same."
 order = 1232
-status = "running"
+status = "review"
 started = "2026-11-06"

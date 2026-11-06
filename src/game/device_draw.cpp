@@ -10,7 +10,7 @@
 #include "game/model.h"
 #include "game/render_helper.h"   // RenderPreset
 #include "game/texture.h"
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/game_singletons.h"
 #include "game/ground_print.h"       // NamedTexture
 #include "game/present_window.h"

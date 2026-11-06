@@ -3,10 +3,10 @@
 // Figure meshes: the figure part objects created by the figure factory (the figure manager's types 0x41-0x44) and their
 // loaders. See docs/notes/world.md, "Figure meshes".
 
-#include "game/core_transform.h"
+#include "game/core/core_transform.h"
 #include "lib/vecmath.h"
 #include "game/pipeline.h"
-#include "game/ref.h"
+#include "game/core/ref.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

@@ -13,10 +13,10 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/platform/files.cpp` | `FolderEntries`: each layer's search (the backends' `SearchFolder`) merged |
 | `src/main.cpp` | reads `[game] Mod` after EI_Plugin's values, calls `app::UseMod` (app_main.cpp: the folder in full, `platform::SwitchMod`, the log) |
 | `src/game/app_main.cpp` | `StartGame` / `StopGame` (the game's half of the start and the stop), `app::RequestModSwitch` and the switch (`TakeModSwitch`) |
-| `src/game/mod_list.h`, `.cpp` | the main menu's list of mods: `Scan` (starter\Mods\*\config.reg), `IndexOf`, `SettingOf` |
+| `src/game/mods/mod_list.h`, `.cpp` | the main menu's list of mods: `Scan` (starter\Mods\*\config.reg), `IndexOf`, `SettingOf` |
 | `src/game/ui_main_menu.cpp` | `MainMenu::AddModList` (the list's drop-down control) and the pick's `RequestModSwitch` (in `Update`) |
-| `src/game/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"), whenever a mod is played: `ModPath()` is the Mod folder, `Active()` whether there is one; `Reset` at a switch |
-| `src/game/mod_plugins.h`, `.cpp` | the mods' plugins carried as code ("The mods' plugins"): `modplugins::FourShopClasses` |
+| `src/game/mods/mod_folders.cpp` | Rebirth's mod-folder patches (rebirth.md, "Resources and paths"), whenever a mod is played: `ModPath()` is the Mod folder, `Active()` whether there is one; `Reset` at a switch |
+| `src/game/mods/mod_plugins.h`, `.cpp` | the mods' plugins carried as code ("The mods' plugins"): `modplugins::FourShopClasses` |
 | `tests/verify/harness.cpp` | `Layers` / `MapPath` / `MapSearches`: the run's overlay as the map's top layer |
 | `tests/unit/path_layers.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_lost_in_astral.txt` | a new game in Lost in Astral (Rebirth's data) |
@@ -83,7 +83,7 @@ folder); the snapshot (config/harness/registry.reg) marks `Mod` absent otherwise
 
 ## A mod's config.reg
 
-The game's registry format (src/game/registry.h). Sections in Rebirth's mods:
+The game's registry format (src/game/data/registry.h). Sections in Rebirth's mods:
 - `[MOD]`: Title, Author, Version, Date_DMY, URL, AuthorEmail, GameSaves, Single, Multi, ForceShowTutorial: the
   starter's list (the menu's list, MOD3).
 - `[RES]`: archive name = the mod's archive(s) (string or array), `-` to drop the game's; read by ResOverride
@@ -103,7 +103,7 @@ same files.
 ## The mods' plugins
 
 A `.plg` is a DLL the starter loads into game.exe (1.06) when the mod's config.reg names it; it writes bytes into the
-code. Read with a disassembler, never loaded. `src/game/mod_plugins.cpp` reads the mod's config.reg (`ModPath()`) at
+code. Read with a disassembler, never loaded. `src/game/mods/mod_plugins.cpp` reads the mod's config.reg (`ModPath()`) at
 each question, so a plugin's change is on exactly while the chosen mod names it.
 
 - Lost in Astral's `fixshops.plg` (`modplugins::FourShopClasses`, used by party_manager.cpp) makes two changes:
@@ -281,7 +281,7 @@ back. Reload: made again from the new mod's files. The list to check when a swit
 | Interface (`g_interface`, `g_keyActions`, `g_menuRects`, `g_cursor`, texture_load's `g_composed`) | 5 | reload | `Shutdown` / `Create`, the cursor's `Shutdown` / `SetUpCursors`, `ForgetComposedTextures`; menus.reg read again by the figure manager |
 | Interface scratch (ui_surface's list, ui_main_menu, ui_objectives, ui_interface, ui_screens.h, `g_keyNames`) | ~6 | keep | |
 | AI pools and tables (ai_block_search, ai_events, ai_footprint, ai_path_smooth, ai_refresh, ai_unit_shape), weather noise, fog tiles, animation blends | ~13 | keep | computed, or loaded for each zone |
-| Network (net_classes, net_coder, net_messages, net_second_master, net_session, net_server_players, world_guard) | ~25 | keep | the switch is offline only |
+| Network (net_classes, core/coder, net_messages, net_second_master, net_session, net_server_players, world_guard) | ~25 | keep | the switch is offline only |
 
 ### Checks
 

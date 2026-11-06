@@ -4,7 +4,7 @@
 // surface holds it. See docs/notes/renderer.md, section 8.
 #include "game/app.h"
 #include "game/bink_video.h"
-#include "game/mod_folders.h"
+#include "game/mods/mod_folders.h"
 #include "game/net_session.h"
 #include "game/sound.h"
 #include "game/device.h"

@@ -764,7 +764,7 @@ EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set stru
           'copied small helper (IsZero, 1/255, server running)': 'src/lib/', 'own integer reader': 'src/lib/',
           # The streams and buffers own their cursors; src/lib's readers are the shared ones.
           'cursor moved by hand after memcpy': ('src/lib/',) + layout.game_paths('core_streams.cpp', 'game_buffer',
-                                                                                 'net_coder.cpp'),
+                                                                                 'net_coder'),
           # The generator itself and its tests of the scale.
           'random word scaled by hand (Range copy)': ('src/lib/',) + layout.game_paths('random.cpp'),
           'Windows name outside the Windows backend': 'src/platform/win32/'}

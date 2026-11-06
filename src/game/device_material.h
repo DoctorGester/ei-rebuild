@@ -3,8 +3,8 @@
 // The material the device draws with (TextureDevice::material): set in device_draw.cpp,
 // applied by the indexed draw. See docs/notes/models.md ("Material draw").
 
-#include "game/engine_object.h"
-#include "game/ref.h"
+#include "game/core/engine_object.h"
+#include "game/core/ref.h"
 #include "game/render_helper.h"   // RenderPreset
 #include "game/texture.h"
 

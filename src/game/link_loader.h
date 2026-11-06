@@ -3,7 +3,7 @@
 // The link figure loader: the .lnk files and the figures they name, their parts' archives and the figures' cached
 // models (link_loader.cpp). See docs/notes/renderer.md (section 12) and docs/notes/models.md.
 
-#include "game/ref.h"
+#include "game/core/ref.h"
 
 #include "lib/str.h"   // ViewHash
 

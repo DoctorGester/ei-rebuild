@@ -4,7 +4,7 @@
 // helper (renderer_scene.cpp, renderer_init.cpp and the draws renderer_*.cpp). See docs/notes/renderer.md.
 
 #include "game/pipeline.h"   // TransformPipeline, SpritePoint
-#include "game/ref.h"
+#include "game/core/ref.h"
 #include "render/render_state.h"
 
 #include "lib/rect.h"

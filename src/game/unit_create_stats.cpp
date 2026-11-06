@@ -1,8 +1,8 @@
 // A creature's starting vitals and statistics from its prototype records, the prototype applied
 // to a new map object, and the map object factory. See unit_create.h and docs/notes/units.md ("Creation,
 // databases, save").
-#include "game/angles.h"
-#include "game/base_manager.h"
+#include "game/core/core_maths.h"
+#include "game/core/base_manager.h"
 #include "game/item.h"
 #include "game/lever.h"
 #include "game/logic_settings.h"
@@ -10,7 +10,7 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_kinds.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/torch.h"
 #include "game/trap_object.h"
 #include "game/unit.h"

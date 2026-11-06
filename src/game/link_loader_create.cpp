@@ -1,7 +1,7 @@
 // The figure loader's constructor: the client world's setup news it with the device object and the game's
 // folder. See docs/notes/renderer.md (section 12).
 #include "game/link_figure.h"   // LinkMesh: the cache's entries
-#include "game/mod_folders.h"
+#include "game/mods/mod_folders.h"
 #include "game/device.h"
 #include "game/link_loader.h"
 

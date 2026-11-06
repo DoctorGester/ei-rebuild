@@ -3,7 +3,7 @@
 #include "game/app.h"
 #include "game/bink_video.h"   // g_loadingMovieOff
 #include "game/chunk_stream.h"
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/game_flow.h"
 #include "game/game_singletons.h"
 #include "game/map_object.h"

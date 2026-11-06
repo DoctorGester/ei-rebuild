@@ -3,7 +3,7 @@
 # 0056C750 on their first draw), two wolves bleed (a hit and a death: AddBloodPrint 0056CE90), the
 # hero walks through the dead wolf's blood (bloody footprints), then the game is saved and loaded back:
 # the prints come back from the side file beside the save (visuals.sav's Prints section, R57a;
-# src/game/client_visuals.h), else the load would show none. Blood and footprints tick and draw every frame.
+# src/game/saves/client_visuals.h), else the load would show none. Blood and footprints tick and draw every frame.
 reject Script error
 waitmenu
 console thingamabob

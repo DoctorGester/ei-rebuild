@@ -1,7 +1,7 @@
 // WorldServer: the per-tick update (timed objects, missiles, countdowns), waking units near a
 // point, alarms and the game result. See world.h.
 #include "game/combat.h"
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/map_object.h"
 #include "game/net_link.h"   // netlink::DriverSession (SetGameResult)
 #include "game/script.h"

@@ -2,10 +2,10 @@
 // and their index by name. See docs/notes/app.md.
 #include "game/lever.h"
 
-#include "game/chunk_archive.h"
-#include "game/resource.h"
-#include "game/core_streams.h"
-#include "game/database_file.h"
+#include "game/data/chunk_archive.h"
+#include "game/data/resource.h"
+#include "game/core/core_streams.h"
+#include "game/data/database_file.h"
 #include "lib/crt.h"
 
 #include <cstdint>

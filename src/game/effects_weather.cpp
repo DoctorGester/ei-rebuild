@@ -1,12 +1,12 @@
 #include "game/clip.h"   // TLVertex
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/effects.h"
 #include "game/figure_mesh.h"   // VertexPacket
 #include "game/game_singletons.h"
 #include "game/model.h"   // SceneRenderer
 #include "game/pipeline.h"   // TransformPipeline
 #include "game/texture.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/sound.h"
 #include "game/weather_field.h"
 #include "game/world.h"

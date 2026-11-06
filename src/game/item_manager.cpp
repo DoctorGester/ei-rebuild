@@ -5,10 +5,10 @@
 
 #include "game/console.h"
 #include "game/item.h"
-#include "game/manager_context.h"
+#include "game/core/manager_context.h"
 #include "game/map_object.h"   // MapObjectFlag
 #include "game/spell.h"
-#include "game/text_split.h"
+#include "game/core/text_split.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

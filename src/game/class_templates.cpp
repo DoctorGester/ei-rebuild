@@ -4,7 +4,7 @@
 #include "game/class_templates.h"
 
 #include "game/console.h"
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/item.h"
 #include "game/item_db.h"
 #include "game/item_manager.h"

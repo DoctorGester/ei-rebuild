@@ -9,7 +9,7 @@
 // whole array), a Setup starts the elements the source's spec made.
 
 #include "game/effects.h"
-#include "game/random.h"
+#include "game/core/random.h"
 
 #include "lib/vecmath.h"
 

@@ -3,7 +3,7 @@
 #include "game/ai_map.h"
 #include "game/effects.h"
 
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 
 #include "lib/crt.h"
 

@@ -1,15 +1,15 @@
 // Missiles: EffectMissile (the homing base), EffectArrow (a spell missile carrying a particle
 // source, a light and a sound) and EffectArrowFigure (a bow shot drawn as a figure). See
 // world_effect.h and docs/notes/effects.md ("Missiles").
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/camera.h"
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/game_singletons.h"
 #include "game/light.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
-#include "game/save_versions.h"
+#include "game/saves/save_versions.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
 #include "game/world.h"

@@ -1,7 +1,7 @@
 // The menus' button rectangles (figure_manager.h): read from "menus.reg" through the figure manager.
 #include "game/figure_manager.h"
 
-#include "game/registry.h"
+#include "game/data/registry.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
 

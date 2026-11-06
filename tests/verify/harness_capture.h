@@ -79,7 +79,7 @@ bool CompareFile(const char* path, const char* frame, int tolerance, double* dif
                  const char** why);
 
 // The save's pictures (<slot>\shot.sav: the 256x192 5:6:5 one and the trailer's, which it must have;
-// src/game/save_picture.h) against frames\<frame>.bmp, each as averages of 32x24 matching rectangles,
+// src/game/saves/save_picture.h) against frames\<frame>.bmp, each as averages of 32x24 matching rectangles,
 // counted as Compare does (the worse of the two). `centre`: against the frame's centred 4:3 part only.
 bool CompareSavePicture(const char* path, const char* frame, bool centre, int tolerance, double* differing, int* largest,
                         const char** why);

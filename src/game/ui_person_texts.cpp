@@ -3,7 +3,7 @@
 // there) and the briefing screen.
 #include "game/ui_camp.h"
 
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 
 #include "game/console.h"
 #include <string>

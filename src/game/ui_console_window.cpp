@@ -3,7 +3,7 @@
 // ("Console window").
 #include "game/console.h"
 #include "game/ui.h"
-#include "game/asset_text.h"
+#include "game/core/asset_text.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

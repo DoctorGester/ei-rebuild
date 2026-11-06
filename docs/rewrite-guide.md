@@ -81,7 +81,7 @@ compare function pointers for identity.
   `using` alias for a container used once.
 - Parameters and fields carry their types: no `void*` that every caller casts. Manager objects come typed
   (`BaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, `itemdb::RecordAs<T>`). A counted pointer field is a
-  `Ref<T>` (src/game/ref.h), a container element holding a reference a `HeldRef<T>`; a counted object is tested with
+  `Ref<T>` (src/game/core/ref.h), a container element holding a reference a `HeldRef<T>`; a counted object is tested with
   `IsLive(object)`. A record that starts with another's fields derives from it.
 - Lifetimes: every field has a default initialiser (counted: a scalar, pointer or enum field without one). An embedded object is a plain member: the compiler builds and
   destroys it, and the member order gives the teardown order (no constructor or destructor called by hand). A

@@ -6,7 +6,7 @@
 #include "game/sound.h"
 #include "game/ui_cursor.h"
 #include "game/present_window.h"
-#include "game/asset_text.h"
+#include "game/core/asset_text.h"
 #include "platform/log.h"
 
 #include "lib/crt.h"

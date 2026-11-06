@@ -8,7 +8,7 @@
 #include "game/map_object.h"
 #include "game/player_client.h"
 #include "game/screen_layout.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_battle.h"
 #include "game/ui_hud_pieces.h"

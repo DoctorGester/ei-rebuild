@@ -1,14 +1,14 @@
 // EffectMoshka: the bird that perches near the followed hero, circles it when it comes close and
 // flies off to another perch. See world_effect.h and docs/notes/effects.md ("Moshka").
 #include "game/ai_map.h"
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/camera.h"
 #include "game/effects.h"
 #include "game/game_singletons.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/unit_ai.h"
 #include "game/world.h"
 #include "game/world_effect.h"

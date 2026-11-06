@@ -5,7 +5,7 @@
 // docs/notes/units.md ("Creation, databases, save").
 
 #include "game/ai_map.h"
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "lib/rect.h"
 #include "game/unit.h"
 

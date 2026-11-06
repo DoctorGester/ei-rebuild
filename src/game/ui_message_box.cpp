@@ -2,7 +2,7 @@
 // ui_message_box.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "game/ui_screens.h"
 #include "game/ui_message_box.h"
-#include "game/asset_text.h"
+#include "game/core/asset_text.h"
 #include "game/app.h"
 
 #include <cstddef>

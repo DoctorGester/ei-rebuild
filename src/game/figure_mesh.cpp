@@ -2,12 +2,12 @@
 // figure's three morph coefficients. See docs/notes/world.md ("Figure meshes").
 #include "game/figure_mesh.h"
 
-#include "game/core_maths.h"
-#include "game/core_transform.h"
+#include "game/core/core_maths.h"
+#include "game/core/core_transform.h"
 #include "game/figure_manager.h"
 #include "game/item.h"
 #include "game/link_figure.h"
-#include "game/manager_context.h"
+#include "game/core/manager_context.h"
 #include "game/pipeline.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"

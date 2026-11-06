@@ -8,7 +8,7 @@
 #include "game/game_singletons.h"
 #include "game/options.h"
 #include "game/surface.h"
-#include "game/text_split.h"
+#include "game/core/text_split.h"
 #include "game/unit_client_models.h"
 #include "platform/log.h"
 #include "lib/crt.h"

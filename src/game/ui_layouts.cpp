@@ -3,11 +3,11 @@
 // and UiRegion::SetRect for its widescreen layout. The save / load and options windows' are in ui_saveload.cpp and
 // ui_options.cpp. See docs/notes/ui.md.
 #include "game/app.h"
-#include "game/asset_text.h"
+#include "game/core/asset_text.h"
 #include "game/options.h"
 #include "game/bink_video.h"
 #include "game/sound.h"
-#include "game/text_helpers.h"
+#include "game/core/text_split.h"
 #include "game/map_object_figures.h"
 #include "game/ui.h"
 #include "game/ui_menu_pieces.h"
@@ -19,12 +19,12 @@
 #include "game/ui_message_box.h"
 
 #include "game/console.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "lib/vecmath.h"
 #include "game/model.h"
 #include "game/texture.h"
 #include "game/net_second_master.h"
-#include "game/resource.h"
+#include "game/data/resource.h"
 #include "game/ui_cursor.h"
 #include "game/ui_screens.h"
 #include "game/world.h"

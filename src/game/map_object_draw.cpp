@@ -2,7 +2,7 @@
 // docs/notes/map_objects.md ("Drawing").
 #include "game/drawn_motion.h"
 #include "game/device.h"
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"

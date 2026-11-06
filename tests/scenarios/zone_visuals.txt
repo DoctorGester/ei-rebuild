@@ -1,5 +1,5 @@
 # R57c: the client's picture kept beside a zone left (saves\current\<zone>.visuals.sav beside <zone>.sav,
-# src/game/client_visuals.h; docs/notes/renderer.md, "What a save keeps of the picture"). Zone1 by day in rain: two
+# src/game/saves/client_visuals.h; docs/notes/renderer.md, "What a save keeps of the picture"). Zone1 by day in rain: two
 # wolves bleed and the hero walks (blood and footprints), the ground and the hero wet. Out to the town bz1g (LeaveZone
 # keeps zone1, the client its picture beside it) and back: zone1 comes back from saves\current with its prints (aged
 # by the ticks the zone ran meanwhile), the ground and the hero as wet as they were left and the clouds' cover going on

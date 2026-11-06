@@ -2,8 +2,8 @@
 // panning / zoom / saved views, shakes and recorded camera paths.
 #include "game/camera.h"
 
-#include "game/base_manager.h"
-#include "game/core_maths.h"
+#include "game/core/base_manager.h"
+#include "game/core/core_maths.h"
 #include "game/drawn_motion.h"
 #include "game/game_singletons.h"
 #include "game/map_object_figures.h"

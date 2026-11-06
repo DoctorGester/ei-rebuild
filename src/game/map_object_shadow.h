@@ -4,9 +4,9 @@
 // sphere around the object and its shadow on the ground along the lights' direction (it decides the shadow's
 // visibility out of view). See docs/notes/map_objects.md ("Shadows").
 
-#include "game/ref.h"
+#include "game/core/ref.h"
 #include "game/device_material.h"   // DeviceMaterial, MaterialStage
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/map_object_figures.h"   // Object3D, Object3DSpecific (the base half)
 #include "game/material.h"             // Material
 #include "lib/bit_flags.h"

@@ -5,7 +5,7 @@
 // then the holders list is emptied). Main thread (the world's update). See docs/notes/network.md.
 #include "game/world.h"
 
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/net_link.h"
 
 void WorldHandle::TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) {

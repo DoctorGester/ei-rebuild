@@ -9,7 +9,7 @@
 #include "game/game_singletons.h"
 #include "game/key_bindings.h"
 #include "game/screen_layout.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"
 #include "game/ui_screens.h"

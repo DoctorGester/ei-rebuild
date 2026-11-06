@@ -2,8 +2,8 @@
 // player is a client of the server). SyncPlayer runs once per world update for every player
 // SendZone sends a player the zone it has to load. See world.h and docs/notes/world.md.
 #include "game/combat.h"
-#include "game/core_maths.h"
-#include "game/core_streams.h"
+#include "game/core/core_maths.h"
+#include "game/core/core_streams.h"
 #include "game/map_object.h"
 #include "game/object.h"
 #include "game/options.h"

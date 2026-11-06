@@ -9,7 +9,7 @@
 #include "game/net_classes.h"
 #include "game/net_messages.h"
 #include "game/plugin_fixes.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/screen_layout.h"
 #include "game/ui.h"
 #include "game/ui_battle.h"

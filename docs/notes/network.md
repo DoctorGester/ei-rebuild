@@ -1,7 +1,7 @@
 # Network
 
 Files: `net_classes.h` (sessions, lobby, message base), `net_session*.cpp`, `net_connection*`, `net_messages.*`,
-`net_server_*.cpp`, `net_client_*.cpp`, `net_lobby.cpp`, `net_socket_driver.cpp`, `net_coder.*`, `game_buffer.*`,
+`net_server_*.cpp`, `net_client_*.cpp`, `net_lobby.cpp`, `net_socket_driver.cpp`, `core/coder.*`, `core/buffer.cpp`,
 `net_delta.*`, `net_link.*`, `net_state.cpp`, `net_second_master.*`. Sockets are the platform layer's
 (`platform::net`).
 
@@ -143,10 +143,10 @@ connection a message still holds) restores a new connection's state (`Connection
 
 ## Compression
 
-The LZ coder (`CoderState`, net_coder.h) over `GameBuffer`s: the growing buffer (grows to (used + n) * 2 + 0x40, new
+The LZ coder (`CoderState`, core/coder.h) over `GameBuffer`s: the growing buffer (grows to (used + n) * 2 + 0x40, new
 bytes zero) and fixed views over memory owned elsewhere. A `BufferCursor` writes bits LSB first and reserves a byte
 when a field starts in a new byte, so literal bytes and bit fields interleave.
-- The primitives (net_coder.h): a buffer's `Size` (the high mark raised to the cursor), `Unread`, `Clear`, `Write` /
+- The primitives (core/coder.h): a buffer's `Size` (the high mark raised to the cursor), `Unread`, `Clear`, `Write` /
   `Read` and typed `Put` / `Get`, the growing buffer's `SetSize`; a cursor's `PutBits` / `GetBit(s)`, `WriteBytes` /
   `ReadBytes`, typed `Put` / `Take`, `PutString` / `TakeString`, `End`. Packets and streams go through these only; a
   buffer's one error flag is `readPastEnd` (a read past the high mark, a string over its limit). Unit checks:

@@ -3,7 +3,7 @@
 // docs/notes/ui.md ("Interface manager and window base").
 #include "game/ui.h"
 
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 
 #include "lib/crt.h"
 #include <string>

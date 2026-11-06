@@ -10,7 +10,7 @@
 #include <string>
 #include "lib/str.h"
 #include "lib/text_case.h"
-#include "game/text_split.h"
+#include "game/core/text_split.h"
 #include "game/ui.h"
 #include "game/ui_options.h"
 #include "game/key_bindings.h"

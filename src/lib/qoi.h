@@ -1,7 +1,7 @@
 #pragma once
 
 // QOI ("Quite OK Image", qoiformat.org, specification 1.0): a lossless picture format of byte-sized operations, the
-// save pictures' full-colour copy (src/game/save_picture.h).
+// save pictures' full-colour copy (src/game/saves/save_picture.h).
 
 #include <cstddef>
 #include <cstdint>

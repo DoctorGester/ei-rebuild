@@ -13,7 +13,7 @@
 #include "game/map_object_shadow.h"
 #include "game/options.h"
 #include "game/player_client.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/sound.h"
 #include "game/spell.h"
 #include "game/terrain_sector.h"

@@ -4,8 +4,8 @@
 #include "game/map_object_figures.h"
 
 #include "game/ai_map.h"   // FootprintPart
-#include "game/core_maths.h"
-#include "game/core_transform.h"
+#include "game/core/core_maths.h"
+#include "game/core/core_transform.h"
 #include "game/effects.h"
 #include "game/figure_manager.h"
 #include "game/figure_mesh.h"
@@ -15,7 +15,7 @@
 #include "game/link_loader.h"
 #include "game/model.h"
 #include "game/pipeline.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/world.h"   // World: the figure manager and cache
 #include "lib/bytes.h"
 #include "lib/containers.h"

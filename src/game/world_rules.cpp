@@ -8,7 +8,7 @@
 #include "game/player_client.h"
 
 #include "game/game_singletons.h"
-#include "game/named_floats.h"
+#include "game/core/named_floats.h"
 
 #include <memory>
 #include <new>

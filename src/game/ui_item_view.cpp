@@ -1,7 +1,7 @@
 // The item screens' model view and the description panel's drawing. See
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "game/app.h"
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/model.h"
 #include "game/texture.h"
 #include "game/ui_item_info.h"
@@ -10,7 +10,7 @@
 
 #include "game/surface.h"
 #include "game/item.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/spell.h"
 #include "game/unit_db.h"
 

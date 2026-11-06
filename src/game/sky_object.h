@@ -6,7 +6,7 @@
 // sky_object.cpp. A real virtual class: the compiler makes its vtable.
 // Names from ClassName ("SkyObject"); the rest provisional.
 
-#include "game/core_transform.h"
+#include "game/core/core_transform.h"
 #include "game/figure_mesh.h"   // FigureMesh
 
 #include <cstddef>

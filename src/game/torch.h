@@ -5,7 +5,7 @@
 // SideObjectType::Torch. torch_object.cpp; TorchObject's Create is in map_object.cpp. Real virtual classes: the
 // compiler makes their vtables.
 
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/map_object.h"
 
 #include <cstddef>
