@@ -1,0 +1,8 @@
+id = "MOD11"
+title = "AddUnitToServer with a prototype the database lacks crashes (null dereference) instead of C167's warning"
+group = "mods"
+size = 1
+model = "sonnet"
+note = "Found by MOD10 2026-11-06: @AddUnitToServer(..., \"WolfTutor\", ...) in a loaded LiA save crashed with C0000005; the mod's database lacks WolfTutor. C167 made map units of unknown prototypes a warning (mod_lost_in_astral_unknown_prototype); the script path still crashes. Check what the original does and give it the same recoverable path."
+order = 1248
+status = "later"
