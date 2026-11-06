@@ -1,9 +1,10 @@
 // The standalone's settings file without the game: Document::Text / Parse round trips of every kind of value, the
 // format's rules (case, quotes, comments, bad lines, a file of another format) and the defaults a missing file is
-// written with. ei_unit_check (unit_check.cpp) and Linux's ei_port_check run these and count their failures. The file
+// written with (byte for byte: settings_defaults.ini). ei_unit_check (unit_check.cpp) and Linux's ei_port_check run these and count their failures. The file
 // save (.tmp, then moved) and the defaults in a running game are the harness scenarios
 // settings_save and settings_defaults (tests/scenarios).
 #include "game/app/settings.h"
+#include "platform/platform.h"
 
 #include <algorithm>
 #include <bit>
@@ -12,6 +13,7 @@
 #include <cstdio>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -183,7 +185,7 @@ void BadLines() {
 }
 
 void Defaults() {
-    const Document document = settings::Defaults(2560, 1440);
+    const Document document = settings::Defaults({2560, 1440});
     auto is = [&](const char* section, const char* name, const char* value) {
         CHECK_MSG(Value(document, section, name) == value, std::string(section) + " " + name + " = " + Value(document, section, name));
     };
@@ -230,17 +232,15 @@ void Defaults() {
     const Document back = RoundTrip(document, &problems);
     CHECK(problems.empty() && back.Text() == document.Text() && back.Values() == document.Values());
     // Another desktop changes the resolution only.
-    const Document other = settings::Defaults(1920, 1080);
+    const Document other = settings::Defaults({1920, 1080});
     CHECK(Value(other, "video", "VideoResolution") == "1920x1080" && other.Values() == document.Values());
 }
 
-} // namespace
-
-// The number of failed checks.
-// The catalog (settings_catalog.inc): every line the defaults write has its row, with the same default and its
-// description as the comment line(s) right above it (a pattern's above its first line only); the lookup's patterns.
+// The catalog (settings_catalog.inc): every line the defaults write has its row, marked written, with the same default
+// and its description as the comment line(s) right above it (a pattern's above its first line only); every written
+// row is in the file; the lookup's patterns; the defaults' text.
 void Catalog() {
-    const Document document = settings::Defaults(2560, 1440);
+    const Document document = settings::Defaults({2560, 1440});
     std::vector<const settings::Described*> seen;
     for (const Document::Section& section : document.sections) {
         for (std::size_t i = 0; i < section.lines.size(); ++i) {
@@ -249,8 +249,9 @@ void Catalog() {
             const settings::Described* row = settings::Describe(section.name, line.name);
             CHECK_MSG(row != nullptr, section.name + " " + line.name + ": no catalog row");
             if (!row) continue;
-            if (line.name != "VideoResolution")
-                CHECK_MSG(line.value == row->defaultText, section.name + " " + line.name + " = " + line.value + ", the catalog's " + row->defaultText);
+            const std::string expected = settings::DefaultText(*row, {2560, 1440});
+            CHECK_MSG(row->written && line.value == expected,
+                      section.name + " " + line.name + " = " + line.value + ", the catalog's " + expected);
             const bool first = std::find(seen.begin(), seen.end(), row) == seen.end();
             seen.push_back(row);
             const bool described = [&] {   // the description's first words on one of the comment lines right above
@@ -266,8 +267,41 @@ void Catalog() {
     CHECK(settings::Describe("camera", "CameraShortcut x Pitch") == nullptr);
     CHECK(settings::Describe("autoexec", "anything") != nullptr && settings::Describe("autoexec", "") == nullptr);
     CHECK(settings::Describe("video", "NoSuchSetting") == nullptr);
+    std::size_t written = 0;   // a numbered row once per camera shortcut
+    for (const settings::Described* row = settings::CatalogBegin(); row != settings::CatalogEnd(); ++row)
+        if (row->written)
+            written += std::string_view(row->name).find("<n>") != std::string_view::npos ? settings::kCameraShortcuts : 1;
+    CHECK_MSG(written == document.Values(),
+              std::to_string(written) + " rows written, " + std::to_string(document.Values()) + " values in the file");
+    CHECK(settings::DefaultText(*settings::Describe("video", "VideoResolution"), {1280, 720}) == "1280x720");
+    CHECK(settings::DefaultText(*settings::Describe("game", "Autosave"), {}) == "true");
+    CHECK(settings::DefaultText(*settings::Describe("game", "ToolTip Time"), {}) == "0.5");
+    CHECK(settings::DefaultText(*settings::Describe("camera", "CameraShortcut 2 Pitch"), {}) == "45");
+    CHECK(settings::DefaultText(*settings::Describe("paths", "Resources path"), {}) == ".\\res\\");
+    CHECK(settings::DefaultText(*settings::Describe("network", "SecondMaster"), {}).empty());
 }
 
+// A new file byte for byte: tests/unit/settings_defaults.ini is what Defaults wrote for a 2560x1440 desktop before the
+// catalog held the defaults (C171), kept with LF line ends (the file's are CR LF).
+void DefaultsFile() {
+    constexpr const char* kExpected = EI_SOURCE_DIR "/tests/unit/settings_defaults.ini";
+    std::string bytes;
+    CHECK_MSG(platform::ReadWholeFile(kExpected, &bytes) && !bytes.empty(), std::string("cannot read ") + kExpected);
+    std::string expected;
+    for (char c : bytes) {
+        if (c == '\n') expected += "\r\n";
+        else if (c != '\r') expected += c;
+    }
+    const std::string text = settings::Defaults({2560, 1440}).Text();
+    std::size_t same = 0;
+    while (same < text.size() && same < expected.size() && text[same] == expected[same]) ++same;
+    const std::size_t lineStart = same == 0 ? 0 : text.rfind('\n', same - 1) + 1;   // npos + 1: the first line
+    CHECK_MSG(text == expected, std::string("differs from ") + kExpected + " at: " + text.substr(lineStart, 100));
+}
+
+} // namespace
+
+// The number of failed checks.
 int RunSettingsFileChecks() {
     g_checks = g_failures = 0;
     Ints();

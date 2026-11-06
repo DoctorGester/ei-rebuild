@@ -1,6 +1,6 @@
 // The options loader and writer. See options.h.
-// Every value is read from the settings file in the game's order; a value that is missing keeps the field's current
-// value, which is passed as the default.
+// Every value is read from the settings file in the game's order; a value that is missing takes its catalog row's
+// default (settings_catalog.inc).
 #include "game/app/options.h"
 
 #include "game/app/settings.h"
@@ -20,8 +20,8 @@ namespace {
 
 using namespace settings;
 
-// One value: the section, the value name, the field it goes to (and whose value is the default): `number` for an
-// integer, written as a boolean with `flag` (read as a number: true / false read as 1 / 0), `real` for a float.
+// One value: the section, the value name, the field it goes to: `number` for an integer, written as a boolean with
+// `flag` (read as a number: true / false read as 1 / 0), `real` for a float.
 constexpr bool kFlag = true;
 struct Value {
     constexpr Value(const char* valueSection, const char* valueName, int GameOptions::*field, bool isFlag = false)
@@ -136,8 +136,8 @@ public:
     std::string& String(StringField field) { return field(*options); }
 
     void Read(const Value& v) {
-        if (v.number) options->*v.number = GetInt(v.section, v.name, options->*v.number);
-        else options->*v.real = GetFloat(v.section, v.name, options->*v.real);
+        if (v.number) options->*v.number = GetInt(v.section, v.name);
+        else options->*v.real = GetFloat(v.section, v.name);
     }
     template <std::size_t N>
     void Read(const Value (&values)[N]) {
@@ -145,29 +145,21 @@ public:
     }
     template <std::size_t N>
     void Read(const StringValue (&values)[N]) {
-        for (const StringValue& v : values) String(v.field) = GetString(v.section, v.name, String(v.field));
+        for (const StringValue& v : values) String(v.field) = GetString(v.section, v.name);
     }
     void ReadCameraMotions() {
-        for (const auto& v : kCameraMotionValues) {
-            float& field = options->*v.motion.*v.part;
-            field = GetFloat(kCamera, v.name, field);
-        }
+        for (const auto& v : kCameraMotionValues) options->*v.motion.*v.part = GetFloat(kCamera, v.name);
     }
 
     // Stored as -1 / 1 floats, kept in the file as booleans.
-    void ReadCameraFlip(float& flip, const char* name) {
-        int flipped = flip == -1.0f ? 1 : 0;
-        int value = GetInt(kCamera, name, flipped);
-        flip = static_cast<float>(value ? -1 : 1);
-    }
+    void ReadCameraFlip(float& flip, const char* name) { flip = GetInt(kCamera, name) ? -1.0f : 1.0f; }
 
     void ReadCameraShortcuts() {
         char name[0x400];
-        for (unsigned i = 0; i < 4; ++i) {
+        for (int i = 0; i < kCameraShortcuts; ++i) {
             for (const auto& v : kShortcutValues) {
                 std::snprintf(name, sizeof(name), v.format, i);
-                float& field = options->cameraShortcuts[i].*v.field;
-                field = GetFloat(kCamera, name, field);
+                options->cameraShortcuts[i].*v.field = GetFloat(kCamera, name);
             }
         }
     }
@@ -205,7 +197,7 @@ public:
 
     void WriteCameraShortcuts() {
         char name[0x400];
-        for (unsigned i = 0; i < 4; ++i) {
+        for (int i = 0; i < kCameraShortcuts; ++i) {
             for (const auto& v : kShortcutValues) {
                 std::snprintf(name, sizeof(name), v.format, i);
                 SetFloat(kCamera, name, options->cameraShortcuts[i].*v.field);
@@ -223,7 +215,7 @@ void GameOptions::Load() {
     Loader l(this);
     l.Read(kPathValues);
     {
-        const std::string resolution = GetString(kVideo, "VideoResolution", std::string());
+        const std::string resolution = GetString(kVideo, "VideoResolution");
         int x = str::Find(resolution, 'x');
         if (x != -1) {
             resolutionX = str::ToInt(str::Left(resolution, x));
@@ -237,10 +229,9 @@ void GameOptions::Load() {
     l.ReadCameraMotions();
     l.ReadCameraShortcuts();
     l.Read(kGameValues);
-    int newDifficulty = GetInt(kGame, "Difficulty Level", difficultyStored);
-    difficultyStored = newDifficulty;
-    difficulty = newDifficulty;
-    masterServerName = GetString(kNetwork, "Master Server Name", masterServerName);
+    difficultyStored = GetInt(kGame, "Difficulty Level");
+    difficulty = difficultyStored;
+    masterServerName = GetString(kNetwork, "Master Server Name");
 }
 
 void GameOptions::Save() {
@@ -259,22 +250,7 @@ void GameOptions::Save() {
     settings::Save();
 }
 
-// --- The constructor and the global --------------------------------------------------------------
-
-// The options object's constructor. More: docs/notes/app.md, "Options".
-// The strings start empty (the members' own constructors).
-GameOptions::GameOptions() {
-    workPath = ".\\";
-    resourcesPath = ".\\res\\";
-
-    cameraScroll = {1.0f, 1.0f, 0.5f};
-    cameraRotate = {1.0f, 1.0f, 0.5f};
-    cameraPitch = {1.0f, 1.0f, 0.5f};
-    cameraZoom = {1.0f, 1.0f, 0.5f};
-    // Every shortcut: the default distance, looking along Z, 45 degrees of pitch.
-    for (CameraShortcutOptions& shortcut : cameraShortcuts)
-        shortcut = {cameraDefaultDistance, 0.0f, 0.0f, 1.0f, 0.0f, 45.0f};
-}
+// --- The global --------------------------------------------------------------------------------
 
 // The game's options: constructed by the C++ runtime before the static initialisers and WinMain (Load fills them),
 // destroyed after the game's exit functions (ShutDown's Save has written them back).

@@ -349,6 +349,9 @@ if(EI_HARNESS)
     endif()
 endif()
 
+# The settings checks read the expected new settings file (tests/unit/settings_defaults.ini) from the source tree.
+set_property(SOURCE tests/unit/settings_file.cpp APPEND PROPERTY COMPILE_DEFINITIONS "EI_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\"")
+
 if(WIN32)
     # The game is a windowed program whose entry is main.
     target_link_options(ei-rebuild PRIVATE /ENTRY:mainCRTStartup)

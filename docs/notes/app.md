@@ -52,12 +52,12 @@ Ours leave the quit posted (the movie ends on it) and the main loop ends on it.
 
 ## Options
 
-`GameOptions` (options.h) is built by a static initialiser before WinMain. Its constructor's values are the defaults
-of every value the settings file lacks (the original's own defaults function ran before the registry and is gone).
-What stays from the constructor: the "Network Settings" subkey, the CD labels, the font's character set, the keyboard
-layout, both lights' radius; the master server's name is empty (EI_Plugin's NewMaster stopped saving it). Settings
-are `ei_settings.ini` beside the exe, described by `src/game/app/settings_catalog.inc` (`docs/settings.md` is generated
-from it by `tools/gen_settings_doc.py`, a build check).
+`GameOptions` (options.h) is a global that `Load` fills at the start of GameMain: every option from the settings
+file, a missing one with its catalog row's default (the original's constructor held placeholder defaults, such as a
+camera turning about 7 and pitching about 700 times as fast as an install's; they are gone). The master server's name
+is read but not saved (EI_Plugin's NewMaster stopped saving it). Settings are `ei_settings.ini` beside the exe,
+described by `src/game/app/settings_catalog.inc`, which holds each setting's one default (`docs/settings.md` is
+generated from it by `tools/gen_settings_doc.py`, a build check).
 
 ## Small pieces
 

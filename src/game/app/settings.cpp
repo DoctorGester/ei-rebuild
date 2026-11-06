@@ -68,26 +68,28 @@ bool Write(Store& s) {
     return true;
 }
 
-struct DesktopSize {
-    int width = 0;
-    int height = 0;
-};
+// The machine the defaults are for: the harness's desktop, else the primary monitor's mode in pixels (whatever the
+// process's DPI awareness). Without a size (no desktop): 1024x768, `known` false.
+Machine CurrentMachine(const Store& s, bool* known) {
+    Machine machine = {s.desktopWidth, s.desktopHeight};
+    if (machine.desktopWidth <= 0 || machine.desktopHeight <= 0)
+        if (const std::optional<Size> desktop = platform::PrimaryDesktopSize()) machine = {desktop->w, desktop->h};
+    *known = machine.desktopWidth > 0 && machine.desktopHeight > 0;
+    if (!*known) machine = {1024, 768};
+    return machine;
+}
 
-// The defaults for the primary monitor's mode in pixels (whatever the process's DPI awareness), or the harness's
-// desktop; the size they are for. Without a size (no desktop): for 1024x768, kept in memory only, so a start with a
-// desktop writes its own.
-DesktopSize UseDefaults(Store& s) {
-    DesktopSize size = {s.desktopWidth, s.desktopHeight};
-    if (size.width <= 0 || size.height <= 0)
-        if (const std::optional<Size> desktop = platform::PrimaryDesktopSize()) size = {desktop->w, desktop->h};
-    if (size.width <= 0 || size.height <= 0) {
-        ei::Log("settings: no desktop size (%dx%d): the defaults for 1024x768, not written this session", size.width,
-                size.height);
-        size = {1024, 768};
+// The defaults for the current machine; the machine they are for. Without a desktop size: for 1024x768, kept in
+// memory only, so a start with a desktop writes its own.
+Machine UseDefaults(Store& s) {
+    bool known = false;
+    const Machine machine = CurrentMachine(s, &known);
+    if (!known) {
+        ei::Log("settings: no desktop size: the defaults for 1024x768, not written this session");
         s.inMemory = true;
     }
-    s.document = Defaults(size.width, size.height);
-    return size;
+    s.document = Defaults(machine);
+    return machine;
 }
 
 // The first of the places that holds a file, read: the pinned file, else the one next to the exe, then the per-user
@@ -112,10 +114,10 @@ void Load(Store& s) {
         if (read == Read::missing) continue;
         if (read == Read::failed) {
             if (s.readOnly) return;
-            const DesktopSize size = UseDefaults(s);
+            const Machine machine = UseDefaults(s);
             s.inMemory = true;
             ei::Log("settings: %s left as it is: the defaults (full screen at %dx%d) are used and nothing is written "
-                    "this session", place.c_str(), size.width, size.height);
+                    "this session", place.c_str(), machine.desktopWidth, machine.desktopHeight);
             return;
         }
         std::vector<std::string> problems;
@@ -138,18 +140,19 @@ void Load(Store& s) {
         ei::Log("settings: the pinned file %s cannot be read", s.file.c_str());
         return;
     }
-    const DesktopSize size = UseDefaults(s);
+    const Machine machine = UseDefaults(s);
     if (s.inMemory) return;
     for (const std::string& place : places) {
         s.file = place;
         if (Write(s)) {
-            ei::Log("settings: %s written with the defaults (full screen at %dx%d)", place.c_str(), size.width, size.height);
+            ei::Log("settings: %s written with the defaults (full screen at %dx%d)", place.c_str(), machine.desktopWidth,
+                    machine.desktopHeight);
             return;
         }
     }
     s.inMemory = true;
     ei::Log("settings: no settings file can be written: the defaults (full screen at %dx%d) are kept in memory this "
-            "session", size.width, size.height);
+            "session", machine.desktopWidth, machine.desktopHeight);
 }
 
 // The value's text after the read filters, or false (reported to the harness) when it is missing.
@@ -172,6 +175,36 @@ void NotOfType(const char* section, const char* name, const std::string& text, c
     ei::Log("settings: [%s] %s = %s is not %s: the default is used", section, name, text.c_str(), type);
 }
 
+// The catalog row's default of `name` as text (VideoResolution's for the current machine); empty for a name without a
+// row (logged).
+std::string DefaultOf(const char* section, const char* name) {
+    const Described* row = Describe(section, name);
+    if (!row) {
+        ei::Log("settings: [%s] %s has no catalog row: read as 0, false or empty", section, name);
+        return {};
+    }
+    Machine machine;
+    if (row->value.type == Default::Type::desktopSize) {
+        Locked lock;
+        bool known = false;
+        machine = CurrentMachine(S(), &known);
+    }
+    return DefaultText(*row, machine);
+}
+
+// The value as its type: the file's, else the row's default read as that type.
+template <typename T>
+T Get(const char* section, const char* name, bool (*parse)(std::string_view, T*), const char* type) {
+    T value{};
+    std::string text;
+    if (Text(section, name, &text)) {
+        if (parse(text, &value)) return value;
+        NotOfType(section, name, text, type);
+    }
+    parse(DefaultOf(section, name), &value);
+    return value;
+}
+
 void SetText(const char* section, const char* name, const std::string& value) {
     Locked lock;
     Store& s = S();
@@ -184,39 +217,13 @@ void SetText(const char* section, const char* name, const std::string& value) {
 
 } // namespace
 
-int GetInt(const char* section, const char* name, int defaultValue) {
-    std::string text;
-    int value = defaultValue;
-    if (Text(section, name, &text) && !ParseInt(text, &value)) {
-        NotOfType(section, name, text, "a number");
-        value = defaultValue;
-    }
-    return value;
-}
+int GetInt(const char* section, const char* name) { return Get(section, name, ParseInt, "a number"); }
+bool GetBool(const char* section, const char* name) { return Get(section, name, ParseBool, "true or false"); }
+float GetFloat(const char* section, const char* name) { return Get(section, name, ParseFloat, "a number"); }
 
-bool GetBool(const char* section, const char* name, bool defaultValue) {
+std::string GetString(const char* section, const char* name) {
     std::string text;
-    bool value = defaultValue;
-    if (Text(section, name, &text) && !ParseBool(text, &value)) {
-        NotOfType(section, name, text, "true or false");
-        value = defaultValue;
-    }
-    return value;
-}
-
-float GetFloat(const char* section, const char* name, float defaultValue) {
-    std::string text;
-    float value = defaultValue;
-    if (Text(section, name, &text) && !ParseFloat(text, &value)) {
-        NotOfType(section, name, text, "a number");
-        value = defaultValue;
-    }
-    return value;
-}
-
-std::string GetString(const char* section, const char* name, const std::string& defaultValue) {
-    std::string text;
-    return Text(section, name, &text) ? text : defaultValue;
+    return Text(section, name, &text) ? text : DefaultOf(section, name);
 }
 
 std::vector<std::string> GetValues(const char* section) {

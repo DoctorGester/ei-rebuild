@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     // start-up runs beside it.
     app::StartVideo();
     // The settings' [game] Mod: its files then stand over the game folder's and its saves keep apart.
-    app::UseMod(folder, settings::GetString(settings::kGame, "Mod", ""));
+    app::UseMod(folder, settings::GetString(settings::kGame, "Mod"));
     const int result = app::GameMain(arguments.data());
     ei::Log("exit: the game's main returned");
     return result;

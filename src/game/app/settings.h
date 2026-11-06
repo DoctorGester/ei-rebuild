@@ -87,40 +87,59 @@ bool ParseInt(std::string_view text, int* value);
 bool ParseFloat(std::string_view text, float* value);
 bool ParseBool(std::string_view text, bool* value);
 
-// The settings a missing file starts with, for a desktop of `width` x `height` pixels: full screen (a borderless
-// window over the monitor) at that size, the movies on (the installers' Video 2; the game's own 0 is none), sound,
-// music and voices at full volume, every graphics option at its best (smoothed full-size textures with mipmaps, every
-// shadow, water waves, self shadowing, ground prints),
-// and what a game install writes in place of the game's own placeholder defaults (the camera's section, the objects'
-// lighting, the hero's and the quest light, the master server). The renderer: Msaa 8 (the device's best when less),
-// Anisotropy 16, VSync on, no performance overlay. Everything else (paths, the other options and switches) is left out: the game and Rebirth read it as
-// absent and take their own defaults. Each line has its catalog description above it (once for the lines of a
-// pattern, the camera shortcuts).
-Document Defaults(int width, int height);
-
 // ---- The catalog: what every setting does (settings_catalog.inc; tools/gen_settings_doc.py writes docs/settings.md)
+
+// A setting's default: what a new file holds when the row is written there, and what a read takes when the value is
+// absent or not of its type. A number, a boolean, a float or a text; or the machine's (desktopSize: Machine).
+struct Default {
+    enum class Type { number, flag, real, text, desktopSize };
+    Type type = Type::text;
+    int number = 0;          // number; flag: 1 or 0
+    float real = 0.0f;       // real
+    const char* text = "";   // text
+};
+
+// What the machine decides of the defaults: the desktop's size in pixels (VideoResolution).
+struct Machine {
+    int desktopWidth = 0;
+    int desktopHeight = 0;
+};
 
 struct Described {
     const char* section = nullptr;
-    const char* name = nullptr;  // "<n>" stands for a number (the camera shortcuts), "<name>" for any name
-    const char* defaultText = nullptr;  // what a new file holds, else what the game takes when the value is absent
+    const char* name = nullptr;  // "<n>": a camera shortcut's number (0 .. kCameraShortcuts - 1); "<name>": any name
+    Default value;               // the default
+    bool written = false;        // a new file holds it (Defaults)
     const char* values = nullptr;  // the values it takes, short
     const char* description = nullptr;  // what it does, for the player
 };
+// The camera shortcuts: "<n>" in a catalog name.
+inline constexpr int kCameraShortcuts = 4;
 // Every setting the game reads, by section, in the order of settings_catalog.inc.
 const Described* CatalogBegin();
 const Described* CatalogEnd();
 // The catalog's row for `name` in `section` (both without case), or null.
 const Described* Describe(std::string_view section, std::string_view name);
+// The row's default as a value's text (IntText, BoolText, FloatText; the desktop's size as WxH).
+std::string DefaultText(const Described& row, const Machine& machine);
+
+// The settings a missing file starts with, for `machine`: the catalog's rows marked written, in its order (a run of
+// "<n>" rows shortcut by shortcut), each line with its description above it (once for the lines of a pattern), and
+// the file's header comment. Full screen (a borderless window over the monitor) at the desktop's size, the movies on
+// (the installers' Video 2), sound at full volume, every shadow, what a game install writes (the camera's section,
+// the selection arrows, the master server) and the renderer's quality and vsync. The rest is left out: the game reads
+// it as absent and takes the row's default.
+Document Defaults(const Machine& machine);
 
 // ---- The process's settings ----
 
-// The value of `name` in `section` as its type, or `defaultValue` when it is missing or not of that type (the last
-// logged). A boolean reads any number too (not 0: true); a number reads true / false as 1 / 0.
-int GetInt(const char* section, const char* name, int defaultValue);
-bool GetBool(const char* section, const char* name, bool defaultValue);
-float GetFloat(const char* section, const char* name, float defaultValue);
-std::string GetString(const char* section, const char* name, const std::string& defaultValue);
+// The value of `name` in `section` as its type, or the catalog row's default (Describe) when it is missing or not of
+// that type (the last logged; a name without a row logged and read as 0, false or empty). A boolean reads any number
+// too (not 0: true); a number reads true / false as 1 / 0.
+int GetInt(const char* section, const char* name);
+bool GetBool(const char* section, const char* name);
+float GetFloat(const char* section, const char* name);
+std::string GetString(const char* section, const char* name);
 // Every value of `section`, in file order (its lines' names apart).
 std::vector<std::string> GetValues(const char* section);
 // Every name = value line of `section`, in file order (comments left out; a value it lacks is not one read).
@@ -146,7 +165,8 @@ void AddReadFilter(ReadFilter filter);
 using MissingHandler = void (*)(const char* section, const char* name);
 using PrepareHandler = void (*)(const char* file);
 void Pin(const char* file, MissingHandler missing, bool readOnly, PrepareHandler prepare = nullptr);
-// Harness runs: the desktop size a missing file's defaults take, in place of the primary monitor's.
+// Harness runs: the desktop size the defaults take (a missing file's, VideoResolution's), in place of the primary
+// monitor's.
 void SetDesktopSize(int width, int height);
 
 } // namespace settings

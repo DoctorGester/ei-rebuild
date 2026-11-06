@@ -5,7 +5,6 @@
 
 #include "lib/text_case.h"
 
-#include <algorithm>
 #include <array>
 #include <cctype>
 #include <cerrno>
@@ -226,8 +225,17 @@ bool ParseBool(std::string_view text, bool* value) {
 
 namespace {
 
+// The catalog rows' defaults (settings_catalog.inc).
+constexpr Default Int(int value) { return {Default::Type::number, value}; }
+constexpr Default Bool(bool value) { return {Default::Type::flag, value ? 1 : 0}; }
+constexpr Default Float(float value) { return {Default::Type::real, 0, value}; }
+constexpr Default Text(const char* value) { return {Default::Type::text, 0, 0.0f, value}; }
+constexpr Default DesktopSize() { return {Default::Type::desktopSize}; }
+constexpr bool kWritten = true;
+constexpr bool kLeftOut = false;
+
 constexpr Described kCatalog[] = {
-#define EI_SETTING(section, name, defaultText, values, description) {section, name, defaultText, values, description},
+#define EI_SETTING(section, name, value, written, values, description) {section, name, value, written, values, description},
 #include "game/app/settings_catalog.inc"
 #undef EI_SETTING
 };
@@ -264,55 +272,21 @@ const Described* Describe(std::string_view section, std::string_view name) {
     return nullptr;
 }
 
+std::string DefaultText(const Described& row, const Machine& machine) {
+    switch (row.value.type) {
+    case Default::Type::number: return IntText(row.value.number);
+    case Default::Type::flag: return BoolText(row.value.number != 0);
+    case Default::Type::real: return FloatText(row.value.real);
+    case Default::Type::text: return row.value.text;
+    case Default::Type::desktopSize: return IntText(machine.desktopWidth) + "x" + IntText(machine.desktopHeight);
+    }
+    return {};
+}
+
 // ---- The defaults ----
 
 namespace {
 
-// What a game install writes and the game's own defaults lack (the original's installer and Rebirth's agree; the
-// game's defaults are placeholders: a camera turning about 7 and pitching about 700 times as fast). The camera's
-// whole section:
-struct InstallFloat {
-    const char* name = nullptr;
-    float value = 0.0f;
-};
-constexpr InstallFloat kInstallCamera[] = {
-    {"CameraMinHeight", 3.0f},
-    {"CameraMaxHeight", 70.0f},
-    {"CameraDefaultHeight", 2.0f},
-    {"CameraDefaultXDeploy", 30.0f},
-    {"CameraDefaultYDeploy", 30.0f},
-    {"CameraMinDistanceToCarrier", 10.0f},
-    {"CameraMaxDistanceToCarrier", 50.0f},
-    {"CameraMinLimitDistanceToCarrier", 3.0f},
-    {"CameraMaxLimitDistanceToCarrier", 70.0f},
-    {"CameraDefaultDistanceToCarrier", 30.0f},
-    {"NearClipDistance", 2.0f},
-    {"FarClipDistance", 100.0f},
-    {"CameraDefaultMinPitch", 30.0f},
-    {"CameraDefaultMaxPitch", 60.0f},
-    {"CameraBriefingMinDistanceToCarrier", 6.0f},
-    {"CameraBriefingMaxDistanceToCarrier", 27.0f},
-    {"CameraBriefingMinLimitDistanceToCarrier", 3.0f},
-    {"CameraBriefingMaxLimitDistanceToCarrier", 30.0f},
-    {"CameraBriefingMinPitch", 40.0f},
-    {"CameraBriefingMaxPitch", 60.0f},
-    {"CameraTerrainSensetiveArea", 10.0f},
-    {"CameraDefaultScrollSpeed", 1.5f},
-    {"CameraDefaultScrollPowerMouse", 1.0f},
-    {"CameraDefaultScrollPowerKeyboard", 0.46f},
-    {"CameraDefaultRotateSpeed", 0.15f},
-    {"CameraDefaultRotatePowerMouse", 1.0f},
-    {"CameraDefaultRotatePowerKeyboard", 0.46f},
-    {"CameraDefaultPitchSpeed", 0.0015f},
-    {"CameraDefaultPitchPowerMouse", 1.0f},
-    {"CameraDefaultPitchPowerKeyboard", 0.46f},
-    {"CameraDefaultZoomSpeed", 2.0f},
-    {"CameraDefaultZoomPowerMouse", 1.0f},
-    {"CameraDefaultZoomPowerKeyboard", 0.46f},
-};
-// Each of the four shortcuts: the default distance, looking along Z, 45 degrees of pitch.
-constexpr InstallFloat kInstallShortcut[] = {{"AxisX", 0.0f}, {"AxisY", 0.0f}, {"AxisZ", 1.0f},
-                                             {"Angle", 0.0f}, {"Distance", 30.0f}, {"Pitch", 45.0f}};
 // A setting's description as comment lines of at most kCommentWidth characters: the text, then its values in
 // parentheses (left out for true / false).
 constexpr std::size_t kCommentWidth = 108;
@@ -338,51 +312,42 @@ std::vector<std::string> DescriptionLines(const Described& row) {
     return lines;
 }
 
+bool Numbered(const Described& row) { return std::string_view(row.name).find("<n>") != std::string_view::npos; }
+
+// A numbered row's name for shortcut `number`.
+std::string NameFor(const Described& row, int number) {
+    std::string name = row.name;
+    if (const std::size_t at = name.find("<n>"); at != std::string::npos) name.replace(at, 3, IntText(number));
+    return name;
+}
+
 } // namespace
 
-Document Defaults(int width, int height) {
+Document Defaults(const Machine& machine) {
     Document d;
-    // Each line with its description above it; a pattern's (the camera shortcuts') above its first line only.
-    std::vector<const Described*> described;
-    auto set = [&](const char* section, const std::string& name, const std::string& value) {
-        const Described* row = Describe(section, name);
-        if (row && std::find(described.begin(), described.end(), row) == described.end()) {
-            described.push_back(row);
-            for (const std::string& line : DescriptionLines(*row)) d.Comment(section, line);
-        }
-        d.Set(section, name, value);
-    };
     d.Comment("", "Evil Islands settings (ei-rebuild.exe). Each [section] holds name = value lines: numbers, true or");
     d.Comment("", "false, text as it is (in \"quotes\" when it starts or ends with a space). Lines starting with ; or #");
     d.Comment("", "are comments. The game rewrites this file when it saves its options; delete it to get the defaults.");
     d.Comment("", "The comment above a line says what it does; docs/settings.md lists every setting the game reads.");
 
-    set(kVideo, "VideoResolution", std::to_string(width) + "x" + std::to_string(height));
-    set(kVideo, "FullScreen", BoolText(true));
-    set(kVideo, "Video", IntText(2));             // the movies, stretched to the screen's width (the installers' value)
-
-    set(kSound, "Audio", BoolText(true));
-    for (const char* volume : {"AudioStreaming", "AudioSFX", "AudioSpeech"}) set(kSound, volume, IntText(100));
-
-    set(kShadows, "Shadows", BoolText(true));
-
-    // The install's camera and game settings.
-    set(kCamera, "CameraFlipXAxis", BoolText(false));
-    set(kCamera, "CameraFlipYAxis", BoolText(false));
-    for (const InstallFloat& value : kInstallCamera) set(kCamera, value.name, FloatText(value.value));
-    set(kCamera, "CameraBorderScrollArea", IntText(1));
-    set(kCamera, "CameraFrameSelectionSensetiveArea", IntText(30));
-    for (int shortcut = 0; shortcut < 4; ++shortcut)
-        for (const InstallFloat& value : kInstallShortcut)
-            set(kCamera, "CameraShortcut " + std::to_string(shortcut) + " " + value.name, FloatText(value.value));
-    set(kGame, "SelectionType", IntText(1));
-    set(kNetwork, "Master Server Name", "a3master.nival.com");
-
-    // The renderer's (device_mesh.cpp).
-    set(kRenderer, "VSync", BoolText(true));
-    set(kRenderer, "Msaa", IntText(8));
-    set(kRenderer, "Anisotropy", IntText(16));
-    set(kRenderer, "PerfOverlay", BoolText(false));
+    // Each written row with its description above it; a run of numbered rows (the camera shortcuts) shortcut by
+    // shortcut, each row's description above its first line only.
+    const Described* row = std::begin(kCatalog);
+    while (row != std::end(kCatalog)) {
+        const Described* end = row + 1;
+        if (Numbered(*row))
+            while (end != std::end(kCatalog) && Numbered(*end) && Same(end->section, row->section)) ++end;
+        const int numbers = Numbered(*row) ? kCameraShortcuts : 1;
+        for (int number = 0; number < numbers; ++number) {
+            for (const Described* r = row; r != end; ++r) {
+                if (!r->written) continue;
+                if (number == 0)
+                    for (const std::string& line : DescriptionLines(*r)) d.Comment(r->section, line);
+                d.Set(r->section, NameFor(*r, number), DefaultText(*r, machine));
+            }
+        }
+        row = end;
+    }
     d.Comment(kAutoExec, "Console lines run before autoexec.cfg, one per line: 1 = <command>.");
     return d;
 }

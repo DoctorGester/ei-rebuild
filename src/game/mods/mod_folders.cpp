@@ -80,8 +80,8 @@ ResConfig ReadResConfig() {
     const std::string& mod = ModPath();
     if (mod.empty()) return config;
     // The game's paths (addon reads them from the starter's tree of the registry).
-    const std::string resources = WithSlash(settings::GetString(settings::kPaths, "Resources path", ".\\Res\\"));
-    const std::string work = WithSlash(settings::GetString(settings::kPaths, "Work path", ".\\"));
+    const std::string resources = WithSlash(settings::GetString(settings::kPaths, "Resources path"));
+    const std::string work = WithSlash(settings::GetString(settings::kPaths, "Work path"));
 
     FileRegistry registry;
     const std::string file = mod + "config.reg";

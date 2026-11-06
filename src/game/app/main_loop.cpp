@@ -590,7 +590,7 @@ void StartVideo() {
     platform::StartWindowSystem(kWindowClassName);
     // SDL's video is up now (the device needs it): the renderer's device and pipelines are made while the rest starts.
     // The harness build's settings file lacks the render quality, as in TextureDevice's constructor.
-    render::PrepareDevice(render::QualitySettingsSupported() ? settings::GetInt(settings::kRenderer, "Msaa", render::kDefaultMsaa) : 1);
+    render::PrepareDevice(render::QualitySettingsSupported() ? settings::GetInt(settings::kRenderer, "Msaa") : 1);
 }
 
 int GameMain(char* commandLine) {
