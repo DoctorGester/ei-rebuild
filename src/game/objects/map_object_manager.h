@@ -1,8 +1,7 @@
 #pragma once
 
-// The map object manager and the types its factory makes. Its members are in
-// map_object_manager.cpp, the creature builders in units/unit_create_stats.cpp, the starting equipment in
-// units/unit_create.cpp. See docs/notes/units.md ("Creation, databases, save").
+// The map object manager and the types its factory makes. Its members are all in map_object_manager.cpp. See
+// docs/notes/units.md ("Creation, databases, save").
 
 #include "game/core/manager_context.h"
 #include "game/data/resource_manager.h"
