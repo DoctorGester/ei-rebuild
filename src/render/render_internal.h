@@ -481,6 +481,12 @@ void Start();
 // The renderer cannot go on (no device, no swap chain): the reason is logged and shown in the game's error box, and
 // the game ends (exit -1). There is no other way to draw: no fallback.
 [[noreturn]] EI_PRINTF_FORMAT(1, 2) void Fatal(const char* format, ...);
+// With a std::string or std::string_view among the arguments: its text is passed for the %s.
+template <class... Args>
+    requires libprintf::HasClass<Args...>
+[[noreturn]] void Fatal(const char* format, Args&&... args) {
+    Fatal(format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
+}
 
 // `r` as a shader's float4: left, top, right, bottom.
 inline void StoreRect(const Rect& r, float (&out)[4]) {

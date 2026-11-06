@@ -1,0 +1,7 @@
+id = "C172"
+title = "printf-style wrappers: string_view works, other class arguments are compile errors"
+group = "cleanup"
+note = "game::Warning/FatalExit/DebugLog and the other printf-style wrappers: std::string_view is passed as text, any other class argument is a compile error; call sites swept (found by MOD11)."
+order = 1256
+status = "review"
+started = "2026-11-06"

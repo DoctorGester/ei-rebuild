@@ -26,6 +26,12 @@ bool IsUnit(EngineObject* object);
 // mod setting EnableShowingScriptErrors is on, which no mod sets, so nothing is shown. Returns true: the call counts
 // as done.
 EI_PRINTF_FORMAT(2, 3) bool Report(const char* function, const char* format, ...);
+// With a std::string or std::string_view among the arguments: its text is passed for the %s.
+template <class... Args>
+    requires libprintf::HasClass<Args...>
+bool Report(const char* function, const char* format, Args&&... args) {
+    return Report(function, format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
+}
 // Report(function, "Invalid argument(s) passed to function").
 bool InvalidArguments(const char* function);
 

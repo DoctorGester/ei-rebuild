@@ -652,9 +652,9 @@ public:
     EI_PRINTF_FORMAT(4, 5) static int Error(Script* script, int line, ScriptParseError code, const char* format, ...);
     // With a std::string among the arguments: its text is passed for the %s.
     template <class... Args>
-        requires libprintf::HasString<Args...>
+        requires libprintf::HasClass<Args...>
     static int Error(Script* script, int line, ScriptParseError code, const char* format, Args&&... args) {
-        return Error(script, line, code, format, libprintf::Arg(std::forward<Args>(args))...);
+        return Error(script, line, code, format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
     }
     // See script.md, "Lexer".
     bool Tokenize(const std::string& text, std::vector<ScriptToken>* tokens);

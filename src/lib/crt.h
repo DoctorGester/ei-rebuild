@@ -114,9 +114,9 @@ namespace game {
 [[noreturn]] EI_PRINTF_FORMAT(1, 2) void FatalExit(const char* format, ...);
 // With a std::string among the arguments: its text is passed for the %s.
 template <class... Args>
-    requires libprintf::HasString<Args...>
+    requires libprintf::HasClass<Args...>
 [[noreturn]] void FatalExit(const char* format, Args&&... args) {
-    FatalExit(format, libprintf::Arg(std::forward<Args>(args))...);
+    FatalExit(format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
 }
 // A std::string message, printed as it is.
 [[noreturn]] inline void FatalExit(const std::string& message) { FatalExit("%s", message.c_str()); }
@@ -124,17 +124,17 @@ template <class... Args>
 // prototype the database lacks): logs "warning: <text>" to ei-rebuild.log; the caller does the safe local thing.
 EI_PRINTF_FORMAT(1, 2) void Warning(const char* format, ...);
 template <class... Args>
-    requires libprintf::HasString<Args...>
+    requires libprintf::HasClass<Args...>
 void Warning(const char* format, Args&&... args) {
-    Warning(format, libprintf::Arg(std::forward<Args>(args))...);
+    Warning(format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
 }
 // Debug log; compiled out (empty) in the release build, but other mods may hook it. It leaves the caller's
 // result register unchanged (app/movies.cpp's error message masks it, so it returns a value).
 EI_PRINTF_FORMAT(1, 2) unsigned DebugLog(const char* format, ...);
 template <class... Args>
-    requires libprintf::HasString<Args...>
+    requires libprintf::HasClass<Args...>
 unsigned DebugLog(const char* format, Args&&... args) {
-    return DebugLog(format, libprintf::Arg(std::forward<Args>(args))...);
+    return DebugLog(format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
 }
 
 } // namespace game
