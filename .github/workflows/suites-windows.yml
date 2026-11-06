@@ -1,6 +1,6 @@
 # Windows smoke: the Windows builds and a short list of scenarios on GitHub's windows-latest runner (4 vCPU, 16 GB, no
 # GPU) on SDL_GPU's Direct3D 12 driver with WARP, the software adapter (docs/notes/harness.md, "The Windows CI job"; H61,
-# H62g), as suites-macos.yml does for macOS. By hand only (Actions > Windows > Run workflow). The full suites were tried
+# H62g), as suites-macos.yml does for macOS. On every push to main or claude/** and on pull requests (as Linux), and by hand (Actions > Windows > Run workflow). The full suites were tried
 # here (H62c to H62g) and cost more than they gave: WARP draws a frame in 0.3 to 0.8 s, so the runs took 70 to 140
 # minutes a shard and some pictures differ from the desktop's; the user cut them to a smoke test (2026-11-06).
 #
@@ -21,6 +21,10 @@
 name: Windows
 
 on:
+  push:
+    branches: [main, "claude/**"]
+    paths-ignore: ["docs/**", "**.md"]
+  pull_request:
   workflow_dispatch:
     inputs:
       scenarios:

@@ -462,7 +462,7 @@ through it.
 
 ## The Windows CI job
 
-`.github/workflows/suites-windows.yml` ("Windows", H61; by hand only) is a smoke job like the macOS one below, on GitHub's
+`.github/workflows/suites-windows.yml` ("Windows", H61; on pushes and pull requests like Linux, and by hand) is a smoke job like the macOS one below, on GitHub's
 windows-latest runner (4 vCPU, 16 GB, no GPU), on SDL_GPU's Direct3D 12 driver with WARP, the software adapter. It was a
 full suite (both suites over eight jobs, H61 to H62g) until the user cut it (2026-11-06): WARP draws a frame in 0.3 to
 0.8 s, the shards took 70 to 140 minutes, most runs needed a time scale of 8 and a long skip list, and a few pictures
@@ -526,7 +526,7 @@ differ from the desktop's.
 
 ## The macOS CI job
 
-`.github/workflows/suites-macos.yml` ("macOS", H62; by hand only, with a `scenarios` input) is a smoke run on GitHub's
+`.github/workflows/suites-macos.yml` ("macOS", H62; on pushes and pull requests like Linux, and by hand with a `scenarios` input) is a smoke run on GitHub's
 macos-latest runner (Apple silicon VM, 3 cores, 7 GB; whether it has a Metal device is what the first run answers). One
 job, never Release, nothing published or uploaded:
 - **Build**: the harness build as macos.md describes (`cmake -DEI_HARNESS=ON`, RelWithDebInfo, arm64, Ninja; pip's cmake

@@ -1,6 +1,6 @@
 # macOS smoke: the harness build and a short list of scenarios on GitHub's macos-latest runner (Apple silicon VM, 3 cores,
 # 7 GB) on SDL_GPU's Metal driver (docs/notes/macos.md, "The harness"; docs/notes/harness.md, "The macOS CI job"; H62).
-# By hand only (Actions > macOS > Run workflow): it answers whether the runner's virtual Metal device draws the game, how
+# On every push to main or claude/** and on pull requests, and by hand (Actions > macOS > Run workflow): it answers whether the runner's virtual Metal device draws the game, how
 # long a frame takes there, and which goldens differ on Metal. Nothing here widens a check.
 #
 # build: the harness build (-DEI_HARNESS=ON, RelWithDebInfo, arm64, no Release / no publishing) as macos.md describes:
@@ -19,6 +19,10 @@
 name: macOS
 
 on:
+  push:
+    branches: [main, "claude/**"]
+    paths-ignore: ["docs/**", "**.md"]
+  pull_request:
   workflow_dispatch:
     inputs:
       scenarios:
