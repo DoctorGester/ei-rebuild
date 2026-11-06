@@ -31,6 +31,7 @@ struct Pending {
     float box[6] = {};
     CachedMesh* cached = nullptr;   // kept on the GPU, else built into the frame's stream
     int lighting = -1;              // Frame::meshLights
+    int placement = -1;             // Frame::models
 };
 static Pending g_pending;
 static int g_dropped = 0;
@@ -82,8 +83,8 @@ static bool Build(Frame& f, Pending& pending) {
         }
         Vertex vertex{};
         vertex.position = PacketVertex(mesh.positions, position);
-        vertex.colour = mesh.colours[corner.normal];
-        vertex.specular = mesh.speculars[corner.normal];
+        vertex.colour = mesh.colours ? mesh.colours[corner.normal] : mesh.colour;
+        vertex.specular = mesh.colours ? mesh.speculars[corner.normal] : mesh.specular;
         vertex.normal = CornerNormal(mesh, corner.normal);
         vertex.u = mesh.uvs[corner.texCoord].u;
         vertex.v = mesh.uvs[corner.texCoord].v;
@@ -376,7 +377,7 @@ static bool FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, Pa
         lit = true;
         MeshLightRecord(f, f.meshLights[static_cast<std::size_t>(batch.lighting)], r, part);
         if (batch.landscape >= 0) {
-            const Matrix4& m = f.shadow.point.models[static_cast<std::size_t>(batch.landscape)];
+            const Matrix4& m = f.models[static_cast<std::size_t>(batch.landscape)];
             std::memcpy(r.landscape, m.m, sizeof(r.landscape));
             r.kinds[0] = 1;
             r.kinds[1] = batch.figure ? 1 : 0;
@@ -628,7 +629,6 @@ void MeshDraws::DrawAll(const Frame& f) {
 
 void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     g_pending = Pending{};
-    NoteMeshDraw(mesh);
     if (!device || !mesh.matrix) return;
     Start();
     Timer timer(FrameStats::Time::HandOverMs);
@@ -648,6 +648,11 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     } else {
         clip = *mesh.matrix;
     }
+    if (mesh.model) {
+        clip = Product(clip, *mesh.model);
+        f.models.push_back(*mesh.model);
+        g_pending.placement = static_cast<int>(f.models.size()) - 1;
+    }
     g_pending.active = true;
     g_pending.mesh = mesh;
     g_pending.device = device;
@@ -658,10 +663,9 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     g_pending.boxed = g_pending.caster && mesh.positions && mesh.positionCount > 0;
     g_pending.figure = CurrentCasterFigure() && g_pending.boxed;
     g_pending.interfaceUnit = g_interfaceUnitWeather ? CurrentInterfaceUnit() : nullptr;
-    // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
-    // normals are read (the other mesh draws' callers may pass anything there).
-    if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
-        f.meshLights.push_back(FigureLight(*lighting));
+    // A figure part lit on the GPU. Only its normals are read (the other mesh draws' callers may pass anything there).
+    if (mesh.lighting) {
+        f.meshLights.push_back(FigureLight(*mesh.lighting));
         g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
     } else if (!g_pending.interfaceUnit) {
         g_pending.mesh.normals = nullptr;   // an interface figure with weather keeps them (its snow settles by them)
@@ -677,7 +681,6 @@ void MeshPass(const TextureDevice* device) {
     if (!g_pending.built) {
         g_pending.built = true;
         ++g_stats.counts[FrameStats::Count::Meshes];
-        if (g_pending.caster) NoteCasterPart(MeshSourceOwner());
         // A figure mesh kept on the GPU, else its vertices into the frame's stream.
         g_pending.cached = KeepMesh(g_pending.mesh);
         if (g_pending.cached) {
@@ -712,7 +715,6 @@ void MeshPass(const TextureDevice* device) {
         if (g_pending.mesh.fog == MeshFog::Distance) batch.fog = g_renderState.distanceFog;
         batch.horizon = g_pending.mesh.fog == MeshFog::Horizon;
         batch.eyeHeight = g_pending.mesh.eyeHeight;
-        batch.unclipped = !g_pending.mesh.clipped;
         batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
         batch.model = true;
         batch.flat = !g_pending.mesh.corners;
@@ -725,6 +727,7 @@ void MeshPass(const TextureDevice* device) {
         std::memcpy(batch.box, g_pending.box, sizeof(batch.box));
         batch.cached = g_pending.cached;
         batch.lighting = g_pending.lighting;
+        batch.placement = g_pending.placement;
         if (batch.cached && g_pending.mesh.moveUv) {   // the stream has them added (Build)
             batch.uOffset = g_pending.mesh.uOffset;
             batch.vOffset = g_pending.mesh.vOffset;

@@ -8956,7 +8956,7 @@ cunit848411 #unit 0FF5BBFF
 cunit999742 #place D1FA713D
 cunit999742 #unit 7108870D
 cunit1000002436 #place A644D3AB
-@ 8 update 180 frame 126 tick 180 zone bz1g hash 51F4002A n 401
+@ 8 update 180 frame 126 tick 180 zone bz1g hash D224ACD9 n 401
 world tick 180
 world updates 180
 random isaac.count 228
@@ -9041,3 +9041,4 @@ cunit927062 #place A9E2F1B6
 cunit999742 #place 531AB675
 cunit1000054752 #unit 85966415
 cunit1000059184 #unit F3FD3F34
+cunit1001577495 #unit 2DCB9250

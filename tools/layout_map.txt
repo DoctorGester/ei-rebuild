@@ -408,7 +408,6 @@ link_figure.cpp             models/link_figure.cpp
 link_loader.h               models/link_loader.h        new   # LinkArchive, FigureModel, Morph, LinkFigureLoader out of model.h
 link_loader.cpp             models/link_loader.cpp
 link_loader_create.cpp      models/link_loader.cpp      fold  # LinkFigureLoader's constructor (15 lines)
-link_mesh_draw.cpp          models/link_mesh_draw.cpp
 texture.h                   models/texture.h                  # TextureDevice and MeshArgs leave for scene/device.h (C168c)
 texture.cpp                 models/texture.cpp
 texture_load.cpp            models/texture_load.cpp

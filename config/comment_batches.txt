@@ -147,7 +147,6 @@ src/game/models/link_figure.cpp
 src/game/models/link_figure.h
 src/game/models/link_loader.cpp
 src/game/models/link_loader.cpp
-src/game/models/link_mesh_draw.cpp
 src/game/pixel_formats.cpp
 src/game/ui_help_page.cpp
 src/game/ui/ui_help_window.cpp
@@ -1114,7 +1113,6 @@ src/game/models/link_figure.cpp
 src/game/models/link_figure.h
 src/game/models/link_loader.cpp
 src/game/models/link_loader.cpp
-src/game/models/link_mesh_draw.cpp
 src/game/objects/lock_key.h
 src/game/app/logic_settings.cpp
 src/game/app/logic_settings.h

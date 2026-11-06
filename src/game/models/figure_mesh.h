@@ -118,7 +118,7 @@ const VertexPacket* MovedPositions(const VertexPacket* source, int packets,
                                   const std::vector<Vector3>& offsets);
 
 // The material a figure part is drawn with (the draw's fourth argument) is a Material: MaterialFlag::KeepSpecular
-// keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular
+// keeps the speculars (FigureMeshDrawer::DrawLit), the lights scale colors.diffuse / colors.specular
 // (Light::SetLitColors) and the GPU lighting adds colors.emissive (render::MeshLighting).
 class Material;
 
@@ -128,8 +128,6 @@ class Light;
 enum class FigureMeshFlag : std::uint32_t {
     Stationary = 0x8,   // a part of a non-unit object's figure (Object3D::LoadFigures, the client's figure creation);
                         // nothing reads it
-    Lit = 0x10,         // the colours are lit and kept: the draw lights the part only without it (the sky mesh has it
-                        // from the start); a non-static object's draw clears it on every part
     Loaded = 0x20,      // LoadFromMemory / the figure manager's load ran
     Drawn = 0x40,       // drawn through drawer this frame (cleared first; its screen is where the part was last drawn)
     Hidden = 0x80,      // not drawn (nothing more, not even the finishing call): the hidden weapon parts
@@ -230,7 +228,7 @@ public:
     std::vector<Vector3> offsets;      // per-vertex offsets added when drawing
     std::vector<std::uint32_t> colorsA;    // one per normal (lit colours)
     std::vector<std::uint32_t> colorsB;    // one per normal
-    render::MeshSlots meshSlots;           // the renderer's copies on the GPU (render::MeshSource::slots)
+    render::MeshSlots meshSlots;           // the renderer's copies on the GPU (render::MeshDraw::slots)
     // from the file header (before meshType): the material value of the mesh (the number in its
     // material group's name). An object's part takes both from its piece's LinkPartHeader (Object3D::LoadPart).
     std::uint32_t materialValue = 0;

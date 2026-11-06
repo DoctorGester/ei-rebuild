@@ -12,6 +12,7 @@
 #include "game/core/engine_object.h"
 #include "game/models/link_figure.h"
 #include "game/objects/object3d.h"
+#include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"
 #include "game/ui/screen_layout.h"
 #include "game/ui/ui.h"

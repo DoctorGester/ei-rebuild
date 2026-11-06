@@ -2,21 +2,19 @@
   "scenario": "net_pair_speed",
   "install": "rebirth",
   "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "commit": "dc71172b5",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "R37f13: an object's parts are drawn whole after its one view test, so the client units' Static and Shown flags come from that verdict and the client picture's unit weather lists the units drawn whole (visuals.sav); no server record differs",
   "source": "image",
   "change": [
-    "digest: 18 of 282 records differ, first at record 1 (world update 40, tick 20, frame 7, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 1 (world update 40, tick 20, frame 7, zone -): 1 fields",
-    "    cunit1000011214 (80 unhuma \"\") #unit: EF088401 in the old golden, D7CD8914 in the new run",
+    "digest: 31 of 282 records differ, first at record 92 (world update 1860, tick 1542, frame 371, zone bz1mpg); outcomes the same; no unit position differs",
+    "  first difference at record 92 (world update 1860, tick 1542, frame 371, zone bz1mpg): 1 fields",
+    "    cunit999742 (80 unhuma \"\") #unit: 01BE66C0 in the old golden, F84A0CA3 in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 2 of 37 differ",
-    "    #unit: 2 client units, 18 records, from 1; hash only (no numbers kept)",
-    "  units: 2 of 217 differ",
-    "    #unit: 2 units, 3 records, from 112; hash only (no numbers kept)"
+    "  client units: 4 of 37 differ",
+    "    #unit: 4 client units, 31 records, from 92; hash only (no numbers kept)"
   ]
 }

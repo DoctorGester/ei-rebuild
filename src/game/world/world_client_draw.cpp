@@ -32,8 +32,6 @@
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
-#include "platform/platform.h"
-#include "lib/intro_sort.h"
 #include "lib/vecmath.h"
 
 
@@ -98,14 +96,6 @@ template <typename Draw>
 void DrawEach(FrameList list, Draw draw) {
     for (MapObject* object : FrameObjects(list)) draw(object);
 }
-// The parts an object's draw handed over as shadow casters (Object3DClientSpecific::casterParts).
-void KeepCasterParts(MapObject* object, const render::DrawnCasterParts& drawn) {
-    Object3DClientSpecific* half = object->ClientSpecific();
-    if (!half) return;
-    half->casterFrame = drawn.frame;
-    half->casterParts = drawn.parts;
-}
-
 // The object's place in the renderer's casters (Object3DClientSpecific::casterMark), null without a client half.
 render::CasterMark* MarkOf(MapObject* object) {
     Object3DClientSpecific* half = object->ClientSpecific();
@@ -117,12 +107,12 @@ render::CasterMark* MarkOf(MapObject* object) {
 constexpr auto kDraw = [](MapObject* object) {
     render::BeginCaster(object, MarkOf(object), false);
     object->DrawFigure(&g_sceneRenderer);
-    KeepCasterParts(object, render::EndCaster());
+    render::EndCaster();
 };
 constexpr auto kDrawUnit = [](MapObject* object) {
     render::BeginCaster(object, MarkOf(object), true);
     object->DrawCollectDirty(&g_sceneRenderer);
-    KeepCasterParts(object, render::EndCaster());
+    render::EndCaster();
 };
 constexpr auto kDrawShadow = [](MapObject* object) { object->DrawFigureShadow(&g_sceneRenderer); };
 
@@ -258,13 +248,12 @@ int WorldClient::DrawPass() {
         return 0;
     }
     TransformPipeline* device = g_sceneRenderer.pipeline;
-    std::uint32_t now = platform::FrameClock();
     const Matrix4* view = device->Top(kStackView);
     g_deferredUnits.clear();
     static const FrameList kCleared[] = {FrameList::VisibleBuildings, FrameList::VisibleOther, FrameList::VisibleLevers,
                                          FrameList::VisibleUnits, FrameList::VisibleTrees, FrameList::ShadowBuildings,
                                          FrameList::ShadowOther, FrameList::ShadowLevers, FrameList::ShadowUnits,
-                                         FrameList::ShadowTrees, FrameList::TouchedModels};
+                                         FrameList::ShadowTrees};
     for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
     if (bird) bird->Update(animTime);
@@ -275,30 +264,14 @@ int WorldClient::DrawPass() {
     currentTerrain = terrain.get();
     const CellRange wholeMap = {0, 0, static_cast<std::uint32_t>(lib::Truncate(terrain->width - kMapEdgeMargin)) >> 4,
                                 static_cast<std::uint32_t>(lib::Truncate(terrain->height - kMapEdgeMargin)) >> 4};
-    int touched = 0;
-    touched += CollectCells(wholeMap, view, now);
-    for (MapObject* object : g_deferredUnits) touched += CollectVisible(object, view, animTime, now, 1, 0);
+    CollectCells(wholeMap, view);
+    for (MapObject* object : g_deferredUnits) CollectVisible(object, view, animTime, 1, 0);
     g_deferredUnits.clear();
-    for (MapObject* object : heroes) touched += CollectVisible(object, view, animTime, now, 1, 1);
+    for (MapObject* object : heroes) CollectVisible(object, view, animTime, 1, 1);
     // The GPU lighting's sun, ambient and point lights, the lights where the draw shows them (drawn::LightPosition):
     // an object's own light by its place just given. Before any mesh draw (a mesh's lights find their point shadows
     // by the scene's places); the ground's draws read them when the frame is drawn.
     HandOverSceneLights(this);
-
-    // Models in view stay loaded: the most recently used max(10, n / 8) lose MapObjectFlag::Static.
-    std::vector<MapObject*>& models = FrameObjects(FrameList::TouchedModels);
-    if (models.begin() != models.end()) {
-        // The most recently used first; the models used in the same frame stay in the game's sort's order.
-        lib::IntroSort(models.data(), models.data() + models.size(), [](MapObject* a, MapObject* b) {
-            return b->ClientSpecific()->touchTime < a->ClientSpecific()->touchTime;
-        });
-        int count = touched >> 3;
-        if (count < 10) count = 10;
-        for (MapObject** p = models.data(); p != models.data() + models.size() && count != 0; --count) {
-            MapObject* object = *p++;
-            object->flags &= ~MapObjectFlag::Static;
-        }
-    }
 
     // The frame's window rectangles.
     std::vector<ScreenEntry>& queued = screenEntries;
@@ -397,6 +370,5 @@ int WorldClient::DrawPass() {
     FrameObjects(FrameList::ShadowLevers).clear();
     FrameObjects(FrameList::ShadowUnits).clear();
     FrameObjects(FrameList::ShadowTrees).clear();
-    FrameObjects(FrameList::TouchedModels).clear();
     return 1;
 }

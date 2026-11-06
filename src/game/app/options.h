@@ -41,7 +41,6 @@ inline constexpr LightOptions kHeroLight = {216.0f * lib::kByteScale, 216.0f * l
                                             116.0f * lib::kByteScale, 5.0f};
 inline constexpr LightOptions kQuestLight = {120.0f * lib::kByteScale, 72.0f * lib::kByteScale,
                                              120.0f * lib::kByteScale, 5.0f};
-inline constexpr int kLightingPeriod = 10000;        // ms before a stationary model in view is kept loaded again
 inline constexpr float kDefaultWindForce = 0.4f;     // the strongest wind a map may have
 inline constexpr int kDefaultTimeScale = 60;         // the day and night clock: bigger is slower
 inline constexpr const char* kDefaultMapName = "Zone1.mpr";

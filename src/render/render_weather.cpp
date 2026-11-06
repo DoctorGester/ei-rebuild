@@ -76,11 +76,10 @@ struct UnitSurface {
 static std::unordered_map<const Object3D*, UnitSurface> g_units;
 static const Object3D* g_interfaceUnit = nullptr;   // BeginInterfaceUnit .. EndInterfaceUnit
 
-// A mesh that can roof a unit this frame: an object's (not a unit's) mesh drawn in the world and its model matrix into
-// the landscape's space (PointShadowFrame::models; -1 not made yet).
+// A mesh that can roof a unit this frame: an object's (not a unit's) mesh drawn in the world (its model matrix into the
+// landscape's space MeshBatch::placement).
 struct Roof {
     const MeshBatch* batch = nullptr;
-    int model = -1;
 };
 // A roof whose placed box may lie over a unit's look points: its box in the landscape's space, its model matrix
 // inverted when a point first lies under the box.
@@ -185,7 +184,7 @@ static float Shelter(const Frame& f, const Box& unit) {
         if (!under) continue;
         if (!roof.inverted) {
             roof.inverted = true;
-            roof.toModel = InvertMatrix(f.shadow.point.models[static_cast<std::size_t>(roof.roof.model)]);
+            roof.toModel = InvertMatrix(f.models[static_cast<std::size_t>(roof.roof.batch->placement)]);
         }
         if (!roof.toModel) continue;
         Vector3 from[kRoofPoints];
@@ -217,16 +216,15 @@ static void CollectUnitsAndRoofs(Frame& f) {
     if (f.worldRanges.empty()) return;
     g_view = WorldCamera(f);
     if (!g_view) return;
-    const CameraInverse& camera = g_view->inverse;
-    const std::vector<Matrix4>& models = f.shadow.point.models;
+    const std::vector<Matrix4>& models = f.models;
     static std::vector<char> unitMet;
     unitMet.assign(f.shadow.casters.size(), 0);
     if (g_unitBoxes.size() < f.shadow.casters.size()) g_unitBoxes.resize(f.shadow.casters.size());
     const MeshBatch* last = nullptr;
     for (const WorldMesh& mesh : f.worldMeshes) {
         const MeshBatch& batch = f.meshBatches[static_cast<std::size_t>(mesh.batch)];
-        if (batch.flat || batch.lines || batch.casterSlot < 0 || !batch.boxed || mesh.additive) continue;
-        if (last && mesh.repeat && batch.matrix == last->matrix) continue;
+        if (batch.flat || batch.lines || batch.casterSlot < 0 || !batch.boxed || batch.placement < 0 || mesh.additive) continue;
+        if (last && mesh.repeat && batch.placement == last->placement) continue;
         last = &batch;
         if (!batch.figure) {
             g_roofs.push_back(Roof{&batch});
@@ -238,8 +236,7 @@ static void CollectUnitsAndRoofs(Frame& f) {
             g_unitBoxes[slot] = Box{};
             g_unitSlots.push_back(batch.casterSlot);
         }
-        const int model = LandscapeModel(f, camera, batch.matrix);
-        ExtendPlaced(g_unitBoxes[slot], batch.box, models[static_cast<std::size_t>(model)]);
+        ExtendPlaced(g_unitBoxes[slot], batch.box, models[static_cast<std::size_t>(batch.placement)]);
     }
     if (g_unitSlots.empty()) return;
     // Each unit's look points' box, and the box around them all.
@@ -254,8 +251,7 @@ static void CollectUnitsAndRoofs(Frame& f) {
         all.Extend(look.high);
     }
     for (Roof& roof : g_roofs) {
-        roof.model = LandscapeModel(f, camera, roof.batch->matrix);
-        const Matrix4& placed = models[static_cast<std::size_t>(roof.model)];
+        const Matrix4& placed = models[static_cast<std::size_t>(roof.batch->placement)];
         const PlacedBox loose = PlaceBox(roof.batch->box, placed);
         if (!MayRoof(loose, all) || std::none_of(looks.begin(), looks.end(), [&](const Box& look) { return MayRoof(loose, look); }))
             continue;
@@ -376,8 +372,6 @@ void PrepareRoofs(Frame& f) {
     g_roofInfo.made = true;
     g_roofInfo.size = kRoofMapSize;
     g_roofInfo.extent = extent;
-    for (Roof& roof : g_roofs)
-        if (roof.model < 0) roof.model = LandscapeModel(f, g_view->inverse, roof.batch->matrix);
 }
 
 void RoofUniforms(const Matrix4& light, ShadowParams* params) {
@@ -418,7 +412,7 @@ void DrawRoofMap(const Frame& f) {
         if (!BindMeshBatch(batch, geometry, &first)) continue;
         const PassState& state = batch.state;
         const StageState& stage = state.stages[0];
-        const Matrix4& model = f.shadow.point.models[static_cast<std::size_t>(roof.model)];
+        const Matrix4& model = f.models[static_cast<std::size_t>(batch.placement)];
         CasterInstance instance{Product(g_roofFit.clip, model), {batch.uOffset, batch.vOffset}, {}};
         CasterAlpha(state, instance.alpha);
         g_roofDraws.Add(geometry, batch.cached != nullptr, stage.texture ? stage.texture : SurfaceView(nullptr),

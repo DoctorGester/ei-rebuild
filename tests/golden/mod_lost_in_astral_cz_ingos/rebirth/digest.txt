@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 1415 frame 283 tick 884 zone bz21k hash 4087BDE4 n 2382
+@ 1 update 1415 frame 283 tick 884 zone bz21k hash C1C624AD n 2382
 world tick 884
 world updates 1415
 world timeBase 6.50000095
@@ -18389,11 +18389,11 @@ client synchronised 58
 - cunit2
 + cunit34 80 unhuma ""
 cunit34 #place 05B06881
-cunit34 #unit 869A703A
+cunit34 #unit 8193D8E6
 cunit34 #vitals B073BCC9
 + cunit35 80 unhufe ""
 cunit35 #place 14436F57
-cunit35 #unit 4CB8252E
+cunit35 #unit 4BB18DF2
 cunit35 #vitals C706ADBC
 - cunit1493
 + cunit4133 80 unanhoco ""
@@ -18454,7 +18454,7 @@ cunit1094445 #unit 73E88970
 cunit1094445 #vitals B073BCC9
 + cunit1115382 80 unhufe ""
 cunit1115382 #place A70ABB2D
-cunit1115382 #unit 816D01C2
+cunit1115382 #unit 8664A91E
 cunit1115382 #vitals C706ADBC
 + cunit1115434 80 unhuma ""
 cunit1115434 #place CFF66600

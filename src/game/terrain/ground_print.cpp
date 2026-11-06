@@ -154,8 +154,8 @@ void GroundPrint::Save(ByteStream* stream) const {
     stream->WriteValue(lifetime);
 }
 
-int GroundPrint::Draw() {
-    if (!visible) return 1;
+void GroundPrint::Draw() {
+    if (!visible) return;
     if (!built) {
         // The quad at the height of the ground or the platform under the point.
         WorldClient* world = &g_clientWorld;
@@ -203,9 +203,8 @@ int GroundPrint::Draw() {
     std::uint32_t fadeAlpha = static_cast<std::uint32_t>(std::lround(alpha * kAlphaRange));
     TextureDevice* device = g_sceneRenderer.device;
     device->BindNamedTexture(0, &texture);
-    return device->DrawFlatBlocks(positions.data(), texCoords.data(), lib::Count(positions), indices.data(),
-                                  lib::Count(indices), (DayColour() & 0xFFFFFFu) | fadeAlpha << 24,
-                                  static_cast<std::uint32_t>(lit) << 24, true);
+    device->DrawFlatBlocks(positions.data(), texCoords.data(), lib::Count(positions), indices.data(), lib::Count(indices),
+                           (DayColour() & 0xFFFFFFu) | fadeAlpha << 24, static_cast<std::uint32_t>(lit) << 24, true);
 }
 
 std::uint32_t GroundPrint::DayColour() const { return 0xFFFFFFu; }

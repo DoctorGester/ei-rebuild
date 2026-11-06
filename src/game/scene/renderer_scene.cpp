@@ -3,9 +3,8 @@
 #include "game/core/core_maths.h"
 
 #include "game/core/engine_object.h"
-#include "game/models/figure_mesh.h"   // FigureMesh
 #include "game/app/singletons.h"
-#include "game/models/link_figure.h"   // FigureMeshDrawer
+#include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"     // SceneRenderer
 #include "game/scene/pipeline.h"
 #include "game/scene/render_helper.h"
@@ -109,17 +108,6 @@ void SceneRenderer::SetTexture(int stage, Texture* texture) {
 }
 
 void SceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline, device); }
-
-void SceneRenderer::DrawFigure(FigureMesh* mesh, Material* material, int alpha, Rect* screen) {
-    if (mesh->flags & FigureMeshFlag::Hidden) return;
-    mesh->drawer->DrawPlain(device, material, alpha, screen);
-}
-
-void SceneRenderer::DrawFigureLit(FigureMesh* mesh, const std::vector<Light*>& lights, Material* material, int alpha, Rect* screen,
-                                  Texture* textureA, Texture* textureB) {
-    if (mesh->flags & FigureMeshFlag::Hidden) return;
-    mesh->drawer->DrawLit(device, lights, material, alpha, screen, textureA, textureB);
-}
 
 // There are no DirectDraw surfaces to lose nor a display mode to set again.
 bool SceneRenderer::RestoreSurfaces() { return device != nullptr; }

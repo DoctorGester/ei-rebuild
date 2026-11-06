@@ -8087,7 +8087,7 @@ cunit831510 #unit 8C7933E1
 cunit848411 #place 6E0FADAC
 cunit1000011214 #place 6AF100E5
 cunit1000011214 #unit 2F063D33
-@ 92 update 1860 frame 371 tick 1417 zone bz1mpg hash 22F4DCC0 n 389
+@ 92 update 1860 frame 371 tick 1417 zone bz1mpg hash B68D535C n 389
 world tick 1417
 world updates 1860
 random isaac.count 7
@@ -8156,7 +8156,7 @@ cunit399469 #unit 00BAC88C
 cunit831510 #place 7506C7DF
 cunit848411 #place 8B1D94C3
 cunit848411 #unit 8AA4E250
-cunit927062 #unit E4AE1E6F
+cunit927062 #unit E3A7B6B3
 cunit999742 #unit 63B0A50A
 cunit1000011214 #place 57E324C4
 cunit1000011214 #unit 637258D8

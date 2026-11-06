@@ -11,7 +11,8 @@
 # At 8 ms frames, the first frame (frozen at once) against the settled one 60 frames later: the people's idle
 # animations and the fires differ (under 1.5% of the pixels; 93% before, the camera elsewhere), and the
 # people with a topic stand out from an unlit guard (#999742) as brightly in both: their largest mean channel
-# difference 45-68 (before, in the first frame, 17-30).
+# difference 45-68 (before, in the first frame, 17-30). Since R37f13 a unit's rectangle is its parts' boxes on the
+# screen, which take in more of the ground around it: the first person's 54-56.
 # The save loads paused (the Esc menu's pause), so on the virtual clock the first frames show the world still until
 # the screen's unpause reaches the client; on the real clock the load's long passes cover that.
 # prepare: copy_save.py tests/saves/shadow_corrupt save2
@@ -24,7 +25,7 @@ frametime 8
 load save2
 capture first 1 freeze after Loaded save2
 frames 10
-unitcolour first_1 #1001577495 #999742 55 85
+unitcolour first_1 #1001577495 #999742 50 85
 unitcolour first_1 #1000059184 #999742 42 75
 unitcolour first_1 #1000054752 #999742 38 70
 unfreeze
@@ -32,7 +33,7 @@ waitwindow 30 briefing
 frames 60
 freeze
 capture settled
-unitcolour settled #1001577495 #999742 55 85
+unitcolour settled #1001577495 #999742 50 85
 unitcolour settled #1000059184 #999742 42 75
 unitcolour settled #1000054752 #999742 38 70
 unfreeze

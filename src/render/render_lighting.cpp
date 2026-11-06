@@ -17,8 +17,6 @@ static KeptScene g_scene;
 // The lights in the order SceneLighting, FigureLight and GroundDecalLight take them (by distance, then index),
 // kept for its room.
 static std::vector<std::pair<float, int>> g_order;
-// FigureLight's: the parts' camera (one per frame in the world's draw), inverted once.
-static CameraInverse g_partCamera;
 
 void SceneLighting(const SceneLights& lights) {
     KeptScene s;
@@ -94,8 +92,7 @@ SceneLightParams SceneLightUniforms(const Frame& f) {
 
 MeshLight FigureLight(const MeshLighting& l) {
     MeshLight light;
-    Matrix4 model = l.model;
-    if (l.camera) model = g_partCamera.Invert(*l.camera) ? g_partCamera.Under(l.model) : Matrix4{};
+    const Matrix4& model = l.model;
     // The model matrix's inverse: rows of its upper 3 x 3's inverse (the cross products of its columns
     // over the determinant); the translation `at` taken off first.
     const float* m = model.m;

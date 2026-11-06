@@ -58,9 +58,8 @@ public:
     // Draws the print when visible: the first time, lays the quad on the ground (z from the client world's
     // ground and platforms; the projector clips it to the terrain and the platforms under it) and turns its
     // texture coordinates; then the flat draw in DayColour with the alpha from alpha and the lit flag as
-    // the specular alpha (the renderer lights it as the ground under it). Returns 1 when not visible, else the
-    // draw's result.
-    int Draw();
+    // the specular alpha (the renderer lights it as the ground under it).
+    void Draw();
     // The print's colour in the client world's daylight colours (WorldClient::DaylightColours), rgb: white.
     virtual std::uint32_t DayColour() const;
 

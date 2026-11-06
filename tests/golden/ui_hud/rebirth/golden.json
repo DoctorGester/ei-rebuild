@@ -2,16 +2,20 @@
   "scenario": "ui_hud",
   "install": "rebirth",
   "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "commit": "dc71172b5",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "R37f13: an object's parts are drawn whole after its one view test, so the client units' Static and Shown flags come from that verdict and the client picture's unit weather lists the units drawn whole (visuals.sav); no server record differs",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
-    "  visuals: 6 fields in 1 records; first visuals.generator count: 91 in the old golden, 129 in the new run; largest numeric d 9.96e+08 at visuals.generator aa: 3241172569 -> 4236839942"
+    "digest: 1 of 57 records differ, first at record 16 (world update 340, tick 340, frame 67, zone gz1g); outcomes the same; no unit position differs",
+    "  first difference at record 16 (world update 340, tick 340, frame 67, zone gz1g): 1 fields",
+    "    cunit702 (80 unhufe \"\") #unit: DD2D7B59 in the old golden, DA24D385 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  client units: 1 of 13 differ",
+    "    #unit: 1 client unit, 1 record, from 16; hash only (no numbers kept)"
   ]
 }

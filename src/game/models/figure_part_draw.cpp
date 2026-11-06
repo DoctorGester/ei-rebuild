@@ -1,35 +1,24 @@
-// The draw of one figure part: the mesh is clip-tested, advanced when animated, its colours filled (flat meshes)
-// or lit once, then drawn through the device or through the owner's figure. See docs/notes/models.md ("Figure
-// parts").
+// The draw of one figure part: the mesh advanced when animated and handed to the renderer whole, from its part of the
+// owner's figure or its own arrays, placed by its model matrix and lit on the GPU (the GPU clips it). See
+// docs/notes/models.md ("Figure parts").
 #include "game/models/figure_mesh.h"
 
-#include "game/core/engine_object.h"
-#include "game/scene/light.h"
-#include "game/core/manager_context.h"
-#include "game/app/singletons.h"
 #include "game/models/link_figure.h"
 #include "game/objects/object3d.h"
 #include "game/models/material.h"
 #include "game/scene/device.h"
-#include "game/scene/scene_renderer.h"
 #include "game/scene/pipeline.h"
-#include "game/models/texture.h"
-#include "game/app/options.h"
-#include "game/scene/renderer_lines.h"   // LineBatch
-#include "game/spells/spell.h"
 #include "game/world/world.h"
-#include "game/scene/drawn_motion.h"
 #include "lib/containers.h"
 #include "lib/rect.h"
-#include "lib/text_case.h"
 #include "render/render.h"
+#include "render/render_state.h"
 
 #include <algorithm>
 #include <cfloat>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <new>
 #include <vector>
 
 namespace {
@@ -39,9 +28,7 @@ constexpr std::uint32_t kTwoRows = 13;     // 8 frames, 4 per row, two rows (v 0
 constexpr std::uint32_t kSheet4x4 = 14;    // 16 frames
 constexpr std::uint32_t kSheet8x4 = 16;    // 32 frames
 
-constexpr std::uint32_t kShowBounds = 0x4000;   // the manager context's debug flag: draw the clip boxes
-
-bool IsAnimatedSheet(std::uint32_t meshType) { return meshType >= kTwoRows && meshType <= kSheet8x4; }
+constexpr float kByteScale = 255.0f;
 
 // The figure a mesh is drawn through: its owner's (Object3D::figure), or null for the mesh's own buffers.
 LinkMesh* OwnerFigure(const FigureMesh* mesh) {
@@ -49,123 +36,58 @@ LinkMesh* OwnerFigure(const FigureMesh* mesh) {
     return owner ? static_cast<Object3D*>(owner)->figure.Get() : nullptr;
 }
 
-// The world time: whole ticks plus the fraction of the current one, rounded to a float once (the tick exact).
-void TickTime(float* out) {
+// The original's _ftol: truncated through 64 bits, the low half (0 for a NaN or a value beyond the range).
+std::uint32_t Truncated(float value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
+
+// An animated mesh steps to the world's time (whole ticks plus the fraction of the current one, rounded to a float
+// once) before it is drawn.
+void AnimateSheet(FigureMeshDrawer* drawer) {
+    const std::uint32_t meshType = drawer->mesh->meshType;
+    if (meshType < kTwoRows || meshType > kSheet8x4) return;
     const WorldClient* world = &g_clientWorld;
-    *out = static_cast<float>(world->tick) + world->tickFraction;
+    drawer->Animate(static_cast<float>(world->tick) + world->tickFraction);
 }
 
-// --- Arrays --------------------------------------------------------------------------------------
-
-void Fill(std::vector<std::uint32_t>& values, std::uint32_t value) {
-    for (int i = 0; i < std::ssize(values); ++i) values[i] = value;
-}
-
-// --- The part --------------------------------------------------------------------------------------
-
-struct Part {
-    FigureMeshDrawer* node = nullptr;
-    TextureDevice* device = nullptr;
-    const std::vector<Light*>* lights = nullptr;
-    Material* material = nullptr;
-    int alpha = 0;
-    Rect* rect = nullptr;
-    Texture* textureA = nullptr;
-    Texture* textureB = nullptr;
-    LinkMesh* figure = nullptr;  // the mesh owner's figure (Object3D::figure), or null
-    const LinkPartRanges* ranges = nullptr;   // the mesh's part in `figure` (FigureMesh::PartIn), null without one
-    DrawFlag drawFlags = {};
-    bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
-    const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
-
-    // The mesh the renderer keeps on the GPU: what the device's draw draws.
-    render::MeshSource Source(bool throughFigure) const {
-        return render::MeshSource{node->mesh, throughFigure ? figure : nullptr, !node->mesh->offsets.empty(), coloursWritten,
-                                  lighting, &node->mesh->meshSlots};
-    }
-    std::vector<std::uint32_t>& Colours() const { return node->mesh->colorsA; }
-    std::vector<std::uint32_t>& Speculars() const { return node->mesh->colorsB; }
-    bool Textured() const { return textureA && textureB; }
-};
-
-// Flat meshes (FigureMeshFlag::Flat): the figure fills the colours (its FlatColours), else every colour is
-// the mesh's flat colour and every specular its flat specular (both arrays sized 4 * normals first).
-void FlatColours(Part& part) {
-    part.coloursWritten = true;
-    if (part.figure) {
-        FigureMesh* mesh = part.node->mesh;
-        if (part.ranges) {
-            part.figure->FlatColours(*part.ranges, mesh->flatColour, mesh->flatSpecular, &part.Colours(),
-                                     &part.Speculars());
-        }
-        return;
-    }
-    part.Colours().resize(part.node->mesh->buffers.normalCount * 4);
-    part.Speculars().resize(part.node->mesh->buffers.normalCount * 4);
-    Fill(part.Colours(), part.node->mesh->flatColour);
-    Fill(part.Speculars(), part.node->mesh->flatSpecular);
-}
-
-// The part's light for the GPU, every draw of a mesh that is not flat: the model matrix, the scene's sun, the
-// ambient colour (AmbientColour), the material's colours, the options' coefficient, the crown and the lights
-// within the object's reach, where the draw shows them (drawn::LightPosition, as the scene's).
-std::vector<render::MeshLightSource> g_partLights;
-render::MeshLighting g_partLighting;
-
-const render::MeshLighting* PartLighting(const Part& part) {
-    render::MeshLighting& l = g_partLighting;
-    l = render::MeshLighting{};
-    // The world stack's top is the scene's camera times the part's placement for every part; the object
-    // stack has the placement alone only for a part about to be lit on the CPU (a lit static part is
-    // not pushed there). Outside the world's draw (the interface's figures) only the object stack.
-    if (const Matrix4* camera = SceneCamera()) {
-        l.model = *part.device->pipeline->Top(TransformPipeline::kWorldStack);
-        l.camera = camera;
+// The mesh's arrays: its part `r` of `figure`, else its own buffers; the positions moved by its offsets.
+render::MeshDraw MeshOf(FigureMesh* mesh, LinkMesh* figure, const LinkPartRanges* r) {
+    render::MeshDraw d{};
+    int packets = 0;
+    if (figure) {
+        packets = r->vertices.count;
+        d.positions = figure->vertices.data() + r->vertices.start;
+        d.normals = figure->normals.data() + r->normals.start;
+        d.normalCount = r->normals.count * 4;
+        d.uvs = figure->texCoords.data() + r->texCoords.start;
+        d.corners = figure->corners.data() + r->corners.start;
+        d.cornerCount = r->corners.count;
+        d.words = figure->words.data() + r->words.start;
+        d.wordCount = r->words.count;
+        d.indices = figure->indices.data() + r->indices.start;
+        d.indexCount = r->indices.count;
     } else {
-        l.model = *part.device->pipeline->Top(TransformPipeline::kObjectStack);
+        const MeshBuffers& b = mesh->buffers;
+        packets = b.vertexCount;
+        d.positions = b.vertices;
+        d.normals = b.normals;
+        d.normalCount = b.normalCount * 4;
+        d.uvs = b.texCoords;
+        d.corners = b.corners;
+        d.cornerCount = b.cornerCount;
+        d.words = b.words;
+        d.wordCount = b.wordCount;
+        d.indices = b.indices;
+        d.indexCount = b.indexCount;
     }
-    if (const Light* sun = g_sceneRenderer.sun) {
-        l.sun = true;
-        l.sunDirection = sun->direction;
-        for (int k = 0; k < 3; ++k) l.sunColour[k] = sun->color[k];
-    }
-    const float* ambient = AmbientColour();
-    for (int k = 0; k < 3; ++k) l.ambientColour[k] = ambient[k];
-    const MaterialColors& c = part.material->colors;
-    l.diffuseColour[0] = c.diffuse.x;
-    l.diffuseColour[1] = c.diffuse.y;
-    l.diffuseColour[2] = c.diffuse.z;
-    l.diffuseColour[3] = c.diffuse.w;
-    l.emissiveColour[0] = c.emissive.x;
-    l.emissiveColour[1] = c.emissive.y;
-    l.emissiveColour[2] = c.emissive.z;
-    l.coefficient = options::kObjectsLightingCoeff;
-    g_partLights.clear();
-    for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
-        Light* light = (*part.lights)[i];
-        g_partLights.push_back(render::MeshLightSource{drawn::LightPosition(light), light->inverseRangeSquared,
-                                                       {light->color[0], light->color[1], light->color[2]}});
-    }
-    l.lights = g_partLights.data();
-    l.lightCount = static_cast<int>(g_partLights.size());
-    return &l;
-}
-
-// Lighting (once, FigureMeshFlag::Lit). The part is lit on the GPU; the colours keep only the material's
-// diffuse alpha (white otherwise), the speculars become the alpha unless the material keeps them.
-void LightFigurePart(Part& part) {
-    part.coloursWritten = true;
-    if (part.figure) {
-        if (part.ranges) {
-            part.figure->LightPart(*part.ranges, part.material, part.alpha, &part.Colours(), &part.Speculars());
-        }
-    } else {
-        Fill(part.Colours(), part.material->GpuLitColour());
-    }
-    if (!(part.material->flags & MaterialFlag::KeepSpecular)) {
-        Fill(part.Speculars(), (static_cast<std::uint32_t>(part.alpha) & 0xFF) << 24);
-    }
-    part.node->mesh->flags |= FigureMeshFlag::Lit;
+    d.moved = !mesh->offsets.empty();
+    if (d.moved) d.positions = MovedPositions(d.positions, packets, mesh->offsets);
+    d.positionCount = packets * 4;
+    d.uOffset = mesh->textureOffsetU;
+    d.vOffset = mesh->textureOffsetV;
+    d.moveUv = d.uOffset != 0.0f || d.vOffset != 0.0f;
+    d.owner = mesh;
+    d.shared = figure;
+    d.slots = &mesh->meshSlots;
+    return d;
 }
 
 } // namespace
@@ -184,107 +106,48 @@ const VertexPacket* MovedPositions(const VertexPacket* source, int packets, cons
     return moved.data();
 }
 
-namespace {
-
-// The mesh through the device, its positions moved by its offsets; textured when both textures are given. Returns
-// whether it was drawn.
-bool DeviceDraw(TextureDevice* device, FigureMesh* mesh, const render::MeshSource& source, const Texture* textureA,
-                const Texture* textureB, int alpha, DrawFlag drawFlags) {
-    const MeshBuffers& b = mesh->buffers;
-    const VertexPacket* positions = b.vertices;
-    if (!mesh->offsets.empty()) positions = MovedPositions(positions, b.vertexCount, mesh->offsets);
-    render::SetMeshSource(&source);
-    const MeshArgs args{positions, b.vertexCount, b.normals, b.normalCount, mesh->colorsA.data(), mesh->colorsB.data(),
-                        b.texCoords, b.corners, b.cornerCount, b.words, b.wordCount, b.indices, b.indexCount,
-                        mesh->textureOffsetU, mesh->textureOffsetV, alpha, drawFlags};
-    const bool drawn = textureA && textureB ? device->DrawMeshBlocks2(textureA->surface, textureB->surface, args)
-                                            : device->DrawMeshBlocks(args);
-    render::SetMeshSource(nullptr);
-    return drawn;
-}
-
-// An animated mesh steps to the world's time before it is drawn.
-void AnimateSheet(FigureMeshDrawer* drawer) {
-    if (!IsAnimatedSheet(drawer->mesh->meshType)) return;
-    float time;
-    TickTime(&time);
-    drawer->Animate(time);
-}
-
-// The mesh through the device. FigureMeshFlag::Drawn is only set when a rectangle was asked for.
-void DrawThroughDevice(Part& part) {
-    FigureMesh* mesh = part.node->mesh;
-    const render::MeshSource source = part.Source(false);
-    const bool drawn = DeviceDraw(part.device, mesh, source, part.textureA, part.textureB, part.alpha, part.drawFlags);
-    if (!part.rect) return;
-    Rect* own = &part.node->screen;
-    if (!drawn) {
-        *own = {};
-        *part.rect = {};
-        return;
-    }
-    *own = part.device->drawnRect;
-    *part.rect = *own;
-    mesh->flags |= FigureMeshFlag::Drawn;
-}
-
-// The mesh through the owner's figure, moved by its offsets; the rectangle the device drew.
-void DrawThroughFigure(Part& part) {
-    FigureMesh* mesh = part.node->mesh;
-    const render::MeshSource source = part.Source(true);
-    render::SetMeshSource(&source);
-    const bool textured = part.Textured();
-    const bool drawn = part.ranges && part.figure->DrawPart(*part.ranges, part.drawFlags, textured,
-                                                            textured ? part.textureA->surface.Get() : nullptr,
-                                                            textured ? part.textureB->surface.Get() : nullptr,
-                                                            &part.Colours(), &part.Speculars(), mesh->offsets,
-                                                            mesh->textureOffsetU, mesh->textureOffsetV);
-    render::SetMeshSource(nullptr);
-
-    if (part.rect) {
-        Rect* own = &part.node->screen;
-        *own = drawn ? part.figure->loader->renderer->drawnRect : Rect{};
-        *part.rect = *own;
-    }
-    if (drawn) mesh->flags |= FigureMeshFlag::Drawn;
-}
-
-} // namespace
-
-// `lights` the light objects, `material` the drawing context (flags, light vector), `alpha` the low byte for
-// the speculars, `rect` (optional) receives the screen rectangle, the textures (their surfaces) select the
-// two-texture draw.
-void FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>& lights,
-                               Material* material, int alpha, Rect* rect, Texture* textureA, Texture* textureB) {
-    FigureMesh* currentMesh = mesh;
-    currentMesh->flags &= ~FigureMeshFlag::Drawn;
-    if (mesh->flags & FigureMeshFlag::Hidden) return;
-    // Only the scene's parts reach here (the owner is an Object3D: map_object_draw, also for the interface's previews); the other meshes draw plain.
-    Part part{this, device, &lights, material, alpha, rect, textureA, textureB, OwnerFigure(mesh)};
-    if (part.figure) part.ranges = mesh->PartIn(part.figure);
-
-    const TransformPipeline::ClipResult visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
-    if (visibility == TransformPipeline::ClipResult::Outside) return;
+// A flat mesh (FigureMeshFlag::Flat) is drawn in its flat colour and specular; any other is lit on the GPU, its colour
+// white with the material's diffuse alpha (Material::GpuLitColour), its specular the alpha byte over the material's
+// specular colour when the material keeps its speculars (components times 255 truncated by _ftol and OR-ed in
+// unmasked; the device's specular on around the draw), else the alpha byte alone.
+bool FigureMeshDrawer::DrawLit(TextureDevice* device, const Matrix4& view, const Matrix4& model,
+                               render::MeshLighting& lighting, Material* material, int alpha) {
+    LinkMesh* figure = OwnerFigure(mesh);
+    const LinkPartRanges* ranges = figure ? mesh->PartIn(figure) : nullptr;
+    if (figure && !ranges) return false;
     AnimateSheet(this);
-
-    std::uint32_t meshFlags = part.node->mesh->flags;
-    if (meshFlags & FigureMeshFlag::Flat) {
-        FlatColours(part);
+    render::MeshDraw d = MeshOf(mesh, figure, ranges);
+    d.matrix = &view;
+    d.model = &model;
+    d.screenMatrix = true;
+    const std::uint32_t alphaByte = static_cast<std::uint32_t>(alpha) & 0xFF;
+    const bool keepSpecular = lib::Has(material->flags, MaterialFlag::KeepSpecular);
+    if (mesh->flags & FigureMeshFlag::Flat) {
+        d.colour = mesh->flatColour;
+        d.specular = mesh->flatSpecular;
     } else {
-        part.lighting = PartLighting(part);
-        if (!(meshFlags & FigureMeshFlag::Lit)) LightFigurePart(part);
+        d.colour = material->GpuLitColour();
+        d.specular = alphaByte << 24;
+        if (keepSpecular) {
+            const Vector4& s = material->colors.specular;
+            d.specular = ((Truncated(s.x * kByteScale) | alphaByte << 8) << 16) | Truncated(s.y * kByteScale) << 8 |
+                         Truncated(s.z * kByteScale);
+        }
+        const MaterialColors& c = material->colors;
+        lighting.model = model;
+        lighting.diffuseColour[0] = c.diffuse.x;
+        lighting.diffuseColour[1] = c.diffuse.y;
+        lighting.diffuseColour[2] = c.diffuse.z;
+        lighting.diffuseColour[3] = c.diffuse.w;
+        lighting.emissiveColour[0] = c.emissive.x;
+        lighting.emissiveColour[1] = c.emissive.y;
+        lighting.emissiveColour[2] = c.emissive.z;
+        d.lighting = &lighting;
     }
-
-    if (visibility == TransformPipeline::ClipResult::Crossing) part.drawFlags = DrawFlag::Clipped;
-    if (rect) part.drawFlags |= DrawFlag::ScreenRect;
-    if (material->flags & MaterialFlag::KeepSpecular) part.drawFlags |= DrawFlag::Specular;
-    if (rect) screenMatrix = *device->pipeline->Top(TransformPipeline::kWorldStack);
-    if (part.figure) {
-        DrawThroughFigure(part);
-    } else {
-        DrawThroughDevice(part);
-    }
-    DrawBounds(&g_sceneRenderer);
+    render::g_renderState.specular = keepSpecular;
+    device->DrawMesh(d);
+    render::g_renderState.specular = false;
+    return true;
 }
 
 const LinkPartRanges* FigureMesh::PartIn(const LinkMesh* figure) {
@@ -295,75 +158,25 @@ const LinkPartRanges* FigureMesh::PartIn(const LinkMesh* figure) {
     return figureRanges;
 }
 
-// --- Figure part bounds ------------------------------------------------------------------------------
-
-// The finishing call of the part draws. With the debug flag kShowBounds of the owning manager's context set, the
-// mesh's clip box is drawn as lines through the renderer: the corners are the bounds' centre plus, per axis,
-// either the box minimum or the maximum; eight edges, two points each, in the original's order. See
-// docs/notes/models.md ("Figure parts").
-
-void FigureMeshDrawer::DrawBounds(SceneRenderer* renderer) {
-    if (!(GetManagerContext()->flags & kShowBounds)) return;
-    LineBatch lines{{}, 0, 0xFFFF0000u};
-    const ClipBounds& bounds = mesh->box.bounds;
-    const Vector3& origin = bounds.center;
-    const Vector3& nearExtent = bounds.boxMin;
-    const Vector3& farExtent = bounds.boxMax;
-    // corner[i]: bit 2 near x, bit 1 near y, bit 0 near z (else far).
-    float corner[8][3];
-    for (int i = 0; i < 8; ++i) {
-        corner[i][0] = origin.x + ((i & 4) ? nearExtent.x : farExtent.x);
-        corner[i][1] = origin.y + ((i & 2) ? nearExtent.y : farExtent.y);
-        corner[i][2] = origin.z + ((i & 1) ? nearExtent.z : farExtent.z);
-    }
-    static const int kOrder[16] = {3, 1, 0, 2, 6, 4, 0, 1, 5, 4, 5, 7, 6, 7, 3, 2};
-    for (int index : kOrder) lines.AddPoint(corner[index]);
-    renderer->DrawLineList(&lines);
-    lib::FreeStorage(lines.packets);
-}
-
-// --- Plain -------------------------------------------------------------------------------------------
-
-// The plain draw of one figure part: the lit draw's simpler sibling, always through the device and without the
-// lighting. Flat meshes (0x100) get their colours filled with one value and speculars with another, a mesh not
-// yet lit asks the device to light it, and the per-vertex offsets are added into a copy of the positions. See
-// docs/notes/models.md ("Figure parts").
-
-// The material is not read; `alpha` goes to the device draw, `rect` (optional) receives the screen rectangle
-// (empty when off screen).
-void FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect) {
+// The sky keeps the colours its lighting wrote; an interface sprite (built every frame: the interface rewrites its
+// corners in place) is its flat colours or the device's colour with the alpha 255.
+void FigureMeshDrawer::DrawPlain(TextureDevice* device, const Matrix4* sky) {
     if (mesh->flags & FigureMeshFlag::Hidden) return;
-    DrawFlag drawFlags = {};
-    mesh->flags &= ~FigureMeshFlag::Drawn;
-    const TransformPipeline::ClipResult visibility = device->pipeline->ClipTest(&mesh->box.bounds);
-    if (visibility == TransformPipeline::ClipResult::Outside) return;
     AnimateSheet(this);
-
-    std::uint32_t meshFlags = mesh->flags;
-    if (meshFlags & FigureMeshFlag::Flat) {
-        Fill(mesh->colorsA, mesh->flatColour);
-        Fill(mesh->colorsB, mesh->flatSpecular);
-    } else if (!(meshFlags & FigureMeshFlag::Lit)) {
-        drawFlags = DrawFlag::Colours;
+    render::MeshDraw d = MeshOf(mesh, nullptr, nullptr);
+    if (sky) {
+        d.colours = mesh->colorsA.data();
+        d.speculars = mesh->colorsB.data();
+    } else {
+        d.owner = nullptr;
+        const bool flat = lib::Has(mesh->flags, FigureMeshFlag::Flat);
+        d.colour = flat ? mesh->flatColour : device->colour;
+        d.specular = flat ? mesh->flatSpecular : 0xFF000000u;
     }
-    if (visibility == TransformPipeline::ClipResult::Crossing) drawFlags |= DrawFlag::Clipped;
-    if (rect) drawFlags |= DrawFlag::ScreenRect;
-
-    const render::MeshSource source{mesh, nullptr, !mesh->offsets.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat), nullptr,
-                                    &mesh->meshSlots};
-    const bool drawn = DeviceDraw(device, mesh, source, nullptr, nullptr, alpha, drawFlags);
-    if (rect) {
-        Rect* own = &screen;
-        if (!drawn) {
-            *own = {};
-            *rect = {};
-        } else {
-            *own = device->drawnRect;
-            *rect = *own;
-        }
-    }
-    if (drawn) mesh->flags |= FigureMeshFlag::Drawn;
-    DrawBounds(&g_sceneRenderer);
+    d.matrix = device->pipeline->Top(TransformPipeline::kWorldStack);
+    d.model = sky;
+    d.screenMatrix = true;
+    device->DrawMesh(d);
 }
 
 // --- Picking -----------------------------------------------------------------------------------------

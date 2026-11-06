@@ -112,7 +112,6 @@ void FitShadowSphere(Object3DClientSpecific* self) {
     }
     Vector3 direction;
     LightDirection(sum, &direction);
-    self->flags &= ~ClientHalfFlag::Redraw;
 
     const Object3D* object = self->object;
     const ClipBounds& bounds = object->bounds;
@@ -177,9 +176,9 @@ int Object3DClientSpecific::DrawPartsShadow(SceneRenderer*) {
     render::CastsShadow(object, casterMark, *strength);
 
     // The shadow's sphere decides the object's shadow visibility (ShadowInView). Fitted the first time after
-    // Create / ClearShadow, for an object not drawn static and when the half asks (flag 8).
+    // Create / ClearShadow and for an object not drawn static.
     const bool drawnStatic = lib::Has(object->flags, MapObjectFlag::Stationary) && lib::Has(object->flags, MapObjectFlag::Static);
-    const bool gameBuilds = !shadowMade || !drawnStatic || (lib::Has(flags, ClientHalfFlag::Redraw));
+    const bool gameBuilds = !shadowMade || !drawnStatic;
     shadowMade = true;
     if (gameBuilds) {
         render::BeginShadowBuildTime();

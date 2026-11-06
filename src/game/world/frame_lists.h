@@ -12,7 +12,6 @@
 class MapObject;
 
 enum class FrameList {
-    TouchedModels,   // models to keep loaded (by last use)
     ShadowTrees,
     ShadowUnits,
     ShadowLevers,

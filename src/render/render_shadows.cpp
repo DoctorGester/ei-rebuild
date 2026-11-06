@@ -53,10 +53,9 @@ static_assert(kMapSize == 4096 && kRangeCell == 16,
 
 // --- Matrices in double ----------------------------------------------------------------------------
 
-// The camera's clip matrix inverted and multiplied back into the game's clip matrices (FitMap, CameraInverse,
-// PrepareShadows' light matrices): their product nearly cancels, so the inverse and the products through it
-// are double (a float inverse moves still objects by the camera's rounding, render_point_shadows.cpp's
-// kKeptPlace); everything else is float.
+// The camera's clip matrix inverted and multiplied back into the game's clip matrices (FitMap, PrepareShadows' light
+// matrices): their product nearly cancels, so the inverse and the products through it are double; everything else
+// is float.
 struct M4 {
     double m[16] = {};
 };
@@ -126,7 +125,6 @@ static bool Invert(const M4& a, M4* out) {
 
 static const Object3D* g_caster = nullptr;   // BeginCaster .. EndCaster
 static int g_casterSlot = -1;                // ... its place in ShadowFrame::casters
-static int g_casterParts = 0;                // ... the parts noted as drawn (NoteCasterPart)
 static std::uint32_t g_casterFrame = 1;      // CasterFrame: one more at each ShadowFrameDone
 static bool g_casterFigure = false;      // ... a unit's draw
 static ShadowInfo g_info, g_lastInfo;
@@ -147,9 +145,6 @@ struct OutsideCaster {
 static std::vector<OutsideCaster> g_outside;
 // More casters than this in one frame (no present for a long time) are dropped.
 constexpr std::size_t kMostOutside = 100'000;
-// NoteCasterPart's parts this frame, sorted at the first CasterPartDrawn after a note (a list kept from frame to frame).
-static std::vector<const FigureMesh*> g_drawnParts;
-static bool g_drawnPartsSorted = true;
 static bool g_outsideOn = true;                 // SetOffscreenCasters: not View
 static bool g_walkedOnly = false;               // SetOffscreenCasters: Walked
 static bool g_shadowView = false;               // SetShadowView
@@ -636,8 +631,7 @@ std::optional<WorldView> WorldCamera(const Frame& f) {
     WorldView view;
     view.clip = f.matrices[static_cast<std::size_t>(ground.matrix)];
     M4 fromClip;
-    if (!Invert(FromMatrix(view.clip), &fromClip) || !CameraEye(fromClip, &view.eye) || !view.inverse.Invert(view.clip))
-        return std::nullopt;
+    if (!Invert(FromMatrix(view.clip), &fromClip) || !CameraEye(fromClip, &view.eye)) return std::nullopt;
     return view;
 }
 
@@ -664,22 +658,6 @@ std::optional<Vector3> MapLightDirection(const Vector3& sun) {
     if (down < least) down = least;
     const float length = lib::Hypot(horizontal, down);
     return Vector3{sun.x / length, sun.y / length, -down / length};
-}
-
-bool CameraInverse::Invert(const Matrix4& clip) {
-    if (known && std::memcmp(&camera, &clip, sizeof(Matrix4)) == 0) return ok;
-    M4 m;
-    ok = render::Invert(FromMatrix(clip), &m);
-    known = true;
-    camera = clip;
-    if (ok) std::copy(std::begin(m.m), std::end(m.m), inverse);
-    return ok;
-}
-
-Matrix4 CameraInverse::Under(const Matrix4& placed) const {
-    M4 m;
-    std::copy(std::begin(inverse), std::end(inverse), m.m);
-    return ToMatrix(Multiply(m, FromMatrix(placed)));
 }
 
 int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip) {
@@ -735,13 +713,12 @@ void BeginCaster(const Object3D* object, CasterMark* mark, bool figure) {
     g_caster = object;
     g_casterSlot = object ? CasterSlot(object, mark) : -1;
     g_casterFigure = figure;
-    g_casterParts = 0;
+    if (g_casterSlot >= 0) g_frame.shadow.casters[static_cast<std::size_t>(g_casterSlot)].drawn = true;
 }
-DrawnCasterParts EndCaster() {
+void EndCaster() {
     g_caster = nullptr;
     g_casterSlot = -1;
     g_casterFigure = false;
-    return {g_casterFrame, g_casterParts};
 }
 
 std::uint32_t CasterFrame() { return g_casterFrame; }
@@ -794,13 +771,10 @@ bool ShadowCastersMayReach(const ShadowCasterCentres& centres) {
     return true;
 }
 
-bool CasterPartDrawn(const FigureMesh* part) {
-    if (!part) return false;
-    if (!g_drawnPartsSorted) {
-        std::sort(g_drawnParts.begin(), g_drawnParts.end(), std::less<const FigureMesh*>());
-        g_drawnPartsSorted = true;
-    }
-    return std::binary_search(g_drawnParts.begin(), g_drawnParts.end(), part, std::less<const FigureMesh*>());
+bool CasterDrawn(const CasterMark& mark) {
+    const std::vector<FrameCaster>& casters = g_frame.shadow.casters;
+    return !g_walkedOnly && mark.frame == g_casterFrame && mark.slot >= 0 &&
+           static_cast<std::size_t>(mark.slot) < casters.size() && casters[static_cast<std::size_t>(mark.slot)].drawn;
 }
 
 float CasterStrength(const CasterMark& mark) {
@@ -861,13 +835,6 @@ ShadowInfo ShadowState() { return g_lastInfo; }
 const Object3D* CurrentCaster() { return g_caster; }
 int CurrentCasterSlot() { return g_caster ? g_casterSlot : -1; }
 bool CurrentCasterFigure() { return g_caster && g_casterFigure; }
-
-void NoteCasterPart(const FigureMesh* part) {
-    if (!part || g_walkedOnly) return;
-    ++g_casterParts;
-    g_drawnParts.push_back(part);
-    g_drawnPartsSorted = false;
-}
 
 void CasterDraws::Add(const Geometry& geometry, bool kept, const gpu::Texture& texture, gpu::Sampler sampler,
                       int firstIndex, int indexCount, const CasterInstance& instance) {
@@ -1035,8 +1002,6 @@ void ShadowFrameDone() {
     g_lastInfo = g_info;
     g_info = ShadowInfo{};
     g_outside.clear();
-    g_drawnParts.clear();
-    g_drawnPartsSorted = true;
     ++g_casterFrame;
     g_nearestCaster = 1e30f;
     TerrainCastersDone();

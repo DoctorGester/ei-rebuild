@@ -218,10 +218,11 @@ struct MeshBatch {
     bool figure = false;
     float box[6] = {};
     float front = 2.0f;
-// A caster's mesh has its box too (`boxed`); a mesh lit on the GPU gets the index of its model matrix into
-// the landscape's space (PointShadowFrame::models, -1: none) and, a unit's, its object's nearest distance
-// to each point light with a map (kNoFront: not a unit).
+// A caster's mesh has its box too (`boxed`); `placement` its model matrix into the landscape's space (MeshDraw::model:
+// Frame::models, -1 none); a world mesh lit on the GPU takes it for its point shadows (`landscape`, PreparePointShadows)
+// and, a unit's, its object's nearest distance to each point light with a map (kNoFront: not a unit).
     bool boxed = false;
+    int placement = -1;
     int landscape = -1;
     float pointFront[4] = {kNoFront, kNoFront, kNoFront, kNoFront};
     CachedMesh* cached = nullptr;   // the mesh kept on the GPU it draws, else the frame's stream
@@ -309,20 +310,6 @@ int SceneLightIndex(const Vector3& position);
 // The shadow map's light for the sun `sun`: at least 20 degrees above the horizon, unit. False without a
 // direction. Receivers lit on the GPU weigh the map's darkening by their facing to it.
 std::optional<Vector3> MapLightDirection(const Vector3& sun);
-// A camera's clip matrix inverted, in double: a model matrix taken from under it moves by less than the camera's
-// rounding (render_point_shadows.cpp's kKeptPlace). Invert works on the camera given unless it is the one inverted
-// last; false when it has no inverse. Under: `placed` (camera x model) without the camera.
-class CameraInverse {
-public:
-    bool Invert(const Matrix4& camera);
-    Matrix4 Under(const Matrix4& placed) const;
-
-private:
-    Matrix4 camera{};
-    double inverse[16] = {};
-    bool known = false;   // `camera` was inverted (`ok`: it has an inverse)
-    bool ok = false;
-};
 // `m`'s inverse (worked in double); none when it has none.
 std::optional<Matrix4> InvertMatrix(const Matrix4& m);
 // a x b, both row-major.
@@ -362,14 +349,10 @@ constexpr int kMostPointShadows = 4;
 constexpr int kPointFaceTexels = 512;
 static_assert(std::size(PointShadowParams{}.lights) == kMostPointShadows);
 struct PointShadowFrame {
-    std::vector<Matrix4> models;   // MeshBatch::landscape: model space to the landscape's
-    std::vector<int> modelOf;      // per frame matrix its `models` entry, -1 none yet (LandscapeModel)
     int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
     int mapped = 0;                          // the lights with a map
     PointShadowParams params{};
     void Clear() {
-        models.clear();
-        modelOf.clear();
         for (int& slot : sceneSlots) slot = 0;
         mapped = 0;
         params = PointShadowParams{};
@@ -385,6 +368,7 @@ constexpr float kNoStrength = -1.0f;
 struct FrameCaster {
     const Object3D* object = nullptr;
     float strength = kNoStrength;
+    bool drawn = false;   // BeginCaster: the world's draw drew it (render::CasterDrawn)
 };
 
 // A frame's object shadows: the sun and casters handed over, and what PrepareShadows made of them.
@@ -435,6 +419,7 @@ struct WorldMesh {
 
 struct Frame {
     std::vector<Matrix4> matrices;
+    std::vector<Matrix4> models;   // the mesh draws' model matrices (MeshBatch::placement)
     std::vector<TerrainDrawn> terrainSectors;
     std::vector<TerrainBatch> terrainBatches;
     std::vector<Vertex> meshVertices;
@@ -471,6 +456,7 @@ struct Frame {
     // Empties the frame for the next one (at its present), the lists keeping their room.
     void Clear() {
         matrices.clear();
+        models.clear();
         terrainSectors.clear();
         terrainBatches.clear();
         meshVertices.clear();
@@ -875,7 +861,7 @@ void AppendTriangles(const std::uint16_t* indices, int indexCount, int cornerCou
                      std::vector<std::uint32_t>& out);
 
 // Meshes kept on the GPU (docs/notes/renderer.md section 13). KeepMesh: the mesh being handed over brought up
-// to date as kept for render::SetMeshSource's figure mesh, or null: it goes into the frame's stream (no source,
+// to date as kept for its figure mesh (MeshDraw::owner), or null: it goes into the frame's stream (no owner,
 // no corners, the cache off, or the mesh already drawn this frame with other data). MeshCacheFrameDone drops
 // meshes not drawn for a long time.
 // A kept corner's geometry (its colours in the pool's colour stream).
@@ -885,7 +871,6 @@ struct MeshVertex {
     Vector3 normal;   // CornerNormal
 };
 static_assert(sizeof(MeshVertex) == 32);
-void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
 int CachedVertexCount(const CachedMesh& mesh);
@@ -905,8 +890,6 @@ std::uint32_t CachedMeshVersion(const CachedMesh& mesh);
 void UploadCachedMeshes(const Frame& frame);
 bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex);
 void MeshCacheFrameDone();
-const FigureMesh* MeshSourceOwner();
-const MeshLighting* MeshSourceLighting();
 // The model-space normal of the corners with colour index `index`, zero without normals or words.
 Vector3 CornerNormal(const MeshDraw& mesh, int index);
 
@@ -973,12 +956,11 @@ int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip);
 inline float ShadowNormalOffset(const Frame& frame, bool receives) {
     return receives && frame.shadow.on ? frame.shadow.normalOffset : 0.0f;
 }
-// The world's camera this frame: the clip matrix of the frame's first ground batch, the eye in the landscape's space
-// and the clip matrix's inverse.
+// The world's camera this frame: the clip matrix of the frame's first ground batch and the eye in the landscape's
+// space.
 struct WorldView {
     Matrix4 clip;
     Vector3 eye;
-    CameraInverse inverse;
 };
 // None without ground drawn, or when its clip matrix has no inverse or puts the eye at infinity.
 std::optional<WorldView> WorldCamera(const Frame& frame);
@@ -1126,12 +1108,9 @@ private:
     std::size_t calls = 0;
 };
 // Point-light shadows (docs/notes/renderer.md section 13, item 9). PreparePointShadows (from PrepareShadows)
-// picks the strongest point lights in view that something shadows and gives the meshes lit on the GPU their
+// picks the strongest point lights in view that something shadows and gives the world's meshes lit on the GPU their
 // matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.
 void PreparePointShadows(Frame& frame);
-// The frame matrix `matrix` without the camera (`camera`: WorldCamera's inverse; CameraInverse::Under), made once a
-// frame: its index in PointShadowFrame::models.
-int LandscapeModel(Frame& frame, const CameraInverse& camera, int matrix);
 void DrawPointShadows(Frame& frame);
 void BindPointShadows(const Frame& frame, int slot);
 gpu::TextureBinding PointShadowBinding(const Frame& frame);   // what BindPointShadows binds
@@ -1149,7 +1128,6 @@ int CurrentCasterSlot();
 bool CurrentCasterFigure();
 // The world unit an interface figure being handed over shows (render::BeginInterfaceUnit), or null.
 const Object3D* CurrentInterfaceUnit();
-void NoteCasterPart(const FigureMesh* part);
 void ShadowFrameDone();
 
 // The screen's ambient occlusion (docs/notes/renderer.md section 13, item 11). DrawOcclusion, once a frame after the

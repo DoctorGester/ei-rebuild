@@ -1,5 +1,5 @@
-// The transform pipeline's clip test of a part's bounds (ClipBounds, TransformPipeline::ClipTest, BeyondReach,
-// ProjectBlocks) and the viewport and projection matrices. See pipeline.h.
+// The transform pipeline's clip test of a part's bounds (ClipBounds, TransformPipeline::ClipTest, BeyondReach)
+// and the viewport and projection matrices. See pipeline.h.
 #include "game/scene/pipeline.h"
 
 #include "game/scene/clip.h"   // ClipOutcode, ClipCodeOf
@@ -153,13 +153,6 @@ bool TransformPipeline::BeyondReach(const ClipBounds* bounds) const {
     }
     if (bounds->flags & 2) return LeastW(m, bounds->center, bounds->boxMin, bounds->boxMax) > reachW;
     return false;
-}
-
-TransformPipeline::ClipResult TransformPipeline::ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes,
-                                      int blocks, const ClipBounds* bounds) const {
-    const ClipResult where = bounds ? ClipTest(bounds) : ClipResult::Crossing;
-    if (where == ClipResult::Crossing) return ProjectClipped(*Top(kClipStack), positions, projected, outcodes, blocks);
-    return where;
 }
 
 Matrix4* ViewportMatrix(Matrix4* out, const Rect* rect) {
