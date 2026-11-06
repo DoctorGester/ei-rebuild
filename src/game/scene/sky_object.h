@@ -50,10 +50,9 @@ struct Sky {
     ~Sky();
     Sky(const Sky&) = delete;
     Sky& operator=(const Sky&) = delete;
-    // Unless there is no object: it is placed at the eye lowered by 16, turned
-    // about +z by the world time / 3000 when `turns` is set, its world matrix built from both and
-    // pushed onto the pipeline's stacks 2 and 1; then the texture bound to stage 0 and the object
-    // drawn (the renderer's draw with alpha 0xFF), and both stacks popped (when not empty).
+    // Unless there is no object: it is placed at the eye lowered by 16, turned about +z by the world time / 3000 when
+    // `turns` is set (its world matrix built from both), the texture bound to stage 0 and the object drawn by that
+    // matrix under the screen stack's top (FigureMeshDrawer::DrawPlain).
     void Draw(SceneRenderer* renderer, const Vector3& eye);
 
     Ref<SkyObject> object;   // null until the zone's sky is loaded

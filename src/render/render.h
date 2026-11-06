@@ -128,20 +128,15 @@ bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area);
 void ShadowTerrainSector(const terrain::SectorData* sector);
 // The meshes handed over between BeginCaster and EndCaster belong to `object`; CastsShadow (from its shadow
 // draw) lets them cast this frame, at least 0.5 strong. A `figure`'s meshes take only the shadows others
-// cast, on every face; other objects' meshes are shadowed on the faces turned to the sun. EndCaster: how many of
-// them noted their part as drawn (CasterPartDrawn), in the frame CasterFrame names while it lasts. A CasterMark,
-// kept by the object (null: it has none), holds its place in the renderer's casters for the frame it names: both
-// calls find the object there without a search.
-struct DrawnCasterParts {
-    std::uint32_t frame = 0;
-    int parts = 0;
-};
+// cast, on every face; other objects' meshes are shadowed on the faces turned to the sun. A CasterMark, kept by the
+// object (null: it has none), holds its place in the renderer's casters for the frame CasterFrame names: both calls
+// find the object there without a search.
 struct CasterMark {
     std::uint32_t frame = 0;   // CasterFrame when `slot` was given
     int slot = 0;
 };
 void BeginCaster(const Object3D* object, CasterMark* mark, bool figure);
-DrawnCasterParts EndCaster();
+void EndCaster();
 std::uint32_t CasterFrame();
 // The meshes handed over between BeginInterfaceUnit and EndInterfaceUnit are an interface figure of the world unit
 // `object` (the one BeginCaster was given for it; the HUD unit panel's): drawn in the interface, they take that
@@ -150,13 +145,13 @@ std::uint32_t CasterFrame();
 void BeginInterfaceUnit(const Object3D* object);
 void EndInterfaceUnit();
 void CastsShadow(const Object3D* object, CasterMark& mark, float strength);
-// Casters the game does not draw this frame (or parts it left out) whose shadow can reach the visible ground
+// Casters the game does not draw this frame whose shadow can reach the visible ground
 // cast through ShadowCasterMesh, read by the world's draw from the objects' parts. ShadowCasterArea: whether
 // this frame gets a map, and the ground rectangle (landscape's space) a caster's centre must stand in: the
 // visible ground's box swept back towards the sun as far as a caster no higher than `highestTop` reaches,
-// widened by `widest` (the largest radius). ShadowCasterReaches is exact up to the bounds. CasterPartDrawn:
-// `part` (MeshDraw::owner) was drawn this frame as a caster's mesh. CasterStrength: -1 when CastsShadow was
-// not called this frame for the object `mark` is kept by (render_checks.h's SetOffscreenCasters: which casters cast).
+// widened by `widest` (the largest radius). ShadowCasterReaches is exact up to the bounds. CasterDrawn: the world's
+// draw handed the object `mark` is kept by over as a caster this frame (BeginCaster; never with render_checks.h's
+// SetOffscreenCasters Walked). CasterStrength: -1 when CastsShadow was not called this frame for that object.
 struct ShadowCasterRect {
     float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
 };
@@ -172,7 +167,7 @@ struct ShadowCasterCentres {
     float radius = 0.0f;
 };
 bool ShadowCastersMayReach(const ShadowCasterCentres& centres);
-bool CasterPartDrawn(const FigureMesh* part);
+bool CasterDrawn(const CasterMark& mark);
 float CasterStrength(const CasterMark& mark);
 struct ShadowMesh {
     const VertexPacket* positions = nullptr;  // as MeshDraw's

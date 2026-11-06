@@ -427,7 +427,7 @@ void UiMesh::Draw(SceneRenderer* renderer) {
     const std::uint32_t green = ColourByte(tint[1]);
     const std::uint32_t blue = ColourByte(tint[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
-    drawer->DrawPlain(renderer->device, false);
+    drawer->DrawPlain(renderer->device, nullptr);
     renderer->SetColour(saved);
 
     MatrixStack& view = pipeline->stacks[TransformPipeline::kClipStack];

@@ -5,7 +5,6 @@
 #include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"
 #include "game/models/link_figure.h"   // FigureMeshDrawer
-#include "game/scene/pipeline.h"
 #include "game/models/texture.h"
 #include "game/world/world.h"
 
@@ -114,9 +113,6 @@ void Sky::Draw(SceneRenderer* renderer, const Vector3& eye) {
     m[13] = 0.0f;
     m[14] = 0.0f;
     m[15] = 1.0f;
-    TransformPipeline* pipeline = renderer->pipeline;
-    pipeline->PushMatrix(m, TransformPipeline::kClipStack);
-    pipeline->PushMatrix(m, 1);
     EnsureTextureLoaded(texture);
     renderer->SetTexture(0, texture);
     // Hazed towards the horizon, the fog's colour at the eye's level (render::MeshFog::Horizon).
@@ -124,13 +120,8 @@ void Sky::Draw(SceneRenderer* renderer, const Vector3& eye) {
     const render::MeshFog fog = device->fog;
     device->fog = render::MeshFog::Horizon;
     device->eyeHeight = kSkyDrop;
-    object->drawer->DrawPlain(device, true);
+    object->drawer->DrawPlain(device, &object->worldMatrix);
     device->fog = fog;
-    const int stacks[2] = {TransformPipeline::kClipStack, 1};
-    for (int stack : stacks) {
-        int& count = pipeline->stacks[stack].count;
-        if (count != 0) --count;
-    }
 }
 
 Sky::~Sky() {

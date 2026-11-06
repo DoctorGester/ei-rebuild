@@ -147,10 +147,6 @@ public:
     std::string skinName;          // the first set's texture name (SetSkins)
     std::string secondSkinName;    // the second set's
     float pulseClock = 0.0f;        // frames counted by the invisible / stunned pulses
-    // The parts the world's draw handed over as shadow casters (render::EndCaster), in the frame casterFrame
-    // (render::CasterFrame): the casters' walk outside the view passes over an object with every part among them.
-    std::uint32_t casterFrame = 0;
-    int casterParts = 0;
     render::CasterMark casterMark;   // its place in the renderer's casters (BeginCaster, CastsShadow)
     Vector3 figureScale;            // the figure's extra scale (GetScale)
 };

@@ -38,8 +38,9 @@ struct FigureMeshDrawer : EngineObject {
     // `alpha` the speculars' alpha byte. False when the owner's figure has no such part (nothing drawn).
     bool DrawLit(TextureDevice* device, const Matrix4& view, const Matrix4& model, render::MeshLighting& lighting,
                  Material* material, int alpha);
-    // The sky dome (`sky`: its lit colours) or an interface sprite, placed by the screen stack's top.
-    void DrawPlain(TextureDevice* device, bool sky);
+    // The sky dome (its lit colours, placed by `sky` under the screen stack's top) or, without it, an interface
+    // sprite (placed by the screen stack's top).
+    void DrawPlain(TextureDevice* device, const Matrix4* sky);
 
     FigureMeshDrawer();
     ~FigureMeshDrawer() override;

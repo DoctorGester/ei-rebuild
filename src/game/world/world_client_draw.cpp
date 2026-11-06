@@ -96,14 +96,6 @@ template <typename Draw>
 void DrawEach(FrameList list, Draw draw) {
     for (MapObject* object : FrameObjects(list)) draw(object);
 }
-// The parts an object's draw handed over as shadow casters (Object3DClientSpecific::casterParts).
-void KeepCasterParts(MapObject* object, const render::DrawnCasterParts& drawn) {
-    Object3DClientSpecific* half = object->ClientSpecific();
-    if (!half) return;
-    half->casterFrame = drawn.frame;
-    half->casterParts = drawn.parts;
-}
-
 // The object's place in the renderer's casters (Object3DClientSpecific::casterMark), null without a client half.
 render::CasterMark* MarkOf(MapObject* object) {
     Object3DClientSpecific* half = object->ClientSpecific();
@@ -115,12 +107,12 @@ render::CasterMark* MarkOf(MapObject* object) {
 constexpr auto kDraw = [](MapObject* object) {
     render::BeginCaster(object, MarkOf(object), false);
     object->DrawFigure(&g_sceneRenderer);
-    KeepCasterParts(object, render::EndCaster());
+    render::EndCaster();
 };
 constexpr auto kDrawUnit = [](MapObject* object) {
     render::BeginCaster(object, MarkOf(object), true);
     object->DrawCollectDirty(&g_sceneRenderer);
-    KeepCasterParts(object, render::EndCaster());
+    render::EndCaster();
 };
 constexpr auto kDrawShadow = [](MapObject* object) { object->DrawFigureShadow(&g_sceneRenderer); };
 

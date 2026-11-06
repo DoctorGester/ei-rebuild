@@ -31,6 +31,7 @@ struct Pending {
     float box[6] = {};
     CachedMesh* cached = nullptr;   // kept on the GPU, else built into the frame's stream
     int lighting = -1;              // Frame::meshLights
+    int placement = -1;             // Frame::models
 };
 static Pending g_pending;
 static int g_dropped = 0;
@@ -376,7 +377,7 @@ static bool FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, Pa
         lit = true;
         MeshLightRecord(f, f.meshLights[static_cast<std::size_t>(batch.lighting)], r, part);
         if (batch.landscape >= 0) {
-            const Matrix4& m = f.shadow.point.models[static_cast<std::size_t>(batch.landscape)];
+            const Matrix4& m = f.models[static_cast<std::size_t>(batch.landscape)];
             std::memcpy(r.landscape, m.m, sizeof(r.landscape));
             r.kinds[0] = 1;
             r.kinds[1] = batch.figure ? 1 : 0;
@@ -647,7 +648,11 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     } else {
         clip = *mesh.matrix;
     }
-    if (mesh.model) clip = Product(clip, *mesh.model);
+    if (mesh.model) {
+        clip = Product(clip, *mesh.model);
+        f.models.push_back(*mesh.model);
+        g_pending.placement = static_cast<int>(f.models.size()) - 1;
+    }
     g_pending.active = true;
     g_pending.mesh = mesh;
     g_pending.device = device;
@@ -676,7 +681,6 @@ void MeshPass(const TextureDevice* device) {
     if (!g_pending.built) {
         g_pending.built = true;
         ++g_stats.counts[FrameStats::Count::Meshes];
-        if (g_pending.caster) NoteCasterPart(g_pending.mesh.owner);
         // A figure mesh kept on the GPU, else its vertices into the frame's stream.
         g_pending.cached = KeepMesh(g_pending.mesh);
         if (g_pending.cached) {
@@ -723,6 +727,7 @@ void MeshPass(const TextureDevice* device) {
         std::memcpy(batch.box, g_pending.box, sizeof(batch.box));
         batch.cached = g_pending.cached;
         batch.lighting = g_pending.lighting;
+        batch.placement = g_pending.placement;
         if (batch.cached && g_pending.mesh.moveUv) {   // the stream has them added (Build)
             batch.uOffset = g_pending.mesh.uOffset;
             batch.vOffset = g_pending.mesh.vOffset;

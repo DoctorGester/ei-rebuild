@@ -160,7 +160,7 @@ const LinkPartRanges* FigureMesh::PartIn(const LinkMesh* figure) {
 
 // The sky keeps the colours its lighting wrote; an interface sprite (built every frame: the interface rewrites its
 // corners in place) is its flat colours or the device's colour with the alpha 255.
-void FigureMeshDrawer::DrawPlain(TextureDevice* device, bool sky) {
+void FigureMeshDrawer::DrawPlain(TextureDevice* device, const Matrix4* sky) {
     if (mesh->flags & FigureMeshFlag::Hidden) return;
     AnimateSheet(this);
     render::MeshDraw d = MeshOf(mesh, nullptr, nullptr);
@@ -174,6 +174,7 @@ void FigureMeshDrawer::DrawPlain(TextureDevice* device, bool sky) {
         d.specular = flat ? mesh->flatSpecular : 0xFF000000u;
     }
     d.matrix = device->pipeline->Top(TransformPipeline::kWorldStack);
+    d.model = sky;
     d.screenMatrix = true;
     device->DrawMesh(d);
 }

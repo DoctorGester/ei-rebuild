@@ -257,8 +257,8 @@ void DrawSkyReflection(Frame& f) {
         if (c.kind == Command::Kind::Terrain) break;
         if (c.kind != Command::Kind::Mesh) continue;
         MeshBatch batch = f.meshBatches[static_cast<std::size_t>(c.index)];
-        if (!batch.model) continue;
-        const Matrix4 model = view->inverse.Under(f.matrices[static_cast<std::size_t>(batch.matrix)]);
+        if (!batch.model || batch.placement < 0) continue;
+        const Matrix4 model = f.models[static_cast<std::size_t>(batch.placement)];
         if (first) {
             g_domeCentre = TransformColumn(model, Vector3{});
             g_domeRadius = g_domeHeight = 0.0f;
