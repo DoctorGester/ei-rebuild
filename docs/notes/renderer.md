@@ -45,13 +45,16 @@ The build (CMakeLists.txt):
   `[[texture(n)]]`, `[[sampler(n)]]` and `[[buffer(n)]]` against it (each at its binding, no two of a kind at one).
 - **The header.** `tools/gen_gpu_shaders.py` checks the rules below and writes two files into `shaders/` in the build
   folder:
-  - `gpu_shaders.h`: each uniform block's struct (`MeshVsParams` and so on, Matrix4 for a matrix; its size asserted),
-    and per program a namespace with its index in `kPrograms` and its slots: `kBlock<Type>` (the uniform push slot),
-    `kSampler<Texture>` (the texture-sampler pair's slot) and `kAttr<Input>` (the vertex input's location).
+  - `gpu_shaders.h`: each uniform block's struct (`MeshFsParams` and so on, Matrix4 for a matrix; its size asserted)
+    and each storage buffer's element (`MeshRecord`), and per program a namespace with its index in `kPrograms` and its
+    slots: `kBlock<Type>` (the uniform push slot), `kSampler<Texture>` (the texture-sampler pair's slot),
+    `kStorage<Type>` (the storage buffer's slot after the stage's textures) and `kAttr<Input>` (the vertex input's
+    location).
   - `gpu_shaders.cpp`: the program table, with each stage's code in every format, its entry point and its sampler and
     block counts for `SDL_CreateGPUShader`.
 - **The check.** `ei_shader_check` (tools/shader_check; build_checks.py on Windows, ctest `port_shaders` on Linux) makes
-  every program and a pipeline for each kind of target the renderer draws it into (`kDraws`): on Direct3D 12 and Vulkan
+  every program (its storage buffer count with it) and a pipeline for each kind of target the renderer draws it into
+  (`kDraws`): on Direct3D 12 and Vulkan
   on Windows, on Vulkan on Linux (lavapipe without a GPU), on Metal on macOS. A driver without a device is skipped; with
   `--require`, as ctest runs it, that fails.
 
@@ -72,7 +75,15 @@ Rules (SDL_GPU's, or the generator's):
   member where a register's rest is skipped, each offset asserted; `alignas` drew MSVC's C4324). The matrix's register k is the Matrix4's row k,
   as `m[k]` reads it; a Matrix4 is uploaded as it is in memory. An unsigned value goes in an `int` (`asuint` reads it
   back). No variable index into a component of a block's vector: copy the vector into a local first.
-- **Names.** A block's type is its HLSL struct's name (`MeshVsParams`), its members named as there. Each value has its
+- **Storage buffers.** `StructuredBuffer<T>` at `VS_STORAGE(n)` / `FS_STORAGE(n)`: register t(textures + n) in the
+  stage's texture space, as SDL_GPU numbers a stage's read-only storage buffers after its textures in SPIR-V and DXIL.
+  `T`'s members are `float4`, `int4`, `uint4`, `row_major float4x4` and arrays of them (16-byte members: DXIL, SPIR-V and
+  MSL then lay the element out alike); the generator writes `T` as a C++ struct like a block's. In MSL SDL binds a
+  stage's storage buffers after its uniform blocks, so the generator moves spirv-cross's `[[buffer(n)]]` of a storage
+  buffer to blocks + slot (untested on Metal so far: no Mac run since R37f3). The renderer binds a whole buffer
+  (`gpu::BindStorageBuffers`, no offset); a draw finds its element by an index (the mesh draws: an instance-rate
+  `uint` vertex input, `record`).
+- **Names.** A block's type is its HLSL struct's name (`MeshFsParams`), its members named as there. Each value has its
   own member (`int on`, `float strength`, not the components of one float4), a switch or a count is an `int`, a map's
   slot -1 for none. The C++ fills a block just before it pushes it and never reads one back: what the CPU keeps
   (the scene's lights, a figure part's, the shadow map's offsets) lives in plain structs.
@@ -1155,7 +1166,7 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   colours (the same sun direction and normal): at noon, and all day where the table's sun is white (every zone's from
   7 to 17), a print looks as in the game; at night it is as dark against its ground as by day, at dawn it takes the
   ground's tint, under a lamp at night the lamp's light. Its light (`GroundDecalLight`, in the mesh
-  shader's MeshLightParams with `groundPrint` 1, as SDL_GPU's four uniform slots per stage are taken): the scene's sun,
+  shader's `PartLight`, its record's `groundPrint` 1): the scene's sun,
   ambient and the 8 point lights nearest its box that reach it, with their point shadows, and the map's light
   (`mapSun`); its positions are the landscape's (identity landscape rows), its map lookup lifted along the
   landscape's up (no vertex normals). The specular lights (spell, missile and quest lights: `pointSpecular`, from the
@@ -1230,8 +1241,11 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   model matrix, the texture offsets, the alpha cut) goes into an instance-rate vertex buffer, read at the draw's first
   instance (`DrawIndexed`'s first instance; Direct3D's SV_InstanceID leaves the first instance out, an instance-step
   attribute does not), so a
-  draw applies no uniforms. The draws are sorted by what they bind, and the pipeline and bindings are applied only when
-  these change: a depth-only map with LESS_EQUAL keeps the nearest depth whatever the order.
+  draw applies no uniforms. A depth-only map with LESS_EQUAL keeps the nearest depth whatever the order, so the draws are
+  sorted by what they bind, then by their indices (R37f3): draws of the same geometry (the kept meshes that share one
+  copy, the palms of one morph) become one draw of consecutive instances, and every draw of one binding is one
+  `DrawIndexedIndirect` call (the commands written once a frame into an indirect buffer; one command alone is a plain
+  `DrawIndexed`). The save's sun map: 1874 draws in 41 calls.
 - **The map's GPU time** (R37e2: the town bz1g at night at 4K, msaa 8, with and without a crowd of 12 fighting; times by
   submission, section 13 item 1): 0.155 ms on Direct3D 12 and 0.155-0.17 on Vulkan, the same with the crowd as without.
   Of it the casters' draws are about 0.06 (drawn twice: +0.05); the pass without casters takes 0.09, the same with the
@@ -1879,11 +1893,13 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   (`ApplyPipeline`, `BindVertexBuffers`, `BindIndexBuffer` 32-bit, `BindTextures` texture-sampler pairs,
   `PushUniforms`) last for the pass, across pipelines, and one set again unchanged is not sent again (a uniform block
   is compared byte for byte with the one last pushed in its slot; one its caller keeps unchanged for the pass,
-`PushPassUniforms`, by its address only). `DeviceSerial` and `PassSerial` count the devices made and the passes begun,
+`PushPassUniforms`, by its address only; `BindStorageBuffers` whole buffers, R37f3). `DeviceSerial` and `PassSerial` count the devices made and the passes begun,
 for callers that keep pipelines and samplers by a key of their own (the mesh draws) or bindings for a pass. `Counts()` says what the draws sent and what the
   filter left out; in a real run (scenario `render_stats`, 272k draws) 8% of the pipeline calls, 4% of the vertex and 4%
   of the index buffer binds, 12% of the texture calls and 30% of the uniform pushes were sent. `SetStateFiltering(false)`
-  turns the filter off for `ei_gpu_check --bench` alone. `Draw`, `DrawIndexed` (with a first instance).
+  turns the filter off for `ei_gpu_check --bench` alone. `Draw`, `DrawIndexed` (with a first instance),
+  `DrawIndexedIndirect` (commands from a `BufferUse::Indirect` buffer, `IndexedIndirect` each; `Counts().draws` counts
+  the call once, `indirectDraws` its commands).
 - **Writes** (`Write` of a buffer range or a texture region, `Copy` of a texture region) go between passes, never
   inside one (refused and logged). The bytes are copied into the upload ring at once; the copies wait and are recorded
   in one copy pass before the next pass, download wait or submission, so they are in order with the draws: a draw
@@ -1927,7 +1943,8 @@ for callers that keep pipelines and samplers by a key of their own (the mesh dra
 the RTX 4070 Ti SUPER on Windows 10, two runs of 3 x 500 frames, a quiet machine; the spike's tables are in
 build/reviews/r43_sdl_gpu.md, 'Numbers'). The bench replays a synthetic world frame through gpu.h's calls the way
 render_mesh.cpp and render_shadows.cpp make them (155 instanced caster draws into a 4096 x 4096 depth map, 263 mesh draws
-with five uniform blocks and six samplers, the present; half of the draws keep the last one's mesh, 40% its textures),
+with three uniform blocks, six samplers and a record each in a storage buffer, the present; half of the draws keep the
+last one's mesh, 40% its textures; the numbers below are from before R37f3's records, when the draws had five blocks),
 once with the filter off and once on, and reads a frame target back:
 - **The draw loop**, CPU time of recording and submitting a frame (median, ms): Direct3D 12 0.26 without the filter, 0.17
   with it (960x720 and 2560x1440 alike); Vulkan 0.29 and 0.155. The spike's replay sent every call (D3D12 level with
@@ -1948,7 +1965,8 @@ once with the filter off and once on, and reads a frame target back:
 (Direct3D 12 and Vulkan on Windows, Vulkan on Linux: lavapipe without a GPU), in a few seconds:
 - texture writes from padded rows and downloads in every format (BC ones where supported), whole levels, a second
   level in two writes, a region; a download not done before its submission, then done by polling without a wait;
-- the casters' program from vertex, instance and index buffers at offsets with a first instance; the depth test; the
+- the casters' program from vertex, instance and index buffers at offsets with a first instance, and as two commands
+  of one indirect call; the depth test; the
   target's top-left orientation; a discarding write and a write in place between passes, each read back after the
   passes before and after it;
 - the blit program in two pipelines with the bindings and uniforms kept across them; a mip level cleared as a target
@@ -1994,6 +2012,19 @@ depth, culling, fog, the two texture stages' operations, filters and textures. A
 draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw from that pool; every other mesh is built into the
 frame's stream. A figure part handed over with its lighting (MeshSource::lighting) is lit in the shader from its normals.
 
+The draws (R37f3, `MeshDraws`): before the frame's passes `PlanMeshDraws` (render.cpp) fills each mesh command's record
+(`MeshRecord`, mesh.hlsl: the matrices, the place, fog, flags; 336 bytes) and its lights (`PartLight`: the sun,
+ambient and point lights a figure part or ground print is lit by, 432 bytes; one for consecutive draws lit alike, entry
+0 none), together what the draw's uniform blocks were, and joins consecutive commands with the same pipeline key, geometry, textures, shadow block and
+fragment block (`MeshFsParams`: the run's) into a run; no run crosses a point where a pass may end (the world's edges
+with multisampling, the split, the water's copy) or the performance overlay's categories. The records go into a storage
+buffer once a frame, the runs' commands into an indirect buffer: draws of the same indices in a run are one command of
+consecutive instances, the instance's record index read from a per-instance buffer of 0, 1, 2, ... at the first
+instance; the lights go into a second storage buffer. The fragment stage reads both where it uses a value (a copy of
+the whole record into a local put its light arrays in scratch memory). A run is one `DrawIndexed` or one `DrawIndexedIndirect`, drawn at its first command. The order of the draws is
+the commands' order, so the pictures are the same up to the shaders' rounding (the records read from a storage buffer:
+1-3 levels on about 0.01% of the pixels). The water's sky pass draws its dome the same way.
+
 ### render_mesh_cache.cpp: meshes kept on the GPU
 
 Section 13, item 4. The figure part draws (src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws
@@ -2011,7 +2042,14 @@ and uploaded again is what the game says changed:
   shader. A kept mesh also keeps the box of its positions (CachedMeshBox: a caster's box for the point shadows' spheres and
   the units' fronts), taken again only when they were built or moved. The casters outside the view
   (render::ShadowCasterMesh) are kept the same way by part (KeepCasterMesh: slots of their own, positions and texture
-  coordinates only; read at most once a frame), drawn from the pool with the part's matrix and texture offsets. The harness
+  coordinates only; read at most once a frame), drawn from the pool with the part's matrix and texture offsets.
+- One GPU copy for the same arrays (R37f3, `GpuMesh`): a kept mesh's built arrays (corners, colours, triangles) are looked
+  up by a hash of their bytes and compared whole; a figure mesh whose arrays match another's takes its copy (the palms
+  of one morph, lit alike), so their draws bind the same indices and merge into instances. A mesh whose arrays change
+  (moved, relit) while shared takes a copy of its own first (relit, it looks for a match again); a copy no mesh uses is
+  freed at the next 64-frame sweep once written. Casters share the same way in a table of their own. The harness logs
+  the copies and shares after the meshcache line ("meshcache: N copies on the GPU, N times a mesh took another's").
+  The harness
   build compares every kept mesh, box and caster with a fresh build every 16th frame (`meshcache check`); `meshcache off`
   builds every mesh into the frame's stream (and every caster again each frame).
 
@@ -2272,7 +2310,7 @@ A ground print's light, per channel (section 13, item 10, "Ground prints"): the 
 the normal `n` as ground_light works it on dry ground (`m` and `mp` 0, `loss` 0, `occlusion` 1), once with `hidden`
 and the point shadows and once without, the first over the larger of the second and the same ground's light in the
 daylight colours (`daySunColour`, `dayAmbient`; the sun's direction of now), at most 1 (1 where that is black). The
-lights are MeshLightParams' (GroundDecalLight): the scene's in the landscape's space. The specular ones (`pointSpecular`)
+lights are the draw's `PartLight` (GroundDecalLight): the scene's in the landscape's space. The specular ones (`pointSpecular`)
 also go apart into `spec` (the largest per channel, darkened by the map's shade), which the print adds after its colour
 as the ground adds it after its texture; the reference (`full`) takes every light without the shadows.
 
