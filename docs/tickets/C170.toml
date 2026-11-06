@@ -1,0 +1,9 @@
+id = "C170"
+title = "Remove rebirth_profile and lib/rebirth: SecondMaster is a plain [network] setting read by net_second_master"
+group = "cleanup"
+size = 1
+model = "sonnet"
+note = "User 2026-11-06: 'Why do we still have rebirth_profile source files?' After C167 only NewMaster's SecondMaster remains: rebirth_profile.cpp logs ignored [patches] lines and reads [network] SecondMaster into lib/rebirth, which also queues the harness's 'plugin SecondMaster=' specs. Fold it: net_second_master reads the setting (the harness override through the settings layer or a net-side setter), drop the [patches] warning, delete rebirth_profile.{h,cpp} and src/lib/rebirth.{h,cpp}; keep the harness's plugin step working (or rename it); goldens the same."
+order = 1252
+status = "running"
+started = "2026-11-06"
