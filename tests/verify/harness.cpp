@@ -852,7 +852,13 @@ void LogModuleOf(std::uintptr_t a) {
     Log("  in %s+%X (thread %llu)", module.c_str(), unsigned(a - base), static_cast<unsigned long long>(sys::CurrentThread()));
 }
 
-// The code addresses among the first `words` words of the stack from `sp`.
+// The code addresses among the first `words` words of the stack from `sp`. It reads raw stack words, the sanitizer's
+// redzones among them, so the address sanitizer leaves it out.
+#if defined(_MSC_VER) && !defined(__clang__)
+__declspec(no_sanitize_address)
+#else
+__attribute__((no_sanitize_address))
+#endif
 void LogStack(std::uintptr_t sp, int words) {
     const std::uintptr_t end = sys::StackEnd(sp);
     const auto* stack = reinterpret_cast<const std::uintptr_t*>(sp);
