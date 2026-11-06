@@ -1,14 +1,14 @@
 // The game flow object (the state machine runs on it, Rebirth patches that one): saving a game into
 // saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "game/app/movies.h"
-#include "game/camera.h"
+#include "game/scene/camera.h"
 #include "game/console/console.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_refcount.h"
 #include "game/core/core_streams.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/item_db.h"
+#include "game/items/item_db.h"
 #include "game/saves/save_file.h"
 #include "game/players/saved_parties.h"
 #include "game/data/text_manager.h"

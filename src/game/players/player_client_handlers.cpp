@@ -1,13 +1,13 @@
 // PlayerClient's remaining message handlers and one virtual. See player_client.h and
 // docs/notes/objects.md ("Players").
-#include "game/effects.h"
+#include "game/effects/effects.h"
 #include "game/app/game_flow.h"
-#include "game/item_manager.h"
+#include "game/items/item_manager.h"
 #include "game/players/player_client.h"
 
 #include "game/core/core_maths.h"
-#include "game/camera.h"
-#include "game/item.h"
+#include "game/scene/camera.h"
+#include "game/items/item.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/net_classes.h"
@@ -17,7 +17,7 @@
 #include "game/ui.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 #include "lib/bytes.h"
 #include "lib/vecmath.h"
 

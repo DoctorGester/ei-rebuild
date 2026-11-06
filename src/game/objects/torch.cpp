@@ -3,13 +3,13 @@
 #include "game/core/core_streams.h"
 
 #include "game/core/core_maths.h"
-#include "game/effects.h"   // ParticleSource, ParticleManager
+#include "game/effects/effects.h"   // ParticleSource, ParticleManager
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"   // MapObject::position
 #include "game/net_delta.h"
 #include "game/sound/sound.h"        // SoundManager
-#include "game/light.h"
-#include "game/terrain.h"
+#include "game/scene/light.h"
+#include "game/terrain/terrain.h"
 #include "game/objects/torch.h"
 #include "game/world/world.h"
 

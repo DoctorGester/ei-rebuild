@@ -21,8 +21,8 @@
 #include "game/console/console.h"
 #include "game/data/text_manager.h"
 #include "lib/vecmath.h"
-#include "game/model.h"
-#include "game/texture.h"
+#include "game/scene/scene_renderer.h"
+#include "game/models/texture.h"
 #include "game/net_second_master.h"
 #include "game/data/resource.h"
 #include "game/ui_cursor.h"
@@ -36,9 +36,9 @@
 #include <memory>
 #include <string>
 #include "lib/text_case.h"
-#include "game/terrain.h"
+#include "game/terrain/terrain.h"
 #include "game/app/singletons.h"
-#include "game/figure_manager.h"
+#include "game/models/figure_manager.h"
 #include "lib/str.h"
 
 #include <cstdlib>

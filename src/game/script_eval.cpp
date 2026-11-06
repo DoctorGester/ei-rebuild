@@ -20,7 +20,7 @@
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"
-#include "game/camera.h"
+#include "game/scene/camera.h"
 
 #include "lib/rounding.h"
 #include "lib/str.h"

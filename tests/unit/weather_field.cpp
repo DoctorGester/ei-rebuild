@@ -1,9 +1,9 @@
-// weather::Field::Place (src/game/weather_field.h): the rain's and the snow's particles move smoothly while they show. Over
+// weather::Field::Place (src/game/effects/weather_field.h): the rain's and the snow's particles move smoothly while they show. Over
 // 600 steps of a third of a tick (60 frames a second for ten seconds of the game), with the view's centre panning and
 // the wind changing on the way, no particle (every seventh is followed) that shows in two frames in a row moves
 // further between them than its speed takes it, and none appears or vanishes at once (its alpha changes by little in
 // a frame). Field::BinBounds: every particle that shows lies in its bin's boxes.
-#include "game/weather_field.h"
+#include "game/effects/weather_field.h"
 
 #include <cmath>
 #include <cstdio>

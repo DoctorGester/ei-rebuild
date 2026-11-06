@@ -6,5 +6,5 @@ model = "sonnet"
 depends = ["C168f"]
 note = "Plan: docs/notes/file-layout.md. layout.py apply C168g plus 7 folds; 667 include lines, 692 references. Quiet window (scene/ and models/ are the renderer workers' game side). All goldens the same."
 order = 1235
-status = "running"
+status = "review"
 started = "2026-11-06"

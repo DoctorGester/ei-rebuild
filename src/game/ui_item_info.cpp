@@ -6,10 +6,10 @@
 #include "game/ui_item_info.h"
 
 #include "game/console/console.h"
-#include "game/item.h"
-#include "game/item_db.h"
+#include "game/items/item.h"
+#include "game/items/item_db.h"
 #include "game/data/text_manager.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 

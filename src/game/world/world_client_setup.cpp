@@ -1,22 +1,22 @@
 // The client world's set-up at startup: SetUpGraphics and the light colours by hour
 // from the lights table (LoadLights; config\LightsGipat.ini). See world.h.
-#include "game/figure_manager.h"   // FigureObjectType
+#include "game/models/figure_manager.h"   // FigureObjectType
 
 #include "game/console/console.h"
 #include "game/core/core_maths.h"
 #include "game/app/singletons.h"
 #include "game/data/ini_file.h"
-#include "game/material.h"
-#include "game/device.h"
-#include "game/link_loader.h"
-#include "game/model.h"
-#include "game/texture.h"
+#include "game/models/material.h"
+#include "game/scene/device.h"
+#include "game/models/link_loader.h"
+#include "game/scene/scene_renderer.h"
+#include "game/models/texture.h"
 #include "game/net_classes.h"
 #include "game/net_link.h"
 #include "game/app/options.h"
 #include "game/players/player_messages.h"
 #include "game/players/player_source.h"
-#include "game/sky_object.h"
+#include "game/scene/sky_object.h"
 #include "game/ui_flying_hit_points.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"

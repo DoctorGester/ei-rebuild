@@ -6,7 +6,7 @@
 #include "game/ui_scroll_text.h"
 #include "game/ui_briefing.h"
 
-#include "game/camera.h"
+#include "game/scene/camera.h"
 #include "game/core/core_maths.h"
 #include "game/data/text_manager.h"
 #include "game/objects/object3d.h"

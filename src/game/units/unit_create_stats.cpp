@@ -3,7 +3,7 @@
 // databases, save").
 #include "game/core/core_maths.h"
 #include "game/core/base_manager.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/objects/lever.h"
 #include "game/app/logic_settings.h"
 #include "game/objects/traps.h"

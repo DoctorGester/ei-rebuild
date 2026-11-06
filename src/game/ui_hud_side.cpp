@@ -3,10 +3,10 @@
 // view, the unit panel's bars, body parts, effects and info texts, and its draw. Rebirth patches the panels for its
 // WideScreen layout, reproduced for every window (screen_layout.h). See docs/notes/ui.md, section 7 ("Battle HUD sliding
 // panels", "Battle HUD unit panel draw").
-#include "game/light.h"
+#include "game/scene/light.h"
 #include "game/ui_hud.h"
 #include "game/core/base_manager.h"
-#include "game/camera.h"
+#include "game/scene/camera.h"
 #include "game/combat/combat.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
@@ -15,7 +15,7 @@
 #include "game/map/map_database.h"
 #include "game/players/player_client.h"
 #include "game/screen_layout.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_battle.h"

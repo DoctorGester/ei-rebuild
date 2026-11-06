@@ -161,6 +161,15 @@ trajectory, so OrderOf (MotionOrder of a PathOrder) moved into ai_map.h after Pa
 is one include list at the top, with the second file's classes and its forward declarations after the first's.
 The include lines the rewrite left twice (a file that included both of a fold's files) are once.
 
+C168g moved items/, spells/, effects/, terrain/, models/ and scene/ (102 moves, 5 folds into 5 files, 1,082 paths and
+10 renamed names rewritten): effects/world_effect.cpp takes world_effect_sequence (EffectSoundSeq's Start and Unpack,
+its choosers joining the one anonymous namespace); effects/world_effect_visibility.cpp ai_fog_grid (FogGrid, with
+kNoOrigin); models/figure_manager.cpp menu_rects (LoadMenuRects, g_menuRects, kRects; the class name and the figure
+factory's Create share its one namespace); models/animation_bones.cpp figure_bones (FigureBone::Place); models/
+link_loader.cpp link_loader_create (the constructor). model.h is scene/scene_renderer.h and model.cpp
+scene/pipeline.cpp. No fold was of a header, so none made an include cycle. Names the batch kept (device_draw.cpp,
+renderer_scene.cpp) stay bare in comments and notes.
+
 `*_internal.h` (combat, spell effects, world effects) and `script_parse.h` are private headers of one family: they
 stay (combat_plan.h joins combat's). ui_float.h (FloatFromBits for constants written as raw bits, Truncate) moves as
 ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be float literals), not a move.
@@ -314,24 +323,24 @@ Risks:
 | `console/` | 5 | 2036 | C168e |
 | `core/` | 27 | 3874 | C168d |
 | `data/` | 13 | 3235 | C168d |
-| `effects/` | 23 | 10250 | C168g |
+| `effects/` | 23 | 10833 | C168g |
 | `items/` | 10 | 2810 | C168g |
 | `map/` | 11 | 2028 | C168e |
-| `models/` | 20 | 4444 | C168g |
+| `models/` | 20 | 5389 | C168g |
 | `mods/` | 6 | 605 | C168d |
 | `net/` | 21 | 6203 | C168h |
-| `objects/` | 22 | 7287 | C168f |
+| `objects/` | 22 | 7307 | C168f |
 | `players/` | 23 | 5340 | C168e |
 | `saves/` | 7 | 811 | C168d |
-| `scene/` | 30 | 4375 | C168g |
+| `scene/` | 30 | 4684 | C168g |
 | `script/` | 20 | 6526 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 7 | 2467 | C168g |
-| `terrain/` | 12 | 3028 | C168g |
+| `terrain/` | 12 | 3479 | C168g |
 | `ui/` | 94 | 30730 | C168h |
 | `units/` | 27 | 10002 | C168f |
-| `world/` | 35 | 9727 | C168e |
-| all | 482 | 143429 | |
+| `world/` | 35 | 9711 | C168e |
+| all | 482 | 145721 | |
 
 533 files today; 55 fold into an owner, 10 split by meaning, 8 new files come out of the splits, 36 moves rename for meaning.
 

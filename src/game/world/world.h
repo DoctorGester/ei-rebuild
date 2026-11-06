@@ -5,10 +5,10 @@
 
 #include "game/saves/client_visuals.h"
 #include "game/core/core_refcount.h"
-#include "game/effects.h"   // RainSnow
+#include "game/effects/effects.h"   // RainSnow
 #include "game/core/engine_object.h"
 #include "game/app/singletons.h"
-#include "game/ground_print.h"
+#include "game/terrain/ground_print.h"
 #include "lib/vecmath.h"
 #include "game/world/diplomacy.h"
 #include "game/map/map_database.h"

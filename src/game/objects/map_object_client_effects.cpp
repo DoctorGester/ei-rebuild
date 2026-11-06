@@ -2,15 +2,15 @@
 // particle sources and looping sounds that follow the object's effect list, and the reset of the
 // parts' alpha / tint when an invisibility or stun effect ends.
 
-#include "game/effects.h"
-#include "game/light.h"
+#include "game/effects/effects.h"
+#include "game/scene/light.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
 #include "game/core/base_manager.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/sound/sound.h"
-#include "game/terrain.h"
+#include "game/terrain/terrain.h"
 #include "game/units/unit.h"
 
 #include "game/console/console.h"

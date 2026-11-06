@@ -5,7 +5,7 @@
 
 #include "game/units/ack_kind.h"
 #include "game/ai/ai_alarm.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/ai/unit_ai.h"
 #include "lib/enum_array.h"
 

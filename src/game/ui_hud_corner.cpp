@@ -4,7 +4,7 @@
 #include "game/ui_hud.h"
 #include "game/app/app.h"
 #include "game/app/singletons.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_client.h"
 #include "game/screen_layout.h"

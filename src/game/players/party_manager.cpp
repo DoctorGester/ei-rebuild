@@ -1,13 +1,13 @@
 // The party manager's save and load and the archive chunks they write: the parties by key, the entries, the
 // class templates and the named records. See party_manager.h and docs/notes/script.md ("Leftovers").
-#include "game/item_stock.h"
+#include "game/items/item_stock.h"
 
 #include "game/data/chunk_archive.h"
 #include "game/players/class_templates.h"
 #include "game/core/core_refcount.h"
 #include "game/core/core_streams.h"
 #include "game/app/singletons.h"
-#include "game/item_manager.h"
+#include "game/items/item_manager.h"
 #include "game/mods/mod_plugins.h"
 #include "game/core/named_floats.h"
 #include "game/players/party.h"

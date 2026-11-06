@@ -1,14 +1,14 @@
 // A world player (Player): constructor and destructor,
 // Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h
 // and docs/notes/objects.md ("Players").
-#include "game/item.h"
-#include "game/item_manager.h"
+#include "game/items/item.h"
+#include "game/items/item_manager.h"
 #include "game/net_link.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

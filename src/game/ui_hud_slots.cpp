@@ -5,11 +5,11 @@
 // quick items and the spell column at its right (each window's origin, UiWindow::originX). See docs/notes/ui.md, sections 6 ("Battle screen") and 7.
 #include "game/ui_hud.h"
 #include "game/app/singletons.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"
 #include "game/screen_layout.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_battle.h"

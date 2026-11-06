@@ -2,8 +2,8 @@
 // arrows. See docs/notes/ui.md, section 5.
 #include "game/ui_camp.h"
 #include "game/app/singletons.h"
-#include "game/item.h"
-#include "game/item_db.h"
+#include "game/items/item.h"
+#include "game/items/item_db.h"
 #include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_item_info.h"

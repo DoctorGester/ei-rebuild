@@ -91,7 +91,7 @@ STATUS = {
  'FixProgressNames': 'implemented: new rewrite SelectLoadingMovie 00595080 (src/game/world/world_zone.cpp)',
  'FixRemoveMapObject': 'implemented: new rewrite CWorldServer::RemoveObject 005935C0 (src/game/world/world_server.cpp)',
  'AllowScriptsInMainMenu': 'implemented: new rewrite GameFlow::StartZone 0057C460 (src/game/app/game_flow.cpp)',
- 'FixCreateItem': 'implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/item_manager.cpp)',
+ 'FixCreateItem': 'implemented: new rewrite CItemManager::CreateItem 006AC970 (src/game/items/item_manager.cpp)',
  'FixAddMapObject': 'implemented: new rewrite CWorldServer::CreateObject 005927C0 (src/game/world/world_units.cpp)',
  'NewStringEvents': 'implemented: new rewrite CInterface3D::OnStringEvent 005F8070 (src/game/ui_interface_input.cpp)',
  'ImproveConsole': 'implemented: new rewrite ConsoleWindow::OnChar 005E44A0 (src/game/console/console_window.cpp)',
@@ -106,7 +106,7 @@ STATUS = {
  'StreamPatch': 'implemented in the standalone image: src/game/mods/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
 }
 SITE_STATUS = {
- ('FixSpellSelfCasting', 0x0068B770): 'implemented: CSpell::IsOffensive (src/game/spell.cpp)',
+ ('FixSpellSelfCasting', 0x0068B770): 'implemented: CSpell::IsOffensive (src/game/spells/spell.cpp)',
  ('FixSpellSelfCasting', 0x00639447): 'implemented: new rewrite CBattleScreen::SelectUnit 00638EF0 (src/game/ui_battle.cpp)',
  ('FixSpellEffectsOverflow', 0x0050F1E0): 'implemented: new rewrite CMapObject::AddEffect 0050F1E0 (src/game/objects/map_object.cpp)',
  ('DisableExitOnCrashReport', 0x004800A7): 'dropped: a fatal error always exits (game::FatalExit, src/game/app/app.cpp); data errors the game gets past are warnings where they occur (C167; docs/notes/rebirth.md, "Fatal errors")',

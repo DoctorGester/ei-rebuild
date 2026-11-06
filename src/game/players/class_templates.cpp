@@ -5,13 +5,13 @@
 
 #include "game/console/console.h"
 #include "game/core/core_refcount.h"
-#include "game/item.h"
-#include "game/item_db.h"
-#include "game/item_manager.h"
-#include "game/item_stock.h"
+#include "game/items/item.h"
+#include "game/items/item_db.h"
+#include "game/items/item_manager.h"
+#include "game/items/item_stock.h"
 #include "game/players/party.h"
 #include "game/players/party_manager.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 
 #include "lib/crt.h"
 

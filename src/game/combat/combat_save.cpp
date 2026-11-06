@@ -3,7 +3,7 @@
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
 #include "game/combat/combat.h"
-#include "game/item_manager.h"
+#include "game/items/item_manager.h"
 
 #include "game/objects/map_object.h"
 #include "game/world/hoover.h"

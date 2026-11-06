@@ -1,7 +1,7 @@
 // The briefing / base screen's dialogue start and end (BriefingScreen::StartDialogue /
 // FinishDialogue, ui_briefing.h): who takes part, where they stand, how they get there and back.
 // See docs/notes/ui.md, "Briefing / base screen".
-#include "game/camera.h"
+#include "game/scene/camera.h"
 #include "game/players/class_templates.h"
 #include "game/combat/combat.h"
 #include "game/console/console.h"

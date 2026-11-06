@@ -1,4 +1,4 @@
-# Ambient sounds (H43c; src/game/world_effect.cpp EffectAmbientSound, world_units.cpp's sound records): none of the game's
+# Ambient sounds (H43c; src/game/effects/world_effect.cpp EffectAmbientSound, world_units.cpp's sound records): none of the game's
 # zones has one (a sound record's ambient byte is 0 in every .mob), so tools/make_ambient_mob.py writes zone15.mob
 # into the run's saves folder with the byte set in each of gz15h's twelve sounds. The zone loader makes the server's
 # EffectAmbientSound for each, the client unpacks them from the snapshot (Unpack, Start: the sound manager's emitter),

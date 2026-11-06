@@ -1,6 +1,6 @@
 // Unit's Load and Save slots. See unit.h and docs/notes/units.md ("Creation, databases, save").
 #include "game/core/base_manager.h"
-#include "game/item_manager.h"
+#include "game/items/item_manager.h"
 #include "game/units/unit.h"
 
 #include "game/ai/ai_motion.h"

@@ -4,12 +4,12 @@
 
 #include "game/core/core_streams.h"
 #include "game/app/singletons.h"
-#include "game/ground_print.h"
+#include "game/terrain/ground_print.h"
 #include "game/core/random.h"
 #include "game/saves/save_file.h"
 #include "game/saves/save_versions.h"
-#include "game/terrain.h"
-#include "game/texture.h"
+#include "game/terrain/terrain.h"
+#include "game/models/texture.h"
 #include "game/world/world.h"
 
 #include "lib/str.h"

@@ -3,11 +3,11 @@
 #include "game/ai/ai_map.h"   // AIPath
 #include "game/ai/ai_motion.h"   // UnitMotion
 #include "game/app/logic_settings.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/objects/object3d.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/units/unit_client_models.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"

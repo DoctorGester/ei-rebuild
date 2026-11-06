@@ -5,15 +5,15 @@
 #include "game/objects/map_object_shadow.h"
 
 #include "game/core/core_refcount.h"
-#include "game/figure_mesh.h"   // VertexPacket
-#include "game/link_figure.h"   // FigureMeshDrawer
-#include "game/ground_print.h"   // NamedTexture
+#include "game/models/figure_mesh.h"   // VertexPacket
+#include "game/models/link_figure.h"   // FigureMeshDrawer
+#include "game/terrain/ground_print.h"   // NamedTexture
 #include "game/objects/object3d.h"
-#include "game/material.h"
-#include "game/model.h"
-#include "game/pipeline.h"
-#include "game/render_helper.h"
-#include "game/texture.h"
+#include "game/models/material.h"
+#include "game/scene/scene_renderer.h"
+#include "game/scene/pipeline.h"
+#include "game/scene/render_helper.h"
+#include "game/models/texture.h"
 #include "game/world/hoover.h"
 #include "game/app/options.h"
 #include "game/world/world.h"

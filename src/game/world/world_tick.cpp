@@ -6,11 +6,11 @@
 #include "game/net_link.h"   // netlink::DriverSession (SetGameResult)
 #include "game/script.h"
 #include "game/ai/sector_map.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

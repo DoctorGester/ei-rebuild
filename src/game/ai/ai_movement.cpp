@@ -4,7 +4,7 @@
 #include "game/ai/unit_shape.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_refcount.h"
-#include "game/effects.h"
+#include "game/effects/effects.h"
 
 #include "lib/crt.h"
 #include "lib/rounding.h"

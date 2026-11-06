@@ -3,7 +3,7 @@
 // order (lib::HashMap).
 #include "game/core/core_streams.h"
 
-#include "game/item_db.h"
+#include "game/items/item_db.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 

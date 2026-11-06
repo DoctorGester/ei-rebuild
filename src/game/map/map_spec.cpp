@@ -6,14 +6,14 @@
 #include "game/core/base_manager.h"
 #include "game/core/core_transform.h"
 #include "game/app/singletons.h"
-#include "game/light.h"
+#include "game/scene/light.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/map/map_spec.h"
 #include "game/ai/sector_map.h"
-#include "game/terrain.h"
+#include "game/terrain/terrain.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 #include "lib/crt.h"
 
 #include <cstring>

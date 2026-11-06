@@ -12,7 +12,7 @@
 #include "game/core/random.h"
 #include "game/players/saved_parties.h"
 #include "game/data/text_manager.h"
-#include "game/model.h"
+#include "game/scene/scene_renderer.h"
 #include "game/ui_camp.h"
 #include "game/ui_cursor.h"
 #include "game/ui_item_info.h"

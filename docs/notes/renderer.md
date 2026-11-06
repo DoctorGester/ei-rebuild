@@ -609,7 +609,7 @@ Behind the camera 1 / w is negative and z / w lies above 1; at w 0 it is infinit
 
 ### The view's depth
 
-The camera's projection (`ProjectionMatrix`, model.cpp) has no far plane: its depth z / w is 1 - near / d (d the
+The camera's projection (`ProjectionMatrix`, scene/pipeline.cpp) has no far plane: its depth z / w is 1 - near / d (d the
 distance along the view, near the settings' NearClipDistance, 2), 0 at the near plane and below 1 at any distance, so
 the ground and the map's scenery draw to the map's edge. The original cut everything at FarClipDistance (100 units
 along the view): pitched up, the ground ended in a hard edge against the sky and the hills behind it were missing (R62,
@@ -804,7 +804,7 @@ All in `src/game`:
 - `renderer_scene.cpp`: counted holders, list iterator copies, aligned blocks, the axis swap matrix (WideScreen changes
   it); `render_helper.cpp`: `RenderHelper`'s built-in presets (section 5).
 - `projection.cpp`: the transform pipeline's projections (section 10).
-- `link_mesh_draw.cpp`: LinkMesh's draws; `link_loader_create.cpp`: `LinkFigureLoader` (Rebirth's ResOverride changes it).
+- `link_mesh_draw.cpp`: LinkMesh's draws; `models/link_loader.cpp`: `LinkFigureLoader` (Rebirth's ResOverride changes it).
 - `weather_field.cpp` (the rain's and the snow's particles: where each is and how much of it shows),
   `weather_particles.cpp` (their draw), `effects_weather.cpp` (the visibility fog's draw, the rain / snow layer's).
 - `renderer_lines.cpp`: `LineBatch` (points four to a packet in an aligned array, a count and a colour; `AddPoint`
@@ -1576,7 +1576,7 @@ The lights an object carries move with what is drawn, not with their tick place 
 ### Animation blends
 
 A switch from one animation to another (`FigureAnimationState::Play`, or SetTime passing into the next queued one)
-blends the pose last placed into the new one's (map_object_animation.cpp, figure_bones.cpp). Always on.
+blends the pose last placed into the new one's (models/animation.cpp, models/animation_bones.cpp). Always on.
 - `BeginBlend` keeps each placed bone's own turn, the root's position before the origin and the mesh's offsets as the
   outgoing pose; `FigureBone::Place(origin, blend)` slerps the turn and lerps the root's position and the morph offsets
   by the incoming share (at 1 the original's computation, bit for bit); `UpdatePose` places the skeleton again at every
@@ -1870,7 +1870,7 @@ through the gamma ramp; shapes of another scale or ramp are let go once not show
 
 Everything the game draws through the device's mesh draws (figures and map objects, the sky, the interface's sprites and
 3D previews). The game hands the mesh over in model space with the matrix it projects it with (BeginMesh); each pass then
-(src/game/device_draw.cpp) becomes a batch with the render state of that moment (MeshPass, section 5): blend, alpha test,
+(src/game/scene/device_draw.cpp) becomes a batch with the render state of that moment (MeshPass, section 5): blend, alpha test,
 depth, culling, fog, the two texture stages' operations, filters and textures. A figure mesh drawn through the figure part
 draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw from that pool; every other mesh is built into the
 frame's stream. A figure part handed over with its lighting (MeshSource::lighting) is lit in the shader from its normals.
@@ -1931,7 +1931,7 @@ and mesh programs.
 
 ### render_terrain.cpp: the terrain
 
-The game's terrain passes (ground pages, water pages) call DrawSectorPage (SectorData::DrawPage, src/game/terrain_sector.cpp) for
+The game's terrain passes (ground pages, water pages) call DrawSectorPage (SectorData::DrawPage, src/game/terrain/terrain_sector.cpp) for
 every visible sector page; it hands the page here. The page's tiles are turned into world-space triangles (every tile's
 nine vertices and eight triangles, the full detail at any distance), with the vertex records' normals and material
 colours, the tile texture coordinates and the page's texture; the clip matrix is the pipeline's. The GPU clips. The pages

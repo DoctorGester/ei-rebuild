@@ -3,7 +3,7 @@
 // menu, dialogs, escape menu, credits").
 #include "game/app/app.h"
 #include "game/app/movies.h"
-#include "game/model.h"
+#include "game/scene/scene_renderer.h"
 #include "game/ui.h"
 #include "game/ui_screens.h"
 

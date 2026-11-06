@@ -3,20 +3,20 @@
 // The world's paths are taken from the command line globals; every manager is made and attached
 // to the world (ThisWorld with the world, or the base); a helper goes into a
 // counted pointer (worldHandle); then the ISAAC generator is seeded and countdowns set up.
-#include "game/item_manager.h"
+#include "game/items/item_manager.h"
 
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
 #include "game/core/core_refcount.h"
 #include "game/core/core_streams.h"
-#include "game/effects.h"
-#include "game/figure_manager.h"
+#include "game/effects/effects.h"
+#include "game/models/figure_manager.h"
 #include "game/app/singletons.h"
-#include "game/ground_print.h"
-#include "game/item.h"
-#include "game/lightning.h"
-#include "game/link_loader.h"
-#include "game/material.h"
+#include "game/terrain/ground_print.h"
+#include "game/items/item.h"
+#include "game/effects/lightning.h"
+#include "game/models/link_loader.h"
+#include "game/models/material.h"
 #include "game/net_link.h"   // netlink::NetLink: the world handle's pending link
 #include "game/world/hoover.h"     // Hoover
 #include "game/world/diplomacy.h"
@@ -27,16 +27,16 @@
 #include "game/data/resource_manager.h"
 #include "game/script.h"
 #include "game/ai/sector_map.h"
-#include "game/sky_object.h"
+#include "game/scene/sky_object.h"
 #include "game/sound/sound.h"
-#include "game/spell.h"
-#include "game/terrain.h"
+#include "game/spells/spell.h"
+#include "game/terrain/terrain.h"
 #include "game/data/text_manager.h"
 #include "game/ui_flying_hit_points.h"
 #include "game/units/unit.h"
 #include "game/units/unit_create.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include <cstdint>
 #include <cstring>

@@ -3,7 +3,7 @@
 // the body slots' healing, the experience curves and experience gain. See unit.h and
 // docs/notes/units.md ("Statistics in play").
 #include "game/objects/map_object.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/units/unit.h"
 
 #include "game/data/text_manager.h"

@@ -1,7 +1,7 @@
 // The briefing / base screen's Create and per-frame Update
 // BriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "game/app/app.h"
-#include "game/camera.h"
+#include "game/scene/camera.h"
 #include "game/combat/combat.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_streams.h"
@@ -26,7 +26,7 @@
 #include "game/ai/unit_ai.h"
 #include "game/units/unit_client_models.h"
 #include "game/world/world.h"
-#include "game/terrain.h"
+#include "game/terrain/terrain.h"
 
 #include "lib/str.h"
 #include "lib/text_case.h"

@@ -1,7 +1,7 @@
 // The 3D object's figure parts by name, their removal and their place in the world, and its
 // animation database. See objects/object3d.h and docs/notes/map_objects.md ("Figures").
 #include "game/core/base_manager.h"
-#include "game/figure_mesh.h"
+#include "game/models/figure_mesh.h"
 #include "game/objects/object3d.h"
 
 #include "lib/str.h"

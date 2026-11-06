@@ -1,4 +1,4 @@
-# A save and a quick load with effects in flight (H43c; src/game/world_effect_missile.cpp EffectArrow::Load,
+# A save and a quick load with effects in flight (H43c; src/game/effects/world_effect_missile.cpp EffectArrow::Load,
 # world_effect.cpp EffectSoundSeq::Load, ui_saveload.cpp QuickLoad). The hero casts a fire wall (its sound sequence
 # plays while the wall burns) and a magic arrow at a wolf 70 squares away; the arrow needs some six seconds to get
 # there. F5 quick-saves into "saveq" while it is in the air, the wolf is killed on arrival, then F8 quick-loads: the

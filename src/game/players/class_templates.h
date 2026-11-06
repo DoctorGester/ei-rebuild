@@ -5,7 +5,7 @@
 // PartyManager::templates.
 
 #include "game/core/core_refcount.h"
-#include "game/item_stock.h"
+#include "game/items/item_stock.h"
 #include "game/players/party.h"
 
 struct PartyManager;

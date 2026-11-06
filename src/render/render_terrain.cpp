@@ -1,9 +1,9 @@
 // The terrain: the game's sector pages as world-space triangles, kept on the GPU and built again only where the
 // game says they changed. See docs/notes/renderer.md, "The renderer's source files".
-#include "game/model.h"
-#include "game/pipeline.h"
-#include "game/texture.h"
-#include "game/terrain_sector.h"
+#include "game/scene/scene_renderer.h"
+#include "game/scene/pipeline.h"
+#include "game/models/texture.h"
+#include "game/terrain/terrain_sector.h"
 #include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"

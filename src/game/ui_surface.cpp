@@ -6,7 +6,7 @@
 
 #include "game/core/asset_text.h"
 #include "game/screen_layout.h"
-#include "game/surface.h"
+#include "game/scene/surface.h"
 #include "game/ui.h"
 #include "game/ui_font.h"
 #include "lib/crt.h"

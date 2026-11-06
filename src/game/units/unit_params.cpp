@@ -1,6 +1,6 @@
 // The weapon skill bonus on a unit's packed parameters. See unit.h (UnitParams) and
 // docs/notes/units.md ("Statistics in play").
-#include "game/item_db.h"
+#include "game/items/item_db.h"
 
 #include "game/app/logic_settings.h"
 #include "game/app/options.h"

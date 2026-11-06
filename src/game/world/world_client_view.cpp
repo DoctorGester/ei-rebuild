@@ -2,20 +2,20 @@
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
 #include "game/world/frame_lists.h"
 #include "game/app/singletons.h"
-#include "game/light.h"
-#include "game/model.h"
-#include "game/pipeline.h"
+#include "game/scene/light.h"
+#include "game/scene/scene_renderer.h"
+#include "game/scene/pipeline.h"
 #include "game/app/options.h"
 #include "game/world/world.h"
 
 #include "game/core/core_maths.h"
-#include "game/drawn_motion.h"
+#include "game/scene/drawn_motion.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
 #include "game/data/text_manager.h"
 #include "lib/containers.h"
-#include "game/terrain.h"
+#include "game/terrain/terrain.h"
 
 #include <cmath>
 #include <cstring>
