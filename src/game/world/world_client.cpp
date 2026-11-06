@@ -416,7 +416,7 @@ Material* WorldClient::NewMaterial(int materialType) {
     return materialManager->NewMaterial(materialType);
 }
 
-void WorldClient::PlayCameraPath(const char* name) {
+void WorldClient::PlayCameraPath(std::string_view name) {
     if (!camera->LoadPath(name, 0)) return;
     camera->flags |= Camera::kPlaying;
     camera->keyIndex = 0;

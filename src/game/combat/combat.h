@@ -361,7 +361,7 @@ public:
     bool TargetBusy(MapObject* target);
     // `name` from the figure's animation database as the queued order: an Emote for keys with bit 31, else an
     // Animation; param = the entry's index dword.
-    void PlayAnimation(const char* name);
+    void PlayAnimation(std::string_view name);
     // Drops everything: Stopped, the effect object, the plan and both orders; the unit stands still.
     void StopAction();
     // Does the unit wear an armour piece in slots 3..6 / in the first three (body, trousers, helmet)?

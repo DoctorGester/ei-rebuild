@@ -70,7 +70,7 @@ struct MapDatabase {
     // Allod named `name` (_mbsicmp), or null.
     AllodRecord* FindAllod(std::string_view name);
     // Adds the allods and maps of a map.txt-style text file. Returns false if the file is not found.
-    bool Load(const char* fileName);
+    bool Load(std::string_view fileName);
     // The lists emptied, then "map.txt" and "map-LMP.txt" loaded; returns the second Load's result (WinMain does not
     // read it).
     bool LoadAll();

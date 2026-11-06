@@ -72,7 +72,7 @@ void PlayerServer::SetVariableMax(std::string_view name, float value) {
     WriteDword(&out, resultBits);
 }
 
-void PlayerServer::DeleteVariable(const char* name) {
+void PlayerServer::DeleteVariable(std::string_view name) {
     Variables(player)->Remove(name);
     WriteType(&out, ServerMessage::DeleteVariable);
     out.WriteString(name);
@@ -158,7 +158,7 @@ void PlayerServer::ItemUsed(Item* item) {
     WriteDword(&out, std::bit_cast<std::uint32_t>(item->charge));
 }
 
-void PlayerServer::SendJingle(const char* text) {
+void PlayerServer::SendJingle(std::string_view text) {
     WriteType(&out, ServerMessage::Jingle);
     out.WriteString(text);
 }

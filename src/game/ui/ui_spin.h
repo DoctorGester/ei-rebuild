@@ -7,7 +7,7 @@
 // A spin control of the options window: a window stepping through its texts (the on / off settings).
 class UiSpin : public UiWindow {
 public:
-    UiSpin(Rect rect, const char* text);
+    UiSpin(Rect rect, std::string_view text);
     ~UiSpin() override;
     void AddText(std::string_view text);
     int Value() const { return value; }

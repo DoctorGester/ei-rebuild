@@ -69,7 +69,7 @@ struct MapObjectManager : ResourceManager {
     FigureAnimation* FindAnimation(const std::string& figure, std::uint32_t key);
     // The animation `name` (case-insensitive) in the database "<figure>.adb", or null; a missing database is
     // reported to the debug log.
-    FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
+    FigureAnimation* FindFigureAnimation(const std::string& figure, std::string_view name);
     // The animation database "<figure>.adb", read from the archive on first use and kept until Destroy; null when
     // there is no such file.
     AnimationDatabase* AnimationDatabaseOf(const std::string& figure);

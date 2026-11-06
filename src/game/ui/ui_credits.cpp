@@ -32,7 +32,7 @@ constexpr int kHeaderFont = 2;
 
 struct TitlesTokenizer : TextTokenizer {
     // The current word, or "" past the last one (the original assigned null to a string, which keeps "").
-    const char* WordOrEmpty() const { return position != -1 ? word.c_str() : ""; }
+    std::string_view WordOrEmpty() const { return position != -1 ? std::string_view(word) : ""; }
 };
 
 } // namespace
@@ -72,10 +72,7 @@ void CreditsScreen::CreateScreen() {
             words.Start();
             TitleLine record{};
             {
-                std::string first = words.WordOrEmpty();
-                record.scroll = text::CompareIgnoringCase(first,
-                                                "#scroll") ==
-                                0;
+                record.scroll = text::CompareIgnoringCase(words.WordOrEmpty(), "#scroll") == 0;
             }
             words.Next();
             record.speed = str::ToFloat(words.word);
@@ -105,7 +102,7 @@ void CreditsScreen::CreateScreen() {
     if (fromGame) g_serverWorld.SetServerPaused(0);
     savedDisplay = static_cast<int>(g_sceneRenderer.fogColour);
     g_sceneRenderer.fogColour = 0;
-    player.Open((g_dataFolder + "Movies\\" + currentName + ".bik").c_str(), false);
+    player.Open(g_dataFolder + "Movies\\" + currentName + ".bik", false);
     finished = false;
 }
 
@@ -124,7 +121,7 @@ void CreditsScreen::DrawSprites(SceneRenderer* pass) {
             finished = true;
         } else {
             const TitleLine& line = lines[nextLine];
-            textSurface->Load(&archive, line.style.c_str());
+            textSurface->Load(&archive, line.style);
             textSurface->Start(0.0f, false);
             if (line.scroll) {
                 textSurface->Start(line.speed, true);

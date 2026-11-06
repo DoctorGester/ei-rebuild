@@ -183,7 +183,7 @@ void Interface3D::Update() {
         auto box = std::make_unique<MessageWindow>("disconnect", "disconnect_msg", MessageQuestion::Disconnect, MessageButtons::Ok);
         if (!disconnectReason.empty()) box->text = std::exchange(disconnectReason, std::string());
         ei::Log("interface: the network client is not joined (state %u): the disconnect box: %s",   // not the game's
-                static_cast<unsigned>(net::g_gameClient->joinState), box->text.c_str());
+                static_cast<unsigned>(net::g_gameClient->joinState), box->text);
         PushWindow(std::move(box), WindowBackdrop::FirstWindow);
     } else if (!stack.empty()) {
         stack.back()->Update();
@@ -213,7 +213,7 @@ void Interface3D::OnStringEvent(std::string_view event) {
         if (words.size() < 2) return;
         int number = words.size() > 2 ? TextKeyFromName(words[2]) : 0;
         AckKind kind = str::Compare(words[0], "say_block") != 0 ? AckKind::Scenario : AckKind::ScenarioTalking;
-        if (BattleScreen* screen = OnTop(battle)) screen->Speech(number, kind, const_cast<char*>(words[1].c_str()));
+        if (BattleScreen* screen = OnTop(battle)) screen->Speech(number, kind, words[1]);
     } else if (str::Compare(words[0], "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
         messages.push_back(words[1]);
@@ -245,7 +245,7 @@ constexpr int kStatusFont = 2, kStatusTextHeight = 40;
 constexpr std::uint32_t kStatusColour = 0xFF00;
 
 // A unit's speech without an extra argument.
-constexpr char* kNoExtra = nullptr;
+constexpr std::string_view kNoExtra;
 
 } // namespace
 

@@ -162,7 +162,7 @@ FigureAnimation* MapObjectManager::FindAnimation(const std::string& figure, std:
     return nullptr;
 }
 
-FigureAnimation* MapObjectManager::FindFigureAnimation(const std::string& figure, const char* name) {
+FigureAnimation* MapObjectManager::FindFigureAnimation(const std::string& figure, std::string_view name) {
     AnimationDatabase* database = AnimationDatabaseOf(figure);
     if (!database) {
         game::DebugLog(kNoDatabaseText, figure);

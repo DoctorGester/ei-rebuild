@@ -577,7 +577,7 @@ struct ScriptQuestObjective {
 // The quest a script's QStart / QObj* / QFinish commands build (Script::quest).
 struct ScriptQuestBuilder {
     // QStart: the old objectives dropped, the quest named.
-    void Start(const char* questName);
+    void Start(std::string_view questName);
     // The QObj* commands (type, text, with the value on the stack): appends {type, text, value}.
     void AddObjective(ScriptFunction type, const std::string& text, float value);
     // QFinish: the script text of one declared script per objective, each chaining to the next (the script

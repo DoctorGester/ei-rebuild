@@ -117,7 +117,7 @@ void GiveSkill(ScriptArgs args) {
                                          "sense", "astral", "stealth", "awareness"};
     static const int kIndex[] = {0, 0, 1, 2, 3, 4, 5, 6, 7};
     for (int i = 0; i < 9; ++i) {
-        if (text::CompareIgnoringCase(skill.c_str(), kNames[i]) != 0) continue;
+        if (text::CompareIgnoringCase(skill, kNames[i]) != 0) continue;
         Unit* owner = state->unit;
         UnitStats* stats = &state->stats;
         if (i == 0) stats->RaiseAttribute(kIndex[i], value, owner);
@@ -375,7 +375,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::SendStringEvent:   // SendStringEvent(type, text)
-            g_serverWorld.players->SendTextToAll(args.Text().c_str());
+            g_serverWorld.players->SendTextToAll(args.Text());
             break;
         case ScriptFunction::GodMode: {   // GodMode(player, on)
             Player* player = args.FindPlayer();
@@ -409,7 +409,7 @@ bool ScriptRun::Execute(Script* script) {
             const float y = args.Float();
             const float z = args.Float();
             Vector3 point = {x, y, z};
-            g_serverWorld.AddUnitToServer(static_cast<unsigned>(TextKeyFromName(name.c_str())), prototype.c_str(), third.c_str(), point);
+            g_serverWorld.AddUnitToServer(static_cast<unsigned>(TextKeyFromName(name)), prototype, third, point);
             break;
         }
         case ScriptFunction::RemoveUnitFromServer:     // RemoveUnitFromServer(object)
@@ -454,7 +454,7 @@ bool ScriptRun::Execute(Script* script) {
             g_serverWorld.LoadMobFile(args.Text());
             break;
         case ScriptFunction::PlayCamera:   // PlayCamera(name)
-            g_clientWorld.PlayCameraPath(args.Text().c_str());
+            g_clientWorld.PlayCameraPath(args.Text());
             break;
         case ScriptFunction::PlayMovie:   // PlayMovie(name)
             PlayMovie(args);
@@ -463,7 +463,7 @@ bool ScriptRun::Execute(Script* script) {
             console::EndLine(console::g_consoleOut << args.Float());
             break;
         case ScriptFunction::ConsoleString:   // ConsoleString(text)
-            console::PrintLine(args.Text().c_str());
+            console::PrintLine(args.Text());
             break;
         case ScriptFunction::AddRectToArea: {   // AddRectToArea(area, x1, y1, x2, y2)
             const int area = lib::RoundEven(args.Float());
@@ -618,7 +618,7 @@ bool ScriptRun::Execute(Script* script) {
         case ScriptFunction::GiveUnitSpell: {   // GiveUnitSpell(unit, spell)
             Unit* unit = args.Object().AsUnit();
             if (!unit) break;
-            Item* spell = g_serverWorld.CreateSpellNamed(args.Text().c_str());
+            Item* spell = g_serverWorld.CreateSpellNamed(args.Text());
             if (!spell) break;
             unit->AddSpell(spell);
             UnitServer* state = unit->ServerController();
@@ -731,7 +731,7 @@ bool ScriptRun::Execute(Script* script) {
         }
         case ScriptFunction::PlayAnimation: {   // PlayAnimation(unit, name)
             UnitServer* state = args.Object().ServerController();
-            if (state) state->PlayAnimation(args.Text().c_str());
+            if (state) state->PlayAnimation(args.Text());
             break;
         }
         case ScriptFunction::Lie:
@@ -904,12 +904,12 @@ bool ScriptRun::Execute(Script* script) {
             if (!player) break;
             const std::string& name = args.Text();
             if (setMax) player->Server()->SetVariableMax(name, args.Float());
-            else player->Server()->DeleteVariable(name.c_str());
+            else player->Server()->DeleteVariable(name);
             break;
         }
         case ScriptFunction::PlayMusic: {   // PlayMusic(player, name)
             Player* player = args.FindPlayer();
-            if (player) player->Server()->SendJingle(args.Text().c_str());
+            if (player) player->Server()->SendJingle(args.Text());
             break;
         }
         case ScriptFunction::LeaveToZone: {   // LeaveToZone(player, zone, point)
@@ -958,11 +958,11 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::CreateParty: {   // CreateParty(player, name)
-            if (args.FindPlayer()) g_partyManager.records.Add(args.Text().c_str());
+            if (args.FindPlayer()) g_partyManager.records.Add(args.Text());
             break;
         }
         case ScriptFunction::RemoveParty: {   // RemoveParty(player, name)
-            if (args.FindPlayer()) g_partyManager.records.Remove(args.Text().c_str());
+            if (args.FindPlayer()) g_partyManager.records.Remove(args.Text());
             break;
         }
         case ScriptFunction::SetCurrentParty: {   // SetCurrentParty(player, name)
@@ -1026,7 +1026,7 @@ bool ScriptRun::Execute(Script* script) {
             break;
         }
         case ScriptFunction::QStart:   // QStart(name)
-            script->quest.Start(args.Text().c_str());
+            script->quest.Start(args.Text());
             break;
         case ScriptFunction::QFinish: {
             std::string text = script->quest.Finish();

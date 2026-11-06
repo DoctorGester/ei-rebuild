@@ -60,7 +60,7 @@ bool EndsWith(const std::string& text, const char* suffix) {
 bool GSSetPlayerVar(Call* call) {
     ScriptArgs args(call->cmd);
     int number = TruncateOrMin(args.Float());
-    const char* name = args.Text().c_str();
+    const std::string& name = args.Text();
     float value = args.Float();
     Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSSetPlayerVar", "There is no player with number %d", number);
@@ -73,7 +73,7 @@ bool GSSetPlayerVar(Call* call) {
 bool GSGetPlayerVar(Call* call) {
     ScriptArgs args(call->cmd);
     int number = TruncateOrMin(args.Float());
-    const char* name = args.Text().c_str();
+    const std::string& name = args.Text();
     Player* player = g_serverWorld.GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
     *call->result.number = player->GetParty()->variables.Get(name);
@@ -106,7 +106,7 @@ bool GiveUnitExp(Call* call) {
 
 bool StartCameraSave(Call* call) {
     g_clientWorld.flags |= WorldClientFlag::RecordingCamera;
-    g_clientWorld.camera->OpenFile(ScriptArgs(call->cmd).Text().c_str());
+    g_clientWorld.camera->OpenFile(ScriptArgs(call->cmd).Text());
     return true;
 }
 
@@ -204,7 +204,7 @@ bool GSListPlayerVars(Call* call) {
 bool GiveUnitWeapon(Call* call) {
     ScriptArgs args(call->cmd);
     MapObject* object = args.Object().object;
-    const char* name = args.Text().c_str();
+    const std::string& name = args.Text();
     bool override = Equals(1.0f, args.Float());
     if (!object) return Report("GiveUnitWeapon", "Unit doesn't exists");
     Unit* unit = UnitOrNull(object);   // IsUnit's test
@@ -243,7 +243,7 @@ bool GiveUnitWeapon(Call* call) {
 bool GiveUnitArmor(Call* call) {
     ScriptArgs args(call->cmd);
     MapObject* object = args.Object().object;
-    const char* name = args.Text().c_str();
+    const std::string& name = args.Text();
     bool override = Equals(1.0f, args.Float());
     if (!object) return Report("GiveUnitArmor", "Unit doesn't exists");
     Unit* unit = UnitOrNull(object);   // IsUnit's test

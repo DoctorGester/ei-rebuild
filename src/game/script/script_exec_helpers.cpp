@@ -181,7 +181,7 @@ std::string ScriptQuestBuilder::Finish() {
 
 // ---- The quest being built (script.h) --------------------------------------------------------------------
 
-void ScriptQuestBuilder::Start(const char* questName) {
+void ScriptQuestBuilder::Start(std::string_view questName) {
     objectives.clear();
     name = questName;
 }

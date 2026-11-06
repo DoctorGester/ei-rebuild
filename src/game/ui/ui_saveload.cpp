@@ -99,7 +99,7 @@ constexpr int kScreenWidth = 800, kScreenHeight = 600;   // the copy's layout re
 
 // The save folder saves\<slot>\ under the game's folder.
 std::string SlotFolder(const char* slot) {
-    std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), slot);
+    std::string folder = str::Format("%ssaves\\%s\\", g_dataFolder, slot);
     return folder;
 }
 
@@ -172,7 +172,7 @@ void SaveLoadWindow::ShowPicture() {
         return;
     }
     // The file's picture, no larger than shown here.
-    std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), entry->folder);
+    std::string folder = str::Format("%ssaves\\%s\\", g_dataFolder, entry->folder);
     std::string bytes;
     if (!platform::ReadWholeFile(folder + "shot.sav", &bytes)) return;
     const Size size = ShownSize();
@@ -209,7 +209,7 @@ void SaveLoadWindow::SaveGame() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entries.data() + currentSelected;
-    double space = platform::FreeDiskSpace(DataFolderText());
+    double space = platform::FreeDiskSpace(g_dataFolder);
     // 0 means unknown: no check.
     if (space != 0.0) {
         int needed = CurrentSaveSize();
@@ -218,7 +218,7 @@ void SaveLoadWindow::SaveGame() {
             return;
         }
     }
-    std::string folder = str::Format("%ssaves\\%s\\", DataFolderText(), entry->folder);
+    std::string folder = str::Format("%ssaves\\%s\\", g_dataFolder, entry->folder);
     std::string notice = g_clientWorld.texts->GetString("notify_saving");
     g_interface.ShowStatusText(notice);
     g_gameFlow.SaveGame(entry->folder);
@@ -257,7 +257,7 @@ void SaveLoadWindow::SaveGame() {
 }
 
 void SaveLoadWindow::FillEntries() {
-    std::string pattern = str::Format("%ssaves\\save*", DataFolderText());
+    std::string pattern = str::Format("%ssaves\\save*", g_dataFolder);
     entries.clear();
     int highest = 0;     // the highest number after "save" in the folder names
     for (const platform::FolderEntry& found : platform::FolderEntries(pattern)) {
@@ -333,7 +333,7 @@ void SaveLoadWindow::FillEntries() {
 
 void QuickSave(const char* slot, bool stepFrame) {
     if (IsMultiplayerClient()) return;
-    double space = platform::FreeDiskSpace(DataFolderText());
+    double space = platform::FreeDiskSpace(g_dataFolder);
     // 0 means unknown: no check.
     if (space != 0.0 && static_cast<double>(CurrentSaveSize()) > space) return;
     if (stepFrame) app::FrameStep(false);
@@ -431,10 +431,10 @@ void SaveLoadWindow::LoadSelected() {
 void SaveLoadWindow::DeleteSave() {
     int currentSelected = selected;
     if (currentSelected < 0 || static_cast<unsigned>(currentSelected) >= static_cast<unsigned>(EntryCount())) return;
-    std::string folder = str::Format(kFolderFormat, DataFolderText(), entries[currentSelected].folder);
+    std::string folder = str::Format(kFolderFormat, g_dataFolder, entries[currentSelected].folder);
     for (const platform::FolderEntry& entry : platform::FolderEntries(folder + kEveryFile))
         platform::RemoveFile(entry.path);
-    platform::RemoveFolder(folder.c_str());
+    platform::RemoveFolder(folder);
     FillEntries();
     int count = EntryCount();
     if (static_cast<unsigned>(selected) >= static_cast<unsigned>(count)) selected = count - 1;

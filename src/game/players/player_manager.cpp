@@ -67,7 +67,7 @@ void PlayerManager::SendValueToAll(int value) {
     ForEachPlayer(this, [&](Player* player) { player->Server()->SendWorldValue(value); });
 }
 
-void PlayerManager::SendTextToAll(const char* text) {
+void PlayerManager::SendTextToAll(std::string_view text) {
     ForEachPlayer(this, [&](Player* player) {
         player->Server()->SendStringEvent(text);
     });

@@ -37,7 +37,7 @@ public:
     UiScrollingSurface(const Rect* rect);
     ~UiScrollingSurface() override;   // out of line: the laid out text's type is complete there
     // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
-    bool Load(MappedResource* archive, const char* name);
+    bool Load(MappedResource* archive, std::string_view name);
     // Reads the RTF block and lays it out at the surface's width (render_rich_text.h), the offset 0.
     void LoadRtf(const void* data, std::uint32_t size);
     // While the speed is not 0 the offset moves by the game time passed times the speed (truncated) and FindEnd

@@ -256,4 +256,4 @@ inline constexpr const char* kTopicPrefix = "b.";
 inline constexpr std::size_t kTopicNameParts = 3;
 // The topics open for the local player: the parts ("b", person, topic) of each variable under `prefix` that is 1, in the
 // variable table's order.
-std::vector<std::vector<std::string>> OpenTopicNames(const char* prefix);
+std::vector<std::vector<std::string>> OpenTopicNames(std::string_view prefix);

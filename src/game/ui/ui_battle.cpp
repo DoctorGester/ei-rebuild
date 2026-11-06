@@ -680,7 +680,7 @@ void BattleScreen::LeftUp(UiEvent& event) {
                 world->Select(unitAt(static_cast<int>(node)));
             }
             int unitId = unitAt(first)->id;
-            Speech(unitId, AckKind::Selected, nullptr);
+            Speech(unitId, AckKind::Selected, {});
         }
     }
     RefreshSelection();
@@ -1008,7 +1008,7 @@ void BattleScreen::KeyDown(UiEvent& event) {
             MarkPortrait(i);
             if (Unit* unit = party[i]) g_clientWorld.Select(unit);
         }
-        if (!party.empty() && party[0]) Speech(party[0]->id, AckKind::Selected, nullptr);
+        if (!party.empty() && party[0]) Speech(party[0]->id, AckKind::Selected, {});
         RefreshSelection();
         return;
     case KeyAction::Message:
@@ -1293,7 +1293,7 @@ void BattleScreen::ToggleMember(int index) {
         Unit* member = unitAt(i);
         if (member && chosen[i] != 0) {
             g_clientWorld.Select(member);
-            if (index == i) Speech(unitAt(i)->id, AckKind::Selected, nullptr);
+            if (index == i) Speech(unitAt(i)->id, AckKind::Selected, {});
         }
     }
 
@@ -1333,7 +1333,7 @@ void BattleScreen::AttackUnit(Unit* target, bool ctrl) {
         Unit* member = party[i];
         units.push_back(member);
         portraits->Wobble(i, kWobbleNod);
-        if (target->Level() - member->Level() > 5) Speech(member->id, AckKind::BigAttack, nullptr);
+        if (target->Level() - member->Level() > 5) Speech(member->id, AckKind::BigAttack, {});
     }
     if (!units.empty()) g_clientWorld.LocalView()->SendAttack(units, target, kind, ctrl);
 }
@@ -1391,7 +1391,7 @@ void BattleScreen::UseAtPoint(Vector3 point, Unit* unit, bool quick) {
 
 // --- a unit's speech event -----------------------------------------------------------------------
 
-void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
+void BattleScreen::Speech(int unitId, AckKind kind, std::string_view extra) {
     Unit* unit = UnitWithId(g_clientWorld.objectManager.get(), unitId);
     if (!unit) return;
     const SpeechRecord* phrase = (kind == AckKind::Scenario || kind == AckKind::ScenarioTalking)
@@ -1407,12 +1407,12 @@ void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
             str::TrimRight(text, "\r\n");
             text += "\n";
             // Both go to the top panel's page 0 and, while it shows that page, the message log.
-            auto post = [this](const char* part) {
+            auto post = [this](std::string_view part) {
                 topPanel->pageTexts[0] += part;
                 if (topPanel->page == 0) messageLog->AddText(part);
             };
-            post(line.c_str());
-            post(text.c_str());
+            post(line);
+            post(text);
         }
     }
 
@@ -1570,7 +1570,7 @@ void BattleScreen::SelectUnit(Unit* unit, Point mouse) {
             Unit* member = party[i];
             if (!member || !(member->flags & MapObjectFlag::Selected)) continue;
             g_clientWorld.LocalView()->SendFollow(member, unit);
-            Speech(party[i]->id, AckKind::Follow, nullptr);
+            Speech(party[i]->id, AckKind::Follow, {});
             portraits->Wobble(i, kWobbleNod);
         }
         SetPendingAction(PendingAction::None, -1, -1);

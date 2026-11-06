@@ -55,8 +55,7 @@ extern PartyManager g_partyManager;   // party_manager.cpp
 
 // The game's folders (app/app.cpp): where the game was started,
 // the text resources' and the data folder (with its trailing backslash; the movies, the voices and the saves are
-// under it; DataFolderText() is its characters for printf-style arguments).
+// under it).
 extern std::string g_startFolder;
 extern std::string g_textFolder;
 extern std::string g_dataFolder;
-inline const char* DataFolderText() { return g_dataFolder.c_str(); }

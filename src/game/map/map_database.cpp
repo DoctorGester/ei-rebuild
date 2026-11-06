@@ -202,7 +202,7 @@ void Loader::Line() {
 } // namespace
 } // namespace mapdb
 
-bool MapDatabase::Load(const char* fileName) {
+bool MapDatabase::Load(std::string_view fileName) {
     using namespace mapdb;
     TextManager* reader = g_clientWorld.texts.get();
     Loader loader(this, reader);

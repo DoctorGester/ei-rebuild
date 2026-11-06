@@ -310,8 +310,7 @@ void ConsoleWindow::OnChar(int key, int) {
             caret = lib::Count(input);
             ClampCaret();
         } else if ((letter == 'c' || letter == 'x') && low != high) {
-            const char* text = input.c_str();
-            platform::CopyText(std::string_view(text + low, static_cast<std::size_t>(high - low)));   // Rebirth's clipboard (ImproveConsole)
+            platform::CopyText(std::string_view(input).substr(static_cast<std::size_t>(low), static_cast<std::size_t>(high - low)));   // Rebirth's clipboard (ImproveConsole)
             if (letter == 'x') {
                 std::string rest = str::Mid(input, high);
                 std::string head = str::Left(input, low);

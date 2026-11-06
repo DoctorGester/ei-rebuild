@@ -81,11 +81,10 @@ bool ServerSession::Admit(const NetAddress* from, BufferCursor* given, RefusalRe
 }
 
 // The join password (at most 20 bytes, zero-filled).
-void ServerSession::SetPassword(const char* text) {
+void ServerSession::SetPassword(std::string_view text) {
     char* stored = password;
     std::memset(stored, 0, kPasswordSize);
-    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
-    std::strncpy(stored, text, kPasswordSize);
+    std::memcpy(stored, text.data(), std::min(text.size(), kPasswordSize));
 }
 
 // The connection of the first player whose name starts with `name` (case-insensitive)

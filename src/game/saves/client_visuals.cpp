@@ -185,7 +185,7 @@ void AgePrints(std::vector<Print>& list, int ticks) {
 std::string ZoneVisualsName(std::string_view zone) { return std::string(zone) + kZoneVisualsFile; }
 
 std::string ZoneVisualsPath(std::string_view zone) {
-    return str::Format(kCurrentFolder, DataFolderText()) + ZoneVisualsName(zone);
+    return str::Format(kCurrentFolder, g_dataFolder) + ZoneVisualsName(zone);
 }
 
 ClientVisuals ClientVisuals::Take(const WorldClient& world) {

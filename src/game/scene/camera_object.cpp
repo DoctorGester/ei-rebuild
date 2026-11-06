@@ -92,7 +92,7 @@ void Camera::Init(options::GameOptions* newSettings, float nearClip, float fov) 
 // name's number is read from the last four characters of its title ("camera0005": 5). Sets the client world's
 // WorldClientFlag::RecordingCamera either way. True (file name kept in fileName, flag 0x10 set) when the file can be
 // created.
-bool Camera::OpenFile(const char* name) {
+bool Camera::OpenFile(std::string_view name) {
     platform::File file;
     if (platform::PathExists(kCurrentRecord)) {
         int last = 0;
@@ -103,7 +103,8 @@ bool Camera::OpenFile(const char* name) {
         platform::RenameFile(kCurrentRecord, str::Format(kNumberedRecord, last + 1).c_str());
     }
     g_clientWorld.flags |= WorldClientFlag::RecordingCamera;
-    const std::string full = std::string(kRecordFolder) + name;
+    std::string full = kRecordFolder;
+    full += name;
     if (!file.Open(full, platform::FileMode::Create)) return false;
     fileName = full;
     flags |= Camera::kRecording;
@@ -302,9 +303,10 @@ namespace {
 constexpr float kLeadInGap = 500.0f;
 } // namespace
 
-bool Camera::LoadPath(const char* name, int settle) {
+bool Camera::LoadPath(std::string_view name, int settle) {
     platform::File file;
-    const std::string path = g_dataFolder + "camera\\" + name;
+    std::string path = g_dataFolder + "camera\\";
+    path += name;
     // The mod's Camera\ copy when there is one (Rebirth's CameraPatch).
     if (!file.Open(modfolders::CameraFile(path.c_str()), platform::FileMode::Read)) return false;
 

@@ -37,14 +37,14 @@ bool g_cursorShown = true;
 bool g_applyGui = false;               // the battle screen applies g_guiShown
 
 // addon's console output: the text, "\n" (as a string), flush.
-void Say(const char* text) { (g_consoleOut << text << "\n").Flush(); }
+void Say(std::string_view text) { (g_consoleOut << text << "\n").Flush(); }
 EI_PRINTF_FORMAT(1, 2) void SayFormat(const char* format, ...) {
     std::string text;
     va_list args;
     va_start(args, format);
     text = str::FormatV(format, args);
     va_end(args);
-    Say(text.c_str());
+    Say(text);
 }
 template <class... Args>
     requires libprintf::HasClass<Args...>
@@ -132,7 +132,7 @@ void Execs(const CommandArgs& args) {
 // listgvar: the global script variables (floats, strings, objects, groups).
 void ListGlobals(const CommandArgs&) {
     const ScriptVars& globals = TheMissionScript()->globals;
-    auto name = [](const std::vector<std::string>& names, int i) { return names[static_cast<std::size_t>(i)].c_str(); };
+    auto name = [](const std::vector<std::string>& names, int i) -> const std::string& { return names[static_cast<std::size_t>(i)]; };
     for (int i = 0; i < std::ssize(globals.floats.values); ++i)
         SayFormat("%s : float = %f", name(globals.floats.names, i), static_cast<double>(globals.floats.values[i]));
     for (int i = 0; i < std::ssize(globals.strings.values); ++i)

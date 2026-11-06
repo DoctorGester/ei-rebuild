@@ -62,7 +62,7 @@ void WorldServer::SetZoneExits(const std::vector<ZoneExit>& source) {
 
 // ---- Units ------------------------------------------------------------------------------------
 
-void WorldServer::AddUnitToServer(unsigned newId, const char* prototype, const char* name, const Vector3& position) {
+void WorldServer::AddUnitToServer(unsigned newId, std::string_view prototype, std::string_view name, const Vector3& position) {
     Party party;   // one member
     PartyUnitRecord* record = party.AddMember("", prototype, name);
     if (!record) return;   // the prototype is unknown (a warning): no unit, the script goes on

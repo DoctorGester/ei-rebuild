@@ -249,7 +249,7 @@ bool StrHas(Call* call) {
     ScriptArgs args(call->cmd);
     const std::string& text = args.Text();
     const std::string& part = args.Text();
-    *call->result.number = ScriptBool(std::strstr(text.c_str(), part.c_str()) != nullptr);
+    *call->result.number = ScriptBool(text.find(part) != std::string::npos);
     return true;
 }
 
@@ -270,12 +270,9 @@ bool StrMid(Call* call) {
     else if (length < start) start = length;
     int available = length - start + 1;
     if (count >= available) count = available;
-    const char* bytes = string.c_str();
-    const char* first = bytes + text::CharacterBytes(string, start - 1);
-    const char* last = bytes + text::CharacterBytes(string, start - 1 + count);
-    std::string part;
-    if (first != last) part.assign(first, static_cast<std::size_t>(last - first));
-    Assign(call, part);
+    const auto first = static_cast<std::size_t>(text::CharacterBytes(string, start - 1));
+    const auto last = static_cast<std::size_t>(text::CharacterBytes(string, start - 1 + count));
+    Assign(call, string.substr(first, last - first));
     return true;
 }
 

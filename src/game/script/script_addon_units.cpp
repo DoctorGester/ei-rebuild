@@ -70,7 +70,7 @@ bool GetPlayerOfUnit(Call* call) {
 bool GetUnitExp(Call* call) {
     ScriptArgs args(call->cmd);
     UnitServer* data = args.Object().ServerController();
-    const char* what = args.TextCount() == 0 ? "max" : args.Text().c_str();
+    const std::string_view what = args.TextCount() == 0 ? std::string_view("max") : std::string_view(args.Text());
     *call->result.number = 0.0f;
     if (!data) return InvalidArguments("GetUnitExp");
     float value;
@@ -179,7 +179,7 @@ bool GetMaxEncumbrance(Call* call) { return DataField(call, &UnitStats::capacity
 bool GetSkill(Call* call) {
     ScriptArgs args(call->cmd);
     UnitServer* data = args.Object().ServerController();
-    const char* name = args.Text().c_str();
+    const std::string& name = args.Text();
     *call->result.number = 0.0f;
     if (!data) return InvalidArguments("GetSkill");
     static const struct {
@@ -200,7 +200,7 @@ bool GetSkill(Call* call) {
 bool GetPerk(Call* call) {
     ScriptArgs args(call->cmd);
     UnitServer* data = args.Object().ServerController();
-    const char* name = args.Text().c_str();
+    const std::string& name = args.Text();
     *call->result.number = 0.0f;
     if (!data) return InvalidArguments("GetPerk");
     static const char* const kPerks[] = {"sword", "axe", "dagger", "spear", "hammer", "bow", "crossbow",
@@ -221,7 +221,7 @@ bool GetPrototype(Call* call) {
     UnitServer* data = ScriptArgs(call->cmd).Object().ServerController();
     if (!data) return InvalidArguments("GetPrototype");
     const UnitPrototypeRecord* prototype = data->unit->GetPrototype();
-    *call->result.text = prototype->name.c_str();
+    *call->result.text = prototype->name;
     return true;
 }
 
@@ -229,7 +229,7 @@ bool GetRace(Call* call) {
     UnitServer* data = ScriptArgs(call->cmd).Object().ServerController();
     if (!data) return InvalidArguments("GetRace");
     const UnitPrototypeRecord* prototype = data->unit->GetPrototype();
-    *call->result.text = prototype->modelName.c_str();
+    *call->result.text = prototype->modelName;
     return true;
 }
 

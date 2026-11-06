@@ -48,7 +48,7 @@ float PlayerZeroVariable(std::string_view name) {
     return Variable(player, name);
 }
 
-NamedFloatTable PlayerZeroVariables(const char* prefix) {
+NamedFloatTable PlayerZeroVariables(std::string_view prefix) {
     NamedFloatTable table;
     Player* player = IsMultiplayerClient() ? LocalPlayer() : g_serverWorld.GetPlayer(0);
     if (player) player->GetParty()->variables.CopyPrefixed(prefix, &table);

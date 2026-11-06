@@ -271,15 +271,15 @@ Party* NamedPartyRecords::Find(std::string_view name) const {
     return unnamed;
 }
 
-void NamedPartyRecords::Add(const char* name) {
+void NamedPartyRecords::Add(std::string_view name) {
     PartyRecord* record = new PartyRecord();
     record->name = name;
     records.emplace_back(record);
 }
 
-void NamedPartyRecords::Remove(const char* name) {
+void NamedPartyRecords::Remove(std::string_view name) {
     for (unsigned i = 0; i < static_cast<unsigned>(records.size()); ++i) {
-        if (str::Compare(records[i]->name.c_str(), name) != 0) continue;
+        if (str::Compare(records[i]->name, name) != 0) continue;
         // The index still advances, so the record moved into slot i is not tested (original behaviour).
         records.erase(records.begin() + i);
     }

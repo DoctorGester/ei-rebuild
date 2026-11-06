@@ -294,7 +294,7 @@ bool UnitServer::TargetBusy(MapObject* target) {
     return false;
 }
 
-void UnitServer::PlayAnimation(const char* name) {
+void UnitServer::PlayAnimation(std::string_view name) {
     const FigureAnimation* entry = OwningWorld()->GetMapObjectManager()->FindFigureAnimation(unit->name, name);
     if (!entry) return;
     action2.Reset();

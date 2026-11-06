@@ -257,7 +257,7 @@ void StockSpells(CampPages* camp, Party* list) {
     for (Item* item : list->items) {
         item->Repair();
         if (IsSpellContainer(item))
-            stock->AddSpell(g_spellDatabase.spells.Named(item->spell->GetPrototype()->code.c_str()));
+            stock->AddSpell(g_spellDatabase.spells.Named(item->spell->GetPrototype()->code));
         else if (IsSpell(item))
             stock->AddSpell(itemdb::SpellAt(item->AsLoot()->index));
         else if (IsModifier(item))

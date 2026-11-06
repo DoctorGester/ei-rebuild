@@ -53,7 +53,7 @@ struct Surface;
 struct CursorImage {
     // The image of the picture "<name>.mmp" (from the texture manager), the
     // hot spot given in the 32-pixel layout.
-    CursorImage(const char* name, int hotSpotX, int hotSpotY);
+    CursorImage(std::string_view name, int hotSpotX, int hotSpotY);
     ~CursorImage();
     CursorImage(const CursorImage&) = delete;
     CursorImage& operator=(const CursorImage&) = delete;
@@ -103,7 +103,7 @@ public:
     // Sets the cursor up on `device` (a reference taken, the old one's dropped); `smallCursors` picks 16-pixel cursors
     // instead of 32. Takes the bounds (the screen's size).
     void Init(TextureDevice* device, bool smallCursors);
-    void AddShape(const char* name, int hotX, int hotY);
+    void AddShape(std::string_view name, int hotX, int hotY);
 
     TextureDevice* device = nullptr;    // referenced
     bool imageShown = false;         // an image is shown

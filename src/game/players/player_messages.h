@@ -186,7 +186,7 @@ public:
 
     void SetVariable(std::string_view name, float value);                // message 0x81
     void SetVariableMax(std::string_view name, float value);             // raises a variable, 0x81
-    void DeleteVariable(const char* name);                          // message 0x82
+    void DeleteVariable(std::string_view name);                          // message 0x82
     void SendGameTime();                                            // message 0x07
     void SendZone(MemoryStream* zone);                           // message 0x02, `zone`
     void SendWeather(std::uint8_t weather, std::uint16_t strength);   // message 0x70
@@ -196,7 +196,7 @@ public:
     void SendCameraPlacement(const Vector3& at, std::uint32_t startValue, std::uint32_t sessionKind);   // message 0x04
     void SendFreeCamera(const Vector3& at, const Vector3& other, std::uint8_t flag);   // 0x0F
     void SendWeaponRemoved(std::uint32_t unitId, std::uint32_t index);
-    void SendJingle(const char* text);
+    void SendJingle(std::string_view text);
     void SendExperienceAll(std::uint32_t value);
     void SendExperience(std::uint32_t unitId, std::uint32_t value);
     void SendUnitDied(const EngineObject* object);                 // id, nothing without an object
