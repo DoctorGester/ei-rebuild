@@ -1,17 +1,19 @@
-// The figure manager's loaders: NewFigure, LoadPart, LoadBoneAnimation. See figure_manager.h.
+// The figure manager's loaders: NewFigure, LoadPart, LoadBoneAnimation, the figure object factory and
+// the menus' button rectangles (read from "menus.reg"). See figure_manager.h.
 #include "game/models/figure_manager.h"
 
-#include "game/core/engine_object.h"   // EngineObject
-#include "game/models/figure_mesh.h"
 #include "game/app/singletons.h"
-#include "game/models/animation.h"
-#include "game/objects/object3d.h"
-#include "game/mods/mod_folders.h"
-#include "game/models/link_loader.h"
-#include "game/scene/pipeline.h"
+#include "game/core/engine_object.h"   // EngineObject
 #include "game/data/registry.h"
+#include "game/models/animation.h"
+#include "game/models/figure_mesh.h"
+#include "game/models/link_loader.h"
+#include "game/mods/mod_folders.h"
+#include "game/objects/object3d.h"
+#include "game/scene/pipeline.h"
 #include "game/scene/sky_object.h"
 #include "game/ui_mesh.h"
+
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -25,6 +27,56 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
+
+namespace {
+
+constexpr const char* kCFigureManagerClassName = "CFigureManager";
+
+EngineObject* Create(int classId) {
+    switch (static_cast<FigureObjectType>(classId)) {
+    case FigureObjectType::LoosePart:
+    case FigureObjectType::AttachedPart:
+        return new FigureMesh();
+    case FigureObjectType::UiMesh:
+        return new UiMesh();
+    case FigureObjectType::SkyObject:
+        return new SkyObject();
+    case FigureObjectType::AnimationTrack:
+        return new AnimationTrack();
+    case FigureObjectType::FigureBone:
+        return new FigureBone();
+    case FigureObjectType::AnimationState:
+        return new FigureAnimationState();
+    default:
+        return nullptr;
+    }
+}
+
+// --- Menu rectangles ---
+
+// The entries in the order the original reads them: section, name, error, the RECT's index.
+struct MenuRect {
+    const char* section = nullptr;
+    const char* name = nullptr;
+    const char* error = nullptr;
+    int index = 0;
+};
+constexpr MenuRect kRects[] = {
+    {"MainMenu", "NewGame", "Can't get rect for MM NewGame\n", 0},
+    {"MainMenu", "LoadGame", "Can't get rect for MM LoadGame\n", 1},
+    {"MainMenu", "ExitGame", "Can't get rect for MM ExitGame\n", 2},
+    {"MainMenu", "Options", "Can't get rect for MM Options\n", 3},
+    {"MainMenu", "Credits", "Can't get rect for MM Credits\n", 4},
+    {"MainMenu", "Multiplayer", "Can't get rect for MM Multiplayer\n", 5},
+    {"EscMenu", "SaveGame", "Can't get rect for EM SaveGame\n", 6},
+    {"EscMenu", "LoadGame", "Can't get rect for EM LoadGame\n", 7},
+    {"EscMenu", "Options", "Can't get rect for EM Options\n", 10},
+    {"EscMenu", "ResumeGame", "Can't get rect for EM ResumeGame\n", 8},
+    {"EscMenu", "ExitMM", "Can't get rect for EM ExitMM\n", 9},
+};
+
+} // namespace
 
 void FigureManager::Create() {
     BaseManager::Create();
@@ -69,10 +121,6 @@ int FigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator,
 }
 
 // --- Class name and id ------------------------------------------------------------------------------
-
-namespace {
-constexpr const char* kCFigureManagerClassName = "CFigureManager";
-} // namespace
 
 const char* FigureManager::ClassName() { return kCFigureManagerClassName; }
 ClassId FigureManager::GetClassId() { return ClassId::FigureManager; }
@@ -287,30 +335,6 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
 // FigureAnimationState. The new object's type gets the class id; an unknown id returns null. See
 // docs/notes/models.md.
 
-namespace {
-
-EngineObject* Create(int classId) {
-    switch (static_cast<FigureObjectType>(classId)) {
-    case FigureObjectType::LoosePart:
-    case FigureObjectType::AttachedPart:
-        return new FigureMesh();
-    case FigureObjectType::UiMesh:
-        return new UiMesh();
-    case FigureObjectType::SkyObject:
-        return new SkyObject();
-    case FigureObjectType::AnimationTrack:
-        return new AnimationTrack();
-    case FigureObjectType::FigureBone:
-        return new FigureBone();
-    case FigureObjectType::AnimationState:
-        return new FigureAnimationState();
-    default:
-        return nullptr;
-    }
-}
-
-} // namespace
-
 EngineObject* CreateFigureObject(int classId) {
     EngineObject* object = Create(classId);
     if (!object) return nullptr;
@@ -318,45 +342,13 @@ EngineObject* CreateFigureObject(int classId) {
     return object;
 }
 
-// The menus' button rectangles (figure_manager.h): read from "menus.reg" through the figure manager.
-#include "game/models/figure_manager.h"
-
-#include "game/data/registry.h"
-#include "lib/containers.h"
-#include "lib/rect.h"
-
-#include <cstdint>
-#include <vector>
+// --- Menu rectangles ---
 
 // The main menu's and the escape menu's button rectangles from "menus.reg" (each entry
 // four integers; a missing or malformed one ends the game). See docs/notes/world.md.
 
 Rect g_menuRects[kMenuRects] = /*007C8048*/ {};
 
-namespace {
-
-// The entries in the order the original reads them: section, name, error, the RECT's index.
-struct MenuRect {
-    const char* section = nullptr;
-    const char* name = nullptr;
-    const char* error = nullptr;
-    int index = 0;
-};
-constexpr MenuRect kRects[] = {
-    {"MainMenu", "NewGame", "Can't get rect for MM NewGame\n", 0},
-    {"MainMenu", "LoadGame", "Can't get rect for MM LoadGame\n", 1},
-    {"MainMenu", "ExitGame", "Can't get rect for MM ExitGame\n", 2},
-    {"MainMenu", "Options", "Can't get rect for MM Options\n", 3},
-    {"MainMenu", "Credits", "Can't get rect for MM Credits\n", 4},
-    {"MainMenu", "Multiplayer", "Can't get rect for MM Multiplayer\n", 5},
-    {"EscMenu", "SaveGame", "Can't get rect for EM SaveGame\n", 6},
-    {"EscMenu", "LoadGame", "Can't get rect for EM LoadGame\n", 7},
-    {"EscMenu", "Options", "Can't get rect for EM Options\n", 10},
-    {"EscMenu", "ResumeGame", "Can't get rect for EM ResumeGame\n", 8},
-    {"EscMenu", "ExitMM", "Can't get rect for EM ExitMM\n", 9},
-};
-
-} // namespace
 
 int FigureManager::LoadMenuRects(Rect* rects) {
     FileRegistry reg;

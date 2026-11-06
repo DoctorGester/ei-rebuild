@@ -1,20 +1,25 @@
-// The link figure loader's archive list, .lnk reading and mesh cache. See link_loader.h and link_figure.h.
-#include "game/core/core_refcount.h"
-#include "game/models/link_figure.h"
-
-#include "game/scene/device.h"            // TextureDevice
+// The link figure loader's archive list, .lnk reading and mesh cache, and its constructor (the client
+// world's setup news it with the device object and the game's folder). See link_loader.h, link_figure.h and
+// docs/notes/renderer.md (section 12).
 #include "game/models/link_loader.h"
-#include "game/data/resource.h"          // MappedResource, MMIOResource
+
+#include "game/core/core_refcount.h"
+#include "game/data/resource.h"   // MappedResource, MMIOResource
+#include "game/models/link_figure.h"   // LinkMesh: the cache's entries
+#include "game/mods/mod_folders.h"
+#include "game/scene/device.h"   // TextureDevice
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <map>
 #include <memory>
 #include <new>
+#include <string>
 #include <vector>
 
 std::optional<std::string> ReadLinkString(const char** cursor) {
@@ -186,15 +191,7 @@ int LinkFigureLoader::AddArchive(const std::string& path) {
     return 0;
 }
 
-// The figure loader's constructor: the client world's setup news it with the device object and the game's
-// folder. See docs/notes/renderer.md (section 12).
-#include "game/models/link_figure.h"   // LinkMesh: the cache's entries
-#include "game/mods/mod_folders.h"
-#include "game/scene/device.h"
-#include "game/models/link_loader.h"
-
-#include <cstddef>
-#include <string>
+// --- The constructor ---
 
 // The device object counted, then the figure archives of `folder` opened (a failure is only logged).
 LinkFigureLoader::LinkFigureLoader(TextureDevice* device, const std::string& folder) {

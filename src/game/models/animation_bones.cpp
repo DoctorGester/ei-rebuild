@@ -1,15 +1,20 @@
 // The figure animation state's skeleton (class 0x300D; FigureAnimationState in objects/object3d.h): its
 // lifetime, the bones the skeleton file links (LinkPiece per link, then FindRoot), the meshes the bones
-// carry, and placing the skeleton when the animation or the figure's morph changes. See
-// docs/notes/map_objects.md.
+// carry, and placing the skeleton when the animation or the figure's morph changes. FigureBone::Place is
+// the skeleton's pose: each bone of a figure takes its place from its parent and its animator, and places
+// the mesh it carries. See docs/notes/map_objects.md.
+#include "game/objects/object3d.h"   // FigureBone, AnimationDatabase
+
 #include "game/core/base_manager.h"
 #include "game/core/core_maths.h"
+#include "game/models/animation.h"   // AnimationTrack
 #include "game/models/figure_manager.h"
-#include "game/models/figure_mesh.h"
-#include "lib/str.h"
-#include "game/models/animation.h"
-#include "game/objects/object3d.h"
+#include "game/models/figure_mesh.h"   // FigureMesh
 #include "game/world/world.h"
+
+#include "lib/containers.h"
+#include "lib/str.h"
+#include "lib/vecmath.h"
 #include "platform/platform.h"
 
 #include <algorithm>
@@ -20,6 +25,8 @@
 #include <vector>
 
 namespace {
+
+constexpr const char* kBoneClassName = "CAnimationNode";
 
 // The root places the skeleton at the owner's time factor at its scale z times its
 // default scale.
@@ -208,8 +215,9 @@ void FigureAnimationState::LoadBoneTracks(MappedResource* part, const FigureAnim
     }
 }
 
-// --- The bone's lifetime (FigureBone in objects/object3d.h). The figure factory makes bones; the animation
-// state links them.
+// --- The bone's lifetime (FigureBone in objects/object3d.h) ---
+
+// The figure factory makes bones; the animation state links them.
 
 FigureBone::FigureBone() {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -251,23 +259,11 @@ void FigureBone::Destroy() {
 
 FigureBone::~FigureBone() { FigureBone::Destroy(); }
 
-namespace {
-constexpr const char* kBoneClassName = "CAnimationNode";
-} // namespace
-
 const char* FigureBone::GetName() { return name.c_str(); }
 const char* FigureBone::ClassName() { return kBoneClassName; }
 ClassId FigureBone::GetClassId() { return ClassId::FigureBone; }
 
-// The skeleton's pose: each bone of a figure takes its place from its parent and its animator, and places the
-// mesh it carries. Called from the root (FigureAnimationState) when the animation changed or the figure was
-// rescaled, with the figure's scaled time factor as the origin. See docs/notes/map_objects.md.
-#include "game/objects/object3d.h"   // FigureBone, AnimationDatabase
-
-#include "game/models/figure_mesh.h"          // FigureMesh
-#include "game/models/animation.h" // AnimationTrack
-#include "lib/containers.h"
-#include "lib/vecmath.h"
+// --- FigureBone::Place ---
 
 void FigureBone::Place(const Vector3& origin, float blend) {
     const bool blended = blend < 1.0f && blendFrom;

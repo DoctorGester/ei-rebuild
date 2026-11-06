@@ -1,15 +1,27 @@
-// EffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
-// and docs/notes/effects.md ("Missiles and visibility").
+// EffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance), and FogGrid
+// (effects.h): the squares a seer sees, rows of bytes (Clear, Read, Write). See world_effect.h
+// and docs/notes/effects.md ("Missiles and visibility"), docs/notes/world.md.
+#include "game/effects/world_effect.h"
+
 #include "game/ai/ai_map.h"
+#include "game/ai/unit_ai.h"
+#include "game/core/core_streams.h"
+#include "game/effects/effects.h"
 #include "game/objects/map_object.h"
 #include "game/units/unit.h"
-#include "game/ai/unit_ai.h"
 #include "game/world/world.h"
-#include "game/effects/world_effect.h"
 
 #include "lib/crt.h"
 
 #include <cstring>
+
+namespace {
+
+constexpr int kNoOrigin = 0x7FFFFFFF;
+
+} // namespace
+
+// --- EffectShowVisibility ---
 
 EffectShowVisibility::EffectShowVisibility() {
     grid.cells.Resize(1, 1);
@@ -80,22 +92,7 @@ void EffectShowVisibility::Save(ByteStream* s) {
     s->WriteValue(copy);
 }
 
-// FogGrid (effects.h): the squares a seer sees, rows of bytes (Clear, Read, Write); used by
-// EffectShowVisibility (world_effect_visibility.cpp). See docs/notes/world.md.
-#include "game/ai/ai_map.h"
-#include "game/effects/effects.h"
-
-#include "game/core/core_streams.h"
-
-#include "lib/crt.h"
-
-#include <cstring>
-
-namespace {
-
-constexpr int kNoOrigin = 0x7FFFFFFF;
-
-} // namespace
+// --- FogGrid ---
 
 void FogGrid::Clear() {
     x0 = kNoOrigin;
