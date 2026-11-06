@@ -7,6 +7,7 @@
 
 #include "lib/str.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -258,16 +259,9 @@ void GameOptions::Save() {
     settings::Save();
 }
 
-} // namespace options
+// --- The constructor and the global --------------------------------------------------------------
 
-// The options object's constructor.
-// More: docs/notes/app.md, "Options".
-#include "game/app/options.h"
-
-#include <cstdint>
-
-namespace options {
-
+// The options object's constructor. More: docs/notes/app.md, "Options".
 // The strings start empty (the members' own constructors).
 GameOptions::GameOptions() {
     workPath = ".\\";

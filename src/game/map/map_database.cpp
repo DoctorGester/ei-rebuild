@@ -1,17 +1,24 @@
 // The map database loader: MapDatabase's allods, maps and exits (map/map_database.h) filled from map.txt / map-
-// LMP.txt.
+// LMP.txt; ZoneExit's area test and stream form.
 // More: docs/notes/objects.md, "Map database".
-#include "game/core/core_maths.h"
-#include "game/console/console.h"
-#include "game/app/singletons.h"
-#include "game/data/text_manager.h"
 #include "game/map/map_database.h"
+
+#include "game/app/singletons.h"
+#include "game/console/console.h"
+#include "game/core/core_maths.h"
+#include "game/core/core_streams.h"
+#include "game/data/text_manager.h"
+#include "game/saves/save_versions.h"
 #include "game/world/world.h"
 
+#include "lib/maths.h"
 #include "lib/text_case.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
+#include <string>
 #include <type_traits>
 
 namespace mapdb {
@@ -228,25 +235,11 @@ AllodRecord* MapDatabase::FindAllod(std::string_view name) {
     return nullptr;
 }
 
-// The zone exit's area test (world.h, ZoneExit). The rectangle is turned by `angle` about
-// its centre: the point is turned the other way first. Comparisons keep the game's NaN cases:
-// a NaN angle takes the axis-aligned path, a NaN turned x is outside, the other tests let NaN in.
-// Also the exit's stream form and the stream's string reader.
-#include "game/world/world.h"
+// --- ZoneExit ----------------------------------------------------------------------------------------
 
-#include "game/core/core_maths.h"
-#include "game/core/core_streams.h"
-
-#include <cstdint>
-#include <cstring>
-#include <string>
-
-#include "lib/maths.h"
-#include "game/saves/save_versions.h"
-#include "game/map/map_database.h"
-
-#include <memory>
-
+// The zone exit's area test (world.h, ZoneExit). The rectangle is turned by `angle` about its centre: the point is
+// turned the other way first. Comparisons keep the game's NaN cases: a NaN angle takes the axis-aligned path, a NaN
+// turned x is outside, the other tests let NaN in. Also the exit's stream form and the stream's string reader.
 bool ZoneExit::Contains(float x, float y) const {
     if (angle == 0.0f) {
         if (x1 > x) return false;

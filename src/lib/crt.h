@@ -129,7 +129,7 @@ void Warning(const char* format, Args&&... args) {
     Warning(format, libprintf::Arg(std::forward<Args>(args))...);
 }
 // Debug log; compiled out (empty) in the release build, but other mods may hook it. It leaves the caller's
-// result register unchanged (bink_video.cpp's error message masks it, so it returns a value).
+// result register unchanged (app/movies.cpp's error message masks it, so it returns a value).
 EI_PRINTF_FORMAT(1, 2) unsigned DebugLog(const char* format, ...);
 template <class... Args>
     requires libprintf::HasString<Args...>

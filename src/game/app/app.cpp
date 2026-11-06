@@ -1,31 +1,32 @@
-// Application helpers around WinMain: the window's events, the input dispatcher, the event pump and the start of the
-// first map. See app.h.
+// Application helpers around WinMain: the window's events, the input dispatcher, the event pump, the start of the
+// first map, the cursor's confinement, resolution changes and the start folders. See app.h.
 #include "game/app/app.h"
+
 #include "game/app/game_flow.h"
-#include "game/players/player_client.h"
-#include "game/sound/sound.h"
-#include "game/ui_cursor.h"
+#include "game/app/options.h"
 #include "game/app/present_window.h"
+#include "game/app/singletons.h"
 #include "game/core/asset_text.h"
-#include "platform/log.h"
+#include "game/device.h"
+#include "game/model.h"
+#include "game/players/player_client.h"
+#include "game/screen_layout.h"
+#include "game/script.h"
+#include "game/sound/sound.h"
+#include "game/ui.h"
+#include "game/ui_cursor.h"
+#include "game/world/world.h"
 
 #include "lib/crt.h"
 #include "lib/text_case.h"
+#include "platform/log.h"
 #include "platform/platform.h"
-#include <cstdarg>
-#include <cstring>
-#include <string>
-#include "game/app/options.h"
-#include "game/script.h"
-#include "game/device.h"
-#include "game/model.h"
-#include "game/ui.h"
-#include "game/world/world.h"
-#include "game/app/singletons.h"
 
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
-
+#include <cstring>
+#include <string>
 
 namespace app {
 namespace {
@@ -114,6 +115,13 @@ void OnMouse(const platform::Event& event, Point at) {
     default: break;
     }
 }
+
+constexpr int kLargestSide = 16384;   // the renderer's frame target's (render::GameTargetSize)
+
+bool g_confined = false;   // what the window was last asked
+
+int g_requestedWidth = 0, g_requestedHeight = 0;   // RequestResolution's, taken by the next pass (0: none)
+
 } // namespace
 
 void HandleWindowEvent(const platform::Event& event) {
@@ -187,58 +195,9 @@ void StartFirstMap() {
     game::FatalExit("%s, line %i", error.text, error.line);
 }
 
-// ---- Fatal errors and warnings --------------------------------------------------------
+// --- The cursor confined to the window -----------------------------------------------------------
 
-void ShowMessageBox(const char* text) {
-    platform::CursorShape cursor = platform::CurrentCursor();
-    platform::ShowMessageBox(g_mainWindow, text, g_windowTitle, platform::MessageButtons::Ok, platform::MessageIcon::Error);
-    platform::SetCursor(cursor);
-}
-
-void ShowLibraryMessageBox(const char* text) {
-    platform::ShowMessageBox(nullptr, text, platform::ProgramPath().c_str(), platform::MessageButtons::Ok,
-                             platform::MessageIcon::Warning);
-}
-
-} // namespace app
-
-void game::FatalExit(const char* format, ...) {
-    char text[0x400];
-    va_list args;
-    va_start(args, format);
-    std::vsnprintf(text, sizeof(text), format, args);
-    va_end(args);
-    ei::Log("fatal: %s", text);
-    app::ShowMessageBox(text);
-    std::exit(-1);
-}
-
-void game::Warning(const char* format, ...) {
-    char text[0x400];
-    va_list args;
-    va_start(args, format);
-    std::vsnprintf(text, sizeof(text), format, args);
-    va_end(args);
-    ei::Log("warning: %s", text);
-}
-
-// The cursor confined to the game window (app.h's UpdateCursorConfinement). docs/notes/platform.md, "The cursor".
-#include "game/app/app.h"
-
-#include "game/app/singletons.h"
-#include "game/ui.h"
-
-#include "platform/log.h"
-#include "platform/platform.h"
-
-namespace app {
-
-namespace {
-
-bool g_confined = false;   // what the window was last asked
-
-} // namespace
-
+// app.h's UpdateCursorConfinement. docs/notes/platform.md, "The cursor".
 void UpdateCursorConfinement() {
     const bool active = g_active != 0;
     const bool confined = active && g_interface.EdgePanLive();
@@ -251,33 +210,10 @@ void UpdateCursorConfinement() {
     ei::Log("app: cursor %s the window", confined ? "confined to" : "released from");
 }
 
-} // namespace app
+// --- Resolution changes --------------------------------------------------------------------------
 
 // The rendering resolution changed while the game runs (app.h's SetResolution): a window resized by the player or
 // the system, or a resolution chosen in the options. docs/notes/renderer.md, "Resolution changes".
-#include "game/app/app.h"
-
-#include "game/app/singletons.h"
-#include "game/device.h"
-#include "game/model.h"
-#include "game/app/options.h"
-#include "game/app/present_window.h"
-#include "game/screen_layout.h"
-#include "game/ui.h"
-#include "game/ui_cursor.h"
-
-#include "platform/log.h"
-
-namespace app {
-
-namespace {
-
-constexpr int kLargestSide = 16384;   // the renderer's frame target's (render::GameTargetSize)
-
-int g_requestedWidth = 0, g_requestedHeight = 0;   // RequestResolution's, taken by the next pass (0: none)
-
-} // namespace
-
 bool SetResolution(int width, int height) {
     TextureDevice* device = g_sceneRenderer.device;
     if (!device || width < 1 || height < 1 || width > kLargestSide || height > kLargestSide) return false;
@@ -315,12 +251,42 @@ void TakeResolutionChange() {
     g_requestedWidth = g_requestedHeight = 0;
 }
 
+// ---- Fatal errors and warnings --------------------------------------------------------
+
+void ShowMessageBox(const char* text) {
+    platform::CursorShape cursor = platform::CurrentCursor();
+    platform::ShowMessageBox(g_mainWindow, text, g_windowTitle, platform::MessageButtons::Ok, platform::MessageIcon::Error);
+    platform::SetCursor(cursor);
+}
+
+void ShowLibraryMessageBox(const char* text) {
+    platform::ShowMessageBox(nullptr, text, platform::ProgramPath().c_str(), platform::MessageButtons::Ok,
+                             platform::MessageIcon::Warning);
+}
+
 } // namespace app
 
-// The game's folders: plain globals.
-#include "game/app/singletons.h"
+void game::FatalExit(const char* format, ...) {
+    char text[0x400];
+    va_list args;
+    va_start(args, format);
+    std::vsnprintf(text, sizeof(text), format, args);
+    va_end(args);
+    ei::Log("fatal: %s", text);
+    app::ShowMessageBox(text);
+    std::exit(-1);
+}
 
-#include <string>
+void game::Warning(const char* format, ...) {
+    char text[0x400];
+    va_list args;
+    va_start(args, format);
+    std::vsnprintf(text, sizeof(text), format, args);
+    va_end(args);
+    ei::Log("warning: %s", text);
+}
+
+// --- The start folders ---------------------------------------------------------------------------
 
 std::string g_startFolder;
 std::string g_textFolder;

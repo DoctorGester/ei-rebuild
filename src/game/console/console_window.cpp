@@ -1,14 +1,23 @@
-// The console window's text and placement. See docs/notes/console.md.
+// The console window: its text side (lines, history depth, placement), its surface, paint and key input.
+// See docs/notes/console.md and docs/notes/ui.md ("Console window").
 #include "game/console/console.h"
 
-#include "game/screen_layout.h"
+#include "game/core/asset_text.h"
 #include "game/core/text_split.h"
+#include "game/screen_layout.h"
 #include "game/ui.h"
 
+#include "lib/containers.h"
+#include "lib/crt.h"
+#include "lib/str.h"
 #include "platform/log.h"
+#include "platform/platform.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <new>
+#include <string>
 
 namespace console {
 
@@ -20,6 +29,37 @@ constexpr int kMinHeight = 0x45;
 constexpr int kTopMargin = 0x18;
 constexpr int kLineHeight = 15;
 constexpr int kLayoutHeight = 600;
+constexpr Rect kInitialRect = {0, 0, 800, 150};
+
+// Colours and the strings the window draws (read from the exe: "> " before the input, "+" for
+// the scroll marks).
+constexpr std::uint32_t kBackground = 0x282828;
+constexpr std::uint32_t kSelection = 0x505050;
+constexpr std::uint32_t kLineText = 0xB4B4B4;
+constexpr std::uint32_t kInputText = 0xFFFFFF;
+// Layout pixels (ConsoleWindow::Px scales them): the input strip at the bottom (the line pitch: kLineHeight).
+constexpr int kInputHeight = 0x1F;
+constexpr render::text::Format kDrawLine = render::text::Format::NoPrefix;
+constexpr render::text::Format kDrawMark = render::text::Format::NoPrefix | render::text::Format::Right;
+
+int Clamp(int value, int high) {
+    if (value > high) value = high;
+    if (value < 0) value = 0;
+    return value;
+}
+
+// Width in pixels of the prompt and the first `count` characters of the input in `font`.
+int PromptWidth(const UiFont& font, const std::string& input, int count) {
+    return TextExtent(font, std::string("> ") + str::Left(input, count)).w;
+}
+
+constexpr int kHistoryDepth = 30;
+
+// CDC::FillSolidRect of `width` x `height` at (x, y).
+void FillArea(UiSurface& surface, int x, int y, int width, int height, std::uint32_t colour) {
+    surface.FillRect(Rect{x, y, x + width, y + height}, colour);
+}
+
 } // namespace
 
 int ConsoleWindow::Px(int layoutPixels) const {
@@ -88,18 +128,9 @@ void ConsoleWindow::AddText(std::string_view text) {
     ClampScroll();
 }
 
-} // namespace console
-
-// --- Create ------------------------------------------------------------------------------------------
+// --- Create --------------------------------------------------------------------------------------
 
 // The console window's constructor. See console.h and docs/notes/console.md.
-
-namespace console {
-
-namespace {
-constexpr Rect kInitialRect = {0, 0, 800, 150};
-} // namespace
-
 ConsoleWindow::ConsoleWindow() {
     Rect area = kInitialRect;
     SetRect(area);
@@ -107,61 +138,7 @@ ConsoleWindow::ConsoleWindow() {
     ClampScroll();
 }
 
-} // namespace console
-
-// The console window's surface, paint and key input. The text
-// side (lines, history depth, placement) is in console_window.cpp. See docs/notes/ui.md
-// ("Console window").
-#include "game/console/console.h"
-#include "game/ui.h"
-#include "game/core/asset_text.h"
-
-#include "lib/containers.h"
-#include "lib/crt.h"
-
-#include "lib/str.h"
-
-#include <algorithm>
-#include <cstring>
-#include <string>
-#include "platform/platform.h"
-
-namespace console {
-
-namespace {
-
-
-// Colours and the strings the window draws (read from the exe: "> " before the input, "+" for
-// the scroll marks).
-constexpr std::uint32_t kBackground = 0x282828;
-constexpr std::uint32_t kSelection = 0x505050;
-constexpr std::uint32_t kLineText = 0xB4B4B4;
-constexpr std::uint32_t kInputText = 0xFFFFFF;
-// Layout pixels (ConsoleWindow::Px scales them): the line pitch and the input strip at the bottom.
-constexpr int kLineHeight = 15;
-constexpr int kInputHeight = 0x1F;
-constexpr render::text::Format kDrawLine = render::text::Format::NoPrefix;
-constexpr render::text::Format kDrawMark = render::text::Format::NoPrefix | render::text::Format::Right;
-
-int Clamp(int value, int high) {
-    if (value > high) value = high;
-    if (value < 0) value = 0;
-    return value;
-}
-
-// Width in pixels of the prompt and the first `count` characters of the input in `font`.
-int PromptWidth(const UiFont& font, const std::string& input, int count) {
-    return TextExtent(font, std::string("> ") + str::Left(input, count)).w;
-}
-
-constexpr int kHistoryDepth = 30;
-
-// CDC::FillSolidRect of `width` x `height` at (x, y).
-void FillArea(UiSurface& surface, int x, int y, int width, int height, std::uint32_t colour) {
-    surface.FillRect(Rect{x, y, x + width, y + height}, colour);
-}
-
-} // namespace
+// --- Surface, paint and key input ----------------------------------------------------------------
 
 // A shown window gets a surface over its rectangle (format 4) if it has none, painted from the lines and the
 // input; hiding releases the surface.

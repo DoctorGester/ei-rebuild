@@ -1,6 +1,6 @@
 # World objects, diplomacy, lightning, map database and players
 
-Code: `object*.cpp`, `object_diplomacy.*`, `object_tables.*`, `lightning*.cpp`, `map_database.*`, `map_spec*.cpp`,
+Code: `object*.cpp`, `object_diplomacy.*`, `lightning*.cpp`, `map_database.*`, `map_spec*.cpp`,
 `unit_record.*`, `world/world_loot.cpp`, `player*.cpp`. Scenarios: `objects_more` (lightning bolts, then the lightning
 spell on a wolf); every scenario that loads a zone reaches the map database, unit records and the player messages.
 The party is in `items_spells.md`, options and tables in `app.md`.

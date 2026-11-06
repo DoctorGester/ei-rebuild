@@ -13,7 +13,7 @@ what they do not say. The HUD panels and windows are in `ui.md`; players and the
 | Quest database | quest_database, quest_records | any new game in zone1 |
 | Textures (mmp, composed) | texture_load, texture | all (skins at zone load) |
 | Registry files, ini | registry, ini_file, settings | all |
-| Trader stock | item_stock, class_template_stock | trader_stock |
+| Trader stock | item_stock, class_templates | trader_stock |
 | Party, records, item lists | party*.cpp | ui_camp, trader_stock, party_records, items |
 
 ## Databases and naming

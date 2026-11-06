@@ -348,7 +348,7 @@ go through `ClearUiDepth` (ui.h) to `render::ClearDepth`.
 
 | Function | What ours does |
 |---|---|
-| `PlayMovie` (`bink_video.cpp`): the blocking movie player with its own message loop (Esc / Space end or skip a frame) | each frame to `render::MovieFrame`, then `render::Fill` (black) + `MovieBlit`, presented through the present; result 0 / 1 (1 with movies off) |
+| `PlayMovie` (`app/movies.cpp`): the blocking movie player with its own message loop (Esc / Space end or skip a frame) | each frame to `render::MovieFrame`, then `render::Fill` (black) + `MovieBlit`, presented through the present; result 0 / 1 (1 with movies off) |
 | `ShowLoadingMovie`: the loading movie (progres*.bik per zone) stretched over the screen; hides the cursor on every call and never shows it again | its last frame blitted and presented as above |
 | The cursor | the system's cursor (section 9, "The cursor") |
 
@@ -1221,7 +1221,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   constant (ticks for 1 - 1/e of the way): wet in 200 (about 11 s) and dry in 1600 (about 90 s), the puddles 450 /
   2400, the snow 1600 (about half the cover in a minute, three quarters in two) and melting in 2400, in rain 900. The
   time only goes forward: the drawn frame's tick fraction can run past the next tick while the client waits for the
-  server (app_main's backlog), so the time handed over steps back a little now and then. Any step back (or over 64
+  server (app/main_loop.cpp's backlog), so the time handed over steps back a little now and then. Any step back (or over 64
   ticks) used to start the state again from the weather as it was, which in play made the snow and the wetness come at
   once (R53). Only a zone's landscape loaded (`render::LandscapeLoaded`, from Terrain::LoadMap; a save's load goes
   through it too) starts again: for the first 32 ticks after it the state is the settled weather as it is (the weather

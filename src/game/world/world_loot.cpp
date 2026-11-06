@@ -1,19 +1,29 @@
-// WorldServer::Loot: a player takes what a dead body or a container holds. See
-// world.h and docs/notes/world.md.
-#include "game/unit.h"
+// WorldServer::Loot: a player takes what a dead body or a container holds; Hoover's loot of a dead unit and its
+// members. See world.h, hoover.h and docs/notes/world.md.
 #include "game/world/world.h"
 
-#include "game/map_object.h"
-#include "game/world/hoover.h"
-#include "game/players/player_messages.h"
-#include "game/players/party.h"
-
-#include "game/effects.h"
-#include <cstdint>
-
 #include "game/app/singletons.h"
+#include "game/core/random.h"
+#include "game/data/text_manager.h"
+#include "game/effects.h"
+#include "game/figure_mesh.h"
+#include "game/item.h"
+#include "game/item_manager.h"
+#include "game/map_object.h"
+#include "game/players/party.h"
 #include "game/players/player_manager.h"
+#include "game/players/player_messages.h"
+#include "game/unit.h"
+#include "game/unit_db.h"
+#include "game/world/hoover.h"
 
+#include "lib/crt.h"
+#include "lib/rounding.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include <vector>
 
 bool WorldServer::Loot(Unit* unit, Player* player) {
@@ -101,32 +111,11 @@ void WorldServer::LootDeadUnits() {
     for (unsigned objectId : dead) RemoveObject(objectId);
 }
 
-// The loot of a dead unit (the server's world calls it on its Hoover, +0x140, which the function does not
-// use): the prototype's items (new objects from the item manager, put on both lists), the gold (two rolls of
-// the prototype: an amount between a minimum and a maximum, kept when a percent roll is within the chance),
-// the quick items and carried items, and for units with a text key also the armour and weapons, all taken off
-// the unit and put on the drop list. A unit is looted once (flag 0x100000). Plain float maths for the amounts
-// (rule 7).
-#include "game/item.h"
-
-#include "game/figure_mesh.h"
-#include "game/item_manager.h"
-#include "game/world/hoover.h"
-#include "game/data/text_manager.h"
-#include "game/core/random.h"
-#include "game/unit.h"
-#include "game/unit_db.h"
-#include "game/world/world.h"
-#include "lib/crt.h"
-#include "lib/rounding.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include <vector>
+// --- Hoover::CollectLoot -------------------------------------------------------------------------
 
 namespace {
+
+const char* const kHooverName = "CHoover";
 
 // `object` appended with a new reference.
 void Append(std::vector<Item*>* list, Item* object) {
@@ -147,6 +136,12 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
+// The loot of a dead unit (the server's world calls it on its Hoover, +0x140, which the function does not
+// use): the prototype's items (new objects from the item manager, put on both lists), the gold (two rolls of
+// the prototype: an amount between a minimum and a maximum, kept when a percent roll is within the chance),
+// the quick items and carried items, and for units with a text key also the armour and weapons, all taken off
+// the unit and put on the drop list. A unit is looted once (flag 0x100000). Plain float maths for the amounts
+// (rule 7).
 int Hoover::CollectLoot(World* world, Unit* cunit, std::vector<Item*>* drops, std::vector<Item*>* items, int* gold) {
     bool keyed = IsTextKey(cunit->id);
     if (cunit->flags & MapObjectFlag::LootTaken) return 0;
@@ -193,10 +188,6 @@ int Hoover::CollectLoot(World* world, Unit* cunit, std::vector<Item*>* drops, st
 }
 
 // --- Object ------------------------------------------------------------------------------------------
-
-namespace {
-const char* const kHooverName = "CHoover";
-} // namespace
 
 Hoover::~Hoover() {}
 

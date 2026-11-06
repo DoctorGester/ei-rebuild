@@ -16,6 +16,7 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -42,6 +43,14 @@ void AddTemplate(std::vector<HeldRef<ClassTemplate>>* v, int type, std::uint8_t 
     ClassTemplateFill(t);
 
     v->emplace_back(t);
+}
+
+// Each listed item goes to `party` (keeping its count, merged with an equal one) and is released.
+void HandOver(const std::vector<Item*>& list, Party* party) {
+    for (Item* item : list) {
+        party->AddItem(item, true, true);
+        item->Release();
+    }
 }
 
 } // namespace
@@ -129,31 +138,11 @@ unsigned ClassTemplatesQuestCompleted(PartyManager* manager) {
     return static_cast<unsigned>(all.size());
 }
 
-// A class template's trader stock: the levels setter and the two generators the
-// camp calls when its constructor record is due (items, magic). The generators
-// collect new items in a vector, hand each to the template's party and release it.
-// Names are provisional; see docs/notes/items_spells.md ("Trader stock").
-#include "game/players/class_templates.h"
+// --- Trader stock and lifetime -------------------------------------------------------------------
 
-#include "game/item.h"
-#include "game/players/party.h"
-
-#include "lib/crt.h"
-
-#include <vector>
-
-namespace {
-
-// Each listed item goes to `party` (keeping its count, merged with an equal one) and is released.
-void HandOver(const std::vector<Item*>& list, Party* party) {
-    for (Item* item : list) {
-        party->AddItem(item, true, true);
-        item->Release();
-    }
-}
-
-} // namespace
-
+// A class template's trader stock: the levels setter and the two generators the camp calls when its constructor
+// record is due (items, magic). The generators collect new items in a vector, hand each to the template's party and
+// release it. Names are provisional; see docs/notes/items_spells.md ("Trader stock").
 ClassTemplate::ClassTemplate() {
     items.Create();
     spells.Create();

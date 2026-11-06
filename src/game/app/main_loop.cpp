@@ -1,43 +1,42 @@
 // WinMain: the application's start-up, its main loop and its shutdown. See docs/notes/app.md, "WinMain".
-#include "platform/log.h"
 #include "game/acks_db.h"
 #include "game/app/app.h"
-#include "game/core/asset_text.h"
-#include "game/app/movies.h"
-#include "game/camera.h"
-#include "game/players/class_templates.h"
-#include "game/console/console.h"
-#include "game/drawn_motion.h"
-#include "game/core/engine_object.h"
 #include "game/app/game_flow.h"
+#include "game/app/harness_hooks.h"
+#include "game/app/logic_settings.h"
+#include "game/app/movies.h"
+#include "game/app/options.h"
+#include "game/app/settings.h"
 #include "game/app/singletons.h"
+#include "game/camera.h"
+#include "game/console/console.h"
+#include "game/core/asset_text.h"
+#include "game/core/coder.h"
+#include "game/core/engine_object.h"
+#include "game/core/random.h"
+#include "game/core/text_split.h"
+#include "game/data/ini_file.h"
+#include "game/device.h"
+#include "game/dib.h"
+#include "game/drawn_motion.h"
+#include "game/ground_print.h"
 #include "game/item_db.h"
 #include "game/lever.h"
-#include "game/app/logic_settings.h"
-#include "game/app/harness_hooks.h"
-#include "game/mods/mod_folders.h"
-#include "game/device.h"
-#include "game/ground_print.h"
-#include "game/model.h"
-#include "game/texture.h"
-#include "game/net_classes.h"
-#include "game/core/coder.h"
-#include "game/net_session.h"
 #include "game/map/map_database.h"
-#include "game/app/options.h"
+#include "game/model.h"
+#include "game/mods/mod_folders.h"
+#include "game/net_classes.h"
+#include "game/net_session.h"
+#include "game/players/class_templates.h"
 #include "game/players/party_records.h"
-#include "platform/platform.h"
-#include "game/world/quest_records.h"
-#include "game/core/random.h"
-#include "render/render.h"
 #include "game/screen_layout.h"
-#include "game/app/settings.h"
 #include "game/sound/sound.h"
-#include "game/core/text_split.h"
+#include "game/texture.h"
 #include "game/ui.h"
 #include "game/ui_cursor.h"
 #include "game/ui_screens.h"
 #include "game/unit_db.h"
+#include "game/world/quest_records.h"
 #include "game/world/world.h"
 
 #include "lib/crt.h"
@@ -45,6 +44,9 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
+#include "platform/log.h"
+#include "platform/platform.h"
+#include "render/render.h"
 
 #include <chrono>
 #include <cmath>
@@ -54,10 +56,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 using options::GameOptions;
 
@@ -527,6 +531,12 @@ void TakeModSwitch() {
             static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - began).count()));
 }
 
+// ---- The frame step's state ------------------------------------------------------------------------
+
+bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
+
+std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame file of the movie being written
+
 } // namespace
 
 void UseMod(const std::string& gameFolder, const std::string& setting) {
@@ -630,43 +640,9 @@ int GameMain(char* commandLine) {
     return result;
 }
 
-} // namespace app
+// --- WinMain's frame step ------------------------------------------------------------------------
 
-// WinMain's frame step (the interface drawn and the frame presented, a screenshot per frame while recording a movie).
-// See docs/notes/app.md.
-#include "game/app/app.h"
-
-#include "game/app/movies.h"
-#include "game/dib.h"
-#include "game/app/singletons.h"
-#include "game/data/ini_file.h"
-#include "game/lever.h"
-#include "game/device.h"
-#include "game/model.h"
-#include "game/ui.h"
-#include "game/ui_cursor.h"
-#include "game/app/harness_hooks.h"
-#include "lib/crt.h"
-#include "platform/platform.h"
-#include "render/render.h"
-
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <memory>
-#include <string>
-#include <vector>
-
-namespace app {
-
-namespace {
-
-bool Running() { return app::g_active != 0 && app::g_interfaceHasScreen != 0; }
-
-std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame file of the movie being written
-
-} // namespace
-
+// The interface drawn and the frame presented, a screenshot per frame while recording a movie. See docs/notes/app.md.
 // Nothing while the application is inactive (a 50 ms sleep when no window of the interface is active).
 void FrameStep(bool draw) {
     if (!Running()) return;

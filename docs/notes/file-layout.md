@@ -138,6 +138,17 @@ C168d moved core/, data/, mods/ and saves/ (53 moves, 7 folds: core_refcount.cpp
 angles.h, text_helpers.{h,cpp}, resource_stream.{h,cpp}); the other folders' files are still flat, and their includes
 name the flat path until their batch. Each fold is the two files' text one after the other with one include list.
 
+C168e moved app/, console/, sound/, world/, players/ and map/ (102 moves, 11 folds into 9 files: app/app.cpp takes
+app_confine, app_resolution and game_folders; main_loop.cpp app_frame; options.cpp options_construct; console_window.cpp
+ui_console_window; world_server.cpp object_id_map; world_loot.cpp hoover_loot; quest_database.cpp quest_records.cpp;
+class_templates.cpp class_template_stock; map_database.cpp exit_area; 1,376 paths and 61 renamed names rewritten). A fold
+reads as one file: one include list, one anonymous namespace (a name both had, kLineHeight in the console window, is one
+definition), each former file a section marked `// --- Name ---`. `layout.py rewrite` leaves the arguments of
+`layout.game_paths(...)` alone: they are flat names the map resolves (check_cleanup.py's exemptions). Prose that names a
+file by a stem without extension (app_main, world_game, app_frame) is not rewritten: C168e's were read and changed by
+hand; bink_video.* in the notes names either the game's movie player (app/movies.*) or the decoder in src/video, and the
+decoder's references stay.
+
 `*_internal.h` (combat, spell effects, world effects) and `script_parse.h` are private headers of one family: they
 stay (combat_plan.h joins combat's). ui_float.h (FloatFromBits for constants written as raw bits, Truncate) moves as
 ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be float literals), not a move.
@@ -286,19 +297,19 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 10598 | C168f |
-| `app/` | 25 | 5238 | C168e |
+| `app/` | 25 | 7034 | C168e |
 | `combat/` | 13 | 5168 | C168f |
-| `console/` | 5 | 1653 | C168e |
+| `console/` | 5 | 2036 | C168e |
 | `core/` | 27 | 3874 | C168d |
 | `data/` | 13 | 3235 | C168d |
 | `effects/` | 23 | 10254 | C168g |
 | `items/` | 10 | 2810 | C168g |
-| `map/` | 11 | 1732 | C168e |
+| `map/` | 11 | 2028 | C168e |
 | `models/` | 20 | 4445 | C168g |
 | `mods/` | 6 | 605 | C168d |
 | `net/` | 21 | 6203 | C168h |
 | `objects/` | 22 | 5529 | C168f |
-| `players/` | 23 | 5161 | C168e |
+| `players/` | 23 | 5340 | C168e |
 | `saves/` | 7 | 811 | C168d |
 | `scene/` | 30 | 4376 | C168g |
 | `script/` | 20 | 6526 | C168h |
@@ -307,8 +318,8 @@ Risks:
 | `terrain/` | 12 | 3028 | C168g |
 | `ui/` | 94 | 30731 | C168h |
 | `units/` | 27 | 8820 | C168f |
-| `world/` | 35 | 8909 | C168e |
-| all | 482 | 133852 | |
+| `world/` | 35 | 9727 | C168e |
+| all | 482 | 137324 | |
 
 533 files today; 55 fold into an owner, 10 split by meaning, 8 new files come out of the splits, 36 moves rename for meaning.
 

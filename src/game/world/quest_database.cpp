@@ -1,15 +1,17 @@
-// The quest database's load of one quest (called by the quest registration with the image of "<name>.quest.reg"):
+// The quest database: its load of one quest (called by the quest registration with the image of "<name>.quest.reg"):
 // the "quest" section becomes a quest record (name, exp, money, zone index, order, the "{x;y}" quest places) and
 // the three briefing sections ("briefing receive", "briefing reject", "briefing complete") briefing records (name,
 // exp, money, six string lists); each record is added unless its name is already there. See
 // docs/notes/items_spells.md ("Quest database").
-#include "game/console/console.h"
-
-#include "game/data/database_file.h"
 #include "game/world/quest_records.h"
+
+#include "game/console/console.h"
+#include "game/core/text_split.h"
+#include "game/data/chunk_archive.h"
+#include "game/data/database_file.h"
 #include "game/data/registry.h"
 #include "game/script.h"
-#include "game/core/text_split.h"
+
 #include "lib/crt.h"
 #include "lib/str.h"
 
@@ -153,14 +155,10 @@ int QuestDatabase::Load(const std::string& folder) {
 // operator[]: an unknown name is filed with null.
 QuestRecord* QuestDatabase::FindQuest(std::string_view name) { return questsByName[std::string(name)]; }
 
-// The quest database's records in an archive: the records' Serialize (quests,
-// briefings) and the two vectors'. See quest_records.h and docs/notes/items_spells.md ("Quest database").
-#include "game/world/quest_records.h"
+// --- The records in an archive -----------------------------------------------------------------------
 
-#include "game/data/chunk_archive.h"
-
-#include <vector>
-
+// The quest database's records in an archive: the records' Serialize (quests, briefings) and the two vectors'. See
+// quest_records.h and docs/notes/items_spells.md ("Quest database").
 void QuestRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->Field(1, &exp);

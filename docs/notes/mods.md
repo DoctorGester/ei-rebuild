@@ -266,18 +266,18 @@ back. Reload: made again from the new mod's files. The list to check when a swit
 
 | Owner | Globals | Switch | Why |
 |---|---|---|---|
-| Platform: window, events, input, instance lock, log (platform_sdl, other_game, log, main.cpp, present_window, app_confine, app_resolution) | ~22 | keep | no file of a mod |
+| Platform: window, events, input, instance lock, log (platform_sdl, other_game, log, main.cpp, present_window, app/app.cpp's confinement and resolution changes) | ~22 | keep | no file of a mod |
 | Path map (path_layers.cpp `g_mod`) | 1 | reload | `platform::SwitchMod` |
 | Renderer (src/render: device, pipelines, frame, caches of textures, meshes, terrain pages, fonts, shadows, water, weather) | 264 | keep | caches key on game objects and forget them: `ForgetHolder` when a texture holder is freed, meshes and terrain pages checked for staleness and dropped after 600 frames unused |
 | The game's draw glue (renderer_scene/sprites/strip/lines, device_draw, figure_part_draw, world_client_draw/lights/shadow_casters/view, effects_weather, particle_manager, lightning's sprites, drawn_motion, camera, camera_trace) | ~50 | keep | per-frame scratch and the drawn view; the scene renderer's sun and the device's bindings let go by `StopGame` |
 | Audio device (audio.cpp) | 15 | keep | a new `SoundManager` closes and opens the output again |
-| App and loop (app_main, app_frame, app/harness_hooks.h, bink_video, `g_camera`, screen_layout, ui_cursor.h sizes) | ~27 | keep | the camera `Init` again and attached to the new client world; the loop's clock reset |
+| App and loop (app/main_loop.cpp, app/harness_hooks.h, app/movies.cpp, `g_camera`, screen_layout, ui_cursor.h sizes) | ~27 | keep | the camera `Init` again and attached to the new client world; the loop's clock reset |
 | Settings, options, EI_Plugin's values, console, crt, random generators | ~19 | keep | `g_random` / `g_clientRandom` unseeded by `StartGame`, seeded again by `World::Create` |
 | `g_logicSettings` (config\ai.reg) | 1 | reload | `Load` starts from the defaults |
 | Databases (spell_db, item_db, quest_database, ground_print, acks_db, unit_db, lever_table) and `g_mapDatabase` | 9 | reload | `LoadDatabases` empties each; `LoadAll` empties the map list |
 | Mod-folder layer (`g_mapsInMod` and mod_folders.cpp's state) | 1 + 2 | reload | `modfolders::Reset` |
 | Worlds (`g_clientWorld`, `g_serverWorld`: every manager and its archives, texts, sounds, music, the lightning noise) | 2 | reload | `Destroy` then `Create` and `SetUpGraphics` |
-| Game flow and world state (world_game: `g_gameFlow`, `g_zoneTable`, `g_saveStream`, the stamps; world_briefing's quest folders and files; world_weather, world.h; party_manager, party, player_client, player_server_handlers) | ~15 | reset | `GameFlow::Restart`; counters may keep counting |
+| Game flow and world state (app/game_flow.cpp: `g_gameFlow`, `g_zoneTable`, `g_saveStream`, the stamps; app/game_flow_briefings.cpp's quest folders and files; world_weather, world.h; party_manager, party, player_client, player_server_handlers) | ~15 | reset | `GameFlow::Restart`; counters may keep counting |
 | Interface (`g_interface`, `g_keyActions`, `g_menuRects`, `g_cursor`, texture_load's `g_composed`) | 5 | reload | `Shutdown` / `Create`, the cursor's `Shutdown` / `SetUpCursors`, `ForgetComposedTextures`; menus.reg read again by the figure manager |
 | Interface scratch (ui_surface's list, ui_main_menu, ui_objectives, ui_interface, ui_screens.h, `g_keyNames`) | ~6 | keep | |
 | AI pools and tables (ai_block_search, ai_events, ai_footprint, ai_path_smooth, ai_refresh, ai_unit_shape), weather noise, fog tiles, animation blends | ~13 | keep | computed, or loaded for each zone |
