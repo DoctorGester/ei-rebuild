@@ -149,8 +149,9 @@ stopped running the original game, H40, were the same as its runs). How to write
 
 On GitHub, `suites.yml` runs the suites on a self-hosted Windows runner that has the game installed, and
 `suites-linux.yml` runs them on GitHub's Linux runners (eight shards on Mesa's
-software Vulkan, with a stub of the game data from a private repository). Scenarios that a CPU renderer cannot finish
-in time are left out there (`LINUX_SKIP`; `docs/notes/linux.md`, The CI job).
+software Vulkan, with a stub of the game data from a private repository), less the render_*, net_* and camera_*
+scenarios and a few more that a CPU renderer cannot finish in time (`LINUX_SKIP`; `docs/notes/linux.md`, The CI job).
+`suites-windows.yml` and `suites-macos.yml` are smoke runs (the builds and a short scenario list).
 
 The test tools find the installs by `EI_GAME_VANILLA`, `EI_GAME_REBIRTH`, default the `F:\games` paths
 above; `tools/run_all.py` install_dir); the few tools that read game.exe's file read the

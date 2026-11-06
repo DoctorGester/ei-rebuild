@@ -462,25 +462,25 @@ through it.
 
 ## The Windows CI job
 
-`.github/workflows/suites-windows.yml` ("Windows", H61; by hand only until a run has shown what passes) builds on
-GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data suites the way the Linux job does
-(linux.md, "The CI job"), on SDL_GPU's Direct3D 12 driver with WARP, the software adapter.
+`.github/workflows/suites-windows.yml` ("Windows", H61; by hand only) is a smoke job like the macOS one below, on GitHub's
+windows-latest runner (4 vCPU, 16 GB, no GPU), on SDL_GPU's Direct3D 12 driver with WARP, the software adapter. It was a
+full suite (both suites over eight jobs, H61 to H62g) until the user cut it (2026-11-06): WARP draws a frame in 0.3 to
+0.8 s, the shards took 70 to 140 minutes, most runs needed a time scale of 8 and a long skip list, and a few pictures
+differ from the desktop's.
 - **Builds**: `build-release` and `build-verify` in parallel, each `build.cmd` of its name (the runner's Visual Studio,
   found by vswhere and given as EI_VSROOT; no sccache: EI_COMPILER_CACHE=0; the shader toolchain's build folder cached),
   with the warnings and build checks included. The verify job uploads `build/verify/ei-rebuild.exe` and its `.map` (so
   run_all names a crashed run's stack; the stub data's game.exe is empty, which resolve_crash.py leaves out); a failed
-  build check with the exe linked is a warning, so the suites still run.
-- **Suites**: eight jobs (input `shards`), each its share of the sorted scenarios, image suite then Rebirth's,
-  `--golden`; the stub set fetched and unpacked as in the Linux job (same variable and secrets). Inputs: `scenarios` (a
-  few names: also give `shards` 1; the names given run even when skipped), `suites` (full, image, builds), `jobs`
-  (games at once in a job, default 1: two at once, run 42039247533, made each run 1.86 times as long, 149 runs that
-  passed both ways taking 10601 s against 5690 s, so 7% more runs per hour, and 30 runs that pass one at a time went
-  past a limit or failed, among them every recording part that prepares a save), `retries` (run_all's, default 0: in
-  run 42016421240, with run_all's default of 1, the reruns of runs that had timed out took a third of each job's time,
-  1220 of 3678 s in one, and three of the eight jobs were cut at their 120 minutes; a job may take 180 now) and
-  `time_scale` (EI_TIME_SCALE, default 8: below). After each suite a folded group in
-  the step's log holds `tools/ci_details.py`'s lines for every run that did not pass or differs (as the macOS job's
-  "Differences in detail" below): the job keeps no run folders.
+  build check with the exe linked is a warning, so the smoke still runs. The input `builds_only` stops there.
+- **Smoke**: the stub data fetched and unpacked as in the Linux and macOS jobs (same variable and secrets), vanilla only.
+  `boot` alone first as a gate (the `gpu:` lines and logs are printed when it does not pass); then the `scenarios` input
+  or `SMOKE_LIST` (the macOS list less render_stats: boot, smoke, settings_defaults, ui_main_menu, ui_screens, ui_hud,
+  ui_saveload, rec_save_load, save_flight, world_load, zone_gz3g, render_scene, render_present, render_water,
+  render_shadows, units, items), one game at a time, `--vanilla-only --golden`, EI_TIME_SCALE 8. All of them passed
+  on the runner with none of their goldens differing (run 42124917682: 5 to 197 s each, about 15 minutes together; render_stats
+  alone 616 s). The summary has the goldens block and the device line; `tools/ci_details.py` prints the runs that did
+  not pass or differ (as the macOS job's "Differences in detail" below). The verdict fails the job on GOLDENS DIFFER,
+  "not passed:" or no "GOLDENS THE SAME" line. For other scenarios, name them in `scenarios`.
 - **WARP**: SDL's D3D12 driver takes the high-performance adapter (`EnumAdapterByGpuPreference`), which on the GPU-less
   runner is the Basic Render Driver, i.e. WARP. SDL has no switch for it, so third_party/SDL/README.txt lists ours:
   the hint (so the environment variable) `EI_GPU_D3D12_WARP=1` picks `IDXGIFactory4::EnumWarpAdapter` in the driver's
@@ -497,20 +497,15 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   meshes' draws in the frame target, the 4096 x 4096 sun map's casters, its cells and range, the occlusion and the
   water's copies, in that order; the terrain shader cut to its texture still cost half its time and the sun filter's
   taps a sixth, so no one shader part is the cause. One game at a time the 166 runs that passed on both took a median 2.4
-  times as long as on Linux's lavapipe (run 42016421240 against 42040984380), hence EI_TIME_SCALE 8 (input
-  `time_scale`) against Linux's 3.
-- **Microsoft's WARP is slower** (H62g): the workflow's input `warp=true` (default false) fetches NuGet's
-  Microsoft.Direct3D.WARP 1.0.21 (version, SHA512 from nuget.org and SHA256 pinned; cached; only
-  `build/native/bin/x64/d3d10warp.dll` is taken out of it) and puts the dll next to `build/verify/ei-rebuild.exe`, which
-  D3D12 loads instead of the in-box one; the run's `gpu:` line then says `driver 1.0.21.0` (the in-box one:
-  `driver 10.0.26100.33648`). Measured on one commit, both full runs at once (runs 42124917682 in-box and 42124922200
-  with 1.0.21, plus 42103335919 with 1.0.21 on the same code an hour before): the scenarios that passed in both took
-  26374 s with 1.0.21 against 16374 s in-box (1.61 times; the median scenario of 20 s or more 1.63 times; 1.0.21's
-  two runs: 36627 and 32722 s of all runs, in-box 23111 s), and the eight suites jobs took 41 to 77 minutes in-box (after the skips below) and 73 to 143 with 1.0.21. The
-  in-box run reproduced H62d's 42085737374 (same scenarios 0.93 times, median 1.00), so the numbers are not the runner
-  class's noise. So the AVX2 codegen and the uniform jumps do not pay on the runner's 4 vCPUs (their thread pool or
-  wave size 8 may be what costs); the default stays the in-box WARP. A later WARP version is one change of
-  `WARP_VERSION` and the two checksums (nuget.org lists the SHA512; run once and read the SHA256 the step prints).
+  times as long as on Linux's lavapipe (run 42016421240 against 42040984380), hence EI_TIME_SCALE 8 against Linux's 3.
+- **Microsoft's WARP was slower** (H62g, tried and dropped): NuGet's Microsoft.Direct3D.WARP 1.0.21
+  (`build/native/bin/x64/d3d10warp.dll` placed next to `build/verify/ei-rebuild.exe`, which D3D12 loads instead of the
+  in-box one; the run's `gpu:` line said `driver 1.0.21.0` against the in-box `driver 10.0.26100.33648`) took 1.61 times as
+  long on the scenarios that passed in both (26374 s against 16374 s; median scenario 1.63 times), runs 42124922200
+  and 42103335919 against 42124917682 on one commit, started together; the in-box run reproduced H62d's
+  42085737374 (0.93 times, median 1.00). Its AVX2 codegen, wave size 8 and uniform jumps do not pay on 4 vCPUs. The
+  download step was removed again; a later WARP version would need the package fetched by version and checksum
+  (nuget.org lists the SHA512) next to the exe and a run of the same comparison.
 - **A lost device** (H62f): WARP 10.0.26100 removed its device in bz1g's scenes (ui_base_dialogue, render_stats in the
   town, net_pair_database on Rebirth's): an access violation in its shader code reading 0xFFF0 bytes past a uniform
   buffer, the point shadows' arrays read at index -1 by lanes that do not use the answer (point_shadow.hlsli's
@@ -518,20 +513,14 @@ GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU) and plays the stub-data s
   change the run ends with "render: fatal: The renderer cannot present on the game window: the GPU device was lost:
   ..." (renderer.md, "No device-loss recovery"), and the harness's log holds the exception (`harness: exception
   C0000005 at <JIT address>`).
-- **Skipped**: `WINDOWS_SKIP`: the scenarios that say `resolution desktop` (the five ui_widescreen ones and the net pair
-  / zone ones with it), since the goldens' desktop is 3840x2160 and the runner's screen is small; the seven still past a
-  real-time limit at scale 8, one game at a time, in run 42057942638 (render_drawn_lights, render_drawn_motion,
-  render_weather_panel, ui_minimap_edges, unit_ai_bridge, zone_gz15h_tornado_client; net_pair_portraits on Rebirth's
-  install), after which a scenario goes on early and differs; and render_weather and render_weather_units, which pass
-  but take 37 to 55 minutes a run; camera_drag_rate, camera_smooth and camera_spin (past their limits at scale 8 in
-  H62d's run and H62g's, 3500 s of a shard for nothing); and the seven render_device_lost_* (`losedevice` on WARP leaves
-  the game running: "the game did not crash", in every run since they exist; the in-box and 1.0.21 alike: a ticket to
-  find why RemoveDevice does not reach SDL's device with the WARP hint). Anything else is added only for a measured
-  reason. Failing in every run and not skipped, since they show a WARP difference in the picture and not a time:
-  render_load_town (unitcolour) and render_resize_windows (samecapture). In that run at scale 8 the
-  slowest that passed: camera_spin 1083 s, camera_drag_rate 910 s, camera_smooth 808 s, render_weather_roofs 788 s,
-  net_pair_party 473 s (775 s on Rebirth's), render_weather_shelter 458 s. Rebirth's render_shadows_decals had blank
-  ground prints in the Rebirth stub set until H62e repacked it (linux.md, "The stub data").
+- **What the full runs showed** (2026-11-05/06, in-box WARP, scale 8, for whoever reopens it): the scenarios that say
+  `resolution desktop` (the ui_widescreen ones, the net pair / zone ones with it) cannot get the 3840x2160 desktop the
+  goldens were recorded on; camera_drag_rate, camera_smooth and camera_spin, render_weather and render_weather_units,
+  render_drawn_lights, render_drawn_motion, render_weather_panel, ui_minimap_edges, unit_ai_bridge and
+  zone_gz15h_tornado_client ran past their real-time limits or took 37 to 55 minutes; the seven render_device_lost_*
+  ended with "the game did not crash" (`losedevice`'s RemoveDevice does not reach SDL's device with the WARP hint:
+  open, H62h dropped with the full suite); render_load_town (unitcolour) and render_resize_windows (samecapture)
+  differed in every run.
 
 
 ## The macOS CI job

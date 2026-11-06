@@ -2,5 +2,7 @@ id = "H62h"
 title = "Windows CI: render_device_lost_* do not end the game on WARP; render_load_town and render_resize_windows differ"
 group = "harness"
 depends = ["H62g"]
-note = "H62g (runs 42124917682, 42124922200): on the Windows runner's WARP (in-box and 1.0.21) every render_device_lost_<point> scenario ends with 'the game did not crash (expectcrash The renderer cannot draw the frame: the GPU refused)': the harness's losedevice step (ID3D12Device5::RemoveDevice, system_win32.cpp) does not reach SDL's device with EI_GPU_D3D12_WARP=1 (D3D12CreateDevice on the default adapter is not the WARP adapter SDL made its device on?). They are in WINDOWS_SKIP now. render_load_town (unitcolour differences) and render_resize_windows (samecapture objectives_narrow 9.5 percent) fail in every Windows run and are not skipped: find whether WARP draws differently or the checks are too tight, then fix or skip with the reason."
+note = "Dropped (user 2026-11-06): Windows CI is a smoke job now (H62g), so the render_device_lost_* (RemoveDevice does not reach SDL's device with the WARP hint: the game did not crash), render_load_town (unitcolour) and render_resize_windows (samecapture) differences on WARP are not run there any more; harness.md, The Windows CI job, keeps what the full runs showed."
 order = 1227
+status = "done"
+done = "2026-11-06"
