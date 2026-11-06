@@ -14,7 +14,7 @@
 #include "game/objects/object3d.h"
 #include "game/players/player_messages.h"
 #include "game/core/random.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/ai/sector_map.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"

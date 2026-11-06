@@ -1,6 +1,6 @@
 # Network
 
-Files: `net_classes.h` (sessions, lobby, message base), `net_session*.cpp`, `net_connection*`, `net_messages.*`,
+Files: `net/net_session.h` (sessions, lobby, message base), `net_session*.cpp`, `net_connection*`, `net_messages.*`,
 `net_server_*.cpp`, `net_client_*.cpp`, `net_lobby.cpp`, `net_socket_driver.cpp`, `core/coder.*`, `core/buffer.cpp`,
 `net_delta.*`, `net_link.*`, `net_state.cpp`, `net_second_master.*`. Sockets are the platform layer's
 (`platform::net`).
@@ -75,7 +75,7 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
   the lobby layers; `ServerSession` / `ClientSession` on top. +8 of both sessions is the magic 0xDEC0AD07.
 - Packet kinds (first byte, `net::PacketKind`): Master (0xFF, -1), Update 0, Leave 1, (2 none), GetInfo 3, Login 4,
   Info 5, Accepted 6, Rejected 7 (the join id and a `RefusalReason`: Full 1, Banned 2, WrongPassword 3). The other
-  numbers of the wire are enums too, in `net_classes.h`: `AwardKind`, `CommandKind`, `PlayerStatus` (the state of a
+  numbers of the wire are enums too, in `net/net_session.h`: `AwardKind`, `CommandKind`, `PlayerStatus` (the state of a
   client's login record: InZone 0, InBase 1, InCamp 2, Connecting 3, Fresh 4); the player link's message types are
   `ServerMessage` / `ClientMessage` (`player_messages.h`), the connection states `PlayerServer::State` /
   `PlayerClient::State`, a map object's delta fields `NetField` (`net_delta.h`). Values equal the old numbers; the

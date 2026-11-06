@@ -6,7 +6,7 @@
 #include "game/effects/effects.h"   // ParticleSource, ParticleManager
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"   // MapObject::position
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/sound/sound.h"        // SoundManager
 #include "game/scene/light.h"
 #include "game/terrain/terrain.h"

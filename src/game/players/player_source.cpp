@@ -6,7 +6,7 @@
 #include "game/world/world.h"
 
 #include "game/core/core_refcount.h"
-#include "game/net_link.h"
+#include "game/net/net_link.h"
 
 void WorldHandle::TakeNew(std::vector<HeldRef<netlink::NetLink>>* joined) {
     if (pendingLink) joined->emplace_back(pendingLink.Get());

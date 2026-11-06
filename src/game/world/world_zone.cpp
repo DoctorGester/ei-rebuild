@@ -8,7 +8,7 @@
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/map/map_spec.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/map/map_database.h"
 #include "game/players/party.h"
 #include "game/spells/spell.h"         // SpellEffect: the missiles

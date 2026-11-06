@@ -54,7 +54,7 @@ in the key table (`config\keyboard.ini`, `key_bindings.cpp`); a zone has no inve
 | `ui_camp.cpp`, `ui_camp.h` | camp (id 5, `CampPages`), its pages and panels' class declarations |
 | `ui_hero_screen*.cpp`, `ui_hero_preview.cpp` | multiplayer hero screen (`MpHeroScreen`, texts `lmp_*`) |
 | `ui_connect_*.cpp` | multiplayer connection screen (`MpConnectScreen`, `config\addrbook.ini`) |
-| `ui_item_strip.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel.cpp`, `ui_equip_panels.cpp`, `ui_stats.cpp`, `ui_item_info.h` | item strips and the hero panels shared by camp and hero screen (`UiItemPanel` is in `ui_item_info.h`); camp pages: trade, repair, spell and item constructors |
+| `ui_item_strip.cpp`, `ui_hero_panels.cpp`, `ui_trade_panel.cpp`, `ui/ui_hero_panels.cpp`, `ui_stats.cpp`, `ui_item_info.h` | item strips and the hero panels shared by camp and hero screen (`UiItemPanel` is in `ui_item_info.h`); camp pages: trade, repair, spell and item constructors |
 | `ui_layouts.cpp`, `ui_menu_pieces.h`, `ui_credits.cpp`, `ui_exchange.cpp` | escape menu and main menu layouts, credits, exchange between players; the pieces the escape menu's windows share (a region, a frame and a shade sprite, the stone model, the slide's ease) |
 | `ui_global_map*.cpp` | global map (id 4) |
 | `ui_main_menu.cpp`, `ui_message_box.cpp`, `ui_message_box.h` | main menu, new-game dialog, message box |
@@ -143,7 +143,7 @@ reads the same.
   is magnified, so at 4K the digits are soft (a native-font path is P8's).
 - Chat overlay (`ui_chat_overlay.cpp`; multiplayer only, no scenario): `Update` erases lines older than 20 s, `AddLine`
   wraps at 780 px, "^<digit>" colours, at most 12 lines; Enter sends a `net::SayMessage` kept 60 s.
-- Camera input (`ui_camera_input.cpp`, `ui_camera_keys.h`): `RightDown` / `RightUp` turn with the cursor held,
+- Camera input (`ui_camera_input.cpp`, `ui/ui_camera_input.h`): `RightDown` / `RightUp` turn with the cursor held,
   `Deactivate`, `Wheel` zooms. Keys map through the scan code to characters: 5-10 set a direction, 13-16 restore camera
   views 0-3 (saved with Ctrl or Alt held); while a direction is held the camera pans (with a modifier turns and tilts) at
   the option speeds.
@@ -158,7 +158,7 @@ reads the same.
   the metrics; scenario `ui_console_size` captures 1280x720, 3840x2160 and 2560x1440 (line pitch 18, 54 and 36 pixels).
 - Multiplayer-only windows (no scenario): `ChatWindow` (the base screen's chat, `ui_chat_window.cpp`: a vector of counted
   `PlayerMessage`s, new ones in front), the exchange (`ui_exchange.cpp`), `MpConnectScreen` (`ui_connect_screen.cpp`),
-  `MasterRequestBox` (`net::MasterLink` in net_classes.h).
+  `MasterRequestBox` (`net::MasterLink` in net/net_session.h).
 
 `DrawWrappedText` walks the text plus "\n" and measures with our own font (`ui_font.h`, `TextExtent`), scaled to 800x600 by
 integer maths; a word that did not fit before a '\n' goes on a line of its own (even an empty one).
@@ -245,7 +245,7 @@ gives "Prototype" and a "Rune" per modifier; `DeconstructItem` "Instruction Weap
 - Hero skills are stored as float then truncated; the mana maximum is stored as float, divided by the period (unrounded)
   and truncated.
 
-**Hero panels, trade panel, strips** (`ui_stats.cpp`, `ui_equip_panels.cpp`, `ui_panel_draws.cpp`, `ui_hero_panels.cpp`,
+**Hero panels, trade panel, strips** (`ui_stats.cpp`, `ui/ui_hero_panels.cpp`, `ui_panel_draws.cpp`, `ui_hero_panels.cpp`,
 `ui_trade_panel.cpp`, `ui_item_strip.cpp`):
 - `HeroStatsPanel::SetHero` stores height * 100 truncated. The panel's page 10 -/+ buttons (its `rows` 4-11, regions
   6-13): a hold starts at -500 ms with the capture, a step every frame from 250 ms (whole milliseconds,
@@ -287,7 +287,7 @@ two offers, a strip, a figure strip, the trade grid and a money field (`ui_excha
 and, on page 0, the message log; from 0x62 two more fields), builds the unit panel, map, clock, movement and top panels and
 puts the "pers <name>" texts into a map.
 
-### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui_person_texts.cpp`)
+### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui/ui_briefing.cpp`)
 
 Screen 3 of a "brief" zone. States: 0 walking, 1 topic choice, 2 dialogue starting, 3 phrases, 4 rewards. Scenario
 `ui_base_dialogue` (sets "b.Smith.M4" first: Smith has no topic after a new game): the leader walks to Smith, `clickunit
@@ -686,7 +686,7 @@ order, kept.
   `EI_CAMERA_TRACE=1` logs the global map's drag taken (`global map drag dx dy (layout) at ms: angle`).
 - Harness: `mousedrag dx dy` adds (dx, dy) to each frame's poll; with `frametime` that is a mouse speed of dx / frametime
   counts a ms (`camera_spin`, `camera_drag_rate`).
-- `EI_CAMERA_TRACE=1` traces it into ei-rebuild.log (src/game/camera_trace.cpp): a line a second (`camera trace: N frames
+- `EI_CAMERA_TRACE=1` traces it into ei-rebuild.log (src/game/ui/camera_trace.cpp): a line a second (`camera trace: N frames
   in M ms (a to b ms apart), motion x y`: the poll rate and its spread), a line a poll while held or moving (interval, the
   device's motion, the drag given, the drags taken since the last poll, heading, pitch, turn and tilt rate and target),
   and a line a drag taken (in counts and layout units, the targets it set).

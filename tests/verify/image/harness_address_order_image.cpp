@@ -1,9 +1,9 @@
 // The base screen's player list in the image (image_side.h; harness_address_order.cpp, CheckPlayerList).
 #include "image_side.h"
 
-#include "game/net_classes.h"
-#include "game/net_messages.h"
-#include "game/ui_briefing.h"
+#include "game/net/net_session.h"
+#include "game/net/net_messages.h"
+#include "game/ui/ui_briefing.h"
 
 namespace ei::verify::image {
 

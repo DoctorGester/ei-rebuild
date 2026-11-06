@@ -38,7 +38,7 @@
 #include "game/spells/spell.h"
 #include "game/terrain/terrain.h"
 #include "game/data/text_manager.h"
-#include "game/ui_flying_hit_points.h"
+#include "game/ui/ui_flying_hit_points.h"
 #include "game/units/unit.h"
 #include "game/units/unit_client_models.h"
 #include "game/units/unit_create.h"

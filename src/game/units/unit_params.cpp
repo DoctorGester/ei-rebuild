@@ -4,7 +4,7 @@
 
 #include "game/app/logic_settings.h"
 #include "game/app/options.h"
-#include "game/ui.h"
+#include "game/ui/ui.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 

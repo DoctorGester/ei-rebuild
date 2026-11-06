@@ -1,4 +1,4 @@
-# EI_Plugin NewMaster's second master server (S19c; src/game/net_second_master.h, docs/notes/rebirth.md),
+# EI_Plugin NewMaster's second master server (S19c; src/game/net/net_second_master.h, docs/notes/rebirth.md),
 # on 127.0.0.1 only: the second master is 127.0.0.1:28123, the configured master 127.0.0.1:28124. The
 # Multiplayer click looks the second master up (CMainMenu::OnLButtonDown, at most 300 ms), the hero is made
 # as in ui_mp_host, the connection screen's master request (region 2, 0061D0D0) tries 28124 by TCP for 1 s

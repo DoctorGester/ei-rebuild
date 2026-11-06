@@ -14,7 +14,7 @@ surface is drawn above every mesh, in stack and child order.
 | Primitive | Functions (file) | Path |
 |---|---|---|
 | Surface draw | `UiSurface::Blit` (`ui_surface.cpp`): its frame picture, then its window's paint at its rectangle | `render::ui::Solid` / `Glyphs` into the frame |
-| Text | `UiSurface::DrawTextIn(text, const Rect&, TextStyle)` / `DrawTextPixels` (shadow first in 0x080808 at +1,+1), `DrawWrappedText` (`ui_text.cpp`); extents by `TextExtent` (`ui_font.h`) | glyph runs, laid out again when the font or rectangle changes |
+| Text | `UiSurface::DrawTextIn(text, const Rect&, TextStyle)` / `DrawTextPixels` (shadow first in 0x080808 at +1,+1), `DrawWrappedText` (`ui/ui_interface.cpp`); extents by `TextExtent` (`ui_font.h`) | glyph runs, laid out again when the font or rectangle changes |
 | Fill / Clear / FillRect / FrameRect | `ui_surface.cpp` (`render::ui::FrameRects`) | solid quads |
 | Lines and carets | `UiSurface::Line` (`render::ui::LineRects`: the 1-pixel pen's rule, end point left out): console, chat typed line, edit field, connect list, save / load list | solid quads |
 | Single pixel | `UiSurface::Dot`: the HUD map's marker | a solid quad |
@@ -254,7 +254,7 @@ Both changed from the original on the user's playtest; layout and state are othe
   where the original's did.
 - **The help page's text block** (`HelpWindow::ShowPage`, ui_help_window.cpp). The texts still wrap to the original's width
   (same line breaks, same page height); the block (its widest line, a text beside a picture counted from the picture's
-  place) is centred in the page, the pictures moved with it. `Interface3D::WrapText` (ui_text.cpp) is `DrawWrappedText`'s
+  place) is centred in the page, the pictures moved with it. `Interface3D::WrapText` (ui/ui_interface.cpp) is `DrawWrappedText`'s
   wrap, which the page measures with.
 
 ## 4. Risks and open questions

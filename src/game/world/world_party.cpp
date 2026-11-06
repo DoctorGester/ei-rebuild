@@ -1,7 +1,7 @@
 // WorldServer: the party arriving in a zone (Redeploy) and the quest items it brings back. See world.h and
 // docs/notes/world.md.
 #include "game/items/item_manager.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/world/world.h"
 
 #include "game/map/chunk_stream.h"

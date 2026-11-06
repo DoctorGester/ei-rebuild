@@ -1,0 +1,556 @@
+// Interface screens: the camp's item strips, the multiplayer hero screen, the escape menu, the credits and the
+// exchange window. See ui_screens.h and docs/notes/ui.md.
+#include "game/app/game_flow.h"
+#include "game/players/saved_parties.h"
+#include "game/spells/spell.h"
+#include "game/app/options.h"
+#include "game/objects/object3d.h"
+#include "game/ui/ui.h"
+#include "game/ui/ui_scrollbar.h"
+#include "game/ui/ui_message_box.h"
+#include "game/ui/ui_screens.h"
+#include "game/ui/ui_camp.h"
+#include "game/net/net_session.h"
+
+#include "game/core/core_maths.h"
+#include "game/items/item.h"
+#include "game/units/unit.h"
+#include "game/players/party.h"
+#include "game/world/world.h"
+
+#include "lib/containers.h"
+#include "lib/crt.h"
+#include "lib/rounding.h"
+#include "game/app/singletons.h"
+#include "platform/platform.h"
+#include "game/ui/screen_layout.h"
+
+#include <algorithm>
+#include <bit>
+#include <string>
+
+namespace {
+const char* const kSoundCampScroll = "buttons\\camp\\scroll.wav";
+const char* const kSoundCampMode = "buttons\\camp\\mode.wav";
+const char* const kSoundMenuStone = "buttons\\menu\\stone.wav";
+const char* const kSoundMenuOk = "buttons\\menu\\ok.wav";
+
+// The forwarding strips' help topics by action mode: the camp's equip strip and the exchange's (mode 1), the spell
+// parts' (2), the item parts' (3).
+constexpr int kTopicEquipStrip = 0x16;
+constexpr int kTopicSpellPartsStrip = 0x18;
+constexpr int kTopicItemPartsStrip = 0x17;
+
+// The tab keys select the strips' tabs (the "switch_filters" option).
+bool TabKeysEnabled() { return options::g_options.switchFilters != 0; }
+
+// The item as loot (type ItemKind::Loot), or null.
+const ItemLoot* LootOrNull(const Item* item) {
+    return item->AsLoot();
+}
+
+} // namespace
+
+// --- Item predicates -------------------------------------------------------------------------
+
+bool IsSpell(const Item* item) {
+    const ItemLoot* loot = LootOrNull(item);
+    return loot && loot->kind == LootKind::Record && loot->recordType == LootRecordType::Spell && loot->HasRecord();
+}
+
+bool IsModifier(const Item* item) {
+    const ItemLoot* loot = LootOrNull(item);
+    return loot && loot->kind == LootKind::Record && loot->recordType == LootRecordType::Modifier && loot->HasRecord();
+}
+
+bool IsSpellContainer(const Item* item) {
+    return item->Kind() == ItemKind::Scroll;
+}
+
+bool IsPart(const Item* item) {
+    const ItemLoot* loot = LootOrNull(item);
+    return loot && loot->kind == LootKind::Record && loot->recordType <= LootRecordType::Quick && loot->HasRecord();
+}
+
+bool IsMaterial(const Item* item) {
+    const ItemLoot* loot = LootOrNull(item);
+    return loot && loot->kind == LootKind::Material && loot->HasRecord();
+}
+
+bool IsBuildable(const Item* item) {
+    auto* object = const_cast<Item*>(item);
+    const itemdb::ItemRecordHead* prototype = object->GetPrototype();
+    if (prototype && !prototype->buildable) return false;
+    ItemKind type = object->Kind();
+    if (type == ItemKind::Weapon || type == ItemKind::Armor) return true;
+    if (type != ItemKind::Quick) return false;
+    prototype = object->GetPrototype();
+    return prototype && prototype->HasMaterial();
+}
+
+// --- UiItemStrip -----------------------------------------------------------------------------
+
+void UiItemStrip::SetTab(int newTab) {
+    float& scrollPosition = position[tab];
+    scrollPosition = static_cast<float>(static_cast<int>(pending + scrollPosition));
+    tab = newTab;
+    for (int i = 0; i < kTabs; ++i) {
+        float shade = i == newTab ? 1.0f : 0.5f;
+        float* color = tabFaces[i]->tint;
+        color[0] = shade;
+        color[1] = shade;
+        color[2] = shade;
+    }
+    pending = 0.0f;
+    velocity = 0.0f;
+    scrollTicks = 0;
+    scrollDirection = 0;
+}
+
+void UiItemStrip::SetFilter(int newFilter) {
+    for (float& tabPosition : position) tabPosition = 0.0f;
+    pending = 0.0f;
+    filter = newFilter;
+    velocity = 0.0f;
+    // Each filter has its own button texture column (the tab objects' texture offset) and tooltips.
+    int tipBase;
+    std::uint32_t column;
+    switch (newFilter) {
+    case 0: tipBase = 0x526A; column = 0x3F280000; break;   // 0.65625
+    case 1: tipBase = 0x52CE; column = 0x3EA80000; break;   // 0.328125
+    case 2: tipBase = 0x5206; column = 0; break;
+    default: return;
+    }
+    for (int i = 0; i < kTabs; ++i) {
+        tabFaces[i]->textureOffsetU = std::bit_cast<float>(column);
+        tabButtons[i]->SetTip(tipBase + 2 + i);
+    }
+}
+
+void UiItemStrip::SelectTab(int newTab) {
+    if (TabKeysEnabled()) SetTab(newTab);
+}
+
+void UiItemStrip::CycleTab(int first, int tabCount) {
+    if (!TabKeysEnabled()) return;
+    int next = first;
+    if (first <= tab && tab < first + tabCount) {
+        next = tab + 1;
+        if (next == first + tabCount) next = first;
+    }
+    SetTab(next);
+}
+
+int UiItemStrip::ItemTab(const Item* item) {
+    if (IsPart(item) || IsMaterial(item)) return 0;
+    if (IsSpell(item) || IsModifier(item)) return 1;
+    ItemKind itemKind = item->Kind();
+    if (itemKind == ItemKind::Weapon || itemKind == ItemKind::Armor || itemKind == ItemKind::Quick || itemKind == ItemKind::Scroll) return 2;
+    if (itemKind == ItemKind::Loot) return 3;
+    return (itemKind != ItemKind::Quest) + 4;
+}
+
+int UiItemStrip::SpellTab(const Item* item) {
+    if (IsSpell(item)) {
+        const itemdb::SpellRecord* spell = itemdb::SpellAt(item->AsLoot()->index);
+        switch (spell->castType) {
+        case 0: return 0;
+        case 1: return 1;
+        case 2: return 2;
+        default: return 5;
+        }
+    }
+    if (IsModifier(item)) {
+        const itemdb::SpellModifierRecord* modifier = itemdb::SpellModifierAt(item->AsLoot()->index);
+        return (static_cast<int>(modifier->kind) > 5) + 3;
+    }
+    return 5;
+}
+
+int UiItemStrip::ArmorTab(const Item* item) {
+    if (IsPart(item)) {
+        switch (item->AsLoot()->recordType) {
+        case LootRecordType::Weapon: return 0;
+        case LootRecordType::Armor: {
+            auto* armor = itemdb::ArmorAt(item->AsLoot()->index);
+            return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
+        }
+        case LootRecordType::Quick: return 3;
+        default: return 5;
+        }
+    }
+    if (item->Kind() == ItemKind::Quick) return 3;
+    return IsMaterial(item) ? 4 : 5;
+}
+
+void ForwardingStrip::RebuildList() {
+    list.clear();
+    if (filter == 0 && tab == kAllTab) {
+        for (int i = 0; i < std::ssize(*source); ++i) {
+            int index = lib::Count(list);
+            Item* item = (*source)[i];
+            list.resize(index + 1);
+            list[index] = item;
+        }
+    } else {
+        for (int i = 0; i < std::ssize(*source); ++i) {
+            Item* item = (*source)[i];
+            if (TabOf(item) == tab) {
+                int index = lib::Count(list);
+                list.resize(index + 1);
+                list[index] = item;
+            }
+        }
+    }
+    count = lib::Count(list);
+}
+
+int UiItemStrip::TabOf(const Item* item) {
+    switch (filter) {
+    case 0: return ItemTab(item);
+    case 1: return SpellTab(item);
+    case 2: return ArmorTab(item);
+    default: return 0;
+    }
+}
+
+void UiItemStrip::ScrollToItem(Item* item) {
+    if (!item) return;
+    Item* wanted = item;
+    float found = -1.0f;   // the list index of the last match (stored as float)
+    list.clear();
+    // The original inlines the array's SetSize in the second loop.
+    auto append = [&](Item* entry) {
+        if (wanted->IsSameAs(entry)) found = static_cast<float>(list.size());
+        int index = lib::Count(list);
+        list.resize(index + 1);
+        list[index] = entry;
+    };
+    if (filter == 0 && tab == kAllTab) {
+        for (int i = 0; i < std::ssize(*source); ++i) append((*source)[i]);
+    } else {
+        int newTab = TabOf(item);
+        if (TabKeysEnabled()) SetTab(newTab);
+        for (int i = 0; i < std::ssize(*source); ++i)
+            if (TabOf((*source)[i]) == tab) append((*source)[i]);
+    }
+    if (found >= 0.0f) {
+        float& scrollPosition = position[tab];
+        float lowest = found - 8.0f + 2.0f;
+        if (lowest > scrollPosition) {
+            scrollPosition = lowest;
+        } else if (scrollPosition > found) {
+            scrollPosition = found;
+        }
+    }
+    pending = 0.0f;
+    velocity = 0.0f;
+}
+
+ItemUnder ForwardingStrip::ItemAt(Point point) {
+    if (!enabled) return {};
+    if (RegionUnder(point) != itemArea) return {};
+    ItemUnder under;
+    switch (mode) {
+    case 1: under.topic = kTopicEquipStrip; break;
+    case 2: under.topic = kTopicSpellPartsStrip; break;
+    case 3: under.topic = kTopicItemPartsStrip; break;
+    }
+    point = screen_layout::FromScreen(point);
+    const int index = SlotAt(point.x);
+    RebuildList();
+    if (index >= 0 && index < std::ssize(list)) under.item = list[index];
+    return under;
+}
+
+void UiItemStrip::SettleScroll() {
+    // Releasing an arrow completes the step under way: the pending scroll keeps its fraction of a
+    // slot and gains a whole slot when that fraction is under half.
+    float currentPending = pending;
+    if (currentPending < 0.0f) {
+        float fraction = currentPending - static_cast<int>(currentPending);
+        pending = fraction;
+        if (fraction > -0.5f) pending = fraction - 1.0f;
+    } else if (currentPending > 0.0f) {
+        float fraction = currentPending - static_cast<int>(currentPending);
+        pending = fraction;
+        if (fraction < 0.5f) pending = fraction + 1.0f;
+    }
+    scrollDirection = 0;
+    scrollTicks = 0;
+    g_interface.mouseCapture = nullptr;
+}
+
+void UiItemStrip::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    case UiEventKind::LeftUp: LeftUp(event); break;
+    case UiEventKind::MouseMove: MouseMove(event); break;
+    case UiEventKind::Wheel: Wheel(event); break;
+    default: UiItemPanel::OnEvent(event); break;
+    }
+}
+
+void UiItemStrip::LeftDown(UiEvent& event) {
+    UiRegion* region = RegionUnder(event.at);
+    const int scrollButton = RegionIndex(scrollButtons, region);
+    if (scrollButton >= 0) {
+        if (!g_interface.shiftDown) {
+            g_interface.PlayInterfaceSound(kSoundCampScroll);
+            CaptureMouse();
+            scrollDirection = scrollButton + 1;
+        } else {
+            // Shift jumps to the start or (clamped later) the end.
+            position[tab] = scrollButton == 0 ? 0.0f : 1e6f;
+            pending = 0.0f;
+            velocity = 0.0f;
+        }
+    }
+    const int tabButton = RegionIndex(tabButtons, region);
+    if (tabsEnabled && tabButton >= 0) {
+        g_interface.PlayInterfaceSound(kSoundCampMode);
+        SetTab(tabButton);
+    }
+    if (region) event.handled = true;
+}
+
+void UiItemStrip::LeftUp(UiEvent&) {
+    if (scrollDirection != 0) SettleScroll();
+}
+
+void UiItemStrip::MouseMove(UiEvent& event) {
+    // Leaving the held arrow stops scrolling.
+    if (scrollDirection != 0 && RegionUnder(event.at) != scrollButtons[scrollDirection - 1]) SettleScroll();
+}
+
+void UiItemStrip::Wheel(UiEvent& event) {
+    if (RegionUnder(event.at) == itemArea) {
+        pending = static_cast<int>(event.delta) + pending;   // whole notches, towards 0
+        g_interface.PlayInterfaceSound(kSoundCampScroll);
+    }
+}
+
+void ForwardingStrip::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: case UiEventKind::LeftDouble: LeftDown(event); break;
+    default: UiItemStrip::OnEvent(event); break;
+    }
+}
+
+void ForwardingStrip::LeftDown(UiEvent& event) {
+    UiItemStrip::LeftDown(event);
+    if (Item* item = ItemAt(event.at).item) owner->TakeItem(item, mode);
+}
+
+// --- Heroes' skills ---------------------------------------------------------------------------
+
+int HeroSchoolSkill(UnitStats* stats, SpellSchool school) {
+    return lib::RoundEven(stats->SpellSchoolSkill(school));
+}
+
+int HeroManaUnits(UnitStats* stats) {
+    // The maximum is stored as a float before the division; the quotient is not rounded.
+    float maximum = stats->ManaCurve();
+    return static_cast<int>(maximum / stats->Period20());
+}
+
+bool HeroCanUseSpell(UnitStats* stats, Spell* spell) {
+    bool ok = true;
+    int required = static_cast<int>(spell->skillNeeded);
+    if (HeroSchoolSkill(stats, spell->GetPrototype()->school) < required) ok = false;
+    float cost = spell->manaCost;
+    int units = HeroManaUnits(stats);
+    if (units < static_cast<int>(cost)) ok = false;
+    return ok;
+}
+
+// --- MpHeroScreen ----------------------------------------------------------------------------
+
+void MpHeroScreen::ClampHeroSelection() {
+    if (heroIndex < 0) heroIndex = 0;
+    auto count = static_cast<std::uint32_t>(g_savedParties.Count());
+    if (static_cast<std::uint32_t>(heroIndex) >= count) heroIndex = static_cast<int>(count) - 1;
+    int selected = heroIndex;
+    // Ten rows are visible.
+    if (heroTop + 10 <= selected) heroTop = selected - 9;
+    if (heroTop > selected) heroTop = selected;
+    heroScroll->SetPosition(heroTop);
+    heroTop = heroScroll->TakePosition();
+    ShowHero(heroIndex);
+}
+
+void MpHeroScreen::ClampVoiceSelection() {
+    if (voiceIndex < 0) voiceIndex = 0;
+    int count = static_cast<int>(voices->end() - voices->begin());
+    if (static_cast<std::uint32_t>(voiceIndex) >= static_cast<std::uint32_t>(count)) voiceIndex = count - 1;
+    int selected = voiceIndex;
+    // Eleven rows are visible.
+    if (voiceTop + 11 <= selected) voiceTop = selected - 10;
+    if (voiceTop > selected) voiceTop = selected;
+    voiceScroll->SetPosition(voiceTop);
+    voiceTop = voiceScroll->TakePosition();
+    // Each voice is {file, name}; the hero keeps the file name in secondPrototype.
+    const std::string& file = voices->begin()[voiceIndex].file;
+    HeroRecord()->secondPrototype = file;
+    DrawVoices();
+}
+
+float MpHeroScreen::Weight() {
+    PartyUnitRecord* hero = HeroRecord();
+    float weight = 0.0f;
+    if (weapon) weight = weapon->weight;
+    if (quickItem) weight += quickItem->weight;
+    if (spellContainer) weight += spellContainer->weight;
+    for (Item* armour : hero->armor)
+        if (armour) weight += armour->weight;
+
+    return weight;
+}
+
+void MpHeroScreen::TakeItem(Item* item, int takeMode) {
+    HeroRecord();   // called for nothing, as in the original
+    if (takeMode == 0) {
+        bool equipped = true;
+        switch (item->Kind()) {
+        case ItemKind::Weapon:
+            weapon = item;
+            weaponPanel->ShowWeapon(item);
+            break;
+        case ItemKind::Quick:
+            quickItem = item;
+            weaponPanel->ShowQuickItem(item);
+            break;
+        case ItemKind::Scroll:
+            spellContainer = item;
+            spellPanel->ShowEntry(item);
+            break;
+        default:
+            equipped = false;
+            break;
+        }
+        if (equipped) g_interface.PlayInterfaceSound(kMessageBoxOkSound);
+    }
+    RefreshStats();
+}
+
+bool MpHeroScreen::CanEquip(Item* item, int) {
+    if (item->Kind() != ItemKind::Scroll) return true;
+    Spell* spell = item->spell;
+    if (!spell) return true;
+    return HeroCanUseSpell(&HeroRecord()->stats, spell);
+}
+
+PartyUnitRecord* MpHeroScreen::HeroRecord() { return LocalPlayerData()->members.data(); }
+
+void MpHeroScreen::LeftUp(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    // Releasing a rotate arrow.
+    ReleaseMouse();
+    rotating = 0;
+}
+
+// --- EscMenu ---------------------------------------------------------------------------------
+
+void EscMenu::MouseMove(UiEvent& event) {
+    UiModel* model = models[0].get();
+    const int stone = RegionIndex(stones, RegionUnder(event.at));
+    // Hovering a stone plays its animation (save and load only in single player).
+    switch (stone) {
+    case kSave:
+        if (hovered != kSave && !IsMultiplayerClient()) {
+            g_interface.PlayInterfaceSound(kSoundMenuStone);
+            model->Play(SkillAnimation::Briefing03);
+        }
+        hovered = kSave;
+        break;
+    case kLoad:
+        if (hovered != kLoad && !IsMultiplayerClient()) {
+            g_interface.PlayInterfaceSound(kSoundMenuStone);
+            model->Play(SkillAnimation::Briefing04);
+        }
+        hovered = kLoad;
+        break;
+    case kResume:
+    case kQuit:
+    case kOptions: {
+        static const SkillAnimation kAnimation[kStones] = {SkillAnimation::Briefing01, SkillAnimation::Briefing01,
+                                                           SkillAnimation::Briefing06, SkillAnimation::Briefing07,
+                                                           SkillAnimation::Briefing05};
+        if (hovered != stone) {
+            g_interface.PlayInterfaceSound(kSoundMenuStone);
+            model->Play(kAnimation[stone]);
+        }
+        hovered = stone;
+        break;
+    }
+    default:
+        if (hovered != -1) model->Stop();
+        hovered = -1;
+        break;
+    }
+    UiContainer::OnEvent(event);
+}
+
+void EscMenu::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.key == platform::Key::Escape) {
+        g_interface.PlayInterfaceSound(kSoundMenuOk);
+        g_interface.SetPendingValue(0);
+        event.handled = true;
+    }
+}
+
+void EscMenu::MessageResult(std::uint32_t result) {
+    // The quit box's yes; 0x100001/0x100002/0x110001 close the menu.
+    if (result > 0x100002) {
+        if (result == 0x110001) g_interface.SetPendingValue(0);
+    } else if (result >= 0x100001) {
+        g_interface.SetPendingValue(0);
+    } else if (result == BoxResult(MessageQuestion::First, MessageAnswer::Ok)) {
+        g_gameFlow.CloseSessions();
+    }
+}
+
+// --- CreditsScreen ---------------------------------------------------------------------------
+
+void CreditsScreen::Close() {
+    if (fromGame) g_interface.SetPendingValue(0xCCCCCCCC);
+    else g_gameFlow.CloseSessions();
+}
+
+void CreditsScreen::OnEvent(UiEvent& event) {
+    switch (event.kind) {
+    case UiEventKind::LeftDown: Close(); break;
+    case UiEventKind::KeyDown: KeyDown(event); break;
+    default: UiContainer::OnEvent(event); break;
+    }
+}
+
+void CreditsScreen::KeyDown(UiEvent& event) {
+    const platform::Key key = event.key;
+    if (key == platform::Key::Return || key == platform::Key::Escape || key == platform::Key::Space) Close();
+}
+
+// --- ExchangeScreen --------------------------------------------------------------------------
+
+void ExchangeScreen::KeyDown(UiEvent& event) {
+    UiContainer::OnEvent(event);
+    if (event.handled) return;
+    switch (event.key) {
+    case platform::Key::Backspace:
+        g_interface.ChatKeyBackspace();
+        event.handled = true;
+        break;
+    case platform::Key::Return:
+        g_interface.ChatKeyEnter();
+        event.handled = true;
+        break;
+    case platform::Key::Escape:
+        net::g_gameClient->DropParty();
+        event.handled = true;
+        break;
+    default: break;
+    }
+}
+
+void EscMenu::CloseScreen() { models[0]->Play(SkillAnimation::Briefing01); }

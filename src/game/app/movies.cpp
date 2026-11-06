@@ -5,7 +5,7 @@
 #include "game/app/app.h"
 #include "game/app/movies.h"
 #include "game/mods/mod_folders.h"
-#include "game/net_session.h"
+#include "game/net/net_session.h"
 #include "game/sound/sound.h"
 #include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"
@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "game/ui_cursor.h"
+#include "game/ui/ui_cursor.h"
 #include "game/app/singletons.h"
 #include "game/app/options.h"
 #include "game/world/world.h"

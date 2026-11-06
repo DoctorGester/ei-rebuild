@@ -2,7 +2,7 @@
 
 #include "game/core/core_streams.h"
 #include "game/core/core_transform.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/objects/object3d.h"
 #include "game/objects/torch.h"
 #include "game/saves/save_versions.h"

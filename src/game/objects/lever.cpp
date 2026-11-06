@@ -12,7 +12,7 @@
 #include "game/data/chunk_archive.h"
 #include "game/data/database_file.h"
 #include "game/data/resource.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/sound/sound.h"

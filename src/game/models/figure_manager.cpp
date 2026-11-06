@@ -12,7 +12,7 @@
 #include "game/objects/object3d.h"
 #include "game/scene/pipeline.h"
 #include "game/scene/sky_object.h"
-#include "game/ui_mesh.h"
+#include "game/ui/ui_mesh.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"

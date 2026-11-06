@@ -138,7 +138,7 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
 - **Multiplayer start**: `BeginMultiplayerGame` (start zone bz1mpg..bz4mpg by game type; a lone outside party gets unit id
   0x3B9AF5CE and "z.MPGame1"), `UpdateMultiplayerVariable` (each network step), `CloseSessions`, `StartServer`,
   `PickZones` (same order and random draws as the original). The sessions are `net::GameClient()` / `GameServer()`
-  (net_classes.h).
+  (net/net_session.h).
 - **Party between zones**: `CollectParty` / `StoreParty` on leaving, `Redeploy` on arrival: `RestorePlayerItems` gives
   back fresh copies of the carried items (all on a client; in single player the quest items of this zone,
   `TakeZoneQuestItems`), units are created at the target exit's centre (a lost game goes back to exit 0) facing away

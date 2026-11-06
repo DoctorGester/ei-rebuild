@@ -10,7 +10,7 @@
 #include "game/players/player_messages.h"
 #include "game/core/random.h"
 #include "game/saves/save_versions.h"
-#include "game/script.h"
+#include "game/script/script.h"
 #include "game/ai/unit_ai.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"

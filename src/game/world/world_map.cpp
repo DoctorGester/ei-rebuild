@@ -11,7 +11,7 @@
 #include "game/objects/map_object.h"
 #include "game/mods/mod_folders.h"
 #include "game/core/coder.h"
-#include "game/net_link.h"
+#include "game/net/net_link.h"
 #include "game/world/diplomacy.h"
 #include "game/players/player_manager.h"
 #include "game/players/player_messages.h"

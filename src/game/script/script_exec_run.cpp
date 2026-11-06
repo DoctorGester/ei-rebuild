@@ -1,0 +1,220 @@
+// The script runtime around command execution: starting script instances, running an
+// instance's if-then pairs, running a command block, freeing evaluation
+// temporaries and the per-tick driver. See script.h and docs/notes/script.md.
+#include "game/script/script.h"
+
+#include "game/core/base_manager.h"
+#include "game/core/random.h"
+#include "game/world/world.h"
+#include "game/effects/world_effect.h"
+
+#include "game/app/singletons.h"
+
+#include "lib/str.h"
+
+#include <cstdint>
+
+namespace {
+
+// The fatal error formats of ScriptBindCall ("Wrong number of script %s float / string / object / group
+// parameters").
+const char* const kWrongFloatCount = "Wrong number of script %s float parameters";
+const char* const kWrongStringCount = "Wrong number of script %s string parameters";
+const char* const kWrongObjectCount = "Wrong number of script %s object parameters";
+const char* const kWrongGroupCount = "Wrong number of script %s group parameters";
+
+// An FX source's offset on one axis: a random word to [-radius, radius).
+float FxOffset(float radius, std::uint32_t random) { return RangeOfWord(random, -radius, radius); }
+
+void RespawnFxSources(Script* script) {
+    for (ScriptFxSource& fx : script->fxSources) {
+        if (fx.idle) continue;
+        if (--fx.countdown > 0) continue;
+        int minDelay = fx.minDelay;
+        fx.countdown = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
+        fx.object.reset();
+        float yOffset = FxOffset(fx.spread, g_random.Next());
+        float x = FxOffset(fx.spread, g_random.Next()) + fx.position.x;
+        float y = yOffset + fx.position.y;
+        fx.object = ScriptEffect<EffectSound>(ScriptNewSound({x, y, fx.position.z}, fx.volume, fx.radius, fx.name, true));
+    }
+}
+
+void UpdatePointLights(Script* script) {
+    for (ScriptPointLight& light : script->pointLights) {
+        if (!light.object || !light.moving) continue;
+        int count = light.steps;
+        light.steps = count - 1;
+        if (count <= 0) {
+            light.moving = 0;
+            if (light.removeWhenDone) light.object.reset();
+            continue;
+        }
+        Vector3& position = light.object->localPosition;
+        position += light.step;
+        light.object->MarkChanged();
+    }
+}
+
+void UpdateParticleSources(Script* script) {
+    auto& list = script->particles;
+    for (auto node = list.begin(); node != list.end();) {
+        ScriptParticleSource& source = *node;
+        int lifetime = source.lifetime;
+        bool remove = lifetime == 0;
+        if (lifetime > 0) source.lifetime = lifetime - 1;
+        if (source.moving) {
+            int count = source.steps;
+            source.steps = count - 1;
+            if (count > 0) {
+                Vector3& position = source.object->localPosition;
+                position += source.step;
+                source.object->MarkChanged();
+            } else {
+                source.moving = 0;
+                if (source.deleteAfterMove) remove = true;
+            }
+        }
+        // Removing the source drops its effect.
+        if (remove) node = list.erase(node);
+        else ++node;
+    }
+}
+
+} // namespace
+
+// ---- Script instances ---------------------------------------------------------------------------
+
+void ScriptDefinition::BindCall(const ScriptCall* call) {
+    // The parser checked the call against the script's parameters (LoadFunction with its signature).
+    if (call->floatArgs.size() != vars.floats.values.size()) game::FatalExit(kWrongFloatCount, name);
+    if (call->stringArgs.size() != vars.strings.values.size()) game::FatalExit(kWrongStringCount, name);
+    if (call->objectArgs.size() != vars.objects.values.size()) game::FatalExit(kWrongObjectCount, name);
+    if (call->groupArgs.size() != vars.groups.values.size()) game::FatalExit(kWrongGroupCount, name);
+    for (std::size_t i = 0; i < call->floatArgs.size(); ++i) vars.floats.values[i] = call->floatArgs[i];
+    for (std::size_t i = 0; i < call->stringArgs.size(); ++i) vars.strings.values[i] = call->stringArgs[i];
+    for (std::size_t i = 0; i < call->objectArgs.size(); ++i) vars.objects.values[i] = *call->objectArgs[i];
+    for (std::size_t i = 0; i < call->groupArgs.size(); ++i) vars.groups.values[i] = *call->groupArgs[i];
+}
+
+void ScriptIfThen::Run(Script* script, ScriptDefinition* instance) const {
+    for (ScriptCall& condition : conditions->commands) {
+        const float result = condition.CalcFloat(script, &instance->vars);
+        script->FreeTemporaries();
+        if (result == 0.0f) return;
+    }
+    script->RunCommands(commands, instance);
+}
+
+void Script::RunCommands(ScriptBlock* block, ScriptDefinition* instance) {
+    ScriptRun run;
+    run.position.block = block;
+    if (instance) {
+        // The values only: the run's variables have no names.
+        ScriptVars& from = instance->vars;
+        run.vars.floats.values = from.floats.values;
+        run.vars.strings.values = from.strings.values;
+        run.vars.objects.values = from.objects.values;
+        run.vars.groups.values = from.groups.values;
+        run.killFlag = &instance->killed;
+    }
+    if (run.Execute(this)) {
+        // Not finished: it goes to the head of the run list, its kill flag cleared.
+        run.killFlag = nullptr;
+        runs.push_front(std::move(run));
+    }
+}
+
+// A new run at the head of the run list, not executed yet.
+void Script::RunWorldScript(ScriptBlock* block) {
+    ScriptRun& run = runs.emplace_front();
+    run.position.block = block;
+}
+
+void Script::FreeTemporaries() {
+    if (forDepth > 0) return;
+    // All but the first of each kind dropped, the first emptied.
+    auto& groups = tempGroups;
+    groups.resize(1);
+    groups.front().Clear();
+    auto& objects = tempObjects;
+    objects.resize(1);
+    objects.front().object = nullptr;
+}
+
+void Script::Tick() {
+    if (!loaded) return;
+
+    // Waiting runs: continue each; a run that had already ended is removed.
+    for (auto run = runs.begin(); run != runs.end();) {
+        auto next = std::next(run);
+        if (!run->Execute(this)) runs.erase(run);
+        run = next;
+    }
+
+    // Script instances: every if-then pair until the instance is killed; killed instances are
+    // removed.
+    for (auto instance = instances.begin(); instance != instances.end();) {
+        auto next = std::next(instance);
+        instance->vars.RemoveDeletedObjects();
+        for (const ScriptIfThen& pair : instance->ifThen) {
+            pair.Run(this, &*instance);
+            if (instance->killed) break;
+        }
+        if (instance->killed) {
+            // A run loaded with this instance's killed flag forgets it.
+            for (ScriptRun& run : runs)
+                if (run.killFlag == &instance->killed) run.killFlag = nullptr;
+            instances.erase(instance);
+        }
+        instance = next;
+    }
+
+    // Global variables: drop deleted objects.
+    globals.RemoveDeletedObjects();
+
+    RespawnFxSources(this);
+    UpdatePointLights(this);
+    UpdateParticleSources(this);
+    FreeTemporaries();
+}
+
+// Clearing parts of a Script while the world runs: dropping references to deleted world objects
+// (after every object removal), and the zone reset when the party enters a zone (instances and runs
+// dropped, effects removed, globals zeroed, the WorldScript blocks started again). See script.h and
+// docs/notes/script.md.
+#include "game/script/script.h"
+#include "game/effects/world_effect.h"
+
+// Called after every removal of a world object: the runs', the instances' and the global
+// variables drop deleted objects (object variables released, group members removed), then the
+// evaluation temporaries are freed.
+void Script::PurgeDeletedObjects() {
+    for (ScriptRun& run : runs) run.vars.RemoveDeletedObjects();
+    for (ScriptDefinition& instance : instances) instance.vars.RemoveDeletedObjects();
+    globals.RemoveDeletedObjects();
+    FreeTemporaries();
+}
+
+// Every instance, then every run, destroyed.
+void Script::DropInstancesAndRuns() {
+    instances.clear();
+    runs.clear();
+}
+
+// When the party enters a zone: instances and runs dropped, the For depth and the
+// temporaries reset, every effect removed (point light slots zeroed; FX source, particle source and
+// lightning lists emptied), the global values reset, and every WorldScript block run again.
+void Script::ResetZone() {
+    DropInstancesAndRuns();
+    forDepth = 0;
+    FreeTemporaries();
+
+    for (ScriptPointLight& light : pointLights) light = {};
+    fxSources.clear();
+    particles.clear();
+    lightning.clear();
+
+    globals.ResetValues();
+    for (ScriptBlock& block : worldBlocks) RunWorldScript(&block);
+}

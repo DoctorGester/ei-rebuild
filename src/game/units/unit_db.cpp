@@ -5,7 +5,7 @@
 #include "game/combat/combat.h"
 #include "game/data/database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
 #include "game/app/logic_settings.h"
-#include "game/net_delta.h"
+#include "game/net/net_delta.h"
 #include "game/app/options.h"
 #include "game/sound/sound.h"
 #include "game/units/unit.h"

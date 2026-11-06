@@ -4,8 +4,8 @@
 
 #include "game/core/asset_text.h"
 #include "game/core/text_split.h"
-#include "game/screen_layout.h"
-#include "game/ui.h"
+#include "game/ui/screen_layout.h"
+#include "game/ui/ui.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
