@@ -315,6 +315,7 @@ def text_files():
                     yield full
 
 
+GAME_PATHS_CALL = re.compile(r'\bgame_paths\([^()]*\)')
 INCLUDE = re.compile(r'^([ \t]*#[ \t]*include[ \t]*")([^"\n]+)(")', re.M)
 
 
@@ -359,6 +360,24 @@ class Rewrite:
 
     def text(self, path, text):
         rel = os.path.relpath(path, ROOT).replace(os.sep, '/')
+        if path.endswith('.py'):
+            # The arguments of layout.game_paths(...) are flat names: the call asks the map where they are now, so
+            # they stay as written.
+            pieces, last = [], 0
+            for m in GAME_PATHS_CALL.finditer(text):
+                pieces.append(self.segment(path, rel, text[last:m.start()]))
+                pieces.append(m.group(0))
+                last = m.end()
+            pieces.append(self.segment(path, rel, text[last:]))
+            return ''.join(pieces)
+        text = self.segment(path, rel, text)
+        if rel in BASELINES:
+            text = merge_rows(text, self)
+        if rel.endswith('CMakeLists.txt'):
+            text = no_repeats(text, self)
+        return text
+
+    def segment(self, path, rel, text):
         if path.endswith(CPP) and rel.startswith(('src/', 'tests/')):
             def include(m):
                 rooted = root_include(path, m.group(2), self.moved)
@@ -379,12 +398,7 @@ class Rewrite:
         out = []
         for line in text.split('\n'):
             out.append(line if line.lstrip().startswith('#include') else self.bare.sub(bare_ref, line))
-        text = '\n'.join(out)
-        if rel in BASELINES:
-            text = merge_rows(text, self)
-        if rel.endswith('CMakeLists.txt'):
-            text = no_repeats(text, self)
-        return text
+        return '\n'.join(out)
 
 
 def other_names():

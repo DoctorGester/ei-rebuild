@@ -33,6 +33,8 @@ FILES = {
     'tests/unit/local.h': '#pragma once\n',
     'docs/notes/n.md': 'X is in src/game/a_x.cpp; d_old.cpp and c_fold.h are gone.\n',
     'config/cleanup_baseline.csv': 'file,one,two\nsrc/game/a_x.h,1,0\nsrc/game/c_fold.h,2,3\nsrc/game/e_z.cpp,0,1\n',
+    'tools/check.py': "A = ('src/game/d_old.cpp', 'd_old.cpp') + layout.game_paths('d_old.cpp', 'c_fold',\n"
+                      "                                                       'e_z.cpp')\n",
     'CMakeLists.txt': 'add_executable(t src/game/a_x.cpp src/game/d_old.cpp\n    src/game/a_x.cpp)\n',
 }
 
@@ -101,6 +103,16 @@ class MoverTest(unittest.TestCase):
         self.assertEqual(before, {rel: self.read(rel) for rel in before})
         code, out = self.run_tool('apply', 'B1')
         self.assertIn('0 moves, 0 folds, 5 done before', out)
+
+    def test_rewrite_leaves_game_paths_arguments(self):
+        """layout.game_paths('d_old.cpp') names a flat file the map resolves: rewrite changes the names around the
+        call and not the call's arguments."""
+        self.run_tool('apply', 'B1')
+        expected = ("A = ('src/game/a/d_new.cpp', 'a/d_new.cpp') + layout.game_paths('d_old.cpp', 'c_fold',\n"
+                    "                                                       'e_z.cpp')\n")
+        self.assertEqual(self.read('tools/check.py'), expected)
+        self.run_tool('rewrite')
+        self.assertEqual(self.read('tools/check.py'), expected)
 
     def test_stale_branch_rewrite(self):
         """A branch made before the moves (bare and flat rooted includes) merged after them: rewrite moves its
