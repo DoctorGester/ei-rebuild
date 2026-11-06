@@ -368,3 +368,22 @@ the lights in reach, the matrices, the units' boxes), CollectCells (3.3%), the p
 list. The parts outside the view now reach the GPU (the GPU clips them) and their records cost PlanMeshDraws a little
 more; the draw calls stay (56 -> 58). The ground prints are handed over without a CPU view test (0.03 ms more).
 
+
+## Measured after R37f14
+
+R37f5's kit on R37f14's commit (release terms, quiet runs, three rounds each, medians; the logs beside R37f13's in
+build/r37f14_probe of the main checkout), against "Measured after R37f13". The outside casters now take the world's
+mesh hand-over (a caster-only batch, kept in the part's own slot); src +168 -394. The machine ran faster on the camera
+still this time (the untouched CollectCells 0.48 -> 0.32, the interface 0.09 -> 0.06), so read the panning column.
+
+| Part (ms a frame) | Save, still | Save, panning |
+|---|---|---|
+| Main thread | 3.81 -> 3.09 (machine) | 2.64 -> 2.61 |
+| The casters handed over | 0.20 -> 0.18 | 0.19 -> 0.18 |
+| PrepareShadows | 0.18 -> 0.17 | 0.18 -> 0.18 |
+| The sun map's CPU side | 0.22 -> 0.20 | 0.16 -> 0.17 |
+| Meshes handed over | 2081 -> 2196 | |
+
+The sampled 2400-frame run: 3.01 -> 2.90 ms; the outside walk 1.65% -> 1.93% of the thread (0.05 -> 0.056 ms: the
+parts' MeshDraw and KeepMesh's checks), the sun map 6.7% -> 6.8%, PrepareShadows 5.7% -> 5.9%. No change beyond the
+noise: the gain is the deleted path. The sun map's draws and calls are unchanged (1992 in 41).
