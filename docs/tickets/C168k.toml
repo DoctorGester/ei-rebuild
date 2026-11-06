@@ -5,5 +5,6 @@ size = 1
 model = "sonnet"
 note = "C168i follow-up 2026-11-06: C168i moved the class to objects/map_object_manager.h but left these definitions in units/unit_create.cpp and unit_create_stats.cpp. Move them; the stats builders are float code, so check goldens (an object-file move may change codegen). Done: the five members plus the builders they share helpers with (BuildNpcStats, PrototypeObjectClass, the stats helpers) and the factory table are in objects/map_object_manager.cpp; unit_create_stats.cpp keeps UnitStats' members. Goldens: image 221 the same, Rebirth 135 the same."
 order = 1255
-status = "review"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
