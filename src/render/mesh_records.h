@@ -1,6 +1,6 @@
 #pragma once
 
-// The records a mesh draw reads (MeshDraw, ShadowMesh). The game's meshes hold them as their files do (.fig, .lnk).
+// The records a mesh draw reads (MeshDraw). The game's meshes hold them as their files do (.fig, .lnk).
 
 #include "lib/bytes.h"
 #include "lib/vecmath.h"
@@ -51,10 +51,10 @@ struct MeshCorner {
     std::uint16_t texCoord = 0;
 };
 
-// Where the renderer keeps a figure mesh's copies on the GPU (drawn; read as a caster): 1 + their slot, 0 for none.
-// Held in the mesh (FigureMesh::meshSlots) and written by the renderer, so a draw finds its copy without a lookup.
+// Where the renderer keeps a figure mesh's copy on the GPU: 1 + its slot, 0 for none. Held in the mesh
+// (FigureMesh::meshSlots) and written by the renderer, so a draw finds its copy without a lookup.
 struct MeshSlots {
-    std::uint32_t drawn = 0, caster = 0;
+    std::uint32_t drawn = 0;
 };
 
 static_assert(sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6 && sizeof(VertexPacket) == 0x40 &&

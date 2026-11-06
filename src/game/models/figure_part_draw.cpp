@@ -150,6 +150,15 @@ bool FigureMeshDrawer::DrawLit(TextureDevice* device, const Matrix4& view, const
     return true;
 }
 
+void FigureMeshDrawer::HandOverCaster(const Matrix4& model, const Surface* texture) {
+    LinkMesh* figure = OwnerFigure(mesh);
+    const LinkPartRanges* ranges = figure ? mesh->PartIn(figure) : nullptr;
+    if (figure && !ranges) return;
+    render::MeshDraw d = MeshOf(mesh, figure, ranges);
+    d.model = &model;
+    render::CasterMesh(d, texture);
+}
+
 const LinkPartRanges* FigureMesh::PartIn(const LinkMesh* figure) {
     if (figureSerial != figure->serial || !figureRanges) {
         figureSerial = figure->serial;

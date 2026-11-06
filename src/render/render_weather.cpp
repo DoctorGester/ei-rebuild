@@ -405,11 +405,10 @@ void DrawRoofMap(const Frame& f) {
         return;
     }
     g_roofDraws.Clear();
-    for (const Roof& roof : g_roofs) {
-        const MeshBatch& batch = *roof.batch;
+    auto add = [&](const MeshBatch& batch) {
         Geometry geometry;
         int first = 0;
-        if (!BindMeshBatch(batch, geometry, &first)) continue;
+        if (!BindMeshBatch(batch, geometry, &first)) return;
         const PassState& state = batch.state;
         const StageState& stage = state.stages[0];
         const Matrix4& model = f.models[static_cast<std::size_t>(batch.placement)];
@@ -417,8 +416,10 @@ void DrawRoofMap(const Frame& f) {
         CasterAlpha(state, instance.alpha);
         g_roofDraws.Add(geometry, batch.cached != nullptr, stage.texture ? stage.texture : SurfaceView(nullptr),
                         StageSampler(stage), first, batch.indexCount, instance);
-    }
-    AddOutsideRoofs(g_roofDraws, g_roofFit.clip);
+    };
+    for (const Roof& roof : g_roofs) add(*roof.batch);
+    for (const MeshBatch& batch : f.meshBatches)   // the sun map's casters outside the view but the units'
+        if (batch.casterOnly && !batch.figure) add(batch);
     g_roofDraws.Sort(0, g_roofDraws.Count());
     const bool draw = g_roofDraws.Upload();
     gpu::PassDesc pass;

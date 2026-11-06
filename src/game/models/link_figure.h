@@ -41,6 +41,9 @@ struct FigureMeshDrawer : EngineObject {
     // The sky dome (its lit colours, placed by `sky` under the screen stack's top) or, without it, an interface
     // sprite (placed by the screen stack's top).
     void DrawPlain(TextureDevice* device, const Matrix4* sky);
+    // The part as a caster outside the view (render::CasterMesh, within render::BeginCaster): its arrays as DrawLit
+    // hands them over, placed by `model`, with stage 0's `texture`.
+    void HandOverCaster(const Matrix4& model, const Surface* texture);
 
     FigureMeshDrawer();
     ~FigureMeshDrawer() override;

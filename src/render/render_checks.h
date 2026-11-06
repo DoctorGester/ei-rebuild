@@ -84,14 +84,14 @@ struct OcclusionInfo {
 OcclusionInfo OcclusionState();
 // The last presented frame's shadow map. Of the objects whose shadow the game draws: `offScreen` cast
 // nothing and handed over no mesh, `lost` handed over meshes of which none went into the map (none should);
-// `outside*`: casters through ShadowCasterMesh.
+// `outside*`: casters through CasterMesh.
 struct ShadowInfo {
     bool made = false;
     int size = 0;
     float extent = 0.0f;
     int casters = 0, casterDraws = 0, receivingMeshes = 0, receivingTerrain = 0;
     int offScreen = 0, lost = 0;
-    int outsideCasters = 0, outsideDraws = 0, outsideCorners = 0;
+    int outsideCasters = 0, outsideDraws = 0;
     int terrainCasters = 0;   // the ground's sectors drawn into the map
     int groundDecals = 0, receivingDecals = 0;   // the ground prints handed over, and those sampling the map
     // The cloud shadows: how much of the sun a full cloud hid (0: none) and the share of the ground under clouds.

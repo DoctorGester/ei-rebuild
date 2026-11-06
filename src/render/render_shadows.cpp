@@ -131,31 +131,17 @@ static ShadowInfo g_info, g_lastInfo;
 
 // --- Casters outside the view --------------------------------------------------------------------
 
-// A mesh of ShadowCasterMesh: its model matrix into the landscape's space, its corners kept on the GPU by
-// part (KeepCasterMesh) and its texture offsets.
-struct OutsideCaster {
-    Matrix4 model;
-    const CachedMesh* mesh = nullptr;
-    float uOffset = 0.0f, vOffset = 0.0f;
-    gpu::Texture texture;
-    bool hasTexture = false;
-    const Object3D* object = nullptr;
-    bool unit = false;
-};
-static std::vector<OutsideCaster> g_outside;
-// More casters than this in one frame (no present for a long time) are dropped.
-constexpr std::size_t kMostOutside = 100'000;
 static bool g_outsideOn = true;                 // SetOffscreenCasters: not View
 static bool g_walkedOnly = false;               // SetOffscreenCasters: Walked
 static bool g_shadowView = false;               // SetShadowView
 static int g_shadowShift = 0;                   // SetShadowShift: texels
-// How the meshes drawn on screen with a texture cut it out (alpha test or blending, and the least alpha
-// kept), by the texture: a caster outside the view with that texture cuts it out the same way;
-// one whose texture was not drawn yet cuts below one half (a texture with alpha is drawn alpha-tested
-// or blended; without alpha nothing is cut).
+// How the meshes drawn on screen with a texture cut it out (alpha test or blending, and the test's reference), by the
+// texture: a caster outside the view with that texture cuts it out the same way (OutsideCasterState); one whose texture
+// was not drawn yet cuts below one half (a texture with alpha is drawn alpha-tested or blended; without alpha nothing
+// is cut).
 struct AlphaCut {
-    bool cut = false;
-    float least = 0.0f;
+    bool alphaTest = false, blend = true;
+    std::uint8_t reference = 0;
 };
 static std::unordered_map<const void*, AlphaCut> g_cuts;
 constexpr std::size_t kMostCuts = 8192;
@@ -570,24 +556,6 @@ static bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
 
 static Timer g_walkTimer, g_walkCpu;   // the walk's (BeginShadowWalk): its FrameStats time, the overlay's
 
-// A caster outside the view into `draws` through `light` (the landscape's space to a map's clip space), cut out as the
-// meshes drawn with its texture are (g_cuts); false when its mesh is not on the GPU.
-static bool AddOutsideCaster(CasterDraws& draws, const OutsideCaster& e, const Matrix4& light) {
-    Geometry b;
-    int first = 0;
-    if (!BindCachedMesh(*e.mesh, b, &first)) return false;
-    CasterInstance instance{Product(light, e.model), {e.uOffset, e.vOffset}, {}};
-    if (e.hasTexture && e.texture) {
-        auto cut = g_cuts.find(e.texture.texture);
-        AlphaCut a = cut != g_cuts.end() ? cut->second : AlphaCut{true, 0.5f};
-        instance.alpha[0] = a.cut ? 1.0f : 0.0f;
-        instance.alpha[1] = a.least;
-    }
-    draws.Add(b, true, e.hasTexture && e.texture ? e.texture : SurfaceView(nullptr), StageSampler(StageState{}), first,
-              CachedIndexCount(*e.mesh), instance);
-    return true;
-}
-
 // A unit's meshes take only the shadows other objects cast. Each unit's nearest depth in the map
 // (the least over its receiving meshes' boxes, MeshBatch::box, through their light matrices) is kept on
 // its meshes (MeshBatch::front); their receivers compare from there (shaders/shadow_receiver.hlsli), so
@@ -658,13 +626,6 @@ std::optional<Vector3> MapLightDirection(const Vector3& sun) {
     if (down < least) down = least;
     const float length = lib::Hypot(horizontal, down);
     return Vector3{sun.x / length, sun.y / length, -down / length};
-}
-
-int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip) {
-    int added = 0;
-    for (const OutsideCaster& e : g_outside)
-        if (!e.unit && AddOutsideCaster(draws, e, clip)) ++added;
-    return added;
 }
 
 std::optional<Box> VisibleGround(Frame& f) {
@@ -777,27 +738,24 @@ bool CasterDrawn(const CasterMark& mark) {
            static_cast<std::size_t>(mark.slot) < casters.size() && casters[static_cast<std::size_t>(mark.slot)].drawn;
 }
 
+PassState OutsideCasterState(const Surface* texture) {
+    PassState s;
+    StageState& stage = s.stages[0];
+    stage.hasTexture = texture != nullptr;
+    stage.texture = SurfaceView(texture);
+    auto cut = g_cuts.find(stage.texture.texture);
+    const AlphaCut a = cut != g_cuts.end() ? cut->second : AlphaCut{};
+    s.alphaTest = a.alphaTest;
+    s.blend = a.blend;
+    s.alphaReference = a.reference;
+    return s;
+}
+
 float CasterStrength(const CasterMark& mark) {
     const std::vector<FrameCaster>& casters = g_frame.shadow.casters;
     if (mark.frame != g_casterFrame || mark.slot < 0 || static_cast<std::size_t>(mark.slot) >= casters.size())
         return kNoStrength;
     return casters[static_cast<std::size_t>(mark.slot)].strength;
-}
-
-void ShadowCasterMesh(const Object3D* object, const ShadowMesh& m) {
-    if (!g_outsideOn || m.indexCount < 3 || g_outside.size() >= kMostOutside) return;
-    const CachedMesh* kept = KeepCasterMesh(m);
-    if (!kept) return;
-    OutsideCaster e{};
-    e.model = m.model;
-    e.mesh = kept;
-    e.uOffset = m.uOffset;
-    e.vOffset = m.vOffset;
-    e.hasTexture = m.texture != nullptr;
-    if (e.hasTexture) e.texture = SurfaceView(m.texture);
-    e.object = object;
-    e.unit = m.unit;
-    g_outside.push_back(e);
 }
 
 void BeginShadowWalk() {
@@ -1001,7 +959,6 @@ void ShadowFrameDone() {
     g_lastReach = g_reach;
     g_lastInfo = g_info;
     g_info = ShadowInfo{};
-    g_outside.clear();
     ++g_casterFrame;
     g_nearestCaster = 1e30f;
     TerrainCastersDone();
@@ -1139,7 +1096,7 @@ void PrepareShadows(Frame& f) {
     g_info.puddles = surfaces.puddles;
     g_info.snowCover = surfaces.snow;
     for (const MeshBatch& b : f.meshBatches) g_info.groundDecals += b.decal ? 1 : 0;
-    const bool casters = sh.shadowed || !g_outside.empty() || TerrainCasterCount() != 0;
+    const bool casters = sh.shadowed || TerrainCasterCount() != 0;
     if (!sh.haveSun || f.worldRanges.empty() || (!casters && cloudLight <= 0.0f)) return;
     Timer timer(FrameStats::Time::ShadowMs);
     if (!FitMap(f).ok) return;
@@ -1173,13 +1130,16 @@ static void CountCaster(const Object3D*) {}
 #endif
 
 // The casters the game drew (the batches with a light matrix of the objects it shadows; one for all passes of a mesh)
-// into g_casterDraws, each one's cut noted by its texture for the casters outside the view (g_cuts).
-static void AddDrawnCasters(const Frame& f) {
+// and those outside the view (render::CasterMesh, after them) into g_casterDraws, each drawn one's cut noted by its
+// texture for the casters outside the view (g_cuts).
+static void AddCasters(const Frame& f) {
     const std::vector<FrameCaster>& casters = f.shadow.casters;
     const CachedMesh* lastMesh = nullptr;
     int lastFirst = -1;
+    const Object3D* lastOutside = nullptr;
     for (const MeshBatch& batch : f.meshBatches) {
-        if (batch.light < 0 || !batch.caster || batch.casterSlot < 0 || batch.indexCount <= 0) continue;
+        if ((batch.light < 0 && !batch.casterOnly) || !batch.caster || batch.casterSlot < 0 || batch.indexCount <= 0)
+            continue;
         if (casters[static_cast<std::size_t>(batch.casterSlot)].strength < kLeastStrength) continue;
         if (batch.cached == lastMesh && batch.firstIndex == lastFirst) continue;   // a later pass of the same mesh
         lastMesh = batch.cached;
@@ -1189,43 +1149,27 @@ static void AddDrawnCasters(const Frame& f) {
         if (!BindMeshBatch(batch, geometry, &first)) continue;
         const PassState& state = batch.state;
         const StageState& stage = state.stages[0];
-        CasterInstance instance{f.shadow.lights[static_cast<std::size_t>(batch.light)], {batch.uOffset, batch.vOffset}, {}};
+        const Matrix4 light = batch.casterOnly ? Product(g_fit.light, f.models[static_cast<std::size_t>(batch.placement)])
+                                               : f.shadow.lights[static_cast<std::size_t>(batch.light)];
+        CasterInstance instance{light, {batch.uOffset, batch.vOffset}, {}};
         CasterAlpha(state, instance.alpha);
-        if (stage.hasTexture && stage.texture) {
+        if (!batch.casterOnly && stage.hasTexture && stage.texture) {
             if (g_cuts.size() >= kMostCuts) g_cuts.clear();
-            g_cuts[stage.texture.texture] = AlphaCut{instance.alpha[0] > 0.5f, instance.alpha[1]};
+            g_cuts[stage.texture.texture] = AlphaCut{state.alphaTest, state.blend, state.alphaReference};
         }
-        if (g_walkedOnly) continue;   // the walk hands this caster over instead
+        if (g_walkedOnly && !batch.casterOnly) continue;   // the walk hands this caster over instead
         g_casterDraws.Add(geometry, batch.cached != nullptr, stage.texture ? stage.texture : SurfaceView(nullptr),
                           StageSampler(stage), first, batch.indexCount, instance);
         ++g_stats.counts[FrameStats::Count::ShadowDraws];
-        ++g_info.casterDraws;
+        if (batch.casterOnly) {
+            ++g_info.outsideDraws;
+            g_info.outsideCasters += batch.caster != lastOutside ? 1 : 0;   // an object's meshes come in a row
+            lastOutside = batch.caster;
+        } else {
+            ++g_info.casterDraws;
+        }
         CountCaster(batch.caster);
     }
-}
-
-// The casters outside the view (ShadowCasterMesh) into g_casterDraws through the map's light matrix.
-static void AddOutsideCasters(const Fit& fit) {
-#if defined(EI_RENDER_VALIDATION)
-    const std::size_t drawn = g_counted.size();
-#endif
-    const Object3D* last = nullptr;
-    int corners = 0;
-    for (const OutsideCaster& e : g_outside) {
-        if (!AddOutsideCaster(g_casterDraws, e, fit.light)) continue;
-        ++g_stats.counts[FrameStats::Count::ShadowDraws];
-        ++g_info.outsideDraws;
-        corners += CachedVertexCount(*e.mesh);
-        if (e.object == last) continue;   // an object's meshes come in a row
-        last = e.object;
-        CountCaster(e.object);
-    }
-#if defined(EI_RENDER_VALIDATION)
-    std::vector<const Object3D*> outside(g_counted.begin() + static_cast<std::ptrdiff_t>(drawn), g_counted.end());
-    std::sort(outside.begin(), outside.end(), std::less<const Object3D*>());
-    g_info.outsideCasters = static_cast<int>(std::unique(outside.begin(), outside.end()) - outside.begin());
-#endif
-    g_info.outsideCorners = corners;
 }
 
 // The map's pass (g_casterDraws, then the ground's casters), then its depth range per cell, dilated by `cellsAround`.
@@ -1289,8 +1233,7 @@ void DrawShadowMap(Frame& f) {
     }
     // The casters' instances are written before the pass (no writes inside one; the ground's by UploadTerrain).
     g_casterDraws.Clear();
-    AddDrawnCasters(f);
-    AddOutsideCasters(g_fit);
+    AddCasters(f);
     g_casterDraws.Sort(0, g_casterDraws.Count());
     DrawMap(g_fit, f.shadow.cellsAround);
     CountCasters(f);
