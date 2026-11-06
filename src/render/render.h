@@ -125,9 +125,15 @@ bool ShadowTerrainArea(float highestTop, ShadowCasterRect* area);
 void ShadowTerrainSector(const terrain::SectorData* sector);
 // The meshes handed over between BeginCaster and EndCaster belong to `object`; CastsShadow (from its shadow
 // draw) lets them cast this frame, at least 0.5 strong. A `figure`'s meshes take only the shadows others
-// cast, on every face; other objects' meshes are shadowed on the faces turned to the sun.
+// cast, on every face; other objects' meshes are shadowed on the faces turned to the sun. EndCaster: how many of
+// them noted their part as drawn (CasterPartDrawn), in the frame CasterFrame names while it lasts.
+struct DrawnCasterParts {
+    std::uint32_t frame = 0;
+    int parts = 0;
+};
 void BeginCaster(const Object3D* object, bool figure);
-void EndCaster();
+DrawnCasterParts EndCaster();
+std::uint32_t CasterFrame();
 // The meshes handed over between BeginInterfaceUnit and EndInterfaceUnit are an interface figure of the world unit
 // `object` (the one BeginCaster was given for it; the HUD unit panel's): drawn in the interface, they take that
 // unit's own weather (renderer.md 11b, Units), as the unit out in the rain. Figures not drawn so (the camp's and the

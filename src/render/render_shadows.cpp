@@ -126,6 +126,8 @@ static bool Invert(const M4& a, M4* out) {
 // --- The game's hand-over ---------------------------------------------------------------------------
 
 static const Object3D* g_caster = nullptr;   // BeginCaster .. EndCaster
+static int g_casterParts = 0;                // ... the parts noted as drawn (NoteCasterPart)
+static std::uint32_t g_casterFrame = 1;      // CasterFrame: one more at each ShadowFrameDone
 static bool g_casterFigure = false;      // ... a unit's draw
 static ShadowInfo g_info, g_lastInfo;
 
@@ -703,11 +705,15 @@ void ShadowSun(const Vector3& direction) {
 void BeginCaster(const Object3D* object, bool figure) {
     g_caster = object;
     g_casterFigure = figure;
+    g_casterParts = 0;
 }
-void EndCaster() {
+DrawnCasterParts EndCaster() {
     g_caster = nullptr;
     g_casterFigure = false;
+    return {g_casterFrame, g_casterParts};
 }
+
+std::uint32_t CasterFrame() { return g_casterFrame; }
 
 void CastsShadow(const Object3D* object, float strength) {
     if (!object) return;
@@ -798,7 +804,9 @@ const Object3D* CurrentCaster() { return g_caster; }
 bool CurrentCasterFigure() { return g_caster && g_casterFigure; }
 
 void NoteCasterPart(const FigureMesh* part) {
-    if (part && !g_walkedOnly) g_drawnParts.insert(part);
+    if (!part || g_walkedOnly) return;
+    ++g_casterParts;
+    g_drawnParts.insert(part);
 }
 
 void CasterDraws::Add(const Geometry& geometry, bool kept, const gpu::Texture& texture, gpu::Sampler sampler,
@@ -867,6 +875,7 @@ void ShadowFrameDone() {
     g_info = ShadowInfo{};
     g_outside.clear();
     g_drawnParts.clear();
+    ++g_casterFrame;
     g_nearestCaster = 1e30f;
     TerrainCastersDone();
 }

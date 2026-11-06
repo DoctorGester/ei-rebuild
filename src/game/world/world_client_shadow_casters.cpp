@@ -99,6 +99,22 @@ const VertexPacket* MovedPositions(const VertexPacket* positions, int packets, c
     return moved.data();
 }
 
+// Whether the world's draw handed over this frame every part HandOverParts would (Object3DClientSpecific::casterParts:
+// it drew no part HandOverParts leaves out, so as many means the same parts).
+bool AllPartsDrawn(const Object3DClientSpecific* half) {
+    if (half->casterFrame != render::CasterFrame()) return false;
+    int parts = 0;
+    for (const std::unique_ptr<TextureParts>& set : half->partSets) {
+        if (!set) continue;
+        for (const auto& group : set->groups)
+            for (const FigureMesh* part : group->parts) {
+                if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
+                if (!(LengthSquared(part->localPosition) > kPartRangeSquared)) ++parts;
+            }
+    }
+    return parts == half->casterParts;
+}
+
 // Hands over the parts of `object` (`unit`: a unit) that were not drawn this frame, placed by `world` (and the
 // extra scale), each with its part set's texture.
 void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4& world, bool unit) {
@@ -303,6 +319,7 @@ void HandOverOutsideCasters(WorldClient* world) {
                 if (!render::ShadowCasterReaches(sphere)) {
                     continue;
                 }
+                if (AllPartsDrawn(half)) continue;
                 // The game's own verdict when it drew the object's shadow this frame, else its tests.
                 float strength = render::CasterStrength(object);
                 if (strength < 0.0f) {

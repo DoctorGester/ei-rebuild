@@ -100,17 +100,25 @@ template <typename Draw>
 void DrawEach(FrameList list, Draw draw) {
     for (MapObject* object : FrameObjects(list)) draw(object);
 }
+// The parts an object's draw handed over as shadow casters (Object3DClientSpecific::casterParts).
+void KeepCasterParts(MapObject* object, const render::DrawnCasterParts& drawn) {
+    Object3DClientSpecific* half = object->ClientSpecific();
+    if (!half) return;
+    half->casterFrame = drawn.frame;
+    half->casterParts = drawn.parts;
+}
+
 // The drawn objects' three figure draw virtuals with the scene context; their results are ignored. The
 // new renderer learns which object the meshes of a figure draw belong to (its shadow map's casters).
 constexpr auto kDraw = [](MapObject* object) {
     render::BeginCaster(object, false);
     object->DrawFigure(&g_sceneRenderer);
-    render::EndCaster();
+    KeepCasterParts(object, render::EndCaster());
 };
 constexpr auto kDrawUnit = [](MapObject* object) {
     render::BeginCaster(object, true);
     object->DrawCollectDirty(&g_sceneRenderer);
-    render::EndCaster();
+    KeepCasterParts(object, render::EndCaster());
 };
 constexpr auto kDrawShadow = [](MapObject* object) { object->DrawFigureShadow(&g_sceneRenderer); };
 
