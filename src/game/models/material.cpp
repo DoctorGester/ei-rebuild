@@ -57,7 +57,7 @@ void Material::Destroy() {
     entries.clear();
 }
 
-const char* Material::GetName() { return name.c_str(); }
+std::string_view Material::GetName() { return name; }
 const char* Material::ClassName() { return kMaterialClassName; }
 ClassId Material::GetClassId() { return ClassId::Material; }
 

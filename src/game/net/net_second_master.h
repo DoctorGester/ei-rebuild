@@ -39,7 +39,7 @@ void CopyAnnouncement(platform::net::Socket socket, const GameBuffer& sent);
 // with a non-blocking TCP connect (up to 1 s); when it cannot be parsed or reached and the second
 // master's address is known, that text is parsed instead (not tried). Returns the last Parse's result
 // (false after a failed try without a known second master).
-bool ParseMaster(NetAddress* master, const char* host, int port);
+bool ParseMaster(NetAddress* master, std::string_view host, int port);
 
 } // namespace second_master
 } // namespace net

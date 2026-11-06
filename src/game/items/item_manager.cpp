@@ -281,7 +281,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
     if (!prototype) prototype = g_itemDatabase.loot.Named(prototypeName);
     if (!prototype) {
         // An unknown prototype gives no item (Rebirth's addon.log line, in ours).
-        ei::Log("GiveItem: can't find prototype %s", text.c_str());
+        ei::Log("GiveItem: can't find prototype %s", text);
         return nullptr;
     }
     MaterialRecordHead* material = parts.size() > 1 ? g_itemDatabase.materials.Named(parts[1]) : nullptr;
@@ -297,7 +297,7 @@ Item* ItemManager::CreateItem(std::string_view name) {
     Item* item = context->GetItemConstructor()->BuildItem(this, prototype->Kind(), prototype, material, spell, count);
     // A failed build gives no item.
     if (!item) {
-        ei::Log("GiveItem: can't make %s", text.c_str());
+        ei::Log("GiveItem: can't make %s", text);
         return nullptr;
     }
     if (ItemLoot* loot = item->AsLoot(); loot && parts.size() > 1) {

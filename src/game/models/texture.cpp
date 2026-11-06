@@ -85,16 +85,16 @@ int TextureManager::LoadTexture(Texture* texture) {
         return 1;
     }
 
-    std::string path = GameRoot() + "textures\\" + texture->GetName() + ".bmp";
+    std::string path = GameRoot() + "textures\\" + texture->name + ".bmp";
     int result;
 
     if (platform::PathExists(path)) {
         // A loose .bmp overrides the archived texture.
         texture->format = BmpFormatFor(texture->type);
-        return texture->LoadBmp(device, path.c_str());
+        return texture->LoadBmp(device, path);
     }
 
-    path = std::string(texture->GetName()) + ".mmp";
+    path = texture->name + ".mmp";
     if (const MmpFile file(GetFile(path, nullptr)); file.data) {
         texture->format = file.header.HeldFormat();
         if (texture->format == MmpFormat::None) {
@@ -182,7 +182,7 @@ void DropSurface(Texture* texture) {
 
 } // namespace
 
-const char* Texture::GetName() { return name.c_str(); }
+std::string_view Texture::GetName() { return name; }
 const char* Texture::ClassName() { return "CTexture"; }
 ClassId Texture::GetClassId() { return ClassId::Texture; }
 

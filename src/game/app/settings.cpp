@@ -267,11 +267,11 @@ void SetDesktopSize(int width, int height) {
     S().desktopHeight = height;
 }
 
-void Pin(const char* file, MissingHandler missing, bool readOnly, PrepareHandler prepare) {
+void Pin(std::string_view file, MissingHandler missing, bool readOnly, PrepareHandler prepare) {
     Locked lock;
     Store& s = S();
     s.document = Document{};
-    s.file = file;
+    s.file = std::string(file);
     s.pinned = true;
     s.readOnly = readOnly;
     s.loaded = false;

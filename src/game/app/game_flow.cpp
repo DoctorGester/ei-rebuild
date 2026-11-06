@@ -222,11 +222,11 @@ constexpr int kServerMessageZone = 8;
 
 
 // Tells the clients of the game server where the game is: the host's address and the zone.
-void AnnounceHost(const char* zone) {
+void AnnounceHost(std::string_view zone) {
     const std::string host = platform::net::HostName();
     if (host.empty()) return;
     net::NetAddress address{};
-    address.Parse(host.c_str(), kHostPort);
+    address.Parse(host, kHostPort);
     std::string formatted = address.ToString();
     net::HostMessage* record = new net::HostMessage();
     ShareAssignOwned(net::g_gameServer->hostInfo, record);
@@ -469,7 +469,7 @@ int StartNetworkZone(const std::string& zone) {
     options::g_options.drawVisibleOnly = 1;
 
     if (IsLive(net::g_gameServer)) {
-        AnnounceHost(zone.c_str());
+        AnnounceHost(zone);
         std::string name = zone;
         std::string mob = name + kMobExtension;
         g_serverWorld.LoadMobFile(mob);

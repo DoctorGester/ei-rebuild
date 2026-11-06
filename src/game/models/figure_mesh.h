@@ -150,7 +150,7 @@ public:
     void Create() override;
     // The arrays emptied, then Clear.
     void Destroy() override;
-    const char* GetName() override;
+    std::string_view GetName() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
     // Sets the rotation, rotates the position by it (plus `offset`, copied to a member) and

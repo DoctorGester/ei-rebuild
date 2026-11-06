@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string_view>
 #include <list>
 #include <type_traits>
 #include <vector>
@@ -113,7 +114,7 @@ enum class PlayerStatus : std::uint32_t {
 struct NetAddress : platform::net::Address {
     // This address from "host[:port]" (an IPv4 number or a host name looked up); `defaultPort` unless the
     // text names one. False when the host is unknown.
-    bool Parse(const char* text, int defaultPort);
+    bool Parse(std::string_view text, int defaultPort);
     // "a.b.c.d:port". The original's Format could name the host instead (gethostbyaddr), but only ever ran without the
     // look-up, which was given the whole 16 bytes and so could not have found the name.
     std::string ToString() const;
@@ -478,7 +479,7 @@ public:
     // Keeps a chat or system line for the clients (`player` null for the server's own; at most 50 lines).
     void Announce(std::string_view text, RefObject* player);
     // Announce with text `kind` of the text table formatted with `text`.
-    void AnnounceText(int kind, const char* text, RefObject* player);
+    void AnnounceText(int kind, std::string_view text, RefObject* player);
     // The trade between two offers (either order), or null.
     TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     int LeaderId();                                       // the first host's id, -1
@@ -486,7 +487,7 @@ public:
     Connection* FindGuestConnection(const std::string& name);
     Connection* FindConnectionBySerial(int serial);
     PlayerMessage* FindPlayer(int id);
-    void AnnounceToGuests(int kind, const char* text);
+    void AnnounceToGuests(int kind, std::string_view text);
     void Kick(Connection* connection);
     void Ban(Connection* connection);
     void ReportDeparture(Connection* connection, int text);

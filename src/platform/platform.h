@@ -549,7 +549,7 @@ int Select(SocketGroup* read, SocketGroup* write, SocketGroup* failed, std::int3
 std::string HostName();
 // The first IPv4 address of the host `name` (a name or an IPv4 number) in network order; none when the host is
 // unknown. Blocks while the name is looked up.
-std::optional<std::uint32_t> LookUp(const char* name);
+std::optional<std::uint32_t> LookUp(const std::string& name);
 
 } // namespace net
 

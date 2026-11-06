@@ -304,7 +304,7 @@ public:
     void Create() override;
     // As Create, but the spell gets its Destroy.
     void Destroy() override;
-    const char* GetName() override;
+    std::string_view GetName() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 
@@ -391,5 +391,5 @@ public:
 };
 
 // Case-insensitive; null if none.
-const char* SpellCodeByName(std::string_view name);
+const std::string* SpellCodeByName(std::string_view name);
 const char* SpellModifierCodeByName(std::string_view name);

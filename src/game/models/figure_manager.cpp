@@ -112,7 +112,7 @@ UiMesh* FigureManager::NewFigure(std::string_view name) {
 
 int FigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation) {
     if (!animation) return 0;
-    const std::string path = bone->modelName + bone->GetName() + animation + ".ast";
+    const std::string path = bone->modelName + bone->name + animation + ".ast";
     void* data = GetFile(path, nullptr);
     if (!data) return 0;
     auto* cursor = static_cast<std::uint8_t*>(data);
@@ -130,7 +130,7 @@ ClassId FigureManager::GetClassId() { return ClassId::FigureManager; }
 // Sets a figure's animation by name. Without an animation the figure's animation is cleared; otherwise the
 // model is looked up and its animation of that name found; each failure logs "Can't open model" / "Can't open
 // animation ... for model" and returns 0. See docs/notes/models.md.
-bool FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char* modelName,
+bool FigureManager::SetFigureAnimation(FigureAnimationState* figure, std::string_view modelName,
                                        const FigureAnimation* animation) {
     if (!animation) {
         figure->ClearBoneTracks();
@@ -216,7 +216,7 @@ int FigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     if (model) {
         bones.data = model->bones->GetFile(bone->name, &bones.size);
     } else {
-        std::string name = bone->GetName();
+        const std::string& name = bone->name;
         std::string directory = bone->modelName;
         std::string path = (directory + name) + ".bon";
         bones.data = GetFile(path, &bones.size);

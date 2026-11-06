@@ -26,7 +26,7 @@ void EngineObject::Release() {
     if (--refCount == 0) owner->ReleaseObject(this);
 }
 
-const char* EngineObject::GetName() { return kNoName; }
+std::string_view EngineObject::GetName() { return kNoName; }
 
 ManagerContext* EngineObject::GetManagerContext() const { return owner->context; }
 

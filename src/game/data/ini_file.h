@@ -18,17 +18,17 @@ public:
     void Load(std::string_view path);
 
     // The key names of `section` (the part before '=', trimmed), in file order; none for an empty or missing section.
-    std::vector<std::string> GetKeyNames(const char* section) const;
+    std::vector<std::string> GetKeyNames(std::string_view section) const;
 
     // The value, or `defaultValue`.
-    std::string GetString(const char* section, const char* key, const char* defaultValue) const;
+    std::string GetString(std::string_view section, std::string_view key, std::string_view defaultValue) const;
     // The value's leading decimal number, or `defaultValue` when the key is missing or its value starts with none.
-    int GetInt(const char* section, const char* key, int defaultValue) const;
+    int GetInt(std::string_view section, std::string_view key, int defaultValue) const;
     // The items of the value split at `separator` (trimmed); none when the value is empty.
-    std::vector<std::string> GetList(const char* section, const char* key, char separator) const;
+    std::vector<std::string> GetList(std::string_view section, std::string_view key, char separator) const;
 
     // The comma-separated list's items as integers; none when the value is empty.
-    std::vector<std::uint32_t> GetIntArray(const char* section, const char* key) const;
+    std::vector<std::uint32_t> GetIntArray(std::string_view section, std::string_view key) const;
 
 private:
     // The entries of `section` ("key=value" lines, trimmed), in file order.

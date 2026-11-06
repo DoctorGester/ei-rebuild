@@ -169,7 +169,7 @@ public:
     void LoadState(ByteStream* stream);
     // The text of message `id` (0-12: "lmp_player_connected" .. "reserved_02"; others an empty key) from
     // the text table, formatted with `value` unless 0.
-    std::string MessageText(int id, const char* value);
+    std::string MessageText(int id, std::string_view value);
     // Without `forced`, takes the next queued message into the current text or returns when there is
     // none. A non-empty text opens the message window over the others, unless the option is off and it
     // was not forced.

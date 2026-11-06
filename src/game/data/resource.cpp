@@ -219,8 +219,8 @@ PathParts SplitPath(std::string_view path) {
 }
 
 // The listing's drive and directory tests: an empty pattern matches anything.
-bool PartMatches(const char* name, const char* pattern) {
-    return pattern[0] == '\0' || WildcardMatch(name, pattern, 0) != 0;
+bool PartMatches(std::string_view name, std::string_view pattern) {
+    return pattern.empty() || WildcardMatch(name, pattern, 0) != 0;
 }
 
 } // namespace
@@ -228,17 +228,17 @@ bool PartMatches(const char* name, const char* pattern) {
 
 // --- Archive listing -----------------------------------------------------------------------------
 
-int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult) {
-    if (*pattern == '\0') return *name == '\0' ? 1 : emptyPatternResult;
-    while (*name != '\0' && *pattern != '\0') {
-        if (*pattern == '*') return 1;
-        if (*pattern != '?' && text::ToUpper(*pattern) != text::ToUpper(*name)) return 0;
-        ++name;
-        ++pattern;
+int WildcardMatch(std::string_view name, std::string_view pattern, int emptyPatternResult) {
+    if (pattern.empty()) return name.empty() ? 1 : emptyPatternResult;
+    while (!name.empty() && !pattern.empty()) {
+        if (pattern.front() == '*') return 1;
+        if (pattern.front() != '?' && text::ToUpper(pattern.front()) != text::ToUpper(name.front())) return 0;
+        name.remove_prefix(1);
+        pattern.remove_prefix(1);
     }
-    for (; *pattern != '\0'; ++pattern)
-        if (*pattern != '?' && *pattern != '*') return 0;
-    return *name == '\0' ? 1 : 0;
+    for (const char c : pattern)
+        if (c != '?' && c != '*') return 0;
+    return name.empty() ? 1 : 0;
 }
 
 // With a mod, Rebirth's ResOverride sends every call to addon.
@@ -262,12 +262,12 @@ std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) con
         if (pattern != nullptr) {
             const PathParts nameParts = SplitPath(name);
             const PathParts patternParts = SplitPath(pattern);
-            if (!PartMatches(nameParts.drive.c_str(), patternParts.drive.c_str()) ||
-                !PartMatches(nameParts.directory.c_str(), patternParts.directory.c_str()))
+            if (!PartMatches(nameParts.drive, patternParts.drive) ||
+                !PartMatches(nameParts.directory, patternParts.directory))
                 continue;
             // An empty name pattern only matches an empty name; an empty extension pattern anything.
-            if (WildcardMatch(nameParts.name.c_str(), patternParts.name.c_str(), 0) == 0 ||
-                WildcardMatch(nameParts.extension.c_str(), patternParts.extension.c_str(), 1) == 0)
+            if (WildcardMatch(nameParts.name, patternParts.name, 0) == 0 ||
+                WildcardMatch(nameParts.extension, patternParts.extension, 1) == 0)
                 continue;
         }
         fileNames.push_back(name);

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+#include <string_view>
 
 #include "game/core/ref.h"
 
@@ -116,7 +117,7 @@ public:
     virtual void Release();                            // refcount; the owner releases it at 0
     virtual void ClearState();
     virtual bool RunTick();
-    virtual const char* GetName();                     // "noname"
+    virtual std::string_view GetName();                     // "noname"
     virtual void Load(ByteStream* stream);
     virtual void Save(ByteStream* stream);
     virtual const char* ClassName() = 0;

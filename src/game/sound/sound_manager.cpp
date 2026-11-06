@@ -175,8 +175,8 @@ void SwitchStream(SoundManager* m, std::uint8_t* to, int bytes) {
     }
     m->streamState = StreamState::Playing;
     m->streamName = m->nextName;
-    m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
-    m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
+    m->soundRegistry.GetIntArray(m->streamName, kSwitchMarkers, &m->markers);
+    m->soundRegistry.GetIntArray(m->streamName, kLoopMarkers, &m->markers2);
     m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoPosition;
     m->streamSwitchAt = kNeverSwitch;
     const int channels = audio::Mp3Channels(m->streamFile);

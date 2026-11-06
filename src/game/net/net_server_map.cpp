@@ -59,7 +59,7 @@ void ServerSession::SetMap(const std::string& newName) {
     GameFlow* world = &g_gameFlow;
     world->RegisterQuests(newName.data());
     world->SetNetworkZone(newName.data());
-    Announce(g_interface.MessageText(5, SessionMapName().c_str()), nullptr);
+    Announce(g_interface.MessageText(5, SessionMapName()), nullptr);
 
     QuestBriefingRecord* entry = g_questDatabase.briefings.index[newName + kZoneEnterSuffix];
     if (!entry) return;

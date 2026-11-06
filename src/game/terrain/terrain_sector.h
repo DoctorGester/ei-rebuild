@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <vector>
 class SceneRenderer;
 
@@ -130,7 +131,7 @@ struct SectorData {
     SectorData& operator=(const SectorData&) = delete;
 
     // Vertex positions and water tiles. True; a missing or malformed file ends the game.
-    bool Load(MappedResource* archive, int sx, int sy, const char* prefix, Terrain* owner);
+    bool Load(MappedResource* archive, int sx, int sy, std::string_view prefix, Terrain* owner);
 
     // Builds the vertex records, tile lists (the animated tiles' start frames drawn from g_clientRandom),
     // bounding boxes and water materials; every vertex's specular word becomes its edge fade (the fog factor; the

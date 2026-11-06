@@ -273,12 +273,11 @@ void Interface3D::LoadState(ByteStream* stream) {
 
 char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
 
-std::string Interface3D::MessageText(int id, const char* value) {
+std::string Interface3D::MessageText(int id, std::string_view value) {
     std::string key;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
     key = g_clientWorld.texts->TextManager::GetString(key);
-    if (value) return str::Format(key, value);
-    return key;
+    return str::Format(key, value);
 }
 
 // --- The saved state written -----------------------------------------------------------

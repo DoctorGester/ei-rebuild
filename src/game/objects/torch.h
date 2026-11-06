@@ -40,7 +40,7 @@ public:
     // through the vtable (the network read, the world server's CreateObject).
     virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) { SetLight(kind, colour, value); }
     virtual void SetFlameSlot(const float* colour, float value, const float* newValues) { SetFlame(colour, value, newValues); }
-    virtual void SetNameSlot(const char* newName) { SetName(newName); }
+    virtual void SetNameSlot(std::string_view newName) { SetName(newName); }
 
     // objects/torch.cpp. Create / Destroy (other names so they are no
     // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
@@ -54,7 +54,7 @@ public:
     void SaveSpec(ByteStream* stream);
     void SetLight(std::uint32_t kind, const float* colour, float value);
     void SetFlame(const float* colour, float value, const float* values);
-    void SetName(const char* name);
+    void SetName(std::string_view name);
     // objects/torch.cpp: the torch's network read. Reads the kind,
     // values[0], values[1], values[2..5], both vectors and the name from `field`, then applies them
     // through the virtual setters (a client half rebuilds its effects there), shows the
@@ -131,7 +131,7 @@ public:
     void WarmUpParticlesSlot() override { WarmUpParticles(); }
     void SetLightSlot(std::uint32_t kind, const float* colour, float value) override { SetParticles(kind, colour, value); }
     void SetFlameSlot(const float* colour, float value, const float* newValues) override { SetLightAt(colour, value, newValues); }
-    void SetNameSlot(const char* newName) override { SetSound(newName); }
+    void SetNameSlot(std::string_view newName) override { SetSound(newName); }
 
     // HideEffects (through the vtable), the light dropped, the particles stopped
     // and dropped, DestroySpec.
@@ -156,7 +156,7 @@ public:
     void SetLightAt(const float* offset, float radius, const float* colour);
     // The spec's SetName, then the sound restarts as ShowEffects starts
     // it, with far distance values[1] * 5.
-    void SetSound(const char* name);
+    void SetSound(std::string_view name);
 
     Ref<Light> light;
     ParticleSource* particles = nullptr;  // counted

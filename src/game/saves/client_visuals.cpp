@@ -303,8 +303,8 @@ void ClientVisuals::Restore(WorldClient& world) {
     const bool fits = !zone || (zone->map == world.shownMap && zone->tick <= world.tick + kTickSlack);
     const int away = fits && zone ? std::max(world.tick - zone->tick, 0) : 0;
     if (zone) {
-        ei::Log("client visuals: %s kept at tick %d of %s, loaded at tick %d of %s: %s", world.shownZone.c_str(),
-                zone->tick, zone->map.c_str(), world.tick, world.shownMap.c_str(),
+        ei::Log("client visuals: %s kept at tick %d of %s, loaded at tick %d of %s: %s", world.shownZone,
+                zone->tick, zone->map, world.tick, world.shownMap,
                 fits ? "restored" : "not the zone's");
     }
     dueUnits.clear();

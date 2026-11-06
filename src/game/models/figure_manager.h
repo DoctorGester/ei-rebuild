@@ -56,7 +56,7 @@ public:
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, float s, float t, float u);
     FigureModel* FindModel(std::string_view name);
     // Sets the animation found by name in model `modelName` on `figure`; false when it cannot.
-    bool SetFigureAnimation(FigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
+    bool SetFigureAnimation(FigureAnimationState* figure, std::string_view modelName, const FigureAnimation* animation);
     // The menus' button rectangles from "menus.reg" into `rects`; 1 (a file or an entry that cannot be read ends
     // the game).
     int LoadMenuRects(Rect* rects);

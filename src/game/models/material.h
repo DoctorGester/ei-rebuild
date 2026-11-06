@@ -59,7 +59,7 @@ public:
     // Empties the entries.
     void Destroy() override;
     // The name's text
-    const char* GetName() override;
+    std::string_view GetName() override;
     const char* ClassName() override;   // 11: "Material"
     ClassId GetClassId() override;
 

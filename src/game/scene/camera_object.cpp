@@ -100,7 +100,7 @@ bool Camera::OpenFile(std::string_view name) {
             const int number = str::ToInt(str::Right(entry.Title(), 4));
             if (number > last) last = number;
         }
-        platform::RenameFile(kCurrentRecord, str::Format(kNumberedRecord, last + 1).c_str());
+        platform::RenameFile(kCurrentRecord, str::Format(kNumberedRecord, last + 1));
     }
     g_clientWorld.flags |= WorldClientFlag::RecordingCamera;
     std::string full = kRecordFolder;
@@ -308,7 +308,7 @@ bool Camera::LoadPath(std::string_view name, int settle) {
     std::string path = g_dataFolder + "camera\\";
     path += name;
     // The mod's Camera\ copy when there is one (Rebirth's CameraPatch).
-    if (!file.Open(modfolders::CameraFile(path.c_str()), platform::FileMode::Read)) return false;
+    if (!file.Open(modfolders::CameraFile(path), platform::FileMode::Read)) return false;
 
     // As many keys as the file holds whole; the array is resized as the engine's aligned arrays
     // are (the old keys kept when it grows) and filled with one read.

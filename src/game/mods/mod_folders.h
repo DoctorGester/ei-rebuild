@@ -64,7 +64,7 @@ const std::string& MapsRoot(const std::string& dataFolder);
 
 // ---- Camera, Stream, Movies ----
 // CameraPatch: `path` (the camera\ file Camera::LoadPath opens), or the mod's Camera\<last part>.
-std::string CameraFile(const char* path);
+std::string CameraFile(std::string_view path);
 // StreamPatch: whether the mod's Stream\ has `name` (then the stream opens <mod>Stream\<name>).
 bool StreamInMod(std::string_view name);
 const std::string& StreamFolder();

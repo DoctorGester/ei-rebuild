@@ -131,7 +131,7 @@ AnimationTrack* AnimatorOf(FigureBone* bone) {
 }
 
 // The model name of the figure the state animates.
-const char* ModelName(const FigureAnimationState* state) { return state->owner->name.c_str(); }
+const std::string& ModelName(const FigureAnimationState* state) { return state->owner->name; }
 
 // The figure manager or else each bone takes `animation`.
 void Apply(FigureAnimationState* state, const FigureAnimation* animation) {

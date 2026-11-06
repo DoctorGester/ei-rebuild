@@ -163,7 +163,7 @@ void TorchObjectSpec::SetFlame(const float* colour, float value, const float* ne
     std::memcpy(&values[2], newValues, 4 * sizeof(float));
 }
 
-void TorchObjectSpec::SetName(const char* newName) { name = newName; }
+void TorchObjectSpec::SetName(std::string_view newName) { name = newName; }
 
 void TorchObjectSpec::ReadNetState(DeltaReader& field) {
     std::uint32_t kind;
@@ -177,7 +177,7 @@ void TorchObjectSpec::ReadNetState(DeltaReader& field) {
     name = field.ReadString();
     SetLightSlot(lightKind, colours[0], values[0]);
     SetFlameSlot(colours[1], values[1], &values[2]);
-    SetNameSlot(name.c_str());
+    SetNameSlot(name);
     ShowEffectsSlot();
     WarmUpParticlesSlot();
 }
@@ -307,7 +307,7 @@ void TorchObjectClientSpec::SetLightAt(const float* offset, float radius, const 
     g_clientWorld.terrain->AddLight(light);
 }
 
-void TorchObjectClientSpec::SetSound(const char* newName) {
+void TorchObjectClientSpec::SetSound(std::string_view newName) {
     SetName(newName);
     if (sound != kNoSound) g_clientWorld.sounds->StopSound(sound);
     const float farRadius = values[1] * kSetFarFactor;

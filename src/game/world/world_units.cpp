@@ -66,7 +66,7 @@ using mapspec::UnitSpec;
 
 
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
-void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& scratch) {
+void FillHeroParts(UnitSpec* message, const std::string& prototypeName) {
     UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(prototypeName);
     int hairStyle = prototype ? prototype->hair : 1;
 
@@ -75,8 +75,7 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& sc
         const char* part = kHeroFigureParts[n];
         if (std::strcmp(part, "hr") == 0) {
             if (hairStyle != -1) {
-                scratch = str::Format("hr.%.2d", hairStyle);
-                parts.push_back(scratch.c_str());
+                parts.push_back(str::Format("hr.%.2d", hairStyle));
             }
         } else {
             parts.push_back(part);
@@ -143,7 +142,7 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
 
     // A hero created next to the start of zone1 plays its arrival animation.
     bool atStart = false;
-    if (text::CompareIgnoringCase(mapName.c_str(), "zone1", 5) == 0) {
+    if (text::CompareIgnoringCase(std::string_view(mapName).substr(0, 5), "zone1") == 0) {
         const Vector3 heroStart = {kHeroStartX, kHeroStartY, 0.0f};
         float distance = LengthSquared(position - heroStart);
         atStart = distance < kHeroStartRadius2;
@@ -164,10 +163,10 @@ void WorldServer::CreateUnits(Player* player, std::vector<PartyUnitRecord*>* rec
         message->parentIname = record->parentIname;
         message->skinTexture = record->skinTexture;
         message->parts.clear();
-        const char* prototypeName = record->prototype.c_str();
+        const std::string& prototypeName = record->prototype;
         MapObjectType objectClass = PrototypeObjectClass(prototypeName);
         message->parentId = static_cast<int>(objectClass);
-        if (objectClass == MapObjectType::Hero) FillHeroParts(message, prototypeName, line);
+        if (objectClass == MapObjectType::Hero) FillHeroParts(message, prototypeName);
 
         int unitId = static_cast<int>(record->unitId);
         message->id = unitId;
@@ -346,7 +345,7 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
         const float colour[4] = {0.8f, 0.8f, 0.8f, 1.0f};
         float radius = flame->volume * kTorchLightScale;
         torch->SetFlameSlot(&flame->offset.x, radius, colour);
-        torch->SetNameSlot(flame->sound.c_str());
+        torch->SetNameSlot(flame->sound);
         place(object);
         object->MarkChanged(NetField::Placement);
         object->MarkChanged(NetField::Stats);
@@ -414,8 +413,8 @@ int WorldServer::CreateObject(mapspec::Spec* message) {
                 unit->AddQuickItem(ItemFactory()->CreateItem(name));
             unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord) go to the unit.
-            const char* prototypeName = unitSpec->prototype.c_str();
-            UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(std::string(prototypeName));
+            const std::string& prototypeName = unitSpec->prototype;
+            UnitPrototypeRecord* prototype = g_unitDatabase.prototypes.FindByName(prototypeName);
             // No prototype record: model 0 (Rebirth's FixAddMapObject; the original read through the null record).
             const unsigned index = prototype ? static_cast<unsigned>(prototype->modelIndex) : 0;
             auto* model = unitdb::ModelRecord(index);

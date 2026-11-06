@@ -119,7 +119,7 @@ template <class... Args>
     FatalExit(format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
 }
 // A std::string message, printed as it is.
-[[noreturn]] inline void FatalExit(const std::string& message) { FatalExit("%s", message.c_str()); }
+[[noreturn]] inline void FatalExit(const std::string& message) { FatalExit("%s", message); }
 // A data error the game gets past where it occurs (an unknown text token, a texture format it cannot hold, a unit
 // prototype the database lacks): logs "warning: <text>" to ei-rebuild.log; the caller does the safe local thing.
 EI_PRINTF_FORMAT(1, 2) void Warning(const char* format, ...);

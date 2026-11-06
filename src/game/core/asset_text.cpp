@@ -13,7 +13,7 @@ namespace text {
 namespace {
 
 std::string_view Bytes(const std::string& text) {
-    return std::string_view(text.c_str(), static_cast<std::size_t>(text.size()));
+    return std::string_view(text);
 }
 
 bool IsAscii(std::string_view bytes) {

@@ -47,16 +47,16 @@ int main(int argc, char** argv) {
     }
     std::uint32_t error = 0;
     if (!platform::SetCurrentFolder(folder, &error))
-        ei::Log("cannot enter the game folder %s (error %u)", folder.c_str(), error);
+        ei::Log("cannot enter the game folder %s (error %u)", folder, error);
     if (!platform::EnvironmentVariable("EI_GAME_ROOT").empty()) {
         g_gameRoot = folder + "\\";
         settings::AddReadFilter(&RedirectGamePath);
     }
     const std::string settingsFile = platform::EnvironmentVariable("EI_SETTINGS_PATH");
-    if (!settingsFile.empty()) settings::Pin(settingsFile.c_str(), nullptr, false);
+    if (!settingsFile.empty()) settings::Pin(settingsFile, nullptr, false);
     std::string arguments = platform::ArgumentsAfterSeparator(argc, argv);
     std::atexit([] { ei::Log("exit: the exit functions done"); });
-    ei::Log("ei-rebuild started in %s, arguments '%s'", folder.c_str(), arguments.c_str());
+    ei::Log("ei-rebuild started in %s, arguments '%s'", folder, arguments);
     // The one-instance check, SDL's video and the renderer's device (~290 ms on a thread of its own): GameMain's
     // start-up runs beside it.
     app::StartVideo();

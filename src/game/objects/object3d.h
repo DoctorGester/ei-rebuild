@@ -332,7 +332,7 @@ struct FigureBone : EngineObject {
     void Create() override;
     // The mesh and the animator released, then Create.
     void Destroy() override;
-    const char* GetName() override;
+    std::string_view GetName() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 

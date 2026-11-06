@@ -164,7 +164,7 @@ void AddReadFilter(ReadFilter filter);
 // be null) writes the file at the first use. Before the first use.
 using MissingHandler = void (*)(const char* section, const char* name);
 using PrepareHandler = void (*)(const char* file);
-void Pin(const char* file, MissingHandler missing, bool readOnly, PrepareHandler prepare = nullptr);
+void Pin(std::string_view file, MissingHandler missing, bool readOnly, PrepareHandler prepare = nullptr);
 // Harness runs: the desktop size the defaults take (a missing file's, VideoResolution's), in place of the primary
 // monitor's.
 void SetDesktopSize(int width, int height);

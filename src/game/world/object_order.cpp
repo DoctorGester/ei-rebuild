@@ -12,6 +12,7 @@
 
 
 #include "lib/intro_sort.h"
+#include "lib/str.h"
 
 #include <algorithm>
 #include <bit>
@@ -33,9 +34,7 @@ const Texture* RankTexture(Object3DClientSpecific* model) {
 // then by its morph weights (their bits); 0 for the same keys.
 int CompareTextures(const Texture* a, const Texture* b) {
     if (!a || !b) return (a != nullptr) - (b != nullptr);
-    const char* aName = a->name.c_str();
-    const char* bName = b->name.c_str();
-    return std::strcmp(aName ? aName : "", bName ? bName : "");
+    return str::Compare(a->name, b->name);
 }
 
 int CompareFigures(const LinkMesh* a, const LinkMesh* b) {

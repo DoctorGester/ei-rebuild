@@ -69,7 +69,7 @@ void SplitSetting() {
 
 // The look-up thread: the first address of the host, or -1; then the end and the running flag.
 void LookUp(std::promise<void> done) {
-    g_resolved = sockets::LookUp(g_host.c_str()).value_or(kUnknown);
+    g_resolved = sockets::LookUp(g_host).value_or(kUnknown);
     done.set_value();
     g_lookingUp = false;
 }
@@ -164,7 +164,7 @@ void CopyAnnouncement(sockets::Socket socket, const GameBuffer& sent) {
     sockets::SendTo(socket, packet.data(), static_cast<int>(packet.size()), g_address);
 }
 
-bool ParseMaster(NetAddress* master, const char* host, int port) {
+bool ParseMaster(NetAddress* master, std::string_view host, int port) {
     bool tried = false;
     for (;;) {
         bool parsed = master->Parse(host, port);

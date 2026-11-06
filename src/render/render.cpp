@@ -36,11 +36,10 @@ static bool g_checkAll =
 #endif
 
 // EI_RENDER's words (render.h).
-static void ParseSpec(const char* spec) {
+static void ParseSpec(const std::string& s) {
 #if defined(EI_RENDER_VALIDATION)
     g_checkAll = false;
 #endif
-    std::string s = spec ? spec : "";
     std::size_t start = 0;
     while (start <= s.size()) {
         std::size_t comma = s.find(',', start);
@@ -54,7 +53,7 @@ static void ParseSpec(const char* spec) {
             known = true;
         }
 #endif
-        if (!known && !word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
+        if (!known && !word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word);
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
@@ -63,7 +62,7 @@ static void ParseSpec(const char* spec) {
 
 static void EnsureConfigured() {
     if (g_configured) return;
-    ParseSpec(platform::EnvironmentVariable("EI_RENDER").c_str());
+    ParseSpec(platform::EnvironmentVariable("EI_RENDER"));
 }
 
 // --- Game memory -----------------------------------------------------------------------------------
@@ -563,11 +562,11 @@ void ReadFog(Frame& f) {
 bool ReadBackDue(long count) { return g_checkAll || count < kReadBackAlways || count % 16 == 0; }
 #endif
 
-void Configure(const char* spec) {
-    std::string combined = spec ? spec : "";
+void Configure(std::string_view spec) {
+    std::string combined(spec);
     const std::string environment = platform::EnvironmentVariable("EI_RENDER");
     if (!environment.empty()) combined += (combined.empty() ? "" : ",") + environment;
-    ParseSpec(combined.c_str());
+    ParseSpec(combined);
 }
 
 // The pipelines the game always uses: with one sample for the frame target and the interface, with the world view's
