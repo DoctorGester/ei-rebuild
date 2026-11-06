@@ -100,7 +100,7 @@ std::optional<std::int64_t> DateDays(const std::string& text) {
     if (text.size() < 8) return std::nullopt;
     for (int i = 0; i < 8; ++i)
         if (text[i] < '0' || text[i] > '9') return std::nullopt;
-    auto number = [&](int first, int count) { return std::atoi(str::Mid(text, first, count).c_str()); };
+    auto number = [&](int first, int count) { return str::ToInt(str::Mid(text, first, count)); };
     const int year = number(4, 4);
     const int month = number(2, 2);
     const int day = number(0, 2);
@@ -114,8 +114,8 @@ void RequestWithParty(const CommandArgs& args, const char* extra, bool host) {
     Party party;
     party.AddMember("F", "Human Hero", extra);
     std::string map = args[0];
-    if (host) g_gameFlow.RequestPartyZone6(map.c_str(), &party);
-    else g_gameFlow.RequestPartyZone5(map.c_str(), &party);
+    if (host) g_gameFlow.RequestPartyZone6(map, &party);
+    else g_gameFlow.RequestPartyZone5(map, &party);
 }
 
 void WriteSpeech(platform::File* file, const SpeechRecord& speech) {
@@ -146,7 +146,7 @@ void KickOrBan(const CommandArgs& args, int windowMode, net::CommandKind command
 }
 
 // rate / localrate: bytes per second, clamped to 500..100000.
-void SetRate(const CommandArgs& args, int* rate, const char* usage) {
+void SetRate(const CommandArgs& args, int* rate, std::string_view usage) {
     if (args.size() != 1) {
         PrintLine(usage);
         return;

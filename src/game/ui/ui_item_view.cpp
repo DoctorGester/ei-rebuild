@@ -297,7 +297,7 @@ struct HeroFaceNames {
     std::string texture;
 };
 
-HeroFaceNames FaceNames(const char* prototype) {
+HeroFaceNames FaceNames(std::string_view prototype) {
     UnitPrototypeRecord* unit;
     {
         std::string key(prototype);

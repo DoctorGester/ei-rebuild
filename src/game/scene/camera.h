@@ -94,7 +94,7 @@ public:
 
     // Starts recording into ".\camera\" + `name`; false when the file cannot be made. Appends a frame at `time`.
     // CloseFile stops recording (the file name emptied).
-    bool OpenFile(const char* name);
+    bool OpenFile(std::string_view name);
     void RecordFrame(float time);
     void CloseFile();
 
@@ -173,7 +173,7 @@ public:
     // folder's copy when CameraPatch is on). With `settle` above 1 and below the key count, the keys before the first
     // gap of more than 500 time units among the first `settle` take the pose of the key after the gap. False when
     // the file does not open.
-    bool LoadPath(const char* name, int settle);
+    bool LoadPath(std::string_view name, int settle);
 
     options::GameOptions* settings = nullptr;    // the game options: heights, start placement, limits, saved views
     Vector3 panVelocity = camera::kZeroVector;

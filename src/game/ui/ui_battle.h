@@ -111,7 +111,7 @@ public:
     void UseAtPoint(Vector3 point, Unit* unit, bool quick);
     // The unit's speech line goes to the top panel's text and the message log; the kind Kill shows its timed
     // face, the kinds NoWayToAttack..Injured shake its portrait.
-    void Speech(int id, AckKind kind, char* extra);
+    void Speech(int id, AckKind kind, std::string_view extra);
 
     void CloseScreen() override;
     // Polled every frame by the interface until it answers true. After a new game (hasHero): the camera

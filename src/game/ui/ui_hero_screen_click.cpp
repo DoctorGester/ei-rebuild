@@ -386,7 +386,7 @@ void MpHeroScreen::PlayVoice() {
     };
     int index = ClientRandBelow(count);
     for (int tries = 0; tries < count && voiceSound == -1; ++tries) {
-        voiceSound = g_interface.PlayInterfaceSound(nth(index)->speech.sound.c_str());
+        voiceSound = g_interface.PlayInterfaceSound(nth(index)->speech.sound);
         index = (index + 1) % count;
     }
 }
@@ -464,7 +464,7 @@ void SavedParties::Select(const MpHeroRecord* hero) { outsideGame = *hero; }
 void MpHeroScreen::DeleteHero() {
     if (!IsHero(heroIndex)) return;
     std::string path = g_savedParties.folder + g_savedParties.entries[heroIndex].file;
-    platform::RemoveFile(path.c_str());
+    platform::RemoveFile(path);
     g_savedParties.entries.erase(g_savedParties.entries.begin() + heroIndex);
     if (heroIndex >= g_savedParties.Count()) heroIndex = g_savedParties.Count() - 1;
     RefreshHeroScroll();

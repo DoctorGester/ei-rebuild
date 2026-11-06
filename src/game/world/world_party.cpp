@@ -182,7 +182,7 @@ Item* WorldServer::CopyItem(Item* source) {
 
 Item* WorldServer::CreateItemNamed(std::string_view name) { return itemManager->CreateItem(name); }
 
-Item* WorldServer::CreateSpellNamed(const char* name) { return itemManager->CreateSpellItem(name, GetSpellManager()); }
+Item* WorldServer::CreateSpellNamed(std::string_view name) { return itemManager->CreateSpellItem(name, GetSpellManager()); }
 
 void WorldServer::AddCounted(EngineObject* item) {
     if (!item || lib::Contains(counted, item)) return;

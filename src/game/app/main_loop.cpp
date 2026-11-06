@@ -122,15 +122,15 @@ void ReadCommandLine(const char* commandLine) {
             continue;
         }
         if (!(client->flags & WorldClientFlag::RecordingCamera) && str::Find(arguments[i], ".cam") != -1) {
-            g_cameraFile = arguments[i].c_str();
+            g_cameraFile = arguments[i];
             continue;
         }
         if (str::Find(arguments[i], ".scr") != -1) {
-            g_commandLineScript = arguments[i].c_str();
+            g_commandLineScript = arguments[i];
         } else if (str::Find(arguments[i], ".mob") != -1) {
-            g_commandLineMob = arguments[i].c_str();
+            g_commandLineMob = arguments[i];
         } else if (str::Find(arguments[i], ".mpr") != -1) {
-            g_commandLineMap = arguments[i].c_str();
+            g_commandLineMap = arguments[i];
         }
     }
 }
@@ -152,7 +152,7 @@ bool WarningAccepted(const std::string& text) {
 
 // Warns when the data folder's drive has under 300 MB free. False when the player cancels.
 bool CheckDiskSpace() {
-    const double freeBytes = platform::FreeDiskSpace(g_dataFolder.c_str());
+    const double freeBytes = platform::FreeDiskSpace(g_dataFolder);
     if (freeBytes != 0.0 && freeBytes < kLittleDiskSpace) return WarningAccepted(LittleDiskSpaceWarning());
     return true;
 }
@@ -510,10 +510,10 @@ void TakeModSwitch() {
     if (!g_modRequest) return;
     const std::string mod = *std::exchange(g_modRequest, std::nullopt);
     if (!ModSwitchAllowed()) {
-        ei::Log("mod: the switch to \"%s\" refused: not in the main menu, or a network session", mod.c_str());
+        ei::Log("mod: the switch to \"%s\" refused: not in the main menu, or a network session", mod);
         return;
     }
-    ei::Log("mod: switching to \"%s\"", mod.c_str());
+    ei::Log("mod: switching to \"%s\"", mod);
     const auto began = std::chrono::steady_clock::now();
     // The game's loading picture (the one a level's load draws) goes up before the stop (nothing can be drawn while
     // the worlds are gone), and each long part of the start steps it again (StartGame), from the new mod's Movies folder.
@@ -553,16 +553,16 @@ void UseMod(const std::string& gameFolder, const std::string& setting) {
     }
     if (platform::SwitchMod(gameFolder, folder)) {
         const std::string played = platform::ModFolder();
-        ei::Log("mod: %s (its saves in saves\\%s)", played.c_str(), played.substr(played.find_last_of('\\') + 1).c_str());
+        ei::Log("mod: %s (its saves in saves\\%s)", played, played.substr(played.find_last_of('\\') + 1));
     } else {
-        ei::Log("mod: no folder %s; the game without a mod", folder.c_str());
+        ei::Log("mod: no folder %s; the game without a mod", folder);
     }
 }
 
 bool RequestModSwitch(const std::string& setting) {
     if (!ModSwitchAllowed()) {
         ei::Log("mod: a switch to \"%s\" asked for outside the main menu, or in a network session: refused",
-                setting.c_str());
+                setting);
         return false;
     }
     g_modRequest = setting;

@@ -180,15 +180,14 @@ const SpeechRecord* SayAck(Unit* unit, AckKind kind) {
     return speech;
 }
 
-const SpeechRecord* SayNamedAck(Unit* unit, const char* name, bool alternate) {
+const SpeechRecord* SayNamedAck(Unit* unit, std::string_view name, bool alternate) {
     if (!unit) return nullptr;
     auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return nullptr;
     UnitAcks* record = g_ackDatabase.units.Find(prototype->name);
     if (!record) return nullptr;
-    std::size_t length = std::strlen(name);
     for (const SpeechRecord& s : record->namedSpeeches.records) {
-        if (s.name.size() == length && std::memcmp(s.name.data(), name, length) == 0) {
+        if (s.name == name) {
             unit->controller->Say(&s, alternate ? AckKind::ScenarioTalking : AckKind::Scenario);
             return &s;
         }

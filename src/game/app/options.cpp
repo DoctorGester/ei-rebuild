@@ -219,7 +219,7 @@ void GameOptions::Load() {
         int x = str::Find(resolution, 'x');
         if (x != -1) {
             resolutionX = str::ToInt(str::Left(resolution, x));
-            resolutionY = std::atoi(str::Right(resolution, static_cast<int>(resolution.size()) - x - 1).c_str());
+            resolutionY = str::ToInt(str::Right(resolution, static_cast<int>(resolution.size()) - x - 1));
         }
     }
     l.Read(kValues);

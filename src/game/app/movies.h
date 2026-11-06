@@ -36,7 +36,7 @@ struct BinkVideo {
     unsigned Frame();
     // Closes the movie open before, opens `name` (with movies on), hides the cursor and chooses its place (centred at
     // the movie's size in movies mode 1, else as large as fits). True when it plays.
-    bool Open(const char* name, bool loadingStep);
+    bool Open(std::string_view name, bool loadingStep);
     // Closes the movie when one is open and shows the cursor again.
     void Close();
 

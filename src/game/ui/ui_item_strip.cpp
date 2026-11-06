@@ -341,7 +341,7 @@ void FigureStrip::DrawSprites(SceneRenderer* pass) {
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
         if (index < 0 || index >= count) continue;
-        const HeroFaceCell cell{(*figures)[index].c_str(), ((i - frac) + 1.0f) * kCell,
+        const HeroFaceCell cell{(*figures)[index], ((i - frac) + 1.0f) * kCell,
                                 top + kHalfCell, scale * kFaceDepth, kCell};
         owner->DrawHeroFace(pass, cell);
     }

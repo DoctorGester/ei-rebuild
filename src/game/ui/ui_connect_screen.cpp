@@ -79,7 +79,10 @@ constexpr int kNewGameType = 4;
 constexpr int kStateAsked = 1;   // net::ServerEntryBase::State::Asked
 constexpr std::uint32_t kBarColour = 0xFFA06800;
 
-void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
+void CopyText(char* to, std::string_view from) {
+    std::memcpy(to, from.data(), from.size());
+    to[from.size()] = 0;
+}
 
 void OpenBox(std::string_view title, const char* text, MessageQuestion question, MessageButtons buttons) {
     g_interface.PushWindow(std::make_unique<MessageWindow>(title, text, question, buttons), WindowBackdrop::FirstWindow);
@@ -211,7 +214,7 @@ void MpConnectScreen::LeftDown(UiEvent& event) {
         unlistedBox->textureOffsetU = unlisted ? kFrameOn : kFrameOff;
     } else if (region == passwordSwitch) {
         if (hostPassword.size() == 0) {
-            CopyText(boxText, hostPassword.c_str());
+            CopyText(boxText, hostPassword);
             OpenBox(texts[kTextPassword], boxText, kBoxPassword, MessageButtons::OkCancelEdit);
         } else {
             hostPassword.clear();
@@ -302,7 +305,7 @@ void MpConnectScreen::Connect() {
         std::string name = nameEdit->text;
         if (name.size() == 0) name = kDefaultGameName;
         SaveAddressBook();
-        g_gameFlow.StartServer(name.c_str(), players, pauseMode, gameType, hostPassword.c_str(), unlisted,
+        g_gameFlow.StartServer(name, players, pauseMode, gameType, hostPassword, unlisted,
                                static_cast<int>(net::g_gameClient->queries.extra));
         return;
     }

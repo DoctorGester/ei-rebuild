@@ -358,11 +358,11 @@ bool StreamInMod(std::string_view name) {
 
 const std::string& StreamFolder() { return State().streamFolder; }
 
-std::string MovieFile(const char* name) {
+std::string MovieFile(std::string_view name) {
     // 1001BB61: the mod's folder, "Movies" and the name from its last '\'.
-    const char* last = std::strrchr(name, '\\');
-    if (!last || ModPath().empty()) return name;
-    std::string mod = ModPath() + "Movies" + last;
+    const std::size_t last = name.rfind('\\');
+    if (last == std::string_view::npos || ModPath().empty()) return std::string(name);
+    std::string mod = ModPath() + "Movies" + std::string(name.substr(last));
     return platform::IsFile(mod) ? mod : std::string(name);
 }
 

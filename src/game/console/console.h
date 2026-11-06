@@ -72,7 +72,7 @@ public:
     constexpr explicit Stream(ConsoleStreambuf& newBuffer) : buffer(&newBuffer) {}
 
     Stream& operator<<(const char* text);
-    Stream& operator<<(const std::string& text);
+    Stream& operator<<(std::string_view text);
     Stream& operator<<(char c);
     Stream& operator<<(int value);        // "%d"
     Stream& operator<<(long value);       // "%ld"
@@ -98,7 +98,7 @@ extern Stream g_eventLogOut;
 extern Stream g_aiLogOut;
 // `<< '\n'` and a flush, how every console message ends.
 void EndLine(Stream& os);
-void PrintLine(const char* text);
+void PrintLine(std::string_view text);
 
 // The harness's view of the console (verify builds): sync's line, after overflow(EOF) and before the
 // console window gets it. In the original-game run the harness hooks the original's sync instead.

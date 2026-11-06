@@ -166,7 +166,7 @@ Size ScreenSize() {
 // The text `key` up to the next '#', else an added text, or the key itself without one.
 std::string TipText(const std::string& key) {
     std::string tip = key;
-    if (g_clientWorld.texts->TextManager::Open(key.c_str())) tip = g_clientWorld.texts->ReadToHash();
+    if (g_clientWorld.texts->TextManager::Open(key)) tip = g_clientWorld.texts->ReadToHash();
     else if (std::optional<std::string> added = FindAddedText(key)) tip = *added;
     return tip;
 }
@@ -379,7 +379,7 @@ void OptionsWindow::BuildSettings() {
         } else if (definition->kind == kSpinKind) {
             std::string text = g_clientWorld.texts->GetString(kTextOptionOff);
             if (optionId == OptionId::Difficulty) text = g_clientWorld.texts->GetString(kTextDifficultyHard);
-            setting.spin = AddChild(std::make_unique<UiSpin>(Rect{530, top + 160, 690, top + 176}, text.c_str()));
+            setting.spin = AddChild(std::make_unique<UiSpin>(Rect{530, top + 160, 690, top + 176}, text));
             text = g_clientWorld.texts->GetString(kTextOptionOn);
             if (optionId == OptionId::Difficulty) text = g_clientWorld.texts->GetString(kTextDifficultyEasy);
             setting.spin->AddText(text);
@@ -390,7 +390,7 @@ void OptionsWindow::BuildSettings() {
             for (const Size size : resolutions) setting.list->AddText(str::Format("%d x %d", size.w, size.h));
         } else if (definition->kind == kChoiceKind) {
             const std::span<const Choice> choices = ChoicesOf(optionId);
-            setting.spin = AddChild(std::make_unique<UiSpin>(Rect{530, top + 160, 690, top + 176}, ShownName("", choices[0].text).c_str()));
+            setting.spin = AddChild(std::make_unique<UiSpin>(Rect{530, top + 160, 690, top + 176}, ShownName("", choices[0].text)));
             for (const Choice& choice : choices.subspan(1)) setting.spin->AddText(ShownName("", choice.text));
         }
     }
@@ -810,7 +810,7 @@ void OptionsWindow::KeyDown(UiEvent& event) {
             std::string message;
             format = g_clientWorld.texts->GetString("key_already_mapped_msg");
             message = str::Format(format, pressed->name, other->name);
-            box->text = message.c_str();
+            box->text = std::move(message);
             g_interface.PushWindow(std::move(box), WindowBackdrop::FirstWindow);
             return;
         }

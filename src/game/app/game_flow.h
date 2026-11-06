@@ -78,17 +78,17 @@ struct GameFlow {
     // 127.0.0.1 with the password (20 bytes) as hello, then the server's name ("Server" when empty),
     // maxPlayers (also the local client's), the pause mode, password, listing (not `unlisted`) and masterKey are set
     // (both between calls patched by Rebirth).
-    void StartServer(const char* name, int maxPlayers, net::PauseMode pauseMode, int gameType, const char* password,
+    void StartServer(std::string_view name, int maxPlayers, net::PauseMode pauseMode, int gameType, std::string_view password,
                      bool unlisted, int masterKey);
     void StartClient();
-    void JoinServer(const net::NetAddress* address, const char* password);
+    void JoinServer(const net::NetAddress* address, std::string_view password);
     // The flow's requests: the state (state) the flow's update acts on next, the zone or save name
     // (requestTarget) and, for 5 and 6, a copy of a party (requestParty).
     void RequestState3();
     void RequestLoad(std::string_view name);                              // 2
     void RequestZoneChange(std::string_view zone);                        // 4
-    void RequestPartyZone5(const char* zone, Party* party);
-    void RequestPartyZone6(const char* zone, Party* party);
+    void RequestPartyZone5(std::string_view zone, Party* party);
+    void RequestPartyZone6(std::string_view zone, Party* party);
     // Starts `zone`: the current zone is torn down; mode None takes the mode from the zone record's kind
     // (0 Battle, 1 Edge, 2 Base), "endofgame" is EndOfGame, MainMenu loads the main menu zone (also when the
     // zone is unknown, after a warning and closing the network sessions); otherwise the party enters

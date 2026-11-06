@@ -161,7 +161,7 @@ void CopyVisitedZones(const std::string& from, const std::string& to, const std:
             if (keep) {
                 std::string fromFile = from + record->name + kSaveExtension;
                 std::string toFile = to + record->name + kSaveExtension;
-                if (platform::CopyFileOver(fromFile.c_str(), toFile.c_str())) {
+                if (platform::CopyFileOver(fromFile, toFile)) {
                     const std::string visuals = ZoneVisualsName(record->name);
                     platform::CopyFileOver(from + visuals, to + visuals);
                     continue;
@@ -183,7 +183,7 @@ constexpr int kMaxCatchUpTicks = 1000;
 int RestoreZone(Party* records, MapRecord* zoneRecord, const std::string& zone, std::string& folder,
                 const char* mapOverride, FileStream& file, bool& failed) {
     NamedFloatTable* variables = &records->variables;
-    folder = str::Format(kCurrentFolder, DataFolderText());
+    folder = str::Format(kCurrentFolder, g_dataFolder);
     std::string fileName = zone + kSaveExtension;
     bool opened = file.Open(folder + fileName, platform::FileMode::Read);
     if (!opened) {
@@ -261,11 +261,10 @@ void ReportStatus(net::PlayerStatus kind) {
 constexpr std::size_t kPasswordSize = 0x14;
 
 // The local client joins the server at `address` with the password (zero padded to 20 bytes) as its hello.
-void JoinWithPassword(const net::NetAddress& address, const char* password) {
+void JoinWithPassword(const net::NetAddress& address, std::string_view password) {
     GrowingBuffer hello;
     char secret[kPasswordSize] = {};
-    #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
-    if (password) std::strncpy(secret, password, kPasswordSize);
+    std::memcpy(secret, password.data(), std::min(password.size(), kPasswordSize));
     hello.Put(secret);
     net::g_gameClient->Join(const_cast<net::NetAddress*>(&address), &hello);
 }
@@ -287,8 +286,6 @@ float HoursOfDay(float value) { return std::fmod(value, 24.0f); }
 
 constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone = 4, kStatePartyZone = 5,
               kStateNetworkZone = 6;
-
-const char* ResourcesPath() { return options::g_options.resourcesPath.c_str(); }
 
 unsigned g_serverStamp = /*007AFED0*/ {};   // the newest variable stamp seen
 unsigned g_appliedStamp = /*007AFED4*/ {};   // the stamp applied up to
@@ -329,8 +326,8 @@ int GameFlow::SaveGame(const std::string& slot) {
     if (g_serverWorld.gameState != GameState::Playing) return 0;
 
     g_cursor.SetShape(CursorShape::Wait);
-    slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
-    currentFolder = str::Format(kCurrentFolder, DataFolderText());
+    slotFolder = str::Format(kSlotFolder, g_dataFolder, slot);
+    currentFolder = str::Format(kCurrentFolder, g_dataFolder);
     ClearSaveFolder(slotFolder);
     if (g_serverWorld.zoneMode == ZoneMode::Edge) {
         if (Player* player = g_serverWorld.GetPlayer(0))
@@ -447,7 +444,7 @@ int StartNetworkZone(const std::string& zone) {
 
     std::string folder;
     FileStream file;
-    folder = str::Format(kCurrentFolder, DataFolderText());
+    folder = str::Format(kCurrentFolder, g_dataFolder);
     bool opened = file.Open(folder + zone + kSaveExtension, platform::FileMode::Read);
     if (opened) {
         MemoryStream data;
@@ -490,7 +487,7 @@ int LeaveZone(Party* records) {
 
     if (g_serverWorld.zoneMode == ZoneMode::Battle) g_camera.SaveView(7);
     else if (g_serverWorld.zoneMode == ZoneMode::Base) g_camera.SaveView(6);
-    path = str::Format(kCurrentFolder, DataFolderText());
+    path = str::Format(kCurrentFolder, g_dataFolder);
     path += zone + kSaveExtension;
     if (!file.Open(path, platform::FileMode::Create)) game::FatalExit(kCantWrite, path);
     g_serverWorld.PrepareSave();
@@ -612,13 +609,13 @@ void GameFlow::RequestZoneChange(std::string_view zone) {
     requestTarget = zone;
 }
 
-void GameFlow::RequestPartyZone5(const char* zone, Party* party) {
+void GameFlow::RequestPartyZone5(std::string_view zone, Party* party) {
     state = kStatePartyZone;
     requestTarget = zone;
     RequestParty()->Assign(party);
 }
 
-void GameFlow::RequestPartyZone6(const char* zone, Party* party) {
+void GameFlow::RequestPartyZone6(std::string_view zone, Party* party) {
     state = kStateNetworkZone;
     requestTarget = zone;
     RequestParty()->Assign(party);
@@ -731,7 +728,7 @@ void GameFlow::SwitchMultiplayerZone() {
     records.zone = multiplayerZone;
     ReportStatus(net::PlayerStatus::Connecting);
     if (IsLive(net::g_gameServer)) {
-        RequestPartyZone6(multiplayerZone.c_str(), &records);
+        RequestPartyZone6(multiplayerZone, &records);
     } else {
         net::HostMessage* host = net::g_gameClient->info;
         if (IsLive(host)) {
@@ -742,8 +739,8 @@ void GameFlow::SwitchMultiplayerZone() {
     zoneSwitchStarted = 1;
 }
 
-void GameFlow::StartServer(const char* name, int maxPlayers, net::PauseMode pauseMode, int gameType,
-                           const char* password, bool unlisted, int masterKey) {
+void GameFlow::StartServer(std::string_view name, int maxPlayers, net::PauseMode pauseMode, int gameType,
+                           std::string_view password, bool unlisted, int masterKey) {
     BuildZoneTable();
     net::g_netLog = &console::g_netLogOut;
     net::g_gameServer.Assign(new net::ServerSession(gameType));
@@ -753,12 +750,11 @@ void GameFlow::StartServer(const char* name, int maxPlayers, net::PauseMode paus
     address.Parse(kLocalHost, net::g_gamePort);
     JoinWithPassword(address, password);
     net::g_gameClient->player.Get()->host = 1;
-    const char* shown = name && *name ? name : kServerName;
-    net::g_gameServer->name.assign(shown);
+    net::g_gameServer->name.assign(name.empty() ? std::string_view(kServerName) : name);
     net::g_gameServer->maxPlayers = maxPlayers;
     net::g_gameServer->pauseMode = pauseMode;
     net::g_gameClient->maxPlayers = maxPlayers;
-    if (password && *password) net::g_gameServer->SetPassword(password);
+    if (!password.empty()) net::g_gameServer->SetPassword(password);
     net::g_gameServer->SetPublic(!unlisted);
     net::g_gameClient->gameType = gameType;
     net::g_gameServer->masterKey = masterKey;
@@ -772,7 +768,7 @@ void GameFlow::StartClient() {
     AfterServerStart();
 }
 
-void GameFlow::JoinServer(const net::NetAddress* address, const char* password) {
+void GameFlow::JoinServer(const net::NetAddress* address, std::string_view password) {
     JoinWithPassword(*address, password);
 }
 
@@ -921,7 +917,7 @@ void GameFlow::StartNewGame() {
     g_interface.closeAll = 1;
     PartyManagerNewGame(&g_partyManager);
     std::string folder;
-    folder = str::Format(kCurrentFolder, DataFolderText());
+    folder = str::Format(kCurrentFolder, g_dataFolder);
     ClearSaveFolder(folder);
     Party records;
     g_partyManager.records.EndRedeploy(&records);
@@ -933,14 +929,14 @@ void GameFlow::StartNewGame() {
 void SwitchResourceDatabases(const std::string& name) {
     UnitDatabase& units = g_unitDatabase;
     units = UnitDatabase();
-    units.Load(ResourcesPath(), name);
+    units.Load(options::g_options.resourcesPath, name);
     units.CountSoundFiles(g_clientWorld.sounds.get());
     g_skillDatabase = SkillDatabase();
-    g_skillDatabase.Load(ResourcesPath(), name);
+    g_skillDatabase.Load(options::g_options.resourcesPath, name);
     g_spellDatabase = itemdb::SpellDatabase();
-    g_spellDatabase.Load(ResourcesPath(), name);
+    g_spellDatabase.Load(options::g_options.resourcesPath, name);
     g_itemDatabase = itemdb::ItemDatabase();
-    g_itemDatabase.Load(ResourcesPath(), name);
+    g_itemDatabase.Load(options::g_options.resourcesPath, name);
 }
 
 void GameFlow::UseResources(bool network) {
@@ -966,7 +962,7 @@ void GameFlow::ProcessRequest() {
         if (shown && (shown->kind == 0 || shown->kind == 2) && g_clientWorld.terrain) {
             ClientVisuals kept = ClientVisuals::Take(g_clientWorld);
             kept.generator.reset();
-            platform::CreateFolder(str::Format(kCurrentFolder, DataFolderText()));   // a multiplayer client's first
+            platform::CreateFolder(str::Format(kCurrentFolder, g_dataFolder));   // a multiplayer client's first
             kept.Write(ZoneVisualsPath(shown->name));
         }
     }
@@ -1044,8 +1040,8 @@ int GameFlow::LoadGame(const std::string& slot) {
     FileStream file;
     std::string slotFolder;
     std::string currentFolder;
-    slotFolder = str::Format(kSlotFolder, DataFolderText(), slot);
-    currentFolder = str::Format(kCurrentFolder, DataFolderText());
+    slotFolder = str::Format(kSlotFolder, g_dataFolder, slot);
+    currentFolder = str::Format(kCurrentFolder, g_dataFolder);
     ClearSaveFolder(currentFolder);
     bool opened = file.Open(slotFolder + kScenarioFile, platform::FileMode::Read);
     if (!opened) {
@@ -1104,7 +1100,7 @@ GameFlow g_gameFlow;
 
 void GameFlow::SetNetworkZone(const char* zone) {
     std::string folder;
-    folder = str::Format(kCurrentFolder, DataFolderText());
+    folder = str::Format(kCurrentFolder, g_dataFolder);
     ClearSaveFolder(folder);
     multiplayerZone = zone ? zone : "";    // null (LeaveZone): no zone
     if (IsLive(net::g_gameServer) && !IsLive(net::g_gameClient) && zone) StartNetworkZone(zone);
@@ -1112,7 +1108,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
 
 int CurrentSaveSize() {
     int total = 1000000;
-    for (const platform::FolderEntry& entry : platform::FolderEntries(str::Format(kCurrentFiles, DataFolderText())))
+    for (const platform::FolderEntry& entry : platform::FolderEntries(str::Format(kCurrentFiles, g_dataFolder)))
         total += static_cast<int>(entry.size);
     return total;
 }

@@ -54,7 +54,7 @@ struct ItemCell {
 
 // A hero's face drawn in a cell (the hero-face draw's argument).
 struct HeroFaceCell {
-    const char* prototype = nullptr;  // the unit prototype's name
+    std::string_view prototype;  // the unit prototype's name
     float x = 0.0f;          // the cell's centre (layout)
     float y = 0.0f;
     float depth = 0.0f;

@@ -119,7 +119,7 @@ void BriefingScreen::UnitJoined(Unit* unit) {
     g_camera.SetTarget(unit);
     MapRecord* zone = g_mapDatabase.FindMap(LocalPlayerZone());
     std::string prefix = str::Format(kZoneTopicFormat, zone->name);
-    const auto open = OpenTopicNames(prefix.c_str());
+    const auto open = OpenTopicNames(prefix);
     if (open.empty()) return;
     topic = open.front()[2];
     briefingStarted = true;
@@ -199,7 +199,7 @@ bool ZoneVisited(std::string_view zone) {
     return PlayerZeroVariable(variable) == 1.0f;
 }
 
-std::vector<std::vector<std::string>> OpenTopicNames(const char* prefix) {
+std::vector<std::vector<std::string>> OpenTopicNames(std::string_view prefix) {
     std::vector<std::vector<std::string>> open;
     for (auto& node : PlayerZeroVariables(prefix)) {
         if (node.second != 1.0f) continue;

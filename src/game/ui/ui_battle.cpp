@@ -680,7 +680,7 @@ void BattleScreen::LeftUp(UiEvent& event) {
                 world->Select(unitAt(static_cast<int>(node)));
             }
             int unitId = unitAt(first)->id;
-            Speech(unitId, AckKind::Selected, nullptr);
+            Speech(unitId, AckKind::Selected, {});
         }
     }
     RefreshSelection();
@@ -1391,7 +1391,7 @@ void BattleScreen::UseAtPoint(Vector3 point, Unit* unit, bool quick) {
 
 // --- a unit's speech event -----------------------------------------------------------------------
 
-void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
+void BattleScreen::Speech(int unitId, AckKind kind, std::string_view extra) {
     Unit* unit = UnitWithId(g_clientWorld.objectManager.get(), unitId);
     if (!unit) return;
     const SpeechRecord* phrase = (kind == AckKind::Scenario || kind == AckKind::ScenarioTalking)
@@ -1407,12 +1407,12 @@ void BattleScreen::Speech(int unitId, AckKind kind, char* extra) {
             str::TrimRight(text, "\r\n");
             text += "\n";
             // Both go to the top panel's page 0 and, while it shows that page, the message log.
-            auto post = [this](const char* part) {
+            auto post = [this](std::string_view part) {
                 topPanel->pageTexts[0] += part;
                 if (topPanel->page == 0) messageLog->AddText(part);
             };
-            post(line.c_str());
-            post(text.c_str());
+            post(line);
+            post(text);
         }
     }
 

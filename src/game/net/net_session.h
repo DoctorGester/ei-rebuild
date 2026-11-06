@@ -482,7 +482,7 @@ public:
     // The trade between two offers (either order), or null.
     TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     int LeaderId();                                       // the first host's id, -1
-    void SetPassword(const char* text);
+    void SetPassword(std::string_view text);
     Connection* FindGuestConnection(const std::string& name);
     Connection* FindConnectionBySerial(int serial);
     PlayerMessage* FindPlayer(int id);

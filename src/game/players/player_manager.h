@@ -32,5 +32,5 @@ public:
     // Every player's connection (a PlayerServer) gets message
     // 0x12 (SendWorldValue through its address: a byte, then `value`) / 0x13 (SendStringEvent, `text`).
     void SendValueToAll(int value);
-    void SendTextToAll(const char* text);
+    void SendTextToAll(std::string_view text);
 };

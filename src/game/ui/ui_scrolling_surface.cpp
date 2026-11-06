@@ -59,7 +59,7 @@ UiScrollingSurface::UiScrollingSurface(const Rect* rect) : UiSurface(rect, Surfa
 
 UiScrollingSurface::~UiScrollingSurface() = default;
 
-bool UiScrollingSurface::Load(MappedResource* archive, const char* name) {
+bool UiScrollingSurface::Load(MappedResource* archive, std::string_view name) {
     std::uint32_t size = 0;
     void* data = archive->GetFile(name, &size);
     if (data) LoadRtf(data, size);

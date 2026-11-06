@@ -1028,7 +1028,7 @@ void HudUnitPanel::PaintEffects(UiSurface& surface, Unit* unit) {
         text.clear();
         if (const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type)) {
             // The texts' section "spell <code>": its first line is the spell's name.
-            if (clientWorldTexts->TextManager::Open(std::string("spell ") + spell->code.c_str())) text = clientWorldTexts->ReadLine(true);
+            if (clientWorldTexts->TextManager::Open(std::string("spell ") + spell->code)) text = clientWorldTexts->ReadLine(true);
         }
         surface.DrawTextIn(text, line, kPanelText);
         line.Offset(0, kLineHeight);

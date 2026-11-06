@@ -250,7 +250,7 @@ void BriefingScreen::NextPhrase(bool skip) {
 
     // The phrase's speaker: the last line's second word (the original reads it unchecked; empty here when
     // the line has one word).
-    auto named = [&words] { return words.size() > 1 ? words[1].c_str() : ""; };
+    auto named = [&words]() -> std::string_view { return words.size() > 1 ? std::string_view(words[1]) : ""; };
     if (!skip || last) {
         if (leader) g_serverWorld.SetUnitHeight(leader->id, 0.0f);
         if (person) g_serverWorld.SetUnitHeight(person->id, 0.0f);

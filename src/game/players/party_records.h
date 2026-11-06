@@ -35,10 +35,10 @@ struct NamedPartyRecords {
     // The party of the first record named `name` (_mbscmp), else of the last unnamed record, else null.
     Party* Find(std::string_view name) const;
     // Appends a new record named `name`.
-    void Add(const char* name);
+    void Add(std::string_view name);
     // Removes the records named `name`; after a removal the record moved into
     // the slot is skipped (original behaviour).
-    void Remove(const char* name);
+    void Remove(std::string_view name);
     std::vector<HeldRef<PartyRecord>> records;
     std::string requestedName;      // SetCurrentParty's name; EndRedeploy makes it the current one
     std::string currentName;        // the party on stage (the record BeginRedeploy saves it to)

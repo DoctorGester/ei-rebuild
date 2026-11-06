@@ -30,7 +30,7 @@ namespace {
 
 // A movie opened with its sound when the sound option is on; the mod's Movies\ copy when there is one (Rebirth's
 // MoviesPatch).
-video::Movie* OpenMovie(const char* name) {
+video::Movie* OpenMovie(std::string_view name) {
     return video::Open(modfolders::MovieFile(name).c_str(), options::g_options.audio != 0);
 }
 
@@ -87,11 +87,10 @@ unsigned BinkVideo::Frame() {
 // Returns false when Esc ended it.
 bool PlayMovie(const std::string& name, bool keysEnd, bool clearScreen, bool loadingStep) {
     if (!options::g_options.video) return true;
-    const char* file = name.c_str();
     if (loadingStep) g_clientWorld.sounds->StopAll(true);
-    video::Movie* movie = OpenMovie(file);
+    video::Movie* movie = OpenMovie(name);
     if (!movie) {
-        game::DebugLog("Can't open (or bad format) video file %s.\n", file);
+        game::DebugLog("Can't open (or bad format) video file %s.\n", name);
         return true;
     }
     video::SetVolume(movie, options::g_options.audioStreaming * 127 / 100);
@@ -141,10 +140,10 @@ bool ShowLoadingMovie(int progress) {
     if (g_loadingMovieOff) return false;
     g_cursor.ShowImage(0);
     if (!g_loadingMovie) {
-        std::string path = DataFolderText();
+        std::string path = g_dataFolder;
         path += "Movies\\";
         path += app::g_loadingMovieName;  // progres.bik, or the zone's
-        g_loadingMovie = OpenMovie(path.c_str());
+        g_loadingMovie = OpenMovie(path);
         if (!g_loadingMovie) {
             game::DebugLog("Can't open video file \"%s\"\n", path);
             return false;
@@ -176,7 +175,7 @@ bool ShowLoadingMovie(int progress) {
 // The titles' Create starts Titles.bik with it. The movie open before is closed, the loading screen steps when
 // asked, the movie's sound plays when the sound option is on; its place: movies mode 1 centred at the movie's size,
 // otherwise as large as fits (MovieRect).
-bool BinkVideo::Open(const char* name, bool loadingStep) {
+bool BinkVideo::Open(std::string_view name, bool loadingStep) {
     video::Close(movie);
     movie = nullptr;
     if (!options::g_options.video) return false;

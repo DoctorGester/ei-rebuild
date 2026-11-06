@@ -96,7 +96,7 @@ const ShapeFiles kShapes[] = {
 
 } // namespace
 
-CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
+CursorImage::CursorImage(std::string_view name, int hotSpotX, int hotSpotY) {
     TextureManager* manager = g_clientWorld.textureManager.get();
     const MmpFile picture = manager->GetFileData(name);
     // (A throw passes the exception on; that ends the game.)
@@ -163,9 +163,8 @@ void Cursor::Init(TextureDevice* newDevice, bool smallCursors) {
     bounds = device->screen;
 }
 
-void Cursor::AddShape(const char* name, int hotX, int hotY) {
-    const std::string file = std::string(name) + ".mmp";
-    images.push_back(new CursorImage(file.c_str(), hotX, hotY));
+void Cursor::AddShape(std::string_view name, int hotX, int hotY) {
+    images.push_back(new CursorImage(std::string(name) + ".mmp", hotX, hotY));
 }
 
 // --- The cursor's life cycle and state ---------------------------------------

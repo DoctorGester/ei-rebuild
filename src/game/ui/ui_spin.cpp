@@ -12,7 +12,7 @@ constexpr int kFont = 1;
 
 // The window's virtuals; its click and a left double click that does nothing. Its surface paints the
 // current value's text.
-UiSpin::UiSpin(Rect newRect, const char* text) {
+UiSpin::UiSpin(Rect newRect, std::string_view text) {
     rect = newRect;
     UiSurface* surface = AddSurface(std::make_unique<UiSurface>(&newRect, SurfaceBlend::Keyed));
     surface->PaintWith([this](UiSurface& out) {
@@ -20,7 +20,7 @@ UiSpin::UiSpin(Rect newRect, const char* text) {
         area.Offset(-layout.left, -layout.top);
         out.DrawTextIn(texts[value], area, TextStyle{kFont, kUiTextColour});
     });
-    texts.push_back(text ? text : "");
+    texts.emplace_back(text);
     layout = newRect;
     SetValue(0);
 }

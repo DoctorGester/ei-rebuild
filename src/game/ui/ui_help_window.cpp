@@ -46,7 +46,7 @@ void ReadTutorText(TextManager* texts, const std::string& key, std::string* text
     if (!texts->Open(std::string(kTutorSection) + key)) return;
     std::string read = texts->ReadToHash();
     str::TrimRight(read, kLineEnds);
-    *text = read.c_str();
+    *text = std::move(read);
 }
 
 int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
@@ -129,7 +129,7 @@ void HelpWindow::CreateScreen() {
         return;
     }
     std::string line = texts->ReadLine(true);
-    title = line.c_str();
+    title = line;
     while (texts->FindLine(kScreenLine)) {
         texts->NextLine();
         line = texts->ReadLine(true);

@@ -32,7 +32,10 @@ Stream& Stream::operator<<(const char* text) {
     buffer->Write(text);
     return *this;
 }
-Stream& Stream::operator<<(const std::string& text) { return *this << text.c_str(); }
+Stream& Stream::operator<<(std::string_view text) {
+    buffer->Write(text);
+    return *this;
+}
 Stream& Stream::operator<<(char c) {
     buffer->Put(c);
     return *this;
@@ -67,7 +70,7 @@ CommandHandler FindCommand(const CommandMap& map, const std::string& name) {
 
 void EndLine(Stream& os) { (os << '\n').Flush(); }
 
-void PrintLine(const char* text) { EndLine(g_consoleOut << text); }
+void PrintLine(std::string_view text) { EndLine(g_consoleOut << text); }
 
 // ---- Console streambuf --------------------------------------------------------------------------
 

@@ -463,7 +463,7 @@ void HudPortraits::Rebuild(bool wide) {
             build = "th";
         else if (figureBuild > kFat)
             build = "fa";
-        const char* figure = unit->name.c_str();
+        const std::string& figure = unit->name;
         model = std::format("infa{}{}{}face", figure, build,
                      unit->GetPrototype()->hair + 1);
         picture = std::format("face{}{:02}", sex, skin);

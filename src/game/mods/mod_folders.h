@@ -69,6 +69,6 @@ std::string CameraFile(const char* path);
 bool StreamInMod(std::string_view name);
 const std::string& StreamFolder();
 // MoviesPatch: `name` (as BinkOpen gets it), or the mod's Movies\<last part>.
-std::string MovieFile(const char* name);
+std::string MovieFile(std::string_view name);
 
 } // namespace modfolders

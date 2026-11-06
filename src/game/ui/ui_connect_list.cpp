@@ -147,8 +147,8 @@ void MpConnectScreen::DrawListVanilla() {
 }
 
 void MpConnectScreen::PaintList(UiSurface& surface) const {
-    auto label = [this](int index) -> const char* { return texts[index].c_str(); };
-    auto allod = [this](int index) -> const char* { return allodNames[index].c_str(); };
+    auto label = [this](int index) -> const std::string& { return texts[index]; };
+    auto allod = [this](int index) -> const std::string& { return allodNames[index]; };
 
     const Layout& layout = kLayout;
     std::string text;

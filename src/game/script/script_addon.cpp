@@ -170,9 +170,9 @@ int TruncateOrMin(float value) {
 
 float Distance(float x0, float y0, float x1, float y1) { return Length2D(Vector2{x1, y1} - Vector2{x0, y0}); }
 
-int Stricmp(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        int ca = static_cast<unsigned char>(*a), cb = static_cast<unsigned char>(*b);
+int Stricmp(std::string_view a, std::string_view b) {
+    for (std::size_t i = 0;; ++i) {
+        int ca = i < a.size() ? static_cast<unsigned char>(a[i]) : 0, cb = i < b.size() ? static_cast<unsigned char>(b[i]) : 0;
         if (ca >= 'A' && ca <= 'Z') ca += 'a' - 'A';
         if (cb >= 'A' && cb <= 'Z') cb += 'a' - 'A';
         if (ca != cb || ca == 0) return ca - cb;

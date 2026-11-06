@@ -53,7 +53,7 @@ Read ReadWhole(const std::string& file, std::string* text) {
     std::uint32_t error = 0;
     if (platform::ReadWholeFile(file, text, &error)) return Read::read;
     if (!platform::PathExists(file)) return Read::missing;
-    ei::Log("settings: %s cannot be read (error %u)", file.c_str(), static_cast<unsigned>(error));
+    ei::Log("settings: %s cannot be read (error %u)", file, static_cast<unsigned>(error));
     return Read::failed;
 }
 
@@ -61,7 +61,7 @@ Read ReadWhole(const std::string& file, std::string* text) {
 bool Write(Store& s) {
     std::uint32_t error = 0;
     if (!platform::WriteWholeFile(s.file, s.document.Text(), &error)) {
-        ei::Log("settings: cannot write %s (error %u)", s.file.c_str(), static_cast<unsigned>(error));
+        ei::Log("settings: cannot write %s (error %u)", s.file, static_cast<unsigned>(error));
         return false;
     }
     s.dirty = false;
@@ -117,27 +117,27 @@ void Load(Store& s) {
             const Machine machine = UseDefaults(s);
             s.inMemory = true;
             ei::Log("settings: %s left as it is: the defaults (full screen at %dx%d) are used and nothing is written "
-                    "this session", place.c_str(), machine.desktopWidth, machine.desktopHeight);
+                    "this session", place, machine.desktopWidth, machine.desktopHeight);
             return;
         }
         std::vector<std::string> problems;
         s.document.Parse(text, &problems);
         constexpr std::size_t kShown = 8;
         for (std::size_t p = 0; p < problems.size() && p < kShown; ++p)
-            ei::Log("settings: %s: %s", place.c_str(), problems[p].c_str());
-        if (problems.size() > kShown) ei::Log("settings: %s: %zu more lines not understood", place.c_str(), problems.size() - kShown);
+            ei::Log("settings: %s: %s", place, problems[p]);
+        if (problems.size() > kShown) ei::Log("settings: %s: %zu more lines not understood", place, problems.size() - kShown);
         if (s.document.Values() != 0 || s.readOnly) {
-            ei::Log("settings: %s: %zu sections, %zu values%s", place.c_str(), s.document.sections.size(),
+            ei::Log("settings: %s: %zu sections, %zu values%s", place, s.document.sections.size(),
                     s.document.Values(), s.readOnly ? " (pinned, read only)" : s.pinned ? " (pinned)" : "");
             return;
         }
         // No setting: the defaults are written over it (it is this place's file).
-        ei::Log("settings: %s holds no setting: the defaults are written over it", place.c_str());
+        ei::Log("settings: %s holds no setting: the defaults are written over it", place);
         places.erase(places.begin(), places.begin() + static_cast<std::ptrdiff_t>(i));
         break;
     }
     if (s.readOnly) {
-        ei::Log("settings: the pinned file %s cannot be read", s.file.c_str());
+        ei::Log("settings: the pinned file %s cannot be read", s.file);
         return;
     }
     const Machine machine = UseDefaults(s);
@@ -145,7 +145,7 @@ void Load(Store& s) {
     for (const std::string& place : places) {
         s.file = place;
         if (Write(s)) {
-            ei::Log("settings: %s written with the defaults (full screen at %dx%d)", place.c_str(), machine.desktopWidth,
+            ei::Log("settings: %s written with the defaults (full screen at %dx%d)", place, machine.desktopWidth,
                     machine.desktopHeight);
             return;
         }
@@ -172,7 +172,7 @@ bool Text(const char* section, const char* name, std::string* text) {
 
 // A value that is not of its type: logged, the default taken.
 void NotOfType(const char* section, const char* name, const std::string& text, const char* type) {
-    ei::Log("settings: [%s] %s = %s is not %s: the default is used", section, name, text.c_str(), type);
+    ei::Log("settings: [%s] %s = %s is not %s: the default is used", section, name, text, type);
 }
 
 // The catalog row's default of `name` as text (VideoResolution's for the current machine); empty for a name without a

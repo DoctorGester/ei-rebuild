@@ -94,7 +94,7 @@ public:
         Down();
     }
     void Joined(int label, std::string_view text) {
-        line = T(label).c_str();
+        line = T(label);
         line += " ";
         line += text;
         Text(line);

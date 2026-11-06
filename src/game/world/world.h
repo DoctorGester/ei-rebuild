@@ -365,7 +365,7 @@ public:
     void SetZoneExits(const std::vector<ZoneExit>& source);
     // Script AddUnitToServer: creates a unit of prototype `prototype` named `name`, with id `id` (the name's text
     // key), at `position`. A prototype the units database lacks: a warning, no unit.
-    void AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3& position);
+    void AddUnitToServer(unsigned id, std::string_view prototype, std::string_view name, const Vector3& position);
     // Script AddUnitToParty: the record `record` (just made by AddMember) takes the texture names of the map unit
     // with its id (the unit's server-side parentIname and skinTexture), so the unit is drawn textured when the
     // party arrives in the next zone. No unit with that id: the names stay empty. A null record (AddMember refused the
@@ -510,7 +510,7 @@ public:
     Item* CopyItem(Item* item);
     void AddCounted(EngineObject* item);
     Item* CreateItemNamed(std::string_view name);
-    Item* CreateSpellNamed(const char* name);
+    Item* CreateSpellNamed(std::string_view name);
 
     // Creates a unit for each record of `records` (an existing object with the record's id is removed first), at its
     // entry in `placements` or in a line from `position` along `rotation`, moved to a free cell, under `player`'s
@@ -854,7 +854,7 @@ public:
     Material* NewMaterial(int type);
     // Loads the camera path file `name` and, when that works, plays it from now (Camera::kPlaying): the time offset
     // is the client time (tick + fraction) less the first key's, the key index 0.
-    void PlayCameraPath(const char* name);
+    void PlayCameraPath(std::string_view name);
     // Message 0x73: the water levels read from `stream` and applied to the terrain.
     void ReadWaterLevels(ByteStream* stream);
     // FALSE without a local view or while the local player's controller is busy.
@@ -1105,7 +1105,7 @@ float LocalPlayerVariable(std::string_view name);
 float PlayerZeroVariable(std::string_view name);
 // For the quest and briefing screens: player zero's variables whose names start with `prefix` copied into
 // a table (NamedFloatTable::CopyPrefixed), PlayerZeroVariable's player; empty when there is none.
-NamedFloatTable PlayerZeroVariables(const char* prefix);
+NamedFloatTable PlayerZeroVariables(std::string_view prefix);
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts. `picks` draws the choices: the
