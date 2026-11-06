@@ -6,8 +6,8 @@
 # (smooth2). The two with them match; smoothcheck requires the levels' world passes and anisotropic models
 # in the frame and the smooth frame to differ from the plain one only in a few pixels (the world's edges and
 # textures: nothing black or stale). The quick save's picture (R13, a screen copy between frames) must still
-# show that frame. R16c: the smooth frame with the terrain pages built and uploaded again (smooth_fresh)
-# matches the one with them kept on the GPU. R12a1: the copy of the frame target into every sample, which
+# show that frame. R16c, R37e4b: the smooth frame with the terrain's sectors built and written again
+# (smooth_fresh) matches the one with them kept on the GPU. R12a1: the copy of the frame target into every sample, which
 # the game's order never reaches (the world view is a frame's first draw): with an empty pass before the
 # world (smooth_before) the frame matches exactly; with the world split in two at its middle command
 # (smooth_split, the later half drawn over the copy of the resolved first half) only where both halves'
@@ -72,7 +72,6 @@ unfreeze
 renderstats -
 frames 5
 renderstats quality
-terraincache check
 check IsAlive(GetLeader())
 report
 quit

@@ -1,4 +1,5 @@
-// The landscape's pages (render_terrain.cpp), lit here (scene_lighting.hlsli): the vertices carry the normal, the
+// The landscape's ground and water (render_terrain.cpp: the zone's mesh of a layer, every page's tiles; the vertex
+// carries its page's layer of the page textures' array with its texture coordinates), lit here (scene_lighting.hlsli): the vertices carry the normal, the
 // material colour (colour word), on the ground the light lost under the water (`loss`, 0 or more; below 0 on the
 // water layer, whose specular word carries the wave crests) and the ground's own occlusion of the ambient light
 // (`extra` there, 1 none: render_terrain.cpp's height field), which the screen's (ambient_occlusion.hlsli) darkens
@@ -14,7 +15,7 @@ struct VsIn {
     [[vk::location(0)]] float3 pos : TEXCOORD0;
     [[vk::location(1)]] float4 col : TEXCOORD1;
     [[vk::location(2)]] float4 spec : TEXCOORD2;
-    [[vk::location(3)]] float2 uv : TEXCOORD3;
+    [[vk::location(3)]] float3 uv : TEXCOORD3;      // u, v and the page's layer
     [[vk::location(4)]] float3 normal : TEXCOORD4;
     [[vk::location(5)]] float loss : TEXCOORD5;
     [[vk::location(6)]] float2 depth : TEXCOORD6;   // the depth; otherWater on the ground, the slope on the water
@@ -33,6 +34,7 @@ struct VsOut {
     [[vk::location(9)]] float kind : TEXCOORD9;        // the water's kind (0 on the ground)
     [[vk::location(10)]] float otherWater : TEXCOORD10;
     [[vk::location(11)]] float slope : TEXCOORD11;     // the ground's under the water (0 on the ground)
+    [[vk::location(12)]] nointerpolation float layer : TEXCOORD12;   // the page's in the texture array
     float4 pos : SV_Position;
 };
 
@@ -70,7 +72,8 @@ VsOut vs_main(VsIn i) {
     // or the distance fog, the smallest.
     o.spec.a = min(min(o.spec.a, edge_kept(i.pos.xy, o.pos.w * vs.fogDepthPerW)),
                    fog_kept(o.pos.w, vs.fogStart, vs.fogDensity, vs.fogDepthPerW));
-    o.uv = i.uv;
+    o.uv = i.uv.xy;
+    o.layer = i.uv.z;
     float4 q = float4(i.pos + i.normal * vs.normalOffset, 1.0);
     o.shadow = float4(dot(vs.light[0], q), dot(vs.light[1], q), dot(vs.light[2], q), 1.0);
     o.world = i.pos;
@@ -140,7 +143,7 @@ struct TerrainFsParams {
 static const int kWater = 1;
 static const int kLevels = 2;
 ConstantBuffer<TerrainFsParams> fs : FS_BLOCK(0);
-Texture2D<float4> tex : FS_TEXTURE(0);
+Texture2DArray<float4> tex : FS_TEXTURE(0);   // the page textures, a layer each
 SamplerState smp : FS_SAMPLER(0);
 Texture2D<float4> ripples : FS_TEXTURE(4);   // render_water.cpp: rg the slopes, b the foam's pattern
 SamplerState rippleSmp : FS_SAMPLER(4);
@@ -500,7 +503,7 @@ float3 Water(VsOut i, float3 base, float opacity, float3 n, float hidden, float 
 
 float4 Shade(VsOut i) {
     float3 dsx = ddx(i.shadow.xyz), dsy = ddy(i.shadow.xyz);
-    float4 t = tex.Sample(smp, i.uv);
+    float4 t = tex.Sample(smp, float3(i.uv, i.layer));
     if (fs.mode == kLevels) return float4(t.r, 90.0 / 255.0, 165.0 / 255.0, 1.0);
     // How much of the sun the map and the clouds hide.
     float hidden = shadow_amount(i.shadow.xyz, dsx, dsy, i.pos.xy, 2.0);

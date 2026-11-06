@@ -414,10 +414,10 @@ struct CopyOp {
     SDL_GPUBuffer* buffer = nullptr;
     std::uint32_t bufferOffset = 0, bytes = 0;
     SDL_GPUTexture* texture = nullptr;
-    std::uint32_t level = 0, x = 0, y = 0, w = 0, h = 0;
+    std::uint32_t level = 0, layer = 0, x = 0, y = 0, w = 0, h = 0;
     std::uint32_t pixelsPerRow = 0, rowsPerLayer = 0;
     SDL_GPUTexture* toTexture = nullptr;   // CopyTexture's
-    std::uint32_t toLevel = 0, toX = 0, toY = 0;
+    std::uint32_t toLevel = 0, toLayer = 0, toX = 0, toY = 0;
 };
 static std::vector<CopyOp> g_copies;
 
@@ -442,6 +442,7 @@ static void Flush() {
             SDL_GPUTextureRegion to{};
             to.texture = op.texture;
             to.mip_level = op.level;
+            to.layer = op.layer;
             to.x = op.x;
             to.y = op.y;
             to.w = op.w;
@@ -459,6 +460,7 @@ static void Flush() {
             SDL_GPUTextureLocation to{};
             to.texture = op.toTexture;
             to.mip_level = op.toLevel;
+            to.layer = op.toLayer;
             to.x = op.toX;
             to.y = op.toY;
             SDL_CopyGPUTextureToTexture(pass, &from, &to, op.w, op.h, 1, false);
@@ -1023,12 +1025,12 @@ Texture MakeTexture(const TextureDesc& desc) {
         return {};
     }
     SDL_GPUTextureCreateInfo ci{};
-    ci.type = SDL_GPU_TEXTURETYPE_2D;
+    ci.type = desc.arrayLayers > 0 ? SDL_GPU_TEXTURETYPE_2D_ARRAY : SDL_GPU_TEXTURETYPE_2D;
     ci.format = ToSdl(desc.format);
     ci.usage = Usage(desc.use);
     ci.width = static_cast<Uint32>(desc.width);
     ci.height = static_cast<Uint32>(desc.height);
-    ci.layer_count_or_depth = 1;
+    ci.layer_count_or_depth = static_cast<Uint32>(std::max(desc.arrayLayers, 1));
     ci.num_levels = static_cast<Uint32>(desc.levels);
     ci.sample_count = SampleCount(desc.samples);
     SDL_GPUTexture* t = SDL_CreateGPUTexture(g_device, &ci);
@@ -1043,6 +1045,7 @@ Texture MakeTexture(const TextureDesc& desc) {
     out.width = desc.width;
     out.height = desc.height;
     out.levels = desc.levels;
+    out.arrayLayers = desc.arrayLayers;
     out.samples = desc.samples;
     out.format = desc.format;
     return out;
@@ -1127,13 +1130,13 @@ bool Write(const Buffer& buffer, std::uint32_t offset, const void* data, std::ui
 }
 
 bool Write(const Texture& texture, int level, const Rect& region, const void* rows, std::size_t pitch,
-           Contents contents) {
+           Contents contents, int layer) {
     if (!texture || texture.swapchain || !WriteAllowed("a texture write")) return false;
     const int w = region.Width(), h = region.Height();
     const int levelWidth = std::max(1, texture.width >> level), levelHeight = std::max(1, texture.height >> level);
     if (w <= 0 || h <= 0 || level < 0 || level >= texture.levels || region.left < 0 || region.top < 0 ||
-        region.right > levelWidth || region.bottom > levelHeight) {
-        Problem("a texture write outside level %d", level);
+        region.right > levelWidth || region.bottom > levelHeight || layer < 0 || layer >= std::max(texture.arrayLayers, 1)) {
+        Problem("a texture write outside level %d layer %d", level, layer);
         return false;
     }
     const std::uint32_t rowBytes = RowBytes(texture.format, w), rowCount = Rows(texture.format, h);
@@ -1146,6 +1149,7 @@ bool Write(const Texture& texture, int level, const Rect& region, const void* ro
     op.cycle = contents == Contents::Discard;
     op.texture = texture.texture;
     op.level = static_cast<std::uint32_t>(level);
+    op.layer = static_cast<std::uint32_t>(layer);
     op.x = static_cast<std::uint32_t>(region.left);
     op.y = static_cast<std::uint32_t>(region.top);
     op.w = CopyExtent(texture.format, w);
@@ -1156,11 +1160,13 @@ bool Write(const Texture& texture, int level, const Rect& region, const void* ro
     return true;
 }
 
-bool Copy(const Texture& from, int fromLevel, const Rect& region, const Texture& to, int toLevel, int x, int y) {
+bool Copy(const Texture& from, int fromLevel, const Rect& region, const Texture& to, int toLevel, int x, int y,
+          int toLayer) {
     if (!from || !to || from.swapchain || to.swapchain || !WriteAllowed("a texture copy")) return false;
     const int w = region.Width(), h = region.Height();
-    if (w <= 0 || h <= 0 || from.format != to.format || from.samples != 1 || to.samples != 1) {
-        Problem("a texture copy of another format, of samples or of nothing");
+    if (w <= 0 || h <= 0 || from.format != to.format || from.samples != 1 || to.samples != 1 || toLayer < 0 ||
+        toLayer >= std::max(to.arrayLayers, 1)) {
+        Problem("a texture copy of another format, of samples, of nothing or past the layers");
         return false;
     }
     CopyOp op{CopyOp::Kind::CopyTexture};
@@ -1168,10 +1174,11 @@ bool Copy(const Texture& from, int fromLevel, const Rect& region, const Texture&
     op.level = static_cast<std::uint32_t>(fromLevel);
     op.x = static_cast<std::uint32_t>(region.left);
     op.y = static_cast<std::uint32_t>(region.top);
-    op.w = static_cast<std::uint32_t>(w);
-    op.h = static_cast<std::uint32_t>(h);
+    op.w = CopyExtent(from.format, w);   // a compressed level smaller than a block: as written (Write)
+    op.h = CopyExtent(from.format, h);
     op.toTexture = to.texture;
     op.toLevel = static_cast<std::uint32_t>(toLevel);
+    op.toLayer = static_cast<std::uint32_t>(toLayer);
     op.toX = static_cast<std::uint32_t>(x);
     op.toY = static_cast<std::uint32_t>(y);
     g_copies.push_back(op);

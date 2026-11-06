@@ -221,8 +221,8 @@ private:
     // A pass: the landscape's matrix (rotation, the position in the last column) on the clip and projection
     // stacks around DrawPages.
     void DrawPass(SceneRenderer* renderer, int firstPage, int lastPage);
-    // The visible sectors not culled, per page; the page's texture is page % LayerPages(). Nothing without a
-    // map.
+    // The visible sectors clip tested, and the pass (pages `firstPage` .. `lastPage` with a texture: the page's
+    // texture is page % LayerPages()) handed to the renderer. Nothing without a map.
     void DrawPages(SceneRenderer* renderer, int firstPage, int lastPage);
     // Null outside the map or where the sector has no such layer.
     const Vector3* VertexAt(int ix, int iy, Layer layer);

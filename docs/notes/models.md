@@ -112,8 +112,8 @@ terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`,
   effects); `SurfaceHeight` the ground raised to the water surface.
 - **Landscape passes, light tests**: `DrawGround` / `DrawWater` differ only in the page range (ground
   0..LayerPages()-1, water the next LayerPages(); LayerPages() = pages + the two extra pages); a page's texture is
-  bound at the first sector with tiles on it. `DrawPages` per visible sector: clip test, projection, per page the
-  texture and `DrawPage` (src/render draws it). Every sector draws its full mesh (the original's distance LOD levels
+  bound at the first sector with tiles on it. `DrawPages` per visible sector: clip test, the pending water levels, then the drawn sectors
+  handed over once a pass (`render::TerrainPass`; src/render keeps the zone's meshes and draws them). Every sector draws its full mesh (the original's distance LOD levels
   and seams are gone; the two LOD options stay in the settings file, read by nothing). `EdgeFade` is the map edge's
   fade byte. The GPU lights the terrain: the original's vertex lighting, sun shadow ray march, point light areas and
   relight countdowns are not ported (renderer.md says what looks different); `AddLight` / `RemoveLight` keep only the

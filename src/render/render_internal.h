@@ -156,19 +156,19 @@ inline void CasterAlpha(const PassState& s, float* alpha) {
 PassState ReadPassState(const TextureDevice* device);
 void ApplyPassState(gpu::PipelineDesc& desc, const PassState& state);
 
-// A terrain page kept on the GPU and one quarter of it drawn in a frame.
-struct CachedPage;
-struct TerrainPiece {
-    CachedPage* page = nullptr;
-    int quarter = 0;
+// A sector a terrain pass drew (the game's clip test kept it): its place in the zone's mesh (render_terrain.cpp's
+// slots) and its quarters the game did not cull (bit q).
+struct TerrainDrawn {
+    int slot = 0;
+    std::uint8_t quarters = 0;
 };
 
+// A terrain pass: the zone's mesh of the ground or the water, one draw.
 struct TerrainBatch {
-    const ::Texture* texture = nullptr;  // the landscape's page texture
     bool water = false;       // the water pass (alpha from the vertex colour)
     int matrix = 0;           // index into Frame::matrices
-    int firstPiece = 0;       // into Frame::terrainPieces
-    int pieceCount = 0;
+    int firstSector = 0;      // its drawn sectors in Frame::terrainSectors
+    int sectorCount = 0;
     PassState state;          // its textures not read
     bool occluded = false;    // the ground of the world: it takes the ambient occlusion (DrawOcclusion)
 };
@@ -403,7 +403,7 @@ struct WorldMesh {
 
 struct Frame {
     std::vector<Matrix4> matrices;
-    std::vector<TerrainPiece> terrainPieces;
+    std::vector<TerrainDrawn> terrainSectors;
     std::vector<TerrainBatch> terrainBatches;
     std::vector<Vertex> meshVertices;
     std::vector<std::uint32_t> meshIndices;
@@ -439,7 +439,7 @@ struct Frame {
     // Empties the frame for the next one (at its present), the lists keeping their room.
     void Clear() {
         matrices.clear();
-        terrainPieces.clear();
+        terrainSectors.clear();
         terrainBatches.clear();
         meshVertices.clear();
         meshIndices.clear();
@@ -713,13 +713,19 @@ void UploadKept(GpuPool& pool, std::vector<Item*>& pending, FrameItems frameItem
     pending.clear();
 }
 
-// The terrain, inside EndFrame's off-screen pass. For the shadow map's fit: TerrainPieceGroups, a piece's
-// vertices in runs (TerrainGroup: kept with the page, made when its vertices are built or moved), and
-// TerrainPieceWhole, all of them as one; TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, drops pages not
-// drawn for a long time.
+// The terrain (render_terrain.cpp): UploadTerrain writes what changed of the zone's meshes before the frame's passes,
+// DrawTerrainBatch draws a pass's mesh. For the shadow map's fit and the water's mirror, the frame's terrain as the
+// passes drew it in pieces (TerrainPieces: one page's tiles in one quarter of a drawn sector, the quarter not culled,
+// page by page and each page's in the order the sectors were drawn): TerrainPieceGroups, a piece's vertices in runs
+// (TerrainGroup: made when the sector is built, the water's boxes again when it moved), TerrainPieceWhole, all of them
+// as one; TerrainGroupPositions, every `step`th position of a run. TerrainFrameDone, after a present, counts the
+// frame's sectors (FrameStats::terrainReuse).
 struct TerrainGroup {
     Box box;                             // of its positions in the landscape's space
-    std::uint32_t first = 0, count = 0;  // its vertices in the page's
+    std::uint32_t first = 0, count = 0;  // its vertices in its sector's layer
+};
+struct TerrainPiece {
+    int slot = 0, layer = 0, run = 0;
 };
 bool CreateTerrainShader();
 // The water's ripple map (render_water.cpp), made at the start (false: it could not be), bound with every terrain
@@ -743,15 +749,17 @@ void BindWaterReflections(const Matrix4& view, TerrainFsParams* fs);
 void ListWaterPipelines(std::vector<gpu::PipelineDesc>& out);
 // A clip matrix's depth (z / w) to its clip w: w = out[1] / (depth - out[0]) (render_occlusion.cpp).
 void DepthMap(const Matrix4& clip, float out[2]);
-void UploadTerrain(const Frame& frame);
+void UploadTerrain();
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
+// Appends `batch`'s pieces to `out`.
+void TerrainPieces(const Frame& frame, const TerrainBatch& batch, std::vector<TerrainPiece>* out);
 std::span<const TerrainGroup> TerrainPieceGroups(const TerrainPiece& piece);
 const TerrainGroup& TerrainPieceWhole(const TerrainPiece& piece);
 void TerrainGroupPositions(const TerrainPiece& piece, const TerrainGroup& group, std::uint32_t step,
                            std::vector<Vector3>* out);
 void TerrainFrameDone();
-// The ambient occlusion's depth (DrawOcclusion): the ground pages of the frame's batches marked `occluded` drawn,
-// depth only, with TerrainDepthDesc's pipeline; the draws made. GroundOcclusionCounts: the sectors whose ground
+// The ambient occlusion's depth (DrawOcclusion): the ground's mesh drawn for the frame's batches marked `occluded`
+// (once a clip matrix), depth only, with TerrainDepthDesc's pipeline; the draws made. GroundOcclusionCounts: the sectors whose ground
 // occlusion is kept, and how often one was worked out (render::OcclusionInfo).
 gpu::PipelineDesc TerrainDepthDesc();
 int DrawTerrainDepth(const Frame& frame, gpu::Pipeline pipeline);
@@ -759,16 +767,17 @@ struct GroundOcclusionCount {
     int sectors = 0, made = 0;
 };
 GroundOcclusionCount GroundOcclusionCounts();
-// The ground's casters (render::ShadowTerrainSector). DrawTerrainCasters draws with `pipeline` (vertex buffer
-// 0: TerrainCasterVertex, 32-bit indices) whose uniforms the caller applied.
+// The ground's casters (render::ShadowTerrainSector): every sector's 33 x 33 ground vertices in one mesh, written by
+// UploadTerrain. DrawTerrainCasters applies `pipeline` (vertex buffer 0: TerrainCasterVertex, 32-bit indices) and its
+// vertex uniforms (`light`, the sectors that cast this frame) and draws the mesh once; the caller pushed the fragment
+// uniforms. TerrainCasterCount: the sectors that cast this frame.
 struct TerrainCasterVertex {
     Vector3 position;
     Vector3 normal;
 };
 static_assert(sizeof(TerrainCasterVertex) == 24);
 std::size_t TerrainCasterCount();
-void UploadTerrainCasters();
-int DrawTerrainCasters(gpu::Pipeline pipeline);
+int DrawTerrainCasters(gpu::Pipeline pipeline, const Matrix4& light);
 void TerrainCastersDone();
 
 bool CreateMeshShader();
@@ -1068,6 +1077,8 @@ void RunCanvasesNow();
 // when there is none. Valid until the next Present.
 const gpu::Texture& TextureView(const ::Texture* texture);
 const gpu::Texture& SurfaceView(const Surface* holder);
+// Which image TextureView gives: another number each time it is replaced (0: none kept).
+std::uint32_t TextureSerial(const ::Texture* texture);
 // render::TextureFromMmp: kept until the holder goes.
 bool TextureFromMmpData(const Surface* holder, const MmpFile& file, unsigned mip, unsigned levels);
 void ForgetHolder(const Surface* holder);

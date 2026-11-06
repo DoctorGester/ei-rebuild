@@ -337,7 +337,7 @@ static int CrossedPlanes(const Box& box, const Plane planes[kViewPlanes], int as
 // more ground was drawn since.
 struct Fit {
     std::uint32_t frame = 0xFFFFFFFFu;   // FrameNumber() it was made in
-    std::size_t pieces = 0;              // the frame's terrain pieces then
+    std::size_t passes = 0;              // the frame's terrain passes then
     bool ok = false;
     M4 fromClip{};                       // the camera's clip space to the landscape's
     bool haveEye = false;                // the camera's position (none: at infinity)
@@ -393,6 +393,14 @@ struct SeenGround {
 };
 static std::vector<Vector3> g_groupPositions;   // SeeGround's, kept for its room
 
+// The frame's terrain pieces (TerrainPieces), all passes'.
+static const std::vector<TerrainPiece>& FramePieces(const Frame& f) {
+    static std::vector<TerrainPiece> pieces;
+    pieces.clear();
+    for (const TerrainBatch& batch : f.terrainBatches) TerrainPieces(f, batch, &pieces);
+    return pieces;
+}
+
 // The visible ground by the terrain pieces' runs of vertices (a piece wholly outside the view skipped by its box, the
 // planes it lies inside not tested again): a run wholly inside the camera's view by its box's corners (a box reaches
 // above the run's low ground: seen from the sun its top lies a little further along y), one the view's sides cross by
@@ -410,7 +418,7 @@ static SeenGround SeeGround(const Frame& f, const Matrix4& camera, const Vector3
         ++seen.points;
     };
     auto crossedBy = [&](const TerrainGroup& g, int asked) { return CrossedPlanes(g.box, planes, asked); };
-    for (const TerrainPiece& piece : f.terrainPieces) {
+    for (const TerrainPiece& piece : FramePieces(f)) {
         const TerrainGroup& whole = TerrainPieceWhole(piece);
         const int pieceCrossed = whole.count != 0 ? crossedBy(whole, kAllPlanes) : -1;
         if (pieceCrossed < 0) continue;
@@ -460,7 +468,7 @@ static void MeasureGroundReach(const Frame& f) {
     g_reach.measured = true;
     float farthest = 0.0f;
     auto take = [&](const Vector3& at) { farthest = std::max(farthest, DistanceSquared(at, eye)); };
-    for (const TerrainPiece& piece : f.terrainPieces) {
+    for (const TerrainPiece& piece : FramePieces(f)) {
         for (const TerrainGroup& group : TerrainPieceGroups(piece)) {
             const int sides = CrossedPlanes(group.box, planes, kSides);
             if (sides < 0) continue;
@@ -488,10 +496,10 @@ void SetGroundReach(bool on) { g_measureReach = on; }
 GroundReachInfo GroundReachState() { return g_lastReach; }
 
 static const Fit& FitMap(Frame& f) {
-    if (g_fit.frame == FrameNumber() && g_fit.pieces == f.terrainPieces.size()) return g_fit;
+    if (g_fit.frame == FrameNumber() && g_fit.passes == f.terrainBatches.size()) return g_fit;
     g_fit = Fit{};
     g_fit.frame = FrameNumber();
-    g_fit.pieces = f.terrainPieces.size();
+    g_fit.passes = f.terrainBatches.size();
     const ShadowFrame& shadow = f.shadow;
     if (!shadow.haveSun || f.worldRanges.empty()) return g_fit;
 
@@ -1134,12 +1142,10 @@ static void DrawMap(const Fit& fit, int cellsAround) {
     if (drawCasters) g_casterDraws.Draw(0, g_casterDraws.Count());
     if (TerrainCasterCount() != 0) {
         namespace program = gpu_shaders::shadow_terrain;
-        const ShadowTerrainVsParams vs{fit.light};
         const ShadowTerrainFsParams fs{{fit.d.x, fit.d.y, fit.d.z, 0.0f}};
         gpu::ApplyPipeline(g_terrainCasterPipeline);
-        gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockShadowTerrainVsParams, vs);
         gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowTerrainFsParams, fs);
-        int draws = DrawTerrainCasters(g_terrainCasterPipeline);
+        int draws = DrawTerrainCasters(g_terrainCasterPipeline, fit.light);
         g_stats.counts[FrameStats::Count::ShadowDraws] += static_cast<std::uint64_t>(draws);
         g_info.terrainCasters = static_cast<int>(TerrainCasterCount());
     }
@@ -1182,8 +1188,7 @@ void DrawShadowMap(Frame& f) {
         g_info.made = false;
         return;
     }
-    // The casters' geometry and instances are written before the pass (no writes inside one).
-    UploadTerrainCasters();
+    // The casters' instances are written before the pass (no writes inside one; the ground's by UploadTerrain).
     g_casterDraws.Clear();
     AddDrawnCasters(f);
     AddOutsideCasters(g_fit);

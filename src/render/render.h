@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <vector>
 
 class FigureMesh;
@@ -27,6 +28,7 @@ class TextureDevice;
 
 namespace terrain {
 struct SectorData;
+class Terrain;
 }
 
 namespace render {
@@ -350,12 +352,16 @@ void Cursor(const FrameCursor& cursor);
 // null: all of it.
 void ClearDepth(float z, const Rect* rects, int count);
 
-// Every sector page the game draws; `renderer`'s transform pipeline holds the current clip matrix; `page`:
-// ground pages 0..pages+1, water pages after them.
-void TerrainPage(const terrain::SectorData* sector, const SceneRenderer* renderer, int page);
-// What the sector's pages are built from changed: Rebuilt, its tile lists and records; Moved, vertices or
-// texture coordinates (animated tiles); WaterMoved, only the water layer's positions.
-enum class TerrainChange { Rebuilt, Moved, WaterMoved };
+// A terrain pass of the game: the landscape's ground (`firstPage` 0) or water pages up to `lastPage` (pages with a
+// texture), drawn whole (the zone's mesh of that layer, one draw); `renderer`'s transform pipeline holds the clip
+// matrix; `drawn`: the sectors the game's clip test kept, in its order (the shadow map's fit and the water's mirror
+// take their quarters not culled).
+void TerrainPass(const terrain::Terrain* terrain, const SceneRenderer* renderer, int firstPage, int lastPage,
+                 std::span<const terrain::SectorData* const> drawn);
+// What the zone's mesh holds of a sector changed: Rebuilt, its tile lists and records (Build); Moved, the animated
+// tiles' texture coordinates; WaterMoved, the water layer's positions and crests (the waves, a water level); Dropped,
+// the sector is cleared or deleted (its place in the mesh is built again from what the grid holds then).
+enum class TerrainChange { Rebuilt, Moved, WaterMoved, Dropped };
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
 
 // A figure part lit on the GPU as 3DfpFPU's LightMesh lit its words (renderer.md section 13). Lights

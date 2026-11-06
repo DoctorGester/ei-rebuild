@@ -229,13 +229,14 @@ void DrawSkyReflection(Frame& f) {
     // water at another level reads it right too; the plane only keeps the dome in view).
     double level = 0.0;
     int pieces = 0;
-    for (const TerrainBatch& b : f.terrainBatches) {
-        if (!b.water) continue;
-        for (int k = b.firstPiece; k < b.firstPiece + b.pieceCount; ++k) {
-            const Box& box = TerrainPieceWhole(f.terrainPieces[static_cast<std::size_t>(k)]).box;
-            level += 0.5 * (box.low.z + box.high.z);
-            ++pieces;
-        }
+    static std::vector<TerrainPiece> water;
+    water.clear();
+    for (const TerrainBatch& b : f.terrainBatches)
+        if (b.water) TerrainPieces(f, b, &water);
+    for (const TerrainPiece& piece : water) {
+        const Box& box = TerrainPieceWhole(piece).box;
+        level += 0.5 * (box.low.z + box.high.z);
+        ++pieces;
     }
     const float h = pieces > 0 ? static_cast<float>(level / pieces) : 0.0f;
     const Matrix4 mirror{{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 2.0f * h, 0, 0, 0, 1}};

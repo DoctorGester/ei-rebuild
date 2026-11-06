@@ -431,10 +431,9 @@
 //                             check requires the last frame's made (the world's ground and models in its
 //                             depth, the ground and some meshes taking it) and the ground's own worked out
 //                             for some sectors
-//   terraincache on|off|check the image's terrain pages kept on the GPU (render::SetTerrainCache, R16c;
-//                             the default) or built and uploaded every frame (off), from the next
-//                             frame; check requires that no check of a kept page against a fresh build
-//                             (every 16th frame, render::TerrainCacheState) found it stale
+//   terraincache on|off       the image's zone terrain kept on the GPU (render::SetTerrainCache, R37e4b;
+//                             the default) or every sector built and written again at each terrain pass
+//                             (off), from the next pass
 //   meshcache on|off|check    the image's figure meshes kept on the GPU (render::SetMeshCache, R16d; the
 //                             default) or built and uploaded every frame (off), from the next mesh
 //                             draw; check requires that no check of a kept mesh against a fresh build

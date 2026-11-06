@@ -447,7 +447,7 @@ static bool DrawPending() {
     const int width = target->w, height = target->h;
     if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return true;
     perf::Enter(perf::Pass::Other);
-    UploadTerrain(g_frame);
+    UploadTerrain();
     UploadMeshes(g_frame);
     UploadUi(g_frame);
     // The sun's shadow map, the ambient occlusion and the water's sky image, once a frame before its first pass.

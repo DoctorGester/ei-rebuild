@@ -24,7 +24,7 @@ MEMBERS = {'float': ('float', 1), 'vec2': ('float', 2), 'vec3': ('float', 3), 'v
            'uvec4': ('std::uint32_t', 4), 'mat4': ('Matrix4', 16)}
 # Vertex inputs and fragment outputs: SPIR-V type to (components, scalar).
 SCALARS = {'float': 'Float', 'vec': 'Float', 'int': 'Int', 'ivec': 'Int', 'uint': 'Uint', 'uvec': 'Uint'}
-TEXTURES = ('texture2D', 'utexture2D', 'itexture2D', 'texture2DMS')
+TEXTURES = ('texture2D', 'utexture2D', 'itexture2D', 'texture2DMS', 'texture2DArray')
 ALLOWED = {'entryPoints', 'types', 'inputs', 'outputs', 'ubos', 'separate_images', 'separate_samplers'}
 
 errors = []
@@ -73,10 +73,10 @@ def vertex_inputs(program, text):
     if not m:
         fail(f'{program}: no vs_main')
         return {}
-    params = m.group(1).strip()
-    if not params or 'SV_VertexID' in params:
+    params = [p.strip() for p in m.group(1).split(',') if 'SV_VertexID' not in p and p.strip()]
+    if not params:   # only the vertex's index
         return {}
-    struct = params.split()[0]
+    struct = params[0].split()[0]
     s = re.search(r'\bstruct\s+' + struct + r'\s*\{(.*?)\};', text, re.S)
     if not s:
         fail(f'{program}: vs_main takes {struct}, not found')

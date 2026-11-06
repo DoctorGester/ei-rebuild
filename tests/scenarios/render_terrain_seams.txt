@@ -8,8 +8,8 @@
 # mmplevels (R12b): every .mmp texture's levels, decoded as drawn, must agree with their level 0
 # (averaged to 4 x 4: at most 52 seen); the levels read through the game's overflowing offset formula
 # (bright green strips over the trees here) lay 128 / 149 off.
-# R16c: each view also with the terrain pages built and uploaded again (*_fresh), which must match the
-# frame with the pages kept on the GPU.
+# R16c, R37e4b: each view also with the terrain's sectors built and written again (*_fresh), which must match
+# the frame with them kept on the GPU.
 # A run of the original code captures its frames and skips the level steps.
 reject Script error
 waitmenu
@@ -51,7 +51,6 @@ rebirth levelsteps far_levels 0 0.016
 vanilla levelsteps far_point 0.01 1
 rebirth levelsteps far_point 0.024 1
 mmplevels 80
-terraincache check
 
 move 0 300
 frames 4

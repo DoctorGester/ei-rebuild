@@ -419,7 +419,7 @@ void SectorData::Build() {
         if (i >= kSectorVertices && records[i].waterMaterial == SectorVertex::kNoWaterMaterial) continue;
         records[i].specular = PackArgb(owner->EdgeFade(vertices[i]), 0, 0, 0);
     }
-    render::TerrainChanged(this, render::TerrainChange::Rebuilt);   // the pages kept on the GPU
+    render::TerrainChanged(this, render::TerrainChange::Rebuilt);   // the zone's meshes
 }
 
 void SectorData::ApplyWaterLevels() {
@@ -443,7 +443,7 @@ void SectorData::Ensure(SectorStage wanted) {
     if (wanted >= SectorStage::Built && !lib::Has(built, SectorStage::Built)) Build();
 }
 
-SectorData::~SectorData() { render::TerrainChanged(this, render::TerrainChange::Rebuilt); }
+SectorData::~SectorData() { render::TerrainChanged(this, render::TerrainChange::Dropped); }
 
 // Clipping and drawing
 
@@ -455,12 +455,6 @@ void SectorData::ClipTest(SceneRenderer* renderer) {
     inReach = clipMode != TransformPipeline::ClipResult::Outside && !renderer->pipeline->BeyondReach(&box);
     if (clipMode == TransformPipeline::ClipResult::Outside) return;
     for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
-}
-
-void SectorData::DrawPage(const SceneRenderer* renderer, int page) {
-    if (clipMode == TransformPipeline::ClipResult::Outside) return;
-    if (hasWater) ApplyWaterLevels();
-    render::TerrainPage(this, renderer, page);
 }
 
 // Clearing and animation
@@ -479,7 +473,7 @@ void SectorData::Clear() {
     lastUsed = 0;
     clipMode = TransformPipeline::ClipResult::Outside;
     inReach = false;
-    render::TerrainChanged(this, render::TerrainChange::Rebuilt);
+    render::TerrainChanged(this, render::TerrainChange::Dropped);
 }
 
 void SectorData::AnimateTiles(int frame) {
@@ -498,7 +492,7 @@ void SectorData::AnimateTiles(int frame) {
             tile.vertices[k].v = 1.0f - uv.v[k];
         }
     }
-    if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the pages kept on the GPU
+    if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the zone's meshes
 }
 
 // Every water vertex has a phase offset (owner wavePhases); the phase along the wave direction runs from the
