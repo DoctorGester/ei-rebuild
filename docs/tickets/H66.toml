@@ -1,0 +1,9 @@
+id = "H66"
+title = "Quiet batches keep their place: a quiet head blocked by an earlier batch's folder still holds the queue, and the wait is shown"
+group = "harness"
+size = 1
+model = "opus"
+files = ["tools/work_sched.py", "tools/test_work_sched.py"]
+note = "User 2026-11-06: 'something's wrong with the quiet runs'. Batch #9450 (R37f6, one quiet r37f5_save5 run, ~10 s) was queued 18:15:20 and started 18:24:57; meanwhile #9451 (R37f8, 412 plain runs), #9452 and #9454 (MAIN suites, submitted later) all ran. In Scheduler._schedule the earliest batch with queued runs (the head) gathers only if its alone run's folder is not busy and not reserved by an earlier batch (reserved_folders: a finished batch holds its folders while its work.py test is alive). #9450's folder was the same run folder as #9449 (finished 18:15:18, same worktree), so the alone list was empty, gather() was never called (no 'waits' line in build/live/scheduler.log), and the plain batches behind it took every slot. Find why #9449's hold lasted ~10 min (pid_alive of submitter 46408: the --golden comparison, a lingering limit.py wrapper, or a reused pid) and fix it. Make a quiet head that waits on a reserved folder still block later batches from starting (it keeps its place: log 'waits for batch #N's folder' and show it on the board's queue), without deadlock (the reservation is an earlier batch's, which never waits on the head). Tests in test_work_sched.py for both. #9453 (R37f8) waited 18:21:45 to 18:25:07 the same way."
+order = 1296
+status = "queued"
