@@ -124,7 +124,6 @@ src/lib/crt_format.cpp
 src/lib/crt_maths.cpp
 src/lib/gameapi.h
 src/lib/import_table.h
-src/lib/rebirth.cpp
 src/lib/static_object.h
 src/lib/text_case.cpp
 src/lib/text_case.h
@@ -1715,7 +1714,6 @@ src/lib/crt.cpp
 src/lib/crt.h
 src/lib/crt_format.cpp
 src/lib/crt_maths.cpp
-src/lib/rebirth.cpp
 src/lib/static_object.h
 src/lib/str.cpp
 src/lib/str.h

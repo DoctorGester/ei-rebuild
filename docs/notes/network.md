@@ -105,7 +105,7 @@ and `net_pair_party` (an exchange offered, withdrawn, answered, left);
 - **Master server**: port 28004, a TCP link; the server announces a `GameInfoRecord` (name, map title, players,
   maximum, kind, password flag, the master key, the master's last token, the magic) every interval while a master host
   is set; the master's reply is a compressed run of {address, GameInfoRecord}. EI_Plugin's second master
-  (net_second_master.h; the setting `PluginSecondMaster`, empty by default) is used at the plugin's three call sites:
+  (net_second_master.h; the setting `[network] SecondMaster`, empty by default) is used at the plugin's three call sites:
   the main menu's Multiplayer button, the announcement and the connect screen's master request; with the setting
   empty nothing changes.
 

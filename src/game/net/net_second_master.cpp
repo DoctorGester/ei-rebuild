@@ -3,11 +3,11 @@
 // Its times are the real clock's, not the game's.
 #include "game/net/net_second_master.h"
 
+#include "game/app/settings.h"
 #include "game/net/net_session.h"
 #include "game/core/coder.h"
 #include "game/net/net_messages.h"
 
-#include "lib/rebirth.h"
 #include "lib/ipv4.h"
 
 #include <atomic>
@@ -18,6 +18,7 @@
 #include <future>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <thread>
 
@@ -47,9 +48,20 @@ int g_port = kDefaultPort;
 NetAddress g_address = {{sockets::kIpv4, 0, kUnknown, {}}};
 char g_text[32];
 
+// The harness's address (a function static: the harness sets it before this file's static constructors may have run).
+std::string& Override() {
+    static std::string address;
+    return address;
+}
+
+// The address "host[:port]": the harness's, else the settings file's [network] SecondMaster; empty: none.
+std::string Setting() {
+    return Override().empty() ? ::settings::GetString(::settings::kNetwork, "SecondMaster", "") : Override();
+}
+
 // The setting split into host and port (the port kDefaultPort when it names none).
 void SplitSetting() {
-    const std::string& setting = ei::rebirth::PluginSecondMaster();
+    const std::string setting = Setting();
     const std::size_t colon = setting.find(':');
     g_host = setting.substr(0, colon);
     g_port = colon == std::string::npos ? kDefaultPort : std::atoi(setting.c_str() + colon + 1);
@@ -120,7 +132,9 @@ bool Reachable(const NetAddress& master) {
 
 } // namespace
 
-bool Configured() { return !ei::rebirth::PluginSecondMaster().empty(); }
+void SetAddress(std::string_view address) { Override() = address; }
+
+bool Configured() { return !Setting().empty(); }
 
 void OnMultiplayerClick() {
     if (!Configured()) return;

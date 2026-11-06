@@ -1,9 +1,11 @@
 // EI_Plugin's NewMaster: the second master server (the plugin's is hat.gipath.org:28004; ours is the settings file's
-// [network] SecondMaster, ei::rebirth::PluginSecondMaster(), empty by default).
+// [network] SecondMaster, empty by default).
 // More: docs/notes/network.md, "Sessions and messages".
 #pragma once
 
 #include "platform/platform.h"
+
+#include <string_view>
 
 class GameBuffer;
 
@@ -15,6 +17,9 @@ namespace second_master {
 
 // The port of the second master when the setting names none (the plugin's 28004).
 constexpr int kDefaultPort = 28004;
+
+// The harness's address ("host[:port]"), which stands over the settings file's (before the game starts).
+void SetAddress(std::string_view address);
 
 // Whether a second master is set (the setting is not empty).
 bool Configured();
