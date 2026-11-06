@@ -6,5 +6,6 @@ model = "opus"
 depends = ["H62d"]
 note = "Result: Microsoft.Direct3D.WARP 1.0.21 ran 1.6 times as long as the runner's in-box WARP on one commit (runs 42124917682 in-box, 42124922200 and 42103335919 with it), so it was dropped. User 2026-11-06: Windows CI is a smoke job like macOS now (suites-windows.yml: builds + SMOKE_LIST, scenarios input), and Linux CI leaves out render_*, net_*, camera_*. H62h dropped with it. harness.md, The Windows CI job."
 order = 1225
-status = "review"
+status = "done"
 started = "2026-11-05"
+done = "2026-11-06"
