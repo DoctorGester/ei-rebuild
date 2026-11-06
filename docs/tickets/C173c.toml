@@ -1,0 +1,8 @@
+id = "C173c"
+title = "c_str() cleanup: src/lib, src/platform and src/render"
+group = "cleanup"
+size = 1
+model = "sonnet"
+files = ["src/lib", "src/platform", "src/render"]
+note = "User 2026-11-06: c_str() is used where it isn't needed. Keep it only where a NUL-terminated string must reach a C or OS API (Win32, CRT, SDL, sockets, printf-style ei::Log until a std::format log exists). Otherwise: internal functions that take const char* and are called with std::string take std::string_view (const std::string& only where a NUL end is needed further down); getters returning member.c_str() return const std::string& or std::string_view; strstr/strcmp on two std::strings become find/==. Follow the callers: changing a parameter type may remove c_str() in other areas, fine. Behaviour identical, goldens the same; count c_str() before/after."
+order = 1281
