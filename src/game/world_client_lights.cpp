@@ -11,7 +11,7 @@
 #include "game/map_object_figures.h"   // Object3D
 #include "game/model.h"
 #include "game/pipeline.h"
-#include "game/named_floats.h"
+#include "game/core/named_floats.h"
 #include "game/options.h"
 #include "game/party.h"
 #include "game/sky_object.h"

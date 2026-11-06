@@ -4,7 +4,7 @@
 #include "game/item_manager.h"
 #include "game/unit_create.h"
 
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/unit.h"
 #include "game/unit_db.h"
 

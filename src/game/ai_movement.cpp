@@ -3,8 +3,8 @@
 #include "game/ai_map.h"
 #include "game/ai_shape_cache.h"
 #include "game/ai_unit_layer.h"
-#include "game/core_maths.h"
-#include "game/core_refcount.h"
+#include "game/core/core_maths.h"
+#include "game/core/core_refcount.h"
 #include "game/effects.h"
 
 #include "lib/crt.h"

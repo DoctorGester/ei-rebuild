@@ -1,6 +1,6 @@
 #include "game/object_diplomacy.h"
 
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/object.h"
 #include "game/player_messages.h"   // Player::units
 #include "game/unit.h"

@@ -3,7 +3,7 @@
 // border; with the sector map on the objects around it are taken out and put back. See docs/notes/ai.md.
 #include "game/ai_map.h"
 
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/sector_map.h"
 
 #include <cstdint>

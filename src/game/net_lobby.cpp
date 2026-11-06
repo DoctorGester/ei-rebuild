@@ -3,11 +3,11 @@
 // 4 join (magic, id, rate, extra data), 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7
 // refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md.
 #include "game/console.h"
-#include "game/chunk_archive.h"
-#include "game/core_refcount.h"
+#include "game/data/chunk_archive.h"
+#include "game/core/core_refcount.h"
 #include "game/net_classes.h"
 #include "game/net_messages.h"
-#include "game/net_coder.h"
+#include "game/core/coder.h"
 #include "lib/crt.h"
 
 #include "platform/log.h"

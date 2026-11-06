@@ -5,10 +5,10 @@
 // records (party_records.h) and the camp's lists are parties. Its manager context getters
 // (manager_context.h) answer only the item and spell ones. See docs/notes/items_spells.md ("Party").
 
-#include "game/engine_object.h"
-#include "game/manager_context.h"
+#include "game/core/engine_object.h"
+#include "game/core/manager_context.h"
 #include "game/map_object_figures.h"
-#include "game/named_floats.h"
+#include "game/core/named_floats.h"
 
 #include <cstddef>
 #include <cstdint>

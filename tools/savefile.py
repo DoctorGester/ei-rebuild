@@ -4,9 +4,9 @@ The game writes a save (GameFlow::SaveGame 0057B3B0) as files in saves\<slot>\: 
 input state, the scripts, the globals; magic 0xDEAD), mission.sav (the world, CWorldServer::SaveWorld 00597BD0;
 magic 0x102), info.sav (the slot's title, raw) and shot.sav (the thumbnail). Visited zones are kept as
 saves\current\<zone>.sav (SaveWorld too). Ours adds visuals.sav beside a slot's files and <zone>.visuals.sav
-beside a zone's (the client's picture: magic 0x157, src/game/client_visuals.h). Every .sav but info.sav and shot.sav
+beside a zone's (the client's picture: magic 0x157, src/game/saves/client_visuals.h). Every .sav but info.sav and shot.sav
 is SaveFileWrite's (00579B80) frame: magic, version, checksum of the plain data, a compressed flag and the LZ
-coder's output (net_coder.cpp).
+coder's output (core/coder.cpp).
 
 decode(path) gives the save as entities keyed by object id rather than by memory: [(key, description, [(field,
 value)])]. Values that follow memory layout can be written as a rule token (`~addr`, `~junk`, ...; RULES gives each
@@ -27,7 +27,7 @@ usage:
 """
 import argparse, re, struct, sys
 
-# ---- the file frame and the LZ coder (net_coder.cpp: CoderState::Decompress 00430960) -----------------
+# ---- the file frame and the LZ coder (core/coder.cpp: CoderState::Decompress 00430960) -----------------
 
 MAGIC_SCENARIO = 0xDEAD
 MAGIC_MISSION = 0x102

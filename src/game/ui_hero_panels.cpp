@@ -8,7 +8,7 @@
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include "game/party.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"
 #include "game/ui_camp.h"

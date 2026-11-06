@@ -1,7 +1,7 @@
 // Text layout on interface surfaces. See docs/notes/ui.md ("Interface base").
 #include "game/ui.h"
 
-#include "game/asset_text.h"
+#include "game/core/asset_text.h"
 #include "game/console.h"
 #include "game/screen_layout.h"
 #include "platform/log.h"

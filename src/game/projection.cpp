@@ -4,8 +4,8 @@
 // this in the original (docs/notes/renderer.md, section 10).
 #include "game/clip.h"          // TLVertex, ClipCodeOf, ClipVerdict
 
-#include "game/core_maths.h"
-#include "game/core_transform.h"
+#include "game/core/core_maths.h"
+#include "game/core/core_transform.h"
 #include "game/figure_mesh.h"   // VertexPacket
 #include "game/pipeline.h"
 #include "lib/float_select.h"

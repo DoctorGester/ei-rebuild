@@ -1,7 +1,7 @@
 #pragma once
 
 // The weather the picture carries that the game's save does not (docs/notes/renderer.md, "What a save keeps of the
-// picture"), as a save's side file keeps it (game/client_visuals.h; render.h's WeatherToKeep and RestoreWeather).
+// picture"), as a save's side file keeps it (game/saves/client_visuals.h; render.h's WeatherToKeep and RestoreWeather).
 
 namespace render {
 

@@ -3,11 +3,11 @@
 // docs/notes/objects.md ("Players").
 
 #include "game/ai_map.h"
-#include "game/asset_text.h"
+#include "game/core/asset_text.h"
 #include "game/combat.h"
 #include "game/console.h"
-#include "game/core_maths.h"
-#include "game/core_streams.h"
+#include "game/core/core_maths.h"
+#include "game/core/core_streams.h"
 #include "game/game_singletons.h"
 #include "game/item_manager.h"
 #include "game/logic_settings.h"
@@ -16,7 +16,7 @@
 #include "game/party_manager.h"
 #include "game/party_records.h"
 #include "game/player_messages.h"
-#include "game/registry.h"
+#include "game/data/registry.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
 #include "game/unit_create.h"

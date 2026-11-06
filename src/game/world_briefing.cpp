@@ -4,8 +4,8 @@
 #include "game/console.h"
 #include "game/game_flow.h"
 #include "game/game_singletons.h"
-#include "game/text_manager.h"
-#include "game/mod_folders.h"
+#include "game/data/text_manager.h"
+#include "game/mods/mod_folders.h"
 #include "game/net_classes.h"
 #include "game/net_messages.h"   // MapMessage
 #include "game/object_tables.h"

@@ -1,11 +1,11 @@
 // The game server session. See
 // net_classes.h and docs/notes/network.md.
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/game_flow.h"
 #include "game/net_classes.h"
-#include "game/net_coder.h"
+#include "game/core/coder.h"
 #include "game/net_connection.h"
 #include "game/net_messages.h"
 #include "game/net_second_master.h"

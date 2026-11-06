@@ -2,7 +2,7 @@
 #include "game/console.h"
 
 #include "game/screen_layout.h"
-#include "game/text_split.h"
+#include "game/core/text_split.h"
 #include "game/ui.h"
 
 #include "platform/log.h"

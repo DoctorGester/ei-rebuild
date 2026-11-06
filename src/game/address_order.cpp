@@ -3,7 +3,7 @@
 // change of the order here changes it there too.
 #include "game/address_order.h"
 
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/link_figure.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"

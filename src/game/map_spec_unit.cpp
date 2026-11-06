@@ -6,7 +6,7 @@
 #include "game/combat.h"
 #include "game/map_object_figures.h"
 #include "game/map_spec.h"
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/unit.h"
 
 #include "lib/bytes.h"
@@ -18,7 +18,7 @@
 #include <string>
 #include "game/game_singletons.h"
 #include "game/world.h"
-#include "game/save_versions.h"
+#include "game/saves/save_versions.h"
 
 namespace mapspec {
 

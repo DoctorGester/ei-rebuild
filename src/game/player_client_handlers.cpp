@@ -5,7 +5,7 @@
 #include "game/item_manager.h"
 #include "game/player_client.h"
 
-#include "game/angles.h"
+#include "game/core/core_maths.h"
 #include "game/camera.h"
 #include "game/item.h"
 #include "game/map_object.h"

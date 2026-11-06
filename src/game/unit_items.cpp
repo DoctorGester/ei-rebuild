@@ -4,7 +4,7 @@
 #include "game/unit.h"
 
 #include "game/item.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/unit_create.h"
 #include "game/unit_db.h"
 #include "lib/crt.h"

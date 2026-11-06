@@ -1,7 +1,7 @@
 #pragma once
 
-#include "game/engine_object.h"
-#include "game/resource_manager.h"
+#include "game/core/engine_object.h"
+#include "game/data/resource_manager.h"
 
 #include "lib/bit_flags.h"
 #include "lib/bytes.h"

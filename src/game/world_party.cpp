@@ -5,7 +5,7 @@
 #include "game/world.h"
 
 #include "game/chunk_stream.h"
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/item.h"
 #include "game/item_db.h"
 #include "game/map_object.h"

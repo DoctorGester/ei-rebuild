@@ -1,6 +1,6 @@
-// The byte buffers, their cursor and the LZ coder (src/game/net_coder.h): sizes and growth, reads past the end,
+// The byte buffers, their cursor and the LZ coder (src/game/core/coder.h): sizes and growth, reads past the end,
 // the strings, the cursor's byte and bit layout, reads bounded by the cursor's limit and a coder round trip.
-#include "game/net_coder.h"
+#include "game/core/coder.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-void InitCodeTables();   // net_coder.cpp
+void InitCodeTables();   // core/coder.cpp
 
 namespace {
 

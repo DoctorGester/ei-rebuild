@@ -3,7 +3,7 @@
 #include "game/material.h"
 
 #include "game/game_singletons.h"
-#include "game/mod_folders.h"
+#include "game/mods/mod_folders.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"

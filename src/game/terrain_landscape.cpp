@@ -5,7 +5,7 @@
 #include "game/game_singletons.h"
 #include "game/light.h"
 #include "game/map_file.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/sound.h"
 #include "game/spell.h"
 #include "game/terrain.h"

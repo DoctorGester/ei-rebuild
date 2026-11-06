@@ -5,7 +5,7 @@
 
 #include "game/ai_map.h"
 #include "game/ai_shape_cache.h"
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/unit.h"
 
 #include <cstddef>

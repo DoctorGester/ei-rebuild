@@ -3,8 +3,8 @@
 // temporaries and the per-tick driver. See script.h and docs/notes/script.md.
 #include "game/script.h"
 
-#include "game/base_manager.h"
-#include "game/random.h"
+#include "game/core/base_manager.h"
+#include "game/core/random.h"
 #include "game/world.h"
 #include "game/world_effect.h"
 

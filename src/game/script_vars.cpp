@@ -2,7 +2,7 @@
 // ScriptCall helpers that bind and save call trees. See script.h and docs/notes/script.md.
 #include "game/script.h"
 #include "game/map_object.h"
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "lib/crt.h"
 
 #include <cstdint>

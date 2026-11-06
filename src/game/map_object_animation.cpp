@@ -2,7 +2,7 @@
 // key frames. See docs/notes/map_objects.md ("Animation tracks").
 #include "game/map_object_animation.h"
 
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/figure_manager.h"
 #include "game/map_object_figures.h"
 #include "lib/vecmath.h"

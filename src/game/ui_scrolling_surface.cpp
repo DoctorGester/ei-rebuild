@@ -7,7 +7,7 @@
 #include "game/ui_screens.h"
 #include "game/screen_layout.h"
 
-#include "game/resource.h"
+#include "game/data/resource.h"
 #include "game/world.h"
 
 #include "lib/crt.h"

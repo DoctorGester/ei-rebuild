@@ -4,8 +4,8 @@
 #include "game/console.h"
 #include "game/game_singletons.h"
 #include "game/map_file.h"
-#include "game/registry.h"
-#include "game/resource.h"
+#include "game/data/registry.h"
+#include "game/data/resource.h"
 #include "game/sector_map.h"
 #include "game/unit_ai.h"
 

@@ -2,12 +2,12 @@
 // its state with the world. See camera.h and docs/notes/core.md.
 #include "game/camera.h"
 
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/game_singletons.h"
 #include "game/map_object_figures.h"
-#include "game/mod_folders.h"
+#include "game/mods/mod_folders.h"
 #include "game/options.h"
-#include "game/save_versions.h"
+#include "game/saves/save_versions.h"
 #include "game/world.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

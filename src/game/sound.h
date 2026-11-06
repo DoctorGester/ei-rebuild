@@ -3,9 +3,9 @@
 // Sound and music: the sound manager on our audio output (audio/audio.h), its MP3 music stream, and the music state
 // machine. See docs/notes/sound.md.
 
-#include "game/engine_object.h"
-#include "game/registry.h"
-#include "game/resource.h"
+#include "game/core/engine_object.h"
+#include "game/data/registry.h"
+#include "game/data/resource.h"
 
 #include "lib/containers.h"
 #include "lib/hash_map.h"

@@ -2,9 +2,9 @@
 // casting state with the helpers that create its effect objects (the later states: spell_effect_update.cpp).
 // See docs/notes/items_spells.md.
 #include "game/ai_map.h"
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/combat.h"
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/map_object.h"
 #include "game/sector_map.h"
 #include "game/spell.h"

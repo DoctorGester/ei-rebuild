@@ -2,7 +2,7 @@
 // planned cells to the unit's steering.
 #include "game/ai_map.h"
 #include "game/ai_motion.h"
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/game_singletons.h"
 #include "game/map_object.h"
 #include "game/sector_map.h"

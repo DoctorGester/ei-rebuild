@@ -9,7 +9,7 @@
 #include "game/item_db.h"
 #include "game/map_object.h"
 #include "game/player_messages.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/sector_map.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"

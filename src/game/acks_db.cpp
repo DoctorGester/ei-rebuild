@@ -2,16 +2,16 @@
 // The records' Serialize functions and acks.db's load from database.res are at the end.
 #include "game/acks_db.h"
 
-#include "game/chunk_archive.h"
+#include "game/data/chunk_archive.h"
 #include "game/game_singletons.h"
 #include "game/map_object_figures.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/sound.h"
 #include "game/unit.h"
 #include "game/unit_db.h"
 #include "game/world.h"
-#include "game/random.h"
-#include "game/database_file.h"
+#include "game/core/random.h"
+#include "game/data/database_file.h"
 #include "lib/crt.h"
 
 #include <cstring>

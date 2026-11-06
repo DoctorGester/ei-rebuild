@@ -5,7 +5,7 @@
 #include "game/item.h"
 #include "game/map_object_figures.h"
 #include "lib/vecmath.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/unit.h"
 
 #include "lib/float_select.h"

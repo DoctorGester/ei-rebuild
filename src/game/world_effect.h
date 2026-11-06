@@ -5,7 +5,7 @@
 // clients as a DeltaField (Unpack / Pack), and the client side starts or moves the actual sound, light or
 // particle source (Start). See docs/notes/effects.md.
 
-#include "game/core_transform.h"
+#include "game/core/core_transform.h"
 #include "game/effects.h"
 #include "game/lightning.h"
 #include "game/net_delta.h"

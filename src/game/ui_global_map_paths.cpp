@@ -9,7 +9,7 @@
 #include "game/game_flow.h"
 #include "game/game_singletons.h"
 #include "game/object_tables.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"
 #include "game/ui_objectives.h"

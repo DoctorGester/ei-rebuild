@@ -3,8 +3,8 @@
 // frame. See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "game/app.h"
 
-#include "game/core_streams.h"
-#include "game/engine_object.h"
+#include "game/core/core_streams.h"
+#include "game/core/engine_object.h"
 #include "game/figure_manager.h"
 #include "game/figure_mesh.h"
 #include "game/game_singletons.h"

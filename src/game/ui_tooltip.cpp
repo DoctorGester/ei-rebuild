@@ -6,7 +6,7 @@
 #include "game/screen_layout.h"
 
 #include "lib/crt.h"
-#include "game/text_split.h"
+#include "game/core/text_split.h"
 #include "lib/rect.h"
 #include <string>
 #include "lib/vecmath.h"

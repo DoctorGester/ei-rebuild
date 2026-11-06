@@ -5,11 +5,11 @@
 // docs/notes/items_spells.md ("Quest database").
 #include "game/console.h"
 
-#include "game/database_file.h"
+#include "game/data/database_file.h"
 #include "game/quest_records.h"
-#include "game/registry.h"
+#include "game/data/registry.h"
 #include "game/script.h"
-#include "game/text_split.h"
+#include "game/core/text_split.h"
 #include "lib/crt.h"
 #include "lib/str.h"
 

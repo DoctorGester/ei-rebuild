@@ -2,7 +2,7 @@
 // missiles, casts, skills, quick items), the spells items cast on hit, item charges, healing, death and the
 // AI's reactions to it (witnesses, hostility claims). See combat.h and docs/notes/combat.md.
 #include "game/ai_alarm.h"
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/combat.h"
 #include "game/combat_internal.h"
 #include "game/combat_plan.h"
@@ -14,7 +14,7 @@
 #include "game/object_diplomacy.h"
 #include "game/party.h"
 #include "game/player_messages.h"
-#include "game/resource_manager.h"
+#include "game/data/resource_manager.h"
 #include "game/sector_map.h"
 #include "game/spell.h"
 #include "game/unit.h"

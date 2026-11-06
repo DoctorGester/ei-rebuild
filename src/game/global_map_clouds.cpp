@@ -2,7 +2,7 @@
 // (render_compose.cpp, texture_clouds.glsl); the alpha ramp and the fade are plain float maths (rule 7).
 #include "game/global_map_clouds.h"
 
-#include "game/random.h"
+#include "game/core/random.h"
 
 #include "lib/scales.h"
 #include "lib/maths.h"

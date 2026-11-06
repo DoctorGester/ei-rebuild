@@ -10,7 +10,7 @@
 #include "game/texture.h"
 #include "game/options.h"
 #include "game/settings.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/sound.h"
 #include "game/ui_drop_list.h"

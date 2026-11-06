@@ -2,7 +2,7 @@
 // link and the per-player driver. See docs/notes/network.md.
 #include "game/net_link.h"
 
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/net_connection.h"
 #include "game/net_messages.h"
 #include "game/world.h"   // WorldHandle (CreatePair)

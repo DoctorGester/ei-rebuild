@@ -2,7 +2,7 @@
 
 // Animation tracks of figure parts. See docs/notes/map_objects.md ("Animation tracks").
 
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "lib/vecmath.h"
 
 #include <cstddef>

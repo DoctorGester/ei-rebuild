@@ -1,10 +1,10 @@
 #include "game/map_object.h"
 
-#include "game/core_streams.h"
-#include "game/core_transform.h"
+#include "game/core/core_streams.h"
+#include "game/core/core_transform.h"
 #include "game/map_object_figures.h"
 #include "game/net_delta.h"
-#include "game/save_versions.h"
+#include "game/saves/save_versions.h"
 #include "game/spell.h"    // SpellType
 #include "game/torch.h"
 #include "game/unit.h"     // MapObjectServer

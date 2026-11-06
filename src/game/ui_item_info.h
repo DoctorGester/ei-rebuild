@@ -7,7 +7,7 @@
 // Every description writes the title wrapped in white at (15, 10)-(185, 25), then lines 15 pixels apart in
 // kUiTextColour, the description text wrapped last.
 
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/party.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"

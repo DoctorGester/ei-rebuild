@@ -11,7 +11,7 @@
 #include "platform/log.h"
 #include "system/harness_system.h"
 #include "game/main_loop.h"
-#include "game/save_picture.h"
+#include "game/saves/save_picture.h"
 #include "image/image_side.h"
 
 #include <algorithm>

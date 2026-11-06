@@ -8,12 +8,12 @@
 #include "game/options.h"
 #include "game/world.h"
 
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/drawn_motion.h"
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
-#include "game/text_manager.h"
+#include "game/data/text_manager.h"
 #include "lib/containers.h"
 #include "game/terrain.h"
 

@@ -4,7 +4,7 @@
 #include "game/ground_print.h"
 
 #include "game/camera.h"
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/effects.h"
 #include "game/figure_mesh.h"
 #include "game/game_singletons.h"
@@ -16,13 +16,13 @@
 #include "game/light.h"
 #include "game/terrain.h"
 #include "game/world.h"
-#include "game/random.h"
+#include "game/core/random.h"
 
 #include "lib/containers.h"
 #include "lib/maths.h"
 #include "lib/vecmath.h"
-#include "game/chunk_archive.h"
-#include "game/database_file.h"
+#include "game/data/chunk_archive.h"
+#include "game/data/database_file.h"
 #include "lib/crt.h"
 
 #include <algorithm>

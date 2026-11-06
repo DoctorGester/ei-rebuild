@@ -11,13 +11,13 @@
 #include "game/party.h"
 #include "game/player_messages.h"
 #include "game/script_addon_handlers.h"
-#include "game/mod_folders.h"
+#include "game/mods/mod_folders.h"
 #include "platform/platform.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
 #include "game/unit_db.h"
 #include "game/world.h"
-#include "game/named_floats.h"
+#include "game/core/named_floats.h"
 
 #include "lib/str.h"
 

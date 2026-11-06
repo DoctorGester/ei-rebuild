@@ -1,7 +1,7 @@
 // The world's water level changes. See water_tweens.h.
 #include "game/water_tweens.h"
 
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/terrain.h"
 
 void WaterTweens::SetTarget(int key, float target, int steps) {

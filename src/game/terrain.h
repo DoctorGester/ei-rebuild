@@ -1,8 +1,8 @@
 #pragma once
 
-#include "game/core_transform.h"
-#include "game/ref.h"
-#include "game/resource.h"
+#include "game/core/core_transform.h"
+#include "game/core/ref.h"
+#include "game/data/resource.h"
 
 #include "lib/containers.h"
 #include "lib/bit_flags.h"

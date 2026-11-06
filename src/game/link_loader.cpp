@@ -1,10 +1,10 @@
 // The link figure loader's archive list, .lnk reading and mesh cache. See link_loader.h and link_figure.h.
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/link_figure.h"
 
 #include "game/device.h"            // TextureDevice
 #include "game/link_loader.h"
-#include "game/resource.h"          // MappedResource, MMIOResource
+#include "game/data/resource.h"          // MappedResource, MMIOResource
 
 #include "lib/bytes.h"
 #include "lib/crt.h"

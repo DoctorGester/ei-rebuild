@@ -3,7 +3,7 @@
 #include "game/pipeline.h"
 
 #include "game/clip.h"   // ClipOutcode, ClipCodeOf
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 
 #include "lib/crt.h"
 #include "lib/maths.h"

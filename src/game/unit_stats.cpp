@@ -2,8 +2,8 @@
 // of the hit (DamageInfo) and lock records. See unit.h.
 #include "game/logic_settings.h"
 
-#include "game/random.h"
-#include "game/save_versions.h"
+#include "game/core/random.h"
+#include "game/saves/save_versions.h"
 #include "game/spell.h"
 #include "game/unit.h"
 #include "game/unit_db.h"

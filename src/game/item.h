@@ -3,9 +3,9 @@
 // Items: the in-game objects created from the item databases. prototypeId of EngineObject is the item's
 // packed id: prototype index << 16 | material index.
 
-#include "game/base_manager.h"
-#include "game/core_refcount.h"
-#include "game/engine_object.h"
+#include "game/core/base_manager.h"
+#include "game/core/core_refcount.h"
+#include "game/core/engine_object.h"
 #include "game/item_db.h"
 #include "game/lock_key.h"
 

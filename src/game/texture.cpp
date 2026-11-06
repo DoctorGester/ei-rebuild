@@ -3,7 +3,7 @@
 
 #include "game/app.h"
 #include "game/game_singletons.h"
-#include "game/mod_folders.h"
+#include "game/mods/mod_folders.h"
 #include "game/options.h"
 #include "game/world.h"
 #include "lib/bytes.h"

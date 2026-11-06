@@ -3,9 +3,9 @@
 #include "game/figure_manager.h"   // FigureObjectType
 
 #include "game/console.h"
-#include "game/core_maths.h"
+#include "game/core/core_maths.h"
 #include "game/game_singletons.h"
-#include "game/ini_file.h"
+#include "game/data/ini_file.h"
 #include "game/material.h"
 #include "game/device.h"
 #include "game/link_loader.h"

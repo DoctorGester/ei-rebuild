@@ -3,7 +3,7 @@
 // docs/notes/script.md.
 #include "game/script.h"
 
-#include "game/base_manager.h"
+#include "game/core/base_manager.h"
 #include "game/game_singletons.h"
 #include "game/script_parse.h"
 #include "game/world.h"

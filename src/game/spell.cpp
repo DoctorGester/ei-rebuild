@@ -1,6 +1,6 @@
 #include "game/spell.h"
 
-#include "game/core_streams.h"
+#include "game/core/core_streams.h"
 #include "game/map_object.h"
 #include "game/unit.h"
 #include "lib/crt.h"

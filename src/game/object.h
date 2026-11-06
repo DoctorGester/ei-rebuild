@@ -5,9 +5,9 @@
 // (EngineObject: engine_object.h; the object list iterator: base_manager.h; MemoryStream: core_streams.h.)
 
 #include "game/ai_map.h"
-#include "game/base_manager.h"
-#include "game/core_transform.h"
-#include "game/engine_object.h"
+#include "game/core/base_manager.h"
+#include "game/core/core_transform.h"
+#include "game/core/engine_object.h"
 
 #include <cstddef>
 #include <cstdint>

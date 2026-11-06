@@ -5,8 +5,8 @@
 // every segment is a polyline displaced sideways by a smooth random noise. Names are provisional. See
 // docs/notes/objects.md.
 
-#include "game/base_manager.h"
-#include "game/engine_object.h"
+#include "game/core/base_manager.h"
+#include "game/core/engine_object.h"
 #include "lib/vecmath.h"
 #include "game/pipeline.h"   // ClipBounds
 

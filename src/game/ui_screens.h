@@ -8,10 +8,10 @@
 #include "game/ui_item_info.h"
 #include "game/ui_message_box.h"
 #include "game/ui_drop_list.h"
-#include "game/mod_list.h"
+#include "game/mods/mod_list.h"
 #include "game/net_classes.h"
 
-#include "game/resource.h"
+#include "game/data/resource.h"
 #include "game/screen_layout.h"
 
 #include <cstddef>

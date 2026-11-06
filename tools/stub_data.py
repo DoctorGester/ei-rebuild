@@ -35,7 +35,7 @@ usage: python tools/stub_data.py build <install> <out folder> [--force]
 import argparse, collections, fnmatch, os, shutil, struct, sys, tarfile, time
 
 RES_MAGIC = 0x019CE23C
-RES_HEADER = struct.Struct('<IIII')        # magic, count, table offset, names size (src/game/resource.h)
+RES_HEADER = struct.Struct('<IIII')        # magic, count, table offset, names size (src/game/data/resource.h)
 RES_ENTRY = struct.Struct('<iIIIHI')       # next, size, offset, time, name length, name offset
 MMP_HEADER = 76                            # MmpHeader (src/game/texture.h): 19 dwords, the last the extra block's size
 MMP_MAGIC = b'MMP\0'

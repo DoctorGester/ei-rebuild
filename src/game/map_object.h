@@ -4,7 +4,7 @@
 // Each has a companion holding its side-specific state: a MapObjectServer (class id 0x39) on the server, a
 // MapObjectClientSpecific (0x3A) on the client; both point back at the object.
 
-#include "game/engine_object.h"
+#include "game/core/engine_object.h"
 #include "game/map_object_figures.h"   // Object3D, the base
 #include "lib/vecmath.h"
 #include "game/net_delta.h"          // DeltaState

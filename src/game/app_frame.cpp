@@ -5,7 +5,7 @@
 #include "game/bink_video.h"
 #include "game/dib.h"
 #include "game/game_singletons.h"
-#include "game/ini_file.h"
+#include "game/data/ini_file.h"
 #include "game/lever.h"
 #include "game/device.h"
 #include "game/model.h"

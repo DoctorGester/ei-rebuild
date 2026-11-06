@@ -80,7 +80,7 @@ The image holds nothing of game.exe's sections. Every value the code reads is on
   The literals were checked against game.exe's bytes when they were made.
   - **Folds:** the compiler folds a product of constants where the original multiplied at run time on the main
     thread. Where the rounding of that fold matters, write `static_cast<float>(a * b)`.
-  - The pi * (1/180) product is `ei::kRadiansPerDegree` (src/game/angles.h).
+  - The pi * (1/180) product is `ei::kRadiansPerDegree` (src/game/core/core_maths.h).
   - The cells addon.dll writes are not literals: the WideScreen layout widths 00742B08 and 007428AC are
     `screen_layout::g_layoutWidth` / `g_panelRight`, and tests/verify/addon_sites.inc lists the sites.
 - **No table of game.exe's imports.** The exe's imports are its own, from the linker, and the platform calls the
@@ -432,7 +432,7 @@ network both ways. So the files the game writes and the network's messages carry
 byte-identical to vanilla's, and vanilla peers read and send cp1251. The system calls are the wide ones.
 Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
-### The helpers (src/game/asset_text.h)
+### The helpers (src/game/core/asset_text.h)
 
 - **Conversion:**
   - `text::FromAssetText` turns asset bytes into UTF-8; ASCII is left alone.

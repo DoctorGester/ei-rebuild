@@ -2,9 +2,9 @@
 #include "game/net_connection.h"
 
 #include "game/console.h"
-#include "game/core_refcount.h"
-#include "game/core_streams.h"
-#include "game/net_coder.h"
+#include "game/core/core_refcount.h"
+#include "game/core/core_streams.h"
+#include "game/core/coder.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

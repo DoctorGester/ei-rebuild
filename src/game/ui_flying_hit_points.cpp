@@ -8,8 +8,8 @@
 #include "game/world.h"
 
 #include "game/clip.h"
-#include "game/core_maths.h"
-#include "game/engine_object.h"
+#include "game/core/core_maths.h"
+#include "game/core/engine_object.h"
 #include "game/link_figure.h"
 #include "game/map_object_figures.h"
 #include "game/model.h"

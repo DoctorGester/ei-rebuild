@@ -4,7 +4,7 @@
 #include "game/game_singletons.h"
 #include "game/map_object_shadow.h"
 
-#include "game/core_refcount.h"
+#include "game/core/core_refcount.h"
 #include "game/figure_mesh.h"   // VertexPacket
 #include "game/link_figure.h"   // FigureMeshDrawer
 #include "game/ground_print.h"   // NamedTexture

@@ -1,10 +1,10 @@
 // WorldServer::UpdateWeather (every 64 ticks from Tick): the day-time value, rain starting and stopping,
 // lightning strikes and the lightning bolts during a storm. See world.h and docs/notes/world.md.
 #include "game/ai_map.h"
-#include "game/base_manager.h"
-#include "game/core_maths.h"
+#include "game/core/base_manager.h"
+#include "game/core/core_maths.h"
 #include "game/map_object.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/script.h"
 #include "game/world.h"
 #include "game/world_effect.h"

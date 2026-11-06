@@ -7,10 +7,10 @@
 #include "game/ui_briefing.h"
 
 #include "game/camera.h"
-#include "game/core_maths.h"
-#include "game/text_manager.h"
+#include "game/core/core_maths.h"
+#include "game/data/text_manager.h"
 #include "game/map_object_figures.h"
-#include "game/random.h"
+#include "game/core/random.h"
 #include "game/sound.h"
 #include "game/unit.h"
 #include "game/unit_ai.h"
