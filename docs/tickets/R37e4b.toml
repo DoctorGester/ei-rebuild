@@ -1,0 +1,8 @@
+id = "R37e4b"
+title = "Whole-zone terrain: the zone's ground built once at load into static buffers and drawn in one draw per pass (texture array, animated tiles in the shader); per-page culling, pooling and hand-over deleted"
+group = "renderer"
+size = 2
+model = "opus"
+files = ["src/render/render_terrain.cpp", "src/game/terrain/terrain.cpp", "src/render/shaders/terrain.hlsl", "src/render/gpu.cpp"]
+note = "User 2026-11-06: drop the culling/pooling and submit the whole zone's terrain as one combined mesh. Since R62 (no far plane) the save already draws 529 pages a frame, so CPU culling buys little and the GPU rejects off-screen triangles cheaply. Build every sector's ground once at load (and a sector's range again on Rebuilt); page textures in a Texture2DArray (not an atlas: mips, anisotropy and tiling stay as today), layer index per vertex; animated tiles' texture offsets from a time uniform in the shader; lit colours static. One draw per pass (world, sun map, occlusion depth). Water as its own mesh: gameplay keeps the CPU wave simulation (SurfaceHeight reads it), the renderer uploads only the moved water ranges or derives the waves in the vertex shader (visual only). Deletes the page pool, visible-quarter walk, piece runs, kept records and their checks. Replaces R37e4a. Take R37e10's geometry findings (far-tile density) into account. Goldens hold no frames; digests must stay the same."
+order = 1270
