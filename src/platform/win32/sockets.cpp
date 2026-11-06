@@ -112,9 +112,9 @@ std::string HostName() {
     return gethostname(name, sizeof(name)) == 0 ? name : "";
 }
 
-std::optional<std::uint32_t> LookUp(const char* name) {
+std::optional<std::uint32_t> LookUp(const std::string& name) {
     Start();
-    const hostent* host = gethostbyname(name);
+    const hostent* host = gethostbyname(name.c_str());
     if (!host || !host->h_addr_list[0]) return std::nullopt;
     std::uint32_t ip;
     std::memcpy(&ip, host->h_addr_list[0], sizeof(ip));

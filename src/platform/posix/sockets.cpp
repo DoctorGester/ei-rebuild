@@ -167,12 +167,12 @@ std::string HostName() {
     return gethostname(name, sizeof(name) - 1) == 0 ? name : "";
 }
 
-std::optional<std::uint32_t> LookUp(const char* name) {
+std::optional<std::uint32_t> LookUp(const std::string& name) {
     addrinfo hint{};
     hint.ai_family = AF_INET;
     hint.ai_socktype = SOCK_DGRAM;
     addrinfo* found = nullptr;
-    if (getaddrinfo(name, nullptr, &hint, &found) || !found) return std::nullopt;
+    if (getaddrinfo(name.c_str(), nullptr, &hint, &found) || !found) return std::nullopt;
     const std::uint32_t ip = reinterpret_cast<sockaddr_in*>(found->ai_addr)->sin_addr.s_addr;
     freeaddrinfo(found);
     return ip;

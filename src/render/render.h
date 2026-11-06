@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <vector>
 
 class FigureMesh;
@@ -35,7 +36,7 @@ namespace render {
 
 // Sets the options from `spec` (EI_RENDER's format) and EI_RENDER; without a call the environment is read
 // at the first use.
-void Configure(const char* spec);
+void Configure(std::string_view spec);
 // Starts making the device on its own thread at image start-up (before WinMain), and on that thread the pipelines the
 // game always draws with (for the render quality's `msaa`, SetMsaa's argument); the first use takes both (saves
 // 0.15 s of each start, and the pipelines' creation at their first draws).
