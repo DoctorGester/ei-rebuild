@@ -43,7 +43,6 @@ struct WoundsMaterial;
 
 // The client half's `flags` bits.
 enum class ClientHalfFlag : std::uint32_t {
-    Redraw = 8,    // the static draw changed: the shadow's sphere is fitted again (the draw sets it, the fit clears it)
     Shown = 0x20,  // the object was shown: its shadow counts as in view
 };
 constexpr bool EnableBitFlags(ClientHalfFlag) { return true; }
@@ -148,7 +147,6 @@ public:
     std::string skinName;          // the first set's texture name (SetSkins)
     std::string secondSkinName;    // the second set's
     float pulseClock = 0.0f;        // frames counted by the invisible / stunned pulses
-    std::uint32_t touchTime = 0;    // the frame time the model was last kept loaded (CollectVisible)
     // The parts the world's draw handed over as shadow casters (render::EndCaster), in the frame casterFrame
     // (render::CasterFrame): the casters' walk outside the view passes over an object with every part among them.
     std::uint32_t casterFrame = 0;

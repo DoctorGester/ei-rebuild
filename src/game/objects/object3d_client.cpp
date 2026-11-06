@@ -58,7 +58,6 @@ void Object3DClientSpecific::Create() {
     std::memset(&sphere, 0, sizeof(sphere));
     partSets[0].reset();
     partSets[1].reset();
-    touchTime = 0;
     figureScale = {1.0f, 1.0f, 1.0f};
 }
 
@@ -71,7 +70,6 @@ void Object3DClientSpecific::Destroy() {
     textures.clear();
     materials.clear();
     object = nullptr;
-    touchTime = 0;
     flags = 0;
 }
 

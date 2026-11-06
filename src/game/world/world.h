@@ -887,13 +887,12 @@ public:
 
     // Files `object` (null skipped) in the frame's draw lists when it has a model inside the view frustum;
     // with `animateUnits` 0 a unit only goes on the deferred list, `withScripted` lets heroes with a text-key
-    // id through. Returns 1 when the object was queued for the model-touch list, else 0.
-    int CollectVisible(MapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
-                       char withScripted);
+    // id through.
+    void CollectVisible(MapObject* object, const Matrix4* view, float animTime, char animateUnits, char withScripted);
     // CollectVisible's first pass over the object grid's cells in `range`, the same verdicts decided a cell at a
     // time where the cell's boxes clear the view's planes (world_client_view.cpp); files the cells' casters
     // (frame_lists.h, CasterCell).
-    int CollectCells(const CellRange& range, const Matrix4* view, std::uint32_t now);
+    void CollectCells(const CellRange& range, const Matrix4* view);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
     // terrain height (Terrain::HeightAt).
     Vector3 PickGround(int x, int y);

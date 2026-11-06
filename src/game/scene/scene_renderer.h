@@ -20,8 +20,6 @@ namespace options {
 class GameOptions;
 }
 class Texture;
-class FigureMesh;
-class Material;
 struct LineBatch;
 
 // The ambient colour (r, g, b in 0..1) SceneRenderer::SetColour set last (one for every renderer): the figure
@@ -60,14 +58,6 @@ public:
     void SetBlend(render::Blend source, render::Blend dest);
     // Binds `texture` (a texture object, or null) to stage `stage`.
     void SetTexture(int stage, Texture* texture);
-    // Draws `figure` (a FigureMesh) through its drawer's lit draw with `lights`, the drawing context
-    // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
-    void DrawFigureLit(FigureMesh* figure, const std::vector<Light*>& lights, Material* material, int alpha, Rect* screen, Texture* textureA,
-                       Texture* textureB);
-    // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
-    // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
-    // is passed on.
-    void DrawFigure(FigureMesh* figure, Material* material, int alpha, Rect* screen);
     void DrawLineList(LineBatch* lines);
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured

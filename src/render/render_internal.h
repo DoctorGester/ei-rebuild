@@ -875,7 +875,7 @@ void AppendTriangles(const std::uint16_t* indices, int indexCount, int cornerCou
                      std::vector<std::uint32_t>& out);
 
 // Meshes kept on the GPU (docs/notes/renderer.md section 13). KeepMesh: the mesh being handed over brought up
-// to date as kept for render::SetMeshSource's figure mesh, or null: it goes into the frame's stream (no source,
+// to date as kept for its figure mesh (MeshDraw::owner), or null: it goes into the frame's stream (no owner,
 // no corners, the cache off, or the mesh already drawn this frame with other data). MeshCacheFrameDone drops
 // meshes not drawn for a long time.
 // A kept corner's geometry (its colours in the pool's colour stream).
@@ -885,7 +885,6 @@ struct MeshVertex {
     Vector3 normal;   // CornerNormal
 };
 static_assert(sizeof(MeshVertex) == 32);
-void NoteMeshDraw(const MeshDraw& mesh);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
 int CachedVertexCount(const CachedMesh& mesh);
@@ -905,8 +904,6 @@ std::uint32_t CachedMeshVersion(const CachedMesh& mesh);
 void UploadCachedMeshes(const Frame& frame);
 bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex);
 void MeshCacheFrameDone();
-const FigureMesh* MeshSourceOwner();
-const MeshLighting* MeshSourceLighting();
 // The model-space normal of the corners with colour index `index`, zero without normals or words.
 Vector3 CornerNormal(const MeshDraw& mesh, int index);
 

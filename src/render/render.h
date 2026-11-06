@@ -155,7 +155,7 @@ void CastsShadow(const Object3D* object, CasterMark& mark, float strength);
 // this frame gets a map, and the ground rectangle (landscape's space) a caster's centre must stand in: the
 // visible ground's box swept back towards the sun as far as a caster no higher than `highestTop` reaches,
 // widened by `widest` (the largest radius). ShadowCasterReaches is exact up to the bounds. CasterPartDrawn:
-// `part` (MeshSource::owner) was drawn this frame as a caster's mesh. CasterStrength: -1 when CastsShadow was
+// `part` (MeshDraw::owner) was drawn this frame as a caster's mesh. CasterStrength: -1 when CastsShadow was
 // not called this frame for the object `mark` is kept by (render_checks.h's SetOffscreenCasters: which casters cast).
 struct ShadowCasterRect {
     float x0 = 0.0f, y0 = 0.0f, x1 = 0.0f, y1 = 0.0f;
@@ -186,8 +186,8 @@ struct ShadowMesh {
     float uOffset = 0.0f, vOffset = 0.0f;  // added to the texture coordinates
     Matrix4 model;                     // model space to the landscape's, row-major: out = M * (x, y, z, 1)
     const Surface* texture = nullptr;  // stage 0's surface holder, or null
-    // The part (MeshSource::owner) and its link figure (MeshSource::shared, else null), and whether the
-    // positions are a copy with the per-vertex offsets added (MeshSource::moved): the renderer keeps the
+    // The part (MeshDraw::owner) and its link figure (MeshDraw::shared, else null), and whether the
+    // positions are a copy with the per-vertex offsets added (MeshDraw::moved): the renderer keeps the
     // corners on the GPU by part, read again when MeshChanged says so.
     const FigureMesh* owner = nullptr;
     const LinkMesh* shared = nullptr;
@@ -224,38 +224,45 @@ bool VsyncSwitchSupported();
 void SetVsync(bool on);
 bool Vsync();
 
-// An old-path mesh draw the game decided is visible, colours set: the mesh in model space and the matrix the
-// old path projects it with. Every pass the old path draws between BeginMesh and EndMesh calls MeshPass,
-// which takes the old device's state. A mesh the renderer refuses is lost (logged).
+// A mesh draw in model space: placed by `model` (none: null) and then `matrix`, which the GPU clips. One pass with the
+// game's render state: TextureDevice::DrawMesh calls BeginMesh, the device's MeshPass and EndMesh. A mesh the renderer
+// refuses is lost (logged).
+struct MeshLighting;
 struct MeshDraw {
     const VertexPacket* positions = nullptr;  // vertex i is lane i % 4 of packet i / 4 (w unused)
     int positionCount = 0;             // vertices
-    const std::uint32_t* colours = nullptr;  // D3DCOLOR, by the corners' normal index
-    const std::uint32_t* speculars = nullptr;
+    const std::uint32_t* colours = nullptr;  // D3DCOLOR, by the corners' normal index; null: every corner has
+    const std::uint32_t* speculars = nullptr;  // `colour` and `specular`
+    std::uint32_t colour = 0, specular = 0;
     const TexCoord* uvs = nullptr;     // by the corners' texture index
-    const MeshCorner* corners = nullptr;  // null (the flat geometry draw): vertex i is position i with uv i and
-                                          // colours[0] / speculars[0]
+    const MeshCorner* corners = nullptr;  // null (the flat geometry draw): vertex i is position i with uv i
     int cornerCount = 0;               // without corners: the vertex count
     const std::uint16_t* indices = nullptr;  // a triangle list over the corners
     int indexCount = 0;
     float uOffset = 0.0f, vOffset = 0.0f;  // added to the texture coordinates when `moveUv`
     bool moveUv = false;
     const Matrix4* matrix = nullptr;   // row-major, out = M * (x, y, z, 1)
+    const Matrix4* model = nullptr;    // model space to `matrix`'s (the landscape's in the world), else null
     bool screenMatrix = false;         // `matrix` gives screen pixels after the divide, else clip space
-    bool clipped = false;              // else only projected: the depth is not cut at the near plane
     MeshFog fog = MeshFog::None;
     float eyeHeight = 0.0f;            // MeshFog::Horizon's: the eye above the mesh's origin
     float zScale = 0.0f;               // 0 taken as 1
-    bool coloursWritten = false;       // the draw set every colour to the device's (flag 4)
     bool groundDecal = false;          // flat geometry laid on the ground (a print: blood, footprints, scorch marks),
                                        // its positions in the landscape's space: shaded by the shadows as the ground
-// A figure mesh lit on the GPU (MeshSource::lighting), else null: the normals (packets of four as the
-// positions) and the words (a position index in the low half, a normal index in the high half, by the corners'
-// colour index).
+    // A figure mesh lit on the GPU (`lighting`, else null): the normals (packets of four as the positions) and the
+    // words (a position index in the low half, a normal index in the high half, by the corners' colour index).
     const NormalPacket* normals = nullptr;
     int normalCount = 0;               // normals
     const std::uint32_t* words = nullptr;
     int wordCount = 0;
+    const MeshLighting* lighting = nullptr;   // the colours keep only their alpha
+    // The figure mesh drawn: kept on the GPU under `owner` and built again only where it changed (MeshChanged); without
+    // one it is built every frame. `shared`: the link figure whose part it draws, else null; `moved`: the positions are
+    // a copy with the per-vertex offsets added.
+    const FigureMesh* owner = nullptr;
+    const LinkMesh* shared = nullptr;
+    bool moved = false;
+    MeshSlots* slots = nullptr;        // the owner's
 };
 
 // A texture's .mmp file in memory: the levels from `mip` on that the game loads for `holder`, decoded and
@@ -386,9 +393,7 @@ struct MeshLightSource {
     float colour[3] = {};
 };
 struct MeshLighting {
-    Matrix4 model;                 // the part's model space to the landscape's (row-major); with `camera`, the
-                                   // camera times that
-    const Matrix4* camera = nullptr;  // the scene's camera (SceneCamera, world.h), else null
+    Matrix4 model;                 // the part's model space to the landscape's (row-major)
     bool sun = false;
     Vector3 sunDirection;          // the direction its light travels
     float sunColour[3] = {};
@@ -400,26 +405,10 @@ struct MeshLighting {
     int lightCount = 0;
 };
 
-// The figure mesh the next mesh draws draw, set by the figure part draws around the device's draw. The
-// renderer keeps its corners on the GPU under `owner` and rebuilds only what changed: the colours when the
-// draw wrote them, the positions on MeshChanged. A mesh draw without one is built every frame.
-struct MeshSource {
-    const FigureMesh* owner = nullptr;  // the figure mesh drawn
-    const LinkMesh* shared = nullptr;    // the link figure whose part it draws, else null
-    bool moved = false;    // the positions handed over are a copy with the per-vertex offsets added
-    bool coloursWritten = false;  // this draw wrote the mesh's colour arrays (lit, flat colours)
-    const MeshLighting* lighting = nullptr;   // lit on the GPU (the draw's colours: only their alpha)
-    MeshSlots* slots = nullptr;   // the owner's (none: not kept)
-};
-void SetMeshSource(const MeshSource* source);
 // A figure mesh or link figure changed in place: Positions (per-vertex offsets, a part morphed again),
-// Colours outside its draw (the sky's lighting; a link figure's part lit or filled), Rebuilt (loaded,
-// cleared, mirrored, a part added or removed, destroyed).
+// Colours (the sky's lighting), Rebuilt (loaded, cleared, mirrored, a part added or removed, destroyed).
 enum class MeshChange { Positions, Colours, Rebuilt };
 void MeshChanged(const void* object, MeshChange change);
-// Mesh draws between SetInterfaceDraw(true) and (false) (UiMesh::Draw) are built every frame: the interface
-// rewrites its sprites' corners in place in many places.
-void SetInterfaceDraw(bool on);
 
 // Draws what was handed over since the last present and presents it. Once per frame; captures call it
 // before reading.

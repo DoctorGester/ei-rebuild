@@ -1,8 +1,7 @@
 // The device's indexed draw with the current material (on the device holder): used by the mesh draws and the flat
 // geometry draw. Without a material it is one counted pass. A material (TextureDevice::material)
 // brings its blend, a preset (its stages' states, render_helper.h) and texture stages: the stages are set and drawn
-// once. A second form draws twice: with a first surface, then blended (source alpha, inverse source
-// alpha) with a second one. See docs/notes/models.md ("Material draw").
+// once. See docs/notes/models.md ("Material draw").
 #include "game/scene/device_material.h"
 
 #include "game/app/app.h"
@@ -15,14 +14,10 @@
 #include "game/terrain/ground_print.h"       // NamedTexture
 #include "game/app/present_window.h"
 #include "game/world/world.h"
-#include "lib/rect.h"
-#include "lib/rounding.h"
 #include "render/render.h"
 #include "render/render_state.h"
 
-#include <cfloat>
 #include <cstdint>
-#include <vector>
 
 namespace {
 
@@ -64,18 +59,6 @@ void TextureDevice::DrawIndexed() {
     render::MeshPass(this);
 }
 
-// Draws the indexed primitives with `first` on stage 0, then again blended (source
-// alpha / inverse source alpha, blending on) with `second` and texture coordinates 0.
-void TextureDevice::DrawTwoTextures(Surface* first, Surface* second) {
-    stageSurfaces[0] = first;
-    render::MeshPass(this);
-    render::RenderState& state = render::g_renderState;
-    state.sourceBlend = render::Blend::SourceAlpha;
-    state.destBlend = render::Blend::InvSourceAlpha;
-    state.blend = true;
-    stageSurfaces[0] = second;
-    render::MeshPass(this);
-}
 
 // --- Device binds ------------------------------------------------------------------------------------
 
@@ -124,16 +107,6 @@ void TextureDevice::SetMaterial(DeviceMaterial* newMaterial) {
     }
 }
 
-// --- Device buffers ----------------------------------------------------------------------------------
-
-// The Direct3D device's mesh work buffers (device.h).
-
-namespace devicebuffers {
-
-std::vector<Vector4> g_projected;
-std::vector<std::uint8_t> g_outcodes;
-
-} // namespace devicebuffers
 
 // --- Device present ----------------------------------------------------------------------------------
 
@@ -145,72 +118,4 @@ std::vector<std::uint8_t> g_outcodes;
 void DevicePresent(TextureDevice* device) {
     present_window::Update(device);
     render::Present();
-}
-
-// --- Device bounds -----------------------------------------------------------------------------------
-
-// The Direct3D device's screen rectangle of a mesh draw (mesh draw flag 1): the bounds of its projected positions
-// clamped to the screen, rounded into the device's drawn rectangle (+0x15C), which the figures' and the 3D library's
-// draws read back for picking. See docs/notes/renderer.md (section 3, "Picking").
-
-namespace {
-
-// The bounds so far: they start inside out, and a coordinate replaces a bound it is not inside of
-// (a NaN never does).
-struct ScreenBounds {
-    float minX = FLT_MAX;
-    float minY = FLT_MAX;
-    float maxX = -FLT_MAX;
-    float maxY = -FLT_MAX;
-
-    void Include(float x, float y) {
-        minX = x < minX ? x : minX;
-        maxX = maxX < x ? x : maxX;
-        minY = y < minY ? y : minY;
-        maxY = maxY < y ? y : maxY;
-    }
-
-    // Clamped to the screen (0..width, 0..height); bounds that hold no point, or none on screen, come out inside out
-    // (an empty rectangle).
-    void Clamp(float width, float height) {
-        minX = minX < 0.0f ? 0.0f : minX;
-        minY = minY < 0.0f ? 0.0f : minY;
-        maxX = width < maxX ? width : maxX;
-        maxY = height < maxY ? height : maxY;
-    }
-
-    // The bounds rounded to nearest into the device's rectangle.
-    void Store(TextureDevice* device) const {
-        const int bottom = lib::RoundEven(maxY);
-        const int right = lib::RoundEven(maxX);
-        const int top = lib::RoundEven(minY);
-        const int left = lib::RoundEven(minX);
-        device->drawnRect = {left, top, right, bottom};
-    }
-};
-
-// A clip-space point inside the depth range: in front of the near plane (z = 0) and not past the far plane (z = w).
-bool InDepth(const Vector4& p) { return p.z >= 0.0f && p.w - p.z >= 0.0f; }
-
-} // namespace
-
-// The projection leaves screen positions when every one is on screen, clip-space ones when the mesh crosses the view's
-// edges: those count when inside the depth range (nothing behind the camera), mapped as the pipeline's ToScreen maps
-// them (x right and y down from the top left corner, the viewport the screen's size). Past a corner of the screen
-// this is larger than the original's rectangle (the bounds of the clipped triangles), and across one edge it can be
-// wider along that edge: an accepted difference (renderer.md section 3).
-void TextureDevice::BoundsOfProjected(const std::vector<Vector4>& positions, bool clipSpace) {
-    const float width = static_cast<float>(screen.Width());
-    const float height = static_cast<float>(screen.Height());
-    ScreenBounds bounds;
-    for (const Vector4& p : positions) {
-        if (!clipSpace) {
-            bounds.Include(p.x, p.y);
-        } else if (InDepth(p) && p.w > 0.0f) {
-            const Vector4 newScreen = pipeline->ToScreen(p);
-            bounds.Include(newScreen.x, newScreen.y);
-        }
-    }
-    bounds.Clamp(width, height);
-    bounds.Store(this);
 }

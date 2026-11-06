@@ -52,8 +52,9 @@ packets, normal packets, texture coordinates, 6-byte corners, dwords, words), ra
 (`LinkFigureLoader`, link_loader.h; one per world view) has the figure sets, the device object and a cache by name; it opens
 figures.res and menus.res at startup. A .lnk lists the parts; each is a FIG / FIG8 (or older headerless) record morphed
 by three coefficients s, t, u and appended. An object's part drawn through its figure finds its ranges once per figure
-(`FigureMesh::PartIn`, keyed by `LinkMesh::serial`); `LinkMesh::DrawPart` returns whether it drew, the picking
-rectangle is the device's `drawnRect` (the part headers keep no screen rectangle).
+(`FigureMesh::PartIn`, keyed by `LinkMesh::serial`); a figure without the part draws nothing (`DrawLit` returns
+false). A unit's or lever's part keeps its picking rectangle in its drawer (`screen`, from its box; renderer.md
+section 3, "Picking"; the part headers keep none).
 Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t),
 lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u); old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
 Kept: RemorphFigPart reads every record as FIG8; an empty part
@@ -67,13 +68,14 @@ device holder. Its draws hand their triangles to src/render.
 - **Renderer creation**: the projection takes the camera's near distance and field of view and has no far plane
   (renderer.md, "The view's depth"; the options' far clip distance is the game's reach, `BeyondReach`); the sun and
   ambient go to the GPU lighting only.
-- **Mesh draws**: callers are the figures and the 3D library's meshes; flag 4 overwrites the mesh's colours with the
-  device's override colour / alpha. `DeviceDrawFlat` is used by the selection marker and the ground prints. Of the old
-  CPU draw's shared buffers only the projected vertices and their outcodes are left (`devicebuffers`, device.h).
-- **Figure parts**: mesh flags (FigureMeshFlag, figure_mesh.h) 0x40 drawn (cleared first), 0x80 hidden (nothing more,
-  not even the finishing call), 0x10 lit, 0x100 flat colours; mesh types 13..16 animated. With the crown option set, the
-  mesh named "crown" has every colour pulled 0.6 of the way to the average. The plain variant clears the drawn flag only
-  after the hidden test and sets it whenever the draw did not return 2.
+- **Mesh draws**: `TextureDevice::DrawMesh` hands a `render::MeshDraw` over whole (the GPU clips it) with the device's
+  fog, in one pass of the current material; `DrawFlatBlocks` the same for the selection marker and the ground prints.
+  Nothing is projected on the CPU for drawing.
+- **Figure parts** (figure_part_draw.cpp): an object in view (its one clip test, CollectVisible) draws every part near
+  enough (`DrawParts`): `FigureMeshDrawer::DrawLit` places it by its model matrix (the object's placement and scale
+  times the part's) and lights it on the GPU (`render::MeshLighting`), a flat part in its flat colours. Mesh flags
+  (FigureMeshFlag, figure_mesh.h) 0x40 drawn (cleared first), 0x80 hidden (nothing more), 0x100 flat colours; mesh
+  types 13..16 animated. `DrawPlain` draws the sky (its lit colours) and the interface sprites (the device's colour).
 - **Material draw**: the device's current material: blend flag, source / destination blend, technique (state block
   handles per pass), stage records (coordinate index, texture name, the counted texture looked up on first use).
 - **Unit skins** (`BuildUnitSkins`): run by the zone load, from the prototype and model tables (texture prefixes).
@@ -89,8 +91,7 @@ device holder. Its draws hand their triangles to src/render.
 - `ClipTest` answers as the original's 8 corner codes of the cube, then of the box, but decides first from each clip
   plane's range over the volume, with a margin of 2^-16 of a bound; the corner codes are computed only when a plane is
   within the margin, or a value is NaN or infinite (checked equal on 12.6 M calls; saves 0.1-0.3 ms a frame in forests).
-- Kept: `DrawFigurePart` without a rectangle never sets the drawn flag, and a singular model matrix uses the previous
-  call's inverse; `DrawSprites` returns 0 on a failed draw without restoring the blend states, and its sort writes a
+- Kept: `DrawSprites` returns 0 on a failed draw without restoring the blend states, and its sort writes a
   dropped sprite's key into the next free record; `ShearMatrix` sets m[10] to 0 after zero-filling.
 
 ## Terrain

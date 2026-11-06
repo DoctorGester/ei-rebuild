@@ -3,6 +3,7 @@
 #include "game/scene/drawn_motion.h"
 #include "game/scene/device.h"
 #include "game/core/engine_object.h"
+#include "game/models/link_figure.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
@@ -12,16 +13,19 @@
 #include "game/scene/scene_renderer.h"
 #include "game/scene/pipeline.h"
 #include "game/world/world.h"                // WorldClient
+#include "game/app/options.h"
+#include "render/render.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
-#include "platform/platform.h"
+#include "lib/rounding.h"
 
 #include "lib/vecmath.h"
 
-#include <bit>
+#include <cfloat>
 #include <cstring>
+#include <vector>
 #include "game/app/singletons.h"
 
 namespace {
@@ -38,6 +42,35 @@ bool InReach(const Object3D* object, const Light* light) {
 bool PartTooFar(const FigureMesh* part) {
     return LengthSquared(part->localPosition) > kPartsNearSquared;
 }
+
+// The screen rectangle of a part's box (its cube without one) placed by `screen` (the screen stack's top times the
+// part's model): the bounds of its corners in front of the eye and inside the depth range, clamped to `clamp` and
+// rounded to nearest; empty when no corner counts. Past a corner of the screen this can be larger than the part
+// drawn there (renderer.md section 3, "Picking").
+Rect BoxRect(const Matrix4& screen, const ClipBounds& bounds, const Rect& clamp) {
+    const bool box = (bounds.flags & static_cast<std::uint32_t>(BoundsFlag::Box)) != 0;
+    const float r = bounds.radius;
+    const Vector3 low = box ? bounds.boxMin : Vector3{-r, -r, -r}, high = box ? bounds.boxMax : Vector3{r, r, r};
+    float minX = FLT_MAX, minY = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX;
+    for (int k = 0; k < 8; ++k) {
+        const Vector3 corner =
+            bounds.center + Vector3{(k & 1) ? high.x : low.x, (k & 2) ? high.y : low.y, (k & 4) ? high.z : low.z};
+        const Vector4 p = ToClip(screen, corner);   // the screen's x and y times w, the clip space's z and w
+        if (!(p.z >= 0.0f && p.w - p.z >= 0.0f && p.w > 0.0f)) continue;
+        const float x = p.x / p.w, y = p.y / p.w;
+        if (x < minX) minX = x;   // a NaN never replaces a bound
+        if (maxX < x) maxX = x;
+        if (y < minY) minY = y;
+        if (maxY < y) maxY = y;
+    }
+    const float left = static_cast<float>(clamp.left), top = static_cast<float>(clamp.top);
+    const float right = static_cast<float>(clamp.right), bottom = static_cast<float>(clamp.bottom);
+    minX = minX < left ? left : minX;
+    minY = minY < top ? top : minY;
+    maxX = right < maxX ? right : maxX;
+    maxY = bottom < maxY ? bottom : maxY;
+    return Rect{lib::RoundEven(minX), lib::RoundEven(minY), lib::RoundEven(maxX), lib::RoundEven(maxY)};
+}
 } // namespace
 
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, Matrix4* out) {
@@ -49,119 +82,99 @@ void ObjectWorldMatrix(const Quaternion* orientation, const Vector3& position, M
     out->m[15] = 1.0f;
 }
 
+// The object is in view (the caller's one test of its bounds): every part near enough is drawn whole and the GPU clips
+// it. The units' and levers' draws (`dirty`) also give each part its screen rectangle from its box.
 int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     if (object->flags & MapObjectFlag::NotDrawn) return 1;
-    bool anyDrawn = false;
-    TransformPipeline* pipeline = context->pipeline;
-    Vector3 at;
-    at = object->localPosition;
+    TextureDevice* device = context->device;
     object->LoadFigures();
-    if (!(object->flags & MapObjectFlag::Stationary)) object->flags &= ~MapObjectFlag::Static;
     if (dirty) {
         drawnRect = {};
         object->dirtyRect = {};
     }
     if (object->animation) object->animation->PlaceForDraw();
 
-    // The lights within reach, in a list every draw reuses (the parts' draws do not draw objects).
-    static std::vector<Light*> list;
-    list.clear();
-    ObjectListIteratorOf<Light> lights;
-    Light* light = lights.First(g_clientWorld.lightFactory.get());
-    for (; light; light = lights.Next()) {
-        if (context->sun == light) continue;
-        if (!InReach(object, light)) continue;
-        if (light->flags & LightFlag::Hidden) continue;
-        if (light->flags & LightFlag::Moving) object->flags &= ~MapObjectFlag::Static;
-        list.push_back(light);
+    // The lights within reach where the draw shows them, in a list every draw reuses (the parts' draws do not draw
+    // objects), with the scene's sun and ambient colour: the parts are lit on the GPU.
+    static std::vector<render::MeshLightSource> lights;
+    lights.clear();
+    ObjectListIteratorOf<Light> list;
+    for (Light* light = list.First(g_clientWorld.lightFactory.get()); light; light = list.Next()) {
+        if (context->sun == light || !InReach(object, light) || (light->flags & LightFlag::Hidden)) continue;
+        lights.push_back(render::MeshLightSource{drawn::LightPosition(light), light->inverseRangeSquared,
+                                                 {light->color[0], light->color[1], light->color[2]}});
     }
+    render::MeshLighting lighting{};
+    if (const Light* sun = g_sceneRenderer.sun) {
+        lighting.sun = true;
+        lighting.sunDirection = sun->direction;
+        for (int k = 0; k < 3; ++k) lighting.sunColour[k] = sun->color[k];
+    }
+    const float* ambient = AmbientColour();
+    for (int k = 0; k < 3; ++k) lighting.ambientColour[k] = ambient[k];
+    lighting.coefficient = options::kObjectsLightingCoeff;
+    lighting.lights = lights.data();
+    lighting.lightCount = static_cast<int>(lights.size());
 
-    // The object's matrix at the pose the draw shows (drawn_motion.h), and its extra scale when it has one.
+    // The object's matrix at the pose the draw shows (drawn_motion.h), times its extra scale when it has one, under the
+    // screen stack's top (the camera with the viewport).
     const drawn::Pose shown = drawn::PoseOf(object);
     ObjectWorldMatrix(&shown.rotation, shown.position, &object->worldMatrix);
-    Matrix4 m = object->worldMatrix;
-    pipeline->PushMatrix(m.m, TransformPipeline::kClipStack);
-    pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
-    if (dirty) originDepth = TransformColumnW(*pipeline->Top(TransformPipeline::kWorldStack), Vector3{});
-    if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
-    const Vector3& extraScale = figureScale;
-    bool scaled = !(extraScale.x == 1.0f && extraScale.y == 1.0f && extraScale.z == 1.0f);
-    if (scaled) {
-        std::memset(m.m, 0, sizeof(m));
-        m.m[0] = extraScale.x;
-        m.m[5] = extraScale.y;
-        m.m[10] = extraScale.z;
-        m.m[15] = 1.0f;
-        pipeline->PushMatrix(m.m, TransformPipeline::kClipStack);
-        pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
-        if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
-    }
-    std::uint8_t lit = 0xFF;
-    if (!(object->flags & MapObjectFlag::NoEdgeFade)) {
-        terrain::Terrain* terrain = ClientWorld()->terrain.get();
-        lit = terrain->EdgeFade(at);   // AL as it is
-    }
+    Matrix4 placement = object->worldMatrix;
+    const Vector3& scale = figureScale;
+    if (!(scale.x == 1.0f && scale.y == 1.0f && scale.z == 1.0f))
+        for (int row = 0; row < 4; ++row) {
+            placement.m[row * 4] *= scale.x;
+            placement.m[row * 4 + 1] *= scale.y;
+            placement.m[row * 4 + 2] *= scale.z;
+        }
+    const Matrix4& view = *context->pipeline->Top(TransformPipeline::kWorldStack);
+    if (dirty) originDepth = TransformColumnW(view, shown.position);
+    std::uint8_t fade = 0xFF;
+    if (!(object->flags & MapObjectFlag::NoEdgeFade)) fade = ClientWorld()->terrain->EdgeFade(object->localPosition);
 
-    // The parts of both sets.
-    bool allLit = true;
-    const bool wasStatic = lib::Has(object->flags, MapObjectFlag::Static);
-    Rect partRect;
+    // The parts of both sets; the object is static when every part near enough was drawn lit on the GPU (none hidden,
+    // none flat).
+    bool anyDrawn = false, allLit = true;
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k].get();
         if (!set) continue;
         context->SetTexture(0, set->texture);
         // The first set takes the wounds material as stage 0's texture.
         WoundsMaterial* wounds = woundsMaterial;
-        g_sceneRenderer.device->SetMaterial(k == 0 ? wounds : nullptr);
+        device->SetMaterial(k == 0 ? wounds : nullptr);
         for (int g = 0; g < std::ssize(set->groups); ++g) {
             for (int p = 0; p < std::ssize(set->groups[g]->parts); ++p) {
                 FigureMesh* part = set->groups[g]->parts[p];
                 if (PartTooFar(part)) continue;
-                if (!(object->flags & MapObjectFlag::Static)) part->flags &= ~FigureMeshFlag::Lit;
-                bool pushed = !(part->flags & FigureMeshFlag::Lit);
-                ObjectWorldMatrix(&part->localRotation, part->localPosition, &part->worldMatrix);
-                m = part->worldMatrix;
-                pipeline->PushMatrix(m.m, TransformPipeline::kClipStack);
-                pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
-                if (pushed) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
-                TextureParts* current = partSets[k].get();
-                context->DrawFigureLit(part, list, current->groups[g]->material, static_cast<int>(lit),
-                                       dirty ? &partRect : nullptr, nullptr, nullptr);
-                anyDrawn = anyDrawn || lib::Has(part->flags, FigureMeshFlag::Drawn);
-                if (dirty && !partRect.IsEmpty() && (part->flags & FigureMeshFlag::Drawn)) {
-                    drawnRect = drawnRect.Union(partRect);
-                }
-                if (pushed) pipeline->PopMatrix(TransformPipeline::kObjectStack);
-                pipeline->PopMatrix(TransformPipeline::kClipStack);
-                pipeline->PopMatrix(TransformPipeline::kWorldStack);
-                allLit = allLit && lib::Has(part->flags, FigureMeshFlag::Lit);
+                part->flags &= ~FigureMeshFlag::Drawn;
+                allLit = allLit && !(part->flags & (FigureMeshFlag::Hidden | FigureMeshFlag::Flat));
+                if (part->flags & FigureMeshFlag::Hidden) continue;
+                Matrix4 local, model;
+                ObjectWorldMatrix(&part->localRotation, part->localPosition, &local);
+                model.Multiply(placement.m, local.m);
+                FigureMeshDrawer* drawer = part->drawer;
+                const bool drawn = drawer->DrawLit(device, view, model, lighting, set->groups[g]->material, fade);
+                if (drawn) part->flags |= FigureMeshFlag::Drawn;
+                anyDrawn = anyDrawn || drawn;
+                if (!dirty) continue;
+                drawer->screen = {};
+                if (!drawn) continue;
+                drawer->screenMatrix.Multiply(view.m, model.m);
+                drawer->screen = BoxRect(drawer->screenMatrix, part->box.bounds, device->screen);
+                if (!drawer->screen.IsEmpty()) drawnRect = drawnRect.Union(drawer->screen);
             }
         }
     }
-    if (scaled) {
-        if (!(object->flags & MapObjectFlag::Static)) pipeline->PopMatrix(TransformPipeline::kObjectStack);
-        pipeline->PopMatrix(TransformPipeline::kClipStack);
-        pipeline->PopMatrix(TransformPipeline::kWorldStack);
-    }
-    if (!(object->flags & MapObjectFlag::Static)) pipeline->PopMatrix(TransformPipeline::kObjectStack);
-    pipeline->PopMatrix(TransformPipeline::kClipStack);
-    pipeline->PopMatrix(TransformPipeline::kWorldStack);
 
-    if (allLit) {
-        object->flags |= MapObjectFlag::Static;
-        if (!wasStatic) {
-            touchTime = platform::FrameClock();
-            flags |= ClientHalfFlag::Redraw;
-        }
-    } else {
-        object->flags &= ~MapObjectFlag::Static;
-    }
+    if (allLit) object->flags |= MapObjectFlag::Static;
+    else object->flags &= ~MapObjectFlag::Static;
     if (dirty) {
         object->dirtyRect = drawnRect;
         *dirty = object->dirtyRect;
     }
     if (anyDrawn) object->flags |= MapObjectFlag::Shown;
     else object->flags &= ~MapObjectFlag::Shown;
-    g_sceneRenderer.device->SetMaterial(nullptr);
+    device->SetMaterial(nullptr);
     return 1;
 }

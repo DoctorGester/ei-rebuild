@@ -7904,7 +7904,7 @@ aievents tick 1022
 client tick 1022
 client ticksRun 1032
 cunit1000011214 #place EB4297C1
-@ 53 update 1080 frame 215 tick 1042 zone gz1g hash 36C275FC n 795
+@ 53 update 1080 frame 215 tick 1042 zone gz1g hash A6903E6F n 795
 world tick 1042
 world updates 1080
 random isaac.count 5
@@ -7933,7 +7933,8 @@ script #inst 980A47CA
 client tick 1042
 client ticksRun 1052
 cunit1000011214 #place AE5C1A2F
-cunit1000011214 #unit F1B9B163
+cunit1000011214 #unit E169094F
+cunit1182744674 #unit 41EA0FB3
 @ 54 update 1100 frame 219 tick 1062 zone gz1g hash 238E1ED2 n 796
 world tick 1062
 world updates 1100
@@ -7970,6 +7971,7 @@ client tick 1062
 client ticksRun 1072
 cunit1000011214 #place 50540738
 cunit1000011214 #unit 45E21F27
+cunit1182744674 #unit 46E3A76F
 @ 55 update 1120 frame 223 tick 1082 zone gz1g hash 5501D231 n 796
 world tick 1082
 world updates 1120

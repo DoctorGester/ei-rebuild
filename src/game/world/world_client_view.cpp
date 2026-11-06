@@ -285,9 +285,8 @@ bool InView(Object3D* o3d, bool figure) {
 }
 
 // Files the placed object in the frame's lists. Out of view, `shadowVerdict` (ViewPlanes::Classify of its shadow's
-// volume) stands for ShadowInView's clip test when it is 2 or 0. Returns 1 when the object was queued for the
-// model-touch list.
-int File(MapObject* object, ClassId kind, bool inView, int shadowVerdict, const Matrix4* view, std::uint32_t now) {
+// volume) stands for ShadowInView's clip test when it is 2 or 0.
+void File(MapObject* object, ClassId kind, bool inView, int shadowVerdict, const Matrix4* view) {
     Object3D* o3d = AsObject3D(object);
     MapObject* const& entry = object;
     if (inView) {
@@ -316,11 +315,7 @@ int File(MapObject* object, ClassId kind, bool inView, int shadowVerdict, const 
             PushBack(FrameObjects(FrameList::ShadowOther), entry);
             break;
         }
-        if ((object->flags & MapObjectFlag::Stationary) && now - ModelOf(object)->touchTime > static_cast<std::uint32_t>(options::kLightingPeriod)) {
-            PushBack(FrameObjects(FrameList::TouchedModels), entry);
-            return 1;
-        }
-        return 0;
+        return;
     }
     object->flags &= ~MapObjectFlag::Shown;
     // Out of view: still listed for shadows when its shadow volume is in view (ShadowInView).
@@ -349,7 +344,6 @@ int File(MapObject* object, ClassId kind, bool inView, int shadowVerdict, const 
         default: PushBack(FrameObjects(FrameList::ShadowOther), entry); break;
         }
     }
-    return 0;
 }
 
 float LargestScale(const Vector3& s) {
@@ -460,7 +454,7 @@ const CasterCell* ViewCasterCell(std::uint32_t x, std::uint32_t y) {
     return &g_casterCells[at];
 }
 
-int WorldClient::CollectCells(const CellRange& range, const Matrix4* view, std::uint32_t now) {
+void WorldClient::CollectCells(const CellRange& range, const Matrix4* view) {
     static const Matrix4 kIdentity = {{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}};
     const MatrixStack& clipStack = g_sceneRenderer.pipeline->stacks[TransformPipeline::kClipStack];
     const ViewPlanes planes(clipStack.count ? clipStack.matrices[clipStack.count - 1] : kIdentity);
@@ -481,7 +475,6 @@ int WorldClient::CollectCells(const CellRange& range, const Matrix4* view, std::
             g_cellEnds.push_back(g_rangeObjects.size());
         }
     for (std::size_t k = 0; k < kReadAhead && k < g_rangeObjects.size(); ++k) FetchObject(g_rangeObjects[k]);
-    int touched = 0;
     std::size_t next = 0, cellIndex = 0;
     for (std::uint32_t y = range.y0; y <= range.y1; ++y)
         for (std::uint32_t x = range.x0; x <= range.x1; ++x) {
@@ -567,35 +560,33 @@ int WorldClient::CollectCells(const CellRange& range, const Matrix4* view, std::
                 }
                 int shadowVolume = -1;
                 if (!inView && shadows && b.shadow) shadowVolume = shadowVerdict >= 0 ? shadowVerdict : planes.Classify(b.shadowBox);
-                touched += File(e.object, e.kind, inView, shadowVolume, view, now);
+                File(e.object, e.kind, inView, shadowVolume, view);
             }
         }
-    return touched;
 }
 
-int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
-                                char withScripted) {
-    if (!object || !AsObject3D(object)->attached) return 0;
+void WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float animTime, char animateUnits, char withScripted) {
+    if (!object || !AsObject3D(object)->attached) return;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
     if (g_multiplayerView != 0 && session->sessionKind == 1) drawAllUnits = false;
 
     const ClassId kind = object->GetClassId();
     if (kind == ClassId::Unit) {
-        if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id) && !withScripted) return 0;
+        if (object->MapType() == MapObjectType::Hero && IsTextKey(object->id) && !withScripted) return;
         if (!animateUnits) {
             // First pass: units wait on the deferred list (which holds a reference).
             g_deferredUnits.emplace_back(object);
-            return 0;
+            return;
         }
         drawn::Observe(object);
         const drawn::Pose before = drawn::OwnPose(object);
         object->AdvanceTime(animTime);
         drawn::NotePlaced(object, before);
-        if (!drawAllUnits && !(object->flags & MapObjectFlag::InParty)) return 0;
+        if (!drawAllUnits && !(object->flags & MapObjectFlag::InParty)) return;
     }
     Place(object);
-    return File(object, kind, InView(AsObject3D(object), IsFigure(kind)), -1, view, now);
+    File(object, kind, InView(AsObject3D(object), IsFigure(kind)), -1, view);
 }
 
 // ---- Cursor picking ------------------------------------------------------------------------------

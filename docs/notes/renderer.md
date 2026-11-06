@@ -173,15 +173,15 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
   model LRU). **Visibility only gates client-side animation, figure changes and picking, never server state or timing.**
 - **Picking** uses screen rectangles written during the object draw from projected positions (copied into node and
   figure pieces; `WorldClient::UnitAt` / `Pick` (HitTest::Parts) test the parts' rectangles only). Whatever draws the objects must still
-  produce them. The rule (`device_draw.cpp` `BoundsOfProjected`, one path for every mesh): the bounds of the projected
-  positions, clamped to the screen. The projection leaves screen positions when the whole mesh is on screen and
-  clip-space ones when it crosses the view's edges; those count when inside the depth range (nothing behind the camera or
-  nearer than the near plane), mapped as ToScreen maps them. A crossing mesh always hands its passes over (the GPU clips them); a
-  part with no position on screen gets an empty rectangle.
+  produce them. The rule (R37f13, `map_object_draw.cpp` `BoxRect`, units' and levers' parts only): the bounds of the
+  part's box (its cube when it has no box) projected by the screen stack's top, the corners inside the depth range
+  (nothing behind the camera or nearer than the near plane), clamped to the screen. No vertex is projected on the CPU;
+  a part the object's draw skips (too far, hidden, not in its figure) gets an empty rectangle.
   - **Accepted difference from the original** (user's call): the original clipped a crossing mesh on the CPU and took
     the bounds of the clipped triangles' points inside every plane; an empty clip kept the last draw's rectangle. Ours is
-    larger past a screen corner, and across one edge it can be wider along that edge: at the bottom edge an ogre's part
-    picks a few 800x600 pixels further left or right than in the original. `render_pick_edges` (left and bottom edge
+    the part's box, a little larger than its triangles (the hit order still goes by the triangles under the pixel,
+    below), and larger past a screen corner or across an edge: at the bottom edge an ogre's part picks a few 800x600
+    pixels further left or right than in the original. `render_pick_edges` (left and bottom edge
     clicks where both agree) and `render_pick_edges_rule` (a bottom edge click in the strip only ours picks) check it. The
     corners are under the battle screen's HUD, so no click reaches a corner's difference.
   - **The order of the hits** (R64, a deviation by the user's choice): `WorldClient::Pick` sorts the objects that pass
@@ -234,7 +234,7 @@ two texture stages (each its colour and alpha operations and arguments, `StageCo
 The values keep Direct3D 7's numbers in typed enums (`Blend`, `Compare`, `Cull`, `TextureOp`, `TextureArg`, `Filter`,
 `MipFilter`, `Address`), which the pipelines and the mesh shader take as they are. Game code writes the members where the
 original set render or stage states (device_draw, device_states, renderer_init, renderer_lines, renderer_rect,
-renderer_sprites, renderer_strip, link_mesh_draw, particle_draw through `SetBlend`, world_client_draw, the interface's
+renderer_sprites, renderer_strip, figure_part_draw, particle_draw through `SetBlend`, world_client_draw, the interface's
 draws); the original's reads around a draw (saved and put back) are reads of the members. `SceneRenderer::CreateRenderer`
 resets it to a new Direct3D 7 device's state (the members' initialisers) before the game's own settings. Each pass copies
 it (`ReadPassState`, render_mesh.cpp; the fog once a frame, `ReadFog`).
@@ -829,7 +829,8 @@ All in `src/game`:
 - `renderer_scene.cpp`: counted holders, list iterator copies, aligned blocks, the axis swap matrix (WideScreen changes
   it); `render_helper.cpp`: `RenderHelper`'s built-in presets (section 5).
 - `projection.cpp`: the transform pipeline's projections (section 10).
-- `link_mesh_draw.cpp`: LinkMesh's draws; `models/link_loader.cpp`: `LinkFigureLoader` (Rebirth's ResOverride changes it).
+- `figure_part_draw.cpp`: a figure part's draw; `models/link_loader.cpp`: `LinkFigureLoader` (Rebirth's ResOverride
+  changes it).
 - `weather_field.cpp` (the rain's and the snow's particles: where each is and how much of it shows),
   `weather_particles.cpp` (their draw), `effects_weather.cpp` (the visibility fog's draw, the rain / snow layer's).
 - `renderer_lines.cpp`: `LineBatch` (points four to a packet in an aligned array, a count and a colour; `AddPoint`
@@ -939,7 +940,7 @@ needs the Performance Log Users group (or an administrator), which the runs lack
 few (25-60 K a frame). A many-figure frame's main-thread time is mostly the game's: the server's AI path search in a
 fight. So these were measured and not built, each worth well under 0.2 ms a frame: per-draw records and instancing
 (the uniforms are 0.03-0.07 ms, mergeable draws about 0.06-0.09 ms); keeping interface sprites on the GPU (0.01-0.1 ms;
-`render::SetInterfaceDraw` streams them, since the interface rewrites its quads in place in many places); a GPU ground
+they are streamed, since the interface rewrites its quads in place in many places); a GPU ground
 decal path (under 0.07 ms). The water's waves went to the vertex shader after all (R37e4c, item 3a: 0.15 + 0.08 ms on
 the heavy save once the pages were kept).
 Figure animation stays on the CPU: creatures animate by their bones (each part's matrix, which the GPU applies), the
@@ -1115,11 +1116,11 @@ bytes of vertex stream per vertex), and every sector has the same path.
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
 places and writes, the pool started again with the frame's items when one does not fit). Each figure mesh drawn
 through the figure part draws (either through the device or a link figure's part) is
-kept under the mesh, in a slot the figure mesh names (`render::MeshSlots`, handed over in `MeshSource` and `ShadowMesh`:
+kept under the mesh, in a slot the figure mesh names (`render::MeshSlots`, handed over in `MeshDraw` and `ShadowMesh`:
 found without a lookup; a slot knows its owner, so a handle copied with a mesh or left after its slot was dropped finds
 none and takes a new one): its corners' model-space positions and texture coordinates, the colour and specular pair (a stream of
 its own) and the valid triangles; the draw binds the pool with the mesh's first index, the texture offset (animated water
-and lava) a shader constant. The game says what changed (`render::SetMeshSource` around the device's draw;
+and lava) a shader constant. The game says what changed (`render::MeshDraw`'s owner, link figure and moved positions;
 `render::MeshChanged`): an entry is built again when an array or count it was built from differs or the mesh or link
 figure was rebuilt (`Rebuilt`; the counters are kept by the object's address and never dropped, so an entry keeps
 where it found them); its positions are read again when the animation's per-vertex offsets changed or a link
@@ -2100,11 +2101,13 @@ through the gamma ramp; shapes of another scale or ramp are let go once not show
 ### render_mesh.cpp: meshes
 
 Everything the game draws through the device's mesh draws (figures and map objects, the sky, the interface's sprites and
-3D previews). The game hands the mesh over in model space with the matrix it projects it with (BeginMesh); each pass then
+3D previews). The game hands the mesh over whole in model space with the matrix it projects it with, a figure part's
+model matrix apart (`MeshDraw::model`, the product taken once here) (BeginMesh); each pass then
 (src/game/scene/device_draw.cpp) becomes a batch with the render state of that moment (MeshPass, section 5): blend, alpha test,
 depth, culling, fog, the two texture stages' operations, filters and textures. A figure mesh drawn through the figure part
 draws is kept on the GPU (render_mesh_cache.cpp) and its batches draw from that pool; every other mesh is built into the
-frame's stream. A figure part handed over with its lighting (MeshSource::lighting) is lit in the shader from its normals.
+frame's stream. A figure part handed over with its lighting (MeshDraw::lighting, its model space to the landscape's) is lit in the
+shader from its normals.
 
 The draws (R37f3, `MeshDraws`): before the frame's passes `PlanMeshDraws` (render.cpp) fills each mesh command's record
 (`MeshRecord`, mesh.hlsl: the matrices, the place, fog, flags; 336 bytes) and its lights (`PartLight`: the sun,
@@ -2121,17 +2124,16 @@ the commands' order, so the pictures are the same up to the shaders' rounding (t
 
 ### render_mesh_cache.cpp: meshes kept on the GPU
 
-Section 13, item 4. The figure part draws (src/game/figure_part_draw*.cpp) name the figure mesh a mesh draw draws
-(render::SetMeshSource); the mesh's corners are kept for that figure mesh (positions and texture coordinates in model
+Section 13, item 4. The figure part draws (src/game/models/figure_part_draw.cpp) name the figure mesh a mesh draw
+draws (MeshDraw::owner); the mesh's corners are kept for that figure mesh (positions and texture coordinates in model
 space, colours and triangles) in a pool on the GPU (GpuPool: geometry and colours in streams of their own). What is built
 and uploaded again is what the game says changed:
-- the colours, when the draw wrote the colour arrays or the game lit the mesh outside its draw (MeshChanged Colours: the
-  sky; a link figure's LightPart / FlatColours) or a draw that wrote them was not kept (NoteMeshDraw): read and compared
-  with the kept ones, the changed range uploaded;
+- the colours, when the draw's colour pair differs from the kept one or the game lit the mesh outside its draw
+  (MeshChanged Colours: the sky): read and compared with the kept ones, the changed range uploaded;
 - the positions, when the game moved them (MeshChanged Positions: per-vertex offsets, FigureMesh::SetOffsets; a link
   figure's part morphed again): read and compared, the changed range uploaded;
 - all of it, when the mesh's buffers changed (MeshChanged Rebuilt) or the draw hands over other arrays or counts than it
-  was built from. Interface sprites (render::SetInterfaceDraw) and a mesh drawn again in the same frame with other data go
+  was built from. Interface sprites (no owner) and a mesh drawn again in the same frame with other data go
   into the frame's stream. The texture offsets (an animated mesh's frame of its sheet) are the draw's, added in the
   shader. A kept mesh also keeps the box of its positions (CachedMeshBox: a caster's box for the point shadows' spheres and
   the units' fronts), taken again only when they were built or moved. The casters outside the view

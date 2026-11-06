@@ -6,7 +6,6 @@
 // See docs/notes/models.md, "Link figures".
 
 #include "game/models/figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
-#include "game/scene/device.h"        // DrawFlag
 #include "game/models/link_loader.h"   // LinkFigureLoader, Morph
 #include "game/scene/pipeline.h"      // ClipBounds
 #include "game/models/texture.h"
@@ -21,6 +20,11 @@
 #include <string_view>
 #include <vector>
 
+namespace render {
+struct MeshLighting;
+}
+class TextureDevice;
+
 // The drawer of a figure mesh (FigureMesh::drawer). It is an engine object of class 0x36,
 // "CFigureClientSpecific": the client-specific manager's factory makes one
 // for type 0x45 and FigureManager::CreateObject gives it to every new figure. A real virtual
@@ -28,10 +32,14 @@
 struct FigureMeshDrawer : EngineObject {
     FigureMesh* mesh = nullptr;   // the mesh it draws
 
-    void DrawPlain(TextureDevice* device, Material*, int alpha, Rect* rect);
-    void DrawLit(TextureDevice* device, const std::vector<Light*>& lights, Material* material, int alpha, Rect* rect,
-                 Texture* textureA, Texture* textureB);
-    void DrawBounds(SceneRenderer* renderer);
+    // An object's part (Object3DClientSpecific::DrawParts) drawn whole with `material`'s colours: placed by `model`
+    // (its model space to the landscape's, or an interface figure's own) under `view` (the screen stack's top), lit
+    // on the GPU by `lighting` (the object's; its model and material colours set here) unless the mesh is flat;
+    // `alpha` the speculars' alpha byte. False when the owner's figure has no such part (nothing drawn).
+    bool DrawLit(TextureDevice* device, const Matrix4& view, const Matrix4& model, render::MeshLighting& lighting,
+                 Material* material, int alpha);
+    // The sky dome (`sky`: its lit colours) or an interface sprite, placed by the screen stack's top.
+    void DrawPlain(TextureDevice* device, bool sky);
 
     FigureMeshDrawer();
     ~FigureMeshDrawer() override;
@@ -51,7 +59,7 @@ struct FigureMeshDrawer : EngineObject {
     // FLT_MAX when it meets none.
     float SurfaceDepth(const Point& point) const;
 
-    Rect screen;                // where the mesh was last drawn
+    Rect screen;                // where the mesh was last drawn: its box on the screen (a unit's or a lever's part)
     Matrix4 screenMatrix;       // the screen stack's top it was last drawn with (with screen): model to screen
 };
 
@@ -108,18 +116,6 @@ public:
     // and index counts; false (nothing written) when there is no such part.
     bool GetPartData(std::string_view name, VertexPacket** vertices, MeshCorner** corners,
                      std::uint16_t** indices, int* vertexCount, int* indexCount);
-    // Draws (link_mesh_draw.cpp): a figure mesh's part `r` drawn through this figure (Object3D::figure): the first
-    // fills a flat part's colours and speculars, the second lights it, the third draws it, its positions moved by
-    // `offsets` when it has any, with the two textures' surfaces when `textured`. The draw returns false when
-    // nothing was drawn; then (DrawFlag::ScreenRect) the device's drawnRect is where it was drawn. `u`, `v` are
-    // members of the mesh.
-    void FlatColours(const LinkPartRanges& r, std::uint32_t colour, std::uint32_t specular,
-                     std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
-    void LightPart(const LinkPartRanges& r, Material* material, int alpha, std::vector<std::uint32_t>* colours,
-                   std::vector<std::uint32_t>* speculars);
-    bool DrawPart(const LinkPartRanges& r, DrawFlag flags, bool textured, Surface* first, Surface* second,
-                  std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                  const std::vector<Vector3>& offsets, float u, float v);
 
     // Overwrites part `name`'s first min(its count, count) vertex
     // packets (unsigned) with `vertices`; false when there is no such part.

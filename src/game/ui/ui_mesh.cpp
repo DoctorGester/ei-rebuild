@@ -11,7 +11,7 @@
 #include "lib/crt.h"
 #include "lib/maths.h"
 #include "lib/vecmath.h"
-#include "render/render.h"   // SetInterfaceDraw
+#include "game/models/link_figure.h"   // FigureMeshDrawer
 
 #include <cmath>
 #include <cstdint>
@@ -408,8 +408,8 @@ std::optional<float> UiMesh::DepthAt(const Matrix4& camera, Point at) const {
 
 // Nothing unless visible. Binds the texture to stage 0, builds the placement from the orientation and position,
 // pushes it on the view and world stacks, then the scale matrix on both (the view stack's push inlined), draws the
-// sprite as a figure in its tint (the renderer's colour put back after) with its material, and drops both pushes
-// from both stacks.
+// sprite as a figure in its tint (the renderer's colour put back after; FigureMeshDrawer::DrawPlain), and drops both
+// pushes from both stacks.
 void UiMesh::Draw(SceneRenderer* renderer) {
     if (!visible) return;
     TransformPipeline* pipeline = renderer->pipeline;
@@ -427,9 +427,7 @@ void UiMesh::Draw(SceneRenderer* renderer) {
     const std::uint32_t green = ColourByte(tint[1]);
     const std::uint32_t blue = ColourByte(tint[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
-    render::SetInterfaceDraw(true);   // the new renderer streams interface sprites
-    renderer->DrawFigure(this, material, 0xFF, nullptr);
-    render::SetInterfaceDraw(false);
+    drawer->DrawPlain(renderer->device, false);
     renderer->SetColour(saved);
 
     MatrixStack& view = pipeline->stacks[TransformPipeline::kClipStack];

@@ -109,10 +109,6 @@ public:
     // Pushes `m` onto stack `index`: an empty stack gets `m` itself, otherwise the new top is the old top
     // times `m` (no capacity check).
     void PushMatrix(const float* m, int index);
-    // The verdict on `blocks` packets of four positions as ClipTest classifies `bounds` (null: crossing): 0 on
-    // screen, 2 outside, and when crossing ProjectClipped's with stack 2's top (writing `projected` and `outcodes`).
-    ClipResult ProjectBlocks(const VertexPacket* positions, Vector4* projected, std::uint8_t* outcodes, int blocks,
-                      const ClipBounds* bounds) const;
     // PushMatrix as the draw code inlines it: the new top by Matrix4::Multiply, whose elements sum in
     // another order.
     void PushMatrixProduct(const Matrix4& m, int index) {

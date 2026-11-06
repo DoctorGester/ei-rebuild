@@ -82,8 +82,8 @@ static bool Build(Frame& f, Pending& pending) {
         }
         Vertex vertex{};
         vertex.position = PacketVertex(mesh.positions, position);
-        vertex.colour = mesh.colours[corner.normal];
-        vertex.specular = mesh.speculars[corner.normal];
+        vertex.colour = mesh.colours ? mesh.colours[corner.normal] : mesh.colour;
+        vertex.specular = mesh.colours ? mesh.speculars[corner.normal] : mesh.specular;
         vertex.normal = CornerNormal(mesh, corner.normal);
         vertex.u = mesh.uvs[corner.texCoord].u;
         vertex.v = mesh.uvs[corner.texCoord].v;
@@ -628,7 +628,6 @@ void MeshDraws::DrawAll(const Frame& f) {
 
 void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     g_pending = Pending{};
-    NoteMeshDraw(mesh);
     if (!device || !mesh.matrix) return;
     Start();
     Timer timer(FrameStats::Time::HandOverMs);
@@ -648,6 +647,7 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     } else {
         clip = *mesh.matrix;
     }
+    if (mesh.model) clip = Product(clip, *mesh.model);
     g_pending.active = true;
     g_pending.mesh = mesh;
     g_pending.device = device;
@@ -658,10 +658,9 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     g_pending.boxed = g_pending.caster && mesh.positions && mesh.positionCount > 0;
     g_pending.figure = CurrentCasterFigure() && g_pending.boxed;
     g_pending.interfaceUnit = g_interfaceUnitWeather ? CurrentInterfaceUnit() : nullptr;
-    // A figure part lit on the GPU, unless the draw set its colours to the device's. Only its
-    // normals are read (the other mesh draws' callers may pass anything there).
-    if (const MeshLighting* lighting = MeshSourceLighting(); lighting && !mesh.coloursWritten) {
-        f.meshLights.push_back(FigureLight(*lighting));
+    // A figure part lit on the GPU. Only its normals are read (the other mesh draws' callers may pass anything there).
+    if (mesh.lighting) {
+        f.meshLights.push_back(FigureLight(*mesh.lighting));
         g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
     } else if (!g_pending.interfaceUnit) {
         g_pending.mesh.normals = nullptr;   // an interface figure with weather keeps them (its snow settles by them)
@@ -677,7 +676,7 @@ void MeshPass(const TextureDevice* device) {
     if (!g_pending.built) {
         g_pending.built = true;
         ++g_stats.counts[FrameStats::Count::Meshes];
-        if (g_pending.caster) NoteCasterPart(MeshSourceOwner());
+        if (g_pending.caster) NoteCasterPart(g_pending.mesh.owner);
         // A figure mesh kept on the GPU, else its vertices into the frame's stream.
         g_pending.cached = KeepMesh(g_pending.mesh);
         if (g_pending.cached) {
@@ -712,7 +711,6 @@ void MeshPass(const TextureDevice* device) {
         if (g_pending.mesh.fog == MeshFog::Distance) batch.fog = g_renderState.distanceFog;
         batch.horizon = g_pending.mesh.fog == MeshFog::Horizon;
         batch.eyeHeight = g_pending.mesh.eyeHeight;
-        batch.unclipped = !g_pending.mesh.clipped;
         batch.zScale = g_pending.mesh.zScale != 0.0f ? g_pending.mesh.zScale : 1.0f;
         batch.model = true;
         batch.flat = !g_pending.mesh.corners;

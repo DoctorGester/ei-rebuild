@@ -4,6 +4,7 @@
 #include "render/render.h"   // MeshChanged
 #include "game/scene/device.h"
 #include "game/scene/scene_renderer.h"
+#include "game/models/link_figure.h"   // FigureMeshDrawer
 #include "game/scene/pipeline.h"
 #include "game/models/texture.h"
 #include "game/world/world.h"
@@ -123,7 +124,7 @@ void Sky::Draw(SceneRenderer* renderer, const Vector3& eye) {
     const render::MeshFog fog = device->fog;
     device->fog = render::MeshFog::Horizon;
     device->eyeHeight = kSkyDrop;
-    renderer->DrawFigure(object, nullptr, 0xFF, nullptr);
+    object->drawer->DrawPlain(device, true);
     device->fog = fog;
     const int stacks[2] = {TransformPipeline::kClipStack, 1};
     for (int stack : stacks) {

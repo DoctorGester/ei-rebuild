@@ -41,6 +41,7 @@ struct MeshFrom {
     int positionCount = 0;
     const std::uint32_t* colours = nullptr;
     const std::uint32_t* speculars = nullptr;
+    std::uint32_t colour = 0, specular = 0;   // without `colours`: every corner's
     const TexCoord* uvs = nullptr;
     int uvCount = 0;                    // a caster's (KeepCasterMesh); 0 for drawn meshes
     const MeshCorner* corners = nullptr;
@@ -51,7 +52,6 @@ struct MeshFrom {
     const std::uint32_t* words = nullptr;
     int wordCount = 0;
     MeshChanges own, link;   // the figure mesh's and the link figure's changes when built
-    std::uint32_t colourWrites = 0;   // the colour array's (MeshChanged on the array's data)
 
     bool SameArrays(const MeshFrom& o) const {
         return shared == o.shared && positions == o.positions && positionCount == o.positionCount && colours == o.colours &&
@@ -65,14 +65,9 @@ struct MeshFrom {
         return own.positions == o.own.positions && link.positions == o.link.positions;
     }
     bool SameColours(const MeshFrom& o) const {
-        return own.colours == o.own.colours && colourWrites == o.colourWrites;
+        return own.colours == o.own.colours && colour == o.colour && specular == o.specular;
     }
 };
-
-// The draw being handed over (SetMeshSource .. SetMeshSource(null)).
-static MeshSource g_source{};
-static bool g_haveSource = false;
-static bool g_interface = false;   // SetInterfaceDraw
 
 // Corners and triangles as kept, and their place in the pool: one copy for every figure mesh whose built arrays are the
 // same byte for byte (the palms of one morph draw one link figure's part with one material), found by a hash of the
@@ -93,12 +88,11 @@ struct CachedMesh {
     bool valid = false;                  // built (a corner out of range: not)
     GpuMesh* gpu = nullptr;
     bool drawn = false;
-    bool relightNext = false;                        // a draw not kept wrote the colours (NoteMeshDraw)
     std::uint32_t version = 0;                       // CachedMeshVersion
     std::uint32_t lastUsed = 0;                      // FrameNumber() of its last draw
     bool boxKept = false;                            // CachedMeshBox's box taken since the positions changed
     float box[6] = {};
-    ChangesRef own, link, colourWrites;              // MeshFrom's changes as last found
+    ChangesRef own, link;                            // MeshFrom's changes as last found
 };
 
 // The GPU meshes of one kind (drawn, casters) and their table by hash. A mesh no figure mesh uses any more is let go at
@@ -306,11 +300,15 @@ static GpuMesh g_fresh;   // the fresh build
 
 static MeshFrom FromOf(const MeshDraw& m, CachedMesh& e) {
     MeshFrom f;
-    f.shared = g_source.shared;
-    f.positions = g_source.moved ? nullptr : m.positions;
+    f.shared = m.shared;
+    f.positions = m.moved ? nullptr : m.positions;
     f.positionCount = m.positionCount;
     f.colours = m.colours;
     f.speculars = m.speculars;
+    if (!m.colours) {
+        f.colour = m.colour;
+        f.specular = m.specular;
+    }
     f.uvs = m.uvs;
     f.corners = m.corners;
     f.cornerCount = m.cornerCount;
@@ -319,9 +317,8 @@ static MeshFrom FromOf(const MeshDraw& m, CachedMesh& e) {
     f.normals = m.normals;
     f.words = m.words;
     f.wordCount = m.wordCount;
-    f.own = ChangesOf(g_source.owner, e.own);
-    f.colourWrites = ChangesOf(m.colours, e.colourWrites).colours;
-    f.link = ChangesOf(g_source.shared, e.link);
+    f.own = ChangesOf(m.owner, e.own);
+    f.link = ChangesOf(m.shared, e.link);
     return f;
 }
 
@@ -339,6 +336,13 @@ static MeshFrom FromOf(const ShadowMesh& m, CachedMesh& e) {
     f.own = ChangesOf(m.owner, e.own);
     f.link = ChangesOf(m.shared, e.link);
     return f;
+}
+
+// Corner `i`'s colour pair.
+static ColourPair CornerColours(const MeshDraw& m, int i) {
+    if (!m.colours) return ColourPair{m.colour, m.specular};
+    const int index = m.corners[i].normal;
+    return ColourPair{m.colours[index], m.speculars[index]};
 }
 
 // Corner `i`'s position, texture coordinates and normal.
@@ -368,8 +372,9 @@ static bool Build(const MeshDraw& m, GpuMesh& out) {
         const MeshCorner& c = m.corners[i];
         if (c.position >= m.positionCount) return false;
         out.vertices.push_back(CornerVertex(m, i));
-        out.colours.push_back(m.colours[c.normal]);
-        out.colours.push_back(m.speculars[c.normal]);
+        const ColourPair pair = CornerColours(m, i);
+        out.colours.push_back(pair.colour);
+        out.colours.push_back(pair.specular);
     }
     out.indices.clear();
     AppendTriangles(m.indices, m.indexCount, m.cornerCount, 0, out.indices);
@@ -416,9 +421,9 @@ static bool ReadPositions(int cornerCount, GpuMesh& e, Corner corner) {
 
 static bool ColoursDiffer(const MeshDraw& m, const GpuMesh& e) {
     for (int i = 0; i < m.cornerCount; ++i) {
-        const int index = m.corners[i].normal;
+        const ColourPair now = CornerColours(m, i);
         const std::uint32_t* kept = &e.colours[2 * static_cast<std::size_t>(i)];
-        if (kept[0] != m.colours[index] || kept[1] != m.speculars[index]) return true;
+        if (kept[0] != now.colour || kept[1] != now.specular) return true;
     }
     return false;
 }
@@ -426,11 +431,11 @@ static bool ColoursDiffer(const MeshDraw& m, const GpuMesh& e) {
 static bool ReadColours(const MeshDraw& m, GpuMesh& e) {
     bool changed = false;
     for (int i = 0; i < m.cornerCount; ++i) {
-        int index = m.corners[i].normal;
+        const ColourPair now = CornerColours(m, i);
         std::uint32_t* kept = &e.colours[2 * static_cast<std::size_t>(i)];
-        if (kept[0] == m.colours[index] && kept[1] == m.speculars[index]) continue;
-        kept[0] = m.colours[index];
-        kept[1] = m.speculars[index];
+        if (kept[0] == now.colour && kept[1] == now.specular) continue;
+        kept[0] = now.colour;
+        kept[1] = now.specular;
         e.MarkColour(static_cast<std::uint32_t>(i));
         changed = true;
     }
@@ -476,9 +481,8 @@ static void Check(const MeshDraw& m, CachedMesh& kept) {
                     std::memcmp(g_fresh.vertices.data(), e.vertices.data(), e.vertices.size() * sizeof(MeshVertex)) != 0;
     if (++g_stale <= 20) {
         ei::Log("render: a mesh kept on the GPU was stale (%s): figure mesh %p, link figure %p, %d corners%s",
-                geometry ? "positions" : "colours", static_cast<const void*>(g_source.owner),
-                static_cast<const void*>(g_source.shared), m.cornerCount,
-                g_source.moved ? ", moved positions" : "");
+                geometry ? "positions" : "colours", static_cast<const void*>(m.owner),
+                static_cast<const void*>(m.shared), m.cornerCount, m.moved ? ", moved positions" : "");
         for (std::size_t i = 0; i < e.vertices.size() && i < g_fresh.vertices.size(); ++i) {
             const MeshVertex& a = e.vertices[i];
             const MeshVertex& b = g_fresh.vertices[i];
@@ -513,7 +517,7 @@ static void CheckBox(const MeshDraw& m, CachedMesh& e) {
     float fresh[6];
     if (!e.boxKept || !PositionBox(m, fresh) || std::memcmp(fresh, e.box, sizeof(fresh)) == 0) return;
     LogFirst(g_stale, 20, "render: a kept mesh's box was stale: figure mesh %p, low %g %g %g, now %g %g %g",
-             static_cast<const void*>(g_source.owner), e.box[0], e.box[1], e.box[2], fresh[0], fresh[1], fresh[2]);
+             static_cast<const void*>(m.owner), e.box[0], e.box[1], e.box[2], fresh[0], fresh[1], fresh[2]);
     e.boxKept = false;
 }
 
@@ -539,27 +543,25 @@ static void Check(const ShadowMesh& m, CachedMesh& kept) {
 #endif
 
 CachedMesh* KeepMesh(const MeshDraw& m) {
-    if (g_haveSource && g_source.moved) {
+    if (m.moved) {
         ++g_stats.counts[FrameStats::Count::MorphMeshes];
         g_stats.counts[FrameStats::Count::MorphCorners] += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
     }
-    if (!g_haveSource || !g_source.owner || !g_source.slots || !m.corners || g_interface) return nullptr;
-    if (!g_cacheOn) return nullptr;
+    if (!m.owner || !m.slots || !m.corners || !g_cacheOn) return nullptr;
     bool made = false;
-    CachedMesh& e = g_meshes.Take(g_source.owner, g_source.slots->drawn, &made);
+    CachedMesh& e = g_meshes.Take(m.owner, m.slots->drawn, &made);
     MeshFrom now = FromOf(m, e);
     bool build = made || !e.valid || !e.gpu || !e.from.SameArrays(now);
     bool move = !build && !e.from.SamePositions(now);
-    bool relight = !build && (e.relightNext || !e.from.SameColours(now));
+    bool relight = !build && !e.from.SameColours(now);
     bool check = false;
 #if defined(EI_RENDER_VALIDATION)
     check = !build && FrameNumber() % kCheckEvery == 0;
 #endif
     // Drawn already this frame with the data kept (the GPU reads it at the frame's end): a draw with
     // other data goes into the frame's stream.
-    // (What changed is read at the next draw: e.from and relightNext stay as they are.)
+    // (What changed is read at the next draw: e.from stays as it is.)
     if (e.drawn && e.lastUsed == FrameNumber() && (build || move || relight || check)) return nullptr;
-    e.relightNext = false;
 
     FrameStats::Reuse reuse = FrameStats::Reuse::Same;
     if (build || move) e.boxKept = false;
@@ -655,17 +657,6 @@ void CachedMeshBox(CachedMesh& kept, const MeshDraw& m, float box[6]) {
     std::memcpy(box, kept.box, sizeof(kept.box));
 }
 
-void NoteMeshDraw(const MeshDraw& m) {
-    if (!g_haveSource || !g_source.owner || !(g_source.coloursWritten || m.coloursWritten)) return;
-    // The colours were written whether or not the draw reaches KeepMesh (a draw outside a frame, without
-    // passes, streamed): the kept mesh reads them at its next draw.
-    if (!g_source.slots) return;
-    if (CachedMesh* kept = g_meshes.Of(g_source.owner, g_source.slots->drawn)) kept->relightNext = true;
-}
-
-const FigureMesh* MeshSourceOwner() { return g_haveSource ? g_source.owner : nullptr; }
-
-const MeshLighting* MeshSourceLighting() { return g_haveSource ? g_source.lighting : nullptr; }
 
 Vector3 CornerNormal(const MeshDraw& m, int index) {
     if (!m.normals || !m.words || index >= m.wordCount) return Vector3{};
@@ -717,10 +708,6 @@ void MeshCacheFrameDone() {
     }
 }
 
-void SetMeshSource(const MeshSource* source) {
-    g_haveSource = source != nullptr;
-    g_source = source ? *source : MeshSource{};
-}
 
 void MeshChanged(const void* object, MeshChange change) {
     if (!object) return;
@@ -740,7 +727,6 @@ void MeshChanged(const void* object, MeshChange change) {
     }
 }
 
-void SetInterfaceDraw(bool on) { g_interface = on; }
 
 void SetMeshCache(bool on) {
     if (on != g_cacheOn) ei::Log("render: figure meshes %s", on ? "kept on the GPU" : "built and uploaded every frame");

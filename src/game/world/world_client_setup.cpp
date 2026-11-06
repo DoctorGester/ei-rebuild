@@ -120,7 +120,6 @@ void WorldClient::LoadSky() {
         return;
     }
     object->LoadFromMemory(&data);
-    object->flags |= FigureMeshFlag::Lit;
     skyDome->object.Assign(object);
     EngineObject* material = GetMaterialManager()->NewMaterial(kSkyMaterialType);
     skyDome->material.Assign(material);
