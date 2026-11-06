@@ -4,7 +4,7 @@
 #include "game/console/console.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/players/saved_parties.h"
 #include "game/data/text_manager.h"
 #include "game/objects/object3d.h"

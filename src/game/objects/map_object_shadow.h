@@ -5,13 +5,13 @@
 // visibility out of view). See docs/notes/map_objects.md ("Shadows").
 
 #include "game/core/ref.h"
-#include "game/device_material.h"   // DeviceMaterial, MaterialStage
+#include "game/scene/device_material.h"   // DeviceMaterial, MaterialStage
 #include "game/core/engine_object.h"
 #include "game/objects/object3d.h"   // Object3D, Object3DSpecific (the base half)
-#include "game/material.h"             // Material
+#include "game/models/material.h"             // Material
 #include "lib/bit_flags.h"
 #include "lib/vecmath.h"
-#include "game/pipeline.h"   // ClipBounds, TransformPipeline
+#include "game/scene/pipeline.h"   // ClipBounds, TransformPipeline
 #include "lib/rect.h"   // RECT
 
 #include <cstddef>

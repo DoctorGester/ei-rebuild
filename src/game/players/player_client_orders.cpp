@@ -4,7 +4,7 @@
 #include "game/players/player_client.h"
 
 #include "game/app/game_flow.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/players/party.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"

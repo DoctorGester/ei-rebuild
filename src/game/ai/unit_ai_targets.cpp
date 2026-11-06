@@ -9,7 +9,7 @@
 #include "game/data/text_manager.h"
 #include "game/saves/save_versions.h"
 #include "game/ai/sector_map.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/ai/unit_ai.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"

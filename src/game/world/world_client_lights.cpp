@@ -1,22 +1,22 @@
 // The client world's light by the time of day (UpdateLighting) and the zone exit
 // markers' colour (UpdateExitMarkers). See world.h and docs/notes/world.md.
-#include "game/effects.h"
+#include "game/effects/effects.h"
 
-#include "game/figure_mesh.h"   // VertexPacket, MeshCorner
+#include "game/models/figure_mesh.h"   // VertexPacket, MeshCorner
 #include "game/app/singletons.h"
-#include "game/ground_decal.h"
-#include "game/light.h"
-#include "game/link_figure.h"
+#include "game/terrain/ground_decal.h"
+#include "game/scene/light.h"
+#include "game/models/link_figure.h"
 #include "game/objects/map_object.h"           // MapObject (ObjectWithId)
 #include "game/objects/object3d.h"   // Object3D
-#include "game/model.h"
-#include "game/pipeline.h"
+#include "game/scene/scene_renderer.h"
+#include "game/scene/pipeline.h"
 #include "game/core/named_floats.h"
 #include "game/app/options.h"
 #include "game/players/party.h"
-#include "game/sky_object.h"
-#include "game/spell.h"
-#include "game/terrain.h"
+#include "game/scene/sky_object.h"
+#include "game/spells/spell.h"
+#include "game/terrain/terrain.h"
 #include "game/world/world.h"
 #include "lib/containers.h"
 #include "lib/float_select.h"

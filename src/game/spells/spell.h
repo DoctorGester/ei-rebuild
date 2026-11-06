@@ -1,0 +1,394 @@
+#pragma once
+
+// Spells: prototypes in the spell database (item_db.h), Spell instances built from them plus up to eight
+// modifiers, and the spell effects that turn them into damage.
+
+#include "game/core/core_refcount.h"
+#include "game/core/engine_object.h"
+#include "game/app/singletons.h"
+#include "game/items/item_db.h"
+#include "lib/vecmath.h"
+#include "game/data/resource_manager.h"
+
+#include "lib/bit_flags.h"
+
+#include <array>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+class ByteStream;
+class WorldServer;
+class Unit;
+class MapObject;
+struct MapEffect;
+class Effect;
+class EffectParticle;
+class EffectPointLight;
+enum class ParticleType : int;
+
+// The spell types: the spell prototype index (the order of the spell database in database.res, Spell's
+// prototypeId >> 16), also an active effect's type (MapEffect::type: a buff copies its spell's). Names from the
+// prototypes' names (the code name where it differs), the sound folders under magic\ and the Start* functions. The
+// 1.06 database and Rebirth's both have all 42. Shapechange and Comprehend start nothing; Teleport's record on the
+// caster stuns it like Stun's (the client draws no particles for it). MapEffect::Type() reads the byte.
+enum class SpellType : int {
+    FireArrow = 0x00,               // "arrow"
+    Lightning = 0x01,               // "Lightning Arc"
+    AcidRay = 0x02,
+    Fireball = 0x03,
+    InvokeLightning = 0x04,         // "inv_lit": the light strike
+    AcidColumn = 0x05,
+    FireWall = 0x06,
+    LightningWall = 0x07,           // "litnwall" ("Smtg Lightning"): the light wall
+    AcidFog = 0x08,                 // the poison cloud
+    ProtectionFromFire = 0x09,      // "prot_fire", sounds in magic\Fireshield
+    ProtectionFromLightning = 0x0A, // "prot_electro", magic\Lightsheild
+    ProtectionFromAcid = 0x0B,      // "prot_acid", magic\PoisonShield
+    EagleSight = 0x0C,
+    Infravision = 0x0D,
+    DetectLife = 0x0E,
+    Invisibility = 0x0F,
+    Silence = 0x10,
+    Lichdom = 0x11,
+    Fireworks = 0x12,
+    Stench = 0x13,
+    Clairvoyance = 0x14,            // "clairvoyence"
+    Possession = 0x15,
+    Shapechange = 0x16,
+    VisionFog = 0x17,
+    Healing = 0x18,
+    Stun = 0x19,
+    Antimagic = 0x1A,
+    Link = 0x1B,
+    Teleport = 0x1C,
+    Strengthen = 0x1D,              // "strength"
+    Weaken = 0x1E,                  // "weak"
+    Regeneration = 0x1F,
+    Feeblemind = 0x20,
+    Speed = 0x21,
+    Slow = 0x22,
+    Comprehend = 0x23,
+    Charm = 0x24,
+    Enlarge = 0x25,
+    Shrink = 0x26,
+    Campfire = 0x27,                // StartAtGround: the effect stands at the ground point
+    RickMagic = 0x28,               // "rick_magic", school fire: a fire arrow with the RikArrowSmoke trail
+    CurseMagic = 0x29,              // "curse_magic", school lightning: lightning (CreateLightning's flag 1)
+};
+
+// The bits of Spell::targetFlags (saved as the number). The low 16 bits restrict the targets (CanAffect; the
+// modifiers "f?" set them; a spell with none and one target is a single missile); "it" / "ic" (the cast-flag
+// modifiers, HasCastFlagModifier) say when an item casts it; the prototype's targetKind sets the aim. The races
+// are the unit prototypes' names (spell.cpp; the goblin's reading is provisional).
+enum class SpellTargetFlag : std::uint32_t {
+    FriendsOnly = 0x1,          // "ff": not at a unit either side regards as hostile
+    EnemiesOnly = 0x2,          // "fe"
+    NoHumans = 0x4,             // "fh": not at "unhuma" / "unhufe"
+    NoGoblins = 0x8,            // "fg": not at "unmogo"
+    NoOrcs = 0x10,              // "fo": not at "unorma" / "unorfe"
+    NoMoli = 0x20,              // "fl": not at "unmoli"
+    ItemTriggered = 0x10000,    // "it": a weapon casts it at what it hits, armour at its wearer when hit (healing:
+                                // when not)
+    ItemContinuous = 0x20000,   // "ic": an item's lasting spell while it is worn (UnitServer::RefreshItemSpells)
+    AtUnits = 0x10000000,       // targetKind 'u'
+    AtPoint = 0x20000000,       // targetKind 't': aimed at a point; the missile flies at no object
+};
+template <> inline constexpr bool lib::kBitFlags<SpellTargetFlag> = true;
+inline constexpr std::uint32_t kSpellTargetRestrictions = 0xFFFF;   // the low 16 bits
+
+// The numbers of a spell that a copy takes along (Spell::CopyTo); the spell's first fields are an active effect
+// record (map_object.h), which a buff copies: its type, power, ticks (duration), value (damage) and strength
+// (radius).
+struct SpellValues {
+    std::uint8_t prototypeIndex = 0;
+    std::uint8_t effectPower = 0;   // the effect record's power, set to 0x10
+    std::uint32_t duration = 0;
+    float damage = 0.0f;
+    float radius = 0.0f;            // the prototype's area; Build makes it a radius
+    float speed = 0.0f;             // missile speed
+    float range = 0.0f;
+    std::uint32_t targetCount = 0;
+    std::uint32_t targetFlags = 0;  // SpellTargetFlag bits
+    float manaCost = 0.0f;
+    std::uint32_t complexity = 0;   // +1 per modifier
+    float price = 0.0f;
+    std::uint32_t castTime = 0;     // only loaded and saved
+    std::uint32_t skillNeeded = 1;  // the prototype's plus the modifiers'
+};
+
+// A spell instance ("CSpell", class id 0x4F). prototypeId of EngineObject is the packed id: spell
+// prototype index << 16.
+class Spell : public EngineObject, public SpellValues {
+public:
+    Spell();
+    ~Spell() override;
+
+    void Create() override;
+    void Destroy() override;
+    // The effect record, the parameters, the modifiers, flags and the last field. Load clears the modifiers
+    // first.
+    void Load(ByteStream* stream) override;
+    void Save(ByteStream* stream) override;
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+
+    void InitFromPrototype(const itemdb::SpellRecord* prototype);
+
+    // The prototype record. Every spell has one and a record for each modifier: the spells come from the spell
+    // constructor (records of the database), copies (CopyTo) and the loaders, which check what they load
+    // (HasRecords; HasEveryRecord in item_manager.h), so the readers take the records unchecked.
+    itemdb::SpellRecord* GetPrototype();
+    // The prototype and every modifier name a record of the spell database; false for a spell of a save, a
+    // party or a player made with another database.
+    bool HasRecords();
+    // Ends the game (game::FatalExit) without the records (HasRecords).
+    void RequireRecords();
+
+    // The prototype index of the packed id.
+    SpellType Type() const { return static_cast<SpellType>(prototypeId >> 16); }
+
+    // At most 8.
+    int GetModifierCount();
+
+    // "ic" or "it": the modifiers that set cast flags 0x20000 and 0x10000 when the spell is constructed.
+    bool HasCastFlagModifier();
+
+    // The elemental damage type the spell deals (Fire, Lightning or Acid), Other for none.
+    DamageType GetDamageType();
+
+    // True for the attack spells (FireArrow to AcidFog, Lichdom, Stench, Stun, Weaken, Feeblemind, Slow, Charm,
+    // Shrink; with Rebirth's FixSpellSelfCasting also RickMagic and CurseMagic).
+    bool IsOffensive();
+
+    // By the target flags in the low 16 bits of flags; either may be null.
+    bool CanAffect(const Unit* caster, MapObject* target) const;
+
+    // `target`'s Destroy runs first; then it takes the values, the modifiers up to the first 0, and the packed id.
+    void CopyTo(Spell* target);
+
+    Spell* Clone(class SpellManager* manager);
+
+    // EffectRecord() builds the active effect record of the values' first fields, SetEffect() stores one (its
+    // `ending` is not kept).
+    MapEffect EffectRecord() const;
+    void SetEffect(const MapEffect& record);
+
+    std::array<std::int8_t, 8> modifiers{};     // spell modifier index + 1 each, 0 ends the list
+};
+
+// The damage a hit deals, filled by the spell effects and the weapon code.
+struct DamageInfo {
+    float typeWeights[7] = {};  // one weight per damage type
+    float& Weight(DamageType type) { return typeWeights[static_cast<int>(type)]; }
+    float Weight(DamageType type) const { return typeWeights[static_cast<int>(type)]; }
+    std::uint32_t weaponValue = 0;  // 0 unarmed; not read here
+    float attackRoll = 0.0f;    // against the defence; FLT_MAX for spells
+    float amount = 0.0f;
+    float multiplier = 0.0f;
+    int location = 0;           // the body part aimed at; 6 (all) for spells
+    int hitKind = 0;            // 0/1 by spell; non-zero: no hit direction (OnDamaged)
+    float backstabFactor = 0.0f;  // above 1.0 for a backstab, else 1.0
+    std::uint8_t calledShot = 0;
+    std::uint8_t unused_39[3] = {};
+};
+constexpr bool NoPadding(const DamageInfo*) {
+    return lib::FieldsFill<&DamageInfo::typeWeights, &DamageInfo::weaponValue, &DamageInfo::attackRoll,
+                           &DamageInfo::amount, &DamageInfo::multiplier, &DamageInfo::location, &DamageInfo::hitKind,
+                           &DamageInfo::backstabFactor, &DamageInfo::calledShot, &DamageInfo::unused_39>();
+}
+
+// A spell being applied (created by WorldServer::CastSpell): the world server's missiles. It embeds the
+// Spell it applies; the spell's duration is also the number of targets the damage is split between, and the
+// lasting effects' ticks.
+class SpellEffect final : public RefCounted {
+public:
+    SpellEffect();
+    ~SpellEffect() override;
+
+    // Split between the targets when there are several.
+    void GetDamage(DamageInfo* out);
+    // The spell's damage to the target when it is a unit.
+    void HitTarget();
+
+    // When the spell may affect `unit` (no caster, or Spell::CanAffect). The attacker is the caster unless
+    // flags bit 0 is set.
+    void HitUnit(DamageInfo* hit, MapObject* unit);
+
+    // Every unit within `radius` of `position` that area spells hit (units with a size class, and those whose
+    // prototype's height is below 0.5 or NaN) and the spell may affect.
+    void HitUnitsInRadius();
+
+    // The units within `radius` that lie within 1 of the vertical plane through `position` along
+    // `direction` (only x and y are used): the wall spells.
+    void HitUnitsAlong(const Vector3& direction);
+
+    // The casting state of spell `type` (the prototype index): its effect objects, the instant hits, the
+    // next state (1 missile, 2 lasting, 3 done; some failed casts leave it at 0) and the timer.
+    void Start(SpellType type);
+    // The old visual leaves the world's timed objects and is released.
+    void SetVisual(Effect* visual);
+    // The walls (FireWall, LightningWall) and the areas (AcidFog, Campfire) block the AI map while they last.
+    // Nothing without a visual or for other types.
+    void UpdateFootprint(SpellType type, int stamp);
+    // It becomes the visual.
+    void CreateArrow(const Vector3& from, EngineObject* target, ParticleType particleType, float power, const char* sound,
+                     const Vector3& color, float range);
+    // Types 0x2010 and 0x2014 are walls. `keep`: it becomes the visual, else it is only added to the world's
+    // timed objects.
+    EffectParticle* CreateParticle(int keep, ParticleType particleType, const Vector3& position, float size, float alpha,
+                                    const Vector3& velocity, EngineObject* attachTo);
+    // Nothing without a target; it becomes the visual.
+    void CreateLightning(const Vector3& from, MapObject* target, EngineObject* source, float power, int flag);
+    // A one-shot sound effect (the effect does not keep it).
+    void CreateSound(const char* name, const Vector3& position, const Vector3& velocity, float volume, float radius);
+    // `first`, then `pattern` itself (count < 1) or `pattern` formatted with 1..count. It becomes the sound.
+    void CreateSoundSequence(const Vector3& position, const Vector3& velocity, const char* first,
+                             const char* pattern, int count);
+    // Light flags Specular | Strong; it becomes the light.
+    void CreatePointLight(const Vector3& position, const Vector3& color, float range, const Vector3& velocity);
+
+    // One tick. Returns 0 when the effect has ended (the world then removes it) or without a world.
+    int Update();
+    // State 1: the fire arrow (FireArrow, RickMagic) and the acid ray hit their target when the missile reports a
+    // hit; the fireball explodes when its timer runs out.
+    void UpdateMissile(SpellType type);
+    // State 2: walls and clouds hit every 4th tick; every case counts the timer down and ends the effect.
+    void UpdateLasting(SpellType type);
+    void ReleaseVisual();
+    void ReleaseSound();
+    void ReleaseLight();
+
+    void Init(WorldServer* world, Spell* spell, Unit* caster, const Vector3& position, MapObject* target,
+              const Vector3& targetPoint, std::uint8_t newSilentEnd);
+    // 0 when `object` is the target (the world then drops the effect).
+    bool Forget(EngineObject* object);
+
+    // The position, caster and target ids, the target point, the state, the spell, the packed id, the visual
+    // / sound / light ids (-1 for none), the timer, the flags and the position again. Load finds the objects
+    // in g_loadingProjectileWorld and stamps the footprint.
+    void Load(ByteStream* stream);
+    void Save(ByteStream* stream);
+
+    WorldServer* world = nullptr;
+    std::uint32_t flags = 0;    // bit 0: the caster gets no credit for the hit
+    Vector3 position{};
+    Ref<MapObject> target; // a unit or another map object
+    Ref<Unit> caster;      // null for traps and scripts
+    Vector3 targetPoint;
+    int state = 0;              // 0 casting, 1 missile, 2 lasting, else ends
+    Spell spell;
+    Ref<Effect> visual;              // particle source, wall, lightning or missile
+    Ref<Effect> sound;               // a sound or a sound sequence
+    Ref<EffectPointLight> light;
+    std::uint8_t footprintStamped = 0;
+    int timer = 0;                        // ticks left in the next state
+    std::uint8_t silentEnd = 0;           // copied into the buff record; healing: skip when at full health
+
+    // The visual as the effect class its spell type creates.
+    template <class T> T* Visual() const { return static_cast<T*>(visual.Get()); }
+
+    Spell* HeldSpell() { return &spell; }
+    const Spell* HeldSpell() const { return &spell; }
+};
+
+// A spell under construction (created by the spell manager as SpellObjectType::Container): a prototype, the modifiers added
+// so far, and the Spell that Build computes from them.
+class SpellContainer : public EngineObject {
+public:
+    // The name and the spell are destroyed after the string, where the game destroys them before it.
+    SpellContainer();
+    ~SpellContainer() override;
+
+    void Create() override;
+    // As Create, but the spell gets its Destroy.
+    void Destroy() override;
+    const char* GetName() override;
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+
+    // Null ends the game. Returns 1.
+    bool AddModifier(itemdb::SpellModifierRecord* modifier);
+
+    // By the modifier's first code letter: a, d, e, r, t read the prototype's flag bytes; others are
+    // accepted. 0 without a prototype or modifier.
+    bool AllowsModifier(const itemdb::SpellModifierRecord* modifier);
+
+    // Area (a), effect (e), mana (m), range (r) scale with the modifier's strength, duration (d) and t add
+    // integers, f* add target flags and ic/it cast flags; every modifier adds its price, mana and level. The
+    // area becomes a radius (sqrt(area / pi)); the modifier list is sorted.
+    void Build();
+
+
+    const itemdb::SpellRecord* prototype = nullptr;
+    std::vector<itemdb::SpellModifierRecord*> modifiers;
+    std::string codes;              // modifier index + 1 per modifier
+    Spell spell;
+    std::string name;              // always empty
+};
+
+// The spell manager's object types (CreateObject / type).
+enum class SpellObjectType : int {
+    Spell = 0x3002,      // Spell
+    Container = 0x3003,  // SpellContainer
+};
+
+// The spell manager; context gives the spell constructor.
+class SpellManager : public ResourceManager {
+public:
+    SpellManager() = default;
+    ~SpellManager() override = default;
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+
+    SpellContainer* NewContainer();
+
+    // A new empty spell under a free id (Spell::Clone fills it).
+    Spell* CreateSpellObject();
+    // A Spell (0x3002) or SpellContainer (0x3003); else null.
+    EngineObject* NewObject(int type) override;
+
+    // Up to 8 modifiers, through the context's spell constructor. Returns the new spell.
+    Spell* CreateSpell(const itemdb::SpellRecord* prototype, const std::vector<itemdb::SpellModifierRecord*>& modifiers);
+
+    // Text such as "healing{e2;e2}": the trimmed text before '{' is the prototype name, the ';'-separated
+    // names inside the braces are modifiers (empty ones skipped). An unknown name is added to the name map
+    // with a null record. Returns the new spell; null, after a warning, for an unknown prototype name (a script's,
+    // a map's or a database's text naming a spell spells.sdb lacks).
+    Spell* CreateSpellFromText(std::string_view text);
+
+    // `this` is not used.
+    std::vector<std::string> ListSpellNames();
+    std::vector<std::string> ListModifierNames();
+};
+
+class SpellConstructor : public EngineObject {
+public:
+    ~SpellConstructor() override;
+
+    // Releases the container and forgets the manager. Returns 1.
+    void Create() override;
+    // Also drops the manager's count.
+    void Destroy() override;
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+
+    // Counts a reference to `manager` that is never released.
+    void SetManager(SpellManager* manager);
+
+    // A new container for `prototype` (without a manager or a prototype the game ends).
+    void BeginConstruct(const itemdb::SpellRecord* prototype);
+
+    // Builds the container's spell (without a manager or a container the game ends).
+    void EndConstruct();
+
+    // Rebuilds when the prototype accepts it.
+    bool AddModifier(itemdb::SpellModifierRecord* modifier);
+
+    SpellManager* manager = nullptr;  // counted but never released
+    Ref<SpellContainer> container;
+};
+
+// Case-insensitive; null if none.
+const char* SpellCodeByName(std::string_view name);
+const char* SpellModifierCodeByName(std::string_view name);

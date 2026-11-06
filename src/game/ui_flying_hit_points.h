@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "game/core/ref.h"
-#include "game/texture.h"
+#include "game/models/texture.h"
 
 class SceneRenderer;
 

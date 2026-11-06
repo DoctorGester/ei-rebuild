@@ -5,7 +5,7 @@
 #include "game/console/console.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/model.h"
+#include "game/scene/scene_renderer.h"
 #include "game/net_classes.h"
 #include "game/net_messages.h"
 #include "game/players/party.h"

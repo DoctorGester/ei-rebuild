@@ -5,7 +5,7 @@
 #include "game/core/base_manager.h"
 #include "game/core/core_streams.h"
 #include "game/script.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include "game/saves/save_versions.h"
 

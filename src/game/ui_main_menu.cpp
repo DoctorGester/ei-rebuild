@@ -23,12 +23,12 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include "game/camera.h"
-#include "game/terrain.h"
+#include "game/scene/camera.h"
+#include "game/terrain/terrain.h"
 #include "game/app/movies.h"
 #include "game/app/singletons.h"
-#include "game/model.h"
-#include "game/figure_manager.h"
+#include "game/scene/scene_renderer.h"
+#include "game/models/figure_manager.h"
 
 
 namespace {

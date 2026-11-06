@@ -2,7 +2,7 @@
 // world_sync.cpp): the map and timed objects that came into view, changed or left, and the flush
 // of the collected messages to the player's link. See player_messages.h and docs/notes/objects.md.
 
-#include "game/item_manager.h"
+#include "game/items/item_manager.h"
 #include "game/players/player_messages.h"
 #include "game/console/console.h"
 
@@ -17,7 +17,7 @@
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include "lib/crt.h"
 

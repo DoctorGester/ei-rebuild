@@ -3,8 +3,8 @@
 #include "game/combat/combat.h"
 #include "game/console/console.h"
 #include "game/app/singletons.h"
-#include "game/item.h"
-#include "game/item_manager.h"
+#include "game/items/item.h"
+#include "game/items/item_manager.h"
 #include "lib/crt.h"
 #include "lib/rect.h"
 #include "game/players/party.h"
@@ -16,8 +16,8 @@
 #include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/screen_layout.h"
-#include "game/model.h"
-#include "game/texture.h"
+#include "game/scene/scene_renderer.h"
+#include "game/models/texture.h"
 #include "game/ui_item_info.h"
 
 #include <cstdint>

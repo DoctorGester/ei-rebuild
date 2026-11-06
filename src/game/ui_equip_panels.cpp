@@ -3,7 +3,7 @@
 // and item lookup. See docs/notes/ui.md, section 5.
 #include "game/ui_camp.h"
 #include "game/ui_screens.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/units/unit.h"
 
 #include <algorithm>

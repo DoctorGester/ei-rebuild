@@ -5,8 +5,8 @@
 
 #include "game/combat/combat.h"
 #include "game/core/engine_object.h"
-#include "game/item.h"
-#include "game/item_manager.h"
+#include "game/items/item.h"
+#include "game/items/item_manager.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_messages.h"
 #include "game/units/unit.h"

@@ -4,7 +4,7 @@
 #include "game/script.h"
 #include "game/objects/map_object.h"
 
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include <cstdint>
 

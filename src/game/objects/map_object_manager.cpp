@@ -2,7 +2,7 @@
 // their halves, the animation database lookup and the defaults of an object without a prototype. The object
 // factory is unit_create_object.cpp's.
 #include "game/core/base_manager.h"
-#include "game/figure_manager.h"   // FigureObjectType
+#include "game/models/figure_manager.h"   // FigureObjectType
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"

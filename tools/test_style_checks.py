@@ -161,12 +161,12 @@ class RoundFourPatternTest(unittest.TestCase):
     def test_copied_member_bodies(self):
         body = ('    unit->action.target = nullptr;\n    unit->action.timer = kStandTime * speed;\n'
                 '    unit->PlaySteps(kStandSteps, speed, false);\n')
-        tree = {'src/game/spell_effect.cpp': 'void A() {\n' + body + '}\n',
-                'src/game/spell_effect_update.cpp': 'void B() {\n    int x = 1;\n' + body + '}\nvoid C() {\n' + body + '}\n',
+        tree = {'src/game/spells/spell_effect.cpp': 'void A() {\n' + body + '}\n',
+                'src/game/spells/spell_effect_update.cpp': 'void B() {\n    int x = 1;\n' + body + '}\nvoid C() {\n' + body + '}\n',
                 'src/game/spell_other.cpp': 'void D() {\n' + body + '}\n',
                 'src/game/spell_effect.h': 'void E() {\n' + body + '}\n'}
         runs = check_cleanup._copied_runs(tree)
-        self.assertEqual((runs['src/game/spell_effect.cpp'], runs['src/game/spell_effect_update.cpp']), (0, 2))
+        self.assertEqual((runs['src/game/spells/spell_effect.cpp'], runs['src/game/spells/spell_effect_update.cpp']), (0, 2))
         self.assertEqual(runs['src/game/spell_other.cpp'], 0)      # another family
 
 

@@ -8,7 +8,7 @@
 #include "game/objects/map_object.h"
 #include "game/players/player_messages.h"
 #include "game/script.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 

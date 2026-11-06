@@ -11,7 +11,7 @@
 #include "game/net_delta.h"
 #include "game/map/map_database.h"
 #include "game/players/party.h"
-#include "game/spell.h"         // SpellEffect: the missiles
+#include "game/spells/spell.h"         // SpellEffect: the missiles
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"

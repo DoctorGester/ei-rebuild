@@ -10,8 +10,8 @@
 #include "game/data/text_manager.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
-#include "game/item.h"
-#include "game/spell.h"
+#include "game/items/item.h"
+#include "game/spells/spell.h"
 
 #include <cstring>
 #include "lib/rounding.h"

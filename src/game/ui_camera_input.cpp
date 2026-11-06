@@ -3,7 +3,7 @@
 // section 3.
 #include "game/ui_camera_keys.h"
 
-#include "game/camera.h"
+#include "game/scene/camera.h"
 #include "game/camera_trace.h"
 #include "game/app/singletons.h"
 #include "lib/bit_flags.h"

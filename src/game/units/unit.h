@@ -4,7 +4,7 @@
 
 #include "game/units/ack_kind.h"
 #include "game/core/engine_object.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/objects/map_object.h"
 #include "lib/vecmath.h"
 #include "game/ai/ai_motion.h"

@@ -4,7 +4,7 @@
 #include "game/ai/ai_map.h"
 #include "game/combat/combat.h"
 #include "game/console/console.h"
-#include "game/effects.h"
+#include "game/effects/effects.h"
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/world/diplomacy.h"

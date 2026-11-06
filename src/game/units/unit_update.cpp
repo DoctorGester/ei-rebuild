@@ -5,7 +5,7 @@
 #include "game/ai/ai_map.h"
 #include "game/ai/ai_motion.h"
 #include "game/app/singletons.h"
-#include "game/item_db.h"
+#include "game/items/item_db.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/data/text_manager.h"

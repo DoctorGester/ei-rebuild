@@ -5,11 +5,11 @@
 // was built for. See docs/notes/map_objects.md ("Figures").
 
 #include "game/core/core_transform.h"
-#include "game/drawn_motion.h"
+#include "game/scene/drawn_motion.h"
 #include "game/core/engine_object.h"
-#include "game/figure_mesh.h"            // FigureMesh (an object's figure parts)
-#include "game/item_db.h"                // WeaponType
-#include "game/map_object_animation.h"   // AnimationTrack (a bone's animator)
+#include "game/models/figure_mesh.h"            // FigureMesh (an object's figure parts)
+#include "game/items/item_db.h"                // WeaponType
+#include "game/models/animation.h"   // AnimationTrack (a bone's animator)
 #include "lib/vecmath.h"
 #include "game/core/ref.h"
 #include "game/units/unit_create.h"   // MapObjectType

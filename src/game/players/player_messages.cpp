@@ -6,15 +6,15 @@
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
 #include "game/app/singletons.h"
-#include "game/item.h"
-#include "game/item_manager.h"
+#include "game/items/item.h"
+#include "game/items/item_manager.h"
 #include "game/core/named_floats.h"
 #include "game/players/party.h"
 #include "game/core/random.h"
 #include "game/script.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include "lib/bytes.h"
 

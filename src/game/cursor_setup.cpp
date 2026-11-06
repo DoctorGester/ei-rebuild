@@ -2,7 +2,7 @@
 // set when the small cursors are on. The cursor object itself stays the game's own code.
 #include "game/ui_cursor.h"
 #include "game/app/singletons.h"
-#include "game/model.h"
+#include "game/scene/scene_renderer.h"
 
 #include <cstdint>
 

@@ -4,9 +4,9 @@
 
 #include "game/core/asset_text.h"
 #include "game/core/engine_object.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/data/resource.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/core/text_split.h"
 #include "lib/str.h"
 #include "lib/text_case.h"

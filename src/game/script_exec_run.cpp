@@ -6,7 +6,7 @@
 #include "game/core/base_manager.h"
 #include "game/core/random.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include "game/app/singletons.h"
 

@@ -1,0 +1,641 @@
+#pragma once
+
+// Weather, visibility fog and particles: the per-frame simulation parts.
+// - ParticleSource ("CParticle"): one emitter. Its tick runs its type's functions (particle_common.h: update the
+// elements of the source's own array, update one particle: 0 kills it, emit one particle).
+// - RainSnow (the world's rain/snow layer; "RainSnow"): fades its density and the rain sound.
+// - VisibilityFog ("VisibilityFog"): a hash_map of fog cells, one per visible map square; each
+// cell fades in while visible and out once not, and is dropped when nearly transparent.
+
+#include "game/core/base_manager.h"
+#include "game/scene/clip.h"   // TLVertex
+#include "game/core/core_streams.h"
+#include "game/core/core_transform.h"
+#include "game/scene/pipeline.h"   // ClipBounds, SpritePoint
+#include "game/ai/search_grid.h"
+
+#include "lib/bit_flags.h"
+#include "lib/containers.h"
+#include "lib/vecmath.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <limits>
+#include <vector>
+
+namespace weather {
+enum class Kind;   // weather_field.h
+}
+
+// The particle source / effect types (EngineObject::type of a ParticleSource and a EffectParticle). The names
+// are the script table's (script_effects.cpp kScriptParticleTypes) and the texture its spec names
+// (particle_create.cpp); a type neither names is described: Shower1-4 (the RainSnow texture, texture frames 12-15), Falling1-4 (a gust of RainSnow),
+// GroundDust1 / 2, TeleportRing (the Teleport texture), VisionStar4 (the fourth vision star, lifetime 3), Stun (the
+// Stun texture), PoisonCloud (the second PoisonFog type, the poison spell's cloud). type stays a plain int in the
+// objects; ParticleTypeOf reads it.
+enum class ParticleType : int {
+    FireBall = 0x2000,
+    CampFire = 0x2001,
+    FireBlast = 0x2002,
+    Fire = 0x2003,
+    Smoke = 0x2004,
+    VulcanSmoke = 0x2005,
+    Healing = 0x2006,
+    PoisonFog = 0x2007,
+    PoisonCloud = 0x2008,
+    Geyser = 0x2009,
+    Tornado = 0x200A,
+    Casting = 0x200B,
+    Nuke = 0x200C,
+    Banshee = 0x200D,
+    Mushroom = 0x200E,
+    Shower1 = 0x200F,
+    Tendril = 0x2010,
+    FireArrow = 0x2011,
+    AcidRay = 0x2012,
+    BlueGas = 0x2013,
+    Link = 0x2014,
+    SphereAcid = 0x2015,
+    SphereElectricity = 0x2016,
+    SphereFire = 0x2017,
+    ClayRing = 0x2018,
+    Teleport = 0x2019,
+    Antimagic = 0x201A,
+    Modifier1 = 0x201B,
+    Modifier2 = 0x201C,
+    Modifier3 = 0x201D,
+    Modifier4 = 0x201E,
+    Modifier5 = 0x201F,
+    Modifier6 = 0x2020,
+    Modifier7 = 0x2021,
+    Modifier8 = 0x2022,
+    Modifier9 = 0x2023,
+    Modifier10 = 0x2024,
+    Modifier11 = 0x2025,
+    Modifier12 = 0x2026,
+    CastingFire = 0x2027,
+    CastingElectricity = 0x2028,
+    CastingAcid = 0x2029,
+    CastingDivination = 0x202A,
+    CastingIllusion = 0x202B,
+    CastingDomination = 0x202C,
+    CastingEnchantment = 0x202D,
+    CastingHealing = 0x202E,
+    TeleportRing = 0x202F,
+    LightningBlast = 0x2030,
+    Shower2 = 0x2031,
+    Shower3 = 0x2032,
+    Shower4 = 0x2033,
+    Falling1 = 0x2034,
+    Falling2 = 0x2035,
+    Falling3 = 0x2036,
+    Falling4 = 0x2037,
+    ZoneExit = 0x2038,
+    ShapeChange = 0x2039,
+    GroundDust1 = 0x203A,
+    GroundDust2 = 0x203B,
+    Bag = 0x203C,
+    PortalStar = 0x203D,
+    Portal = 0x203E,
+    Cylinder1 = 0x203F,
+    Cylinder2 = 0x2040,
+    FireStar = 0x2041,
+    AcidStar = 0x2042,
+    Sparks = 0x2043,
+    VisionStar1 = 0x2044,
+    VisionStar2 = 0x2045,
+    VisionStar3 = 0x2046,
+    Regeneration = 0x2047,
+    Silence = 0x2048,
+    FeebleMind = 0x2049,
+    FeetCloud1 = 0x204A,
+    FeetCloud2 = 0x204B,
+    VisionStar4 = 0x204C,
+    Stun = 0x204D,
+    RikArrowSmoke = 0x204E,
+    CurseStars = 0x204F,
+    CurseHolder = 0x2050,
+    StartTrans = 0x2051,
+    Transform = 0x2052,
+};
+
+inline ParticleType ParticleTypeOf(int type) { return static_cast<ParticleType>(type); }
+
+// One particle (from the source's pool). The source's tick saves the "prev" fields before calling the type's update
+// and restores them when it returns 0. What velocity, aux and drift hold depends on the source type: each of its
+// functions names the parts it uses with local references at its top (float& angle = p.velocity.x).
+struct Particle {
+    Vector3 pos;
+    float size = 0.0f;
+    Vector3 prevPos;
+    float prevSize = 0.0f;
+    Vector3 velocity;
+    Vector3 aux;
+    Vector3 drift;
+    int frame = 0;              // texture frame
+    int prevFrame = 0;
+    int frameTimer = 0;         // ticks until the next frame (some types: their own count, named where used)
+    int life = 0;               // ticks left
+    int state = 0;              // per type: a kind, an index or a phase
+    std::uint32_t color = 0;    // ARGB
+    std::uint32_t prevColor = 0;
+    int dead = 0;               // set by the tick when the update returned 0
+};
+
+// A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle
+// once more after it has died and gone back to the pool (ParticleSource::RunTick keeps the original's order), so
+// an update that counts the life down reads index -1 then: the original read the four bytes before the table there
+// (in game.exe's data, the last entry of the table before it), `before` here.
+template <class T, std::size_t N>
+constexpr T ByLife(const T (&table)[N], int life, T before) {
+    return life < 0 ? before : table[life];
+}
+
+// One element of a source's own array. What it holds depends on the source type: pos and ticks (a countdown or an
+// age) for every type, the rest through the type's view below. The views start zero: the first one is the largest
+// and its initialiser covers the union.
+struct ParticleElement {
+    Vector3 pos;
+    union {
+        // FireBlast (SetupFireBlast, TickBlast): a fragment flying out (pos its position).
+        struct {
+            Vector3 velocity;
+            float radius;       // the flame radius
+            float growth;       // its growth per tick
+            float decay;        // the growth's factor per tick
+            float frame;        // a random frame (0..5)
+            float sizeFactor;   // 0 or 1
+            std::int32_t age;   // in ticks
+        } fragment = {};
+        // CastingIllusion ... CastingHealing: an orbiting light (pos its world position).
+        struct {
+            float turnCos;      // the cosine and sine of its turn per tick
+            float turnSin;
+            float scale;        // the carrier's radius (times -1 for CastingDomination)
+            Vector3 relative;   // its position relative to the source (element 0's x: the orbit)
+            Vector3 previous;   // its last world position
+        } orbiter;
+        // LightningBlast (EmitLightning, TickLightning): a point of the bolt, on the ground; the heads move by fork
+        // and remember their position in base.
+        struct {
+            Vector3 fork;
+            Vector3 base;       // pos as placed
+            std::int32_t emitted;   // point 0: particles emitted along the bolt
+        } bolt;
+        // Modifier1-12 (EmitModifier): a point of the ring around the carrier.
+        struct {
+            Vector3 start;      // pos as placed (TickModifier: the last position)
+            Vector3 offset;     // from the emission point
+        } ring;
+        // GroundDust1 / 2 (TickGroundPlane, PlatformSet::SurfacePlane): the ground plane under the source.
+        struct {
+            float height;
+            Vector3 normal;     // its z replaced by its reciprocal when not 0
+            std::uint32_t color;    // the dust's colour
+        } plane;
+        // FeetCloud1 / 2 (TickFeetCloud): a foot; ticks says which (nonzero: the left).
+        struct {
+            float radius;       // the carrier's radius (AttachmentOffset)
+            std::int32_t countdown;   // reset every tick; the cloud starts at the foot while >= 0
+        } foot;
+        // CastingFire ... CastingDivination: element 0 the effect's state (pos.x 1 once set up, ticks the countdown
+        // the alpha follows), elements 1.. the swirls.
+        struct {
+            float growth;       // the particles' growth per tick
+            float radius;
+            float size;         // the particles' size
+            std::int32_t alpha;
+        } cast;
+        struct {
+            Vector3 position;   // drifting by velocity
+            Vector3 velocity;
+        } swirl;
+        // Protection spheres and Antimagic: element 0 (pos.z the height above the carrier); element 1's pos is the
+        // carrier's smoothed motion.
+        struct {
+            float radius;       // the sphere's
+            float speed;        // the carrier's (0 below 0.01)
+        } sphere;
+        struct {
+            float tiltCos;      // element 1: the tilt's cosine and sine (0.01 radians)
+            float tiltSin;
+        } sphereTilt;
+        // Casting and Healing: a ring of flames (pos its centre, relative to the source; ticks its countdown).
+        struct {
+            float radius;
+            float angle;        // of its leading flame
+            float rise;         // per tick
+            Vector3 centre;     // its starting centre
+        } flames;
+        // Link: element 0 the beam's length and its inverse (ticks the alpha cap); elements 1-3 the beam's frame
+        // (direction, side, their cross product).
+        struct {
+            float length;
+            float inverseLength;
+        } link;
+        struct {
+            Vector3 axis;       // a unit vector
+        } linkAxis;
+        // Geyser (the fireworks): a vent (ticks the eruption's remaining ticks).
+        struct {
+            float yaw;          // the jet's direction (radians)
+            float tilt;         // off vertical (radians)
+            float power;        // its strength
+            std::int32_t pause; // before the next eruption
+        } vent;
+        // Shower1-4: a direction (pos); element 0's ticks is the texture frame.
+        struct {
+            std::int32_t age;   // in ticks; element 0: negative until the directions are chosen
+        } ray;
+        // Bag: a ball (pos its position, ticks its countdown).
+        struct {
+            Vector3 step;       // its last step
+            Vector3 velocity;
+            std::int32_t age;   // its kind, then its age (indexes the sizes)
+        } ball;
+        // TeleportRing: the ring around the carrier (ticks its age).
+        struct {
+            float radius;
+            float height;       // the carrier's
+            float foot;         // the ring's offset below the carrier's centre
+        } column;
+        // Mushroom and Transform.
+        struct {
+            float spread;       // the puffs'
+            float capHeight;
+            Vector3 stem;       // the stem's foot
+        } mushroom;
+        // BlueGas: pos the carrier's figure offset.
+        struct {
+            float radius;       // the gas radius
+            float height;       // the carrier's
+        } gas;
+        // Tornado and CurseHolder: a ring of the funnel (pos its centre); element 0 also holds the funnel's own
+        // values.
+        struct {
+            float height;       // the funnel's
+            float bend;         // 0: the rings sway with the source's motion, else they lean
+            float damping;      // the particles' spin damping
+        } funnel;
+        // Cylinder1 / 2: a star (pos relative to the source, ticks its countdown).
+        struct {
+            Vector3 step;       // its last step
+            float rotation[2];  // the cosine and sine of its turn per tick
+            float inverseOrbit;
+            float orbit;        // the orbit radius
+            float rise;         // per tick
+        } star;
+        // Banshee: ticks the countdown.
+        struct {
+            float radius;       // easing towards 30 times the source's height
+            float height;       // the ring's
+        } banshee;
+        // ClayRing: a point on the ground (pos; ticks the countdown).
+        struct {
+            Vector3 previous;   // its previous position
+            Vector3 direction;  // turning a little each tick
+        } clay;
+        // Falling1-4: a gust.
+        struct {
+            float reach;
+            float direction;    // radians, truncated
+            std::int32_t age;
+        } wind;
+        // StartTrans: element 0 (ticks the countdown).
+        struct {
+            float scale;        // the glow's size, growing with the source's
+            float count;        // the emitted count, rising by 0.4 per tick
+        } trans;
+        // ShapeChange: element 0.
+        struct {
+            Vector3 mark;       // the last point glowed at
+            std::uint32_t color;    // by the source's glowKind
+        } glow;
+    };
+    int ticks = 0;              // (LightningBlast point 0: the bursts; Modifier point 0: the fade step)
+};
+static_assert(sizeof(ParticleElement) == sizeof(Vector3) + sizeof(ParticleElement::fragment) + sizeof(int),
+              "the first view is the largest: its initialiser zeroes every view");
+
+class ParticleSource;
+class Object3D;
+class MapObject;
+class SceneRenderer;
+class Texture;
+
+// The client world's manager set-up calls it after the base manager's constructor.
+class ParticleManager;
+void ParticleManagerClearQuietStart(ParticleManager* manager);
+
+// The particle manager: a BaseManager whose objects are the sources. It keeps a pool of free particles (taken
+// from the head, returned to the tail), and holds one reference on every source made through CreateSource
+// (`held`, by id) until the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
+class ParticleManager : public BaseManager {
+public:
+    // Kept order: Destroy releases the sources in it, which sends them to the spares and their textures' releases
+    // to the texture manager's spare list in that order.
+    using HeldMap = lib::HashMap<int, ParticleSource*>;
+
+    ParticleManager();
+    ~ParticleManager() override;
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+    EngineObject* NewObject(int type) override;
+
+    void Create() override;
+    void Destroy() override;
+
+    Particle* AcquireParticle();                    // from the pool, else new
+    void ReleaseParticle(Particle* p);              // back to the pool's tail
+    int DrawAll(SceneRenderer* renderer);
+    // CreateObject(type, -1), referenced and held under its id; with quietStart set, CampFire, Fire and Smoke start
+    // without emitting.
+    ParticleSource* CreateSource(int type);
+    // Every source's tick (with `paused` only the ones with ParticleSourceFlag::TicksWhilePaused); a held source whose tick returned 0 is
+    // released and leaves `held`. Returns 0.
+    int TickSources(char paused);
+    // Every held source nobody else references (refCount 1) is released and leaves `held` (the client's zone
+    // load).
+    void ReleaseUnheld();
+
+    std::deque<Particle*> freeParticles;   // taken from the front, returned to the back
+    HeldMap held;                                   // id -> source holding a reference
+    int maxHeldId = 0;                              // highest key of held
+    int quietStart = 0;                             // see CreateSource; never set non-zero in src
+};
+
+// One entry of the draw order: the source's depth along the camera's view axis.
+struct ParticleDepth {
+    float depth = 0.0f;
+    ParticleSource* source = nullptr;
+};
+
+// One texture frame's UV rectangle.
+struct SourceFrame {
+    float u0 = 0.0f, v0 = 0.0f, u1 = 0.0f, v1 = 0.0f;
+};
+
+// The bits of EngineObject::flags on a particle source (the types' setups in particle_create.cpp set them).
+enum class ParticleSourceFlag : std::uint32_t {
+    Emitting = 0x1,
+    AttachedOnly = 0x2,     // emits only while attached
+    KeepAlive = 0x4,        // a detached source stays while it has it (else while it has particles)
+    TicksWhilePaused = 0x8, // ticked while the game is paused
+    OnPart = 0x10,          // sits on a unit's part chosen by attachPoint (else on the top of the object's bounds)
+    IdlesOffScreen = 0x20,  // the tick idles once the draws were skipped off screen kIdleAfterHidden times
+    NotDrawn = 0x40,        // the draw skips it; nothing sets it
+};
+template <> inline constexpr bool lib::kBitFlags<ParticleSourceFlag> = true;
+
+// The colour of a ShapeChange glow (the path markers; player_client.cpp picks it by the marker's kind).
+enum class GlowKind : std::uint8_t { Grey, Green, Orange };
+
+// Where a source with ParticleSourceFlag::OnPart sits on a unit (ParticleSource::AttachmentPoint): the unit's effect
+// point or a part of its figure (the part's name; a figure without it gives "bd", then the top of its bounds).
+enum class AttachPoint : std::uint8_t {
+    EffectPoint,    // Unit::EffectPoint
+    Head,           // "hd"
+    AboveHead,      // "hd", 1 higher
+    LeftHand,       // "lh2"
+    RightHand,      // "rh2"
+    LeftLeg,        // "ll2"
+    RightLeg,       // "rl2"
+    Body,           // "bd"
+    Body00,         // "body00" ... "body04"
+    Body01,
+    Body02,
+    Body03,
+    Body04,
+};
+
+// The draws a source with ParticleSourceFlag::IdlesOffScreen skips off screen before its tick idles.
+inline constexpr int kIdleAfterHidden = 57;
+
+// A particle source: localPosition is where it emits relative to what it is attached to, localRotation the
+// identity after Reset.
+class ParticleSource final : public TransformObject {
+public:
+    explicit ParticleSource(int type);
+    ~ParticleSource() override;
+    void Create() override;                          // per-type parameters
+    void Destroy() override { Clear(); }
+    bool RunTick() override;                         // 1 while the source stays alive
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+
+    // The particle manager that made the source (the client world's): its own teardown still reaches it there.
+    ParticleManager* Manager() const;
+    // Fills the shared vertex / sprite arrays and draws through the renderer. 1 when there is
+    // nothing to draw or it is off screen.
+    int Draw(SceneRenderer* renderer);
+
+    // --- set-up ---
+    void Reset();                                   // defaults, texture and elements dropped
+    void Clear();                                   // particles back to the pool, detach, Reset
+
+    // --- per-frame tick ---
+    void AddParticle(Particle* p);                  // prev = current, bounds, list tail
+
+    // The emission point in the world (attachment point plus the local position).
+    Vector3 WorldPosition();
+
+    // Offset (0, 0, the bounds centre's z) and radius of the object followed (its bounds recomputed); (0, 0, 0)
+    // and 0.1 when there is none.
+    struct Attachment {
+        Vector3 offset;
+        float radius = 0.0f;
+    };
+    Attachment AttachmentOffset();
+
+    // --- small setters the game calls on sources ---
+    void ScaleSize(float factor);
+    void StopEmitting();                            // Emitting off, KeepAlive on
+    void StartEmitting();                           // Emitting and KeepAlive on
+    void Stop();                                    // Emitting and KeepAlive off, detach
+
+    // Follow `object` (a map object, or null to let go): the old object
+    // drops the source (its point is folded into the local position), the new one adds it, and
+    // the emission point becomes the new attachment point (or the local position).
+    void Attach(MapObject* object);
+    // Where the source sits on `object`: with OnPart a unit's attachPoint, else the top of its bounds; without
+    // OnPart its position.
+    Vector3 AttachmentPoint(Object3D* object);
+    // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else its position
+    // raised by the bounds' upper z extent.
+    Vector3 PartPoint(Object3D* object, const char* prefix);
+    // Every particle back to the pool, emission off (Emitting and KeepAlive cleared), detached.
+    void StopAndClear();
+    void ReleaseAllParticles();
+
+    // EngineObject's flags hold the ParticleSourceFlag bits, its type a ParticleType.
+    MapObject* attachedTo = nullptr;  // the object followed, null: none
+    Vector3 origin;                 // world emission point
+    Vector3 motion;                 // movement since the last tick
+    Vector3 side;                   // unit, motion x (0, 0, 1) (zero while still)
+    Vector3 up;                     // unit, motion x side
+    float distance = 0.0f;          // length of motion
+    int emitChance = 0;             // percent per try
+    int emitCount = 0;              // tries per tick
+    float emitSpacing = 1000.0f;
+    int maxParticles = 0;
+    int frameCount = 1;
+    int frameColumns = 1;           // columns of the texture's frame grid
+    int frameDelay = 10000;         // ticks per texture frame
+    int hiddenTicks = 0;            // draws skipped off screen in a row (IdlesOffScreen)
+    int lifetime = -1;
+    Vector3 spreadMin;
+    Vector3 spreadMax;
+    float size = 1.0f;
+    float height = 0.0f;
+    float growth = 0.0f;
+    float alpha = 1.0f;
+    float typeParam = 1.0f;         // per type: rate, count or size (1.0 after Reset)
+    float turnCos = 0.0f;           // \ cos / sin of the emitter's turn (a zone exit's
+    float turnSin = 0.0f;           // / angle)
+    float baseSize = 1.0f;
+    int emitState = 0;              // per type: the emitted count or a one-shot flag
+    Vector3 extent;
+    AttachPoint attachPoint = AttachPoint::EffectPoint;
+    Vector3 windDirection;          // copied from the world every tick
+    float windStrength = 0.0f;
+    bool additiveBlend = false;     // drawn with additive blending
+    std::uint32_t tint = 0;         // the particles' colour: Tornado and CurseHolder ARGB, FeetCloud RGB
+    int rayCount = 0;               // Shower1-4: the directions chosen (alpha * 8, at least 1)
+    GlowKind glowKind = GlowKind::Green;   // ShapeChange
+    std::vector<ParticleElement> elements;   // per type
+    Vector3 boundsMin;              // over the particles, rebuilt every tick
+    Vector3 boundsMax;
+    // The bounds the renderer clips by: BoundsFlag::Box set by the tick, the box (boundsMin and boundsMax less the
+    // centre) relative to the centre; the radius is not written.
+    ClipBounds clip = {};
+    std::vector<Particle*> particles;
+    std::vector<SourceFrame> frames;
+    Ref<Texture> texture;
+};
+
+// The class factory's creator; the register arguments are unused.
+ParticleSource* NewParticleSource(int type);
+
+// The particle renderer's shared arrays: one SpritePoint (position and size, interpolated between the last two
+// ticks) and one sprite (colour, texture frame) per particle.
+struct ParticleSprite {
+    std::uint32_t color = 0;        // ARGB
+    const SourceFrame* frame = nullptr;  // the particle's frame among its source's frames
+};
+
+// The world's rain/snow layer.
+class RainSnow final : public EngineObject {
+public:
+    RainSnow();
+    ~RainSnow() override;
+    void Create() override {}
+    void Destroy() override { Clear(); }
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+
+    int Draw(SceneRenderer* renderer);
+    void UpdateFade(float now);
+    void SetWind(const Vector3& direction, float strength);
+    void Clear();
+    // A running loop stopped unless `newMode` is 0; rain starts the looping "nature\rain\circle.wav"; the fade
+    // towards `newMode` starts now (the world's tick) over `duration` (0: at the next step). Called by the weather
+    // messages.
+    void Start(int newMode, float duration);
+    // The rain's or the snow's particles drawn (weather_particles.cpp): the field of weather_field.h around the view,
+    // `density` of 64 of them shown, each built on the screen (a raindrop a streak along its motion on the white
+    // texture, a snowflake a square of one of `texture`'s flake pictures) and drawn as pre-transformed triangles with
+    // the device's current state.
+    void DrawParticles(SceneRenderer* renderer, weather::Kind kind);
+    // The vertices built so far drawn (unless the harness leaves the particles out) and emptied.
+    void Flush(SceneRenderer* renderer);
+    // The terrain's ground or water height at (x, y) for the particles: between the heights at the whole units around
+    // it, kept in `ground` (weather_particles.cpp).
+    float GroundAt(float x, float y);
+
+    Ref<Texture> texture;          // "RainSnow": the snowflakes' pictures (taken at the first snow drawn)
+    class WorldClient* world;      // the client world (set after construction)
+    int sound = 0;                  // rain loop handle in the sound manager (0: none)
+    // The draw's work arrays: a batch of particles' vertices and their triangles.
+    std::vector<TLVertex> vertices;
+    std::vector<std::uint16_t> indices;
+    int flushed = 0;   // the vertices drawn so far by this draw
+    // The terrain's surface heights at whole units around the view, kept from frame to frame: a point's slot is its
+    // place modulo the table's side (GroundAt). Emptied when the world's terrain changes.
+    struct GroundPoint {
+        int x = std::numeric_limits<int>::min();   // the unit the height is of (none yet)
+        int y = 0;
+        float height = 0.0f;
+    };
+    std::vector<GroundPoint> ground;
+    const void* groundOf = nullptr;   // the terrain `ground` holds heights of
+    // Where the wind has carried the particles (weather::FieldView::carry), up to the world time `carriedTo`.
+    Vector3 carry;
+    double carriedTo = 0.0;
+    bool carrying = false;   // `carriedTo` holds a frame's time
+    Vector3 wind;
+    int mode = 0;                   // 0 off, 1 rain, 2 snow
+    int targetMode = 0;
+    int density = 0;                // 0..64
+    float fadeStart = 0.0f;         // world time
+    float fadeDuration = 0.0f;      // 0: no fade running
+};
+
+// A fog cell (the hash_map value; the key is (y << 16) + x of the map square).
+struct FogCell {
+    std::int16_t x = 0;             // map square
+    std::int16_t y = 0;
+    Vector3 pos;                    // jittered centre, z = ground + 0.5
+    float alpha = 0.0f;
+    std::uint8_t visible = 0;
+    std::int8_t frame = 0;          // 0..14, picks the texture tile
+};
+
+// The texture coordinates of the fog texture's 4 x 4 tiles (16 records; the fog manager's Create fills them,
+// the fog's draw hands them to the renderer): a tile's u range, and its v range counted down from 1 a row.
+struct FogTile {
+    float u0 = 0.0f;  // column / 4
+    float v1 = 0.0f;  // v0 + 1/4
+    float u1 = 0.0f;  // u0 + 1/4
+    float v0 = 0.0f;  // 1 - (row + 1) / 4
+};
+inline FogTile g_fogTiles[16] = /*007ABA58*/ {};
+
+// The squares currently seen: rows of bytes, nonzero = visible.
+struct FogGrid {
+    void Clear();                         // no origin (0x7FFFFFFF), 1 x 1, zeroed
+    // x0, y0, width, height (dwords), then the cells; reading makes the cells again when the size changed.
+    void Read(MemoryStream* stream);
+    void Write(MemoryStream* stream);
+    // Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first call (x0 = 0x7FFFFFFF) sizes and
+    // clears it.
+    void Grow(int x, int y, int n);
+
+    int x0 = 0;                     // map cell of cells[0][0]; 0x7FFFFFFF before the first Grow
+    int y0 = 0;
+    SearchGrid<std::uint8_t> cells; // width * height bytes and the row table (operator new)
+};
+
+class VisibilityFog final : public EngineObject {
+public:
+    using CellMap = lib::HashMap<std::uint32_t, FogCell>;   // Draw hands the cells' sprites over in STLport's order
+
+    VisibilityFog();
+    ~VisibilityFog() override;
+    void Create() override;
+    void Destroy() override { ClearCells(); }
+    bool RunTick() override;
+    const char* ClassName() override;
+    ClassId GetClassId() override;
+
+    void ComputeBounds();
+    void Reveal(const FogGrid* grid);
+    // Every cell freed (nodes back to the pool), the bounds invalid.
+    void ClearCells();
+    // The cells as sprites through the scene renderer; 1 without cells or when the bounds are out of view.
+    int Draw(class SceneRenderer* renderer);
+
+    ClipBounds bounds = {};         // flags 3 once computed; the box relative to the centre
+    CellMap cells;
+    std::uint8_t boundsValid = 0;
+};

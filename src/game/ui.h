@@ -8,7 +8,7 @@
 
 #include "game/core/engine_object.h"
 #include "game/saves/save_picture.h"
-#include "game/texture.h"   // TextureKind
+#include "game/models/texture.h"   // TextureKind
 #include "game/ui_font.h"
 #include "game/units/unit.h"   // LockKey
 

@@ -11,7 +11,7 @@
 #include "game/net_delta.h"
 #include "game/players/party.h"
 #include "game/script.h"
-#include "game/water_tweens.h"
+#include "game/terrain/water_tweens.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

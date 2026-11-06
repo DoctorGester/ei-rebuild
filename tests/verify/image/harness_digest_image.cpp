@@ -11,13 +11,13 @@
 #include "game/players/player_messages.h"
 #include "game/core/random.h"
 #include "game/script.h"
-#include "game/spell.h"
-#include "game/terrain.h"
-#include "game/terrain_sector.h"
+#include "game/spells/spell.h"
+#include "game/terrain/terrain.h"
+#include "game/terrain/terrain_sector.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 
 #include "lib/crt.h"
 

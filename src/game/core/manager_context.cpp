@@ -2,8 +2,8 @@
 // the party and the client world make (their DuplicateItem).
 #include "game/core/manager_context.h"
 
-#include "game/item.h"
-#include "game/item_manager.h"
+#include "game/items/item.h"
+#include "game/items/item_manager.h"
 #include "game/world/world.h"
 
 #include <cstdint>

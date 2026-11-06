@@ -4,11 +4,11 @@
 #include "game/world/object_order.h"
 
 #include "game/core/engine_object.h"
-#include "game/link_figure.h"
+#include "game/models/link_figure.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
-#include "game/texture.h"
+#include "game/models/texture.h"
 
 
 #include <bit>

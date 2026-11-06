@@ -7,7 +7,7 @@
 #include "game/app/singletons.h"
 #include "game/script_parse.h"
 #include "game/world/world.h"
-#include "game/world_effect.h"
+#include "game/effects/world_effect.h"
 #include "lib/scales.h"
 #include "lib/rounding.h"
 #include "lib/str.h"

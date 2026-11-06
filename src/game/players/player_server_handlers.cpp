@@ -9,7 +9,7 @@
 #include "game/core/core_maths.h"
 #include "game/core/core_streams.h"
 #include "game/app/singletons.h"
-#include "game/item_manager.h"
+#include "game/items/item_manager.h"
 #include "game/app/logic_settings.h"
 #include "game/objects/map_object.h"
 #include "game/players/party.h"

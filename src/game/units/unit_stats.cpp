@@ -3,9 +3,9 @@
 #include "game/app/logic_settings.h"
 #include "game/core/random.h"
 #include "game/data/text_manager.h"
-#include "game/item.h"
+#include "game/items/item.h"
 #include "game/saves/save_versions.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 

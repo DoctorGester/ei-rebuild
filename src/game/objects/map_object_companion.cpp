@@ -1,6 +1,6 @@
 // The companions of map objects (map_object.h): MapObjectServer (class id 0x39) and MapObjectClientSpecific
 // (0x3A). Both classes are declared in unit.h; each holds the map object it belongs to.
-#include "game/effects.h"   // ParticleSource
+#include "game/effects/effects.h"   // ParticleSource
 #include "game/app/singletons.h"
 #include "lib/bytes.h"
 #include "lib/str.h"
@@ -9,9 +9,9 @@
 #include "game/data/text_manager.h"
 #include "game/core/random.h"
 #include "game/sound/sound.h"
-#include "game/terrain.h"
-#include "game/light.h"
-#include "game/spell.h"
+#include "game/terrain/terrain.h"
+#include "game/scene/light.h"
+#include "game/spells/spell.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 

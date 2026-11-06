@@ -4,7 +4,7 @@
 // (on to the console, the chat line or the top window). See ui.h and
 // docs/notes/ui.md ("Container input dispatch").
 #include "game/ui.h"
-#include "game/device.h"
+#include "game/scene/device.h"
 #include "game/ui_chat_overlay.h"
 #include "game/ui_battle.h"
 #include "game/ui_message_box.h"
@@ -14,7 +14,7 @@
 #include "game/core/core_maths.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
-#include "game/model.h"
+#include "game/scene/scene_renderer.h"
 #include "game/net_classes.h"
 #include "game/data/text_manager.h"
 #include "game/sound/sound.h"
@@ -24,7 +24,7 @@
 #include "game/ui_screens.h"
 #include "game/screen_layout.h"
 #include "game/world/world.h"
-#include "game/terrain.h"
+#include "game/terrain/terrain.h"
 #include "platform/log.h"
 #include "lib/crt.h"
 #include "lib/rect.h"

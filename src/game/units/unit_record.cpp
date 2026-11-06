@@ -1,6 +1,6 @@
 // The unit record applied to a new unit. See unit_record.h.
-#include "game/item.h"
-#include "game/item_manager.h"
+#include "game/items/item.h"
+#include "game/items/item_manager.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/units/unit_record.h"

@@ -2,16 +2,16 @@
 // ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "game/app/app.h"
 #include "game/core/core_refcount.h"
-#include "game/model.h"
-#include "game/texture.h"
+#include "game/scene/scene_renderer.h"
+#include "game/models/texture.h"
 #include "game/ui_item_info.h"
 #include "game/ui_mesh.h"
 #include "game/players/faces.h"
 
-#include "game/surface.h"
-#include "game/item.h"
+#include "game/scene/surface.h"
+#include "game/items/item.h"
 #include "game/core/random.h"
-#include "game/spell.h"
+#include "game/spells/spell.h"
 #include "game/units/unit_db.h"
 
 #include "lib/maths.h"
