@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <functional>
 #include <span>
+#include <string>
+#include <utility>
 #include <vector>
 
 struct SDL_Window;
@@ -290,7 +292,7 @@ struct PassDesc {
     ColourTarget colour;
     ColourTarget second;   // a second colour target (SV_Target1); empty: none
     DepthTarget depth;
-    const char* label = nullptr;
+    const char* label = nullptr;   // a literal (GpuTiming::Pass keeps it until the pass is timed)
 };
 // The viewport and scissor are the whole target until set. False (logged) for a pass without a device or targets; one
 // SDL refuses is a failure (SetFailureHandler).
@@ -387,6 +389,22 @@ WaitTimes Waits();
 void SetFrameTiming(bool on);
 // The latest submission finished since the last call: its milliseconds. False when none has.
 bool FrameGpuTime(double* milliseconds);
+
+// ---- GPU time by pass (the harness's "gputiming" step; docs/notes/renderer.md section 13 item 1) -----------------
+
+// Frame: the frame timer on, polling without sleeping at time-critical priority, each presented frame's time summed.
+// Pass: also every pass submitted on its own at its end (the copies waiting before a pass too, as "upload"), so each
+// is timed by its fence; more submissions, about 0.015 ms of GPU time each, so only for measuring. Off: neither.
+enum class GpuTiming : std::uint8_t { Off, Frame, Pass };
+void SetGpuTiming(GpuTiming mode);
+struct GpuTimes {
+    int frames = 0;                                  // presented frames finished since the last TakeGpuTimes
+    double meanMs = 0.0, medianMs = 0.0, p10Ms = 0.0, p90Ms = 0.0;   // a frame's, its submissions summed
+    double waited = 0.0;   // the share of submissions sent while the GPU still ran the one before
+    std::vector<std::pair<std::string, double>> parts;   // Pass: ms a frame by pass label, the largest first
+};
+// The times since the last call, which starts them again.
+GpuTimes TakeGpuTimes();
 
 // ---- Device loss (the harness's "losedevice" step) ----------------------------------------------------------------
 

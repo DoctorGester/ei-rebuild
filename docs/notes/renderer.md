@@ -900,14 +900,26 @@ against the last frame's (same / relit / moved / new). The harness step `renders
 the last one into the report, with the main thread's CPU and wall time per frame; scenario `render_stats` measures the
 main menu, zone1, a fight of twelve creatures, the camp, the base bz1g (a town), the global map and its escape menu.
 `EI_PROFILE=1` gives the game side (tools/profile_report.py).
-A part of the frame's GPU time (SDL_GPU has no timestamp queries): submit the command buffer before and after the part
-and time each submission by its fence, from a thread that polls without sleeping at time-critical priority; a submission
-made while the GPU still runs the one before is timed from that one's end. Only on a quiet machine: another build or
-game makes the poller late, and its times mean nothing then (a run's main-thread CPU time above its quiet value says
-so). The kit (a probe patch, its scenario and runner, the logs): build/R37e2 in the main checkout. PIX (installed) takes
-a GPU capture from a run (the probe loads WinPixGpuCapturer.dll before the device and calls its `CaptureNextFrame`), but
-its timing needs the Performance Log Users group (or an administrator), which the runs lack; its event list shows the
-command stream.
+The GPU's time (SDL_GPU has no timestamp queries): the harness step `gputiming frame|pass|off` (`gpu::SetGpuTiming`,
+R37e3) polls the submissions' fences from a thread that does not sleep, at time-critical priority; a submission made
+while the GPU still runs the one before is timed from that one's end. `frame` times the whole frame; `pass` submits every
+pass on its own at its end (the copies waiting before a pass as `upload`), so each is timed, about 0.015 ms of GPU time
+more per submission (the save below: 3.47 ms split, 3.25 whole). The next `renderstats` logs (not into the report) a
+line "renderstats <label> GPU ms a frame: mean (median, p10, p90; frames, the share of submissions sent while the GPU
+ran the one before); by pass: label ms, ..." largest first. Only on a quiet machine, one 4K game at a time: another
+build or game makes the poller late (a run's main-thread CPU time above its quiet value says so). A frame that leaves the
+GPU idle most of the time may run at lower GPU clocks, so a CPU-bound frame's passes read somewhat dearer than a
+GPU-bound one's. Finer splits (a pass cut by its draws' kind, a resolve in a pass of its own, a part switched off) are
+probes: the R37e3 kit shows how (build/r37e3/kit in the main checkout: probe.patch, made on main before `gputiming`,
+with the main thread's time by part of the frame; its scenarios; runs.py, its worktree's path at the top; the logs;
+the save in build/r37e3/save5, the captures in build/r37e3/rdoc).
+RenderDoc 1.46 (E:\bin\renderdoc) captures a frame of a run: the probe loads renderdoc.dll before the device
+(`RENDERDOC_GetAPI`, `SetCaptureFilePathTemplate` to a path under build/, `TriggerCapture` at a step), and
+`qrenderdoc.exe --python <script>` replays it without the interface (rdoc_analyse.py in the kit: actions by target,
+their durations, the command list's calls by name). Its per-event durations time each event alone, the GPU drained
+around it (the save's frame: 27 ms summed against 3.3 by fences), so they rank the large draws but do not add up; the
+call counts are exact. PIX (installed) also takes captures (WinPixGpuCapturer.dll, `CaptureNextFrame`), but its timing
+needs the Performance Log Users group (or an administrator), which the runs lack.
 
 **2. Where the time goes.** The main thread is the frame's limit (1.7-3.8 ms a frame in the zones and the town at 4K,
 5.9-7.4 ms with a crowd; the GPU frame 1.5-2.6 ms); draws (a few hundred) and state changes are cheap, and triangles are
@@ -922,6 +934,44 @@ On SDL_GPU (R37e2, times by submission) the town at night at 4K, msaa 8 takes th
 crowd) and the main thread 1.1 (2.1) ms of CPU, so there a frame without a limit waits for the GPU (every submission
 found the one before still running); 2.4 ms of it is after the shadow maps (the world's pass, its resolve and the
 present).
+
+**2a. A heavy frame (R37e3).** The user's Lost in Astral save (gz1h, desert with hundreds of palms; the camera as a
+load leaves it, distance 50, pitch 30; kit in build/r37e3) at 3840 x 2160, msaa 8, anisotropy 16, Direct3D 12 on the
+RTX 4070 Ti SUPER, 300 frames, harness (verify) build; beside it R37e2's town bz1g at night (alone / with the crowd).
+- **The limit is the main thread**: 9.0-9.4 ms of CPU a frame in the save against 3.25 ms of GPU (no submission found
+  the GPU busy). The town: CPU 1.1 (2.2) ms, GPU 2.30 (2.33) ms, every submission waiting, the main thread waiting
+  1.15-1.25 ms for the swap chain's texture (R37e2 measured 2.75 ms of GPU there).
+- **GPU by pass** (`gputiming pass`; save / town at night, ms): the world's multisampled pass 2.03 / 1.36, of it the ground
+  1.1 / 0.68, the caster models 0.48 / 0.51, the other models 0.30 / 0.12, the water 0.10 / 0.05 (the pass cut by its
+  draws' kind, without the resolve), the resolve 0.14-0.18 / 0.15 (a pass of its own; RenderDoc 0.14 / 0.12); the
+  ambient occlusion 0.46 / 0.41 (half-size depth 0.19 / 0.07, the search 0.17 / 0.21, the two blurs 0.10 / 0.13); the
+  sun's map 0.30 / 0.15 with its range passes 0.14 / 0.15; the point lights' faces - / 0.05 (0.07 with the crowd);
+  the present 0.17 / 0.13; the interface's pass 0.13 / 0.04; the copies before passes 0.17 / 0.12; the water's frame
+  copy and sky 0.08 / 0.10. The world pass is shading-bound, not sample-bound: the save's world pass is 1.91 ms at msaa
+  1, 1.93 at msaa 4, 2.03 at msaa 8; anisotropy 1 changes nothing; the shadow map's lookups off take 0.15 ms off the
+  ground, the occlusion's lookups 0.05. RenderDoc's dearest single events: ground batches (one of 12864 indices 0.26
+  ms), the occlusion search, the resolve, the 8-sample colour clear (0.11 ms).
+- **The command stream** (RenderDoc, the save's frame): 5754 draws (1894 into the sun's map, 1854 into the occlusion's
+  depth, 1858 into the world, 140 for the interface), 23 pipeline changes, 2045 uniform buffer binds, 262 descriptor
+  tables, 1294 descriptor copies, 13 vertex and 12 index buffer binds, 38 barriers, one ExecuteCommandLists. The town:
+  769 draws, 21 pipelines, 265 uniform binds. gpu.h's filter leaves little for the driver; the cost is ours per draw.
+- **The main thread** (save / town crowd, ms a frame, each part without the parts inside it; probe in the kit): the game's
+  update 0.55 / 0.35; the world's hand-over 6.0 / 0.9: the static objects' draws 3.1 (the game's figure draws, the
+  device's CPU projection of every mesh 0.96 and the renderer's hand-over 0.98 inside), the units' 0 / 0.42, the visible
+  objects' walk over the whole map (CollectVisible) 0.70 / 0.08, the old shadow lists 0.27 / 0.03, the ground's pages
+  1.08 / 0.04, the water's 0.48 / 0.02, the casters outside the view 0.27 / 0.10, particles 0.004 / 0.04; the interface
+  0.17 / 0.002; EndFrame 2.3 / 1.2: the world's model draws 0.93 for 1749 (0.53 us a draw, 1.33 KB of uniforms each,
+  2.3 MB a frame) / 0.30 for 409, PrepareShadows 0.40 / 0.13, the sun's map 0.41 for 1894 draws / 0.11, the occlusion's
+  depth 0.19 / 0.05, the point faces - / 0.05, the submission 0.15 / 0.10, uploads 0.06. The sampling profile's own
+  time (EI_PROFILE, the save): the terrain pages' hand-over (`TerrainPage` 8.3%, `MakeVertex` 3%, `Build`, `BuildPage`,
+  `MakeGroups`, `ChangesOf` 5%), the heap (ntdll 6.5%), the device's projection (`TransformPipeline::Project` 5%,
+  `ProjectToClip`, `ClipTest`, `PushMatrix` 4.4%), the objects' sort (`object_order::DrawBefore` 4.5%), samplers and
+  pipelines found by description at each draw (`MakeSampler`, `SamplerDesc` ==, `PipelineHash` 4.9%), byte compares
+  (memcmp 3.1%: the uniform filter), `DrawParts` 3%, `CollectVisible` 2.7%, the driver 2.5%, the casters' sort 1.4%.
+- **Top costs**, the save: the world hand-over's figure draws and the device's projection (3.1 ms), the terrain pages
+  handed over every frame (1.55 ms), the model draws' per-draw state work in EndFrame (0.93 ms, plus 0.6 ms of shadow
+  and occlusion caster draws), the whole-map visibility walk and the objects' sort (about 1.1 ms). The follow-ups
+  (R37e4-R37e9) are filed in that order of expected gain; the GPU's (R37e10) waits until the GPU limits play.
 
 **3. Terrain pages kept on the GPU** (`render_terrain.cpp`). Each sector page is built once, all four quarters, into a
 pool of buffers written in place, only the changed ranges (gpu.h's `Write` with `Keep`): positions, texture

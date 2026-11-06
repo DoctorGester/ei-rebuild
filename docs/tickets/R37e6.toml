@@ -1,0 +1,8 @@
+id = "R37e6"
+title = "Model draws' per-draw state work in EndFrame: 0.53 us and 1.33 KB of uniforms a draw"
+group = "renderer"
+depends = ["R37e3"]
+files = ["src/render/render_mesh.cpp", "src/render/gpu.cpp", "src/render/shaders/mesh.hlsl"]
+note = "R37e3: EndFrame's world model draws take 0.93 ms for 1749 draws in the save (0.30 ms for 409 in the town crowd), pushing 1.33 KB of uniforms each (2.3 MB a frame; gpu.h compares each block byte by byte, memcmp 3.1% of the main thread) and finding the pipeline and samplers by description at every draw (MakeSampler, SamplerDesc ==, PipelineHash: 4.9%). Keep the pipeline and sampler handles in the batch (or the kept mesh), and split the uniforms into a per-frame block (lighting, shadow, cloud, fog, weather) bound once a pass and a small per-draw block (matrix, material, texture offset). The shadow map's and occlusion depth's caster draws (0.41 + 0.19 ms) already use instance records; check they share the lookups. Expected 0.4-0.7 ms on the save. Measure with the R37e3 kit (build/r37e3 in the main checkout: the save5 scenario, probe.patch's main-thread parts, gputiming) at 4K msaa 8, one game at a time; renderer.md section 13 item 2a."
+order = 1260
+status = "later"
