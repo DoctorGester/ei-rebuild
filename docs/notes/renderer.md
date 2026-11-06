@@ -346,13 +346,27 @@ picture's rectangle (or white, without the file) into it, replacing what was the
 pixels right after the header (the extra block not skipped, as the original read them). Colours are 8-bit.
 - The save / load pictures: a blank texture of the picture's size into which its RGBA8 pixels are drawn
   (`ImageLayout::Rgba`; the 5:6:5 ones decoded on the CPU, `save_picture.h`).
-- The global map's clouds (`GlobalMapClouds`, global_map_clouds.cpp): the CPU keeps only the three random words of each
-  of a frame's four layers (`render::CloudFrame`: the game's random numbers are drawn as before), and `render::DrawClouds`
-  each frame draws the 4:4:4:4 texture from two frames, the blend and the 256-entry alpha ramp (texture_clouds.hlsl:
-  white, alpha ramp[(to x blend + from x (256 - blend)) >> 8], 8-bit alpha). A frame's 256 x 256 grey levels are built
-  once by the GPU from its words (`texture_clouds_frame.hlsl`, into an R8 texture, at most 4 kept): the layers' hash, the
-  3 x 3 smoothing in the cells' order, the octaves' bilinear sums and the byte store, integer for integer as the CPU code
-  did.
+- **The global map's clouds** (R66; `GlobalMapClouds`, global_map_clouds.cpp; `map_clouds.hlsl`). The map draws its
+  three cloud layers (shadow, haze and glow: big planes at three heights that turn with the map, each in its flat colour
+  and scrolling the texture at its own pace, ui_global_map.cpp) from one blank texture, which `render::DrawClouds`
+  redraws each frame with our own cloud shader (the game's look, 256 x 256 blocky value noise that swapped frames every
+  16 steps, is gone). Per texel:
+  - a density from fractal gradient noise (7 octaves, each 2x finer and 0.55x as strong), its point first moved by two
+    slower noises (the domain warp: billows and wisps). Every octave repeats across the texture (4 cells at the coarsest,
+    a hashed lattice taken modulo its period), so the layers' scrolling wraps without a seam;
+  - the drift: each octave and the warp move their own way at about a third of a coarsest cell per 16 of the game's
+    clock (`MapClouds::time`: seconds x the game's speed 2, so a cell in about 25 s), so the shapes change continuously.
+    The drifts are whole 1/64ths of a cell, so the clock's wrap (`kMapCloudsPeriod`, 32768) moves each by whole repeats;
+  - the alpha: the game's ramp of the density, 1 - (width / 255)^max(0, 255 x density - start) (SetRamp's 0x77, 0xF8:
+    start is the cover, width the softness);
+  - the colour: a grey shade the layer's flat colour multiplies. Lit from a fixed sun (the screen's upper left on the
+    layers): the density a little towards the sun against here (rising: the side away from the sun, darker), and the
+    thick parts greyer (x 0.72 at full alpha), so the clouds show volume.
+  The texture's size follows the frame (the power of two at or above its height, 512 .. 2048: about a texel a pixel
+  where the layers show it), remade when the frame's height changes; its levels below the first are drawn after it.
+  The pattern is one word of the client's random numbers (a new one at each visit; the old code drew 24 words at the
+  start and 3 a step). Check: render_map_clouds (the map's first frames, four consecutive frames, frames a second apart
+  that must differ; the captures page's R66 section).
 
 ## 8. Draws outside the frame: movies and the cursor
 

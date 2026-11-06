@@ -5,4 +5,4 @@ savea/visuals.sav 6bbcb28d0752bde4
 saveb/info.sav 1ec591e4261b1f25
 saveb/mission.sav 668f1fc2cacb5dd3
 saveb/scenario.sav 50bce5bee10ef78a
-saveb/visuals.sav a7e2bafb5f76a78b
+saveb/visuals.sav 4900a34696ed8bee

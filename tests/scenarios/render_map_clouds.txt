@@ -1,0 +1,40 @@
+# R66: the global map's clouds (docs/notes/renderer.md section 7, "The global map's clouds"): our own cloud
+# shader, smooth noise drifting continuously, lit from a fixed sun, drawn into the map's cloud texture each frame.
+# The map's first frames, four consecutive frames (the drift from frame to frame), frozen frames a second apart (the
+# clouds have moved: frame-to-frame change), then the escape menu over the map. Frames only (goldens hold none).
+render checkall
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+wait 500
+screen 4
+capture opening 3 on map
+waitwindow 15 map
+move 400 20
+frames 5
+capture drift 4
+freeze
+capture clouds_0
+unfreeze
+wait 1000
+frames 2
+freeze
+capture clouds_1
+unfreeze
+wait 1000
+frames 2
+freeze
+capture clouds_2
+unfreeze
+diffcapture clouds_0 clouds_2 0.05 1
+key esc
+waitwindow 10 escmenu
+freeze
+capture escmenu
+unfreeze
+report
+quit

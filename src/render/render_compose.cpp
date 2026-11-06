@@ -1,6 +1,6 @@
 // Textures the game builds from images, drawn on the GPU (render::ComposeTexture, DrawIntoTexture): the images
 // decoded from their files (32-bit premultiplied, "PNT3" packed, 5:6:5) and drawn into a render target, the levels
-// below made by the GPU; and the global map's clouds (render::DrawClouds), their noise frames built by the GPU too.
+// below made by the GPU; and the global map's clouds (render::DrawClouds, map_clouds.hlsl).
 // render_textures.cpp keeps the result by holder. See docs/notes/renderer.md, section 7 ("Textures composed on the
 // GPU").
 #include "../platform/log.h"
@@ -8,23 +8,11 @@
 
 #include <algorithm>
 #include <cstring>
-#include <utility>
 #include <vector>
 
 namespace render {
 
 static int g_failures = 0;
-
-constexpr int kCloudSize = 256;   // a clouds frame's width and height
-// The clouds' frames the GPU built, by their words: the two a draw blends and the next ones (a few).
-struct CloudFrameTexture {
-    CloudFrame frame{};
-    gpu::Texture image;
-    std::uint32_t used = 0;   // the composition that last used it
-};
-static std::vector<CloudFrameTexture> g_cloudFrames;
-static std::uint32_t g_compositions = 0;
-constexpr std::size_t kCloudFramesKept = 4;
 
 // The programs' rectangle into a target of `format`, no depth; `over`: premultiplied blending (the image plus what is
 // there times one less the image's alpha, alpha too).
@@ -42,16 +30,12 @@ static gpu::PipelineDesc ComposeDesc(bool over) {
     return Desc(gpu_shaders::texture_compose::kIndex, gpu::Format::Rgba8, over);
 }
 static gpu::PipelineDesc MipDesc() { return Desc(gpu_shaders::texture_mip::kIndex, gpu::Format::Rgba8, false); }
-static gpu::PipelineDesc CloudFrameDesc() {
-    return Desc(gpu_shaders::texture_clouds_frame::kIndex, gpu::Format::R8, false);
-}
-static gpu::PipelineDesc CloudsDesc() { return Desc(gpu_shaders::texture_clouds::kIndex, gpu::Format::Rgba8, false); }
+static gpu::PipelineDesc CloudsDesc() { return Desc(gpu_shaders::map_clouds::kIndex, gpu::Format::Rgba8, false); }
 
 static gpu::Pipeline ComposePipeline(bool over) {
     return gpu::MakePipeline(ComposeDesc(over), over ? "ei-texture-compose-over" : "ei-texture-compose-replace");
 }
 static gpu::Pipeline MipPipeline() { return gpu::MakePipeline(MipDesc(), "ei-texture-mip"); }
-static gpu::Pipeline CloudFramePipeline() { return gpu::MakePipeline(CloudFrameDesc(), "ei-cloud-frame"); }
 static gpu::Pipeline CloudsPipeline() { return gpu::MakePipeline(CloudsDesc(), "ei-clouds"); }
 
 // EnsurePipelines' first try and whether it made them all.
@@ -61,7 +45,7 @@ static bool EnsurePipelines() {
     if (g_pipelinesTried) return g_pipelinesMade;
     g_pipelinesTried = true;
     g_pipelinesMade =
-        ComposePipeline(true) && ComposePipeline(false) && MipPipeline() && CloudFramePipeline() && CloudsPipeline();
+        ComposePipeline(true) && ComposePipeline(false) && MipPipeline() && CloudsPipeline();
     if (!g_pipelinesMade)
         ei::Log("render: the texture composition pipelines could not be made (see the gpu messages above)");
     return g_pipelinesMade;
@@ -109,47 +93,6 @@ static void Decode(const TextureImage& image, ComposeImage& out) {
         }
         for (int k = 0; k < 4 && at < count && left >= 4; ++k, ++at, p += 4, left -= 4) PutPixel(&out.rgba[at * 4], p);
     }
-}
-
-// The clouds frame of `frame`'s words as a texture (R8): one the GPU built for an earlier composition, else built now
-// (a pass of its own, so not inside another). Empty when it cannot be made.
-static gpu::Texture CloudFrameImage(const CloudFrame& frame) {
-    for (CloudFrameTexture& f : g_cloudFrames) {
-        if (std::memcmp(&f.frame, &frame, sizeof(frame)) != 0) continue;
-        f.used = g_compositions;
-        return f.image;
-    }
-    if (g_cloudFrames.size() >= kCloudFramesKept) {
-        // The one unused longest goes.
-        auto oldest = g_cloudFrames.begin();
-        for (auto it = g_cloudFrames.begin(); it != g_cloudFrames.end(); ++it)
-            if (it->used < oldest->used) oldest = it;
-        gpu::Release(oldest->image);
-        g_cloudFrames.erase(oldest);
-    }
-    CloudFrameTexture f;
-    f.frame = frame;
-    f.used = g_compositions;
-    f.image = gpu::MakeTexture({kCloudSize, kCloudSize, 1, 1, gpu::Format::R8, gpu::TextureUse::ColourTarget | gpu::TextureUse::Sampled, "ei-cloud-frame"});
-    gpu::PassDesc pass;
-    pass.colour.texture = f.image;
-    pass.colour.load = gpu::Load::DontCare;
-    pass.label = "ei-cloud-frame";
-    if (!f.image || !gpu::BeginPass(pass)) {
-        LogFirst(g_failures, 10, "render: a clouds frame could not be made");
-        gpu::Release(f.image);
-        return gpu::Texture{};
-    }
-    gpu::ApplyPipeline(CloudFramePipeline());
-    ApplyRect(Rect{0, 0, kCloudSize, kCloudSize}, kCloudSize, kCloudSize);
-    CloudParams params{};
-    static_assert(sizeof(params.words) == sizeof(frame.words));
-    std::memcpy(params.words, frame.words, sizeof(params.words));   // the words' bits, as the shader reads them
-    gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::texture_clouds_frame::kBlockCloudParams, params);
-    gpu::Draw(0, 6);
-    gpu::EndPass();
-    g_cloudFrames.push_back(f);
-    return f.image;
 }
 
 // A texture of the image's pixels for one composition.
@@ -205,16 +148,11 @@ static void DrawLevels(const ComposeShape& shape, const gpu::Texture& target) {
 
 static void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, const ComposeStep* steps,
                       std::size_t count, bool clear) {
-    // What the steps draw from, made before the pass (a clouds frame is built in a pass of its own).
-    ++g_compositions;
+    // What the steps draw from, made before the pass.
     std::vector<gpu::Texture> textures;
     textures.reserve(count);
-    std::vector<std::pair<gpu::Texture, gpu::Texture>> cloudFrames(count);
-    for (std::size_t k = 0; k < count; ++k) {
+    for (std::size_t k = 0; k < count; ++k)
         textures.push_back(steps[k].image ? MakeStepTexture(*steps[k].image) : gpu::Texture{});
-        if (steps[k].clouds)
-            cloudFrames[k] = {CloudFrameImage(steps[k].clouds->from), CloudFrameImage(steps[k].clouds->to)};
-    }
     gpu::PassDesc pass;
     pass.colour.texture = target;
     pass.colour.load = clear ? gpu::Load::Clear : gpu::Load::Keep;
@@ -224,19 +162,6 @@ static void DrawSteps(const ComposeShape& shape, const gpu::Texture& target, con
         const gpu::Sampler nearest = gpu::NearestClampSampler();
         for (std::size_t k = 0; k < count; ++k) {
             const ComposeStep& step = steps[k];
-            if (step.clouds) {
-                if (!cloudFrames[k].first || !cloudFrames[k].second) continue;
-                gpu::ApplyPipeline(CloudsPipeline());
-                const gpu::TextureBinding b[2] = {{cloudFrames[k].first, nearest}, {cloudFrames[k].second, nearest}};
-                gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::texture_clouds::kSamplerFromFrame, b);
-                ApplyRect(step.to, shape.width, shape.height);
-                CloudParams params{};
-                params.blend = static_cast<int>(step.clouds->blend);
-                for (int g = 0; g < 256; ++g) params.ramp[g / 4][g % 4] = step.clouds->ramp[g];
-                gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::texture_clouds::kBlockCloudParams, params);
-                gpu::Draw(0, 6);
-                continue;
-            }
             const bool fill = !step.image;
             if (!fill && !textures[k]) continue;
             gpu::ApplyPipeline(ComposePipeline(step.over && !fill));
@@ -258,7 +183,6 @@ void ListComposePipelines(std::vector<gpu::PipelineDesc>& out) {
     out.push_back(ComposeDesc(true));
     out.push_back(ComposeDesc(false));
     out.push_back(MipDesc());
-    out.push_back(CloudFrameDesc());
     out.push_back(CloudsDesc());
 }
 
@@ -293,6 +217,28 @@ gpu::Texture MakeComposed(const ComposeShape& shape, const ComposeStep* steps, s
 void DrawComposed(const ComposeShape& shape, const gpu::Texture& image, const ComposeStep* steps, std::size_t count) {
     if (!image || !count || shape.firstLevel != 0 || !EnsurePipelines()) return;
     DrawSteps(shape, image, steps, count, false);
+}
+
+void DrawCloudTexture(const ComposeShape& shape, const gpu::Texture& image, const MapClouds& clouds) {
+    if (!image || shape.firstLevel != 0 || !EnsurePipelines()) return;
+    gpu::PassDesc pass;
+    pass.colour.texture = image;
+    pass.colour.load = gpu::Load::DontCare;
+    pass.label = "ei-map-clouds";
+    if (!gpu::BeginPass(pass)) return;
+    gpu::ApplyPipeline(CloudsPipeline());
+    ApplyRect(Rect{0, 0, shape.width, shape.height}, shape.width, shape.height);
+    gpu_shaders::MapCloudParams params{};
+    params.size[0] = static_cast<float>(shape.width);
+    params.size[1] = static_cast<float>(shape.height);
+    params.time = clouds.time;
+    params.start = static_cast<float>(clouds.start);
+    params.base = static_cast<float>(clouds.width) / 255.0f;
+    params.seed = static_cast<int>(clouds.seed);
+    gpu::PushUniforms(gpu::Stage::Fragment, gpu_shaders::map_clouds::kBlockMapCloudParams, params);
+    gpu::Draw(0, 6);
+    gpu::EndPass();
+    if (shape.levels > 1) DrawLevels(shape, image);
 }
 
 bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height, std::vector<std::uint8_t>* rgba) {

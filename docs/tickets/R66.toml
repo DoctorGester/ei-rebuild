@@ -6,3 +6,5 @@ model = "opus"
 files = ["src/game/ui/global_map_clouds.cpp", "src/render/shaders/clouds.hlsli", "src/render/render_textures.cpp"]
 note = "User 2026-11-06: the global map clouds look quite bad; make a custom shader for them. Today clouds.hlsli rebuilds the game's 256x256 value-noise frames integer for integer (four 32x32 layers from g_clientRandom words) and cross-fades two frames through SetRamp's alpha ramp, then the map draws the texture. Replace that with our own shader: smooth multi-octave noise (domain-warped fbm or similar) evaluated per pixel at the map's resolution, soft edges, some light/shade from a fixed sun direction, a slow continuous drift instead of the 16-step frame swap. Keep what the game sets: SetRamp's start/width as cover and softness, speed as drift speed, and where the map draws them. No render flag: the new look replaces the old (no-render-flags). Drop the CloudFrame words / frame generation if nothing else needs them; client random draws may change (client-only, re-record goldens that move with a reason). Before/after captures of the world map on the captures page."
 order = 1254
+status = "review"
+started = "2026-11-06"

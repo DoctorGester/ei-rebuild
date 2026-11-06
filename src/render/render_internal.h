@@ -34,7 +34,6 @@ class GlyphAtlas;
 namespace render {
 
 using gpu_shaders::BlitParams;
-using gpu_shaders::CloudParams;
 using gpu_shaders::MeshFsParams;
 using gpu_shaders::MeshLightParams;
 using gpu_shaders::MeshVsParams;
@@ -1088,16 +1087,9 @@ struct ComposeImage {
     std::vector<std::uint8_t> rgba;
 };
 bool DecodeComposeImage(const TextureImage& image, ComposeImage* decoded);
-// The global map's clouds drawn into a texture (render::DrawClouds).
-struct CloudsDraw {
-    CloudFrame from{}, to{};
-    int blend = 0;
-    std::uint8_t ramp[256] = {};
-};
-// One image drawn into the texture's first level, or the clouds.
+// One image drawn into the texture's first level.
 struct ComposeStep {
-    const ComposeImage* image = nullptr;   // null: `to` filled white (unless `clouds`)
-    const CloudsDraw* clouds = nullptr;    // the clouds over all of `to`
+    const ComposeImage* image = nullptr;   // null: `to` filled white
     bool over = true;                      // over what is there (premultiplied alpha), else replacing it
     int fromX = 0, fromY = 0;              // the image texel drawn at `to`'s top-left texel
     Rect to{};                             // first-level texels
@@ -1114,6 +1106,9 @@ struct ComposeShape {
 gpu::Texture MakeComposed(const ComposeShape& shape, const ComposeStep* steps, std::size_t count);
 // More steps drawn into a texture MakeComposed made for `shape` (of first level 0; its levels made again).
 void DrawComposed(const ComposeShape& shape, const gpu::Texture& image, const ComposeStep* steps, std::size_t count);
+// The global map's clouds (map_clouds.hlsl) drawn over all of a texture MakeComposed made for `shape` (first level 0;
+// its levels made again).
+void DrawCloudTexture(const ComposeShape& shape, const gpu::Texture& image, const MapClouds& clouds);
 // Level `level` (`width` x `height`) of a texture as RGBA8 rows from the top, as the GPU reads it (drawn texel for
 // texel into a target and read back): render::CheckMmpLevels's levels. No pass in progress.
 bool ReadImageLevel(const gpu::Texture& image, int level, int width, int height, std::vector<std::uint8_t>* rgba);
