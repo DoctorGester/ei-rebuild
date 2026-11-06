@@ -536,6 +536,88 @@ class SchedTest(unittest.TestCase):
         self.drive(self.sched(fake, count=4))
         self.assertEqual(self.runs(b)['x']['state'], 'finished')
 
+    def test_service_with_a_finished_batchs_pid_is_not_its_submitter(self):
+        # H66: batch #9446's work.py test had ended, but its pid (or an earlier holder's) went to a process this one
+        # may not open (a service's: no creation time to compare), which counted as alive, and the next quiet batch of
+        # the same build waited 10 minutes for the folder. Such a process is a submitter only when it is a Python.
+        self.assertTrue(work_sched.image_name(os.getpid()).lower().startswith('python'))
+        dead = subprocess.Popen([sys.executable, '-c', 'pass'])
+        dead.wait()
+        self.assertIsNone(work_sched.image_name(dead.pid))
+        denied = mock.Mock()
+        denied.OpenProcess.return_value = None
+        program = {'name': 'SearchProtocolHost.exe'}
+        with mock.patch.object(work_sched, '_kernel32', denied), \
+                mock.patch.object(work_sched.ctypes, 'get_last_error', return_value=5), \
+                mock.patch.object(work_sched, 'image_name', side_effect=lambda pid: program['name']):
+            self.assertTrue(work_sched.pid_alive(4321))             # the id alone: it exists
+            self.assertFalse(work_sched.pid_alive(4321, work.now()))
+            program['name'] = 'python.exe'
+            self.assertTrue(work_sched.pid_alive(4321, work.now()))
+            program['name'] = 'SearchProtocolHost.exe'
+            fake = Fake(default=0.1)
+            self.submit(['x'], submitter=4321)
+            b = self.submit(['x'], alone=['x'])
+            self.drive(self.sched(fake, count=4))
+        self.assertEqual(self.runs(b)['x']['state'], 'finished')
+
+    def test_quiet_head_waiting_for_a_folder_keeps_its_place(self):
+        # H66: quiet batch #9450 was the head, but its one run's folder was still an earlier batch's; it gathered
+        # nothing and the plain batches behind it took every slot until the folder came free (10 minutes). Now it keeps
+        # its place: nothing later starts, the wait is logged once and is in the scheduler's process row (the board).
+        self.db.execute("INSERT INTO process (name, pid, started, heartbeat, info) VALUES ('scheduler', ?, ?, ?, ?)",
+                        (os.getpid(), work.now(), work.now(), json.dumps({'slots': 4})))
+        fake = Fake(default=0.1)
+        a = self.submit(['x'], submitter=os.getpid())      # alive: still comparing when its batch has finished
+        q = self.submit(['x'], alone=['x'])                 # the same build: the same run folder
+        c = self.submit(['c1', 'c2'], build='b3')
+        s = self.sched(fake, count=1)                       # c waits for a's game, then for the head
+        lines = []
+        s.log = lines.append
+        end = time.time() + 5
+        while self.batch(a)['state'] != 'finished' and time.time() < end:
+            s.tick()
+            time.sleep(0.02)
+        self.assertEqual(self.batch(a)['state'], 'finished')
+        for _ in range(15):
+            s.tick()
+            time.sleep(0.02)
+        self.assertEqual(self.runs(q)['x']['state'], 'queued')
+        self.assertEqual({r['state'] for r in self.runs(c).values()}, {'queued'}, 'a later batch went ahead of the quiet head')
+        self.assertIsNone(s.pool.gate, 'the folder wait held the alone gate (builds would wait for a comparison)')
+        waits = [t for t in lines if f"waits for batch #{a}'s folder" in t]
+        self.assertEqual(len(waits), 1, lines)
+        self.assertIn(f'batch #{q}: x-standalone (alone)', waits[0])
+        info = json.loads(self.db.execute("SELECT info FROM process WHERE name = 'scheduler'").fetchone()['info'])
+        self.assertEqual((info['waits']['batch'], info['waits']['holder'], info['waits']['folder'], info['slots']),
+                         (q, a, 'x-standalone', 4))
+        from work_board import server
+        board = server.Board(work)
+        board.build_gate = lambda: mock.Mock(builds=lambda *a, **k: [])
+        quiet = board.machine(self.db)['quiet']
+        self.assertEqual((quiet['id'], quiet['state'], quiet['folder_wait']['holder']), (q, 'folder', a))
+        self.db.execute('UPDATE batch SET submitter = NULL WHERE id = ?', (a,))     # its comparison is done
+        self.drive(s)
+        (x0, x1), = [(t0, t1) for b, n, t0, t1 in fake.spans if b == q]
+        self.assertGreaterEqual(min(fake.starts(c)), x1 - 0.01, 'a later batch started before the quiet run')
+        info = json.loads(self.db.execute("SELECT info FROM process WHERE name = 'scheduler'").fetchone()['info'])
+        self.assertNotIn('waits', info)
+
+    def test_quiet_head_waits_for_an_earlier_batchs_game_in_its_folder(self):
+        # H66: the holder is an earlier batch still playing in the folder; it never waits on the head, so both end
+        fake = Fake({'x': 0.6}, default=0.1)
+        a = self.submit(['x', 'y'])
+        q = self.submit(['x'], alone=['x'])
+        c = self.submit(['c1'], expected={'c1': 1000}, build='b3')       # behind a in batch_priority too
+        s = self.sched(fake, count=2)                       # y's slot comes free while x plays
+        lines = []
+        s.log = lines.append
+        self.drive(s)
+        self.assertTrue(any(f"waits for batch #{a}'s folder (its games play)" in t for t in lines), lines)
+        (x0, x1), = [(t0, t1) for b, n, t0, t1 in fake.spans if b == q]
+        self.assertGreaterEqual(x0, max(fake.ends(a)) - 0.01)
+        self.assertGreaterEqual(min(fake.starts(c)), x1 - 0.01)
+
     def test_batches_with_crossed_folders_do_not_wait_for_each_other(self):
         fake = Fake(default=0.1)
         a = self.submit(['x', 'y'])

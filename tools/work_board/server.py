@@ -151,7 +151,7 @@ def jlist(text):
 
 
 def jdict(text):
-    """The batch's recorded game variables (WB5), {} for a batch from before."""
+    """A JSON object as a dict, {} for none: a batch's recorded game variables (WB5), the scheduler's process info."""
     try:
         v = json.loads(text) if text else {}
         return v if isinstance(v, dict) else {}
@@ -337,10 +337,15 @@ class Board:
             head = next((b for b in open_batches if b['queued']), None)
             holding = any(g['alone'] and g['state'] == 'running' for g in quiet['games'])
             gathering = not holding and head is quiet and all(g['alone'] for g in quiet['games'] if g['state'] == 'queued')
+            # H66: the scheduler's word that the head waits for an earlier batch's run folder (work_sched.show_folder_wait)
+            row = db.execute("SELECT info FROM process WHERE name = 'scheduler'").fetchone()
+            folder = jdict(row['info'] if row else None).get('waits')
+            folder = folder if gathering and isinstance(folder, dict) and folder.get('batch') == quiet['id'] else None
             others = [b for b in open_batches if b is not quiet]
             out['quiet'] = {
                 'id': quiet['id'], 'ticket': quiet['ticket'], 'worktree': quiet['worktree'],
-                'state': 'holding' if holding else 'gathering' if gathering else 'queued',
+                'state': 'holding' if holding else 'folder' if folder else 'gathering' if gathering else 'queued',
+                'folder_wait': folder,
                 'game': next(({'scenario': g['scenario'], 'install': g['install'], 'elapsed': g['elapsed']}
                               for g in quiet['games'] if g['alone'] and g['state'] == 'running'), None),
                 'games_left': quiet['queued'] + quiet['running'], 'since': quiet['started'] or quiet['submitted'],

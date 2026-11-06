@@ -91,6 +91,8 @@ function quietPanel(q) {
   let text;
   if (q.state === 'holding') text = `Has the machine: <span class="mono">${esc(q.game.scenario)}</span> (${esc(q.game.install)}) plays alone, ` +
     `${fromFetch(q.game.elapsed || 0)}; ${plural(q.games_left, 'game')} of the batch left. No other game or build runs.` + after;
+  else if (q.state === 'folder') text = `Keeps its place at the head of the queue: its run folder <span class="mono">${esc(q.folder_wait.folder)}</span> ` +
+    `is still batch #${q.folder_wait.holder}'s (${esc(q.folder_wait.why)}). No later batch starts meanwhile.` + after;
   else if (q.state === 'gathering') text = `Clearing the machine: waits for ${plural(q.games_running, 'game')} and ${plural(q.builds_running, 'build')} to end. ` +
     `No new game or build starts meanwhile.` + after;
   else text = `Queued behind other batches; it clears the machine when it reaches the head of the queue.`;
@@ -285,9 +287,11 @@ function batchWhat(b) {
 }
 function batchPanel(b, pos) {
   // Collapsed by default: the head and progress bar show; a click opens the arguments and the games.
-  const now = sinceFetch(), key = 'b-' + b.id;
+  const now = sinceFetch(), key = 'b-' + b.id, q = machine().quiet;
+  const folder = q && q.state === 'folder' && q.id === b.id ? q.folder_wait : null;   // H66: the head waits for a run folder
   return `<details class="panel batch" data-key="${key}"${open.has(key) ? ' open' : ''}><summary><div class="head"><span class="id">#${b.id}</span><span>${esc(b.ticket || '-')}</span>` +
     `${batchWhat(b)}${b.quiet ? '<span class="pill">quiet</span>' : ''}${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
+    (folder ? `<span class="pill" title="${esc(folder.folder)}: ${esc(folder.why)}">waits for #${folder.holder}'s folder</span>` : '') +
     `<span class="sub" style="margin-left:auto">${batchSummary(b, false)}</span></div>${progress(b)}</summary><div class="body">` +
     (b.args.length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">${esc(b.args.join(' '))}</div>` : '') +
     // The submitter's EI_* variables the games ran with (EI_PROFILE=1, ...).
@@ -339,7 +343,7 @@ function runsView() {
 
 function procs() {
   const m = machine(), q = m.quiet;
-  const quiet = q && q.state !== 'queued' ? `<span class="pill quiet" title="A quiet run ${q.state === 'holding' ? 'has' : 'is clearing'} the machine (Test runs)">quiet run #${q.id}</span>` : '';
+  const quiet = q && q.state !== 'queued' ? `<span class="pill quiet" title="A quiet run ${q.state === 'holding' ? 'has the machine' : q.state === 'folder' ? 'waits for an earlier batch\'s run folder' : 'is clearing the machine'} (Test runs)">quiet run #${q.id}</span>` : '';
   const builds = m.builds.length ? `<span class="pill">${plural(m.builds.length, 'build')}</span>` : '';
   // The scheduler starts with the first work.py test and exits when idle, so not running is normal.
   return quiet + builds + Object.entries(data.processes).map(([name, p]) => p.alive

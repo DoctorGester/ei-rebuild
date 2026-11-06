@@ -63,6 +63,11 @@ build/live/scheduler.lock, leaves after 120 s with nothing queued; log in build/
   same folder waits (`reserved_folders`; only earlier batches block, so batches cannot wait on each other). Before
   H54 a rerun by name of a suite's scenario emptied the folder under the suite's comparison, which then counted the
   passing run as differing (no digest.txt, no saves).
+- A quiet head whose every remaining run folder is still an earlier batch's keeps its place: no later batch starts,
+  the alone gate is not taken (builds go on; it gathers once the folder is free), the log says once "waits for batch
+  #N's folder", and the scheduler's process row (`info.waits`) gives the board's quiet panel and queue its "waits for
+  #N's folder". The holder is earlier and never waits on the head. Before H66 the plain batches behind it took every
+  slot meanwhile (#9450 waited 10 minutes).
 - Each batch's games get the scheduler's environment plus the batch's EI_* variables.
 - Expected times: the median of the last 5 timings for (scenario, install, scenario commit), else (scenario,
   install), else the build's run_times.json.
@@ -74,7 +79,9 @@ build/live/scheduler.lock, leaves after 120 s with nothing queued; log in build/
   `--widescreen` and `--record` comparisons run in the submitting process after the batch.
 - "Submitter alive" is the pid and a process creation time no later than the batch's submitted time: Windows reuses
   pids, and a later `work.py test` given a finished batch's pid once held that batch's run folders against its own run
-  forever (R52c1).
+  forever (R52c1). A process the scheduler may not open (a third of the machine's: services, the search indexer's
+  hosts) has no creation time to read: it counts only when the process list names a Python as its program (H66: a
+  finished batch's pid taken by such a process held its folder for 10 minutes).
 
 ## Builds
 
