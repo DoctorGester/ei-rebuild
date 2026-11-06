@@ -402,11 +402,13 @@ to each other. Against xz -9 with a 256 MB window: 65.0 MB, but 7 to 9 s to unpa
 warnings as errors and runs ctest (above), with no game data; it saves its compiler cache under the commit. Then eight
 suites jobs in parallel each restore that cache (the harness build is all hits and a link), check out the private
 repository with a read-only token, unpack the stub set into the runner's temp folder, remove the checkout and play
-every eighth scenario of the sorted list (both suites, one game at a time) under xvfb on llvmpipe, less `LINUX_SKIP`;
+every eighth scenario of the sorted list (both suites, one game at a time) under xvfb on llvmpipe, less every render_*, net_* and
+camera_* scenario (user, 2026-11-06: the renderer's looks, the two-game runs and the camera runs were most of the time and the
+failures; named in the `scenarios` input they still run) and `LINUX_SKIP`;
 a job fails when a golden differs. It runs on pushes to main and `claude/**` (not docs-only ones), on pull requests
 from this repository's own branches (a fork's gets no secrets and the suites are skipped) and by hand; it uploads
 nothing, and the data is outside every cached path. The suites are off until the variable below is set.
-The Windows twin (suites-windows.yml, by hand: windows-latest on D3D12 WARP) is in harness.md, "The Windows CI job".
+The Windows twin (suites-windows.yml, by hand: windows-latest on D3D12 WARP) is a smoke job like the macOS one; harness.md, "The Windows CI job".
 
 `EI_TIME_SCALE` (3 in the workflow; default 1, never below 1) multiplies the harness's real-time limits: a `frames` step's
 (10 s plus 100 ms a frame), the real-time safety limit of the other waits (four times the wait plus 10 s) and the
@@ -419,7 +421,11 @@ unit_ai_corpse, party_leader_switch). A cut frames step also changes the digest 
 earlier world updates). The same 202 scenarios took 9% longer than in the run before, and some 40 to 90% longer
 (world_load 6 s to 11 s), so the runner's speed varies and adding each victim to `LINUX_SKIP` never converged.
 
-`LINUX_SKIP` holds what cannot match on llvmpipe for reasons other than speed: every two-game scenario (net_pair_*,
+Since 2026-11-06 the workflow's `LINUX_SKIP` is only ui_minimap_edges, the three ui_widescreen ones, unit_ai_bridge and
+zone_gz15h_tornado_client: the render_*, net_* and camera_* scenarios below it are left out by name pattern instead. What follows is
+the history of the longer list (run_all's `LINUX_LEFT_OUT` for local runs is unchanged).
+
+`LINUX_SKIP` held what cannot match on llvmpipe for reasons other than speed: every two-game scenario (net_pair_*,
 net_zone_leader, net_zone_vars: their frames stall past the harness's 16 s frame wait), render_terrain_seams (its level
 steps differ on lavapipe) and render_smooth (llvmpipe gives 4 samples whatever is asked). Until H58 it also held the
 slow ones, which were taken out when the scale came: camera_drag_rate, camera_smooth, camera_spin, camera_drawn,

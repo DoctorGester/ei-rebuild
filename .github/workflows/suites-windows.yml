@@ -1,49 +1,36 @@
-# Windows CI: the Windows builds and the suites on GitHub's windows-latest runner (4 vCPU, 16 GB, no GPU), on SDL_GPU's
-# Direct3D 12 driver with WARP, the software adapter (docs/notes/harness.md, "The Windows CI job"; H61). By hand only
-# until a run has shown what passes (Actions > Windows > Run workflow).
+# Windows smoke: the Windows builds and a short list of scenarios on GitHub's windows-latest runner (4 vCPU, 16 GB, no
+# GPU) on SDL_GPU's Direct3D 12 driver with WARP, the software adapter (docs/notes/harness.md, "The Windows CI job"; H61,
+# H62g), as suites-macos.yml does for macOS. By hand only (Actions > Windows > Run workflow). The full suites were tried
+# here (H62c to H62g) and cost more than they gave: WARP draws a frame in 0.3 to 0.8 s, so the runs took 70 to 140
+# minutes a shard and some pictures differ from the desktop's; the user cut them to a smoke test (2026-11-06).
 #
 # build-release / build-verify (parallel): build.cmd release and build.cmd verify, as on a desktop: the MSVC of the
 # runner's Visual Studio (EI_VSROOT from vswhere), warnings and the build checks included (build.cmd runs them; they
 # draw on WARP here). build-verify uploads the harness exe and its map (build/verify/ei-rebuild.exe and .map: code
-# only, no game data) for the suites jobs; the map names a crashed run's stack (tools/resolve_crash.py). A failed build check on verify is a warning when the exe was built, so the suites still run.
+# only, no game data) for the smoke job; the map names a crashed run's stack (tools/resolve_crash.py). A failed build
+# check on verify is a warning when the exe was built, so the smoke still runs.
 #
-# suites: the suites-linux.yml job's way: the stub game data (H41) fetched from the private repository with the
-# read-only token, both suites, the scenarios dealt round the SHARDS jobs, `jobs` games at once each. EI_GPU_D3D12_WARP=1
-# makes the vendored SDL pick the WARP adapter (third_party/SDL/README.txt); with no GPU on the runner it is the
-# only adapter anyway, and the variable makes a local run on a GPU machine use the same path.
+# smoke: the stub game data (H41) fetched from the private repository with the read-only token (the variable
+# EI_STUB_DATA_REPO and the secrets EI_STUB_DATA_TOKEN / EI_STUB_DATA_KEY, as suites-linux.yml and suites-macos.yml).
+# The first game is `boot` alone as a gate. Then the scenarios of the `scenarios` input (empty: SMOKE_LIST below), one
+# game at a time, vanilla data only, `--golden`; the summary has run_all's table, the goldens block, the device line and
+# tools/ci_details.py for what did not pass. EI_GPU_D3D12_WARP=1 makes the vendored SDL pick the WARP adapter
+# (third_party/SDL/README.txt); with no GPU on the runner it is the only adapter anyway.
 #
-# The suites need the repository variable EI_STUB_DATA_REPO and the secrets EI_STUB_DATA_TOKEN / EI_STUB_DATA_KEY, as
-# suites-linux.yml does. The data never leaves the runner (temp folder, nothing uploaded but the exe and its map).
+# The data never leaves the runner (temp folder, nothing uploaded but the exe and its map).
 name: Windows
 
 on:
   workflow_dispatch:
     inputs:
       scenarios:
-        description: "Only these scenarios (space-separated; empty: the suites less WINDOWS_SKIP)"
+        description: "Scenarios to play (space-separated; empty: the smoke list in the workflow)"
         required: false
         default: ""
-      shards:
-        description: "Suites jobs the scenarios are dealt round (1 to 8; a few scenarios: 1)"
-        required: false
-        default: "8"
-      suites:
-        description: "full: image and Rebirth suites; image: the image suite only; builds: only the two builds"
-        type: choice
-        options: [full, image, builds]
-        default: full
-      jobs:
-        description: "Games at once in each suites job (run_all --jobs; WARP draws on the runner's 4 vCPUs)"
-        required: false
-        default: "1"
-      retries:
-        description: "Reruns of a failed scenario (run_all --retries; on WARP a rerun repeats a timeout)"
-        required: false
-        default: "0"
-      time_scale:
-        description: "EI_TIME_SCALE: the scenarios' real-time limits times this (WARP runs 2.4 times as long as lavapipe)"
-        required: false
-        default: "8"
+      builds_only:
+        description: "Only the two builds"
+        type: boolean
+        default: false
 
 concurrency:
   group: windows-${{ github.ref }}
@@ -130,37 +117,25 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
-  suites:
+  smoke:
     needs: build-verify
     if: >-
-      inputs.suites != 'builds' && vars.EI_STUB_DATA_REPO != ''
+      !inputs.builds_only && vars.EI_STUB_DATA_REPO != ''
     runs-on: windows-latest
-    timeout-minutes: 180
+    timeout-minutes: 90
     defaults:
       run:
         shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     env:
-      # Linux's factor (3: suites-linux.yml; linux.md, "The CI job") times WARP's pace against lavapipe's on the same
-      # runner class: the 166 runs that passed on both, one game at a time, took a median 2.4 times as long here (run
-      # 42016421240 against Linux's 42040984380; docs/notes/harness.md, "The Windows CI job").
-      EI_TIME_SCALE: ${{ inputs.time_scale || '8' }}
-      # Scenarios that need a 3840x2160 desktop (they say `resolution desktop`: ui_widescreen*, whose layout and clicks
-      # follow the screen; the pair scenarios among the net ones) and that the runner's small screen cannot give (first
-      # two lines). Then the ones still past a real-time limit at scale 8, one game at a time, in run 42057942638
-      # (2026-11-05): their own `timeout` or a frames step's ("N frames still to go"; net_pair_portraits on Rebirth's
-      # install), after which a scenario goes on early and differs; and render_weather / render_weather_units, which pass
-      # but take 37 to 55 minutes a run (render_weather 2222 s, 3289 s on Rebirth's), most of a shard's 180 minutes
-      # (docs/notes/harness.md, "The Windows CI job").
-      WINDOWS_SKIP: >-
-        net_pair_leave net_pair_quest net_pair_speed net_pair_zone net_zone_leader net_zone_vars
-        ui_widescreen ui_widescreen_dialogue ui_widescreen_hud ui_widescreen_more ui_widescreen_screens
-        net_pair_portraits render_drawn_lights render_drawn_motion render_weather_panel ui_minimap_edges unit_ai_bridge
-        zone_gz15h_tornado_client
-        render_weather render_weather_units
+      # The harness's real-time limits times 8: WARP on 4 vCPUs runs a game 2.4 times as long as Linux's lavapipe does
+      # (which gets 3; H62d, H62g). The world's clock is not scaled.
+      EI_TIME_SCALE: 8
+      # The macOS list (suites-macos.yml): the menu, the interface (menus, HUD, save and load screens), a new game, a zone
+      # change, saves written and loaded back, the renderer's frame (scene, present, water, shadows) and units and items.
+      # Less render_stats: 616 s of a WARP run for its per-frame statistics.
+      SMOKE_LIST: >-
+        boot smoke settings_defaults ui_main_menu ui_screens ui_hud ui_saveload rec_save_load save_flight world_load
+        zone_gz3g render_scene render_present render_water render_shadows units items
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5
@@ -194,52 +169,76 @@ jobs:
               cat "${parts[@]}" | zstd -dq | tar -x -C "$DATA" ;;
           esac
           rm -rf stub-data-checkout
-          [ -d "$DATA/vanilla" ] && [ -d "$DATA/rebirth" ] || { echo "::error::the stub data has no vanilla/ and rebirth/"; exit 1; }
+          [ -d "$DATA/vanilla" ] || { echo "::error::the stub data has no vanilla/"; exit 1; }
           echo "stub data: $(du -sm "$DATA" | cut -f1) MB unpacked"
           echo "DATA_WIN=$(cygpath -w "$DATA")" >> $GITHUB_ENV
 
-      - name: Suites
+      # The gate: the first game alone. When it cannot draw, the log says so and the job stops.
+      - name: Gate (boot)
+        run: |
+          export EI_BUILD_DIR="$(cygpath -w "$PWD/build/verify")" EI_GAME_VANILLA="$DATA_WIN\\vanilla" EI_GAME_REBIRTH="$DATA_WIN\\rebirth"
+          export PYTHONUNBUFFERED=1
+          if python tools/run_all.py --vanilla-only --golden --jobs 1 boot 2>&1 | tee gate.txt; then ok=1; else ok=0; fi
+          {
+            echo "### Gate (boot)"
+            echo '```'
+            grep -h "gpu: " build/verify/runs/*/ei-rebuild.log 2>/dev/null | head -10 || true
+            sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' gate.txt | head -60
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+          if [ $ok = 0 ] || grep -q "not passed:" gate.txt; then
+            echo "::error::boot did not pass: WARP may not draw on the runner; the logs follow"
+            for f in build/verify/runs/*/launch.txt build/verify/runs/*/ei-rebuild.log; do
+              echo "=== $f"; tail -40 "$f" || true
+            done
+            exit 1
+          fi
+
+      - name: Smoke scenarios
         env:
           SCENARIOS: ${{ inputs.scenarios }}
-          SHARD: ${{ matrix.shard }}
-          SHARDS: ${{ inputs.shards || '8' }}
-          SUITES: ${{ inputs.suites || 'full' }}
-          JOBS: ${{ inputs.jobs || '1' }}
-          RETRIES: ${{ inputs.retries || '0' }}
         run: |
-          # fewer shards than jobs: the jobs past the last shard have nothing to do
-          [ "$SHARD" -lt "$SHARDS" ] || { echo "shard $SHARD: not used (shards=$SHARDS)"; exit 0; }
           export EI_BUILD_DIR="$(cygpath -w "$PWD/build/verify")" EI_GAME_VANILLA="$DATA_WIN\\vanilla" EI_GAME_REBIRTH="$DATA_WIN\\rebirth"
+          export PYTHONUNBUFFERED=1
           names="$SCENARIOS"
-          if [ -z "$names" ]; then
-            names=$(ls tests/scenarios/*.txt | xargs -n1 basename | sed 's/\.txt$//' | grep -v '^screenshots_' | grep -vxF -f <(tr ' ' '\n' <<< "$WINDOWS_SKIP"))
-          fi
-          names=$(tr ' ' '\n' <<< "$names" | grep . | sort | awk -v n="$SHARDS" -v s="$SHARD" '(NR - 1) % n == s' | tr '\n' ' ')
-          echo "shard $SHARD of $SHARDS: $names"
-          : > suite_image.txt; : > suite_rebirth.txt
-          if [ -n "${names// }" ]; then
-            PYTHONUNBUFFERED=1 python tools/run_all.py --golden --jobs "$JOBS" --retries "$RETRIES" $names 2>&1 | tee suite_image.txt || true
-            echo "::group::Image suite: the runs that did not pass or differ, in detail (tools/ci_details.py)"
-            python tools/ci_details.py build/verify/runs $names || true
-            echo "::endgroup::"
-            if [ "$SUITES" = full ]; then
-              rebirth=$(python -c "import sys; sys.path.insert(0, 'tools'); import run_all; print(' '.join(run_all.rebirth_scenarios(sys.argv[1:], goldens=False)))" $names)
-              if [ -n "${rebirth// }" ]; then
-                PYTHONUNBUFFERED=1 python tools/run_all.py --rebirth-only --golden --jobs "$JOBS" --retries "$RETRIES" $rebirth 2>&1 | tee suite_rebirth.txt || true
-                echo "::group::Rebirth suite: the runs that did not pass or differ, in detail (tools/ci_details.py)"
-                python tools/ci_details.py build/verify/runs --install rebirth $rebirth || true
-                echo "::endgroup::"
-              fi
-            fi
-          fi
-          for f in suite_image.txt suite_rebirth.txt; do
-            echo "### shard $SHARD ${f%.txt}" | tee -a $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' "$f" | head -400 | tee -a $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          done
-          grep -rh "gpu: .* device" build/verify/runs/*/launch.txt build/verify/runs/*/*.log 2>/dev/null | sort | uniq -c | head -5 | tee -a $GITHUB_STEP_SUMMARY || true
-          ! grep -q "GOLDENS DIFFER" suite_*.txt
+          [ -n "${names// }" ] || names="$SMOKE_LIST"
+          echo "scenarios: $names"
+          python tools/run_all.py --vanilla-only --golden --jobs 1 $names 2>&1 | tee suite_image.txt || true
+          {
+            echo "### Smoke scenarios"
+            echo '```'
+            sed -n '/^not passed:/,/^$/p; /^goldens (tests\/golden)/,$p' suite_image.txt | head -300
+            echo '```'
+            echo "### GPU device"
+            echo '```'
+            grep -h "gpu: .* device" build/verify/runs/*/ei-rebuild.log 2>/dev/null | sort | uniq -c | head -5 || true
+            echo '```'
+          } | tee -a $GITHUB_STEP_SUMMARY
+
+      # What a run that did not pass or differs needs to be understood without the machine (tools/ci_details.py).
+      - name: Differences in detail
+        if: always()
+        env:
+          SCENARIOS: ${{ inputs.scenarios }}
+        run: |
+          names="$SCENARIOS"
+          [ -n "${names// }" ] || names="$SMOKE_LIST"
+          {
+            echo "### Differences in detail"
+            echo '```'
+            python -I tools/ci_details.py build/verify/runs $names
+            echo '```'
+          } 2>&1 | tee -a $GITHUB_STEP_SUMMARY
+
+      # The job fails on a difference or a run that did not pass.
+      - name: Verdict
+        run: |
+          bad=0
+          if [ ! -s suite_image.txt ]; then echo "::error::the smoke suite printed nothing"; bad=1; fi
+          if grep -q "GOLDENS DIFFER" suite_image.txt; then echo "::error::GOLDENS DIFFER on WARP (see the summary)"; bad=1; fi
+          if grep -q "^not passed:" suite_image.txt; then echo "::error::scenarios did not pass"; bad=1; fi
+          if ! grep -q "GOLDENS THE SAME" suite_image.txt; then echo "::error::no GOLDENS THE SAME line in the suite output"; bad=1; fi
+          exit $bad
 
       - name: Remove the data
         if: always()
