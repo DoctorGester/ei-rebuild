@@ -106,15 +106,21 @@ void KeepCasterParts(MapObject* object, const render::DrawnCasterParts& drawn) {
     half->casterParts = drawn.parts;
 }
 
+// The object's place in the renderer's casters (Object3DClientSpecific::casterMark), null without a client half.
+render::CasterMark* MarkOf(MapObject* object) {
+    Object3DClientSpecific* half = object->ClientSpecific();
+    return half ? &half->casterMark : nullptr;
+}
+
 // The drawn objects' three figure draw virtuals with the scene context; their results are ignored. The
 // new renderer learns which object the meshes of a figure draw belong to (its shadow map's casters).
 constexpr auto kDraw = [](MapObject* object) {
-    render::BeginCaster(object, false);
+    render::BeginCaster(object, MarkOf(object), false);
     object->DrawFigure(&g_sceneRenderer);
     KeepCasterParts(object, render::EndCaster());
 };
 constexpr auto kDrawUnit = [](MapObject* object) {
-    render::BeginCaster(object, true);
+    render::BeginCaster(object, MarkOf(object), true);
     object->DrawCollectDirty(&g_sceneRenderer);
     KeepCasterParts(object, render::EndCaster());
 };

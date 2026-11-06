@@ -15,12 +15,11 @@
 #include "shaders/gpu_shaders.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
-#include <tuple>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -143,6 +142,24 @@ struct Box {
     }
 };
 
+// A model-space box (low xyz, high xyz) placed by `model`: its centre (TransformColumn of the box's middle) and half
+// extents along the landscape's axes, widened past the rounding of placing its corners: the box around them holds
+// every corner TransformColumn places. For tests that only gate an exact one.
+struct PlacedBox {
+    Vector3 centre, half;
+};
+inline PlacedBox PlaceBox(const float box[6], const Matrix4& model) {
+    const Vector3 middle{(box[0] + box[3]) * 0.5f, (box[1] + box[4]) * 0.5f, (box[2] + box[5]) * 0.5f};
+    const Vector3 half{(box[3] - box[0]) * 0.5f, (box[4] - box[1]) * 0.5f, (box[5] - box[2]) * 0.5f};
+    const Vector3 reach = Abs(middle) + half;
+    auto extent = [&](int i) {
+        const float* r = model.m + i * 4;
+        const Vector3 row = Abs(Vector3{r[0], r[1], r[2]});
+        return Dot(row, half) + (Dot(row, reach) + std::fabs(r[3])) * 0x1p-16f;
+    };
+    return PlacedBox{TransformColumn(model, middle), Vector3{extent(0), extent(1), extent(2)}};
+}
+
 // A caster's cut-out for its stage 0 texture: alpha[0] 1 (cut out), where its alpha is below alpha[1]; none (0) for a
 // pass that is neither alpha tested nor blended, or without a texture.
 inline void CasterAlpha(const PassState& s, float* alpha) {
@@ -194,6 +211,7 @@ struct MeshBatch {
     bool decal = false;       // flat: a ground print (MeshDraw::groundDecal), shaded as the ground under it; `box` its
                               // positions' box in the landscape's space
     const Object3D* caster = nullptr;   // render::BeginCaster's object, if any
+    int casterSlot = -1;                // ... its place in ShadowFrame::casters
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map
 // A unit's mesh: its corners' box in model space (low xyz, high xyz), and the nearest map depth of its
 // object's boxes (PrepareShadows; above 1: none).
@@ -345,25 +363,36 @@ constexpr int kPointFaceTexels = 512;
 static_assert(std::size(PointShadowParams{}.lights) == kMostPointShadows);
 struct PointShadowFrame {
     std::vector<Matrix4> models;   // MeshBatch::landscape: model space to the landscape's
+    std::vector<int> modelOf;      // per frame matrix its `models` entry, -1 none yet (LandscapeModel)
     int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
     int mapped = 0;                          // the lights with a map
     PointShadowParams params{};
     void Clear() {
         models.clear();
+        modelOf.clear();
         for (int& slot : sceneSlots) slot = 0;
         mapped = 0;
         params = PointShadowParams{};
     }
 };
 
-// Casters weaker than this (units fading in) cast no shadow.
+// Casters weaker than this (units fading in) cast no shadow; kNoStrength: render::CastsShadow not called.
 constexpr float kLeastStrength = 0.5f;
+constexpr float kNoStrength = -1.0f;
+
+// An object met this frame as a caster (render::BeginCaster) or shadowed (render::CastsShadow; the last call's
+// strength wins), at its CasterMark's slot.
+struct FrameCaster {
+    const Object3D* object = nullptr;
+    float strength = kNoStrength;
+};
 
 // A frame's object shadows: the sun and casters handed over, and what PrepareShadows made of them.
 struct ShadowFrame {
     bool haveSun = false;
     Vector3 sun{};
-    std::unordered_map<const Object3D*, float> casters;   // object -> strength (render::CastsShadow; the last wins)
+    std::vector<FrameCaster> casters;   // by CasterMark::slot, in the order first met
+    bool shadowed = false;              // render::CastsShadow was called
     bool prepared = false;
     bool on = false;          // the map is made this frame: receivers sample it
     bool haveClouds = false;  // render::CloudShadows handed over
@@ -379,6 +408,7 @@ struct ShadowFrame {
         haveSun = false;
         sun = Vector3{};
         casters.clear();
+        shadowed = false;
         prepared = false;
         on = false;
         haveClouds = false;
@@ -929,7 +959,7 @@ SurfaceLevels SurfaceState();
 // DrawRoofMap draws it (outside a pass); BindRoofMap binds it (or the 1 x 1 stand-in) at `slot`.
 void PrepareRoofs(Frame& frame);
 void RoofUniforms(const Matrix4& light, ShadowParams* params);
-void DrawRoofMap();
+void DrawRoofMap(const Frame& frame);
 void BindRoofMap(int slot);
 gpu::TextureBinding RoofMapBinding();   // what BindRoofMap binds
 // The visible ground's box in the landscape's space, by the sun map's fit of this frame; none without one.
@@ -958,10 +988,11 @@ gpu::Sampler ShadowCompareSampler();
 const gpu::Texture& NoShadowTexture();
 // The casters' draws into a depth map (shaders/shadow_caster.hlsl), the sun's and the point lights'. Each draw's
 // own data (CasterInstance) goes into one instance buffer uploaded once a pass. A depth map does not depend on the
-// order its casters are drawn in: the draws are sorted by what they bind, then by their indices, and each run with the
-// same bindings is one indirect call (gpu::DrawIndexedIndirect) whose draws each take the instances of a run with the
-// same indices (a mesh kept once for many objects, KeepMesh); the pipeline and bindings are applied only when they
-// change.
+// order its casters are drawn in: the draws are grouped by what they bind, then by their indices (without a comparison
+// sort: each draw's binding and group are found once in Add, and Sort places the draws by them in one counting pass),
+// and each run with the same bindings is one indirect call (gpu::DrawIndexedIndirect) whose draws each take the
+// instances of a run with the same indices (a mesh kept once for many objects, KeepMesh); the pipeline and bindings are
+// applied only when they change.
 struct CasterInstance {
     Matrix4 light;       // model space -> the map's clip space
     float uvOffset[2] = {};  // a kept mesh's texture offsets (MeshBatch::uOffset, vOffset)
@@ -977,7 +1008,9 @@ public:
     void Add(const Geometry& geometry, bool kept, const gpu::Texture& texture, gpu::Sampler sampler, int firstIndex,
              int indexCount, const CasterInstance& instance);
     std::size_t Count() const { return draws.size(); }
-    // Sorts the draws in [from, to) by what they bind and their indices; Draw takes the same ranges.
+    // Groups the draws in [from, to) by what they bind (the frame's stream's pipeline first, then the kept meshes', each
+    // binding where the range first met it) and by their indices (in the order met), each group's draws in the order
+    // added; Draw takes the same ranges.
     void Sort(std::size_t from, std::size_t to);
     // Uploads the instances and the indirect draws, before the pass (whose first Draw applies the pipeline and
     // bindings anew); false when they could not be (nothing is drawn).
@@ -994,14 +1027,80 @@ private:
         int kept = 0;
         int firstIndex = 0, indexCount = 0;
         int instance = 0;  // in instanceData
+        int binding = 0;   // in `bindings`: the same for draws with the same pipeline, buffers and texture
+        int group = 0;     // in `groups`: the same for draws with the same binding and indices
     };
-    // What a draw binds: the order Sort puts the draws in, the same key for draws with the same bindings.
-    static auto BindingKey(const Entry& e) {
-        return std::make_tuple(e.kept, reinterpret_cast<std::uintptr_t>(e.texture.texture.texture),
-                               reinterpret_cast<std::uintptr_t>(e.texture.sampler.sampler),
-                               reinterpret_cast<std::uintptr_t>(e.vertices.buffer.buffer), e.vertices.offset,
-                               reinterpret_cast<std::uintptr_t>(e.indices.buffer.buffer), e.indices.offset);
-    }
+    // What a draw binds, and that with its indices: Add's keys.
+    struct BindingKey {
+        const void* texture = nullptr;
+        const void* sampler = nullptr;
+        const void* vertexBuffer = nullptr;
+        const void* indexBuffer = nullptr;
+        std::uint32_t vertexOffset = 0, indexOffset = 0;
+        int kept = 0;
+        bool operator==(const BindingKey&) const = default;
+        std::uint64_t Hash() const;
+    };
+    struct GroupKey {
+        int binding = 0, firstIndex = 0, indexCount = 0;
+        bool operator==(const GroupKey&) const = default;
+        std::uint64_t Hash() const;
+    };
+    // A key's index: the one it was first given since the last Reset (open addressing; Reset is a stamp).
+    template <typename Key>
+    class FirstIndex {
+    public:
+        // The index of `key`, else `next`, which it is given then (*added).
+        int Find(const Key& key, int next, bool* added) {
+            if ((used + 1) * 2 > slots.size()) Grow();
+            Slot& s = SlotOf(key);
+            *added = s.stamp != stamp;
+            if (*added) {
+                s = Slot{key, next, stamp};
+                ++used;
+            }
+            return s.index;
+        }
+        void Reset() {
+            used = 0;
+            if (++stamp != 0) return;
+            for (Slot& s : slots) s.stamp = 0;
+            stamp = 1;
+        }
+
+    private:
+        struct Slot {
+            Key key{};
+            int index = 0;
+            std::uint32_t stamp = 0;
+        };
+        // The key's slot, or the free one it would take.
+        Slot& SlotOf(const Key& key) {
+            const std::size_t mask = slots.size() - 1;
+            for (std::size_t i = static_cast<std::size_t>(key.Hash()) & mask;; i = (i + 1) & mask)
+                if (slots[i].stamp != stamp || slots[i].key == key) return slots[i];
+        }
+        void Grow() {
+            std::vector<Slot> old(std::max<std::size_t>(64, slots.size() * 2));
+            old.swap(slots);
+            for (const Slot& s : old)
+                if (s.stamp == stamp) SlotOf(s.key) = s;
+        }
+        std::vector<Slot> slots;
+        std::uint32_t stamp = 1;
+        std::size_t used = 0;
+    };
+    // A binding's and a group's place in the range Sort works on (`stamp`: Sort's call it was met in).
+    struct Binding {
+        int kept = 0;
+        std::uint32_t stamp = 0;
+        int firstGroup = -1, lastGroup = -1;   // its groups in the range, in the order met (Group::next)
+    };
+    struct Group {
+        std::uint32_t stamp = 0;
+        int next = -1;
+        std::size_t count = 0, at = 0;   // its draws in the range, and where the next of them goes
+    };
     // A run of draws with the same bindings in one sorted range (Upload): its first entry and its indirect draws.
     struct Run {
         std::size_t first = 0;
@@ -1009,6 +1108,13 @@ private:
     };
     std::vector<Entry> draws;
     std::vector<CasterInstance> instanceData;
+    std::vector<Binding> bindings;                 // since Clear
+    std::vector<Group> groups;
+    FirstIndex<BindingKey> bindingIndex;
+    FirstIndex<GroupKey> groupIndex;
+    std::uint32_t sortStamp = 0;                   // Sort's calls
+    std::vector<int> metBindings;                  // Sort's: the range's bindings in the order met
+    std::vector<Entry> sorted;                     // Sort's: the range's draws in their new order
     std::vector<std::size_t> sortedEnds;           // the ends of the ranges Sort was given
     std::vector<Run> runs;
     std::vector<CasterInstance> sortedInstances;   // instanceData in the sorted draws' order (Upload)
@@ -1023,6 +1129,9 @@ private:
 // picks the strongest point lights in view that something shadows and gives the meshes lit on the GPU their
 // matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.
 void PreparePointShadows(Frame& frame);
+// The frame matrix `matrix` without the camera (`camera`: WorldCamera's inverse; CameraInverse::Under), made once a
+// frame: its index in PointShadowFrame::models.
+int LandscapeModel(Frame& frame, const CameraInverse& camera, int matrix);
 void DrawPointShadows(Frame& frame);
 void BindPointShadows(const Frame& frame, int slot);
 gpu::TextureBinding PointShadowBinding(const Frame& frame);   // what BindPointShadows binds
@@ -1033,8 +1142,10 @@ int PointShadowSlot(const Frame& frame, int sceneLight);
 // count in the record, the lights in `part`), each light with its point shadow (-1 none).
 MeshLight GroundDecalLight(const Frame& frame, const float box[6]);
 void MeshLightRecord(const Frame& frame, const MeshLight& light, MeshRecord& record, PartLight& part);
-// The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
+// The object whose meshes are being handed over and its place in ShadowFrame::casters (-1: none). ShadowFrameDone:
+// the frame is presented.
 const Object3D* CurrentCaster();
+int CurrentCasterSlot();
 bool CurrentCasterFigure();
 // The world unit an interface figure being handed over shows (render::BeginInterfaceUnit), or null.
 const Object3D* CurrentInterfaceUnit();

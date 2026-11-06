@@ -13,6 +13,7 @@
 #include "lib/vecmath.h"
 #include "game/scene/pipeline.h"   // ClipBounds, TransformPipeline
 #include "lib/rect.h"   // RECT
+#include "render/render.h"   // CasterMark
 
 #include <cstddef>
 #include <cstdint>
@@ -152,6 +153,7 @@ public:
     // (render::CasterFrame): the casters' walk outside the view passes over an object with every part among them.
     std::uint32_t casterFrame = 0;
     int casterParts = 0;
+    render::CasterMark casterMark;   // its place in the renderer's casters (BeginCaster, CastsShadow)
     Vector3 figureScale;            // the figure's extra scale (GetScale)
 };
 
