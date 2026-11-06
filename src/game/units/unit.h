@@ -517,7 +517,7 @@ public:
     int sizeClass = 3;              // selects the 4-bit passability field in each AI map cell
     float unitRadius = kDefaultUnitRadius;  // 0.75 after Reset
     float standingHeight = kDefaultStandingHeight;  // deeper water or higher ground than (2 - height) * 16 blocks it
-    // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 moves on the water surface), the
+    // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 flies), the
     // mode and base speeds and the six body slots (the unit panel's parts are their kind / current / maximum).
     UnitParams params;
     int fightAtWill = kFightAtWill;     // kFightAtWill: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not

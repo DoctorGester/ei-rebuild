@@ -133799,7 +133799,7 @@ cunit1000299427 #vitals 8FC93AF9
 cunit1000309027 #place 15A56F03
 cunit1000309027 #unit 546E1AC1
 cunit1000309027 #vitals 8FC93AF9
-@ 29 update 600 frame 119 tick 600 zone bz8g hash 8FEB110C n 1351
+@ 29 update 600 frame 119 tick 600 zone bz8g hash C4ED1A66 n 1351
 world tick 600
 world updates 600
 random isaac.count 14
@@ -133948,7 +133948,7 @@ cunit467629 #place 900E1782
 cunit467629 #unit 0522F2B7
 cunit533090 #place 66FC6B9C
 cunit533092 #place E0724641
-cunit533096 #place 26E62158
+cunit533096 #place EF07C994
 cunit661275 #place 599D6EF7
 cunit738068 #place 48BF998B
 cunit738068 #unit CBF01FF1

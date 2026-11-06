@@ -588,9 +588,9 @@ void ReadClientUnit(Unit* u, Builder& b) {
     b.Int("controller", u->controller ? ClassOf(u->controller.Get()) : -1);
 }
 
-// The water layer as the waves move it (R16c3; since R37e4c worked out where asked, Terrain::WaterVertex): the
+// The water layer as the waves move it (R16c3; Terrain::WaterVertex, which works a vertex out where asked): the
 // landscape's wave state, and per cached sector with water (by sx, sy) the vertices with a water material and a hash
-// of their positions. The crests' colours are the GPU's.
+// of their positions. The crests' colours are the GPU's alone.
 void ReadWater(State& state) {
     const auto* t = ClientWorld()->terrain.get();
     if (!t) return;
