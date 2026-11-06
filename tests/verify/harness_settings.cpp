@@ -301,7 +301,8 @@ void AddProbeSection(std::vector<image::SettingsLine>& lines) {
 
 // The run's settings file: the snapshot's values (SectionOf), each value the scenario's starter lines answer (any
 // key) in place of the snapshot's. Written at the first use of the settings.
-void WriteSettingsFile(const char* file) {
+void WriteSettingsFile(std::string_view fileName) {
+    const std::string file(fileName);
     std::vector<image::SettingsLine> lines;
     lines.push_back({"", "", "The run's settings: config/harness/registry.reg's and the scenario's (harness_settings.h)."});
     for (const auto& [lower, key] : S().keys) {

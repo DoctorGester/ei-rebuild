@@ -72,9 +72,9 @@ std::string Join(const std::vector<std::string>& parts, char separator) {
 
 // --- TextTokenizer -------------------------------------------------------------------------------
 
-const char* TextTokenizer::Next() {
+std::string_view TextTokenizer::Next() {
     if (position == static_cast<int>(source->size())) position = -1;
-    if (position == -1) return nullptr;
+    if (position == -1) return {};
     int found = str::Find(*source, separator, position);
     int next;
     if (found == -1) {
@@ -82,14 +82,13 @@ const char* TextTokenizer::Next() {
         next = lib::Count(*source);
     } else {
         word = str::Mid(*source, position, found - position);
-        next = static_cast<int>(std::strlen(separator)) + found;
+        next = static_cast<int>(separator.size()) + found;
     }
     position = next;
-    if (next == -1) return nullptr;
-    return word.c_str();
+    return word;
 }
 
-const char* TextTokenizer::Start() {
+std::string_view TextTokenizer::Start() {
     position = 0;
     return Next();
 }

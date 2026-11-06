@@ -7,6 +7,7 @@
 #include "platform/platform.h"
 
 #include "lib/ipv4.h"
+#include "lib/str.h"
 #include "platform/log.h"
 
 #include <cstdint>
@@ -37,10 +38,10 @@ bool NetAddress::Parse(std::string_view text, int defaultPort) {
     int number = defaultPort;
     const std::size_t colon = s.find(':');
     if (colon != std::string::npos) {
-        number = std::atoi(s.c_str() + colon + 1);
+        number = str::ToInt(std::string_view(s).substr(colon + 1));
         s.resize(colon);
     }
-    ip = lib::ParseIpv4(s.c_str());
+    ip = lib::ParseIpv4(s);
     if (ip == lib::kNoAddress) {
         const std::optional<std::uint32_t> found = sockets::LookUp(s);
         if (!found) return false;

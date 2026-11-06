@@ -376,8 +376,8 @@ std::vector<std::string> Interface3D::WrapText(std::string_view text, int maxWid
     std::vector<std::string> lines;
     // Words collect characters up to a space or newline; a word that would make the line wider
     // than the width starts a new line (a newline then also ends the word's line).
-    for (const char* p = source.c_str(); *p != 0; ++p) {
-        const char c = *p;
+    // (Up to the first NUL, as the C string it was.)
+    for (const char c : std::string_view(source).substr(0, source.find('\0'))) {
         ch.assign(1, c);
         if (c == '\n') {
             if (TextExtent(line + word, font).w > maxWidth) {

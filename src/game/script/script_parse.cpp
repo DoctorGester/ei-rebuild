@@ -8,6 +8,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
+#include <algorithm>
 #include <cstdarg>
 #include <cstdio>
 
@@ -15,6 +16,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <string_view>
 #include <format>
 
 using namespace scriptparse;
@@ -269,61 +271,60 @@ const ScriptKeyword* KeywordTable() {
     return scriptaddon::Table();
 }
 
-void ClassifyToken(const char* text, int* id, int* rest) {
-    const char* p = text;
-    if (text::IsDigit(*p) || *p == '.' || *p == '-') {
+void ClassifyToken(std::string_view token, int* id, int* rest) {
+    token = token.substr(0, token.find('\0'));   // the text of a C string: up to its first zero byte
+    std::size_t p = 0;
+    const auto at = [&](std::size_t i) { return i < token.size() ? token[i] : '\0'; };
+    if (text::IsDigit(at(p)) || at(p) == '.' || at(p) == '-') {
         // Number: digits and at most one '.', after an optional leading '-' or '.'.
-        int dots = *p == '.';
+        int dots = at(p) == '.';
         ++p;
-        while (*p) {
-            if (!text::IsDigit(*p) && *p != '.') break;
-            if (*p == '.' && dots++ != 0) break;
+        while (p < token.size()) {
+            if (!text::IsDigit(token[p]) && token[p] != '.') break;
+            if (token[p] == '.' && dots++ != 0) break;
             ++p;
         }
         if (id) *id = static_cast<int>(ScriptLexeme::Number);
-        if (rest) {
-            *rest = 0;
-            for (; *p; ++p) ++*rest;
-        }
+        if (rest) *rest = static_cast<int>(token.size() - p);
         return;
     }
     const char quote = kQuote;
-    if (*p == quote) {
+    if (at(p) == quote) {
         // String: up to the closing quote; *rest counts what follows it.
         ++p;
-        while (*p && *p != quote) ++p;
-        if (*p) {
+        while (p < token.size() && token[p] != quote) ++p;
+        if (p < token.size()) {
             if (id) *id = static_cast<int>(ScriptLexeme::String);
-            if (rest) {
-                *rest = -1;
-                for (; *p; ++p) ++*rest;
-            }
+            if (rest) *rest = static_cast<int>(token.size() - p) - 1;
             return;
         }
         // Unterminated: the keyword search below runs on the end of the text (finds nothing).
     }
     if (rest) *rest = 0;
     if (id) *id = 0;
+    const std::string_view remaining = token.substr(p);
     int best = -1;
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
-        int length = static_cast<int>(std::strlen(k->name));
+        const std::string_view name = k->name;
+        int length = static_cast<int>(name.size());
         if (length < best) continue;
-        if (text::CompareIgnoringCase(p, k->name, static_cast<std::size_t>(length)) != 0) continue;
+        if (text::CompareIgnoringCase(remaining.substr(0, name.size()), name) != 0) continue;
         best = length;
         // An identifier-like match must end the identifier.
-        if (scriptaddon::RejectsMatch(k->name, p[length])) continue;
-        if (rest) *rest = static_cast<int>(std::strlen(p)) - length;
+        const char next = name.size() < remaining.size() ? remaining[name.size()] : '\0';
+        if (scriptaddon::RejectsMatch(k->name, next)) continue;
+        if (rest) *rest = static_cast<int>(remaining.size()) - length;
         if (id) *id = static_cast<int>(k->id);
     }
 }
 
-const char* FunctionSignature(int id, ScriptType type) {
+std::optional<std::string_view> FunctionSignature(int id, ScriptType type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         if (static_cast<int>(k->id) != id || !k->function) continue;
         // The first letter is the result's type (F, G, O or S).
-        if (type != ScriptType::None && ScriptTypeOfLetter(k->function[0]) == type) return k->function + 1;
+        if (type != ScriptType::None && ScriptTypeOfLetter(k->function[0]) == type) return std::string_view(k->function + 1);
     }
-    return nullptr;
+    return std::nullopt;
 }
 
 const char* KeywordName(ScriptLexeme id) {
@@ -333,58 +334,57 @@ const char* KeywordName(ScriptLexeme id) {
 }
 
 bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* tokens) {
-    const char* p = source.c_str();
+    // The source up to its first zero byte, where the C string ended; `at` reads a zero byte past the end.
+    const std::string_view chars = std::string_view(source).substr(0, source.find('\0'));
+    const auto at = [&](std::size_t i) { return i < chars.size() ? chars[i] : '\0'; };
+    std::size_t p = 0;
 
     tokens->clear();
 
     const char quote = kQuote;
     int line = 1;
-    while (*p) {
-        while (text::IsSpace(*p)) {
-            if (*p == '\n') ++line;
+    while (p < chars.size()) {
+        while (text::IsSpace(at(p))) {
+            if (at(p) == '\n') ++line;
             ++p;
-            if (!*p) break;
+            if (p >= chars.size()) break;
         }
 
         // A token runs to white space (a space inside quotes does not count) or to one of , ) ( : =
         // after its first character (not inside quotes). Keywords are split off afterwards.
-        const char* start = p;
+        const std::size_t start = p;
         int inQuote = 0;
-        while (*p) {
-            const char c = *p;
+        while (p < chars.size()) {
+            const char c = chars[p];
             if (text::IsSpace(c) && (c != ' ' || !inQuote)) break;
             if (c == quote) inQuote = !inQuote;
             if ((c == ',' || c == ')' || c == '(' || c == ':' || c == '=') && p != start && !inQuote) break;
             if (c == '\n') break;
             ++p;
         }
-        int length = static_cast<int>(p - start);
-        if (length > 0xFF) length = 0xFF;
-        char buffer[0x100];
-        #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
-        std::strncpy(buffer, start, length);
+        const std::size_t length = std::min(p - start, std::size_t{0xFF});
         if (length == 0) continue;
-        buffer[length] = 0;
+        const std::string_view buffer = chars.substr(start, length);
 
-        if (std::strncmp(buffer, kCommentOpen, std::strlen(kCommentOpen)) == 0) {
+        if (buffer.starts_with(kCommentOpen)) {
             // Block comment: the search for the end starts after the token (so "/**/" written as
             // one token does not end it) and skips quoted text.
-            if (!*p) return Error(this, line, ScriptParseError::EndOfFile, "End of file before '%s'", kCommentClose);
+            if (p >= chars.size()) return Error(this, line, ScriptParseError::EndOfFile, "End of file before '%s'", kCommentClose);
             for (;;) {
-                const char c = *p;
+                const char c = chars[p];
                 if (c == '\n') ++line;
                 if (c == quote) inQuote = !inQuote;
-                if (!inQuote && std::strncmp(p, kCommentClose, std::strlen(kCommentClose)) == 0) {
-                    p += std::strlen(kCommentClose);
+                if (!inQuote && chars.substr(p).starts_with(kCommentClose)) {
+                    p += std::string_view(kCommentClose).size();
                     break;
                 }
                 ++p;
-                if (!*p) return Error(this, line, ScriptParseError::EndOfFile, "End of file before '%s'", kCommentClose);
+                if (p >= chars.size()) return Error(this, line, ScriptParseError::EndOfFile, "End of file before '%s'", kCommentClose);
             }
             continue;
         }
-        if (text::CompareIgnoringCase(buffer, kLineComment, std::strlen(kLineComment)) == 0) {
-            while (*p && *p != '\n') ++p;
+        if (text::CompareIgnoringCase(buffer.substr(0, std::string_view(kLineComment).size()), kLineComment) == 0) {
+            while (p < chars.size() && chars[p] != '\n') ++p;
             continue;
         }
 
@@ -392,10 +392,8 @@ bool Script::Tokenize(const std::string& source, std::vector<ScriptToken>* token
         // string); the rest is scanned again as the next token.
         int rest;
         ClassifyToken(buffer, nullptr, &rest);
-        p -= rest;
-        std::string text(buffer, static_cast<int>(std::strlen(buffer)) - rest);
-
-        tokens->push_back({text, line});
+        p -= static_cast<std::size_t>(rest);
+        tokens->push_back({std::string(buffer.substr(0, buffer.size() - static_cast<std::size_t>(rest))), line});
     }
     return true;
 }

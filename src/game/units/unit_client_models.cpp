@@ -607,8 +607,6 @@ bool HidesWounds(std::uint32_t id) {
 std::uint8_t Worse(std::uint8_t a, std::uint8_t b) { return a > b ? a : b; }
 
 constexpr int kFaceTextureKind = static_cast<int>(TextureKind::SkyFace);
-constexpr const char* kHeroFace = "%smouth_%.2d";
-constexpr const char* kFace = "%smouth";
 
 constexpr const char* kHandNode = "baserh3";
 
@@ -674,9 +672,8 @@ bool UnitClientSpecific::LoadFaceTexture() {
     if (faceTexture) return true;
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return false;
-    char name[0x400];
-    if (unit->MapType() == MapObjectType::Hero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
-    else std::snprintf(name, sizeof(name), kFace, unit->name.c_str());
+    const std::string name = unit->MapType() == MapObjectType::Hero ? std::format("{}mouth_{:02}", unit->name, prototype->skin)
+                                                                    : unit->name + "mouth";
     Texture* texture = g_clientWorld.textureManager->FindOrCreate(kFaceTextureKind, name);
     faceTexture.Assign(texture);
     g_clientWorld.textureManager->LoadTexture(faceTexture);

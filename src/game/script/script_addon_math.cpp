@@ -178,8 +178,8 @@ std::string Joined(Call* call) {
     return text;
 }
 
-// std::string's c_str() assigned to the result (the text up to its first NUL).
-void Assign(Call* call, const std::string& text) { *call->result.text = text.c_str(); }
+// The text up to its first NUL, assigned to the result.
+void Assign(Call* call, const std::string& text) { *call->result.text = text.substr(0, text.find('\0')); }
 
 // A NUL-terminated copy changed in place by lib/text_case.h's case.
 std::string CaseConverted(std::string_view text, bool upper) {

@@ -7,6 +7,7 @@
 // the harness's virtual clock). Frames are numbered from 1.
 
 #include <cstdint>
+#include <string_view>
 
 namespace video {
 
@@ -14,7 +15,7 @@ struct Movie;
 
 // Opens the movie file `path` (UTF-8); null when it cannot be opened or is not a Bink 1 movie. With `sound` its
 // sound track plays on the audio output.
-Movie* Open(const char* path, bool sound);
+Movie* Open(std::string_view path, bool sound);
 void Close(Movie* movie);   // null: nothing
 
 int Width(const Movie* movie);

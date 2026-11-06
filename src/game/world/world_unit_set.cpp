@@ -7,6 +7,7 @@
 #include "game/units/unit.h"
 #include "game/world/world.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -51,7 +52,8 @@ void UnitSet::Write(ByteStream* stream) {
             stream->WriteValue(record.morphU);
             stream->WriteCount(record.names.size());
             for (const std::string& name : record.names)
-                stream->Write(name.c_str(), static_cast<std::uint32_t>(std::strlen(name.c_str()) + 1));
+                // The text up to its first zero byte and that zero byte (a std::string's data() ends in one).
+                stream->Write(name.data(), static_cast<std::uint32_t>(std::min(name.find('\0'), name.size()) + 1));
         }
     }
     stream->WriteCount(dressed.size());

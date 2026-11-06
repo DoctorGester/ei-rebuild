@@ -67,8 +67,9 @@ std::int64_t SecondsSince1970() {
 
 // ==== The message box ================================================================================================
 
-MessageAnswer ShowMessageBox(NativeWindow owner, const char* text, const char* caption, MessageButtons buttons,
-                             MessageIcon icon) {
+MessageAnswer ShowMessageBox(NativeWindow owner, std::string_view text, std::string_view caption,
+                             MessageButtons buttons, MessageIcon icon) {
+    const std::string title(caption), message(text);
     constexpr int kOk = 0;
     const SDL_MessageBoxButtonData choices[] = {
         {SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, kOk, "OK"},
@@ -78,8 +79,8 @@ MessageAnswer ShowMessageBox(NativeWindow owner, const char* text, const char* c
     box.flags = (icon == MessageIcon::Error ? SDL_MESSAGEBOX_ERROR : SDL_MESSAGEBOX_WARNING) |
                 SDL_MESSAGEBOX_BUTTONS_LEFT_TO_RIGHT;
     box.window = WindowOf(owner);
-    box.title = caption;
-    box.message = text;
+    box.title = title.c_str();
+    box.message = message.c_str();
     box.numbuttons = buttons == MessageButtons::OkCancel ? 2 : 1;
     box.buttons = choices;
     int chosen = kOk;

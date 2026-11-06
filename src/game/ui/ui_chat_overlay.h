@@ -22,7 +22,7 @@ public:
     ChatOverlay();
     // Lines narrower than 780 pixels, "^<digit>" switching the colour (bits 0 / 1 / 2
     // blue / green / red; a missing digit is 7); at most 12 lines remain.
-    void AddLine(const char* text);
+    void AddLine(std::string_view text);
     // Opening empties the typed line.
     void SetOpen(bool open);
     void ClearLines();

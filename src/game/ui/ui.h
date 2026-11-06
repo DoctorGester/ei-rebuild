@@ -215,7 +215,7 @@ public:
     void OnPlayersChanged(int added);
     void OnExchangeDone(Party* partyB, Party* partyA, Party* partyC);
     void SaveWindowState();
-    void OnChatLine(const char* text);
+    void OnChatLine(std::string_view text);
     // The save / load window's status text, drawn in green on a cleared surface over (0, 280)-(800, 320)
     // for one frame, then the surface freed.
     void ShowStatusText(std::string_view text);

@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <format>
 #include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -377,12 +378,11 @@ int AIMap::LoadTerrain(const std::string& full) {
     marks.Resize(cellsX, cellsY);
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
-            char file[432];
-            std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", name.c_str(), sectorX, sectorY, kSectorExtension);
+            const std::string file = std::format("{}{:03}{:03}{}", name, sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.GetFile(file, &size);
-            if (!sector) game::FatalExit("Unable to locate resource: " + std::string(file));
-            if (!IsSector(sector, size)) game::FatalExit("Wrong format resource: " + std::string(file));
+            if (!sector) game::FatalExit("Unable to locate resource: " + file);
+            if (!IsSector(sector, size)) game::FatalExit("Wrong format resource: " + file);
             StampSector(*this, description, sector, sectorX * kSectorCells, sectorY * kSectorCells);
             archive.CloseFile(sector);
         }

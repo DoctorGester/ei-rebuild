@@ -813,9 +813,9 @@ bool CaptureStarts() {
     return g_captureAfterSeen;
 }
 
-void OnConsoleLine(const char* text) {
-    if (text && *text) {
-        std::string line(text);
+void OnConsoleLine(std::string_view text) {
+    if (!text.empty() && text.front() != '\0') {
+        std::string line(text.substr(0, text.find('\0')));
         while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
         Log("console: %s", line.c_str());
         if (!g_captureAfter.empty() && line.find(g_captureAfter) != std::string::npos) g_captureAfterSeen = true;
@@ -3984,8 +3984,8 @@ void GameQuits() {
     g_quitting = true;
 }
 
-platform::MessageAnswer AnswerMessageBox(const char* text, const char* caption, platform::MessageButtons) {
-    EndRunOnMessageBox(caption ? caption : "", text ? text : "");
+platform::MessageAnswer AnswerMessageBox(std::string_view text, std::string_view caption, platform::MessageButtons) {
+    EndRunOnMessageBox(std::string(caption), std::string(text));
     return platform::MessageAnswer::Cancel;
 }
 

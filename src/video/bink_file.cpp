@@ -26,7 +26,7 @@ constexpr std::uint16_t kDctAudio = 0x1000;
 
 } // namespace
 
-bool File::Open(const char* path) {
+bool File::Open(std::string_view path) {
     // Through the platform: a movie path has backslashes and the game's case, which only its file calls resolve on Linux.
     if (!file.Open(path, platform::FileMode::Read)) return false;
     std::uint8_t header[kHeaderBytes];

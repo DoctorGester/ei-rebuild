@@ -710,6 +710,6 @@ std::string Format(const char* format, va_list arguments) {
 // CString::FormatV's text (str.h): up to the first zero byte, as ReleaseBuffer(-1) left it.
 std::string str::FormatV(const char* format, va_list arguments) {
     std::string text = libcrt::Format(format, arguments);
-    text.resize(std::strlen(text.c_str()));
+    CutAtNull(text);
     return text;
 }

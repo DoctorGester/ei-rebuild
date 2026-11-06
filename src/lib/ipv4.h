@@ -5,6 +5,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <string_view>
 
 namespace lib {
 
@@ -21,6 +22,6 @@ inline constexpr std::uint32_t kNoAddress = 0xFFFFFFFFu;
 // "a.b.c.d" as an address in network order, or kNoAddress: Winsock's inet_addr. One to four parts, each decimal, octal
 // (a leading 0) or hexadecimal (0x); the last part fills the bytes the others leave ("10.1" is 10.0.0.1); a space ends
 // the text.
-std::uint32_t ParseIpv4(const char* text);
+std::uint32_t ParseIpv4(std::string_view text);
 
 } // namespace lib

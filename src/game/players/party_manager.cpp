@@ -265,7 +265,7 @@ void PartyRecordsReset(NamedPartyRecords* list) {
 Party* NamedPartyRecords::Find(std::string_view name) const {
     Party* unnamed = nullptr;
     for (PartyRecord* record : records) {
-        if (str::Compare(record->name.c_str(), name) == 0) return record->GetParty();
+        if (str::Compare(record->name, name) == 0) return record->GetParty();
         if (record->name.empty()) unnamed = record->GetParty();
     }
     return unnamed;

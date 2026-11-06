@@ -17,7 +17,7 @@
 
 #include <cstdarg>
 #include <cstddef>
-#include <cstdlib>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -40,9 +40,13 @@ struct ViewHash {
     std::size_t operator()(std::string_view text) const { return std::hash<std::string_view>{}(text); }
 };
 
-// std::atoi / std::strtof of a std::string.
-inline int ToInt(const std::string& s) { return std::atoi(s.c_str()); }
-inline float ToFloat(const std::string& s) { return std::strtof(s.c_str(), nullptr); }
+// What std::atoi / std::strtof answer for the text: leading white space, an optional sign, the number up to the first
+// character that is not part of it (0 when there is none); an int out of range clamps to the int range, a float out of
+// range is infinite (too large) or zero (too small).
+int ToInt(std::string_view text);
+// The same number, none (nullopt) when the text holds no digits.
+std::optional<int> ParseInt(std::string_view text);
+float ToFloat(std::string_view text);
 
 EI_PRINTF_FORMAT(1, 2) std::string Format(const char* format, ...);
 // With a std::string among the arguments: its text is passed for the %s.
@@ -60,10 +64,9 @@ std::string Format(F&& format, Args&&... args) {
 EI_PRINTF_FORMAT(1, 0) std::string FormatV(const char* format, va_list arguments);
 
 int Find(const std::string& s, char c, int start = 0);
-int Find(const std::string& s, const char* sub, int start = 0);
-inline int Find(const std::string& s, const std::string& sub, int start = 0) { return Find(s, sub.c_str(), start); }
+int Find(const std::string& s, std::string_view sub, int start = 0);
 int ReverseFind(const std::string& s, char c);
-int FindOneOf(const std::string& s, const char* set);
+int FindOneOf(const std::string& s, std::string_view set);
 
 std::string Mid(const std::string& s, int first);
 std::string Mid(const std::string& s, int first, int count);
@@ -75,7 +78,7 @@ void MakeLower(std::string& s);
 int Remove(std::string& s, char c);
 void TrimRight(std::string& s);
 void TrimRight(std::string& s, char target);
-void TrimRight(std::string& s, const char* targets);
+void TrimRight(std::string& s, std::string_view targets);
 void TrimLeft(std::string& s);
 void TrimLeft(std::string& s, char target);
 

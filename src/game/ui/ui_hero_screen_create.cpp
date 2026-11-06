@@ -60,13 +60,9 @@ void AddFigure(std::vector<MpVoiceEntry>& voices, std::vector<std::string>& name
     names.push_back(prototype->name);
 }
 
-// EI_Plugin's test: the 16 bits at +4 of the model's name ("fe"), as the plugin reads them, past a short
-// name's end included.
-bool ModelNameIsFemale(const std::string& model) {
-    std::uint16_t word;
-    std::memcpy(&word, model.c_str() + 4, sizeof word);
-    return word == 0x6566;
-}
+// EI_Plugin's test: the bytes at +4 and +5 of the model's name are "fe" (the plugin read them past a short name's
+// end too, where they were never "fe": a name shorter than 6 bytes is not female).
+bool ModelNameIsFemale(const std::string& model) { return model.size() >= 6 && model[4] == 'f' && model[5] == 'e'; }
 
 } // namespace
 

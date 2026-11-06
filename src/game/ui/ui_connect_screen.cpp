@@ -84,8 +84,9 @@ void CopyText(char* to, std::string_view from) {
     to[from.size()] = 0;
 }
 
-void OpenBox(std::string_view title, const char* text, MessageQuestion question, MessageButtons buttons) {
-    g_interface.PushWindow(std::make_unique<MessageWindow>(title, text, question, buttons), WindowBackdrop::FirstWindow);
+void OpenBox(std::string_view title, std::string_view text, MessageQuestion question, MessageButtons buttons,
+             char* editBuffer = nullptr) {
+    g_interface.PushWindow(std::make_unique<MessageWindow>(title, text, question, buttons, editBuffer), WindowBackdrop::FirstWindow);
 }
 
 
@@ -127,7 +128,7 @@ void MpConnectScreen::Update() {
             joining = false;
             std::string key = RefusalKey(client->refusal);
             std::string text = key + kMessageSuffix;
-            g_interface.PushWindow(std::make_unique<MessageWindow>(key, text.c_str(), MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
+            g_interface.PushWindow(std::make_unique<MessageWindow>(key, text, MpConnectScreen::kBoxNotice, MessageButtons::Ok), WindowBackdrop::FirstWindow);
             return;
         }
     }
@@ -215,7 +216,7 @@ void MpConnectScreen::LeftDown(UiEvent& event) {
     } else if (region == passwordSwitch) {
         if (hostPassword.size() == 0) {
             CopyText(boxText, hostPassword);
-            OpenBox(texts[kTextPassword], boxText, kBoxPassword, MessageButtons::OkCancelEdit);
+            OpenBox(texts[kTextPassword], "", kBoxPassword, MessageButtons::OkCancelEdit, boxText);
         } else {
             hostPassword.clear();
             passwordBox->textureOffsetU = 0.0f;
@@ -317,7 +318,7 @@ void MpConnectScreen::Connect() {
     SaveAddressBook();
     if (entries[selected].password) {
         boxText[0] = '\0';
-        OpenBox(texts[kTextPassword], boxText, kBoxJoinPassword, MessageButtons::OkCancelEdit);
+        OpenBox(texts[kTextPassword], "", kBoxJoinPassword, MessageButtons::OkCancelEdit, boxText);
     }
     g_gameFlow.JoinServer(&entries[selected].address, "");
     net::g_gameClient->gameType = entries[selected].gameType;
@@ -338,7 +339,7 @@ void MpConnectScreen::EditAddress() {
         std::string text = entry.address.ToString();
         CopyText(boxText, text.data());
     }
-    OpenBox(texts[kTextAddress], boxText, kBoxAddress, MessageButtons::OkCancelEdit);
+    OpenBox(texts[kTextAddress], "", kBoxAddress, MessageButtons::OkCancelEdit, boxText);
 }
 
 void MpConnectScreen::MasterRequest() {
@@ -351,7 +352,7 @@ void MpConnectScreen::MasterRequest() {
         master.Parse(options::g_options.masterServerName, kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries.extra : 0;
-    g_interface.PushWindow(std::make_unique<MasterRequestBox>(texts[kTextMaster], boxText, kBoxMaster, &master, extra),
+    g_interface.PushWindow(std::make_unique<MasterRequestBox>(texts[kTextMaster], std::string_view(boxText), kBoxMaster, &master, extra),
                    WindowBackdrop::FirstWindow);
 }
 
@@ -592,7 +593,7 @@ void MpConnectScreen::CreateScreen() {
 
 // --- the master request box ----------------------------------------------------------------------
 
-MasterRequestBox::MasterRequestBox(std::string_view titleKey, const char* textKey, MessageQuestion question,
+MasterRequestBox::MasterRequestBox(std::string_view titleKey, std::string_view textKey, MessageQuestion question,
                                      const net::NetAddress* address, std::uint32_t extra)
     : MessageWindow(titleKey, textKey, question, MessageButtons::Cancel), link(address) {
     bar = AddBlankSprite();

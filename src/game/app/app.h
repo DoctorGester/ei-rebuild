@@ -60,10 +60,10 @@ void FrameStep(bool draw);
 void PlayMovies(const std::string& section, bool loadingStep);
 // The game's error box (OK, the error icon) over the main window, under the window's title; the cursor that was set is
 // put back afterwards.
-void ShowMessageBox(const char* text);
+void ShowMessageBox(std::string_view text);
 // The box of the game's library code (AfxMessageBox): no owner, the program's file name as its title, OK with the
 // warning icon.
-void ShowLibraryMessageBox(const char* text);
+void ShowLibraryMessageBox(std::string_view text);
 // The rendering resolution changed while the game runs, the one way every change takes (a window resized: the present
 // asks through RequestResolution; a resolution chosen in the options: ChooseResolution): the
 // device's screen, the interface layout (screen_layout.h: the 4:3 part, the widescreen margins and axis scales), the

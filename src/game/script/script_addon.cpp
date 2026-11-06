@@ -203,10 +203,12 @@ bool RejectsMatch(const char* keyword, char next) {
     return IsAsciiAlpha(keyword[0]) && (IsAsciiAlnum(next) || next == '_' || next == '#');
 }
 
-void SignatureStep(ScriptCall* cmd, const char** signature, int tokenId) {
-    const char*& p = *signature;
-    bool repeat = *p == '+';
-    bool optional = *p == '?';
+void SignatureStep(ScriptCall* cmd, std::string_view signature, std::size_t* letter, int tokenId) {
+    std::size_t& p = *letter;
+    // The letter at p (a zero byte past the end, as the C string it was).
+    const auto at = [&] { return p < signature.size() ? signature[p] : '\0'; };
+    bool repeat = at() == '+';
+    bool optional = at() == '?';
     if (!repeat && !optional) return;
     if (tokenId == ScriptLexeme::Close) {
         if (repeat) {
@@ -214,16 +216,16 @@ void SignatureStep(ScriptCall* cmd, const char** signature, int tokenId) {
             return;
         }
         int floats = 0, strings = 0, objects = 0, groups = 0;
-        if (*p == 0) return;
+        if (at() == 0) return;
         do {
-            switch (*p) {
+            switch (at()) {
             case 'f': ++floats; break;
             case 'g': ++groups; break;
             case 'o': ++objects; break;
             case 's': ++strings; break;
             }
             ++p;
-        } while (*p);
+        } while (at());
         cmd->floatArgs.resize(cmd->floatArgs.size() - floats);
         cmd->stringArgs.resize(cmd->stringArgs.size() - strings);
         cmd->objectArgs.resize(cmd->objectArgs.size() - objects);
@@ -235,7 +237,7 @@ void SignatureStep(ScriptCall* cmd, const char** signature, int tokenId) {
         return;
     }
     --p;
-    switch (*p) {
+    switch (at()) {
     case 's':
         cmd->stringArgs.emplace_back();
         break;

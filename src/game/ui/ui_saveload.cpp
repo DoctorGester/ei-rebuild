@@ -118,7 +118,7 @@ constexpr const char* kFolderFormat = "%ssaves\\%s";
 constexpr const char* kEveryFile = "\\*.*";
 
 // A message box `name` / `text` on top of the interface.
-void Ask(const char* name, const char* text, MessageQuestion question) {
+void Ask(std::string_view name, std::string_view text, MessageQuestion question) {
     g_interface.PushWindow(std::make_unique<MessageWindow>(name, text, question, MessageButtons::OkCancel), WindowBackdrop::FirstWindow);
 }
 

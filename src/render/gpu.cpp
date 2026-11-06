@@ -13,9 +13,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <deque>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
@@ -51,14 +53,13 @@ static FailureHandler g_failureHandler = nullptr;
 void SetFailureHandler(FailureHandler handler) { g_failureHandler = handler; }
 
 // SDL refused `what` (a pass's: `name` too) on the frame's commands: a lost device (gpu.h, SetFailureHandler).
-static const char* LostReason();
+static const std::string& LostReason();
 
 [[noreturn]] static void Failed(const char* what, const char* name = "") {
     // A lost device's reason (the vendored SDL's EI_PROP_GPU_DEVICE_LOST_STRING) over SDL's latest error, which can be
     // an earlier one.
-    const char* why = DeviceLost() ? LostReason() : SDL_GetError();
-    char text[512];
-    std::snprintf(text, sizeof(text), "the GPU refused %s%s%s%s%s", what, *name ? " " : "", name, *why ? ": " : "", why);
+    const std::string_view why = DeviceLost() ? std::string_view(LostReason()) : std::string_view(SDL_GetError());
+    const std::string text = std::format("the GPU refused {}{}{}{}{}", what, *name ? " " : "", name, why.empty() ? "" : ": ", why);
     ei::Log("gpu: failed: %s", text);
     if (g_failureHandler) g_failureHandler(text);
     std::exit(-1);
@@ -929,7 +930,7 @@ bool Start(const DeviceOptions& options) {
         g_device = CreateDevice(driver, options.debug, &g_error);
     }
     if (!g_device) {
-        ei::Log("gpu: %s", g_error.c_str());
+        ei::Log("gpu: %s", g_error);
         return false;
     }
     g_error.clear();
@@ -939,7 +940,7 @@ bool Start(const DeviceOptions& options) {
     g_wholeBlocks = g_driverName == "direct3d12";
     const SDL_PropertiesID props = SDL_GetGPUDeviceProperties(g_device);
     g_deviceName = SDL_GetStringProperty(props, SDL_PROP_GPU_DEVICE_NAME_STRING, "?");
-    ei::Log("gpu: %s device (%s; driver %s)", g_driverName.c_str(), g_deviceName.c_str(),
+    ei::Log("gpu: %s device (%s; driver %s)", g_driverName, g_deviceName,
             SDL_GetStringProperty(props, SDL_PROP_GPU_DEVICE_DRIVER_VERSION_STRING, "?"));
     return true;
 }
@@ -998,9 +999,9 @@ void Stop() {
 bool Started() { return g_device != nullptr; }
 std::uint32_t DeviceSerial() { return g_deviceSerial; }
 std::uint64_t PassSerial() { return g_passSerial; }
-const char* Error() { return g_error.c_str(); }
-const char* DriverName() { return g_driverName.c_str(); }
-const char* DeviceName() { return g_deviceName.c_str(); }
+const std::string& Error() { return g_error; }
+const std::string& DriverName() { return g_driverName; }
+const std::string& DeviceName() { return g_deviceName; }
 int Problems() { return g_problems; }
 
 // ---- Textures and samplers ----------------------------------------------------------------------------------------
@@ -1593,7 +1594,7 @@ bool ClaimWindow(SDL_Window* window) {
     ReleaseWindow();
     if (!SDL_ClaimWindowForGPUDevice(g_device, window)) {
         g_error = std::string("the window's swap chain: ") + SDL_GetError();
-        ei::Log("gpu: %s", g_error.c_str());
+        ei::Log("gpu: %s", g_error);
         return false;
     }
     g_window = window;
@@ -1731,7 +1732,7 @@ std::uint64_t SubmitCount() { return g_serial - 1; }
 
 WaitTimes Waits() { return g_waits; }
 
-static const char* LostReason() { return g_lostReason.c_str(); }
+static const std::string& LostReason() { return g_lostReason; }
 
 bool DeviceLost() {
     if (g_lost || !g_device) return g_lost;

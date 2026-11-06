@@ -510,7 +510,7 @@ bool PlayerClient::OnNewObject() {
     figure->SetFigureScale(scale);
     object->baseScale = scale;
     object->ApplyBaseScale();
-    object->name2 = secondName.c_str();
+    object->name2 = secondName.substr(0, secondName.find('\0'));   // up to the first NUL, as a C string
     if (isUnit) {
         Unit* unit = UnitOrNull(created);
         const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(header.prototype);

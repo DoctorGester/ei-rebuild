@@ -259,9 +259,9 @@ int CharacterCount(std::string_view text) {
 
 // ---- Lengths and cuts by character ----------------------------------------------------------------
 
-int CharacterLength(const char* p) {
+int CharacterLength(std::string_view text) {
     int length = 1;
-    while (IsTrailByte(p[length])) ++length;
+    while (static_cast<std::size_t>(length) < text.size() && IsTrailByte(text[static_cast<std::size_t>(length)])) ++length;
     return length;
 }
 

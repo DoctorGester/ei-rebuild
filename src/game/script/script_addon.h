@@ -55,7 +55,7 @@ bool RejectsMatch(const char* keyword, char next);
 // LoadFunction, after the separator token is classified: the signature's '?' and '+'. At ')' a '+' is passed and a
 // '?' drops the optional parameters' slots; otherwise a '+' steps back to the repeated type (adding a slot for it)
 // and a '?' is skipped.
-void SignatureStep(ScriptCall* cmd, const char** signature, int tokenId);
+void SignatureStep(ScriptCall* cmd, std::string_view signature, std::size_t* letter, int tokenId);
 
 // ScriptCall::CalcString (which the patched CalcParameters calls for a string argument):
 // prepares the arguments, then Rebirth's string function (none: the game ends).
