@@ -1,9 +1,9 @@
 // Containers (UiContainer, ui.h): the draw, and the input dispatch, which passes an
 // event on to the extra inputs and the child windows. See docs/notes/ui.md ("Container input dispatch").
 #include "game/game_singletons.h"
+#include "game/device.h"
 #include "game/model.h"
 #include "game/ui.h"
-#include "game/texture.h"
 #include "game/ui_cursor.h"
 #include "game/world.h"
 #include "render/render_state.h"

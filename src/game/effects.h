@@ -11,7 +11,7 @@
 #include "game/clip.h"   // TLVertex
 #include "game/core_streams.h"
 #include "game/core_transform.h"
-#include "game/model.h"   // ClipBounds
+#include "game/pipeline.h"   // ClipBounds, SpritePoint
 #include "game/search_grid.h"
 
 #include "lib/bit_flags.h"
@@ -321,6 +321,8 @@ static_assert(sizeof(ParticleElement) == sizeof(Vector3) + sizeof(ParticleElemen
 class ParticleSource;
 class Object3D;
 class MapObject;
+class SceneRenderer;
+class Texture;
 
 // The client world's manager set-up calls it after the base manager's constructor.
 class ParticleManager;

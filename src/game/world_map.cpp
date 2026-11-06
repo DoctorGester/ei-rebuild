@@ -10,7 +10,6 @@
 #include "game/hash_tables_400.h"
 #include "game/map_object.h"
 #include "game/mod_folders.h"
-#include "game/model.h"   // TweenArray (countdowns)
 #include "game/net_coder.h"
 #include "game/net_link.h"
 #include "game/object_diplomacy.h"

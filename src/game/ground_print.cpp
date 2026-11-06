@@ -9,11 +9,12 @@
 #include "game/figure_mesh.h"
 #include "game/game_singletons.h"
 #include "game/ground_decal.h"
+#include "game/device.h"
 #include "game/model.h"
+#include "game/texture.h"
 #include "game/options.h"
 #include "game/light.h"
 #include "game/terrain.h"
-#include "game/texture.h"
 #include "game/world.h"
 #include "game/random.h"
 

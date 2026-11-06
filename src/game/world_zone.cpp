@@ -8,7 +8,6 @@
 #include "game/game_singletons.h"
 #include "game/map_object.h"
 #include "game/map_spec.h"
-#include "game/model.h"   // TweenArray (countdowns)
 #include "game/net_delta.h"
 #include "game/object_tables.h"
 #include "game/party.h"

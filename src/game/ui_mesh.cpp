@@ -6,6 +6,7 @@
 #include "game/figure_mesh.h"
 #include "game/material.h"
 #include "game/model.h"
+#include "game/pipeline.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/maths.h"

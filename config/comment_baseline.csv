@@ -17,7 +17,7 @@ src/game/combat_steps.cpp,0,0,1,0,0,0,0
 src/game/console_window.cpp,0,0,1,0,0,0,0
 src/game/core_refcount.h,0,0,1,0,0,0,0
 src/game/core_transform.h,0,0,1,0,0,0,0
-src/game/device_buffers.h,0,0,1,0,0,0,0
+src/game/device.h,0,0,3,0,0,0,0
 src/game/device_draw.cpp,0,0,3,0,0,0,0
 src/game/device_mesh.cpp,0,0,8,0,0,0,0
 src/game/dib.h,0,0,2,0,0,0,0
@@ -26,6 +26,7 @@ src/game/effects_weather.cpp,0,0,1,0,0,0,0
 src/game/figure_manager.cpp,0,0,1,0,0,0,0
 src/game/figure_mesh.h,0,0,0,0,0,0,1
 src/game/figure_part_draw.cpp,0,0,0,0,0,0,1
+src/game/ground_print.h,0,0,0,0,0,1,1
 src/game/item.h,0,0,1,0,0,0,0
 src/game/item_db.cpp,0,0,0,0,0,0,1
 src/game/item_db.h,0,0,0,0,0,0,2
@@ -44,7 +45,6 @@ src/game/map_spec_unit.cpp,0,0,1,0,0,0,0
 src/game/material.h,0,0,3,0,0,2,1
 src/game/mob_reader.cpp,0,0,1,0,0,0,0
 src/game/mod_folders.cpp,0,0,1,0,25,0,0
-src/game/model.h,0,0,1,0,0,1,1
 src/game/named_floats.h,0,0,1,0,0,0,0
 src/game/net_classes.h,0,0,1,0,0,0,0
 src/game/net_coder.h,0,0,4,0,0,0,0
@@ -62,6 +62,7 @@ src/game/party_manager.cpp,0,0,1,0,0,0,0
 src/game/party_manager.h,0,0,0,0,0,0,1
 src/game/party_records.h,0,0,1,0,0,0,0
 src/game/persistent_globals.cpp,0,0,0,0,1,0,0
+src/game/pipeline.h,0,0,1,0,0,0,0
 src/game/player.cpp,0,0,2,0,0,0,0
 src/game/player_client.cpp,0,0,1,0,0,0,0
 src/game/player_client.h,0,0,0,0,0,1,1
@@ -100,7 +101,7 @@ src/game/surface.cpp,0,0,5,0,0,0,0
 src/game/surface.h,0,0,1,0,0,0,0
 src/game/text_manager.cpp,0,0,3,0,0,0,0
 src/game/texture.cpp,0,0,3,0,0,0,0
-src/game/texture.h,0,0,5,0,0,1,2
+src/game/texture.h,0,0,2,0,0,1,2
 src/game/texture_load.cpp,0,0,8,0,0,0,1
 src/game/torch.h,0,0,2,0,0,0,0
 src/game/torch_client_spec.h,0,0,1,0,0,0,0

@@ -15,7 +15,7 @@
 #include "game/spell.h"
 #include "game/terrain.h"
 #include "game/terrain_sector.h"
-#include "game/texture.h"
+#include "game/model.h"
 #include "game/world.h"
 
 #include "lib/vecmath.h"

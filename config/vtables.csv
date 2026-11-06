@@ -194,19 +194,19 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D624,7,,game,004DA7F0 004DA910 004DA9E0,004DA630,GrowingBuffer,src/game/net_coder.h,the growing byte buffer
 0073D644,13,,game,004DDD6F 004DDE75,004DE8B0,CSysInfo,-,"the system information: stored only by game.exe's 004DDD6F / 004DDE75 (its constructor and destructor); nothing of ours read it, so it is not made"
 0073D6B4,13,,game,004E2290 004E24E0,004E24C0,VisibilityFog,src/game/effects.h,the visibility fog (CVisibilityFog)
-0073D760,1,,game,004E5E50 004E68A0,004E6880,TextureDevice,src/game/texture.h,the device object (CTextureDevice)
+0073D760,1,,game,004E5E50 004E68A0,004E6880,TextureDevice,src/game/device.h,the device object (CTextureDevice)
 0073D764,1,,game,004E72A0 004E76B0 004E7700,004E7690,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
 0073D768,1,,game,004E76B0 004E77D0 004E77E0 004E7800 004EDD70 004EE330 004EFD20 004F0B90 004F0E10,004E7800,RendererBase,src/game/renderer_base.h,"the renderer's counted base (the surface holder, the device object, the pipeline)"
 0073D770,1,,game,004EDD70 004EE330,004EE310,CTextureDevice's base,-,"the device object's DirectDraw base CDXDirectDraw, stored only by game.exe's 004EDD70 / 004EE330 (ours folds it into CTextureDevice, R27c)"
 0073D774,1,,game,004EEE30 004EF690 004EF7B0 004EFA60 004EFC60 004EFD20,004EF790,Surface,src/game/surface.h,the surface holder (CDXSurface; ours is Surface)
-0073D778,1,,game,004F0B90 004F0E10,004F0DF0,TransformPipeline,src/game/model.h,the transform pipeline (CTransformPipeline)
+0073D778,1,,game,004F0B90 004F0E10,004F0DF0,TransformPipeline,src/game/pipeline.h,the transform pipeline (CTransformPipeline)
 0073D790,15,,game,004F2C00 004F2E40,004F2E20,LinkMesh,src/game/link_figure.h,a figure's mesh (the link loader 004F7480 / 004F7860)
 0073D7CC,15,,game,004F2C00 004F2D40 004F2E40,004F2E00,LinkMeshBase,-,LinkMesh's base class: stored by game.exe's constructor and destructors 004F2C00 / 004F2D40 / 004F2E40 (ours is LinkMesh alone)
-0073D808,7,,game,004F68C0 004F6BD0,004F6A30,LinkFigureLoader,src/game/model.h,the link figure loader (CLinkFigureLoader)
+0073D808,7,,game,004F68C0 004F6BD0,004F6A30,LinkFigureLoader,src/game/link_loader.h,the link figure loader (CLinkFigureLoader)
 0073D824,7,,game,004F68C0,004F6A00,CLinkFigureLoader's base,-,the figure loader's abstract base (slots 1-6 _purecall)
-0073D840,8,,game,004FCA60 004FCD50,004FCC20,RenderHelper,src/game/model.h,the renderer's helper (CRenderHelper)
+0073D840,8,,game,004FCA60 004FCD50,004FCC20,RenderHelper,src/game/render_helper.h,the renderer's helper (CRenderHelper)
 0073D860,8,,game,004FCA60,004FCD30,CRenderHelper's base,-,stored only by game.exe's 004FCA60 (the compiler's constructor stores none)
-0073D880,2,,game,004FD2A0,004FD880,RenderPreset,src/game/model.h,a render state preset (CRenderPreset)
+0073D880,2,,game,004FD2A0,004FD880,RenderPreset,src/game/render_helper.h,a render state preset (CRenderPreset)
 0073D888,2,,game,004FD2A0,004FD900,render helper local,-,stored only by game.exe's 004FD2A0 (CRenderHelper::Record stores none)
 0073D8A0,25,,game,00500440 00500480,006E73EB,CVisualizator,-,stored only by game.exe's 00500440 / 00500480: the scene renderer's abstract base (slots 0 / 4-6 / 8-24 _purecall); folded into CSceneRenderer
 0073D93C,26,,game,00500A70 00500AC0,00501AB0,SceneRenderer,-,stored only by game.exe's 00500A70 / 00500AC0: the scene renderer's (ours has no virtual functions)
@@ -556,8 +556,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00744210,3,,game,006CBE60 006CD6D0,007005E3,TerrainArrayAClass,-,CArray (the terrain builder's arrays; 006CBE60); stored only by game.exe (ours is a std::vector)
 0074421C,3,,game,006CC2A0 006CC3E0 006CD880,007005E3,TerrainArrayBClass,-,CArray (the terrain builder's arrays; 006CC2A0 / 006CC3E0); stored only by game.exe (ours is a std::vector)
 00744228,3,,game,006CC530 006CDA20,007005E3,TerrainArrayCClass,-,CArray (the terrain builder's arrays; 006CC530); stored only by game.exe (ours is a std::vector)
-00744264,1,,game,006D26E0 006D2E40 006D3430 006D38C0 006D3CB0 006D3DE0 006D3F10 006D4050,006D41D0,PrintRecord,src/game/model.h,a prints.db record
-00744268,1,,game,006D2830 006D3120 006D3680 006D3F10 006D4050,006D4270,PrintRecord2,src/game/model.h,prints.db's second record type
+00744264,1,,game,006D26E0 006D2E40 006D3430 006D38C0 006D3CB0 006D3DE0 006D3F10 006D4050,006D41D0,PrintRecord,src/game/ground_print.h,a prints.db record
+00744268,1,,game,006D2830 006D3120 006D3680 006D3F10 006D4050,006D4270,PrintRecord2,src/game/ground_print.h,prints.db's second record type
 00744288,3,,game,006D49E0 006D4AA0 006D4B30 006D4CD0,006D4A60,Dib,src/game/dib.h,CDib
 00745DF4,21,.?AVCFile@@,lib,00701036 0070106C 0070108B 0070112B,0070BE58,CFile,-,"stored only by game.exe's constructors / destructor 00701036 / 0070106C / 0070108B / 0070112B, which no code of ours calls (the game's files are lib::File since C14d)"
 00745E4C,5,.?AVCFileException@@,lib,006E6335 0070108B 00701BD4 007031D5,0070CF4C,CFileException,-,"stored only by game.exe's 006E6335 / 0070108B / 00701BD4 / 007031D5, which no code of ours calls (a failed file call throws lib::FileError since C14d)"

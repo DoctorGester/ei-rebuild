@@ -6,7 +6,7 @@
 #include "game/item.h"
 #include "game/item_db.h"
 #include "game/item_names.h"
-#include "game/model.h"
+#include "game/link_loader.h"
 #include "game/texture.h"
 #include "game/unit.h"
 #include "game/unit_client_models.h"

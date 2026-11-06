@@ -422,10 +422,10 @@ model.cpp                   scene/pipeline.cpp          split # the pipeline's c
 pipeline.h                  scene/pipeline.h            new   # TransformPipeline, MatrixStack, ClipBounds, SpritePoint, out of model.h
 render_helper.h             scene/render_helper.h       new   # RenderPreset, RenderHelper, out of model.h
 projection.cpp              scene/projection.cpp
-view_matrices.h             scene/pipeline.h            fold  # ViewMatrix's declaration (16 lines); it is defined in projection.cpp
+view_matrices.h             scene/pipeline.h            fold  # ViewMatrix's declaration (16 lines); it is defined in projection.cpp (folded into pipeline.h by C168c)
 clip.h                      scene/clip.h
 device.h                    scene/device.h              new   # TextureDevice and MeshArgs, out of texture.h
-device_buffers.h            scene/device.h              fold  # the device's two work vectors (18 lines)
+device_buffers.h            scene/device.h              fold  # the device's two work vectors (18 lines) (folded into device.h by C168c)
 device_draw.cpp             scene/device_draw.cpp
 device_mesh.cpp             scene/device_mesh.cpp
 device_material.h           scene/device_material.h

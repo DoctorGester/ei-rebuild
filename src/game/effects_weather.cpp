@@ -3,10 +3,11 @@
 #include "game/effects.h"
 #include "game/figure_mesh.h"   // VertexPacket
 #include "game/game_singletons.h"
-#include "game/model.h"   // SceneRenderer, TransformPipeline
+#include "game/model.h"   // SceneRenderer
+#include "game/pipeline.h"   // TransformPipeline
+#include "game/texture.h"
 #include "game/random.h"
 #include "game/sound.h"
-#include "game/texture.h"
 #include "game/weather_field.h"
 #include "game/world.h"
 

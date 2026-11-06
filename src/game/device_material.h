@@ -4,16 +4,13 @@
 // applied by the indexed draw. See docs/notes/models.md ("Material draw").
 
 #include "game/engine_object.h"
+#include "game/ref.h"
+#include "game/render_helper.h"   // RenderPreset
 #include "game/texture.h"
-
 
 #include <cstddef>
 #include <cstdint>
 #include <vector>
-
-#include "game/ref.h"
-
-class RenderPreset;
 
 // A texture stage of a material: copied with the texture gaining a reference, destroyed by releasing the texture and
 // freeing the name.

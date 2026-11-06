@@ -5,7 +5,7 @@
 
 #include "game/core_transform.h"
 #include "lib/vecmath.h"
-#include "game/model.h"
+#include "game/pipeline.h"
 #include "game/ref.h"
 
 #include "lib/bit_flags.h"
@@ -19,6 +19,7 @@
 #include <vector>
 
 using TexCoord = render::TexCoord;
+using MeshCorner = render::MeshCorner;
 
 // What the renderer draws from (FigureMesh::buffers): pointers and counts of the mesh's arrays.
 struct MeshBuffers {

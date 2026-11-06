@@ -15,8 +15,8 @@
 #include "game/ground_print.h"
 #include "game/item.h"
 #include "game/lightning.h"
+#include "game/link_loader.h"
 #include "game/material.h"
-#include "game/model.h"   // TweenArray (countdowns)
 #include "game/net_link.h"   // netlink::NetLink: the world handle's pending link
 #include "game/object.h"     // Hoover
 #include "game/object_diplomacy.h"
@@ -32,7 +32,6 @@
 #include "game/spell.h"
 #include "game/terrain.h"
 #include "game/text_manager.h"
-#include "game/texture.h"       // Texture: the fog texture (ClientArrayManager)
 #include "game/ui_flying_hit_points.h"
 #include "game/unit.h"
 #include "game/unit_create.h"

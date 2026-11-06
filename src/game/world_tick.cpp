@@ -3,7 +3,6 @@
 #include "game/combat.h"
 #include "game/core_maths.h"
 #include "game/map_object.h"
-#include "game/model.h"
 #include "game/net_link.h"   // netlink::DriverSession (SetGameResult)
 #include "game/script.h"
 #include "game/sector_map.h"

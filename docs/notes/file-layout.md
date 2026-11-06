@@ -115,7 +115,7 @@ net_connection_life, world_effect_sequence, resource_stream.cpp, hoover_loot, ui
 | address_order.{h,cpp} | orders without addresses | world/object_order.*, namespace object_order |
 | bink_video.{h,cpp} | the game's movie players (src/video/bink_video.cpp is the decoder) | app/movies.* |
 
-C168b split these on the flat tree (all but model.h and texture.h, C168c's): the new files are flat under their final
+C168b and C168c split these on the flat tree (C168c model.h and texture.h): the new files are flat under their final
 names (named_floats.{h,cpp}, water_tweens.cpp, light.h) and the code went into the files the table names by their flat
 names (text keys into text_manager, the key tables into key_bindings, DepthLess into world_client_maps.cpp, the database
 globals and prints.db's and acks.db's loads into their databases' files, the container draws into their windows' files
@@ -124,6 +124,15 @@ misc_400.cpp is folded into server_specific_manager.cpp already (`layout.py chec
 moved). object_tables.h (now the map records alone), world_rules.cpp (the local player's queries) and
 server_specific_manager.* (both side managers) keep their names until their move batches rename them; hash_tables_400.h's
 namespace is `idtable`, address_order.h's `object_order`.
+
+C168c: model.h keeps SceneRenderer (and AmbientColour) until C168g renames it scene/scene_renderer.h; the transform
+pipeline (with ClipBounds, FootprintPart, the matrix stacks, SpritePoint, ToClip, the viewport, projection and view
+matrices) is pipeline.h, RenderPreset / RenderHelper render_helper.h, the link loader link_loader.h (its archive list
+moved from model.cpp to link_loader.cpp), prints.db's records joined ground_print.h, and ReadPrefixedName is
+figure_manager.cpp's own. model.cpp (the pipeline's clip test and matrices) keeps its name until C168g. TextureDevice,
+MeshArgs, DrawFlag, texture stage 0's setups and DevicePresent left texture.h for device.h. view_matrices.h is folded
+into pipeline.h and device_buffers.h into device.h already. Each of model.h's and texture.h's includers names the
+headers it uses; a header that only points at SceneRenderer, Texture or TextureDevice declares it.
 
 `*_internal.h` (combat, spell effects, world effects) and `script_parse.h` are private headers of one family: they
 stay (combat_plan.h joins combat's). ui_float.h (FloatFromBits for constants written as raw bits, Truncate) moves as
@@ -273,29 +282,29 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 10598 | C168f |
-| `app/` | 25 | 5234 | C168e |
+| `app/` | 25 | 5238 | C168e |
 | `combat/` | 13 | 5168 | C168f |
 | `console/` | 5 | 1653 | C168e |
 | `core/` | 27 | 3504 | C168d |
 | `data/` | 13 | 2266 | C168d |
-| `effects/` | 23 | 10247 | C168g |
+| `effects/` | 23 | 10254 | C168g |
 | `items/` | 10 | 2810 | C168g |
 | `map/` | 11 | 1732 | C168e |
-| `models/` | 20 | 4523 | C168g |
+| `models/` | 20 | 4445 | C168g |
 | `mods/` | 6 | 605 | C168d |
 | `net/` | 21 | 6203 | C168h |
-| `objects/` | 22 | 5520 | C168f |
+| `objects/` | 22 | 5529 | C168f |
 | `players/` | 23 | 5161 | C168e |
 | `saves/` | 7 | 811 | C168d |
-| `scene/` | 30 | 4836 | C168g |
+| `scene/` | 30 | 4376 | C168g |
 | `script/` | 20 | 6526 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 7 | 2467 | C168g |
-| `terrain/` | 12 | 2965 | C168g |
-| `ui/` | 94 | 30724 | C168h |
-| `units/` | 27 | 8821 | C168f |
-| `world/` | 35 | 8908 | C168e |
-| all | 482 | 132961 | |
+| `terrain/` | 12 | 3028 | C168g |
+| `ui/` | 94 | 30731 | C168h |
+| `units/` | 27 | 8820 | C168f |
+| `world/` | 35 | 8909 | C168e |
+| all | 482 | 132513 | |
 
 533 files today; 55 fold into an owner, 10 split by meaning, 8 new files come out of the splits, 36 moves rename for meaning.
 
@@ -683,7 +692,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | camera.h | scene/camera.h |  |  |
 | camera_object.cpp | scene/camera_object.cpp |  |  |
 | clip.h | scene/clip.h |  |  |
-| device_buffers.h | scene/device.h | fold | the device's two work vectors (18 lines) |
+| device_buffers.h | scene/device.h | fold | the device's two work vectors (18 lines) (folded into device.h by C168c) |
 | device.h | scene/device.h | new | TextureDevice and MeshArgs, out of texture.h |
 | device_draw.cpp | scene/device_draw.cpp |  |  |
 | device_material.h | scene/device_material.h |  |  |
@@ -693,7 +702,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | light.cpp | scene/light.cpp |  |  |
 | light.h | scene/light.h | new | Light and LightFactory, out of spell.h |
 | model.cpp | scene/pipeline.cpp | split | the pipeline's clip test and matrices; the link loader's archive list -> models/link_loader.cpp (C168c) |
-| view_matrices.h | scene/pipeline.h | fold | ViewMatrix's declaration (16 lines); it is defined in projection.cpp |
+| view_matrices.h | scene/pipeline.h | fold | ViewMatrix's declaration (16 lines); it is defined in projection.cpp (folded into pipeline.h by C168c) |
 | pipeline.h | scene/pipeline.h | new | TransformPipeline, MatrixStack, ClipBounds, SpritePoint, out of model.h |
 | projection.cpp | scene/projection.cpp |  |  |
 | render_helper.cpp | scene/render_helper.cpp |  |  |

@@ -7,9 +7,11 @@
 #include "game/game_singletons.h"
 #include "game/link_figure.h"   // FigureMeshDrawer
 #include "game/model.h"     // SceneRenderer
+#include "game/pipeline.h"
+#include "game/render_helper.h"
+#include "game/texture.h"   // Texture
 #include "game/renderer_lines.h"
 #include "game/light.h"
-#include "game/texture.h"   // TextureDevice, Texture
 #include "game/ui.h"
 #include "game/screen_layout.h"
 #include "game/world.h"

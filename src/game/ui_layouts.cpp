@@ -22,6 +22,7 @@
 #include "game/text_manager.h"
 #include "lib/vecmath.h"
 #include "game/model.h"
+#include "game/texture.h"
 #include "game/net_second_master.h"
 #include "game/resource.h"
 #include "game/ui_cursor.h"

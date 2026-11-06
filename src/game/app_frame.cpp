@@ -7,8 +7,8 @@
 #include "game/game_singletons.h"
 #include "game/ini_file.h"
 #include "game/lever.h"
+#include "game/device.h"
 #include "game/model.h"
-#include "game/texture.h"   // TextureDevice, Surface
 #include "game/ui.h"
 #include "game/ui_cursor.h"
 #include "game/main_loop.h"

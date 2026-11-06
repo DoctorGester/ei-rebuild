@@ -9,7 +9,7 @@
 #include "game/material.h"        // Material
 #include "render/render.h"   // MeshChanged
 #include "render/render_state.h"
-#include "game/texture.h"   // TextureDevice
+#include "game/device.h"
 
 #include <bit>
 #include <cstdint>

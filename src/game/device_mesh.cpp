@@ -1,14 +1,13 @@
 // The Direct3D device's indexed mesh draws, with one texture and with two: the mesh's positions are projected by
 // the pipeline for the visibility verdict and the screen rectangle picking reads. The new
 // renderer gets the mesh in model space once it is visible and clips it. See docs/notes/models.md ("Renderer").
-#include "game/device_buffers.h"
+#include "game/device.h"
+#include "game/pipeline.h"
 #include "game/device_material.h"
 #include "game/figure_mesh.h"
-#include "game/model.h"
 #include "render/render.h"
 #include "render/render_checks.h"
 #include "game/settings.h"
-#include "game/texture.h"
 
 #include <cstdint>
 

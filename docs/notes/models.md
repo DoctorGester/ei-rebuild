@@ -1,7 +1,7 @@
 # Models, resources, the draw layer, terrain and ground prints
 
-Code: `model.h/.cpp`, `figure_*.cpp`, `link_figure.cpp`,
-`link_loader.cpp`, `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `renderer_lines.cpp`,
+Code: `model.h` (the scene renderer), `pipeline.h` / `model.cpp` (the transform pipeline), `render_helper.h`,
+`device.h`, `link_loader.h/.cpp`, `figure_*.cpp`, `link_figure.cpp`, `renderer_init.cpp`, `renderer_strip.cpp`, `renderer_sprites.cpp`, `renderer_lines.cpp`,
 `device_*.cpp`, `unit_skins.cpp`, `terrain*.cpp`, `ground_print.cpp` (with prints.db's load), `ground_decal.cpp`, `acks_db.cpp` (with acks.db's load), `water_tweens.cpp`, `dib.cpp`,
 `resource*.cpp`. Algorithms are described in each file's header comment. Scenario: `tests/scenarios/models.txt` (the
 draw functions run in every scenario; ribbons and sprites in `spells` / `spells_cast`).
@@ -25,7 +25,7 @@ draw functions run in every scenario; ribbons and sprites in `spells` / `spells_
   data), the open chunk list (the last node is the current chunk; its occurrence index picks which chunk the next
   EnterChunk looks for), a loading flag; Serialize functions read and write through the same code. A failed EnterChunk
   when loading still pushes a chunk (callers never pop it; `RestoreTop` pops them).
-- prints.db (`PrintsDatabase`, model.h): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks 2 / 3 of a
+- prints.db (`PrintsDatabase`, ground_print.h): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks 2 / 3 of a
   record are {alpha, life, lifetime} (`PrintLook`).
 - acks.db (acks_db.h): three tables {vector of records, hash_map<string, record*>}: units by prototype name (kinds up to
   0x29; 0x29 the environment speeches, matched against `WorldClient::EnvironmentFlags`), models by model name
@@ -49,7 +49,7 @@ animation: map_objects.md ("Skeleton").
 
 `LinkMesh` (link_figure.h): part headers (map<string, LinkPartHeader>), the morph coefficients, six arrays (vertex
 packets, normal packets, texture coordinates, 6-byte corners, dwords, words), ranges by name, the loader. The loader
-(`LinkFigureLoader`, model.h; one per world view) has the figure sets, the device object and a cache by name; it opens
+(`LinkFigureLoader`, link_loader.h; one per world view) has the figure sets, the device object and a cache by name; it opens
 figures.res and menus.res at startup. A .lnk lists the parts; each is a FIG / FIG8 (or older headerless) record morphed
 by three coefficients s, t, u and appended. Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t),
 lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u); old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
@@ -66,7 +66,7 @@ device holder. Its draws hand their triangles to src/render.
   ambient go to the GPU lighting only.
 - **Mesh draws**: callers are the figures and the 3D library's meshes; flag 4 overwrites the mesh's colours with the
   device's override colour / alpha. `DeviceDrawFlat` is used by the selection marker and the ground prints. Of the old
-  CPU draw's shared buffers only the projected vertices and their outcodes are left (device_buffers.h).
+  CPU draw's shared buffers only the projected vertices and their outcodes are left (`devicebuffers`, device.h).
 - **Figure parts**: mesh flags (FigureMeshFlag, figure_mesh.h) 0x40 drawn (cleared first), 0x80 hidden (nothing more,
   not even the finishing call), 0x10 lit, 0x100 flat colours; mesh types 13..16 animated. With the crown option set, the
   mesh named "crown" has every colour pulled 0.6 of the way to the average. The plain variant clears the drawn flag only

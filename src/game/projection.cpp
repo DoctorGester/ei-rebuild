@@ -7,8 +7,7 @@
 #include "game/core_maths.h"
 #include "game/core_transform.h"
 #include "game/figure_mesh.h"   // VertexPacket
-#include "game/model.h"
-#include "game/view_matrices.h"
+#include "game/pipeline.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
 #include "render/render_state.h"
@@ -157,7 +156,7 @@ void TransformPipeline::FogVertices(TLVertex* vertices, int count) const {
 
 // --- Matrix math -------------------------------------------------------------------------------------
 
-// The transform pipeline's matrix push. See model.h and docs/notes/script.md ("Leftovers").
+// The transform pipeline's matrix push. See pipeline.h and docs/notes/script.md ("Leftovers").
 
 void TransformPipeline::PushMatrix(const float* m, int index) {
     MatrixStack& stack = stacks[index];
@@ -172,7 +171,7 @@ void TransformPipeline::PushMatrix(const float* m, int index) {
 
 // --- View matrices -----------------------------------------------------------------------------------
 
-// The view matrix: the camera's rotated axes as rows, each with its offset from the camera (view_matrices.h).
+// The view matrix: the camera's rotated axes as rows, each with its offset from the camera (pipeline.h).
 
 namespace view {
 

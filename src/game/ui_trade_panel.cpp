@@ -6,7 +6,7 @@
 #include "game/item.h"
 #include "game/party.h"
 #include "game/text_manager.h"
-#include "game/texture.h"
+#include "game/model.h"
 #include "game/ui.h"
 #include "game/ui_item_info.h"
 #include "game/ui_mesh.h"

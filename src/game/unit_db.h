@@ -1,7 +1,7 @@
 #pragma once
 
 // The records of the units database (units.udb: the prototype, NPC, model and skill level tables) and how each one is
-// read from / written to the tagged-chunk archive (model.h, ChunkArchive); the field ids are the archive's. See
+// read from / written to the tagged-chunk archive (ChunkArchive, chunk_archive.h); the field ids are the archive's. See
 // docs/notes/units.md ("Database records").
 
 #include <cstdint>

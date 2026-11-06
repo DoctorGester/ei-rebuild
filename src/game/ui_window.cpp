@@ -3,6 +3,7 @@
 #include "game/figure_mesh.h"
 #include "game/game_singletons.h"
 #include "game/material.h"
+#include "game/model.h"
 #include "game/texture.h"
 #include "game/ui.h"
 #include "game/ui_mesh.h"

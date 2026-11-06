@@ -1,12 +1,14 @@
 #pragma once
 
-// The 3D library's figure meshes and their loading from .lnk link files. A LinkFigureLoader (model.h; one
+// The 3D library's figure meshes and their loading from .lnk link files. A LinkFigureLoader (link_loader.h; one
 // per world view) loads a figure by name: its .lnk file lists the parts, each a FIG / FIG8 (or older
 // headerless) record in figures.res / menus.res, morphed by three coefficients and appended to one LinkMesh.
 // See docs/notes/models.md, "Link figures".
 
 #include "game/figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
-#include "game/model.h"         // ClipBounds, TriangleIndexArray, LinkFigureLoader
+#include "game/device.h"        // DrawFlag
+#include "game/link_loader.h"   // LinkFigureLoader, Morph
+#include "game/pipeline.h"      // ClipBounds
 #include "game/texture.h"
 #include "lib/rect.h"
 
@@ -47,6 +49,7 @@ struct FigureMeshDrawer : EngineObject {
     Rect screen;                // where the mesh was last drawn
 };
 
+class SceneRenderer;
 class TextureDevice;
 
 struct Surface;

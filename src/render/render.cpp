@@ -4,8 +4,8 @@
 
 #include "game/app.h"
 #include "game/game_singletons.h"
+#include "game/device.h"
 #include "game/model.h"
-#include "game/texture.h"
 #include "../platform/log.h"
 #include "render_internal.h"
 #include "render_perf.h"

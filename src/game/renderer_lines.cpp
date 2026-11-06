@@ -4,8 +4,8 @@
 #include "game/renderer_lines.h"
 
 #include "game/figure_mesh.h"   // VertexPacket
-#include "game/model.h"
-#include "game/texture.h"
+#include "game/device.h"
+#include "game/pipeline.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "render/render.h"

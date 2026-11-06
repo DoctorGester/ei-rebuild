@@ -7,7 +7,6 @@
 #include "game/map_object_shadow.h"
 #include "game/model.h"
 #include "game/party.h"
-#include "game/texture.h"
 #include "game/ui_camp.h"
 #include "game/ui_screens.h"
 #include "game/unit.h"

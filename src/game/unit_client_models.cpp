@@ -13,9 +13,9 @@
 #include "game/item_names.h"
 #include "game/map_object_figures.h"
 #include "game/map_object_shadow.h"
-#include "game/model.h"     // SceneRenderer, RenderHelper
-#include "game/resource.h"
+#include "game/link_loader.h"
 #include "game/texture.h"
+#include "game/resource.h"
 #include "game/ui.h"
 #include "game/unit.h"
 #include "game/unit_db.h"

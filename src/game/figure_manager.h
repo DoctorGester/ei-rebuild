@@ -5,6 +5,8 @@
 
 #include "game/world.h"
 
+#include "lib/str.h"   // ViewHash
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>

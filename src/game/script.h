@@ -64,7 +64,7 @@ inline float ScriptBool(bool value) { return value ? 1.0f : 0.0f; }
 // A counted reference to a world object: holding one keeps the object's refCount raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags set.
 struct ScriptObjectRef {
-    // Out of line: the header sees MapObject only declared (script.h reaches the renderer through model.h).
+    // Out of line: the header sees MapObject only declared.
     ScriptObjectRef();
     explicit ScriptObjectRef(MapObject* object);
     ScriptObjectRef(const ScriptObjectRef& other);

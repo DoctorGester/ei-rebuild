@@ -7,6 +7,7 @@
 #include "game/map_object.h"
 #include "game/map_object_figures.h"
 #include "game/model.h"
+#include "game/pipeline.h"
 #include "game/object.h"
 #include "game/options.h"
 #include "render/render.h"

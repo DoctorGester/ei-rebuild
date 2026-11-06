@@ -17,7 +17,8 @@
 #include <string>
 #include "game/options.h"
 #include "game/script.h"
-#include "game/texture.h"
+#include "game/device.h"
+#include "game/model.h"
 #include "game/ui.h"
 #include "game/world.h"
 #include "game/game_singletons.h"

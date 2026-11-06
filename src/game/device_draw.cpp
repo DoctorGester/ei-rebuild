@@ -1,18 +1,19 @@
 // The device's indexed draw with the current material (on the device holder): used by the mesh draws and the flat
 // geometry draw. Without a material it is one counted pass. A material (TextureDevice::material)
-// brings its blend, a preset (its stages' states, model.h) and texture stages: the stages are set and drawn
+// brings its blend, a preset (its stages' states, render_helper.h) and texture stages: the stages are set and drawn
 // once. A second form draws twice: with a first surface, then blended (source alpha, inverse source
 // alpha) with a second one. See docs/notes/models.md ("Material draw").
 #include "game/device_material.h"
 
 #include "game/app.h"
-#include "game/device_buffers.h"
+#include "game/device.h"
+#include "game/model.h"
+#include "game/render_helper.h"   // RenderPreset
+#include "game/texture.h"
 #include "game/engine_object.h"
 #include "game/game_singletons.h"
 #include "game/ground_print.h"       // NamedTexture
-#include "game/model.h"   // RenderPreset
 #include "game/present_window.h"
-#include "game/texture.h"
 #include "game/world.h"
 #include "lib/rect.h"
 #include "lib/rounding.h"
@@ -125,7 +126,7 @@ void TextureDevice::SetMaterial(DeviceMaterial* newMaterial) {
 
 // --- Device buffers ----------------------------------------------------------------------------------
 
-// The Direct3D device's mesh work buffers (device_buffers.h).
+// The Direct3D device's mesh work buffers (device.h).
 
 namespace devicebuffers {
 

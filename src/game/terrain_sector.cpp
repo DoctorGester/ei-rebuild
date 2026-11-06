@@ -4,6 +4,7 @@
 
 #include "game/game_singletons.h"
 #include "game/model.h"
+#include "game/pipeline.h"
 #include "game/random.h"
 #include "render/render.h"
 #include "game/terrain.h"

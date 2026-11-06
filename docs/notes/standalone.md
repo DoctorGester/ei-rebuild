@@ -621,7 +621,7 @@ through tools/compiler_cache.py.
   included headers now: `<algorithm>` (rect.h, containers.h: a file that calls `std::sort` and the like includes
   it itself), `<chrono>` (render_internal.h) and the Windows files' full windows.h. Kept because the types are
   real members: `<memory>` (`unique_ptr` in script.h, unit_ai.h, ui.h, sound.h), `<variant>` (ai_map.h),
-  `<unordered_map>` / `<list>` / `<deque>` / `<map>` (base_manager.h, model.h: 0.4 MB in about 330 objects;
+  `<unordered_map>` / `<list>` / `<deque>` / `<map>` (base_manager.h, link_loader.h: 0.4 MB in about 330 objects;
   lookup-only maps are `std::unordered_map` by design) and `std::format` (55 objects).
   - **Measured (all 476 compile commands of the verify build run through sccache, all hits, 8 at a time, CPU of the
     whole process tree):** the numbers move by +-20% between runs on the shared machine (three alternating pairs:

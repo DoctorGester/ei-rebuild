@@ -61,7 +61,7 @@ GAME_AREAS = [
             r'plugin_fixes|logic_settings'),
     ('sound and video', r'sound.*|bink_video'),
     ('game drawing', r'renderer.*|device_.*|figure_.*|model.*|texture.*|terrain.*|particle_.*|effects.*|sky_object|'
-                     r'light|ground_.*|material|surface|link_.*|camera.*|view_matrices|vis_fog_manager|water_tweens|'
+                     r'light|ground_.*|material|surface|link_.*|camera.*|pipeline|device|vis_fog_manager|water_tweens|'
                      r'weather_.*|torch.*|global_map_clouds|clip|projection|dib|render_helper'),
     ('game core', r'.*'),
 ]

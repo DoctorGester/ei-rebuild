@@ -7,5 +7,5 @@ depends = ["C168b"]
 files = ["src/game/model.h", "src/game/model.cpp", "src/game/texture.h", "src/game/device_buffers.h", "src/game/view_matrices.h"]
 note = "Plan: docs/notes/file-layout.md. model.h's 74 includers each get the headers they use: pipeline.h, render_helper.h, link_loader.h, ground_print.h (prints.db's records), model.h keeping SceneRenderer (it moves as scene/scene_renderer.h); model.cpp's link loader part to link_loader.cpp. TextureDevice and MeshArgs out of texture.h into device.h with device_buffers.h and view_matrices.h folded. All goldens the same."
 order = 1231
-status = "running"
+status = "review"
 started = "2026-11-06"

@@ -7,7 +7,8 @@
 #include "game/map_object_animation.h"
 #include "game/map_object_figures.h"
 #include "game/mod_folders.h"
-#include "game/model.h"
+#include "game/link_loader.h"
+#include "game/pipeline.h"
 #include "game/registry.h"
 #include "game/sky_object.h"
 #include "game/ui_mesh.h"
@@ -104,9 +105,9 @@ bool FigureManager::SetFigureAnimation(FigureAnimationState* figure, const char*
 
 // --- Model names -------------------------------------------------------------------------------------
 
-// A length-prefixed name in a model file's data. See model.h.
-
-void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
+// A length-prefixed name in a model file's data (a four-byte length, then the characters) at *cursor into `out`
+// (emptied for length 0), the cursor moved past it.
+static void ReadPrefixedName(std::string* out, const std::uint8_t** cursor) {
     std::int32_t length = lib::Load<std::int32_t>(*cursor);
     *cursor += 4;
     if (length == 0) {
@@ -224,7 +225,7 @@ int FigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::st
 
 // --- Figure model destroy ----------------------------------------------------------------------------
 
-// The figure model's destructor (FigureModel, model.h): every cached animation and the three archives deleted.
+// The figure model's destructor (FigureModel, link_loader.h): every cached animation and the three archives deleted.
 // See docs/notes/models.md.
 
 FigureModel::~FigureModel() {

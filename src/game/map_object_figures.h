@@ -35,6 +35,7 @@ inline constexpr int kHeroPartCount = 16;
 inline constexpr const char* kHeroFigureParts[kHeroPartCount] = {
     "hd", "bd", "hp", "hr", "lh1", "lh2", "lh3", "rh1", "rh2", "rh3", "ll1", "ll2", "ll3", "rl1", "rl2", "rl3"};
 class LinkMesh;
+struct FigureModel;
 
 // FigureAnimation::key, as the figures' animation databases (database.res, "<figure>.adb") give it, and the
 // keys the units ask for (docs/notes/combat.md, "Animation keys"):
@@ -588,7 +589,7 @@ public:
     ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.
     float eyeHeight = 0.0f;
-    std::vector<FootprintPart> partBoxes;   // one box per animated part (SetUpAnimatedFigure); FootprintPart: model.h
+    std::vector<FootprintPart> partBoxes;   // one box per animated part (SetUpAnimatedFigure); FootprintPart: pipeline.h
     drawn::ObjectStep drawnStep;    // client: its last tick's step as the draw spreads it (drawn_motion.h)
 
 protected:
