@@ -2147,6 +2147,62 @@ and uploaded again is what the game says changed:
   build compares every kept mesh, box and caster with a fresh build every 16th frame (`meshcache check`); `meshcache off`
   builds every mesh into the frame's stream (and every caster again each frame).
 
+### Still objects' draws kept across frames (R37f9: design, not built)
+
+The idea: an object whose draw would hand over the same meshes as last frame re-sends last frame's batches instead of
+walking its parts (the save: 1766 of 1822 meshes the same; objects' draws 1.34 ms in release terms, of which the game's
+part walk about 0.55, the device's projection of crossing parts 0.19, BeginMesh 0.23 and MeshPass 0.27). What a design
+has to cover, read from the code (map_object_draw.cpp, figure_part_draw.cpp, device_mesh.cpp, render_mesh.cpp,
+render_mesh_cache.cpp, world_client_draw.cpp, world_client_lights.cpp):
+
+- **What changes every frame even for a still object.** The sun's direction and colour, the ambient colour and the
+  distance fog follow the hour, and the hour has the tick's fraction in it (`HourOfDay`): they move every frame. So a
+  kept draw cannot keep its light records (`FigureLight`: the sun in the part's model space, the sun's colour times the
+  material's) or its fog (`MeshBatch::fog`, `PassState::fogColour`): each re-send makes them again, the sun's terms from
+  kept rows of the part's inverse (about 10 ns a part instead of FigureLight's 74). The texture views
+  (`SurfaceView(holder)`, ReadPassState) are looked up again too: a holder can be reloaded between frames.
+- **What depends on the camera.** The batch's matrix is the screen stack's top ((camera x object) x scale) x part, taken
+  out of screen pixels at the hand-over; FigureLight takes the model back out from under the camera (CameraInverse), so
+  its rounding is the camera's; each part's ClipTest and a crossing part's per-vertex projection decide
+  `FigureMeshFlag::Drawn`, `MapObjectFlag::Shown` and (levers, DrawCollectDirty) the rectangles picking reads. With the
+  camera exactly where it was (the screen stack's top at the draw's start the same bits) all of these are last frame's.
+  With the camera moving none of them is: the matrices can be remade in the game's order (one product a part: the
+  object's (camera x object) x scale once, then x part, as PushMatrix does), but the verdicts need the view test per
+  part again, or R37f8's per-object test (dropped: about 150 lines) for objects wholly inside, and FigureLight again
+  for its rounding (or a hand-over of world matrices: every mesh's rounding changes, so frames not the same at
+  tolerance 0).
+- **The game state a skipped walk must still write.** Each frame a still object's walk clears and sets again
+  `FigureMeshFlag::Drawn` and `Lit` (refilling the colours with the same values when it lost Static), sets
+  `MapObjectFlag::Static`, `Shown`, and when it turns Static `touchTime` and `ClientHalfFlag::Redraw`. Static is not
+  stable: DrawPass takes it from the max(10, n / 8) objects made Static most recently every frame (the original's
+  rule), so a set of still objects is relit every frame and goes through the not-Static to Static change (touchTime =
+  now) every frame. A re-send replays last walk's outcome (all parts lit, any drawn, the rectangles) through the same
+  lines; the key cannot be Static.
+- **The key** (compared at the draw's start, all bits): the screen stack's top; the drawn pose and the extra scale; the
+  part sets and their textures, the wounds material; per part Hidden and not an animated sheet, no per-vertex offsets
+  (`FigureMesh::offsets`), no `object->animation`; the lights in reach with what PartLighting reads of them (the
+  drawn position, the inverse range squared, the colour); the render state the walk starts from (`g_renderState` but
+  the fog, and the device's stage surfaces); on the renderer's side every kept mesh still placed, of the version it
+  had (`CachedMeshVersion`) and without a MeshChanged since (the kept draw holds the `CachedMesh` pointers: the
+  600-frame sweep must forget the kept draws that name a mesh it drops).
+- **A re-send** does per batch what the per-frame consumers need: AddMatrix, the fog and texture views again, the light
+  record from the kept inputs and this frame's sun, NoteCasterPart (the caster slot is this frame's, CasterMark), the
+  kept mesh's touch (KeepMesh's tail: lastUsed, the pool's placement, pending writes), the command. PrepareShadows,
+  the shadow lists, the occlusion and PlanMeshDraws read `Frame::meshBatches` as today. The records (FillRecord) are
+  not kept: they hold the frame's shadow matrices (the sun map's fit moves with the sun) and fog.
+- **Checks**: the harness build walks a kept object anyway every 16th frame and compares the batches and light records
+  with the kept ones (as `meshcache check`); goldens the same; frames at tolerance 0.
+
+**Estimate.** Variant A, the camera still (the key above): about 70 lines in map_object_draw.cpp (the key, the replay,
+the record calls) and 175 in the renderer (the kept draws by object and their forgetting, recording in
+BeginMesh/MeshPass, the re-send, KeepMesh's touch split out, the harness check); about 245 added, 5 removed. Gain in the
+save (its camera still): objects' draws 1.34 -> about 0.3 ms (re-send about 0.08 us a batch: 0.15; keys 0.03; the 3%
+not kept 0.04), PlanMeshDraws unchanged: about -1.0 ms. While the camera moves (scrolling, following a unit): no gain,
+and recording costs about 0.05 ms a frame unless it waits for a still frame. Variant B, camera-independent: A plus the
+matrices remade in the game's order, R37f8's per-object view test and FigureLight per part kept: about 450 lines for
+about -0.7 ms still or moving. The alternative without a cache that can go stale is R37f10 (the same per-mesh path
+about twice as fast, units and moving objects included): about -0.4 ms.
+
 ### render_occlusion.cpp: the screen's ambient occlusion
 
 Section 13, item 11a: once a frame after the shadow maps the world's depth at half the frame's size (the ground and the
