@@ -1,0 +1,8 @@
+id = "R67"
+title = "Perf overlay text through the interface's text renderer (render_text, built-in Liberation fonts); its own pixel font and rasteriser deleted"
+group = "renderer"
+size = 1
+model = "sonnet"
+files = ["src/render/render_perf.cpp", "src/render/render_perf.h", "src/render/render_text.h"]
+note = "User 2026-11-06: the perf overlay uses its own pixel font; reuse the game's UI text instead. The interface's text is already in the render layer (render::text, stb_truetype with the built-in Liberation fonts, P8), so the overlay can lay out and draw its lines through it without a game dependency: delete Glyph/kFont/FindGlyph/HasGlyph/Rasterise/TextImage and the glyph texture upload, keep the numbers (perf::Current, Lines). Scale with the window as the interface's text does (P8c's titles scale by window); a readable size at 1080p and 4K, with a dark backing. Same numbers, picture of the overlay only changes; check a capture at 1920x1080 and 3840x2160 and put before/after on the captures page."
+order = 1285
