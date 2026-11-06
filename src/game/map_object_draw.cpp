@@ -82,6 +82,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     Matrix4 m = object->worldMatrix;
     pipeline->PushMatrix(m.m, TransformPipeline::kClipStack);
     pipeline->PushMatrix(m.m, TransformPipeline::kWorldStack);
+    if (dirty) originDepth = TransformColumnW(*pipeline->Top(TransformPipeline::kWorldStack), Vector3{});
     if (!(object->flags & MapObjectFlag::Static)) pipeline->PushMatrixProduct(m, TransformPipeline::kObjectStack);
     const Vector3& extraScale = figureScale;
     bool scaled = !(extraScale.x == 1.0f && extraScale.y == 1.0f && extraScale.z == 1.0f);

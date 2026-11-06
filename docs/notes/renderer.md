@@ -173,6 +173,19 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
     picks a few 800x600 pixels further left or right than in the original. `render_pick_edges` (left and bottom edge
     clicks where both agree) and `render_pick_edges_rule` (a bottom edge click in the strip only ours picks) check it. The
     corners are under the battle screen's HUD, so no click reaches a corner's difference.
+  - **The order of the hits** (R64, a deviation by the user's choice): `WorldClient::Pick` sorts the objects that pass
+    the test front to back, living before dead, each by `Object3DSpecific::PickDepth`: the view depth (the screen
+    stack's w) of the nearest triangle drawn under the pixel's centre, over the parts whose rectangle holds the point
+    (`FigureMeshDrawer::SurfaceDepth`: a ray from the eye against the triangles the part's last draw had, its figure's
+    part or its own buffers moved by its offsets, placed by the matrix the draw kept, `screenMatrix`); an object with
+    no triangle there (a rectangle's empty corner, a hit by the bounds) counts at its origin's depth as drawn
+    (`originDepth`), the original's key, so a unit's generous click area works as before. The original (00565E40)
+    sorted every hit by the objects' origins along the view, so a big platform whose origin was nearer won over a lever
+    on its deck (LiA's gz1d2 lift, `mod_lost_in_astral_elevator`; mods.md). A box-front key for the surfaceless hits
+    was tried and dropped: it reordered near ties between bodies lying together, which the origins had kept
+    (net_pair_quest's walk searched another body and the quest failed). One rule for every pick: UnitAt, the battle
+    screen's use cursor and click, the harness's `clickunit`. CPU-side from what the draw kept (no frame read back),
+    so picks stay deterministic and the same under every GPU driver.
 - **One real state change in a draw path:** the terrain page draw applies pending water level changes; the water layer
   is what height queries read. DrawSectorPage applies them before handing over.
 - **Pixels:** the escape menu's background and the save game's 256x192 picture are copied from the frame on the GPU, and

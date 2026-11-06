@@ -25,6 +25,7 @@
 #include "render/render.h"
 
 #include <algorithm>
+#include <cfloat>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -41,6 +42,12 @@ constexpr std::uint32_t kSheet8x4 = 16;    // 32 frames
 constexpr std::uint32_t kShowBounds = 0x4000;   // the manager context's debug flag: draw the clip boxes
 
 bool IsAnimatedSheet(std::uint32_t meshType) { return meshType >= kTwoRows && meshType <= kSheet8x4; }
+
+// The figure a mesh is drawn through: its owner's (Object3D::figure), or null for the mesh's own buffers.
+LinkMesh* OwnerFigure(const FigureMesh* mesh) {
+    TransformObject* owner = mesh->object;
+    return owner ? static_cast<Object3D*>(owner)->figure.Get() : nullptr;
+}
 
 // The world time: whole ticks plus the fraction of the current one, rounded to a float once (the tick exact).
 void TickTime(float* out) {
@@ -263,9 +270,7 @@ void FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>&
     currentMesh->flags &= ~FigureMeshFlag::Drawn;
     if (mesh->flags & FigureMeshFlag::Hidden) return;
     // Only the scene's parts reach here (the owner is an Object3D: map_object_draw, also for the interface's previews); the other meshes draw plain.
-    TransformObject* ownerObject = mesh->object;
-    Part part{this, device, &lights, material, alpha, rect, textureA, textureB,
-              ownerObject ? static_cast<Object3D*>(ownerObject)->figure.Get() : nullptr, DrawFlag{}};
+    Part part{this, device, &lights, material, alpha, rect, textureA, textureB, OwnerFigure(mesh), DrawFlag{}};
 
     const TransformPipeline::ClipResult visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
     if (visibility == TransformPipeline::ClipResult::Outside) return;
@@ -282,6 +287,7 @@ void FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>&
     if (visibility == TransformPipeline::ClipResult::Crossing) part.drawFlags = DrawFlag::Clipped;
     if (rect) part.drawFlags |= DrawFlag::ScreenRect;
     if (material->flags & MaterialFlag::KeepSpecular) part.drawFlags |= DrawFlag::Specular;
+    if (rect) screenMatrix = *device->pipeline->Top(TransformPipeline::kWorldStack);
     if (part.figure) {
         DrawThroughFigure(part);
     } else {
@@ -358,6 +364,68 @@ void FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Re
     }
     if (drawn) mesh->flags |= FigureMeshFlag::Drawn;
     DrawBounds(&g_sceneRenderer);
+}
+
+// --- Picking -----------------------------------------------------------------------------------------
+
+// The depth of what the last draw drew under a pixel: a ray from the eye through the pixel's centre against the
+// mesh's triangles, as the draw had them (its figure's part or its own buffers, moved by its offsets) and placed
+// them (screenMatrix). In the screen stack's homogeneous coordinates a point is on the ray when x - px w and
+// y - py w are both 0; both are linear over a triangle, so its barycentric weights there are the cross product of
+// the corners' values, and the triangle is under the pixel when they share one sign. Its w there, positive in
+// front of the eye, is the view depth. CPU-side and renderer-independent, so picks stay deterministic. See
+// docs/notes/renderer.md (section 3, "Picking").
+
+float FigureMeshDrawer::SurfaceDepth(const Point& point) const {
+    const VertexPacket* positions = mesh->buffers.vertices;
+    int packets = mesh->buffers.vertexCount;
+    const MeshCorner* corners = mesh->buffers.corners;
+    const std::uint16_t* indices = mesh->buffers.indices;
+    int indexCount = mesh->buffers.indexCount;
+    if (LinkMesh* figure = OwnerFigure(mesh)) {
+        VertexPacket* partVertices = nullptr;
+        MeshCorner* partCorners = nullptr;
+        std::uint16_t* partIndices = nullptr;
+        if (!figure->GetPartData(mesh->GetName(), &partVertices, &partCorners, &partIndices, &packets, &indexCount))
+            return FLT_MAX;
+        positions = partVertices;
+        corners = partCorners;
+        indices = partIndices;
+    }
+    const float px = static_cast<float>(point.x) + 0.5f;
+    const float py = static_cast<float>(point.y) + 0.5f;
+    // Per vertex: x - px w, y - py w and w.
+    const int count = packets * 4;
+    std::vector<Vector3> onRay(static_cast<std::size_t>(count));
+    for (int i = 0; i < count; ++i) {
+        Vector3 p = render::PacketVertex(positions, i);
+        if (i < std::ssize(mesh->offsets)) p += mesh->offsets[i];
+        const Vector3 s = TransformColumn(screenMatrix, p);
+        const float w = TransformColumnW(screenMatrix, p);
+        onRay[i] = {s.x - px * w, s.y - py * w, w};
+    }
+    float nearest = FLT_MAX;
+    for (int t = 0; t + 2 < indexCount; t += 3) {
+        const int a = corners[indices[t]].position;
+        const int b = corners[indices[t + 1]].position;
+        const int c = corners[indices[t + 2]].position;
+        if (a >= count || b >= count || c >= count) continue;
+        const Vector3& A = onRay[a];
+        const Vector3& B = onRay[b];
+        const Vector3& C = onRay[c];
+        const float wa = B.x * C.y - C.x * B.y;
+        const float wb = C.x * A.y - A.x * C.y;
+        const float wc = A.x * B.y - B.x * A.y;
+        const float sum = wa + wb + wc;
+        if (sum == 0.0f) continue;   // edge on to the ray
+        const float ba = wa / sum;
+        const float bb = wb / sum;
+        const float bc = wc / sum;
+        if (ba < 0.0f || bb < 0.0f || bc < 0.0f) continue;
+        const float depth = ba * A.z + bb * B.z + bc * C.z;
+        if (depth > 0.0f && depth < nearest) nearest = depth;
+    }
+    return nearest;
 }
 
 // --- Figure drawer -----------------------------------------------------------------------------------

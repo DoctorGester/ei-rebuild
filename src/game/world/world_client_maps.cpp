@@ -353,24 +353,6 @@ void WorldClient::ClearMaps() {
     specificManager->FreeSpares();
 }
 
-bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
-    MapObject* first = manager->FindMapObject(a->objectId);
-    MapObject* second = manager->FindMapObject(b->objectId);
-    if (!first || !second) return false;
-    // The matrix's row 2: the depth axis and its offset.
-    const Vector3 normal{view[8], view[9], view[10]};
-    float offset = view[11];
-    float da = Dot(first->localPosition, normal) + offset;
-    float db = Dot(second->localPosition, normal) + offset;
-    // Living objects come before dead ones; within each kind, by depth. The game asks each object again at
-    // every step, so the calls are repeated here in the same order.
-    if ((first->IsDead() == 0 && second->IsDead() == 0) ||
-        (first->IsDead() != 0 && second->IsDead() != 0)) {
-        return da < db;
-    }
-    return first->IsDead() == 0;
-}
-
 MapObject* WorldClient::Pick(const Point& point, HitTest test) {
     hits.clear();
     MapObjectManager* manager = GetMapObjectManager();
@@ -382,15 +364,17 @@ MapObject* WorldClient::Pick(const Point& point, HitTest test) {
         const std::int32_t xy[2] = {point.x, point.y};
         Object3DSpecific* half = object->AsObject3D()->attached;
         if (!(test == HitTest::Bounds ? half->BoundsContainPoint(xy) : half->PartsContainPoint(xy))) continue;
-        hits.push_back(entry);
+        hits.push_back({entry.objectId, object->IsDead() != 0, half->PickDepth(point)});
     }
     if (hits.empty()) return nullptr;
 
-    // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
-    // order, and the first that takes the click wins.
-    DepthLess depth{g_sceneRenderer.pipeline->Top(TransformPipeline::kViewStack)->m, manager};
-    lib::IntroSort(hits.data(), hits.data() + hits.size(),
-                   [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
+    // Front to back: living objects before dead ones, each kind by the depth of its surface drawn under the point
+    // (a deviation by the user's choice: the original sorted by the objects' origins, so a big platform
+    // whose origin was nearer won over a lever drawn on its deck; docs/notes/renderer.md, section 3). Hits at the
+    // same depth keep the screen list's order; the first that takes the click wins.
+    std::ranges::stable_sort(hits, [](const PickHit& a, const PickHit& b) {
+        return a.dead != b.dead ? !a.dead : a.depth < b.depth;
+    });
     for (hitCursor = hits.data(); hitCursor != hits.data() + hits.size(); ++hitCursor) {
         if (MapObject* object = manager->FindMapObject(hitCursor->objectId)) return object;
     }
