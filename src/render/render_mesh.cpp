@@ -348,8 +348,11 @@ bool BindMeshBatch(const MeshBatch& batch, Geometry& g, int* firstIndex) {
 
 // A batch's own values (its MeshRecord) and what a run of batches shares (`fs`: the fragment block, and the shadow block
 // the batch takes).
-static void FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, MeshFsParams& fs, const ShadowParams** shadow) {
+// The batch's record and run blocks; its lights in `part` (true when it has them).
+static bool FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, PartLight& part, MeshFsParams& fs,
+                       const ShadowParams** shadow) {
     r = MeshRecord{};
+    bool lit = false;
     fs = MeshFsParams{};
     r.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     r.flags[0] = batch.unclipped ? 1 : 0;
@@ -368,7 +371,9 @@ static void FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, Me
     r.place[3] = ShadowNormalOffset(f, batch.light >= 0);
     if (batch.lighting >= 0) {
         // Its lights take their point shadows with the landscape's rows.
-        MeshLightRecord(f, f.meshLights[static_cast<std::size_t>(batch.lighting)], r);
+        if (!lit) part = PartLight{};
+        lit = true;
+        MeshLightRecord(f, f.meshLights[static_cast<std::size_t>(batch.lighting)], r, part);
         if (batch.landscape >= 0) {
             const Matrix4& m = f.shadow.point.models[static_cast<std::size_t>(batch.landscape)];
             std::memcpy(r.landscape, m.m, sizeof(r.landscape));
@@ -378,7 +383,9 @@ static void FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, Me
         }
     }
     if (batch.decal) {   // a ground print: lit as the ground (its positions the landscape's), its normal up
-        MeshLightRecord(f, GroundDecalLight(f, batch.box), r);
+        if (!lit) part = PartLight{};
+        lit = true;
+        MeshLightRecord(f, GroundDecalLight(f, batch.box), r, part);
         for (int k = 0; k < 3; ++k) r.landscape[k][k] = 1.0f;
         r.flags[2] = 1;
         r.kinds[0] = 1;
@@ -450,6 +457,7 @@ static void FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, Me
             fs.patchOffset[k] = state.patch.map[2 + k];
         }
     }
+    return lit;
 }
 
 static bool SameGeometry(const Geometry& a, const Geometry& b) {
@@ -469,10 +477,14 @@ static bool SameTextures(const gpu::TextureBinding (&a)[3], const gpu::TextureBi
 }
 
 MeshDraws::MeshDraws(const char* newLabel)
-    : records(gpu::BufferUse::Storage, newLabel), arguments(gpu::BufferUse::Indirect, newLabel), label(newLabel) {}
+    : records(gpu::BufferUse::Storage, newLabel), lights(gpu::BufferUse::Storage, newLabel),
+      arguments(gpu::BufferUse::Indirect, newLabel), label(newLabel) {
+    lightData.assign(1, PartLight{});
+}
 
 void MeshDraws::Clear() {
     recordData.clear();
+    lightData.resize(1);
     commandData.clear();
     runs.clear();
     runStarting.clear();
@@ -496,8 +508,12 @@ bool MeshDraws::Add(const Frame& f, const MeshBatch& batch, int anisotropy, bool
             anisotropy > 1 ? AnisotropicSampler(st, static_cast<std::uint32_t>(anisotropy)) : StageSampler(st);
     }
     run.textures[2] = {state.patch.texture ? state.patch.texture : SurfaceView(nullptr), run.textures[0].sampler};   // sampled as stage 0
-    recordData.emplace_back();
-    FillRecord(f, batch, recordData.back(), run.fs, &run.shadow);
+    MeshRecord& record = recordData.emplace_back();
+    if (FillRecord(f, batch, record, light, run.fs, &run.shadow)) {
+        // Lit as the batch before (the palms of one stand): its lights again.
+        if (lightData.size() == 1 || std::memcmp(&lightData.back(), &light, sizeof(light)) != 0) lightData.push_back(light);
+        record.lights[0] = static_cast<int>(lightData.size() - 1);
+    }
     const auto draw = static_cast<std::uint32_t>(recordData.size() - 1);
     runStarting.push_back(-1);
     Run* last = runs.empty() ? nullptr : &runs.back();
@@ -524,6 +540,12 @@ bool MeshDraws::Add(const Frame& f, const MeshBatch& batch, int anisotropy, bool
 bool MeshDraws::Upload() {
     recordOffset = argumentOffset = -1;
     if (recordData.empty()) return false;
+    // The buffers are bound whole: the lights' indices count from the buffer's start.
+    const int lightOffset = lights.Append(lightData.data(), lightData.size() * sizeof(PartLight));
+    if (lightOffset < 0) return false;
+    const auto lightBase = static_cast<int>(static_cast<std::size_t>(lightOffset) / sizeof(PartLight));
+    for (MeshRecord& r : recordData) r.lights[0] += lightBase;
+    g_stats.counts[FrameStats::Count::UniformBytes] += lightData.size() * sizeof(PartLight);   // the records': CountDraw
     recordOffset = records.Append(recordData.data(), recordData.size() * sizeof(MeshRecord));
     if (recordOffset < 0) return false;
     // A record's index in the buffer is its instance: the per-instance indices count up from 0 (`indices`).
@@ -578,8 +600,9 @@ void MeshDraws::Draw(const Frame& f, std::size_t first) {
     for (int t = 0; t < 3; ++t) textures[t] = run.textures[t];
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
     CountBindings(textures[0].texture);
-    const gpu::Buffer storage[1] = {records.Buffer()};
-    gpu::BindStorageBuffers(gpu::Stage::Vertex, program::kStorageMeshRecord, storage);
+    static_assert(program::kStoragePartLight == program::kStorageMeshRecord + 1);
+    const gpu::Buffer storage[2] = {records.Buffer(), lights.Buffer()};
+    gpu::BindStorageBuffers(gpu::Stage::Vertex, program::kStorageMeshRecord, {storage, 1});
     gpu::BindStorageBuffers(gpu::Stage::Fragment, program::kStorageMeshRecord, storage);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshFsParams, run.fs);
     // The shadow's (one of the frame's ShadowUniforms keeps) and the point shadows' blocks stay the same for the pass.

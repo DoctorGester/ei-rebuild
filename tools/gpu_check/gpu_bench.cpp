@@ -77,7 +77,7 @@ struct Draw {
 
 struct World {
     g::Buffer vertices[kMeshBuffers], casterVertices[kMeshBuffers], indices[kMeshBuffers], instances;
-    g::Buffer records, recordIndices;   // the world draws' MeshRecords, and 0, 1, 2, ... per instance
+    g::Buffer records, lights, recordIndices;   // the world draws' MeshRecords, a PartLight, 0, 1, 2, ... per instance
     g::Texture textures[kTextures], range;
     g::Sampler linear, nearest;
     g::Pipeline caster, mesh[2], blit;
@@ -201,7 +201,10 @@ bool MakeWorld(World* w) {
     g::Write(w->records, 0, records.data(), w->records.size);
     w->recordIndices = g::MakeBuffer(g::BufferUse::Vertex, static_cast<std::uint32_t>(recordIndices.size() * 4), "bench record indices");
     g::Write(w->recordIndices, 0, recordIndices.data(), w->recordIndices.size);
-    if (!w->records || !w->recordIndices) return false;
+    const sh::PartLight light{};
+    w->lights = g::MakeBuffer(g::BufferUse::Storage, sizeof(light), "bench lights");
+    g::Write(w->lights, 0, &light, sizeof(light));
+    if (!w->records || !w->lights || !w->recordIndices) return false;
     std::vector<std::uint32_t> texels(64 * 64, 0xFF808080u);
     for (g::Texture& t : w->textures) {
         t = g::MakeTexture({64, 64, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "bench texture"});
@@ -231,6 +234,7 @@ void ReleaseWorld(World* w) {
     for (g::Buffer& b : w->indices) g::Release(b);
     g::Release(w->instances);
     g::Release(w->records);
+    g::Release(w->lights);
     g::Release(w->recordIndices);
     for (g::Texture& t : w->textures) g::Release(t);
     g::Release(w->range);
@@ -287,9 +291,9 @@ void RecordFrame(const World& w, const Targets& t, const g::Texture& swap) {
             const g::TextureBinding ranges[1] = {{w.range, w.nearest}};
             g::BindTextures(g::Stage::Fragment, sh::mesh::kSamplerShadowRange, ranges);
             g::BindTextures(g::Stage::Fragment, sh::mesh::kSamplerPointShadowMap, ranges);
-            const g::Buffer records[1] = {w.records};
-            g::BindStorageBuffers(g::Stage::Vertex, sh::mesh::kStorageMeshRecord, records);
-            g::BindStorageBuffers(g::Stage::Fragment, sh::mesh::kStorageMeshRecord, records);
+            const g::Buffer storage[2] = {w.records, w.lights};
+            g::BindStorageBuffers(g::Stage::Vertex, sh::mesh::kStorageMeshRecord, {storage, 1});
+            g::BindStorageBuffers(g::Stage::Fragment, sh::mesh::kStorageMeshRecord, storage);
             if (d.fsChanges) fs.fogColour[0] = (fsStep += 0.001f);
             g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockMeshFsParams, fs);
             g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockShadowParams, shadow);

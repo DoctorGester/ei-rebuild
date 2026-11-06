@@ -36,6 +36,7 @@ namespace render {
 using gpu_shaders::BlitParams;
 using gpu_shaders::MeshFsParams;
 using gpu_shaders::MeshRecord;
+using gpu_shaders::PartLight;
 using gpu_shaders::OcclusionBlurParams;
 using gpu_shaders::OcclusionParams;
 using gpu_shaders::PerfOverlayParams;
@@ -306,13 +307,13 @@ private:
 std::optional<Matrix4> InvertMatrix(const Matrix4& m);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
-// A mesh lit on the GPU (shaders/mesh.hlsl's MeshRecord). FigureLight: a figure part's, the sun and lights in
+// A mesh lit on the GPU (shaders/mesh.hlsl's PartLight). FigureLight: a figure part's, the sun and lights in
 // the part's model space, their colours times the material's diffuse colour and the coefficient; the
 // kMostMeshLights nearest the part's origin. GroundDecalLight (below): a ground print's. Each light
 // names its kept scene light (SceneLightIndex, -1 none), whose point shadow it takes at the draw
 // (MeshLightRecord).
 constexpr int kMostMeshLights = 8;
-static_assert(std::size(MeshRecord{}.pointAt) == kMostMeshLights);
+static_assert(std::size(PartLight{}.pointAt) == kMostMeshLights);
 struct MeshLight {
     bool groundPrint = false;
     Vector3 sun;   // towards the sun
@@ -783,7 +784,7 @@ void TerrainCastersDone();
 bool CreateMeshShader();
 void UploadMeshes(const Frame& frame);
 // The mesh batches' draws (shaders/mesh.hlsl): each batch's own values (a MeshRecord) in a storage buffer, its index
-// the draw's instance. A batch joins the run before it when `join` allows (no pass can begin between them) and it binds
+// the draw's instance, its lights (a PartLight, one for consecutive batches lit alike) in a second one. A batch joins the run before it when `join` allows (no pass can begin between them) and it binds
 // the same pipeline, textures, geometry and fragment blocks; a run is one call (its draws with the same indices one
 // draw of several instances). Add: false when the batch draws nothing; `anisotropy` above 1: its stages sampled
 // anisotropically at that level (AnisotropicSampler). Upload writes the records and the runs' indirect draws before
@@ -811,10 +812,12 @@ private:
         std::uint32_t draws = 0;
     };
     std::vector<MeshRecord> recordData;
+    std::vector<PartLight> lightData;   // the first: none (all zero)
+    PartLight light{};                  // Add's
     std::vector<gpu::IndexedIndirect> commandData;
     std::vector<Run> runs;
     std::vector<int> runStarting;   // per batch added: the run it begins, -1 none
-    StreamBuffer records, arguments;
+    StreamBuffer records, lights, arguments;
     gpu::Buffer indices;   // 0, 1, 2, ...: each instance's record (a per-instance vertex buffer)
     const char* label = nullptr;
     int recordOffset = -1, argumentOffset = -1;   // Upload's, in `records` and `arguments`
@@ -1012,10 +1015,10 @@ gpu::TextureBinding PointShadowBinding(const Frame& frame);   // what BindPointS
 int PointShadowSlot(const Frame& frame, int sceneLight);
 // A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade): the scene's sun, ambient light and the
 // kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, the
-// shadow map's light and the daylight colours. MeshLightRecord: a mesh's light into its record as the shader takes
-// it, each light with its point shadow (-1 none).
+// shadow map's light and the daylight colours. MeshLightRecord: a mesh's light as the shader takes it (its kind and
+// count in the record, the lights in `part`), each light with its point shadow (-1 none).
 MeshLight GroundDecalLight(const Frame& frame, const float box[6]);
-void MeshLightRecord(const Frame& frame, const MeshLight& light, MeshRecord& record);
+void MeshLightRecord(const Frame& frame, const MeshLight& light, MeshRecord& record, PartLight& part);
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
 const Object3D* CurrentCaster();
 bool CurrentCasterFigure();

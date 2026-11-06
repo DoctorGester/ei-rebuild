@@ -6,7 +6,8 @@
 // (weathered_unit), an interface figure of a unit on its model-space normals (weathered_figure). A ground print is lit
 // as the ground under it: by the time of day, the lights and the shadows (ground_shade).
 // Each draw's own values are a MeshRecord in the frame's storage buffer, found by the draw's instance (VsIn::record:
-// render_mesh.cpp's MeshDraws draws a run of meshes as one call); what the run shares is the fragment stage's blocks.
+// render_mesh.cpp's MeshDraws draws a run of meshes as one call), its lights a PartLight in a second one (draws lit
+// alike share one); what the run shares is the fragment stage's blocks.
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 #include "distance_fog.hlsli"
@@ -48,8 +49,12 @@ struct MeshRecord {
                                 // the weather's kind, the ambient occlusion taken
     int4 lit;                   // lit here, a ground print (ground_shade), its lights' count, the harness's occlusion view
     float4 pointFront;          // per map: a unit's nearest distance to the light (MeshBatch::pointFront)
-    // A figure part lit on the GPU (render_lighting.cpp, MeshLightRecord): the sun and lights in the part's model space.
-    // A ground print's (GroundDecalLight): the scene's in the landscape's space, which its positions are in.
+    int4 lights;                // x: its PartLight (0: none, all zero)
+};
+
+// A figure part lit on the GPU (render_lighting.cpp, MeshLightRecord): the sun and lights in the part's model space.
+// A ground print's (GroundDecalLight): the scene's in the landscape's space, which its positions are in.
+struct PartLight {
     float4 sun;                 // towards the sun in model space
     float4 sunColour;           // the sun's lit colour
     float4 ambient;
@@ -143,7 +148,12 @@ static const int kUnitWeather = 1;
 static const int kFigureWeather = 2;
 ConstantBuffer<MeshFsParams> fs : FS_BLOCK(0);
 StructuredBuffer<MeshRecord> records : FS_STORAGE(10);
-static MeshRecord draw;   // the draw's own values (ps_main): its light, a unit's and the weather
+StructuredBuffer<PartLight> partLights : FS_STORAGE(11);
+// The draw's own values and its lights (ps_main), read where used: a copy of the whole record would put its arrays in
+// indexable scratch memory.
+static uint drawRecord, drawLight;
+#define draw records[drawRecord]
+#define part partLights[drawLight]
 Texture2D<float4> tex0 : FS_TEXTURE(0);
 SamplerState smp0 : FS_SAMPLER(0);
 Texture2D<float4> tex1 : FS_TEXTURE(1);
@@ -154,19 +164,19 @@ SamplerState smp2 : FS_SAMPLER(2);
 // A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting). See docs/notes/renderer.md, "The
 // renderer's source files". `occlusion`: how much of the ambient light reaches the pixel (1 all).
 float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, float occlusion) {
-    float3 ambient = draw.ambient.rgb * occlusion;
-    float facing = dot(draw.sun.xyz, n);
-    float3 lit = max(ambient, draw.sunColour.rgb * facing);
+    float3 ambient = part.ambient.rgb * occlusion;
+    float facing = dot(part.sun.xyz, n);
+    float3 lit = max(ambient, part.sunColour.rgb * facing);
     int count = draw.lit.z;
     for (int k = 0; k < count; ++k) {
-        float4 at = draw.pointAt[k], colour = draw.pointColour[k];
+        float4 at = part.pointAt[k], colour = part.pointColour[k];
         float3 d = at.xyz - p;
         float distance2 = dot(d, d);
         float falloff = 1.0 - distance2 * at.w;
         if (falloff < 0.0) continue;
         float c = dot(d * rsqrt(max(distance2, 1e-12)), n);
         float seen = 1.0;
-        int4 slots = draw.pointShadows[k >> 2];
+        int4 slots = part.pointShadows[k >> 2];
         int slot = slots[k & 3];
         if (slot >= 0 && draw.kinds.x != 0 && c > 0.0) {
             if (draw.kinds.y != 0) {
@@ -180,7 +190,7 @@ float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, f
         }
         lit = max(lit, colour.rgb * c * falloff * seen);
     }
-    float3 c = min(1.0, lit + draw.emissive.rgb);
+    float3 c = min(1.0, lit + part.emissive.rgb);
     return c;
 }
 // A ground print's light, per channel: the light of the ground under it (scene_lighting.hlsli's ground_light on dry
@@ -191,27 +201,27 @@ float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, f
 // `hidden`: the share of the sun the map and the clouds hide. `spec`: the specular lights' part, which the ground adds
 // again after its texture (ground_light), for the print to add after its colour.
 float3 ground_shade(float3 p, float3 n, float hidden, float2 turn, out float3 spec) {
-    float3 ambient = draw.ambient.rgb;
-    float facing = dot(draw.sun.xyz, n);
-    float3 sunlit = max(facing > 0.0 ? min(1.0, facing * draw.sunColour.rgb) : 0.0, ambient);
-    float3 daylight = max(facing > 0.0 ? min(1.0, facing * draw.daySunColour.rgb) : 0.0, draw.dayAmbient.rgb);
-    float shade = 1.0 - hidden * shadow.strength * saturate(-dot(draw.mapSun.xyz, n) * 6.0);
+    float3 ambient = part.ambient.rgb;
+    float facing = dot(part.sun.xyz, n);
+    float3 sunlit = max(facing > 0.0 ? min(1.0, facing * part.sunColour.rgb) : 0.0, ambient);
+    float3 daylight = max(facing > 0.0 ? min(1.0, facing * part.daySunColour.rgb) : 0.0, part.dayAmbient.rgb);
+    float shade = 1.0 - hidden * shadow.strength * saturate(-dot(part.mapSun.xyz, n) * 6.0);
     float3 lit = min(lerp(sunlit, min(1.0, ambient), hidden), sunlit * shade);
     float3 open = sunlit;
     spec = 0.0;
     int count = draw.lit.z;
     for (int k = 0; k < count; ++k) {
-        float4 at = draw.pointAt[k], colour = draw.pointColour[k];
+        float4 at = part.pointAt[k], colour = part.pointColour[k];
         float3 d = at.xyz - p;
         float distance2 = dot(d, d);
         float falloff = 1.0 - distance2 * at.w;
         if (falloff < 0.0) continue;
         float c = dot(n, d * rsqrt(max(distance2, 1e-12)));
         float3 v = (c <= 0.0 ? c + 1.0 : 1.0) * falloff * colour.rgb;
-        int4 slots = draw.pointShadows[k >> 2];
+        int4 slots = part.pointShadows[k >> 2];
         int slot = slots[k & 3];
         float seen = slot >= 0 ? point_seen(slot, p, n, kNoPointFront, turn) : 1.0;
-        int4 specular = draw.pointSpecular[k >> 2];
+        int4 specular = part.pointSpecular[k >> 2];
         if (specular[k & 3] != 0) spec = max(spec, min(1.0, v * seen) * shade);
         else lit = max(lit, min(1.0, v * seen) * shade);
         open = max(open, min(1.0, v));
@@ -319,7 +329,7 @@ float3 weathered_unit(float3 rgb, float3 light, float3 s, float3 mapNormal, floa
     float sky = pow(saturate(r.z), 3.0) * (0.3 + fresnel);
     float3 h = normalize(fs.weatherSun + v);
     float sunUp = saturate(fs.weatherSun.z * 4.0) * (1.0 - hidden);
-    float3 sheen = saturate(draw.ambient.rgb + 0.1) * sky * 0.35 +
+    float3 sheen = saturate(part.ambient.rgb + 0.1) * sky * 0.35 +
                    fs.weatherSunColour * sunUp * pow(saturate(dot(n, h)), 30.0) * 0.4;
     rgb += sheen * wet;
     return saturate(rgb);
@@ -421,7 +431,8 @@ float4 Shade(VsOut i) {
 }
 
 DepthCopyOut ps_main(VsOut i) {
-    draw = records[i.record];
+    drawRecord = i.record;
+    drawLight = records[i.record].lights.x;
     return WithDepthCopy(Shade(i), i.pos.z);
 }
 #endif

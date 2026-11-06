@@ -181,10 +181,10 @@ MeshLight GroundDecalLight(const Frame& f, const float box[6]) {
     return light;
 }
 
-void MeshLightRecord(const Frame& frame, const MeshLight& light, MeshRecord& p) {
-    p.lit[0] = light.groundPrint ? 0 : 1;
-    p.lit[1] = light.groundPrint ? 1 : 0;
-    p.lit[2] = light.count;
+void MeshLightRecord(const Frame& frame, const MeshLight& light, MeshRecord& record, PartLight& p) {
+    record.lit[0] = light.groundPrint ? 0 : 1;
+    record.lit[1] = light.groundPrint ? 1 : 0;
+    record.lit[2] = light.count;
     const float sun[3] = {light.sun.x, light.sun.y, light.sun.z};
     const float mapSun[3] = {light.mapSun.x, light.mapSun.y, light.mapSun.z};
     for (int k = 0; k < 3; ++k) {
