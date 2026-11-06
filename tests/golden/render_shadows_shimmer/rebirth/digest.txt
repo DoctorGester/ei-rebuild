@@ -4890,7 +4890,7 @@ cunit831510 #place DCA6C531
 cunit831510 #unit 0C3A5512
 cunit848411 #place 1F1F9D53
 cunit848411 #unit 21A4B360
-@ 11 update 240 frame 47 tick 19241 zone bz1g hash 6470C5D3 n 398
+@ 11 update 240 frame 47 tick 19241 zone bz1g hash 480CE4B7 n 398
 world tick 19241
 world updates 242
 random isaac.count 62
@@ -4943,7 +4943,7 @@ script #run DED6996E
 client tick 19239
 client ticksRun 212
 cunit182595 #place E3C6E158
-cunit182595 #unit 4A589AC1
+cunit182595 #unit 4D51321D
 cunit831510 #place 433FAA33
 cunit831510 #unit F02E9C26
 cunit848411 #place ADB94631

@@ -1,11 +1,11 @@
 LostInAstral/current/bz21k.sav bc754853f1c9ef1b
 LostInAstral/current/bz21k.visuals.sav 634ed621a9ab69ef
 LostInAstral/current/cz0k.sav f099496a82abe2e0
-LostInAstral/current/cz0k.visuals.sav b8f13b8e9e20be52
+LostInAstral/current/cz0k.visuals.sav a69aef5fa1f7ed37
 LostInAstral/current/cz1j.sav ce2b3d069bdf484e
-LostInAstral/current/cz1j.visuals.sav 220e468074e13859
+LostInAstral/current/cz1j.visuals.sav 08fb30eb8888616c
 LostInAstral/current/cz1k.sav 511c0870dde22468
-LostInAstral/current/cz1k.visuals.sav f34fc06fe5b66289
+LostInAstral/current/cz1k.visuals.sav 6dfc5e5a1358b087
 LostInAstral/current/cz2k.sav e2613e16c5eadac2
 LostInAstral/current/cz2k.visuals.sav 0707532bf7a46cd5
 LostInAstral/current/cz3k.sav 4f05ae012ad7b95a
@@ -17,7 +17,7 @@ LostInAstral/current/gz1g.visuals.sav 490622e66fe662a5
 LostInAstral/current/gz21k.sav 28c3d1a336afe565
 LostInAstral/current/gz21k.visuals.sav e5a0752936aeaeea
 LostInAstral/savea/cz1j.sav ce2b3d069bdf484e
-LostInAstral/savea/cz1j.visuals.sav 220e468074e13859
+LostInAstral/savea/cz1j.visuals.sav 08fb30eb8888616c
 LostInAstral/savea/gz1g.sav bc5c79d48025f30c
 LostInAstral/savea/gz1g.visuals.sav 490622e66fe662a5
 LostInAstral/savea/info.sav 9bb33cdeec53e404

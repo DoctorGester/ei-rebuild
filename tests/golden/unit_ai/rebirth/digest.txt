@@ -8715,7 +8715,7 @@ cunit1006498757 #unit F02307D2
 cunit1006522396 #place 85B62A6C
 cunit1006522396 #unit 4D9DDF00
 cunit1006533599 #place F24B1813
-@ 30 update 620 frame 123 tick 620 zone gz1g hash 7F235EF2 n 842
+@ 30 update 620 frame 123 tick 620 zone gz1g hash FB7F9617 n 842
 world tick 620
 world updates 620
 random isaac.count 28
@@ -8745,8 +8745,10 @@ missile1 # 51BB61EC
 aievents tick 620
 client tick 620
 client ticksRun 592
+cunit1000011214 #unit B77D421C
 cunit1001300853 #place C5BFD7C1
 cunit1006498757 #place 0D45A1E4
+cunit1006498757 #unit F72AAF0E
 cunit1006522396 #place 235EFAAD
 cunit1006522396 #unit 6B5DC26A
 cunit1006533599 #place 434F69C2
@@ -8784,8 +8786,10 @@ missile1 # BD80FF73
 aievents tick 640
 client tick 640
 client ticksRun 612
+cunit1000011214 #unit B074EAC0
 cunit1001300853 #place DB6D82C0
 cunit1006498757 #place A2D3287E
+cunit1006498757 #unit F02307D2
 cunit1006522396 #place 6891CAA4
 cunit1006522396 #unit 29CAEF69
 cunit1006533599 #place E14F2378

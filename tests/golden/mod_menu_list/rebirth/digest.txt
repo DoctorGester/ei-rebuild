@@ -3142,7 +3142,7 @@ cunit30908 #place 9A58202F
 cunit1000205 #place ACD0CF7B
 cunit1000205 #unit 4180C840
 cunit1000206 #place B9393ADE
-@ 5 update 120 frame 26 tick 80 zone - hash 4D9C9CE2 n 236
+@ 5 update 120 frame 26 tick 80 zone - hash 7CAC3DF6 n 236
 world tick 80
 world updates 80
 random isaac.count 94
@@ -3180,7 +3180,7 @@ cunit1493 #place CEE3257A
 cunit1493 #unit D852D95B
 cunit30907 #place D96A8BD3
 cunit30908 #place 5B41F220
-cunit30908 #unit 49F051A6
+cunit30908 #unit 4EF9F97A
 cunit1000205 #place F462DEC1
 cunit1000206 #place 9BA89EA3
 cunit1000206 #unit D7F759B1
@@ -6572,7 +6572,7 @@ cunit30908 #place 9A58202F
 cunit1000205 #place ACD0CF7B
 cunit1000205 #unit 4180C840
 cunit1000206 #place B9393ADE
-@ 18 update 380 frame 81 tick 80 zone - hash 4D9C9CE2 n 236
+@ 18 update 380 frame 81 tick 80 zone - hash 7CAC3DF6 n 236
 world tick 80
 world updates 80
 random isaac.count 94
@@ -6610,7 +6610,7 @@ cunit1493 #place CEE3257A
 cunit1493 #unit D852D95B
 cunit30907 #place D96A8BD3
 cunit30908 #place 5B41F220
-cunit30908 #unit 49F051A6
+cunit30908 #unit 4EF9F97A
 cunit1000205 #place F462DEC1
 cunit1000206 #place 9BA89EA3
 cunit1000206 #unit D7F759B1

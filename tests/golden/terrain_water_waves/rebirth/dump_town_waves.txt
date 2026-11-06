@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; dump town_waves
 # compact (tools/golden.py): objects as hashes of their fields
-@ 34 update 685 frame 137 tick 685 zone bz1g hash 5EAA7173 n 408
+@ 34 update 685 frame 137 tick 685 zone bz1g hash 6C532F6A n 408
 + world world
 world tick 685
 world updates 685
@@ -2988,7 +2988,7 @@ cunit1000063817 #unit 2A2E4159
 cunit1000063817 #vitals 8FC93AF9
 + cunit1001577495 80 unhuma ""
 cunit1001577495 #place 5594CDCC
-cunit1001577495 #unit 8F63FC75
+cunit1001577495 #unit 76979616
 cunit1001577495 #vitals 8FC93AF9
 + water-1 landscape
 water-1 flags 0x0000FFFF
