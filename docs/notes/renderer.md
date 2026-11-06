@@ -909,7 +909,9 @@ line "renderstats <label> GPU ms a frame: mean (median, p10, p90; frames, the sh
 ran the one before); by pass: label ms, ..." largest first. Only on a quiet machine, one 4K game at a time: another
 build or game makes the poller late (a run's main-thread CPU time above its quiet value says so). A frame that leaves the
 GPU idle most of the time may run at lower GPU clocks, so a CPU-bound frame's passes read somewhat dearer than a
-GPU-bound one's. Finer splits (a pass cut by its draws' kind, a resolve in a pass of its own, a part switched off) are
+GPU-bound one's, and differ by 0.3 ms from run to run: to compare variants of one draw kind, draw it several times in
+its pass (R37e10 drew the ground 8 times: the GPU becomes the limit and the variants' differences, divided by the
+count, hold to about 0.02 ms), and switch the variants inside one run (a harness step), not between runs. Finer splits (a pass cut by its draws' kind, a resolve in a pass of its own, a part switched off) are
 probes: the R37e3 kit shows how (build/r37e3/kit in the main checkout: probe.patch, made on main before `gputiming`,
 with the main thread's time by part of the frame; its scenarios; runs.py, its worktree's path at the top; the logs;
 the save in build/r37e3/save5, the captures in build/r37e3/rdoc).
@@ -947,9 +949,10 @@ RTX 4070 Ti SUPER, 300 frames, harness (verify) build; beside it R37e2's town bz
   ambient occlusion 0.46 / 0.41 (half-size depth 0.19 / 0.07, the search 0.17 / 0.21, the two blurs 0.10 / 0.13); the
   sun's map 0.30 / 0.15 with its range passes 0.14 / 0.15; the point lights' faces - / 0.05 (0.07 with the crowd);
   the present 0.17 / 0.13; the interface's pass 0.13 / 0.04; the copies before passes 0.17 / 0.12; the water's frame
-  copy and sky 0.08 / 0.10. The world pass is shading-bound, not sample-bound: the save's world pass is 1.91 ms at msaa
-  1, 1.93 at msaa 4, 2.03 at msaa 8; anisotropy 1 changes nothing; the shadow map's lookups off take 0.15 ms off the
-  ground, the occlusion's lookups 0.05. RenderDoc's dearest single events: ground batches (one of 12864 indices 0.26
+  copy and sky 0.08 / 0.10. Corrected by R37e10 (frame-plan.md, "Ground GPU cost"): the ground's draws take 0.85-1.0
+  / 0.65-0.75 ms of the world pass (the 1.1 above includes cutting the pass); measured with the ground drawn 8 times, half
+  of it is writing 8 samples a pixel (a trivial shader: 0.47 ms a draw at msaa 8, 0.21 at 4, 0.085 at 1) and half shading
+  (the sun's PCSS 0.26, the point-light loop 0.19); anisotropy changes nothing. RenderDoc's dearest single events: ground batches (one of 12864 indices 0.26
   ms), the occlusion search, the resolve, the 8-sample colour clear (0.11 ms).
 - **The command stream** (RenderDoc, the save's frame): 5754 draws (1894 into the sun's map, 1854 into the occlusion's
   depth, 1858 into the world, 140 for the interface), 23 pipeline changes, 2045 uniform buffer binds, 262 descriptor
@@ -971,7 +974,8 @@ RTX 4070 Ti SUPER, 300 frames, harness (verify) build; beside it R37e2's town bz
 - **Top costs**, the save: the world hand-over's figure draws and the device's projection (3.1 ms), the terrain pages
   handed over every frame (1.55 ms), the model draws' per-draw state work in EndFrame (0.93 ms, plus 0.6 ms of shadow
   and occlusion caster draws), the whole-map visibility walk and the objects' sort (about 1.1 ms). The follow-ups
-  (R37e4-R37e9) are filed in that order of expected gain; the GPU's (R37e10) waits until the GPU limits play.
+  (R37e4-R37e9) are filed in that order of expected gain; the GPU's ground cost is split in frame-plan.md ("Ground GPU
+  cost", R37e10; fixes R37e10a-R37e10e, waiting until the GPU limits play).
 - **The terrain pages after R37e4** (the same save and kit, the harness build, ms a frame; the probe split the pages'
   hand-over from the game's walk and the harness's own check): a still page costs its lookups (item 3: the quarters keep
   the sector's move count they were read at, the occlusion's neighbours are looked at once a frame); the ground's pages
