@@ -6,5 +6,6 @@ model = "opus"
 files = ["src/game/objects/map_object_shadow.cpp", "src/render/render_shadows.cpp", "src/render/render_mesh.cpp", "src/render/render_mesh_cache.cpp", "src/render/render_internal.h"]
 note = "R37f13 hand-back: objects outside the view that cast into it still go through their own hand-over (ShadowMesh, ShadowCasterMesh, KeepCasterMesh with its own slots). Since R37f13 an object's parts go to the renderer whole after one view test, so the outside casters can take the same hand-over as drawn objects (a caster-only batch: no world draw, a shadow-map draw) and the separate path and its kept-mesh slots go. A deletion: net lines must go down; report added and removed. Frames may differ slightly (captures if visible); goldens the same; measure the save's PrepareShadows/sun map CPU side before (frame-plan.md 'Measured after R37f13') and after at Msaa 1, Anisotropy 1."
 order = 1299
-status = "review"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
