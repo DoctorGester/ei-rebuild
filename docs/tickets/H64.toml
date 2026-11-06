@@ -6,5 +6,6 @@ model = "opus"
 files = ["tools/work_sched.py", "tools/work.py", "tools/run_all.py", "build.cmd", "tools/work_board"]
 note = "User 2026-11-06: timing runs (R37e3, R37e10, R37f1) were taken on a busy machine (R37f1's same build measured 9.1 ms in R37e3 and 11.7 ms in its own runs). Mark runs quiet (`work.py test --quiet`, or a scenario tag) so the scheduler starts nothing beside them: reuse the scheduler's existing 'alone' gate (SlotPool.take_all; the alone runs went with H40). Compiles must wait too, so build.cmd (and anything else that compiles: cmake --build, ninja) takes a machine build ticket that waits while the alone gate is held, and a quiet run waits for running builds to finish before it starts (no new build starts once a quiet run is queued at the head). Builds then also show on the work board: which checkout, which config, ninja's [n/m] progress and elapsed time (written by build.cmd's wrapper to build/live, read by the board). Keep it simple: no build parallelism limits beyond the quiet wait unless cheap. Workers' timing briefs then say to use --quiet."
 order = 1276
-status = "review"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
