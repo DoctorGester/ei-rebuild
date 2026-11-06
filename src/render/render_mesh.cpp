@@ -627,16 +627,43 @@ void MeshDraws::DrawAll(const Frame& f) {
     for (std::size_t k = 0; k < runStarting.size(); ++k) Draw(f, k);
 }
 
-void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
-    g_pending = Pending{};
-    if (!device || !mesh.matrix) return;
-    Start();
-    Timer timer(FrameStats::Time::HandOverMs);
+// The mesh pending for its passes under `clip` (its model's matrix multiplied in here); `world`: drawn in the world,
+// else a caster alone (CasterMesh: the normals kept, as the part's world draw keeps them).
+static void Pend(const MeshDraw& mesh, Matrix4 clip, bool world) {
     Frame& f = g_frame;
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
         LogFirst(g_dropped, 1, "render: too many meshes in one frame; the rest are dropped");
         return;
     }
+    if (mesh.model) {
+        clip = Product(clip, *mesh.model);
+        f.models.push_back(*mesh.model);
+        g_pending.placement = static_cast<int>(f.models.size()) - 1;
+    }
+    g_pending.active = true;
+    g_pending.mesh = mesh;
+    g_pending.matrix = AddMatrix(clip);
+    g_pending.caster = CurrentCaster();
+    g_pending.casterSlot = CurrentCasterSlot();
+    // A caster's box (its point shadows), and a unit's: taken in AddPass (a kept mesh keeps it).
+    g_pending.boxed = g_pending.caster && mesh.positions && mesh.positionCount > 0;
+    g_pending.figure = CurrentCasterFigure() && g_pending.boxed;
+    g_pending.interfaceUnit = g_interfaceUnitWeather ? CurrentInterfaceUnit() : nullptr;
+    // A figure part lit on the GPU. Only its normals are read (the other mesh draws' callers may pass anything there).
+    if (mesh.lighting) {
+        f.meshLights.push_back(FigureLight(*mesh.lighting));
+        g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
+    } else if (world && !g_pending.interfaceUnit) {
+        g_pending.mesh.normals = nullptr;   // an interface figure with weather keeps them (its snow settles by them)
+        g_pending.mesh.words = nullptr;
+    }
+}
+
+void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
+    g_pending = Pending{};
+    if (!device || !mesh.matrix) return;
+    Start();
+    Timer timer(FrameStats::Time::HandOverMs);
     Matrix4 clip;
     if (mesh.screenMatrix) {
         const std::optional<Size> target = GameTargetSize();
@@ -648,35 +675,13 @@ void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {
     } else {
         clip = *mesh.matrix;
     }
-    if (mesh.model) {
-        clip = Product(clip, *mesh.model);
-        f.models.push_back(*mesh.model);
-        g_pending.placement = static_cast<int>(f.models.size()) - 1;
-    }
-    g_pending.active = true;
-    g_pending.mesh = mesh;
+    Pend(mesh, clip, true);
     g_pending.device = device;
-    g_pending.matrix = AddMatrix(clip);
-    g_pending.caster = CurrentCaster();
-    g_pending.casterSlot = CurrentCasterSlot();
-    // A caster's box (its point shadows), and a unit's: taken in MeshPass (a kept mesh keeps it).
-    g_pending.boxed = g_pending.caster && mesh.positions && mesh.positionCount > 0;
-    g_pending.figure = CurrentCasterFigure() && g_pending.boxed;
-    g_pending.interfaceUnit = g_interfaceUnitWeather ? CurrentInterfaceUnit() : nullptr;
-    // A figure part lit on the GPU. Only its normals are read (the other mesh draws' callers may pass anything there).
-    if (mesh.lighting) {
-        f.meshLights.push_back(FigureLight(*mesh.lighting));
-        g_pending.lighting = static_cast<int>(f.meshLights.size()) - 1;
-    } else if (!g_pending.interfaceUnit) {
-        g_pending.mesh.normals = nullptr;   // an interface figure with weather keeps them (its snow settles by them)
-        g_pending.mesh.words = nullptr;
-    }
 }
 
-void MeshPass(const TextureDevice* device) {
-    // Not handed over (BeginMesh logged why) or given up after a failed Build.
-    if (!g_pending.active || device != g_pending.device) return;
-    Timer timer(FrameStats::Time::HandOverMs);
+// The pending mesh's pass in `state` as a batch (built or kept the first time); `world`: drawn in the world (a command),
+// else in the shadow maps alone (MeshBatch::casterOnly).
+static void AddPass(const PassState& state, bool world) {
     Frame& f = g_frame;
     if (!g_pending.built) {
         g_pending.built = true;
@@ -711,7 +716,7 @@ void MeshPass(const TextureDevice* device) {
         batch.matrix = g_pending.matrix;
         batch.firstIndex = g_pending.firstIndex;
         batch.indexCount = g_pending.indexCount;
-        batch.state = ReadPassState(g_pending.device);
+        batch.state = state;
         if (g_pending.mesh.fog == MeshFog::Distance) batch.fog = g_renderState.distanceFog;
         batch.horizon = g_pending.mesh.fog == MeshFog::Horizon;
         batch.eyeHeight = g_pending.mesh.eyeHeight;
@@ -721,6 +726,7 @@ void MeshPass(const TextureDevice* device) {
         batch.decal = batch.flat && g_pending.mesh.groundDecal;
         batch.caster = g_pending.caster;
         batch.casterSlot = g_pending.casterSlot;
+        batch.casterOnly = !world;
         batch.figure = g_pending.figure;
         batch.interfaceUnit = g_pending.interfaceUnit;
         batch.boxed = g_pending.boxed;
@@ -734,8 +740,22 @@ void MeshPass(const TextureDevice* device) {
         }
         ++g_stats.counts[FrameStats::Count::MeshPasses];
         f.meshBatches.push_back(batch);
-        f.commands.push_back(Command{Command::Kind::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
+        if (world) f.commands.push_back(Command{Command::Kind::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
+}
+
+void MeshPass(const TextureDevice* device) {
+    // Not handed over (BeginMesh logged why) or given up after a failed Build.
+    if (!g_pending.active || device != g_pending.device) return;
+    Timer timer(FrameStats::Time::HandOverMs);
+    AddPass(ReadPassState(device), true);
+}
+
+void CasterMesh(const MeshDraw& mesh, const Surface* texture) {
+    g_pending = Pending{};
+    Pend(mesh, kIdentity, false);
+    if (g_pending.active) AddPass(OutsideCasterState(texture), false);
+    g_pending = Pending{};
 }
 
 void EndMesh() { g_pending = Pending{}; }

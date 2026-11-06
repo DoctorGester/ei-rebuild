@@ -146,7 +146,7 @@ void BeginInterfaceUnit(const Object3D* object);
 void EndInterfaceUnit();
 void CastsShadow(const Object3D* object, CasterMark& mark, float strength);
 // Casters the game does not draw this frame whose shadow can reach the visible ground
-// cast through ShadowCasterMesh, read by the world's draw from the objects' parts. ShadowCasterArea: whether
+// cast through CasterMesh, read by the world's draw from the objects' parts. ShadowCasterArea: whether
 // this frame gets a map, and the ground rectangle (landscape's space) a caster's centre must stand in: the
 // visible ground's box swept back towards the sun as far as a caster no higher than `highestTop` reaches,
 // widened by `widest` (the largest radius). ShadowCasterReaches is exact up to the bounds. CasterDrawn: the world's
@@ -169,28 +169,11 @@ struct ShadowCasterCentres {
 bool ShadowCastersMayReach(const ShadowCasterCentres& centres);
 bool CasterDrawn(const CasterMark& mark);
 float CasterStrength(const CasterMark& mark);
-struct ShadowMesh {
-    const VertexPacket* positions = nullptr;  // as MeshDraw's
-    int positionCount = 0;
-    const TexCoord* uvs = nullptr;
-    int uvCount = 0;
-    const MeshCorner* corners = nullptr;
-    int cornerCount = 0;
-    const std::uint16_t* indices = nullptr;  // a triangle list over the corners
-    int indexCount = 0;
-    float uOffset = 0.0f, vOffset = 0.0f;  // added to the texture coordinates
-    Matrix4 model;                     // model space to the landscape's, row-major: out = M * (x, y, z, 1)
-    const Surface* texture = nullptr;  // stage 0's surface holder, or null
-    // The part (MeshDraw::owner) and its link figure (MeshDraw::shared, else null), and whether the
-    // positions are a copy with the per-vertex offsets added (MeshDraw::moved): the renderer keeps the
-    // corners on the GPU by part, read again when MeshChanged says so.
-    const FigureMesh* owner = nullptr;
-    const LinkMesh* shared = nullptr;
-    bool moved = false;
-    MeshSlots* slots = nullptr;   // the owner's (none: not kept)
-    bool unit = false;  // a unit's part: no roof over the weather (render_weather.cpp's roof map)
-};
-void ShadowCasterMesh(const Object3D* object, const ShadowMesh& mesh);
+struct MeshDraw;
+// A part of the caster BeginCaster names that the world does not draw this frame, handed over as the world's draw hands
+// it (MeshDraw: its arrays, `model`; no `matrix`, colours or lighting) with stage 0's `texture`: drawn into the sun map
+// alone (the roof map too when not a unit's).
+void CasterMesh(const MeshDraw& mesh, const Surface* texture);
 // The walk's time counts as the shadow map's CPU time (FrameStats and the performance overlay).
 void BeginShadowWalk();
 void EndShadowWalk();

@@ -212,6 +212,7 @@ struct MeshBatch {
                               // positions' box in the landscape's space
     const Object3D* caster = nullptr;   // render::BeginCaster's object, if any
     int casterSlot = -1;                // ... its place in ShadowFrame::casters
+    bool casterOnly = false;            // render::CasterMesh: no command draws it, only the shadow maps
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map
 // A unit's mesh: its corners' box in model space (low xyz, high xyz), and the nearest map depth of its
 // object's boxes (PrepareShadows; above 1: none).
@@ -368,7 +369,7 @@ constexpr float kNoStrength = -1.0f;
 struct FrameCaster {
     const Object3D* object = nullptr;
     float strength = kNoStrength;
-    bool drawn = false;   // BeginCaster: the world's draw drew it (render::CasterDrawn)
+    bool drawn = false;   // BeginCaster: handed over this frame (render::CasterDrawn)
 };
 
 // A frame's object shadows: the sun and casters handed over, and what PrepareShadows made of them.
@@ -873,17 +874,12 @@ struct MeshVertex {
 static_assert(sizeof(MeshVertex) == 32);
 CachedMesh* KeepMesh(const MeshDraw& mesh);
 int CachedIndexCount(const CachedMesh& mesh);
-int CachedVertexCount(const CachedMesh& mesh);
 // The position (model space) of the kept mesh's corner its index `k` names.
 Vector3 CachedCorner(const CachedMesh& mesh, int k);
 // The box of a mesh's positions in model space (low xyz, high xyz); false without positions. CachedMeshBox:
 // the kept mesh's, taken again only when its positions changed (`mesh` is the draw KeepMesh kept it from).
 bool PositionBox(const MeshDraw& mesh, float box[6]);
 void CachedMeshBox(CachedMesh& kept, const MeshDraw& mesh, float box[6]);
-// A caster outside the view (render::ShadowCasterMesh) kept by its part as KeepMesh keeps a drawn mesh (its
-// positions and texture coordinates without the offsets, which the caster pass adds; no colours), read once
-// a frame; null when a corner is out of range or nothing is left to draw.
-CachedMesh* KeepCasterMesh(const ShadowMesh& mesh);
 // Changes whenever the kept mesh's corners (positions, texture coordinates) or triangles change; no two kept
 // meshes ever share one (render_point_shadows.cpp keeps faces drawn from them).
 std::uint32_t CachedMeshVersion(const CachedMesh& mesh);
@@ -946,11 +942,10 @@ void DrawRoofMap(const Frame& frame);
 void BindRoofMap(int slot);
 gpu::TextureBinding RoofMapBinding();   // what BindRoofMap binds
 // The visible ground's box in the landscape's space, by the sun map's fit of this frame; none without one.
-// AddOutsideRoofs: the sun map's casters outside the view that are not units (render::ShadowCasterMesh) into `draws`
-// through `clip` (the landscape's space to the roof map's), after the sun map's draws were listed; the count added.
 std::optional<Box> VisibleGround(Frame& frame);
-class CasterDraws;
-int AddOutsideRoofs(CasterDraws& draws, const Matrix4& clip);
+// The pass state of a caster outside the view (render::CasterMesh) with stage 0's `texture`: cut out as the meshes
+// drawn with that texture last were (alpha tested or blended), one not drawn yet below one half.
+PassState OutsideCasterState(const Surface* texture);
 // How far along its normal a receiver's point is moved before it is looked up in the map: 1.5 of the map's texels,
 // in world units (0 without the map: not `receives` in ShadowUniforms, or none drawn).
 inline float ShadowNormalOffset(const Frame& frame, bool receives) {

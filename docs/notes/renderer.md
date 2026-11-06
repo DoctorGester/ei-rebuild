@@ -213,7 +213,7 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
 | Meshes (figures, objects, sky, interface sprites and previews) | `device_mesh.cpp`'s mesh draws: positions and normals in packets of four, corners and texture coordinates (`render::VertexPacket` / `NormalPacket` / `MeshCorner` / `TexCoord`, mesh_records.h: the game's meshes hold the renderer's records), colours; matrix = the screen stack's top converted back to clip space; the distance fog switch | `BeginMesh` / `EndMesh`; `MeshLighting` for parts lit on the GPU |
 | Pass state | per pass of a mesh (material preset or two textures): `render::g_renderState` (section 5) | `MeshPass`; per terrain pass at `TerrainPass` |
 | Depth clears | the battle screen's panels, the hero preview, the trade grid, the hero equipment, screens 2 / 3 | `ClearDepth` |
-| Shadows | `world_client_draw.cpp` (the sun; `BeginCaster` / `EndCaster` around each object's draws), `map_object_shadow.cpp` (`CastsShadow`), the casters outside the view | `ShadowSun`, `ShadowCasterMesh` (section 13) |
+| Shadows | `world_client_draw.cpp` (the sun; `BeginCaster` / `EndCaster` around each object's draws), `map_object_shadow.cpp` (`CastsShadow`), the casters outside the view | `ShadowSun`, `CasterMesh` (section 13) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites (`renderer_sprites.cpp`), ribbons and triangles (`renderer_strip.cpp`), line strips (`renderer_lines.cpp`) | `TlDraw` with vertices after the distance fog (`FogVertices`) |
 | Weather | rain streaks and snowflakes built on the screen (`weather_particles.cpp`, the field in `weather_field.cpp`) | `TlDraw` |
 | Interface surfaces | `UiSurface::Blit` (`ui_surface.cpp`) | `ui::Solid`, `ui::Glyphs`, `ui::DrawPicture` |
@@ -1116,7 +1116,7 @@ bytes of vertex stream per vertex), and every sector has the same path.
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
 places and writes, the pool started again with the frame's items when one does not fit). Each figure mesh drawn
 through the figure part draws (either through the device or a link figure's part) is
-kept under the mesh, in a slot the figure mesh names (`render::MeshSlots`, handed over in `MeshDraw` and `ShadowMesh`:
+kept under the mesh, in a slot the figure mesh names (`render::MeshSlots`, handed over in `MeshDraw`:
 found without a lookup; a slot knows its owner, so a handle copied with a mesh or left after its slot was dropped finds
 none and takes a new one): its corners' model-space positions and texture coordinates, the colour and specular pair (a stream of
 its own) and the valid triangles; the draw binds the pool with the mesh's first index, the texture offset (animated water
@@ -1287,9 +1287,11 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   sun's elevation, widened by the widest radius (`render::ShadowCasterArea`). The game's own filters stay (its object draw
   flags, a multiplayer spectator's hidden units, CastsShadow's tests). Each part is placed as
   Object3DClientSpecific::DrawParts places it; an object the game drew this frame is left out (`render::CasterDrawn`). Cut out
-  by alpha as the on-screen meshes with the same texture were, else at alpha 0.5. A part's corners are kept on the GPU in
-  the pool (`KeepCasterMesh`) and read again only when the game says the part moved or was rebuilt. Per frame a part
-  costs its selection, its placement (object x part matrix) and the light x model product of its instance. CPU at
+  by alpha as the on-screen meshes with the same texture were, else at alpha 0.5. A part goes through the world's mesh hand-over as a
+  caster alone (R37f14: `FigureMeshDrawer::HandOverCaster` within `BeginCaster` / `EndCaster`, `render::CasterMesh`: a
+  batch no command draws, `MeshBatch::casterOnly`, whose pass state is the texture and its cut), kept on the GPU in the
+  part's own slot as its world draw keeps it. Per frame a part costs its selection, its placement (object x part
+  matrix), the kept mesh's checks and the light x model product of its instance. CPU at
   3840 x 2160 (harness build, its mesh checks included; the shadow map's CPU ms with them / without them, R24): the town
   bz1g 0.23 / 0.14 (the walk 0.05, 120 parts handed over), with the camera moved until the gate leaves the screen
   0.35-0.5 / 0.25-0.4 (the walk 0.07-0.10, 170-180 parts, 9k corners); R20 measured +0.4 and +1.0 when the corners were
@@ -1525,7 +1527,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   2 units around, its side in steps of 8 so the texel size changes seldom, the texels on whole texels of the landscape)
   from 24 units above the highest visible ground (a higher roof is drawn at that height: the caster shader's clamp) to 2
   under the lowest. Its roofs: the units' roof meshes (the frame's drawn objects but the units, `CollectUnitsAndRoofs`)
-  and the sun map's casters outside the view but the units' (`ShadowMesh::unit`, `AddOutsideRoofs`): zoomed in, the
+  and the sun map's casters outside the view but the units' (the caster-only batches not `figure`, `DrawRoofMap`): zoomed in, the
   gateway's roof over the visible floor stands above the view's top edge and is not drawn, and the floor stayed wet
   without them. Drawn by the sun map's caster pipelines (`CasterDraws`, cut out by their texture's alpha), only while
   the weather shows (the wetness, puddles, snow or falling rain above 0.001; else no pass, everything in the open). A
@@ -2137,17 +2139,17 @@ and uploaded again is what the game says changed:
   into the frame's stream. The texture offsets (an animated mesh's frame of its sheet) are the draw's, added in the
   shader. A kept mesh also keeps the box of its positions (CachedMeshBox: a caster's box for the point shadows' spheres and
   the units' fronts), taken again only when they were built or moved. The casters outside the view
-  (render::ShadowCasterMesh) are kept the same way by part (KeepCasterMesh: slots of their own, positions and texture
-  coordinates only; read at most once a frame), drawn from the pool with the part's matrix and texture offsets.
+  (render::CasterMesh) are kept the same way, in the part's own slot: one copy whether the part is drawn or only casts
+  (a part leaving the view is relit to the caster's colour pair, 0 and 0, which the shadow maps do not read).
 - One GPU copy for the same arrays (R37f3, `GpuMesh`): a kept mesh's built arrays (corners, colours, triangles) are looked
   up by a hash of their bytes and compared whole; a figure mesh whose arrays match another's takes its copy (the palms
   of one morph, lit alike), so their draws bind the same indices and merge into instances. A mesh whose arrays change
   (moved, relit) while shared takes a copy of its own first (relit, it looks for a match again); a copy no mesh uses is
-  freed at the next 64-frame sweep once written. Casters share the same way in a table of their own. The harness logs
+  freed at the next 64-frame sweep once written. The harness logs
   the copies and shares after the meshcache line ("meshcache: N copies on the GPU, N times a mesh took another's").
   The harness
-  build compares every kept mesh, box and caster with a fresh build every 16th frame (`meshcache check`); `meshcache off`
-  builds every mesh into the frame's stream (and every caster again each frame).
+  build compares every kept mesh and box with a fresh build every 16th frame (`meshcache check`); `meshcache off`
+  builds every mesh into the frame's stream.
 
 ### World objects drawn whole (R37f13)
 
@@ -2175,8 +2177,8 @@ view test per object, the GPU clips the rest.
   The casters' walk outside the view passes over an object the world drew (`render::CasterDrawn`; the per-part list
   `CasterPartDrawn` and the objects' `casterParts` are gone).
 - **Not built**: the retained instances (an instance buffer and its upload, about 300 lines for about 0.05 ms once the
-  per-part work above is gone), the kept verdicts while the camera is still (dropped by the user), the outside casters
-  through the mesh hand-over (`ShadowMesh` / `KeepCasterMesh` stay), `ReceiverMatrices` by model.
+  per-part work above is gone), the kept verdicts while the camera is still (dropped by the user), `ReceiverMatrices` by model. The
+  outside casters through the mesh hand-over followed in R37f14 (section 13, item 10).
 - **Looks**: an object partly in view casts and is drawn whole, so its shadow no longer comes from the casters' walk
   (render_shadows_outside: the town gate). A unit's rectangle is its parts' boxes, a little larger than its triangles
   (render_load_town's colour check reads the larger rectangle).
@@ -2208,11 +2210,11 @@ Section 13, item 10. Once a frame, before the world draws, PrepareShadows fits a
 the visible ground and gives every receiving batch the matrix from its model space to the map; DrawShadowMap draws the
 casters' meshes into the map (depth only; alpha-tested and blended passes cut out by their texture's alpha), then the
 map's depth range per cell. Objects the game does not draw whose shadow can reach the visible ground cast too
-(ShadowCasterMesh, tested against the map's fit made right then). PrepareShadows prepares the point lights' shadows
+(CasterMesh, tested against the map's fit made right then). PrepareShadows prepares the point lights' shadows
 (render_point_shadows.cpp); the frame's draw (render.cpp's DrawPending) draws the sun map, the roof map and the point
 lights' faces in that order. The per-frame lookups are lists kept from frame to frame (the drawn parts sorted once for
 the walk's searches, the light matrices by the frame's matrix index); ShadowState's caster counts (`casters`, `lost`,
-`offScreen`, `outsideCasters`) are counted only in the harness build. Space: the meshes' matrices are clip matrices,
+`offScreen`) are counted only in the harness build. Space: the meshes' matrices are clip matrices,
 the terrain's the same for the landscape's space, in which the map is fitted.
 
 ### render_cloud_shadows.cpp: cloud shadows
@@ -2510,7 +2512,8 @@ the map: the map's texels far apart and turned per pixel cost far more.
 The casters of the shadow map that the game does not draw this frame (section 13, item 10). After the world's object
 draws every object standing where such a caster can stand (render::ShadowCasterArea, through the object grid's sectors)
 whose bounding sphere passes the map's test (render::ShadowCasterReaches) hands its parts to the map
-(render::ShadowCasterMesh), placed as Object3DClientSpecific::DrawParts places them. An object the world's draw drew
+through the world's mesh hand-over as casters alone (render::BeginCaster, CastsShadow with the strength found,
+FigureMeshDrawer::HandOverCaster: render::CasterMesh), placed as Object3DClientSpecific::DrawParts places them. An object the world's draw drew
 this frame (whole: R37f13; render::CasterDrawn) is passed over after the sphere test (which still moves the map's near
 plane). Everything here only reads the game's
 objects, so the game's logic and its goldens are those of a run without it.

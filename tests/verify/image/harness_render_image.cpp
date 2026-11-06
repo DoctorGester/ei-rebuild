@@ -338,11 +338,11 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         std::snprintf(text, sizeof(text),
                       "shadowcheck: map %s (%d texels over %.0f units), %d casters in %d draws, %d meshes, %d "
                       "ground batches and %d of %d ground prints sampling it (at least %d casters); shadowed objects "
-                      "not drawn %d, drawn but not cast %d; outside the view %d casters in %d draws (%d corners)",
+                      "not drawn %d, drawn but not cast %d; outside the view %d casters in %d draws",
                       info.made ? "made" : "not made", info.size,
                       static_cast<double>(info.extent), info.casters, info.casterDraws, info.receivingMeshes,
                       info.receivingTerrain, info.receivingDecals, info.groundDecals, least, info.offScreen, info.lost,
-                      info.outsideCasters, info.outsideDraws, info.outsideCorners);
+                      info.outsideCasters, info.outsideDraws);
         Log("harness: %s", text);
         frames->push_back(text);
         if (!info.made || info.casters < least || info.receivingMeshes < 1 || info.receivingTerrain < 1 ||

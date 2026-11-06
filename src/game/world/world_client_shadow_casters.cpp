@@ -1,4 +1,4 @@
-// The shadow map's casters the game does not draw this frame (render::ShadowCasterMesh). Only reads the game's
+// The shadow map's casters the game does not draw this frame (render::CasterMesh). Only reads the game's
 // objects. See docs/notes/renderer.md, "The renderer's source files".
 #include "game/scene/light.h"
 #include "game/world/world_client_shadow_casters.h"
@@ -38,18 +38,6 @@ constexpr float kLeastStrength = 0.5f;                  // as the map: units fad
 constexpr int kSectorShift = 4;                         // 16-unit sectors
 constexpr std::uint32_t kHeightScanEvery = 32;          // frames between scans of the highest object
 
-// Row-major 4 x 4 matrices, out = M * (x, y, z, 1): a x b.
-Matrix4 Multiply(const Matrix4& a, const Matrix4& b) {
-    Matrix4 r;
-    for (int i = 0; i < 4; ++i)
-        for (int j = 0; j < 4; ++j) {
-            float s = 0.0f;
-            for (int k = 0; k < 4; ++k) s += a.m[i * 4 + k] * b.m[k * 4 + j];
-            r.m[i * 4 + j] = s;
-        }
-    return r;
-}
-
 // The placement it builds (ObjectWorldMatrix of a rotation and a position), into a local.
 Matrix4 Placement(const Quaternion& rotation, const Vector3& position) {
     Matrix4 m;
@@ -86,86 +74,32 @@ float TopOf(const Object3D* object, const Vector3& scale) {
     return object->localPosition.z + std::sqrt(LengthSquared(c)) + object->bounds.radius * LargestScale(scale);
 }
 
-// The part's positions with its per-vertex offsets added (as the draws add them), in `moved`.
-const VertexPacket* MovedPositions(const VertexPacket* positions, int packets, const std::vector<Vector3>& offsets,
-                                   std::vector<VertexPacket>& moved) {
-    moved.assign(positions, positions + packets);
-    const int count = static_cast<int>((std::min)(std::ssize(offsets), static_cast<std::ptrdiff_t>(packets) * 4));
-    for (int i = 0; i < count; ++i) {
-        VertexPacket& packet = moved[static_cast<std::size_t>(i >> 2)];
-        packet.block[0][i & 3] = offsets[i].x + packet.block[0][i & 3];
-        packet.block[1][i & 3] = offsets[i].y + packet.block[1][i & 3];
-        packet.block[2][i & 3] = offsets[i].z + packet.block[2][i & 3];
-    }
-    return moved.data();
-}
-
-// Hands over the parts of `object` (`unit`: a unit), placed by `world` (and the extra scale), each with its part set's
-// texture.
+// Hands over the parts of `object` (`unit`: a unit) as casters alone, placed by `world` and the extra scale as
+// Object3DClientSpecific::DrawParts places them, each with its part set's texture.
 void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4& world, bool unit) {
-    static std::vector<VertexPacket> moved;
-    Matrix4 objectMatrix = world;
+    Matrix4 placement = world;
     const Vector3& scale = half->figureScale;
-    if (Scaled(scale)) {
-        Matrix4 s{};
-        s.m[0] = scale.x;
-        s.m[5] = scale.y;
-        s.m[10] = scale.z;
-        s.m[15] = 1.0f;
-        objectMatrix = Multiply(world, s);
-    }
-    LinkMesh* figure = object->figure;
+    if (Scaled(scale))
+        for (int row = 0; row < 4; ++row) {
+            placement.m[row * 4] *= scale.x;
+            placement.m[row * 4 + 1] *= scale.y;
+            placement.m[row * 4 + 2] *= scale.z;
+        }
+    render::BeginCaster(object, &half->casterMark, unit);
     for (const std::unique_ptr<TextureParts>& set : half->partSets) {
         if (!set) continue;
-        const Surface* holder = set->texture ? set->texture->surface.Get() : nullptr;
-        for (int g = 0; g < std::ssize(set->groups); ++g) {
-            const PartGroup* group = set->groups[g].get();
-            for (int p = 0; p < std::ssize(group->parts); ++p) {
-                FigureMesh* part = group->parts[p];
-                if (!part || (part->flags & FigureMeshFlag::Hidden)) continue;
-                if (LengthSquared(part->localPosition) > kPartRangeSquared) continue;
-                render::ShadowMesh mesh{};
-                const VertexPacket* positions = nullptr;
-                int packets = 0;
-                if (figure) {
-                    const LinkPartRanges* r = part->PartIn(figure);
-                    if (!r) continue;
-                    positions = figure->vertices.data() + r->vertices.start;
-                    packets = r->vertices.count;
-                    mesh.uvs = figure->texCoords.data() + r->texCoords.start;
-                    mesh.uvCount = r->texCoords.count;
-                    mesh.corners = figure->corners.data() + r->corners.start;
-                    mesh.cornerCount = r->corners.count;
-                    mesh.indices = figure->indices.data() + r->indices.start;
-                    mesh.indexCount = r->indices.count;
-                } else {
-                    const MeshBuffers& b = part->buffers;
-                    positions = b.vertices;
-                    packets = b.vertexCount;
-                    mesh.uvs = b.texCoords;
-                    mesh.uvCount = b.texCoordCount;
-                    mesh.corners = b.corners;
-                    mesh.cornerCount = b.cornerCount;
-                    mesh.indices = b.indices;
-                    mesh.indexCount = b.indexCount;
-                }
-                if (!positions || packets <= 0) continue;
-                mesh.positions =
-                    !part->offsets.empty() ? MovedPositions(positions, packets, part->offsets, moved) : positions;
-                mesh.positionCount = packets * 4;
-                mesh.uOffset = part->textureOffsetU;
-                mesh.vOffset = part->textureOffsetV;
-                mesh.model = Multiply(objectMatrix, Placement(part->localRotation, part->localPosition));
-                mesh.texture = holder;
-                mesh.owner = part;
-                mesh.shared = figure;
-                mesh.moved = !part->offsets.empty();
-                mesh.slots = &part->meshSlots;
-                mesh.unit = unit;
-                render::ShadowCasterMesh(object, mesh);
+        const Surface* texture = set->texture ? set->texture->surface.Get() : nullptr;
+        for (const auto& group : set->groups)
+            for (FigureMesh* part : group->parts) {
+                if (!part || (part->flags & FigureMeshFlag::Hidden) || LengthSquared(part->localPosition) > kPartRangeSquared)
+                    continue;
+                Matrix4 local, model;
+                ObjectWorldMatrix(&part->localRotation, part->localPosition, &local);
+                model.Multiply(placement.m, local.m);
+                part->drawer->HandOverCaster(model, texture);
             }
-        }
     }
+    render::EndCaster();
 }
 
 // The highest top of any object on the map (TopOf) and the largest radius, scanned again every
@@ -316,6 +250,7 @@ void HandOverOutsideCasters(WorldClient* world) {
                     strength = *cast;
                 }
                 if (strength < kLeastStrength) continue;
+                render::CastsShadow(object, half->casterMark, strength);
                 HandOverParts(object, half, placement, unit);
             }
         }
