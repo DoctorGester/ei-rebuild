@@ -6,4 +6,5 @@ model = "sonnet"
 depends = ["C168g"]
 note = "Plan: docs/notes/file-layout.md. layout.py apply C168h plus 9 folds; 602 include lines, 1,275 references. Quiet window. After it layout.py check finds no flat file. All goldens the same."
 order = 1236
-status = "later"
+status = "running"
+started = "2026-11-06"
