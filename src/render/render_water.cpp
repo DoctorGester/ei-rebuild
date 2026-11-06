@@ -246,17 +246,10 @@ void DrawSkyReflection(Frame& f) {
     g_domeCentre = view->eye;
     g_domeRadius = g_domeHeight = 1000.0f;
 
-    gpu::PassDesc pass;
-    pass.colour.texture = g_skyImage;
-    pass.colour.load = gpu::Load::Clear;
-    UnpackColour(f.fogColour, pass.colour.clear);
-    pass.colour.clear[3] = 1.0f;
-    pass.depth = {g_skyDepth, 0, gpu::Load::Clear, 1.0f, false};
-    pass.label = "ei-water-sky";
-    if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the water's sky pass could not begin (%s).", gpu::Error());
-    ++g_stats.counts[FrameStats::Count::Passes];
     // The dome: the meshes the world draws before its first ground (WorldClient::Render draws the sky first), mirrored,
     // so their faces turn the other way; the image keeps no depth.
+    static MeshDraws draws("ei-water-sky");
+    draws.Clear();
     const Frame::Range& world = f.worldRanges.front();
     bool first = true;
     for (std::size_t k = world.first; k < std::min(world.end, f.commands.size()); ++k) {
@@ -279,8 +272,19 @@ void DrawSkyReflection(Frame& f) {
                                                                         : Cull::None;
         batch.state.depthTest = batch.state.depthWrite = false;
         batch.unclipped = true;
-        DrawMeshBatch(f, batch, 1);
+        draws.Add(f, batch, 1, true);
     }
+    draws.Upload();
+    gpu::PassDesc pass;
+    pass.colour.texture = g_skyImage;
+    pass.colour.load = gpu::Load::Clear;
+    UnpackColour(f.fogColour, pass.colour.clear);
+    pass.colour.clear[3] = 1.0f;
+    pass.depth = {g_skyDepth, 0, gpu::Load::Clear, 1.0f, false};
+    pass.label = "ei-water-sky";
+    if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the water's sky pass could not begin (%s).", gpu::Error());
+    ++g_stats.counts[FrameStats::Count::Passes];
+    draws.DrawAll(f);
     gpu::EndPass();
     g_domeRadius = std::max(g_domeRadius, 1.0f);
     g_domeHeight = std::max(g_domeHeight, 1.0f);

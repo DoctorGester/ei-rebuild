@@ -2,9 +2,9 @@
 //
 // The draw loop: a synthetic world frame of the renderer's shape, replayed through gpu.h's calls the way render_mesh.cpp
 // and render_shadows.cpp make them: a shadow pass of 155 instanced caster draws into a 4096x4096 depth map, a world pass
-// of 263 mesh draws (the mesh program's five uniform blocks and six samplers) into a colour and depth target of the
-// window's size, then the present. About half of the draws keep the mesh and half keep the textures of the draw before,
-// the blocks of the lights and the shadows change rarely, the matrix every draw. Each case runs with the state filter on
+// of 263 mesh draws (the mesh program's three uniform blocks, six samplers and each draw's record, written before the
+// pass) into a colour and depth target of the window's size, then the present, one call a draw. About half of the draws
+// keep the mesh and half keep the textures of the draw before, the fragment block changes rarely. Each case runs with the state filter on
 // and off (gpu::SetStateFiltering), the window presenting immediate, and reports the frame time, the time recording a
 // frame, and the calls sent and left out.
 //
@@ -72,11 +72,12 @@ constexpr int kCasterDraws = 155, kWorldDraws = 263;
 
 struct Draw {
     int mesh, texture[3], pipeline;
-    bool fsChanges, lightChanges;
+    bool fsChanges;
 };
 
 struct World {
     g::Buffer vertices[kMeshBuffers], casterVertices[kMeshBuffers], indices[kMeshBuffers], instances;
+    g::Buffer records, lights, recordIndices;   // the world draws' MeshRecords, a PartLight, 0, 1, 2, ... per instance
     g::Texture textures[kTextures], range;
     g::Sampler linear, nearest;
     g::Pipeline caster, mesh[2], blit;
@@ -110,9 +111,11 @@ g::PipelineDesc MeshDesc(bool blend) {
     namespace m = sh::mesh;
     g::PipelineDesc d;
     d.program = m::kIndex;
-    d.bufferCount = 1;
+    d.bufferCount = 2;
     d.buffers[0] = {sizeof(MeshVertex), false};
-    d.attributeCount = 5;
+    d.buffers[1] = {sizeof(std::uint32_t), true};
+    d.attributeCount = 6;
+    d.attributes[5] = {m::kAttrRecord, 1, g::VertexFormat::Uint, 0};
     d.attributes[0] = {m::kAttrPos, 0, g::VertexFormat::Float3, 0};
     d.attributes[1] = {m::kAttrCol, 0, g::VertexFormat::UByte4Norm, 12};
     d.attributes[2] = {m::kAttrSpec, 0, g::VertexFormat::UByte4Norm, 16};
@@ -141,7 +144,6 @@ std::vector<Draw> Sequence(int count, int meshes, int textures) {
             if (i == 0 || Next(5) < 2) d.texture[t] = static_cast<int>(Next(static_cast<std::uint32_t>(textures)));
         if (i == 0 || Next(8) == 0) d.pipeline = static_cast<int>(Next(2));
         d.fsChanges = i == 0 || Next(10) < 3;
-        d.lightChanges = i == 0 || Next(10) < 2;
         out.push_back(d);
     }
     return out;
@@ -187,6 +189,22 @@ bool MakeWorld(World* w) {
     }
     w->instances = g::MakeBuffer(g::BufferUse::Vertex, sizeof(instance), "bench instances");
     g::Write(w->instances, 0, instance, sizeof(instance));
+    std::vector<sh::MeshRecord> records(kWorldDraws);
+    std::vector<std::uint32_t> recordIndices(kWorldDraws);
+    for (std::size_t i = 0; i < records.size(); ++i) {
+        float* matrix = reinterpret_cast<float*>(&records[i].matrix);
+        matrix[0] = matrix[5] = matrix[10] = matrix[15] = 1.0f;
+        matrix[12] = 1e-5f * static_cast<float>(i);   // the matrix changes every draw
+        recordIndices[i] = static_cast<std::uint32_t>(i);
+    }
+    w->records = g::MakeBuffer(g::BufferUse::Storage, static_cast<std::uint32_t>(records.size() * sizeof(sh::MeshRecord)), "bench records");
+    g::Write(w->records, 0, records.data(), w->records.size);
+    w->recordIndices = g::MakeBuffer(g::BufferUse::Vertex, static_cast<std::uint32_t>(recordIndices.size() * 4), "bench record indices");
+    g::Write(w->recordIndices, 0, recordIndices.data(), w->recordIndices.size);
+    const sh::PartLight light{};
+    w->lights = g::MakeBuffer(g::BufferUse::Storage, sizeof(light), "bench lights");
+    g::Write(w->lights, 0, &light, sizeof(light));
+    if (!w->records || !w->lights || !w->recordIndices) return false;
     std::vector<std::uint32_t> texels(64 * 64, 0xFF808080u);
     for (g::Texture& t : w->textures) {
         t = g::MakeTexture({64, 64, 1, 1, g::Format::Rgba8, g::TextureUse::Sampled, "bench texture"});
@@ -215,6 +233,9 @@ void ReleaseWorld(World* w) {
     for (g::Buffer& b : w->casterVertices) g::Release(b);
     for (g::Buffer& b : w->indices) g::Release(b);
     g::Release(w->instances);
+    g::Release(w->records);
+    g::Release(w->lights);
+    g::Release(w->recordIndices);
     for (g::Texture& t : w->textures) g::Release(t);
     g::Release(w->range);
 }
@@ -224,7 +245,7 @@ struct Targets {
 };
 
 // The frame's commands (not its acquire or its submission).
-void RecordFrame(const World& w, const Targets& t, const g::Texture& swap, int frame) {
+void RecordFrame(const World& w, const Targets& t, const g::Texture& swap) {
     {
         g::PassDesc p;
         p.depth = {t.shadow, 0, g::Load::Clear, 1.0f, true};
@@ -249,19 +270,16 @@ void RecordFrame(const World& w, const Targets& t, const g::Texture& swap, int f
         p.colour.load = g::Load::Clear;
         p.depth = {t.depth, 0, g::Load::Clear, 1.0f, true};
         g::BeginPass(p);
-        sh::MeshVsParams vs{};
         sh::MeshFsParams fs{};
         sh::ShadowParams shadow{};
-        sh::MeshLightParams light{};
         sh::PointShadowParams point{};
-        float* matrix = reinterpret_cast<float*>(&vs.matrix);
-        matrix[0] = matrix[5] = matrix[10] = matrix[15] = 1.0f;
-        float lightStep = 0.0f, fsStep = 0.0f;
-        int n = 0;
+        float fsStep = 0.0f;
+        std::uint32_t n = 0;
         for (const Draw& d : w.world) {
             g::ApplyPipeline(w.mesh[d.pipeline]);
-            const g::BufferBinding vertices[1] = {{w.vertices[d.mesh / kMeshesPerBuffer],
-                                                   static_cast<std::uint32_t>(d.mesh % kMeshesPerBuffer * kVerticesPerMesh * sizeof(MeshVertex))}};
+            const g::BufferBinding vertices[2] = {{w.vertices[d.mesh / kMeshesPerBuffer],
+                                                   static_cast<std::uint32_t>(d.mesh % kMeshesPerBuffer * kVerticesPerMesh * sizeof(MeshVertex))},
+                                                  {w.recordIndices, 0}};
             g::BindVertexBuffers(0, vertices);
             g::BindIndexBuffer({w.indices[d.mesh / kMeshesPerBuffer],
                                 static_cast<std::uint32_t>(d.mesh % kMeshesPerBuffer * kIndicesPerMesh * 4)});
@@ -273,15 +291,14 @@ void RecordFrame(const World& w, const Targets& t, const g::Texture& swap, int f
             const g::TextureBinding ranges[1] = {{w.range, w.nearest}};
             g::BindTextures(g::Stage::Fragment, sh::mesh::kSamplerShadowRange, ranges);
             g::BindTextures(g::Stage::Fragment, sh::mesh::kSamplerPointShadowMap, ranges);
-            matrix[12] = 1e-5f * static_cast<float>(++n + frame);   // the matrix changes every draw
+            const g::Buffer storage[2] = {w.records, w.lights};
+            g::BindStorageBuffers(g::Stage::Vertex, sh::mesh::kStorageMeshRecord, {storage, 1});
+            g::BindStorageBuffers(g::Stage::Fragment, sh::mesh::kStorageMeshRecord, storage);
             if (d.fsChanges) fs.fogColour[0] = (fsStep += 0.001f);
-            if (d.lightChanges) light.sun[0] = (lightStep += 0.001f);
-            g::PushUniforms(g::Stage::Vertex, sh::mesh::kBlockMeshVsParams, vs);
             g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockMeshFsParams, fs);
             g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockShadowParams, shadow);
-            g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockMeshLightParams, light);
             g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockPointShadowParams, point);
-            g::DrawIndexed(0, kIndicesPerMesh, 1, 0);
+            g::DrawIndexed(0, kIndicesPerMesh, 1, n++);
         }
         g::EndPass();
     }
@@ -319,7 +336,7 @@ bool Round(World& world, const Targets& t, int count, Result* out) {
         if (!g::AcquireSwapchain(&swap)) return false;
         if (swap) {
             const double recordStart = NowMs();
-            RecordFrame(world, t, swap, k);
+            RecordFrame(world, t, swap);
             g::Submit();
             if (k >= 0) records.push_back(NowMs() - recordStart);
         } else {

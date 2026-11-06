@@ -35,8 +35,8 @@ namespace render {
 
 using gpu_shaders::BlitParams;
 using gpu_shaders::MeshFsParams;
-using gpu_shaders::MeshLightParams;
-using gpu_shaders::MeshVsParams;
+using gpu_shaders::MeshRecord;
+using gpu_shaders::PartLight;
 using gpu_shaders::OcclusionBlurParams;
 using gpu_shaders::OcclusionParams;
 using gpu_shaders::PerfOverlayParams;
@@ -307,13 +307,13 @@ private:
 std::optional<Matrix4> InvertMatrix(const Matrix4& m);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
-// A mesh lit on the GPU (shaders/mesh.hlsl's MeshLightParams). FigureLight: a figure part's, the sun and lights in
+// A mesh lit on the GPU (shaders/mesh.hlsl's PartLight). FigureLight: a figure part's, the sun and lights in
 // the part's model space, their colours times the material's diffuse colour and the coefficient; the
 // kMostMeshLights nearest the part's origin. GroundDecalLight (below): a ground print's. Each light
 // names its kept scene light (SceneLightIndex, -1 none), whose point shadow it takes at the draw
-// (MeshLightUniforms).
+// (MeshLightRecord).
 constexpr int kMostMeshLights = 8;
-static_assert(std::size(MeshLightParams{}.pointAt) == kMostMeshLights);
+static_assert(std::size(PartLight{}.pointAt) == kMostMeshLights);
 struct MeshLight {
     bool groundPrint = false;
     Vector3 sun;   // towards the sun
@@ -554,12 +554,12 @@ void CheckMovieUpload(const gpu::Texture& image, const std::uint8_t* rgba, int w
 // until the next Append (which may replace it), -1 when they could not be written.
 class StreamBuffer {
 public:
-    StreamBuffer(bool newIndex, const char* newLabel) : index(newIndex), label(newLabel) {}
+    StreamBuffer(gpu::BufferUse newUse, const char* newLabel) : use(newUse), label(newLabel) {}
     int Append(const void* data, std::size_t bytes);
     const gpu::Buffer& Buffer() const { return buffer; }
 
 private:
-    bool index = false;
+    gpu::BufferUse use = gpu::BufferUse::Vertex;
     const char* label = nullptr;
     gpu::Buffer buffer;
     std::size_t used = 0;                 // appended since the last commit
@@ -579,7 +579,8 @@ struct Geometry {
 class GeometryStream {
 public:
     // `terrain`: counted as the terrain's uploads (FrameStats), else the meshes'.
-    GeometryStream(const char* label, bool newTerrain) : vertices(false, label), indices(true, label), terrain(newTerrain) {}
+    GeometryStream(const char* label, bool newTerrain)
+        : vertices(gpu::BufferUse::Vertex, label), indices(gpu::BufferUse::Index, label), terrain(newTerrain) {}
     bool Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices);
     bool Bind(Geometry& g) const;
 
@@ -782,8 +783,45 @@ void TerrainCastersDone();
 
 bool CreateMeshShader();
 void UploadMeshes(const Frame& frame);
-// `anisotropy` above 1: the stages sampled anisotropically at that level (AnisotropicSampler).
-void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, int anisotropy);
+// The mesh batches' draws (shaders/mesh.hlsl): each batch's own values (a MeshRecord) in a storage buffer, its index
+// the draw's instance, its lights (a PartLight, one for consecutive batches lit alike) in a second one. A batch joins the run before it when `join` allows (no pass can begin between them) and it binds
+// the same pipeline, textures, geometry and fragment blocks; a run is one call (its draws with the same indices one
+// draw of several instances). Add: false when the batch draws nothing; `anisotropy` above 1: its stages sampled
+// anisotropically at that level (AnisotropicSampler). Upload writes the records and the runs' indirect draws before
+// the pass; Draw draws the run that begins at the `first`th batch added, if one does.
+class MeshDraws {
+public:
+    explicit MeshDraws(const char* label);
+    void Clear();
+    bool Add(const Frame& frame, const MeshBatch& batch, int anisotropy, bool join);
+    std::size_t Count() const { return runStarting.size(); }
+    bool Upload();
+    void Draw(const Frame& frame, std::size_t first);
+    void DrawAll(const Frame& frame);
+
+private:
+    struct Run {
+        std::uint64_t key = 0;   // the pass state, lines and kept geometry's part of the pipeline
+        PassState state;
+        bool lines = false, cached = false;
+        Geometry geometry;
+        gpu::TextureBinding textures[3];   // the stages' and stage 0's patch
+        MeshFsParams fs{};
+        const ShadowParams* shadow = nullptr;   // ShadowUniforms's
+        std::uint32_t command = 0, commands = 0;   // in `commandData`
+        std::uint32_t draws = 0;
+    };
+    std::vector<MeshRecord> recordData;
+    std::vector<PartLight> lightData;   // the first: none (all zero)
+    PartLight light{};                  // Add's
+    std::vector<gpu::IndexedIndirect> commandData;
+    std::vector<Run> runs;
+    std::vector<int> runStarting;   // per batch added: the run it begins, -1 none
+    StreamBuffer records, lights, arguments;
+    gpu::Buffer indices;   // 0, 1, 2, ...: each instance's record (a per-instance vertex buffer)
+    const char* label = nullptr;
+    int recordOffset = -1, argumentOffset = -1;   // Upload's, in `records` and `arguments`
+};
 
 // The buffers a mesh batch draws from (the frame's stream, or the kept meshes' pool) and its first index;
 // false when it has none. MeshLayout `positionsOnly`: position and texture coordinates alone (the casters).
@@ -857,14 +895,15 @@ void BindCloudMap(int slot);
 gpu::TextureBinding CloudMapBinding();   // what BindCloudMap binds
 // The weather on the surfaces (render_weather.cpp; section 13, item 11b). PrepareSurfaces, from PrepareShadows once a
 // frame: the wetness, the puddles and the snow cover moved on towards the frame's weather by the world's time.
-// SurfaceUniforms: the terrain's weather in its TerrainFsParams. MeshWeatherUniforms: a world mesh's in its
-// MeshFsParams (wet, snow, weatherSun, weatherSunColour). SurfaceState: the three levels for the harness.
+// SurfaceUniforms: the terrain's weather in its TerrainFsParams. MeshWeatherUniforms: a world mesh's: the wetness and
+// the snow cover in `weather`, towards the sun and its colour in its MeshFsParams. SurfaceState: the three levels for
+// the harness.
 // PrepareUnitWeather, after PrepareSurfaces: each unit drawn gets its own wetness and snow (MeshBatch::weather),
 // following the weather out of shelter and drying under a roof (the casters straight above it).
 void PrepareSurfaces(const ShadowFrame& shadow);
 void PrepareUnitWeather(Frame& frame);
 void SurfaceUniforms(TerrainFsParams* fs);
-void MeshWeatherUniforms(MeshFsParams* fs);
+void MeshWeatherUniforms(MeshFsParams* fs, float weather[2]);
 struct SurfaceLevels {
     float wet = 0.0f, puddles = 0.0f, snow = 0.0f;
 };
@@ -904,9 +943,11 @@ gpu::Texture MakeShadowDepth(int width, int height, const char* label);
 gpu::Sampler ShadowCompareSampler();
 const gpu::Texture& NoShadowTexture();
 // The casters' draws into a depth map (shaders/shadow_caster.hlsl), the sun's and the point lights'. Each draw's
-// own data (CasterInstance) goes into one instance buffer uploaded once a pass and is read at the draw's first
-// instance; the draws are sorted by what they bind (a depth map does not depend on the order its casters are
-// drawn in) and the pipeline and bindings are applied only when they change.
+// own data (CasterInstance) goes into one instance buffer uploaded once a pass. A depth map does not depend on the
+// order its casters are drawn in: the draws are sorted by what they bind, then by their indices, and each run with the
+// same bindings is one indirect call (gpu::DrawIndexedIndirect) whose draws each take the instances of a run with the
+// same indices (a mesh kept once for many objects, KeepMesh); the pipeline and bindings are applied only when they
+// change.
 struct CasterInstance {
     Matrix4 light;       // model space -> the map's clip space
     float uvOffset[2] = {};  // a kept mesh's texture offsets (MeshBatch::uOffset, vOffset)
@@ -915,19 +956,22 @@ struct CasterInstance {
 static_assert(sizeof(CasterInstance) == 80, "the instance layout in CasterDraws' pipelines");
 class CasterDraws {
 public:
-    explicit CasterDraws(const char* label) : instances(false, label) {}
+    explicit CasterDraws(const char* label)
+        : instances(gpu::BufferUse::Vertex, label), arguments(gpu::BufferUse::Indirect, label) {}
     // A draw of `indexCount` indices from `firstIndex` in the buffers of `geometry` (BindMeshBatch, BindCachedMesh;
     // `kept`: the kept meshes' pool, MeshLayout's `cached`).
     void Add(const Geometry& geometry, bool kept, const gpu::Texture& texture, gpu::Sampler sampler, int firstIndex,
              int indexCount, const CasterInstance& instance);
     std::size_t Count() const { return draws.size(); }
-    // Sorts the draws in [from, to) by what they bind.
+    // Sorts the draws in [from, to) by what they bind and their indices; Draw takes the same ranges.
     void Sort(std::size_t from, std::size_t to);
-    // Uploads the instances, before the pass (whose first Draw applies the pipeline and bindings anew); false when
-    // they could not be (nothing is drawn).
+    // Uploads the instances and the indirect draws, before the pass (whose first Draw applies the pipeline and
+    // bindings anew); false when they could not be (nothing is drawn).
     bool Upload();
     void Draw(std::size_t from, std::size_t to);
     void Clear();
+    // The calls Draw made since the last Clear.
+    std::size_t Calls() const { return calls; }
 
 private:
     struct Entry {
@@ -944,12 +988,22 @@ private:
                                reinterpret_cast<std::uintptr_t>(e.vertices.buffer.buffer), e.vertices.offset,
                                reinterpret_cast<std::uintptr_t>(e.indices.buffer.buffer), e.indices.offset);
     }
+    // A run of draws with the same bindings in one sorted range (Upload): its first entry and its indirect draws.
+    struct Run {
+        std::size_t first = 0;
+        std::uint32_t command = 0, commands = 0;   // in `commandData`
+    };
     std::vector<Entry> draws;
     std::vector<CasterInstance> instanceData;
-    StreamBuffer instances;
-    int instanceOffset = -1;   // Upload's, in `instances`
+    std::vector<std::size_t> sortedEnds;           // the ends of the ranges Sort was given
+    std::vector<Run> runs;
+    std::vector<CasterInstance> sortedInstances;   // instanceData in the sorted draws' order (Upload)
+    std::vector<gpu::IndexedIndirect> commandData;
+    StreamBuffer instances, arguments;
+    int instanceOffset = -1, argumentOffset = -1;   // Upload's, in `instances` and `arguments`
     const Entry* applied = nullptr;
     int appliedPipeline = -1;
+    std::size_t calls = 0;
 };
 // Point-light shadows (docs/notes/renderer.md section 13, item 9). PreparePointShadows (from PrepareShadows)
 // picks the strongest point lights in view that something shadows and gives the meshes lit on the GPU their
@@ -961,10 +1015,10 @@ gpu::TextureBinding PointShadowBinding(const Frame& frame);   // what BindPointS
 int PointShadowSlot(const Frame& frame, int sceneLight);
 // A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade): the scene's sun, ambient light and the
 // kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, the
-// shadow map's light and the daylight colours. MeshLightUniforms: a mesh's light as the shader takes it, each light
-// with its point shadow (-1 none).
+// shadow map's light and the daylight colours. MeshLightRecord: a mesh's light as the shader takes it (its kind and
+// count in the record, the lights in `part`), each light with its point shadow (-1 none).
 MeshLight GroundDecalLight(const Frame& frame, const float box[6]);
-MeshLightParams MeshLightUniforms(const Frame& frame, const MeshLight& light);
+void MeshLightRecord(const Frame& frame, const MeshLight& light, MeshRecord& record, PartLight& part);
 // The object whose meshes are being handed over. ShadowFrameDone: the frame is presented.
 const Object3D* CurrentCaster();
 bool CurrentCasterFigure();
@@ -1056,7 +1110,7 @@ private:
 // when the first texture bound differs from the last.
 void CountPipeline(gpu::Pipeline pipeline);
 void CountBindings(const gpu::Texture& first);
-void CountDraw(std::size_t uniformBytes);
+void CountDraw(std::size_t uniformBytes, std::size_t draws = 1);
 void CountUpload(FrameStats::Upload kind, std::size_t bytes);
 // At the present (render_checks.cpp): the frame's counts and times, with its `matrices` and size, added to the sums
 // TakeFrameStats gives; the next frame's start from zero.

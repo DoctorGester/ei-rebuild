@@ -235,6 +235,7 @@ static SDL_GPUVertexElementFormat ToSdl(VertexFormat f) {
     case VertexFormat::Float3: return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
     case VertexFormat::Float4: return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
     case VertexFormat::UByte4Norm: return SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
+    case VertexFormat::Uint: return SDL_GPU_VERTEXELEMENTFORMAT_UINT;
     }
     return SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 }
@@ -626,6 +627,7 @@ static SDL_GPUShader* ProgramShader(SDL_GPUDevice* device, ShaderPrograms& set, 
     ci.stage = vertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
     ci.num_samplers = static_cast<Uint32>(s.samplers);
     ci.num_uniform_buffers = static_cast<Uint32>(s.uniformBlocks);
+    ci.num_storage_buffers = static_cast<Uint32>(s.storageBuffers);
     SDL_GPUShader* shader = SDL_CreateGPUShader(device, &ci);
     if (!shader && !quiet) Problem("the %s %s shader: %s", p.name, vertex ? "vertex" : "fragment", SDL_GetError());
     shaders[static_cast<std::size_t>(program)] = shader;
@@ -836,6 +838,7 @@ static void MakeAhead(Prepared& prepared) {
 
 constexpr int kMostSamplers = 16;
 constexpr int kMostBlocks = 4;
+constexpr int kMostStorage = 4;
 constexpr std::uint32_t kMostKeptBytes = 4096;   // a larger block is pushed every time
 static std::uint32_t g_deviceSerial = 0;   // DeviceSerial
 static std::uint64_t g_passSerial = 0;     // PassSerial
@@ -846,6 +849,7 @@ struct Bound {
     bool haveIndex = false;
     SDL_GPUTexture* textures[2][kMostSamplers] = {};
     SDL_GPUSampler* samplers[2][kMostSamplers] = {};
+    SDL_GPUBuffer* storage[2][kMostStorage] = {};
     std::uint8_t uniforms[2][kMostBlocks][kMostKeptBytes] = {};   // the last pushed
     std::uint32_t uniformBytes[2][kMostBlocks] = {};
     const void* passData[2][kMostBlocks] = {};   // PushPassUniforms's block, null after a PushUniforms
@@ -856,6 +860,7 @@ struct Bound {
         haveIndex = false;
         std::memset(textures, 0, sizeof(textures));
         std::memset(samplers, 0, sizeof(samplers));
+        std::memset(storage, 0, sizeof(storage));
         std::memset(pushed, 0, sizeof(pushed));
     }
 };
@@ -1099,7 +1104,12 @@ Sampler MakeSampler(const SamplerDesc& desc) {
 Buffer MakeBuffer(BufferUse use, std::uint32_t bytes, const char* label) {
     if (!g_device || bytes == 0) return {};
     SDL_GPUBufferCreateInfo ci{};
-    ci.usage = use == BufferUse::Index ? SDL_GPU_BUFFERUSAGE_INDEX : SDL_GPU_BUFFERUSAGE_VERTEX;
+    switch (use) {
+    case BufferUse::Vertex: ci.usage = SDL_GPU_BUFFERUSAGE_VERTEX; break;
+    case BufferUse::Index: ci.usage = SDL_GPU_BUFFERUSAGE_INDEX; break;
+    case BufferUse::Storage: ci.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ; break;
+    case BufferUse::Indirect: ci.usage = SDL_GPU_BUFFERUSAGE_INDIRECT; break;
+    }
     ci.size = bytes;
     SDL_GPUBuffer* b = SDL_CreateGPUBuffer(g_device, &ci);
     if (!b) {
@@ -1521,6 +1531,29 @@ void BindTextures(Stage stage, int first, std::span<const TextureBinding> textur
     else SDL_BindGPUFragmentSamplers(g_pass, slot, sdl, count);
 }
 
+void BindStorageBuffers(Stage stage, int first, std::span<const Buffer> buffers) {
+    if (!g_pass || first < 0 || first + static_cast<int>(buffers.size()) > kMostStorage) {
+        Problem("storage buffers %s", g_pass ? "out of range" : "outside a pass");
+        return;
+    }
+    const int s = stage == Stage::Vertex ? 0 : 1;
+    SDL_GPUBuffer* sdl[kMostStorage]{};
+    bool changed = !g_filtering;
+    for (std::size_t i = 0; i < buffers.size(); ++i) {
+        if (!buffers[i]) {
+            Problem("an empty storage buffer bound");
+            return;
+        }
+        sdl[i] = buffers[i].buffer;
+        changed = changed || g_bound.storage[s][first + static_cast<int>(i)] != sdl[i];
+    }
+    if (!changed) return;
+    for (std::size_t i = 0; i < buffers.size(); ++i) g_bound.storage[s][first + static_cast<int>(i)] = sdl[i];
+    const Uint32 slot = static_cast<Uint32>(first), count = static_cast<Uint32>(buffers.size());
+    if (stage == Stage::Vertex) SDL_BindGPUVertexStorageBuffers(g_pass, slot, sdl, count);
+    else SDL_BindGPUFragmentStorageBuffers(g_pass, slot, sdl, count);
+}
+
 // Sends the block of stage `s` (0 vertex, 1 fragment) and keeps its bytes for PushUniforms's comparison (a block
 // too large to keep is compared with nothing).
 static void Push(int s, int slot, const void* data, std::uint32_t bytes) {
@@ -1583,6 +1616,20 @@ void DrawIndexed(std::uint32_t first, std::uint32_t count, std::uint32_t instanc
     }
     ++g_counts.draws;
     SDL_DrawGPUIndexedPrimitives(g_pass, count, instances, first, 0, firstInstance);
+}
+
+void DrawIndexedIndirect(const Buffer& buffer, std::uint32_t offset, std::uint32_t draws) {
+    if (!g_pass || !g_bound.pipeline || !g_bound.haveIndex || !buffer) {
+        Problem("an indirect draw %s", !g_pass            ? "outside a pass"
+                                       : !buffer          ? "without arguments"
+                                       : g_bound.pipeline ? "without indices"
+                                                          : "without a pipeline");
+        return;
+    }
+    if (draws == 0) return;
+    ++g_counts.draws;
+    g_counts.indirectDraws += draws;
+    SDL_DrawGPUIndexedPrimitivesIndirect(g_pass, buffer.buffer, offset, draws);
 }
 
 // ---- The window ---------------------------------------------------------------------------------------------------

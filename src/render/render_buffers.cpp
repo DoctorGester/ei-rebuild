@@ -40,8 +40,7 @@ int StreamBuffer::Append(const void* data, std::size_t bytes) {
         gpu::Release(buffer);
         used = 0;
         if (capacity > 0xFFFFFFFFu) return -1;
-        buffer = gpu::MakeBuffer(index ? gpu::BufferUse::Index : gpu::BufferUse::Vertex,
-                                 static_cast<std::uint32_t>(capacity), label);
+        buffer = gpu::MakeBuffer(use, static_cast<std::uint32_t>(capacity), label);
         if (!buffer) return -1;
     }
     const auto offset = static_cast<std::uint32_t>(used);

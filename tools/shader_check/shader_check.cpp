@@ -163,6 +163,7 @@ SDL_GPUShader* MakeShader(SDL_GPUDevice* device, SDL_GPUShaderFormat format, con
     ci.stage = vertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
     ci.num_samplers = static_cast<Uint32>(s.samplers);
     ci.num_uniform_buffers = static_cast<Uint32>(s.uniformBlocks);
+    ci.num_storage_buffers = static_cast<Uint32>(s.storageBuffers);
     SDL_GPUShader* shader = SDL_CreateGPUShader(device, &ci);
     if (!shader) Fail("%s %s shader: %s", p.name, vertex ? "vertex" : "fragment", SDL_GetError());
     return shader;

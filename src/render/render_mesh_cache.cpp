@@ -1,5 +1,5 @@
-// Meshes kept on the GPU, built again only where the game says they changed. See docs/notes/renderer.md,
-// "The renderer's source files".
+// Meshes kept on the GPU, built again only where the game says they changed, one copy for the figure meshes whose
+// built arrays are the same. See docs/notes/renderer.md, "The renderer's source files".
 #include "../platform/log.h"
 #include "render.h"
 #include "render_internal.h"
@@ -74,19 +74,155 @@ static MeshSource g_source{};
 static bool g_haveSource = false;
 static bool g_interface = false;   // SetInterfaceDraw
 
-// A figure mesh's corners as kept, and their place in the pool.
-struct CachedMesh : KeptRanges {
-    MeshFrom from;
-    bool valid = false;                  // built (a corner out of range: not)
+// Corners and triangles as kept, and their place in the pool: one copy for every figure mesh whose built arrays are the
+// same byte for byte (the palms of one morph draw one link figure's part with one material), found by a hash of the
+// arrays and compared whole. A figure mesh whose arrays change takes a copy of its own unless it is the only user.
+struct GpuMesh : KeptRanges {
     std::vector<MeshVertex> vertices;
     std::vector<std::uint32_t> colours;
     std::vector<std::uint32_t> indices;
+    int users = 0;
+    std::uint64_t hash = 0;
+    bool listed = false;     // in its table under `hash` (its arrays unchanged since)
+    bool released = false;   // in GpuMeshes::released
+};
+
+// A figure mesh's kept mesh: what it was built from, and its arrays on the GPU.
+struct CachedMesh {
+    MeshFrom from;
+    bool valid = false;                  // built (a corner out of range: not)
+    GpuMesh* gpu = nullptr;
     bool drawn = false;
     bool relightNext = false;                        // a draw not kept wrote the colours (NoteMeshDraw)
     std::uint32_t version = 0;                       // CachedMeshVersion
+    std::uint32_t lastUsed = 0;                      // FrameNumber() of its last draw
     bool boxKept = false;                            // CachedMeshBox's box taken since the positions changed
     float box[6] = {};
     ChangesRef own, link, colourWrites;              // MeshFrom's changes as last found
+};
+
+// The GPU meshes of one kind (drawn, casters) and their table by hash. A mesh no figure mesh uses any more is let go at
+// the next FrameDone once it is written (UploadKept still writes one it held); its pool room comes back at the next
+// Restart.
+class GpuMeshes {
+public:
+    GpuMesh* Make() {
+        GpuMesh* g = nullptr;
+        if (!unused.empty()) {
+            g = unused.back();
+            unused.pop_back();
+        } else {
+            g = &meshes.emplace_back();
+        }
+        *g = GpuMesh{};
+        g->users = 1;
+        ++live;
+        return g;
+    }
+    void Release(GpuMesh*& g) {
+        if (g && --g->users == 0 && !g->released) {
+            g->released = true;
+            released.push_back(g);
+        }
+        g = nullptr;
+    }
+    // `kept`'s arrays to change: its own copy (`keep`: with the arrays it shares), out of the table.
+    GpuMesh& Own(CachedMesh& kept, bool keep) {
+        if (kept.gpu && kept.gpu->users == 1) {
+            Unlist(*kept.gpu);
+            return *kept.gpu;
+        }
+        GpuMesh* g = Make();
+        if (kept.gpu && keep) {
+            g->vertices = kept.gpu->vertices;
+            g->colours = kept.gpu->colours;
+            g->indices = kept.gpu->indices;
+        }
+        Release(kept.gpu);
+        kept.gpu = g;
+        return *g;
+    }
+    // `kept` takes the GPU mesh with the same arrays as its own, or its own goes into the table.
+    void Share(CachedMesh& kept) {
+        GpuMesh* g = kept.gpu;
+        if (!g || g->listed) return;
+        const std::uint64_t hash = Hash(*g);
+        for (auto [at, end] = table.equal_range(hash); at != end; ++at) {
+            GpuMesh* other = at->second;
+            if (other == g || !Same(*other, *g)) continue;
+            ++other->users;
+            Release(kept.gpu);
+            kept.gpu = other;
+            ++shared;
+            return;
+        }
+        g->hash = hash;
+        g->listed = true;
+        table.emplace(hash, g);
+    }
+    void Unlist(GpuMesh& g) {
+        if (!g.listed) return;
+        for (auto [at, end] = table.equal_range(g.hash); at != end; ++at)
+            if (at->second == &g) {
+                table.erase(at);
+                break;
+            }
+        g.listed = false;
+    }
+    void FrameDone() {
+        std::size_t kept = 0;
+        for (GpuMesh* g : released) {
+            g->released = false;
+            if (g->users > 0) continue;   // taken again (Share)
+            if (g->pending) {
+                g->released = true;
+                released[kept++] = g;
+                continue;
+            }
+            Unlist(*g);
+            *g = GpuMesh{};
+            unused.push_back(g);
+            --live;
+        }
+        released.resize(kept);
+    }
+    // The meshes some figure mesh uses.
+    std::size_t Live() const {
+        std::size_t unusedYet = 0;
+        for (const GpuMesh* g : released) unusedYet += g->users == 0 ? 1 : 0;
+        return live - unusedYet;
+    }
+    std::uint64_t Shared() const { return shared; }
+
+private:
+    static std::uint64_t Hash(const GpuMesh& g) {
+        std::uint64_t h = 0xCBF29CE484222325ull;
+        auto add = [&h](const void* data, std::size_t bytes) {
+            const auto* p = static_cast<const unsigned char*>(data);
+            std::size_t k = 0;
+            for (; k + 8 <= bytes; k += 8) {
+                std::uint64_t word;
+                std::memcpy(&word, p + k, 8);
+                h = (h ^ word) * 0x100000001B3ull;
+                h ^= h >> 29;
+            }
+            for (; k < bytes; ++k) h = (h ^ p[k]) * 0x100000001B3ull;
+            h = (h ^ bytes) * 0x100000001B3ull;
+        };
+        add(g.vertices.data(), g.vertices.size() * sizeof(MeshVertex));
+        add(g.colours.data(), g.colours.size() * sizeof(std::uint32_t));
+        add(g.indices.data(), g.indices.size() * sizeof(std::uint32_t));
+        return h;
+    }
+    static bool Same(const GpuMesh& a, const GpuMesh& b) {
+        return a.vertices.size() == b.vertices.size() && a.colours == b.colours && a.indices == b.indices &&
+               std::memcmp(a.vertices.data(), b.vertices.data(), a.vertices.size() * sizeof(MeshVertex)) == 0;
+    }
+    std::deque<GpuMesh> meshes;   // their places stay (the kept meshes and g_pending point at them)
+    std::vector<GpuMesh*> unused, released;
+    std::unordered_multimap<std::uint64_t, GpuMesh*> table;
+    std::size_t live = 0;
+    std::uint64_t shared = 0;   // figure meshes that took another's copy
 };
 
 // The kept meshes by the slot their figure mesh holds (MeshSlots: 1 + the index). A dropped mesh's slot is used
@@ -119,7 +255,7 @@ public:
         *made = true;
         return s.mesh;
     }
-    // Lets go of every kept mesh `drop(mesh)` says to.
+    // Lets go of every kept mesh `drop(mesh)` says to (its GPU mesh released there).
     template <class Drop>
     void DropIf(Drop drop) {
         for (std::size_t i = 0; i < slots.size(); ++i) {
@@ -150,11 +286,12 @@ private:
 
 static MeshSlotPool g_meshes;
 static MeshSlotPool g_casterMeshes;   // KeepCasterMesh's, by part (no colours)
+static GpuMeshes g_gpuMeshes, g_gpuCasters;   // their arrays on the GPU
 // The casters read in frame g_frameCastersAt (UploadCachedMeshes).
 static std::vector<CachedMesh*> g_frameCasters;
 static std::uint32_t g_frameCastersAt = 0;
 static std::uint32_t g_lastVersion = 0;                              // the last CachedMesh::version given
-static std::vector<CachedMesh*> g_pending;
+static std::vector<GpuMesh*> g_pending;
 static GpuPool g_pool(sizeof(MeshVertex), 1u << 16, 3u << 16, "ei-mesh");
 // A mesh not drawn for this many frames is dropped (its pool room comes back at the next Restart).
 constexpr std::uint32_t kMeshLife = 600;
@@ -164,7 +301,7 @@ static std::uint64_t g_checks = 0, g_stale = 0;
 #if defined(EI_RENDER_VALIDATION)
 // Every this many frames each kept mesh drawn is compared with a fresh build.
 constexpr std::uint32_t kCheckEvery = 16;
-static CachedMesh g_fresh;   // the fresh build
+static GpuMesh g_fresh;   // the fresh build
 #endif
 
 static MeshFrom FromOf(const MeshDraw& m, CachedMesh& e) {
@@ -224,7 +361,7 @@ static MeshVertex CasterCorner(const ShadowMesh& m, int i) {
 
 // The mesh's corners and triangles as the frame's stream builds them (render_mesh.cpp), in `out`;
 // false when a corner's position is out of range (nothing drawn).
-static bool Build(const MeshDraw& m, CachedMesh& out) {
+static bool Build(const MeshDraw& m, GpuMesh& out) {
     out.vertices.clear();
     out.colours.clear();
     for (int i = 0; i < m.cornerCount; ++i) {
@@ -240,7 +377,7 @@ static bool Build(const MeshDraw& m, CachedMesh& out) {
 }
 
 // A caster's corners and triangles (no colours), as Build.
-static bool Build(const ShadowMesh& m, CachedMesh& out) {
+static bool Build(const ShadowMesh& m, GpuMesh& out) {
     out.vertices.clear();
     out.colours.clear();
     for (int i = 0; i < m.cornerCount; ++i) {
@@ -252,9 +389,19 @@ static bool Build(const ShadowMesh& m, CachedMesh& out) {
     return true;
 }
 
+// Whether a corner differs from `e`'s (`corner(i)`: CornerVertex or CasterCorner).
+template <class Corner>
+static bool PositionsDiffer(int cornerCount, const GpuMesh& e, Corner corner) {
+    for (int i = 0; i < cornerCount; ++i) {
+        const MeshVertex now = corner(i);
+        if (std::memcmp(&e.vertices[static_cast<std::size_t>(i)], &now, sizeof(MeshVertex)) != 0) return true;
+    }
+    return false;
+}
+
 // Reads every corner again (`corner(i)`: CornerVertex or CasterCorner); the changed ones are marked for upload.
 template <class Corner>
-static bool ReadPositions(int cornerCount, CachedMesh& e, Corner corner) {
+static bool ReadPositions(int cornerCount, GpuMesh& e, Corner corner) {
     bool changed = false;
     for (int i = 0; i < cornerCount; ++i) {
         MeshVertex now = corner(i);
@@ -267,7 +414,16 @@ static bool ReadPositions(int cornerCount, CachedMesh& e, Corner corner) {
     return changed;
 }
 
-static bool ReadColours(const MeshDraw& m, CachedMesh& e) {
+static bool ColoursDiffer(const MeshDraw& m, const GpuMesh& e) {
+    for (int i = 0; i < m.cornerCount; ++i) {
+        const int index = m.corners[i].normal;
+        const std::uint32_t* kept = &e.colours[2 * static_cast<std::size_t>(i)];
+        if (kept[0] != m.colours[index] || kept[1] != m.speculars[index]) return true;
+    }
+    return false;
+}
+
+static bool ReadColours(const MeshDraw& m, GpuMesh& e) {
     bool changed = false;
     for (int i = 0; i < m.cornerCount; ++i) {
         int index = m.corners[i].normal;
@@ -281,11 +437,38 @@ static bool ReadColours(const MeshDraw& m, CachedMesh& e) {
     return changed;
 }
 
+// The kept positions read again (MeshFrom says they may have moved): a GPU mesh shared with others is left to them when
+// a corner moved. True when one did.
+template <class Corner>
+static bool Move(GpuMeshes& meshes, CachedMesh& kept, int cornerCount, Corner corner) {
+    if (kept.gpu->users == 1) {
+        if (!ReadPositions(cornerCount, *kept.gpu, corner)) return false;
+        meshes.Unlist(*kept.gpu);
+        return true;
+    }
+    if (!PositionsDiffer(cornerCount, *kept.gpu, corner)) return false;
+    return ReadPositions(cornerCount, meshes.Own(kept, true), corner);
+}
+
+// The kept colours read again, as Move; a copy just taken goes to one lit the same when there is one.
+static bool Relight(const MeshDraw& m, CachedMesh& kept) {
+    if (kept.gpu->users == 1) {
+        if (!ReadColours(m, *kept.gpu)) return false;
+        g_gpuMeshes.Unlist(*kept.gpu);
+        return true;
+    }
+    if (!ColoursDiffer(m, *kept.gpu)) return false;
+    ReadColours(m, g_gpuMeshes.Own(kept, true));
+    g_gpuMeshes.Share(kept);
+    return true;
+}
+
 #if defined(EI_RENDER_VALIDATION)
 // The kept mesh against a fresh build of the draw; a stale one takes the fresh build (all of it uploaded).
-static void Check(const MeshDraw& m, CachedMesh& e) {
+static void Check(const MeshDraw& m, CachedMesh& kept) {
     ++g_checks;
     if (!Build(m, g_fresh)) return;
+    const GpuMesh& e = *kept.gpu;
     if (g_fresh.vertices.size() == e.vertices.size() && g_fresh.indices == e.indices && g_fresh.colours == e.colours &&
         std::memcmp(g_fresh.vertices.data(), e.vertices.data(), e.vertices.size() * sizeof(MeshVertex)) == 0)
         return;
@@ -309,17 +492,19 @@ static void Check(const MeshDraw& m, CachedMesh& e) {
         for (std::size_t i = 0; i < e.colours.size() && i < g_fresh.colours.size(); ++i)
             if (e.colours[i] != g_fresh.colours[i]) {
                 ei::Log("render:   colour %u kept %08X now %08X (colours %p, frame %u, last %u)", static_cast<unsigned>(i),
-                        e.colours[i], g_fresh.colours[i], m.colours, FrameNumber(), e.lastUsed);
+                        e.colours[i], g_fresh.colours[i], m.colours, FrameNumber(), kept.lastUsed);
                 break;
             }
     }
-    e.vertices.swap(g_fresh.vertices);
-    e.colours.swap(g_fresh.colours);
-    e.indices.swap(g_fresh.indices);
-    e.dirty = true;
+    GpuMesh& own = g_gpuMeshes.Own(kept, false);
+    own.vertices.swap(g_fresh.vertices);
+    own.colours.swap(g_fresh.colours);
+    own.indices.swap(g_fresh.indices);
+    own.WriteAll();
+    g_gpuMeshes.Share(kept);
     if (geometry) {
-        e.version = ++g_lastVersion;
-        e.boxKept = false;
+        kept.version = ++g_lastVersion;
+        kept.boxKept = false;
     }
 }
 
@@ -333,19 +518,23 @@ static void CheckBox(const MeshDraw& m, CachedMesh& e) {
 }
 
 // A kept caster against a fresh build of what the walk handed over.
-static void Check(const ShadowMesh& m, CachedMesh& e) {
+static void Check(const ShadowMesh& m, CachedMesh& kept) {
     ++g_checks;
     if (!Build(m, g_fresh)) return;
+    const GpuMesh& e = *kept.gpu;
     if (g_fresh.vertices.size() == e.vertices.size() && g_fresh.indices == e.indices &&
         std::memcmp(g_fresh.vertices.data(), e.vertices.data(), e.vertices.size() * sizeof(MeshVertex)) == 0)
         return;
     LogFirst(g_stale, 20, "render: a caster kept on the GPU was stale: figure mesh %p, link figure %p, %d corners%s",
              static_cast<const void*>(m.owner), static_cast<const void*>(m.shared), m.cornerCount,
              m.moved ? ", moved positions" : "");
-    e.vertices.swap(g_fresh.vertices);
-    e.indices.swap(g_fresh.indices);
-    e.dirty = true;
-    e.version = ++g_lastVersion;
+    GpuMesh& own = g_gpuCasters.Own(kept, false);
+    own.vertices.swap(g_fresh.vertices);
+    own.colours.clear();
+    own.indices.swap(g_fresh.indices);
+    own.WriteAll();
+    g_gpuCasters.Share(kept);
+    kept.version = ++g_lastVersion;
 }
 #endif
 
@@ -359,7 +548,7 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
     bool made = false;
     CachedMesh& e = g_meshes.Take(g_source.owner, g_source.slots->drawn, &made);
     MeshFrom now = FromOf(m, e);
-    bool build = made || !e.valid || !e.from.SameArrays(now);
+    bool build = made || !e.valid || !e.gpu || !e.from.SameArrays(now);
     bool move = !build && !e.from.SamePositions(now);
     bool relight = !build && (e.relightNext || !e.from.SameColours(now));
     bool check = false;
@@ -375,17 +564,19 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
     FrameStats::Reuse reuse = FrameStats::Reuse::Same;
     if (build || move) e.boxKept = false;
     if (build) {
-        e.valid = Build(m, e);
+        GpuMesh& own = g_gpuMeshes.Own(e, false);
+        e.valid = Build(m, own);
         e.version = ++g_lastVersion;
         if (!e.valid) return nullptr;
-        e.WriteAll();
+        own.WriteAll();
+        g_gpuMeshes.Share(e);
         reuse = FrameStats::Reuse::New;
     } else {
-        if (move && ReadPositions(m.cornerCount, e, [&](int i) { return CornerVertex(m, i); })) {
+        if (move && Move(g_gpuMeshes, e, m.cornerCount, [&](int i) { return CornerVertex(m, i); })) {
             reuse = FrameStats::Reuse::Moved;
             e.version = ++g_lastVersion;
         }
-        if (relight && ReadColours(m, e) && reuse == FrameStats::Reuse::Same) reuse = FrameStats::Reuse::Relit;
+        if (relight && Relight(m, e) && reuse == FrameStats::Reuse::Same) reuse = FrameStats::Reuse::Relit;
 #if defined(EI_RENDER_VALIDATION)
         if (check) {
             Check(m, e);
@@ -396,8 +587,10 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
     e.from = now;
     e.drawn = true;
     e.lastUsed = FrameNumber();
-    if (!g_pool.Placed(e.place)) e.dirty = true;
-    if (e.HasWrites()) AddPending(g_pending, e);
+    GpuMesh& g = *e.gpu;
+    g.lastUsed = e.lastUsed;
+    if (!g_pool.Placed(g.place)) g.dirty = true;
+    if (g.HasWrites()) AddPending(g_pending, g);
     ++g_stats.meshReuse[reuse];
     return &e;
 }
@@ -407,16 +600,18 @@ CachedMesh* KeepCasterMesh(const ShadowMesh& m) {
     bool made = false;
     CachedMesh& e = g_casterMeshes.Take(m.owner, m.slots->caster, &made);
     MeshFrom now = FromOf(m, e);
-    const bool usable = e.valid && !e.indices.empty();
+    const bool usable = e.valid && e.gpu && !e.gpu->indices.empty();
     if (!made && e.lastUsed == FrameNumber()) return usable ? &e : nullptr;   // read once a frame
-    bool build = made || !e.valid || !e.from.SameArrays(now);
+    bool build = made || !e.valid || !e.gpu || !e.from.SameArrays(now);
     build = build || !g_cacheOn;   // off: built every frame
     if (build) {
-        e.valid = Build(m, e);
+        GpuMesh& own = g_gpuCasters.Own(e, false);
+        e.valid = Build(m, own);
         e.version = ++g_lastVersion;
-        e.WriteAll();
+        own.WriteAll();
+        if (e.valid) g_gpuCasters.Share(e);
     } else {
-        if (!e.from.SamePositions(now) && ReadPositions(m.cornerCount, e, [&](int i) { return CasterCorner(m, i); }))
+        if (!e.from.SamePositions(now) && Move(g_gpuCasters, e, m.cornerCount, [&](int i) { return CasterCorner(m, i); }))
             e.version = ++g_lastVersion;
 #if defined(EI_RENDER_VALIDATION)
         if (FrameNumber() % kCheckEvery == 0) Check(m, e);
@@ -430,9 +625,11 @@ CachedMesh* KeepCasterMesh(const ShadowMesh& m) {
         g_frameCastersAt = e.lastUsed;
     }
     g_frameCasters.push_back(&e);
-    if (!e.valid || e.indices.empty()) return nullptr;
-    if (!g_pool.Placed(e.place)) e.dirty = true;
-    if (e.HasWrites()) AddPending(g_pending, e);
+    GpuMesh& g = *e.gpu;
+    if (!e.valid || g.indices.empty()) return nullptr;
+    g.lastUsed = e.lastUsed;
+    if (!g_pool.Placed(g.place)) g.dirty = true;
+    if (g.HasWrites()) AddPending(g_pending, g);
     return &e;
 }
 
@@ -477,11 +674,14 @@ Vector3 CornerNormal(const MeshDraw& m, int index) {
     return PacketVertex(m.normals, normal);
 }
 
-int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.indices.size()); }
+int CachedIndexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.gpu->indices.size()); }
 
-int CachedVertexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.vertices.size()); }
+int CachedVertexCount(const CachedMesh& mesh) { return static_cast<int>(mesh.gpu->vertices.size()); }
 
-Vector3 CachedCorner(const CachedMesh& mesh, int k) { return mesh.vertices[mesh.indices[static_cast<std::size_t>(k)]].position; }
+Vector3 CachedCorner(const CachedMesh& mesh, int k) {
+    const GpuMesh& g = *mesh.gpu;
+    return g.vertices[g.indices[static_cast<std::size_t>(k)]].position;
+}
 
 std::uint32_t CachedMeshVersion(const CachedMesh& mesh) { return mesh.version; }
 
@@ -489,26 +689,32 @@ void UploadCachedMeshes(const Frame& f) {
     // The frame's meshes: those its batches draw and the casters read this frame.
     auto frameMeshes = [&](auto add) {
         for (const MeshBatch& b : f.meshBatches)
-            if (b.cached) add(*b.cached);
+            if (b.cached) add(*b.cached->gpu);
         if (g_frameCastersAt == FrameNumber())
             for (CachedMesh* caster : g_frameCasters)
-                if (caster->valid) add(*caster);
+                if (caster->valid) add(*caster->gpu);
     };
     UploadKept(g_pool, g_pending, frameMeshes, FrameStats::Count::MeshVertexBytes, FrameStats::Count::MeshIndexBytes);
 }
 
 bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex) {
-    if (!g_pool.Placed(mesh.place)) return false;
+    if (!mesh.gpu || !g_pool.Placed(mesh.gpu->place)) return false;
     g_pool.Bind(g);
-    *firstIndex = static_cast<int>(mesh.place.firstIndex);
+    *firstIndex = static_cast<int>(mesh.gpu->place.firstIndex);
     return true;
 }
 
 void MeshCacheFrameDone() {
     const std::uint32_t now = FrameNumber();
     if (now % 64 != 0) return;
-    for (MeshSlotPool* meshes : {&g_meshes, &g_casterMeshes})
-        meshes->DropIf([now](const CachedMesh& mesh) { return !mesh.pending && now - mesh.lastUsed > kMeshLife; });
+    for (auto [meshes, gpu] : {std::pair{&g_meshes, &g_gpuMeshes}, std::pair{&g_casterMeshes, &g_gpuCasters}}) {
+        meshes->DropIf([now, gpu](CachedMesh& mesh) {
+            if (now - mesh.lastUsed <= kMeshLife) return false;
+            gpu->Release(mesh.gpu);
+            return true;
+        });
+        gpu->FrameDone();
+    }
 }
 
 void SetMeshSource(const MeshSource* source) {
@@ -549,6 +755,8 @@ MeshCacheInfo MeshCacheState() {
     MeshCacheInfo info;
     info.on = g_cacheOn;
     info.meshes = g_meshes.Live();
+    info.copies = g_gpuMeshes.Live();
+    info.shared = g_gpuMeshes.Shared();
     info.checks = g_checks;
     info.stale = g_stale;
     return info;

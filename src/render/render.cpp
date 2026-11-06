@@ -385,6 +385,35 @@ static perf::Pass OverlayPass(const Command& c, std::size_t k) {
     return perf::Pass::Other;
 }
 
+// The mesh commands from g_plannedFrom on as runs of draws (MeshDraws), each command's draw in g_commandDraws (-1: none).
+static MeshDraws g_meshDraws("ei-mesh-draws");
+static std::vector<int> g_commandDraws;
+static std::size_t g_plannedFrom = 0;
+
+// The mesh commands in [from, end) added to g_meshDraws and uploaded: a run joins only commands next to each other that
+// no pass can come between (a pass may end where the world begins or ends with multisampling, at `split` and at
+// `water`) and that the performance overlay counts alike.
+static void PlanMeshDraws(std::size_t from, std::size_t end, bool multisampling, std::size_t split, std::size_t water) {
+    g_meshDraws.Clear();
+    g_plannedFrom = from;
+    g_commandDraws.assign(end - from, -1);
+    for (std::size_t k = from; k < end; ++k) {
+        const Command& c = g_frame.commands[k];
+        if (c.kind != Command::Kind::Mesh) continue;
+        const MeshBatch& batch = g_frame.meshBatches[static_cast<std::size_t>(c.index)];
+        const bool world = InWorld(k);
+        // The render quality's anisotropy: the world's models sampled anisotropically at its level; the interface's
+        // sprites and previews and the pre-transformed draws as the stage says.
+        const int anisotropy = batch.model && world ? g_anisotropy : 1;
+        const Command* before = k > from ? &g_frame.commands[k - 1] : nullptr;
+        const bool join = before && before->kind == Command::Kind::Mesh && k != split && k != water &&
+                          (!multisampling || InWorld(k - 1) == world) && OverlayPass(c, k) == OverlayPass(*before, k - 1);
+        if (g_meshDraws.Add(g_frame, batch, anisotropy, join))
+            g_commandDraws[k - from] = static_cast<int>(g_meshDraws.Count()) - 1;
+    }
+    g_meshDraws.Upload();
+}
+
 static void DrawCommands(std::size_t from, std::size_t to, int width, int height) {
     for (std::size_t k = from; k < to; ++k) {
         const Command& c = g_frame.commands[k];
@@ -394,14 +423,13 @@ static void DrawCommands(std::size_t from, std::size_t to, int width, int height
         case Command::Kind::Terrain: DrawTerrainBatch(g_frame, g_frame.terrainBatches[i]); break;
         case Command::Kind::Mesh: {
             const MeshBatch& batch = g_frame.meshBatches[i];
-            // The render quality's anisotropy: the world's models sampled anisotropically at its level; the
-            // interface's sprites and previews and the pre-transformed draws as the stage says.
-            int anisotropy = batch.model && InWorld(k) ? g_anisotropy : 1;
             if (batch.model) {
-                int& models = anisotropy > 1 ? g_counts.anisotropicModels : g_counts.plainModels;
+                int& models = InWorld(k) && g_anisotropy > 1 ? g_counts.anisotropicModels : g_counts.plainModels;
                 ++models;
             }
-            DrawMeshBatch(g_frame, batch, anisotropy);
+            // A run's first command draws it.
+            const int draw = g_commandDraws[k - g_plannedFrom];
+            if (draw >= 0) g_meshDraws.Draw(g_frame, static_cast<std::size_t>(draw));
             break;
         }
         case Command::Kind::Blit:
@@ -481,6 +509,7 @@ static bool DrawPending() {
         if (last > r.first + 1) split = r.first + (last - r.first) / 2;
     }
     const std::size_t water = WaterCopyPoint();
+    PlanMeshDraws(k, end, multisampling, split, water);
     if (water == k && g_holder != Holder::None) CopyFrameForWater(g_colour);
     do {
         bool world = multisampling && k < end && InWorld(k);

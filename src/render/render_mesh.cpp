@@ -6,6 +6,7 @@
 #include "render_internal.h"
 #include "render_state.h"
 
+#include <algorithm>
 #include <cstring>
 #include <optional>
 #include <unordered_map>
@@ -130,13 +131,19 @@ struct KeyedPipeline {
 static std::vector<KeyedPipeline> g_keyedPipelines;
 static std::uint32_t g_keyedPipelinesDevice = 0;   // the gpu::DeviceSerial they were made on
 
+// What of a pipeline the pass state, lines and kept geometry choose (Pipeline's key without the pass's part).
+static std::uint64_t StateKey(const PassState& s, bool lines, bool cached) {
+    auto bits = [](auto v) { return static_cast<std::uint64_t>(v); };
+    return bits(s.cull) | bits(s.depthTest) << 8 | bits(s.depthFunc) << 9 | bits(s.depthWrite) << 17 | bits(s.blend) << 18 |
+           bits(s.sourceBlend) << 19 | bits(s.destBlend) << 27 | bits(lines) << 35 | bits(cached) << 36;
+}
+
 static gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
     const int samples = PassSampleCount();
     const bool depthCopy = PassDepthCopy();
     auto bits = [](auto v) { return static_cast<std::uint64_t>(v); };
-    const std::uint64_t key = bits(s.cull) | bits(s.depthTest) << 8 | bits(s.depthFunc) << 9 | bits(s.depthWrite) << 17 |
-                              bits(s.blend) << 18 | bits(s.sourceBlend) << 19 | bits(s.destBlend) << 27 | bits(lines) << 35 |
-                              bits(cached) << 36 | bits(depthCopy) << 37 | bits(static_cast<std::uint8_t>(samples)) << 38;
+    const std::uint64_t key =
+        StateKey(s, lines, cached) | bits(depthCopy) << 37 | bits(static_cast<std::uint8_t>(samples)) << 38;
     if (!gpu::Started()) return MakePassPipeline(MeshDesc(s, lines, cached, samples), "ei-mesh");   // none
     if (g_keyedPipelinesDevice != gpu::DeviceSerial()) {
         g_keyedPipelines.clear();
@@ -294,9 +301,11 @@ bool CreateMeshShader() {
 void MeshLayout(gpu::PipelineDesc& desc, bool cached, bool positionsOnly) {
     // The frame's stream: Vertex (position, colour, specular, texture coordinates, normal) in buffer 0. A
     // mesh kept on the GPU: position, texture coordinates and normal in buffer 0, colour and specular in
-    // buffer 1. The locations are the mesh program's (the casters': position 0, texture coordinates 1).
+    // buffer 1. The mesh program's draws then take their MeshRecord's index per instance in the next buffer
+    // (MeshDraws). The locations are the mesh program's (the casters': position 0, texture coordinates 1).
     static_assert(gpu_shaders::mesh::kAttrPos == 0 && gpu_shaders::mesh::kAttrCol == 1 && gpu_shaders::mesh::kAttrSpec == 2 &&
                   gpu_shaders::mesh::kAttrUv == 3 && gpu_shaders::mesh::kAttrNormal == 4 &&
+                  gpu_shaders::mesh::kAttrRecord == 5 &&
                   gpu_shaders::shadow_caster::kAttrPos == 0 && gpu_shaders::shadow_caster::kAttrUv == 1);
     const std::uint8_t uv = positionsOnly ? 1 : 3;
     // A member's offset: in MeshVertex (or ColourPair, buffer 1) when kept, else in Vertex.
@@ -314,8 +323,11 @@ void MeshLayout(gpu::PipelineDesc& desc, bool cached, bool positionsOnly) {
                           at(offsetof(ColourPair, colour), offsetof(Vertex, colour))};
     desc.attributes[4] = {2, colours, gpu::VertexFormat::UByte4Norm,
                           at(offsetof(ColourPair, specular), offsetof(Vertex, specular))};
-    desc.attributeCount = 5;
     if (cached) desc.buffers[1].stride = sizeof(ColourPair);
+    const int records = desc.bufferCount++;
+    desc.buffers[records] = {static_cast<std::uint16_t>(sizeof(std::uint32_t)), true};
+    desc.attributes[5] = {5, static_cast<std::uint8_t>(records), gpu::VertexFormat::Uint, 0};
+    desc.attributeCount = 6;
 }
 
 void UploadMeshes(const Frame& f) {
@@ -334,99 +346,85 @@ bool BindMeshBatch(const MeshBatch& batch, Geometry& g, int* firstIndex) {
     return g_geometry.Bind(g);
 }
 
-void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
-    namespace program = gpu_shaders::mesh;
-    Geometry geometry;
-    int first = 0;
-    if (batch.indexCount <= 0 || (batch.decal && !GroundDecalsDrawn()) || !BindMeshBatch(batch, geometry, &first))
-        return;
-    const PassState& state = batch.state;
-    gpu::Pipeline pipeline = Pipeline(state, batch.lines, batch.cached != nullptr);
-    if (!pipeline) return;
-    gpu::ApplyPipeline(pipeline);
-    CountPipeline(pipeline);
-    geometry.Bind();
-    // The draw's three textures, then the pass's (the same for every draw of the pass: taken at its first), bound in one
-    // call (the unchanged ones are left out).
-    static_assert(program::kSamplerTex0 == 0 && program::kSamplerTex1 == 1 && program::kSamplerTex2 == 2 &&
-                  program::kSamplerShadowMap == 3 && program::kSamplerShadowRange == 4 &&
-                  program::kSamplerPointShadowMap == 5 && program::kSamplerCloudMap == 6 &&
-                  program::kSamplerOcclusionMap == 7 && program::kSamplerOcclusionDepth == 8 &&
-                  program::kSamplerRoofMap == 9);
-    static gpu::TextureBinding textures[10];
-    static std::uint64_t passTextures = 0;   // the gpu::PassSerial textures[3..9] were taken in
-    if (passTextures != gpu::PassSerial()) {
-        passTextures = gpu::PassSerial();
-        ShadowMapBindings(f, &textures[3]);
-        textures[5] = PointShadowBinding(f);
-        textures[6] = CloudMapBinding();
-        OcclusionBindings(&textures[7]);
-        textures[9] = RoofMapBinding();
-    }
-    for (int t = 0; t < 2; ++t) {
-        const StageState& st = state.stages[t];
-        textures[t].texture = st.texture ? st.texture : SurfaceView(nullptr);
-        textures[t].sampler = anisotropy > 1 ? AnisotropicSampler(st, static_cast<std::uint32_t>(anisotropy)) : StageSampler(st);
-    }
-    textures[2] = {state.patch.texture ? state.patch.texture : SurfaceView(nullptr), textures[0].sampler};   // sampled as stage 0
-    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
-    CountBindings(textures[0].texture);
-    MeshVsParams vs{};
-    vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
-    vs.unclipped = batch.unclipped ? 1 : 0;
-    vs.fogStart = batch.fog.start;
-    vs.fogDensity = batch.fog.density;
-    vs.fogDepthPerW = batch.fog.depthPerW;
-    vs.horizon = batch.horizon ? 1 : 0;
-    vs.eyeHeight = batch.eyeHeight;
-    vs.shift[0] = f.pixelShift[0];
-    vs.shift[1] = f.pixelShift[1];
-    vs.depthScale = batch.zScale;
-    vs.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
-    vs.uvOffset[0] = batch.uOffset;
-    vs.uvOffset[1] = batch.vOffset;
-    MeshFsParams fs{};
-    const ShadowParams& shadow = ShadowUniforms(f, batch.light >= 0, batch.light >= 0);
-    vs.normalOffset = ShadowNormalOffset(f, batch.light >= 0);
-    MeshLightParams lighting{};   // unlit
+// A batch's own values (its MeshRecord) and what a run of batches shares (`fs`: the fragment block, and the shadow block
+// the batch takes).
+// The batch's record and run blocks; its lights in `part` (true when it has them).
+static bool FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, PartLight& part, MeshFsParams& fs,
+                       const ShadowParams** shadow) {
+    r = MeshRecord{};
+    bool lit = false;
+    fs = MeshFsParams{};
+    r.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
+    r.flags[0] = batch.unclipped ? 1 : 0;
+    r.fog[0] = batch.fog.start;
+    r.fog[1] = batch.fog.density;
+    r.fog[2] = batch.fog.depthPerW;
+    r.flags[1] = batch.horizon ? 1 : 0;
+    r.fog[3] = batch.eyeHeight;
+    r.place[0] = f.pixelShift[0];
+    r.place[1] = f.pixelShift[1];
+    r.place[2] = batch.zScale;
+    r.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
+    r.uvOffset[0] = batch.uOffset;
+    r.uvOffset[1] = batch.vOffset;
+    *shadow = &ShadowUniforms(f, batch.light >= 0, batch.light >= 0);
+    r.place[3] = ShadowNormalOffset(f, batch.light >= 0);
     if (batch.lighting >= 0) {
         // Its lights take their point shadows with the landscape's rows.
-        lighting = MeshLightUniforms(f, f.meshLights[static_cast<std::size_t>(batch.lighting)]);
+        if (!lit) part = PartLight{};
+        lit = true;
+        MeshLightRecord(f, f.meshLights[static_cast<std::size_t>(batch.lighting)], r, part);
         if (batch.landscape >= 0) {
             const Matrix4& m = f.shadow.point.models[static_cast<std::size_t>(batch.landscape)];
-            std::memcpy(vs.landscape, m.m, sizeof(vs.landscape));
-            fs.pointShadows = 1;
-            fs.pointUnit = batch.figure ? 1 : 0;
-            std::memcpy(fs.pointFront, batch.pointFront, sizeof(fs.pointFront));
+            std::memcpy(r.landscape, m.m, sizeof(r.landscape));
+            r.kinds[0] = 1;
+            r.kinds[1] = batch.figure ? 1 : 0;
+            std::memcpy(r.pointFront, batch.pointFront, sizeof(r.pointFront));
         }
     }
     if (batch.decal) {   // a ground print: lit as the ground (its positions the landscape's), its normal up
-        lighting = MeshLightUniforms(f, GroundDecalLight(f, batch.box));
-        for (int k = 0; k < 3; ++k) vs.landscape[k][k] = 1.0f;
-        vs.normalUp = 1;
-        fs.pointShadows = 1;
+        if (!lit) part = PartLight{};
+        lit = true;
+        MeshLightRecord(f, GroundDecalLight(f, batch.box), r, part);
+        for (int k = 0; k < 3; ++k) r.landscape[k][k] = 1.0f;
+        r.flags[2] = 1;
+        r.kinds[0] = 1;
     }
     if (batch.figure && batch.front <= 1.0f) {   // a unit's: no shadow of its own to keep off
-        fs.unitShadow = 1;
-        fs.unitFront = batch.front;
-        vs.normalOffset = 0.0f;
+        r.flags[3] = 1;
+        r.uvOffset[2] = batch.front;
+        r.place[3] = 0.0f;
     }
-    OcclusionUniforms(batch.occluded, fs);
-    // The weather's kinds in mesh.hlsl.
+    // The occlusion's arguments are the frame's: a batch that does not take it never reads them.
+    const OcclusionReceiver& occlusion = OcclusionOf(batch.occluded);
+    r.kinds[3] = occlusion.on ? 1 : 0;
+    r.lit[3] = occlusion.view ? 1 : 0;
+    const OcclusionReceiver& frameOcclusion = OcclusionOf(true);
+    fs.occlusionDepthOffset = frameOcclusion.depthOffset;
+    fs.occlusionDepthScale = frameOcclusion.depthScale;
+    for (int k = 0; k < 2; ++k) {
+        fs.occlusionScale[k] = frameOcclusion.scale[k];
+        fs.occlusionTexel[k] = frameOcclusion.texel[k];
+    }
+    // The weather's kinds in mesh.hlsl; the sun's direction and colour are the frame's (read only with weather).
     constexpr int kUnitWeather = 1;
     constexpr int kFigureWeather = 2;
+    float weather[2] = {};
+    MeshWeatherUniforms(&fs, weather);
     if (batch.light >= 0 && !batch.decal) {   // a world mesh
-        MeshWeatherUniforms(&fs);
+        r.weather[0] = weather[0];
+        r.weather[1] = weather[1];
         if (batch.figure) {   // a unit's own
-            fs.wet = batch.weather[0];
-            fs.snow = batch.weather[1];
-            fs.weatherKind = kUnitWeather;
+            r.weather[0] = batch.weather[0];
+            r.weather[1] = batch.weather[1];
+            r.kinds[2] = kUnitWeather;
         }
     } else if (batch.interfaceUnit) {   // an interface figure of a world unit: its weather, no map's space
-        fs.wet = batch.weather[0];
-        fs.snow = batch.weather[1];
-        fs.weatherKind = kFigureWeather;
+        r.weather[0] = batch.weather[0];
+        r.weather[1] = batch.weather[1];
+        r.kinds[2] = kFigureWeather;
     }
+    const PassState& state = batch.state;
     UnpackColour(state.fogColour, fs.fogColour);
     fs.fog = state.fog ? 1 : 0;
     UnpackColour(state.textureFactor, fs.factor);
@@ -459,14 +457,172 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
             fs.patchOffset[k] = state.patch.map[2 + k];
         }
     }
-    gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockMeshVsParams, vs);
-    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshFsParams, fs);
+    return lit;
+}
+
+static bool SameGeometry(const Geometry& a, const Geometry& b) {
+    if (a.vertexBuffers != b.vertexBuffers || a.indices.buffer.buffer != b.indices.buffer.buffer ||
+        a.indices.offset != b.indices.offset)
+        return false;
+    for (int k = 0; k < a.vertexBuffers; ++k)
+        if (a.vertices[k].buffer.buffer != b.vertices[k].buffer.buffer || a.vertices[k].offset != b.vertices[k].offset)
+            return false;
+    return true;
+}
+
+static bool SameTextures(const gpu::TextureBinding (&a)[3], const gpu::TextureBinding (&b)[3]) {
+    for (int k = 0; k < 3; ++k)
+        if (a[k].texture.texture != b[k].texture.texture || a[k].sampler.sampler != b[k].sampler.sampler) return false;
+    return true;
+}
+
+MeshDraws::MeshDraws(const char* newLabel)
+    : records(gpu::BufferUse::Storage, newLabel), lights(gpu::BufferUse::Storage, newLabel),
+      arguments(gpu::BufferUse::Indirect, newLabel), label(newLabel) {
+    lightData.assign(1, PartLight{});
+}
+
+void MeshDraws::Clear() {
+    recordData.clear();
+    lightData.resize(1);
+    commandData.clear();
+    runs.clear();
+    runStarting.clear();
+    recordOffset = argumentOffset = -1;
+}
+
+bool MeshDraws::Add(const Frame& f, const MeshBatch& batch, int anisotropy, bool join) {
+    Run run;
+    int first = 0;
+    if (batch.indexCount <= 0 || (batch.decal && !GroundDecalsDrawn()) || !BindMeshBatch(batch, run.geometry, &first))
+        return false;
+    const PassState& state = batch.state;
+    run.state = state;
+    run.lines = batch.lines;
+    run.cached = batch.cached != nullptr;
+    run.key = StateKey(state, batch.lines, run.cached);
+    for (int t = 0; t < 2; ++t) {
+        const StageState& st = state.stages[t];
+        run.textures[t].texture = st.texture ? st.texture : SurfaceView(nullptr);
+        run.textures[t].sampler =
+            anisotropy > 1 ? AnisotropicSampler(st, static_cast<std::uint32_t>(anisotropy)) : StageSampler(st);
+    }
+    run.textures[2] = {state.patch.texture ? state.patch.texture : SurfaceView(nullptr), run.textures[0].sampler};   // sampled as stage 0
+    MeshRecord& record = recordData.emplace_back();
+    if (FillRecord(f, batch, record, light, run.fs, &run.shadow)) {
+        // Lit as the batch before (the palms of one stand): its lights again.
+        if (lightData.size() == 1 || std::memcmp(&lightData.back(), &light, sizeof(light)) != 0) lightData.push_back(light);
+        record.lights[0] = static_cast<int>(lightData.size() - 1);
+    }
+    const auto draw = static_cast<std::uint32_t>(recordData.size() - 1);
+    runStarting.push_back(-1);
+    Run* last = runs.empty() ? nullptr : &runs.back();
+    if (!join || !last || last->key != run.key || last->shadow != run.shadow || !SameGeometry(last->geometry, run.geometry) ||
+        !SameTextures(last->textures, run.textures) || std::memcmp(&last->fs, &run.fs, sizeof(run.fs)) != 0) {
+        run.command = static_cast<std::uint32_t>(commandData.size());
+        runStarting.back() = static_cast<int>(runs.size());
+        runs.push_back(run);
+        last = &runs.back();
+    }
+    // The draws of a run with the same indices are one draw of consecutive instances (records).
+    gpu::IndexedIndirect* previous = last->commands ? &commandData.back() : nullptr;
+    if (previous && previous->first == static_cast<std::uint32_t>(first) &&
+        previous->count == static_cast<std::uint32_t>(batch.indexCount)) {
+        ++previous->instances;
+    } else {
+        commandData.push_back({static_cast<std::uint32_t>(batch.indexCount), 1, static_cast<std::uint32_t>(first), 0, draw});
+        ++last->commands;
+    }
+    ++last->draws;
+    return true;
+}
+
+bool MeshDraws::Upload() {
+    recordOffset = argumentOffset = -1;
+    if (recordData.empty()) return false;
+    // The buffers are bound whole: the lights' indices count from the buffer's start.
+    const int lightOffset = lights.Append(lightData.data(), lightData.size() * sizeof(PartLight));
+    if (lightOffset < 0) return false;
+    const auto lightBase = static_cast<int>(static_cast<std::size_t>(lightOffset) / sizeof(PartLight));
+    for (MeshRecord& r : recordData) r.lights[0] += lightBase;
+    g_stats.counts[FrameStats::Count::UniformBytes] += lightData.size() * sizeof(PartLight);   // the records': CountDraw
+    recordOffset = records.Append(recordData.data(), recordData.size() * sizeof(MeshRecord));
+    if (recordOffset < 0) return false;
+    // A record's index in the buffer is its instance: the per-instance indices count up from 0 (`indices`).
+    const auto base = static_cast<std::uint32_t>(static_cast<std::size_t>(recordOffset) / sizeof(MeshRecord));
+    for (gpu::IndexedIndirect& c : commandData) c.firstInstance += base;
+    argumentOffset = arguments.Append(commandData.data(), commandData.size() * sizeof(gpu::IndexedIndirect));
+    const std::size_t needed = base + recordData.size();
+    if (indices.size < needed * sizeof(std::uint32_t)) {
+        const std::size_t count = std::max<std::size_t>(needed * 2, 4096);
+        std::vector<std::uint32_t> values(count);
+        for (std::size_t i = 0; i < count; ++i) values[i] = static_cast<std::uint32_t>(i);
+        gpu::Release(indices);
+        indices = gpu::MakeBuffer(gpu::BufferUse::Vertex, static_cast<std::uint32_t>(count * sizeof(std::uint32_t)), label);
+        if (!indices || !gpu::Write(indices, 0, values.data(), indices.size, gpu::Contents::Discard)) {
+            gpu::Release(indices);
+            argumentOffset = -1;
+        }
+    }
+    return argumentOffset >= 0;
+}
+
+void MeshDraws::Draw(const Frame& f, std::size_t first) {
+    if (first >= runStarting.size() || runStarting[first] < 0 || argumentOffset < 0) return;
+    namespace program = gpu_shaders::mesh;
+    const Run& run = runs[static_cast<std::size_t>(runStarting[first])];
+    gpu::Pipeline pipeline = Pipeline(run.state, run.lines, run.cached);
+    if (!pipeline) return;
+    gpu::ApplyPipeline(pipeline);
+    CountPipeline(pipeline);
+    gpu::BufferBinding vertices[3];
+    for (int k = 0; k < run.geometry.vertexBuffers; ++k) vertices[k] = run.geometry.vertices[k];
+    vertices[run.geometry.vertexBuffers] = {indices, 0};
+    gpu::BindVertexBuffers(0, {vertices, static_cast<std::size_t>(run.geometry.vertexBuffers + 1)});
+    gpu::BindIndexBuffer(run.geometry.indices);
+    // The run's three textures, then the pass's (the same for every draw of the pass: taken at its first), bound in one
+    // call (the unchanged ones are left out).
+    static_assert(program::kSamplerTex0 == 0 && program::kSamplerTex1 == 1 && program::kSamplerTex2 == 2 &&
+                  program::kSamplerShadowMap == 3 && program::kSamplerShadowRange == 4 &&
+                  program::kSamplerPointShadowMap == 5 && program::kSamplerCloudMap == 6 &&
+                  program::kSamplerOcclusionMap == 7 && program::kSamplerOcclusionDepth == 8 &&
+                  program::kSamplerRoofMap == 9);
+    static gpu::TextureBinding textures[10];
+    static std::uint64_t passTextures = 0;   // the gpu::PassSerial textures[3..9] were taken in
+    if (passTextures != gpu::PassSerial()) {
+        passTextures = gpu::PassSerial();
+        ShadowMapBindings(f, &textures[3]);
+        textures[5] = PointShadowBinding(f);
+        textures[6] = CloudMapBinding();
+        OcclusionBindings(&textures[7]);
+        textures[9] = RoofMapBinding();
+    }
+    for (int t = 0; t < 3; ++t) textures[t] = run.textures[t];
+    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
+    CountBindings(textures[0].texture);
+    static_assert(program::kStoragePartLight == program::kStorageMeshRecord + 1);
+    const gpu::Buffer storage[2] = {records.Buffer(), lights.Buffer()};
+    gpu::BindStorageBuffers(gpu::Stage::Vertex, program::kStorageMeshRecord, {storage, 1});
+    gpu::BindStorageBuffers(gpu::Stage::Fragment, program::kStorageMeshRecord, storage);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshFsParams, run.fs);
     // The shadow's (one of the frame's ShadowUniforms keeps) and the point shadows' blocks stay the same for the pass.
-    gpu::PushPassUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
-    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshLightParams, lighting);
+    gpu::PushPassUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, *run.shadow);
     gpu::PushPassUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
-    gpu::DrawIndexed(static_cast<std::uint32_t>(first), static_cast<std::uint32_t>(batch.indexCount));
-    CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(lighting) + sizeof(f.shadow.point.params));
+    if (run.commands == 1) {
+        const gpu::IndexedIndirect& c = commandData[run.command];
+        gpu::DrawIndexed(c.first, c.count, c.instances, c.firstInstance);
+    } else {
+        gpu::DrawIndexedIndirect(arguments.Buffer(),
+                                 static_cast<std::uint32_t>(argumentOffset) +
+                                     run.command * static_cast<std::uint32_t>(sizeof(gpu::IndexedIndirect)),
+                                 run.commands);
+    }
+    CountDraw(run.draws * sizeof(MeshRecord) + sizeof(run.fs) + sizeof(ShadowParams) + sizeof(f.shadow.point.params),
+              run.draws);
+}
+
+void MeshDraws::DrawAll(const Frame& f) {
+    for (std::size_t k = 0; k < runStarting.size(); ++k) Draw(f, k);
 }
 
 void BeginMesh(const TextureDevice* device, const MeshDraw& mesh) {

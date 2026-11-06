@@ -127,12 +127,13 @@ struct FrameStats {
         // Meshes whose vertices equal another mesh's of the same frame (instancing candidates).
         SharedMeshes,
         TerrainVertexBytes, TerrainIndexBytes, MeshVertexBytes, MeshIndexBytes, UniformBytes,
-        Passes, Draws, PipelineApplies, PipelineChanges, Bindings, TextureChanges,
+        // Draws: the batches drawn; DrawCalls: the calls that drew them (a run of meshes is one, render_mesh.cpp).
+        Passes, Draws, DrawCalls, PipelineApplies, PipelineChanges, Bindings, TextureChanges,
         // Ground prints projected (ProjectDecal) and their vertices; the device's flat draws and their vertices;
         // RenderShadow's builds.
         DecalPrints, DecalVertices, FlatDraws, FlatDrawVertices, ShadowBuilds,
-        // The shadow map's draws.
-        ShadowDraws,
+        // The shadow maps' draws (the sun's, the roofs', the point lights') and the calls that drew them (CasterDraws).
+        ShadowDraws, ShadowCalls,
         // Meshes handed over with per-vertex offsets (an animation's morph) and their corners.
         MorphMeshes, MorphCorners,
         // The rain's or the snow's vertices (RainSnow::Draw).
@@ -188,6 +189,8 @@ void SetMeshCache(bool on);
 struct MeshCacheInfo {
     bool on = true;
     std::size_t meshes = 0;
+    std::size_t copies = 0;     // their arrays on the GPU (meshes with the same arrays share one)
+    std::uint64_t shared = 0;   // the times a mesh took another's copy
     std::uint64_t checks = 0, stale = 0;
 };
 MeshCacheInfo MeshCacheState();

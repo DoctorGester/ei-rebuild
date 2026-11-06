@@ -3,7 +3,8 @@ CMakeLists.txt at build time. It reads each program's compiled stages (shadercro
 <program>_<stage>.<format>) and their SPIR-V's reflection (spirv-cross --reflect: <program>_<stage>.json), checks
 the binding rules and writes two files into --out:
 
-- gpu_shaders.h: the uniform blocks' structs, each program's slots and counts, and the program table's types;
+- gpu_shaders.h: the uniform blocks' and storage buffers' structs, each program's slots and counts, and the program
+  table's types;
 - gpu_shaders.cpp: the program table with every stage's code.
 
 usage: python tools/gen_gpu_shaders.py --sources DIR --compiled DIR --out DIR --formats spirv,msl[,dxil] PROGRAM...
@@ -25,7 +26,7 @@ MEMBERS = {'float': ('float', 1), 'vec2': ('float', 2), 'vec3': ('float', 3), 'v
 # Vertex inputs and fragment outputs: SPIR-V type to (components, scalar).
 SCALARS = {'float': 'Float', 'vec': 'Float', 'int': 'Int', 'ivec': 'Int', 'uint': 'Uint', 'uvec': 'Uint'}
 TEXTURES = ('texture2D', 'utexture2D', 'itexture2D', 'texture2DMS', 'texture2DArray')
-ALLOWED = {'entryPoints', 'types', 'inputs', 'outputs', 'ubos', 'separate_images', 'separate_samplers'}
+ALLOWED = {'entryPoints', 'types', 'inputs', 'outputs', 'ubos', 'ssbos', 'separate_images', 'separate_samplers'}
 
 errors = []
 
@@ -129,6 +130,29 @@ def block_struct(program, stage, j, ubo):
     return name, tuple(members), at
 
 
+def storage_struct(program, stage, j, ssbo):
+    """A read-only StructuredBuffer<T>'s element T as block_struct takes a block, its members 16 bytes each (float4,
+    int4, uint4, arrays of them, row_major float4x4): DXIL packs a structured buffer's members tightly, SPIR-V by
+    std430 and the MSL as the SPIR-V, which agree only then."""
+    name = j['types'][ssbo['type']]['name']   # the variable's name is ssbo['name']
+    if not name.startswith('type.StructuredBuffer.'):
+        fail(f'{program} {stage}: storage buffer {name} is not a StructuredBuffer<T>')
+        return None
+    outer = j['types'][ssbo['type']]['members']
+    if len(outer) != 1 or outer[0].get('array') != [0]:
+        fail(f'{program} {stage}: storage buffer {name} is not one runtime array')
+        return None
+    element = {'name': 'type.ConstantBuffer.' + name[len('type.StructuredBuffer.'):], 'type': outer[0]['type']}
+    for m in j['types'][element['type']]['members']:
+        if m['type'] not in ('vec4', 'ivec4', 'uvec4', 'mat4'):
+            fail(f'{program}: {name}.{m["name"]} is {m["type"]}: a storage buffer\'s members are 16 bytes each')
+    size = outer[0].get('array_stride', 0)
+    b = block_struct(program, stage, j, dict(element, block_size=size))
+    if b and size % 16:
+        fail(f'{program}: {name}\'s elements are {size} bytes, not a multiple of 16')
+    return b
+
+
 def stage_info(program, stage, j):
     texture_set, block_set = SETS[stage]
     for key in j:
@@ -136,7 +160,7 @@ def stage_info(program, stage, j):
             fail(f'{program} {stage}: {key} (only uniform blocks, textures and samplers)')
     if [e['name'] for e in j.get('entryPoints', [])] != [ENTRIES[stage]]:
         fail(f'{program} {stage}: entry points {j.get("entryPoints")}')
-    blocks, images, samplers = {}, {}, {}
+    blocks, images, samplers, storage = {}, {}, {}, {}
     for u in j.get('ubos', []):
         if u['set'] != block_set:
             fail(f'{program} {stage}: block {u["name"]} in space{u["set"]}, not space{block_set}')
@@ -153,6 +177,15 @@ def stage_info(program, stage, j):
         if s['set'] != texture_set:
             fail(f'{program} {stage}: sampler {s["name"]} in space{s["set"]}, not space{texture_set}')
         samplers[s['binding']] = s['name']
+    # A storage buffer after the stage's textures, at the SPIR-V binding SDL_GPU gives its slot.
+    textures = len(j.get('separate_images', []))
+    for slot, u in enumerate(sorted(j.get('ssbos', []), key=lambda u: u['binding'])):
+        if u['set'] != texture_set or u['binding'] != textures + slot:
+            fail(f'{program} {stage}: storage buffer {u["name"]} at space{u["set"]} binding {u["binding"]}, not '
+                 f'space{texture_set} binding {textures + slot} (after the textures)')
+        b = storage_struct(program, stage, j, u)
+        if b:
+            storage[slot] = b
     for what, slots in (('block', blocks), ('texture', images)):
         if sorted(slots) != list(range(len(slots))):
             fail(f'{program} {stage}: {what} slots {sorted(slots)}: they run from 0 without gaps')
@@ -177,7 +210,20 @@ def stage_info(program, stage, j):
             fail(f'{program}: output {o["name"]} is {o["type"]}')
             continue
         outputs.append((o['location'], t[0], t[1]))
-    return {'blocks': blocks, 'images': images, 'inputs': sorted(inputs), 'outputs': sorted(outputs)}
+    return {'blocks': blocks, 'images': images, 'storage': storage, 'inputs': sorted(inputs),
+            'outputs': sorted(outputs)}
+
+
+def msl_storage_slots(text, j):
+    """The MSL with each storage buffer moved from its SPIR-V binding to SDL_GPU's Metal slot, after the uniform
+    blocks (spirv-cross's --msl-decoration-binding gives it the binding, which SDL_GPU's Vulkan wants after the
+    textures)."""
+    blocks = len(j.get('ubos', []))
+    for slot, u in enumerate(sorted(j.get('ssbos', []), key=lambda u: u['binding'])):
+        name = j['types'][u['type']]['name'].replace('.', '_')
+        text = re.sub(r'(\b' + name + r'&? \w+ \[\[buffer\()\d+(\)\]\])',
+                      lambda m: f'{m.group(1)}{blocks + slot}{m.group(2)}', text)
+    return text
 
 
 def check_msl(program, stage, text, j):
@@ -190,6 +236,8 @@ def check_msl(program, stage, text, j):
     want = {'texture': {i['name']: i['binding'] for i in j.get('separate_images', [])},
             'sampler': {s['name']: s['binding'] for s in j.get('separate_samplers', [])},
             'buffer': {u['name'].replace('.', '_'): u['binding'] for u in j.get('ubos', [])}}
+    for slot, u in enumerate(sorted(j.get('ssbos', []), key=lambda u: u['binding'])):
+        want['buffer'][j['types'][u['type']]['name'].replace('.', '_')] = len(j.get('ubos', [])) + slot
     seen = {kind: {} for kind in want}
     for param in re.finditer(r'([\w<>]+)&? (\w+) \[\[(texture|sampler|buffer)\((\d+)\)\]\]', m.group(1)):
         kind, index = param.group(3), int(param.group(4))
@@ -220,6 +268,7 @@ def main():
 
     structs = {}   # name: (members, size, first program)
     info = {}
+    msl = {}       # (program, stage): the MSL with its storage buffers' slots (msl_storage_slots)
     for p in programs:
         text = source_text(a.sources, p + '.hlsl', set())
         check_locations(p, text)
@@ -232,8 +281,10 @@ def main():
             if 'msl' in formats:
                 with open(os.path.join(a.compiled, f'{p}_{stage}.msl'), encoding='utf-8') as f:
                     with open(os.path.join(a.compiled, f'{p}_{stage}.json'), encoding='utf-8') as g:
-                        check_msl(p, stage, f.read(), json.load(g))
-            for name, members, size in s['blocks'].values():
+                        reflection = json.load(g)
+                        msl[(p, stage)] = msl_storage_slots(f.read(), reflection)
+                        check_msl(p, stage, msl[(p, stage)], reflection)
+            for name, members, size in list(s['blocks'].values()) + list(s['storage'].values()):
                 if name in structs and structs[name][:2] != (members, size):
                     fail(f'{p}: block {name} differs from {structs[name][2]}\'s')
                 structs.setdefault(name, (members, size, p))
@@ -257,16 +308,16 @@ def main():
          '// What SDL_CreateGPUShader takes besides the code: the entry point, the texture-sampler pairs and the uniform',
          '// blocks.',
          'struct Stage {', '    Code spirv, dxil, msl;', '    const char* entry;', '    int samplers;',
-         '    int uniformBlocks;', '};',
+         '    int uniformBlocks;', '    int storageBuffers;', '};',
          '// A vertex input (its location) or a colour output (its target) and its type in the shader.',
          'struct Value {', '    int location;', '    int components;', '    Scalar scalar;', '};',
          'struct Program {', '    const char* name;', '    Stage vertex, fragment;', '    const Value* inputs;',
          '    int inputCount;', '    const Value* outputs;', '    int outputCount;', '};', '',
          f'inline constexpr int kProgramCount = {len(programs)};',
          'extern const Program kPrograms[kProgramCount];', '',
-         '// The uniform blocks as the C++ fills them, laid out as HLSL packs them (a float3 a float[3], a Matrix4 a',
-         '// row_major float4x4): `paddingN` fills the rest of a register where the next member starts a new one, and',
-         '// the last; each is pushed whole (sizeof).']
+         '// The uniform blocks and the storage buffers\' elements as the C++ fills them, laid out as HLSL packs a block',
+         '// (a float3 a float[3], a Matrix4 a row_major float4x4): `paddingN` fills the rest of a register where the',
+         '// next member starts a new one, and the last; each is pushed or written whole (sizeof).']
 
     def padding(at, to, index):
         words = (to - at) // 4
@@ -287,7 +338,9 @@ def main():
         h += ['};', f'static_assert(sizeof({name}) == {end});']
         h += [f'static_assert(offsetof({name}, {member}) == {offset});' for member, _, _, offset, _ in members]
     h += ['', '// Each program\'s index in kPrograms and its slots: a block\'s (SDL_PushGPU{Vertex,Fragment}UniformData), a',
-          '// texture\'s with its sampler (SDL_BindGPU{Vertex,Fragment}Samplers) and a vertex input\'s location.']
+          '// texture\'s with its sampler (SDL_BindGPU{Vertex,Fragment}Samplers), a storage buffer\'s',
+          '// (SDL_BindGPU{Vertex,Fragment}StorageBuffers; one both stages read at the same slot is named once) and a vertex',
+          '// input\'s location.']
     for index, p in enumerate(programs):
         h.append(f'namespace {p} {{')
         lines = [('kIndex', index, None)]
@@ -295,13 +348,17 @@ def main():
             s = info[p][stage]
             lines += [(f'kBlock{b[0]}', slot, stage) for slot, b in sorted(s['blocks'].items())]
             lines += [(f'kSampler{camel(n)}', slot, stage) for slot, n in sorted(s['images'].items())]
+            lines += [(f'kStorage{b[0]}', slot, stage) for slot, b in sorted(s['storage'].items())]
         lines += [(f'kAttr{camel(n)}', loc, None) for loc, n in sorted(info[p]['names'].items())]
-        seen = set()
+        seen = {}   # name: (value, its line in h)
         for name, value, stage in lines:
+            if name in seen and name.startswith('kStorage') and seen[name][0] == value:
+                h[seen[name][1]] = f'inline constexpr int {name} = {value};   // vertex and fragment'
+                continue
             if name in seen:
                 print(f'gen_gpu_shaders: {p}: two slots named {name}', file=sys.stderr)
                 return 1
-            seen.add(name)
+            seen[name] = (value, len(h))
             h.append(f'inline constexpr int {name} = {value};' + (f'   // {stage}' if stage else ''))
         h.append(f'}}  // namespace {p}')
     h += ['', '}  // namespace gpu_shaders', '']
@@ -318,13 +375,16 @@ def main():
                 if fmt not in formats:
                     codes.append('{nullptr, 0}')
                     continue
-                with open(os.path.join(a.compiled, f'{p}_{stage}.{fmt}'), 'rb') as f:
-                    data = f.read()
+                if fmt == 'msl':
+                    data = msl[(p, stage)].encode('utf-8')
+                else:
+                    with open(os.path.join(a.compiled, f'{p}_{stage}.{fmt}'), 'rb') as f:
+                        data = f.read()
                 var = f'k{camel(p)}{camel(stage)}{camel(fmt)}'
                 c.append(array(var, data, fmt == 'msl'))
                 codes.append(f'{{{var}, {len(data)}}}')
             stages.append(f'{{{codes[0]}, {codes[1]}, {codes[2]}, "{ENTRIES[stage]}", {len(s["images"])}, '
-                          f'{len(s["blocks"])}}}')
+                          f'{len(s["blocks"])}, {len(s["storage"])}}}')
         refs = []
         for what, values in (('Inputs', info[p]['vertex']['inputs']), ('Outputs', info[p]['fragment']['outputs'])):
             if values:

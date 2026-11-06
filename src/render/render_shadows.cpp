@@ -873,23 +873,56 @@ void CasterDraws::Sort(std::size_t from, std::size_t to) {
     std::sort(draws.begin() + static_cast<std::ptrdiff_t>(from), draws.begin() + static_cast<std::ptrdiff_t>(to),
               [](const Entry& a, const Entry& b) {
                   const auto ka = BindingKey(a), kb = BindingKey(b);
-                  return ka != kb ? ka < kb : a.instance < b.instance;
+                  if (ka != kb) return ka < kb;
+                  if (a.firstIndex != b.firstIndex) return a.firstIndex < b.firstIndex;
+                  if (a.indexCount != b.indexCount) return a.indexCount < b.indexCount;
+                  return a.instance < b.instance;
               });
+    sortedEnds.push_back(to);
 }
 
 bool CasterDraws::Upload() {
     applied = nullptr;
     appliedPipeline = -1;
-    instanceOffset = -1;
+    instanceOffset = argumentOffset = -1;
+    runs.clear();
+    commandData.clear();
     if (draws.empty() || !MakeShadowPipelines()) return false;
-    instanceOffset = instances.Append(instanceData.data(), instanceData.size() * sizeof(CasterInstance));
-    return instanceOffset >= 0;
+    // The instances in the draws' order: a run of draws with the same indices takes consecutive ones.
+    sortedInstances.resize(draws.size());
+    std::sort(sortedEnds.begin(), sortedEnds.end());
+    std::size_t end = 0;
+    for (std::size_t k = 0; k < draws.size(); ++k) {
+        const Entry& e = draws[k];
+        sortedInstances[k] = instanceData[static_cast<std::size_t>(e.instance)];
+        const bool rangeStart = k == end;
+        if (rangeStart) {
+            const auto next = std::upper_bound(sortedEnds.begin(), sortedEnds.end(), k);
+            end = next == sortedEnds.end() ? draws.size() : *next;
+        }
+        if (rangeStart || BindingKey(draws[k - 1]) != BindingKey(e))
+            runs.push_back({k, static_cast<std::uint32_t>(commandData.size()), 0});
+        Run& run = runs.back();
+        gpu::IndexedIndirect* last = run.commands ? &commandData.back() : nullptr;
+        if (last && last->first == static_cast<std::uint32_t>(e.firstIndex) &&
+            last->count == static_cast<std::uint32_t>(e.indexCount)) {
+            ++last->instances;
+            continue;
+        }
+        commandData.push_back({static_cast<std::uint32_t>(e.indexCount), 1, static_cast<std::uint32_t>(e.firstIndex), 0,
+                               static_cast<std::uint32_t>(k)});
+        ++run.commands;
+    }
+    instanceOffset = instances.Append(sortedInstances.data(), sortedInstances.size() * sizeof(CasterInstance));
+    argumentOffset = arguments.Append(commandData.data(), commandData.size() * sizeof(gpu::IndexedIndirect));
+    return instanceOffset >= 0 && argumentOffset >= 0;
 }
 
 void CasterDraws::Draw(std::size_t from, std::size_t to) {
     if (instanceOffset < 0) return;
-    for (std::size_t k = from; k < to; ++k) {
-        const Entry& e = draws[k];
+    auto run = std::lower_bound(runs.begin(), runs.end(), from, [](const Run& r, std::size_t k) { return r.first < k; });
+    for (; run != runs.end() && run->first < to; ++run) {
+        const Entry& e = draws[run->first];
         if (e.kept != appliedPipeline) {
             gpu::ApplyPipeline(g_casterPipelines[e.kept]);
             appliedPipeline = e.kept;
@@ -902,17 +935,29 @@ void CasterDraws::Draw(std::size_t from, std::size_t to) {
             gpu::BindTextures(gpu::Stage::Fragment, gpu_shaders::shadow_caster::kSamplerTex, {&e.texture, 1});
             applied = &e;
         }
-        gpu::DrawIndexed(static_cast<std::uint32_t>(e.firstIndex), static_cast<std::uint32_t>(e.indexCount), 1,
-                         static_cast<std::uint32_t>(e.instance));
+        ++calls;
+        if (run->commands == 1) {
+            const gpu::IndexedIndirect& c = commandData[run->command];
+            gpu::DrawIndexed(c.first, c.count, c.instances, c.firstInstance);
+        } else {
+            gpu::DrawIndexedIndirect(arguments.Buffer(),
+                                     static_cast<std::uint32_t>(argumentOffset) +
+                                         run->command * static_cast<std::uint32_t>(sizeof(gpu::IndexedIndirect)),
+                                     run->commands);
+        }
     }
 }
 
 void CasterDraws::Clear() {
     draws.clear();
     instanceData.clear();
+    sortedEnds.clear();
+    runs.clear();
+    commandData.clear();
     applied = nullptr;
     appliedPipeline = -1;
-    instanceOffset = -1;
+    instanceOffset = argumentOffset = -1;
+    calls = 0;
 }
 
 void ShadowFrameDone() {
@@ -1158,6 +1203,7 @@ static void DrawMap(const Fit& fit, int cellsAround) {
     if (!gpu::BeginPass(pass)) Fatal("Can't draw the frame: the shadow map's pass could not begin (%s).", gpu::Error());
     ++g_stats.counts[FrameStats::Count::Passes];
     if (drawCasters) g_casterDraws.Draw(0, g_casterDraws.Count());
+    g_stats.counts[FrameStats::Count::ShadowCalls] += g_casterDraws.Calls();
     if (TerrainCasterCount() != 0) {
         namespace program = gpu_shaders::shadow_terrain;
         const ShadowTerrainFsParams fs{{fit.d.x, fit.d.y, fit.d.z, 0.0f}};
@@ -1165,6 +1211,7 @@ static void DrawMap(const Fit& fit, int cellsAround) {
         gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowTerrainFsParams, fs);
         int draws = DrawTerrainCasters(g_terrainCasterPipeline, fit.light);
         g_stats.counts[FrameStats::Count::ShadowDraws] += static_cast<std::uint64_t>(draws);
+        g_stats.counts[FrameStats::Count::ShadowCalls] += static_cast<std::uint64_t>(draws);
         g_info.terrainCasters = static_cast<int>(TerrainCasterCount());
     }
     gpu::EndPass();

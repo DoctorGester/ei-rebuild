@@ -52,6 +52,9 @@ palm is its own draw in each of three passes. Palms of one morph already share o
   LRU stay per object on the CPU. **Order choice for the user**: grouping by part draws all trunks then all crowns,
   which can move a few pixels where blended leaves overlap; grouping by whole figure keeps today's order exactly.
 - **Caster passes through multi-draw indirect** (SDL_GPU has it): sun map 1894 to about 60 draws.
+- Done by R37f3 (below, "Measured after R37f3"): the save's 5524 draw calls are 191, grouped by whole figure (today's
+  order). Kept meshes share by their built bytes (hash, then compared whole), not by (link figure, part): that also finds
+  equal parts of different figures and never shares two that differ.
 - **Terrain**: done (R37e4b): the zone's ground and water are two meshes kept on the GPU with the page textures in a
   Texture2DArray; one draw each in the world pass, one ground draw in the occlusion's depth and one in the sun map. The
   save's terrain hand-over 0.41-0.46 -> 0.12 ms in release terms (0.20 with the moved water's writes); the main thread
@@ -68,7 +71,7 @@ Expected end state: main thread about 4-5 ms in the save (half of today), about 
 | R37e4c | Waves in the vertex shader, water vertices static on the GPU; the CPU works a wave height out where asked; the camera reads the calm water | the waves' digest group; camera-over-water runs |
 | R37f1 | The deletions: `KeepScreen`, inside-view projection, shadow-list sorts, outside casters re-walk, heap churn | none |
 | R37f2 | Per-draw state once per batch: pipelines, samplers, frame-wide uniforms and textures; sort keys; `CollectVisible` cells; mesh cache handles | none |
-| R37f3 | Instancing: kept meshes by shared figure part, instanced world and caster draws, indirect caster passes | none if grouped by figure |
+| R37f3 (done) | Instancing: kept meshes by shared figure part, instanced world and caster draws, indirect caster passes | none (pixels: 1-3 levels on about 0.01%, shader rounding) |
 | R37f4 | Occlusion from last frame's depth, its depth pass deleted | visual, the user's call |
 
 The older R37e5-R37e9 are folded into these; R37e10 measured the ground's GPU cost (below).
@@ -188,3 +191,45 @@ at R37f1's merge (the terrain's R37e4b not in either). The main thread is the CP
 - Left for later: `ShadowFrame::casters` stays a map rebuilt every frame; the point shadows list their objects in its
   order, so a frame stamp needs an ordered list beside it to keep their faces' caster lists (and redraws) the same.
   The 1.33 KB of uniforms a draw and the draw count are R37f3's (instancing).
+
+## Measured after R37f3
+
+The save at 3840 x 2160, msaa 1 and anisotropy 1, windowed (R37e3's probe; quiet runs), before (main at R37f2's merge,
+R37e4b's terrain in it) and after alternated four times (release terms) and twice (harness), medians; one msaa 8 run
+each; the GPU by `gputiming frame` (twice each) and `gputiming pass` (msaa 8, once each). Kit: build/r37f3 in the main
+checkout (probe_r37f3.patch, kit/). The machine was noisy this time: one build's run moved by up to 0.5 ms, untouched
+parts (the game, the objects' walk) by up to 20% between runs, so only the changed parts are measured with confidence.
+
+| What | Before | After |
+|---|---|---|
+| Draw calls a frame (sun map / occlusion depth / world models / interface meshes) | 1876 / 1753 / 1749 / 72 | 43 / 29 / 29 / 16 |
+| All the frame's draw calls | 5524 | 191 |
+| Per-draw data a frame (uniform blocks; after: records, lights and blocks) | 2425 KB | 983 KB |
+| Whole main thread, release terms, msaa 1 | 4.45 | 4.33 |
+| ... harness | 5.01 | 4.94 |
+| ... release terms, msaa 8 (one run) | 4.47 | 4.36 |
+| The world's mesh draws (records, runs, the calls), release terms | 0.43 | 0.28 |
+| The sun map / occlusion depth's CPU side, release terms | 0.27 / 0.18 | 0.29 / 0.20 |
+| GPU a frame, msaa 1 (median) | 2.13-2.15 | 2.29-2.30 |
+| GPU by pass, msaa 8: the copies before the passes / the world pass / the sun map | 0.16 / 1.78 / 0.28 | 0.27 / 1.84 / 0.27 |
+
+The town at night (bz1g, msaa 1, harness): 126 world draws in 26 calls (before 126), the sun map 479 in 75, with the
+crowd 475 world draws in 37 calls, the sun map 975 in 86, the point faces 420 draws in 42 calls, the occlusion depth
+413 in 28; the main thread 0.92 to 0.84 ms (1.91 to 1.68 with the crowd), the world's mesh draws 0.23 to 0.12.
+
+- **The main thread gains little**: gpu.h's filter (R37f2) had already made a call cheap; what is left per draw is the
+  record (`FillRecord`: matrices, fog, lights, the run's fragment block compared), about 150 ns, and the casters' adding
+  and sorting, which instancing does not touch (the sort now also orders by indices; 0.01-0.02 ms more).
+- **The GPU lost 0.15 ms**: the records and lights are copied before the passes (0.98 MB a frame from the upload heap,
+  +0.11 ms of copy), where the uniform blocks were read in place; the world pass reads its per-draw values from storage
+  buffers (+0.06 ms at msaa 8). The first version (one 736-byte record a draw, the fragment stage copying it whole into
+  a local) cost the same copy; splitting the lights out (one for consecutive draws lit alike: 1832 draws, about 750
+  lights) and reading fields in place changed the copy's time little, so it is the copy's fixed cost more than its bytes.
+  While the main thread is the frame's limit (the save: 4.3 against 2.3 ms) this costs no frame time.
+- **Per-part grouping** (all trunks, then all crowns) would save few calls: a run already merges every draw with the same
+  pipeline, textures and blocks into one indirect call, so the calls follow the state changes (the save's world: 29 calls,
+  48 first-texture changes in the whole frame); per-part grouping would merge more of the indirect commands into instance
+  counts, which costs the GPU nothing measurable, and could move blended pixels. Not worth the picture risk.
+- Left: the record copy (upload only what changed since the last frame: most of the save's records are the same each
+  frame; costs a compare on the main thread), smaller records (the light matrix's 4th row is unused), the casters' sort by
+  a precomputed key, the occlusion's depth pass (R37f4 deletes it).

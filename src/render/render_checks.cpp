@@ -82,8 +82,9 @@ void CountBindings(const gpu::Texture& first) {
     g_lastTexture = first.texture;
 }
 
-void CountDraw(std::size_t uniformBytes) {
-    ++g_stats.counts[FrameStats::Count::Draws];
+void CountDraw(std::size_t uniformBytes, std::size_t draws) {
+    g_stats.counts[FrameStats::Count::Draws] += draws;
+    ++g_stats.counts[FrameStats::Count::DrawCalls];
     g_stats.counts[FrameStats::Count::UniformBytes] += uniformBytes;
 }
 
