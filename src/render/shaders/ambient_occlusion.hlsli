@@ -8,6 +8,11 @@ SamplerState occlusion_smp : FS_SAMPLER(OCCLUSION_MAP_SLOT);   // nearest, clamp
 Texture2D<float> occlusion_depth : FS_TEXTURE(OCCLUSION_DEPTH_SLOT);
 SamplerState occlusion_depth_smp : FS_SAMPLER(OCCLUSION_DEPTH_SLOT);
 
+// How much the occlusion also darkens the lit colour (sun and point lights as well as the ambient light it already
+// takes away): the user's pick from live tuning (2026-11-06). The receivers multiply by occlusion_direct().
+static const float kOcclusionDirect = 0.5;
+float occlusion_direct(float occlusion) { return lerp(1.0, occlusion, kOcclusionDirect); }
+
 // The occlusion of the ambient light at frame pixel `pixel` (SV_Position.xy) of depth `z`: 1 none. `on`: the occlusion
 // is taken; `depthOffset`, `depthScale`: a depth's clip w (w = depthScale / (depth - depthOffset)); `scale`: the
 // half-size texels per frame pixel, `texel`: their inverse size. The receivers' blocks hold these (render_internal.h's
