@@ -2,18 +2,27 @@
   "scenario": "mod_lost_in_astral_start",
   "install": "rebirth",
   "recorded": "2026-11-06",
-  "commit": "b3694d6b9",
+  "commit": "24b97178b",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R65: no blend from the rest pose on a figure's first switch after a zone entry or load; the footprints placed from the feet in those first frames (PartWorldPosition reads the placed pose) now stand where the walk puts them, and one client unit's hash in ingos follows.",
+  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
   "source": "image",
   "saves": "11 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/current/bz1r.visuals.sav: 14 fields in 1 records differ: visuals 14",
-    "  visuals: 14 fields in 1 records; first visuals.prints footprints.print30.position.x: 10.9629993 in the old golden, 10.8121996 in the new run; largest numeric d 600 at visuals.prints footprints.print55.life: 260 -> 860",
-    "save LostInAstral/savea/bz1r.visuals.sav: 14 fields in 1 records differ: visuals 14",
-    "  visuals: 14 fields in 1 records; first visuals.prints footprints.print30.position.x: 10.9629993 in the old golden, 10.8121996 in the new run; largest numeric d 600 at visuals.prints footprints.print55.life: 260 -> 860"
+    "digest: 8 of 94 records differ, first at record 51 (world update 1040, tick 1040, frame 207, zone bz1r); outcomes the same; no unit position differs",
+    "  first difference at record 51 (world update 1040, tick 1040, frame 207, zone bz1r): 2 fields",
+    "    obj1000055424 (80 unhuma \"\") #unit: C8632053 in the old golden, 452D82E0 in the new run",
+    "    cunit1000055424 (80 unhuma \"\") #unit: BB7D10B9 in the old golden, A15BB3C9 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  units: 2 of 76 differ",
+    "    #unit: 2 units, 8 records, from 51; hash only (no numbers kept)",
+    "  client units: 2 of 75 differ",
+    "    #unit: 2 client units, 8 records, from 51; hash only (no numbers kept)",
+    "save LostInAstral/current/gz1g.visuals.sav: 4 fields in 1 records differ: visuals 4",
+    "  visuals: 4 fields in 1 records; first visuals.prints scorch.print0.uvOffset.y: 0.5 in the old golden, 0.0 in the new run; largest numeric d 3.14 at visuals.prints scorch.print0.uvAngle: 3.14159274 -> 0.0",
+    "save LostInAstral/savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
+    "... 1 more lines"
   ]
 }

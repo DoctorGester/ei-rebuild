@@ -1,4 +1,4 @@
 LostInAstral/savea/info.sav 0ebede8d85983c70
 LostInAstral/savea/mission.sav 3675f83e255f8864
 LostInAstral/savea/scenario.sav 4cdc56ace0f508b4
-LostInAstral/savea/visuals.sav 5d4e78bd4b996c1f
+LostInAstral/savea/visuals.sav b9e186760ade58cd

@@ -108,7 +108,8 @@ printlight lamp lamp_bare 0.95 1.2
 # lightning strikes a second wolf next to it and leaves a light at its eyes for 7 updates. printlight: 1.06 (the
 # blood under the light without the added light: 1.03). The ratio is over every pixel that differs between the two
 # frames, which holds the lightning bolt (it is not frozen: it differs between the captures) and the blood far from the
-# light, so it is a bound on the whole, not on the lit print. Rebirth's gz2g gives 1.03 with the added light and 1.00
+# light, so it is a bound on the whole, not on the lit print. The capture is taken 6 frames after the cast (R37e4e: with `wait 150`,
+# which lets one frame pass, it fell on the bolt's first frame and held it or not by where the client generator stood). Rebirth's gz2g gives 1.03 with the added light and 1.00
 # without it (R16j3a: the same gain of 0.036 as vanilla's 1.06 over 1.03; its lit ground is brighter, 123 against 111,
 # and its bolt differs less between the frames), so its floor is lower.
 console @DeletePointLight(7)
@@ -120,7 +121,7 @@ console @RemoveUnitFromServer(GetObjectByName("S1"))
 console @AddUnitToServer("S2","WolfTutor","S2",Add(GSGetVar(0,"hx"),3),Add(GSGetVar(0,"hy"),1),0)
 waitfor 10 IsAlive(GetObjectByName("S2"))
 console @CastSpellUnit("lightning{e2;e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("S2"))
-wait 150
+frames 6
 freeze
 capture spell
 decals off

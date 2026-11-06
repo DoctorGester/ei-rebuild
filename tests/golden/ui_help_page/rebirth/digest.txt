@@ -7598,7 +7598,7 @@ client ticksRun 182
 @ 16 update 340 frame 67 tick 65 zone gz1g hash BF71A86B n 832
 world updates 340
 client ticksRun 202
-@ 17 update 360 frame 71 tick 77 zone gz1g hash 790E407E n 831
+@ 17 update 360 frame 71 tick 77 zone gz1g hash B4EB9AC4 n 831
 world tick 77
 world updates 360
 world objects 814
@@ -7660,17 +7660,17 @@ cunit1804 #unit 5772E82F
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit 17AE8615
+cunit1100011214 #unit BDF5A57E
 cunit1100011214 #vitals 54F14E8E
-@ 18 update 380 frame 75 tick 77 zone gz1g hash C753D09B n 831
+@ 18 update 380 frame 75 tick 77 zone gz1g hash 0AB60A21 n 831
 world updates 380
 client ticksRun 242
-@ 19 update 400 frame 79 tick 77 zone gz1g hash DF592326 n 831
+@ 19 update 400 frame 79 tick 77 zone gz1g hash 12BCF99C n 831
 world updates 400
 client ticksRun 262
-@ 20 update 420 frame 83 tick 77 zone gz1g hash 1E147C11 n 831
+@ 20 update 420 frame 83 tick 77 zone gz1g hash D3F1A6AB n 831
 world updates 420
 client ticksRun 282
-@ 21 update 440 frame 87 tick 77 zone gz1g hash 61ADA332 n 831
+@ 21 update 440 frame 87 tick 77 zone gz1g hash AC487988 n 831
 world updates 440
 client ticksRun 302

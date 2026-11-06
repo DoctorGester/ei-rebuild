@@ -6466,7 +6466,7 @@ client ticksRun 42
 cunit1804 #place 450BFC7F
 cunit1804 #unit 5772E82F
 cunit1000011214 #place FF01FC81
-@ 4 update 100 frame 28 tick 87 zone gz1g hash 7A138446 n 790
+@ 4 update 100 frame 28 tick 87 zone gz1g hash 18A44859 n 790
 world tick 87
 world updates 100
 world paused 1
@@ -6518,7 +6518,7 @@ cunit1804 #place DF969219
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit 97AC51DD
+cunit1100011214 #unit 0A1E38F7
 cunit1100011214 #vitals 54F14E8E
 @ 5 update 120 frame 35 tick 97 zone gz1g hash 37CEFFFC n 791
 world tick 97

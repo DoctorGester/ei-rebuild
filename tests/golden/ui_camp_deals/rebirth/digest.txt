@@ -7563,7 +7563,7 @@ aievents tick 100
 client tick 100
 client ticksRun 72
 cunit1804 #place 0B0BC947
-@ 5 update 120 frame 23 tick 117 zone gz1g hash 3305935E n 831
+@ 5 update 120 frame 23 tick 117 zone gz1g hash 12DE9DB3 n 831
 world tick 117
 world updates 120
 world paused 1
@@ -7623,39 +7623,39 @@ cunit1804 #place 5D944E41
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit BA00CF1D
+cunit1100011214 #unit 10CD7BA2
 cunit1100011214 #vitals 54F14E8E
-@ 6 update 140 frame 27 tick 117 zone gz1g hash DB38F66E n 831
+@ 6 update 140 frame 27 tick 117 zone gz1g hash FAE3F883 n 831
 world updates 140
 client ticksRun 112
-@ 7 update 160 frame 31 tick 117 zone gz1g hash A3A8D5E4 n 831
+@ 7 update 160 frame 31 tick 117 zone gz1g hash 8273DB09 n 831
 world updates 160
 client ticksRun 132
-@ 8 update 180 frame 35 tick 117 zone gz1g hash B4BA5236 n 831
+@ 8 update 180 frame 35 tick 117 zone gz1g hash 95615CDB n 831
 world updates 180
 client ticksRun 152
-@ 9 update 200 frame 39 tick 117 zone gz1g hash 9DF09A58 n 831
+@ 9 update 200 frame 39 tick 117 zone gz1g hash BC2B94B5 n 831
 world updates 200
 client ticksRun 172
-@ 10 update 220 frame 43 tick 117 zone gz1g hash F3E40713 n 831
+@ 10 update 220 frame 43 tick 117 zone gz1g hash D23F09FE n 831
 world updates 220
 client ticksRun 192
-@ 11 update 240 frame 47 tick 117 zone gz1g hash 727FA176 n 831
+@ 11 update 240 frame 47 tick 117 zone gz1g hash 53A4AF9B n 831
 world updates 240
 client ticksRun 212
-@ 12 update 260 frame 51 tick 117 zone gz1g hash 2F6B720E n 831
+@ 12 update 260 frame 51 tick 117 zone gz1g hash 0EB07CE3 n 831
 world updates 260
 client ticksRun 232
-@ 13 update 280 frame 55 tick 117 zone gz1g hash 94BE4FE4 n 831
+@ 13 update 280 frame 55 tick 117 zone gz1g hash B5654109 n 831
 world updates 280
 client ticksRun 252
-@ 14 update 300 frame 59 tick 117 zone gz1g hash 40926A9D n 831
+@ 14 update 300 frame 59 tick 117 zone gz1g hash 61496470 n 831
 world updates 300
 client ticksRun 272
-@ 15 update 320 frame 63 tick 117 zone gz1g hash 2F313BCB n 831
+@ 15 update 320 frame 63 tick 117 zone gz1g hash 0EEA3526 n 831
 world updates 320
 client ticksRun 292
-@ 16 update 340 frame 67 tick 117 zone gz1g hash CE8C77AA n 831
+@ 16 update 340 frame 67 tick 117 zone gz1g hash EF577947 n 831
 world updates 340
 client ticksRun 312
 @ 17 update 360 frame 71 tick 137 zone gz1g hash E0A7F55A n 832

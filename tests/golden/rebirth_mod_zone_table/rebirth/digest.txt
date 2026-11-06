@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 20 zone - hash 9903C6FB n 173
+@ 1 update 40 frame 7 tick 20 zone - hash B9FF8B24 n 173
 world updates 40
 world paused 1
 random isaac.count 128
@@ -1330,12 +1330,12 @@ cunit187 #place B7CE4832
 cunit388 #place C2155DED
 + cunit1000011214 80 unhuma "host"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 16FCEE62
+cunit1000011214 #unit 2E39E377
 cunit1000011214 #vitals 5E393164
-@ 2 update 60 frame 11 tick 20 zone - hash 2A47C05E n 173
+@ 2 update 60 frame 11 tick 20 zone - hash 0ABB8D81 n 173
 world updates 60
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash 9BD7CF12 n 173
+@ 3 update 80 frame 15 tick 20 zone - hash BB2B82CD n 173
 world updates 80
 client ticksRun 77
 @ 4 update 100 frame 19 tick 20 zone - hash 70EFA0F9 n 173

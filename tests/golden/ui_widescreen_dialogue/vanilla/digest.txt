@@ -9600,7 +9600,7 @@ cunit848411 #unit A9F20DCE
 cunit999742 #unit 6CB3FA08
 cunit1000011214 #place CB28BE39
 cunit1000011214 #unit 702C8206
-@ 14 update 300 frame 65 tick 300 zone bz1g hash 5BCC9FB1 n 401
+@ 14 update 300 frame 65 tick 300 zone bz1g hash EC1BFB04 n 401
 world tick 300
 world updates 300
 random isaac.count 156
@@ -9649,7 +9649,7 @@ obj848411 #vitals F3D3DF55
 obj927062 #vitals 54723E8A
 obj999742 #vitals 54723E8A
 obj1000002436 #vitals 213B448F
-obj1000011214 #unit EE576F4A
+obj1000011214 #unit 1D86C1AE
 obj1000011214 #vitals 0C70B712
 obj1000054752 #vitals 213B448F
 obj1000059184 #vitals CAA4525B
@@ -9675,11 +9675,11 @@ cunit831510 #unit F9E7203A
 cunit848411 #place CA9FA50B
 cunit848411 #unit E0C63874
 cunit1000011214 #place 07A82C66
-cunit1000011214 #unit 46BD4CE9
+cunit1000011214 #unit BACA41FD
 cunit1000054752 #unit B4DA6870
 cunit1000059184 #unit 7C070AF8
 cunit1000063817 #unit E2749005
-@ 15 update 320 frame 69 tick 320 zone bz1g hash 11859B38 n 401
+@ 15 update 320 frame 69 tick 320 zone bz1g hash DB0B1A6F n 401
 world tick 320
 world updates 320
 random isaac.count 56
@@ -9735,7 +9735,7 @@ obj1000011214 #vitals 9BA26E9A
 obj1000054752 #vitals ED91BFD0
 obj1000059184 #vitals 6CC4360B
 obj1000059185 #vitals A1D793A2
-obj1000063817 #unit 6F05CFBA
+obj1000063817 #unit E6296832
 obj1000063817 #vitals ED91BFD0
 obj1001577495 #vitals ED91BFD0
 obj1006565532 #vitals ED91BFD0
@@ -9766,9 +9766,9 @@ cunit1000011214 #place 1B35C24C
 cunit1000011214 #unit 1BBAF630
 cunit1000054752 #unit 4A27AACF
 cunit1000059184 #unit 82FAC847
-cunit1000063817 #unit 5FB1FCD7
+cunit1000063817 #unit 00C200A6
 cunit1001577495 #unit 57D526A9
-@ 16 update 340 frame 73 tick 340 zone bz1g hash 5F36D472 n 401
+@ 16 update 340 frame 73 tick 340 zone bz1g hash 160A01B6 n 401
 world tick 340
 world updates 340
 random isaac.count 212
@@ -9821,7 +9821,7 @@ obj848411 #vitals 83B92BDA
 obj927062 #vitals 2418CA05
 obj999742 #vitals 2418CA05
 obj1000002436 #vitals 5151B000
-obj1000011214 #unit 6F8D9C20
+obj1000011214 #unit 9001F4B9
 obj1000011214 #vitals AC51EDE6
 obj1000054752 #vitals 5151B000
 obj1000059184 #vitals BACEA6D4
@@ -9850,7 +9850,7 @@ cunit848411 #place CA0321AF
 cunit848411 #unit 3FD88129
 cunit999742 #place D1FA713D
 cunit1000011214 #place 352B6C1A
-cunit1000011214 #unit 1DBD6199
+cunit1000011214 #unit 42CE9DE8
 cunit1000063817 #unit BC335F57
 @ 17 update 360 frame 77 tick 360 zone bz1g hash 02145875 n 401
 world tick 360

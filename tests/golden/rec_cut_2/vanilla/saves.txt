@@ -1,4 +1,4 @@
 saveq/info.sav 463aab17bf1eb53c
 saveq/mission.sav ec02e636d6cffd27
 saveq/scenario.sav cabe32f9d4cb3dd9
-saveq/visuals.sav 0eb45aa28b4c1bc5
+saveq/visuals.sav e7d07f0b6f4e82cf

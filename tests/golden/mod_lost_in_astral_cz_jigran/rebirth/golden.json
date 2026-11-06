@@ -2,16 +2,27 @@
   "scenario": "mod_lost_in_astral_cz_jigran",
   "install": "rebirth",
   "recorded": "2026-11-06",
-  "commit": "b3694d6b9",
+  "commit": "24b97178b",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R65: no blend from the rest pose on a figure's first switch after a zone entry or load; the footprints placed from the feet in those first frames (PartWorldPosition reads the placed pose) now stand where the walk puts them, and one client unit's hash in ingos follows.",
+  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
   "source": "image",
   "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/current/bz31j.visuals.sav: 8 fields in 1 records differ: visuals 8",
-    "  visuals: 8 fields in 1 records; first visuals.prints footprints.print23.position.x: 190.420883 in the old golden, 190.227722 in the new run; largest numeric d 0.196 at visuals.prints footprints.print25.position.x: 151.231857 -> 151.036194"
+    "digest: 1 of 2 records differ, first at record 1 (world update 85, tick 85, frame 17, zone cz2j); outcomes the same; no unit position differs",
+    "  first difference at record 1 (world update 85, tick 85, frame 17, zone cz2j): 2 fields",
+    "    obj1000010798 (80 unhuma \"\") #unit: B90897E7 in the old golden, CAB50A21 in the new run",
+    "    cunit1000010798 (80 unhuma \"\") #unit: 923481D1 in the old golden, 9ECB282D in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  units: 1 of 8 differ",
+    "    #unit: 1 unit, 1 record, from 1; hash only (no numbers kept)",
+    "  client units: 1 of 8 differ",
+    "    #unit: 1 client unit, 1 record, from 1; hash only (no numbers kept)",
+    "save LostInAstral/current/cz3j.visuals.sav: 31 fields in 1 records differ: visuals 31",
+    "  visuals: 31 fields in 1 records; first visuals.prints blood.print0.position.x: 39.187912 in the old golden, 39.8372841 in the new run; largest numeric d 300 at visuals.prints blood.print0.life: 1025 -> 725",
+    "save LostInAstral/savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
+    "... 1 more lines"
   ]
 }

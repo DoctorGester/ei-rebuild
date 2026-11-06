@@ -6567,7 +6567,7 @@ aievents tick 140
 client tick 140
 client ticksRun 97
 cunit1804 #place 5D944E41
-@ 8 update 180 frame 37 tick 157 zone gz1g hash 4C6E8016 n 790
+@ 8 update 180 frame 37 tick 157 zone gz1g hash F373FAD5 n 790
 world tick 157
 world updates 180
 world paused 1
@@ -6624,7 +6624,7 @@ client ticksRun 117
 - cunit1000011214
 + cunit1100011214 80 unhuma ""
 cunit1100011214 #place 125B38F9
-cunit1100011214 #unit 4B5727EE
+cunit1100011214 #unit 021830D1
 cunit1100011214 #vitals 54F14E8E
 @ 9 update 200 frame 41 tick 167 zone gz1g hash 0DEBCBBE n 791
 world tick 167
