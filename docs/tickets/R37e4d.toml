@@ -1,0 +1,8 @@
+id = "R37e4d"
+title = "Ground and water as two shaders: terrain.hlsl split into a ground program and a water program with a shared include"
+group = "renderer"
+size = 1
+model = "sonnet"
+files = ["src/render/shaders/terrain.hlsl", "src/render/render_terrain.cpp", "src/render/render_water.cpp", "tools/gen_gpu_shaders.py"]
+note = "User 2026-11-06: the water's shader code now diverges so much it should be its own shader. Since R37e4b ground and water are separate draws and since R37e4c the vertex shader waves the water, so the per-draw branches (vs.water, fs.mode == kWater) only bloat one program. Split into terrain_ground.hlsl (ground lighting, ambient occlusion, weather, puddles, rain rings) and terrain_water.hlsl (waved, Water, ripples, reflections), with a shared include for the vertex layout, ground_light, shadows, clouds and fog. Drop the mode uniforms and branches that become constant. Same pictures (frames compared at tolerance 0 on the render_ terrain and water scenarios), goldens the same."
+order = 1283
