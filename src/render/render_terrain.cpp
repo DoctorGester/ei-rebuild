@@ -42,11 +42,12 @@ constexpr float kWaterFalloff = 0.06666667f;
 
 // --- A vertex -------------------------------------------------------------------------------------------
 
-// A vertex is four streams: its position (the water's waves move it), the rest of what is built with it, its colour
-// pair (on the water the wave crests change the specular word) and its texture coordinates with its page's layer in the
-// page textures' array (the animated tiles change them). The depth-only passes read the first two.
-// `normal` is the record's; `loss` on the ground layer the light lost under the water (-1 on the water layer); the GPU
-// lights both layers. `depth`: on the water layer the depth over the ground (the ground record's: negative where the
+// A vertex is four streams: its position (the water's at rest: terrain.hlsl moves it with the waves), the rest of what
+// is built with it, its colour pair (on the water the specular word's colour bytes are its material, column and row in
+// its sector, which the waves read; terrain.hlsl puts the crests there) and its texture coordinates with its page's
+// layer in the page textures' array (the animated tiles change them). The depth-only passes read the first two.
+// `normal` is the record's; `loss` on the ground layer the light lost under the water, on the water layer the vertex's
+// wave phase offset (Terrain::wavePhases); the GPU lights both layers. `depth`: on the water layer the depth over the ground (the ground record's: negative where the
 // ground is above the water); on the ground layer the same where the record's water is a swamp (terrain.hlsl's muddy
 // rim), else -1. `shore`: on the ground layer 1 where it lies under water that is not a swamp (no muddy rim where a swamp
 // meets it), else 0; on the water layer the slope of the ground under it (GroundSlope: a swamp's distance from its
@@ -107,15 +108,16 @@ static float GroundSlope(const SectorVertex& ground) {
 // `occlusion`: the sector's ground occlusion per ground record (GroundOcclusion).
 static VertexRest MakeRest(const SectorData* sector, int index, const float* occlusion) {
     const SectorVertex& record = sector->records[index];
-    VertexRest vertex{record.normal, -1.0f, 0.0f, 0.0f, 0.0f};
+    VertexRest vertex{record.normal, 0.0f, 0.0f, 0.0f, 0.0f};
     if (index >= kWaterRecords) {
         vertex.depth = sector->records[index - kWaterRecords].depth;
         vertex.shore = GroundSlope(sector->records[index - kWaterRecords]);
         const terrain::Terrain* owner = sector->owner;
+        if (owner && index - kWaterRecords < std::ssize(owner->wavePhases))
+            vertex.loss = owner->wavePhases[static_cast<std::size_t>(index - kWaterRecords)];
         if (owner && record.waterMaterial < std::ssize(owner->materials))
             vertex.extra = WaterKind(owner->materials[record.waterMaterial]);
     } else {
-        vertex.loss = 0.0f;
         vertex.depth = SwampDepth(sector, index);
         vertex.extra = occlusion[index];
         if (const SectorVertex* water = WaterAbove(sector, index)) {
@@ -137,14 +139,22 @@ static std::uint32_t Byte(float v) {
 
 // The colour pair a vertex of record `index` is drawn with (lit on the GPU): the material colour the sun's light
 // starts from (on the ground the water's above it, else the record's own), alpha the material byte (the water's
-// opacity); the specular word as the game keeps it (the edge fade; on the water the wave crests).
+// opacity); the specular word as the game keeps it (the edge fade), on the water with its material (255: none or past
+// the waves' table) and its column and row in the sector in the colour bytes (terrain.hlsl's `waved`).
 static ColourPair Colours(const SectorData* sector, int index) {
     const SectorVertex& record = sector->records[index];
     Vector3 colour = record.materialColour;
     if (const SectorVertex* water = WaterAbove(sector, index)) colour = Max(water->materialColour, colour);
+    std::uint32_t specular = record.specular;
+    if (index >= kWaterRecords) {
+        const int vertex = index - kWaterRecords;
+        const std::uint32_t material = record.waterMaterial < terrain::Terrain::kWaveMaterials ? record.waterMaterial : 0xFF;
+        specular = (specular & 0xFF000000u) | material << 16 | static_cast<std::uint32_t>(vertex % terrain::kSectorRow) << 8 |
+                   static_cast<std::uint32_t>(vertex / terrain::kSectorRow);
+    }
     return ColourPair{static_cast<std::uint32_t>(record.materialByte) << 24 | Byte(colour.x) << 16 |
                           Byte(colour.y) << 8 | Byte(colour.z),
-                      record.specular};
+                      specular};
 }
 
 // --- The ground's own ambient occlusion ------------------------------------------------------------------
@@ -267,8 +277,8 @@ struct SlotLayer {
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
 };
 
-// What UploadTerrain writes of a slot: all of it (its meshes' ranges and its caster), the water's positions and
-// colours, a layer's changed texture coordinates.
+// What UploadTerrain writes of a slot: all of it (its meshes' ranges and its caster), the water's positions (a level),
+// a layer's changed texture coordinates.
 constexpr std::uint8_t kWriteAll = 1, kWriteWater = 2, kWriteGroundUvs = 4, kWriteWaterUvs = 8;
 // What the game moved in a sector since it was last read (TerrainChanged).
 constexpr std::uint8_t kTilesMoved = 1, kWaterMoved = 2;
@@ -516,8 +526,8 @@ static void Layout() {
     g_zone.remake = true;
 }
 
-// What the game moved in a slot since it was read: the animated tiles' texture coordinates, the water's positions (the
-// boxes of its runs made again) and crests.
+// What the game moved in a slot since it was read: the animated tiles' texture coordinates, the water's positions at a
+// new level (the boxes of its runs made again).
 static void ReadMoved(int k) {
     Slot& slot = g_zone.slots[static_cast<std::size_t>(k)];
     const std::uint8_t moved = std::exchange(slot.moved, std::uint8_t{0});
@@ -742,15 +752,13 @@ static void WriteSlot(int k) {
         const bool all = writes & kWriteAll;
         if (all || (layer == 1 && (writes & kWriteWater))) {
             positions.resize(n);
-            colours.resize(n);
-            for (std::uint32_t i = 0; i < n; ++i) {
-                positions[i] = sector->vertices[l.records[i]];
-                colours[i] = Colours(sector, l.records[i]);
-            }
+            for (std::uint32_t i = 0; i < n; ++i) positions[i] = sector->vertices[l.records[i]];
             WriteBytes(mesh.streams[kPositions], at(kPositions, 0), positions.data(), n * sizeof(Vector3), kBytes);
-            WriteBytes(mesh.streams[kColours], at(kColours, 0), colours.data(), n * sizeof(ColourPair), kBytes);
         }
         if (all) {
+            colours.resize(n);
+            for (std::uint32_t i = 0; i < n; ++i) colours[i] = Colours(sector, l.records[i]);
+            WriteBytes(mesh.streams[kColours], at(kColours, 0), colours.data(), n * sizeof(ColourPair), kBytes);
             rest.resize(n);
             for (std::uint32_t i = 0; i < n; ++i) rest[i] = MakeRest(sector, l.records[i], slot.occlusion.data());
             WriteBytes(mesh.streams[kRest], at(kRest, 0), rest.data(), n * sizeof(VertexRest), kBytes);
@@ -860,6 +868,38 @@ bool CreateTerrainShader() {
     return ok;
 }
 
+// The water's waves as the water pass hands them over (Terrain::WavesOf, at the moment Terrain::WaterVertex answers
+// for), for terrain.hlsl's `waved`: off without LandscapeFlag::Waves.
+struct WaterWaves {
+    bool on = false;
+    float direction[2] = {};
+    float time = 0.0f;
+    float materials[terrain::Terrain::kWaveMaterials][4] = {};   // turn, lift, keeps the ground's x, y
+    float crests[terrain::Terrain::kWaveMaterials][4] = {};
+};
+static WaterWaves g_waves;
+
+static void TakeWaves(const terrain::Terrain& t) {
+    g_waves = WaterWaves{};
+    g_waves.on = lib::Has(t.landscapeFlags, terrain::LandscapeFlag::Waves);
+    if (!g_waves.on) return;
+    g_waves.direction[0] = t.waveDirection.x;
+    g_waves.direction[1] = t.waveDirection.y;
+    g_waves.time = t.waveTime;
+    const int count = std::min(lib::Count(t.materials), terrain::Terrain::kWaveMaterials);
+    for (int m = 0; m < count; ++m) {
+        const terrain::Terrain::MaterialWaves w = t.WavesOf(m);
+        float* material = g_waves.materials[m];
+        material[0] = w.turn;
+        material[1] = w.lift;
+        material[2] = w.keepsGroundXY ? 1.0f : 0.0f;
+        float* crest = g_waves.crests[m];
+        crest[0] = w.crest.x;
+        crest[1] = w.crest.y;
+        crest[2] = w.crest.z;
+    }
+}
+
 void TerrainPass(const terrain::Terrain* terrain, const SceneRenderer* renderer, int firstPage, int lastPage,
                  std::span<const SectorData* const> drawn) {
     if (!terrain || !renderer || terrain->sectorsX <= 0 || terrain->sectorsY <= 0 || firstPage > lastPage) return;
@@ -892,6 +932,7 @@ void TerrainPass(const terrain::Terrain* terrain, const SceneRenderer* renderer,
         f.terrainSectors.resize(firstSector);
         return;
     }
+    if (layer == 1) TakeWaves(*terrain);
     const int matrix = AddMatrix(clipStack.matrices[depth - 1]);
     // The old device's state the pass is drawn with (the shader always adds the specular colour the old pass turned on
     // around each page).
@@ -976,6 +1017,14 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     vs.mapWidth = f.mapEdge.width;
     vs.mapHeight = f.mapEdge.height;
     vs.edgeBand = f.mapEdge.band;
+    vs.water = batch.water ? 1 : 0;
+    if (batch.water && g_waves.on) {
+        vs.waves = 1;
+        vs.waveTime = g_waves.time;
+        std::memcpy(vs.waveDirection, g_waves.direction, sizeof(vs.waveDirection));
+        std::memcpy(vs.waveMaterials, g_waves.materials, sizeof(vs.waveMaterials));
+        std::memcpy(vs.waveCrests, g_waves.crests, sizeof(vs.waveCrests));
+    }
     TerrainFsParams fs{};
     UnpackColour(f.fogColour, fs.fog);
     fs.mode = mode;

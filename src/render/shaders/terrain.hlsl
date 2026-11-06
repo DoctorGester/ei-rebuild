@@ -1,7 +1,8 @@
 // The landscape's ground and water (render_terrain.cpp: the zone's mesh of a layer, every page's tiles; the vertex
 // carries its page's layer of the page textures' array with its texture coordinates), lit here (scene_lighting.hlsli): the vertices carry the normal, the
-// material colour (colour word), on the ground the light lost under the water (`loss`, 0 or more; below 0 on the
-// water layer, whose specular word carries the wave crests) and the ground's own occlusion of the ambient light
+// material colour (colour word), on the ground the light lost under the water (`loss`, 0 or more; on the water layer
+// the vertex's wave phase offset, and its specular word's colour bytes its material, column and row for the waves,
+// `waved`, which puts the crests there) and the ground's own occlusion of the ambient light
 // (`extra` there, 1 none: render_terrain.cpp's height field), which the screen's (ambient_occlusion.hlsli) darkens
 // more. On the water `depth` is its depth over the ground (negative where the ground is above it) and `extra` its
 // kind (0 water, 1 a swamp, 2 lava: render_terrain.cpp's WaterKind), which the water's look (Water, below) starts
@@ -50,6 +51,14 @@ struct TerrainVsParams {
     float mapWidth;             // the map's size and edge fade band (render::MapEdge; band 0 none)
     float mapHeight;
     float edgeBand;
+    int water;                  // the water layer's batch
+    // The water's waves (render_terrain.cpp's WaterWaves; `waved`): on, the circling's time, the step along x and y
+    // per vertex, per material its turn, lift and whether it keeps the ground's x, y, and its crest's colour.
+    int waves;
+    float waveTime;
+    float2 waveDirection;
+    float4 waveMaterials[32];   // Terrain::kWaveMaterials
+    float4 waveCrests[32];
 };
 ConstantBuffer<TerrainVsParams> vs : VS_BLOCK(0);
 static const float kEdgeWidening = 0.2;   // the edge fade's band at least this times the depth
@@ -61,26 +70,67 @@ float edge_kept(float2 p, float depth) {
     float4 inside = float4(p, float2(vs.mapWidth, vs.mapHeight) - p) - band - 1.0;
     return 1.0 - min(length(min(inside, 0.0)), band) / band;
 }
+// The waves (Terrain::WaterVertex, terrain.cpp, which answers the game's height queries the same way; its constants).
+static const int kWaveMaterials = 32;
+static const float kSineIndex = 256.0 / 3.14159265;   // the game's sine table: entries per radian
+static const float kQuarterTurn = 0.785398126;        // between the circling's columns (and rows)
+static const float kRiseScale = 0.25;
+static const float kCircleScale = 3.0;
+static const float kFullTurn = 6.28318548;
+static const float kSectorCells = 32.0;
+// The game's sine table's entry at `phase` radians: phase * 256 / pi rounded half away from zero, mod 512.
+float wave_sine(float phase) {
+    float k = phase * kSineIndex;
+    int entry = int(sign(k) * floor(abs(k) + 0.5));
+    return sin(float(entry & 511) * (3.14159265 / 256.0));
+}
+// A water vertex where the waves move it (its place at rest `i.pos`, its phase offset in `loss`, its material, column
+// and row in the specular word's colour bytes), and its crest's colour (`crest`, 0 where the wave is below its middle):
+// the wave is the table's sine at the phase along the wave direction from its sector's first vertex (mod 2 pi) plus its
+// material's turn and its offset; it lifts the vertex by a quarter of the material's lift, and circles it by three
+// times the lift with the time (the entries at its column and row a quarter turn apart); a material that keeps the
+// ground's x, y only has the crest.
+float3 waved(VsIn i, out float3 crest) {
+    crest = 0.0;
+    float3 p = i.pos;
+    float3 bytes = round(i.spec.zyx * 255.0);
+    int material = int(bytes.x);
+    if (vs.waves == 0 || material >= kWaveMaterials) return p;
+    float column = bytes.y, row = bytes.z;
+    float4 m = vs.waveMaterials[material];
+    float2 corner = round((p.xy - float2(column, row)) / kSectorCells) * kSectorCells;
+    float start = fmod(dot(vs.waveDirection, corner) + kFullTurn, kFullTurn);
+    float wave = wave_sine(start + m.x + row * vs.waveDirection.y + column * vs.waveDirection.x + i.loss);
+    if (wave >= 0.0) crest = fmod(floor(wave * vs.waveCrests[material].xyz + 0.5), 256.0) / 255.0;
+    if (m.z != 0.0) return p;
+    p.z += wave * m.y * kRiseScale;
+    p.x += wave_sine(column * kQuarterTurn + vs.waveTime) * m.y * kCircleScale;
+    p.y += wave_sine(row * kQuarterTurn + vs.waveTime) * m.y * kCircleScale;
+    return p;
+}
 VsOut vs_main(VsIn i) {
-    float4 p = float4(i.pos, 1.0);
+    const bool water = vs.water != 0;
+    float3 crest = 0.0;
+    const float3 pos = water ? waved(i, crest) : i.pos;
+    float4 p = float4(pos, 1.0);
     VsOut o;
     o.pos = float4(dot(vs.matrix[0], p), dot(vs.matrix[1], p), dot(vs.matrix[2], p), dot(vs.matrix[3], p));
     o.pos.xy += vs.shift * o.pos.w;   // Direct3D 7 pixel centres (render_internal.h)
     o.col = i.col.zyxw;                  // D3DCOLOR bytes are B, G, R, A
     o.spec = i.spec.zyxw;
+    if (water) o.spec.rgb = crest;
     // The fog factor: the map's edge fade (the vertex's own, Terrain::EdgeFade, and the band widened with the depth)
     // or the distance fog, the smallest.
-    o.spec.a = min(min(o.spec.a, edge_kept(i.pos.xy, o.pos.w * vs.fogDepthPerW)),
+    o.spec.a = min(min(o.spec.a, edge_kept(pos.xy, o.pos.w * vs.fogDepthPerW)),
                    fog_kept(o.pos.w, vs.fogStart, vs.fogDensity, vs.fogDepthPerW));
     o.uv = i.uv.xy;
     o.layer = i.uv.z;
-    float4 q = float4(i.pos + i.normal * vs.normalOffset, 1.0);
+    float4 q = float4(pos + i.normal * vs.normalOffset, 1.0);
     o.shadow = float4(dot(vs.light[0], q), dot(vs.light[1], q), dot(vs.light[2], q), 1.0);
-    o.world = i.pos;
+    o.world = pos;
     o.normal = i.normal;
-    o.loss = i.loss;
+    o.loss = water ? -1.0 : i.loss;
     o.depth = i.depth.x;
-    const bool water = i.loss < 0.0;
     o.otherWater = water ? 0.0 : i.depth.y;
     o.slope = water ? i.depth.y : 0.0;
     o.occlusion = water ? 1.0 : i.extra;

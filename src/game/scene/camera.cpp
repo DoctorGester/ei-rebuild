@@ -203,7 +203,7 @@ void camera::TakeFrameView(const Camera* camera) {
 const camera::ViewPose& camera::FrameView() { return g_frameView; }
 
 TerrainSample SampleTerrain(const Vector3& p, float step, float halfX, float halfY) {
-    const float centre = g_clientWorld.RawSurfaceHeightAt(p.x, p.y);
+    const float centre = g_clientWorld.terrain->CalmSurfaceHeight(p.x, p.y);
     TerrainSample sample{centre, centre, centre};
     int count = 1;
     float x = p.x - halfX;
@@ -212,7 +212,7 @@ TerrainSample SampleTerrain(const Vector3& p, float step, float halfX, float hal
             float y = p.y - halfY;
             while (y <= halfY + p.y) {
                 if (y >= 0.0f && g_clientWorld.terrain->height > y) {
-                    float h = g_clientWorld.RawSurfaceHeightAt(x, y);
+                    float h = g_clientWorld.terrain->CalmSurfaceHeight(x, y);
                     float low = sample.minimum;
                     sample.minimum = MinKeepA(h, low);
                     float high = sample.maximum;
@@ -323,7 +323,7 @@ void Camera::Update(float dt) {
     Vector3 listener = localPosition;
     if (!(flags & kPlaced)) {
         listener = focus;
-        if (g_clientWorld.terrain) listener.z = g_clientWorld.RawSurfaceHeightAt(focus.x, focus.y) + focusHeight;
+        if (g_clientWorld.terrain) listener.z = g_clientWorld.terrain->CalmSurfaceHeight(focus.x, focus.y) + focusHeight;
     }
     Vector3 forward = localRotation.AxisZ();
     g_clientWorld.sounds->SetListener(listener, forward);

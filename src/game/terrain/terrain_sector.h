@@ -59,8 +59,7 @@ constexpr std::uint16_t kNoTile = 0xFFFF;
 
 // Per-vertex record.
 struct SectorVertex {
-    std::uint32_t specular = 0;         // edge fade << 24; on the water the wave crests' R G B (Animate)
-    Vector3 position;                   // water layer: the vertex position
+    std::uint32_t specular = 0;         // edge fade << 24 (the colour bytes 0: the GPU adds the water's crests)
     static constexpr std::uint16_t kNoWaterMaterial = 0xFFFF;
     std::uint16_t waterMaterial = 0;    // water layer: material index, or kNoWaterMaterial
     float depth = 0.0f;                 // ground layer: water z - ground z
@@ -135,8 +134,8 @@ struct SectorData {
 
     // Builds the vertex records, tile lists (the animated tiles' start frames drawn from g_clientRandom),
     // bounding boxes and water materials; every vertex's specular word becomes its edge fade (the fog factor; the
-    // GPU lights the colours, AnimateWaves writes the wave crests over the water's colour bytes), truncated as
-    // the game's lighting stored it, on the water only where it has a material.
+    // GPU lights the colours and adds the water's wave crests), truncated as the game's lighting stored it, on the
+    // water only where it has a material.
     void Build();
 
     // Raises the water layer by the owner's pending water level changes.
@@ -153,9 +152,6 @@ struct SectorData {
     // whose frame is 0 and whose speed is below 1000 only when a client effects draw % 1000 + 1 is within the
     // speed).
     void AnimateTiles(int frame);
-    // With LandscapeFlag::Waves and water, the water vertices move with the waves and the crests get a
-    // specular colour.
-    void AnimateWaves();
 
     // Whether the last clip test did not cull the sector.
     bool IsDrawn() const;
@@ -164,9 +160,9 @@ struct SectorData {
 };
 
 struct TerrainMaterial {
-    static constexpr int kKeepsGroundXY = 4;   // the kind of water whose vertices keep the ground's x, y
+    static constexpr int kKeepsGroundXY = 4;   // the kind of water whose vertices keep the ground's x, y (no map's)
     int kind = 0;
-    Vector3 waveColour;                 // specular of the wave crests (Animate)
+    Vector3 waveColour;                 // specular of the wave crests (Terrain::WavesOf)
     float absorption = 0.0f;            // light lost per squared depth under water (lighting): 1 / (1 - opacity)
     std::uint8_t opacityByte = 0;       // opacity * 255
     Vector3 colour;                     // waveColour * the file's light factor, each capped at 1

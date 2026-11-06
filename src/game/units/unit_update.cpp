@@ -23,7 +23,7 @@
 
 namespace {
 constexpr const char* kUnitClassName = "CUnit";
-constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
+constexpr std::uint8_t kFlies = 2;            // UnitParams::movementKind
 
 } // namespace
 
@@ -92,7 +92,7 @@ float* Unit::StandPoint(float* out) {
     float lift = ModeSpeed();   // inlined
     World* world = OwningWorld();
     float height;   // the world's height, or the surface plus z
-    if (params.movementKind == kMovesOnWater) {
+    if (params.movementKind == kFlies) {
         if (controller->GetClassId() == ClassId::UnitServer) {
             height = world->SurfaceHeightAt(x, y) + localPosition.z;
         } else {
@@ -112,7 +112,7 @@ void Unit::PlaceOnGround(float offset) {
     float y = localPosition.y;
     heightOffset = offset;
     World* world = OwningWorld();
-    if (params.movementKind == kMovesOnWater) {
+    if (params.movementKind == kFlies) {
         if (controller->GetClassId() == ClassId::UnitServer) {
             localPosition.z = world->SurfaceHeightAt(x, y) + localPosition.z;
         } else {
@@ -205,7 +205,7 @@ constexpr float kDefaultRadius = 0.75f;
 void Unit::UpdateSizeClass() {
     controller->UpdateMoveFactors();   // the server's controller; empty on the others
     if (controller->GetClassId() != ClassId::UnitServer) {
-        sizeClass = params.movementKind == kMovesOnWater ? 0 : 3;
+        sizeClass = params.movementKind == kFlies ? 0 : 3;
         unitRadius = kDefaultRadius;
         return;
     }
