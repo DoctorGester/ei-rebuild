@@ -422,9 +422,9 @@ earlier world updates). The same 202 scenarios took 9% longer than in the run be
 (world_load 6 s to 11 s), so the runner's speed varies and adding each victim to `LINUX_SKIP` never converged.
 
 Since 2026-11-06 the workflow's `LINUX_SKIP` is only ui_minimap_edges, the three ui_widescreen ones, unit_ai_bridge and
-zone_gz15h_tornado_client, plus ui_widescreen_screens and mod_lost_in_astral_cz_ingos (both timed out on Rebirth in
-runs 42155172606 and 42155765669, 270 s and 180 s limits): the render_*, net_* and camera_* scenarios below it are left out
-by name pattern instead. What follows is
+zone_gz15h_tornado_client, plus ui_widescreen_screens (timed out on Rebirth, run 42155765669): the render_*, net_*, camera_* and
+mod_lost_in_astral_* scenarios are left out by name pattern instead (the Lost in Astral runs hit their 180 s limits on
+llvmpipe one after another: cz_ingos in 42155172606, start in 42199781767). What follows is
 the history of the longer list (run_all's `LINUX_LEFT_OUT` for local runs is unchanged).
 
 `LINUX_SKIP` held what cannot match on llvmpipe for reasons other than speed: every two-game scenario (net_pair_*,
