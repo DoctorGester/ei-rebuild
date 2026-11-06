@@ -322,3 +322,26 @@ Not filed: the sun map's fit to the visible ground (FitMap 0.12 ms; a looser fit
 still objects in CollectCells (0.10; drawn::Observe needs every object each frame), Submit (the driver's), uploading
 only changed records (above), parallel work (no need: after R37f6-R37f9 the save's main thread should be about 2.3-2.6
 ms, under the GPU's 2.3, and the GPU becomes the limit there too).
+
+## Measured after R37f6 and R37f7
+
+The save at the user's settings with R37f5's kit (probe patch, quiet runs, the sampler; the logs and the probe as
+applied to this tree are in build/R37f6 of the main checkout). The machine moved by up to 40% between runs this time
+(untouched parts: the objects' draws 1.22-1.88 ms), so the table takes the three runs whose untouched parts matched
+R37f5's (the objects' draws 1.22-1.52 ms, their visibility 0.35), and the sampler's shares times R37f5's 4.02 ms.
+
+| Part (release terms, ms a frame) | R37f5 | After | Sampler (share of the main thread) |
+|---|---|---|---|
+| PrepareShadows | 0.37 | 0.20 | 9.95% -> 5.76% |
+| ... the point shadows' ListCasters / the unit weather | | | 3.94% -> 2.64% / 4.14% -> 1.69% |
+| The sun map's CPU side | 0.27 | 0.20 | 7.24% -> 5.37% |
+| The occlusion depth's CPU side | 0.21 | 0.16 | 5.39% -> 4.68% |
+| CasterDraws::Sort (all passes) | | | 2.62% -> 0.97% |
+| The game's shadow draws (CastsShadow) | 0.06 | 0.02 | 1.03% -> 0 |
+| Together | | about -0.3 | |
+
+Calls a frame unchanged (the save's sun map 1874 draws in 41 calls, the occlusion 29; the town's point faces 31 / 42).
+AddDrawnCasters took on the tables' lookups the sort lost (2.25% -> 2.99%: `CasterDraws::Add` finds the binding and
+group). Left in PrepareShadows (about 0.2 ms): the GPU-lit meshes' landscape matrices (CameraInverse::Under 2.3% of the
+thread, 1.5% of it FigureLight's own product at the hand-over: R37f6a), the point casters' gate (about 1%), the roofs'
+loose boxes while units are in view (0.3%), ReceiverMatrices (0.9%).

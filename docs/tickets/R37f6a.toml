@@ -1,0 +1,6 @@
+id = "R37f6a"
+title = "The figure parts' landscape matrix once: FigureLight's camera-inverse product shared with LandscapeModel"
+group = "renderer"
+depends = ["R37f6"]
+note = "R37f6's profile of the save (build/R37f6/logs in the main checkout): after R37f6 CameraInverse::Under is still about 2.5% of the main thread (0.10 ms in release terms), 1.5% of it from FigureLight (render_lighting.cpp: each lit figure part's model taken from under the camera at the hand-over, g_partCamera) and 0.95% from LandscapeModel (ListCasters, once per frame matrix for the GPU-lit meshes). Both take a part's model out of the camera's matrix: check whether FigureLight's camera and placed matrix are bit for bit WorldCamera's clip and Frame::matrices[batch.matrix] (then one product serves both); if not, find why. Under itself also copies the double inverse and converts each call (FromMatrix, ToMatrix: 0.4 of its time). Expected 0.04-0.06 ms. Frames the same at tolerance 0 when the products are the same bits."
+order = 1296
