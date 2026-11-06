@@ -3,7 +3,7 @@
 # the bridge with the grass islands (the save before it), then the first two at noon. Before R17c4b the swamp was a
 # near-black olive (the game's was green), its shores went to black and the water's edge stepped along the triangles:
 # the swamp's fade and the ground's muddy rim went by the depth's slope taken per triangle (docs/notes/renderer.md,
-# "shaders/terrain.hlsl: the water"). On vanilla data the save loads the same zone. Frames only (goldens hold none).
+# "shaders/terrain_water.hlsl: the water"). On vanilla data the save loads the same zone. Frames only (goldens hold none).
 # prepare: copy_save.py tests/saves/swamp_shore save2
 render checkall
 resolution 1440x1080

@@ -44,9 +44,6 @@ constexpr std::uint8_t kFlagWaterTiles = 2;
 constexpr int kTextureClasses = 16;
 constexpr int kFallbackClass = 0xF;
 
-constexpr int kTileFrameEvery = 3;                         // animated tiles step every third frame
-constexpr int kAlwaysSteps = 1000;                         // a tile speed that steps every time
-
 // A tile's entries (3 x 3 vertices).
 constexpr int kTileEntries = TileUv::kVertices;
 
@@ -232,6 +229,10 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                     tile.frames = frames;
                     tile.frame = static_cast<int>(draw % static_cast<std::uint32_t>(frames));
                     tile.speed = kAnimationSpeeds[ClassOf(owner, texture)];
+                    tile.onGpu = tile.speed >= kAlwaysSteps;
+                    // Its frame now is (start + the steps made since) mod frames: the tile takes every step from here.
+                    tile.phase = ((tile.frame - owner->tileSteps) % frames + frames) % frames;
+                    s.stepsOnCpu = s.stepsOnCpu || !tile.onGpu;
                     uv = &owner->TileUvAt(rotation, tile.frame + slot.index, 0);
                 }
                 for (int entryRow = 0; entryRow < 3; ++entryRow, record += kSectorRow) {
@@ -375,6 +376,7 @@ void SectorData::Build() {
         }
     }
     animated.resize(animatedCount);
+    stepsOnCpu = false;
 
     TileCounts filled = {};
     FillTiles(*this, tileWords, filled);
@@ -453,10 +455,12 @@ void SectorData::Clear() {
 }
 
 void SectorData::AnimateTiles(int frame) {
-    if (frame % kTileFrameEvery != 0 || !lib::Has(owner->landscapeFlags, LandscapeFlag::AnimatedTiles)) return;
+    if (!stepsOnCpu || frame % kTileFrameEvery != 0 || !lib::Has(owner->landscapeFlags, LandscapeFlag::AnimatedTiles))
+        return;
     bool stepped = false;
     for (AnimatedTile& tile : animated) {
-        if (tile.frame == 0 && tile.speed < kAlwaysSteps &&
+        if (tile.onGpu) continue;
+        if (tile.frame == 0 &&
             g_clientRandom.Next() % kAlwaysSteps + 1 > static_cast<std::uint32_t>(tile.speed)) {
             continue;
         }

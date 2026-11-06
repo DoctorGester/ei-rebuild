@@ -1,4 +1,4 @@
-# R17a: the water's look (docs/notes/renderer.md, "shaders/terrain.hlsl: the water"): small ripples from the ripple
+# R17a: the water's look (docs/notes/renderer.md, "shaders/terrain_water.hlsl: the water"): small ripples from the ripple
 # map, the sky's reflection by Fresnel, colour and opacity from the depth, foam at the shore, the sun's glints. Frozen
 # moments on zone1 for the frame checks and the user's review: the beach at the west sea, the sea, the lake in the
 # middle, the river with stones, the river and the lake at night. Frames only (image); each frozen moment drawn twice

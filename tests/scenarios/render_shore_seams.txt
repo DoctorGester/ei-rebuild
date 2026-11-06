@@ -2,7 +2,7 @@
 # a dotted cyan line ran along the ground's triangle edges where the sand meets the sea: with multisampling an edge
 # pixel is shaded at its centre also for a triangle covering only some of its samples, with the attributes carried
 # past the triangle, and the ground's light lost under the water (0 on the dry sand, more under the water) went below
-# 0 there, which terrain.hlsl took for a water pixel (docs/notes/renderer.md, "shaders/terrain.hlsl: the water").
+# 0 there, which the terrain shader took for a water pixel (docs/notes/renderer.md, "shaders/terrain_water.hlsl: the water").
 # Frozen: the beach multisampled and plain; smoothedges requires the multisampled frame's pixels within the range of
 # their neighbours in the plain one: before the fix 463 of the frame's (0.05%; 280 in the beach's 500 x 100 below the
 # portrait), after it 5 on Rebirth's data and 19 on vanilla's (thin leaves, the hero's and the chicken's edges) and none

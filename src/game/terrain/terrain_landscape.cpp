@@ -243,6 +243,7 @@ void Terrain::Reset() {
     mapName = "none";
     perPage = -1;
     frame = 1;
+    tileSteps = 0;
     waveDirection = {0.0f, 0.0f, 1.0f};
     ambient.x = ambient.y = ambient.z = 0.0f;
     sun = nullptr;
@@ -401,8 +402,11 @@ void Terrain::ReadMap(const MapHeader& header, const std::uint8_t* file) {
 
 void Terrain::BuildUvTables(int tileSize) {
     // A tile's side as a part of the page, and 8 pixels of the page inside each of its edges.
-    const float tileSide = 1.0f / tilesPerRow;
-    const float margin = (tileSide / tileSize) * kMarginPixels;
+    const float side = 1.0f / tilesPerRow;
+    const float margin = (side / tileSize) * kMarginPixels;
+    tileSide = side;
+    uvLocal.clear();
+    for (int rotation = 0; rotation < 4; ++rotation) uvLocal.push_back(BuildTileUv(rotation, 0, 0, side, margin, false));
     for (int rotation = 0; rotation < 4; ++rotation) {
         uvTables[rotation].assign(static_cast<std::size_t>(perPage), TileUv{});
         int index = 0;
