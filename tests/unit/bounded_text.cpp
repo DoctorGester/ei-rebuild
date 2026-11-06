@@ -1,10 +1,12 @@
 // str::BoundedLength and str::CopyInto (src/lib/str.h): text read from a packet or a file stops at its zero byte or
-// at the end of the bytes there are, and text copied into a fixed buffer is cut to fit with its terminator.
+// at the end of the bytes there are, and text copied into a fixed buffer is cut to fit with its terminator. Also
+// libprintf::Arg: a std::string and a std::string_view (not zero-terminated) for a %s.
 #include "../../src/lib/str.h"
 
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <string_view>
 
 namespace {
 
@@ -42,6 +44,14 @@ int RunBoundedTextChecks() {
     char one[1] = {'x'};
     str::CopyInto(one, "abc");
     Check(one[0] == '\0', "a one-byte buffer holds the terminator");
+
+    // A std::string_view cut out of a longer text, handed to a printf-style function for a %s: only its own bytes.
+    const std::string whole = "abcdef";
+    const std::string_view view(whole.data() + 1, 3);
+    char text[32];
+    std::snprintf(text, sizeof(text), "%d:%s:%s", 5, libprintf::Arg(libprintf::Owned(whole)),
+                  libprintf::Arg(libprintf::Owned(view)));
+    Check(std::strcmp(text, "5:abcdef:bcd") == 0, "a std::string_view is handed on by its length");
 
     std::printf("ei_unit_check: bounded text: %d checks, %d failed\n", checks, failures);
     return failures;

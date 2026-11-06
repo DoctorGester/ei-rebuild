@@ -47,15 +47,15 @@ inline float ToFloat(const std::string& s) { return std::strtof(s.c_str(), nullp
 EI_PRINTF_FORMAT(1, 2) std::string Format(const char* format, ...);
 // With a std::string among the arguments: its text is passed for the %s.
 template <class... Args>
-    requires libprintf::HasString<Args...>
+    requires libprintf::HasClass<Args...>
 std::string Format(const char* format, Args&&... args) {
-    return Format(format, libprintf::Arg(std::forward<Args>(args))...);
+    return Format(format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
 }
 // A std::string format.
 template <class F, class... Args>
     requires libprintf::IsString<F>
 std::string Format(F&& format, Args&&... args) {
-    return Format(format.c_str(), libprintf::Arg(std::forward<Args>(args))...);
+    return Format(format.c_str(), libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
 }
 EI_PRINTF_FORMAT(1, 0) std::string FormatV(const char* format, va_list arguments);
 

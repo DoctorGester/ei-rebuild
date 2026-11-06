@@ -47,9 +47,9 @@ EI_PRINTF_FORMAT(1, 2) void SayFormat(const char* format, ...) {
     Say(text.c_str());
 }
 template <class... Args>
-    requires libprintf::HasString<Args...>
+    requires libprintf::HasClass<Args...>
 void SayFormat(const char* format, Args&&... args) {
-    SayFormat(format, libprintf::Arg(std::forward<Args>(args))...);
+    SayFormat(format, libprintf::Arg(libprintf::Owned(std::forward<Args>(args)))...);
 }
 
 // listgvar's object text: "null", or "<" class name ":" id ">".
