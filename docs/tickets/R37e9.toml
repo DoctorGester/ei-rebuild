@@ -1,0 +1,8 @@
+id = "R37e9"
+title = "Per-frame heap churn in the world's draws (ntdll 6.5% of the stress save's main thread)"
+group = "renderer"
+depends = ["R37e3"]
+files = ["src/game/models/link_mesh_draw.cpp"]
+note = "R37e3: the heap's own time (ntdll) is 6.5% of the save's main thread (about 0.6 ms a frame). One source: link_mesh_draw.cpp's KeepScreen makes a std::string of the part's name for mesh->headers[std::string(name)] on every part draw (and DrawPartCommon's ranges.find); others: per-frame vectors, unordered_set inserts (hash emplace 0.9%). Find the allocations per frame (count them in a harness build or a heap trace over 300 frames), use heterogeneous lookup and keep per-frame containers' capacity. Expected 0.3-0.5 ms. Measure with the R37e3 kit (build/r37e3 in the main checkout: the save5 scenario, probe.patch's main-thread parts, gputiming) at 4K msaa 8, one game at a time; renderer.md section 13 item 2a."
+order = 1263
+status = "later"

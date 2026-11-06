@@ -449,8 +449,14 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (point == 7) failures->push_back("losedevice needs commands, pass, uniforms, acquire, submit, write or wait");
         else if (driver != "direct3d12") failures->push_back("losedevice: Direct3D 12 only, not " + driver);
         else render::gpu::LoseDeviceAt(static_cast<render::gpu::LossPoint>(point), LoseDevice);
+    } else if (verb == "gputiming") {
+        if (argument == "off") render::gpu::SetGpuTiming(render::gpu::GpuTiming::Off);
+        else if (argument == "frame") render::gpu::SetGpuTiming(render::gpu::GpuTiming::Frame);
+        else if (argument == "pass") render::gpu::SetGpuTiming(render::gpu::GpuTiming::Pass);
+        else failures->push_back("gputiming needs off, frame or pass");
     } else if (verb == "renderstats") {
         render::FrameStats t = render::TakeFrameStats();
+        const render::gpu::GpuTimes gpuTimes = render::gpu::TakeGpuTimes();
         // The main thread's CPU time (its cycles, in milliseconds by the thread's CPU time so far, as the
         // TIMING lines) and the wall time since the last renderstats (R16h: what a frame costs the main
         // thread, the game's work with the renderer's). Differences of whole counts first: the main thread
@@ -511,6 +517,19 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             frameWallMs / n, quality.msaa, quality.targetSamples, quality.deviceSamples, quality.anisotropy);
         Log("harness: %s", text);
         frames->push_back(text);
+        // The GPU's times ("gputiming"), only logged: they differ from run to run.
+        if (gpuTimes.frames > 0) {
+            std::string parts;
+            for (const auto& [label, partMs] : gpuTimes.parts) {
+                char part[96];
+                std::snprintf(part, sizeof(part), "%s%s %.3f", parts.empty() ? "" : ", ", label.c_str(), partMs);
+                parts += part;
+            }
+            Log("harness: renderstats %s GPU ms a frame: %.3f (median %.3f, p10 %.3f, p90 %.3f; %d frames, %.0f%% of the "
+                "submissions sent while the GPU ran the one before)%s%s",
+                argument.c_str(), gpuTimes.meanMs, gpuTimes.medianMs, gpuTimes.p10Ms, gpuTimes.p90Ms, gpuTimes.frames,
+                gpuTimes.waited * 100.0, parts.empty() ? "" : "; by pass: ", parts.c_str());
+        }
     } else {
         return false;
     }

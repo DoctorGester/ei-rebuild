@@ -1,0 +1,8 @@
+id = "R37e4"
+title = "Terrain pages handed over every frame: 1.55 ms of the stress save's main thread"
+group = "renderer"
+depends = ["R37e3"]
+files = ["src/render/render_terrain.cpp", "src/game/terrain/terrain_sector.cpp"]
+note = "R37e3: in the user's LiA save (gz1h, 529 pages a frame, 502 the same as the last frame) the ground's hand-over takes 1.08 ms and the water's 0.48 ms of a 9 ms main-thread frame; the profile's own time is in render::TerrainPage (8.3%), MakeVertex (3%), Build, BuildPage, MakeGroups and ChangesOf (5%): every visible page's quarters are walked and its colours compared with the kept records each frame. Hand over unchanged pages by a version (sector, tile lists, animated tiles, water) without reading their vertices, so a still page costs a lookup; keep terraincache check at 0 stale. Expected 1 ms or more on this save, little in the towns. Measure with the R37e3 kit (build/r37e3 in the main checkout: the save5 scenario, probe.patch's main-thread parts, gputiming) at 4K msaa 8, one game at a time; renderer.md section 13 item 2a."
+order = 1258
+status = "later"

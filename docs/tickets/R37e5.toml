@@ -1,0 +1,8 @@
+id = "R37e5"
+title = "The device's CPU projection of every mesh draw (0.96 ms) for meshes kept on the GPU"
+group = "renderer"
+depends = ["R37e3"]
+files = ["src/game/scene/device_mesh.cpp", "src/game/scene/device_draw.cpp", "src/game/scene/pipeline.cpp"]
+note = "R37e3: device_mesh.cpp's draw (ProjectAndDraw) projects every corner of every mesh on the CPU for the visibility verdict and the screen rectangle (draw flag 1, picking): 0.96 ms of the save's frame (TransformPipeline::Project 5%, ProjectToClip, ClipTest, PushMatrix 4.4% of the main thread) for about 1750 static meshes. Where no screen rectangle is asked and the mesh is kept on the GPU, the verdict from the kept mesh's box (CachedMeshBox) through the clip matrix would do; what the game reads back (section 3: visibility gates client animation and picking) must stay the same, so check the goldens 0 differ and the picking scenarios. Expected 0.5-0.8 ms on the save. Measure with the R37e3 kit (build/r37e3 in the main checkout: the save5 scenario, probe.patch's main-thread parts, gputiming) at 4K msaa 8, one game at a time; renderer.md section 13 item 2a."
+order = 1259
+status = "later"

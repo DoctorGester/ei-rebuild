@@ -258,6 +258,8 @@ struct Submission {
     double submitted = 0.0;  // NowMs()
     bool done = false;
     double gpuMs = -1.0;   // the frame timer's, when it saw it finish
+    const char* label = nullptr;   // GpuTiming::Pass's: the pass it holds ("upload", null: other work)
+    bool presents = false;         // the frame's present (GpuTiming's frames)
 };
 static std::mutex g_fenceLock;
 static std::deque<Submission> g_submissions;
@@ -271,12 +273,41 @@ static WaitTimes g_waits;           // the main thread's (Waits)
 static bool g_lost = false;         // DeviceLost's answer, kept once it is yes
 static std::string g_lostReason;
 
+// GPU time by pass (SetGpuTiming): the open command buffer's label, the times summed by label and frame.
+static std::atomic<GpuTiming> g_gpuTiming{GpuTiming::Off};
+static const char* g_submitLabel = nullptr;
+static const char* g_passLabel = nullptr;   // the open pass's
+static bool g_passOnSwapchain = false;
+struct TimingSums {
+    std::vector<std::pair<std::string, double>> parts;
+    std::vector<double> frames;
+    double frame = 0.0;   // the frame being finished, so far
+    int submissions = 0, waited = 0;
+};
+static TimingSums g_timingSums;   // under g_fenceLock
+
 // Under g_fenceLock.
 static void MarkDone(Submission& s, bool timed) {
     s.done = true;
     if (!timed) return;
     const double now = NowMs();
     s.gpuMs = now - std::max(s.submitted, g_lastFinished);
+    if (g_gpuTiming.load() != GpuTiming::Off) {
+        TimingSums& t = g_timingSums;
+        if (g_gpuTiming.load() == GpuTiming::Pass) {
+            const std::string label = s.label ? s.label : "other";
+            auto part = std::find_if(t.parts.begin(), t.parts.end(), [&label](const auto& p) { return p.first == label; });
+            if (part == t.parts.end()) t.parts.emplace_back(label, s.gpuMs);
+            else part->second += s.gpuMs;
+        }
+        ++t.submissions;
+        if (g_lastFinished > s.submitted) ++t.waited;
+        t.frame += s.gpuMs;
+        if (s.presents) {
+            t.frames.push_back(t.frame);
+            t.frame = 0.0;
+        }
+    }
     g_lastFinished = now;
     g_latestGpuMs = s.gpuMs;
 }
@@ -306,9 +337,13 @@ static void PollFences(bool timed) {
 }
 
 static void TimerThread() {
+    // Measuring: a sleep of 0.2 ms would round the passes' times up to it, and a busy machine makes the poller late.
+    const bool measuring = g_gpuTiming.load() != GpuTiming::Off;
+    if (measuring) SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_TIME_CRITICAL);
     while (g_timing.load()) {
         PollFences(true);
-        SDL_DelayNS(200000);
+        if (measuring) std::this_thread::yield();
+        else SDL_DelayNS(200000);
     }
 }
 
@@ -1282,7 +1317,14 @@ bool BeginPass(const PassDesc& pass) {
         return false;
     }
     MeetLoss(LossPoint::Pass);
+    const bool copies = !g_copies.empty();
     Flush();
+    if (g_gpuTiming.load() == GpuTiming::Pass && copies && !g_swapchainTaken) {
+        g_submitLabel = "upload";
+        Submit();
+    }
+    g_passLabel = pass.label ? pass.label : "pass";
+    g_passOnSwapchain = pass.colour.texture.swapchain;
     SDL_GPUCommandBuffer* commands = Commands();
     if (!commands) return false;
     SDL_GPUColorTargetInfo colours[2]{};
@@ -1333,6 +1375,12 @@ void EndPass() {
     }
     SDL_EndGPURenderPass(g_pass);
     g_pass = nullptr;
+    // Timed by pass: sent now, but not a pass drawn after the swap chain's texture was taken into another target (the
+    // gamma ramp's check), whose submission would present the swap chain's texture before its own pass.
+    if (g_gpuTiming.load() == GpuTiming::Pass && (!g_swapchainTaken || g_passOnSwapchain)) {
+        g_submitLabel = g_passLabel;
+        Submit();
+    }
 }
 
 bool InPass() { return g_pass != nullptr; }
@@ -1594,6 +1642,8 @@ bool AcquireSwapchain(Texture* target) {
 
 bool Submit() {
     if (!g_device) return false;
+    // Timed by pass, the frame's last pass was sent at its end: nothing is left.
+    if (g_gpuTiming.load() == GpuTiming::Pass && !g_commands && g_copies.empty()) return true;
     MeetLoss(LossPoint::Submit);
     if (g_pass) {
         Problem("a submission inside a pass");
@@ -1607,6 +1657,7 @@ bool Submit() {
     SDL_GPUCommandBuffer* commands = Commands();
     if (!commands) return false;
     g_commands = nullptr;
+    const bool presents = g_swapchainTaken;
     g_swapchainTaken = false;
     g_swapchainTexture = Texture{};
     const double submitted = NowMs();
@@ -1626,6 +1677,9 @@ bool Submit() {
     g_ring.cycles = 0;
     std::lock_guard<std::mutex> lock(g_fenceLock);
     g_submissions.push_back({serial, fence, submitted});
+    g_submissions.back().label = g_submitLabel;
+    g_submissions.back().presents = presents;
+    g_submitLabel = nullptr;
     // Without the frame timer nothing else asks the older fences, so every submission's fence was kept: thousands a
     // minute, until Dozen on WSL (D3D12 fences) refused new ones. The timer's own marks keep their times.
     if (!g_timing.load()) MarkFinished(false);
@@ -1678,6 +1732,40 @@ void SetFrameTiming(bool on) {
     } else if (g_timer.joinable()) {
         g_timer.join();
     }
+}
+
+void SetGpuTiming(GpuTiming mode) {
+    if (mode == g_gpuTiming.load()) return;
+    SetFrameTiming(false);   // the timer thread reads the mode as it starts
+    g_gpuTiming.store(mode);
+    {
+        std::lock_guard<std::mutex> lock(g_fenceLock);
+        g_timingSums = TimingSums{};
+    }
+    if (mode != GpuTiming::Off) SetFrameTiming(true);
+}
+
+GpuTimes TakeGpuTimes() {
+    std::lock_guard<std::mutex> lock(g_fenceLock);
+    TimingSums& t = g_timingSums;
+    GpuTimes times;
+    times.frames = static_cast<int>(t.frames.size());
+    if (times.frames > 0) {
+        std::vector<double> sorted = t.frames;
+        std::sort(sorted.begin(), sorted.end());
+        double sum = 0.0;
+        for (double ms : sorted) sum += ms;
+        const std::size_t n = sorted.size();
+        times.meanMs = sum / static_cast<double>(n);
+        times.medianMs = sorted[n / 2];
+        times.p10Ms = sorted[n / 10];
+        times.p90Ms = sorted[n * 9 / 10];
+        times.waited = t.submissions ? static_cast<double>(t.waited) / t.submissions : 0.0;
+        for (const auto& [label, ms] : t.parts) times.parts.emplace_back(label, ms / static_cast<double>(n));
+        std::sort(times.parts.begin(), times.parts.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+    }
+    t = TimingSums{};
+    return times;
 }
 
 bool FrameGpuTime(double* milliseconds) {
