@@ -193,7 +193,8 @@ tools\savefile.py show|diff|rules`).
 Unit checks (`tests/unit`, `ei_unit_check.exe`, run by build.cmd): the settings file's format and lib::HashMap's walk
 order, without the game.
 
-Timing runs: `EI_PROFILE=1` samples the main thread into the run's `profile.txt` (`python tools\profile_report.py <run
+Timing runs go through `work.py test ID --quiet ...` (H64: each game alone, no build beside it; before it, R37f1's
+build measured 9.1 ms in R37e3's runs and 11.7 ms in its own on a busy machine). `EI_PROFILE=1` samples the main thread into the run's `profile.txt` (`python tools\profile_report.py <run
 folder>`: time per function between harness steps; names from the x64 `.map`; the log's stamps move to the run's zone,
 EET-2, once the harness sets TZ, and the report takes them back by whole hours). The stack is scanned, not walked, so a
 stretch's "total" list holds stale return addresses (free_base, string constructors at 80%): read "self" first.

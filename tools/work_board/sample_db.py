@@ -1,7 +1,8 @@
 """Fills a work.db with sample rows to look at the board's pages: python tools/work_board/sample_db.py PATH.
 
 Run the server against it with WORK_DB=PATH python tools/work.py serve. Refuses to touch the real
-database (build/live/work.db) and replaces whatever the file held.
+database (build/live/work.db) and replaces whatever the file held. Builds show while a process holds their ticket
+(tools/build_gate.Ticket in <folder of PATH>/builds), so there are none in the sample.
 """
 import datetime, json, os, sys
 
@@ -47,7 +48,7 @@ def main():
                 db.execute('INSERT INTO run (batch, scenario, install, state, slot, started, seconds, expected, result, failures, alone) '
                            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                            (cur.lastrowid, scenario, install, rstate, slot, ago(seconds) if rstate == 'running' else None,
-                            seconds if rstate == 'finished' else None, expected, result, json.dumps(failures), int(scenario == 'display_modes')))
+                            seconds if rstate == 'finished' else None, expected, result, json.dumps(failures), int(scenario.startswith('timing'))))
             return cur.lastrowid
 
         batch('WB2', 'finished', 9000, 8900, 8300, 0, [('newgame', 'rebirth', 'finished', 0, 120, 110, 'PASS', []),
@@ -66,6 +67,8 @@ def main():
             ('economy', 'rebirth', 'finished', 1, 400, 380, 'FAIL', ['FAILED: Economy::Tick mismatch at frame 77'])])
         batch('WB3', 'queued', 100, None, None, None, [('newgame', 'rebirth', 'queued', None, None, 110, None, []),
                                                        ('combat', 'rebirth', 'queued', None, None, 200, None, [])])
+        # a quiet batch (work.py test --quiet): its runs are alone runs
+        batch('R37F2', 'queued', 60, None, None, None, [('timing_town', 'standalone', 'queued', None, None, 45, None, [])])
         for name, beat, info in (('scheduler', 3, None),):
             db.execute('INSERT INTO process (name, pid, started, heartbeat, info) VALUES (?, ?, ?, ?, ?)', (name, os.getpid(), ago(3600), ago(beat), info))
     db.close()

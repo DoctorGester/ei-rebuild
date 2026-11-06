@@ -18,6 +18,7 @@ git branches the open assignments point at, and serves the pages in this folder.
     GET /api/runs              queued and running batches with their games, and the history
     GET /api/batch/<id>        one batch with all its games
     GET /api/processes         scheduler / server alive or not (heartbeat age)
+    GET /api/machine           the builds running now (build/live/builds, tools/build_gate.py) and the quiet run
 """
 import datetime, http.server, importlib, json, os, re, socketserver, subprocess, sys, threading, time
 
@@ -285,6 +286,7 @@ class Board:
             'total': len(runs), 'queued': sum(r['state'] == 'queued' for r in runs),
             'running': sum(r['state'] == 'running' for r in runs), 'done': len(done),
             'games_running': sum(games_of(b['worktree'], r['scenario']) for r in runs if r['state'] == 'running'),
+            'quiet': any(r['alone'] for r in runs),
             'passed': len(done) - len(failed), 'failed': len(failed),
             'expected': sum(r['expected'] or 0 for r in runs),
         }
@@ -307,6 +309,47 @@ class Board:
         return {'running': [self.batch_json(db, b, games=True) for b in rows if b['state'] == 'running'],
                 'queued': [self.batch_json(db, b, games=True) for b in rows if b['state'] == 'queued'],
                 'history': [self.batch_json(db, b) for b in hist]}
+
+    # ---- the machine: builds and the quiet run (H64)
+
+    def build_gate(self):
+        if 'build_gate' not in sys.modules:
+            sys.path.insert(0, TOOLS)
+        return importlib.import_module('build_gate')
+
+    def machine(self, db, runs=None):
+        """The builds holding a ticket now, oldest first, and the first quiet batch not finished: holding (its game
+        plays), gathering (it is at the head of the queue: no new game or build starts, it waits for the games and
+        builds running) or queued (behind other batches), with what waits on it."""
+        folder = os.path.join(os.path.dirname(self.work.db_path()), 'builds')
+        builds = []
+        for b in self.build_gate().builds(folder, clean=False):
+            builds.append({'id': b['id'], 'checkout': b.get('checkout') or '', 'name': os.path.basename(b.get('checkout') or ''),
+                           'config': b.get('config'), 'stage': b.get('stage'), 'done': b.get('done'), 'total': b.get('total'),
+                           'queued': b.get('queued'), 'started': b.get('started'), 'compiling': b['compiling'],
+                           'elapsed': seconds_since(b.get('started')), 'waited': seconds_since(b.get('queued'))
+                           if not b.get('started') else span(b.get('queued'), b.get('started'))})
+        runs = runs or self.runs(db)
+        open_batches = sorted(runs['running'] + runs['queued'], key=lambda b: b['id'])
+        quiet = next((b for b in open_batches if b['quiet'] and (b['queued'] or b['running'])), None)
+        out = {'builds': builds, 'quiet': None}
+        if quiet:
+            head = next((b for b in open_batches if b['queued']), None)
+            holding = any(g['alone'] and g['state'] == 'running' for g in quiet['games'])
+            gathering = not holding and head is quiet and all(g['alone'] for g in quiet['games'] if g['state'] == 'queued')
+            others = [b for b in open_batches if b is not quiet]
+            out['quiet'] = {
+                'id': quiet['id'], 'ticket': quiet['ticket'], 'worktree': quiet['worktree'],
+                'state': 'holding' if holding else 'gathering' if gathering else 'queued',
+                'game': next(({'scenario': g['scenario'], 'install': g['install'], 'elapsed': g['elapsed']}
+                              for g in quiet['games'] if g['alone'] and g['state'] == 'running'), None),
+                'games_left': quiet['queued'] + quiet['running'], 'since': quiet['started'] or quiet['submitted'],
+                'games_running': sum(b['games_running'] for b in others),           # what it waits for while gathering
+                'builds_running': sum(b['compiling'] for b in builds),
+                'builds_waiting': sum(not b['compiling'] for b in builds),          # what waits for it
+                'batches_waiting': [{'id': b['id'], 'ticket': b['ticket']} for b in others if b['queued']],
+            }
+        return out
 
     # ---- tickets
 
@@ -368,7 +411,9 @@ class Board:
         return out
 
     def status(self, db):
-        return {'time': self.work.now(), 'processes': self.processes(db), 'runs': self.runs(db), **self.tickets(db)}
+        runs = self.runs(db)
+        return {'time': self.work.now(), 'processes': self.processes(db), 'runs': runs, 'machine': self.machine(db, runs),
+                **self.tickets(db)}
 
 
 # ---- the server process's own row
@@ -475,6 +520,8 @@ def make_handler(board):
                             return self.json(board.runs(db))
                         if path == '/api/processes':
                             return self.json(board.processes(db))
+                        if path == '/api/machine':
+                            return self.json(board.machine(db))
                         if path == '/api/status':
                             return self.json(board.status(db))
                         if path.startswith('/api/batch/') and path[11:].isdigit():

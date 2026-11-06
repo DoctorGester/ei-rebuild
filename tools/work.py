@@ -15,9 +15,11 @@ usage: python tools/work.py start ID [--worktree P] [--branch B] [--agent A]
        python tools/work.py serve [--port 8765]
                                             the live board on http://127.0.0.1:PORT/ (tools/work_board/)
                                             and the ticket board, live, on /tickets/
-       python tools/work.py test ID [run_all args]
+       python tools/work.py test ID [--quiet] [run_all args]
                                             run_all's runs as one batch through the scheduler; waits,
-                                            prints run_all's lines and summary, returns its exit code
+                                            prints run_all's lines and summary, returns its exit code;
+                                            --quiet: each game runs with no other game and no build on
+                                            the machine (timing runs)
        python tools/work.py scheduler       the machine's one test scheduler (`test` starts it)
 
 The database is build/live/work.db in the MAIN checkout (found from any worktree through

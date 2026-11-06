@@ -689,6 +689,9 @@ machine), and the debug build's incremental link of ei_perf_check.exe (`LNK1000 
   (`build_retry: the build failed in steps that printed no error ...`) and builds once more. Any other failure, and a
   second failure, ends the build as before. A build through a pipe shows ninja's plain `[n/m]` lines, one per step.
   tools/test_build_retry.py checks the reading of a failed log.
+- **The build gate (H64):** build.cmd runs itself again under tools/build_gate.py, which waits while a quiet test run
+  holds the machine and puts the build's stage and ninja's `[n/m]` on the work board (docs/notes/work-board.md,
+  "Builds"). A build that prints `build_gate: a quiet run ... holds the machine` starts on its own when that run ends.
 
 ### The harness in the image
 

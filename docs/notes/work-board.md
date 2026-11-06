@@ -34,7 +34,7 @@ Keep every write transaction short: never across a game, a subprocess or a sleep
     work.py start ID [--model M]       assign the ticket to this checkout; status running
     work.py note ID TEXT...            a progress line
     work.py test ID [run_all args]     a batch through the scheduler; waits, prints run_all's lines and summary, same
-                                       exit code; Ctrl+C cancels its queued runs (exit 130)
+                                       exit code; Ctrl+C cancels its queued runs (exit 130); --quiet: a quiet batch
     work.py status [ID]                assignments, last notes and commits, batches
     work.py done ID [TEXT...]          end the assignment (the coordinator, at merge); "merged ..." also sets done
     work.py serve [--port 8765]        the live board
@@ -49,7 +49,15 @@ build/live/scheduler.lock, leaves after 120 s with nothing queued; log in build/
 - `test` parses the arguments with run_all's parser (bad ones fail at once), expands them with `run_all.plan()` in the
   submitting checkout (its verify build, or EI_BUILD_DIR) and writes the batch and its runs in one transaction.
 - Order: batches by id; within one, expected time descending, alone runs last. A batch takes every free slot; later
-  batches backfill. An alone run gathers every slot and runs by itself. A retry's game is granted before anything new.
+  batches backfill. A retry's game is granted before anything new.
+- Quiet batches (H64; `work.py test ID --quiet ...`, for timing runs): every run is an alone run. Once the earliest
+  batch with queued runs has only alone runs left, the scheduler takes the alone gate (run_all's SLOT_DIR/alone): no
+  new game of any scheduler or run_all and no new build (below) starts from then on, and no later batch backfills.
+  It gathers every slot and starts the run once none of its own games plays (frame packing included) and no build
+  compiles; the run keeps every slot to its end and the gate stays held between the batch's runs, so a quiet batch of
+  several scenarios plays them one at a time on an otherwise idle machine. A quiet batch behind others waits its turn
+  as any batch; the games already running when it gathers finish (they are never stopped). Before H64 a backfill
+  batch that batch_priority put ahead of the gathering batch took each slot it freed.
 - A run folder (`<build>/runs/<scenario>-<install>`) belongs to the earlier batch that has a run in it until that batch's
   `work.py test` has ended (its `--golden` comparison reads the folders after the last game): a later batch's run in the
   same folder waits (`reserved_folders`; only earlier batches block, so batches cannot wait on each other). Before
@@ -68,12 +76,31 @@ build/live/scheduler.lock, leaves after 120 s with nothing queued; log in build/
   pids, and a later `work.py test` given a finished batch's pid once held that batch's run folders against its own run
   forever (R52c1).
 
+## Builds
+
+build.cmd runs itself again under tools/build_gate.py (H64), which holds a build ticket in `<live>/builds` (next to
+work.db; WORK_DB moves it) for the whole build, configure to build checks:
+- `<id>.lock`, byte-locked for the wrapper's life: the build exists. A killed or crashed build's lock goes with its
+  process; the next lister (a build starting, the scheduler) removes its files. Never marker files alone.
+- `<id>.compile`, held while it builds. Before it starts, the build takes it and then looks at the alone gate; while a
+  quiet run holds the gate it lets go of it, prints once that it waits (with the quiet batch), and looks again every
+  second. The scheduler takes the gate first and then waits while any `.compile` is held: each side locks its own
+  file before it looks at the other's, so of the two starting at once at least one sees the other.
+- `<id>.json`: checkout, config, stage (waiting, configure, compile, checks), ninja's `[n/m]` (tools/build_retry.py
+  writes it from ninja's status lines, at most twice a second) and times. Best effort: a replace that meets a reader
+  is tried again or left for the next line.
+`python tools/build_gate.py list` prints the running builds. A build whose wrapper cannot take a ticket builds without
+the gate (and says so). Tests: tools/test_build_gate.py.
+
 ## Server
 
 `work.py serve` (tools/work_board/; 127.0.0.1 only, Host header check) on http://127.0.0.1:8765/: `#tickets` (worker,
 last note, last commit, the latest batch) and `#runs` (queue, running batch, history); `/tickets/` is the ticket board
 with live statuses. Read-only connections; JSON endpoints `/api/status`, `/api/tickets`, `/api/runs`,
-`/api/batch/<id>`, `/api/processes`. Test data: `python tools/work_board/sample_db.py <path>`, then `WORK_DB=<path>
+`/api/batch/<id>`, `/api/processes`, `/api/machine` (H64: the builds and the quiet run). `#runs` shows the quiet run
+(holding the machine, clearing it with the games and builds it waits for, or queued) with what waits on it, and a
+Builds lane (ticket, checkout, config, `[n/m]`, stage, time); a worker's card shows its build in progress; the header
+has a `quiet run #N` pill while one holds or clears the machine. Test data: `python tools/work_board/sample_db.py <path>`, then `WORK_DB=<path>
 python tools/work.py serve`.
 
 ## Run data
@@ -81,7 +108,7 @@ python tools/work.py serve`.
 - Frames are packed as `<name>.bmp.z` (tools/frame_store.py: each byte XORed with the byte one pixel before, then zlib
   level 3; lossless) in processes of their own at below-normal priority; compare_frames.py and the frame listings read
   either form.
-- Tests: tools/test_work_sched.py, tools/test_tickets.py, tools/test_frame_store.py, tools/test_install_watch.py.
+- Tests: tools/test_work_sched.py, tools/test_build_gate.py, tools/test_tickets.py, tools/test_frame_store.py, tools/test_install_watch.py.
 
 ## Games at once
 
