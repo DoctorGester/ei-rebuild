@@ -118,8 +118,10 @@ terrain_sector.h), `terrain.cpp`, `terrain_landscape.cpp`, `terrain_lights.cpp`,
   fade byte. The GPU lights the terrain: the original's vertex lighting, sun shadow ray march, point light areas and
   relight countdowns are not ported (renderer.md says what looks different); `AddLight` / `RemoveLight` keep only the
   table of shown lights (it holds them: removing a light it never registered releases nothing).
-- Waves and animated tiles: `SectorData::AnimateTiles` / `AnimateWaves` (terrain_sector.cpp); the tiles draw from the client effects' generator
-  (`g_clientRandom`, core.md "Random generators"). Animate's sine index uses 256 / pi as a double.
+- Animated tiles: `SectorData::AnimateTiles` (terrain_sector.cpp); the tiles draw from the client effects' generator
+  (`g_clientRandom`, core.md "Random generators"). Waves: nothing moves them per frame; `Terrain::WaterVertex`
+  (terrain.cpp) works a water vertex out where a height query asks, terrain.hlsl's `waved` the drawn ones (renderer.md
+  section 13, item 3).
 - Ambience: sixteen sound classes (name, variants, weight, pan limit, chance %); the class votes are sorted by the
   game's qsort (`ByWeight`).
 - The original's faults, fixed: HeightAt with only a cell's diagonal corners (v00, v11) gives their mean height

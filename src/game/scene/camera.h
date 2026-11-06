@@ -57,9 +57,9 @@ constexpr bool NoPadding(const CameraKey*) {
     return lib::FieldsFill<&CameraKey::time, &CameraKey::reserved, &CameraKey::position, &CameraKey::rotation>();
 }
 
-// Average, lowest and highest surface height on a grid of `step` spacing over
-// [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
-// counts once more).
+// Average, lowest and highest surface height (the water at rest, Terrain::CalmSurfaceHeight: the camera does not bob
+// with the waves) on a grid of `step` spacing over [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off
+// the map skipped; the centre counts once more).
 struct TerrainSample {
     float average = 0.0f;
     float minimum = 0.0f;

@@ -367,8 +367,8 @@ void ClearDepth(float z, const Rect* rects, int count);
 void TerrainPass(const terrain::Terrain* terrain, const SceneRenderer* renderer, int firstPage, int lastPage,
                  std::span<const terrain::SectorData* const> drawn);
 // What the zone's mesh holds of a sector changed: Rebuilt, its tile lists and records (Build); Moved, the animated
-// tiles' texture coordinates; WaterMoved, the water layer's positions and crests (the waves, a water level); Dropped,
-// the sector is cleared or deleted (its place in the mesh is built again from what the grid holds then).
+// tiles' texture coordinates; WaterMoved, the water layer's positions at rest (a water level; the waves are the
+// GPU's); Dropped, the sector is cleared or deleted (its place in the mesh is built again from what the grid holds then).
 enum class TerrainChange { Rebuilt, Moved, WaterMoved, Dropped };
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
 

@@ -8,16 +8,13 @@
 #include "game/core/random.h"
 #include "render/render.h"
 #include "game/terrain/terrain.h"
-#include "game/world/world.h"
 
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
-#include "lib/rounding.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdint>
 #include <format>
@@ -47,27 +44,8 @@ constexpr std::uint8_t kFlagWaterTiles = 2;
 constexpr int kTextureClasses = 16;
 constexpr int kFallbackClass = 0xF;
 
-constexpr float kSineIndex = 256.0f / 3.14159265f;        // table entries per radian
-constexpr float kQuarterTurn = 0.785398126f;
-constexpr float kTimeScale = 0.05f;                        // the circling waves' speed per world tick
-constexpr float kGlowScale = 50.0f;
-constexpr float kRiseScale = 0.25f;
-constexpr float kCircleScale = 3.0f;
 constexpr int kTileFrameEvery = 3;                         // animated tiles step every third frame
 constexpr int kAlwaysSteps = 1000;                         // a tile speed that steps every time
-
-// The sine table entry at `phase` radians: phase * 256 / pi rounded to nearest, mod 512.
-inline float Sine(const Terrain* owner, float phase) { return owner->sine[lib::RoundAway(phase * kSineIndex) & 0x1FF]; }
-
-inline std::uint32_t ColourByte(float v) { return static_cast<std::uint32_t>(lib::RoundAway(v)) & 0xFF; }
-
-// The circling waves' sine per column (and per row: the same values) at the world time, once per call.
-std::array<float, kSectorRow> CircleSines(const Terrain* owner) {
-    float time = (g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale;
-    std::array<float, kSectorRow> sines;
-    for (int i = 0; i < kSectorRow; ++i) sines[i] = Sine(owner, i * kQuarterTurn + time);
-    return sines;
-}
 
 // A tile's entries (3 x 3 vertices).
 constexpr int kTileEntries = TileUv::kVertices;
@@ -159,7 +137,6 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                 record.materialByte = s.owner->materials[material].opacityByte;
                 record.materialColour = s.owner->materials[material].colour;
             }
-            record.position = vertex;
             s.records[ground].depth = vertex.z - s.vertices[ground].z;
         }
         std::uint32_t normal = lib::Load<std::uint32_t>(source + 4);
@@ -430,7 +407,6 @@ void SectorData::ApplyWaterLevels() {
         for (int i = kSectorVertices; i < 2 * kSectorVertices; ++i) {
             SectorVertex& record = records[i];
             if (record.waterMaterial != id) continue;
-            record.position.z = level + record.position.z;
             vertices[i].z = level + vertices[i].z;
         }
         levels[id] = 0.0f;
@@ -493,81 +469,6 @@ void SectorData::AnimateTiles(int frame) {
         }
     }
     if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the zone's meshes
-}
-
-// Every water vertex has a phase offset (owner wavePhases); the phase along the wave direction runs from the
-// sector's first water vertex (mod 2 pi) and steps by the direction per vertex. The 512-entry sine table at
-// that phase lifts the vertex (by waveHeight times the material's priority) and gives the crest its specular
-// colour; materials of kind kKeepsGroundXY move the vertex sideways (only where its depth is negative), the
-// others up and in a circle driven by the world time (its sines per column and row once per call: CircleSines).
-void SectorData::AnimateWaves() {
-    if (!hasWater || !lib::Has(owner->landscapeFlags, LandscapeFlag::Waves)) return;
-
-    SectorPosition* positions = &vertices[kSectorVertices];
-    SectorVertex* water = &records[kSectorVertices];
-    const float* phaseOffset = owner->wavePhases.data();
-    Vector2 direction = XY(owner->waveDirection);
-    float height = owner->waveHeight;
-    float phase = owner->wavePhase;
-    float fullTurn = kPi + kPi;
-    Vector2 first = XY(positions[0]);
-    float rowStart = std::fmod(Dot2D(direction, first) + fullTurn, fullTurn);
-
-    int lastMaterial = kNoMaterial;
-    float lastTurn = 0.0f;
-    float amplitude = 0.0f;
-    int kind = 0;
-    Vector3 crest = {0.0f, 0.0f, 0.0f};
-    std::array<float, kSectorRow> circle{};
-    bool circling = false;
-    for (int row = 0; row < kSectorRow; ++row) {
-        float along = rowStart;
-        for (int column = 0; column < kSectorRow; ++column, ++phaseOffset) {
-            SectorVertex& record = water[row * kSectorRow + column];
-            SectorPosition& position = positions[row * kSectorRow + column];
-            int material = record.waterMaterial;
-            if (material != SectorVertex::kNoWaterMaterial) {
-                if (material != lastMaterial) {
-                    const TerrainMaterial& m = owner->materials[material];
-                    amplitude = height * m.priority;
-                    kind = m.kind;
-                    float glow = owner->waveGlow * m.priority * kGlowScale;
-                    crest = {glow * m.waveColour.x, glow * m.waveColour.y, glow * m.waveColour.z};
-                    float turn = std::fmod(phase * m.priority, fullTurn);
-                    float delta = turn - lastTurn;
-                    lastTurn = turn;
-                    rowStart += delta;
-                    along += delta;
-                    lastMaterial = material;
-                }
-                float wave = Sine(owner, along + *phaseOffset);
-                if (!SignBit(wave)) {
-                    record.specular = PackArgb(record.specular >> 24, ColourByte(wave * crest.x), ColourByte(wave * crest.y),
-                                               ColourByte(wave * crest.z));
-                } else {
-                    record.specular &= 0xFF000000u;
-                }
-                float lift = wave * amplitude;
-                if (kind == TerrainMaterial::kKeepsGroundXY) {
-                    if (SignBit(record.depth)) {
-                        position.x = lift + record.position.x;
-                        position.y = lift + record.position.y;
-                    }
-                } else {
-                    position.z = lift * kRiseScale + record.position.z;
-                    if (!circling) {
-                        circle = CircleSines(owner);
-                        circling = true;
-                    }
-                    position.x = circle[column] * amplitude * kCircleScale + record.position.x;
-                    position.y = circle[row] * amplitude * kCircleScale + record.position.y;
-                }
-            }
-            along += direction.x;
-        }
-        rowStart += direction.y;
-    }
-    render::TerrainChanged(this, render::TerrainChange::WaterMoved);
 }
 
 } // namespace terrain

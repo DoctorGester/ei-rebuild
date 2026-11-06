@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; hooks on; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 40FE5FD2 n 176
+@ 0 update 20 frame 3 tick 20 zone - hash 6FA8319C n 176
 + world world
 world tick 20
 world updates 20
@@ -1318,16 +1318,13 @@ water-1 phase 6.22334576
 + water0 sector 0 0
 water0 water 85
 water0 positions 0x1B95D06B
-water0 speculars 0xD4852515
 + water1000 sector 0 1
 water1000 water 1085
 water1000 positions 0x1A593BAA
-water1000 speculars 0xD771B306
 + water1001 sector 1 1
 water1001 water 153
 water1001 positions 0x08AD8D5F
-water1001 speculars 0x72A3B795
-@ 1 update 40 frame 7 tick 40 zone gz1g hash A1696A1D n 866
+@ 1 update 40 frame 7 tick 40 zone gz1g hash C4B84B0E n 866
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -7477,135 +7474,102 @@ cunit1000011214 #vitals 7D2D89BA
 water-1 frame 40
 water-1 phase 5.83438492
 water0 water 1089
-water0 positions 0x7EB79800
-water0 speculars 0xE04AB026
+water0 positions 0x61298954
 + water1 sector 1 0
 water1 water 1089
-water1 positions 0xA2F4688D
-water1 speculars 0x62462C95
+water1 positions 0x4A7BD8EF
 + water2 sector 2 0
 water2 water 1089
-water2 positions 0xCBDF21CD
-water2 speculars 0x62462C95
+water2 positions 0xD1F7ECE5
 + water3 sector 3 0
 water3 water 973
-water3 positions 0x5E1E840E
-water3 speculars 0x0EE0C575
+water3 positions 0x4CEB0C41
 + water4 sector 4 0
 water4 water 1039
-water4 positions 0x339A24AF
-water4 speculars 0x34A50745
+water4 positions 0x69DBC88C
 + water5 sector 5 0
 water5 water 1089
-water5 positions 0x6C3D7CDB
-water5 speculars 0x62462C95
+water5 positions 0x0CD41201
 + water6 sector 6 0
 water6 water 221
-water6 positions 0xACA6B27D
-water6 speculars 0x05EB6645
+water6 positions 0x7BD3F9CD
 water1000 water 1089
-water1000 positions 0x153D731D
-water1000 speculars 0xB77CAC95
+water1000 positions 0x46E0CFB2
 water1001 water 1005
-water1001 positions 0xE93CE0A8
-water1001 speculars 0xED358C78
+water1001 positions 0x59375407
 + water1002 sector 2 1
 water1002 water 323
-water1002 positions 0x8DB4F988
-water1002 speculars 0x3145F988
+water1002 positions 0xCD3F076B
 + water1003 sector 3 1
 water1003 water 228
-water1003 positions 0x5191ECA3
-water1003 speculars 0x81844C65
+water1003 positions 0xBABC7415
 + water1004 sector 4 1
 water1004 water 1085
-water1004 positions 0x8EAA72C2
-water1004 speculars 0x3A708DF8
+water1004 positions 0xBCAD9041
 + water1005 sector 5 1
 water1005 water 1003
-water1005 positions 0xB8C7CD31
-water1005 speculars 0x285FA548
+water1005 positions 0x109C0212
 + water2000 sector 0 2
 water2000 water 1089
-water2000 positions 0xCD94E240
-water2000 speculars 0x6329E13E
+water2000 positions 0x62EC15DC
 + water2001 sector 1 2
 water2001 water 819
-water2001 positions 0xE5159FE0
-water2001 speculars 0xAB207408
+water2001 positions 0x33BB3E48
 + water2002 sector 2 2
 water2002 water 75
-water2002 positions 0x380C71D8
-water2002 speculars 0x5D2BBC48
+water2002 positions 0x8F9F587F
 + water2003 sector 3 2
 water2003 water 461
-water2003 positions 0xFBCC1C9E
-water2003 speculars 0x06DFDF78
+water2003 positions 0x186FBB06
 + water2004 sector 4 2
 water2004 water 891
-water2004 positions 0xE477DAE4
-water2004 speculars 0xE96F1EC8
+water2004 positions 0x13709380
 + water2005 sector 5 2
 water2005 water 831
-water2005 positions 0x269E1598
-water2005 speculars 0xDD56D728
+water2005 positions 0x45F84278
 + water3000 sector 0 3
 water3000 water 1089
-water3000 positions 0x1B6705A3
-water3000 speculars 0x5827EA8C
+water3000 positions 0x5D537CA3
 + water3001 sector 1 3
 water3001 water 937
-water3001 positions 0xE5435839
-water3001 speculars 0xBF592905
+water3001 positions 0x3937C33F
 + water3002 sector 2 3
 water3002 water 159
 water3002 positions 0x6570FF47
-water3002 speculars 0x9F83B937
 + water3003 sector 3 3
 water3003 water 586
-water3003 positions 0xBCB03507
-water3003 speculars 0x375E66D5
+water3003 positions 0x02B77354
 + water3004 sector 4 3
 water3004 water 606
-water3004 positions 0xBF3421F0
-water3004 speculars 0xC2B9D2F5
+water3004 positions 0xBBF8DA47
 + water3005 sector 5 3
 water3005 water 279
-water3005 positions 0xD2BA2B1D
-water3005 speculars 0x1B0E6568
+water3005 positions 0xBB13C3E9
 + water4000 sector 0 4
 water4000 water 1089
-water4000 positions 0xBAFF3467
-water4000 speculars 0x552C6CC8
+water4000 positions 0xEC418ED9
 + water4001 sector 1 4
 water4001 water 761
-water4001 positions 0xA156B035
-water4001 speculars 0x169B16FC
+water4001 positions 0x30EC31B1
 + water4003 sector 3 4
 water4003 water 511
-water4003 positions 0x65E68DA9
-water4003 speculars 0x64BDF528
+water4003 positions 0x89A304CF
 + water4004 sector 4 4
 water4004 water 566
-water4004 positions 0x4E785B97
-water4004 speculars 0x55BDB8B5
+water4004 positions 0x23670223
 + water5000 sector 0 5
 water5000 water 1089
-water5000 positions 0x875FC9C7
-water5000 speculars 0xBF64BB98
+water5000 positions 0x7555AD6D
 + water5001 sector 1 5
 water5001 water 463
-water5001 positions 0x76821701
-water5001 speculars 0xE91239F2
+water5001 positions 0x94ABA610
 + water5003 sector 3 5
 water5003 water 447
-water5003 positions 0x819FDE96
-water5003 speculars 0xE17202F5
+water5003 positions 0xF6048DF8
 + water5004 sector 4 5
 water5004 water 535
-water5004 positions 0xF686086F
-water5004 speculars 0x99311FA5
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 043582D7 n 866
+water5004 positions 0x6A883356
+@ 2 update 60 frame 11 tick 60 zone gz1g hash EAA2BF5A n 866
 world tick 60
 world updates 60
 random isaac.count 90
@@ -7645,23 +7609,40 @@ cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
 water-1 frame 60
 water-1 phase 5.23598289
-water2000 positions 0xB653F7FD
-water2000 speculars 0x2DAF93AA
-water3000 positions 0x8852E96B
-water3000 speculars 0xE55D958D
-water3001 positions 0xACC9A17D
-water3001 speculars 0x1C02AD1A
-water3002 positions 0x9ED41B17
-water3002 speculars 0xE2108C8B
-water4000 positions 0x5EF0EFE6
-water4000 speculars 0x60849E4A
-water4001 positions 0x98CE8D5D
-water4001 speculars 0x6D788D25
-water5000 positions 0x3A092E38
-water5000 speculars 0x8DBC8F9D
-water5001 positions 0x08BBAE28
-water5001 speculars 0x8CD987AA
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 3CF7E1B0 n 866
+water0 positions 0x739F1682
+water1 positions 0xF19CC893
+water2 positions 0xC56E9ABA
+water3 positions 0x4BE8A70D
+water4 positions 0xC8636AD8
+water5 positions 0x138EF1F4
+water6 positions 0x4CEA3F55
+water1000 positions 0x4E841F12
+water1001 positions 0x3C847476
+water1002 positions 0x3F71A077
+water1003 positions 0xD4E89471
+water1004 positions 0x45056647
+water1005 positions 0x1DBBEF27
+water2000 positions 0x6336BB51
+water2001 positions 0x32CF82FA
+water2002 positions 0x44A0CC93
+water2003 positions 0x7B27437E
+water2004 positions 0x62391612
+water2005 positions 0xF7A394ED
+water3000 positions 0xA64783ED
+water3001 positions 0x8CD11080
+water3002 positions 0x855435E8
+water3003 positions 0xEC2C8FE3
+water3004 positions 0x3CD9965B
+water3005 positions 0xFC9BF547
+water4000 positions 0xDF813AE2
+water4001 positions 0x53833E2C
+water4003 positions 0xF392DB34
+water4004 positions 0x51F5A9AE
+water5000 positions 0x4988891A
+water5001 positions 0x2E61D306
+water5003 positions 0xC694ABDC
+water5004 positions 0x75845D72
+@ 3 update 80 frame 15 tick 80 zone gz1g hash CAE76B75 n 866
 world tick 80
 world updates 80
 random isaac.count 231
@@ -7702,23 +7683,40 @@ cunit1804 #place DF969219
 cunit1804 #unit 618078DC
 water-1 frame 80
 water-1 phase 4.63758087
-water2000 positions 0x7E3FCDA3
-water2000 speculars 0x376FC393
-water3000 positions 0x08EB5303
-water3000 speculars 0x4EE2392C
-water3001 positions 0xCBBACFBD
-water3001 speculars 0x1586BF32
+water0 positions 0x8287FCFB
+water1 positions 0x72EDEDA2
+water2 positions 0x92FE4F86
+water3 positions 0xD589C460
+water4 positions 0x3C9C2146
+water5 positions 0x47448A19
+water6 positions 0x60C2CE89
+water1000 positions 0xAFB3C521
+water1001 positions 0xE35E05CD
+water1002 positions 0xB2B55A26
+water1003 positions 0x33482BE2
+water1004 positions 0x5AB9B0C3
+water1005 positions 0x41D640E3
+water2000 positions 0xE9E59BFF
+water2001 positions 0xC2C4B936
+water2002 positions 0x70F4E859
+water2003 positions 0xD7E8BE80
+water2004 positions 0x61E730E9
+water2005 positions 0x131E9ED7
+water3000 positions 0x15AB8EC4
+water3001 positions 0xEDCC6FF8
 water3002 positions 0xFA4BEAB1
-water3002 speculars 0xB8D59935
-water4000 positions 0x0C4ACA7E
-water4000 speculars 0x56C43858
-water4001 positions 0xD75BB90C
-water4001 speculars 0x1B8035F6
-water5000 positions 0x5D7A3078
-water5000 speculars 0x584DEAC3
-water5001 positions 0xC290B573
-water5001 speculars 0x1E375E7B
-@ 4 update 100 frame 19 tick 100 zone gz1g hash A617F9BE n 866
+water3003 positions 0x59C9396F
+water3004 positions 0xEF71D139
+water3005 positions 0x826DBD0E
+water4000 positions 0x976B42EF
+water4001 positions 0x720B319B
+water4003 positions 0xE789136A
+water4004 positions 0x9C646F24
+water5000 positions 0xF4A46E13
+water5001 positions 0xDDF5541C
+water5003 positions 0xC7CEA38D
+water5004 positions 0xD4CE42D6
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 13BB448F n 866
 world tick 100
 world updates 100
 random isaac.count 111
@@ -7746,23 +7744,40 @@ client ticksRun 72
 cunit1804 #place 0B0BC947
 water-1 frame 100
 water-1 phase 4.03917885
-water2000 positions 0xFA427D0E
-water2000 speculars 0x69C2DF28
-water3000 positions 0x124BF87E
-water3000 speculars 0x5930CCF7
-water3001 positions 0xE0F2450B
-water3001 speculars 0x3CFB1918
+water0 positions 0x39197324
+water1 positions 0x728C450D
+water2 positions 0xCEA1460B
+water3 positions 0xE3842747
+water4 positions 0x4C02B199
+water5 positions 0xF7CF83EA
+water6 positions 0x87960F9A
+water1000 positions 0x2A1C44FD
+water1001 positions 0x3E156DE2
+water1002 positions 0xECD6C5AE
+water1003 positions 0x56DDF353
+water1004 positions 0x949DEF0F
+water1005 positions 0xB077A89C
+water2000 positions 0x7648A395
+water2001 positions 0x58DA52A1
+water2002 positions 0xFD47F33E
+water2003 positions 0x4C96FFA1
+water2004 positions 0x56F52664
+water2005 positions 0xA6C83DE8
+water3000 positions 0xED7B4A3F
+water3001 positions 0xE1F0A054
 water3002 positions 0xB9D9C8E0
-water3002 speculars 0x19FDC390
-water4000 positions 0xF007AD9F
-water4000 speculars 0x8019CC32
-water4001 positions 0x8C8F492B
-water4001 speculars 0x0760126C
-water5000 positions 0xC0BACC85
-water5000 speculars 0x68244C22
-water5001 positions 0x617F1724
-water5001 speculars 0x15B4DDED
-@ 5 update 120 frame 23 tick 120 zone gz1g hash A38911C1 n 866
+water3003 positions 0x5D928E1C
+water3004 positions 0x78CE5C0D
+water3005 positions 0x58EAF0CD
+water4000 positions 0xC9D742D9
+water4001 positions 0x8B1118D7
+water4003 positions 0xFC8B7BBF
+water4004 positions 0x2454C948
+water5000 positions 0x823D8CF3
+water5001 positions 0x0FECD149
+water5003 positions 0x629966EB
+water5004 positions 0x5A6F36E6
+@ 5 update 120 frame 23 tick 120 zone gz1g hash E2440059 n 866
 world tick 120
 world updates 120
 random isaac.count 255
@@ -7795,23 +7810,40 @@ client ticksRun 92
 cunit1804 #place 5D944E41
 water-1 frame 120
 water-1 phase 3.44078135
-water2000 positions 0x1A31D46C
-water2000 speculars 0x2554FC15
-water3000 positions 0x38094540
-water3000 speculars 0xDDC3D396
-water3001 positions 0x422CF7B6
-water3001 speculars 0x2D90F1AC
+water0 positions 0x2D0E9C88
+water1 positions 0xE377215B
+water2 positions 0x47F6E8EF
+water3 positions 0xE9E47CBE
+water4 positions 0x22E963B7
+water5 positions 0xA21E50C6
+water6 positions 0x4068F7B5
+water1000 positions 0xEECF8DE5
+water1001 positions 0xF259D474
+water1002 positions 0x0C4F21FB
+water1003 positions 0x6695C5DE
+water1004 positions 0x5CD1A74D
+water1005 positions 0x6C17451C
+water2000 positions 0x952E0AE7
+water2001 positions 0x73FD5D78
+water2002 positions 0x185CF4A1
+water2003 positions 0xC0C0BA2B
+water2004 positions 0x1692B284
+water2005 positions 0x952F77F4
+water3000 positions 0x3C2C28CD
+water3001 positions 0xC287B643
 water3002 positions 0x24577F28
-water3002 speculars 0x2FC1B19D
-water4000 positions 0x07CDC517
-water4000 speculars 0x68DB6868
-water4001 positions 0x5DF8F7D0
-water4001 speculars 0x7BBCF8AD
-water5000 positions 0x9309B862
-water5000 speculars 0xD3831E61
-water5001 positions 0x760018D8
-water5001 speculars 0x07A7CC7A
-@ 6 update 140 frame 27 tick 140 zone gz1g hash BF0F3A12 n 866
+water3003 positions 0x2154A78F
+water3004 positions 0xFA0F5BDF
+water3005 positions 0x943FA76A
+water4000 positions 0x31598F68
+water4001 positions 0xF3419986
+water4003 positions 0xABBFDE67
+water4004 positions 0x4C3453C7
+water5000 positions 0xBCE8E487
+water5001 positions 0x93EEE52F
+water5003 positions 0xA5DE1267
+water5004 positions 0x7D4296EE
+@ 6 update 140 frame 27 tick 140 zone gz1g hash 7B74B201 n 866
 world tick 140
 world updates 140
 random isaac.count 114
@@ -7841,23 +7873,40 @@ client tick 140
 client ticksRun 112
 water-1 frame 140
 water-1 phase 2.8423841
-water2000 positions 0xC5FE291F
-water2000 speculars 0xD3190706
-water3000 positions 0x8540AD4B
-water3000 speculars 0xACF77095
-water3001 positions 0xE74AEDE9
-water3001 speculars 0xFF01083E
-water3002 positions 0xD5779A65
-water3002 speculars 0xCF0D7AB2
-water4000 positions 0x43BB3B38
-water4000 speculars 0xCD7506FE
-water4001 positions 0x8CDDBD25
-water4001 speculars 0x350C64C7
-water5000 positions 0xE4B9B895
-water5000 speculars 0xFC7592C0
-water5001 positions 0xA944D9BE
-water5001 speculars 0x603BB0BA
-@ 7 update 160 frame 31 tick 160 zone gz1g hash 0FC8A372 n 866
+water0 positions 0x9B402424
+water1 positions 0x509129D0
+water2 positions 0x7DA6CEAE
+water3 positions 0xDF55A85A
+water4 positions 0xAB1DA3F1
+water5 positions 0xBE5B6F04
+water6 positions 0xFA2C5A87
+water1000 positions 0x4312D484
+water1001 positions 0x09EDE956
+water1002 positions 0x9A3D7380
+water1003 positions 0x42212BE5
+water1004 positions 0x39C32694
+water1005 positions 0x67E048D7
+water2000 positions 0x0B883430
+water2001 positions 0x9C1C598C
+water2002 positions 0x4248EB88
+water2003 positions 0x5FFBBA27
+water2004 positions 0x20E06922
+water2005 positions 0xC1CCD875
+water3000 positions 0xB073D030
+water3001 positions 0xFB52DBE4
+water3002 positions 0x088845F4
+water3003 positions 0xEA75ECA3
+water3004 positions 0x6F498D66
+water3005 positions 0xFF3EFD23
+water4000 positions 0xF029A957
+water4001 positions 0xDE646A08
+water4003 positions 0x7ED9B234
+water4004 positions 0x546FE212
+water5000 positions 0x3D49BBCE
+water5001 positions 0x4792D469
+water5003 positions 0x69C90DA5
+water5004 positions 0x02D97511
+@ 7 update 160 frame 31 tick 160 zone gz1g hash 1863A5DB n 866
 world tick 160
 world updates 160
 random isaac.count 232
@@ -7893,23 +7942,40 @@ client tick 160
 client ticksRun 132
 water-1 frame 160
 water-1 phase 2.24398685
-water2000 positions 0x490C87B6
-water2000 speculars 0x5926F58D
-water3000 positions 0xAE600C14
-water3000 speculars 0x1E9AC653
-water3001 positions 0x0E618B3B
-water3001 speculars 0xC83952A5
+water0 positions 0xA07D2EE2
+water1 positions 0xD8914490
+water2 positions 0x72D03EB9
+water3 positions 0xB645D78B
+water4 positions 0xCD981D7A
+water5 positions 0xDDB7578F
+water6 positions 0xF0F2F52C
+water1000 positions 0x9D2004D8
+water1001 positions 0x59206DD7
+water1002 positions 0x830ECA07
+water1003 positions 0x84969A04
+water1004 positions 0x061B8F5F
+water1005 positions 0x3629130D
+water2000 positions 0xDB7933FE
+water2001 positions 0x112672F2
+water2002 positions 0x8ECC417A
+water2003 positions 0xB54A9305
+water2004 positions 0x23D0E7DC
+water2005 positions 0x1FB939CE
+water3000 positions 0x6009B54E
+water3001 positions 0xB02C301C
 water3002 positions 0xDABF3953
-water3002 speculars 0xE2F09449
-water4000 positions 0xC808082B
-water4000 speculars 0xCFBA4F14
-water4001 positions 0xBA4F4110
-water4001 speculars 0xDF6DF6BB
-water5000 positions 0x4032B6A7
-water5000 speculars 0x1B8DF90F
-water5001 positions 0xCEB5ECD5
-water5001 speculars 0x3DF5CC0A
-@ 8 update 180 frame 35 tick 180 zone gz1g hash 6F1CCD75 n 866
+water3003 positions 0xC19C3D1A
+water3004 positions 0xFB2223A1
+water3005 positions 0xE08F96A6
+water4000 positions 0x5CC7FAA1
+water4001 positions 0x6FBF3832
+water4003 positions 0xF1D97D9A
+water4004 positions 0x5F1F5666
+water5000 positions 0x1B218853
+water5001 positions 0x2C9E117D
+water5003 positions 0x0A64F225
+water5004 positions 0xA0199528
+@ 8 update 180 frame 35 tick 180 zone gz1g hash 2485F866 n 866
 world tick 180
 world updates 180
 random isaac.count 88
@@ -7938,23 +8004,40 @@ client ticksRun 152
 cunit1000011214 #unit 5DDB5359
 water-1 frame 180
 water-1 phase 1.64558816
-water2000 positions 0x4A419335
-water2000 speculars 0xDA91E53A
-water3000 positions 0x58C7284E
-water3000 speculars 0x13F7684A
-water3001 positions 0x568E7E4B
-water3001 speculars 0x4C23755B
+water0 positions 0x0FDB43DF
+water1 positions 0x8A00F5B5
+water2 positions 0xBED51B55
+water3 positions 0x93852304
+water4 positions 0xAACCE14E
+water5 positions 0xC1BBC113
+water6 positions 0x60E5BC8E
+water1000 positions 0xD7F2E29E
+water1001 positions 0x257B621D
+water1002 positions 0xFAE8E059
+water1003 positions 0x05FE1612
+water1004 positions 0x41CB88FD
+water1005 positions 0xC0A04899
+water2000 positions 0x20C0BFD5
+water2001 positions 0x8C9594C7
+water2002 positions 0xD4A5C7D8
+water2003 positions 0x2FE621FB
+water2004 positions 0x1E50C9F8
+water2005 positions 0x9C74B267
+water3000 positions 0x7C4AF0E6
+water3001 positions 0x3B27FFD0
 water3002 positions 0x5C2DE25A
-water3002 speculars 0x8210939C
-water4000 positions 0x0E15F3F7
-water4000 speculars 0x60447FCA
-water4001 positions 0x00DE2BCE
-water4001 speculars 0x2BF0787B
-water5000 positions 0x007F7A20
-water5000 speculars 0x04846131
-water5001 positions 0x57D8A265
-water5001 speculars 0x8183FD90
-@ 9 update 200 frame 39 tick 200 zone gz1g hash 25ADFA77 n 866
+water3003 positions 0x657C0617
+water3004 positions 0x0F084B6E
+water3005 positions 0xDE074BFD
+water4000 positions 0x0FCB6009
+water4001 positions 0x779021F7
+water4003 positions 0x5BC7B9D8
+water4004 positions 0x5808AE17
+water5000 positions 0xC80B40FB
+water5001 positions 0x879855E1
+water5003 positions 0x9DD58B04
+water5004 positions 0x31882D36
+@ 9 update 200 frame 39 tick 200 zone gz1g hash D87C2F65 n 866
 world tick 200
 world updates 200
 world weatherFactor 0x3F666666
@@ -8041,23 +8124,40 @@ client tick 200
 client ticksRun 172
 water-1 frame 200
 water-1 phase 1.04718852
-water2000 positions 0x422C8814
-water2000 speculars 0x2ECC6C15
-water3000 positions 0x6B0CB5EE
-water3000 speculars 0x69F6B05A
-water3001 positions 0xB53F4D78
-water3001 speculars 0xC92A0E5B
+water0 positions 0xA0DF0FB6
+water1 positions 0x8C02BA2B
+water2 positions 0x65665EE3
+water3 positions 0xA2499BF1
+water4 positions 0x159B1277
+water5 positions 0x74AA0FF3
+water6 positions 0x23D81DFF
+water1000 positions 0x1D586E12
+water1001 positions 0xC9DA2E14
+water1002 positions 0x9B501EA0
+water1003 positions 0xAA52BF8D
+water1004 positions 0x63BF11F8
+water1005 positions 0x314B2EE8
+water2000 positions 0x23F757BE
+water2001 positions 0xB6E2DA87
+water2002 positions 0x80D6B8B3
+water2003 positions 0x1311C956
+water2004 positions 0x452BBC42
+water2005 positions 0x9652FD0D
+water3000 positions 0xEE6CB877
+water3001 positions 0x2B8E1330
 water3002 positions 0xE46324AF
-water3002 speculars 0x6EC28526
-water4000 positions 0xC147156E
-water4000 speculars 0x71AB3A7D
-water4001 positions 0x330862FF
-water4001 speculars 0x343DA414
-water5000 positions 0xDD3B89F8
-water5000 speculars 0x8C2114BE
-water5001 positions 0x6FA6CCF8
-water5001 speculars 0x45DF888E
-@ 10 update 220 frame 43 tick 220 zone gz1g hash E3193C42 n 866
+water3003 positions 0x55277B0C
+water3004 positions 0x16207B57
+water3005 positions 0xEBDF51C2
+water4000 positions 0x90DC57DF
+water4001 positions 0x9545A7CF
+water4003 positions 0xC54D63C4
+water4004 positions 0xBAE33D7A
+water5000 positions 0x993F792C
+water5001 positions 0xAD18117D
+water5003 positions 0x30634FD5
+water5004 positions 0x13B5B1B7
+@ 10 update 220 frame 43 tick 220 zone gz1g hash 5E0B8E2D n 866
 world tick 220
 world updates 220
 random isaac.count 53
@@ -8084,23 +8184,40 @@ client tick 220
 client ticksRun 192
 water-1 frame 220
 water-1 phase 0.448790014
-water2000 positions 0x1483FF97
-water2000 speculars 0xCEB87A03
-water3000 positions 0x8227EE24
-water3000 speculars 0xBF18BF34
-water3001 positions 0xE7F11164
-water3001 speculars 0x26C774F2
+water0 positions 0xF9266EB3
+water1 positions 0xBD66F0E4
+water2 positions 0x9F5ED6CF
+water3 positions 0xB81BFFFF
+water4 positions 0x76C48F0B
+water5 positions 0xF29A42C3
+water6 positions 0xC9157B1F
+water1000 positions 0x1A8D0F1E
+water1001 positions 0x07306E58
+water1002 positions 0xE1F60A1A
+water1003 positions 0x5436964C
+water1004 positions 0x77751DB9
+water1005 positions 0x1BAB0079
+water2000 positions 0x13F63514
+water2001 positions 0xADA6C9EC
+water2002 positions 0x45441344
+water2003 positions 0x58D3A7C0
+water2004 positions 0x4EB66786
+water2005 positions 0x906D69B4
+water3000 positions 0x3167A61F
+water3001 positions 0x57F52093
 water3002 positions 0xE54C4A45
-water3002 speculars 0x3A945F89
-water4000 positions 0xA2E46B82
-water4000 speculars 0xCA26FA5E
-water4001 positions 0x3E57018B
-water4001 speculars 0xBCBF6ADA
-water5000 positions 0x66A79764
-water5000 speculars 0x449A9591
-water5001 positions 0x1F3A4F92
-water5001 speculars 0x2E999230
-@ 11 update 240 frame 47 tick 240 zone gz1g hash 242F6177 n 866
+water3003 positions 0xD42BBEB2
+water3004 positions 0x0C67C945
+water3005 positions 0xD6AEA520
+water4000 positions 0x751D8CF5
+water4001 positions 0x8240B219
+water4003 positions 0x90B77DF2
+water4004 positions 0x96AF005E
+water5000 positions 0x6BCE835B
+water5001 positions 0x38498076
+water5003 positions 0x5E3F4653
+water5004 positions 0x76558AD2
+@ 11 update 240 frame 47 tick 240 zone gz1g hash 582D4F7C n 866
 world tick 240
 world updates 240
 random isaac.count 175
@@ -8132,23 +8249,40 @@ client tick 240
 client ticksRun 212
 water-1 frame 240
 water-1 phase -0.149608627
-water2000 positions 0x99D0CD4C
-water2000 speculars 0xF6541B05
-water3000 positions 0x0161A52F
-water3000 speculars 0xE21C4654
-water3001 positions 0xC0E587A4
-water3001 speculars 0x8C8C58A7
+water0 positions 0x2A225FE9
+water1 positions 0x5E280ADE
+water2 positions 0x993999D0
+water3 positions 0x152C632A
+water4 positions 0x427819AF
+water5 positions 0x9B9C7BBA
+water6 positions 0xCD40632A
+water1000 positions 0x75462A17
+water1001 positions 0xB096E91B
+water1002 positions 0xEC9D5F1C
+water1003 positions 0xB9167275
+water1004 positions 0x3F150A0A
+water1005 positions 0x4699162D
+water2000 positions 0xAA93EF86
+water2001 positions 0x7F81899D
+water2002 positions 0x55FF8CBC
+water2003 positions 0x1E50E2B9
+water2004 positions 0xE34E9490
+water2005 positions 0x9223E97F
+water3000 positions 0x671C1B32
+water3001 positions 0xA685F9A4
 water3002 positions 0x7E9B8F2B
-water3002 speculars 0x7933CC8C
-water4000 positions 0x807C191C
-water4000 speculars 0xA5820E52
-water4001 positions 0xC1A3EC6E
-water4001 speculars 0x3ABB9DD6
-water5000 positions 0xF72551B9
-water5000 speculars 0x7CDBC11C
-water5001 positions 0xE8A9E2E5
-water5001 speculars 0x04A4310B
-@ 12 update 260 frame 51 tick 260 zone gz1g hash ED94306B n 867
+water3003 positions 0xE8F99C3A
+water3004 positions 0xA5221D6D
+water3005 positions 0x239252FA
+water4000 positions 0x0DD08EA2
+water4001 positions 0x0BBA7568
+water4003 positions 0xCD6E5A19
+water4004 positions 0x38E14BD3
+water5000 positions 0x993B3134
+water5001 positions 0xCB6CE34B
+water5003 positions 0xF59CB897
+water5004 positions 0x6AD35911
+@ 12 update 260 frame 51 tick 260 zone gz1g hash AAF5AFA8 n 867
 world tick 260
 world updates 260
 world lastRainBoltTick 259
@@ -8181,23 +8315,40 @@ client tick 260
 client ticksRun 232
 water-1 frame 260
 water-1 phase -0.748007119
-water2000 positions 0x6A500AE5
-water2000 speculars 0x4898A3C6
-water3000 positions 0x43A149BB
-water3000 speculars 0x3D8D07ED
-water3001 positions 0x446A9D83
-water3001 speculars 0x8F63C354
+water0 positions 0x23DBAB79
+water1 positions 0xE04500FD
+water2 positions 0x51FBC904
+water3 positions 0x14BFF4C2
+water4 positions 0x7EC9B6A6
+water5 positions 0xE75B1A3C
+water6 positions 0x5A0BE8D2
+water1000 positions 0xA17B9797
+water1001 positions 0x278E7BE0
+water1002 positions 0x42170084
+water1003 positions 0x2D000C6E
+water1004 positions 0x2F413D05
+water1005 positions 0x8E946937
+water2000 positions 0x73544179
+water2001 positions 0x80429804
+water2002 positions 0xCC3133FC
+water2003 positions 0xAAE3E9A6
+water2004 positions 0xAC1C45C1
+water2005 positions 0xA5608A28
+water3000 positions 0xF49E61F5
+water3001 positions 0xC7379C7F
 water3002 positions 0xA8CF7FEB
-water3002 speculars 0x8E3E30F7
-water4000 positions 0x7090FAED
-water4000 speculars 0x8DCCC43F
-water4001 positions 0x264E2306
-water4001 speculars 0x960F4416
-water5000 positions 0x049611F4
-water5000 speculars 0x45CE545C
-water5001 positions 0x11F30749
-water5001 speculars 0xD0AD7BE3
-@ 13 update 280 frame 55 tick 280 zone gz1g hash 96BFF0CF n 866
+water3003 positions 0x52C6478C
+water3004 positions 0xC871531D
+water3005 positions 0xD2C7F932
+water4000 positions 0x594E64A7
+water4001 positions 0xBBDABE54
+water4003 positions 0xCA1A5D51
+water4004 positions 0xC4DA4AB3
+water5000 positions 0xD9C66B72
+water5001 positions 0x8B9865FF
+water5003 positions 0x74B6C6EE
+water5004 positions 0xB517FF9A
+@ 13 update 280 frame 55 tick 280 zone gz1g hash 092B7E40 n 866
 world tick 280
 world updates 280
 world timedObjects 4
@@ -8231,23 +8382,40 @@ client tick 280
 client ticksRun 252
 water-1 frame 280
 water-1 phase -1.34640622
-water2000 positions 0x63CAB805
-water2000 speculars 0x23CB2B9F
-water3000 positions 0x494A3246
-water3000 speculars 0x4DA51782
-water3001 positions 0x0D4997ED
-water3001 speculars 0xFEC2A8D7
+water0 positions 0xB7FB341D
+water1 positions 0x5B8A83C6
+water2 positions 0x2507B0BE
+water3 positions 0x109A8A18
+water4 positions 0xDBD73CF4
+water5 positions 0xED78CD3E
+water6 positions 0xFED2CE3D
+water1000 positions 0x1B9D6030
+water1001 positions 0x44AA4B66
+water1002 positions 0x56AF3E4D
+water1003 positions 0x5865ED40
+water1004 positions 0x3883E004
+water1005 positions 0x10070428
+water2000 positions 0x8D248EDB
+water2001 positions 0x51AB86AD
+water2002 positions 0x60139717
+water2003 positions 0xE6FE289D
+water2004 positions 0x05052568
+water2005 positions 0x9FA3A874
+water3000 positions 0xA7C8215D
+water3001 positions 0xF5E97EEC
 water3002 positions 0x7F809826
-water3002 speculars 0xFEA0273E
-water4000 positions 0xD218DF2C
-water4000 speculars 0x2160DF06
-water4001 positions 0x5ADAAB71
-water4001 speculars 0x1F52429A
-water5000 positions 0xF4AD9655
-water5000 speculars 0x565CC970
-water5001 positions 0x83C71CF6
-water5001 speculars 0x9A4B426B
-@ 14 update 300 frame 59 tick 300 zone gz1g hash 9E47DC00 n 866
+water3003 positions 0xBBA54C95
+water3004 positions 0x62FA4FF6
+water3005 positions 0xBF0CA873
+water4000 positions 0x3C0FDABF
+water4001 positions 0x49FC6976
+water4003 positions 0x48E748DC
+water4004 positions 0x0A41928F
+water5000 positions 0x02C34DEF
+water5001 positions 0x0825AEE4
+water5003 positions 0x9B6C6FD4
+water5004 positions 0x3D7FBB5E
+@ 14 update 300 frame 59 tick 300 zone gz1g hash 32C5A021 n 866
 world tick 300
 world updates 300
 random isaac.count 249
@@ -8279,23 +8447,40 @@ client tick 300
 client ticksRun 272
 water-1 frame 300
 water-1 phase -1.94480586
-water2000 positions 0x640009FF
-water2000 speculars 0xD525E8ED
-water3000 positions 0x6EF3CE50
-water3000 speculars 0x8831F00F
-water3001 positions 0xB17AF382
-water3001 speculars 0x3B34D0E3
+water0 positions 0x16B63E59
+water1 positions 0x37A85C54
+water2 positions 0xD85158ED
+water3 positions 0x0FDA8372
+water4 positions 0x28B59DDA
+water5 positions 0xC5D7B264
+water6 positions 0xE13AED20
+water1000 positions 0x37BF2D83
+water1001 positions 0x6C231E5C
+water1002 positions 0x8DBC43AA
+water1003 positions 0x92B79D5F
+water1004 positions 0x47ECF7CA
+water1005 positions 0x9226D8F0
+water2000 positions 0xE5177574
+water2001 positions 0x59CF729B
+water2002 positions 0xFAFF287A
+water2003 positions 0x16F546ED
+water2004 positions 0x7399F4C9
+water2005 positions 0x865D0448
+water3000 positions 0x291FFF42
+water3001 positions 0x85885DEC
 water3002 positions 0x40C372D4
-water3002 speculars 0x99BE6A90
-water4000 positions 0x691A973A
-water4000 speculars 0x5A6B2D87
-water4001 positions 0xEBA0F0D7
-water4001 speculars 0xE41B3F51
-water5000 positions 0xA9A5FD95
-water5000 speculars 0xEAAD1C50
-water5001 positions 0xAC5A53BF
-water5001 speculars 0xCDA0670B
-@ 15 update 320 frame 63 tick 320 zone gz1g hash D5C72F35 n 866
+water3003 positions 0x4CF8536D
+water3004 positions 0xCF9581B4
+water3005 positions 0x05008665
+water4000 positions 0xC62AD22D
+water4001 positions 0x4325771A
+water4003 positions 0xCB3469C5
+water4004 positions 0x8F396130
+water5000 positions 0xBCFBD5D2
+water5001 positions 0x851E848A
+water5003 positions 0xBFD014A7
+water5004 positions 0xB675F1E3
+@ 15 update 320 frame 63 tick 320 zone gz1g hash 1670E63A n 866
 world tick 320
 world updates 320
 random isaac.count 79
@@ -8322,23 +8507,40 @@ client tick 320
 client ticksRun 292
 water-1 frame 320
 water-1 phase -2.54320335
-water2000 positions 0x8CDF6435
-water2000 speculars 0x836B6FC4
-water3000 positions 0x587C0882
-water3000 speculars 0xB8948403
-water3001 positions 0xF7B70A47
-water3001 speculars 0xCAE2ECF1
+water0 positions 0x3914BD17
+water1 positions 0x28588E36
+water2 positions 0xF205B5DE
+water3 positions 0x3419774F
+water4 positions 0xD6AC99BE
+water5 positions 0x747200A6
+water6 positions 0xFB0B3BEE
+water1000 positions 0x2C600825
+water1001 positions 0x0568C558
+water1002 positions 0xB8D09226
+water1003 positions 0xCE0DF046
+water1004 positions 0x874AE426
+water1005 positions 0x9052D7C6
+water2000 positions 0x5F2AE117
+water2001 positions 0x3DA7109A
+water2002 positions 0x28055A7B
+water2003 positions 0xB28A97B4
+water2004 positions 0x67BC74F8
+water2005 positions 0x5CADECDE
+water3000 positions 0x88F37B49
+water3001 positions 0x83549774
 water3002 positions 0x0464F365
-water3002 speculars 0x14E6CD30
-water4000 positions 0x32897D60
-water4000 speculars 0xF88E61DA
-water4001 positions 0x515408FA
-water4001 speculars 0xC3FFFFEC
-water5000 positions 0x70095DBE
-water5000 speculars 0xF863FBBA
-water5001 positions 0xA70F8A95
-water5001 speculars 0x3735A766
-@ 16 update 340 frame 67 tick 340 zone gz1g hash 1951A1C8 n 866
+water3003 positions 0xE0B2A8AD
+water3004 positions 0x92075246
+water3005 positions 0xC883BFED
+water4000 positions 0x7872268F
+water4001 positions 0x3D004ED8
+water4003 positions 0x7D2C0259
+water4004 positions 0xABB7B215
+water5000 positions 0x52DDFA9E
+water5001 positions 0xD199530F
+water5003 positions 0xE857DEAF
+water5004 positions 0x1587789F
+@ 16 update 340 frame 67 tick 340 zone gz1g hash F1D0E387 n 866
 world tick 340
 world updates 340
 world lastRainBoltTick 323
@@ -8369,23 +8571,40 @@ client tick 340
 client ticksRun 312
 water-1 frame 340
 water-1 phase -3.14160061
-water2000 positions 0x0A9FDD0B
-water2000 speculars 0xE87B11D7
-water3000 positions 0xFC0D972D
-water3000 speculars 0xC78AB8C2
-water3001 positions 0x397683B7
-water3001 speculars 0x909E64FE
+water0 positions 0x18F2181C
+water1 positions 0xB20EC17A
+water2 positions 0x81C41C58
+water3 positions 0xAA8DB208
+water4 positions 0x3E43D0EF
+water5 positions 0x5C9B54C2
+water6 positions 0x0421E73A
+water1000 positions 0x8A71829A
+water1001 positions 0xE97412C2
+water1002 positions 0xF2C4F8A0
+water1003 positions 0x869783BF
+water1004 positions 0xCD3A54AD
+water1005 positions 0xC8DC9DD7
+water2000 positions 0x7C25E460
+water2001 positions 0xFC90F0DF
+water2002 positions 0xAF6CACAA
+water2003 positions 0xA55C0F16
+water2004 positions 0x06562EBC
+water2005 positions 0x9C5EBA17
+water3000 positions 0x744929A0
+water3001 positions 0xB3D33E15
 water3002 positions 0x6297B707
-water3002 speculars 0xA96E008F
-water4000 positions 0xB8E3B29C
-water4000 speculars 0x47669E36
-water4001 positions 0x9DA62680
-water4001 speculars 0xFA2383A2
-water5000 positions 0x093062BC
-water5000 speculars 0x1D04441D
-water5001 positions 0xCE7E785F
-water5001 speculars 0x8B82828A
-@ 17 update 360 frame 71 tick 360 zone gz1g hash AE1DD9F6 n 866
+water3003 positions 0xC22A6E10
+water3004 positions 0x09C173EC
+water3005 positions 0xAC019DB6
+water4000 positions 0x880BD723
+water4001 positions 0xD08042AD
+water4003 positions 0x7503C1A1
+water4004 positions 0xA8076A66
+water5000 positions 0x5ED96903
+water5001 positions 0x3CBCEA3D
+water5003 positions 0x54568D6D
+water5004 positions 0x839C66A9
+@ 17 update 360 frame 71 tick 360 zone gz1g hash 6D63165F n 866
 world tick 360
 world updates 360
 random isaac.count 14
@@ -8403,23 +8622,40 @@ client tick 360
 client ticksRun 332
 water-1 frame 360
 water-1 phase -3.73999786
-water2000 positions 0x183D8F86
-water2000 speculars 0x18D51EFC
-water3000 positions 0xCC711C77
-water3000 speculars 0xC845F7FB
-water3001 positions 0x9369CF15
-water3001 speculars 0x61D5A33B
+water0 positions 0xF0C22C50
+water1 positions 0xA5BB8DEE
+water2 positions 0x5467449C
+water3 positions 0x2DB1A764
+water4 positions 0xC44664F3
+water5 positions 0xEBD7146B
+water6 positions 0x6F18E952
+water1000 positions 0xF5FC90B8
+water1001 positions 0x0FD5425A
+water1002 positions 0x1002356C
+water1003 positions 0xBB1A6D3D
+water1004 positions 0x98131CD2
+water1005 positions 0xD29DA9F9
+water2000 positions 0x28586964
+water2001 positions 0xF854D4F9
+water2002 positions 0x44C9E405
+water2003 positions 0x6D853B7B
+water2004 positions 0x34159A1B
+water2005 positions 0x295FE3D9
+water3000 positions 0xD648D7A6
+water3001 positions 0x04FAF289
 water3002 positions 0x8978BC59
-water3002 speculars 0x3BA2B4EC
-water4000 positions 0x712DABD7
-water4000 speculars 0x91F20384
-water4001 positions 0x9A08D1AE
-water4001 speculars 0xD7612F7C
-water5000 positions 0x90E40A67
-water5000 speculars 0x1C667EFC
-water5001 positions 0xBAAC8480
-water5001 speculars 0x476EA6B6
-@ 18 update 380 frame 75 tick 380 zone bz1g hash 875F6770 n 408
+water3003 positions 0xE42B0C09
+water3004 positions 0xEDD09D63
+water3005 positions 0x06697431
+water4000 positions 0xA7EBD9E2
+water4001 positions 0x918F110A
+water4003 positions 0x8BB846F9
+water4004 positions 0xDCC843AF
+water5000 positions 0xB7E890A7
+water5001 positions 0x9955F7A4
+water5003 positions 0x20A1539A
+water5004 positions 0xF448393E
+@ 18 update 380 frame 75 tick 380 zone bz1g hash D4A82EA3 n 408
 world tick 380
 world updates 380
 world timeBase 5.96444464
@@ -10723,10 +10959,8 @@ water-1 frame 377
 water-1 phase -4.09903669
 water0 water 873
 water0 positions 0x07273A3D
-water0 speculars 0xA7A05AD3
 water1 water 831
 water1 positions 0xDF51D7FE
-water1 speculars 0x9A1C07C5
 - water2
 - water3
 - water4
@@ -10734,17 +10968,14 @@ water1 speculars 0x9A1C07C5
 - water6
 water1000 water 610
 water1000 positions 0x06D3CBB9
-water1000 speculars 0xEE950B28
 water1001 water 279
 water1001 positions 0xBBEE74D7
-water1001 speculars 0x1B0E6568
 - water1002
 - water1003
 - water1004
 - water1005
 water2000 water 695
 water2000 positions 0x52E66312
-water2000 speculars 0xED763635
 - water2001
 - water2002
 - water2003
@@ -10752,7 +10983,6 @@ water2000 speculars 0xED763635
 - water2005
 water3000 water 535
 water3000 positions 0x79468FC8
-water3000 speculars 0x8661FDAB
 - water3001
 - water3002
 - water3003
@@ -10766,7 +10996,7 @@ water3000 speculars 0x8661FDAB
 - water5001
 - water5003
 - water5004
-@ 19 update 400 frame 79 tick 400 zone bz1g hash 24E543AC n 408
+@ 19 update 400 frame 79 tick 400 zone bz1g hash 77120A7F n 408
 world tick 400
 world updates 400
 random isaac.count 60
@@ -10861,7 +11091,7 @@ cunit1000059184 #place 76B3F718
 cunit1000063817 #place 477631BA
 cunit1001577495 #place 1E5FA806
 water-1 frame 397
-@ 20 update 420 frame 83 tick 420 zone bz1g hash 1116695C n 408
+@ 20 update 420 frame 83 tick 420 zone bz1g hash 42E1208F n 408
 world tick 420
 world updates 420
 random isaac.count 216
@@ -10944,7 +11174,7 @@ cunit1000002436 #place 4B9CB854
 cunit1000054752 #place 21FE0740
 cunit1001577495 #place 5594CDCC
 water-1 frame 417
-@ 21 update 440 frame 87 tick 440 zone bz1g hash F5105F09 n 408
+@ 21 update 440 frame 87 tick 440 zone bz1g hash A6E716DA n 408
 world tick 440
 world updates 440
 random isaac.count 116
@@ -11026,7 +11256,7 @@ cunit999742 #place D1FA713D
 cunit999742 #unit 475E603A
 cunit1000002436 #place A644D3AB
 water-1 frame 437
-@ 22 update 460 frame 91 tick 460 zone bz1g hash 3C6A51E0 n 408
+@ 22 update 460 frame 91 tick 460 zone bz1g hash 6F9D1833 n 408
 world tick 460
 world updates 460
 random isaac.count 16
@@ -11092,7 +11322,7 @@ cunit399469 #place 4BACE62C
 cunit831510 #place 8ADC22FB
 cunit848411 #place 0994D947
 water-1 frame 457
-@ 23 update 480 frame 95 tick 480 zone bz1g hash F3AE9FA5 n 408
+@ 23 update 480 frame 95 tick 480 zone bz1g hash A059D676 n 408
 world tick 480
 world updates 480
 random isaac.count 172
@@ -11176,7 +11406,7 @@ cunit848411 #place 78CD6D3F
 cunit848411 #unit 7A62CBCF
 cunit999742 #unit 5BBCB6AF
 water-1 frame 477
-@ 24 update 500 frame 99 tick 500 zone bz1g hash 6ABA794D n 408
+@ 24 update 500 frame 99 tick 500 zone bz1g hash 394D309E n 408
 world tick 500
 world updates 500
 random isaac.count 72
@@ -11252,7 +11482,7 @@ cunit831510 #place F63898E1
 cunit848411 #place 6924590F
 cunit848411 #unit 5CA2D6A5
 water-1 frame 497
-@ 25 update 520 frame 103 tick 520 zone bz1g hash 798433B0 n 408
+@ 25 update 520 frame 103 tick 520 zone bz1g hash 2A737A63 n 408
 world tick 520
 world updates 520
 random isaac.count 228
@@ -11329,7 +11559,7 @@ cunit831510 #place CAB88952
 cunit848411 #place F33A69E0
 cunit848411 #unit C8513E8D
 water-1 frame 517
-@ 26 update 540 frame 107 tick 540 zone bz1g hash 059D5678 n 408
+@ 26 update 540 frame 107 tick 540 zone bz1g hash 566A1FAB n 408
 world tick 540
 world updates 540
 random isaac.count 128
@@ -11405,7 +11635,7 @@ cunit848411 #place BE9279B8
 cunit848411 #unit D6F939A0
 cunit999742 #unit 5B193C19
 water-1 frame 537
-@ 27 update 560 frame 111 tick 560 zone bz1g hash 1573FACF n 408
+@ 27 update 560 frame 111 tick 560 zone bz1g hash 4684B31C n 408
 world tick 560
 world updates 560
 random isaac.count 28
@@ -11478,7 +11708,7 @@ cunit831510 #place 2EF66EF3
 cunit848411 #place FFCD5882
 cunit848411 #unit 74EBA612
 water-1 frame 557
-@ 28 update 580 frame 115 tick 580 zone bz1g hash 3CB87E62 n 408
+@ 28 update 580 frame 115 tick 580 zone bz1g hash 6F4F37B1 n 408
 world tick 580
 world updates 580
 random isaac.count 184
@@ -11557,7 +11787,7 @@ cunit848411 #unit 03CB016B
 cunit927062 #unit 8A9ECAD1
 cunit999742 #unit 47FBEA8C
 water-1 frame 577
-@ 29 update 600 frame 119 tick 600 zone bz1g hash 57D20881 n 408
+@ 29 update 600 frame 119 tick 600 zone bz1g hash 04254152 n 408
 world tick 600
 world updates 600
 random isaac.count 84
@@ -11631,7 +11861,7 @@ cunit831510 #place DEDB611C
 cunit831510 #unit CC57D6A5
 cunit848411 #place 6D9738D7
 water-1 frame 597
-@ 30 update 620 frame 123 tick 620 zone bz1g hash C52DFA05 n 408
+@ 30 update 620 frame 123 tick 620 zone bz1g hash 96DAB3D6 n 408
 world tick 620
 world updates 620
 random isaac.count 240
@@ -11702,7 +11932,7 @@ cunit831510 #unit EE84CF3C
 cunit848411 #place D6985B86
 cunit848411 #unit 4AFF34D1
 water-1 frame 617
-@ 31 update 640 frame 127 tick 640 zone bz1g hash 1C4BC0A8 n 408
+@ 31 update 640 frame 127 tick 640 zone bz1g hash 4FBC897B n 408
 world tick 640
 world updates 640
 random isaac.count 140
@@ -11781,7 +12011,7 @@ cunit848411 #place 58A71F6E
 cunit848411 #unit 95C488A5
 cunit999742 #unit 9CC4EC28
 water-1 frame 637
-@ 32 update 660 frame 131 tick 660 zone bz1g hash C2850037 n 408
+@ 32 update 660 frame 131 tick 660 zone bz1g hash 917249E4 n 408
 world tick 660
 world updates 660
 random isaac.count 40
@@ -11844,7 +12074,7 @@ cunit831510 #unit 7B45036E
 cunit848411 #place FDE5FED7
 cunit848411 #unit 702A13FD
 water-1 frame 657
-@ 33 update 680 frame 135 tick 680 zone bz1g hash 72D753A2 n 408
+@ 33 update 680 frame 135 tick 680 zone bz1g hash 21201A71 n 408
 world tick 680
 world updates 680
 random isaac.count 196

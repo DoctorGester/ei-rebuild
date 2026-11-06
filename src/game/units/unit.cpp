@@ -82,7 +82,7 @@ float ModeSpeedOf(const Unit* unit, MoveMode mode) {
     return base * (static_cast<float>(speed) * 2.0f) * lib::kByteScale;
 }
 
-constexpr std::uint8_t kMovesOnWater = 2;       // UnitParams::movementKind
+constexpr std::uint8_t kFlies = 2;              // UnitParams::movementKind
 
 // Animation keys (docs/notes/combat.md): the low 15 bits are variant bits, the rest the kind;
 // kAnimationMoveMask are the movement bits (AnimationMoveBits).
@@ -477,7 +477,7 @@ float Unit::BodyExtent() {
 
 float Unit::GroundHeight(float x, float y) {
     auto* world = OwningWorld();
-    if (params.movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
+    if (params.movementKind != kFlies) return world->GroundHeightAt(x, y);
     if (controller->GetClassId() == ClassId::UnitServer) return world->SurfaceHeightAt(x, y) + localPosition.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }

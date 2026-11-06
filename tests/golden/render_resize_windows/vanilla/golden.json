@@ -1,21 +1,17 @@
 {
   "scenario": "render_resize_windows",
   "install": "vanilla",
-  "recorded": "2026-11-05",
-  "commit": "fd79c6714",
+  "recorded": "2026-11-06",
+  "commit": "b022e2a62",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
+  "reason": "R37e4c: the camera samples the water at rest (Terrain::CalmSurfaceHeight; its bobbing with the waves was not intended), so a save's camera focus.z over water moves by 1e-6..5e-5; terrain_water_waves' water group now hashes Terrain::WaterVertex's positions (the waves worked out where asked, without the old pass's frame-late phase base from its moved vertex 0, every sector waving) and no crest colours (the GPU's)",
   "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 38 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 10 differ",
-    "    #unit: 1 client unit, 1 record, from 0; hash only (no numbers kept)"
-  ],
-  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+    "save saveb/scenario.sav: 1 fields in 1 records differ: camera 1",
+    "  camera: 1 fields in 1 records; first camera focus.z: 13.9742498 in the old golden, 13.9742489 in the new run (d 9e-07)"
+  ]
 }

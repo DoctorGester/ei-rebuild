@@ -187,8 +187,8 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
     screen's use cursor and click, the harness's `clickunit`. CPU-side from what the draw kept (no frame read back),
     so picks stay deterministic and the same under every GPU driver.
 - **One real state change in a draw path:** the terrain pass applies pending water level changes to the sectors it
-  draws; the water layer is what height queries read. Terrain::DrawPages applies them before handing over (the water
-  mesh's range follows: `WaterMoved`).
+  draws; the water layer at rest, with the waves worked out on it (Terrain::WaterVertex), is what height queries read.
+  Terrain::DrawPages applies them before handing over (the water mesh's range follows: `WaterMoved`).
 - **Pixels:** the escape menu's background and the save game's 256x192 picture are copied from the frame on the GPU, and
   only the 5:6:5 picture is read back (section 6, "Screen copies on the GPU").
 - **Timing:** up to five world updates per frame; vsync only changes grouping.
@@ -929,8 +929,9 @@ needs the Performance Log Users group (or an administrator), which the runs lack
 few (25-60 K a frame). A many-figure frame's main-thread time is mostly the game's: the server's AI path search in a
 fight. So these were measured and not built, each worth well under 0.2 ms a frame: per-draw records and instancing
 (the uniforms are 0.03-0.07 ms, mergeable draws about 0.06-0.09 ms); keeping interface sprites on the GPU (0.01-0.1 ms;
-`render::SetInterfaceDraw` streams them, since the interface rewrites its quads in place in many places); water waves in
-the vertex shader (about 0.03 ms; the game reads the water heights anyway); a GPU ground decal path (under 0.07 ms).
+`render::SetInterfaceDraw` streams them, since the interface rewrites its quads in place in many places); a GPU ground
+decal path (under 0.07 ms). The water's waves went to the vertex shader after all (R37e4c, item 3a: 0.15 + 0.08 ms on
+the heavy save once the pages were kept).
 Figure animation stays on the CPU: creatures animate by their bones (each part's matrix, which the GPU applies), the
 per-vertex morph is almost unused, and its result is read by game code (projection for picking).
 On SDL_GPU (R37e2, times by submission) the town at night at 4K, msaa 8 takes the GPU 2.75 ms a frame (2.8 with the
@@ -998,6 +999,12 @@ RTX 4070 Ti SUPER, 300 frames, harness (verify) build; beside it R37e2's town bz
   the other frame tickets). Draws: the ground and the water one each in the world pass (108 ground draws before), the
   ground one in the occlusion's depth (103) and one in the sun map (1875 -> 1874 map draws). The town at night: the
   hand-over 0.008 ms.
+- **The waves in the vertex shader (R37e4c)** (the same save at the user's settings, msaa 1, anisotropy 1, release terms,
+  `work.py test --quiet`, before and after alternated three times; kit: build/r37e4c in the main checkout, the probe
+  timing RunTick's sector walk): the walk 0.17 -> 0.012 ms a frame (AnimateWaves gone; the animated tiles are what is
+  left), the terrain's vertex writes 334 KB -> 0 a frame (the moved water's, about 0.08 ms in R37e4b); the main
+  thread 5.27 / 4.76 / 4.79 -> 4.26 / 4.64 / 4.77 ms (medians 4.79 -> 4.64; the runs move by 0.5 ms, so read the
+  parts).
 
 **3. The zone's terrain on the GPU** (`render_terrain.cpp`, R37e4b). The whole landscape is two meshes kept on the
 GPU, the ground and the water, each one draw per pass, with the zone's page textures in one Texture2DArray (a vertex
@@ -1010,19 +1017,49 @@ range is built again when the grid holds another sector there or the game rebuil
 Rebuilt)` from Build, `Dropped` from Clear and the destructor), its colours and the rest when its ground occlusion was
 worked out again (a neighbour came); the meshes are laid out again only when a range's size changed. The game moves some
 in place: the animated tiles' texture coordinates (`Moved`: their range of the uv stream written; their frames come from
-the client generator, so no time in the shader can give them) and the water layer's positions and crests (waves and
-water levels: `WaterMoved`, from AnimateWaves and from ApplyWaterLevels when a sector with a pending level change is
-drawn: its water positions and colours written, its boxes worked out again). A pass hands over only the sectors it
+the client generator, so no time in the shader can give them) and the water layer's positions at rest at a new water
+level (`WaterMoved`, from ApplyWaterLevels when a sector with a pending level change is drawn: its water positions
+written, its boxes worked out again). A pass hands over only the sectors it
 draws with their quarters' clip verdicts (`TerrainPass`: the game's culling decides what the frame's fit, the water's
 mirror level and the batch's presence see; the GPU clips the rest); the page texture of a page is the game's, copied
 into its layer when the texture's image changes (`TextureSerial`). Every tile is drawn at full detail at any distance.
-The shadow map's fit reads a drawn quarter's vertices in runs of 72 with their boxes (`TerrainPieceGroups`). The
-circling water waves' sines are computed once per Animate call (`CircleSines`: 33 values) instead of per vertex. Check:
-`terraincache off` builds and writes the whole zone at every pass (its frames the same as kept: render_scene,
-render_smooth, render_terrain_seams); scenario `terrain_water_waves` (the waves are always on; the digest's `water`
-group). Gameplay reads the waves (client side only): WorldClient::RawSurfaceHeightAt is the terrain's SurfaceHeight with
-the waves, read by water-walking units' shown height, particles, weather, footprints and footstep sounds (SurfaceClass);
-the server's height (the AI map's TopHeightAt) has none, so the AI, the server's unit placement and combat do not.
+The shadow map's fit reads a drawn quarter's vertices in runs of 72 with their boxes (`TerrainPieceGroups`; the water's
+at rest). Check: `terraincache off` builds and writes the whole zone at every pass (its frames the same as kept:
+render_scene, render_smooth, render_terrain_seams).
+
+**3a. The waves (R37e4c).** Nothing moves the water per frame: its vertices stay on the GPU as built (at rest, with the
+water levels) and terrain.hlsl's `waved` moves them. Terrain::RunTick only advances the phase (`wavePhase`) and takes the
+circling's time (`waveTime`, the client world's tick and fraction times 0.05); the water pass's hand-over takes the
+uniforms from them (`TakeWaves`: the wave direction, the time, per water material its turn `fmod(phase * priority, 2
+pi)`, lift `waveHeight * priority`, crest colour `waveGlow * priority * 50 * waveColour` and whether it keeps the
+ground's x, y; Terrain::WavesOf), and each water vertex carries the rest (its phase offset, Terrain::wavePhases, in
+`loss`; its material, column and row in its specular word's colour bytes; the water batch is told by `vs.water`, no
+longer by a negative `loss`). The formula is the one the game's per-vertex pass had (SectorData::Animate): the sine
+table's entry (512 entries, the phase rounded half away from zero) at the phase along the wave direction from the
+sector's first water vertex (mod 2 pi) plus the material's turn and the vertex's offset lifts the vertex by a quarter of
+the lift and gives the crest (the colour bytes rounded, mod 256, where the entry is not negative); the entries at its
+column and row a quarter turn apart with the time circle it sideways by three times the lift. A material of kind 4
+(keeps the ground's x, y: no map has one; the old pass moved such a vertex only where a water record's depth was
+negative, which it never is) gets the crest only. Only the first 32 materials wave (`kWaveMaterials`; maps have up to
+7). The game's height queries work the same waves out where asked (Terrain::WaterVertex: the vertices HeightAt's walk
+reads, then the plane), with the phase and time of the last RunTick. Client side only: WorldClient::RawSurfaceHeightAt
+(Terrain::SurfaceHeight) is read by the flyers' shown height (UnitParams::movementKind 2: Banshee, Bat, Beholder,
+Dragon, Succub, Willowisp, Ancient Curse, Shadow; `kFlies`), particles, rain splashes, spell blasts and strikes, insect
+swarms and footprints, and SurfaceClass by the shallow water's footstep sounds and prints; the ambience's water vote
+reads HeightAt. The camera's terrain sample (SampleTerrain) and the sound listener's height read the water at rest
+(Terrain::CalmSurfaceHeight; the user: the camera's bobbing was not intended). The server's height (the AI map's
+TopHeightAt) has no waves, so the AI, the server's unit placement and combat never read them.
+Against the old per-vertex pass (a temporary check, R37e4c: the old pass kept on copies of every drawn water sector of
+zone1 for 2000 updates, every water vertex and 64 random points a sector compared; build/r37e4c in the main checkout,
+r37e4c_check.patch): 99.92% of the vertices are bit-identical to the old formula with the phase base read from the
+first vertex at rest, the rest a sine table entry apart (the sums' float order; at most 0.00018 units), the heights at
+the points 99.86% the same, SurfaceClass always. The old pass read its phase base from its own vertex 0 as the last
+frame's waves had moved it (a frame-late feedback: the whole sector's phase shifted by the direction times that
+vertex's circling), which the closed form leaves out: against the pass as it was, 5% of the vertices are bit-identical,
+moved by 0.0017 units on average (at most 0.0044; zone1's lift is 0.06), the heights by 0.0008 on average (at most
+0.005, and 0.04 where a point's walk takes another branch). The old pass also moved only the drawn sectors (the others
+kept the waves of their last drawn frame); now every sector waves. The digest's `water` group (scenario
+`terrain_water_waves`) hashes WaterVertex's positions; the crests are the GPU's alone.
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
@@ -1477,7 +1514,7 @@ and each multiplayer client writes its own.
     BloodPrint's) exist from the original with no caller; WorldClient::LoadZone clears the three vectors. Kept (Prints).
   - The client's rain or snow layer: not kept, but the zone's first weather message after the load carries the
     saved weather with no fade, so the layer is at it at once (R57d).
-  - The landscape's wave phase (`terrain::Terrain::wavePhase`, the water vertices' waves, SectorData::AnimateWaves):
+  - The landscape's wave phase (`terrain::Terrain::wavePhase`, the water vertices' waves, Terrain::WaterVertex):
     back to 2 pi at every map load; the tiles' animation frame (`Terrain::frame`) back to 1.
   - The client generator (`g_clientRandom`, R34a): seeded once per process (World::Create), so the client's draws
     after a load depended on the session before it. Kept (Generator): the draws after a load follow the save. The
@@ -2112,7 +2149,8 @@ half size and 10 + 3 steps about 0.1-0.2 ms, with no visible loss under the ripp
 ### shaders/terrain.hlsl: the water
 
 The water pages keep the game's look underneath: the page texture lit by ground_light from the vertex normal with the
-game's crests (the vertex waves, the water levels and the crests' specular stay the game's: SectorData::AnimateWaves),
+game's crests (the vertex waves and the crests' specular are the game's formula, worked out in `waved`: section 13,
+item 3a; the water levels the game's),
 alpha the material's opacity, fog as for the ground. Each water vertex carries its water's kind (VertexRest::extra,
 render_terrain.cpp's WaterKind): the maps' water materials (kind 3 in the .mp file) tell water, swamps and lava apart only
 by their colour, so blue is water, green (zone1's, zone2's, zone7's swamps: 0.19, 0.54, 0.36, opacity 0.7) a swamp and

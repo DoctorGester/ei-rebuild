@@ -588,9 +588,9 @@ void ReadClientUnit(Unit* u, Builder& b) {
     b.Int("controller", u->controller ? ClassOf(u->controller.Get()) : -1);
 }
 
-// The water layer as the waves leave it (SectorData::Animate 006C3E80, R16c3): the landscape's wave
-// state, and per cached sector with water (by sx, sy) the vertices with a water material and hashes
-// of their positions and speculars.
+// The water layer as the waves move it (R16c3; Terrain::WaterVertex, which works a vertex out where asked): the
+// landscape's wave state, and per cached sector with water (by sx, sy) the vertices with a water material and a hash
+// of their positions. The crests' colours are the GPU's alone.
 void ReadWater(State& state) {
     const auto* t = ClientWorld()->terrain.get();
     if (!t) return;
@@ -604,22 +604,21 @@ void ReadWater(State& state) {
     for (const auto& sector : t->sectorCache) {
         if (!sector || !sector->hasWater || static_cast<int>(std::ssize(sector->vertices)) < 2 * kVertices || static_cast<int>(std::ssize(sector->records)) < 2 * kVertices)
             continue;
-        Hash positions, speculars;
+        Hash positions;
         int water = 0;
         for (int i = kVertices; i < 2 * kVertices; ++i) {
             const auto& record = sector->records[i];
             if (record.waterMaterial == 0xFFFF) continue;
             ++water;
+            const Vector3 moved = t->WaterVertex(*sector, i - kVertices);
             std::uint32_t bits[3];
-            std::memcpy(bits, &sector->vertices[i], sizeof(bits));
+            std::memcpy(bits, &moved, sizeof(bits));
             for (std::uint32_t word : bits) positions.Add(word);
-            speculars.Add(record.specular);
         }
         b.entity = &Slot(state, {kWater, sector->sy * 1000 + sector->sx});
         b.entity->description = "sector " + std::to_string(sector->sx) + " " + std::to_string(sector->sy);
         b.Int("water", water);
         b.Bits("positions", positions.h);
-        b.Bits("speculars", speculars.h);
     }
 }
 

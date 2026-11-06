@@ -21,6 +21,7 @@
 #include <climits>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace terrain {
@@ -41,6 +42,77 @@ float PlaneHeight(const Vector3& v0, const Vector3& v1, float x, float y, const 
     float d = -Dot(Vector3{nx, ny, det}, Vector3{v0.x, v0.y, v0.z});
     return -((d + Dot2D(nx, ny, x, y)) / det);
 }
+
+// The height at (x, y) of the surface through the vertices `at(ix, iy)` gives (std::nullopt: none there): the cell's
+// triangle holding the point, stepping to a neighbouring cell while the point lies outside (the vertices may be
+// displaced sideways); 0 without the cell's diagonal.
+template <typename At>
+float HeightOver(float x, float y, At at) {
+    int ix0 = lib::RoundEven(x), iy0 = lib::RoundEven(y);
+    int ix1 = ix0 + 1, iy1 = iy0 + 1;
+
+    for (int iteration = 1;; ++iteration) {
+        const std::optional<Vector3> v00 = at(ix0, iy0);
+        const std::optional<Vector3> v10 = at(ix1, iy0);
+        const std::optional<Vector3> v01 = at(ix0, iy1);
+        const std::optional<Vector3> v11 = at(ix1, iy1);
+        if (!v00 || !v11) return 0.0f;
+        // Only the diagonal's ends (the original retried the same cell forever): its midpoint.
+        if (!v10 && !v01) return (v00->z + v11->z) * 0.5f;
+        if (!v10) return PlaneHeight(*v00, *v11, x, y, *v01);
+        if (!v01) return PlaneHeight(*v00, *v10, x, y, *v11);
+
+        // Both triangles of the cell must be counter-clockwise, else take the diagonal's midpoint.
+        const Vector2 from10to00 = XY(*v00) - XY(*v10);
+        const Vector2 from10to11 = XY(*v11) - XY(*v10);
+        const float turnS = Cross2D(from10to11, from10to00);
+        if (turnS <= 0.0f) return (v11->z + v01->z) * 0.5f;
+        const Vector2 from01to00 = XY(*v00) - XY(*v01);
+        const Vector2 from01to11 = XY(*v11) - XY(*v01);
+        const float turnT = Cross2D(from01to00, from01to11);
+        if (turnT <= 0.0f) return (v11->z + v01->z) * 0.5f;
+
+        const Vector2 point{x, y};
+        const Vector2 to10 = XY(*v10) - point;
+        const Vector2 to01 = XY(*v01) - point;
+        float side = Cross2D(point - XY(*v00), XY(*v11) - XY(*v00));
+        if (side > 0.0f) {
+            // Lower-right triangle (v00, v10, v11); step to a neighbour if the point is outside it.
+            if (iteration >= 10) return PlaneHeight(*v00, *v10, x, y, *v11);
+            if (Cross2D(to10, from10to00) > 0.0f) { --iy0; --iy1; continue; }
+            if (Cross2D(to10, from10to11) >= 0.0f) return PlaneHeight(*v00, *v10, x, y, *v11);
+            ++ix0; ++ix1;
+        } else {
+            // Upper-left triangle (v00, v11, v01).
+            if (iteration >= 10) return PlaneHeight(*v00, *v11, x, y, *v01);
+            float across = Cross2D(to01, from01to00);
+            if (across < 0.0f) { --ix0; --ix1; continue; }
+            const float beyond = Cross2D(to01, from01to11);
+            if (beyond <= 0.0f) return PlaneHeight(*v00, *v11, x, y, *v01);
+            ++iy0; ++iy1;
+        }
+    }
+}
+
+std::optional<Vector3> Copy(const Vector3* v) { return v ? std::optional<Vector3>(*v) : std::nullopt; }
+
+// The ground height raised to the water's where the water is above it.
+float AboveGround(float water, float ground) {
+    const float depth = water > ground ? water - ground : 0.0f;
+    return ground + depth;
+}
+
+// The waves (Terrain::WaterVertex; terrain.hlsl's `waved` mirrors these).
+constexpr float kFullTurn = kPi + kPi;
+constexpr float kSineIndex = 256.0f / 3.14159265f;   // sine table entries per radian
+constexpr float kQuarterTurn = 0.785398126f;         // between the circling's columns (and rows)
+constexpr float kTimeScale = 0.05f;                  // the circling's speed per world tick
+constexpr float kGlowScale = 50.0f;
+constexpr float kRiseScale = 0.25f;
+constexpr float kCircleScale = 3.0f;
+
+// The sine table entry (Terrain::sine) at `phase` radians: phase * 256 / pi rounded half away from zero, mod 512.
+float Sine(const float (&table)[512], float phase) { return table[lib::RoundAway(phase * kSineIndex) & 0x1FF]; }
 
 // The texture class outside the map.
 constexpr int kOutsideClass = 8;
@@ -90,73 +162,65 @@ ClassId Terrain::GetClassId() { return ClassId::Terrain; }
 
 // --- Height queries ----------------------------------------------------------------------------------
 
-const Vector3* Terrain::VertexAt(int ix, int iy, Layer layer) {
+SectorData* Terrain::VertexSector(int ix, int iy, int* index) {
     if (ix < 0 || iy < 0) return nullptr;
     if (width < static_cast<float>(ix) || height < static_cast<float>(iy)) return nullptr;
 
     const SplitVertex x = SplitOf(ix), y = SplitOf(iy);
-    SectorData* sector = SectorAt(x.sector, y.sector, SectorStage::Loaded, true);
+    *index = x.vertex + y.vertex * kSectorRow;
+    return SectorAt(x.sector, y.sector, SectorStage::Loaded, true);
+}
+
+const Vector3* Terrain::VertexAt(int ix, int iy, Layer layer) {
+    int index = 0;
+    SectorData* sector = VertexSector(ix, iy, &index);
     if (!sector) return nullptr;
-    int layerOffset = 0;
-    if (layer == Layer::Water) {
-        if (!sector->hasWater) return nullptr;
-        layerOffset = kSectorVertices;
-    }
-    return &sector->vertices[x.vertex + y.vertex * kSectorRow + layerOffset];
+    if (layer == Layer::Ground) return &sector->vertices[index];
+    if (!sector->hasWater) return nullptr;
+    return &sector->vertices[index + kSectorVertices];
+}
+
+Terrain::MaterialWaves Terrain::WavesOf(int material) const {
+    const TerrainMaterial& m = materials[material];
+    const float glow = waveGlow * m.priority * kGlowScale;
+    return {std::fmod(wavePhase * m.priority, kFullTurn), waveHeight * m.priority,
+            {glow * m.waveColour.x, glow * m.waveColour.y, glow * m.waveColour.z},
+            m.kind == TerrainMaterial::kKeepsGroundXY};
+}
+
+Vector3 Terrain::WaterVertex(const SectorData& sector, int index) const {
+    const Vector3& rest = sector.vertices[kSectorVertices + index];
+    if (!lib::Has(landscapeFlags, LandscapeFlag::Waves) || std::ssize(sector.records) < 2 * kSectorVertices) return rest;
+    const int material = sector.records[kSectorVertices + index].waterMaterial;
+    if (material >= std::min(lib::Count(materials), kWaveMaterials)) return rest;
+    const MaterialWaves waves = WavesOf(material);
+    if (waves.keepsGroundXY) return rest;
+    const int row = index / kSectorRow, column = index % kSectorRow;
+    const Vector2 direction = XY(waveDirection);
+    const float start = std::fmod(Dot2D(direction, XY(sector.vertices[kSectorVertices])) + kFullTurn, kFullTurn);
+    const float along = start + waves.turn + row * direction.y + column * direction.x;
+    const float lift = Sine(sine, along + wavePhases[index]) * waves.lift;
+    return {Sine(sine, column * kQuarterTurn + waveTime) * waves.lift * kCircleScale + rest.x,
+            Sine(sine, row * kQuarterTurn + waveTime) * waves.lift * kCircleScale + rest.y, lift * kRiseScale + rest.z};
 }
 
 float Terrain::HeightAt(float x, float y, Layer layer) {
-    int ix0 = lib::RoundEven(x), iy0 = lib::RoundEven(y);
-    int ix1 = ix0 + 1, iy1 = iy0 + 1;
-
-    for (int iteration = 1;; ++iteration) {
-        const Vector3* v00 = VertexAt(ix0, iy0, layer);
-        const Vector3* v10 = VertexAt(ix1, iy0, layer);
-        const Vector3* v01 = VertexAt(ix0, iy1, layer);
-        const Vector3* v11 = VertexAt(ix1, iy1, layer);
-        if (!v00 || !v11) return 0.0f;
-        // Only the diagonal's ends (the original retried the same cell forever): its midpoint.
-        if (!v10 && !v01) return (v00->z + v11->z) * 0.5f;
-        if (!v10) return PlaneHeight(*v00, *v11, x, y, *v01);
-        if (!v01) return PlaneHeight(*v00, *v10, x, y, *v11);
-
-        // Both triangles of the cell must be counter-clockwise, else take the diagonal's midpoint.
-        const Vector2 from10to00 = XY(*v00) - XY(*v10);
-        const Vector2 from10to11 = XY(*v11) - XY(*v10);
-        const float turnS = Cross2D(from10to11, from10to00);
-        if (turnS <= 0.0f) return (v11->z + v01->z) * 0.5f;
-        const Vector2 from01to00 = XY(*v00) - XY(*v01);
-        const Vector2 from01to11 = XY(*v11) - XY(*v01);
-        const float turnT = Cross2D(from01to00, from01to11);
-        if (turnT <= 0.0f) return (v11->z + v01->z) * 0.5f;
-
-        const Vector2 at{x, y};
-        const Vector2 to10 = XY(*v10) - at;
-        const Vector2 to01 = XY(*v01) - at;
-        float side = Cross2D(at - XY(*v00), XY(*v11) - XY(*v00));
-        if (side > 0.0f) {
-            // Lower-right triangle (v00, v10, v11); step to a neighbour if the point is outside it.
-            if (iteration >= 10) return PlaneHeight(*v00, *v10, x, y, *v11);
-            if (Cross2D(to10, from10to00) > 0.0f) { --iy0; --iy1; continue; }
-            if (Cross2D(to10, from10to11) >= 0.0f) return PlaneHeight(*v00, *v10, x, y, *v11);
-            ++ix0; ++ix1;
-        } else {
-            // Upper-left triangle (v00, v11, v01).
-            if (iteration >= 10) return PlaneHeight(*v00, *v11, x, y, *v01);
-            float across = Cross2D(to01, from01to00);
-            if (across < 0.0f) { --ix0; --ix1; continue; }
-            const float beyond = Cross2D(to01, from01to11);
-            if (beyond <= 0.0f) return PlaneHeight(*v00, *v11, x, y, *v01);
-            ++iy0; ++iy1;
-        }
-    }
+    if (layer == Layer::Ground) return HeightOver(x, y, [&](int ix, int iy) { return Copy(VertexAt(ix, iy, layer)); });
+    return HeightOver(x, y, [&](int ix, int iy) -> std::optional<Vector3> {
+        int index = 0;
+        const SectorData* sector = VertexSector(ix, iy, &index);
+        if (!sector || !sector->hasWater) return std::nullopt;
+        return WaterVertex(*sector, index);
+    });
 }
 
 float Terrain::SurfaceHeight(float x, float y) {
-    const float water = HeightAt(x, y, Layer::Water);
-    const float ground = HeightAt(x, y, Layer::Ground);
-    const float depth = water > ground ? water - ground : 0.0f;
-    return ground + depth;
+    return AboveGround(HeightAt(x, y, Layer::Water), HeightAt(x, y, Layer::Ground));
+}
+
+float Terrain::CalmSurfaceHeight(float x, float y) {
+    const float water = HeightOver(x, y, [&](int ix, int iy) { return Copy(VertexAt(ix, iy, Layer::Water)); });
+    return AboveGround(water, HeightAt(x, y, Layer::Ground));
 }
 
 int Terrain::SurfaceClass(float x, float y) {
@@ -308,8 +372,9 @@ void Terrain::DrawWater(SceneRenderer* renderer) { DrawPass(renderer, LayerPages
 
 // --- Update ------------------------------------------------------------------------------------------
 
-// The landscape's per-frame work: the update (RunTick) and the sun (SetSun); the sectors animate their tiles and
-// waves (SectorData::AnimateTiles, AnimateWaves, terrain_sector.cpp).
+// The landscape's per-frame work: the update (RunTick) and the sun (SetSun); the sectors animate their tiles
+// (SectorData::AnimateTiles, terrain_sector.cpp). The waves move nothing here: WaterVertex and the GPU work them out
+// from the phase and the time.
 
 void Terrain::SetSun(Light* light, const Vector4& colour) {
     ambient = colour;
@@ -319,16 +384,14 @@ void Terrain::SetSun(Light* light, const Vector4& colour) {
 bool Terrain::RunTick() {
     if (lib::Has(landscapeFlags, LandscapeFlag::Ambience)) PlayAmbience();
     wavePhase += waveSpeed;
+    waveTime = (g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale;
     ++frame;
     for (int sy = visible.firstY; sy <= visible.lastY; ++sy) {
         for (int sx = visible.firstX; sx <= visible.lastX; ++sx) {
             SectorData* sector = SectorAt(sx, sy, SectorStage::Built, false);
-            if (sector && sector->IsDrawn()) {
-                // The tiles' steps draw the client generator, which visuals.sav keeps: they step within the game's
-                // reach as when the view had its far plane there, and farther keep their frame.
-                if (sector->inReach) sector->AnimateTiles(frame);
-                sector->AnimateWaves();
-            }
+            // The tiles' steps draw the client generator, which visuals.sav keeps: they step within the game's reach
+            // as when the view had its far plane there, and farther keep their frame.
+            if (sector && sector->IsDrawn() && sector->inReach) sector->AnimateTiles(frame);
         }
     }
     return true;

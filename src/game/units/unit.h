@@ -97,7 +97,7 @@ struct UnitParams {
     std::uint8_t strength = 0;
     std::uint8_t dexterity = 0;
     std::uint8_t intelligence = 0;    // (UnitStats::intelligence rounded)
-    std::uint8_t movementKind = 0;  // 2: moves on the water surface
+    std::uint8_t movementKind = 0;  // 2: flies (over the surface, the water's with its waves on a client)
     // Speed bytes of movement modes 3 (and 2's backward), 2, 1, 0 (UnitStats mode speeds * 255 / 2, at most 255).
     std::uint8_t modeSpeeds[4] = {};
     std::uint8_t baseSpeed = 0;     // (UnitStats::speed * 25.5, at most 255)
@@ -453,7 +453,8 @@ public:
     // "chest"), doubled for the mosquito (MapObjectType::Creature, prototype "unmosp"); 0 when the figure has neither
     // part.
     float BodyExtent();
-    // The ground height at (x, y); for units moving on the water surface (movementKind 2) the surface height
+    // The ground height at (x, y); for flyers (movementKind 2: Banshee, Bat, Beholder, Dragon, Succub, Willowisp,
+    // Ancient Curse, Shadow) the surface height (on a client the water's with its waves where it is above the ground)
     // plus the unit's z (server units) or its heightOffset.
     float GroundHeight(float x, float y);
     // Where effects (lightning, particles) start from the unit: on a client, a hero's right hand (part
@@ -516,7 +517,7 @@ public:
     int sizeClass = 3;              // selects the 4-bit passability field in each AI map cell
     float unitRadius = kDefaultUnitRadius;  // 0.75 after Reset
     float standingHeight = kDefaultStandingHeight;  // deeper water or higher ground than (2 - height) * 16 blocks it
-    // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 moves on the water surface), the
+    // The parameter block (UnitStats rounded): the attack rate, the movement kind (2 flies), the
     // mode and base speeds and the six body slots (the unit panel's parts are their kind / current / maximum).
     UnitParams params;
     int fightAtWill = kFightAtWill;     // kFightAtWill: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
@@ -795,7 +796,7 @@ struct UnitStats {
     float capacity = 0.0f;
     float loadFactor = 0.0f;        // LegsFactor when movementKind is 1, else 1
     float armsFactor = 0.0f;
-    int movementKind = 0;               // the model's: 1 legs (load factor), 2 on the water (no size classes)
+    int movementKind = 0;               // the model's: 1 legs (load factor), 2 flies (no size classes)
     // The combat values.
     float reachHeightScale = 0.0f;  // from the model: a non-hero strikes low when the target's
                                     // standing height plus (this + 1) x its own radius passes the distance

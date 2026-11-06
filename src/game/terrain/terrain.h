@@ -105,15 +105,40 @@ public:
     void DrawGround(SceneRenderer* renderer);
     void DrawWater(SceneRenderer* renderer);
 
+    // The water layer's height is the waves' (WaterVertex).
     float HeightAt(float x, float y, Layer layer);
-    // The ground height at (x, y), raised to the water surface where it is under water.
+    // The ground height at (x, y), raised to the water surface (with its waves) where it is under water.
     float SurfaceHeight(float x, float y);
+    // The same with the water at rest, without its waves (the camera's height: its bobbing was not intended).
+    float CalmSurfaceHeight(float x, float y);
+
+    // The waves of water material `material` at the last RunTick: the phase it adds along the wave direction, the
+    // lift (waveHeight times the material's priority), the crest's specular colour per unit of wave (0 .. 255), and
+    // whether its vertices keep the ground's x, y (only their crest moves).
+    struct MaterialWaves {
+        float turn = 0.0f;
+        float lift = 0.0f;
+        Vector3 crest;
+        bool keepsGroundXY = false;
+    };
+    MaterialWaves WavesOf(int material) const;
+    // The materials that wave: the first kWaveMaterials of the map's (no map has more than 7; terrain.hlsl's table).
+    static constexpr int kWaveMaterials = 32;
+    // Water vertex `index` (0 .. 33 x 33) of a built sector as the waves move it at the last RunTick, from its place
+    // at rest: computed where it is asked for, the GPU moves the drawn ones the same way (terrain.hlsl's `waved`).
+    // With LandscapeFlag::Waves and a material below kWaveMaterials, a sine table entry at the phase along the wave
+    // direction (from the sector's first water vertex, mod 2 pi) plus the material's turn and the vertex's offset
+    // (wavePhases) lifts it by a quarter of the material's lift and circles it sideways by three times the lift with
+    // the time (the entries at its column and row a quarter turn apart); a material that keeps the ground's x, y
+    // does not move it. Else, or when the sector is not built, the place at rest.
+    Vector3 WaterVertex(const SectorData& sector, int index) const;
 
     // Every sector of the map is visible (the passes clip-test each one). The game took a square of sectors around
     // the camera, 100 units each way; Rebirth's LandscapeDrawRadius (always on) widened it to the whole map.
     void ShowAllSectors();
 
-    // The ambient sounds, the waves, then the animation of each drawn visible sector. Returns true.
+    // The ambient sounds, the waves' phase and time, then the tile animation of each drawn visible sector. Returns
+    // true.
     bool RunTick() override;
 
     // The sun and the ambient colour (the GPU lighting's).
@@ -182,6 +207,7 @@ public:
     float waveHeight = 0.0f;
     float waveGlow = 0.0f;          // scales the crests' specular colour
     float wavePhase = kPi + kPi;    // advanced by waveSpeed every frame
+    float waveTime = 0.0f;          // the circling's time at the last RunTick: the client world's ticks * 0.05
     float waveSpeed = -0.0f;        // as SetWaveStrength(0) leaves it (a negative scale times 0)
     std::vector<float> wavePhases;   // per water vertex (33 x 33) phase offsets
     float sine[512] = {};           // sin(i * pi / 256)
@@ -224,7 +250,9 @@ private:
     // The visible sectors clip tested, and the pass (pages `firstPage` .. `lastPage` with a texture: the page's
     // texture is page % LayerPages()) handed to the renderer. Nothing without a map.
     void DrawPages(SceneRenderer* renderer, int firstPage, int lastPage);
-    // Null outside the map or where the sector has no such layer.
+    // The sector holding map vertex (ix, iy) (loaded) and the vertex's index in a layer; null outside the map.
+    SectorData* VertexSector(int ix, int iy, int* index);
+    // Null outside the map or where the sector has no such layer; the water at rest.
     const Vector3* VertexAt(int ix, int iy, Layer layer);
 };
 
