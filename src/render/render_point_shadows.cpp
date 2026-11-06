@@ -73,6 +73,13 @@ struct Candidate {
     int scene = 0;
     Vector3 at;
     float range = 0.0f, strength = 0.0f;
+    float reach = 0.0f;   // NearCandidate's: the range, at least kHoldMargin
+    float size = 0.0f;    // ... a bound on the magnitudes of the place and the reach
+};
+// Around every candidate's place and reach (NearCandidate), and the largest of their sizes.
+struct CandidatesReach {
+    Box box;
+    float size = 0.0f;
 };
 
 // A light given a map this frame: its scene light, its row of the atlas, and the casters each of its faces draws.
@@ -86,6 +93,7 @@ struct MappedLight {
 
 // The frame's working lists, kept across frames for their room.
 static std::vector<Candidate> g_candidates;
+static CandidatesReach g_candidatesReach;
 static std::vector<FrameObject> g_objects;   // by place in ShadowFrame::casters
 static std::vector<Caster> g_casters;
 static std::vector<UnitMesh> g_units;
@@ -325,9 +333,18 @@ static bool ListCandidates(const KeptScene& scene, const Matrix4& camera) {
         if (!l.shadows || !(l.inverseRangeSquared > 0.0f) || brightest < kLeastColour) continue;
         const float range = 1.0f / std::sqrt(l.inverseRangeSquared);
         if (range <= kNear * 4.0f || !InView(camera, l.at, range)) continue;
-        g_candidates.push_back(Candidate{k, l.at, range, brightest * range});
+        const float reach = std::max(range, kHoldMargin);
+        const float size = std::fabs(l.at.x) + std::fabs(l.at.y) + std::fabs(l.at.z) + reach;
+        g_candidates.push_back(Candidate{k, l.at, range, brightest * range, reach, size});
     }
     if (g_candidates.empty()) return false;
+    CandidatesReach& all = g_candidatesReach;
+    all = CandidatesReach{};
+    for (const Candidate& c : g_candidates) {
+        all.box.Extend(c.at - Vector3{c.reach, c.reach, c.reach});
+        all.box.Extend(c.at + Vector3{c.reach, c.reach, c.reach});
+        all.size = std::max(all.size, c.size);
+    }
     std::sort(g_candidates.begin(), g_candidates.end(), [](const Candidate& a, const Candidate& b) {
         return a.strength > b.strength || (a.strength == b.strength && a.scene < b.scene);
     });
@@ -347,15 +364,20 @@ int LandscapeModel(Frame& f, const CameraInverse& camera, int matrix) {
 
 // A caster's mesh can matter to a candidate light (MapLights' tests on its sphere): its box placed by `model` lies
 // within the light's range of it, or within kHoldMargin (it may hold the light), by its centre and a bound on its
-// sphere's radius, with a margin far over the rounding of either side.
+// sphere's radius, with a margin far over the rounding of either side (2^-12 of the magnitudes); first against the box
+// around all the candidates' reaches.
 static bool NearCandidate(const float box[6], const Matrix4& model) {
     const PlacedBox placed = PlaceBox(box, model);
     const float radius = Length(placed.half);
     const Vector3& c = placed.centre;
+    const float size = std::fabs(c.x) + std::fabs(c.y) + std::fabs(c.z) + radius;
+    const Box& all = g_candidatesReach.box;
+    const float widest = radius + (size + g_candidatesReach.size) * 0x1p-12f;
+    if (c.x < all.low.x - widest || c.x > all.high.x + widest || c.y < all.low.y - widest ||
+        c.y > all.high.y + widest || c.z < all.low.z - widest || c.z > all.high.z + widest)
+        return false;
     for (const Candidate& light : g_candidates) {
-        const float size = std::fabs(c.x) + std::fabs(c.y) + std::fabs(c.z) + std::fabs(light.at.x) +
-                           std::fabs(light.at.y) + std::fabs(light.at.z);
-        const float reach = std::max(light.range, kHoldMargin) + radius + (size + light.range + radius) * 0x1p-12f;
+        const float reach = light.reach + radius + (size + light.size) * 0x1p-12f;
         if (DistanceSquared(c, light.at) <= reach * reach) return true;
     }
     return false;
