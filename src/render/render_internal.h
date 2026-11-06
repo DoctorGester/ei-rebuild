@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <memory>
 #include <span>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -989,10 +988,11 @@ gpu::Sampler ShadowCompareSampler();
 const gpu::Texture& NoShadowTexture();
 // The casters' draws into a depth map (shaders/shadow_caster.hlsl), the sun's and the point lights'. Each draw's
 // own data (CasterInstance) goes into one instance buffer uploaded once a pass. A depth map does not depend on the
-// order its casters are drawn in: the draws are sorted by what they bind, then by their indices, and each run with the
-// same bindings is one indirect call (gpu::DrawIndexedIndirect) whose draws each take the instances of a run with the
-// same indices (a mesh kept once for many objects, KeepMesh); the pipeline and bindings are applied only when they
-// change.
+// order its casters are drawn in: the draws are grouped by what they bind, then by their indices (without a comparison
+// sort: each draw's binding and group are found once in Add, and Sort places the draws by them in one counting pass),
+// and each run with the same bindings is one indirect call (gpu::DrawIndexedIndirect) whose draws each take the
+// instances of a run with the same indices (a mesh kept once for many objects, KeepMesh); the pipeline and bindings are
+// applied only when they change.
 struct CasterInstance {
     Matrix4 light;       // model space -> the map's clip space
     float uvOffset[2] = {};  // a kept mesh's texture offsets (MeshBatch::uOffset, vOffset)
@@ -1008,7 +1008,9 @@ public:
     void Add(const Geometry& geometry, bool kept, const gpu::Texture& texture, gpu::Sampler sampler, int firstIndex,
              int indexCount, const CasterInstance& instance);
     std::size_t Count() const { return draws.size(); }
-    // Sorts the draws in [from, to) by what they bind and their indices; Draw takes the same ranges.
+    // Groups the draws in [from, to) by what they bind (the frame's stream's pipeline first, then the kept meshes', each
+    // binding where the range first met it) and by their indices (in the order met), each group's draws in the order
+    // added; Draw takes the same ranges.
     void Sort(std::size_t from, std::size_t to);
     // Uploads the instances and the indirect draws, before the pass (whose first Draw applies the pipeline and
     // bindings anew); false when they could not be (nothing is drawn).
@@ -1025,14 +1027,80 @@ private:
         int kept = 0;
         int firstIndex = 0, indexCount = 0;
         int instance = 0;  // in instanceData
+        int binding = 0;   // in `bindings`: the same for draws with the same pipeline, buffers and texture
+        int group = 0;     // in `groups`: the same for draws with the same binding and indices
     };
-    // What a draw binds: the order Sort puts the draws in, the same key for draws with the same bindings.
-    static auto BindingKey(const Entry& e) {
-        return std::make_tuple(e.kept, reinterpret_cast<std::uintptr_t>(e.texture.texture.texture),
-                               reinterpret_cast<std::uintptr_t>(e.texture.sampler.sampler),
-                               reinterpret_cast<std::uintptr_t>(e.vertices.buffer.buffer), e.vertices.offset,
-                               reinterpret_cast<std::uintptr_t>(e.indices.buffer.buffer), e.indices.offset);
-    }
+    // What a draw binds, and that with its indices: Add's keys.
+    struct BindingKey {
+        const void* texture = nullptr;
+        const void* sampler = nullptr;
+        const void* vertexBuffer = nullptr;
+        const void* indexBuffer = nullptr;
+        std::uint32_t vertexOffset = 0, indexOffset = 0;
+        int kept = 0;
+        bool operator==(const BindingKey&) const = default;
+        std::uint64_t Hash() const;
+    };
+    struct GroupKey {
+        int binding = 0, firstIndex = 0, indexCount = 0;
+        bool operator==(const GroupKey&) const = default;
+        std::uint64_t Hash() const;
+    };
+    // A key's index: the one it was first given since the last Reset (open addressing; Reset is a stamp).
+    template <typename Key>
+    class FirstIndex {
+    public:
+        // The index of `key`, else `next`, which it is given then (*added).
+        int Find(const Key& key, int next, bool* added) {
+            if ((used + 1) * 2 > slots.size()) Grow();
+            Slot& s = SlotOf(key);
+            *added = s.stamp != stamp;
+            if (*added) {
+                s = Slot{key, next, stamp};
+                ++used;
+            }
+            return s.index;
+        }
+        void Reset() {
+            used = 0;
+            if (++stamp != 0) return;
+            for (Slot& s : slots) s.stamp = 0;
+            stamp = 1;
+        }
+
+    private:
+        struct Slot {
+            Key key{};
+            int index = 0;
+            std::uint32_t stamp = 0;
+        };
+        // The key's slot, or the free one it would take.
+        Slot& SlotOf(const Key& key) {
+            const std::size_t mask = slots.size() - 1;
+            for (std::size_t i = static_cast<std::size_t>(key.Hash()) & mask;; i = (i + 1) & mask)
+                if (slots[i].stamp != stamp || slots[i].key == key) return slots[i];
+        }
+        void Grow() {
+            std::vector<Slot> old(std::max<std::size_t>(64, slots.size() * 2));
+            old.swap(slots);
+            for (const Slot& s : old)
+                if (s.stamp == stamp) SlotOf(s.key) = s;
+        }
+        std::vector<Slot> slots;
+        std::uint32_t stamp = 1;
+        std::size_t used = 0;
+    };
+    // A binding's and a group's place in the range Sort works on (`stamp`: Sort's call it was met in).
+    struct Binding {
+        int kept = 0;
+        std::uint32_t stamp = 0;
+        int firstGroup = -1, lastGroup = -1;   // its groups in the range, in the order met (Group::next)
+    };
+    struct Group {
+        std::uint32_t stamp = 0;
+        int next = -1;
+        std::size_t count = 0, at = 0;   // its draws in the range, and where the next of them goes
+    };
     // A run of draws with the same bindings in one sorted range (Upload): its first entry and its indirect draws.
     struct Run {
         std::size_t first = 0;
@@ -1040,6 +1108,13 @@ private:
     };
     std::vector<Entry> draws;
     std::vector<CasterInstance> instanceData;
+    std::vector<Binding> bindings;                 // since Clear
+    std::vector<Group> groups;
+    FirstIndex<BindingKey> bindingIndex;
+    FirstIndex<GroupKey> groupIndex;
+    std::uint32_t sortStamp = 0;                   // Sort's calls
+    std::vector<int> metBindings;                  // Sort's: the range's bindings in the order met
+    std::vector<Entry> sorted;                     // Sort's: the range's draws in their new order
     std::vector<std::size_t> sortedEnds;           // the ends of the ranges Sort was given
     std::vector<Run> runs;
     std::vector<CasterInstance> sortedInstances;   // instanceData in the sorted draws' order (Upload)

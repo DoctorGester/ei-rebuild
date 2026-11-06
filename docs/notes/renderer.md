@@ -1325,10 +1325,14 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   instance (`DrawIndexed`'s first instance; Direct3D's SV_InstanceID leaves the first instance out, an instance-step
   attribute does not), so a
   draw applies no uniforms. A depth-only map with LESS_EQUAL keeps the nearest depth whatever the order, so the draws are
-  sorted by what they bind, then by their indices (R37f3): draws of the same geometry (the kept meshes that share one
+  grouped by what they bind, then by their indices (R37f3): draws of the same geometry (the kept meshes that share one
   copy, the palms of one morph) become one draw of consecutive instances, and every draw of one binding is one
   `DrawIndexedIndirect` call (the commands written once a frame into an indirect buffer; one command alone is a plain
-  `DrawIndexed`). The save's sun map: 1874 draws in 41 calls.
+  `DrawIndexed`). The save's sun map: 1874 draws in 41 calls. No comparison sort (R37f7): `Add` finds each draw's binding
+  and its group (binding, first index, count) in two open-addressed tables reset by a stamp, and `Sort` places a range's
+  draws by group in one counting pass: the frame's stream's bindings, then the kept meshes' (one pipeline change), each
+  binding and group in the order the range met it, a group's draws in the order added. The order of bindings differs
+  from R37f3's pointer order; the depth does not depend on it, and the calls are the same.
 - **The map's GPU time** (R37e2: the town bz1g at night at 4K, msaa 8, with and without a crowd of 12 fighting; times by
   submission, section 13 item 1): 0.155 ms on Direct3D 12 and 0.155-0.17 on Vulkan, the same with the crowd as without.
   Of it the casters' draws are about 0.06 (drawn twice: +0.05); the pass without casters takes 0.09, the same with the
@@ -2156,7 +2160,7 @@ occlusion from the height field is render_terrain.cpp's. The water's reflected r
 Section 13, item 9: the few strongest point lights in view get a cube of six depth faces each, drawn from the sun map's
 casters, and the receivers lit on the GPU take each such light away where it is hidden: the ground (scene_lighting.hlsli's
 point loop) and the figure parts (mesh.hlsl's figure_light). The faces are drawn in one pass: their clears first (the
-faces do not overlap), then each face's casters through `CasterDraws` (render_shadows.cpp), sorted within the face.
+faces do not overlap), then each face's casters through `CasterDraws` (render_shadows.cpp), grouped within the face.
 
 ### render_shadows.cpp: object shadows through a sun shadow map
 

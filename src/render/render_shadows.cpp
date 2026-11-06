@@ -879,20 +879,72 @@ void CasterDraws::Add(const Geometry& geometry, bool kept, const gpu::Texture& t
     e.firstIndex = firstIndex;
     e.indexCount = indexCount;
     e.instance = static_cast<int>(instanceData.size());
+    bool added = false;
+    const BindingKey binding{e.texture.texture.texture, e.texture.sampler.sampler, e.vertices.buffer.buffer,
+                             e.indices.buffer.buffer, e.vertices.offset, e.indices.offset, e.kept};
+    e.binding = bindingIndex.Find(binding, static_cast<int>(bindings.size()), &added);
+    if (added) bindings.push_back(Binding{e.kept});
+    e.group = groupIndex.Find(GroupKey{e.binding, firstIndex, indexCount}, static_cast<int>(groups.size()), &added);
+    if (added) groups.emplace_back();
     draws.push_back(e);
     instanceData.push_back(instance);
 }
 
+// Fibonacci hashing of the keys' words.
+static std::uint64_t Mix(std::uint64_t h, std::uint64_t word) {
+    h = (h ^ word) * 0x9E3779B97F4A7C15ull;
+    return h ^ (h >> 29);
+}
+
+std::uint64_t CasterDraws::BindingKey::Hash() const {
+    std::uint64_t h = 0;
+    for (const void* p : {texture, sampler, vertexBuffer, indexBuffer}) h = Mix(h, reinterpret_cast<std::uintptr_t>(p));
+    return Mix(h, (std::uint64_t{vertexOffset} << 32 | indexOffset) ^ static_cast<std::uint64_t>(kept));
+}
+
+std::uint64_t CasterDraws::GroupKey::Hash() const {
+    return Mix(Mix(0, static_cast<std::uint32_t>(binding)),
+               std::uint64_t{static_cast<std::uint32_t>(firstIndex)} << 32 | static_cast<std::uint32_t>(indexCount));
+}
+
 void CasterDraws::Sort(std::size_t from, std::size_t to) {
-    std::sort(draws.begin() + static_cast<std::ptrdiff_t>(from), draws.begin() + static_cast<std::ptrdiff_t>(to),
-              [](const Entry& a, const Entry& b) {
-                  const auto ka = BindingKey(a), kb = BindingKey(b);
-                  if (ka != kb) return ka < kb;
-                  if (a.firstIndex != b.firstIndex) return a.firstIndex < b.firstIndex;
-                  if (a.indexCount != b.indexCount) return a.indexCount < b.indexCount;
-                  return a.instance < b.instance;
-              });
     sortedEnds.push_back(to);
+    if (to - from < 2) return;
+    // The range's bindings and each one's groups in the order met, and the draws a group holds.
+    ++sortStamp;
+    metBindings.clear();
+    for (std::size_t k = from; k < to; ++k) {
+        const Entry& e = draws[k];
+        Binding& b = bindings[static_cast<std::size_t>(e.binding)];
+        if (b.stamp != sortStamp) {
+            b.stamp = sortStamp;
+            b.firstGroup = b.lastGroup = -1;
+            metBindings.push_back(e.binding);
+        }
+        Group& g = groups[static_cast<std::size_t>(e.group)];
+        if (g.stamp != sortStamp) {
+            g = Group{sortStamp, -1, 0, 0};
+            if (b.lastGroup < 0) b.firstGroup = e.group;
+            else groups[static_cast<std::size_t>(b.lastGroup)].next = e.group;
+            b.lastGroup = e.group;
+        }
+        ++g.count;
+    }
+    // Each group's first place: the frame's stream's bindings, then the kept meshes'.
+    std::size_t at = 0;
+    for (int kept = 0; kept < 2; ++kept)
+        for (int index : metBindings) {
+            const Binding& b = bindings[static_cast<std::size_t>(index)];
+            if (b.kept != kept) continue;
+            for (int g = b.firstGroup; g >= 0; g = groups[static_cast<std::size_t>(g)].next) {
+                Group& group = groups[static_cast<std::size_t>(g)];
+                group.at = at;
+                at += group.count;
+            }
+        }
+    sorted.resize(to - from);
+    for (std::size_t k = from; k < to; ++k) sorted[groups[static_cast<std::size_t>(draws[k].group)].at++] = draws[k];
+    std::copy(sorted.begin(), sorted.end(), draws.begin() + static_cast<std::ptrdiff_t>(from));
 }
 
 bool CasterDraws::Upload() {
@@ -914,7 +966,7 @@ bool CasterDraws::Upload() {
             const auto next = std::upper_bound(sortedEnds.begin(), sortedEnds.end(), k);
             end = next == sortedEnds.end() ? draws.size() : *next;
         }
-        if (rangeStart || BindingKey(draws[k - 1]) != BindingKey(e))
+        if (rangeStart || draws[k - 1].binding != e.binding)
             runs.push_back({k, static_cast<std::uint32_t>(commandData.size()), 0});
         Run& run = runs.back();
         gpu::IndexedIndirect* last = run.commands ? &commandData.back() : nullptr;
@@ -941,7 +993,7 @@ void CasterDraws::Draw(std::size_t from, std::size_t to) {
             gpu::ApplyPipeline(g_casterPipelines[e.kept]);
             appliedPipeline = e.kept;
         }
-        if (!applied || BindingKey(*applied) != BindingKey(e)) {
+        if (!applied || applied->binding != e.binding) {
             const gpu::BufferBinding vertices[kInstanceBuffer + 1] = {
                 e.vertices, {instances.Buffer(), static_cast<std::uint32_t>(instanceOffset)}};
             gpu::BindVertexBuffers(0, vertices);
@@ -965,6 +1017,10 @@ void CasterDraws::Draw(std::size_t from, std::size_t to) {
 void CasterDraws::Clear() {
     draws.clear();
     instanceData.clear();
+    bindings.clear();
+    groups.clear();
+    bindingIndex.Reset();
+    groupIndex.Reset();
     sortedEnds.clear();
     runs.clear();
     commandData.clear();
