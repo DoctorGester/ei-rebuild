@@ -23,10 +23,12 @@ def tools_of(scenario):
 IN_SLOT = 'EI_PREPARE_IN_SLOT'
 
 
-def prepare(scenario, saves, in_slot=False):
+def prepare(scenario, saves, in_slot=False, environ=None):
     """Runs the scenario's prepare tools. in_slot: the caller holds a machine game slot for the run (its game has not
-    started, so the slot is idle): a tool that plays a game (recorded_save.py) plays it in that slot, sets EI_PREPARE_IN_SLOT."""
-    env = dict(os.environ, **{IN_SLOT: '1'}) if in_slot else {k: v for k, v in os.environ.items() if k != IN_SLOT}
+    started, so the slot is idle): a tool that plays a game (recorded_save.py) plays it in that slot, sets EI_PREPARE_IN_SLOT.
+    environ: the tools' environment (default: this process's); a scheduler running a batch passes the batch's (H65)."""
+    base = os.environ if environ is None else environ
+    env = dict(base, **{IN_SLOT: '1'}) if in_slot else {k: v for k, v in base.items() if k != IN_SLOT}
     for line in open(scenario, encoding='utf-8', errors='replace'):
         if not line.startswith(PREFIX):
             continue

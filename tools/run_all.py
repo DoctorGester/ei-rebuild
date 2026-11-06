@@ -746,18 +746,22 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     if left := empty_folder(out):
         return 'FAIL', 0.0, [f'the run folder could not be emptied ({", ".join(left[:5])} left: a file in it is still open)'], {}, []
     os.makedirs(out, exist_ok=True)
+    env = None
+    if game_env is not None:
+        env = {k: v for k, v in os.environ.items() if k not in game_environment()}
+        env.update(game_env)
+    # The prepare tools get the batch's variables and build, never the scheduler's own (H65): recorded_save.py plays its
+    # games in this build.
+    prepare_env = dict(os.environ if env is None else env, EI_BUILD_DIR=build)
     try:
-        prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'), in_slot=not take_slot)   # "# prepare:" lines
+        prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'), in_slot=not take_slot,
+                                 environ=prepare_env)   # "# prepare:" lines
     except subprocess.CalledProcessError as error:
         tail = (error.stderr or error.stdout or b'').decode('utf8', 'replace').strip().splitlines()[-3:]
         return 'FAIL', 0.0, [f'a "# prepare:" tool failed ({" ".join(str(a) for a in error.cmd[1:])}; exit code '
                              f'{error.returncode}){": " + " | ".join(tail) if tail else ""}'], {}, []
     except OSError as error:
         return 'FAIL', 0.0, [f'a "# prepare:" tool could not run: {error}'], {}, []
-    env = None
-    if game_env is not None:
-        env = {k: v for k, v in os.environ.items() if k not in game_environment()}
-        env.update(game_env)
     environ = os.environ if env is None else env
     if 'EI_RENDER' in environ:
         # The image's renderer options are its scenario's "render" step, never the environment's.

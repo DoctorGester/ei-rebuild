@@ -31,8 +31,10 @@ void BeginDraws();
 void Enter(Pass pass);
 // After the present's draws.
 void EndDraws();
-// The draws made so far in the frame, every pass's (render.cpp, from FrameStats; tools/perf_check has its own).
+// The draws made so far in the frame, every pass's (render.cpp, from FrameStats; tools/perf_check has its own): the
+// batches drawn, and the API calls that drew them (a run of meshes is one call), the shadow maps' included.
 std::uint64_t FrameDrawCount();
+std::uint64_t FrameCallCount();
 
 // The renderer's CPU time: the end of the frame's draws up to the present (Submit) and the shadow maps (Shadow: their
 // fitting and passes in Submit, and the world draw's walk of the casters outside the view before it).
@@ -46,8 +48,9 @@ void FrameDone();
 
 // ---- The overlay (render_window.cpp, in the present's pass on the swap chain's texture) --------------------
 
-// Before the present's pass: the text made again when due and its image written.
-void Prepare();
+// Before the present's pass: the text made again when due (or for another size of frame: `frameHeight`, the game
+// image's height in the window) and its image written.
+void Prepare(int frameHeight);
 // Inside the pass: the overlay over `placed` (the frame's rectangle in a target of `format`, `width` x `height`).
 void Draw(gpu::Format format, int width, int height, const Rect& placed);
 // The renderer stops: the text's image released and the frame timing off (before gpu::Stop).
@@ -61,29 +64,27 @@ struct Numbers {
     bool gpu = false;                      // GPU times known (frames finished in the last second)
     double gpuMs = 0.0, worstGpuMs = 0.0;  // the whole frame's (its submission's work)
     double submitMs = 0.0, shadowCpuMs = 0.0;
-    double draws[kPasses] = {};            // each pass's draws
+    double calls[kPasses] = {};            // each pass's API calls
+    double draws[kPasses] = {};            // and the batches they drew
 };
 // The numbers over the last second as of now.
 Numbers Current();
 // The overlay's lines.
 std::vector<std::string> Lines(const Numbers& n);
 
-// The font's cell: 5 x 7 glyphs, a column and two rows apart; the box's border around the text.
-constexpr int kGlyphWidth = 5, kGlyphHeight = 7, kCellWidth = 6, kCellHeight = 9, kBorder = 3;
-// Brightness in the image: the box 0, letters and signs kLabel, digits and the point kValue.
-constexpr std::uint8_t kLabel = 176, kValue = 255;
-// A one-channel image, rows top down.
-struct TextImage {
+// The text: Liberation Mono (render_text.h) at FontPixels(frame height) pixels, one per kFrameRowsPerFontPixel rows of
+// the game image (the interface's text grows with the window the same way), at least kLeastFontPixels.
+constexpr int kLeastFontPixels = 10, kFrameRowsPerFontPixel = 60;
+constexpr const char* kFace = "Courier New";
+int FontPixels(int frameHeight);
+// The box's border around the text and its offset from the frame's top left corner, in screen pixels.
+inline int Border(int fontPixels) { return fontPixels / 3; }
+inline int Margin(int fontPixels) { return fontPixels / 2; }
+// The lines laid out and drawn into a one-channel image: 0 the backing, else the text's coverage.
+struct Box {
     int width = 0, height = 0;
-    std::vector<std::uint8_t> pixels;
+    std::vector<std::uint8_t> coverage;   // rows top down
 };
-// `lines` drawn into a one-channel image.
-TextImage Rasterise(const std::vector<std::string>& lines);
-// Whether the font has `c` (lower case drawn as capitals); anything else is a blank.
-bool HasGlyph(char c);
-// The image's screen pixels per pixel for a frame `height` pixels high: one per 540 rows, at least one.
-int Scale(int height);
-// The box's offset from the frame's top left corner, in screen pixels.
-inline int Margin(int scale) { return 4 * scale; }
+Box MakeBox(const std::vector<std::string>& lines, int fontPixels);
 
 } // namespace render::perf
