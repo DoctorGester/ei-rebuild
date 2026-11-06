@@ -345,3 +345,26 @@ AddDrawnCasters took on the tables' lookups the sort lost (2.25% -> 2.99%: `Cast
 group). Left in PrepareShadows (about 0.2 ms): the GPU-lit meshes' landscape matrices (CameraInverse::Under 2.3% of the
 thread, 1.5% of it FigureLight's own product at the hand-over: R37f6a), the point casters' gate (about 1%), the roofs'
 loose boxes while units are in view (0.3%), ReceiverMatrices (0.9%).
+
+## Measured after R37f13
+
+R37f5's kit (the probe patch applied to the commit before R37f13 and to R37f13's, release terms, quiet runs, three
+rounds alternating, medians; the logs in build/r37f13_t of the main checkout). The machine ran faster for the second
+build in this session (the untouched game tick 0.23 -> 0.20, the interface 0.13 -> 0.09), so read the gains as up to
+a tenth smaller.
+
+| Part (ms a frame) | Save, still | Save, panning | Town at night | Town, crowd |
+|---|---|---|---|---|
+| Main thread | 4.74 -> 3.81 | 3.48 -> 2.64 | 0.87 -> 0.85 | 1.62 -> 1.66 |
+| Objects' draws | 1.93 -> 1.19 | 1.14 -> 0.64 | 0.06 -> 0.03 | 0.06 -> 0.04 |
+| The casters handed over | 0.30 -> 0.20 | 0.25 -> 0.19 | | |
+| PrepareShadows | 0.25 -> 0.18 | 0.22 -> 0.18 | 0.03 -> 0.03 | 0.10 -> 0.09 |
+| PlanMeshDraws | 0.28 -> 0.30 | 0.18 -> 0.21 | 0.02 -> 0.04 | 0.07 -> 0.10 |
+| Ground prints | 0.04 -> 0.07 | 0.03 -> 0.06 | | |
+| Meshes handed over | 1822 -> 2081 | 1315 -> 1509 | 119 -> 227 | 466 -> 646 |
+
+The sampled 2400-frame save runs: 3.88 -> 2.90 ms. After it the save's main thread is DrawParts itself (7% exclusive:
+the lights in reach, the matrices, the units' boxes), CollectCells (3.3%), the pool's binds and the sun map's caster
+list. The parts outside the view now reach the GPU (the GPU clips them) and their records cost PlanMeshDraws a little
+more; the draw calls stay (56 -> 58). The ground prints are handed over without a CPU view test (0.03 ms more).
+

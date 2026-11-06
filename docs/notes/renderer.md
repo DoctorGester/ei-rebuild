@@ -2180,6 +2180,12 @@ view test per object, the GPU clips the rest.
 - **Looks**: an object partly in view casts and is drawn whole, so its shadow no longer comes from the casters' walk
   (render_shadows_outside: the town gate). A unit's rectangle is its parts' boxes, a little larger than its triangles
   (render_load_town's colour check reads the larger rectangle).
+- **Measured** (R37f5's probe on the commits before and after, release terms, 3840 x 2160, Msaa 1, Anisotropy 1, three
+  quiet runs each, medians; frame-plan.md, "Measured after R37f13"): the stress save's main thread 4.74 -> 3.81 ms with
+  the camera still (the objects' draws 1.93 -> 1.19), 3.48 -> 2.64 panning (the draws 1.14 -> 0.64); the sampled
+  2400-frame runs 3.88 -> 2.90. The town at night is GPU-bound and stays where it
+  was (0.87 / 0.85 ms; with the crowd 1.62 / 1.66). More meshes reach the GPU (parts outside the view are no longer
+  left out: the save 1822 -> 2081 a frame, the town 119 -> 227), in about as many calls (56 -> 58).
 
 ### render_occlusion.cpp: the screen's ambient occlusion
 
