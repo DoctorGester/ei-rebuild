@@ -77,11 +77,10 @@ const Draw kDraws[] = {
     // The window's back buffer.
     {"present", kBgra8, false, 1},
     {"perf_overlay", kBgra8, false, 1},
-    // Composed textures and the clouds' frames (render_compose.cpp).
+    // Composed textures and the global map's clouds (render_compose.cpp).
     {"texture_compose", kRgba8, false, 1},
     {"texture_mip", kRgba8, false, 1},
-    {"texture_clouds_frame", SDL_GPU_TEXTUREFORMAT_R8_UNORM, false, 1},
-    {"texture_clouds", kRgba8, false, 1},
+    {"map_clouds", kRgba8, false, 1},
     // The shadow maps and their range (render_shadows.cpp, render_point_shadows.cpp).
     {"shadow_caster", kNone, true, 1, 2},   // the caster's rows and cut per instance
     {"shadow_terrain", kNone, true, 1},

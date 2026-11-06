@@ -1,4 +1,4 @@
-// The rectangle programs' vertex stage (blit, perf_overlay, texture_compose, texture_mip, texture_clouds, the ui_
+// The rectangle programs' vertex stage (blit, perf_overlay, texture_compose, texture_mip, map_clouds, the ui_
 // programs): two triangles (six vertices, no buffer) covering a rectangle of the target. render_internal.h's
 // ApplyRect sets the block. rect_vs.hlsli is the stage itself; ui_quad takes only `to_clip`.
 #include "bindings.hlsli"

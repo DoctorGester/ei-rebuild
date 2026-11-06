@@ -439,19 +439,32 @@ void DrawIntoTexture(const Surface* holder, const TextureImage* image, int x, in
     DrawStep(holder, step);
 }
 
-void DrawClouds(const Surface* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]) {
+// The clouds' texture's size for a frame `height` pixels high: the power of two at least as large (the map's cloud
+// layers stretch the texture's height over about the frame's), within 512 .. 2048.
+static int CloudTextureSize(int height) {
+    int size = 512;
+    while (size < height && size < 2048) size *= 2;
+    return size;
+}
+
+void DrawClouds(const Surface* holder, const MapClouds& clouds) {
     Start();
     Timer timer(FrameStats::Time::TextureMs);
-    CloudsDraw clouds;
-    clouds.from = from;
-    clouds.to = to;
-    clouds.blend = blend;
-    std::memcpy(clouds.ramp, ramp, sizeof(clouds.ramp));
-    ComposeStep step;
-    step.over = false;
-    step.clouds = &clouds;
-    step.to = Rect{0, 0, 256, 256};
-    DrawStep(holder, step);
+    auto found = holder ? g_textures.find(holder) : g_textures.end();
+    if (found == g_textures.end() || !found->second.composed) {
+        LogFirst(g_failures, 10, "render: the clouds' texture did not make (holder %p)", holder);
+        return;
+    }
+    Texture& t = found->second;
+    const int size = CloudTextureSize(FrameSize().value_or(Size{0, 720}).h);
+    if (t.shape.width != size || t.shape.height != size) {
+        ComposeShape shape = t.shape;
+        shape.width = shape.height = size;
+        shape.firstLevel = 0;
+        if (shape.levels > 1) shape.levels = LevelCount(size, size);
+        StoreComposed(holder, shape, nullptr, 0);
+    }
+    DrawCloudTexture(t.shape, t.image, clouds);
 }
 
 void TexturePatch(const Surface* target, const int to[4], const Surface* source, const int from[4]) {

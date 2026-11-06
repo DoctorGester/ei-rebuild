@@ -1,9 +1,8 @@
 #pragma once
 
-// The global map's moving cloud layer (ui_global_map.cpp; 256 x 256). Three frames of value noise are kept as the
-// random words their four layers are made from; the renderer builds their texels (render::DrawClouds). The one shown
-// fades from the first frame into the second while the third gets a layer's words per build step; every 16 steps
-// they rotate. The blend goes through a 256-entry alpha ramp.
+// The global map's moving cloud layer (ui_global_map.cpp): the texture its three cloud layers show, drawn by the
+// renderer each frame (render::DrawClouds, our own cloud shader): smooth noise drifting with the clock, its alpha
+// through the game's ramp.
 
 #include "render/render.h"
 
@@ -11,22 +10,16 @@
 
 class GlobalMapClouds {
 public:
-    // The first two frames' words.
+    // The pattern: a word of the client's random numbers.
     void Start();
-    // Advances the fade by seconds * speed (each whole unit one build step) and draws the blended frame into the
-    // texture of `holder` (render::DrawClouds).
+    // Moves the drift on by seconds * speed and draws the clouds into the texture of `holder`.
     void Draw(const Surface* holder, float seconds);
-    // The alpha ramp: entry i is 255 - (width / 255)^max(0, i - start) * 255; `speed` is kept for Draw.
+    // The cover: a texel's alpha is 1 - (width / 255)^max(0, 255 x density - start); `speed` paces the drift.
     void SetRamp(int start, int width, float speed);
 
 private:
-    // Step `step` of building `frame`: steps 1-4 take the three random words of its layer step - 1; the others
-    // (where the original filled the frame's rows from the layers) do nothing.
-    static void Generate(render::CloudFrame* frame, int step);
-
     float speed = 0.0f;
-    std::uint8_t ramp[256] = {};
-    render::CloudFrame frames[3] = {};    // shown from, shown to, being built
-    float phase = 0.0f;                   // fade position within a step (0..1)
-    int step = 0;                         // build step of frames[2] (0..15)
+    double time = 0.0;   // the drift (seconds times speed), wrapped every render::kMapCloudsPeriod
+    int start = 0, width = 0;
+    std::uint32_t seed = 0;
 };

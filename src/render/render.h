@@ -277,14 +277,17 @@ bool BlankTexture(const Surface* holder, int width, int height, BlankAlpha alpha
 // The rectangle `width` x `height` at `image`'s top-left put into the texture at (x, y), replacing what is there
 // (clipped to the texture); without an image that rectangle is filled with opaque white.
 void DrawIntoTexture(const Surface* holder, const TextureImage* image, int x, int y, int width, int height);
-// One frame of the global map's clouds (DrawClouds): 256 x 256 grey levels of value noise summed from four 32 x 32
-// layers, each made from three random words (GlobalMapClouds, global_map_clouds.cpp).
-struct CloudFrame {
-    std::uint32_t words[4][3] = {};  // each layer's a, b, c
+// The global map's clouds for one frame (DrawClouds; GlobalMapClouds, global_map_clouds.cpp).
+struct MapClouds {
+    float time = 0.0f;          // the drift: the game's seconds times its speed, wrapped every kMapCloudsPeriod
+    int start = 0, width = 0;   // the ramp: a texel's alpha is 1 - (width / 255)^max(0, 255 x density - start)
+    std::uint32_t seed = 0;     // the pattern
 };
-// The whole 256 x 256 texture of `holder` (BlankTexture) made the clouds: each texel white with the alpha `ramp`[g],
-// g = (frame `to`'s grey level x `blend` + `from`'s x (256 - `blend`)) / 256.
-void DrawClouds(const Surface* holder, const CloudFrame& from, const CloudFrame& to, int blend, const std::uint8_t ramp[256]);
+// MapClouds::time's wrap: every octave's drift has moved by whole repeats of the texture.
+constexpr double kMapCloudsPeriod = 32768.0;
+// The texture of `holder` (BlankTexture) made the clouds (render_compose.cpp, shaders/map_clouds.hlsl): white to grey
+// by the light, the alpha their cover. It takes a size by the frame's (a texel about a pixel where the map shows it).
+void DrawClouds(const Surface* holder, const MapClouds& clouds);
 
 void BeginMesh(const TextureDevice* device, const MeshDraw& mesh);
 void MeshPass(const TextureDevice* device);
