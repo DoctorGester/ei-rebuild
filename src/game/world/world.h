@@ -672,7 +672,7 @@ struct CellRange {
 };
 
 struct SectorGrid {
-    // Nothing adds to a cell while it is walked (CollectVisible files one object; a first pass only appends
+    // Nothing adds to a cell while it is walked (CollectCells files its objects; a first pass only appends
     // units to the deferred vector); Move erases from one cell and appends to another.
     std::unique_ptr<std::vector<HeldRef<MapObject>>[]> cells;
     std::unique_ptr<std::vector<HeldRef<MapObject>>*[]> rows;  // row y: its cells
@@ -890,6 +890,10 @@ public:
     // id through. Returns 1 when the object was queued for the model-touch list, else 0.
     int CollectVisible(MapObject* object, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
                        char withScripted);
+    // CollectVisible's first pass over the object grid's cells in `range`, the same verdicts decided a cell at a
+    // time where the cell's boxes clear the view's planes (world_client_view.cpp); files the cells' casters
+    // (frame_lists.h, CasterCell).
+    int CollectCells(const CellRange& range, const Matrix4* view, std::uint32_t now);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
     // terrain height (Terrain::HeightAt).
     Vector3 PickGround(int x, int y);

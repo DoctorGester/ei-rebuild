@@ -228,10 +228,15 @@ const OcclusionReceiver& OcclusionOf(bool receives) {
     return receives && g_receiver.on ? g_receiver : none;
 }
 
-void BindOcclusion(int slot) {
+void OcclusionBindings(gpu::TextureBinding out[2]) {
     const gpu::Texture& none = WhiteView();
-    const gpu::TextureBinding b[2] = {{g_receiver.on ? g_occlusion : none, gpu::NearestClampSampler()},
-                                      {g_receiver.on ? g_depth : none, gpu::NearestClampSampler()}};
+    out[0] = {g_receiver.on ? g_occlusion : none, gpu::NearestClampSampler()};
+    out[1] = {g_receiver.on ? g_depth : none, gpu::NearestClampSampler()};
+}
+
+void BindOcclusion(int slot) {
+    gpu::TextureBinding b[2];
+    OcclusionBindings(b);
     gpu::BindTextures(gpu::Stage::Fragment, slot, b);
 }
 

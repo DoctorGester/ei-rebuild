@@ -11,10 +11,15 @@
 #include "game/models/texture.h"
 
 
+#include "lib/intro_sort.h"
+
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -60,4 +65,84 @@ bool object_order::DrawBefore(Object3D* a, Object3D* b) {
     if (int c = CompareTextures(RankTexture(groupA), RankTexture(groupB))) return c < 0;
     if (int c = CompareFigures(a->figure, b->figure)) return c < 0;
     return DepthBefore(a, b);
+}
+
+namespace {
+
+// The ranks of the distinct keys of `keys` under `compare` (equal keys the same rank, null first as compare puts it):
+// `ranks[i]` for `keys[i]`; false when there are more than 0xFFFF.
+template <typename Key, typename Compare>
+bool Ranks(const std::vector<const Key*>& keys, Compare compare, std::vector<std::uint32_t>& ranks) {
+    static std::vector<const Key*> distinct;
+    distinct.assign(keys.begin(), keys.end());
+    std::sort(distinct.begin(), distinct.end(), std::less<const Key*>());
+    distinct.erase(std::unique(distinct.begin(), distinct.end()), distinct.end());
+    static std::vector<const Key*> ordered;
+    ordered.assign(distinct.begin(), distinct.end());
+    std::sort(ordered.begin(), ordered.end(), [&](const Key* a, const Key* b) { return compare(a, b) < 0; });
+    static std::vector<std::pair<const Key*, std::uint32_t>> byAddress;
+    byAddress.clear();
+    std::uint32_t rank = 0;
+    for (std::size_t k = 0; k < ordered.size(); ++k) {
+        if (k > 0 && compare(ordered[k - 1], ordered[k]) != 0) ++rank;
+        byAddress.emplace_back(ordered[k], rank);
+    }
+    if (rank > 0xFFFF) return false;
+    std::sort(byAddress.begin(), byAddress.end(), [](const auto& a, const auto& b) { return std::less<const Key*>()(a.first, b.first); });
+    ranks.resize(keys.size());
+    for (std::size_t i = 0; i < keys.size(); ++i) {
+        auto at = std::lower_bound(byAddress.begin(), byAddress.end(), keys[i],
+                                   [](const auto& e, const Key* key) { return std::less<const Key*>()(e.first, key); });
+        ranks[i] = at->second;
+    }
+    return true;
+}
+
+// A view depth as an unsigned key in the same order as `<` (-0 as +0); false for NaN.
+bool DepthKey(float z, std::uint32_t* key) {
+    if (z != z) return false;
+    if (z == 0.0f) z = 0.0f;
+    const auto bits = std::bit_cast<std::uint32_t>(z);
+    *key = (bits & 0x80000000u) ? ~bits : bits | 0x80000000u;
+    return true;
+}
+
+struct Keyed {
+    std::uint64_t key = 0;
+    MapObject* object = nullptr;
+};
+
+} // namespace
+
+void object_order::SortForDraw(std::vector<MapObject*>& objects) {
+    const auto byComparator = [&objects] {
+        lib::IntroSort(objects.data(), objects.data() + objects.size(),
+                       [](MapObject* a, MapObject* b) { return DrawBefore(a, b); });
+    };
+    static std::vector<const Texture*> textures;
+    static std::vector<const LinkMesh*> figures;
+    static std::vector<std::uint32_t> depths, textureRanks, figureRanks;
+    textures.clear();
+    figures.clear();
+    depths.clear();
+    for (MapObject* object : objects) {
+        Object3DClientSpecific* group = object ? object->ClientSpecific() : nullptr;
+        std::uint32_t depth = 0;
+        // DrawBefore is no order over these: its own sort keeps what it does with them.
+        if (!group || !DepthKey(object->worldPosition.z, &depth)) return byComparator();
+        textures.push_back(RankTexture(group));
+        figures.push_back(object->figure);
+        depths.push_back(depth);
+    }
+    if (!Ranks(textures, CompareTextures, textureRanks) || !Ranks(figures, CompareFigures, figureRanks))
+        return byComparator();
+    // The keys order the objects as DrawBefore does pair by pair: the same sort makes the same permutation.
+    static std::vector<Keyed> keyed;
+    keyed.clear();
+    for (std::size_t i = 0; i < objects.size(); ++i)
+        keyed.push_back({static_cast<std::uint64_t>(textureRanks[i]) << 48 | static_cast<std::uint64_t>(figureRanks[i]) << 32 |
+                             depths[i],
+                         objects[i]});
+    lib::IntroSort(keyed.data(), keyed.data() + keyed.size(), [](const Keyed& a, const Keyed& b) { return a.key < b.key; });
+    for (std::size_t i = 0; i < objects.size(); ++i) objects[i] = keyed[i].object;
 }

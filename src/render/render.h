@@ -156,6 +156,13 @@ struct ShadowCasterSphere {
     float x = 0.0f, y = 0.0f, z = 0.0f, radius = 0.0f;
 };
 bool ShadowCasterReaches(const ShadowCasterSphere& sphere);
+// Spheres of radius up to `radius` centred in the box low..high (`size` bounds the magnitudes of their centres'
+// coordinates plus the radius): false only when none of them can reach (ShadowCasterReaches false for each).
+struct ShadowCasterCentres {
+    Vector3 low, high, size;
+    float radius = 0.0f;
+};
+bool ShadowCastersMayReach(const ShadowCasterCentres& centres);
 bool CasterPartDrawn(const FigureMesh* part);
 float CasterStrength(const Object3D* object);
 struct ShadowMesh {
@@ -176,6 +183,7 @@ struct ShadowMesh {
     const FigureMesh* owner = nullptr;
     const LinkMesh* shared = nullptr;
     bool moved = false;
+    MeshSlots* slots = nullptr;   // the owner's (none: not kept)
     bool unit = false;  // a unit's part: no roof over the weather (render_weather.cpp's roof map)
 };
 void ShadowCasterMesh(const Object3D* object, const ShadowMesh& mesh);
@@ -389,6 +397,7 @@ struct MeshSource {
     bool moved = false;    // the positions handed over are a copy with the per-vertex offsets added
     bool coloursWritten = false;  // this draw wrote the mesh's colour arrays (lit, flat colours)
     const MeshLighting* lighting = nullptr;   // lit on the GPU (the draw's colours: only their alpha)
+    MeshSlots* slots = nullptr;   // the owner's (none: not kept)
 };
 void SetMeshSource(const MeshSource* source);
 // A figure mesh or link figure changed in place: Positions (per-vertex offsets, a part morphed again),

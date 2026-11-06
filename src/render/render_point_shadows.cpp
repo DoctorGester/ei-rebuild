@@ -612,9 +612,13 @@ int PointShadowSlot(const Frame& f, int sceneLight) {
     return f.shadow.point.sceneSlots[sceneLight] - 1;
 }
 
-void BindPointShadows(const Frame& f, int slot) {
+gpu::TextureBinding PointShadowBinding(const Frame& f) {
     const bool on = g_atlas && f.shadow.point.mapped > 0;
-    const gpu::TextureBinding b{on ? g_atlas : NoShadowTexture(), ShadowCompareSampler()};
+    return {on ? g_atlas : NoShadowTexture(), ShadowCompareSampler()};
+}
+
+void BindPointShadows(const Frame& f, int slot) {
+    const gpu::TextureBinding b = PointShadowBinding(f);
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }
 

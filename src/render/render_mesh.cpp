@@ -120,8 +120,33 @@ static gpu::PipelineDesc MeshDesc(const PassState& s, bool lines, bool cached, i
     return p;
 }
 
+// The mesh pipelines by a packed key of what MeshDesc and MakePassPipeline read (the pass state's cull, depth and
+// blend, lines, kept geometry, the pass's samples and depth copy), for the device they were made on: found without a
+// description's hash per draw. A pipeline that could not be made is kept as none (MakePipeline does not try again).
+struct KeyedPipeline {
+    std::uint64_t key = 0;
+    gpu::Pipeline pipeline;
+};
+static std::vector<KeyedPipeline> g_keyedPipelines;
+static std::uint32_t g_keyedPipelinesDevice = 0;   // the gpu::DeviceSerial they were made on
+
 static gpu::Pipeline Pipeline(const PassState& s, bool lines, bool cached) {
-    return MakePassPipeline(MeshDesc(s, lines, cached, PassSampleCount()), "ei-mesh");
+    const int samples = PassSampleCount();
+    const bool depthCopy = PassDepthCopy();
+    auto bits = [](auto v) { return static_cast<std::uint64_t>(v); };
+    const std::uint64_t key = bits(s.cull) | bits(s.depthTest) << 8 | bits(s.depthFunc) << 9 | bits(s.depthWrite) << 17 |
+                              bits(s.blend) << 18 | bits(s.sourceBlend) << 19 | bits(s.destBlend) << 27 | bits(lines) << 35 |
+                              bits(cached) << 36 | bits(depthCopy) << 37 | bits(static_cast<std::uint8_t>(samples)) << 38;
+    if (!gpu::Started()) return MakePassPipeline(MeshDesc(s, lines, cached, samples), "ei-mesh");   // none
+    if (g_keyedPipelinesDevice != gpu::DeviceSerial()) {
+        g_keyedPipelines.clear();
+        g_keyedPipelinesDevice = gpu::DeviceSerial();
+    }
+    for (const KeyedPipeline& k : g_keyedPipelines)
+        if (k.key == key) return k.pipeline;
+    const gpu::Pipeline made = MakePassPipeline(MeshDesc(s, lines, cached, samples), "ei-mesh");
+    g_keyedPipelines.push_back({key, made});
+    return made;
 }
 
 // The pass states every battle and menu draws meshes with (the pipelines a run makes, logged; the rare ones are made at
@@ -321,20 +346,30 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     gpu::ApplyPipeline(pipeline);
     CountPipeline(pipeline);
     geometry.Bind();
-    gpu::TextureBinding textures[3];
+    // The draw's three textures, then the pass's (the same for every draw of the pass: taken at its first), bound in one
+    // call (the unchanged ones are left out).
+    static_assert(program::kSamplerTex0 == 0 && program::kSamplerTex1 == 1 && program::kSamplerTex2 == 2 &&
+                  program::kSamplerShadowMap == 3 && program::kSamplerShadowRange == 4 &&
+                  program::kSamplerPointShadowMap == 5 && program::kSamplerCloudMap == 6 &&
+                  program::kSamplerOcclusionMap == 7 && program::kSamplerOcclusionDepth == 8 &&
+                  program::kSamplerRoofMap == 9);
+    static gpu::TextureBinding textures[10];
+    static std::uint64_t passTextures = 0;   // the gpu::PassSerial textures[3..9] were taken in
+    if (passTextures != gpu::PassSerial()) {
+        passTextures = gpu::PassSerial();
+        ShadowMapBindings(f, &textures[3]);
+        textures[5] = PointShadowBinding(f);
+        textures[6] = CloudMapBinding();
+        OcclusionBindings(&textures[7]);
+        textures[9] = RoofMapBinding();
+    }
     for (int t = 0; t < 2; ++t) {
         const StageState& st = state.stages[t];
         textures[t].texture = st.texture ? st.texture : SurfaceView(nullptr);
         textures[t].sampler = anisotropy > 1 ? AnisotropicSampler(st, static_cast<std::uint32_t>(anisotropy)) : StageSampler(st);
     }
     textures[2] = {state.patch.texture ? state.patch.texture : SurfaceView(nullptr), textures[0].sampler};   // sampled as stage 0
-    static_assert(program::kSamplerTex0 == 0 && program::kSamplerTex1 == 1 && program::kSamplerTex2 == 2);
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
-    BindShadowMap(f, program::kSamplerShadowMap);
-    BindPointShadows(f, program::kSamplerPointShadowMap);
-    BindCloudMap(program::kSamplerCloudMap);
-    BindOcclusion(program::kSamplerOcclusionMap);
-    BindRoofMap(program::kSamplerRoofMap);
     CountBindings(textures[0].texture);
     MeshVsParams vs{};
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
@@ -426,9 +461,10 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, int anisotropy) {
     }
     gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockMeshVsParams, vs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshFsParams, fs);
-    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
+    // The shadow's (one of the frame's ShadowUniforms keeps) and the point shadows' blocks stay the same for the pass.
+    gpu::PushPassUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshLightParams, lighting);
-    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
+    gpu::PushPassUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
     gpu::DrawIndexed(static_cast<std::uint32_t>(first), static_cast<std::uint32_t>(batch.indexCount));
     CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(lighting) + sizeof(f.shadow.point.params));
 }

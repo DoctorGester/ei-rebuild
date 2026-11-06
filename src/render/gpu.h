@@ -56,6 +56,10 @@ bool Start(const DeviceOptions& options = {});
 // Waits for the GPU, then releases the window, everything kept and the device. Handles released after it are ignored.
 void Stop();
 bool Started();
+// One more at each Start that makes a device: what a caller keeps of pipelines and samplers is the device's.
+std::uint32_t DeviceSerial();
+// One more at each BeginPass: what a caller binds once a pass.
+std::uint64_t PassSerial();
 const char* Error();
 const char* DriverName();   // SDL's: "direct3d12", "vulkan"
 const char* DeviceName();   // the adapter's
@@ -338,6 +342,13 @@ void PushUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes);
 template <class Block>
 void PushUniforms(Stage stage, int slot, const Block& block) {
     PushUniforms(stage, slot, &block, static_cast<std::uint32_t>(sizeof(Block)));
+}
+// A block the caller keeps unchanged at `data` for the pass: pushed again only when another went to the slot since,
+// without comparing the bytes.
+void PushPassUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes);
+template <class Block>
+void PushPassUniforms(Stage stage, int slot, const Block& block) {
+    PushPassUniforms(stage, slot, &block, static_cast<std::uint32_t>(sizeof(Block)));
 }
 void Draw(std::uint32_t first, std::uint32_t count, std::uint32_t instances = 1);
 void DrawIndexed(std::uint32_t first, std::uint32_t count, std::uint32_t instances = 1,
