@@ -1230,7 +1230,8 @@ void ShadowMapBindings(const Frame& f, gpu::TextureBinding out[2]) {
 
 void BindShadowMap(const Frame& f, int mapSlot) {
     static_assert(gpu_shaders::mesh::kSamplerShadowRange == gpu_shaders::mesh::kSamplerShadowMap + 1 &&
-                  gpu_shaders::terrain::kSamplerShadowRange == gpu_shaders::terrain::kSamplerShadowMap + 1);
+                  gpu_shaders::terrain_ground::kSamplerShadowRange == gpu_shaders::terrain_ground::kSamplerShadowMap + 1 &&
+                  gpu_shaders::terrain_water::kSamplerShadowRange == gpu_shaders::terrain_water::kSamplerShadowMap + 1);
     gpu::TextureBinding b[2];
     ShadowMapBindings(f, b);
     gpu::BindTextures(gpu::Stage::Fragment, mapSlot, b);

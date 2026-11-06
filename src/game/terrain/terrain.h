@@ -122,10 +122,10 @@ public:
         bool keepsGroundXY = false;
     };
     MaterialWaves WavesOf(int material) const;
-    // The materials that wave: the first kWaveMaterials of the map's (no map has more than 7; terrain.hlsl's table).
+    // The materials that wave: the first kWaveMaterials of the map's (no map has more than 7; terrain_water.hlsl's table).
     static constexpr int kWaveMaterials = 32;
     // Water vertex `index` (0 .. 33 x 33) of a built sector as the waves move it at the last RunTick, from its place
-    // at rest: computed where it is asked for, the GPU moves the drawn ones the same way (terrain.hlsl's `waved`).
+    // at rest: computed where it is asked for, the GPU moves the drawn ones the same way (terrain_water.hlsl's `waved`).
     // With LandscapeFlag::Waves and a material below kWaveMaterials, a sine table entry at the phase along the wave
     // direction (from the sector's first water vertex, mod 2 pi) plus the material's turn and the vertex's offset
     // (wavePhases) lifts it by a quarter of the material's lift and circles it sideways by three times the lift with
@@ -196,6 +196,11 @@ public:
     MMIOResource archive;          // the map's sector archive
     std::vector<TileUv> uvTables[4];       // per rotation, per texture of a page
     std::vector<TileUv> uvTablesLast[4];   // the same for the extra pages
+    // The animated tiles the GPU steps (AnimatedTile::onGpu) carry their coordinates within their page's first tile
+    // (per rotation: uvTables' without the tile's column and row), `tileSide` the tile's side as a part of the page.
+    std::vector<TileUv> uvLocal;           // per rotation
+    float tileSide = 0.0f;
+    int tileSteps = 0;   // the animated tiles' steps made (RunTick), the GPU's clock for them
     std::vector<VertexTiles> vertexTiles;   // 33 x 33
     std::vector<SectorData*> sectorGrid;      // [GridIndex(sx, sy)]: the cached sector, or null
     std::vector<std::unique_ptr<SectorData>> sectorCache;   // most recently used first

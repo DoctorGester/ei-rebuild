@@ -1,5 +1,5 @@
 // The weather on the surfaces: how wet the ground and the objects are, the puddles' share and the snow's cover, each
-// following the client's weather over time, the rain's rings' clock (shaders/terrain.hlsl, mesh.hlsl), each unit's
+// following the client's weather over time, the rain's rings' clock (shaders/terrain_stages.hlsli, mesh.hlsl), each unit's
 // own wetness and snow under the roofs above it, and the roof map that keeps the ground and the other meshes under a
 // roof dry (shaders/roof.hlsli). See docs/notes/renderer.md, section 13, item 11b.
 #include "../platform/log.h"
@@ -29,7 +29,7 @@ constexpr double kUnitDryTicks = 900.0, kUnitMeltTicks = 1800.0;
 constexpr double kSettleTicks = 32.0;
 // A unit not drawn for longer than this is forgotten: when it is met again it starts from the ground's state.
 constexpr double kUnitForgetTicks = 64.0;
-// The rings' clock runs over this many client ticks: a whole number of both ring layers' periods (terrain.hlsl's
+// The rings' clock runs over this many client ticks: a whole number of both ring layers' periods (terrain_stages.hlsli's
 // kRingPeriodA / B: 16 and 21 ticks).
 constexpr double kRingWrap = 16.0 * 21.0 * 10.0;
 // A roof is looked for straight up from five points of a unit's box at this share of its height: the middle of its
@@ -399,14 +399,11 @@ void BindRoofMap(int slot) {
 
 const Object3D* CurrentInterfaceUnit() { return g_interfaceUnit; }
 
-void SurfaceUniforms(TerrainFsParams* fs) {
+SurfaceWeather SurfaceUniforms() {
     const Surfaces& surfaces = g_surfaces;
-    fs->wet = surfaces.wet;
-    fs->puddles = surfaces.puddles;
-    fs->snow = surfaces.snow;
-    fs->rain = surfaces.rain;
     const double ticks = KeptSceneLight().clientTicks;
-    fs->rainClock = static_cast<float>(ticks - std::floor(ticks / kRingWrap) * kRingWrap);
+    return {surfaces.wet, surfaces.puddles, surfaces.snow, surfaces.rain,
+            static_cast<float>(ticks - std::floor(ticks / kRingWrap) * kRingWrap)};
 }
 
 void MeshWeatherUniforms(MeshFsParams* fs) {

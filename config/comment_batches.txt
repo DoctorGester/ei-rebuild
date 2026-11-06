@@ -275,7 +275,10 @@ src/render/shaders/shadow_range_vs.hlsl
 src/render/shaders/shadow_receiver.hlsli
 src/render/shaders/shadow_reduce.hlsl
 src/render/shaders/shadow_terrain.hlsl
-src/render/shaders/terrain.hlsl
+src/render/shaders/terrain_common.hlsli
+src/render/shaders/terrain_ground.hlsl
+src/render/shaders/terrain_stages.hlsli
+src/render/shaders/terrain_water.hlsl
 src/render/shaders/ui_canvas.hlsl
 src/render/sokol_impl.cpp
 

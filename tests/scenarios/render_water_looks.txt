@@ -1,4 +1,4 @@
-# R17a2: the water's looks (docs/notes/renderer.md, "shaders/terrain.hlsl: the water") at 1440x1080 on zone1 by
+# R17a2: the water's looks (docs/notes/renderer.md, "shaders/terrain_water.hlsl: the water") at 1440x1080 on zone1 by
 # day: the beach at the west sea and a shore across a sector border, the sea, the lake, the swamp north of the river,
 # its edge and the swamp east of it (water material 1: dark, still, glossy, scum, a muddy rim), where the swamp meets
 # the river, the two swamp views at night, the beach's shore line from nearer (where the water meets the sand). The

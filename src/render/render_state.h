@@ -114,7 +114,7 @@ struct DistanceFog {
 };
 
 // The map's edge fade on the ground (Terrain::EdgeFade, which the vertices' fog factor carries): the map's size and the
-// fade's band (0: none). The terrain's vertex shader widens the band with the depth (terrain.hlsl's edge_kept), so a
+// fade's band (0: none). The terrain's vertex shader widens the band with the depth (terrain_stages.hlsli's edge_kept), so a
 // far edge, seen at a grazing angle, fades into the fog's colour as softly as a near one.
 struct MapEdge {
     float width = 0.0f;

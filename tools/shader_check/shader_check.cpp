@@ -62,8 +62,10 @@ const Draw kDraws[] = {
     {"solid", kRgba8, true, 1},
     {"solid", kRgba8, true, 4, -1, true},
     {"solid", kNone, true, 1},   // a point shadow face's clear
-    {"terrain", kRgba8, true, 1},
-    {"terrain", kRgba8, true, 4, -1, true},
+    {"terrain_ground", kRgba8, true, 1},
+    {"terrain_ground", kRgba8, true, 4, -1, true},
+    {"terrain_water", kRgba8, true, 1},
+    {"terrain_water", kRgba8, true, 4, -1, true},
     {"mesh", kRgba8, true, 1},
     {"mesh", kRgba8, true, 4, -1, true},
     {"ui_quad", kRgba8, true, 1},   // the interface's quads and glyphs

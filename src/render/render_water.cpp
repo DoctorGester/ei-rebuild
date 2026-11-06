@@ -1,4 +1,4 @@
-// The water's small ripples (the map the water's look samples, shaders/terrain.hlsl's Water, and its two layers'
+// The water's small ripples (the map the water's look samples, shaders/terrain_water.hlsl's Water, and its two layers'
 // motion) and its reflections (the sky dome mirrored in the water's plane, the last frame's world view).
 // See docs/notes/renderer.md, "The renderer's source files".
 #include "render_internal.h"
@@ -147,7 +147,7 @@ gpu::TextureBinding RippleMap() {
 }
 
 // The layers drift apart in two directions, in map widths per client tick (about 55 ms): A about 0.27 landscape
-// units a second at its scale, B about 0.2 (terrain.hlsl's kRippleScaleA / B); a swamp's a fifth as fast.
+// units a second at its scale, B about 0.2 (terrain_water.hlsl's kRippleScaleA / B); a swamp's a fifth as fast.
 void RippleOffsets(float water[4], float swamp[4]) {
     constexpr double kDrift[4] = {0.0016, 0.0010, -0.0012, 0.0019};
     constexpr double kSwampDrift = 0.2;
@@ -324,38 +324,36 @@ static bool CopyFitsFrame() {
 
 bool LastWaterCopyKept() { return g_copyFrame + 1 == FrameNumber() && CopyFitsFrame(); }
 
-void BindWaterReflections(const Matrix4& view, TerrainFsParams* fs) {
-    namespace program = gpu_shaders::terrain;
-    fs->view = view;
+WaterReflections BindWaterReflections(const Matrix4& view, int skySlot, bool scene) {
+    WaterReflections out;
+    out.view = view;
     g_waterView = view;
     // A copy of this frame (before its water) is seen through this frame's camera.
     if (WaterCopyTaken()) g_copyView = view;
-    fs->sceneView = g_copyView;
-    fs->skyView = g_skyView;
-    fs->dome[0] = g_domeCentre.x;
-    fs->dome[1] = g_domeCentre.y;
-    fs->dome[2] = g_domeCentre.z;
-    fs->domeRadius = g_domeRadius;
-    fs->domeHeight = g_domeHeight;
+    out.sceneView = g_copyView;
+    out.skyView = g_skyView;
+    out.dome = g_domeCentre;
+    out.domeRadius = g_domeRadius;
+    out.domeHeight = g_domeHeight;
     float depthMap[2];
     DepthMap(view, depthMap);
-    fs->sceneDepthOffset = depthMap[0];
-    fs->sceneDepthScale = depthMap[1];
+    out.sceneDepthOffset = depthMap[0];
+    out.sceneDepthScale = depthMap[1];
     // The rays are marched through this frame's depth (the ambient occlusion's) and take the colour from the copy,
     // this frame's or the last one's, at this frame's half size.
     const std::optional<Size> frame = FrameSize();
     const int width = frame ? (frame->w + 1) / 2 : 0, height = frame ? (frame->h + 1) / 2 : 0;
     const bool copied = (WaterCopyTaken() || LastWaterCopyKept()) && CopyFitsFrame() && OcclusionOf(true).on;
-    fs->sceneOn = copied ? 1 : 0;
-    fs->sceneSize[0] = static_cast<float>(width);
-    fs->sceneSize[1] = static_cast<float>(height);
+    out.sceneOn = copied ? 1 : 0;
+    out.sceneSize[0] = static_cast<float>(width);
+    out.sceneSize[1] = static_cast<float>(height);
     gpu::SamplerDesc clamped;
     clamped.u = clamped.v = gpu::Wrap::Clamp;
     const gpu::Sampler linear = gpu::MakeSampler(clamped);
     const gpu::TextureBinding textures[2] = {{g_skyImage ? g_skyImage : WhiteView(), linear},
                                              {copied ? g_sceneColour : WhiteView(), linear}};
-    static_assert(program::kSamplerSceneColour == program::kSamplerSkyImage + 1);
-    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerSkyImage, textures);
+    gpu::BindTextures(gpu::Stage::Fragment, skySlot, {textures, scene ? 2u : 1u});
+    return out;
 }
 
 }   // namespace render

@@ -49,8 +49,10 @@ using gpu_shaders::ShadowParams;
 using gpu_shaders::ShadowTerrainFsParams;
 using gpu_shaders::ShadowTerrainVsParams;
 using gpu_shaders::SolidParams;
-using gpu_shaders::TerrainFsParams;
-using gpu_shaders::TerrainVsParams;
+using gpu_shaders::TerrainGroundFsParams;
+using gpu_shaders::TerrainGroundVsParams;
+using gpu_shaders::TerrainWaterFsParams;
+using gpu_shaders::TerrainWaterVsParams;
 using gpu_shaders::TextureComposeParams;
 using gpu_shaders::UiParams;
 
@@ -729,23 +731,32 @@ struct TerrainPiece {
 };
 bool CreateTerrainShader();
 // The water's ripple map (render_water.cpp), made at the start (false: it could not be), bound with every terrain
-// batch; RippleOffsets, its two layers' offsets at the client time (TerrainFsParams::ripples, slowRipples).
+// water batch; RippleOffsets, its two layers' offsets at the client time (TerrainWaterFsParams::ripples, slowRipples).
 bool MakeRippleMap();
 gpu::TextureBinding RippleMap();
 void RippleOffsets(float water[4], float swamp[4]);
-// The water's reflections (render_water.cpp; shaders/terrain.hlsl's reflected_sky and screen_reflection).
+// The water's reflections (render_water.cpp; shaders/terrain_stages.hlsli's reflected_sky and terrain_water.hlsl's
+// screen_reflection).
 // DrawSkyReflection, once a frame before its first pass on the world: the sky dome (the world's meshes before its
 // first ground) drawn mirrored in the water's plane into the sky image. CopyFrameForWater, outside a pass at the end
 // of a world view that drew water (or before the water's first draw when !LastWaterCopyKept: the last frame left
 // none at this size): the frame's colour (resolved) at half size, the colour the water's rays take where they hit
 // the frame's depth (the ambient occlusion's); WaterCopyTaken: this frame's was taken. BindWaterReflections: every
-// terrain batch's part of `fs` for them (`view`: its clip matrix) and the two images bound. ListWaterPipelines: the
-// copy's.
+// terrain batch's values for them (`view`: its clip matrix) and the sky image bound at `skySlot`, with the copy of the
+// frame at the slot after it when `scene` (the water's). ListWaterPipelines: the copy's.
 void DrawSkyReflection(Frame& frame);
 void CopyFrameForWater(const gpu::Texture& colour);
 bool WaterCopyTaken();
 bool LastWaterCopyKept();
-void BindWaterReflections(const Matrix4& view, TerrainFsParams* fs);
+struct WaterReflections {
+    Matrix4 view, sceneView, skyView;
+    Vector3 dome;
+    float domeRadius = 0.0f, domeHeight = 0.0f;
+    float sceneDepthOffset = 0.0f, sceneDepthScale = 0.0f;
+    int sceneOn = 0;
+    float sceneSize[2] = {};
+};
+WaterReflections BindWaterReflections(const Matrix4& view, int skySlot, bool scene);
 void ListWaterPipelines(std::vector<gpu::PipelineDesc>& out);
 // A clip matrix's depth (z / w) to its clip w: w = out[1] / (depth - out[0]) (render_occlusion.cpp).
 void DepthMap(const Matrix4& clip, float out[2]);
@@ -857,13 +868,16 @@ void BindCloudMap(int slot);
 gpu::TextureBinding CloudMapBinding();   // what BindCloudMap binds
 // The weather on the surfaces (render_weather.cpp; section 13, item 11b). PrepareSurfaces, from PrepareShadows once a
 // frame: the wetness, the puddles and the snow cover moved on towards the frame's weather by the world's time.
-// SurfaceUniforms: the terrain's weather in its TerrainFsParams. MeshWeatherUniforms: a world mesh's in its
+// SurfaceUniforms: the terrain's weather (the ground's block takes all of it, the water's the rain and its clock). MeshWeatherUniforms: a world mesh's in its
 // MeshFsParams (wet, snow, weatherSun, weatherSunColour). SurfaceState: the three levels for the harness.
 // PrepareUnitWeather, after PrepareSurfaces: each unit drawn gets its own wetness and snow (MeshBatch::weather),
 // following the weather out of shelter and drying under a roof (the casters straight above it).
 void PrepareSurfaces(const ShadowFrame& shadow);
 void PrepareUnitWeather(Frame& frame);
-void SurfaceUniforms(TerrainFsParams* fs);
+struct SurfaceWeather {
+    float wet = 0.0f, puddles = 0.0f, snow = 0.0f, rain = 0.0f, rainClock = 0.0f;
+};
+SurfaceWeather SurfaceUniforms();
 void MeshWeatherUniforms(MeshFsParams* fs);
 struct SurfaceLevels {
     float wet = 0.0f, puddles = 0.0f, snow = 0.0f;
@@ -990,7 +1004,7 @@ struct OcclusionReceiver {
 };
 // The frame's, or none when the receiver does not take it.
 const OcclusionReceiver& OcclusionOf(bool receives);
-// Fills the occlusion members of a receiver's block (MeshFsParams, TerrainFsParams).
+// Fills the occlusion members of a receiver's block (MeshFsParams, TerrainGroundFsParams).
 template <class Block>
 void OcclusionUniforms(bool receives, Block& fs) {
     const OcclusionReceiver& o = OcclusionOf(receives);

@@ -648,7 +648,7 @@ with the far plane (whose depth differed by the factor far / (far - near) only).
   and the pre-transformed draws' (`FogVertices`, the depth from 1 / w). The world's draws after the sky take it
   (`TextureDevice::fog`), the hit points and the interface do not.
 - Where the fog meets the sky: the map's edge fade on the ground (`Terrain::EdgeFade`, the vertex's own, 16 units) is
-  widened in the terrain's vertex shader to 0.2 times the depth (`render::MapEdge`, terrain.hlsl's edge_kept): seen
+  widened in the terrain's vertex shader to 0.2 times the depth (`render::MapEdge`, terrain_stages.hlsli's edge_kept): seen
   from far at a grazing angle the 16 units were a few pixels, a hard line. The sky dome (`Sky::Draw`, `MeshFog::Horizon`)
   is hazed into the fog's colour towards the eye's level (none from a rise of 11.5 degrees up, all of it at the eye's
   level and below), so the fogged distance and the map's edge meet a sky of the same colour; pitched up, what lies
@@ -1010,14 +1010,14 @@ RTX 4070 Ti SUPER, 300 frames, harness (verify) build; beside it R37e2's town bz
 GPU, the ground and the water, each one draw per pass, with the zone's page textures in one Texture2DArray (a vertex
 carries its page's layer with its texture coordinates). Each place of the sector grid (`Slot`) holds a fixed range of
 both meshes: the sector the game holds there, all its tiles of every page and quarter, in the game's list order, in four
-vertex streams (positions; normal, loss, depth, shore and extra; the colour and specular words; u, v and the layer) and
-written only when something in it changed. The indices run page by page, each page's sectors by grid rows, each
+vertex streams (positions; normal, loss, depth, shore and extra; the colour and specular words; u, v, the layer and the
+tile's animation, item 3b) and written only when something in it changed. The indices run page by page, each page's sectors by grid rows, each
 sector's by quarter: the order the game's page passes drew them in (the ground is blended, so the order is kept). A
 range is built again when the grid holds another sector there or the game rebuilt it (`render::TerrainChanged(s,
 Rebuilt)` from Build, `Dropped` from Clear and the destructor), its colours and the rest when its ground occlusion was
 worked out again (a neighbour came); the meshes are laid out again only when a range's size changed. The game moves some
-in place: the animated tiles' texture coordinates (`Moved`: their range of the uv stream written; their frames come from
-the client generator, so no time in the shader can give them) and the water layer's positions at rest at a new water
+in place: the animated tiles' texture coordinates (`Moved`: their range of the uv stream written, item 3b: only the
+slow tiles' steps and the fast ones' freezes and thaws) and the water layer's positions at rest at a new water
 level (`WaterMoved`, from ApplyWaterLevels when a sector with a pending level change is drawn: its water positions
 written, its boxes worked out again). A pass hands over only the sectors it
 draws with their quarters' clip verdicts (`TerrainPass`: the game's culling decides what the frame's fit, the water's
@@ -1028,13 +1028,13 @@ at rest). Check: `terraincache off` builds and writes the whole zone at every pa
 render_scene, render_smooth, render_terrain_seams).
 
 **3a. The waves (R37e4c).** Nothing moves the water per frame: its vertices stay on the GPU as built (at rest, with the
-water levels) and terrain.hlsl's `waved` moves them. Terrain::RunTick only advances the phase (`wavePhase`) and takes the
+water levels) and terrain_water.hlsl's `waved` moves them. Terrain::RunTick only advances the phase (`wavePhase`) and takes the
 circling's time (`waveTime`, the client world's tick and fraction times 0.05); the water pass's hand-over takes the
 uniforms from them (`TakeWaves`: the wave direction, the time, per water material its turn `fmod(phase * priority, 2
 pi)`, lift `waveHeight * priority`, crest colour `waveGlow * priority * 50 * waveColour` and whether it keeps the
 ground's x, y; Terrain::WavesOf), and each water vertex carries the rest (its phase offset, Terrain::wavePhases, in
-`loss`; its material, column and row in its specular word's colour bytes; the water batch is told by `vs.water`, no
-longer by a negative `loss`). The formula is the one the game's per-vertex pass had (SectorData::Animate): the sine
+`loss`; its material, column and row in its specular word's colour bytes; the water has a program of its own, no longer a
+`vs.water` branch of the ground's, R37e4d). The formula is the one the game's per-vertex pass had (SectorData::Animate): the sine
 table's entry (512 entries, the phase rounded half away from zero) at the phase along the wave direction from the
 sector's first water vertex (mod 2 pi) plus the material's turn and the vertex's offset lifts the vertex by a quarter of
 the lift and gives the crest (the colour bytes rounded, mod 256, where the entry is not negative); the entries at its
@@ -1060,6 +1060,43 @@ moved by 0.0017 units on average (at most 0.0044; zone1's lift is 0.06), the hei
 0.005, and 0.04 where a point's walk takes another branch). The old pass also moved only the drawn sectors (the others
 kept the waves of their last drawn frame); now every sector waves. The digest's `water` group (scenario
 `terrain_water_waves`) hashes WaterVertex's positions; the crests are the GPU's alone.
+
+**3b. Animated tiles on the GPU (R37e4d).** A map lists the textures that animate (`MapAnimatedTexture`: texture,
+frames) and each texture has a class whose speed decides how its tiles step (`kAnimationSpeeds`): classes 0 .. 13 step
+at every animation step (every third RunTick with `LandscapeFlag::AnimatedTiles`), classes 14 and 15 (speeds 5 and 9)
+wait at frame 0 for client random draws (a draw % 1000 + 1 within the speed). Scan of every map of both installs
+(`Maps/*.mpr`: 38 maps in each install, 5,008 sectors, 1,494 of them with water; a throwaway script of that ticket):
+**no ground tile of any map uses an animated texture** (0 of the ground layers' tiles; 196,084 water-layer tiles do, in
+1,360 sectors: 183,476 of class 6 and 12,608 of class 14); 16 of the 76 maps list no animated texture, the others list a
+class 6 one (56 lists) and some also a class 14 one (16 lists). Classes 0 .. 5 and 7 .. 13 and 15 do not occur. Both
+layers keep the path all the same (mods may animate ground tiles; the cost is a compare in the vertex shader and 12
+bytes of vertex stream per vertex), and AnimateTiles does not skip sectors without water.
+- The fast tiles (speed 1000) draw no random number to step, so the GPU works their frame out: the vertex carries
+  `anim` = (the texture's slot in its page, the frame count, the phase) and, in `uv`, its coordinates within the page's
+  first tile (`Terrain::uvLocal`: `uvTables` without the tile's column and row); `tile_uv` (terrain_stages.hlsli) takes
+  the frame `(phase + Terrain::tileSteps) % frames`, the column and row of slot + frame in the page and sums them as the
+  CPU did (`precise`: the same rounding, so the coordinates are bit for bit those of the game's tables). Static
+  vertices (anim frames 0) have final coordinates. `Terrain::tileSteps` counts the animation steps (RunTick); a tile's
+  phase is its random start frame less the steps made when its sector was built (the start frames are still drawn
+  from the client generator in FillTiles, so the stream is as before).
+- The game stepped a tile only while its sector was drawn and within reach (RunTick), the others kept their frame. The
+  GPU's count is global, so `SectorData::SettleTiles` (at each step, over every cached sector) freezes the fast tiles of a
+  sector that does not step (their entries get the frame they were at, the vertices lose their `anim`: one write of the
+  sector's uv range) and, when it steps again, thaws them with the phase that continues from that frame (a second write).
+  A sector that keeps stepping is never written. The slow tiles (classes 14, 15) still step in `AnimateTiles`, with the
+  random draws, and their sectors write their range when one steps.
+- The slow class 14 (12,608 water tiles, 16 map lists) still draws client random numbers, so it stays on the CPU. A
+  hash-based schedule (a tile's wait at frame 0 and its next step from a hash of the tile and the step count, in the
+  shader) would put it on the GPU too and delete the per-frame uv writes altogether, but it changes the client's
+  random stream and so the client-only visuals (a golden re-record): not done, the user's call.
+- Cost on the main thread, per tick of zone1's sea (a throwaway instrumented build, every tick that walked a drawn
+  sector averaged; the old path is this code with every tile kept on the CPU): the sector walk 0.0096 ms before, 0.0065
+  ms now (the walk plus SettleTiles' pass over the cached sectors); the uv moves and writes 0.020 ms and 49 KB per tick
+  before, 0 now (only the class 14 tiles, not in that view, and the freezes and thaws write). Small on both sides: the
+  win is the 49 KB per tick not crossing to the GPU and the writes gone from the frame.
+- Check: frames of render_scene, render_terrain_seams, render_far_ground, render_water, render_water_looks,
+  render_smooth, render_shore_seams and render_weather* at tolerance 0 against the build before it: the same, but
+  for the msaa frames that differ by 1 in a few dozen pixels on that build too (shore, smooth, units_rain).
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
@@ -1367,7 +1404,7 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
   passes 0.30 ms a frame in both (p10-p90 0.29-0.31), the rest of the frame (about 1.9-2.0 ms) no dearer with the
   lookups; the ground's own occlusion costs only when a sector is first held.
 
-**11b. Weather on the surfaces** (`render_weather.cpp`, `shaders/terrain.hlsl`, `shaders/mesh.hlsl`; R17c; always on, no
+**11b. Weather on the surfaces** (`render_weather.cpp`, `shaders/terrain_ground.hlsl`, `shaders/mesh.hlsl`; R17c; always on, no
 option). Client side only: driven by the weather the world's light hands over (`render::CloudWeather`, item 11, with
 `snow` when the rain / snow layer's mode is snow), nothing the game simulates reads it, and the goldens hold no frames.
 - **State** (PrepareSurfaces, from PrepareShadows once a frame): the wetness and the puddles follow the settled rain,
@@ -1387,7 +1424,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   the saved weather (R57d; world.md, "Weather across a load"), and the zone's first weather message after it has no
   fade, so the client's rain layer is at the saved weather at once. The rain falling now (the layer's density, none in snow) drives the
   rings and splashes.
-- **Ground** (terrain.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
+- **Ground** (terrain_ground.hlsl, `ground_weather`, `weathered`, `wet_ground`; nothing under the water, by `loss`): snow on
   ground turned up: n.z against an edge falling from 1.15 to 0.55 with the cover (0.15 either side of it), broken by the
   cloud map at 1/11 a unit and a little sooner higher up; a dusting, not a blanket (the user: the first look was too
   harsh): at most 0.62 .. 0.87 of the ground by the same noise, the albedo towards a grey white (0.74, 0.76, 0.81),
@@ -1397,7 +1434,7 @@ option). Client side only: driven by the weather the world's light hands over (`
   above an edge falling with the puddles' share; the ground under them darker again (0.55), the sky reflected (the sky
   dome as on the water, Schlick's term plus 0.15) and a sharp glint, on the normal the rain's rings turn.
 - **Rings and splashes** (`rain_rings`): two layers of cells 0.8 units across, a drop in the share of the cells the rain's
-  strength gives, each cell's ring at its own place and phase on the client's clock (`TerrainFsParams::rain`, the client
+  strength gives, each cell's ring at its own place and phase on the client's clock (`TerrainGroundFsParams::rain`, the client
   ticks modulo a whole number of both periods: 16 and 21 ticks), its centre anywhere in the middle half of the cell,
   growing to a quarter of a cell and fading; the slope of a Gaussian ring turns the normal, and (`rain_dimples`) the
   ring's crest and a splash (a small soft spot in the first 12% of a ring's time) take up to 0.55 / 0.5 of a lighter
@@ -2106,7 +2143,8 @@ waves crossed into a regular knit that no shifting of the map hid. The terrain b
 world's tick and the fraction of the next one it has had), and the swamps' a fifth as fast, so the ripples hold still
 under `freeze` and move with the game's clock.
 
-The reflections (R17a1), read by shaders/terrain.hlsl's `reflected_sky` and `screen_reflection`:
+The reflections (R17a1), read by shaders/terrain_stages.hlsli's `reflected_sky` (the water's and the puddles') and
+terrain_water.hlsl's `screen_reflection`:
 - **The sky image** (DrawSkyReflection, once a frame before the first pass, after the ambient occlusion): the world's
   meshes before its first ground (the sky dome: WorldClient::Render draws the sky first) drawn again into a quarter-size
   image, mirrored in the plane at the mean level of the water's pieces, their faces' cull turned, no depth test, over
@@ -2116,7 +2154,7 @@ The reflections (R17a1), read by shaders/terrain.hlsl's `reflected_sky` and `scr
   dome in view. About 0.02 ms.
 - **The rays' depth and colour** (R17a3): the rays are marched through this frame's depth before the water, the ambient
   occlusion's half-size depth (render_occlusion.cpp: the ground and the models that write the depth, no water; drawn
-  before the frame's first pass, terrain.hlsl's `occlusion_depth`), and take the colour where they hit from the last
+  before the frame's first pass, terrain_water.hlsl's `occlusion_depth`), and take the colour where they hit from the last
   frame's world view: CopyFrameForWater (shaders/scene_copy.hlsl) copies the frame target's colour at half size (per
   2 x 2 pixels the mean) where a world view with water ends, after its resolve, and keeps that frame's water clip
   matrix; the hit point is looked up through it (`sceneView`), so the camera's motion moves nothing; what moved in the
@@ -2146,7 +2184,17 @@ every level, no extra mesh draws, but only what the frame shows (an object off t
 nothing; the sky shows there). A full-size copy and 16 + 4 steps cost about 0.9 ms of marching on a screen of water;
 half size and 10 + 3 steps about 0.1-0.2 ms, with no visible loss under the ripples.
 
-### shaders/terrain.hlsl: the water
+### shaders/terrain_water.hlsl: the water
+
+The ground and the water are two programs (R37e4d; `terrain_ground.hlsl`, `terrain_water.hlsl`) over a shared
+`terrain_common.hlsli` (the vertex layout, both blocks' first members, the slot names' use) and `terrain_stages.hlsli`
+(the animated tiles' coordinates, the edge fade, clip and shadow-map coordinates, the receivers' includes, the rain's
+rings and the sky's reflection). Each program names its fragment slots itself (the slots of a stage run from 0 without
+gaps, which the programs' different textures need: the ground has the ambient occlusion's map and no ripples, the water
+the ripple map, the frame's copy and only the occlusion's depth) and has its own blocks (`TerrainGroundVsParams` /
+`TerrainWaterVsParams`, `...FsParams`); the draws are `DrawGroundBatch` and `DrawWaterBatch`, the pipelines are made
+per layer. The ground keeps a `levels` flag for the harness's level map; no mode uniform is left. The shared part of the
+blocks is a macro (`TERRAIN_VS_MEMBERS`, `TERRAIN_FS_MEMBERS`) so the two structs stay equal where they overlap.
 
 The water pages keep the game's look underneath: the page texture lit by ground_light from the vertex normal with the
 game's crests (the vertex waves and the crests' specular are the game's formula, worked out in `waved`: section 13,
@@ -2192,10 +2240,11 @@ then, per pixel:
   reflection), and it ended in a hard line along the triangles where the ground rose out of it (not the shore's
   seams: next item). The water layer's tiles themselves never end over ground under the water (zone1:
   of 1203 vertices on the edge of the water tiles, 3 lie under it, by at most 0.07).
-- **Which layer a pixel is** comes from the batch (`TerrainFsParams::flags.x`), never from an interpolated attribute.
+- **Which layer a pixel is** comes from the batch (its own program since R37e4d; before it `TerrainFsParams::flags.x`), never
+  from an interpolated attribute.
   With multisampling a pixel on a triangle's edge is shaded at its centre for each triangle covering any of its
   samples, so the attributes are carried past the triangle; the ground's `loss` (0 on dry ground, more under the
-  water) fell below 0 there at the shore, terrain.hlsl took the sign for the water layer, and the ground's edge
+  water) fell below 0 there at the shore, the old single terrain program took the sign for the water layer, and the ground's edge
   samples got the water's look and its near-0 alpha at the shore line: the sky showed through in a dotted cyan line
   along the ground's triangle edges where the sand meets the water (R17c1; R17a2's fade of the water's own edge was
   another line). Not cracks: the vertices are shared and the frame without multisampling had none. A per-pixel test of

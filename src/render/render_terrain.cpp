@@ -42,13 +42,15 @@ constexpr float kWaterFalloff = 0.06666667f;
 
 // --- A vertex -------------------------------------------------------------------------------------------
 
-// A vertex is four streams: its position (the water's at rest: terrain.hlsl moves it with the waves), the rest of what
-// is built with it, its colour pair (on the water the specular word's colour bytes are its material, column and row in
-// its sector, which the waves read; terrain.hlsl puts the crests there) and its texture coordinates with its page's
-// layer in the page textures' array (the animated tiles change them). The depth-only passes read the first two.
+// A vertex is four streams: its position (the water's at rest: terrain_water.hlsl moves it with the waves), the rest of
+// what is built with it, its colour pair (on the water the specular word's colour bytes are its material, column and
+// row in its sector, which the waves read; terrain_water.hlsl puts the crests there) and its texture coordinates with its
+// page's layer in the page textures' array and its animation (the animated tiles that step every time are worked out
+// by the GPU: `base`, `frames`, `phase`, terrain_common.hlsli; the slow ones' coordinates are written when they step).
+// The depth-only passes read the first two.
 // `normal` is the record's; `loss` on the ground layer the light lost under the water, on the water layer the vertex's
 // wave phase offset (Terrain::wavePhases); the GPU lights both layers. `depth`: on the water layer the depth over the ground (the ground record's: negative where the
-// ground is above the water); on the ground layer the same where the record's water is a swamp (terrain.hlsl's muddy
+// ground is above the water); on the ground layer the same where the record's water is a swamp (terrain_ground.hlsl's muddy
 // rim), else -1. `shore`: on the ground layer 1 where it lies under water that is not a swamp (no muddy rim where a swamp
 // meets it), else 0; on the water layer the slope of the ground under it (GroundSlope: a swamp's distance from its
 // shore line). `extra`: on the ground layer the ground's own occlusion of the ambient light (GroundOcclusion), on the
@@ -63,6 +65,7 @@ struct VertexRest {
 static_assert(sizeof(VertexRest) == 28);
 struct VertexUv {
     float u = 0.0f, v = 0.0f, layer = 0.0f;
+    float base = 0.0f, frames = 0.0f, phase = 0.0f;   // an animated tile's first frame in its page, frames, phase; no frames: static
 };
 // The vertex streams (buffer slots) of the meshes.
 constexpr int kPositions = 0, kRest = 1, kColours = 2, kUvs = 3, kStreams = 4;
@@ -78,7 +81,7 @@ static const SectorVertex* WaterAbove(const SectorData* sector, int index) {
     return &water;
 }
 
-// The kind of water a material is (terrain.hlsl's Water): 0 water, 1 a swamp, 2 lava. The map's materials tell them
+// The kind of water a material is (terrain_water.hlsl's Water): 0 water, 1 a swamp, 2 lava. The map's materials tell them
 // apart only by their colour: the water's blue, the swamps' green and the lava's red (which also lights itself).
 static float WaterKind(const terrain::TerrainMaterial& m) {
     const Vector3& c = m.waveColour;
@@ -99,7 +102,7 @@ static float SwampDepth(const SectorData* sector, int index) {
 }
 
 // The rise of the ground per landscape unit at a ground record, from its normal (the map's, smooth across the triangles:
-// terrain.hlsl's shore_distance divides the depth by it, which a slope taken per triangle broke into steps).
+// the shaders' shore_distance divides the depth by it, which a slope taken per triangle broke into steps).
 static float GroundSlope(const SectorVertex& ground) {
     const Vector3& n = ground.normal;
     return std::min(std::sqrt(LengthSquared2D(n.x, n.y)) / std::max(n.z, 0.05f), 20.0f);
@@ -140,7 +143,7 @@ static std::uint32_t Byte(float v) {
 // The colour pair a vertex of record `index` is drawn with (lit on the GPU): the material colour the sun's light
 // starts from (on the ground the water's above it, else the record's own), alpha the material byte (the water's
 // opacity); the specular word as the game keeps it (the edge fade), on the water with its material (255: none or past
-// the waves' table) and its column and row in the sector in the colour bytes (terrain.hlsl's `waved`).
+// the waves' table) and its column and row in the sector in the colour bytes (terrain_water.hlsl's `waved`).
 static ColourPair Colours(const SectorData* sector, int index) {
     const SectorVertex& record = sector->records[index];
     Vector3 colour = record.materialColour;
@@ -263,13 +266,34 @@ struct Run {
     TerrainGroup whole{};
 };
 
+// A vertex of an animated tile: its place in the layer's vertices, its entry in the tile list, its tile and its corner
+// (0 .. 8) in it.
+struct AnimatedVertex {
+    std::uint32_t index = 0;
+    const TileVertex* entry = nullptr;
+    const terrain::AnimatedTile* tile = nullptr;
+    int corner = 0;
+};
+
+// The texture coordinates of an animated tile's vertex now: while the GPU steps the tile its own within the page's first
+// tile and what the shader needs to find its frame; else (stepped by the game, or frozen) those of its entry.
+static VertexUv AnimatedUv(const SectorData* sector, const AnimatedVertex& v, float layer) {
+    const terrain::AnimatedTile& tile = *v.tile;
+    if (tile.onGpu && !tile.frozen) {
+        const terrain::TileUv& local = sector->owner->uvLocal[static_cast<std::size_t>(tile.rotation)];
+        return VertexUv{local.u[v.corner], local.v[v.corner], layer, static_cast<float>(tile.frameBase),
+                        static_cast<float>(tile.frames), static_cast<float>(tile.phase)};
+    }
+    return VertexUv{v.entry->u, v.entry->v, layer};
+}
+
 // A sector's ground or water layer in the zone's mesh of it: page by page (with a texture), each page's quarters, each
 // quarter's tiles in the game's list order.
 struct SlotLayer {
     std::uint32_t first = 0;                 // its first vertex in the mesh
     std::vector<std::uint16_t> records;      // per vertex: the record it reads its position, normal and colours from
     std::vector<VertexUv> uvs;               // per vertex
-    std::vector<std::pair<std::uint32_t, const TileVertex*>> animated;   // the animated tiles' vertices and entries
+    std::vector<AnimatedVertex> animated;    // the animated tiles' vertices (their coordinates change)
     std::vector<Run> runs;                   // [page * kQuarters + quarter]
     std::vector<TerrainGroup> groups;
     std::uint8_t quarters = 0;               // bit q: quarter q has tiles
@@ -403,11 +427,12 @@ static void BuildLayer(const SectorData* sector, int layer, SlotLayer& out) {
     out.quarters = 0;
     out.uvFrom = out.uvTo = 0;
     if (!sector) return;
-    // The sector's animated tiles (their 9 entries in the tile lists).
-    static std::vector<const TileVertex*> animated;
+    // The sector's animated tiles (their 9 entries in the tile lists), by their entries.
+    static std::vector<const terrain::AnimatedTile*> animated;
     animated.clear();
-    for (const terrain::AnimatedTile& tile : sector->animated) animated.push_back(tile.vertices);
-    std::sort(animated.begin(), animated.end());
+    for (const terrain::AnimatedTile& tile : sector->animated) animated.push_back(&tile);
+    std::sort(animated.begin(), animated.end(),
+              [](const terrain::AnimatedTile* a, const terrain::AnimatedTile* b) { return a->vertices < b->vertices; });
     for (int pageInLayer = 0; pageInLayer < g_zone.pages; ++pageInLayer) {
         const int page = layer * g_zone.layerPages + pageInLayer;
         for (int quarter = 0; quarter < kQuarters; ++quarter) {
@@ -425,11 +450,18 @@ static void BuildLayer(const SectorData* sector, int layer, SlotLayer& out) {
                         ok = index >= 0 && index < std::ssize(sector->records) && index < std::ssize(sector->vertices);
                     }
                     if (!ok) continue;
-                    const bool moves = std::binary_search(animated.begin(), animated.end(), tile);
+                    const auto found = std::lower_bound(animated.begin(), animated.end(), tile,
+                                                        [](const terrain::AnimatedTile* a, const TileVertex* b) { return a->vertices < b; });
+                    const terrain::AnimatedTile* steps = found != animated.end() && (*found)->vertices == tile ? *found : nullptr;
                     for (int k = 0; k < kTileVertices; ++k) {
-                        if (moves) out.animated.emplace_back(out.Count(), &tile[k]);
+                        const float layer = static_cast<float>(pageInLayer);
+                        VertexUv uv{tile[k].u, tile[k].v, layer};
+                        if (steps) {
+                            out.animated.push_back(AnimatedVertex{out.Count(), &tile[k], steps, k});
+                            uv = AnimatedUv(sector, out.animated.back(), layer);
+                        }
                         out.records.push_back(static_cast<std::uint16_t>(tile[k].vertex - sector->records.data()));
-                        out.uvs.push_back(VertexUv{tile[k].u, tile[k].v, static_cast<float>(pageInLayer)});
+                        out.uvs.push_back(uv);
                     }
                 }
             }
@@ -526,8 +558,8 @@ static void Layout() {
     g_zone.remake = true;
 }
 
-// What the game moved in a slot since it was read: the animated tiles' texture coordinates, the water's positions at a
-// new level (the boxes of its runs made again).
+// What the game moved in a slot since it was read: the animated tiles' texture coordinates (stepped by the game, or the
+// GPU's tiles frozen or stepping again), the water's positions at a new level (the boxes of its runs made again).
 static void ReadMoved(int k) {
     Slot& slot = g_zone.slots[static_cast<std::size_t>(k)];
     const std::uint8_t moved = std::exchange(slot.moved, std::uint8_t{0});
@@ -536,11 +568,8 @@ static void ReadMoved(int k) {
         for (int layer = 0; layer < kLayers; ++layer) {
             SlotLayer& l = slot.layers[layer];
             if (l.animated.empty()) continue;
-            for (const auto& [i, entry] : l.animated) {
-                l.uvs[i].u = entry->u;
-                l.uvs[i].v = entry->v;
-            }
-            const std::uint32_t from = l.animated.front().first, to = l.animated.back().first + 1;
+            for (const AnimatedVertex& v : l.animated) l.uvs[v.index] = AnimatedUv(slot.sector, v, l.uvs[v.index].layer);
+            const std::uint32_t from = l.animated.front().index, to = l.animated.back().index + 1;
             l.uvFrom = l.uvTo > l.uvFrom ? std::min(l.uvFrom, from) : from;
             l.uvTo = std::max(l.uvTo, to);
             AddPending(k);
@@ -617,22 +646,29 @@ static void Refresh(const terrain::Terrain& t) {
 // block with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw), the
 // water pass under the scene's; both with ALPHABLENDENABLE on (SRCALPHA /
 // INVSRCALPHA in the harness runs; the verify build logs each new pipeline's state).
-static gpu::PipelineDesc TerrainDesc(const PassState& state, int samples) {
-    namespace program = gpu_shaders::terrain;
+static gpu::PipelineDesc TerrainDesc(const PassState& state, int samples, bool water) {
+    namespace program = gpu_shaders::terrain_ground;   // the vertex layout is terrain_common.hlsli's: the water's slots match
+    static_assert(gpu_shaders::terrain_water::kAttrPos == program::kAttrPos &&
+                  gpu_shaders::terrain_water::kAttrNormal == program::kAttrNormal &&
+                  gpu_shaders::terrain_water::kAttrRest == program::kAttrRest &&
+                  gpu_shaders::terrain_water::kAttrCol == program::kAttrCol &&
+                  gpu_shaders::terrain_water::kAttrSpec == program::kAttrSpec &&
+                  gpu_shaders::terrain_water::kAttrUv == program::kAttrUv &&
+                  gpu_shaders::terrain_water::kAttrAnim == program::kAttrAnim);
     gpu::PipelineDesc desc;
-    desc.program = program::kIndex;
+    desc.program = water ? gpu_shaders::terrain_water::kIndex : program::kIndex;
     desc.bufferCount = kStreams;
     for (int s = 0; s < kStreams; ++s) desc.buffers[s].stride = static_cast<std::uint16_t>(kStrides[s]);
-    desc.attributeCount = 8;
+    desc.attributeCount = 7;
     desc.attributes[0] = {program::kAttrPos, kPositions, gpu::VertexFormat::Float3, 0};
     desc.attributes[1] = {program::kAttrNormal, kRest, gpu::VertexFormat::Float3, offsetof(VertexRest, normal)};
-    desc.attributes[2] = {program::kAttrLoss, kRest, gpu::VertexFormat::Float, offsetof(VertexRest, loss)};
-    // depth and shore
-    desc.attributes[3] = {program::kAttrDepth, kRest, gpu::VertexFormat::Float2, offsetof(VertexRest, depth)};
-    desc.attributes[4] = {program::kAttrExtra, kRest, gpu::VertexFormat::Float, offsetof(VertexRest, extra)};
-    desc.attributes[5] = {program::kAttrCol, kColours, gpu::VertexFormat::UByte4Norm, offsetof(ColourPair, colour)};
-    desc.attributes[6] = {program::kAttrSpec, kColours, gpu::VertexFormat::UByte4Norm, offsetof(ColourPair, specular)};
-    desc.attributes[7] = {program::kAttrUv, kUvs, gpu::VertexFormat::Float3, 0};   // u, v, the page's layer
+    // loss, depth, shore and extra: the rest of VertexRest after the normal
+    static_assert(offsetof(VertexRest, extra) == offsetof(VertexRest, loss) + 3 * sizeof(float));
+    desc.attributes[2] = {program::kAttrRest, kRest, gpu::VertexFormat::Float4, offsetof(VertexRest, loss)};
+    desc.attributes[3] = {program::kAttrCol, kColours, gpu::VertexFormat::UByte4Norm, offsetof(ColourPair, colour)};
+    desc.attributes[4] = {program::kAttrSpec, kColours, gpu::VertexFormat::UByte4Norm, offsetof(ColourPair, specular)};
+    desc.attributes[5] = {program::kAttrUv, kUvs, gpu::VertexFormat::Float3, offsetof(VertexUv, u)};   // u, v, the page's layer
+    desc.attributes[6] = {program::kAttrAnim, kUvs, gpu::VertexFormat::Float3, offsetof(VertexUv, base)};
     ApplyPassState(desc, state);
     desc.samples = samples;
     AddDepthCopy(desc);
@@ -641,13 +677,12 @@ static gpu::PipelineDesc TerrainDesc(const PassState& state, int samples) {
 
 // TerrainDesc's pipeline (gpu.h keeps them by description); the pipelines that could not be made, logged.
 static int g_pipelineFailures = 0;
-// `water`: for the verify build's log.
-static gpu::Pipeline Pipeline(const PassState& state, [[maybe_unused]] bool water) {
+static gpu::Pipeline Pipeline(const PassState& state, bool water) {
     const int samples = PassSampleCount();
 #if defined(EI_RENDER_VALIDATION)
     const int known = gpu::PipelineCount();
 #endif
-    gpu::Pipeline pipeline = MakePassPipeline(TerrainDesc(state, samples), "ei-terrain");
+    gpu::Pipeline pipeline = MakePassPipeline(TerrainDesc(state, samples, water), water ? "ei-terrain-water" : "ei-terrain-ground");
     if (!pipeline)
         LogFirst(g_pipelineFailures, 10,
                  "render: a terrain pipeline could not be created (state key %08X; see the gpu messages above)",
@@ -855,21 +890,22 @@ void ListTerrainPipelines(std::vector<gpu::PipelineDesc>& out, int samples) {
     ground.blend = true;
     ground.sourceBlend = Blend::SourceAlpha;
     ground.destBlend = Blend::InvSourceAlpha;
-    out.push_back(TerrainDesc(ground, samples));
+    out.push_back(TerrainDesc(ground, samples, false));
     PassState water;   // opaque, nothing culled
     water.blend = false;
-    out.push_back(TerrainDesc(water, samples));
+    out.push_back(TerrainDesc(water, samples, true));
 }
 
-// The program checked at the start: a pipeline of it made (gpu.h keeps it).
+// The programs checked at the start: a pipeline of each made (gpu.h keeps it).
 bool CreateTerrainShader() {
-    bool ok = static_cast<bool>(gpu::MakePipeline(TerrainDesc(PassState{}, 1), "ei-terrain"));
-    if (!ok) ei::Log("render: the terrain pipeline could not be created (see the gpu messages above)");
+    bool ok = static_cast<bool>(gpu::MakePipeline(TerrainDesc(PassState{}, 1, false), "ei-terrain-ground"));
+    ok = static_cast<bool>(gpu::MakePipeline(TerrainDesc(PassState{}, 1, true), "ei-terrain-water")) && ok;
+    if (!ok) ei::Log("render: a terrain pipeline could not be created (see the gpu messages above)");
     return ok;
 }
 
 // The water's waves as the water pass hands them over (Terrain::WavesOf, at the moment Terrain::WaterVertex answers
-// for), for terrain.hlsl's `waved`: off without LandscapeFlag::Waves.
+// for), for terrain_water.hlsl's `waved`: off without LandscapeFlag::Waves.
 struct WaterWaves {
     bool on = false;
     float direction[2] = {};
@@ -878,6 +914,14 @@ struct WaterWaves {
     float crests[terrain::Terrain::kWaveMaterials][4] = {};
 };
 static WaterWaves g_waves;
+
+// The animated tiles' clock as the passes of this frame draw them (terrain_common.hlsli's TERRAIN_VS_MEMBERS).
+struct TileClock {
+    int steps = 0;
+    int perRow = 1;
+    float side = 0.0f;
+};
+static TileClock g_tiles;
 
 static void TakeWaves(const terrain::Terrain& t) {
     g_waves = WaterWaves{};
@@ -933,6 +977,7 @@ void TerrainPass(const terrain::Terrain* terrain, const SceneRenderer* renderer,
         return;
     }
     if (layer == 1) TakeWaves(*terrain);
+    g_tiles = TileClock{terrain->tileSteps, std::max(terrain->tilesPerRow, 1), terrain->tileSide};
     const int matrix = AddMatrix(clipStack.matrices[depth - 1]);
     // The old device's state the pass is drawn with (the shader always adds the specular colour the old pass turned on
     // around each page).
@@ -974,38 +1019,10 @@ void UploadTerrain() {
     g_zone.pending.clear();
 }
 
-void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
-    namespace program = gpu_shaders::terrain;
-    const Mesh& mesh = g_zone.meshes[batch.water ? 1 : 0];
-    if (mesh.indexCount == 0 || !mesh.indices) return;
-    gpu::Pipeline pipeline = Pipeline(batch.state, batch.water);
-    if (!pipeline) return;
-    gpu::ApplyPipeline(pipeline);
-    CountPipeline(pipeline);
-    BindMesh(mesh, kStreams);
-    gpu::TextureBinding texture{g_zone.array ? g_zone.array : g_whiteArray,
-                                AnisotropicSampler(batch.state.stages[0], kMostAnisotropy)};
-    // terrain.hlsl's mode: the ground, the water or the level map.
-    constexpr int kGround = 0, kWater = 1, kLevels = 2;
-    int mode = batch.water ? kWater : kGround;
-    if (g_levelMode != TerrainLevelMode::Off && !batch.water && g_levelArray) {
-        texture.texture = g_levelArray;
-        if (g_levelMode == TerrainLevelMode::PointMips) texture.sampler = LinearSampler();
-        mode = kLevels;
-    }
-    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex, {&texture, 1});
-    BindShadowMap(f, program::kSamplerShadowMap);
-    BindPointShadows(f, program::kSamplerPointShadowMap);
-    const gpu::TextureBinding ripples = RippleMap();
-    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerRipples, {&ripples, 1});
-    BindCloudMap(program::kSamplerCloudMap);
-    BindOcclusion(program::kSamplerOcclusionMap);
-    BindRoofMap(program::kSamplerRoofMap);
-    CountBindings(texture.texture);
-    // The ground and the water receive the objects' shadows and the clouds'.
-    const bool receives = mode != kLevels && !f.shadow.lights.empty();
-    const ShadowParams& shadow = ShadowUniforms(f, receives, receives);
-    TerrainVsParams vs{};
+// The vertex block's members both programs share (terrain_common.hlsli's TERRAIN_VS_MEMBERS) and the fragment block's
+// (TERRAIN_FS_MEMBERS), the same in the ground's and the water's blocks.
+template <class Vs>
+static void CommonVs(Vs& vs, const Frame& f, const TerrainBatch& batch, bool receives) {
     vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     vs.light = receives ? f.shadow.lights[0] : vs.matrix;
     vs.shift[0] = f.pixelShift[0];
@@ -1017,30 +1034,129 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     vs.mapWidth = f.mapEdge.width;
     vs.mapHeight = f.mapEdge.height;
     vs.edgeBand = f.mapEdge.band;
-    vs.water = batch.water ? 1 : 0;
-    if (batch.water && g_waves.on) {
+    vs.tileSteps = g_tiles.steps;
+    vs.tilesPerRow = g_tiles.perRow;
+    vs.tileSide = g_tiles.side;
+}
+
+template <class Fs>
+static void CommonFs(Fs& fs, const Frame& f, const SurfaceWeather& weather, const WaterReflections& sky) {
+    UnpackColour(f.fogColour, fs.fog);
+    fs.fogOn = f.fogEnabled ? 1 : 0;
+    fs.rain = weather.rain;
+    fs.rainClock = weather.rainClock;
+    fs.skyView = sky.skyView;
+    fs.dome[0] = sky.dome.x;
+    fs.dome[1] = sky.dome.y;
+    fs.dome[2] = sky.dome.z;
+    fs.domeRadius = sky.domeRadius;
+    fs.domeHeight = sky.domeHeight;
+}
+
+// The program's pipeline applied and the mesh and the page textures bound (`texture`: the page array or the level map).
+static bool BeginTerrainDraw(const TerrainBatch& batch, const Mesh& mesh, int slotTex, gpu::TextureBinding texture) {
+    gpu::Pipeline pipeline = Pipeline(batch.state, batch.water);
+    if (!pipeline) return false;
+    gpu::ApplyPipeline(pipeline);
+    CountPipeline(pipeline);
+    BindMesh(mesh, kStreams);
+    gpu::BindTextures(gpu::Stage::Fragment, slotTex, {&texture, 1});
+    CountBindings(texture.texture);
+    return true;
+}
+
+static gpu::TextureBinding PageTextures(const TerrainBatch& batch) {
+    return {g_zone.array ? g_zone.array : g_whiteArray, AnisotropicSampler(batch.state.stages[0], kMostAnisotropy)};
+}
+
+static void DrawGroundBatch(const Frame& f, const TerrainBatch& batch, const Mesh& mesh) {
+    namespace program = gpu_shaders::terrain_ground;
+    gpu::TextureBinding texture = PageTextures(batch);
+    // The harness's level map: the page textures' grey per level (no receiving of shadows).
+    const bool levels = g_levelMode != TerrainLevelMode::Off && g_levelArray;
+    if (levels) {
+        texture.texture = g_levelArray;
+        if (g_levelMode == TerrainLevelMode::PointMips) texture.sampler = LinearSampler();
+    }
+    if (!BeginTerrainDraw(batch, mesh, program::kSamplerTex, texture)) return;
+    BindShadowMap(f, program::kSamplerShadowMap);
+    BindPointShadows(f, program::kSamplerPointShadowMap);
+    BindCloudMap(program::kSamplerCloudMap);
+    BindOcclusion(program::kSamplerOcclusionMap);
+    BindRoofMap(program::kSamplerRoofMap);
+    // The ground receives the objects' shadows and the clouds'.
+    const bool receives = !levels && !f.shadow.lights.empty();
+    const ShadowParams& shadow = ShadowUniforms(f, receives, receives);
+    TerrainGroundVsParams vs{};
+    CommonVs(vs, f, batch, receives);
+    TerrainGroundFsParams fs{};
+    const SurfaceWeather weather = SurfaceUniforms();
+    CommonFs(fs, f, weather, BindWaterReflections(vs.matrix, program::kSamplerSkyImage, false));
+    fs.levels = levels ? 1 : 0;
+    fs.wet = weather.wet;
+    fs.puddles = weather.puddles;
+    fs.snow = weather.snow;
+    OcclusionUniforms(batch.occluded && !levels, fs);
+    const SceneLightParams light = SceneLightUniforms(f);
+    gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainGroundVsParams, vs);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainGroundFsParams, fs);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockSceneLightParams, light);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
+    gpu::DrawIndexed(0, mesh.indexCount);
+    CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(light) + sizeof(f.shadow.point.params));
+}
+
+static void DrawWaterBatch(const Frame& f, const TerrainBatch& batch, const Mesh& mesh) {
+    namespace program = gpu_shaders::terrain_water;
+    if (!BeginTerrainDraw(batch, mesh, program::kSamplerTex, PageTextures(batch))) return;
+    BindShadowMap(f, program::kSamplerShadowMap);
+    BindPointShadows(f, program::kSamplerPointShadowMap);
+    const gpu::TextureBinding ripples = RippleMap();
+    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerRipples, {&ripples, 1});
+    BindCloudMap(program::kSamplerCloudMap);
+    gpu::TextureBinding occlusion[2];
+    OcclusionBindings(occlusion);   // the rays are marched through the depth (the second)
+    gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerOcclusionDepth, {occlusion + 1, 1});
+    BindRoofMap(program::kSamplerRoofMap);
+    // The water receives the objects' shadows and the clouds'.
+    const bool receives = !f.shadow.lights.empty();
+    const ShadowParams& shadow = ShadowUniforms(f, receives, receives);
+    TerrainWaterVsParams vs{};
+    CommonVs(vs, f, batch, receives);
+    if (g_waves.on) {
         vs.waves = 1;
         vs.waveTime = g_waves.time;
         std::memcpy(vs.waveDirection, g_waves.direction, sizeof(vs.waveDirection));
         std::memcpy(vs.waveMaterials, g_waves.materials, sizeof(vs.waveMaterials));
         std::memcpy(vs.waveCrests, g_waves.crests, sizeof(vs.waveCrests));
     }
-    TerrainFsParams fs{};
-    UnpackColour(f.fogColour, fs.fog);
-    fs.mode = mode;
-    fs.fogOn = f.fogEnabled ? 1 : 0;
+    TerrainWaterFsParams fs{};
+    const WaterReflections sky = BindWaterReflections(vs.matrix, program::kSamplerSkyImage, true);
+    CommonFs(fs, f, SurfaceUniforms(), sky);
     RippleOffsets(fs.ripples, fs.slowRipples);
-    SurfaceUniforms(&fs);
-    OcclusionUniforms(batch.occluded && mode != kLevels, fs);
-    BindWaterReflections(vs.matrix, &fs);
+    fs.view = sky.view;
+    fs.sceneView = sky.sceneView;
+    fs.sceneDepthOffset = sky.sceneDepthOffset;
+    fs.sceneDepthScale = sky.sceneDepthScale;
+    fs.sceneOn = sky.sceneOn;
+    fs.sceneSize[0] = sky.sceneSize[0];
+    fs.sceneSize[1] = sky.sceneSize[1];
     const SceneLightParams light = SceneLightUniforms(f);
-    gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainVsParams, vs);
-    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainFsParams, fs);
+    gpu::PushUniforms(gpu::Stage::Vertex, program::kBlockTerrainWaterVsParams, vs);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainWaterFsParams, fs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockSceneLightParams, light);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
     gpu::DrawIndexed(0, mesh.indexCount);
     CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(light) + sizeof(f.shadow.point.params));
+}
+
+void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
+    const Mesh& mesh = g_zone.meshes[batch.water ? 1 : 0];
+    if (mesh.indexCount == 0 || !mesh.indices) return;
+    if (batch.water) DrawWaterBatch(f, batch, mesh);
+    else DrawGroundBatch(f, batch, mesh);
 }
 
 gpu::PipelineDesc TerrainDepthDesc() {
