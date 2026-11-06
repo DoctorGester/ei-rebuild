@@ -6,5 +6,6 @@ model = "sonnet"
 files = ["tools/work_sched.py", "tools/run_all.py"]
 note = "R37f3 2026-11-06: a timing batch started the scheduler with EI_BUILD_DIR=build\r37f3_bnv in its environment; the worker then deleted that folder, and every later '# prepare:' tool (rec_cut_*) run by that daemon failed, because prepare tools inherit the daemon's environment instead of the batch's (batch_env covers the games only). Give prepare tools the batch's env and build path, and never let one batch's variables leak into the daemon's own environment. Test in test_work_sched.py."
 order = 1286
-status = "review"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
