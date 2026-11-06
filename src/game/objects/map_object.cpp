@@ -8,7 +8,7 @@
 #include "game/saves/save_versions.h"
 #include "game/spells/spell.h"   // SpellType
 #include "game/units/unit.h"   // MapObjectServer
-#include "game/units/unit_create.h"
+#include "game/objects/map_object_manager.h"
 #include "game/world/world.h"   // World
 
 #include "lib/containers.h"

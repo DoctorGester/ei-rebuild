@@ -2,6 +2,7 @@
 // at every switch of the resource database). The spell database is spell_db.cpp. See item_db.h and
 // docs/notes/items_spells.md ("Databases and naming").
 #include "game/items/item_db.h"
+#include "game/spells/spell_db.h"
 
 #include "game/data/chunk_archive.h"
 #include "game/core/core_streams.h"

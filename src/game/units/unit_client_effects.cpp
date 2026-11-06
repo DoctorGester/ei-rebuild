@@ -14,6 +14,7 @@
 #include "game/app/options.h"
 #include "game/players/player_client.h"
 #include "game/core/random.h"
+#include "game/players/player.h"
 #include "game/sound/sound.h"
 #include "game/spells/spell.h"
 #include "game/terrain/terrain_sector.h"

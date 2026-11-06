@@ -16,6 +16,7 @@
 #include "game/players/party_manager.h"
 #include "game/players/party_records.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/world/quest_records.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"

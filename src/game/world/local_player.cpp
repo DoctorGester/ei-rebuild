@@ -9,6 +9,7 @@
 
 #include "game/app/singletons.h"
 #include "game/core/named_floats.h"
+#include "game/players/player.h"
 
 #include <memory>
 #include <new>

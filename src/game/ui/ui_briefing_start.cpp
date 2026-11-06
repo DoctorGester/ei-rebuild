@@ -15,6 +15,7 @@
 #include "game/ui/ui_briefing.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
+#include "game/players/player.h"
 #include "game/units/unit_client_models.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"

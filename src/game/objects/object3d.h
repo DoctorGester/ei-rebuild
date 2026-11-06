@@ -12,7 +12,7 @@
 #include "game/models/animation.h"   // AnimationTrack (a bone's animator)
 #include "lib/vecmath.h"
 #include "game/core/ref.h"
-#include "game/units/unit_create.h"   // MapObjectType
+#include "game/objects/map_object_manager.h"   // MapObjectType
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

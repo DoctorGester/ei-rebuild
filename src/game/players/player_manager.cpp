@@ -3,6 +3,7 @@
 
 #include "game/app/singletons.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/world/world.h"
 
 

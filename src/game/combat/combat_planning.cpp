@@ -12,6 +12,7 @@
 #include "game/items/item_db.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/ai/sector_map.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"

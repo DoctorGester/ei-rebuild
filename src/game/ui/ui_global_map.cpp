@@ -18,6 +18,7 @@
 #include "game/sound/sound.h"
 #include "game/scene/surface.h"
 #include "game/core/text_split.h"
+#include "game/players/player.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_mesh.h"
 #include "game/ui/ui_saveload.h"

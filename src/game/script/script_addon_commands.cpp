@@ -10,6 +10,7 @@
 #include "game/app/options.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/script/script_addon_handlers.h"
 #include "game/mods/mod_folders.h"
 #include "platform/platform.h"

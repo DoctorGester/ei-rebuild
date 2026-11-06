@@ -13,7 +13,7 @@
 #include "game/players/party.h"
 #include "game/players/party_manager.h"
 #include "game/players/party_records.h"
-#include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "lib/str.h"
 
 #include <bit>

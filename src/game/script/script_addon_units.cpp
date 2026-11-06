@@ -3,6 +3,7 @@
 #include "game/app/singletons.h"
 #include "game/objects/map_object.h"
 #include "game/core/random.h"
+#include "game/players/player.h"
 #include "game/script/script_addon_handlers.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"

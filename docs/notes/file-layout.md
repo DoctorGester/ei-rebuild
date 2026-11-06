@@ -267,7 +267,7 @@ sizes` on 2026-11-05 ("other references": comments, notes, tools, tests, config;
 | C168f | Moves: ai, combat, objects, units (111 files, 21 folds) | 700, 658 | Sonnet |
 | C168g | Moves: items, spells, effects, terrain, models, scene (104 files, 7 folds) | 667, 692 | Sonnet |
 | C168h | Moves: script, net, ui (145 files, 9 folds) | 602, 1,275 | Sonnet |
-| C168i | Later: only the misplaced classes (user 2026-11-05): MapObjectManager out of unit_create.h, Player out of player_messages.h, the spell records out of item_db.h, CreditsScreen gathered into one file. The subject splits of ui_camp.h, ui_screens.h and effects.h are dropped (cosmetic) | ~10 files | Opus |
+| C168i | Only the misplaced classes (user 2026-11-05), each into a header of its own: MapObjectManager and MapObjectType out of unit_create.h (objects/map_object_manager.h), Player out of player_messages.h (players/player.h), the spell records, tables and database out of item_db.h (spells/spell_db.h; the record table template stays in item_db.h), CreditsScreen out of ui_screens.h with its members from four files in ui/ui_credits.cpp. The subject splits of ui_camp.h, ui_screens.h and effects.h are dropped (cosmetic) | ~80 files (includes) | Opus |
 
 How a move batch runs (the tool is C168a's; `python tools/test_layout.py` tests it on a tree of its own):
 1. `python tools/layout.py check` (0 problems), then `python tools/layout.py apply C168x --dry-run`: the moves, the
@@ -330,32 +330,32 @@ Risks:
 
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
-| `ai/` | 28 | 12554 | C168f |
-| `app/` | 25 | 7031 | C168e |
-| `combat/` | 13 | 6384 | C168f |
-| `console/` | 5 | 2036 | C168e |
+| `ai/` | 28 | 12555 | C168f |
+| `app/` | 23 | 6994 | C168e |
+| `combat/` | 13 | 6391 | C168f |
+| `console/` | 5 | 2037 | C168e |
 | `core/` | 27 | 3874 | C168d |
 | `data/` | 13 | 3235 | C168d |
 | `effects/` | 23 | 10833 | C168g |
-| `items/` | 10 | 2810 | C168g |
+| `items/` | 10 | 2701 | C168g |
 | `map/` | 11 | 2028 | C168e |
-| `models/` | 20 | 5389 | C168g |
+| `models/` | 20 | 5411 | C168g |
 | `mods/` | 6 | 605 | C168d |
-| `net/` | 21 | 7972 | C168h |
-| `objects/` | 22 | 7307 | C168f |
-| `players/` | 23 | 5340 | C168e |
+| `net/` | 21 | 7992 | C168h |
+| `objects/` | 23 | 7324 | C168f |
+| `players/` | 24 | 5243 | C168e |
 | `saves/` | 7 | 811 | C168d |
 | `scene/` | 30 | 4684 | C168g |
-| `script/` | 20 | 6739 | C168h |
+| `script/` | 20 | 6742 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 7 | 2467 | C168g |
+| `spells/` | 8 | 2469 | C168g |
 | `terrain/` | 12 | 3479 | C168g |
-| `ui/` | 94 | 32921 | C168h |
-| `units/` | 27 | 10002 | C168f |
-| `world/` | 35 | 9711 | C168e |
-| all | 482 | 149891 | |
+| `ui/` | 95 | 32842 | C168h |
+| `units/` | 27 | 9914 | C168f |
+| `world/` | 35 | 9724 | C168e |
+| all | 484 | 149567 | |
 
-533 files today; 55 fold into an owner, 10 split by meaning, 8 new files come out of the splits, 36 moves rename for meaning.
+531 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -673,6 +673,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | map_object_companion.cpp | objects/map_object_companion.cpp |  |  |
 | map_object_draw.cpp | objects/map_object_draw.cpp |  |  |
 | map_object_manager.cpp | objects/map_object_manager.cpp |  |  |
+| map_object_manager.h | objects/map_object_manager.h | new | MapObjectManager and MapObjectType, out of unit_create.h (C168i) |
 | map_object_shadow.cpp | objects/map_object_shadow.cpp |  |  |
 | map_object_shadow.h | objects/map_object_shadow.h |  |  |
 | net_state.cpp | objects/net_state.cpp |  | MapObject's and Unit's state writers (virtuals of the objects) |
@@ -704,6 +705,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | party_manager.h | players/party_manager.h |  |  |
 | party_records.h | players/party_records.h |  |  |
 | player.cpp | players/player.cpp |  |  |
+| player.h | players/player.h | new | Player and its dirty bits, out of player_messages.h (C168i) |
 | player_client.cpp | players/player_client.cpp |  |  |
 | player_client.h | players/player_client.h |  |  |
 | player_client_handlers.cpp | players/player_client_handlers.cpp |  |  |
@@ -809,6 +811,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | spell.cpp | spells/spell.cpp |  |  |
 | spell.h | spells/spell.h |  | Light and LightFactory leave for scene/light.h (C168b) |
 | spell_db.cpp | spells/spell_db.cpp |  |  |
+| spell_db.h | spells/spell_db.h | new | the spell records, tables and database, out of item_db.h (C168i) |
 | spell_effect.cpp | spells/spell_effect.cpp |  |  |
 | spell_effect_internal.h | spells/spell_effect_internal.h |  |  |
 | spell_effect_update.cpp | spells/spell_effect_update.cpp |  |  |
@@ -866,6 +869,7 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | ui_container_draws.cpp | ui/ui_container.cpp | split | draws by kind: UiContainer's -> ui/ui_container.cpp, the briefing screen's -> ui/ui_briefing.cpp, the menu's -> ui/ui_main_menu.cpp, the equipment panel's -> ui/ui_hero_panels.cpp, ClearUiDepth -> ui/ui_interface.cpp (C168b; the file goes) |
 | ui_create_screen.cpp | ui/ui_create_screen.cpp |  |  |
 | ui_credits.cpp | ui/ui_credits.cpp |  |  |
+| ui_credits.h | ui/ui_credits.h | new | CreditsScreen, its lines and scrolling surface, out of ui_screens.h (C168i) |
 | ui_cursor.cpp | ui/ui_cursor.cpp |  |  |
 | cursor_setup.cpp | ui/ui_cursor.cpp | fold | the cursor's set-up and its 25 shapes (59 lines) |
 | ui_cursor.h | ui/ui_cursor.h |  |  |

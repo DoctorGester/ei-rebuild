@@ -15,6 +15,7 @@
 #include "game/world/diplomacy.h"
 #include "game/players/player_manager.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/spells/spell.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"

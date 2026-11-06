@@ -182,7 +182,7 @@ resume, Esc, the quit box cancelled), `ui_view_screen`. The harness's `newgame` 
 - **Message box** (flag 4 adds an edit field): OK + cancel at 263 / 463, OK alone or cancel alone at 363 (cancel alone adds
   an empty region 0 first, so cancel is region 1 in both layouts). The difficulty question (buttons 0 OK, 1 cancel, 2 / 3
   the choice) stores the difficulty on OK.
-- **Credits** (`ui_credits.cpp`): from a game it steps the loading screen and stops the music, from the menu it clears the
+- **Credits** (`ui_credits.h`, `.cpp`): from a game it steps the loading screen and stops the music, from the menu it clears the
   server flag at the end; plays the movies under "Titlesfin", draws the header unsmoothed (ui-native.md), parses
   "credits.scr" from "<data>outro.res" (one TitleLine per line) and starts "Movies\Titles.bik". `Draw` takes the next line
   once the time passes `nextLineAt` and the text stopped (`speed` 0 or NaN).

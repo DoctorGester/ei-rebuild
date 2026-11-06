@@ -1,6 +1,8 @@
 // A world player (Player): constructor and destructor,
-// Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h
-// and docs/notes/objects.md ("Players").
+// Create / Destroy, Clear, the link and connection, the given items and the units. See player.h and
+// docs/notes/objects.md ("Players").
+#include "game/players/player.h"
+
 #include "game/items/item.h"
 #include "game/items/item_manager.h"
 #include "game/net/net_link.h"
@@ -102,6 +104,8 @@ void Player::SetConnection(PlayerConnection* newConnection) {
 }
 
 void Player::SetPlayerId(int newId) { playerId = newId; }
+
+PlayerServer* Player::Server() const { return dynamic_cast<PlayerServer*>(connection); }
 
 namespace {
 

@@ -8,6 +8,7 @@
 #include "game/ui/ui_item_info.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
+#include "game/spells/spell_db.h"
 #include "game/players/party.h"
 #include "game/units/unit.h"
 

@@ -2,6 +2,7 @@
 // statistics hand-over and remarks, and dropping broken equipment after a hit. See
 // docs/notes/units.md ("Creation, databases, save").
 #include "game/units/unit_create.h"
+#include "game/objects/map_object_manager.h"
 
 #include "game/combat/combat.h"
 #include "game/core/engine_object.h"
@@ -9,6 +10,7 @@
 #include "game/items/item_manager.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
@@ -183,7 +185,7 @@ Unit::~Unit() {
 // --- Starting equipment ------------------------------------------------------------------------
 
 // A new unit's starting equipment from its prototype (the world adds zone units with it after
-// ApplyPrototype). See unit_create.h (MapObjectManager) and docs/notes/units.md ("Creation helpers").
+// ApplyPrototype). See objects/map_object_manager.h and docs/notes/units.md ("Creation helpers").
 
 int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name) {
     SpellManager* spellOwner = context->GetSpellManager();   // passed on to the spell factory

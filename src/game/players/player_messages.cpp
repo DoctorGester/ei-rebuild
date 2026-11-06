@@ -2,6 +2,7 @@
 // docs/notes/objects.md.
 
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"

@@ -7,6 +7,7 @@
 #include "game/core/core_refcount.h"
 #include "game/items/item_stock.h"
 #include "game/players/party.h"
+#include "game/spells/spell_db.h"
 
 struct PartyManager;
 

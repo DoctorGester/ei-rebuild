@@ -14,6 +14,7 @@
 #include "game/players/party.h"
 #include "game/players/player_manager.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/world/quest_records.h"
 #include "game/script/script.h"
 #include "game/core/text_split.h"

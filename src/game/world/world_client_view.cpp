@@ -14,6 +14,7 @@
 #include "game/objects/object3d.h"
 #include "game/objects/map_object_shadow.h"
 #include "game/data/text_manager.h"
+#include "game/players/player.h"
 #include "lib/containers.h"
 #include "game/terrain/terrain.h"
 

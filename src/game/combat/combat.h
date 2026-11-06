@@ -7,6 +7,7 @@
 #include "game/ai/ai_alarm.h"
 #include "game/spells/spell.h"
 #include "game/ai/unit_ai.h"
+#include "game/spells/spell_db.h"
 #include "lib/enum_array.h"
 
 #include <cstddef>

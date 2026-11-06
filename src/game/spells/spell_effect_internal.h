@@ -12,6 +12,7 @@
 #include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
+#include "game/spells/spell_db.h"
 
 #include "lib/crt.h"
 #include "lib/float_select.h"

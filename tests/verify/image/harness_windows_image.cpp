@@ -6,6 +6,7 @@
 #include "game/ui/ui_briefing.h"
 #include "game/ui/ui_camp.h"
 #include "game/ui/ui_item_info.h"
+#include "game/ui/ui_credits.h"
 #include "game/ui/ui_screens.h"
 #include "game/ui/ui_view_screen.h"
 #include "game/ui/ui_battle.h"

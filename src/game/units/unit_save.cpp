@@ -5,8 +5,7 @@
 
 #include "game/ai/ai_motion.h"
 #include "game/core/core_streams.h"
-#include "game/players/player_messages.h"
-#include "game/units/unit_create.h"
+#include "game/players/player.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
 

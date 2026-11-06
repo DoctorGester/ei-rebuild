@@ -15,7 +15,6 @@
 #include "game/ui/ui_camp.h"
 #include "game/ui/ui_screens.h"
 #include "game/units/unit.h"
-#include "game/units/unit_create.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "game/core/random.h"

@@ -3,7 +3,6 @@
 // EI_Plugin.asi's Fixes feature in the player faces (docs/notes/rebirth.md; always on): the sex of a face is decided
 // by one character of the figure's model name, and a player whose unit prototype is unknown gets the first prototype
 // that is not a creature of the game's own races.
-#include "game/units/unit_create.h"
 #include "game/units/unit_db.h"
 
 #include <cctype>

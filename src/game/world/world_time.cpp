@@ -2,6 +2,7 @@
 #include "game/world/world.h"
 
 #include "game/app/options.h"
+#include "game/players/player.h"
 
 #include "lib/float_select.h"
 

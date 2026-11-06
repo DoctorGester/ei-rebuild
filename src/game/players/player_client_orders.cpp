@@ -10,6 +10,7 @@
 #include "game/world/world.h"
 
 #include "game/app/singletons.h"
+#include "game/players/player.h"
 #include "lib/containers.h"
 
 #include <cstring>

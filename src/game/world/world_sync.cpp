@@ -8,6 +8,7 @@
 #include "game/world/hoover.h"
 #include "game/app/options.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"

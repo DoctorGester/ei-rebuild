@@ -4,6 +4,7 @@
 
 #include "game/ui/ui_screens.h"
 #include "game/map/map_database.h"
+#include "game/spells/spell_db.h"
 
 #include "lib/crt.h"
 #include "lib/vecmath.h"

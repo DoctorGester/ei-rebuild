@@ -9,6 +9,7 @@
 #include "game/core/core_maths.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
+#include "game/spells/spell_db.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"

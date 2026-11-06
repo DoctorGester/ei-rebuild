@@ -14,6 +14,7 @@
 #include "game/core/named_floats.h"
 #include "game/app/options.h"
 #include "game/players/party.h"
+#include "game/players/player.h"
 #include "game/scene/sky_object.h"
 #include "game/spells/spell.h"
 #include "game/terrain/terrain.h"

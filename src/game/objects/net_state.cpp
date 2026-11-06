@@ -7,7 +7,7 @@
 #include "game/ai/ai_motion.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_client.h"
-#include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/units/unit.h"
 #include "game/world/world.h"
 

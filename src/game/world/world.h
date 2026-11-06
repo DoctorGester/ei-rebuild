@@ -38,6 +38,7 @@ inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0
 
 class IsaacRandom;
 class ParticleSource;
+class Player;
 class PlayerClient;
 namespace netlink {
 class NetLink;

@@ -15,6 +15,7 @@
 #include "game/net/net_link.h"
 #include "game/app/options.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/players/player_source.h"
 #include "game/scene/sky_object.h"
 #include "game/ui/ui_flying_hit_points.h"

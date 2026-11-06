@@ -15,6 +15,7 @@
 #include "game/ui/ui.h"
 #include "game/world/world.h"
 #include "game/map/folder.h"
+#include "game/players/player.h"
 
 #include "lib/containers.h"
 #include "platform/platform.h"

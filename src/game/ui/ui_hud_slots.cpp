@@ -7,7 +7,7 @@
 #include "game/app/singletons.h"
 #include "game/items/item.h"
 #include "game/players/player_client.h"
-#include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/ui/screen_layout.h"
 #include "game/spells/spell.h"
 #include "game/data/text_manager.h"

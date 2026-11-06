@@ -6,6 +6,7 @@
 #include "game/console/console.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
+#include "game/spells/spell_db.h"
 #include "game/items/item_manager.h"
 #include "game/core/manager_context.h"
 #include "game/core/text_split.h"

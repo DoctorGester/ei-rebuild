@@ -9,7 +9,7 @@
 
 #include "game/data/text_manager.h"
 #include "game/players/party.h"
-#include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/items/item.h"
 #include "game/spells/spell.h"
 

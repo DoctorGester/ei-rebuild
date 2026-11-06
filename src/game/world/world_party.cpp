@@ -12,6 +12,7 @@
 #include "game/map/map_database.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/units/unit.h"
 
 #include "lib/crt.h"

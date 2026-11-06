@@ -12,6 +12,7 @@
 #include "game/items/item_db.h"
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
+#include "game/players/player.h"
 #include "game/players/player_messages.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"

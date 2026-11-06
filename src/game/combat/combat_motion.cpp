@@ -13,6 +13,7 @@
 #include "game/objects/map_object.h"
 #include "game/objects/object3d.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/core/random.h"
 #include "game/script/script.h"
 #include "game/ai/sector_map.h"

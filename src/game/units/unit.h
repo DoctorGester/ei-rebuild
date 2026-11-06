@@ -8,6 +8,7 @@
 #include "game/objects/map_object.h"
 #include "lib/vecmath.h"
 #include "game/ai/ai_motion.h"
+#include "game/spells/spell_db.h"
 
 #include "lib/containers.h"
 #include "lib/enum_array.h"

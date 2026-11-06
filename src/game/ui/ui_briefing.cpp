@@ -16,7 +16,7 @@
 #include "game/map/map_database.h"
 #include "game/app/options.h"
 #include "game/players/party.h"
-#include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/data/text_manager.h"
 #include "game/core/text_split.h"
 #include "game/ui/ui.h"

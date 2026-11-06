@@ -167,6 +167,7 @@ world_client_shadow_casters.cpp world/world_client_shadow_casters.cpp
 frame_lists.h               world/frame_lists.h
 
 # ---- players: a player, its party, its connection's halves (PlayerServer, PlayerClient), class templates -----------
+player.h                    players/player.h            new   # Player and its dirty bits, out of player_messages.h (C168i)
 player.cpp                  players/player.cpp
 player_manager.h            players/player_manager.h
 player_manager.cpp          players/player_manager.cpp
@@ -270,6 +271,7 @@ map_object_kinds.h          objects/map_object.h        fold  # PlainMapObject (
 map_object_kinds.cpp        objects/map_object.cpp      fold  # their four virtuals (35 lines)
 map_object_companion.cpp    objects/map_object_companion.cpp
 map_object_client_effects.cpp objects/map_object_client_effects.cpp
+map_object_manager.h        objects/map_object_manager.h new  # MapObjectManager and MapObjectType, out of unit_create.h (C168i)
 map_object_manager.cpp      objects/map_object_manager.cpp
 map_object_figures.h        objects/object3d.h               # holds Object3D (and its halves' bases), the 3D object under MapObject
 map_object_figures.cpp      objects/object3d.cpp            # with objects/object3d.h
@@ -341,6 +343,7 @@ item_stock.cpp              items/item_stock.cpp
 # ---- spells -----------------------------------------------------------------------------------------------------
 spell.h                     spells/spell.h                    # Light and LightFactory leave for scene/light.h (C168b)
 spell.cpp                   spells/spell.cpp
+spell_db.h                  spells/spell_db.h           new   # the spell records, tables and database, out of item_db.h (C168i)
 spell_db.cpp                spells/spell_db.cpp
 spell_manager.cpp           spells/spell_manager.cpp
 spell_effect.cpp            spells/spell_effect.cpp
@@ -534,6 +537,7 @@ screen_layout.cpp           ui/screen_layout.cpp
 ui_layouts.cpp              ui/ui_layouts.cpp
 ui_menu_pieces.h            ui/ui_menu_pieces.h
 ui_main_menu.cpp            ui/ui_main_menu.cpp
+ui_credits.h                ui/ui_credits.h             new   # CreditsScreen, its lines and scrolling surface, out of ui_screens.h (C168i)
 ui_credits.cpp              ui/ui_credits.cpp
 ui_message_box.h            ui/ui_message_box.h
 ui_message_box.cpp          ui/ui_message_box.cpp
