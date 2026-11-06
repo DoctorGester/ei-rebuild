@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_lost_in_astral_elevator",
+  "install": "rebirth",
+  "recorded": "2026-11-06",
+  "commit": "fc84ce294",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MOD9: new scenario, Lost in Astral's gz1d2 lift from the user's save: the deck lever used through the battle screen's use pick, the ride down and the walk on",
+  "source": "image",
+  "saves": "16 decoded saves (tools/savefile.py), the same in 2 runs"
+}

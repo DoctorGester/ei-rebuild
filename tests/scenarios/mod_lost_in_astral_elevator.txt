@@ -1,0 +1,33 @@
+# Lost in Astral's gz1d2 lift (MOD9, R64; docs/notes/mods.md, "The gz1d2 lift"), from the user's save at the spot
+# where the party seemed stuck (tests/saves/lia_elevator, copied by tools/copy_save.py into the mod's saves): the lift
+# (stbr6 2240358) waits at the upper landing (GetZ 62.18), the party (Hero1 selected, merc2) stands on the landing
+# (z 33.53) and the way on is the lower cave (z about 4). The lever on the lift's deck (1357456, enabled) takes it
+# down. From the save's camera (heading 309) the lift's origin is nearer the camera than the lever's and its deck
+# covers the lever's whole rectangle, so the original's pick (sorted by the objects' origins) gave the lift at every
+# point of the lever: a click was a walk. Our pick sorts by the depth of each object's surface drawn under the
+# cursor (WorldClient::Pick), so the lever drawn on the deck wins and the click below uses it: the hero walks onto
+# the lift's deck, pulls it, and rides down with the lift (the deck's cells carry him: GetZ from 33.5 to 4.2), then
+# walks on in the lower cave.
+# prepare: copy_save.py tests/saves/lia_elevator LostInAstral/save1
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+rebirth console thingamabob
+rebirth load save1
+rebirth waitwindow 30 battle
+rebirth frames 5
+rebirth check IsGreater(GetZ(GetObject(2240358)),62)
+rebirth check IsEqual(GetLeverState(GetObject(1357456)),0)
+rebirth check IsGreater(GetZ(GetLeader()),33)
+rebirth clickunit #1357456
+rebirth waitfor 30 IsEqual(GetLeverState(GetObject(1357456)),1)
+# Down: the lift reaches the bottom (-0.3 over the pit's floor) and the script turns the lever back.
+rebirth waitfor 30 IsLess(GetZ(GetObject(2240358)),33.3)
+rebirth waitfor 15 IsEqual(GetLeverState(GetObject(1357456)),0)
+rebirth check IsLess(GetZ(GetLeader()),5)
+# Off the lift into the lower cave.
+rebirth console @MoveToPoint(GetLeader(),30,75)
+rebirth waitfor 20 IsLess(DistanceUnitPoint(GetLeader(),30,75),2)
+rebirth check IsLess(GetZ(GetLeader()),5)
+report
+quit
