@@ -9,6 +9,7 @@
 #include "game/objects/map_object.h"   // MapObjectFlag
 #include "game/spells/spell.h"
 #include "game/core/text_split.h"
+#include "game/spells/spell_db.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"

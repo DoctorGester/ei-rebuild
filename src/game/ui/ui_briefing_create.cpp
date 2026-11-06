@@ -24,6 +24,7 @@
 #include "game/ui/ui_camera_input.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
+#include "game/players/player.h"
 #include "game/units/unit_client_models.h"
 #include "game/world/world.h"
 #include "game/terrain/terrain.h"

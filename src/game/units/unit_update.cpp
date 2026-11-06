@@ -10,7 +10,7 @@
 #include "game/objects/object3d.h"
 #include "game/data/text_manager.h"
 #include "game/units/unit.h"
-#include "game/units/unit_create.h"
+#include "game/objects/map_object_manager.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "lib/crt.h"

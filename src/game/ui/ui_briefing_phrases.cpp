@@ -21,6 +21,7 @@
 #include "game/units/unit_client_models.h"
 #include "game/world/world.h"
 #include "game/core/random.h"
+#include "game/players/player.h"
 
 #include "lib/containers.h"
 #include "lib/str.h"

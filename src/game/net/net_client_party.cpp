@@ -9,6 +9,7 @@
 #include "game/net/net_messages.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/spells/spell.h"
 #include "game/ui/ui.h"
 #include "game/world/world.h"

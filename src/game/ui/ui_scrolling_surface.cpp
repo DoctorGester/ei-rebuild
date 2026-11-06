@@ -1,10 +1,10 @@
-// The titles' scrolling text surface (UiScrollingSurface, ui_screens.h): a window surface holding an RTF text
+// The titles' scrolling text surface (UiScrollingSurface, ui_credits.h): a window surface holding an RTF text
 // (outro.rtf), laid out once by render_rich_text as RichEdit 2.0 placed it and drawn into the frame each frame as
 // glyph runs at a scroll offset that moves with the game time. Twips and font sizes go to pixels at a DPI taken from
 // the window's size, as the interface's fonts are sized (TitlesDpi), not from the system's (docs/notes/ui-native.md,
 // "The titles' rich text"). See docs/notes/ui.md, section 4.
 #include "game/ui/ui.h"
-#include "game/ui/ui_screens.h"
+#include "game/ui/ui_credits.h"
 #include "game/ui/screen_layout.h"
 
 #include "game/data/resource.h"

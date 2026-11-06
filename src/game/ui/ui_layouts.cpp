@@ -1,13 +1,10 @@
-// Layout builders (the Create virtuals) of the escape menu, the main menu, the message box, the difficulty question and
-// the credits: the regions, sprites, surfaces and 3D model each window is made of. Rebirth patches the sprite placement
+// Layout builders (the Create virtuals) of the escape menu, the main menu, the message box and the difficulty question:
+// the regions, sprites, surfaces and 3D model each window is made of. Rebirth patches the sprite placement
 // and UiRegion::SetRect for its widescreen layout. The save / load and options windows' are in ui_saveload.cpp and
 // ui_options.cpp. See docs/notes/ui.md.
 #include "game/app/app.h"
-#include "game/core/asset_text.h"
-#include "game/app/options.h"
 #include "game/app/movies.h"
 #include "game/sound/sound.h"
-#include "game/core/text_split.h"
 #include "game/objects/object3d.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_menu_pieces.h"
@@ -24,18 +21,16 @@
 #include "game/scene/scene_renderer.h"
 #include "game/models/texture.h"
 #include "game/net/net_second_master.h"
-#include "game/data/resource.h"
 #include "game/ui/ui_cursor.h"
+#include "game/ui/ui_credits.h"
 #include "game/ui/ui_screens.h"
 #include "game/world/world.h"
 
 #include "lib/containers.h"
 #include "lib/rect.h"
 #include <cstdint>
-#include <cstring>
 #include <memory>
 #include <string>
-#include "lib/text_case.h"
 #include "game/terrain/terrain.h"
 #include "game/app/singletons.h"
 #include "game/models/figure_manager.h"
@@ -52,11 +47,6 @@ namespace {
 // The window's 3D model: the stone menu (`escMenu00`) turned about x.
 // The menu models' tilts about x (static initialisers: pi * 0.5).
 constexpr float kEscMenuTilt = /*007C7FB0*/ 1.5707964f;
-
-struct TitlesTokenizer : TextTokenizer {
-    // The current word, or "" past the last one (the original assigned null to a string, which keeps "").
-    const char* WordOrEmpty() const { return position != -1 ? word.c_str() : ""; }
-};
 
 } // namespace
 
@@ -302,73 +292,4 @@ void DifficultyBox::CreateScreen() {
     cancelButton->SetTip(0xC3B5);
     easyArea = AddRect(this, boxLeft, row, boxRight, row + 0x15);
     hardArea = AddRect(this, boxLeft, row + 0x18, boxRight, row + 0x2D);
-}
-
-// --- Titles ----------------------------------------------------------------------------
-
-void CreditsScreen::CreateScreen() {
-    const std::string& currentName = name;
-    if (!fromGame) {
-        g_clientWorld.sounds->StopAll(true);
-        g_clientWorld.music->Stop();
-    }
-    g_cursor.ShowImage(0);
-    app::PlayMovies((currentName + "fin"), false);
-    nextLineAt = 0.0f;
-
-    MappedResource* currentArchive = &archive;
-    currentArchive->OpenResource((options::g_options.resourcesPath + "outro.res"));
-    std::uint32_t size = 0;
-    void* data = currentArchive->GetFile("credits.scr", &size);
-    if (!data) {
-        nextLine = lines.size();
-    } else {
-        std::string script;
-        std::memmove(str::SetLength(script, static_cast<int>(size)), data, size);
-        str::CutAtNull(script);
-        text::FromAssetText(&script);   // the headers' text in UTF-8 (the pages are RTF)
-        RemoveCarriageReturns(&script);
-        TitlesTokenizer newLines{{0, &script, "\n"}};
-        newLines.Start();
-        while (newLines.position != -1) {
-            std::string line = newLines.word;
-            TitlesTokenizer words{{0, &line, " "}};
-            words.Start();
-            TitleLine record{};
-            {
-                std::string first = words.WordOrEmpty();
-                record.scroll = text::CompareIgnoringCase(first,
-                                                "#scroll") ==
-                                0;
-            }
-            words.Next();
-            record.speed = str::ToFloat(words.word);
-            words.Next();
-            record.style = words.WordOrEmpty();
-            words.Next();
-            record.text = words.WordOrEmpty();
-            lines.push_back(record);
-            newLines.Next();
-        }
-        nextLine = 0;
-        currentArchive->CloseFile(data);
-    }
-
-    // The scrolling text (10..790 x 150..450) and the header (10..790 x 110..140), frozen.
-    {
-        Rect area = {10, 0x96, 0x316, 0x1C2};
-        textSurface = AddSurface(std::make_unique<UiScrollingSurface>(&area));
-        textSurface->Hide();
-    }
-    {
-        Rect area = {10, 0x6E, 0x316, 0x8C};
-        headerSurface = AddSurface(std::make_unique<UiSurface>(&area, SurfaceBlend::Keyed));
-        headerSurface->PaintWith([this](UiSurface& out) { PaintHeader(out); });
-        headerSurface->Hide();
-    }
-    if (fromGame) g_serverWorld.SetServerPaused(0);
-    savedDisplay = static_cast<int>(g_sceneRenderer.fogColour);
-    g_sceneRenderer.fogColour = 0;
-    player.Open((g_dataFolder + "Movies\\" + currentName + ".bik").c_str(), false);
-    finished = false;
 }

@@ -14,6 +14,7 @@
 #include "game/ui/ui_briefing.h"
 #include "game/ui/ui_camp.h"
 #include "game/ui/ui_cursor.h"
+#include "game/ui/ui_credits.h"
 #include "game/ui/ui_screens.h"
 #include "game/ui/ui_view_screen.h"
 #include "game/world/world.h"
@@ -157,11 +158,6 @@ void Interface3D::OpenHelp(bool forced) {
     }
     PushWindow(std::make_unique<HelpWindow>(false, topic, seen), WindowBackdrop::Screen);
 }
-
-// --- Screens 8 and 9: constructors -------------------------------------------------------------------
-
-CreditsScreen::CreditsScreen(bool newFromGame, const char* newName)
-    : name(newName), fromGame(newFromGame) {}
 
 // --- The message box ----------------------------------------------------------------------------------
 

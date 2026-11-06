@@ -8,6 +8,7 @@
 #include "game/data/resource.h"
 #include "game/spells/spell.h"
 #include "game/core/text_split.h"
+#include "game/spells/spell_db.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

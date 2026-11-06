@@ -21,6 +21,7 @@
 #include "lib/maths.h"
 #include "lib/str.h"
 #include "game/app/singletons.h"
+#include "game/players/player.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
 

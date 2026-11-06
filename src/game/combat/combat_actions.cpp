@@ -13,6 +13,7 @@
 #include "game/world/diplomacy.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/data/resource_manager.h"
 #include "game/ai/sector_map.h"
 #include "game/spells/spell.h"

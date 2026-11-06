@@ -7,6 +7,7 @@
 #include "game/core/core_maths.h"
 #include "game/objects/map_object.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/script/script.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"

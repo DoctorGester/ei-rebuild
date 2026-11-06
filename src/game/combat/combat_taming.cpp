@@ -7,7 +7,7 @@
 #include "game/core/engine_object.h"
 #include "game/objects/map_object.h"
 #include "game/world/diplomacy.h"
-#include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"

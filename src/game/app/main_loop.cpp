@@ -21,6 +21,7 @@
 #include "game/scene/drawn_motion.h"
 #include "game/terrain/ground_print.h"
 #include "game/items/item_db.h"
+#include "game/spells/spell_db.h"
 #include "game/objects/lever.h"
 #include "game/map/map_database.h"
 #include "game/scene/scene_renderer.h"

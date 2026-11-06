@@ -15,6 +15,7 @@
 #include "game/net/net_session.h"
 #include "game/world/diplomacy.h"
 #include "game/core/random.h"
+#include "game/players/player.h"
 #include "game/saves/save_versions.h"
 #include "game/world/world.h"
 

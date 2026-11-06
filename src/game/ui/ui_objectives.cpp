@@ -13,6 +13,7 @@
 #include "game/world/quest_records.h"
 #include "game/data/text_manager.h"
 #include "game/core/text_split.h"
+#include "game/players/player.h"
 #include "game/ui/ui.h"
 #include "lib/maths.h"
 #include "game/ui/ui_float.h"

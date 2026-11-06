@@ -6,6 +6,7 @@
 
 #include "game/items/item.h"
 #include "game/spells/spell.h"
+#include "game/spells/spell_db.h"
 
 #include "lib/str.h"
 

@@ -511,26 +511,6 @@ void EscMenu::MessageResult(std::uint32_t result) {
     }
 }
 
-// --- CreditsScreen ---------------------------------------------------------------------------
-
-void CreditsScreen::Close() {
-    if (fromGame) g_interface.SetPendingValue(0xCCCCCCCC);
-    else g_gameFlow.CloseSessions();
-}
-
-void CreditsScreen::OnEvent(UiEvent& event) {
-    switch (event.kind) {
-    case UiEventKind::LeftDown: Close(); break;
-    case UiEventKind::KeyDown: KeyDown(event); break;
-    default: UiContainer::OnEvent(event); break;
-    }
-}
-
-void CreditsScreen::KeyDown(UiEvent& event) {
-    const platform::Key key = event.key;
-    if (key == platform::Key::Return || key == platform::Key::Escape || key == platform::Key::Space) Close();
-}
-
 // --- ExchangeScreen --------------------------------------------------------------------------
 
 void ExchangeScreen::KeyDown(UiEvent& event) {

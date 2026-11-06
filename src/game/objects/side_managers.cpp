@@ -6,6 +6,7 @@
 #include "game/objects/map_object_shadow.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/objects/torch.h"
 #include "game/units/unit.h"   // MapObjectServer
 #include "game/units/unit_client_models.h"

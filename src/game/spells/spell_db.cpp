@@ -1,7 +1,7 @@
 // The spell database: its records' Serialize and SpellDatabase::Load ("spells.sdb", at
-// startup and at every switch of the resource database). See item_db.h and docs/notes/items_spells.md
+// startup and at every switch of the resource database). See spell_db.h and docs/notes/items_spells.md
 // ("Databases and naming").
-#include "game/items/item_db.h"
+#include "game/spells/spell_db.h"
 
 #include "game/data/chunk_archive.h"
 #include "game/core/core_streams.h"

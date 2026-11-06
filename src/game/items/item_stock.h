@@ -12,6 +12,7 @@
 
 #include "game/core/engine_object.h"
 #include "game/items/item_db.h"
+#include "game/spells/spell_db.h"
 #include "lib/hash_map.h"
 
 class Item;

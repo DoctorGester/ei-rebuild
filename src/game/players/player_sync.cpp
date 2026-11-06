@@ -4,6 +4,7 @@
 
 #include "game/items/item_manager.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/console/console.h"
 
 #include "game/core/base_manager.h"

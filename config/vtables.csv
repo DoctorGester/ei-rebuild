@@ -223,7 +223,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073DC3C,3,,game,00510450 00510560 00511E00,007005E3,EffectSoundArrayClass,-,CArray (a map object's effect sounds); stored only by game.exe (ours is a std::vector)
 0073DC48,3,,game,00510450 00510560 00511BB0,007005E3,EffectObjectArrayClass,-,CArray (a map object client's effect records); stored only by game.exe (ours is a std::vector)
 0073DC54,20,,game,00510560 00510730 00515610 00515720,00510710,MapObjectCompanion,src/game/objects/map_object.h,the map object companions' base
-0073DCD8,26,,game,005125E0 00512650,00512630,MapObjectManager,src/game/units/unit_create.h,
+0073DCD8,26,,game,005125E0 00512650,00512630,MapObjectManager,src/game/objects/map_object_manager.h,
 0073DD6C,21,,game,00515610 00515720,00515700,MapObjectServer,src/game/units/unit.h,the map objects' server companion
 0073DDD4,5,,game,00515BD0 00515D70,00515D50,Object3D,src/game/objects/object3d.h,"Object3D's own table (Construct / DestructBody; 27 slots, 11 / 12 _purecall: slots 5-26 are gen_image_cells.py's NOT_CODE)"
 0073DE40,3,,game,00515BD0 00515D70 00519B30,007005E3,FrameArrayClass,-,CArray (a 3D object's frames); stored only by game.exe (ours is a std::vector)
@@ -381,8 +381,8 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00740BE4,3,,game,005F67A0 005F6920 005FB560,007005E3,GlobalMapPathArrayClass,-,CArray (the global map's quests); stored only by game.exe (ours is a std::vector)
 00740BF0,3,,game,005F67A0 005F6920 005FB2F0,007005E3,GlobalMapPointArrayClass,-,CArray (the global map's links); stored only by game.exe (ours is a std::vector)
 00740BFC,3,,game,005F67A0 005F6920 005FB090,007005E3,GlobalMapZoneArrayClass,-,CArray (the global map's zones); stored only by game.exe (ours is a std::vector)
-00740C08,13,,game,005F6D50 00632D70,005FC0F0,CreditsScreen,src/game/ui/ui_screens.h,the titles' input side
-00740C3C,42,,game,005F6D50 00632D70,005F6E20,CreditsScreen,src/game/ui/ui_screens.h,the titles (CCreditsScreen)
+00740C08,13,,game,005F6D50 00632D70,005FC0F0,CreditsScreen,src/game/ui/ui_credits.h,the titles' input side
+00740C3C,42,,game,005F6D50 00632D70,005F6E20,CreditsScreen,src/game/ui/ui_credits.h,the titles (CCreditsScreen)
 00740CE4,13,,game,005F6F30,005FC110,ExchangeScreen,src/game/ui/ui_screens.h,the exchange's input side
 00740D18,55,,game,005F6F30,005F6FF0,ExchangeScreen,src/game/ui/ui_screens.h,the exchange between players (CExchangeScreen)
 00740DF4,13,,game,005F86F0 005F8A80,005FC0D0,HelpWindow,src/game/ui/ui_help_window.h,the help window's input side
@@ -481,11 +481,11 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00742F28,1,,game,0065D4B0,0065D8C0,UiFormatToken,-,a scrolling text's format token (UiFormatToken); stored only by game.exe (ours is a TextToken value of TokenKind::Format)
 00742F30,13,,game,0065E320,0065EAC0,UiTooltip,src/game/ui/ui.h,a region tooltip's input side
 00742F64,25,,game,0065E320,0065E4D0,UiTooltip,src/game/ui/ui.h,a region's tooltip (CUiTooltip)
-00742FD8,2,,game,0065ED30 0065EDE0,0065F170,UiScrollingSurface,src/game/ui/ui_screens.h,the titles' scrolling text surface (CUiScrollingSurface)
+00742FD8,2,,game,0065ED30 0065EDE0,0065F170,UiScrollingSurface,src/game/ui/ui_credits.h,the titles' scrolling text surface (CUiScrollingSurface)
 00742FF4,3,,game,0065F2D0 00661050 006611D0 006613C0 00663410 00664160,007005E3,PartyMemberArrayClass,-,CArray (a party's unit records); stored only by game.exe (ours is a std::vector)
 00743000,27,,game,0065F2D0 00661050 006611D0 006613C0 00662FB0 00663410,00661190,Party,src/game/players/party.h,the party (Party)
 0074306C,27,,game,00661050 006613C0,006611B0,ManagerContext,src/game/core/manager_context.h,Party's base (the manager context's getters null)
-00743104,13,,game,00664BF0 00664E20,00664E00,Player,src/game/players/player_messages.h,a world player (Player)
+00743104,13,,game,00664BF0 00664E20,00664E00,Player,src/game/players/player.h,a world player (Player)
 00743138,3,,game,00664BF0 00664E20 00665FF0,007005E3,PlayerListClass,-,CList (a player's list); stored only by game.exe (ours is a std::list)
 00743180,24,,game,00666D10 00666FD0,00666FB0,PlayerClient,src/game/players/player_client.h,a player's client side (CPlayerClient)
 007431E0,24,,game,00666D10 00666EC0 00666FD0 0066C540 0066C770,00666F70,PlayerConnection,src/game/players/player_messages.h,the player connection's base (CPlayerConnection; slots 13 / 23 pure)

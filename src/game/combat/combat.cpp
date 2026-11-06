@@ -21,7 +21,7 @@
 #include "game/world/diplomacy.h"
 #include "game/data/text_manager.h"
 #include "game/app/options.h"
-#include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/core/random.h"
 #include "game/ai/sector_map.h"
 #include "game/spells/spell.h"

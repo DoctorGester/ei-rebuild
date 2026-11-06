@@ -1,6 +1,6 @@
 // A creature's starting vitals and statistics from its prototype records, the prototype applied
-// to a new map object, and the map object factory. See unit_create.h and docs/notes/units.md ("Creation,
-// databases, save").
+// to a new map object, and the map object factory. See unit_create.h, objects/map_object_manager.h and
+// docs/notes/units.md ("Creation, databases, save").
 #include "game/core/core_maths.h"
 #include "game/core/base_manager.h"
 #include "game/items/item.h"
@@ -13,6 +13,7 @@
 #include "game/objects/torch.h"
 #include "game/units/unit.h"
 #include "game/units/unit_create.h"
+#include "game/objects/map_object_manager.h"
 #include "game/units/unit_db.h"
 
 #include "lib/crt.h"

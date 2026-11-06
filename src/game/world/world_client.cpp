@@ -18,6 +18,7 @@
 #include "game/players/party.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/sound/sound.h"
 #include "game/spells/spell.h"
 #include "game/terrain/terrain.h"

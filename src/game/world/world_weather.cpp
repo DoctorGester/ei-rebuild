@@ -8,6 +8,7 @@
 #include "game/script/script.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
+#include "game/players/player.h"
 
 #include "lib/str.h"
 

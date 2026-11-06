@@ -2,6 +2,7 @@
 
 #include "game/core/core_streams.h"
 #include "game/objects/map_object.h"
+#include "game/spells/spell_db.h"
 #include "game/units/unit.h"
 #include "lib/crt.h"
 #include "lib/text_case.h"

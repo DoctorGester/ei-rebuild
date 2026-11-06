@@ -26,6 +26,7 @@
 #include "game/players/party_manager.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/core/random.h"
 #include "game/data/resource.h"
 #include "game/spells/spell.h"

@@ -11,6 +11,7 @@
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
+#include "game/players/player.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"

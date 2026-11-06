@@ -2,6 +2,7 @@
 // the id maps. See world.h.
 #include "game/app/singletons.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"

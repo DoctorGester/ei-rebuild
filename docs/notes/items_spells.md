@@ -1,6 +1,6 @@
 # Items, spells and related data (texts, textures, registry files, trader stock, party)
 
-Layouts are in the headers (`item_db.h`, `item.h`, `spell.h`, `item_stock.h`, `party.h`, `texture.h`); this file holds
+Layouts are in the headers (`item_db.h`, `spell_db.h`, `item.h`, `spell.h`, `item_stock.h`, `party.h`, `texture.h`); this file holds
 what they do not say. The HUD panels and windows are in `ui.md`; players and their messages in `objects.md`.
 
 | Subsystem | Code | Scenario |

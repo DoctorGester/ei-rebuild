@@ -59,7 +59,7 @@ the items.
 
 ## Players
 
-- `Player` (`player_messages.h`): its link, id, the map objects and timed objects its client knows (`lib::HashMap`s,
+- `Player` (`player.h`): its link, id, the map objects and timed objects its client knows (`lib::HashMap`s,
   each counted once), its units, an embedded Party, the given items, `sessionKind`, god mode, the recharge list.
   `PlayerConnection` is the base of `PlayerServer` and `PlayerClient`; `Player::Server()` and
   `WorldClient::LocalView()` are the casts of `connection`.

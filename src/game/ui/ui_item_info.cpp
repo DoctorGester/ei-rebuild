@@ -8,6 +8,7 @@
 #include "game/console/console.h"
 #include "game/items/item.h"
 #include "game/items/item_db.h"
+#include "game/spells/spell_db.h"
 #include "game/data/text_manager.h"
 #include "game/spells/spell.h"
 #include "game/units/unit.h"

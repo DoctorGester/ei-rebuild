@@ -1,17 +1,16 @@
 #pragma once
 
 // Interface screens (docs/notes/ui.md, "Screens"): the camp's item strips, the multiplayer hero and
-// connection screens, the escape menu, the credits, the main menu and the exchange window. Handlers take
+// connection screens, the escape menu, the main menu and the exchange window (the credits: ui_credits.h). Handlers take
 // a UiEvent (ui.h).
 
-#include "game/app/movies.h"
 #include "game/ui/ui_item_info.h"
 #include "game/ui/ui_message_box.h"
 #include "game/ui/ui_drop_list.h"
 #include "game/mods/mod_list.h"
 #include "game/net/net_session.h"
+#include "game/spells/spell_db.h"
 
-#include "game/data/resource.h"
 #include "game/ui/screen_layout.h"
 
 #include <cstddef>
@@ -508,86 +507,6 @@ public:
     static constexpr int kSave = 0, kLoad = 1, kResume = 2, kQuit = 3, kOptions = 4, kStones = 5;
     UiRegion* stones[kStones] = {};
     int hovered = 0;            // the stone under the mouse, -1 for none
-};
-
-// --- Credits ------------------------------------------------------------------------------------
-// The titles window (main menu region 4). A line of the titles' script:
-struct TitleLine {
-    bool scroll = false;        // the first word is "#scroll"
-    float speed = 0.0f;         // the second word (atof): the scroll speed, or the seconds shown
-    std::string text;          // the fourth word (the header)
-    std::string style;         // the third word (the text file in the archive)
-};
-
-// The titles' scrolling text surface.
-class UiScrollingSurface : public UiSurface {
-public:
-    // A surface of format 5 over the layout rectangle (keyed on white); no text, the offsets and the speed 0
-    // (startTime is left as it was).
-    UiScrollingSurface(const Rect* rect);
-    ~UiScrollingSurface() override;   // out of line: the laid out text's type is complete there
-    // Loads the text file `name` of `archive` into the surface (LoadRtf); whether it was found.
-    bool Load(MappedResource* archive, const char* name);
-    // Reads the RTF block and lays it out at the surface's width (render_rich_text.h), the offset 0.
-    void LoadRtf(const void* data, std::uint32_t size);
-    // While the speed is not 0 the offset moves by the game time passed times the speed (truncated) and FindEnd
-    // runs; then, shown, the text is drawn into the frame (not in the background colour, the key), its top
-    // `offset` twips above the surface's.
-    void Blit() override;
-    // Starts the text at `speed` (0: still), from below the surface when `fromBelow` (the offset minus the surface's height in
-    // twips); the end offset 0, the start time the game time.
-    void Start(float speed, bool fromBelow);
-    // The first time the whole text fits above 1000 twips below the surface the offset is kept; once the offset has
-    // moved 1000 twips plus the height past it, the speed and the kept offset become 0 (RichEdit's EM_FORMATRANGE
-    // end in the original).
-    void FindEnd();
-
-    float startTime = 0.0f;
-    int offsetX = 0;            // twips
-    int offset = 0;             // twips scrolled
-    float speed = 0.0f;         // 0 once the text has scrolled through
-    int endOffset = 0;          // offset when the end of the text came into view (0: not yet)
-    std::unique_ptr<render::text::RichLayout> text;    // the loaded text laid out (null before LoadRtf)
-};
-
-class CreditsScreen : public UiContainer {
-public:
-    CreditsScreen(bool fromGame, const char* name);
-    void OnEvent(UiEvent& event) override;
-    void KeyDown(UiEvent& event);
-    // Ends the titles: back to where they were opened from.
-    void Close();
-    // Opened in a game (fromGame 0) the loading screen steps and the music stops; the cursor hidden, the
-    // "<name>fin" movies played, "outro.res" opened and its "credits.scr" parsed
-    // into lines (one record per line: "#scroll" flag, speed, two texts); the scrolling text surface and the
-    // header surface, both frozen; the display's flag kept in savedDisplay and cleared; the player starts
-    // "Movies\<name>.bik".
-    void CreateScreen() override;
-    // Once the game time passes nextLineAt and the text has stopped: both surfaces frozen, then the next
-    // line: its text file loaded and started (a "#scroll" line scrolls at its speed under its header, another
-    // stays for its speed in seconds), or past the last line finished. The movie steps (stretched unless the
-    // movie flag is 1); when it has ended after the last line: "<name>fout" played, the screen flag cleared
-    // and the titles closed as Close() does; otherwise the container's draw.
-    void DrawSprites(SceneRenderer* pass) override;
-    // The lines freed, the display's flag restored, the screen flag set and the cursor shown.
-    void CloseScreen() override;
-    // A window above closed: the movie player is closed.
-    void MessageResult(std::uint32_t result) override;
-    // The header surface's paint: header.
-    void PaintHeader(UiSurface& surface) const;
-
-    UiScrollingSurface* textSurface = nullptr;    // the scrolling text
-    UiSurface* headerSurface = nullptr;
-    std::string header;        // the scrolling line's header text
-    MappedResource archive;    // "outro.res"
-    std::vector<TitleLine> lines;
-    float nextLineAt = 0.0f;           // game time the current line ends (0 from Build and for scrolls)
-    std::size_t nextLine = 0;          // the index of the next line (lines.size() at the end)
-    std::string name;          // ("Titles")
-    BinkVideo player;          // the movie player
-    bool fromGame = false;      // opened in a game (pending value 0xCCCCCCCC) or the menu
-    bool finished = false;              // the last line has gone (cleared by Build)
-    int savedDisplay = 0;           // the renderer's fog colour while the titles run
 };
 
 // --- Main menu ----------------------------------------------------------------------------------

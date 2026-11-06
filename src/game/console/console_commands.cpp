@@ -11,6 +11,7 @@
 #include "game/players/party.h"
 #include "game/players/player_client.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/core/text_split.h"
 #include "game/ui/ui.h"
 #include "game/ui/ui_camp.h"

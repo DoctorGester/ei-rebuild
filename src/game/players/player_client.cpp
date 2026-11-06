@@ -20,6 +20,7 @@
 #include "game/app/options.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/data/resource_manager.h"
 #include "game/sound/sound.h"
 #include "game/ui/ui.h"

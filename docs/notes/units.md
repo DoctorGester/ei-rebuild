@@ -60,7 +60,7 @@ and every scenario that starts the game.
 
 ## Creation, databases, save, network
 
-- Factory (`MapObjectManager::NewObject`, "Creation helpers" below) by type (`MapObjectType` in unit_create.h; the side
+- Factory (`MapObjectManager::NewObject`, "Creation helpers" below) by type (`MapObjectType` in objects/map_object_manager.h; the side
   halves' types are `SideObjectType` in base_manager.h, the flag bits `MapObjectFlag` in map_object.h). The zone loader
   then calls `ApplyPrototype`: without a prototype defaults and "Can't find prototype %s for object %d"; units get vitals
   and statistics from the records (hit points / mana from the prototype, regeneration from the model, protection = the

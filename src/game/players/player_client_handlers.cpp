@@ -22,6 +22,7 @@
 #include "lib/vecmath.h"
 
 #include "game/app/singletons.h"
+#include "game/players/player.h"
 
 #include <bit>
 #include <cstring>

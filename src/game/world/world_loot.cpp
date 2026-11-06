@@ -12,7 +12,7 @@
 #include "game/objects/map_object.h"
 #include "game/players/party.h"
 #include "game/players/player_manager.h"
-#include "game/players/player_messages.h"
+#include "game/players/player.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/world/hoover.h"
