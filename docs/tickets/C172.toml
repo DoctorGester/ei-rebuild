@@ -6,5 +6,6 @@ model = "sonnet"
 files = ["src/lib/crt.h", "src/lib/printf*.h"]
 note = "MOD11 2026-11-06: game::Warning with std::string_view arguments fell through to the C varargs overload and logged garbage (MSVC doesn't check EI_PRINTF_FORMAT). Make libprintf::HasString/Arg cover string_view (string_view isn't null-terminated: pass a temporary std::string or %.*s), or make any non-trivial class type in the varargs overload a compile error. Then sweep existing Warning/FatalExit/DebugLog call sites for string_view (and other class-type) arguments and fix any that log garbage today."
 order = 1256
-status = "running"
+status = "done"
 started = "2026-11-06"
+done = "2026-11-06"
