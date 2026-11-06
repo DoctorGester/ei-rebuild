@@ -1,0 +1,6 @@
+id = "R37e4a"
+title = "Fewer ground draws: terrain pool laid out so visible quarters run on"
+group = "renderer"
+depends = ["R37e4"]
+note = "R37e4: the occlusion's ground depth merges pieces by pool place but still makes 103 draws in the stress save (28 in the town): pages are placed in first-hand-over order and quarters out of view break the runs. Lay pages out by sector and quarter so a frame's ground is a few draws; depth-only passes may take any order. Measure with the R37e4 kit (build/r37e4/kit in its worktree)."
+order = 1269

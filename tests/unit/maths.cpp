@@ -2,6 +2,7 @@
 // "Maths functions"): the first inputs of an exhaustive comparison at which Windows' UCRT (first of each pair) or
 // glibc (second) is an ulp off; the answers are the double functions' rounded to float, the same on both systems.
 #include "../../src/lib/maths.h"
+#include "../../src/lib/rounding.h"
 
 #include <bit>
 #include <cstdint>
@@ -39,6 +40,15 @@ int RunMathsChecks() {
     Expect("Pow", lib::Pow(0x1.b663a4p+4f, -0x1.6181e8p-6f), 0x1.dcb434p-1f);
     // Correctly rounded (the true value is 9.6e-15 nearer the lower float); glibc's hypot rounded to float is not.
     Expect("Hypot", lib::Hypot(-0x1.eee7ecp-6f, -0x1.de61f2p+6f), 0x1.de61f2p+6f);
-    std::printf("ei_unit_check: maths: 18 checks, %d failed\n", g_failures);
+    // lib::RoundAway is std::lround for every float in the int range (compared exhaustively once): halves away
+    // from zero, the float just below a half down, large values whole.
+    const struct {
+        float value;
+        int want;
+    } kRounded[] = {{0.5f, 1}, {-0.5f, -1}, {0x1.fffffep-2f, 0}, {-0x1.fffffep-2f, 0}, {2.5f, 3}, {-2.5f, -3},
+                    {0x1.000002p+23f, 8388609}, {-0x1.fffffep+30f, -2147483520}};
+    for (const auto& r : kRounded)
+        Expect("RoundAway", static_cast<float>(lib::RoundAway(r.value)), static_cast<float>(r.want));
+    std::printf("ei_unit_check: maths: 26 checks, %d failed\n", g_failures);
     return g_failures;
 }

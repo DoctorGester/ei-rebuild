@@ -32,6 +32,18 @@ inline int RoundEven(double value) {
     return static_cast<int>((value + shift) - shift);
 }
 
+// A float rounded to nearest, halves away from zero, as std::lround (a CRT call on MSVC) for every value in the int
+// range; a NaN, an infinity or a value outside it gives 0x80000000. Below 2^23 the value less its whole part is exact.
+inline int RoundAway(float value) {
+    constexpr float kLimit = 2147483648.0f;   // 2^31
+    constexpr float kWhole = 8388608.0f;      // 2^23
+    if (!(value >= -kLimit && value < kLimit)) return INT32_MIN;
+    const int whole = static_cast<int>(value);
+    if (!(value > -kWhole && value < kWhole)) return whole;   // whole already
+    const float rest = value - static_cast<float>(whole);
+    return whole + (rest >= 0.5f ? 1 : rest <= -0.5f ? -1 : 0);
+}
+
 // A float or double truncated as the original's _ftol does: through a 64-bit integer, keeping its low half. A NaN or
 // a value outside the 64-bit range gives 0 (the conversion's 0x8000000000000000 has a zero low half; a cast to int
 // gives 0x80000000).

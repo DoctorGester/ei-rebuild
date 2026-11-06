@@ -972,21 +972,38 @@ RTX 4070 Ti SUPER, 300 frames, harness (verify) build; beside it R37e2's town bz
   handed over every frame (1.55 ms), the model draws' per-draw state work in EndFrame (0.93 ms, plus 0.6 ms of shadow
   and occlusion caster draws), the whole-map visibility walk and the objects' sort (about 1.1 ms). The follow-ups
   (R37e4-R37e9) are filed in that order of expected gain; the GPU's (R37e10) waits until the GPU limits play.
+- **The terrain pages after R37e4** (the same save and kit, the harness build, ms a frame; the probe split the pages'
+  hand-over from the game's walk and the harness's own check): a still page costs its lookups (item 3: the quarters keep
+  the sector's move count they were read at, the occlusion's neighbours are looked at once a frame); the ground's pages
+  0.68 -> 0.12-0.14, the water's 0.37 -> 0.16-0.19 (12 wave pages read again in one loop of positions and specular
+  words), the game's walk over the sectors 0.11 + 0.05 -> 0.09 + 0.04 (the drawn sectors gathered once a pass, not once
+  a page): the hand-over 1.20 -> 0.41-0.46 ms of what the shipped build spends; with the waves (AnimateWaves, 0.35 ->
+  0.15: `lib::RoundAway` for std::lround) 1.55 -> 0.56-0.61. The harness build's check of every kept page every 16th
+  frame (item 3; R37e3's 1.08 + 0.48 counted it) costs another 0.43 ms before, 0.56-0.66 after (it compares the
+  colours too); the shipped build has none. The town at night: pages 0.034 -> 0.016, walk 0.012 -> 0.010. Draws: the
+  ground's casters into the sun's map one per run of sectors in their pool
+  (the save 1894 -> 1875 map draws, the town 487 -> 480); the occlusion's ground depth by pool place whatever the
+  texture (103 draws in the save, 28 in the town; the quarters out of view break the runs).
 
 **3. Terrain pages kept on the GPU** (`render_terrain.cpp`). Each sector page is built once, all four quarters, into a
 pool of buffers written in place, only the changed ranges (gpu.h's `Write` with `Keep`): positions, texture
 coordinates and normals in one stream, the lit colours in another, and absolute indices. A frame keeps the visible
 quarters of each page handed over (`TerrainPiece`); ranges that follow each other in the pool are one draw. A page is
 built again when its tile lists, records or animated tiles moved or the game rebuilt the sector
-(`render::TerrainChanged(s, Rebuilt)` from Build and Clear). When the game only moves texture coordinates (animated tiles:
-`Moved`) or the water layer's positions (waves, water levels: `WaterMoved`), only the pages of that kind read their
-vertices again and upload the changed range; the visible quarters' colours are compared with the records every frame.
-The pool (at least 128 K vertices) starts again with the frame's pages when full (made larger when they need more than
+(`render::TerrainChanged(s, Rebuilt)` from Build and Clear), its vertices read again when the ground occlusion was worked
+out again. The game moves some in place: texture coordinates (animated tiles: `Moved`), the water layer's positions and
+the wave crests' specular word (waves, water levels: `WaterMoved`); the edge fade's specular word is written only at a
+build. Each quarter keeps the sector's count of those moves it was read at (`MovedStamp`: the water's for a page that
+reads the water layer, the animated tiles' for one that holds some); a quarter drawn with another count reads its
+positions, texture coordinates and specular words again in one loop (`ReadMoving`) and uploads the changed range, so a
+still page costs its lookups (the page, its sector's occlusion) and its pieces. A quarter out of view is read when it
+is drawn again. The ground occlusion's neighbours are looked at once a frame per sector. The pool (at least 128 K vertices) starts again with the frame's pages when full (made larger when they need more than
 half of it); pages not drawn for 600 frames are dropped. Every tile is drawn at full detail at any distance. The shadow
 map's fit reads a piece's vertices in runs of 72 with their boxes (`TerrainPieceGroups`). The circling water waves' sines
 are computed once per Animate call (`CircleSines`: 33 values) instead of per vertex. Check: `terraincache off` builds and
-uploads every page every frame; `terraincache check` compares every kept page with a fresh build every 16th frame (0
-stale); scenario `terrain_water_waves` (the waves are always on; the digest's `water` group).
+uploads every page every frame; every harness build (EI_RENDER_VALIDATION) compares every kept page drawn, its vertices
+and colours, with a fresh build every 16th frame (about 0.5 ms a frame on average in the stress save of item 2a, which
+the shipped build does not spend), and `terraincache check` fails a run where one was stale (0 stale); scenario `terrain_water_waves` (the waves are always on; the digest's `water` group).
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
@@ -1036,7 +1053,8 @@ colours and ranges); what they light is done per pixel.
   lamps burn by day too, and their unshadowed light hid the units' shadows). Every other mesh is darkened by (1 - hidden x
   strength) on faces turned to the map's sun by their face normal (`shadow_facing`; not by the smoothed vertex normals,
   which can lean far from their faces). Receivers look up the map at their point moved 1.5 map texels along the normal.
-  The ground casts into the map.
+  The ground casts into the map: each sector's 33 x 33 ground vertices kept in a pool of their own, the sectors that
+  follow each other in it one draw (depth only, so in any order).
 - **Units take no shadow of their own** (a low-poly creature flipped triangle by triangle between shadowed and lit). The
   meshes of a unit's draw (`render::BeginCaster(object, true)`) compare from the unit's nearest depth in the map
   (`FigureFronts`: the least over its meshes of their model-space box corners through their light matrices;
@@ -1267,7 +1285,8 @@ colour, the meshes the game lights, the water, the interface's previews) is touc
   the water) and its models after it that write the depth (cut out by alpha as the sun map's casters; not the sky, the
   flat geometry or the added light) drawn depth only into a D32F target of half the frame's size, through the casters'
   pipelines (`CasterDraws`, the batch's clip matrix as the instance's) and shadow_terrain.hlsl with the camera's matrix
-  (`DrawTerrainDepth`); then `occlusion.hlsl` per texel (the depth taken back into the landscape's space through the
+  (`DrawTerrainDepth`: the pieces by their place in the pool whatever their texture, those that follow each other one
+  draw); then `occlusion.hlsl` per texel (the depth taken back into the landscape's space through the
   camera's inverse; the normal from the nearer neighbour on each axis; in 4 directions on the screen, 4 steps each within
   a radius of 1.5 units, at most 40 texels, the steepest rise above the surface's plane less 0.1, faded by 1 - (d /
   1.5)^2; 1 less the mean), the directions turned and the steps shifted by a 4 x 4 pattern fixed to the screen, and
