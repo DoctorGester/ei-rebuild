@@ -1,4 +1,4 @@
-# Levers (src/game/lever_object.cpp, unit_lever.cpp; A-U6). zone1's only lever is the gate "VGate"
+# Levers (src/game/objects/lever.cpp, objects/lever.cpp; A-U6). zone1's only lever is the gate "VGate"
 # (model stga1, id 1889, two states, no lock; zone1.mob record 0xBBAC0000): the zone
 # loader builds it (Construct 0052B1F0, Create 0052B370) and sets it up (SetUp 0052B3F0); every tick
 # runs its update (0052B490, the client animating a move) and network state (0052B560 / 0052B650).

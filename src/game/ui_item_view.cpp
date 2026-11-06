@@ -12,7 +12,7 @@
 #include "game/item.h"
 #include "game/core/random.h"
 #include "game/spell.h"
-#include "game/unit_db.h"
+#include "game/units/unit_db.h"
 
 #include "lib/maths.h"
 #include "lib/vecmath.h"

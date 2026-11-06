@@ -4,7 +4,7 @@
 #include "game/ui_camp.h"
 #include "game/ui_screens.h"
 #include "game/item.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 
 #include <algorithm>
 #include <cstdint>

@@ -1,4 +1,4 @@
-# A party of two changes its leader (src/game/unit_ai_modes.cpp, PlayerMode::SetLeader, LeaderOf, CollectParty,
+# A party of two changes its leader (src/game/ai/unit_ai_modes.cpp, PlayerMode::SetLeader, LeaderOf, CollectParty,
 # StaysWithParty, CommandGoTo; unit_ai_senses.cpp, AIMemory::SeeCorpse; docs/notes/unit_ai.md). A wolf of the hero's
 # player (AddUnitToServer with player 0: a Player mode unit, a second portrait on the battle screen). With the hero
 # selected, the battle screen's first action button (layout 20, 470: "follow") and a click on the wolf make the hero

@@ -36,8 +36,8 @@
 #include "game/ui.h"
 #include "game/ui_cursor.h"
 #include "game/ui_screens.h"
-#include "game/unit.h"
-#include "game/unit_db.h"
+#include "game/units/unit.h"
+#include "game/units/unit_db.h"
 #include "game/world/world.h"
 #include "game/map/folder.h"
 

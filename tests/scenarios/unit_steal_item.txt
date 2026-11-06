@@ -1,4 +1,4 @@
-# Stealing from a unit (src/game/combat_actions.cpp UseSkill, Unit::TakeRandomItem in unit_items.cpp; docs/notes/units.md):
+# Stealing from a unit (src/game/combat/combat_actions.cpp UseSkill, Unit::TakeRandomItem in unit_items.cpp; docs/notes/units.md):
 # with the hero selected, the battle screen's second action button (layout 20, 440: the hero's "science" button, pending
 # action 8) and a click on a unit outside the party order a Use with the stealing skill (message from SendUseOrder,
 # kind 1). The hero walks up to the bandit archer ("Human Gipath Brigand A1", player 6, blocked in place; its

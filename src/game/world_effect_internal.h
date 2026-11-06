@@ -4,7 +4,7 @@
 // replicated-field operations.
 
 #include "game/world_effect.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/world/world.h"
 #include "game/net_delta.h"
 #include "game/app/singletons.h"

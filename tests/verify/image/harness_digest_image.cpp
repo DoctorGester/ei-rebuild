@@ -1,11 +1,11 @@
 // The digest's reader of the image's objects (harness_digest_read.h). No pointers go into a record: objects are
 // named by their ids.
 #include "../harness_digest_read.h"
-#include "game/ai_motion.h"
+#include "game/ai/ai_motion.h"
 #include "game/core/asset_text.h"
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/app/singletons.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/players/party.h"
 #include "game/players/player_manager.h"
 #include "game/players/player_messages.h"
@@ -14,8 +14,8 @@
 #include "game/spell.h"
 #include "game/terrain.h"
 #include "game/terrain_sector.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
 #include "game/world/world.h"
 #include "game/world_effect.h"
 

@@ -1,5 +1,5 @@
 # An archer steps away from a melee enemy (FearMode::Evaluate, FindFlightPoint, FearMode::Execute in
-# src/game/unit_ai_modes.cpp; docs/notes/unit_ai.md, "FearMode::Evaluate"). "Human Gipath Brigand A1" is the level 1
+# src/game/ai/unit_ai_modes.cpp; docs/notes/unit_ai.md, "FearMode::Evaluate"). "Human Gipath Brigand A1" is the level 1
 # bandit whose first weapon is a bow (combat_more.txt), so it attacks from range; with only a Fear mode (flag 1) next
 # to the hostile hero it looks for a point 5 away from it, a path there and an order check from the path's end, and
 # goes. The hero stands still in god mode. No `speed`, so a golden can be recorded.

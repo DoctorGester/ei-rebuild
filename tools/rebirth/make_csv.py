@@ -80,13 +80,13 @@ META = {
 }
 
 STATUS = {
- 'FixLeversActivate': 'implemented: LockKey::Opens (src/game/unit_stats.cpp)',
- 'FixMoveObject': 'implemented: CSectorMap::Move (src/game/sector_map.cpp)',
+ 'FixLeversActivate': 'implemented: LockKey::Opens (src/game/units/unit_stats.cpp)',
+ 'FixMoveObject': 'implemented: CSectorMap::Move (src/game/ai/sector_map.cpp)',
  'AllowScriptArgsInLoops': 'implemented: CScript::LoadCommands (src/game/script_parse_load.cpp)',
  'ObjectsDrawRadius': 'implemented: new rewrite CWorldClient::DrawPass 0056AFE0 (src/game/world/world_client_draw.cpp)',
  'LandscapeDrawRadius': 'implemented: new rewrite CWorldClient::Render 00569E40 (src/game/world/world_client_draw.cpp)',
  'AddNewScriptCommands': 'implemented: table, dispatch, \'?\'/\'+\', keyword rule and CalcString in src/game/script_addon.cpp, hooked from CalcParameters/CalcFloat/CalcObject (script_eval.cpp), Execute (script_exec.cpp), ClassifyToken/FunctionSignature/KeywordName/ScriptError (script_parse.cpp), LoadFunction/LoadCommands (script_parse_load.cpp) and the new rewrite SSCCmd::CalcGroup 004B5B00 (script_eval.cpp); handlers in src/game/script_addon_*.cpp',
- 'FixPlaingBattleMusicFromAntimagic': 'implemented: new rewrite CUnitServer::IsFighting 0054B580 (src/game/combat.cpp)',
+ 'FixPlaingBattleMusicFromAntimagic': 'implemented: new rewrite CUnitServer::IsFighting 0054B580 (src/game/combat/combat.cpp)',
  'FixRepairPrice': 'implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp)',
  'FixProgressNames': 'implemented: new rewrite SelectLoadingMovie 00595080 (src/game/world/world_zone.cpp)',
  'FixRemoveMapObject': 'implemented: new rewrite CWorldServer::RemoveObject 005935C0 (src/game/world/world_server.cpp)',
@@ -108,7 +108,7 @@ STATUS = {
 SITE_STATUS = {
  ('FixSpellSelfCasting', 0x0068B770): 'implemented: CSpell::IsOffensive (src/game/spell.cpp)',
  ('FixSpellSelfCasting', 0x00639447): 'implemented: new rewrite CBattleScreen::SelectUnit 00638EF0 (src/game/ui_battle.cpp)',
- ('FixSpellEffectsOverflow', 0x0050F1E0): 'implemented: new rewrite CMapObject::AddEffect 0050F1E0 (src/game/map_object.cpp)',
+ ('FixSpellEffectsOverflow', 0x0050F1E0): 'implemented: new rewrite CMapObject::AddEffect 0050F1E0 (src/game/objects/map_object.cpp)',
  ('DisableExitOnCrashReport', 0x004800A7): 'dropped: a fatal error always exits (game::FatalExit, src/game/app/app.cpp); data errors the game gets past are warnings where they occur (C167; docs/notes/rebirth.md, "Fatal errors")',
  ('DisableExitOnCrashReport', 0x004800C9): 'dropped: a fatal error always exits (game::FatalExit, src/game/app/app.cpp); data errors the game gets past are warnings where they occur (C167; docs/notes/rebirth.md, "Fatal errors")',
  ('DisableExitOnCrashReport', 0x00564330): "dropped: the client's session disconnects on a failed connection or an unreadable packet (CWorldClient::Segment 005641F0, src/game/world/world_client.cpp; C167)",

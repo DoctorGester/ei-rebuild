@@ -1,4 +1,4 @@
-# Movement (src/game/ai_motion.cpp, ai_movement.cpp, ai_path.cpp, sector_map.cpp): several units
+# Movement (src/game/ai/ai_motion.cpp, ai_movement.cpp, ai_path.cpp, sector_map.cpp): several units
 # walk to points at the same time in the three movement modes (Walk, Run, Crawl), one goes to
 # another unit (MoveToObject), two follow in a chain (Follow), and one walks to a point behind a
 # standing ogre. Exercises the order header (AIPath Start/Reset/SetTarget), the trajectory (Build,

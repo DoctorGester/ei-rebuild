@@ -3,7 +3,7 @@
 
 #include "game/players/player_messages.h"
 
-#include "game/ai_map.h"
+#include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
 #include "game/app/singletons.h"
 #include "game/item.h"
@@ -12,7 +12,7 @@
 #include "game/players/party.h"
 #include "game/core/random.h"
 #include "game/script.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/world_effect.h"
 

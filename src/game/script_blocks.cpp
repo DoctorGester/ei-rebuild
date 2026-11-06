@@ -2,7 +2,7 @@
 // block, the area lookups and the temporary object references of the
 // evaluator. See script.h and docs/notes/script.md.
 #include "game/script.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 
 #include "game/world_effect.h"
 

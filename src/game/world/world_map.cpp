@@ -1,6 +1,6 @@
 // WorldServer::LoadMap: loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
-#include "game/ai_map.h"
+#include "game/ai/ai_map.h"
 
 #include "game/core/base_manager.h"
 #include "game/core/core_refcount.h"
@@ -8,7 +8,7 @@
 #include "game/figure_manager.h"
 #include "game/app/singletons.h"
 #include "game/core/id_tables.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/mods/mod_folders.h"
 #include "game/core/coder.h"
 #include "game/net_link.h"

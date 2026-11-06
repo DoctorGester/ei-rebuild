@@ -9,8 +9,8 @@
 #include "game/script_addon_handlers.h"
 
 #include "game/core/engine_object.h"
-#include "game/combat.h"
-#include "game/unit.h"
+#include "game/combat/combat.h"
+#include "game/units/unit.h"
 
 #include <cstdint>
 #include <cstring>

@@ -1,7 +1,7 @@
 // The briefing / base screen's dialogue (BriefingScreen, ui_briefing.h): the phrases' start, the
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
 #include "game/players/player_messages.h"
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/ui.h"
 #include "game/ui_scroll_text.h"
 #include "game/ui_briefing.h"
@@ -9,13 +9,13 @@
 #include "game/camera.h"
 #include "game/core/core_maths.h"
 #include "game/data/text_manager.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/core/random.h"
 #include "game/sound/sound.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
-#include "game/unit_client_models.h"
-#include "game/unit_db.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
+#include "game/units/unit_client_models.h"
+#include "game/units/unit_db.h"
 #include "game/world/world.h"
 
 #include "lib/maths.h"

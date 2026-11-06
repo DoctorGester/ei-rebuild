@@ -6,7 +6,7 @@
 #include "game/console/console.h"
 #include "game/item.h"
 #include "game/core/manager_context.h"
-#include "game/map_object.h"   // MapObjectFlag
+#include "game/objects/map_object.h"   // MapObjectFlag
 #include "game/spell.h"
 #include "game/core/text_split.h"
 

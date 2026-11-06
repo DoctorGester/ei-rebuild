@@ -16,8 +16,8 @@
 #include "game/players/player_messages.h"
 #include "game/players/player_source.h"
 #include "game/data/registry.h"
-#include "game/unit_ai.h"   // AIEventTable (the server world's AI events)
-#include "game/unit_looks.h"
+#include "game/ai/unit_ai.h"   // AIEventTable (the server world's AI events)
+#include "game/units/unit_looks.h"
 #include "game/core/named_floats.h"
 
 #include "lib/bit_flags.h"

@@ -8,11 +8,11 @@
 #include "game/core/core_maths.h"
 #include "game/item.h"
 #include "game/item_db.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/map/map_database.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 
 #include "lib/crt.h"
 #include "lib/containers.h"

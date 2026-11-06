@@ -12,7 +12,7 @@
 #include "game/script.h"
 #include "game/spell.h"
 #include "game/terrain.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/world_effect_internal.h"
 

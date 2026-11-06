@@ -16,8 +16,8 @@
 #include "game/ui_camp.h"
 #include "game/ui_item_info.h"
 #include "game/screen_layout.h"
-#include "game/unit_create.h"
-#include "game/unit_db.h"
+#include "game/units/unit_create.h"
+#include "game/units/unit_db.h"
 #include "game/world/world.h"
 
 #include <algorithm>

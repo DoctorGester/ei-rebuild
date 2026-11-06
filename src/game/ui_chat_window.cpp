@@ -10,7 +10,7 @@
 #include "game/ui_briefing.h"
 #include "game/ui_cursor.h"
 #include "game/ui_screens.h"
-#include "game/unit_db.h"
+#include "game/units/unit_db.h"
 #include "game/players/player_client.h"
 #include "game/world/world.h"
 

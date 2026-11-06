@@ -1,9 +1,9 @@
 // EffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
 // and docs/notes/effects.md ("Missiles and visibility").
-#include "game/ai_map.h"
-#include "game/map_object.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
+#include "game/ai/ai_map.h"
+#include "game/objects/map_object.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
 #include "game/world/world.h"
 #include "game/world_effect.h"
 

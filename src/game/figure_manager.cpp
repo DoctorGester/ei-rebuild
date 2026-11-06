@@ -5,7 +5,7 @@
 #include "game/figure_mesh.h"
 #include "game/app/singletons.h"
 #include "game/map_object_animation.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/mods/mod_folders.h"
 #include "game/link_loader.h"
 #include "game/pipeline.h"

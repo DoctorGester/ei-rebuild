@@ -7,7 +7,7 @@
 #include "game/data/text_manager.h"
 #include "game/ui.h"
 #include "game/ui_item_info.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 #include "lib/float_select.h"
 #include "lib/str.h"

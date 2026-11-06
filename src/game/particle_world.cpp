@@ -9,11 +9,11 @@
 #include "game/effects.h"
 #include "game/app/singletons.h"
 #include "game/light.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/model.h"
 #include "game/core/random.h"
 #include "game/spell.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 
 #include "lib/containers.h"

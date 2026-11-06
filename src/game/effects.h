@@ -12,7 +12,7 @@
 #include "game/core/core_streams.h"
 #include "game/core/core_transform.h"
 #include "game/pipeline.h"   // ClipBounds, SpritePoint
-#include "game/search_grid.h"
+#include "game/ai/search_grid.h"
 
 #include "lib/bit_flags.h"
 #include "lib/containers.h"

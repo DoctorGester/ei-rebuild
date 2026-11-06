@@ -3,7 +3,7 @@
 #include "game/core/core_transform.h"
 #include "game/effects.h"
 #include "game/app/singletons.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/particle_common.h"
 #include "game/texture.h"
 #include "game/world/world.h"

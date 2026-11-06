@@ -1,6 +1,6 @@
 // WorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
 // variables "b.mercN.nK_N"). See world.h and docs/notes/world.md.
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/console/console.h"
 #include "game/core/core_refcount.h"
 #include "game/core/core_streams.h"
@@ -8,7 +8,7 @@
 #include "game/app/singletons.h"
 #include "game/item.h"
 #include "game/item_manager.h"
-#include "game/map_object.h"
+#include "game/objects/map_object.h"
 #include "game/core/named_floats.h"
 #include "game/data/text_manager.h"
 #include "game/players/party.h"
@@ -18,9 +18,9 @@
 #include "game/script.h"
 #include "game/core/text_split.h"
 #include "game/ui_briefing.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
-#include "game/unit_db.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
+#include "game/units/unit_db.h"
 #include "game/world/world.h"
 
 #include "lib/containers.h"

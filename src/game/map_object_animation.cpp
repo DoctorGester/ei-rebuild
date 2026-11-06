@@ -4,7 +4,7 @@
 
 #include "game/core/base_manager.h"
 #include "game/figure_manager.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "lib/vecmath.h"
 #include "game/world/world.h"
 #include "lib/bytes.h"
@@ -114,7 +114,7 @@ ClassId AnimationTrack::GetClassId() { return ClassId::AnimationTrack; }
 // --- State -------------------------------------------------------------------------------------------
 
 // The figure's animation state (FigureAnimationState): what plays, the queue
-// behind it and the frame reached. See map_object_figures.h and docs/notes/map_objects.md.
+// behind it and the frame reached. See objects/object3d.h and docs/notes/map_objects.md.
 
 namespace {
 constexpr std::uint32_t kKeyEndMask = AnimationKeyOf(AnimationKeyFlag::Once | AnimationKeyFlag::Looped);   // what happens at the end

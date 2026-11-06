@@ -1,6 +1,6 @@
 // Console command handlers. Each gets the command's arguments as typed (keywords compare without case).
 // See docs/notes/console.md.
-#include "game/acks_db.h"
+#include "game/units/acks_db.h"
 #include "game/app/app.h"
 #include "game/console/console.h"
 #include "game/app/game_flow.h"
@@ -14,7 +14,7 @@
 #include "game/core/text_split.h"
 #include "game/ui.h"
 #include "game/ui_camp.h"
-#include "game/unit.h"
+#include "game/units/unit.h"
 #include "game/world/world.h"
 #include "game/core/named_floats.h"
 

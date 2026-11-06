@@ -1,4 +1,4 @@
-// The figure animation state's skeleton (class 0x300D; FigureAnimationState in map_object_figures.h): its
+// The figure animation state's skeleton (class 0x300D; FigureAnimationState in objects/object3d.h): its
 // lifetime, the bones the skeleton file links (LinkPiece per link, then FindRoot), the meshes the bones
 // carry, and placing the skeleton when the animation or the figure's morph changes. See
 // docs/notes/map_objects.md.
@@ -8,7 +8,7 @@
 #include "game/figure_mesh.h"
 #include "lib/str.h"
 #include "game/map_object_animation.h"
-#include "game/map_object_figures.h"
+#include "game/objects/object3d.h"
 #include "game/world/world.h"
 #include "platform/platform.h"
 
@@ -208,7 +208,7 @@ void FigureAnimationState::LoadBoneTracks(MappedResource* part, const FigureAnim
     }
 }
 
-// --- The bone's lifetime (FigureBone in map_object_figures.h). The figure factory makes bones; the animation
+// --- The bone's lifetime (FigureBone in objects/object3d.h). The figure factory makes bones; the animation
 // state links them.
 
 FigureBone::FigureBone() {

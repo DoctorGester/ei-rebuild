@@ -10,9 +10,9 @@
 
 #include "game/core/core_maths.h"
 #include "game/drawn_motion.h"
-#include "game/map_object.h"
-#include "game/map_object_figures.h"
-#include "game/map_object_shadow.h"
+#include "game/objects/map_object.h"
+#include "game/objects/object3d.h"
+#include "game/objects/map_object_shadow.h"
 #include "game/data/text_manager.h"
 #include "lib/containers.h"
 #include "game/terrain.h"

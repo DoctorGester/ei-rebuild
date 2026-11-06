@@ -1,7 +1,7 @@
 // Script object references and groups (sets of object references). See script.h.
 #include "game/script.h"
-#include "game/unit.h"
-#include "game/combat.h"
+#include "game/units/unit.h"
+#include "game/combat/combat.h"
 #include "game/world/world.h"
 
 #include "game/app/singletons.h"

@@ -3,7 +3,7 @@
 #include "game/core/core_streams.h"
 #include "game/world/hoover.h"
 #include "game/players/player_messages.h"   // Player::units
-#include "game/unit.h"
+#include "game/units/unit.h"
 
 #include "game/world/world.h"
 

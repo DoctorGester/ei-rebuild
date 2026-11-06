@@ -3,9 +3,9 @@
 // The zone file's object records (the .mob objects): chunk readers / writers that are also the map editor's
 // live objects. See docs/notes/objects.md.
 #include "game/map/chunk_stream.h"
-#include "game/lock_key.h"
+#include "game/objects/lock_key.h"
 #include "lib/vecmath.h"
-#include "game/unit_record.h"
+#include "game/units/unit_record.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

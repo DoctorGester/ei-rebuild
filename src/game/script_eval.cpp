@@ -2,12 +2,12 @@
 // (script_addon.h) are tried first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // old x87 compare counted it as equal and less).
-#include "game/ai_map.h"
+#include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
-#include "game/combat.h"
+#include "game/combat/combat.h"
 #include "game/app/singletons.h"
-#include "game/lever.h"
-#include "game/map_object.h"
+#include "game/objects/lever.h"
+#include "game/objects/map_object.h"
 #include "game/net_classes.h"
 #include "game/world/hoover.h"
 #include "game/world/diplomacy.h"
@@ -17,8 +17,8 @@
 #include "game/core/random.h"
 #include "game/script.h"
 #include "game/script_addon.h"
-#include "game/unit.h"
-#include "game/unit_ai.h"
+#include "game/units/unit.h"
+#include "game/ai/unit_ai.h"
 #include "game/world/world.h"
 #include "game/camera.h"
 
