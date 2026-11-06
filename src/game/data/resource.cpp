@@ -1,19 +1,22 @@
 #include "game/bink_video.h"
 #include "game/core/core_streams.h"
 #include "game/data/resource.h"
-#include "game/data/resource.h"
 #include "game/mods/mod_folders.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
 #include "platform/platform.h"
+
 #include <algorithm>
 #include <cstdint>
-#include <cstring>
-#include <string>
-#include "lib/text_case.h"
-
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <new>
+#include <string>
+#include <string_view>
 
 int ResourceBase::FindEntry(std::string_view name) const {
     std::uint32_t count = header.count;
@@ -189,24 +192,8 @@ bool MMIOResource::CloseFile(void*) { return true; }
 
 void MMIOResource::FreeAllFiles() {}
 
-// The rest of the resource code: the archive name listing. See data/resource.h and docs/notes/models.md.
-
-#include "lib/str.h"
-#include "lib/text_case.h"
-#include "game/data/resource.h"
-#include "game/data/resource.h"
-#include "game/mods/mod_folders.h"
-#include <algorithm>
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include <string_view>
-
-#include "lib/crt.h"
-#include "platform/platform.h"
-
-#include <cstdlib>
-#include <new>
+// --- Archive name listing ------------------------------------------------------------------------
+// See data/resource.h and docs/notes/models.md.
 
 namespace {
 

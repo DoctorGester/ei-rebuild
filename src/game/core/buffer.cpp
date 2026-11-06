@@ -1,6 +1,10 @@
-// The byte buffers (GameBuffer, GrowingBuffer, core/coder.h): reads and writes, growth and the cursor binding. See
-// core/coder.h and docs/notes/network.md, "Compression".
+// The byte buffers (GameBuffer, GrowingBuffer, core/coder.h): reads and writes, growth, the cursor binding and the
+// strings. The LZ coder is core/coder.cpp. See core/coder.h and docs/notes/network.md, "Compression".
 #include "game/core/coder.h"
+
+#include "game/core/asset_text.h"
+
+#include "lib/str.h"
 
 #include <cstring>
 
@@ -110,14 +114,8 @@ void BufferCursor::BeginWrite(GameBuffer* buffer, std::int32_t size) {
     bytePtr = nullptr;
 }
 
-// The texts of the byte buffer and its cursor: GameBuffer's length-prefixed strings and BufferCursor's
-// zero-terminated ones. The formats are in core/coder.h; the other members are game_buffer.cpp and core/coder.cpp.
-#include "game/core/coder.h"
-#include "game/core/asset_text.h"
-
-#include "lib/str.h"
-
-#include <cstring>
+// --- Strings -------------------------------------------------------------------------------------
+// GameBuffer's length-prefixed strings and BufferCursor's zero-terminated ones. The formats are in core/coder.h.
 
 bool GameBuffer::ReadString(std::string* s, int maxLength) {
     std::uint32_t word = 0;

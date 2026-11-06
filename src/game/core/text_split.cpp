@@ -1,8 +1,13 @@
-// Splitting texts into strings, joining them and replacing characters. See text_split.h.
+// Splitting texts into strings, joining them and replacing characters, and the tokenizer of the credits' titles. See
+// text_split.h.
 #include "game/core/text_split.h"
 
+#include "lib/containers.h"
 #include "lib/str.h"
 
+#include <cstring>
+#include <memory>
+#include <new>
 #include <string>
 #include <vector>
 
@@ -65,16 +70,7 @@ std::string Join(const std::vector<std::string>& parts, char separator) {
 
 } // namespace text
 
-// Small text helpers of the engine base (core/text_split.h).
-#include "game/core/text_split.h"
-
-#include "lib/containers.h"
-#include "lib/str.h"
-
-#include <cstring>
-#include <memory>
-#include <new>
-#include <string>
+// --- TextTokenizer -------------------------------------------------------------------------------
 
 const char* TextTokenizer::Next() {
     if (position == static_cast<int>(source->size())) position = -1;

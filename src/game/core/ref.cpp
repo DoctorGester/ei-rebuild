@@ -1,9 +1,12 @@
 // A counted engine object reference (Ref<T>, ref.h; the map objects, the AI, the traps, the effects and the unit
-// controller keep these) saved and loaded by object id.
+// controller keep these) saved and loaded by object id, and RefObject's two members.
 #include "game/unit_ai.h"
 
 #include "game/core/base_manager.h"
+#include "game/core/core_refcount.h"
 #include "game/world.h"
+
+#include "lib/crt.h"
 
 
 template <typename T>
@@ -33,9 +36,7 @@ void SaveUnitList(const HeldUnits& list, ByteStream* stream) {
     for (const HeldRef<Unit>& unit : list) stream->WriteId(unit);
 }
 
-#include "game/core/core_refcount.h"
-
-#include "lib/crt.h"
+// --- RefObject -----------------------------------------------------------------------------------
 
 RefObject* RefObject::Clone() {
     game::FatalExit("%s", "Cloning an object that is never shared twice");

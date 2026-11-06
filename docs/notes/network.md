@@ -1,7 +1,7 @@
 # Network
 
 Files: `net_classes.h` (sessions, lobby, message base), `net_session*.cpp`, `net_connection*`, `net_messages.*`,
-`net_server_*.cpp`, `net_client_*.cpp`, `net_lobby.cpp`, `net_socket_driver.cpp`, `net_coder.*`, `game_buffer.*`,
+`net_server_*.cpp`, `net_client_*.cpp`, `net_lobby.cpp`, `net_socket_driver.cpp`, `core/coder.*`, `core/buffer.cpp`,
 `net_delta.*`, `net_link.*`, `net_state.cpp`, `net_second_master.*`. Sockets are the platform layer's
 (`platform::net`).
 

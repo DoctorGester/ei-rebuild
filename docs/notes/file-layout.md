@@ -134,6 +134,10 @@ MeshArgs, DrawFlag, texture stage 0's setups and DevicePresent left texture.h fo
 into pipeline.h and device_buffers.h into device.h already. Each of model.h's and texture.h's includers names the
 headers it uses; a header that only points at SceneRenderer, Texture or TextureDevice declares it.
 
+C168d moved core/, data/, mods/ and saves/ (53 moves, 7 folds: core_refcount.cpp and game_buffer_strings.cpp,
+angles.h, text_helpers.{h,cpp}, resource_stream.{h,cpp}); the other folders' files are still flat, and their includes
+name the flat path until their batch. Each fold is the two files' text one after the other with one include list.
+
 `*_internal.h` (combat, spell effects, world effects) and `script_parse.h` are private headers of one family: they
 stay (combat_plan.h joins combat's). ui_float.h (FloatFromBits for constants written as raw bits, Truncate) moves as
 ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be float literals), not a move.
@@ -285,8 +289,8 @@ Risks:
 | `app/` | 25 | 5238 | C168e |
 | `combat/` | 13 | 5168 | C168f |
 | `console/` | 5 | 1653 | C168e |
-| `core/` | 27 | 3504 | C168d |
-| `data/` | 13 | 2266 | C168d |
+| `core/` | 27 | 3874 | C168d |
+| `data/` | 13 | 3235 | C168d |
 | `effects/` | 23 | 10254 | C168g |
 | `items/` | 10 | 2810 | C168g |
 | `map/` | 11 | 1732 | C168e |
@@ -304,7 +308,7 @@ Risks:
 | `ui/` | 94 | 30731 | C168h |
 | `units/` | 27 | 8820 | C168f |
 | `world/` | 35 | 8909 | C168e |
-| all | 482 | 132513 | |
+| all | 482 | 133852 | |
 
 533 files today; 55 fold into an owner, 10 split by meaning, 8 new files come out of the splits, 36 moves rename for meaning.
 

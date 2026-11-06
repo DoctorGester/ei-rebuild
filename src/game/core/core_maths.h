@@ -16,8 +16,6 @@ struct CubicSegment {
     float Evaluate(float t) const;
 };
 
-#include "lib/vecmath.h"
-
 namespace ei {
 
 // One degree in radians.

@@ -114,7 +114,7 @@ public:
     char* mappedImage = nullptr;         // base of the mapped archive
 };
 
-// The rest of the resource code: the name listing of an archive (the archive readers are in resource.h).
+// The name listing of an archive (the archive readers are above).
 
 // Matches `name` against `pattern` (* ends the match successfully, ? matches any
 // character, other characters compare through toupper). An empty pattern matches an empty name,

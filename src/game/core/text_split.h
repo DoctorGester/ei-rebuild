@@ -1,7 +1,8 @@
 #pragma once
 
 // Text helpers: splitting a text into strings at a separator, joining
-// them, and replacing a character in a string. See docs/notes/script.md ("Leftovers").
+// them, and replacing a character in a string; the credits' tokenizer and carriage returns. See
+// docs/notes/script.md ("Leftovers").
 
 #include <string>
 #include <string_view>
@@ -21,11 +22,6 @@ int ReplaceChar(std::string* string, char from, char to);
 std::string Join(const std::vector<std::string>& parts, char separator);
 
 } // namespace text
-
-// Small text helpers of the engine base. See docs/notes/core.md.
-
-#include <string>
-
 
 // Splits a string at a separator string. The credits screen is the only user: it walks
 // the lines of the titles text.

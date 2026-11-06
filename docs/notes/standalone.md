@@ -138,7 +138,7 @@ Rules learned:
 - **A table that follows another** can be one extent to code that indexes across both. The key actions 00787070
   follow the 88 key names, and the code took the actions' address as the names' end. Name the whole run of tables,
   and take an end as begin + count.
-- **An object's start** is where the previous one ends, not the base the code indexes from. net_coder's length tables
+- **An object's start** is where the previous one ends, not the base the code indexes from. core/coder.cpp's length tables
   are indexed from one entry before their start, so ours take `length - 1`.
 - **Not a global:** "campaign mode" 007C2CC4 is the server world's `zoneMode`. Naming it apart left its readers on
   the world's own copy.
