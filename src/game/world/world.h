@@ -976,7 +976,7 @@ public:
     void LoadUnitFaces();
     // The target zone of exit `index` (the original copies the exit out of the array and returns the
     // copy's text, which shares the element's buffer).
-    const char* ExitTarget(int index);
+    const std::string& ExitTarget(int index);
     void RemoveUnitsOf(const std::vector<PartyUnitRecord*>& records);
     void SendPause(int value);
     // The camera looks at the point (x, y) at its own focus height, with its view applied and kept above

@@ -94,7 +94,7 @@ std::string ItemQuick::FigureName() {
     const ItemRecordHead* prototype = GetPrototype();
     if (prototype && prototype->HasMaterial()) {
         const MaterialRecordHead* material = MaterialAt(MaterialIndex(prototypeId));
-        return str::Format("qitem%04d.%s", prototype->number, material ? material->name.c_str() : "uq");
+        return str::Format("qitem%04d.%s", prototype->number, material ? std::string_view(material->name) : std::string_view("uq"));
     }
     return str::Format("qitem%04d", Number(prototype));
 }

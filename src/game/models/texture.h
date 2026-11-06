@@ -137,7 +137,7 @@ public:
     // The alpha kind from the header (TextureFlag::Alpha0..Alpha8), and the texture loaded.
     void MarkLoaded(const MmpHeader* header);
     // With its alpha from "a_<file>" beside it. 1 without loading when this texture is loaded and named `path`.
-    int LoadBmp(TextureDevice* device, const char* path);
+    int LoadBmp(TextureDevice* device, std::string_view path);
     // A header->width x header->height texture the game draws into on the GPU (TakeBlankHolder; the original made a
     // square of the width, and every texture but the save pictures is square). Returns 1.
     int CreateBlank(TextureDevice* device, const MmpHeader* header);
@@ -147,12 +147,12 @@ public:
     void TakeBlankHolder(TextureDevice* device, int width, int height, bool mipmapped);
     // A 24-bit .bmp and, when `alphaPath` is an 8-bit .bmp, its alpha. 1 (also when already loaded); 0 when
     // the .bmp cannot be opened.
-    int LoadBmpFiles(TextureDevice* device, const char* path, const char* alphaPath);
+    int LoadBmpFiles(TextureDevice* device, std::string_view path, std::string_view alphaPath);
 
     // Back to the constructed state. Returns 1.
     void Create() override;
     void Destroy() override;
-    const char* GetName() override;
+    std::string_view GetName() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
 

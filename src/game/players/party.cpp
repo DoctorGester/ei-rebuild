@@ -153,17 +153,17 @@ bool Numbered(const std::string& name) {
 
 void MpHeroRecord::WriteFile(const std::string& folder) {
     if (!Numbered(file)) {
-        platform::RemoveFile(InFolder(folder, file).c_str());
+        platform::RemoveFile(InFolder(folder, file));
         return;
     }
-    platform::RenameFile(InFolder(folder, file).c_str(), TempFile(folder).c_str());
+    platform::RenameFile(InFolder(folder, file), TempFile(folder));
     {
         LocalStreams streams;
         streams.file.Open(InFolder(folder, file), platform::FileMode::Create);
         GetParty()->SaveParty(&streams.data, true);
         SaveFileWrite(&streams.file, kMagicParty, &streams.data);
     }
-    platform::RemoveFile(TempFile(folder).c_str());
+    platform::RemoveFile(TempFile(folder));
 }
 
 bool MpHeroRecord::ReadFile(const std::string& folder) {

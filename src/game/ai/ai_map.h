@@ -678,11 +678,11 @@ public:
 
     // Loads the map archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0 when the archive holds no map;
     // a missing archive or any other failure ends the game.
-    int Load(const char* path);
+    int Load(const std::string& path);
     // Load's first part: the archive's .mp file gives the height scale and the climb tables, tileDesc.reg in
     // aiinfo.res the terrain types; the cell grids are sized for the map (64 x 64 cells per sector) and every
     // sector file stamped into the cells and the occluder words. It touches nothing else of the map.
-    int LoadTerrain(const char* path);
+    int LoadTerrain(const std::string& path);
     // Load's second part: the open marks, the water depths zeroed, both local searches, the
     // region map, the AI events and the sector map attached to the new size, and the whole map refreshed (or
     // added to the dirty rectangle while batching).

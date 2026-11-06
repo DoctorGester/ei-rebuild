@@ -30,27 +30,19 @@ unsigned AddressCount(const SocketDriver* d) { return static_cast<unsigned>(d->a
 } // namespace
 
 
-bool NetAddress::Parse(const char* text, int defaultPort) {
+bool NetAddress::Parse(std::string_view text, int defaultPort) {
     std::memset(this, 0, sizeof(*this));
     family = 2;
-    std::string s(text, text + std::strlen(text));
+    std::string s(text.substr(0, text.find('\0')));   // to the first NUL, where a C string ended
     int number = defaultPort;
-    std::size_t colon = std::string::npos;
-    if (s.size() != 0) {
-        for (const char* p = s.data(); p != s.data() + s.size(); ++p) {
-            if (*p == ':') {
-                colon = static_cast<std::size_t>(p - s.data());
-                break;
-            }
-        }
-    }
+    const std::size_t colon = s.find(':');
     if (colon != std::string::npos) {
         number = std::atoi(s.c_str() + colon + 1);
         s.resize(colon);
     }
-    ip = lib::ParseIpv4(s.data());
+    ip = lib::ParseIpv4(s.c_str());
     if (ip == lib::kNoAddress) {
-        const std::optional<std::uint32_t> found = sockets::LookUp(s.data());
+        const std::optional<std::uint32_t> found = sockets::LookUp(s);
         if (!found) return false;
         ip = *found;
     }
@@ -73,7 +65,7 @@ SocketDriver::SocketDriver() {
     socket = kNoSocket;
     const std::string name = sockets::HostName();
     if (name.empty()) return;
-    const std::optional<std::uint32_t> found = sockets::LookUp(name.c_str());
+    const std::optional<std::uint32_t> found = sockets::LookUp(name);
     if (!found) return;
     const std::uint32_t ip = *found;
     NetAddress a{};

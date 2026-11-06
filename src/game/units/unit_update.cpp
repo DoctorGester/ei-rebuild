@@ -148,7 +148,7 @@ bool Unit::RunTick() {
     Tick();
     return true;
 }
-const char* Unit::GetName() { return scriptName.c_str(); }
+std::string_view Unit::GetName() { return scriptName; }
 void Unit::Load(ByteStream* stream) { LoadUnit(stream); }
 void Unit::Save(ByteStream* stream) { SaveUnit(stream); }
 const char* Unit::ClassName() { return kUnitClassName; }

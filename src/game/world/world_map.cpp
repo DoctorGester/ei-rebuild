@@ -53,7 +53,7 @@ int WorldServer::LoadMap(std::string_view map, std::string_view mob, ByteStream*
     if (text::CompareIgnoringCase(mapName, map) != 0) {
         currentAiMap->Reset();
         currentAiMap->BeginRefresh();
-        bool failed = currentAiMap->Load(MapPath(map).c_str()) == 0;
+        bool failed = currentAiMap->Load(MapPath(map)) == 0;
         if (failed) return 0;
         mapName = map;
         mobName.clear();

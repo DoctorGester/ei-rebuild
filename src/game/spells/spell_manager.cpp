@@ -117,7 +117,7 @@ void SpellContainer::Destroy() {
     spell.Destroy();
 }
 
-const char* SpellContainer::GetName() { return name.c_str(); }
+std::string_view SpellContainer::GetName() { return name; }
 
 bool SpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) game::FatalExit("%s", kInvalidRune);

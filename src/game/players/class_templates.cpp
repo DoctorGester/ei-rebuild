@@ -86,8 +86,8 @@ void ClassTemplateFill(ClassTemplate* t) {
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.
     names = spells->ListSpellNames();
     for (const std::string& name : names) {
-        const char* code = SpellCodeByName(name);
-        std::string key(code);
+        const std::string* code = SpellCodeByName(name);
+        std::string key(*code);
         itemdb::SpellRecord* record = g_spellDatabase.spells.names[key];
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddSpell(record);

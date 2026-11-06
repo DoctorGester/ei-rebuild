@@ -49,13 +49,13 @@ std::vector<std::string_view> IniFile::Entries(std::string_view section) const {
     return entries;
 }
 
-std::vector<std::string> IniFile::GetKeyNames(const char* section) const {
+std::vector<std::string> IniFile::GetKeyNames(std::string_view section) const {
     std::vector<std::string> names;
     for (std::string_view entry : Entries(section)) names.emplace_back(Trim(entry.substr(0, entry.find('='))));
     return names;
 }
 
-std::string IniFile::GetString(const char* section, const char* key, const char* defaultValue) const {
+std::string IniFile::GetString(std::string_view section, std::string_view key, std::string_view defaultValue) const {
     for (std::string_view entry : Entries(section)) {
         const std::size_t equals = entry.find('=');
         if (text::CompareIgnoringCase(Trim(entry.substr(0, equals)), key) != 0) continue;
@@ -64,17 +64,17 @@ std::string IniFile::GetString(const char* section, const char* key, const char*
             value = value.substr(1, value.size() - 2);
         return std::string(value);
     }
-    return defaultValue;
+    return std::string(defaultValue);
 }
 
-int IniFile::GetInt(const char* section, const char* key, int defaultValue) const {
+int IniFile::GetInt(std::string_view section, std::string_view key, int defaultValue) const {
     const std::string value = GetString(section, key, "");
     char* end = nullptr;
     const long number = std::strtol(value.c_str(), &end, 10);
     return end == value.c_str() ? defaultValue : static_cast<int>(number);
 }
 
-std::vector<std::string> IniFile::GetList(const char* section, const char* key, char separator) const {
+std::vector<std::string> IniFile::GetList(std::string_view section, std::string_view key, char separator) const {
     const std::string value = GetString(section, key, "");
     std::vector<std::string> items;
     if (value.empty()) return items;
@@ -90,7 +90,7 @@ std::vector<std::string> IniFile::GetList(const char* section, const char* key, 
     return items;
 }
 
-std::vector<std::uint32_t> IniFile::GetIntArray(const char* section, const char* key) const {
+std::vector<std::uint32_t> IniFile::GetIntArray(std::string_view section, std::string_view key) const {
     std::vector<std::uint32_t> values;
     for (const std::string& code : GetList(section, key, kListSeparator))
         values.push_back(static_cast<std::uint32_t>(str::ToInt(code)));

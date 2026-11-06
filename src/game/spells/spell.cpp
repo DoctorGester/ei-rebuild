@@ -150,12 +150,12 @@ bool Spell::CanAffect(const Unit* caster, MapObject* target) const {
     return true;
 }
 
-const char* SpellCodeByName(std::string_view name) {
+const std::string* SpellCodeByName(std::string_view name) {
     const SpellTable& spells = g_spellDatabase.spells;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(spells.Count()); ++i) {
         const SpellRecord* spell = spells.At(i);
         if (text::CompareIgnoringCase(spell->name, name) == 0) {
-            return spell->code.c_str();
+            return &spell->code;
         }
     }
     return nullptr;

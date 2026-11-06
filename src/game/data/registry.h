@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "lib/bit_flags.h"
@@ -30,30 +31,30 @@ public:
     // Closes the mapped file (when it owns one) and forgets the data.
     void Close();
 
-    // The section record (key null) or the value of `key` in `section`, or null. With
+    // The value of `key` in `section`, or null. With
     // `isScalar`, an array type also accepts a single value of the element type (*isScalar is true
     // then; false for an array; for a scalar type it is true). A wrong type logs and gives null.
-    const std::uint8_t* FindData(const char* section, const char* key, RegistryType type, bool* isScalar);
+    const std::uint8_t* FindData(std::string_view section, std::string_view key, RegistryType type, bool* isScalar);
 
     // The names of all sections (in table order).
     std::vector<std::string> SectionNames();
 
     // An int value, a float one truncated (_ftol), or `defaultValue`.
-    int GetInt(const char* section, const char* key, int defaultValue);
+    int GetInt(std::string_view section, std::string_view key, int defaultValue);
     // A float value, an int one (exact), or `defaultValue`, unrounded (declared
     // double so an int value is not rounded to float on return).
-    double GetFloat(const char* section, const char* key, float defaultValue);
+    double GetFloat(std::string_view section, std::string_view key, float defaultValue);
     // A string value, or `defaultValue`.
-    std::string GetString(const char* section, const char* key, const std::string& defaultValue);
+    std::string GetString(std::string_view section, std::string_view key, const std::string& defaultValue);
     // A string value into `buffer`, cut to *length - 1 characters, or `defaultValue`
     // (strncpy, so not terminated when too long); *length becomes the copied length.
-    void GetStringBuffer(const char* section, const char* key, char* buffer, int* length, const char* defaultValue);
+    void GetStringBuffer(std::string_view section, std::string_view key, char* buffer, int* length, const char* defaultValue);
 
     // Int / float array (or a single value) into `out`. Without the key `out` is emptied and the result is 0.
-    bool GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out);
-    bool GetFloatArray(const char* section, const char* key, std::vector<float>* out);
+    bool GetIntArray(std::string_view section, std::string_view key, std::vector<std::int32_t>* out);
+    bool GetFloatArray(std::string_view section, std::string_view key, std::vector<float>* out);
     // A string array (or a single string) into `out`. Without the key `out` is emptied and the result is 0.
-    bool GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
+    bool GetStringArray(std::string_view section, std::string_view key, std::vector<std::string>* out);
 
     bool attached = false;        // true: the data is not ours (Attach)
     platform::MappedFile file;

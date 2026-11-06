@@ -1182,7 +1182,7 @@ void CampPages::ShowHero() {
     Unit* unit = heroes[hero];
     TextManager* table = g_clientWorld.texts.get();
     std::string name;
-    std::string own = unit->GetName();
+    std::string own(unit->GetName());
     if (own.size() == 0) {
         PartyUnitRecord* heroRecord = HeroRecord();
         own = heroRecord->name;

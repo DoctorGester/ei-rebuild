@@ -1072,7 +1072,7 @@ void BattleScreen::LeftDown(UiEvent& event) {
 // Each text is copied up to its first NUL.
 std::string BattleScreen::UnitName(Unit* unit) {
     TextManager* texts = g_clientWorld.texts.get();
-    std::string name = unit->GetName();
+    std::string name(unit->GetName());
     if (name.size() != 0) return name.c_str();
     if (IsTextKey(unit->id)) {
         auto node = personTexts.find(unit->id);

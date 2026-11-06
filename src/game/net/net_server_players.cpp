@@ -132,7 +132,7 @@ PlayerMessage* ServerSession::FindPlayer(int id) {
 }
 
 // A line (text `kind` with `text`) for every player that is not the host.
-void ServerSession::AnnounceToGuests(int textKind, const char* text) {
+void ServerSession::AnnounceToGuests(int textKind, std::string_view text) {
     for (auto& node : players) {
         PlayerMessage* player = node.Get();
         if (!player->host) AnnounceText(textKind, text, player);
@@ -317,7 +317,7 @@ void ServerSession::Announce(std::string_view text, RefObject* player) {
 }
 
 // Announce with text `kind` of the text table formatted with `text`.
-void ServerSession::AnnounceText(int textKind, const char* text, RefObject* player) {
+void ServerSession::AnnounceText(int textKind, std::string_view text, RefObject* player) {
     Announce(g_interface.MessageText(textKind, text), player);
 }
 

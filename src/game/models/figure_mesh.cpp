@@ -330,7 +330,7 @@ FigureMesh::~FigureMesh() { Clear(); }
 
 // --- Small virtuals ----------------------------------------------------------------------------
 
-const char* FigureMesh::GetName() { return name.c_str(); }
+std::string_view FigureMesh::GetName() { return name; }
 const char* FigureMesh::ClassName() { return "CFigure"; }
 ClassId FigureMesh::GetClassId() { return ClassId::FigureMesh; }
 

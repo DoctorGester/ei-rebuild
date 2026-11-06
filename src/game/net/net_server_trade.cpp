@@ -152,7 +152,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
 void ServerSession::CompleteZone(const std::string& zone) {
     auto* holder = &map;
     if (IsLive(holder->Get())) {
-        Announce(g_interface.MessageText(7, SessionMapName().c_str()), nullptr);
+        Announce(g_interface.MessageText(7, SessionMapName()), nullptr);
     }
 
     QuestBriefingRecord* entry = g_questDatabase.briefings.index[zone + kZoneCompleteSuffix];
@@ -187,9 +187,9 @@ void ServerSession::CompleteZone(const std::string& zone) {
 void ServerSession::LeaveZone() {
     auto* holder = &map;
     if (IsLive(holder->Get())) {
-        Announce(g_interface.MessageText(6, SessionMapName().c_str()), nullptr);
+        Announce(g_interface.MessageText(6, SessionMapName()), nullptr);
 
-        QuestBriefingRecord* entry = g_questDatabase.briefings.index[std::string(holder->Get()->text.c_str()) + kZoneEnterSuffix];
+        QuestBriefingRecord* entry = g_questDatabase.briefings.index[holder->Get()->text + kZoneEnterSuffix];
         if (entry) AwardHost(entry, true);
     }
 

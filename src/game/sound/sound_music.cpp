@@ -57,18 +57,17 @@ void MusicSystem::Create() {
     credits = reg.GetString(common, "Credits", {});
     mainMenu = reg.GetString(common, "MainMenu", {});
     for (const std::string& name : reg.SectionNames()) {
-        const char* section = name.c_str();
-        if (text::CompareIgnoringCase(section, "common") == 0) continue;
+        if (text::CompareIgnoringCase(name, "common") == 0) continue;
         MusicTheme read;
         read.name = name;
         read.dungeon = false;
-        read.briefing = reg.GetString(section, "Briefing", {});
-        read.constructor = reg.GetString(section, "Constructor", {});
-        reg.GetStringArray(section, "CalmOpen", &read.calm);
-        reg.GetStringArray(section, "Combat", &read.combat);
+        read.briefing = reg.GetString(name, "Briefing", {});
+        read.constructor = reg.GetString(name, "Constructor", {});
+        reg.GetStringArray(name, "CalmOpen", &read.calm);
+        reg.GetStringArray(name, "Combat", &read.combat);
         themes.push_back(read);
         read.dungeon = true;
-        reg.GetStringArray(section, "CalmDungeon", &read.calm);
+        reg.GetStringArray(name, "CalmDungeon", &read.calm);
         themes.push_back(read);
     }
 }

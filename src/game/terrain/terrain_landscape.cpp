@@ -157,7 +157,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, bool create) {
                 sectorCache.pop_back();
             }
         }
-        if (!loaded->Load(&archive, sx, sy, mapName.c_str(), this)) return nullptr;
+        if (!loaded->Load(&archive, sx, sy, mapName, this)) return nullptr;
         loaded->lastUsed = frame;
         sector = loaded.get();
         sectorCache.insert(sectorCache.begin(), std::move(loaded));

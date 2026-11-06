@@ -685,7 +685,7 @@ void FrameStep(bool draw) {
 void PlayMovies(const std::string& section, bool loadingStep) {
     IniFile ini;
     ini.Load(g_dataFolder + "config\\movie.ini");
-    for (const std::string& movie : ini.GetList(section.c_str(), "movies", ',')) {
+    for (const std::string& movie : ini.GetList(section, "movies", ',')) {
         PlayMovie(g_dataFolder + "Movies\\" + movie, true, false, loadingStep);
     }
 }

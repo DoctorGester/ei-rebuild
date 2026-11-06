@@ -268,7 +268,7 @@ void FigureBone::Destroy() {
 
 FigureBone::~FigureBone() { FigureBone::Destroy(); }
 
-const char* FigureBone::GetName() { return name.c_str(); }
+std::string_view FigureBone::GetName() { return name; }
 const char* FigureBone::ClassName() { return kBoneClassName; }
 ClassId FigureBone::GetClassId() { return ClassId::FigureBone; }
 

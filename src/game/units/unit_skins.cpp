@@ -60,21 +60,13 @@ void CopyRecords(SkinRequest& set, const std::vector<TextureRecord>& list) {
     std::memcpy(set.layers.data(), list.data(), static_cast<std::size_t>(size));
 }
 
-// Inlined strcpy / strcat: the bytes up to and including the terminator.
-void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
-void AppendText(char* to, const char* from) { CopyText(to + std::strlen(to), from); }
-
-// "<model prefix><name>.mmp" into `buffer`.
-void AppendName(const UnitModelRecord* model, const std::string& name, char* buffer) {
-    CopyText(buffer, model->figureName.c_str());
-    AppendText(buffer, name.c_str());
-    AppendText(buffer, ".mmp");
+// "<model prefix><name>.mmp".
+std::string TextureName(const UnitModelRecord* model, const std::string& name) {
+    return model->figureName + name + ".mmp";
 }
 
 void AddItem(SkinRequest& set, const UnitModelRecord* model, std::uint32_t id) {
-    char buffer[0x100];
-    AppendName(model, ArmorModelName(PrototypeIndex(id), MaterialIndex(id)), buffer);
-    set.textures.push_back(buffer);
+    set.textures.push_back(TextureName(model, ArmorModelName(PrototypeIndex(id), MaterialIndex(id))));
 }
 
 // The weapons (items 1 and 2): the one whose armour layer is lower first when both exist. An id whose record is
@@ -104,9 +96,7 @@ void AddExtraWeapon(SkinRequest& set, const UnitModelRecord* model, DressedUnitR
     if (!(static_cast<std::uint32_t>(count) > static_cast<std::uint32_t>(index))) return;
     std::uint32_t id = list[index];
     if (id == kNoItemId) return;
-    char buffer[0x100];
-    AppendName(model, WeaponModelName(PrototypeIndex(id), MaterialIndex(id)), buffer);
-    set.textures.push_back(buffer);
+    set.textures.push_back(TextureName(model, WeaponModelName(PrototypeIndex(id), MaterialIndex(id))));
 }
 
 // The texture cache is the client world's texture manager.
@@ -130,7 +120,7 @@ void DressUnit(WorldClient* self, DressedUnitRecord* record) {
         std::string skin;
         set.textures.clear();
         if (prototype) {
-            skin = str::Format("%sskin_%.2d.mmp", model->figureName.c_str(), prototype->skin);
+            skin = str::Format("%sskin_%.2d.mmp", model->figureName, prototype->skin);
         } else {
             skin = std::format("{}skin_00.mmp", model->figureName);
         }
@@ -176,7 +166,7 @@ void FigureUnit(WorldClient* self, FiguredUnitRecord* record) {
         first.insert(first.end(), parts.plain.begin(), parts.plain.end());
     }
 
-    self->figureLoader->LoadFigure(model->figureName.c_str(), first,
+    self->figureLoader->LoadFigure(model->figureName, first,
                                       {record->morphS, record->morphT, record->morphU});
 }
 } // namespace

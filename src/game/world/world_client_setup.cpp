@@ -42,7 +42,6 @@ constexpr const char* kSkySection = "sky";
 constexpr int kNumbersKind = static_cast<int>(TextureKind::Effects);
 
 constexpr const char* kNumbersName = "numbers";
-const char* FiguresResource() { return options::g_options.resourcesPath.c_str(); }
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour.
@@ -50,7 +49,7 @@ void ReadTable(IniFile& ini, const char* section, LightColour* table) {
     int previous = 0;
     for (const std::string& key : ini.GetKeyNames(section)) {
         int index = str::ToInt(str::Mid(key, 4, 2));
-        const std::vector<std::uint32_t> values = ini.GetIntArray(section, key.c_str());
+        const std::vector<std::uint32_t> values = ini.GetIntArray(section, key);
         LightColour& to = table[index];
         to.r = static_cast<float>(static_cast<int>(values[0])) * kByteToUnit;
         to.g = static_cast<float>(static_cast<int>(values[1])) * kByteToUnit;
@@ -99,7 +98,7 @@ void WorldClient::SetUpGraphics(TextureDevice* device) {
         GetTextureManager()->LoadTexture(texture);
         texture->flags |= TextureFlag::Keep;
     }
-    LinkFigureLoader* loader = new LinkFigureLoader(g_sceneRenderer.device, FiguresResource());
+    LinkFigureLoader* loader = new LinkFigureLoader(g_sceneRenderer.device, options::g_options.resourcesPath);
     figureLoader.Assign(loader);
     g_unitDatabase.CountSoundFiles(sounds.get());
 }

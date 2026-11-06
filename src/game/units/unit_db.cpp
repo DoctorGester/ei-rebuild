@@ -394,13 +394,6 @@ int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
 namespace {
 constexpr const char* kSoundPattern = "*.wav";
 
-// The three-way compare of the file name cut to the sound name's length with the sound name is 0: the file
-// name starts with the sound name.
-bool StartsWith(const char* file, const char* name) {
-    std::size_t fileLength = std::strlen(file);
-    std::size_t nameLength = std::strlen(name);
-    return fileLength >= nameLength && std::memcmp(file, name, nameLength) == 0;
-}
 } // namespace
 
 void UnitDatabase::CountSoundFiles(SoundManager* sounds) {
@@ -416,7 +409,7 @@ void UnitDatabase::CountSoundFiles(SoundManager* sounds) {
             std::string& name = model->soundNames[n];
             str::MakeLower(name);
             for (const std::string& file : files) {
-                if (StartsWith(file.c_str(), name.c_str())) ++model->soundCounts[n];
+                if (file.starts_with(name)) ++model->soundCounts[n];
             }
         }
     }

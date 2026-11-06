@@ -20,13 +20,6 @@
 
 namespace net {
 
-namespace {
-
-const char* MasterHost() { return options::g_options.masterServerName.c_str(); }    // the master server's host name
-
-
-} // namespace
-
 ServerBase::ServerBase() {
     socket.Open(g_gamePort);
 }
@@ -135,7 +128,7 @@ void ServerSession::Describe(Ref<ServerEntry>* out) {
 // When announced, the master's address is set from the host name and port 28004.
 void ServerSession::SetPublic(bool announce) {
     announced = announce;
-    if (announce) masterAddress.Parse(options::g_options.masterServerName.c_str(), 28004);
+    if (announce) masterAddress.Parse(options::g_options.masterServerName, 28004);
 }
 
 // --- Life --------------------------------------------------------------------------------------------
@@ -285,8 +278,7 @@ void ServerSession::Tick(double dt) {
     announceTimer -= step;
     if (announceTimer < 0.0f) {    // run out
         announceTimer = 20.0f;
-        const char* host = MasterHost();
-        if (host[0] != '\0') AnnounceToMaster();
+        if (!options::g_options.masterServerName.empty()) AnnounceToMaster();
     }
 }
 

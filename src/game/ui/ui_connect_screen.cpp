@@ -346,9 +346,9 @@ void MpConnectScreen::MasterRequest() {
     net::NetAddress master{};
     // EI_Plugin's NewMaster: with a second master set, the master is tried first.
     if (net::second_master::Configured())
-        net::second_master::ParseMaster(&master, options::g_options.masterServerName.c_str(), kMasterPort);
+        net::second_master::ParseMaster(&master, options::g_options.masterServerName, kMasterPort);
     else
-        master.Parse(options::g_options.masterServerName.c_str(), kMasterPort);
+        master.Parse(options::g_options.masterServerName, kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries.extra : 0;
     g_interface.PushWindow(std::make_unique<MasterRequestBox>(texts[kTextMaster], boxText, kBoxMaster, &master, extra),

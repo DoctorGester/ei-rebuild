@@ -234,7 +234,7 @@ public:
     void Destroy() override;
     void ClearState() override;
     bool RunTick() override;
-    const char* GetName() override;          // the script name
+    std::string_view GetName() override;          // the script name
     void Load(ByteStream* stream) override;
     void Save(ByteStream* stream) override;
     const char* ClassName() override;

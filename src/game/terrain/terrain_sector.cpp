@@ -276,7 +276,7 @@ void ComputeBounds(SectorData& s) {
 
 // Loading
 
-bool SectorData::Load(MappedResource* archive, int sectorX, int sectorY, const char* prefix, Terrain* terrain) {
+bool SectorData::Load(MappedResource* archive, int sectorX, int sectorY, std::string_view prefix, Terrain* terrain) {
     Clear();
     owner = terrain;
     sx = sectorX;

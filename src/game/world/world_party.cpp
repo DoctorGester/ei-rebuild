@@ -33,7 +33,7 @@ constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
 
 constexpr float kNoStartZ = -1313.0f;   // the state's last z: no start position
 
-bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
+bool NamesZone(const itemdb::QuestItemRecord* info, std::string_view zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zones.size()); ++i)
         if (text::CompareIgnoringCase(info->zones[i], zone) == 0)
@@ -70,7 +70,7 @@ std::vector<Item*> WorldServer::TakeZoneQuestItems(std::vector<Item*>* items) {
         Item* item = ItemAt(*items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
         if (zoneMode == ZoneMode::Battle && !IsMultiplayerClient()) {
-            bool here = info && NamesZone(info, zoneName.c_str());
+            bool here = info && NamesZone(info, zoneName);
             if (!here && !lib::Contains(wanted, static_cast<int>(item->AsQuest()->questItemId))) continue;
         }
         taken.push_back(ItemAt(*items, i));

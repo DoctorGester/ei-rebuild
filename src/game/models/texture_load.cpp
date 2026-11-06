@@ -234,7 +234,7 @@ std::vector<std::uint32_t> ReadPixels(int width, int height, const std::uint8_t*
 // the surface's rows; here the rows and pixels past it are left out); a failed open of the alpha
 // file is silent. No texture format: the error for a surface that cannot be made (the staging
 // surface's: sizes zero) ends the game.
-int Texture::LoadBmpFiles(TextureDevice* device, const char* path, const char* alphaPath) {
+int Texture::LoadBmpFiles(TextureDevice* device, std::string_view path, std::string_view alphaPath) {
     if (flags & TextureFlag::Loaded) return 1;
     platform::File file;
     platform::File alphaFile;
@@ -287,7 +287,7 @@ constexpr const char* kAlphaPrefixText = "a_";
 
 // The path is split at `\` (each piece trimmed), the alpha file is "a_" + the file name in the same
 // directory; both are joined again.
-int Texture::LoadBmp(TextureDevice* device, const char* path) {
+int Texture::LoadBmp(TextureDevice* device, std::string_view path) {
     std::string file;
     std::string alphaPath;
     std::vector<std::string> pieces;
@@ -305,7 +305,7 @@ int Texture::LoadBmp(TextureDevice* device, const char* path) {
     pieces.pop_back();
     pieces.push_back(file);
     file = text::Join(pieces, '\\');
-    return LoadBmpFiles(device, file.c_str(), alphaPath.c_str());
+    return LoadBmpFiles(device, file, alphaPath);
 }
 
 // --- Composed textures -------------------------------------------------------------------------------

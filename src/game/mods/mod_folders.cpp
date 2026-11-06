@@ -192,17 +192,16 @@ void* FindFile(MappedResource* res, std::string_view name, std::uint32_t* size) 
 void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list) {
     const std::string pattern = mod + "\\Maps" + sub + "\\*.*";
     for (const platform::FolderEntry& found : platform::FolderEntries(pattern)) {
-        const char* name = found.name.c_str();
+        const std::string& name = found.name;
         if (found.folder) {
-            if (std::strcmp(name, ".") != 0 && std::strcmp(name, "..") != 0) ListMaps(mod, sub + "\\" + name, list);
+            if (name != "." && name != "..") ListMaps(mod, sub + "\\" + name, list);
             continue;
         }
         if (!sub.empty()) {
             list.names.push_back(sub.substr(1) + "\\" + name);
             continue;
         }
-        const std::size_t length = found.name.size();
-        if (!list.hasQuestList && length >= 3 && std::strcmp(name + length - 3, ".mq") == 0) list.hasQuestList = true;
+        if (!list.hasQuestList && name.ends_with(".mq")) list.hasQuestList = true;
         list.names.push_back(found.name);
     }
 }
@@ -342,11 +341,11 @@ const std::string& MapsRoot(const std::string& dataFolder) { return g_mapsInMod 
 
 // ---- Camera, Stream, Movies -----------------------------------------------------------------------
 
-std::string CameraFile(const char* path) {
+std::string CameraFile(std::string_view path) {
     // 1001B9D2: "%sCamera%s" with the mod's folder and the path from its last '\'.
-    const char* last = std::strrchr(path, '\\');
-    if (!last || ModPath().empty()) return path;
-    std::string mod = ModPath() + "Camera" + last;
+    const std::size_t last = path.rfind('\\');
+    if (last == std::string_view::npos || ModPath().empty()) return std::string(path);
+    std::string mod = ModPath() + "Camera" + std::string(path.substr(last));
     return platform::IsFile(mod) ? mod : std::string(path);
 }
 

@@ -86,7 +86,7 @@ struct MapDescription {
 // be the header's counts) ends the game.
 int ReadDescription(MappedResource& archive, const std::string& path, const std::string& name, MapDescription& map) {
     std::uint32_t size;
-    void* file = archive.GetFile((name + kMapExtension).c_str(), &size);
+    void* file = archive.GetFile(name + kMapExtension, &size);
     if (!file) game::FatalExit(("Unable to open file \"" + path) + "\"");
     if (size < sizeof(MapHeader)) game::FatalExit("Wrong file format: " + path);
     std::memcpy(&map.header, file, sizeof(MapHeader));
@@ -163,9 +163,8 @@ int ReadTerrainTypes(AIMap& map) {
         type.smell = 1.0f;
         type.noise = 1.0f;
     }
-    for (const std::string& sectionName : sections) {
-        const char* const section = sectionName.c_str();
-        const int index = std::atoi(section);
+    for (const std::string& section : sections) {
+        const int index = str::ToInt(section);
         if (index < 0 || index >= std::ssize(map.materials)) continue;   // the original wrote past the table
         AITerrainType& type = map.materials[index];
         type.name = registry.GetString(section, "Name", std::string(""));
@@ -356,9 +355,8 @@ void StampSector(AIMap& map, const MapDescription& description, const void* file
 
 } // namespace
 
-int AIMap::LoadTerrain(const char* path) {
+int AIMap::LoadTerrain(const std::string& full) {
     MappedResource archive;
-    std::string full = path;
     // (The original also builds the path without its extension here and never uses it.)
     archive.OpenResource(full);
     std::vector<std::string> maps;
@@ -407,7 +405,7 @@ void AIMap::AttachTerrain() {
     QueueRefresh({0, 0}, {cells.width - 1, cells.height - 1});
 }
 
-int AIMap::Load(const char* path) {
+int AIMap::Load(const std::string& path) {
     if (const int result = LoadTerrain(path); result != 1) return result;
     AttachTerrain();
     return 1;

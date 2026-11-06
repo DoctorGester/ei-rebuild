@@ -286,7 +286,7 @@ void WorldClient::LoadUnitFaces() {
     }
 }
 
-const char* WorldClient::ExitTarget(int index) { return exits[index].target.c_str(); }
+const std::string& WorldClient::ExitTarget(int index) { return exits[index].target; }
 
 void WorldClient::RemoveUnitsOf(const std::vector<PartyUnitRecord*>& records) {
     for (int i = 0; i < std::ssize(records); ++i)

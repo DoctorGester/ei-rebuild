@@ -119,4 +119,4 @@ public:
 // Matches `name` against `pattern` (* ends the match successfully, ? matches any
 // character, other characters compare through toupper). An empty pattern matches an empty name,
 // and a non-empty name gives `emptyPatternResult`.
-int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult);
+int WildcardMatch(std::string_view name, std::string_view pattern, int emptyPatternResult);
