@@ -280,7 +280,7 @@ writes the registry.
   |---|---|
   | paths, video, sound, shadows, terrain, camera, game, network, statistics | the game's options (options.cpp's tables; value names are the original's registry value names) |
   | renderer | Msaa, Anisotropy, VSync, PerfOverlay |
-  | patches | nothing now: every line is ignored, named in one log line (rebirth.md, "Settings") |
+  | patches | nothing: the flags of older builds stay in the file, unread |
   | autoexec | Rebirth's Console AutoExec lines, one value each |
 
   **Values:**
@@ -309,7 +309,7 @@ writes the registry.
   - **Writing:** the options loader and writer. `GameOptions::Save` (at exit and at the options window's OK) ends with
     `settings::Save`, which writes the file when a value changed, atomically through `ei_settings.ini.tmp`. The options
     window's graphics rows set `[renderer]` (renderer.md, "The graphics rows").
-  - **Readers:** the AutoExec lines, the start-up's Rebirth patches, mod_folders, and device_mesh's renderer section
+  - **Readers:** the AutoExec lines, mod_folders, and device_mesh's renderer section
     (renderer.md sections 11, 15, 15a; that section is not read in the harness build).
 - **Read filters** change a value as it is read:
   - EI_GAME_ROOT's Work path.
@@ -550,10 +550,10 @@ from there, started from anywhere, with no launcher, no DLL of ours and no file 
   - **Written when missing:** `ei_settings.ini`.
   - **Written as output:** `ei-rebuild.log` beside the exe (EI_OUT_DIR under the harness), and the saves.
   - **Not read:** `third_party_notices.txt` is the licences, shipped beside the exe.
-- **The Rebirth install** (src/game/app/rebirth_profile.cpp). Every Rebirth patch is the code's own; the game folder
+- **The Rebirth install.** Every Rebirth patch is the code's own; the game folder
   decides nothing: every patch is always on, a fatal error ends the game on every install, and EI_Plugin.ini
   is not read (the player count and the pause mode are the host's choices on the create-server screen; rebirth.md,
-  "EI_Plugin.asi"). ei_settings.ini's `[network]` SecondMaster, then a scenario's `plugin` line, set the second master.
+  "EI_Plugin.asi"). ei_settings.ini's `[network]` SecondMaster, then a scenario's `secondmaster` line, set the second master.
 - **The exe's own imports** (kernel32, user32, advapi32, winmm, ws2_32) come from System32 only
   (`/DEPENDENTLOADFLAG:0x800`). A wrapper DLL of the same name in a game folder (dgVoodoo, a dsound wrapper) is not
   taken. ASan's build leaves the flag out.

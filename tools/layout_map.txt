@@ -109,8 +109,6 @@ logic_settings.h            app/logic_settings.h
 logic_settings.cpp          app/logic_settings.cpp
 key_bindings.h              app/key_bindings.h                # gains UiKeyName, g_keyActions and FindCommandByKey from object_tables.h (C168b)
 key_bindings.cpp            app/key_bindings.cpp
-rebirth_profile.h           app/rebirth_profile.h
-rebirth_profile.cpp         app/rebirth_profile.cpp
 present_window.h            app/present_window.h
 present_window.cpp          app/present_window.cpp
 bink_video.h                app/movies.h                      # the game's movie players; src/video/bink_video.cpp is the decoder of the same name

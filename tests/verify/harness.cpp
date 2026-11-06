@@ -247,9 +247,8 @@
 //   layout <mouse step> <x> <y> ...  the mouse step (click, move, ...) at layout point (x, y) of the 800x600
 //                             interface, placed in the window's centred 4:3 part (the other mouse steps spread
 //                             their points over the whole window): the same place at any resolution
-//   plugin <spec>             Rebirth's values for this run (src/lib/rebirth.h), over the settings file's:
-//                             "SecondMaster=<host[:port]>" (NewMaster's second master server). Read before the game
-//                             starts.
+//   secondmaster <host[:port]>  NewMaster's second master server for this run, over the settings file's
+//                             [network] SecondMaster (net_second_master.h). Read before the game starts.
 //   resolution <W>x<H>|desktop, widescreen 0|1
 //                             answer the game's VideoResolution and the starter's WideScreen setting
 //                             for this run (game.exe's and addon.dll's registry reads; read before
@@ -536,7 +535,7 @@
 #include "platform/seams.h"
 #include "platform/platform.h"
 #include "game/app/harness_hooks.h"
-#include "lib/rebirth.h"
+#include "game/net_second_master.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "harness_objects.h"
@@ -3778,8 +3777,8 @@ bool LoadScenario(const char* path) {
             TakeLoadLine();
             continue;
         }
-        if (g_steps.back().verb == "plugin") {
-            ei::rebirth::QueueSpec(g_steps.back().argument.c_str());
+        if (g_steps.back().verb == "secondmaster") {
+            ::net::second_master::SetAddress(g_steps.back().argument);
             TakeLoadLine();
             continue;
         }

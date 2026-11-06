@@ -38,7 +38,6 @@ files, read one by one:
 | ui_font.cpp | 23 | PointFont, TextFontOf, TextExtent | keep: ui/ui_font.cpp beside ui_font.h |
 | options_construct.cpp | 27 | GameOptions' constructor and global | fold: app/options.cpp |
 | player_sources.cpp | 27 | the two PlayerSource::TakeNew overrides | keep: players/player_source.cpp beside player_source.h |
-| rebirth_profile.cpp | 29 | the Rebirth profile's Load | keep: app/rebirth_profile.cpp |
 | app_confine.cpp | 30 | UpdateCursorConfinement | fold: app/app.cpp (window events) |
 | ui_person_texts.cpp | 30 | LoadPersonTexts | fold: ui/ui_briefing.cpp |
 | misc_400.cpp | 31 | ClientSpecificManager (its comment lists three more pieces that are gone) | fold: objects/side_managers.cpp |
@@ -205,7 +204,7 @@ ui/ui_float.h; its raw-bit constants are a cleanup of their own (they should be 
 | `data/` | 13 | resource archives and their manager, registry and .ini files, the chunk archive, the databases' plumbing, the text manager |
 | `mods/` | 6 | Rebirth's mod layer: mod folders, the menu's mod list, the mods' plugins |
 | `saves/` | 7 | the save file container, save versions, save pictures, the client's kept picture |
-| `app/` | 25 | WinMain's loop, the window, game flow (with Rebirth's kept "gvar." variables), options, settings, key bindings, the Rebirth profile, movies, the globals |
+| `app/` | 25 | WinMain's loop, the window, game flow (with Rebirth's kept "gvar." variables), options, settings, key bindings, movies, the globals |
 | `console/` | 5 | the developer console, its commands and window |
 | `sound/` | 3 | the sound manager and music |
 | `world/` | 35 | World, WorldServer, WorldClient: zones, ticks, sync, saves of the world, quests, loot, diplomacy, client maps and draw lists |
@@ -415,8 +414,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | persistent_globals.cpp | app/persistent_globals.cpp |  | Rebirth's kept "gvar." variables; game flow clears the tables |
 | present_window.cpp | app/present_window.cpp |  |  |
 | present_window.h | app/present_window.h |  |  |
-| rebirth_profile.cpp | app/rebirth_profile.cpp |  |  |
-| rebirth_profile.h | app/rebirth_profile.h |  |  |
 | settings.cpp | app/settings.cpp |  |  |
 | settings.h | app/settings.h |  |  |
 | settings_catalog.inc | app/settings_catalog.inc |  |  |

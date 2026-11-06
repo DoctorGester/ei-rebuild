@@ -6,7 +6,6 @@
 //   settings file's Work path is read as that folder. What follows "--" is the game's command
 //   line, as typed (WinMain's).
 #include "game/app/app.h"
-#include "game/app/rebirth_profile.h"
 #include "game/app/settings.h"
 #include "lib/text_case.h"
 #include "platform/log.h"
@@ -61,7 +60,6 @@ int main(int argc, char** argv) {
     // The one-instance check, SDL's video and the renderer's device (~290 ms on a thread of its own): GameMain's
     // start-up runs beside it.
     app::StartVideo();
-    ei::rebirth_profile::Load();
     // The settings' [game] Mod: its files then stand over the game folder's and its saves keep apart.
     app::UseMod(folder, settings::GetString(settings::kGame, "Mod", ""));
     const int result = app::GameMain(arguments.data());

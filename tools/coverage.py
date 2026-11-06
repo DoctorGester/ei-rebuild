@@ -57,7 +57,7 @@ GAME_AREAS = [
               r'map_spec|engine_object|game_flow|saved_parties|save_file|frame_lists|persistent.*|sector_map|'
               r'search_grid'),
     ('interface', r'ui_.*|ui|cursor_setup|screen_layout|present_window'),
-    ('app', r'app.*|main_loop|options.*|settings.*|console.*|key_bindings|game_folders|mod_folders|rebirth_profile|'
+    ('app', r'app.*|main_loop|options.*|settings.*|console.*|key_bindings|game_folders|mod_folders|'
             r'plugin_fixes|logic_settings'),
     ('sound and video', r'sound.*|bink_video'),
     ('game drawing', r'renderer.*|device_.*|figure_.*|model.*|texture.*|terrain.*|particle_.*|effects.*|sky_object|'

@@ -1,5 +1,5 @@
 # The game folder's start-up, as a player's exe has it (S23a): the exe takes DisableExitOnCrashReport from the files of
-# its game folder (EI_GAME_ROOT here; the run's settings file names none; src/game/app/rebirth_profile.cpp). The
+# its game folder (EI_GAME_ROOT here; the run's settings file names none). The
 # "folderprofile" step (tests/verify/harness_folder_profile.h) checks the start-up: on the Rebirth install
 # DisableExitOnCrashReport on, on the vanilla install off. In the Rebirth smoke set (config/rebirth_scenarios.csv).
 timeout 40

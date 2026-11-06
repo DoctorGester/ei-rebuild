@@ -29,8 +29,7 @@ game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two
 (linux.md, "The stub data") goes through the scheduler too. `EI_BUILD_DIR` points run_all at another verify build.
 
 How a run starts (run_all.launch, tools/game_process.py): the exe itself, with the working directory and `EI_GAME_ROOT`
-the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. A run takes
-the install folder's EI_Plugin values, as a player's exe does (rebirth.md, "Settings"). The game prints into the run folder's
+the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. The game prints into the run folder's
 `launch.txt`, followed by run_all's own lines (`run_all: ...`). The games run in a job object on Windows (a session of
 their own with PR_SET_PDEATHSIG on Linux), so none outlives run_all.
 
@@ -144,8 +143,8 @@ A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_sa
   writes the file itself. A file a `# prepare:` tool writes into `harness_saves\<install path>` is read in place of the
   install's by the scenario's own game (the overlay), not by its peer: `net_pair_database.txt`'s host plays with a
   network item database of one item more (`tools/make_extra_item_db.py`).
-- `plugin SecondMaster=<host[:port]> DisableExitOnCrashReport=0|1` sets Rebirth's values for the run, over the
-  install folder's (rebirth.md, "Settings"). A game's player limit and pause mode are the host's create-server choices:
+- `secondmaster <host[:port]>` sets NewMaster's second master server for the run, over the settings file's
+  `[network]` SecondMaster (rebirth.md, "Settings"). A game's player limit and pause mode are the host's create-server choices:
   a scenario drags the player slider (`layout ldown` / `move` / `lup`, `net_pair_portraits`) or clicks the pause
   mode's region (29) with the new game's row selected; `checklimit <n>` requires the client session's player limit
   (`ClientSession::PlayerLimit`), `checkpaused 0|1` the server world's pause flag. `folderprofile` checks the drop-in start-up (harness_folder_profile.h,

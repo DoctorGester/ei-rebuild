@@ -30,8 +30,8 @@ namespace settings {
 
 inline constexpr const char* kFileName = "ei_settings.ini";
 
-// The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), EI_Plugin's values
-// (src/game/app/rebirth_profile.cpp, src/lib/rebirth.h) and Rebirth's console lines (console_addon.cpp).
+// The sections: the game's options (options.cpp), the renderer's switches (device_mesh.cpp), EI_Plugin's second master
+// ([network] SecondMaster) and Rebirth's console lines (console_addon.cpp).
 inline constexpr const char* kPaths = "paths";
 inline constexpr const char* kVideo = "video";
 inline constexpr const char* kSound = "sound";
@@ -41,7 +41,6 @@ inline constexpr const char* kCamera = "camera";
 inline constexpr const char* kGame = "game";
 inline constexpr const char* kNetwork = "network";
 inline constexpr const char* kRenderer = "renderer";
-inline constexpr const char* kPatches = "patches";
 inline constexpr const char* kAutoExec = "autoexec";
 
 // A settings file's text in memory: its sections in file order, each with its lines in order. Sections and names

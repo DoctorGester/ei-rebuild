@@ -163,7 +163,6 @@ src/game/world/world_time.cpp,0,0,1,0,0,0,0
 src/lib/caller.h,0,0,1,0,0,0,0
 src/lib/hash_map.h,0,0,1,0,0,0,0
 src/lib/intro_sort.h,0,0,1,0,0,0,0
-src/lib/rebirth.h,0,0,1,0,0,0,0
 src/lib/vecmath.h,0,0,1,0,0,0,0
 src/render/gpu.cpp,0,0,2,0,0,0,0
 src/render/gpu.h,0,0,5,0,0,0,1

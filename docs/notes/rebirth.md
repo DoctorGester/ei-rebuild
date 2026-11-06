@@ -223,12 +223,11 @@ other threads; Rebirth changed nothing there. The rebuild uses SSE2 floats throu
 
 ## Settings
 
-No patch has a flag; `src/lib/rebirth.h` holds the one value that stays, the second master server. The start-up sets it
-(`src/game/app/rebirth_profile.cpp`, from main.cpp before the game starts): none by default; the settings file's `[network]`
-`SecondMaster`; a scenario's `plugin` line. Every line of `[patches]` (the flags of older builds, `NPlayers` and `Pause`,
-DisableExitOnCrashReport the last) is ignored and named in one log line ("Rebirth: [patches] ... ignored: Rebirth's
-patches are always on, the players and the pause are chosen on the create-server screen, a fatal error always ends the
-game"). EI_Plugin's player count and pause mode are the host's choices when it creates a server ("EI_Plugin.asi"
+No patch has a flag; the one value that stays is the second master server: none by default; the settings file's
+`[network]` `SecondMaster`, read by `src/game/net_second_master.cpp`; a scenario's `secondmaster` line stands over it.
+The `[patches]` lines of older settings files (the flags of older builds, `NPlayers` and `Pause`,
+DisableExitOnCrashReport) are not read: Rebirth's patches are always on, the players and the pause are chosen on the
+create-server screen, a fatal error always ends the game. EI_Plugin's player count and pause mode are the host's choices when it creates a server ("EI_Plugin.asi"
 above); EI_Plugin.ini is not read.
 
 The kinds (the `standalone` column of the CSV):
