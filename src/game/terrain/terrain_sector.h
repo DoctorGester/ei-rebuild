@@ -82,9 +82,8 @@ constexpr int kAlwaysSteps = 1000;
 
 // An animated tile (texture with several frames). A tile that steps every time (speed kAlwaysSteps) draws no random
 // number to do it, so the GPU works out its frame from the steps made (`onGpu`, `phase`: terrain_stages.hlsli's
-// tile_uv) while its sector steps its tiles; a slower one waits at frame 0 for client random draws and steps here
-// (SectorData::AnimateTiles). A sector that does not step (not drawn, or beyond the game's reach) keeps its frames: its
-// onGpu tiles are `frozen` at `frame` (SectorData::SettleTiles).
+// tile_uv), wherever the tile is; a slower one waits at frame 0 for client random draws and steps here
+// (SectorData::AnimateTiles).
 struct AnimatedTile {
     TileVertex* vertices = nullptr;  // the tile's 9 entries
     int rotation = 0;
@@ -92,9 +91,8 @@ struct AnimatedTile {
     int frame = 0;          // random start frame
     int frames = 0;
     int speed = 0;          // from the speed table by texture class
-    bool onGpu = false;     // the GPU steps it: `frame` stays the start frame until it is frozen
-    bool frozen = false;    // onGpu: its sector does not step; the entries hold frame `frame`
-    int phase = 0;          // onGpu, not frozen: its frame is (phase + Terrain::tileSteps) % frames
+    bool onGpu = false;     // the GPU steps it: `frame` stays the start frame
+    int phase = 0;          // onGpu: its frame is (phase + Terrain::tileSteps) % frames
 };
 
 using SectorBox = ClipBounds;
@@ -133,9 +131,6 @@ struct SectorData {
     std::vector<std::vector<TileVertex>> tiles[4];       // per quarter, per page (9 per tile)
     std::vector<AnimatedTile> animated;
     bool stepsOnCpu = false;            // an animated tile that is not onGpu (AnimateTiles has work)
-    bool hasGpuTiles = false;           // an onGpu tile (SettleTiles has work)
-    int lastSteps = 0;                  // Terrain::tileSteps when SettleTiles last looked at the sector
-    int ranFrame = 0;                   // the owner frame whose tick stepped the sector's tiles (RunTick)
     std::vector<int> classCounts;       // 16 texture classes
     int lastUsed = 0;                   // owner frame of the last use
 
@@ -167,10 +162,6 @@ struct SectorData {
     // Every third frame, with LandscapeFlag::AnimatedTiles, the animated tiles that are not onGpu step to their next
     // frame (one whose frame is 0 only when a client effects draw % 1000 + 1 is within the speed).
     void AnimateTiles(int frame);
-    // At each step of the animated tiles (Terrain::tileSteps now `steps`): the onGpu tiles keep stepping on the GPU
-    // while the sector `steps` them (drawn, in reach), else they are frozen at the frame they had; each change of that
-    // (a freeze, a thaw, steps missed) tells the renderer once (TerrainChange::Moved).
-    void SettleTiles(int steps, bool stepping);
 
     // Whether the last clip test did not cull the sector.
     bool IsDrawn() const;

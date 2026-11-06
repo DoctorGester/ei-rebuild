@@ -233,7 +233,6 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                     // Its frame now is (start + the steps made since) mod frames: the tile takes every step from here.
                     tile.phase = ((tile.frame - owner->tileSteps) % frames + frames) % frames;
                     s.stepsOnCpu = s.stepsOnCpu || !tile.onGpu;
-                    s.hasGpuTiles = s.hasGpuTiles || tile.onGpu;
                     uv = &owner->TileUvAt(rotation, tile.frame + slot.index, 0);
                 }
                 for (int entryRow = 0; entryRow < 3; ++entryRow, record += kSectorRow) {
@@ -378,8 +377,6 @@ void SectorData::Build() {
     }
     animated.resize(animatedCount);
     stepsOnCpu = false;
-    hasGpuTiles = false;
-    lastSteps = owner->tileSteps;
 
     TileCounts filled = {};
     FillTiles(*this, tileWords, filled);
@@ -452,7 +449,6 @@ void SectorData::Clear() {
     owner = nullptr;
     built = SectorStage::None;
     lastUsed = 0;
-    ranFrame = 0;
     clipMode = TransformPipeline::ClipResult::Outside;
     inReach = false;
     render::TerrainChanged(this, render::TerrainChange::Dropped);
@@ -477,37 +473,6 @@ void SectorData::AnimateTiles(int frame) {
         }
     }
     if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the zone's meshes
-}
-
-void SectorData::SettleTiles(int steps, bool stepping) {
-    if (!hasGpuTiles || lastSteps == steps) return;
-    bool changed = false;
-    for (AnimatedTile& tile : animated) {
-        if (!tile.onGpu) continue;
-        // The frame before this step: the GPU's up to the step the sector last looked at (a sector looked at at every
-        // step is at the one before), or the frozen one.
-        const int before = tile.frozen ? tile.frame : (tile.phase + lastSteps) % tile.frames;
-        if (stepping) {
-            // After it: one on, as the GPU counts from `steps`.
-            const int phase = ((before + 1 - steps) % tile.frames + tile.frames) % tile.frames;
-            if (tile.frozen || phase != tile.phase) {
-                tile.frozen = false;
-                tile.phase = phase;
-                changed = true;
-            }
-        } else if (!tile.frozen) {
-            tile.frozen = true;
-            tile.frame = before;
-            const TileUv& uv = owner->TileUvAt(tile.rotation, tile.frameBase + before, 0);
-            for (int k = 0; k < TileUv::kVertices; ++k) {
-                tile.vertices[k].u = uv.u[k];
-                tile.vertices[k].v = 1.0f - uv.v[k];
-            }
-            changed = true;
-        }
-    }
-    lastSteps = steps;
-    if (changed) render::TerrainChanged(this, render::TerrainChange::Moved);   // the zone's meshes
 }
 
 } // namespace terrain

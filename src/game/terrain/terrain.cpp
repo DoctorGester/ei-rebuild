@@ -387,23 +387,15 @@ bool Terrain::RunTick() {
     wavePhase += waveSpeed;
     waveTime = (g_clientWorld.tick + g_clientWorld.tickFraction) * kTimeScale;
     ++frame;
-    const bool step = frame % kTileFrameEvery == 0 && lib::Has(landscapeFlags, LandscapeFlag::AnimatedTiles);
-    if (step) ++tileSteps;
+    if (frame % kTileFrameEvery == 0 && lib::Has(landscapeFlags, LandscapeFlag::AnimatedTiles)) ++tileSteps;
     for (int sy = visible.firstY; sy <= visible.lastY; ++sy) {
         for (int sx = visible.firstX; sx <= visible.lastX; ++sx) {
             SectorData* sector = SectorAt(sx, sy, SectorStage::Built, false);
-            // The tiles' steps draw the client generator, which visuals.sav keeps: they step within the game's reach
-            // as when the view had its far plane there, and farther keep their frame.
-            if (sector && sector->IsDrawn() && sector->inReach) {
-                sector->ranFrame = frame;
-                sector->AnimateTiles(frame);
-            }
+            // The steps that draw the client generator (which visuals.sav keeps) are made within the game's reach, as
+            // when the view had its far plane there. The tiles that draw none step on the GPU, wherever they are.
+            if (sector && sector->IsDrawn() && sector->inReach) sector->AnimateTiles(frame);
         }
     }
-    // The GPU steps the tiles that draw no random number (AnimatedTile::onGpu) for the sectors that stepped now.
-    if (step)
-        for (const std::unique_ptr<SectorData>& sector : sectorCache)
-            if (lib::Has(sector->built, SectorStage::Built)) sector->SettleTiles(tileSteps, sector->ranFrame == frame);
     return true;
 }
 

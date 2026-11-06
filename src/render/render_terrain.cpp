@@ -266,34 +266,13 @@ struct Run {
     TerrainGroup whole{};
 };
 
-// A vertex of an animated tile: its place in the layer's vertices, its entry in the tile list, its tile and its corner
-// (0 .. 8) in it.
-struct AnimatedVertex {
-    std::uint32_t index = 0;
-    const TileVertex* entry = nullptr;
-    const terrain::AnimatedTile* tile = nullptr;
-    int corner = 0;
-};
-
-// The texture coordinates of an animated tile's vertex now: while the GPU steps the tile its own within the page's first
-// tile and what the shader needs to find its frame; else (stepped by the game, or frozen) those of its entry.
-static VertexUv AnimatedUv(const SectorData* sector, const AnimatedVertex& v, float layer) {
-    const terrain::AnimatedTile& tile = *v.tile;
-    if (tile.onGpu && !tile.frozen) {
-        const terrain::TileUv& local = sector->owner->uvLocal[static_cast<std::size_t>(tile.rotation)];
-        return VertexUv{local.u[v.corner], local.v[v.corner], layer, static_cast<float>(tile.frameBase),
-                        static_cast<float>(tile.frames), static_cast<float>(tile.phase)};
-    }
-    return VertexUv{v.entry->u, v.entry->v, layer};
-}
-
 // A sector's ground or water layer in the zone's mesh of it: page by page (with a texture), each page's quarters, each
 // quarter's tiles in the game's list order.
 struct SlotLayer {
     std::uint32_t first = 0;                 // its first vertex in the mesh
     std::vector<std::uint16_t> records;      // per vertex: the record it reads its position, normal and colours from
     std::vector<VertexUv> uvs;               // per vertex
-    std::vector<AnimatedVertex> animated;    // the animated tiles' vertices (their coordinates change)
+    std::vector<std::pair<std::uint32_t, const TileVertex*>> animated;   // the tiles the game steps: vertices and entries
     std::vector<Run> runs;                   // [page * kQuarters + quarter]
     std::vector<TerrainGroup> groups;
     std::uint8_t quarters = 0;               // bit q: quarter q has tiles
@@ -454,11 +433,14 @@ static void BuildLayer(const SectorData* sector, int layer, SlotLayer& out) {
                                                         [](const terrain::AnimatedTile* a, const TileVertex* b) { return a->vertices < b; });
                     const terrain::AnimatedTile* steps = found != animated.end() && (*found)->vertices == tile ? *found : nullptr;
                     for (int k = 0; k < kTileVertices; ++k) {
-                        const float layer = static_cast<float>(pageInLayer);
-                        VertexUv uv{tile[k].u, tile[k].v, layer};
-                        if (steps) {
-                            out.animated.push_back(AnimatedVertex{out.Count(), &tile[k], steps, k});
-                            uv = AnimatedUv(sector, out.animated.back(), layer);
+                        VertexUv uv{tile[k].u, tile[k].v, static_cast<float>(pageInLayer)};
+                        if (steps && steps->onGpu) {
+                            // Its own within the page's first tile and what the shader needs to find its frame.
+                            const terrain::TileUv& local = sector->owner->uvLocal[static_cast<std::size_t>(steps->rotation)];
+                            uv = VertexUv{local.u[k], local.v[k], uv.layer, static_cast<float>(steps->frameBase),
+                                          static_cast<float>(steps->frames), static_cast<float>(steps->phase)};
+                        } else if (steps) {
+                            out.animated.emplace_back(out.Count(), &tile[k]);
                         }
                         out.records.push_back(static_cast<std::uint16_t>(tile[k].vertex - sector->records.data()));
                         out.uvs.push_back(uv);
@@ -558,8 +540,8 @@ static void Layout() {
     g_zone.remake = true;
 }
 
-// What the game moved in a slot since it was read: the animated tiles' texture coordinates (stepped by the game, or the
-// GPU's tiles frozen or stepping again), the water's positions at a new level (the boxes of its runs made again).
+// What the game moved in a slot since it was read: the animated tiles' texture coordinates (the ones the game steps), the
+// water's positions at a new level (the boxes of its runs made again).
 static void ReadMoved(int k) {
     Slot& slot = g_zone.slots[static_cast<std::size_t>(k)];
     const std::uint8_t moved = std::exchange(slot.moved, std::uint8_t{0});
@@ -568,8 +550,11 @@ static void ReadMoved(int k) {
         for (int layer = 0; layer < kLayers; ++layer) {
             SlotLayer& l = slot.layers[layer];
             if (l.animated.empty()) continue;
-            for (const AnimatedVertex& v : l.animated) l.uvs[v.index] = AnimatedUv(slot.sector, v, l.uvs[v.index].layer);
-            const std::uint32_t from = l.animated.front().index, to = l.animated.back().index + 1;
+            for (const auto& [i, entry] : l.animated) {
+                l.uvs[i].u = entry->u;
+                l.uvs[i].v = entry->v;
+            }
+            const std::uint32_t from = l.animated.front().first, to = l.animated.back().first + 1;
             l.uvFrom = l.uvTo > l.uvFrom ? std::min(l.uvFrom, from) : from;
             l.uvTo = std::max(l.uvTo, to);
             AddPending(k);

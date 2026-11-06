@@ -1017,7 +1017,7 @@ range is built again when the grid holds another sector there or the game rebuil
 Rebuilt)` from Build, `Dropped` from Clear and the destructor), its colours and the rest when its ground occlusion was
 worked out again (a neighbour came); the meshes are laid out again only when a range's size changed. The game moves some
 in place: the animated tiles' texture coordinates (`Moved`: their range of the uv stream written, item 3b: only the
-slow tiles' steps and the fast ones' freezes and thaws) and the water layer's positions at rest at a new water
+slow tiles' steps) and the water layer's positions at rest at a new water
 level (`WaterMoved`, from ApplyWaterLevels when a sector with a pending level change is drawn: its water positions
 written, its boxes worked out again). A pass hands over only the sectors it
 draws with their quarters' clip verdicts (`TerrainPass`: the game's culling decides what the frame's fit, the water's
@@ -1079,24 +1079,26 @@ bytes of vertex stream per vertex), and AnimateTiles does not skip sectors witho
   vertices (anim frames 0) have final coordinates. `Terrain::tileSteps` counts the animation steps (RunTick); a tile's
   phase is its random start frame less the steps made when its sector was built (the start frames are still drawn
   from the client generator in FillTiles, so the stream is as before).
-- The game stepped a tile only while its sector was drawn and within reach (RunTick), the others kept their frame. The
-  GPU's count is global, so `SectorData::SettleTiles` (at each step, over every cached sector) freezes the fast tiles of a
-  sector that does not step (their entries get the frame they were at, the vertices lose their `anim`: one write of the
-  sector's uv range) and, when it steps again, thaws them with the phase that continues from that frame (a second write).
-  A sector that keeps stepping is never written. The slow tiles (classes 14, 15) still step in `AnimateTiles`, with the
-  random draws, and their sectors write their range when one steps.
+- Every fast tile steps from the global count, wherever it is (the sector drawn or not, in reach or not): tile frames
+  are client-only visuals, and the waves already move in every sector (3a). The game stepped a tile only while its
+  sector was drawn and within reach (RunTick), so a sector coming back into view showed the frame it had left at; now
+  it shows the frame it would have had. No freeze or thaw, and no write for these tiles after the sector is read. The
+  slow tiles (classes 14, 15) still step in `AnimateTiles` (drawn sectors in reach, as before) with the random draws,
+  and their sectors write their uv range when one steps.
 - The slow class 14 (12,608 water tiles, 16 map lists) still draws client random numbers, so it stays on the CPU. A
   hash-based schedule (a tile's wait at frame 0 and its next step from a hash of the tile and the step count, in the
   shader) would put it on the GPU too and delete the per-frame uv writes altogether, but it changes the client's
   random stream and so the client-only visuals (a golden re-record): not done, the user's call.
 - Cost on the main thread, per tick of zone1's sea (a throwaway instrumented build, every tick that walked a drawn
   sector averaged; the old path is this code with every tile kept on the CPU): the sector walk 0.0096 ms before, 0.0065
-  ms now (the walk plus SettleTiles' pass over the cached sectors); the uv moves and writes 0.020 ms and 49 KB per tick
-  before, 0 now (only the class 14 tiles, not in that view, and the freezes and thaws write). Small on both sides: the
+  ms with the freeze and thaw pass this item had at first (now without it: less); the uv moves and writes 0.020 ms and
+  49 KB per tick before, 0 now (only the class 14 tiles, not in that view, write). Small on both sides: the
   win is the 49 KB per tick not crossing to the GPU and the writes gone from the frame.
-- Check: frames of render_scene, render_terrain_seams, render_far_ground, render_water, render_water_looks,
-  render_smooth, render_shore_seams and render_weather* at tolerance 0 against the build before it: the same, but
-  for the msaa frames that differ by 1 in a few dozen pixels on that build too (shore, smooth, units_rain).
+- Check: both suites with `--golden`: the same goldens (221 vanilla, 135 Rebirth; none holds a tile frame outside the
+  game's reach). With the freeze and thaw (since dropped) frames matched the game's own at tolerance 0 apart from the
+  msaa noise; without them an animated water tile outside the game's reach now shows its own frame. render_smooth's
+  samecapture (msaa, a few pixels off by more than 1 once in 15 runs alone, as it did on the build before this item)
+  is the old flake.
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
