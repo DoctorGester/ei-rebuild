@@ -352,7 +352,7 @@ gpu::Sampler LinearSampler() {
 }
 
 // The stages' samplers by their filters and addresses (gpu.h keeps them by description).
-gpu::Sampler StageSampler(const StageState& s) {
+static gpu::SamplerDesc StageDesc(const StageState& s) {
     gpu::SamplerDesc d;
     d.mag = ToGpu(s.magFilter);
     d.min = ToGpu(s.minFilter);
@@ -360,15 +360,13 @@ gpu::Sampler StageSampler(const StageState& s) {
     if (s.mipFilter == MipFilter::None) d.maxLod = 0.0f;   // level 0 only
     d.u = ToGpu(s.addressU);
     d.v = ToGpu(s.addressV);
-    return gpu::MakeSampler(d);
+    return d;
 }
 
-gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
-    // Point sampling asked for (the options' Filtering 0): as the stage says.
-    if (s.minFilter == Filter::Point || s.magFilter == Filter::Point) return StageSampler(s);
-    // Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose texture
-    // coordinates change direction and scale from tile to tile (D3DTFP_POINT's level steps showed as seams;
-    // renderer.md section 11). The render quality's anisotropy samples the world's models so too.
+// Anisotropic with linear mips: the level of detail moves smoothly across the tiles, whose texture coordinates change
+// direction and scale from tile to tile (D3DTFP_POINT's level steps showed as seams; renderer.md section 11). The
+// render quality's anisotropy samples the world's models so too.
+static gpu::SamplerDesc AnisotropicDesc(const StageState& s, std::uint32_t level) {
     gpu::SamplerDesc d;
     d.min = gpu::Filter::Linear;
     d.mag = gpu::Filter::Linear;
@@ -377,7 +375,40 @@ gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
     if (s.mipFilter == MipFilter::None) d.maxLod = 0.0f;   // the options' Mipmapping 0: level 0 only
     d.u = ToGpu(s.addressU);
     d.v = ToGpu(s.addressV);
-    return gpu::MakeSampler(d);
+    return d;
+}
+
+// The two kinds of sampler below by a packed key of what makes them (the stage's filters and addresses, the
+// anisotropic kind and its level), for the device they were made on: found without hashing a description per draw.
+// Only samplers made are kept (one that could not be made is tried again, as MakeSampler does).
+struct KeyedSampler {
+    std::uint64_t key = 0;
+    gpu::Sampler sampler;
+};
+static std::vector<KeyedSampler> g_keyedSamplers;
+static std::uint32_t g_keyedSamplersDevice = 0;   // the gpu::DeviceSerial they were made on
+
+static gpu::Sampler KeptSampler(const StageState& s, bool anisotropic, std::uint32_t level) {
+    auto bits = [](auto v) { return static_cast<std::uint64_t>(v); };
+    const std::uint64_t key = bits(s.magFilter) | bits(s.minFilter) << 8 | bits(s.mipFilter) << 16 |
+                              bits(s.addressU) << 24 | bits(s.addressV) << 32 | bits(anisotropic) << 40 | bits(level) << 41;
+    if (g_keyedSamplersDevice != gpu::DeviceSerial()) {
+        g_keyedSamplers.clear();
+        g_keyedSamplersDevice = gpu::DeviceSerial();
+    }
+    for (const KeyedSampler& k : g_keyedSamplers)
+        if (k.key == key) return k.sampler;
+    const gpu::Sampler made = gpu::MakeSampler(anisotropic ? AnisotropicDesc(s, level) : StageDesc(s));
+    if (made) g_keyedSamplers.push_back({key, made});
+    return made;
+}
+
+gpu::Sampler StageSampler(const StageState& s) { return KeptSampler(s, false, 0); }
+
+gpu::Sampler AnisotropicSampler(const StageState& s, std::uint32_t level) {
+    // Point sampling asked for (the options' Filtering 0): as the stage says.
+    if (s.minFilter == Filter::Point || s.magFilter == Filter::Point) return StageSampler(s);
+    return KeptSampler(s, true, level);
 }
 
 void ForgetHolder(const Surface* holder) {

@@ -155,3 +155,33 @@ release-equivalent: the same without `EI_RENDER_VALIDATION`.
 The outside walk's skip saves nothing measurable: what it skips (one strength lookup and the parts' drawn-part
 searches) was cheap; the sphere, pose and placement of every object in the area stay (`CollectVisible` cells and
 cached world spheres, R37f2, are where its time is).
+
+## Measured after R37f2
+
+The save at 3840 x 2160, msaa 1 and anisotropy 1, windowed (R37e3's probe; quiet runs, H64: no other game or build
+beside them), before and after alternated three times, medians; one msaa 8 run each as the worst case. Before is main
+at R37f1's merge (the terrain's R37e4b not in either). The main thread is the CPU's whole frame, so msaa moves it little.
+
+| Part of the main thread (ms a frame) | Harness before | after | Release-equivalent before | after |
+|---|---|---|---|---|
+| Whole main thread, msaa 1 | 6.24 | 5.22 | 4.84 | 4.28 |
+| Whole main thread, msaa 8 (one run) | 6.23 | 5.31 | 4.69 | 4.23 |
+| Objects' visibility (`CollectCells`: cells, kept world boxes, read ahead) | 0.50 | 0.27 | 0.49 | 0.34 |
+| The draw lists' sorts (keys made once per object) | 0.20 | 0.08 | 0.21 | 0.08 |
+| The world pass's mesh draws (`DrawMeshBatch`: keyed pipelines and samplers, the pass's textures and blocks once) | 0.92 | 0.43 | 0.80 | 0.48 |
+| Casters outside the view (cells whose spheres cannot reach passed over) | 0.25 | 0.21 | 0.22 | 0.21 |
+| Objects' draws (of it the hand-over, harness timer: mesh slots) | 1.75 (0.82) | 1.68 (0.76) | 1.18 | 1.20 |
+
+- **Visibility**: the time was memory and library calls, not arithmetic: `std::isfinite` is a CRT call under /fp:fast
+  (now a bit test), every object's lines missed the cache (read eight objects ahead), and an object's world boxes cost
+  about 280 cycles (kept per object, taken again only when its pose, place, bounds or scale changed). A cell's union of
+  boxes decides all of its objects when it clears a plane by a margin (2^-12 of the magnitudes), an object's own box
+  next, else the exact `ClipTest`; every object is still placed every frame (its drawn pose, lights and steps).
+  Checked against the exact tests on every object of the save and seven scenarios: no verdict differed.
+- **Sorts**: the texture's and figure's ranks among the list's (names compared once per distinct key) and the depth's
+  bits make one 64-bit key; the same `IntroSort` on keys that order as `DrawBefore` does gives the same permutation
+  (checked on every sort of the save).
+- **Mesh slots** save less than planned (about 0.06 ms of the hand-over): the five lookups were in warm tables.
+- Left for later: `ShadowFrame::casters` stays a map rebuilt every frame; the point shadows list their objects in its
+  order, so a frame stamp needs an ordered list beside it to keep their faces' caster lists (and redraws) the same.
+  The 1.33 KB of uniforms a draw and the draw count are R37f3's (instancing).

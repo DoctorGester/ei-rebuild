@@ -81,7 +81,7 @@ struct Part {
     // The mesh the renderer keeps on the GPU: what the device's draw draws.
     render::MeshSource Source(bool throughFigure) const {
         return render::MeshSource{node->mesh, throughFigure ? figure : nullptr, !node->mesh->offsets.empty(), coloursWritten,
-                                  lighting};
+                                  lighting, &node->mesh->meshSlots};
     }
     std::vector<std::uint32_t>& Colours() const { return node->mesh->colorsA; }
     std::vector<std::uint32_t>& Speculars() const { return node->mesh->colorsB; }
@@ -349,7 +349,8 @@ void FigureMeshDrawer::DrawPlain(TextureDevice* device, Material*, int alpha, Re
     if (visibility == TransformPipeline::ClipResult::Crossing) drawFlags |= DrawFlag::Clipped;
     if (rect) drawFlags |= DrawFlag::ScreenRect;
 
-    const render::MeshSource source{mesh, nullptr, !mesh->offsets.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat)};
+    const render::MeshSource source{mesh, nullptr, !mesh->offsets.empty(), lib::Has(meshFlags, FigureMeshFlag::Flat), nullptr,
+                                    &mesh->meshSlots};
     const bool drawn = DeviceDraw(device, mesh, source, nullptr, nullptr, alpha, drawFlags);
     if (rect) {
         Rect* own = &screen;

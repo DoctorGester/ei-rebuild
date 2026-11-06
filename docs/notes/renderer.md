@@ -1028,11 +1028,14 @@ the server's height (the AI map's TopHeightAt) has none, so the AI, the server's
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`
 places and writes, the pool started again with the frame's items when one does not fit). Each figure mesh drawn
 through the figure part draws (either through the device or a link figure's part) is
-kept under the mesh: its corners' model-space positions and texture coordinates, the colour and specular pair (a stream of
+kept under the mesh, in a slot the figure mesh names (`render::MeshSlots`, handed over in `MeshSource` and `ShadowMesh`:
+found without a lookup; a slot knows its owner, so a handle copied with a mesh or left after its slot was dropped finds
+none and takes a new one): its corners' model-space positions and texture coordinates, the colour and specular pair (a stream of
 its own) and the valid triangles; the draw binds the pool with the mesh's first index, the texture offset (animated water
 and lava) a shader constant. The game says what changed (`render::SetMeshSource` around the device's draw;
 `render::MeshChanged`): an entry is built again when an array or count it was built from differs or the mesh or link
-figure was rebuilt (`Rebuilt`); its positions are read again when the animation's per-vertex offsets changed or a link
+figure was rebuilt (`Rebuilt`; the counters are kept by the object's address and never dropped, so an entry keeps
+where it found them); its positions are read again when the animation's per-vertex offsets changed or a link
 figure's part was morphed again (`Positions`); its colours when a draw or the game lit or filled them (`Colours`). Only the
 changed range of corners is uploaded. A mesh drawn again in the same frame with other data, interface sprites and mesh
 draws without a source are streamed. Entries not drawn for 600 frames are dropped. Check: `meshcache on|off|check` (off:
@@ -1875,7 +1878,9 @@ forward-declared handles, so the files include no SDL header. `ei_gpu_check` che
   the GPU still reads the old one). Viewport and scissor in target pixels from the top-left on every driver. Bindings
   (`ApplyPipeline`, `BindVertexBuffers`, `BindIndexBuffer` 32-bit, `BindTextures` texture-sampler pairs,
   `PushUniforms`) last for the pass, across pipelines, and one set again unchanged is not sent again (a uniform block
-  is compared byte for byte with the one last pushed in its slot). `Counts()` says what the draws sent and what the
+  is compared byte for byte with the one last pushed in its slot; one its caller keeps unchanged for the pass,
+`PushPassUniforms`, by its address only). `DeviceSerial` and `PassSerial` count the devices made and the passes begun,
+for callers that keep pipelines and samplers by a key of their own (the mesh draws) or bindings for a pass. `Counts()` says what the draws sent and what the
   filter left out; in a real run (scenario `render_stats`, 272k draws) 8% of the pipeline calls, 4% of the vertex and 4%
   of the index buffer binds, 12% of the texture calls and 30% of the uniform pushes were sent. `SetStateFiltering(false)`
   turns the filter off for `ei_gpu_check --bench` alone. `Draw`, `DrawIndexed` (with a first instance).
@@ -2005,7 +2010,7 @@ and uploaded again is what the game says changed:
   into the frame's stream. The texture offsets (an animated mesh's frame of its sheet) are the draw's, added in the
   shader. A kept mesh also keeps the box of its positions (CachedMeshBox: a caster's box for the point shadows' spheres and
   the units' fronts), taken again only when they were built or moved. The casters outside the view
-  (render::ShadowCasterMesh) are kept the same way by part (KeepCasterMesh: a map of their own, positions and texture
+  (render::ShadowCasterMesh) are kept the same way by part (KeepCasterMesh: slots of their own, positions and texture
   coordinates only; read at most once a frame), drawn from the pool with the part's matrix and texture offsets. The harness
   build compares every kept mesh, box and caster with a fresh build every 16th frame (`meshcache check`); `meshcache off`
   builds every mesh into the frame's stream (and every caster again each frame).

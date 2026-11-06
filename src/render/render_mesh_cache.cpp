@@ -5,6 +5,7 @@
 #include "render_internal.h"
 
 #include <cstring>
+#include <deque>
 #include <unordered_map>
 
 namespace render {
@@ -13,12 +14,24 @@ namespace render {
 struct MeshChanges {
     std::uint32_t positions = 0, colours = 0, rebuilt = 0;
 };
-static std::unordered_map<const void*, MeshChanges> g_changes;
+static std::unordered_map<const void*, MeshChanges> g_changes;   // never erased: an entry keeps its place
+static std::uint64_t g_changesMade = 0;                          // entries made in g_changes
 
-static MeshChanges ChangesOf(const void* object) {
+// A g_changes entry as a kept mesh last found it: one that was not there is looked for again only after an
+// entry was made.
+struct ChangesRef {
+    const void* key = nullptr;
+    const MeshChanges* at = nullptr;
+    std::uint64_t made = 0;
+};
+
+static MeshChanges ChangesOf(const void* object, ChangesRef& ref) {
     if (!object) return MeshChanges{};
-    auto it = g_changes.find(object);
-    return it == g_changes.end() ? MeshChanges{} : it->second;
+    if (ref.key != object || (!ref.at && ref.made != g_changesMade)) {
+        auto it = g_changes.find(object);
+        ref = {object, it == g_changes.end() ? nullptr : &it->second, g_changesMade};
+    }
+    return ref.at ? *ref.at : MeshChanges{};
 }
 
 // What a kept mesh was built from: when an array or count differs, it is built again.
@@ -73,10 +86,73 @@ struct CachedMesh : KeptRanges {
     std::uint32_t version = 0;                       // CachedMeshVersion
     bool boxKept = false;                            // CachedMeshBox's box taken since the positions changed
     float box[6] = {};
+    ChangesRef own, link, colourWrites;              // MeshFrom's changes as last found
 };
 
-static std::unordered_map<const FigureMesh*, CachedMesh> g_meshes;
-static std::unordered_map<const FigureMesh*, CachedMesh> g_casterMeshes;   // KeepCasterMesh's, by part (no colours)
+// The kept meshes by the slot their figure mesh holds (MeshSlots: 1 + the index). A dropped mesh's slot is used
+// again; a deque keeps the meshes' places (the frame's batches and g_pending point at them).
+class MeshSlotPool {
+public:
+    // `owner`'s mesh in slot `handle`, null when the slot is not the owner's (none, dropped, used again).
+    CachedMesh* Of(const FigureMesh* owner, std::uint32_t handle) {
+        if (handle == 0 || handle > slots.size()) return nullptr;
+        Slot& s = slots[handle - 1];
+        return s.owner == owner ? &s.mesh : nullptr;
+    }
+    // `owner`'s mesh, a new one in a free slot (`handle` set, *made true) when it has none.
+    CachedMesh& Take(const FigureMesh* owner, std::uint32_t& handle, bool* made) {
+        *made = false;
+        if (CachedMesh* kept = Of(owner, handle)) return *kept;
+        std::uint32_t index = 0;
+        if (!unused.empty()) {
+            index = unused.back();
+            unused.pop_back();
+        } else {
+            index = static_cast<std::uint32_t>(slots.size());
+            slots.emplace_back();
+        }
+        Slot& s = slots[index];
+        s.owner = owner;
+        s.mesh = CachedMesh{};
+        ++live;
+        handle = index + 1;
+        *made = true;
+        return s.mesh;
+    }
+    // Lets go of every kept mesh `drop(mesh)` says to.
+    template <class Drop>
+    void DropIf(Drop drop) {
+        for (std::size_t i = 0; i < slots.size(); ++i) {
+            Slot& s = slots[i];
+            if (!s.owner || !drop(s.mesh)) continue;
+            s.owner = nullptr;
+            s.mesh = CachedMesh{};
+            unused.push_back(static_cast<std::uint32_t>(i));
+            --live;
+        }
+    }
+    template <class Each>
+    void ForEach(Each each) {
+        for (Slot& s : slots)
+            if (s.owner) each(s.mesh);
+    }
+    std::size_t Live() const { return live; }
+
+private:
+    struct Slot {
+        const FigureMesh* owner = nullptr;   // null: free
+        CachedMesh mesh;
+    };
+    std::deque<Slot> slots;
+    std::vector<std::uint32_t> unused;   // free slots
+    std::size_t live = 0;
+};
+
+static MeshSlotPool g_meshes;
+static MeshSlotPool g_casterMeshes;   // KeepCasterMesh's, by part (no colours)
+// The casters read in frame g_frameCastersAt (UploadCachedMeshes).
+static std::vector<CachedMesh*> g_frameCasters;
+static std::uint32_t g_frameCastersAt = 0;
 static std::uint32_t g_lastVersion = 0;                              // the last CachedMesh::version given
 static std::vector<CachedMesh*> g_pending;
 static GpuPool g_pool(sizeof(MeshVertex), 1u << 16, 3u << 16, "ei-mesh");
@@ -91,7 +167,7 @@ constexpr std::uint32_t kCheckEvery = 16;
 static CachedMesh g_fresh;   // the fresh build
 #endif
 
-static MeshFrom FromOf(const MeshDraw& m) {
+static MeshFrom FromOf(const MeshDraw& m, CachedMesh& e) {
     MeshFrom f;
     f.shared = g_source.shared;
     f.positions = g_source.moved ? nullptr : m.positions;
@@ -106,13 +182,13 @@ static MeshFrom FromOf(const MeshDraw& m) {
     f.normals = m.normals;
     f.words = m.words;
     f.wordCount = m.wordCount;
-    f.own = ChangesOf(g_source.owner);
-    f.colourWrites = ChangesOf(m.colours).colours;
-    f.link = ChangesOf(g_source.shared);
+    f.own = ChangesOf(g_source.owner, e.own);
+    f.colourWrites = ChangesOf(m.colours, e.colourWrites).colours;
+    f.link = ChangesOf(g_source.shared, e.link);
     return f;
 }
 
-static MeshFrom FromOf(const ShadowMesh& m) {
+static MeshFrom FromOf(const ShadowMesh& m, CachedMesh& e) {
     MeshFrom f;
     f.shared = m.shared;
     f.positions = m.moved ? nullptr : m.positions;
@@ -123,8 +199,8 @@ static MeshFrom FromOf(const ShadowMesh& m) {
     f.cornerCount = m.cornerCount;
     f.indices = m.indices;
     f.indexCount = m.indexCount;
-    f.own = ChangesOf(m.owner);
-    f.link = ChangesOf(m.shared);
+    f.own = ChangesOf(m.owner, e.own);
+    f.link = ChangesOf(m.shared, e.link);
     return f;
 }
 
@@ -278,11 +354,11 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
         ++g_stats.counts[FrameStats::Count::MorphMeshes];
         g_stats.counts[FrameStats::Count::MorphCorners] += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
     }
-    if (!g_haveSource || !g_source.owner || !m.corners || g_interface) return nullptr;
+    if (!g_haveSource || !g_source.owner || !g_source.slots || !m.corners || g_interface) return nullptr;
     if (!g_cacheOn) return nullptr;
-    MeshFrom now = FromOf(m);
-    auto [found, made] = g_meshes.try_emplace(g_source.owner);
-    CachedMesh& e = found->second;
+    bool made = false;
+    CachedMesh& e = g_meshes.Take(g_source.owner, g_source.slots->drawn, &made);
+    MeshFrom now = FromOf(m, e);
     bool build = made || !e.valid || !e.from.SameArrays(now);
     bool move = !build && !e.from.SamePositions(now);
     bool relight = !build && (e.relightNext || !e.from.SameColours(now));
@@ -327,10 +403,10 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
 }
 
 CachedMesh* KeepCasterMesh(const ShadowMesh& m) {
-    if (!m.owner || !m.positions || !m.corners || !m.indices || m.cornerCount <= 0) return nullptr;
-    MeshFrom now = FromOf(m);
-    auto [found, made] = g_casterMeshes.try_emplace(m.owner);
-    CachedMesh& e = found->second;
+    if (!m.owner || !m.slots || !m.positions || !m.corners || !m.indices || m.cornerCount <= 0) return nullptr;
+    bool made = false;
+    CachedMesh& e = g_casterMeshes.Take(m.owner, m.slots->caster, &made);
+    MeshFrom now = FromOf(m, e);
     const bool usable = e.valid && !e.indices.empty();
     if (!made && e.lastUsed == FrameNumber()) return usable ? &e : nullptr;   // read once a frame
     bool build = made || !e.valid || !e.from.SameArrays(now);
@@ -349,6 +425,11 @@ CachedMesh* KeepCasterMesh(const ShadowMesh& m) {
     e.from = now;
     e.drawn = true;
     e.lastUsed = FrameNumber();
+    if (g_frameCastersAt != e.lastUsed) {
+        g_frameCasters.clear();
+        g_frameCastersAt = e.lastUsed;
+    }
+    g_frameCasters.push_back(&e);
     if (!e.valid || e.indices.empty()) return nullptr;
     if (!g_pool.Placed(e.place)) e.dirty = true;
     if (e.HasWrites()) AddPending(g_pending, e);
@@ -381,8 +462,8 @@ void NoteMeshDraw(const MeshDraw& m) {
     if (!g_haveSource || !g_source.owner || !(g_source.coloursWritten || m.coloursWritten)) return;
     // The colours were written whether or not the draw reaches KeepMesh (a draw outside a frame, without
     // passes, streamed): the kept mesh reads them at its next draw.
-    auto it = g_meshes.find(g_source.owner);
-    if (it != g_meshes.end()) it->second.relightNext = true;
+    if (!g_source.slots) return;
+    if (CachedMesh* kept = g_meshes.Of(g_source.owner, g_source.slots->drawn)) kept->relightNext = true;
 }
 
 const FigureMesh* MeshSourceOwner() { return g_haveSource ? g_source.owner : nullptr; }
@@ -409,8 +490,9 @@ void UploadCachedMeshes(const Frame& f) {
     auto frameMeshes = [&](auto add) {
         for (const MeshBatch& b : f.meshBatches)
             if (b.cached) add(*b.cached);
-        for (auto& entry : g_casterMeshes)
-            if (entry.second.lastUsed == FrameNumber() && entry.second.valid) add(entry.second);
+        if (g_frameCastersAt == FrameNumber())
+            for (CachedMesh* caster : g_frameCasters)
+                if (caster->valid) add(*caster);
     };
     UploadKept(g_pool, g_pending, frameMeshes, FrameStats::Count::MeshVertexBytes, FrameStats::Count::MeshIndexBytes);
 }
@@ -425,10 +507,8 @@ bool BindCachedMesh(const CachedMesh& mesh, Geometry& g, int* firstIndex) {
 void MeshCacheFrameDone() {
     const std::uint32_t now = FrameNumber();
     if (now % 64 != 0) return;
-    for (auto* meshes : {&g_meshes, &g_casterMeshes})
-        std::erase_if(*meshes, [now](const auto& entry) {
-            return !entry.second.pending && now - entry.second.lastUsed > kMeshLife;
-        });
+    for (MeshSlotPool* meshes : {&g_meshes, &g_casterMeshes})
+        meshes->DropIf([now](const CachedMesh& mesh) { return !mesh.pending && now - mesh.lastUsed > kMeshLife; });
 }
 
 void SetMeshSource(const MeshSource* source) {
@@ -438,7 +518,9 @@ void SetMeshSource(const MeshSource* source) {
 
 void MeshChanged(const void* object, MeshChange change) {
     if (!object) return;
-    MeshChanges& c = g_changes[object];
+    auto [entry, made] = g_changes.try_emplace(object);
+    if (made) ++g_changesMade;
+    MeshChanges& c = entry->second;
     switch (change) {
     case MeshChange::Positions:
         ++c.positions;
@@ -458,15 +540,15 @@ void SetMeshCache(bool on) {
     if (on != g_cacheOn) ei::Log("render: figure meshes %s", on ? "kept on the GPU" : "built and uploaded every frame");
     // What changed while off was not read: every kept mesh is built again at its next draw.
     if (on && !g_cacheOn)
-        for (auto* meshes : {&g_meshes, &g_casterMeshes})
-            for (auto& m : *meshes) m.second.valid = false;
+        for (MeshSlotPool* meshes : {&g_meshes, &g_casterMeshes})
+            meshes->ForEach([](CachedMesh& mesh) { mesh.valid = false; });
     g_cacheOn = on;
 }
 
 MeshCacheInfo MeshCacheState() {
     MeshCacheInfo info;
     info.on = g_cacheOn;
-    info.meshes = g_meshes.size();
+    info.meshes = g_meshes.Live();
     info.checks = g_checks;
     info.stale = g_stale;
     return info;

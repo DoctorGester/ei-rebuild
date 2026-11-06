@@ -230,6 +230,7 @@ public:
     std::vector<Vector3> offsets;      // per-vertex offsets added when drawing
     std::vector<std::uint32_t> colorsA;    // one per normal (lit colours)
     std::vector<std::uint32_t> colorsB;    // one per normal
+    render::MeshSlots meshSlots;           // the renderer's copies on the GPU (render::MeshSource::slots)
     // from the file header (before meshType): the material value of the mesh (the number in its
     // material group's name). An object's part takes both from its piece's LinkPartHeader (Object3D::LoadPart).
     std::uint32_t materialValue = 0;

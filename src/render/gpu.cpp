@@ -836,6 +836,9 @@ static void MakeAhead(Prepared& prepared) {
 
 constexpr int kMostSamplers = 16;
 constexpr int kMostBlocks = 4;
+constexpr std::uint32_t kMostKeptBytes = 4096;   // a larger block is pushed every time
+static std::uint32_t g_deviceSerial = 0;   // DeviceSerial
+static std::uint64_t g_passSerial = 0;     // PassSerial
 struct Bound {
     SDL_GPUGraphicsPipeline* pipeline = nullptr;
     BufferBinding vertex[kMostVertexBuffers];
@@ -843,7 +846,9 @@ struct Bound {
     bool haveIndex = false;
     SDL_GPUTexture* textures[2][kMostSamplers] = {};
     SDL_GPUSampler* samplers[2][kMostSamplers] = {};
-    std::vector<std::uint8_t> uniforms[2][kMostBlocks];   // the last pushed, kept as capacity between passes
+    std::uint8_t uniforms[2][kMostBlocks][kMostKeptBytes] = {};   // the last pushed
+    std::uint32_t uniformBytes[2][kMostBlocks] = {};
+    const void* passData[2][kMostBlocks] = {};   // PushPassUniforms's block, null after a PushUniforms
     bool pushed[2][kMostBlocks] = {};
     void Reset() {
         pipeline = nullptr;
@@ -928,6 +933,7 @@ bool Start(const DeviceOptions& options) {
         return false;
     }
     g_error.clear();
+    ++g_deviceSerial;
     g_debug = options.debug;
     g_driverName = SDL_GetGPUDeviceDriver(g_device);
     g_wholeBlocks = g_driverName == "direct3d12";
@@ -990,6 +996,8 @@ void Stop() {
 }
 
 bool Started() { return g_device != nullptr; }
+std::uint32_t DeviceSerial() { return g_deviceSerial; }
+std::uint64_t PassSerial() { return g_passSerial; }
 const char* Error() { return g_error.c_str(); }
 const char* DriverName() { return g_driverName.c_str(); }
 const char* DeviceName() { return g_deviceName.c_str(); }
@@ -1372,6 +1380,7 @@ bool BeginPass(const PassDesc& pass) {
                                     d.texture ? &depth : nullptr);
     if (!g_pass) Failed("the pass", pass.label ? pass.label : "");
     g_bound.Reset();
+    ++g_passSerial;
     return true;
 }
 
@@ -1512,24 +1521,48 @@ void BindTextures(Stage stage, int first, std::span<const TextureBinding> textur
     else SDL_BindGPUFragmentSamplers(g_pass, slot, sdl, count);
 }
 
+// Sends the block of stage `s` (0 vertex, 1 fragment) and keeps its bytes for PushUniforms's comparison (a block
+// too large to keep is compared with nothing).
+static void Push(int s, int slot, const void* data, std::uint32_t bytes) {
+    ++g_counts.pushes;
+    g_counts.pushedBytes += bytes;
+    MeetLoss(LossPoint::Uniforms);
+    const bool kept = bytes <= kMostKeptBytes;
+    if (kept) std::memcpy(g_bound.uniforms[s][slot], data, bytes);
+    g_bound.uniformBytes[s][slot] = bytes;
+    g_bound.pushed[s][slot] = kept;
+    if (s == 0) SDL_PushGPUVertexUniformData(g_commands, static_cast<Uint32>(slot), data, bytes);
+    else SDL_PushGPUFragmentUniformData(g_commands, static_cast<Uint32>(slot), data, bytes);
+}
+
 void PushUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes) {
     if (!g_pass || slot < 0 || slot >= kMostBlocks) {
         Problem("uniforms %s", g_pass ? "out of range" : "outside a pass");
         return;
     }
     const int s = stage == Stage::Vertex ? 0 : 1;
-    std::vector<std::uint8_t>& last = g_bound.uniforms[s][slot];
-    if (g_filtering && g_bound.pushed[s][slot] && last.size() == bytes && std::memcmp(last.data(), data, bytes) == 0) {
+    std::uint8_t* last = g_bound.uniforms[s][slot];
+    if (g_filtering && g_bound.pushed[s][slot] && g_bound.uniformBytes[s][slot] == bytes &&
+        std::memcmp(last, data, bytes) == 0) {
         ++g_counts.pushesSkipped;
         return;
     }
-    ++g_counts.pushes;
-    g_counts.pushedBytes += bytes;
-    MeetLoss(LossPoint::Uniforms);
-    last.assign(static_cast<const std::uint8_t*>(data), static_cast<const std::uint8_t*>(data) + bytes);
-    g_bound.pushed[s][slot] = true;
-    if (stage == Stage::Vertex) SDL_PushGPUVertexUniformData(g_commands, static_cast<Uint32>(slot), data, bytes);
-    else SDL_PushGPUFragmentUniformData(g_commands, static_cast<Uint32>(slot), data, bytes);
+    Push(s, slot, data, bytes);
+    g_bound.passData[s][slot] = nullptr;
+}
+
+void PushPassUniforms(Stage stage, int slot, const void* data, std::uint32_t bytes) {
+    if (!g_pass || slot < 0 || slot >= kMostBlocks) {
+        Problem("uniforms %s", g_pass ? "out of range" : "outside a pass");
+        return;
+    }
+    const int s = stage == Stage::Vertex ? 0 : 1;
+    if (g_filtering && g_bound.pushed[s][slot] && g_bound.passData[s][slot] == data) {
+        ++g_counts.pushesSkipped;
+        return;
+    }
+    Push(s, slot, data, bytes);
+    g_bound.passData[s][slot] = data;
 }
 
 void Draw(std::uint32_t first, std::uint32_t count, std::uint32_t instances) {

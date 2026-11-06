@@ -17,6 +17,7 @@
 #include "game/terrain/terrain.h"
 #include "game/terrain/terrain_sector.h"
 #include "game/scene/scene_renderer.h"
+#include "game/world/frame_lists.h"
 #include "game/world/world.h"
 
 #include "lib/vecmath.h"
@@ -176,6 +177,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
                 mesh.owner = part;
                 mesh.shared = figure;
                 mesh.moved = !part->offsets.empty();
+                mesh.slots = &part->meshSlots;
                 mesh.unit = unit;
                 render::ShadowCasterMesh(object, mesh);
             }
@@ -305,6 +307,11 @@ void HandOverOutsideCasters(WorldClient* world) {
     const std::uint32_t firstY = cell(area.y0, grid.height), lastY = cell(area.y1, grid.height);
     for (std::uint32_t y = firstY; y <= lastY; ++y)
         for (std::uint32_t x = firstX; x <= lastX; ++x) {
+            // A cell whose spheres the view placed this frame and none of which can reach is passed over whole.
+            if (const CasterCell* placed = ViewCasterCell(x, y); placed && placed->complete) {
+                if (!placed->any) continue;
+                if (!render::ShadowCastersMayReach({placed->low, placed->high, placed->size, placed->radius})) continue;
+            }
             const auto& list = grid.rows[y][x];
             for (MapObject* object : list) {
                 if (!object || !object->attached) continue;

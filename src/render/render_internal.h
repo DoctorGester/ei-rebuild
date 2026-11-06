@@ -841,6 +841,7 @@ void PrepareShadows(Frame& frame);
 void DrawShadowMap(Frame& frame);
 const ShadowParams& ShadowUniforms(const Frame& frame, bool receives, bool clouded);
 void BindShadowMap(const Frame& frame, int mapSlot);
+void ShadowMapBindings(const Frame& frame, gpu::TextureBinding out[2]);   // what BindShadowMap binds
 // The cloud shadows (render_cloud_shadows.cpp, shaders/cloud_shadow.hlsli), in the receivers' ShadowParams: a batch
 // with a light matrix takes them (`clouded` in ShadowUniforms), the water too. PrepareClouds, from PrepareShadows
 // once a frame outside a pass: the cloud map made at the first, the drift and the cover moved on by the world's time;
@@ -853,6 +854,7 @@ void CloudsToKeep(KeptWeather* weather);
 void RestoreClouds(const KeptWeather& weather);
 void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* params);
 void BindCloudMap(int slot);
+gpu::TextureBinding CloudMapBinding();   // what BindCloudMap binds
 // The weather on the surfaces (render_weather.cpp; section 13, item 11b). PrepareSurfaces, from PrepareShadows once a
 // frame: the wetness, the puddles and the snow cover moved on towards the frame's weather by the world's time.
 // SurfaceUniforms: the terrain's weather in its TerrainFsParams. MeshWeatherUniforms: a world mesh's in its
@@ -876,6 +878,7 @@ void PrepareRoofs(Frame& frame);
 void RoofUniforms(const Matrix4& light, ShadowParams* params);
 void DrawRoofMap();
 void BindRoofMap(int slot);
+gpu::TextureBinding RoofMapBinding();   // what BindRoofMap binds
 // The visible ground's box in the landscape's space, by the sun map's fit of this frame; none without one.
 // AddOutsideRoofs: the sun map's casters outside the view that are not units (render::ShadowCasterMesh) into `draws`
 // through `clip` (the landscape's space to the roof map's), after the sun map's draws were listed; the count added.
@@ -954,6 +957,7 @@ private:
 void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
 void BindPointShadows(const Frame& frame, int slot);
+gpu::TextureBinding PointShadowBinding(const Frame& frame);   // what BindPointShadows binds
 int PointShadowSlot(const Frame& frame, int sceneLight);
 // A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade): the scene's sun, ambient light and the
 // kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, the
@@ -1000,6 +1004,7 @@ void OcclusionUniforms(bool receives, Block& fs) {
     }
 }
 void BindOcclusion(int slot);
+void OcclusionBindings(gpu::TextureBinding out[2]);   // what BindOcclusion binds
 void OcclusionFrameDone();
 
 // The movies' blits, the depth clear in the middle of the pass and the movie player's fill.

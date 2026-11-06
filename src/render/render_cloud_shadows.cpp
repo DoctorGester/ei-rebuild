@@ -180,8 +180,10 @@ void CloudUniforms(float x0, float y0, float extent, float light, ShadowParams* 
     params->cloudShiftB[1] = static_cast<float>(by - std::floor(by));
 }
 
+gpu::TextureBinding CloudMapBinding() { return {g_cloudMap, gpu::MakeSampler(gpu::SamplerDesc{})}; }
+
 void BindCloudMap(int slot) {
-    const gpu::TextureBinding b{g_cloudMap, gpu::MakeSampler(gpu::SamplerDesc{})};
+    const gpu::TextureBinding b = CloudMapBinding();
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }
 

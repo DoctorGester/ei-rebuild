@@ -764,6 +764,24 @@ bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
     return true;
 }
 
+bool ShadowCastersMayReach(const ShadowCasterCentres& centres) {
+    if (!g_fit.ok || g_fit.frame != FrameNumber()) return false;
+    // ShadowCasterReaches's tests on the box's ranges along the map's axes widened by the radius, decided only past
+    // a margin of 2^-12 of a bound on their terms (the rounding of either side is far below it).
+    const Vector3 c = (centres.low + centres.high) * 0.5f, half = (centres.high - centres.low) * 0.5f;
+    const float r = centres.radius, lengthX = Length(g_fit.x), lengthY = Length(g_fit.y);
+    const float lx = Dot(g_fit.x, c), ly = Dot(g_fit.y, c), lz = Dot(g_fit.d, c);
+    const float ex = Dot(Abs(g_fit.x), half) + r * lengthX, ey = Dot(Abs(g_fit.y), half) + r * lengthY;
+    const float ez = Dot(Abs(g_fit.d), half) + r;
+    const float margin = (Dot(Abs(g_fit.x) + Abs(g_fit.y) + Abs(g_fit.d), centres.size) + r * (lengthX + lengthY + 1.0f) +
+                          std::fabs(g_fit.x0) + std::fabs(g_fit.y0) + std::fabs(g_fit.extent) + std::fabs(g_fit.groundFar)) *
+                         0x1p-12f;
+    if (lx + ex < g_fit.x0 - margin || lx - ex > g_fit.x0 + g_fit.extent + margin || ly + ey < g_fit.y0 - margin ||
+        ly - ey > g_fit.y0 + g_fit.extent + margin || lz - ez > g_fit.groundFar + margin)
+        return false;
+    return true;
+}
+
 bool CasterPartDrawn(const FigureMesh* part) {
     if (!part) return false;
     if (!g_drawnPartsSorted) {
@@ -1203,13 +1221,18 @@ const ShadowParams& ShadowUniforms(const Frame& f, bool receives, bool clouded) 
     return clouded && f.shadow.clouds ? f.shadow.cloudParams : kNone;
 }
 
+void ShadowMapBindings(const Frame& f, gpu::TextureBinding out[2]) {
+    const bool on = g_map && g_range && f.shadow.on;
+    // The range after the map: with no map its 1 x 1 stand-in (the shaders read neither then).
+    out[0] = {on ? g_map : g_dummy, ShadowCompareSampler()};
+    out[1] = {on ? g_range : g_rangeDummy, gpu::NearestClampSampler()};
+}
+
 void BindShadowMap(const Frame& f, int mapSlot) {
     static_assert(gpu_shaders::mesh::kSamplerShadowRange == gpu_shaders::mesh::kSamplerShadowMap + 1 &&
                   gpu_shaders::terrain::kSamplerShadowRange == gpu_shaders::terrain::kSamplerShadowMap + 1);
-    const bool on = g_map && g_range && f.shadow.on;
-    // The range after the map: with no map its 1 x 1 stand-in (the shaders read neither then).
-    const gpu::TextureBinding b[2] = {{on ? g_map : g_dummy, ShadowCompareSampler()},
-                                      {on ? g_range : g_rangeDummy, gpu::NearestClampSampler()}};
+    gpu::TextureBinding b[2];
+    ShadowMapBindings(f, b);
     gpu::BindTextures(gpu::Stage::Fragment, mapSlot, b);
 }
 

@@ -388,8 +388,12 @@ void DrawRoofMap() {
     g_roofInfo.roofs = static_cast<int>(g_roofDraws.Count());
 }
 
+gpu::TextureBinding RoofMapBinding() {
+    return {g_roofFit.on && g_roofTexture ? g_roofTexture : NoShadowTexture(), ShadowCompareSampler()};
+}
+
 void BindRoofMap(int slot) {
-    const gpu::TextureBinding b{g_roofFit.on && g_roofTexture ? g_roofTexture : NoShadowTexture(), ShadowCompareSampler()};
+    const gpu::TextureBinding b = RoofMapBinding();
     gpu::BindTextures(gpu::Stage::Fragment, slot, {&b, 1});
 }
 

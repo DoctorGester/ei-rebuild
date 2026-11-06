@@ -91,9 +91,7 @@ float AnimationTime() {
 // comparator compares the texture and the figure by address; ours by name: object_order::DrawBefore).
 // Objects with the same keys are drawn in the game's sort's order.
 void SortByModel(FrameList list) {
-    std::vector<MapObject*>& v = FrameObjects(list);
-    lib::IntroSort(v.data(), v.data() + v.size(),
-                   [](MapObject* a, MapObject* b) { return object_order::DrawBefore(a, b); });
+    object_order::SortForDraw(FrameObjects(list));
 }
 
 template <typename Draw>
@@ -266,13 +264,13 @@ int WorldClient::DrawPass() {
     if (bird) bird->Update(animTime);
 
     // Every sector of the map's object grid (16-unit sectors up to size - 1): what is drawn is what the clip test
-    // in CollectVisible passes. The game took the sectors within 100 units of the camera; Rebirth's ObjectsDrawRadius
+    // in CollectCells passes. The game took the sectors within 100 units of the camera; Rebirth's ObjectsDrawRadius
     // widened that to the whole map.
     currentTerrain = terrain.get();
     const CellRange wholeMap = {0, 0, static_cast<std::uint32_t>(lib::Truncate(terrain->width - kMapEdgeMargin)) >> 4,
                                 static_cast<std::uint32_t>(lib::Truncate(terrain->height - kMapEdgeMargin)) >> 4};
     int touched = 0;
-    objectGrid.ForEachObject(wholeMap, [&](MapObject* object) { touched += CollectVisible(object, view, animTime, now, 0, 0); });
+    touched += CollectCells(wholeMap, view, now);
     for (MapObject* object : g_deferredUnits) touched += CollectVisible(object, view, animTime, now, 1, 0);
     g_deferredUnits.clear();
     for (MapObject* object : heroes) touched += CollectVisible(object, view, animTime, now, 1, 1);
