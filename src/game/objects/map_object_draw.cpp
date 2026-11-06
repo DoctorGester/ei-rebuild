@@ -61,7 +61,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
         drawnRect = {};
         object->dirtyRect = {};
     }
-    if (object->animation) object->animation->UpdatePose();
+    if (object->animation) object->animation->PlaceForDraw();
 
     // The lights within reach (the list starts with room for 16).
     std::vector<Light*> list;

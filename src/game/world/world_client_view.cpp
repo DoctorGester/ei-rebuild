@@ -222,7 +222,7 @@ int WorldClient::CollectVisible(MapObject* object, const Matrix4* view, float an
             object->flags &= ~MapObjectFlag::Shown;
             // Out of view: still listed for shadows when its shadow volume is in view.
             if (ModelOf(object)->ShadowInView()) {
-                if (o3d->animation) o3d->animation->UpdatePose();
+                if (o3d->animation) o3d->animation->PlaceForDraw();
                 switch (object->GetClassId()) {
                 case ClassId::Unit: PushBack(FrameObjects(FrameList::ShadowUnits), entry); break;
                 case ClassId::Tree: PushBack(FrameObjects(FrameList::ShadowTrees), entry); break;

@@ -343,6 +343,8 @@ bool ClientObject(int id, const char* part, ObjectState* out);
 bool ClientLight(int id, ObjectState* out);
 // Animation switches blend (FigureAnimationState::SetBlends; "animblend on|off").
 void SetAnimationBlends(bool on);
+// The blends begun so far in world figures (FigureAnimationState::WorldBlendsBegun; "animblend count").
+std::uint32_t WorldBlendsBegun();
 
 // ---- the UTF-8 checks (harness_utf8.cpp; image/harness_utf8_image.cpp)
 

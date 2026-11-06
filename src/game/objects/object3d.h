@@ -401,6 +401,8 @@ public:
     // When `changed`: each bone's placing animator is evaluated at the frame reached then PlaceIfChanged. While a
     // blend runs the skeleton is placed again at its weight now, changed or not.
     void UpdatePose();
+    // UpdatePose for a draw (the world's, a shadow's, the interface's): the pose placed is the one shown.
+    void PlaceForDraw();
     // The morph becomes (s, t, u) on every bone, whose manager reloads its key frames from the owner's model,
     // and on the state (`changed` cleared); then the root places the skeleton as PlaceIfChanged does.
     void Rescale(float s, float t, float u);
@@ -435,13 +437,25 @@ public:
     std::uint32_t blendStart = 0;
     std::uint32_t blendLength = 0;
     std::uint32_t placedAt = 0;
+    // A switch blends only from a pose the player saw, in a figure seen moving: `poseShown` while the pose last
+    // placed has been drawn (PlaceForDraw), `seenMoving` once a placement replaced a drawn pose. So a figure's first
+    // shown pose is its current animation's, never a blend from the rest pose its building placed (the user's Lost
+    // in Astral load: the HUD's hero swung out of a T pose) or from a pose shown frozen before its world ran (the
+    // main menu after a game: its creatures' idles, drawn in the paused world before the server's first tick, blended
+    // into their walks).
+    bool poseShown = false;
+    bool seenMoving = false;
     // Before a switch from `from` to `to`: each bone keeps the pose last placed as the outgoing one and the blend
-    // starts, as long as `to`'s kind asks (none when either is null; one running is cut short).
+    // starts, as long as `to`'s kind asks (none when either is null or the figure was not seen as above; one running
+    // is cut short).
     void BeginBlend(const FigureAnimation* from, const FigureAnimation* to);
     // The incoming animation's share of the pose now (eased; 1 once the blend is over, which ends it).
     float BlendWeight();
     // The harness's seam (its "animblend off"): switches snap, as in the original, while off.
     static void SetBlends(bool on);
+    // The harness's count ("animblend count"): the blends begun so far in world figures (not the interface's
+    // previews, MapObjectFlag::Preview).
+    static std::uint32_t WorldBlendsBegun();
 };
 
 // The 3D object: a transform object with a figure, its parts and their animation (abstract: class name and
