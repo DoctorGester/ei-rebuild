@@ -70,7 +70,7 @@ public:
     // Appends a unit record: Create when there is no item manager; a constructed record assigned to the new
     // entry (its statistics are the stack's leftover bytes); `name` as the record's name and its text key (-1 when
     // empty) as the key, `prototype` as its prototype, `extra` as its scriptName; then FillFromPrototype. Returns
-    // the record.
+    // the record; null (a warning, nothing added) when the units database lacks the prototype (a script names it).
     PartyUnitRecord* AddMember(std::string_view name, std::string_view prototype, std::string_view extra);
     // Gives `record` what its prototype says: figureName from its model, the NPC statistics, the three
     // scales, copies (Item::Clone) of the starting armour, of the two weapons unless

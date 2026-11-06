@@ -345,6 +345,11 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, Party* party)
 
 PartyUnitRecord* Party::AddMember(std::string_view name, std::string_view prototype, std::string_view extra) {
     if (!itemManager) Create();
+    if (!g_unitDatabase.prototypes.FindByName(prototype)) {   // a script's unit of a prototype the database lacks
+        game::Warning("Can't find prototype \"%s\" for unit \"%s\": no unit", std::string(prototype),
+                      std::string(name.empty() ? extra : name));
+        return nullptr;
+    }
     // The game assigned a constructed stack record to the new entry. Ours is value-initialised: the record's
     // defaults leave the statistics, which the game took from its stack and saved with the party (a
     // determinism fix).

@@ -143,6 +143,7 @@ kinds below, the same on every install. An old `[patches] DisableExitOnCrashRepo
   | Site | Error | The safe local thing |
   |---|---|---|
   | units/unit_create.cpp GiveStartingEquipment | a map unit's prototype the units database lacks | the unit gets no starting equipment |
+  | players/party.cpp AddMember | a script's unit (AddUnitToServer, AddUnitToParty) of a prototype the units database lacks (MOD11; the original read through the null record) | no record, no unit; the script goes on |
   | units/unit_create.cpp GiveStartingEquipment | a weapon, armour or spell that cannot be made | that piece is left out |
   | spell_manager CreateSpellFromText | an unknown spell name | no spell |
   | texture.cpp LoadTexture | a texture file of no format the renderer takes | not loaded (as a missing texture) |
@@ -158,7 +159,7 @@ kinds below, the same on every install. An old `[patches] DisableExitOnCrashRepo
 
   Real data reaches one: units of prototypes Lost in Astral's database lacks, in its gz8g (the game's "zone8 ..."
   units: "zone8 Ogre", "zone8 Orc Fighter1 M", ...) and gz17g (a leftover map.txt zone no exit leads to: "SpiderF15",
-  "HyenaF6", ...); `mod_lost_in_astral_gipat` enters both, `mod_lost_in_astral_unknown_prototype` checks the warning.
+  "HyenaF6", ...); `mod_lost_in_astral_gipat` enters both, `mod_lost_in_astral_unknown_prototype` checks the warning (and a script's AddUnitToServer of "WolfTutor").
   No other warning shows in the logs of the Rebirth set's 138 runs.
 - **Network errors** end the connection, not the game: a message the player's state does not expect
   (`PlayerMessageError`, 8 calls: a warning, the handler returns 0 and the session closes) and a client's failed
