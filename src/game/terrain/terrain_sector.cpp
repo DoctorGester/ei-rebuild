@@ -14,6 +14,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/rounding.h"
 
 #include <algorithm>
 #include <array>
@@ -56,9 +57,9 @@ constexpr int kTileFrameEvery = 3;                         // animated tiles ste
 constexpr int kAlwaysSteps = 1000;                         // a tile speed that steps every time
 
 // The sine table entry at `phase` radians: phase * 256 / pi rounded to nearest, mod 512.
-inline float Sine(const Terrain* owner, float phase) { return owner->sine[std::lround(phase * kSineIndex) & 0x1FF]; }
+inline float Sine(const Terrain* owner, float phase) { return owner->sine[lib::RoundAway(phase * kSineIndex) & 0x1FF]; }
 
-inline std::uint32_t ColourByte(float v) { return static_cast<std::uint32_t>(std::lround(v)) & 0xFF; }
+inline std::uint32_t ColourByte(float v) { return static_cast<std::uint32_t>(lib::RoundAway(v)) & 0xFF; }
 
 // The circling waves' sine per column (and per row: the same values) at the world time, once per call.
 std::array<float, kSectorRow> CircleSines(const Terrain* owner) {

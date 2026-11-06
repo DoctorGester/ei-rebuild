@@ -43,6 +43,9 @@ checked across them.
   (006100E0: a worn-out weapon or armour, `FISTP(condition) <= 0`, is not given to a hero, as combat and armour test it)
   and `HeroSchoolSkill` (00610020 and CanEquip's trade page: the float skill is stored, reloaded and FISTP'd before the
   spell's requirement is compared).
+- `lib::RoundAway` is `std::lround` without the CRT call (the same int for every float in the int range, compared
+  exhaustively; 0x80000000 outside it): for hot client-only loops (the water waves' sine index and crest bytes, twice as
+  fast).
 - VC6's `_ftol` truncates and keeps the low half of the 64-bit integer (0 for NaN):
   `static_cast<int>(static_cast<std::int64_t>(x))` where a NaN or a value beyond int can arrive, else
   `static_cast<int>`.
