@@ -1,0 +1,9 @@
+id = "R65"
+title = "Animation blending on first show: units blend into their pose after a load and on returning to the menu"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-11-06: loading their LiA save (build/r65/save5 in main's tree), the hero in the preview UI blends into its pose; going back to the menu, every menu character blends into its animation. A unit's first shown frame (new to the client, after a load or zone/menu switch) must start in its current animation with no blend from a rest/bind pose; blends only between real animation changes."
+order = 1251
+status = "running"
+started = "2026-11-06"
