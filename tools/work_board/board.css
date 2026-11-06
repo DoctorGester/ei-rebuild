@@ -144,3 +144,16 @@ table.history .gamescroll table.games { min-width: 520px }
 .rowtoggle::after { content: ' \25B8'; display: inline-block; transition: transform .15s }
 .rowtoggle[aria-expanded="true"]::after { transform: rotate(90deg) }
 .diffstat { font-size: 12px } .diffstat .add { color: var(--good) } .diffstat .del { color: var(--watch) }
+
+/* H64: builds (build/live/builds) and the quiet run holding the machine. */
+.act.build { grid-template-columns: 14px minmax(0, 1fr) }
+.act.build::before { background: var(--blue); border-radius: 2px }
+.act.build .progress, .act.build .txt { grid-column: 2 }
+.act.build .txt { font-size: 12px; color: var(--muted) }
+table.builds { table-layout: fixed; min-width: 560px }
+table.builds td { overflow-wrap: anywhere }
+table.builds .progress { max-width: 160px }
+.panel.quiet { border-left: 3px solid var(--blue) }
+.panel.quiet.q-queued { border-left-color: var(--line) }
+.panel.quiet p { margin: 0; font-size: 13px }
+.pill.quiet { --c: var(--blue); --s: var(--blue-soft) }

@@ -14,6 +14,10 @@ rem EI_VSROOT: the Build Tools' folder when it is not the default below.
 if defined EI_VSROOT (set "VSROOT=%EI_VSROOT%") else (set "VSROOT=E:\bin\vs\buildtools")
 set CFG=%~1
 if "%CFG%"=="" set CFG=release
+rem The build gate (tools/build_gate.py; docs/notes/work-board.md, "Builds"): this file runs again under it, which
+rem waits while a quiet test run holds the machine, holds the build's ticket in build/live/builds and gives the inner
+rem run EI_BUILD_STATUS, where its stage and ninja's progress go for the work board.
+if not defined EI_BUILD_STATUS python "%~dp0tools\build_gate.py" "%~f0" %* && exit /b 0 || exit /b 1
 
 call "%VSROOT%\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 1
 set PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%
@@ -54,5 +58,6 @@ if /i "%CFG%"=="coverage" (echo Built: %OUT%& exit /b 0)
 rem The checks (tools/build_checks.py, side by side): the cleanup and comment counts, the data seam, the harness key,
 rem the generated and listed files, the unit checks (ei_unit_check), the interface canvases (ei_ui_check) and the
 rem performance overlay (ei_perf_check).
+python "%~dp0tools\build_gate.py" stage checks
 python "%~dp0tools\build_checks.py" "%OUT%" || exit /b 1
 echo Built: %OUT%

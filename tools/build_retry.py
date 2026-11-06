@@ -13,6 +13,8 @@ usage: python tools/build_retry.py BUILD_FOLDER [ninja/cmake build arguments]
 """
 import os, re, subprocess, sys
 
+import build_gate
+
 # What the launcher prints for every step that exits non-zero (ninja filters the compiler's own file name line, so a
 # crashed compile shows this line only).
 LAUNCHER_SILENT = re.compile(rb'^compiler_cache_launcher: .* exited with 0x[0-9A-Fa-f]+$')
@@ -55,6 +57,7 @@ def build(arguments):
     lines = []
     for line in process.stdout:
         lines.append(line)
+        build_gate.progress(line)          # ninja's [n/m] for the work board (H64)
         sys.stdout.buffer.write(line)
         sys.stdout.buffer.flush()
     return process.wait(), lines
@@ -64,6 +67,7 @@ def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
+    build_gate.stage('compile')
     code, lines = build(sys.argv[1:])
     if code != 0 and causeless(lines):
         print(f'build_retry: the build failed in steps that printed no error (exit code {code}; docs/notes/'

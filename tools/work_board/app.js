@@ -59,6 +59,53 @@ function batchSummary(b, withId = true) {
   return parts.join(' · ') + bad;
 }
 
+// ---- builds and the quiet run (H64: build.cmd's ticket in build/live/builds, tools/build_gate.py)
+
+const machine = () => (data && data.machine) || { builds: [], quiet: null };
+const sameTree = (x, y) => String(x || '').replace(/\\/g, '/').toLowerCase() === String(y || '').replace(/\\/g, '/').toLowerCase();
+const buildsOf = a => a && a.open ? machine().builds.filter(x => sameTree(x.checkout, a.worktree)) : [];
+function buildBar(x) {
+  const pct = x.stage === 'checks' ? 100 : x.total ? 100 * x.done / x.total : 0;
+  return `<div class="progress" title="${x.total ? `${x.done} of ${x.total} build steps` : esc(x.stage)}">` +
+    (x.stage === 'waiting' ? '' : `<i class="${x.stage === 'checks' ? 'p' : 'r'}" style="width:${pct.toFixed(1)}%"></i>`) + '</div>';
+}
+function buildStage(x) {
+  const what = { waiting: 'waits for the quiet run', configure: 'configuring', checks: 'build checks' }[x.stage]
+    || (x.total ? `compiling <span class="mono">${x.done}/${x.total}</span>` : 'compiling');
+  const time = x.stage === 'waiting' ? 'for ' + fromFetch(x.waited || 0) : fromFetch(x.elapsed || 0);
+  return `${what} · ${time}`;
+}
+const buildText = x => `build <span class="mono">${esc(x.config)}</span> · ${buildStage(x)}`;
+// The ticket a build is for: the open assignment of its checkout (main: none).
+function buildTicket(x) {
+  const t = data.tickets.find(t => t.assignment && t.assignment.open && sameTree(t.assignment.worktree, x.checkout));
+  return t ? `<span title="${esc(t.title)}">${esc(t.id)}</span>` : '<span class="muted">-</span>';
+}
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + 's'}`;
+function quietPanel(q) {
+  const who = `<span class="id">#${q.id}</span><span>${esc(q.ticket || '-')}</span>`;
+  const waiting = [q.builds_waiting ? plural(q.builds_waiting, 'build') : '',
+    q.batches_waiting.length ? plural(q.batches_waiting.length, 'batch', 'batches') + ' (' + q.batches_waiting.map(b => '#' + b.id).join(', ') + ')' : '']
+    .filter(Boolean).join(' and ');
+  const after = waiting ? ` Waiting on it: ${waiting}.` : '';
+  let text;
+  if (q.state === 'holding') text = `Has the machine: <span class="mono">${esc(q.game.scenario)}</span> (${esc(q.game.install)}) plays alone, ` +
+    `${fromFetch(q.game.elapsed || 0)}; ${plural(q.games_left, 'game')} of the batch left. No other game or build runs.` + after;
+  else if (q.state === 'gathering') text = `Clearing the machine: waits for ${plural(q.games_running, 'game')} and ${plural(q.builds_running, 'build')} to end. ` +
+    `No new game or build starts meanwhile.` + after;
+  else text = `Queued behind other batches; it clears the machine when it reaches the head of the queue.`;
+  return `<div class="panel quiet q-${q.state}"><div class="head">${who}<span class="pill">quiet run</span></div><p>${text}</p></div>`;
+}
+function buildsLane() {
+  const list = machine().builds;
+  const rows = list.map(x => `<tr><td>${buildTicket(x)}</td><td class="mono" title="${esc(x.checkout)}">${esc(x.name)}</td>` +
+    `<td class="mono">${esc(x.config)}</td><td>${buildBar(x)}</td><td>${buildStage(x)}</td></tr>`).join('');
+  return `<section class="lane"><h2>Builds<span class="n">${list.length}</span></h2>` + (list.length
+    ? `<div class="panel scroll"><table class="builds"><colgroup><col style="width:9%"><col style="width:28%"><col style="width:9%"><col style="width:18%"><col></colgroup>` +
+      `<thead><tr><th>Ticket</th><th>Checkout</th><th>Config</th><th>Progress</th><th>Stage</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    : '<p class="empty">No build is running.</p>') + '</section>';
+}
+
 // ---- tickets view
 
 const secsSince = stamp => { const t = Date.parse(stamp); return !stamp || isNaN(t) ? null : Math.max(0, (Date.now() - t) / 1000); };
@@ -107,6 +154,7 @@ function ticketCard(t, also = []) {
     const merge = /^Merge /.test(c.subject || '');
     act.push(actLine('commit' + (merge ? ' merge' : ''), `c-${t.id}-${c.hash}`, `<span class="hash">${esc(c.hash)}</span>${esc(c.subject)}`, ageOf(c.time), c.subject));
   }
+  for (const x of buildsOf(a)) act.push(`<div class="act build">${buildBar(x)}<span class="txt">${buildText(x)}</span></div>`);
   if (b) act.push(`<div class="act tests">${progress(b)}<span class="txt">${batchSummary(b)}</span></div>`);
   // While a new batch waits or runs, the previous result stays in view.
   const prev = newest(stacked.flatMap(s => [s.previous, s.batch]).filter(x => x && b && b.state !== 'finished' && x.state === 'finished' && x.id < b.id));
@@ -183,7 +231,7 @@ function gameRow(g) {
   }
   const result = g.state === 'finished' ? `<span class="${/^PASS/.test(g.result || '') ? 'ok' : 'bad'}">${esc(g.result || '')}</span>`
     : g.state === 'running' ? `<span class="run">running</span>` : muted(esc(g.state));
-  const alone = g.alone ? ' <span class="pill" title="Sets the display mode, so it runs with no other game">alone</span>' : '';
+  const alone = g.alone ? ' <span class="pill" title="A quiet run: no other game and no build on the machine while it plays">quiet</span>' : '';
   return `<tr class="g-${g.state}"><td>${esc(g.scenario)}${alone}${g.attempt ? ` <span class="pill">retry ${g.attempt}</span>` : ''}</td><td>${esc(g.install)}</td>` +
     `<td class="num">${slot}</td><td>${time}</td><td>${result}</td></tr>` +
     (g.failures.length ? `<tr><td colspan="5"><ul class="failures">${g.failures.slice(0, 6).map(f => `<li>${esc(f)}</li>`).join('')}</ul></td></tr>` : '');
@@ -239,7 +287,7 @@ function batchPanel(b, pos) {
   // Collapsed by default: the head and progress bar show; a click opens the arguments and the games.
   const now = sinceFetch(), key = 'b-' + b.id;
   return `<details class="panel batch" data-key="${key}"${open.has(key) ? ' open' : ''}><summary><div class="head"><span class="id">#${b.id}</span><span>${esc(b.ticket || '-')}</span>` +
-    `${batchWhat(b)}${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
+    `${batchWhat(b)}${b.quiet ? '<span class="pill">quiet</span>' : ''}${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
     `<span class="sub" style="margin-left:auto">${batchSummary(b, false)}</span></div>${progress(b)}</summary><div class="body">` +
     (b.args.length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">${esc(b.args.join(' '))}</div>` : '') +
     // The submitter's EI_* variables the games ran with (EI_PROFILE=1, ...).
@@ -254,12 +302,15 @@ function runsView() {
   if (!p.scheduler.alive && (r.queued.length || r.running.length)) out.push(hb != null && hb < 600
     ? `<p class="empty bad">The scheduler has not checked in for ${fromFetch(hb)}; queued batches wait until it does (<code>build/live/scheduler.log</code>).</p>`
     : `<p class="empty bad">The scheduler is not running, so queued batches wait; it starts with the next <code>work.py test</code>.</p>`);
+  const q = machine().quiet;
+  if (q) out.push(quietPanel(q));
   const gamesNow = r.running.reduce((n, b) => n + (b.games_running || b.running || 0), 0);
   out.push(`<section class="lane"><h2>Running<span class="n">${r.running.length}</span>` +
     (gamesNow ? `<span class="n" title="games playing now, of the machine's 16 slots">${gamesNow} of 16 games</span>` : '') + `</h2>` +
     (r.running.length ? r.running.map(b => batchPanel(b, 0)).join('') : '<p class="empty">No batch is running.</p>') + '</section>');
   out.push(`<section class="lane"><h2>Queue<span class="n">${r.queued.length}</span></h2>` +
     (r.queued.length ? r.queued.map((b, i) => batchPanel(b, i + 1)).join('') : '<p class="empty">Queue empty.</p>') + '</section>');
+  out.push(buildsLane());
   const rows = r.history.map(b => {
     const key = 'h-' + b.id;
     const n = failCount(b), checks = checkFailures(b).length, shown = n && open.has(key);
@@ -287,8 +338,11 @@ function runsView() {
 // ---- page
 
 function procs() {
+  const m = machine(), q = m.quiet;
+  const quiet = q && q.state !== 'queued' ? `<span class="pill quiet" title="A quiet run ${q.state === 'holding' ? 'has' : 'is clearing'} the machine (Test runs)">quiet run #${q.id}</span>` : '';
+  const builds = m.builds.length ? `<span class="pill">${plural(m.builds.length, 'build')}</span>` : '';
   // The scheduler starts with the first work.py test and exits when idle, so not running is normal.
-  return Object.entries(data.processes).map(([name, p]) => p.alive
+  return quiet + builds + Object.entries(data.processes).map(([name, p]) => p.alive
     ? `<span class="pill up">${name} up</span>`
     : name === 'scheduler' ? `<span class="pill">scheduler idle</span>`
     : `<span class="pill down">${name} ${p.heartbeat_age == null ? 'never seen' : 'down ' + fromFetch(p.heartbeat_age)}</span>`).join('');

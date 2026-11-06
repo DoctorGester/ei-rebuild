@@ -84,12 +84,14 @@ class SchedTest(unittest.TestCase):
         self.db = work.connect(os.path.join(self.tmp, 'work.db'))
         self.slots = os.path.join(self.tmp, 'slots')
         self.root = work.norm(self.tmp)
+        self.building = []      # the builds an alone run waits for (build_gate.compiling() in a real scheduler)
 
     def tearDown(self):
         self.db.close()
 
     def sched(self, fake, count=4, code=None):
-        s = work_sched.Scheduler(self.db, runner=fake, slots=work_sched.SlotPool(count, self.slots), code=code or [])
+        s = work_sched.Scheduler(self.db, runner=fake, slots=work_sched.SlotPool(count, self.slots), code=code or [],
+                                 builds=lambda: list(self.building))
         s.last_check = time.time() + 3600     # no submitter checks unless a test asks
         launches = getattr(fake, 'launches', None)
         if launches is not None:
@@ -256,6 +258,70 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(fake.most_at_once(w0 + 0.01, w1 - 0.01), 1)
         self.assertLessEqual(max(e for _, n, s, e in fake.spans if n in ('b1', 'b2')), w0 + 0.01)   # its other runs first
         self.assertEqual(self.runs(b)['w']['state'], 'finished')
+
+    def test_quiet_batch_holds_the_machine(self):
+        # H64: a quiet batch's games each run by themselves, after the games ahead of them, and the gate stays held
+        # from the first gathering to the end of its last game (no build or later game slips in between its runs)
+        fake = Fake({'a1': .4, 'a2': .4, 'a3': .4, 'a4': .4, 'q1': .3, 'q2': .3}, default=.2)
+        a = self.submit(['a1', 'a2', 'a3', 'a4'])
+        q = self.submit(['q1', 'q2'], alone=['q1', 'q2'], build='b2')
+        c = self.submit([f'c{i}' for i in range(8)], build='b3')     # backfills until the quiet batch is at the head
+        s = self.sched(fake)
+        gate_since, dropped = None, False
+        end = time.time() + 30
+        while s.tick():
+            self.assertLess(time.time(), end, 'scheduler did not finish')
+            quiet_left = self.db.execute("SELECT count(*) FROM run WHERE batch = ? AND state != 'finished'", (q,)).fetchone()[0]
+            if s.pool.gate is not None and gate_since is None:
+                gate_since = time.time()
+            if gate_since is not None and quiet_left and s.pool.gate is None:
+                dropped = True
+            time.sleep(0.02)
+        self.assertFalse(dropped, 'the gate was let go between the quiet runs')
+        self.assertIsNone(s.pool.gate)
+        spans = {n: (t0, t1) for _, n, t0, t1 in fake.spans}
+        self.assertGreaterEqual(min(spans['q1'][0], spans['q2'][0]), max(fake.ends(a)) - 0.01)
+        for n in ('q1', 'q2'):
+            self.assertEqual(fake.most_at_once(spans[n][0] + 0.01, spans[n][1] - 0.01), 1, f'{n} ran beside another game')
+        quiet_end = max(spans['q1'][1], spans['q2'][1])
+        self.assertEqual([t for t in fake.starts(c) if gate_since - 0.05 < t < quiet_end - 0.01], [],
+                         'a later batch started while the quiet one held the gate')
+        self.assertTrue(any(t >= quiet_end - 0.01 for t in fake.starts(c)), 'nothing was left to slip in')
+
+    def test_gathering_stops_backfill(self):
+        # H64: once the head batch gathers the machine for its alone run, a later batch that batch_priority puts first
+        # starts nothing more (before, it took each slot the gathering had not reached yet)
+        gate = threading.Event()
+        fake = Fake(default=0.2, gates={'a1': gate, 'a2': gate})
+        self.submit(['a1', 'a2'], expected={'a1': 1, 'a2': 1})
+        self.submit(['w'], alone=['w'], expected={'w': 1000}, build='b2')
+        c = self.submit(['c1', 'c2', 'c3'], expected={'c1': 1, 'c2': 1, 'c3': 1}, build='b3')
+        ended = []
+
+        def when():
+            if not ended and len([x for x in fake.spans if x[1] in ('c1', 'c2')]) == 2:
+                ended.append(time.time())
+            return bool(ended) and time.time() - ended[0] > 0.5   # c3 had half a second to start
+        self.drive_opening(self.sched(fake), fake, gate, when)
+        (w0, w1), = [(t0, t1) for _, n, t0, t1 in fake.spans if n == 'w']
+        self.assertGreaterEqual(fake.starts(c, ['c3'])[0], w1 - 0.01, 'c3 started while the alone run gathered')
+
+    def test_quiet_run_waits_for_builds(self):
+        # H64: an alone run holds the gate (no new build starts) and starts once the running builds have ended
+        self.building = [{'checkout': 'E:/x/agent-1', 'config': 'verify'}]
+        fake = Fake(default=0.1)
+        self.submit(['w'], alone=['w'])
+        s = self.sched(fake)
+        end = time.time() + 1.0
+        while time.time() < end:
+            s.tick()
+            time.sleep(0.02)
+        self.assertEqual(fake.spans, [], 'the quiet run started beside a build')
+        self.assertIsNone(run_all._lock(os.path.join(self.slots, 'alone')), 'the gate was not held while it waited')
+        self.building = []
+        self.drive(s)
+        self.assertEqual([n for _, n, _, _ in fake.spans], ['w'])
+        self.assertIsNone(s.pool.gate)
 
     def test_pair_takes_two_slots(self):
         # SV5d: a scenario with a "peer" line plays two games, so it takes two of the machine's slots together.

@@ -37,6 +37,9 @@ One file per ticket, `docs/tickets/<ID>.toml`; the live status is in the shared 
 - Games only through `python tools/work.py test <ID> [run_all args]` (scenario names for a subset,
   `--rebirth-only`, `--golden`, at most `--jobs 4`): it queues on the machine's 16 game slots. Never call
   `tools/run_all.py` directly, never leave a game running. Equivalence sweeps stay under about 5 minutes per run.
+- Timing runs (frame times, profiles, any number compared across builds) pass `--quiet`: each game then runs alone,
+  with no other game and no build on the machine (builds wait for it). Keep them to the few scenarios measured: the
+  whole machine waits on a quiet batch (`docs/notes/work-board.md`, "Scheduler").
 - Every check run passes `--golden` (without it a run only checks itself and compares nothing); report its
   "N the same, N differ" line, not a pass count.
 - A change that should not alter behaviour keeps every golden the same. An intended change re-records the affected

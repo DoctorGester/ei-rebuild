@@ -12,9 +12,12 @@ collides:
 - batches smallest remaining work first, less the time they have waited (batch_priority, WB9): a batch
   takes every free slot until all its runs have started (its --jobs is ignored: run_all needs it to share
   the machine, the scheduler shares it already); the others only fill the slots it cannot use (backfill);
-- within a batch the longest expected first; an alone run (none since H40: they were game.exe's display-mode runs)
-  last, and only once it is the earliest batch with runs left: a later batch's alone run never stops the backfill;
-- an alone run waits until none of ours runs, holds the alone gate and every slot, and runs by itself;
+- within a batch the longest expected first; an alone run (a quiet batch's, `work.py test --quiet`, H64; before H40
+  also game.exe's display-mode runs) last, and only once it is the earliest batch with runs left: a later batch's
+  alone run never stops the backfill;
+- that batch's alone run holds the alone gate (no new game of anyone's and no new build starts: tools/build_gate.py),
+  gathers every slot, waits until none of ours runs and no build compiles, and runs by itself; the gate stays held
+  between a quiet batch's runs;
 - each game is run_all.run() pointed at the batch's checkout and build (run folders and run_times.json
   stay where run_all puts them), retried as run_all.run_with_retries() does; its slots go back as soon as its game
   ends (frame packing runs without them, SV10h) and a retry's game takes slots again before
@@ -29,6 +32,7 @@ docs/notes/work-board.md, 'Scheduler'.
 """
 import collections, contextlib, ctypes, datetime, hashlib, io, json, os, queue, subprocess, sys, threading, time, traceback
 
+import build_gate
 import run_all
 import work
 
@@ -289,10 +293,13 @@ def order_key(run):
 
 
 class Scheduler:
-    def __init__(self, db, runner=real_runner, slots=None, log=None, code=None):
+    def __init__(self, db, runner=real_runner, slots=None, log=None, code=None, builds=None):
         """code: paths of the scheduler's own code (default code_files()); when their content changes, no new game
-        starts and should_restart() turns True once the running ones have ended."""
+        starts and should_restart() turns True once the running ones have ended. builds: the builds an alone run waits
+        for (default build_gate.compiling() of <live>/builds)."""
         self.db = db
+        self.builds = builds or (lambda: build_gate.compiling(os.path.join(live_dir(), 'builds')))
+        self.gathering = None      # what the alone run being gathered for waits for, as last logged
         self.code = code if code is not None else code_files()
         self.code_at_start = code_signature(self.code)
         self.stale = False
@@ -380,9 +387,7 @@ class Scheduler:
             game['thread'].join()
             if game['slots']:
                 game['held'] += time.time() - game['since']
-            self.pool.release(game['slots'])
-            if game['alone']:
-                self.pool.release_gate()
+            self.pool.release(game['slots'])      # an alone run's gate stays until schedule() has nothing to gather for
             result, seconds, failures, counts, notes = value
             with work.transaction(self.db):
                 self.db.execute("UPDATE run SET state = 'finished', seconds = ?, result = ?, failures = ?, counts = ?, notes = ? "
@@ -401,20 +406,21 @@ class Scheduler:
         try:
             gathering = self._schedule()
         finally:
-            if not gathering:      # let go of slots gathered for a display-mode run that no longer waits
+            if not gathering:      # let go of slots gathered for an alone run that no longer waits
                 in_use = {i for g in self.games.values() for i in g['slots']}
                 self.pool.release([i for i in self.pool.held if i not in in_use])
                 if not any(g['alone'] for g in self.games.values()):
                     self.pool.release_gate()
+                    self.gathering = None
 
     def _schedule(self):
-        """Starts what can start now; True while gathering every slot for a display-mode run."""
+        """Starts what can start now; True while gathering every slot for an alone run, or while one plays."""
         if not self.grant():
             return self.pool.gate is not None               # a retry waits for slots: nothing new starts before it
-        if sum(not g['slots'] for g in self.games.values()) >= AFTER_GAME_MAX:
-            return False                                     # enough runs packing frames
-        if self.stale or any(g['alone'] for g in self.games.values()):
-            return False                                     # new code to load first / it has the machine to itself
+        if self.stale:
+            return False                                     # new code to load first
+        if any(g['alone'] for g in self.games.values()):
+            return True                                      # it has the machine to itself
         batches = self.db.execute("SELECT * FROM batch WHERE state IN ('queued', 'running') ORDER BY id").fetchall()
         queued = collections.defaultdict(list)
         for r in self.db.execute("SELECT run.* FROM run JOIN batch ON batch.id = run.batch "
@@ -422,9 +428,18 @@ class Scheduler:
             queued[r['batch']].append(r)
         busy = {g['folder'] for g in self.games.values()}   # never two games in one run folder
         reserved = self.reserved_folders()                   # nor one an earlier batch still needs
-        # Only the earliest batch with runs left gathers the machine for an alone run; plain runs go
-        # smallest remaining work first (batch_priority).
-        head = next((b['id'] for b in batches if queued[b['id']]), None)
+        # Only the earliest batch with runs left gathers the machine for an alone run, once its other runs have all
+        # started; from then on nothing else starts (H64: a backfill batch ahead of it in batch_priority took the slots
+        # it was gathering). Plain runs go smallest remaining work first (batch_priority).
+        head = next((b for b in batches if queued[b['id']]), None)
+        if head is not None and self.batch_args(head) is not None:
+            runs = sorted(queued[head['id']], key=order_key)
+            alone = [r for r in runs if r['alone'] and r['folder'] not in busy
+                     and reserved.get(r['folder'], head['id']) >= head['id']]
+            if alone and all(r['alone'] for r in runs):
+                return self.gather(head, alone[0])
+        if sum(not g['slots'] for g in self.games.values()) >= AFTER_GAME_MAX:
+            return False                                     # enough runs packing frames
         batches = sorted(batches, key=lambda b: batch_priority(b, queued[b['id']], self.pool.count))
         for b in batches:
             args = self.batch_args(b)
@@ -435,10 +450,7 @@ class Scheduler:
                     with work.transaction(self.db):
                         self.db.execute("UPDATE run SET state = 'cancelled' WHERE batch = ? AND state = 'queued'", (b['id'],))
                 continue
-            if not runs:
-                continue
-            plain = [r for r in runs if not r['alone']]
-            for r in plain:
+            for r in (r for r in runs if not r['alone']):
                 if r['folder'] in busy or reserved.get(r['folder'], b['id']) < b['id']:
                     continue
                 if not self.pool.gate_free():
@@ -453,13 +465,24 @@ class Scheduler:
                     return False                             # the machine is full
                 if self.start(b, r, args, slots):
                     busy.add(r['folder'])
-            alone = [r for r in runs if r['alone'] and r['folder'] not in busy]
-            if b['id'] == head and alone and not plain:     # its other runs have all started
-                if not self.pool.take_all() or self.games:
-                    return True                              # nothing else starts until it has run
-                self.start(b, alone[0], args, list(self.pool.held))
-                return False
         return False
+
+    def gather(self, batch, run):
+        """The alone gate and every slot for run; it starts once none of ours plays and no build compiles. True (nothing
+        else starts)."""
+        gathered = self.pool.take_all()
+        builds = self.builds() if self.pool.gate else []
+        if gathered and not self.games and not builds:
+            self.start(batch, run, self.batch_args(batch), list(self.pool.held))
+            return True
+        names = tuple(sorted(f'{os.path.basename(b.get("checkout") or "?")} {b.get("config") or "?"}' for b in builds))
+        waits = (self.pool.gate is not None, self.pool.count - len(self.pool.held), len(self.games), names)
+        if waits != self.gathering:
+            self.gathering = waits
+            what = (f'{waits[1]} slot(s) in use, {waits[2]} game(s) of ours, {len(names)} build(s)'
+                    + (f' ({", ".join(names)})' if names else '')) if waits[0] else 'the alone gate is held by another process'
+            self.log(f'batch #{batch["id"]}: {os.path.basename(run["folder"])} (alone) waits: {what}')
+        return True
 
     def reserved_folders(self):
         """{run folder: the lowest id of the batches that still need what its last game wrote}: the folders of the runs
@@ -692,7 +715,9 @@ def cmd_scheduler(db, args):
 
 
 def cmd_test(db, args):
-    argv = args.run_all_args
+    # --quiet (H64): every run of the batch is an alone run, with no other game and no build beside it (timing runs)
+    quiet = '--quiet' in args.run_all_args
+    argv = [a for a in args.run_all_args if a != '--quiet']
     ra = run_all.parse_args(argv)           # run_all's own errors and exit
     jobs = run_all.plan(ra)
     root, build = work.norm(run_all.ROOT), work.norm(run_all.BUILD)
@@ -714,12 +739,15 @@ def cmd_test(db, args):
         scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
         if not os.path.exists(scenario):
             sys.exit(f'work.py: no scenario {name} ({scenario})')
-        runs.append({'scenario': name, 'install': install, 'hooks': True, 'alone': False,
+        runs.append({'scenario': name, 'install': install, 'hooks': True, 'alone': quiet,
                      'expected': expected[(name, install)],
                      'folder': work.norm(os.path.join(build, 'runs', f'{name}-{install}'))})
     batch = submit(db, args.id, root, build, argv, runs, os.getpid(), env=env)
     ahead = db.execute("SELECT count(*) FROM batch WHERE id < ? AND state IN ('queued', 'running')", (batch,)).fetchone()[0]
     print(f'batch #{batch} ({args.id}): {len(runs)} runs, {ahead} batch(es) ahead (work.py status shows the queue)')
+    if quiet:
+        print('quiet: each game runs by itself once the games ahead and the running builds have ended; no game or build '
+              'starts beside it')
     ensure_scheduler()
     print(run_all.HEADER)
     sys.stdout.flush()
