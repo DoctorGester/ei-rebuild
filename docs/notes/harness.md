@@ -478,7 +478,8 @@ differ from the desktop's.
   ui_saveload, rec_save_load, save_flight, world_load, zone_gz3g, render_scene, render_present, render_water,
   render_shadows, units, items), one game at a time, `--vanilla-only --golden`, EI_TIME_SCALE 8. All of them passed
   on the runner with none of their goldens differing (run 42124917682: 5 to 197 s each, about 15 minutes together; render_stats
-  alone 616 s). The summary has the goldens block and the device line; `tools/ci_details.py` prints the runs that did
+  alone 616 s); the first run of the smoke job itself (42149539900) passed: builds 9 minutes, the smoke job 18 (17 games
+  and the gate, all the same). The summary has the goldens block and the device line; `tools/ci_details.py` prints the runs that did
   not pass or differ (as the macOS job's "Differences in detail" below). The verdict fails the job on GOLDENS DIFFER,
   "not passed:" or no "GOLDENS THE SAME" line. For other scenarios, name them in `scenarios`.
 - **WARP**: SDL's D3D12 driver takes the high-performance adapter (`EnumAdapterByGpuPreference`), which on the GPU-less
