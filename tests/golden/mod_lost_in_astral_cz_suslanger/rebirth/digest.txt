@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 325 frame 65 tick 325 zone gz1d2 hash D91A2C8A n 117
+@ 1 update 325 frame 65 tick 325 zone gz1d2 hash E931EC15 n 117
 world tick 325
 world updates 325
 world timeBase 5.69777822
@@ -2843,9 +2843,9 @@ cunit33359948 #unit 63F44E2F
 cunit33359948 #vitals B1BA6054
 + cunit1000011214 80 unhuma ""
 cunit1000011214 #place 81FBA951
-cunit1000011214 #unit 06AF30F0
+cunit1000011214 #unit 01A6982C
 cunit1000011214 #vitals 4CF313FE
 + cunit1000059185 80 unhufe ""
 cunit1000059185 #place 041EFEF8
-cunit1000059185 #unit C9ACE2D9
+cunit1000059185 #unit CEA54A05
 cunit1000059185 #vitals 4CF313FE

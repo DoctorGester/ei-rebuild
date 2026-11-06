@@ -367,10 +367,9 @@ void ClearDepth(float z, const Rect* rects, int count);
 // take their quarters not culled).
 void TerrainPass(const terrain::Terrain* terrain, const SceneRenderer* renderer, int firstPage, int lastPage,
                  std::span<const terrain::SectorData* const> drawn);
-// What the zone's mesh holds of a sector changed: Rebuilt, its tile lists and records (Build); Moved, the animated
-// tiles' texture coordinates; WaterMoved, the water layer's positions at rest (a water level; the waves are the
-// GPU's); Dropped, the sector is cleared or deleted (its place in the mesh is built again from what the grid holds then).
-enum class TerrainChange { Rebuilt, Moved, WaterMoved, Dropped };
+// What the zone's mesh holds of a sector changed: Rebuilt, its tile lists and records (Build); WaterMoved, the water
+// layer's positions at rest (a water level; the waves are the GPU's); Dropped, the sector is cleared or deleted (its place in the mesh is built again from what the grid holds then).
+enum class TerrainChange { Rebuilt, WaterMoved, Dropped };
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
 
 // A figure part lit on the GPU as 3DfpFPU's LightMesh lit its words (renderer.md section 13). Lights

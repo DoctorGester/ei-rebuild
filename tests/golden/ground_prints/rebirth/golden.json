@@ -1,28 +1,19 @@
 {
   "scenario": "ground_prints",
   "install": "rebirth",
-  "recorded": "2026-11-05",
-  "commit": "352b29ff7",
+  "recorded": "2026-11-06",
+  "commit": "24b97178b",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R57d: a load keeps the saved weather and the battle screen no longer clears it; ground_prints and render_weather_save load a save made in rain (zone1's chance rain on Rebirth's stream for ground_prints), rebirth_flags re-enters the battle screen after the camp (weatherStrength stays 20)",
+  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
   "source": "image",
   "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 1 of 22 records differ, first at record 21 (world update 440, tick 381, frame 87, zone gz1g); outcomes the same (deaths unknown: hash only); max unit move 0.739 (obj1937, record 21)",
-    "  first difference at record 21 (world update 440, tick 381, frame 87, zone gz1g): 64 fields",
-    "    world (world) weatherFactor: 0x3F800000 in the old golden, 0x3F666666 in the new run",
-    "    world (world) weather: 0 in the old golden, 1 in the new run (d 1)",
-    "    world (world) lastRainBoltTick: 323 in the old golden, 375 in the new run (d 52)",
-    "    ... 61 more",
-    "  outcomes: none changed (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, quest variables, party and items, game result, script",
-    "  world: 1 of 1 differ",
-    "    lastRainBoltTick: 1 world, 1 record, from 21; max |d| 52 at world lastRainBoltTick, record 21: 323 -> 375",
-    "    updateMap: 1 world, 1 record, from 21; max |d| 3 at world updateMap, record 21: 18 -> 15",
-    "    weather: 1 world, 1 record, from 21; max |d| 1 at world weather, record 21: 0 -> 1",
-    "    weatherFactor: 1 world, 1 record, from 21; e.g. world weatherFactor: 0x3F800000 in the old golden, 0x3F666666 in the new run",
-    "... 20 more lines"
+    "save save1/visuals.sav: 18 fields in 2 records differ: visuals 18",
+    "  visuals: 18 fields in 2 records; first visuals.prints blood.print0.position.x: 57.6544724 in the old golden, 57.1344719 in the new run; largest numeric d 2.63e+09 at visuals.generator bb: 570308758 -> 3195867173",
+    "save savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
+    "  visuals: 6 fields in 1 records; first visuals.generator count: 91 in the old golden, 129 in the new run; largest numeric d 9.96e+08 at visuals.generator aa: 3241172569 -> 4236839942"
   ]
 }

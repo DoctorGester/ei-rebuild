@@ -5,7 +5,6 @@
 #include "game/app/singletons.h"
 #include "game/scene/scene_renderer.h"
 #include "game/scene/pipeline.h"
-#include "game/core/random.h"
 #include "render/render.h"
 #include "game/terrain/terrain.h"
 
@@ -198,8 +197,8 @@ int CountTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
     return animated;
 }
 
-// Fills the tile lists: 9 entries per tile (3x3 vertices with texture coordinates) and the animated tiles
-// (random start frame).
+// Fills the tile lists: 9 entries per tile (3x3 vertices with texture coordinates) and the animated tiles (the entries
+// hold the first frame's coordinates; the GPU works the frame out).
 void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
     Terrain* owner = s.owner;
     const std::uint8_t* source = words;
@@ -225,15 +224,11 @@ void FillTiles(SectorData& s, const std::uint8_t* words, TileCounts& counts) {
                     tile.frameBase = slot.index;
                     tile.vertices = entry;
                     tile.rotation = rotation;
-                    std::uint32_t draw = g_clientRandom.Next();
                     tile.frames = frames;
-                    tile.frame = static_cast<int>(draw % static_cast<std::uint32_t>(frames));
                     tile.speed = kAnimationSpeeds[ClassOf(owner, texture)];
-                    tile.onGpu = tile.speed >= kAlwaysSteps;
-                    // Its frame now is (start + the steps made since) mod frames: the tile takes every step from here.
-                    tile.phase = ((tile.frame - owner->tileSteps) % frames + frames) % frames;
-                    s.stepsOnCpu = s.stepsOnCpu || !tile.onGpu;
-                    uv = &owner->TileUvAt(rotation, tile.frame + slot.index, 0);
+                    const int tilesX = owner->sectorsX * kSectorTiles, tilesY = owner->sectorsY * kSectorTiles;
+                    tile.seed = (layer * tilesY + s.sy * kSectorTiles + row) * tilesX + s.sx * kSectorTiles + column;
+                    uv = &owner->TileUvAt(rotation, slot.index, 0);
                 }
                 for (int entryRow = 0; entryRow < 3; ++entryRow, record += kSectorRow) {
                     for (int entryColumn = 0; entryColumn < 3; ++entryColumn, ++entry) {
@@ -376,7 +371,6 @@ void SectorData::Build() {
         }
     }
     animated.resize(animatedCount);
-    stepsOnCpu = false;
 
     TileCounts filled = {};
     FillTiles(*this, tileWords, filled);
@@ -430,12 +424,11 @@ bool SectorData::IsDrawn() const { return clipMode != TransformPipeline::ClipRes
 void SectorData::ClipTest(SceneRenderer* renderer) {
     const auto verdict = [&](const SectorBox& bounds) { return renderer->pipeline->ClipTest(&bounds); };
     clipMode = verdict(box);
-    inReach = clipMode != TransformPipeline::ClipResult::Outside && !renderer->pipeline->BeyondReach(&box);
     if (clipMode == TransformPipeline::ClipResult::Outside) return;
     for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
 }
 
-// Clearing and animation
+// Clearing
 
 void SectorData::Clear() {
     records.clear();
@@ -450,29 +443,7 @@ void SectorData::Clear() {
     built = SectorStage::None;
     lastUsed = 0;
     clipMode = TransformPipeline::ClipResult::Outside;
-    inReach = false;
     render::TerrainChanged(this, render::TerrainChange::Dropped);
-}
-
-void SectorData::AnimateTiles(int frame) {
-    if (!stepsOnCpu || frame % kTileFrameEvery != 0 || !lib::Has(owner->landscapeFlags, LandscapeFlag::AnimatedTiles))
-        return;
-    bool stepped = false;
-    for (AnimatedTile& tile : animated) {
-        if (tile.onGpu) continue;
-        if (tile.frame == 0 &&
-            g_clientRandom.Next() % kAlwaysSteps + 1 > static_cast<std::uint32_t>(tile.speed)) {
-            continue;
-        }
-        tile.frame = (tile.frame + 1) % tile.frames;
-        stepped = true;
-        const TileUv& uv = owner->TileUvAt(tile.rotation, tile.frameBase + tile.frame, 0);
-        for (int k = 0; k < TileUv::kVertices; ++k) {
-            tile.vertices[k].u = uv.u[k];
-            tile.vertices[k].v = 1.0f - uv.v[k];
-        }
-    }
-    if (stepped) render::TerrainChanged(this, render::TerrainChange::Moved);   // the zone's meshes
 }
 
 } // namespace terrain

@@ -1,21 +1,25 @@
 {
   "scenario": "net_pair_quest",
   "install": "vanilla",
-  "recorded": "2026-11-05",
-  "commit": "fd79c6714",
+  "recorded": "2026-11-06",
+  "commit": "24b97178b",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R58: the main menu plays the stones' rest pose when it opens, so client unit 2 (unmoco2) has an animation and no flag 8 from the menu's first tick; only cunit2's records move",
+  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
   "source": "image",
   "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 13 of 545 records differ, first at record 0 (world update 20, tick 20, frame 3, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 0 (world update 20, tick 20, frame 3, zone -): 1 fields",
-    "    cunit2 (80 unmoco2 \"\") #unit: CA7CD47D in the old golden, 0370F4FB in the new run",
+    "digest: 20 of 545 records differ, first at record 1 (world update 40, tick 20, frame 7, zone -); outcomes the same; no unit position differs",
+    "  first difference at record 1 (world update 40, tick 20, frame 7, zone -): 1 fields",
+    "    cunit1000011214 (80 unhuma \"host\") #unit: AE69FCF7 in the old golden, 4D66B22E in the new run",
     "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 67 differ",
-    "    #unit: 1 client unit, 13 records, from 0; hash only (no numbers kept)"
+    "  client units: 3 of 67 differ",
+    "    #unit: 3 client units, 19 records, from 1; hash only (no numbers kept)",
+    "  units: 2 of 295 differ",
+    "    #unit: 2 units, 5 records, from 45; hash only (no numbers kept)",
+    "  client: 1 of 1 differ",
+    "    objects: 1 client, 1 record, from 377; max |d| 1 at client objects, record 377: 1412 -> 1411"
   ]
 }

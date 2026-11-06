@@ -646,8 +646,7 @@ with the far plane (whose depth differed by the factor far / (far - near) only).
 - Kept at the game's reach, FarClipDistance along the view as a clip w (`TransformPipeline::BeyondReach`, a volume
   wholly past it): the figures `CollectVisible` takes (units and levers, drawn with their own poses and weather), the
   casters out of view whose shadows it lists (`ShadowInView`), the particle sources (their hidden ticks idle them),
-  the lightning and the terrain's animated tiles' steps (`SectorData::inReach`: a step draws the client generator;
-  farther a tile keeps its frame). What the figures drawn do on the client (their poses, footprints, weather, the client
+  the lightning. What the figures drawn do on the client (their poses, footprints, weather, the client
   generator's draws) goes into visuals.sav and the digests, so that set stays as it was; the server sends a player
   its units only within about 100 units of the camera anyway.
 - The distance fog (`render::DistanceFog`, render_state.h; `distance_fog.hlsli`): a world draw's point at depth d
@@ -1027,8 +1026,7 @@ sector's by quarter: the order the game's page passes drew them in (the ground i
 range is built again when the grid holds another sector there or the game rebuilt it (`render::TerrainChanged(s,
 Rebuilt)` from Build, `Dropped` from Clear and the destructor), its colours and the rest when its ground occlusion was
 worked out again (a neighbour came); the meshes are laid out again only when a range's size changed. The game moves some
-in place: the animated tiles' texture coordinates (`Moved`: their range of the uv stream written, item 3b: only the
-slow tiles' steps) and the water layer's positions at rest at a new water
+in place: the water layer's positions at rest at a new water
 level (`WaterMoved`, from ApplyWaterLevels when a sector with a pending level change is drawn: its water positions
 written, its boxes worked out again). A pass hands over only the sectors it
 draws with their quarters' clip verdicts (`TerrainPass`: the game's culling decides what the frame's fit, the water's
@@ -1072,44 +1070,46 @@ moved by 0.0017 units on average (at most 0.0044; zone1's lift is 0.06), the hei
 kept the waves of their last drawn frame); now every sector waves. The digest's `water` group (scenario
 `terrain_water_waves`) hashes WaterVertex's positions; the crests are the GPU's alone.
 
-**3b. Animated tiles on the GPU (R37e4d).** A map lists the textures that animate (`MapAnimatedTexture`: texture,
+**3b. Animated tiles on the GPU (R37e4d, R37e4e).** A map lists the textures that animate (`MapAnimatedTexture`: texture,
 frames) and each texture has a class whose speed decides how its tiles step (`kAnimationSpeeds`): classes 0 .. 13 step
 at every animation step (every third RunTick with `LandscapeFlag::AnimatedTiles`), classes 14 and 15 (speeds 5 and 9)
-wait at frame 0 for client random draws (a draw % 1000 + 1 within the speed). Scan of every map of both installs
+are at frame 0 and start a cycle at a chance of speed / 1000 per resting step (the game drew a client random number per
+resting tile and step for it; no draw is made now). Scan of every map of both installs
 (`Maps/*.mpr`: 38 maps in each install, 5,008 sectors, 1,494 of them with water; a throwaway script of that ticket):
 **no ground tile of any map uses an animated texture** (0 of the ground layers' tiles; 196,084 water-layer tiles do, in
 1,360 sectors: 183,476 of class 6 and 12,608 of class 14); 16 of the 76 maps list no animated texture, the others list a
-class 6 one (56 lists) and some also a class 14 one (16 lists). Classes 0 .. 5 and 7 .. 13 and 15 do not occur. Both
-layers keep the path all the same (mods may animate ground tiles; the cost is a compare in the vertex shader and 12
-bytes of vertex stream per vertex), and AnimateTiles does not skip sectors without water.
-- The fast tiles (speed 1000) draw no random number to step, so the GPU works their frame out: the vertex carries
-  `anim` = (the texture's slot in its page, the frame count, the phase) and, in `uv`, its coordinates within the page's
+class 6 one (56 lists) and some also a class 14 one (16 lists; zone1's swamp, sectors 4 .. 5 x 0 .. 1, is one: 1,296
+tiles of one 8-frame texture). Classes 0 .. 5 and 7 .. 13 and 15 do not occur. Both
+layers keep the path all the same (mods may animate ground tiles; the cost is a compare in the vertex shader and 16
+bytes of vertex stream per vertex), and every sector has the same path.
+- The GPU works every animated tile's frame out, nothing steps on the CPU: the vertex carries `anim` = (the texture's slot
+  in its page, the frame count, the tile's seed, the rate = speed / 1000) and, in `uv`, its coordinates within the page's
   first tile (`Terrain::uvLocal`: `uvTables` without the tile's column and row); `tile_uv` (terrain_stages.hlsli) takes
-  the frame `(phase + Terrain::tileSteps) % frames`, the column and row of slot + frame in the page and sums them as the
-  CPU did (`precise`: the same rounding, so the coordinates are bit for bit those of the game's tables). Static
-  vertices (anim frames 0) have final coordinates. `Terrain::tileSteps` counts the animation steps (RunTick); a tile's
-  phase is its random start frame less the steps made when its sector was built (the start frames are still drawn
-  from the client generator in FillTiles, so the stream is as before).
-- Every fast tile steps from the global count, wherever it is (the sector drawn or not, in reach or not): tile frames
+  the frame from `tile_frame`, the column and row of slot + frame in the page and sums them as the CPU did (`precise`:
+  the same rounding, so the coordinates are bit for bit those of the game's tables). Static vertices (anim frames 0)
+  have final coordinates. `Terrain::tileSteps` counts the animation steps (RunTick). The seed is the tile's place in the
+  map (layer, row and column of the whole map's tiles: `AnimatedTile::seed`, exact in a float below 2^24 tiles), so the
+  schedule does not depend on when a sector was built or loaded.
+- Rate 1 (classes 0 .. 13): the frame is `(hash(seed) + steps) % frames`: every tile starts at a frame hashed from its
+  place and takes every step. Rate below 1 (class 14): the steps are cut into windows of four cycles (`4 * frames`
+  steps); a hash of the seed and the window number says whether the tile plays in that window (at the chance that keeps
+  the mean number of cycles started per step at the game's: `window * rate / (1 + rate * frames)`, from 5/1000 per
+  resting step, a cycle taking `frames` steps) and at which step of the window it starts (uniform over the steps that
+  leave room for the cycle); outside the cycle it shows frame 0. Checked against the old rule in a throwaway
+  simulation (frames 4, 8, 16, 20 at rate 0.005: cycles started per step 0.0049 / 0.0048 / 0.0047 / 0.0046 against
+  the old rule's 0.0049 / 0.0048 / 0.0046 / 0.0046) and in zone1's swamp with a debug lift of the playing tiles (two or
+  three dozen of the swamp's tiles in view lifted at a time, a different set in every capture over 1,100 frames).
+  The start frame is the hash too (no client random draw in FillTiles any more), so the client generator is not drawn by
+  sector building or by the tiles: client effects' draws and `visuals.sav`'s generator changed once (goldens
+  re-recorded with R37e4e).
+- Every tile steps from the global count, wherever it is (the sector drawn or not, in reach or not): tile frames
   are client-only visuals, and the waves already move in every sector (3a). The game stepped a tile only while its
   sector was drawn and within reach (RunTick), so a sector coming back into view showed the frame it had left at; now
-  it shows the frame it would have had. No freeze or thaw, and no write for these tiles after the sector is read. The
-  slow tiles (classes 14, 15) still step in `AnimateTiles` (drawn sectors in reach, as before) with the random draws,
-  and their sectors write their uv range when one steps.
-- The slow class 14 (12,608 water tiles, 16 map lists) still draws client random numbers, so it stays on the CPU. A
-  hash-based schedule (a tile's wait at frame 0 and its next step from a hash of the tile and the step count, in the
-  shader) would put it on the GPU too and delete the per-frame uv writes altogether, but it changes the client's
-  random stream and so the client-only visuals (a golden re-record): not done, the user's call.
-- Cost on the main thread, per tick of zone1's sea (a throwaway instrumented build, every tick that walked a drawn
-  sector averaged; the old path is this code with every tile kept on the CPU): the sector walk 0.0096 ms before, 0.0065
-  ms with the freeze and thaw pass this item had at first (now without it: less); the uv moves and writes 0.020 ms and
-  49 KB per tick before, 0 now (only the class 14 tiles, not in that view, write). Small on both sides: the
-  win is the 49 KB per tick not crossing to the GPU and the writes gone from the frame.
-- Check: both suites with `--golden`: the same goldens (221 vanilla, 135 Rebirth; none holds a tile frame outside the
-  game's reach). With the freeze and thaw (since dropped) frames matched the game's own at tolerance 0 apart from the
-  msaa noise; without them an animated water tile outside the game's reach now shows its own frame. render_smooth's
-  samecapture (msaa, a few pixels off by more than 1 once in 15 runs alone, as it did on the build before this item)
-  is the old flake.
+  it shows the frame it would have had. No tile writes to the zone's meshes after the sector is read: `TerrainChange::Moved`,
+  the uv range uploads and the RunTick sector walk are gone.
+- Cost on the main thread: see the numbers below (R37e4e).
+- Check: both suites with `--golden`: the same goldens except the visuals' client generator (R37e4e re-recorded them).
+
 
 **4. Meshes kept on the GPU** (`render_mesh_cache.cpp`, the pool shared with the terrain in `render_buffers.cpp`:
 `GpuPool`; a kept item, page or mesh, is a `KeptRanges`: its place and what is left to write, which `UploadKept`

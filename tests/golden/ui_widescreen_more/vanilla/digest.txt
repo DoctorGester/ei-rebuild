@@ -702,7 +702,7 @@ client ticksRun 97
 cunit129 #place 60A34864
 cunit148 #place 783B5801
 cunit148 #unit 29178A0E
-@ 5 update 120 frame 23 tick 115 zone - hash 20474B04 n 69
+@ 5 update 120 frame 23 tick 115 zone - hash 7335E28F n 69
 world tick 115
 world updates 120
 world paused 1
@@ -734,30 +734,30 @@ cunit129 #unit EB3540A2
 cunit148 #place C7223655
 + cunit1000011214 80 unhuma ""
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 45ED5751
+cunit1000011214 #unit D7E5EEFB
 cunit1000011214 #vitals 68D49C6E
-@ 6 update 140 frame 27 tick 115 zone - hash 5060242C n 69
+@ 6 update 140 frame 27 tick 115 zone - hash 03128DA7 n 69
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 115 zone - hash 000AFE99 n 69
+@ 7 update 160 frame 31 tick 115 zone - hash 9C89A514 n 69
 world updates 160
 client ticksRun 157
 + cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit BA00CF1D
+cunit1000011214 #unit 61CA8CD1
 cunit1000011214 #vitals A7CF3098
-@ 8 update 180 frame 35 tick 115 zone - hash 03220DA9 n 69
+@ 8 update 180 frame 35 tick 115 zone - hash C920F5FD n 69
 world updates 180
 client ticksRun 177
-cunit1000011214 #unit 43F4A57E
-@ 9 update 200 frame 42 tick 115 zone - hash 3BD660B0 n 69
+cunit1000011214 #unit 983EE6B2
+@ 9 update 200 frame 42 tick 115 zone - hash F1D498E4 n 69
 world updates 200
 client ticksRun 197
-@ 10 update 220 frame 49 tick 115 zone - hash 25D8FB83 n 69
+@ 10 update 220 frame 49 tick 115 zone - hash C0AB1B5D n 69
 world updates 220
 client ticksRun 217
-cunit1000011214 #unit D93E4B6E
-@ 11 update 240 frame 53 tick 115 zone - hash 0DC9ED6F n 69
+cunit1000011214 #unit 028EA705
+@ 11 update 240 frame 53 tick 115 zone - hash E8BA0DB1 n 69
 world updates 240
 client ticksRun 237
 @ 12 update 260 frame 57 tick 130 zone - hash B4256A94 n 68

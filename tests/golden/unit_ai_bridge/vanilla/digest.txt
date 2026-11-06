@@ -21365,7 +21365,7 @@ cunit1898 #unit FA98FCCA
 cunit1900 #place 2C5C78DA
 cunit1900 #unit 5043722C
 cunit1000011214 #place D5159127
-@ 157 update 3160 frame 631 tick 3160 zone gz1g hash DD537D03 n 792
+@ 157 update 3160 frame 631 tick 3160 zone gz1g hash FE74DE9E n 792
 world tick 3160
 world updates 3160
 random isaac.count 138
@@ -21494,7 +21494,7 @@ cunit1898 #place D0BD0995
 cunit1900 #place 8A2A192D
 cunit1900 #unit 905E562F
 cunit1901 #unit F28A099F
-cunit1913 #unit 75D3BEC3
+cunit1913 #unit 8B2E7C7C
 cunit1000011214 #place 0FC2F556
 @ 158 update 3180 frame 635 tick 3180 zone gz1g hash 7E6DE13C n 792
 world tick 3180

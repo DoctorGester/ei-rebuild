@@ -5,10 +5,11 @@
 //
 // The vertex carries its page's layer of the page textures' array with its texture coordinates, the normal, the material
 // colour (colour word) and, in the specular word, the edge fade (alpha); `rest` (loss, depth, otherWater or slope, extra)
-// means one thing on the ground and another on the water (the programs' headers). A tile whose texture animates and whose frames
-// the GPU steps (`anim.y` frames, not 0) carries its texture coordinates relative to its page's first tile in `uv` and
-// its first frame's index in the page, its frame count and its phase in `anim`: tile_uv (terrain_stages.hlsli) steps
-// it with the landscape's tile-step count (Terrain::tileSteps); any other vertex's `uv` is final.
+// means one thing on the ground and another on the water (the programs' headers). A tile whose texture animates
+// (`anim.y` frames, not 0) carries its texture coordinates relative to its page's first tile in `uv` and its first
+// frame's index in the page, its frame count, its seed (its place in the map) and its rate (1 steps every time, less
+// plays one cycle now and then) in `anim`: tile_uv (terrain_stages.hlsli) works its frame out from the landscape's
+// tile-step count (Terrain::tileSteps); any other vertex's `uv` is final.
 #include "bindings.hlsli"
 #include "depth_copy.hlsli"
 #include "distance_fog.hlsli"
@@ -19,7 +20,7 @@ struct VsIn {
     [[vk::location(3)]] float3 uv : TEXCOORD3;      // u, v and the page's layer
     [[vk::location(4)]] float3 normal : TEXCOORD4;
     [[vk::location(5)]] float4 rest : TEXCOORD5;    // loss, depth, otherWater or the slope, extra (the programs' headers)
-    [[vk::location(6)]] float3 anim : TEXCOORD6;    // the first frame's index in the page, the frames, the phase
+    [[vk::location(6)]] float4 anim : TEXCOORD6;    // the first frame's index in the page, the frames, the seed, the rate
 };
 
 // The vertex blocks' first members (the program adds its own after them): the clip matrix, the matrix to the shadow

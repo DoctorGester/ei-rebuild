@@ -1464,25 +1464,25 @@ cunit1000011214 #vitals 68D49C6E
 @ 6 update 140 frame 27 tick 115 zone - hash 52B0E65F n 173
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 115 zone - hash 4A57A610 n 173
+@ 7 update 160 frame 31 tick 115 zone - hash 96021171 n 173
 world updates 160
 client ticksRun 157
 + cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 6F6B86E3
+cunit1000011214 #unit A84313BA
 cunit1000011214 #vitals A7CF3098
-@ 8 update 180 frame 35 tick 115 zone - hash 634F7BD8 n 173
+@ 8 update 180 frame 35 tick 115 zone - hash 56E751D7 n 173
 world updates 180
 client ticksRun 177
-cunit1000011214 #unit 969FEC80
-@ 9 update 200 frame 42 tick 115 zone - hash 2E18B0E4 n 173
+cunit1000011214 #unit 51B779D9
+@ 9 update 200 frame 42 tick 115 zone - hash 1BB09AEB n 173
 world updates 200
 client ticksRun 197
-@ 10 update 220 frame 49 tick 115 zone - hash 131BD9E2 n 173
+@ 10 update 220 frame 49 tick 115 zone - hash E2A4AC46 n 173
 world updates 220
 client ticksRun 217
-cunit1000011214 #unit 3567ED44
-@ 11 update 240 frame 53 tick 115 zone - hash 694DB2A5 n 173
+cunit1000011214 #unit CA8A7508
+@ 11 update 240 frame 53 tick 115 zone - hash 98F2C701 n 173
 world updates 240
 client ticksRun 237
 @ 12 update 260 frame 57 tick 130 zone - hash C8278D29 n 172

@@ -12,13 +12,38 @@ float edge_kept(float2 p, float depth) {
     float4 inside = float4(p, float2(vs.mapWidth, vs.mapHeight) - p) - band - 1.0;
     return 1.0 - min(length(min(inside, 0.0)), band) / band;
 }
-// The vertex's texture coordinates: its own, or an animated tile's at its frame now (Terrain::tileSteps steps since the
-// tile was built, from its phase). `precise`: the products stay products, so the sums round as the CPU's did when it
-// wrote them (SectorData::AnimateTiles; a column's and row's offset of the page, then the tile's own coordinate).
+uint hash_bits(uint x) {
+    x ^= x >> 16;
+    x *= 0x7feb352du;
+    x ^= x >> 15;
+    x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
+}
+// An animated tile's frame after `steps` animation steps, `seed` its place in the map and `rate` the share of its resting
+// steps that start a cycle (1: it steps every time). A tile of rate 1 starts at a frame hashed from its seed and takes
+// every step. A slower one rests at frame 0 and plays one cycle (every frame once, a step each) in some windows of four
+// cycles: a hash of the seed and the window says whether it does and from which step of the window. The window plays with
+// the chance that keeps the mean number of cycles started per step as the game's draws had it (a resting step began a
+// cycle at a chance of `rate`, and a cycle takes `frames` steps, so one started every 1 / rate + frames steps).
+int tile_frame(int frames, uint seed, float rate, int steps) {
+    const uint start = hash_bits(seed);
+    if (rate >= 1.0) return int((start + uint(steps)) % uint(frames));
+    const int window = frames * 4;
+    const uint number = uint(steps / window);
+    const uint h = hash_bits(start ^ (number * 0x9e3779b9u + 0x85ebca6bu));
+    const float chance = min(1.0, float(window) * rate / (1.0 + rate * float(frames)));
+    const int at = int((h >> 16) % uint(window - frames + 1));
+    const int step = steps % window - at;
+    return (float(h & 0xffffu) < chance * 65536.0 && step >= 0 && step < frames) ? step : 0;
+}
+// The vertex's texture coordinates: its own, or an animated tile's at its frame now (tile_frame). `precise`: the
+// products stay products, so the sums round as the CPU's did when it wrote them (a column's and row's offset of the
+// page, then the tile's own coordinate).
 float2 tile_uv(VsIn i) {
     if (i.anim.y < 1.0) return i.uv.xy;
     const int frames = int(i.anim.y);
-    const int index = int(i.anim.x) + (int(i.anim.z) + vs.tileSteps % frames) % frames;
+    const int index = int(i.anim.x) + tile_frame(frames, uint(i.anim.z), i.anim.w, vs.tileSteps);
     const int row = index / vs.tilesPerRow;
     const int column = index - row * vs.tilesPerRow;
     precise float u0 = float(column) * vs.tileSide;

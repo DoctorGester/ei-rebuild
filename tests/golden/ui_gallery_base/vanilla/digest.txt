@@ -9518,7 +9518,7 @@ cunit848411 #place B45A2310
 cunit927062 #unit 03350123
 cunit1000011214 #place CB28BE39
 cunit1000011214 #unit 1DC9A3E0
-@ 13 update 280 frame 64 tick 280 zone bz1g hash A508AD14 n 401
+@ 13 update 280 frame 64 tick 280 zone bz1g hash 3DE00AD8 n 401
 world tick 280
 world updates 280
 random isaac.count 0
@@ -9568,7 +9568,7 @@ obj927062 #vitals 2418CA05
 obj999742 #unit 6B1CA3C6
 obj999742 #vitals 2418CA05
 obj1000002436 #vitals 5151B000
-obj1000011214 #unit 050C42D7
+obj1000011214 #unit FA802A4E
 obj1000011214 #vitals AC51EDE6
 obj1000054752 #vitals 5151B000
 obj1000059184 #vitals BACEA6D4
@@ -9598,12 +9598,12 @@ cunit848411 #unit A9F20DCE
 cunit927062 #unit FAC16B40
 cunit999742 #unit 924E38B7
 cunit1000011214 #place 07A82C66
-cunit1000011214 #unit 1B011900
+cunit1000011214 #unit 4472E571
 cunit1000054752 #unit B4DA6870
 cunit1000059184 #unit 7C070AF8
 cunit1000063817 #unit 0E4CE305
 cunit1001577495 #unit 57D526A9
-@ 14 update 300 frame 68 tick 300 zone bz1g hash F6EAB073 n 401
+@ 14 update 300 frame 68 tick 300 zone bz1g hash 3207F472 n 401
 world tick 300
 world updates 300
 random isaac.count 156
@@ -9654,7 +9654,7 @@ obj999742 #vitals 54723E8A
 obj1000002436 #vitals 213B448F
 obj1000011214 pos.z -100.0
 obj1000011214 #ai 95A2007E
-obj1000011214 #unit EE576F4A
+obj1000011214 #unit 6E3B5C68
 obj1000011214 #vitals 0C70B712
 obj1000054752 #vitals 213B448F
 obj1000059184 #vitals CAA4525B
@@ -9685,7 +9685,7 @@ cunit927062 #unit 61502956
 cunit999742 #unit 09DF7AA1
 cunit1000002436 #unit BBD78CBA
 cunit1000011214 #place 9B2ECAE6
-cunit1000011214 #unit 46BD4CE9
+cunit1000011214 #unit 0ECD0063
 cunit1000054752 #unit D1B6E8D9
 cunit1000059184 #unit 1E62228D
 cunit1000063817 #unit 1C8952BA

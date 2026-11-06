@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 20 zone - hash 34A96405 n 69
+@ 1 update 40 frame 7 tick 20 zone - hash D1D7D922 n 69
 world updates 40
 world paused 1
 client tick 21
@@ -618,81 +618,81 @@ cunit148 #unit 381DC2F0
 cunit187 #place B7CE4832
 + cunit1000011214 80 unhuma ""
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 579D9694
+cunit1000011214 #unit B492D84D
 cunit1000011214 #vitals 68D49C6E
-@ 2 update 60 frame 11 tick 20 zone - hash 5A1F965A n 69
+@ 2 update 60 frame 11 tick 20 zone - hash D2F27EC5 n 69
 world updates 60
 client ticksRun 57
 + cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit 43C7B81C
+cunit1000011214 #unit 84EF2D45
 cunit1000011214 #vitals A7CF3098
-@ 3 update 80 frame 15 tick 20 zone - hash 9E59C6B6 n 69
+@ 3 update 80 frame 15 tick 20 zone - hash 16B42E29 n 69
 world updates 80
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash 38C5AC12 n 69
+@ 4 update 100 frame 19 tick 20 zone - hash 9BE44421 n 69
 world updates 100
 client ticksRun 97
-cunit1000011214 #unit FCC615C0
-@ 5 update 120 frame 23 tick 20 zone - hash 9E29DA8F n 69
+cunit1000011214 #unit 1FD22194
+@ 5 update 120 frame 23 tick 20 zone - hash A18A864C n 69
 world updates 120
 client ticksRun 117
-cunit1000011214 #unit 05327FA3
-@ 6 update 140 frame 27 tick 20 zone - hash E7A1F6D5 n 69
+cunit1000011214 #unit E6264BF7
+@ 6 update 140 frame 27 tick 20 zone - hash D802AA16 n 69
 world updates 140
 client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash 7D208D15 n 69
+@ 7 update 160 frame 31 tick 20 zone - hash 4283D1D6 n 69
 world updates 160
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash 7CCFD0F5 n 69
+@ 8 update 180 frame 35 tick 20 zone - hash 436C8C36 n 69
 world updates 180
 client ticksRun 177
-@ 9 update 200 frame 39 tick 20 zone - hash A8A725DD n 69
+@ 9 update 200 frame 39 tick 20 zone - hash 9704791E n 69
 world updates 200
 client ticksRun 197
-@ 10 update 220 frame 43 tick 20 zone - hash C81EBBB6 n 69
+@ 10 update 220 frame 43 tick 20 zone - hash F7BDE775 n 69
 world updates 220
 client ticksRun 217
-@ 11 update 240 frame 47 tick 20 zone - hash 131130D6 n 69
+@ 11 update 240 frame 47 tick 20 zone - hash 2CB26C15 n 69
 world updates 240
 client ticksRun 237
-@ 12 update 260 frame 51 tick 20 zone - hash 097D10E1 n 69
+@ 12 update 260 frame 51 tick 20 zone - hash 98A776D6 n 69
 world updates 260
 random isaac.count 158
 client ticksRun 257
 + cunit1000011214 80 unhuma "peer"
 cunit1000011214 #place 125B38F9
-cunit1000011214 #unit F5BA127E
+cunit1000011214 #unit 51403B27
 cunit1000011214 #vitals A7CF3098
-@ 13 update 280 frame 55 tick 20 zone - hash C9378D09 n 69
+@ 13 update 280 frame 55 tick 20 zone - hash 58EDEB3E n 69
 world updates 280
 client ticksRun 277
-@ 14 update 300 frame 59 tick 20 zone - hash A4416883 n 69
+@ 14 update 300 frame 59 tick 20 zone - hash 359B0EB4 n 69
 world updates 300
 random isaac.count 157
 client ticksRun 297
-@ 15 update 320 frame 63 tick 20 zone - hash BEEA4325 n 69
+@ 15 update 320 frame 63 tick 20 zone - hash 2F302512 n 69
 world updates 320
 client ticksRun 317
-@ 16 update 340 frame 67 tick 20 zone - hash 35D1842E n 69
+@ 16 update 340 frame 67 tick 20 zone - hash A40BE219 n 69
 world updates 340
 client ticksRun 337
-@ 17 update 360 frame 71 tick 20 zone - hash 94B4005C n 69
+@ 17 update 360 frame 71 tick 20 zone - hash 056E666B n 69
 world updates 360
 client ticksRun 357
-@ 18 update 380 frame 75 tick 20 zone - hash 10629FD2 n 69
+@ 18 update 380 frame 75 tick 20 zone - hash 81B8F9E5 n 69
 world updates 380
 client ticksRun 377
-@ 19 update 400 frame 79 tick 20 zone - hash B7C0C7E5 n 69
+@ 19 update 400 frame 79 tick 20 zone - hash 261AA1D2 n 69
 world updates 400
 client ticksRun 397
-@ 20 update 420 frame 83 tick 20 zone - hash 905EDAB9 n 69
+@ 20 update 420 frame 83 tick 20 zone - hash 0184BC8E n 69
 world updates 420
 client ticksRun 417
-@ 21 update 440 frame 87 tick 20 zone - hash 363B46AF n 69
+@ 21 update 440 frame 87 tick 20 zone - hash A7E12098 n 69
 world updates 440
 client ticksRun 437
-@ 22 update 460 frame 91 tick 20 zone - hash 38872F19 n 69
+@ 22 update 460 frame 91 tick 20 zone - hash A95D492E n 69
 world updates 460
 random isaac.count 156
 random crt.rand 0xB9D0D6B5
@@ -19387,7 +19387,7 @@ cunit831510 #unit 1636C829
 cunit927062 #unit 6B0C9ED8
 cunit1000011214 #place C31C9597
 cunit1000011214 #unit 6128CF36
-@ 125 update 2520 frame 503 tick 2077 zone bz1mpg hash B029F3D8 n 389
+@ 125 update 2520 frame 503 tick 2077 zone bz1mpg hash 140B3BE5 n 389
 world tick 2077
 world updates 2520
 random isaac.count 239
@@ -19457,6 +19457,7 @@ cunit831510 #place 0BEEF675
 cunit831510 #unit 21FFF2B1
 cunit999742 #unit 8AC92F1D
 cunit1000011214 #place 5C437058
+cunit1000063817 #unit 54E1C188
 @ 126 update 2540 frame 507 tick 2097 zone bz1mpg hash 2CE76BB4 n 389
 world tick 2097
 world updates 2540
@@ -19512,6 +19513,7 @@ cunit399469 #unit 8AA10FCF
 cunit831510 #place 08E324F1
 cunit831510 #unit CB774310
 cunit1000011214 #place 916E3333
+cunit1000063817 #unit 53E86954
 @ 127 update 2560 frame 511 tick 2117 zone bz1mpg hash 1470E589 n 389
 world tick 2117
 world updates 2560
@@ -19773,7 +19775,7 @@ cunit831510 #place 1757276F
 cunit848411 #place DEB9997B
 cunit848411 #unit 8E5B4B43
 cunit927062 #unit EF7DF028
-@ 132 update 2660 frame 531 tick 2217 zone bz1mpg hash A01DBA26 n 389
+@ 132 update 2660 frame 531 tick 2217 zone bz1mpg hash 043F721B n 389
 world tick 2217
 world updates 2660
 random isaac.count 51
@@ -19820,8 +19822,7 @@ cunit831510 #place 85AC6436
 cunit848411 #place 0ED4FF48
 cunit848411 #unit EAC1FAAC
 cunit999742 #unit 8A0F7717
-cunit1000063817 #unit 54E1C188
-@ 133 update 2680 frame 535 tick 2237 zone bz1mpg hash C0D90CDD n 389
+@ 133 update 2680 frame 535 tick 2237 zone bz1mpg hash 64FBC4E0 n 389
 world tick 2237
 world updates 2680
 random isaac.count 207
@@ -19877,7 +19878,7 @@ cunit182595 #unit 4067CC92
 cunit831510 #place 1D6DCDFD
 cunit848411 #place C9DDB3D9
 cunit848411 #unit 3B3FA995
-@ 134 update 2700 frame 539 tick 2257 zone bz1mpg hash 92EE9662 n 389
+@ 134 update 2700 frame 539 tick 2257 zone bz1mpg hash 36CC5E5F n 389
 world tick 2257
 world updates 2700
 random isaac.count 107
@@ -19973,7 +19974,6 @@ cunit831510 #place A125A09C
 cunit831510 #unit D04C3881
 cunit848411 #place 499E2865
 cunit999742 #unit B247975B
-cunit1000063817 #unit 53E86954
 @ 136 update 2740 frame 547 tick 2297 zone bz1mpg hash F38B91C7 n 389
 world tick 2297
 world updates 2740
@@ -20030,7 +20030,7 @@ cunit831510 #place 3522EFA3
 cunit831510 #unit 005E592D
 cunit848411 #place 27F0339E
 cunit848411 #unit 56962620
-@ 137 update 2760 frame 551 tick 2317 zone bz1mpg hash 8A8964D9 n 389
+@ 137 update 2760 frame 551 tick 2317 zone bz1mpg hash 2EABACE4 n 389
 world tick 2317
 world updates 2760
 random isaac.count 63
@@ -20086,7 +20086,6 @@ cunit831510 #place C4160C03
 cunit831510 #unit DAC23FB1
 cunit848411 #place 5E899510
 cunit999742 #unit E7C2311E
-cunit1000063817 #unit 54E1C188
 @ 138 update 2780 frame 555 tick 2337 zone bz1mpg hash F0958F90 n 389
 world tick 2337
 world updates 2780

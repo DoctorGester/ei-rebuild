@@ -2,16 +2,18 @@
   "scenario": "mod_lost_in_astral_shops",
   "install": "rebirth",
   "recorded": "2026-11-06",
-  "commit": "b022e2a62",
+  "commit": "24b97178b",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4c: the camera samples the water at rest (Terrain::CalmSurfaceHeight; its bobbing with the waves was not intended), so a save's camera focus.z over water moves by 1e-6..5e-5; a flyer's shown height over water (client units unmodg in gz/bz8g, unmowi in z9q2) follows Terrain::WaterVertex's waves, which leave out the old per-vertex pass's frame-late phase base and wave every sector, not only the drawn ones; terrain_water_waves' water group now hashes WaterVertex's positions and no crest colours (the GPU's)",
+  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
   "source": "image",
   "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/saveq/scenario.sav: 1 fields in 1 records differ: camera 1",
-    "  camera: 1 fields in 1 records; first camera focus.z: 12.0455208 in the old golden, 12.0455084 in the new run (d 1.24e-05)"
+    "save LostInAstral/savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
+    "  visuals: 6 fields in 1 records; first visuals.generator count: 235 in the old golden, 83 in the new run; largest numeric d 1.82e+09 at visuals.generator aa: 2135027410 -> 3958333962",
+    "save LostInAstral/saveq/visuals.sav: 6 fields in 1 records differ: visuals 6",
+    "  visuals: 6 fields in 1 records; first visuals.generator count: 69 in the old golden, 135 in the new run; largest numeric d 6.47e+08 at visuals.generator aa: 3288024169 -> 2641047402"
   ]
 }
