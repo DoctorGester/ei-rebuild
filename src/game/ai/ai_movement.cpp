@@ -2,7 +2,6 @@
 // the steps a unit is about to walk.
 #include "game/ai/ai_map.h"
 #include "game/ai/unit_shape.h"
-#include "game/ai/unit_shape.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_refcount.h"
 #include "game/effects.h"

@@ -5,16 +5,15 @@
 // MapObjectClientSpecific (0x3A) on the client; both point back at the object.
 
 #include "game/core/engine_object.h"
-#include "game/objects/object3d.h"   // Object3D, the base
-#include "lib/vecmath.h"
 #include "game/net_delta.h"          // DeltaState
+#include "game/objects/object3d.h"   // Object3D, the base
 
 #include "lib/bit_flags.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
-
 #include <vector>
 
 class MapObjectServer;
@@ -295,11 +294,6 @@ protected:
 // The map object classes without members of their own (objects/map_object.cpp): CTree, CStone, CBuilding and
 // CStuffObject, all 0x238 bytes and made by the map object factory. Real
 // virtual classes. Each overrides only the destructor, class name and class id.
-
-#include "game/objects/map_object.h"
-
-#include <cstdint>
-
 template <ClassId Id>
 class PlainMapObject : public MapObject {
 public:

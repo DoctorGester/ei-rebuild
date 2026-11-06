@@ -234,6 +234,9 @@ struct PathOrder {
     PathCells steps;         // the next cells to walk (at most 32)
 };
 
+// The motion order a path starts with.
+inline MotionOrder* OrderOf(PathOrder* path) { return &path->motionOrder; }
+
 // A motion order on the stack (the order and its step list), as AIPath::ToMotionOrder fills it. The order part
 // is zeroed (the original leaves it uninitialised until it is filled).
 struct LocalMotionOrder : PathOrder {

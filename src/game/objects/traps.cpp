@@ -9,7 +9,6 @@
 #include "game/objects/map_object.h"
 #include "game/ai/sector_map.h"
 #include "game/spell.h"
-#include "game/objects/traps.h"
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 #include "game/world/world.h"

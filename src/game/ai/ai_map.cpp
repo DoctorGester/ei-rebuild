@@ -1,8 +1,8 @@
 #include "game/ai/ai_map.h"
 
+#include "game/ai/sector_map.h"
 #include "game/core/core_maths.h"
 #include "game/objects/map_object.h"
-#include "game/ai/sector_map.h"
 
 #include "lib/containers.h"
 #include "lib/rounding.h"
@@ -520,10 +520,11 @@ std::vector<Unit*> AIMap::FindUnitsInRadius(const Vector3& position, float radiu
     return Sectors(this)->FindUnitsInRadius(position, radius);
 }
 
+// --- Construction ------------------------------------------------------------------------------------
+
 // The AIMap constructor and Reset: every member as a new map has it, the map's own grids 1 x 1 and the area lists
 // filled. Of the members only the event table's reset reaches outside the map (its events go back to the free
 // list). See ai_map.h and docs/notes/ai.md.
-#include "game/ai/ai_map.h"
 
 AIMap::AIMap() { Reset(); }
 

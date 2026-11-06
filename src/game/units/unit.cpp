@@ -1,18 +1,26 @@
 #include "game/units/unit.h"
 
-#include "game/ai/ai_map.h"      // AIPath
+#include "game/ai/ai_map.h"   // AIPath
 #include "game/ai/ai_motion.h"   // UnitMotion
-#include "game/item.h"
-#include "lib/scales.h"
-#include "lib/float_select.h"
-#include "lib/rounding.h"
 #include "game/app/logic_settings.h"
+#include "game/item.h"
+#include "game/objects/object3d.h"
 #include "game/players/party.h"
 #include "game/players/player_messages.h"
 #include "game/spell.h"
+#include "game/units/unit_client_models.h"
 #include "game/units/unit_db.h"
+#include "game/world/world.h"
+
+#include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/rounding.h"
+#include "lib/scales.h"
+#include "lib/str.h"
 
 #include <bit>
+#include <cmath>
+#include <cstdint>
 #include <cstring>
 
 namespace {
@@ -25,7 +33,6 @@ constexpr float kWalkSpeedScale = 0.7f;
 constexpr float kSlowModeScale = 0.7f;
 constexpr float kIdleScale = 0.2f;
 constexpr float kOverkill = -5.0f;
-
 
 float SpellCost(const Spell* spell) { return spell->manaCost; }
 
@@ -74,6 +81,23 @@ float ModeSpeedOf(const Unit* unit, MoveMode mode) {
     }
     return base * (static_cast<float>(speed) * 2.0f) * lib::kByteScale;
 }
+
+constexpr std::uint8_t kMovesOnWater = 2;       // UnitParams::movementKind
+
+// Animation keys (docs/notes/combat.md): the low 15 bits are variant bits, the rest the kind;
+// kAnimationMoveMask are the movement bits (AnimationMoveBits).
+constexpr std::uint32_t kKindBits = 0xFFFF8000;
+constexpr std::uint32_t kEntryIndex = 0xFF;
+
+const char* const kNoAnimationEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
+const char* const kBodyPart = "bd";
+const char* const kChestPart = "chest";
+const char* const kMosquito = "unmosp";
+const char* const kRightHand = "rh3";
+
+constexpr float kNoExtent = 0.0f;
+constexpr float kExtentScale = 1.0f;
+constexpr float kMosquitoExtentScale = 2.0f;
 
 } // namespace
 
@@ -416,40 +440,10 @@ int Unit::ForgetObject(EngineObject* object) {
 
 void Unit::SetScriptName(std::string_view newName) { scriptName = newName; }
 
+// --- Figure queries ----------------------------------------------------------------------------
+
 // Unit queries on the figure: animation entries for a key, the body's extent, the height of the ground under
 // a point and the point effects start from. See unit.h and docs/notes/units.md ("Creation, databases, save").
-#include "game/ai/ai_map.h"
-#include "game/objects/object3d.h"
-#include "game/units/unit.h"
-#include "game/units/unit_client_models.h"
-#include "game/world/world.h"
-
-#include "lib/crt.h"
-#include "lib/str.h"
-
-#include <cmath>
-#include <cstdint>
-#include <cstring>
-
-namespace {
-constexpr std::uint8_t kMovesOnWater = 2;       // UnitParams::movementKind
-
-// Animation keys (docs/notes/combat.md): the low 15 bits are variant bits, the rest the kind;
-// kAnimationMoveMask are the movement bits (AnimationMoveBits).
-constexpr std::uint32_t kKindBits = 0xFFFF8000;
-constexpr std::uint32_t kEntryIndex = 0xFF;
-
-const char* const kNoAnimationEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
-const char* const kBodyPart = "bd";
-const char* const kChestPart = "chest";
-const char* const kMosquito = "unmosp";
-const char* const kRightHand = "rh3";
-
-constexpr float kNoExtent = 0.0f;
-constexpr float kExtentScale = 1.0f;
-constexpr float kMosquitoExtentScale = 2.0f;
-
-} // namespace
 
 FigureAnimation* Unit::FindAnimation(std::uint32_t key, bool anyOfKind, AnimationRandom random) {
     if (!IsUnitType(MapType())) return nullptr;
@@ -487,7 +481,6 @@ float Unit::GroundHeight(float x, float y) {
     if (controller->GetClassId() == ClassId::UnitServer) return world->SurfaceHeightAt(x, y) + localPosition.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }
-
 
 Vector3 Unit::EffectPoint() {
     // The game leaves this uninitialised on the server and for a hero without a right hand, and turns

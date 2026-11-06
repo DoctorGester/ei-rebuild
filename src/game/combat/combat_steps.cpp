@@ -1,18 +1,20 @@
 // Combat, fourth part: the animation steps of an order (which animation of the unit plays, for how long, and
 // when the action happens). See combat.h, combat/combat_internal.h and docs/notes/combat.md ("Order lifecycle").
 #include "game/combat/combat.h"
+
 #include "game/combat/combat_internal.h"
+#include "game/core/random.h"
 #include "game/item.h"
 #include "game/objects/object3d.h"
-#include "lib/vecmath.h"
-#include "game/core/random.h"
 #include "game/units/unit.h"
 
 #include "lib/float_select.h"
-#include "platform/log.h"
 #include "lib/rounding.h"
+#include "lib/vecmath.h"
+#include "platform/log.h"
 
 #include <bit>
+#include <cstdint>
 #include <cstring>
 
 namespace {
@@ -62,7 +64,6 @@ bool HasRangedWeapon(Unit* unit) {
     ItemWeapon* weapon = unit->ActiveWeapon();
     return weapon && weapon->IsRanged();
 }
-
 
 // Ticks of entry `index`'s `frames` (frameCount the whole animation, moment the moment of the action): the
 // zero-extended frame count stored as a float, divided by the unit's speed factor for the entry, truncated (_ftol:
@@ -164,6 +165,8 @@ std::uint32_t RandomSide(std::uint32_t key) {
     key &= kKeySideMask;
     return key | AnimationKeyOf((g_random.Next() & 1) ? BlowSide::Front : BlowSide::Back);
 }
+
+constexpr std::uint8_t kNoStepVariant = 0xFF;    // AnimationStep::animation / variant: none (a pause)
 
 } // namespace
 
@@ -464,18 +467,10 @@ void UnitServer::BuildDeathAnimation(AnimationSteps* steps, BlowSide direction, 
         for (AnimationStep& step : steps->steps) step.kind = kStepLying;
 }
 
+// --- The step lists ----------------------------------------------------------------------------
+
 // AnimationSteps, the step lists of the unit controller's animations: appending steps and
 // emotes, flags, duration, comparison. See combat.h and docs/notes/combat.md.
-#include "game/combat/combat.h"
-
-#include <bit>
-#include <cstdint>
-
-
-namespace {
-constexpr std::uint8_t kNoStepVariant = 0xFF;    // AnimationStep::animation / variant: none (a pause)
-
-} // namespace
 
 void AnimationSteps::AddStep(int animation, int duration) {
     AnimationStep& last = steps.emplace_back();

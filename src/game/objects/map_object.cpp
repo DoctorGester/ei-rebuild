@@ -2,14 +2,15 @@
 
 #include "game/core/core_streams.h"
 #include "game/core/core_transform.h"
-#include "game/objects/object3d.h"
 #include "game/net_delta.h"
-#include "game/saves/save_versions.h"
-#include "game/spell.h"    // SpellType
+#include "game/objects/object3d.h"
 #include "game/objects/torch.h"
-#include "game/units/unit.h"     // MapObjectServer
+#include "game/saves/save_versions.h"
+#include "game/spell.h"   // SpellType
+#include "game/units/unit.h"   // MapObjectServer
 #include "game/units/unit_create.h"
-#include "game/world/world.h"    // World
+#include "game/world/world.h"   // World
+
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/float_select.h"
@@ -49,6 +50,23 @@ void RemoveOutdatedEffects(MapObject* object, const MapEffect* effect) {
         else ++i;
     }
 }
+
+constexpr int kNoKey = -123;                    // the object asks for no key
+constexpr float kNoSpeed = 0.0f;
+constexpr float kPlainRadius = 0.75f;
+constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the statistics are repacked
+
+constexpr int kUnitNetFields = 14;
+constexpr int kTorchNetFields = 5;
+
+constexpr int kMapObjectNetFields = 4;
+constexpr int kInitialCountdown = 5;      // MapObject::updateCountdown
+
+template <ClassId Id> constexpr const char* kName = nullptr;
+template <> constexpr const char* kName<ClassId::Tree> = "CTree";
+template <> constexpr const char* kName<ClassId::Stone> = "CStone";
+template <> constexpr const char* kName<ClassId::Building> = "CBuilding";
+template <> constexpr const char* kName<ClassId::StuffObject> = "CStuffObject";
 
 } // namespace
 
@@ -149,7 +167,6 @@ void MapObject::SetServerData(const UnitVitals* data) {
     ServerCompanion()->SetData(data);
 }
 
-
 void MapObject::AttachObject(EngineObject* object) {
     if (!object || SideTypeOf(object) != SideObjectType::MapObject) {
         Object3D::AttachObject(object);
@@ -182,13 +199,6 @@ MapObject::~MapObject() = default;
 
 // --- Small virtuals: the ones a plain object leaves empty (units, levers, traps and torches override them) and
 // the network state's write / read wrappers.
-
-namespace {
-constexpr int kNoKey = -123;                    // the object asks for no key
-constexpr float kNoSpeed = 0.0f;
-constexpr float kPlainRadius = 0.75f;
-constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the statistics are repacked
-} // namespace
 
 // --- Slots that read the object ------------------------------------------------------------------------
 
@@ -283,15 +293,6 @@ void MapObject::ClearProtectionBases() {
 // fields. See unit.h (Unit::Create), torch.h (TorchObject::Create) and docs/notes/units.md
 // ("Creation, databases, save").
 
-namespace {
-constexpr int kUnitNetFields = 14;
-constexpr int kTorchNetFields = 5;
-
-constexpr int kMapObjectNetFields = 4;
-constexpr int kInitialCountdown = 5;      // MapObject::updateCountdown
-
-} // namespace
-
 // --- MapObject's Create / Destroy (A-U) ---------------------------------------------------------
 
 void MapObject::Create() {
@@ -382,16 +383,9 @@ void MapObjectServer::Save(ByteStream* stream) {
     for (const std::string& text : strings) stream->WriteString(text);
 }
 
-// The member-less map object classes (objects/map_object.h, A-U6): CTree, CBuilding, CStone and CStuffObject.
-#include "game/objects/map_object.h"
+// --- The plain classes -------------------------------------------------------------------------
 
-namespace {
-template <ClassId Id> constexpr const char* kName = nullptr;
-template <> constexpr const char* kName<ClassId::Tree> = "CTree";
-template <> constexpr const char* kName<ClassId::Stone> = "CStone";
-template <> constexpr const char* kName<ClassId::Building> = "CBuilding";
-template <> constexpr const char* kName<ClassId::StuffObject> = "CStuffObject";
-} // namespace
+// The member-less map object classes (objects/map_object.h, A-U6): CTree, CBuilding, CStone and CStuffObject.
 
 template <ClassId Id>
 PlainMapObject<Id>::PlainMapObject() {

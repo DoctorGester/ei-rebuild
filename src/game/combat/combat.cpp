@@ -5,7 +5,6 @@
 
 #include "game/ai/ai_map.h"
 #include "game/combat/combat_internal.h"
-#include "game/combat/combat_internal.h"
 #include "game/console/console.h"
 #include "game/core/core_refcount.h"
 #include "game/app/singletons.h"

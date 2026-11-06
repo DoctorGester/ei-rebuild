@@ -7,6 +7,7 @@
 
 #include "game/core/engine_object.h"
 #include "game/objects/map_object.h"
+#include "game/sound/sound.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -14,6 +15,8 @@
 
 class ByteStream;
 class DeltaReader;
+class Light;
+class ParticleSource;
 
 class TorchObjectSpec : public EngineObject {
 public:
@@ -110,15 +113,6 @@ public:
 // and values[0] its size scale; colours[1] the light's offset, values[1] its radius
 // (also the sound's far distance divided by 5 / 3) and values[2..5] its colour; name the
 // sound.
-
-#include "game/objects/torch.h"                     // TorchObjectSpec
-#include "game/sound/sound.h"                     // kNoSound
-
-#include <cstddef>
-#include <cstdint>
-
-class Light;
-class ParticleSource;
 
 class TorchObjectClientSpec : public TorchObjectSpec {
 public:

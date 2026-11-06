@@ -1,9 +1,15 @@
 // The unit occupancy layers of the AI map: stamped and lifted every time a
-// unit moves (AIMap::MarkFootprint through SectorMap::Move).
-#include "game/ai/unit_shape.h"
+// unit moves (AIMap::MarkFootprint through SectorMap::Move), and the water patch stamped the same way.
 
+#include "game/ai/ai_map.h"
+#include "game/ai/unit_shape.h"
+#include "game/core/core_refcount.h"
+
+#include "lib/crt.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <list>
 
@@ -157,21 +163,13 @@ void LargeUnitLayer::Merge(const UnitLayerNode* block) {
     }
 }
 
+// --- The water patch ---------------------------------------------------------------------------
+
 // AIMap::StampWaterPatch: adds to (or lifts from) the small-unit layer a patch made of the water depths
 // around a point: the 15x15 cells from (x - 7, y - 7), clipped to the map (the last row and column excluded),
 // copied into a shared 16x16 shape (a function-local static reference-counted object; recreated when missing or
 // detached). The patch owns its nodes by the key ((y + 0x800) << 16) + x; the point's cell is
 // truncated from position * 1 / (cell size * 0.5). See ai_map.h and docs/notes/ai.md.
-#include "game/ai/ai_map.h"
-#include "game/ai/unit_shape.h"
-#include "game/core/core_refcount.h"
-
-#include "lib/crt.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-
 void AIMap::StampWaterPatch(const Vector3& position, bool add) {
     float scale = 1.0f / 0.5f;
     int x = static_cast<int>(scale * position.x);

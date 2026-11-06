@@ -11,7 +11,6 @@
 #include "game/light.h"
 #include "game/terrain.h"
 #include "game/objects/torch.h"
-#include "game/objects/torch.h"
 #include "game/world/world.h"
 
 #include <bit>

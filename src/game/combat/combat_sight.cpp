@@ -1,13 +1,16 @@
 // Combat, third part: whether an order can be carried out from where the unit stands (reach, units
 // in the way, line of sight) and the planner that finds the moment it can. See combat.h,
 // combat/combat_internal.h and docs/notes/combat.md ("Order lifecycle").
-#include "game/ai/ai_map.h"
 #include "game/combat/combat.h"
+
+#include "game/ai/ai_map.h"
+#include "game/ai/unit_ai.h"
 #include "game/combat/combat_internal.h"
+#include "game/core/core_maths.h"
 #include "game/item.h"
+#include "game/item_db.h"
 #include "game/spell.h"
 #include "game/units/unit.h"
-#include "game/ai/unit_ai.h"
 #include "game/world/world.h"
 
 #include "lib/bytes.h"
@@ -112,6 +115,9 @@ void FillCastKind(OrderPlan* plan, Spell* spell) {
     else if (type == SpellType::CurseMagic) plan->castKind = SpellSchool::Fire;
     else plan->castKind = spell->GetPrototype()->school;
 }
+
+constexpr float kAboveSurface = 1.0f;
+constexpr float kMinSight = 0.1f;
 
 } // namespace
 
@@ -334,21 +340,9 @@ bool UnitServer::CanPlanAction(const AIOrder* order) {
     return result;
 }
 
+// --- The spell line-of-sight test ----------------------------------------------------------
+
 // The spell line-of-sight test the world's spell casting asks per target.
-#include "game/combat/combat.h"
-
-#include "game/ai/ai_map.h"
-#include "game/core/core_maths.h"
-#include "game/item_db.h"
-#include "game/world/world.h"
-
-
-#include <bit>
-
-namespace {
-constexpr float kAboveSurface = 1.0f;
-constexpr float kMinSight = 0.1f;
-} // namespace
 
 bool SpellHasLineOfSight(WorldServer* world, Spell* spell, Unit* caster, const Vector3& from,
                                     Unit* target, const Vector3& at) {

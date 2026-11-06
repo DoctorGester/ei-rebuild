@@ -5,7 +5,6 @@
 #include "game/ai/ai_motion.h"
 #include "game/combat/combat.h"
 #include "game/combat/combat_internal.h"
-#include "game/combat/combat_internal.h"
 #include "game/core/core_maths.h"
 #include "game/core/engine_object.h"
 #include "game/app/singletons.h"

@@ -1,19 +1,22 @@
 // Object footprints in the AI map: collecting the cells an object's model parts cover, stamping
-// them into the occluder grid, and refreshing passability around them.
+// them into the occluder grid (the per-cell occluder words, and the bridge decks), and refreshing passability
+// around them.
+
 #include "game/ai/ai_map.h"
+#include "game/ai/sector_map.h"
 #include "game/ai/unit_shape.h"
 
 #include "lib/containers.h"
-#include "lib/rounding.h"
 #include "lib/crt.h"
+#include "lib/rounding.h"
+#include "lib/vecmath.h"
+
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
-#include "lib/vecmath.h"
-
-#include <cstdlib>
 #include <vector>
 
 // --- Footprint cell sets -------------------------------------------------------------------------
@@ -44,6 +47,24 @@ void ResetCellSet(FootprintCellSet* set) {
     set->SetSize(0);
     for (int& b : set->buckets) b = -1;
 }
+
+// The sector holding a cell (the occluder records' owner).
+Sector* SectorOf(AIMap* map, int x, int y) {
+    return &map->sectorMap.sectors[(y / 32) * map->sectorMap.width + x / 32];
+}
+
+// (short)x << 16 | (short)y.
+std::uint32_t BridgeKey(Point at) {
+    return static_cast<std::uint32_t>((static_cast<int>(static_cast<short>(at.x)) << 16) + static_cast<short>(at.y));
+}
+
+// A bridge map entry's value: the ground level in the low word, the water depth in bits 16-21, the terrain type
+// in bits 24-28.
+std::uint32_t SavedCell(const AIMapCell& cell, std::uint32_t occluderWord) {
+    return cell.groundLevel | static_cast<std::uint32_t>(cell.WaterDepth()) << 16 | occluder::Type(occluderWord) << 24;
+}
+int SavedDepth(std::uint32_t saved) { return static_cast<int>((saved >> 16) & kCellDepthMask); }
+std::uint32_t SavedType(std::uint32_t saved) { return occluder::Type(saved >> 24); }
 
 } // namespace
 
@@ -275,25 +296,11 @@ void AIMap::EndRefresh() {
     batching = false;
 }
 
+// --- Occluders ---------------------------------------------------------------------------------
+
 // The per-cell occluder words (AIMap::occluders, ai_map.h's namespace occluder): adding and removing one footprint
 // cell's occluder. A cell with more than one chains 8-byte records (SectorOccluder, sector_map.h) of its 32x32
 // sector. See docs/notes/ai.md.
-#include "game/ai/ai_map.h"
-#include "game/ai/sector_map.h"
-
-#include "lib/crt.h"
-
-#include <cstdint>
-#include <cstring>
-
-namespace {
-
-Sector* SectorOf(AIMap* map, int x, int y) {
-    return &map->sectorMap.sectors[(y / 32) * map->sectorMap.width + x / 32];
-}
-
-} // namespace
-
 bool AIMap::AddOccluderRecord(FootprintCell* cell) {
     int x = cell->x, y = cell->y;
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
@@ -359,6 +366,8 @@ bool AIMap::ClearOccluderRecord(FootprintCell* cell) {
     return true;
 }
 
+// --- Bridge decks ------------------------------------------------------------------------------
+
 // AIMap::ApplyBridgeDecks: applies or clears the bridge decks of a footprint's bridge cells. Applying: each
 // cell inside the map with low < high becomes a BridgeDeck; a grid cell not yet under a bridge has its ground
 // level, its water depth and its terrain type saved in the bridge map (keyed (short)x << 16 | (short)y) unless
@@ -368,27 +377,6 @@ bool AIMap::ClearOccluderRecord(FootprintCell* cell) {
 // when that worked and no bridge deck is left on the grid cell, a cell that was under a bridge is restored from
 // the bridge map, kCellBridge cleared and kCellWater set when the cell has a water depth; with a deck left, the
 // ground becomes max(saved ground, highest deck). See ai_map.h and docs/notes/ai.md.
-#include "game/ai/ai_map.h"
-
-#include <cstdint>
-
-namespace {
-
-// (short)x << 16 | (short)y.
-std::uint32_t BridgeKey(Point at) {
-    return static_cast<std::uint32_t>((static_cast<int>(static_cast<short>(at.x)) << 16) + static_cast<short>(at.y));
-}
-
-// A bridge map entry's value: the ground level in the low word, the water depth in bits 16-21, the terrain type
-// in bits 24-28.
-std::uint32_t SavedCell(const AIMapCell& cell, std::uint32_t occluderWord) {
-    return cell.groundLevel | static_cast<std::uint32_t>(cell.WaterDepth()) << 16 | occluder::Type(occluderWord) << 24;
-}
-int SavedDepth(std::uint32_t saved) { return static_cast<int>((saved >> 16) & kCellDepthMask); }
-std::uint32_t SavedType(std::uint32_t saved) { return occluder::Type(saved >> 24); }
-
-} // namespace
-
 void BridgeHeights::SaveCell(Point at, const AIMapCell& cell, std::uint32_t occluder) {
     saved.try_emplace(BridgeKey(at), SavedCell(cell, occluder));
 }

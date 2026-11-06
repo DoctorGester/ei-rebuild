@@ -1,13 +1,16 @@
 // Creature statistics: attribute, skill and skill level lookups over UnitStats, and small helpers
 // of the hit (DamageInfo) and lock records. See unit.h.
 #include "game/app/logic_settings.h"
-
 #include "game/core/random.h"
+#include "game/data/text_manager.h"
+#include "game/item.h"
 #include "game/saves/save_versions.h"
 #include "game/spell.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
+
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/maths.h"
 #include "lib/rounding.h"
 
@@ -35,6 +38,61 @@ constexpr int kBackstabLevelBase = 0x41;
 
 // The stat range GetFactors divides by (a static initialiser: 35 - 15).
 constexpr float kFactorStatRange = /*007AF280*/ 20.0f;
+
+constexpr float kByteMax = 255.0f;
+constexpr float kSpeedScale = 25.5f;
+constexpr int kResetSlotType = 4;
+
+// Rounded to the nearest integer after a store to float.
+int RoundStored(float value) { return lib::RoundEven(value); }
+
+// round(value * 255 / 2), at most 255 (unsigned compare: negative values become 255 too).
+std::uint8_t ScaledByte(float value, float scale, float divisor) {
+    float scaled = value * scale / divisor;
+    auto rounded = static_cast<std::uint32_t>(lib::RoundEven(scaled));
+    if (rounded > 0xFF) rounded = 0xFF;
+    return static_cast<std::uint8_t>(rounded);
+}
+
+constexpr int kWorking = 3;       // UnitStatSlot::kind
+constexpr int kSlots = 6;
+constexpr int kFallback = 1;      // the body
+
+// The neighbours tried, in order, for each location (-1 ends a row).
+constexpr signed char kNeighbours[kSlots][kSlots] = {
+    {1, 2, 3, -1},          // head
+    {0, 2, 3, 4, 5, -1},    // body
+    {3, 1, -1},             // hands
+    {2, 1, -1},
+    {5, 1, -1},             // legs
+    {4, 1, -1},
+};
+
+constexpr float kWorthBase = 1.61f;
+constexpr float kTwoDigitsBelow = 4.0f; // a first digit below this keeps two digits
+constexpr float kRoundUpTo = 10.0f;     // ... unless the price is at most this
+constexpr float kTenth = 0.1f;
+constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (UnitStats::skillLevels)
+
+// What a level value is worth (the same curve as RaiseSkill's): the game's settings "Skill Val 1"
+// (the scale) and "Skill Val 2" (the divisor), read at the time of the call. The int over the divisor rounds once.
+float Worth(int value) {
+    const LogicSettings& settings = g_logicSettings;
+    const float exponent = value / settings.skillVal[1];
+    return lib::Pow(kWorthBase, exponent) * settings.skillVal[0];
+}
+
+constexpr int kNoSlot = 7;              // an entry of the coverage table that covers nothing
+constexpr int kBodySlot = 1;
+constexpr int kLayerThere = 2;          // UnitStatLayer::state from which a layer counts
+constexpr int kLayerAdded = 3;
+constexpr int kQuickItems = 4;
+constexpr int kArmourSlots = 7;         // Unit::armor
+
+// For each armour type, the three body slots it covers (kNoSlot: none).
+constexpr int kArmourCoverage[7][3] = /*0073E048*/ {{0, 7, 7}, {1, 2, 3}, {7, 4, 5}, {1, 2, 3}, {7, 4, 5}, {7, 4, 5}, {7, 2, 3}};
+
+int CoveredSlot(ArmorType type, int which) { return kArmourCoverage[static_cast<int>(type)][which]; }
 
 } // namespace
 
@@ -216,24 +274,6 @@ void UnitStats::Save(ByteStream* stream) const { stream->Write(this, sizeof(Unit
 // Resetting creature statistics and packing them into the rounded records the unit carries (UnitParams and
 // UnitVitalsPacked). See unit.h.
 
-namespace {
-constexpr float kByteMax = 255.0f;
-constexpr float kSpeedScale = 25.5f;
-constexpr int kResetSlotType = 4;
-
-// Rounded to the nearest integer after a store to float.
-int RoundStored(float value) { return lib::RoundEven(value); }
-
-// round(value * 255 / 2), at most 255 (unsigned compare: negative values become 255 too).
-std::uint8_t ScaledByte(float value, float scale, float divisor) {
-    float scaled = value * scale / divisor;
-    auto rounded = static_cast<std::uint32_t>(lib::RoundEven(scaled));
-    if (rounded > 0xFF) rounded = 0xFF;
-    return static_cast<std::uint8_t>(rounded);
-}
-
-} // namespace
-
 // --- UnitVitals ------------------------------------------------------------------------------
 
 void UnitVitals::Pack(UnitVitalsPacked* out) {
@@ -329,22 +369,6 @@ void UnitStats::ClearOuterLayers() {
 // Where an attack lands when the body part it aims at is gone. See unit.h
 // (UnitStats::PickLocation) and docs/notes/units.md ("Statistics in play").
 
-namespace {
-constexpr int kWorking = 3;       // UnitStatSlot::kind
-constexpr int kSlots = 6;
-constexpr int kFallback = 1;      // the body
-
-// The neighbours tried, in order, for each location (-1 ends a row).
-constexpr signed char kNeighbours[kSlots][kSlots] = {
-    {1, 2, 3, -1},          // head
-    {0, 2, 3, 4, 5, -1},    // body
-    {3, 1, -1},             // hands
-    {2, 1, -1},
-    {5, 1, -1},             // legs
-    {4, 1, -1},
-};
-} // namespace
-
 int UnitStats::PickLocation(int location) {
     if (static_cast<unsigned>(location) < kSlots) {
         if (slots[location].kind == kWorking) return location;
@@ -363,23 +387,6 @@ int UnitStats::PickLocation(int location) {
 
 // What learning a skill level or raising a school costs; the interface's skill pages call them. See
 // docs/notes/units.md ("Statistics in play").
-
-namespace {
-constexpr float kWorthBase = 1.61f;
-constexpr float kTwoDigitsBelow = 4.0f; // a first digit below this keeps two digits
-constexpr float kRoundUpTo = 10.0f;     // ... unless the price is at most this
-constexpr float kTenth = 0.1f;
-constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (UnitStats::skillLevels)
-
-// What a level value is worth (the same curve as RaiseSkill's): the game's settings "Skill Val 1"
-// (the scale) and "Skill Val 2" (the divisor), read at the time of the call. The int over the divisor rounds once.
-float Worth(int value) {
-    const LogicSettings& settings = g_logicSettings;
-    const float exponent = value / settings.skillVal[1];
-    return lib::Pow(kWorthBase, exponent) * settings.skillVal[0];
-}
-
-} // namespace
 
 // What raising a school from level value `from` to `to` costs: the worths' difference, truncated.
 int SchoolPrice(int from, int to) {
@@ -417,38 +424,11 @@ int UnitStats::SkillPrice(const ::SkillLevelRecord* level) {
     return lib::Truncate(std::floor(leading + 0.5f) * power);
 }
 
+// --- Armour layers -----------------------------------------------------------------------------
+
 // Creature statistics: the armour layers of the body slots, the body's packed protection and two skill values
 // (an attribute with the quick items' bonuses, a spell school's skill). See unit.h (UnitStats) and
 // docs/notes/units.md ("Statistics in play").
-#include "game/units/unit.h"
-
-#include "game/item.h"
-#include "game/data/text_manager.h"
-
-#include "lib/float_select.h"
-#include "lib/rounding.h"
-
-#include <bit>
-#include <cmath>
-#include <cstdint>
-#include <cstring>
-
-namespace {
-constexpr float kStatBase = 25.0f;
-
-constexpr int kNoSlot = 7;              // an entry of the coverage table that covers nothing
-constexpr int kBodySlot = 1;
-constexpr int kLayerThere = 2;          // UnitStatLayer::state from which a layer counts
-constexpr int kLayerAdded = 3;
-constexpr int kQuickItems = 4;
-constexpr int kArmourSlots = 7;         // Unit::armor
-
-// For each armour type, the three body slots it covers (kNoSlot: none).
-constexpr int kArmourCoverage[7][3] = /*0073E048*/ {{0, 7, 7}, {1, 2, 3}, {7, 4, 5}, {1, 2, 3}, {7, 4, 5}, {7, 4, 5}, {7, 2, 3}};
-
-int CoveredSlot(ArmorType type, int which) { return kArmourCoverage[static_cast<int>(type)][which]; }
-
-} // namespace
 
 void UnitStats::AddArmourLayer(ItemArmor* piece) {
     for (int which = 0; which < 3; ++which) {

@@ -1,22 +1,27 @@
 // Unit setup and upkeep around creation: the prototype name index, the server controller's
 // statistics hand-over and remarks, and dropping broken equipment after a hit. See
 // docs/notes/units.md ("Creation, databases, save").
-#include "game/players/player_messages.h"
 #include "game/units/unit_create.h"
 
 #include "game/combat/combat.h"
+#include "game/core/engine_object.h"
 #include "game/item.h"
+#include "game/item_manager.h"
 #include "game/objects/map_object.h"
+#include "game/players/player_messages.h"
 #include "game/units/unit.h"
+#include "game/units/unit_db.h"
+#include "game/world/world.h"
 
+#include "lib/crt.h"
+#include "lib/rounding.h"
+#include "lib/str.h"
+
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <utility>
-
-#include "lib/rounding.h"
-
-#include <bit>
 #include <vector>
 
 namespace {
@@ -27,6 +32,28 @@ PlayerServer* PlayerMessages(const Player* player) { return player->Server(); }
 // The item's condition rounds to nothing.
 bool IsBroken(const Item* item) {
     return lib::RoundEven(item->condition) <= 0;
+}
+
+// Through their game addresses (defined elsewhere; their verify wrappers stay in the path, and Rebirth's patches
+// still run): the prototype table's name lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown
+// names); the item manager's item by name (item_manager.cpp); Unit's EquipArmour /
+// AddWeapon / AddSpell (unit_items.cpp, unit.cpp). The item manager's spell by name (with the world's manager
+// context) is not defined here.
+
+std::uint32_t Count(const std::vector<std::string>& names) { return static_cast<std::uint32_t>(names.size()); }
+
+// A weapon name other than "none" (_mbscmp) and not empty.
+bool Named(const std::string& name) {
+    return str::Compare(name,
+                           "none") != 0 &&
+           static_cast<int>(name.size()) != 0;
+}
+
+// The weapon named `name`; a warning when it cannot be made (null is returned then).
+Item* MakeWeapon(ItemManager* items, const std::string& name, const std::string& prototype) {
+    Item* weapon = items->CreateItem(name);
+    if (!weapon) game::Warning("Can't create weapon \"%s\" for unit \"%s\"", name, prototype);
+    return weapon;
 }
 
 } // namespace
@@ -153,49 +180,10 @@ Unit::~Unit() {
     Reset();
 }
 
+// --- Starting equipment ------------------------------------------------------------------------
+
 // A new unit's starting equipment from its prototype (the world adds zone units with it after
 // ApplyPrototype). See unit_create.h (MapObjectManager) and docs/notes/units.md ("Creation helpers").
-#include "game/item.h"
-#include "game/item_manager.h"
-#include "game/units/unit_create.h"
-
-#include "game/core/engine_object.h"
-#include "game/units/unit.h"
-#include "game/units/unit_db.h"
-
-#include "lib/crt.h"
-#include "lib/str.h"
-
-#include "game/world/world.h"
-
-#include <cstdint>
-#include <string>
-#include <vector>
-
-namespace {
-
-// Through their game addresses (defined elsewhere; their verify wrappers stay in the path, and Rebirth's patches
-// still run): the prototype table's name lookup (UnitPrototypeTable::FindByName, unit_create.cpp; inserts unknown
-// names); the item manager's item by name (item_manager.cpp); Unit's EquipArmour /
-// AddWeapon / AddSpell (unit_items.cpp, unit.cpp). The item manager's spell by name (with the world's manager
-// context) is not defined here.
-
-std::uint32_t Count(const std::vector<std::string>& names) { return static_cast<std::uint32_t>(names.size()); }
-
-// A weapon name other than "none" (_mbscmp) and not empty.
-bool Named(const std::string& name) {
-    return str::Compare(name,
-                           "none") != 0 &&
-           static_cast<int>(name.size()) != 0;
-}
-
-// The weapon named `name`; a warning when it cannot be made (null is returned then).
-Item* MakeWeapon(ItemManager* items, const std::string& name, const std::string& prototype) {
-    Item* weapon = items->CreateItem(name);
-    if (!weapon) game::Warning("Can't create weapon \"%s\" for unit \"%s\"", name, prototype);
-    return weapon;
-}
-} // namespace
 
 int MapObjectManager::GiveStartingEquipment(Unit* unit, const std::string& name) {
     SpellManager* spellOwner = context->GetSpellManager();   // passed on to the spell factory

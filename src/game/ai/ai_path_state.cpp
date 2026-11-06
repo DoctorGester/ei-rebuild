@@ -1,7 +1,10 @@
 // An AI path's network state: the motion order and the next steps written into a delta field (WriteState) and
 // read back (ReadState). Units' state messages (net_state.cpp), the player's path message (0x0E) and the
-// client's prediction (player_client.cpp) use them.
+// client's prediction (player_client.cpp) use them. The path in the save stream is below.
+
+#include "game/ai/ai_map.h"
 #include "game/ai/ai_motion.h"
+#include "game/core/core_streams.h"
 #include "game/net_delta.h"
 
 #include <cstdint>
@@ -98,17 +101,13 @@ void PathOrder::ReadState(DeltaReader& field) {
     }
 }
 
+// --- The path in the save stream ---------------------------------------------------------------
+
 // A unit's path in the save stream: load and save through the stream's read and write virtuals (buffer,
 // size). Layout: the cell count and each remaining cell (8 bytes), the order, the target (8 bytes), the goal
 // (12), the four flag bytes one by one, the excluded regions' count and each {x, y} as two dwords, and the
 // smoothing value. Loading appends the cells to the list (created as {0, 0}, then read over). See ai_map.h
 // (AIPath).
-#include "game/ai/ai_map.h"
-#include "game/ai/ai_motion.h"
-#include "game/core/core_streams.h"
-
-#include <cstdint>
-
 void AIPath::LoadPath(ByteStream* stream) {
     for (int count = stream->ReadCount(); count > 0; --count) {
         // The cell's second dword is uninitialised in the original; it is read over below.

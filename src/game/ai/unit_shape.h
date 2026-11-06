@@ -2,9 +2,14 @@
 
 // The cache of unit occupancy shapes (a global): one shape per standing height, made on demand and shared
 // through reference-counted handles. See ai_unit_shape.cpp, and AIMap::ShapeForHeight in ai_movement.cpp for its
-// user.
-#include "game/core/core_refcount.h"
+// user. The unit occupancy layers' helpers (the layers are AIMap::unitLayerSmall and unitLayerLarge, declared in
+// ai_map.h) are at the end: the shape cache's creator and the block hash.
 
+#include "game/ai/ai_map.h"
+#include "game/core/core_refcount.h"
+#include "game/units/unit.h"
+
+#include <cstddef>
 #include <cstdint>
 #include <unordered_map>
 
@@ -64,17 +69,6 @@ public:
 
 // The cache (defined in ai_unit_shape.cpp).
 extern UnitShapeCache g_unitShapes;
-
-// The unit occupancy layers' helpers (the layers are AIMap::unitLayerSmall and unitLayerLarge, declared in
-// ai_map.h): the shape cache's creator and the block hash.
-
-#include "game/ai/ai_map.h"
-#include "game/ai/unit_shape.h"
-#include "game/core/core_refcount.h"
-#include "game/units/unit.h"
-
-#include <cstddef>
-#include <cstdint>
 
 // The shape cache's creator virtual: a new shape for the handle's radius (`this` unused).
 UnitShape* CreateUnitShape(const ShapeCacheHandle* handle);

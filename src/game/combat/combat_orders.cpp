@@ -1,29 +1,38 @@
 // Combat orders: the setters of the queued order that the AI and the player's commands use in a
 // fight (turn, move, attack, cast, stop) and the end of a cast. See combat.h and docs/notes/combat.md.
 #include "game/combat/combat.h"
-#include "game/combat/combat_internal.h"
 
+#include "game/ai/ai_map.h"
+#include "game/ai/sector_map.h"
+#include "game/ai/unit_ai.h"
+#include "game/app/singletons.h"
+#include "game/combat/combat_internal.h"
+#include "game/core/base_manager.h"
 #include "game/item.h"
 #include "game/item_db.h"
-#include "lib/vecmath.h"
+#include "game/objects/map_object.h"
+#include "game/objects/object3d.h"
+#include "game/players/player_messages.h"
 #include "game/units/unit.h"
 #include "game/units/unit_db.h"
 #include "game/world/world.h"
 
 #include "lib/bytes.h"
+#include "lib/crt.h"
 #include "lib/float_select.h"
 #include "lib/rounding.h"
+#include "lib/text_case.h"
+#include "lib/vecmath.h"
 
 #include <bit>
+#include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 constexpr float kCastNoiseScale = 2.0f;
 constexpr std::uint32_t kNoSource = 0xFFFFFFFFu;
 constexpr float kNoPointZ = -1313.0f;    // a move order's "no point"
-
-
-
 
 void TellParty(Unit* unit, AckKind kind) {
     if (unit->player) PlayerMessage(unit->player->Server(), unit, kind);
@@ -39,6 +48,25 @@ bool MayCast(UnitServer* self, std::uint32_t source) {
         if (lib::RoundEven(skill) < needed) return false;
     }
     return !(self->unit->flags & MapObjectFlag::NoCasting);
+}
+
+// EngineObject::prototypeId (not type) of a unit that cannot be tamed (0x32, the value type has for
+// heroes; the original compares prototypeId).
+constexpr std::uint32_t kUntameable = 0x32;
+
+constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);   // FigureAnimation::key: an emote (kind 8)
+
+// The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
+// `source`, `spot` and `run`, and is planned; reset again when the planner refuses.
+void QueueUse(UnitServer* self, MapObject* target, UseSource source, int spot, int run, AckKind shout) {
+    UnitAction& order = self->action2;
+    order.Reset();
+    order.kind = UnitOrderKind::Use;
+    order.Retarget(target);
+    order.modifier = static_cast<std::uint8_t>(run);
+    order.source = static_cast<std::uint32_t>(source);
+    order.param = spot;
+    if (!self->PlanOrderRoute(&order, shout)) order.Reset();
 }
 
 } // namespace
@@ -192,46 +220,10 @@ void UnitServer::StopQueued() {
     action2.kind = UnitOrderKind::Stop;
 }
 
+// --- The rest of the setters -------------------------------------------------------------------
+
 // Combat orders, the rest of the setters: movement style, wanted weapon, the skill and use orders, playing an
 // animation as an order, dropping everything, and two armour queries. See combat.h and docs/notes/combat.md.
-#include "game/ai/ai_map.h"
-#include "game/core/base_manager.h"
-#include "game/combat/combat.h"
-#include "game/app/singletons.h"
-#include "game/objects/map_object.h"
-#include "game/objects/object3d.h"
-#include "game/players/player_messages.h"
-#include "game/ai/sector_map.h"
-#include "game/ai/unit_ai.h"
-#include "game/world/world.h"
-
-#include "lib/crt.h"
-#include "lib/text_case.h"
-
-#include <cstdint>
-#include <cstring>
-#include <string>
-
-namespace {
-// EngineObject::prototypeId (not type) of a unit that cannot be tamed (0x32, the value type has for
-// heroes; the original compares prototypeId).
-constexpr std::uint32_t kUntameable = 0x32;
-
-constexpr std::uint32_t kEmoteKeyBit = AnimationKeyOf(AnimationKeyFlag::Looped);   // FigureAnimation::key: an emote (kind 8)
-
-// The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
-// `source`, `spot` and `run`, and is planned; reset again when the planner refuses.
-void QueueUse(UnitServer* self, MapObject* target, UseSource source, int spot, int run, AckKind shout) {
-    UnitAction& order = self->action2;
-    order.Reset();
-    order.kind = UnitOrderKind::Use;
-    order.Retarget(target);
-    order.modifier = static_cast<std::uint8_t>(run);
-    order.source = static_cast<std::uint32_t>(source);
-    order.param = spot;
-    if (!self->PlanOrderRoute(&order, shout)) order.Reset();
-}
-} // namespace
 
 bool UnitServer::FitsMoveMode(MoveMode mode) {
     MoveMode stored = mode == MoveMode::Run ? MoveMode::Walk : mode;

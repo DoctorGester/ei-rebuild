@@ -2,7 +2,6 @@
 // map's unit layers. Shared through the shape cache, whose creator virtual makes them. See docs/notes/ai.md.
 #include "game/ai/ai_map.h"
 #include "game/ai/unit_shape.h"
-#include "game/ai/unit_shape.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_refcount.h"
 

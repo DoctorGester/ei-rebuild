@@ -142,8 +142,8 @@ kinds below, the same on every install. An old `[patches] DisableExitOnCrashRepo
 
   | Site | Error | The safe local thing |
   |---|---|---|
-  | unit_equipment GiveStartingEquipment | a map unit's prototype the units database lacks | the unit gets no starting equipment |
-  | unit_equipment GiveStartingEquipment | a weapon, armour or spell that cannot be made | that piece is left out |
+  | units/unit_create.cpp GiveStartingEquipment | a map unit's prototype the units database lacks | the unit gets no starting equipment |
+  | units/unit_create.cpp GiveStartingEquipment | a weapon, armour or spell that cannot be made | that piece is left out |
   | spell_manager CreateSpellFromText | an unknown spell name | no spell |
   | texture.cpp LoadTexture | a texture file of no format the renderer takes | not loaded (as a missing texture) |
   | texture_load FindLayers | a layer texture of another size | that layer is left out |

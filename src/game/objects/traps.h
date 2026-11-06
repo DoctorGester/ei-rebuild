@@ -1,16 +1,18 @@
 #pragma once
 
-// Magic traps (map objects of the factory type MapObjectType::MagicTrap, class id 0x61; the zone file's "MagicTrap" records). MapObjectFlag::Armed is
-// "armed" (the script's ActivateTrap); the position is the map object's. See docs/notes/units.md ("Magic traps").
+// Magic traps (map objects of the factory type MapObjectType::MagicTrap, class id 0x61; the zone file's "MagicTrap"
+// records). MapObjectFlag::Armed is "armed" (the script's ActivateTrap); the position is the map object's. See
+// docs/notes/units.md ("Magic traps"). TrapObject is below.
 
-#include "game/objects/map_object.h"
 #include "game/map/map_spec.h"   // MagicTrapRecord, TrapArea, TrapPoints
+#include "game/objects/map_object.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 
 class Spell;
+struct LockKey;
 
 constexpr std::uint32_t kDefaultPeriod = 10;
 
@@ -83,14 +85,6 @@ void FindTrapVictims(WorldServer* context, const std::vector<TrapCircle>& area, 
 // Arm); while armed on the server, the first unit within 1 of it sets it off: a world script
 // "CreateParticleSource( 100, x, y, z, 1, "Mushroom")" at its position and the trap disarms.
 // Names provisional; objects/traps.cpp. Unreached in the shipped game: no map record makes a TrapObject.
-
-#include "game/objects/map_object.h"
-
-#include <cstddef>
-#include <cstdint>
-
-struct LockKey;
-
 class TrapObject : public MapObject {
 public:
     TrapObject();
@@ -122,7 +116,3 @@ public:
 
     std::uint32_t savedValue = 0;   // only loaded and saved (0 unless a save held another value)
 };
-
-// Class name and id: "TrapObject" and 0x55. The magic trap's
-// "CMagicTrapObject" and 0x61.
-class MagicTrap;

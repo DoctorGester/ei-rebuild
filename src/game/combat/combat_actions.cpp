@@ -5,7 +5,6 @@
 #include "game/core/base_manager.h"
 #include "game/combat/combat.h"
 #include "game/combat/combat_internal.h"
-#include "game/combat/combat_internal.h"
 #include "game/app/singletons.h"
 #include "game/item.h"
 #include "game/item_manager.h"

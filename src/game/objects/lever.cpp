@@ -1,17 +1,33 @@
 // The lever map object's own functions: lifetime, update, save / load, network state, the zone record set-up
-// and the small slots. SetState and UseSpots are in objects/lever.cpp (docs/notes/units.md, "Levers").
+// and the small slots; the lever's state change and use spots; the global lever table and its load
+// (docs/notes/units.md, "Levers").
+#include "game/objects/lever.h"
+
+#include "game/ai/ai_map.h"
+#include "game/ai/sector_map.h"
+#include "game/app/singletons.h"
+#include "game/combat/combat.h"
 #include "game/core/core_maths.h"
 #include "game/core/core_streams.h"
-#include "game/app/singletons.h"
-#include "game/objects/lever.h"
-#include "game/objects/object3d.h"
+#include "game/data/chunk_archive.h"
+#include "game/data/database_file.h"
+#include "game/data/resource.h"
 #include "game/net_delta.h"
+#include "game/objects/map_object.h"
+#include "game/objects/object3d.h"
 #include "game/sound/sound.h"
 #include "game/world/world.h"
 
+#include "lib/crt.h"
 
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <initializer_list>
+#include <iterator>
 #include <new>
+#include <string>
 
 namespace {
 constexpr int kLeverNetFields = 6;
@@ -169,7 +185,6 @@ void Lever::SetLock(const LockKey* key) {
     MarkChanged(NetField::LeverState);
 }
 
-
 bool Lever::NeedsKey() {
     if (flags & MapObjectFlag::Disabled) return false;
     return lock.mask != 0;
@@ -194,23 +209,10 @@ Lever* LeverOrNull(EngineObject* object) {
     return object && object->GetClassId() == ClassId::Lever ? static_cast<Lever*>(object) : nullptr;
 }
 
+// --- State change and use spots ----------------------------------------------------------------
+
 // A lever's state change and the spots it is used from. See
 // docs/notes/units.md ("Levers").
-#include "game/objects/lever.h"
-#include "game/combat/combat.h"
-
-#include "game/ai/ai_map.h"
-#include "game/objects/map_object.h"
-#include "game/objects/object3d.h"
-#include "game/ai/sector_map.h"
-#include "game/world/world.h"
-
-#include <algorithm>
-#include <cstdint>
-#include <cstring>
-#include <iterator>
-
-#include <cmath>
 
 void Lever::SetState(int wanted, float duration) {
     // A negative duration takes the model's default.
@@ -307,18 +309,10 @@ std::vector<Vector3> Lever::UseSpots(float userRadius) {
     return spots;
 }
 
+// --- The lever table ---------------------------------------------------------------------------
+
 // The global lever table that levers look up (loaded from WinMain by the Rebirth-patched loader): the records
 // and their index by name. See docs/notes/app.md.
-#include "game/objects/lever.h"
-
-#include "game/data/chunk_archive.h"
-#include "game/data/resource.h"
-#include "game/core/core_streams.h"
-#include "game/data/database_file.h"
-#include "lib/crt.h"
-
-#include <cstdint>
-#include <string>
 
 LeverRecordTable g_leverTable;
 

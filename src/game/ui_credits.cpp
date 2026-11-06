@@ -2,7 +2,6 @@
 // ui_layouts.cpp, its input in ui_screens.cpp. See ui_screens.h (CreditsScreen) and docs/notes/ui.md ("Main
 // menu, dialogs, escape menu, credits").
 #include "game/app/app.h"
-#include "game/app/app.h"
 #include "game/app/movies.h"
 #include "game/model.h"
 #include "game/ui.h"

@@ -2,14 +2,14 @@
 
 // A unit's trajectory (UnitMotion, Unit::motion) and its parts: the points, the waypoints and the cubic
 // segments, sampled every tick for the unit's position, facing and speed. The order it follows (MotionOrder /
-// PathOrder) is in ai_map.h; ai_motion.h has the rest of the motion code. Kept apart so unit.h can hold the
-// motion as a member (ai_map.h includes unit.h).
+// PathOrder) is in ai_map.h, with OrderOf. Kept apart so unit.h can hold the motion as a member (ai_map.h includes
+// unit.h). Names provisional.
 
-#include <cstddef>
-#include <cstdint>
 #include "lib/rect.h"
 #include "lib/vecmath.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 class ByteStream;
@@ -104,13 +104,3 @@ struct UnitMotion {
     float segmentEnd = 0.0f;
     int segment = 0;                        // index of its first point, -1 none
 };
-
-// A unit's motion: the order its controller gives (MotionOrder, the header of AIPath; ai_map.h) and
-// the trajectory the unit follows (UnitMotion, Unit + 0x27C; ai/ai_motion.h), sampled every tick
-// for the unit's position, facing and speed. Names provisional.
-
-#include "game/ai/ai_map.h"
-#include "game/ai/ai_motion.h"
-
-// The order (MotionOrder, the first 0x20 bytes of PathOrder) is in ai_map.h.
-inline MotionOrder* OrderOf(PathOrder* path) { return &path->motionOrder; }

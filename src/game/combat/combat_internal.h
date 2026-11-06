@@ -1,9 +1,13 @@
 #pragma once
 
-// Helpers shared by the combat*.cpp files (not used elsewhere).
+// Helpers shared by the combat*.cpp files (not used elsewhere), and the structures of the order planning code
+// (combat_sight.cpp, combat_tick.cpp).
 
 #include "game/combat/combat.h"
 #include "game/console/console.h"
+
+#include <cstddef>
+#include <cstdint>
 
 class PlayerServer;
 
@@ -13,15 +17,8 @@ inline constexpr console::Stream& kCombatLog = console::g_aiLogOut;
 // Defined in combat_actions.cpp: the remark `kind` of `unit` to its player.
 void PlayerMessage(PlayerServer* messages, Unit* unit, AckKind kind);
 
-// Structures of the order planning code (combat_sight.cpp, combat_tick.cpp): the animation lists
-// the planner builds and the plan of an order.
-
-#include "game/combat/combat.h"
-
-#include <cstddef>
-#include <cstdint>
-
-// AnimationStep, AnimationSteps and OrderPlan are declared in combat.h (UnitServer holds a plan).
+// AnimationStep, AnimationSteps and OrderPlan (the animation lists the planner builds and the plan of an order) are
+// declared in combat.h (UnitServer holds a plan).
 
 // Where an order must be seen from.
 struct SightTarget {

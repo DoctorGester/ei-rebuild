@@ -5,7 +5,6 @@
 
 #include "game/core/core_maths.h"
 #include "game/camera.h"
-#include "game/core/core_maths.h"
 #include "game/effects.h"
 #include "game/app/singletons.h"
 #include "game/light.h"
