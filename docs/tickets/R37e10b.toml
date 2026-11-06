@@ -1,0 +1,7 @@
+id = "R37e10b"
+title = "Point lights per terrain draw: only those whose reach meets the draw"
+group = "renderer"
+files = ["src/render/render_terrain.cpp", "src/render/render_lighting.cpp", "src/render/shaders/scene_lighting.hlsli"]
+note = "R37e10: every ground pixel walks every scene point light (the save 12, 4 with shadow maps; the town at night 6): the loop costs 0.19 / 0.13 ms a ground draw at 4K msaa 8. Give each draw (piece run) the indices of the lights whose sphere meets its box (the pieces' groups have boxes) and loop over those; or split runs where the light set changes. Same picture."
+order = 1270
+status = "later"

@@ -1,0 +1,7 @@
+id = "R37e10e"
+title = "Far terrain tiles at lower detail"
+group = "renderer"
+files = ["src/render/render_terrain.cpp"]
+note = "R37e10: tiles far from the camera are drawn as 8 triangles of a few pixels, 2.2-2.7 shader lanes a pixel under 4 pixels. A prototype drawing tiles past clip depth 50 as 2 triangles (corners only) took 13% of the ground's lanes offline and 0.10 ms of the save's frame at 4K msaa 8; nothing in the town (all tiles near). Needs the joins with full-detail tiles closed (T-junctions) and a camera-dependent index choice per quarter; least value of the R37e10 fixes."
+order = 1273
+status = "later"

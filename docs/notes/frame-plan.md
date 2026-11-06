@@ -64,4 +64,69 @@ Expected end state: main thread about 4-5 ms in the save (half of today), about 
 | R37f3 | Instancing: kept meshes by shared figure part, instanced world and caster draws, indirect caster passes | none if grouped by figure |
 | R37f4 | Occlusion from last frame's depth, its depth pass deleted | visual, the user's call |
 
-The older R37e5-R37e9 are folded into these; R37e10 (GPU shading) waits until the GPU is the limit.
+The older R37e5-R37e9 are folded into these; R37e10 measured the ground's GPU cost (below).
+
+## Ground GPU cost (R37e10)
+
+The user: "the world pass is 2 ms, mostly ground shading - what are we doing in the shader that it's so slow?" Measured
+on the save and the town at night (4K, msaa 8, anisotropy 16; R37e3's kit, `gputiming pass`, the world's pass with and
+without the ground's draws). The ground costs **0.85-1.0 ms** in the save (world pass 1.83-2.23 ms with it, 0.96-1.26
+without) and **0.65-0.75 ms** in the town; R37e3's 1.1 ms came from cutting the pass in two. No single part is slow: about
+half is writing 8 samples a pixel at 4K, half is shading, and the save shades 1.5 times the pixels it shows.
+
+How: one frame's numbers move by 0.3 ms from run to run while the main thread is the limit (the GPU idles and its clock
+drops), so the probe drew the ground 8 times in the same pass (the later draws shade the visible ground once, without
+overdraw): the GPU is then the limit and a part's cost is its change of the world pass over 8. The shader's parts were
+compiled out one at a time (a program per variant, so the registers they hold went too); the geometry and overdraw come
+from R37e3's RenderDoc captures (every ground triangle's clip position read back and rasterised offline at 8 samples,
+then replayed in draw order against a depth buffer). Probe patch, scenarios and scripts: build/r37e10 in the main
+checkout (probe.patch, kit/).
+
+**By cause** (ms for one draw of the visible ground; the save / the town):
+
+| Cause | Save | Town | Notes |
+|---|---|---|---|
+| The ground drawn at all (a draw of the visible ground) | 0.75 | 0.61 | the frame's ground is more: overdraw below |
+| ... with a trivial shader (texture times the sun), msaa 8 | 0.47 | 0.42 | the floor: rasterising and writing 8 samples |
+| ... trivial shader at msaa 4 / msaa 1 | 0.21 / 0.085 | | msaa 8 doubles the floor at 4K |
+| ... full shader at msaa 1 | 0.59 | | the shading alone |
+| Sun shadow (PCSS) compiled out | 0.26 | 0.20 | with it out the ground is at the floor (0.49) |
+| - its quad sharing (the 2 x 2 neighbours' taps) | 0.07 | 0.04 | |
+| - 16 filter taps where 8 would do | 0.05 | 0.07 | |
+| - the blocker search's 8 taps | 0.03 | 0.04 | |
+| - sqrt / sin / cos per tap (constant table instead) | 0.01-0.02 | 0.00-0.03 | not the cost |
+| Point-light loop (12 / 6 lights, 4 with shadow maps) | 0.19 | 0.13 | every pixel walks every light |
+| Weather code, weather off (wet, puddles, snow, roofs) | 0.08 | 0.04 | dead code still holds registers |
+| Screen occlusion lookups | 0.07 | 0.07 | |
+| Cloud shadows, clouds off | 0.02 | 0.02 | |
+| Distance fog | 0.01 | 0.02 | |
+| The water's path in the same program, blending, anisotropy 16 | 0 | 0 | |
+
+The parts do not add up: at msaa 8 shading and sample writes overlap, so cutting one shading part saves less than its
+cost at msaa 1, and cutting the shadow alone brings the ground to the floor.
+
+**Overdraw.** The save shades 10.05 M ground pixels for 8.16 M shown (1.23: pages in no depth order; front to back it
+would be 1.00); the town 1.06. The opaque models are drawn after the ground and hide some of it: drawing the ground after
+them took 0.29 ms off the save's world pass (2.23 to 1.94 ms, four pairs) and nothing in the town.
+
+**Geometry.** The save draws 207 K ground triangles (132 K facing the camera on screen, 51 K of them under 16 pixels),
+250 K vertex shader runs: the vertex cost is nil. Its 132 K triangles cover 11.0 M pixel centres (13.2 M pixels with
+any of the 8 samples: a pixel on an edge is shaded once per triangle) and take 16.6 M shader lanes in 2 x 2 quads: 1.51
+lanes a shown-or-hidden pixel, 1.26 of it the quads' (2.2-2.7 for triangles under 4 pixels, 1.1 over 256). The view
+reaches clip depth 175 at most (distance 50, pitch 30): the map's edge is not in it. The town draws 3.8 K triangles, all
+large (1.06 lanes a pixel). A far-tile LOD prototype (tiles past clip depth 50 drawn as 2 triangles, not 8) takes 13% of
+the lanes offline and measured 0.07 ms a ground draw, 0.10 ms of the save's frame; none in the town.
+
+**Fixes, ranked** (delete first; all wait while the main thread is the limit, R37f1-R37f3):
+
+| Ticket | What | Saves (save / town) | Picture |
+|---|---|---|---|
+| R37e10a | The ground after the opaque models, its pieces nearest first | 0.29 + up to 0.15 / 0.04 | the same where the ground's alpha is 1 (it is drawn blended) |
+| R37e10b | Point lights per draw: only those reaching the draw's box | up to 0.19 / 0.13 | the same |
+| R37e10c | Weather, clouds and roofs compiled in only when on (program variants) | 0.06-0.10 / 0.04-0.06 | the same |
+| R37e10d | The sun's shadow as a half-size screen mask (depth-aware upsample as the occlusion), the 2 x 2 sharing gone | 0.15-0.25 / 0.15-0.2 | softer edge detail; the user's call |
+| R37e10e | Far tiles at lower detail | 0.10 / 0 | cracks to close at the joins; least value |
+
+Not filed: msaa 8 costs the ground 0.26 ms a draw over msaa 4 at 4K (the player's quality setting); the disc table
+and the water's branch (nothing to win); parallel work (no need). Expected after R37e10a-c: the save's ground about
+0.5 ms, the town's about 0.5 ms.
