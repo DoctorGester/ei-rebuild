@@ -428,19 +428,6 @@ float FigureMeshDrawer::SurfaceDepth(const Point& point) const {
     return nearest;
 }
 
-// The least w of the box's eight corners (0 when the box reaches behind the eye).
-float FigureMeshDrawer::FrontDepth() const {
-    const ClipBounds& bounds = mesh->box.bounds;
-    float nearest = FLT_MAX;
-    for (int i = 0; i < 8; ++i) {
-        const Vector3 corner{bounds.center.x + ((i & 4) ? bounds.boxMin.x : bounds.boxMax.x),
-                             bounds.center.y + ((i & 2) ? bounds.boxMin.y : bounds.boxMax.y),
-                             bounds.center.z + ((i & 1) ? bounds.boxMin.z : bounds.boxMax.z)};
-        nearest = std::min(nearest, TransformColumnW(screenMatrix, corner));
-    }
-    return std::max(nearest, 0.0f);
-}
-
 // --- Figure drawer -----------------------------------------------------------------------------------
 
 // FigureMeshDrawer::Animate: an animated figure mesh's texture offset per frame. See link_figure.h.

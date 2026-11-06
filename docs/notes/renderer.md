@@ -178,10 +178,12 @@ texturing. Textures have the .mmp file's own mip levels and no others (section 7
     stack's w) of the nearest triangle drawn under the pixel's centre, over the parts whose rectangle holds the point
     (`FigureMeshDrawer::SurfaceDepth`: a ray from the eye against the triangles the part's last draw had, its figure's
     part or its own buffers moved by its offsets, placed by the matrix the draw kept, `screenMatrix`); an object with
-    no triangle there (a rectangle's empty corner, a hit by the bounds) counts at the front of its drawn parts' boxes
-    (`FrontDepth`), so a unit's generous click area still beats the floor drawn behind it. The original (00565E40)
-    sorted by the objects' origins along the view, so a big platform whose origin was nearer won over a lever on its
-    deck (LiA's gz1d2 lift, `mod_lost_in_astral_elevator`; mods.md). One rule for every pick: UnitAt, the battle
+    no triangle there (a rectangle's empty corner, a hit by the bounds) counts at its origin's depth as drawn
+    (`originDepth`), the original's key, so a unit's generous click area works as before. The original (00565E40)
+    sorted every hit by the objects' origins along the view, so a big platform whose origin was nearer won over a lever
+    on its deck (LiA's gz1d2 lift, `mod_lost_in_astral_elevator`; mods.md). A box-front key for the surfaceless hits
+    was tried and dropped: it reordered near ties between bodies lying together, which the origins had kept
+    (net_pair_quest's walk searched another body and the quest failed). One rule for every pick: UnitAt, the battle
     screen's use cursor and click, the harness's `clickunit`. CPU-side from what the draw kept (no frame read back),
     so picks stay deterministic and the same under every GPU driver.
 - **One real state change in a draw path:** the terrain page draw applies pending water level changes; the water layer

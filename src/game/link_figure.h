@@ -48,9 +48,8 @@ struct FigureMeshDrawer : EngineObject {
 
     // Picking (WorldClient::Pick), from the mesh's last draw with a rectangle: the view depth (the screen stack's w)
     // where the ray from the eye through the centre of pixel `point` meets the nearest of the drawn triangles,
-    // FLT_MAX when it meets none; the view depth of the front of the mesh's box.
+    // FLT_MAX when it meets none.
     float SurfaceDepth(const Point& point) const;
-    float FrontDepth() const;
 
     Rect screen;                // where the mesh was last drawn
     Matrix4 screenMatrix;       // the screen stack's top it was last drawn with (with screen): model to screen

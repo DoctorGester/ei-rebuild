@@ -321,18 +321,15 @@ int Object3DClientSpecific::PartsContainPoint(const std::int32_t* point) {
 }
 
 // The drawn parts whose rectangle holds the point give their surface's depth there (FigureMeshDrawer::SurfaceDepth);
-// without any surface under the point (the rectangle's empty corners, a hit by the bounds) the front of the parts'
-// boxes counts, so a unit's generous click area still beats what is drawn behind it.
+// without any surface under the point (the rectangle's empty corners, a hit by the bounds) the origin's depth counts,
+// the original's key for every hit, so a unit's generous click area still works as it did.
 float Object3DClientSpecific::PickDepth(const Point& point) {
     float surface = FLT_MAX;
-    float front = FLT_MAX;
     for (FigureMesh* part : object->parts) {
         if (!(part->flags & FigureMeshFlag::Drawn)) continue;
-        const FigureMeshDrawer* drawer = part->drawer.Get();
-        front = std::min(front, drawer->FrontDepth());
-        if (PartRect(part)->Contains(point)) surface = std::min(surface, drawer->SurfaceDepth(point));
+        if (PartRect(part)->Contains(point)) surface = std::min(surface, part->drawer->SurfaceDepth(point));
     }
-    return surface != FLT_MAX ? surface : front;
+    return surface != FLT_MAX ? surface : originDepth;
 }
 
 int Object3DClientSpecific::PartsIntersectRect(const Rect* rect) {
