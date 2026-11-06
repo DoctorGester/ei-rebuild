@@ -107,11 +107,13 @@ struct TextureDesc {
     Format format = Format::Rgba8;
     TextureUse use = TextureUse::Sampled;
     const char* label = nullptr;
+    int arrayLayers = 0;   // 0: a plain 2D texture; else a 2D array of that many layers (sampled as Texture2DArray)
 };
 struct Texture {
     SDL_GPUTexture* texture = nullptr;
     int width = 0, height = 0;
     int levels = 0;
+    int arrayLayers = 0;
     int samples = 1;
     Format format = Format::None;
     bool swapchain = false;   // the window's this frame (AcquireSwapchain): a target only, never read back
@@ -162,11 +164,14 @@ enum class Contents : std::uint8_t { Keep, Discard };
 // Copied into the upload ring now, uploaded before the next pass. False (logged) inside a pass or out of range.
 bool Write(const Buffer& buffer, std::uint32_t offset, const void* data, std::uint32_t bytes,
            Contents contents = Contents::Keep);
-// `region` of level `level` from `rows` (`pitch` bytes apart; a compressed format's rows are rows of 4x4 blocks).
+// `region` of level `level` (of array layer `layer`) from `rows` (`pitch` bytes apart; a compressed format's rows are
+// rows of 4x4 blocks).
 bool Write(const Texture& texture, int level, const Rect& region, const void* rows, std::size_t pitch,
-           Contents contents = Contents::Keep);
-// `region` of `from`'s level `fromLevel` into `to`'s level `toLevel` at (x, y); same format, outside passes.
-bool Copy(const Texture& from, int fromLevel, const Rect& region, const Texture& to, int toLevel, int x, int y);
+           Contents contents = Contents::Keep, int layer = 0);
+// `region` of `from`'s level `fromLevel` into `to`'s level `toLevel` (of array layer `toLayer`) at (x, y); same
+// format, outside passes.
+bool Copy(const Texture& from, int fromLevel, const Rect& region, const Texture& to, int toLevel, int x, int y,
+          int toLayer = 0);
 
 // A download: texels read back to the CPU once the commands before it are done.
 struct Ticket {

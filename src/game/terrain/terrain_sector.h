@@ -125,7 +125,7 @@ struct SectorData {
     int lastUsed = 0;                   // owner frame of the last use
 
     SectorData() = default;
-    // Tells the renderer (TerrainChange::Rebuilt), as Clear does.
+    // Tells the renderer (TerrainChange::Dropped), as Clear does.
     ~SectorData();
     SectorData(const SectorData&) = delete;
     SectorData& operator=(const SectorData&) = delete;
@@ -144,9 +144,6 @@ struct SectorData {
 
     // `wanted`: SectorStage::Built. Builds the sector when it is not yet.
     void Ensure(SectorStage wanted);
-
-    // Page `page` to the renderer, the pending water levels applied first; nothing when culled.
-    void DrawPage(const SceneRenderer* renderer, int page);
 
     // The records and tile lists emptied (the per-quarter arrays keep their sizes); no sector (-1, -1), no
     // owner, nothing built, culled, the rest of the scalar state 0. Build sets the boxes and

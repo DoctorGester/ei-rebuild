@@ -256,10 +256,11 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, const VertexPacket& quad)
 
 // The landscape's draw passes (terrain.h), called by the client's draw after Terrain::ShowAllSectors: the ground
 // pages, then (after the objects) the water pages. A pass pushes the landscape's matrix on the renderer's
-// pipeline, prepares every visible sector (the clip test of the sector and its quarters) and hands the sectors
-// page by page to the renderer (render::TerrainPage, which builds the page's tiles from the sector's data); the
-// GPU clips what crosses the view's edges. Nothing here talks to the device: the texture goes through the
-// renderer's SetTexture.
+// pipeline, prepares every visible sector (the clip test of the sector and its quarters; the water levels of a drawn
+// sector with tiles in the pass) and hands the pass to the renderer (render::TerrainPass, which draws the zone's
+// mesh of the layer whole, built from the sectors' data; the GPU clips what lies outside the view). Nothing here
+// talks to the device: the last page's texture is left bound through the renderer's SetTexture, as page by page
+// drawing left it.
 
 void Terrain::DrawPass(SceneRenderer* renderer, int firstPage, int lastPage) {
     Matrix4 matrix;
@@ -279,27 +280,26 @@ void Terrain::DrawPass(SceneRenderer* renderer, int firstPage, int lastPage) {
 
 void Terrain::DrawPages(SceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return;
-    // The sectors in view, clip tested and loaded once; then page by page.
-    static std::vector<SectorData*> drawn;
+    // An extra page whose texture file is missing has no texture and is not drawn.
+    lastPage = std::min(lastPage, firstPage + static_cast<int>(pageTextures.size()) - 1);
+    // The sectors in view, clip tested and loaded; a drawn one with tiles on a page of the pass takes its pending
+    // water levels.
+    static std::vector<const SectorData*> drawn;
     drawn.clear();
+    int shown = -1;   // the last page with tiles in view
     ForVisibleSectors(this, [&](SectorData* sector) {
         sector->ClipTest(renderer);
-        if (sector->IsDrawn()) drawn.push_back(sector);
-    });
-    for (int page = firstPage; page <= lastPage; ++page) {
-        // An extra page whose texture file is missing has no texture and is not drawn.
-        const std::size_t index = static_cast<std::size_t>(page % LayerPages());
-        if (index >= pageTextures.size()) continue;
-        bool bound = false;
-        for (SectorData* sector : drawn) {
+        if (!sector->IsDrawn()) return;
+        drawn.push_back(sector);
+        for (int page = lastPage; page >= firstPage; --page) {
             if (!HasTilesOn(sector, page)) continue;
-            if (!bound) {
-                renderer->SetTexture(0, pageTextures[index]);
-                bound = true;
-            }
-            sector->DrawPage(renderer, page);
+            shown = std::max(shown, page);
+            if (sector->hasWater) sector->ApplyWaterLevels();
+            break;
         }
-    }
+    });
+    if (shown >= 0) renderer->SetTexture(0, pageTextures[static_cast<std::size_t>(shown % LayerPages())]);
+    render::TerrainPass(this, renderer, firstPage, lastPage, drawn);
 }
 
 void Terrain::DrawGround(SceneRenderer* renderer) { DrawPass(renderer, 0, LayerPages() - 1); }

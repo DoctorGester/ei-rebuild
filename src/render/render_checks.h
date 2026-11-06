@@ -119,9 +119,9 @@ GroundReachInfo GroundReachState();
 // reuse counts are the harness build's only.
 struct FrameStats {
     enum class Count : int {
-        // Hand-over: Meshes are BeginMesh with corners built; StateReads are the passes' reads of the render state
-        // (ReadPassState).
-        TerrainPages, TerrainBatches, Meshes, MeshPasses, TransformedDraws, Blits, DepthClears, StateReads, Matrices,
+        // Hand-over: TerrainSectors are the sectors the terrain passes drew (TerrainBatches: the passes); Meshes are
+        // BeginMesh with corners built; StateReads are the passes' reads of the render state (ReadPassState).
+        TerrainSectors, TerrainBatches, Meshes, MeshPasses, TransformedDraws, Blits, DepthClears, StateReads, Matrices,
         // Of the meshes: the flat geometry (object shadows, ground prints, selection markers, light decals).
         FlatMeshes, FlatVertexBytes,
         // Meshes whose vertices equal another mesh's of the same frame (instancing candidates).
@@ -140,7 +140,7 @@ struct FrameStats {
         Kinds
     };
     // CPU times (ms). Each leaves out the times measured inside it: StatsMs (these counts' own hashing and checks),
-    // TerrainMs (the terrain pages' hand-over and uploads), ShadowMs (the shadow map's work) and the rest.
+    // TerrainMs (the terrain's hand-over and uploads), ShadowMs (the shadow map's work) and the rest.
     // DeviceMeshMs: the game device's mesh draws (device_mesh.cpp's DrawMesh); DecalPrintMs: ProjectDecal for ground
     // prints; FlatMs: the device's flat draws; ShadowBuildMs: RenderShadow; WeatherMs: the rain's or the snow's build
     // (RainSnow::DrawParticles, its draws' hand-over left out).
@@ -151,8 +151,9 @@ struct FrameStats {
     };
     // Images made (or updated in place) per kind.
     enum class Upload : int { Mmp, Movie, Small, Kinds };
-    // Vertices against the last frame's of the same terrain page or mesh: all the same, only colours changed,
-    // positions or texture coordinates changed, none last frame.
+    // A mesh's vertices against the last frame's: all the same, only colours changed, positions or texture
+    // coordinates changed, none last frame. The terrain's sectors in the zone's meshes: unchanged, moved (waves, a
+    // water level, animated tiles), built (Relit unused).
     enum class Reuse : int { Same, Relit, Moved, New, Kinds };
 
     std::uint32_t frames = 0;
@@ -178,16 +179,11 @@ void EndWeatherTime(int vertices);
 
 // ---- Data kept on the GPU ---------------------------------------------------------------------------------------
 
-// "terraincache": pages kept on the GPU (on, the default) or built every frame (off, for frame comparisons). Every
-// 16th frame the kept pages are checked against a fresh build; `stale` counts a change TerrainChanged was not told of.
+// "terraincache": the zone's terrain kept on the GPU (on, the default) or every sector built and written again at
+// each pass (off, for frame comparisons: a change TerrainChanged was not told of shows as a difference).
 void SetTerrainCache(bool on);
-struct TerrainCacheInfo {
-    bool on = true;
-    std::size_t pages = 0;
-    std::uint64_t checks = 0, stale = 0;
-};
-TerrainCacheInfo TerrainCacheState();
-// "meshcache": as SetTerrainCache, for figure meshes.
+// "meshcache": figure meshes kept on the GPU (on) or streamed every frame (off). Every 16th frame the kept meshes are
+// checked against a fresh build; `stale` counts a change MeshChanged was not told of.
 void SetMeshCache(bool on);
 struct MeshCacheInfo {
     bool on = true;

@@ -307,20 +307,8 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             failures->push_back("roofs needs on, off or check <least roofs>");
         }
     } else if (verb == "terraincache") {
-        if (argument == "on" || argument == "off") {
-            render::SetTerrainCache(argument == "on");
-        } else if (argument == "check") {
-            render::TerrainCacheInfo info = render::TerrainCacheState();
-            char text[200];
-            std::snprintf(text, sizeof(text), "terraincache: %s, %zu pages kept, %llu checks against a fresh build, %llu stale",
-                          info.on ? "on" : "off", info.pages, static_cast<unsigned long long>(info.checks),
-                          static_cast<unsigned long long>(info.stale));
-            Log("harness: %s", text);
-            frames->push_back(text);
-            if (info.stale > 0) failures->push_back(text);
-        } else {
-            failures->push_back("terraincache needs on, off or check");
-        }
+        if (argument == "on" || argument == "off") render::SetTerrainCache(argument == "on");
+        else failures->push_back("terraincache needs on or off");
     } else if (verb == "meshcache") {
         if (argument == "on" || argument == "off") {
             render::SetMeshCache(argument == "on");
@@ -485,9 +473,9 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         char text[2400];
         std::snprintf(
             text, sizeof(text),
-            "renderstats %s: %u frames of %dx%d, per frame: hand-over %.0f terrain pages -> %.0f batches, %.0f meshes / %.0f "
+            "renderstats %s: %u frames of %dx%d, per frame: hand-over %.0f terrain sectors -> %.0f passes, %.0f meshes / %.0f "
             "passes (%.0f flat, %.1f KB), %.0f pre-transformed, %.0f blits, %.0f depth clears, %.0f state reads, "
-            "%.0f matrices; against the last frame (same / relit / moved / new): terrain pages %.0f / %.0f / %.0f / %.0f, meshes %.0f / %.0f / "
+            "%.0f matrices; against the last frame (same / relit / moved / new): terrain sectors %.0f / %.0f / %.0f / %.0f, meshes %.0f / %.0f / "
             "%.0f / %.0f, %.0f meshes share another's geometry; upload KB "
             "terrain %.1f v + %.1f i, meshes %.1f v + %.1f i, uniforms %.1f; %.1f passes, %.0f draws, pipelines %.0f "
             "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
@@ -498,7 +486,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "shadow map %.1f draws, CPU ms %.3f; morphed meshes %.1f "
             "(%.0f corners); weather %.3f ms (%.0f vertices); main thread ms CPU %.2f / wall %.2f; quality: msaa %d (%d samples, the device gives %d), "
             "anisotropy %d",
-            argument.c_str(), t.frames, t.width, t.height, count(F::Count::TerrainPages), count(F::Count::TerrainBatches), count(F::Count::Meshes),
+            argument.c_str(), t.frames, t.width, t.height, count(F::Count::TerrainSectors), count(F::Count::TerrainBatches), count(F::Count::Meshes),
             count(F::Count::MeshPasses), count(F::Count::FlatMeshes), countKb(F::Count::FlatVertexBytes),
             count(F::Count::TransformedDraws), count(F::Count::Blits), count(F::Count::DepthClears), count(F::Count::StateReads), count(F::Count::Matrices),
             per(t.terrainReuse[F::Reuse::Same]), per(t.terrainReuse[F::Reuse::Relit]), per(t.terrainReuse[F::Reuse::Moved]),

@@ -17,6 +17,7 @@ namespace render {
 
 struct Texture {
     gpu::Texture image;
+    std::uint32_t serial = 0;     // a new one each time the image is replaced (TextureSerial)
     int width = 0, height = 0;    // the first level shown
     bool composed = false;        // drawn on the GPU (shape), else from an .mmp file
     ComposeShape shape;           // composed: what DrawIntoTexture and DrawClouds draw into
@@ -64,9 +65,11 @@ static const Texture& White() {
     return g_white;
 }
 
+static std::uint32_t g_serials = 0;
 static void Retire(Texture& t) {
     ReleaseAfterPresent(t.image);
     t.image = gpu::Texture{};
+    t.serial = ++g_serials;
 }
 
 // The levels of a texture of `width` x `height` down to 1 x 1.
@@ -331,6 +334,11 @@ bool PictureFromMmpData(const Surface* holder, const MmpFile& file) {
 const Picture* PictureOf(const Surface* holder) {
     auto it = g_pictures.find(holder);
     return it == g_pictures.end() ? nullptr : &it->second;
+}
+
+std::uint32_t TextureSerial(const ::Texture* texture) {
+    auto found = texture ? g_textures.find(texture->surface.Get()) : g_textures.end();
+    return found == g_textures.end() ? 0 : found->second.serial;
 }
 
 const gpu::Texture& TextureView(const ::Texture* texture) {
