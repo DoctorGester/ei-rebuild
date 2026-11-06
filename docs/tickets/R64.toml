@@ -1,0 +1,9 @@
+id = "R64"
+title = "Clicks pick the object actually drawn under the cursor (nearest surface depth), not the nearest object centre"
+group = "renderer"
+size = 2
+model = "opus"
+note = "User 2026-11-06 ('Yeah that makes more sense'), replacing MOD9's platform-skipping rule: WorldClient::Pick (original 00565E40) sorts the screen-rect/parts hits by each object's centre depth, so a big deck whose centre is nearer wins over a lever drawn on top of it (LiA gz1d2 lift). Sort the hits by the depth of the object's own surface under the cursor (ray against its drawn triangles, or the frame's depth/id). Deviation by the user's choice; MOD9's scenario and save (branch worktree-agent-a5d1c61e654253d9a, tests/saves/lia_elevator, mod_lost_in_astral_elevator.txt) carry over as the test."
+order = 1250
+status = "running"
+started = "2026-11-06"
