@@ -36,6 +36,8 @@
 //   objtrace stop <name>      keep the drawn place as <name> and the object's own as <name>.own (kinds pan:
 //                             the path on the map, turn: the yaw, height); camsame / camsteadier / camsmooth
 //                             check them
+//   objplayed <animation>     require the last objtrace's object to have played <animation> in a traced frame
+//                             (its database entry's name, "uspecial22")
 //   animblend on|off          animation switches blend (the default) or snap as in the original
 //                             (FigureAnimationState::SetBlends)
 

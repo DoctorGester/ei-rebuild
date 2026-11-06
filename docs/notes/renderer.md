@@ -1609,7 +1609,9 @@ blends the pose last placed into the new one's (map_object_animation.cpp, figure
   `camsteadier` / `camsmooth` (tests/verify/harness_camera.h; kinds pan, turn, zoom, height, reach); `objtrace start <who>
   [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, or with
   part `lastdraw` where its last draw put it, or with part `light` its own light's, or with who `spelllight` the first
-  moving point light effect's, after each frame's draw; the same checks), `animblend on|off`.
+  moving point light effect's, after each frame's draw; the same checks; also after `vanilla` / `rebirth`), `objplayed
+  <animation>` (the traced object played that database entry in a traced frame: `mod_lost_in_astral_unarmed_search`),
+  `animblend on|off`.
 
 ## 15. The performance overlay
 
