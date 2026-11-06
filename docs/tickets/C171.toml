@@ -1,0 +1,8 @@
+id = "C171"
+title = "Settings defaults from the catalog: one default per setting, Defaults() and the readers' fallbacks generated from settings_catalog.inc"
+group = "cleanup"
+size = 2
+model = "opus"
+depends = ["C170"]
+note = "User 2026-11-06 asked why settings_document.cpp's Defaults() isn't described in settings_catalog.inc. Today a default lives up to three times: the catalog's display default (docs), Defaults() (the ~12 lines a new ei_settings.ini gets), and each reader's fallback (settings::GetInt(kRenderer, \"Msaa\", render::kDefaultMsaa) etc.). Give each EI_SETTING a typed default and a 'written to a new file' flag; runtime defaults (desktop resolution, install-dependent) stay code-provided through a named hook; Defaults() walks the catalog; readers take the row's default; gen_settings_doc.py derives the docs' default text and checks no reader passes its own. A new file must come out byte-identical to today's (test it); goldens the same."
+order = 1253
