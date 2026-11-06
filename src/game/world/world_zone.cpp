@@ -64,16 +64,15 @@ void WorldServer::SetZoneExits(const std::vector<ZoneExit>& source) {
 
 void WorldServer::AddUnitToServer(unsigned newId, const char* prototype, const char* name, const Vector3& position) {
     Party party;   // one member
-    party.AddMember("", prototype, name);
-    std::vector<PartyUnitRecord*> records;
-    PartyUnitRecord* record = party.members.data();
-    records.resize(1);
-    records[0] = record;
+    PartyUnitRecord* record = party.AddMember("", prototype, name);
+    if (!record) return;   // the prototype is unknown (a warning): no unit, the script goes on
+    std::vector<PartyUnitRecord*> records{record};
     record->unitId = newId;
     CreateUnits(nullptr, &records, position, kNewUnitRotation, nullptr);
 }
 
 void WorldServer::TakeLookFromUnit(PartyUnitRecord* record) {
+    if (!record) return;   // AddMember refused an unknown prototype
     Unit* unit = FindUnit(static_cast<int>(record->unitId));
     MapObjectServer* server = unit ? unit->ServerCompanion() : nullptr;
     if (!server) return;

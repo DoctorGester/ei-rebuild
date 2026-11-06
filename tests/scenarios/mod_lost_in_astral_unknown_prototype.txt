@@ -2,7 +2,7 @@
 # exit or script leads to, has units of prototypes the mod's units database lacks ("SpiderF15"; its gz8g has others,
 # mod_lost_in_astral_gipat). Each such unit is made without its starting equipment and one warning goes to
 # ei-rebuild.log; the zone plays on (the hero kept alive by GodMode for half a second of its scripts).
-# docs/notes/rebirth.md, "Fatal errors".
+# docs/notes/rebirth.md, "Fatal errors". The same for a script's AddUnitToServer (no unit at all).
 # On the vanilla data (no starter\Mods) only the menu runs: every later step is Rebirth's.
 mod starter\Mods\LostInAstral
 waitmenu
@@ -20,5 +20,10 @@ rebirth wait 500
 rebirth check IsAlive(GetLeader())
 rebirth expectlog warning: Can't find prototype "SpiderF15" for unit
 rebirth expectlog : no starting equipment
+# The script path (MOD11): AddUnitToServer with a prototype the database lacks adds no unit, one warning, the script goes on.
+rebirth console @AddUnitToServer("Tutor1","WolfTutor","Tutor1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+rebirth wait 500
+rebirth check IsAlive(GetLeader())
+rebirth expectlog warning: Can't find prototype "WolfTutor" for unit "Tutor1": no unit
 report
 quit
