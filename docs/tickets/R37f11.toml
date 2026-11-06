@@ -6,4 +6,4 @@ model = "sonnet"
 files = ["src/render/render_ui.cpp", "src/render/render_internal.h", "src/render/shaders"]
 note = "R37f5 (frame-plan.md, 'Measured after R37f3 and R37e4'): since R37f3 the world draws in 33 calls and the shadow and occlusion passes in 72, and the interface is the largest group: 61 quad batches (render_ui.cpp BatchFor starts a new one at every scissor change and every glyph atlas change), 16 interface meshes and 7 other commands, each its own call. The CPU and GPU cost is small (0.014 ms for the quad batches), so this is for the draw count (the user: fewer draws is a goal in its own right): the scissor as a per-quad clip rectangle in the vertex data (clipped in the shader or on the CPU when the quad is made), the fonts' atlases as layers of one array texture, so quads join across those changes and break only where an interface mesh or picture must come between them. Expected 84 -> about 25 calls. Same pictures (render_ui and the interface scenarios' frames at tolerance 0)."
 order = 1293
-status = "later"
+status = "queued"
