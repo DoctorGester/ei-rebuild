@@ -1,0 +1,10 @@
+id = "MOD12"
+title = "Unarmed units play the pick-up (body search) animation: fall back from the bow bit when the figure has no unarmed entry"
+group = "mods"
+size = 1
+model = "opus"
+files = ["src/game/combat_steps.cpp"]
+note = "User 2026-11-06 approved ('Yeah we could change that, seems like an oversight again') after MOD10: an unarmed unit (no weapon, natural weapon >= 7) looks up key | 0x40020 (the bow bit, original 00550100), and figures such as unhuma have no body-search entry with 0x20, so the order runs with no animation (LiA's unarmed prison party). Deviation from the original by the user's choice: when that lookup finds nothing, use the unarmed/melee entry. Goldens may move where unarmed units search; re-record with reasons."
+order = 1249
+status = "running"
+started = "2026-11-06"
