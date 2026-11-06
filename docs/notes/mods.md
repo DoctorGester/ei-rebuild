@@ -358,6 +358,9 @@ What the expansion's data asks of the game that the base game's never did, and h
   is equipped. The original's key for an unarmed unit finds no body search animation, so the original plays none; ours
   plays the melee weapons' search there (MOD12, the user's choice; combat.md, "Animation keys";
   `mod_lost_in_astral_unarmed_search` on the user's save, tests/saves/lia_prison).
+- The user's save in gz1h saved paused (tests/saves/lia_astral_paused: its info, mission, scenario and visuals only)
+  is loaded by `mod_lost_in_astral_first_pose` (R65; renderer.md section 14, "Animation blends"): no blend from a
+  rest pose on the load's first frames, nor in the main menu's after Esc > main menu.
 - cz3h and cz4h have no mob in the mod or the game and are reached by nothing: cz3h's exit is commented out in
   zone2's script and cz4h's (zone2's VCheck#6#1) waits for `q24h` equal to 1 and to 0 at once.
 - The later quests (`mod_lost_in_astral_gipat_quests`, `_gipat_necropolis`): gz11g's q11g (areas), gz12g's q27g (the

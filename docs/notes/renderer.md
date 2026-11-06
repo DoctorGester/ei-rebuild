@@ -1586,6 +1586,17 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
   animation's kind: attack, cast and hit 100 ms (the blow's moment reads at once), death 150, idle 250, the rest
   (walk, run, cross, special, map objects' None) 200. None from or into no animation (a figure built anew, a fresh
   unit). An object not drawn for longer than the length switches at once.
+- **First shown pose** (R65): a switch blends only from a pose the player saw, in a figure seen moving
+  (`poseShown`: the pose last placed was drawn, `PlaceForDraw` from DrawParts and the out-of-view shadow casters;
+  `seenMoving`: a placement once replaced a drawn pose). So a figure's first shown pose is its current animation's,
+  with no blend. Before R65 a load's units restarted their saved animation and passed into the queued one before
+  any draw (RestartAnimation's Advance), blending from the rest pose `SetUpAnimatedFigure` placed: the HUD's hero
+  swung out of a T pose (the user's Lost in Astral save, saved paused, so it stayed half-way until the blend's real
+  time ran out). And back in the main menu after a game, its creatures arrive in the server's state before its first
+  tick (special idle) and are drawn frozen (the client world is still paused from the game's Esc menu) until the
+  tick sets them walking: they all blended into the walk at once. Now they switch at once. A figure first shown in a
+  paused world (a paused save) likewise takes its first switch after the unpause at once. Scenario
+  mod_lost_in_astral_first_pose (`animblend count`, the HUD figure's first frames against a later one).
 - Goldens: the harness's default frames are 275 ms apart, longer than any blend, so each draw shows the new pose
   alone, as before. A blend counted from the switch itself drew the outgoing pose on the switch's frame: its parts'
   clip tests then differed at the screen's edge, and with them a client unit's Static flag (all its parts lit),
@@ -1624,7 +1635,8 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
   part `lastdraw` where its last draw put it, or with part `light` its own light's, or with who `spelllight` the first
   moving point light effect's, after each frame's draw; the same checks; also after `vanilla` / `rebirth`), `objplayed
   <animation>` (the traced object played that database entry in a traced frame: `mod_lost_in_astral_unarmed_search`),
-  `animblend on|off`.
+  `animblend on|off`, `animblend mark` / `animblend count <least> <most>` (the blends begun in world figures, not
+  the interface's previews, since the mark).
 
 ## 15. The performance overlay
 

@@ -40,6 +40,9 @@
 //                             (its database entry's name, "uspecial22")
 //   animblend on|off          animation switches blend (the default) or snap as in the original
 //                             (FigureAnimationState::SetBlends)
+//   animblend mark            start counting the blends begun in world figures (not interface previews)
+//   animblend count <least> <most>
+//                             require the blends begun since the mark (or the run's start) to be in that range
 
 #include <string>
 #include <vector>

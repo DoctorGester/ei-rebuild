@@ -1,7 +1,7 @@
 LostInAstral/current/cz1h.sav a3f855380740fc94
-LostInAstral/current/cz1h.visuals.sav b0c6ecd6e808f109
+LostInAstral/current/cz1h.visuals.sav ad372dc09f14d0c6
 LostInAstral/current/cz2h.sav 0229bd169ba95557
-LostInAstral/current/cz2h.visuals.sav 8bc6f66d6dbd4d75
+LostInAstral/current/cz2h.visuals.sav ef57f054d39bcb17
 LostInAstral/current/gz1d2.sav 4785f7b1837def64
 LostInAstral/current/gz1d2.visuals.sav f9b80a15b524ad0d
 LostInAstral/current/gz1g.sav bc5c79d48025f30c

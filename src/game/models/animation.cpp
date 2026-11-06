@@ -199,6 +199,7 @@ void FigureAnimationState::Advance(float frames) { SetTime(frames + time); }
 namespace {
 
 bool g_blends = true;   // FigureAnimationState::SetBlends
+std::uint32_t g_worldBlends = 0;   // FigureAnimationState::WorldBlendsBegun
 
 // How long a switch into `to` blends, by its kind (milliseconds): into a blow, a cast or a hit quickly, so its
 // moment reads at once; into a fall a little longer; into walking, running, a mode change or a gesture longer, and
@@ -218,7 +219,7 @@ std::uint32_t BlendMilliseconds(const FigureAnimation* to) {
 
 void FigureAnimationState::BeginBlend(const FigureAnimation* from, const FigureAnimation* to) {
     blendLength = 0;
-    const bool blends = from && to;
+    const bool blends = from && to && poseShown && seenMoving;
     for (FigureBone* bone : bones) {
         bone->blendFrom = blends && bone->shown;
         if (!bone->blendFrom) continue;
@@ -230,9 +231,12 @@ void FigureAnimationState::BeginBlend(const FigureAnimation* from, const FigureA
     if (!blends || !g_blends) return;
     blendStart = placedAt;
     blendLength = BlendMilliseconds(to);
+    if (!(owner->flags & MapObjectFlag::Preview)) ++g_worldBlends;
 }
 
 void FigureAnimationState::SetBlends(bool on) { g_blends = on; }
+
+std::uint32_t FigureAnimationState::WorldBlendsBegun() { return g_worldBlends; }
 
 float FigureAnimationState::BlendWeight() {
     if (blendLength == 0) return 1.0f;

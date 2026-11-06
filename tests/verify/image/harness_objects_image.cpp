@@ -568,6 +568,8 @@ ObjectPlace LightPlace(const Vector3& at) { return ObjectPlace{at.x, at.y, at.z,
 
 void SetAnimationBlends(bool on) { FigureAnimationState::SetBlends(on); }
 
+std::uint32_t WorldBlendsBegun() { return FigureAnimationState::WorldBlendsBegun(); }
+
 bool ClientObject(int id, const char* part, ObjectState* out) {
     MapObject* found = nullptr;
     for (MapObject* object : g_clientWorld.objects) {

@@ -36,6 +36,8 @@ void PlaceRoot(FigureAnimationState* state) {
     Vector3 origin = factor * owner->defaultScale;
     state->root->Place(origin, state->BlendWeight());
     state->placedAt = platform::FrameClock();
+    if (state->poseShown) state->seenMoving = true;
+    state->poseShown = false;
 }
 
 } // namespace
@@ -71,6 +73,8 @@ void FigureAnimationState::Reset() {
     blendStart = 0;
     blendLength = 0;
     placedAt = 0;
+    poseShown = false;
+    seenMoving = false;
 }
 
 FigureBone* FigureAnimationState::FindBone(std::string_view boneName) {
@@ -177,6 +181,11 @@ void FigureAnimationState::UpdatePose() {
         return;
     }
     PlaceIfChanged();
+}
+
+void FigureAnimationState::PlaceForDraw() {
+    UpdatePose();
+    poseShown = true;
 }
 
 void FigureAnimationState::Rescale(float s, float t, float u) {

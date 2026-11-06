@@ -1,0 +1,37 @@
+# A figure's first shown pose (R65; docs/notes/renderer.md section 14, "Animation blends"): the user's Lost in Astral
+# save (tests/saves/lia_astral_paused: gz1h, saved paused) loaded, then Esc > main menu. A switch blends only from a
+# pose the player saw, in a figure seen moving. Before R65 the load's units switched (their saved animation into the
+# one queued after it) before any draw and blended from the rest pose their building placed: the HUD's hero swung out
+# of a T pose over 200 ms. Back in the main menu its creatures were drawn in their idles, frozen in the paused world
+# until the server's first tick set them walking, and all blended into the walk at once. At 8 ms frames: the first
+# frames' HUD figure must match one 40 frames on (the world stays paused), and no world figure may begin a blend in
+# either span (4 after the load, 5 in the menu before R65). On the vanilla data only the menu runs.
+# prepare: copy_save.py tests/saves/lia_astral_paused LostInAstral/save1
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+digest off
+rebirth console thingamabob
+rebirth frametime 8
+rebirth animblend mark
+rebirth load save1
+rebirth capture load 3 after Loaded save1
+rebirth frames 40
+rebirth capture load_later
+rebirth animblend count 0 0
+rebirth samecapture load_1 load_later 8 0 30 30 215 220
+rebirth samecapture load_3 load_later 8 0 30 30 215 220
+rebirth waitwindow 30 battle
+rebirth frames 5
+rebirth key esc
+rebirth waitwindow 10 escmenu
+rebirth clickregion 3
+rebirth frames 5
+rebirth key enter
+rebirth animblend mark
+rebirth capture menu 12 on menu
+rebirth frames 20
+rebirth capture menu_later
+rebirth animblend count 0 0
+report
+quit

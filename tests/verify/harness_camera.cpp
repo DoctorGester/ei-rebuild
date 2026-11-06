@@ -152,8 +152,22 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
           std::vector<std::string>* lines) {
     char text[600];
     if (verb == "animblend") {
-        if (argument != "on" && argument != "off") failures->push_back("animblend needs on or off");
-        else image::SetAnimationBlends(argument == "on");
+        // The world figures' blends begun since the last "animblend mark" (or the run's start).
+        static std::uint32_t marked = 0;
+        int least = 0, most = 0;
+        if (argument == "mark") {
+            marked = image::WorldBlendsBegun();
+        } else if (std::sscanf(argument.c_str(), "count %d %d", &least, &most) == 2) {
+            const int begun = static_cast<int>(image::WorldBlendsBegun() - marked);
+            Log("harness: animblend count: %d blends begun in world figures (wanted %d .. %d)", begun, least, most);
+            if (begun < least || begun > most)
+                failures->push_back("animblend count: " + std::to_string(begun) + " blends begun in world figures (wanted " +
+                                    std::to_string(least) + " .. " + std::to_string(most) + ")");
+        } else if (argument == "on" || argument == "off") {
+            image::SetAnimationBlends(argument == "on");
+        } else {
+            failures->push_back("animblend needs on, off, mark or count <least> <most>");
+        }
         return;
     }
     if (verb == "objplayed") {
