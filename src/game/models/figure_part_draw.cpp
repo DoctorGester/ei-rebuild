@@ -73,6 +73,7 @@ struct Part {
     Texture* textureA = nullptr;
     Texture* textureB = nullptr;
     LinkMesh* figure = nullptr;  // the mesh owner's figure (Object3D::figure), or null
+    const LinkPartRanges* ranges = nullptr;   // the mesh's part in `figure` (FigureMesh::PartIn), null without one
     DrawFlag drawFlags = {};
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
     const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
@@ -93,8 +94,10 @@ void FlatColours(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
         FigureMesh* mesh = part.node->mesh;
-        part.figure->FlatColours(mesh->GetName(), mesh->flatColour, mesh->flatSpecular, &part.Colours(),
-                                 &part.Speculars());
+        if (part.ranges) {
+            part.figure->FlatColours(*part.ranges, mesh->flatColour, mesh->flatSpecular, &part.Colours(),
+                                     &part.Speculars());
+        }
         return;
     }
     part.Colours().resize(part.node->mesh->buffers.normalCount * 4);
@@ -153,7 +156,9 @@ const render::MeshLighting* PartLighting(const Part& part) {
 void LightFigurePart(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
-        part.figure->LightPart(part.node->mesh->GetName(), *part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
+        if (part.ranges) {
+            part.figure->LightPart(*part.ranges, part.material, part.alpha, &part.Colours(), &part.Speculars());
+        }
     } else {
         Fill(part.Colours(), part.material->GpuLitColour());
     }
@@ -223,40 +228,25 @@ void DrawThroughDevice(Part& part) {
     mesh->flags |= FigureMeshFlag::Drawn;
 }
 
-// The mesh through the owner's figure: DrawPartMoved(Textured) with the offsets, DrawPart(Textured)
-// without; the rectangle from the figure's part header of that name.
+// The mesh through the owner's figure, moved by its offsets; the rectangle the device drew.
 void DrawThroughFigure(Part& part) {
     FigureMesh* mesh = part.node->mesh;
-    bool moved = !mesh->offsets.empty();
-    const std::string_view name = mesh->GetName();
-    const float u = mesh->textureOffsetU;
-    const float v = mesh->textureOffsetV;
-    std::vector<std::uint32_t>* colours = &part.Colours();
-    std::vector<std::uint32_t>* speculars = &part.Speculars();
-    std::vector<Vector3>* offsets = &mesh->offsets;
     const render::MeshSource source = part.Source(true);
     render::SetMeshSource(&source);
-    bool drawn;
-    if (moved && part.Textured()) {
-        drawn = part.figure->DrawPartMovedTextured(name, part.drawFlags, part.textureA->surface,
-                                                    part.textureB->surface, colours, speculars, offsets, u, v);
-    } else if (moved) {
-        drawn = part.figure->DrawPartMoved(name, part.drawFlags, colours, speculars, offsets, u, v);
-    } else if (part.Textured()) {
-        drawn = part.figure->DrawPartTextured(name, part.drawFlags, part.textureA->surface,
-                                               part.textureB->surface, colours, speculars, u, v);
-    } else {
-        drawn = part.figure->DrawPart(name, part.drawFlags, colours, speculars, u, v);
-    }
+    const bool textured = part.Textured();
+    const bool drawn = part.ranges && part.figure->DrawPart(*part.ranges, part.drawFlags, textured,
+                                                            textured ? part.textureA->surface.Get() : nullptr,
+                                                            textured ? part.textureB->surface.Get() : nullptr,
+                                                            &part.Colours(), &part.Speculars(), mesh->offsets,
+                                                            mesh->textureOffsetU, mesh->textureOffsetV);
     render::SetMeshSource(nullptr);
 
     if (part.rect) {
-        auto node = part.figure->headers.find(name);
         Rect* own = &part.node->screen;
-        *own = node->second.screen;
+        *own = drawn ? part.figure->loader->renderer->drawnRect : Rect{};
         *part.rect = *own;
     }
-    if (drawn) part.node->mesh->flags |= FigureMeshFlag::Drawn;
+    if (drawn) mesh->flags |= FigureMeshFlag::Drawn;
 }
 
 } // namespace
@@ -270,7 +260,8 @@ void FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>&
     currentMesh->flags &= ~FigureMeshFlag::Drawn;
     if (mesh->flags & FigureMeshFlag::Hidden) return;
     // Only the scene's parts reach here (the owner is an Object3D: map_object_draw, also for the interface's previews); the other meshes draw plain.
-    Part part{this, device, &lights, material, alpha, rect, textureA, textureB, OwnerFigure(mesh), DrawFlag{}};
+    Part part{this, device, &lights, material, alpha, rect, textureA, textureB, OwnerFigure(mesh)};
+    if (part.figure) part.ranges = mesh->PartIn(part.figure);
 
     const TransformPipeline::ClipResult visibility = device->pipeline->ClipTest(&part.node->mesh->box.bounds);
     if (visibility == TransformPipeline::ClipResult::Outside) return;
@@ -294,6 +285,14 @@ void FigureMeshDrawer::DrawLit(TextureDevice* device, const std::vector<Light*>&
         DrawThroughDevice(part);
     }
     DrawBounds(&g_sceneRenderer);
+}
+
+const LinkPartRanges* FigureMesh::PartIn(const LinkMesh* figure) {
+    if (figureSerial != figure->serial || !figureRanges) {
+        figureSerial = figure->serial;
+        figureRanges = figure->PartRanges(GetName());
+    }
+    return figureRanges;
 }
 
 // --- Figure part bounds ------------------------------------------------------------------------------

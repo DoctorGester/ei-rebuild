@@ -67,7 +67,6 @@ struct LinkPartHeader {
     std::uint32_t meshType = 0;
     std::uint32_t materialValue = 0;
     FootprintPart box;          // the bounds fitted to the part's morphed vertices, the part's position when loaded
-    Rect screen;                // where the part was last drawn (empty: not drawn)
 };
 
 // Where a part's elements lie in the mesh's arrays (the ranges map: map<string, LinkPartRanges>).
@@ -101,32 +100,26 @@ public:
 
     // Whether `name` is a part.
     bool HasPart(std::string_view name);
+    // Part `name`'s ranges in the arrays, null when there is no such part (a map node: it stays while the mesh lives).
+    const LinkPartRanges* PartRanges(std::string_view name) const;
     // The part names, in map order.
     std::vector<std::string> PartNames();
     // Part `name`'s first vertex packet, corner and index and its vertex
     // and index counts; false (nothing written) when there is no such part.
     bool GetPartData(std::string_view name, VertexPacket** vertices, MeshCorner** corners,
                      std::uint16_t** indices, int* vertexCount, int* indexCount);
-    // Draws (link_mesh_draw.cpp): a figure mesh's part `name` drawn through this figure
-    // (Object3D::figure): the first fills a flat part's colours and speculars, the second lights it
-    // (both: false when there is no such part), the next four draw it (with the mesh's per-vertex
-    // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return false when nothing
-    // was drawn. `u`, `v` are members of the mesh.
-    bool FlatColours(std::string_view name, std::uint32_t colour, std::uint32_t specular,
+    // Draws (link_mesh_draw.cpp): a figure mesh's part `r` drawn through this figure (Object3D::figure): the first
+    // fills a flat part's colours and speculars, the second lights it, the third draws it, its positions moved by
+    // `offsets` when it has any, with the two textures' surfaces when `textured`. The draw returns false when
+    // nothing was drawn; then (DrawFlag::ScreenRect) the device's drawnRect is where it was drawn. `u`, `v` are
+    // members of the mesh.
+    void FlatColours(const LinkPartRanges& r, std::uint32_t colour, std::uint32_t specular,
                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
-    bool LightPart(std::string_view name, const std::vector<Light*>& lights, Material* material, int alpha,
-                   std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars);
-    bool DrawPartMoved(std::string_view name, DrawFlag flags, std::vector<std::uint32_t>* colours,
-                      std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
-                      float u, float v);
-    bool DrawPart(std::string_view name, DrawFlag flags, std::vector<std::uint32_t>* colours,
-                 std::vector<std::uint32_t>* speculars, float u, float v);
-    bool DrawPartMovedTextured(std::string_view name, DrawFlag flags, Surface* first, Surface* second,
-                              std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                              std::vector<Vector3>* offsets, float u, float v);
-    bool DrawPartTextured(std::string_view name, DrawFlag flags, Surface* first, Surface* second,
-                         std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
-                         float u, float v);
+    void LightPart(const LinkPartRanges& r, Material* material, int alpha, std::vector<std::uint32_t>* colours,
+                   std::vector<std::uint32_t>* speculars);
+    bool DrawPart(const LinkPartRanges& r, DrawFlag flags, bool textured, Surface* first, Surface* second,
+                  std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
+                  const std::vector<Vector3>& offsets, float u, float v);
 
     // Overwrites part `name`'s first min(its count, count) vertex
     // packets (unsigned) with `vertices`; false when there is no such part.
@@ -140,6 +133,7 @@ public:
                  std::span<const std::uint16_t> newIndices);
 
     int refCount = 0;
+    std::uint64_t serial = 0;         // this mesh among every LinkMesh made (from 1): FigureMesh::figureRanges' key
     std::string name;
     std::map<std::string, LinkPartHeader, std::less<>> headers;
     Morph morph;                      // the coefficients the figure was loaded (or last morphed) with

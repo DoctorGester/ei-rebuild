@@ -74,8 +74,6 @@ void PopMatrix(MatrixStack& stack) {
 void VectorClear(std::vector<MapObject*>* v) { v->clear(); }
 
 constexpr float kMapEdgeMargin = 1.0f;
-// The length of the shadows' projection along the camera's Z axis.
-constexpr float kShadowLength = -0.02f;
 constexpr const char* kMarkerPartName = "hp";
 
 // a < b, or unordered.
@@ -333,38 +331,17 @@ int WorldClient::DrawPass() {
         state.depthWrite = true;
     }
 
-    // Shadows: projected along the camera's Z axis (its rotation) scaled by a constant.
+    // Shadows: the objects the game shadows cast in the renderer's shadow map (DrawPartsShadow draws nothing; neither
+    // its CastsShadow nor its shadow sphere depends on the order).
     if (options::g_options.shadows) {
-        SortByModel(FrameList::ShadowBuildings);
-        SortByModel(FrameList::ShadowOther);
-        SortByModel(FrameList::ShadowLevers);
-        SortByModel(FrameList::ShadowTrees);
-        Matrix4 matrix = {};
-        matrix.m[15] = 1.0f;
-        matrix.m[10] = 1.0f;
-        matrix.m[5] = 1.0f;
-        matrix.m[0] = 1.0f;
-        Vector3 sun = camera::FrameView().rotation.AxisZ();
-        const float scale = kShadowLength;
-        float product = sun.x * scale;
-        matrix.m[3] = product;
-        product = sun.y * scale;
-        matrix.m[7] = product;
-        product = sun.z * scale;
-        matrix.m[11] = product;
-        device->PushMatrix(matrix.m, kStackScene2);
-        device->PushMatrix(matrix.m, kStackScene1);
         state.stages[0].combiner = kAlphaPassStage;
         state.alphaTest = false;
-        state.depthWrite = false;
+        state.depthWrite = true;
         DrawEach(FrameList::ShadowLevers, kDrawShadow);
         DrawEach(FrameList::ShadowOther, kDrawShadow);
         DrawEach(FrameList::ShadowBuildings, kDrawShadow);
         DrawEach(FrameList::ShadowTrees, kDrawShadow);
         DrawEach(FrameList::ShadowUnits, kDrawShadow);
-        state.depthWrite = true;
-        PopMatrix(device->stacks[kStackScene2]);
-        PopMatrix(device->stacks[kStackScene1]);
     }
 
     // Selection markers (selectedIds of object ids) in single-player mode 1 with units drawn: a marker at

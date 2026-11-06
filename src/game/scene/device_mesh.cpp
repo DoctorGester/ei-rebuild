@@ -1,6 +1,7 @@
 // The Direct3D device's indexed mesh draws, with one texture and with two: the mesh's positions are projected by
-// the pipeline for the visibility verdict and the screen rectangle picking reads. The new
-// renderer gets the mesh in model space once it is visible and clips it. See docs/notes/models.md ("Renderer").
+// the pipeline for the visibility verdict of a mesh crossing the view's edges and for the screen rectangle picking
+// reads. The renderer (src/render) gets the mesh in model space once it is visible and clips it. See
+// docs/notes/models.md ("Renderer").
 #include "game/scene/device.h"
 #include "game/scene/pipeline.h"
 #include "game/scene/device_material.h"
@@ -86,17 +87,18 @@ void HandOver(TextureDevice* device, const MeshArgs& args) {
     render::BeginMesh(device, m);
 }
 
-// Whether the mesh was drawn: not outside the view's edges. Without DrawFlag::Clipped the mesh is projected with the
-// screen stack and counts as on screen.
+// Whether the mesh was drawn: not outside the view's edges. Without DrawFlag::Clipped the mesh counts as on screen and
+// is projected with the screen stack only for its rectangle (DrawFlag::ScreenRect).
 bool ProjectAndDraw(TextureDevice* device, const MeshArgs& args, const Textures* textures) {
     const TransformPipeline* pipeline = device->pipeline;
-    g_projected.resize(args.blocks * 4);
     TransformPipeline::ClipResult visibility = TransformPipeline::ClipResult::Inside;
     if (lib::Has(args.flags, DrawFlag::Clipped)) {
+        g_projected.resize(args.blocks * 4);
         g_outcodes.resize(args.blocks * 4);
         visibility = pipeline->ProjectClipped(*pipeline->Top(kClipStack), args.positions, g_projected.data(),
                                               g_outcodes.data(), args.blocks);
-    } else {
+    } else if (lib::Has(args.flags, DrawFlag::ScreenRect)) {
+        g_projected.resize(args.blocks * 4);
         TransformPipeline::Project(*pipeline->Top(kScreenStack), args.positions, g_projected.data(), args.blocks);
     }
     if (visibility == TransformPipeline::ClipResult::Outside) return false;

@@ -108,6 +108,8 @@ T MorphPrism(const float* v, float s, float t, float u) {
 
 class Object3D;
 class FigureMesh;
+class LinkMesh;
+struct LinkPartRanges;
 
 struct FigureMeshDrawer;
 // The packets of `source` (`packets` of them) with the per-vertex `offsets` added (a vertex beyond the offsets keeps
@@ -187,6 +189,9 @@ public:
     // Lets the old drawer go (released) and takes `drawer` (one more reference, its mesh set).
     void SetDrawer(FigureMeshDrawer* drawer);
     void SetObject(TransformObject* owner);
+    // The mesh's part in `figure` (its owner's, Object3D::figure) by the mesh's name, null when the figure has none;
+    // found once per figure (figureRanges; figure_part_draw.cpp).
+    const LinkPartRanges* PartIn(const LinkMesh* figure);
 
 private:
     // A "FIG" mesh at *cursor, the first of FIG8's 8 versions of every bound and vertex (the meshes loaded here are
@@ -206,6 +211,9 @@ public:
     Matrix4 worldMatrix;
     Ref<FigureMeshDrawer> drawer;      // (SetDrawer)
     TransformObject* object = nullptr;  // the owner whose figure may draw the mesh: a Object3D, or an interface window (UiWindow)
+    // PartIn's last answer, for the figure whose LinkMesh::serial is figureSerial (0: none yet).
+    const LinkPartRanges* figureRanges = nullptr;
+    std::uint64_t figureSerial = 0;
     MeshBuffers buffers;
     // passed to the draws after the buffers (as their bits): the texture offset (u, v) an animated mesh's
     // drawer sets per frame (FigureMeshDrawer::Animate); an interface sprite's frame of its sprite sheet.

@@ -1,7 +1,6 @@
 address,size,name,file
 0073CB38,64,kSphereSizeByLife,src/game/effects/particle_casting.cpp
 0073CB78,24,kAntimagicSizeByLife,src/game/effects/particle_casting.cpp
-0073D780,16,kNoScreen,src/game/models/link_mesh_draw.cpp
 0073E048,84,kArmourCoverage,src/game/units/unit_stats.cpp
 0073E09C,96,kArmourPieces,src/game/units/unit_hits.cpp
 0073E0FC,20,kSlotWeights,src/game/units/unit.h

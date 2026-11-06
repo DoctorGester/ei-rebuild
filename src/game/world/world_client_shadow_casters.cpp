@@ -85,12 +85,6 @@ float TopOf(const Object3D* object, const Vector3& scale) {
     return object->localPosition.z + std::sqrt(LengthSquared(c)) + object->bounds.radius * LargestScale(scale);
 }
 
-// Part `name`'s element ranges in the figure's arrays (LinkMesh::ranges); null when there is none.
-const LinkPartRanges* RangesOf(const LinkMesh* figure, std::string_view name) {
-    auto node = figure->ranges.find(name);
-    return node == figure->ranges.end() ? nullptr : &node->second;
-}
-
 // The part's positions with its per-vertex offsets added (as the draws add them), in `moved`.
 const VertexPacket* MovedPositions(const VertexPacket* positions, int packets, const std::vector<Vector3>& offsets,
                                    std::vector<VertexPacket>& moved) {
@@ -134,7 +128,7 @@ void HandOverParts(Object3D* object, Object3DClientSpecific* half, const Matrix4
                 const VertexPacket* positions = nullptr;
                 int packets = 0;
                 if (figure) {
-                    const LinkPartRanges* r = RangesOf(figure, part->GetName());
+                    const LinkPartRanges* r = part->PartIn(figure);
                     if (!r) continue;
                     positions = figure->vertices.data() + r->vertices.start;
                     packets = r->vertices.count;
