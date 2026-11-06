@@ -200,7 +200,9 @@ void UnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrder
     bool frame;
     std::uint32_t key = OrderKey(this, kind, source, &weaponBit, &frame);
 
-    FigureAnimation* animation = unit->FindAnimation(key, 0);
+    // A use order whose key fits no entry takes any entry of its skill, as an attack falls back to any attack of its
+    // weapon below (a deviation the user chose: the original played none; combat.md, "Animation keys").
+    FigureAnimation* animation = unit->FindAnimation(key, kind == UnitOrderKind::Use);
     if ((!animation || (animation->key & weaponBit) != weaponBit) && kind == UnitOrderKind::Attack) {
         animation = unit->FindAnimation(weaponBit | kKeyFallback, 1);
         if (!animation) {

@@ -3832,14 +3832,17 @@ bool LoadScenario(const char* path) {
         if (last.verb == "freeze" || ((last.verb == "vanilla" || last.verb == "rebirth") && last.argument == "freeze"))
             g_freezeUsed = true;
         if (last.verb == "capture" && last.argument.find(" freeze") != std::string::npos) g_freezeUsed = true;
-        if (camera_trace::UsedBy(last.verb)) g_cameraTraceUsed = true;
+        // The step's own verb, also after "vanilla" / "rebirth" (a trace on one install's data only).
+        const bool installStep = last.verb == "vanilla" || last.verb == "rebirth";
+        const std::string verb = installStep ? last.argument.substr(0, last.argument.find(' ')) : last.verb;
+        if (camera_trace::UsedBy(verb)) g_cameraTraceUsed = true;
         {
             // "read", "wrote" and "waitread" (also after "vanilla" / "rebirth"): the reads are noted from the start.
             const std::string word = last.verb == "vanilla" || last.verb == "rebirth" ? last.argument : last.verb + " ";
             if (word.compare(0, 5, "read ") == 0 || word.compare(0, 6, "wrote ") == 0 || word.compare(0, 9, "waitread ") == 0)
                 modtrace::Enable();
         }
-        if (camera_trace::ObjectsUsedBy(last.verb)) g_objectTraceUsed = true;
+        if (camera_trace::ObjectsUsedBy(verb)) g_objectTraceUsed = true;
     }
     std::fclose(f);
     // EI_RENDER_EXTRA's words also reach a scenario without a "render" step (on top of EI_RENDER).

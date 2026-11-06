@@ -37,9 +37,15 @@ weapon bit (1 << type, natural below 7) | movement bits (0x30000 / 0x20000 / 0x1
 attack with height band 0x1000000 / 0x2000000 / 0x3000000 | 0x800000, 0x40000 skill, 0xC0000 cast, 0x240000 mode
 transition, 0x6000000 death, 0x80580000 idle ...); movement | 0x40000000 once or 0x80000000 looped. An entry's frame
 count and the action's moment come from the figure's animation database.
-An unarmed unit (no weapon in hand, natural weapon none) asks for a skill with the key bits 0x20 (the bow's bit: the original does
-the same: the key builder of 00550100), which no body-search animation of the heroes' figures (vanilla's and Lost in Astral's:
-identical, 179 entries) has, so it plays no pick-up animation; the order then runs with no animation steps (`BuildOrderSteps` returns none).
+An unarmed unit (no weapon in hand, natural weapon none) asks for a body search with the key bits 0x20 (the bow's bit: the
+original does the same: the key builder of 00550100), and a crossbow's holder asks for the ranged search with 0x40. The heroes'
+figures (unhuma's 179 entries, the same in vanilla and Lost in Astral) have the search (0x35, walking 0x30) for 0x5F (the melee
+weapons and the crossbow) and the ranged search (0x16, walking 0x34) for 0x20 only, so in the original both searched with no
+animation steps. Deviation by the user's choice (MOD12, 2026-11-06): a use order whose key fits no entry takes any entry of its
+skill (`FindAnimation(key, 1)`, one draw of the game's rand() as every such pick), as an attack falls back to any attack of its
+weapon: the unarmed play the melee weapons' search (uspecial24, walking uspecial22), the crossbow the bow's (uspecial07 /
+uspecial23). Use, steal and tame entries are for any weapon (0) and unchanged; a figure with no entry of the skill still plays
+none (`mod_lost_in_astral_unarmed_search`).
 
 ## The hit
 

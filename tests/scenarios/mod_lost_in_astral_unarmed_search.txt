@@ -1,0 +1,34 @@
+# MOD12: an unarmed unit plays the body search (pick-up) animation. The user's Lost in Astral quick save on gz1d2
+# (tests/saves/lia_prison; a mod keeps its saves in saves\LostInAstral): the prison party FPrison (Hero1 and merc2,
+# unhuma and unhufe), whose prototypes name no weapon. A rat is spawned beside the hero and killed, the body is
+# clicked, and merc2 walks to it and searches it (the loot message "Маленький крысиный хвостик"); its drawn animations
+# are traced. The original's key for an unarmed unit carries the bow's bit, which no search entry of the heroes'
+# figures has, so before MOD12 the search played none (idles and the walk only); now the lookup falls back to any
+# entry of the skill (combat.md, "Animation keys"): uspecial22, the melee weapons' search from the walk mode.
+# On the vanilla data only the menu runs.
+# prepare: copy_save.py tests/saves/lia_prison LostInAstral/save1
+mod starter\Mods\LostInAstral
+reject Script error
+waitmenu
+digest off
+rebirth console thingamabob
+rebirth load save1
+rebirth waitwindow 30 battle
+rebirth waitfor 20 IsGreater(HP(GetLeader()),0)
+rebirth console @GodMode(0,1)
+rebirth console @GSSetVar(0,"hx",GetX(GetLeader()))
+rebirth console @GSSetVar(0,"hy",GetY(GetLeader()))
+rebirth console @AddUnitToServer("SearchRat","zone1dun2 Rat","SearchRat",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+rebirth waitfor 10 IsAlive(GetObjectByName("SearchRat"))
+rebirth console @InflictDamage(GetObjectByName("SearchRat"),100000)
+rebirth waitfor 10 IsDead(GetObjectByName("SearchRat"))
+rebirth frametime 16
+rebirth camera 41.1 27.3
+rebirth frames 40
+rebirth objtrace start merc2
+rebirth clickunit SearchRat
+rebirth frames 160
+rebirth objtrace stop search
+rebirth objplayed uspecial22
+report
+quit

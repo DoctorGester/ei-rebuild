@@ -6,6 +6,7 @@
 #include "image/image_side.h"
 #include "../../src/platform/log.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -51,6 +52,7 @@ bool g_objectLight = false;     // "spelllight": a point light effect, not an ob
 bool g_logObjects = false;
 std::vector<Sample> g_objectSamples;      // the drawn place
 std::vector<Sample> g_objectOwnSamples;   // the object's own
+std::vector<std::string> g_objectAnimations;   // the animations it played (objplayed), each once
 
 double Step(const Sample& a, const Sample& b, int kind) {
     switch (kind) {
@@ -131,6 +133,9 @@ void ObjectFrame() {
     g_objectId = s.id;
     g_objectSamples.push_back(SampleOf(s.drawn));
     g_objectOwnSamples.push_back(SampleOf(s.own));
+    if (!s.animation.empty() &&
+        std::find(g_objectAnimations.begin(), g_objectAnimations.end(), s.animation) == g_objectAnimations.end())
+        g_objectAnimations.push_back(s.animation);
     if (g_logObjects)
         Log("harness: objframe %d id %d own %.5f %.5f %.5f %.5f drawn %.5f %.5f %.5f %.5f animation %s %.3f blend %.3f",
             static_cast<int>(g_objectSamples.size()), s.id, s.own.x, s.own.y, s.own.z, s.own.yaw, s.drawn.x, s.drawn.y, s.drawn.z,
@@ -141,7 +146,7 @@ bool UsedBy(const std::string& verb) {
     return verb == "camtrace" || verb == "camsame" || verb == "camsteadier" || verb == "camsmooth";
 }
 
-bool ObjectsUsedBy(const std::string& verb) { return verb == "objtrace" || verb == "animblend"; }
+bool ObjectsUsedBy(const std::string& verb) { return verb == "objtrace" || verb == "objplayed" || verb == "animblend"; }
 
 void Step(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,
           std::vector<std::string>* lines) {
@@ -149,6 +154,14 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
     if (verb == "animblend") {
         if (argument != "on" && argument != "off") failures->push_back("animblend needs on or off");
         else image::SetAnimationBlends(argument == "on");
+        return;
+    }
+    if (verb == "objplayed") {
+        const bool played = std::find(g_objectAnimations.begin(), g_objectAnimations.end(), argument) != g_objectAnimations.end();
+        std::string seen;
+        for (const std::string& name : g_objectAnimations) seen += (seen.empty() ? "" : " ") + name;
+        Log("harness: objplayed %s: %s (played: %s)", argument.c_str(), played ? "yes" : "NO", seen.c_str());
+        if (!played) failures->push_back("objplayed: the traced object did not play " + argument + " (played: " + seen + ")");
         return;
     }
     if (verb == "objtrace") {
@@ -168,6 +181,7 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
             g_logObjects = std::strcmp(log, "log") == 0;
             g_objectSamples.clear();
             g_objectOwnSamples.clear();
+            g_objectAnimations.clear();
             g_objectLost = false;
             g_objectRecording = true;
             return;

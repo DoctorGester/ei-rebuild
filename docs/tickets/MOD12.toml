@@ -4,7 +4,7 @@ group = "mods"
 size = 1
 model = "opus"
 files = ["src/game/combat_steps.cpp"]
-note = "User 2026-11-06 approved ('Yeah we could change that, seems like an oversight again') after MOD10: an unarmed unit (no weapon, natural weapon >= 7) looks up key | 0x40020 (the bow bit, original 00550100), and figures such as unhuma have no body-search entry with 0x20, so the order runs with no animation (LiA's unarmed prison party). Deviation from the original by the user's choice: when that lookup finds nothing, use the unarmed/melee entry. Goldens may move where unarmed units search; re-record with reasons."
+note = "User 2026-11-06 approved ('Yeah we could change that, seems like an oversight again') after MOD10: an unarmed unit (no weapon, natural weapon >= 7) looks up key | 0x40020 (the bow bit, original 00550100), and figures such as unhuma have no body-search entry with 0x20, so the order runs with no animation (LiA's unarmed prison party). Deviation from the original by the user's choice: when that lookup finds nothing, use the unarmed/melee entry. Goldens may move where unarmed units search; re-record with reasons. Done: BuildOrderSteps gives use orders FindAnimation(key, 1) (any entry of the skill when the key fits none, as attacks fall back to any attack): unarmed units play the melee search (uspecial24 / walking uspecial22), crossbow holders the bow's (uspecial07 / 23). Scenario mod_lost_in_astral_unarmed_search on the user's save (tests/saves/lia_prison) fails before, passes after; harness objplayed check; no golden moved."
 order = 1249
-status = "running"
+status = "review"
 started = "2026-11-06"
