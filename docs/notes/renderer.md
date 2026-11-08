@@ -891,7 +891,7 @@ discs, which the user found did not look like snowflakes (R59a). Checked for the
 the same without the particles, bursts of four 16 ms frames, close up at 21:9 and 16:9, a night frame and 3840x2160;
 rain about 2.5% of the frame, snow about 0.9%); the goldens do not see it (client-only).
 
-The game's weather comes and goes by itself: WorldServer::UpdateWeather (every 64 ticks) stops rain or snow with a
+The game's weather comes and goes by itself: WorldServer::RollWeather (every 64 ticks) stops rain or snow with a
 chance of 1 in 31 and starts it with 1 in 101, so a minute after `SetWeather("rain")` the rain has often stopped. A
 scenario that needs the weather to last asks for it again every 20 seconds (render_weather, render_weather_units).
 A layer's change fades over the message's strength in ticks (`SetWeather`: 20 for rain and clear, 40 for snow); from snow
@@ -1620,6 +1620,10 @@ and each multiplayer client writes its own.
     generator goes on through the zones of a session, so a zone's file leaves it out.
   - Zone (6; R57c): the client world's tick when the picture was taken (i32) and the zone's map as the server named
     it (zero-terminated). Every file has it; a file without it (R57's) is taken as it is.
+  - WeatherDelay (7): the server's `WorldServer::weatherDelay` (i32, at most 10; world.md, "Weather across a load"):
+    not the picture's, but mission.sav does not keep it either. A slot's file only (GameFlow::SaveGame); GameFlow::LoadGame
+    reads it from the slot's file before the zone loads (0 when there is none), not at the restore, which comes after
+    the server's load.
 - **What depends on the frames drawn**: the generator's state at a save (its draws follow frames, the camera and what
   was drawn: idle picks, particles, sounds) and the footprints' places (a unit's animation's steps). Both are
   deterministic on the harness's virtual clock and are the same draws the client units' digests (cunit) already

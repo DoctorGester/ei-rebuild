@@ -47,7 +47,7 @@ added twice, three `RemoveObjectFromServer`, `load savea`, one more spawn), `par
 max(perception * factor, minimum) * 2 + 20)`; accept new players; unless paused each player's tick; rebuild the "Heroes"
 script group; each player's `SyncPlayer` (0 disconnects).
 
-`Tick`: `++tick`; every 64 ticks (tick & 63 == 3) `UpdateWeather` (rain, lightning via `ShowBolt`: a script line on the
+`Tick`: `++tick`; every 64 ticks (tick & 63 == 3) `RollWeather` then `UpdateWeather` (rain, lightning via `ShowBolt`: a script line on the
 mission script's queue, one time in four only a thunder sound); timed objects (one returning 0 from `RunTick` is released
 and its id erased after the walk); the AI event time wheel; countdowns (any running sets the countdown dirty bit for
 every player); missiles; script command queues (the world's first only while enabled or `force`, the mission script's
@@ -88,9 +88,17 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
   climate changes (a revisit sets the climate the save had) and the battle screen leaves it alone. LoadMap sets
   `weatherStrength` (the fade the weather message carries) to 0 for every zone, so the client's rain / snow layer is
   at the zone's weather at once; LoadSave's SetTime runs UpdateWeather, which sets `weatherFactor` (0.9 in rain or
-  snow, the units' sight) from it. Every scenario that loads in rain moves its digests: UpdateWeather's rolls go the
-  rain's way (1 in 31 to stop, not 1 in 101 to start) and draw the rain bolts. Checked by render_weather_save and
+  snow, the units' sight) from it (no roll: below). Checked by render_weather_save and
   zone_visuals (`weatherstate`).
+- **The weather's rolls are not saved.** UpdateRain rolls on `g_random` (seeded from the system at every start, not
+  saved) once its delay (`WorldServer::weatherDelay`, the original's global 007C2DFC: 10 after a change, counting down
+  every check) runs out: rain starts 1 in 101, stops 1 in 31. Only Tick rolls (RollWeather, every 64 ticks); the
+  original rolled in every UpdateWeather, so SetTime and SetTimeSpeed rolled too (differs on purpose, user
+  2026-11-08): a load ran three checks before its first frame (LoadSave's SetTimeSpeed and SetTime, StartZone's
+  SetTime from "gtime") and a save in rain came back clear about 1 load in 11; a script's FixWorldTime or SetTime
+  threw the dice early. A slot keeps the delay in visuals.sav (renderer.md, "What a save keeps of the picture",
+  WeatherDelay; a save without it starts at 0); a revisit keeps the session's. So a load opens in the saved weather,
+  and the next roll comes when the saved game's would have (its outcome is `g_random`'s).
 - Zone start: `AIEventTable::Setup` sizes the grid 1 - ftol(size x -0.125) each way, zeroes the cells and copies
   "normal.dat" of aiinfo.res. `BuildZoneTable` reads the maps folder's *.mq files (allod 0 / 1 / 2 by three name lists,
   else 3). `LoadZoneQuests`: the zone's "<zone>.mq" of the maps folder; a running server shares the file's bytes, the

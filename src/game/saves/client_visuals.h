@@ -9,7 +9,8 @@
 // and a zone without the side file starts from the defaults. The file is SaveFileWrite's frame (magic kMagicVisuals)
 // around a list of sections, each its kind, its version and its size: a load takes the sections it knows at the
 // version it knows and skips the rest, so a section whose contents change takes a new version and an older file falls
-// back to the defaults for that part.
+// back to the defaults for that part. One section is the server's, not the picture's: the weather's delay
+// (WeatherDelay), which mission.sav does not keep either.
 
 #include "game/core/random.h"
 
@@ -27,7 +28,7 @@ class WorldClient;
 
 // The sections of visuals.sav (a u32 each, then its version and its size in bytes); End closes the list.
 enum class VisualSection : std::uint32_t {
-    End = 0, Weather = 1, Waves = 2, Units = 3, Prints = 4, Generator = 5, Zone = 6
+    End = 0, Weather = 1, Waves = 2, Units = 3, Prints = 4, Generator = 5, Zone = 6, WeatherDelay = 7
 };
 
 // A unit's own wetness and snow, by its object id.
@@ -78,6 +79,9 @@ public:
     std::vector<std::uint8_t> prints;
     std::optional<IsaacRandom> generator;    // g_clientRandom's whole state (a save's; a zone's side file has none)
     std::optional<KeptZone> zone;
+    // The server's WorldServer::weatherDelay (a slot's file only: GameFlow::SaveGame sets it, GameFlow::LoadGame
+    // gives it back before the zone loads; the delay goes on through the zones of a session, as the generator does).
+    std::optional<std::int32_t> weatherDelay;
 
 private:
     // The prints made again from `prints` into the client world's lists (all three, or none when a list is broken),

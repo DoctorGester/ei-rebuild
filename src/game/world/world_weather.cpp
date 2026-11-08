@@ -1,5 +1,6 @@
-// WorldServer::UpdateWeather (every 64 ticks from Tick): the day-time value, rain starting and stopping,
-// lightning strikes and the lightning bolts during a storm. See world.h and docs/notes/world.md.
+// WorldServer::RollWeather (every 64 ticks from Tick): rain starting and stopping, lightning strikes and the lightning
+// bolts during a storm; WorldServer::UpdateWeather (then, and after the clock is set): the day-time value and the
+// weather's effects. See world.h and docs/notes/world.md.
 #include "game/ai/ai_map.h"
 #include "game/core/base_manager.h"
 #include "game/core/core_maths.h"
@@ -17,9 +18,6 @@
 
 namespace {
 
-
-// Ticks left before the weather may change again.
-int g_weatherDelay = /*007C2DFC*/ {};
 
 constexpr float kMapSize = 512.0f;                    // a random word to map coordinates (0..512)
 constexpr float kOffsetRange = 140.0f;                // a random word to 0..140
@@ -68,10 +66,10 @@ void TryLightningStrike(WorldServer* world) {
 
 // Rain starts (1 in 101 per check) or stops (1 in 31); light rain in kind-1 weather, heavy otherwise.
 void UpdateRain(WorldServer* world) {
-    if (--g_weatherDelay > 0) return;
+    if (--world->weatherDelay > 0) return;
     if (world->weather == 0) {
         if (g_random.Next() % 101 != 0) return;
-        g_weatherDelay = 10;
+        world->weatherDelay = 10;
         if (world->climate == 1) {
             world->weather = 1;
             world->weatherStrength = kRainLight;
@@ -81,7 +79,7 @@ void UpdateRain(WorldServer* world) {
         }
     } else {
         if (g_random.Next() % 31 != 0) return;
-        g_weatherDelay = 10;
+        world->weatherDelay = 10;
         int previous = world->climate;
         world->weather = 0;
         if (previous == 1) world->weatherStrength = kRainLight;
@@ -109,16 +107,17 @@ Script& ScriptQueue() { return *g_serverWorld.SecondScript(); }   // a command q
 
 } // namespace
 
-void WorldServer::UpdateWeather() {
-    float day = NightLevel();
-    nightLevel = day;
-    if (zoneMode == ZoneMode::Battle) {
-        if (climate != 0) {
-            if (climate == kStormy) TryLightningStrike(this);
-            else UpdateRain(this);
-        }
-        if (weather == kRaining && tick > static_cast<int>(lastRainBoltTick) + 20) ShowRainBolt(this);
+void WorldServer::RollWeather() {
+    if (zoneMode != ZoneMode::Battle) return;
+    if (climate != 0) {
+        if (climate == kStormy) TryLightningStrike(this);
+        else UpdateRain(this);
     }
+    if (weather == kRaining && tick > static_cast<int>(lastRainBoltTick) + 20) ShowRainBolt(this);
+}
+
+void WorldServer::UpdateWeather() {
+    nightLevel = NightLevel();
     weatherFactor = weather == 0 ? kDayFactorDry : kDayFactorRain;
 
     for (auto& node : objects.map) node.second->UpdateMoveFactors();    // the weather changed

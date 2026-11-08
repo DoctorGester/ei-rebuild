@@ -557,7 +557,7 @@ def read_visuals(r):
     """visuals.sav (ClientVisuals::Save): sections of a u32 kind, a u32 version and a u32 size until kind 0. The
     versions this decoder knows are read field by field; any other is kept as its bytes."""
     known = {(1, 1): 'weather', (2, 1): 'waves', (3, 1): 'units', (4, 1): 'prints', (5, 1): 'generator',
-             (6, 1): 'zone'}
+             (6, 1): 'zone', (7, 1): 'weatherDelay'}
     while True:
         kind = r.u32(None)
         version = r.u32(None)
@@ -605,6 +605,8 @@ def read_visuals(r):
         elif name == 'zone':
             r.i32('tick')
             r.string('map')
+        elif name == 'weatherDelay':
+            r.i32('weatherDelay')
         else:
             r.raw('bytes', size)
         if r.p != end:
