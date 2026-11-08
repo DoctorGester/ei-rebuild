@@ -12,6 +12,7 @@
 #include "game/ui/ui.h"
 #include "lib/crt.h"
 
+#include <algorithm>
 #include <cstring>
 #include <string>
 #include <vector>

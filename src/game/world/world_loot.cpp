@@ -20,6 +20,7 @@
 #include "lib/crt.h"
 #include "lib/rounding.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

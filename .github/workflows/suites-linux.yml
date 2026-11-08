@@ -15,9 +15,10 @@
 # a second secret, decrypts the stub set when it is stored encrypted.
 #
 # The data never leaves the runner: it is fetched into the runner's temp folder, outside every cached path, and the
-# jobs upload nothing (no artifacts: run folders hold saves and frames made from the data). The token and the key are
-# given only to pushes and to pull requests from branches of this repository (a fork's pull request gets no secrets,
-# and the suites do not run for one).
+# suites jobs upload nothing (no artifacts: run folders hold saves and frames made from the data; the build job, which
+# has no data, uploads its two shader files for the gcc-latest job). The token and the key are given only to pushes
+# and to pull requests from branches of this repository (a fork's pull request gets no secrets, and the suites do not
+# run for one).
 name: Linux
 
 on:
@@ -86,6 +87,55 @@ jobs:
         run: |
           cd build/linux
           xvfb-run -a -s "-screen 0 1280x1024x24" ctest --output-on-failure
+      # The renderer's compiled shaders (gpu_shaders.h and .cpp) for the gcc-latest job: no shader toolchain there.
+      - uses: actions/upload-artifact@v6
+        with:
+          name: linux-shaders
+          path: |
+            build/linux/shaders/gpu_shaders.h
+            build/linux/shaders/gpu_shaders.cpp
+          if-no-files-found: error
+
+  # The game and the harness compiled by the newest gcc release (the gcc:latest image, deliberately unpinned): each gcc
+  # release drops some of libstdc++'s indirect includes, so a file that uses a name without including its header builds
+  # on gcc 13, Apple clang and MSVC and breaks on the newest gcc (gcc 16: std::find_if without <algorithm>, pull
+  # request 1). Compile only, warnings not errors (a new gcc's new warnings are not a failure); no checks, no suites.
+  # The shaders are the build job's (EI_PREBUILT_SHADERS).
+  gcc-latest:
+    needs: build
+    runs-on: ubuntu-24.04
+    container: gcc:latest
+    env:
+      CC: gcc
+      CXX: g++
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+    steps:
+      - name: Packages
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update -q
+          apt-get install -y -q cmake ninja-build ccache libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev \
+            libxss-dev libxfixes-dev libxtst-dev libxkbcommon-dev libgl-dev libegl-dev libasound2-dev libpulse-dev
+          g++ --version | head -1 | tee -a $GITHUB_STEP_SUMMARY
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
+        with:
+          name: linux-shaders
+          path: build/prebuilt-shaders
+      - name: Compiler cache
+        uses: actions/cache@v5
+        with:
+          path: .ccache
+          key: ccache-gcc-latest-${{ github.sha }}
+          restore-keys: ccache-gcc-latest-
+      - name: Build
+        run: |
+          cmake -S . -B build/gcc-latest -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEI_HARNESS=ON \
+            "-DEI_PREBUILT_SHADERS=$PWD/build/prebuilt-shaders" -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build build/gcc-latest -- -k 0
+          ccache --show-stats
 
   suites:
     needs: build

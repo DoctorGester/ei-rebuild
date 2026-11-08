@@ -407,7 +407,15 @@ camera_* scenario (user, 2026-11-06: the renderer's looks, the two-game runs and
 failures; named in the `scenarios` input they still run) and `LINUX_SKIP`;
 a job fails when a golden differs. It runs on pushes to main and `claude/**` (not docs-only ones), on pull requests
 from this repository's own branches (a fork's gets no secrets and the suites are skipped) and by hand; it uploads
-nothing, and the data is outside every cached path. The suites are off until the variable below is set.
+nothing but the build job's two shader files, and the data is outside every cached path. The suites are off until
+the variable below is set.
+A third part, the gcc-latest job, compiles the game and the harness (no checks, warnings not errors) in the unpinned
+`gcc:latest` image with the build job's shaders (EI_PREBUILT_SHADERS): every gcc release drops some of libstdc++'s
+indirect includes, so a file that uses a name without its header builds on gcc 13, Apple clang and MSVC and breaks on
+the newest gcc (pull request 1: gcc 16, std::find_if without `<algorithm>`). Include the header of every std name a
+file uses. A local check on macOS: configure with `-DCMAKE_CXX_FLAGS=-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES`, which
+drops libc++'s compatibility includes (it caught std::ranges::find without `<algorithm>` in four files, not the
+pull request's file: libc++'s and libstdc++'s leftover includes differ).
 The Windows twin (suites-windows.yml, by hand: windows-latest on D3D12 WARP) is a smoke job like the macOS one; harness.md, "The Windows CI job".
 
 `EI_TIME_SCALE` (3 in the workflow; default 1, never below 1) multiplies the harness's real-time limits: a `frames` step's

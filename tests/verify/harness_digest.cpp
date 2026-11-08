@@ -10,6 +10,7 @@
 #include "platform/platform.h"
 #include "system/harness_system.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cstdlib>
 
