@@ -50,7 +50,7 @@ def main():
         runs = repo / "build/macos/runs"
         runs.mkdir(parents=True, exist_ok=True)
         root = Path(tempfile.mkdtemp(prefix="smoke-", dir=runs))
-    for name in ["Res", "Maps", "Movies", "Stream", "Camera"]:
+    for name in ["Res", "Maps", "Movies", "Stream", "Camera", "starter"]:
         link = root / name
         if link.is_symlink() and link.resolve() != data / name:
             parser.error(str(link) + " already uses a different game-data folder")

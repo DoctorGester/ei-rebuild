@@ -4,7 +4,10 @@
 #include "text_case.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <charconv>
+#include <cmath>
+#include <cstdlib>
 #include <cstdint>
 #include <limits>
 
@@ -99,6 +102,34 @@ std::optional<int> ParseInt(std::string_view text) {
     return magnitude > kMost ? INT32_MAX : static_cast<int>(magnitude);
 }
 
+std::from_chars_result FloatFromChars(std::string_view text, float& value, std::chars_format format) {
+    const char* first = text.data();
+#if defined(__cpp_lib_to_chars)
+    return std::from_chars(first, first + text.size(), value, format);
+#else
+    const std::from_chars_result none{first, std::errc::invalid_argument};
+    const std::size_t sign = !text.empty() && text.front() == '-' ? 1 : 0;
+    if (text.size() == sign || text[sign] == '+' || text[sign] == '-' || text::IsSpace(text[sign])) return none;
+    const bool hex = format == std::chars_format::hex;
+    // strtof takes a "0x" as hexadecimal: the hex format's digits get one, the general format stops at its "x".
+    if (!hex && text.size() > sign + 1 && text[sign] == '0' && (text[sign + 1] == 'x' || text[sign + 1] == 'X')) {
+        value = sign ? -0.0f : 0.0f;
+        return {first + sign + 1, std::errc()};
+    }
+    const std::string prefix = hex ? "0x" : "";
+    const std::string terminated = std::string(text.substr(0, sign)) + prefix + std::string(text.substr(sign));
+    char* end = nullptr;
+    errno = 0;
+    const float number = std::strtof(terminated.c_str(), &end);
+    if (end == terminated.c_str() || (hex && end <= terminated.c_str() + sign + prefix.size())) return none;
+    const char* ptr = first + (end - terminated.c_str()) - prefix.size();
+    // Out of range is infinite or zero (value untouched, as from_chars leaves it); subnormals are in range.
+    if (errno == ERANGE && (number == 0.0f || std::isinf(number))) return {ptr, std::errc::result_out_of_range};
+    value = number;
+    return {ptr, std::errc()};
+#endif
+}
+
 float ToFloat(std::string_view text) {
     std::size_t i = 0;
     while (i < text.size() && text::IsSpace(text[i])) ++i;
@@ -113,8 +144,7 @@ float ToFloat(std::string_view text) {
                      (isHexDigit(text[2]) || text[2] == '.');
     if (hex) text.remove_prefix(2);
     float number = 0.0f;
-    const auto read = std::from_chars(text.data(), text.data() + text.size(), number,
-                                      hex ? std::chars_format::hex : std::chars_format::general);
+    const auto read = FloatFromChars(text, number, hex ? std::chars_format::hex : std::chars_format::general);
     if (read.ec == std::errc::result_out_of_range) {
         // Too large is infinite, too small is zero, as strtof answered: a negative exponent says which.
         const std::size_t exponent = text.find_first_of(hex ? "pP" : "eE");

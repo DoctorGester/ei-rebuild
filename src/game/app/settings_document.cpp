@@ -3,15 +3,13 @@
 // tests/unit/settings_file.cpp checks them without the game.
 #include "game/app/settings.h"
 
+#include "lib/str.h"
 #include "lib/text_case.h"
 
 #include <array>
 #include <cctype>
-#include <cerrno>
 #include <charconv>
-#include <cmath>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <iterator>
 #include <string>
@@ -196,22 +194,8 @@ bool ParseInt(std::string_view text, int* value) {
 bool ParseFloat(std::string_view text, float* value) {
     if (!text.empty() && text.front() == '+') text.remove_prefix(1);
     float number = 0;
-#if defined(__cpp_lib_to_chars)
-    const auto read = std::from_chars(text.data(), text.data() + text.size(), number);
+    const auto read = str::FloatFromChars(text, number);
     if (text.empty() || read.ec != std::errc() || read.ptr != text.data() + text.size()) return false;
-#else
-    // No float from_chars in the library (Apple's libc++): strtof in the C locale the game keeps, refusing what
-    // from_chars refuses (a leading space or plus, hexadecimal, out of range; subnormals are in range).
-    if (text.empty() || text.front() == '+' || std::isspace(static_cast<unsigned char>(text.front()))) return false;
-    const std::size_t sign = text.front() == '-' ? 1 : 0;
-    if (text.size() > sign + 1 && text[sign] == '0' && (text[sign + 1] == 'x' || text[sign + 1] == 'X')) return false;
-    const std::string terminated(text);
-    char* end = nullptr;
-    errno = 0;
-    number = std::strtof(terminated.c_str(), &end);
-    if (end != terminated.c_str() + terminated.size() || (errno == ERANGE && (number == 0.0f || std::isinf(number))))
-        return false;
-#endif
     *value = number;
     return true;
 }
