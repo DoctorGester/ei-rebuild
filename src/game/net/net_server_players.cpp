@@ -11,6 +11,7 @@
 #include "lib/float_select.h"
 #include "lib/text_case.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <string>

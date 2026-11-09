@@ -13,6 +13,7 @@
 #include "game/units/unit.h"
 #include "game/ai/unit_ai.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace {

@@ -21,6 +21,7 @@
 
 #include "lib/crt.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstdint>
 #include <typeinfo>

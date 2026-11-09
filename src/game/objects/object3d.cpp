@@ -25,6 +25,7 @@
 #include "lib/text_case.h"
 #include "platform/platform.h"
 
+#include <algorithm>
 #include <bit>
 #include <cfloat>
 #include <cmath>

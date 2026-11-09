@@ -15,6 +15,7 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 
+#include <algorithm>
 #include <cstring>
 #include <new>
 #include <string>
