@@ -283,15 +283,7 @@ struct Command {
 struct Frame;
 
 // The scene's light as render::SceneLighting keeps it: the sun (the direction its light travels, unit), its colours
-// and the point lights. Until the first hand-over: a sun from above, half ambient.
-struct KeptLight {
-    std::uint32_t id = 0;   // ScenePointLight::id
-    Vector3 at;
-    float inverseRangeSquared = 0.0f;
-    float colour[3] = {};
-    bool specular = false;
-    bool shadows = false;   // casts point shadows (ScenePointLight::shadows: not an object's own light)
-};
+// and the point lights with a reach. Until the first hand-over: a sun from above, half ambient.
 struct KeptScene {
     Vector3 sun{0.0f, 0.0f, -1.0f};
     float sunColour[3] = {1.0f, 1.0f, 1.0f};
@@ -300,7 +292,7 @@ struct KeptScene {
     float dayAmbientColour[3] = {0.5f, 0.5f, 0.5f};
     Vector3 camera;
     double clientTicks = 0.0;   // the client's time it was handed over with (SceneLights::clientTicks)
-    std::vector<KeptLight> lights;
+    std::vector<ScenePointLight> lights;
 };
 const KeptScene& KeptSceneLight();
 // The terrain shader's (shaders/scene_lighting.hlsli): the kept sun and ambient colour with the shadow map's light

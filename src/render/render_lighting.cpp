@@ -28,17 +28,8 @@ void SceneLighting(const SceneLights& lights) {
     s.camera = lights.camera;
     s.clientTicks = lights.clientTicks;
     s.lights.clear();
-    for (int i = 0; i < lights.pointCount && lights.points; ++i) {
-        const ScenePointLight& l = lights.points[i];
-        if (!(l.inverseRangeSquared > 0.0f)) continue;
-        KeptLight& kept = s.lights.emplace_back();
-        kept.id = l.id;
-        kept.at = l.position;
-        kept.inverseRangeSquared = l.inverseRangeSquared;
-        for (int j = 0; j < 3; ++j) kept.colour[j] = l.colour[j];
-        kept.specular = l.specular;
-        kept.shadows = l.shadows;
-    }
+    for (int i = 0; i < lights.pointCount && lights.points; ++i)
+        if (lights.points[i].inverseRangeSquared > 0.0f) s.lights.push_back(lights.points[i]);
 }
 
 // The direction the shadow map's light travels: the frame's sun as the map takes it, else the scene's.
@@ -73,10 +64,10 @@ constexpr int kMostLightCells = 128;
 // Calls `each` with every cell of the grid (`g`'s, cells found as the shader finds them) that the light's reach (a
 // circle over x and y) touches.
 template <typename Each>
-static void CellsReached(const PointLightParams& g, const KeptLight& l, Each each) {
+static void CellsReached(const PointLightParams& g, const ScenePointLight& l, Each each) {
     const float range = 1.0f / std::sqrt(l.inverseRangeSquared), cell = 1.0f / g.gridScale;
     int low[2], high[2];
-    const float at[2] = {l.at.x, l.at.y};
+    const float at[2] = {l.position.x, l.position.y};
     for (int k = 0; k < 2; ++k) {
         const float from = (at[k] - range - g.gridOrigin[k]) * g.gridScale;
         const float to = (at[k] + range - g.gridOrigin[k]) * g.gridScale;
@@ -106,14 +97,14 @@ void PreparePointLights(Frame& f) {
         if (!batch.flat && batch.lighting >= 0) batch.landscape = batch.placement;
     }
     // Every kept light (at least one record: the buffers are bound whole) with its shadow's map.
-    const std::vector<KeptLight>& lights = g_scene.lights;
+    const std::vector<ScenePointLight>& lights = g_scene.lights;
     g_records.assign(std::max<std::size_t>(lights.size(), 1), PointLight{});
     for (std::size_t k = 0; k < lights.size(); ++k) {
-        const KeptLight& l = lights[k];
+        const ScenePointLight& l = lights[k];
         PointLight& r = g_records[k];
-        r.at[0] = l.at.x;
-        r.at[1] = l.at.y;
-        r.at[2] = l.at.z;
+        r.at[0] = l.position.x;
+        r.at[1] = l.position.y;
+        r.at[2] = l.position.z;
         r.at[3] = l.inverseRangeSquared;
         for (int j = 0; j < 3; ++j) r.colour[j] = l.colour[j];
         r.colour[3] = l.specular ? 1.0f : 0.0f;
@@ -127,12 +118,12 @@ void PreparePointLights(Frame& f) {
     Box reach;
     if (const std::optional<WorldView> view = f.worldRanges.empty() ? std::nullopt : WorldCamera(f))
         for (std::size_t k = 0; k < lights.size(); ++k) {
-            const KeptLight& l = lights[k];
+            const ScenePointLight& l = lights[k];
             const float range = 1.0f / std::sqrt(l.inverseRangeSquared);
-            if (!SphereInView(view->clip, l.at, range)) continue;
+            if (!SphereInView(view->clip, l.position, range)) continue;
             g_inView.push_back(static_cast<int>(k));
-            reach.Extend(l.at - Vector3{range, range, range});
-            reach.Extend(l.at + Vector3{range, range, range});
+            reach.Extend(l.position - Vector3{range, range, range});
+            reach.Extend(l.position + Vector3{range, range, range});
         }
     PointLightParams& g = ps.params;
     const float width = std::max(reach.high.x - reach.low.x, 0.0f), depth = std::max(reach.high.y - reach.low.y, 0.0f);

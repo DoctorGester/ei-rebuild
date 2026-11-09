@@ -316,15 +316,15 @@ static float ScreenShare(const Matrix4& clip, const Vector3& at, float range) {
 static bool ListCandidates(const KeptScene& scene, const Matrix4& camera) {
     g_candidates.clear();
     for (std::size_t k = 0; k < scene.lights.size(); ++k) {
-        const KeptLight& l = scene.lights[k];
+        const ScenePointLight& l = scene.lights[k];
         const float brightest = std::max({l.colour[0], l.colour[1], l.colour[2]});
         if (!l.shadows || brightest < kLeastColour) continue;
         const float range = 1.0f / std::sqrt(l.inverseRangeSquared);
-        if (range <= kNear * 4.0f || !SphereInView(camera, l.at, range)) continue;
+        if (range <= kNear * 4.0f || !SphereInView(camera, l.position, range)) continue;
         const float reach = std::max(range, kHoldMargin);
-        const float size = std::fabs(l.at.x) + std::fabs(l.at.y) + std::fabs(l.at.z) + reach;
-        const float weight = brightest * ScreenShare(camera, l.at, range);
-        g_candidates.push_back(Candidate{static_cast<int>(k), l.id, l.at, range, weight, reach, size});
+        const float size = std::fabs(l.position.x) + std::fabs(l.position.y) + std::fabs(l.position.z) + reach;
+        const float weight = brightest * ScreenShare(camera, l.position, range);
+        g_candidates.push_back(Candidate{static_cast<int>(k), l.id, l.position, range, weight, reach, size});
     }
     if (g_candidates.empty()) return false;
     CandidatesReach& all = g_candidatesReach;
