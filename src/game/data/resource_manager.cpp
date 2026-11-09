@@ -53,7 +53,7 @@ bool ResourceManager::CloseFile(void* data) {
 
 bool ResourceManager::HasFile(std::string_view name) {
     for (ArchiveEntry& e : archives)
-        if (e.resource->FindEntry(name) != -1) return true;
+        if (e.resource->HasFile(name)) return true;
     return false;
 }
 

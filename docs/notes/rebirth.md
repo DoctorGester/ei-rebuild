@@ -95,8 +95,9 @@ on either install (`src/game/mod_folders.{h,cpp}`, `modfolders::Active`); withou
   / menus.res values extra texture archives (after the game's three). The mod archives open at the first OpenResource or
   MaterialManager::Create.
 - GetFile: the mod's archives for this archive, then the archive unless ignored; a `t\` or `s\` name not found is tried
-  once more without the prefix. ListFiles: the mod's listings and the archive's own are appended to the caller's array,
-  which is not emptied first. Both also with a mod that has no [RES] (Rebirth's Standard), as addon does for every
+  once more without the prefix. Each archive's folder of loose files stands over it (mods.md, "Loose files": the mod's
+  folder before its archives, the game's folder between them and the game's archive). ListFiles: the mod's listings and
+  the archive's own are appended to the caller's array, which is not emptied first. Both also with a mod that has no [RES] (Rebirth's Standard), as addon does for every
   archive; without a mod GetFile and ListFiles are the game's (no retry, the array replaced).
   CloseFile of a file a mod archive gave goes back to that archive (`modfolders::ArchiveHolding`); addon left it
   loaded and the game's archive logged "File already closed".

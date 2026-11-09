@@ -1,6 +1,6 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
 
@@ -20,6 +20,12 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Maps\\zone2.mpr       a copy of the install's: zone2's map from the mod, its .mob from the game's folder
               Maps\\z9q2.mq         a copy of the install's: the zone table and the quest files read the mod's folder
               Maps\\s19d\\note.txt   a file of a subfolder, listed as "s19d\\note.txt"
+  loose     loose files over archives (tests/scenarios/mod_loose_files.txt; docs/notes/mods.md, "Loose files"):
+              Res\\s19d_texts_a.res   the mod's texts.res ([RES]): s19d.txt, s19d_c.txt, s19d_d.txt
+              Res\\texts\\            s19d.txt over the mod's archive, Sub\\S19D_Sub.TXT in a sub-folder
+              Res\\s19d_texts_a\\     s19d_d.txt: the mod's archive's own folder over its entry
+              Res\\outro\\outro.rtf   over the game's outro.res (no [RES] line for it)
+              Maps\\s19d_loose\\      a folder that stands for s19d_loose.mpr
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them).
 """
 import argparse, os, shutil, sys
@@ -39,6 +45,21 @@ def write(path, data):
 def copy(source, target):
     os.makedirs(os.path.dirname(target), exist_ok=True)
     shutil.copyfile(source, target)
+
+
+def copy_archive(source, target):
+    """The install's archive at source copied to target; from an unpacked install (tools/unpack_install.py) the folder
+    of its name packed into one."""
+    if os.path.exists(source):
+        return copy(source, target)
+    folder = os.path.splitext(source)[0]
+    files = {}
+    for path, _, names in os.walk(folder):
+        for name in sorted(names):
+            full = os.path.join(path, name)
+            with open(full, 'rb') as f:
+                files[os.path.relpath(full, folder).replace(os.sep, '\\')] = f.read()
+    write(target, mod.archive(files))
 
 
 def vanilla(*names):
@@ -82,12 +103,25 @@ def archives(root):
 
 def maps(root):
     config(root)
-    copy(vanilla('Maps', 'zone2.mpr'), os.path.join(root, 'Maps', 'zone2.mpr'))
-    copy(vanilla('Maps', 'z9q2.mq'), os.path.join(root, 'Maps', 'z9q2.mq'))
+    copy_archive(vanilla('Maps', 'zone2.mpr'), os.path.join(root, 'Maps', 'zone2.mpr'))
+    copy_archive(vanilla('Maps', 'z9q2.mq'), os.path.join(root, 'Maps', 'z9q2.mq'))
     write(os.path.join(root, 'Maps', 's19d', 'note.txt'), b'a file of a subfolder\r\n')
 
 
-KINDS = {'stream': stream, 'archives': archives, 'maps': maps}
+def loose(root):
+    config(root, {'texts.res': 'Res\\s19d_texts_a.res'})
+    write(os.path.join(root, 'Res', 's19d_texts_a.res'), mod.archive({
+        's19d.txt': b'first\r\n',                      # 7 bytes
+        's19d_c.txt': b'only in the archive\r\n',      # 21
+        's19d_d.txt': b'archive copy\r\n'}))           # 14
+    write(os.path.join(root, 'Res', 'texts', 's19d.txt'), b'the mod folder\r\n')             # 16
+    write(os.path.join(root, 'Res', 'texts', 'Sub', 'S19D_Sub.TXT'), b'sub file\n')          # 9
+    write(os.path.join(root, 'Res', 's19d_texts_a', 's19d_d.txt'), b'own folder\r\n')        # 12
+    write(os.path.join(root, 'Res', 'outro', 'outro.rtf'), b'loose credits\r\n')             # 15
+    write(os.path.join(root, 'Maps', 's19d_loose', 's19d_loose.mp'), b'a map folder\r\n')
+
+
+KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose}
 
 
 def main():

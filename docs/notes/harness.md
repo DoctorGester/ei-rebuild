@@ -26,7 +26,9 @@ Rebirth golden only to be checked on Rebirth's data after every merge; 102 runs 
 Linux runner (linux.md) plays only the marked and stepped part (`rebirth_scenarios(goldens=False)`). The installs' folders are `EI_GAME_VANILLA` and `EI_GAME_REBIRTH` (default
 `F:\games\EvilIslands`, `F:\games\Evil Islands (Rebirth)`; run_all.install_dir, also the tools that read
 game.exe, tools/exe_path.py); a `work.py test` batch carries the submitter's two, so a suite on the stub data
-(linux.md, "The stub data") goes through the scheduler too. `EI_BUILD_DIR` points run_all at another verify build.
+(linux.md, "The stub data") goes through the scheduler too. `--unpacked` sets both to the installs' unpacked copies
+(every archive replaced by its folder of loose files; mods.md, "Unpacked installs"). `EI_BUILD_DIR` points run_all at
+another verify build.
 
 How a run starts (run_all.launch, tools/game_process.py): the exe itself, with the working directory and `EI_GAME_ROOT`
 the install, `EI_HARNESS` the scenario, `EI_OUT_DIR` the run folder and `EI_INSTALL_ROOTS` both installs. The game prints into the run folder's

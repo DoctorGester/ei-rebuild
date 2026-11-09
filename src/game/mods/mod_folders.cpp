@@ -5,6 +5,7 @@
 
 #include "game/data/registry.h"
 #include "game/data/resource.h"
+#include "game/map/folder.h"
 #include "game/app/settings.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -125,9 +126,11 @@ ResConfig ReadResConfig() {
 }
 
 // The mod's Maps\ as addon lists it at start (1001B092): files of the top folder by name, files of
-// subfolders as "<sub>\<name>"; whether the top folder has a ".mq" file (case-sensitive).
+// subfolders as "<sub>\<name>"; the top folder's folders (each stands for the archives of its name, docs/notes/mods.md
+// "Loose files"); whether the top folder has a quest file (map/folder.h, IsQuestFile).
 struct MapsListing {
     std::vector<std::string> names;
+    std::vector<std::string> folders;
     bool hasQuestList = false;
 };
 
@@ -173,7 +176,7 @@ ResTables& Tables() {
 }
 
 // The mod's archives that come before `res` (none when the mod does not override it).
-std::span<MappedResource* const> ModArchivesOf(const MappedResource* res) {
+std::span<MappedResource* const> ArchivesBefore(const MappedResource* res) {
     ResTables& tables = Tables();
     auto overridden = tables.overridden.find(res);
     if (overridden == tables.overridden.end()) return {};
@@ -182,30 +185,28 @@ std::span<MappedResource* const> ModArchivesOf(const MappedResource* res) {
     return mods->second;
 }
 
-// One lookup of 1002005E: the mod's archives for `res`, then `res` itself unless ignored.
-void* FindFile(MappedResource* res, std::string_view name, std::uint32_t* size) {
-    for (MappedResource* mod : ModArchivesOf(res))
-        if (void* data = mod->GetFilePlain(name, size)) return data;
-    if (Tables().ignored.count(res) != 0) return nullptr;
-    return res->GetFilePlain(name, size);
-}
-
 
 void ListMaps(const std::string& mod, const std::string& sub, MapsListing& list) {
     const std::string pattern = mod + "\\Maps" + sub + "\\*.*";
     for (const platform::FolderEntry& found : platform::FolderEntries(pattern)) {
         const std::string& name = found.name;
+        if (found.IsDots()) continue;
+        if (sub.empty() && !list.hasQuestList && IsQuestFile(found)) list.hasQuestList = true;
         if (found.folder) {
-            if (name != "." && name != "..") ListMaps(mod, sub + "\\" + name, list);
+            if (sub.empty()) list.folders.push_back(name);
+            ListMaps(mod, sub + "\\" + name, list);
             continue;
         }
-        if (!sub.empty()) {
-            list.names.push_back(sub.substr(1) + "\\" + name);
-            continue;
-        }
-        if (!list.hasQuestList && name.ends_with(".mq")) list.hasQuestList = true;
-        list.names.push_back(found.name);
+        list.names.push_back(sub.empty() ? name : sub.substr(1) + "\\" + name);
     }
+}
+
+// Whether `listed` names `name` (_stricmp).
+bool Listed(const std::vector<std::string>& listed, std::string_view name) {
+    for (const std::string& each : listed)
+        if (each.size() == name.size() && text::CompareIgnoringCase(each.data(), name.data(), name.size()) == 0)
+            return true;
+    return false;
 }
 
 const MapsListing& Maps() {
@@ -281,30 +282,23 @@ void OnDestroyResource(const MappedResource* res) {
     tables.ignored.erase(res);
 }
 
-void* GetFile(MappedResource* res, std::string_view name, std::uint32_t* size) {
+// A copy: the archives are read without the lock (a switch of mods deletes them only between the game's stop and start).
+std::vector<MappedResource*> ModArchivesOf(const MappedResource* res) {
+    if (!Active()) return {};
     Lock lock;
-    void* data = FindFile(res, name, size);
-    // 1002012F: a "t\" or "s\" name not found is looked up once more without the prefix.
-    if (!data && name.size() >= 2 && (name[0] == 't' || name[0] == 's') && name[1] == '\\') data = FindFile(res, name.substr(2), size);
-    return data;
+    const std::span<MappedResource* const> archives = ArchivesBefore(res);
+    return {archives.begin(), archives.end()};
 }
 
-void ListFiles(const MappedResource* res, std::vector<std::string>* out, const char* pattern) {
+bool Ignores(const MappedResource* res) {
+    if (!Active()) return false;
     Lock lock;
-    // 100201FD: each archive's listing is appended to `out`.
-    for (const MappedResource* mod : ModArchivesOf(res)) {
-        const std::vector<std::string> names = mod->ListFilesPlain(pattern);
-        out->insert(out->end(), names.begin(), names.end());
-    }
-    if (Tables().ignored.count(res) == 0) {
-        const std::vector<std::string> names = res->ListFilesPlain(pattern);
-        out->insert(out->end(), names.begin(), names.end());
-    }
+    return Tables().ignored.contains(res);
 }
 
 MappedResource* ArchiveHolding(const MappedResource* res, void* data) {
     Lock lock;
-    for (MappedResource* mod : ModArchivesOf(res))
+    for (MappedResource* mod : ArchivesBefore(res))
         if (mod->filesByData.contains(data)) return mod;
     return nullptr;
 }
@@ -329,14 +323,8 @@ void SelectMaps(std::string_view name, MapsSite site) {
         g_mapsInMod = maps.hasQuestList;
         return;
     }
-    // 1001B2AC: _stricmp against every name.
-    g_mapsInMod = false;
-    for (const std::string& listed : maps.names) {
-        if (listed.size() == name.size() && text::CompareIgnoringCase(listed.data(), name.data(), name.size()) == 0) {
-            g_mapsInMod = true;
-            return;
-        }
-    }
+    // 1001B2AC: _stricmp against every name; an archive's name also against the folders.
+    g_mapsInMod = Listed(maps.names, name) || Listed(maps.folders, LooseFolderOf(name));
 }
 
 const std::string& MapsRoot(const std::string& dataFolder) { return g_mapsInMod ? ModPath() : dataFolder; }

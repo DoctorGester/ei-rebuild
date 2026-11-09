@@ -2,6 +2,7 @@
 // back, LoadSavedMapObjects restores the map objects SaveMapObjects wrote, and UpdatePlayerTimes
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "game/ai/ai_map.h"
+#include "game/data/resource.h"
 #include "game/core/base_manager.h"
 #include "game/app/movies.h"
 #include "game/combat/combat.h"
@@ -134,13 +135,13 @@ void SavePlayers(WorldServer* world, ByteStream* stream) {
 constexpr const char* kCantLoadGraph = "CWorldServer::LoadMap.\n Can't load AIGraph.\n";
 constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\n";
 
-// Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
-// first: `site`).
+// Whether the file `name` (an archive also as its folder) is neither there as named nor in the maps folder (Rebirth's
+// Maps names it first: `site`).
 bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
     const std::string file(name);
-    if (platform::PathExists(file)) return false;
+    if (ResourceExists(file)) return false;
     modfolders::SelectMaps(name, site);
-    return !platform::PathExists(MapsFolder() + file);
+    return !ResourceExists(MapsFolder() + file);
 }
 
 } // namespace

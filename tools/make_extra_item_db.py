@@ -1,11 +1,13 @@
 r"""Writes a network item database with one item more into a run's overlay (a '# prepare:' tool; C154c).
 
 usage: python tools/make_extra_item_db.py <saves dir> [--source <databaselmp.res>]
-  <saves dir>  the run's harness_saves folder: the harness's copy-on-write overlay reads <saves dir>\Res\databaselmp.res
-               in place of the install's (tests/verify/harness.cpp, ShadowOf), so this game alone has the extra item
-  --source     default the vanilla install's Res\databaselmp.res (EI_GAME_VANILLA; read only; Rebirth's is the same file)
+  <saves dir>  the run's harness_saves folder: the tool writes <saves dir>\Res\databaselmp\items.idb, the overlay's
+               folder of loose files over the install's databaselmp.res (docs/notes/mods.md, "Loose files"), so this
+               game alone has the extra item
+  --source     default the vanilla install's Res\databaselmp.res (EI_GAME_VANILLA; read only; Rebirth's is the same file),
+               or on an unpacked install its folder
 
-The archive is the source's with its items.idb grown by one quest item, EXTRA_ITEM: a copy of the quest table's last
+The file is the source's items.idb grown by one quest item, EXTRA_ITEM: a copy of the quest table's last
 record (goldnuggets) under that name, so its index (the table's old count) is one the other game's database lacks. A
 network game loads databaseLMP.res (GameFlow::UseResources). net_pair_database's host gives it to the peer, whose
 client refuses the server's item (HasEveryRecord) and leaves the server.
@@ -17,7 +19,7 @@ table, 1 materials .. 6 loot, each record a child 1 of fields) and 2. A chunk is
 import argparse, os, struct, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import exe_path, make_test_mod, stub_data
+import exe_path, stub_data
 
 EXTRA_ITEM = 'c154cnuggets'
 QUEST_TABLE = 5
@@ -81,15 +83,20 @@ def main():
     parser.add_argument('--source')
     args = parser.parse_args()
     source = args.source or exe_path.install_file('vanilla', 'Res', 'databaselmp.res')
-    buf = bytearray(open(source, 'rb').read())
-    files = {name: bytes(buf[start:start + size]) for name, start, size in stub_data.res_entries(buf, 0, len(buf))}
-    key = next(name for name in files if name.lower() == 'items.idb')
-    files[key] = with_extra_item(files[key])
-    folder = os.path.join(args.saves, 'Res')
+    if os.path.exists(source):
+        buf = bytearray(open(source, 'rb').read())
+        files = {name: bytes(buf[start:start + size]) for name, start, size in stub_data.res_entries(buf, 0, len(buf))}
+        idb = next(files[name] for name in files if name.lower() == 'items.idb')
+    else:
+        # An unpacked install (tools/unpack_install.py): the archive's folder.
+        folder = os.path.splitext(source)[0]
+        idb = open(os.path.join(folder, next(n for n in os.listdir(folder) if n.lower() == 'items.idb')), 'rb').read()
+    idb = with_extra_item(bytes(idb))
+    folder = os.path.join(args.saves, 'Res', 'databaselmp')
     os.makedirs(folder, exist_ok=True)
-    out = os.path.join(folder, 'databaselmp.res')
-    open(out, 'wb').write(make_test_mod.archive(files))
-    print(f'{out}: items.idb {len(files[key])} bytes, quest item {EXTRA_ITEM} added')
+    out = os.path.join(folder, 'items.idb')
+    open(out, 'wb').write(idb)
+    print(f'{out}: {len(idb)} bytes, quest item {EXTRA_ITEM} added')
 
 
 if __name__ == '__main__':
