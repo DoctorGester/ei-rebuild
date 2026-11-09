@@ -69,7 +69,7 @@ void UpdateRain(WorldServer* world) {
     if (--world->weatherDelay > 0) return;
     if (world->weather == 0) {
         if (g_random.Next() % 101 != 0) return;
-        world->weatherDelay = 10;
+        world->weatherDelay = kWeatherChangeDelay;
         if (world->climate == 1) {
             world->weather = 1;
             world->weatherStrength = kRainLight;
@@ -79,7 +79,7 @@ void UpdateRain(WorldServer* world) {
         }
     } else {
         if (g_random.Next() % 31 != 0) return;
-        world->weatherDelay = 10;
+        world->weatherDelay = kWeatherChangeDelay;
         int previous = world->climate;
         world->weather = 0;
         if (previous == 1) world->weatherStrength = kRainLight;

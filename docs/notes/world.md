@@ -96,7 +96,9 @@ map and its lights without them (R61; scenario `render_menu_return`). The menu's
   original rolled in every UpdateWeather, so SetTime and SetTimeSpeed rolled too (differs on purpose, user
   2026-11-08): a load ran three checks before its first frame (LoadSave's SetTimeSpeed and SetTime, StartZone's
   SetTime from "gtime") and a save in rain came back clear about 1 load in 11; a script's FixWorldTime or SetTime
-  threw the dice early. A slot keeps the delay in visuals.sav (renderer.md, "What a save keeps of the picture",
+  threw the dice early. A script's `SetWeather` sets the delay as a roll's change does (kWeatherChangeDelay, 10
+  checks, about half a minute), so the asked weather holds that long before a roll may end it (differs on purpose:
+  the original's scripted rain could stop at the next check). A slot keeps the delay in visuals.sav (renderer.md, "What a save keeps of the picture",
   WeatherDelay; a save without it starts at 0); a revisit keeps the session's. So a load opens in the saved weather,
   and the next roll comes when the saved game's would have (its outcome is `g_random`'s).
 - Zone start: `AIEventTable::Setup` sizes the grid 1 - ftol(size x -0.125) each way, zeroes the cells and copies

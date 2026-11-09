@@ -304,7 +304,8 @@ bool PauseGame(Call* call) {
 }
 
 // SetWeather("rain" | "clear" | "snow"): kind 1 / 0 / 2 with strength 20 / 20 / 40; anything
-// else is clear at 20.
+// else is clear at 20. The weather's delay is set as after a roll's change, so the asked weather holds for 10 checks
+// before a roll may end it (differs from the original on purpose: docs/notes/world.md, "The weather's rolls").
 bool SetWeather(Call* call) {
     std::string name = ScriptArgs(call->cmd).Text();
     int kind = 0;
@@ -316,6 +317,7 @@ bool SetWeather(Call* call) {
         strength = 40.0f;
     }
     g_serverWorld.SetWeather(kind, strength);
+    g_serverWorld.weatherDelay = kWeatherChangeDelay;
     return true;
 }
 

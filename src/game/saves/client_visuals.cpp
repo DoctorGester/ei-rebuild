@@ -31,8 +31,6 @@ constexpr std::uint32_t kPrintsVersion = 1;
 constexpr std::uint32_t kGeneratorVersion = 1;
 constexpr std::uint32_t kZoneVersion = 1;
 constexpr std::uint32_t kWeatherDelayVersion = 1;
-// The weather's delay is at most this (UpdateWeather sets 10 after a change and counts down).
-constexpr std::int32_t kMaxWeatherDelay = 10;
 // A section's head: its kind, its version and its size, a u32 each.
 constexpr std::uint32_t kSectionHead = 12;
 // A kept unit in the Units section: its id, wetness and snow.
@@ -266,7 +264,7 @@ void ClientVisuals::Load(ByteStream* stream) {
         case VisualSection::WeatherDelay:
             if (version == kWeatherDelayVersion && size == sizeof(std::int32_t)) {
                 const auto delay = body.ReadAs<std::int32_t>();
-                if (delay <= kMaxWeatherDelay) weatherDelay = delay;
+                if (delay <= kWeatherChangeDelay) weatherDelay = delay;
             }
             break;
         default:

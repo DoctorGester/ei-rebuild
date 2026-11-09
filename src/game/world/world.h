@@ -34,6 +34,8 @@
 #include <vector>
 
 inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
+// The weather checks after a change (a roll's or a script's SetWeather) before rain may start or stop again.
+inline constexpr int kWeatherChangeDelay = 10;
 
 
 class IsaacRandom;
