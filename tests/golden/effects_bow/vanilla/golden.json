@@ -1,23 +1,17 @@
 {
   "scenario": "effects_bow",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 2 of 20 records differ, first at record 3 (world update 80, tick 77, frame 15, zone gz1g); outcomes the same; no unit position differs",
-    "  first difference at record 3 (world update 80, tick 77, frame 15, zone gz1g): 1 fields",
-    "    cunit1100011214 (80 unhuma \"\") #unit: 61476188 in the old golden, D7D6F399 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 11 differ",
-    "    #unit: 1 client unit, 2 records, from 3; hash only (no numbers kept)",
-    "save savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
-    "  visuals: 6 fields in 1 records; first visuals.generator count: 42 in the old golden, 129 in the new run; largest numeric d 3.2e+09 at visuals.generator aa: 1039046920 -> 4236839942"
+    "save savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
+    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, 0 in the new run"
   ]
 }

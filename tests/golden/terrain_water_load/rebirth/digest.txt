@@ -7600,13 +7600,13 @@ cunit1804 #place DF969219
 cunit1016340677 #place B013EE2A
 cunit1016340677 #unit F388C176
 cunit1016340677 #vitals 8FC93AF9
-@ 6 update 140 frame 27 tick 81 zone gz1g hash 916FD7CC n 832
+@ 6 update 140 frame 27 tick 81 zone gz1g hash 0D444BD6 n 832
 world tick 81
 world updates 142
 world secondsPerTick 0.00111111137
 world objects 815
 world mapObjects 56
-random isaac.count 101
+random isaac.count 110
 random crt.rand 0xB76CC749
 player0 objects 8
 obj663 #unit 28A0C952
@@ -7653,7 +7653,7 @@ obj1932 #unit 34C7258B
 obj1933 #unit 6CCAA9B7
 obj1934 #unit 815512D7
 obj1935 #unit 6CCAA9B7
-obj1936 #ai 45CE34F2
+obj1936 #ai 98D60270
 obj1936 #unit 652B09CB
 obj1936 #vitals 22982FE4
 obj1937 #ai CB5BF936

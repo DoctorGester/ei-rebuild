@@ -1,28 +1,17 @@
 {
   "scenario": "mod_lost_in_astral_gipat",
   "install": "rebirth",
-  "recorded": "2026-11-06",
-  "commit": "dc71172b5",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37f13: an object's parts are drawn whole after its one view test, so the client units' Static and Shown flags come from that verdict and the client picture's unit weather lists the units drawn whole (visuals.sav); no server record differs",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "86 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 6 of 39 records differ, first at record 29 (world update 600, tick 600, frame 119, zone bz8g); outcomes the same; no unit position differs",
-    "  first difference at record 29 (world update 600, tick 600, frame 119, zone bz8g): 2 fields",
-    "    cunit1000000455 (80 unmoli \"\") #unit: D5A3B2EB in the old golden, D2AA1A37 in the new run",
-    "    cunit1000012327 (80 unorma \"\") #unit: 92DB3832 in the old golden, 95D290EE in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 14 of 267 differ",
-    "    #unit: 14 client units, 6 records, from 29; hash only (no numbers kept)",
-    "save LostInAstral/current/bz11g.visuals.sav: 7 fields in 1 records differ: visuals 7",
-    "  visuals: 7 fields in 1 records; first visuals.units count: 16 in the old golden, 17 in the new run; largest numeric d 9.98e+08 at visuals.units unit13.id: 1000011482 -> 1636687",
-    "save LostInAstral/savea/bz11g.visuals.sav: 7 fields in 1 records differ: visuals 7",
-    "  visuals: 7 fields in 1 records; first visuals.units count: 16 in the old golden, 17 in the new run; largest numeric d 9.98e+08 at visuals.units unit13.id: 1000011482 -> 1636687",
-    "save LostInAstral/savea/visuals.sav: 5 fields in 1 records differ: visuals 5",
-    "... 1 more lines"
+    "save LostInAstral/savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
+    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, -5 in the new run"
   ]
 }

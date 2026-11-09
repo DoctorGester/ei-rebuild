@@ -359,7 +359,9 @@ int GameFlow::SaveGame(const std::string& slot) {
     g_camera.Save(&scenario);
     SaveFileWrite(&file, kMagicScenario, &scenario);
     file.Close();
-    ClientVisuals::Take(g_clientWorld).Write(slotFolder + kVisualsFile);
+    ClientVisuals kept = ClientVisuals::Take(g_clientWorld);
+    kept.weatherDelay = g_serverWorld.weatherDelay;
+    kept.Write(slotFolder + kVisualsFile);
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
     int kind = g_mapDatabase.FindMap(records.zone)->kind;
@@ -1077,7 +1079,9 @@ int GameFlow::LoadGame(const std::string& slot) {
     g_partyManager.records.BeginRedeploy(&records);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh; the client's picture comes back
-    // from visuals.sav, put in the zone's side file's place, when the zone's landscape is loaded.
+    // from visuals.sav, put in the zone's side file's place, when the zone's landscape is loaded. The weather's delay
+    // comes back first (0 without one), before the load's own weather checks (LoadSave's SetTime).
+    g_serverWorld.weatherDelay = ClientVisuals::Read(slotFolder + kVisualsFile).weatherDelay.value_or(0);
     const std::string zoneVisuals = ZoneVisualsPath(records.zone);
     if (!platform::CopyFileOver(slotFolder + kVisualsFile, zoneVisuals)) platform::RemoveFile(zoneVisuals);
     MapRecord* zoneRecord = g_mapDatabase.FindMap(records.zone);

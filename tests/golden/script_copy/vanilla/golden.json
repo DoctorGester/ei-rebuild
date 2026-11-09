@@ -1,17 +1,28 @@
 {
   "scenario": "script_copy",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
-    "  visuals: 6 fields in 1 records; first visuals.generator count: 42 in the old golden, 129 in the new run; largest numeric d 3.2e+09 at visuals.generator aa: 1039046920 -> 4236839942"
+    "digest: 2 of 5 records differ, first at record 3 (world update 80, tick 35, frame 15, zone gz1g); outcomes the same; max unit move 3.78 (obj1937, record 4)",
+    "  first difference at record 3 (world update 80, tick 35, frame 15, zone gz1g): 6 fields",
+    "    random (random) isaac.count: 250 in the old golden, 243 in the new run (d 7)",
+    "    obj1937 (80 unmoto \"\") pos.x: 109.985344 in the old golden, 110.589165 in the new run (d 0.604)",
+    "    obj1937 (80 unmoto \"\") pos.y: 138.034714 in the old golden, 138.683716 in the new run (d 0.649)",
+    "    ... 3 more",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 2 records, from 3; max |d| 15 at random isaac.count, record 4: 136 -> 121",
+    "  units: 1 of 52 differ",
+    "    pos: 1 unit, 2 records, from 3; moved 3.78 at obj1937 80 unmoto \"\", record 4",
+    "    #ai: 1 unit, 2 records, from 3; hash only (no numbers kept)",
+    "... 11 more lines"
   ]
 }

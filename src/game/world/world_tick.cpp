@@ -23,7 +23,10 @@
 
 void WorldServer::Tick(char force) {
     ++tick;
-    if ((tick & 0x3F) == 3) UpdateWeather();
+    if ((tick & 0x3F) == 3) {
+        RollWeather();
+        UpdateWeather();
+    }
 
     // Timed objects: each one's Update runs it; those that return 0 are released now and taken out of the map after
     // the walk (the walk reads the node again after the release).

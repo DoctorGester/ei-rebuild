@@ -30,6 +30,7 @@ constexpr std::uint32_t kUnitsVersion = 1;
 constexpr std::uint32_t kPrintsVersion = 1;
 constexpr std::uint32_t kGeneratorVersion = 1;
 constexpr std::uint32_t kZoneVersion = 1;
+constexpr std::uint32_t kWeatherDelayVersion = 1;
 // A section's head: its kind, its version and its size, a u32 each.
 constexpr std::uint32_t kSectionHead = 12;
 // A kept unit in the Units section: its id, wetness and snow.
@@ -260,6 +261,12 @@ void ClientVisuals::Load(ByteStream* stream) {
         case VisualSection::Zone:
             if (version == kZoneVersion) zone = LoadZone(body);
             break;
+        case VisualSection::WeatherDelay:
+            if (version == kWeatherDelayVersion && size == sizeof(std::int32_t)) {
+                const auto delay = body.ReadAs<std::int32_t>();
+                if (delay <= kWeatherChangeDelay) weatherDelay = delay;
+            }
+            break;
         default:
             break;
         }
@@ -294,6 +301,11 @@ void ClientVisuals::Save(ByteStream* stream) const {
         body.WriteString(zone->map);
         WriteSection(stream, VisualSection::Zone, kZoneVersion, body);
     }
+    if (weatherDelay) {
+        body.Resize(0);
+        body.WriteValue(*weatherDelay);
+        WriteSection(stream, VisualSection::WeatherDelay, kWeatherDelayVersion, body);
+    }
     stream->WriteValue(static_cast<std::uint32_t>(VisualSection::End));
     stream->WriteValue(std::uint32_t{0});
     stream->WriteValue(std::uint32_t{0});
@@ -321,6 +333,7 @@ void ClientVisuals::Restore(WorldClient& world) {
     prints.clear();
     generator.reset();
     zone.reset();
+    weatherDelay.reset();
 }
 
 void ClientVisuals::RestorePrints(WorldClient& world, int away) const {

@@ -7784,14 +7784,14 @@ aievents tick 120
 client tick 120
 client ticksRun 92
 cunit1804 #place 5D944E41
-@ 6 update 140 frame 27 tick 50 zone gz1g hash 6B0C2E97 n 834
+@ 6 update 140 frame 27 tick 50 zone gz1g hash 730FA907 n 834
 world tick 50
 world updates 142
 world secondsPerTick 0.00111111137
 world objects 816
 world mapObjects 57
 world updateMap 17
-random isaac.count 103
+random isaac.count 112
 random crt.rand 0x0BAC8456
 player0 lastTick 30
 player0 objects 9
@@ -7887,7 +7887,7 @@ obj1042829057 pos.y 138.25
 obj1042829057 pos.z 0.0
 obj1042829057 #ai 75861CC1
 obj1042829057 #place E26D5C4F
-obj1042829057 #unit 4103847F
+obj1042829057 #unit A2DF4101
 obj1042829057 #vitals 213B448F
 timed1288822 # 691232ED
 timed1288862 # 14B19F85
@@ -7912,5 +7912,5 @@ cunit1000011214 #place 7A4617D4
 - cunit1042829056
 + cunit1042829057 80 unanwiwo "ZoneWolf9"
 cunit1042829057 #place 152C9921
-cunit1042829057 #unit 8CB8ABE3
+cunit1042829057 #unit FD32B1C9
 cunit1042829057 #vitals 8FC93AF9

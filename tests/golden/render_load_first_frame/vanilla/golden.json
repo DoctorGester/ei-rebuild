@@ -1,19 +1,28 @@
 {
   "scenario": "render_load_first_frame",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
-    "  visuals: 6 fields in 1 records; first visuals.generator count: 84 in the old golden, 251 in the new run; largest numeric d 2.44e+09 at visuals.generator bb: 3134440882 -> 697617601",
-    "save saveq/visuals.sav: 6 fields in 1 records differ: visuals 6",
-    "  visuals: 6 fields in 1 records; first visuals.generator count: 73 in the old golden, 132 in the new run; largest numeric d 3.42e+09 at visuals.generator bb: 3588179561 -> 165993858"
+    "digest: 20 of 26 records differ, first at record 6 (world update 140, tick 105, frame 55, zone gz1g); outcomes the same; max unit move 1.99 (obj1318, record 25)",
+    "  first difference at record 6 (world update 140, tick 105, frame 55, zone gz1g): 2 fields",
+    "    random (random) isaac.count: 169 in the old golden, 170 in the new run (d 1)",
+    "    obj1936 (80 unmoto \"\") #ai: 42E649E2 in the old golden, F1726421 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 20 records, from 6; max |d| 178 at random isaac.count, record 25: 249 -> 71",
+    "  units: 64 of 55 differ",
+    "    #ai: 10 units, 13 records, from 6; hash only (no numbers kept)",
+    "    pos: 7 units, 5 records, from 14; moved 1.99 at obj1318 80 unanwibo \"\", record 25",
+    "    #unit: 58 units, 9 records, from 14; hash only (no numbers kept)",
+    "  client units: 8 of 12 differ",
+    "... 12 more lines"
   ]
 }

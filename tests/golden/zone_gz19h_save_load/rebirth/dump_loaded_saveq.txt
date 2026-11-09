@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump loaded_saveq
 # compact (tools/golden.py): objects as hashes of their fields
-@ 7 update 140 frame 28 tick 120 zone gz19h hash F153E06D n 3362
+@ 7 update 140 frame 28 tick 120 zone gz19h hash FA5B75AE n 3360
 + world world
 world tick 120
 world updates 142
@@ -50,7 +50,7 @@ world sessionKind 1
 world objects 3347
 world mapObjects 374
 world sentObjects 2973
-world timedObjects 5
+world timedObjects 3
 world updateMap 47
 world projectiles 0
 world counted 0
@@ -121,7 +121,7 @@ world allied31 0x80000000
 world hostile31 0x00000000
 + random random
 random isaac.seeded 1
-random isaac.count 229
+random isaac.count 241
 random isaac.a 0x8B62A5E9
 random isaac.b 0x82A6A1D4
 random isaac.c 0x0000000B
@@ -24968,10 +24968,6 @@ timed997040 # CFB3B63B
 timed997041 # DBCEBE2D
 + timed997638 75 CEffectPointLight
 timed997638 # 51A27188
-+ timed5147051 101 CEffectTornado
-timed5147051 # 0509A7D9
-+ timed5147052 101 CEffectTornado
-timed5147052 # E17545B1
 + aievents events
 aievents tick 120
 aievents width 65

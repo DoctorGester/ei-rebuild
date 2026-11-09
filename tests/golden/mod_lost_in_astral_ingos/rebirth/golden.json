@@ -1,25 +1,17 @@
 {
   "scenario": "mod_lost_in_astral_ingos",
   "install": "rebirth",
-  "recorded": "2026-11-06",
-  "commit": "dc71172b5",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37f13: an object's parts are drawn whole after its one view test, so the client units' Static and Shown flags come from that verdict and the client picture's unit weather lists the units drawn whole (visuals.sav); no server record differs",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "38 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 5 of 19 records differ, first at record 2 (world update 60, tick 60, frame 11, zone bz23k); outcomes the same; no unit position differs",
-    "  first difference at record 2 (world update 60, tick 60, frame 11, zone bz23k): 3 fields",
-    "    cunit4161 (80 unmoun \"\") #unit: 6CC79A60 in the old golden, 6BCE32BC in the new run",
-    "    cunit1068873 (80 unmodr \"\") #unit: 0B921647 in the old golden, 0C9BBE9B in the new run",
-    "    cunit1000276495 (80 unmodr \"\") #unit: 72C88405 in the old golden, 75C12CD9 in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 16 of 136 differ",
-    "    #unit: 16 client units, 5 records, from 2; hash only (no numbers kept)",
-    "save LostInAstral/current/bz21k.visuals.sav: 16 fields in 1 records differ: visuals 16",
-    "  visuals: 16 fields in 1 records; first visuals.units count: 20 in the old golden, 22 in the new run; largest numeric d 9.56e+08 at visuals.units unit17.id: 1000057103 -> 44394642"
+    "save LostInAstral/savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
+    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, -2 in the new run"
   ]
 }

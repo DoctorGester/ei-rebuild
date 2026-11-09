@@ -34,6 +34,8 @@
 #include <vector>
 
 inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
+// The weather checks after a change (a roll's or a script's SetWeather) before rain may start or stop again.
+inline constexpr int kWeatherChangeDelay = 10;
 
 
 class IsaacRandom;
@@ -463,9 +465,12 @@ public:
     // The local player (id 0) loots every dead unit, which is then removed. Nothing without a local player.
     void LootDeadUnits();
 
-    // The weather, every 64 ticks: the day-time value; in single player rain starting / stopping,
-    // lightning strikes in storms (climate 3), bolts in the sky while it rains; the day factor; every
-    // object's weather virtual; the players' "gtime".
+    // The weather's rolls, every 64 ticks before UpdateWeather (Tick only): in a battle zone rain starting /
+    // stopping, lightning strikes in storms (climate 3), bolts in the sky while it rains. SetTime and SetTimeSpeed
+    // do not roll, so a load (LoadSave's and StartZone's) keeps the saved weather (docs/notes/world.md).
+    void RollWeather();
+    // The weather's effects, every 64 ticks and after the clock is set: the day-time value, the day factor, every
+    // object's weather virtual, the players' "gtime".
     void UpdateWeather();
 
     // For every player and the ten mercenary slots ("merc1".."merc10"), sets the briefing variables b.mercN.* from
@@ -540,6 +545,9 @@ public:
     int cave = 0;                         // the zone is a cave (its record's cave; sent with the zone)
     int weather = 0;                      // 0 clear, 1 rain, 2 snow (the script's SetWeather)
     float weatherStrength = 0.0f;         // sent with the weather
+    // UpdateWeather's checks left before rain may start or stop again (10 after a change, counting down below 0 while
+    // nothing changes). Not in mission.sav: a slot's visuals.sav keeps it (client_visuals.h, WeatherDelay).
+    int weatherDelay = /*007C2DFC*/ 0;
     std::vector<ZoneExit> exits;
     std::uint8_t loaded = 0;              // 0 while LoadSave runs
     MapObjectIdMap updateMap;

@@ -1,17 +1,28 @@
 {
   "scenario": "render_lighting",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
-    "  visuals: 6 fields in 1 records; first visuals.generator count: 42 in the old golden, 129 in the new run; largest numeric d 3.2e+09 at visuals.generator aa: 1039046920 -> 4236839942"
+    "console: differs from line 94: the old golden 'Unit 182595 acknowledges with idleSound = AAn4XyU', the new run 'Unit 848411 acknowledges with idleSound = AAn4XyU'",
+    "digest: 23 of 34 records differ, first at record 11 (world update 240, tick 240, frame 56, zone gz1g); outcomes the same; unit place differs (hash only: no numbers)",
+    "  first difference at record 11 (world update 240, tick 240, frame 56, zone gz1g): 2 fields",
+    "    random (random) isaac.count: 168 in the old golden, 183 in the new run (d 15)",
+    "    obj1936 (80 unmoto \"\") #ai: 1A412E33 in the old golden, C75918B1 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 23 records, from 11; max |d| 235 at random isaac.count, record 28: 4 -> 239",
+    "  units: 29 of 94 differ",
+    "    #ai: 12 units, 15 records, from 11; hash only (no numbers kept)",
+    "    #unit: 22 units, 12 records, from 15; hash only (no numbers kept)",
+    "    #place: 1 unit, 3 records, from 31; hash only (no numbers kept)",
+    "... 7 more lines"
   ]
 }

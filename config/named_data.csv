@@ -141,7 +141,7 @@ address,size,name,file
 007AFED4,4,g_appliedStamp,src/game/app/game_flow.cpp
 007AFED8,4,kFacingOffset,src/game/world/world_party.cpp
 007C2DE0,16,kNewUnitRotation,src/game/world/world.h
-007C2DFC,4,g_weatherDelay,src/game/world/world_weather.cpp
+007C2DFC,4,weatherDelay,src/game/world/world.h
 007C2F8C,4,g_dampScale,src/game/ai/ai_refresh.cpp
 007C4378,4,kOrderAngleLimit,src/game/ai/ai_path_state.cpp
 007C53F0,4,g_freeEvents,src/game/ai/ai_block_search.cpp
