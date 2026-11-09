@@ -1,0 +1,9 @@
+id = "MF7"
+title = "Animations as glTF: .anm's rotation and morph keys as glTF animations, named as the game names them"
+group = "mods"
+size = 2
+model = "opus"
+depends = ["MF6"]
+note = " Plan: the Claude Doc 'Evil Islands modding: loose files and common formats' (https://claude.ai/artifact/9VTQFTF9FwND5RLtdnVJVQ), user 2026-11-09. Original archives keep loading; a new format is a second loader that builds the same in-memory structure; the export tool (ei-convert) writes it from the game's own loaders; a round-trip unit check per format and the converted-install suite option keep every golden the same. Our exe only: no writers back to bespoke formats. New third_party code vendored unmodified at a pinned commit, and only after the user's OK to download."
+order = 1307
+status = "later"
