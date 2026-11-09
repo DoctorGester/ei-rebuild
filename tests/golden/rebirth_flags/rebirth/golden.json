@@ -2,16 +2,27 @@
   "scenario": "rebirth_flags",
   "install": "rebirth",
   "recorded": "2026-11-09",
-  "commit": "ad82ab94c",
+  "commit": "79f12b1eb",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
+  "reason": "A script's SetWeather now holds the weather for 10 checks, so scenarios that ask for rain or clear draw fewer rolls.",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
-    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, 0 in the new run"
+    "digest: 18 of 30 records differ, first at record 12 (world update 260, tick 260, frame 51, zone gz1g); outcomes the same; max unit move 11.7 (obj1937, record 29)",
+    "  first difference at record 12 (world update 260, tick 260, frame 51, zone gz1g): 2 fields",
+    "    random (random) isaac.count: 139 in the old golden, 148 in the new run (d 9)",
+    "    obj1936 (80 unmoto \"\") #ai: 935C1636 in the old golden, 4E4420B4 in the new run",
+    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 18 records, from 12; max |d| 230 at random isaac.count, record 16: 254 -> 24",
+    "  units: 49 of 54 differ",
+    "    #ai: 6 units, 18 records, from 12; hash only (no numbers kept)",
+    "    pos: 1 unit, 14 records, from 16; moved 11.7 at obj1937 80 unmoto \"\", record 19",
+    "    #unit: 49 units, 14 records, from 16; hash only (no numbers kept)",
+    "  world: 1 of 1 differ",
+    "... 4 more lines"
   ]
 }
