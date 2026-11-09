@@ -88,7 +88,7 @@ Rules (SDL_GPU's, or the generator's):
   slot -1 for none. The C++ fills a block just before it pushes it and never reads one back: what the CPU keeps
   (the scene's lights, a figure part's, the shadow map's offsets) lives in plain structs.
 - **Shared parts.** `rect_vs.hlsli` and `fullscreen.hlsli` are the two vertex stages most programs share. The
-  receivers' `shadow_receiver.hlsli`, `point_shadow.hlsli` and `scene_lighting.hlsli` take their slots from the
+  receivers' `shadow_receiver.hlsli`, `point_lights.hlsli` and `scene_lighting.hlsli` take their slots from the
   including program's `SHADOW_*_SLOT` / `POINT_*_SLOT` / `SCENE_BLOCK_SLOT`.
 - **The depth copy.** The programs that write the depth (`mesh`, `terrain`, `solid`, `into_multisampled`) also
   output it at `SV_Target1` (`depth_copy.hlsli`: the fragment's `SV_Position.z`). Only a
@@ -1154,9 +1154,20 @@ colours and ranges); what they light is done per pixel.
   original's.
 - **The figures.** The part draw (`figure_part_draw.cpp`) hands over `render::MeshLighting`: the model matrix (the world
   stack's top with the scene's camera taken off), the sun, the ambient colour (`AmbientColour`), the material's colours
-  times the objects' lighting coefficient, the draw's lights in reach, with the part's normals and corner words;
-  `mesh.hlsl`'s `figure_light` lights each pixel as 3DfpFPU's LightMesh lit each vertex (below). The colour arrays hold
-  white with the material's alpha (`Material::GpuLitColour`).
+  times the objects' lighting coefficient, with the part's normals and corner words; `mesh.hlsl`'s `figure_light`
+  lights each pixel as 3DfpFPU's LightMesh lit each vertex (below), the point lights in the landscape's space (the part's
+  matrix turns and moves only, so its distances are the model space's). The colour arrays hold white with the material's
+  alpha (`Material::GpuLitColour`). An interface figure (no landscape rows) takes no point light.
+- **The point lights' grid** (R68; `render_lighting.cpp`'s PreparePointLights, `shaders/point_lights.hlsli`). No cap on
+  the lights: every kept scene light goes into one storage buffer a frame (its place, 1 / range squared, colour,
+  specular flag and its point shadow's map), and the CPU bins the lights whose reach is in the camera's view
+  (`SphereInView`) into a grid of square cells over the landscape's x and y around their reach (8 units a cell, larger
+  past 128 cells a side), each cell listing the lights whose circle of reach touches it (a second buffer of words: two
+  per cell, its first light's word and count, then the lists). The grid's place is in `PointLightParams` (the block the
+  point shadows had). The ground, the water, the figure parts and the ground prints look up the pixel's cell and loop
+  over its lights. Keep it without a cap on the lights a frame or a part: a cap (the 16 nearest the camera, the 8
+  nearest a part) left lights dark in a crowded town at night (the captures page's R68 section). The figure parts take
+  the ground's lights, `Terrain::lights` (the lights shown); no CPU walk over the lights per object.
 - **Shadows in the light.** On the ground a shadow takes away the sun's part: lit = the smaller of the light with the sun
   hidden (the ambient plus the material's own) and the sunlit light x (1 - hidden x strength x the normal's turn towards
   the map's sun), so never lighter than half the sunlit light; the point lights' light is darkened alike (the towns'
@@ -1174,11 +1185,16 @@ colours and ranges); what they light is done per pixel.
   N.L alone. Lost: two intertwined units do not shadow each other. Static objects keep the face-normal rule.
 - **What stays on the CPU**: the blood prints' levels (saved), the sky's lighting (`SkyObject::Light`, small), the
   terrain's edge fade (also read by the figures' draws and the ground prints).
-- **Point-light shadows** (`render_point_shadows.cpp`, `shaders/point_shadow.hlsli`). Once a frame (PreparePointShadows,
-  from PrepareShadows, counted as the shadow map's) the kept scene lights (`SceneLighting`'s nearest 16) whose reach is in
-  the camera's view and that may cast (`ScenePointLight::shadows`) are taken strongest first (brightest channel x range), at
-  most `kMostPointShadows` (4); each one that some caster reaches gets a cube of six 512 x 512 D32 faces (perspective, 90
-  degrees, near 0.05, far its range) in one atlas (a light a row, a face a column). Casters: the sun map's (strength at
+- **Point-light shadows** (`render_point_shadows.cpp`, `shaders/point_lights.hlsli`). Once a frame (PreparePointShadows,
+  from PrepareShadows, counted as the shadow map's) the kept scene lights whose reach is in the camera's view and that may
+  cast (`ScenePointLight::shadows`) are weighed by their weight on the screen (the brightest channel x the share of the
+  screen their sphere of reach covers, `ScreenShare`); the `kMostPointShadows` (4) weightiest that some caster reaches
+  are wanted. Each gets a cube of six 512 x 512 D32 faces (perspective, 90 degrees, near 0.05, far its range) in one
+  atlas (a light a row, a face a column). A shadow fades (R68): a row's light (by its id) fades in while it is wanted
+  and out while it is not, keeping its row, over 250 ms of the frame clock (`kFadeMs`; the receivers take
+  `PointLightParams::shadows`' w of it); a wanted light without a row waits for a free one (a row is freed when its light
+  faded out, left the view, went out or shadows nothing) and fades in from nothing: picked anew each frame, the shadows
+  popped as the set changed. Casters: the sun map's (strength at
   least 0.5, cut out by alpha alike) whose bounding sphere reaches the light, drawn into each face its sphere touches. An
   object with a mesh sphere within `kHoldMargin` (0.5 units) of the light casts nothing for it (the campfire's spit, a
   lamp's post). An object's own light casts none: the light a party unit gets at night and a quest light are flagged
@@ -1186,11 +1202,12 @@ colours and ranges); what they light is done per pixel.
   what is lit on the GPU): the ground's point loop (looked up moved along the vertex normal; the ground casts none) and the
   figure parts (`MeshBatch::landscape`; a unit's meshes compare from the unit's nearest distance, `MeshBatch::pointFront`;
   other meshes only on faces turned to the light). Filter: 8 bilinear comparisons on a 1.5-texel Vogel disc turned per
-  pixel, a 1-texel depth bias, the caster pipeline's slope-scaled bias; a face's lookups stay inside it. Not done: the
-  ground and objects outside the view cast no point shadows; lights beyond the 16 kept cast none; the set of mapped lights
-  changes as the camera moves.
-  The faces are kept across frames: a light keeps its row while it stays where it is with the same range (`GiveRows`),
-  and a face is drawn again only when its light or the list of its casters changed. A caster is the same when its kept
+  pixel, a 1-texel depth bias, the caster pipeline's slope-scaled bias; a face's lookups stay inside it. A kept light
+  names its map in its record (`PointLight::shadow`; `PointShadowFrame::rowLights`). Not done: the ground and objects
+  outside the view cast no point shadows.
+  The faces are kept across frames: a light keeps its row while it is mapped (`MapLights`), and a face is drawn again
+  only when its row's light moved, changed its range or another took the row, or the list of its casters changed
+  (`PlaceRow`). A caster is the same when its kept
   mesh and `CachedMeshVersion`, index range, texture, sampler, cut-out and texture offset are, and its model matrix is
   the same (the game's own matrix, not one taken back out from under the camera: R37f13). Only the faces drawn are cleared;
   units' idle animations redraw the faces holding them every frame. PreparePointShadows keeps its working lists across
@@ -1251,10 +1268,9 @@ passes) and the ground prints sample it (`shaders/shadow_receiver.hlsli`) and da
   7 to 17), a print looks as in the game; at night it is as dark against its ground as by day, at dawn it takes the
   ground's tint, under a lamp at night the lamp's light. Its light (`GroundDecalLight`, in the mesh
   shader's `PartLight`, its record's `groundPrint` 1): the scene's sun,
-  ambient and the 8 point lights nearest its box that reach it, with their point shadows, and the map's light
+  ambient and the point lights of its pixel's cell (the grid, item 9), with their point shadows, and the map's light
   (`mapSun`); its positions are the landscape's (identity landscape rows), its map lookup lifted along the
-  landscape's up (no vertex normals). The specular lights (spell, missile and quest lights: `pointSpecular`, from the
-  scene's `pointSpecular`) count in the shade as on the ground (lit = max(other, spec)) and their light is added
+  landscape's up (no vertex normals). The specular lights (spell, missile and quest lights: `PointLight::colour`'s w) count in the shade as on the ground (lit = max(other, spec)) and their light is added
   again after the print's colour (rgb x shade + spec, at most 1), as the ground adds it after its texture (R52c:
   before, a print under such a light was darker than its ground by that light times its alpha). No weather on prints. The selection marker stays unshaded (the old game drew it
   after the shadows; it is a mark of the interface). Check: render_shadows_decals (shadowcheck: every print samples
@@ -1771,12 +1787,10 @@ The lights an object carries move with what is drawn, not with their tick place 
   script's MovePointLight, a torch's) is drawn as an object moved in ticks: its own place less the part of its last tick's
   step not reached (`Light::drawnStep`, the first look after a tick takes the step; one tick between looks, at most the
   cut). None at the harness's default pass.
-- **Readers:** the GPU's point lights (`HandOverSceneLights`, the ground's and the point shadows') and the figure parts'
-  lights (`PartLighting`), which must agree to the bit: a mesh's light finds its point shadow by the scene light's place
-  (`SceneLightIndex`). So the scene's hand-over runs in DrawPass after the objects' placement (CollectVisible) and before
-  any mesh draw; the ground's draws read it when the frame is drawn. The game's own readers keep the game's place: which
-  lights reach an object (`InReach`, and with it the Static flag the digests read), the shadow sphere's light direction
-  (`FitShadowSphere`), the blood prints' grey, the map's light marks.
+- **Readers:** the GPU's point lights (`HandOverSceneLights`: the ground's, the figure parts' and the point shadows'), so
+  the scene's hand-over runs in DrawPass after the objects' placement (CollectVisible); the draws read it when the frame
+  is drawn. The game's own readers keep the game's place: the shadow sphere's light direction (`FitShadowSphere`), the
+  blood prints' grey, the map's light marks.
 - Check: `render_drawn_lights` (vanilla, 8 ms frames, zone1 at night): the hero walks with its light traced
   (`objtrace start leader light`: drawn without a jump, own with one at each tick, and the light's largest drawn step at
   most 1.1 of the unit's: 0.036 both; the game's place stepped 0.217 a tick), then a fireball's light and its blast's
@@ -2199,9 +2213,9 @@ occlusion from the height field is render_terrain.cpp's. The water's reflected r
 
 ### render_point_shadows.cpp: point-light shadows
 
-Section 13, item 9: the few strongest point lights in view get a cube of six depth faces each, drawn from the sun map's
-casters, and the receivers lit on the GPU take each such light away where it is hidden: the ground (scene_lighting.hlsli's
-point loop) and the figure parts (mesh.hlsl's figure_light). The faces are drawn in one pass: their clears first (the
+Section 13, item 9: the few point lights in view with the most weight on the screen get a cube of six depth faces each
+(fading in and out), drawn from the sun map's casters, and the receivers lit on the GPU take each such light away where
+it is hidden: the ground (scene_lighting.hlsli's point loop) and the figure parts (mesh.hlsl's figure_light). The faces are drawn in one pass: their clears first (the
 faces do not overlap), then each face's casters through `CasterDraws` (render_shadows.cpp), grouped within the face.
 
 ### render_shadows.cpp: object shadows through a sun shadow map
@@ -2443,9 +2457,11 @@ the harness build never draws it.
 
 ### shaders/mesh.hlsl: figure_light
 
-A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), at the model-space point `p` with the
-normal `n`: per channel the largest of the ambient colour, the sun's lit colour times the cosine to it and each light's
-lit colour times its cosine and falloff, plus the emissive colour, at most 1; the ambient colour times `occlusion`
+A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting), with the model-space normal `n`: per
+channel the largest of the ambient colour, the sun's lit colour times the cosine to it and each point light's colour
+times `pointTint` (the material's diffuse colour times the coefficient), its cosine and falloff, plus the emissive
+colour, at most 1. The point lights are those of the cell of `land` (the point in the landscape's space; the normal is
+taken there by the part's landscape rows), in the world only; the ambient colour times `occlusion`
 (section 13, item 11a; 1 outside the world). The crown: pulled towards its average colour,
 taken as the average over every direction a normal can face (the mean of max(ambient, sun x cosine) for a cosine spread
 evenly over -1 .. 1; 0.6 of the way). The shadow map darkens it after (mesh_fs). A light with a point shadow adds only what
@@ -2459,8 +2475,8 @@ A ground print's light, per channel (section 13, item 10, "Ground prints"): the 
 the normal `n` as ground_light works it on dry ground (`m` and `mp` 0, `loss` 0, `occlusion` 1), once with `hidden`
 and the point shadows and once without, the first over the larger of the second and the same ground's light in the
 daylight colours (`daySunColour`, `dayAmbient`; the sun's direction of now), at most 1 (1 where that is black). The
-lights are the draw's `PartLight` (GroundDecalLight): the scene's in the landscape's space. The specular ones (`pointSpecular`)
-also go apart into `spec` (the largest per channel, darkened by the map's shade), which the print adds after its colour
+sun and ambient light are the draw's `PartLight` (GroundDecalLight), the point lights those of the pixel's cell
+(point_lights.hlsli), both in the landscape's space. The specular ones (`PointLight::colour`'s w) also go apart into `spec` (the largest per channel, darkened by the map's shade), which the print adds after its colour
 as the ground adds it after its texture; the reference (`full`) takes every light without the shadows.
 
 ### shaders/scene_lighting.hlsli: ground_light
@@ -2473,7 +2489,7 @@ above it), `hidden` how much of the sun the shadow map hides at the point, `stre
 ambient colour is multiplied by it, 1 on the water). In the sun max(material + facing x sun, ambient), in the shade
 ambient + material, as the game lit them; but a shadow is never lighter than the sunlit light times 1 - strength (where the ambient light is nearly
 the sun's, as in the towns, the game's shade alone hardly shows), on faces turned to the map's light (a face turned away
-keeps its light). The point lights (each material + its light, at most 1 per channel, by its falloff and facing, dimmed
+keeps its light). The point lights (those of `p`'s cell, point_lights.hlsli; each material + its light, at most 1 per channel, by its falloff and facing, dimmed
 under the water by the light's vertical part) take the largest per channel, darkened by the same shade, the specular ones
 apart (`spec`, added after the texture as the specular word was). A light with a point shadow adds only what reaches the
 point; the ground casts none, so the point is looked up moved along its own normal.

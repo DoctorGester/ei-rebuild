@@ -387,3 +387,11 @@ still this time (the untouched CollectCells 0.48 -> 0.32, the interface 0.09 -> 
 The sampled 2400-frame run: 3.01 -> 2.90 ms; the outside walk 1.65% -> 1.93% of the thread (0.05 -> 0.056 ms: the
 parts' MeshDraw and KeepMesh's checks), the sun map 6.7% -> 6.8%, PrepareShadows 5.7% -> 5.9%. No change beyond the
 noise: the gain is the deleted path. The sun map's draws and calls are unchanged (1992 in 41).
+
+## Measured after R68
+
+The town at night (R37f5's town scenarios, quiet runs, harness build, msaa 1, anisotropy 1) with point lights through the
+map light grid. GPU (`gputiming pass`, two runs): the world's pass 1.26 -> 1.23-1.24 ms, with the crowd 1.29 -> 1.28-1.29;
+the point shadows 0.06 -> 0.054 (crowd 0.084 -> 0.075); the frame's median 2.41 -> 2.39-2.41 (crowd 2.64 -> 2.42-2.45).
+Main thread 0.85 -> 0.98-1.33 ms (crowd 1.69 -> 1.87-2.23), but every untouched part grew by the same third (the sun
+map's CPU side 0.24 -> 0.27-0.35, the textures 0.014 -> 0.021): the machine, not the change; no baseline was run.

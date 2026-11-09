@@ -1,6 +1,7 @@
 // Point-light shadows: a cube of six depth faces for each of the few strongest point lights in view. See
 // docs/notes/renderer.md, "The renderer's source files".
 #include "../platform/log.h"
+#include "../platform/platform.h"
 #include "render.h"
 #include "render_internal.h"
 
@@ -21,6 +22,9 @@ constexpr float kLeastColour = 0.02f;
 // An object holds a light (and casts nothing for it) when the light lies within this far of one of its
 // meshes' spheres: a lamp's post, the campfire's spit.
 constexpr float kHoldMargin = 0.5f;
+// A shadow fades in or out over this long (the frame clock's ms); the clock at the last frame's.
+constexpr float kFadeMs = 250.0f;
+static std::uint32_t g_fadeClock = 0;
 
 // The cube's faces: the axis a face looks along and the two across it (its clip x and y). The
 // receivers pick the face and its coordinates the same way (shaders/point_shadow.hlsli, point_seen).
@@ -67,11 +71,12 @@ struct FrameObject {
     float front[kMostPointShadows] = {};   // per g_mapped entry
 };
 
-// A light in view that casts (not an object's own).
+// A light in view that casts (not an object's own), its weight on the screen.
 struct Candidate {
     int scene = 0;
+    std::uint32_t id = 0;
     Vector3 at;
-    float range = 0.0f, strength = 0.0f;
+    float range = 0.0f, weight = 0.0f;
     float reach = 0.0f;   // NearCandidate's: the range, at least kHoldMargin
     float size = 0.0f;    // ... a bound on the magnitudes of the place and the reach
 };
@@ -81,9 +86,9 @@ struct CandidatesReach {
     float size = 0.0f;
 };
 
-// A light given a map this frame: its scene light, its row of the atlas, and the casters each of its faces draws.
+// A light given a map this frame: its candidate, its row of the atlas, and the casters each of its faces draws.
 struct MappedLight {
-    int scene = 0;
+    int candidate = 0;
     int row = 0;
     Vector3 at;
     float range = 0.0f;
@@ -96,7 +101,10 @@ static CandidatesReach g_candidatesReach;
 static std::vector<FrameObject> g_objects;   // by place in ShadowFrame::casters
 static std::vector<Caster> g_casters;
 static std::vector<UnitMesh> g_units;
-static MappedLight g_mapped[kMostPointShadows];   // PointShadowFrame::mapped of them
+// The lights whose faces were listed this frame (MapLights), at most the rows' lights and the weightiest; the ones
+// mapped are moved into g_mapped (PointShadowFrame::mapped of them).
+static MappedLight g_listed[2 * kMostPointShadows];
+static MappedLight g_mapped[kMostPointShadows];
 
 // A caster as drawn into a face: what its depth there depends on besides the face's light.
 struct FaceCaster {
@@ -117,17 +125,20 @@ static bool SameCaster(const FaceCaster& a, const FaceCaster& b) {
            std::memcmp(a.alpha, b.alpha, sizeof(a.alpha)) == 0 && std::memcmp(a.uv, b.uv, sizeof(a.uv)) == 0;
 }
 
-// The atlas's rows are kept across frames: a row keeps the light it was last given and each face what was
-// drawn into it, so a face is drawn again only when its light or its casters changed. A face known and
-// without casters holds the clear depth, whatever the light; a face not known holds anything.
+// The atlas's rows are kept across frames: a row keeps the light it was last given (its id, place and range) and each
+// face what was drawn into it, so a face is drawn again only when its light or its casters changed. A face known and
+// without casters holds the clear depth, whatever the light; a face not known holds anything. A row `held` maps its
+// light's shadow this frame, `fade` the share of it that shows.
 struct AtlasFace {
     bool known = false;
     std::vector<FaceCaster> casters;
 };
 struct AtlasRow {
-    bool given = false;
+    bool held = false;
+    std::uint32_t id = 0;
     Vector3 at{};
     float range = 0.0f;
+    float fade = 0.0f;
     AtlasFace faces[kFaces];
 };
 static AtlasRow g_rows[kMostPointShadows];
@@ -136,37 +147,15 @@ static bool g_atlasKnown = false;   // the faces hold what g_rows says (the atla
 static std::vector<FaceCaster> g_draws;
 static std::vector<char> g_drawMade;
 
-// Each light mapped takes a row: the one it had (the same place and range), else one no light mapped this frame
-// has, first one never given. A row given another light keeps only its empty faces.
-static void GiveRows(int mapped) {
-    bool taken[kMostPointShadows] = {};
-    for (int i = 0; i < mapped; ++i) {
-        MappedLight& m = g_mapped[i];
-        m.row = -1;
-        for (int r = 0; r < kMostPointShadows && m.row < 0; ++r) {
-            const AtlasRow& row = g_rows[r];
-            if (!taken[r] && row.given && row.at.x == m.at.x && row.at.y == m.at.y && row.at.z == m.at.z &&
-                row.range == m.range) {
-                m.row = r;
-                taken[r] = true;
-            }
-        }
-    }
-    for (int i = 0; i < mapped; ++i) {
-        MappedLight& m = g_mapped[i];
-        if (m.row >= 0) continue;
-        for (int r = 0; r < kMostPointShadows && m.row < 0; ++r)
-            if (!taken[r] && !g_rows[r].given) m.row = r;
-        for (int r = 0; r < kMostPointShadows && m.row < 0; ++r)
-            if (!taken[r]) m.row = r;
-        taken[m.row] = true;
-        AtlasRow& row = g_rows[m.row];
-        row.given = true;
-        row.at = m.at;
-        row.range = m.range;
-        for (AtlasFace& face : row.faces)
-            if (!face.casters.empty()) face.known = false;
-    }
+// The row holds `light` now: moved or another light, it keeps only its empty faces.
+static void PlaceRow(AtlasRow& row, const Candidate& light) {
+    row.held = true;
+    row.id = light.id;
+    if (row.at.x == light.at.x && row.at.y == light.at.y && row.at.z == light.at.z && row.range == light.range) return;
+    row.at = light.at;
+    row.range = light.range;
+    for (AtlasFace& face : row.faces)
+        if (!face.casters.empty()) face.known = false;
 }
 
 // The draw of g_casters[index] into the point shadows.
@@ -279,8 +268,8 @@ static Sphere BoxSphere(const float box[6], const Matrix4& model) {
     return Sphere{centre, std::sqrt(farthest)};
 }
 
-// The sphere lies inside the camera's view (the clip matrix's six planes).
-static bool InView(const Matrix4& clip, const Vector3& c, float radius) {
+// The clip matrix's six planes.
+bool SphereInView(const Matrix4& clip, const Vector3& c, float radius) {
     // Row k of the matrix: its normal (the first three) and its constant.
     auto row = [&](int k) { return Vector3{clip.m[k * 4], clip.m[k * 4 + 1], clip.m[k * 4 + 2]}; };
     auto constant = [&](int k) { return clip.m[k * 4 + 3]; };
@@ -305,19 +294,37 @@ gpu::PipelineDesc PointShadowClearDesc() {
     return p;
 }
 
-// The lights in view that cast (not an object's own), strongest first (colour times reach; equals in the scene's
-// order), into g_candidates; false when there are none.
+// The share of the screen a light's reach covers: its sphere's square there (its radius times the projection's scale
+// over its depth), clipped to the screen; all of it with the eye inside the reach.
+static float ScreenShare(const Matrix4& clip, const Vector3& at, float range) {
+    const float* m = clip.m;
+    auto row = [&](int k) { return m[k * 4] * at.x + m[k * 4 + 1] * at.y + m[k * 4 + 2] * at.z + m[k * 4 + 3]; };
+    const float w = row(3);
+    if (!(w > range)) return 1.0f;
+    const float depthScale = Length(Vector3{m[12], m[13], m[14]});
+    float share = 1.0f;
+    for (int k = 0; k < 2; ++k) {
+        const float centre = row(k) / w;
+        const float half = range * Length(Vector3{m[k * 4], m[k * 4 + 1], m[k * 4 + 2]}) / (depthScale * w);
+        share *= std::max(0.0f, std::min(1.0f, centre + half) - std::max(-1.0f, centre - half)) * 0.5f;
+    }
+    return share;
+}
+
+// The lights in view that cast (not an object's own), the weightiest on the screen first (the brightest channel times
+// the share of the screen the reach covers; equals in the scene's order), into g_candidates; false when there are none.
 static bool ListCandidates(const KeptScene& scene, const Matrix4& camera) {
     g_candidates.clear();
-    for (int k = 0; k < scene.count; ++k) {
-        const KeptLight& l = scene.lights[k];
+    for (std::size_t k = 0; k < scene.lights.size(); ++k) {
+        const ScenePointLight& l = scene.lights[k];
         const float brightest = std::max({l.colour[0], l.colour[1], l.colour[2]});
-        if (!l.shadows || !(l.inverseRangeSquared > 0.0f) || brightest < kLeastColour) continue;
+        if (!l.shadows || brightest < kLeastColour) continue;
         const float range = 1.0f / std::sqrt(l.inverseRangeSquared);
-        if (range <= kNear * 4.0f || !InView(camera, l.at, range)) continue;
+        if (range <= kNear * 4.0f || !SphereInView(camera, l.position, range)) continue;
         const float reach = std::max(range, kHoldMargin);
-        const float size = std::fabs(l.at.x) + std::fabs(l.at.y) + std::fabs(l.at.z) + reach;
-        g_candidates.push_back(Candidate{k, l.at, range, brightest * range, reach, size});
+        const float size = std::fabs(l.position.x) + std::fabs(l.position.y) + std::fabs(l.position.z) + reach;
+        const float weight = brightest * ScreenShare(camera, l.position, range);
+        g_candidates.push_back(Candidate{static_cast<int>(k), l.id, l.position, range, weight, reach, size});
     }
     if (g_candidates.empty()) return false;
     CandidatesReach& all = g_candidatesReach;
@@ -328,7 +335,7 @@ static bool ListCandidates(const KeptScene& scene, const Matrix4& camera) {
         all.size = std::max(all.size, c.size);
     }
     std::sort(g_candidates.begin(), g_candidates.end(), [](const Candidate& a, const Candidate& b) {
-        return a.strength > b.strength || (a.strength == b.strength && a.scene < b.scene);
+        return a.weight > b.weight || (a.weight == b.weight && a.scene < b.scene);
     });
     return true;
 }
@@ -368,9 +375,8 @@ struct LastSphere {
     }
 };
 
-// The world's meshes after the ground into g_casters and g_units: the GPU-lit ones take their model matrix into the
-// landscape's space; the casters' meshes (the objects the game shadows this frame) that may matter to a candidate
-// light and the units' their spheres, one for all passes of a mesh.
+// The world's meshes after the ground into g_casters and g_units: the casters' meshes (the objects the game shadows
+// this frame) that may matter to a candidate light and the units' their spheres, one for all passes of a mesh.
 static void ListCasters(Frame& f, LastSphere& spheres) {
     g_casters.clear();
     g_units.clear();
@@ -379,7 +385,6 @@ static void ListCasters(Frame& f, LastSphere& spheres) {
     for (const WorldMesh& w : f.worldMeshes) {
         MeshBatch& batch = f.meshBatches[static_cast<std::size_t>(w.batch)];
         if (batch.flat) continue;
-        if (batch.lighting >= 0) batch.landscape = batch.placement;
         if (!batch.caster || !batch.boxed || batch.casterSlot < 0 || batch.placement < 0) continue;
         const int object = batch.casterSlot;
         if (batch.figure) g_units.push_back(UnitMesh{&batch, object, false, Sphere{}});
@@ -395,57 +400,105 @@ static void ListCasters(Frame& f, LastSphere& spheres) {
     }
 }
 
-// Each light, strongest first, while there is room, into g_mapped: the casters in its reach, less the objects
-// holding it; a light that nothing shadows gets no map. The count mapped.
-static int MapLights() {
+// The faces of `light`'s cube that its casters reach (those in its reach, less the objects holding it) into `map`;
+// false when nothing shadows it.
+static bool ListFaces(const Candidate& light, MappedLight& map) {
+    for (Caster& c : g_casters) {
+        c.distance = DistanceSquared(c.sphere.centre, light.at);
+        g_objects[static_cast<std::size_t>(c.object)].holds = false;
+    }
+    for (const Caster& c : g_casters)
+        if (NotFurther(c.distance, c.sphere.radius + kHoldMargin)) g_objects[static_cast<std::size_t>(c.object)].holds = true;
+    map.at = light.at;
+    map.range = light.range;
+    for (std::vector<int>& face : map.faces) face.clear();
+    bool any = false;
+    for (std::size_t i = 0; i < g_casters.size(); ++i) {
+        const Caster& c = g_casters[i];
+        if (!NotFurther(c.distance, light.range + c.sphere.radius) || g_objects[static_cast<std::size_t>(c.object)].holds)
+            continue;
+        const Vector3 relative = c.sphere.centre - light.at;
+        for (int face = 0; face < kFaces; ++face)
+            if (InFace(kCubeFaces[face], relative, c.sphere.radius)) {
+                map.faces[face].push_back(static_cast<int>(i));
+                any = true;
+            }
+    }
+    return any;
+}
+
+// The lights given a map this frame, into g_mapped; the count. The kMostPointShadows weightiest candidates that
+// something shadows are wanted. A row's light fades in while it is wanted and out while it is not (keeping its row),
+// and leaves the row when it has faded out, left the view or shadows nothing; a wanted light without a row takes a
+// free one and fades in from nothing, or waits for one. `step`: the share a shadow fades by this frame.
+static int MapLights(float step) {
+    // A candidate's faces listed into g_listed once a frame: its entry, -1 when nothing shadows it.
+    int listed = 0;
+    auto list = [&](int candidate) {
+        for (int i = 0; i < listed; ++i)
+            if (g_listed[i].candidate == candidate) return i;
+        MappedLight& m = g_listed[listed];
+        if (!ListFaces(g_candidates[static_cast<std::size_t>(candidate)], m)) return -1;
+        m.candidate = candidate;
+        return listed++;
+    };
+    int wanted[kMostPointShadows];
+    int wantedCount = 0;
+    for (int c = 0; c < static_cast<int>(g_candidates.size()) && wantedCount < kMostPointShadows; ++c)
+        if (list(c) >= 0) wanted[wantedCount++] = c;
+    int lists[kMostPointShadows], rows[kMostPointShadows];
+    bool placed[kMostPointShadows] = {};   // per wanted light: it keeps its row
     int mapped = 0;
-    for (const Candidate& light : g_candidates) {
-        if (mapped == kMostPointShadows) break;
-        for (Caster& c : g_casters) {
-            c.distance = DistanceSquared(c.sphere.centre, light.at);
-            g_objects[static_cast<std::size_t>(c.object)].holds = false;
-        }
-        for (const Caster& c : g_casters)
-            if (NotFurther(c.distance, c.sphere.radius + kHoldMargin)) g_objects[static_cast<std::size_t>(c.object)].holds = true;
-        MappedLight& map = g_mapped[mapped];
-        map.at = light.at;
-        map.range = light.range;
-        for (std::vector<int>& face : map.faces) face.clear();
-        bool any = false;
-        for (std::size_t i = 0; i < g_casters.size(); ++i) {
-            const Caster& c = g_casters[i];
-            if (!NotFurther(c.distance, light.range + c.sphere.radius) || g_objects[static_cast<std::size_t>(c.object)].holds)
-                continue;
-            const Vector3 relative = c.sphere.centre - light.at;
-            for (int face = 0; face < kFaces; ++face)
-                if (InFace(kCubeFaces[face], relative, c.sphere.radius)) {
-                    map.faces[face].push_back(static_cast<int>(i));
-                    any = true;
-                }
-        }
-        if (!any) continue;
-        map.scene = light.scene;
-        ++mapped;
+    for (int r = 0; r < kMostPointShadows; ++r) {
+        AtlasRow& row = g_rows[r];
+        if (!row.held) continue;
+        row.held = false;
+        int c = 0;
+        while (c < static_cast<int>(g_candidates.size()) && g_candidates[static_cast<std::size_t>(c)].id != row.id) ++c;
+        const int* w = std::find(wanted, wanted + wantedCount, c);
+        const bool want = w != wanted + wantedCount;
+        row.fade = want ? std::min(1.0f, row.fade + step) : row.fade - step;
+        const int l = c < static_cast<int>(g_candidates.size()) ? list(c) : -1;
+        if (l < 0 || (!want && row.fade <= 0.0f)) continue;
+        PlaceRow(row, g_candidates[static_cast<std::size_t>(c)]);
+        if (want) placed[w - wanted] = true;
+        lists[mapped] = l;
+        rows[mapped++] = r;
+    }
+    for (int i = 0, r = 0; i < wantedCount; ++i) {
+        if (placed[i]) continue;
+        while (r < kMostPointShadows && g_rows[r].held) ++r;
+        if (r == kMostPointShadows) break;
+        g_rows[r].fade = step;
+        PlaceRow(g_rows[r], g_candidates[static_cast<std::size_t>(wanted[i])]);
+        lists[mapped] = list(wanted[i]);
+        rows[mapped++] = r;
+    }
+    for (int i = 0; i < mapped; ++i) {
+        std::swap(g_mapped[i], g_listed[lists[i]]);
+        g_mapped[i].row = rows[i];
     }
     return mapped;
 }
 
-// The receivers' uniforms: each mapped light's place and its row's depth, the scene lights' rows, the eye.
+// The receivers' uniforms: each mapped light's place, how much of its shadow shows and its row's depth, the kept
+// lights' rows, the eye.
 static void WriteParams(PointShadowFrame& ps, const Vector3& eye) {
     for (int i = 0; i < ps.mapped; ++i) {
         const MappedLight& m = g_mapped[i];
-        ps.sceneSlots[m.scene] = m.row + 1;
+        ps.rowLights[m.row] = g_candidates[static_cast<std::size_t>(m.candidate)].scene;
         float a = 0.0f, b = 0.0f;
         FaceDepth(m.range, &a, &b);
-        ps.params.lights[m.row][0] = m.at.x;
-        ps.params.lights[m.row][1] = m.at.y;
-        ps.params.lights[m.row][2] = m.at.z;
-        ps.params.lights[m.row][3] = kNear;
+        ps.params.shadows[m.row][0] = m.at.x;
+        ps.params.shadows[m.row][1] = m.at.y;
+        ps.params.shadows[m.row][2] = m.at.z;
+        ps.params.shadows[m.row][3] = g_rows[m.row].fade;
         ps.params.depth[m.row][0] = a;
         ps.params.depth[m.row][1] = b;
     }
     ps.params.count = ps.mapped;
     ps.params.texels = static_cast<float>(kPointFaceTexels);
+    ps.params.nearDistance = kNear;
     ps.params.eye[0] = eye.x;
     ps.params.eye[1] = eye.y;
     ps.params.eye[2] = eye.z;
@@ -479,18 +532,18 @@ static void UnitFronts(const Frame& f, const PointShadowFrame& ps, LastSphere& s
 
 void PreparePointShadows(Frame& f) {
     PointShadowFrame& ps = f.shadow.point;
-    const KeptScene& scene = KeptSceneLight();
-    if (scene.count == 0 || f.worldRanges.empty()) return;
-    const std::optional<WorldView> view = WorldCamera(f);
-    if (!view) return;
     Timer timer(FrameStats::Time::ShadowMs);
-    if (!ListCandidates(scene, view->clip)) return;
+    const std::uint32_t clock = platform::FrameClock();
+    const float step = std::min(1.0f, static_cast<float>(clock - g_fadeClock) / kFadeMs);
+    g_fadeClock = clock;
+    const std::optional<WorldView> view = f.worldRanges.empty() ? std::nullopt : WorldCamera(f);
+    g_candidates.clear();
+    g_casters.clear();
+    g_units.clear();
     LastSphere spheres;
-    ListCasters(f, spheres);
-    if (g_casters.empty()) return;
-    ps.mapped = MapLights();
+    if (view && ListCandidates(KeptSceneLight(), view->clip)) ListCasters(f, spheres);
+    ps.mapped = MapLights(step);
     if (ps.mapped == 0) return;
-    GiveRows(ps.mapped);
     WriteParams(ps, view->eye);
     UnitFronts(f, ps, spheres);
 }
@@ -578,10 +631,10 @@ void DrawPointShadows(Frame& f) {
         g_atlasKnown = false;
         g_atlas = MakeShadowDepth(kAtlasWidth, kAtlasHeight, "ei-point-shadows");
     }
-    if (!MakePipelines() || !g_atlas) {
+    if (!MakePipelines() || !g_atlas) {   // no shadow shows (the lights already name their rows)
         ps.mapped = 0;
         ps.params.count = 0;
-        for (int& s : ps.sceneSlots) s = 0;
+        for (float(&shadow)[4] : ps.params.shadows) shadow[3] = 0.0f;
         return;
     }
     // A new atlas is cleared whole, its faces then known empty.
@@ -596,11 +649,6 @@ void DrawPointShadows(Frame& f) {
     }
     ListRedrawnFaces(f, ps);
     if (!g_redrawn.empty()) DrawRedrawnFaces(fresh);
-}
-
-int PointShadowSlot(const Frame& f, int sceneLight) {
-    if (sceneLight < 0 || sceneLight >= kMostSceneLights) return -1;
-    return f.shadow.point.sceneSlots[sceneLight] - 1;
 }
 
 gpu::TextureBinding PointShadowBinding(const Frame& f) {

@@ -1086,6 +1086,7 @@ void PrepareShadows(Frame& f) {
     ListWorld(f);
     g_info = ShadowInfo{};
     PreparePointShadows(f);
+    PreparePointLights(f);
     // The map is drawn with casters; the receivers' matrices into it are made for the clouds too.
     const float cloudLight = PrepareClouds(sh);
     PrepareSurfaces(sh);

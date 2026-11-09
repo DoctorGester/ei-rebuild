@@ -1038,6 +1038,7 @@ static void DrawGroundBatch(const Frame& f, const TerrainBatch& batch, const Mes
     if (!BeginTerrainDraw(batch, mesh, program::kSamplerTex, texture)) return;
     BindShadowMap(f, program::kSamplerShadowMap);
     BindPointShadows(f, program::kSamplerPointShadowMap);
+    BindPointLights(program::kStoragePointLight);
     BindCloudMap(program::kSamplerCloudMap);
     BindOcclusion(program::kSamplerOcclusionMap);
     BindRoofMap(program::kSamplerRoofMap);
@@ -1059,7 +1060,7 @@ static void DrawGroundBatch(const Frame& f, const TerrainBatch& batch, const Mes
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainGroundFsParams, fs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockSceneLightParams, light);
-    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointLightParams, f.shadow.point.params);
     gpu::DrawIndexed(0, mesh.indexCount);
     CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(light) + sizeof(f.shadow.point.params));
 }
@@ -1069,6 +1070,7 @@ static void DrawWaterBatch(const Frame& f, const TerrainBatch& batch, const Mesh
     if (!BeginTerrainDraw(batch, mesh, program::kSamplerTex, PageTextures(batch))) return;
     BindShadowMap(f, program::kSamplerShadowMap);
     BindPointShadows(f, program::kSamplerPointShadowMap);
+    BindPointLights(program::kStoragePointLight);
     const gpu::TextureBinding ripples = RippleMap();
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerRipples, {&ripples, 1});
     BindCloudMap(program::kSamplerCloudMap);
@@ -1104,7 +1106,7 @@ static void DrawWaterBatch(const Frame& f, const TerrainBatch& batch, const Mesh
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockTerrainWaterFsParams, fs);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, shadow);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockSceneLightParams, light);
-    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
+    gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockPointLightParams, f.shadow.point.params);
     gpu::DrawIndexed(0, mesh.indexCount);
     CountDraw(sizeof(vs) + sizeof(fs) + sizeof(shadow) + sizeof(light) + sizeof(f.shadow.point.params));
 }

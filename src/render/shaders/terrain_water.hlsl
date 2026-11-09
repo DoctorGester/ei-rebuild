@@ -16,6 +16,8 @@
 #define ROOF_MAP_SLOT 7
 #define SKY_IMAGE_SLOT 8
 #define SCENE_COLOUR_SLOT 9   // the last frame's world view (render_water.cpp)
+#define POINT_LIGHTS_SLOT 10   // the storage buffers after the textures
+#define POINT_GRID_SLOT 11
 #include "terrain_common.hlsli"
 
 struct VsOut {

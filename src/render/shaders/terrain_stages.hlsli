@@ -71,7 +71,7 @@ float4 shadow_coord(float3 pos, float3 normal) {
 
 #ifdef EI_FRAGMENT
 #include "shadow_receiver.hlsli"
-#include "point_shadow.hlsli"
+#include "point_lights.hlsli"
 #include "cloud_shadow.hlsli"
 #include "scene_lighting.hlsli"
 #include "roof.hlsli"

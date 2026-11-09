@@ -144,6 +144,7 @@ void HandOverSceneLights(WorldClient* world) {
             Light* light = node.second;
             if (!light) continue;
             render::ScenePointLight p{};
+            p.id = static_cast<std::uint32_t>(node.first);
             p.position = drawn::LightPosition(light);
             p.inverseRangeSquared = light->inverseRangeSquared;
             for (int k = 0; k < 3; ++k) p.colour[k] = light->color[k];

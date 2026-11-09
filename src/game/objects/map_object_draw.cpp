@@ -25,20 +25,9 @@
 
 #include <cfloat>
 #include <cstring>
-#include <vector>
 #include "game/app/singletons.h"
 
 namespace {
-constexpr float kLightMargin = 10.0f;
-
-// Does `light` reach `object`: its range + 10 squared at least the squared distance.
-bool InReach(const Object3D* object, const Light* light) {
-    const Vector3& at = light->localPosition;
-    float reach = light->range + kLightMargin;
-    float distanceSquared = LengthSquared(object->localPosition - at);
-    return reach * reach >= distanceSquared;   // NaN does not reach
-}
-
 bool PartTooFar(const FigureMesh* part) {
     return LengthSquared(part->localPosition) > kPartsNearSquared;
 }
@@ -94,16 +83,7 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     }
     if (object->animation) object->animation->PlaceForDraw();
 
-    // The lights within reach where the draw shows them, in a list every draw reuses (the parts' draws do not draw
-    // objects), with the scene's sun and ambient colour: the parts are lit on the GPU.
-    static std::vector<render::MeshLightSource> lights;
-    lights.clear();
-    ObjectListIteratorOf<Light> list;
-    for (Light* light = list.First(g_clientWorld.lightFactory.get()); light; light = list.Next()) {
-        if (context->sun == light || !InReach(object, light) || (light->flags & LightFlag::Hidden)) continue;
-        lights.push_back(render::MeshLightSource{drawn::LightPosition(light), light->inverseRangeSquared,
-                                                 {light->color[0], light->color[1], light->color[2]}});
-    }
+    // The scene's sun and ambient colour: the parts are lit on the GPU (the point lights there too).
     render::MeshLighting lighting{};
     if (const Light* sun = g_sceneRenderer.sun) {
         lighting.sun = true;
@@ -113,8 +93,6 @@ int Object3DClientSpecific::DrawParts(SceneRenderer* context, Rect* dirty) {
     const float* ambient = AmbientColour();
     for (int k = 0; k < 3; ++k) lighting.ambientColour[k] = ambient[k];
     lighting.coefficient = options::kObjectsLightingCoeff;
-    lighting.lights = lights.data();
-    lighting.lightCount = static_cast<int>(lights.size());
 
     // The object's matrix at the pose the draw shows (drawn_motion.h), times its extra scale when it has one, under the
     // screen stack's top (the camera with the viewport).

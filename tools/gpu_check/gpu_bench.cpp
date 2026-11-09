@@ -272,7 +272,7 @@ void RecordFrame(const World& w, const Targets& t, const g::Texture& swap) {
         g::BeginPass(p);
         sh::MeshFsParams fs{};
         sh::ShadowParams shadow{};
-        sh::PointShadowParams point{};
+        sh::PointLightParams point{};
         float fsStep = 0.0f;
         std::uint32_t n = 0;
         for (const Draw& d : w.world) {
@@ -291,13 +291,13 @@ void RecordFrame(const World& w, const Targets& t, const g::Texture& swap) {
             const g::TextureBinding ranges[1] = {{w.range, w.nearest}};
             g::BindTextures(g::Stage::Fragment, sh::mesh::kSamplerShadowRange, ranges);
             g::BindTextures(g::Stage::Fragment, sh::mesh::kSamplerPointShadowMap, ranges);
-            const g::Buffer storage[2] = {w.records, w.lights};
+            const g::Buffer storage[4] = {w.records, w.lights, w.lights, w.lights};   // the point lights: none (an empty grid)
             g::BindStorageBuffers(g::Stage::Vertex, sh::mesh::kStorageMeshRecord, {storage, 1});
             g::BindStorageBuffers(g::Stage::Fragment, sh::mesh::kStorageMeshRecord, storage);
             if (d.fsChanges) fs.fogColour[0] = (fsStep += 0.001f);
             g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockMeshFsParams, fs);
             g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockShadowParams, shadow);
-            g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockPointShadowParams, point);
+            g::PushUniforms(g::Stage::Fragment, sh::mesh::kBlockPointLightParams, point);
             g::DrawIndexed(0, kIndicesPerMesh, 1, n++);
         }
         g::EndPass();
