@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -120,12 +121,19 @@ double FreeDiskSpace(std::string_view path);
 
 // The mod the game plays (docs/notes/mods.md): from now on a file in `modFolder`'s folders stands for the one of the
 // same path in `gameFolder` (read first, written there when the mod has it; not the mod's .res archives, which its
-// config.reg combines with the game's), and the saves are <gameFolder>\saves\<the mod folder's name>\. An empty
-// `modFolder`: the game's own files from now on. At the start before the game reads its data, and at a switch of mods
-// between the game's stop and its new start (app/main_loop.cpp); false (no mod) when the folder is not there.
+// config.reg combines with the game's), and the saves are <gameFolder>\saves\<the mod's name>\. `modFolder` is a
+// folder or a .zip file read as one (ModRoot). An empty `modFolder`: the game's own files from now on. At the start
+// before the game reads its data, and at a switch of mods between the game's stop and its new start
+// (app/main_loop.cpp); false (no mod) when the folder is not there.
 bool SwitchMod(std::string_view gameFolder, std::string_view modFolder);
-// The mod's folder in full (SwitchMod), empty without one.
+// The mod's folder in full (SwitchMod's ModRoot), empty without one.
 std::string ModFolder();
+// The mod's name, its saves' folder: its folder's last part (a zip's without ".zip"), empty without one.
+std::string ModName();
+// The folder in full that a mod at `path` (a folder or a .zip file, read as its folder) has its files in: `path`
+// itself, or its one entry when that is a folder and only it holds a config.reg (a zip of the mod's folder). Empty
+// when `path` is neither a folder nor a zip.
+std::string ModRoot(std::string_view path);
 
 // One entry of a folder search.
 struct FolderEntry {
@@ -191,7 +199,7 @@ public:
     // False when the file cannot be opened. A file still open is closed first.
     bool Open(std::string_view path, FileMode mode);
     void Close();
-    bool IsOpen() const { return handle != -1; }
+    bool IsOpen() const { return handle != -1 || zipped; }
 
     // The bytes read (fewer at the end of the file).
     unsigned Read(void* buffer, unsigned count);
@@ -221,6 +229,9 @@ public:
 private:
     std::intptr_t handle = -1;   // the system's file handle or descriptor; -1: none
     std::string path;            // as opened (for FileError)
+    // A zip's file read as a folder's (zip_folders.h): its bytes in place of a handle, read from `zippedAt`.
+    std::shared_ptr<const std::string> zipped;
+    std::uint32_t zippedAt = 0;
 };
 
 // A whole file mapped into memory, read only. Closed by the destructor.
@@ -240,6 +251,7 @@ public:
 private:
     std::intptr_t file = -1;   // the system's file handle or descriptor; -1: none
     void* mapping = nullptr;   // Windows' mapping handle
+    std::shared_ptr<const std::string> zipped;   // a zip's file (zip_folders.h): the view is its bytes
     const void* view = nullptr;
     std::uint32_t size = 0;
 };

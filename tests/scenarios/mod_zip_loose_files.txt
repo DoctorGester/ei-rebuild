@@ -1,0 +1,24 @@
+# A mod shipped as one zip (docs/notes/mods.md, "Zip mods"): mod_loose_files' mod (tools/make_mod_s19d.py loose)
+# packed into the run's harness_saves\s19d_mod.zip below one folder s19d_mod\ (a zip of the mod's folder, as Rebirth's
+# LostInAstral.zip is, with an entry for each folder), which "mod" makes the settings' Mod (either install). The mod's
+# folder is the zip's s19d_mod\ (its config.reg is there); its loose files are read from the zip in place of the
+# archives' entries, a sub-folder's file in any case, its own archive opened from the zip's bytes, its Maps folder
+# found for an .mpr: every answer is mod_loose_files'.
+# prepare: make_mod_s19d.py loose --zip s19d_mod.zip --top
+mod harness_saves\s19d_mod.zip
+reject Script error
+waitmenu
+expectlog s19d_mod.zip\s19d_mod (its saves in saves\s19d_mod)
+modfile texts.res s19d.txt 16
+modfile texts.res sub\s19d_sub.txt 9
+modfile texts.res s19d_c.txt 21
+modfile texts.res s19d_d.txt 12
+modfile texts.res map.txt +
+modlist texts.res s19d* 5
+modfile outro.res outro.rtf 15
+modfile outro.res credits.scr +
+mapfile exists s19d_loose.mpr yes
+mapfile exists s19d_loose.mob no
+mapfile exists s19d_none.mpr no
+report
+quit

@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_zip_archives",
+  "install": "rebirth",
+  "recorded": "2026-11-10",
+  "commit": "2a4ae3315",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF2: new scenario, rebirth_mod_archives' mod read in place from a zip; the same console, digest and saves as rebirth_mod_archives.",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

@@ -7,7 +7,7 @@ endif()
 # Three systems: Windows with MSVC (build.cmd: the release and verify builds, x64), Linux with gcc or clang
 # (docs/notes/linux.md: the game on SDL3, POSIX and Vulkan) and macOS with Apple Clang (docs/notes/macos.md: SDL3,
 # POSIX and Metal). The offline checks against Windows' drawing and keys build on Windows.
-project(EvilIslands CXX)
+project(EvilIslands CXX C)
 # The step wrapper (build.cmd: tools/compiler_cache.py's EI_STEP_WRAPPER, as CMAKE_CXX_LINKER_LAUNCHER) also in front of
 # the archiver: a link or archive step that fails with no output then prints its exit code (H52a).
 if(WIN32 AND CMAKE_CXX_LINKER_LAUNCHER)
@@ -57,6 +57,14 @@ endif()
 # No precompiled header (SDL's own): the compiler cache does not keep objects compiled with one.
 set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
 add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL SYSTEM)
+# miniz (third_party/miniz, unmodified; C): the zip reader of the zip mods (src/platform/zip_folders.cpp; docs/notes/
+# mods.md, "Zip mods") and deflate. Added before the game's compile options, with none of its warnings shown: they are
+# its own. No stdio (files go through the platform) and no clock.
+add_library(miniz STATIC third_party/miniz/miniz.c)
+target_include_directories(miniz SYSTEM INTERFACE third_party)
+target_compile_definitions(miniz PUBLIC MINIZ_NO_STDIO MINIZ_NO_TIME)
+target_compile_options(miniz PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
+set_target_properties(miniz PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/core/asset_text.h): asset, save and
 # network text is converted from and to text::kAssetCodePage where it crosses.
@@ -253,7 +261,7 @@ target_sources(ei_render PRIVATE ${EI_FONT_HEADERS})
 # area).
 file(GLOB EI_PLATFORM_SOURCES CONFIGURE_DEPENDS src/platform/sdl/*.cpp src/platform/${EI_SYSTEM}/*.cpp)
 list(APPEND EI_PLATFORM_SOURCES ${CMAKE_SOURCE_DIR}/src/platform/files.cpp ${CMAKE_SOURCE_DIR}/src/platform/path_layers.cpp
-     ${CMAKE_SOURCE_DIR}/src/platform/seams.cpp)
+     ${CMAKE_SOURCE_DIR}/src/platform/zip_folders.cpp ${CMAKE_SOURCE_DIR}/src/platform/seams.cpp)
 # What a harness run answers itself: the sockets (src/platform/<system>/sockets.cpp), the platform's seams
 # (src/platform/seams.cpp: the file calls' paths, the write watch, the isolated run) and SDL's areas
 # (src/platform/sdl/platform_sdl.cpp). In the harness's builds the game takes the harness's backend's definitions
@@ -268,7 +276,7 @@ if(EI_HARNESS)
 endif()
 add_library(ei_platform STATIC ${EI_PLATFORM_SOURCES})
 target_include_directories(ei_platform PRIVATE src)
-target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static)
+target_link_libraries(ei_platform PRIVATE SDL3::SDL3-static miniz)
 
 # The game (docs/notes/standalone.md section 2): ei-rebuild.exe, an ordinary exe (S18k: ASLR as any exe, no read of
 # game.exe) with the whole game linked in (S23: no DLL; dropped into a game folder it plays from there). Its entry is
@@ -310,7 +318,8 @@ target_link_libraries(ei-rebuild PRIVATE ei_game)
 # The product's notices (third_party_notices.txt beside the executables): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)
-foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_libs/README.txt dr_libs/LICENSE stb/README.txt)
+foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_libs/README.txt dr_libs/LICENSE stb/README.txt
+             miniz/README.txt miniz/LICENSE)
     file(READ ${CMAKE_SOURCE_DIR}/third_party/${part} text)
     string(APPEND EI_NOTICES "==== third_party/${part}\n\n${text}\n")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})
@@ -369,7 +378,7 @@ if(WIN32)
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/game/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_unit_check PRIVATE src third_party)
-    target_link_libraries(ei_unit_check PRIVATE ei_platform SDL3::SDL3-static)
+    target_link_libraries(ei_unit_check PRIVATE ei_platform SDL3::SDL3-static miniz)
 
     # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
     # report against GDI on the game's strings (tools/text_check; GDI only there).
@@ -404,7 +413,7 @@ else()
                    tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/weather_field.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/game/data/ini_file.cpp src/game/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
-    target_link_libraries(ei_port_check PRIVATE ei_platform SDL3::SDL3-static)
+    target_link_libraries(ei_port_check PRIVATE ei_platform SDL3::SDL3-static miniz)
     add_test(NAME port_platform COMMAND ei_port_check)
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
                    ${EI_GAME_CALLS} ${EI_SDL_CALLS})
