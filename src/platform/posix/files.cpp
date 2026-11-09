@@ -9,6 +9,7 @@
 #include "platform/path_layers.h"
 #include "platform/posix/platform_posix.h"
 #include "platform/seams.h"
+#include "platform/zip_folders.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -32,25 +33,6 @@ int Descriptor(std::intptr_t handle) { return static_cast<int>(handle); }
 
 // `path` for `use` as the system names it (seams.h).
 fs::path SystemNative(std::string_view path, PathUse use) { return NativePath(SystemPath(path, use)); }
-
-bool Matches(std::string_view pattern, std::string_view value) {
-    if (pattern == "*.*") pattern = "*";
-    std::size_t p = 0, v = 0, star = pattern.npos, retry = 0;
-    while (v < value.size()) {
-        if (p < pattern.size() && (pattern[p] == '?' || text::ToLower(pattern[p]) == text::ToLower(value[v]))) {
-            ++p;
-            ++v;
-        } else if (p < pattern.size() && pattern[p] == '*') {
-            star = p++;
-            retry = v;
-        } else if (star != pattern.npos) {
-            p = star + 1;
-            v = ++retry;
-        } else return false;
-    }
-    while (p < pattern.size() && pattern[p] == '*') ++p;
-    return p == pattern.size();
-}
 
 } // namespace
 
@@ -136,7 +118,8 @@ bool WriteWholeFile(std::string_view path, const std::string& bytes, std::uint32
 }
 
 // The mapped pattern's folder, its entries matched with Windows' wildcards and case rules, in NTFS's name order
-// (Windows' order on its volumes); no "." or "..". Their paths are in the folder of the game's pattern.
+// (Windows' order on its volumes); no "." or "..". Their paths are in the folder of the game's pattern. A folder in a
+// zip (zip_folders.h) is searched there.
 std::vector<FolderEntry> SearchFolder(std::string_view systemPattern, std::string_view pattern) {
     // The folders in the game's form (backslashes).
     auto folderOf = [](std::string_view path) {
@@ -150,13 +133,14 @@ std::vector<FolderEntry> SearchFolder(std::string_view systemPattern, std::strin
     std::error_code e;
     // As Windows' search: the game's folder made full as written (a symbolic link in it kept, CurrentFolder).
     const std::string root = FullGamePath(folderOf(pattern));
+    std::vector<FolderEntry> entries;
+    if (SearchZip(mapped, root + "\\", false, &entries)) return entries;
     std::vector<fs::directory_entry> found;
     for (const auto& entry : fs::directory_iterator(folder, e))
-        if (Matches(mask, entry.path().filename().string())) found.push_back(entry);
+        if (WildcardMatches(mask, entry.path().filename().string())) found.push_back(entry);
     std::sort(found.begin(), found.end(), [](const auto& a, const auto& b) {
         return text::CompareIgnoringCase(a.path().filename().string(), b.path().filename().string()) < 0;
     });
-    std::vector<FolderEntry> entries;
     for (const fs::directory_entry& entry : found) {
         FolderEntry& out = entries.emplace_back();
         out.name = entry.path().filename().string();
@@ -171,6 +155,7 @@ std::vector<FolderEntry> SearchFolder(std::string_view systemPattern, std::strin
 
 File::~File() { Close(); }
 
+// A zip's file (zip_folders.h) opens for reading only; a write into a zip fails as into a missing folder.
 bool File::Open(std::string_view filePath, FileMode mode) {
     Close();
     path = filePath;
@@ -178,16 +163,25 @@ bool File::Open(std::string_view filePath, FileMode mode) {
                       : mode == FileMode::Create ? O_WRONLY | O_CREAT | O_TRUNC
                                                  : O_WRONLY;
     const PathUse use = mode == FileMode::Read ? PathUse::Read : mode == FileMode::Create ? PathUse::Write : PathUse::Update;
-    handle = open(SystemNative(path, use).c_str(), flags | O_CLOEXEC, 0666);
+    const std::string mapped = SystemPath(path, use);
+    if (ZipFile(mapped, &zipped)) {
+        if (mode != FileMode::Read) zipped = nullptr;
+        if (!zipped) errno = ENOENT;
+        return IsOpen();
+    }
+    handle = open(NativePath(mapped).c_str(), flags | O_CLOEXEC, 0666);
     return IsOpen();
 }
 
 void File::Close() {
-    if (IsOpen()) close(Descriptor(handle));
+    if (handle != -1) close(Descriptor(handle));
     handle = -1;
+    zipped = nullptr;
+    zippedAt = 0;
 }
 
 unsigned File::Read(void* buffer, unsigned count) {
+    if (zipped) return ReadZipped(*zipped, &zippedAt, buffer, count);
     ssize_t n;
     do {
         n = read(Descriptor(handle), buffer, count);
@@ -223,6 +217,13 @@ void File::WriteLine(std::string_view line) {
 }
 
 std::uint32_t File::Seek(std::int32_t offset, SeekFrom from) {
+    if (zipped) {
+        if (!SeekZipped(static_cast<std::uint32_t>(zipped->size()), &zippedAt, offset, from)) {
+            errno = EINVAL;
+            FileFailure(path);
+        }
+        return zippedAt;
+    }
     const off_t n = lseek(Descriptor(handle), offset,
                           from == SeekFrom::Begin ? SEEK_SET
                           : from == SeekFrom::End ? SEEK_END
@@ -232,12 +233,14 @@ std::uint32_t File::Seek(std::int32_t offset, SeekFrom from) {
 }
 
 std::uint32_t File::Position() const {
+    if (zipped) return zippedAt;
     const off_t n = lseek(Descriptor(handle), 0, SEEK_CUR);
     if (n < 0 || n > UINT32_MAX) FileFailure(path);
     return static_cast<std::uint32_t>(n);
 }
 
 std::uint32_t File::Size() const {
+    if (zipped) return static_cast<std::uint32_t>(zipped->size());
     struct stat s{};
     if (fstat(Descriptor(handle), &s) || s.st_size < 0 || s.st_size > UINT32_MAX) FileFailure(path);
     return static_cast<std::uint32_t>(s.st_size);
@@ -257,9 +260,20 @@ bool File::ReadAt(std::uint32_t position, void* buffer, unsigned count) {
 
 MappedFile::~MappedFile() { Close(); }
 
+// A zip's file (zip_folders.h): its bytes.
 bool MappedFile::Open(std::string_view path) {
     Close();
-    const int fd = open(SystemNative(path, PathUse::Read).c_str(), O_RDONLY | O_CLOEXEC);
+    const std::string mapped = SystemPath(path, PathUse::Read);
+    if (ZipFile(mapped, &zipped)) {
+        if (!zipped || zipped->empty()) {
+            Close();
+            return false;
+        }
+        view = zipped->data();
+        size = static_cast<std::uint32_t>(zipped->size());
+        return true;
+    }
+    const int fd = open(NativePath(mapped).c_str(), O_RDONLY | O_CLOEXEC);
     if (fd < 0) return false;
     file = fd;
     struct stat s{};
@@ -278,7 +292,8 @@ bool MappedFile::Open(std::string_view path) {
 }
 
 void MappedFile::Close() {
-    if (view) munmap(const_cast<void*>(view), size);
+    if (view && !zipped) munmap(const_cast<void*>(view), size);
+    zipped = nullptr;
     if (file != -1) close(Descriptor(file));
     file = -1;
     view = nullptr;

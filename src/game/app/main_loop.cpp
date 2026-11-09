@@ -553,8 +553,7 @@ void UseMod(const std::string& gameFolder, const std::string& setting) {
         folder = program.substr(0, program.find_last_of("\\/") + 1) + setting;
     }
     if (platform::SwitchMod(gameFolder, folder)) {
-        const std::string played = platform::ModFolder();
-        ei::Log("mod: %s (its saves in saves\\%s)", played, played.substr(played.find_last_of('\\') + 1));
+        ei::Log("mod: %s (its saves in saves\\%s)", platform::ModFolder(), platform::ModName());
     } else {
         ei::Log("mod: no folder %s; the game without a mod", folder);
     }

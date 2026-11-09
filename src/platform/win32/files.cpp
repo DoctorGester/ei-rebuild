@@ -7,6 +7,7 @@
 #include "platform/path_layers.h"
 #include "platform/seams.h"
 #include "platform/win32/platform_win32.h"
+#include "platform/zip_folders.h"
 
 #include <string>
 
@@ -26,10 +27,10 @@ std::string ErrorText(unsigned long code, std::string_view path) {
 // A file object's handle as the system's: -1, no file, is INVALID_HANDLE_VALUE, on which every call fails.
 HANDLE Native(std::intptr_t handle) { return reinterpret_cast<HANDLE>(handle); }
 
-// `path` opened with `access` and `disposition` (CreateFile's), shared with other readers and writers; -1 when it does
-// not open.
-std::intptr_t OpenFile(std::string_view path, PathUse use, DWORD access, DWORD disposition) {
-    return reinterpret_cast<std::intptr_t>(CreateFileW(SystemWide(path, use).c_str(), access,
+// The system's `mapped` opened with `access` and `disposition` (CreateFile's), shared with other readers and writers;
+// -1 when it does not open.
+std::intptr_t OpenFile(const std::string& mapped, DWORD access, DWORD disposition) {
+    return reinterpret_cast<std::intptr_t>(CreateFileW(text::Wide(mapped).c_str(), access,
                                                        FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, disposition,
                                                        FILE_ATTRIBUTE_NORMAL, nullptr));
 }
@@ -54,7 +55,13 @@ FileError::FileError(unsigned long code, std::string_view path) : std::runtime_e
 // Shared with a rename or a delete too: the file is closed before the call returns.
 bool ReadWholeFile(std::string_view path, std::string* bytes, std::uint32_t* error) {
     bytes->clear();
-    const HANDLE handle = CreateFileW(SystemWide(path, PathUse::Read).c_str(), GENERIC_READ,
+    const std::string mapped = SystemPath(path, PathUse::Read);
+    if (std::shared_ptr<const std::string> zipped; ZipFile(mapped, &zipped)) {
+        if (zipped) *bytes = *zipped;
+        if (error) *error = zipped ? 0 : ERROR_FILE_NOT_FOUND;
+        return zipped != nullptr;
+    }
+    const HANDLE handle = CreateFileW(text::Wide(mapped).c_str(), GENERIC_READ,
                                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, 0,
                                       nullptr);
     bool ok = handle != INVALID_HANDLE_VALUE;
@@ -89,25 +96,26 @@ bool WriteWholeFile(std::string_view path, const std::string& bytes, std::uint32
     return ok;
 }
 
+// A folder in a zip (zip_folders.h) is searched there, "." and ".." first as on NTFS.
 std::vector<FolderEntry> SearchFolder(std::string_view systemPattern, std::string_view pattern) {
     std::vector<FolderEntry> entries;
-    WIN32_FIND_DATAW found;
-    const HANDLE find = FindFirstFileW(text::Wide(systemPattern).c_str(), &found);
-    if (find == INVALID_HANDLE_VALUE) return entries;
     // The entries' folder: the pattern as the game named it made absolute (the current folder for an empty one), up to
     // its last separator; a path of MAX_PATH bytes or more finds nothing.
     std::string root = pattern.empty() ? CurrentFolder() : text::Narrow(FullPath(text::Wide(pattern)));
-    if (!root.empty() && root.size() < MAX_PATH) {
-        if (const std::size_t cut = root.find_last_of("\\/"); cut != std::string::npos) root.resize(cut);
-        if (root.empty() || (root.back() != '\\' && root.back() != '/')) root += '\\';
-        do {
-            FolderEntry& entry = entries.emplace_back();
-            entry.name = text::Narrow(found.cFileName);
-            entry.path = root + entry.name;
-            entry.size = found.nFileSizeLow;
-            entry.folder = (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
-        } while (FindNextFileW(find, &found));
-    }
+    if (root.empty() || root.size() >= MAX_PATH) return entries;
+    if (const std::size_t cut = root.find_last_of("\\/"); cut != std::string::npos) root.resize(cut);
+    if (root.empty() || (root.back() != '\\' && root.back() != '/')) root += '\\';
+    if (SearchZip(systemPattern, root, true, &entries)) return entries;
+    WIN32_FIND_DATAW found;
+    const HANDLE find = FindFirstFileW(text::Wide(systemPattern).c_str(), &found);
+    if (find == INVALID_HANDLE_VALUE) return entries;
+    do {
+        FolderEntry& entry = entries.emplace_back();
+        entry.name = text::Narrow(found.cFileName);
+        entry.path = root + entry.name;
+        entry.size = found.nFileSizeLow;
+        entry.folder = (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    } while (FindNextFileW(find, &found));
     ::FindClose(find);
     return entries;
 }
@@ -116,23 +124,30 @@ std::vector<FolderEntry> SearchFolder(std::string_view systemPattern, std::strin
 
 File::~File() { Close(); }
 
+// A zip's file (zip_folders.h) opens for reading only; a write into a zip fails as into a missing folder.
 bool File::Open(std::string_view filePath, FileMode mode) {
     Close();
     path = filePath;
-    switch (mode) {
-    case FileMode::Read: handle = OpenFile(path, PathUse::Read, GENERIC_READ, OPEN_EXISTING); break;
-    case FileMode::Create: handle = OpenFile(path, PathUse::Write, GENERIC_WRITE, CREATE_ALWAYS); break;
-    case FileMode::WriteExisting: handle = OpenFile(path, PathUse::Update, GENERIC_WRITE, OPEN_EXISTING); break;
+    const PathUse use = mode == FileMode::Read ? PathUse::Read : mode == FileMode::Create ? PathUse::Write : PathUse::Update;
+    const std::string mapped = SystemPath(path, use);
+    if (ZipFile(mapped, &zipped)) {
+        if (mode != FileMode::Read) zipped = nullptr;
+        return IsOpen();
     }
+    const DWORD access = mode == FileMode::Read ? GENERIC_READ : GENERIC_WRITE;
+    handle = OpenFile(mapped, access, mode == FileMode::Create ? CREATE_ALWAYS : OPEN_EXISTING);
     return IsOpen();
 }
 
 void File::Close() {
-    if (IsOpen()) ::CloseHandle(Native(handle));
+    if (handle != -1) ::CloseHandle(Native(handle));
     handle = -1;
+    zipped = nullptr;
+    zippedAt = 0;
 }
 
 unsigned File::Read(void* buffer, unsigned count) {
+    if (zipped) return ReadZipped(*zipped, &zippedAt, buffer, count);
     if (count == 0) return 0;
     DWORD read;
     if (!::ReadFile(Native(handle), buffer, count, &read, nullptr)) ThrowLastError(path);
@@ -160,6 +175,11 @@ void File::WriteLine(std::string_view line) {
 }
 
 std::uint32_t File::Seek(std::int32_t offset, SeekFrom from) {
+    if (zipped) {
+        if (!SeekZipped(static_cast<std::uint32_t>(zipped->size()), &zippedAt, offset, from))
+            throw FileError(ERROR_NEGATIVE_SEEK, path);
+        return zippedAt;
+    }
     const DWORD method = from == SeekFrom::Begin ? FILE_BEGIN : from == SeekFrom::Current ? FILE_CURRENT : FILE_END;
     const DWORD position = ::SetFilePointer(Native(handle), offset, nullptr, method);
     if (position == INVALID_SET_FILE_POINTER) ThrowLastError(path);
@@ -167,18 +187,24 @@ std::uint32_t File::Seek(std::int32_t offset, SeekFrom from) {
 }
 
 std::uint32_t File::Position() const {
+    if (zipped) return zippedAt;
     const DWORD position = ::SetFilePointer(Native(handle), 0, nullptr, FILE_CURRENT);
     if (position == INVALID_SET_FILE_POINTER) ThrowLastError(path);
     return position;
 }
 
 std::uint32_t File::Size() const {
+    if (zipped) return static_cast<std::uint32_t>(zipped->size());
     const DWORD size = ::GetFileSize(Native(handle), nullptr);
     if (size == INVALID_FILE_SIZE) ThrowLastError(path);
     return size;
 }
 
 bool File::ReadAt(std::uint32_t position, void* buffer, unsigned count) {
+    if (zipped) {
+        zippedAt = position;
+        return ReadZipped(*zipped, &zippedAt, buffer, count) == count;
+    }
     DWORD read = 0;
     return ::SetFilePointer(Native(handle), static_cast<LONG>(position), nullptr, FILE_BEGIN) !=
                INVALID_SET_FILE_POINTER &&
@@ -189,9 +215,20 @@ bool File::ReadAt(std::uint32_t position, void* buffer, unsigned count) {
 
 MappedFile::~MappedFile() { Close(); }
 
+// A zip's file (zip_folders.h): its bytes.
 bool MappedFile::Open(std::string_view path) {
     Close();
-    file = OpenFile(path, PathUse::Read, GENERIC_READ, OPEN_EXISTING);
+    const std::string mapped = SystemPath(path, PathUse::Read);
+    if (ZipFile(mapped, &zipped)) {
+        if (!zipped || zipped->empty()) {
+            Close();
+            return false;
+        }
+        view = zipped->data();
+        size = static_cast<std::uint32_t>(zipped->size());
+        return true;
+    }
+    file = OpenFile(mapped, GENERIC_READ, OPEN_EXISTING);
     if (file == -1) return false;
     size = ::GetFileSize(Native(file), nullptr);
     if (size != INVALID_FILE_SIZE) mapping = ::CreateFileMappingW(Native(file), nullptr, PAGE_READONLY, 0, 0, nullptr);
@@ -202,7 +239,8 @@ bool MappedFile::Open(std::string_view path) {
 }
 
 void MappedFile::Close() {
-    if (view) ::UnmapViewOfFile(view);
+    if (view && !zipped) ::UnmapViewOfFile(view);
+    zipped = nullptr;
     view = nullptr;
     if (mapping) ::CloseHandle(mapping);
     mapping = nullptr;

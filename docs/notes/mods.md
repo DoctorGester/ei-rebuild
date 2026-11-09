@@ -25,11 +25,14 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/game/data/resource.h`, `.cpp` | the archives and the loose files over them ("Loose files"): `MappedResource::Sources`, `LooseFolderOf`, `ResourceExists` |
 | `tools/unpack_install.py` | an install's archives unpacked into their folders; run_all.py `--unpacked` |
 | `tests/scenarios/mod_loose_files.txt` | loose files of a mod over its archives and the game's |
+| `src/platform/zip_folders.h`, `.cpp` | a .zip read as a folder ("Zip mods"): `InZip`, `ZipFile`, `SearchZip`, on miniz (third_party/miniz) |
+| `tests/scenarios/mod_zip_archives.txt`, `mod_zip_loose_files.txt`, `mod_zip_menu.txt` | zip mods: rebirth_mod_archives' and mod_loose_files' mods zipped, the menu's list finding one |
 
 ## Choosing a mod
 
-`ei_settings.ini`, `[game] Mod = starter\Mods\LostInAstral`: the mod's folder relative to the exe's folder (the game
-folder for a dropped-in exe; on macOS the app's MacOS folder, so give it in full there), or in full. Read at the start,
+`ei_settings.ini`, `[game] Mod = starter\Mods\LostInAstral`: the mod's folder (or its zip, `starter\Mods\LostInAstral.zip`:
+"Zip mods") relative to the exe's folder (the game folder for a dropped-in exe; on macOS the app's MacOS folder, so
+give it in full there), or in full. Read at the start,
 after EI_Plugin's values (the settings' first use writes the defaults); a switch of mods writes it. A folder that is not there
 is logged ("mod: no folder ...") and the game runs without a mod. The log names the mod and its saves' folder.
 
@@ -70,8 +73,10 @@ The mod folder over the game folder, every file of its folders (`Maps\`, `Config
 A mod's folder of an archive's name (`<mod>\Res\textures\`) is in the layer like any folder; the archive reads it
 before the mod's own archives ("Loose files").
 
-The saves of a mod are `<game folder>\saves\<mod folder's name>\` (the game's `saves\save*` search does not list it
-unless the name starts with "save"), never mixed with the game's. `[MOD] GameSaves` is not read: every mod keeps its
+The mod's folder is the one named, or its one entry when that is a folder and only it holds the config.reg
+(`platform::ModRoot`: a mod zipped with its folder, or such a zip unpacked into a folder of its name). The saves of a
+mod are `<game folder>\saves\<mod's name>\`, the name the mod folder's last part (a zip's without ".zip"; the game's
+`saves\save*` search does not list it unless the name starts with "save"), never mixed with the game's. `[MOD] GameSaves` is not read: every mod keeps its
 own.
 
 ### The harness
@@ -146,6 +151,60 @@ run's install folder: the snapshot pins it).
   file in any case, the mod archive's own folder over its entry, the mod's folder over the game's archive (outro.res),
   the listing's count, a maps folder for an .mpr but not a .mob.
 - `work.py test <ID> --unpacked --golden` and with `--rebirth-only`: every scenario on the unpacked installs.
+
+## Zip mods
+
+A mod can be one .zip, read in place as if it were its folder (MF2, user 2026-11-09): `[game] Mod =
+starter\Mods\LostInAstral.zip`, or picked from the menu's list, which lists each `starter\Mods\*.zip` with a config.reg
+at its root or in its one top folder. Rebirth's install has such a zip beside the folder (LostInAstral.zip, 726 MB, the
+mod's folder below one top folder LostInAstral\: 280 entries, 272 deflated, 8 stored).
+
+- One path for every system file call (src/platform/zip_folders.h): a path through a .zip file
+  (`...\LostInAstral.zip\LostInAstral\Maps\zone1.mob`) names the zip's file or folder of that path, matched without
+  case (lib/text_case.h's table, as the platform's other names). The backends ask before the system: File (read),
+  MappedFile, ReadWholeFile, the folder search (`SearchZip`: the zip's names by name, NTFS's order, with "." and ".."
+  on Windows as its searches have them); files.cpp's PathExists, IsFile and CopyFileOver; path_layers.cpp's layer
+  lookups (`Exists`, `IsFolderPath`) and the harness's copy-up. So the mod's layer is the zip's folder exactly where a
+  mod folder stands (`Mod::folder`, `ModFolder()`), and everything above it is unchanged: the loose archive folders and
+  FilesByLayer, Maps\, Config\, the mod's `[RES]` archives (`ModPath()` + `res\x.res`, opened from the zip's bytes as
+  any file), Rebirth's Maps, Camera, Movies and Stream patches.
+- Read only: a write the map gives a zip's path (the game writing a file the zip has) fails as into a missing
+  folder; File::Open for writing returns false. The saves are in the game's saves folder as any mod's; a file the
+  game writes into a folder mod is not kept for a zip: Lost in Astral's config\tutorial.ini (the help topics seen,
+  written at every interface shutdown) and addrbook.ini (MF2a: a written folder over the zip). In a harness run every
+  write goes to the overlay anyway.
+- A zip file is read (its central directory, no file) at the first path through it and kept for the rest of the
+  program, open; one changed on disk while the game runs is read again only after a restart. Each file's bytes are
+  unpacked whole when opened and shared by every open of it at that time (a weak pointer per entry), freed at the last
+  close: a memory-mapped archive inside a zip (figures, an .mpr) is a heap copy while it is open. One unpacking at a time
+  per zip (miniz's reader and the file stream behind it); the lookups take no lock once the zip is read.
+- Entry names are taken as UTF-8 (the zip's flag or plain ASCII, as every shipped mod's); a name met twice in any case
+  keeps its first entry; a folder needs no entry of its own. An entry over 4 GB, or one miniz cannot unpack
+  (encrypted, an unknown method), reads as missing.
+- Only the path's first part ending in ".zip" that is a file opens a zip, and only a path with such a part is looked
+  at (no system call for the others). A zip inside a zip is a file of the outer one, not a folder.
+- The menu's list (mod_list.cpp): the entries' folders are `ModRoot`s (in a zip for one), compared with
+  `ModFolder()`; a zip's setting is the zip's path (relative to the exe's folder when below it). Its title is
+  `[MOD] Title` as for a folder (else the zip's name without ".zip"). With Rebirth's install the list has 6 entries
+  (LostInAstral and LostInAstral.zip both "Lost in Astral (single player)", the folder first by name).
+- miniz (third_party/miniz, 3.1.2, unmodified) is its own C library target, built without stdio or the clock and
+  with its warnings off (CMakeLists.txt); MF8's PNG writer can take its deflate.
+
+### Checks
+
+- `tests/unit/path_layers.cpp` (ei_unit_check, the POSIX port check): a zip of a mod folder (its one top folder) and a
+  zip of files at its root, made with miniz's writer: the mod's folder and name, reads through the map (whole, File
+  with seeks and ReadAt, MappedFile), a write refused, folder searches merged with the game's, FilesByLayer, ModRoot.
+- `mod_zip_archives` (either install; make_mod_s19d.py archives --zip s19d_mod.zip): rebirth_mod_archives' mod as a zip
+  of files: the same answers and the same goldens as rebirth_mod_archives (its console, digest and saves files equal).
+- `mod_zip_loose_files` (make_mod_s19d.py loose --zip s19d_mod.zip --top): mod_loose_files' mod zipped below its
+  folder: the same answers, the log naming the zip's s19d_mod\ and saves\s19d_mod.
+- `mod_zip_menu` (make_mod_s19d.py loose --zip starter\Mods\0_s19d.zip --top: the zip in the run's overlay of the game
+  folder): the list shows it (first by name) on either install, a pick switches to it, the new menu shows it chosen and
+  its loose file is read.
+- Lost in Astral from Rebirth's LostInAstral.zip (by hand, mod_lost_in_astral with `mod starter\Mods\LostInAstral.zip`;
+  not a committed scenario: the Linux stub data leaves zips out, tools/stub_data.py): every check and the golden the
+  same as from the folder.
 
 ## A mod's config.reg
 
@@ -254,8 +313,8 @@ because the options window is on top of the menu when it is open and a switch is
 (`ModSwitchAllowed`), and because the mod decides the menu's own zone and music, so the choice belongs where the
 change shows. `MainMenu::AddModList` makes it at every `CreateScreen` (a switch makes the menu again) from
 `modlist::Scan(app::GameFolder(), platform::ModFolder())`:
-- the entries: "No mod" (the game's own files), then each folder of the game folder's `starter\Mods` with a `config.reg`,
-  by folder name, titled by `[MOD] Title` (the folder's name when it has none; a mod for one kind of game, `Single` 1
+- the entries: "No mod" (the game's own files), then each folder or .zip of the game folder's `starter\Mods` with a
+  `config.reg` (`platform::ModRoot`: at its root or in its one top folder; "Zip mods"), by name, titled by `[MOD] Title` (the folder's name when it has none; a mod for one kind of game, `Single` 1
   and `Multi` 0 or the reverse, has " (single player)" or " (multiplayer)" after it: Lost in Astral and the other
   Rebirth mods are single player; the shipped "Standard" is Nival's title "Без модов", a mod folder of its own with its
   own saves, not the same as "No mod"). The mod played now that is not in `starter\Mods` is added, titled by its folder.

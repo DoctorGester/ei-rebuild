@@ -1,11 +1,12 @@
 // platform.h's folder calls on std::filesystem, for every system: each path through SystemPath, then the backend's
-// NativePath (seams.h); and the folder search, its layers' searches (SystemSearches) merged. The file objects, one
-// folder's search and the whole files are each backend's.
+// NativePath (seams.h), a path through a .zip read from the zip (zip_folders.h); and the folder search, its layers'
+// searches (SystemSearches) merged. The file objects, one folder's search and the whole files are each backend's.
 #include "platform/platform.h"
 
 #include "lib/text_case.h"
 #include "platform/path_layers.h"
 #include "platform/seams.h"
+#include "platform/zip_folders.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -51,19 +52,24 @@ bool RenameFile(std::string_view from, std::string_view to) {
 }
 
 bool CopyFileOver(std::string_view from, std::string_view to) {
-    std::error_code error;
-    return fs::copy_file(Native(from, PathUse::Read), Native(to, PathUse::Write), fs::copy_options::overwrite_existing,
-                         error);
+    return CopySystemFile(SystemPath(from, PathUse::Read), SystemPath(to, PathUse::Write), true);
 }
 
+// A zip's files and folders too (zip_folders.h).
 bool PathExists(std::string_view path) {
+    const std::string mapped = SystemPath(path, PathUse::Read);
+    ZipPlace place;
+    if (InZip(mapped, &place)) return place.found;
     std::error_code error;
-    return fs::exists(Native(path, PathUse::Read), error);
+    return fs::exists(NativePath(mapped), error);
 }
 
 bool IsFile(std::string_view path) {
+    const std::string mapped = SystemPath(path, PathUse::Read);
+    ZipPlace place;
+    if (InZip(mapped, &place)) return place.found && !place.folder;
     std::error_code error;
-    const fs::file_status status = fs::status(Native(path, PathUse::Read), error);
+    const fs::file_status status = fs::status(NativePath(mapped), error);
     return fs::exists(status) && !fs::is_directory(status);
 }
 

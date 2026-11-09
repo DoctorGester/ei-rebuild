@@ -21,16 +21,22 @@ std::string WithoutSlash(std::string folder) {
     return folder;
 }
 
+bool IsZip(std::string_view name) {
+    return name.size() > 4 && text::CompareIgnoringCase(name.substr(name.size() - 4), ".zip") == 0;
+}
+
 bool SameFolder(const std::string& a, const std::string& b) {
     return !a.empty() && text::CompareIgnoringCase(WithoutSlash(a), WithoutSlash(b)) == 0;
 }
 
-// The entry for the mod in `folder`; false when it has no config.reg.
-bool ModEntry(const std::string& folder, const std::string& name, Entry* entry) {
+// The entry for the mod at `path` (a folder or a .zip: platform::ModRoot), titled `name` when its config.reg has no
+// title; false when it has no config.reg.
+bool ModEntry(const std::string& path, const std::string& name, Entry* entry) {
+    const std::string root = platform::ModRoot(path);
     FileRegistry registry;
-    if (!registry.Open(folder + "\\config.reg")) return false;
-    entry->folder = platform::FullGamePath(folder);
-    entry->setting = SettingOf(entry->folder);
+    if (root.empty() || !registry.Open(root + "\\config.reg")) return false;
+    entry->folder = root;
+    entry->setting = SettingOf(platform::FullGamePath(path));
     entry->title = name;
     const std::string title = registry.GetString("MOD", "Title", "");
     if (!title.empty()) entry->title = title;
@@ -46,23 +52,24 @@ bool ModEntry(const std::string& folder, const std::string& name, Entry* entry) 
 std::vector<Entry> Scan(const std::string& gameFolder, const std::string& current) {
     std::vector<Entry> entries;
     entries.push_back(Entry{kNoMod, {}, {}});
-    std::vector<platform::FolderEntry> folders;
+    std::vector<platform::FolderEntry> mods;
     for (platform::FolderEntry& found : platform::FolderEntries(WithoutSlash(gameFolder) + "\\" + kModsFolder + "\\*"))
-        if (found.folder && !found.IsDots()) folders.push_back(std::move(found));
-    std::sort(folders.begin(), folders.end(), [](const platform::FolderEntry& a, const platform::FolderEntry& b) {
+        if (found.folder ? !found.IsDots() : IsZip(found.name)) mods.push_back(std::move(found));
+    std::sort(mods.begin(), mods.end(), [](const platform::FolderEntry& a, const platform::FolderEntry& b) {
         return text::CompareIgnoringCase(a.name, b.name) < 0;
     });
-    for (const platform::FolderEntry& folder : folders) {
+    for (const platform::FolderEntry& mod : mods) {
         Entry entry;
-        if (ModEntry(folder.path, folder.name, &entry)) entries.push_back(std::move(entry));
+        if (ModEntry(mod.path, mod.folder ? mod.name : mod.Title(), &entry)) entries.push_back(std::move(entry));
     }
     if (!current.empty() && IndexOf(entries, current) == 0) {
         const std::string folder = WithoutSlash(current);
+        const std::string name = folder.substr(folder.find_last_of('\\') + 1);
         Entry entry;
-        if (!ModEntry(folder, folder.substr(folder.find_last_of('\\') + 1), &entry)) {
+        if (!ModEntry(folder, name, &entry)) {
             entry.folder = platform::FullGamePath(folder);
             entry.setting = SettingOf(entry.folder);
-            entry.title = folder.substr(folder.find_last_of('\\') + 1);
+            entry.title = name;
         }
         entries.push_back(std::move(entry));
     }

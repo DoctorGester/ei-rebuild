@@ -1,0 +1,25 @@
+# The main menu's list finds a zip mod (docs/notes/mods.md, "Zip mods" and "The menu's list"): mod_loose_files' mod
+# (tools/make_mod_s19d.py loose) packed below one folder s19d_mod\ into the run's overlay of the game folder's
+# starter\Mods as 0_s19d.zip (the name sorts it first, before Rebirth's mods), which the list shows by its config.reg's
+# title on either install (the vanilla data has no starter\Mods of its own: the overlay's is the list's one mod). Picked
+# through the UI: the switch plays the zip's s19d_mod\ with its saves in saves\s19d_mod (the folder's name), the menu
+# made again shows it chosen, and a loose file of the zip is read in place of the archive's entry.
+# prepare: make_mod_s19d.py loose --zip starter\Mods\0_s19d.zip --top
+timeout 60
+resolution 1280x720
+fullscreen 0
+reject Script error
+waitmenu
+droplist expect No mod
+droplist open
+frames 3
+droplist pick 1
+frames 20
+expectlog 0_s19d.zip\s19d_mod (its saves in saves\s19d_mod)
+expectlog mod: loading screen step 5 drawn
+waitmenu
+droplist expect S19d test mod
+modfile texts.res s19d.txt 16
+modfile texts.res s19d_c.txt 21
+report
+quit

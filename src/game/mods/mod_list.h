@@ -1,7 +1,8 @@
 #pragma once
 
-// The main menu's list of mods (docs/notes/mods.md, "The menu's list"): the folders of the game folder's starter\Mods
-// that hold a config.reg, by their [MOD] Title, and the entry for the game without a mod.
+// The main menu's list of mods (docs/notes/mods.md, "The menu's list"): the folders and .zip files of the game folder's
+// starter\Mods that hold a config.reg (platform::ModRoot), by their [MOD] Title, and the entry for the game without a
+// mod.
 
 #include <string>
 #include <vector>
@@ -10,11 +11,11 @@ namespace modlist {
 
 struct Entry {
     std::string title;     // the shown text (UTF-8)
-    std::string folder;    // the mod's folder in full, empty for the game without a mod
+    std::string folder;    // the mod's folder in full (platform::ModRoot: in a zip for one), empty for the game without a mod
     std::string setting;   // [game] Mod for it (as app::UseMod reads it), empty for none
 };
 
-// The entries, "no mod" first, then every mod by its folder's name. A mod whose config.reg says it is for one kind of
+// The entries, "no mod" first, then every mod by its folder's or zip's name. A mod whose config.reg says it is for one kind of
 // game only (Single or Multi present and 0 for the other) has "(single player)" or "(multiplayer)" after its title.
 // The mod being played (`current`: platform::ModFolder, empty for none) is among them, as a folder outside starter\Mods
 // too: its title is the folder's name then.

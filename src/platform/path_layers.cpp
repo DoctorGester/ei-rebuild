@@ -2,6 +2,7 @@
 #include "platform/path_layers.h"
 
 #include "lib/text_case.h"
+#include "platform/zip_folders.h"
 
 #include <algorithm>
 #include <atomic>
@@ -14,12 +15,17 @@ namespace {
 
 namespace fs = std::filesystem;
 
+// A zip's files and folders too (zip_folders.h).
 bool Exists(const std::string& path) {
+    ZipPlace place;
+    if (InZip(path, &place)) return place.found;
     std::error_code error;
     return fs::exists(NativePath(path), error);
 }
 
 bool IsFolderPath(const std::string& path) {
+    ZipPlace place;
+    if (InZip(path, &place)) return place.folder;
     std::error_code error;
     return fs::is_directory(NativePath(path), error);
 }
@@ -162,10 +168,7 @@ std::string PathLayers::Map(std::string_view path, PathUse use, Placed* placed) 
     if (use == PathUse::Update && !Exists(target)) {
         std::string from = Find(relative, 1);
         if (from.empty()) from = path;
-        if (Exists(from) && (!copiesUp || copiesUp(relative, from))) {
-            std::error_code error;
-            fs::copy_file(NativePath(from), NativePath(target), fs::copy_options::none, error);
-        }
+        if (Exists(from) && (!copiesUp || copiesUp(relative, from))) CopySystemFile(from, target, false);
     }
     return target;
 }
@@ -203,14 +206,17 @@ const Mod* CurrentMod() { return g_mod.load(std::memory_order_acquire); }
 bool SwitchMod(std::string_view gameFolder, std::string_view modFolder) {
     // The mod played so far is never deleted: other threads may still map a path through it.
     const std::string game = FullGamePath(gameFolder);
-    const std::string folder = FullGamePath(modFolder);
-    if (game.empty() || folder.empty() || !IsFolderPath(folder)) {
+    const std::string folder = ModRoot(modFolder);
+    if (game.empty() || folder.empty()) {
         g_mod.store(nullptr, std::memory_order_release);
         return modFolder.empty();
     }
     auto* mod = new Mod;
     mod->folder = folder;
     mod->name = folder.substr(folder.find_last_of('\\') + 1);
+    if (InZip(folder) && mod->name.size() > 4 &&
+        text::CompareIgnoringCase(std::string_view(mod->name).substr(mod->name.size() - 4), ".zip") == 0)
+        mod->name.resize(mod->name.size() - 4);   // the zip itself is the mod's folder
     // The mod's folders' files, not its root's (config.reg, its readme, Rebirth's plugin) and no archive.
     mod->layer.folder = folder;
     mod->layer.place = [folder](std::string_view relative) -> std::string {
@@ -230,6 +236,24 @@ bool SwitchMod(std::string_view gameFolder, std::string_view modFolder) {
 std::string ModFolder() {
     const Mod* mod = CurrentMod();
     return mod ? mod->folder : std::string();
+}
+
+std::string ModName() {
+    const Mod* mod = CurrentMod();
+    return mod ? mod->name : std::string();
+}
+
+std::string ModRoot(std::string_view path) {
+    const std::string named = FullGamePath(path);
+    const std::string full = named.empty() ? named : FullGamePath(SystemPath(named, PathUse::Read));
+    if (full.empty() || !IsFolderPath(full)) return {};
+    if (Exists(Joined(full, "config.reg"))) return full;
+    const std::string pattern = Joined(full, "*");
+    std::vector<FolderEntry> entries;
+    for (FolderEntry& entry : SearchFolder(pattern, pattern))
+        if (!entry.IsDots()) entries.push_back(std::move(entry));
+    if (entries.size() == 1 && entries[0].folder && Exists(Joined(entries[0].path, "config.reg"))) return entries[0].path;
+    return full;
 }
 
 } // namespace platform

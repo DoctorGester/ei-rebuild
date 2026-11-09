@@ -1,8 +1,12 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose [--zip <name> [--top]]
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
+  --zip <name>  the mod as one zip instead (docs/notes/mods.md, "Zip mods"), <saves dir>\\<name>: "s19d_mod.zip" for the
+                step "mod harness_saves\\s19d_mod.zip"; "starter\\Mods\\<name>.zip" puts it in the run's overlay of the
+                game folder's starter\\Mods, where the main menu's list finds it
+  --top         the zip's files below one folder s19d_mod\\ (as a zip of the mod's folder), not at its root
 
 Every file is a copy or a repack of the vanilla install's own data (EI_GAME_VANILLA; read only) or a few made-up bytes;
 nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
@@ -28,7 +32,7 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Maps\\s19d_loose\\      a folder that stands for s19d_loose.mpr
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them).
 """
-import argparse, os, shutil, sys
+import argparse, os, shutil, sys, tempfile, zipfile
 
 import exe_path
 import make_test_mod as mod
@@ -124,15 +128,44 @@ def loose(root):
 KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose}
 
 
+def zip_folder(root, target, top):
+    """The mod folder root packed into the zip target: its files at the zip's root, or below one top folder of the
+    mod's name with an entry for each folder (as Rebirth's LostInAstral.zip has them). The .res archives stored, the
+    rest deflated, so both of the reader's ways are taken."""
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    with zipfile.ZipFile(target, 'w') as z:
+        if top:
+            z.writestr(MOD + '/', b'')
+        for path, folders, names in os.walk(root):
+            folders.sort()
+            inside = os.path.relpath(path, root).replace(os.sep, '/')
+            prefix = (MOD + '/' if top else '') + ('' if inside == '.' else inside + '/')
+            if top and inside != '.':
+                z.writestr(prefix, b'')
+            for name in sorted(names):
+                method = zipfile.ZIP_STORED if name.lower().endswith('.res') else zipfile.ZIP_DEFLATED
+                z.write(os.path.join(path, name), prefix + name, compress_type=method)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('saves')
     parser.add_argument('kind', choices=sorted(KINDS))
+    parser.add_argument('--zip', metavar='NAME', help='the mod as <saves dir>\\NAME (a .zip), not as a folder')
+    parser.add_argument('--top', action='store_true', help='in the zip below one folder of the mod\'s name')
     args = parser.parse_args()
-    root = os.path.join(args.saves, MOD)
-    os.makedirs(root, exist_ok=True)
-    KINDS[args.kind](root)
-    print(f'{root}: {args.kind}')
+    if not args.zip:
+        root = os.path.join(args.saves, MOD)
+        os.makedirs(root, exist_ok=True)
+        KINDS[args.kind](root)
+        print(f'{root}: {args.kind}')
+        return
+    target = os.path.join(args.saves, args.zip.replace('\\', os.sep))
+    os.makedirs(args.saves, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=args.saves) as scratch:
+        KINDS[args.kind](scratch)
+        zip_folder(scratch, target, args.top)
+    print(f'{target}: {args.kind}{" below " + MOD if args.top else ""}')
 
 
 if __name__ == '__main__':
