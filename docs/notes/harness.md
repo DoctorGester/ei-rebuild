@@ -510,7 +510,7 @@ differ from the desktop's.
   (nuget.org lists the SHA512) next to the exe and a run of the same comparison.
 - **A lost device** (H62f): WARP 10.0.26100 removed its device in bz1g's scenes (ui_base_dialogue, render_stats in the
   town, net_pair_database on Rebirth's): an access violation in its shader code reading 0xFFF0 bytes past a uniform
-  buffer, the point shadows' arrays read at index -1 by lanes that do not use the answer (point_shadow.hlsli's
+  buffer, the point shadows' arrays read at index -1 by lanes that do not use the answer (point_lights.hlsli's
   `point_index` keeps them in range now). SDL then crashed in D3D12_PushVertexUniformData; with the vendored SDL's
   change the run ends with "render: fatal: The renderer cannot present on the game window: the GPU device was lost:
   ..." (renderer.md, "No device-loss recovery"), and the harness's log holds the exception (`harness: exception

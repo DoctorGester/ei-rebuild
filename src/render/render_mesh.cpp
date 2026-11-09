@@ -372,10 +372,10 @@ static bool FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, Pa
     *shadow = &ShadowUniforms(f, batch.light >= 0, batch.light >= 0);
     r.place[3] = ShadowNormalOffset(f, batch.light >= 0);
     if (batch.lighting >= 0) {
-        // Its lights take their point shadows with the landscape's rows.
+        // In the world it takes the point lights and their shadows with the landscape's rows.
         if (!lit) part = PartLight{};
         lit = true;
-        MeshLightRecord(f, f.meshLights[static_cast<std::size_t>(batch.lighting)], r, part);
+        MeshLightRecord(f.meshLights[static_cast<std::size_t>(batch.lighting)], r, part);
         if (batch.landscape >= 0) {
             const Matrix4& m = f.models[static_cast<std::size_t>(batch.landscape)];
             std::memcpy(r.landscape, m.m, sizeof(r.landscape));
@@ -387,7 +387,7 @@ static bool FillRecord(const Frame& f, const MeshBatch& batch, MeshRecord& r, Pa
     if (batch.decal) {   // a ground print: lit as the ground (its positions the landscape's), its normal up
         if (!lit) part = PartLight{};
         lit = true;
-        MeshLightRecord(f, GroundDecalLight(f, batch.box), r, part);
+        MeshLightRecord(GroundDecalLight(f), r, part);
         for (int k = 0; k < 3; ++k) r.landscape[k][k] = 1.0f;
         r.flags[2] = 1;
         r.kinds[0] = 1;
@@ -602,14 +602,16 @@ void MeshDraws::Draw(const Frame& f, std::size_t first) {
     for (int t = 0; t < 3; ++t) textures[t] = run.textures[t];
     gpu::BindTextures(gpu::Stage::Fragment, program::kSamplerTex0, textures);
     CountBindings(textures[0].texture);
-    static_assert(program::kStoragePartLight == program::kStorageMeshRecord + 1);
+    static_assert(program::kStoragePartLight == program::kStorageMeshRecord + 1 &&
+                  program::kStorageLightWords == program::kStoragePointLight + 1);
     const gpu::Buffer storage[2] = {records.Buffer(), lights.Buffer()};
     gpu::BindStorageBuffers(gpu::Stage::Vertex, program::kStorageMeshRecord, {storage, 1});
     gpu::BindStorageBuffers(gpu::Stage::Fragment, program::kStorageMeshRecord, storage);
+    BindPointLights(program::kStoragePointLight);
     gpu::PushUniforms(gpu::Stage::Fragment, program::kBlockMeshFsParams, run.fs);
-    // The shadow's (one of the frame's ShadowUniforms keeps) and the point shadows' blocks stay the same for the pass.
+    // The shadow's (one of the frame's ShadowUniforms keeps) and the point lights' blocks stay the same for the pass.
     gpu::PushPassUniforms(gpu::Stage::Fragment, program::kBlockShadowParams, *run.shadow);
-    gpu::PushPassUniforms(gpu::Stage::Fragment, program::kBlockPointShadowParams, f.shadow.point.params);
+    gpu::PushPassUniforms(gpu::Stage::Fragment, program::kBlockPointLightParams, f.shadow.point.params);
     if (run.commands == 1) {
         const gpu::IndexedIndirect& c = commandData[run.command];
         gpu::DrawIndexed(c.first, c.count, c.instances, c.firstInstance);

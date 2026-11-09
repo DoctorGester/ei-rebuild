@@ -93,12 +93,13 @@ void RestoreWeather(const KeptWeather& weather);
 std::optional<UnitWeatherLevels> UnitWeatherToKeep(const Object3D* object);
 void RestoreUnitWeather(const Object3D* object, const UnitWeatherLevels& levels);
 // The GPU lighting (renderer.md section 13). The world's draw hands over the frame's light, kept
-// until the next hand-over: the sun, the ambient colour, the point lights the landscape lights its ground
-// with (the nearest kMostSceneLights), the camera and the client's time (the water's ripples move by it). The terrain
+// until the next hand-over: the sun, the ambient colour, the point lights (all the landscape shows: the ground and the
+// figures take them from it), the camera and the client's time (the water's ripples move by it). The terrain
 // shader lights each pixel and SectorData::Light writes only the edge fade. The daylight colours: the sun and ambient
 // colour the ground prints' own colours are for (WorldClient::DaylightColours); a print is lit by the ground's light
 // over the ground's light in them (mesh.hlsl's ground_shade).
 struct ScenePointLight {
+    std::uint32_t id = 0;   // the game's light's (a point shadow follows it)
     Vector3 position;   // the landscape's space
     float inverseRangeSquared = 0.0f;
     float colour[3] = {};
@@ -116,7 +117,6 @@ struct SceneLights {
     int pointCount = 0;
     double clientTicks = 0.0;  // the client world's tick and the fraction of the next one it has had
 };
-constexpr int kMostSceneLights = 16;
 void SceneLighting(const SceneLights& lights);
 // Object shadows (renderer.md section 13): figures and map objects cast from the sun into a shadow map made
 // every frame; the game's 64 x 64 shadow decals are neither made nor drawn.
@@ -363,13 +363,8 @@ void TerrainPass(const terrain::Terrain* terrain, const SceneRenderer* renderer,
 enum class TerrainChange { Rebuilt, WaterMoved, Dropped };
 void TerrainChanged(const terrain::SectorData* sector, TerrainChange change);
 
-// A figure part lit on the GPU as 3DfpFPU's LightMesh lit its words (renderer.md section 13). Lights
-// and sun are taken into the part's model space.
-struct MeshLightSource {
-    Vector3 position;              // the landscape's space
-    float inverseRangeSquared = 0.0f;
-    float colour[3] = {};
-};
+// A figure part lit on the GPU as 3DfpFPU's LightMesh lit its words (renderer.md section 13). The sun is taken into
+// the part's model space; a world part's point lights are the scene's (SceneLighting), found per pixel.
 struct MeshLighting {
     Matrix4 model;                 // the part's model space to the landscape's (row-major)
     bool sun = false;
@@ -379,8 +374,6 @@ struct MeshLighting {
     float diffuseColour[4] = {};   // the material's
     float emissiveColour[3] = {};
     float coefficient = 0.0f;      // the options' objects lighting coefficient (Light::SetLitColors)
-    const MeshLightSource* lights = nullptr;  // the lights within the object's reach (its draw's list)
-    int lightCount = 0;
 };
 
 // A figure mesh or link figure changed in place: Positions (per-vertex offsets, a part morphed again),

@@ -35,7 +35,7 @@ struct VsOut {
 struct MeshRecord {
     row_major float4x4 matrix;
     row_major float4x4 light;   // model space to the shadow map
-    float4 landscape[3];        // model space to the landscape's: rows (point shadows)
+    float4 landscape[3];        // model space to the landscape's: rows (point lights)
     float4 place;               // the half-pixel shift (render_internal.h; xy), the depth's scale (the flat geometry's:
                                 // shadows drawn just in front; z), how far along its normal a receiver's point is
                                 // looked up in the map (w)
@@ -45,15 +45,16 @@ struct MeshRecord {
     float4 weather;             // a world mesh's wetness and snow cover (render_weather.cpp; 0 elsewhere)
     int4 flags;                 // z kept inside the depth range, the horizon's haze (render::MeshFog::Horizon), a ground
                                 // print's normal (none: the landscape's up), a unit's shadows (MeshBatch::front)
-    int4 kinds;                 // the point shadows taken (the landscape rows set), ... by a unit's mesh from pointFront,
-                                // the weather's kind, the ambient occlusion taken
-    int4 lit;                   // lit here, a ground print (ground_shade), its lights' count, the harness's occlusion view
+    int4 kinds;                 // in the world: the point lights and their shadows taken (the landscape rows set), the
+                                // shadows by a unit's mesh from pointFront, the weather's kind, the ambient occlusion taken
+    int4 lit;                   // lit here, a ground print (ground_shade), -, the harness's occlusion view
     float4 pointFront;          // per map: a unit's nearest distance to the light (MeshBatch::pointFront)
     int4 lights;                // x: its PartLight (0: none, all zero)
 };
 
-// A figure part lit on the GPU (render_lighting.cpp, MeshLightRecord): the sun and lights in the part's model space.
-// A ground print's (GroundDecalLight): the scene's in the landscape's space, which its positions are in.
+// A figure part lit on the GPU (render_lighting.cpp, MeshLightRecord): the sun in the part's model space. A ground
+// print's (GroundDecalLight): the scene's in the landscape's space, which its positions are in. The point lights are the
+// frame's (point_lights.hlsli).
 struct PartLight {
     float4 sun;                 // towards the sun in model space
     float4 sunColour;           // the sun's lit colour
@@ -62,10 +63,7 @@ struct PartLight {
     float4 mapSun;              // a ground print's: the direction the shadow map's light travels (unit)
     float4 daySunColour;        // a ground print's: the daylight sun (render::SceneLights::daySunColour)
     float4 dayAmbient;          // ... and ambient colour
-    float4 pointAt[8];          // per light: model-space position xyz, w: 1 / range squared
-    float4 pointColour[8];      // per light: lit colour rgb
-    int4 pointShadows[2];       // per light (4 a vector): its point shadow's map, -1 none
-    int4 pointSpecular[2];      // a ground print's: per light (4 a vector) 1 specular (added after the colour)
+    float4 pointTint;           // a figure part's: what its point lights' colours are multiplied by (rgb)
 };
 
 #ifdef EI_VERTEX
@@ -114,8 +112,10 @@ VsOut vs_main(VsIn i) {
 #define OCCLUSION_MAP_SLOT 7
 #define OCCLUSION_DEPTH_SLOT 8
 #define ROOF_MAP_SLOT 9
+#define POINT_LIGHTS_SLOT 12   // after the records and their lights
+#define POINT_GRID_SLOT 13
 #include "shadow_receiver.hlsli"
-#include "point_shadow.hlsli"
+#include "point_lights.hlsli"
 #include "cloud_shadow.hlsli"
 #include "ambient_occlusion.hlsli"
 #include "roof.hlsli"
@@ -162,33 +162,35 @@ Texture2D<float4> tex2 : FS_TEXTURE(2);   // stage 0's patch
 SamplerState smp2 : FS_SAMPLER(2);
 
 // A figure part's colour as 3DfpFPU's LightMesh lit it (render.h, MeshLighting). See docs/notes/renderer.md, "The
-// renderer's source files". `occlusion`: how much of the ambient light reaches the pixel (1 all).
-float3 figure_light(float3 p, float3 n, float3 land, float3 face, float2 turn, float occlusion) {
+// renderer's source files". `n`: the model-space normal; `land`: the point in the landscape's space, where the point
+// lights are (in the world only: MeshRecord::kinds.x). `occlusion`: how much of the ambient light reaches the pixel (1
+// all).
+float3 figure_light(float3 n, float3 land, float3 face, float2 turn, float occlusion) {
     float3 ambient = part.ambient.rgb * occlusion;
     float facing = dot(part.sun.xyz, n);
     float3 lit = max(ambient, part.sunColour.rgb * facing);
-    int count = draw.lit.z;
-    for (int k = 0; k < count; ++k) {
-        float4 at = part.pointAt[k], colour = part.pointColour[k];
-        float3 d = at.xyz - p;
+    // The normal taken to the landscape's space (the part's matrix there turns and moves only).
+    float3 ln = float3(dot(draw.landscape[0].xyz, n), dot(draw.landscape[1].xyz, n), dot(draw.landscape[2].xyz, n));
+    uint2 span = draw.kinds.x != 0 ? cell_lights(land) : uint2(0, 0);
+    for (uint k = 0; k < span.y; ++k) {
+        PointLight l = pointLights[grid_word(span.x + k)];
+        float3 d = l.at.xyz - land;
         float distance2 = dot(d, d);
-        float falloff = 1.0 - distance2 * at.w;
+        float falloff = 1.0 - distance2 * l.at.w;
         if (falloff < 0.0) continue;
-        float c = dot(d * rsqrt(max(distance2, 1e-12)), n);
+        float c = dot(d * rsqrt(max(distance2, 1e-12)), ln);
         float seen = 1.0;
-        int4 slots = part.pointShadows[k >> 2];
-        int slot = slots[k & 3];
-        if (slot >= 0 && draw.kinds.x != 0 && c > 0.0) {
+        int slot = l.shadow.x;
+        if (slot >= 0 && c > 0.0) {
             if (draw.kinds.y != 0) {
                 float4 fronts = draw.pointFront;
                 seen = point_seen(slot, land, 0.0, fronts[point_index(slot)], turn);
             } else {
-                float lightFacing =
-                    saturate(dot(face, normalize(pointShadow.lights[point_index(slot)].xyz - land)) * 6.0);
+                float lightFacing = saturate(dot(face, normalize(points.shadows[point_index(slot)].xyz - land)) * 6.0);
                 if (lightFacing > 0.0) seen = lerp(1.0, point_seen(slot, land, face, kNoPointFront, turn), lightFacing);
             }
         }
-        lit = max(lit, colour.rgb * c * falloff * seen);
+        lit = max(lit, part.pointTint.rgb * l.colour.rgb * c * falloff * seen);
     }
     float3 c = min(1.0, lit + part.emissive.rgb);
     return c;
@@ -209,20 +211,17 @@ float3 ground_shade(float3 p, float3 n, float hidden, float2 turn, out float3 sp
     float3 lit = min(lerp(sunlit, min(1.0, ambient), hidden), sunlit * shade);
     float3 open = sunlit;
     spec = 0.0;
-    int count = draw.lit.z;
-    for (int k = 0; k < count; ++k) {
-        float4 at = part.pointAt[k], colour = part.pointColour[k];
-        float3 d = at.xyz - p;
+    uint2 span = cell_lights(p);
+    for (uint k = 0; k < span.y; ++k) {
+        PointLight l = pointLights[grid_word(span.x + k)];
+        float3 d = l.at.xyz - p;
         float distance2 = dot(d, d);
-        float falloff = 1.0 - distance2 * at.w;
+        float falloff = 1.0 - distance2 * l.at.w;
         if (falloff < 0.0) continue;
         float c = dot(n, d * rsqrt(max(distance2, 1e-12)));
-        float3 v = (c <= 0.0 ? c + 1.0 : 1.0) * falloff * colour.rgb;
-        int4 slots = part.pointShadows[k >> 2];
-        int slot = slots[k & 3];
-        float seen = slot >= 0 ? point_seen(slot, p, n, kNoPointFront, turn) : 1.0;
-        int4 specular = part.pointSpecular[k >> 2];
-        if (specular[k & 3] != 0) spec = max(spec, min(1.0, v * seen) * shade);
+        float3 v = (c <= 0.0 ? c + 1.0 : 1.0) * falloff * l.colour.rgb;
+        float seen = l.shadow.x >= 0 ? point_seen(l.shadow.x, p, n, kNoPointFront, turn) : 1.0;
+        if (l.colour.w != 0.0) spec = max(spec, min(1.0, v * seen) * shade);
         else lit = max(lit, min(1.0, v * seen) * shade);
         open = max(open, min(1.0, v));
     }
@@ -375,7 +374,7 @@ float4 Shade(VsOut i) {
     float3 face = cross(ddx(i.land), ddy(i.land));
     float faceLength = length(face);
     face = faceLength > 1e-20 ? face / faceLength : float3(0.0, 0.0, 1.0);
-    if (dot(face, pointShadow.eye - i.land) < 0.0) face = -face;
+    if (dot(face, points.eye - i.land) < 0.0) face = -face;
     // How much of the sun the shadow map hides. A unit's mesh: the shadows other objects cast, on every face (none of
     // its own: its sun side is shaded by the lighting's N.L; by face it flipped triangle by triangle on a low-poly
     // creature). Any other mesh: on faces turned to the sun only, by their face normal (the smoothed vertex normals of
@@ -392,7 +391,7 @@ float4 Shade(VsOut i) {
     float occlusion = ambient_occlusion(i.pos.xy, i.pos.z, draw.kinds.w, fs.occlusionDepthOffset,
                                         fs.occlusionDepthScale, fs.occlusionScale, fs.occlusionTexel);
     if (draw.lit.x != 0) {
-        diffuse.rgb = figure_light(i.model, i.normal, i.land, face, pixel_turn(i.pos.xy), occlusion) *
+        diffuse.rgb = figure_light(i.normal, i.land, face, pixel_turn(i.pos.xy), occlusion) *
                       occlusion_direct(occlusion);
     }
     float4 current = diffuse;

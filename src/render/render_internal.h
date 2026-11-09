@@ -39,7 +39,8 @@ using gpu_shaders::PartLight;
 using gpu_shaders::OcclusionBlurParams;
 using gpu_shaders::OcclusionParams;
 using gpu_shaders::PerfOverlayParams;
-using gpu_shaders::PointShadowParams;
+using gpu_shaders::PointLight;
+using gpu_shaders::PointLightParams;
 using gpu_shaders::PresentParams;
 using gpu_shaders::RectParams;
 using gpu_shaders::SceneLightParams;
@@ -220,7 +221,7 @@ struct MeshBatch {
     float box[6] = {};
     float front = 2.0f;
 // A caster's mesh has its box too (`boxed`); `placement` its model matrix into the landscape's space (MeshDraw::model:
-// Frame::models, -1 none); a world mesh lit on the GPU takes it for its point shadows (`landscape`, PreparePointShadows)
+// Frame::models, -1 none); a world mesh lit on the GPU takes it for its point lights (`landscape`, PreparePointLights)
 // and, a unit's, its object's nearest distance to each point light with a map (kNoFront: not a unit).
     bool boxed = false;
     int placement = -1;
@@ -282,8 +283,9 @@ struct Command {
 struct Frame;
 
 // The scene's light as render::SceneLighting keeps it: the sun (the direction its light travels, unit), its colours
-// and the point lights nearest the camera. Until the first hand-over: a sun from above, half ambient.
+// and the point lights. Until the first hand-over: a sun from above, half ambient.
 struct KeptLight {
+    std::uint32_t id = 0;   // ScenePointLight::id
     Vector3 at;
     float inverseRangeSquared = 0.0f;
     float colour[3] = {};
@@ -298,16 +300,12 @@ struct KeptScene {
     float dayAmbientColour[3] = {0.5f, 0.5f, 0.5f};
     Vector3 camera;
     double clientTicks = 0.0;   // the client's time it was handed over with (SceneLights::clientTicks)
-    int count = 0;
-    KeptLight lights[kMostSceneLights];
+    std::vector<KeptLight> lights;
 };
 const KeptScene& KeptSceneLight();
-// The terrain shader's (shaders/scene_lighting.hlsli): the kept light with the frame's point shadows and the shadow
-// map's light direction.
-static_assert(std::size(SceneLightParams{}.pointAt) == kMostSceneLights);
+// The terrain shader's (shaders/scene_lighting.hlsli): the kept sun and ambient colour with the shadow map's light
+// direction.
 SceneLightParams SceneLightUniforms(const Frame& frame);
-// The kept light at `position` exactly (the same Light's), -1 none.
-int SceneLightIndex(const Vector3& position);
 // The shadow map's light for the sun `sun`: at least 20 degrees above the horizon, unit. False without a
 // direction. Receivers lit on the GPU weigh the map's darkening by their facing to it.
 std::optional<Vector3> MapLightDirection(const Vector3& sun);
@@ -315,13 +313,9 @@ std::optional<Vector3> MapLightDirection(const Vector3& sun);
 std::optional<Matrix4> InvertMatrix(const Matrix4& m);
 // a x b, both row-major.
 Matrix4 Product(const Matrix4& a, const Matrix4& b);
-// A mesh lit on the GPU (shaders/mesh.hlsl's PartLight). FigureLight: a figure part's, the sun and lights in
-// the part's model space, their colours times the material's diffuse colour and the coefficient; the
-// kMostMeshLights nearest the part's origin. GroundDecalLight (below): a ground print's. Each light
-// names its kept scene light (SceneLightIndex, -1 none), whose point shadow it takes at the draw
-// (MeshLightRecord).
-constexpr int kMostMeshLights = 8;
-static_assert(std::size(PartLight{}.pointAt) == kMostMeshLights);
+// A mesh lit on the GPU (shaders/mesh.hlsl's PartLight). FigureLight: a figure part's, the sun in the part's model
+// space, the point lights' colours (the frame's, PreparePointLights) times the material's diffuse colour and the
+// coefficient (`pointTint`). GroundDecalLight (below): a ground print's.
 struct MeshLight {
     bool groundPrint = false;
     Vector3 sun;   // towards the sun
@@ -331,32 +325,26 @@ struct MeshLight {
     Vector3 mapSun;   // a ground print's: the direction the shadow map's light travels, and the daylight colours
     float daySunColour[3] = {};
     float dayAmbientColour[3] = {};
-    int count = 0;
-    struct Point {
-        Vector3 at;
-        float inverseRangeSquared = 0.0f;
-        float colour[3] = {};
-        int sceneLight = -1;
-        bool specular = false;   // a ground print's: added after its colour
-    } points[kMostMeshLights];
+    float pointTint[3] = {};
 };
 MeshLight FigureLight(const MeshLighting& lighting);
 // Harness build: the ground prints drawn (SetGroundDecals).
 bool GroundDecalsDrawn();
 
-// Point-light shadows (shaders/point_shadow.hlsli): the receivers' fragment uniforms, the same for the frame. Each
-// light with a map has six faces of kPointFaceTexels in one row of the atlas.
+// The point lights (shaders/point_lights.hlsli): the receivers' fragment uniforms, the same for the frame: the lights'
+// grid (PreparePointLights) and their shadows (PreparePointShadows). Each light with a map has six faces of
+// kPointFaceTexels in one row of the atlas.
 constexpr int kMostPointShadows = 4;
 constexpr int kPointFaceTexels = 512;
-static_assert(std::size(PointShadowParams{}.lights) == kMostPointShadows);
+static_assert(std::size(PointLightParams{}.shadows) == kMostPointShadows);
 struct PointShadowFrame {
-    int sceneSlots[kMostSceneLights] = {};   // per kept scene light its map + 1, 0 none
-    int mapped = 0;                          // the lights with a map
-    PointShadowParams params{};
+    int rowLights[kMostPointShadows] = {-1, -1, -1, -1};   // per row of the atlas the kept light mapped there, -1 none
+    int mapped = 0;                                         // the lights with a map
+    PointLightParams params{};
     void Clear() {
-        for (int& slot : sceneSlots) slot = 0;
+        for (int& light : rowLights) light = -1;
         mapped = 0;
-        params = PointShadowParams{};
+        params = PointLightParams{};
     }
 };
 
@@ -1103,19 +1091,26 @@ private:
     std::size_t calls = 0;
 };
 // Point-light shadows (docs/notes/renderer.md section 13, item 9). PreparePointShadows (from PrepareShadows)
-// picks the strongest point lights in view that something shadows and gives the world's meshes lit on the GPU their
-// matrix into the landscape's space. PointShadowSlot: the map of a kept scene light, -1 none.
+// picks the point lights in view that something shadows with the most weight on the screen and fades their shadows in
+// and out (PointShadowFrame::rowLights, PointLightParams::shadows). SphereInView: the sphere lies in the clip matrix's
+// view.
 void PreparePointShadows(Frame& frame);
 void DrawPointShadows(Frame& frame);
 void BindPointShadows(const Frame& frame, int slot);
 gpu::TextureBinding PointShadowBinding(const Frame& frame);   // what BindPointShadows binds
-int PointShadowSlot(const Frame& frame, int sceneLight);
-// A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade): the scene's sun, ambient light and the
-// kMostMeshLights point lights nearest its box (in the landscape's space, low xyz, high xyz) that reach it, the
-// shadow map's light and the daylight colours. MeshLightRecord: a mesh's light as the shader takes it (its kind and
-// count in the record, the lights in `part`), each light with its point shadow (-1 none).
-MeshLight GroundDecalLight(const Frame& frame, const float box[6]);
-void MeshLightRecord(const Frame& frame, const MeshLight& light, MeshRecord& record, PartLight& part);
+bool SphereInView(const Matrix4& clip, const Vector3& centre, float radius);
+// The frame's point lights (shaders/point_lights.hlsli), after PreparePointShadows: every kept light with its shadow's
+// map in one storage buffer, and a grid over the landscape's x and y around the lights that reach into the camera's
+// view, each cell with the lights that reach it, in a second (its place in PointLightParams). It gives the world's
+// meshes lit on the GPU their matrix into the landscape's space (MeshBatch::landscape), where they find their lights.
+// BindPointLights: the two buffers at a program's fragment storage slot `slot` and the next.
+void PreparePointLights(Frame& frame);
+void BindPointLights(int slot);
+// A ground print's light (MeshBatch::decal; mesh.hlsl's ground_shade): the scene's sun and ambient light, the shadow
+// map's light and the daylight colours. MeshLightRecord: a mesh's light as the shader takes it (its kind in the record,
+// the light in `part`).
+MeshLight GroundDecalLight(const Frame& frame);
+void MeshLightRecord(const MeshLight& light, MeshRecord& record, PartLight& part);
 // The object whose meshes are being handed over and its place in ShadowFrame::casters (-1: none). ShadowFrameDone:
 // the frame is presented.
 const Object3D* CurrentCaster();

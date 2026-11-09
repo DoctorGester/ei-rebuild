@@ -16,6 +16,8 @@
 #define OCCLUSION_DEPTH_SLOT 6
 #define ROOF_MAP_SLOT 7
 #define SKY_IMAGE_SLOT 8   // the puddles reflect the sky
+#define POINT_LIGHTS_SLOT 9   // the storage buffers after the textures
+#define POINT_GRID_SLOT 10
 #include "terrain_common.hlsli"
 
 struct VsOut {
@@ -177,7 +179,7 @@ float4 Shade(VsOut i) {
                                                             fs.occlusionDepthScale, fs.occlusionScale, fs.occlusionTexel);
     if (fs.occlusionView != 0) return float4(occlusion.xxx, 1.0);   // the harness's occlusion view
     float3 spec;
-    float3 lit = ground_light(i.world, n, i.col, 0.0, i.loss, hidden, shadow.strength, pointShadow.count > 0,
+    float3 lit = ground_light(i.world, n, i.col, 0.0, i.loss, hidden, shadow.strength, points.count > 0,
                               pixel_turn(i.pos.xy), occlusion, spec);
     lit *= occlusion_direct(occlusion);
     GroundWeather g = ground_weather(i, n, open);
