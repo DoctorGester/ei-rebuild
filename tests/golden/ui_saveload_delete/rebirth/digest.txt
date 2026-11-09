@@ -7605,13 +7605,13 @@ client ticksRun 192
 @ 11 update 240 frame 47 tick 70 zone gz1g hash 6930B303 n 832
 world updates 240
 client ticksRun 212
-@ 12 update 260 frame 51 tick 56 zone gz1g hash F4E69039 n 832
+@ 12 update 260 frame 51 tick 56 zone gz1g hash 02E90ADB n 832
 world tick 56
 world updates 262
 world paused 0
 world secondsPerTick 0.00111111137
 world updateMap 16
-random isaac.count 247
+random isaac.count 250
 random isaac.a 0xB18A1865
 random isaac.b 0x4B6758B8
 random isaac.c 0x00000003
@@ -7669,7 +7669,7 @@ obj1932 #unit 34C7258B
 obj1933 #unit 6CCAA9B7
 obj1934 #unit 815512D7
 obj1935 #unit 6CCAA9B7
-obj1936 #ai C1E42346
+obj1936 #ai AF683807
 obj1936 #unit 652B09CB
 obj1936 #vitals 9C2A2F7E
 obj1937 pos.x 110.657738
@@ -7712,10 +7712,10 @@ cunit1804 #unit 0ECD8D97
 cunit1884 #place A0547F59
 cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit 0AC3B75D
-@ 13 update 280 frame 55 tick 76 zone gz1g hash 7008F5C9 n 832
+@ 13 update 280 frame 55 tick 76 zone gz1g hash 2F3FC22A n 832
 world tick 76
 world updates 282
-random isaac.count 136
+random isaac.count 131
 random crt.rand 0x3B1B1BF6
 player0 lastTick 67
 player0 var.gtime 6.04444456

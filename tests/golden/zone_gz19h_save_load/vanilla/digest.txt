@@ -32434,14 +32434,13 @@ client tickFraction 0.0
 cunit434149 #place 7F6630F4
 cunit451924 #place CB36C301
 cunit451924 #unit 98B8B44A
-@ 6 update 140 frame 27 tick 120 zone gz19h hash 72B2D3D5 n 3361
+@ 6 update 140 frame 27 tick 120 zone gz19h hash 30BB5BD6 n 3360
 world updates 142
 world secondsPerTick 0.00111111137
 world objects 3347
 world mapObjects 374
-world timedObjects 4
 world updateMap 47
-random isaac.count 57
+random isaac.count 68
 random isaac.a 0xF2E5377E
 random isaac.b 0x130E1681
 random isaac.c 0x0000000A
@@ -32856,8 +32855,6 @@ obj997639 #unit E25AF95C
 obj997640 #unit 95D47442
 timed997041 # DBCEBE2D
 timed997638 # 51A27188
-+ timed997639 101 CEffectTornado
-timed997639 # A6E62DE4
 script #ggroup 9B3F9179
 client tick 119
 client ticksRun 7
@@ -32866,12 +32863,11 @@ cunit451924 #place 5A3A128F
 cunit451924 #unit 3C4BE1AB
 cunit980429 #place 07244167
 cunit1000011214 #place 4D2B92DF
-@ 7 update 160 frame 31 tick 75 zone gz19h hash 4628319C n 3359
+@ 7 update 160 frame 31 tick 75 zone gz19h hash 33D8DA7B n 3359
 world tick 75
 world updates 164
-world timedObjects 3
 world updateMap 49
-random isaac.count 200
+random isaac.count 217
 random isaac.a 0x667BCD0B
 random isaac.b 0x097EDDC0
 random isaac.c 0x0000000C
@@ -32972,7 +32968,6 @@ obj997514 pos.y 405.791595
 obj997514 #ai B82B8704
 obj997514 #place 7F0F33E7
 obj997573 #ai 91DA03D8
-- timed997639
 aievents tick 75
 client tick 74
 client ticksRun 2
@@ -32985,10 +32980,10 @@ cunit451924 #unit 76A813C5
 cunit980429 #place 610BE185
 cunit1000011214 #place AC5FF1EB
 cunit1000011214 #unit 0E32D8B4
-@ 8 update 180 frame 35 tick 95 zone gz19h hash 5B0B6C1B n 3360
+@ 8 update 180 frame 35 tick 95 zone gz19h hash BF60C146 n 3360
 world tick 95
 world updates 184
-random isaac.count 76
+random isaac.count 93
 random isaac.a 0x176BB8BE
 random isaac.b 0xB9AF1E24
 random isaac.c 0x0000000D

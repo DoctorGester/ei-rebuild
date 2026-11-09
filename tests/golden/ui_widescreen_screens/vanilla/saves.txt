@@ -1,8 +1,8 @@
 savea/info.sav 1a6467a48a11b9cd
 savea/mission.sav 1ed1ecce17978f63
 savea/scenario.sav 998ec3633423841f
-savea/visuals.sav b562a61f46b18552
+savea/visuals.sav 0daee97d87a06a5c
 saveb/info.sav 2ac9966901b26f18
 saveb/mission.sav 307ce53dcf80b993
 saveb/scenario.sav adcd944881244feb
-saveb/visuals.sav 366954348ddf4b04
+saveb/visuals.sav 7de27d254593d3c4

@@ -1,21 +1,17 @@
 {
   "scenario": "mod_lost_in_astral_gipat_necropolis",
   "install": "rebirth",
-  "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/current/gz13g.visuals.sav: 17 fields in 1 records differ: visuals 17",
-    "  visuals: 17 fields in 1 records; first visuals.prints blood.print0.position.x: 107.759186 in the old golden, 108.079185 in the new run; largest numeric d 4.71 at visuals.prints blood.print0.uvAngle: 0.0 -> 4.71238899",
-    "save LostInAstral/savea/gz13g.visuals.sav: 17 fields in 1 records differ: visuals 17",
-    "  visuals: 17 fields in 1 records; first visuals.prints blood.print0.position.x: 107.759186 in the old golden, 108.079185 in the new run; largest numeric d 4.71 at visuals.prints blood.print0.uvAngle: 0.0 -> 4.71238899",
-    "save LostInAstral/savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
-    "  visuals: 6 fields in 1 records; first visuals.generator count: 147 in the old golden, 203 in the new run; largest numeric d 2.17e+09 at visuals.generator bb: 2271178601 -> 97838863"
+    "save LostInAstral/savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
+    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, -13 in the new run"
   ]
 }

@@ -1,17 +1,17 @@
 {
   "scenario": "combat",
   "install": "rebirth",
-  "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 6 fields in 1 records differ: visuals 6",
-    "  visuals: 6 fields in 1 records; first visuals.generator count: 91 in the old golden, 129 in the new run; largest numeric d 9.96e+08 at visuals.generator aa: 3241172569 -> 4236839942"
+    "save savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
+    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, 0 in the new run"
   ]
 }

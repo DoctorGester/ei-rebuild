@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 1136361 tick 60 zone gz1g hash 5994DAB5 n 791
+@ 2 update 60 frame 1024433 tick 60 zone gz1g hash 5994DAB5 n 791
 world tick 60
 world updates 60
 random isaac.count 125
@@ -6420,7 +6420,7 @@ cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
-@ 3 update 80 frame 1136365 tick 80 zone gz1g hash A3AF6177 n 791
+@ 3 update 80 frame 1024437 tick 80 zone gz1g hash A3AF6177 n 791
 world tick 80
 world updates 80
 random isaac.count 20

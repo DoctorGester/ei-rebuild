@@ -91,7 +91,7 @@
   Unit 534153 new motivation Sentry with power of 50
   Unit 686200 new motivation Sentry with power of 50
   Unit 1000063817 lost from sight unit 1000011214
-  Unit 182595 acknowledges with idleSound = AAn4XyU
+  Unit 848411 acknowledges with idleSound = AAn4XyU
   Unit 686200 new motivation Player with power of 10
   Unit 481569 new motivation Sentry with power of 50
   Unit 196568 new motivation Sentry with power of 50

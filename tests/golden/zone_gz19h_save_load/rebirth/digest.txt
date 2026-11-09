@@ -33552,14 +33552,13 @@ client tickFraction 0.0
 cunit434149 #place 535F7C2E
 cunit434149 #unit 17C0FEF1
 cunit451924 #place 7B9C8636
-@ 6 update 140 frame 27 tick 120 zone gz19h hash 559C1D7D n 3362
+@ 6 update 140 frame 27 tick 120 zone gz19h hash 5E9488BE n 3360
 world updates 142
 world secondsPerTick 0.00111111137
 world objects 3347
 world mapObjects 374
-world timedObjects 5
 world updateMap 47
-random isaac.count 229
+random isaac.count 241
 random isaac.a 0x8B62A5E9
 random isaac.b 0x82A6A1D4
 random isaac.c 0x0000000B
@@ -33975,10 +33974,6 @@ obj997639 #unit 901EC9A4
 obj997640 #unit 69F520F9
 timed997041 # DBCEBE2D
 timed997638 # 51A27188
-+ timed5147051 101 CEffectTornado
-timed5147051 # 0509A7D9
-+ timed5147052 101 CEffectTornado
-timed5147052 # E17545B1
 script #ggroup 9B3F9179
 client tick 119
 client ticksRun 7
@@ -33988,12 +33983,11 @@ cunit451924 #place EC96509A
 cunit451924 #unit 844864EA
 cunit980429 #place 07244167
 cunit1000011214 #place 4D2B92DF
-@ 7 update 160 frame 31 tick 75 zone gz19h hash 2F903B03 n 3360
+@ 7 update 160 frame 31 tick 75 zone gz19h hash 771BDB6C n 3359
 world tick 75
 world updates 164
-world timedObjects 4
 world updateMap 49
-random isaac.count 109
+random isaac.count 134
 random isaac.a 0x667BCD0B
 random isaac.b 0x097EDDC0
 random isaac.c 0x0000000C
@@ -34094,10 +34088,6 @@ obj997514 #ai 7AC06931
 obj997514 #place 61FCEF11
 obj997573 #ai 91DA03D8
 obj1000011214 #ai 75861CC1
-- timed5147051
-- timed5147052
-+ timed5147053 101 CEffectTornado
-timed5147053 # 8A9C4141
 aievents tick 75
 client tick 74
 client ticksRun 2
@@ -34110,15 +34100,15 @@ cunit451924 #unit AFC37BB0
 cunit980429 #place 610BE185
 cunit1000011214 #place AC5FF1EB
 cunit1000011214 #unit 5719012E
-@ 8 update 180 frame 35 tick 95 zone gz19h hash 53309239 n 3361
+@ 8 update 180 frame 35 tick 95 zone gz19h hash DAE025F7 n 3360
 world tick 95
 world updates 184
-random isaac.count 241
-random isaac.a 0x7BF41316
-random isaac.b 0x5162E6D5
-random isaac.c 0x0000000E
-random isaac.results 0x76F1A6BA
-random isaac.memory 0x57D84846
+random isaac.count 10
+random isaac.a 0x176BB8BE
+random isaac.b 0xB9AF1E24
+random isaac.c 0x0000000D
+random isaac.results 0x9C3570DA
+random isaac.memory 0xB87F5CFC
 random crt.rand 0xFF4C846B
 player0 objects 8
 obj45655 pos.x 358.421844
@@ -34225,7 +34215,6 @@ obj997514 #place 30C62186
 obj997514 #vitals 40183667
 obj1000011214 #ai DE1E58AD
 obj1000011214 #vitals 9BA26E9A
-timed5147053 # FA174585
 aievents tick 95
 client tick 94
 client ticksRun 22

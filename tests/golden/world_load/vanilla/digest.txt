@@ -6713,14 +6713,14 @@ aievents tick 120
 client tick 120
 client ticksRun 92
 cunit1804 #place 5D944E41
-@ 6 update 140 frame 27 tick 50 zone gz1g hash 3832E4EC n 793
+@ 6 update 140 frame 27 tick 50 zone gz1g hash 628CA596 n 793
 world tick 50
 world updates 142
 world secondsPerTick 0.00111111137
 world objects 779
 world mapObjects 56
 world updateMap 16
-random isaac.count 74
+random isaac.count 139
 random isaac.a 0xBF01EE41
 random isaac.b 0xEC7AF5D6
 random isaac.c 0x00000004
@@ -6781,14 +6781,14 @@ obj1932 #unit 243DD186
 obj1933 #unit D8342DD1
 obj1934 #unit BC229D8B
 obj1935 #unit 9ACCD6EF
-obj1936 #ai 25D77E43
+obj1936 #ai F8CF48C1
 obj1936 #unit 652B09CB
 obj1936 #vitals 559F1F72
-obj1937 pos.x 110.414146
-obj1937 pos.y 136.396317
-obj1937 #ai 4743C66E
-obj1937 #place 1E0A7CA2
-obj1937 #unit 5D3DBC9D
+obj1937 pos.x 110.587929
+obj1937 pos.y 136.193558
+obj1937 #ai 557173C0
+obj1937 #place 97135B74
+obj1937 #unit CF0F1B5C
 obj1937 #vitals 559F1F72
 obj1938 #unit 49E03ED2
 obj1940 #unit 6501F6B9
@@ -6820,7 +6820,7 @@ obj1042829057 pos.y 138.25
 obj1042829057 pos.z 0.0
 obj1042829057 #ai 75861CC1
 obj1042829057 #place E26D5C4F
-obj1042829057 #unit 6B42A6BF
+obj1042829057 #unit 52AF890C
 obj1042829057 #vitals 213B448F
 missile0 # E277A3C4
 missile1 # 86C06CC1
@@ -6841,5 +6841,5 @@ cunit1000011214 #place 7A4617D4
 - cunit1042829056
 + cunit1042829057 80 unanwiwo "ZoneWolf9"
 cunit1042829057 #place 152C9921
-cunit1042829057 #unit D9988710
+cunit1042829057 #unit FF984E92
 cunit1042829057 #vitals 8FC93AF9

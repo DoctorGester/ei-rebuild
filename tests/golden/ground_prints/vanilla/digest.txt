@@ -7020,14 +7020,14 @@ client synchronised 9
 cunit1977621927 #place 152C9921
 cunit1977621927 #unit 2B143875
 cunit1977621927 #vitals 8FC93AF9
-@ 21 update 440 frame 87 tick 381 zone gz1g hash 9817EE5A n 795
+@ 21 update 440 frame 87 tick 381 zone gz1g hash 61CDC419 n 795
 world tick 381
 world updates 442
 world timeBase 5.97222185
 world secondsPerTick 0.00111111137
 world objects 780
 world mapObjects 57
-random isaac.count 159
+random isaac.count 174
 random isaac.a 0x8B62A5E9
 random isaac.b 0x82A6A1D4
 random isaac.c 0x0000000B
@@ -7071,7 +7071,6 @@ obj1932 #unit 243DD186
 obj1933 #unit D8342DD1
 obj1934 #unit BC229D8B
 obj1935 #unit 9ACCD6EF
-obj1936 #ai 53A88FFF
 obj1936 #unit 652B09CB
 obj1936 #vitals 22982FE4
 obj1937 #unit ADBAE41B

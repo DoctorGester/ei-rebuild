@@ -1,17 +1,28 @@
 {
   "scenario": "zone_visuals",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "10 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save savea/visuals.sav: 16 fields in 2 records differ: visuals 16",
-    "  visuals: 16 fields in 2 records; first visuals.prints blood.print0.position.x: 57.2144699 in the old golden, 58.2944717 in the new run; largest numeric d 2.05e+09 at visuals.generator bb: 2080475530 -> 4134927274"
+    "digest: 20 of 23 records differ, first at record 3 (world update 80, tick 80, frame 15, zone gz1g); outcomes the same (deaths unknown: hash only); max unit move 7.31 (obj666, record 22)",
+    "  first difference at record 3 (world update 80, tick 80, frame 15, zone gz1g): 4 fields",
+    "    world (world) lastRainBoltTick: 65 in the old golden, 67 in the new run (d 2)",
+    "    random (random) isaac.count: 7 in the old golden, 14 in the new run (d 7)",
+    "    obj1936 (80 unmoto \"\") #ai: 501D1962 in the old golden, 3E910223 in the new run",
+    "    ... 1 more",
+    "  outcomes: none changed (deaths unknown: vitals differ, only a hash is kept); same: zone, spawns, money, quest variables, party and items, game result, script",
+    "  world: 1 of 1 differ",
+    "    lastRainBoltTick: 1 world, 4 records, from 3; max |d| 47 at world lastRainBoltTick, record 22: 434 -> 387",
+    "    timedObjects: 1 world, 1 record, from 12; max |d| 1 at world timedObjects, record 12: 2 -> 1",
+    "  random: 1 of 1 differ",
+    "    isaac: 1 generator, 20 records, from 3; max |d| 251 at random isaac.count, record 9: 2 -> 253",
+    "... 28 more lines"
   ]
 }

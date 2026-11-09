@@ -7498,12 +7498,12 @@ cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
-@ 3 update 80 frame 15 tick 35 zone gz1g hash 41F973EA n 832
+@ 3 update 80 frame 15 tick 35 zone gz1g hash C280B959 n 832
 world tick 35
 world updates 82
 world secondsPerTick 0.00111111137
 world updateMap 16
-random isaac.count 213
+random isaac.count 214
 random isaac.a 0xB18A1865
 random isaac.b 0x4B6758B8
 random isaac.c 0x00000003
@@ -7597,10 +7597,10 @@ cunit1804 #unit 3125E1B3
 cunit1884 #place A0547F59
 cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit 0AC3B75D
-@ 4 update 100 frame 19 tick 55 zone gz1g hash 2D22F276 n 832
+@ 4 update 100 frame 19 tick 55 zone gz1g hash B615DB47 n 832
 world tick 55
 world updates 102
-random isaac.count 97
+random isaac.count 104
 random crt.rand 0x14AAACE8
 obj699 #vitals A243F4AF
 obj702 #vitals A243F4AF
@@ -7615,7 +7615,7 @@ obj1890 pos.y 98.3465652
 obj1890 #ai 453BAFAD
 obj1890 #place 678B8505
 obj1890 #vitals FBE05ECC
-obj1936 #ai 75216100
+obj1936 #ai 1BAD7A41
 obj1936 #vitals 024EBADD
 obj1937 pos.x 110.64904
 obj1937 pos.y 135.403778

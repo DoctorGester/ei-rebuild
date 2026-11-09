@@ -8183,16 +8183,15 @@ client synchronised 9
 cunit1977621927 #place 152C9921
 cunit1977621927 #unit 0189934A
 cunit1977621927 #vitals 8FC93AF9
-@ 21 update 440 frame 87 tick 381 zone gz1g hash 6D4FBCC0 n 836
+@ 21 update 440 frame 87 tick 381 zone gz1g hash 73ECA5A9 n 836
 world tick 381
 world updates 442
 world timeBase 5.97222185
 world secondsPerTick 0.00111111137
 world weatherStrength 0.0
-world lastRainBoltTick 375
 world objects 817
 world mapObjects 58
-random isaac.count 184
+random isaac.count 190
 random crt.rand 0x65C5BB6E
 player0 objects 10
 obj663 #unit E3787FF4

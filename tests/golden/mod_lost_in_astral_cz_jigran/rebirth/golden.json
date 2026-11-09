@@ -1,17 +1,17 @@
 {
   "scenario": "mod_lost_in_astral_cz_jigran",
   "install": "rebirth",
-  "recorded": "2026-11-06",
-  "commit": "dc71172b5",
+  "recorded": "2026-11-09",
+  "commit": "ad82ab94c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37f13: an object's parts are drawn whole after its one view test, so the client units' Static and Shown flags come from that verdict and the client picture's unit weather lists the units drawn whole (visuals.sav); no server record differs",
+  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
   "source": "image",
   "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/current/bz31j.visuals.sav: 23 fields in 1 records differ: visuals 23",
-    "  visuals: 23 fields in 1 records; first visuals.units count: 23 in the old golden, 25 in the new run; largest numeric d 9.56e+08 at visuals.units unit18.id: 1000010798 -> 44397063"
+    "save LostInAstral/savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
+    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, 0 in the new run"
   ]
 }
