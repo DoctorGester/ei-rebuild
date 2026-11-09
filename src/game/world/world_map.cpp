@@ -20,6 +20,7 @@
 #include "game/world/world.h"
 #include "game/effects/world_effect.h"
 #include "game/map/folder.h"
+#include "game/data/resource.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/str.h"
@@ -266,6 +267,12 @@ std::string MapPath(std::string_view name) {
 
 bool MapFileExists(const char* name) {
     modfolders::SelectMaps(name, modfolders::MapsSite::FileExists);
-    return platform::PathExists(MapsFolder() + name);
+    return ResourceExists(MapsFolder() + name);
+}
+
+bool IsQuestFile(const platform::FolderEntry& found) {
+    if (found.folder) return platform::IsFile(found.path + "\\" + found.name + "\\quest.reg");
+    const std::string_view name = found.name;
+    return name.size() > 3 && text::CompareIgnoringCase(name.substr(name.size() - 3), ".mq") == 0;
 }
 

@@ -937,9 +937,20 @@ constexpr int kHiddenFiles = 8;
 char g_hiddenFiles[kHiddenFiles][kPath];
 std::atomic<int> g_hiddenCount{0};
 
+// A hidden file's folder of the same name (without its extension) is hidden with it, and everything in it: the folder
+// that stands for an archive (docs/notes/mods.md, "Loose files").
 bool Hidden(const char* relative) {
-    for (int i = 0; i < g_hiddenCount; ++i)
-        if (text::CompareIgnoringCase(relative, g_hiddenFiles[i]) == 0) return true;
+    const std::string_view path = relative;
+    for (int i = 0; i < g_hiddenCount; ++i) {
+        const std::string_view hidden = g_hiddenFiles[i];
+        if (text::CompareIgnoringCase(path, hidden) == 0) return true;
+        const std::size_t dot = hidden.find_last_of('.');
+        if (dot == std::string_view::npos || dot == 0) continue;
+        const std::string_view folder = hidden.substr(0, dot);
+        if (path.size() >= folder.size() && text::CompareIgnoringCase(path.substr(0, folder.size()), folder) == 0 &&
+            (path.size() == folder.size() || path[folder.size()] == '\\'))
+            return true;
+    }
     return false;
 }
 

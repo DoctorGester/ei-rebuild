@@ -1,6 +1,6 @@
 # C154c: a client leaves a server whose item database it lacks a record of (a pair of games, harness_pair.h). This
 # game hosts as net_pair_party does, with a network item database of one quest item more: tools/make_extra_item_db.py
-# writes harness_saves\Res\databaselmp.res, which the harness's overlay reads in place of the install's. The peer
+# writes harness_saves\Res\databaselmp\items.idb, the overlay's loose file over the install's archive. The peer
 # (peer/net_pair_database.txt) joins with the install's database. Both go into the game zone as in net_pair_leave
 # (the sheriff's second topic picks the map; the bases are each game's own). Then this game's server gives the peer's
 # player (id 1) the extra item ("giveitem", as a script's GiveItem): the item's state goes to the peer

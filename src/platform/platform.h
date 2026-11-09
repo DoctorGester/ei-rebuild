@@ -143,6 +143,21 @@ struct FolderEntry {
 // too on Windows); none when it matches nothing.
 std::vector<FolderEntry> FolderEntries(std::string_view pattern);
 
+// The files of a folder in each layer of the path map (an archive's folder of loose files, docs/notes/mods.md "Loose
+// files"): a layer's folder, in full, and the files below it, each by its path below the folder (a sub-folder's file
+// "<sub>\<name>") with the path to read it by.
+struct LayerFile {
+    std::string name;
+    std::string path;
+};
+struct FolderLayer {
+    std::string folder;
+    std::vector<LayerFile> files;
+};
+// The game's `folder` in each layer that has it, top first, and the folder itself last (with no files when it is not
+// there).
+std::vector<FolderLayer> FilesByLayer(std::string_view folder);
+
 // The whole file `path` into `bytes`, shared with any writer (an editor or a sync tool holding it open); false (and
 // `bytes` empty) when it does not open or a read fails, with the system's error code in `error`.
 bool ReadWholeFile(std::string_view path, std::string* bytes, std::uint32_t* error = nullptr);

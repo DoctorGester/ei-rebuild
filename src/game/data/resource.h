@@ -65,29 +65,38 @@ public:
     char* names = nullptr;
 };
 
-// Reads an archive with file I/O, loading individual files into memory on request.
+// An archive's loose files in one folder (docs/notes/mods.md, "Loose files"): the folder in full and its files by
+// name as the archive names its entries (the asset code page, ASCII letters in lower case).
+struct LooseFiles {
+    std::string folder;
+    std::map<std::string, platform::LayerFile, std::less<>> byName;
+};
+
+// Reads an archive with file I/O, loading individual files into memory on request. The folder of the archive's name
+// stands over it (docs/notes/mods.md, "Loose files"): Res\textures\ over Res\textures.res, Maps\zone1\ over
+// Maps\zone1.mpr; a file there is read in place of the entry of its name.
 class MappedResource : public ResourceBase {
 public:
     // Rebirth's ResOverride forgets the archive, then CloseResource.
     ~MappedResource() override;
-    // True when the archive is open. A missing or broken archive ends the game (game::FatalExit); the mapped reader
-    // (MMIOResource) returns false for a missing one.
+    // True when the archive is open, or only its folder is there (an archive of no entries). A missing or broken
+    // archive ends the game (game::FatalExit); the mapped reader (MMIOResource) returns false for a missing one.
     virtual bool OpenResource(const std::string& path);
     virtual void OpenFromMemory(const void* image);
     virtual void CloseResource();
-    virtual void* GetFile(std::string_view name, std::uint32_t* size);
-    // GetFile without Rebirth's ResOverride (in the standalone image GetFile goes through
-    // mod_folders.h, which calls this one on the game's and the mod's archives).
-    void* GetFilePlain(std::string_view name, std::uint32_t* size);
+    // The file `name` from the first of Sources() that has it; with a mod a "t\" or "s\" name not found is looked for
+    // once more without the prefix (Rebirth's ResOverride).
+    void* GetFile(std::string_view name, std::uint32_t* size);
     virtual bool CloseFile(void* data);
     virtual void FreeAllFiles();
+    // Whether one of Sources() has `name`.
+    bool HasFile(std::string_view name);
 
-    // Fills `names` with the names of the entries that
-    // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
-    // with every name when `pattern` is null.
-    void ListFiles(std::vector<std::string>* names, const char* pattern) const;
-    // The names ListFiles fills in, without Rebirth's ResOverride (see GetFilePlain).
-    std::vector<std::string> ListFilesPlain(const char* pattern) const;
+    // Fills `names` with the names in Sources() that match `pattern` (drive, directory, name and extension matched
+    // separately with * and ?), or with every name when `pattern` is null: a folder's files by name, an archive's
+    // entries in their order but those its own folder has. With a mod the names are appended to `names` (Rebirth's
+    // ResOverride), without one they replace it.
+    void ListFiles(std::vector<std::string>* names, const char* pattern);
     // The header checked and the entry table (packed 22-byte records) copied from the archive image at `base`,
     // the names pointed at in the image; one that is not an archive ends the game. Both readers' OpenFromMemory.
     void ReadImage(char* base);
@@ -98,21 +107,54 @@ public:
     std::vector<char> nameTable;        // the names OpenResource reads (names points into them)
     std::unordered_map<void*, std::unique_ptr<LoadedFile>> filesByData;   // the loaded files, by their contents
     std::map<std::string, LoadedFile*, std::less<>> filesByName;
+    // The archive's folder (OpenResource) in each layer of the path map over the game folder, top first, and its own.
+    std::vector<LooseFiles> looseOver;
+    LooseFiles looseOwn;
+
+protected:
+    // The archive's entry `name` (shared when loaded already), or null.
+    virtual void* EntryFile(std::string_view name, std::uint32_t* size);
+    // looseOver and looseOwn read for the archive at `path`.
+    void FindLooseFiles(const std::string& path);
+    // The loose files and the files loaded from them forgotten.
+    void ForgetLooseFiles();
+
+private:
+    // Where a name is looked for, in order: the archive's folder in each layer over the game folder; the mod's
+    // archives for this one (Rebirth's ResOverride), each its own folder, then its entries; this archive's own folder
+    // and entries, unless the mod ignores it. A folder met before, or one with no files, is left out.
+    struct Source {
+        const LooseFiles* loose = nullptr;    // a folder's files
+        MappedResource* entries = nullptr;    // or an archive's entries
+    };
+    std::vector<Source> Sources();
+    void* FindFile(std::string_view name, std::uint32_t* size);
+    // The loose file at `path` loaded as `name` (shared when loaded already); null when it cannot be read.
+    void* LoadLooseFile(std::string_view name, const std::string& path, std::uint32_t* size);
 };
 
-// Maps the whole archive into memory; GetFile returns pointers into the mapping.
+// Maps the whole archive into memory; an entry is a pointer into the mapping. A loose file stays loaded until the
+// archive closes.
 class MMIOResource : public MappedResource {
 public:
     bool OpenResource(const std::string& path) override;
     void OpenFromMemory(const void* image) override;
     void CloseResource() override;
-    void* GetFile(std::string_view name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;                              // (nothing to free)
     void FreeAllFiles() override;                                     // (empty)
 
     platform::MappedFile file;
     char* mappedImage = nullptr;         // base of the mapped archive
+
+protected:
+    void* EntryFile(std::string_view name, std::uint32_t* size) override;
 };
+
+// The folder that stands over the archive at `path` (docs/notes/mods.md, "Loose files"): the path without its
+// extension for an archive (.res, .mpr, .mq), else empty.
+std::string LooseFolderOf(std::string_view path);
+// Whether the file at `path` is there: the file itself, or for an archive its folder.
+bool ResourceExists(std::string_view path);
 
 // The name listing of an archive (the archive readers are above).
 

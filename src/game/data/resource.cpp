@@ -1,4 +1,5 @@
 #include "game/app/movies.h"
+#include "game/core/asset_text.h"
 #include "game/core/core_streams.h"
 #include "game/data/resource.h"
 #include "game/mods/mod_folders.h"
@@ -14,9 +15,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
+#include <memory>
 #include <new>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 int ResourceBase::FindEntry(std::string_view name) const {
     std::uint32_t count = header.count;
@@ -37,6 +42,38 @@ int ResourceBase::FindEntry(std::string_view name) const {
     }
 }
 
+namespace {
+
+// A name as the loose files are indexed by: ASCII letters in lower case (the archives' own comparison, FindEntry).
+std::string LooseKey(std::string_view name) {
+    std::string key(name);
+    for (char& c : key) c = static_cast<char>(text::ToLower(static_cast<unsigned char>(c)));
+    return key;
+}
+
+// The file `name` the archive loaded already, shared (one more reference), or null.
+void* SharedFile(MappedResource& archive, std::string_view name, std::uint32_t* size) {
+    const auto loaded = archive.filesByName.find(name);
+    if (loaded == archive.filesByName.end()) return nullptr;
+    LoadedFile* file = loaded->second;
+    ++file->refCount;
+    if (size) *size = file->size;
+    return file->bytes.data();
+}
+
+// `file` (its name, size and bytes set) kept by the archive with one reference: its bytes.
+void* KeptFile(MappedResource& archive, std::unique_ptr<LoadedFile> file, std::uint32_t* size) {
+    file->refCount = 1;
+    if (file->bytes.empty()) file->bytes.push_back(0);   // an empty file still has an address
+    void* data = file->bytes.data();
+    if (size) *size = file->size;
+    archive.filesByName[file->name] = file.get();
+    archive.filesByData[data] = std::move(file);
+    return data;
+}
+
+} // namespace
+
 MappedResource::~MappedResource() {
     // Rebirth's ResOverride: addon forgets the archive first.
     if (modfolders::Active()) modfolders::OnDestroyResource(this);
@@ -50,8 +87,13 @@ bool MappedResource::OpenResource(const std::string& path) {
     // which archive this is.
     if (modfolders::Active()) modfolders::OnOpenResource(this, path);
     CloseResource();
-    if (!archive.Open(path, platform::FileMode::Read))
+    FindLooseFiles(path);
+    if (!archive.Open(path, platform::FileMode::Read)) {
+        // Only the archive's folder: an archive of no entries.
+        const std::string folder = LooseFolderOf(path);
+        if (!folder.empty() && platform::PathExists(folder)) return true;
         game::FatalExit("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"");
+    }
     const std::string unreadable = "CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"";
     if (!archive.ReadAt(0, &header, sizeof(header))) game::FatalExit(unreadable);
     if (header.magic != kResMagic) game::FatalExit("Wrong format resource file \"" + path + "\"");
@@ -85,6 +127,7 @@ void MappedResource::OpenFromMemory(const void* memoryImage) {
 
 void MappedResource::CloseResource() {
     FreeAllFiles();
+    ForgetLooseFiles();
     archive.Close();
     entries = nullptr;
     names = nullptr;
@@ -94,22 +137,93 @@ void MappedResource::CloseResource() {
     header = ResHeader{};
 }
 
-// With a mod, Rebirth's ResOverride sends every call to addon.
-void* MappedResource::GetFile(std::string_view name, std::uint32_t* size) {
-    if (modfolders::Active()) return modfolders::GetFile(this, name, size);
-    return GetFilePlain(name, size);
+void MappedResource::FindLooseFiles(const std::string& path) {
+    const std::string folder = LooseFolderOf(path);
+    if (folder.empty()) return;
+    std::vector<platform::FolderLayer> layers = platform::FilesByLayer(folder);
+    for (std::size_t i = 0; i < layers.size(); ++i) {
+        LooseFiles& loose = i + 1 < layers.size() ? looseOver.emplace_back() : looseOwn;
+        loose.folder = std::move(layers[i].folder);
+        for (platform::LayerFile& file : layers[i].files) {
+            file.name = text::ToAssetText(file.name);
+            const auto [kept, added] = loose.byName.try_emplace(LooseKey(file.name), file);
+            if (added) continue;
+            // Two files of one name in a folder (a system that tells their case apart): the first by name is read.
+            platform::LayerFile& first = kept->second;
+            if (file.name < first.name) std::swap(file, first);
+            game::Warning("loose files: %s and %s have one name; the first is read", first.path, file.path);
+        }
+    }
 }
 
-void* MappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
-    if (!entries || !names) return nullptr;
+void MappedResource::ForgetLooseFiles() {
+    looseOver.clear();
+    looseOwn = {};
+}
 
-    // Already loaded: share it.
-    if (auto node = filesByName.find(name); node != filesByName.end()) {
-        LoadedFile* file = node->second;
-        ++file->refCount;
-        if (size) *size = file->size;
-        return file->bytes.data();
+std::vector<MappedResource::Source> MappedResource::Sources() {
+    std::vector<Source> sources;
+    std::vector<const std::string*> met;
+    auto addFolder = [&](const LooseFiles& loose) {
+        if (loose.byName.empty()) return;
+        for (const std::string* folder : met)
+            if (text::CompareIgnoringCase(*folder, loose.folder) == 0) return;
+        met.push_back(&loose.folder);
+        sources.push_back({&loose, nullptr});
+    };
+    auto addArchive = [&](MappedResource* archive) {
+        for (const LooseFiles& loose : archive->looseOver) addFolder(loose);
+        addFolder(archive->looseOwn);
+        sources.push_back({nullptr, archive});
+    };
+    for (const LooseFiles& loose : looseOver) addFolder(loose);
+    for (MappedResource* mod : modfolders::ModArchivesOf(this)) addArchive(mod);
+    if (!modfolders::Ignores(this)) addArchive(this);
+    return sources;
+}
+
+void* MappedResource::GetFile(std::string_view name, std::uint32_t* size) {
+    void* data = FindFile(name, size);
+    // Rebirth's ResOverride: with a mod a "t\" or "s\" name not found is looked for once more without the
+    // prefix.
+    if (!data && modfolders::Active() && name.size() >= 2 && (name[0] == 't' || name[0] == 's') && name[1] == '\\')
+        data = FindFile(name.substr(2), size);
+    return data;
+}
+
+void* MappedResource::FindFile(std::string_view name, std::uint32_t* size) {
+    const std::string key = LooseKey(name);
+    for (const Source& source : Sources()) {
+        if (!source.loose) {
+            if (void* data = source.entries->EntryFile(name, size)) return data;
+        } else if (const auto file = source.loose->byName.find(key); file != source.loose->byName.end()) {
+            if (void* data = LoadLooseFile(name, file->second.path, size)) return data;
+        }
     }
+    return nullptr;
+}
+
+bool MappedResource::HasFile(std::string_view name) {
+    const std::string key = LooseKey(name);
+    for (const Source& source : Sources())
+        if (source.loose ? source.loose->byName.contains(key) : source.entries->FindEntry(name) != -1) return true;
+    return false;
+}
+
+void* MappedResource::LoadLooseFile(std::string_view name, const std::string& path, std::uint32_t* size) {
+    if (void* data = SharedFile(*this, name, size)) return data;
+    std::string bytes;
+    if (!platform::ReadWholeFile(path, &bytes)) return nullptr;
+    auto file = std::make_unique<LoadedFile>();
+    file->name = name;
+    file->size = static_cast<std::uint32_t>(bytes.size());
+    file->bytes.assign(bytes.begin(), bytes.end());
+    return KeptFile(*this, std::move(file), size);
+}
+
+void* MappedResource::EntryFile(std::string_view name, std::uint32_t* size) {
+    if (!entries || !names) return nullptr;
+    if (void* data = SharedFile(*this, name, size)) return data;
 
     int index = FindEntry(name);
     if (index == -1) return nullptr;
@@ -120,15 +234,10 @@ void* MappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
 
     auto file = std::make_unique<LoadedFile>();
     file->name = name;
-    file->refCount = 1;
     file->size = entry.size;
     file->bytes.resize(std::max(entry.size, 1u));
-    void* data = file->bytes.data();
-    if (!archive.ReadAt(static_cast<long>(entry.offset), data, entry.size)) return nullptr;
-    if (size) *size = entry.size;
-    filesByName[file->name] = file.get();
-    filesByData[data] = std::move(file);
-    return data;
+    if (!archive.ReadAt(static_cast<long>(entry.offset), file->bytes.data(), entry.size)) return nullptr;
+    return KeptFile(*this, std::move(file), size);
 }
 
 bool MappedResource::CloseFile(void* data) {
@@ -158,7 +267,12 @@ void MappedResource::FreeAllFiles() {
 }
 
 bool MMIOResource::OpenResource(const std::string& path) {
+    CloseResource();
+    FindLooseFiles(path);
     if (!file.Open(path)) {
+        // Only the archive's folder: an archive of no entries.
+        const std::string folder = LooseFolderOf(path);
+        if (!folder.empty() && platform::PathExists(folder)) return true;
         game::DebugLog("CMappedFile::Open().\nUnable to open file \"%s\".\n", path);
         return false;
     }
@@ -173,6 +287,9 @@ void MMIOResource::OpenFromMemory(const void* memoryImage) {
 
 void MMIOResource::CloseResource() {
     file.Close();
+    ForgetLooseFiles();
+    filesByName.clear();
+    filesByData.clear();
     entries = nullptr;
     names = nullptr;
     entryTable = {};
@@ -180,7 +297,7 @@ void MMIOResource::CloseResource() {
     header = ResHeader{};
 }
 
-void* MMIOResource::GetFile(std::string_view name, std::uint32_t* size) {
+void* MMIOResource::EntryFile(std::string_view name, std::uint32_t* size) {
     if (!entries || !names) return nullptr;
     int index = FindEntry(name);
     if (index == -1) return nullptr;
@@ -191,6 +308,21 @@ void* MMIOResource::GetFile(std::string_view name, std::uint32_t* size) {
 bool MMIOResource::CloseFile(void*) { return true; }
 
 void MMIOResource::FreeAllFiles() {}
+
+std::string LooseFolderOf(std::string_view path) {
+    const std::size_t dot = path.find_last_of('.');
+    const std::size_t slash = path.find_last_of("\\/");
+    if (dot == std::string_view::npos || (slash != std::string_view::npos && dot < slash)) return {};
+    for (const std::string_view kind : {".res", ".mpr", ".mq"})
+        if (text::CompareIgnoringCase(path.substr(dot), kind) == 0) return std::string(path.substr(0, dot));
+    return {};
+}
+
+bool ResourceExists(std::string_view path) {
+    if (platform::PathExists(path)) return true;
+    const std::string folder = LooseFolderOf(path);
+    return !folder.empty() && platform::PathExists(folder);
+}
 
 // --- Archive name listing ------------------------------------------------------------------------
 // See data/resource.h and docs/notes/models.md.
@@ -223,6 +355,25 @@ bool PartMatches(std::string_view name, std::string_view pattern) {
     return pattern.empty() || WildcardMatch(name, pattern, 0) != 0;
 }
 
+// Whether `name` matches the listing's pattern (its parts; null: every name matches).
+bool NameMatches(std::string_view name, const PathParts* pattern) {
+    if (!pattern) return true;
+    const PathParts parts = SplitPath(name);
+    // An empty name pattern only matches an empty name; an empty extension pattern anything.
+    return PartMatches(parts.drive, pattern->drive) && PartMatches(parts.directory, pattern->directory) &&
+           WildcardMatch(parts.name, pattern->name, 0) != 0 && WildcardMatch(parts.extension, pattern->extension, 1) != 0;
+}
+
+// The name of the archive's entry `index` as stored, up to a zero byte, cut at the end of the names block (the
+// original copied it into 1 KB with no check).
+std::string EntryName(const MappedResource& archive, std::uint32_t index) {
+    const ResHeader& header = archive.header;
+    const ResEntry& entry = archive.entries[index];
+    const std::uint32_t offset = entry.nameOffset < header.namesSize ? entry.nameOffset : header.namesSize;
+    const std::size_t stored = std::min<std::size_t>(entry.nameLength, header.namesSize - offset);
+    return std::string(archive.names + offset, str::BoundedLength(archive.names + offset, stored));
+}
+
 } // namespace
 
 
@@ -241,36 +392,22 @@ int WildcardMatch(std::string_view name, std::string_view pattern, int emptyPatt
     return name.empty() ? 1 : 0;
 }
 
-// With a mod, Rebirth's ResOverride sends every call to addon.
-void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* pattern) const {
-    if (modfolders::Active()) {
-        modfolders::ListFiles(this, fileNames, pattern);
-        return;
-    }
-    *fileNames = ListFilesPlain(pattern);
-}
-
-std::vector<std::string> MappedResource::ListFilesPlain(const char* pattern) const {
-    std::vector<std::string> fileNames;
-    for (std::uint32_t i = 0; i < header.count; ++i) {
-        const ResEntry& entry = entries[i];
-        // The name as stored, up to a zero byte, cut at the end of the names block (the original copied it into
-        // 1 KB with no check).
-        const std::uint32_t offset = entry.nameOffset < header.namesSize ? entry.nameOffset : header.namesSize;
-        const std::size_t stored = std::min<std::size_t>(entry.nameLength, header.namesSize - offset);
-        const std::string name(names + offset, str::BoundedLength(names + offset, stored));
-        if (pattern != nullptr) {
-            const PathParts nameParts = SplitPath(name);
-            const PathParts patternParts = SplitPath(pattern);
-            if (!PartMatches(nameParts.drive, patternParts.drive) ||
-                !PartMatches(nameParts.directory, patternParts.directory))
-                continue;
-            // An empty name pattern only matches an empty name; an empty extension pattern anything.
-            if (WildcardMatch(nameParts.name, patternParts.name, 0) == 0 ||
-                WildcardMatch(nameParts.extension, patternParts.extension, 1) == 0)
-                continue;
+void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* pattern) {
+    // Rebirth's ResOverride appends to the caller's list.
+    if (!modfolders::Active()) fileNames->clear();
+    const PathParts patternParts = pattern ? SplitPath(pattern) : PathParts{};
+    const PathParts* parts = pattern ? &patternParts : nullptr;
+    for (const Source& source : Sources()) {
+        if (source.loose) {
+            for (const auto& [key, file] : source.loose->byName)
+                if (NameMatches(file.name, parts)) fileNames->push_back(file.name);
+            continue;
         }
-        fileNames.push_back(name);
+        const MappedResource& owner = *source.entries;
+        for (std::uint32_t i = 0; i < owner.header.count; ++i) {
+            std::string name = EntryName(owner, i);
+            if (NameMatches(name, parts) && !owner.looseOwn.byName.contains(LooseKey(name)))
+                fileNames->push_back(std::move(name));
+        }
     }
-    return fileNames;
 }

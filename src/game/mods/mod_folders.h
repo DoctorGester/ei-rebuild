@@ -5,7 +5,7 @@
 // flag: - Maps (9 sites): every maps-folder user names its file first; the maps folder is the mod's folder when the
 // mod's Maps\ held that name at start, else the game's. - ResOverride (25 sites): the mod's config.reg [Res] lists archives that
 // come before (or, with '-', instead of) the game's twelve archives, plus extra figure and texture archives;
-// every MappedResource::GetFile and ListFiles goes through addon (its virtual and all their calls). -
+// MappedResource::GetFile and ListFiles look in them (ModArchivesOf, Ignores). -
 // MoviesPatch (the BinkOpen import), CameraPatch (the camera path's file open), StreamPatch (the stream
 // file's path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
 // More: docs/notes/rebirth.md, "Resources and paths".
@@ -33,15 +33,14 @@ void OnOpenResource(MappedResource* res, const std::string& path);
 void OnDestroyResource(const MappedResource* res);
 // MaterialManager::Create's entry (+8): loads the mod's archives (once).
 void LoadModArchives();
-// MappedResource::GetFile through addon: the mod's archives for this archive first, then the
-// archive itself unless the mod ignores it, then "t\" / "s\" names once more without the prefix.
-void* GetFile(MappedResource* res, std::string_view name, std::uint32_t* size);
+// The mod's archives that come before `res` (MappedResource::GetFile and ListFiles look in them first); none without
+// a mod or when the mod does not name `res`'s archive.
+std::vector<MappedResource*> ModArchivesOf(const MappedResource* res);
+// Whether the mod ignores `res` ('-'): GetFile and ListFiles leave its folder and entries out.
+bool Ignores(const MappedResource* res);
 // MappedResource::CloseFile of a file GetFile took from one of the mod's archives in `res`'s place: that archive (null
 // when none of them holds `data`). Addon left such a file loaded and the game's archive logged "File already closed".
 MappedResource* ArchiveHolding(const MappedResource* res, void* data);
-// MappedResource::ListFiles through addon: appends the mod's archives' names and the archive's own
-// (unless ignored) to `out`.
-void ListFiles(const MappedResource* res, std::vector<std::string>* out, const char* pattern);
 // The mod's extra archives (their full paths): figures.res / menus.res entries for the figure manager and the
 // link figure loader, textures.res / redress.res / menus.res entries for the texture manager.
 const std::vector<std::string>& FigureArchives();
@@ -55,9 +54,9 @@ const std::vector<std::string>& TextureArchives();
 enum class MapsSite : int {
     NewZoneMap = 1, NewZoneMob, MapPath, ClientLoadZone, ZoneTable, ZoneQuests, ZoneQuestsPath, FileExists,
 };
-// Before a maps-folder use: the folder becomes the mod's when its Maps\ has `name` (any case; the
-// zone table: when its top folder has a ".mq" file), else the game's. It stays until the next one.
-// Nothing without a mod.
+// Before a maps-folder use: the folder becomes the mod's when its Maps\ has `name` (any case; an archive also as its
+// folder, docs/notes/mods.md "Loose files"; the zone table: when its top folder has a quest file, map/folder.h
+// IsQuestFile), else the game's. It stays until the next one. Nothing without a mod.
 void SelectMaps(std::string_view name, MapsSite site);
 // The folder MapsFolder starts from: the game's data folder or the mod's.
 const std::string& MapsRoot(const std::string& dataFolder);

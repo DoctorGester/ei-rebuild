@@ -1,7 +1,8 @@
 """Runs every harness scenario on the vanilla install's data and on Rebirth's and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only | --all-rebirth]
-                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--dzn | --lavapipe]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--unpacked]
+                               [--dzn | --lavapipe]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt but the screenshots_* ones, which take
                    the README's pictures and run by name only; on Linux less those its driver cannot match,
@@ -38,6 +39,8 @@ usage: python tools/run_all.py [scenario names...] [--rebirth | --rebirth-only |
   --clock virtual|real[,clocktrace][,randtrace]
                    run every scenario on the virtual clock or on real time, whatever its own lines say
                    (EI_HARNESS_CLOCK; tests/verify/harness_clock.h), with the clock or random trace
+  --unpacked       the runs play the installs' unpacked copies (use_unpacked(), tools/unpack_install.py), made when
+                   missing; every golden must stay the same
   --golden         runs the games with a state digest (EI_DIGEST, the goldens' period) and afterwards compares
                    every run that has a golden (tests/golden/<scenario>/<install>, tools/golden.py) with it:
                    the console, the digest records, the dumps and the saves. The image's runs on the vanilla data
@@ -58,7 +61,7 @@ A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scena
 """
 import argparse, atexit, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
-import frame_store, game_process, install_watch, prepare_scenario
+import frame_store, game_process, install_watch, prepare_scenario, unpack_install
 
 if os.name == 'nt':
     import msvcrt
@@ -205,6 +208,17 @@ def install_dir(data, environ=None):
     environ (default: this process's environment). A batch of work.py test carries the submitter's (install_environment):
     the stub data's runs (tools/stub_data.py) go through the scheduler too."""
     return (os.environ if environ is None else environ).get(INSTALL_ENV[data]) or DEFAULT_INSTALLS[data]
+
+
+def use_unpacked(say=print):
+    """--unpacked: the runs play each install's unpacked copy (tools/unpack_install.py: every archive replaced by the
+    folder of its name, docs/notes/mods.md "Loose files") in <main checkout>/build/unpacked/<vanilla|rebirth>, made
+    from install_dir() when it is not there; EI_GAME_VANILLA and EI_GAME_REBIRTH name the copies from then on."""
+    root = os.path.join(main_build_dir() or os.path.join(ROOT, 'build'), 'unpacked')
+    for data, name in INSTALL_ENV.items():
+        target = os.path.join(root, data)
+        unpack_install.make(install_dir(data), target, say=say)
+        os.environ[name] = target
 
 
 def install_environment(environ=None):
@@ -1115,6 +1129,7 @@ def parse_args(argv=None):
     ap.add_argument('--standalone', action='store_true')
     ap.add_argument('--widescreen', action='store_true')
     ap.add_argument('--golden', action='store_true')
+    ap.add_argument('--unpacked', action='store_true')
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--clock')
     ap.add_argument('--jobs', type=int)      # default: 16, under WSL on Windows' GPU main()'s (WSL_GPU_SLOTS)
@@ -1561,6 +1576,8 @@ def main():
     args = parse_args()
     if args.hold_slots:
         return hold_slots(args.hold_slots, args.hold_most)
+    if args.unpacked:
+        use_unpacked()
     if args.golden:
         os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
     start_headless_display()

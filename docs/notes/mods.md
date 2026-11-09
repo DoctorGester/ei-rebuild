@@ -22,6 +22,9 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_lost_in_astral.txt` | a new game in Lost in Astral (Rebirth's data) |
 | `tests/scenarios/mod_switch.txt`, `mod_switch_plain.txt` | a switch to Lost in Astral and back, then a new game; the same new game from the start |
 | `tests/scenarios/mod_menu_list.txt` | the menu's list picked through the UI, and the settings file written |
+| `src/game/data/resource.h`, `.cpp` | the archives and the loose files over them ("Loose files"): `MappedResource::Sources`, `LooseFolderOf`, `ResourceExists` |
+| `tools/unpack_install.py` | an install's archives unpacked into their folders; run_all.py `--unpacked` |
+| `tests/scenarios/mod_loose_files.txt` | loose files of a mod over its archives and the game's |
 
 ## Choosing a mod
 
@@ -64,6 +67,9 @@ The mod folder over the game folder, every file of its folders (`Maps\`, `Config
   the game's inside the archive (a file the mod's archive lacks is the game's; Lost in Astral's textures.res holds 43 MB
   of the game's 687), so the game's archive must stay the game's (rebirth.md, "Resources and paths").
 
+A mod's folder of an archive's name (`<mod>\Res\textures\`) is in the layer like any folder; the archive reads it
+before the mod's own archives ("Loose files").
+
 The saves of a mod are `<game folder>\saves\<mod folder's name>\` (the game's `saves\save*` search does not list it
 unless the name starts with "save"), never mixed with the game's. `[MOD] GameSaves` is not read: every mod keeps its
 own.
@@ -80,6 +86,66 @@ folder); the snapshot (config/harness/registry.reg) marks `Mod` absent otherwise
 `waitwindow` line, `mod <folder>` (or `mod none`) is a step instead: a switch of mods in the main menu
 (`app::RequestModSwitch`, refused elsewhere: the run fails), the next step once the switch is made; the `read mod` /
 `wrote mod` checks then look in that folder. The overlay's map is made once for each mod the run plays (`Layers`).
+
+## Loose files
+
+No archive needs packing (MF1, user 2026-11-09). Every archive the game opens (a `.res`, a map's `.mpr`, a quest
+zone's `.mq`; the mod's `[RES]` archives and extra figure and texture archives too) has a folder of its name without the
+extension standing over it: `Res\textures\` over `Res\textures.res`, `Maps\zone1\` over `Maps\zone1.mpr`, `Maps\z3q1\`
+over `Maps\z3q1.mq`. A file there is read in place of the archive's entry of that name.
+
+`textures.res : foo.mmp` is looked for in this order (`MappedResource::Sources`, src/game/data/resource.cpp):
+1. the folder in each layer of the path map over the game folder, top first: the mod's `<mod>\Res\textures\` (and in a
+   harness run the overlay's `harness_saves\Res\textures\` above it);
+2. the mod's `[RES]` archives for textures.res (Rebirth's ResOverride), each its own folder (`<mod>\Res\textures\` for
+   `res\textures.res`: met in 1, left out) and then its entries;
+3. the game folder's `Res\textures\`;
+4. the archive's entries.
+A mod's `-` for the archive drops 3 and 4. A folder met before in the order is left out; a folder with no files is not
+asked. With a mod a `t\` or `s\` name not found is looked for once more without the prefix (Rebirth's).
+
+- Names: an entry's name is the file's path below the folder, a sub-folder's file as `<sub>\<name>`. The archives' own
+  names have sub-folders (sfx.res `weapons\Slash\Stone\1.wav`, speech.res `t\Briefing\z41_1\4.mp3`, a .mq's
+  `z3q1\quest.reg`), so a sub-folder is part of the name, not flattened away. Matched without case on every system
+  (ASCII letters, as the archives' own lookup); a file name in Unicode is the asset code page's (1251) for the match.
+  Two files of one name (a system that tells case apart): the first by name is read, the other logged ("warning: loose
+  files: ...").
+- Each folder is read once, when its archive opens (`FindLooseFiles`; the platform's `FilesByLayer`: the folder in each
+  layer of the path map, then its own); files added later are seen at the next open.
+- A loose file is loaded whole and shared like an entry (`CloseFile` frees it at its last close); a memory-mapped
+  archive (figures, the terrain's .mpr) keeps it until it closes.
+- An archive whose file is missing but whose folder is there opens as an archive of no entries
+  (`OpenResource`); the map sites ask `ResourceExists` (the file, or for an archive its folder): `MapFileExists`, NewZone's
+  `MapFileMissing`, `LoadZoneQuests`. Rebirth's Maps choose the mod's folder for an archive's name when its `Maps\` has
+  the folder (`SelectMaps`).
+- `ListFiles`: in the same order, a folder's files by name and an archive's entries in the archive's order but those
+  its own folder (step 3 or the mod archive's) has, so an archive with no folder lists as before and an unpacked one lists
+  the same names (sorted). A mod's folder adds its names as a mod archive does (Rebirth appends every archive's
+  listing: a name in both is listed twice either way).
+- The zone table lists the quest zones (`IsQuestFile`, map/folder.h): each `.mq`, and each `Maps\<zone>\` folder holding
+  `<zone>\quest.reg` (a map's folder `Maps\zone1\` is not one). A mod's `Maps\` decides the table when it has one.
+- The server shares a quest file with a network client by its bytes (`ShareQuestFile`); from a folder it shares none (a
+  client never writes them, Rebirth's MQClient).
+- The harness's `hidefile maps\z7q1.mq` hides the folder `maps\z7q1\` with it.
+
+### Unpacked installs
+
+`python tools/unpack_install.py <install> <target>` copies an install with each archive replaced by its folder
+(`--folders-only`: the folders alone, a modder's start); it only reads the install. `run_all.py --unpacked` (also through
+`work.py test`) plays the suites on the unpacked copies of both installs in `<main checkout>\build\unpacked\vanilla` and
+`rebirth` (made at the first use, about 30 s: 81 archives, 19,297 files; 149 archives with the Rebirth mods', 33,313
+files), with every golden the same. A prepare tool that copies an install's archive packs its folder when the install is
+unpacked (make_mod_s19d.py `copy_archive`); one that changes an archive's file writes it loose into the overlay
+(make_extra_item_db.py: `harness_saves\Res\databaselmp\items.idb`), which stands over the archive and over its unpacked
+folder alike. `mod_menu_list`'s expected settings file names the registry snapshot's `AddonPath` as it is (not the
+run's install folder: the snapshot pins it).
+
+### Checks
+
+- `mod_loose_files` (both installs; tools/make_mod_s19d.py loose): the mod's folder over its archive, a sub-folder's
+  file in any case, the mod archive's own folder over its entry, the mod's folder over the game's archive (outro.res),
+  the listing's count, a maps folder for an .mpr but not a .mob.
+- `work.py test <ID> --unpacked --golden` and with `--rebirth-only`: every scenario on the unpacked installs.
 
 ## A mod's config.reg
 

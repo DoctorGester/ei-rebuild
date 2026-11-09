@@ -798,6 +798,10 @@ def cmd_test(db, args):
     quiet = '--quiet' in args.run_all_args
     argv = [a for a in args.run_all_args if a != '--quiet']
     ra = run_all.parse_args(argv)           # run_all's own errors and exit
+    if ra.unpacked:
+        # The installs' unpacked copies: their folders go with the batch's environment below.
+        run_all.use_unpacked()
+        argv = [a for a in argv if a != '--unpacked']
     jobs = run_all.plan(ra)
     root, build = work.norm(run_all.ROOT), work.norm(run_all.BUILD)
     if not os.path.exists(os.path.join(build, run_all.EXE)):

@@ -1254,9 +1254,14 @@ void GameFlow::BuildZoneTable() {
     std::vector<ZoneEntry>& table = g_zoneTable;
     if (!table.empty()) return;
     modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
-    for (const platform::FolderEntry& found : platform::FolderEntries(MapsFolder() + kQuestFilePattern)) {
-        std::string name = found.Title();
+    // The quest files: .mq archives and the folders that stand for them, each zone once.
+    std::vector<std::string> zones;
+    for (const platform::FolderEntry& found : platform::FolderEntries(MapsFolder() + "*")) {
+        if (found.IsDots() || !IsQuestFile(found)) continue;
+        std::string name = found.folder ? found.name : found.Title();
         str::MakeLower(name);
+        if (std::find(zones.begin(), zones.end(), name) != zones.end()) continue;
+        zones.push_back(name);
         RegisterQuests(name);
         UnloadQuestTexts();
         std::string map;

@@ -2,6 +2,7 @@
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "game/console/console.h"
+#include "game/data/resource.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
 #include "game/data/text_manager.h"
@@ -122,7 +123,7 @@ bool LoadZoneQuests(std::string_view zone) {
     std::string file(zone);
     file += kQuestFileSuffix;
     modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
-    if (!platform::PathExists(MapsFolder() + file)) return false;
+    if (!ResourceExists(MapsFolder() + file)) return false;
     std::string path = MapFilePath(file);
     if (IsLive(net::g_gameServer)) ShareQuestFile(path, file);
     // A file already loaded is not loaded again.

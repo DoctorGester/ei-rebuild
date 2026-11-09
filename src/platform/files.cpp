@@ -9,7 +9,9 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <functional>
 #include <set>
+#include <string>
 #include <system_error>
 
 namespace platform {
@@ -97,6 +99,34 @@ std::vector<FolderEntry> FolderEntries(std::string_view pattern) {
             return text::CompareIgnoringCase(a.name, b.name) < 0;
         });
     return entries;
+}
+
+namespace {
+
+// The files below the system's `folder` into `files`, a sub-folder's named "<sub>\<name>" (`sub` the folders above);
+// of the folder's own entries only those `keeps` keeps.
+void AddLayerFiles(const std::string& folder, const std::string& sub,
+                   const std::function<bool(std::string_view)>& keeps, std::vector<LayerFile>* files) {
+    const std::string pattern = folder + "\\*";
+    for (FolderEntry& entry : SearchFolder(pattern, pattern)) {
+        if (entry.IsDots() || (keeps && !keeps(entry.name))) continue;
+        if (entry.folder)
+            AddLayerFiles(folder + "\\" + entry.name, sub + entry.name + "\\", {}, files);
+        else
+            files->push_back({sub + entry.name, std::move(entry.path)});
+    }
+}
+
+} // namespace
+
+std::vector<FolderLayer> FilesByLayer(std::string_view folder) {
+    std::vector<FolderLayer> layers;
+    for (const FolderSearch& search : SystemSearches(std::string(folder) + "\\*")) {
+        FolderLayer& layer = layers.emplace_back();
+        layer.folder = FullGamePath(std::string_view(search.pattern).substr(0, search.pattern.find_last_of("\\/")));
+        AddLayerFiles(layer.folder, "", search.keeps, &layer.files);
+    }
+    return layers;
 }
 
 } // namespace platform
