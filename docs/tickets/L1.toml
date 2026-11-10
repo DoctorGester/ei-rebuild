@@ -4,4 +4,4 @@ group = "lua"
 depends = ["S"]
 note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). Survey every script the game runs: each .mob's script chunk (gz2g's decoded), QFinish's quest texts, Rebirth's mods and Lost in Astral, console forms. Report keywords used (of 300 + Rebirth's 69), waits and where they sit, For / ForIf nesting, declared-script calls, globals, #define use, parse errors. Then the IR from the current parser (TokenReader, LoadFunction) with a text dump; every file parses to it; the survey numbers go into lua-scripting.md and size L2-L9."
 order = 637
-status = "later"
+status = "queued"
