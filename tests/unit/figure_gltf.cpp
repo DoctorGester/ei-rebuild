@@ -1,8 +1,11 @@
-// game/models/figure_gltf.h: figure models as glTF and back (docs/notes/mods.md, "Models as glTF"). A model set and a
-// loose figure of every record kind (FIG8 with morph corners a float displacement cannot hold, FIG of one version,
-// the older record with its skipped block; padding lanes, unused slots, a normal's w, normals not of unit length,
-// words of their own, an entry of another kind) come back as the same files; a glTF of another tool's (no extras) is
-// numbered by value, its bounds fitted, its axes turned; lib/json.h's reader.
+// game/models/figure_gltf.h: figure models as glTF and back (docs/notes/mods.md, "Models as glTF" and "Animations as
+// glTF"). A model set and a loose figure of every record kind (FIG8 with morph corners a float displacement cannot
+// hold, FIG of one version, the older record with its skipped block; padding lanes, unused slots, a normal's w, normals
+// not of unit length, words of their own, an entry of another kind) and a set's animations (a root's and children's
+// keys, keys not of unit length, vertex frames, a track of no part, an animation of no channel, an entry that is no
+// archive) come back as the same files; a glTF of another tool's (no extras) is numbered by value, its bounds fitted,
+// its axes turned, its animation's keys sampled at the ticks and its rotations turned into the game's; lib/json.h's
+// reader.
 #include "game/models/figure_gltf.h"
 
 #include "lib/json.h"
@@ -10,6 +13,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -23,9 +28,11 @@ void Check(bool ok, const std::string& what) {
     std::printf("ei_unit_check: figure_gltf: %s\n", what.c_str());
 }
 
+using figure_gltf::Animation;
 using figure_gltf::Figure;
 using figure_gltf::Part;
 using figure_gltf::Record;
+using figure_gltf::Track;
 
 // A record of `versions` with `used` position slots in 4-lane packets (the padding lanes copies of slot 0 but for
 // one lane), a corner per used slot, two triangles per four corners.
@@ -137,6 +144,63 @@ void CheckSet() {
     CheckRoundTrip(badBones, "unTest3");
 }
 
+// A track of `keys` rotations and positions: turns about a varying axis (with `odd` the last key of no length and the
+// one before it twice the unit length), positions moving along x.
+Track MakeTrack(const std::string& name, int keys, bool odd) {
+    Track t;
+    t.name = name;
+    for (int k = 0; k < keys; ++k) {
+        const float angle = 0.3f * static_cast<float>(k + 1);
+        float q[4] = {std::cos(angle), std::sin(angle) * 0.6f, std::sin(angle) * 0.8f * (k % 2 ? 1.0f : -1.0f), 0.0f};
+        if (odd && k == keys - 1) q[0] = q[1] = q[2] = 0.0f;
+        if (odd && k == keys - 2)
+            for (float& c : q) c *= 2.0f;
+        t.rotations.insert(t.rotations.end(), q, q + 4);
+        t.positions.insert(t.positions.end(), {0.1f * static_cast<float>(k), 0.25f, 1.0f / 3.0f});
+    }
+    return t;
+}
+
+void CheckAnimations() {
+    Figure figure;
+    figure.layout = figure_gltf::Layout::Set;
+    figure.anm = true;
+    figure.parts = {MakePart("hp", true, "", 8), MakePart("bd", true, "hp", 8), MakePart("hd", true, "bd", 8),
+                    MakePart("lh1.armor02", false, "", 8)};
+    Animation idle;
+    idle.name = "cidle01";
+    // A child with fewer keys than its parent, a track of no part, an unlinked part's.
+    idle.tracks = {MakeTrack("hp", 4, false), MakeTrack("bd", 4, true), MakeTrack("HD", 2, false), MakeTrack("ghost", 1, false),
+                   MakeTrack("lh1.armor02", 3, false)};
+    Track& body = idle.tracks[1];   // vertex frames: 3 of 5 slots
+    body.frames = 3;
+    body.slots = 5;
+    for (int i = 0; i < 3 * 5 * 3; ++i) body.vertices.push_back(0.01f * static_cast<float>(i) - 0.2f);
+    Track still;
+    still.name = "hd";
+    still.frames = 1;
+    still.slots = 2;
+    still.vertices = {1, 2, 3, 4, 5, 6};
+    Animation face;
+    face.name = "uface";
+    face.tracks = {still};   // no rotation or position: no channel, carried as it is
+    Animation empty;
+    empty.name = "cempty";
+    figure.animations = {idle, face, empty};
+    figure.raw.push_back({"broken", figure_gltf::RawFile::In::Anm, "not an archive"});
+    CheckRoundTrip(figure, "unTest4");
+
+    const std::map<std::string, std::string> files = figure_gltf::Files(figure, "unTest4");
+    std::vector<std::pair<std::string, std::string_view>> entries;
+    Check(files.contains("untest4.anm") && figure_gltf::ReadArchive(files.at("untest4.anm"), &entries) && entries.size() == 4,
+          "animations: the .anm made with its four entries");
+    Track read;
+    Check(!figure_gltf::ReadTrack(std::string("\x01\0\0\0", 4), &read), "animations: a short track refused");
+    Check(figure_gltf::ReadTrack(figure_gltf::WriteTrack(body), &read) && read.rotations == body.rotations &&
+              read.vertices == body.vertices,
+          "animations: a track read back");
+}
+
 void CheckLoose() {
     Figure figure;
     figure.layout = figure_gltf::Layout::Loose;
@@ -235,6 +299,70 @@ void CheckOtherTools() {
     }
 }
 
+// A .gltf of another tool's with an animation: a root turning a quarter about glTF's y (the game's z) and moving up, its
+// child held a quarter about x (STEP), keys at 0 and 0.11 s (two ticks: the middle one interpolated), and a scale
+// channel (left out).
+void CheckOtherToolsAnimation() {
+    const float s = std::sqrt(0.5f);
+    const float data[] = {0.0f, 0.11f,                       // times
+                          0, 0, 0, 1, 0, s, 0, s,            // the root's rotations (x, y, z, w)
+                          s, 0, 0, s, s, 0, 0, s,            // the child's
+                          0, 0, 0, 0, 1, 0,                  // the root's translations
+                          1, 1, 1, 2, 2, 2};                 // a scale
+    const std::string bin(reinterpret_cast<const char*>(data), sizeof(data));
+    const std::string gltf =
+        "{\"asset\":{\"version\":\"2.0\"},\"scene\":0,\"scenes\":[{\"nodes\":[0]}],"
+        "\"nodes\":[{\"name\":\"a\",\"children\":[1]},{\"name\":\"b\",\"translation\":[0,1,0]}],"
+        "\"animations\":[{\"name\":\"walk\",\"channels\":[{\"sampler\":0,\"target\":{\"node\":0,\"path\":\"rotation\"}},"
+        "{\"sampler\":1,\"target\":{\"node\":1,\"path\":\"rotation\"}},{\"sampler\":2,\"target\":{\"node\":0,\"path\":\"translation\"}},"
+        "{\"sampler\":3,\"target\":{\"node\":1,\"path\":\"scale\"}}],"
+        "\"samplers\":[{\"input\":0,\"output\":1},{\"input\":0,\"output\":2,\"interpolation\":\"STEP\"},{\"input\":0,\"output\":3},"
+        "{\"input\":0,\"output\":4}]}],"
+        "\"accessors\":[{\"bufferView\":0,\"componentType\":5126,\"count\":2,\"type\":\"SCALAR\",\"min\":[0],\"max\":[0.11]},"
+        "{\"bufferView\":1,\"componentType\":5126,\"count\":2,\"type\":\"VEC4\"},"
+        "{\"bufferView\":2,\"componentType\":5126,\"count\":2,\"type\":\"VEC4\"},"
+        "{\"bufferView\":3,\"componentType\":5126,\"count\":2,\"type\":\"VEC3\"},"
+        "{\"bufferView\":4,\"componentType\":5126,\"count\":2,\"type\":\"VEC3\"}],"
+        "\"bufferViews\":[{\"buffer\":0,\"byteOffset\":0,\"byteLength\":8},{\"buffer\":0,\"byteOffset\":8,\"byteLength\":32},"
+        "{\"buffer\":0,\"byteOffset\":40,\"byteLength\":32},{\"buffer\":0,\"byteOffset\":72,\"byteLength\":24},"
+        "{\"buffer\":0,\"byteOffset\":96,\"byteLength\":24}],"
+        "\"buffers\":[{\"byteLength\":120,\"uri\":\"data:application/octet-stream;base64," + Base64(bin) + "\"}]}";
+    Figure figure;
+    std::string error;
+    figure_gltf::Notes notes;
+    const std::string what = "a .gltf's animation";
+    Check(figure_gltf::FromGltf(gltf, {}, &figure, &error, &notes), what + ": " + error);
+    Check(notes.lines.size() == 1, what + ": a note of the scale channel");
+    Check(figure.anm && figure.animations.size() == 1 && figure.animations[0].name == "walk" &&
+              figure.animations[0].tracks.size() == 2,
+          what + ": one animation of two tracks");
+    if (figure.animations.size() != 1 || figure.animations[0].tracks.size() != 2) return;
+    const Track& a = figure.animations[0].tracks[0];
+    const Track& b = figure.animations[0].tracks[1];
+    const auto near = [](const std::vector<float>& values, std::size_t at, std::initializer_list<float> expected) {
+        std::size_t i = at;
+        for (const float e : expected)
+            if (i >= values.size() || std::fabs(values[i++] - e) > 1e-5f) return false;
+        return true;
+    };
+    Check(a.name == "a" && a.rotations.size() == 12 && a.positions.size() == 9 && b.name == "b" && b.rotations.size() == 12 &&
+              b.positions.empty(),
+          what + ": three keys a track (two ticks' time), the child's positions none");
+    // The root (w, x, y, z): the identity, an eighth about the game's z (slerped), a quarter; up the game's z.
+    const float eighth = 0.39269908f;
+    Check(near(a.rotations, 0, {1, 0, 0, 0}) && near(a.rotations, 4, {std::cos(eighth), 0, 0, std::sin(eighth)}) &&
+              near(a.rotations, 8, {s, 0, 0, s}),
+          what + ": the root's keys in the game's axes, the middle one slerped");
+    Check(near(a.positions, 3, {0, 0, 0.5f}) && near(a.positions, 6, {0, 0, 1}), what + ": the root's positions");
+    // The child: a quarter about its parent's x, which the parent turns: about the game's x, (s, s, 0), then y.
+    Check(near(b.rotations, 0, {s, s, 0, 0}) && near(b.rotations, 4, {s, 0.5f, 0.5f, 0}) && near(b.rotations, 8, {s, 0, s, 0}),
+          what + ": the child's keys turned after its parent's");
+    const std::map<std::string, std::string> files = figure_gltf::Files(figure, "unwalk");
+    std::vector<std::pair<std::string, std::string_view>> entries;
+    Check(files.contains("unwalk.anm") && figure_gltf::ReadArchive(files.at("unwalk.anm"), &entries) && entries.size() == 1,
+          what + ": the .anm made");
+}
+
 void CheckJson() {
     json::Value v;
     std::string error;
@@ -261,5 +389,7 @@ int RunFigureGltfChecks() {
     CheckSet();
     CheckLoose();
     CheckOtherTools();
+    CheckAnimations();
+    CheckOtherToolsAnimation();
     return g_failures;
 }

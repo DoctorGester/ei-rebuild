@@ -1,0 +1,28 @@
+# Animations as glTF (docs/notes/mods.md, "Animations as glTF"): a mod of our own, tools/make_mod_s19d.py anim, written
+# into the run's harness_saves\s19d_mod, which "mod" makes the settings' Mod (either install). Its Res\figures\unhuma.glb
+# is the hero's figure as ei-convert writes it with its idle "cidle18" twice as slow (its keys' times doubled, its
+# extras dropped), and its Res\database\unhuma.adb.toml gives "cidle18" twice its frames. The glTF stands for the game's
+# unhuma.anm: the figure manager's track of the hips has a key at every tick of the doubled time (211 for the game's
+# 106), the other idles' as they were, the hero plays "cidle18" standing past the game's 105 frames (objplayed past),
+# and the trace has the glTF read for the .anm.
+# prepare: make_mod_s19d.py anim
+mod harness_saves\s19d_mod
+reject Script error
+waitmenu
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+objtrace start leader hd log
+frames 120
+objtrace stop idle
+objplayed cidle18 past 105
+modrecord track unhuma/cidle18/hp = rotations 211 positions 211 frames 0 slots 0
+modrecord track unhuma/cidle02/hp = rotations 96 positions 96 frames 0 slots 0
+modrecord anim unhuma/cidle18 = chance 50 frames 210 key 8058007f flags 32 moment 0
+capture world
+read mod Res\figures\unhuma.anm yes
+report
+quit

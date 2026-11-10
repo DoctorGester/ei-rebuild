@@ -259,8 +259,9 @@ long GameText(const char* name, std::string* text);
 long AckSound(const char* unit, const char* speech, std::string* sound);
 // A record of a database as text, for the checks of a merge by field: kind "ack" (`name` "<unit>/<ack kind number>":
 // the speech count and the first sound of that list), "anim" ("<figure>/<animation>": the animation's chance, frames,
-// key, flags and moment), "blood", "footprint" or "scorch" (a print by name: its dry and wet looks). 1 found, 0 not,
-// -3 without the client world's map object manager.
+// key, flags and moment), "track" ("<figure>/<animation>/<part>": the part's track as the figure manager loads it, its
+// key counts), "blood", "footprint" or "scorch" (a print by name: its dry and wet looks). 1 found, 0 not, -3 without
+// the client world's map object manager (for "track" its figure manager).
 long RecordText(const char* kind, const char* name, std::string* text);
 // The first weapon of the prototype named `weapon` among the local player's given items, then its party's: its
 // damage as the game reckons it (WeaponMinDamage, WeaponMaxDamage of its packed id). 1 found, 0 none, -3 without the

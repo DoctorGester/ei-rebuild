@@ -132,7 +132,7 @@ public:
     // The file `name` from the first of Sources() that has it; with a mod a "t\" or "s\" name not found is looked for
     // once more without the prefix (Rebirth's ResOverride). An .mmp's PNG (<name>.png) in a source stands for the .mmp
     // there (docs/notes/mods.md, "Textures as PNG"): the .mmp made from it is handed out. So does a figure model's glTF
-    // for the figure files it holds (.mod, .bon, .lnk, .fig; "Models as glTF").
+    // for the figure files it holds (.mod, .bon, .lnk, .fig, .anm; "Models as glTF").
     void* GetFile(std::string_view name, std::uint32_t* size);
     virtual bool CloseFile(void* data);
     virtual void FreeAllFiles();
@@ -205,7 +205,7 @@ private:
     // The map file or sector `name` of the map made from the folder's files (shared when made already); null when the
     // name is neither or there is no such map.
     void* FolderMapFile(std::string_view name, std::uint32_t* size);
-    // The figure file `name` (.mod, .bon, .lnk or .fig) made from a glTF in `source` that holds it (the longest name
+    // The figure file `name` (.mod, .bon, .lnk, .fig or .anm) made from a glTF in `source` that holds it (the longest name
     // that begins it first; shared when made already); null when none there does. Docs/notes/mods.md, "Models as glTF".
     void* ModelFile(std::string_view name, const Source& source, std::uint32_t* size);
     // Whether a glTF in `source` holds the figure file `name`.

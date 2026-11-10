@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_gltf_animation",
+  "install": "vanilla",
+  "recorded": "2026-11-10",
+  "commit": "0e7ea2789",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "new scenario mod_gltf_animation: a mod's glTF idle twice as slow",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}

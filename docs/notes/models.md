@@ -45,7 +45,14 @@ The figure manager's `FindFigureModel` (a hash_map by name) opens `<name>.mod / 
 .mod); `LoadSkeletonLinks` reads `<name>.lnk` ((child, parent) pairs), `LoadFigureBones` `<name>.bon` (0x48-byte records
 are prisms, others cubes), `LoadFigureBounds` `<name>.fig` ("FIG" headers or the older headerless records). Bones and
 animation: map_objects.md ("Skeleton"). A glTF can stand for a figure's files (mods.md, "Models as glTF": the part tree
-as nodes, the morph corners as targets, the axes).
+as nodes, the morph corners as targets, the axes) and for a set's .anm (mods.md, "Animations as glTF": an animation per
+.anm entry, a child's rotation keys carried into its parent's frame).
+
+The .anm: an archive of animations by name, each an archive of tracks by part name; a track (`LoadKeyFrames`) is a
+rotation count and its quaternions (w, x, y, z), a position count and its positions, a frame count, a vertex count and
+the frames' vertices (each frame's offset of every position slot of the part; `FigureMesh::SetOffsets`). Every shipped
+track has as many positions as rotations and its vertex frames, when it has any, as many as its keys, and reads to its
+end.
 
 ## Link figures
 

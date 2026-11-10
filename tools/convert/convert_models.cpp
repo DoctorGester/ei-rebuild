@@ -25,6 +25,8 @@ struct Measures {
     int parts = 0, linked = 0, bones = 0, raw = 0;
     std::map<std::string, int> records;   // by kind: FIG8, FIG, old
     long long corners = 0, slots = 0, triangles = 0;
+    int animations = 0, tracks = 0, unplaced = 0, morphed = 0;   // unplaced: tracks of no part; morphed: with vertex frames
+    long long rotationKeys = 0, positionKeys = 0, vertexKeys = 0;
     long long originalBytes = 0, glbBytes = 0;
     double readSeconds = 0;               // FromGltf and Files: the game's work on a converted figure
     int failed = 0;
@@ -77,12 +79,27 @@ void CompareLinks(const std::string& what, std::string_view original, std::strin
         lines->push_back(what + ": the link list differs");
 }
 
+// An animation (an .anm's entry) track by track, each byte for byte.
+void CompareAnimation(const std::string& what, std::string_view original, std::string_view made, std::vector<std::string>* lines) {
+    std::vector<std::pair<std::string, std::string_view>> a, b;
+    if (!figure_gltf::ReadArchive(original, &a)) return CompareBytes(what, original, made, lines);
+    if (!figure_gltf::ReadArchive(made, &b)) return lines->push_back(what + ": not an archive");
+    std::map<std::string, std::string_view> byKey;
+    for (const auto& [entry, bytes] : b) byKey[Key(entry)] = bytes;
+    if (a.size() != b.size()) lines->push_back(what + ": the track count differs");
+    for (const auto& [entry, bytes] : a) {
+        const auto found = byKey.find(Key(entry));
+        if (found == byKey.end()) lines->push_back(what + ": " + entry + " is missing");
+        else if (bytes != found->second) lines->push_back(what + ": " + entry + " differs");
+    }
+}
+
 void CompareFile(const std::string& name, const std::string& original, const std::string& made, const std::string& linkName,
                  std::vector<std::string>* lines) {
     const std::string extension = ExtensionOf(Key(name));
     if (extension == ".lnk") return CompareLinks(name, original, made, lines);
     std::vector<std::pair<std::string, std::string_view>> a, b;
-    if ((extension == ".mod" || extension == ".bon") && figure_gltf::ReadArchive(original, &a)) {
+    if ((extension == ".mod" || extension == ".bon" || extension == ".anm") && figure_gltf::ReadArchive(original, &a)) {
         if (!figure_gltf::ReadArchive(made, &b)) return lines->push_back(name + ": not an archive");
         std::map<std::string, std::string_view> byKey;
         for (const auto& [entry, bytes] : b) byKey[Key(entry)] = bytes;
@@ -93,6 +110,8 @@ void CompareFile(const std::string& name, const std::string& original, const std
                 lines->push_back(name + ": " + entry + " is missing");
             } else if (extension == ".mod" && Key(entry) == linkName) {
                 CompareLinks(name + ": " + entry, bytes, found->second, lines);
+            } else if (extension == ".anm") {
+                CompareAnimation(name + ": " + entry, bytes, found->second, lines);
             } else {
                 CompareBytes(name + ": " + entry, bytes, found->second, lines);
             }
@@ -106,7 +125,7 @@ void CompareFile(const std::string& name, const std::string& original, const std
 
 bool IsFigureFile(const std::string& name) {
     const std::string extension = ExtensionOf(Key(name));
-    return extension == ".mod" || extension == ".bon" || extension == ".lnk" || extension == ".fig";
+    return extension == ".mod" || extension == ".bon" || extension == ".lnk" || extension == ".fig" || extension == ".anm";
 }
 
 std::vector<Group> Groups(const std::vector<std::string>& names, std::vector<std::string>* left) {
@@ -125,7 +144,7 @@ std::vector<Group> Groups(const std::vector<std::string>& names, std::vector<std
         Group& group = groups[stem];
         group.name = StemOf(byKey[stem + ".mod"]);
         group.layout = figure_gltf::Layout::Set;
-        for (const char* extension : {".mod", ".bon"})
+        for (const char* extension : {".mod", ".bon", ".anm"})
             if (byKey.contains(stem + extension)) {
                 group.files.push_back(byKey[stem + extension]);
                 taken.insert(stem + extension);
@@ -146,6 +165,10 @@ std::vector<Group> Groups(const std::vector<std::string>& names, std::vector<std
     for (const auto& [key, name] : byKey) {
         if (taken.contains(key)) continue;
         const std::string stem = StemOf(key);
+        if (ExtensionOf(key) == ".anm") {
+            left->push_back(name + ": an .anm without a .mod of its name (the game reads a set's .anm with its .mod)");
+            continue;
+        }
         // The longest .lnk name that begins it.
         std::string owner;
         for (const std::string& lnk : lnks)
@@ -200,6 +223,19 @@ std::vector<std::string> RoundTrip(const Group& group, const std::map<std::strin
         m.slots += r.Slots();
         m.triangles += static_cast<long long>(r.indices.size() / 3);
     }
+    std::set<std::string> partKeys;
+    for (const figure_gltf::Part& part : figure.parts) partKeys.insert(Key(part.name));
+    for (const figure_gltf::Animation& animation : figure.animations) {
+        ++m.animations;
+        for (const figure_gltf::Track& t : animation.tracks) {
+            ++m.tracks;
+            m.unplaced += !partKeys.contains(Key(t.name));
+            m.morphed += t.frames > 0;
+            m.rotationKeys += static_cast<long long>(t.rotations.size() / 4);
+            m.positionKeys += static_cast<long long>(t.positions.size() / 3);
+            m.vertexKeys += static_cast<long long>(t.frames) * t.slots;
+        }
+    }
     m.glbBytes += static_cast<long long>(glb->size());
 
     const std::string linkName = Key(group.name);
@@ -232,6 +268,10 @@ void PrintMeasures() {
                 m.figures, m.sets, m.loose, m.parts, m.linked, m.bones, records.c_str(), m.raw, m.corners, m.slots,
                 m.triangles, static_cast<double>(m.originalBytes) / 1e6, static_cast<double>(m.glbBytes) / 1e6,
                 m.readSeconds);
+    if (m.animations)
+        std::printf("ei-convert: animations: %d in the sets' .anm, %d tracks (%d of no part, %d with vertex frames), "
+                    "%lld rotation keys, %lld position keys, %lld frame vertices\n",
+                    m.animations, m.tracks, m.unplaced, m.morphed, m.rotationKeys, m.positionKeys, m.vertexKeys);
 }
 
 } // namespace convert_models

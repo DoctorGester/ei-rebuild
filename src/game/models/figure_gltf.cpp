@@ -1,6 +1,7 @@
 // Figure models as glTF: see figure_gltf.h and docs/notes/mods.md, "Models as glTF" (the layout of the .glb, the
 // extras, the coordinates).
 #include "game/models/figure_gltf.h"
+#include "game/models/figure_gltf_glb.h"
 
 #include "game/core/asset_text.h"
 #include "lib/bytes.h"
@@ -45,24 +46,9 @@ bool Fail(std::string* error, const char* what) {
     return false;
 }
 
-char Lower(char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; }
-
-// A name as the archives look it up: ASCII letters in lower case.
-std::string Key(std::string_view name) {
-    std::string key(name);
-    for (char& c : key) c = Lower(c);
-    return key;
-}
-
-bool SameName(std::string_view a, std::string_view b) { return Key(a) == Key(b); }
-
-std::uint32_t Bits(float value) { return std::bit_cast<std::uint32_t>(value); }
 bool SameBits(const Vector3& a, const Vector3& b) { return Bits(a.x) == Bits(b.x) && Bits(a.y) == Bits(b.y) && Bits(a.z) == Bits(b.z); }
 
-// The vector of three floats at `first` of a flat array, and the other way.
-Vector3 VectorAt(const std::vector<float>& values, std::size_t first) {
-    return {values[first], values[first + 1], values[first + 2]};
-}
+// A vector of three floats into a flat array at `first`.
 void PutVector(std::vector<float>* values, std::size_t first, const Vector3& v) {
     (*values)[first] = v.x;
     (*values)[first + 1] = v.y;
@@ -281,6 +267,35 @@ std::string WriteRecord(const Record& r) {
     return out;
 }
 
+bool ReadTrack(std::string_view bytes, Track* out) {
+    Track t;
+    Cursor cursor{bytes};
+    cursor.Array(cursor.Count() * 4, &t.rotations);
+    cursor.Array(cursor.Count() * 3, &t.positions);
+    const std::int32_t frames = cursor.Get<std::int32_t>();
+    const std::int32_t slots = cursor.Get<std::int32_t>();
+    if (!cursor.ok || frames < 0 || slots < 0) return false;
+    t.frames = frames;
+    t.slots = slots;
+    cursor.Array(static_cast<std::size_t>(frames) * static_cast<std::size_t>(slots) * 3, &t.vertices);
+    if (!cursor.ok || cursor.at != bytes.size()) return false;
+    t.name = out->name;
+    *out = std::move(t);
+    return true;
+}
+
+std::string WriteTrack(const Track& t) {
+    std::string out;
+    Put(&out, static_cast<std::int32_t>(t.rotations.size() / 4));
+    PutArray(&out, t.rotations);
+    Put(&out, static_cast<std::int32_t>(t.positions.size() / 3));
+    PutArray(&out, t.positions);
+    Put(&out, static_cast<std::int32_t>(t.frames));
+    Put(&out, static_cast<std::int32_t>(t.slots));
+    PutArray(&out, t.vertices);
+    return out;
+}
+
 bool ReadLinks(std::string_view bytes, std::vector<std::pair<std::string, std::string>>* links) {
     Cursor cursor{bytes};
     const std::uint32_t count = cursor.Get<std::uint32_t>();
@@ -336,6 +351,9 @@ bool ReadArchive(std::string_view image, std::vector<std::pair<std::string, std:
         name = name.substr(0, std::min(name.find('\0'), name.size()));
         entries->emplace_back(std::string(name), image.substr(offset, size));
     }
+    // In their data's order (the table is in the hash's): the order WriteArchive was given them.
+    std::stable_sort(entries->begin(), entries->end(),
+                     [&](const auto& a, const auto& b) { return a.second.data() < b.second.data(); });
     return true;
 }
 
@@ -431,6 +449,30 @@ std::string BoneBytes(const Part& part) {
     return std::string(reinterpret_cast<const char*>(part.bone.data()), part.bone.size() * sizeof(float));
 }
 
+// An animation from an .anm entry's bytes: false (the bytes kept as they are by the caller) unless they are an archive
+// of tracks that read, no two of one name.
+bool AnimationOf(std::string_view name, std::string_view bytes, Animation* animation) {
+    std::vector<std::pair<std::string, std::string_view>> entries;
+    if (!ReadArchive(bytes, &entries)) return false;
+    animation->name = name;
+    animation->tracks.clear();
+    std::vector<std::string> keys;
+    for (const auto& [entry, track] : entries) {
+        Track& t = animation->tracks.emplace_back();
+        t.name = entry;
+        if (!ReadTrack(track, &t)) return false;
+        keys.push_back(Key(entry));
+    }
+    std::sort(keys.begin(), keys.end());
+    return std::adjacent_find(keys.begin(), keys.end()) == keys.end();
+}
+
+std::string AnimationBytes(const Animation& animation) {
+    std::vector<std::pair<std::string, std::string>> tracks;
+    for (const Track& t : animation.tracks) tracks.emplace_back(t.name, WriteTrack(t));
+    return WriteArchive(tracks);
+}
+
 // The parts of a link list, in its order.
 void AddLinkedParts(Figure* figure, const std::vector<std::pair<std::string, std::string>>& links) {
     for (const auto& [child, parent] : links) {
@@ -498,6 +540,18 @@ bool FromFiles(std::string_view name, Layout layout, const std::map<std::string,
         } else if (bon != byKey.end()) {
             figure.raw.push_back({base + ".bon", RawFile::In::Folder, *bon->second});
         }
+        // The animations (an .anm that is no archive carried as it is).
+        const auto anm = byKey.find(base + ".anm");
+        figure.anm = anm != byKey.end() && ReadArchive(*anm->second, &entries);
+        if (figure.anm) {
+            for (const auto& [entry, bytes] : entries) {
+                Animation animation;
+                if (AnimationOf(entry, bytes, &animation)) figure.animations.push_back(std::move(animation));
+                else figure.raw.push_back({entry, RawFile::In::Anm, std::string(bytes)});
+            }
+        } else if (anm != byKey.end()) {
+            figure.raw.push_back({base + ".anm", RawFile::In::Folder, *anm->second});
+        }
     } else {
         const auto lnk = byKey.find(base + ".lnk");
         figure.link = lnk != byKey.end();
@@ -526,8 +580,9 @@ std::map<std::string, std::string> Files(const Figure& figure, std::string_view 
     for (const Part& part : figure.parts)
         if (part.linked) links.emplace_back(part.name, part.parent);
     if (figure.layout == Layout::Set) {
-        std::vector<std::pair<std::string, std::string>> mod, bon;
+        std::vector<std::pair<std::string, std::string>> mod, bon, anm;
         if (figure.link) mod.emplace_back(std::string(name), WriteLinks(links));
+        for (const Animation& animation : figure.animations) anm.emplace_back(animation.name, AnimationBytes(animation));
         for (const Part& part : figure.parts) {
             if (part.hasMesh) mod.emplace_back(part.name, WriteRecord(part.mesh));
             if (!part.bone.empty()) bon.emplace_back(part.name, BoneBytes(part));
@@ -535,9 +590,13 @@ std::map<std::string, std::string> Files(const Figure& figure, std::string_view 
         for (const RawFile& raw : figure.raw) {
             if (raw.in == RawFile::In::Mod) mod.emplace_back(raw.name, raw.bytes);
             if (raw.in == RawFile::In::Bon) bon.emplace_back(raw.name, raw.bytes);
+            if (raw.in == RawFile::In::Anm) anm.emplace_back(raw.name, raw.bytes);
         }
         files[Key(name) + ".mod"] = WriteArchive(mod);
         if (figure.bones || !bon.empty()) files[Key(name) + ".bon"] = WriteArchive(bon);
+        // The animations by name: a glTF holds those of no channel apart from the others.
+        std::stable_sort(anm.begin(), anm.end(), [](const auto& a, const auto& b) { return Key(a.first) < Key(b.first); });
+        if (figure.anm || !anm.empty()) files[Key(name) + ".anm"] = WriteArchive(anm);
     }
     if (figure.layout == Layout::Loose) {
         if (figure.link) files[Key(name) + ".lnk"] = WriteLinks(links);
@@ -555,11 +614,6 @@ std::map<std::string, std::string> Files(const Figure& figure, std::string_view 
 
 namespace {
 
-// The game's axes to glTF's: the game's z is up and its x, y, z right-handed; glTF's y is up. (x, y, z) -> (x, z, -y),
-// a rotation (no mirror: the triangles keep their winding). Blender's import turns glTF's y-up back to its own z-up,
-// so it shows the game's coordinates as they are.
-Vector3 ToGltfAxes(const Vector3& game) { return {game.x, game.z, -game.y}; }
-Vector3 ToGameAxes(const Vector3& gltf) { return {gltf.x, -gltf.z, gltf.y}; }
 
 // The FIG8 corners' names as morph targets (corner k's bits: 1 s, 2 t, 4 u; corner 0 is the base), and the older
 // record's prism (c1 s, c2 t, c3 u, c4 s and u, c5 t and u).
@@ -587,65 +641,6 @@ std::string MaterialText(std::uint32_t value, std::uint32_t meshType) {
     return name + " " + std::to_string(meshType);
 }
 
-std::string Num(std::int64_t value) { return std::to_string(value); }
-
-std::string Floats(const float* values, std::size_t count) {
-    std::string out = "[";
-    for (std::size_t i = 0; i < count; ++i) out += (i ? "," : "") + json::Float(values[i]);
-    return out + "]";
-}
-std::string Floats(const Vector3& v) { return "[" + json::Float(v.x) + "," + json::Float(v.y) + "," + json::Float(v.z) + "]"; }
-
-// The arrays of a .glb's binary chunk, each its own buffer view, and their accessors' JSON.
-class GlbWriter {
-public:
-    enum class Component { UnsignedShort = 5123, UnsignedInt = 5125, Float = 5126 };
-    enum class Target { None = 0, Vertices = 34962, Indices = 34963 };
-
-    // A buffer view of the bytes; its index.
-    int View(const void* data, std::size_t bytes, Target target) {
-        while (bin.size() % 4) bin.push_back('\0');
-        std::string view = "{\"buffer\":0,\"byteOffset\":" + Num(static_cast<std::int64_t>(bin.size())) +
-                           ",\"byteLength\":" + Num(static_cast<std::int64_t>(bytes));
-        if (target != Target::None) view += ",\"target\":" + Num(static_cast<int>(target));
-        views.push_back(view + "}");
-        bin.append(static_cast<const char*>(data), bytes);
-        return static_cast<int>(views.size()) - 1;
-    }
-    // An accessor of `count` elements of `type` (SCALAR, VEC2, ...) in a new view of `data` (none: all zero);
-    // `bounds` the min and max JSON when it has them. Its index.
-    int Accessor(const void* data, std::size_t bytes, Component component, std::size_t count, const char* type,
-                 Target target, const std::string& bounds = {}) {
-        std::string accessor = "{";
-        if (data) accessor += "\"bufferView\":" + Num(View(data, bytes, target)) + ",";
-        accessor += "\"componentType\":" + Num(static_cast<int>(component)) + ",\"count\":" + Num(static_cast<std::int64_t>(count)) +
-                    ",\"type\":\"" + type + "\"" + bounds + "}";
-        accessors.push_back(accessor);
-        return static_cast<int>(accessors.size()) - 1;
-    }
-    // VEC3 floats with their min and max (a POSITION's must have them), all zero ones without a view.
-    int Vec3(const std::vector<float>& values, Target target) {
-        Vector3 low, high;
-        for (std::size_t i = 0; i + 3 <= values.size(); i += 3) {
-            const Vector3 v = VectorAt(values, i);
-            low = i == 0 ? v : Min(low, v);
-            high = i == 0 ? v : Max(high, v);
-        }
-        const bool zero = std::all_of(values.begin(), values.end(), [](float v) { return Bits(v) == 0; });
-        const std::string bounds = ",\"min\":" + Floats(low) + ",\"max\":" + Floats(high);
-        return Accessor(zero ? nullptr : values.data(), values.size() * sizeof(float), Component::Float, values.size() / 3,
-                        "VEC3", target, bounds);
-    }
-
-    std::string bin;
-    std::vector<std::string> views, accessors;
-};
-
-std::string Join(const std::vector<std::string>& items) {
-    std::string out;
-    for (std::size_t i = 0; i < items.size(); ++i) out += (i ? "," : "") + items[i];
-    return out;
-}
 
 std::string Hex(std::string_view bytes) {
     static constexpr char kDigits[] = "0123456789abcdef";
@@ -864,10 +859,24 @@ std::string ToGlb(const Figure& figure, std::string_view name) {
             ei.push_back("\"parent\":" + json::String(text::FromAssetText(part.parent)));
         nodes.push_back(node + ",\"extras\":{\"ei\":{" + Join(ei) + "}}}");
     }
+    // The animations (figure_gltf_animation.cpp); one that would have no channel is carried as it is.
+    std::vector<int> parentOf(figure.parts.size(), -1);
+    for (std::size_t p = 0; p < figure.parts.size(); ++p)
+        for (const int c : children[p]) parentOf[static_cast<std::size_t>(c)] = static_cast<int>(p);
+    std::vector<RawFile> rawFiles = figure.raw;
+    std::vector<std::string> animations;
+    for (const Animation& animation : figure.animations) {
+        std::string json = AnimationJson(animation, figure.parts, parentOf, glb);
+        if (json.empty()) rawFiles.push_back({animation.name, RawFile::In::Anm, AnimationBytes(animation)});
+        else animations.push_back(std::move(json));
+    }
     std::vector<std::string> rootList, raw;
     for (const int r : roots) rootList.push_back(Num(r));
-    for (const RawFile& file : figure.raw) {
-        const char* in = file.in == RawFile::In::Mod ? "mod" : file.in == RawFile::In::Bon ? "bon" : "folder";
+    for (const RawFile& file : rawFiles) {
+        const char* in = file.in == RawFile::In::Mod   ? "mod"
+                         : file.in == RawFile::In::Bon ? "bon"
+                         : file.in == RawFile::In::Anm ? "anm"
+                                                       : "folder";
         raw.push_back("{\"name\":" + json::String(text::FromAssetText(file.name)) + ",\"in\":\"" + in +
                       "\",\"view\":" +
                       Num(file.bytes.empty() ? -1 : glb.View(file.bytes.data(), file.bytes.size(), GlbWriter::Target::None)) + "}");
@@ -875,6 +884,7 @@ std::string ToGlb(const Figure& figure, std::string_view name) {
     std::string sceneEi = std::string("\"layout\":\"") + (figure.layout == Layout::Set ? "set" : "loose") + "\"";
     if (!figure.link) sceneEi += ",\"link\":false";
     if (figure.layout == Layout::Set && !figure.bones) sceneEi += ",\"bones\":false";
+    if (figure.anm) sceneEi += ",\"anm\":true";
     if (!raw.empty()) sceneEi += ",\"files\":[" + Join(raw) + "]";
 
     while (glb.bin.size() % 4) glb.bin.push_back('\0');
@@ -884,6 +894,7 @@ std::string ToGlb(const Figure& figure, std::string_view name) {
     if (!nodes.empty()) jsonText += ",\"nodes\":[" + Join(nodes) + "]";
     if (!meshes.empty()) jsonText += ",\"meshes\":[" + Join(meshes) + "]";
     if (!materials.empty()) jsonText += ",\"materials\":[" + Join(materials) + "]";
+    if (!animations.empty()) jsonText += ",\"animations\":[" + Join(animations) + "]";
     if (!glb.accessors.empty()) jsonText += ",\"accessors\":[" + Join(glb.accessors) + "]";
     if (!glb.views.empty()) jsonText += ",\"bufferViews\":[" + Join(glb.views) + "]";
     if (!glb.bin.empty()) jsonText += ",\"buffers\":[{\"byteLength\":" + Num(static_cast<std::int64_t>(glb.bin.size())) + "}]";
@@ -937,47 +948,6 @@ const char* ResultText(cgltf_result result) {
     case cgltf_result_legacy_gltf: return "glTF 1.0";
     default: return "cgltf cannot read it";
     }
-}
-
-// An object's extras parsed (a missing value when it has none or they do not parse).
-json::Value Extras(const cgltf_data* data, const cgltf_extras& extras) {
-    std::string_view text;
-    if (extras.data) text = extras.data;
-    else if (extras.end_offset > extras.start_offset && data->json && extras.end_offset <= data->json_size)
-        text = std::string_view(data->json + extras.start_offset, extras.end_offset - extras.start_offset);
-    json::Value value;
-    std::string error;
-    if (text.empty() || !json::Parse(text, &value, &error)) return json::Value();
-    return value;
-}
-
-std::string NameOf(const char* name) { return name ? text::ToAssetText(name) : std::string(); }
-
-// An accessor's floats (its count times its components), or none.
-std::vector<float> Floats(const cgltf_accessor* accessor) {
-    std::vector<float> out;
-    if (!accessor) return out;
-    out.resize(cgltf_accessor_unpack_floats(accessor, nullptr, 0));
-    if (cgltf_accessor_unpack_floats(accessor, out.data(), out.size()) != out.size()) out.clear();
-    return out;
-}
-
-// An accessor's integers (its count times its components), or none.
-std::vector<std::uint32_t> Uints(const cgltf_accessor* accessor) {
-    std::vector<std::uint32_t> out;
-    if (!accessor || accessor->is_sparse) return out;
-    const std::size_t components = cgltf_num_components(accessor->type);
-    out.resize(accessor->count * components);
-    for (std::size_t i = 0; i < accessor->count; ++i)
-        if (!cgltf_accessor_read_uint(accessor, i, &out[i * components], components)) return {};
-    return out;
-}
-
-// The accessor an extras value names by index, or null.
-const cgltf_accessor* AccessorAt(const cgltf_data* data, const json::Value& index) {
-    if (!index.IsNumber() || index.Number() < 0 || index.Number() >= static_cast<double>(data->accessors_count))
-        return nullptr;
-    return &data->accessors[static_cast<std::size_t>(index.Int())];
 }
 
 // The bytes of the buffer view an extras value names by index (empty when there is none).
@@ -1323,6 +1293,7 @@ bool FromGltf(std::string_view bytes, const ReadUri& readUri, Figure* out, std::
     figure.layout = sceneEi["layout"].IsString() && sceneEi["layout"].String() == "loose" ? Layout::Loose : Layout::Set;
     figure.link = !(sceneEi["link"].IsBool() && !sceneEi["link"].Bool());
     figure.bones = !(sceneEi["bones"].IsBool() && !sceneEi["bones"].Bool());
+    figure.anm = sceneEi["anm"].IsBool() && sceneEi["anm"].Bool();
 
     // The nodes in the scene (their trees).
     std::vector<bool> inScene(data->nodes_count);
@@ -1384,10 +1355,16 @@ bool FromGltf(std::string_view bytes, const ReadUri& readUri, Figure* out, std::
         RawFile raw;
         raw.name = text::ToAssetText(file["name"].String());
         const std::string& in = file["in"].String();
-        raw.in = in == "mod" ? RawFile::In::Mod : in == "bon" ? RawFile::In::Bon : RawFile::In::Folder;
+        raw.in = in == "mod"   ? RawFile::In::Mod
+                 : in == "bon" ? RawFile::In::Bon
+                 : in == "anm" ? RawFile::In::Anm
+                               : RawFile::In::Folder;
         raw.bytes = ViewBytes(data, file["view"]);
         figure.raw.push_back(std::move(raw));
     }
+    ReadAnimations(data, &figure.animations, notes);
+    figure.anm = figure.anm || !figure.animations.empty();
+    for (const RawFile& raw : figure.raw) figure.anm = figure.anm || raw.in == RawFile::In::Anm;
     *out = std::move(figure);
     return true;
 }

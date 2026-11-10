@@ -96,9 +96,9 @@ void AddModel(std::map<std::string, std::string, std::less<>>& models, const std
     if (!added && gltf) found->second = key;
 }
 
-// Whether `key` (a LooseKey) is a figure file a glTF can stand for: .mod, .bon, .lnk, .fig.
+// Whether `key` (a LooseKey) is a figure file a glTF can stand for: .mod, .bon, .lnk, .fig, .anm.
 bool IsFigureFile(std::string_view key) {
-    for (const std::string_view extension : {".mod", ".bon", ".lnk", ".fig"})
+    for (const std::string_view extension : {".mod", ".bon", ".lnk", ".fig", ".anm"})
         if (EndsWith(key, extension)) return true;
     return false;
 }
@@ -290,7 +290,9 @@ bool MappedResource::ReadSource(const Source& source, std::string_view name, std
         const auto file = source.loose->byName.find(LooseKey(name));
         if (file == source.loose->byName.end()) return false;
         *where = file->second.path;
-        return platform::ReadWholeFile(file->second.path, bytes);
+        // The layer's own file: a read through the path map would take a layer over it that has one of its name
+        // (a mod's model without animations over the game's with them).
+        return platform::ReadLayerFile(file->second.path, bytes);
     }
     if (source.entries->FindEntry(name) == -1) return false;
     std::uint32_t size = 0;
