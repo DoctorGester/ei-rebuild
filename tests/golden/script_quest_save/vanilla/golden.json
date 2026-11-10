@@ -1,0 +1,13 @@
+{
+  "scenario": "script_quest_save",
+  "install": "vanilla",
+  "recorded": "2026-11-10",
+  "commit": "782bb6c8d",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "New scenario script_quest_save (L7): two QFinish quests in the mission script through a save and load, and console lines.",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+}
