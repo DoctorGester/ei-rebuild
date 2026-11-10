@@ -64,8 +64,9 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
   mobs      a map's objects as TOML (tests/scenarios/mod_map_objects.txt; docs/notes/mods.md, "Map objects as TOML"):
               Maps\\zone1.mob.toml   the game's zone1.mob as ei-convert writes it (a converted install's own, else made by
                                     the run's build's ei-convert, EI_BUILD_DIR, else build\\verify) with the pig PigF0-1947
-                                    moved to MOVED_PIG and a pig MF9aPig added at ADDED_PIG; no .mob (the game's gives
-                                    the scripts)
+                                    moved to MOVED_PIG and a pig MF9aPig added at ADDED_PIG, then two bad records the
+                                    load leaves out with a warning (MF10a: a unit without parent_id, one with a
+                                    tree's); no .mob (the game's gives the scripts)
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
 """
@@ -503,7 +504,12 @@ def mobs(root):
     added = added.replace(f'name = "PigF0-{PIG_ID}"', 'name = "MF9aPig"', 1).replace(PIG_POSITION, at(ADDED_PIG))
     records[start] = pig.replace(PIG_POSITION, at(MOVED_PIG))
     records[-1] = records[-1].rstrip('\n') + '\n\n'
-    records.append(added.rstrip('\n') + '\n')
+    records.append(added.rstrip('\n') + '\n\n')
+    # MF10a: two records the zone's load leaves out with a warning: a unit without parent_id, one of a tree's class.
+    for n, (name, parent) in enumerate((('MF10aNoClass', ''), ('MF10aWrongClass', 'parent_id = 53\n')), 2):
+        bad = added.replace(f'id = {top + 1}\n', f'id = {top + n}\n', 1).replace('name = "MF9aPig"', f'name = "{name}"', 1)
+        bad = re.sub(r'^parent_id = \d+\n', parent, bad, count=1, flags=re.M)
+        records.append(bad.rstrip('\n') + '\n' + ('\n' if n == 2 else ''))
     write(os.path.join(root, 'Maps', 'zone1.mob.toml'), '[[object]]\n'.join(records).encode('utf-8'))
 
 

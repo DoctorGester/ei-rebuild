@@ -420,8 +420,10 @@ call_radius = 5.0
   default; ei-convert writes only the keys that differ from it.
 - `id`: unique in the file; scripts find map units by it (`GetObject(3001)`). Pick one no record has.
 - `parent_id` is the object's class and must fit its kind: 50, 51 or 52 for units (copy it from a unit like yours),
-  53 trees, 54 buildings, 55 stones, 56 other objects, 58 torches (`flame`), 59 traps, 60 levers. A missing or wrong
-  one crashes the game at the zone's load. `parent_iname` is the editor's class name.
+  53 trees, 54 buildings, 55 stones, 56 other objects, 58 torches (`flame`), 59 traps, 60 levers (an `object` record
+  may also hold a unit's class). A missing or wrong one is logged at the zone's load (`warning: map objects: <zone>
+  record <id>: parent_id <n> is not a class that fits its kind; the record is left out`) and the record is skipped.
+  `parent_iname` is the editor's class name.
 - With `apply_stats` left out (0), a unit's `[object.stats]` are not applied: it has its prototype's statistics from
   units.udb. Its items: `carried`, `quick_items`, `spells`, `weapons` and `armour` (`"<name>.<material>"`, as
   ei-convert writes them).

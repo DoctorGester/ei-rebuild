@@ -637,9 +637,14 @@ id = 12
   A record of an unknown kind, an unknown key or a value its field does not take is logged ("warning: map objects:
   <file> line n: ...") and left out.
 - `parent_id` is the object's class (`MapObjectType`: 50-52 units, 53 trees, 54 buildings, 55 stones, 56 other objects,
-  58 torches, 59 traps, 60 levers), the factory's type in `WorldServer::CreateObject`. A record without it (0) or with
-  one its kind's class cannot make crashes the zone load there (no object made, the null used; MF10's hand-written pig
-  without it, 2026-11-10; a shipped .mob always has it). MF10a: log and skip such a record.
+  58 torches, 59 traps, 60 levers), the factory's type in `WorldServer::CreateObject`. `mapspec::LoadMob`
+  (mob_reader.cpp, `ClassFits`) checks each record's class against its kind (units 50-52; flames 58; traps 59; levers
+  60; objects 53-56 or a unit's class: the main menu's unmoco2 is an object record of class 51) before it makes the
+  object, and a record that does not fit is logged ("warning: map objects: <zone> record <id>: parent_id <n> is not a
+  class that fits its kind; the record is left out") and skipped (MF10a; without the check the null object was used and
+  the zone load crashed: MF10's hand-written pig without parent_id, 2026-11-10). It is there, not in the readers
+  (mob_toml.cpp is also ei-convert's and knows no factory) nor in `WorldServer::CreateObject` (which has four make
+  sites and no zone name), and covers the .mob reader too; every shipped record of both installs fits.
 - A record id the file repeats: the later record takes the earlier's place in `byId` (the original leaked the earlier
   one); the TOML writes the later record at its own place. ei-convert compares the walks, so a file where that moved
   the order would fail its check (Lost in Astral's files repeat two ids; their walks hold).
@@ -675,7 +680,8 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
   (50, 138) and a pig `MF9aPig` (id 2009) added at (50, 142), beside the party's start. The mod has no `.mob`, so the
   scripts come from the game's: in a new game both pigs stand near their places (`GetObject(id)`, `GetX`, `GetY`; the
   capture shows them by the hero), another pig and the script's units keep theirs, and the trace has the mod's TOML
-  and the game's `.mob` read. A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
+  and the game's `.mob` read; two more records at the file's end (a unit without parent_id, one of a tree's class, ids
+  2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
   pigs by the names the TOML gives.
 - Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or none
   when no layer has one), as do its scripts until L5; a mod that moves objects keeps the game's graph, which the TOML
