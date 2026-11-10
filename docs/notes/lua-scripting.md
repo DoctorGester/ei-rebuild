@@ -550,9 +550,10 @@ generator starts the same on both sides and is back as it was at the end.
   it with `--quiet --saves` on the samples and console lines for 100 ticks (under a second). `--saves`: the Lua side
   goes through an old-format save at half the ticks (the game's script saved by Script::SaveState after that tick,
   loaded into a Script of its own, resumed by the shim) and through an Eris save at three quarters, each compared at
-  once. On vanilla, Rebirth, AllHeroes and Lost in Astral with the console lines, 300 ticks and `--saves`
-  (2026-11-10): 522 scripts, 496 the same, 0 differ (48 network quests compared up to their QFinish), 26 left out (22
-  PlayMovie, 2 PlayCamera, 1 AddMobEx, 1 GSListPlayerVars). The objects the missions name are not in the test world,
+  once. On vanilla and Rebirth (whose unpacked tree holds AllHeroes and Lost in Astral) with the console lines, 300
+  ticks and `--saves` (2026-11-10, L7): 524 scripts, 498 the same, 0 differ, 149,400 ticks compared (48 network
+  quests go past their QFinish, which the Lua side converts at once: before L7 the compare stopped there, 134,496
+  ticks), 26 left out (22 PlayMovie, 2 PlayCamera, 1 AddMobEx, 1 GSListPlayerVars). The objects the missions name are not in the test world,
   so most rules' conditions do not hold there; the scenarios reach the rest ("Lockstep in the game").
 - A scheduler fault shows: dropping an ended run at once makes 6 of 6 short cases and most console scripts differ at
   their first ticks. Save faults show too: a resumed run entering its block one command late, or a restored run's
@@ -562,10 +563,10 @@ generator starts the same on both sides and is back as it was at the end.
 
 `src/game/script/script_lua_shadow.h` (`ScriptShadow`): with `EI_LUA_BOTH=1` in the game's environment (off by default;
 `EI_LUA_BOTH=1 python tools/work.py test <ID> ...` passes it to every game), WorldServer::Create gives the world's two
-scripts a shadow each ("mission", "console"). A shadow converts every text loaded into its script (Script::Load's tree,
-`WriteLua`, chunks `text1`, `text2`...: the zone's .mob, AddMob'd mobs, network quests' QFinish texts, engine texts,
-`@` console lines) and loads it into a ScriptLuaScheduler on a Script of its own; after every tick of the real script
-the scheduler ticks once.
+scripts a shadow each ("mission", "console"). A shadow converts every text loaded into its script (Script::Load's tree
+by its scheduler's `Convert`, "Texts at runtime", chunks `text1`, `text2`...: the zone's .mob, AddMob'd mobs, QFinish's
+quest texts, engine texts, execs files, `@` / `#` / `$` console lines) and loads it into that ScriptLuaScheduler on a
+Script of its own; after every tick of the real script the scheduler ticks once.
 
 - **How the shadow keeps off the world: record and replay.** While the game's executor ticks, every built-in call
   (CalcFloat / CalcObject / CalcGroup / CalcString / RunCommand, split into the hook and `Evaluate*` / `Perform`) is
@@ -592,7 +593,8 @@ the scheduler ticks once.
   57): the game calls VCheck#0#275(#4689) in 1 loop, Lua calls VCheck#0#275(#3353) in 1 loop (Lua text4:994:)`; that
   one from ForEach walked first to last on purpose), fails the run (the report's FAILED line) and writes the shadow's
   converted texts beside the log (`luaboth_<script>_text<N>.lua`, the lines named). The report says per script
-  `lua both: mission script: N ticks, N calls compared, N texts` (and `stopped: ...` when it stopped).
+  `lua both: mission script: N ticks, N calls compared, N texts (N from the cache)` (and `stopped: ...` when it
+  stopped).
 - **Saves.** A save loaded (Script::LoadState, at its end: `ScriptShadow::StateLoaded`) builds the Lua state again from
   the loaded script by the old-save shim ("Saves"; its Lua beside the log as `luaboth_<script>_save<N>.lua` on a
   difference), compares it at once and goes on; the save files hold only the old format, so this is how every load in
@@ -606,8 +608,8 @@ the scheduler ticks once.
   call's argument slots (the loops, CallScript and Assign, which read the call's structure, are the Lua's own), so with
   Lua as the only path the world would take the same course. **What it does not prove:** the handlers run on the Lua's
   own call (they are the same code, checked by `--lua-check`, not here); timing; Lua state read from a save file (none
-  holds one yet); paths no scenario reaches
-  (the 27 keywords no text uses, the quest texts only where a scenario plays a network quest to its QFinish); and the
+  holds one yet); paths no scenario reaches (the 27 keywords no text uses; quest texts are reached by net_pair_quest,
+  a network quest to its QFinish, and script_quest_save, two quests in the mission script through a save); and the
   shadow's values hold their objects a little longer (to the end of the tick), so a removed object is freed later
   than without it (the goldens show no effect).
 - **Counts** (2026-11-10, every scenario with `--golden --rebirth`, 437 runs, all pass, 371 goldens the same, as with
@@ -617,6 +619,17 @@ the scheduler ticks once.
   Rebirth) all go on: 54 saves resumed by the shim, and 1,398 Eris round trips (1,069 mission, 329 console; the
   largest state 212,515 bytes), every one compared the same. The corpus (`--lockstep 300 --saves`): 522 scripts, 496
   the same, 0 differ. A deliberate fault (ForEach first to last) fails zone_gz3g at its tick 60 with the line above.
+- **Counts with the runtime conversion** (L7, 2026-11-10, every scenario with `--golden --rebirth`, 441 runs, all
+  pass, 375 goldens the same, 0 differ, as with the option off): vanilla mission scripts 203,854 ticks and 12,824,719
+  calls over 978 texts (7 from the cache), console scripts 135,091 ticks and 17,792 calls over 4,238 texts (1,552 from
+  the cache); Rebirth mission 115,388 ticks and 5,526,746 calls over 821 texts (5 from the cache), console 61,215 ticks
+  and 11,757 calls over 2,795 texts (942 from the cache); 56 saves resumed, 1,404 Eris round trips (largest 219,098
+  bytes); 0 differ. The quest and console scenarios (script_quest_save, script_quest, console, script_file,
+  net_pair_quest, mod_lost_in_astral_gipat_quests, ui_quest_notice, net_zone_vars; 15 runs): mission 38,967 ticks and
+  645,498 calls over 93 texts, console 23,050 ticks and 2,028 calls over 384 texts (67 from the cache), 3 saves
+  resumed, 74 Eris round trips. net_pair_quest's host converts the z9q2 mission's QFinish text (vanilla 15 mission
+  texts, Rebirth 13); script_quest_save 7 mission texts (two quest texts, a save resumed with both quests waiting,
+  the areas file after it).
 
 ## Decisions (user 2026-11-10)
 
