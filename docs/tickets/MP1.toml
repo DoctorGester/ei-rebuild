@@ -1,0 +1,7 @@
+id = "MP1"
+title = "Experiment: own saved multiplayer heroes as companions in a network game (an unmerged branch to measure the code it takes)"
+group = "port"
+size = 2
+model = "opus"
+note = "User 2026-11-10: many play multiplayer solo (its own quests) and one hero is hard; try letting a player add their other saved .mp heroes to their party during a game (start with one hero, a menu adds more). Experiment on a branch, not merged: the user wants to see how much code it adds. Pieces: a message bringing extra heroes from the player's .mp files (a host's server option, our exe only: original clients do not know it); spawn them under the player, commands for any of the player's units; death rules (LeaderDied assumes a party of one: a companion's death, the leader's while companions live); each companion saved back to its own .mp at zone end, a hero not used twice at once; awards / XP shared; the HUD showing party members beside the other players' faces; the add-companion menu. Report lines added per area."
+order = 1315
