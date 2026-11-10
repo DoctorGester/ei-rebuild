@@ -330,32 +330,32 @@ Risks:
 
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
-| `ai/` | 28 | 12555 | C168f |
-| `app/` | 23 | 6994 | C168e |
-| `combat/` | 13 | 6391 | C168f |
-| `console/` | 5 | 2037 | C168e |
-| `core/` | 27 | 3874 | C168d |
-| `data/` | 13 | 3235 | C168d |
+| `ai/` | 28 | 12553 | C168f |
+| `app/` | 23 | 6926 | C168e |
+| `combat/` | 13 | 6394 | C168f |
+| `console/` | 5 | 2038 | C168e |
+| `core/` | 27 | 3875 | C168d |
+| `data/` | 15 | 4474 | C168d |
 | `effects/` | 23 | 10833 | C168g |
-| `items/` | 10 | 2701 | C168g |
-| `map/` | 11 | 2028 | C168e |
-| `models/` | 20 | 5411 | C168g |
-| `mods/` | 6 | 605 | C168d |
-| `net/` | 21 | 7992 | C168h |
-| `objects/` | 23 | 7324 | C168f |
-| `players/` | 24 | 5243 | C168e |
-| `saves/` | 7 | 811 | C168d |
-| `scene/` | 30 | 4684 | C168g |
-| `script/` | 20 | 6742 | C168h |
+| `items/` | 10 | 2855 | C168g |
+| `map/` | 11 | 2036 | C168e |
+| `models/` | 19 | 5150 | C168g |
+| `mods/` | 6 | 603 | C168d |
+| `net/` | 21 | 7981 | C168h |
+| `objects/` | 23 | 8062 | C168f |
+| `players/` | 24 | 5251 | C168e |
+| `saves/` | 7 | 828 | C168d |
+| `scene/` | 30 | 4414 | C168g |
+| `script/` | 20 | 6750 | C168h |
 | `sound/` | 3 | 1679 | C168e |
-| `spells/` | 8 | 2469 | C168g |
-| `terrain/` | 12 | 3479 | C168g |
-| `ui/` | 95 | 32842 | C168h |
-| `units/` | 27 | 9914 | C168f |
-| `world/` | 35 | 9724 | C168e |
-| all | 484 | 149567 | |
+| `spells/` | 8 | 2560 | C168g |
+| `terrain/` | 12 | 3636 | C168g |
+| `ui/` | 95 | 32812 | C168h |
+| `units/` | 27 | 9807 | C168f |
+| `world/` | 35 | 10226 | C168e |
+| all | 485 | 151743 | |
 
-531 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+532 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -512,6 +512,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | chunk_archive.h | data/chunk_archive.h |  |  |
 | database_file.h | data/database_file.h |  |  |
 | database_globals.cpp | data/database_file.h | split | each database's global to its database's file: spells/spell_db.cpp, items/item_db.cpp, world/quest_database.cpp, terrain/ground_print.cpp, units/acks_db.cpp (C168b; the file goes) |
+| database_toml.cpp | data/database_toml.cpp |  |  |
+| database_toml.h | data/database_toml.h |  |  |
 | ini_file.cpp | data/ini_file.cpp |  |  |
 | ini_file.h | data/ini_file.h |  |  |
 | registry.cpp | data/registry.cpp |  |  |
@@ -609,7 +611,6 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | link_loader.cpp | models/link_loader.cpp |  |  |
 | link_loader_create.cpp | models/link_loader.cpp | fold | LinkFigureLoader's constructor (15 lines) |
 | link_loader.h | models/link_loader.h | new | LinkArchive, FigureModel, Morph, LinkFigureLoader out of model.h |
-| link_mesh_draw.cpp | models/link_mesh_draw.cpp |  |  |
 | material.cpp | models/material.cpp |  |  |
 | material.h | models/material.h |  |  |
 | texture.cpp | models/texture.cpp |  |  |
