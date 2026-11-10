@@ -346,14 +346,14 @@ Risks:
 | `players/` | 24 | 5473 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
-| `script/` | 31 | 10751 | C168h |
+| `script/` | 31 | 10260 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
 | `terrain/` | 12 | 3559 | C168g |
 | `ui/` | 97 | 33107 | C168h |
 | `units/` | 27 | 9739 | C168f |
 | `world/` | 35 | 10247 | C168e |
-| all | 508 | 162093 | |
+| all | 508 | 161602 | |
 
 555 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 

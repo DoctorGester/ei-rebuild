@@ -50,7 +50,7 @@ everything here: static analysis of addon.dll, EI_Plugin.asi, the starter's dinp
   (GiveUnitWeapon, Str*, Rand*, NearestUnit, GiveExp, GameOver, GetDexterity, ShowAllUnits, PauseGame, SetWeather,
   AddMobEx, IsFileExists, StartCameraSave ...); the parser gets the signature letters `?` (optional rest) and `+` (repeat
   the previous type) and a stricter keyword match ("Orc1" is an identifier); the evaluators look the id up before the
-  game's switch (CalcFloat, CalcObject, CalcGroup, Execute, and CalcString, which CalcParameters then calls for string
+  game's switch (CalcFloat, CalcObject, CalcGroup, RunCommand, and CalcString, which the Lua bindings call for string
   arguments). Of its seven commands that share a game command's name, IsAlive, IsDead and ResetTarget stay the game's,
   and ConsoleString, Add, Mul and Random keep the game's argument counts. Kept from addon: `DistancePointPoint`'s
   signature has two floats but it reads four; `Random` with one argument declines; `And` / `Or` truncate; `Max` / `Min`

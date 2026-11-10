@@ -1,11 +1,17 @@
-# Lua scripting: plan
+# Lua scripting
 
-Goal: the game's mission scripts as readable Lua files that mods edit (ei-convert writes them from the originals,
-which keep loading), and mods' own scripts in Lua, with running scripts (coroutines included) kept in saves. Revised
-2026-11-10 with the user: readable Lua over a hidden compile step, Lua 5.3 + Eris, saves ours only. Tickets L1-L9: `python tools/tickets.py list --group lua`. Engine details are in
-`script.md`; Rebirth's extensions are in `rebirth.md` ("AddNewScriptCommands").
+Every world script runs on Lua (L9, 2026-11-10): the game's parser reads each text (a .mob's script, AddMob'd mobs,
+QFinish's quests, console lines, execs files), its parse tree is written as readable Lua (cached per text) and runs on
+the script's scheduler in the game's tick order; a mod's or a converted install's `.lua` stands for a .mob's script;
+saves hold the Lua state (Eris), and old-format saves resume through a shim. So the game's mission scripts are
+readable Lua files that mods edit (ei-convert writes them from the originals, which keep loading), and mods write
+their own scripts in Lua. Decided 2026-11-10 with the user: readable Lua over a hidden compile step, Lua 5.3 + Eris, saves ours only.
+Tickets L1-L9: `python tools/tickets.py list --group lua`. Engine details are in `script.md`; Rebirth's extensions
+are in `rebirth.md` ("AddNewScriptCommands").
 
-## What the current engine is
+## The game's script engine
+
+What the original's executor did; the Lua path keeps its rules.
 
 - **Language.** It has no operators: every value comes from a built-in function. The game's table has 214 commands and
   functions (and 11 punctuation and section words); Rebirth adds 69, 7 of them under a game name, so 276 in all.
@@ -96,10 +102,10 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
   load history. A saved run is always at a top-level command (no waits in loop bodies): on a wait, at index 0 of a
   WorldScript not yet run, or at the end of its block.
 
-### What it changes in L2-L9
+### What it settled for L2-L9
 
 - **L2 (bindings).** All 276 are generated from the table; 160 are reached by the game's content, 88 more only by
-  harness lines, 27 by nothing (bindings without coverage: lockstep cannot check them). Rebirth's string and maths
+  harness lines, 27 by nothing (bindings no scenario reaches). Rebirth's string and maths
   functions are reached only by harness lines.
 - **L3 (writer)**: no wait in a loop body, no nested loop, no ForIf, no #define and no written `!n!` in any shipped
   text, so converted missions need no special form for the end-the-body rule (the runtime keeps it for mods), and
@@ -107,8 +113,6 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
   have none; Rebirth's 24 lines, AllHeroes 176, Lost in Astral 337 (cp1251), kept by L3a.
 - **L4 (scheduler).** KillScript-then-go-on is the main path (86% of kills), and a killed instance starting the next
   script (5,416) is common; the lost kill flag of a waiting run is not reached by content.
-- **L5 (lockstep).** The corpus is the 339 .mob scripts with their AddMob / quest parents; the hot condition bindings
-  are IsEqual, GSGetVar, IsLess, GetObject, GetLeverState.
 - **L6 (saves).** Resume points are only top-level waits, starts and ends, so the old-save shim enters a converted block
   at a top-level label (Lua 5.3's `goto` at function level is enough). Since block ids follow the load history, the
   shim should build its tree from the save's own program (the saved blocks, as `DumpLoaded` walks them), not map ids
@@ -141,8 +145,9 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
   that member's body), so a script converts to plain code: a rule set as condition and action functions, waits as
   calls that yield (`Sleep`, `WaitSegment`, `SleepUntil`, `SleepUntilIdle`), For / ForIf as
   `ForEach(group, function(member) ... end)` keeping the original's end-the-body rule, the WorldScript as the start
-  function ("Converted scripts" below). ei-convert writes `<zone>.lua` beside the .mob (and MF9's TOML); the game is to
-  load it through the loose-file lookup (mods.md, L4), and the original .mob's script to convert at load the same way.
+  function ("Converted scripts" below). ei-convert writes `<zone>.lua` beside the .mob (and MF9's TOML); the game
+  loads it through the loose-file lookup (mods.md, "Scripts in Lua") and converts an original .mob's script at its load
+  the same way ("Texts at runtime").
   No pc state machines: a modder reads and edits the file.
 - **Scheduler.** It keeps Script::Tick's order exactly:
   - waiting runs first, then instances, then dropping deleted objects, then timed effects, then freeing temporaries;
@@ -165,9 +170,8 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
 ## Bindings
 
 What exists (L2): `src/game/script/script_lua.h` (`ScriptLua`), Lua 5.3.5 with Eris in `third_party/eris`
-(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). The scheduler (below) owns one: a mission
-script on Lua ("Mods") and the lockstep's ("Lockstep in the game", EI_LUA_BOTH).
-Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the unit check `lua_number.cpp`.
+(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). The scheduler (below) owns one, every world
+script's. Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the unit check `lua_number.cpp`.
 
 - **The state.** Libraries base (without `dofile` / `loadfile`), coroutine, table, string, math (without `random` /
   `randomseed`: a draw outside the game's generator; scripts draw through `Random`), utf8; no io, os, package or debug.
@@ -196,16 +200,16 @@ Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the uni
   game evaluated a nested call again on each Execute (`Sleep(Random(n))` draws every tick; `SleepUntil(c)` needs it).
   `ScriptLua::Continue(thread, run, ...)` is Execute's step for a Lua run: it counts the tick and resumes with `run` as
   the current run (KillScript sets its kill flag; outside a resume a run of its own without a flag, as the
-  WorldScript's). `--lua-check` compares the tick counts with the game's executor.
+  WorldScript's). `--lua-check` checks the tick counts against the game's executor's.
 - **Values.** A float is a Lua number (double) exactly; a number passed in rounds to the nearest float
   (`script_lua_number.h`); NaNs keep sign and payload bit for bit both ways, signalling ones too (by bit operations,
   not the FPU). Strings are Lua strings (UTF-8 bytes). Objects and groups are full userdata over `ScriptObjectRef` /
   `ScriptGroup` (the counts held as the variables hold them; groups in id order through ScriptGroup's own methods;
   `#g`, `g[i]` from 1; two values of one object are `==`, though each read is a new value, so not one table key). A
   function result of no object is `nil`, and `nil` passes a null object. Every live value is linked into its runtime's
-  list: `ScriptLua::RemoveDeletedObjects` drops deleted objects from all of them, as the tick and
-  `Script::PurgeDeletedObjects` do to the variables (it calls it there: `Script::lua`, the last runtime made on that
-  script, set by ScriptLua's constructor). `NewGroup()` and `CopyGroup(g)` are the two
+  list: `ScriptLua::RemoveDeletedObjects` drops deleted objects from all of them, as the game's tick and purge did to
+  the variables (the scheduler's tick and `Script::PurgeDeletedObjects` call it on the script's runtime). `NewGroup()`
+  and `CopyGroup(g)` are the two
   helpers: a group value is shared by reference, the game's assignment copied.
 - **Persistence.** `ScriptLua::Persist` / `Unpersist` (Eris) with permanents built at start: the globals table itself
   and every function in it and in the libraries' tables by name (`_G.GetObject`, `coroutine.yield`), and the hidden
@@ -297,7 +301,7 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). The game loa
   (where Every or Any stopped); a constant condition or an empty group leaves it as it was. The bindings do the same
   with the global the loop names first (`PushMember`, script_lua.cpp: one object value pushed, set into the global and
   passed to the function). So a text reading the counter outside its loop (Rebirth's `listgvar`, a later text, a
-  script the body starts) reads the game's value, and the digest, the saves and every lockstep compare the counters.
+  script the body starts) reads the game's value, and the digest and the saves compare the counters.
   - Why a name argument and not the parameter's name (lua_getlocal on the function): what the loop writes is in the
     call as the original has it (`For(i, Heroes)` reads `ForEach("i", Heroes, ...)`), renaming a parameter changes no
     global, a mod's own loop without the name writes nothing (a plain Lua loop over a local), and nothing depends on
@@ -317,12 +321,14 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). The game loa
     of its script; every global its bytecode reads (`tools/convert/lua_globals.cpp`: GETTABUP on `_ENV`) must be
     defined there or a declared global, every global it writes a declared global, a script or WorldScript. It fails on
     those, on a name the writer did not know and on a text assigning a global an earlier text's wait read once.
-  - `ei-convert --lua-check` (the build checks, ctest `port_lua`): six short texts run both ways ("Lockstep") on
+  - `ei-convert --lua-check` (the build checks, ctest `port_lua`; tools/convert/lua_check.cpp): seven short texts on
     its three stones for 24 ticks: rules whose conditions draw, KillScript going on, starts from an instance (next
     tick) and from a waiting run (same tick), waits on nested calls and on settled and changing globals, group copies,
     loops and Every / Any / Sum, a NaN condition, renamed names, a second text loaded later, number literals, the zone
-    reset with an empty WorldScript and an empty then-section. Each also goes through a save at every tick (the old
-    format at tick t and Eris at t + 1; Eris alone at t: `lua_both::Saves`), 335 checks.
+    reset with an empty WorldScript and an empty then-section, two quests built by QFinish. Each runs straight and
+    through a save at every tick (Script::SaveState, LoadState into a new script), every tick's state (the globals,
+    instances and runs as the digest reads them, the random draws, the texts loaded) the same as the straight run's
+    and no Lua error; with the bindings, the waits, the sandbox, persistence and the cache, 248 checks.
 - **Corpus** (`--scripts build\unpacked\vanilla build\unpacked\rebirth --scenarios tests\scenarios`, 13 s): every text
   loads and checks.
 
@@ -417,14 +423,14 @@ Su1 = Script {
 ## Scheduler
 
 What exists (L4): `src/game/script/script_lua_scheduler.h` (`ScriptLuaScheduler`), owning a `ScriptLua` on a
-`Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript` and
-`loadText` (every text the script loads comes to it: "Texts at runtime"). The game runs a mission script on one when a
-`.lua` stands for its .mob's script ("Mods"), and makes one beside each world script for the lockstep ("Lockstep in
-the game"). Checked both ways ("Lockstep", "Lockstep in the game").
+`Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript`; every text the
+script loads comes to it ("Texts at runtime"). Every world script runs on one (`Script::runner`, made by
+`Script::Runner` at the first load after a Reset). Checked by the goldens and `--lua-check` ("Verification"); until L9
+against the game's executor ("How it was checked").
 
 - **Load(text, name, runWorldScript).** The chunk runs; its `WorldScript` is taken out of the globals and kept (load
   order) for the zone reset, and with `runWorldScript` started as a run at the head of the list, first resumed by the
-  next tick (Script::Load / RunWorldScript). A text the game's parser stopped in (the tree's `ok`) is loaded with
+  next tick (Script::Load). A text the game's parser stopped in (the tree's `ok`) is loaded with
   `runWorldScript` false: the game runs its WorldScript only at the zone reset.
 - **Tick()**, Script::Tick's order:
   1. every waiting run continues (`ScriptLua::Continue`: the tick counted, the run current while it runs); a run whose
@@ -446,15 +452,14 @@ the game"). Checked both ways ("Lockstep", "Lockstep in the game").
   `ScriptLua::ResetGlobals` (every declared global zeroed), every text's WorldScript started again in load order, each
   at the head (the last loaded runs first).
 - **Errors.** A Lua error ends its run (a failed condition does not hold); its message goes to `report`, by default
-  the console's `Script error: <chunk>:<line>: <message>` (the lockstep's own report fails on the first).
+  the console's `Script error: <chunk>:<line>: <message>`.
 
 ## Saves
 
-What exists (L6): the scheduler's whole state saves and restores with Eris, and an old-format save's script state
-resumes in it. A save file holds Lua only for a mission script on Lua ("Mods", L8: the old format, then this state);
-every other save is the old format alone, and with EI_LUA_BOTH off and no `.lua` nothing here runs (saves
-byte-identical, every golden the same). Checked by `--lua-check` and the corpus lockstep
-with `--saves` ("Lockstep") and in the game by the shadow ("Lockstep in the game").
+What exists (L6, L9): the scheduler's whole state saves and restores with Eris, and an old-format save's script
+state (vanilla's, or ours before L9) resumes in it through the shim. Checked by `--lua-check` (the short texts through
+a save at every tick), the scenarios through a save and load (script_quest_save, mod_lua_changed, mod_lua_addmob,
+world_load ...) and those that load the user's old-format saves ("Verification").
 
 - **Save / Restore** (`ScriptLuaScheduler`, Eris through `ScriptLua::Persist`): one table persisted:
   - `globals`: every global the runtime did not make or that holds another value now (`ScriptLua::PushGlobals`
@@ -500,44 +505,45 @@ with `--saves` ("Lockstep") and in the game by the shadow ("Lockstep in the game
   run waits only at a top-level command, the rest of its block is exactly the statements after it, so a function of
   those statements resumes it; once running it is an ordinary coroutine (Eris persists its closure like any other),
   and it ends with its block, so a later save holds no shim but those still waiting.
-- **In the save files** (L8): only for a mission script on Lua ("Mods"): Script::SaveState's old format with
-  2 added to `loaded`, then this state; every other save is the old format alone, byte for byte as before. All saves in Eris
-  (L9) come with the old executor's removal.
+- **In the save files** (`Script::SaveState`, script_save.cpp): the old format with the scheduler's state in its
+  fields as far as they go (`WriteLuaState`: the parsed program, the declared globals with their Lua values, each
+  instance as its definition with its kill flag and values, each run with its rule's then-section, command -1 and its
+  values, a WorldScript's run with block -1), 2 added to `loaded` (`kScriptLoadedOnLua`), and after the areas this
+  state (a count and its bytes; one that does not persist is written empty and said on the console).
+  `Script::LoadState` reads it into a new scheduler (`Restore`), or without the 2 resumes the old format by the shim;
+  either way the old format's globals, instances and runs are dropped after, and a state that does not go on leaves
+  the script empty, said on the console. tools/savefile.py reads the old format's fields (mods.md, "Scripts in
+  Lua").
 
 ## Mods
 
 What exists (L8): a .mob's `.lua` in the loose-file lookup (`Maps\<zone>.lua`, or the file the .mob.toml's `script`
 key names; each layer down to the one that has the .mob) runs in place of the .mob's script: `Script::LoadLua`
-(script_lua_mission.cpp) puts the mission script on a scheduler of its own (`Script::runner`; what the old executor
-held so far resumed in it by the shim), parses and converts the .mob's text for its names only, and loads the `.lua`
-with its WorldScript started. Tick, ResetZone and the saves then go to the scheduler; every later text is converted
-at its load ("Texts at runtime"). The files, the lookup, the saves and the checks are in mods.md, "Scripts in Lua";
+(script_lua_mission.cpp) parses and converts the .mob's text for its names only and loads the `.lua` into the
+script's scheduler with its WorldScript started; every later text is converted at its load ("Texts at runtime"). The files, the lookup, the saves and the checks are in mods.md, "Scripts in Lua";
 the modder's guide in docs/modding.md, "Scripts".
 
-- **The plain conversion plays as the original.** mod_lua_plain (zone1.lua as ei-convert writes it) and its twin
-  mod_lua_none (the old executor) have the same digests, dump, saves and console: the digest's script record and the
-  save decoder describe a script in the terms both executors share (L8a; mods.md "Scripts in Lua", "The same record
-  either way"), without block ids, command indices and evaluation slots; the loops' counters hold the game's values
-  on Lua too ("Loop counters").
+- **The plain conversion plays as the .mob.** mod_lua_plain (zone1.lua as ei-convert writes it) and its twin
+  mod_lua_none (the .mob converted at its load) have the same digests, dump, saves and console: the digest's script
+  record and the save decoder describe a script in the game's executor's terms (L8a; mods.md "Scripts in Lua", "The
+  record"), without block ids, command indices and evaluation slots; the loops' counters hold the game's values
+  ("Loop counters").
 - **A mod's own code.** Its definitions, coroutines and locals are Lua values like the converted ones: they run in the
   scheduler's order, and an Eris save keeps them (mod_lua_changed: a WorldScript counting in a local goes on after a
   load).
-- **Not yet.** The old executor stays beside it (L9 removes it); a mod cannot add to a .mob's script, only stand for
-  all of it.
+- **Not yet.** A mod cannot add to a .mob's script, only stand for all of it.
 
 ## Texts at runtime
 
-What exists (L7): every text a script loads while the game runs goes through `Script::Load`, and with a Lua runtime
-that takes them (`ScriptLua::loadText`, which the scheduler sets) the parse tree goes on to the scheduler at once. The
-texts: QFinish's quest script (script_exec.cpp: built from the QStart / QObj* calls, loaded into the script that runs
+What exists (L7, L9): every text a script loads while the game runs goes through `Script::Load`, and its parse tree
+goes on to the script's scheduler at once. The texts: QFinish's quest script (script_exec.cpp: built from the QStart / QObj* calls, loaded into the script that runs
 it), the console's `@` / `#` / `$` lines (`WorldScript(x)`, `WorldScript( ConsoleFloat( x ))`, `WorldScript(
 ConsoleString( x ))` into the world's second script, console.cpp), Rebirth's `execs` files (`LoadFile` into the
-mission script, console_addon.cpp), AddMob'd mobs and the engine's texts. In the game a mission script on Lua takes them ("Mods"), the shadow converts
-through the same `Convert` ("Lockstep in the game"); lua_both's Lua side does too ("Lockstep").
+mission script, console_addon.cpp), AddMob'd mobs, the zone's .mob and the engine's texts.
 
-- **Script::Load** parses as before (the parser stays the front end: its declarations resolve the next text's names);
-  with `loadText` the executor starts no WorldScript run of its own, and `ScriptLuaScheduler::LoadText` converts the
-  tree and loads the chunk, its WorldScript started unless the parser stopped in the text.
+- **Script::Load** parses (`Script::Parse`: the parser stays the front end, its declarations resolve the next text's
+  names) and hands the tree to `ScriptLuaScheduler::LoadText`, which converts it and loads the chunk, its WorldScript
+  started unless the parser stopped in the text.
 - **Convert(file, text)**: `WriteLua` in the scheduler's `names` (the earlier texts' Lua names), the chunk `text<N>`
   by the texts converted so far. **Cached per text**: a conversion that leaves the names as they were (sizes of every
   set and map the writer adds to, and the sum of the WorldScript assignment counts) is kept by its key, the
@@ -558,122 +564,24 @@ through the same `Convert` ("Lockstep in the game"); lua_both's Lua side does to
 - **Saves after a quest**: an Eris save keeps the names (above); an old-format save resumes by the shim from the saved
   program, the quest texts' blocks included, and a later text converts in the names the shim gave.
 - **Checks**: `--lua-check`'s case `quests` (two quests built by QFinish into one script, the areas made later, console
-  lines declaring nothing loaded again) both ways with a save at every tick, and its runtime checks (the cache, a run's
-  error reported, a load failure as error 18); the corpus lockstep past each network quest's QFinish; in the game
-  `script_quest_save` (two quests from an execs file into the mission script, a save and load with both waiting,
-  then an execs file that finishes them, console lines repeated), with the counts in "Lockstep in the game".
+  lines declaring nothing loaded again) with a save at every tick, and its runtime checks (the cache, a run's error
+  reported); in the game `script_quest_save` (two quests from an execs file into the mission script, a save and load
+  with both waiting, then an execs file that finishes them, console lines repeated) and net_pair_quest (a network
+  quest to its QFinish).
 
-## Lockstep
+## How it was checked
 
-`tools/convert/lua_both.h` (`lua_both::Compare`) runs the texts of one script both ways, by the game's executor
-(Script::Load, Script::Tick) and as their Lua (each text converted at its load, "Texts at runtime") under the
-scheduler, and after every tick compares the instances (by definition), the waiting-run count, the random generator's
-draws so far and every global, the loops' counters included
-(floats by their bits; a declaration never found left out). The random
-generator starts the same on both sides and is back as it was at the end.
-
-- **The test world.** No objects but lua_check's stones; the server world gets its effect manager, player manager (no
-  players), a map object manager (not created: its Create opens the archives) and spells (no database: a spell
-  warns and none is made), and the client world the camera; the tool's log is muted meanwhile (no unit prototypes,
-  no spells). A file an AddMob names is marked loaded (the script's texts are loaded already). A script that uses
-  PlayMovie, PlayCamera, Rebirth's AddMobEx (it loads the file again), GSListPlayerVars (it needs its player) or an
-  AddMob of a computed name is left out.
-- **The Lua side** loads its texts as the game does: its own script parses each text and hands it to the scheduler
-  (Script::Load, "Texts at runtime"), and its own QFinish builds and converts the quest scripts. After every tick the
-  instances are compared by definition too (each instance's tree name, in list order).
-- **The corpus**: `ei-convert --scripts <installs> --scenarios tests\scenarios --lockstep <ticks>` runs every script
-  of the survey (a mission with the missions it loads after and its quest texts at tick 0, an engine text after its
-  mission, the samples, a scenario's console lines one per tick) and lists the ones that differ; the build check runs
-  it with `--quiet --saves` on the samples and console lines for 100 ticks (under a second). `--saves`: the Lua side
-  goes through an old-format save at half the ticks (the game's script saved by Script::SaveState after that tick,
-  loaded into a Script of its own, resumed by the shim) and through an Eris save at three quarters, each compared at
-  once. On vanilla and Rebirth (whose unpacked tree holds AllHeroes and Lost in Astral) with the console lines, 300
-  ticks and `--saves` (2026-11-10, L8c, the loops' counters compared too): 525 scripts, 499 the same, 0 differ,
-  149,700 ticks compared (48 network quests go past their QFinish, which the Lua side converts at once: before L7
-  the compare stopped there, 134,496 ticks), 26 left out (22 PlayMovie, 2 PlayCamera, 1 AddMobEx, 1 GSListPlayerVars). The objects the missions name are not in the test world,
-  so most rules' conditions do not hold there; the scenarios reach the rest ("Lockstep in the game").
-- A scheduler fault shows: dropping an ended run at once makes 6 of 6 short cases and most console scripts differ at
-  their first ticks. Save faults show too: a resumed run entering its block one command late, or a restored run's
-  sleep start off by one, fail 73 of the short checks and 2 corpus scripts.
-
-## Lockstep in the game
-
-`src/game/script/script_lua_shadow.h` (`ScriptShadow`): with `EI_LUA_BOTH=1` in the game's environment (off by default;
-`EI_LUA_BOTH=1 python tools/work.py test <ID> ...` passes it to every game), WorldServer::Create gives the world's two
-scripts a shadow each ("mission", "console"). A shadow converts every text loaded into its script (Script::Load's tree
-by its scheduler's `Convert`, "Texts at runtime", chunks `text1`, `text2`...: the zone's .mob, AddMob'd mobs, QFinish's
-quest texts, engine texts, execs files, `@` / `#` / `$` console lines) and loads it into that ScriptLuaScheduler on a
-Script of its own; after every tick of the real script the scheduler ticks once.
-
-- **How the shadow keeps off the world: record and replay.** While the game's executor ticks, every built-in call
-  (CalcFloat / CalcObject / CalcGroup / CalcString / RunCommand, split into the hook and `Evaluate*` / `Perform`) is
-  logged after its arguments are prepared, with them, its loop depth and its result, in the order the calls end
-  (nested arguments first, a loop after its body). The Lua's tick then makes its binding calls, and each is matched
-  with the next logged call (keyword, depth, every argument: floats by their bits, objects by pointer, groups by their
-  members) and gets the logged result instead of running; a command that changed a group argument gets the group as
-  it was after it. Only the run-local commands run on the Lua side: Sleep, WaitSegment and SleepUntil (their go-on
-  flags compared with the game's) and KillScript (its instance's flag). A declared-script call is matched in the
-  scheduler's start (the definition by name, its arguments); assignments are the Lua's own (the globals compare). No
-  command, no draw and no world read happens twice, so the world is the game's alone: with the option on, every golden
-  stays the same (vanilla 226, Rebirth 141, 2026-11-10).
-- **Events in the log.** A text loaded, the zone reset, an object removed (Script::PurgeDeletedObjects with the object)
-  and a loop condition's evaluation beforehand that drew stay where they came: the Lua side follows them at that point
-  (a load inside AddMob or QFinish runs its chunk inside the binding call; a purge drops from the Lua's values only the
-  objects the game had removed by then). Between ticks they are followed at once.
-- **What is left out.** Calls inside a command's handler (none but the loops', which are compared) and the game's
-  evaluation of a loop's condition in PrepareArguments, before the loop, with the counter as it is (Every / Any / Sum
-  / ForIf: the Lua makes no such call; one that draws from the random generator is a difference).
-- **After every tick:** no logged call left over; no Lua error; the instance lists the same (by definition, in list
-  order); the waiting runs the same (count, each one's ticks and sleep start); every global the same (floats by their
-  bits; a declaration every use finds an earlier one of left out; the loops' counters compared since L8c).
-- **The first difference** stops that shadow, goes to the log (`lua both: mission script, its tick 60 (world tick
-  57): the game calls VCheck#0#275(#4689) in 1 loop, Lua calls VCheck#0#275(#3353) in 1 loop (Lua text4:994:)`; that
-  one from ForEach walked first to last on purpose), fails the run (the report's FAILED line) and writes the shadow's
-  converted texts beside the log (`luaboth_<script>_text<N>.lua`, the lines named). The report says per script
-  `lua both: mission script: N ticks, N calls compared, N texts (N from the cache)` (and `stopped: ...` when it
-  stopped).
-- **Saves.** A save loaded (Script::LoadState, at its end: `ScriptShadow::StateLoaded`) builds the Lua state again from
-  the loaded script by the old-save shim ("Saves"; its Lua beside the log as `luaboth_<script>_save<N>.lua` on a
-  difference), compares it at once and goes on; the save files hold only the old format (but a mission script on Lua's, where the
-  shadow stands aside: "Mods"), so this is how every load in the game resumes. Before a save is made (Script::SaveState: `Saving`) and at the shadow's ticks 200, 400, 800 ...,
-  the Lua state goes through an Eris round trip (Save, Restore into a new scheduler), is compared at once and goes on
-  as the restored one. The report adds `N saves resumed, N Eris round trips (at most N bytes)`. A load, tick or reset
-  of the script inside its own tick stops the shadow without a difference (none in the scenarios).
-- **What it proves.** Given the same results from every built-in, the converted Lua makes the same built-in calls with
-  the same arguments in the same order, starts the same instances, keeps the same runs at the same ticks and the same
-  globals, on every tick of every scenario. The world changes only through built-ins, and the handlers read only the
-  call's argument slots (the loops, CallScript and Assign, which read the call's structure, are the Lua's own), so with
-  Lua as the only path the world would take the same course. **What it does not prove:** the handlers run on the Lua's
-  own call (they are the same code, checked by `--lua-check`, not here); timing; Lua state read from a save file (the
-  shadow stands aside for a mission script on Lua: mods.md "Scripts in Lua" checks that); paths no scenario reaches (the 27 keywords no text uses; quest texts are reached by net_pair_quest,
-  a network quest to its QFinish, and script_quest_save, two quests in the mission script through a save); and the
-  shadow's values hold their objects a little longer (to the end of the tick), so a removed object is freed later
-  than without it (the goldens show no effect).
-- **Counts** (2026-11-10, every scenario with `--golden --rebirth`, 437 runs, all pass, 371 goldens the same, as with
-  the option off): vanilla mission scripts 203,490 ticks and 12,795,643 calls compared over 968 texts, console
-  scripts 134,777 ticks and 17,690 calls over 4,204 texts; Rebirth 115,024 mission ticks and 5,497,670 calls, 60,901
-  console ticks and 11,655 calls; 0 differ. The 49 mission shadows that a save load used to stop (29 vanilla, 20
-  Rebirth) all go on: 54 saves resumed by the shim, and 1,398 Eris round trips (1,069 mission, 329 console; the
-  largest state 212,515 bytes), every one compared the same. The corpus (`--lockstep 300 --saves`): 522 scripts, 496
-  the same, 0 differ. A deliberate fault (ForEach first to last) fails zone_gz3g at its tick 60 with the line above.
-- **Counts with the runtime conversion** (L7, 2026-11-10, every scenario with `--golden --rebirth`, 441 runs, all
-  pass, 375 goldens the same, 0 differ, as with the option off): vanilla mission scripts 203,854 ticks and 12,824,719
-  calls over 978 texts (7 from the cache), console scripts 135,091 ticks and 17,792 calls over 4,238 texts (1,552 from
-  the cache); Rebirth mission 115,388 ticks and 5,526,746 calls over 821 texts (5 from the cache), console 61,215 ticks
-  and 11,757 calls over 2,795 texts (942 from the cache); 56 saves resumed, 1,404 Eris round trips (largest 219,098
-  bytes); 0 differ. The quest and console scenarios (script_quest_save, script_quest, console, script_file,
-  net_pair_quest, mod_lost_in_astral_gipat_quests, ui_quest_notice, net_zone_vars; 15 runs): mission 38,967 ticks and
-  645,498 calls over 93 texts, console 23,050 ticks and 2,028 calls over 384 texts (67 from the cache), 3 saves
-  resumed, 74 Eris round trips. net_pair_quest's host converts the z9q2 mission's QFinish text (vanilla 15 mission
-  texts, Rebirth 13); script_quest_save 7 mission texts (two quest texts, a save resumed with both quests waiting,
-  the areas file after it).
-- **Counts with the counters compared** (L8c, 2026-11-10, `--golden --rebirth`, 447 runs, all pass, 381 the same, 0
-  differ): vanilla mission 204,083 ticks and 12,831,787 calls over 986 texts, console 136,291 ticks and 18,009 calls
-  over 4,308 texts; Rebirth mission 115,235 ticks and 5,512,962 calls over 819 texts, console 61,209 ticks and 11,753
-  calls over 2,794 texts; 57 saves resumed, 1,408 Eris round trips; no shadow stopped. The corpus lockstep cannot see
-  the counters (its test world has no units, so no group the loops walk has a member): a deliberate fault (the
-  bindings not setting the counter) gives 0 differences there, fails 192 of `--lua-check`'s 411 checks and stops
-  zone_gz3g's and rebirth_flags' shadows at tick 27 (`i: #1884 in the game, none in Lua`).
+Until L9 the game's executor ran beside the Lua, and two lockstep checks compared them: `ei-convert --scripts ...
+--lockstep N --saves` ran every script of the survey both ways on a test world (globals, instance lists, run counts
+and the random draws after every tick, through an old-format save and an Eris save; the last count, L8c: 525
+scripts, 499 the same, 0 differ, 26 left out for PlayMovie / PlayCamera / AddMobEx / GSListPlayerVars), and
+`EI_LUA_BOTH=1` gave each world script in the game a shadow that replayed every built-in call's result to the
+converted Lua and compared each call's arguments, the instances, the runs' positions and the globals after every
+tick, resuming every loaded save by the shim and taking the Lua through Eris round trips (the last count, L8c, every
+scenario with `--golden --rebirth`: 447 runs, about 320,000 mission ticks and 18.3 million calls compared, 57 saves
+resumed, 1,408 Eris round trips, 0 differ). The converted install's suite (`--converted`) matched the goldens too.
+With every script on Lua (L9) both went with the executor; the goldens of the normal and the converted suites,
+`--lua-check` and the scenarios that load old-format saves are the checks now ("Verification").
 
 ## Decisions (user 2026-11-10)
 
@@ -683,18 +591,21 @@ Script of its own; after every tick of the real script the scheduler ticks once.
 
 ## Verification
 
-- **Lockstep.** The old executor and Lua run side by side: on the test world each tick compares the variables, the
-  instance and run counts and the random draws ("Lockstep"); in the game (EI_LUA_BOTH) every built-in call with its
-  arguments, the instance lists, the runs' positions and the globals ("Lockstep in the game").
-- **Coverage.** Every scenario, plus the corpus run for N ticks (`--scripts ... --lockstep N`, "Lockstep").
-- **Saves.** An old save loaded into Lua (the shim) and a Lua state saved and loaded into Lua (Eris), each compared
-  with the old engine's loaded state and then in lockstep: on the short cases at every tick, the corpus and in the game
-  ("Saves", "Lockstep in the game").
+- **The goldens.** The normal suite (`--golden --rebirth`) runs every script converted at its load, the converted
+  install's (`--converted`) from ei-convert's `.lua` files; both compare with the same goldens (the digest's script
+  record and the saves in the game's executor's terms: mods.md, "Scripts in Lua").
+- **Old saves.** The scenarios that load the user's saves (tests/saves: render_load_town, render_shadows_mound,
+  render_shadows_shimmer, render_shore_seams, render_swamp_shore, mod_lost_in_astral_elevator, _first_pose,
+  _unarmed_search) resume old-format saves through the shim.
+- **`--lua-check`** (the build checks): the bindings, the waits, the sandbox, persistence, the short texts through a
+  save at every tick, the runtime conversion's cache ("Converted scripts", "Checks").
+- **`--scripts`** (the build checks on the samples and console lines; by hand with the installs): every text's tree
+  against what the loader built, its Lua loaded and its globals checked ("Survey", "Converted scripts").
 - **Determinism.** The `deterministic` step and the harness's virtual clock make the runs repeatable.
 
 ## Risks
 
-- **Timing.** Same-tick versus next-tick behaviour, and head insertion: lockstep catches it.
+- **Timing.** Same-tick versus next-tick behaviour, and head insertion: the goldens catch it.
 - **Floats.** Exactness through Lua numbers, and NaN handling.
 - **Rebirth's quirks.** They have to be kept (`DistancePointPoint` reads four floats, `Random` with one argument, and the
   others in `rebirth.md`); the bindings call the same handlers, so they carry over.
