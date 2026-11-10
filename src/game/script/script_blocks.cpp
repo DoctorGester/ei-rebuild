@@ -1,6 +1,5 @@
-// Small allocation helpers of the script runtime: the parser's new command blocks and WorldScript
-// block, the area lookups and the temporary object references of the
-// evaluator. See script.h and docs/notes/script.md.
+// Small allocation helpers of the script runtime: an old-format save's new command blocks, the area lookups and
+// the temporary object references of the evaluator. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
 #include "game/script/script_lua_scheduler.h"
 #include "game/objects/map_object.h"
@@ -9,23 +8,10 @@
 
 #include <cstdint>
 
-namespace {
-
-// An empty block at the end of `list`; its id is the list's new count with `idBits`.
-ScriptBlock* AppendBlock(std::list<ScriptBlock>* list, std::uint32_t idBits) {
-    ScriptBlock& block = list->emplace_back();
-    block.id = static_cast<int>(static_cast<std::uint32_t>(list->size()) | idBits);
-    return &block;
-}
-
-} // namespace
-
 ScriptBlock* Script::NewCommandList() {
-    return AppendBlock(&blocks, 0);
-}
-
-ScriptBlock* Script::NewWorldScript() {
-    return AppendBlock(&worldBlocks, 0x80000000u);
+    ScriptBlock& block = blocks.emplace_back();
+    block.id = static_cast<int>(blocks.size());
+    return &block;
 }
 
 ScriptArea* Script::FindArea(int id) {
@@ -96,9 +82,10 @@ void Script::Reset() {
     blocks.clear();
 }
 
-// Script::Load calls it before each `Script` section: the if-then pairs and variables emptied, not killed,
-// the parameters and the name empty.
+// Script::Load calls it before each `Script` section: no rules, the variables emptied, not killed, the parameters
+// and the name empty.
 void ScriptDefinition::Reset() {
+    rules = 0;
     ifThen.clear();
     vars.Clear();
     killed = false;

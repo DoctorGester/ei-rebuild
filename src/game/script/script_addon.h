@@ -50,9 +50,8 @@ bool Dispatch(Call* call);
 bool RejectsMatch(const char* keyword, char next);
 
 // LoadFunction, after the separator token is classified: the signature's '?' and '+'. At ')' a '+' is passed and a
-// '?' drops the optional parameters' slots; otherwise a '+' steps back to the repeated type (adding a slot for it)
-// and a '?' is skipped.
-void SignatureStep(ScriptCall* cmd, std::string_view signature, std::size_t* letter, int tokenId);
+// '?' passes the optional parameters' letters; otherwise a '+' steps back to the repeated type and a '?' is skipped.
+void SignatureStep(std::string_view signature, std::size_t* letter, int tokenId);
 
 // The string functions' CalcString (the Lua bindings' 'S' functions): Rebirth's string function (none: the game
 // ends).

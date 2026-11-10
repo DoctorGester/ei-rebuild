@@ -1,12 +1,12 @@
 #pragma once
 
-// The mission script engine. A mission script (*.scr text) is parsed by Script into scripts whose conditions
-// and commands are trees of ScriptCall nodes; each node is one built-in function or command (ScriptKeyword table)
-// whose arguments are constants, variables (ScriptBinding) or nested calls (ScriptSubCall). Values have four
-// types: 1 float, 2 string, 3 object (a counted reference to a world object), 4 group (a sorted set of object
-// references). The parse tree of each text is converted to Lua (script_lua_writer.h) and runs on the script's Lua
-// scheduler (script_lua_scheduler.h), whose bindings call the built-ins here by id; the ScriptCall trees are the
-// program a save keeps (docs/notes/lua-scripting.md).
+// The mission script engine. A mission script (*.scr text) is parsed by Script into its declarations and a parse
+// tree (script_ir.h), which is converted to Lua (script_lua_writer.h) and runs on the script's Lua scheduler
+// (script_lua_scheduler.h), whose bindings call the built-ins here by id (ScriptCall: one built-in function or
+// command of the ScriptKeyword table). Values have four types: 1 float, 2 string, 3 object (a counted reference to a
+// world object), 4 group (a sorted set of object references). An old-format save's program is trees of ScriptCall
+// nodes whose arguments are constants, variables (ScriptBinding) or nested calls (ScriptSubCall), read for the
+// old-save shim (docs/notes/lua-scripting.md, "Saves").
 
 #include <cstddef>
 #include <cstdint>
@@ -411,9 +411,9 @@ struct ScriptSubCall {
     std::unique_ptr<ScriptCall> cmd;
 };
 
-// One function or command call in a script: in the parser's program (bindings, nested calls and loop bodies as
-// written, the arguments a binding or nested call fills left as their slots), or a Lua binding's call (every argument
-// a value: script_lua.cpp). Object and group arguments point at the value.
+// One function or command call in a script: in an old-format save's program (bindings, nested calls and loop bodies
+// as written, the arguments a binding or nested call fills left as their slots), or a Lua binding's call (every
+// argument a value: script_lua.cpp). Object and group arguments point at the value.
 class ScriptCall {
 public:
     // The object / group argument slots are left null; the called block's id is resolved in `script` (FindBlock).
@@ -421,7 +421,6 @@ public:
     // index in float 0 and its type - 1 in float 1, CallScript the definition's index in float 0 and its name in
     // string 0 (the bindings and nested calls count those slots).
     void Load(ByteStream* stream, const Script* script);
-    void Save(ByteStream* stream) const;
 
     // The function `id` computed from the arguments. The value (a condition is 0 false, else true; 0 for a missing
     // object).
@@ -501,16 +500,13 @@ private:
     std::size_t groups = 0;
 };
 
-// A command block the loader creates for a then-section or a For body.
+// A command block of an old-format save: a then-section, conditions, a For body or a WorldScript.
 struct ScriptBlock {
-    // Its id, the command count, each command.
-    void Save(ByteStream* stream) const;
-
     std::vector<ScriptCall> commands;
     int id = 0;
 };
 
-// One `if(...)then(...)` pair of a script definition.
+// One `if(...)then(...)` pair of an old-format save's definition.
 struct ScriptIfThen {
     // Two block ids resolved in `script` (FindBlock).
     void Load(ByteStream* stream, const Script* script);
@@ -521,9 +517,12 @@ struct ScriptIfThen {
 // A Script / DeclareScript definition. An old-format save's instances are copies of their definition: an instance's
 // `killed` is its kill flag and its `vars` hold the call's arguments.
 struct ScriptDefinition {
-    // Name and parameter string (terminators included), the if-then pairs (block ids), the variables.
-    void Save(ByteStream* stream) const;
-    // Reads what Save wrote, the blocks resolved in `script`; if-then pairs naming a block it lacks are dropped.
+    // The kill flag, name and parameter string (terminators included), the if-then pairs, the variables. Our saves
+    // hold no blocks (the Lua state holds the program): each pair is its rule's number in the save, `firstRule` on,
+    // as the then-section's block id, with 0 as the conditions' (Script::SaveState).
+    void Save(ByteStream* stream, int firstRule) const;
+    // Reads what Save wrote (or an old-format save's definition), the blocks resolved in `script`; if-then pairs
+    // naming a block it lacks are dropped (all of ours), `rules` is the saved count.
     void Load(ByteStream* stream, const Script* script);
     // False when the name is taken.
     bool AddParameter(const std::string& name, ScriptType type);
@@ -533,7 +532,8 @@ struct ScriptDefinition {
     bool killed = false;                // saved as a four-byte number
     std::string name;                   // qualified
     std::string params;                 // parameter types, e.g. "fso"
-    std::vector<ScriptIfThen> ifThen;
+    int rules = 0;                      // the `if(...)then(...)` pairs of its body (0: declared only)
+    std::vector<ScriptIfThen> ifThen;   // an old-format save's pairs, from LoadState to the old-save shim
     ScriptVars vars;                    // parameters and locals
 };
 
@@ -633,9 +633,10 @@ public:
     // script); the areas only from stream version 0x57 on. The script goes on in a new scheduler: from the save's Lua
     // state, or from the old format's program and state through the old-save shim (ScriptLuaScheduler::Resume).
     void LoadState(ByteStream* stream);
-    // Point lights, particle / FX / lightning sources, two counters, the command blocks and WorldScript
-    // blocks, the definitions, the globals, the instances, the runs (the scheduler's in the old format's fields as far
-    // as they go), the loaded flag (with kScriptLoadedOnLua) and file counter, the areas, then the scheduler's state.
+    // Point lights, particle / FX / lightning sources, two counters, no command blocks or WorldScript blocks (counts
+    // 0: the scheduler's state holds the program), the definitions, the globals, the instances, the runs (the
+    // scheduler's in the old format's fields as far as they go), the loaded flag (with kScriptLoadedOnLua) and file
+    // counter, the areas, then the scheduler's state.
     void SaveState(ByteStream* stream);
     void DeleteArea(int id);
     // Point lights (256 slots): create (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when
@@ -691,19 +692,19 @@ public:
     // Each Load* below also fills its part of the parse tree (script_ir.h): `node`, `block`, `out`.
     // `signature`: the parameter types (lower-case letters). `syntax`: a parenthesized list, or the one value of
     // `variable = value`.
-    bool LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction id, ScriptVars* locals, std::string_view signature,
+    bool LoadFunction(TokenReader* tokens, ScriptFunction id, ScriptVars* locals, std::string_view signature,
                       scriptir::Call& node, ScriptArgSyntax syntax = ScriptArgSyntax::List);
     // Float functions up to ')'.
-    bool LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
+    bool LoadConditions(TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
     // `if(...)then(...)` pairs up to ')'.
     bool LoadScriptBody(ScriptDefinition* script, TokenReader* tokens, scriptir::Definition& out);
     // `= value` assigned to global variable `name` (command 0x78).
-    bool LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string& name, scriptir::Call& node);
+    bool LoadAssignOperator(TokenReader* tokens, ScriptVars* locals, const std::string& name, scriptir::Call& node);
     // `name : type, ...)` (parameters or GlobalVars); "Unexpected end of file" when the tokens run out.
     bool LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tokens, bool qualify, std::vector<scriptir::Variable>* out);
     // Commands up to ')'; null `locals` means an empty variable set (the WorldScript). A For body sees the
     // enclosing `locals`.
-    bool LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
+    bool LoadCommands(TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
     // Parse, then the tree converted and loaded into the scheduler (ScriptLuaScheduler::LoadText; its WorldScript
     // started with `runWorldScript`); the Lua's failure is error 18 with its message.
     bool Load(std::string* text, bool runWorldScript);
@@ -727,10 +728,8 @@ public:
     // The scheduler this script runs on, made when there is none (after a Reset).
     ScriptLuaScheduler& Runner();
 
-    // The id is the block count after it.
+    // An old-format save's command block (LoadState); the id is the block count after it.
     ScriptBlock* NewCommandList();
-    // id = count | 0x80000000.
-    ScriptBlock* NewWorldScript();
 
     // Keeps one empty group and one released object reference.
     void FreeTemporaries();
@@ -758,9 +757,9 @@ public:
     std::vector<ScriptLightning> lightning;
     int nextParticleId = -2;    // the next automatic particle source / lightning id (-2, -3, ...)
     int nextFxId = -2;          // the next automatic FX source id
-    // The parser's program (what a save keeps and the old-save shim converts): command blocks (lists: calls and runs
-    // point into them), definitions, the declared globals (the parser's names; values only from an old-format save,
-    // for the shim) and WorldScript blocks.
+    // The parser's declarations: definitions and the declared globals (the parser's names; values only from an
+    // old-format save, for the shim). An old-format save's program, from LoadState to the old-save shim (empty
+    // after it): command blocks (lists: calls and runs point into them) and WorldScript blocks.
     std::list<ScriptBlock> blocks;
     std::vector<ScriptDefinition> definitions;      // Script / DeclareScript definitions
     ScriptVars globals;

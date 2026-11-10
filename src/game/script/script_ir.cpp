@@ -1,9 +1,8 @@
-// The script parse tree's text form, and the same form of what a load built into a Script (script_ir.h).
+// The script parse tree's text form, and the tree of an old-format save's program (script_ir.h).
 #include "game/script/script_ir.h"
 
 #include <algorithm>
 #include <format>
-#include <iterator>
 #include <string>
 #include <string_view>
 
@@ -74,7 +73,7 @@ std::string CallText(const Call& call) {
 void WriteBlock(Writer& w, int depth, const Block& block) {
     for (const Call& call : block.calls) {
         if (call.body) {
-            w.Line(depth, std::format("{} body {}", CallText(call), call.body->id), call.line);
+            w.Line(depth, CallText(call) + " body", call.line);
             WriteBlock(w, depth + 1, *call.body);
         } else {
             w.Line(depth, CallText(call), call.line);
@@ -89,52 +88,6 @@ std::string ParamsText(const std::vector<Variable>& params) {
         text += std::format("{} {}", ScriptTypeName(params[i].type), params[i].name);
     }
     return text;
-}
-
-// ---- What the loader built --------------------------------------------------------------------------------------
-
-std::string LoadedCallText(const ScriptCall& call, const ScriptVars& locals, const ScriptVars& globals) {
-    std::string target = call.targetName;
-    if (call.id == ScriptFunction::Assign) target = VariableName(globals, call.targetType, call.target);
-    std::string text = Head(call.id, target, call.target, call.targetType) + "(";
-    const std::size_t counts[] = {call.floatArgs.size(), call.stringArgs.size(), call.objectArgs.size(), call.groupArgs.size()};
-    bool first = true;
-    for (int t = 0; t < 4; ++t) {
-        const ScriptType type = kTypes[t];
-        for (std::size_t slot = 0; slot < counts[t]; ++slot) {
-            const int argIndex = static_cast<int>(slot);
-            const auto matches = [&](const auto& entry) { return entry.type == type && entry.argIndex == argIndex; };
-            std::string value;
-            if (auto b = std::ranges::find_if(call.localBindings, matches); b != call.localBindings.end()) {
-                value = "local " + VariableName(locals, type, b->varIndex);
-            } else if (auto g = std::ranges::find_if(call.globalBindings, matches); g != call.globalBindings.end()) {
-                value = "global " + VariableName(globals, type, g->varIndex);
-            } else if (auto s = std::ranges::find_if(call.subCalls, matches); s != call.subCalls.end()) {
-                value = LoadedCallText(*s->cmd, locals, globals);
-            } else if (type == ScriptType::Float) {
-                value = Number(call.floatArgs[slot]);
-            } else if (type == ScriptType::String) {
-                value = std::format("\"{}\"", call.stringArgs[slot]);
-            } else {
-                value = "-";
-            }
-            if (!first) text += ", ";
-            first = false;
-            text += SlotTag(type, argIndex) + value;
-        }
-    }
-    return text + ")";
-}
-
-void WriteLoadedBlock(Writer& w, int depth, const ScriptBlock& block, const ScriptVars& locals, const ScriptVars& globals) {
-    for (const ScriptCall& call : block.commands) {
-        if (call.body) {
-            w.Line(depth, std::format("{} body {}", LoadedCallText(call, locals, globals), call.body->id));
-            WriteLoadedBlock(w, depth + 1, *call.body, locals, globals);
-        } else {
-            w.Line(depth, LoadedCallText(call, locals, globals));
-        }
-    }
 }
 
 const std::string kNoName;
@@ -165,18 +118,6 @@ std::vector<Variable> Params(const ScriptDefinition& definition) {
     return params;
 }
 
-LoadMark Mark(const Script& script) {
-    LoadMark mark;
-    mark.definitions = script.definitions.size();
-    for (const ScriptDefinition& definition : script.definitions) mark.rules.push_back(definition.ifThen.size());
-    mark.globals[0] = script.globals.floats.values.size();
-    mark.globals[1] = script.globals.strings.values.size();
-    mark.globals[2] = script.globals.objects.values.size();
-    mark.globals[3] = script.globals.groups.values.size();
-    mark.worldBlocks = script.worldBlocks.size();
-    return mark;
-}
-
 std::string Dump(const File& file, bool lines) {
     Writer w(lines);
     std::vector<const Variable*> globals;
@@ -184,7 +125,7 @@ std::string Dump(const File& file, bool lines) {
     std::stable_sort(globals.begin(), globals.end(), [](const Variable* a, const Variable* b) { return a->type < b->type; });
     for (const Variable* global : globals) w.Line(0, std::format("global {} {}", ScriptTypeName(global->type), global->name), global->line);
     for (const Block& world : file.worldScripts) {
-        w.Line(0, std::format("world {}", world.id));
+        w.Line(0, "world");
         WriteBlock(w, 1, world);
     }
     std::vector<const Definition*> definitions;
@@ -193,42 +134,11 @@ std::string Dump(const File& file, bool lines) {
     for (const Definition* definition : definitions) {
         w.Line(0, std::format("script {} {}({})", definition->index, definition->name, ParamsText(definition->params)), definition->line);
         for (const Rule& rule : definition->rules) {
-            w.Line(1, std::format("rule {} {}", rule.conditions.id, rule.commands.id), rule.line);
+            w.Line(1, "rule", rule.line);
             w.Line(2, "if");
             WriteBlock(w, 3, rule.conditions);
             w.Line(2, "then");
             WriteBlock(w, 3, rule.commands);
-        }
-    }
-    return w.out;
-}
-
-std::string DumpLoaded(const Script& script, const LoadMark& mark) {
-    Writer w(false);
-    const ScriptVars& globals = script.globals;
-    const std::size_t counts[] = {globals.floats.values.size(), globals.strings.values.size(), globals.objects.values.size(),
-                                  globals.groups.values.size()};
-    for (int t = 0; t < 4; ++t)
-        for (std::size_t i = mark.globals[t]; i < counts[t]; ++i)
-            w.Line(0, std::format("global {} {}", ScriptTypeName(kTypes[t]), VariableName(globals, kTypes[t], static_cast<int>(i))));
-    const ScriptVars noLocals;
-    for (auto world = std::next(script.worldBlocks.begin(), static_cast<std::ptrdiff_t>(mark.worldBlocks)); world != script.worldBlocks.end();
-         ++world) {
-        w.Line(0, std::format("world {}", world->id));
-        WriteLoadedBlock(w, 1, *world, noLocals, globals);
-    }
-    for (std::size_t i = 0; i < script.definitions.size(); ++i) {
-        const ScriptDefinition& definition = script.definitions[i];
-        const std::size_t firstRule = i < mark.definitions ? mark.rules[i] : 0;
-        if (i < mark.definitions && definition.ifThen.size() <= firstRule) continue;
-        w.Line(0, std::format("script {} {}({})", i, definition.name, ParamsText(Params(definition))));
-        for (std::size_t r = firstRule; r < definition.ifThen.size(); ++r) {
-            const ScriptIfThen& pair = definition.ifThen[r];
-            w.Line(1, std::format("rule {} {}", pair.conditions->id, pair.commands->id));
-            w.Line(2, "if");
-            WriteLoadedBlock(w, 3, *pair.conditions, definition.vars, globals);
-            w.Line(2, "then");
-            WriteLoadedBlock(w, 3, *pair.commands, definition.vars, globals);
         }
     }
     return w.out;

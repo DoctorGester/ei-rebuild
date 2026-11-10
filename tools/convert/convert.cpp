@@ -2,7 +2,7 @@
 // game's own loaders, and each one's round trip checked.
 // usage: ei-convert <install or archive> <target folder>   write the TOML files into the target
 //        ei-convert --check <install or archive>...        only the round trips
-//        ei-convert --scripts <install>... [options]       the script survey and parse tree check (convert_scripts.cpp)
+//        ei-convert --scripts <install>... [options]       the script survey and Lua check (convert_scripts.cpp)
 //        ei-convert --lua-check                             the scripts' Lua bindings on a small world (lua_check.cpp)
 //        ei-convert --example-mod <game folder> [<mods folder>] the example mod made from the install (example_mod.h),
 //                                                           into <game folder>\starter\Mods by default

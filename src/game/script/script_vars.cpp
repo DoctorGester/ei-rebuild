@@ -1,8 +1,7 @@
 // Script variables (lookups, resets, the loader's appends of a file's GlobalVars to the globals) and the
-// ScriptCall helpers that bind and save call trees. See script.h and docs/notes/script.md.
+// ScriptCall's reset. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
 #include "game/objects/map_object.h"
-#include "game/core/core_streams.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -122,50 +121,4 @@ void ScriptCall::Clear() {
     globalBindings.clear();
     subCalls.clear();
     body = nullptr;
-}
-
-void ScriptCall::Save(ByteStream* stream) const {
-    // Assign / CallScript: the target in leading slots (Load); the bindings and nested calls count them.
-    const bool assign = id == ScriptFunction::Assign;
-    const bool callScript = id == ScriptFunction::CallScript;
-    const int leadFloats = assign ? 2 : callScript ? 1 : 0;
-    const int leadTexts = callScript ? 1 : 0;
-    auto savedArgIndex = [&](ScriptType type, int argIndex) {
-        return argIndex + (type == ScriptType::Float ? leadFloats : type == ScriptType::String ? leadTexts : 0);
-    };
-
-    stream->WriteValue(id);
-    stream->WriteCount(floatArgs.size() + leadFloats);
-    if (assign || callScript) stream->WriteValue(static_cast<float>(target));
-    if (assign) stream->WriteValue(static_cast<float>(lib::Index(targetType) - 1));
-    for (const float& value : floatArgs) stream->WriteValue(value);
-
-    stream->WriteCount(stringArgs.size() + leadTexts);
-    if (callScript) stream->WriteString(targetName);
-    for (const std::string& text : stringArgs) stream->WriteString(text);
-
-    // Object and group arguments are only counted: they are re-bound on load.
-    stream->WriteCount(objectArgs.size());
-    stream->WriteCount(groupArgs.size());
-
-    auto saveBindings = [&](const std::vector<ScriptBinding>& bindings) {
-        stream->WriteCount(bindings.size());
-        for (ScriptBinding binding : bindings) {
-            binding.argIndex = savedArgIndex(binding.type, binding.argIndex);
-            stream->WriteValue(binding);
-        }
-    };
-    saveBindings(localBindings);
-    saveBindings(globalBindings);
-
-    stream->WriteCount(subCalls.size());
-    for (const ScriptSubCall& call : subCalls) {
-        stream->WriteValue(call.type);
-        stream->WriteValue(savedArgIndex(call.type, call.argIndex));
-        call.cmd->Save(stream);
-    }
-
-    int scriptIndex = -1;
-    if (body) scriptIndex = body->id;
-    stream->WriteValue(scriptIndex);
 }

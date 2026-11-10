@@ -1,8 +1,8 @@
 // Loading the mission script from a savegame (Script::LoadState) and the loaders of its parts:
 // the particle / FX / lightning lists, command blocks, WorldScript blocks, if-then
-// arrays, the four kinds of variables, script instances and runs (an old-format save's, for the old-save shim). The
-// mirror image of script_save.cpp; see docs/notes/script.md. Every piece is read through the stream's Read in the
-// save's order and in its pieces.
+// arrays, the four kinds of variables, script instances and runs (an old-format save's program and state, for the
+// old-save shim; ours writes the blocks empty: script_save.cpp). See docs/notes/script.md. Every piece is read
+// through the stream's Read in the save's order and in its pieces.
 #include "game/core/base_manager.h"
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
@@ -60,7 +60,8 @@ void ScriptDefinition::Load(ByteStream* stream, const Script* script) {
     killed = stream->ReadAs<std::int32_t>() != 0;
     name = stream->ReadString();
     params = stream->ReadString();
-    ifThen.resize(stream->ReadCount());
+    rules = stream->ReadCount();
+    ifThen.resize(static_cast<std::size_t>(rules));
     for (ScriptIfThen& pair : ifThen) pair.Load(stream, script);
     DropUnresolvedPairs(&ifThen);
     vars.Load(stream);
@@ -100,11 +101,11 @@ void ScriptSavedRun::Load(ByteStream* stream, const Script* script) {
 
 // ---- ScriptCall::Load -----------------------------------------------------------------------------------
 
-// The mirror of ScriptCall::Save. Object and group arguments are saved as counts only: the
-// slots are made and left null. The called block is found in the lists of the world's first script (-1, an
-// unset block, finds a WorldScript block with id -1 if any). A For / ForIf whose body did not resolve (a save made
-// with other scripts) is cleared into a command that does nothing: its block keeps its length, so the saved runs'
-// indices still point at their commands, and the old-save shim always has a body to convert.
+// An old-format save's call: id, arguments, bindings, nested calls, body. Object and group arguments are saved as
+// counts only: the slots are made and left null. The called block is found in the lists of the world's first script
+// (-1, an unset block, finds a WorldScript block with id -1 if any). A For / ForIf whose body did not resolve (a save
+// made with other scripts) is cleared into a command that does nothing: its block keeps its length, so the saved
+// runs' indices still point at their commands, and the old-save shim always has a body to convert.
 void ScriptCall::Load(ByteStream* stream, const Script* script) {
     stream->ReadValue(id);
 
@@ -175,7 +176,7 @@ ScriptBlock* Script::FindBlock(int id) const {
 // Reads what SaveState wrote, in the same order; every block id resolves in this script. Areas are read only
 // from stream version 0x57 on. The globals', instances' and runs' fields hold the saved state either way: an
 // old-format save's for the shim, ours the scheduler's as far as those fields go (script_save.cpp, WriteLuaState),
-// which its Lua state after the areas holds whole.
+// which its Lua state after the areas holds whole. The program's blocks are an old-format save's (ours writes none).
 void Script::LoadState(ByteStream* stream) {
     DropRunner();
     pointLights.resize(stream->ReadCount());
@@ -236,7 +237,11 @@ void Script::LoadState(ByteStream* stream) {
             DropRunner();
         }
     }
+    // Only the shim reads the old format's program and state; the declarations stay: the later texts' names.
     savedInstances.clear();
     savedRuns.clear();
-    globals.ResetValues();   // the declarations stay: the later texts' names
+    blocks.clear();
+    worldBlocks.clear();
+    for (ScriptDefinition& definition : definitions) definition.ifThen.clear();
+    globals.ResetValues();
 }

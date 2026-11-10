@@ -1,9 +1,9 @@
 #pragma once
 
-// The parse tree of one script text (Script::Load): what the loader builds into command blocks, definitions and
-// globals, with the names, lines and the order the text writes them in. The parser fills it beside its own
-// structures; nothing runs it. The Lua writer reads it (docs/notes/lua-scripting.md, "Design"). Dump prints it, and
-// DumpLoaded prints what a load built into a Script in the same form, so the two can be compared.
+// The parse tree of one script text (Script::Load): its globals, WorldScripts and definitions with their rules, with
+// the names, lines and the order the text writes them in. The parser fills it beside its declarations; nothing runs
+// it. The Lua writer reads it (docs/notes/lua-scripting.md, "Design"); Dump prints it. Loaded builds the same tree of
+// an old-format save's program for the old-save shim.
 
 #include "game/script/script.h"
 
@@ -52,7 +52,8 @@ struct Call {
     std::unique_ptr<Block> body;    // For / ForIf
 };
 
-// A command block: a then-section, a For body, conditions or a WorldScript, with the block id the loader gave it.
+// A command block: a then-section, a For body, conditions or a WorldScript; an old-format save's (Loaded) with its
+// block id.
 struct Block {
     int id = 0;
     int line = 0;                   // a WorldScript: the line of its keyword
@@ -103,15 +104,6 @@ struct File {
     ScriptErrorInfo error;          // when !ok
 };
 
-// What a Script holds before a load, so that DumpLoaded prints only what the load added.
-struct LoadMark {
-    std::size_t definitions = 0;
-    std::vector<std::size_t> rules;   // each definition's if-then pair count
-    std::size_t globals[4] = {};      // per type
-    std::size_t worldBlocks = 0;
-};
-LoadMark Mark(const Script& script);
-
 // The name of a variable (empty when the set has no name for it).
 const std::string& VariableName(const ScriptVars& vars, ScriptType type, int index);
 // A definition's parameters in the written order (the type letters of `params` with the names of `vars`).
@@ -121,9 +113,6 @@ std::vector<Variable> Params(const ScriptDefinition& definition);
 // slot (the loader keeps no other order), numbers in their shortest exact form. `lines` adds each call's, rule's and
 // definition's source line.
 std::string Dump(const File& file, bool lines = false);
-// What a load added to `script` since `mark`, in Dump's form: the same text when the tree holds everything the
-// loader built.
-std::string DumpLoaded(const Script& script, const LoadMark& mark);
 
 // The tree of a Script's whole program as a save holds it, for the old-save shim (docs/notes/lua-scripting.md,
 // "Saves"): every global by type, every definition with its rules, every WorldScript block in its order; each call's
