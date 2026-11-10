@@ -367,8 +367,8 @@ DXT1 and DXT5 textures were compressed by a tool whose ends are not, so most of 
 bytes the same). Loading costs: Rebirth's 990 DXT1 PNGs take 27.5 s to make into .mmps, 18.2 s of it stb_image's
 decode (its inflate, one thread), so a converted Rebirth install loads its zones slower: the Lost in Astral runs
 `mod_lost_in_astral_gipat` and `mod_lost_in_astral_cz_ingos` take 41 s and 53 s converted against 19 s and 34 s (before
-the threads they ran out of their 60 s). The stub data (`build\stub`, the Linux workflow's) gives the same kinds of
-counts, every round trip holding.
+the threads they ran out of their 60 s; cz_ingos still can in a whole converted suite, four games at once). The stub
+data (`build\stub`, the Linux workflow's) gives the same kinds of counts, every round trip holding.
 
 ### Checks
 
