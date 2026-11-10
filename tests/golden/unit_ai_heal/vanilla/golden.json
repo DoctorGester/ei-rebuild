@@ -2,24 +2,23 @@
   "scenario": "unit_ai_heal",
   "install": "vanilla",
   "recorded": "2026-11-10",
-  "commit": "0c1c8717c",
+  "commit": "91b031ae6",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
+  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
   "source": "image",
   "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 36 of 37 records differ, first at record 1 (world update 40, tick 40, frame 7, zone gz1g); outcomes CHANGED: script; no unit position differs",
     "  first difference at record 1 (world update 40, tick 40, frame 7, zone gz1g): 1 fields",
-    "    script (script) #gobject: 3656F9F8 in the old golden, 890B9E0B in the new run",
+    "    script (script) #gobject: 890B9E0B in the old golden, 3656F9F8 in the new run",
     "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #gobject differs (hashes only), from record 1 (+44 more)",
+    "    script: script #gobject differs (hashes only), from record 1 (+35 more)",
     "  script: 1 of 1 differ",
     "    gobject: 1 script, 36 records, from 1; hash only (no numbers kept)",
-    "    run: 1 script, 9 records, from 20; hash only (no numbers kept)",
-    "save savea/mission.sav: 458 fields in 1 records differ: commands 458",
-    "  commands: 458 fields in 1 records; first commands blocks.0.cmd0.float0: 0.0 in the old golden, ~eval in the new run"
+    "save savea/mission.sav: 2 fields in 1 records differ: commands 2",
+    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, -1 in the new run"
   ]
 }

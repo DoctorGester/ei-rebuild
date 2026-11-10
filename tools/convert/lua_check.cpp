@@ -132,6 +132,22 @@ check(Every(g, function(member) return IsEqual(GetObjectID(member), 1001) end) =
 check(Any(g, function(member) return IsEqual(GetObjectID(member), 1002) end) == 1, "Any")
 check(Sum(g, function(member) return GetObjectID(member) end) == 2003, "Sum")
 check(Sum(g, 2.5) == 5 and Every(g, 7) == 7 and Any(g, 0) == 0, "constant conditions")
+GlobalVars { counter = "object", notObject = "float" }
+local inBody = {}
+ForEach("counter", g, function(member) inBody[#inBody + 1] = GetObjectID(counter) end)
+check(inBody[1] == 1002 and inBody[2] == 1001 and GetObjectID(counter) == 1001, "ForEach's counter: the first member after")
+counter = nil
+ForEachIf("counter", g, 0, function(member) end)
+check(GetObjectID(counter) == 1001, "ForEachIf sets its counter for each member, a constant condition too")
+check(Every("counter", g, function(member) return IsEqual(GetObjectID(member), 1001) end) == 0 and
+      GetObjectID(counter) == 1002, "Every's counter: the last member tested")
+check(Any("counter", g, function(member) return IsEqual(GetObjectID(counter), 1001) end) == 1 and
+      GetObjectID(counter) == 1001, "Any's counter: the member that held")
+counter = nil
+check(Sum("counter", g, 2) == 4 and counter == nil, "a constant condition leaves the counter as it was")
+check(not pcall(ForEach, "notObject", g, function() end), "a counter that is no object global: an error")
+check(not pcall(Any, "undeclared", g, 1), "an undeclared counter: an error")
+counter, notObject = nil, nil
 check(Add(0.1, 0.2) == 0.30000001192092896, "Add in single precision")
 check(Div(1, 3) == 0.3333333432674408, "Div in single precision")
 check(GroupHas(GroupUnion(g, NewGroup()), a) == 1, "GroupUnion, GroupHas")

@@ -32,11 +32,10 @@ bool Holds(lua_State* L, int index) {
 
 // What the writer reads of the names, as sizes (the writer only adds to them): equal before and after a conversion
 // when it left them as they were.
-std::array<std::size_t, 9> Footprint(const scriptlua::LuaNames& names) {
+std::array<std::size_t, 7> Footprint(const scriptlua::LuaNames& names) {
     std::size_t assigned = 0;
     for (const auto& [global, count] : names.worldAssignments) assigned += static_cast<std::size_t>(count);
-    return {names.globals.size(),     names.scripts.size(),   names.taken.size(),
-            names.counterReads.size(), names.unwrittenCounters.size(), names.unsettled.size(),
+    return {names.globals.size(),      names.scripts.size(),          names.taken.size(), names.unsettled.size(),
             names.settledReads.size(), names.worldAssignments.size(), assigned};
 }
 
@@ -121,7 +120,7 @@ ScriptLuaScheduler::Converted ScriptLuaScheduler::Convert(const scriptir::File& 
         ++cachedTexts;
         return out;
     }
-    const std::array<std::size_t, 9> before = Footprint(names);
+    const auto before = Footprint(names);
     out.lua = scriptlua::WriteLua(file, names, out.chunk).text;
     if (Footprint(names) != before) cache.clear();
     else cache.emplace(std::move(key), out.lua.substr(out.lua.find('\n') + 1));

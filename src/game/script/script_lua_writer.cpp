@@ -102,11 +102,9 @@ std::string LuaString(const std::string& text) {
     return out + "\"";
 }
 
-// Every global read outside a loop on it (the counter argument itself is not a read; a loop's group is read before
-// the loop), every global named at all, the assignments of each and the loop counters.
-class ReadFinder {
+// Every global named at all, the assignments of each and the loop counters.
+class UseFinder {
 public:
-    std::set<std::string> reads;
     std::set<std::string> used;
     std::map<std::string, int> assignments;
     std::set<std::string> counters;
@@ -121,34 +119,13 @@ public:
             used.insert(call.targetName);
             ++assignments[call.targetName];
         }
-        for (std::size_t i = 0; i < call.args.size(); ++i) {
-            const scriptir::Arg& arg = call.args[i];
-            if (counting && i == 0) {
-                used.insert(arg.name);
-                counters.insert(arg.name);
-                continue;
-            }
-            const bool member = counting && IsMemberCondition(call, arg);
-            if (member) open.push_back(call.args.front().name);
-            Arg(arg);
-            if (member) open.pop_back();
+        for (const scriptir::Arg& arg : call.args) {
+            if (counting && &arg == &call.args.front()) counters.insert(arg.name);
+            if (arg.kind == scriptir::ArgKind::Global) used.insert(arg.name);
+            if (arg.kind == scriptir::ArgKind::Call) Call(*arg.call);
         }
-        if (call.body) {
-            if (counting) open.push_back(call.args.front().name);
-            Block(*call.body);
-            if (counting) open.pop_back();
-        }
+        if (call.body) Block(*call.body);
     }
-
-private:
-    void Arg(const scriptir::Arg& arg) {
-        if (arg.kind == scriptir::ArgKind::Global) used.insert(arg.name);
-        if (arg.kind == scriptir::ArgKind::Global && std::ranges::find(open, arg.name) == open.end())
-            reads.insert(arg.name);
-        if (arg.kind == scriptir::ArgKind::Call) Call(*arg.call);
-    }
-
-    std::vector<std::string> open;   // the counters of the loops around
 };
 
 bool IsUtf8(std::string_view bytes) {
@@ -187,7 +164,7 @@ public:
     Writer(const scriptir::File& file, LuaNames& names, LuaText& out) : file(file), names(names), out(out) {}
 
     void Write(std::string_view source) {
-        FindReads();
+        FindUses();
         NameDeclarations();
         PlaceComments();
         Line(HeaderLine(source));
@@ -211,25 +188,16 @@ public:
     }
 
 private:
-    struct Member {
-        std::string counter;   // the tree's name of the counter global
-        std::string name;      // the Lua parameter
-    };
-
     // ---- Names --------------------------------------------------------------------------------------------------
 
-    void FindReads() {
-        ReadFinder& finder = found;
+    void FindUses() {
+        UseFinder& finder = found;
         for (const scriptir::Block& world : file.worldScripts) finder.Block(world);
         for (const scriptir::Definition& definition : file.definitions) {
             for (const scriptir::Rule& rule : definition.rules) {
                 finder.Block(rule.conditions);
                 finder.Block(rule.commands);
             }
-        }
-        for (const std::string& read : finder.reads) {
-            if (names.unwrittenCounters.contains(read)) ++out.lateCounterReads;
-            names.counterReads.insert(read);
         }
         // Settled globals: at most one assignment in all texts, at the top level of a WorldScript, and no loop on it.
         std::map<std::string, int> top;
@@ -562,35 +530,21 @@ private:
         return "nil";
     }
 
-    // The counter's Lua parameter: the counter's own name where no text reads the global outside its loops, else
-    // `member`, the function writing the global first. ForIf's condition and body share one counter: `count` once.
-    Member OpenMember(const scriptir::Arg& counter, bool count) {
-        Member member{counter.name, GlobalName(counter.name)};
-        if (count) ++out.loops;
-        if (names.counterReads.contains(counter.name)) {
-            if (count) ++out.countersWritten;
-            member.name = LocalName("member");
-        } else {
-            names.unwrittenCounters.insert(counter.name);
-        }
-        locals.push_back(member.name);
-        return member;
-    }
-    // The statement writing the counter global, or nothing where the parameter is the counter's name.
-    std::string CounterWrite(const Member& member) {
-        const std::string global = GlobalName(member.counter);
-        return member.name == global ? "" : std::format("{} = {}", global, member.name);
+    // The member's Lua parameter, in scope until CloseMember: the counter global's name, so that the function reads
+    // it where the game read the global (the binding sets the global too, by the name the loop passes first).
+    std::string OpenMember(const scriptir::Arg& counter) {
+        std::string name = GlobalName(counter.name);
+        locals.push_back(name);
+        return name;
     }
     void CloseMember() { locals.pop_back(); }
 
     // A member condition: a function of the member where the game evaluated a nested call for each, else the value.
-    std::string MemberCondition(const scriptir::Arg& counter, const scriptir::Arg& condition, bool count) {
+    std::string MemberCondition(const scriptir::Arg& counter, const scriptir::Arg& condition) {
         if (condition.kind != scriptir::ArgKind::Call) return Value(condition);
         ++out.argumentFunctions;
-        const Member member = OpenMember(counter, count);
-        std::string write = CounterWrite(member);
-        if (!write.empty()) write += ' ';
-        std::string text = std::format("function({}) {}return {} end", member.name, write, Value(condition));
+        const std::string member = OpenMember(counter);
+        std::string text = std::format("function({}) return {} end", member, Value(condition));
         CloseMember();
         return text;
     }
@@ -602,8 +556,10 @@ private:
             args += value;
         };
         if (IsAggregate(call.id) && HasCounter(call)) {
+            ++out.loops;
+            add(LuaString(GlobalName(call.args.front().name)));
             for (std::size_t i = 1; i < call.args.size(); ++i)
-                add(IsMemberCondition(call, call.args[i]) ? MemberCondition(call.args.front(), call.args[i], true)
+                add(IsMemberCondition(call, call.args[i]) ? MemberCondition(call.args.front(), call.args[i])
                                                           : Value(call.args[i]));
         } else {
             for (const scriptir::Arg& arg : call.args) add(Value(arg));
@@ -668,18 +624,15 @@ private:
         Line(Expression(call));
     }
 
+    // `ForEach("counter", group, function(counter)` and the body: the game's argument order, the counter global by name.
     void WriteLoop(const scriptir::Call& call) {
         const scriptir::Arg& counter = call.args.front();
-        std::string head = Value(call.args[1]);
+        ++out.loops;
+        std::string head = LuaString(GlobalName(counter.name)) + ", " + Value(call.args[1]);
         if (call.id == ScriptFunction::ForIf && call.args.size() > 2)
-            head += ", " + MemberCondition(counter, call.args[2], false);
-        const Member member = OpenMember(counter, true);
-        Line(std::format("{}({}, function({})", FunctionName(call.id), head, member.name));
-        if (const std::string write = CounterWrite(member); !write.empty()) {
-            ++depth;
-            Line(write);
-            --depth;
-        }
+            head += ", " + MemberCondition(counter, call.args[2]);
+        const std::string member = OpenMember(counter);
+        Line(std::format("{}({}, function({})", FunctionName(call.id), head, member));
         Commands(*call.body);
         CloseMember();
         Line("end)");
@@ -688,7 +641,7 @@ private:
     const scriptir::File& file;
     LuaNames& names;
     LuaText& out;
-    ReadFinder found;
+    UseFinder found;
     std::set<std::string> hidden;   // the declared globals the Lua leaves out (Hidden)
     std::map<const void*, Notes> notes;   // the comments beside each item (PlaceComments)
     std::vector<std::string> tail;        // those after the last item
@@ -740,7 +693,7 @@ std::string SaveNames(const LuaNames& names) {
         }
     }
     for (const std::set<std::string>* set :
-         {&names.taken, &names.counterReads, &names.unwrittenCounters, &names.unsettled, &names.settledReads}) {
+         {&names.taken, &names.unsettled, &names.settledReads}) {
         add(std::to_string(set->size()));
         for (const std::string& key : *set) add(key);
     }
@@ -778,7 +731,7 @@ bool LoadNames(std::string_view data, LuaNames* names) {
         }
     }
     for (std::set<std::string>* set :
-         {&names->taken, &names->counterReads, &names->unwrittenCounters, &names->unsettled, &names->settledReads}) {
+         {&names->taken, &names->unsettled, &names->settledReads}) {
         if (!count(&n)) return false;
         for (std::size_t i = 0; i < n; ++i) {
             if (!next(&key)) return false;

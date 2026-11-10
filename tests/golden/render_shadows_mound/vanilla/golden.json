@@ -2,23 +2,23 @@
   "scenario": "render_shadows_mound",
   "install": "vanilla",
   "recorded": "2026-11-10",
-  "commit": "0c1c8717c",
+  "commit": "91b031ae6",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
+  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
   "source": "image",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
     "digest: 6 of 7 records differ, first at record 1 (world update 40, tick 2454, frame 7, zone gz1g); outcomes CHANGED: script; no unit position differs",
     "  first difference at record 1 (world update 40, tick 2454, frame 7, zone gz1g): 1 fields",
-    "    script (script) #gobject: E4632987 in the old golden, B1A92EE6 in the new run",
+    "    script (script) #gobject: B1A92EE6 in the old golden, E4632987 in the new run",
     "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
     "    script: script #gobject differs (hashes only), from record 1 (+5 more)",
     "  script: 1 of 1 differ",
     "    gobject: 1 script, 6 records, from 1; hash only (no numbers kept)",
-    "save save2/mission.sav: 460 fields in 1 records differ: commands 460",
-    "  commands: 460 fields in 1 records; first commands blocks.0.cmd0.float0: 9.96780396 in the old golden, ~eval in the new run"
+    "save save2/mission.sav: 2 fields in 1 records differ: commands 2",
+    "  commands: 2 fields in 1 records; first commands globals.objects.1.value: ~loop in the old golden, 1884 in the new run"
   ]
 }

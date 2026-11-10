@@ -165,7 +165,6 @@ RULES = {
            'in every run; the fields before it describe the state as the old executor would',
     'eval': "a script call's argument slot that a binding or nested call fills when the call runs: the old executor's "
             "last value, which Lua's calls do not write",
-    'loop': "a loop's counter global, which the converted Lua keeps in the loop's function",
 }
 
 

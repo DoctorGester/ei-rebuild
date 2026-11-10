@@ -294,14 +294,12 @@ def read_time_wheel(r):
 
 def read_named(r, name, value):
     """ScriptNamedValues<T>::Save (004C2EF0 floats, 004C33C0 strings, 004C38C0 objects, 004C4330 groups):
-    the count, then each value and its name (a lone 0 byte when the name array is shorter). `value` takes the
-    reader, or the reader and the index."""
-    takes_index = value.__code__.co_argcount == 2
+    the count, then each value and its name (a lone 0 byte when the name array is shorter)."""
     with r.scope(name):
         count = r.i32('count')
         for i in range(count):
             with r.scope(i):
-                value(r, i) if takes_index else value(r)
+                value(r)
                 r.string('name')
 
 
@@ -321,44 +319,40 @@ def read_vars(r, name):
         read_named(r, 'groups', read_group)
 
 
-LOOPS = {104, 105, 106, 107, 108}   # Every, Any, Sum, For, ForIf: the counter is the global object at argument 0
-FLOAT, STRING, OBJECT = 1, 2, 3
+FLOAT, STRING = 1, 2
 
 
 def _command_slots(r, depth):
     """A command read without recording (SSCCmd::Save, below): the float and string argument slots a binding or a
-    nested call fills when it runs ({(type, argIndex)}), and the global objects a loop names as its counter."""
+    nested call fills when it runs ({(type, argIndex)})."""
     if depth > 64:
         r.fail('commands nested too deep')
-    evaluated, counters = set(), set()
-    kind = r.i32(None)
+    evaluated = set()
+    r.take(4)
     for _ in range(r.i32(None)):
         r.take(4)
     for _ in range(r.i32(None)):
         r.string(None)
     r.take(8)
-    for scope in ('local', 'global'):
+    for _ in range(2):   # the local bindings, then the global ones: type, argIndex, varIndex
         for _ in range(r.i32(None)):
-            t, arg, var = r.i32(None), r.i32(None), r.i32(None)
-            evaluated.add((t, arg))
-            if scope == 'global' and kind in LOOPS and t == OBJECT and arg == 0:
-                counters.add(var)
+            evaluated.add((r.i32(None), r.i32(None)))
+            r.take(4)
     for _ in range(r.i32(None)):
         evaluated.add((r.i32(None), r.i32(None)))
-        counters |= _command_slots(r, depth + 1)[1]
+        _command_slots(r, depth + 1)
     r.take(4)
-    return evaluated, counters
+    return evaluated
 
 
 def read_command(r, depth=0):
     """SSCCmd::Save (004B6360): id, the float and string arguments, the object and group argument counts,
     the local and global bindings (ScriptBinding: type, argIndex, varIndex), the nested calls, the called
     script's id. A float or string slot a binding or a nested call fills is the value it put there when it last ran
-    (rule eval): the old executor's, which Lua's calls do not write. The loops' counters go to r.counters."""
+    (rule eval): the old executor's, which Lua's calls do not write."""
     start = r.p
-    evaluated, counters = _command_slots(r, depth)
+    evaluated = _command_slots(r, depth)
     r.p = start
-    r.counters |= counters
     r.i32('id')
     n = r.i32('floats')
     for i in range(n):
@@ -498,7 +492,6 @@ def read_script(r):
     read_list(r, 'lightning', lightning)
     r.i32('nextParticleId')
     r.i32('nextFxId')
-    r.counters = set()
     read_list(r, 'blocks', read_block)
     read_list(r, 'worldBlocks', read_block)
     rules = {}
@@ -506,19 +499,10 @@ def read_script(r):
         for rule, block in enumerate(commands):
             rules.setdefault(block, (name, rule))
 
-    def global_object(r, i):
-        # A loop's counter: the converted Lua keeps it in the loop's function and leaves the global as it was.
-        if i in r.counters:
-            r.i32(None)
-            r.excluded('value', 'loop', "a loop's counter (For, ForIf, Every, Any, Sum)")
-            r.put('value', '~loop')
-        else:
-            r.id('value')
-
     with r.scope('globals'):
         read_named(r, 'floats', lambda r: r.f32('value'))
         read_named(r, 'strings', lambda r: r.string('value'))
-        read_named(r, 'objects', global_object)
+        read_named(r, 'objects', lambda r: r.id('value'))
         read_named(r, 'groups', read_group)
     read_list(r, 'instances', read_definition)
     read_list(r, 'runs', lambda r: read_run(r, rules))

@@ -412,7 +412,6 @@ struct Shadow {
                 const std::string& name = scriptir::VariableName(globals, type, static_cast<int>(index));
                 const auto found = names.globals.find(name);
                 if (found == names.globals.end()) continue;   // a declaration every use finds an earlier one of
-                if (names.unwrittenCounters.contains(name) && !names.counterReads.contains(name)) continue;
                 watched.push_back({type, index, name, found->second});
             }
         }
