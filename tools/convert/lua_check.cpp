@@ -223,7 +223,7 @@ int LuaContinues(ScriptLua& lua, const std::string& text, ScriptRun* run) {
     return calls;
 }
 
-// The waits as yields: the ticks the game's executor took (its Execute calls until a one-command block ended: Sleep
+// The waits as yields: the ticks the game took (its run's ticks until a one-command block ended: Sleep
 // counts from its first tick, its argument rounded to even; WaitSegment the run's ticks); a wait in a loop body ends
 // the body; KillScript sets the run's flag and the function goes on.
 void CheckWaits(ScriptLua& lua) {

@@ -218,29 +218,29 @@ void UnitModes(ScriptArgs args) {
 } // namespace
 
 bool ScriptRun::RunCommand(Script* script, ScriptCall* cmd) {
-    int cont = 1;
-    scriptaddon::Call call{cmd, script, nullptr, &cont, this};
+    bool goOn = true;
+    scriptaddon::Call call{cmd, script, nullptr};
     const bool done = scriptaddon::Dispatch(&call);
 
     ScriptArgs args(cmd);
     const ScriptFunction function = done ? ScriptFunction::None : cmd->id;
     switch (function) {
     case ScriptFunction::Sleep: {   // Sleep(ticks): counts this run's ticks from the first one
-        if (position.sleepStart < 0) position.sleepStart = position.ticks;
+        if (sleepStart < 0) sleepStart = ticks;
         int n = lib::RoundEven(args.Float());
-        if (position.ticks - position.sleepStart < n) cont = 0;
-        else position.sleepStart = -1;
+        if (ticks - sleepStart < n) goOn = false;
+        else sleepStart = -1;
         break;
     }
     case ScriptFunction::WaitSegment:     // WaitSegment(ticks): until this run has run that many ticks
-        if (position.ticks < lib::RoundEven(args.Float())) cont = 0;
+        if (ticks < lib::RoundEven(args.Float())) goOn = false;
         break;
     case ScriptFunction::SleepUntil:     // SleepUntil(condition)
-        if (IsZero(args.Float())) cont = 0;
+        if (IsZero(args.Float())) goOn = false;
         break;
     case ScriptFunction::SleepUntilIdle: {   // SleepUntilIdle(unit): while the brain has an action
         Unit* unit = args.Object().AsUnit();
-        if (unit && unit->ServerController()->brain.action != AIAction::None) cont = 0;
+        if (unit && unit->ServerController()->brain.action != AIAction::None) goOn = false;
         break;
     }
     case ScriptFunction::KillScript:
@@ -996,5 +996,5 @@ bool ScriptRun::RunCommand(Script* script, ScriptCall* cmd) {
     default:   // functions, sections and commands without effect here
         break;
     }
-    return cont != 0;
+    return goOn;
 }

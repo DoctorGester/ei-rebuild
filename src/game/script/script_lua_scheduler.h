@@ -40,7 +40,6 @@ public:
     struct Converted {
         std::string lua;
         std::string chunk;
-        bool cached = false;
     };
     Converted Convert(const scriptir::File& file, std::string_view text);
     // Convert, then Load (its WorldScript started unless the parser stopped in it): what Script::Load calls.
@@ -99,7 +98,7 @@ private:
         lua_State* state = nullptr;
         ScriptRun run;
         int arguments = 0;   // on the thread's stack before its first resume
-        bool ended = false;  // its function returned: dropped by the next tick (Execute's false)
+        bool ended = false;  // its function returned: dropped by the next tick
         // A rule's run: the registry's { definition, the values it started with..., n = their count } (Runs) and the
         // rule's index from 0; a WorldScript's: none and -1.
         int values = kNoReference;

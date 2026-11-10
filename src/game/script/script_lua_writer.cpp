@@ -455,7 +455,7 @@ private:
                 --depth;
                 Line("end,");
             }
-            // An empty then-section starts no run (Execute's false on its first call): no action.
+            // An empty then-section starts no run (the game's ended at its first tick): no action.
             if (!rule.commands.calls.empty()) {
                 Line(std::format("action = function({})", list));
                 Commands(rule.commands);
@@ -480,7 +480,7 @@ private:
             Line("-- A second WorldScript, which the game's parser refuses.");
             return;
         }
-        // Its run would end at its first Execute: nothing to start.
+        // Its run would end at its first tick: nothing to start.
         if (block.calls.empty()) {
             Line("-- An empty WorldScript.");
             return;

@@ -1,4 +1,4 @@
-# Script command execution (ScriptRun::Execute and the script runtime): runs as many world script
+# Script command execution (ScriptRun::RunCommand and the script runtime): runs as many world script
 # commands as possible through "@..." console lines and checks their effects (and its golden the
 # world they leave).
 #

@@ -81,7 +81,7 @@ void WriteRun(ByteStream* stream, int block, int index, int ticks, int sleepStar
 // The scheduler's globals, instances and runs in the old format's fields, as far as they go (ScriptInstanceView):
 // the globals the parser declared with their Lua values; each instance as its definition with its kill flag and
 // values (a definition the program lacks: its name alone); each run with its rule's then-section (a WorldScript's: -1,
-// no block), command -1 (Lua has none). The fields the game's executor wrote its state in, so tools/savefile.py reads
+// no block), command -1 (Lua has none). The fields the original game wrote its state in, so tools/savefile.py reads
 // them as it reads an old-format save; LoadState drops them again (the Lua state after the areas is the script's).
 void WriteLuaState(ByteStream* stream, Script* script) {
     script->GlobalValues(true).Save(stream);

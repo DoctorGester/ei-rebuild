@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <string>
 
 namespace {
@@ -87,20 +88,13 @@ void ScriptVars::Load(ByteStream* stream) {
     groups.Load(stream);
 }
 
-void ScriptRun::Load(ByteStream* stream, Script* script) {
-    position.block = script->FindBlock(stream->ReadAs<std::int32_t>());
-    stream->ReadValue(position.index);
-    stream->ReadValue(position.ticks);
-    stream->ReadValue(position.sleepStart);
-    const int instanceIndex = stream->ReadAs<std::int32_t>();
-    killFlag = nullptr;
-    int k = 0;
-    for (ScriptDefinition& instance : script->instances) {
-        if (k++ == instanceIndex) {
-            killFlag = &instance.killed;
-            break;
-        }
-    }
+void ScriptSavedRun::Load(ByteStream* stream, const Script* script) {
+    block = script->FindBlock(stream->ReadAs<std::int32_t>());
+    stream->ReadValue(index);
+    stream->ReadValue(ticks);
+    stream->ReadValue(sleepStart);
+    instance = stream->ReadAs<std::int32_t>();
+    if (instance < 0 || instance >= std::ssize(script->savedInstances)) instance = -1;
     vars.Load(stream);
 }
 
@@ -110,7 +104,7 @@ void ScriptRun::Load(ByteStream* stream, Script* script) {
 // slots are made and left null. The called block is found in the lists of the world's first script (-1, an
 // unset block, finds a WorldScript block with id -1 if any). A For / ForIf whose body did not resolve (a save made
 // with other scripts) is cleared into a command that does nothing: its block keeps its length, so the saved runs'
-// indices still point at their commands, and Execute always has a body to run.
+// indices still point at their commands, and the old-save shim always has a body to convert.
 void ScriptCall::Load(ByteStream* stream, const Script* script) {
     stream->ReadValue(id);
 
@@ -208,9 +202,9 @@ void Script::LoadState(ByteStream* stream) {
     for (ScriptDefinition& definition : definitions) definition.Load(stream, this);
 
     globals.Load(stream);
-    LoadList(&instances, stream, [this, stream](ScriptDefinition& instance) { instance.Load(stream, this); });
-    LoadList(&runs, stream, [this, stream](ScriptRun& run) { run.Load(stream, this); });
-    std::erase_if(runs, [](const ScriptRun& run) { return !run.position.block; });
+    LoadList(&savedInstances, stream, [this, stream](ScriptDefinition& instance) { instance.Load(stream, this); });
+    LoadList(&savedRuns, stream, [this, stream](ScriptSavedRun& run) { run.Load(stream, this); });
+    std::erase_if(savedRuns, [](const ScriptSavedRun& run) { return !run.block; });
     stream->ReadValue(loaded);
     const bool onLua = loaded >= kScriptLoadedOnLua;
     if (onLua) loaded -= kScriptLoadedOnLua;
@@ -242,6 +236,7 @@ void Script::LoadState(ByteStream* stream) {
             DropRunner();
         }
     }
-    DropInstancesAndRuns();
+    savedInstances.clear();
+    savedRuns.clear();
     globals.ResetValues();   // the declarations stay: the later texts' names
 }

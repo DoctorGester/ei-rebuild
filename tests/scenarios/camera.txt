@@ -16,7 +16,7 @@ console @GSSetVar(0,"x0",GetX(GetLeader()))
 console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),6),GetY(GetLeader()))
 waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"x0"),5))
 
-# Script camera commands (ScriptRun::Execute gives them no effect in 1.06; they must still parse).
+# Script camera commands (no effect in 1.06, ScriptRun::RunCommand's too; they must still parse).
 console @SetCameraPosition(GetX(GetLeader()),GetY(GetLeader()),0)
 console @SetCameraOrientation(1)
 

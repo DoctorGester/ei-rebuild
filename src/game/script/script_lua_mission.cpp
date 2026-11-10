@@ -1,5 +1,5 @@
 // A script's scheduler (Script::Runner), a .mob's script whose .lua stands for it (Script::LoadLua; docs/notes/mods.md,
-// "Scripts in Lua"), and the scheduler's state as the game's executor kept it: the global variables
+// "Scripts in Lua"), and the scheduler's state in the original game's terms: the global variables
 // (Script::GlobalValues, GlobalGroup), the instances and runs (InstanceViews, RunViews). Tick, ResetZone, Reset and
 // the saves hand the script to its scheduler (script_exec_run.cpp, script_blocks.cpp, script_save.cpp,
 // script_load.cpp).
@@ -183,8 +183,8 @@ std::vector<ScriptRunView> ScriptLuaScheduler::Runs() {
     for (const Run& run : runs) {
         ScriptRunView& view = views.emplace_back();
         view.rule = run.rule;
-        view.ticks = run.run.position.ticks;
-        view.sleepStart = run.run.position.sleepStart;
+        view.ticks = run.run.ticks;
+        view.sleepStart = run.run.sleepStart;
         view.instance = InstanceIndexOf(run.run.killFlag);
         if (run.values == kNoReference) continue;
         lua_rawgeti(L, LUA_REGISTRYINDEX, run.values);

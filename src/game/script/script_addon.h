@@ -11,8 +11,7 @@ namespace scriptaddon {
 
 // What a handler is passed. Calc functions: `result` is CalcFloat's local float, CalcObject's ScriptObjectRef**
 // (holding the new temporary), CalcGroup's ScriptGroup** (holding the new temporary group) or
-// CalcString's std::string*. Commands (ScriptRun::RunCommand): `cont` is the command's "go on"
-// flag (1 on entry) and `run` the running script; `result` is null.
+// CalcString's std::string*. Commands (ScriptRun::RunCommand): `result` is null.
 struct Call {
     // The result slot, of the type the calling Calc function gives it (none for a command).
     struct Result {
@@ -35,8 +34,6 @@ struct Call {
     ScriptCall* cmd = nullptr;
     Script* script = nullptr;
     Result result;
-    int* cont = nullptr;
-    ScriptRun* run = nullptr;
 };
 
 // The extended keyword table, built once: the game's entries (ConsoleString, Add, Mul and Random with the longer
