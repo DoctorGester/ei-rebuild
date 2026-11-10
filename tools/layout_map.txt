@@ -404,6 +404,8 @@ figure_mesh.h               models/figure_mesh.h
 figure_mesh.cpp             models/figure_mesh.cpp
 figure_gltf.h               models/figure_gltf.h
 figure_gltf.cpp             models/figure_gltf.cpp
+figure_gltf_animation.cpp   models/figure_gltf_animation.cpp
+figure_gltf_glb.h           models/figure_gltf_glb.h
 figure_part_draw.cpp        models/figure_part_draw.cpp
 map_object_animation.h      models/animation.h                # figure animation tracks (AnimationTrack), not map objects
 map_object_animation.cpp    models/animation.cpp            # with models/animation.h

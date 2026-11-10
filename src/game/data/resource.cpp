@@ -96,9 +96,9 @@ void AddModel(std::map<std::string, std::string, std::less<>>& models, const std
     if (!added && gltf) found->second = key;
 }
 
-// Whether `key` (a LooseKey) is a figure file a glTF can stand for: .mod, .bon, .lnk, .fig.
+// Whether `key` (a LooseKey) is a figure file a glTF can stand for: .mod, .bon, .lnk, .fig, .anm.
 bool IsFigureFile(std::string_view key) {
-    for (const std::string_view extension : {".mod", ".bon", ".lnk", ".fig"})
+    for (const std::string_view extension : {".mod", ".bon", ".lnk", ".fig", ".anm"})
         if (EndsWith(key, extension)) return true;
     return false;
 }

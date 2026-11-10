@@ -1,10 +1,11 @@
 #pragma once
 
-// Figure models as glTF 2.0 (docs/notes/mods.md, "Models as glTF"): a figure's files (a model set's <name>.mod and
-// <name>.bon archives, or a loose figure's <name>.lnk, <name><part>.fig and <name><part>.bon) read into a Figure,
-// written as one .glb, and a .gltf / .glb read back into the Figure and made into the files the game would have read
-// in its place. The part tree is the glTF's nodes, each part's mesh a glTF mesh whose 7 morph targets are the FIG8
-// record's other corners; what glTF has no place for is in each object's `extras.ei`. No game state: the resource
+// Figure models as glTF 2.0 (docs/notes/mods.md, "Models as glTF" and "Animations as glTF"): a figure's files (a model
+// set's <name>.mod, <name>.bon and <name>.anm archives, or a loose figure's <name>.lnk, <name><part>.fig and
+// <name><part>.bon) read into a Figure, written as one .glb, and a .gltf / .glb read back into the Figure and made into
+// the files the game would have read in its place. The part tree is the glTF's nodes, each part's mesh a glTF mesh whose
+// 7 morph targets are the FIG8 record's other corners, each animation a glTF animation of the nodes' rotations
+// (figure_gltf_animation.cpp); what glTF has no place for is in each object's `extras.ei`. No game state: the resource
 // layer, ei-convert and the unit check use it as is.
 
 #include <cstdint>
@@ -55,14 +56,35 @@ struct Part {
     std::vector<float> bone;              // the .bon's floats: 6 or 8 versions of an offset (empty: no bone file)
 };
 
-// The figure's files: a model set (<name>.mod with the link list as its entry <name>, <name>.bon), or loose ones
-// (<name>.lnk when `link`, <name><part>.fig, <name><part>.bon).
+// A part's track of an animation (an entry of the animation's archive, named as the part): its keys as
+// AnimationTrack::LoadKeyFrames reads them (docs/notes/map_objects.md, "Skeleton"), every field as the file holds it.
+struct Track {
+    std::string name;
+    std::vector<float> rotations;         // 4 a key: w, x, y, z (the game's axes; a child's turned after its parent's)
+    std::vector<float> positions;         // 3 a key (the game reads a root's alone)
+    int frames = 0;                       // vertex frames
+    int slots = 0;                        // vertices a frame (the part's position slots)
+    std::vector<float> vertices;          // frames * slots * 3: each frame's offset of every slot
+
+    bool operator==(const Track&) const = default;
+};
+
+// An animation of a set's <name>.anm: the archive's entry named as the game names the animation, itself an archive of
+// its tracks.
+struct Animation {
+    std::string name;
+    std::vector<Track> tracks;
+};
+
+// The figure's files: a model set (<name>.mod with the link list as its entry <name>, <name>.bon, <name>.anm), or loose
+// ones (<name>.lnk when `link`, <name><part>.fig, <name><part>.bon).
 enum class Layout { Set, Loose };
 
-// A file of the figure that is no record, bone or link list a glTF can hold (an archive entry of another kind, a
-// record too short for its counts or without corners): carried as it is.
+// A file of the figure that is no record, bone, link list or animation a glTF can hold (an archive entry of another
+// kind, a record too short for its counts or without corners, an animation whose tracks do not parse or whose glTF
+// animation would have no channel): carried as it is.
 struct RawFile {
-    enum class In { Mod, Bon, Folder };   // an entry of the set's .mod or .bon, or a loose file of that name
+    enum class In { Mod, Bon, Anm, Folder };   // an entry of the set's .mod, .bon or .anm, or a loose file of that name
     std::string name;
     In in = In::Folder;
     std::string bytes;
@@ -72,7 +94,9 @@ struct Figure {
     Layout layout = Layout::Set;
     bool link = true;                     // a link list: a loose figure's <name>.lnk, a set's entry <name>
     bool bones = true;                    // a set has a <name>.bon (made when a part has a bone, else empty)
+    bool anm = false;                     // a set has a <name>.anm archive
     std::vector<Part> parts;              // the linked ones first, in the link list's order
+    std::vector<Animation> animations;    // the .anm's, in its order
     std::vector<RawFile> raw;
 };
 
@@ -82,19 +106,22 @@ struct Figure {
 bool ReadRecord(std::string_view bytes, Record* out, std::string* error);
 std::string WriteRecord(const Record& record);
 // A link list (a count, then (child, parent) names of four-byte length and their characters up to a zero byte).
+// A track from its bytes (an animation archive's entry): false unless they read to their end.
+bool ReadTrack(std::string_view bytes, Track* out);
+std::string WriteTrack(const Track& track);
 bool ReadLinks(std::string_view bytes, std::vector<std::pair<std::string, std::string>>* links);
 std::string WriteLinks(const std::vector<std::pair<std::string, std::string>>& links);
-// A .res archive's entries (name, bytes) from its image; false when it is not one.
+// A .res archive's entries (name, bytes) from its image, in their data's order; false when it is not one.
 bool ReadArchive(std::string_view image, std::vector<std::pair<std::string, std::string_view>>* entries);
 // The image of an archive of these entries (the names' hash chains as the game's lookup walks them).
 std::string WriteArchive(const std::vector<std::pair<std::string, std::string>>& entries);
 
-// The figure `name` from its files (`files`: lower-case name to bytes; a set's <name>.mod and <name>.bon, or the loose
-// ones). False with `*error` set when a file fails to parse.
+// The figure `name` from its files (`files`: lower-case name to bytes; a set's <name>.mod, <name>.bon and <name>.anm, or
+// the loose ones). False with `*error` set when a file fails to parse.
 bool FromFiles(std::string_view name, Layout layout, const std::map<std::string, std::string>& files, Figure* out,
                std::string* error);
 // The files the figure stands for, by lower-case name (the archives, the link list and records written anew; a set's
-// .bon when it had one).
+// .bon when it had one, its .anm when it had one or has animations).
 std::map<std::string, std::string> Files(const Figure& figure, std::string_view name);
 
 // ---- glTF ---------------------------------------------------------------------------------------------------------
@@ -111,8 +138,9 @@ struct Notes {
     std::vector<std::string> lines;
 };
 
-// A .gltf or .glb read into a figure. The records come back exactly when their `extras.ei` agree with the glTF's own
-// data (ei-convert's files, and others that kept them); otherwise the records are built from the glTF's data alone.
+// A .gltf or .glb read into a figure. The records and the animations' keys come back exactly when their `extras.ei`
+// agree with the glTF's own data (ei-convert's files, and others that kept them); otherwise they are built from the
+// glTF's data alone.
 // False with `*error` set when cgltf cannot read it.
 bool FromGltf(std::string_view bytes, const ReadUri& readUri, Figure* out, std::string* error, Notes* notes = nullptr);
 
