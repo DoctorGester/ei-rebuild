@@ -52,9 +52,13 @@ bool Seen(const std::string& where, const std::string& path, bool written, std::
     const std::string relative = Normal(path);
     std::lock_guard<std::mutex> lock(g_lock);
     const std::set<std::string>& seen = written ? g_written : g_seen;
-    // A read of the file's TOML stands for a read of the file (docs/notes/mods.md, "Records as TOML": a converted
-    // install has the TOML alone).
-    auto has = [&](const std::string& file) { return seen.count(file) != 0 || (!written && seen.count(file + ".toml") != 0); };
+    // A read of the file's TOML stands for a read of the file, and of a texture's PNG for its .mmp (docs/notes/mods.md,
+    // "Records as TOML", "Textures as PNG": a converted install has those alone).
+    auto has = [&](const std::string& file) {
+        if (seen.count(file) != 0) return true;
+        const bool mmp = file.ends_with(".mmp");
+        return !written && (seen.count(file + ".toml") != 0 || (mmp && seen.count(file.substr(0, file.size() - 4) + ".png") != 0));
+    };
     if (where == "mod") {
         if (g_mod.empty()) {
             *error = "no mod folder (the scenario has no mod line)";

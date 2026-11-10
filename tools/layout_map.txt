@@ -413,6 +413,8 @@ link_loader_create.cpp      models/link_loader.cpp      fold  # LinkFigureLoader
 texture.h                   models/texture.h                  # TextureDevice and MeshArgs leave for scene/device.h (C168c)
 texture.cpp                 models/texture.cpp
 texture_load.cpp            models/texture_load.cpp
+texture_png.h               models/texture_png.h
+texture_png.cpp             models/texture_png.cpp
 material.h                  models/material.h
 material.cpp                models/material.cpp
 dib.h                       models/dib.h

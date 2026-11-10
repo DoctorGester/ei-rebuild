@@ -6,7 +6,8 @@
 // loose registries (*.reg; not those of Maps\, whose quest archives are not converted) and camera paths (*.cam). Of an
 // archive: its registries, materials (.mat), animation databases (.adb), acks.db, prints.db and the game databases
 // (convert_databases.h: units.udb, perks.pdb, spells.sdb, items.idb, quests.qdb, Levers.ldb), each as
-// <archive folder>\<name>.toml; a texts archive's (texts.res, textslmp.res) texts as <archive folder>\texts.toml. A
+// <archive folder>\<name>.toml; a texts archive's (texts.res, textslmp.res) texts as <archive folder>\texts.toml; its
+// textures (.mmp) as <archive folder>\<name>.png (convert_textures.cpp, docs/notes/mods.md "Textures as PNG"). A
 // loose file as <name>.toml beside it. A record file's TOML has `replace = true`: it stands for the whole original,
 // nothing below it read (a mod's original hides the game's file too). The target mirrors the source's layout (MF1's loose folders); converted.txt
 // there lists the converted originals (relative to the source), which tools/convert_install.py removes from its copy.
@@ -24,6 +25,7 @@
 #include "lib/toml.h"
 
 #include "convert_databases.h"
+#include "convert_textures.h"
 
 #include <bit>
 #include <cstdarg>
@@ -272,6 +274,7 @@ void ConvertFile(const std::string& format, const std::string& name, const std::
     if (g_options.target.empty()) return;
     const fs::path path = g_options.target / output;
     fs::create_directories(path.parent_path());
+    fs::remove(path);   // a link into another copy (tools/convert_install.py) is not written through
     std::ofstream(path, std::ios::binary) << toml;
     g_converted.push_back(original);
 }
@@ -322,6 +325,11 @@ void ConvertPrints(const RecordFile& original, const std::string& name, std::str
     *toml = WholeFile(a.ToToml());
     b.Read(Toml(*toml, name + ".toml"));
     ComparePrints(a, b, d);
+}
+
+// A texture as PNG (convert_textures.cpp).
+void ConvertTexture(const RecordFile& original, const std::string&, std::string* png, Differences& d) {
+    d.lines = convert_textures::RoundTrip(original.original, png);
 }
 
 void ConvertCamera(const RecordFile& original, const std::string& name, std::string* toml, Differences& d) {
@@ -406,6 +414,9 @@ void ConvertArchive(const fs::path& archivePath) {
                         [&](const RecordFile& file, const std::string& path, std::string* toml, Differences& d) {
                             ConvertDatabase(lower, file, path, WholeFile, toml, d.lines);
                         });
+        } else if (extension == ".mmp") {
+            ConvertFile(convert_textures::CountName(bytes), original, bytes, PathOf(original.substr(0, original.size() - 4) + ".png"),
+                        original, ConvertTexture);
         }
     }
     if (!texts) return;
@@ -529,6 +540,7 @@ int main(int argc, char** argv) {
         std::printf("ei-convert: %s\n", error.what());
         return 1;
     }
+    convert_textures::PrintMeasures();
     int failed = 0;
     for (const auto& [format, count] : g_counts) {
         std::printf("ei-convert: %s: %d files, %d failed\n", format.c_str(), count.files, count.failed);

@@ -65,6 +65,14 @@ target_include_directories(miniz SYSTEM INTERFACE third_party)
 target_compile_definitions(miniz PUBLIC MINIZ_NO_STDIO MINIZ_NO_TIME)
 target_compile_options(miniz PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
 set_target_properties(miniz PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
+# stb_image, stb_image_write and stb_dxt (third_party/stb, unmodified; built by our stb_image_impl.c): the PNG textures
+# (src/game/models/texture_png.cpp; docs/notes/mods.md, "Textures as PNG"). Without their warnings, as miniz.
+add_library(stb_image STATIC third_party/stb/stb_image_impl.c)
+target_include_directories(stb_image PRIVATE third_party)
+target_include_directories(stb_image SYSTEM INTERFACE third_party)
+target_link_libraries(stb_image PRIVATE miniz)
+target_compile_options(stb_image PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
+set_target_properties(stb_image PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 # tomlc17 (third_party/tomlc17, C17): the TOML reader of the record files (src/lib/toml.h; docs/notes/mods.md, "Records
 # as TOML"). Added before the game's compile options and without warnings: its warnings are its own.
 enable_language(C)
@@ -138,7 +146,7 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*/*.cpp src/lib/*.cpp src/a
      src/video/*.cpp)
 add_library(ei_game OBJECT ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE src third_party)
-target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 PRIVATE SDL3::SDL3-static)
+target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 stb_image PRIVATE SDL3::SDL3-static)
 
 # The new renderer (docs/notes/renderer.md) on SDL3's GPU API (src/render/gpu.h: Direct3D 12 on Windows, Vulkan
 # elsewhere). Not part of ei_platform: the offline checks link the renderer without the game.
@@ -321,9 +329,10 @@ if(APPLE)
 endif()
 target_include_directories(ei-rebuild PRIVATE src)
 target_link_libraries(ei-rebuild PRIVATE ei_game)
-# ei-convert (tools/convert; docs/notes/mods.md, "Records as TOML"): an install's record files written as TOML by the
-# game's own loaders, each one's round trip checked. Its own ei::Log (the output's lines).
-add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+# ei-convert (tools/convert; docs/notes/mods.md, "Records as TOML" and "Textures as PNG"): an install's record files
+# written as TOML and its textures as PNG by the game's own loaders, each one's round trip checked. Its own ei::Log
+# (the output's lines).
+add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp tools/convert/convert_textures.cpp ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 target_include_directories(ei-convert PRIVATE src third_party)
 target_link_libraries(ei-convert PRIVATE ei_game SDL3::SDL3-static)
 # The product's notices (third_party_notices.txt beside the executables): the licences of the
@@ -379,18 +388,19 @@ if(WIN32)
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
     # lib::ParseIpv4, lib/maths.h, the save pictures, the bounded text reads, the tagged stream blocks and the byte
     # buffers with their cursor and coder, the mod's path map, the weather's particle field, the TOML writer and reader,
-    # without the game. build.cmd runs it.
+    # the PNG textures, without the game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
                    tests/unit/audio_mix.cpp tests/unit/display_sizes.cpp tests/unit/bounded_text.cpp
                    tests/unit/tagged_stream.cpp tests/unit/game_buffer.cpp tests/unit/platform_text.cpp
                    tests/unit/path_layers.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp
+                   tests/unit/texture_png.cpp src/game/models/texture_png.cpp
                    src/game/effects/weather_field.cpp src/game/core/buffer.cpp src/game/core/coder.cpp
                    src/audio/audio.cpp src/game/app/settings_document.cpp src/game/core/core_streams.cpp src/game/data/ini_file.cpp
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/game/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_unit_check PRIVATE src third_party)
-    target_link_libraries(ei_unit_check PRIVATE ei_platform tomlc17 SDL3::SDL3-static miniz)
+    target_link_libraries(ei_unit_check PRIVATE ei_platform tomlc17 stb_image SDL3::SDL3-static miniz)
 
     # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
     # report against GDI on the game's strings (tools/text_check; GDI only there).
@@ -422,10 +432,10 @@ else()
     add_executable(ei_port_check tests/port/port_check.cpp src/lib/text_case.cpp src/lib/calendar.cpp src/lib/ipv4.cpp src/lib/str.cpp src/lib/crt_format.cpp
                    src/game/app/settings_document.cpp tests/unit/settings_file.cpp tests/unit/ini_file.cpp
                    tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp tests/unit/audio_mix.cpp
-                   tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/game/data/ini_file.cpp src/game/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
+                   tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp tests/unit/texture_png.cpp src/game/models/texture_png.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/game/data/ini_file.cpp src/game/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
-    target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 SDL3::SDL3-static miniz)
+    target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_image SDL3::SDL3-static miniz)
     add_test(NAME port_platform COMMAND ei_port_check)
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
                    ${EI_GAME_CALLS} ${EI_SDL_CALLS})

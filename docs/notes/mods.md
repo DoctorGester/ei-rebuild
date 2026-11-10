@@ -35,6 +35,11 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/game/data/database_toml.h`, `.cpp` | the game databases as TOML ("Databases as TOML"): field lists, `WriteRecords`, `MergeRecords` |
 | `tools/convert/convert_databases.h`, `.cpp` | ei-convert's databases: each round trip, compared by the records' own serialisers |
 | `tests/scenarios/mod_toml_databases.txt` | a mod's items.idb.toml: a weapon changed and one added, given in a new game |
+| `src/game/models/texture_png.h`, `.cpp`; `third_party/stb/` | textures as PNG and back ("Textures as PNG"): `ToPng`, `FromPng`, `ReadLevel`; stb_image, stb_image_write, stb_dxt |
+| `src/game/data/resource.cpp` | `MappedResource::PngTexture`: an .mmp's PNG made into it where it is found |
+| `tools/convert/convert_textures.h`, `.cpp` | ei-convert's textures: each as PNG, its round trip measured |
+| `tests/unit/texture_png.cpp` | the unit check (ei_unit_check, the POSIX port check) |
+| `tests/scenarios/mod_png_texture.txt` | a mod's PNG terrain pages seen on the ground |
 
 ## Choosing a mod
 
@@ -362,6 +367,107 @@ armours, 63 weapons, 126 quests).
 - `net_pair_database` on a converted install: tools/make_extra_item_db.py adds its quest item as an overlay
   `items.idb.toml` merged over the game's TOML (the same index as its binary file's).
 - `work.py test <ID> --converted --golden --rebirth`: every golden the same with every database as TOML.
+
+## Textures as PNG
+
+A texture can be a PNG (MF4, user 2026-11-09). Every .mmp still loads; `<name>.png` found where `<name>.mmp` would be
+(each place of "Loose files", top first: a folder's file or an archive's entry) stands for it there: at each place the
+PNG is asked before the .mmp, so a mod's PNG hides the game's .mmp and a converted copy's PNG its removed one
+(`MappedResource::PngTexture`, resource.cpp). The PNG is made into the .mmp file the game would have read
+(src/game/models/texture_png.h, `FromPng`): its header, its extra block, every level. So every reader of an .mmp sees one
+as before: the texture loads, the item and inventory pictures, the cursors, the composed skins' layers, the terrain's
+`HasFile`. A made file is shared like a loose one (by its name, freed at its last close). A PNG that stb_image cannot
+read, or whose settings name a format it does not make, is logged ("warning: textures: ...") and the .mmp is read.
+
+- Settings: what is not pixels (the format, the header's channel masks, the level count, the extra block) is in the
+  PNG's `tEXt` chunk "ei-texture", TOML: `format = "DXT1"`, `channels = "1555"`, `levels = 5` (not for PNT3),
+  `extra = "<hex>"` (only when there is one; no shipped archive texture has one). ei-convert writes it. A PNG without
+  the chunk (an image editor drops it) takes them from the .mmp it stands for: in its own place or the first below it.
+  A PNG with neither is a new texture: A8R8G8B8, every level down to 1 x 1. A PNG of another size than the .mmp keeps
+  the .mmp's settings, its levels at most its own full chain.
+- The PNG: any kind stb_image reads (palette, grey, grey and alpha, RGB, RGBA; 16 bits a channel taken to 8 by the
+  high byte; gamma and colour profiles not applied), as 8-bit RGBA with straight alpha. ei-convert writes RGB when
+  every texel is opaque, else RGBA, deflated by miniz.
+- Formats (the texels as the texture holds them; files: ei-convert's counts, vanilla / Rebirth with its mods):
+
+| .mmp format | Files | In the file | The PNG | Back |
+|---|---|---|---|---|
+| 565 | 37 / 4 | 16-bit, straight | RGB, each channel widened (its bits repeated) | rounded to its bits: exact |
+| 1555 | 83 / 57 | 16-bit, straight (17 / 20 files have colour under alpha 0: kept) | RGBA, alpha 0 or 255 | exact; alpha 128 or more is 1 |
+| 4444 | 40 / 9 | 16-bit, straight (35 / 4 effect pictures have colour under alpha 0: kept) | RGBA | exact |
+| 8888 | 70 / 72 | premultiplied (every texel's colour at most its alpha) | RGBA, colour x 255 / alpha | premultiplied again: exact |
+| PNT3 | 2,838 / 3,511 | premultiplied ARGB, runs of transparent black packed; the header's level count is the packed bytes | RGBA as 8888 | premultiplied and packed again (our runs: any run of transparent black, else groups of four) |
+| DXT1 | 617 / 990 | BC1 blocks, a block's third mode transparent black | RGBA as the blocks decode (the D3D formulas rounded to nearest) | blocks again |
+| DXT3, DXT5 | 15 / 10, 0 / 58 | BC2 / BC3 blocks, straight | RGBA | blocks again |
+| DXT2, DXT4 | none | the premultiplied BC2 / BC3 | as 8888 | as DXT3 / DXT5, premultiplied |
+
+  Each format comes back as itself, with the same header (all 19 fields; PNT3's packed size its own). Other formats (an
+  unknown code, PNT2) are not made: ei-convert counts them as failed, the game reads the .mmp.
+- Alpha: 8888's and PNT3's texels are premultiplied (checked on every shipped file: the compositor and the item
+  pictures draw them so, render.h `ImageLayout::Argb`); a PNG holds straight alpha, so the export divides
+  (`round(c x 255 / a)`, 0 for alpha 0) and the load multiplies (`round(c' x a / 255)`): every texel whose colour is at
+  most its alpha comes back exactly (`ei_unit_check` tries every pair). A texel whose colour is above its alpha cannot be
+  held (a straight colour stops at 255) and comes back as its alpha; alpha 0 comes back black. No vanilla file has one;
+  Rebirth's mods' PNT3 pictures have them (see the counts below). The 16-bit formats and DXT are straight already and
+  are written as they are.
+- DXT: the PNG holds the decoded texels; at load each block is made again: the block whose two colours are among its
+  texels and that decodes to them exactly when there is one (the shipped blocks' nearly always), else stb_dxt's (high
+  quality; a BC1 block with transparent texels in the third mode: stb_dxt's colours for its opaque texels, those the
+  nearest of the two and their mean). DXT3's 4-bit alpha is exact; DXT5's alpha block likewise exact when its ends are
+  its texels' largest and smallest alpha. GPU memory stays the DXT size.
+- Levels: made at load from the first by a 2 x 2 box filter (each texel the rounded mean of the four above it, the
+  edges clamped), never taken from a file; the levels of a format with one bit of alpha (DXT1, 1555): a texel is opaque
+  when any of its four is, of their mean colour (the shipped files' levels so, nearly texel for texel; a plain mean
+  would make the cutouts thin and dark at a distance). The shipped levels were made by another filter from the
+  original pictures: ours differ by a few steps (see the counts).
+
+### ei-convert's textures
+
+ei-convert writes each archive's `.mmp` as `<archive folder>\<name>.png` (tools/convert/convert_textures.cpp) and lists
+it as converted. Each round trip: the PNG made into an .mmp as the game makes it (no .mmp below), then compared with the
+original: the header field by field, the extra block, the first level texel for texel (exact; premultiplied texels
+above their alpha expected as their alpha; a DXT format within a mean of 0.5 a channel), the levels below within a mean
+of 32 a channel (the colour where both are opaque, the alpha everywhere but below a first level with no transparent
+texel: some shipped files have transparent texels in their levels below, a DXT1 block's third mode or a 1555 texel by
+mistake, e.g. vanilla's stone02 .. stone07 and eagle00; ours have none). The levels below are only bounded: the shipped
+ones were made by another filter, the worst file's mean is 18.6 (below), and levels read from the wrong bytes differ by
+50 and more.
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding; files / first-level texels that differ, by at most /
+the worst file's mean a channel over the levels below, colour and alpha / seconds to make the .mmps from the PNGs):
+
+| Format | Vanilla | Rebirth (its mods too) |
+|---|---|---|
+| 565 | 37 / 0 / 0.95, 0 | 4 / 0 / 0.95, 0 |
+| 1555 | 83 / 0 / 3.95, 0 (9 files with shipped holes) | 57 / 0 / 3.95, 0 (9) |
+| 4444 | 40 / 0 / 2.50, 14.42 (banshee's alpha) | 9 / 0 / 1.47, 1.22 |
+| 8888 | 70 / 0 / one level | 72 / 0 / one level |
+| PNT3 | 2,838 / 0 / one level / 1.5 s | 3,511 / 0, 499 texels in 44 files clamped (colour above alpha) / one level / 1.1 s |
+| DXT1 | 617 / 35,597 of 93.1 M, by 3 / 14.13, 5.75 (13 with shipped holes) / 3.8 s | 990 / 170.6 M of 1,363 M, by 33, worst file's mean 0.28 / 14.11, 18.64 (2) / 27.5 s |
+| DXT3 | 15 / 3,125 of 0.48 M, by 3 / 17.45 (arrow01), 2.05 | 10 / 17,335 of 1.44 M, by 8 / 3.55, 0.51 |
+| DXT5 | none | 58 / 1.72 M of 40.8 M, by 18, worst mean 0.15 / 10.38, 7.34 / 0.9 s |
+
+The shipped DXT blocks of vanilla nearly all come back exactly (their ends are among their texels). Rebirth's large
+DXT1 and DXT5 textures were compressed by a tool whose ends are not, so most of their blocks are stb_dxt's again: close
+(the worst file's mean 0.28 a channel) but not the same. A large level's blocks are made on several threads (the
+bytes the same). Loading costs: Rebirth's 990 DXT1 PNGs take 27.5 s to make into .mmps, 18.2 s of it stb_image's
+decode (its inflate, one thread), so a converted Rebirth install loads its zones slower: the Lost in Astral runs
+`mod_lost_in_astral_gipat` and `mod_lost_in_astral_cz_ingos` take 41 s and 53 s converted against 19 s and 34 s (before
+the threads they ran out of their 60 s; cz_ingos still can in a whole converted suite, four games at once). The stub
+data (`build\stub`, the Linux workflow's) gives the same kinds of counts, every round trip holding.
+
+### Checks
+
+- `ei_unit_check`'s texture checks (tests/unit/texture_png.cpp): widening and narrowing every channel value, premultiply
+  and back for every colour and alpha pair, every 16-bit texel of 565, 1555 and 4444 through a PNG and back, 8888 with
+  its levels from the box filter, a PNT3 stream, a DXT1 cutout made over an .mmp below, the settings chunk and a new
+  texture's defaults.
+- `mod_png_texture` (both installs; tools/make_mod_s19d.py png): a mod whose zone 1 terrain pages are PNGs of four
+  coloured quadrants without the settings chunk; the ground shows the colours (`hues`) and the trace has the PNG read
+  for the .mmp.
+- `ei-convert --check` on both installs (every texture's round trip holding), and on the stub data in the Linux suites'
+  workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every texture as a PNG.
 
 ## A mod's config.reg
 

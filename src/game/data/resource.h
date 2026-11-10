@@ -123,11 +123,12 @@ public:
     virtual void OpenFromMemory(const void* image);
     virtual void CloseResource();
     // The file `name` from the first of Sources() that has it; with a mod a "t\" or "s\" name not found is looked for
-    // once more without the prefix (Rebirth's ResOverride).
+    // once more without the prefix (Rebirth's ResOverride). An .mmp's PNG (<name>.png) in a source stands for the .mmp
+    // there (docs/notes/mods.md, "Textures as PNG"): the .mmp made from it is handed out.
     void* GetFile(std::string_view name, std::uint32_t* size);
     virtual bool CloseFile(void* data);
     virtual void FreeAllFiles();
-    // Whether one of Sources() has `name`.
+    // Whether one of Sources() has `name` (an .mmp's PNG for it).
     bool HasFile(std::string_view name);
     // The record file `name` in Sources() (its TOML files in the folders; the original as GetFile finds it).
     RecordFile FindRecord(std::string_view name);
@@ -172,6 +173,13 @@ private:
         MappedResource* entries = nullptr;    // or an archive's entries
     };
     std::vector<Source> Sources();
+    // The bytes of `name` in `source` (a folder's file, `*where` its path, or an archive's entry); false when it has
+    // none or reading it fails.
+    static bool ReadSource(const Source& source, std::string_view name, std::string* bytes, std::string* where);
+    // The .mmp `name` made from its PNG `pngName` in sources[at] (shared when made already); null when that source has
+    // no such PNG or it makes none (logged). Docs/notes/mods.md, "Textures as PNG".
+    void* PngTexture(std::string_view name, const std::string& pngName, const std::vector<Source>& sources, std::size_t at,
+                     std::uint32_t* size);
     // GetFile's search; with `utf8` (FindText) a folder's texts.toml too.
     void* Find(std::string_view name, std::uint32_t* size, bool* utf8);
     void* FindFile(std::string_view name, std::uint32_t* size, bool* utf8);

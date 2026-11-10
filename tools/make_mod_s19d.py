@@ -1,6 +1,6 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases [--zip <name> [--top]]
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png [--zip <name> [--top]]
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
   --zip <name>  the mod as one zip instead (docs/notes/mods.md, "Zip mods"), <saves dir>\\<name>: "s19d_mod.zip" for the
@@ -39,10 +39,13 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Res\\database\\unanhoco.adb.toml  the cow's animation "cidle01" with another chance, alone
   databases game databases as TOML (tests/scenarios/mod_toml_databases.txt; docs/notes/mods.md, "Databases as TOML"):
               Res\\database\\items.idb.toml   the weapon "stone axe" with another damage; a weapon "mf5 axe" added
+  png       textures as PNG (tests/scenarios/mod_png_texture.txt; docs/notes/mods.md, "Textures as PNG"):
+              Res\\textures\\Zone1000.png .. Zone1007.png   zone 1's terrain pages as four coloured quadrants
+                                                       (render_loose_bmp's), 256 x 256, with no settings chunk
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
 """
-import argparse, os, shutil, sys, tempfile, zipfile
+import argparse, os, shutil, struct, sys, tempfile, zipfile, zlib
 
 import exe_path
 import make_test_mod as mod
@@ -186,7 +189,25 @@ def databases(root):
     write(os.path.join(root, 'Res', 'database', 'items.idb.toml'), DATABASE_ITEMS)
 
 
-KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases}
+def png_file(width, height, rgb_at):
+    """A PNG of 8-bit RGB with no chunk but the image's: rgb_at(x, y) the texel at x, y from the top left."""
+    def chunk(kind, data):
+        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
+    rows = b''.join(b'\0' + b''.join(bytes(rgb_at(x, y)) for x in range(width)) for y in range(height))
+    header = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', header) + chunk(b'IDAT', zlib.compress(rows)) + chunk(b'IEND', b'')
+
+
+def png(root):
+    config(root)
+    quadrants = [[(255, 0, 0), (0, 255, 0)], [(0, 0, 255), (255, 255, 0)]]   # top row first
+    size = 256
+    picture = png_file(size, size, lambda x, y: quadrants[y * 2 // size][x * 2 // size])
+    for i in range(8):
+        write(os.path.join(root, 'Res', 'textures', f'Zone1{i:03d}.png'), picture)
+
+
+KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png}
 
 
 def zip_folder(root, target, top):

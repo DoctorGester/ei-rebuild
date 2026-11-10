@@ -331,31 +331,31 @@ Risks:
 | Folder | Files | Lines today | Move batch |
 |---|---|---|---|
 | `ai/` | 28 | 12553 | C168f |
-| `app/` | 23 | 6926 | C168e |
+| `app/` | 23 | 6930 | C168e |
 | `combat/` | 13 | 6394 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
-| `data/` | 15 | 4474 | C168d |
+| `data/` | 15 | 4638 | C168d |
 | `effects/` | 23 | 10833 | C168g |
 | `items/` | 10 | 2855 | C168g |
 | `map/` | 11 | 2036 | C168e |
-| `models/` | 19 | 5150 | C168g |
+| `models/` | 21 | 6066 | C168g |
 | `mods/` | 6 | 603 | C168d |
 | `net/` | 21 | 7981 | C168h |
-| `objects/` | 23 | 8062 | C168f |
+| `objects/` | 23 | 8021 | C168f |
 | `players/` | 24 | 5251 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
 | `script/` | 20 | 6750 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
-| `terrain/` | 12 | 3636 | C168g |
+| `terrain/` | 12 | 3560 | C168g |
 | `ui/` | 95 | 32812 | C168h |
-| `units/` | 27 | 9807 | C168f |
+| `units/` | 27 | 9736 | C168f |
 | `world/` | 35 | 10226 | C168e |
-| all | 485 | 151743 | |
+| all | 487 | 152639 | |
 
-532 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+534 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -616,6 +616,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | texture.cpp | models/texture.cpp |  |  |
 | texture.h | models/texture.h |  | TextureDevice and MeshArgs leave for scene/device.h (C168c) |
 | texture_load.cpp | models/texture_load.cpp |  |  |
+| texture_png.cpp | models/texture_png.cpp |  |  |
+| texture_png.h | models/texture_png.h |  |  |
 
 #### `mods/` (C168d)
 
