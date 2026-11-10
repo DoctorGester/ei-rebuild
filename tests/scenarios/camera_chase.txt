@@ -1,0 +1,142 @@
+# P12: the chase camera ([camera] ChaseCamera, GameOptions::SetChaseCamera: Rebirth's starter's "Камера Чейза"
+# preset) switched on in the options window (the sens group's row 8) and used with the player's keys. Off, Ctrl + the
+# camera keys tilt within the usual 30..60 degrees; on, from straight down (90) to up past level (-45), and the zoom
+# keys bring the camera right to its focus (distance 0) and out again; the wheel does the same (Camera::ZoomBy, from
+# 1 when nearer). Looking up, the up key pans forward (Camera::Pan along the ground: the camera's own Y axis, which
+# gave the way once, points back on the ground below level). Frames for the eye (build/captures/p12): straight down
+# from 50, the low views from the ground looking level and up, and far across the map.
+timeout 60
+render checkall
+resolution 1920x1080
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+climate 0
+console @FixWorldTime(12)
+move 400 300
+frames 5
+
+# Off: the usual limits.
+hold ctrl
+keydown up
+frames 120
+keyup up
+release ctrl
+frames 10
+camrange pitch 59.9 60.1
+hold ctrl
+keydown down
+frames 120
+keyup down
+release ctrl
+frames 10
+camrange pitch 29.9 30.1
+
+# The switch: the Esc menu's options, the sens group (region 4), the chase camera row (region 21), Enter, OK.
+key esc
+waitwindow 10 escmenu
+move 395 260
+click 395 260
+waitwindow 10 options
+clickregion 4
+frames 3
+clickregion 21
+frames 3
+key enter
+frames 3
+freeze
+capture chase_options
+unfreeze
+moveregion 0
+frames 3
+clickregion 0
+waitwindow 10 battle
+move 400 300
+frames 5
+
+# On: straight down, then up past level.
+hold ctrl
+keydown up
+frames 200
+keyup up
+release ctrl
+frames 10
+camrange pitch 89.9 90.1
+hold ctrl
+keydown down
+frames 300
+keyup down
+release ctrl
+frames 10
+camrange pitch -45.1 -44.9
+
+# The zoom keys to 0 and out.
+keydown pgup
+frames 200
+keyup pgup
+frames 10
+camrange distance 0 0
+keydown pgdn
+frames 100
+keyup pgdn
+frames 10
+camrange distance 5 70
+
+# The wheel: 100 notches in reach 0 (a multiple of 0 stayed 0 before), 10 out come back from 1.
+wheel 400 300 12000
+frames 5
+camrange distance 0 0
+wheel 400 300 -1200
+frames 5
+camrange distance 1.01 10
+
+# The up key pans forward whatever the pitch: heading 0 faces +y (a pan along the camera's own Y axis went to -y
+# looking up).
+camera 128 128 0 30 45
+keydown up
+frames 10
+keyup up
+frames 30
+camrange y 135 250
+camera 128 128 0 30 -30
+keydown up
+frames 10
+keyup up
+frames 30
+camrange y 135 250
+
+# Frames: straight down from 50; looking level across the map from 10 back (the ground, the trees and the units to
+# the map's edge); 30 back pitched to -45: the camera lifted onto the ground and aimed back up at its focus (the
+# chase view); 20 back from the hero, -20; at distance 0 on the hero, lifted over it (ClampAboveObjects counts the
+# hero) and aimed down at the focus under it, as the original does: whatever the pitch, a view straight down.
+camera 54 138 90 50 90
+frames 5
+freeze
+capture chase_down
+unfreeze
+camera 128 128 0 10 0
+frames 5
+freeze
+capture chase_level
+unfreeze
+camera 128 128 0 30 -45
+frames 5
+freeze
+capture chase_up
+unfreeze
+camera 54 138 90 20 -20
+frames 5
+freeze
+capture chase_lifted
+unfreeze
+camera 54 138 90 0 -30
+frames 5
+freeze
+capture chase_zero
+unfreeze
+report
+quit

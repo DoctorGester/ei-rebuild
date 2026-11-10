@@ -39,6 +39,7 @@ enum class OptionId : int {
     Msaa,
     Anisotropy,
     PerfOverlay,
+    ChaseCamera,
     Count,
 };
 

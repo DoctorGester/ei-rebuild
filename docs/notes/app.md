@@ -59,6 +59,19 @@ is read but not saved (EI_Plugin's NewMaster stopped saving it). Settings are `e
 described by `src/game/app/settings_catalog.inc`, which holds each setting's one default (`docs/settings.md` is
 generated from it by `tools/gen_settings_doc.py`, a build check).
 
+The chase camera (`[camera] ChaseCamera`, off by default; Rebirth's starter's "Камера Чейза", whose preset is
+EIStarter.exe's built-in table): `GameOptions::SetChaseCamera` puts options.cpp's `kChasePreset` into the 17 settings
+it covers (the pitch limits -45..90 on the maps and the village screens, the distances 0..50 with hard limits 0..70,
+CameraMinHeight 0, CameraMaxHeight 70, NearClipDistance 1, FarClipDistance 199680, CameraTerrainSensetiveArea 0.1)
+and keeps their own values in `ownCamera`; off puts them back, and `Save` writes the own values. The starter's other
+camera values equal its standard preset's (speeds, flips, edge areas, the start's place) and its four camera views
+look like saved ones, so those stay the player's. The options window's sens group, row 8, switches it while the game
+runs: the camera reads its limits each update, and `SceneRenderer::ApplyClipDistances` rebuilds the projection (the
+near distance) and the game's reach. The far clip is only the game's reach (`TransformPipeline::BeyondReach`: the
+figures, particle sources, lightning and out-of-view shadow casters); the projection has no far plane and the distance
+fog and the shadow map's 100 units do not depend on it (renderer.md, "The view's depth"). The camera's side: core.md,
+"Camera".
+
 ## Small pieces
 
 - `NamedFloatTable` (named_floats.cpp; party and player variables): a `lib::HashMap<std::string, float>`; Set of zero

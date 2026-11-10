@@ -147,6 +147,16 @@ void SceneRenderer::ResizeScreen(int width, int height) {
     pipeline->SetViewportSize(static_cast<float>(width), static_cast<float>(height));
 }
 
+void SceneRenderer::ApplyClipDistances(const GameOptions* settings) {
+    g_camera.nearDistance = settings->nearClipDistance;
+    MatrixStack* stacks = pipeline->stacks;
+    for (int stack : {kProjection, kViewport, kAxisSwap, kProductStacks[0], kProductStacks[1], kSwapStacks[0],
+                      kSwapStacks[1]})
+        stacks[stack].count = 0;
+    FillMatrixStacks(this);
+    SetViewport(this, settings);
+}
+
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
 // +0x100 = 1e12, +0x104 = 1e-12.
 void SceneRenderer::AddDefaultLight() {

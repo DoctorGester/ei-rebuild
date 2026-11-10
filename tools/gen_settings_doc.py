@@ -215,12 +215,14 @@ def doc(rows, names):
 
 
 def description_lines(row):
-    """A row's description as the defaults file's comment lines (settings_document.cpp DescriptionLines)."""
+    """A row's description as the defaults file's comment lines (settings_document.cpp DescriptionLines; its widths
+    are UTF-8 bytes)."""
     _, _, _, values, description, _ = row
     text = description + ('' if values == 'true / false' else f' ({values})')
+    width = lambda s: len(s.encode('utf-8'))
     lines, line = [], ''
     for word in text.split(' '):
-        if line and len(line) + 1 + len(word) > COMMENT_WIDTH:
+        if line and width(line) + 1 + width(word) > COMMENT_WIDTH:
             lines.append(line)
             line = ''
         line = f'{line} {word}' if line else word

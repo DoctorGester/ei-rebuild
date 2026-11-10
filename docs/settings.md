@@ -56,6 +56,7 @@ ignores them): [video] VideoZBufferDepthInBits, VideoRefreshRate, Antialiasing, 
 
 | Name | Default | Values | What it does |
 |---|---|---|---|
+| `ChaseCamera` | `false` *(new file)* | true / false | A freer camera (Rebirth's starter's "Камера Чейза"), on the maps and the village screens alike: it tilts from 45 degrees above level to straight down, zooms from right at the point it looks at out to 50, may come down to the ground, and draws units and effects at any distance. While on, it stands in for the pitch, distance and height limits, NearClipDistance (1), FarClipDistance and CameraTerrainSensetiveArea (0.1); their lines keep your own values for when it is off. The speeds, flips and camera views stay yours. The options screen's chase camera row sets it. |
 | `CameraFlipXAxis` | `false` *(new file)* | true / false | Reverses which way the camera turns when you drag sideways with the right mouse button. The keys are not affected. |
 | `CameraFlipYAxis` | `false` *(new file)* | true / false | Reverses which way the camera tilts when you drag up or down with the right mouse button. The keys are not affected. |
 | `CameraMinHeight` | `3` *(new file)* | world units | The lowest the camera may sit above the ground under it or the tops of nearby trees and buildings; it is pushed up to keep this clearance. |

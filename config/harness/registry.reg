@@ -80,6 +80,7 @@ Windows Registry Editor Version 5.00
 "CameraShortcut 3 Distance"=hex:00,00,f0,41
 "CameraShortcut 3 Pitch"=hex:00,00,34,42
 "CAMERALIMITDISTANCETOCARRIER"=hex:00,00,40,40
+"ChaseCamera"=-
 
 [HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Game Specific Settings]
 "UseSWCursors"=dword:00000000
@@ -188,6 +189,7 @@ Windows Registry Editor Version 5.00
 "CAMERADEFAULTYDEPLOY"=hex:00,00,f0,41
 "CAMERAFRAMESELECTIONSENSETIVEAREA"=dword:0000001e
 "CAMERALIMITDISTANCETOCARRIER"=hex:00,00,40,40
+"ChaseCamera"=-
 "CameraShortcut 1 Distance"=hex:00,00,f0,41
 "CAMERAMAXDISTANCETOCARRIER"=hex:00,00,48,42
 "CAMERAMAXHEIGHT"=hex:00,00,8c,42

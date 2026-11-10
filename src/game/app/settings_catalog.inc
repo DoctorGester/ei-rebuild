@@ -58,6 +58,13 @@ EI_SETTING(kTerrain, "BorderFogDistance", Float(16), kLeftOut, "map units",
            "briefing maps use their own.")
 
 // [camera]
+EI_SETTING(kCamera, "ChaseCamera", Bool(false), kWritten, "true / false",
+           "A freer camera (Rebirth's starter's \"Камера Чейза\"), on the maps and the village screens alike: it "
+           "tilts from 45 degrees above level to straight down, zooms from right at the point it looks at out to 50, "
+           "may come down to the ground, and draws units and effects at any distance. While on, it stands in for "
+           "the pitch, distance and height limits, NearClipDistance (1), FarClipDistance and "
+           "CameraTerrainSensetiveArea (0.1); their lines keep your own values for when it is off. The speeds, "
+           "flips and camera views stay yours. The options screen's chase camera row sets it.")
 EI_SETTING(kCamera, "CameraFlipXAxis", Bool(false), kWritten, "true / false",
            "Reverses which way the camera turns when you drag sideways with the right mouse button. The keys are "
            "not affected.")

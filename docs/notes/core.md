@@ -135,7 +135,8 @@ Every Windows build is x64; formats are 32-bit.
 `Camera` (class id 0x43, a TransformObject) is a global; `Camera::Update` runs once per frame from the main loop. The
 members are named in camera.h. Flags: 0x8 follow the target, 0x10 recording to a file, 0x20 playing a path, 0x40 free
 placement, 0x100 bounded, 0x200 briefing limits. Pitch is kept in degrees. F9-F12 save (with a modifier) and restore
-views; the mouse wheel zooms by 1.05^steps; a shake's distance uses `_hypot`. Recorded paths are `camera\*.cam`
+views; the mouse wheel zooms by 1.05^steps (`ZoomBy`: from 1 when nearer, and a zoom in below 1 goes to the least
+distance, so a least distance of 0 is reached and left); a shake's distance uses `_hypot`. Recorded paths are `camera\*.cam`
 (36-byte keys: time, position, rotation; `Camera::LoadPath`: with a second argument above 1, the first key more than
 500 time units after its predecessor gives its pose to every key before it).
 
@@ -144,6 +145,20 @@ multiplies the view axes by 0 and leaves the turn / tilt rates; `PlaybackStep` a
 the camera without clearing the playing flag; `Update` tracks a target only with flag 8 clear, and panning clears both;
 the script commands SetCameraPosition / SetCameraOrientation do nothing; `OpenFile` renames an existing
 camera.cam to the next number after the highest camera0*.cam (read from the last four characters of the title).
+
+The chase camera ([camera] ChaseCamera, `GameOptions::SetChaseCamera`; app.md, "Options") lets the pitch go from -45
+(looking up) to 90 (straight down) and the distance to 0, on the maps and the village screens. What copes with it:
+- `Pan` moves along the ground by the camera's X axis turned a quarter about Z. The camera's own Y axis, which the
+  original took, points back along the ground below level (and nowhere when level): looking up, the keys and the screen
+  edges panned backwards, and at a level camera its normalisation gave NaN.
+- Pitched below level the camera sits below its focus; `ClampAboveObjects` lifts it over the ground (CameraMinHeight 0)
+  and `ApplyView` aims it back up at the focus. At distance 0 it is at its focus, 2 above the ground.
+- At distance 0 the limits' easing (`Update`) never divides by min - hardMin (both 0): it runs only between them.
+- `ViewStep`'s stretch is 0 at a reach of 0; `SampleTerrain` over the 0.1 terrain area takes the same 5 x 5 points.
+- Clicking the sky picks a ground point along the ray behind the camera (`PickPoint`'s bounded iteration), as the
+  original did.
+- Check: scenario `camera_chase` (`camrange` steps: pitch 60 / 30 off, 90 / -45 on, the zoom keys and the wheel to 0
+  and out, the up key's pan at pitch 45 and -30 in the same direction; frames for the captures page's P12).
 
 ## Strings
 

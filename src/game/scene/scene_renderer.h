@@ -43,6 +43,10 @@ public:
     // The device's screen made `width` x `height` (app::SetResolution, between frames): the viewport and the axis swap
     // (the window's 4:3 part, screen_layout.h) on the pipeline's stacks again, the projection kept.
     void ResizeScreen(int width, int height);
+    // The settings' clip distances taken again between frames (the options window's chase camera switch): the
+    // camera's near distance, the projection and the stacks made from it, the distance fog's depth scale and the
+    // game's reach.
+    void ApplyClipDistances(const options::GameOptions* settings);
     // Drops the sun, the pipeline, the helper and the device object.
     void DestroyRenderer();
     // 0 unless running. Takes the frame time, clears the frame and begins the scene (a

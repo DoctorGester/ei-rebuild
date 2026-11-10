@@ -121,7 +121,7 @@ public:
     void ApplyView();
     // Moves the focus to `p`, its height set from the terrain around it.
     void SetFocus(const Vector3& p);
-    // Pan velocity target from a screen-space direction (x right, y up the screen).
+    // Pan velocity target from a screen-space direction (x right, y down the screen), along the ground.
     void Pan(const Vector3& direction);
     void StopMotion();
     // Zoom by 1.05^steps, clamped to the current limits.
