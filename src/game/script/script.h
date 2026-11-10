@@ -632,7 +632,8 @@ public:
 
     // Negative ids in the WorldScript blocks, others in the command blocks; null when absent.
     ScriptBlock* FindBlock(int id) const;
-    // Reads what SaveState wrote; the areas only from stream version 0x57 on.
+    // Reads what SaveState wrote; the areas only from stream version 0x57 on. A lockstep shadow then resumes its Lua
+    // from the loaded state (script_lua_shadow.h).
     void LoadState(ByteStream* stream);
     // Point lights, particle / FX / lightning sources, two counters, the command blocks and WorldScript
     // blocks, the definitions, the globals, the instances, the runs, the loaded flag and file counter, the

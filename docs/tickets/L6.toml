@@ -4,4 +4,5 @@ group = "lua"
 depends = ["L5"]
 note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). New saves persist the Lua state with Eris: bindings as permanents, objects and groups by id through __persist; waits yield only from Lua. Saves are ours only (game.exe no longer a target): no old-format writer. Old saves (vanilla, ours before Lua) load: each saved run (block, index, ticks, sleep start, locals) resumes through a shim that enters the converted block at that command."
 order = 642
-status = "later"
+status = "review"
+started = "2026-11-10"

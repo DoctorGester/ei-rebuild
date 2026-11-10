@@ -11,7 +11,9 @@
 // changed group arguments copied back; a changed object argument is a difference). Only the waits' run-local polls (Sleep, WaitSegment, SleepUntil)
 // and KillScript run on the Lua side, their go-on flags compared. After each tick the instance lists (by definition),
 // the waiting runs (tick counts and sleep starts) and every global (floats by their bits, the loop counters the Lua
-// does not write left out) are compared. The first difference fails the run (Failure, the harness's report).
+// does not write left out) are compared. The first difference fails the run (Failure, the harness's report). A save
+// loaded resumes the Lua from the loaded state (the old-save shim); at a save made, and at the shadow's ticks 200, 400,
+// 800 ..., the Lua state goes through an Eris round trip, and the lockstep goes on with the restored state.
 
 #include "game/script/script.h"
 
@@ -79,8 +81,12 @@ public:
     void Purged(Script* script, const MapObject* removed);
     void BeginTick(Script* script);
     void EndTick(Script* script);
-    // The shadow ends here (a save loaded: L6), without a difference.
-    void Stop(Script* script, const char* why);
+    // A save's script state loaded (Script::LoadState, at its end): the Lua state is built from it by the old-save
+    // shim (ScriptLuaScheduler::Resume) and compared.
+    void StateLoaded(Script* script);
+    // The script is about to be saved (Script::SaveState): the Lua state goes through an Eris round trip
+    // (ScriptLuaScheduler::Save, Restore into a new scheduler) and is compared. So it does at the shadow's ticks 200, 400, 800 ...
+    void Saving(Script* script);
 
     ~ScriptShadow();
 

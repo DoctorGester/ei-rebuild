@@ -3,6 +3,7 @@
 
 #include "game/app/singletons.h"
 #include "game/core/base_manager.h"
+#include "game/core/core_streams.h"
 #include "game/core/random.h"
 #include "game/objects/map_object.h"
 #include "game/objects/map_object_manager.h"
@@ -375,7 +376,7 @@ struct MobFiles {
 
 bool g_logMuted = false;
 
-Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick) {
+Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick, Saves saves) {
     PrepareWorld();
     struct Mute {
         Mute() { g_logMuted = true; }
@@ -392,6 +393,7 @@ Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick) {
     counter.Restart();
     std::vector<Snapshot> gameTicks;
     std::vector<scriptir::File> trees(texts.size());
+    std::vector<std::uint8_t> saved;   // the game's script state at the old-format save
     {
         Script script;
         int loads = 0;
@@ -409,12 +411,17 @@ Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick) {
                 break;
             }
             gameTicks.push_back(GameSnapshot(script));
+            if (tick == saves.oldFormat) {
+                MemoryStream stream;
+                script.SaveState(&stream);
+                saved.assign(stream.data.begin(), stream.data.begin() + stream.size);
+            }
         }
     }
 
     counter.Restart();
     Script script;
-    ScriptLuaScheduler scheduler(&script);
+    auto lua = std::make_unique<ScriptLuaScheduler>(&script);
     scriptlua::LuaNames names;
     for (int tick = 0; tick < std::ssize(gameTicks) && outcome.difference.empty(); ++tick) {
         for (std::size_t t = 0; t < texts.size(); ++t) {
@@ -422,13 +429,41 @@ Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick) {
             const scriptlua::LuaText converted = scriptlua::WriteLua(trees[t], names, texts[t].name);
             const std::string chunk = "=" + texts[t].name + ".lua";
             std::string error;
-            if (!scheduler.Load(converted.text, chunk.c_str(), trees[t].ok, &error)) scheduler.errors.push_back(error);
+            if (!lua->Load(converted.text, chunk.c_str(), trees[t].ok, &error)) lua->errors.push_back(error);
         }
-        if (tick == resetTick) scheduler.ResetZone();
-        scheduler.Tick();
+        if (tick == resetTick) lua->ResetZone();
+        lua->Tick();
         const Snapshot& game = gameTicks[static_cast<std::size_t>(tick)];
-        std::string difference = Difference(game, LuaSnapshot(scheduler, names, game));
-        if (difference.empty() && !scheduler.errors.empty()) difference = "Lua error: " + scheduler.errors.front();
+        std::string difference = Difference(game, LuaSnapshot(*lua, names, game));
+        if (difference.empty() && !lua->errors.empty()) difference = "Lua error: " + lua->errors.front();
+        std::string error;
+        if (difference.empty() && tick == saves.oldFormat) {
+            MemoryStream stream;
+            stream.Fill(saved.data(), static_cast<std::uint32_t>(saved.size()));
+            Script loaded;
+            loaded.LoadState(&stream);
+            auto resumed = std::make_unique<ScriptLuaScheduler>(&script);
+            names = {};
+            std::string text;
+            if (resumed->Resume(loaded, names, &text, &error)) {
+                lua = std::move(resumed);
+                difference = Difference(game, LuaSnapshot(*lua, names, game));
+                if (!difference.empty()) difference = "resumed from the old format: " + difference;
+            } else {
+                difference = "the old format did not resume: " + error;
+            }
+        }
+        if (difference.empty() && tick == saves.eris) {
+            std::string data;
+            auto restored = std::make_unique<ScriptLuaScheduler>(&script);
+            if (!lua->Save(&data, &error) || !restored->Restore(data, &error)) {
+                difference = "Eris: " + error;
+            } else {
+                lua = std::move(restored);
+                difference = Difference(game, LuaSnapshot(*lua, names, game));
+                if (!difference.empty()) difference = "restored by Eris: " + difference;
+            }
+        }
         if (!difference.empty()) outcome.difference = std::format("tick {}: {}", tick, difference);
         outcome.ticks = tick + 1;
         outcome.mostInstances = std::max(outcome.mostInstances, game.instances);
@@ -443,11 +478,19 @@ int Check(int* checks) {
         ++*checks;
         std::vector<Text> texts;
         for (const CaseText& text : test->texts) texts.push_back({text.tick, test->name, text.text});
-        const Outcome outcome = Compare(texts, kTicks, test->resetTick);
-        if (outcome.difference.empty() && outcome.ticks == kTicks) continue;
-        ++failures;
-        std::printf("lua_check: %s: %s\n", test->name,
-                    outcome.difference.empty() ? "the game loaded a text of its own" : outcome.difference.c_str());
+        const auto run = [&](Saves saves, const std::string& how) {
+            const Outcome outcome = Compare(texts, kTicks, test->resetTick, saves);
+            if (outcome.difference.empty() && outcome.ticks == kTicks) return;
+            ++failures;
+            std::printf("lua_check: %s%s: %s\n", test->name, how.c_str(),
+                        outcome.difference.empty() ? "the game loaded a text of its own" : outcome.difference.c_str());
+        };
+        run({}, "");
+        for (int tick = 0; tick + 1 < kTicks; ++tick) {
+            *checks += 2;
+            run({tick, tick + 1}, std::format(" (saved at tick {} in the old format, at {} by Eris)", tick, tick + 1));
+            run({-1, tick}, std::format(" (saved at tick {} by Eris)", tick));
+        }
     }
     return failures;
 }

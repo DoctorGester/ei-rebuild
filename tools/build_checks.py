@@ -34,9 +34,10 @@ def checks(out):
         [os.path.join(out, 'ei_unit_check.exe')],
         # The script parse tree against what the loader builds, on the samples and the scenarios' console lines
         # (tools/convert/convert_scripts.cpp; docs/notes/lua-scripting.md, "Survey"), each script run both ways, by the
-        # game's executor and as its Lua under the scheduler, for 100 ticks (lua_both.h; lua-scripting.md, "Lockstep").
+        # game's executor and as its Lua under the scheduler, for 100 ticks, through an old-format save at tick 50 and an
+        # Eris save at 75 (lua_both.h; lua-scripting.md, "Lockstep").
         [os.path.join(out, 'ei-convert.exe'), '--scripts', '--scenarios', os.path.join(ROOT, 'tests', 'scenarios'), '--quiet',
-         '--lockstep', '100'],
+         '--lockstep', '100', '--saves'],
         # The scripts' Lua bindings on a small world of their own (tools/convert/lua_check.cpp; docs/notes/
         # lua-scripting.md, "Bindings").
         [os.path.join(out, 'ei-convert.exe'), '--lua-check'],

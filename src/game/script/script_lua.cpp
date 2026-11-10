@@ -48,6 +48,7 @@ constexpr const char* kPersistKey = "ei.persist";        // the registry's perma
 constexpr const char* kUnpersistKey = "ei.unpersist";    // and for unpersisting: name -> value
 constexpr const char* kGlobalsKey = "ei.globals";        // the registry's types of the GlobalVars: name -> type
 constexpr const char* kResetKey = "ei.resetGlobals";     // the registry's prelude function that zeroes them
+constexpr const char* kBuiltinsKey = "ei.builtins";      // the registry's copy of the globals the runtime made
 
 // The keywords whose Lua name is not their own (docs/notes/lua-scripting.md, "Bindings": the naming rule).
 struct Rename {
@@ -834,6 +835,16 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
     lua_pop(L, 1);
 
     BuildPermanents(L, hidden);
+    lua_newtable(L);
+    lua_pushglobaltable(L);
+    lua_pushnil(L);
+    while (lua_next(L, -2)) {
+        lua_pushvalue(L, -2);
+        lua_insert(L, -2);
+        lua_rawset(L, -5);
+    }
+    lua_pop(L, 1);
+    lua_setfield(L, LUA_REGISTRYINDEX, kBuiltinsKey);
     lua_settop(L, 0);
     script->lua = this;
 }
@@ -885,6 +896,61 @@ std::string ScriptLua::GlobalType(std::string_view name) {
 void ScriptLua::ResetGlobals() {
     lua_getfield(state, LUA_REGISTRYINDEX, kResetKey);
     lua_call(state, 0, 0);
+}
+
+void ScriptLua::PushGlobals() {
+    lua_State* L = state;
+    lua_createtable(L, 0, 2);
+    const int result = lua_gettop(L);
+    lua_getfield(L, LUA_REGISTRYINDEX, kBuiltinsKey);
+    const int builtins = lua_gettop(L);
+    lua_newtable(L);
+    const int own = lua_gettop(L);
+    lua_pushglobaltable(L);
+    const int globals = lua_gettop(L);
+    lua_pushnil(L);
+    while (lua_next(L, globals)) {
+        lua_pushvalue(L, -2);
+        lua_rawget(L, builtins);
+        const bool builtin = lua_rawequal(L, -1, -2) != 0;
+        lua_pop(L, 1);
+        if (builtin) {
+            lua_pop(L, 1);
+        } else {
+            lua_pushvalue(L, -2);
+            lua_insert(L, -2);
+            lua_rawset(L, own);
+        }
+    }
+    lua_settop(L, own);
+    lua_setfield(L, result, "globals");
+    lua_pop(L, 1);
+    lua_getfield(L, LUA_REGISTRYINDEX, kGlobalsKey);
+    lua_setfield(L, result, "types");
+}
+
+// Into the existing types table: the prelude's GlobalVars and ResetGlobals hold it.
+void ScriptLua::SetGlobals(int index) {
+    lua_State* L = state;
+    index = lua_absindex(L, index);
+    lua_getfield(L, index, "globals");
+    lua_pushglobaltable(L);
+    lua_pushnil(L);
+    while (lua_next(L, -3)) {
+        lua_pushvalue(L, -2);
+        lua_insert(L, -2);
+        lua_rawset(L, -4);
+    }
+    lua_pop(L, 2);
+    lua_getfield(L, index, "types");
+    lua_getfield(L, LUA_REGISTRYINDEX, kGlobalsKey);
+    lua_pushnil(L);
+    while (lua_next(L, -3)) {
+        lua_pushvalue(L, -2);
+        lua_insert(L, -2);
+        lua_rawset(L, -4);
+    }
+    lua_pop(L, 2);
 }
 
 void ScriptLua::RemoveDeletedObjects() {

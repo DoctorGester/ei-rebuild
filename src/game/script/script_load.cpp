@@ -179,7 +179,6 @@ ScriptBlock* Script::FindBlock(int id) const {
 // Reads what SaveState wrote, in the same order; every block id resolves in this script. Areas are read only
 // from stream version 0x57 on.
 void Script::LoadState(ByteStream* stream) {
-    if (shadow) shadow->Stop(this, "a save was loaded (L6 keeps the Lua runs in saves)");
     pointLights.resize(stream->ReadCount());
     for (ScriptPointLight& light : pointLights) light.Load(stream);
 
@@ -210,11 +209,13 @@ void Script::LoadState(ByteStream* stream) {
     stream->ReadValue(loaded);
     stream->ReadValue(fileCount);
 
-    if (stream->version < kVersionScriptAreas) return;
-    areas.resize(stream->ReadCount());
-    for (ScriptArea& area : areas) {
-        stream->ReadValue(area.id);
-        area.parts.resize(stream->ReadCount());
-        for (ScriptAreaPart& part : area.parts) stream->ReadValue(part);
+    if (stream->version >= kVersionScriptAreas) {
+        areas.resize(stream->ReadCount());
+        for (ScriptArea& area : areas) {
+            stream->ReadValue(area.id);
+            area.parts.resize(stream->ReadCount());
+            for (ScriptAreaPart& part : area.parts) stream->ReadValue(part);
+        }
     }
+    if (shadow) shadow->StateLoaded(this);
 }

@@ -2,9 +2,12 @@
 
 // The scheduler of converted Lua scripts (docs/notes/lua-scripting.md, "Scheduler"): Script::Tick's order on a
 // ScriptLua state. The waiting runs (coroutines) continue, then every instance checks its rules, then the deleted
-// objects are dropped, the script's timed effects run and the temporaries are freed. Not run by the game yet (L5).
+// objects are dropped, the script's timed effects run and the temporaries are freed. The game runs it only as the
+// lockstep shadow (script_lua_shadow.h). Its whole state persists with Eris (Save, Restore), and an old-format save's
+// script state (Script::LoadState) resumes in it through the old-save shim (Resume, script_lua_resume.cpp).
 
 #include "game/script/script_lua.h"
+#include "game/script/script_lua_writer.h"
 
 #include <list>
 #include <string>
@@ -40,6 +43,22 @@ public:
     std::vector<const void*> InstanceDefinitions() const;
     std::vector<ScriptRunPosition> RunPositions() const;
 
+    // The whole state persisted with Eris into *data: the scripts' own globals and the GlobalVars types
+    // (ScriptLua::PushGlobals), every instance (its definition and values, its count of values, its kill flag), every
+    // waiting run (its coroutine, its tick count and sleep start, whether it ended, the instance its kill flag
+    // names) and every text's WorldScript. Restore puts it into a scheduler that has loaded nothing. False with the
+    // message in *error.
+    bool Save(std::string* data, std::string* error);
+    bool Restore(std::string_view data, std::string* error);
+
+    // The old-save shim (docs/notes/lua-scripting.md, "Saves"), into a scheduler that has loaded nothing: the state of
+    // `saved`, a script an old-format save loaded (Script::LoadState). Its program is converted from the saved blocks
+    // (scriptir::Loaded, WriteLua; `names` gets its names) and loaded without starting a WorldScript; its globals,
+    // instances and waiting runs are set from the saved values in their order, each run as a function of its
+    // block's calls from its saved command on (WriteFunction) with its tick count and sleep start. *text gets the Lua
+    // written. False with the message in *error.
+    bool Resume(const Script& saved, scriptlua::LuaNames& names, std::string* text, std::string* error);
+
     ScriptLua lua;
     Script* script = nullptr;
     // The Lua errors of runs and rules (a failed run ends, a failed condition does not hold); the caller empties it.
@@ -61,6 +80,13 @@ private:
 
     void Start(lua_State* from);
     Run NewRun(int count);
+    // A run that had ended (an old save's at the end of its block, a persisted one): no thread.
+    static Run EndedRun();
+    // The kill flag of the instance at `index` in the list (null for none).
+    bool* KillFlagOf(int index);
+    int InstanceIndexOf(const bool* killFlag) const;
+    // A chunk that gives a function: the function pushed. False with the message in *error.
+    bool PushFunction(const std::string& text, const char* name, std::string* error);
     bool Continue(Run& run);
     void RunRules(Instance& instance);
     void Release(const Run& run);

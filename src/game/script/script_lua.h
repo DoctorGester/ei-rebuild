@@ -4,7 +4,7 @@
 // every command and function of the keyword table bound under a readable Lua name, each calling the same CalcFloat /
 // CalcObject / CalcGroup / RunCommand code by id; objects and groups as userdata over ScriptObjectRef / ScriptGroup;
 // the state persisted with Eris. The scheduler of Script::Tick's order runs converted scripts on it
-// (script_lua_scheduler.h); nothing in the game runs it yet (L5), nothing is in the saves (L6).
+// (script_lua_scheduler.h); the game runs it only as the lockstep shadow (EI_LUA_BOTH), and no save holds it yet.
 
 #include <functional>
 #include <string>
@@ -87,6 +87,11 @@ public:
     // globals themselves are not in the data. False with the message in *error (nothing pushed).
     bool Persist(std::string* data, std::string* error);
     bool Unpersist(std::string_view data, std::string* error);
+    // What a persisted state needs besides the permanents, as a table on the stack: `globals`, every global the
+    // runtime did not make (or that holds another value now: the declared globals, the definitions, the scripts'
+    // functions), and `types`, the GlobalVars types. SetGlobals puts such a table (at `index`) into this state.
+    void PushGlobals();
+    void SetGlobals(int index);
 
     Script* script = nullptr;
     ScriptRun* currentRun = nullptr;
