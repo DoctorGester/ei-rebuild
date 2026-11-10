@@ -139,6 +139,10 @@ textures Rebirth added to the game's own archives (27 new entries, e.g. the `sts
 a GOG install it stops at its first menu. It plays through to its ending (its cut-scene bases, later quests and
 credits are scenarios). How it works: `docs/notes/mods.md`.
 
+Making mods: [docs/modding.md](docs/modding.md), the modder's guide. Besides the original formats a mod can be made of
+loose common files (TOML records and texts, PNG textures and map layers, glTF models and animations), and `ei-convert`
+exports the game's own data in those formats. `examples/example_mod` is a small mod made that way.
+
 ## Test
 
 ```
@@ -170,7 +174,8 @@ installs' (`tools/exe_path.py`).
   `src/video/` the movie player; `src/main.cpp` the exe's start.
 - `tests/verify/` the harness; `tests/unit/` checks of our code without the game; `tests/port/` the Linux and macOS
   checks; `tests/scenarios/` and their goldens in `tests/golden/`.
-- `tools/` the build checks, test runner, ticket and progress tools.
+- `tools/` the build checks, test runner, ticket and progress tools; `tools/convert/` ei-convert.
+- `examples/` the modding guide's example mod (`docs/modding.md`).
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `comment-guide.md`), the tickets, and one
   note per area in `docs/notes/` (index: `docs/notes/README.md`).
 

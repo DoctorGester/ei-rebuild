@@ -112,10 +112,18 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         frames->push_back(text);
         if (steps < least || steps > most) failures->push_back(text);
     } else if (verb == "hues") {
-        char frame[64] = "";
+        char frame[64] = "", hue[16] = "";
         double least = 0, most = 1;
-        if (std::sscanf(argument.c_str(), "%63s %lf %lf", frame, &least, &most) < 3) {
+        if (std::sscanf(argument.c_str(), "%63s %lf %lf %15s", frame, &least, &most, hue) < 3) {
             failures->push_back("hues needs a frame name, a least and a most fraction");
+            return true;
+        }
+        static const char* const kHues[4] = {"red", "green", "blue", "yellow"};
+        int only = -1;   // with a hue named, only its share is held to the range
+        for (int k = 0; k < 4; ++k)
+            if (std::strcmp(hue, kHues[k]) == 0) only = k;
+        if (hue[0] && only < 0) {
+            failures->push_back(std::string("hues: ") + hue + " is not red, green, blue or yellow");
             return true;
         }
         double shares[4] = {0, 0, 0, 0};
@@ -126,13 +134,13 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         }
         char text[200];
         std::snprintf(text, sizeof(text),
-                      "hues %s: red %.3f%% green %.3f%% blue %.3f%% yellow %.3f%% (allowed %.3f%% .. %.3f%% each)", frame,
+                      "hues %s: red %.3f%% green %.3f%% blue %.3f%% yellow %.3f%% (allowed %.3f%% .. %.3f%% %s)", frame,
                       100.0 * shares[0], 100.0 * shares[1], 100.0 * shares[2], 100.0 * shares[3], 100.0 * least,
-                      100.0 * most);
+                      100.0 * most, only < 0 ? "each" : kHues[only]);
         Log("harness: %s", text);
         frames->push_back(text);
-        for (double share : shares)
-            if (share < least || share > most) {
+        for (int k = 0; k < 4; ++k)
+            if ((only < 0 || k == only) && (shares[k] < least || shares[k] > most)) {
                 failures->push_back(text);
                 break;
             }

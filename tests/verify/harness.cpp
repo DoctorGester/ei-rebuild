@@ -364,10 +364,11 @@
 //                             require the fraction of neighbouring level-map pixel pairs of
 //                             frames\<frame>.bmp whose level jumps (capture::LevelSteps: the seams of
 //                             R12) to lie within <least>..<most>
-//   hues <frame> <least> <most>
+//   hues <frame> <least> <most> [red|green|blue|yellow]
 //                             require each of red, green, blue and yellow (capture::HueShares: the quadrants of
-//                             tools/make_loose_bmp.py's loose terrain textures, A-I23a) to cover a fraction of
-//                             frames\<frame>.bmp within <least>..<most>
+//                             tools/make_loose_bmp.py's loose terrain textures, A-I23a), or only the one named (the
+//                             example mod's tinted ground), to cover a fraction of frames\<frame>.bmp within
+//                             <least>..<most>
 //   mmplevels <most>          require the levels of every .mmp texture the image holds, decoded as drawn,
 //                             to lie within a mean difference of <most> (0..255 per channel) from their
 //                             level 0, both box-filtered to 4 x 4 (render::CheckMmpLevels: levels read
