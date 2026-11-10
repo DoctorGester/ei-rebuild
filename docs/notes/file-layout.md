@@ -335,27 +335,27 @@ Risks:
 | `combat/` | 13 | 6395 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
-| `data/` | 15 | 5128 | C168d |
+| `data/` | 15 | 5132 | C168d |
 | `effects/` | 23 | 10833 | C168g |
 | `items/` | 10 | 2855 | C168g |
 | `map/` | 15 | 3942 | C168e |
-| `models/` | 23 | 7580 | C168g |
+| `models/` | 25 | 8203 | C168g |
 | `mods/` | 6 | 603 | C168d |
 | `net/` | 21 | 7991 | C168h |
 | `objects/` | 23 | 8021 | C168f |
 | `players/` | 24 | 5473 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
-| `script/` | 29 | 9151 | C168h |
+| `script/` | 31 | 10367 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
 | `terrain/` | 12 | 3554 | C168g |
 | `ui/` | 97 | 33107 | C168h |
 | `units/` | 27 | 9739 | C168f |
-| `world/` | 35 | 10256 | C168e |
-| all | 504 | 159508 | |
+| `world/` | 35 | 10266 | C168e |
+| all | 508 | 161361 | |
 
-551 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+555 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -606,6 +606,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | dib.h | models/dib.h |  |  |
 | figure_gltf.cpp | models/figure_gltf.cpp |  |  |
 | figure_gltf.h | models/figure_gltf.h |  |  |
+| figure_gltf_animation.cpp | models/figure_gltf_animation.cpp |  |  |
+| figure_gltf_glb.h | models/figure_gltf_glb.h |  |  |
 | figure_manager.cpp | models/figure_manager.cpp |  |  |
 | menu_rects.cpp | models/figure_manager.cpp | fold | FigureManager::LoadMenuRects (57 lines): a member of the manager |
 | figure_manager.h | models/figure_manager.h |  |  |
@@ -806,6 +808,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | script_lua_number.h | script/script_lua_number.h |  |  |
 | script_lua_scheduler.cpp | script/script_lua_scheduler.cpp |  |  |
 | script_lua_scheduler.h | script/script_lua_scheduler.h |  |  |
+| script_lua_shadow.cpp | script/script_lua_shadow.cpp |  |  |
+| script_lua_shadow.h | script/script_lua_shadow.h |  |  |
 | script_lua_writer.cpp | script/script_lua_writer.cpp |  |  |
 | script_lua_writer.h | script/script_lua_writer.h |  |  |
 | script_parse.cpp | script/script_parse.cpp |  |  |
