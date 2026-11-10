@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_map_objects",
+  "install": "rebirth",
+  "recorded": "2026-11-10",
+  "commit": "109a4698e",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "MF9a: new scenario mod_map_objects, a mod's zone1.mob.toml with a pig moved and one added",
+  "source": "image",
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
+}
