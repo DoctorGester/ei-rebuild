@@ -6,3 +6,5 @@ model = "opus"
 depends = ["MF12"]
 note = "User 2026-11-10: a small mod made only of our own assets, shipped ready in releases (no install-derived parts, so it can live in the public repo). Contents: a new zone (map folder: our heightmap and ground textures), a custom enemy (our glTF figure and animation), a weapon and an armour piece (database TOML, our icons/models), a spell (database plus effect), and a short quest in readable Lua with texts. Assets are generated from committed sources/scripts where possible (procedural meshes and textures), small, with a licence note. It needs a scenario that loads the mod, enters the zone, kills the enemy, finishes the quest. Plan first: list the formats each part uses and any gaps in the modding formats (file follow-up tickets for gaps)."
 order = 1327
+status = "running"
+started = "2026-11-10"

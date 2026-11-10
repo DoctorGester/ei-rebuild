@@ -59,6 +59,8 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `docs/modding.md` | the modder's guide (MF10): keep it in step with the loaders when a format changes |
 | `examples/example_mod/`, `examples/example_mod_additions/`, `tools/make_example_mod.py` | the guide's example mod: hand-written TOML, and zone 1's ground PNGs (recoloured) and zone1.mob.toml (a pig appended) made from the install by ei-convert |
 | `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
+| `examples/showcase_mod/`, `tools/make_showcase_mod.py` | the showcase mod, all our own files ("The showcase mod"); the tool writes its pictures and models and copies it for a run |
+| `tests/scenarios/mod_showcase.txt` | the showcase mod played: the island, the golem's fight, the quest and its reward |
 | `src/game/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
 | `src/game/script/script_lua_mission.cpp` | a mission script on Lua ("Scripts in Lua"): `Script::LoadLua`, `GlobalValues`, `GlobalGroup`; the scheduler's views for the digest |
@@ -1203,6 +1205,49 @@ back. Reload: made again from the new mod's files. The list to check when a swit
 Risks: a mod-dependent global missed shows the old mod's data after a switch (the table above; the start-twice check
 catches state, not stale files); a fatal error in the new mod's files (a missing music.reg) ends the game as it would at
 the start.
+
+## The showcase mod
+
+`examples/showcase_mod/` (MF13, user 2026-11-10): a mod made only of our own files, so it lives in the public repo and
+releases ship it ready-made (MF12 adds the Mods folder; the package copies the folder whole into `Mods\showcase_mod\`).
+A new game starts on its island: its ground, a stone golem of its own guarding the path, one quest whose reward is the
+mod's hammer and boots. Hand-written: config, texts, databases, the golem's animation list, the map objects and the
+script. Made by `tools/make_showcase_mod.py --write` (procedural pixels and boxes from one seeded generator per file,
+no game file read; `--check` compares pixels and glTF data, not bytes, since zlib's output may differ between
+versions): the map folder's PNGs and `map.toml`, the ground page and minimap pictures, the golem's skin and `.glb`,
+the item models and textures. About 0.5 MB. LICENSE.txt: the files are ours, under the repo's MIT license.
+
+Each part, its format, and what the formats could not do (each gap a ticket):
+
+| Part | Files | Format | Gap |
+|---|---|---|---|
+| The zone | `Maps\zone1\` (map.toml, heights.png, tiles.png), `Maps\zone1.mob.toml`, `Maps\zone1.lua`; `Res\textures\zone1000.png` (the ground page), `zone1map.png`, `zone1quest.png` (minimap, objectives map); texts' `zone gz1g` | map folder, map objects TOML, Lua, PNG | It replaces zone 1 (map.txt's gz1g: `#res zone1 zone1`): a mod cannot add a zone, since map.txt is one texts entry read whole (MF13a). A new game enters it with no extra step, its 8 x 6 sectors keep gz1g's exits fitting: the party lands at exit 1's (49, 133)-(59, 143), exit 2 at (181, 108)-(193, 120) still leads to the base bz1g. The AI region graph is zone 1's, read from the game's zone1.mob (MF13d) |
+| The enemy | `Res\figures\scgolem.glb` (15 boxes, 13 animations), `Res\database\scgolem.adb.toml`, `units.udb.toml` (`[[model]]` "Showcase Golem", `[[unit]]` "ShowcaseGolem"), `Res\textures\scgolem00.png` (the placement's `parent_iname`) | glTF set, records TOML, databases TOML, PNG | None. No sounds: `sound_folder` empty, the animations' `sounds` empty; its footsteps name the game's stone steps |
+| The weapon | items.idb.toml `[[weapon]]` "showcase hammer" (hammer number 9), `Res\figures\initwehm9.glb` (inventory model, loose figure, part `weapon`), `Res\redress\unhumahm_09.gr.0.png` | databases TOML, glTF loose, PNG | Not seen in the hand: the hand's model is a part of every unit figure (`rh3.<type><nn>`), which a new number lacks (MF13c) |
+| The armour | `[[armor]]` "showcase boots" (boots number 20), `initarbt20.glb`, `Res\redress\unhumabt_20.le.0.png` (a layer over the hero's 256 x 256 skin: opaque where the feet and shins are) | as the weapon | None: boots, gloves, shirts and trousers are skin layers, no part. Helmets, body armour and leggings would need parts (MF13c) |
+| The spell | spells.sdb.toml `[[spell]]` "spark", texts' `SPELL spark` | databases TOML | Placeholder: a spell's behaviour and look are the game's code for its place in the table (`Spell::Type()`, prototypeId >> 16), place 42 has none; nothing gives or casts it (MF13b) |
+| The quest | `Maps\zone1.lua` (sets `q.gz1g.showcase_golem` and its objective `.1`, watches the golem, `QuestComplete`, `GiveItem`), `quests.qdb.toml` (its experience), texts' `quest showcase_golem` | Lua, databases TOML, texts TOML | None |
+
+Notes from making it:
+- A map folder with no `.mpr` of the mod's: the mod's `Maps\zone1\` makes Rebirth's Maps rule (`SelectMaps`) read the
+  zone's map from the mod, the folder alone (the game's zone1.mpr is not read), and the `.mob` from the game's folder
+  (`zone1.mob.toml` is not a `.mob`). The map is named `Zone1` (map.toml `name`), so its ground pages are `zone1000..`.
+- A map page's tiles count from the page's bottom row up (texture 0 is the bottom-left 64 x 64), and the game draws a
+  tile's inner 48 x 48 pixels (8 kept from each edge), so tiles that meet seamlessly repeat their pattern every 48.
+- A figure's root is placed by its animations' root translations: the golem's hips are 1.15 above its origin (the
+  hero's 0.95); the first try had them at 0 and the golem stood buried to its waist.
+- Units a `.mob.toml` places have no script name (`GetObjectByName`, the harness's names): the scenario and the script
+  find the golem by its id, and the harness's `objtrace start #<id>` follows a unit by id.
+- Inventory models are drawn at their own size: the game's lie diagonally, about 2.5 long.
+
+### Checks
+
+- `mod_showcase` (both installs; tools/make_showcase_mod.py copies the folder into the run's saves): a new game on the
+  island (the script's line, the quest's variable 1), the hero (god mode) walks to the golem, which walks to it and
+  attacks (`objplayed cwalk`, `uattack01` from the glTF), and breaks it in the fight; the quest is done (variable 2, the
+  message log's lines), the party has the hammer at granite's damage (`modweapon showcase hammer 14.4 21.6`); captures
+  of the fight, the broken golem and the camp's inventory with both items; the trace has each kind of file read from
+  the mod, and the game's zone1.mob read, its zone1.mpr not.
 
 ## Open questions
 

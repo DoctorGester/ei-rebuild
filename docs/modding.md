@@ -13,7 +13,7 @@ Contents: [Quick start](#quick-start) · [A mod's folder](#a-mods-folder) · [In
 · [Records as TOML](#records-as-toml) · [Texts](#texts) · [Databases](#databases) · [Textures as PNG](#textures-as-png)
 · [Models as glTF](#models-as-gltf) · [Animations as glTF](#animations-as-gltf) · [Maps as folders](#maps-as-folders)
 · [Map objects](#map-objects) · [Scripts](#scripts) · [What stays in the original formats](#what-stays-in-the-original-formats)
-· [Limits and troubleshooting](#limits-and-troubleshooting) · [The example mod](#the-example-mod)
+· [Limits and troubleshooting](#limits-and-troubleshooting) · [The example mod](#the-example-mod) · [The showcase mod](#the-showcase-mod)
 
 ## Quick start
 
@@ -564,3 +564,22 @@ writes `<folder>\example_mod` (the install defaults to `EI_GAME_VANILLA`, the ei
 The test scenario `tests/scenarios/mod_example.txt` plays it on the GOG and the Rebirth data: the changed text, the two
 weapons' damage after `GiveItem`, the pig by the party's start and its greeting, the red ground in a capture, and the
 game reading each of the mod's files.
+
+## The showcase mod
+
+`examples/showcase_mod/` is a whole small mod made only of new files (no game data, so release packages carry it):
+a new game starts on an island of its own in place of the first one, where a stone golem guards the path; break it
+for the quest, and its hammer and boots are yours. Read its files as a recipe for each kind of new content:
+
+| Part | Files |
+|---|---|
+| A zone | `Maps\zone1\map.toml`, `heights.png`, `tiles.png` (a map folder with no `.mpr`), `Res\textures\zone1000.png` (its ground tiles), `zone1map.png` / `zone1quest.png` (the minimap and objectives pictures), `Maps\zone1.mob.toml` (its objects), `Maps\zone1.lua` (its script) |
+| A creature | `Res\figures\scgolem.glb` (parts and animations), `Res\database\scgolem.adb.toml` (its animation list), `units.udb.toml` (a `[[model]]` and a `[[unit]]`), `Res\textures\scgolem00.png` (the skin its placement names) |
+| A weapon, boots | `items.idb.toml`, `Res\figures\initwehm9.glb`, `initarbt20.glb` (inventory models: a loose figure named `initwe<type code><number>` / `initar...`, one part `weapon` / `armor`), `Res\redress\unhumahm_09.gr.0.png`, `unhumabt_20.le.0.png` (their textures; the boots' is a layer over the hero's skin) |
+| A quest | `Maps\zone1.lua` (the quest's variable `q.<zone>.<quest>`, its reward), `quests.qdb.toml` (its experience), `Res\texts\texts.toml` (`quest <name>`: the title, the description, `#subobj` lines) |
+| A spell | `spells.sdb.toml`: a record and its text only |
+
+What it cannot do yet: add a zone beside the game's (it replaces zone 1: the zone list is one text read whole), show
+a new weapon in the hero's hand or a new helmet or body armour on him (those are parts of the hero's figure), give a
+new spell an effect (a spell's effect is the game's code for its place in the table), and its island keeps zone 1's
+path-finding graph. The pictures and models are made by `tools/make_showcase_mod.py` in this repository.
