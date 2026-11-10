@@ -53,6 +53,7 @@ bool g_logObjects = false;
 std::vector<Sample> g_objectSamples;      // the drawn place
 std::vector<Sample> g_objectOwnSamples;   // the object's own
 std::vector<std::string> g_objectAnimations;   // the animations it played (objplayed), each once
+std::map<std::string, double> g_objectFurthest;   // each animation's furthest frame played (objplayed past)
 
 double Step(const Sample& a, const Sample& b, int kind) {
     switch (kind) {
@@ -136,6 +137,10 @@ void ObjectFrame() {
     if (!s.animation.empty() &&
         std::find(g_objectAnimations.begin(), g_objectAnimations.end(), s.animation) == g_objectAnimations.end())
         g_objectAnimations.push_back(s.animation);
+    if (!s.animation.empty()) {
+        auto [it, added] = g_objectFurthest.try_emplace(s.animation, s.frame);
+        if (!added) it->second = std::max(it->second, static_cast<double>(s.frame));
+    }
     if (g_logObjects)
         Log("harness: objframe %d id %d own %.5f %.5f %.5f %.5f drawn %.5f %.5f %.5f %.5f animation %s %.3f blend %.3f",
             static_cast<int>(g_objectSamples.size()), s.id, s.own.x, s.own.y, s.own.z, s.own.yaw, s.drawn.x, s.drawn.y, s.drawn.z,
@@ -171,11 +176,23 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
         return;
     }
     if (verb == "objplayed") {
-        const bool played = std::find(g_objectAnimations.begin(), g_objectAnimations.end(), argument) != g_objectAnimations.end();
+        char name[64] = "";
+        double past = -1.0;
+        std::sscanf(argument.c_str(), "%63s past %lf", name, &past);
+        const bool played = std::find(g_objectAnimations.begin(), g_objectAnimations.end(), name) != g_objectAnimations.end();
         std::string seen;
-        for (const std::string& name : g_objectAnimations) seen += (seen.empty() ? "" : " ") + name;
+        for (const std::string& each : g_objectAnimations) seen += (seen.empty() ? "" : " ") + each;
         Log("harness: objplayed %s: %s (played: %s)", argument.c_str(), played ? "yes" : "NO", seen.c_str());
-        if (!played) failures->push_back("objplayed: the traced object did not play " + argument + " (played: " + seen + ")");
+        if (!played) {
+            failures->push_back(std::string("objplayed: the traced object did not play ") + name + " (played: " + seen + ")");
+        } else if (past >= 0.0) {
+            const double furthest = g_objectFurthest[name];
+            Log("harness: objplayed %s: furthest frame %.3f", name, furthest);
+            if (furthest <= past) {
+                std::snprintf(text, sizeof(text), "objplayed: %s played to frame %.3f, not past %.3f", name, furthest, past);
+                failures->push_back(text);
+            }
+        }
         return;
     }
     if (verb == "objtrace") {
@@ -196,6 +213,7 @@ void Step(const std::string& verb, const std::string& argument, std::vector<std:
             g_objectSamples.clear();
             g_objectOwnSamples.clear();
             g_objectAnimations.clear();
+            g_objectFurthest.clear();
             g_objectLost = false;
             g_objectRecording = true;
             return;

@@ -1862,7 +1862,8 @@ blends the pose last placed into the new one's (models/animation.cpp, models/ani
   [part|-] [log]` / `objtrace stop <name>` (an object's drawn and own place, or a part's place in the figure, or with
   part `lastdraw` where its last draw put it, or with part `light` its own light's, or with who `spelllight` the first
   moving point light effect's, after each frame's draw; the same checks; also after `vanilla` / `rebirth`), `objplayed
-  <animation>` (the traced object played that database entry in a traced frame: `mod_lost_in_astral_unarmed_search`),
+  <animation> [past <frame>]` (the traced object played that database entry in a traced frame, with `past` to a frame
+  of it beyond <frame>: `mod_lost_in_astral_unarmed_search`, `mod_gltf_animation`),
   `animblend on|off`, `animblend mark` / `animblend count <least> <most>` (the blends begun in world figures, not
   the interface's previews, since the mark).
 

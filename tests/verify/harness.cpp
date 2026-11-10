@@ -215,8 +215,9 @@
 //   mapfile exists <name> yes|no, playstream <name>.mp3
 //                             Rebirth's mod-folder patches asked directly (harness_starter.h; S19d)
 //   modtext <name> <text>, modack <unit> <speech> <sound>, modweapon <weapon> <min> <max>,
-//   modrecord ack|anim|blood|footprint|scorch <name> = <text>
-//                             a mod's records as TOML seen by the game (harness_starter.h; MF3, MF5)
+//   modrecord ack|anim|track|blood|footprint|scorch <name> = <text>
+//                             a mod's records as TOML, and an animation's track, seen by the game (harness_starter.h;
+//                             MF3, MF5)
 //   ground <x> <y> <low> <high>  the ground's height at (x, y) in the landscape and the AI map (harness_starter.h)
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>

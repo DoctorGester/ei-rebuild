@@ -37,6 +37,7 @@
 //                             the path on the map, turn: the yaw, height); camsame / camsteadier / camsmooth
 //                             check them
 //   objplayed <animation>     require the last objtrace's object to have played <animation> in a traced frame
+//   objplayed <animation> past <frame>   ... and to have reached a frame of it beyond <frame>
 //                             (its database entry's name, "uspecial22")
 //   animblend on|off          animation switches blend (the default) or snap as in the original
 //                             (FigureAnimationState::SetBlends)

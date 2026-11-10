@@ -11,6 +11,7 @@
 #include "game/scene/drawn_motion.h"
 #include "game/app/game_flow.h"
 #include "game/app/singletons.h"
+#include "game/models/figure_gltf.h"
 #include "game/models/figure_manager.h"
 #include "game/items/item.h"
 #include "game/scene/light.h"
@@ -494,6 +495,21 @@ long RecordText(const char* kind, const char* name, std::string* text) {
         if (!animation) return 0;
         std::snprintf(line, sizeof(line), "chance %u frames %u key %x flags %x moment %u", animation->chance,
                       animation->frameCount, animation->key, animation->flags, animation->moment);
+    } else if (table == "track") {
+        // "<figure>/<animation>/<part>": the part's track as the figure manager loads it (FindModel, FindAnimation).
+        const std::size_t second = key.rfind('/');
+        const std::size_t first = second == std::string::npos || second == 0 ? std::string::npos : key.rfind('/', second - 1);
+        if (!g_clientWorld.figureManager) return -3;
+        if (first == std::string::npos) return 0;
+        FigureModel* model = g_clientWorld.figureManager->FindModel(key.substr(0, first));
+        MappedResource* animation = model ? model->FindAnimation(key.substr(first + 1, second - first - 1)) : nullptr;
+        std::uint32_t size = 0;
+        void* data = animation ? animation->GetFile(key.substr(second + 1), &size) : nullptr;
+        figure_gltf::Track track;
+        if (!data || !figure_gltf::ReadTrack(std::string_view(static_cast<const char*>(data), size), &track)) return 0;
+        std::snprintf(line, sizeof(line), "rotations %d positions %d frames %d slots %d",
+                      static_cast<int>(track.rotations.size() / 4), static_cast<int>(track.positions.size() / 3),
+                      track.frames, track.slots);
     } else {
         // blood, footprint or scorch: a print of the ground's surface by name.
         const PrintLook* dry = nullptr;

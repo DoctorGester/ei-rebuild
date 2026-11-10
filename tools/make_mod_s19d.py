@@ -1,6 +1,6 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png|heights|gltf
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml|databases|png|heights|gltf|anim
                                     [--zip <name> [--top]]
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
@@ -48,13 +48,19 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Maps\\zone1\\heights.png    its heights (from the sectors, or from the converted folder's heights.png) with
                                         a plateau of 60000 raised around HILL: over the archive's map, the rest its own
   gltf      models as glTF (tests/scenarios/mod_gltf_model.txt; docs/notes/mods.md, "Models as glTF"):
-              Res\\figures\\unhuma.glb   the hero's figure (unhuma.mod and .bon of the install's figures.res) as
+              Res\\figures\\unhuma.glb   the hero's figure (unhuma.mod, .bon and .anm of the install's figures.res) as
                                         ei-convert writes it, then as another tool would leave it: the meshes'
-                                        and the scene's `extras` dropped (the nodes' kept: their bones' versions)
-                                        and the figure 1.5 times as large (the positions, the morph targets'
-                                        displacements, the nodes' translations and bones scaled); ei-convert is the
-                                        run's build's (EI_BUILD_DIR, else build\\verify); a converted install's
-                                        own unhuma.glb when it has one
+                                        and the scene's `extras` dropped (the nodes' kept: their bones' versions),
+                                        the animations too (the game's unhuma.anm below is read), and the figure 1.5
+                                        times as large (the positions, the morph targets' displacements, the nodes'
+                                        translations and bones scaled); ei-convert is the run's build's
+                                        (EI_BUILD_DIR, else build\\verify); a converted install's own unhuma.glb when
+                                        it has one
+  anim      animations as glTF (tests/scenarios/mod_gltf_animation.txt; docs/notes/mods.md, "Animations as glTF"):
+              Res\\figures\\unhuma.glb   the hero's figure as gltf's (before its changes), its idle "cidle18" twice as
+                                        slow: its keys' times doubled and its `extras` dropped (so the loader samples
+                                        the glTF's rotations at every tick: 211 keys for 106)
+              Res\\database\\unhuma.adb.toml  "cidle18" with twice its frames (210), alone
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
 """
@@ -334,13 +340,29 @@ def single(value):
     return struct.unpack('<f', struct.pack('<f', value))[0]
 
 
-def glb_scaled(glb, scale):
-    """A .glb with every `extras` but the nodes' dropped, and its positions, morph displacements and node translations
-    and bones scaled."""
+def glb_parts(glb):
+    """A .glb's JSON document and its binary chunk."""
     json_length, = struct.unpack_from('<I', glb, 12)
     doc = json.loads(glb[20:20 + json_length])
     bin_length, = struct.unpack_from('<I', glb, 20 + json_length)
-    binary = bytearray(glb[28 + json_length:28 + json_length + bin_length])
+    return doc, bytearray(glb[28 + json_length:28 + json_length + bin_length])
+
+
+def glb_of(doc, binary):
+    """The .glb of a JSON document and its binary chunk (padded, the buffer's length its own)."""
+    binary = bytes(binary) + b'\0' * (-len(binary) % 4)
+    doc['buffers'][0]['byteLength'] = len(binary)
+    text = json.dumps(doc, separators=(',', ':')).encode()
+    text += b' ' * (-len(text) % 4)
+    chunks = struct.pack('<II', len(text), 0x4E4F534A) + text + struct.pack('<II', len(binary), 0x4E4942) + binary
+    return struct.pack('<III', 0x46546C67, 2, 12 + len(chunks)) + chunks
+
+
+def glb_scaled(glb, scale):
+    """A .glb with its animations and every `extras` but the nodes' dropped, and its positions, morph displacements
+    and node translations and bones scaled."""
+    doc, binary = glb_parts(glb)
+    doc.pop('animations', None)
 
     def drop_extras(value):
         if isinstance(value, dict):
@@ -374,22 +396,45 @@ def glb_scaled(glb, scale):
         ei = node.get('extras', {}).get('ei', {})
         if 'bone' in ei:
             ei['bone'] = [[v * scale for v in version] for version in ei['bone']]
-    text = json.dumps(doc, separators=(',', ':')).encode()
-    text += b' ' * (-len(text) % 4)
-    chunks = struct.pack('<II', len(text), 0x4E4F534A) + text + struct.pack('<II', len(binary), 0x4E4942) + bytes(binary)
-    return struct.pack('<III', 0x46546C67, 2, 12 + len(chunks)) + chunks
+    return glb_of(doc, binary)
+
+
+def glb_slower(glb, animation, factor):
+    """A .glb with the animation of that name `factor` times as slow: its samplers' key times multiplied (a new
+    accessor: the times are shared) and its `extras` dropped."""
+    doc, binary = glb_parts(glb)
+    found = [a for a in doc['animations'] if a['name'] == animation]
+    if len(found) != 1:
+        sys.exit(f'make_mod_s19d: {animation}: {len(found)} animations of the name')
+    anim = found[0]
+    anim.pop('extras', None)
+    made = {}
+    for sampler in anim['samplers']:
+        index = sampler['input']
+        if index not in made:
+            accessor = doc['accessors'][index]
+            at = doc['bufferViews'][accessor['bufferView']].get('byteOffset', 0) + accessor.get('byteOffset', 0)
+            times = [single(t * factor) for t in struct.unpack_from(f'<{accessor["count"]}f', binary, at)]
+            binary += b'\0' * (-len(binary) % 4)
+            doc['bufferViews'].append({'buffer': 0, 'byteOffset': len(binary), 'byteLength': 4 * len(times)})
+            binary += struct.pack(f'<{len(times)}f', *times)
+            doc['accessors'].append({'bufferView': len(doc['bufferViews']) - 1, 'componentType': 5126,
+                                     'count': len(times), 'type': 'SCALAR', 'min': [times[0]], 'max': [times[-1]]})
+            made[index] = len(doc['accessors']) - 1
+        sampler['input'] = made[index]
+    return glb_of(doc, binary)
 
 
 def unhuma_glb():
     """The hero's figure as ei-convert writes it: a converted install's own (run_all --converted), else made from the
-    install's unhuma.mod and unhuma.bon by the run's build's ei-convert."""
+    install's unhuma.mod, unhuma.bon and unhuma.anm by the run's build's ei-convert."""
     converted = os.path.join(os.path.splitext(vanilla('Res', 'figures.res'))[0], 'unhuma.glb')
     if os.path.exists(converted):
         with open(converted, 'rb') as f:
             return f.read()
     build = os.environ.get('EI_BUILD_DIR') or os.path.join(exe_path.ROOT, 'build', 'verify')
     convert = os.path.join(build, 'ei-convert.exe' if os.name == 'nt' else 'ei-convert')
-    files = install_entries(('Res', 'figures.res'), ('unhuma.mod', 'unhuma.bon'))
+    files = install_entries(('Res', 'figures.res'), ('unhuma.mod', 'unhuma.bon', 'unhuma.anm'))
     with tempfile.TemporaryDirectory() as scratch:
         archive = os.path.join(scratch, 'figures.res')
         write(archive, mod.archive(files))
@@ -403,8 +448,18 @@ def gltf(root):
     write(os.path.join(root, 'Res', 'figures', 'unhuma.glb'), glb_scaled(unhuma_glb(), GLTF_SCALE))
 
 
+ANIM_SLOWER = 2   # the idle's keys' times multiplied; its .adb frames likewise (105 for its 106 keys: 210)
+
+
+def anim(root):
+    config(root)
+    write(os.path.join(root, 'Res', 'figures', 'unhuma.glb'), glb_slower(unhuma_glb(), 'cidle18', ANIM_SLOWER))
+    write(os.path.join(root, 'Res', 'database', 'unhuma.adb.toml'),
+          f'[[animation]]\nname = "cidle18"\nframes = {105 * ANIM_SLOWER}\n'.encode())
+
+
 KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml, 'databases': databases, 'png': png,
-         'heights': heights, 'gltf': gltf}
+         'heights': heights, 'gltf': gltf, 'anim': anim}
 
 
 def zip_folder(root, target, top):

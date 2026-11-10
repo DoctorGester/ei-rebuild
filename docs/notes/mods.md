@@ -51,6 +51,8 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert_models.h`, `.cpp` | ei-convert's models: an archive's figure files grouped into figures, each as a .glb, its round trip compared |
 | `tests/unit/figure_gltf.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_gltf_model.txt` | a mod's glTF hero (no extras, 1.5 times as large) seen in a new game |
+| `src/game/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
+| `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
 
 ## Choosing a mod
 
@@ -571,7 +573,7 @@ maps add little to a converted install's load (its textures cost the time: "Text
 A figure model can be a glTF 2.0 file (MF6, user 2026-11-09). Every original still loads; a `<name>.gltf` or
 `<name>.glb` found where the figure's files would be (each place of "Loose files", top first: a folder's file or an
 archive's entry) stands for them there (`MappedResource::ModelFile`, resource.cpp). At each place, before its own file, a
-request for a `.mod`, `.bon`, `.lnk` or `.fig` asks the glTF models of that place whose name begins the file's stem
+request for a `.mod`, `.bon`, `.lnk`, `.fig` or `.anm` ("Animations as glTF") asks the glTF models of that place whose name begins the file's stem
 (the longest first): the glTF is read once (src/game/models/figure_gltf.h, `FromGltf`, on cgltf), made into the files
 the game would have read (`Files`), and the one asked for is answered from them, shared like a loose file. So both
 loaders (the figure manager's `<name>.mod`/`.bon`, the link loader's set or its `<name>.lnk` and `<name><part>.fig` /
@@ -653,6 +655,83 @@ whole converted suite, four games at once, cz_ingos still ran out of its 60 s on
 - The Khronos glTF Validator (the npm package gltf-validator 2.0.0-dev.3.10, run with node on a few exported .glb:
   the hero, trees, rocks, a loose figure): no errors or warnings; its infos are the TEXCOORD_0 it calls unused (no
   material has a texture). Blender was not at hand.
+
+## Animations as glTF
+
+A set's animations can be glTF animations (MF7, user 2026-11-09). Every `.anm` still loads; the set's glTF ("Models as
+glTF") stands for its `<name>.anm` too when it has animations (or `extras.ei.anm`): `ModelFile` answers the `.anm` from
+the files made of the glTF (src/game/models/figure_gltf_animation.cpp makes the archive the game would have read), so
+the figure manager's `FindModel` / `FindAnimation` and the link loader's figure sets read it as before. A glTF without
+animations does not stand for the `.anm`: the one below it is read (a mod's model alone keeps the game's animations).
+The animations are in the figure's own .glb, so Blender imports a unit with them: each `.anm` entry is a glTF
+animation of the name the game gives it (`cidle01`, `uattack02`), its channels the parts' nodes (named as the parts).
+
+- Keys and time: one key a world tick (55 ms at the game's normal speed): key k at k x 0.055 s, LINEAR. A channel of
+  other times (another tool's: Blender writes its own frames) is sampled at every tick up to its last key with glTF's
+  interpolation (STEP, LINEAR with the game's `Quaternion::Slerp` for rotations, CUBICSPLINE); a key within 0.1 ms of a
+  tick is that tick's. How far the game plays is the `.adb`'s frame count, so a longer animation needs its `.adb`
+  record's `frames` too ("Records as TOML").
+- Rotations: the game turns a child by its key after its parent's turn (`FigureBone::Place`: the part's rotation is
+  its key times its parent's, in the figure's frame), a glTF node by its own rotation before its parent's. So a node's
+  rotation is its key carried into its parent's frame, `L = P^-1 T P` (P the parent's rotation at that key: the keys'
+  product up the tree, a shorter track's last key past its end, the identity for a part without a track), and the
+  loader turns it back, `T = P L P^-1`. A root's is its key. Axes as the models': (x, y, z, w) = the game's (x, z, -y)
+  and w. On the hero (`cidle01`, `crun01`) the glTF's world rotations are the game's within 1e-6. A key not of unit
+  length would be normalised in the glTF (the extras keep it; no shipped key is more than 0.00001 off).
+- Positions: a root's track positions are its node's translation channel (they place the figure). A child's the game
+  never reads (its bone places it: the node's translation), so they have no channel (the shipped ones are not offsets
+  from the parent: the hero's `crun01` moves `bd` 3.5 away from `hp`).
+- Vertex frames (222 tracks of 13 figures: wings' membranes, faces, hair; each frame an offset of every position slot)
+  are in the extras alone. Morph target weights could hold them only as a target per frame on the mesh, and an
+  animated `weights` channel sets every target, the `s`, `t`, `u` corners too, which the game takes from the unit's
+  stats. Blender does not show them.
+- `extras.ei` of an animation: `tracks` (every track in the archive's order: `name`, the key counts `rotations` and
+  `positions`, `frames` and `slots` of its vertex frames), and the accessors `rotations` (every track's keys as the file
+  holds them, w first, one track's after another), `positions`, `vertices`. A track's rotations are the extras' when
+  its node has no rotation channel or the channel agrees (its keys at the ticks, each within 1e-5 of the rotation the
+  extras' key makes, or of its negation), else the channel's, sampled and turned back; a root's positions likewise;
+  a child's positions and the vertex frames are the extras'. The parents are decided first: a child's check uses its
+  parent's keys as they came out. A track of no node (546 vanilla, 562 Rebirth: parts the figure does not have) is in
+  the extras alone; a node's channel no track of the extras names makes a track of the node's name. A glTF that lost
+  the extras (Blender's export, `mod_gltf_animation`'s idle) gets the channels' rotations and roots' positions and no
+  vertex frames.
+- Carried as they are (the scene's `files`, `"in": "anm"`): an `.anm` entry that is no archive of tracks that read,
+  or whose tracks have a name twice, and an animation whose glTF animation would have no channel (tracks only of no
+  node or without keys); none shipped. The scene's `extras.ei.anm`: the set has an `.anm`. The made `.anm` lists its
+  animations by name (the glTF holds those it carries apart).
+- Left out (logged): a glTF animation's scale and morph weight channels, an animation without a name.
+
+### ei-convert's animations
+
+A set is its `.mod`, `.bon` and `.anm` (tools/convert/convert_models.cpp); an `.anm` without a `.mod` of its name is
+left as it is (none shipped). Each round trip compares the `.anm` made from the .glb with the original entry by entry,
+each animation track by track, byte for byte.
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding): vanilla 51 `.anm`, 969 animations, 22,311 tracks
+(546 of no part, 222 with vertex frames), 1,171,646 rotation keys and as many positions, 598,051 frame vertices;
+Rebirth (its mods too) 55, 1,007 and 22,825 (562, 222), 1,177,091 keys, 598,051 frame vertices. The .glb files with
+them: 111.3 MB for 65.4 MB of originals vanilla (45.7 MB for 24.2 MB without the animations), 128.2 MB for 75.9 MB
+Rebirth (62.3 MB for 34.6 MB): every rotation is there twice (the node's and the file's) and the times are shared by
+count. Read back and made into files in 0.38 s and 0.46 s (0.35 s and 0.42 s without). LOADTIME
+
+### Checks
+
+- `ei_unit_check`'s animation checks (tests/unit/figure_gltf.cpp): a set's animations (a root's and children's keys, a
+  child with fewer keys than its parent, keys of no length and twice the unit length, vertex frames, a track of no part
+  and an unlinked part's, an animation of no channel, one without tracks, an entry that is no archive) come back as
+  the same files; a hand-made .gltf with an animation and no extras (keys two ticks apart, STEP, a scale channel) is
+  sampled at the ticks, its root's middle key slerped and its child's keys turned after the root's.
+- `mod_gltf_animation` (both installs; tools/make_mod_s19d.py anim): the hero's figure as ei-convert writes it with
+  its idle `cidle18` twice as slow (its keys' times doubled, its extras dropped) and an `unhuma.adb.toml` giving it 210
+  frames (the game's 105). The figure manager's track of `hp` has 211 keys (the game's 106 at the even ticks, slerps
+  between), the other idles' as they were (`cidle02`: 96), the hero standing plays `cidle18` past its frame 105
+  (`objplayed cidle18 past 105`: to 207 vanilla, 195 Rebirth, in 120 frames), the trace has the glTF read for `unhuma.anm`.
+  `mod_gltf_model` drops the animations of its glTF (the game's `.anm` below is read).
+- `ei-convert --check` on both installs, and on the stub data in the Linux suites' workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every `.anm` in its .glb.
+- The Khronos glTF Validator (gltf-validator 2.0.0-dev.3.10 with node) on the hero (179 animations), unmowi (vertex
+  frames), unmodg and unanhoco: no errors or warnings; its infos are the extras' accessors and TEXCOORD_0, which it
+  calls unused.
 
 ## A mod's config.reg
 
