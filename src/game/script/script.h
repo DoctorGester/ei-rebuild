@@ -561,6 +561,9 @@ struct ScriptRun {
     // Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block
     // ends. Returns false when the block had already ended on entry.
     bool Execute(Script* script);
+    // One command of the run, its arguments already prepared (Execute's step; the Lua bindings call it with a call of
+    // their own): false when the command waits (the run stays on it).
+    bool RunCommand(Script* script, ScriptCall* cmd);
 
     ScriptRunPosition position;
     bool* killFlag = nullptr;       // the script instance's killed flag, null for the WorldScript
