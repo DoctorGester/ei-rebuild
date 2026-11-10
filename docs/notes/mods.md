@@ -793,8 +793,23 @@ A `.mob`'s script runs from a `.lua` when one is there (L8, user 2026-11-10; the
   executor, null on Lua: the console reads `GlobalValues`, which keeps the counters; L8c). Before L8a 186 of 233 and
   129 of 145 differed in the script record and the saves' `commands` alone. Lost in Astral's bz23k.mob and
   zone10hunter.mob, which the parser stops in, keep their error and their WorldScript unstarted on Lua as in the game.
-- Not covered by a scenario: an AddMob'd .mob's `.lua` (the shim's take-over of a running script), a TOML's `script`
-  key naming another file (L8b).
+- `mod_lua_addmob` (vanilla; make_trap_mob.py makes `l8b_addmob.mob`, one of zone 1's objects renumbered and no
+  script, make_lua_mod.py addmob its `.lua` beside it in the saves folder): `AddMob("..\saves\l8b_addmob.mob")` into
+  zone 1 on the old executor; the shim takes the running script over (the `.lua` prints `heroes 1, Ogre kept`: two of
+  the zone's globals with their values), the `.lua`'s definition and its counting WorldScript go on through a save and
+  its load. On a converted install (the zone already on Lua) the golden is the same.
+- `mod_lua_named` (vanilla; make_lua_mod.py named): `Maps\zone1.mob.toml` (ei-convert's) with `script =
+  "zone1_named.lua"` beside both `zone1_named.lua` and `zone1.lua`: the key's file runs (its line on the console),
+  zone1.lua's line never comes.
+- `mod_lua_broken` (vanilla; make_lua_mod.py broken): a `Maps\zone1.lua` that does not load: `Script error: zone1.mob
+  line 0: Maps\zone1.lua:3: <name> or '...' expected near <eof>`, and the game goes on with the zone's script empty;
+  the zone's globals are not declared in Lua, so the engine's text adding the party to Heroes fails too (`Script
+  error: text2:4: AddObject: argument 1 is no group (nil)`).
+- `mod_example` (both installs): the example mod (docs/modding.md) has a `Maps\zone1.lua`, ei-convert's with the mod's
+  lines (`examples/example_mod_additions/Maps/zone1.lua`: a console line and a definition whose rule greets the party
+  when the leader is near the mod's pig); the digest's records up to the greeting are those it had with the .mob's
+  script.
+- The four with `--converted` and with EI_LUA_BOTH=1: their goldens the same (2026-11-10).
 
 ## Models as glTF
 

@@ -16,9 +16,12 @@ The mod (tests/scenarios/mod_example.txt checks each part):
                         its "ei-texture" settings chunk, so the game makes it into a DXT1 .mmp as the game's
   Maps\\zone1.mob.toml   zone 1's objects as ei-convert writes them (a converted install's own) with
                         examples/example_mod_additions/Maps/zone1.mob.toml's records appended
+  Maps\\zone1.lua        zone 1's script as ei-convert writes it (a converted install's own) with
+                        examples/example_mod_additions/Maps/zone1.lua put in before its WorldScript, whose first line
+                        calls the additions' ExampleModStart
 Nothing of the install is committed: the made parts exist only where the tool writes them.
 """
-import argparse, os, shutil, struct, subprocess, sys, tempfile, zlib
+import argparse, os, re, shutil, struct, subprocess, sys, tempfile, zlib
 
 import exe_path
 import make_test_mod
@@ -167,19 +170,30 @@ def ground_pages(install, convert, scratch):
     return {page: open(find(scratch, 'out', 'textures', page + '.png'), 'rb').read() for page in PAGES}
 
 
-def zone1_objects(install, convert, scratch):
-    """Zone 1's objects as ei-convert's TOML: a converted install's own, else written by ei-convert from a copy of the
-    install's zone1.mob."""
-    converted = find(install, 'Maps', 'zone1.mob.toml')
+def zone1_converted(install, convert, scratch, name):
+    """A file ei-convert writes for zone 1's .mob (zone1.mob.toml, its objects; zone1.lua, its script): a converted
+    install's own, else written by ei-convert from a copy of the install's zone1.mob (once per scratch folder)."""
+    converted = find(install, 'Maps', name)
     if not os.path.isfile(converted):
-        source = os.path.join(scratch, 'in', 'Maps', 'zone1.mob')
-        os.makedirs(os.path.dirname(source))
-        shutil.copyfile(find(install, 'Maps', 'zone1.mob'), source)
-        subprocess.run([convert, os.path.join(scratch, 'in'), os.path.join(scratch, 'out')], check=True,
-                       capture_output=True)
-        converted = os.path.join(scratch, 'out', 'Maps', 'zone1.mob.toml')
+        out = os.path.join(scratch, 'zone1_out')
+        if not os.path.isdir(out):
+            source = os.path.join(scratch, 'zone1_in', 'Maps', 'zone1.mob')
+            os.makedirs(os.path.dirname(source))
+            shutil.copyfile(find(install, 'Maps', 'zone1.mob'), source)
+            subprocess.run([convert, os.path.join(scratch, 'zone1_in'), out], check=True, capture_output=True)
+        converted = os.path.join(out, 'Maps', name)
     with open(converted, 'r', encoding='utf-8', newline='') as f:
         return f.read().replace('\r\n', '\n')
+
+
+def zone1_script(text, additions):
+    """Zone 1's converted script with `additions` before its WorldScript and a call of ExampleModStart as the
+    WorldScript's first line."""
+    start = re.search(r'^function WorldScript\(\)\n', text, re.M)
+    if not start:
+        sys.exit('make_example_mod: zone1.lua has no WorldScript function')
+    return (text[:start.start()] + additions.rstrip('\n') + '\n\n' + start.group(0) + '    ExampleModStart()\n' +
+            text[start.end():])
 
 
 def main():
@@ -200,8 +214,11 @@ def main():
             write(os.path.join(root, 'Res', 'textures', page.capitalize() + '.png'), recoloured_png(png))
         with open(os.path.join(EXAMPLES, 'example_mod_additions', 'Maps', 'zone1.mob.toml'), encoding='utf-8') as f:
             additions = f.read()
-        objects = zone1_objects(install, convert, scratch).rstrip('\n') + '\n\n' + additions
+        objects = zone1_converted(install, convert, scratch, 'zone1.mob.toml').rstrip('\n') + '\n\n' + additions
         write(os.path.join(root, 'Maps', 'zone1.mob.toml'), objects.encode('utf-8'))
+        with open(os.path.join(EXAMPLES, 'example_mod_additions', 'Maps', 'zone1.lua'), encoding='utf-8') as f:
+            script = zone1_script(zone1_converted(install, convert, scratch, 'zone1.lua'), f.read())
+        write(os.path.join(root, 'Maps', 'zone1.lua'), script.encode('utf-8'))
     print(f'{root}: the example mod')
 
 

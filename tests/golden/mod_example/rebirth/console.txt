@@ -5,7 +5,8 @@
   Unknown command
   Unknown command
   Cannot open file autoexec.cfg for reading
-  0
+  Example mod: zone1.lua runs
+  Example mod: the pig greets the party
   Saved savea
   1
   1
