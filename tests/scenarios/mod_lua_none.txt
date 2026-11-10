@@ -1,7 +1,6 @@
 # mod_lua_plain's twin (docs/notes/mods.md, "Scripts in Lua"; tools/make_lua_mod.py none): the same mod without its
 # Maps\zone1.lua, so zone 1's mission script runs on the old executor, through the same new game, save and load. The
-# two scenarios' digests are the same but for the loop counters the converted Lua does not write (`golden.py diff` with
-# --ignore "gobject\.(i|VSS#i#val)$").
+# two scenarios' goldens are the same (L8a: `golden.py explain` of the two runs says "the same").
 # prepare: make_lua_mod.py none
 mod harness_saves\lua_mod
 reject Script error

@@ -1,20 +1,21 @@
 {
   "scenario": "net_pair_party",
   "install": "vanilla",
-  "recorded": "2026-11-06",
-  "commit": "24b97178b",
+  "recorded": "2026-11-10",
+  "commit": "0c1c8717c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "R37e4e: class-14 water tiles and every tile start frame come from a hash in the shader, so tiles and sector building draw no client random numbers; the client generator and the client units change, and the display animation the dialogue and lobby screens draw from it (written into the server unit) follows. Outcomes, deaths and positions are the same.",
+  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
   "source": "image",
   "change": [
-    "digest: 15 of 152 records differ, first at record 1 (world update 40, tick 20, frame 7, zone -); outcomes the same; no unit position differs",
-    "  first difference at record 1 (world update 40, tick 20, frame 7, zone -): 1 fields",
-    "    cunit1000011214 (80 unhuma \"\") #unit: 579D9694 in the old golden, B492D84D in the new run",
-    "  outcomes: none changed; same: zone, deaths, spawns, money, quest variables, party and items, game result, script",
-    "  client units: 1 of 26 differ",
-    "    #unit: 1 client unit, 15 records, from 1; hash only (no numbers kept)"
+    "digest: 136 of 152 records differ, first at record 16 (world update 340, tick 22, frame 67, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
+    "  first difference at record 16 (world update 340, tick 22, frame 67, zone bz1mpg): 1 fields",
+    "    script (script) #run: 297674EC in the old golden, 113605A6 in the new run",
+    "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
+    "    script: script #run differs (hashes only), from record 16 (+135 more)",
+    "  script: 1 of 1 differ",
+    "    run: 1 script, 136 records, from 16; hash only (no numbers kept)"
   ]
 }

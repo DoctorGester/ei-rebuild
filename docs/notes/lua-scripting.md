@@ -504,9 +504,9 @@ at its load ("Texts at runtime"). The files, the lookup, the saves and the check
 the modder's guide in docs/modding.md, "Scripts".
 
 - **The plain conversion plays as the original.** mod_lua_plain (zone1.lua as ei-convert writes it) and its twin
-  mod_lua_none (the old executor) have the same digests, dump and console, but for the two loop counters the Lua does
-  not write (the lockstep leaves them out for the same reason) and the script's runs' block and command, which Lua has
-  not (the digest writes -1).
+  mod_lua_none (the old executor) have the same digests, dump, saves and console: the digest's script record and the
+  save decoder describe a script in the terms both executors share (L8a; mods.md "Scripts in Lua", "The same record
+  either way"), without the loops' counters the Lua does not write, block ids, command indices and evaluation slots.
 - **A mod's own code.** Its definitions, coroutines and locals are Lua values like the converted ones: they run in the
   scheduler's order, and an Eris save keeps them (mod_lua_changed: a WorldScript counting in a local goes on after a
   load).

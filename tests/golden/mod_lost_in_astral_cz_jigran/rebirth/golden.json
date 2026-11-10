@@ -1,17 +1,25 @@
 {
   "scenario": "mod_lost_in_astral_cz_jigran",
   "install": "rebirth",
-  "recorded": "2026-11-09",
-  "commit": "ad82ab94c",
+  "recorded": "2026-11-10",
+  "commit": "0c1c8717c",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "A load keeps the saved weather: rolls only from Tick and the weather delay saved in visuals.sav, so scenarios that set the clock in rainy zones draw fewer rolls and every save gains the WeatherDelay section.",
+  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
   "source": "image",
   "saves": "12 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "save LostInAstral/savea/visuals.sav: 1 fields in 1 records differ: visuals 1",
-    "  visuals: 1 fields in 1 records; first visuals.weatherDelay weatherDelay: (none) in the old golden, 0 in the new run"
+    "save LostInAstral/current/bz31j.sav: 252 fields in 1 records differ: commands 252",
+    "  commands: 252 fields in 1 records; first commands blocks.68.cmd0.float0: 6.16777802 in the old golden, ~eval in the new run",
+    "save LostInAstral/current/cz2j.sav: 9 fields in 1 records differ: commands 9",
+    "  commands: 9 fields in 1 records; first commands blocks.2.cmd0.float0: 2.0 in the old golden, ~eval in the new run",
+    "save LostInAstral/current/cz3j.sav: 332 fields in 1 records differ: commands 332",
+    "  commands: 332 fields in 1 records; first commands blocks.1.cmd1.float1: 80.0709915 in the old golden, ~eval in the new run",
+    "save LostInAstral/current/gz1g.sav: 75 fields in 1 records differ: commands 75",
+    "  commands: 75 fields in 1 records; first commands blocks.0.cmd0.float0: 0.0 in the old golden, ~eval in the new run",
+    "save LostInAstral/savea/mission.sav: 73 fields in 1 records differ: commands 73",
+    "  commands: 73 fields in 1 records; first commands blocks.0.cmd0.float0: 0.0 in the old golden, ~eval in the new run"
   ]
 }

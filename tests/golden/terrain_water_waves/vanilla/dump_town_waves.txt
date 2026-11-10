@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit,water; dump town_waves
 # compact (tools/golden.py): objects as hashes of their fields
-@ 34 update 685 frame 137 tick 685 zone bz1g hash 153C6DD3 n 408
+@ 34 update 685 frame 137 tick 685 zone bz1g hash C767A226 n 408
 + world world
 world tick 685
 world updates 685
@@ -2915,7 +2915,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run EAFFF708
+script #run 47A6C64E
 script #runs 3A3535AE
 + client client
 client tick 686

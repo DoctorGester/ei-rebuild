@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump hosted_gvar
 # compact (tools/golden.py): objects as hashes of their fields
-@ 14 update 280 frame 56 tick 82 zone bz1mpg hash DEA3822D n 389
+@ 14 update 280 frame 56 tick 82 zone bz1mpg hash B1AE4129 n 389
 + world world
 world tick 82
 world updates 280
@@ -2843,7 +2843,7 @@ script #lightning 6A354D7C
 script #loaded B7FE1BB6
 script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
-script #run BCC2196B
+script #run 2675C7B1
 script #runs 34EEBD9C
 + client client
 client tick 82

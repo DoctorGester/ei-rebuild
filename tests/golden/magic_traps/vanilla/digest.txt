@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 545673AF n 791
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 9F900279 n 791
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -6349,7 +6349,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 3656F9F8
+script #gobject 890B9E0B
 script #inst AA0C8751
 script #instances 9EC34A1E
 client tick 40
@@ -6381,7 +6381,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 439772AC n 798
+@ 2 update 60 frame 11 tick 60 zone gz1g hash FA0C102C n 798
 world tick 60
 world updates 60
 world objects 785
@@ -6474,7 +6474,7 @@ cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 0F026EB0 n 799
+@ 3 update 80 frame 15 tick 80 zone gz1g hash B6990C30 n 799
 world tick 80
 world updates 80
 world objects 786
@@ -6526,7 +6526,7 @@ client tick 80
 client ticksRun 52
 cunit1804 #place DF969219
 cunit1804 #unit 618078DC
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 027CC5EF n 799
+@ 4 update 100 frame 19 tick 100 zone gz1g hash BBE7A76F n 799
 world tick 100
 world updates 100
 random isaac.count 154
@@ -6564,7 +6564,7 @@ aievents tick 100
 client tick 100
 client ticksRun 72
 cunit1804 #place 0B0BC947
-@ 5 update 120 frame 23 tick 100 zone gz1g hash D9F63CEC n 799
+@ 5 update 120 frame 23 tick 100 zone gz1g hash 606D5E6C n 799
 world updates 120
 world paused 1
 obj699 #unit 58199F9E
@@ -6579,13 +6579,13 @@ client tick 101
 client paused 1
 client ticksRun 92
 cunit1804 #place DCF94003
-@ 6 update 140 frame 27 tick 100 zone gz1g hash 5352F513 n 799
+@ 6 update 140 frame 27 tick 100 zone gz1g hash EAC99793 n 799
 world updates 140
 random isaac.count 140
 player0 lastTick 100
 player0 var.gtime 6.08111143
 client ticksRun 112
-@ 7 update 160 frame 31 tick 101 zone gz1g hash 4D15A07C n 799
+@ 7 update 160 frame 31 tick 101 zone gz1g hash F48EC2FC n 799
 world tick 101
 world updates 162
 world paused 0

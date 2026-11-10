@@ -1,8 +1,8 @@
 # A mod's zone1.lua that is the game's zone1.mob script as ei-convert writes it (docs/notes/mods.md, "Scripts in Lua";
 # tools/make_lua_mod.py plain): zone 1's mission script runs on the Lua scheduler, not the old executor, through a
 # new game, a save and its load (the save holds the Lua state, Eris). mod_lua_none is its twin, the same mod without
-# the .lua: their digests are the same but for the script's runs, whose block and command Lua does not have (the
-# lockstep in the game, EI_LUA_BOTH, shows the converted script makes the same calls).
+# the .lua: their goldens are the same, digests, dump and saves (L8a: the script described in the terms both executors
+# share; the lockstep in the game, EI_LUA_BOTH, shows the converted script makes the same calls).
 # prepare: make_lua_mod.py plain
 mod harness_saves\lua_mod
 reject Script error

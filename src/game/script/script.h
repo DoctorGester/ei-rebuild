@@ -589,6 +589,25 @@ struct ScriptRun {
     ScriptVars vars;                // a copy of the instance's variables
 };
 
+// A script's instances and waiting runs in the terms both executors share (Script::InstanceViews, RunViews;
+// docs/notes/lua-scripting.md, "Mods"): what the harness's digest reads and a save on Lua writes in the old format's
+// fields. An instance by its definition's name, its kill flag and its values; a run by its definition and if-then
+// pair (none for a WorldScript's: an empty name, -1), its ticks and sleep start, the instance its kill flag names (-1
+// for none, -2 for one not in the list) and its values. No block or command: Lua has none.
+struct ScriptInstanceView {
+    std::string name;
+    bool killed = false;
+    ScriptVars vars;
+};
+struct ScriptRunView {
+    std::string script;
+    int rule = -1;
+    int ticks = 0;
+    int sleepStart = -1;
+    int instance = -1;
+    ScriptVars vars;
+};
+
 // How Script::LoadFunction reads the arguments: `(a, b, ...)`, or the value alone (`variable = value`).
 enum class ScriptArgSyntax { List, Value };
 
@@ -725,8 +744,12 @@ public:
     // executor held so far resumed there by the old-save shim). False with Load's error 18 and the Lua's message.
     bool LoadLua(std::string* text, std::string_view luaText, const std::string& chunk);
     // The global variables as the old executor keeps them (its names by type, in declaration order); on Lua their
-    // Lua values under those names, then the globals only a Lua GlobalVars declared (their Lua names, sorted).
-    ScriptVars GlobalValues();
+    // Lua values under those names, then (unless `declaredOnly`) the globals only a Lua GlobalVars declared (their
+    // Lua names, sorted).
+    ScriptVars GlobalValues(bool declaredOnly = false);
+    // The instances and waiting runs in list order, from the old executor or the Lua scheduler (ScriptInstanceView).
+    std::vector<ScriptInstanceView> InstanceViews();
+    std::vector<ScriptRunView> RunViews();
     // The global group `name` (the old executor's name), empty when there is none.
     ScriptGroup GlobalGroup(std::string_view name);
 

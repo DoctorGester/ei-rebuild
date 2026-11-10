@@ -223,8 +223,11 @@ void Script::LoadState(ByteStream* stream) {
         }
     }
     // A script saved on Lua goes on there with its saved state, whatever the zone's files say now (a save keeps
-    // running the code it was saved with).
+    // running the code it was saved with). The old format's globals, instances and runs hold the Lua's as far as
+    // those fields go (script_save.cpp, WriteLuaState): dropped, as the old executor's are when a script goes on Lua.
     if (onLua) {
+        DropInstancesAndRuns();
+        globals.ResetValues();
         std::string data(static_cast<std::size_t>(stream->ReadCount()), '\0');
         stream->Read(data.data(), static_cast<std::uint32_t>(data.size()));
         runner = std::make_unique<ScriptLuaScheduler>(this);

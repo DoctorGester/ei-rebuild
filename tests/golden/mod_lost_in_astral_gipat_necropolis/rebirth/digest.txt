@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 110 frame 22 tick 110 zone gz13g hash 5FF94497 n 751
+@ 1 update 110 frame 22 tick 110 zone gz13g hash 140C4234 n 751
 world tick 110
 world updates 110
 world timeBase 5.96444511
@@ -7273,10 +7273,10 @@ aievents height 25
 script #files 012FC665
 script #ggroup C3CD34F6
 script #globals A4379D2B
-script #gobject 8C6C6CE3
+script #gobject C80AC0E1
 script #inst 400FE2BB
 script #instances C2E9294B
-script #run E719DD7C
+script #run 2E6464A3
 script #runs 8F0E1077
 client tick 111
 client ticksRun 58
@@ -7298,7 +7298,7 @@ cunit1317 #vitals 21D51F80
 cunit1000011214 #place 6E9BB6F8
 cunit1000011214 #unit 26456645
 cunit1000011214 #vitals 4304CF29
-@ 2 update 880 frame 176 tick 880 zone gz13g hash AA244B5E n 748
+@ 2 update 880 frame 176 tick 880 zone gz13g hash 2651D078 n 748
 world tick 880
 world updates 880
 world occluderReplanTime 704
@@ -7481,10 +7481,10 @@ timed5321044 # 51157B7F
 missile0 # 9565B067
 missile1 # CA08635C
 aievents tick 880
-script #gobject F6074F92
+script #gobject BBE22BDB
 script #inst CF890514
 script #instances 3F67149C
-script #run 993FD5CA
+script #run 2D22CE4F
 client tick 881
 client ticksRun 828
 client partyDanger 0
@@ -7498,7 +7498,7 @@ cunit1338 #vitals 6688C89E
 cunit1000011214 #place 8781B8F2
 cunit1000011214 #unit 77E08834
 cunit1000011214 #vitals 129B3A9E
-@ 3 update 945 frame 189 tick 945 zone gz14g hash C4BAECCB n 317
+@ 3 update 945 frame 189 tick 945 zone gz14g hash 27567D4D n 317
 world tick 945
 world updates 945
 world timeBase 5.9566679
@@ -10382,10 +10382,10 @@ timed44357261 # F37060D9
 aievents tick 945
 aievents width 33
 script #globals AD81D100
-script #gobject 99476658
+script #gobject 52F34D93
 script #inst 1AE622D3
 script #instances 41D66821
-script #run 0479245B
+script #run E0EA2D74
 client tick 946
 client ticksRun 58
 client objects 216
@@ -10394,7 +10394,7 @@ client units 1
 cunit1000011214 #place 3DCADD94
 cunit1000011214 #unit DCA071ED
 cunit1000011214 #vitals 557B850F
-@ 4 update 1485 frame 297 tick 1485 zone gz14g hash 5979DABE n 316
+@ 4 update 1485 frame 297 tick 1485 zone gz14g hash CE695D2F n 316
 world tick 1485
 world updates 1485
 world objects 264
