@@ -1,0 +1,7 @@
+# The mod's config.reg as TOML (docs/modding.md, "A mod's folder"): the title the main menu's list shows.
+[MOD]
+Title = "Example mod"
+Author = "The Evil Islands rebuild"
+Version = "1.0"
+Single = 1
+Multi = 0
