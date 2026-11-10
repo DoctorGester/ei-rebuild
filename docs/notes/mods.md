@@ -663,7 +663,10 @@ glTF") stands for its `<name>.anm` too when it has animations (or `extras.ei.anm
 the files made of the glTF (src/game/models/figure_gltf_animation.cpp makes the archive the game would have read), so
 the figure manager's `FindModel` / `FindAnimation` and the link loader's figure sets read it as before. A glTF without
 animations does not stand for the `.anm`: the one below it is read (a mod's model alone keeps the game's animations).
-The animations are in the figure's own .glb, so Blender imports a unit with them: each `.anm` entry is a glTF
+A layer's glTF is read as that layer's own file (`ReadSource` through `platform::ReadLayerFile`): a read through the
+path map took the mod's glTF of the name in the game's place, so Lost in Astral's hero (its `unhuma.mod` and `.bon`,
+the game's `unhuma.anm`) had no animations on a converted Rebirth install and every Lost in Astral golden differed
+(its footprints, the client units). The animations are in the figure's own .glb, so Blender imports a unit with them: each `.anm` entry is a glTF
 animation of the name the game gives it (`cidle01`, `uattack02`), its channels the parts' nodes (named as the parts).
 
 - Keys and time: one key a world tick (55 ms at the game's normal speed): key k at k x 0.055 s, LINEAR. A channel of
@@ -712,7 +715,12 @@ Counts (2026-11-10, `ei-convert --check`, every round trip holding): vanilla 51 
 Rebirth (its mods too) 55, 1,007 and 22,825 (562, 222), 1,177,091 keys, 598,051 frame vertices. The .glb files with
 them: 111.3 MB for 65.4 MB of originals vanilla (45.7 MB for 24.2 MB without the animations), 128.2 MB for 75.9 MB
 Rebirth (62.3 MB for 34.6 MB): every rotation is there twice (the node's and the file's) and the times are shared by
-count. Read back and made into files in 0.38 s and 0.46 s (0.35 s and 0.42 s without). LOADTIME
+count. Read back and made into files in 0.38 s and 0.46 s (0.35 s and 0.42 s without). In the game the hero's
+files are made from its 21.8 MB .glb (179 animations) in about 66 ms, and every model made in
+`mod_lost_in_astral_cz_ingos` on converted Rebirth took 0.96 s together (625 makes). Timed alone (`--quiet`,
+2026-11-10), cz_ingos and `_gipat` take 45 s and 33 s converted (53 s and 41 s with other workers' games on the
+machine) against 25 s and 13 s unpacked, as "Models as glTF"'s 44 s and 34 s; in a whole converted suite beside
+other workers' (16 games), cz_ingos and `_suslanger` ran out of their 60 s.
 
 ### Checks
 
