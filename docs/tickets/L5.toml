@@ -2,6 +2,6 @@ id = "L5"
 title = "Lockstep luaboth verification"
 group = "lua"
 depends = ["L4"]
-note = "Both engines per tick: variables, run positions, instances, the built-in call log; scenarios plus a mission corpus."
+note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). The old executor and Lua side by side on one world: variables, run positions, instances and a log of every built-in call with arguments compared each tick; every scenario plus a corpus run (each mission's scripts for N ticks, L1's list). Short runs."
 order = 641
 status = "later"
