@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include "lib/bit_flags.h"
 #include "lib/hash_map.h"
 
@@ -300,8 +301,8 @@ public:
     bool ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::string* scripts);
     // Reads the file, applies its player relations, makes every record's world object (traps learn their
     // hostile players, units their alarm records), frees the records, then loads the scripts unless
-    // `keepIds`' low byte is set. Returns true.
-    bool Load(int keepIds);
+    // `keepIds`' low byte is set (a script error goes to the console under `name`). Returns true.
+    bool Load(int keepIds, std::string_view name);
 };
 
 } // namespace mapspec

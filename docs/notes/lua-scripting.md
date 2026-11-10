@@ -87,7 +87,10 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
 - **Parse errors in shipped files.** None in vanilla, Rebirth or AllHeroes. Lost in Astral: bz23k (line 267, the never
   declared `BuyHaburuMain#2#1#0`, mods.md) and 55 of its 61 AddMob'd mobs, which fail at their first DeclareScript with
   "Duplicate script VCheck#1#1": the zone they load into declares the same name, and FindScript's `!n!` retry finds it.
-  AddMob's load (MobFile::Load) ignores the error, so those zones play without the added scripts, silently (L1a).
+  AddMob's load (MobFile::Load) drops the file's scripts as the original did (it ignored the error; no Rebirth patch
+  touches FindScript or the load) and now says "Script error: <file>.mob line <n>: ..." on the console (L1a). All
+  those files hold the same leftover template script (watch object 1000027, set q.gz5g.q22g.1 to 2), so only the
+  first copy running loses nothing.
 - **Block ids.** Only saves use them (if-then pairs, For bodies, runs). They count the blocks in load order (the
   mission, then AddMob'd mobs and QFinish texts as the game runs them), so the same file gets other ids after another
   load history. A saved run is always at a top-level command (no waits in loop bodies): on a wait, at index 0 of a

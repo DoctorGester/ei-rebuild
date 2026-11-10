@@ -7,6 +7,7 @@
 #include "game/app/movies.h"
 
 #include "game/combat/combat.h"
+#include "game/console/console.h"
 #include "game/app/singletons.h"
 #include "game/map/map_spec.h"
 #include "game/map/mob_script_decoder.h"
@@ -25,6 +26,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <string_view>
 
 namespace mapspec {
 
@@ -129,7 +131,7 @@ bool MobFile::ReadChunks(MobRecords* records, ZoneDiplomacy* diplomacy, std::str
     return flag;
 }
 
-bool MobFile::Load(int keepIds) {
+bool MobFile::Load(int keepIds, std::string_view name) {
     MobRecords records;
     records.maxId = 0;
     ZoneDiplomacy zoneDiplomacy;
@@ -167,7 +169,13 @@ bool MobFile::Load(int keepIds) {
         if (done % step == 0) ShowLoadingMovie(done / step + 1);
     }
 
-    if (!(keepIds & 0xFF)) TheMissionScript()->Load(&scripts, 1);
+    if (!(keepIds & 0xFF) && !TheMissionScript()->Load(&scripts, 1)) {
+        // The game goes on without the file's scripts (the original said nothing); the console names the error.
+        ScriptErrorInfo error;
+        TheMissionScript()->GetError(&error);
+        console::EndLine(console::g_consoleOut << "Script error: " << std::string(name) << " line " << error.line
+                                               << ": " << error.text);
+    }
     return true;
 }
 
