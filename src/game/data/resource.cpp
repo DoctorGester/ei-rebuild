@@ -2,6 +2,7 @@
 #include "game/core/asset_text.h"
 #include "game/core/core_streams.h"
 #include "game/data/resource.h"
+#include "game/map/map_folder.h"
 #include "game/mods/mod_folders.h"
 #include "game/models/texture_png.h"
 
@@ -73,6 +74,9 @@ void* KeptFile(MappedResource& archive, std::unique_ptr<LoadedFile> file, std::u
     archive.filesByData[data] = std::move(file);
     return data;
 }
+
+// A map archive's map file's extension (the landscape and the AI map list "*.mp").
+constexpr const char* kMapFileExtension = ".MP";
 
 // The name of a folder's texts (docs/notes/mods.md, "Records as TOML"), as LooseKey gives it.
 constexpr std::string_view kTextsToml = "texts.toml";
@@ -174,6 +178,7 @@ void MappedResource::CloseResource() {
 void MappedResource::FindLooseFiles(const std::string& path) {
     const std::string folder = LooseFolderOf(path);
     if (folder.empty()) return;
+    if (text::CompareIgnoringCase(std::string_view(path).substr(folder.size()), ".mpr") == 0) mapFolder = folder;
     std::vector<platform::FolderLayer> layers = platform::FilesByLayer(folder);
     for (std::size_t i = 0; i < layers.size(); ++i) {
         LooseFiles& loose = i + 1 < layers.size() ? looseOver.emplace_back() : looseOwn;
@@ -198,6 +203,9 @@ void MappedResource::FindLooseFiles(const std::string& path) {
 void MappedResource::ForgetLooseFiles() {
     looseOver.clear();
     looseOwn = {};
+    mapFolder.clear();
+    folderMap.reset();
+    folderMapMade = false;
 }
 
 std::vector<MappedResource::Source> MappedResource::Sources() {
@@ -297,6 +305,7 @@ void* MappedResource::PngTexture(std::string_view name, const std::string& pngNa
 }
 
 void* MappedResource::FindFile(std::string_view name, std::uint32_t* size, bool* utf8) {
+    if (void* data = FolderMapFile(name, size)) return data;
     const std::string key = LooseKey(name);
     const std::string pngName = PngNameOf(name);
     const std::vector<Source> sources = Sources();
@@ -604,14 +613,15 @@ void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* 
     if (!modfolders::Active()) fileNames->clear();
     const PathParts patternParts = pattern ? SplitPath(pattern) : PathParts{};
     const PathParts* parts = pattern ? &patternParts : nullptr;
+    std::vector<std::string> listed;
     for (const Source& source : Sources()) {
         if (source.loose) {
             const LooseFiles& loose = *source.loose;
             for (const auto& [key, file] : loose.byName)
-                if (NameMatches(file.name, parts)) fileNames->push_back(file.name);
+                if (NameMatches(file.name, parts)) listed.push_back(file.name);
             // The texts.toml's names the folder has no file of.
             for (const auto& [name, text] : loose.texts)
-                if (NameMatches(name, parts) && !loose.byName.contains(LooseKey(name))) fileNames->push_back(name);
+                if (NameMatches(name, parts) && !loose.byName.contains(LooseKey(name))) listed.push_back(name);
             continue;
         }
         const MappedResource& owner = *source.entries;
@@ -620,7 +630,93 @@ void MappedResource::ListFiles(std::vector<std::string>* fileNames, const char* 
             const std::string key = LooseKey(name);
             if (NameMatches(name, parts) && !owner.looseOwn.byName.contains(key) &&
                 !owner.looseOwn.textIndex.contains(key))
-                fileNames->push_back(std::move(name));
+                listed.push_back(std::move(name));
         }
     }
+    // A map made from the folder's files lists its map file and sectors first (those not listed already), so that the
+    // landscape and the AI map read its name.
+    if (const map_folder::MapData* map = FolderMap()) {
+        std::vector<std::string> made = {map->name + kMapFileExtension};
+        for (int sy = 0; sy < map->header.sectorsY; ++sy)
+            for (int sx = 0; sx < map->header.sectorsX; ++sx) made.push_back(map_folder::SectorName(map->name, sx, sy));
+        for (std::string& name : made) {
+            const bool there = std::ranges::any_of(
+                listed, [&](const std::string& other) { return text::CompareIgnoringCase(other, name) == 0; });
+            if (!there && NameMatches(name, parts)) fileNames->push_back(std::move(name));
+        }
+    }
+    fileNames->insert(fileNames->end(), std::make_move_iterator(listed.begin()), std::make_move_iterator(listed.end()));
+}
+
+// ---- Maps as folders --------------------------------------------------------------------------------------------
+
+const map_folder::MapData* MappedResource::FolderMap() {
+    if (mapFolder.empty()) return nullptr;
+    if (folderMapMade) return folderMap.get();
+    folderMapMade = true;
+    const PathParts mapFiles = SplitPath(std::string("*") + kMapFileExtension);
+    std::vector<map_folder::Place> places;
+    for (const Source& source : Sources()) {
+        map_folder::Place& place = places.emplace_back();
+        if (const LooseFiles* loose = source.loose) {
+            place.has = [loose](std::string_view name) { return loose->byName.contains(LooseKey(name)); };
+            place.read = [loose](std::string_view name, std::string* bytes) {
+                const auto file = loose->byName.find(LooseKey(name));
+                return file != loose->byName.end() && platform::ReadLayerFile(file->second.path, bytes);
+            };
+            for (const auto& [key, file] : loose->byName)
+                if (NameMatches(file.name, &mapFiles)) {
+                    place.mapFile = file.name;
+                    break;
+                }
+            continue;
+        }
+        MappedResource* owner = source.entries;
+        place.has = [owner](std::string_view name) { return owner->FindEntry(name) != -1; };
+        place.read = [owner](std::string_view name, std::string* bytes) {
+            std::uint32_t size = 0;
+            void* data = owner->EntryFile(name, &size);
+            if (!data) return false;
+            bytes->assign(static_cast<const char*>(data), size);
+            owner->CloseFile(data);
+            return true;
+        };
+        for (std::uint32_t i = 0; i < owner->header.count && place.mapFile.empty(); ++i) {
+            std::string name = EntryName(*owner, i);
+            if (NameMatches(name, &mapFiles) && !owner->looseOwn.byName.contains(LooseKey(name)))
+                place.mapFile = std::move(name);
+        }
+    }
+    const std::size_t slash = mapFolder.find_last_of("\\/");
+    std::vector<std::string> warnings;
+    std::optional<map_folder::MapData> map = map_folder::Assemble(
+        places, std::string_view(mapFolder).substr(slash == std::string::npos ? 0 : slash + 1), &warnings);
+    for (const std::string& line : warnings) game::Warning("maps: %s: %s", mapFolder, line);
+    if (map) folderMap = std::make_shared<const map_folder::MapData>(std::move(*map));
+    return folderMap.get();
+}
+
+void* MappedResource::FolderMapFile(std::string_view name, std::uint32_t* size) {
+    const map_folder::MapData* map = FolderMap();
+    if (!map) return nullptr;
+    // The map file, or a sector <name>XXXYYY.SEC (sx, sy; -1 for the map file).
+    int sx = -1, sy = -1;
+    if (text::CompareIgnoringCase(name, map->name + kMapFileExtension) != 0) {
+        const std::string_view stem = name.substr(0, name.find_last_of('.'));
+        if (stem.size() != map->name.size() + 6) return nullptr;
+        const std::string_view digits = stem.substr(map->name.size());
+        if (!std::ranges::all_of(digits, [](char c) { return c >= '0' && c <= '9'; })) return nullptr;
+        sx = std::stoi(std::string(digits.substr(0, 3)));
+        sy = std::stoi(std::string(digits.substr(3)));
+        if (sx >= map->header.sectorsX || sy >= map->header.sectorsY ||
+            text::CompareIgnoringCase(name, map_folder::SectorName(map->name, sx, sy)) != 0)
+            return nullptr;
+    }
+    if (void* data = SharedFile(*this, name, size)) return data;
+    const std::string bytes = sx < 0 ? map_folder::EncodeMap(*map) : map_folder::EncodeSector(*map, sx, sy);
+    auto file = std::make_unique<LoadedFile>();
+    file->name = name;
+    file->size = static_cast<std::uint32_t>(bytes.size());
+    file->bytes.assign(bytes.begin(), bytes.end());
+    return KeptFile(*this, std::move(file), size);
 }

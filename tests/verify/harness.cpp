@@ -217,6 +217,7 @@
 //   modtext <name> <text>, modack <unit> <speech> <sound>, modweapon <weapon> <min> <max>,
 //   modrecord ack|anim|blood|footprint|scorch <name> = <text>
 //                             a mod's records as TOML seen by the game (harness_starter.h; MF3, MF5)
+//   ground <x> <y> <low> <high>  the ground's height at (x, y) in the landscape and the AI map (harness_starter.h)
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   read mod|game <path> yes|no, wrote mod|game <path> yes|no, waitread <seconds> mod|game <path>
 //                             whether the game touched (read, listed, asked about) or wrote the file below the mod
@@ -2928,21 +2929,22 @@ void RunSteps() {
                 g_failures.push_back(error);
             }
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile" || s.verb == "modlist" ||
-                   s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" || s.verb == "folderprofile" ||
-                   s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
-                   s.verb == "modrecord") {
-            std::string error = s.verb == "hudstate" ? HudState(s.argument)
-                                : s.verb == "modtext" ? starter::ModTextStep(s.argument)
-                                : s.verb == "modack" ? starter::ModAckStep(s.argument)
-                                : s.verb == "modweapon" ? starter::ModWeaponStep(s.argument)
-                                : s.verb == "modrecord" ? starter::ModRecordStep(s.argument)
-                                : s.verb == "campputon" ? CampPutOn(s.argument)
+                   s.verb == "modarchive" || s.verb == "mapfile" || s.verb == "playstream" ||
+                   s.verb == "folderprofile" || s.verb == "modtext" || s.verb == "modack" || s.verb == "modweapon" ||
+                   s.verb == "modrecord" || s.verb == "ground") {
+            std::string error = s.verb == "hudstate"        ? HudState(s.argument)
+                                : s.verb == "modtext"       ? starter::ModTextStep(s.argument)
+                                : s.verb == "modack"        ? starter::ModAckStep(s.argument)
+                                : s.verb == "modweapon"     ? starter::ModWeaponStep(s.argument)
+                                : s.verb == "modrecord"     ? starter::ModRecordStep(s.argument)
+                                : s.verb == "ground"        ? starter::GroundStep(s.argument)
+                                : s.verb == "campputon"     ? CampPutOn(s.argument)
                                 : s.verb == "folderprofile" ? folder_profile::Step()
-                                : s.verb == "modlist" ? starter::ModListStep(s.argument)
-                                : s.verb == "modarchive" ? starter::ModArchiveStep(s.argument)
-                                : s.verb == "mapfile" ? starter::MapFileStep(s.argument)
-                                : s.verb == "playstream" ? starter::PlayStreamStep(s.argument)
-                                : starter::ModFileStep(s.argument);
+                                : s.verb == "modlist"       ? starter::ModListStep(s.argument)
+                                : s.verb == "modarchive"    ? starter::ModArchiveStep(s.argument)
+                                : s.verb == "mapfile"       ? starter::MapFileStep(s.argument)
+                                : s.verb == "playstream"    ? starter::PlayStreamStep(s.argument)
+                                                            : starter::ModFileStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);

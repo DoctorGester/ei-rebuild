@@ -77,6 +77,9 @@ std::string ModWeaponStep(const std::string& argument);
 // menu's music is; the stream's steps run on the virtual clock, so a scenario waits for it with "waitread"
 // (harness_modtrace.h) and the wait takes the same world updates every run.
 std::string PlayStreamStep(const std::string& argument);
+// "ground <x> <y> <low> <high>": the ground's height at (x, y) in the client's landscape and in the server's AI map is
+// from <low> to <high> in both. Maps as folders (docs/notes/mods.md): a mod's heights.png seen by both.
+std::string GroundStep(const std::string& argument);
 // "mapfile exists <name> yes|no": the maps folder's MapFileExists, as the client's shared-file handler calls it (the
 // folder follows Rebirth's Maps: the mod's or the game's).
 std::string MapFileStep(const std::string& argument);

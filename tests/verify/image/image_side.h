@@ -273,6 +273,9 @@ bool SwitchMod(const char* folder);
 bool ModSwitchPending();
 // The maps folder's MapFileExists.
 bool MapsFileExists(const char* name);
+// The ground's height at (x, y) in the client world's landscape (Terrain::HeightAt, the drawn ground) and in the server
+// world's AI map (GridHeight: what the scripts' GetZValue answers). False when either world has no map.
+bool GroundHeights(float x, float y, float* client, float* server);
 
 // ---- the save trace (harness_savetrace.cpp; image/harness_objects_image.cpp)
 

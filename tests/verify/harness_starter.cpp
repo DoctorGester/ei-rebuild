@@ -276,6 +276,20 @@ std::string ModWeaponStep(const std::string& argument) {
     return "modweapon " + weapon + ": " + got + ", expected " + expected;
 }
 
+std::string GroundStep(const std::string& argument) {
+    float x = 0.0f, y = 0.0f, low = 0.0f, high = 0.0f;
+    if (std::sscanf(argument.c_str(), "%f %f %f %f", &x, &y, &low, &high) != 4)
+        return "ground " + argument + ": not <x> <y> <low> <high>";
+    float client = 0.0f, server = 0.0f;
+    if (!image::GroundHeights(x, y, &client, &server)) return "ground " + argument + ": no map";
+    Log("harness: ground %g %g: landscape %g, AI map %g (expected %g .. %g)", x, y, client, server, low, high);
+    if (client >= low && client <= high && server >= low && server <= high) return std::string();
+    char line[160];
+    std::snprintf(line, sizeof(line), "ground %g %g: landscape %g, AI map %g, expected %g .. %g", x, y, client, server,
+                  low, high);
+    return line;
+}
+
 std::string PlayStreamStep(const std::string& argument) {
     if (argument.empty()) return "playstream needs a file name";
     image::PlayStream(argument.c_str());

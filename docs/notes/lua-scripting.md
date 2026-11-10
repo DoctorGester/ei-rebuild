@@ -1,7 +1,8 @@
 # Lua scripting: plan
 
-Goal: run the game's mission scripts on Lua without changing the assets, and let mods write scripts in
-Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9: `python tools/tickets.py list --group lua`. Engine details are in
+Goal: the game's mission scripts as readable Lua files that mods edit (ei-convert writes them from the originals,
+which keep loading), and mods' own scripts in Lua, with running scripts (coroutines included) kept in saves. Revised
+2026-11-10 with the user: readable Lua over a hidden compile step, Lua 5.3 + Eris, saves ours only. Tickets L1-L9: `python tools/tickets.py list --group lua`. Engine details are in
 `script.md`; Rebirth's extensions are in `rebirth.md` ("AddNewScriptCommands").
 
 ## What the current engine is
@@ -23,20 +24,23 @@ Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9: `p
 
 ## Design
 
-- **Front end.** The existing parser, rewritten, produces an IR. That keeps the lexer quirks (`Run1` lexes as `Run 1`;
+- **Front end.** The existing parser produces an IR (L1). That keeps the lexer quirks (`Run1` lexes as `Run 1`;
   Rebirth's stricter match makes `Orc1` an identifier), #define expansion, `!n!` name qualification and the parse errors.
-  The transpiler never reads script text itself.
+  The Lua writer never reads script text itself. L1 starts with a survey of every script the game runs (keywords,
+  waits, nesting), which sizes the rest.
 - **Built-ins and data stay in C++.** Lua drives control flow and calls bindings generated from the keyword table, which go
-  to the same CalcFloat / CalcObject / CalcGroup / command code by id.
+  to the same CalcFloat / CalcObject / CalcGroup / command code by id, under readable Lua names.
   - Object references and groups are userdata over the existing types: reference counts, deleted-object dropping, and
     groups kept sorted by address.
   - Floats stay single precision. A float→double→float round trip is exact; check that NaN payloads survive, since
     assignment copies bits.
-- **Resumable blocks.** Each command block becomes a Lua function `block(pc, run)`, a state machine dispatching on the
-  command index. It is written as an if-chain rather than `goto`, so Luau stays possible. A wait yields and leaves `pc` on
-  the waiting command.
-  - For bodies are separate functions; a wait inside one returns from the body.
-  - A rule set becomes a function that checks conditions in order; the first zero or NaN stops it.
+- **Readable Lua (L3).** The old engine only waits at a top-level command of a block (a wait inside a For body ends
+  that member's body), so a script converts to plain code: a rule set as condition and action functions, waits as
+  calls that yield (`Sleep`, `WaitSegment`, `SleepUntil`, `SleepUntilIdle`), For / ForIf as
+  `ForEach(group, function(member) ... end)` keeping the original's end-the-body rule, the WorldScript as the start
+  function. ei-convert writes `<zone>.lua` beside MF9's .mob TOML and the game loads it through the loose-file lookup
+  (mods.md); the original .mob's script converts at load the same way. No pc state machines: a modder reads and edits
+  the file.
 - **Scheduler.** It keeps Script::Tick's order exactly:
   - waiting runs first, then instances, then dropping deleted objects, then timed effects, then freeing temporaries;
   - a new instance goes at the head of the instance list;
@@ -44,27 +48,24 @@ Lua, with running scripts (coroutines included) kept in saves. Tickets L1-L9: `p
     next tick;
   - Execute counts calls, which WaitSegment uses;
   - Sleep counts ticks as the original does.
-- **Saves.**
+- **Saves (L6).**
   - New saves persist the whole Lua state with Eris: game-script coroutines and mod coroutines alike. The bindings form the
     "permanents" table; object references and groups persist as object ids through `__persist`, as the current save writes
-    them.
-  - Waits must yield from Lua, never from inside a C++ call.
-  - Old saves (vanilla, or ours from before Lua) load through the resumable form: each saved run becomes
-    `coroutine.create(function() return block(pc, run) end)` with its locals.
-  - While no Lua-authored code is loaded, we can keep writing the old format as well, so saves stay vanilla-compatible.
-    Whether to do that is decided in L6.
-- **Mods.**
-  - `.lua` files loaded next to the mission scripts.
+    them. Waits yield from Lua, never from inside a C++ call.
+  - Saves are ours only: game.exe is no longer a target (own goldens), so no old-format writer.
+  - Old saves (vanilla, or ours from before Lua) load: each saved run (block, index, ticks, sleep start, locals) resumes
+    through a shim that enters the converted block at that command.
+- **Mods (L8).**
+  - `.lua` files loaded beside or instead of the mission's (the loose-file lookup; replace as MF3's records).
   - The same built-ins under Lua names, with waits as yields.
   - A sandbox without io / os / debug.
   - Errors reported like "Script error: ...".
 
-## Open decisions (at L2)
+## Decisions (user 2026-11-10)
 
-- **Lua 5.3 + Eris versus Luau + Ares** (the Luau port of Eris used by Second Life's SLua).
-  - Eris supports 5.3 and has a 5.2 branch, but not 5.4: confirm this before vendoring.
-  - Luau has no `goto`, but does have a sandbox and types; Ares is the less proven of the two.
-- **Old-format saves.** Keep writing them while possible, or go Eris-only.
+- Readable Lua files are the scripts' modding format (MF9 waits only on L3).
+- Lua 5.3 + Eris (Eris has no 5.4; Luau + Ares less proven). Vendored unmodified, pinned.
+- Saves: Eris only, old saves still load.
 
 ## Verification
 

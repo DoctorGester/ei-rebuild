@@ -1,7 +1,7 @@
 id = "L7"
-title = "Quests and console lines through the transpiler"
+title = "Quests and console lines through Lua"
 group = "lua"
-depends = ["L4"]
-note = "QFinish's text and console lines at runtime; a cache for mission files."
+depends = ["L6"]
+note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). QFinish's generated quest script and console @ / # / $ lines through the IR and L3's writer at runtime (cached per text); Rebirth's execs files too; errors as \"Script error: ...\"."
 order = 643
 status = "later"
