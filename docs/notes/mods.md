@@ -168,11 +168,14 @@ mod's folder below one top folder LostInAstral\: 280 entries, 272 deflated, 8 st
   mod folder stands (`Mod::folder`, `ModFolder()`), and everything above it is unchanged: the loose archive folders and
   FilesByLayer, Maps\, Config\, the mod's `[RES]` archives (`ModPath()` + `res\x.res`, opened from the zip's bytes as
   any file), Rebirth's Maps, Camera, Movies and Stream patches.
-- Read only: a write the map gives a zip's path (the game writing a file the zip has) fails as into a missing
-  folder; File::Open for writing returns false. The saves are in the game's saves folder as any mod's; a file the
-  game writes into a folder mod is not kept for a zip: Lost in Astral's config\tutorial.ini (the help topics seen,
-  written at every interface shutdown) and addrbook.ini (MF2a: a written folder over the zip). In a harness run every
-  write goes to the overlay anyway.
+- Read only, with a written layer above it (MF2a, user 2026-11-10): the zip's `PathLayer` is `readOnly`, and over it
+  stands a layer of the folder `<game folder>\saves\<mod's name>\files\` (inside the mod's saves, so a path there is
+  never mapped again). A write the game makes of a file the zip holds (Lost in Astral's `config\tutorial.ini`, the
+  help topics seen, written at every interface shutdown; an edited `addrbook.ini`) goes to that layer, its folders
+  made, an Update (a file opened to change it) first copying the zip's bytes up (`PathLayers::Map`); a read finds the
+  written copy first, after a restart too. A file the zip lacks is written where a folder mod's would be: in the game
+  folder. A folder mod writes into its own folder as before. In a harness run every write goes to the run's overlay
+  (the map's `writesToTop`), so that layer is not in the harness's map.
 - A zip file is read (its central directory, no file) at the first path through it and kept for the rest of the
   program, open; one changed on disk while the game runs is read again only after a restart. Each file's bytes are
   unpacked whole when opened and shared by every open of it at that time (a weak pointer per entry), freed at the last
@@ -194,7 +197,7 @@ mod's folder below one top folder LostInAstral\: 280 entries, 272 deflated, 8 st
 
 - `tests/unit/path_layers.cpp` (ei_unit_check, the POSIX port check): a zip of a mod folder (its one top folder) and a
   zip of files at its root, made with miniz's writer: the mod's folder and name, reads through the map (whole, File
-  with seeks and ReadAt, MappedFile), a write refused, folder searches merged with the game's, FilesByLayer, ModRoot.
+  with seeks and ReadAt, MappedFile), a write and an update going to saves\<mod>\files\ and read back after a switch, folder searches merged with the game's, FilesByLayer, ModRoot.
 - `mod_zip_archives` (either install; make_mod_s19d.py archives --zip s19d_mod.zip): rebirth_mod_archives' mod as a zip
   of files: the same answers and the same goldens as rebirth_mod_archives (its console, digest and saves files equal).
 - `mod_zip_loose_files` (make_mod_s19d.py loose --zip s19d_mod.zip --top): mod_loose_files' mod zipped below its
