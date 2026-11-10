@@ -4,5 +4,6 @@ group = "lua"
 depends = ["L8"]
 note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). The parser stays as the front end for the original files; the old executor, its save writer and luaboth go. Old saves still load through L6's shim."
 order = 645
-status = "review"
+status = "done"
 started = "2026-11-10"
+done = "2026-11-10"
