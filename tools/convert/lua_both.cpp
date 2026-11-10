@@ -243,8 +243,7 @@ Snapshot GameSnapshot(Script& script) {
     return snapshot;
 }
 
-// The Lua side's values of the game snapshot's globals (the left-out ones skipped: a declaration never found, and a
-// counter no text reads outside its loops, which the Lua does not write).
+// The Lua side's values of the game snapshot's globals (a declaration never found left out).
 Snapshot LuaSnapshot(ScriptLuaScheduler& scheduler, const Snapshot& game) {
     const scriptlua::LuaNames& names = scheduler.names;
     Snapshot snapshot;
@@ -252,7 +251,6 @@ Snapshot LuaSnapshot(ScriptLuaScheduler& scheduler, const Snapshot& game) {
     for (const auto& [irName, type] : game.types) {
         const auto found = names.globals.find(irName);
         if (found == names.globals.end()) continue;
-        if (names.unwrittenCounters.contains(irName) && !names.counterReads.contains(irName)) continue;
         lua_getglobal(L, found->second.c_str());
         std::string value;
         switch (type) {

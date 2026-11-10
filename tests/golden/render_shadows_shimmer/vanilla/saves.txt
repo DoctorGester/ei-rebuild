@@ -1,7 +1,7 @@
 current/bz1g.sav 5fd6d70bf64c2747
-current/gz1g.sav c2d7cdb420a49713
+current/gz1g.sav dfb9f77c9ed51853
 save2/bz1g.sav 5fd6d70bf64c2747
-save2/gz1g.sav c2d7cdb420a49713
+save2/gz1g.sav dfb9f77c9ed51853
 save2/info.sav 2537a0697bb0e01f
 save2/mission.sav f864ac880fcbc752
 save2/scenario.sav fc9b48312e7dccdb

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump ambient_zone
 # compact (tools/golden.py): objects as hashes of their fields
-@ 5 update 100 frame 20 tick 100 zone gz15h hash 3B975A66 n 1412
+@ 5 update 100 frame 20 tick 100 zone gz15h hash F6BC21F4 n 1412
 + world world
 world tick 100
 world updates 100
@@ -10064,7 +10064,7 @@ aievents side15.hash 0x811C9DC5
 script #files 012FC665
 script #ggroup DFD8DEB1
 script #globals 94B1D715
-script #gobject DC6970F6
+script #gobject D7DAC2B0
 script #inst 9620D483
 script #instances BF9EDD0E
 script #lightning 6A354D7C

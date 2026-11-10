@@ -183,12 +183,13 @@ Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the uni
   by id, or for a command `ScriptRun::RunCommand` (Execute's step, split out for this) in the current run; the
   temporaries are freed after each call. Too few or too many arguments, or a value of the wrong type (no string for a
   number or a number for a string) raise a Lua error.
-- **Special keywords** (no nested call or body in Lua): `For` / `ForIf` are `ForEach(group, body)` /
-  `ForEachIf(group, condition, body)`, members from last to first, the size read once; each body runs on a thread of its
-  own from a fresh position in the same run, and a wait in it ends the body for that member (RunBody's rule).
-  `Every` / `Any` / `Sum(group, condition)` call the condition for each member from the first (the size read again
-  each time); a number for the condition is the game's call without a nested one (`Every` copies it, `Sum` multiplies
-  it by the size). A condition gives a number or a boolean.
+- **Special keywords** (no nested call or body in Lua): `For` / `ForIf` are `ForEach([counter,] group, body)` /
+  `ForEachIf([counter,] group, condition, body)`, members from last to first, the size read once; each body runs on a
+  thread of its own from a fresh position in the same run, and a wait in it ends the body for that member (RunBody's
+  rule). `Every` / `Any` / `Sum([counter,] group, condition)` call the condition for each member from the first (the
+  size read again each time); a number for the condition is the game's call without a nested one (`Every` copies it,
+  `Sum` multiplies it by the size). A condition gives a number or a boolean. The optional first argument names the
+  loop's counter global ("Loop counters" under "Converted scripts").
 - **Waits** yield from Lua: `Sleep`, `WaitSegment`, `SleepUntil` and `SleepUntilIdle` are Lua functions (the prelude in
   script_lua.cpp) that poll their command's binding once per resume (`RunCommand`, so the run's ticks and sleep start
   count as Execute's) and `coroutine.yield()` while it waits. An argument may be a function, called on every poll: the
@@ -275,9 +276,10 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). The game loa
     same reason (its run is gone after the first tick, so nothing sees the difference).
   - Commands are the bindings under their Lua names with the arguments in the written order; `KillScript()` sets the
     run's flag and the function goes on. Assign is `global = value`, a group from a variable `CopyGroup(x)` (the game
-    copied; none in the corpus). For / ForIf are `ForEach(group, function(i) ... end)` / `ForEachIf(group, condition,
-    function(i) ... end)`, Every / Any / Sum `Any(group, function(i) return ... end)`: the member parameter has the
-    counter global's name, so the body reads it where the game's body read the global.
+    copied; none in the corpus). For / ForIf are `ForEach("i", group, function(i) ... end)` / `ForEachIf("i", group,
+    condition, function(i) ... end)`, Every / Any / Sum `Any("i", group, function(i) return ... end)`: the game's
+    argument order, the counter global by its Lua name, and the member parameter under the same name, so the body reads
+    it where the game's body read the global.
   - Numbers: the shortest text that reads back (as a double the binding rounds) as the parser's float (`54.5`, `72.17`,
     `0.1`), else `%.9g`; `-0.0` and `math.huge` where they occur. Strings quoted, a long bracket for paths
     (`[[nature\thunder\2.wav]]`), bytes outside printable ASCII as `\ddd` (none: the scripts' cp1251 is in comments, which are written as UTF-8).
@@ -288,10 +290,20 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). The game loa
     and SleepUntilIdle do not wait, so `SleepUntilIdle(Human5)` passes the value; SleepUntil's global stays a
     function. Every global wait argument of the corpus is settled (945 SleepUntilIdle);
   - Every / Any / Sum / ForIf's condition when it is a nested call (a function of the member); a constant stays a number.
-- **Loop counters.** The game's counter is a global (after For it holds the first member, after Every the last one
-  tested). Where a text so far reads the global outside a loop on it, the loop's function writes it first
-  (`function(member) i = member ... end`). No text of the corpus does (872 loops), so every converted loop has the plain
-  form, and such counters stay at their zero value in Lua (a lockstep compare, L5, leaves them out).
+- **Loop counters** (L8c). The game's counter is a global object the loop sets before each step (script_exec.cpp
+  `SetLoopCounter`, script_eval.cpp's Every / Any / Sum): For and ForIf walk from the last member to the first and set
+  it for every member (ForIf before its condition, a constant one too), so after them it holds the first; Every / Any /
+  Sum walk from the first and set it before each evaluation of a nested condition, so it holds the last one tested
+  (where Every or Any stopped); a constant condition or an empty group leaves it as it was. The bindings do the same
+  with the global the loop names first (`PushMember`, script_lua.cpp: one object value pushed, set into the global and
+  passed to the function). So a text reading the counter outside its loop (Rebirth's `listgvar`, a later text, a
+  script the body starts) reads the game's value, and the digest, the saves and every lockstep compare the counters.
+  - Why a name argument and not the parameter's name (lua_getlocal on the function): what the loop writes is in the
+    call as the original has it (`For(i, Heroes)` reads `ForEach("i", Heroes, ...)`), renaming a parameter changes no
+    global, a mod's own loop without the name writes nothing (a plain Lua loop over a local), and nothing depends on
+    the debug information of a function.
+  - The name must be an object global of GlobalVars (else a Lua error); the writer passes the Lua name of the counter
+    the parser resolved (a renamed global's: `"VSS_i_val"`).
 - **Names.** The `!n!` qualifier dropped, every character but letters, digits and `_` as `_` (`VTriger#0#312` is
   `VTriger_0_312`, `#OnBriefingComplete` `_OnBriefingComplete`, `DogRedF12-422369` `DogRedF12_422369`), `_` before a
   leading digit. A name already given (Lua's keywords and globals, the bindings, the helpers, an earlier global or script
@@ -304,8 +316,7 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). The game loa
     lines; by hand with the installs): each text's Lua is compiled and run in a ScriptLua state after the earlier texts
     of its script; every global its bytecode reads (`tools/convert/lua_globals.cpp`: GETTABUP on `_ENV`) must be
     defined there or a declared global, every global it writes a declared global, a script or WorldScript. It fails on
-    those, on a name the writer did not know, on a text reading a counter an earlier text's loop left unwritten and on
-    a text assigning a global an earlier text's wait read once.
+    those, on a name the writer did not know and on a text assigning a global an earlier text's wait read once.
   - `ei-convert --lua-check` (the build checks, ctest `port_lua`): six short texts run both ways ("Lockstep") on
     its three stones for 24 ticks: rules whose conditions draw, KillScript going on, starts from an instance (next
     tick) and from a waiting run (same tick), waits on nested calls and on settled and changing globals, group copies,
@@ -345,7 +356,7 @@ VCheck_0_1 = Script {
     {
         condition = function(this)
             return IsLess(DistanceUnitUnit(this, DgunDragon), 10) ~= 0
-                and Not(Any(Peasans, function(i) return IsEnemy(i, 0) end)) ~= 0
+                and Not(Any("i", Peasans, function(i) return IsEnemy(i, 0) end)) ~= 0
         end,
         action = function(this)
             KillScript()
@@ -359,7 +370,7 @@ VTriger_0_13 = Script {
     {
         action = function(this)
             KillScript()
-            ForEach(Heroes, function(VSS_i_val)
+            ForEach("VSS_i_val", Heroes, function(VSS_i_val)
                 VCheck_0_1(VSS_i_val)
                 VCheck_0_10(VSS_i_val)
                 VCheck_0_299(VSS_i_val)
@@ -391,7 +402,7 @@ end
 Su1 = Script {
     {
         condition = function()
-            return Any(Heroes, function(i) return IsLess(DistanceUnitUnit(i, GetObject(1000020)), 7) end) ~= 0
+            return Any("i", Heroes, function(i) return IsLess(DistanceUnitUnit(i, GetObject(1000020)), 7) end) ~= 0
         end,
         action = function()
             KillScript()
@@ -506,7 +517,8 @@ the modder's guide in docs/modding.md, "Scripts".
 - **The plain conversion plays as the original.** mod_lua_plain (zone1.lua as ei-convert writes it) and its twin
   mod_lua_none (the old executor) have the same digests, dump, saves and console: the digest's script record and the
   save decoder describe a script in the terms both executors share (L8a; mods.md "Scripts in Lua", "The same record
-  either way"), without the loops' counters the Lua does not write, block ids, command indices and evaluation slots.
+  either way"), without block ids, command indices and evaluation slots; the loops' counters hold the game's values
+  on Lua too ("Loop counters").
 - **A mod's own code.** Its definitions, coroutines and locals are Lua values like the converted ones: they run in the
   scheduler's order, and an Eris save keeps them (mod_lua_changed: a WorldScript counting in a local goes on after a
   load).
@@ -556,8 +568,8 @@ through the same `Convert` ("Lockstep in the game"); lua_both's Lua side does to
 `tools/convert/lua_both.h` (`lua_both::Compare`) runs the texts of one script both ways, by the game's executor
 (Script::Load, Script::Tick) and as their Lua (each text converted at its load, "Texts at runtime") under the
 scheduler, and after every tick compares the instances (by definition), the waiting-run count, the random generator's
-draws so far and every global
-(floats by their bits; a declaration never found and the loop counters the Lua does not write left out). The random
+draws so far and every global, the loops' counters included
+(floats by their bits; a declaration never found left out). The random
 generator starts the same on both sides and is back as it was at the end.
 
 - **The test world.** No objects but lua_check's stones; the server world gets its effect manager, player manager (no
@@ -576,9 +588,9 @@ generator starts the same on both sides and is back as it was at the end.
   goes through an old-format save at half the ticks (the game's script saved by Script::SaveState after that tick,
   loaded into a Script of its own, resumed by the shim) and through an Eris save at three quarters, each compared at
   once. On vanilla and Rebirth (whose unpacked tree holds AllHeroes and Lost in Astral) with the console lines, 300
-  ticks and `--saves` (2026-11-10, L7): 524 scripts, 498 the same, 0 differ, 149,400 ticks compared (48 network
-  quests go past their QFinish, which the Lua side converts at once: before L7 the compare stopped there, 134,496
-  ticks), 26 left out (22 PlayMovie, 2 PlayCamera, 1 AddMobEx, 1 GSListPlayerVars). The objects the missions name are not in the test world,
+  ticks and `--saves` (2026-11-10, L8c, the loops' counters compared too): 525 scripts, 499 the same, 0 differ,
+  149,700 ticks compared (48 network quests go past their QFinish, which the Lua side converts at once: before L7
+  the compare stopped there, 134,496 ticks), 26 left out (22 PlayMovie, 2 PlayCamera, 1 AddMobEx, 1 GSListPlayerVars). The objects the missions name are not in the test world,
   so most rules' conditions do not hold there; the scenarios reach the rest ("Lockstep in the game").
 - A scheduler fault shows: dropping an ended run at once makes 6 of 6 short cases and most console scripts differ at
   their first ticks. Save faults show too: a resumed run entering its block one command late, or a restored run's
@@ -613,7 +625,7 @@ Script of its own; after every tick of the real script the scheduler ticks once.
   / ForIf: the Lua makes no such call; one that draws from the random generator is a difference).
 - **After every tick:** no logged call left over; no Lua error; the instance lists the same (by definition, in list
   order); the waiting runs the same (count, each one's ticks and sleep start); every global the same (floats by their
-  bits; a declaration every use finds an earlier one of, and the loop counters the Lua does not write, left out).
+  bits; a declaration every use finds an earlier one of left out; the loops' counters compared since L8c).
 - **The first difference** stops that shadow, goes to the log (`lua both: mission script, its tick 60 (world tick
   57): the game calls VCheck#0#275(#4689) in 1 loop, Lua calls VCheck#0#275(#3353) in 1 loop (Lua text4:994:)`; that
   one from ForEach walked first to last on purpose), fails the run (the report's FAILED line) and writes the shadow's
@@ -655,6 +667,13 @@ Script of its own; after every tick of the real script the scheduler ticks once.
   resumed, 74 Eris round trips. net_pair_quest's host converts the z9q2 mission's QFinish text (vanilla 15 mission
   texts, Rebirth 13); script_quest_save 7 mission texts (two quest texts, a save resumed with both quests waiting,
   the areas file after it).
+- **Counts with the counters compared** (L8c, 2026-11-10, `--golden --rebirth`, 447 runs, all pass, 381 the same, 0
+  differ): vanilla mission 204,083 ticks and 12,831,787 calls over 986 texts, console 136,291 ticks and 18,009 calls
+  over 4,308 texts; Rebirth mission 115,235 ticks and 5,512,962 calls over 819 texts, console 61,209 ticks and 11,753
+  calls over 2,794 texts; 57 saves resumed, 1,408 Eris round trips; no shadow stopped. The corpus lockstep cannot see
+  the counters (its test world has no units, so no group the loops walk has a member): a deliberate fault (the
+  bindings not setting the counter) gives 0 differences there, fails 192 of `--lua-check`'s 411 checks and stops
+  zone_gz3g's and rebirth_flags' shadows at tick 27 (`i: #1884 in the game, none in Lua`).
 
 ## Decisions (user 2026-11-10)
 

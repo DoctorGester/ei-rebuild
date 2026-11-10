@@ -2,24 +2,23 @@
   "scenario": "net_pair_quest",
   "install": "vanilla",
   "recorded": "2026-11-10",
-  "commit": "0c1c8717c",
+  "commit": "91b031ae6",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
   "repeated_in": 2,
-  "reason": "L8a: the digest's script record and the decoded saves describe a script in terms both executors share (runs by definition and rule without block or command, loop counters and evaluation slots left out, a save on Lua's state in the old fields), so a converted install's goldens are the normal install's",
+  "reason": "L8c: the loop bindings set the counter global a converted loop names, as the game's loops do, so the digest's script record and the decoded saves compare the loops' counters again (L8a had left them out): the counters' values now recorded (script gobject, saves commands globals).",
   "source": "image",
   "saves": "2 decoded saves (tools/savefile.py), the same in 2 runs",
   "change": [
-    "digest: 532 of 545 records differ, first at record 13 (world update 280, tick 32, frame 55, zone bz1mpg); outcomes CHANGED: script; no unit position differs",
-    "  first difference at record 13 (world update 280, tick 32, frame 55, zone bz1mpg): 1 fields",
-    "    script (script) #run: DB5171C4 in the old golden, 06FA86B2 in the new run",
+    "digest: 419 of 545 records differ, first at record 91 (world update 1840, tick 1592, frame 367, zone z9q2); outcomes CHANGED: script; no unit position differs",
+    "  first difference at record 91 (world update 1840, tick 1592, frame 367, zone z9q2): 1 fields",
+    "    script (script) #gobject: E3E90D1C in the old golden, 96AE4FED in the new run",
     "  outcomes: CHANGED script; same: zone, deaths, spawns, money, quest variables, party and items, game result",
-    "    script: script #run differs (hashes only), from record 13 (+531 more)",
+    "    script: script #gobject differs (hashes only), from record 91 (+418 more)",
     "  script: 1 of 1 differ",
-    "    run: 1 script, 113 records, from 13; hash only (no numbers kept)",
     "    gobject: 1 script, 419 records, from 91; hash only (no numbers kept)",
-    "save current/z9q2.sav: 16 fields in 1 records differ: commands 16",
-    "  commands: 16 fields in 1 records; first commands blocks.4.cmd0.float0: 1.0 in the old golden, ~eval in the new run"
+    "save current/z9q2.sav: 1 fields in 1 records differ: commands 1",
+    "  commands: 1 fields in 1 records; first commands globals.objects.2.value: ~loop in the old golden, 1000197 in the new run"
   ]
 }

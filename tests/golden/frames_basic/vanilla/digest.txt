@@ -602,7 +602,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 10 tick 40 zone gz1g hash 3DC5D9F9 n 791
+@ 1 update 40 frame 10 tick 40 zone gz1g hash 614A3D59 n 791
 world tick 40
 world updates 40
 world timeBase 5.96111107
@@ -6340,7 +6340,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 890B9E0B
+script #gobject 83A825DA
 script #inst 8C20D7F0
 script #instances 00A7DFBD
 script #run 0B7E7945
@@ -6374,7 +6374,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit 3C3127AE
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 14 tick 60 zone gz1g hash 88735201 n 791
+@ 2 update 60 frame 14 tick 60 zone gz1g hash 43B523D7 n 791
 world tick 60
 world updates 60
 random isaac.count 175
@@ -6414,6 +6414,7 @@ obj1000011214 #vitals 9BA26E9A
 missile0 # E277A3C4
 missile1 # 86C06CC1
 aievents tick 60
+script #gobject 3656F9F8
 script #inst AA0C8751
 script #instances 9EC34A1E
 script #runs F80920E1
@@ -6427,7 +6428,7 @@ cunit1804 #unit 5C45B653
 cunit1884 #place AE30F036
 cunit1000011214 #place 962700A3
 cunit1000011214 #unit F0FA8793
-@ 3 update 80 frame 18 tick 80 zone gz1g hash 61BC1BA2 n 791
+@ 3 update 80 frame 18 tick 80 zone gz1g hash AA7A6A74 n 791
 world tick 80
 world updates 80
 random isaac.count 62
@@ -6465,7 +6466,7 @@ client ticksRun 42
 cunit1804 #place 450BFC7F
 cunit1804 #unit 5772E82F
 cunit1000011214 #place FF01FC81
-@ 4 update 100 frame 28 tick 87 zone gz1g hash 4ECFD62D n 790
+@ 4 update 100 frame 28 tick 87 zone gz1g hash 18A44859 n 790
 world tick 87
 world updates 100
 world paused 1
@@ -6508,6 +6509,7 @@ missile0 # 021E3306
 missile1 # 66A9FC03
 aievents tick 87
 script #ggroup 389CDF48
+script #gobject 83A825DA
 script #inst B9171E66
 client tick 87
 client paused 1
@@ -6518,7 +6520,7 @@ cunit1804 #place DF969219
 cunit1100011214 #place 125B38F9
 cunit1100011214 #unit 0A1E38F7
 cunit1100011214 #vitals 54F14E8E
-@ 5 update 120 frame 35 tick 97 zone gz1g hash 105EDEDC n 791
+@ 5 update 120 frame 35 tick 97 zone gz1g hash 37CEFFFC n 791
 world tick 97
 world updates 120
 world paused 0
@@ -6584,7 +6586,7 @@ cunit1000011214 #place E886AEF9
 cunit1000011214 #unit 36D2B2F5
 cunit1000011214 #vitals 7D2D89BA
 - cunit1100011214
-@ 6 update 140 frame 39 tick 117 zone gz1g hash AF1BEB40 n 789
+@ 6 update 140 frame 39 tick 117 zone gz1g hash DE93C564 n 789
 world tick 117
 world updates 140
 world objects 777

@@ -753,8 +753,8 @@ A `.mob`'s script runs from a `.lua` when one is there (L8, user 2026-11-10; the
 - **The same record either way** (L8a, so that a converted install's goldens are the normal install's, and L9's
   will be): the digest's script record (harness_digest_image.cpp, `ReadRuns`) and tools/savefile.py describe the
   script in the terms both executors share (`Script::InstanceViews` / `RunViews`, script.h `ScriptRunView`):
-  - the globals by their old names (on Lua their Lua values), but the loops' counters (the global object a For,
-    ForIf, Every, Any or Sum names: the converted Lua keeps it in the loop's function; savefile rule `loop`);
+  - the globals by their old names (on Lua their Lua values), the loops' counters too (L8c: the bindings set the
+    counter global a converted loop names as the game's loops do; lua-scripting.md "Loop counters");
   - the instances by definition name, kill flag and values (typed as the definition's parameters);
   - the runs by definition and rule (a WorldScript's: no name, -1), ticks, sleep start, instance and values (a
     scheduler's run keeps its definition, rule and starting values for this: `Run::values`, persisted with it);
@@ -788,9 +788,9 @@ A `.mob`'s script runs from a `.lua` when one is there (L8, user 2026-11-10; the
 - With EI_LUA_BOTH=1 the three pass with the mission shadow stopped at the zone's load ("2 times on a mod's Lua": the
   zone's .mob and LoadZoneScripts' reload).
 - A converted install (`work.py test <ID> --converted --golden --rebirth`) runs every zone's mission script from its
-  ei-convert `.lua`. With the record above (L8a, 2026-11-10): 444 runs pass, 376 goldens the same, 2 differ:
-  rebirth_flags on both installs, whose `listgvar` line prints the loop counter `VSS#i#val` (a unit on the old
-  executor, null on Lua: the console reads `GlobalValues`, which keeps the counters; L8c). Before L8a 186 of 233 and
+  ei-convert `.lua`. With the record above and the counters set (L8c, 2026-11-10): 447 runs pass, 381 goldens the
+  same, 0 differ (rebirth_flags' `listgvar` line prints `VSS#i#val : object = <CUnit:...>` on Lua too; before L8c it
+  printed null there and its goldens differed). Before L8a 186 of 233 and
   129 of 145 differed in the script record and the saves' `commands` alone. Lost in Astral's bz23k.mob and
   zone10hunter.mob, which the parser stops in, keep their error and their WorldScript unstarted on Lua as in the game.
 - `mod_lua_addmob` (vanilla; make_trap_mob.py makes `l8b_addmob.mob`, one of zone 1's objects renumbered and no

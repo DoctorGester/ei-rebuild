@@ -1765,7 +1765,7 @@ cunit1000205 #vitals 42557372
 cunit1000206 #place 0581AB39
 cunit1000206 #unit 39D43514
 cunit1000206 #vitals 75BE0BF3
-@ 1 update 95 frame 19 tick 95 zone gz11g hash C1008CE7 n 1617
+@ 1 update 95 frame 19 tick 95 zone gz11g hash 1A33BD02 n 1617
 world tick 95
 world updates 95
 world timeBase 5.96444511
@@ -14176,7 +14176,7 @@ aievents height 41
 script #files 012FC665
 script #ggroup C3CD34F6
 script #globals AD81D100
-script #gobject 52F34D93
+script #gobject 99476658
 script #inst 9F935ED8
 script #instances 8AC57B95
 client tick 96
@@ -14209,7 +14209,7 @@ cunit2002351 #vitals 93C7AB50
 cunit1000011214 #place F97673BE
 cunit1000011214 #unit 3D14E0C5
 cunit1000011214 #vitals 4CF313FE
-@ 2 update 130 frame 26 tick 130 zone gz11g hash 4CEC9686 n 1614
+@ 2 update 130 frame 26 tick 130 zone gz11g hash 78BBBEDA n 1614
 world tick 130
 world updates 130
 world updateMap 85
@@ -14387,7 +14387,7 @@ client synchronised 2
 - cunit2002351
 cunit1000011214 #place 1643D143
 cunit1000011214 #vitals 3332B6D7
-@ 3 update 195 frame 39 tick 195 zone gz12g hash EDDD16CA n 118
+@ 3 update 195 frame 39 tick 195 zone gz12g hash B6A160B1 n 118
 world tick 195
 world updates 195
 world timeBase 5.95666695
@@ -16968,7 +16968,7 @@ cunit2002346 #vitals B03B246E
 cunit1000011214 #place C5F3580B
 cunit1000011214 #unit 1419A93F
 cunit1000011214 #vitals 78BB4117
-@ 4 update 900 frame 180 tick 900 zone gz12g hash 328859C3 n 123
+@ 4 update 900 frame 180 tick 900 zone gz12g hash B8412564 n 123
 world tick 900
 world updates 900
 world timedObjects 1

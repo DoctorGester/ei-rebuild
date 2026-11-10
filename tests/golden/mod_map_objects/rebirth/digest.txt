@@ -1311,7 +1311,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone gz1g hash E1296FB8 n 794
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 8A45403A n 794
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -7171,7 +7171,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 890B9E0B
+script #gobject 3656F9F8
 script #inst AA0C8751
 script #instances 9EC34A1E
 client tick 40
@@ -7212,7 +7212,7 @@ cunit2009 #vitals ED40ECA3
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C101BFBC
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 501BDABE n 794
+@ 2 update 60 frame 11 tick 60 zone gz1g hash 3B77F53C n 794
 world tick 60
 world updates 60
 random isaac.count 193
@@ -7265,7 +7265,7 @@ cunit1884 #place AE30F036
 cunit1947 #place A1284CDD
 cunit2009 #place 3B492268
 cunit1000011214 #place FF01FC81
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 310811C1 n 794
+@ 3 update 80 frame 15 tick 80 zone gz1g hash 5A643E43 n 794
 world tick 80
 world updates 80
 random isaac.count 239
@@ -7312,7 +7312,7 @@ cunit1947 #place B652F84B
 cunit1947 #unit F2B2B85A
 cunit2009 #place EBD2DFB6
 cunit1000011214 #unit C6081760
-@ 4 update 100 frame 19 tick 100 zone gz1g hash BAAFA113 n 794
+@ 4 update 100 frame 19 tick 100 zone gz1g hash D1C38E91 n 794
 world tick 100
 world updates 100
 random isaac.count 43
@@ -7347,7 +7347,7 @@ client ticksRun 72
 cunit1804 #place 0B0BC947
 cunit1947 #place 9915D1FD
 cunit2009 #place AFEF6B7D
-@ 5 update 120 frame 23 tick 120 zone gz1g hash 6A2AB19A n 794
+@ 5 update 120 frame 23 tick 120 zone gz1g hash 01469E18 n 794
 world tick 120
 world updates 120
 random isaac.count 98
@@ -7385,7 +7385,7 @@ client ticksRun 92
 cunit1804 #place 5D944E41
 cunit1947 #place 15E23929
 cunit2009 #place C43A4720
-@ 6 update 140 frame 27 tick 140 zone gz1g hash E1542215 n 794
+@ 6 update 140 frame 27 tick 140 zone gz1g hash 8A380D97 n 794
 world tick 140
 world updates 140
 random isaac.count 139

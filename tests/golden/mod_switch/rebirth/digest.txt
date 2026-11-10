@@ -4319,7 +4319,7 @@ cunit388 #vitals 1F5A7471
 - cunit30908
 - cunit1000205
 - cunit1000206
-@ 3 update 80 frame 15 tick 40 zone gz1g hash 490FA1DD n 832
+@ 3 update 80 frame 15 tick 40 zone gz1g hash 82C9D00B n 832
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -10435,7 +10435,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 890B9E0B
+script #gobject 3656F9F8
 script #inst AA0C8751
 script #instances 9EC34A1E
 client tick 40

@@ -485,37 +485,6 @@ void ReadRuns(Script* s, Builder& b) {
     }
 }
 
-// The global objects some loop names as its counter (For, ForIf, Every, Any, Sum: the parser's global object at
-// argument 0), by index. The converted Lua keeps a counter in its loop's function and leaves the global as it was,
-// so neither executor's is read.
-void MarkCounters(const ScriptCall& call, std::vector<bool>& counters) {
-    switch (call.id) {
-    case ScriptFunction::For:
-    case ScriptFunction::ForIf:
-    case ScriptFunction::Every:
-    case ScriptFunction::Any:
-    case ScriptFunction::Sum:
-        for (const ScriptBinding& binding : call.globalBindings) {
-            if (binding.type != ScriptType::Object || binding.argIndex != 0 || binding.varIndex < 0) continue;
-            const std::size_t index = static_cast<std::size_t>(binding.varIndex);
-            if (index >= counters.size()) counters.resize(index + 1);
-            counters[index] = true;
-        }
-        break;
-    default:
-        break;
-    }
-    for (const ScriptSubCall& sub : call.subCalls) MarkCounters(*sub.cmd, counters);
-}
-
-std::vector<bool> LoopCounters(const Script* s) {
-    std::vector<bool> counters;
-    for (const std::list<ScriptBlock>* list : {&s->blocks, &s->worldBlocks})
-        for (const ScriptBlock& block : *list)
-            for (const ScriptCall& call : block.commands) MarkCounters(call, counters);
-    return counters;
-}
-
 // The mission script (Script, script.h): its running instances and waiting runs (ReadRuns), the global variables
 // (floats by name, the rest as hashes), and the effects it keeps with their countdowns; on the old executor or on Lua
 // (its scheduler and Lua globals) alike.
@@ -526,11 +495,10 @@ void ReadScript(Script* s, Builder& b) {
     b.Int("nextFxId", s->nextFxId);
     ReadRuns(s, b);
     // The global variables by name (by index past the names, "<kind>#"): floats, strings (a hash of the
-    // text), objects (the id, but for the loops' counters) and groups (a hash of the sorted ids).
+    // text), objects (the id) and groups (a hash of the sorted ids).
     ScriptVars luaGlobals;
     if (s->runner) luaGlobals = s->GlobalValues();
     const ScriptVars& g = s->runner ? luaGlobals : s->globals;
-    const std::vector<bool> counters = LoopCounters(s);
     auto field = [&b](const char* kind, const auto& names, std::size_t v, Kind type, std::uint32_t value) {
         if (v < names.size()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
         else b.Add(Intern(std::string(kind) + "#"), static_cast<int>(v), type, value);
@@ -538,8 +506,7 @@ void ReadScript(Script* s, Builder& b) {
     for (std::size_t v = 0; v < g.floats.values.size(); ++v) field("global", g.floats.names, v, Kind::Float, FloatBits(g.floats.values[v]));
     for (std::size_t v = 0; v < g.strings.values.size(); ++v) field("gstring", g.strings.names, v, Kind::Bits, TextHash(Text(g.strings.values[v])));
     for (std::size_t v = 0; v < g.objects.values.size(); ++v)
-        if (v >= counters.size() || !counters[v])
-            field("gobject", g.objects.names, v, Kind::Int, static_cast<std::uint32_t>(IdOf(g.objects.values[v].object)));
+        field("gobject", g.objects.names, v, Kind::Int, static_cast<std::uint32_t>(IdOf(g.objects.values[v].object)));
     for (std::size_t v = 0; v < g.groups.values.size(); ++v) {
         std::vector<int> ids;
         for (const ScriptObjectRef& member : g.groups.values[v]) ids.push_back(IdOf(member.object));

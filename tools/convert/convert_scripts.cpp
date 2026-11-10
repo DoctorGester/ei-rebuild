@@ -650,12 +650,10 @@ fs::path g_luaFolder;
 
 void Sum(scriptlua::LuaText& to, const scriptlua::LuaText& from) {
     to.loops += from.loops;
-    to.countersWritten += from.countersWritten;
     to.argumentFunctions += from.argumentFunctions;
     to.groupCopies += from.groupCopies;
     to.suffixedNames += from.suffixedNames;
     to.renamedParams += from.renamedParams;
-    to.lateCounterReads += from.lateCounterReads;
     to.lateSettledWrites += from.lateSettledWrites;
     to.unresolvedNames += from.unresolvedNames;
 }
@@ -706,7 +704,6 @@ LuaResult LoadLua(LuaSide& side, const Source& source, const scriptir::File& fil
     }
     lua_pushnil(L);
     lua_setglobal(L, "WorldScript");
-    if (lua.lateCounterReads) failures.push_back("reads a loop counter an earlier text's loop does not write");
     if (lua.lateSettledWrites) failures.push_back("assigns a global an earlier text's wait read once");
     if (lua.unresolvedNames) failures.push_back("names the writer did not know");
     return result;
@@ -1112,11 +1109,10 @@ void PrintLuaStats(const std::string& title, const LuaStats& s) {
     std::printf("== %s: %d texts written as %d lines of Lua, %d fail to load or check\n", title.c_str(), s.texts,
                 s.lines, s.failed);
     std::printf(
-        "  loops over a member function %d (writing their counter %d), argument functions %d, group copies %d, names"
-        " suffixed %d, parameters renamed %d, late counter reads %d, late settled writes %d, unresolved names"
-        " %d\n",
-        w.loops, w.countersWritten, w.argumentFunctions, w.groupCopies, w.suffixedNames, w.renamedParams,
-        w.lateCounterReads, w.lateSettledWrites, w.unresolvedNames);
+        "  loops on a counter %d, argument functions %d, group copies %d, names suffixed %d, parameters renamed %d,"
+        " late settled writes %d, unresolved names %d\n",
+        w.loops, w.argumentFunctions, w.groupCopies, w.suffixedNames, w.renamedParams, w.lateSettledWrites,
+        w.unresolvedNames);
     PrintListing("failures", s.failures);
 }
 

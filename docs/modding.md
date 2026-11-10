@@ -489,6 +489,14 @@ end
 - **Waits.** `Sleep(ticks)`, `WaitSegment(ticks)`, `SleepUntil(condition)` and `SleepUntilIdle(unit)` pause the
   running function and go on in a later tick. `ForEach(group, function(member) ... end)` walks a group from its last
   member to its first; a wait inside its body ends the body for that member, as the game's For does.
+- **Loop counters.** `ForEach`, `ForEachIf`, `Every`, `Any` and `Sum` take the name of a counter global first if you
+  give one, as ei-convert's files do: `ForEach("i", Heroes, function(i) ... end)` is the game's `For(i, Heroes)`.
+  Like the game's loop it then sets that global (an `object` of `GlobalVars`, else an error) to each member before
+  calling the function, so after the loop it holds the last member it reached: the first member after `ForEach` and
+  `ForEachIf`, the member `Every` or `Any` stopped at (the last one after `Sum`); a number for the condition, or an
+  empty group, leaves it as it was. Other code that reads the global (another definition, a later `Sleep`, the
+  console's `listgvar`) sees that value. Leave the name out and the loop writes no global: the member is only the
+  function's parameter.
 - **Randomness.** `Random(n)` draws from the game's generator, so the game plays the same from a save and in a network
   game. Lua's `math.random` is not there.
 - **What else Lua gives.** Lua 5.3's base functions, `string`, `table`, `math`, `utf8` and `coroutine`. `print(...)`

@@ -445,49 +445,74 @@ float ConditionValue(lua_State* L, int index, const char* function) {
     return 0.0f;
 }
 
-// Argument `index`: a constant (a number) or a function of the member called for each.
-float MemberCondition(lua_State* L, int index, MapObject* member, const char* function) {
+// Argument `index`: a constant (a number) or a function called with the member on top of the stack.
+float MemberCondition(lua_State* L, int index, const char* function) {
     if (lua_type(L, index) == LUA_TNUMBER) return FromLuaNumber(lua_tonumber(L, index));
     lua_pushvalue(L, index);
-    PushObject(L, member);
+    lua_pushvalue(L, -2);
     lua_call(L, 1, 1);
     const float value = ConditionValue(L, -1, function);
     lua_pop(L, 1);
     return value;
 }
 
-// A loop's arguments: the group, then `conditions` conditions (a number or a function), then `bodies` functions.
-void CheckLoopArguments(lua_State* L, const char* function, int conditions, int bodies) {
-    const int count = 1 + conditions + bodies;
+// A loop's arguments: the name of its counter global (optional), the group, then `conditions` conditions (a number or
+// a function), then `bodies` functions. The counter is an object global of GlobalVars, as the game's counter
+// argument is. Returns the group's index: 2 after a counter, else 1.
+int CheckLoopArguments(lua_State* L, const char* function, int conditions, int bodies) {
+    const int group = lua_type(L, 1) == LUA_TSTRING ? 2 : 1;
+    const int count = group + conditions + bodies;
     if (lua_gettop(L) != count) luaL_error(L, "%s: %d arguments, not %d", function, lua_gettop(L), count);
-    if (!luaL_testudata(L, 1, kGroupMeta)) ArgumentError(L, function, 1, "group");
-    for (int arg = 2; arg <= count; ++arg) {
-        const bool condition = arg <= 1 + conditions;
+    if (group == 2) {
+        lua_getfield(L, LUA_REGISTRYINDEX, kGlobalsKey);
+        lua_pushvalue(L, 1);
+        lua_rawget(L, -2);
+        const bool object = lua_type(L, -1) == LUA_TSTRING && std::string_view(lua_tostring(L, -1)) == "object";
+        lua_pop(L, 2);
+        if (!object) luaL_error(L, "%s: the counter %s is no object global of GlobalVars", function, lua_tostring(L, 1));
+    }
+    if (!luaL_testudata(L, group, kGroupMeta)) ArgumentError(L, function, group, "group");
+    for (int arg = group + 1; arg <= count; ++arg) {
+        const bool condition = arg <= group + conditions;
         const int type = lua_type(L, arg);
         if (type == LUA_TFUNCTION || (condition && type == LUA_TNUMBER)) continue;
         ArgumentError(L, function, arg, condition ? "number or function" : "function");
     }
+    return group;
 }
 
-// Every / Any / Sum(group, condition): CalcFloat's, the condition called for each member from the first (the group's
-// size read again after each); a number for the condition is the game's call without a nested one.
+// The member pushed for one step of a loop and, where the loop names a counter (`group` 2), set into that global: the
+// game's loop sets its counter before each evaluation of the condition and each run of the body, so the global holds
+// the last member walked or tested (the first after ForEach, the one Every / Any stopped at).
+void PushMember(lua_State* L, int group, MapObject* member) {
+    PushObject(L, member);
+    if (group == 1) return;
+    lua_pushvalue(L, -1);
+    lua_setglobal(L, lua_tostring(L, 1));
+}
+
+// Every / Any / Sum([counter,] group, condition): CalcFloat's, the condition called for each member from the first
+// (the group's size read again after each); a number for the condition is the game's call without a nested one, which
+// leaves the counter as it was.
 template <ScriptFunction kind>
 int Aggregate(lua_State* L) {
     const char* const name = kind == ScriptFunction::Every ? "Every" : kind == ScriptFunction::Any ? "Any" : "Sum";
-    CheckLoopArguments(L, name, 1, 0);
-    const ScriptGroup* group = CheckGroup(L, 1);
+    const int at = CheckLoopArguments(L, name, 1, 0);
+    const ScriptGroup* group = CheckGroup(L, at);
     ScriptShadow* const shadow = ScriptLua::Of(L)->script->shadow;
     if (shadow) shadow->EnterLoop(*group);
     float result;
-    if (lua_type(L, 2) == LUA_TNUMBER) {
-        const float constant = FromLuaNumber(lua_tonumber(L, 2));
+    if (lua_type(L, at + 1) == LUA_TNUMBER) {
+        const float constant = FromLuaNumber(lua_tonumber(L, at + 1));
         if constexpr (kind == ScriptFunction::Every) result = constant;
         else if constexpr (kind == ScriptFunction::Any) result = ScriptBool(constant != 0.0f);
         else result = static_cast<float>(group->size()) * constant;
     } else {
         result = ScriptBool(kind == ScriptFunction::Every);
         for (std::size_t k = 0; k < group->size(); ++k) {
-            const float value = MemberCondition(L, 2, (*group)[k].object, name);
+            PushMember(L, at, (*group)[k].object);
+            const float value = MemberCondition(L, at + 1, name);
+            lua_pop(L, 1);
             if constexpr (kind == ScriptFunction::Every) {
                 if (value == 0.0f) {
                     result = 0.0f;
@@ -511,15 +536,16 @@ int Aggregate(lua_State* L) {
     return 1;
 }
 
-// A loop body run for one member as the game's RunBody runs it: in the same run, from a fresh position (its one Execute
-// counted), on a thread of its own; a wait in it ends the body for this member (the thread is dropped).
-void RunBody(lua_State* L, int body, MapObject* member) {
+// A loop body run for the member on top of the stack as the game's RunBody runs it: in the same run, from a fresh
+// position (its one Execute counted), on a thread of its own; a wait in it ends the body for this member (the thread
+// is dropped).
+void RunBody(lua_State* L, int body) {
     ScriptRun* run = ScriptLua::Of(L)->Run();
     const ScriptRunPosition saved = run->position;
     run->position = {nullptr, 0, 1, -1};
     lua_State* thread = lua_newthread(L);
     lua_pushvalue(L, body);
-    PushObject(L, member);
+    lua_pushvalue(L, -3);
     lua_xmove(L, thread, 2);
     const int status = lua_resume(thread, L, 1);
     run->position = saved;
@@ -535,13 +561,17 @@ MapObject* MemberAt(const ScriptGroup* group, int i) {
     return i < static_cast<int>(group->size()) ? (*group)[static_cast<std::size_t>(i)].object : nullptr;
 }
 
-// ForEach(group, body) (For): the members from last to first, the size read once.
+// ForEach([counter,] group, body) (For): the members from last to first, the size read once.
 int ForEach(lua_State* L) {
-    CheckLoopArguments(L, "ForEach", 0, 1);
-    const ScriptGroup* group = CheckGroup(L, 1);
+    const int at = CheckLoopArguments(L, "ForEach", 0, 1);
+    const ScriptGroup* group = CheckGroup(L, at);
     ScriptShadow* const shadow = ScriptLua::Of(L)->script->shadow;
     if (shadow) shadow->EnterLoop(*group);
-    for (int i = static_cast<int>(group->size()) - 1; i >= 0; --i) RunBody(L, 2, MemberAt(group, i));
+    for (int i = static_cast<int>(group->size()) - 1; i >= 0; --i) {
+        PushMember(L, at, MemberAt(group, i));
+        RunBody(L, at + 1);
+        lua_pop(L, 1);
+    }
     if (shadow) {
         ScriptLua::Of(L)->calling = L;
         shadow->LeaveLoop(ScriptFunction::For, 0.0f);
@@ -549,15 +579,16 @@ int ForEach(lua_State* L) {
     return 0;
 }
 
-// ForEachIf(group, condition, body) (ForIf): the same, the body only where the condition is not zero.
+// ForEachIf([counter,] group, condition, body) (ForIf): the same, the body only where the condition is not zero.
 int ForEachIf(lua_State* L) {
-    CheckLoopArguments(L, "ForEachIf", 1, 1);
-    const ScriptGroup* group = CheckGroup(L, 1);
+    const int at = CheckLoopArguments(L, "ForEachIf", 1, 1);
+    const ScriptGroup* group = CheckGroup(L, at);
     ScriptShadow* const shadow = ScriptLua::Of(L)->script->shadow;
     if (shadow) shadow->EnterLoop(*group);
     for (int i = static_cast<int>(group->size()) - 1; i >= 0; --i) {
-        MapObject* member = MemberAt(group, i);
-        if (!IsZero(MemberCondition(L, 2, member, "ForEachIf"))) RunBody(L, 3, member);
+        PushMember(L, at, MemberAt(group, i));
+        if (!IsZero(MemberCondition(L, at + 1, "ForEachIf"))) RunBody(L, at + 2);
+        lua_pop(L, 1);
     }
     if (shadow) {
         ScriptLua::Of(L)->calling = L;
