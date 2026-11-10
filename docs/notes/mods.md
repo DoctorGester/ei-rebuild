@@ -61,6 +61,9 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
 | `src/game/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
+| `src/game/script/script_lua_mission.cpp` | a mission script on Lua ("Scripts in Lua"): `Script::LoadLua`, `GlobalValues`, `GlobalGroup`; the scheduler's views for the digest |
+| `src/game/map/mob_toml.h`, `.cpp` | `FindScriptLua` (a .mob's .lua through the layers), `ScriptFile` (a TOML's `script` key), `ScriptLuaName` |
+| `tools/make_lua_mod.py`, `tests/scenarios/mod_lua_plain.txt`, `mod_lua_none.txt`, `mod_lua_changed.txt` | a mod's zone1.lua: the plain conversion and its twin on the old executor, and one with the mod's own lines through a save |
 
 ## Choosing a mod
 
@@ -602,10 +605,10 @@ for the TOML, looked for as a record file's (`FindRecordFile` without reading th
 top first, down to the first that has the .mob); the top one that parses is the whole of the objects, the weather and
 the player table (no merge: a mod's file holds every record, as a camera path's). The scripts are still read from the
 `.mob` (`MobFile::ReadChunks(false)`: its script chunks alone), and so are the AI graph (`ReadAIGraph`) and the main
-script (`LoadZoneScripts`); with a TOML the `.mob` may be missing (no scripts then). L5 moves the scripts to the
-`.lua` that the TOML's `script` key names. Both readers build one `mapspec::MobContents` (map_spec.h: the records,
-the weather, the player table, the relations flag, the scripts), which `mapspec::LoadMob` applies as the zone loader
-did.
+script (`LoadZoneScripts`); with a TOML the `.mob` may be missing (no scripts then). The `.lua` the TOML's `script`
+key names runs in place of the scripts when it is there ("Scripts in Lua"). Both readers build one
+`mapspec::MobContents` (map_spec.h: the records, the weather, the player table, the relations flag, the scripts, the
+TOML's `script` key), which `mapspec::LoadMob` applies as the zone loader did.
 
 ```toml
 # A .mob's map objects (docs/notes/mods.md, "Map objects as TOML"); its script stays in the .mob.
@@ -703,8 +706,77 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
   2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
   pigs by the names the TOML gives.
 - Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or none
-  when no layer has one), as do its scripts until L5; a mod that moves objects keeps the game's graph, which the TOML
-  does not carry.
+  when no layer has one); a mod that moves objects keeps the game's graph, which the TOML does not carry. Its scripts
+  can be a `.lua` ("Scripts in Lua").
+
+## Scripts in Lua
+
+A `.mob`'s script runs from a `.lua` when one is there (L8, user 2026-11-10; the modder's side: docs/modding.md,
+"Scripts"). The scripts' Lua runtime, scheduler and saves are lua-scripting.md's.
+
+- **Which file.** `mobtoml::FindScriptLua` (mob_toml.cpp): the name the `.mob.toml`'s `script` key gives (the TOML
+  `mobtoml::Find` used; `MobContents::scriptFile`), else the .mob's name with `.lua`, in the .mob's folder of each layer
+  of the path map, top first, down to the first layer that has the `.mob` (MF3's rule for a record's TOML): a mod that
+  ships its own `.mob` takes the `.lua` from its own layer only, and a converted install's `Maps\zone1.lua` stands for
+  its own zone1.mob. Looked for at every load of a .mob's script into the mission script: a zone's (`LoadMapObjects`
+  then `mapspec::LoadMob`, and `WorldServer::LoadZoneScripts` for a brief zone, which reloads the script after it,
+  reading the TOML's key with `mobtoml::ScriptFile`) and an AddMob'd one. A TOML that names a file no layer has (every
+  ei-convert TOML names `<stem>.lua`) runs the .mob's script.
+- **Script::LoadLua** (script_lua_mission.cpp). The script goes on Lua the first time: a ScriptLuaScheduler is made on
+  it (`Script::runner`) and what the old executor held so far goes on in it through the old-save shim (`Resume`: empty
+  for a zone's own .mob, which loads after a reset; an AddMob'd .mob's `.lua` into a zone on the old executor takes
+  its program and state over), the shadow stands aside (`ScriptShadow::RunsOnLua`). Then the .mob's text is parsed as
+  before (the parser's declarations and `fileCount`: later texts' names) and converted (the scheduler's `names`: the
+  Lua names those texts refer to), and the `.lua` is loaded in its place (a UTF-8 byte order mark dropped), its chunk
+  `Maps\<file>` (`mobtoml::ScriptLuaName`), its WorldScript started. A file that does not load is error 18 with Lua's
+  message (the caller's `Script error: zone1.mob line 0: Maps\zone1.lua:<line>: ...`). Every later text (an AddMob'd
+  mob without a `.lua`, QFinish's quests, execs files) goes through Script::Load to the scheduler as L7's runtime
+  conversion; the console's lines stay in the world's second script, on the old executor.
+- **On Lua.** `Script::Tick` is the scheduler's tick (a Reset inside it drops the scheduler after it: `retired`),
+  `ResetZone` the scheduler's, `Reset` drops it (the next zone decides again). The world's reads of the script's
+  globals go through `Script::GlobalGroup` (the Heroes group the server gives its players, world_server.cpp) and
+  `Script::GlobalValues` (Rebirth's `listgvar`, the digest): the old executor's variables, or on Lua the Lua values
+  under the old names (the names map), then the globals only a Lua GlobalVars declared.
+- **Saves.** `Script::SaveState` writes the old format as before (the parsed program, the variables as the parser left
+  them, no instances or runs) with `loaded` 2 (`kScriptLoadedOnLua`) and after the areas the scheduler's Eris state
+  (`ScriptLuaScheduler::Save`, a count and its bytes; one that does not persist is written empty and said on the
+  console). `LoadState` reads it back into a new scheduler (`Restore`): a save on Lua goes on there with its own code,
+  whatever the zone's files say now, and an old-format save stays on the old executor. A script not on Lua writes
+  exactly what it wrote before (saves byte-identical). tools/savefile.py decodes the state as `luaBytes` and `~lua`
+  (rule `lua`: Eris writes tables in the order of Lua's string hashes, whose seed changes every run; the size is the
+  same). The digest reads the scheduler in the old fields (harness_digest_image.cpp, `ReadLuaRuns`): instances by the
+  tree's name with their values, runs with their ticks, sleep start and instance, but block and command -1 and no
+  values (Lua has no block ids), the globals by their old names.
+- **The sandbox** (script_lua.cpp, every ScriptLua): no io, os, debug, package / require, dofile / loadfile; no
+  `math.random` / `math.randomseed` (C's rand() is a draw outside the game's: a script draws through `Random`, the
+  game's generator, saved with the game); `print` writes a console line; `load` text only (bytecode could break the
+  state); `pairs` walks the keys sorted (numbers, strings by bytes, false, true, then the rest in no set order; a
+  `__pairs` first), since Lua's own order follows the seeded string hashes.
+- **The lockstep.** With EI_LUA_BOTH the mission shadow stops comparing when its script goes on Lua (its report adds
+  `N times on a mod's Lua (not compared)`) and starts again at the script's next reset or old-format load.
+
+### Checks
+
+- `ei-convert --lua-check` (the build checks): the sandbox (each removed name, `load` refusing bytecode, the `pairs`
+  order, `__pairs`) and a mission on Lua through SaveState and LoadState into another script (the coroutine's local
+  count going on the same in both), a `.lua` that does not load as error 18.
+- `mod_lua_plain` (vanilla; tools/make_lua_mod.py plain): a mod whose only file but its config is `Maps\zone1.lua`,
+  ei-convert's conversion of the install's zone1.mob, through a new game, a save and its load. Its twin `mod_lua_none`
+  is the same mod without the file (the old executor). Their goldens (2026-11-10): the digests' 12 records and the
+  loaded save's dump the same but for the two loop counters the converted Lua does not write (`gobject.i`,
+  `gobject.VSS#i#val`: `golden.py diff <none>\digest.txt <plain>\digest.txt --ignore "gobject\.(i|VSS#i#val)$"` says
+  "the same"); the console the same; the saves the same but the script's part (`commands`: the old format's
+  evaluation slots and variables, which Lua does not write, and the Lua state).
+- `mod_lua_changed` (vanilla; make_lua_mod.py changed): the conversion with the mod's lines: two console lines (the
+  second the `pairs` order), a definition of the mod's that prints when a count reaches 3 and then fails (`Script
+  error: Maps\zone1.lua:<line>: L8 mod: a failing run`), and the WorldScript counting in a local variable into the game
+  variable l8.count; after a save and its load the count goes on from its saved value (a restarted coroutine would
+  count from 1).
+- With EI_LUA_BOTH=1 the three pass with the mission shadow stopped at the zone's load ("2 times on a mod's Lua": the
+  zone's .mob and LoadZoneScripts' reload).
+- Not covered by a scenario: an AddMob'd .mob's `.lua` (the shim's take-over of a running script), a TOML's `script`
+  key naming another file, a converted install (`--converted`: every zone runs on Lua, and the script's digest fields
+  of runs differ from the goldens: no block ids; the loop counters as above).
 
 ## Models as glTF
 
