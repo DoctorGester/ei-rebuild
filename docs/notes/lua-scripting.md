@@ -103,8 +103,8 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
   functions are reached only by harness lines.
 - **L3 (writer)**: no wait in a loop body, no nested loop, no ForIf, no #define and no written `!n!` in any shipped
   text, so converted missions need no special form for the end-the-body rule (the runtime keeps it for mods), and
-  KillScript is a call that sets a flag, the function going on ("Converted scripts"). Comments do not reach the tree;
-  carrying mods' comments needs the lexer to keep them (open).
+  KillScript is a call that sets a flag, the function going on ("Converted scripts"). Comments: vanilla's scripts
+  have none; Rebirth's 24 lines, AllHeroes 176, Lost in Astral 337 (cp1251), kept by L3a.
 - **L4 (scheduler).** KillScript-then-go-on is the main path (86% of kills), and a killed instance starting the next
   script (5,416) is common; the lost kill flag of a waiting run is not reached by content.
 - **L5 (lockstep).** The corpus is the 339 .mob scripts with their AddMob / quest parents; the hot condition bindings
@@ -245,6 +245,16 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). Nothing in t
   `--check <install>` converts and checks without writing ("mission script: 99 files, 0 failed"). `ei-convert --scripts
   ... --lua <folder>` writes every text of the survey as `<group>\<name>.lua`, the quest, engine and console texts too.
 - **The file.**
+  - Comments of the original (L3a). The lexer hands each comment (`//` to the end of the line, `/* */`) to the tree
+    (`scriptir::File::comments`: its line, whether a token of the text came before it on that line, its bytes), and the
+    writer puts it beside the tree's item by line: an item is a global, a definition (its `Script` line), a rule, a call
+    (a For body's too) or the WorldScript (`Block::line`). A comment on a line of its own is written, as `-- text` lines,
+    before the first item at or after its line (before a condition: inside the function, lined up with its `and`);
+    one after a token of its line goes at the end of the first Lua line of the last item at or before that line; what
+    follows the last item goes at the end of the file, and a text the parser stopped in drops what lies past its error.
+    Text is UTF-8 (the asset code page's bytes converted unless they already are UTF-8), each line trimmed, a block
+    comment one `--` line per line. Comments inside a call's arguments go before the next item; `Dump` leaves comments
+    out, so the tree check stays exact. A header comment (`-- <name>: converted by ei-convert ...`) is the writer's own.
   - A header comment; for a text the game's parser stops in, the error (what came before stays loaded, as in the game;
     its WorldScript, if the error came after it, the game runs only at the zone reset).
   - `GlobalVars { ... }`: the text's globals (a renamed one with its original name in a comment). A global the text
@@ -268,7 +278,7 @@ Script (AddMob'd mobs, network quests, quest texts, console lines). Nothing in t
     counter global's name, so the body reads it where the game's body read the global.
   - Numbers: the shortest text that reads back (as a double the binding rounds) as the parser's float (`54.5`, `72.17`,
     `0.1`), else `%.9g`; `-0.0` and `math.huge` where they occur. Strings quoted, a long bracket for paths
-    (`[[nature\thunder\2.wav]]`), bytes outside printable ASCII as `\ddd` (none: the scripts' cp1251 is in comments).
+    (`[[nature\thunder\2.wav]]`), bytes outside printable ASCII as `\ddd` (none: the scripts' cp1251 is in comments, which are written as UTF-8).
 - **Arguments as functions.** What the game evaluated again on each poll or member:
   - a wait's nested call (`SleepUntil(function() return IsDead(u) end)`, `Sleep(function() return Random(4) end)`);
   - a wait's global, unless it is settled: assigned at most once in the texts so far, at the top level of a

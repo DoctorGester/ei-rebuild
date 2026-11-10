@@ -85,7 +85,8 @@ space (a space inside quotes does not end it) or to one of `, ) ( : =` after its
 characters looked at; only the recognised prefix is kept and the rest scanned again (a number, a quoted string, or the
 longest keyword the text starts with, case-insensitively), so `(abc` is `(` `abc`, `1.5.5` is `1.5` `.5`, and `Run1` is
 `Run` `1`; `/*` starts a comment only at the start of a token and the search for `*/` starts after that token (`/**/2`
-does not close it; quoted `"*/"` inside is skipped); `//` runs to the end of the line. Keywords compare with
+does not close it; quoted `"*/"` inside is skipped); `//` runs to the end of the line (`Script::Tokenize` can hand each comment to the caller, `ScriptComment`, for the
+Lua writer; the parse is the same). Keywords compare with
 `text::CompareIgnoringCase` (src/lib/text_case.h), keeping `_strnicmp`'s rule that a zero byte in either string ends the
 compare; the keywords are ASCII, so the UTF-8 fold finds the same keyword as the original code page fold (the original's
 locale-aware `_strnicmp` per byte cost ~400 ms of a zone load).

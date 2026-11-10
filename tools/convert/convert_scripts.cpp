@@ -91,6 +91,61 @@ constexpr const char* kSamples[] = {
     "Script Broken() ( if ( IsLess( 1, 2 ) ) then ( Later( u ) ) )\n",
 };
 
+// A text with comments of both kinds (the bytes of "Привет" in cp1251 in two of them) before and after a global, a
+// definition, a rule, a condition, a command, the WorldScript and the end of the text; kCommentLua is its Lua.
+constexpr const char* kCommentSample =
+    "// head \xcf\xf0\xe8\xe2\xe5\xf2\n"
+    "GlobalVars( n : float ) // after globals\n"
+    "/* before the script */\n"
+    "Script Greet( k : float ) (\n"
+    "  // before the rule\n"
+    "  if ( IsLess( k, 5 )\n"
+    "       // before the second condition\n"
+    "       IsLess( 0, k ) ) then (\n"
+    "    // first command \xcf\xf0\xe8\xe2\xe5\xf2\n"
+    "    n = Add( k, 1 ) // after the assignment\n"
+    "    Sleep( 2 ) /* after the wait */\n"
+    "  )\n"
+    ")\n"
+    "/* block\n"
+    "   comment */\n"
+    "WorldScript( Greet( 1 ) ) // after the WorldScript\n"
+    "// last\n";
+
+constexpr const char* kCommentLua =
+    "-- comments: converted by ei-convert from the game's script (docs/notes/lua-scripting.md, \"Converted scripts\").\n"
+    "\n"
+    "GlobalVars {\n"
+    "    -- head \xd0\x9f\xd1\x80\xd0\xb8\xd0\xb2\xd0\xb5\xd1\x82\n"
+    "    n = \"float\", -- after globals\n"
+    "}\n"
+    "\n"
+    "-- before the script\n"
+    "-- Greet(k: float)\n"
+    "Greet = Script {\n"
+    "    -- before the rule\n"
+    "    {\n"
+    "        condition = function(k)\n"
+    "            return IsLess(k, 5) ~= 0\n"
+    "                -- before the second condition\n"
+    "                and IsLess(0, k) ~= 0\n"
+    "        end,\n"
+    "        action = function(k)\n"
+    "            -- first command \xd0\x9f\xd1\x80\xd0\xb8\xd0\xb2\xd0\xb5\xd1\x82\n"
+    "            n = Add(k, 1) -- after the assignment\n"
+    "            Sleep(2) -- after the wait\n"
+    "        end,\n"
+    "    },\n"
+    "}\n"
+    "\n"
+    "-- block\n"
+    "-- comment\n"
+    "function WorldScript()\n"
+    "    Greet(1) -- after the WorldScript\n"
+    "end\n"
+    "\n"
+    "-- last\n";
+
 constexpr ScriptFunction kWaits[] = {ScriptFunction::Sleep, ScriptFunction::WaitSegment, ScriptFunction::SleepUntil,
                                      ScriptFunction::SleepUntilIdle};
 
@@ -728,6 +783,19 @@ std::vector<std::string> LoadAndSurvey(Script& script, LuaSide& side, const Sour
     return quests;
 }
 
+// The comments of kCommentSample, where the Lua writer puts them (docs/notes/lua-scripting.md, "Converted scripts").
+void CheckComments() {
+    Script script;
+    std::string text = kCommentSample;
+    scriptir::File file;
+    script.Load(&text, false, &file);
+    scriptlua::LuaNames names;
+    const std::string lua = scriptlua::WriteLua(file, names, "comments").text;
+    if (lua == kCommentLua) return;
+    ++g_mismatches;
+    g_mismatchList.Add("samples\\comments: the Lua differs from the expected:\n" + lua);
+}
+
 // ---- The corpus ---------------------------------------------------------------------------------------------------
 
 // The group of a .mob: the mod's name under starter\Mods\<mod>, else the install folder's name.
@@ -1165,6 +1233,7 @@ int Main(const std::vector<std::string>& args) {
             LoadAndSurvey(samples, *samplesLua, sources.back());
         }
         Lockstep("samples", "samples", sources, true);
+        CheckComments();
     }
     if (!scenarios.empty()) {
         for (const auto& [scenario, lines] : ConsoleLines(scenarios)) {

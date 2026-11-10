@@ -410,7 +410,7 @@ bool Script::Parse(std::string* text, bool runWorldScript, scriptir::File& out) 
         for (const ScriptDefine& d : defines) out.defines.push_back({d.name, d.value, d.line, d.uses});
     }
 
-    if (!Tokenize(*text, &tokens)) return false;
+    if (!Tokenize(*text, &tokens, &out.comments)) return false;
     out.tokens = static_cast<int>(tokens.size());
 
     TokenReader reader(this, tokens);
@@ -424,6 +424,7 @@ bool Script::Parse(std::string* text, bool runWorldScript, scriptir::File& out) 
             worldScript = NewWorldScript();
             scriptir::Block& world = out.worldScripts.emplace_back();
             world.id = worldScript->id;
+            world.line = token.line;
             if (!LoadCommands(&worldScript->commands, &reader, nullptr, world)) return false;
             break;
         }

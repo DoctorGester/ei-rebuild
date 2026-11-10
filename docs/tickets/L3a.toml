@@ -4,3 +4,5 @@ group = "lua"
 depends = ["L3"]
 note = "L3's writer works from the parse tree, which has no comments (the lexer drops them). Vanilla's scripts have none; Rebirth's changed ones 24 lines, AllHeroes 176, Lost in Astral 337 (cp1251: convert to UTF-8). Keep each comment with its line in the tree (script_ir.h) and write it before the call or rule it precedes in the Lua (docs/notes/lua-scripting.md, \"Converted scripts\"); the tree check stays exact."
 order = 1318
+status = "review"
+started = "2026-11-10"
