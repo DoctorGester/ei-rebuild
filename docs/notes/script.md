@@ -4,7 +4,7 @@ Files (`src/game/`): `script.h` (the records and `Script`), `script_*.cpp` (grou
 exec_run, exec_helpers, save, load, blocks, cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)),
 `quest_database.cpp`, `text_manager.cpp`. Scenarios: `script_parse`, `script_exec`, `script_copy`, `script_fx`,
 `script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. The plan to
-run the scripts on Lua: `lua-scripting.md`.
+run the scripts on Lua and its runtime (`script_lua.*`, not run by the game yet): `lua-scripting.md`.
 
 ## Data structures
 
@@ -100,8 +100,8 @@ the radius), point lights move for their remaining steps then stop, particle sou
 and are removed; 5. temporaries freed. The WorldScript and every console `@` line first run on the next tick.
 
 `Execute`: counts the call; returns 0 if the block had already ended; otherwise drops deleted objects, then per command
-binds variables (`SetParameters`), evaluates nested calls (`CalcParameters`), runs the command, frees temporaries,
-advances. A waiting command leaves the index on itself and Execute returns 1: Sleep(n) records the tick count and waits
+binds variables (`SetParameters`), evaluates nested calls (`CalcParameters`), runs the command (`RunCommand`, which the
+Lua bindings call too, lua-scripting.md), frees temporaries, advances. A waiting command leaves the index on itself and Execute returns 1: Sleep(n) records the tick count and waits
 while `ticks - start < n` (FISTP-rounded n; so n further Execute calls), then resets it to -1; WaitSegment(n) waits while
 the run has been executed fewer than n times in total; SleepUntil(c) while c is 0 or NaN; SleepUntilIdle(unit) while the
 unit's brain has an action. For(counter, group)(body) / ForIf(counter, group, condition)(body) walk the group from last

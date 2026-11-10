@@ -35,6 +35,9 @@ def checks(out):
         # The script parse tree against what the loader builds, on the samples and the scenarios' console lines
         # (tools/convert/convert_scripts.cpp; docs/notes/lua-scripting.md, "Survey").
         [os.path.join(out, 'ei-convert.exe'), '--scripts', '--scenarios', os.path.join(ROOT, 'tests', 'scenarios'), '--quiet'],
+        # The scripts' Lua bindings on a small world of their own (tools/convert/lua_check.cpp; docs/notes/
+        # lua-scripting.md, "Bindings").
+        [os.path.join(out, 'ei-convert.exe'), '--lua-check'],
         # The interface canvases (src/render/render_ui) on the GPU (Direct3D 12) against CPU rules and GDI (tools/ui_check).
         [os.path.join(out, 'ei_ui_check.exe')],
         # The SDL backend's keys against Windows' layouts (tools/input_check).

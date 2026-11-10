@@ -130,7 +130,7 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
     (Survey below). The build runs it on the samples in `tools/convert/convert_scripts.cpp` and the scenarios' console
     lines (`--quiet`, no game data).
 - **Built-ins and data stay in C++.** Lua drives control flow and calls bindings generated from the keyword table, which go
-  to the same CalcFloat / CalcObject / CalcGroup / command code by id, under readable Lua names.
+  to the same CalcFloat / CalcObject / CalcGroup / command code by id, under readable Lua names ("Bindings" below).
   - Object references and groups are userdata over the existing types: reference counts, deleted-object dropping, and
     groups kept sorted (by object id, script.md).
   - Floats stay single precision. A float→double→float round trip is exact; check that NaN payloads survive, since
@@ -161,6 +161,78 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
   - The same built-ins under Lua names, with waits as yields.
   - A sandbox without io / os / debug.
   - Errors reported like "Script error: ...".
+
+## Bindings
+
+What exists (L2): `src/game/script/script_lua.h` (`ScriptLua`), Lua 5.3.5 with Eris in `third_party/eris`
+(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). Nothing in the game creates a `ScriptLua` yet.
+Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the unit check `lua_number.cpp`.
+
+- **The state.** Libraries base (without `dofile` / `loadfile`), coroutine, table, string, math, utf8; no io, os,
+  package or debug (L8 decides the rest: `math.random` and `print` are still there). The runtime of a state is in its
+  extra space (`ScriptLua::Of`).
+- **Generated from the keyword table.** The constructor walks `KeywordTable()` (the game's table with Rebirth's):
+  every entry with a function or command signature gets a binding, 276; the 11 punctuation and section words none.
+  A binding is one C closure (`CallBinding`) over that keyword's signature and a `ScriptCall` it reuses: the Lua
+  arguments go into the call's slots as `LoadFunction` would put them (Rebirth's `?`: the rest optional, `+`: the
+  letter before it repeated), then the same `CalcFloat` / `CalcObject` / `CalcGroup` / `scriptaddon::CalcString` runs
+  by id, or for a command `ScriptRun::RunCommand` (Execute's step, split out for this) in the current run; the
+  temporaries are freed after each call. Too few or too many arguments, or a value of the wrong type (no string for a
+  number or a number for a string) raise a Lua error.
+- **Special keywords** (no nested call or body in Lua): `For` / `ForIf` are `ForEach(group, body)` /
+  `ForEachIf(group, condition, body)`, members from last to first, the size read once; each body runs on a thread of its
+  own from a fresh position in the same run, and a wait in it ends the body for that member (RunBody's rule).
+  `Every` / `Any` / `Sum(group, condition)` call the condition for each member from the first (the size read again
+  each time); a number for the condition is the game's call without a nested one (`Every` copies it, `Sum` multiplies
+  it by the size). A condition gives a number or a boolean.
+- **Waits** yield from Lua: `Sleep`, `WaitSegment`, `SleepUntil` and `SleepUntilIdle` are Lua functions (the prelude in
+  script_lua.cpp) that poll their command's binding once per resume (`RunCommand`, so the run's ticks and sleep start
+  count as Execute's) and `coroutine.yield()` while it waits. An argument may be a function, called on every poll: the
+  game evaluated a nested call again on each Execute (`Sleep(Random(n))` draws every tick; `SleepUntil(c)` needs it).
+  `ScriptLua::Continue(thread, run, ...)` is Execute's step for a Lua run: it counts the tick and resumes with `run` as
+  the current run (KillScript sets its kill flag; outside a resume a run of its own without a flag, as the
+  WorldScript's). `--lua-check` compares the tick counts with the game's executor.
+- **Values.** A float is a Lua number (double) exactly; a number passed in rounds to the nearest float
+  (`script_lua_number.h`); NaNs keep sign and payload bit for bit both ways, signalling ones too (by bit operations,
+  not the FPU). Strings are Lua strings (UTF-8 bytes). Objects and groups are full userdata over `ScriptObjectRef` /
+  `ScriptGroup` (the counts held as the variables hold them; groups in id order through ScriptGroup's own methods;
+  `#g`, `g[i]` from 1; two values of one object are `==`, though each read is a new value, so not one table key). A
+  function result of no object is `nil`, and `nil` passes a null object. Every live value is linked into its runtime's
+  list: `ScriptLua::RemoveDeletedObjects` drops deleted objects from all of them, as the tick and
+  `Script::PurgeDeletedObjects` do to the variables (L4 calls it there). `NewGroup()` and `CopyGroup(g)` are the two
+  helpers: a group value is shared by reference, the game's assignment copied.
+- **Persistence.** `ScriptLua::Persist` / `Unpersist` (Eris) with permanents built at start: the globals table itself
+  and every function in it and in the libraries' tables by name (`_G.GetObject`, `coroutine.yield`), and the hidden
+  helpers. So the globals are not in the data (L6 has to save the scripts' own globals another way), and a coroutine
+  waiting in `Sleep` resumes in the new state's own `Sleep`. An object persists as its id, a group as its members' ids
+  (`__persist`, looked up in the server world as `ScriptObjectRef::Load` does; a missing object comes back as a value
+  of none). The run's position (ticks, sleep start) is C++'s, not in the data: L6 keeps it beside the coroutine.
+
+**The naming rule.** A keyword's Lua name is its own (the table's spelling) except where it abbreviates or misspells;
+`kRenames` in script_lua.cpp is the list (72): `UM…` → `UnitMode…` (`UMAg` → `UnitModeAggressionLevel`,
+`UMSuspection` → `UnitModeSuspicion`); `GS…Var` → `…GameVar` (`GSSetVar` → `SetGameVar`, `GSDelVar` → `DeleteGameVar`,
+Rebirth's `GSSetPlayerVar` → `SetPlayerGameVar`, `GSListPlayerVars` → `ListPlayerGameVars`); `Q…` / `QObj…` →
+`Quest…` / `QuestObjective…`; `FX` → `Sound` (`CreateFX` → `CreateSound`, `PlayFX` → `PlaySound`); `HP` → `HitPoints`;
+`SetCP` → `SetPosition`; `AlarmPos…` → `AlarmPosition…`; `GetZValue` / `GetBSZValue` → `GetGridHeight` /
+`GetSurfaceHeight`; `GetMercsNumber` → `GetMercenaryCount`, `RecalcMercBriefings` → `RecalculateMercenaryBriefings`;
+`GroupAdd` / `GroupSub` / `GroupCross` → `GroupUnion` / `GroupDifference` / `GroupIntersection`; `UnitSee` /
+`GroupSee` / `PlayerSee` → `SeenByUnit` / `SeenByGroup` / `SeenByPlayer`; `SetBackGroundColor` →
+`SetBackgroundColor`; `For` / `ForIf` → `ForEach` / `ForEachIf`; Rebirth's `Str…` → `String…` (`StrCat` →
+`StringConcat`, `StrHas` → `StringContains`, `FloatToStr` → `FloatToString`), `…Exp…` → `…Experience…`, `RandStr` /
+`RandObj` → `RandomString` / `RandomObject`, `GameOverMSG` → `GameOverMessage`, `IsFileExists` → `FileExists`. `ID`,
+`Ex` and the rest stay. `scriptlua::LuaName` / `BindingNames` give the names (the writer's table).
+
+For L3 (the writer):
+- Write each float with 9 significant digits (`%.9g`): Lua reads it as a double and the binding rounds it to the same
+  float the parser made.
+- Lua arithmetic is in doubles: one `+ - * /` of two floats rounded to a float equals the float operation, a chain does
+  not, and `Add(a, b)` is `b + a` in floats; keep the bindings (`Add`, `IsEqual`, whose NaN rules differ from Lua's
+  `==`) unless an expression is known exact.
+- A nested call in a wait's argument becomes a function (`SleepUntil(function() return IsDead(u) end)`); a nested call
+  in Every / Any / Sum / ForIf's condition becomes a function of the member; a constant stays a number.
+- The game's loop counter is a global object variable: after a For it holds the first member, after Every the last
+  evaluated. A converted loop's member is a parameter; write the global too where the script reads it later.
+- Group assignment copies (`h = CopyGroup(g)`); object assignment shares the value (objects are immutable from Lua).
 
 ## Decisions (user 2026-11-10)
 

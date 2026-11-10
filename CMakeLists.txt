@@ -86,6 +86,19 @@ enable_language(C)
 add_library(tomlc17 STATIC third_party/tomlc17/tomlc17.c)
 set_target_properties(tomlc17 PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED ON)
 target_compile_options(tomlc17 PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/W0,-w>)
+# Lua 5.3 with Eris (third_party/eris, unmodified): the mission scripts' Lua runtime and its persistence
+# (src/game/script/script_lua.cpp; docs/notes/lua-scripting.md). Compiled as C++: a Lua error then unwinds through the
+# bindings' frames as an exception (Lua's own choice for C++), not as a longjmp past their destructors. POSIX's
+# functions outside Windows (mkstemp, not tmpnam). Without its warnings, as tomlc17.
+file(GLOB EI_ERIS_SOURCES CONFIGURE_DEPENDS third_party/eris/*.c)
+add_library(eris STATIC ${EI_ERIS_SOURCES})
+set_source_files_properties(${EI_ERIS_SOURCES} PROPERTIES LANGUAGE CXX)
+target_include_directories(eris SYSTEM INTERFACE third_party)
+if(NOT WIN32)
+    target_compile_definitions(eris PUBLIC LUA_USE_POSIX)
+endif()
+target_compile_options(eris PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/W0,-w>)
+set_target_properties(eris PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 
 # Every string inside the game is UTF-8 (docs/notes/standalone.md section 4, src/game/core/asset_text.h): asset, save and
 # network text is converted from and to text::kAssetCodePage where it crosses.
@@ -153,7 +166,7 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*/*.cpp src/lib/*.cpp src/a
      src/video/*.cpp)
 add_library(ei_game OBJECT ${EI_GAME_SOURCES})
 target_include_directories(ei_game PRIVATE src third_party)
-target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 stb_image cgltf PRIVATE SDL3::SDL3-static)
+target_link_libraries(ei_game PUBLIC ei_render ei_platform tomlc17 stb_image cgltf eris PRIVATE SDL3::SDL3-static)
 
 # The new renderer (docs/notes/renderer.md) on SDL3's GPU API (src/render/gpu.h: Direct3D 12 on Windows, Vulkan
 # elsewhere). Not part of ei_platform: the offline checks link the renderer without the game.
@@ -341,14 +354,16 @@ target_link_libraries(ei-rebuild PRIVATE ei_game)
 # survey and parse tree check (docs/notes/lua-scripting.md, "Survey"). Its own ei::Log (the output's lines).
 add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp tools/convert/convert_maps.cpp
                tools/convert/convert_textures.cpp
-               tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp ${EI_GAME_CALLS} ${EI_SDL_CALLS})
+               tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp tools/convert/lua_check.cpp
+               ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 target_include_directories(ei-convert PRIVATE src third_party)
 target_link_libraries(ei-convert PRIVATE ei_game SDL3::SDL3-static)
 # The product's notices (third_party_notices.txt beside the executables): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)
 foreach(part fonts/README.txt fonts/LICENSE SDL/README.txt SDL/LICENSE.txt dr_libs/README.txt dr_libs/LICENSE stb/README.txt
-             miniz/README.txt miniz/LICENSE tomlc17/README.txt tomlc17/LICENSE cgltf/README.txt cgltf/LICENSE)
+             miniz/README.txt miniz/LICENSE tomlc17/README.txt tomlc17/LICENSE cgltf/README.txt cgltf/LICENSE
+             eris/README.txt eris/LICENSE)
     file(READ ${CMAKE_SOURCE_DIR}/third_party/${part} text)
     string(APPEND EI_NOTICES "==== third_party/${part}\n\n${text}\n")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/third_party/${part})
@@ -397,7 +412,7 @@ if(WIN32)
     # The unit checks (tests/unit): the settings file's format, lib::HashMap's walk order, the .ini reader,
     # lib::ParseIpv4, lib/maths.h, the save pictures, the bounded text reads, the tagged stream blocks and the byte
     # buffers with their cursor and coder, the mod's path map, the weather's particle field, the TOML writer and reader,
-    # the PNG textures, the glTF figure models, without the game. build.cmd runs it.
+    # the PNG textures, the glTF figure models, the script floats through Lua, without the game. build.cmd runs it.
     add_executable(ei_unit_check tests/unit/unit_check.cpp tests/unit/settings_file.cpp tests/unit/hash_map.cpp
                    tests/unit/ini_file.cpp tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp
                    tests/unit/audio_mix.cpp tests/unit/display_sizes.cpp tests/unit/bounded_text.cpp
@@ -405,12 +420,12 @@ if(WIN32)
                    tests/unit/path_layers.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp
                    tests/unit/texture_png.cpp src/game/models/texture_png.cpp tests/unit/map_folder.cpp
                    src/game/map/map_folder.cpp src/lib/png.cpp src/game/effects/weather_field.cpp src/game/core/buffer.cpp src/game/core/coder.cpp
-                   tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/lib/json.cpp
+                   tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/lib/json.cpp tests/unit/lua_number.cpp
                    src/audio/audio.cpp src/game/app/settings_document.cpp src/game/core/core_streams.cpp src/game/data/ini_file.cpp
                    src/game/saves/save_picture.cpp src/lib/qoi.cpp src/game/core/asset_text.cpp src/lib/hash_map.cpp src/lib/ipv4.cpp
                    src/lib/text_case.cpp src/lib/calendar.cpp src/lib/str.cpp src/lib/crt_format.cpp ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_unit_check PRIVATE src third_party)
-    target_link_libraries(ei_unit_check PRIVATE ei_platform tomlc17 stb_image cgltf SDL3::SDL3-static miniz)
+    target_link_libraries(ei_unit_check PRIVATE ei_platform tomlc17 stb_image cgltf eris SDL3::SDL3-static miniz)
 
     # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
     # report against GDI on the game's strings (tools/text_check; GDI only there).
@@ -444,11 +459,13 @@ else()
                    tests/unit/ipv4.cpp tests/unit/maths.cpp tests/unit/save_picture.cpp tests/unit/audio_mix.cpp
                    tests/unit/display_sizes.cpp tests/unit/path_layers.cpp tests/unit/weather_field.cpp tests/unit/toml.cpp src/lib/toml.cpp tests/unit/texture_png.cpp src/game/models/texture_png.cpp src/game/effects/weather_field.cpp src/audio/audio.cpp src/game/data/ini_file.cpp src/game/core/asset_text.cpp src/game/saves/save_picture.cpp src/lib/qoi.cpp src/video/bink_file.cpp
                    tests/unit/map_folder.cpp src/game/map/map_folder.cpp src/lib/png.cpp
-                   tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/lib/json.cpp
+                   tests/unit/figure_gltf.cpp src/game/models/figure_gltf.cpp src/lib/json.cpp tests/unit/lua_number.cpp
                    ${EI_PROGRAM_SOURCES} ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_port_check PRIVATE src third_party)
-    target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_image cgltf SDL3::SDL3-static miniz)
+    target_link_libraries(ei_port_check PRIVATE ei_platform tomlc17 stb_image cgltf eris SDL3::SDL3-static miniz)
     add_test(NAME port_platform COMMAND ei_port_check)
+    # The mission scripts' Lua bindings on a small world of their own (tools/convert/lua_check.cpp).
+    add_test(NAME port_lua COMMAND ei-convert --lua-check)
     add_executable(ei_render_check tests/port/render_check.cpp tests/render/glyph_cases.cpp ${EI_PROGRAM_SOURCES}
                    ${EI_GAME_CALLS} ${EI_SDL_CALLS})
     target_include_directories(ei_render_check PRIVATE src tests ${CMAKE_BINARY_DIR})
@@ -475,5 +492,5 @@ else()
     # The HLSL programs and src/render/gpu.cpp on Vulkan (Linux; lavapipe without a GPU) or Metal (macOS).
     add_test(NAME port_shaders COMMAND ei_shader_check --require)
     add_test(NAME port_gpu COMMAND ei_gpu_check --require)
-    set_tests_properties(port_platform port_render port_shaders port_gpu PROPERTIES TIMEOUT 60)
+    set_tests_properties(port_platform port_lua port_render port_shaders port_gpu PROPERTIES TIMEOUT 60)
 endif()
