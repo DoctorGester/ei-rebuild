@@ -2,12 +2,16 @@
 // docs/notes/lua-scripting.md, "Scheduler".
 #include "game/script/script_lua_scheduler.h"
 
+#include "game/console/console.h"
+#include "game/script/script_ir.h"
 #include "game/script/script_lua_number.h"
 #include "lib/float_select.h"
 
 #include "eris/lauxlib.h"
 #include "eris/lua.h"
 
+#include <array>
+#include <format>
 #include <iterator>
 #include <utility>
 
@@ -26,14 +30,64 @@ bool Holds(lua_State* L, int index) {
     return lua_toboolean(L, index) != 0;
 }
 
+// What the writer reads of the names, as sizes (the writer only adds to them): equal before and after a conversion
+// when it left them as they were.
+std::array<std::size_t, 9> Footprint(const scriptlua::LuaNames& names) {
+    std::size_t assigned = 0;
+    for (const auto& [global, count] : names.worldAssignments) assigned += static_cast<std::size_t>(count);
+    return {names.globals.size(),     names.scripts.size(),   names.taken.size(),
+            names.counterReads.size(), names.unwrittenCounters.size(), names.unsettled.size(),
+            names.settledReads.size(), names.worldAssignments.size(), assigned};
+}
+
+// The variables and scripts a tree's references and declarations resolved to, one per line: with the text, what
+// the writer reads of the tree beyond the names (the block ids, which differ on every load, it does not write).
+void AddResolved(const scriptir::Block& block, std::string& key);
+
+void AddResolved(const scriptir::Call& call, std::string& key) {
+    if (call.id == ScriptFunction::Assign || call.id == ScriptFunction::CallScript) key += "t " + call.targetName + "\n";
+    for (const scriptir::Arg& arg : call.args) {
+        if (arg.kind == scriptir::ArgKind::Local) key += "l " + arg.name + "\n";
+        else if (arg.kind == scriptir::ArgKind::Global) key += "g " + arg.name + "\n";
+        else if (arg.call) AddResolved(*arg.call, key);
+    }
+    if (call.body) AddResolved(*call.body, key);
+}
+
+void AddResolved(const scriptir::Block& block, std::string& key) {
+    for (const scriptir::Call& call : block.calls) AddResolved(call, key);
+    key += "\n";
+}
+
+void AddResolved(const scriptir::File& file, std::string& key) {
+    key += file.ok ? "ok\n" : std::format("error {} {}\n", file.error.line, file.error.text);
+    for (const scriptir::Variable& global : file.globals) key += "global " + global.name + "\n";
+    for (const scriptir::Definition& definition : file.definitions) {
+        key += "script " + definition.name + "\n";
+        for (const scriptir::Variable& param : definition.params) key += "param " + param.name + "\n";
+        for (const scriptir::Rule& rule : definition.rules) {
+            AddResolved(rule.conditions, key);
+            AddResolved(rule.commands, key);
+        }
+    }
+    for (const scriptir::Block& world : file.worldScripts) AddResolved(world, key);
+}
+
 } // namespace
 
 ScriptLuaScheduler::ScriptLuaScheduler(Script* script) : lua(script), script(script), L(lua.State()) {
     lua.startScript = [this](lua_State* from) { Start(from); };
+    lua.loadText = [this](const scriptir::File& file, std::string_view text, bool runWorldScript, std::string* error) {
+        return LoadText(file, text, runWorldScript, error);
+    };
+    report = [](const std::string& message) {
+        console::EndLine(console::g_consoleOut << "Script error: " << message);
+    };
 }
 
 ScriptLuaScheduler::~ScriptLuaScheduler() {
     lua.startScript = nullptr;
+    lua.loadText = nullptr;
     for (const Run& run : runs) Release(run);
     for (const Instance& instance : instances) luaL_unref(L, LUA_REGISTRYINDEX, instance.values);
     for (int start : worldScripts) luaL_unref(L, LUA_REGISTRYINDEX, start);
@@ -53,6 +107,32 @@ bool ScriptLuaScheduler::Load(std::string_view text, const char* name, bool runW
     lua_pushnil(L);
     lua_setglobal(L, "WorldScript");
     return ok;
+}
+
+ScriptLuaScheduler::Converted ScriptLuaScheduler::Convert(const scriptir::File& file, std::string_view text) {
+    Converted out;
+    out.chunk = std::format("text{}", ++texts);
+    std::string key(text);
+    key += '\0';
+    AddResolved(file, key);
+    if (const auto found = cache.find(key); found != cache.end()) {
+        out.lua = scriptlua::HeaderLine(out.chunk) + "\n" + found->second;
+        out.cached = true;
+        ++cachedTexts;
+        return out;
+    }
+    const std::array<std::size_t, 9> before = Footprint(names);
+    out.lua = scriptlua::WriteLua(file, names, out.chunk).text;
+    if (Footprint(names) != before) cache.clear();
+    else cache.emplace(std::move(key), out.lua.substr(out.lua.find('\n') + 1));
+    return out;
+}
+
+bool ScriptLuaScheduler::LoadText(const scriptir::File& file, std::string_view text, bool runWorldScript,
+                                  std::string* error) {
+    const Converted converted = Convert(file, text);
+    const std::string chunk = "=" + converted.chunk;
+    return Load(converted.lua, chunk.c_str(), runWorldScript && file.ok, error);
 }
 
 void ScriptLuaScheduler::Tick() {
@@ -105,13 +185,18 @@ std::vector<ScriptRunPosition> ScriptLuaScheduler::RunPositions() const {
     return positions;
 }
 
-// The persisted table: { globals = ..., types = ..., instances = { { values, count, killed }... }, runs = { {
+// The persisted table: { globals = ..., types = ..., names = (SaveNames), texts = n, instances = { { values, count, killed }... }, runs = { {
 // thread (false when it ended), ticks, sleepStart, arguments, kill (the instance index, -1 for none) }... }, worlds =
 // { WorldScript... } }.
 bool ScriptLuaScheduler::Save(std::string* data, std::string* error) {
     const int base = lua_gettop(L);
     lua.PushGlobals();
     const int root = lua_gettop(L);
+    const std::string saved = scriptlua::SaveNames(names);
+    lua_pushlstring(L, saved.data(), saved.size());
+    lua_setfield(L, root, "names");
+    lua_pushinteger(L, texts);
+    lua_setfield(L, root, "texts");
 
     lua_createtable(L, static_cast<int>(instances.size()), 0);
     lua_Integer i = 0;
@@ -164,6 +249,17 @@ bool ScriptLuaScheduler::Restore(std::string_view data, std::string* error) {
     if (!lua.Unpersist(data, error)) return false;
     const int root = lua_gettop(L);
     lua.SetGlobals(root);
+    std::size_t size = 0;
+    lua_getfield(L, root, "names");
+    const char* saved = lua_tolstring(L, -1, &size);
+    if (!saved || !scriptlua::LoadNames({saved, size}, &names)) {
+        lua_settop(L, base);
+        *error = "the names of the converted texts did not load";
+        return false;
+    }
+    lua_getfield(L, root, "texts");
+    texts = static_cast<int>(lua_tointeger(L, -1));
+    lua_pop(L, 2);
 
     lua_getfield(L, root, "instances");
     for (lua_Integer i = 1, count = luaL_len(L, -1); i <= count; ++i) {
@@ -296,8 +392,12 @@ bool ScriptLuaScheduler::Continue(Run& run) {
     std::string error;
     run.ended = !lua.Continue(run.state, &run.run, run.arguments, &error);
     run.arguments = 0;
-    if (!error.empty()) errors.push_back(std::move(error));
+    if (!error.empty()) Report(error.c_str());
     return true;
+}
+
+void ScriptLuaScheduler::Report(const char* message) {
+    if (report) report(message ? message : "(no message)");
 }
 
 // ScriptIfThen::Run for each rule until one kills the instance: the condition called with the instance's own values;
@@ -318,8 +418,7 @@ void ScriptLuaScheduler::RunRules(Instance& instance) {
         if (lua_getfield(L, rule, "condition") == LUA_TFUNCTION) {
             for (int i = 1; i <= instance.count; ++i) lua_rawgeti(L, values, i + 1);
             if (lua_pcall(L, instance.count, 1, 0) != LUA_OK) {
-                const char* message = lua_tostring(L, -1);
-                errors.push_back(message ? message : "(no message)");
+                Report(lua_tostring(L, -1));
                 continue;
             }
             if (!Holds(L, -1)) continue;

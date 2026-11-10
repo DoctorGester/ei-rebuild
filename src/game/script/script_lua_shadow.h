@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace scriptir {
@@ -75,7 +76,8 @@ public:
     void LeaveLoop(ScriptFunction id, float result);
 
     // The real script's events.
-    void Loaded(Script* script, const scriptir::File& file, bool runWorldScript);
+    // A text loaded (Script::Load: its tree and its #define-expanded text).
+    void Loaded(Script* script, const scriptir::File& file, std::string_view text, bool runWorldScript);
     void Reset(Script* script);
     void ZoneReset(Script* script);
     void Purged(Script* script, const MapObject* removed);

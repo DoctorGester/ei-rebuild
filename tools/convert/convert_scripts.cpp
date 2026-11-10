@@ -1056,7 +1056,7 @@ struct LockstepStats {
     int scripts = 0;
     int same = 0;
     int differ = 0;
-    int questLoaded = 0;   // of the same, compared up to a quest text the game loaded (QFinish; L7)
+    int questLoaded = 0;   // of the same, compared past a quest text the game loaded (QFinish)
     std::map<std::string, int> leftOut;   // not run, by the keyword the test world cannot run
     long long ticks = 0;
     std::size_t mostInstances = 0;
@@ -1074,7 +1074,7 @@ void Lockstep(const std::string& group, const std::string& name, const std::vect
     if (g_lockstepTicks <= 0) return;
     std::vector<lua_both::Text> texts;
     for (std::size_t i = 0; i < sources.size(); ++i)
-        texts.push_back({oneATick ? static_cast<int>(i) : 0, sources[i].name, sources[i].text});
+        texts.push_back({oneATick ? static_cast<int>(i) : 0, sources[i].text});
     const lua_both::Saves saves =
         g_lockstepSaves ? lua_both::Saves{g_lockstepTicks / 2, g_lockstepTicks * 3 / 4} : lua_both::Saves{};
     const lua_both::Outcome outcome = lua_both::Compare(texts, g_lockstepTicks, -1, saves);
@@ -1097,8 +1097,8 @@ void Lockstep(const std::string& group, const std::string& name, const std::vect
 }
 
 void PrintLockstep(const std::string& title, const LockstepStats& s) {
-    std::printf("== %s both ways, %d ticks: %d scripts, %d the same, %d differ (%d of the same compared up to a quest"
-                " text the game loaded); %lld ticks compared, at most %zu instances and %zu waiting runs; left out:",
+    std::printf("== %s both ways, %d ticks: %d scripts, %d the same, %d differ (%d of the same past a quest text"
+                " the game loaded); %lld ticks compared, at most %zu instances and %zu waiting runs; left out:",
                 title.c_str(), g_lockstepTicks, s.scripts, s.same, s.differ, s.questLoaded, s.ticks, s.mostInstances,
                 s.mostRuns);
     if (s.leftOut.empty()) std::printf(" none");

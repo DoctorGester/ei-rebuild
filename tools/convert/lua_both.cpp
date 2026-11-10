@@ -44,6 +44,7 @@ struct Case {
     const char* name = nullptr;
     std::vector<CaseText> texts;
     int resetTick = -1;
+    bool quests = false;   // the game's QFinish loads quest texts in it
 };
 
 constexpr int kTicks = 24;
@@ -163,7 +164,32 @@ WorldScript( m = Add( m, Random( 5 ) ) Sleep( 20 ) m = Add( m, 1 ) )
 )"}},
                   8};
 
-const Case* const kCases[] = {&kRules, &kKills, &kNames, &kLater, &kNumbers, &kReset};
+// Two quests built by QFinish into the same script (L7): the Lua side's own QFinish converts each quest text at once
+// (the runtime conversion), the second quest's plain names (Su0, Su1 ...) qualified by the parser (!2!Su0) and given a
+// suffix in Lua (Su0_2), its calls finding its own scripts; the objectives' conditions use the mission's i and
+// Heroes. Then console-like lines that declare nothing, the same text again (from the cache).
+const Case kQuests{"quests",
+                   {{0, R"q(
+GlobalVars( i : object, Heroes : group, n : float )
+WorldScript(
+  AddObject( Heroes, GetObject( 1002 ) )
+  QStart( "qa" ) QObjKillUnit( "GetObject( 1001 )" ) QObjArea( 7 ) QFinish()
+  Sleep( 3 )
+  QStart( "qb" ) QObjArea( 8 ) QObjKillGroup( "Heroes" ) QFinish()
+  Sleep( 4 )
+  AddRoundToArea( 7, GetX( GetObject( 1002 ) ), GetY( GetObject( 1002 ) ), 5 )
+  Sleep( 5 )
+  AddRoundToArea( 8, GetX( GetObject( 1002 ) ), GetY( GetObject( 1002 ) ), 5 )
+)
+)q"},
+                    {14, "WorldScript( AddObject( Heroes, GetObject( 1003 ) ) )"},
+                    {15, "WorldScript( AddObject( Heroes, GetObject( 1003 ) ) )"},
+                    {16, "WorldScript( RemoveObject( Heroes, GetObject( 1003 ) ) )"},
+                    {17, "WorldScript( AddObject( Heroes, GetObject( 1003 ) ) )"}},
+                   -1,
+                   true};
+
+const Case* const kCases[] = {&kRules, &kKills, &kNames, &kLater, &kNumbers, &kReset, &kQuests};
 
 constexpr ScriptType kTypes[] = {ScriptType::Float, ScriptType::String, ScriptType::Object, ScriptType::Group};
 
@@ -180,6 +206,7 @@ struct Snapshot {
     std::map<std::string, std::string> globals;
     std::map<std::string, ScriptType> types;
     std::size_t instances = 0;
+    std::vector<std::string> definitions;   // each instance's, by its tree name, in list order
     std::size_t runs = 0;
     int draws = 0;
 };
@@ -210,6 +237,7 @@ Snapshot GameSnapshot(Script& script) {
         }
     }
     snapshot.instances = script.instances.size();
+    for (const ScriptDefinition& instance : script.instances) snapshot.definitions.push_back(instance.name);
     snapshot.runs = script.runs.size();
     snapshot.draws = g_draws;
     return snapshot;
@@ -217,7 +245,8 @@ Snapshot GameSnapshot(Script& script) {
 
 // The Lua side's values of the game snapshot's globals (the left-out ones skipped: a declaration never found, and a
 // counter no text reads outside its loops, which the Lua does not write).
-Snapshot LuaSnapshot(ScriptLuaScheduler& scheduler, const scriptlua::LuaNames& names, const Snapshot& game) {
+Snapshot LuaSnapshot(ScriptLuaScheduler& scheduler, const Snapshot& game) {
+    const scriptlua::LuaNames& names = scheduler.names;
     Snapshot snapshot;
     lua_State* L = scheduler.lua.State();
     for (const auto& [irName, type] : game.types) {
@@ -251,6 +280,15 @@ Snapshot LuaSnapshot(ScriptLuaScheduler& scheduler, const scriptlua::LuaNames& n
         snapshot.globals[irName] = value;
     }
     snapshot.instances = scheduler.InstanceCount();
+    std::map<const void*, std::string> definitionNames;   // a definition's table -> its tree name
+    for (const auto& [name, lua] : names.scripts) {
+        if (lua_getglobal(L, lua.c_str()) == LUA_TTABLE) definitionNames[lua_topointer(L, -1)] = name;
+        lua_pop(L, 1);
+    }
+    for (const void* definition : scheduler.InstanceDefinitions()) {
+        const auto found = definitionNames.find(definition);
+        snapshot.definitions.push_back(found == definitionNames.end() ? "an unknown table" : found->second);
+    }
     snapshot.runs = scheduler.RunCount();
     snapshot.draws = g_draws;
     return snapshot;
@@ -260,6 +298,9 @@ Snapshot LuaSnapshot(ScriptLuaScheduler& scheduler, const scriptlua::LuaNames& n
 std::string Difference(const Snapshot& game, const Snapshot& lua) {
     if (game.instances != lua.instances)
         return std::format("instances: {} in the game, {} in Lua", game.instances, lua.instances);
+    for (std::size_t i = 0; i < game.definitions.size(); ++i)
+        if (game.definitions[i] != lua.definitions[i])
+            return std::format("instance {}: {} in the game, {} in Lua", i, game.definitions[i], lua.definitions[i]);
     if (game.runs != lua.runs) return std::format("waiting runs: {} in the game, {} in Lua", game.runs, lua.runs);
     if (game.draws != lua.draws)
         return std::format("random draws so far: {} in the game, {} in Lua", game.draws, lua.draws);
@@ -376,6 +417,56 @@ struct MobFiles {
 
 bool g_logMuted = false;
 
+namespace {
+
+// The runtime conversion's cache and errors: a text that declares nothing converted once (the same text again from
+// the cache, which a text that changes the names empties), a Lua error of a run reported, a Lua load failure as
+// Script::Load's error 18.
+int CheckRuntime(int* checks) {
+    int failures = 0;
+    const auto expect = [&](bool ok, const char* what) {
+        ++*checks;
+        if (ok) return;
+        ++failures;
+        std::printf("lua_check: runtime: %s\n", what);
+    };
+    Script script;
+    ScriptLuaScheduler scheduler(&script);
+    std::vector<std::string> reported;
+    scheduler.report = [&reported](const std::string& message) { reported.push_back(message); };
+    const auto load = [&script](const char* text) {
+        std::string copy = text;
+        return script.Load(&copy, true);
+    };
+    const char* line = "WorldScript( Sleep( 1 ) )";
+    load(line);
+    load(line);
+    load(line);
+    expect(scheduler.texts == 3 && scheduler.cachedTexts == 2, "a line loaded three times is converted once");
+    load("GlobalVars( k : float ) WorldScript( k = 2 )");
+    load(line);
+    expect(scheduler.cachedTexts == 2, "a text that changes the names empties the cache");
+    load(line);
+    expect(scheduler.cachedTexts == 3, "the cache fills again");
+    expect(scheduler.RunCount() == 6, "every text's WorldScript starts in Lua");
+    expect(script.runs.empty(), "no WorldScript starts in the game's executor");
+
+    std::string error;
+    scheduler.Load("function WorldScript() error('boom') end", "=broken", true, &error);
+    scheduler.Tick();
+    expect(reported.size() == 1 && reported[0] == "broken:1: boom", "a run's Lua error is reported");
+
+    scheduler.lua.loadText = [](const scriptir::File&, std::string_view, bool, std::string* message) {
+        *message = "text9:1: a Lua error";
+        return false;
+    };
+    expect(!load(line) && script.errorCode == ScriptParseError::Lua && script.errorText == "text9:1: a Lua error",
+           "a Lua load failure is Script::Load's error 18");
+    return failures;
+}
+
+}   // namespace
+
 Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick, Saves saves) {
     PrepareWorld();
     struct Mute {
@@ -392,7 +483,6 @@ Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick, Saves 
     DrawCounter counter;
     counter.Restart();
     std::vector<Snapshot> gameTicks;
-    std::vector<scriptir::File> trees(texts.size());
     std::vector<std::uint8_t> saved;   // the game's script state at the old-format save
     {
         Script script;
@@ -401,15 +491,11 @@ Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick, Saves 
             for (std::size_t t = 0; t < texts.size(); ++t) {
                 if (texts[t].tick != tick) continue;
                 std::string text = texts[t].text;
-                if (script.Load(&text, true, &trees[t])) ++loads;
+                if (script.Load(&text, true)) ++loads;
             }
             if (tick == resetTick) script.ResetZone();
             script.Tick();
-            // A load of the game's own: compared up to the tick before.
-            if (script.fileCount > loads) {
-                outcome.questLoaded = true;
-                break;
-            }
+            if (script.fileCount > loads) outcome.questLoaded = true;
             gameTicks.push_back(GameSnapshot(script));
             if (tick == saves.oldFormat) {
                 MemoryStream stream;
@@ -419,35 +505,41 @@ Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick, Saves 
         }
     }
 
+    // The Lua side: its script parses every text as the game's does, and hands it to the scheduler (the runtime
+    // conversion, ScriptLua::loadText), the quest scripts its own QFinish builds too.
     counter.Restart();
     Script script;
-    auto lua = std::make_unique<ScriptLuaScheduler>(&script);
-    scriptlua::LuaNames names;
+    std::vector<std::string> luaErrors;
+    const auto makeScheduler = [&script, &luaErrors] {
+        auto made = std::make_unique<ScriptLuaScheduler>(&script);
+        made->report = [&luaErrors](const std::string& message) { luaErrors.push_back(message); };
+        return made;
+    };
+    auto lua = makeScheduler();
     for (int tick = 0; tick < std::ssize(gameTicks) && outcome.difference.empty(); ++tick) {
         for (std::size_t t = 0; t < texts.size(); ++t) {
             if (texts[t].tick != tick) continue;
-            const scriptlua::LuaText converted = scriptlua::WriteLua(trees[t], names, texts[t].name);
-            const std::string chunk = "=" + texts[t].name + ".lua";
-            std::string error;
-            if (!lua->Load(converted.text, chunk.c_str(), trees[t].ok, &error)) lua->errors.push_back(error);
+            std::string text = texts[t].text;
+            if (!script.Load(&text, true) && script.errorCode == ScriptParseError::Lua)
+                luaErrors.push_back(script.errorText);
         }
         if (tick == resetTick) lua->ResetZone();
         lua->Tick();
+        if (script.errorCode == ScriptParseError::Lua) luaErrors.push_back(script.errorText);
         const Snapshot& game = gameTicks[static_cast<std::size_t>(tick)];
-        std::string difference = Difference(game, LuaSnapshot(*lua, names, game));
-        if (difference.empty() && !lua->errors.empty()) difference = "Lua error: " + lua->errors.front();
+        std::string difference = Difference(game, LuaSnapshot(*lua, game));
+        if (difference.empty() && !luaErrors.empty()) difference = "Lua error: " + luaErrors.front();
         std::string error;
         if (difference.empty() && tick == saves.oldFormat) {
             MemoryStream stream;
             stream.Fill(saved.data(), static_cast<std::uint32_t>(saved.size()));
             Script loaded;
             loaded.LoadState(&stream);
-            auto resumed = std::make_unique<ScriptLuaScheduler>(&script);
-            names = {};
+            auto resumed = makeScheduler();
             std::string text;
-            if (resumed->Resume(loaded, names, &text, &error)) {
+            if (resumed->Resume(loaded, &text, &error)) {
                 lua = std::move(resumed);
-                difference = Difference(game, LuaSnapshot(*lua, names, game));
+                difference = Difference(game, LuaSnapshot(*lua, game));
                 if (!difference.empty()) difference = "resumed from the old format: " + difference;
             } else {
                 difference = "the old format did not resume: " + error;
@@ -455,12 +547,12 @@ Outcome Compare(const std::vector<Text>& texts, int ticks, int resetTick, Saves 
         }
         if (difference.empty() && tick == saves.eris) {
             std::string data;
-            auto restored = std::make_unique<ScriptLuaScheduler>(&script);
+            auto restored = makeScheduler();
             if (!lua->Save(&data, &error) || !restored->Restore(data, &error)) {
                 difference = "Eris: " + error;
             } else {
                 lua = std::move(restored);
-                difference = Difference(game, LuaSnapshot(*lua, names, game));
+                difference = Difference(game, LuaSnapshot(*lua, game));
                 if (!difference.empty()) difference = "restored by Eris: " + difference;
             }
         }
@@ -477,13 +569,15 @@ int Check(int* checks) {
     for (const Case* test : kCases) {
         ++*checks;
         std::vector<Text> texts;
-        for (const CaseText& text : test->texts) texts.push_back({text.tick, test->name, text.text});
+        for (const CaseText& text : test->texts) texts.push_back({text.tick, text.text});
         const auto run = [&](Saves saves, const std::string& how) {
             const Outcome outcome = Compare(texts, kTicks, test->resetTick, saves);
-            if (outcome.difference.empty() && outcome.ticks == kTicks) return;
+            if (outcome.difference.empty() && outcome.ticks == kTicks && outcome.questLoaded == test->quests) return;
             ++failures;
             std::printf("lua_check: %s%s: %s\n", test->name, how.c_str(),
-                        outcome.difference.empty() ? "the game loaded a text of its own" : outcome.difference.c_str());
+                        !outcome.difference.empty()          ? outcome.difference.c_str()
+                        : outcome.questLoaded != test->quests ? "the game's QFinish did not load its quest texts"
+                                                              : "compared fewer ticks");
         };
         run({}, "");
         for (int tick = 0; tick + 1 < kTicks; ++tick) {
@@ -492,6 +586,7 @@ int Check(int* checks) {
             run({-1, tick}, std::format(" (saved at tick {} by Eris)", tick));
         }
     }
+    failures += CheckRuntime(checks);
     return failures;
 }
 

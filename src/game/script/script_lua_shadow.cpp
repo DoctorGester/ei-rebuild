@@ -309,7 +309,7 @@ struct Shadow {
         watchedDirty = true;
         definitionNames.clear();
         lua_State* L = scheduler->lua.State();
-        for (const auto& [name, lua] : names.scripts) {
+        for (const auto& [name, lua] : scheduler->names.scripts) {
             lua_getglobal(L, lua.c_str());
             if (lua_type(L, -1) == LUA_TTABLE) definitionNames[lua_topointer(L, -1)] = name;
             lua_pop(L, 1);
@@ -326,7 +326,7 @@ struct Shadow {
         Clear();
         scheduler = MakeScheduler();
         std::string text, error;
-        const bool ok = scheduler->Resume(*real, names, &text, &error);
+        const bool ok = scheduler->Resume(*real, &text, &error);
         texts.emplace_back(std::format("save{}", ++resumes), text);
         if (!ok) return Fail("the save's script state did not resume in Lua: " + error);
         NameDefinitions();
@@ -363,7 +363,8 @@ struct Shadow {
                 Fail("the game calls " + CallText(entry.id, entry.in, entry.depth, entry.definition) +
                      ", Lua makes no more calls");
         }
-        if (active && !scheduler->errors.empty()) Fail("Lua error: " + scheduler->errors.front());
+        if (active && !luaErrors.empty()) Fail("Lua error: " + luaErrors.front());
+        luaErrors.clear();
         if (active) Compare();
         queue.clear();
         cursor = 0;
@@ -400,6 +401,7 @@ struct Shadow {
 
     void Watch() {
         watched.clear();
+        const scriptlua::LuaNames& names = scheduler->names;
         const ScriptVars& globals = real->globals;
         const std::size_t sizes[] = {globals.floats.values.size(), globals.strings.values.size(),
                                      globals.objects.values.size(), globals.groups.values.size()};
@@ -480,7 +482,6 @@ struct Shadow {
     // comes after the C++ runtime's teardown began).
     void Clear() {
         scheduler.reset();
-        names = {};
         definitionNames.clear();
         watched.clear();
         watchedDirty = true;
@@ -492,9 +493,10 @@ struct Shadow {
         return *scheduler;
     }
 
-    // A scheduler on the shadow's own script whose starts are matched first.
+    // A scheduler on the shadow's own script whose starts are matched first and whose Lua errors are differences.
     std::unique_ptr<ScriptLuaScheduler> MakeScheduler() {
         auto made = std::make_unique<ScriptLuaScheduler>(&own);
+        made->report = [this](const std::string& message) { luaErrors.push_back(message); };
         auto start = std::move(made->lua.startScript);
         made->lua.startScript = [this, start](lua_State* L) {
             Started(L);
@@ -554,7 +556,7 @@ struct Shadow {
     std::string label;
     Script own;   // the bindings' script (its temporaries); its effects stay empty: no command runs on it
     std::unique_ptr<ScriptLuaScheduler> scheduler;
-    scriptlua::LuaNames names;
+    std::vector<std::string> luaErrors;   // the scheduler's reports of this tick
     std::map<const void*, std::string> definitionNames;   // a definition's table -> the tree's name
     std::vector<std::pair<std::string, std::string>> texts;   // chunk name, converted text (dumped on a difference)
     std::vector<Watched> watched;
@@ -580,6 +582,7 @@ struct Shadow {
     int ticks = 0;
     long long calls = 0;
     int textCount = 0;
+    int cachedTexts = 0;           // of them, converted from the scheduler's cache
     int resumes = 0;               // saves loaded and resumed
     int roundTrips = 0;            // Eris round trips
     std::size_t savedBytes = 0;    // the largest persisted state
@@ -621,8 +624,9 @@ std::string ScriptShadow::Failure() { return FirstFailure(); }
 std::string ScriptShadow::Summary() {
     std::string text;
     for (const Shadow* shadow : Shadows()) {
-        text += std::format("{}lua both: {} script: {} ticks, {} calls compared, {} texts", text.empty() ? "" : "\n",
-                            shadow->label, shadow->ticks, shadow->calls, shadow->textCount);
+        text += std::format("{}lua both: {} script: {} ticks, {} calls compared, {} texts ({} from the cache)",
+                            text.empty() ? "" : "\n", shadow->label, shadow->ticks, shadow->calls, shadow->textCount,
+                            shadow->cachedTexts);
         if (shadow->resumes || shadow->roundTrips)
             text += std::format("; {} saves resumed, {} Eris round trips (at most {} bytes)", shadow->resumes,
                                 shadow->roundTrips, shadow->savedBytes);
@@ -807,16 +811,20 @@ void ScriptShadow::LeaveLoop(ScriptFunction id, float result) {
 
 // ---- The real script's events ----------------------------------------------------------------------------------
 
-void ScriptShadow::Loaded(Script* script, const scriptir::File& file, bool runWorldScript) {
+void ScriptShadow::Loaded(Script* script, const scriptir::File& file, std::string_view text, bool runWorldScript) {
     Shadow& shadow = *state;
     if (script != shadow.real || !shadow.active) return;
-    const std::string chunk = std::format("text{}", ++shadow.textCount);
+    // Converted at once, in the names of the texts before it (the scheduler's runtime conversion), run where the
+    // game's tick had the load.
+    ScriptLuaScheduler::Converted converted = shadow.Scheduler().Convert(file, text);
+    ++shadow.textCount;
+    if (converted.cached) ++shadow.cachedTexts;
     Entry entry;
     entry.kind = Kind::Load;
-    entry.lua = scriptlua::WriteLua(file, shadow.names, chunk).text;
-    entry.chunk = "=" + chunk;
+    entry.lua = std::move(converted.lua);
+    entry.chunk = "=" + converted.chunk;
     entry.run = runWorldScript && file.ok;
-    shadow.texts.emplace_back(chunk, entry.lua);
+    shadow.texts.emplace_back(converted.chunk, entry.lua);
     shadow.Event(std::move(entry));
 }
 

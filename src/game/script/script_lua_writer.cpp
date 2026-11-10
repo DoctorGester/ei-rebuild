@@ -190,10 +190,7 @@ public:
         FindReads();
         NameDeclarations();
         PlaceComments();
-        Line(std::format(
-            "-- {}: converted by ei-convert from the game's script (docs/notes/lua-scripting.md, \"Converted "
-            "scripts\").",
-            source));
+        Line(HeaderLine(source));
         if (!file.ok) {
             Line(std::format(
                 "-- The game's parser stops at line {} of the original: {}. What came before stays loaded, as "
@@ -720,6 +717,81 @@ const std::set<std::string>& ReservedNames() {
         return names;
     }();
     return reserved;
+}
+
+std::string HeaderLine(std::string_view source) {
+    return std::format("-- {}: converted by ei-convert from the game's script (docs/notes/lua-scripting.md, "
+                       "\"Converted scripts\").",
+                       source);
+}
+
+// Each set and map as its count and its entries, every string ended by a zero byte (no name holds one).
+std::string SaveNames(const LuaNames& names) {
+    std::string data;
+    const auto add = [&data](std::string_view text) {
+        data += text;
+        data += '\0';
+    };
+    for (const std::map<std::string, std::string>* map : {&names.globals, &names.scripts}) {
+        add(std::to_string(map->size()));
+        for (const auto& [key, value] : *map) {
+            add(key);
+            add(value);
+        }
+    }
+    for (const std::set<std::string>* set :
+         {&names.taken, &names.counterReads, &names.unwrittenCounters, &names.unsettled, &names.settledReads}) {
+        add(std::to_string(set->size()));
+        for (const std::string& key : *set) add(key);
+    }
+    add(std::to_string(names.worldAssignments.size()));
+    for (const auto& [key, count] : names.worldAssignments) {
+        add(key);
+        add(std::to_string(count));
+    }
+    return data;
+}
+
+bool LoadNames(std::string_view data, LuaNames* names) {
+    *names = {};
+    std::size_t at = 0;
+    const auto next = [&](std::string* text) {
+        const std::size_t end = data.find('\0', at);
+        if (end == std::string_view::npos) return false;
+        *text = data.substr(at, end - at);
+        at = end + 1;
+        return true;
+    };
+    const auto count = [&](std::size_t* n) {
+        std::string text;
+        if (!next(&text) || text.empty() || text.find_first_not_of("0123456789") != std::string::npos) return false;
+        *n = std::stoull(text);
+        return true;
+    };
+    std::size_t n = 0;
+    std::string key, value;
+    for (std::map<std::string, std::string>* map : {&names->globals, &names->scripts}) {
+        if (!count(&n)) return false;
+        for (std::size_t i = 0; i < n; ++i) {
+            if (!next(&key) || !next(&value)) return false;
+            (*map)[key] = value;
+        }
+    }
+    for (std::set<std::string>* set :
+         {&names->taken, &names->counterReads, &names->unwrittenCounters, &names->unsettled, &names->settledReads}) {
+        if (!count(&n)) return false;
+        for (std::size_t i = 0; i < n; ++i) {
+            if (!next(&key)) return false;
+            set->insert(key);
+        }
+    }
+    if (!count(&n)) return false;
+    for (std::size_t i = 0; i < n; ++i) {
+        std::size_t assigned = 0;
+        if (!next(&key) || !count(&assigned)) return false;
+        names->worldAssignments[key] = static_cast<int>(assigned);
+    }
+    return at == data.size();
 }
 
 LuaText WriteLua(const scriptir::File& file, LuaNames& names, std::string_view source) {

@@ -32,6 +32,11 @@ struct LuaNames {
     std::set<std::string> settledReads;
 };
 
+// The names as one string and back (the scheduler's Eris saves keep them, so that a text loaded after a restore
+// finds the earlier ones). LoadNames is false for data SaveNames did not write.
+std::string SaveNames(const LuaNames& names);
+bool LoadNames(std::string_view data, LuaNames* names);
+
 // One text's Lua and what the writer did, for the survey.
 struct LuaText {
     std::string text;
@@ -47,8 +52,9 @@ struct LuaText {
 };
 
 // The Lua of `file`, the tree of a load into a Script whose earlier texts went through `names` (updated). `source`
-// names the text in the header comment.
+// names the text in the header comment, the first line (HeaderLine).
 LuaText WriteLua(const scriptir::File& file, LuaNames& names, std::string_view source);
+std::string HeaderLine(std::string_view source);
 
 // A chunk giving a function that runs `block`'s calls from `from` on, `params` its parameters, in the names of the
 // texts converted so far: `return function(params) ... end`. The old-save shim's (a saved run resumed at its command,

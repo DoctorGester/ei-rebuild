@@ -79,7 +79,9 @@ qualified) or a nested call of a function with the right result type.
 The parser reads the tokens through a `TokenReader` (`Next(&id)` takes a token and classifies it, `Expect(lexeme)` checks
 the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`. Each Load also fills a
 parse tree beside its structures (`script_ir.h`, handed out through `Load`'s `ir`; lua-scripting.md, "Design" and
-"Survey"); the executor never reads it.
+"Survey"); the executor never reads it. A Lua runtime on the script that takes its texts (`ScriptLua::loadText`, the
+scheduler's) gets the tree of every load and starts the WorldScript itself; its failure is error 18, ours
+(lua-scripting.md, "Texts at runtime").
 
 **Lexer** (`ClassifyToken`): lines start at 1 and count `\n` in white space and block comments; a token runs to white
 space (a space inside quotes does not end it) or to one of `, ) ( : =` after its first character, at most 255
