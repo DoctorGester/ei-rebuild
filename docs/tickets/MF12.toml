@@ -1,9 +1,9 @@
 id = "MF12"
-title = "Releases ship ei-convert and a Mods folder"
+title = "Releases ship the example mod (built by ei-convert from the install) and ei-convert"
 group = "mods"
 size = 2
 model = "opus"
-note = "User 2026-11-10: releases should carry a mod. Revised the same day: the user wants a mod of our own assets instead (MF13), so MF12 only ships ei-convert in every release package plus a Mods folder readme, and documents it (release.yml, package README, docs/modding.md). The install-derived example mod stays test-only."
+note = "User 2026-11-10: include the example mod in releases, and keep it alongside MF13 (the own-assets mod). Ship ei-convert in every release package with examples/example_mod and its additions; an ei-convert subcommand makes the install-derived parts (port of tools/make_example_mod.py); mod_example uses that path; release.yml, package README and docs/modding.md say how. Packaging leaves room for MF13 own-assets mod."
 order = 1326
 status = "running"
 started = "2026-11-10"
