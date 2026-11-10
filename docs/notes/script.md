@@ -6,7 +6,8 @@ exec_run, exec_helpers, save, load, blocks, cleanup, effects, quest, unit_modes,
 `script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. The plan to
 run the scripts on Lua, its runtime (`script_lua.*`), the writer of converted scripts (`script_lua_writer.*`) and
 their scheduler in Script::Tick's order (`script_lua_scheduler.*`; Script::TickEffects and ResetEffects are the parts
-of the tick and the zone reset it shares), not run by the game yet: `lua-scripting.md`.
+of the tick and the zone reset it shares), and the lockstep shadow beside each world script (`script_lua_shadow.*`,
+EI_LUA_BOTH; `Script::shadow`, the evaluation's hooks around `Evaluate*` / `ScriptRun::Perform`): `lua-scripting.md`.
 
 ## Data structures
 

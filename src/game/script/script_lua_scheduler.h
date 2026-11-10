@@ -35,6 +35,10 @@ public:
 
     std::size_t InstanceCount() const { return instances.size(); }
     std::size_t RunCount() const { return runs.size(); }
+    // For the lockstep in the game (script_lua_shadow.h), in list order: each instance's definition (its `Script {
+    // ... }` table, as lua_topointer gives it) and each waiting run's position (ticks and sleep start).
+    std::vector<const void*> InstanceDefinitions() const;
+    std::vector<ScriptRunPosition> RunPositions() const;
 
     ScriptLua lua;
     Script* script = nullptr;

@@ -5,6 +5,7 @@
 #include "game/core/base_manager.h"
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
+#include "game/script/script_lua_shadow.h"
 #include "game/effects/world_effect.h"
 
 #include "game/saves/save_versions.h"
@@ -178,6 +179,7 @@ ScriptBlock* Script::FindBlock(int id) const {
 // Reads what SaveState wrote, in the same order; every block id resolves in this script. Areas are read only
 // from stream version 0x57 on.
 void Script::LoadState(ByteStream* stream) {
+    if (shadow) shadow->Stop(this, "a save was loaded (L6 keeps the Lua runs in saves)");
     pointLights.resize(stream->ReadCount());
     for (ScriptPointLight& light : pointLights) light.Load(stream);
 

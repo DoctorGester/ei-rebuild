@@ -83,6 +83,25 @@ void ScriptLuaScheduler::Tick() {
     script->TickEffects();
 }
 
+std::vector<const void*> ScriptLuaScheduler::InstanceDefinitions() const {
+    std::vector<const void*> definitions;
+    definitions.reserve(instances.size());
+    for (const Instance& instance : instances) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, instance.values);
+        lua_rawgeti(L, -1, 1);
+        definitions.push_back(lua_topointer(L, -1));
+        lua_pop(L, 2);
+    }
+    return definitions;
+}
+
+std::vector<ScriptRunPosition> ScriptLuaScheduler::RunPositions() const {
+    std::vector<ScriptRunPosition> positions;
+    positions.reserve(runs.size());
+    for (const Run& run : runs) positions.push_back(run.run.position);
+    return positions;
+}
+
 void ScriptLuaScheduler::ResetZone() {
     for (const Run& run : runs) Release(run);
     runs.clear();

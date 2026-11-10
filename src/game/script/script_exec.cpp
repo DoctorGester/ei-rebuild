@@ -5,6 +5,7 @@
 #include "game/data/text_manager.h"
 #include "game/script/script.h"
 #include "game/script/script_addon.h"
+#include "game/script/script_lua_shadow.h"
 
 #include "game/combat/combat.h"
 #include "game/console/console.h"
@@ -243,6 +244,11 @@ bool ScriptRun::Execute(Script* script) {
 }
 
 bool ScriptRun::RunCommand(Script* script, ScriptCall* cmd) {
+    if (script->shadow) return script->shadow->Command(this, cmd, script);
+    return Perform(script, cmd);
+}
+
+bool ScriptRun::Perform(Script* script, ScriptCall* cmd) {
     int cont = 1;
     scriptaddon::Call call{cmd, script, nullptr, &cont, this};
     const bool done = scriptaddon::Dispatch(&call);

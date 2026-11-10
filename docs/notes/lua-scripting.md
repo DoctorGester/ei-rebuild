@@ -167,8 +167,8 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
 ## Bindings
 
 What exists (L2): `src/game/script/script_lua.h` (`ScriptLua`), Lua 5.3.5 with Eris in `third_party/eris`
-(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). Nothing in the game creates a `ScriptLua` yet
-(L5); the scheduler (below) owns one.
+(README.txt there: Eris's master-lua5.3 tree, unmodified, built as C++). The game makes one only for the lockstep
+("Lockstep in the game", EI_LUA_BOTH); the scheduler (below) owns one.
 Checked by `ei-convert --lua-check` (build checks; ctest `port_lua`) and the unit check `lua_number.cpp`.
 
 - **The state.** Libraries base (without `dofile` / `loadfile`), coroutine, table, string, math, utf8; no io, os,
@@ -393,8 +393,9 @@ Su1 = Script {
 ## Scheduler
 
 What exists (L4): `src/game/script/script_lua_scheduler.h` (`ScriptLuaScheduler`), owning a `ScriptLua` on a
-`Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript`. Nothing in the
-game makes one yet (L5 switches the zones' scripts; L6 saves its runs). Checked both ways ("Lockstep").
+`Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript`. The game makes
+one only beside each world script for the lockstep ("Lockstep in the game"); making it the only path and keeping its
+runs in saves are L6 and later. Checked both ways ("Lockstep", "Lockstep in the game").
 
 - **Load(text, name, runWorldScript).** The chunk runs; its `WorldScript` is taken out of the globals and kept (load
   order) for the zone reset, and with `runWorldScript` started as a run at the head of the list, first resumed by the
@@ -420,7 +421,7 @@ game makes one yet (L5 switches the zones' scripts; L6 saves its runs). Checked 
   `ScriptLua::ResetGlobals` (every declared global zeroed), every text's WorldScript started again in load order, each
   at the head (the last loaded runs first).
 - **Errors.** A Lua error ends its run (a failed condition does not hold); the messages go to `errors` (the caller
-  empties it; L5: the console's "Script error").
+  empties it; the lockstep fails on the first).
 
 ## Lockstep
 
@@ -445,9 +446,62 @@ generator starts the same on both sides and is back as it was at the end.
   Lost in Astral with the console lines, 300 ticks (48 s, almost all of it the survey): 520 scripts, 494 the same, 0
   differ (48 network quests compared up to their QFinish), 26 left out (22 PlayMovie, 2 PlayCamera, 1 AddMobEx, 1
   GSListPlayerVars). The objects the missions name are not in the test world, so most rules' conditions do not hold
-  there; the scenarios (L5) reach the rest.
+  there; the scenarios reach the rest ("Lockstep in the game").
 - A scheduler fault shows: dropping an ended run at once makes 6 of 6 short cases and most console scripts differ at
   their first ticks.
+
+## Lockstep in the game
+
+`src/game/script/script_lua_shadow.h` (`ScriptShadow`): with `EI_LUA_BOTH=1` in the game's environment (off by default;
+`EI_LUA_BOTH=1 python tools/work.py test <ID> ...` passes it to every game), WorldServer::Create gives the world's two
+scripts a shadow each ("mission", "console"). A shadow converts every text loaded into its script (Script::Load's tree,
+`WriteLua`, chunks `text1`, `text2`...: the zone's .mob, AddMob'd mobs, network quests' QFinish texts, engine texts,
+`@` console lines) and loads it into a ScriptLuaScheduler on a Script of its own; after every tick of the real script
+the scheduler ticks once.
+
+- **How the shadow keeps off the world: record and replay.** While the game's executor ticks, every built-in call
+  (CalcFloat / CalcObject / CalcGroup / CalcString / RunCommand, split into the hook and `Evaluate*` / `Perform`) is
+  logged after its arguments are prepared, with them, its loop depth and its result, in the order the calls end
+  (nested arguments first, a loop after its body). The Lua's tick then makes its binding calls, and each is matched
+  with the next logged call (keyword, depth, every argument: floats by their bits, objects by pointer, groups by their
+  members) and gets the logged result instead of running; a command that changed a group argument gets the group as
+  it was after it. Only the run-local commands run on the Lua side: Sleep, WaitSegment and SleepUntil (their go-on
+  flags compared with the game's) and KillScript (its instance's flag). A declared-script call is matched in the
+  scheduler's start (the definition by name, its arguments); assignments are the Lua's own (the globals compare). No
+  command, no draw and no world read happens twice, so the world is the game's alone: with the option on, every golden
+  stays the same (vanilla 226, Rebirth 141, 2026-11-10).
+- **Events in the log.** A text loaded, the zone reset, an object removed (Script::PurgeDeletedObjects with the object)
+  and a loop condition's evaluation beforehand that drew stay where they came: the Lua side follows them at that point
+  (a load inside AddMob or QFinish runs its chunk inside the binding call; a purge drops from the Lua's values only the
+  objects the game had removed by then). Between ticks they are followed at once.
+- **What is left out.** Calls inside a command's handler (none but the loops', which are compared) and the game's
+  evaluation of a loop's condition in PrepareArguments, before the loop, with the counter as it is (Every / Any / Sum
+  / ForIf: the Lua makes no such call; one that draws from the random generator is a difference).
+- **After every tick:** no logged call left over; no Lua error; the instance lists the same (by definition, in list
+  order); the waiting runs the same (count, each one's ticks and sleep start); every global the same (floats by their
+  bits; a declaration every use finds an earlier one of, and the loop counters the Lua does not write, left out).
+- **The first difference** stops that shadow, goes to the log (`lua both: mission script, its tick 60 (world tick
+  57): the game calls VCheck#0#275(#4689) in 1 loop, Lua calls VCheck#0#275(#3353) in 1 loop (Lua text4:994:)`; that
+  one from ForEach walked first to last on purpose), fails the run (the report's FAILED line) and writes the shadow's
+  converted texts beside the log (`luaboth_<script>_text<N>.lua`, the lines named). The report says per script
+  `lua both: mission script: N ticks, N calls compared, N texts` (and `stopped: ...` when it stopped).
+- **A save loaded** (Script::LoadState) stops the shadow without a difference: the Lua runs are not in saves (L6). So
+  does a tick or reset of the script inside its own tick (none in the scenarios).
+- **What it proves.** Given the same results from every built-in, the converted Lua makes the same built-in calls with
+  the same arguments in the same order, starts the same instances, keeps the same runs at the same ticks and the same
+  globals, on every tick of every scenario. The world changes only through built-ins, and the handlers read only the
+  call's argument slots (the loops, CallScript and Assign, which read the call's structure, are the Lua's own), so with
+  Lua as the only path the world would take the same course. **What it does not prove:** the handlers run on the Lua's
+  own call (they are the same code, checked by `--lua-check`, not here); timing; saves (L6); paths no scenario reaches
+  (the 27 keywords no text uses, the quest texts only where a scenario plays a network quest to its QFinish); and the
+  shadow's values hold their objects a little longer (to the end of the tick), so a removed object is freed later
+  than without it (the goldens show no effect).
+- **Counts** (2026-11-10, every scenario with `--golden`): vanilla 277 runs, all pass, 226 goldens the same: mission
+  scripts 196,806 ticks and 12,327,699 calls compared over 945 texts, console scripts 133,989 ticks and 17,625 calls
+  over 4,186 texts, 0 differ, 29 stopped at a save load. Rebirth 156 runs, all pass, 141 goldens the same: 109,344
+  mission ticks and 5,288,175 calls, 60,113 console ticks and 11,498 calls, 0 differ, 20 stopped at a save load. The
+  corpus (`--lockstep 300`): 520 scripts, 494 the same, 0 differ. A deliberate fault (ForEach first to last) fails
+  zone_gz3g at its tick 60 with the line above.
 
 ## Decisions (user 2026-11-10)
 
@@ -457,9 +511,9 @@ generator starts the same on both sides and is back as it was at the end.
 
 ## Verification
 
-- **Lockstep.** The old executor and Lua run side by side on the same world. Each tick compares the variables, the
-  instance and run counts and the random draws ("Lockstep" above, on the test world); still to come (L5): run
-  positions, instance lists, and a log of every built-in call with its arguments, on the scenarios' worlds.
+- **Lockstep.** The old executor and Lua run side by side: on the test world each tick compares the variables, the
+  instance and run counts and the random draws ("Lockstep"); in the game (EI_LUA_BOTH) every built-in call with its
+  arguments, the instance lists, the runs' positions and the globals ("Lockstep in the game").
 - **Coverage.** Every scenario, plus the corpus run for N ticks (`--scripts ... --lockstep N`, "Lockstep").
 - **Saves.** Round trips: old save loaded into Lua, Lua save loaded into Lua, and old save loaded into the old engine and
   compared.

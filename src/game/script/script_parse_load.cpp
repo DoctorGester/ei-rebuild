@@ -5,6 +5,7 @@
 #include "game/script/script_parse.h"
 #include "game/script/script_addon.h"
 #include "game/script/script_ir.h"
+#include "game/script/script_lua_shadow.h"
 
 #include "lib/crt.h"
 #include "lib/str.h"
@@ -360,6 +361,7 @@ bool Script::Load(std::string* text, bool runWorldScript, scriptir::File* ir) {
     out.fileCount = fileCount;
     out.ok = Parse(text, runWorldScript, out);
     if (!out.ok) GetError(&out.error);
+    if (shadow) shadow->Loaded(this, out, runWorldScript);
     return out.ok;
 }
 

@@ -2,6 +2,7 @@
 // block, the area lookups and the temporary object references of the
 // evaluator. See script.h and docs/notes/script.md.
 #include "game/script/script.h"
+#include "game/script/script_lua_shadow.h"
 #include "game/objects/map_object.h"
 
 #include "game/effects/world_effect.h"
@@ -53,7 +54,10 @@ ScriptObjectRef* Script::NewTempObject() {
 Script::Script() : pointLights(0x100), tempGroups(1), tempObjects(1) { Reset(); }
 
 // The reset leaves no effect (the point light slots are zeroed), so the members' destructors drop none.
-Script::~Script() { Reset(); }
+Script::~Script() {
+    ScriptShadow::Release(this);
+    Reset();
+}
 
 ScriptErrorInfo* Script::GetError(ScriptErrorInfo* out) {
     out->text = errorText;
@@ -69,6 +73,7 @@ ScriptErrorInfo* Script::GetError(ScriptErrorInfo* out) {
 // See script.h and docs/notes/script.md.
 
 void Script::Reset() {
+    if (shadow) shadow->Reset(this);
     loaded = 0;
     fileCount = 0;
     errorText = "Unknown error";
