@@ -1,0 +1,40 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  L8 mod: zone1.lua runs
+  L8 mod: pairs 1,2,alpha,bravo,charlie,delta
+  Saved savea
+  1
+  L8 mod: the count reached 3
+  Script error: Maps\zone1.lua:1788: L8 mod: a failing run
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  Saved save1
+  Cannot open file autoexec.cfg for reading
+  Loaded save1
+  1
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  1

@@ -1,0 +1,13 @@
+{
+  "scenario": "mod_lua_plain",
+  "install": "vanilla",
+  "recorded": "2026-11-10",
+  "commit": "3821f0b6d",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj\\d+ (?:pos\\.[xyz]|hp|mana|dead)$)",
+  "repeated_in": 2,
+  "reason": "L8: new scenarios of a mod's zone1.lua run on the Lua scheduler (plain and changed) and their twin on the old executor.",
+  "source": "image",
+  "saves": "8 decoded saves (tools/savefile.py), the same in 2 runs"
+}
