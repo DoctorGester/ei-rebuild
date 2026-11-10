@@ -9,12 +9,13 @@
 // (convert_databases.h: units.udb, perks.pdb, spells.sdb, items.idb, quests.qdb, Levers.ldb), each as
 // <archive folder>\<name>.toml; a texts archive's (texts.res, textslmp.res) texts as <archive folder>\texts.toml; its
 // textures (.mmp) as <archive folder>\<name>.png (convert_textures.cpp, docs/notes/mods.md "Textures as PNG"); its
-// figure models (.mod, .bon, .lnk, .fig) as <archive folder>\<figure>.glb (convert_models.cpp, "Models as glTF"). A
-// map archive (Maps\<zone>.mpr, or the folder of an unpacked one under a Maps folder) as its folder's map.toml and PNG
-// layers (convert_maps.cpp, docs/notes/mods.md "Maps as folders"). A loose file as <name>.toml beside it. A record
-// file's TOML has `replace = true`: it stands for the whole original, nothing below it read (a mod's original hides the
-// game's file too). The target mirrors the source's layout (MF1's loose folders); converted.txt there lists the
-// converted originals (relative to the source), which tools/convert_install.py removes from its copy.
+// figure models (.mod, .bon, .lnk, .fig, .anm) as <archive folder>\<figure>.glb (convert_models.cpp, "Models as glTF",
+// "Animations as glTF"). A map archive (Maps\<zone>.mpr, or the folder of an unpacked one under a Maps folder) as its
+// folder's map.toml and PNG layers (convert_maps.cpp, docs/notes/mods.md "Maps as folders"). A loose file as
+// <name>.toml beside it. A record file's TOML has `replace = true`: it stands for the whole original, nothing below it
+// read (a mod's original hides the game's file too). The target mirrors the source's layout (MF1's loose folders);
+// converted.txt there lists the converted originals (relative to the source), which tools/convert_install.py removes
+// from its copy.
 // Each file's round trip: the original read by the game's loader, written as TOML, the TOML read back by the game's
 // loader, every field compared (floats by their bits). Exit code 0 when every round trip holds.
 #include "game/data/registry.h"
