@@ -176,6 +176,11 @@ void PlayerClient::SendAddCompanion(Party* companion) {
     out.WriteSized(&block);
 }
 
+void PlayerClient::SendRemoveCompanion(int unitId) {
+    WriteType(&out, ClientMessage::RemoveCompanion);
+    out.WriteValue(unitId);
+}
+
 void PlayerClient::Rejoin() {
     if (state != State::BetweenZones) return;
     g_gameFlow.ReturnLocalParty();

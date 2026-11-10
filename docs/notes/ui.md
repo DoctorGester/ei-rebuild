@@ -616,11 +616,14 @@ three lines, address, ping and, with a password, text 21.
 
 ## Companions window
 
-Ours (`ui_companions.cpp`; network.md, "Companions"). F3 on a network client's battle screen while the zone's host takes
-companions (`PlayerClient::companionLimit`) pushes it: a shaded box over (200, 150)-(600, 412), the title, one row per
-saved hero neither played nor asked for (at most 8, by the hero list's order), the picked one framed (the first at
-first); regions 0 Add (the OK button's picture), 1 Close (cancel's), 2 on the rows. Add (or Enter) sends the picked hero
-while there is room and closes; Close or Esc closes. It leaves a value no screen takes.
+Ours (`ui_companions.cpp`; network.md, "Companions"). The HUD's companions button (`HudCompanionButton`, the battle
+screen's last panel: a framed "+" on a shade, 30 x 30, 6 right of the last portrait over 562..592, its window rect the
+button's; shown, with the tip "Companions (F3)", while the zone's host takes companions, `PlayerClient::companionLimit`,
+and placed again when the portraits change) or F3 pushes it: a shaded box over (200, 150)-(600, 412), the title, one row
+per companion ("(with you)") and then per saved hero neither played nor a companion (at most 8 in all), the picked one
+framed (the first at first), below them what OK does ("OK: add", "OK: send away", or why nothing); regions 0 OK (the OK
+button's picture), 1 Close (cancel's), 2 on the rows. OK (or Enter) sends the picked companion away or asks for the
+picked hero while there is room, and closes; Close or Esc closes. It leaves a value no screen takes.
 The battle screen's client party puts the hero's companions (its party's records after the first, with a unit) right after
 the camera's hero (`companionPortraits`), so the HUD shows their portraits with health bars beside the other players'
 faces (AddPortrait centres the hero, its companions and the players); ToggleMember (portrait clicks, the member keys) then

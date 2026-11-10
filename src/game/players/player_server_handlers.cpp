@@ -470,6 +470,31 @@ bool PlayerServer::OnAddCompanion() {
     return true;
 }
 
+bool PlayerServer::OnRemoveCompanion() {
+    int unitId = 0;
+    in.ReadValue(unitId);
+    if (!in.ok) return true;
+    Party* party = player->GetParty();
+    int index = 1;
+    while (index < std::ssize(party->members) && static_cast<int>(party->members[index].unitId) != unitId) ++index;
+    if (state != State::Joined || g_serverWorld.gameState != GameState::Network || index >= std::ssize(party->members)) {
+        console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion removal refused");
+        return true;
+    }
+    g_serverWorld.SyncCompanions(player);
+    SendParty();
+    if (Unit* unit = g_serverWorld.FindUnit(unitId)) {
+        if (unit->IsDead()) unit->SetPlayer(nullptr);
+        else g_serverWorld.RemoveObject(static_cast<unsigned>(unitId));
+    }
+    const PartyUnitRecord* record = &party->members[index];
+    console::EndLine(console::g_netLogOut << "player " << player->playerId << ": companion " << record->scriptName
+                                          << " left");
+    party->members.erase(party->members.begin() + index);
+    SendParty();
+    return true;
+}
+
 // --- The login -----------------------------------------------------------------------------
 
 bool IsPrintableText(const char* text) {

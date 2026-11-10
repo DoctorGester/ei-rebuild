@@ -186,19 +186,22 @@ bool SavedParties::InUse(const MpHeroRecord* hero) const {
     if (hero->file == outsideGame.file) return true;
     for (const std::string& file : companions)
         if (file == hero->file) return true;
+    for (const std::string& file : leaving)
+        if (file == hero->file) return true;
     return false;
 }
 
 bool SavedParties::ReturnCompanions(Party* party) {
-    if (std::ssize(party->members) < 2) return false;
-    std::vector<bool> taken(companions.size(), false);
+    std::vector<std::string> files = companions;
+    files.insert(files.end(), leaving.begin(), leaving.end());
+    std::vector<bool> taken(files.size(), false);
     for (int i = 1; i < std::ssize(party->members); ++i) {
         const PartyUnitRecord& record = party->members[i];
-        for (int c = 0; c < std::ssize(companions); ++c) {
+        for (int c = 0; c < std::ssize(files); ++c) {
             if (taken[c]) continue;
             MpHeroRecord* hero = nullptr;
             for (MpHeroRecord& entry : entries)
-                if (entry.file == companions[c]) hero = &entry;
+                if (entry.file == files[c]) hero = &entry;
             if (!hero || hero->party.members.size() != 1) continue;
             PartyUnitRecord& saved = hero->party.members[0];
             if (saved.scriptName != record.scriptName || saved.prototype != record.prototype) continue;
@@ -208,6 +211,9 @@ bool SavedParties::ReturnCompanions(Party* party) {
             break;
         }
     }
+    for (int c = lib::Count(files) - 1; c >= lib::Count(companions); --c)
+        if (!taken[c]) leaving.erase(leaving.begin() + (c - lib::Count(companions)));
+    if (std::ssize(party->members) < 2) return false;
     party->members.erase(party->members.begin() + 1, party->members.end());
     return true;
 }

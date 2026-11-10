@@ -322,6 +322,7 @@ int PlayerServer::Receive() {
             case ClientMessage::LastPosition: handled = OnLastPosition(); break;
             case ClientMessage::PartyUpdate: handled = OnPartyUpdate(); break;
             case ClientMessage::AddCompanion: handled = OnAddCompanion(); break;
+            case ClientMessage::RemoveCompanion: handled = OnRemoveCompanion(); break;
             default: return PlayerMessageError("Serv packet has no handler prevID=%x curID=%x", previous, messageType);
             }
             if (!handled) return PlayerMessageError("Serv error during parsing command prevID=%x curID=%x", previous, messageType);

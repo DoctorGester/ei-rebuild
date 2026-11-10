@@ -71,6 +71,11 @@ public:
     void SendPartyUpdate();
     // Ours. 0x51: the saved hero `companion` (its party without variables, a sized block) joins the hero.
     void SendAddCompanion(Party* companion);
+    // Ours. 0x52: the companion with unit `unitId` leaves the party.
+    void SendRemoveCompanion(int unitId);
+    // Ours: the saved companions (SavedParties::companions) asked for again once the hero stands in a zone whose
+    // host takes companions; set by OnCompanions, done by RunTick.
+    void RestoreCompanions();
     // The zone requests. When the client is between zones they first return the local party
     // (GameFlow::ReturnLocalParty), send it (SendPartyUpdate) and the joined message 0x05 (SendingCamera).
     // 0x03: take exit `exit`.
@@ -255,5 +260,6 @@ public:
     std::string leaveReason;
     // Ours: the companions this zone's host takes (ServerMessage::Companions), 0 none (ResetState).
     std::uint32_t companionLimit = 0;
+    bool restoreCompanions = false;   // ours: RestoreCompanions still to do in this zone (ResetState clears it)
 };
 

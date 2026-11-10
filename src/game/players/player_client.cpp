@@ -150,6 +150,7 @@ bool PlayerClient::RunTick() {
         Vector2 point = XY(*anchor);   // sent as two floats
         WriteType(&out, ClientMessage::LastPosition);
         out.WriteValue(point);
+        RestoreCompanions();
         return SendToServer();
     }
     default:
@@ -274,7 +275,6 @@ bool PlayerClient::OnZoneChange() {
     int entrance;   // the server's entrance number: the zone start takes none
     in.ReadValue(entrance);
     g_gameFlow.RequestZoneChange(zone);
-    g_savedParties.companions.clear();   // the party's message before this one took them home
     return true;
 }
 
@@ -410,7 +410,23 @@ bool PlayerClient::OnPartyUpdate() {
 bool PlayerClient::OnCompanions() {
     in.ReadValue(companionLimit);
     console::EndLine(console::g_netLogOut << "client: the host takes " << companionLimit << " companions");
+    restoreCompanions = !g_savedParties.companions.empty();
     return true;
+}
+
+void PlayerClient::RestoreCompanions() {
+    if (!restoreCompanions) return;
+    const Party* party = player->GetParty();
+    if (party->members.empty()) return;
+    Unit* hero = g_clientWorld.FindUnit(static_cast<int>(party->members[0].unitId));
+    if (!hero || hero->IsDead()) return;
+    restoreCompanions = false;
+    // Beyond this host's limit the session's companions are dropped.
+    std::vector<std::string>& files = g_savedParties.companions;
+    if (std::ssize(files) > static_cast<std::ptrdiff_t>(companionLimit)) files.resize(companionLimit);
+    for (const std::string& file : files)
+        for (MpHeroRecord& entry : g_savedParties.entries)
+            if (entry.file == file && entry.party.members.size() == 1) SendAddCompanion(entry.GetParty());
 }
 
 bool PlayerClient::KeepParty(Party* party) {
@@ -606,6 +622,7 @@ void PlayerClient::ResetState() {
     localSession = 0;
     sendParty = 0;
     companionLimit = 0;
+    restoreCompanions = false;
     compressor.Reset();
     decompressor.Reset();
 }

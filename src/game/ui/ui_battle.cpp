@@ -341,6 +341,9 @@ void BattleScreen::BuildPanels(float mapZoom) {
     topPanel = AddChild(std::make_unique<HudTopPanel>(this));
     topPanel->AddObject(objects[2]);
     topPanel->Setup(g_interface.hudTopPage, g_interface.hudPanelsIn[1] != 0);
+
+    // Ours: shown while the zone's host takes companions.
+    AddChild(std::make_unique<HudCompanionButton>(this));
 }
 
 void BattleScreen::LayoutChanged() {

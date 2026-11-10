@@ -110,6 +110,9 @@ enum class ClientMessage : std::uint8_t {
     // Ours: a saved hero to walk with the player's hero, a sized block (Party::SaveParty without variables);
     // sent only to a server that sent ServerMessage::Companions.
     AddCompanion = 0x51,
+    // Ours: a companion leaves the party, a dword (its unit's id); sent only to a server that sent
+    // ServerMessage::Companions.
+    RemoveCompanion = 0x52,
 };
 
 // Our client's mark in its login: written past the password's terminating zero at kCompanionMarkAt, where an
@@ -296,6 +299,11 @@ public:
     // more: its record (items copied into the party, a fresh object id, following the leader) is appended, its unit
     // made beside the leader and the party sent. Anything else is read and dropped. Returns true.
     bool OnAddCompanion();
+    // Ours. Message 0x52: the companion whose unit has the given id leaves: its record synced from the living unit
+    // and the party sent (the client writes it to its file), then the unit taken out of the world (a dead one left
+    // lying, the player's no more), the record dropped and the party sent again. Anything else is read and dropped.
+    // Returns true.
+    bool OnRemoveCompanion();
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
     bool OnLeave();             // Message 0x01: the connection's Leave
     // Message 0x04 (joined players, else false): the game state into sessionKind, the party collected

@@ -1,8 +1,9 @@
-# Companions (an experiment): a player's other saved hero walks with its hero as a companion. This game makes two heroes,
+# Companions: a player's other saved hero walks with its hero as a companion. This game makes two heroes,
 # "comp" and then "host" (the one it plays), hosts with the create-server screen's companions switch on (region 30)
 # and the peer (peer/net_pair_companion.txt) joins. In the zone (z3q2, the sheriff's second topic as net_pair_zone):
-# - F3 opens the companions window; its first row is "comp" (region 2), Add (region 0) asks the server for it
-#   (ClientMessage::AddCompanion): the party holds two records and the companion stands beside the hero.
+# - The HUD's companions button opens the companions window; its first row is "comp" (region 2), OK (region 0) asks
+#   the server for it (ClientMessage::AddCompanion): the party holds two records and the companion stands beside the
+#   hero.
 # - The companion fights: it kills the hostile unit nearest it (the harness's hit), so the kill's experience is
 #   shared among the zone's heroes, the companion's share among them; then it is killed itself (the hero's death
 #   penalty on its experience, PlayerServer::CompanionDied). Then the hero dies (as net_host_death): the hero's rule,
@@ -10,6 +11,8 @@
 # - The peer quits (the exits stay closed while another player is in the game). Back out through exit 1 (as
 #   net_host_death), the hero and the companion selected: the party goes home and the client writes the companion's record
 #   into comp's own file (SavedParties::ReturnCompanions); heroxp reads that file from the disk.
+# - Out through the gate again: comp comes back by itself (companions last the game). It kills, then F3 and OK on its
+#   row send it away (ClientMessage::RemoveCompanion): its record is written to comp's file first.
 rebirth resolution desktop
 timeout 60
 peer net_pair_companion
@@ -84,10 +87,14 @@ peersignal entered
 peerwait 120 peerin
 frames 20
 
-# The companion joins.
+# The companion joins: the HUD's companions button (right of the portraits: the hero's and the peer's) opens the
+# window, its first row is comp.
 companions 1
-key f3
+frames 5
+capture companion_button
+layout click 455 577
 frames 10
+capture companion_window
 clickregion 2
 frames 3
 clickregion 0
@@ -129,6 +136,28 @@ waitwindow 30 msgbox
 key enter
 waitwindow 60 briefing
 frames 40
+heroxp comp more
+
+# Companions last the game: out through the gate again, comp is asked for once the hero stands in the zone
+# (PlayerClient::RestoreCompanions).
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitzone 40 z3q2
+frames 60
+companions 2
+
+# Sent away (F3, the first row is the companion, OK): it kills first, its record goes back to comp's file with that.
+hit enemy companion 100000
+frames 40
+key f3
+frames 10
+clickregion 2
+frames 3
+capture companion_send_away
+clickregion 0
+frames 30
+companions 1
 heroxp comp more
 frames 20
 report
