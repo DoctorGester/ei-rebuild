@@ -183,7 +183,7 @@ jobs:
       - name: Build the harness
         run: |
           $HARNESS_CONFIGURE
-          cmake --build build/linux-harness --target ei-rebuild
+          cmake --build build/linux-harness --target ei-rebuild ei-convert
           ccache --show-stats
 
       # The private repository's files: ei-stub-data.tar.zst (or its parts, .tar.zst.00, .01, ..., when split under
