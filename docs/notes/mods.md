@@ -395,6 +395,61 @@ armours, 63 weapons, 126 quests).
   `items.idb.toml` merged over the game's TOML (the same index as its binary file's).
 - `work.py test <ID> --converted --golden --rebirth`: every golden the same with every database as TOML.
 
+## Readable values
+
+The record TOML says what a value means rather than its bits (MF14, user 2026-11-11: the showcase mod's `class_mask =
+0x1`, `key = 0x2890000`, `blood_kind = 8`, unnamed arrays and a 32 x 32 relations matrix could not be written by
+hand). One path: ei-convert writes this form, the game reads only this form. The field helpers are database_toml.h's
+(`dbtoml::Enum`, `Bits`, `Code`, `OtherBits`, `Table`), which mob_toml.cpp uses too:
+- An enum is its name (`natural_weapon = "club"`); a value no name has stays a number (the data's garbage, a code no
+  code tests), which the reader also takes.
+- A bit mask is a list of names (`sold_by = ["gipat_smith"]`; a name may stand for several bits: `weapons = ["any"]`
+  is 0x7F). Bits no name covers go to `<key>_other = 0x..`, written only when not zero.
+- A fixed-meaning array is an inline table by name (`perception = { sight = 8.5, near = 2.8 }`); elements left out
+  keep the record's value (0 in a new record).
+- Defaults are left out: `dbtoml::WriteRecords` writes a field only when its text differs from a new record's (the
+  key always), the merge fills the rest from the record below or the type's defaults; mob.toml did this already.
+- An unknown name is a load warning with the file, the line and the valid names ("items.idb: <file> line 7: type has
+  a value it does not take (one of: sword, axe, ...)"), as the other TOML errors; the field keeps its value.
+
+Field by field (the names, the code that reads each):
+
+| File | Field | Was | Now |
+|---|---|---|---|
+| items.idb | weapon `type`, `natural_weapon` (udb) | 0..6, 8, 16 | WeaponType: `sword`, `axe`, `dagger`, `spear`, `club`, `bow`, `crossbow`, `none` (8), `spells_only` (16) |
+| items.idb | armor `type` | 0..6 | ArmorType: `helmet`, `body_armor`, `leggings`, `shirt`, `pants`, `boots`, `gloves` |
+| items.idb | quick item / quest item / loot `type` | garbage (stack addresses) | a number, as it was (nothing reads it) |
+| items.idb, spells.sdb | `class_mask` | hex | `sold_by`: the trader class templates (bit class - 1, ClassTemplate::type; the classes by the scripts that open them: `gipat_smith` 1 (basecam "b.smith.constr_1"), `gipat_witch` 2 (bz2g), `ingos_trader` 3 (bz8k Shopper), `suslanger_smith` 4 (bz14h Kuzn), `rick` 5 (bz7g)) |
+| items.idb | `damage_types`, `absorb_first`, `absorb_others`, material `absorb_factors`; udb `damage_weights`, `protection` | 7-element arrays | tables by damage type (texts "string dmg_0".."dmg_6"): `piercing` (dagger, spear, bows), `slashing` (sword, axe), `crushing` (club), `fire`, `acid`, `lightning`, `general` |
+| items.idb | `buildable`, armor `shows_wounds` | 0 / 1 | true / false |
+| items.idb | quick item `category` | 0, 5, 8 | QuickItemCategory: `danger_sensor`, `consumable`, `wand`, `potion` |
+| items.idb | loot `kind`, `record_type` | numbers | LootKind `self`, `material`, `record`; LootRecordType `weapon`, `armor`, `quick_item`, `spell`, `modifier`; 0x7FFFFFFF `none` |
+| units.udb | model `object_class` | 50..52 | `class`: MapObjectType `hero`, `creature`, `animal` (52: Bat, Boar, Cow, ... the code's UnitSpare) |
+| units.udb | `movement_kind` | 1..3 | `movement`: `walks` (1: the load factor from the legs), `flies` (2), `rooted` (3: Fungus) |
+| units.udb | `mode_speeds` | [4] | `{ run, walk, crawl, lie }` (ModeSpeedOf) |
+| units.udb | `action_speeds` | [6] | `{ attack, cast, hit, death, cross, special }` (Unit::ActionSpeed) |
+| units.udb | `blood_kind` | 0..9 | `blood`: `none`, `red`, `green`, `blue`, `brown` (1..4: a shower and a bloodprints.png decal of that colour), `red_spray`, `green_spray`, `blue_spray`, `brown_spray` (5..8: the shower alone) |
+| units.udb | `footprint_kind` | -1..25 | `footprint`: the footprints texture's tile, named by the game's model that uses it (`none` -1, `human`, `driad`, `cyclope`, `skeleton`, `troll`, `golem`, `elemental`, `goblin`, `toad`, `ogre`, `lizardman`, `zombie`, `unicorn`, `horse`, `scrab`, `orc`, `pig`, `hyena`, `boar`, `cow`, `wolf`, `tiger`, `hare`, `rat`, `deer`, `dog`) |
+| units.udb | `cast_effect`, `swap_feet` | 0 / 1 | true / false |
+| units.udb | model `sounds` | 16 names | `step_sounds`: a table by the ground's surface class (FootstepSound; prints.db's names): `grass`, `ground`, `stone`, `sand`, `rock`, `field`, `water`, `road`, `surface_8`, `snow`, `ice`, `dry_grass`, `snowballs`, `lava`, `swamp`, `high_rock` |
+| units.udb | unit `combat` | [5] | `{ reach, attack, attack_spread, defence, speed }` (CombatIndex) |
+| units.udb | unit `perception`, `conspicuity` | [6] | `{ sight, day_sight, near, hearing, smell, unread }` (Sense; smell: Slot4, raised by the Stench spell) |
+| units.udb | unit `hit_sound_kind` | 8..16 | `hit_sound`: the weapon types (0..6), `none` (8), the sound folders `hands1` 9, `pierce` 10, `crash` 11, `hands4` 12, `slash` 13, `hands6` 14, `hands7` 15, `spells_only` 16 (HitSoundFormat) |
+| units.udb | npc `stats` | [3] | `{ strength, dexterity, intelligence }` |
+| .adb | `key` | hex | its parts (object3d.h): `kind` (AnimationKind: `special`, `attack`, `cast`, `run`, `walk`, `idle`, `death`, `hit`, `cross`), `weapons` (bits 0..7 by weapon type, `any` 0x7F), `move` (`stop`, `walk`, `crawl`, `lie`), `play` (`once`, `looped`); the number (bits 22..29) by the kind: an attack's or cast's `height` (`high`, `middle`, `low`) and `blow` (true), a death's or hit's `side` (BlowSide: `back`, `front`, `minus_x`, `plus_x`) and `fall` (`walking`, `standing`, `none`: 0x08, 0x10, 0x18), a special's `skill` (SkillAnimation), else `number`; the other variant bits (8..14) `key_other` |
+| .adb | `flags` | hex | `flags = ["arrow", "fits_under_armour", "fits_upper_armour"]` (bit 0: UpdateArrow; 0x10, 0x20: Unit::AcceptsAnimation), `death_side` (0x1C00000, ActionPoint); the bits nothing reads (1..3, 15..21, 25, 26: they mirror the key in most entries) `flags_other` |
+| .adb | `index` | its place | left out when it is its place (a new animation's default) |
+| mob.toml | `parent_id` | 50..60 | `class`: MapObjectType `hero`, `creature`, `animal`, `tree`, `building`, `stone`, `stuff`, `torch`, `magic_trap`, `lever` |
+| mob.toml | `[players]` | 32 names, 32 x 32 matrix | `names = { 3 = "Golems" }` only names other than "Player-n"; `allied`, `neutral`, `hostile`: lists of `[player, other]` pairs whose relation differs from the default (neutral, allied with itself); the data's relations are all 0..2 |
+
+Kept as numbers (quantities, indexes, a player number): `number`, `variant`, `magic_level`, `material_units`, a
+unit's `level`, `size_class` (the AI map's size class), `foot_part` (the "ll<n>" part), `side` (the owner's player
+number), `player`, an item's `attack_interval`, a quest item's `id`, a loot record's `index`, the eyes, the chances.
+
+Left for MF14a (the rest of the formats): spells.sdb (`cast_type`, `school`, `target_kind`, `allowed_modifiers`,
+`skill`), quests.qdb, perks.pdb, Levers.ldb, a lever's `lock.mask`, map.toml (`classes` by surface name),
+config.reg.toml (`Single`, `Multi` as booleans), an NPC's `attributes` and `skills`, the unit level records.
+
 ## Textures as PNG
 
 A texture can be a PNG (MF4, user 2026-11-09). Every .mmp still loads; `<name>.png` found where `<name>.mmp` would be
