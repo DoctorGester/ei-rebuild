@@ -1,0 +1,7 @@
+id = "P12"
+title = "A Chase camera setting: Rebirth starter's 'Камера Чейза' preset (pitch -45..90, zoom 0..50, far clip) as one switch in the settings"
+group = "native-ui"
+size = 1
+model = "opus"
+note = "User 2026-11-10: players asked for Rebirth's starter option 'Камера Чейза' (tip: a freer camera); add it to the settings, on a branch the user tests before any merge. EIStarter.exe holds two 62-value presets (key table at 0x48a2c4, chase values at 0x48a3bc as (tag, value) pairs; build/chase_camera/tables.txt). Chase vs standard: default and briefing pitch -45..90 (30..60, 40..60), CameraMinDistanceToCarrier 0 (10), CameraMinLimitDistanceToCarrier 0 (3), CameraMaxLimitDistanceToCarrier 70 (30), CameraMinHeight 0 (3), briefing min distance 0 (6), max 50 (27), min limit 0 (3), max limit 70 (30), NearClipDistance 1 (2), FarClipDistance 199680 (100), CameraTerrainSensetiveArea 0.1 (10). Shortcut values in the chase table look like saved views: leave the shortcuts alone. Check the far clip against our renderer's fog / draw distance / depth precision. Pitch below the horizon and distance 0: check the camera code copes. Do not merge."
+order = 1314
