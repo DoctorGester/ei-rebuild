@@ -1,6 +1,6 @@
 # Mission script engine, text reader and small engine pieces
 
-Files (`src/game/`): `script.h` (the records and `Script`), `script_*.cpp` (group, vars, eval, parse, parse_load, exec,
+Files (`src/game/`): `script.h` (the records and `Script`), `script_*.cpp` (group, vars, eval, parse, parse_load, ir, exec,
 exec_run, exec_helpers, save, load, blocks, cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)),
 `quest_database.cpp`, `text_manager.cpp`. Scenarios: `script_parse`, `script_exec`, `script_copy`, `script_fx`,
 `script_quest`, `world_load` (save / load round trip), `console`, `effects`, `particles`, `zone_gz2g_traps`. The plan to
@@ -73,7 +73,9 @@ in the target; the value is the one argument). `LoadFunction` parses one call ag
 loop counter = a global object variable); each parameter is a literal, a local variable, a global variable (plain or
 qualified) or a nested call of a function with the right result type.
 The parser reads the tokens through a `TokenReader` (`Next(&id)` takes a token and classifies it, `Expect(lexeme)` checks
-the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`.
+the next one, `EndOfFileError()` reports on the last line); error codes are `ScriptParseError`. Each Load also fills a
+parse tree beside its structures (`script_ir.h`, handed out through `Load`'s `ir`; lua-scripting.md, "Design" and
+"Survey"); the executor never reads it.
 
 **Lexer** (`ClassifyToken`): lines start at 1 and count `\n` in white space and block comments; a token runs to white
 space (a space inside quotes does not end it) or to one of `, ) ( : =` after its first character, at most 255
