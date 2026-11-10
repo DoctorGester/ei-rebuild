@@ -1,14 +1,13 @@
 // The PNG writer and reader: png.h.
 #include "lib/png.h"
 
+#include "lib/threads.h"
 #include "miniz/miniz.h"
 #include "wuffs/wuffs_png.h"
 
 #include <algorithm>
-#include <atomic>
 #include <cstdlib>
 #include <string_view>
-#include <thread>
 #include <vector>
 
 namespace png {
@@ -127,20 +126,6 @@ std::uint32_t CombineAdler(std::uint32_t first, std::uint32_t second, std::size_
     return sum1 | (sum2 << 16);
 }
 
-// `work(i)` for i in [0, count), on up to one thread a processor (the calling one among them); each i on one thread.
-template <class Work>
-void OnThreads(int count, Work work) {
-    const int threads = std::clamp(static_cast<int>(std::thread::hardware_concurrency()), 1, std::max(count, 1));
-    std::atomic<int> next{0};
-    const auto run = [&] {
-        for (int i = next++; i < count; i = next++) work(i);
-    };
-    std::vector<std::thread> helpers;
-    for (int t = 1; t < threads; ++t) helpers.emplace_back(run);
-    run();
-    for (std::thread& helper : helpers) helper.join();
-}
-
 // The PNG of `raw` (its rows as the PNG holds them: big-endian samples), in segments when it has more than one.
 std::string WriteRows(int width, int height, int channels, int bits, const std::uint8_t* raw) {
     const std::size_t step = static_cast<std::size_t>(channels) * static_cast<std::size_t>(bits / 8);
@@ -156,7 +141,7 @@ std::string WriteRows(int width, int height, int channels, int bits, const std::
     };
     std::vector<Segment> made(static_cast<std::size_t>(segments));
     const int flags = static_cast<int>(tdefl_create_comp_flags_from_zip_params(MZ_DEFAULT_LEVEL, -15, MZ_DEFAULT_STRATEGY));
-    OnThreads(segments, [&](int s) {
+    lib::OnThreads(segments, [&](int s) {
         const int first = s * rowsASegment, last = std::min(height, first + rowsASegment);
         std::vector<std::uint8_t> filtered;
         filtered.reserve((rowBytes + 1) * static_cast<std::size_t>(last - first));
@@ -293,7 +278,7 @@ bool ReadSegments(std::string_view png, int* width, int* height, std::vector<std
     std::vector<char> read(segments, 0);
     rgba->resize(static_cast<std::size_t>(w) * h * 4);
     const auto* streamBytes = reinterpret_cast<const unsigned char*>(stream.data());
-    OnThreads(static_cast<int>(segments), [&](int s) {
+    lib::OnThreads(static_cast<int>(segments), [&](int s) {
         const std::size_t first = static_cast<std::size_t>(s) * rowsASegment;
         const std::size_t last = std::min<std::size_t>(h, first + rowsASegment);
         std::uint8_t* rows = filtered.data() + first * (rowBytes + 1);

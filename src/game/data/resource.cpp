@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "lib/threads.h"
 #include "lib/toml.h"
 #include "platform/platform.h"
 
@@ -24,6 +25,7 @@
 #include <new>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -323,37 +325,103 @@ void* MappedResource::KeptPng(std::string_view name, std::uint32_t* size) {
     return KeptFile(*this, std::move(file), size);
 }
 
+struct MappedResource::PngRead {
+    std::string name;       // the .mmp's
+    std::string png;
+    std::string where;      // the PNG's path or entry, for the warning
+    std::string original;   // the .mmp it stands for when the PNG has no settings chunk; empty when none
+};
+
+bool MappedResource::ReadPng(std::string_view name, const std::string& pngName, const std::vector<Source>& sources,
+                             std::size_t at, PngRead* out) {
+    out->name = name;
+    if (!ReadSource(sources[at], pngName, &out->png, &out->where)) return false;
+    std::string originalWhere;
+    if (texture_png::SettingsText(out->png).empty())
+        for (std::size_t i = at; i < sources.size(); ++i)
+            if (ReadSource(sources[i], name, &out->original, &originalWhere)) break;
+    return true;
+}
+
+std::unique_ptr<LoadedFile> MappedResource::MakePng(const PngRead& read, std::string* error) {
+    MmpHeader originalHeader;
+    texture_png::MmpView below;
+    if (read.original.size() >= sizeof(MmpHeader)) {
+        std::memcpy(&originalHeader, read.original.data(), sizeof(MmpHeader));
+        below = {&originalHeader, reinterpret_cast<const std::uint8_t*>(read.original.data()) + sizeof(MmpHeader),
+                 read.original.size() - sizeof(MmpHeader)};
+    }
+    auto file = std::make_unique<LoadedFile>();
+    if (!texture_png::FromPng(read.png, below.header ? &below : nullptr, &file->bytes, error)) return nullptr;
+    file->name = read.name;
+    file->size = static_cast<std::uint32_t>(file->bytes.size());
+    file->madeFromPng = true;
+    return file;
+}
+
 void* MappedResource::PngTexture(std::string_view name, const std::string& pngName, const std::vector<Source>& sources,
                                  std::size_t at, std::uint32_t* size) {
     if (!SourceHas(sources[at], pngName)) return nullptr;
     if (void* data = SharedFile(*this, name, size)) return data;
     if (void* data = KeptPng(name, size)) return data;
-    std::string png, where;
-    if (!ReadSource(sources[at], pngName, &png, &where)) return nullptr;
-    // Without its settings chunk the PNG takes them from the .mmp it stands for: in its place, or the first below.
-    std::string original, originalWhere;
-    MmpHeader originalHeader;
-    texture_png::MmpView below;
-    if (texture_png::SettingsText(png).empty())
-        for (std::size_t i = at; i < sources.size(); ++i) {
-            if (!ReadSource(sources[i], name, &original, &originalWhere)) continue;
-            if (original.size() >= sizeof(MmpHeader)) {
-                std::memcpy(&originalHeader, original.data(), sizeof(MmpHeader));
-                below = {&originalHeader, reinterpret_cast<const std::uint8_t*>(original.data()) + sizeof(MmpHeader),
-                         original.size() - sizeof(MmpHeader)};
-            }
-            break;
-        }
-    auto file = std::make_unique<LoadedFile>();
+    PngRead read;
+    if (!ReadPng(name, pngName, sources, at, &read)) return nullptr;
     std::string error;
-    if (!texture_png::FromPng(png, below.header ? &below : nullptr, &file->bytes, &error)) {
-        game::Warning("textures: %s: %s; not read", where, error);
+    std::unique_ptr<LoadedFile> file = MakePng(read, &error);
+    if (!file) {
+        game::Warning("textures: %s: %s; not read", read.where, error);
         return nullptr;
     }
-    file->name = name;
-    file->size = static_cast<std::uint32_t>(file->bytes.size());
-    file->madeFromPng = true;
     return KeptFile(*this, std::move(file), size);
+}
+
+void MappedResource::MakePngs(std::span<const std::string> files) {
+    const std::vector<Source> sources = Sources();
+    // Each name's PNG and the source it is in, FindFile's: the first source with the PNG or the .mmp.
+    std::vector<std::pair<const std::string*, std::size_t>> pngs;
+    for (const std::string& name : files) {
+        const std::string pngName = PngNameOf(name);
+        if (pngName.empty() || filesByName.contains(name) ||
+            std::ranges::any_of(keptPngs, [&](const auto& file) { return file->name == name; }))
+            continue;
+        for (std::size_t i = 0; i < sources.size(); ++i) {
+            if (SourceHas(sources[i], pngName)) {
+                pngs.emplace_back(&name, i);
+                break;
+            }
+            if (SourceHas(sources[i], name)) break;
+        }
+    }
+    // A round of one a processor at a time, up to half of keptPngs' bytes: the files made first are still kept when
+    // their GetFile comes (the rest are made there, one at a time).
+    const std::size_t round = std::max(1u, std::thread::hardware_concurrency());
+    std::size_t madeBytes = 0;
+    for (std::size_t first = 0; first < pngs.size() && madeBytes < kKeptPngBytes / 2; first += round) {
+        std::vector<PngRead> reads;
+        for (std::size_t i = first; i < std::min(first + round, pngs.size()); ++i) {
+            const std::string& name = *pngs[i].first;
+            if (PngRead read; ReadPng(name, PngNameOf(name), sources, pngs[i].second, &read)) reads.push_back(std::move(read));
+        }
+        std::vector<std::unique_ptr<LoadedFile>> made(reads.size());
+        lib::OnThreads(static_cast<int>(reads.size()), [&](int i) {
+            std::string error;
+            made[i] = MakePng(reads[i], &error);
+        });
+        for (std::unique_ptr<LoadedFile>& file : made)
+            if (file) {
+                madeBytes += file->bytes.size();
+                KeepPng(std::move(file));
+            }
+    }
+}
+
+void MappedResource::KeepPng(std::unique_ptr<LoadedFile> file) {
+    keptPngBytes += file->bytes.size();
+    keptPngs.push_back(std::move(file));
+    while (keptPngBytes > kKeptPngBytes) {
+        keptPngBytes -= keptPngs.front()->bytes.size();
+        keptPngs.pop_front();
+    }
 }
 
 void* MappedResource::FindFile(std::string_view name, std::uint32_t* size, bool* utf8) {
@@ -576,14 +644,7 @@ bool MappedResource::CloseFile(void* data) {
     std::unique_ptr<LoadedFile> file = std::move(byData->second);
     filesByName.erase(file->name);
     filesByData.erase(byData);
-    if (file->madeFromPng) {
-        keptPngBytes += file->bytes.size();
-        keptPngs.push_back(std::move(file));
-        while (keptPngBytes > kKeptPngBytes) {
-            keptPngBytes -= keptPngs.front()->bytes.size();
-            keptPngs.pop_front();
-        }
-    }
+    if (file->madeFromPng) KeepPng(std::move(file));
     return true;
 }
 

@@ -15,6 +15,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -140,6 +141,10 @@ public:
     virtual void FreeAllFiles();
     // Whether one of Sources() has `name` (an .mmp's PNG for it, a figure file's glTF).
     bool HasFile(std::string_view name);
+    // The .mmp files `files` that GetFile would make from PNGs and that are neither loaded nor kept, made together
+    // on threads and kept (keptPngs, up to half of its bytes) for the GetFile calls that follow. One that makes none
+    // is left to its GetFile (and its warning). Docs/notes/mods.md, "Textures as PNG", "Loading cost".
+    void MakePngs(std::span<const std::string> files);
     // The record file `name` in Sources() (its TOML files in the folders; the original as GetFile finds it).
     RecordFile FindRecord(std::string_view name);
     // The text `name` (a texts archive's entry, docs/notes/mods.md "Records as TOML") in Sources(): a folder's file
@@ -211,6 +216,17 @@ private:
                      std::uint32_t* size);
     // The .mmp `name` made from its PNG and kept since its last close (keptPngs), handed out again; null when none is.
     void* KeptPng(std::string_view name, std::uint32_t* size);
+    // A PNG read for making its .mmp (resource.cpp).
+    struct PngRead;
+    // The PNG `pngName` in sources[at] read for the .mmp `name`, with the .mmp it stands for when it has no settings
+    // chunk (in its place or the first below); false when that source has no such PNG.
+    static bool ReadPng(std::string_view name, const std::string& pngName, const std::vector<Source>& sources,
+                        std::size_t at, PngRead* out);
+    // The .mmp file made from `read` (safe on any thread), or null with `*error` set.
+    static std::unique_ptr<LoadedFile> MakePng(const PngRead& read, std::string* error);
+    // `file` (made from its PNG, nothing holding it) kept at the back of keptPngs, the oldest let go past
+    // kKeptPngBytes.
+    void KeepPng(std::unique_ptr<LoadedFile> file);
     // The map made from the folder's files (folderMap), made at the first call; null for another archive or none.
     const map_folder::MapData* FolderMap();
     // The map file or sector `name` of the map made from the folder's files (shared when made already); null when the

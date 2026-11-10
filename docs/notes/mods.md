@@ -481,13 +481,16 @@ unconverted load:
   inflates and unfilters the segments on threads and checks the stream's Adler-32 (the segments' combined). A PNG
   without the chunk, or whose segments fail on their own, is read by Wuffs whole.
 - The levels' box filter and the DXT blocks run on threads in runs of rows (the bytes the same).
+- A map's terrain pages are made together before they are loaded (`Terrain::SetupPages`, `MappedResource::MakePngs`):
+  one a processor at a time, up to half of the kept bytes below. Other textures are made at their first GetFile, one
+  at a time (in gipat 545 makes, 1.4 s together; its 146 pages take 1.9 s made together).
 - A made file is kept after its last close, up to 128 MB an archive (least recently used out first; the loose files'
   reload empties it): a zone's textures are closed and opened again between its loads, and were made two or three
   times each.
-Timings (release, one game, `--quiet`, Rebirth): `mod_lost_in_astral_cz_ingos` 43 s converted before, 25 s now,
-against 24 s unpacked; `mod_lost_in_astral_gipat` 33 s before, 17 s now, against 12 s. What is left in gipat is the
-DXT encode (about 2 s, ExactColourBlock and stb_dxt) and the decode (about 1.3 s), spread over its terrain pages,
-which are loaded one by one.
+Timings (one game, `--quiet`, Rebirth, 2026-11-10), converted against unpacked: `mod_lost_in_astral_cz_ingos` 24 s
+against 24 s (43 s before these), `_gipat` 15 to 17 s against 12 s (33 s), `_suslanger` 14 s against 12 s (17 s).
+What is left in gipat: the textures' making (about 3 s, the DXT encode the most) and a slower start (the first frame
+0.97 s against 0.63 s).
 
 ### Checks
 
