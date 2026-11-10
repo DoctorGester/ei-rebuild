@@ -101,11 +101,10 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
 - **L2 (bindings).** All 276 are generated from the table; 160 are reached by the game's content, 88 more only by
   harness lines, 27 by nothing (bindings without coverage: lockstep cannot check them). Rebirth's string and maths
   functions are reached only by harness lines.
-- **L3 (writer)** is smaller than planned: no wait in a loop body, no nested loop, no ForIf, no #define and no written
-  `!n!` in any shipped text, so the end-the-body rule needs no special form in converted missions (the runtime keeps it
-  for mods). Two idioms cover nearly everything: the started task (one unconditional rule, KillScript first) and the
-  once-firing trigger; KillScript converts to a flag that lets the function go on. Names need a mapping (`#`, `-`).
-  Comments do not reach the tree; carrying mods' comments needs the lexer to keep them (open).
+- **L3 (writer)**: no wait in a loop body, no nested loop, no ForIf, no #define and no written `!n!` in any shipped
+  text, so converted missions need no special form for the end-the-body rule (the runtime keeps it for mods), and
+  KillScript is a call that sets a flag, the function going on ("Converted scripts"). Comments do not reach the tree;
+  carrying mods' comments needs the lexer to keep them (open).
 - **L4 (scheduler).** KillScript-then-go-on is the main path (86% of kills), and a killed instance starting the next
   script (5,416) is common; the lost kill flag of a waiting run is not reached by content.
 - **L5 (lockstep).** The corpus is the 339 .mob scripts with their AddMob / quest parents; the hot condition bindings
@@ -138,13 +137,13 @@ quest and engine texts (401 texts, 183,486 lines), without the harness lines.
     groups kept sorted (by object id, script.md).
   - Floats stay single precision. A float→double→float round trip is exact; check that NaN payloads survive, since
     assignment copies bits.
-- **Readable Lua (L3).** The old engine only waits at a top-level command of a block (a wait inside a For body ends
+- **Readable Lua.** The old engine only waits at a top-level command of a block (a wait inside a For body ends
   that member's body), so a script converts to plain code: a rule set as condition and action functions, waits as
   calls that yield (`Sleep`, `WaitSegment`, `SleepUntil`, `SleepUntilIdle`), For / ForIf as
   `ForEach(group, function(member) ... end)` keeping the original's end-the-body rule, the WorldScript as the start
-  function. ei-convert writes `<zone>.lua` beside MF9's .mob TOML and the game loads it through the loose-file lookup
-  (mods.md); the original .mob's script converts at load the same way. No pc state machines: a modder reads and edits
-  the file.
+  function ("Converted scripts" below). ei-convert writes `<zone>.lua` beside the .mob (and MF9's TOML); the game is to
+  load it through the loose-file lookup (mods.md, L4), and the original .mob's script to convert at load the same way.
+  No pc state machines: a modder reads and edits the file.
 - **Scheduler.** It keeps Script::Tick's order exactly:
   - waiting runs first, then instances, then dropping deleted objects, then timed effects, then freeing temporaries;
   - a new instance goes at the head of the instance list;
@@ -225,17 +224,176 @@ Rebirth's `GSSetPlayerVar` → `SetPlayerGameVar`, `GSListPlayerVars` → `ListP
 `RandObj` → `RandomString` / `RandomObject`, `GameOverMSG` → `GameOverMessage`, `IsFileExists` → `FileExists`. `ID`,
 `Ex` and the rest stay. `scriptlua::LuaName` / `BindingNames` give the names (the writer's table).
 
-For L3 (the writer):
-- Write each float with 9 significant digits (`%.9g`): Lua reads it as a double and the binding rounds it to the same
-  float the parser made.
-- Lua arithmetic is in doubles: one `+ - * /` of two floats rounded to a float equals the float operation, a chain does
-  not, and `Add(a, b)` is `b + a` in floats; keep the bindings (`Add`, `IsEqual`, whose NaN rules differ from Lua's
-  `==`) unless an expression is known exact.
-- A nested call in a wait's argument becomes a function (`SleepUntil(function() return IsDead(u) end)`); a nested call
-  in Every / Any / Sum / ForIf's condition becomes a function of the member; a constant stays a number.
-- The game's loop counter is a global object variable: after a For it holds the first member, after Every the last
-  evaluated. A converted loop's member is a parameter; write the global too where the script reads it later.
-- Group assignment copies (`h = CopyGroup(g)`); object assignment shares the value (objects are immutable from Lua).
+The converted scripts' helpers (the prelude, for L3): `GlobalVars { name = "type", ... }` sets each global to its
+type's zero value and keeps the type (`ScriptLua::GlobalType`); `Script { rules }` checks each rule (an action function,
+an optional condition function) and gives the table a metatable whose `__call` starts an instance through
+`ScriptLua::startScript` (the scheduler's; without one a call is a Lua error). Lua arithmetic is in doubles: one
+`+ - * /` of two floats rounded to a float equals the float operation, a chain does not, and `Add(a, b)` is `b + a` in
+floats; converted scripts keep the bindings (`Add`, `IsEqual`, whose NaN rules differ from Lua's `==`).
+
+## Converted scripts
+
+What exists (L3): `src/game/script/script_lua_writer.h` (`scriptlua::WriteLua`) writes the Lua of one script text from
+the tree of its load (`scriptir::File`); `scriptlua::LuaNames` carries the names across the texts loaded into one
+Script (AddMob'd mobs, network quests, quest texts, console lines). Nothing in the game loads the files yet (L4).
+
+- **Where.** `ei-convert <install> <target>` writes each .mob's script as `<target>\<its path>.lua` (`Maps\zone1.lua`),
+  converted after the missions it loads after (an AddMob's parent, a network quest's base) as `--scripts` finds them;
+  `--check <install>` converts and checks without writing ("mission script: 99 files, 0 failed"). `ei-convert --scripts
+  ... --lua <folder>` writes every text of the survey as `<group>\<name>.lua`, the quest, engine and console texts too.
+- **The file.**
+  - A header comment; for a text the game's parser stops in, the error (what came before stays loaded, as in the game;
+    its WorldScript, if the error came after it, the game runs only at the zone reset).
+  - `GlobalVars { ... }`: the text's globals (a renamed one with its original name in a comment). A global the text
+    declares again under an earlier text's name and never names is a comment only: every use finds the earlier one
+    (the plain name is looked up first). 159 AddMob'd and quest mobs re-declare NULL, i and VSS#i#val so.
+  - Each definition `Name = Script { rules }` after a comment with its original name and typed parameters
+    (`-- VCheck#0#1(this: object)`); a rule is `{ condition = function(params) ... end, action = function(params) ...
+    end }`, the condition left out for an empty if-section; a definition without a body is `Name = Script {}`. A
+    condition is `return c1 ~= 0 and c2 ~= 0 ...`: the first zero ends the rule and the later ones are not evaluated
+    (their draws not made), a NaN holds, as ScriptIfThen::Run's `== 0.0f`. A declared-script call is a call of the
+    definition (`VTriger_0_15(this)`).
+  - `function WorldScript() ... end`, the start function: the loader takes it after the chunk and clears the global
+    (each text has its own; the zone reset runs every text's again).
+  - Commands are the bindings under their Lua names with the arguments in the written order; `KillScript()` sets the
+    run's flag and the function goes on. Assign is `global = value`, a group from a variable `CopyGroup(x)` (the game
+    copied; none in the corpus). For / ForIf are `ForEach(group, function(i) ... end)` / `ForEachIf(group, condition,
+    function(i) ... end)`, Every / Any / Sum `Any(group, function(i) return ... end)`: the member parameter has the
+    counter global's name, so the body reads it where the game's body read the global.
+  - Numbers: the shortest text that reads back (as a double the binding rounds) as the parser's float (`54.5`, `72.17`,
+    `0.1`), else `%.9g`; `-0.0` and `math.huge` where they occur. Strings quoted, a long bracket for paths
+    (`[[nature\thunder\2.wav]]`), bytes outside printable ASCII as `\ddd` (none: the scripts' cp1251 is in comments).
+- **Arguments as functions.** What the game evaluated again on each poll or member:
+  - a wait's nested call (`SleepUntil(function() return IsDead(u) end)`, `Sleep(function() return Random(4) end)`);
+  - a wait's global, unless it is settled: assigned at most once in the texts so far, at the top level of a
+    WorldScript, and no loop counter. A settled global changes only from its zero value, on which Sleep, WaitSegment
+    and SleepUntilIdle do not wait, so `SleepUntilIdle(Human5)` passes the value; SleepUntil's global stays a
+    function. Every global wait argument of the corpus is settled (945 SleepUntilIdle);
+  - Every / Any / Sum / ForIf's condition when it is a nested call (a function of the member); a constant stays a number.
+- **Loop counters.** The game's counter is a global (after For it holds the first member, after Every the last one
+  tested). Where a text so far reads the global outside a loop on it, the loop's function writes it first
+  (`function(member) i = member ... end`). No text of the corpus does (872 loops), so every converted loop has the plain
+  form, and such counters stay at their zero value in Lua (a lockstep compare, L5, leaves them out).
+- **Names.** The `!n!` qualifier dropped, every character but letters, digits and `_` as `_` (`VTriger#0#312` is
+  `VTriger_0_312`, `#OnBriefingComplete` `_OnBriefingComplete`, `DogRedF12-422369` `DogRedF12_422369`), `_` before a
+  leading digit. A name already given (Lua's keywords and globals, the bindings, the helpers, an earlier global or script
+  of the same Script) gets `_2`, `_3`...; a parameter avoids those too (a parameter `this` beside a global `this` is
+  `this_2`). Globals and scripts share Lua's one name space. The game's lookups (the plain name, then the qualified
+  one; a parameter before a global) are already resolved in the tree, so each reference gets the Lua name of the
+  variable the parser found. The corpus needs no suffix and renames no parameter.
+- **Checks.**
+  - `ei-convert --scripts` (the build check with `--scenarios --quiet`: the samples, the engine texts, the console
+    lines; by hand with the installs): each text's Lua is compiled and run in a ScriptLua state after the earlier texts
+    of its script; every global its bytecode reads (`tools/convert/lua_globals.cpp`: GETTABUP on `_ENV`) must be
+    defined there or a declared global, every global it writes a declared global, a script or WorldScript. It fails on
+    those, on a name the writer did not know, on a text reading a counter an earlier text's loop left unwritten and on
+    a text assigning a global an earlier text's wait read once.
+  - `ei-convert --lua-check` (the build checks, ctest `port_lua`): `tools/convert/lua_both.cpp` runs five short texts
+    both ways on its three stones, by the game's executor (Script::Load, Script::Tick) and as their Lua under a
+    scheduler of Script::Tick's order, and compares every global (floats by their bits), the instance and waiting-run
+    counts after each of 24 ticks and the random generator at the end: rules whose conditions draw, KillScript going
+    on, starts from an instance (next tick) and from a waiting run (same tick), waits on nested calls and on settled
+    and changing globals, group copies, loops and Every / Any / Sum, a NaN condition, renamed names, a second text
+    loaded later, number literals.
+- **Corpus** (`--scripts build\unpacked\vanilla build\unpacked\rebirth --scenarios tests\scenarios`, 13 s): every text
+  loads and checks.
+
+  | texts | count | lines of Lua (the original's) |
+  |---|---|---|
+  | vanilla .mob scripts | 99 | 47,322 (54,245) |
+  | Rebirth's .mob scripts | 99 | 47,610 (54,600) |
+  | AllHeroes | 11 | 13,314 (15,299) |
+  | Lost in Astral | 130 | 50,578 (57,380) |
+  | quest texts | 52 | 3,240 (1,952) |
+  | engine texts, samples | 13 | 146 |
+  | harness console lines | 1,615 | 8,317 |
+
+- **For L4** (what the check's scheduler had to do to match):
+  - A run that ends stays in the run list until its next Execute finds the block ended (Execute returns true after
+    running the last command): a rule's action that does not wait still goes to the head of the list and leaves on the
+    next tick, and so does the WorldScript's run.
+  - A started instance copies its arguments, a group as a new one; each action's run gets copies again (the game's run
+    copies the instance's variables), the condition the instance's own values.
+  - The zone reset zeroes every global (GlobalType gives the types) and runs every text's WorldScript again, so the
+    loader keeps each text's start function.
+
+Examples (vanilla zone1.mob and basecam.mob, a network quest's QFinish text):
+
+```lua
+-- zone1.mob: converted by ei-convert from the game's script (docs/notes/lua-scripting.md, "Converted scripts").
+
+GlobalVars {
+    NULL = "object",
+    VSS_i_val = "object",   -- VSS#i#val
+    i = "object",
+    Ogre = "object",
+    Human_NPC_Male_699 = "object",   -- Human_NPC_Male-699
+    ...
+    Peasans = "group",
+}
+
+-- VCheck#0#1(this: object)
+VCheck_0_1 = Script {
+    {
+        condition = function(this)
+            return IsLess(DistanceUnitUnit(this, DgunDragon), 10) ~= 0
+                and Not(Any(Peasans, function(i) return IsEnemy(i, 0) end)) ~= 0
+        end,
+        action = function(this)
+            KillScript()
+            VTriger_0_15(this)
+        end,
+    },
+}
+
+-- VTriger#0#13(this: object)
+VTriger_0_13 = Script {
+    {
+        action = function(this)
+            KillScript()
+            ForEach(Heroes, function(VSS_i_val)
+                VCheck_0_1(VSS_i_val)
+                VCheck_0_10(VSS_i_val)
+                VCheck_0_299(VSS_i_val)
+            end)
+        end,
+    },
+}
+...
+function WorldScript()
+    Sleep(2)
+    Ogre = GetObjectByID("663")
+    ...
+    AddObject(Peasans, GetObject(702))
+    VCheck_0_137(NULL)
+    ...
+end
+```
+
+```lua
+            PlayAnimation(Human5, "uspecial11")
+            Sleep(40)
+            MoveToPoint(Human5, 72.17, 61.73)
+            SleepUntilIdle(Human5)
+            PlayAnimation(Human5, "ubriefing09")
+```
+
+```lua
+-- Su1()
+Su1 = Script {
+    {
+        condition = function()
+            return Any(Heroes, function(i) return IsLess(DistanceUnitUnit(i, GetObject(1000020)), 7) end) ~= 0
+        end,
+        action = function()
+            KillScript()
+            Su2()
+            SetGameVar(0, "q.z12q1.z12q1.2", 2)
+            SetGameVar(0, "q.z12q1.z12q1.3", 1)
+        end,
+    },
+}
+```
 
 ## Decisions (user 2026-11-10)
 
