@@ -95,8 +95,6 @@ void ZipChecks(const fs::path& game, const std::string& g) {
     Expect("the zip's file mapped",
            mapped.Open(".\\maps\\bz9.mob") ? std::string(static_cast<const char*>(mapped.Data()), mapped.Size()) : "(no)",
            "z");
-    Expect("a write into the zip", platform::File().Open(".\\config\\ai.reg", platform::FileMode::Create) ? "opened" : "refused",
-           "refused");
     Expect("a zip's file", platform::IsFile(".\\maps\\Sub\\NOTE.txt") ? "yes" : "no", "yes");
     Expect("a zip's folder", platform::PathExists(".\\maps\\sub") && !platform::IsFile(".\\maps\\sub") ? "yes" : "no", "yes");
     std::string names;
@@ -120,6 +118,27 @@ void ZipChecks(const fs::path& game, const std::string& g) {
     Expect("a zip's root", platform::ModRoot(flat), flat);
     Expect("a folder mod's root", platform::ModRoot(g + "\\starter\\Mods\\Astral"), g + "\\starter\\Mods\\Astral");
     Expect("no zip", platform::ModRoot(g + "\\starter\\Mods\\None.zip"), "");
+
+    // The zip is read only: a write of its file goes to saves\<mod>\files\, an Update starting from the zip's bytes, and
+    // the mod played again (a restart) reads the written copy.
+    platform::SwitchMod(g, zip);
+    platform::File written;
+    Expect("a write over the zip", written.Open(".\\config\\ai.reg", platform::FileMode::Create) ? "opened" : "refused", "opened");
+    written.Write("new", 3);
+    written.Close();
+    Expect("an update over the zip",
+           written.Open(".\\maps\\zone2.mob", platform::FileMode::WriteExisting) ? "opened" : "refused", "opened");
+    written.Write("X", 1);
+    written.Close();
+    Expect("the written file is in the files folder",
+           fs::exists(game / "saves" / "Astral" / "files" / "config" / "ai.reg") ? "yes" : "no", "yes");
+    platform::SwitchMod(g, zip);
+    Expect("the written file read", platform::ReadWholeFile(".\\config\\ai.reg", &bytes) ? bytes : "(failed)", "new");
+    Expect("the updated file read", platform::ReadWholeFile(".\\maps\\zone2.mob", &bytes) ? bytes : "(failed)", "Xip map");
+    Expect("the written file's path", platform::SystemPath(".\\config\\ai.reg", platform::PathUse::Read),
+           g + "\\saves\\Astral\\files\\config\\ai.reg");
+    Expect("a file the zip lacks is written in the game folder",
+           platform::SystemPath(".\\config\\keyboard.ini", platform::PathUse::Write), ".\\config\\keyboard.ini");
 }
 
 } // namespace

@@ -129,13 +129,17 @@ bool PathLayers::Relative(const std::string& full, std::string* relative) const 
     return false;
 }
 
-std::string PathLayers::Find(std::string_view relative, std::size_t from) const {
+std::string PathLayers::Find(std::string_view relative, std::size_t from, std::size_t* found) const {
     for (std::size_t i = from; i < layers.size(); ++i) {
         const PathLayer& layer = layers[i];
         std::string path = layer.Place(relative);
         if (path.empty()) continue;
-        if (Exists(path) || (layer.owns && layer.owns(relative))) return path;
+        if (Exists(path) || (layer.owns && layer.owns(relative))) {
+            if (found) *found = i;
+            return path;
+        }
     }
+    if (found) *found = layers.size();
     return {};
 }
 
@@ -154,9 +158,18 @@ std::string PathLayers::Map(std::string_view path, PathUse use, Placed* placed) 
     }
     // A read, or the game's write: the top layer that has the file.
     if (use == PathUse::Read || !writesToTop || layers.empty()) {
-        std::string found = relative.empty() ? std::string() : Find(relative, 0);
+        std::size_t at = 0;
+        std::string found = relative.empty() ? std::string() : Find(relative, 0, &at);
         if (found.empty()) return std::string(path);
         if (placed) *placed = Placed::Layer;
+        if (use != PathUse::Read && layers[at].readOnly && at > 0) {
+            // A zip's file is written above it, starting from its bytes for an Update.
+            const std::string target = layers[at - 1].Place(relative);
+            if (target.empty()) return found;
+            MakeFoldersOf(target);
+            if (use == PathUse::Update && !Exists(target)) CopySystemFile(found, target, false);
+            return target;
+        }
         return found;
     }
     // The game folder's own write (a search's "..": the empty folder removed) is the top layer's folder.
@@ -227,8 +240,16 @@ bool SwitchMod(std::string_view gameFolder, std::string_view modFolder) {
         return path;
     };
     mod->map.bases = {game};
-    mod->map.layers = {mod->layer};
     mod->map.saves = Joined(Joined(game, kSaves), mod->name);
+    mod->map.layers = {mod->layer};
+    if (InZip(folder)) {
+        // A zip is read only: what the game writes for it (config	utorial.ini, addrbook.ini) is kept in the mod's
+        // saves folder, standing over the zip.
+        mod->layer.readOnly = true;
+        PathLayer written;
+        written.folder = Joined(mod->map.saves, "files");
+        mod->map.layers = {written, mod->layer};
+    }
     g_mod.store(mod, std::memory_order_release);
     return true;
 }

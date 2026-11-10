@@ -34,6 +34,9 @@ struct PathLayer {
     // The files the layer answers for even when it lacks them: a read finds the missing file, the layers below it are
     // not asked (a folder search lists the layer's alone).
     std::function<bool(std::string_view relative)> owns;
+    // The layer cannot be written (a zip): the game's write of a file it holds goes to the layer above it, an Update
+    // copying the file up first. Without a layer above, the write is left to fail where it is.
+    bool readOnly = false;
 
     std::string Place(std::string_view relative) const;
 };
@@ -67,11 +70,12 @@ private:
     bool Relative(const std::string& full, std::string* relative) const;
     // A read of `relative` from layer `from` down: the first layer's file that exists (or that owns it); empty when
     // the game folder's own is the one.
-    std::string Find(std::string_view relative, std::size_t from) const;
+    // `layer` is the one that answered (layers.size() for the game's own).
+    std::string Find(std::string_view relative, std::size_t from, std::size_t* layer = nullptr) const;
 };
 
 // The mod the game plays (platform.h, SwitchMod): its folder, its name (the folder's last part: its saves' folder), its
-// layer over the game folder (every file in its folders, not its own root's files such as config.reg, and no .res
+// layer (read only for a zip, with the layer of the files the game writes for it, `saves\<name>iles\`, above) over the game folder (every file in its folders, not its own root's files such as config.reg, and no .res
 // archive: the mod's config.reg [RES] combines those with the game's inside them) and the game's map with it. Null
 // without one.
 struct Mod {
