@@ -103,9 +103,10 @@ void ReadScripts(Chunk* chunk, std::string* scripts, bool encoded) {
     *scripts = encoded ? chunk->ReadEncodedString() : chunk->ReadString();
 }
 
-// Whether the factory makes the record's class (parent_id) for a record of its kind: the world casts the object it
-// builds to the kind's type, so a class that makes none (a hand-written record without parent_id is 0) or another
-// kind's would crash the zone's load. Kinds with no class of their own (lights, sounds, particles) always fit.
+// Whether the factory makes the record's class (the TOML's `class`, the chunk's parent id) for a record of its kind:
+// the world casts the object it builds to the kind's type, so a class that makes none (a hand-written record without
+// a class is 0) or another kind's would crash the zone's load. Kinds with no class of their own (lights, sounds,
+// particles) always fit.
 bool ClassFits(const Spec& spec) {
     if (spec.kind != SpecKind::Object && spec.kind != SpecKind::Unit && spec.kind != SpecKind::Flame &&
         spec.kind != SpecKind::Trap && spec.kind != SpecKind::Lever)
@@ -180,7 +181,7 @@ void LoadMob(MobContents& contents, int keepIds, std::string_view name) {
     for (auto& node : records.byId) {
         Spec* spec = node.second;
         if (!ClassFits(*spec)) {
-            game::Warning("map objects: %s record %d: parent_id %d is not a class that fits its kind; the record is left out",
+            game::Warning("map objects: %s record %d: class %d does not fit its kind; the record is left out",
                           name, spec->id, static_cast<const ObjectSpec*>(spec)->parentId);
             ++done;
             continue;

@@ -444,9 +444,9 @@ void AckDatabase::MergeToml(const toml::Value& root, const std::string& path) {
 
 std::string AckDatabase::ToToml() const {
     toml::Writer writer;
-    dbtoml::WriteRecords(writer, "unit", units.records);
-    dbtoml::WriteRecords(writer, "model", models.records);
-    dbtoml::WriteRecords(writer, "extra", extras.records);
+    dbtoml::WriteRecords(writer, "unit", units.records, "name");
+    dbtoml::WriteRecords(writer, "model", models.records, "name");
+    dbtoml::WriteRecords(writer, "extra", extras.records, "name");
     return writer.text;
 }
 

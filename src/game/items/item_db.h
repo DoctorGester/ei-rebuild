@@ -33,9 +33,10 @@ enum class ItemKind : int {
 };
 
 // The damage types (a weapon's weights, an armour's absorption rows, DamageInfo::typeWeights). Types 0-2 are the
-// weapons' own (no name is known for them); the spells deal the other four.
+// weapons' own (named by the texts "string dmg_0" .. "dmg_2"; the data's daggers, spears and bows pierce, swords
+// and axes slash, clubs crush); the spells deal the other four.
 inline constexpr int kDamageTypeCount = 7;
-enum class DamageType : int { Fire = 3, Acid = 4, Lightning = 5, Other = 6 };
+enum class DamageType : int { Piercing = 0, Slashing = 1, Crushing = 2, Fire = 3, Acid = 4, Lightning = 5, Other = 6 };
 
 // The weapon types (WeaponRecord::type, a unit's natural weapon), by the item codes "sw", "ax", "dg", "sp", "hm",
 // "bw", "cb". The natural weapon also takes NoWeapon (a unit without a natural attack, and an AttackParams

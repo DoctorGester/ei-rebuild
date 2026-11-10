@@ -65,7 +65,7 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Maps\\zone1.mob.toml   the game's zone1.mob as ei-convert writes it (a converted install's own, else made by
                                     the run's build's ei-convert, EI_BUILD_DIR, else build\\verify) with the pig PigF0-1947
                                     moved to MOVED_PIG and a pig MF9aPig added at ADDED_PIG, then two bad records the
-                                    load leaves out with a warning (MF10a: a unit without parent_id, one with a
+                                    load leaves out with a warning (MF10a: a unit without a class, one with a
                                     tree's); no .mob (the game's gives the scripts)
 Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
 TOML).
@@ -191,7 +191,7 @@ damage_spread = 1.25
 [[weapon]]
 name = "mf5 axe"
 family = "axe"
-type = 1
+type = "axe"
 material_class = "Stone"
 number = 1
 price = 500.0
@@ -200,12 +200,11 @@ charge = 30.0
 magic_level = 6
 condition = 4378.0
 material_units = 4
-class_mask = 0x1
-buildable = 1
+sold_by = ["gipat_smith"]
 attack_interval = 33
 damage = 7.0
 damage_spread = 0.5
-damage_types = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+damage_types = { slashing = 1.0 }
 defence_bonus = -5.0
 '''
 
@@ -505,10 +504,10 @@ def mobs(root):
     records[start] = pig.replace(PIG_POSITION, at(MOVED_PIG))
     records[-1] = records[-1].rstrip('\n') + '\n\n'
     records.append(added.rstrip('\n') + '\n\n')
-    # MF10a: two records the zone's load leaves out with a warning: a unit without parent_id, one of a tree's class.
-    for n, (name, parent) in enumerate((('MF10aNoClass', ''), ('MF10aWrongClass', 'parent_id = 53\n')), 2):
+    # MF10a: two records the zone's load leaves out with a warning: a unit without a class, one of a tree's class.
+    for n, (name, parent) in enumerate((('MF10aNoClass', ''), ('MF10aWrongClass', 'class = "tree"\n')), 2):
         bad = added.replace(f'id = {top + 1}\n', f'id = {top + n}\n', 1).replace('name = "MF9aPig"', f'name = "{name}"', 1)
-        bad = re.sub(r'^parent_id = \d+\n', parent, bad, count=1, flags=re.M)
+        bad = re.sub(r'^class = "\w+"\n', parent, bad, count=1, flags=re.M)
         records.append(bad.rstrip('\n') + '\n' + ('\n' if n == 2 else ''))
     write(os.path.join(root, 'Maps', 'zone1.mob.toml'), '[[object]]\n'.join(records).encode('utf-8'))
 

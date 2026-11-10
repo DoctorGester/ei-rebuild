@@ -495,8 +495,8 @@ void PrintsDatabase::MergeToml(const toml::Value& root, const std::string& path)
 
 std::string PrintsDatabase::ToToml() const {
     toml::Writer writer;
-    dbtoml::WriteRecords(writer, "blood", blood);
-    dbtoml::WriteRecords(writer, "footprint", footprints);
-    dbtoml::WriteRecords(writer, "scorch", scorch);
+    dbtoml::WriteRecords(writer, "blood", blood, "name");
+    dbtoml::WriteRecords(writer, "footprint", footprints, "name");
+    dbtoml::WriteRecords(writer, "scorch", scorch, "name");
     return writer.text;
 }

@@ -6,22 +6,21 @@
 name = "Spark"
 code = "spark"
 price = 300.0
-cast_type = 0
-school = 1
+school = "lightning"
 mana = 8.0
 complexity = 1
 speed = 10.0
 range = 15.0
 damage = 6.0
-target_kind = 117
+target_kind = "unit"
 target_count = 1
 duration = 1
 cast_time = 45
-needs_sight = 1
+needs_sight = true
 icon = 1
-allowed_modifiers = [1, 1, 0, 1, 0]
+allowed_modifiers = { range = 1, targets = 1, effect = 1 }
 skill = 8
-class_mask = 0x14
+sold_by = ["ingos_trader", "rick"]
 light_color = [0.3, 0.6, 0.9]
 light_range = 2.0
 light_rise_divisor = 10.0

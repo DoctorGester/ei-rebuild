@@ -2,15 +2,18 @@
 // type lists its fields once (`Fields(record, visit)`), which the writer, the reader and the comparison all walk.
 #include "game/map/mob_toml.h"
 
+#include "game/data/record_names.h"
 #include "game/data/resource.h"
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "lib/toml.h"
 #include "platform/platform.h"
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstdint>
+#include <iterator>
 #include <memory>
 #include <span>
 #include <string>
@@ -56,6 +59,12 @@ template <class E>
 struct Named {
     E& value;
     std::span<const std::pair<E, std::string_view>> names;
+};
+
+// An integer code by its name (dbtoml's names: docs/notes/mods.md, "Readable values"), else as its number.
+struct Coded {
+    std::int32_t& value;
+    dbtoml::Names names;
 };
 
 constexpr std::pair<BehaviourType, std::string_view> kBehaviourTypes[] = {
@@ -127,6 +136,10 @@ std::string Text(const Quaternion& value) {
 std::string Text(Flag field) { return toml::Bool(field.value != 0); }
 std::string Text(Bit field) { return toml::Bool((field.value & field.bit) != 0); }
 std::string Text(Hex field) { return toml::Hex(field.value); }
+std::string Text(Coded field) {
+    const std::string_view name = dbtoml::NameOf(field.names, field.value);
+    return name.empty() ? toml::Int(field.value) : toml::String(name);
+}
 template <class E>
 std::string Text(Named<E> field) {
     for (const auto& [value, name] : field.names)
@@ -189,6 +202,12 @@ bool ReadValue(const toml::Value& value, Bit field) {
     return true;
 }
 bool ReadValue(const toml::Value& value, Hex field) { return toml::Read(value, &field.value); }
+bool ReadValue(const toml::Value& value, Coded field) {
+    std::int64_t code = 0;
+    if (!dbtoml::ReadCode(value, field.names, code)) return false;
+    field.value = static_cast<std::int32_t>(code);
+    return true;
+}
 template <class E>
 bool ReadValue(const toml::Value& value, Named<E> field) {
     if (value.IsString()) {
@@ -238,6 +257,7 @@ void Image(std::string& out, const Quaternion& value) {
 void Image(std::string& out, Flag field) { Image(out, field.value); }
 void Image(std::string& out, Bit field) { Image(out, field.value); }
 void Image(std::string& out, Hex field) { Image(out, field.value); }
+void Image(std::string& out, Coded field) { Image(out, field.value); }
 template <class E>
 void Image(std::string& out, Named<E> field) {
     Image(out, field.value);
@@ -296,6 +316,19 @@ private:
     std::size_t next = 0;
 };
 
+// The names a field takes, for a message ("" for a field without names).
+template <class T>
+std::string ValidNames(const T&) {
+    return {};
+}
+std::string ValidNames(const Coded& field) { return dbtoml::NameList(field.names); }
+template <class E>
+std::string ValidNames(const Named<E>& field) {
+    std::string list;
+    for (const auto& [code, name] : field.names) list += (list.empty() ? "" : ", ") + std::string(name);
+    return list;
+}
+
 // Finds the field of one key and reads the value into it.
 class KeyVisit {
 public:
@@ -306,12 +339,14 @@ public:
         if (found || name != key) return;
         found = true;
         read = ReadValue(value, field);
+        if (!read) valid = ValidNames(field);
     }
 
     std::string_view key;
     toml::Value value;
     bool found = false;   // the record has the key
     bool read = false;    // and the value was of a type it takes
+    std::string valid;    // the names the field takes, after a value it refused
 };
 
 // Each key of the table `value` read into the record's field of that name, but those of `others`; false when `value`
@@ -328,7 +363,10 @@ bool ReadKeys(const toml::Value& value, Record& record, std::string* bad = nullp
         KeyVisit visit(value.KeyAt(k), value.ValueAt(k));
         Fields(record, visit);
         if (visit.found && visit.read) continue;
-        if (bad && all) *bad = std::string(value.KeyAt(k)) + (visit.found ? " has a value it does not take" : " is unknown");
+        if (bad && all) {
+            *bad = std::string(value.KeyAt(k)) + (visit.found ? " has a value it does not take" : " is unknown");
+            if (!visit.valid.empty()) *bad += " (one of: " + visit.valid + ")";
+        }
         all = false;
     }
     return all;
@@ -501,7 +539,7 @@ void ObjectFields(mapspec::ObjectSpec& spec, V& visit) {
     visit("primary_texture", spec.primaryTexture);
     visit("skin_texture", spec.skinTexture);
     visit("parent_iname", spec.parentIname);
-    visit("parent_id", spec.parentId);
+    visit("class", Coded{spec.parentId, recordnames::kObjectClasses});
     visit("position", spec.position);
     visit("rotation", spec.rotation);
     visit("scale", spec.scale);
@@ -686,17 +724,82 @@ std::unique_ptr<Spec> ReadRecord(const toml::Value& item, const std::string& pat
     return spec;
 }
 
+// The relations by name (DiplomacyRelation): the keys of [players] that list the pairs of each.
+constexpr std::pair<std::int32_t, std::string_view> kRelations[] = {{0, "allied"}, {1, "neutral"}, {2, "hostile"}};
+constexpr int kPlayers = 32;
+
+// A player number of the table, from a TOML integer or a key's text.
+bool ReadPlayer(std::string_view text, int& player) {
+    player = 0;
+    if (text.empty() || text.size() > 2) return false;
+    for (char c : text) {
+        if (c < '0' || c > '9') return false;
+        player = player * 10 + (c - '0');
+    }
+    return player < kPlayers;
+}
+bool ReadPlayer(const toml::Value& value, int& player) {
+    if (!value.IsInt() || value.Int() < 0 || value.Int() >= kPlayers) return false;
+    player = static_cast<int>(value.Int());
+    return true;
+}
+
+// `names = { 3 = "Golems" }` and `hostile = [[0, 3], [3, 0]]` over the defaults (ZoneDiplomacy's: "Player-n",
+// neutral, allied with itself).
 void ReadPlayers(const toml::Value& players, mapspec::ZoneDiplomacy& diplomacy, const std::string& path) {
     for (int k = 0; k < players.Size(); ++k) {
         const std::string_view key = players.KeyAt(k);
         const toml::Value value = players.ValueAt(k);
-        bool read = false;
-        if (key == "names") read = ReadValue(value, diplomacy.names);
-        else if (key == "relations") read = ReadValue(value, diplomacy.relations);
-        else Warn(path, value.Line(), "players: unknown key " + std::string(key));
-        if (!read && (key == "names" || key == "relations"))
-            Warn(path, value.Line(), "players: " + std::string(key) + " has a value it does not take");
+        if (key == "names") {
+            if (!value.IsTable()) Warn(path, value.Line(), "players: names is not a table of player numbers");
+            for (int i = 0; i < value.Size(); ++i) {
+                int player = 0;
+                std::string name;
+                if (!ReadPlayer(value.KeyAt(i), player) || !ReadValue(value.ValueAt(i), name))
+                    Warn(path, value.ValueAt(i).Line(), "players: names: " + std::string(value.KeyAt(i)) +
+                                                            " is not a player number 0..31 with a name");
+                else diplomacy.names[static_cast<std::size_t>(player)] = name;
+            }
+            continue;
+        }
+        const auto* relation = std::find_if(std::begin(kRelations), std::end(kRelations),
+                                            [&](const auto& entry) { return entry.second == key; });
+        if (relation == std::end(kRelations)) {
+            Warn(path, value.Line(), "players: unknown key " + std::string(key) + " (one of: names, allied, neutral, hostile)");
+            continue;
+        }
+        for (int i = 0; i < value.Size() || !value.IsArray(); ++i) {
+            const toml::Value pair = value.At(i);
+            int player = 0;
+            int other = 0;
+            if (!value.IsArray() || pair.Size() != 2 || !ReadPlayer(pair.At(0), player) || !ReadPlayer(pair.At(1), other)) {
+                Warn(path, value.Line(), "players: " + std::string(key) + " is not a list of [player, other] pairs of 0..31");
+                break;
+            }
+            diplomacy.relations[player][other] = relation->first;
+        }
     }
+}
+
+// The [players] table of the names and relations that differ from the defaults (nothing when none does).
+void WritePlayers(toml::Writer& writer, const mapspec::ZoneDiplomacy& diplomacy) {
+    const mapspec::ZoneDiplomacy defaults;
+    std::vector<std::pair<std::string, std::string>> names;
+    for (std::size_t i = 0; i < diplomacy.names.size() && i < defaults.names.size(); ++i)
+        if (diplomacy.names[i] != defaults.names[i]) names.emplace_back(std::to_string(i), Text(diplomacy.names[i]));
+    std::vector<std::pair<std::string_view, std::string>> relations;
+    for (const auto& [code, name] : kRelations) {
+        std::vector<std::string> pairs;
+        for (int i = 0; i < kPlayers; ++i)
+            for (int j = 0; j < kPlayers; ++j)
+                if (diplomacy.relations[i][j] == code && defaults.relations[i][j] != code)
+                    pairs.push_back(toml::Array({toml::Int(i), toml::Int(j)}));
+        if (!pairs.empty()) relations.emplace_back(name, toml::Array(pairs));
+    }
+    if (names.empty() && relations.empty()) return;
+    writer.Table("players");
+    if (!names.empty()) writer.Pair("names", toml::InlineTable(names));
+    for (const auto& [name, pairs] : relations) writer.Pair(name, pairs);
 }
 
 } // namespace
@@ -718,11 +821,7 @@ std::string Write(const mapspec::MobContents& contents, std::string_view script)
         Fields(const_cast<mapspec::MobWeather&>(weather), visit);
         for (const auto& [key, value] : visit.pairs) writer.Pair(key, value);
     }
-    writer.Table("players");
-    writer.Pair("names", Text(contents.diplomacy.names));
-    std::vector<std::string> rows;
-    for (const auto& row : contents.diplomacy.relations) rows.push_back(Text(row));
-    writer.Pair("relations", toml::Array(rows, true));
+    WritePlayers(writer, contents.diplomacy);
     // The records in the order read, each once: the one of its id that byId holds.
     const mapspec::MobRecords& records = contents.records;
     for (const std::unique_ptr<Spec>& spec : records.read) {

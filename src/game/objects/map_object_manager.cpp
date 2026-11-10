@@ -181,12 +181,114 @@ std::string ValueText(TrimmedNumbers field) {
 }
 bool ReadValue(const toml::Value& value, TrimmedNumbers field) { return dbtoml::ReadValue(value, field.values); }
 
+// The key's and the flags' parts (object3d.h; docs/notes/mods.md, "Readable values").
+using dbtoml::Name;
+
+constexpr Name kKinds[] = {
+    {0, "none"}, {1, "special"}, {2, "attack"}, {3, "cast"}, {4, "run"},
+    {5, "walk"}, {6, "idle"},    {7, "death"},  {8, "hit"},  {9, "cross"},
+};
+// AnimationWeaponBit by weapon type; "any" the seven weapons.
+constexpr Name kWeapons[] = {
+    {0x7F, "any"}, {0x1, "sword"}, {0x2, "axe"},       {0x4, "dagger"}, {0x8, "spear"},
+    {0x10, "club"}, {0x20, "bow"}, {0x40, "crossbow"}, {0x100, "none"},
+};
+constexpr Name kMoves[] = {{1, "stop"}, {2, "walk"}, {4, "crawl"}, {6, "lie"}};   // AnimationMoveBits >> 15
+constexpr Name kPlays[] = {{1, "once"}, {2, "looped"}};                           // AnimationKeyFlag >> 30
+// A Special's number (SkillAnimation).
+constexpr Name kSkills[] = {
+    {0x1, "briefing01"}, {0x2, "briefing02"}, {0x3, "briefing03"}, {0x4, "briefing04"}, {0x5, "briefing05"},
+    {0x6, "briefing06"}, {0x7, "briefing07"}, {0x8, "briefing08"}, {0x9, "briefing09"}, {0xA, "briefing10"},
+    {0xB, "briefing11"}, {0xC, "briefing12"}, {0xD, "briefing13"}, {0x13, "tame"},      {0x14, "steal"},
+    {0x15, "use"},       {0x16, "search_body_ranged"},             {0x21, "special14"},
+    {0x30, "search_body_walking"},            {0x34, "search_body_walking_ranged"},       {0x35, "search_body"},
+};
+constexpr Name kHeights[] = {{1, "high"}, {2, "middle"}, {3, "low"}};                       // AttackHeight >> 24
+constexpr Name kSides[] = {{1, "back"}, {2, "front"}, {3, "minus_x"}, {4, "plus_x"}};   // BlowSide >> 22
+// A death's or hit's fall bits (bits 25, 26; combat_steps.cpp's kKeyFallWalking, kKeyFall, kKeyDeath).
+constexpr Name kFalls[] = {{1, "walking"}, {2, "standing"}, {3, "none"}};
+constexpr Name kFlagBits[] = {{0x1, "arrow"}, {0x10, "fits_under_armour"}, {0x20, "fits_upper_armour"}};
+
+constexpr std::uint32_t kWeaponBits = dbtoml::NamedBits(kWeapons);
+constexpr std::uint32_t kKnownKeyBits =
+    kWeaponBits | kAnimationMoveMask | kAnimationKindMask | kAnimationNumberMask | 0xC0000000u;
+constexpr std::uint32_t kKnownFlagBits = dbtoml::NamedBits(kFlagBits) | kBlowSideMask;
+constexpr std::uint32_t kBlowBit = kAnimationAttackBlow;
+constexpr std::uint32_t kHeightMask = 0x3000000;
+constexpr std::uint32_t kFallMask = 0x6000000;
+
+// The parts of the key's number (bits 22..29), which mean what the kind says: written as the parts the kind has
+// when they hold the whole number, else as `number`; the reader takes each.
+enum class NumberPart { Number, Skill, Height, Blow, Side, Fall };
+
+struct KeyNumber {
+    std::uint32_t& key;
+    NumberPart part = NumberPart::Number;
+
+    // The parts the key is written with.
+    static bool ByParts(std::uint32_t key, NumberPart part) {
+        const int number = AnimationNumber(key);
+        switch (AnimationKindOf(key)) {
+        case AnimationKind::Special:
+            return part == NumberPart::Skill && !dbtoml::NameOf(kSkills, number).empty();
+        case AnimationKind::Attack:
+        case AnimationKind::Cast:
+            return (part == NumberPart::Height || part == NumberPart::Blow) && (number & ~0xE) == 0;
+        case AnimationKind::Death:
+        case AnimationKind::Hit:
+            return (part == NumberPart::Side || part == NumberPart::Fall) && (number & ~0x1F) == 0 && (number & 7) <= 4;
+        default: return false;
+        }
+    }
+    dbtoml::Code AsCode() const {
+        switch (part) {
+        case NumberPart::Skill: return {key, kAnimationNumberMask, kSkills};
+        case NumberPart::Height: return {key, kHeightMask, kHeights};
+        case NumberPart::Side: return {key, kBlowSideMask, kSides};
+        case NumberPart::Fall: return {key, kFallMask, kFalls};
+        default: return {key, kAnimationNumberMask, {}};
+        }
+    }
+    bool Skipped() const {
+        if ((key & AsCode().mask) == 0 || (part == NumberPart::Blow && (key & kBlowBit) == 0)) return true;
+        bool byParts = false;
+        for (NumberPart other : {NumberPart::Skill, NumberPart::Height, NumberPart::Blow, NumberPart::Side, NumberPart::Fall})
+            byParts = byParts || ByParts(key, other);
+        return part == NumberPart::Number ? byParts : !ByParts(key, part);
+    }
+};
+
+std::string ValueText(KeyNumber field) {
+    if (field.part == NumberPart::Blow) return toml::Bool((field.key & kBlowBit) != 0);
+    return dbtoml::ValueText(field.AsCode());
+}
+bool ReadValue(const toml::Value& value, KeyNumber field) {
+    if (field.part != NumberPart::Blow) return dbtoml::ReadValue(value, field.AsCode());
+    if (!value.IsBool()) return false;
+    field.key = value.Bool() ? field.key | kBlowBit : field.key & ~kBlowBit;
+    return true;
+}
+std::string ValidNames(const KeyNumber& field) { return dbtoml::ValidNames(field.AsCode()); }
+
 template <class Visit>
 void Fields(FigureAnimationRecord& r, Visit& v) {
+    using dbtoml::Code;
     v("name", dbtoml::Chars<16>{r.name});
     v("index", r.index);
-    v("key", dbtoml::Hex{r.key});
-    v("flags", dbtoml::Hex{r.flags});
+    v("kind", Code{r.key, kAnimationKindMask, kKinds});
+    v("weapons", dbtoml::Bits{r.key, kWeapons});
+    v("move", Code{r.key, kAnimationMoveMask, kMoves});
+    v("play", Code{r.key, 0xC0000000u, kPlays});
+    v("skill", KeyNumber{r.key, NumberPart::Skill});
+    v("height", KeyNumber{r.key, NumberPart::Height});
+    v("blow", KeyNumber{r.key, NumberPart::Blow});
+    v("side", KeyNumber{r.key, NumberPart::Side});
+    v("fall", KeyNumber{r.key, NumberPart::Fall});
+    v("number", KeyNumber{r.key, NumberPart::Number});
+    v("key_other", dbtoml::OtherBits{r.key, kKnownKeyBits});
+    v("flags", dbtoml::Bits{r.flags, kFlagBits});
+    v("death_side", Code{r.flags, kBlowSideMask, kSides});
+    v("flags_other", dbtoml::OtherBits{r.flags, kKnownFlagBits});
     v("chance", r.chance);
     v("frames", r.frameCount);
     v("stride", r.stride);
@@ -228,7 +330,9 @@ std::string AnimationDatabase::ToToml() const {
     writer.Pair("start", toml::Float(start));
     writer.Pair("length", toml::Float(length));
     writer.Pair("end", toml::Float(end));
-    dbtoml::WriteRecords(writer, "animation", animations);
+    dbtoml::WriteRecords(writer, "animation", animations, "name", [](FigureAnimation& animation, std::size_t index) {
+        animation.index = static_cast<std::uint8_t>(index);
+    });
     return writer.text;
 }
 

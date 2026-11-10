@@ -3,7 +3,7 @@
 
 # A pig beside the party's start (54, 138) in a new game. A unit needs few fields: the keys left out take their
 # defaults (no stats of its own: apply_stats is 0, so the prototype's are used). The id is one no record of the file
-# has; parent_id is the object's class (52: a unit such as the zone's other pigs) and must be given.
+# has; its class ("animal", as the zone's other pigs) must be given.
 [[object]]
 kind = "unit"
 id = 3001
@@ -12,7 +12,7 @@ texture = "unanhopi"
 primary_texture = "PigF0"
 skin_texture = "default0"
 parent_iname = "Pig00"
-parent_id = 52
+class = "animal"
 position = [51.0, 142.0, 0.0]
 side = 5
 prototype = "PigF0"

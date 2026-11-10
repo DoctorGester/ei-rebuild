@@ -6,11 +6,12 @@
 name = "stone axe"
 damage = 3.0
 
-# A new axe. The fields left out are 0; its text is texts.toml's "weapon example_axe <material>".
+# A new axe. The fields left out keep their defaults (0, false; buildable true); its text is texts.toml's
+# "weapon example_axe <material>".
 [[weapon]]
 name = "example axe"
 family = "axe"
-type = 1
+type = "axe"
 material_class = "Stone"
 number = 1
 price = 600.0
@@ -19,10 +20,9 @@ charge = 30.0
 magic_level = 6
 condition = 4378.0
 material_units = 4
-class_mask = 0x1
-buildable = 1
+sold_by = ["gipat_smith"]
 attack_interval = 33
 damage = 5.0
 damage_spread = 1.0
-damage_types = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+damage_types = { slashing = 1.0 }
 defence_bonus = -5.0

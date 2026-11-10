@@ -265,7 +265,7 @@ commit), the writer our own (src/lib/toml.h: floats as the shortest text that re
 |---|---|---|---|
 | a registry `.reg`: `Config\ai.reg`, `Res\music.reg`, `Res\smessbase.reg`, `Res\streamsn.reg`, aiinfo.res's `tileDesc.reg`, menus.res's `menus.reg`, a mod's `config.reg` | `Config\ai.reg.toml`, `Res\aiinfo\tileDesc.reg.toml`, `<mod>\config.reg.toml`, ... | a table per section, a key per value: integer, float, string, or an array of one (an empty array answers any array type) | merged by section and key (no case) |
 | materials.res's `.mat` | `Res\materials\<name>.mat.toml` | name, diffuse / ambient / specular / emissive `[r, g, b, a]`, power | the keys given over the colours |
-| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, key, flags, chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation's fields given over the first of its name that the file has not merged yet, or it is appended ("Merging by field") |
+| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, the key's and flags' parts ("Readable values"), chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation's fields given over the first of its name that the file has not merged yet, or it is appended ("Merging by field") |
 | `acks.db` (database.res) | `Res\database\acks.db.toml` | `[[unit]]`, `[[model]]`, `[[extra]]`: name and the speech lists by ack kind (AckKind in snake case: `selected`, `move`, ..., `bored` with `environment`, `scenario` the named ones), each speech `{ sound, chance, text, name }` | per field ("Merging by field"): a speech list given replaces that list whole; a record of a new name is appended |
 | `prints.db` (database.res, databaselmp.res) | `Res\database\prints.db.toml` | `[[blood]]`, `[[footprint]]`, `[[scorch]]`: name, `dry` / `wet` = `{ alpha, life, lifetime }` (a footprint's `unread`: chunk 10) | per field: `dry` and `wet` merge by their own keys (`wet = { alpha = 0.25 }`); a new name is appended (a table's index is the ground's surface class) |
 | texts.res's, textslmp.res's entries | `Res\texts\texts.toml`, `Res\textslmp\texts.toml`: one per archive | `"<entry name>" = "<text>"` (quoted keys, multi-line text as `"""`, CR kept as `\r`) | per entry: a folder's own file of the name, then its texts.toml, in the archive's order of places; so a mod's texts.toml holds only the strings it changes |
@@ -374,8 +374,9 @@ lists are TOML's own, a model's body slots and a prototype's gold rolls inline t
   file reads back exactly. A lever's `spots` lists only its spot_count spots (Lever::UseSpots reads no more; the count
   is the list's length read back): the bytes of the unused ones (the original data holds garbage there, NaNs among it)
   are not kept, and ei-convert's comparison clears them on both sides.
-- Unsigned flags and masks are written in hexadecimal (`class_mask = 0x1`); a perk's required stats are floats
-  (`required_strength`, held as their bits), its worth exponent signed.
+- Codes, masks and fixed-meaning arrays are written by name, and a field equal to a new record's is left out
+  ("Readable values"); a perk's required stats are floats (`required_strength`, held as their bits), its worth
+  exponent signed.
 
 Counts (2026-11-10, ei-convert, every round trip holding): vanilla 2 each of units.udb, perks.pdb, spells.sdb, items.idb,
 Levers.ldb and 1 quests.qdb (database.res: 389 units, 51 models, 14 NPCs, 5 levels; 78 perks, 7 skills; 42 spells, 38
@@ -677,11 +678,7 @@ applies_relations = true
 wind = [0.0, 1.0, 0.0]
 ...
 [players]
-names = ["Player-0", ...]
-relations = [
-    [0, 1, 2, ...],
-    ...
-]
+hostile = [[0, 3], [3, 0]]
 
 [[object]]
 kind = "unit"
@@ -696,7 +693,7 @@ id = 12
   Each kind's fields are those its chunks set, listed once in mob_toml.cpp (`Fields(record, visit)`), which the
   writer, the reader and ei-convert's comparison walk:
   - every object kind: `id`, `name`, `model`, `texture`, `primary_texture`, `skin_texture`, `parent_iname`,
-    `parent_id`, `position`, `rotation` (`[w, x, y, z]`), `scale` (`[x, y, z]`), `side`, `player`, `shadow`,
+    `class`, `position`, `rotation` (`[w, x, y, z]`), `scale` (`[x, y, z]`), `side`, `player`, `shadow`,
     `visible` (true / false), `parts`, `comment`;
   - flame: `volume`, `offset`, `sound`; trap: `spell`, `sides` (hex; the loader sets it from the player table),
     `period`, `single_target`, `area` (`{ x, y, radius }` circles), `points` (`[x, y]`); lever: `lock`
@@ -711,18 +708,21 @@ id = 12
     `sounds`, `volume`, `radius`, `min_interval`, `max_interval`, `ambient`, `unread` (chunk CC0E), `comment`;
     particle: `id`, `name`, `position`, `type`, `scale`, `comment`.
 - `[[weather]]` (chunk ABD0, each applied in order): `wind`, `wind_strength`, `time`; its two unused values are
-  not kept. `[players]` (chunk DDDDDDD1): `names` and `relations` (32 rows of 32: 0 itself, 1, 2 hostile).
+  not kept. `[players]` (chunk DDDDDDD1) only what differs from `ZoneDiplomacy`'s defaults ("Player-n"; neutral,
+  allied with itself): `names = { 3 = "Golems" }` by player number, `allied`, `neutral`, `hostile` as lists of
+  `[player, other]` pairs (DiplomacyRelation 0..2; the shipped data has no other relation). Left out when nothing
+  differs (no map of vanilla or Lost in Astral names its players).
   `applies_relations`: the last of the flag chunks C000 / D000 (false: the table only tells traps their targets).
 - Strings are UTF-8 both ways (the chunk reader converts the .mob's 1251); floats the shortest text that reads back.
   A record of an unknown kind, an unknown key or a value its field does not take is logged ("warning: map objects:
   <file> line n: ...") and left out.
-- `parent_id` is the object's class (`MapObjectType`: 50-52 units, 53 trees, 54 buildings, 55 stones, 56 other objects,
-  58 torches, 59 traps, 60 levers), the factory's type in `WorldServer::CreateObject`. `mapspec::LoadMob`
+- `class` (the chunk's parent id) is the object's class (`MapObjectType` by name, record_names.h: `hero`, `creature`,
+  `animal` units, `tree`, `building`, `stone`, `stuff`, `torch`, `magic_trap`, `lever`), the factory's type in `WorldServer::CreateObject`. `mapspec::LoadMob`
   (mob_reader.cpp, `ClassFits`) checks each record's class against its kind (units 50-52; flames 58; traps 59; levers
   60; objects 53-56 or a unit's class: the main menu's unmoco2 is an object record of class 51) before it makes the
-  object, and a record that does not fit is logged ("warning: map objects: <zone> record <id>: parent_id <n> is not a
-  class that fits its kind; the record is left out") and skipped (MF10a; without the check the null object was used and
-  the zone load crashed: MF10's hand-written pig without parent_id, 2026-11-10). It is there, not in the readers
+  object, and a record that does not fit is logged ("warning: map objects: <zone> record <id>: class <n> does not fit its
+  kind; the record is left out") and skipped (MF10a; without the check the null object was used and
+  the zone load crashed: MF10's hand-written pig without a class, 2026-11-10). It is there, not in the readers
   (mob_toml.cpp is also ei-convert's and knows no factory) nor in `WorldServer::CreateObject` (which has four make
   sites and no zone name), and covers the .mob reader too; every shipped record of both installs fits.
 - A record id the file repeats: the later record takes the earlier's place in `byId` (the original leaked the earlier
@@ -760,7 +760,7 @@ Zone 1's TOML (777 records, 12,824 lines, 0.3 MB) reads in about 10 ms.
   (50, 138) and a pig `MF9aPig` (id 2009) added at (50, 142), beside the party's start. The mod has no `.mob`, so the
   scripts come from the game's: in a new game both pigs stand near their places (`GetObject(id)`, `GetX`, `GetY`; the
   capture shows them by the hero), another pig and the script's units keep theirs, and the trace has the mod's TOML
-  and the game's `.mob` read; two more records at the file's end (a unit without parent_id, one of a tree's class, ids
+  and the game's `.mob` read; two more records at the file's end (a unit without a class, one of a tree's class, ids
   2010 and 2011) are left out with their warnings (`expectlog`). A map unit is found by its id (`GetObject`): `GetObjectByName` found none of the
   pigs by the names the TOML gives.
 - Still binary in a mod: the `.mob`'s AI graph chunk (0x31415926, `ReadAIGraph`) comes from the game's `.mob` (or none

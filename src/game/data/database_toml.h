@@ -13,9 +13,11 @@
 
 #include <array>
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <span>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -41,6 +43,72 @@ struct Chars {
     char (&value)[N];
 };
 
+// ---- Named values (docs/notes/mods.md, "Readable values") --------------------------------------------------------
+
+// A code's name, or the name of a mask's bits.
+struct Name {
+    std::int64_t value = 0;
+    std::string_view name;
+};
+using Names = std::span<const Name>;
+
+// "a, b, c": the names a field takes, for the messages.
+std::string NameList(Names names);
+// The name of `value` (empty when it has none).
+std::string_view NameOf(Names names, std::int64_t value);
+// The value named `name`; false when no name is it.
+bool ValueOf(Names names, std::string_view name, std::int64_t& value);
+
+// A code (an integer or an enum field) by its name; a value no name has is written as its number, which the reader
+// also takes.
+template <class T>
+struct Enum {
+    T& value;
+    Names names;
+};
+// The bits `mask` of an unsigned field as a code by name (the codes shifted down to the mask's lowest bit).
+struct Code {
+    std::uint32_t& value;
+    std::uint32_t mask = 0;
+    Names names;
+};
+// A mask's bits as a list of names. A name stands for the bits of its value (one or several: written when all are
+// set, in the list's order, so "any" = 0x7F before the single weapons). The bits no name covers are OtherBits'.
+struct Bits {
+    std::uint32_t& value;
+    Names names;
+};
+// The bits of `value` outside `known` in hexadecimal: the bits no name covers (a field written when not zero).
+struct OtherBits {
+    std::uint32_t& value;
+    std::uint32_t known = 0;
+};
+// A number that holds 0 or 1: false / true (another number stays a number).
+template <class T>
+struct Bool {
+    T& value;
+};
+// A fixed-meaning array as an inline table by element name (`{ sight = 8.5, near = 2.8 }`): the elements whose
+// value differs from a new record's are written; the reader sets the elements given and keeps the others. A
+// vector is made as long as the names when it is read.
+template <class T>
+struct Table {
+    T* values = nullptr;
+    std::span<const std::string_view> names;
+};
+template <class T>
+struct VectorTable {
+    std::vector<T>& values;
+    std::span<const std::string_view> names;
+};
+
+// All bits of the names.
+constexpr std::uint32_t NamedBits(Names names) {
+    std::uint32_t bits = 0;
+    for (const Name& name : names) bits |= static_cast<std::uint32_t>(name.value);
+    return bits;
+}
+
 // ---- Values written --------------------------------------------------------------------------------------------
 
 inline std::string ValueText(const std::string& value) { return toml::String(text::FromAssetText(value)); }
@@ -65,6 +133,37 @@ std::string ValueText(E value) {
 inline std::string ValueText(const Vector3& value) {
     return toml::Array({ValueText(value.x), ValueText(value.y), ValueText(value.z)});
 }
+template <class T>
+std::string ValueText(Enum<T> field) {
+    const std::string_view name = NameOf(field.names, static_cast<std::int64_t>(field.value));
+    return name.empty() ? toml::Int(static_cast<std::int64_t>(field.value)) : toml::String(name);
+}
+inline std::string ValueText(Code field) {
+    const std::uint32_t code = (field.value & field.mask) >> std::countr_zero(field.mask);
+    const std::string_view name = NameOf(field.names, code);
+    return name.empty() ? toml::Int(code) : toml::String(name);
+}
+inline std::string ValueText(Bits field) {
+    std::uint32_t left = field.value & NamedBits(field.names);
+    std::vector<std::string> items;
+    for (const Name& name : field.names) {
+        const auto bits = static_cast<std::uint32_t>(name.value);
+        if (bits == 0 || (left & bits) != bits) continue;
+        items.push_back(toml::String(name.name));
+        left &= ~bits;
+    }
+    return toml::Array(items);
+}
+inline std::string ValueText(OtherBits field) { return toml::Hex(field.value & ~field.known); }
+template <class T>
+std::string ValueText(Bool<T> field) {
+    if (field.value == T{0} || field.value == T{1}) return toml::Bool(field.value != T{0});
+    return toml::Int(static_cast<std::int64_t>(field.value));
+}
+template <class T>
+std::string ValueText(Table<T> field);
+template <class T>
+std::string ValueText(VectorTable<T> field);
 
 class PairWriter;
 // A record type with a field list (a nested record: an inline table).
@@ -80,11 +179,19 @@ std::string ValueText(const std::vector<T>& values);
 template <HasFields T>
 std::string ValueText(const T& record);
 
+// A field that is written only in some records (an animation key's parts by its kind): `Skipped()` true leaves it out.
+template <class T>
+concept MaySkip = requires(const T& field) {
+    { field.Skipped() } -> std::convertible_to<bool>;
+};
+
 // A record's fields as (key, value text) pairs, in the list's order.
 class PairWriter {
 public:
     template <class T>
     void operator()(std::string_view key, T&& field) {
+        if constexpr (MaySkip<std::remove_cvref_t<T>>)
+            if (field.Skipped()) return;
         pairs.emplace_back(std::string(key), ValueText(field));
     }
     template <class T>
@@ -116,6 +223,25 @@ std::string ValueText(const T& record) {
     PairWriter writer;
     Fields(const_cast<T&>(record), writer);
     return toml::InlineTable(writer.pairs);
+}
+// The elements that differ from a new element.
+template <class T>
+std::string TableText(const T* values, std::size_t count, std::span<const std::string_view> names) {
+    const std::string unset = ValueText(T{});
+    std::vector<std::pair<std::string, std::string>> pairs;
+    for (std::size_t i = 0; i < count && i < names.size(); ++i) {
+        std::string text = ValueText(values[i]);
+        if (text != unset) pairs.emplace_back(std::string(names[i]), std::move(text));
+    }
+    return toml::InlineTable(pairs);
+}
+template <class T>
+std::string ValueText(Table<T> field) {
+    return TableText(field.values, field.names.size(), field.names);
+}
+template <class T>
+std::string ValueText(VectorTable<T> field) {
+    return TableText(field.values.data(), field.values.size(), field.names);
 }
 
 // ---- Zero values (the unread fields left out) --------------------------------------------------------------------
@@ -200,6 +326,96 @@ inline bool ReadValue(const toml::Value& value, Vector3& field) {
     return true;
 }
 
+// A name of `names` or (a value no name has) a number.
+inline bool ReadCode(const toml::Value& value, Names names, std::int64_t& code) {
+    if (value.IsString()) return ValueOf(names, value.String(), code);
+    if (!value.IsInt()) return false;
+    code = value.Int();
+    return true;
+}
+template <class T>
+bool ReadValue(const toml::Value& value, Enum<T> field) {
+    std::int64_t code = 0;
+    if (!ReadCode(value, field.names, code)) return false;
+    field.value = static_cast<T>(code);
+    return true;
+}
+inline bool ReadValue(const toml::Value& value, Code field) {
+    std::int64_t code = 0;
+    const int shift = std::countr_zero(field.mask);
+    if (!ReadCode(value, field.names, code) || code < 0 || (static_cast<std::uint64_t>(code) << shift & ~std::uint64_t{field.mask}) != 0)
+        return false;
+    field.value = (field.value & ~field.mask) | static_cast<std::uint32_t>(code << shift);
+    return true;
+}
+inline bool ReadValue(const toml::Value& value, Bits field) {
+    if (!value.IsArray()) return false;
+    std::uint32_t bits = 0;
+    for (int i = 0; i < value.Size(); ++i) {
+        std::int64_t named = 0;
+        if (!value.At(i).IsString() || !ValueOf(field.names, value.At(i).String(), named)) return false;
+        bits |= static_cast<std::uint32_t>(named);
+    }
+    field.value = (field.value & ~NamedBits(field.names)) | bits;
+    return true;
+}
+inline bool ReadValue(const toml::Value& value, OtherBits field) {
+    std::uint32_t read = 0;
+    if (!toml::Read(value, &read)) return false;
+    field.value = (field.value & field.known) | (read & ~field.known);
+    return true;
+}
+template <class T>
+bool ReadValue(const toml::Value& value, Bool<T> field) {
+    if (value.IsBool()) field.value = value.Bool() ? T{1} : T{0};
+    else if (value.IsInt()) field.value = static_cast<T>(value.Int());
+    else return false;
+    return true;
+}
+// The elements given, by name (each read as the element's type), the others kept.
+template <class T>
+bool ReadTable(const toml::Value& value, T* values, std::span<const std::string_view> names) {
+    if (!value.IsTable()) return false;
+    bool all = true;
+    for (int k = 0; k < value.Size(); ++k) {
+        std::size_t i = 0;
+        while (i < names.size() && names[i] != value.KeyAt(k)) ++i;
+        all = i < names.size() && ReadValue(value.ValueAt(k), values[i]) && all;
+    }
+    return all;
+}
+template <class T>
+bool ReadValue(const toml::Value& value, Table<T> field) {
+    return ReadTable(value, field.values, field.names);
+}
+template <class T>
+bool ReadValue(const toml::Value& value, VectorTable<T> field) {
+    if (!value.IsTable()) return false;
+    if (field.values.size() < field.names.size()) field.values.resize(field.names.size());
+    return ReadTable(value, field.values.data(), field.names);
+}
+
+// The names a field takes, for a message ("" for a field without names).
+template <class T>
+std::string ValidNames(const T&) {
+    return {};
+}
+template <class T>
+std::string ValidNames(const Enum<T>& field) {
+    return NameList(field.names);
+}
+inline std::string ValidNames(const Code& field) { return NameList(field.names); }
+inline std::string ValidNames(const Bits& field) { return NameList(field.names); }
+std::string KeyList(std::span<const std::string_view> names);
+template <class T>
+std::string ValidNames(const Table<T>& field) {
+    return KeyList(field.names);
+}
+template <class T>
+std::string ValidNames(const VectorTable<T>& field) {
+    return KeyList(field.names);
+}
+
 // Finds the field of one key in a record's list and reads the value into it.
 class FieldReader {
 public:
@@ -210,6 +426,14 @@ public:
         if (found || name != key) return;
         found = true;
         read = ReadValue(value, field);
+        if (!read) valid = ValidNames(field);
+    }
+
+    // The message of a value the field does not take.
+    std::string Refused() const {
+        std::string text = std::string(key) + " has a value it does not take";
+        if (!valid.empty()) text += " (one of: " + valid + ")";
+        return text;
     }
     template <class T>
     void Unread(std::string_view name, T&& field) {
@@ -220,6 +444,7 @@ public:
     toml::Value value;
     bool found = false;   // the record has the key
     bool read = false;    // and the value was of a type it takes
+    std::string valid;    // the names the field takes, after a value it refused
 };
 
 // Each key of the table `value` read into the record's field of that name; false when `value` is not a table, a key
@@ -281,14 +506,31 @@ bool ReadValue(const toml::Value& value, T& record) {
 
 // ---- Tables ----------------------------------------------------------------------------------------------------
 
-// Every record of `records` as an array of tables `table`.
-template <class Record>
-void WriteRecords(toml::Writer& writer, std::string_view table, const std::vector<Record>& records) {
-    for (const Record& record : records) {
+struct NoNewRecord {
+    template <class Record>
+    void operator()(Record&, std::size_t) const {}
+};
+
+// Every record of `records` as an array of tables `table`: its key `key` and each field whose text differs from a
+// new record's (the type's defaults, `onNew(record, index)` as MergeRecords makes one at that index), so a reader
+// that starts from a new record reads it back.
+template <class Record, class OnNew = NoNewRecord>
+void WriteRecords(toml::Writer& writer, std::string_view table, const std::vector<Record>& records,
+                  std::string_view key, OnNew onNew = {}) {
+    for (std::size_t i = 0; i < records.size(); ++i) {
+        Record unset{};
+        onNew(unset, i);
+        PairWriter defaults;
+        Fields(unset, defaults);
         writer.ArrayTable(table);
         PairWriter pairs;
-        Fields(const_cast<Record&>(record), pairs);
-        for (const auto& [key, value] : pairs.pairs) writer.Pair(key, value);
+        Fields(const_cast<Record&>(records[i]), pairs);
+        for (const auto& [name, value] : pairs.pairs) {
+            bool same = false;
+            for (const auto& [unsetName, unsetValue] : defaults.pairs)
+                if (unsetName == name) same = unsetValue == value;
+            if (name == key || !same) writer.Pair(name, value);
+        }
     }
 }
 
@@ -298,10 +540,6 @@ void WriteRecords(toml::Writer& writer, std::string_view table, const std::vecto
 // the fields given) at the end, so every record keeps its index. `what` names the database in the messages: a record
 // without its key is left out, an unknown key or a value of a type its field does not take is logged and skipped.
 // `onNew(record, index)` finishes a new record before the fields are read (a place that is its own field).
-struct NoNewRecord {
-    template <class Record>
-    void operator()(Record&, std::size_t) const {}
-};
 template <class Record, class KeyOf, class OnNew = NoNewRecord>
 void MergeRecords(const toml::Value& table, std::vector<Record>& records, const char* key, KeyOf keyOf,
                   const char* what, const std::string& path, OnNew onNew = {}) {
@@ -333,8 +571,7 @@ void MergeRecords(const toml::Value& table, std::vector<Record>& records, const 
                 game::Warning("%s: %s line %d: unknown key %s", what, path, item.ValueAt(k).Line(),
                               std::string(item.KeyAt(k)));
             else if (!reader.read)
-                game::Warning("%s: %s line %d: %s has a value it does not take", what, path, item.ValueAt(k).Line(),
-                              std::string(item.KeyAt(k)));
+                game::Warning("%s: %s line %d: %s", what, path, item.ValueAt(k).Line(), reader.Refused());
         }
     }
 }
