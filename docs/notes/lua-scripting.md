@@ -567,12 +567,13 @@ the scheduler ticks once.
   (the 27 keywords no text uses, the quest texts only where a scenario plays a network quest to its QFinish); and the
   shadow's values hold their objects a little longer (to the end of the tick), so a removed object is freed later
   than without it (the goldens show no effect).
-- **Counts** (2026-11-10, every scenario with `--golden`): vanilla 277 runs, all pass, 226 goldens the same: mission
-  scripts 196,806 ticks and 12,327,699 calls compared over 945 texts, console scripts 133,989 ticks and 17,625 calls
-  over 4,186 texts, 0 differ, 29 stopped at a save load. Rebirth 156 runs, all pass, 141 goldens the same: 109,344
-  mission ticks and 5,288,175 calls, 60,113 console ticks and 11,498 calls, 0 differ, 20 stopped at a save load. The
-  corpus (`--lockstep 300`): 520 scripts, 494 the same, 0 differ. A deliberate fault (ForEach first to last) fails
-  zone_gz3g at its tick 60 with the line above.
+- **Counts** (2026-11-10, every scenario with `--golden --rebirth`, 437 runs, all pass, 371 goldens the same, as with
+  the option off): vanilla mission scripts 203,490 ticks and 12,795,643 calls compared over 968 texts, console
+  scripts 134,777 ticks and 17,690 calls over 4,204 texts; Rebirth 115,024 mission ticks and 5,497,670 calls, 60,901
+  console ticks and 11,655 calls; 0 differ. The 49 mission shadows that a save load used to stop (29 vanilla, 20
+  Rebirth) all go on: 54 saves resumed by the shim, and 1,398 Eris round trips (1,069 mission, 329 console; the
+  largest state 212,515 bytes), every one compared the same. The corpus (`--lockstep 300 --saves`): 522 scripts, 496
+  the same, 0 differ. A deliberate fault (ForEach first to last) fails zone_gz3g at its tick 60 with the line above.
 
 ## Decisions (user 2026-11-10)
 
@@ -586,8 +587,9 @@ the scheduler ticks once.
   instance and run counts and the random draws ("Lockstep"); in the game (EI_LUA_BOTH) every built-in call with its
   arguments, the instance lists, the runs' positions and the globals ("Lockstep in the game").
 - **Coverage.** Every scenario, plus the corpus run for N ticks (`--scripts ... --lockstep N`, "Lockstep").
-- **Saves.** Round trips: old save loaded into Lua, Lua save loaded into Lua, and old save loaded into the old engine and
-  compared.
+- **Saves.** An old save loaded into Lua (the shim) and a Lua state saved and loaded into Lua (Eris), each compared
+  with the old engine's loaded state and then in lockstep: on the short cases at every tick, the corpus and in the game
+  ("Saves", "Lockstep in the game").
 - **Determinism.** The `deterministic` step and the harness's virtual clock make the runs repeatable.
 
 ## Risks
