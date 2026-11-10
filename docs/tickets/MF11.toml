@@ -6,5 +6,5 @@ model = "opus"
 depends = ["MF7"]
 note = "Converted Rebirth's mod_lost_in_astral_cz_ingos takes ~45 s vs 25 s unconverted. Profile one converted LIA zone load, fix the biggest costs (PNG decode, double decodes, .glb rotations stored twice). Goal: within ~20% of unconverted, every golden the same on the normal and converted suites."
 order = 1320
-status = "running"
+status = "review"
 started = "2026-11-10"
