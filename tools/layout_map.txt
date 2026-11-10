@@ -208,6 +208,8 @@ exit_area.cpp               map/map_database.cpp        fold  # ZoneExit's membe
 object_tables.h             map/map_database.h          split # grab-bag: the map database's records stay (named for map_database.cpp); NamedFloatTable -> core/named_floats.h, text keys -> data/text_manager.h, key names -> app/key_bindings.h (C168b)
 object_tables.cpp           data/text_manager.cpp       split # text keys -> data/text_manager.cpp, NamedFloatTable -> core/named_floats.cpp (C168b; the file goes)
 map_file.h                  map/map_file.h                    # kept whole: map/file.h would not say which file
+map_folder.h                map/map_folder.h
+map_folder.cpp              map/map_folder.cpp
 world_map_files.h           map/folder.h                      # the maps folder and its files
 
 # ---- ai: the AI map, searches, paths and motion; the brain and its modes ------------------------------------------

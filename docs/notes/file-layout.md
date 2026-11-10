@@ -335,10 +335,10 @@ Risks:
 | `combat/` | 13 | 6394 | C168f |
 | `console/` | 5 | 2038 | C168e |
 | `core/` | 27 | 3875 | C168d |
-| `data/` | 15 | 4638 | C168d |
+| `data/` | 15 | 4856 | C168d |
 | `effects/` | 23 | 10833 | C168g |
 | `items/` | 10 | 2855 | C168g |
-| `map/` | 11 | 2036 | C168e |
+| `map/` | 13 | 3077 | C168e |
 | `models/` | 21 | 6066 | C168g |
 | `mods/` | 6 | 603 | C168d |
 | `net/` | 21 | 7981 | C168h |
@@ -349,13 +349,13 @@ Risks:
 | `script/` | 20 | 6750 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
-| `terrain/` | 12 | 3560 | C168g |
+| `terrain/` | 12 | 3554 | C168g |
 | `ui/` | 95 | 32812 | C168h |
 | `units/` | 27 | 9736 | C168f |
 | `world/` | 35 | 10226 | C168e |
-| all | 487 | 152639 | |
+| all | 489 | 153892 | |
 
-534 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+536 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -584,6 +584,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | exit_area.cpp | map/map_database.cpp | fold | ZoneExit's members (78 lines): a map database record |
 | object_tables.h | map/map_database.h | split | grab-bag: the map database's records stay (named for map_database.cpp); NamedFloatTable -> core/named_floats.h, text keys -> data/text_manager.h, key names -> app/key_bindings.h (C168b) |
 | map_file.h | map/map_file.h |  | kept whole: map/file.h would not say which file |
+| map_folder.cpp | map/map_folder.cpp |  |  |
+| map_folder.h | map/map_folder.h |  |  |
 | map_spec.cpp | map/map_spec.cpp |  |  |
 | map_spec.h | map/map_spec.h |  |  |
 | map_spec_unit.cpp | map/map_spec_unit.cpp |  |  |
