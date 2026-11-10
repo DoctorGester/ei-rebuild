@@ -40,6 +40,12 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert_textures.h`, `.cpp` | ei-convert's textures: each as PNG, its round trip measured |
 | `tests/unit/texture_png.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_png_texture.txt` | a mod's PNG terrain pages seen on the ground |
+| `src/game/models/figure_gltf.h`, `.cpp`; `third_party/cgltf/` | figure models as glTF and back ("Models as glTF"): `FromFiles`, `Files`, `ToGlb` (our writer), `FromGltf` (cgltf, reading only) |
+| `src/lib/json.h`, `.cpp` | a small JSON reader (the glTF's extras) and the writer's strings and floats |
+| `src/game/data/resource.cpp` | `MappedResource::ModelFile`, `HasModelFile`, `MadeModel`: a figure file answered from a glTF where it is found |
+| `tools/convert/convert_models.h`, `.cpp` | ei-convert's models: an archive's figure files grouped into figures, each as a .glb, its round trip compared |
+| `tests/unit/figure_gltf.cpp` | the unit check (ei_unit_check, the POSIX port check) |
+| `tests/scenarios/mod_gltf_model.txt` | a mod's glTF hero (no extras, 1.5 times as large) seen in a new game |
 
 ## Choosing a mod
 
@@ -468,6 +474,92 @@ data (`build\stub`, the Linux workflow's) gives the same kinds of counts, every 
 - `ei-convert --check` on both installs (every texture's round trip holding), and on the stub data in the Linux suites'
   workflow.
 - `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every texture as a PNG.
+
+## Models as glTF
+
+A figure model can be a glTF 2.0 file (MF6, user 2026-11-09). Every original still loads; a `<name>.gltf` or
+`<name>.glb` found where the figure's files would be (each place of "Loose files", top first: a folder's file or an
+archive's entry) stands for them there (`MappedResource::ModelFile`, resource.cpp). At each place, before its own file, a
+request for a `.mod`, `.bon`, `.lnk` or `.fig` asks the glTF models of that place whose name begins the file's stem
+(the longest first): the glTF is read once (src/game/models/figure_gltf.h, `FromGltf`, on cgltf), made into the files
+the game would have read (`Files`), and the one asked for is answered from them, shared like a loose file. So both
+loaders (the figure manager's `<name>.mod`/`.bon`, the link loader's set or its `<name>.lnk` and `<name><part>.fig` /
+`.bon`) and the item models' `<name>.fig` see the files as before. A `.gltf` comes before a `.glb` of its name; its
+buffers (`"uri"`, relative, percent-decoded; data URIs too) are read from the same place. A glTF cgltf cannot read is
+logged ("warning: models: ...; not read") and the original is read; what the reader left out is logged too
+("warning: models: <file>: <part>: ...").
+
+- The figure: the scene's nodes are the parts, named as the parts are; the link list is the node tree (a child's
+  parent its node's parent). A node's mesh is the part's record, one primitive (several are merged, the first's
+  material the part's). The node's translation is the part's bone (version 0); the node's rotation and scale are not
+  applied (logged).
+- The mesh: a glTF vertex per triangle corner. POSITION is corner 0 of the FIG8 morph cube; the other 7 corners are
+  morph targets named (mesh `extras.targetNames`, as Blender writes them) `s`, `t`, `st`, `u`, `su`, `tu`, `stu` (the
+  corner's coefficient bits, docs/notes/models.md "Link figures"); the older record's 6 versions `s`, `t`, `u`, `su`,
+  `tu`. A target's POSITION is the corner's displacement from corner 0. NORMAL and TEXCOORD_0 as the record has them;
+  indices as the record's (none: every vertex once, in order).
+- Materials: one per material kind and texture kind, named `"<kind> <texture kind>"` ("wood 8", "metal 2"; a kind
+  without a file of its own by its number, "25 6"), `extras.ei = {material, kind}`. A part without one is stone, kind 1.
+  The figure files name no texture: the game picks the texture by the unit's or object's database record and the
+  texture kind, so the glTF has no images.
+- Axes: glTF (x, y, z) = game (x, z, -y): a rotation, no mirror (the game is right-handed with z up; the triangles keep
+  their winding, counter-clockwise from the outside as the normals say). Blender's importer turns glTF's y up into its
+  z up, so Blender shows the game's own coordinates, the right way up. The bounds and bones in `extras` are in the
+  game's axes.
+- `extras.ei` (ei-convert writes them; the loader takes them only when they agree with the glTF's data):
+  - mesh: `format` (`FIG8`, `FIG` with its `magic`, `old`), `unused` (the header's last dword, when not 0), `bounds`
+    (`center`, `min`, `max`, `radius` per version), `slots` (an accessor: each vertex's position, normal and texture
+    slot, u16), the slots no vertex gives exactly as `positions` / `normals` / `texcoords` patches (a slot accessor and
+    a value accessor: the packets' padding lanes, unused slots, a position whose versions a float displacement does not
+    give back (about 4% of the shipped values), a normal whose w is not 1 or that is not of unit length: NORMAL holds
+    a unit one, as glTF requires, straight up for a zero one), `words` (an accessor; only when they are not the derived
+    ones; -1: none), `indices: false` (a record without), `skipped` (the older record's block, a buffer view).
+  - node: `bone` (all versions), `linked: false` (a part outside the link list: the unlinked armour pieces), `parent`
+    (a parent that is no node).
+  - scene: `layout` (`set` or `loose`), `link: false` (a loose figure without a .lnk, a set whose .mod has no link
+    list), `bones: false` (a set without a .bon archive), `files` (archive entries and files a glTF cannot hold, carried
+    as they are: Lost in Astral's stray link entries in its .mod files, records that do not parse, a .bon that is no
+    archive; name, `mod` / `bon` / `folder`, a buffer view).
+- Without the extras (another tool's file, or one that changed the mesh so that they no longer agree: a slot's
+  vertices with different values, a patch more than the sum's rounding away), the record is built from the glTF's data:
+  the slots numbered by value in vertex order (padding lanes copies of the first position and of the last normal, as
+  the shipped records), words derived (one per normal slot: its slot in the high half, in the low half the slot or the
+  last used one, as every shipped record but 28 of Rebirth's), the bounds fitted as `ClipBounds::Fit` fits them; a FIG8
+  record unless the mesh's `format` says otherwise (missing targets: copies of corner 0); a node without `bone` gets 8
+  copies of its translation.
+
+### ei-convert's models
+
+ei-convert writes each archive's figure files as `<archive folder>\<figure>.glb` (tools/convert/convert_models.cpp) and
+lists them as converted: a set per `.mod` (with its `.bon`); a loose figure per `.lnk`, with the `.fig` and `.bon`
+files whose name its name begins (the longest); a `.fig` or `.bon` of no `.lnk` its own figure. A `.lnk` beside a `.mod`
+of its name (vanilla's ingm3, which the game never reads: both loaders take the `.mod`) and its parts' files are left as
+they are (listed). Each round trip: the files made from the .glb as the game makes them, compared with the originals
+(an archive entry by entry, a link list by its names, every record and bone byte for byte).
+
+Counts (2026-11-10, `ei-convert --check`, every round trip holding): vanilla 870 figures (454 sets, 416 loose), 3,651
+parts (3,583 FIG8 records, 55 older ones), 1 file carried as it is, 217,252 corners on 154,692 slots, 253,142 triangles;
+24.2 MB of originals as 45.7 MB of .glb (a vertex per corner, 8 positions each), read back and made into files in
+0.35 s. Rebirth (its mods too): 978 figures (483 sets, 495 loose), 4,639 parts (4,569 FIG8, 55 older), 46 files carried
+as they are (Lost in Astral's stray entries, a .bon that is no archive), 306,364 corners on 223,208 slots, 365,451
+triangles; 34.6 MB as 62.3 MB, 0.42 s. Loading costs little: the read and the files' making take well under a
+millisecond a figure.
+
+### Checks
+
+- `ei_unit_check`'s figure checks (tests/unit/figure_gltf.cpp): a set and a loose figure of every record kind (FIG8
+  with corners a float displacement cannot hold, FIG, the older record with its skipped block, no indices; padding,
+  unused slots, a normal's w, zero and non-unit normals, words of their own, a prism bone, an unlinked part, a part
+  without a record, an entry of another kind) come back as the same files; a hand-made .gltf with an external buffer
+  and a data URI and no extras is turned to the game's axes, numbered by value, its bounds fitted; lib/json.h.
+- `mod_gltf_model` (both installs; tools/make_mod_s19d.py gltf): the hero's figure (unhuma) as ei-convert writes it,
+  then with every `extras` dropped and 1.5 times as large; the hero stands taller in the capture and the trace has the
+  glTF read for unhuma.mod and unhuma.bon.
+- `ei-convert --check` on both installs, and on the stub data in the Linux suites' workflow.
+- `work.py test <ID> --converted --golden` (and `--rebirth-only`): the converted installs have every figure as a .glb.
+- The Khronos glTF Validator (the npm package gltf-validator 2.0.0-dev.3.10, run with node on a few exported .glb:
+  the hero, trees, rocks, a loose figure): no errors or warnings; its infos are the TEXCOORD_0 it calls unused (no
+  material has a texture). Blender was not at hand.
 
 ## A mod's config.reg
 

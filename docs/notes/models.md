@@ -44,7 +44,8 @@ draw functions run in every scenario; ribbons and sprites in `spells` / `spells_
 The figure manager's `FindFigureModel` (a hash_map by name) opens `<name>.mod / .bon / .anm` (nothing without the
 .mod); `LoadSkeletonLinks` reads `<name>.lnk` ((child, parent) pairs), `LoadFigureBones` `<name>.bon` (0x48-byte records
 are prisms, others cubes), `LoadFigureBounds` `<name>.fig` ("FIG" headers or the older headerless records). Bones and
-animation: map_objects.md ("Skeleton").
+animation: map_objects.md ("Skeleton"). A glTF can stand for a figure's files (mods.md, "Models as glTF": the part tree
+as nodes, the morph corners as targets, the axes).
 
 ## Link figures
 
