@@ -1,0 +1,14 @@
+Mods for the Evil Islands rebuild (the modding guide: docs/modding.md in the repository).
+
+A mod is a folder in <game folder>\starter\Mods\ (on a GOG install make that folder); the main menu's list at its bottom
+left picks it. This folder sits beside ei-convert, which reads it: keep the two together.
+
+example_mod, example_mod_additions
+    The guide's example mod: new texts, a changed and a new weapon, zone 1's ground turned red, a pig by the party's
+    start and a few lines of Lua. Its own files are here; the rest is made from your install, so the mod is made by
+    one command (ei-convert.exe on Windows, ./ei-convert on Linux and macOS):
+
+        ei-convert --example-mod "<game folder>"
+
+    It writes <game folder>\starter\Mods\example_mod; a second argument names another mods folder. Then pick
+    "Example mod" in the main menu's list. example_mod\readme.txt lists its files.

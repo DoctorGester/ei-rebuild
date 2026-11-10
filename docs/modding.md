@@ -17,12 +17,13 @@ Contents: [Quick start](#quick-start) · [A mod's folder](#a-mods-folder) · [In
 
 ## Quick start
 
-1. Make the example mod from your own install (Python 3 and a build of this repository, which gives `ei-convert`):
+1. Make the example mod from your own install with `ei-convert`, which every release package holds beside
+   `ei-rebuild` with the `examples` folder (or build this repository: `build.cmd release` gives
+   `build\release\ei-convert.exe` and copies `examples` beside it). In the package's folder:
    ```
-   build.cmd release
-   python tools\make_example_mod.py "F:\games\EvilIslands\starter\Mods" --install "F:\games\EvilIslands"
+   ei-convert --example-mod "F:\games\EvilIslands"
    ```
-   This writes `starter\Mods\example_mod\` into that game folder (make `starter\Mods` first on a GOG install). Point it
+   This writes `starter\Mods\example_mod\` into that game folder (making `starter\Mods` on a GOG install). Point it
    at a copy of the install if you want the original left untouched.
 2. Start `ei-rebuild.exe` in the game folder. The main menu now has a list at its bottom left; pick "Example mod
    (single player)". The game switches to the mod at once.
@@ -128,11 +129,14 @@ each archive unpacked into its folder (`--folders-only`: the folders alone). It 
 ## ei-convert: the game's data as editable files
 
 `ei-convert` writes the game's data in the common formats, read by the game's own loaders, and checks that each file
-comes back the same. Build this repository (`build.cmd release`, see `README.md`) and it is `build\release\ei-convert.exe`.
+comes back the same. Every release package holds it beside `ei-rebuild` (`ei-convert.exe` on Windows); a build of this
+repository (`build.cmd release`, see `README.md`) has it as `build\release\ei-convert.exe`. Run it from a command
+prompt or terminal (on macOS clear the download's quarantine flag first, as the package's README.txt says).
 
 ```
-ei-convert <install or archive> <target folder>      write the converted files into the target
-ei-convert --check <install or archive>...           only check every round trip
+ei-convert <install or archive> <target folder>          write the converted files into the target
+ei-convert --check <install or archive>...               only check every round trip
+ei-convert --example-mod <game folder> [<mods folder>]   make the example mod (below) from the install
 ```
 
 - An install as the source writes the target laid out as the game folder: `Res\database\items.idb.toml`,
@@ -543,24 +547,29 @@ is (and can still be replaced by a loose file of the same name in the archive's 
 
 ## The example mod
 
-`examples/example_mod/` holds the mod's own files, hand-written; `tools/make_example_mod.py` copies them and adds
-the parts made from your install (the repository holds no game data):
+`examples/example_mod/` holds the mod's own files, hand-written, and `examples/example_mod_additions/` what it adds
+to zone 1's objects and script; `ei-convert --example-mod` copies the first and makes the rest from your install
+(neither the repository nor a release holds game data):
 
 | File | What it shows |
 |---|---|
 | `config.reg.toml` | the title and the single-player label in the menu's list |
 | `Res\texts\texts.toml` | an interface string changed ("string quit"); a new item's name and description |
 | `Res\database\items.idb.toml` | one field of the game's stone axe changed; a new weapon "example axe" |
-| `Res\textures\Zone1000.png` .. `Zone1007.png` (made) | zone 1's ground pages as ei-convert writes them, recoloured by the script (green becomes red); the PNGs keep their settings chunk |
+| `Res\textures\Zone1000.png` .. `Zone1007.png` (made) | zone 1's ground pages as ei-convert writes them, recoloured (green becomes red); the PNGs keep their settings chunk |
 | `Maps\zone1.mob.toml` (made) | zone 1's objects as ei-convert writes them, with `examples/example_mod_additions/Maps/zone1.mob.toml` (a pig) appended |
 | `Maps\zone1.lua` (made) | zone 1's script as ei-convert writes it, with `examples/example_mod_additions/Maps/zone1.lua` put in before its WorldScript (a console line, and a definition whose rule has the pig greet the party) and a call of it as the WorldScript's first line |
 | `readme.txt` | the mod's own notes; a root file, read by nothing |
 
 ```
-python tools\make_example_mod.py <folder> [--install <game folder>] [--convert <ei-convert.exe>]
+ei-convert --example-mod <game folder> [<mods folder>]
 ```
-writes `<folder>\example_mod` (the install defaults to `EI_GAME_VANILLA`, the ei-convert to this checkout's build).
+writes `<mods folder>\example_mod`, by default `<game folder>\starter\Mods\example_mod`. It reads the install only
+(a converted copy's own PNGs, `zone1.mob.toml` and `zone1.lua` are taken as they are) and the mod's own files from the
+`examples` folder beside the exe, so keep the package's folder together; files already in `example_mod` are written
+over. Then pick "Example mod" in the main menu's list ([Installing and choosing a mod](#installing-and-choosing-a-mod)).
 
-The test scenario `tests/scenarios/mod_example.txt` plays it on the GOG and the Rebirth data: the changed text, the two
+The test scenario `tests/scenarios/mod_example.txt` makes it the same way (its prepare step,
+`tools/make_example_mod.py`, runs the build's `ei-convert --example-mod`) and plays it on the GOG and the Rebirth data: the changed text, the two
 weapons' damage after `GiveItem`, the pig by the party's start and its greeting, the red ground in a capture, and the
 game reading each of the mod's files.

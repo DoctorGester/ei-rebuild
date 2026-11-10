@@ -57,7 +57,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tests/unit/figure_gltf.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_gltf_model.txt` | a mod's glTF hero (no extras, 1.5 times as large) seen in a new game |
 | `docs/modding.md` | the modder's guide (MF10): keep it in step with the loaders when a format changes |
-| `examples/example_mod/`, `examples/example_mod_additions/`, `tools/make_example_mod.py` | the guide's example mod: hand-written TOML, and zone 1's ground PNGs (recoloured) and zone1.mob.toml (a pig appended) made from the install by ei-convert |
+| `examples/example_mod/`, `examples/example_mod_additions/`, `tools/convert/example_mod.cpp` | the guide's example mod: hand-written TOML and Lua, and zone 1's ground PNGs (recoloured), zone1.mob.toml (a pig appended) and zone1.lua (the mod's lines spliced in) made from the install by `ei-convert --example-mod`, which reads the examples folder beside the exe (the build copies it there; the release packages ship it); `tools/make_example_mod.py` is mod_example's prepare step calling it |
 | `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
 | `src/game/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |

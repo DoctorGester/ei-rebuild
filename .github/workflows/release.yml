@@ -1,8 +1,11 @@
 # Release: run by hand (Actions > Release > Run workflow) with a version such as v0.1.0. It builds ei-rebuild.exe for
-# x64 (build.cmd release, the build checks included), the Linux build (ei-rebuild-linux-x64.tar.gz: built in an
-# Ubuntu 22.04 container for an old glibc, its port checks run) and the macOS app (ei-rebuild-macos.zip: a universal
-# arm64 + x86_64 ei-rebuild.app, ad-hoc signed only, its port checks run), then tags the chosen commit, pushes the tag
-# and publishes a GitHub release with the three. The goldens need the game's data and are not run here.
+# x64 (build.cmd release, the build checks included; the bare exe and ei-rebuild-windows-x64.zip), the Linux build
+# (ei-rebuild-linux-x64.tar.gz: built in an Ubuntu 22.04 container for an old glibc, its port checks run) and the macOS
+# app (ei-rebuild-macos.zip: a universal arm64 + x86_64 ei-rebuild.app, ad-hoc signed only, its port checks run), then
+# tags the chosen commit, pushes the tag and publishes a GitHub release with the four. Each archive holds ei-convert
+# and the examples folder beside the game: the build's copy of the repository's examples, which ei-convert
+# --example-mod reads from beside itself (a mod added under examples ships with no change here). The goldens need the
+# game's data and are not run here.
 name: Release
 
 on:
@@ -66,10 +69,48 @@ jobs:
         shell: cmd
         run: build.cmd release
 
+      # The bare exe (dropped into the game folder) and the zip: the exe, ei-convert.exe and the examples folder.
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          $guide = "${{ github.server_url }}/${{ github.repository }}/blob/$version/docs/modding.md"
+          $out = "dist"
+          $dir = "$out/ei-rebuild-windows-x64"
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          Copy-Item build/release/ei-rebuild.exe $out/
+          Copy-Item build/release/ei-rebuild.exe, build/release/ei-convert.exe, build/release/third_party_notices.txt $dir/
+          Copy-Item -Recurse build/release/examples $dir/examples
+          $readme = @"
+          Evil Islands rebuild $version for Windows (x64)
+
+          ei-rebuild.exe plays an installed Evil Islands 1.06 (the GOG or the Rebirth edition); the game's data is not
+          in this archive. Copy ei-rebuild.exe into the game folder and start it there.
+
+          Mods: ei-convert.exe writes the game's data as files a mod can change (TOML, PNG, glTF, Lua), and makes the
+          example mod from your install. In a command prompt in this folder:
+
+              ei-convert.exe --example-mod "C:\GOG Games\Evil Islands"
+
+          writes the example mod into that game folder's starter\Mods\example_mod; pick "Example mod" in the main
+          menu's list. Keep the examples folder beside ei-convert.exe: examples\readme.txt lists its mods.
+
+              ei-convert.exe "C:\GOG Games\Evil Islands" converted
+
+          writes all of the game's data as such files into the folder converted (about 350 MB; it only reads the
+          install). The modding guide: $guide
+
+          third_party_notices.txt holds the licences of the code and fonts built in.
+          "@
+          ($readme -replace "`r?`n", "`r`n") + "`r`n" | Set-Content -NoNewline -Encoding ascii "$dir/README.txt"
+          Compress-Archive -Force -Path $dir -DestinationPath "$out/ei-rebuild-windows-x64.zip"
+
       - uses: actions/upload-artifact@v6
         with:
           name: windows
-          path: build/release/ei-rebuild.exe
+          path: |
+            dist/ei-rebuild.exe
+            dist/ei-rebuild-windows-x64.zip
           if-no-files-found: error
 
   # The renderer's compiled shaders for the Linux job (CMakeLists.txt's ei_shaders target: shaders/gpu_shaders.h and
@@ -147,12 +188,16 @@ jobs:
       - name: Package
         run: |
           exe=build/linux/ei-rebuild
-          strip $exe
-          if objdump -T $exe | grep -q GLIBCXX_; then echo "libstdc++ is linked dynamically"; exit 1; fi
-          glibc=$(objdump -T $exe | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -uV | tail -1)
+          convert=build/linux/ei-convert
+          for program in $exe $convert; do
+            strip $program
+            if objdump -T $program | grep -q GLIBCXX_; then echo "$program: libstdc++ is linked dynamically"; exit 1; fi
+          done
+          glibc=$(objdump -T $exe $convert | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -uV | tail -1)
           echo "ei-rebuild needs glibc $glibc; libraries: $(readelf -d $exe | grep -o 'NEEDED.*' | grep -o '\[.*\]' | tr '\n' ' ')" | tee -a $GITHUB_STEP_SUMMARY
           mkdir -p dist/ei-rebuild-linux-x64
-          cp $exe build/linux/third_party_notices.txt dist/ei-rebuild-linux-x64/
+          cp $exe $convert build/linux/third_party_notices.txt dist/ei-rebuild-linux-x64/
+          cp -R build/linux/examples dist/ei-rebuild-linux-x64/
           cat > dist/ei-rebuild-linux-x64/README.txt <<EOF
           Evil Islands rebuild ${{ inputs.version }} for Linux (x86-64)
 
@@ -170,6 +215,17 @@ jobs:
 
           WSL (WSLg): Mesa draws on the CPU there unless told otherwise; GALLIUM_DRIVER=d3d12 ./ei-rebuild draws on
           the Windows GPU.
+
+          Mods: ei-convert writes the game's data as files a mod can change (TOML, PNG, glTF, Lua), and makes the
+          example mod from your install. In this folder:
+
+              ./ei-convert --example-mod "/path/to/Evil Islands"
+
+          writes the example mod into that game folder's starter/Mods/example_mod; pick "Example mod" in the main
+          menu's list. Keep the examples folder beside ei-convert: examples/readme.txt lists its mods.
+          ./ei-convert "/path/to/Evil Islands" converted writes all of the game's data as such files into the folder
+          converted (about 350 MB; it only reads the install). The modding guide:
+          ${{ github.server_url }}/${{ github.repository }}/blob/${{ inputs.version }}/docs/modding.md
 
           third_party_notices.txt holds the licences of the code and fonts built in.
           EOF
@@ -252,22 +308,27 @@ jobs:
         run: |
           app=build/macos/ei-rebuild.app
           exe=$app/Contents/MacOS/ei-rebuild
-          archs=$(lipo -archs $exe)
-          for a in arm64 x86_64; do
-            case " $archs " in *" $a "*) ;; *) echo "not universal: $archs"; exit 1;; esac
+          convert=build/macos/ei-convert
+          for program in $exe $convert; do
+            archs=$(lipo -archs $program)
+            for a in arm64 x86_64; do
+              case " $archs " in *" $a "*) ;; *) echo "$program not universal: $archs"; exit 1;; esac
+            done
+            # otool's library lines start with a tab, its "(architecture ...)" headers do not.
+            if otool -L $program | grep -E '^[[:space:]]' | grep -v -E '^[[:space:]]*(/System/Library/|/usr/lib/)'; then
+              echo "$program links a library outside the system"; exit 1
+            fi
           done
-          # otool's library lines start with a tab, its "(architecture ...)" headers do not.
-          if otool -L $exe | grep -E '^[[:space:]]' | grep -v -E '^[[:space:]]*(/System/Library/|/usr/lib/)'; then
-            echo "ei-rebuild links a library outside the system"; exit 1
-          fi
           version="${{ inputs.version }}"
           plutil -replace CFBundleShortVersionString -string "${version#v}" $app/Contents/Info.plist
           plutil -replace CFBundleVersion -string "${version#v}" $app/Contents/Info.plist
           codesign --force --deep --sign - $app
           codesign --verify --deep --strict $app
+          codesign --force --sign - $convert
+          codesign --verify --strict $convert
           echo "ei-rebuild.app: $archs, macOS $MACOSX_TARGET or newer" | tee -a $GITHUB_STEP_SUMMARY
           mkdir -p dist/ei-rebuild-macos
-          cp -R $app build/macos/third_party_notices.txt dist/ei-rebuild-macos/
+          cp -R $app $convert build/macos/examples build/macos/third_party_notices.txt dist/ei-rebuild-macos/
           cat > dist/ei-rebuild-macos/README.txt <<EOF
           Evil Islands rebuild ${{ inputs.version }} for macOS (Apple silicon and Intel, macOS $MACOSX_TARGET or newer)
 
@@ -277,7 +338,7 @@ jobs:
           The app is not signed with an Apple Developer ID nor notarised, so macOS refuses to open it as downloaded.
           Clear the download's quarantine flag once, in Terminal in this folder:
 
-              xattr -dr com.apple.quarantine ei-rebuild.app
+              xattr -dr com.apple.quarantine ei-rebuild.app ei-convert
 
           (or Control-click the app > Open and confirm; on macOS 15 and later open it once, then System Settings >
           Privacy & Security > Open Anyway).
@@ -292,6 +353,17 @@ jobs:
           The game writes its saves into the game folder, so use a copy of the install if you want the original
           kept as it is. The settings are ~/Library/Application Support/ei-rebuild/ei_settings.ini, outside the app
           (EI_SETTINGS_PATH names another file). The log is ~/Library/Logs/ei-rebuild/ei-rebuild.log (EI_OUT_DIR names another folder).
+
+          Mods: ei-convert writes the game's data as files a mod can change (TOML, PNG, glTF, Lua), and makes the
+          example mod from your install. In Terminal in this folder:
+
+              ./ei-convert --example-mod "/path/to/Evil Islands"
+
+          writes the example mod into that game folder's starter/Mods/example_mod; pick "Example mod" in the main
+          menu's list. Keep the examples folder beside ei-convert: examples/readme.txt lists its mods.
+          ./ei-convert "/path/to/Evil Islands" converted writes all of the game's data as such files into the folder
+          converted (about 350 MB; it only reads the install). The modding guide:
+          ${{ github.server_url }}/${{ github.repository }}/blob/${{ inputs.version }}/docs/modding.md
 
           third_party_notices.txt holds the licences of the code and fonts built in.
           EOF
@@ -328,12 +400,18 @@ jobs:
           if [ "${{ inputs.prerelease }}" = "true" ]; then flags="--prerelease"; fi
           # The downloads' notes, above GitHub's generated list of changes.
           cat > notes.md <<'EOF'
-          - **Windows** (x64): `ei-rebuild.exe`, copied into the game folder (GOG or Rebirth, 1.06).
+          - **Windows** (x64): `ei-rebuild.exe`, copied into the game folder (GOG or Rebirth, 1.06), or
+            `ei-rebuild-windows-x64.zip`: the exe with `ei-convert.exe` and the examples folder.
           - **Linux** (x86-64): `ei-rebuild-linux-x64.tar.gz`; its README.txt says how to name the game folder.
           - **macOS** (Apple silicon and Intel): `ei-rebuild-macos.zip`, an app neither Developer ID signed nor
             notarised: clear the quarantine flag once (`xattr -dr com.apple.quarantine ei-rebuild.app`, or
             Control-click > Open; on macOS 15 and later System Settings > Privacy & Security > Open Anyway), then
             open it inside the game folder or choose the folder when it asks; its README.txt has the details.
+          - **Mods**: each archive holds `ei-convert`, which writes the game's data as editable files, and the
+            examples folder: `ei-convert --example-mod "<game folder>"` makes the example mod from your own install
+            into its `starter\Mods` (no game data is shipped). The archives' README.txt and
+            [the modding guide](${{ github.server_url }}/${{ github.repository }}/blob/${{ inputs.version }}/docs/modding.md)
+            say more.
           EOF
-          gh release create "${{ inputs.version }}" dist/ei-rebuild.exe dist/ei-rebuild-linux-x64.tar.gz \
-            dist/ei-rebuild-macos.zip --title "${{ inputs.version }}" --notes-file notes.md --generate-notes $flags
+          gh release create "${{ inputs.version }}" dist/ei-rebuild.exe dist/ei-rebuild-windows-x64.zip \
+            dist/ei-rebuild-linux-x64.tar.gz dist/ei-rebuild-macos.zip --title "${{ inputs.version }}" --notes-file notes.md --generate-notes $flags
