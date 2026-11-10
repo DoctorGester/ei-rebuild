@@ -212,6 +212,33 @@ std::string ModArchiveStep(const std::string& argument) {
            (got == -3 ? " (the client world has no such manager)" : "");
 }
 
+std::string ModTextStep(const std::string& argument) {
+    const std::size_t space = argument.find(' ');
+    if (space == std::string::npos) return "modtext " + argument + ": not <name> <text>";
+    const std::string name = argument.substr(0, space);
+    const std::string expected = argument.substr(space + 1);
+    std::string text;
+    const long found = image::GameText(name.c_str(), &text);
+    if (found == -3) return "modtext " + name + ": the client world has no texts";
+    if (found == 0) text = "-";
+    Log("harness: modtext %s: \"%s\" (expected \"%s\")", name.c_str(), text.c_str(), expected.c_str());
+    if (text == expected) return std::string();
+    return "modtext " + name + ": \"" + text + "\", expected \"" + expected + "\"";
+}
+
+std::string ModAckStep(const std::string& argument) {
+    char unit[sys::kMaxPath] = {}, speech[sys::kMaxPath] = {}, expected[sys::kMaxPath] = {};
+    if (std::sscanf(argument.c_str(), "%259s %259s %259s", unit, speech, expected) != 3)
+        return "modack " + argument + ": not <unit> <speech> <sound>";
+    std::string sound;
+    const long found = image::AckSound(unit, speech, &sound);
+    if (found == -3) return std::string("modack ") + unit + ": no such record";
+    if (found == 0) sound = "-";
+    Log("harness: modack %s %s: %s (expected %s)", unit, speech, sound.c_str(), expected);
+    if (sound == expected) return std::string();
+    return std::string("modack ") + unit + " " + speech + ": " + sound + ", expected " + expected;
+}
+
 std::string PlayStreamStep(const std::string& argument) {
     if (argument.empty()) return "playstream needs a file name";
     image::PlayStream(argument.c_str());

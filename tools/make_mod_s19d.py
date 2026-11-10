@@ -1,6 +1,6 @@
 """Writes a Rebirth mod for the S19d scenarios (the mod-folder patches the S19b scenario leaves unchecked).
 
-usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose
+usage: python tools/make_mod_s19d.py <saves dir> stream|archives|maps|loose|toml
   <saves dir>   the run's harness_saves folder; the mod goes to <saves dir>\\s19d_mod, which the scenario selects with
                 the harness step "mod harness_saves\\s19d_mod" (the settings' Mod)
 
@@ -26,7 +26,12 @@ nothing is committed. Kinds (docs/notes/rebirth.md, "Resources and paths"):
               Res\\s19d_texts_a\\     s19d_d.txt: the mod's archive's own folder over its entry
               Res\\outro\\outro.rtf   over the game's outro.res (no [RES] line for it)
               Maps\\s19d_loose\\      a folder that stands for s19d_loose.mpr
-Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them).
+  toml      records as TOML (tests/scenarios/mod_toml_records.txt; docs/notes/mods.md, "Records as TOML"):
+              config.reg.toml                 the mod's config.reg as TOML (no config.reg)
+              Res\\texts\\texts.toml          one string of the game's texts.res changed ("string quit")
+              Res\\database\\acks.db.toml     one record of the game's acks.db changed (Haburu's speeches)
+Rebirth.txt and a config.reg with [MOD] Title are written in every kind (as the shipped mods have them; toml: its
+TOML).
 """
 import argparse, os, shutil, sys
 
@@ -121,7 +126,17 @@ def loose(root):
     write(os.path.join(root, 'Maps', 's19d_loose', 's19d_loose.mp'), b'a map folder\r\n')
 
 
-KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose}
+def toml(root):
+    write(os.path.join(root, 'config.reg.toml'), b'[MOD]\nTitle = "S19d test mod"\n')
+    write(os.path.join(root, 'Rebirth.txt'), b'')
+    write(os.path.join(root, 'Res', 'texts', 'texts.toml'), b'"string quit" = "MF3 mod text"\n')
+    # The record replaces the game's whole Haburu record: s24 gets another sound, s25 is gone.
+    write(os.path.join(root, 'Res', 'database', 'acks.db.toml'),
+          b'[[unit]]\nname = "Haburu"\nscenario = [\n'
+          b'    { sound = "Acks\\\\Haburu\\\\Scenario\\\\MF3.wav", chance = 100, text = "MF3", name = "s24" },\n]\n')
+
+
+KINDS = {'stream': stream, 'archives': archives, 'maps': maps, 'loose': loose, 'toml': toml}
 
 
 def main():

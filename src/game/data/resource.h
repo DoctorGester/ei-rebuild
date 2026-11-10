@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -73,13 +74,15 @@ public:
 
 // A record file (docs/notes/mods.md, "Records as TOML"): the original, when one is found, and the TOML files of its
 // name and ".toml" over it, top first: those of every place it is looked for above the first that has the original,
-// and that place's own.
+// and that place's own. A TOML file with `replace = true` (ei-convert writes it) is the whole file: the search ends
+// there, nothing below it read (`replaced`).
 struct TomlFile {
     std::string path;       // where it was read, for messages
     std::string text;
 };
 struct RecordFile {
     bool found = false;     // the original
+    bool replaced = false;  // the last of `tomls` replaces what lies below it
     std::string original;   // its bytes
     std::vector<TomlFile> tomls;
 
@@ -92,6 +95,8 @@ RecordFile FindRecordFile(const std::string& path);
 // Each of `file`'s TOML files parsed and handed to `merge` with its path, the bottom one first (so the top one's
 // records win); one that does not parse is logged and left out.
 void MergeTomls(const RecordFile& file, const std::function<void(const toml::Value& root, const std::string& path)>& merge);
+// Whether a TOML file's top-level `key` and `value` are its `replace = true` (or false), which the merges skip.
+bool IsReplaceKey(std::string_view key, const toml::Value& value);
 
 // An archive's loose files in one folder (docs/notes/mods.md, "Loose files"): the folder in full and its files by
 // name as the archive names its entries (the asset code page, ASCII letters in lower case).

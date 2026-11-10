@@ -6,7 +6,8 @@
 // loose registries (*.reg; not those of Maps\, whose quest archives are not converted) and camera paths (*.cam). Of an
 // archive: its registries, materials (.mat), animation databases (.adb), acks.db and prints.db, each as
 // <archive folder>\<name>.toml; a texts archive's (texts.res, textslmp.res) texts as <archive folder>\texts.toml. A
-// loose file as <name>.toml beside it. The target mirrors the source's layout (MF1's loose folders); converted.txt
+// loose file as <name>.toml beside it. A record file's TOML has `replace = true`: it stands for the whole original,
+// nothing below it read (a mod's original hides the game's file too). The target mirrors the source's layout (MF1's loose folders); converted.txt
 // there lists the converted originals (relative to the source), which tools/convert_install.py removes from its copy.
 // Each file's round trip: the original read by the game's loader, written as TOML, the TOML read back by the game's
 // loader, every field compared (floats by their bits). Exit code 0 when every round trip holds.
@@ -272,13 +273,19 @@ void ConvertFile(const std::string& format, const std::string& name, const std::
     g_converted.push_back(original);
 }
 
+// A converted file's TOML: the whole file, standing for the original (`replace = true`: nothing below it is read).
+std::string WholeFile(const std::string& toml) {
+    return "# ei-convert: the whole file; replace = true: nothing below it is read (docs/notes/mods.md, \"Records as "
+           "TOML\")\nreplace = true\n\n" + toml;
+}
+
 void ConvertRegistry(const RecordFile& original, const std::string& name, std::string* toml, Differences& d) {
     FileRegistry a, b;
     if (!a.Load(original)) {
         d.lines.push_back("not a registry");
         return;
     }
-    *toml = a.ToToml();
+    *toml = WholeFile(a.ToToml());
     if (!b.Load(Toml(*toml, name + ".toml"))) d.lines.push_back("the TOML did not load");
     CompareRegistries(a, b, d);
 }
@@ -286,14 +293,14 @@ void ConvertRegistry(const RecordFile& original, const std::string& name, std::s
 void ConvertMaterial(const RecordFile& original, const std::string& name, std::string* toml, Differences& d) {
     MaterialFile a, b;
     a.Read(original);
-    *toml = a.ToToml();
+    *toml = WholeFile(a.ToToml());
     b.Read(Toml(*toml, name + ".toml"));
     CompareMaterials(a, b, d);
 }
 
 void ConvertAnimations(const RecordFile& original, const std::string& name, std::string* toml, Differences& d) {
     const auto a = ReadAnimationDatabase(original);
-    *toml = a->ToToml();
+    *toml = WholeFile(a->ToToml());
     const auto b = ReadAnimationDatabase(Toml(*toml, name + ".toml"));
     CompareAnimations(*a, *b, d);
 }
@@ -301,7 +308,7 @@ void ConvertAnimations(const RecordFile& original, const std::string& name, std:
 void ConvertAcks(const RecordFile& original, const std::string& name, std::string* toml, Differences& d) {
     acks::AckDatabase a, b;
     a.Read(original);
-    *toml = a.ToToml();
+    *toml = WholeFile(a.ToToml());
     b.Read(Toml(*toml, name + ".toml"));
     CompareAcks(a, b, d);
 }
@@ -309,14 +316,14 @@ void ConvertAcks(const RecordFile& original, const std::string& name, std::strin
 void ConvertPrints(const RecordFile& original, const std::string& name, std::string* toml, Differences& d) {
     PrintsDatabase a, b;
     a.Read(original);
-    *toml = a.ToToml();
+    *toml = WholeFile(a.ToToml());
     b.Read(Toml(*toml, name + ".toml"));
     ComparePrints(a, b, d);
 }
 
 void ConvertCamera(const RecordFile& original, const std::string& name, std::string* toml, Differences& d) {
     const std::vector<CameraKey> a = ReadCameraKeys(original);
-    *toml = CameraKeysToml(a);
+    *toml = WholeFile(CameraKeysToml(a));
     const std::vector<CameraKey> b = ReadCameraKeys(Toml(*toml, name + ".toml"));
     CompareCameraKeys(a, b, d);
 }

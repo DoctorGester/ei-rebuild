@@ -62,6 +62,8 @@ RecordFile ResourceManager::FindRecord(std::string_view name) {
     for (ArchiveEntry& e : archives) {
         RecordFile found = e.resource->FindRecord(name);
         for (TomlFile& toml : found.tomls) record.tomls.push_back(std::move(toml));
+        record.replaced = found.replaced;
+        if (found.replaced) break;
         if (!found.found) continue;
         record.found = true;
         record.original = std::move(found.original);

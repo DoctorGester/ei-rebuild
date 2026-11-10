@@ -25,6 +25,7 @@
 #include "game/data/database_file.h"
 #include "game/core/asset_text.h"
 #include "lib/crt.h"
+#include "game/data/resource.h"
 #include "lib/toml.h"
 
 #include <algorithm>
@@ -520,7 +521,7 @@ void PrintsDatabase::MergeToml(const toml::Value& root, const std::string& path)
     MergeRecords(root["scorch"], scorch, path, none);
     for (int i = 0; i < root.Size(); ++i) {
         const std::string_view key = root.KeyAt(i);
-        if (key != "blood" && key != "footprint" && key != "scorch")
+        if (key != "blood" && key != "footprint" && key != "scorch" && !IsReplaceKey(key, root.ValueAt(i)))
             game::Warning("prints: %s line %d: unknown table %s", path, root.ValueAt(i).Line(), std::string(key));
     }
 }

@@ -40,6 +40,7 @@
 #include "game/ui/ui_drop_list.h"
 #include "game/ui/ui_saveload.h"
 #include "game/ui/ui_options.h"
+#include "game/units/acks_db.h"
 #include "game/units/unit.h"
 #include "game/units/unit_client_models.h"
 #include "game/world/world.h"
@@ -424,9 +425,11 @@ long ModFile(const char* path, const char* name) {
     long got = -2;   // the archive did not open
     if (res.OpenResource(path)) {
         std::uint32_t size = 0;
-        void* data = res.GetFile(name, &size);   // Rebirth's ResOverride
+        // Rebirth's ResOverride; as the texts read it, a texts.toml's text too (docs/notes/mods.md, "Records as TOML")
+        bool utf8 = false;
+        void* data = res.FindText(name, &size, &utf8);
         got = data ? static_cast<long>(size) : 0;
-        if (data) res.CloseFile(data);
+        if (data && !utf8) res.CloseFile(data);
     }
     return got;
 }
@@ -440,6 +443,26 @@ long ModList(const char* path, const char* pattern) {
         count = static_cast<long>(names.size());
     }
     return count;
+}
+
+long GameText(const char* name, std::string* text) {
+    TextManager* texts = g_clientWorld.texts.get();
+    if (!texts) return -3;
+    const std::optional<std::string> found = texts->FindString(name);
+    if (!found) return 0;
+    *text = *found;
+    return 1;
+}
+
+long AckSound(const char* unit, const char* speech, std::string* sound) {
+    acks::UnitAcks* record = g_ackDatabase.units.Find(unit);
+    if (!record) return -3;
+    for (const SpeechRecord& s : record->namedSpeeches.records) {
+        if (s.name != speech) continue;
+        *sound = s.sound;
+        return 1;
+    }
+    return 0;
 }
 
 long ModManagerFile(const char* which, const char* name) {

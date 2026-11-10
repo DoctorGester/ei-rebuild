@@ -25,6 +25,11 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `src/game/data/resource.h`, `.cpp` | the archives and the loose files over them ("Loose files"): `MappedResource::Sources`, `LooseFolderOf`, `ResourceExists` |
 | `tools/unpack_install.py` | an install's archives unpacked into their folders; run_all.py `--unpacked` |
 | `tests/scenarios/mod_loose_files.txt` | loose files of a mod over its archives and the game's |
+| `src/lib/toml.h`, `.cpp`; `third_party/tomlc17/` | TOML read (tomlc17) and written ("Records as TOML") |
+| `src/game/data/resource.h`, `.cpp` | `RecordFile`, `FindRecordFile`, `MappedResource::FindRecord` / `FindText`, `MergeTomls` |
+| `tools/convert/convert.cpp` | ei-convert: an install's records as TOML, each round trip checked |
+| `tools/convert_install.py` | an unpacked copy converted; run_all.py `--converted` |
+| `tests/scenarios/mod_toml_records.txt` | a mod's TOML text and record seen by the game |
 
 ## Choosing a mod
 
@@ -147,9 +152,73 @@ run's install folder: the snapshot pins it).
   the listing's count, a maps folder for an .mpr but not a .mob.
 - `work.py test <ID> --unpacked --golden` and with `--rebirth-only`: every scenario on the unpacked installs.
 
+## Records as TOML
+
+The game's record files can be TOML (MF3, user 2026-11-09). Every original still loads; a file of its name plus
+`.toml` found where the original would be (the same places, "Loose files": the archive's folder in each layer, the mod's
+archives, the game's folder, the archive) is read instead, or merged over it. TOML is UTF-8; the in-memory records keep
+the asset code page (1251) as before. The reader is tomlc17 (third_party/tomlc17, unmodified, its README names the
+commit), the writer our own (src/lib/toml.h: floats as the shortest text that reads back to the same bits).
+
+| Original | Its TOML | Layout | Over the original |
+|---|---|---|---|
+| a registry `.reg`: `Config\ai.reg`, `Res\music.reg`, `Res\smessbase.reg`, `Res\streamsn.reg`, aiinfo.res's `tileDesc.reg`, menus.res's `menus.reg`, a mod's `config.reg` | `Config\ai.reg.toml`, `Res\aiinfo\tileDesc.reg.toml`, `<mod>\config.reg.toml`, ... | a table per section, a key per value: integer, float, string, or an array of one (an empty array answers any array type) | merged by section and key (no case) |
+| materials.res's `.mat` | `Res\materials\<name>.mat.toml` | name, diffuse / ambient / specular / emissive `[r, g, b, a]`, power | the keys given over the colours |
+| database.res's `.adb` | `Res\database\<name>.adb.toml` | name, start, length, end, `[[animation]]` (name, index, key, flags, chance, frames, stride, arrow, steps, moment, sound_frame, sounds) | the header's keys given; an animation replaces the first of its name, or is appended |
+| `acks.db` (database.res) | `Res\database\acks.db.toml` | `[[unit]]`, `[[model]]`, `[[extra]]`: name and the speech lists by ack kind (AckKind in snake case: `selected`, `move`, ..., `bored` with `environment`, `scenario` the named ones), each speech `{ sound, chance, text, name }` | a record replaces the first of its name in its table, or is appended |
+| `prints.db` (database.res, databaselmp.res) | `Res\database\prints.db.toml` | `[[blood]]`, `[[footprint]]`, `[[scorch]]`: name, `dry` / `wet` = `{ alpha, life, lifetime }` (a footprint's `unread`: chunk 10) | as acks.db (a table's index is the ground's surface class) |
+| texts.res's, textslmp.res's entries | `Res\texts\texts.toml`, `Res\textslmp\texts.toml`: one per archive | `"<entry name>" = "<text>"` (quoted keys, multi-line text as `"""`, CR kept as `\r`) | per entry: a folder's own file of the name, then its texts.toml, in the archive's order of places; so a mod's texts.toml holds only the strings it changes |
+| `Camera\<name>.cam` | `Camera\<name>.cam.toml` | `[[key]]`: time, position `[x, y, z]`, rotation `[w, x, y, z]` | the top TOML is the whole path |
+
+Merging (`FindRecordFile` / `MappedResource::FindRecord`, resource.h; `MergeTomls`): the TOML files of every place above
+the first place that has the original, and that place's own, are read; the bottom one is merged first over the original,
+so the top one (the mod's) wins. A TOML file with no original anywhere builds the records alone. One that does not parse
+is logged ("warning: records: ...") and left out; an unknown key is logged with the file. A merge never removes a
+record: a mod replaces one, or adds one. A TOML file with the top-level key `replace = true` is the whole file: the
+search ends there, nothing below it (its place's original, lower TOML files, the game's file) is read, as a mod's
+original hides the game's file. ei-convert writes it in every record file it converts, so a converted copy plays as
+the original: Lost in Astral's own `.adb`, `ai.reg` and the like hide the game's rather than merging over them (without
+it mod_lost_in_astral_start's units differed). A mod's file of only the records it changes leaves it out.
+
+What stays binary: the quest zones' `quest.reg` (a `.mq`'s, read as bytes for the briefings: MF9), the other databases
+(`.idb`, `.sdb`, `.udb`, ...: MF4-), the maps.
+
+### ei-convert
+
+`build\verify\ei-convert.exe <install or archive> <target>` writes an install's record files as TOML into `<target>`,
+laid out as the loose folders (`<target>\Res\database\acks.db.toml`, ...), with `converted.txt` listing the originals it
+converted. It reads with the game's own loaders and checks each file's round trip (original read, written, read back,
+every field compared, floats by their bits). `ei-convert --check <install or archive>...` only checks. It reads the
+source alone; never give it an install as the target.
+
+Counts (2026-11-10), every round trip holding: vanilla 1 acks.db, 54 adb, 18 cameras, 8 materials, 2 prints.db, 8
+registries, 3,564 texts; Rebirth (its mods too) 4 acks.db, 163 adb, 22 cameras, 8 materials, 4 prints.db, 17
+registries, 7,327 texts. Not exported: the bytes no loader reads (an .adb's unused field 11, a camera key's `reserved`).
+
+### Converted installs
+
+`python tools/convert_install.py <unpacked copy> <target>` hard-links an unpacked copy (tools/unpack_install.py) into
+`<target>`, runs ei-convert in place and removes every converted original. `run_all.py --converted` (also through
+`work.py test`) plays the suites on `<checkout>\build\converted\vanilla` and `rebirth`, made from the unpacked copies at the
+first use or when another ei-convert made them (converted-from.txt), with every golden the same. The TOML files of each
+layer are read unmapped (`platform::ReadLayerFile`, `PathUse::Layer`: the path map would answer the top layer's file for
+every layer) and the harness traces them; its `read` checks count a read of `<file>.toml` as one of the file, and
+`modfile` reads as the texts do (`FindText`: a texts.toml's text too). A prepare tool that copies a camera path copies
+its TOML when the install has that alone (make_test_mod.py).
+
+### Checks
+
+- `ei_unit_check`'s toml checks: the writer's strings, keys, numbers and 200,000 floats read back through tomlc17.
+- `mod_toml_records` (both installs; tools/make_mod_s19d.py toml): a mod with only `config.reg.toml`, a `texts.toml`
+  that changes "string quit" and an `acks.db.toml` that replaces Haburu's record; the interface's text and the acks
+  database the units speak from have the mod's (`modtext`, `modack`).
+- `ei-convert --check` on both installs (all round trips hold), and on the stub data in the Linux suites' workflow.
+- `work.py test <ID> --converted --golden --rebirth`: every golden the same.
+
 ## A mod's config.reg
 
-The game's registry format (src/game/data/registry.h). Sections in Rebirth's mods:
+The game's registry format (src/game/data/registry.h), or `config.reg.toml` ("Records as TOML"). Sections in Rebirth's
+mods:
 - `[MOD]`: Title, Author, Version, Date_DMY, URL, AuthorEmail, GameSaves, Single, Multi, ForceShowTutorial: the
   starter's list (the menu's list, MOD3).
 - `[RES]`: archive name = the mod's archive(s) (string or array), `-` to drop the game's; read by ResOverride

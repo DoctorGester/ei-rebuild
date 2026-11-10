@@ -49,8 +49,8 @@ bool ParseStep(const std::string& verb, const std::string& argument);
 void Install(const char* savesDir);
 
 // The step "modfile <archive> <file> <bytes>": the game's archive <archive> in the text resources' folder opened
-// as the game opens it and <file> read through its GetFile (which looks in the mod's archives first, as Rebirth's
-// ResOverride did): its size must be <bytes> (0: not found; "!<n>": anything but <n>; "+": found). An error message,
+// as the game opens it and <file> read through its FindText (GetFile's search, which looks in the mod's archives first
+// as Rebirth's ResOverride did, and a texts.toml's text): its size must be <bytes> (0: not found; "!<n>": anything but <n>; "+": found). An error message,
 // empty when it matches.
 std::string ModFileStep(const std::string& argument);
 // "modlist <archive> <pattern> <count>": the same archive's ListFiles(pattern) gives that many names (the mod's
@@ -59,6 +59,12 @@ std::string ModListStep(const std::string& argument);
 // "modarchive figures|links|textures <file> <bytes>": the size of <file> in the figure manager's, the link figure
 // loader's or the texture manager's archives, in their order (the mod's extra archives among them); needs a game.
 std::string ModArchiveStep(const std::string& argument);
+// "modtext <name> <text>": the client world's text "string <name>" (as the interface reads it) is <text> (the rest
+// of the line, UTF-8; "-": none). Records as TOML (docs/notes/mods.md): a mod's texts.toml merged over the game's.
+std::string ModTextStep(const std::string& argument);
+// "modack <unit> <speech> <sound>": the acks database's record <unit> has the named speech <speech> with the sound
+// <sound> ("-": no such speech), as SayNamedAck finds it. Records as TOML: a mod's acks.db.toml record over the game's.
+std::string ModAckStep(const std::string& argument);
 // "playstream <name>": the music stream is asked for <name> (an .mp3 of the stream folder, with its extension), as the main
 // menu's music is; the stream's steps run on the virtual clock, so a scenario waits for it with "waitread"
 // (harness_modtrace.h) and the wait takes the same world updates every run.

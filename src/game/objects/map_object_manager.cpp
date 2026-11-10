@@ -29,6 +29,7 @@
 #include "lib/rounding.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
+#include "game/data/resource.h"
 #include "lib/toml.h"
 
 #include <algorithm>
@@ -241,7 +242,8 @@ void AnimationDatabase::MergeToml(const toml::Value& root, const std::string& pa
     }
     for (int i = 0; i < root.Size(); ++i) {
         const std::string_view key = root.KeyAt(i);
-        if (key != "name" && key != "start" && key != "length" && key != "end" && key != "animation")
+        if (key != "name" && key != "start" && key != "length" && key != "end" && key != "animation" &&
+            !IsReplaceKey(key, root.ValueAt(i)))
             game::Warning("adb: %s line %d: unknown key %s", path, root.ValueAt(i).Line(), std::string(key));
     }
 }

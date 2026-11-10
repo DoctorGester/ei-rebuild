@@ -14,6 +14,7 @@
 #include "game/data/database_file.h"
 #include "game/core/asset_text.h"
 #include "lib/crt.h"
+#include "game/data/resource.h"
 #include "lib/toml.h"
 
 #include <cstring>
@@ -486,7 +487,7 @@ void AckDatabase::MergeToml(const toml::Value& root, const std::string& path) {
     });
     for (int i = 0; i < root.Size(); ++i) {
         const std::string_view key = root.KeyAt(i);
-        if (key != "unit" && key != "model" && key != "extra")
+        if (key != "unit" && key != "model" && key != "extra" && !IsReplaceKey(key, root.ValueAt(i)))
             game::Warning("acks: %s line %d: unknown table %s", path, root.ValueAt(i).Line(), std::string(key));
     }
 }

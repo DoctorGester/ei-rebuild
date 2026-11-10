@@ -1,0 +1,18 @@
+# Records as TOML (docs/notes/mods.md, "Records as TOML"): a mod of our own, tools/make_mod_s19d.py toml, written
+# into the run's harness_saves\s19d_mod, which "mod" makes the settings' Mod (either install). Its config.reg is
+# config.reg.toml only; its Res\texts\texts.toml changes one string of the game's texts.res and its
+# Res\database\acks.db.toml one record of the game's acks.db. At the main menu:
+# - the interface's text "string quit" is the mod's (a string neither has stays none);
+# - the acks database the units speak from has the mod's Haburu record (s24's sound changed, s25 gone, as the
+#   mod's record replaces the game's) and the game's records the mod leaves (HadExpW's s7).
+# prepare: make_mod_s19d.py toml
+mod harness_saves\s19d_mod
+reject Script error
+waitmenu
+modtext quit MF3 mod text
+modtext no_such_string_mf3 -
+modack Haburu s24 Acks\Haburu\Scenario\MF3.wav
+modack Haburu s25 -
+modack HadExpW s7 Acks\HadExpW\Scenario\HadExpW.wav
+report
+quit

@@ -9,6 +9,7 @@
 #include "lib/bytes.h"
 #include "lib/crt.h"
 #include "lib/rounding.h"
+#include "game/data/resource.h"
 #include "lib/toml.h"
 
 #include <algorithm>
@@ -143,7 +144,7 @@ void MaterialFile::MergeToml(const toml::Value& root, const std::string& path) {
     for (int i = 0; i < root.Size(); ++i) {
         const std::string_view key = root.KeyAt(i);
         const toml::Value value = root.ValueAt(i);
-        bool known = key == "name" || key == "power";
+        bool known = key == "name" || key == "power" || IsReplaceKey(key, value);
         if (key == "name" && toml::Read(value, &unreadName)) unreadName = text::ToAssetText(unreadName);
         if (key == "power") toml::Read(value, &colors.power);
         for (int c = 0; c < 4; ++c) {

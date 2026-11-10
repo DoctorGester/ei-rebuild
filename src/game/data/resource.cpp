@@ -255,6 +255,19 @@ void* MappedResource::FindFile(std::string_view name, std::uint32_t* size, bool*
     return nullptr;
 }
 
+namespace {
+
+// `file` read (its text) and whether it replaces what lies below it (`replace = true`).
+bool ReplacesBelow(const TomlFile& file) {
+    toml::Document document;
+    return document.Parse(file.text, file.path) && document.Root()["replace"].IsBool() &&
+           document.Root()["replace"].Bool();
+}
+
+} // namespace
+
+bool IsReplaceKey(std::string_view key, const toml::Value& value) { return key == "replace" && value.IsBool(); }
+
 RecordFile MappedResource::FindRecord(std::string_view name) {
     RecordFile record;
     const std::string key = LooseKey(name);
@@ -267,6 +280,7 @@ RecordFile MappedResource::FindRecord(std::string_view name) {
                 TomlFile& file = record.tomls.emplace_back();
                 file.path = toml->second.path;
                 platform::ReadLayerFile(file.path, &file.text);
+                record.replaced = ReplacesBelow(file);
             }
             original = source.loose->byName.contains(key);
         } else {
@@ -274,12 +288,14 @@ RecordFile MappedResource::FindRecord(std::string_view name) {
             if (void* data = source.entries->EntryFile(tomlName, &size)) {
                 record.tomls.push_back({tomlName, std::string(static_cast<const char*>(data), size)});
                 source.entries->CloseFile(data);
+                record.replaced = ReplacesBelow(record.tomls.back());
             }
             original = source.entries->FindEntry(name) != -1;
         }
-        if (original) break;
+        if (original || record.replaced) break;
     }
     std::uint32_t size = 0;
+    if (record.replaced) return record;
     if (void* data = GetFile(name, &size)) {
         record.found = true;
         record.original.assign(static_cast<const char*>(data), size);
@@ -410,10 +426,11 @@ RecordFile FindRecordFile(const std::string& path) {
             TomlFile& toml = record.tomls.emplace_back();
             toml.path = file.path;
             platform::ReadLayerFile(file.path, &toml.text);
+            record.replaced = ReplacesBelow(toml);
         }
-        if (original) break;
+        if (original || record.replaced) break;
     }
-    record.found = platform::ReadWholeFile(path, &record.original);
+    if (!record.replaced) record.found = platform::ReadWholeFile(path, &record.original);
     return record;
 }
 

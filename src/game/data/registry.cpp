@@ -7,6 +7,7 @@
 #include "lib/crt.h"
 #include "lib/rounding.h"
 #include "lib/text_case.h"
+#include "game/data/resource.h"
 #include "lib/toml.h"
 
 #include <bit>
@@ -306,6 +307,7 @@ void FileRegistry::MergeToml(const toml::Value& root, const std::string& path) {
     for (int i = 0; i < root.Size(); ++i) {
         const std::string_view sectionName = root.KeyAt(i);
         const toml::Value table = root.ValueAt(i);
+        if (IsReplaceKey(sectionName, table)) continue;
         if (!table.IsTable()) {
             game::Warning("registry: %s line %d: %s is not a section", path, table.Line(), std::string(sectionName));
             continue;

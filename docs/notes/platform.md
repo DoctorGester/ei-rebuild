@@ -126,7 +126,8 @@ shared before too, and no sharing violation (PL11s removed it).
 **One path seam** (src/platform/seams.h, PL15): every file and folder call of every backend takes its path through
 `platform::SystemPath(path, use)` and then the backend's `NativePath`. `PathUse` says what the call does with it:
 `Read` (opens, maps, searches, exists, free space), `Write` (creates, truncates, removes, a rename's target) or
-`Update` (a change of a file that is there: WriteExisting, a rename's source). The game's builds link
+`Update` (a change of a file that is there: WriteExisting, a rename's source), or `Layer` (ReadLayerFile: one layer's
+own file read as it is, never mapped; the harness traces it: mods.md, "Records as TOML"). The game's builds link
 seams.cpp's (the path itself, or with a mod the mod's layered map: mods.md); the harness's builds link
 game_answers.cpp's (harness.cpp's MapPath), which maps the path into the run's overlay, the same map
 (src/platform/path_layers.h) with the overlay as its top layer:

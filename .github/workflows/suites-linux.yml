@@ -220,6 +220,14 @@ jobs:
           [ -d "$DATA/vanilla" ] && [ -d "$DATA/rebirth" ] || { echo "::error::the stub data has no vanilla/ and rebirth/"; exit 1; }
           echo "stub data: $(du -sm "$DATA" | cut -f1) MB unpacked"
 
+      # MF3: every record file of the stub data (its originals: the installs' own) written as TOML by the game's
+      # loaders and read back, field by field (docs/notes/mods.md, "Records as TOML"); one shard is enough.
+      - name: Records as TOML
+        if: matrix.shard == 0
+        run: |
+          cmake --build build/linux-harness --target ei-convert
+          build/linux-harness/ei-convert --check "$DATA/vanilla" "$DATA/rebirth"
+
       # This job's share of the scenarios (every SHARDS-th of the sorted list), one game at a time. The summary prints
       # run_all's table and the goldens block (scenario names, results, the digest's differences), never the data's files.
       - name: Suites

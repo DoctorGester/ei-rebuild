@@ -148,7 +148,7 @@ std::vector<FolderLayer> FilesByLayer(std::string_view folder, const std::vector
 
 bool ReadLayerFile(std::string_view path, std::string* bytes) {
     bytes->clear();
-    std::ifstream file(NativePath(path), std::ios::binary);
+    std::ifstream file(Native(path, PathUse::Layer), std::ios::binary);
     if (!file) return false;
     bytes->assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
     return !file.bad();

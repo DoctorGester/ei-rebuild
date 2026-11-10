@@ -52,16 +52,19 @@ bool Seen(const std::string& where, const std::string& path, bool written, std::
     const std::string relative = Normal(path);
     std::lock_guard<std::mutex> lock(g_lock);
     const std::set<std::string>& seen = written ? g_written : g_seen;
+    // A read of the file's TOML stands for a read of the file (docs/notes/mods.md, "Records as TOML": a converted
+    // install has the TOML alone).
+    auto has = [&](const std::string& file) { return seen.count(file) != 0 || (!written && seen.count(file + ".toml") != 0); };
     if (where == "mod") {
         if (g_mod.empty()) {
             *error = "no mod folder (the scenario has no mod line)";
             return false;
         }
-        return seen.count(g_mod + "\\" + relative) != 0;
+        return has(g_mod + "\\" + relative);
     }
     if (where == "game") {
         // The game's folder, or the overlay's copy of its file (a file the run wrote).
-        return seen.count(g_game + "\\" + relative) != 0 || seen.count(g_overlay + "\\" + relative) != 0;
+        return has(g_game + "\\" + relative) || has(g_overlay + "\\" + relative);
     }
     *error = "'" + where + "' is not mod or game";
     return false;
