@@ -1,7 +1,9 @@
 id = "MF12"
-title = "Releases ship the example mod (with its Lua) and ei-convert"
+title = "Releases ship ei-convert and a Mods folder"
 group = "mods"
 size = 2
 model = "opus"
-note = "User 2026-11-10: include the example mod in releases. The repo/release hold no game data, so ship examples/example_mod's own files and the additions, plus ei-convert in every release zip, and have ei-convert make the install-derived parts (zone 1's pages recoloured, zone1.mob.toml + pig, zone1.lua + the mod's lines) from the player's own install in one command (port tools/make_example_mod.py's steps; players have no Python). Release notes and docs/modding.md point at it; mod_example scenario uses the same path."
+note = "User 2026-11-10: releases should carry a mod. Revised the same day: the user wants a mod of our own assets instead (MF13), so MF12 only ships ei-convert in every release package plus a Mods folder readme, and documents it (release.yml, package README, docs/modding.md). The install-derived example mod stays test-only."
 order = 1326
+status = "running"
+started = "2026-11-10"
