@@ -2,6 +2,7 @@
 // game's own loaders, and each one's round trip checked.
 // usage: ei-convert <install or archive> <target folder>   write the TOML files into the target
 //        ei-convert --check <install or archive>...        only the round trips
+//        ei-convert --scripts <install>... [options]       the script survey and parse tree check (convert_scripts.cpp)
 // An install is walked for its archives (Res\<name>.res, or the folder of an unpacked one under a Res folder) and its
 // loose registries (*.reg; not those of Maps\, whose quest archives are not converted) and camera paths (*.cam). Of an
 // archive: its registries, materials (.mat), animation databases (.adb), acks.db, prints.db and the game databases
@@ -30,6 +31,7 @@
 #include "convert_databases.h"
 #include "convert_maps.h"
 #include "convert_models.h"
+#include "convert_scripts.h"
 #include "convert_textures.h"
 
 #include <bit>
@@ -593,7 +595,8 @@ void ConvertAll(const std::vector<fs::path>& sources) {
 
 int Usage() {
     std::printf("usage: ei-convert <install or archive> <target folder>\n"
-                "       ei-convert --check <install or archive>...\n");
+                "       ei-convert --check <install or archive>...\n"
+                "       ei-convert --scripts <install>... [--scenarios <folder>] [--dump <folder>]\n");
     return 2;
 }
 
@@ -615,6 +618,7 @@ std::string OutputPath(const char* name) { return name; }
 int main(int argc, char** argv) {
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     std::vector<fs::path> sources;
+    if (argc >= 2 && std::strcmp(argv[1], "--scripts") == 0) return convert_scripts::Main({argv + 2, argv + argc});
     if (argc >= 3 && std::strcmp(argv[1], "--check") == 0) {
         for (int i = 2; i < argc; ++i) sources.push_back(fs::absolute(argv[i]));
     } else if (argc == 3) {

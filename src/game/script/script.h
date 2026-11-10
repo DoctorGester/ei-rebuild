@@ -369,6 +369,14 @@ struct ScriptParticleType {
 };
 constexpr int kScriptParticleTypeCount = 64;
 
+namespace scriptir {
+struct Block;
+struct Call;
+struct Definition;
+struct File;
+struct Variable;
+} // namespace scriptir
+
 class Script;
 struct ScriptBlock;
 struct ScriptDefinition;
@@ -664,23 +672,26 @@ public:
     std::string QualifyName(const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(std::string_view name);
+    // Each Load* below also fills its part of the parse tree (script_ir.h): `node`, `block`, `out`.
     // `signature`: the parameter types (lower-case letters). `syntax`: a parenthesized list, or the one value of
     // `variable = value`.
     bool LoadFunction(ScriptCall* cmd, TokenReader* tokens, ScriptFunction id, ScriptVars* locals, std::string_view signature,
-                      ScriptArgSyntax syntax = ScriptArgSyntax::List);
+                      scriptir::Call& node, ScriptArgSyntax syntax = ScriptArgSyntax::List);
     // Float functions up to ')'.
-    bool LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* tokens, ScriptVars* locals);
+    bool LoadConditions(std::vector<ScriptCall>* conditions, TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
     // `if(...)then(...)` pairs up to ')'.
-    bool LoadScriptBody(ScriptDefinition* script, TokenReader* tokens);
+    bool LoadScriptBody(ScriptDefinition* script, TokenReader* tokens, scriptir::Definition& out);
     // `= value` assigned to global variable `name` (command 0x78).
-    bool LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string& name);
+    bool LoadAssignOperator(ScriptCall* cmd, TokenReader* tokens, ScriptVars* locals, const std::string& name, scriptir::Call& node);
     // `name : type, ...)` (parameters or GlobalVars); "Unexpected end of file" when the tokens run out.
-    bool LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tokens, bool qualify);
+    bool LoadVariableDeclarations(ScriptDefinition* script, TokenReader* tokens, bool qualify, std::vector<scriptir::Variable>* out);
     // Commands up to ')'; null `locals` means an empty variable set (the WorldScript). A For body sees the
     // enclosing `locals`.
-    bool LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens, ScriptVars* locals);
-    // The text is replaced by its #define-expanded form.
-    bool Load(std::string* text, bool runWorldScript);
+    bool LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
+    // The text is replaced by its #define-expanded form. The parse tree goes to `ir` when given.
+    bool Load(std::string* text, bool runWorldScript, scriptir::File* ir = nullptr);
+    // Load's preprocessing and sections; false on the first error.
+    bool Parse(std::string* text, bool runWorldScript, scriptir::File& out);
     // With the WorldScript started; error 0x11 when the file cannot be read.
     bool LoadFile(const std::string& path);
 
@@ -988,12 +999,14 @@ constexpr bool operator==(int id, ScriptLexeme lexeme) { return id == static_cas
 struct ScriptDefine {
     std::string name;
     std::string value;
+    int line = 0;
+    int uses = 0;   // replacements made
 };
 // Before the first define with a shorter name (else before the last one; at the end only when the list is
 // empty).
 void AddDefine(std::vector<ScriptDefine>* defines, const ScriptDefine* define);
-// Each define in list order.
-void ApplyDefines(std::string* line, const std::vector<ScriptDefine>& defines);
+// Each define in list order, counting its uses.
+void ApplyDefines(std::string* line, std::vector<ScriptDefine>* defines);
 
 // *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.

@@ -463,6 +463,8 @@ script.h                    script/script.h
 script_parse.h              script/script_parse.h
 script_parse.cpp            script/script_parse.cpp
 script_parse_load.cpp       script/script_parse_load.cpp
+script_ir.h                 script/script_ir.h
+script_ir.cpp               script/script_ir.cpp
 script_blocks.cpp           script/script_blocks.cpp
 script_vars.cpp             script/script_vars.cpp
 script_group.cpp            script/script_group.cpp

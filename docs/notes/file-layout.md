@@ -346,16 +346,16 @@ Risks:
 | `players/` | 24 | 5251 | C168e |
 | `saves/` | 7 | 828 | C168d |
 | `scene/` | 30 | 4414 | C168g |
-| `script/` | 20 | 6750 | C168h |
+| `script/` | 22 | 7218 | C168h |
 | `sound/` | 3 | 1679 | C168e |
 | `spells/` | 8 | 2560 | C168g |
 | `terrain/` | 12 | 3554 | C168g |
 | `ui/` | 95 | 32812 | C168h |
 | `units/` | 27 | 9736 | C168f |
 | `world/` | 35 | 10226 | C168e |
-| all | 491 | 155676 | |
+| all | 493 | 156144 | |
 
-538 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
+540 files today; 55 fold into an owner, 10 split by meaning, 12 new files come out of the splits, 36 moves rename for meaning.
 
 ### Every file
 
@@ -796,6 +796,8 @@ Op: blank a move (under the same name unless a reason is given), **fold** the co
 | script_exec_run.cpp | script/script_exec_run.cpp |  |  |
 | script_cleanup.cpp | script/script_exec_run.cpp | fold | Script's runtime resets (39 lines): instances and runs, beside where they start |
 | script_group.cpp | script/script_group.cpp |  |  |
+| script_ir.cpp | script/script_ir.cpp |  |  |
+| script_ir.h | script/script_ir.h |  |  |
 | script_load.cpp | script/script_load.cpp |  |  |
 | script_parse.cpp | script/script_parse.cpp |  |  |
 | script_parse.h | script/script_parse.h |  |  |
