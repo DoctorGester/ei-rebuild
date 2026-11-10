@@ -1,19 +1,20 @@
-"""Makes an unpacked install's converted copy: its record files as TOML, the originals gone (docs/notes/mods.md,
-"Records as TOML").
+"""Makes an unpacked install's converted copy: its record files as TOML and its textures as PNG, the originals gone
+(docs/notes/mods.md, "Records as TOML", "Textures as PNG").
 
 usage: python tools/convert_install.py UNPACKED TARGET [--convert EXE] [--force]
   UNPACKED   an install's unpacked copy (tools/unpack_install.py); only read
   TARGET     the converted copy: every file of UNPACKED hard-linked (copied where a link cannot be made), then
-             ei-convert's TOML written into it (each record file's <name>.toml beside it, each texts archive's
-             texts.toml) and every original it converted (its converted.txt) removed. The copy plays as the install
-             does with the TOML standing in for the originals (run_all.py --converted runs the suites on it).
+             ei-convert's files written into it (each record file's <name>.toml beside it, each texts archive's
+             texts.toml, each texture's <name>.png) and every original it converted (its converted.txt) removed. The
+             copy plays as the install does with those standing in for the originals (run_all.py --converted runs the
+             suites on it).
   --convert  ei-convert.exe (default: build\\verify's)
   --force    an existing TARGET is removed first (refused when it holds a link); without it a TARGET made from the
              same UNPACKED by the same ei-convert (its converted-from.txt) is kept as it is, one made by another
              ei-convert is made again, and any other TARGET is refused
 Nothing is ever written into UNPACKED: no file of TARGET that links to one of UNPACKED is opened for writing (the
-converter only adds .toml files and converted.txt, which the copy does not hold), and removing a link leaves the
-other name.
+converter removes a file of the name it writes first and only adds .toml and .png files and converted.txt), and
+removing a link leaves the other name.
 """
 import argparse, hashlib, os, shutil, subprocess, sys
 

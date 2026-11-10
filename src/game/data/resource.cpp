@@ -3,6 +3,7 @@
 #include "game/core/core_streams.h"
 #include "game/data/resource.h"
 #include "game/mods/mod_folders.h"
+#include "game/models/texture_png.h"
 
 #include "lib/bytes.h"
 #include "lib/crt.h"
@@ -236,9 +237,73 @@ void* MappedResource::Find(std::string_view name, std::uint32_t* size, bool* utf
     return data;
 }
 
+namespace {
+
+// The name of the PNG that stands for the texture `name` (docs/notes/mods.md, "Textures as PNG"): an .mmp's name with
+// ".png"; empty for another file.
+std::string PngNameOf(std::string_view name) {
+    constexpr std::string_view kMmp = ".mmp";
+    if (name.size() <= kMmp.size() || text::CompareIgnoringCase(name.substr(name.size() - kMmp.size()), kMmp) != 0) return {};
+    return std::string(name.substr(0, name.size() - kMmp.size())) + ".png";
+}
+
+} // namespace
+
+bool MappedResource::ReadSource(const Source& source, std::string_view name, std::string* bytes, std::string* where) {
+    if (source.loose) {
+        const auto file = source.loose->byName.find(LooseKey(name));
+        if (file == source.loose->byName.end()) return false;
+        *where = file->second.path;
+        return platform::ReadWholeFile(file->second.path, bytes);
+    }
+    if (source.entries->FindEntry(name) == -1) return false;
+    std::uint32_t size = 0;
+    void* data = source.entries->EntryFile(name, &size);
+    if (!data) return false;
+    bytes->assign(static_cast<const char*>(data), size);
+    source.entries->CloseFile(data);
+    *where = name;
+    return true;
+}
+
+void* MappedResource::PngTexture(std::string_view name, const std::string& pngName, const std::vector<Source>& sources,
+                                 std::size_t at, std::uint32_t* size) {
+    std::string png, where;
+    if (!ReadSource(sources[at], pngName, &png, &where)) return nullptr;
+    if (void* data = SharedFile(*this, name, size)) return data;
+    // Without its settings chunk the PNG takes them from the .mmp it stands for: in its place, or the first below.
+    std::string original, originalWhere;
+    MmpHeader originalHeader;
+    texture_png::MmpView below;
+    if (texture_png::SettingsText(png).empty())
+        for (std::size_t i = at; i < sources.size(); ++i) {
+            if (!ReadSource(sources[i], name, &original, &originalWhere)) continue;
+            if (original.size() >= sizeof(MmpHeader)) {
+                std::memcpy(&originalHeader, original.data(), sizeof(MmpHeader));
+                below = {&originalHeader, reinterpret_cast<const std::uint8_t*>(original.data()) + sizeof(MmpHeader),
+                         original.size() - sizeof(MmpHeader)};
+            }
+            break;
+        }
+    auto file = std::make_unique<LoadedFile>();
+    std::string error;
+    if (!texture_png::FromPng(png, below.header ? &below : nullptr, &file->bytes, &error)) {
+        game::Warning("textures: %s: %s; not read", where, error);
+        return nullptr;
+    }
+    file->name = name;
+    file->size = static_cast<std::uint32_t>(file->bytes.size());
+    return KeptFile(*this, std::move(file), size);
+}
+
 void* MappedResource::FindFile(std::string_view name, std::uint32_t* size, bool* utf8) {
     const std::string key = LooseKey(name);
-    for (const Source& source : Sources()) {
+    const std::string pngName = PngNameOf(name);
+    const std::vector<Source> sources = Sources();
+    for (std::size_t i = 0; i < sources.size(); ++i) {
+        const Source& source = sources[i];
+        if (!pngName.empty())
+            if (void* data = PngTexture(name, pngName, sources, i, size)) return data;
         if (!source.loose) {
             if (void* data = source.entries->EntryFile(name, size)) return data;
             continue;
@@ -306,8 +371,14 @@ RecordFile MappedResource::FindRecord(std::string_view name) {
 
 bool MappedResource::HasFile(std::string_view name) {
     const std::string key = LooseKey(name);
-    for (const Source& source : Sources())
+    const std::string pngName = PngNameOf(name);
+    const std::string pngKey = LooseKey(pngName);
+    for (const Source& source : Sources()) {
         if (source.loose ? source.loose->byName.contains(key) : source.entries->FindEntry(name) != -1) return true;
+        if (!pngName.empty() &&
+            (source.loose ? source.loose->byName.contains(pngKey) : source.entries->FindEntry(pngName) != -1))
+            return true;
+    }
     return false;
 }
 
