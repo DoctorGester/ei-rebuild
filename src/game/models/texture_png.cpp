@@ -3,12 +3,11 @@
 #include "game/models/texture_png.h"
 
 #include "lib/bytes.h"
+#include "lib/png.h"
 #include "lib/toml.h"
 
 #include "miniz/miniz.h"
 #include "stb/stb_dxt.h"
-#include "stb/stb_image.h"
-#include "stb/stb_image_write.h"
 
 #include <algorithm>
 #include <cstring>
@@ -26,6 +25,20 @@ constexpr int kMostLevels = 16;                 // the renderer takes no more (T
 constexpr MmpFormat Dxt(char digit) {
     return static_cast<MmpFormat>('D' | ('X' << 8) | ('T' << 16) | (static_cast<std::uint32_t>(digit) << 24));
 }
+
+// `work(first, last)` over the rows [0, count), cut into runs of `atLeast` rows or more, one a processor at most, the
+// runs on threads (the calling one among them). Each row depends on its own texels alone, so the bytes are the same.
+template <class Work>
+void InRuns(int count, int atLeast, Work work) {
+    const int threads = std::clamp(count / std::max(atLeast, 1), 1, std::max(1, static_cast<int>(std::thread::hardware_concurrency())));
+    std::vector<std::thread> helpers;
+    for (int t = 1; t < threads; ++t) helpers.emplace_back(work, count * t / threads, count * (t + 1) / threads);
+    work(0, count / threads);
+    for (std::thread& helper : helpers) helper.join();
+}
+
+// Fewer texels than these are not worth a thread of their own.
+constexpr int kTexelsAThread = 256 * 256;
 
 // How a format's texels are stored.
 enum class Storage {
@@ -492,8 +505,8 @@ void EncodeBlock(Storage storage, const std::uint8_t texels[64], std::uint8_t* o
     }
 }
 
-// The level's blocks (a partial block's texels from the level's last row and column). A large level's rows of blocks
-// are shared out to threads: each block depends on its texels alone, so the bytes are the same.
+// The level's blocks (a partial block's texels from the level's last row and column), a large level's rows of blocks
+// on threads.
 std::vector<std::uint8_t> EncodeBlocks(Storage storage, const Image& image) {
     const std::size_t blockBytes = storage == Storage::Dxt1 ? 8 : 16;
     const int across = (image.width + 3) / 4, down = (image.height + 3) / 4;
@@ -509,12 +522,7 @@ std::vector<std::uint8_t> EncodeBlocks(Storage storage, const Image& image) {
                 EncodeBlock(storage, texels, out.data() + (static_cast<std::size_t>(by) * across + bx) * blockBytes);
             }
     };
-    constexpr int kBlocksAThread = 4096;   // 256 x 256 texels: fewer are not worth a thread
-    const int threads = std::clamp(across * down / kBlocksAThread, 1, std::max(1, static_cast<int>(std::thread::hardware_concurrency())));
-    std::vector<std::thread> helpers;
-    for (int t = 1; t < threads; ++t) helpers.emplace_back(rows, down * t / threads, down * (t + 1) / threads);
-    rows(0, down / threads);
-    for (std::thread& helper : helpers) helper.join();
+    InRuns(down, kTexelsAThread / 16 / std::max(across, 1), rows);
     return out;
 }
 
@@ -647,8 +655,6 @@ std::string TextChunk(std::string_view keyword, std::string_view text) {
     return chunk;
 }
 
-void AppendBytes(void* context, void* data, int size) { static_cast<std::string*>(context)->append(static_cast<const char*>(data), static_cast<std::size_t>(size)); }
-
 } // namespace
 
 std::uint32_t Widen(std::uint32_t value, int bits) {
@@ -678,30 +684,33 @@ Image BoxDown(const Image& image, int width, int height, bool cutout) {
     out.width = width;
     out.height = height;
     out.rgba.resize(static_cast<std::size_t>(width) * height * 4);
-    for (int y = 0; y < height; ++y) {
-        const int y0 = std::min(2 * y, image.height - 1), y1 = std::min(2 * y + 1, image.height - 1);
-        for (int x = 0; x < width; ++x) {
-            const int x0 = std::min(2 * x, image.width - 1), x1 = std::min(2 * x + 1, image.width - 1);
-            const std::uint8_t* t[4] = {&image.rgba[(static_cast<std::size_t>(y0) * image.width + x0) * 4],
-                                        &image.rgba[(static_cast<std::size_t>(y0) * image.width + x1) * 4],
-                                        &image.rgba[(static_cast<std::size_t>(y1) * image.width + x0) * 4],
-                                        &image.rgba[(static_cast<std::size_t>(y1) * image.width + x1) * 4]};
-            std::uint8_t* o = &out.rgba[(static_cast<std::size_t>(y) * width + x) * 4];
-            int opaque = 0, sum[3] = {};
-            for (const std::uint8_t* texel : t)
-                if (texel[3] >= 128) {
-                    ++opaque;
-                    for (int c = 0; c < 3; ++c) sum[c] += texel[c];
+    const auto rows = [&](int first, int last) {
+        for (int y = first; y < last; ++y) {
+            const int y0 = std::min(2 * y, image.height - 1), y1 = std::min(2 * y + 1, image.height - 1);
+            for (int x = 0; x < width; ++x) {
+                const int x0 = std::min(2 * x, image.width - 1), x1 = std::min(2 * x + 1, image.width - 1);
+                const std::uint8_t* t[4] = {&image.rgba[(static_cast<std::size_t>(y0) * image.width + x0) * 4],
+                                            &image.rgba[(static_cast<std::size_t>(y0) * image.width + x1) * 4],
+                                            &image.rgba[(static_cast<std::size_t>(y1) * image.width + x0) * 4],
+                                            &image.rgba[(static_cast<std::size_t>(y1) * image.width + x1) * 4]};
+                std::uint8_t* o = &out.rgba[(static_cast<std::size_t>(y) * width + x) * 4];
+                int opaque = 0, sum[3] = {};
+                for (const std::uint8_t* texel : t)
+                    if (texel[3] >= 128) {
+                        ++opaque;
+                        for (int c = 0; c < 3; ++c) sum[c] += texel[c];
+                    }
+                if (cutout && opaque > 0) {
+                    for (int c = 0; c < 3; ++c) o[c] = static_cast<std::uint8_t>((sum[c] + opaque / 2) / opaque);
+                    o[3] = 255;
+                    continue;
                 }
-            if (cutout && opaque > 0) {
-                for (int c = 0; c < 3; ++c) o[c] = static_cast<std::uint8_t>((sum[c] + opaque / 2) / opaque);
-                o[3] = 255;
-                continue;
+                for (int c = 0; c < 4; ++c) o[c] = static_cast<std::uint8_t>((t[0][c] + t[1][c] + t[2][c] + t[3][c] + 2) / 4);
+                if (cutout) o[3] = 0;
             }
-            for (int c = 0; c < 4; ++c) o[c] = static_cast<std::uint8_t>((t[0][c] + t[1][c] + t[2][c] + t[3][c] + 2) / 4);
-            if (cutout) o[3] = 0;
         }
-    }
+    };
+    InRuns(height, kTexelsAThread / std::max(width, 1), rows);
     return out;
 }
 
@@ -779,10 +788,8 @@ std::string ToPng(const MmpView& file, std::string* error) {
         rgb.reserve(image.rgba.size() / 4 * 3);
         for (std::size_t i = 0; i < image.rgba.size(); i += 4) rgb.insert(rgb.end(), &image.rgba[i], &image.rgba[i + 3]);
     }
-    std::string png;
-    if (!stbi_write_png_to_func(AppendBytes, &png, image.width, image.height, components, opaque ? rgb.data() : image.rgba.data(),
-                                image.width * components) ||
-        png.size() < 33) {
+    std::string png = png::Write(image.width, image.height, components, opaque ? std::span<const std::uint8_t>(rgb) : image.rgba);
+    if (png.size() < 33) {
         *error = "the PNG was not written";
         return {};
     }
@@ -803,18 +810,12 @@ bool FromPng(std::string_view png, const MmpView* below, std::vector<std::uint8_
     }
     if (!Consistent(s, error)) return false;
 
-    int width = 0, height = 0, components = 0;
-    stbi_uc* pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(png.data()), static_cast<int>(png.size()),
-                                            &width, &height, &components, 4);
-    if (!pixels) {
-        *error = std::string("not a PNG stb_image reads: ") + stbi_failure_reason();
+    Image level;
+    if (std::string reason; !png::ReadRgba(png, &level.width, &level.height, &level.rgba, &reason)) {
+        *error = "not a PNG that reads: " + reason;
         return false;
     }
-    Image level;
-    level.width = width;
-    level.height = height;
-    level.rgba.assign(pixels, pixels + static_cast<std::size_t>(width) * height * 4);
-    stbi_image_free(pixels);
+    const int width = level.width, height = level.height;
     if (s.format->premultiplied)
         for (std::size_t i = 0; i < level.rgba.size(); i += 4)
             for (int c = 0; c < 3; ++c) level.rgba[i + c] = Premultiply(level.rgba[i + c], level.rgba[i + 3]);
@@ -822,12 +823,17 @@ bool FromPng(std::string_view png, const MmpView* below, std::vector<std::uint8_
     const std::uint32_t chain = FullChain(width, height);
     const std::uint32_t levels = s.levels == 0 ? chain : std::min(s.levels, chain);
     MmpHeader h = MakeHeader(*s.format, *s.channels, width, height, levels, static_cast<std::uint32_t>(s.extra.size()));
-    std::vector<std::uint8_t> body(s.extra);
+    std::vector<std::uint8_t>& file = *mmp;
+    file.assign(sizeof(MmpHeader), 0);
+    file.insert(file.end(), s.extra.begin(), s.extra.end());
     if (s.format->storage == Storage::Pnt3) {
         const std::vector<std::uint8_t> packed = EncodePnt3(level);
         h.mipCount = static_cast<std::uint32_t>(packed.size());   // PNT3's field holds the packed bytes
-        body.insert(body.end(), packed.begin(), packed.end());
+        file.insert(file.end(), packed.begin(), packed.end());
     } else {
+        std::size_t fileBytes = file.size();
+        for (unsigned m = 0; m < levels; ++m) fileBytes += LevelBytes(h, m);
+        file.reserve(fileBytes);
         // One bit of alpha (DXT1's transparent texels, 1555): a texel below is opaque when any of its four is, of their
         // colour (the shipped files' levels so).
         const bool cutout = s.format->storage == Storage::Dxt1 || s.channels->alpha == 0x8000;
@@ -841,12 +847,10 @@ bool FromPng(std::string_view png, const MmpView* below, std::vector<std::uint8_
                 bytes = EncodeBlocks(s.format->storage, level);
             }
             bytes.resize(LevelBytes(h, m));   // as the file has the level (a small DXT level: part of its block)
-            body.insert(body.end(), bytes.begin(), bytes.end());
+            file.insert(file.end(), bytes.begin(), bytes.end());
         }
     }
-    mmp->resize(sizeof(MmpHeader));
-    std::memcpy(mmp->data(), &h, sizeof(MmpHeader));
-    mmp->insert(mmp->end(), body.begin(), body.end());
+    std::memcpy(file.data(), &h, sizeof(MmpHeader));
     return true;
 }
 

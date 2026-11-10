@@ -40,7 +40,7 @@ bool ReadLevel(const MmpView& file, unsigned level, Image* out);
 // texel is opaque, with the "ei-texture" chunk. Empty with `*error` set when not Supported.
 std::string ToPng(const MmpView& file, std::string* error);
 // The .mmp file made from `png`: the settings from its chunk, else from `below` (the .mmp it stands for; null when
-// none), else a new texture's. False with `*error` set when stb_image cannot decode the PNG or its settings name a
+// none), else a new texture's. False with `*error` set when png::ReadRgba cannot decode the PNG or its settings name a
 // format this file does not make.
 bool FromPng(std::string_view png, const MmpView* below, std::vector<std::uint8_t>* mmp, std::string* error);
 

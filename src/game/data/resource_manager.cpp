@@ -1,6 +1,8 @@
 // ResourceManager. See resource_manager.h.
 #include "game/data/resource_manager.h"
 
+#include <cstddef>
+#include <string>
 #include <vector>
 
 namespace {
@@ -55,6 +57,18 @@ bool ResourceManager::HasFile(std::string_view name) {
     for (ArchiveEntry& e : archives)
         if (e.resource->HasFile(name)) return true;
     return false;
+}
+
+void ResourceManager::MakePngs(std::span<const std::string> names) {
+    std::vector<std::vector<std::string>> inArchive(archives.size());
+    for (const std::string& name : names)
+        for (std::size_t i = 0; i < archives.size(); ++i)
+            if (archives[i].resource->HasFile(name)) {
+                inArchive[i].push_back(name);
+                break;
+            }
+    for (std::size_t i = 0; i < archives.size(); ++i)
+        if (!inArchive[i].empty()) archives[i].resource->MakePngs(inArchive[i]);
 }
 
 RecordFile ResourceManager::FindRecord(std::string_view name) {

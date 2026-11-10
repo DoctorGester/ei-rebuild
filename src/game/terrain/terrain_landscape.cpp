@@ -304,16 +304,21 @@ void Terrain::SetWaves(const Vector3& direction, float strength) {
 }
 
 bool Terrain::SetupPages(int count) {
+    TextureManager& textures = *g_clientWorld.textureManager;
+    const auto pageName = [&](int i) {
+        return i < count ? std::format("{}{:03}", mapName, i) : std::format("{}L{:02}", mapName, i - count);
+    };
+    // The pages made from PNGs (a converted install's) are made together first: one at a time they cost most of the
+    // load (docs/notes/mods.md, "Textures as PNG", "Loading cost").
+    std::vector<std::string> files;
+    for (int i = 0; i < count + kExtraPages; ++i)
+        if (!textures.IsLoaded(kPageTexture, pageName(i))) files.push_back(pageName(i) + ".mmp");
+    textures.MakePngs(files);
     for (int i = 0; i < count + kExtraPages; ++i) {
-        std::string name;
-        if (i < count) {
-            name = std::format("{}{:03}", mapName, i);
-        } else {
-            name = std::format("{}L{:02}", mapName, i - count);
-            if (!g_clientWorld.textureManager->HasFile((name + ".mmp"))) return true;
-        }
-        Texture* texture = pageTextures.emplace_back(g_clientWorld.textureManager->FindOrCreate(kPageTexture, name));
-        if (!g_clientWorld.textureManager->LoadTexture(texture)) return false;
+        const std::string name = pageName(i);
+        if (i >= count && !textures.HasFile(name + ".mmp")) return true;
+        Texture* texture = pageTextures.emplace_back(textures.FindOrCreate(kPageTexture, name));
+        if (!textures.LoadTexture(texture)) return false;
     }
     return true;
 }

@@ -1,7 +1,10 @@
 id = "MF11"
-title = "Converted installs load as fast as the originals: profile and speed up PNG / glTF loading"
-group = "port"
-size = 1
+title = "Converted installs load about as fast as the originals: profile a converted zone load, faster PNG/inflate, smaller .glb extras"
+group = "mods"
+size = 2
 model = "opus"
-note = "MF4/MF6/MF7: on converted Rebirth, mod_lost_in_astral_cz_ingos takes 45 s (25 s unconverted) and times out at 60 s on a busy machine; PNG decode is the known cost, the .glb files are about twice the originals (every rotation stored twice: channel and extras.ei). Profile a converted LIA zone load, then speed it up (a faster PNG/inflate path, e.g. a vendored source library such as libdeflate or wuffs, user OK'd source downloads 2026-11-09; leave rotations that agree with the channels out of extras). Goal: converted load within ~20% of unconverted; every converted golden the same."
+depends = ["MF7"]
+note = "Converted Rebirth's mod_lost_in_astral_cz_ingos takes ~45 s vs 25 s unconverted. Profile one converted LIA zone load, fix the biggest costs (PNG decode, double decodes, .glb rotations stored twice). Goal: within ~20% of unconverted, every golden the same on the normal and converted suites."
 order = 1320
+status = "review"
+started = "2026-11-10"
