@@ -4,5 +4,6 @@ group = "lua"
 depends = ["L1"]
 note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). Lua 5.3 and Eris (fnuecke/eris) vendored unmodified, pinned. Bindings generated from the keyword table: the same CalcFloat / CalcObject / CalcGroup / command handlers by id; objects and groups as userdata over ScriptObjectRef / ScriptGroup (counts, deleted-object dropping, address order); floats kept single precision, NaN payloads checked; readable Lua names for every keyword. Windows, Linux, macOS."
 order = 638
-status = "review"
+status = "done"
 started = "2026-11-10"
+done = "2026-11-10"
