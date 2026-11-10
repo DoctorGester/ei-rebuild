@@ -55,6 +55,9 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert_models.h`, `.cpp` | ei-convert's models: an archive's figure files grouped into figures, each as a .glb, its round trip compared |
 | `tests/unit/figure_gltf.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_gltf_model.txt` | a mod's glTF hero (no extras, 1.5 times as large) seen in a new game |
+| `docs/modding.md` | the modder's guide (MF10): keep it in step with the loaders when a format changes |
+| `examples/example_mod/`, `examples/example_mod_additions/`, `tools/make_example_mod.py` | the guide's example mod: hand-written TOML, and zone 1's ground PNGs (recoloured) and zone1.mob.toml (a pig appended) made from the install by ei-convert |
+| `tests/scenarios/mod_example.txt` | the example mod played: its text, weapons, pig, red ground (`hues world 0.2 1 red`) and reads |
 | `src/game/models/figure_gltf_animation.cpp`, `figure_gltf_glb.h` | a set's animations as glTF animations and back ("Animations as glTF"); the pieces the two files share (the .glb's writer, the reader's accessors) |
 | `tests/scenarios/mod_gltf_animation.txt` | a mod's glTF hero whose idle is twice as slow, played in a new game |
 
@@ -633,6 +636,10 @@ id = 12
 - Strings are UTF-8 both ways (the chunk reader converts the .mob's 1251); floats the shortest text that reads back.
   A record of an unknown kind, an unknown key or a value its field does not take is logged ("warning: map objects:
   <file> line n: ...") and left out.
+- `parent_id` is the object's class (`MapObjectType`: 50-52 units, 53 trees, 54 buildings, 55 stones, 56 other objects,
+  58 torches, 59 traps, 60 levers), the factory's type in `WorldServer::CreateObject`. A record without it (0) or with
+  one its kind's class cannot make crashes the zone load there (no object made, the null used; MF10's hand-written pig
+  without it, 2026-11-10; a shipped .mob always has it). MF10a: log and skip such a record.
 - A record id the file repeats: the later record takes the earlier's place in `byId` (the original leaked the earlier
   one); the TOML writes the later record at its own place. ei-convert compares the walks, so a file where that moved
   the order would fail its check (Lost in Astral's files repeat two ids; their walks hold).
