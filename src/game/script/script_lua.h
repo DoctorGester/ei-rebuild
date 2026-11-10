@@ -1,0 +1,90 @@
+#pragma once
+
+// The mission scripts' Lua runtime (docs/notes/lua-scripting.md, "Bindings"): a Lua 5.3 state (third_party/eris) with
+// every command and function of the keyword table bound under a readable Lua name, each calling the same CalcFloat /
+// CalcObject / CalcGroup / RunCommand code by id; objects and groups as userdata over ScriptObjectRef / ScriptGroup;
+// the state persisted with Eris. Nothing in the game runs it yet (no scheduler, nothing in the saves).
+
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "game/script/script.h"
+
+struct lua_State;
+
+namespace scriptlua {
+
+struct ObjectValue;
+struct GroupValue;
+
+// The Lua name of a keyword of the table (KeywordTable()'s name, as written there); null for a punctuation or section
+// keyword. The rule: docs/notes/lua-scripting.md, "Bindings".
+const char* LuaName(std::string_view keyword);
+
+// A keyword's binding: its id, its name in the table and in Lua.
+struct BindingName {
+    ScriptFunction id{};
+    const char* keyword = nullptr;
+    const char* lua = nullptr;
+};
+// Every keyword that gets a binding, in table order (276).
+std::vector<BindingName> BindingNames();
+
+// An object as a Lua value: nil for none.
+void PushObject(lua_State* L, MapObject* object);
+// The object of the value at `index` (nil: a null reference that stays null); a Lua error for anything else.
+ScriptObjectRef* CheckObject(lua_State* L, int index);
+// A copy of the group as a new Lua value.
+void PushGroup(lua_State* L, const ScriptGroup& group);
+// The group of the value at `index`; a Lua error for anything else.
+ScriptGroup* CheckGroup(lua_State* L, int index);
+
+} // namespace scriptlua
+
+class ScriptLua {
+public:
+    // The bindings run against `script` (its temporaries, effects, quest builder; RunCommand's script).
+    explicit ScriptLua(Script* script);
+    ~ScriptLua();
+    ScriptLua(const ScriptLua&) = delete;
+    ScriptLua& operator=(const ScriptLua&) = delete;
+
+    // The runtime of a state or any of its threads.
+    static ScriptLua* Of(lua_State* L);
+    lua_State* State() const { return state; }
+
+    // The run the command bindings run their commands in (ScriptRun::RunCommand: Sleep counts its ticks, KillScript
+    // sets its kill flag): `currentRun` while Continue resumes one, else `chunkRun` (no kill flag, as the
+    // WorldScript's).
+    ScriptRun* Run() { return currentRun ? currentRun : &chunkRun; }
+
+    // Lua text run in the globals; false with the message in *error.
+    bool RunChunk(std::string_view text, const char* name, std::string* error);
+    // ScriptRun::Execute's step for a run on a Lua thread: the tick counted (run->position.ticks), the thread resumed
+    // (with `arguments` values from its stack on the first resume) with `run` as the current run. True while it
+    // waits (it yielded); false when it returned (its results on its stack) or failed (the message in *error).
+    bool Continue(lua_State* thread, ScriptRun* run, int arguments, std::string* error);
+
+    // Every object and group value Lua holds drops deleted objects (what Script::PurgeDeletedObjects and the tick do
+    // to the script's variables).
+    void RemoveDeletedObjects();
+
+    // Eris: the value on top of the stack persisted into *data (popped), or the value of `data` pushed. The
+    // permanents are the globals table and every function in it and in the libraries' tables under its name, so the
+    // globals themselves are not in the data. False with the message in *error (nothing pushed).
+    bool Persist(std::string* data, std::string* error);
+    bool Unpersist(std::string_view data, std::string* error);
+
+    Script* script = nullptr;
+    ScriptRun* currentRun = nullptr;
+    int bindingCount = 0;               // the keywords bound (276)
+    ScriptObjectRef noObject;           // the argument a nil object passes; stays null
+    // The live object and group values (their userdata link themselves in; RemoveDeletedObjects walks them).
+    scriptlua::ObjectValue* objects = nullptr;
+    scriptlua::GroupValue* groups = nullptr;
+
+private:
+    lua_State* state = nullptr;
+    ScriptRun chunkRun;
+};
