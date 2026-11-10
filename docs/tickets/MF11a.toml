@@ -1,0 +1,7 @@
+id = "MF11a"
+title = "One PNG decoder: map folders on Wuffs, stb_image removed"
+group = "port"
+size = 1
+model = "sonnet"
+note = "User 2026-11-10: drop stb_image entirely. src/game/map/map_folder.cpp reads map-folder PNG layers (8- and 16-bit heights) with stb_image: move it to src/lib/png (Wuffs). The unit checks (tests/unit/texture_png.cpp, map_folder.cpp) compared Wuffs with stb_image: check against our own writer's round trip and fixed expected pixels instead (the user: before Wuffs nothing was compared with a second decoder). Remove stb_image from third_party/stb, stb_image_impl.c and CMake (stb_dxt stays: the DXT encoder); notices list updated. Every golden the same, normal and converted."
+order = 1322
