@@ -863,16 +863,16 @@ std::optional<MapData> Assemble(const std::vector<Place>& places, std::string_vi
     // Heights from above their normals bring their own normals: a layer's rank is its place's, a place's file of the
     // folder before its original.
     auto rankOf = [&](Layer layer) { return used(layer) ? 2 * at[layer] : hasOriginal ? 2 * original + 1 : kNowhere; };
-    int normalsRank[2] = {rankOf(Layer::Normals), rankOf(Layer::WaterNormals)};
+    std::size_t normalsRank[2] = {rankOf(Layer::Normals), rankOf(Layer::WaterNormals)};
     for (const bool water : {false, true}) {
-        const int heightsRank = rankOf(water ? Layer::Water : Layer::Heights);
+        const std::size_t heightsRank = rankOf(water ? Layer::Water : Layer::Heights);
         if (normalsRank[water] <= heightsRank) continue;
         WorkOutNormals(map, water);
         normalsRank[water] = heightsRank;
     }
     // Seams from below a layer are differences from the values it replaced: left out of it (painted heights meet,
     // worked-out normals are the same in every sector).
-    const int seamsRank = rankOf(Layer::Seams);
+    const std::size_t seamsRank = rankOf(Layer::Seams);
     for (Seam& seam : map.seams) {
         if (seamsRank > rankOf(seam.water ? Layer::Water : Layer::Heights)) seam.height = 0;
         if (seamsRank > rankOf(Layer::Offsets)) seam.offsetX = seam.offsetY = 0;
