@@ -25,7 +25,9 @@
 namespace toml {
 class Value;
 }
-
+namespace map_folder {
+struct MapData;
+}
 
 #pragma pack(push, 1)
 struct ResHeader {
@@ -155,6 +157,12 @@ public:
     // The archive's folder (OpenResource) in each layer of the path map over the game folder, top first, and its own.
     std::vector<LooseFiles> looseOver;
     LooseFiles looseOwn;
+    // A map archive's (.mpr) folder in full (empty for another archive), and the map made from the folder's files in
+    // its places (docs/notes/mods.md, "Maps as folders"), the first time its map file, a sector or the listing is
+    // asked for: null when no place has one that counts (the files are then read as they are).
+    std::string mapFolder;
+    std::shared_ptr<const map_folder::MapData> folderMap;
+    bool folderMapMade = false;
 
 protected:
     // The archive's entry `name` (shared when loaded already), or null.
@@ -180,6 +188,11 @@ private:
     // no such PNG or it makes none (logged). Docs/notes/mods.md, "Textures as PNG".
     void* PngTexture(std::string_view name, const std::string& pngName, const std::vector<Source>& sources, std::size_t at,
                      std::uint32_t* size);
+    // The map made from the folder's files (folderMap), made at the first call; null for another archive or none.
+    const map_folder::MapData* FolderMap();
+    // The map file or sector `name` of the map made from the folder's files (shared when made already); null when the
+    // name is neither or there is no such map.
+    void* FolderMapFile(std::string_view name, std::uint32_t* size);
     // GetFile's search; with `utf8` (FindText) a folder's texts.toml too.
     void* Find(std::string_view name, std::uint32_t* size, bool* utf8);
     void* FindFile(std::string_view name, std::uint32_t* size, bool* utf8);

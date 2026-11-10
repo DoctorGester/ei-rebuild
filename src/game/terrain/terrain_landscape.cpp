@@ -55,12 +55,6 @@ constexpr float kWaveSpeedScale = -0.14959967f;      // that * -1/3
 
 constexpr int kPageTexture = static_cast<int>(TextureKind::TerrainPage);     // texture kind of the terrain pages
 
-// The map file's animated texture entries.
-struct MapAnimatedTexture {
-    std::uint16_t texture = 0;
-    std::uint16_t frames = 0;
-};
-
 constexpr int kExtraTextures = kExtraPages * kExtraPageTextures;   // after the map's own
 constexpr int kExtraClass = 0xF;
 constexpr float kMarginPixels = 8.0f;

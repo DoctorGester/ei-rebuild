@@ -17,6 +17,7 @@ int RunPathLayersChecks();     // path_layers.cpp: the mod's path map (sets the 
 int RunWeatherFieldChecks();   // weather_field.cpp: the rain's and the snow's particles move smoothly
 int RunTomlChecks();           // toml.cpp: lib/toml.h's writer read back through tomlc17
 int RunTexturePngChecks();     // texture_png.cpp: textures as PNG and back
+int RunMapFolderChecks();      // map_folder.cpp: maps as folders and back, the PNG writer
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // what was printed survives a crashing check
@@ -24,7 +25,7 @@ int main() {
                          RunMathsChecks() + RunSavePictureChecks() + RunAudioMixChecks() + RunDisplaySizesChecks() +
                          RunBoundedTextChecks() + RunTaggedStreamChecks() + RunGameBufferChecks() +
                          RunPlatformTextChecks() + RunPathLayersChecks() + RunWeatherFieldChecks() + RunTomlChecks() +
-                         RunTexturePngChecks();
+                         RunTexturePngChecks() + RunMapFolderChecks();
     std::printf("ei_unit_check: %d problems\n", failures);
     return failures ? 1 : 0;
 }
