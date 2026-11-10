@@ -1,6 +1,7 @@
-# The example mod of docs/modding.md (examples/example_mod), made by tools/make_example_mod.py into the run's
-# harness_saves\example_mod, which "mod" makes the settings' Mod (either install): only common files, its TOML our own,
-# its PNGs, zone1.mob.toml and zone1.lua made at run time from the vanilla install's files by the build's ei-convert.
+# The example mod of docs/modding.md (examples/example_mod), made by the build's ei-convert --example-mod (the command
+# players run; tools/make_example_mod.py calls it) into the run's harness_saves\example_mod, which "mod" makes the
+# settings' Mod (either install): only common files, its TOML our own, its PNGs, zone1.mob.toml and zone1.lua made at
+# run time from the vanilla install's files.
 # Checked:
 # - texts.toml: the in-game menu's "quit" button is the mod's text (a string the mod leaves stays the game's);
 # - items.idb.toml: in a new game the party is given the game's stone axe and the mod's new example axe, made from the

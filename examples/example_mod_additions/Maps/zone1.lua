@@ -1,4 +1,4 @@
--- What tools/make_example_mod.py adds to zone 1's script as ei-convert writes it: the mod's Maps\zone1.lua is the whole
+-- What ei-convert --example-mod adds to zone 1's script as ei-convert writes it: the mod's Maps\zone1.lua is the whole
 -- of the zone's script (docs/modding.md, "Scripts"). This file goes in before the WorldScript, whose first line then
 -- calls ExampleModStart.
 

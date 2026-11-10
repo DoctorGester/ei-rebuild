@@ -105,9 +105,11 @@ The build also runs the source checks (`tools/check_*.py`, the generated files' 
 
 Linux and macOS build from the same CMakeLists.txt ([the Linux notes](docs/notes/linux.md),
 [the macOS notes](docs/notes/macos.md): SDL3, POSIX, SDL_GPU's Vulkan or Metal driver). The GitHub releases hold
-all three: `ei-rebuild.exe`, the Linux archive and a universal macOS app, which is not notarised: clear its quarantine
-flag once (`xattr -dr com.apple.quarantine ei-rebuild.app`, or Control-click > Open), then open it inside the game
-folder or choose the folder when it asks (the zip's README.txt).
+all three: `ei-rebuild.exe` (alone, or in a zip), the Linux archive and a universal macOS app, which is not notarised:
+clear its quarantine flag once (`xattr -dr com.apple.quarantine ei-rebuild.app ei-convert`, or Control-click > Open),
+then open it inside the game folder or choose the folder when it asks (the zip's README.txt). Each archive also holds
+`ei-convert` and the `examples` folder: `ei-convert --example-mod "<game folder>"` makes the example mod of
+[the modding guide](docs/modding.md) from your own install.
 
 ## Play
 

@@ -361,10 +361,22 @@ target_link_libraries(ei-rebuild PRIVATE ei_game)
 add_executable(ei-convert tools/convert/convert.cpp tools/convert/convert_databases.cpp tools/convert/convert_maps.cpp
                tools/convert/convert_textures.cpp tools/convert/convert_mobs.cpp
                tools/convert/convert_models.cpp tools/convert/convert_scripts.cpp tools/convert/lua_check.cpp
-               tools/convert/lua_both.cpp tools/convert/lua_globals.cpp
+               tools/convert/lua_both.cpp tools/convert/lua_globals.cpp tools/convert/example_mod.cpp
                ${EI_GAME_CALLS} ${EI_SDL_CALLS})
 target_include_directories(ei-convert PRIVATE src third_party)
 target_link_libraries(ei-convert PRIVATE ei_game SDL3::SDL3-static)
+# The repository's examples folder copied beside ei-convert, as a release package has it: --example-mod reads its own
+# files from there (tools/convert/example_mod.h).
+file(GLOB_RECURSE EI_EXAMPLES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/examples/*)
+set(EI_EXAMPLES_COPIED)
+foreach(file ${EI_EXAMPLES})
+    file(RELATIVE_PATH relative ${CMAKE_SOURCE_DIR} ${file})
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/${relative} COMMAND ${CMAKE_COMMAND} -E copy ${file} ${CMAKE_BINARY_DIR}/${relative}
+                       DEPENDS ${file} VERBATIM)
+    list(APPEND EI_EXAMPLES_COPIED ${CMAKE_BINARY_DIR}/${relative})
+endforeach()
+add_custom_target(ei_examples ALL DEPENDS ${EI_EXAMPLES_COPIED})
+add_dependencies(ei-convert ei_examples)
 # The product's notices (third_party_notices.txt beside the executables): the licences of the
 # third-party code and fonts built in, the fonts' SIL Open Font License among them.
 set(EI_NOTICES)

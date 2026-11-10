@@ -4,6 +4,8 @@
 //        ei-convert --check <install or archive>...        only the round trips
 //        ei-convert --scripts <install>... [options]       the script survey and parse tree check (convert_scripts.cpp)
 //        ei-convert --lua-check                             the scripts' Lua bindings on a small world (lua_check.cpp)
+//        ei-convert --example-mod <game folder> [<mods folder>] the example mod made from the install (example_mod.h),
+//                                                           into <game folder>\starter\Mods by default
 // An install is walked for its archives (Res\<name>.res, or the folder of an unpacked one under a Res folder) and its
 // loose registries (*.reg; not those of Maps\, whose quest archives are not converted) and camera paths (*.cam). Of an
 // archive: its registries, materials (.mat), animation databases (.adb), acks.db, prints.db and the game databases
@@ -40,6 +42,7 @@
 #include "lua_both.h"
 #include "lua_check.h"
 #include "convert_textures.h"
+#include "example_mod.h"
 
 #include <bit>
 #include <cstdarg>
@@ -662,6 +665,10 @@ int main(int argc, char** argv) {
     std::vector<fs::path> sources;
     if (argc >= 2 && std::strcmp(argv[1], "--scripts") == 0) return convert_scripts::Main({argv + 2, argv + argc});
     if (argc == 2 && std::strcmp(argv[1], "--lua-check") == 0) return lua_check::Main();
+    if ((argc == 3 || argc == 4) && std::strcmp(argv[1], "--example-mod") == 0) {
+        const fs::path install = fs::absolute(argv[2]);
+        return example_mod::Write(install, argc == 4 ? fs::absolute(argv[3]) : install / "starter" / "Mods");
+    }
     if (argc >= 3 && std::strcmp(argv[1], "--check") == 0) {
         for (int i = 2; i < argc; ++i) sources.push_back(fs::absolute(argv[i]));
     } else if (argc == 3) {
