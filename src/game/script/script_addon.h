@@ -60,8 +60,5 @@ void SignatureStep(ScriptCall* cmd, std::string_view signature, std::size_t* let
 // ScriptCall::CalcString (which the patched CalcParameters calls for a string argument):
 // prepares the arguments, then Rebirth's string function (none: the game ends).
 void CalcString(ScriptCall* cmd, Script* script, ScriptVars* vars, std::string* result);
-// The string function from the prepared arguments: CalcString's work, which a lockstep shadow (script_lua_shadow.h)
-// records around.
-void EvaluateString(ScriptCall* cmd, Script* script, std::string* result);
 
 } // namespace scriptaddon

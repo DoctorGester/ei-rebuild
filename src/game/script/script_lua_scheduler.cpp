@@ -177,13 +177,6 @@ std::vector<const void*> ScriptLuaScheduler::InstanceDefinitions() const {
     return definitions;
 }
 
-std::vector<ScriptRunPosition> ScriptLuaScheduler::RunPositions() const {
-    std::vector<ScriptRunPosition> positions;
-    positions.reserve(runs.size());
-    for (const Run& run : runs) positions.push_back(run.run.position);
-    return positions;
-}
-
 // The persisted table: { globals = ..., types = ..., names = (SaveNames), texts = n, instances = { { values, count, killed }... }, runs = { {
 // thread (false when it ended), ticks, sleepStart, arguments, kill (the instance index, -1 for none), values (a rule's
 // run), rule }... }, worlds = { WorldScript... } }.

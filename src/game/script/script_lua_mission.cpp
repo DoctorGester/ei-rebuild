@@ -6,7 +6,6 @@
 
 #include "game/script/script_ir.h"
 #include "game/script/script_lua_number.h"
-#include "game/script/script_lua_shadow.h"
 
 #include "eris/lauxlib.h"
 #include "eris/lua.h"
@@ -28,7 +27,6 @@ bool Script::LoadLua(std::string* text, std::string_view luaText, const std::str
             errorText = "the script so far did not go on in Lua: " + error;
             return false;
         }
-        if (shadow) shadow->RunsOnLua(this);
         DropInstancesAndRuns();
         globals.ResetValues();   // the declarations stay: the later texts' names
         runner = std::move(made);

@@ -33,7 +33,6 @@ class EffectSound;
 class EffectLightning;
 class ScriptLua;
 class ScriptLuaScheduler;
-class ScriptShadow;
 
 enum class ScriptType : int {
     None = 0,
@@ -434,12 +433,6 @@ public:
     // *result is a new temporary of `script`.
     void CalcObject(Script* script, ScriptVars* vars, ScriptObjectRef** result);
     void CalcGroup(Script* script, ScriptVars* vars, ScriptGroup** result);
-    // The function computed from the prepared arguments: the Calc* functions' work, which a lockstep shadow
-    // (script_lua_shadow.h) records around.
-    float EvaluateFloat(Script* script, ScriptVars* vars);
-    void EvaluateObject(Script* script, ScriptObjectRef** result);
-    void EvaluateGroup(Script* script, ScriptGroup** result);
-
     void PrepareArguments(Script* script, ScriptVars* vars);
     // The nested call that computes a float: the condition of Every / Any / Sum / ForIf. Null when there is none
     // (the condition is then the constant in float 0).
@@ -581,8 +574,6 @@ struct ScriptRun {
     // One command of the run, its arguments already prepared (Execute's step; the Lua bindings call it with a call of
     // their own): false when the command waits (the run stays on it).
     bool RunCommand(Script* script, ScriptCall* cmd);
-    // RunCommand's work, which a lockstep shadow (script_lua_shadow.h) records around.
-    bool Perform(Script* script, ScriptCall* cmd);
 
     ScriptRunPosition position;
     bool* killFlag = nullptr;       // the script instance's killed flag, null for the WorldScript
@@ -653,8 +644,7 @@ public:
 
     // Negative ids in the WorldScript blocks, others in the command blocks; null when absent.
     ScriptBlock* FindBlock(int id) const;
-    // Reads what SaveState wrote; the areas only from stream version 0x57 on. A lockstep shadow then resumes its Lua
-    // from the loaded state (script_lua_shadow.h).
+    // Reads what SaveState wrote; the areas only from stream version 0x57 on.
     void LoadState(ByteStream* stream);
     // Point lights, particle / FX / lightning sources, two counters, the command blocks and WorldScript
     // blocks, the definitions, the globals, the instances, the runs, the loaded flag and file counter, the
@@ -771,9 +761,9 @@ public:
     // Frees everything loaded (the point light slots stay, zeroed); error text "Unknown error", the two counters
     // -2.
     void Reset();
-    // After every removal of a world object (`removed`, for the lockstep shadow): deleted objects dropped from every
-    // variable set and from the values of `lua`, then the temporaries freed.
-    void PurgeDeletedObjects(const MapObject* removed = nullptr);
+    // After every removal of a world object: deleted objects dropped from every variable set and from the values of
+    // `lua`, then the temporaries freed.
+    void PurgeDeletedObjects();
     void DropInstancesAndRuns();
     // EnterZone: instances, runs and effects dropped (ResetEffects), global values reset, each WorldScript block run
     // again.
@@ -807,9 +797,6 @@ public:
     // The Lua runtime bound to this script (the last one made on it), whose values PurgeDeletedObjects purges too,
     // and which Load hands every text to when it takes them (its loadText).
     ScriptLua* lua = nullptr;
-    // The lockstep shadow running this script's converted Lua beside it (script_lua_shadow.h; EI_LUA_BOTH), or the
-    // shadow whose Lua runs on this script; null in the game.
-    ScriptShadow* shadow = nullptr;
     // The Lua scheduler this script runs on in place of the old executor (LoadLua, a save's Lua state), or null: Tick,
     // ResetZone and the saves go to it. Reset drops it (after the tick when the tick runs: `retired`).
     std::unique_ptr<ScriptLuaScheduler> runner;

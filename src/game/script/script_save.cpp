@@ -4,7 +4,6 @@
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
 #include "game/script/script_lua_scheduler.h"
-#include "game/script/script_lua_shadow.h"
 #include "game/console/console.h"
 
 #include <cstdint>
@@ -130,7 +129,6 @@ void WriteLuaState(ByteStream* stream, Script* script) {
 } // namespace
 
 void Script::SaveState(ByteStream* stream) {
-    if (shadow) shadow->Saving(this);
     WriteList(stream, pointLights);
     WriteList(stream, particles);
     WriteList(stream, fxSources);

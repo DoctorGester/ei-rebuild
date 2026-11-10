@@ -6,7 +6,6 @@
 #include "game/core/core_streams.h"
 #include "game/script/script.h"
 #include "game/script/script_lua_scheduler.h"
-#include "game/script/script_lua_shadow.h"
 #include "game/console/console.h"
 #include "game/effects/world_effect.h"
 
@@ -236,8 +235,6 @@ void Script::LoadState(ByteStream* stream) {
             console::EndLine(console::g_consoleOut << "Script error: the save's Lua state did not load: " << error);
             runner = std::make_unique<ScriptLuaScheduler>(this);
         }
-        if (shadow) shadow->RunsOnLua(this);
         return;
     }
-    if (shadow) shadow->StateLoaded(this);
 }

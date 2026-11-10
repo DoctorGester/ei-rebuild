@@ -7,7 +7,6 @@
 // with id 300 + the record's index. A map by id finds the record before the game's own switch runs.
 #include "game/script/script_addon.h"
 #include "game/script/script_addon_handlers.h"
-#include "game/script/script_lua_shadow.h"
 
 #include "game/core/engine_object.h"
 #include "game/combat/combat.h"
@@ -256,11 +255,6 @@ void SignatureStep(ScriptCall* cmd, std::string_view signature, std::size_t* let
 
 void CalcString(ScriptCall* cmd, Script* script, ScriptVars* vars, std::string* result) {
     cmd->PrepareArguments(script, vars);
-    if (script->shadow) script->shadow->String(cmd, script, result);
-    else EvaluateString(cmd, script, result);
-}
-
-void EvaluateString(ScriptCall* cmd, Script* script, std::string* result) {
     Call call{cmd, script, result, nullptr, nullptr};
     if (Dispatch(&call)) return;
     game::FatalExit("Function does not return string at ScriptCall::CalcFunction");

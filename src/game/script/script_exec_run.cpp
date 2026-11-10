@@ -4,7 +4,6 @@
 #include "game/script/script.h"
 #include "game/script/script_lua.h"
 #include "game/script/script_lua_scheduler.h"
-#include "game/script/script_lua_shadow.h"
 
 #include "game/app/singletons.h"
 #include "game/core/base_manager.h"
@@ -154,7 +153,6 @@ void Script::Tick() {
         retired.reset();
         return;
     }
-    if (shadow) shadow->BeginTick(this);
 
     // Waiting runs: continue each; a run that had already ended is removed.
     for (auto run = runs.begin(); run != runs.end();) {
@@ -185,7 +183,6 @@ void Script::Tick() {
     globals.RemoveDeletedObjects();
 
     TickEffects();
-    if (shadow) shadow->EndTick(this);
 }
 
 void Script::TickEffects() {
@@ -203,12 +200,11 @@ void Script::TickEffects() {
 // Called after every removal of a world object: the runs', the instances' and the global
 // variables drop deleted objects (object variables released, group members removed), then the
 // evaluation temporaries are freed.
-void Script::PurgeDeletedObjects(const MapObject* removed) {
+void Script::PurgeDeletedObjects() {
     for (ScriptRun& run : runs) run.vars.RemoveDeletedObjects();
     for (ScriptDefinition& instance : instances) instance.vars.RemoveDeletedObjects();
     globals.RemoveDeletedObjects();
     if (lua) lua->RemoveDeletedObjects();
-    if (shadow) shadow->Purged(this, removed);
     FreeTemporaries();
 }
 
@@ -227,7 +223,6 @@ void Script::ResetZone() {
     ResetEffects();
     globals.ResetValues();
     for (ScriptBlock& block : worldBlocks) RunWorldScript(&block);
-    if (shadow) shadow->ZoneReset(this);
 }
 
 void Script::ResetEffects() {

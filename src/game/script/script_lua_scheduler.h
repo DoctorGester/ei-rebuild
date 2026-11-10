@@ -58,10 +58,9 @@ public:
 
     std::size_t InstanceCount() const { return instances.size(); }
     std::size_t RunCount() const { return runs.size(); }
-    // For the lockstep in the game (script_lua_shadow.h), in list order: each instance's definition (its `Script {
-    // ... }` table, as lua_topointer gives it) and each waiting run's position (ticks and sleep start).
+    // The lockstep's (tools/convert/lua_both.h), in list order: each instance's definition (its `Script { ... }`
+    // table, as lua_topointer gives it).
     std::vector<const void*> InstanceDefinitions() const;
-    std::vector<ScriptRunPosition> RunPositions() const;
     // Script::InstanceViews and RunViews on Lua (script_lua_mission.cpp), in list order: a definition by the tree's
     // name (else the name of a global holding it, else empty); the values as the definition's variables when the script
     // has it (its parameters set), else each by its own type (a number a float, nil an object).
