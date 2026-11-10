@@ -33,22 +33,25 @@ bool Script::LoadLua(std::string* text, std::string_view luaText, const std::str
         runner = std::move(made);
     }
     // The .mob's text gives the declarations that the texts loaded after it (AddMob'd mobs, quests, execs files) find,
-    // in the parser and in the Lua names; its own conversion is not run.
+    // in the parser and in the Lua names; its own conversion is not run. A text the parser stops in keeps its error,
+    // reported as the game reports it, and leaves the script as the game's parser does (Script::Parse sets `loaded`
+    // only for a whole text): the WorldScript not started (ei-convert's .lua of it holds what came before the error).
     scriptir::File tree;
     tree.fileCount = fileCount;
     tree.ok = Parse(text, false, tree);
     if (!tree.ok) GetError(&tree.error);
     runner->Convert(tree, *text);
-    loaded = 1;
     std::string_view source = luaText;
     if (source.starts_with("\xEF\xBB\xBF")) source.remove_prefix(3);   // a UTF-8 byte order mark
     std::string error;
     const std::string name = "=" + chunk;
-    if (runner->Load(source, name.c_str(), true, &error)) return true;
-    errorLine = 0;
-    errorCode = ScriptParseError::Lua;
-    errorText = error;
-    return false;
+    if (!runner->Load(source, name.c_str(), tree.ok, &error) && tree.ok) {
+        errorLine = 0;
+        errorCode = ScriptParseError::Lua;
+        errorText = error;
+        return false;
+    }
+    return tree.ok;
 }
 
 namespace {

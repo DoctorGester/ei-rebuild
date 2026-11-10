@@ -210,8 +210,8 @@ void Script::LoadState(ByteStream* stream) {
     LoadList(&runs, stream, [this, stream](ScriptRun& run) { run.Load(stream, this); });
     std::erase_if(runs, [](const ScriptRun& run) { return !run.position.block; });
     stream->ReadValue(loaded);
-    const bool onLua = loaded == kScriptLoadedOnLua;
-    if (onLua) loaded = 1;
+    const bool onLua = loaded >= kScriptLoadedOnLua;
+    if (onLua) loaded -= kScriptLoadedOnLua;
     stream->ReadValue(fileCount);
 
     if (stream->version >= kVersionScriptAreas) {

@@ -103,7 +103,7 @@ void Script::SaveState(ByteStream* stream) {
     stream->WriteCount(runs.size());
     for (const ScriptRun& run : runs) run.Save(stream, this);
 
-    stream->WriteValue(runner ? kScriptLoadedOnLua : loaded);
+    stream->WriteValue(runner ? loaded + kScriptLoadedOnLua : loaded);
     stream->WriteValue(fileCount);
 
     // The areas: count, then per area its id, part count and parts.

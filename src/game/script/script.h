@@ -797,7 +797,8 @@ private:
     void DropRunner();
 };
 
-// SaveState's `loaded` of a script on Lua: its Lua state (ScriptLuaScheduler::Save, count and bytes) follows the areas.
+// Added to SaveState's `loaded` (0 or 1) for a script on Lua: its Lua state (ScriptLuaScheduler::Save, count and
+// bytes) follows the areas.
 inline constexpr int kScriptLoadedOnLua = 2;
 
 // The id of a command or function (ScriptKeyword::id, ScriptCall::id; the names are the table's). 1..68 are the

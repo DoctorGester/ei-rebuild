@@ -456,7 +456,7 @@ def read_script(r):
         read_named(r, 'groups', read_group)
     read_list(r, 'instances', read_definition)
     read_list(r, 'runs', read_run)
-    on_lua = r.i32('loaded') == 2   # ours: a script on Lua (a mod's .lua), its state after the areas
+    on_lua = r.i32('loaded') >= 2   # ours: 2 added for a script on Lua (a mod's .lua), its state after the areas
     r.i32('fileCount')
 
     def area(r):

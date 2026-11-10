@@ -315,6 +315,14 @@ end
     Expect(!failing.LoadLua(&none, "this is not Lua", "bad.lua") && failing.errorCode == ScriptParseError::Lua &&
                failing.errorText.starts_with("bad.lua:1:"),
            "a .lua that does not load: error 18 with Lua's message");
+    // A .mob's text that the parser stops in keeps its error (the caller's report) and leaves the script as the game's
+    // parser does: not loaded, the .lua's WorldScript not started.
+    Script stopped;
+    std::string broken = "GlobalVars ( a : float, a : float )";
+    Expect(!stopped.LoadLua(&broken, kLua, "stopped.lua") && stopped.errorCode == ScriptParseError::DuplicateVariable,
+           "a .mob the parser stops in: its error kept");
+    for (int i = 0; i < 5; ++i) stopped.Tick();
+    Expect(stopped.runner && stopped.loaded == 0 && count(stopped) == 0, "its .lua on Lua, not started");
 }
 
 // A coroutine waiting in Sleep with an object, a group and a NaN in its locals: persisted, unpersisted into another
