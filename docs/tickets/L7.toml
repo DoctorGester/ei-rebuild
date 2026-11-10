@@ -4,5 +4,6 @@ group = "lua"
 depends = ["L6"]
 note = "User 2026-11-10: revised with the current knowledge; readable Lua files (mods and converted missions), Lua 5.3 + Eris (docs/notes/lua-scripting.md). QFinish's generated quest script and console @ / # / $ lines through the IR and L3's writer at runtime (cached per text); Rebirth's execs files too; errors as \"Script error: ...\". Done 2026-11-10: the runtime conversion (ScriptLuaScheduler::Convert / LoadText through ScriptLua::loadText from Script::Load: quest texts, console @ # $ lines, execs files), cached per text, names kept in Eris saves, Lua errors as Script error; corpus lockstep past QFinish (524 scripts, 0 differ); scenario script_quest_save; EI_LUA_BOTH full suite 441 runs 0 differ."
 order = 643
-status = "review"
+status = "done"
 started = "2026-11-10"
+done = "2026-11-10"
