@@ -391,7 +391,6 @@ struct Variable;
 class Script;
 struct ScriptBlock;
 struct ScriptDefinition;
-struct ScriptRun;
 class ScriptCall;
 enum class ScriptFunction : int;   // below
 
@@ -540,31 +539,33 @@ struct ScriptDefinition {
 
 // ---- Command execution ----
 
-// Where a run is: its block and next command (an old-format save's), the ticks it ran so far and the Sleep start.
-struct ScriptRunPosition {
-    ScriptBlock* block = nullptr;   // the commands
-    int index = 0;                  // next command
-    int ticks = 0;                  // ticks run so far (Sleep and WaitSegment count these)
-    int sleepStart = -1;            // ticks when the running Sleep started, -1 when none
-};
-
-// A running command block: the WorldScript's or a then-section's. A Lua run's (ScriptLua::Continue; the commands its
-// bindings run go through RunCommand), or an old-format save's waiting run, which the old-save shim resumes
-// (ScriptLuaScheduler::Resume).
+// A run of the WorldScript or a then-section on Lua (ScriptLua::Continue): what its commands read and set (the
+// bindings' commands go through RunCommand).
 struct ScriptRun {
-    // Block id, index, ticks, sleep start, the index of its instance in `script`'s instance list (-1 when
-    // absent), the variables. Load resolves the block in `script` (FindBlock); an index out of range leaves no
-    // instance.
-    void Load(ByteStream* stream, Script* script);
     // One command of the run (a Lua binding's call): false when the command waits (the run stays on it).
     bool RunCommand(Script* script, ScriptCall* cmd);
 
-    ScriptRunPosition position;
+    int ticks = 0;                  // ticks run so far (Sleep and WaitSegment count these)
+    int sleepStart = -1;            // ticks when the running Sleep started, -1 when none
     bool* killFlag = nullptr;       // the script instance's killed flag, null for the WorldScript
+};
+
+// A waiting run of an old-format save (vanilla's, or ours before every script ran on Lua), from Script::LoadState
+// to the old-save shim (ScriptLuaScheduler::Resume).
+struct ScriptSavedRun {
+    // Block id, index, ticks, sleep start, the index of its instance in `script`'s saved instances (-1 when
+    // absent), the variables. The block resolves in `script` (FindBlock); an index out of range names no instance.
+    void Load(ByteStream* stream, const Script* script);
+
+    ScriptBlock* block = nullptr;   // the commands
+    int index = 0;                  // the next command
+    int ticks = 0;
+    int sleepStart = -1;
+    int instance = -1;              // in Script::savedInstances
     ScriptVars vars;                // a copy of the instance's variables
 };
 
-// A script's instances and waiting runs as the game's executor kept them (Script::InstanceViews, RunViews;
+// A script's instances and waiting runs in the original game's terms (Script::InstanceViews, RunViews;
 // docs/notes/lua-scripting.md, "Saves"): what the harness's digest reads and a save writes in the old format's
 // fields. An instance by its definition's name, its kill flag and its values; a run by its definition and if-then
 // pair (none for a WorldScript's: an empty name, -1), its ticks and sleep start, the instance its kill flag names (-1
@@ -704,9 +705,8 @@ public:
     // enclosing `locals`.
     bool LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
     // Parse, then the tree converted and loaded into the scheduler (ScriptLuaScheduler::LoadText; its WorldScript
-    // started with `runWorldScript`); the Lua's failure is error 18 with its message. The parse tree goes to `ir`
-    // when given.
-    bool Load(std::string* text, bool runWorldScript, scriptir::File* ir = nullptr);
+    // started with `runWorldScript`); the Lua's failure is error 18 with its message.
+    bool Load(std::string* text, bool runWorldScript);
     // The text parsed into this script's declarations and program, its parse tree into `out` (its fileCount, ok and
     // error set), without running it; the text is replaced by its #define-expanded form. False on the first error.
     bool Parse(std::string* text, scriptir::File& out);
@@ -745,7 +745,6 @@ public:
     // After every removal of a world object: deleted objects dropped from the scheduler's values, then the
     // temporaries freed.
     void PurgeDeletedObjects();
-    void DropInstancesAndRuns();
     // EnterZone: the scheduler's zone reset (instances, runs and effects dropped, globals zeroed, each text's
     // WorldScript started again).
     void ResetZone();
@@ -766,8 +765,8 @@ public:
     std::vector<ScriptDefinition> definitions;      // Script / DeclareScript definitions
     ScriptVars globals;
     // An old-format save's instances and waiting runs, from LoadState to the old-save shim (empty after it).
-    std::list<ScriptDefinition> instances;          // runs point into it
-    std::list<ScriptRun> runs;
+    std::vector<ScriptDefinition> savedInstances;
+    std::vector<ScriptSavedRun> savedRuns;
     std::list<ScriptBlock> worldBlocks;
     std::vector<ScriptArea> areas;
     int loaded = 0;

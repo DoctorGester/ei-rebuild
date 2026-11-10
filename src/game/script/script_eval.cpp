@@ -80,7 +80,7 @@ Player* ScriptArgs::FindPlayer() { return g_serverWorld.GetPlayer(lib::Truncate(
 float ScriptCall::CalcFloat(Script* script) {
     float result = 0.0f;
     {
-        scriptaddon::Call call{this, script, &result, nullptr, nullptr};
+        scriptaddon::Call call{this, script, &result};
         if (scriptaddon::Dispatch(&call)) return result;
     }
     ScriptArgs args(this);
@@ -366,7 +366,7 @@ float ScriptCall::CalcFloat(Script* script) {
 void ScriptCall::CalcObject(Script* script, ScriptObjectRef** result) {
     *result = script->NewTempObject();
     {
-        scriptaddon::Call call{this, script, result, nullptr, nullptr};
+        scriptaddon::Call call{this, script, result};
         if (scriptaddon::Dispatch(&call)) return;
     }
     ScriptArgs args(this);
@@ -426,7 +426,7 @@ void ScriptCall::CalcObject(Script* script, ScriptObjectRef** result) {
 void ScriptCall::CalcGroup(Script* script, ScriptGroup** result) {
     *result = &script->tempGroups.emplace_back();
     ScriptGroup* group = *result;
-    scriptaddon::Call call{this, script, result, nullptr, nullptr};
+    scriptaddon::Call call{this, script, result};
     const bool done = scriptaddon::Dispatch(&call);
     ScriptArgs args(this);
     switch (done ? ScriptFunction::None : id) {

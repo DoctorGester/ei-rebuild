@@ -354,19 +354,17 @@ bool Script::LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens
     }
 }
 
-bool Script::Load(std::string* text, bool runWorldScript, scriptir::File* ir) {
-    scriptir::File own;
-    scriptir::File& out = ir ? *ir : own;
-    Parse(text, out);
+bool Script::Load(std::string* text, bool runWorldScript) {
+    scriptir::File tree;
+    Parse(text, tree);
     std::string error;
-    if (!Runner().LoadText(out, *text, runWorldScript, &error) && out.ok) {
+    if (!Runner().LoadText(tree, *text, runWorldScript, &error) && tree.ok) {
         errorLine = 0;
         errorCode = ScriptParseError::Lua;
         errorText = error;
-        out.ok = false;
-        GetError(&out.error);
+        return false;
     }
-    return out.ok;
+    return tree.ok;
 }
 
 bool Script::Parse(std::string* text, scriptir::File& out) {

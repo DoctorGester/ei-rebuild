@@ -113,12 +113,6 @@ void Script::PurgeDeletedObjects() {
     FreeTemporaries();
 }
 
-// Every instance, then every run, destroyed.
-void Script::DropInstancesAndRuns() {
-    instances.clear();
-    runs.clear();
-}
-
 // When the party enters a zone: the scheduler's reset (ScriptLuaScheduler::ResetZone).
 void Script::ResetZone() { Runner().ResetZone(); }
 

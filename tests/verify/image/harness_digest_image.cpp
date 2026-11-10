@@ -458,9 +458,9 @@ std::uint32_t HashVars(const ScriptVars& v) {
     return h.h;
 }
 
-// The instances and waiting runs in the terms both executors share (Script::InstanceViews, RunViews): an instance by
-// its definition's name, its kill flag and values; a run by its definition and rule, its ticks, sleep start, instance
-// and values. No block or command index: Lua has none.
+// The instances and waiting runs in the original game's terms (Script::InstanceViews, RunViews; docs/notes/mods.md,
+// "Scripts in Lua"): an instance by its definition's name, its kill flag and values; a run by its definition and rule,
+// its ticks, sleep start, instance and values. No block or command index: Lua has none.
 void ReadRuns(Script* s, Builder& b) {
     const std::vector<ScriptInstanceView> instances = s->InstanceViews();
     b.Int("instances", static_cast<int>(instances.size()));
@@ -486,8 +486,8 @@ void ReadRuns(Script* s, Builder& b) {
 }
 
 // The mission script (Script, script.h): its running instances and waiting runs (ReadRuns), the global variables
-// (floats by name, the rest as hashes), and the effects it keeps with their countdowns: the scheduler's, as the game's
-// executor kept them (Script::InstanceViews, RunViews, GlobalValues).
+// (floats by name, the rest as hashes), and the effects it keeps with their countdowns: the scheduler's, in the
+// original game's terms (Script::InstanceViews, RunViews, GlobalValues).
 void ReadScript(Script* s, Builder& b) {
     b.Int("loaded", s->loaded);
     b.Int("files", s->fileCount);

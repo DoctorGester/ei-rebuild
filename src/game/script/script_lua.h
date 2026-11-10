@@ -64,7 +64,7 @@ public:
 
     // Lua text run in the globals; false with the message in *error.
     bool RunChunk(std::string_view text, const char* name, std::string* error);
-    // ScriptRun::Execute's step for a run on a Lua thread: the tick counted (run->position.ticks), the thread resumed
+    // One tick of a run on a Lua thread (the game's Execute): the tick counted (run->ticks), the thread resumed
     // (with `arguments` values from its stack on the first resume) with `run` as the current run. True while it
     // waits (it yielded); false when it returned (its results on its stack) or failed (the message in *error).
     bool Continue(lua_State* thread, ScriptRun* run, int arguments, std::string* error);

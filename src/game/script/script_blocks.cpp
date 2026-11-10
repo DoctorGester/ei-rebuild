@@ -76,7 +76,8 @@ void Script::Reset() {
     errorText = "Unknown error";
     errorLine = 0;
 
-    DropInstancesAndRuns();
+    savedInstances.clear();
+    savedRuns.clear();
     worldBlocks.clear();
     globals.Clear();
     FreeTemporaries();

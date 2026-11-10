@@ -528,19 +528,22 @@ int Aggregate(lua_State* L) {
     return 1;
 }
 
-// A loop body run for the member on top of the stack as the game's RunBody runs it: in the same run, from a fresh
-// position (its one Execute counted), on a thread of its own; a wait in it ends the body for this member (the thread
-// is dropped).
+// A loop body run for the member on top of the stack as the game's RunBody ran it: in the same run, its ticks and
+// Sleep start fresh (its one tick counted), on a thread of its own; a wait in it ends the body for this member (the
+// thread is dropped).
 void RunBody(lua_State* L, int body) {
     ScriptRun* run = ScriptLua::Of(L)->Run();
-    const ScriptRunPosition saved = run->position;
-    run->position = {nullptr, 0, 1, -1};
+    const int ticks = run->ticks;
+    const int sleepStart = run->sleepStart;
+    run->ticks = 1;
+    run->sleepStart = -1;
     lua_State* thread = lua_newthread(L);
     lua_pushvalue(L, body);
     lua_pushvalue(L, -3);
     lua_xmove(L, thread, 2);
     const int status = lua_resume(thread, L, 1);
-    run->position = saved;
+    run->ticks = ticks;
+    run->sleepStart = sleepStart;
     if (status != LUA_OK && status != LUA_YIELD) {
         lua_xmove(thread, L, 1);
         lua_error(L);
@@ -941,7 +944,7 @@ bool ScriptLua::RunChunk(std::string_view text, const char* name, std::string* e
 bool ScriptLua::Continue(lua_State* thread, ScriptRun* run, int arguments, std::string* error) {
     ScriptRun* const outer = currentRun;
     currentRun = run;
-    ++run->position.ticks;
+    ++run->ticks;
     const int status = lua_resume(thread, state, arguments);
     currentRun = outer;
     if (status == LUA_YIELD) {

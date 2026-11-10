@@ -23,8 +23,8 @@ void PushCopy(lua_State* L, int index) {
     else lua_pushvalue(L, index);
 }
 
-// A condition's result as ScriptIfThen::Run reads it: a number holds unless it is zero (a NaN holds), a boolean as it
-// is, anything else as Lua's truth.
+// A condition's result as the game's if-then pair read it: a number holds unless it is zero (a NaN holds), a boolean
+// as it is, anything else as Lua's truth.
 bool Holds(lua_State* L, int index) {
     if (lua_type(L, index) == LUA_TNUMBER) return !IsZero(scriptlua::FromLuaNumber(lua_tonumber(L, index)));
     return lua_toboolean(L, index) != 0;
@@ -112,7 +112,6 @@ ScriptLuaScheduler::Converted ScriptLuaScheduler::Convert(const scriptir::File& 
     AddResolved(file, key);
     if (const auto found = cache.find(key); found != cache.end()) {
         out.lua = scriptlua::HeaderLine(out.chunk) + "\n" + found->second;
-        out.cached = true;
         ++cachedTexts;
         return out;
     }
@@ -195,9 +194,9 @@ bool ScriptLuaScheduler::Save(std::string* data, std::string* error) {
         if (run.ended) lua_pushboolean(L, false);
         else lua_rawgeti(L, LUA_REGISTRYINDEX, run.thread);
         lua_setfield(L, -2, "thread");
-        lua_pushinteger(L, run.run.position.ticks);
+        lua_pushinteger(L, run.run.ticks);
         lua_setfield(L, -2, "ticks");
-        lua_pushinteger(L, run.run.position.sleepStart);
+        lua_pushinteger(L, run.run.sleepStart);
         lua_setfield(L, -2, "sleepStart");
         lua_pushinteger(L, run.arguments);
         lua_setfield(L, -2, "arguments");
@@ -272,9 +271,9 @@ bool ScriptLuaScheduler::Restore(std::string_view data, std::string* error) {
             lua_pop(L, 1);
         }
         lua_getfield(L, entry, "ticks");
-        run.run.position.ticks = static_cast<int>(lua_tointeger(L, -1));
+        run.run.ticks = static_cast<int>(lua_tointeger(L, -1));
         lua_getfield(L, entry, "sleepStart");
-        run.run.position.sleepStart = static_cast<int>(lua_tointeger(L, -1));
+        run.run.sleepStart = static_cast<int>(lua_tointeger(L, -1));
         lua_getfield(L, entry, "arguments");
         run.arguments = static_cast<int>(lua_tointeger(L, -1));
         lua_getfield(L, entry, "kill");
@@ -373,8 +372,8 @@ void ScriptLuaScheduler::Release(const Run& run) {
     luaL_unref(L, LUA_REGISTRYINDEX, run.values);
 }
 
-// ScriptRun::Execute's step: false when the run had ended before it. A run that returns now stays in the list until
-// the next one, as Execute returns true after running a block's last command.
+// One tick of a run: false when the run had ended before it. A run that returns now stays in the list until the next
+// one, as the game's run stayed a tick after its block's last command.
 bool ScriptLuaScheduler::Continue(Run& run) {
     if (run.ended) return false;
     std::string error;
@@ -388,9 +387,9 @@ void ScriptLuaScheduler::Report(const char* message) {
     if (report) report(message ? message : "(no message)");
 }
 
-// ScriptIfThen::Run for each rule until one kills the instance: the condition called with the instance's own values;
-// when it holds, the action runs at once on a new thread with copies of them and the instance's kill flag, then goes
-// to the head of the run list without the flag (a run that ended too: Execute's true after the last command). A rule
+// Each rule in order until one kills the instance (the game's if-then pairs): the condition called with the instance's
+// own values; when it holds, the action runs at once on a new thread with copies of them and the instance's kill
+// flag, then goes to the head of the run list without the flag (a run that ended too, leaving on the next tick). A rule
 // without an action (an empty then-section) starts no run. The run keeps its definition, rule and copies (Runs).
 void ScriptLuaScheduler::RunRules(Instance& instance) {
     const int base = lua_gettop(L);

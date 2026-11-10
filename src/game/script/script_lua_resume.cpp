@@ -91,7 +91,7 @@ bool ScriptLuaScheduler::Resume(const Script& saved, std::string* text, std::str
     }
 
     // The instances in their order: each its definition and its values, as Start makes them.
-    for (const ScriptDefinition& instance : saved.instances) {
+    for (const ScriptDefinition& instance : saved.savedInstances) {
         const auto definition = names.scripts.find(instance.name);
         if (definition == names.scripts.end() || lua_getglobal(L, definition->second.c_str()) != LUA_TTABLE) {
             lua_pop(L, definition == names.scripts.end() ? 0 : 1);
@@ -122,28 +122,22 @@ bool ScriptLuaScheduler::Resume(const Script& saved, std::string* text, std::str
             blocks[definition.rules[r].commands.id] = {&definition.rules[r].commands, &definition, static_cast<int>(r)};
     for (const scriptir::Block& world : file.worldScripts) blocks[world.id] = {&world, nullptr};
     int number = 0;
-    for (const ScriptRun& saving : saved.runs) {
+    for (const ScriptSavedRun& saving : saved.savedRuns) {
         ++number;
-        const auto found = blocks.find(saving.position.block->id);
+        const auto found = blocks.find(saving.block->id);
         if (found == blocks.end()) {
             *error = std::format("run {} waits in block {}, no then-section or WorldScript", number,
-                                 saving.position.block->id);
+                                 saving.block->id);
             return false;
         }
         const RunBlock& where = found->second;
-        int instance = -1;
-        int k = 0;
-        for (const ScriptDefinition& candidate : saved.instances) {
-            if (saving.killFlag == &candidate.killed) instance = k;
-            ++k;
-        }
         static const std::vector<scriptir::Variable> noParams;
         const std::vector<scriptir::Variable>& params = where.definition ? where.definition->params : noParams;
         Run run = EndedRun();
-        if (saving.position.index < std::ssize(where.block->calls)) {
-            const std::string function = scriptlua::WriteFunction(*where.block, static_cast<std::size_t>(saving.position.index), params, names);
-            *text += std::format("\n-- run {}: block {} from command {}\n{}", number, saving.position.block->id,
-                                 saving.position.index, function);
+        if (saving.index < std::ssize(where.block->calls)) {
+            const std::string function = scriptlua::WriteFunction(*where.block, static_cast<std::size_t>(saving.index), params, names);
+            *text += std::format("\n-- run {}: block {} from command {}\n{}", number, saving.block->id,
+                                 saving.index, function);
             if (!PushFunction(function, std::format("=save run {}", number).c_str(), error)) return false;
             if (!PushArguments(L, saving.vars, params)) {
                 lua_pop(L, 1);
@@ -152,9 +146,9 @@ bool ScriptLuaScheduler::Resume(const Script& saved, std::string* text, std::str
             }
             run = NewRun(static_cast<int>(params.size()));
         }
-        run.run.position.ticks = saving.position.ticks;
-        run.run.position.sleepStart = saving.position.sleepStart;
-        run.run.killFlag = KillFlagOf(instance);
+        run.run.ticks = saving.ticks;
+        run.run.sleepStart = saving.sleepStart;
+        run.run.killFlag = KillFlagOf(saving.instance);
         // A rule's run keeps its definition, rule and values as RunRules gives them (Runs), an ended one too.
         if (where.definition) {
             const auto definition = names.scripts.find(where.definition->name);
