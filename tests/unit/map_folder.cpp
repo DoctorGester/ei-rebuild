@@ -1,11 +1,9 @@
 // game/map/map_folder.h: maps as folders and back (docs/notes/mods.md, "Maps as folders"), and lib/png.h's writer. A
 // made-up map of 2 x 2 sectors (one with water, seams on its shared edges) comes back byte for byte through its files
 // and through its folder; a heights.png over the original replaces the heights alone and brings normals worked out
-// from them; every 16-bit sample comes back through a PNG; lib/png.h's reader gives what stb_image gives for every kind
-// of PNG the writer makes (in segments too) and for a palette with transparency.
+// from them; every 16-bit sample comes back through a PNG; lib/png.h's reader gives the pixels the writer was given for
+// every kind of PNG it makes (in segments too, at 8 and 16 bits) and fixed ones for a palette with transparency.
 #include "game/map/map_folder.h"
-
-#include "stb/stb_image.h"
 
 #include "lib/png.h"
 
@@ -182,19 +180,30 @@ void CheckPng() {
     std::vector<std::uint16_t> samples(256 * 256 * 2);
     for (std::size_t i = 0; i < samples.size(); ++i) samples[i] = static_cast<std::uint16_t>(i * 7);
     const std::string png = png::Write(256, 512, 1, 16, samples);
-    int width = 0, height = 0, components = 0;
-    stbi_us* read = stbi_load_16_from_memory(reinterpret_cast<const stbi_uc*>(png.data()), static_cast<int>(png.size()),
-                                             &width, &height, &components, 1);
-    Check(read && width == 256 && height == 512 && std::equal(samples.begin(), samples.end(), read),
-          "a 16-bit grey PNG");
-    stbi_image_free(read);
+    int width = 0, height = 0;
+    std::vector<std::uint16_t> read;
+    std::string error;
+    // A grey PNG reads as RGBA with the grey in R, G and B.
+    bool same = png::ReadRgba16(png, &width, &height, &read, &error) && width == 256 && height == 512 &&
+                read.size() == samples.size() * 4;
+    for (std::size_t i = 0; same && i < samples.size(); ++i)
+        same = read[4 * i] == samples[i] && read[4 * i + 1] == samples[i] && read[4 * i + 2] == samples[i] &&
+               read[4 * i + 3] == 65535;
+    Check(same, "a 16-bit grey PNG");
     std::vector<std::uint16_t> rgb(33 * 17 * 3);
     for (std::size_t i = 0; i < rgb.size(); ++i) rgb[i] = static_cast<std::uint16_t>(i * 31 % 256);
     const std::string png8 = png::Write(33, 17, 3, 8, rgb);
-    stbi_uc* read8 = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(png8.data()), static_cast<int>(png8.size()),
-                                           &width, &height, &components, 3);
-    Check(read8 && width == 33 && height == 17 && std::equal(rgb.begin(), rgb.end(), read8), "an 8-bit RGB PNG");
-    stbi_image_free(read8);
+    std::vector<std::uint8_t> read8;
+    same = png::ReadRgba(png8, &width, &height, &read8, &error) && width == 33 && height == 17 && read8.size() == 33 * 17 * 4;
+    for (std::size_t i = 0; same && i < 33 * 17; ++i)
+        same = read8[4 * i] == rgb[3 * i] && read8[4 * i + 1] == rgb[3 * i + 1] && read8[4 * i + 2] == rgb[3 * i + 2] &&
+               read8[4 * i + 3] == 255;
+    Check(same, "an 8-bit RGB PNG");
+    // The same at 16 bits: a byte b is b * 257.
+    same = png::ReadRgba16(png8, &width, &height, &read, &error) && read.size() == 33 * 17 * 4;
+    for (std::size_t i = 0; same && i < 33 * 17; ++i)
+        same = read[4 * i] == rgb[3 * i] * 257 && read[4 * i + 2] == rgb[3 * i + 2] * 257 && read[4 * i + 3] == 65535;
+    Check(same, "an 8-bit RGB PNG at 16 bits: " + error);
     Check(png::Write(2, 2, 5, 8, samples).empty() && png::Write(2, 2, 1, 12, samples).empty(),
           "a PNG of a kind the writer has not");
 }
@@ -243,44 +252,79 @@ std::string PalettePng() {
     return png;
 }
 
+// The RGBA a PNG made from `samples` (`channels` of `bits`, 16-bit ones as 8 bits their high byte) must read as: grey
+// repeated in R, G and B, no alpha opaque.
+std::vector<std::uint8_t> ExpectedRgba(int pixels, int channels, int bits, const std::vector<std::uint16_t>& samples) {
+    std::vector<std::uint8_t> out;
+    for (int i = 0; i < pixels; ++i) {
+        auto at = [&](int c) {
+            return static_cast<std::uint8_t>(bits == 16 ? samples[i * channels + c] >> 8 : samples[i * channels + c]);
+        };
+        const bool colour = channels >= 3;
+        out.push_back(at(0));
+        out.push_back(at(colour ? 1 : 0));
+        out.push_back(at(colour ? 2 : 0));
+        out.push_back(channels == 2 ? at(1) : channels == 4 ? at(3) : 255);
+    }
+    return out;
+}
+
 void CheckPngRead() {
     std::vector<std::uint16_t> samples(19 * 7 * 4);
     for (std::size_t i = 0; i < samples.size(); ++i) samples[i] = static_cast<std::uint16_t>(i * 2654435761u >> 7);
-    std::vector<std::string> pngs = {PalettePng()};
+    struct Case {
+        std::string png;
+        std::vector<std::uint8_t> expected;
+    };
+    // The palette: 5 x 3 pixels of entry (x + y) % 4, the colours of PalettePng with the alphas 255, 255, 128, 0.
+    const unsigned char colours[4][4] = {{255, 0, 0, 255}, {0, 255, 0, 255}, {0, 0, 255, 128}, {16, 32, 48, 0}};
+    Case palette{PalettePng(), {}};
+    for (int y = 0; y < 3; ++y)
+        for (int x = 0; x < 5; ++x)
+            palette.expected.insert(palette.expected.end(), colours[(x + y) % 4], colours[(x + y) % 4] + 4);
+    std::vector<Case> cases = {palette};
     for (int channels = 1; channels <= 4; ++channels)
         for (int bits : {8, 16}) {
             std::vector<std::uint16_t> some(samples.begin(), samples.begin() + 19 * 7 * channels);
             if (bits == 8)
                 for (std::uint16_t& v : some) v &= 0xFF;
-            pngs.push_back(png::Write(19, 7, channels, bits, some));
+            cases.push_back({png::Write(19, 7, channels, bits, some), ExpectedRgba(19 * 7, channels, bits, some)});
         }
     // Large enough for segments (lib/png.h): 8-bit RGB, 16-bit grey and alpha; and the first with its second
     // segment's start moved, which the reader then reads as a plain PNG.
     std::vector<std::uint8_t> rgb(301 * 1500 * 3);
     for (std::size_t i = 0; i < rgb.size(); ++i) rgb[i] = static_cast<std::uint8_t>((i * 2654435761u >> 13) % 7 + i % 301);
-    pngs.push_back(png::Write(301, 1500, 3, rgb));
+    cases.push_back({png::Write(301, 1500, 3, rgb),
+                     ExpectedRgba(301 * 1500, 3, 8, std::vector<std::uint16_t>(rgb.begin(), rgb.end()))});
     std::vector<std::uint16_t> greyAlpha(97 * 2100 * 2);
     for (std::size_t i = 0; i < greyAlpha.size(); ++i) greyAlpha[i] = static_cast<std::uint16_t>(i * 40503u);
-    pngs.push_back(png::Write(97, 2100, 2, 16, greyAlpha));
-    const std::size_t segmentsAt = pngs[pngs.size() - 2].find("eiSG");
-    Check(segmentsAt != std::string::npos && pngs.back().find("eiSG") != std::string::npos, "a large PNG has segments");
-    std::string moved = pngs[pngs.size() - 2];
-    if (segmentsAt != std::string::npos) ++moved[segmentsAt + 4 + 4 + 4 + 3];
-    pngs.push_back(moved);
-    for (std::size_t i = 0; i < pngs.size(); ++i) {
-        int width = 0, height = 0, w = 0, h = 0, components = 0;
-        const std::vector<std::uint8_t> ours = ReadRgba(pngs[i], &width, &height);
-        stbi_uc* theirs = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(pngs[i].data()), static_cast<int>(pngs[i].size()),
-                                                &w, &h, &components, 4);
-        Check(theirs && !ours.empty() && width == w && height == h && std::equal(ours.begin(), ours.end(), theirs),
-              "png::ReadRgba against stb_image, PNG " + std::to_string(i));
-        stbi_image_free(theirs);
+    cases.push_back({png::Write(97, 2100, 2, 16, greyAlpha), ExpectedRgba(97 * 2100, 2, 16, greyAlpha)});
+    const std::size_t segmentsAt = cases[cases.size() - 2].png.find("eiSG");
+    Check(segmentsAt != std::string::npos && cases.back().png.find("eiSG") != std::string::npos,
+          "a large PNG has segments");
+    Case moved = cases[cases.size() - 2];
+    if (segmentsAt != std::string::npos) ++moved.png[segmentsAt + 4 + 4 + 4 + 3];
+    cases.push_back(moved);
+    for (std::size_t i = 0; i < cases.size(); ++i) {
+        int width = 0, height = 0;
+        const std::vector<std::uint8_t> ours = ReadRgba(cases[i].png, &width, &height);
+        Check(!ours.empty() && static_cast<std::size_t>(width) * height * 4 == ours.size() && ours == cases[i].expected,
+              "png::ReadRgba, PNG " + std::to_string(i));
+        // At 16 bits: the high byte of each sample is the 8-bit read's.
+        std::vector<std::uint16_t> wide;
+        std::string error;
+        bool high = png::ReadRgba16(cases[i].png, &width, &height, &wide, &error) && wide.size() == ours.size();
+        for (std::size_t k = 0; high && k < wide.size(); ++k) high = (wide[k] >> 8) == ours[k];
+        Check(high, "png::ReadRgba16, PNG " + std::to_string(i) + ": " + error);
     }
     int width = 0, height = 0;
     std::vector<std::uint8_t> rgba;
     std::string error;
-    Check(!png::ReadRgba(pngs[1].substr(0, pngs[1].size() / 2), &width, &height, &rgba, &error) && !error.empty(),
-          "a cut PNG reads");
+    const std::string cut = cases[1].png.substr(0, cases[1].png.size() / 2);
+    Check(!png::ReadRgba(cut, &width, &height, &rgba, &error) && !error.empty(), "a cut PNG reads");
+    std::vector<std::uint16_t> wide;
+    error.clear();
+    Check(!png::ReadRgba16(cut, &width, &height, &wide, &error) && !error.empty(), "a cut PNG reads at 16 bits");
 }
 
 }   // namespace

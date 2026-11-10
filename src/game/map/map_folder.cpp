@@ -2,7 +2,6 @@
 #include "game/map/map_folder.h"
 
 #include "game/core/asset_text.h"
-#include "stb/stb_image.h"
 
 #include "lib/bytes.h"
 #include "lib/enum_array.h"
@@ -390,31 +389,22 @@ struct Picture {
     std::vector<std::uint16_t> samples;
 };
 
+// `png`'s first `channels` channels (a grey PNG's one repeated, a colour PNG's red for one) as 16-bit samples when
+// `sixteen` (an 8-bit PNG's widened), else as bytes.
 std::optional<Picture> ReadPicture(std::string_view png, int channels, bool sixteen, std::string* error) {
     Picture picture;
-    int components = 0;
-    const auto* bytes = reinterpret_cast<const stbi_uc*>(png.data());
-    const int size = static_cast<int>(png.size());
-    const std::size_t count = [&] {
-        if (sixteen) {
-            stbi_us* p = stbi_load_16_from_memory(bytes, size, &picture.width, &picture.height, &components, channels);
-            if (!p) return std::size_t{0};
-            const std::size_t n = static_cast<std::size_t>(picture.width) * picture.height * channels;
-            picture.samples.assign(p, p + n);
-            stbi_image_free(p);
-            return n;
-        }
-        stbi_uc* p = stbi_load_from_memory(bytes, size, &picture.width, &picture.height, &components, channels);
-        if (!p) return std::size_t{0};
-        const std::size_t n = static_cast<std::size_t>(picture.width) * picture.height * channels;
-        picture.samples.assign(p, p + n);
-        stbi_image_free(p);
-        return n;
-    }();
-    if (count == 0) {
-        *error = std::string("not a PNG stb_image reads: ") + stbi_failure_reason();
+    std::vector<std::uint16_t> rgba16;
+    std::vector<std::uint8_t> rgba8;
+    if (!(sixteen ? png::ReadRgba16(png, &picture.width, &picture.height, &rgba16, error)
+                  : png::ReadRgba(png, &picture.width, &picture.height, &rgba8, error))) {
+        *error = "not a PNG that reads: " + *error;
         return std::nullopt;
     }
+    const std::size_t pixels = static_cast<std::size_t>(picture.width) * picture.height;
+    picture.samples.resize(pixels * channels);
+    for (std::size_t i = 0; i < pixels; ++i)
+        for (int c = 0; c < channels; ++c)
+            picture.samples[i * channels + c] = sixteen ? rgba16[i * 4 + c] : rgba8[i * 4 + c];
     return picture;
 }
 

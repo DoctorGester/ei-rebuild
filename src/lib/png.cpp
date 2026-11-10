@@ -215,10 +215,11 @@ bool FitsWriter(int width, int height, int channels, int bits, std::size_t sampl
            samples == static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * static_cast<std::size_t>(channels);
 }
 
-// The pixels of a segmented PNG (png.h) whose rows hold 8- or 16-bit grey, grey and alpha, RGB or RGBA, as 8-bit
-// RGBA; false for another PNG, or one whose segments fail on their own or do not add up to its
-// stream's Adler-32.
-bool ReadSegments(std::string_view png, int* width, int* height, std::vector<std::uint8_t>* rgba) {
+// The pixels of a segmented PNG (png.h) whose rows hold 8- or 16-bit grey, grey and alpha, RGB or RGBA, as RGBA of
+// `Sample`'s size (a 16-bit sample's high byte as a byte; a byte b as b * 257 in 16 bits); false for another PNG, or one
+// whose segments fail on their own or do not add up to its stream's Adler-32.
+template <typename Sample>
+bool ReadSegments(std::string_view png, int* width, int* height, std::vector<Sample>* rgba) {
     const auto* bytes = reinterpret_cast<const unsigned char*>(png.data());
     if (png.size() < 8 + 25 || png.substr(0, 8) != std::string_view("\x89PNG\r\n\x1a\n", 8)) return false;
     std::uint32_t w = 0, h = 0;
@@ -293,15 +294,21 @@ bool ReadSegments(std::string_view png, int* width, int* height, std::vector<std
             if (filter >= kFilters || (!prior && filter > 1)) return;
             Unfilter(filter, row + 1, prior, rowBytes, step);
             prior = row + 1;
-            std::uint8_t* out = rgba->data() + y * w * 4;
-            // Each sample's high byte (the first: big-endian); grey to R, G and B; no alpha opaque.
+            Sample* out = rgba->data() + y * w * 4;
+            // A sample's bytes are big-endian; grey to R, G and B; no alpha opaque.
+            auto sample = [&](const std::uint8_t* p) {
+                if constexpr (sizeof(Sample) == 1) return static_cast<Sample>(p[0]);
+                else return static_cast<Sample>(sampleBytes == 2 ? p[0] << 8 | p[1] : p[0] * 257);
+            };
             for (std::size_t x = 0; x < w; ++x, out += 4) {
                 const std::uint8_t* p = row + 1 + x * step;
                 const bool colour = channels >= 3;
-                out[0] = p[0];
-                out[1] = colour ? p[sampleBytes] : p[0];
-                out[2] = colour ? p[2 * sampleBytes] : p[0];
-                out[3] = channels == 2 ? p[sampleBytes] : channels == 4 ? p[3 * sampleBytes] : 255;
+                out[0] = sample(p);
+                out[1] = sample(colour ? p + sampleBytes : p);
+                out[2] = sample(colour ? p + 2 * sampleBytes : p);
+                out[3] = channels == 2   ? sample(p + sampleBytes)
+                         : channels == 4 ? sample(p + 3 * sampleBytes)
+                                         : static_cast<Sample>(sizeof(Sample) == 1 ? 255 : 65535);
             }
         }
         read[static_cast<std::size_t>(s)] = 1;
@@ -341,11 +348,14 @@ std::string Write(int width, int height, int channels, std::span<const std::uint
     return WriteRows(width, height, channels, 8, samples.data());
 }
 
-bool ReadRgba(std::string_view png, int* width, int* height, std::vector<std::uint8_t>* rgba, std::string* error) {
+namespace {
+
+template <typename Sample>
+bool Read(std::string_view png, int* width, int* height, std::vector<Sample>* rgba, std::string* error) {
     if (ReadSegments(png, width, height, rgba)) return true;
     struct Out {
         int width = 0, height = 0;
-        std::vector<std::uint8_t>* rgba = nullptr;
+        std::vector<Sample>* rgba = nullptr;
     } out{0, 0, rgba};
     const ei_png_allocate allocate = [](void* context, unsigned w, unsigned h) -> unsigned char* {
         Out& o = *static_cast<Out*>(context);
@@ -354,9 +364,10 @@ bool ReadRgba(std::string_view png, int* width, int* height, std::vector<std::ui
         o.width = static_cast<int>(w);
         o.height = static_cast<int>(h);
         o.rgba->resize(static_cast<std::size_t>(w) * h * 4);
-        return o.rgba->data();
+        return reinterpret_cast<unsigned char*>(o.rgba->data());
     };
-    const char* failed = ei_png_decode(reinterpret_cast<const unsigned char*>(png.data()), png.size(), allocate, &out);
+    const char* failed = ei_png_decode(reinterpret_cast<const unsigned char*>(png.data()), png.size(),
+                                       sizeof(Sample) == 2, allocate, &out);
     if (failed) {
         *error = failed;
         rgba->clear();
@@ -365,6 +376,16 @@ bool ReadRgba(std::string_view png, int* width, int* height, std::vector<std::ui
     *width = out.width;
     *height = out.height;
     return true;
+}
+
+}   // namespace
+
+bool ReadRgba(std::string_view png, int* width, int* height, std::vector<std::uint8_t>* rgba, std::string* error) {
+    return Read(png, width, height, rgba, error);
+}
+
+bool ReadRgba16(std::string_view png, int* width, int* height, std::vector<std::uint16_t>* rgba, std::string* error) {
+    return Read(png, width, height, rgba, error);
 }
 
 }   // namespace png

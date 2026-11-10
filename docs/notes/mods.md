@@ -41,7 +41,7 @@ the settings choose a mod folder, whose files then stand over the game folder's.
 | `tools/convert/convert_textures.h`, `.cpp` | ei-convert's textures: each as PNG, its round trip measured |
 | `tests/unit/texture_png.cpp` | the unit check (ei_unit_check, the POSIX port check) |
 | `tests/scenarios/mod_png_texture.txt` | a mod's PNG terrain pages seen on the ground |
-| `src/game/map/map_folder.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble` (PNGs written by `png::Write`, read by stb_image) |
+| `src/game/map/map_folder.h`, `.cpp` | maps as folders ("Maps as folders"): `Decode`, `EncodeMap` / `EncodeSector`, `WriteFolder`, `Assemble` (PNGs written by `png::Write`, read by `png::ReadRgba` / `ReadRgba16`) |
 | `src/game/data/resource.cpp` | `MappedResource::FolderMap` / `FolderMapFile`: an archive's map file and sectors made from its folder |
 | `tools/convert/convert_maps.h`, `.cpp` | ei-convert's maps: each as its folder, the round trip byte for byte |
 | `tests/unit/map_folder.cpp` | the unit check (ei_unit_check, the POSIX port check) |
@@ -478,8 +478,8 @@ holding.
 Loading cost. Making a texture is its PNG's decode, the box filter for its levels and the DXT blocks; a converted
 Rebirth zone makes hundreds (cz_ingos 447, 132 MB of .mmps), most of them DXT1 terrain pages. What keeps it near an
 unconverted load:
-- The reader (`png::ReadRgba`, src/lib/png.cpp) decodes with Wuffs (third_party/wuffs, v0.3.6, Apache 2.0), about
-  twice as fast as stb_image's inflate. ei-convert's PNGs are written in segments (`png::Write`): runs of about 256 KB
+- The reader (`png::ReadRgba`, src/lib/png.cpp) decodes with Wuffs (third_party/wuffs, v0.3.6, Apache 2.0), the only
+  PNG decoder (`png::ReadRgba16` reads the same as 16-bit RGBA, for a map folder's heights and normals). ei-convert's PNGs are written in segments (`png::Write`): runs of about 256 KB
   of rows, each deflated on its own (a full flush between them) with its first row filtered None or Sub, and an
   "eiSG" chunk naming each segment's rows and its start in the zlib stream. Still one valid PNG any reader takes; ours
   inflates and unfilters the segments on threads and checks the stream's Adler-32 (the segments' combined). A PNG
@@ -582,8 +582,9 @@ maps add little to a converted install's load (its textures cost the time: "Text
 
 ### Checks
 
-- `ei_unit_check`'s map checks (tests/unit/map_folder.cpp): the PNG writer's 16-bit grey and 8-bit RGB read back by
-  stb_image; `png::ReadRgba` against stb_image for a palette PNG with tRNS, every channel count at 8 and 16 bits, two
+- `ei_unit_check`'s map checks (tests/unit/map_folder.cpp): the PNG writer's 16-bit grey and 8-bit RGB read back
+  (`ReadRgba`, `ReadRgba16`); both against the pixels the writer was given (fixed ones for a palette PNG with tRNS),
+  every channel count at 8 and 16 bits, two
   segmented images (8-bit RGB, 16-bit grey and alpha) and one whose segment offset is wrong (read whole by Wuffs), and
   a cut PNG refused; a made-up map with water and seams through its files and back byte for byte; heights.png over the
   original (worked-out normals, the rest the original's, its seams' heights and normals left out); flat normals up.
