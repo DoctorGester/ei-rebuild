@@ -253,8 +253,7 @@ void SignatureStep(ScriptCall* cmd, std::string_view signature, std::size_t* let
     }
 }
 
-void CalcString(ScriptCall* cmd, Script* script, ScriptVars* vars, std::string* result) {
-    cmd->PrepareArguments(script, vars);
+void CalcString(ScriptCall* cmd, Script* script, std::string* result) {
     Call call{cmd, script, result, nullptr, nullptr};
     if (Dispatch(&call)) return;
     game::FatalExit("Function does not return string at ScriptCall::CalcFunction");

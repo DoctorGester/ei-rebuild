@@ -4,9 +4,9 @@
 # (tools/make_quest_script.py): two quests into one script, the second's plain names after the first's. The first
 # objective of "zqa" (the leader seen) holds at once; then the game is saved and loaded back with both quests'
 # instances waiting, and a second file makes the areas the remaining objectives wait for, so both finish in the
-# loaded game. With EI_LUA_BOTH=1 the shadow converts each quest text when QFinish loads it, resumes the loaded save's
-# program (the quests' too) by the old-save shim and converts the areas file after it; the same "@" line three times
-# is converted once (the scheduler's cache), and a "#" and a "$" line go the same way.
+# loaded game. The scheduler converts each quest text when QFinish loads it (the save's Lua state holds the quests
+# too) and the areas file after the load; the same "@" line three times is converted once (the scheduler's cache), and
+# a "#" and a "$" line go the same way.
 # prepare: make_quest_script.py
 waitmenu
 console thingamabob

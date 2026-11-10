@@ -373,34 +373,34 @@ void ReadArguments(lua_State* L, Binding* binding) {
     if (arg <= top) luaL_error(L, "%s: %d arguments, too many", binding->name, top);
 }
 
-// Every keyword but the loops, Every / Any / Sum: the call evaluated by id, as the game's executor does it.
+// Every keyword but the loops, Every / Any / Sum: the call evaluated by id (CalcFloat, CalcObject, CalcGroup,
+// CalcString, RunCommand).
 int CallBinding(lua_State* L) {
     auto* binding = static_cast<Binding*>(lua_touserdata(L, lua_upvalueindex(1)));
     ScriptLua* lua = ScriptLua::Of(L);
     Script* script = lua->script;
     ReadArguments(L, binding);
     ScriptCall& call = binding->call;
-    ScriptVars noVariables;   // a call of its own: no variables bound
     int results = 1;
     switch (binding->result) {
     case 'F':
-        lua_pushnumber(L, ToLuaNumber(call.CalcFloat(script, &noVariables)));
+        lua_pushnumber(L, ToLuaNumber(call.CalcFloat(script)));
         break;
     case 'S': {
         std::string text;
-        scriptaddon::CalcString(&call, script, &noVariables, &text);
+        scriptaddon::CalcString(&call, script, &text);
         lua_pushlstring(L, text.data(), text.size());
         break;
     }
     case 'O': {
         ScriptObjectRef* object = nullptr;
-        call.CalcObject(script, &noVariables, &object);
+        call.CalcObject(script, &object);
         PushObject(L, object->object);
         break;
     }
     case 'G': {
         ScriptGroup* group = nullptr;
-        call.CalcGroup(script, &noVariables, &group);
+        call.CalcGroup(script, &group);
         PushGroup(L, *group);
         break;
     }
@@ -922,13 +922,9 @@ ScriptLua::ScriptLua(Script* script) : script(script), state(luaL_newstate()) {
     lua_pop(L, 1);
     lua_setfield(L, LUA_REGISTRYINDEX, kBuiltinsKey);
     lua_settop(L, 0);
-    script->lua = this;
 }
 
-ScriptLua::~ScriptLua() {
-    if (script->lua == this) script->lua = nullptr;
-    lua_close(state);
-}
+ScriptLua::~ScriptLua() { lua_close(state); }
 
 ScriptLua* ScriptLua::Of(lua_State* L) { return *static_cast<ScriptLua**>(lua_getextraspace(L)); }
 

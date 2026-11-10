@@ -1,4 +1,5 @@
-// ScriptRun::Execute and RunCommand, the switch over every world script command. See docs/notes/script.md.
+// ScriptRun::RunCommand, the switch over every world script command (the Lua bindings' commands). See
+// docs/notes/script.md.
 #include "game/ai/ai_map.h"
 #include "game/items/item_manager.h"
 #include "game/app/options.h"
@@ -55,16 +56,6 @@ ScriptParticleSource* FindParticle(Script* script, int id) {
         if (source.id == id) return &source;
     return nullptr;
 }
-
-// Runs a For body in the same ScriptRun (the variables are shared).
-void RunBody(ScriptRun* run, Script* script, ScriptBlock* body) {
-    const ScriptRunPosition saved = run->position;
-    run->position = {body, 0, 0, -1};
-    run->Execute(script);
-    run->position = saved;
-}
-
-void SetLoopCounter(const ScriptCall* cmd, int i) { *cmd->objectArgs[0] = (*cmd->groupArgs[0])[static_cast<std::size_t>(i)]; }
 
 // SetCP / SetCPFast(object, x, y, z).
 void SetCP(ScriptArgs args, bool fast) {
@@ -226,22 +217,6 @@ void UnitModes(ScriptArgs args) {
 
 } // namespace
 
-bool ScriptRun::Execute(Script* script) {
-    ++position.ticks;
-    if (position.index >= std::ssize(position.block->commands)) return false;
-    vars.RemoveDeletedObjects();
-    bool goOn = true;
-    while (position.index < std::ssize(position.block->commands)) {
-        if (!goOn) return true;
-        ScriptCall* cmd = &position.block->commands[position.index];
-        cmd->PrepareArguments(script, &vars);
-        goOn = RunCommand(script, cmd);
-        script->FreeTemporaries();
-        if (goOn) ++position.index;
-    }
-    return true;
-}
-
 bool ScriptRun::RunCommand(Script* script, ScriptCall* cmd) {
     int cont = 1;
     scriptaddon::Call call{cmd, script, nullptr, &cont, this};
@@ -250,14 +225,14 @@ bool ScriptRun::RunCommand(Script* script, ScriptCall* cmd) {
     ScriptArgs args(cmd);
     const ScriptFunction function = done ? ScriptFunction::None : cmd->id;
     switch (function) {
-    case ScriptFunction::Sleep: {   // Sleep(ticks): counts this run's Execute calls from the first one
+    case ScriptFunction::Sleep: {   // Sleep(ticks): counts this run's ticks from the first one
         if (position.sleepStart < 0) position.sleepStart = position.ticks;
         int n = lib::RoundEven(args.Float());
         if (position.ticks - position.sleepStart < n) cont = 0;
         else position.sleepStart = -1;
         break;
     }
-    case ScriptFunction::WaitSegment:     // WaitSegment(ticks): until this run has been executed that often
+    case ScriptFunction::WaitSegment:     // WaitSegment(ticks): until this run has run that many ticks
         if (position.ticks < lib::RoundEven(args.Float())) cont = 0;
         break;
     case ScriptFunction::SleepUntil:     // SleepUntil(condition)
@@ -268,13 +243,6 @@ bool ScriptRun::RunCommand(Script* script, ScriptCall* cmd) {
         if (unit && unit->ServerController()->brain.action != AIAction::None) cont = 0;
         break;
     }
-    case ScriptFunction::CallScript: {   // a declared script: start an instance with the call's arguments
-        const ScriptDefinition& definition = script->definitions[static_cast<std::size_t>(cmd->target)];
-        ScriptDefinition* instance = &script->instances.emplace_front(definition);
-        instance->BindCall(cmd);
-        instance->killed = false;
-        break;
-    }
     case ScriptFunction::KillScript:
         if (!killFlag) {   // the WorldScript's: the call is left out
             game::Warning("%s", kKillScriptNotAllowed);
@@ -282,38 +250,6 @@ bool ScriptRun::RunCommand(Script* script, ScriptCall* cmd) {
         }
         *killFlag = true;
         break;
-    case ScriptFunction::For: {   // For(counter, group)(body): the group's members from last to first
-        ++script->forDepth;
-        for (int i = static_cast<int>(cmd->groupArgs[0]->size()) - 1; i >= 0; --i) {
-            SetLoopCounter(cmd, i);
-            RunBody(this, script, cmd->body);
-        }
-        --script->forDepth;
-        break;
-    }
-    case ScriptFunction::ForIf: {   // ForIf(counter, group, condition)(body)
-        ++script->forDepth;
-        const ScriptSubCall* condition = cmd->ConditionCall();
-        for (int i = static_cast<int>(cmd->groupArgs[0]->size()) - 1; i >= 0; --i) {
-            SetLoopCounter(cmd, i);
-            if (condition) cmd->CalcParameters(script, &vars, condition);
-            if (!IsZero(cmd->floatArgs[0])) RunBody(this, script, cmd->body);
-        }
-        --script->forDepth;
-        break;
-    }
-    case ScriptFunction::Assign: {   // global = value
-        ScriptVars* globals = &script->globals;
-        const std::size_t index = static_cast<std::size_t>(cmd->target);
-        switch (cmd->targetType) {
-        case ScriptType::Float: globals->floats.values[index] = args.Float(); break;
-        case ScriptType::String: globals->strings.values[index] = args.Text(); break;
-        case ScriptType::Object: globals->objects.values[index] = args.Object(); break;
-        case ScriptType::Group: globals->groups.values[index] = *args.Group(); break;
-        default: break;   // a loaded save's unknown type
-        }
-        break;
-    }
 
     case ScriptFunction::AddObject: {   // AddObject(group, object)
         ScriptGroup* group = args.Group();

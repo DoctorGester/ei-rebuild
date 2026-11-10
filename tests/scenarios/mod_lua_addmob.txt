@@ -1,9 +1,7 @@
-# An AddMob'd .mob with a .lua beside it, loaded into zone 1's mission script while it runs on the old executor
-# (docs/notes/mods.md, "Scripts in Lua"; tools/make_lua_mod.py addmob): Script::LoadLua puts the script on the Lua
-# scheduler, the old-save shim takes the zone's program and state over (its globals, instances and waiting runs), and
-# the .lua runs in place of the .mob's script (the .mob, one of zone 1's map objects renumbered by make_trap_mob.py,
-# has none). Its WorldScript prints a line with two of the zone's globals (Heroes, Ogre: the shim gave them their
-# values), starts a definition of its own that prints when its count reaches 3, and counts every 20 ticks into the game
+# An AddMob'd .mob with a .lua beside it, loaded into zone 1's mission script while it runs (docs/notes/mods.md,
+# "Scripts in Lua"; tools/make_lua_mod.py addmob): Script::LoadLua loads the .lua into the zone's scheduler in place
+# of the .mob's script (the .mob, one of zone 1's map objects renumbered by make_trap_mob.py, has none). Its
+# WorldScript prints a line with two of the zone's globals (Heroes, Ogre: the zone's script set them), starts a definition of its own that prints when its count reaches 3, and counts every 20 ticks into the game
 # variable l8b.count. The game is saved and loaded: the count goes on from the saved coroutine (a restarted one would
 # count from 1 again), and the zone's script with it.
 # prepare: make_trap_mob.py --zone zone1 --kind B001 --first-id 30200 --count 1 --out l8b_addmob.mob

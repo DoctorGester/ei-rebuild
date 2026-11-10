@@ -76,9 +76,6 @@ void AddResolved(const scriptir::File& file, std::string& key) {
 
 ScriptLuaScheduler::ScriptLuaScheduler(Script* script) : lua(script), script(script), L(lua.State()) {
     lua.startScript = [this](lua_State* from) { Start(from); };
-    lua.loadText = [this](const scriptir::File& file, std::string_view text, bool runWorldScript, std::string* error) {
-        return LoadText(file, text, runWorldScript, error);
-    };
     report = [](const std::string& message) {
         console::EndLine(console::g_consoleOut << "Script error: " << message);
     };
@@ -86,7 +83,6 @@ ScriptLuaScheduler::ScriptLuaScheduler(Script* script) : lua(script), script(scr
 
 ScriptLuaScheduler::~ScriptLuaScheduler() {
     lua.startScript = nullptr;
-    lua.loadText = nullptr;
     for (const Run& run : runs) Release(run);
     for (const Instance& instance : instances) luaL_unref(L, LUA_REGISTRYINDEX, instance.values);
     for (int start : worldScripts) luaL_unref(L, LUA_REGISTRYINDEX, start);
@@ -163,18 +159,6 @@ void ScriptLuaScheduler::Tick() {
     // drop of the instances' and the globals' deleted objects.
     lua.RemoveDeletedObjects();
     script->TickEffects();
-}
-
-std::vector<const void*> ScriptLuaScheduler::InstanceDefinitions() const {
-    std::vector<const void*> definitions;
-    definitions.reserve(instances.size());
-    for (const Instance& instance : instances) {
-        lua_rawgeti(L, LUA_REGISTRYINDEX, instance.values);
-        lua_rawgeti(L, -1, 1);
-        definitions.push_back(lua_topointer(L, -1));
-        lua_pop(L, 2);
-    }
-    return definitions;
 }
 
 // The persisted table: { globals = ..., types = ..., names = (SaveNames), texts = n, instances = { { values, count, killed }... }, runs = { {

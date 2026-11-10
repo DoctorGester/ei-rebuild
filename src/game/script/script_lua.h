@@ -3,9 +3,8 @@
 // The mission scripts' Lua runtime (docs/notes/lua-scripting.md, "Bindings"): a Lua 5.3 state (third_party/eris) with
 // every command and function of the keyword table bound under a readable Lua name, each calling the same CalcFloat /
 // CalcObject / CalcGroup / RunCommand code by id; objects and groups as userdata over ScriptObjectRef / ScriptGroup;
-// the state persisted with Eris. The scheduler of Script::Tick's order runs converted scripts on it
-// (script_lua_scheduler.h); the game runs a mission script on it when a .lua stands for the .mob's script
-// (Script::LoadLua) and as the lockstep shadow (EI_LUA_BOTH).
+// the state persisted with Eris. The scheduler of Script::Tick's order runs every world script on it
+// (script_lua_scheduler.h).
 
 #include <functional>
 #include <string>
@@ -48,8 +47,7 @@ ScriptGroup* CheckGroup(lua_State* L, int index);
 
 class ScriptLua {
 public:
-    // The bindings run against `script` (its temporaries, effects, quest builder; RunCommand's script), which
-    // purges this runtime's values with its own (Script::lua).
+    // The bindings run against `script` (its temporaries, effects, quest builder; RunCommand's script).
     explicit ScriptLua(Script* script);
     ~ScriptLua();
     ScriptLua(const ScriptLua&) = delete;
@@ -79,8 +77,7 @@ public:
     // Every global a GlobalVars table declared, with its type (in no order).
     std::vector<std::pair<std::string, ScriptType>> GlobalTypes();
 
-    // Every object and group value Lua holds drops deleted objects (what Script::PurgeDeletedObjects and the tick do
-    // to the script's variables).
+    // Every object and group value Lua holds drops deleted objects (Script::PurgeDeletedObjects and the tick).
     void RemoveDeletedObjects();
 
     // Eris: the value on top of the stack persisted into *data (popped), or the value of `data` pushed. The
@@ -99,9 +96,6 @@ public:
     // Starts an instance of a definition (a call of a `Script { ... }` value), the definition and the call's arguments
     // on the stack; the scheduler's. Without one a call is a Lua error.
     std::function<void(lua_State* L)> startScript;
-    // Takes every text Script::Load loads into `script` (its tree, its #define-expanded text, whether its WorldScript
-    // starts): the scheduler's runtime conversion (ScriptLuaScheduler::LoadText). False with the message in *error.
-    std::function<bool(const scriptir::File& file, std::string_view text, bool runWorldScript, std::string* error)> loadText;
     int bindingCount = 0;               // the keywords bound (276)
     ScriptObjectRef noObject;           // the argument a nil object passes; stays null
     // The live object and group values (their userdata link themselves in; RemoveDeletedObjects walks them).

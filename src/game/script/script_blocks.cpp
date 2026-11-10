@@ -79,7 +79,6 @@ void Script::Reset() {
     DropInstancesAndRuns();
     worldBlocks.clear();
     globals.Clear();
-    forDepth = 0;
     FreeTemporaries();
 
     // Point lights: objects dropped, slots zeroed.

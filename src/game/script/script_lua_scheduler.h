@@ -2,11 +2,10 @@
 
 // The scheduler of converted Lua scripts (docs/notes/lua-scripting.md, "Scheduler"): Script::Tick's order on a
 // ScriptLua state. The waiting runs (coroutines) continue, then every instance checks its rules, then the deleted
-// objects are dropped, the script's timed effects run and the temporaries are freed. The game runs a mission script on
-// it when a .lua stands for the .mob's script (Script::LoadLua, script_lua_mission.cpp) and as the lockstep shadow
-// (script_lua_shadow.h). Every text Script::Load loads into its script comes to it (LoadText: the
-// mission, AddMob'd mobs, QFinish's quest scripts, console lines, execs files), converted at once in the names of
-// the texts before it. Its whole state persists with Eris (Save, Restore), and an old-format save's script state
+// objects are dropped, the script's timed effects run and the temporaries are freed. Every world script runs on one
+// (Script::runner). Every text Script::Load loads into its script comes to it (LoadText: the mission, AddMob'd mobs,
+// QFinish's quest scripts, console lines, execs files), converted at once in the names of the texts before it; a .lua
+// that stands for a .mob's script is loaded as it is (Script::LoadLua, script_lua_mission.cpp). Its whole state persists with Eris (Save, Restore), and an old-format save's script state
 // (Script::LoadState) resumes in it through the old-save shim (Resume, script_lua_resume.cpp).
 
 #include "game/script/script_lua.h"
@@ -22,7 +21,7 @@
 class ScriptLuaScheduler {
 public:
     // Converted texts run against `script` (its effects and temporaries; the bindings' script), which hands this
-    // scheduler every text it loads (ScriptLua::loadText).
+    // scheduler every text it loads (Script::Load).
     explicit ScriptLuaScheduler(Script* script);
     ~ScriptLuaScheduler();
     ScriptLuaScheduler(const ScriptLuaScheduler&) = delete;
@@ -56,11 +55,6 @@ public:
     // every text's WorldScript started again (the first loaded at the end of the list, so the last runs first).
     void ResetZone();
 
-    std::size_t InstanceCount() const { return instances.size(); }
-    std::size_t RunCount() const { return runs.size(); }
-    // The lockstep's (tools/convert/lua_both.h), in list order: each instance's definition (its `Script { ... }`
-    // table, as lua_topointer gives it).
-    std::vector<const void*> InstanceDefinitions() const;
     // Script::InstanceViews and RunViews on Lua (script_lua_mission.cpp), in list order: a definition by the tree's
     // name (else the name of a global holding it, else empty); the values as the definition's variables when the script
     // has it (its parameters set), else each by its own type (a number a float, nil an object).
