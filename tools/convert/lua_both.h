@@ -3,8 +3,10 @@
 // Script texts run both ways (docs/notes/lua-scripting.md, "Lockstep"): by the game's executor (Script::Load,
 // Script::Tick) and as their converted Lua (script_lua_writer.h) under the game's Lua scheduler
 // (script_lua_scheduler.h), every global (floats by their bits; loop counters the Lua does not write left out), the
-// instance and waiting-run counts and the random generator compared after every tick. Part of ei-convert --lua-check
-// (short texts on lua_check's world of three stones) and of --scripts --lockstep (every text of the survey).
+// instances (by definition), the waiting-run count and the random generator compared after every tick. The Lua side
+// loads its texts as the game does (Script::Load, which hands each to the scheduler's runtime conversion), QFinish's
+// quest scripts included. Part of ei-convert --lua-check (short texts on lua_check's world of three stones) and of
+// --scripts --lockstep (every text of the survey).
 
 #include <cstddef>
 #include <string>
@@ -15,14 +17,13 @@ namespace lua_both {
 // A text loaded into the script before the tick of its number.
 struct Text {
     int tick = 0;
-    std::string name;   // the Lua chunk's
     std::string text;
 };
 
 struct Outcome {
     std::string difference;   // the first one (or a Lua error), with its tick; empty when every tick matched
     int ticks = 0;            // compared
-    // The game loaded a text of its own (QFinish's quest script; L7 runs it in Lua): compared up to that tick.
+    // The game loaded a text of its own (QFinish's quest script; the Lua side's QFinish converts it at once).
     bool questLoaded = false;
     // Not run: a keyword the test world cannot run (PlayMovie, PlayCamera: the game's data or window), named here.
     std::string leftOut;

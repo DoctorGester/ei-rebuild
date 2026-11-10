@@ -58,7 +58,7 @@ struct RunBlock {
 
 }   // namespace
 
-bool ScriptLuaScheduler::Resume(const Script& saved, scriptlua::LuaNames& names, std::string* text, std::string* error) {
+bool ScriptLuaScheduler::Resume(const Script& saved, std::string* text, std::string* error) {
     scriptir::File file;
     if (!scriptir::Loaded(saved, &file, error)) return false;
     const scriptlua::LuaText program = scriptlua::WriteLua(file, names, "the saved program");

@@ -217,6 +217,7 @@ enum class ScriptParseError : int {
     DuplicateScript = 15,
     MultipleDeclaration = 16,
     CannotRead = 17,
+    Lua = 18,               // ours: the text's converted Lua did not load (the Lua runtime's, ScriptLua::loadText)
 };
 
 class Script;
@@ -709,7 +710,9 @@ public:
     // Commands up to ')'; null `locals` means an empty variable set (the WorldScript). A For body sees the
     // enclosing `locals`.
     bool LoadCommands(std::vector<ScriptCall>* commands, TokenReader* tokens, ScriptVars* locals, scriptir::Block& block);
-    // The text is replaced by its #define-expanded form. The parse tree goes to `ir` when given.
+    // The text is replaced by its #define-expanded form. The parse tree goes to `ir` when given. With a Lua runtime
+    // that takes the script's texts (ScriptLua::loadText) the tree is converted and loaded into it, and the
+    // WorldScript starts there, not here; its failure is error 18 with the Lua's message.
     bool Load(std::string* text, bool runWorldScript, scriptir::File* ir = nullptr);
     // Load's preprocessing and sections; false on the first error.
     bool Parse(std::string* text, bool runWorldScript, scriptir::File& out);
@@ -767,7 +770,8 @@ public:
     ScriptParseError errorCode = ScriptParseError::None;
     int errorLine = 0;
     ScriptQuestBuilder quest;   // Reset leaves it
-    // The Lua runtime bound to this script (the last one made on it), whose values PurgeDeletedObjects purges too.
+    // The Lua runtime bound to this script (the last one made on it), whose values PurgeDeletedObjects purges too,
+    // and which Load hands every text to when it takes them (its loadText).
     ScriptLua* lua = nullptr;
     // The lockstep shadow running this script's converted Lua beside it (script_lua_shadow.h; EI_LUA_BOTH), or the
     // shadow whose Lua runs on this script; null in the game.

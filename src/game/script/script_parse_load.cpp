@@ -5,6 +5,7 @@
 #include "game/script/script_parse.h"
 #include "game/script/script_addon.h"
 #include "game/script/script_ir.h"
+#include "game/script/script_lua.h"
 #include "game/script/script_lua_shadow.h"
 
 #include "lib/crt.h"
@@ -359,9 +360,20 @@ bool Script::Load(std::string* text, bool runWorldScript, scriptir::File* ir) {
     scriptir::File& out = ir ? *ir : own;
     out = scriptir::File{};
     out.fileCount = fileCount;
-    out.ok = Parse(text, runWorldScript, out);
+    const bool toLua = lua && lua->loadText;
+    out.ok = Parse(text, runWorldScript && !toLua, out);
     if (!out.ok) GetError(&out.error);
-    if (shadow) shadow->Loaded(this, out, runWorldScript);
+    if (shadow) shadow->Loaded(this, out, *text, runWorldScript);
+    if (toLua) {
+        std::string error;
+        if (!lua->loadText(out, *text, runWorldScript, &error) && out.ok) {
+            errorLine = 0;
+            errorCode = ScriptParseError::Lua;
+            errorText = error;
+            out.ok = false;
+            GetError(&out.error);
+        }
+    }
     return out.ok;
 }
 

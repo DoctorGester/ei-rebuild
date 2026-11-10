@@ -404,9 +404,10 @@ Su1 = Script {
 ## Scheduler
 
 What exists (L4): `src/game/script/script_lua_scheduler.h` (`ScriptLuaScheduler`), owning a `ScriptLua` on a
-`Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript`. The game makes
-one only beside each world script for the lockstep ("Lockstep in the game"); making it the only path and writing its
-state into saves come later ("Saves"). Checked both ways ("Lockstep", "Lockstep in the game").
+`Script` (whose effects, temporaries and quest builder the bindings use) and filling its `startScript` and
+`loadText` (every text the script loads comes to it: "Texts at runtime"). The game makes one only beside each world
+script for the lockstep ("Lockstep in the game"); making it the only path and writing its state into saves come later
+("Saves"). Checked both ways ("Lockstep", "Lockstep in the game").
 
 - **Load(text, name, runWorldScript).** The chunk runs; its `WorldScript` is taken out of the globals and kept (load
   order) for the zone reset, and with `runWorldScript` started as a run at the head of the list, first resumed by the
@@ -431,8 +432,8 @@ state into saves come later ("Saves"). Checked both ways ("Lockstep", "Lockstep 
 - **ResetZone()**: instances and runs dropped, `Script::ResetEffects` (the For depth, temporaries and every effect),
   `ScriptLua::ResetGlobals` (every declared global zeroed), every text's WorldScript started again in load order, each
   at the head (the last loaded runs first).
-- **Errors.** A Lua error ends its run (a failed condition does not hold); the messages go to `errors` (the caller
-  empties it; the lockstep fails on the first).
+- **Errors.** A Lua error ends its run (a failed condition does not hold); its message goes to `report`, by default
+  the console's `Script error: <chunk>:<line>: <message>` (the lockstep's own report fails on the first).
 
 ## Saves
 
@@ -452,7 +453,9 @@ with `--saves` ("Lockstep") and in the game by the shadow ("Lockstep in the game
   - `runs` in list order: the coroutine (false for a run that ended: no thread, dropped by the next tick), the tick
     count and sleep start (the C++ side of the position), the arguments not yet passed (a WorldScript's run not
     resumed yet), the index of the instance its kill flag names (-1);
-  - `worlds`: every text's WorldScript, for the zone reset.
+  - `worlds`: every text's WorldScript, for the zone reset;
+  - `names`: the Lua names of the texts converted so far (`scriptlua::SaveNames`, a string), so that a text loaded
+    after a restore (a quest, a console line) finds the earlier ones; `texts`, their count (the chunk names).
 
   An instance shares its definition table with the global in the data, so a restored state keeps one table per
   definition. Restore needs a scheduler that has loaded nothing. Closures persist with their prototypes (Eris), so the
@@ -483,13 +486,52 @@ with `--saves` ("Lockstep") and in the game by the shadow ("Lockstep in the game
   run waits only at a top-level command, the rest of its block is exactly the statements after it, so a function of
   those statements resumes it; once running it is an ordinary coroutine (Eris persists its closure like any other),
   and it ends with its block, so a later save holds no shim but those still waiting.
-- **Not yet**: Lua in the save files (behind an option, then the only form), mods' coroutines (L8), quest texts (L7).
+- **Not yet**: Lua in the save files (behind an option, then the only form), mods' coroutines (L8).
+
+## Texts at runtime
+
+What exists (L7): every text a script loads while the game runs goes through `Script::Load`, and with a Lua runtime
+that takes them (`ScriptLua::loadText`, which the scheduler sets) the parse tree goes on to the scheduler at once. The
+texts: QFinish's quest script (script_exec.cpp: built from the QStart / QObj* calls, loaded into the script that runs
+it), the console's `@` / `#` / `$` lines (`WorldScript(x)`, `WorldScript( ConsoleFloat( x ))`, `WorldScript(
+ConsoleString( x ))` into the world's second script, console.cpp), Rebirth's `execs` files (`LoadFile` into the
+mission script, console_addon.cpp), AddMob'd mobs and the engine's texts. In the game nothing takes them yet (the
+shadow converts through the same `Convert`, "Lockstep in the game"); lua_both's Lua side does ("Lockstep").
+
+- **Script::Load** parses as before (the parser stays the front end: its declarations resolve the next text's names);
+  with `loadText` the executor starts no WorldScript run of its own, and `ScriptLuaScheduler::LoadText` converts the
+  tree and loads the chunk, its WorldScript started unless the parser stopped in the text.
+- **Convert(file, text)**: `WriteLua` in the scheduler's `names` (the earlier texts' Lua names), the chunk `text<N>`
+  by the texts converted so far. **Cached per text**: a conversion that leaves the names as they were (sizes of every
+  set and map the writer adds to, and the sum of the WorldScript assignment counts) is kept by its key, the
+  #define-expanded text and the names its tree resolved (globals, parameters, script calls and assignment targets,
+  declarations, the parse error); the same key again takes the Lua from the cache with a new header line (block ids,
+  which differ on every load, are not in the key: the Lua does not hold them). A conversion that changes the names
+  empties the cache. So a console line that declares and assigns nothing is written once; a quest text, which
+  declares its Su scripts, never comes from the cache.
+- **Two quests in one script.** QFinish's text declares plain names (`Su0` .. `SuN`); the parser qualifies them with the
+  file counter (`!2!Su0`, `!3!Su0` for a second quest) and the second's calls (`Su1()`) resolve to its own (the plain
+  name first, then the qualified one); the Lua names are `Su0`, `Su0_2` (the suffix rule), and its calls `Su1_2()`.
+  The objectives' conditions read the mission's `i` and `Heroes`, which a console line's script lacks (script_quest's
+  quests fail to parse there, quietly, as the game's).
+- **Errors**: a Lua load failure is Script::Load's error 18 (`ScriptParseError::Lua`) with the Lua's message, so the
+  console line's `Script error: <message>`, execs' `Script error: line 0: <message>` and the zone's `Script error:
+  <zone>.mob line 0: ...` report it as they report parse errors; a run's or condition's Lua error goes to the
+  scheduler's `report` (the console's `Script error: ...`).
+- **Saves after a quest**: an Eris save keeps the names (above); an old-format save resumes by the shim from the saved
+  program, the quest texts' blocks included, and a later text converts in the names the shim gave.
+- **Checks**: `--lua-check`'s case `quests` (two quests built by QFinish into one script, the areas made later, console
+  lines declaring nothing loaded again) both ways with a save at every tick, and its runtime checks (the cache, a run's
+  error reported, a load failure as error 18); the corpus lockstep past each network quest's QFinish; in the game
+  `script_quest_save` (two quests from an execs file into the mission script, a save and load with both waiting,
+  then an execs file that finishes them, console lines repeated), with the counts in "Lockstep in the game".
 
 ## Lockstep
 
 `tools/convert/lua_both.h` (`lua_both::Compare`) runs the texts of one script both ways, by the game's executor
-(Script::Load, Script::Tick) and as their Lua (each text written from its tree, `WriteLua`) under the scheduler, and
-after every tick compares the instance and waiting-run counts, the random generator's draws so far and every global
+(Script::Load, Script::Tick) and as their Lua (each text converted at its load, "Texts at runtime") under the
+scheduler, and after every tick compares the instances (by definition), the waiting-run count, the random generator's
+draws so far and every global
 (floats by their bits; a declaration never found and the loop counters the Lua does not write left out). The random
 generator starts the same on both sides and is back as it was at the end.
 
@@ -499,8 +541,9 @@ generator starts the same on both sides and is back as it was at the end.
   no spells). A file an AddMob names is marked loaded (the script's texts are loaded already). A script that uses
   PlayMovie, PlayCamera, Rebirth's AddMobEx (it loads the file again), GSListPlayerVars (it needs its player) or an
   AddMob of a computed name is left out.
-- **A quest text.** When the game loads a text of its own (QFinish's quest script: the Lua side does not run it yet,
-  L7), the compare stops at the tick before.
+- **The Lua side** loads its texts as the game does: its own script parses each text and hands it to the scheduler
+  (Script::Load, "Texts at runtime"), and its own QFinish builds and converts the quest scripts. After every tick the
+  instances are compared by definition too (each instance's tree name, in list order).
 - **The corpus**: `ei-convert --scripts <installs> --scenarios tests\scenarios --lockstep <ticks>` runs every script
   of the survey (a mission with the missions it loads after and its quest texts at tick 0, an engine text after its
   mission, the samples, a scenario's console lines one per tick) and lists the ones that differ; the build check runs

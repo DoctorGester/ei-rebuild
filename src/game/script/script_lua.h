@@ -100,6 +100,9 @@ public:
     // Starts an instance of a definition (a call of a `Script { ... }` value), the definition and the call's arguments
     // on the stack; the scheduler's. Without one a call is a Lua error.
     std::function<void(lua_State* L)> startScript;
+    // Takes every text Script::Load loads into `script` (its tree, its #define-expanded text, whether its WorldScript
+    // starts): the scheduler's runtime conversion (ScriptLuaScheduler::LoadText). False with the message in *error.
+    std::function<bool(const scriptir::File& file, std::string_view text, bool runWorldScript, std::string* error)> loadText;
     int bindingCount = 0;               // the keywords bound (276)
     ScriptObjectRef noObject;           // the argument a nil object passes; stays null
     // The live object and group values (their userdata link themselves in; RemoveDeletedObjects walks them).
