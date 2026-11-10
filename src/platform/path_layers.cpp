@@ -55,6 +55,7 @@ bool InFolder(std::string_view relative, std::string_view folder) {
 }
 
 constexpr std::string_view kSaves = "saves";
+constexpr std::string_view kHeroes = "mp";   // the multiplayer heroes' folder: a mod's own, below its saves
 
 std::atomic<const Mod*> g_mod{nullptr};
 
@@ -148,12 +149,15 @@ std::string PathLayers::Map(std::string_view path, PathUse use, Placed* placed) 
     const std::string full = FullGamePath(path);
     std::string relative;
     if (full.empty() || !Relative(full, &relative)) return std::string(path);
-    if (!saves.empty() && InFolder(relative, kSaves)) {
+    const bool inSaves = !saves.empty() && InFolder(relative, kSaves);
+    if (inSaves || (!saves.empty() && InFolder(relative, kHeroes))) {
         if (placed) *placed = Placed::Saves;
         if (use != PathUse::Read && !Exists(saves)) {
             std::error_code error;
             fs::create_directories(NativePath(saves), error);
         }
+        // mp\ is saves\<mod>\mp\, beside the saves: a hero keeps the items of the mod it was made under.
+        if (!inSaves) return Joined(saves, std::string(kHeroes) + relative.substr(kHeroes.size()));
         return Joined(saves, std::string_view(relative).substr(std::min(relative.size(), kSaves.size() + 1)));
     }
     // A read, or the game's write: the top layer that has the file.
@@ -192,7 +196,8 @@ std::vector<FolderSearch> PathLayers::Searches(std::string_view pattern) const {
     const std::string_view mask = slash == std::string_view::npos ? pattern : pattern.substr(slash + 1);
     const std::string full = FullGamePath(folder);
     std::string relative;
-    if (full.empty() || !Relative(full, &relative) || (!saves.empty() && InFolder(relative, kSaves)))
+    if (full.empty() || !Relative(full, &relative) ||
+        (!saves.empty() && (InFolder(relative, kSaves) || InFolder(relative, kHeroes))))
         return {{Map(pattern, PathUse::Read), {}}};
     std::vector<FolderSearch> searches;
     const std::string relativePattern = Joined(relative, mask);
@@ -243,7 +248,7 @@ bool SwitchMod(std::string_view gameFolder, std::string_view modFolder) {
     mod->map.saves = Joined(Joined(game, kSaves), mod->name);
     mod->map.layers = {mod->layer};
     if (InZip(folder)) {
-        // A zip is read only: what the game writes for it (config	utorial.ini, addrbook.ini) is kept in the mod's
+        // A zip is read only: what the game writes for it (config\tutorial.ini, addrbook.ini) is kept in the mod's
         // saves folder, standing over the zip.
         mod->layer.readOnly = true;
         PathLayer written;

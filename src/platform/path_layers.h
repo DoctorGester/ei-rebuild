@@ -51,7 +51,7 @@ public:
     // `copiesUp` allows it); else each write goes to the top layer that has the file, or to the game folder.
     bool writesToTop = false;
     std::function<bool(std::string_view relative, const std::string& from)> copiesUp;
-    // Where the game folder's saves\ is (empty: in the game folder).
+    // Where the game folder's saves\ is (empty: in the game folder); its mp\ (the multiplayer heroes) is saves\mp\.
     std::string saves;
 
     // What Map did with a path.

@@ -61,8 +61,12 @@ harness's overlay"); with a mod, or in a harness run, that is a `PathLayers` map
   file from the first layer below that has it (or the game's), as `copiesUp` allows; without (the game) the top layer
   that has the file, else the path itself: a mod's file is changed in the mod's folder, the game's own in the game
   folder.
-- The game folder's `saves\` is `saves` (the folder made at the first write). A path already in the saves' folder or
-  the written top layer is not mapped again.
+- The game folder's `saves\` is `saves` (the folder made at the first write), and its `mp\` (the multiplayer heroes:
+  the hero screen's list, hero create / rename / delete, the hosted game's party, `temp.mp`; every one reaches it as
+  `g_dataFolder + "mp\"`, so the one rule here covers them all) is `saves\mp` beside it: a hero that got a mod's item
+  must not break the hero list of the game without it (the user's bug, 2026-11-10; Rebirth's addon.dll redirects `mp\`
+  per mod the same way, "Set Addon path for: mp\*"). With no mod there is no map: `mp\` is the game's. A path already
+  in the saves' folder or the written top layer is not mapped again.
 - Folder searches (`SystemSearches`): each layer's folder of the pattern that exists, top first, then the game's; a
   name an upper layer found hides the same name below it (Windows' case rules), and when more than one layer found
   names they are sorted by name (NTFS's order). An owning layer's search is the only one (the harness's mp\). An entry's
@@ -89,7 +93,8 @@ own.
 
 ### The harness
 
-The harness's map (harness.cpp, `Layers`): the run's overlay (`harness_saves`) on top (owns `mp\` and the "hidefile"
+The harness's map (harness.cpp, `Layers`): the run's overlay (`harness_saves`) on top (`mp\` is the map's `saves\mp`:
+`harness_saves\mp\` with no mod, `harness_saves\<mod>\mp\` with one, never the install's; it owns the "hidefile"
 files; writes go there, copied up unless a log or over 16 MB), the pinned key bindings and address book
 (harness_settings.h) below it, the mod's layer under those; the saves `harness_saves\` (with a mod
 `harness_saves\<mod>\`). Around the map MapPath keeps its own rules: `config\movie.ini` and recorded play's movies
@@ -430,6 +435,9 @@ makes that call and then `TemplateTable::Build(this + 0x38, 1)`; and the byte 0x
 - `mod_lost_in_astral` (Rebirth's data): with Lost in Astral the main menu's zone (ZoneMainMenuNew) and the new game's
   (gz1g, the mod's zonezero) and `config\ai.reg` are the mod's, and the autosave goes to
   `harness_saves\LostInAstral\savea`. On the vanilla data the folder is missing: logged, the game without a mod.
+- `mod_heroes` (both installs; tools/make_mp_hero.py `--mod`): a hero prepared in the mod's `mp\` and one in the game's;
+  the hero screen (it logs `heroes: <n> listed <files>`) lists only the mod's under the mod, then after a switch to no
+  mod only the game's. `rebirth_mod_zone_table` hosts a game with a mod: its hero is the mod's (`--mod s19d_mod`).
 - Every other scenario has no mod: the overlay's map with two layers gives the paths MapPath gave before (the goldens
   the same).
 
@@ -469,7 +477,7 @@ only).
 GameMain's game half is two functions that the program's start, its exit and a switch all run:
 - `StartGame(openDisplay)`: `GameFlow::Restart` (the zone table, the quest folders and quest text files forgotten, the
   databases "database.res"), `g_logicSettings.Load` (the defaults, then config\ai.reg), both worlds' `Create`, the
-  camera's `Init`, the saves, mp and textures folders, `OpenSound`, `LoadDatabases` (each database emptied, then
+  camera's `Init`, the saves, mp (with a mod `saves\<mod>\mp`, made again after each switch) and textures folders, `OpenSound`, `LoadDatabases` (each database emptied, then
   loaded), `g_mapDatabase.LoadAll` (emptied first), then `openDisplay` (the program's start only: the disk-space check,
   the window, the renderer, its gamma and the start movies), the sun (`SceneRenderer::AddDefaultLight`: a light of the
   client world's light factory, so made with each world, no longer by `CreateRenderer`), `SetUpGraphics`,
@@ -562,6 +570,11 @@ catches state, not stale files); a fatal error in the new mod's files (a missing
 the start.
 
 ## Open questions
+
+- Other per-user files still shared by every mod (MOD13's audit, nothing in them can break a game): `config\addrbook.ini`
+  (the connection screen's addresses), `config\keyboard.ini`, `config\tutorial.ini` (help topics seen): a write goes to
+  the game's `config\` unless the mod ships the file (a zip mod's go to `saves\<mod>\files\`), and `textures\` (the
+  user's loose .bmp textures over the archived ones: meant for every mod). Say so if a mod should have its own.
 
 - `[MOD] Single` / `Multi`: the menu's list shows them as a label only; whether Rebirth's starter hides or refuses a
   mod in the other kind of game is not known.

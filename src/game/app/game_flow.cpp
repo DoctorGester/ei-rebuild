@@ -45,6 +45,7 @@
 #include "lib/calendar.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "platform/log.h"
 #include "platform/platform.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
@@ -1241,6 +1242,9 @@ void SavedParties::Reload() {
             }
         }
     }
+    std::string files;
+    for (const MpHeroRecord& entry : entries) files += " " + entry.file;
+    ei::Log("heroes: %d listed%s", static_cast<int>(entries.size()), files.c_str());
 }
 
 void GameFlow::Restart() {

@@ -7,7 +7,7 @@
 # (tests/verify/harness_modtrace.h).
 # The steps are net_zone_vars' as far as the hosted game's briefing (a prepared hero, tools/make_mp_hero.py, the connection
 # screen's host buttons); the zone itself is not played.
-# prepare: make_mp_hero.py --stats 1000 60 60 --skills 60 --damage 300 --absorb 100
+# prepare: make_mp_hero.py --mod s19d_mod --stats 1000 60 60 --skills 60 --damage 300 --absorb 100
 # prepare: make_mod_s19d.py maps
 mod harness_saves\s19d_mod
 timeout 120
